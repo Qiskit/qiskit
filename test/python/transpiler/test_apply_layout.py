@@ -15,6 +15,7 @@
 import unittest
 
 from qiskit.circuit import QuantumRegister, QuantumCircuit, ClassicalRegister
+from qiskit.circuit.classical import expr, types
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.passes import ApplyLayout, SetLayout
@@ -166,6 +167,31 @@ class TestApplyLayout(QiskitTestCase):
                 }
             ),
         )
+
+    def test_works_with_var_nodes(self):
+        """Test that standalone var nodes work."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Uint(8))
+
+        qc = QuantumCircuit(2, 2, inputs=[a])
+        qc.add_var(b, 12)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure([0, 1], [0, 1])
+        qc.store(a, expr.bit_and(a, expr.bit_xor(qc.clbits[0], qc.clbits[1])))
+
+        expected = QuantumCircuit(QuantumRegister(2, "q"), *qc.cregs, inputs=[a])
+        expected.add_var(b, 12)
+        expected.h(1)
+        expected.cx(1, 0)
+        expected.measure([1, 0], [0, 1])
+        expected.store(a, expr.bit_and(a, expr.bit_xor(qc.clbits[0], qc.clbits[1])))
+
+        pass_ = ApplyLayout()
+        pass_.property_set["layout"] = Layout(dict(enumerate(reversed(qc.qubits))))
+        after = pass_(qc)
+
+        self.assertEqual(after, expected)
 
 
 if __name__ == "__main__":

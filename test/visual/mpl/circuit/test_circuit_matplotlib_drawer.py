@@ -47,7 +47,7 @@ from qiskit.circuit.annotated_operation import (
 )
 from qiskit.circuit import Parameter, Qubit, Clbit, IfElseOp, SwitchCaseOp
 from qiskit.circuit.library import IQP
-from qiskit.circuit.classical import expr
+from qiskit.circuit.classical import expr, types
 from qiskit.quantum_info import random_clifford
 from qiskit.quantum_info.random import random_unitary
 from qiskit.utils import optionals
@@ -124,12 +124,13 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
 
         from qiskit import pulse
 
-        with pulse.build(name="hadamard") as h_q0:
-            pulse.play(
-                pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.DriveChannel(0)
-            )
+        with self.assertWarns(DeprecationWarning):
+            with pulse.build(name="hadamard") as h_q0:
+                pulse.play(
+                    pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.DriveChannel(0)
+                )
 
-        circuit.add_calibration("h", [0], h_q0)
+            circuit.add_calibration("h", [0], h_q0)
 
         fname = "calibrations.png"
         self.circuit_drawer(circuit, output="mpl", filename=fname)
@@ -154,19 +155,20 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
 
         from qiskit import pulse
 
-        with pulse.build(name="cnot") as cx_q01:
-            pulse.play(
-                pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.DriveChannel(1)
-            )
+        with self.assertWarns(DeprecationWarning):
+            with pulse.build(name="cnot") as cx_q01:
+                pulse.play(
+                    pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.DriveChannel(1)
+                )
 
-        circuit.add_calibration("cx", [0, 1], cx_q01)
+            circuit.add_calibration("cx", [0, 1], cx_q01)
 
-        with pulse.build(name="ch") as ch_q01:
-            pulse.play(
-                pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.DriveChannel(1)
-            )
+            with pulse.build(name="ch") as ch_q01:
+                pulse.play(
+                    pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.DriveChannel(1)
+                )
 
-        circuit.add_calibration("ch", [0, 1], ch_q01)
+            circuit.add_calibration("ch", [0, 1], ch_q01)
 
         fname = "calibrations_with_control_gates.png"
         self.circuit_drawer(circuit, output="mpl", filename=fname)
@@ -191,19 +193,20 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
 
         from qiskit import pulse
 
-        with pulse.build(name="swap") as swap_q01:
-            pulse.play(
-                pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.DriveChannel(1)
-            )
+        with self.assertWarns(DeprecationWarning):
+            with pulse.build(name="swap") as swap_q01:
+                pulse.play(
+                    pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.DriveChannel(1)
+                )
 
-        circuit.add_calibration("swap", [0, 1], swap_q01)
+            circuit.add_calibration("swap", [0, 1], swap_q01)
 
-        with pulse.build(name="reset") as reset_q0:
-            pulse.play(
-                pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.DriveChannel(1)
-            )
+            with pulse.build(name="reset") as reset_q0:
+                pulse.play(
+                    pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.DriveChannel(1)
+                )
 
-        circuit.add_calibration("reset", [0], reset_q0)
+            circuit.add_calibration("reset", [0], reset_q0)
 
         fname = "calibrations_with_swap_and_reset.png"
         self.circuit_drawer(circuit, output="mpl", filename=fname)
@@ -227,19 +230,20 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
 
         from qiskit import pulse
 
-        with pulse.build(name="rzz") as rzz_q01:
-            pulse.play(
-                pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.DriveChannel(1)
-            )
+        with self.assertWarns(DeprecationWarning):
+            with pulse.build(name="rzz") as rzz_q01:
+                pulse.play(
+                    pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.DriveChannel(1)
+                )
 
-        circuit.add_calibration("rzz", [0, 1], rzz_q01)
+            circuit.add_calibration("rzz", [0, 1], rzz_q01)
 
-        with pulse.build(name="rxx") as rxx_q01:
-            pulse.play(
-                pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.DriveChannel(1)
-            )
+            with pulse.build(name="rxx") as rxx_q01:
+                pulse.play(
+                    pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.DriveChannel(1)
+                )
 
-        circuit.add_calibration("rxx", [0, 1], rxx_q01)
+            circuit.add_calibration("rxx", [0, 1], rxx_q01)
 
         fname = "calibrations_with_rzz_and_rxx.png"
         self.circuit_drawer(circuit, output="mpl", filename=fname)
@@ -2228,6 +2232,27 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         )
         self.assertGreaterEqual(ratio, self.threshold)
 
+    def test_control_flow_with_fold_minus_one(self):
+        """Test control flow works with fold=-1. Qiskit issue #12012"""
+        qreg = QuantumRegister(2, "qr")
+        creg = ClassicalRegister(2, "cr")
+        circuit = QuantumCircuit(qreg, creg)
+        with circuit.if_test((creg[1], 1)):
+            circuit.h(0)
+            circuit.cx(0, 1)
+
+        fname = "control_flow_fold_minus_one.png"
+        self.circuit_drawer(circuit, output="mpl", filename=fname, fold=-1)
+
+        ratio = VisualTestUtilities._save_diff(
+            self._image_path(fname),
+            self._reference_path(fname),
+            fname,
+            FAILURE_DIFF_DIR,
+            FAILURE_PREFIX,
+        )
+        self.assertGreaterEqual(ratio, self.threshold)
+
     def test_annotated_operation(self):
         """Test AnnotatedOperations and other non-Instructions."""
         circuit = QuantumCircuit(3)
@@ -2269,6 +2294,59 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
 
         fname = "qreg_names_after_layout.png"
         self.circuit_drawer(circuit, output="mpl", filename=fname)
+
+        ratio = VisualTestUtilities._save_diff(
+            self._image_path(fname),
+            self._reference_path(fname),
+            fname,
+            FAILURE_DIFF_DIR,
+            FAILURE_PREFIX,
+        )
+        self.assertGreaterEqual(ratio, self.threshold)
+
+    def test_if_else_standalone_var(self):
+        """Test if/else with standalone Var."""
+        a = expr.Var.new("a", types.Uint(8))
+        qc = QuantumCircuit(2, 2, inputs=[a])
+        b = qc.add_var("b", False)
+        qc.store(a, 128)
+        with qc.if_test(expr.logic_not(b)):
+            # Mix old-style and new-style.
+            with qc.if_test(expr.equal(b, qc.clbits[0])):
+                qc.cx(0, 1)
+            c = qc.add_var("c", b)
+            with qc.if_test(expr.logic_and(c, expr.equal(a, 128))):
+                qc.h(0)
+        fname = "if_else_standalone_var.png"
+        self.circuit_drawer(qc, output="mpl", filename=fname)
+
+        ratio = VisualTestUtilities._save_diff(
+            self._image_path(fname),
+            self._reference_path(fname),
+            fname,
+            FAILURE_DIFF_DIR,
+            FAILURE_PREFIX,
+        )
+        self.assertGreaterEqual(ratio, self.threshold)
+
+    def test_switch_standalone_var(self):
+        """Test switch with standalone Var."""
+        a = expr.Var.new("a", types.Uint(8))
+        qc = QuantumCircuit(2, 2, inputs=[a])
+        b = qc.add_var("b", expr.lift(5, a.type))
+        with qc.switch(expr.bit_not(a)) as case:
+            with case(0):
+                with qc.switch(b) as case2:
+                    with case2(2):
+                        qc.cx(0, 1)
+                    with case2(case2.DEFAULT):
+                        qc.cx(1, 0)
+            with case(case.DEFAULT):
+                c = qc.add_var("c", expr.equal(a, b))
+                with qc.if_test(c):
+                    qc.h(0)
+        fname = "switch_standalone_var.png"
+        self.circuit_drawer(qc, output="mpl", filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),

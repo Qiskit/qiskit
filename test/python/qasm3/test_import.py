@@ -13,7 +13,7 @@
 # pylint: disable=missing-module-docstring,missing-class-docstring,missing-function-docstring
 
 # Since the import is nearly entirely delegated to an external package, most of the testing is done
-# there.  Here we need to test our wrapping behaviour for base functionality and exceptions.  We
+# there.  Here we need to test our wrapping behavior for base functionality and exceptions.  We
 # don't want to get into a situation where updates to `qiskit_qasm3_import` breaks Terra's test
 # suite due to too specific tests on the Terra side.
 
@@ -351,3 +351,17 @@ class TestQASM3Import(QiskitTestCase):
         expected.ccx(q0[1], q1, q2[0])
         expected.ccx(q0[0], q1, q2[1])
         self.assertEqual(parsed, expected)
+
+    def test_custom_gate_inspectable(self):
+        """Test that the `CustomGate` object can be inspected programmatically after creation."""
+        custom = qasm3.CustomGate(lib.CXGate, "cx", 0, 2)
+        self.assertEqual(custom.name, "cx")
+        self.assertEqual(custom.num_params, 0)
+        self.assertEqual(custom.num_qubits, 2)
+
+        self.assertIsInstance(qasm3.STDGATES_INC_GATES[0], qasm3.CustomGate)
+        stdgates = {
+            gate.name: (gate.num_params, gate.num_qubits) for gate in qasm3.STDGATES_INC_GATES
+        }
+        self.assertEqual(stdgates["rx"], (1, 1))
+        self.assertEqual(stdgates["cphase"], (1, 2))

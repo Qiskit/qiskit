@@ -19,13 +19,15 @@ from __future__ import annotations
 from collections import defaultdict
 from functools import partial
 from itertools import chain, repeat
-from typing import Callable, Iterable, Literal, Mapping
+from typing import Callable, Iterable, Literal, Mapping, Sequence
 
 import numpy as np
 from numpy.typing import NDArray
 
-from qiskit.result import Counts
+from qiskit.exceptions import QiskitError
+from qiskit.result import Counts, sampled_expectation_value
 
+from .observables_array import ObservablesArray, ObservablesArrayLike
 from .shape import ShapedMixin, ShapeInput, shape_tuple
 
 # this lookup table tells you how many bits are 1 in each uint8 value
@@ -35,6 +37,23 @@ _WEIGHT_LOOKUP = np.unpackbits(np.arange(256, dtype=np.uint8).reshape(-1, 1), ax
 def _min_num_bytes(num_bits: int) -> int:
     """Return the minimum number of bytes needed to store ``num_bits``."""
     return num_bits // 8 + (num_bits % 8 > 0)
+
+
+def _unpack(bit_array: BitArray) -> NDArray[np.uint8]:
+    arr = np.unpackbits(bit_array.array, axis=-1, bitorder="big")
+    arr = arr[..., -1 : -bit_array.num_bits - 1 : -1]
+    return arr
+
+
+def _pack(arr: NDArray[np.uint8]) -> tuple[NDArray[np.uint8], int]:
+    arr = arr[..., ::-1]
+    num_bits = arr.shape[-1]
+    pad_size = -num_bits % 8
+    if pad_size > 0:
+        pad_width = [(0, 0)] * (arr.ndim - 1) + [(pad_size, 0)]
+        arr = np.pad(arr, pad_width, constant_values=0)
+    arr = np.packbits(arr, axis=-1, bitorder="big")
+    return arr, num_bits
 
 
 class BitArray(ShapedMixin):
@@ -110,6 +129,18 @@ class BitArray(ShapedMixin):
         desc = f"<shape={self.shape}, num_shots={self.num_shots}, num_bits={self.num_bits}>"
         return f"BitArray({desc})"
 
+    def __getitem__(self, indices):
+        if isinstance(indices, tuple):
+            if len(indices) == self.ndim + 1:
+                raise IndexError(
+                    "BitArray cannot be sliced along the shots axis, use slice_shots() instead."
+                )
+            if len(indices) >= self.ndim + 2:
+                raise IndexError(
+                    "BitArray cannot be sliced along the bits axis, use slice_bits() instead."
+                )
+        return BitArray(self._array[indices], self.num_bits)
+
     @property
     def array(self) -> NDArray[np.uint8]:
         """The raw NumPy array of data."""
@@ -181,7 +212,10 @@ class BitArray(ShapedMixin):
         if order == "little":
             # np.unpackbits assumes "big"
             array = array[..., ::-1]
-
+        elif order != "big":
+            raise ValueError(
+                f"unknown value for order: '{order}'. Valid values are 'big' and 'little'."
+            )
         num_bits = array.shape[-1]
         if remainder := (-num_bits) % 8:
             # unpackbits pads with zeros on the wrong side with respect to what we want, so
@@ -204,7 +238,7 @@ class BitArray(ShapedMixin):
         Args:
             counts: One or more counts-like mappings with the same number of shots.
             num_bits: The desired number of bits per shot. If unset, the biggest value found sets
-                this value.
+                this value, with a minimum of one bit.
 
         Returns:
             A new bit array with shape ``()`` for single input counts, or ``(N,)`` for an iterable
@@ -248,7 +282,7 @@ class BitArray(ShapedMixin):
         Args:
             samples: A list of bitstrings, a list of integers, or a list of hexstrings.
             num_bits: The desired number of bits per sample. If unset, the biggest sample provided
-                is used to determine this value.
+                is used to determine this value, with a minimum of one bit.
 
         Returns:
             A new bit array.
@@ -271,6 +305,9 @@ class BitArray(ShapedMixin):
             # we are forced to prematurely look at every iterand in this case
             ints = list(ints)
             num_bits = max(map(int.bit_length, ints))
+            # convention: if the only value is 0, represent with one bit:
+            if num_bits == 0:
+                num_bits = 1
 
         num_bytes = _min_num_bytes(num_bits)
         data = b"".join(val.to_bytes(num_bytes, "big") for val in ints)
@@ -347,3 +384,358 @@ class BitArray(ShapedMixin):
         else:
             raise ValueError("Cannot change the size of the array.")
         return BitArray(self._array.reshape(shape), self.num_bits)
+
+    def transpose(self, *axes) -> "BitArray":
+        """Return a bit array with axes transposed.
+
+        Args:
+            axes: None, tuple of ints or n ints. See `ndarray.transpose
+                <https://numpy.org/doc/stable/reference/generated/
+                numpy.ndarray.transpose.html#numpy.ndarray.transpose>`_
+                for the details.
+
+        Returns:
+            BitArray: A bit array with axes permuted.
+
+        Raises:
+            ValueError: If ``axes`` don't match this bit array.
+            ValueError: If ``axes`` includes any indices that are out of bounds.
+        """
+        if len(axes) == 0:
+            axes = tuple(reversed(range(self.ndim)))
+        if len(axes) == 1 and isinstance(axes[0], Sequence):
+            axes = axes[0]
+        if len(axes) != self.ndim:
+            raise ValueError("axes don't match bit array")
+        for i in axes:
+            if i >= self.ndim or self.ndim + i < 0:
+                raise ValueError(
+                    f"axis {i} is out of bounds for bit array of dimension {self.ndim}."
+                )
+        axes = tuple(i if i >= 0 else self.ndim + i for i in axes) + (-2, -1)
+        return BitArray(self._array.transpose(axes), self.num_bits)
+
+    def slice_bits(self, indices: int | Sequence[int]) -> "BitArray":
+        """Return a bit array sliced along the bit axis of some indices of interest.
+
+        .. note::
+
+            The convention used by this method is that the index ``0`` corresponds to
+            the least-significant bit in the :attr:`~array`, or equivalently
+            the right-most bitstring entry as returned by
+            :meth:`~get_counts` or :meth:`~get_bitstrings`, etc.
+
+            If this bit array was produced by a sampler, then an index ``i`` corresponds to the
+            :class:`~.ClassicalRegister` location ``creg[i]``.
+
+        Args:
+            indices: The bit positions of interest to slice along.
+
+        Returns:
+            A bit array sliced along the bit axis.
+
+        Raises:
+            IndexError: If there are any invalid indices of the bit axis.
+        """
+        if isinstance(indices, int):
+            indices = (indices,)
+        for index in indices:
+            if index < 0 or index >= self.num_bits:
+                raise IndexError(
+                    f"index {index} is out of bounds for the number of bits {self.num_bits}."
+                )
+        # This implementation introduces a temporary 8x memory overhead due to bit
+        # unpacking. This could be fixed using bitwise functions, at the expense of a
+        # more complicated implementation.
+        arr = _unpack(self)
+        arr = arr[..., indices]
+        arr, num_bits = _pack(arr)
+        return BitArray(arr, num_bits)
+
+    def slice_shots(self, indices: int | Sequence[int]) -> "BitArray":
+        """Return a bit array sliced along the shots axis of some indices of interest.
+
+        Args:
+            indices: The shots positions of interest to slice along.
+
+        Returns:
+            A bit array sliced along the shots axis.
+
+        Raises:
+            IndexError: If there are any invalid indices of the shots axis.
+        """
+        if isinstance(indices, int):
+            indices = (indices,)
+        for index in indices:
+            if index < 0 or index >= self.num_shots:
+                raise IndexError(
+                    f"index {index} is out of bounds for the number of shots {self.num_shots}."
+                )
+        arr = self._array
+        arr = arr[..., indices, :]
+        return BitArray(arr, self.num_bits)
+
+    def postselect(
+        self,
+        indices: Sequence[int] | int,
+        selection: Sequence[bool | int] | bool | int,
+    ) -> BitArray:
+        """Post-select this bit array based on sliced equality with a given bitstring.
+
+        .. note::
+            If this bit array contains any shape axes, it is first flattened into a long list of shots
+            before applying post-selection. This is done because :class:`~BitArray` cannot handle
+            ragged numbers of shots across axes.
+
+        Args:
+            indices: A list of the indices of the cbits on which to postselect.
+                If this bit array was produced by a sampler, then an index ``i`` corresponds to the
+                :class:`~.ClassicalRegister` location ``creg[i]`` (as in :meth:`~slice_bits`).
+                Negative indices are allowed.
+
+            selection: A list of binary values (will be cast to ``bool``) of length matching
+                ``indices``, with ``indices[i]`` corresponding to ``selection[i]``. Shots will be
+                discarded unless all cbits specified by ``indices`` have the values given by
+                ``selection``.
+
+        Returns:
+            A new bit array with ``shape=(), num_bits=data.num_bits, num_shots<=data.num_shots``.
+
+        Raises:
+            IndexError: If ``max(indices)`` is greater than or equal to :attr:`num_bits`.
+            IndexError: If ``min(indices)`` is less than negative :attr:`num_bits`.
+            ValueError: If the lengths of ``selection`` and ``indices`` do not match.
+        """
+        if isinstance(indices, int):
+            indices = (indices,)
+        if isinstance(selection, (bool, int)):
+            selection = (selection,)
+        selection = np.asarray(selection, dtype=bool)
+
+        num_indices = len(indices)
+
+        if len(selection) != num_indices:
+            raise ValueError("Lengths of indices and selection do not match.")
+
+        num_bytes = self._array.shape[-1]
+        indices = np.asarray(indices)
+
+        if num_indices > 0:
+            if indices.max() >= self.num_bits:
+                raise IndexError(
+                    f"index {int(indices.max())} out of bounds for the number of bits {self.num_bits}."
+                )
+            if indices.min() < -self.num_bits:
+                raise IndexError(
+                    f"index {int(indices.min())} out of bounds for the number of bits {self.num_bits}."
+                )
+
+        flattened = self.reshape((), self.size * self.num_shots)
+
+        # If no conditions, keep all data, but flatten as promised:
+        if num_indices == 0:
+            return flattened
+
+        # Make negative bit indices positive:
+        indices %= self.num_bits
+
+        # Handle special-case of contradictory conditions:
+        if np.intersect1d(indices[selection], indices[np.logical_not(selection)]).size > 0:
+            return BitArray(np.empty((0, num_bytes), dtype=np.uint8), num_bits=self.num_bits)
+
+        # Recall that creg[0] is the LSb:
+        byte_significance, bit_significance = np.divmod(indices, 8)
+        # least-significant byte is at last position:
+        byte_idx = (num_bytes - 1) - byte_significance
+        # least-significant bit is at position 0:
+        bit_offset = bit_significance.astype(np.uint8)
+
+        # Get bitpacked representation of `indices` (bitmask):
+        bitmask = np.zeros(num_bytes, dtype=np.uint8)
+        np.bitwise_or.at(bitmask, byte_idx, np.uint8(1) << bit_offset)
+
+        # Get bitpacked representation of `selection` (desired bitstring):
+        selection_bytes = np.zeros(num_bytes, dtype=np.uint8)
+        ## This assumes no contradictions present, since those were already checked for:
+        np.bitwise_or.at(
+            selection_bytes, byte_idx, np.asarray(selection, dtype=np.uint8) << bit_offset
+        )
+
+        return BitArray(
+            flattened._array[((flattened._array & bitmask) == selection_bytes).all(axis=-1)],
+            num_bits=self.num_bits,
+        )
+
+    def expectation_values(self, observables: ObservablesArrayLike) -> NDArray[np.float64]:
+        """Compute the expectation values of the provided observables, broadcasted against
+        this bit array.
+
+        .. note::
+
+            This method returns the real part of the expectation value even if
+            the operator has complex coefficients due to the specification of
+            :func:`~.sampled_expectation_value`.
+
+        Args:
+            observables: The observable(s) to take the expectation value of.
+            Must have a shape broadcastable with with this bit array and
+            the same number of qubits as the number of bits of this bit array.
+            The observables must be diagonal (I, Z, 0 or 1) too.
+
+        Returns:
+            An array of expectation values whose shape is the broadcast shape of ``observables``
+            and this bit array.
+
+        Raises:
+            ValueError: If the provided observables does not have a shape broadcastable with
+                this bit array.
+            ValueError: If the provided observables does not have the same number of qubits as
+                the number of bits of this bit array.
+            ValueError: If the provided observables are not diagonal.
+        """
+        observables = ObservablesArray.coerce(observables)
+        arr_indices = np.fromiter(np.ndindex(self.shape), dtype=object).reshape(self.shape)
+        bc_indices, bc_obs = np.broadcast_arrays(arr_indices, observables)
+        counts = {}
+        arr = np.zeros_like(bc_indices, dtype=float)
+        for index in np.ndindex(bc_indices.shape):
+            loc = bc_indices[index]
+            for pauli, coeff in bc_obs[index].items():
+                if loc not in counts:
+                    counts[loc] = self.get_counts(loc)
+                try:
+                    expval = sampled_expectation_value(counts[loc], pauli)
+                except QiskitError as ex:
+                    raise ValueError(ex.message) from ex
+                arr[index] += expval * coeff
+        return arr
+
+    @staticmethod
+    def concatenate(bit_arrays: Sequence[BitArray], axis: int = 0) -> BitArray:
+        """Join a sequence of bit arrays along an existing axis.
+
+        Args:
+            bit_arrays: The bit arrays must have (1) the same number of bits,
+                (2) the same number of shots, and
+                (3) the same shape, except in the dimension corresponding to axis
+                (the first, by default).
+            axis: The axis along which the arrays will be joined. Default is 0.
+
+        Returns:
+            The concatenated bit array.
+
+        Raises:
+            ValueError: If the sequence of bit arrays is empty.
+            ValueError: If any bit arrays has a different number of bits.
+            ValueError: If any bit arrays has a different number of shots.
+            ValueError: If any bit arrays has a different number of dimensions.
+        """
+        if len(bit_arrays) == 0:
+            raise ValueError("Need at least one bit array to concatenate")
+        num_bits = bit_arrays[0].num_bits
+        num_shots = bit_arrays[0].num_shots
+        ndim = bit_arrays[0].ndim
+        if ndim == 0:
+            raise ValueError("Zero-dimensional bit arrays cannot be concatenated")
+        for i, ba in enumerate(bit_arrays):
+            if ba.num_bits != num_bits:
+                raise ValueError(
+                    "All bit arrays must have same number of bits, "
+                    f"but the bit array at index 0 has {num_bits} bits "
+                    f"and the bit array at index {i} has {ba.num_bits} bits."
+                )
+            if ba.num_shots != num_shots:
+                raise ValueError(
+                    "All bit arrays must have same number of shots, "
+                    f"but the bit array at index 0 has {num_shots} shots "
+                    f"and the bit array at index {i} has {ba.num_shots} shots."
+                )
+            if ba.ndim != ndim:
+                raise ValueError(
+                    "All bit arrays must have same number of dimensions, "
+                    f"but the bit array at index 0 has {ndim} dimension(s) "
+                    f"and the bit array at index {i} has {ba.ndim} dimension(s)."
+                )
+        if axis < 0 or axis >= ndim:
+            raise ValueError(f"axis {axis} is out of bounds for bit array of dimension {ndim}.")
+        data = np.concatenate([ba.array for ba in bit_arrays], axis=axis)
+        return BitArray(data, num_bits)
+
+    @staticmethod
+    def concatenate_shots(bit_arrays: Sequence[BitArray]) -> BitArray:
+        """Join a sequence of bit arrays along the shots axis.
+
+        Args:
+            bit_arrays: The bit arrays must have (1) the same number of bits,
+                and (2) the same shape.
+
+        Returns:
+            The stacked bit array.
+
+        Raises:
+            ValueError: If the sequence of bit arrays is empty.
+            ValueError: If any bit arrays has a different number of bits.
+            ValueError: If any bit arrays has a different shape.
+        """
+        if len(bit_arrays) == 0:
+            raise ValueError("Need at least one bit array to stack")
+        num_bits = bit_arrays[0].num_bits
+        shape = bit_arrays[0].shape
+        for i, ba in enumerate(bit_arrays):
+            if ba.num_bits != num_bits:
+                raise ValueError(
+                    "All bit arrays must have same number of bits, "
+                    f"but the bit array at index 0 has {num_bits} bits "
+                    f"and the bit array at index {i} has {ba.num_bits} bits."
+                )
+            if ba.shape != shape:
+                raise ValueError(
+                    "All bit arrays must have same shape, "
+                    f"but the bit array at index 0 has shape {shape} "
+                    f"and the bit array at index {i} has shape {ba.shape}."
+                )
+        data = np.concatenate([ba.array for ba in bit_arrays], axis=-2)
+        return BitArray(data, num_bits)
+
+    @staticmethod
+    def concatenate_bits(bit_arrays: Sequence[BitArray]) -> BitArray:
+        """Join a sequence of bit arrays along the bits axis.
+
+        .. note::
+            This method is equivalent to per-shot bitstring concatenation.
+
+        Args:
+            bit_arrays: Bit arrays that have (1) the same number of shots,
+                and (2) the same shape.
+
+        Returns:
+            The stacked bit array.
+
+        Raises:
+            ValueError: If the sequence of bit arrays is empty.
+            ValueError: If any bit arrays has a different number of shots.
+            ValueError: If any bit arrays has a different shape.
+        """
+        if len(bit_arrays) == 0:
+            raise ValueError("Need at least one bit array to stack")
+        num_shots = bit_arrays[0].num_shots
+        shape = bit_arrays[0].shape
+        for i, ba in enumerate(bit_arrays):
+            if ba.num_shots != num_shots:
+                raise ValueError(
+                    "All bit arrays must have same number of shots, "
+                    f"but the bit array at index 0 has {num_shots} shots "
+                    f"and the bit array at index {i} has {ba.num_shots} shots."
+                )
+            if ba.shape != shape:
+                raise ValueError(
+                    "All bit arrays must have same shape, "
+                    f"but the bit array at index 0 has shape {shape} "
+                    f"and the bit array at index {i} has shape {ba.shape}."
+                )
+        # This implementation introduces a temporary 8x memory overhead due to bit
+        # unpacking. This could be fixed using bitwise functions, at the expense of a
+        # more complicated implementation.
+        data = np.concatenate([_unpack(ba) for ba in bit_arrays], axis=-1)
+        data, num_bits = _pack(data)
+        return BitArray(data, num_bits)

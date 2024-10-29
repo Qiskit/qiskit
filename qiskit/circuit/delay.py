@@ -17,18 +17,28 @@ import numpy as np
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.gate import Gate
+from qiskit.circuit import _utils
 from qiskit.circuit.parameterexpression import ParameterExpression
 
 
+@_utils.with_gate_array(np.eye(2, dtype=complex))
 class Delay(Instruction):
     """Do nothing and just delay/wait/idle for a specified duration."""
 
     def __init__(self, duration, unit="dt"):
-        """Create new delay instruction."""
+        """
+        Args:
+            duration: the length of time of the duration.  Given in units of ``unit``.
+            unit: the unit of the duration.  Must be ``"dt"`` or an SI-prefixed seconds unit.
+        """
         if unit not in {"s", "ms", "us", "ns", "ps", "dt"}:
-            raise CircuitError("Unknown unit %s is specified." % unit)
-
-        super().__init__("delay", 1, 0, params=[duration], unit=unit)
+            raise CircuitError(f"Unknown unit {unit} is specified.")
+        # Double underscore to differentiate from the private attribute in
+        # `Instruction`. This can be changed to `_unit` in 2.0 after we
+        # remove `unit` and `duration` from the standard instruction model
+        # as it only will exist in `Delay` after that point.
+        self.__unit = unit
+        super().__init__("delay", 1, 0, params=[duration])
 
     broadcast_arguments = Gate.broadcast_arguments
 
@@ -40,6 +50,17 @@ class Delay(Instruction):
         raise CircuitError("Conditional Delay is not yet implemented.")
 
     @property
+    def unit(self):
+
+        return self.__unit
+
+    @unit.setter
+    def unit(self, value):
+        if value not in {"s", "ms", "us", "ns", "ps", "dt"}:
+            raise CircuitError(f"Unknown unit {value} is specified.")
+        self.__unit = value
+
+    @property
     def duration(self):
         """Get the duration of this delay."""
         return self.params[0]
@@ -48,10 +69,6 @@ class Delay(Instruction):
     def duration(self, duration):
         """Set the duration of this delay."""
         self.params = [duration]
-
-    def __array__(self, dtype=None):
-        """Return the identity matrix."""
-        return np.array([[1, 0], [0, 1]], dtype=dtype)
 
     def to_matrix(self) -> np.ndarray:
         """Return a Numpy.array for the unitary matrix. This has been
@@ -79,7 +96,7 @@ class Delay(Instruction):
                 raise CircuitError(
                     f"Duration for Delay instruction must be positive. Found {parameter}"
                 )
-            if self.unit == "dt":
+            if self.__unit == "dt":
                 parameter_int = int(parameter)
                 if parameter != parameter_int:
                     raise CircuitError("Integer duration is expected for 'dt' unit.")

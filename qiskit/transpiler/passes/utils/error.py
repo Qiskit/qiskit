@@ -43,7 +43,7 @@ class Error(AnalysisPass):
         if action in ["raise", "warn", "log"]:
             self.action = action
         else:
-            raise TranspilerError("Unknown action: %s" % action)
+            raise TranspilerError(f"Unknown action: {action}")
 
     def run(self, _):
         """Run the Error pass on `dag`."""
@@ -66,4 +66,4 @@ class Error(AnalysisPass):
             logger = logging.getLogger(__name__)
             logger.info(msg)
         else:
-            raise TranspilerError("Unknown action: %s" % self.action)
+            raise TranspilerError(f"Unknown action: {self.action}")

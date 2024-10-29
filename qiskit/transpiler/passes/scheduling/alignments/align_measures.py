@@ -63,7 +63,7 @@ class AlignMeasures(TransformationPass):
     Examples:
         We assume executing the following circuit on a backend with ``alignment=16``.
 
-        .. parsed-literal::
+        .. code-block:: text
 
                  ┌───┐┌────────────────┐┌─┐
             q_0: ┤ X ├┤ Delay(100[dt]) ├┤M├
@@ -74,7 +74,7 @@ class AlignMeasures(TransformationPass):
         Note that delay of 100 dt induces a misalignment of 4 dt at the measurement.
         This pass appends an extra 12 dt time shift to the input circuit.
 
-        .. parsed-literal::
+        .. code-block:: text
 
                  ┌───┐┌────────────────┐┌─┐
             q_0: ┤ X ├┤ Delay(112[dt]) ├┤M├
@@ -95,8 +95,7 @@ class AlignMeasures(TransformationPass):
             "Instead, use :class:`~.ConstrainedReschedule`, which performs the same function "
             "but also supports aligning to additional timing constraints."
         ),
-        since="0.21.0",
-        pending=True,
+        since="1.1.0",
     )
     def __init__(self, alignment: int = 1):
         """Create new pass.

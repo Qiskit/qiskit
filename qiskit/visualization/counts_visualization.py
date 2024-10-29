@@ -58,7 +58,7 @@ def _is_deprecated_data_format(data) -> bool:
 
 def plot_histogram(
     data,
-    figsize=(7, 5),
+    figsize=None,
     color=None,
     number_to_keep=None,
     sort="asc",
@@ -296,7 +296,7 @@ def _plotting_core(
 
     # Set bar colors
     if color is None:
-        color = ["#648fff", "#dc267f", "#785ef0", "#ffb000", "#fe6100"]
+        color = plt.rcParams["axes.prop_cycle"].by_key()["color"]
     elif isinstance(color, str):
         color = [color]
 
@@ -350,7 +350,7 @@ def _plotting_core(
                 label = None
         bar_center = (width / 2) * (length - 1)
         ax.set_xticks(all_inds[item] + bar_center)
-        ax.set_xticklabels(labels_dict.keys(), fontsize=14, rotation=70)
+        ax.set_xticklabels(labels_dict.keys(), rotation=70, ha="right", rotation_mode="anchor")
         # attach some text labels
         if bar_labels:
             for rect in rects:
@@ -391,8 +391,6 @@ def _plotting_core(
         ax.invert_xaxis()
 
     ax.yaxis.set_major_locator(MaxNLocator(5))
-    for tick in ax.yaxis.get_major_ticks():
-        tick.label1.set_fontsize(14)
     plt.grid(which="major", axis="y", zorder=0, linestyle="--")
     if title:
         plt.title(title)
@@ -404,7 +402,6 @@ def _plotting_core(
             ncol=1,
             borderaxespad=0,
             frameon=True,
-            fontsize=12,
         )
     if fig:
         matplotlib_close_if_inline(fig)

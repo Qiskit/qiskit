@@ -15,7 +15,7 @@
 import copy
 from typing import Callable
 import numpy as np
-from qiskit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.exceptions import CircuitError
 from . import calc_inverse_matrix, check_invertible_binary_matrix

@@ -13,8 +13,13 @@
 
 """Various ways to divide a DAG into blocks of nodes, to split blocks of nodes
 into smaller sub-blocks, and to consolidate blocks."""
+from __future__ import annotations
 
-from qiskit.circuit import QuantumCircuit, CircuitInstruction, ClassicalRegister
+from collections.abc import Iterable, Callable
+
+from qiskit.dagcircuit import DAGDepNode
+
+from qiskit.circuit import QuantumCircuit, CircuitInstruction, ClassicalRegister, Bit
 from qiskit.circuit.controlflow import condition_resources
 from . import DAGOpNode, DAGCircuit, DAGDependency
 from .exceptions import DAGCircuitError
@@ -38,7 +43,7 @@ class BlockCollector:
     see https://github.com/Qiskit/qiskit-terra/issues/5775.
     """
 
-    def __init__(self, dag):
+    def __init__(self, dag: DAGCircuit | DAGDependency):
         """
         Args:
             dag (Union[DAGCircuit, DAGDependency]): The input DAG.
@@ -48,8 +53,8 @@ class BlockCollector:
         """
 
         self.dag = dag
-        self._pending_nodes = None
-        self._in_degree = None
+        self._pending_nodes: list[DAGOpNode | DAGDepNode] | None = None
+        self._in_degree: dict[DAGOpNode | DAGDepNode, int] | None = None
         self._collect_from_back = False
 
         if isinstance(dag, DAGCircuit):
@@ -79,7 +84,7 @@ class BlockCollector:
             if deg == 0:
                 self._pending_nodes.append(node)
 
-    def _op_nodes(self):
+    def _op_nodes(self) -> Iterable[DAGOpNode | DAGDepNode]:
         """Returns DAG nodes."""
         if not self.is_dag_dependency:
             return self.dag.op_nodes()
@@ -134,7 +139,7 @@ class BlockCollector:
         """Returns whether there are uncollected (pending) nodes"""
         return len(self._pending_nodes) > 0
 
-    def collect_matching_block(self, filter_fn):
+    def collect_matching_block(self, filter_fn: Callable) -> list[DAGOpNode | DAGDepNode]:
         """Iteratively collects the largest block of input nodes (that is, nodes with
         ``_in_degree`` equal to 0) that match a given filtering function.
         Examples of this include collecting blocks of swap gates,
@@ -205,7 +210,7 @@ class BlockCollector:
         self._setup_in_degrees()
 
         # Iteratively collect non-matching and matching blocks.
-        matching_blocks = []
+        matching_blocks: list[list[DAGOpNode | DAGDepNode]] = []
         while self._have_uncollected_nodes():
             self.collect_matching_block(not_filter_fn)
             matching_block = self.collect_matching_block(filter_fn)
@@ -283,19 +288,19 @@ class BlockSplitter:
             self.group[self.find_leader(first)].append(node)
 
         blocks = []
-        for index in self.leader:
-            if self.leader[index] == index:
+        for index, item in self.leader.items():
+            if index == item:
                 blocks.append(self.group[index])
 
         return blocks
 
 
-def split_block_into_layers(block):
+def split_block_into_layers(block: list[DAGOpNode | DAGDepNode]):
     """Splits a block of nodes into sub-blocks of non-overlapping instructions
     (or, in other words, into depth-1 sub-blocks).
     """
-    bit_depths = {}
-    layers = []
+    bit_depths: dict[Bit, int] = {}
+    layers: list[list[DAGOpNode | DAGDepNode]] = []
 
     for node in block:
         cur_bits = set(node.qargs)

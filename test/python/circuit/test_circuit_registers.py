@@ -97,7 +97,7 @@ class TestCircuitRegisters(QiskitTestCase):
         """Test numpy array of Registers .
         See https://github.com/Qiskit/qiskit-terra/issues/1898
         """
-        qrs = [QuantumRegister(2, name="q%s" % i) for i in range(5)]
+        qrs = [QuantumRegister(2, name=f"q{i}") for i in range(5)]
         qreg_array = np.array([], dtype=object, ndmin=1)
         qreg_array = np.append(qreg_array, qrs)
 

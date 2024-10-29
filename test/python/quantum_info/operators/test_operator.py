@@ -17,18 +17,23 @@
 import unittest
 import logging
 import copy
+
 from test import combine
 import numpy as np
-from ddt import ddt
+import ddt
 from numpy.testing import assert_allclose
-import scipy.linalg as la
+import scipy.stats
+import scipy.linalg
 
 from qiskit import QiskitError
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.circuit import library
 from qiskit.circuit.library import HGate, CHGate, CXGate, QFT
+from qiskit.transpiler import CouplingMap
 from qiskit.transpiler.layout import Layout, TranspileLayout
 from qiskit.quantum_info.operators import Operator, ScalarOp
 from qiskit.quantum_info.operators.predicates import matrix_equal
+from qiskit.quantum_info.operators.operator_utils import _equal_with_ancillas
 from qiskit.compiler.transpiler import transpile
 from qiskit.circuit import Qubit
 from qiskit.circuit.library import Permutation, PermutationGate
@@ -94,7 +99,7 @@ class OperatorTestCase(QiskitTestCase):
         return circ
 
 
-@ddt
+@ddt.ddt
 class TestOperator(OperatorTestCase):
     """Tests for Operator linear operator class."""
 
@@ -287,7 +292,7 @@ class TestOperator(OperatorTestCase):
     def test_is_unitary(self):
         """Test is_unitary method."""
         # X-90 rotation
-        X90 = la.expm(-1j * 0.5 * np.pi * np.array([[0, 1], [1, 0]]) / 2)
+        X90 = scipy.linalg.expm(-1j * 0.5 * np.pi * np.array([[0, 1], [1, 0]]) / 2)
         self.assertTrue(Operator(X90).is_unitary())
         # Non-unitary should return false
         self.assertFalse(Operator([[1, 0], [0, 0]]).is_unitary())
@@ -492,7 +497,7 @@ class TestOperator(OperatorTestCase):
 
     def test_power(self):
         """Test power method."""
-        X90 = la.expm(-1j * 0.5 * np.pi * np.array([[0, 1], [1, 0]]) / 2)
+        X90 = scipy.linalg.expm(-1j * 0.5 * np.pi * np.array([[0, 1], [1, 0]]) / 2)
         op = Operator(X90)
         self.assertEqual(op.power(2), Operator([[0, -1j], [-1j, 0]]))
         self.assertEqual(op.power(4), Operator(-1 * np.eye(2)))
@@ -509,6 +514,43 @@ class TestOperator(OperatorTestCase):
         expected_op = Operator(expected_circuit)
 
         self.assertEqual(op.power(0.25), expected_op)
+
+    def test_power_of_nonunitary(self):
+        """Test power method for a non-unitary matrix."""
+        data = [[1, 1], [0, -1]]
+        powered = Operator(data).power(0.5)
+        expected = Operator([[1.0 + 0.0j, 0.5 - 0.5j], [0.0 + 0.0j, 0.0 + 1.0j]])
+        assert_allclose(powered.data, expected.data)
+
+    @ddt.data(0.5, 1.0 / 3.0, 0.25)
+    def test_root_stability(self, root):
+        """Test that the root of operators that have eigenvalues that are -1 up to floating-point
+        imprecision stably choose the positive side of the principal-root branch cut."""
+        rng = np.random.default_rng(2024_10_22)
+
+        eigenvalues = np.array([1.0, -1.0], dtype=complex)
+        # We have the eigenvalues exactly, so this will safely find the principal root.
+        root_eigenvalues = eigenvalues**root
+
+        # Now, we can construct a bunch of Haar-random unitaries with our chosen eigenvalues.  Since
+        # we already know their eigenvalue decompositions exactly (up to floating-point precision in
+        # the matrix multiplications), we can also compute the principal values of the roots of the
+        # complete matrices.
+        bases = scipy.stats.unitary_group.rvs(2, size=16, random_state=rng)
+        matrices = [basis.conj().T @ np.diag(eigenvalues) @ basis for basis in bases]
+        expected = [basis.conj().T @ np.diag(root_eigenvalues) @ basis for basis in bases]
+        self.assertEqual(
+            [Operator(matrix).power(root) for matrix in matrices],
+            [Operator(single) for single in expected],
+        )
+
+    def test_root_branch_cut(self):
+        """Test that we can choose where the branch cut appears in the root."""
+        z_op = Operator(library.ZGate())
+        # Depending on the direction we move the branch cut, we should be able to select the root to
+        # be either of the two valid options.
+        self.assertEqual(z_op.power(0.5, branch_cut_rotation=1e-3), Operator(library.SGate()))
+        self.assertEqual(z_op.power(0.5, branch_cut_rotation=-1e-3), Operator(library.SdgGate()))
 
     def test_expand(self):
         """Test expand method."""
@@ -735,6 +777,28 @@ class TestOperator(OperatorTestCase):
         global_phase_equivalent = matrix_equal(op.data, target, ignore_phase=True)
         self.assertTrue(global_phase_equivalent)
 
+    def test_from_circuit_initial_layout_final_layout(self):
+        """Test initialization from a circuit with a non-trivial initial_layout and final_layout as given
+        by a transpiled circuit."""
+        qc = QuantumCircuit(5)
+        qc.h(0)
+        qc.cx(2, 1)
+        qc.cx(1, 2)
+        qc.cx(1, 0)
+        qc.cx(1, 3)
+        qc.cx(1, 4)
+        qc.h(2)
+
+        qc_transpiled = transpile(
+            qc,
+            coupling_map=CouplingMap.from_line(5),
+            initial_layout=[2, 3, 4, 0, 1],
+            optimization_level=1,
+            seed_transpiler=17,
+        )
+
+        self.assertTrue(Operator.from_circuit(qc_transpiled).equiv(qc))
+
     def test_from_circuit_constructor_reverse_embedded_layout(self):
         """Test initialization from a circuit with an embedded reverse layout."""
         # Test tensor product of 1-qubit gates
@@ -817,7 +881,7 @@ class TestOperator(OperatorTestCase):
         circuit._layout = TranspileLayout(
             Layout({circuit.qubits[2]: 0, circuit.qubits[1]: 1, circuit.qubits[0]: 2}),
             {qubit: index for index, qubit in enumerate(circuit.qubits)},
-            Layout({circuit.qubits[0]: 1, circuit.qubits[1]: 2, circuit.qubits[2]: 0}),
+            Layout({circuit.qubits[0]: 2, circuit.qubits[1]: 0, circuit.qubits[2]: 1}),
         )
         circuit.swap(0, 1)
         circuit.swap(1, 2)
@@ -839,7 +903,7 @@ class TestOperator(OperatorTestCase):
             Layout({circuit.qubits[2]: 0, circuit.qubits[1]: 1, circuit.qubits[0]: 2}),
             {qubit: index for index, qubit in enumerate(circuit.qubits)},
         )
-        final_layout = Layout({circuit.qubits[0]: 1, circuit.qubits[1]: 2, circuit.qubits[2]: 0})
+        final_layout = Layout({circuit.qubits[0]: 2, circuit.qubits[1]: 0, circuit.qubits[2]: 1})
         circuit.swap(0, 1)
         circuit.swap(1, 2)
         op = Operator.from_circuit(circuit, final_layout=final_layout)
@@ -966,7 +1030,7 @@ class TestOperator(OperatorTestCase):
         circuit.h(0)
         circuit.cx(0, 1)
         layout = Layout()
-        with self.assertRaises(IndexError):
+        with self.assertRaises(KeyError):
             Operator.from_circuit(circuit, layout=layout)
 
     def test_compose_scalar(self):
@@ -1077,6 +1141,27 @@ class TestOperator(OperatorTestCase):
         tqc = transpile(circuit, initial_layout=init_layout)
         result = Operator.from_circuit(tqc)
         self.assertTrue(Operator(circuit).equiv(result))
+
+    def test_from_circuit_into_larger_map(self):
+        """Test from_circuit method when the number of physical
+        qubits is larger than the number of original virtual qubits."""
+
+        # original circuit on 3 qubits
+        qc = QuantumCircuit(3)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.cx(1, 2)
+
+        # transpile into 5-qubits
+        tqc = transpile(qc, coupling_map=CouplingMap.from_line(5), initial_layout=[0, 2, 4])
+
+        # qc expanded with ancilla qubits
+        expected = QuantumCircuit(5)
+        expected.h(0)
+        expected.cx(0, 1)
+        expected.cx(1, 2)
+
+        self.assertEqual(Operator.from_circuit(tqc), Operator(expected))
 
     def test_apply_permutation_back(self):
         """Test applying permutation to the operator,
@@ -1209,6 +1294,29 @@ class TestOperator(OperatorTestCase):
         )
         op2 = op.apply_permutation([2, 0, 1], front=True)
         self.assertEqual(op2.input_dims(), (4, 2, 3))
+
+    def test_equality_with_ancillas(self):
+        """Check correctness of the equal_with_ancillas method."""
+
+        # The two circuits below are equal provided that qubit 1 is initially |0>.
+        qc1 = QuantumCircuit(4)
+        qc1.x(0)
+        qc1.x(2)
+        qc1.cx(1, 0)
+        qc1.cx(1, 2)
+        qc1.cx(1, 3)
+        op1 = Operator(qc1)
+
+        qc2 = QuantumCircuit(4)
+        qc2.x(0)
+        qc2.x(2)
+        op2 = Operator(qc2)
+
+        self.assertNotEqual(op1, op2)
+        self.assertFalse(_equal_with_ancillas(op1, op2, []))
+        self.assertTrue(_equal_with_ancillas(op1, op2, [1]))
+        self.assertFalse(_equal_with_ancillas(op1, op2, [2]))
+        self.assertTrue(_equal_with_ancillas(op1, op2, [2, 1]))
 
 
 if __name__ == "__main__":

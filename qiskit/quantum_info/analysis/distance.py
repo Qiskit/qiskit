@@ -12,7 +12,7 @@
 
 """A collection of discrete probability metrics."""
 from __future__ import annotations
-import numpy as np
+import math
 
 
 def hellinger_distance(dist_p: dict, dist_q: dict) -> float:
@@ -43,13 +43,13 @@ def hellinger_distance(dist_p: dict, dist_q: dict) -> float:
     total = 0
     for key, val in p_normed.items():
         if key in q_normed:
-            total += (np.sqrt(val) - np.sqrt(q_normed[key])) ** 2
+            total += (math.sqrt(val) - math.sqrt(q_normed[key])) ** 2
             del q_normed[key]
         else:
             total += val
     total += sum(q_normed.values())
 
-    dist = np.sqrt(total) / np.sqrt(2)
+    dist = math.sqrt(total) / math.sqrt(2)
 
     return dist
 

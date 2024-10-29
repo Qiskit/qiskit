@@ -24,7 +24,7 @@ The fake provider module in Qiskit contains fake (simulated) backend classes
 useful for testing the transpiler and other backend-facing functionality.
 
 Example Usage
-=============
+-------------
 
 Here is an example of using a simulated backend for transpilation and running.
 

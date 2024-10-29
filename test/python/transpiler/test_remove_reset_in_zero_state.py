@@ -23,7 +23,7 @@ from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestRemoveResetInZeroState(QiskitTestCase):
-    """Test swap-followed-by-measure optimizations."""
+    """Test remove-reset-in-zero-state optimizations."""
 
     def test_optimize_single_reset(self):
         """Remove a single reset

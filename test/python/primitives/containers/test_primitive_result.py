@@ -14,9 +14,8 @@
 """Unit tests for PrimitiveResult."""
 
 import numpy as np
-import numpy.typing as npt
 
-from qiskit.primitives.containers import PrimitiveResult, PubResult, make_data_bin
+from qiskit.primitives.containers import DataBin, PrimitiveResult, PubResult
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -25,16 +24,12 @@ class PrimitiveResultCase(QiskitTestCase):
 
     def test_primitive_result(self):
         """Test the PrimitiveResult class."""
-        data_bin_cls = make_data_bin(
-            [("alpha", npt.NDArray[np.uint16]), ("beta", np.ndarray)], shape=(10, 20)
-        )
-
         alpha = np.empty((10, 20), dtype=np.uint16)
         beta = np.empty((10, 20), dtype=int)
 
         pub_results = [
-            PubResult(data_bin_cls(alpha, beta)),
-            PubResult(data_bin_cls(alpha, beta)),
+            PubResult(DataBin(alpha=alpha, beta=beta, shape=(10, 20))),
+            PubResult(DataBin(alpha=alpha, beta=beta, shape=(10, 20))),
         ]
         result = PrimitiveResult(pub_results, {"x": 2})
 

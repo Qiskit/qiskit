@@ -19,6 +19,7 @@ from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import _ctrl_state_to_int
+from qiskit._accelerate.circuit import StandardGate
 
 
 class U1Gate(Gate):
@@ -38,14 +39,14 @@ class U1Gate(Gate):
        .. code-block:: python
 
           circuit = QuantumCircuit(1)
-          circuit.p(lambda, 0) # or circuit.u(0, 0, lambda)
+          circuit.p(lambda, 0) # or circuit.u(0, 0, lambda, 0)
 
 
 
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌───────┐
         q_0: ┤ U1(λ) ├
@@ -92,6 +93,8 @@ class U1Gate(Gate):
         `1612.00858 <https://arxiv.org/abs/1612.00858>`_
     """
 
+    _standard_gate = StandardGate.U1Gate
+
     def __init__(
         self, theta: ParameterValueType, label: str | None = None, *, duration=None, unit="dt"
     ):
@@ -125,7 +128,7 @@ class U1Gate(Gate):
             label: An optional label for the gate [Default: ``None``]
             ctrl_state: control state expressed as integer,
                 string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: indicates whether the controlled gate can be implemented
+            annotated: indicates whether the controlled gate should be implemented
                 as an annotated gate.
 
         Returns:
@@ -160,10 +163,15 @@ class U1Gate(Gate):
         """
         return U1Gate(-self.params[0])
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         """Return a numpy.array for the U1 gate."""
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
         lam = float(self.params[0])
         return numpy.array([[1, 0], [0, numpy.exp(1j * lam)]], dtype=dtype)
+
+    def __eq__(self, other):
+        return isinstance(other, U1Gate) and self._compare_parameters(other)
 
 
 class CU1Gate(ControlledGate):
@@ -172,9 +180,25 @@ class CU1Gate(ControlledGate):
     This is a diagonal and symmetric gate that induces a
     phase on the state of the target qubit, depending on the control state.
 
+    .. warning::
+
+       This gate is deprecated. Instead, the :class:`.CPhaseGate` should be used
+
+       .. math::
+
+           CU1(\lambda) = CP(\lambda)
+
+       .. code-block:: python
+
+          circuit = QuantumCircuit(2)
+          circuit.cp(lambda, 0, 1)
+
+
+
+
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
 
         q_0: ─■──
@@ -202,6 +226,8 @@ class CU1Gate(ControlledGate):
         of U1 and RZ, CU1 and CRZ are different gates with a relative
         phase difference.
     """
+
+    _standard_gate = StandardGate.CU1Gate
 
     def __init__(
         self,
@@ -271,7 +297,7 @@ class CU1Gate(ControlledGate):
             label: An optional label for the gate [Default: ``None``]
             ctrl_state: control state expressed as integer,
                 string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: indicates whether the controlled gate can be implemented
+            annotated: indicates whether the controlled gate should be implemented
                 as an annotated gate.
 
         Returns:
@@ -304,8 +330,10 @@ class CU1Gate(ControlledGate):
         """
         return CU1Gate(-self.params[0], ctrl_state=self.ctrl_state)
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         """Return a numpy.array for the CU1 gate."""
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
         eith = exp(1j * float(self.params[0]))
         if self.ctrl_state:
             return numpy.array(
@@ -316,6 +344,13 @@ class CU1Gate(ControlledGate):
                 [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, eith, 0], [0, 0, 0, 1]], dtype=dtype
             )
 
+    def __eq__(self, other):
+        return (
+            isinstance(other, CU1Gate)
+            and self.ctrl_state == other.ctrl_state
+            and self._compare_parameters(other)
+        )
+
 
 class MCU1Gate(ControlledGate):
     r"""Multi-controlled-U1 gate.
@@ -323,9 +358,25 @@ class MCU1Gate(ControlledGate):
     This is a diagonal and symmetric gate that induces a
     phase on the state of the target qubit, depending on the state of the control qubits.
 
+    .. warning::
+
+       This gate is deprecated. Instead, the following replacements should be used
+
+       .. math::
+
+           MCU1(\lambda) = MCP(\lambda)
+
+       .. code-block:: python
+
+          circuit = QuantumCircuit(5)
+          circuit.mcp(lambda, list(range(4)), 4)
+
+
+
+
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
             q_0: ────■────
                      │
@@ -401,7 +452,7 @@ class MCU1Gate(ControlledGate):
             label: An optional label for the gate [Default: ``None``]
             ctrl_state: control state expressed as integer,
                 string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: indicates whether the controlled gate can be implemented
+            annotated: indicates whether the controlled gate should be implemented
                 as an annotated gate.
 
         Returns:
@@ -440,3 +491,11 @@ class MCU1Gate(ControlledGate):
             MCU1Gate: inverse gate.
         """
         return MCU1Gate(-self.params[0], self.num_ctrl_qubits)
+
+    def __eq__(self, other):
+        return (
+            isinstance(other, MCU1Gate)
+            and self.num_ctrl_qubits == other.num_ctrl_qubits
+            and self.ctrl_state == other.ctrl_state
+            and self._compare_parameters(other)
+        )

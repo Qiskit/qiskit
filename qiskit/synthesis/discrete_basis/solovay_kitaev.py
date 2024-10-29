@@ -16,8 +16,6 @@ from __future__ import annotations
 
 import numpy as np
 
-from qiskit.circuit.gate import Gate
-
 from .gate_sequence import GateSequence
 from .commutator_decompose import commutator_decompose
 from .generate_basis_approximations import generate_basic_approximations, _1q_gates, _1q_inverses
@@ -53,14 +51,19 @@ class SolovayKitaevDecomposition:
 
         self.basic_approximations = self.load_basic_approximations(basic_approximations)
 
-    def load_basic_approximations(self, data: list | str | dict) -> list[GateSequence]:
+    @staticmethod
+    def load_basic_approximations(data: list | str | dict) -> list[GateSequence]:
         """Load basic approximations.
 
         Args:
             data: If a string, specifies the path to the file from where to load the data.
-                If a dictionary, directly specifies the decompositions as ``{gates: matrix}``.
-                There ``gates`` are the names of the gates producing the SO(3) matrix ``matrix``,
-                e.g. ``{"h t": np.array([[0, 0.7071, -0.7071], [0, -0.7071, -0.7071], [-1, 0, 0]]}``.
+                If a dictionary, directly specifies the decompositions as ``{gates: matrix}``
+                or ``{gates: (matrix, global_phase)}``. There, ``gates`` are the names of the gates
+                producing the SO(3) matrix ``matrix``, e.g.
+                ``{"h t": np.array([[0, 0.7071, -0.7071], [0, -0.7071, -0.7071], [-1, 0, 0]]}``
+                and the ``global_phase`` can be given to account for a global phase difference
+                between the U(2) matrix of the quantum gates and the stored SO(3) matrix.
+                If not given, the ``global_phase`` will be assumed to be 0.
 
         Returns:
             A list of basic approximations as type ``GateSequence``.
@@ -74,13 +77,20 @@ class SolovayKitaevDecomposition:
 
         # if a file, load the dictionary
         if isinstance(data, str):
-            data = np.load(data, allow_pickle=True)
+            data = np.load(data, allow_pickle=True).item()
 
         sequences = []
-        for gatestring, matrix in data.items():
+        for gatestring, matrix_and_phase in data.items():
+            if isinstance(matrix_and_phase, tuple):
+                matrix, global_phase = matrix_and_phase
+            else:
+                matrix, global_phase = matrix_and_phase, 0
+
             sequence = GateSequence()
             sequence.gates = [_1q_gates[element] for element in gatestring.split()]
+            sequence.labels = [gate.name for gate in sequence.gates]
             sequence.product = np.asarray(matrix)
+            sequence.global_phase = global_phase
             sequences.append(sequence)
 
         return sequences
@@ -109,7 +119,7 @@ class SolovayKitaevDecomposition:
         gate_matrix_su2 = GateSequence.from_matrix(z * gate_matrix)
         global_phase = np.arctan2(np.imag(z), np.real(z))
 
-        # get the decompositon as GateSequence type
+        # get the decomposition as GateSequence type
         decomposition = self._recurse(gate_matrix_su2, recursion_degree, check_input=check_input)
 
         # simplify
@@ -157,14 +167,14 @@ class SolovayKitaevDecomposition:
         w_n1 = self._recurse(w_n, n - 1, check_input=check_input)
         return v_n1.dot(w_n1).dot(v_n1.adjoint()).dot(w_n1.adjoint()).dot(u_n1)
 
-    def find_basic_approximation(self, sequence: GateSequence) -> Gate:
-        """Finds gate in ``self._basic_approximations`` that best represents ``sequence``.
+    def find_basic_approximation(self, sequence: GateSequence) -> GateSequence:
+        """Find ``GateSequence`` in ``self._basic_approximations`` that approximates ``sequence``.
 
         Args:
-            sequence: The gate to find the approximation to.
+            sequence: ``GateSequence`` to find the approximation to.
 
         Returns:
-            Gate in basic approximations that is closest to ``sequence``.
+            ``GateSequence`` in ``self._basic_approximations`` that approximates ``sequence``.
         """
         # TODO explore using a k-d tree here
 
@@ -180,7 +190,7 @@ def _remove_inverse_follows_gate(sequence):
     while index < len(sequence.gates) - 1:
         curr_gate = sequence.gates[index]
         next_gate = sequence.gates[index + 1]
-        if curr_gate.name in _1q_inverses.keys():
+        if curr_gate.name in _1q_inverses:
             remove = _1q_inverses[curr_gate.name] == next_gate.name
         else:
             remove = curr_gate.inverse() == next_gate

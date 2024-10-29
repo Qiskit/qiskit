@@ -73,7 +73,7 @@ def control(
 ) -> ControlledGate:
     """Return controlled version of gate using controlled rotations. This function
     first checks the name of the operation to see if it knows of a method from which
-    to generate a controlled version. Currently these are `x`, `rx`, `ry`, and `rz`.
+    to generate a controlled version. Currently, these are ``x``, ``rx``, ``ry``, and ``rz``.
     If a method is not directly known, it calls the unroller to convert to `u1`, `u3`,
     and `cx` gates.
 
@@ -137,7 +137,7 @@ def control(
                     gate.definition.data[0].operation.params[0],
                     q_control,
                     q_target[bit_indices[qargs[0]]],
-                    use_basis_gates=True,
+                    use_basis_gates=False,
                 )
             elif gate.name == "ry":
                 controlled_circ.mcry(
@@ -146,14 +146,14 @@ def control(
                     q_target[bit_indices[qargs[0]]],
                     q_ancillae,
                     mode="noancilla",
-                    use_basis_gates=True,
+                    use_basis_gates=False,
                 )
             elif gate.name == "rz":
                 controlled_circ.mcrz(
                     gate.definition.data[0].operation.params[0],
                     q_control,
                     q_target[bit_indices[qargs[0]]],
-                    use_basis_gates=True,
+                    use_basis_gates=False,
                 )
                 continue
             elif gate.name == "p":

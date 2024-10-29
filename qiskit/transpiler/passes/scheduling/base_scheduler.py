@@ -11,13 +11,15 @@
 # that they have been altered from the originals.
 
 """Base circuit scheduling pass."""
-from qiskit.transpiler import InstructionDurations
-from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.transpiler.passes.scheduling.time_unit_conversion import TimeUnitConversion
-from qiskit.dagcircuit import DAGOpNode, DAGCircuit
-from qiskit.circuit import Delay, Gate
+import warnings
+
+from qiskit.circuit import Delay, Gate, Measure, Reset
 from qiskit.circuit.parameterexpression import ParameterExpression
+from qiskit.dagcircuit import DAGOpNode, DAGCircuit, DAGOutNode
+from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.instruction_durations import InstructionDurations
+from qiskit.transpiler.passes.scheduling.time_unit_conversion import TimeUnitConversion
 from qiskit.transpiler.target import Target
 
 
@@ -40,7 +42,7 @@ class BaseSchedulerTransform(TransformationPass):
         conditioned on the same register are commute, i.e. read-access to the
         classical register doesn't change its state.
 
-        .. parsed-literal::
+        .. code-block:: text
 
             qc = QuantumCircuit(2, 1)
             qc.delay(100, 0)
@@ -50,7 +52,7 @@ class BaseSchedulerTransform(TransformationPass):
         The scheduler SHOULD comply with above topological ordering policy of the DAG circuit.
         Accordingly, the `asap`-scheduled circuit will become
 
-        .. parsed-literal::
+        .. code-block:: text
 
                  ┌────────────────┐   ┌───┐
             q_0: ┤ Delay(100[dt]) ├───┤ X ├──────────────
@@ -66,7 +68,7 @@ class BaseSchedulerTransform(TransformationPass):
         However, such optimization should be done by another pass,
         otherwise scheduling may break topological ordering of the original circuit.
 
-    Realistic control flow scheduling respecting for microarcitecture
+    Realistic control flow scheduling respecting for microarchitecture
 
         In the dispersive QND readout scheme, qubit is measured with microwave stimulus to qubit (Q)
         followed by resonator ring-down (depopulation). This microwave signal is recorded
@@ -74,7 +76,7 @@ class BaseSchedulerTransform(TransformationPass):
         is moved to the classical register (C).
         The sequence from t0 to t1 of the measure instruction interval might be modeled as follows:
 
-        .. parsed-literal::
+        .. code-block:: text
 
             Q ░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░
             B ░░▒▒▒▒▒▒▒▒░░░░░░░░░
@@ -88,7 +90,7 @@ class BaseSchedulerTransform(TransformationPass):
 
         This precise model may induce weird edge case.
 
-        .. parsed-literal::
+        .. code-block:: text
 
                     ┌───┐
             q_0: ───┤ X ├──────
@@ -105,7 +107,7 @@ class BaseSchedulerTransform(TransformationPass):
         is unchanged during the stimulus, thus two nodes are simultaneously operated.
         If one `alap`-schedule this circuit, it may return following circuit.
 
-        .. parsed-literal::
+        .. code-block:: text
 
                  ┌────────────────┐   ┌───┐
             q_0: ┤ Delay(500[dt]) ├───┤ X ├──────
@@ -120,7 +122,7 @@ class BaseSchedulerTransform(TransformationPass):
         It looks like the topological ordering between the nodes are flipped in the scheduled view.
         This behavior can be understood by considering the control flow model described above,
 
-        .. parsed-literal::
+        .. code-block:: text
 
             : Quantum Circuit, first-measure
             0 ░░░░░░░░░░░░▒▒▒▒▒▒░
@@ -152,7 +154,7 @@ class BaseSchedulerTransform(TransformationPass):
         In this case, ``Measure`` instruction immediately locks the register C.
         Under this configuration, the `alap`-scheduled circuit of above example may become
 
-        .. parsed-literal::
+        .. code-block:: text
 
                     ┌───┐
             q_0: ───┤ X ├──────
@@ -166,7 +168,8 @@ class BaseSchedulerTransform(TransformationPass):
         it may separately schedule qubit and classical register,
         insertion of the delay yields unnecessary longer total execution time.
 
-        .. parsed-literal::
+        .. code-block:: text
+
             : Quantum Circuit, first-xgate
             0 ░▒▒▒░░░░░░░░░░░░░░░
             1 ░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░
@@ -183,7 +186,7 @@ class BaseSchedulerTransform(TransformationPass):
         If finite conditional latency is provided, for example, 30 dt, the circuit
         is scheduled as follows.
 
-        .. parsed-literal::
+        .. code-block:: text
 
                  ┌───────────────┐   ┌───┐
             q_0: ┤ Delay(30[dt]) ├───┤ X ├──────
@@ -195,7 +198,8 @@ class BaseSchedulerTransform(TransformationPass):
 
         with the timing model:
 
-        .. parsed-literal::
+        .. code-block:: text
+
             : Quantum Circuit, first-xgate
             0 ░░▒▒▒░░░░░░░░░░░░░░░
             1 ░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░
@@ -262,12 +266,29 @@ class BaseSchedulerTransform(TransformationPass):
         """A helper method to get duration from node or calibration."""
         indices = [dag.find_bit(qarg).index for qarg in node.qargs]
 
-        if dag.has_calibration_for(node):
+        if dag._has_calibration_for(node):
             # If node has calibration, this value should be the highest priority
             cal_key = tuple(indices), tuple(float(p) for p in node.op.params)
-            duration = dag.calibrations[node.op.name][cal_key].duration
+            duration = dag._calibrations_prop[node.op.name][cal_key].duration
         else:
             duration = node.op.duration
+
+        if isinstance(node.op, Reset):
+            warnings.warn(
+                "Qiskit scheduler assumes Reset works similarly to Measure instruction. "
+                "Actual behavior depends on the control system of your quantum backend. "
+                "Your backend may provide a plugin scheduler pass."
+            )
+        elif isinstance(node.op, Measure):
+            is_mid_circuit = not any(
+                isinstance(x, DAGOutNode) for x in dag.quantum_successors(node)
+            )
+            if is_mid_circuit:
+                warnings.warn(
+                    "Qiskit scheduler assumes mid-circuit measurement works as a standard instruction. "
+                    "Actual backend may apply custom scheduling. "
+                    "Your backend may provide a plugin scheduler pass."
+                )
 
         if isinstance(duration, ParameterExpression):
             raise TranspilerError(

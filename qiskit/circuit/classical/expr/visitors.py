@@ -29,7 +29,7 @@ _T_co = typing.TypeVar("_T_co", covariant=True)
 
 class ExprVisitor(typing.Generic[_T_co]):
     """Base class for visitors to the :class:`Expr` tree.  Subclasses should override whichever of
-    the ``visit_*`` methods that they are able to handle, and should be organised such that
+    the ``visit_*`` methods that they are able to handle, and should be organized such that
     non-existent methods will never be called."""
 
     # The method names are self-explanatory and docstrings would just be noise.
@@ -55,6 +55,9 @@ class ExprVisitor(typing.Generic[_T_co]):
     def visit_cast(self, node: expr.Cast, /) -> _T_co:  # pragma: no cover
         return self.visit_generic(node)
 
+    def visit_index(self, node: expr.Index, /) -> _T_co:  # pragma: no cover
+        return self.visit_generic(node)
+
 
 class _VarWalkerImpl(ExprVisitor[typing.Iterable[expr.Var]]):
     __slots__ = ()
@@ -74,6 +77,10 @@ class _VarWalkerImpl(ExprVisitor[typing.Iterable[expr.Var]]):
 
     def visit_cast(self, node, /):
         yield from node.operand.accept(self)
+
+    def visit_index(self, node, /):
+        yield from node.target.accept(self)
+        yield from node.index.accept(self)
 
 
 _VAR_WALKER = _VarWalkerImpl()
@@ -164,6 +171,16 @@ class _StructuralEquivalenceImpl(ExprVisitor[bool]):
         self.other = self.other.operand
         return node.operand.accept(self)
 
+    def visit_index(self, node, /):
+        if self.other.__class__ is not node.__class__ or self.other.type != node.type:
+            return False
+        other = self.other
+        self.other = other.target
+        if not node.target.accept(self):
+            return False
+        self.other = other.index
+        return node.index.accept(self)
+
 
 def structurally_equivalent(
     left: expr.Expr,
@@ -234,6 +251,9 @@ class _IsLValueImpl(ExprVisitor[bool]):
 
     def visit_cast(self, node, /):
         return False
+
+    def visit_index(self, node, /):
+        return node.target.accept(self)
 
 
 _IS_LVALUE = _IsLValueImpl()

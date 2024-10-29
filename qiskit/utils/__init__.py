@@ -44,7 +44,7 @@ Multiprocessing
 .. autofunction:: local_hardware_info
 .. autofunction:: is_main_process
 
-A helper function for calling a custom function with python
+A helper function for calling a custom function with Python
 :class:`~concurrent.futures.ProcessPoolExecutor`. Tasks can be executed in parallel using this function.
 
 .. autofunction:: parallel_map
@@ -70,7 +70,7 @@ from .lazy_tester import LazyDependencyManager, LazyImportTester, LazySubprocess
 
 from . import optionals
 
-from .parallel import parallel_map
+from .parallel import parallel_map, should_run_in_parallel
 
 __all__ = [
     "LazyDependencyManager",
@@ -85,4 +85,5 @@ __all__ = [
     "is_main_process",
     "apply_prefix",
     "parallel_map",
+    "should_run_in_parallel",
 ]

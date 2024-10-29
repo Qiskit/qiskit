@@ -21,17 +21,20 @@ import ddt
 import numpy as np
 
 from qiskit import pulse
-from qiskit.circuit import Parameter
+from qiskit.circuit import Parameter, ParameterVector
 from qiskit.pulse.exceptions import PulseError, UnassignedDurationError
 from qiskit.pulse.parameter_manager import ParameterGetter, ParameterSetter
 from qiskit.pulse.transforms import AlignEquispaced, AlignLeft, inline_subroutines
 from qiskit.pulse.utils import format_parameter_value
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from qiskit.utils.deprecate_pulse import decorate_test_methods, ignore_pulse_deprecation_warnings
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class ParameterTestBase(QiskitTestCase):
     """A base class for parameter manager unittest, providing test schedule."""
 
+    @ignore_pulse_deprecation_warnings
     def setUp(self):
         """Just some useful, reusable Parameters, constants, schedules."""
         super().setUp()
@@ -100,6 +103,7 @@ class ParameterTestBase(QiskitTestCase):
         self.test_sched = long_schedule
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestParameterGetter(ParameterTestBase):
     """Test getting parameters."""
 
@@ -183,6 +187,7 @@ class TestParameterGetter(ParameterTestBase):
         self.assertEqual(len(visitor.parameters), 17)
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestParameterSetter(ParameterTestBase):
     """Test setting parameters."""
 
@@ -451,6 +456,7 @@ class TestParameterSetter(ParameterTestBase):
         self.assertEqual(assigned, ref_obj)
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestAssignFromProgram(QiskitTestCase):
     """Test managing parameters from programs. Parameter manager is implicitly called."""
 
@@ -483,7 +489,78 @@ class TestAssignFromProgram(QiskitTestCase):
         self.assertEqual(block.blocks[0].pulse.amp, 0.2)
         self.assertEqual(block.blocks[0].pulse.sigma, 4.0)
 
+    def test_parametric_pulses_with_parameter_vector(self):
+        """Test Parametric Pulses with parameters determined by a ParameterVector
+        in the Play instruction."""
+        param_vec = ParameterVector("param_vec", 3)
+        param = Parameter("param")
 
+        waveform = pulse.library.Gaussian(duration=128, sigma=param_vec[0], amp=param_vec[1])
+
+        block = pulse.ScheduleBlock()
+        block += pulse.Play(waveform, pulse.DriveChannel(10))
+        block += pulse.ShiftPhase(param_vec[2], pulse.DriveChannel(10))
+        block1 = block.assign_parameters({param_vec: [4, 0.2, 0.1]}, inplace=False)
+        block2 = block.assign_parameters({param_vec: [4, param, 0.1]}, inplace=False)
+        self.assertEqual(block1.blocks[0].pulse.amp, 0.2)
+        self.assertEqual(block1.blocks[0].pulse.sigma, 4.0)
+        self.assertEqual(block1.blocks[1].phase, 0.1)
+        self.assertEqual(block2.blocks[0].pulse.amp, param)
+        self.assertEqual(block2.blocks[0].pulse.sigma, 4.0)
+        self.assertEqual(block2.blocks[1].phase, 0.1)
+
+        sched = pulse.Schedule()
+        sched += pulse.Play(waveform, pulse.DriveChannel(10))
+        sched += pulse.ShiftPhase(param_vec[2], pulse.DriveChannel(10))
+        sched1 = sched.assign_parameters({param_vec: [4, 0.2, 0.1]}, inplace=False)
+        sched2 = sched.assign_parameters({param_vec: [4, param, 0.1]}, inplace=False)
+        self.assertEqual(sched1.instructions[0][1].pulse.amp, 0.2)
+        self.assertEqual(sched1.instructions[0][1].pulse.sigma, 4.0)
+        self.assertEqual(sched1.instructions[1][1].phase, 0.1)
+        self.assertEqual(sched2.instructions[0][1].pulse.amp, param)
+        self.assertEqual(sched2.instructions[0][1].pulse.sigma, 4.0)
+        self.assertEqual(sched2.instructions[1][1].phase, 0.1)
+
+    def test_pulse_assignment_with_parameter_names(self):
+        """Test pulse assignment with parameter names."""
+        sigma = Parameter("sigma")
+        amp = Parameter("amp")
+        param_vec = ParameterVector("param_vec", 2)
+
+        waveform = pulse.library.Gaussian(duration=128, sigma=sigma, amp=amp)
+        waveform2 = pulse.library.Gaussian(duration=128, sigma=40, amp=amp)
+        block = pulse.ScheduleBlock()
+        block += pulse.Play(waveform, pulse.DriveChannel(10))
+        block += pulse.Play(waveform2, pulse.DriveChannel(10))
+        block += pulse.ShiftPhase(param_vec[0], pulse.DriveChannel(10))
+        block += pulse.ShiftPhase(param_vec[1], pulse.DriveChannel(10))
+        block1 = block.assign_parameters(
+            {"amp": 0.2, "sigma": 4, "param_vec": [3.14, 1.57]}, inplace=False
+        )
+
+        self.assertEqual(block1.blocks[0].pulse.amp, 0.2)
+        self.assertEqual(block1.blocks[0].pulse.sigma, 4.0)
+        self.assertEqual(block1.blocks[1].pulse.amp, 0.2)
+        self.assertEqual(block1.blocks[2].phase, 3.14)
+        self.assertEqual(block1.blocks[3].phase, 1.57)
+
+        sched = pulse.Schedule()
+        sched += pulse.Play(waveform, pulse.DriveChannel(10))
+        sched += pulse.Play(waveform2, pulse.DriveChannel(10))
+        sched += pulse.ShiftPhase(param_vec[0], pulse.DriveChannel(10))
+        sched += pulse.ShiftPhase(param_vec[1], pulse.DriveChannel(10))
+        sched1 = sched.assign_parameters(
+            {"amp": 0.2, "sigma": 4, "param_vec": [3.14, 1.57]}, inplace=False
+        )
+
+        self.assertEqual(sched1.instructions[0][1].pulse.amp, 0.2)
+        self.assertEqual(sched1.instructions[0][1].pulse.sigma, 4.0)
+        self.assertEqual(sched1.instructions[1][1].pulse.amp, 0.2)
+        self.assertEqual(sched1.instructions[2][1].phase, 3.14)
+        self.assertEqual(sched1.instructions[3][1].phase, 1.57)
+
+
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestScheduleTimeslots(QiskitTestCase):
     """Test for edge cases of timing overlap on parametrized channels.
 
@@ -562,6 +639,7 @@ class TestScheduleTimeslots(QiskitTestCase):
 
 
 @ddt.ddt
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestFormatParameter(QiskitTestCase):
     """Test format_parameter_value function."""
 

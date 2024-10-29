@@ -33,7 +33,7 @@ class RGQFTMultiplier(Multiplier):
     As an example, a circuit that performs a modular QFT multiplication on two 2-qubit
     sized input registers with an output register of 2 qubits, is as follows:
 
-    .. parsed-literal::
+    .. code-block:: text
 
           a_0: ────────────────────────────────────────■───────■──────■──────■────────────────
                                                        │       │      │      │

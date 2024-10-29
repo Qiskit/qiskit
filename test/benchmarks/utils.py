@@ -15,9 +15,12 @@
 """Benchmark utility functions."""
 
 import numpy as np
-
 from qiskit.quantum_info.random import random_unitary
-from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.circuit import (
+    QuantumRegister,
+    ClassicalRegister,
+    QuantumCircuit,
+)
 from qiskit.circuit import Reset
 from qiskit.circuit.library import (
     IGate,
@@ -71,7 +74,7 @@ def random_circuit(
         Exception: when invalid options given
     """
     if max_operands < 1 or max_operands > 3:
-        raise Exception("max_operands must be between 1 and 3")
+        raise ValueError("max_operands must be between 1 and 3")
 
     one_q_ops = [
         IGate,
@@ -126,6 +129,8 @@ def random_circuit(
                 operation = rng.choice(two_q_ops)
             elif num_operands == 3:
                 operation = rng.choice(three_q_ops)
+            else:
+                raise RuntimeError("not supported number of operands")
             if operation in one_param:
                 num_angles = 1
             elif operation in two_param:
@@ -213,11 +218,91 @@ def build_ripple_adder_circuit(size):
     qc.x(a[0])  # Set input a = 0...0001
     qc.x(b)  # Set input b = 1...1111
     # Apply the adder
-    qc += adder_subcircuit
+    qc &= adder_subcircuit
 
     # Measure the output register in the computational basis
     for j in range(n):
         qc.measure(b[j], ans[j])
     qc.measure(cout[0], ans[n])
 
+    return qc
+
+
+def dtc_unitary(num_qubits, g=0.95, seed=12345):
+    """Generate a Floquet unitary for DTC evolution
+    Parameters:
+        num_qubits (int): Number of qubits
+        g (float): Optional. Parameter controlling amount of x-rotation, default=0.95
+        seed (int): Optional. Seed the random number generator, default=12345
+    Returns:
+        QuantumCircuit: Unitary operator
+    """
+    rng = np.random.default_rng(seed=seed)
+    qc = QuantumCircuit(num_qubits)
+
+    for i in range(num_qubits):
+        qc.rx(g * np.pi, i)
+
+    for i in range(0, num_qubits - 1, 2):
+        phi = rng.uniform(low=np.pi / 16, high=3 * np.pi / 16)
+        qc.rzz(2 * phi, i, i + 1)
+    for i in range(1, num_qubits - 1, 2):
+        phi = rng.uniform(low=np.pi / 16, high=3 * np.pi / 16)
+        qc.rzz(2 * phi, i, i + 1)
+
+    for i in range(num_qubits):
+        h = rng.uniform(low=-np.pi, high=np.pi)
+        qc.rz(h * np.pi, i)
+
+    return qc
+
+
+def multi_control_circuit(num_qubits):
+    """A circuit with multi-control X-gates
+    Parameters:
+        num_qubits (int): Number of qubits
+    Returns:
+        QuantumCircuit: Output circuit
+    """
+    gate = XGate()
+    qc = QuantumCircuit(num_qubits)
+    qc.compose(gate, range(gate.num_qubits), inplace=True)
+    for _ in range(num_qubits - 1):
+        gate = gate.control()
+        qc.compose(gate, range(gate.num_qubits), inplace=True)
+    return qc
+
+
+def bv_all_ones(n_qubits):
+    """A circuit to generate a BV circuit over N
+    qubits for an all-ones bit-string
+    Parameters:
+        n_qubits (int): Number of qubits
+    Returns:
+        QuantumCircuit: Output circuit
+    """
+    qc = QuantumCircuit(n_qubits, n_qubits - 1)
+    qc.x(n_qubits - 1)
+    qc.h(range(n_qubits))
+    qc.cx(range(n_qubits - 1), n_qubits - 1)
+    qc.h(range(n_qubits - 1))
+    qc.measure(range(n_qubits - 1), range(n_qubits - 1))
+    return qc
+
+
+def trivial_bvlike_circuit(N):
+    """A trivial circuit that should boil down
+    to just a X and Z gate since they commute out
+    Parameters:
+        N (int): Number of qubits
+    Returns:
+        QuantumCircuit: Output circuit
+    """
+    qc = QuantumCircuit(N)
+    for kk in range(N - 1):
+        qc.cx(kk, N - 1)
+    qc.x(N - 1)
+    qc.z(N - 2)
+    for kk in range(N - 2, -1, -1):
+        qc.cx(kk, N - 1)
     return qc

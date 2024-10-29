@@ -12,11 +12,14 @@
 
 """Sqrt(X) and C-Sqrt(X) gates."""
 
+from __future__ import annotations
+
 from math import pi
 from typing import Optional, Union
 from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, stdlib_singleton_key
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
+from qiskit._accelerate.circuit import StandardGate
 
 
 _SX_ARRAY = [[0.5 + 0.5j, 0.5 - 0.5j], [0.5 - 0.5j, 0.5 + 0.5j]]
@@ -41,7 +44,7 @@ class SXGate(SingletonGate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌────┐
         q_0: ┤ √X ├
@@ -61,6 +64,8 @@ class SXGate(SingletonGate):
                     = e^{-i \pi/4} \sqrt{X}
 
     """
+
+    _standard_gate = StandardGate.SXGate
 
     def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create new SX gate."""
@@ -101,9 +106,9 @@ class SXGate(SingletonGate):
     def control(
         self,
         num_ctrl_qubits: int = 1,
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[str, int]] = None,
-        annotated: bool = False,
+        label: str | None = None,
+        ctrl_state: str | int | None = None,
+        annotated: bool | None = None,
     ):
         """Return a (multi-)controlled-SX gate.
 
@@ -114,8 +119,8 @@ class SXGate(SingletonGate):
             label: An optional label for the gate [Default: ``None``]
             ctrl_state: control state expressed as integer,
                 string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: indicates whether the controlled gate can be implemented
-                as an annotated gate.
+            annotated: indicates whether the controlled gate should be implemented
+                as an annotated gate. If ``None``, this is handled as ``False``.
 
         Returns:
             SingletonControlledGate: controlled version of this gate.
@@ -163,6 +168,8 @@ class SXdgGate(SingletonGate):
                       \end{pmatrix}
                     = e^{-i \pi/4} \sqrt{X}^{\dagger}
     """
+
+    _standard_gate = StandardGate.SXdgGate
 
     def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create new SXdg gate."""
@@ -213,7 +220,7 @@ class CSXGate(SingletonControlledGate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
         q_0: ──■──
              ┌─┴──┐
@@ -242,7 +249,8 @@ class CSXGate(SingletonControlledGate):
         which in our case would be `q_1`. Thus a textbook matrix for this
         gate will be:
 
-        .. parsed-literal::
+        .. code-block:: text
+
                  ┌────┐
             q_0: ┤ √X ├
                  └─┬──┘
@@ -260,6 +268,8 @@ class CSXGate(SingletonControlledGate):
                 \end{pmatrix}
 
     """
+
+    _standard_gate = StandardGate.CSXGate
 
     def __init__(
         self,

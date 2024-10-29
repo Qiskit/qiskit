@@ -14,21 +14,25 @@
 
 import re
 from collections import OrderedDict
+from warnings import warn
 
 import numpy as np
 
 from qiskit.circuit import (
+    ClassicalRegister,
     Clbit,
+    ControlFlowOp,
     ControlledGate,
     Delay,
     Gate,
     Instruction,
     Measure,
+    QuantumCircuit,
+    Qubit,
 )
+from qiskit.circuit.annotated_operation import AnnotatedOperation, InverseModifier, PowerModifier
 from qiskit.circuit.controlflow import condition_resources
 from qiskit.circuit.library import PauliEvolutionGate
-from qiskit.circuit import ClassicalRegister, QuantumCircuit, Qubit, ControlFlowOp
-from qiskit.circuit.annotated_operation import AnnotatedOperation, InverseModifier, PowerModifier
 from qiskit.circuit.tools import pi_check
 from qiskit.converters import circuit_to_dag
 from qiskit.utils import optionals as _optionals
@@ -112,7 +116,7 @@ def get_gate_ctrl_text(op, drawer, style=None, calibrations=None):
             gate_text = gate_text.replace("-", "\\mbox{-}")
         ctrl_text = f"$\\mathrm{{{ctrl_text}}}$"
 
-    # Only captitalize internally-created gate or instruction names
+    # Only capitalize internally-created gate or instruction names
     elif (
         (gate_text == op.name and op_type not in (Gate, Instruction))
         or (gate_text == base_name and base_type not in (Gate, Instruction))
@@ -370,6 +374,29 @@ def generate_latex_label(label):
     return final_str.replace(" ", "\\,")  # Put in proper spaces
 
 
+def _get_valid_justify_arg(justify):
+    """Returns a valid `justify` argument, warning if necessary."""
+    if isinstance(justify, str):
+        justify = justify.lower()
+
+    if justify is None:
+        justify = "left"
+
+    if justify not in ("left", "right", "none"):
+        # This code should be changed to an error raise, once the deprecation is complete.
+        warn(
+            f"Setting QuantumCircuit.draw()’s or circuit_drawer()'s justify argument: {justify}, to a "
+            "value other than 'left', 'right', 'none' or None (='left'). Default 'left' will be used. "
+            "Support for invalid justify arguments is deprecated as of Qiskit 1.2.0. Starting no "
+            "earlier than 3 months after the release date, invalid arguments will error.",
+            DeprecationWarning,
+            2,
+        )
+        justify = "left"
+
+    return justify
+
+
 def _get_layered_instructions(
     circuit, reverse_bits=False, justify=None, idle_wires=True, wire_order=None, wire_map=None
 ):
@@ -384,9 +411,10 @@ def _get_layered_instructions(
         reverse_bits (bool): If true the order of the bits in the registers is
             reversed.
         justify (str) : `left`, `right` or `none`. Defaults to `left`. Says how
-            the circuit should be justified.
+            the circuit should be justified. If an invalid value is provided,
+            default `left` will be used.
         idle_wires (bool): Include idle wires. Default is True.
-        wire_order (list): A list of ints that modifies the order of the bits
+        wire_order (list): A list of ints that modifies the order of the bits.
 
     Returns:
         Tuple(list,list,list): To be consumed by the visualizer directly.
@@ -394,11 +422,7 @@ def _get_layered_instructions(
     Raises:
         VisualizationError: if both reverse_bits and wire_order are entered.
     """
-    if justify:
-        justify = justify.lower()
-
-    # default to left
-    justify = justify if justify in ("right", "none") else "left"
+    justify = _get_valid_justify_arg(justify)
 
     if wire_map is not None:
         qubits = [bit for bit in wire_map if isinstance(bit, Qubit)]
@@ -430,14 +454,12 @@ def _get_layered_instructions(
         clbits = new_clbits
 
     dag = circuit_to_dag(circuit)
-    dag.qubits = qubits
-    dag.clbits = clbits
 
     if justify == "none":
         for node in dag.topological_op_nodes():
             nodes.append([node])
     else:
-        nodes = _LayerSpooler(dag, justify, measure_map)
+        nodes = _LayerSpooler(dag, qubits, clbits, justify, measure_map)
 
     # Optionally remove all idle wires and instructions that are on them and
     # on them only.
@@ -491,23 +513,25 @@ def _get_gate_span(qubits, node):
 
 def _any_crossover(qubits, node, nodes):
     """Return True .IFF. 'node' crosses over any 'nodes'."""
-    gate_span = _get_gate_span(qubits, node)
-    all_indices = []
-    for check_node in nodes:
-        if check_node != node:
-            all_indices += _get_gate_span(qubits, check_node)
-    return any(i in gate_span for i in all_indices)
+    return bool(
+        set(_get_gate_span(qubits, node)).intersection(
+            bit for check_node in nodes for bit in _get_gate_span(qubits, check_node)
+        )
+    )
+
+
+_GLOBAL_NID = 0
 
 
 class _LayerSpooler(list):
     """Manipulate list of layer dicts for _get_layered_instructions."""
 
-    def __init__(self, dag, justification, measure_map):
+    def __init__(self, dag, qubits, clbits, justification, measure_map):
         """Create spool"""
         super().__init__()
         self.dag = dag
-        self.qubits = dag.qubits
-        self.clbits = dag.clbits
+        self.qubits = qubits
+        self.clbits = clbits
         self.justification = justification
         self.measure_map = measure_map
         self.cregs = [self.dag.cregs[reg] for reg in self.dag.cregs]
@@ -636,6 +660,15 @@ class _LayerSpooler(list):
 
     def add(self, node, index):
         """Add 'node' where it belongs, starting the try at 'index'."""
+        # Before we add the node, we set its node ID to be globally unique
+        # within this spooler. This is necessary because nodes may span
+        # layers (which are separate DAGs), and thus can falsely compare
+        # as equal if their contents and node IDs happen to be the same.
+        # This is particularly important for the matplotlib drawer, which
+        # keys several of its internal data structures with these nodes.
+        global _GLOBAL_NID  # pylint: disable=global-statement
+        node._node_id = _GLOBAL_NID
+        _GLOBAL_NID += 1
         if self.justification == "left":
             self.slide_from_left(node, index)
         else:

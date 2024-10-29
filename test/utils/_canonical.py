@@ -52,7 +52,7 @@ def canonicalize_control_flow(circuit: QuantumCircuit) -> QuantumCircuit:
     """Canonicalize all control-flow operations in a circuit.
 
     This is not an efficient operation, and does not affect any properties of the circuit.  Its
-    intent is to normalise parts of circuits that have a non-deterministic construction.  These are
+    intent is to normalize parts of circuits that have a non-deterministic construction.  These are
     the ordering of bit arguments in control-flow blocks output by the builder interface, and
     automatically generated ``for``-loop variables.
 

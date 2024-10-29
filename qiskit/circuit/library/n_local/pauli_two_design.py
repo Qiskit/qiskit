@@ -37,7 +37,7 @@ class PauliTwoDesign(TwoLocal):
     For instance, the circuit could look like this (but note that choosing a different seed
     yields different Pauli rotations).
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌─────────┐┌──────────┐       ░ ┌──────────┐       ░  ┌──────────┐
         q_0: ┤ RY(π/4) ├┤ RZ(θ[0]) ├─■─────░─┤ RY(θ[4]) ├─■─────░──┤ RZ(θ[8]) ├
@@ -118,7 +118,7 @@ class PauliTwoDesign(TwoLocal):
         qubits = range(self.num_qubits)
 
         # if no gates for this layer were generated, generate them
-        if i not in self._gates.keys():
+        if i not in self._gates:
             self._gates[i] = list(self._rng.choice(["rx", "ry", "rz"], self.num_qubits))
         # if not enough gates exist, add more
         elif len(self._gates[i]) < self.num_qubits:

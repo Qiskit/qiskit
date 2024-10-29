@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Job implementation for the reference implementations of Primitives.
+Job for the reference implementations of Primitives V1 and V2.
 """
 
 import uuid

@@ -24,7 +24,7 @@
 
 # Qiskit folders (also their corresponding tests)
 providers/            @Qiskit/terra-core @jyu00
-quantum_info/         @Qiskit/terra-core @ikkoham
+quantum_info/         @Qiskit/terra-core
 qpy/                  @Qiskit/terra-core
 pulse/                @Qiskit/terra-core @eggerdj @wshanks
 synthesis/            @Qiskit/terra-core @alexanderivrii @ShellyGarion

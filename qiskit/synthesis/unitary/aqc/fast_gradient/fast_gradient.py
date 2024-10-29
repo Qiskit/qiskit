@@ -14,6 +14,7 @@
 Implementation of the fast objective function class.
 """
 
+import math
 import warnings
 import numpy as np
 
@@ -110,7 +111,7 @@ class FastCNOTUnitObjective(CNOTUnitObjective):
         # If thetas are the same as used for objective value calculation
         # before calling this function, then we re-use the computations,
         # otherwise we have to re-compute the objective.
-        tol = float(np.sqrt(np.finfo(float).eps))
+        tol = math.sqrt(np.finfo(float).eps)
         if not np.allclose(param_values, self._circ_thetas, atol=tol, rtol=tol):
             self.objective(param_values)
             warnings.warn("gradient is computed before the objective")

@@ -16,6 +16,7 @@ Abstract base class for Quantum Channels.
 
 from __future__ import annotations
 import copy
+import math
 import sys
 from abc import abstractmethod
 from numbers import Number, Integral
@@ -65,12 +66,9 @@ class QuantumChannel(LinearOp):
     def __repr__(self):
         prefix = f"{self._channel_rep}("
         pad = len(prefix) * " "
-        return "{}{},\n{}input_dims={}, output_dims={})".format(
-            prefix,
-            np.array2string(np.asarray(self.data), separator=", ", prefix=prefix),
-            pad,
-            self.input_dims(),
-            self.output_dims(),
+        return (
+            f"{prefix}{np.array2string(np.asarray(self.data), separator=', ', prefix=prefix)}"
+            f",\n{pad}input_dims={self.input_dims()}, output_dims={self.output_dims()})"
         )
 
     def __eq__(self, other: Self):
@@ -249,7 +247,7 @@ class QuantumChannel(LinearOp):
         """
 
         # Check if input is an N-qubit CPTP channel.
-        num_qubits = int(np.log2(self._input_dim))
+        num_qubits = int(math.log2(self._input_dim))
         if self._input_dim != self._output_dim or 2**num_qubits != self._input_dim:
             raise QiskitError(
                 "Cannot convert QuantumChannel to Instruction: channel is not an N-qubit channel."

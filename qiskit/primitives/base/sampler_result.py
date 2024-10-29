@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Sampler result class
+Sampler V1 result class
 """
 
 from __future__ import annotations
@@ -25,7 +25,7 @@ from .base_result import _BasePrimitiveResult
 
 @dataclass(frozen=True)
 class SamplerResult(_BasePrimitiveResult):
-    """Result of Sampler.
+    """Result of Sampler V1.
 
     .. code-block:: python
 

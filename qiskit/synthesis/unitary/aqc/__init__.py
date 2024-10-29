@@ -108,7 +108,7 @@ A basic usage of the AQC algorithm should consist of the following steps::
     unitary = ...
 
     # Define a number of qubits for the algorithm, at least 3 qubits
-    num_qubits = int(round(np.log2(unitary.shape[0])))
+    num_qubits = round(math.log2(unitary.shape[0]))
 
     # Choose a layout of the CNOT structure for the approximate circuit, e.g. ``spin`` for
     # a linear layout.
