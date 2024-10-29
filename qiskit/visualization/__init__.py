@@ -79,22 +79,13 @@ You can save the figure to file either by passing the file name to ``filename`` 
 `matplotlib.figure.Figure.savefig
 <https://matplotlib.org/stable/api/figure_api.html#matplotlib.figure.Figure.savefig>`_ method.
 
-.. plot::
-   :include-source:
-   :nofigs:
-   :context:
+.. code-block:: python
 
    plot_histogram(data, filename='new_hist.png')
 
    hist = plot_histogram(data)
    hist.savefig('new_hist.png')
 
-.. plot::
-   :nofigs:
-
-   # This block is hidden from readers. It's cleanup code.
-   from pathlib import Path
-   Path("new_hist.png").unlink()
 
 Counts Visualizations
 =====================

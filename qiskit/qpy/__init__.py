@@ -43,9 +43,21 @@ to a file object and load circuits from QPY data in a file object respectively.
 For example:
 
 .. plot::
-    :include-source:
     :nofigs:
     :context: reset
+
+    # This code is hidden from users
+    # It's a hack to avoid writing to file when testing the code examples
+    import io
+    bytestream = io.BytesIO()
+    bytestream.close = lambda: bytestream.seek(0)
+    def open(*args):
+        return bytestream
+
+.. plot::
+    :include-source:
+    :nofigs:
+    :context:
 
     from qiskit.circuit import QuantumCircuit
     from qiskit import qpy
@@ -81,15 +93,6 @@ and then loading that file will return a list with all the circuits
 
     with open('twenty_bells.qpy', 'rb') as fd:
         twenty_new_bells = qpy.load(fd)
-
-.. plot::
-    :nofigs:
-    :context:
-
-    # This block is hidden from readers. It's cleanup code.
-    from pathlib import Path
-    Path("bell.qpy").unlink()
-    Path("twenty_bells.qpy").unlink()
 
 
 API documentation
