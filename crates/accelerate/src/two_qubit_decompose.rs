@@ -2759,13 +2759,11 @@ impl TwoQubitControlledUDecomposer {
                         }
                     }
                     RXXEquivalent::CustomPython(gate_cls) => {
-                        println!("gate obj {:?}", gate_cls.bind(py).str());
-                        gate_cls.bind(py).call1((test_angle,))?;
-                        //                        if gate_cls.bind(py).call1((test_angle,)){
-                        //                            return Err(QiskitError::new_err(
-                        //                                "Equivalent gate needs to take exactly 1 angle parameter.",
-                        //                            ));
-                        //                        }
+                        if gate_cls.bind(py).call1((test_angle,)).ok().is_none() {
+                            return Err(QiskitError::new_err(
+                                "Equivalent gate needs to take exactly 1 angle parameter.",
+                            ));
+                        }
                     }
                 };
                 let mat = rxx_equivalent_gate.matrix(py, test_angle)?;
