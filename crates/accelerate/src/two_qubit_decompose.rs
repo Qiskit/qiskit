@@ -2398,15 +2398,16 @@ pub fn local_equivalence(weyl: PyReadonlyArray1<f64>) -> PyResult<[f64; 3]> {
 /// invert 1q gate sequence
 fn invert_1q_gate(gate: (StandardGate, SmallVec<[f64; 3]>)) -> (StandardGate, SmallVec<[f64; 3]>) {
     let gate_params = gate.1.into_iter().map(Param::Float).collect::<Vec<_>>();
-    let Some(inv_gate) = gate.0.inverse(&gate_params) else {
-        panic!()
-    };
+    let inv_gate = gate
+        .0
+        .inverse(&gate_params)
+        .expect("An unexpected standard gate was inverted");
     let inv_gate_params = inv_gate
         .1
         .into_iter()
         .map(|param| match param {
             Param::Float(val) => val,
-            _ => panic!(),
+            _ => unreachable!("Parameterized inverse generated from non-parameterized gate."),
         })
         .collect::<SmallVec<_>>();
     (inv_gate.0, inv_gate_params)
@@ -2462,7 +2463,9 @@ impl TwoQubitControlledUDecomposer {
                 .into_iter()
                 .map(|param| match param {
                     Param::Float(val) => val,
-                    _ => panic!(),
+                    _ => {
+                        unreachable!("Parameterized inverse generated from non-parameterized gate.")
+                    }
                 })
                 .collect::<SmallVec<_>>();
             Ok((Some(inv_gate.0), inv_gate_params, qubits))
@@ -2477,7 +2480,9 @@ impl TwoQubitControlledUDecomposer {
                         .into_iter()
                         .map(|param| match param {
                             Param::Float(val) => val,
-                            _ => panic!(),
+                            _ => unreachable!(
+                                "Parameterized inverse generated from non-parameterized gate."
+                            ),
                         })
                         .collect::<SmallVec<_>>();
                     Ok((Some(inv_gate.0), inv_gate_params, qubits))
