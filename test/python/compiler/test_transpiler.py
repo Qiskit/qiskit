@@ -1768,9 +1768,7 @@ class TestTranspile(QiskitTestCase):
             expected.p(np.pi - 0.2, 0)
             expected.sx(0)
         else:
-            expected = QuantumCircuit(
-                1, global_phase=(15 * np.pi - 1) / 10
-            )
+            expected = QuantumCircuit(1, global_phase=(15 * np.pi - 1) / 10)
             expected.sx(0)
             expected.p(1.0 / 5.0 + np.pi, 0)
             expected.sx(0)
