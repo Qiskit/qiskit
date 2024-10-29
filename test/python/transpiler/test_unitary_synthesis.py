@@ -679,14 +679,15 @@ class TestUnitarySynthesis(QiskitTestCase):
         qr = QuantumRegister(2)
         circ = QuantumCircuit(qr)
         circ.append(random_unitary(4, seed=1), [1, 0])
-        backend = GenericBackendV2(
-            num_qubits=5,
-            coupling_map=YORKTOWN_CMAP,
-            basis_gates=["id", "rz", "sx", "x", "cx", "reset"],
-            calibrate_instructions=True,
-            pulse_channels=True,
-            seed=42,
-        )
+        with self.assertWarns(DeprecationWarning):
+            backend = GenericBackendV2(
+                num_qubits=5,
+                coupling_map=YORKTOWN_CMAP,
+                basis_gates=["id", "rz", "sx", "x", "cx", "reset"],
+                calibrate_instructions=True,
+                pulse_channels=True,
+                seed=42,
+            )
         tqc = transpile(
             circ,
             backend=backend,

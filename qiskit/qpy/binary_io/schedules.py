@@ -28,6 +28,7 @@ from qiskit.qpy import formats, common, type_keys
 from qiskit.qpy.binary_io import value
 from qiskit.qpy.exceptions import QpyError
 from qiskit.pulse.configuration import Kernel, Discriminator
+from qiskit.utils.deprecate_pulse import ignore_pulse_deprecation_warnings
 
 
 def _read_channel(file_obj, version):
@@ -510,6 +511,7 @@ def _dumps_reference_item(schedule, metadata_serializer, version):
     return type_key, data_bytes
 
 
+@ignore_pulse_deprecation_warnings
 def read_schedule_block(file_obj, version, metadata_deserializer=None, use_symengine=False):
     """Read a single ScheduleBlock from the file like object.
 

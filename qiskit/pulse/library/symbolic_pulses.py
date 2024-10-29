@@ -31,6 +31,7 @@ from qiskit.circuit.parameterexpression import ParameterExpression, ParameterVal
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.library.pulse import Pulse
 from qiskit.pulse.library.waveform import Waveform
+from qiskit.utils.deprecate_pulse import deprecate_pulse_func
 
 
 def _lifted_gaussian(
@@ -403,6 +404,7 @@ class SymbolicPulse(Pulse):
     _constraints_lam = LambdifiedExpression("_constraints")
     _valid_amp_conditions_lam = LambdifiedExpression("_valid_amp_conditions")
 
+    @deprecate_pulse_func
     def __init__(
         self,
         pulse_type: str,
@@ -780,6 +782,10 @@ class Gaussian(metaclass=_PulseType):
             valid_amp_conditions=valid_amp_conditions_expr,
         )
 
+    @deprecate_pulse_func
+    def __init__(self):
+        pass
+
 
 class GaussianSquare(metaclass=_PulseType):
     """A square pulse with a Gaussian shaped risefall on both sides lifted such that
@@ -908,7 +914,12 @@ class GaussianSquare(metaclass=_PulseType):
             valid_amp_conditions=valid_amp_conditions_expr,
         )
 
+    @deprecate_pulse_func
+    def __init__(self):
+        pass
 
+
+@deprecate_pulse_func
 def GaussianSquareDrag(
     duration: int | ParameterExpression,
     amp: float | ParameterExpression,
@@ -1061,6 +1072,7 @@ def GaussianSquareDrag(
     )
 
 
+@deprecate_pulse_func
 def gaussian_square_echo(
     duration: int | ParameterValueType,
     amp: float | ParameterExpression,
@@ -1264,6 +1276,7 @@ def gaussian_square_echo(
     )
 
 
+@deprecate_pulse_func
 def GaussianDeriv(
     duration: int | ParameterValueType,
     amp: float | ParameterExpression,
@@ -1424,6 +1437,10 @@ class Drag(metaclass=_PulseType):
             valid_amp_conditions=valid_amp_conditions_expr,
         )
 
+    @deprecate_pulse_func
+    def __init__(self):
+        pass
+
 
 class Constant(metaclass=_PulseType):
     """A simple constant pulse, with an amplitude value and a duration:
@@ -1485,7 +1502,12 @@ class Constant(metaclass=_PulseType):
             valid_amp_conditions=valid_amp_conditions_expr,
         )
 
+    @deprecate_pulse_func
+    def __init__(self):
+        pass
 
+
+@deprecate_pulse_func
 def Sin(
     duration: int | ParameterExpression,
     amp: float | ParameterExpression,
@@ -1550,6 +1572,7 @@ def Sin(
     )
 
 
+@deprecate_pulse_func
 def Cos(
     duration: int | ParameterExpression,
     amp: float | ParameterExpression,
@@ -1614,6 +1637,7 @@ def Cos(
     )
 
 
+@deprecate_pulse_func
 def Sawtooth(
     duration: int | ParameterExpression,
     amp: float | ParameterExpression,
@@ -1682,6 +1706,7 @@ def Sawtooth(
     )
 
 
+@deprecate_pulse_func
 def Triangle(
     duration: int | ParameterExpression,
     amp: float | ParameterExpression,
@@ -1750,6 +1775,7 @@ def Triangle(
     )
 
 
+@deprecate_pulse_func
 def Square(
     duration: int | ParameterValueType,
     amp: float | ParameterExpression,
@@ -1821,6 +1847,7 @@ def Square(
     )
 
 
+@deprecate_pulse_func
 def Sech(
     duration: int | ParameterValueType,
     amp: float | ParameterExpression,
@@ -1897,6 +1924,7 @@ def Sech(
     )
 
 
+@deprecate_pulse_func
 def SechDeriv(
     duration: int | ParameterValueType,
     amp: float | ParameterExpression,
