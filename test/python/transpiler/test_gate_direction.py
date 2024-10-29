@@ -342,7 +342,7 @@ class TestGateDirection(QiskitTestCase):
         self.assertEqual(pass_(circuit), expected)
 
     def test_target_parameter_any(self):
-        """Test that a parametrised 2q gate is replaced correctly both if available and not
+        """Test that a parametrized 2q gate is replaced correctly both if available and not
         available."""
         circuit = QuantumCircuit(2)
         circuit.rzx(1.5, 0, 1)
@@ -356,7 +356,7 @@ class TestGateDirection(QiskitTestCase):
         self.assertNotEqual(GateDirection(None, target=swapped)(circuit), circuit)
 
     def test_target_parameter_exact(self):
-        """Test that a parametrised 2q gate is detected correctly both if available and not
+        """Test that a parametrized 2q gate is detected correctly both if available and not
         available."""
         circuit = QuantumCircuit(2)
         circuit.rzx(1.5, 0, 1)
@@ -496,7 +496,8 @@ class TestGateDirection(QiskitTestCase):
         gate = Gate("my_2q_gate", 2, [])
         circuit = QuantumCircuit(2)
         circuit.append(gate, (1, 0))
-        circuit.add_calibration(gate, (0, 1), pulse.ScheduleBlock())
+        with self.assertWarns(DeprecationWarning):
+            circuit.add_calibration(gate, (0, 1), pulse.ScheduleBlock())
 
         pass_ = GateDirection(None, target)
         with self.assertRaisesRegex(TranspilerError, "'my_2q_gate' would be supported.*"):
@@ -524,7 +525,8 @@ class TestGateDirection(QiskitTestCase):
         gate = Gate("my_2q_gate", 2, [])
         circuit = QuantumCircuit(2)
         circuit.append(gate, (0, 1))
-        circuit.add_calibration(gate, (0, 1), pulse.ScheduleBlock())
+        with self.assertWarns(DeprecationWarning):
+            circuit.add_calibration(gate, (0, 1), pulse.ScheduleBlock())
 
         pass_ = GateDirection(cm)
         self.assertEqual(pass_(circuit), circuit)
@@ -538,7 +540,8 @@ class TestGateDirection(QiskitTestCase):
         gate = Gate("my_2q_gate", 2, [])
         circuit = QuantumCircuit(2)
         circuit.append(gate, (0, 1))
-        circuit.add_calibration(gate, (0, 1), pulse.ScheduleBlock())
+        with self.assertWarns(DeprecationWarning):
+            circuit.add_calibration(gate, (0, 1), pulse.ScheduleBlock())
 
         pass_ = GateDirection(None, target)
         self.assertEqual(pass_(circuit), circuit)

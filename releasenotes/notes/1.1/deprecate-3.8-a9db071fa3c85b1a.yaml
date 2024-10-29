@@ -1,0 +1,10 @@
+---
+deprecations:
+  - |
+    Support for running Qiskit with Python 3.8 has been deprecated and will
+    be removed in the Qiskit 1.3.0 release. The 1.3.0 is the first release after
+    Python 3.8 goes end of life and is no longer supported. [1] This means that
+    starting in the 1.3.0 release you will need to upgrade the Python version
+    you're using to Python 3.9 or above.
+
+    [1] https://devguide.python.org/versions/

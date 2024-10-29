@@ -945,6 +945,7 @@ def plot_gate_map(
         font_color,
         ax,
         filename,
+        planar=rx.is_planar(coupling_map.graph.to_undirected(multigraph=False)),
     )
 
 
@@ -966,6 +967,8 @@ def plot_coupling_map(
     font_color="white",
     ax=None,
     filename=None,
+    *,
+    planar=True,
 ):
     """Plots an arbitrary coupling map of qubits (embedded in a plane).
 
@@ -987,6 +990,7 @@ def plot_coupling_map(
         font_color (str): The font color for the qubit labels.
         ax (Axes): A Matplotlib axes instance.
         filename (str): file path to save image to.
+        planar (bool): If the coupling map is planar or not. Default: ``True`` (i.e. it is planar)
 
     Returns:
         Figure: A Matplotlib figure instance.
@@ -1039,7 +1043,9 @@ def plot_coupling_map(
         graph = CouplingMap(coupling_map).graph
 
     if not plot_directed:
+        line_color_map = dict(zip(graph.edge_list(), line_color))
         graph = graph.to_undirected(multigraph=False)
+        line_color = [line_color_map[edge] for edge in graph.edge_list()]
 
     for node in graph.node_indices():
         graph[node] = node
@@ -1055,7 +1061,14 @@ def plot_coupling_map(
 
     if font_size is None:
         max_characters = max(1, max(len(str(x)) for x in qubit_labels))
-        font_size = max(int(20 / max_characters), 1)
+        if max_characters == 1:
+            font_size = 20
+        elif max_characters == 2:
+            font_size = 14
+        elif max_characters == 3:
+            font_size = 12
+        else:
+            font_size = 1
 
     def color_node(node):
         if qubit_coordinates:
@@ -1063,8 +1076,6 @@ def plot_coupling_map(
                 "label": str(qubit_labels[node]),
                 "color": f'"{qubit_color[node]}"',
                 "fillcolor": f'"{qubit_color[node]}"',
-                "style": "filled",
-                "shape": "circle",
                 "pos": f'"{qubit_coordinates[node][0]},{qubit_coordinates[node][1]}"',
                 "pin": "True",
             }
@@ -1073,11 +1084,11 @@ def plot_coupling_map(
                 "label": str(qubit_labels[node]),
                 "color": f'"{qubit_color[node]}"',
                 "fillcolor": f'"{qubit_color[node]}"',
-                "style": "filled",
-                "shape": "circle",
             }
+        out_dict["style"] = "filled"
+        out_dict["shape"] = "circle"
         out_dict["fontcolor"] = f'"{font_color}"'
-        out_dict["fontsize"] = str(font_size)
+        out_dict["fontsize"] = f'"{str(font_size)}!"'
         out_dict["height"] = str(qubit_size * px)
         out_dict["fixedsize"] = "True"
         out_dict["fontname"] = '"DejaVu Sans"'
@@ -1091,9 +1102,22 @@ def plot_coupling_map(
         }
         return out_dict
 
+    graph_attributes = None
+    if not qubit_coordinates:
+        if planar:
+            graph_attributes = {
+                "overlap_scaling": "-7",
+                "overlap": "prism",
+                "model": "subset",
+            }
+        else:
+            graph_attributes = {
+                "overlap": "true",
+            }
     plot = graphviz_draw(
         graph,
         method="neato",
+        graph_attr=graph_attributes,
         node_attr_fn=color_node,
         edge_attr_fn=color_edge,
         filename=filename,
@@ -1122,7 +1146,13 @@ def plot_circuit_layout(circuit, backend, view="virtual", qubit_coordinates=None
     Args:
         circuit (QuantumCircuit): Input quantum circuit.
         backend (Backend): Target backend.
-        view (str): Layout view: either 'virtual' or 'physical'.
+        view (str): How to label qubits in the layout. Options:
+
+          - ``"virtual"``: Label each qubit with the index of the virtual qubit that
+            mapped to it.
+          - ``"physical"``: Label each qubit with the index of the physical qubit that it
+            corresponds to on the device.
+
         qubit_coordinates (Sequence): An optional sequence input (list or array being the
             most common) of 2d coordinates for each qubit. The length of the
             sequence must match the number of qubits on the backend. The sequence

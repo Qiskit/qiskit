@@ -16,6 +16,8 @@
 from copy import deepcopy
 from qiskit.circuit import Delay, Parameter
 from qiskit.providers.fake_provider import Fake7QPulseV1, GenericBackendV2
+from qiskit.providers.fake_provider import Fake27QPulseV1
+from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
@@ -34,6 +36,27 @@ class TestInstructionDurationsClass(QiskitTestCase):
         invalid_dic = [("cx", [0, 1])]  # no duration
         with self.assertRaises(TranspilerError):
             InstructionDurations(invalid_dic)
+
+    def test_from_backend_for_backend_with_dt(self):
+        # Remove context once https://github.com/Qiskit/qiskit/issues/12760 is fixed
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake27QPulseV1()
+        gate = self._find_gate_with_length(backend)
+        durations = InstructionDurations.from_backend(backend)
+        self.assertGreater(durations.dt, 0)
+        self.assertGreater(durations.get(gate, 0), 0)
+
+    def test_from_backend_for_backend_without_dt(self):
+        # Remove context once https://github.com/Qiskit/qiskit/issues/12760 is fixed
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake27QPulseV1()
+        delattr(backend.configuration(), "dt")
+        gate = self._find_gate_with_length(backend)
+        durations = InstructionDurations.from_backend(backend)
+        self.assertIsNone(durations.dt)
+        self.assertGreater(durations.get(gate, 0, "s"), 0)
+        with self.assertRaises(TranspilerError):
+            durations.get(gate, 0)
 
     def test_update_with_parameters(self):
         durations = InstructionDurations(
@@ -60,108 +83,10 @@ class TestInstructionDurationsClass(QiskitTestCase):
         with self.assertRaises(TranspilerError):
             InstructionDurations().get(parameterized_delay, 0)
 
-
-class TestInstrctionDurationsFromBackendV1(QiskitTestCase):
-    """Test :meth:`~.from_backend` of :class:`.InstructionDurations` with
-    :class:`.BackendV1`"""
-
-    def setUp(self):
-        super().setUp()
-
-        self.backend = Fake7QPulseV1()
-        self.example_qubit = (0,)
-        self.example_gate = "x"
-
-        # Setting dt for the copy of backend to be None
-        self.backend_cpy = deepcopy(self.backend)
-        self.backend_cpy.configuration().dt = None
-
-    def test_backend_dt_equals_inst_dur_dt(self):
-        durations = InstructionDurations.from_backend(self.backend)
-        self.assertEqual(durations.dt, self.backend.configuration().dt)
-
-    def test_backend_gate_length_equals_inst_dur(self):
-        durations = InstructionDurations.from_backend(self.backend)
-        inst_dur_duration = durations.get(self.example_gate, self.example_qubit[0], "s")
-        backend_inst_dur = self.backend.properties().gate_length(
-            gate=self.example_gate, qubits=self.example_qubit
-        )
-        self.assertEqual(inst_dur_duration, backend_inst_dur)
-
-    def test_backend_without_dt_sets_inst_dur_None(self):
-        durations = InstructionDurations.from_backend(self.backend_cpy)
-        self.assertIsNone(durations.dt)
-
-    def test_get_dur_s_with_dt_None(self):
-        durations = InstructionDurations.from_backend(self.backend_cpy)
-        self.assertEqual(
-            durations.get(self.example_gate, self.example_qubit[0], "s"), 3.5555555555555554e-08
-        )
-
-    def test_raise_dur_get_dt_with_backend_dt_None(self):
-        durations = InstructionDurations.from_backend(self.backend_cpy)
-        with self.assertRaises(TranspilerError):
-            durations.get(self.example_gate, self.example_qubit[0])
-
-    def test_works_unequal_dt_dtm(self):
-        self.backend_cpy.configuration().dt = 1.0
-
-        # This is expcted to fail
-        InstructionDurations.from_backend(self.backend_cpy)
-
-        # Check if dt and dtm were indeed unequal
-        self.assertNotEqual(self.backend_cpy.configuration().dtm, 1.0)
-
-
-class TestInstrctionDurationsFromBackendV2(QiskitTestCase):
-    """Test :meth:`~.from_backend` of :class:`.InstructionDurations` with
-    :class:`.BackendV2`"""
-
-    def setUp(self):
-        super().setUp()
-
-        self.backend = GenericBackendV2(num_qubits=7, calibrate_instructions=True, seed=1450)
-        self.example_gate = "x"
-        self.example_qubit = (0,)
-
-        # Setting dt for the copy  for BackendV2 to None
-        self.backend_cpy = deepcopy(self.backend)
-        self.backend_cpy.target.dt = None
-
-    def test_backend_dt_equals_inst_dur_dt(self):
-        durations = InstructionDurations.from_backend(self.backend)
-        self.assertEqual(durations.dt, self.backend.dt)
-
-    def test_backend_gate_length_equals_inst_dur(self):
-        durations = InstructionDurations.from_backend(self.backend)
-        inst_dur_duration = durations.get(
-            inst=self.example_gate, qubits=self.example_qubit[0], unit="s"
-        )
-        backend_inst_dur = self.backend.target._gate_map[self.example_gate][
-            self.example_qubit
-        ].duration
-        self.assertEqual(inst_dur_duration, backend_inst_dur)
-
-    def test_backend_without_dt_sets_inst_dur_None(self):
-        durations = InstructionDurations.from_backend(self.backend_cpy)
-        self.assertIsNone(durations.dt)
-
-    def test_get_dur_s_with_dt_None(self):
-        durations = InstructionDurations.from_backend(self.backend_cpy)
-        self.assertEqual(
-            durations.get(self.example_gate, self.example_qubit[0], "s"), 4.0147038772116484e-08
-        )
-
-    def test_raise_dur_get_dt_with_backend_dt_None(self):
-        durations = InstructionDurations.from_backend(self.backend_cpy)
-        with self.assertRaises(TranspilerError):
-            durations.get(self.example_gate, self.example_qubit[0])
-
-    def test_works_unequal_dt_dtm(self):
-        self.backend_cpy.target.dt = 1.0
-
-        # This is expcted to fail
-        InstructionDurations.from_backend(self.backend_cpy)
-
-        # Check if dt and dtm were indeed unequal
-        self.assertNotEqual(self.backend_cpy.dtm, 1.0)
+    def test_from_backend_with_backendv2(self):
+        """Test if `from_backend()` method allows using BackendV2"""
+        with self.assertWarns(DeprecationWarning):
+            backend = GenericBackendV2(num_qubits=4, calibrate_instructions=True, seed=42)
+        inst_durations = InstructionDurations.from_backend(backend)
+        self.assertEqual(inst_durations, backend.target.durations())
+        self.assertIsInstance(inst_durations, InstructionDurations)

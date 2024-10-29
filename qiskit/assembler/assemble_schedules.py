@@ -22,8 +22,10 @@ from qiskit.exceptions import QiskitError
 from qiskit.pulse import instructions, transforms, library, schedule, channels
 from qiskit.qobj import utils as qobj_utils, converters
 from qiskit.qobj.converters.pulse_instruction import ParametricPulseShapes
+from qiskit.utils.deprecate_pulse import deprecate_pulse_dependency
 
 
+@deprecate_pulse_dependency
 def assemble_schedules(
     schedules: List[
         Union[
@@ -152,7 +154,7 @@ def _assemble_experiments(
         # TODO: add other experimental header items (see circuit assembler)
         qobj_experiment_header = qobj.QobjExperimentHeader(
             memory_slots=max_memory_slot + 1,  # Memory slots are 0 indexed
-            name=sched.name or "Experiment-%d" % idx,
+            name=sched.name or f"Experiment-{idx}",
             metadata=metadata,
         )
 
@@ -306,18 +308,11 @@ def _validate_meas_map(
                 common_next = next_inst_qubits.intersection(meas_set)
                 if common_instr_qubits and common_next:
                     raise QiskitError(
-                        "Qubits {} and {} are in the same measurement grouping: {}. "
+                        f"Qubits {common_instr_qubits} and {common_next} are in the same measurement "
+                        f"grouping: {meas_map}. "
                         "They must either be acquired at the same time, or disjointly"
-                        ". Instead, they were acquired at times: {}-{} and "
-                        "{}-{}".format(
-                            common_instr_qubits,
-                            common_next,
-                            meas_map,
-                            inst[0][0],
-                            inst_end_time,
-                            next_inst_time,
-                            next_inst_time + next_inst[0][1],
-                        )
+                        f". Instead, they were acquired at times: {inst[0][0]}-{inst_end_time} and "
+                        f"{next_inst_time}-{next_inst_time + next_inst[0][1]}"
                     )
 
 

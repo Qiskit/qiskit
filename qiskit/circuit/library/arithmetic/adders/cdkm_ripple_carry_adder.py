@@ -23,7 +23,7 @@ class CDKMRippleCarryAdder(Adder):
     As an example, a ripple-carry adder circuit that performs addition on two 3-qubit sized
     registers with a carry-in bit (``kind="full"``) is as follows:
 
-    .. parsed-literal::
+    .. code-block:: text
 
                 ┌──────┐                                     ┌──────┐
          cin_0: ┤2     ├─────────────────────────────────────┤2     ├
@@ -54,7 +54,7 @@ class CDKMRippleCarryAdder(Adder):
 
     The circuit diagram for the fixed-point adder (``kind="fixed"``) on 3-qubit sized inputs is
 
-    .. parsed-literal::
+    .. code-block:: text
 
                 ┌──────┐┌──────┐                ┌──────┐┌──────┐
            a_0: ┤0     ├┤2     ├────────────────┤2     ├┤0     ├

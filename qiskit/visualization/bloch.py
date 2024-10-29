@@ -48,7 +48,9 @@
 
 __all__ = ["Bloch"]
 
+import math
 import os
+import re
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
@@ -57,6 +59,47 @@ from mpl_toolkits.mplot3d import Axes3D, proj3d
 from mpl_toolkits.mplot3d.art3d import Patch3D
 
 from .utils import matplotlib_close_if_inline
+
+
+# This version pattern is taken from the pypa packaging project:
+# https://github.com/pypa/packaging/blob/21.3/packaging/version.py#L223-L254
+# which is dual licensed Apache 2.0 and BSD see the source for the original
+# authors and other details
+VERSION_PATTERN = (
+    "^"
+    + r"""
+    v?
+    (?:
+        (?:(?P<epoch>[0-9]+)!)?                           # epoch
+        (?P<release>[0-9]+(?:\.[0-9]+)*)                  # release segment
+        (?P<pre>                                          # pre-release
+            [-_\.]?
+            (?P<pre_l>(a|b|c|rc|alpha|beta|pre|preview))
+            [-_\.]?
+            (?P<pre_n>[0-9]+)?
+        )?
+        (?P<post>                                         # post release
+            (?:-(?P<post_n1>[0-9]+))
+            |
+            (?:
+                [-_\.]?
+                (?P<post_l>post|rev|r)
+                [-_\.]?
+                (?P<post_n2>[0-9]+)?
+            )
+        )?
+        (?P<dev>                                          # dev release
+            [-_\.]?
+            (?P<dev_l>dev)
+            [-_\.]?
+            (?P<dev_n>[0-9]+)?
+        )?
+    )
+    (?:\+(?P<local>[a-z0-9]+(?:[-_\.][a-z0-9]+)*))?       # local version
+"""
+    + "$"
+)
+VERSION_PATTERN_REGEX = re.compile(VERSION_PATTERN, re.VERBOSE | re.IGNORECASE)
 
 
 class Arrow3D(Patch3D, FancyArrowPatch):
@@ -289,7 +332,7 @@ class Bloch:
             self.zlabel = ["$\\circlearrowleft$", "$\\circlearrowright$"]
             self.xlabel = ["$\\leftrightarrow$", "$\\updownarrow$"]
         else:
-            raise Exception("No such convention.")
+            raise ValueError("No such convention.")
 
     def __str__(self):
         string = ""
@@ -395,7 +438,7 @@ class Bloch:
         if isinstance(state_or_vector, (list, np.ndarray, tuple)) and len(state_or_vector) == 3:
             vec = state_or_vector
         else:
-            raise Exception("Position needs to be specified by a qubit " + "state or a 3D vector.")
+            raise TypeError("Position needs to be specified by a qubit state or a 3D vector.")
         self.annotations.append({"position": vec, "text": text, "opts": kwargs})
 
     def make_sphere(self):
@@ -418,7 +461,8 @@ class Bloch:
             self.fig = plt.figure(figsize=self.figsize)
 
         if not self._ext_axes:
-            if tuple(int(x) for x in matplotlib.__version__.split(".")) >= (3, 4, 0):
+            version_match = VERSION_PATTERN_REGEX.search(matplotlib.__version__)
+            if tuple(int(x) for x in version_match.group("release").split(".")) >= (3, 4, 0):
                 self.axes = Axes3D(
                     self.fig, azim=self.view[0], elev=self.view[1], auto_add_to_figure=False
                 )
@@ -586,11 +630,11 @@ class Bloch:
     def plot_vectors(self):
         """Plot vector"""
         # -X and Y data are switched for plotting purposes
-        for k in range(len(self.vectors)):
+        for k, vector in enumerate(self.vectors):
 
-            xs3d = self.vectors[k][1] * np.array([0, 1])
-            ys3d = -self.vectors[k][0] * np.array([0, 1])
-            zs3d = self.vectors[k][2] * np.array([0, 1])
+            xs3d = vector[1] * np.array([0, 1])
+            ys3d = -vector[0] * np.array([0, 1])
+            zs3d = vector[2] * np.array([0, 1])
 
             color = self.vector_color[np.mod(k, len(self.vector_color))]
 
@@ -616,15 +660,10 @@ class Bloch:
     def plot_points(self):
         """Plot points"""
         # -X and Y data are switched for plotting purposes
-        for k in range(len(self.points)):
-            num = len(self.points[k][0])
+        for k, point in enumerate(self.points):
+            num = len(point[0])
             dist = [
-                np.sqrt(
-                    self.points[k][0][j] ** 2
-                    + self.points[k][1][j] ** 2
-                    + self.points[k][2][j] ** 2
-                )
-                for j in range(num)
+                np.sqrt(point[0][j] ** 2 + point[1][j] ** 2 + point[2][j] ** 2) for j in range(num)
             ]
             if any(abs(dist - dist[0]) / dist[0] > 1e-12):
                 # combine arrays so that they can be sorted together
@@ -636,9 +675,9 @@ class Bloch:
                 indperm = np.arange(num)
             if self.point_style[k] == "s":
                 self.axes.scatter(
-                    np.real(self.points[k][1][indperm]),
-                    -np.real(self.points[k][0][indperm]),
-                    np.real(self.points[k][2][indperm]),
+                    np.real(point[1][indperm]),
+                    -np.real(point[0][indperm]),
+                    np.real(point[2][indperm]),
                     s=self.point_size[np.mod(k, len(self.point_size))],
                     alpha=1,
                     edgecolor=None,
@@ -648,18 +687,16 @@ class Bloch:
                 )
 
             elif self.point_style[k] == "m":
-                pnt_colors = np.array(
-                    self.point_color * int(np.ceil(num / float(len(self.point_color))))
-                )
+                pnt_colors = np.array(self.point_color * math.ceil(num / len(self.point_color)))
 
                 pnt_colors = pnt_colors[0:num]
                 pnt_colors = list(pnt_colors[indperm])
                 marker = self.point_marker[np.mod(k, len(self.point_marker))]
                 pnt_size = self.point_size[np.mod(k, len(self.point_size))]
                 self.axes.scatter(
-                    np.real(self.points[k][1][indperm]),
-                    -np.real(self.points[k][0][indperm]),
-                    np.real(self.points[k][2][indperm]),
+                    np.real(point[1][indperm]),
+                    -np.real(point[0][indperm]),
+                    np.real(point[2][indperm]),
                     s=pnt_size,
                     alpha=1,
                     edgecolor=None,
@@ -671,9 +708,9 @@ class Bloch:
             elif self.point_style[k] == "l":
                 color = self.point_color[np.mod(k, len(self.point_color))]
                 self.axes.plot(
-                    np.real(self.points[k][1]),
-                    -np.real(self.points[k][0]),
-                    np.real(self.points[k][2]),
+                    np.real(point[1]),
+                    -np.real(point[0]),
+                    np.real(point[2]),
                     alpha=0.75,
                     zdir="z",
                     color=color,

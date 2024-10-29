@@ -28,6 +28,7 @@ if HAS_TWEEDLEDUM:
 @unittest.skipUnless(HAS_TWEEDLEDUM, "Tweedledum is required for these tests.")
 @ddt
 class TestBooleanExpression(QiskitTestCase):
+    # pylint: disable=possibly-used-before-assignment
     """Test boolean expression."""
 
     @data(

@@ -106,8 +106,9 @@ also add initial logical optimization prior to routing, you would do something l
 .. code-block:: python
 
     import numpy as np
+    from qiskit.providers.fake_provider import GenericBackendV2
     from qiskit.circuit.library import HGate, PhaseGate, RXGate, TdgGate, TGate, XGate
-    from qiskit.transpiler import PassManager
+    from qiskit.transpiler import PassManager, generate_preset_pass_manager
     from qiskit.transpiler.passes import (
         ALAPScheduleAnalysis,
         CXCancellation,
@@ -115,6 +116,7 @@ also add initial logical optimization prior to routing, you would do something l
         PadDynamicalDecoupling,
     )
 
+    backend = GenericBackendV2(num_qubits=5)
     dd_sequence = [XGate(), XGate()]
     scheduling_pm = PassManager(
         [
@@ -135,6 +137,9 @@ also add initial logical optimization prior to routing, you would do something l
         ]
     )
 
+    pass_manager = generate_preset_pass_manager(
+        optimization_level=0
+    )
 
     # Add pre-layout stage to run extra logical optimization
     pass_manager.pre_layout = logical_opt
@@ -253,7 +258,7 @@ descriptions of the instructions it supports:
     )
     print(target)
 
-.. parsed-literal::
+.. code-block:: text
 
     Target
     Number of qubits: 3
@@ -578,7 +583,7 @@ original.  This can be verified by checking the depth of both circuits:
 
    print('Original depth:', qc.depth(), 'Decomposed Depth:', qc_basis.depth())
 
-.. parsed-literal::
+.. code-block:: text
 
     Original depth: 4 Decomposed Depth: 10
 
@@ -598,7 +603,7 @@ It is important to highlight two special cases:
 
       print(backend.operation_names)
 
-   .. parsed-literal::
+   .. code-block:: text
 
       ['id', 'rz', 'sx', 'x', 'cx', 'measure', 'delay']
 
@@ -650,8 +655,6 @@ manner to the "physical" qubits in an actual quantum device.
 .. image:: /source_images/mapping.png
 
 
-
-
 By default, qiskit will do this mapping for you.  The choice of mapping depends on the
 properties of the circuit, the particular device you are targeting, and the optimization
 level that is chosen. The choice of initial layout is extremely important for minimizing the
@@ -684,10 +687,12 @@ Next, for the heuristic stage, 2 passes are used by default:
   :class:`~.SabreLayout` is used to select a layout if a perfect layout isn't found for
   optimization levels 1, 2, and 3.
 - :class:`~.TrivialLayout`: Always used for the layout at optimization level 0.
+
+There are other passes than can be used for the heuristic stage, but are not included in the default
+pipeline, such as:
+
 - :class:`~.DenseLayout`: Finds the sub-graph of the device with greatest connectivity
-  that has the same number of qubits as the circuit. Used for
-  optimization level 1 if there are control flow operations (such as
-  :class:`~.IfElseOp`) present in the circuit.
+  that has the same number of qubits as the circuit.
 
 Let's see what layouts are automatically picked at various optimization levels.  The circuits
 returned by :func:`qiskit.compiler.transpile` are annotated with this initial layout information,
@@ -799,7 +804,7 @@ circuit repeatedly will in general result in a distribution of circuit depths an
 at the output.
 
 In order to highlight this, we run a GHZ circuit 100 times, using a "bad" (disconnected)
-`initial_layout`:
+``initial_layout`` in a heavy hex coupling map:
 
 .. plot::
 
@@ -816,18 +821,22 @@ In order to highlight this, we run a GHZ circuit 100 times, using a "bad" (disco
    import matplotlib.pyplot as plt
    from qiskit import QuantumCircuit, transpile
    from qiskit.providers.fake_provider import GenericBackendV2
-   backend = GenericBackendV2(16)
+   from qiskit.transpiler import CouplingMap
+
+   coupling_map = CouplingMap.from_heavy_hex(3)
+   backend = GenericBackendV2(coupling_map.size(), coupling_map=coupling_map)
 
    ghz = QuantumCircuit(15)
    ghz.h(0)
    ghz.cx(0, range(1, 15))
 
    depths = []
-   for _ in range(100):
+   for i in range(100):
        depths.append(
            transpile(
                ghz,
                backend,
+               seed_transpiler=i,
                layout_method='trivial'  # Fixed layout mapped in circuit order
            ).depth()
        )
@@ -1013,7 +1022,7 @@ classical register wires, though theoretically two conditional instructions
 conditioned on the same register could commute, i.e. read-access to the
 classical register doesn't change its state.
 
-.. parsed-literal::
+.. code-block:: text
 
     qc = QuantumCircuit(2, 1)
     qc.delay(100, 0)
@@ -1024,7 +1033,7 @@ The scheduler SHOULD comply with the above topological ordering policy of the
 DAG circuit.
 Accordingly, the `asap`-scheduled circuit will become
 
-.. parsed-literal::
+.. code-block:: text
 
          ┌────────────────┐   ┌───┐
     q_0: ┤ Delay(100[dt]) ├───┤ X ├──────────────
@@ -1051,7 +1060,7 @@ then a discriminated (D) binary value is moved to the classical register (C).
 A sequence from t0 to t1 of the measure instruction interval could be
 modeled as follows:
 
-.. parsed-literal::
+.. code-block:: text
 
     Q ░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░
     B ░░▒▒▒▒▒▒▒▒░░░░░░░░░
@@ -1066,7 +1075,7 @@ and the :class:`.Clbit` is only occupied at the very end of the interval.
 The lack of precision representing the physical model may induce
 edge cases in the scheduling:
 
-.. parsed-literal::
+.. code-block:: text
 
             ┌───┐
     q_0: ───┤ X ├──────
@@ -1085,7 +1094,7 @@ is unchanged during the application of the stimulus, so two nodes are
 simultaneously operated.
 If one tries to `alap`-schedule this circuit, it may return following circuit:
 
-.. parsed-literal::
+.. code-block:: text
 
          ┌────────────────┐   ┌───┐
     q_0: ┤ Delay(500[dt]) ├───┤ X ├──────
@@ -1101,7 +1110,7 @@ It looks like the topological ordering between the nodes is flipped in the
 scheduled view.
 This behavior can be understood by considering the control flow model described above,
 
-.. parsed-literal::
+.. code-block:: text
 
     : Quantum Circuit, first-measure
     0 ░░░░░░░░░░░░▒▒▒▒▒▒░
@@ -1133,7 +1142,7 @@ be copied to the pass manager property set before the pass is called.
 
 Due to default latencies, the `alap`-scheduled circuit of above example may become
 
-.. parsed-literal::
+.. code-block:: text
 
             ┌───┐
     q_0: ───┤ X ├──────
@@ -1147,7 +1156,8 @@ If the backend microarchitecture supports smart scheduling of the control flow
 instructions, such as separately scheduling qubits and classical registers,
 the insertion of the delay yields an unnecessarily longer total execution time.
 
-.. parsed-literal::
+.. code-block:: text
+
     : Quantum Circuit, first-XGate
     0 ░▒▒▒░░░░░░░░░░░░░░░
     1 ░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░
@@ -1164,7 +1174,7 @@ However, this result is much more intuitive in the topological ordering view.
 If a finite conditional latency value is provided, for example, 30 dt, the circuit
 is scheduled as follows:
 
-.. parsed-literal::
+.. code-block:: text
 
          ┌───────────────┐   ┌───┐
     q_0: ┤ Delay(30[dt]) ├───┤ X ├──────
@@ -1176,7 +1186,8 @@ is scheduled as follows:
 
 with the timing model:
 
-.. parsed-literal::
+.. code-block:: text
+
     : Quantum Circuit, first-xgate
     0 ░░▒▒▒░░░░░░░░░░░░░░░
     1 ░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░
@@ -1273,6 +1284,7 @@ from .basepasses import AnalysisPass, TransformationPass
 from .coupling import CouplingMap
 from .layout import Layout, TranspileLayout
 from .instruction_durations import InstructionDurations
+from .preset_passmanagers import generate_preset_pass_manager
 from .target import Target
 from .target import InstructionProperties
 from .target import QubitProperties

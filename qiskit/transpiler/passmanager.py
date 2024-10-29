@@ -18,7 +18,7 @@ import io
 import re
 from collections.abc import Iterator, Iterable, Callable
 from functools import wraps
-from typing import Union, List, Any
+from typing import Union, List, Any, TypeVar
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.converters import circuit_to_dag, dag_to_circuit
@@ -29,9 +29,9 @@ from qiskit.passmanager.flow_controllers import FlowControllerLinear
 from qiskit.passmanager.exceptions import PassManagerError
 from .basepasses import BasePass
 from .exceptions import TranspilerError
-from .layout import TranspileLayout
+from .layout import TranspileLayout, Layout
 
-_CircuitsT = Union[List[QuantumCircuit], QuantumCircuit]
+_CircuitsT = TypeVar("_CircuitsT", bound=Union[List[QuantumCircuit], QuantumCircuit])
 
 
 class PassManager(BasePassManager):
@@ -69,6 +69,7 @@ class PassManager(BasePassManager):
     ) -> QuantumCircuit:
         out_program = dag_to_circuit(passmanager_ir, copy_operations=False)
 
+        self._finalize_layouts(passmanager_ir)
         out_name = kwargs.get("output_name", None)
         if out_name is not None:
             out_program.name = out_name
@@ -96,7 +97,50 @@ class PassManager(BasePassManager):
 
         return out_program
 
-    def append(
+    def _finalize_layouts(self, dag):
+        if (virtual_permutation_layout := self.property_set["virtual_permutation_layout"]) is None:
+            return
+
+        self.property_set.pop("virtual_permutation_layout")
+
+        # virtual_permutation_layout is usually created before extending the layout with ancillas,
+        # so we extend the permutation to be identity on ancilla qubits
+        original_qubit_indices = self.property_set.get("original_qubit_indices", None)
+        for oq in original_qubit_indices:
+            if oq not in virtual_permutation_layout:
+                virtual_permutation_layout[oq] = original_qubit_indices[oq]
+
+        t_qubits = dag.qubits
+
+        if (t_initial_layout := self.property_set.get("layout", None)) is None:
+            t_initial_layout = Layout(dict(enumerate(t_qubits)))
+
+        if (t_final_layout := self.property_set.get("final_layout", None)) is None:
+            t_final_layout = Layout(dict(enumerate(t_qubits)))
+
+        # Ordered list of original qubits
+        original_qubits_reverse = {v: k for k, v in original_qubit_indices.items()}
+        original_qubits = []
+        # pylint: disable-next=consider-using-enumerate
+        for i in range(len(original_qubits_reverse)):
+            original_qubits.append(original_qubits_reverse[i])
+
+        virtual_permutation_layout_inv = virtual_permutation_layout.inverse(
+            original_qubits, original_qubits
+        )
+
+        t_initial_layout_inv = t_initial_layout.inverse(original_qubits, t_qubits)
+
+        # ToDo: this can possibly be made simpler
+        new_final_layout = t_initial_layout_inv
+        new_final_layout = new_final_layout.compose(virtual_permutation_layout_inv, original_qubits)
+        new_final_layout = new_final_layout.compose(t_initial_layout, original_qubits)
+        new_final_layout = new_final_layout.compose(t_final_layout, t_qubits)
+
+        self.property_set["layout"] = t_initial_layout
+        self.property_set["final_layout"] = new_final_layout
+
+    def append(  # pylint:disable=arguments-renamed
         self,
         passes: Task | list[Task],
     ) -> None:
@@ -110,7 +154,7 @@ class PassManager(BasePassManager):
         """
         super().append(tasks=passes)
 
-    def replace(
+    def replace(  # pylint:disable=arguments-renamed
         self,
         index: int,
         passes: Task | list[Task],
@@ -124,7 +168,7 @@ class PassManager(BasePassManager):
         super().replace(index, tasks=passes)
 
     # pylint: disable=arguments-differ
-    def run(
+    def run(  # pylint:disable=arguments-renamed
         self,
         circuits: _CircuitsT,
         output_name: str | None = None,
@@ -294,7 +338,7 @@ class StagedPassManager(PassManager):
             "scheduling",
         ]
         self._validate_stages(stages)
-        # Set through parent class since `__setattr__` requieres `expanded_stages` to be defined
+        # Set through parent class since `__setattr__` requires `expanded_stages` to be defined
         super().__setattr__("_stages", tuple(stages))
         super().__setattr__("_expanded_stages", tuple(self._generate_expanded_stages()))
         super().__init__()

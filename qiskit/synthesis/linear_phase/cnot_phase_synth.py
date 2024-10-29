@@ -123,7 +123,7 @@ def synth_cnot_phase_aam(
 
     # Implementation of the pseudo-code (Algorithm 1) in the aforementioned paper
     sta.append([cnots, range_list, epsilon])
-    while sta != []:
+    while sta:
         [cnots, ilist, qubit] = sta.pop()
         if cnots == []:
             continue

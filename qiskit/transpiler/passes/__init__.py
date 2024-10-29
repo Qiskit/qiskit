@@ -46,6 +46,7 @@ Routing
    StochasticSwap
    SabreSwap
    Commuting2qGateRouter
+   StarPreRouting
 
 Basis Change
 ============
@@ -70,6 +71,7 @@ Optimizations
    Collect1qRuns
    Collect2qBlocks
    CollectMultiQBlocks
+   CollectAndCollapse
    CollectLinearFunctions
    CollectCliffords
    ConsolidateBlocks
@@ -81,13 +83,17 @@ Optimizations
    Optimize1qGatesSimpleCommutation
    RemoveDiagonalGatesBeforeMeasure
    RemoveResetInZeroState
+   RemoveFinalReset
    HoareOptimizer
    TemplateOptimization
    EchoRZXWeylDecomposition
    ResetAfterMeasureSimplification
    OptimizeCliffords
+   ElidePermutations
    NormalizeRXAngle
    OptimizeAnnotated
+   Split2QUnitaries
+   RemoveIdentityEquivalent
 
 Calibration
 =============
@@ -151,8 +157,10 @@ The synthesis transpiler plugin documentation can be found in the
    HLSConfig
    SolovayKitaev
 
-Post Layout (Post transpile qubit selection)
-============================================
+Post Layout
+===========
+
+These are post qubit selection.
 
 .. autosummary::
    :toctree: ../stubs/
@@ -203,6 +211,7 @@ from .routing import LookaheadSwap
 from .routing import StochasticSwap
 from .routing import SabreSwap
 from .routing import Commuting2qGateRouter
+from .routing import StarPreRouting
 
 # basis change
 from .basis import Decompose
@@ -225,17 +234,22 @@ from .optimization import CXCancellation
 from .optimization import Optimize1qGatesSimpleCommutation
 from .optimization import OptimizeSwapBeforeMeasure
 from .optimization import RemoveResetInZeroState
+from .optimization import RemoveFinalReset
 from .optimization import RemoveDiagonalGatesBeforeMeasure
 from .optimization import HoareOptimizer
 from .optimization import TemplateOptimization
 from .optimization import InverseCancellation
 from .optimization import EchoRZXWeylDecomposition
+from .optimization import CollectAndCollapse
 from .optimization import CollectLinearFunctions
 from .optimization import CollectCliffords
 from .optimization import ResetAfterMeasureSimplification
 from .optimization import OptimizeCliffords
+from .optimization import ElidePermutations
 from .optimization import NormalizeRXAngle
 from .optimization import OptimizeAnnotated
+from .optimization import RemoveIdentityEquivalent
+from .optimization import Split2QUnitaries
 
 # circuit analysis
 from .analysis import ResourceEstimation

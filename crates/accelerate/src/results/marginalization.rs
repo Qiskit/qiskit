@@ -26,16 +26,11 @@ fn marginalize<T: std::ops::AddAssign + Copy>(
     indices: Option<Vec<usize>>,
 ) -> HashMap<String, T> {
     let mut out_counts: HashMap<String, T> = HashMap::with_capacity(counts.len());
-    let clbit_size = counts
-        .keys()
-        .next()
-        .unwrap()
-        .replace(|c| c == '_' || c == ' ', "")
-        .len();
+    let clbit_size = counts.keys().next().unwrap().replace(['_', ' '], "").len();
     let all_indices: Vec<usize> = (0..clbit_size).collect();
     counts
         .iter()
-        .map(|(k, v)| (k.replace(|c| c == '_' || c == ' ', ""), *v))
+        .map(|(k, v)| (k.replace(['_', ' '], ""), *v))
         .for_each(|(k, v)| match &indices {
             Some(indices) => {
                 if all_indices == *indices {
@@ -67,6 +62,7 @@ fn marginalize<T: std::ops::AddAssign + Copy>(
 }
 
 #[pyfunction]
+#[pyo3(signature=(counts, indices=None))]
 pub fn marginal_counts(
     counts: HashMap<String, u64>,
     indices: Option<Vec<usize>>,
@@ -75,6 +71,7 @@ pub fn marginal_counts(
 }
 
 #[pyfunction]
+#[pyo3(signature=(counts, indices=None))]
 pub fn marginal_distribution(
     counts: HashMap<String, f64>,
     indices: Option<Vec<usize>>,
@@ -181,7 +178,7 @@ pub fn marginal_measure_level_0(
     let new_shape = [input_shape[0], indices.len(), input_shape[2]];
     let out_arr: Array3<Complex64> =
         Array3::from_shape_fn(new_shape, |(i, j, k)| mem_arr[[i, indices[j], k]]);
-    out_arr.into_pyarray(py).into()
+    out_arr.into_pyarray_bound(py).into()
 }
 
 #[pyfunction]
@@ -195,7 +192,7 @@ pub fn marginal_measure_level_0_avg(
     let new_shape = [indices.len(), input_shape[1]];
     let out_arr: Array2<Complex64> =
         Array2::from_shape_fn(new_shape, |(i, j)| mem_arr[[indices[i], j]]);
-    out_arr.into_pyarray(py).into()
+    out_arr.into_pyarray_bound(py).into()
 }
 
 #[pyfunction]
@@ -209,7 +206,7 @@ pub fn marginal_measure_level_1(
     let new_shape = [input_shape[0], indices.len()];
     let out_arr: Array2<Complex64> =
         Array2::from_shape_fn(new_shape, |(i, j)| mem_arr[[i, indices[j]]]);
-    out_arr.into_pyarray(py).into()
+    out_arr.into_pyarray_bound(py).into()
 }
 
 #[pyfunction]
@@ -220,5 +217,5 @@ pub fn marginal_measure_level_1_avg(
 ) -> PyResult<PyObject> {
     let mem_arr: &[Complex64] = memory.as_slice()?;
     let out_arr: Vec<Complex64> = indices.into_iter().map(|idx| mem_arr[idx]).collect();
-    Ok(out_arr.into_pyarray(py).into())
+    Ok(out_arr.into_pyarray_bound(py).into())
 }

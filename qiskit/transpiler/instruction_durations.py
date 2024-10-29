@@ -15,10 +15,11 @@ from __future__ import annotations
 from typing import Optional, List, Tuple, Union, Iterable
 
 import qiskit.circuit
-from qiskit.circuit import Barrier, Delay
-from qiskit.circuit import Instruction, ParameterExpression
+from qiskit.circuit import Barrier, Delay, Instruction, ParameterExpression
 from qiskit.circuit.duration import duration_in_dt
 from qiskit.providers import Backend, BackendV1, BackendV2
+from qiskit.providers import Backend
+from qiskit.providers.backend import BackendV2
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.utils.units import apply_prefix
 
@@ -74,6 +75,9 @@ class InstructionDurations:
         """
 
         # All durations in seconds in gate_length
+        if isinstance(backend, BackendV2):
+            return backend.target.durations()
+
         instruction_durations = []
         return_durations = None
 

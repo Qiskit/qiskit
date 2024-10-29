@@ -18,10 +18,13 @@ from qiskit.circuit.singleton import SingletonInstruction, stdlib_singleton_key
 
 
 class Reset(SingletonInstruction):
-    """Qubit reset."""
+    r"""Incoherently reset a qubit to the :math:`\lvert0\rangle` state."""
 
     def __init__(self, label=None, *, duration=None, unit="dt"):
-        """Create new reset instruction."""
+        """
+        Args:
+            label: optional string label of this instruction.
+        """
         super().__init__("reset", 1, 0, [], label=label, duration=duration, unit=unit)
 
     _singleton_lookup_key = stdlib_singleton_key()

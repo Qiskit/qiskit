@@ -25,6 +25,7 @@ if HAS_TWEEDLEDUM:
 
 @unittest.skipUnless(HAS_TWEEDLEDUM, "Tweedledum is required for these tests.")
 class TestTypeCheck(QiskitTestCase):
+    # pylint: disable=possibly-used-before-assignment
     """Tests classicalfunction compiler type checker (good examples)."""
 
     def test_id(self):
@@ -74,6 +75,7 @@ class TestTypeCheck(QiskitTestCase):
 
 @unittest.skipUnless(HAS_TWEEDLEDUM, "Tweedledum is required for these tests.")
 class TestTypeCheckFail(QiskitTestCase):
+    # pylint: disable=possibly-used-before-assignment
     """Tests classicalfunction compiler type checker (bad examples)."""
 
     def assertExceptionMessage(self, context, message):

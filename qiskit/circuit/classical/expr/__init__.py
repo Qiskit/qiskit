@@ -39,13 +39,13 @@ The expression system is based on tree representation.  All nodes in the tree ar
 
 These objects are mutable and should not be reused in a different location without a copy.
 
-The base for dynamic variables is the :class:`Var`, which can be either an arbitrarily typed runtime
-variable, or a wrapper around a :class:`.Clbit` or :class:`.ClassicalRegister`.
+The base for dynamic variables is the :class:`Var`, which can be either an arbitrarily typed
+real-time variable, or a wrapper around a :class:`.Clbit` or :class:`.ClassicalRegister`.
 
 .. autoclass:: Var
-    :members: var, name
+    :members: var, name, new
 
-Similarly, literals used in comparison (such as integers) should be lifted to :class:`Value` nodes
+Similarly, literals used in expressions (such as integers) should be lifted to :class:`Value` nodes
 with associated types.
 
 .. autoclass:: Value
@@ -61,6 +61,12 @@ and :class:`Binary.Op` respectively.
 .. autoclass:: Binary
     :members: Op
     :member-order: bysource
+
+Bit-like types (unsigned integers) can be indexed by integer types, represented by :class:`Index`.
+The result is a single bit.  The resulting expression has an associated memory location (and so can
+be used as an lvalue for :class:`.Store`, etc) if the target is also an lvalue.
+
+.. autoclass:: Index
 
 When constructing expressions, one must ensure that the types are valid for the operation.
 Attempts to construct expressions with invalid types will raise a regular Python ``TypeError``.
@@ -122,6 +128,13 @@ Similarly, the binary operations and relations have helper functions defined.
 .. autofunction:: less_equal
 .. autofunction:: greater
 .. autofunction:: greater_equal
+.. autofunction:: shift_left
+.. autofunction:: shift_right
+
+You can index into unsigned integers and bit-likes using another unsigned integer of any width.
+This includes in storing operations, if the target of the index is writeable.
+
+.. autofunction:: index
 
 Qiskit's legacy method for specifying equality conditions for use in conditionals is to use a
 two-tuple of a :class:`.Clbit` or :class:`.ClassicalRegister` and an integer.  This represents an
@@ -174,6 +187,7 @@ __all__ = [
     "Cast",
     "Unary",
     "Binary",
+    "Index",
     "ExprVisitor",
     "iter_vars",
     "structurally_equivalent",
@@ -185,6 +199,8 @@ __all__ = [
     "bit_and",
     "bit_or",
     "bit_xor",
+    "shift_left",
+    "shift_right",
     "logic_and",
     "logic_or",
     "equal",
@@ -193,10 +209,11 @@ __all__ = [
     "less_equal",
     "greater",
     "greater_equal",
+    "index",
     "lift_legacy_condition",
 ]
 
-from .expr import Expr, Var, Value, Cast, Unary, Binary
+from .expr import Expr, Var, Value, Cast, Unary, Binary, Index
 from .visitors import ExprVisitor, iter_vars, structurally_equivalent, is_lvalue
 from .constructors import (
     lift,
@@ -214,5 +231,8 @@ from .constructors import (
     less_equal,
     greater,
     greater_equal,
+    shift_left,
+    shift_right,
+    index,
     lift_legacy_condition,
 )

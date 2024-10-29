@@ -1,0 +1,7 @@
+---
+deprecations_providers:
+  - |
+    The `Qobj` structure and related classes are now deprecated, they were introduced as part of the `BackendV1` workflow and are no longer necessary for interacting with  :class:`.BackendV2` backends. Remote backend interaction should be done via `QPY` or `OpenQASM` instead.
+deprecations_transpiler:
+  - |
+    The `assemble` function is now deprecated and will be removed in the 2.0 release. The function was primarily used to create a `Qobj`, which is no longer necessary in :class:`.BackendV2`-based workflows. It was also used for binding parameters, a functionality fully covered by :meth:`~.QuantumCircuit.assign_parameters`.

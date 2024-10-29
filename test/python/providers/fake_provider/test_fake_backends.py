@@ -15,7 +15,7 @@ import math
 import unittest
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, transpile
-from qiskit.providers.fake_provider import Fake5QV1, GenericBackendV2
+from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.utils import optionals
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -36,9 +36,9 @@ class FakeBackendsTest(QiskitTestCase):
     """fake backends test."""
 
     @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required to run this test")
-    def test_fake_backends_get_kwargs(self):
+    def test_fake_backends_get_kwargs_v1(self):
         """Fake backends honor kwargs passed."""
-        backend = Fake5QV1()
+        backend = GenericBackendV2(num_qubits=5, seed=42)
 
         qc = QuantumCircuit(2)
         qc.x(range(0, 2))
@@ -57,6 +57,7 @@ class FakeBackendsTest(QiskitTestCase):
         qc = QuantumCircuit(1)
         qc.x(0)
         qc.measure_all()
+
         res = backend.run(qc, shots=1000).result().get_counts()
         # Assert noise was present and result wasn't ideal
         self.assertNotEqual(res, {"1": 1000})

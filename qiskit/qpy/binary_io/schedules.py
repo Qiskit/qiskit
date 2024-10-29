@@ -20,9 +20,6 @@ from io import BytesIO
 
 import numpy as np
 import symengine as sym
-from symengine.lib.symengine_wrapper import (  # pylint: disable = no-name-in-module
-    load_basic,
-)
 
 from qiskit.exceptions import QiskitError
 from qiskit.pulse import library, channels, instructions
@@ -31,6 +28,7 @@ from qiskit.qpy import formats, common, type_keys
 from qiskit.qpy.binary_io import value
 from qiskit.qpy.exceptions import QpyError
 from qiskit.pulse.configuration import Kernel, Discriminator
+from qiskit.utils.deprecate_pulse import ignore_pulse_deprecation_warnings
 
 
 def _read_channel(file_obj, version):
@@ -106,7 +104,7 @@ def _loads_symbolic_expr(expr_bytes, use_symengine=False):
         return None
     expr_bytes = zlib.decompress(expr_bytes)
     if use_symengine:
-        return load_basic(expr_bytes)
+        return common.load_symengine_payload(expr_bytes)
     else:
         from sympy import parse_expr
 
@@ -328,7 +326,7 @@ def _read_element(file_obj, version, metadata_deserializer, use_symengine):
     return instance
 
 
-def _loads_reference_item(type_key, data_bytes, version, metadata_deserializer):
+def _loads_reference_item(type_key, data_bytes, metadata_deserializer, version):
     if type_key == type_keys.Value.NULL:
         return None
     if type_key == type_keys.Program.SCHEDULE_BLOCK:
@@ -346,13 +344,13 @@ def _loads_reference_item(type_key, data_bytes, version, metadata_deserializer):
     )
 
 
-def _write_channel(file_obj, data):
+def _write_channel(file_obj, data, version):
     type_key = type_keys.ScheduleChannel.assign(data)
     common.write_type_key(file_obj, type_key)
-    value.write_value(file_obj, data.index)
+    value.write_value(file_obj, data.index, version=version)
 
 
-def _write_waveform(file_obj, data):
+def _write_waveform(file_obj, data, version):
     samples_bytes = common.data_to_binary(data.samples, np.save)
 
     header = struct.pack(
@@ -363,39 +361,43 @@ def _write_waveform(file_obj, data):
     )
     file_obj.write(header)
     file_obj.write(samples_bytes)
-    value.write_value(file_obj, data.name)
+    value.write_value(file_obj, data.name, version=version)
 
 
-def _dumps_obj(obj):
+def _dumps_obj(obj, version):
     """Wraps `value.dumps_value` to serialize dictionary and list objects
     which are not supported by `value.dumps_value`.
     """
     if isinstance(obj, dict):
         with BytesIO() as container:
-            common.write_mapping(file_obj=container, mapping=obj, serializer=_dumps_obj)
+            common.write_mapping(
+                file_obj=container, mapping=obj, serializer=_dumps_obj, version=version
+            )
             binary_data = container.getvalue()
         return b"D", binary_data
     elif isinstance(obj, list):
         with BytesIO() as container:
-            common.write_sequence(file_obj=container, sequence=obj, serializer=_dumps_obj)
+            common.write_sequence(
+                file_obj=container, sequence=obj, serializer=_dumps_obj, version=version
+            )
             binary_data = container.getvalue()
         return b"l", binary_data
     else:
-        return value.dumps_value(obj)
+        return value.dumps_value(obj, version=version)
 
 
-def _write_kernel(file_obj, data):
+def _write_kernel(file_obj, data, version):
     name = data.name
     params = data.params
-    common.write_mapping(file_obj=file_obj, mapping=params, serializer=_dumps_obj)
-    value.write_value(file_obj, name)
+    common.write_mapping(file_obj=file_obj, mapping=params, serializer=_dumps_obj, version=version)
+    value.write_value(file_obj, name, version=version)
 
 
-def _write_discriminator(file_obj, data):
+def _write_discriminator(file_obj, data, version):
     name = data.name
     params = data.params
-    common.write_mapping(file_obj=file_obj, mapping=params, serializer=_dumps_obj)
-    value.write_value(file_obj, name)
+    common.write_mapping(file_obj=file_obj, mapping=params, serializer=_dumps_obj, version=version)
+    value.write_value(file_obj, name, version=version)
 
 
 def _dumps_symbolic_expr(expr, use_symengine):
@@ -410,7 +412,7 @@ def _dumps_symbolic_expr(expr, use_symengine):
     return zlib.compress(expr_bytes)
 
 
-def _write_symbolic_pulse(file_obj, data, use_symengine):
+def _write_symbolic_pulse(file_obj, data, use_symengine, version):
     class_name_bytes = data.__class__.__name__.encode(common.ENCODE)
     pulse_type_bytes = data.pulse_type.encode(common.ENCODE)
     envelope_bytes = _dumps_symbolic_expr(data.envelope, use_symengine)
@@ -436,52 +438,51 @@ def _write_symbolic_pulse(file_obj, data, use_symengine):
         file_obj,
         mapping=data._params,
         serializer=value.dumps_value,
+        version=version,
     )
-    value.write_value(file_obj, data.duration)
-    value.write_value(file_obj, data.name)
+    value.write_value(file_obj, data.duration, version=version)
+    value.write_value(file_obj, data.name, version=version)
 
 
-def _write_alignment_context(file_obj, context):
+def _write_alignment_context(file_obj, context, version):
     type_key = type_keys.ScheduleAlignment.assign(context)
     common.write_type_key(file_obj, type_key)
     common.write_sequence(
-        file_obj,
-        sequence=context._context_params,
-        serializer=value.dumps_value,
+        file_obj, sequence=context._context_params, serializer=value.dumps_value, version=version
     )
 
 
-def _dumps_operand(operand, use_symengine):
+def _dumps_operand(operand, use_symengine, version):
     if isinstance(operand, library.Waveform):
         type_key = type_keys.ScheduleOperand.WAVEFORM
-        data_bytes = common.data_to_binary(operand, _write_waveform)
+        data_bytes = common.data_to_binary(operand, _write_waveform, version=version)
     elif isinstance(operand, library.SymbolicPulse):
         type_key = type_keys.ScheduleOperand.SYMBOLIC_PULSE
         data_bytes = common.data_to_binary(
-            operand, _write_symbolic_pulse, use_symengine=use_symengine
+            operand, _write_symbolic_pulse, use_symengine=use_symengine, version=version
         )
     elif isinstance(operand, channels.Channel):
         type_key = type_keys.ScheduleOperand.CHANNEL
-        data_bytes = common.data_to_binary(operand, _write_channel)
+        data_bytes = common.data_to_binary(operand, _write_channel, version=version)
     elif isinstance(operand, str):
         type_key = type_keys.ScheduleOperand.OPERAND_STR
         data_bytes = operand.encode(common.ENCODE)
     elif isinstance(operand, Kernel):
         type_key = type_keys.ScheduleOperand.KERNEL
-        data_bytes = common.data_to_binary(operand, _write_kernel)
+        data_bytes = common.data_to_binary(operand, _write_kernel, version=version)
     elif isinstance(operand, Discriminator):
         type_key = type_keys.ScheduleOperand.DISCRIMINATOR
-        data_bytes = common.data_to_binary(operand, _write_discriminator)
+        data_bytes = common.data_to_binary(operand, _write_discriminator, version=version)
     else:
-        type_key, data_bytes = value.dumps_value(operand)
+        type_key, data_bytes = value.dumps_value(operand, version=version)
 
     return type_key, data_bytes
 
 
-def _write_element(file_obj, element, metadata_serializer, use_symengine):
+def _write_element(file_obj, element, metadata_serializer, use_symengine, version):
     if isinstance(element, ScheduleBlock):
         common.write_type_key(file_obj, type_keys.Program.SCHEDULE_BLOCK)
-        write_schedule_block(file_obj, element, metadata_serializer, use_symengine)
+        write_schedule_block(file_obj, element, metadata_serializer, use_symengine, version=version)
     else:
         type_key = type_keys.ScheduleInstruction.assign(element)
         common.write_type_key(file_obj, type_key)
@@ -490,11 +491,12 @@ def _write_element(file_obj, element, metadata_serializer, use_symengine):
             sequence=element.operands,
             serializer=_dumps_operand,
             use_symengine=use_symengine,
+            version=version,
         )
-        value.write_value(file_obj, element.name)
+        value.write_value(file_obj, element.name, version=version)
 
 
-def _dumps_reference_item(schedule, metadata_serializer):
+def _dumps_reference_item(schedule, metadata_serializer, version):
     if schedule is None:
         type_key = type_keys.Value.NULL
         data_bytes = b""
@@ -504,10 +506,12 @@ def _dumps_reference_item(schedule, metadata_serializer):
             obj=schedule,
             serializer=write_schedule_block,
             metadata_serializer=metadata_serializer,
+            version=version,
         )
     return type_key, data_bytes
 
 
+@ignore_pulse_deprecation_warnings
 def read_schedule_block(file_obj, version, metadata_deserializer=None, use_symengine=False):
     """Read a single ScheduleBlock from the file like object.
 
@@ -517,7 +521,7 @@ def read_schedule_block(file_obj, version, metadata_deserializer=None, use_symen
         metadata_deserializer (JSONDecoder): An optional JSONDecoder class
             that will be used for the ``cls`` kwarg on the internal
             ``json.load`` call used to deserialize the JSON payload used for
-            the :attr:`.ScheduleBlock.metadata` attribute for a schdule block
+            the :attr:`.ScheduleBlock.metadata` attribute for a schedule block
             in the file-like object. If this is not specified the circuit metadata will
             be parsed as JSON with the stdlib ``json.load()`` function using
             the default ``JSONDecoder`` class.
@@ -576,7 +580,7 @@ def read_schedule_block(file_obj, version, metadata_deserializer=None, use_symen
 
 def write_schedule_block(
     file_obj, block, metadata_serializer=None, use_symengine=False, version=common.QPY_VERSION
-):  # pylint: disable=unused-argument
+):
     """Write a single ScheduleBlock object in the file like object.
 
     Args:
@@ -610,11 +614,11 @@ def write_schedule_block(
     file_obj.write(block_name)
     file_obj.write(metadata)
 
-    _write_alignment_context(file_obj, block.alignment_context)
+    _write_alignment_context(file_obj, block.alignment_context, version=version)
     for block_elm in block._blocks:
         # Do not call block.blocks. This implicitly assigns references to instruction.
         # This breaks original reference structure.
-        _write_element(file_obj, block_elm, metadata_serializer, use_symengine)
+        _write_element(file_obj, block_elm, metadata_serializer, use_symengine, version=version)
 
     # Write references
     flat_key_refdict = {}
@@ -627,4 +631,5 @@ def write_schedule_block(
         mapping=flat_key_refdict,
         serializer=_dumps_reference_item,
         metadata_serializer=metadata_serializer,
+        version=version,
     )

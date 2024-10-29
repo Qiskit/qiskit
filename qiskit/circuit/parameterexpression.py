@@ -48,7 +48,7 @@ class ParameterExpression:
             expr (sympy.Expr): Expression of :class:`sympy.Symbol` s.
         """
         # NOTE: `Parameter.__init__` does not call up to this method, since this method is dependent
-        # on `Parameter` instances already being initialised enough to be hashable.  If changing
+        # on `Parameter` instances already being initialized enough to be hashable.  If changing
         # this method, check that `Parameter.__init__` and `__setstate__` are still valid.
         self._parameter_symbols = symbol_map
         self._parameter_keys = frozenset(p._hash_key() for p in self._parameter_symbols)
@@ -140,7 +140,7 @@ class ParameterExpression:
             raise ZeroDivisionError(
                 "Binding provided for expression "
                 "results in division by zero "
-                "(Expression: {}, Bindings: {}).".format(self, parameter_values)
+                f"(Expression: {self}, Bindings: {parameter_values})."
             )
 
         return ParameterExpression(free_parameter_symbols, bound_symbol_expr)
@@ -199,8 +199,8 @@ class ParameterExpression:
         unknown_parameters = parameters - self.parameters
         if unknown_parameters:
             raise CircuitError(
-                "Cannot bind Parameters ({}) not present in "
-                "expression.".format([str(p) for p in unknown_parameters])
+                f"Cannot bind Parameters ({[str(p) for p in unknown_parameters]}) not present in "
+                "expression."
             )
 
     def _raise_if_passed_nan(self, parameter_values):
@@ -327,8 +327,11 @@ class ParameterExpression:
     def __mul__(self, other):
         return self._apply_operation(operator.mul, other)
 
+    def __pos__(self):
+        return self._apply_operation(operator.mul, 1)
+
     def __neg__(self):
-        return self._apply_operation(operator.mul, -1.0)
+        return self._apply_operation(operator.mul, -1)
 
     def __rmul__(self, other):
         return self._apply_operation(operator.mul, other, reflected=True)
@@ -401,8 +404,8 @@ class ParameterExpression:
         except (TypeError, RuntimeError) as exc:
             if self.parameters:
                 raise TypeError(
-                    "ParameterExpression with unbound parameters ({}) "
-                    "cannot be cast to a complex.".format(self.parameters)
+                    f"ParameterExpression with unbound parameters ({self.parameters}) "
+                    "cannot be cast to a complex."
                 ) from None
             raise TypeError("could not cast expression to complex") from exc
 
@@ -413,13 +416,13 @@ class ParameterExpression:
         except (TypeError, RuntimeError) as exc:
             if self.parameters:
                 raise TypeError(
-                    "ParameterExpression with unbound parameters ({}) "
-                    "cannot be cast to a float.".format(self.parameters)
+                    f"ParameterExpression with unbound parameters ({self.parameters}) "
+                    "cannot be cast to a float."
                 ) from None
             # In symengine, if an expression was complex at any time, its type is likely to have
             # stayed "complex" even when the imaginary part symbolically (i.e. exactly)
-            # cancelled out.  Sympy tends to more aggressively recognise these as symbolically
-            # real.  This second attempt at a cast is a way of unifying the behaviour to the
+            # cancelled out.  Sympy tends to more aggressively recognize these as symbolically
+            # real.  This second attempt at a cast is a way of unifying the behavior to the
             # more expected form for our users.
             cval = complex(self)
             if cval.imag == 0.0:
@@ -433,12 +436,15 @@ class ParameterExpression:
         except RuntimeError as exc:
             if self.parameters:
                 raise TypeError(
-                    "ParameterExpression with unbound parameters ({}) "
-                    "cannot be cast to an int.".format(self.parameters)
+                    f"ParameterExpression with unbound parameters ({self.parameters}) "
+                    "cannot be cast to an int."
                 ) from None
             raise TypeError("could not cast expression to int") from exc
 
     def __hash__(self):
+        if not self._parameter_symbols:
+            # For fully bound expressions, fall back to the underlying value
+            return hash(self.numeric())
         return hash((self._parameter_keys, self._symbol_expr))
 
     def __copy__(self):

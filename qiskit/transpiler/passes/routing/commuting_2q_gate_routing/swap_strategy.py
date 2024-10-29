@@ -17,7 +17,7 @@ import copy
 import numpy as np
 
 from qiskit.exceptions import QiskitError
-from qiskit.transpiler import CouplingMap
+from qiskit.transpiler.coupling import CouplingMap
 
 
 class SwapStrategy:
@@ -30,7 +30,7 @@ class SwapStrategy:
     parallel. This means that a qubit can only be present once in a swap layer. For example, the
     following swap layers represent the optimal swap strategy for a line with five qubits
 
-    .. parsed-literal::
+    .. code-block:: text
 
         (
             ((0, 1), (2, 3)),  # Swap layer no. 1

@@ -15,10 +15,11 @@ DensityMatrix quantum state class.
 """
 
 from __future__ import annotations
-import copy
+import copy as _copy
 from numbers import Number
 import numpy as np
 
+from qiskit import _numpy_compat
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.instruction import Instruction
 from qiskit.exceptions import QiskitError
@@ -110,10 +111,9 @@ class DensityMatrix(QuantumState, TolerancesMixin):
             raise QiskitError("Invalid DensityMatrix input: not a square matrix.")
         super().__init__(op_shape=OpShape.auto(shape=self._data.shape, dims_l=dims, dims_r=dims))
 
-    def __array__(self, dtype=None):
-        if dtype:
-            return np.asarray(self.data, dtype=dtype)
-        return self.data
+    def __array__(self, dtype=None, copy=_numpy_compat.COPY_ONLY_IF_NEEDED):
+        dtype = self.data.dtype if dtype is None else dtype
+        return np.array(self.data, dtype=dtype, copy=copy)
 
     def __eq__(self, other):
         return super().__eq__(other) and np.allclose(
@@ -123,11 +123,9 @@ class DensityMatrix(QuantumState, TolerancesMixin):
     def __repr__(self):
         prefix = "DensityMatrix("
         pad = len(prefix) * " "
-        return "{}{},\n{}dims={})".format(
-            prefix,
-            np.array2string(self._data, separator=", ", prefix=prefix),
-            pad,
-            self._op_shape.dims_l(),
+        return (
+            f"{prefix}{np.array2string(self._data, separator=', ', prefix=prefix)},\n"
+            f"{pad}dims={self._op_shape.dims_l()})"
         )
 
     @property
@@ -241,7 +239,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
         """
         if not isinstance(other, DensityMatrix):
             other = DensityMatrix(other)
-        ret = copy.copy(self)
+        ret = _copy.copy(self)
         ret._data = np.kron(self._data, other._data)
         ret._op_shape = self._op_shape.tensor(other._op_shape)
         return ret
@@ -260,7 +258,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
         """
         if not isinstance(other, DensityMatrix):
             other = DensityMatrix(other)
-        ret = copy.copy(self)
+        ret = _copy.copy(self)
         ret._data = np.kron(other._data, self._data)
         ret._op_shape = self._op_shape.expand(other._op_shape)
         return ret
@@ -281,7 +279,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
         if not isinstance(other, DensityMatrix):
             other = DensityMatrix(other)
         self._op_shape._validate_add(other._op_shape)
-        ret = copy.copy(self)
+        ret = _copy.copy(self)
         ret._data = self.data + other.data
         return ret
 
@@ -299,7 +297,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
         """
         if not isinstance(other, Number):
             raise QiskitError("other is not a number")
-        ret = copy.copy(self)
+        ret = _copy.copy(self)
         ret._data = other * self.data
         return ret
 
@@ -356,7 +354,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
         Returns:
             DensityMatrix: the state with reversed subsystem order.
         """
-        ret = copy.copy(self)
+        ret = _copy.copy(self)
         axes = tuple(range(self._op_shape._num_qargs_l - 1, -1, -1))
         axes = axes + tuple(len(axes) + i for i in axes)
         ret._data = np.reshape(
@@ -463,7 +461,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
                 probs_qubit_1 = rho.probabilities([1])
                 print('Qubit-1 probs: {}'.format(probs_qubit_1))
 
-            .. parsed-literal::
+            .. code-block:: text
 
                 probs: [0.5 0.  0.5 0. ]
                 Qubit-0 probs: [1. 0.]
@@ -487,7 +485,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
                 probs_swapped = rho.probabilities([1, 0])
                 print('Swapped probs: {}'.format(probs_swapped))
 
-            .. parsed-literal::
+            .. code-block:: text
 
                 probs: [0.5 0.  0.5 0. ]
                 Swapped probs: [0.5 0.5 0.  0. ]
@@ -523,7 +521,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
         """
         if qargs is None:
             # Resetting all qubits does not require sampling or RNG
-            ret = copy.copy(self)
+            ret = _copy.copy(self)
             state = np.zeros(self._op_shape.shape, dtype=complex)
             state[0, 0] = 1
             ret._data = state
@@ -656,7 +654,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
                 rho = DensityMatrix.from_label('-0')
                 print(rho.to_dict())
 
-            .. parsed-literal::
+            .. code-block:: text
 
                {
                    '00|00': (0.4999999999999999+0j),
@@ -681,7 +679,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
                 rho = DensityMatrix(mat, dims=(3, 3))
                 print(rho.to_dict())
 
-            .. parsed-literal::
+            .. code-block:: text
 
                 {'00|00': (0.25+0j), '10|10': (0.25+0j), '20|20': (0.25+0j), '22|22': (0.25+0j)}
 
@@ -700,7 +698,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
                 rho = DensityMatrix(mat, dims=(2, 10))
                 print(rho.to_dict())
 
-            .. parsed-literal::
+            .. code-block:: text
 
                 {'00|00': (0.5+0j), '91|91': (0.5+0j)}
         """
@@ -715,7 +713,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
         new_shape._dims_r = new_shape._dims_l
         new_shape._num_qargs_r = new_shape._num_qargs_l
 
-        ret = copy.copy(self)
+        ret = _copy.copy(self)
         if qargs is None:
             # Evolution on full matrix
             op_mat = other.data
@@ -771,9 +769,8 @@ class DensityMatrix(QuantumState, TolerancesMixin):
             raise QiskitError(f"Cannot apply Instruction: {other.name}")
         if not isinstance(other.definition, QuantumCircuit):
             raise QiskitError(
-                "{} instruction definition is {}; expected QuantumCircuit".format(
-                    other.name, type(other.definition)
-                )
+                f"{other.name} instruction definition is {type(other.definition)};"
+                f" expected QuantumCircuit"
             )
         qubit_indices = {bit: idx for idx, bit in enumerate(other.definition.qubits)}
         for instruction in other.definition:
@@ -792,7 +789,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
         """Return a new statevector by applying an instruction."""
         if isinstance(obj, QuantumCircuit):
             obj = obj.to_instruction()
-        vec = copy.copy(self)
+        vec = _copy.copy(self)
         vec._append_instruction(obj, qargs=qargs)
         return vec
 

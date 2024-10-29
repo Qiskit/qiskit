@@ -67,7 +67,7 @@ class GateDirection(TransformationPass):
              └──────┘          └───┘└──────┘└───┘
 
     This pass assumes that the positions of the qubits in the :attr:`.DAGCircuit.qubits` attribute
-    are the physical qubit indicies. For example if ``dag.qubits[0]`` is qubit 0 in the
+    are the physical qubit indices. For example if ``dag.qubits[0]`` is qubit 0 in the
     :class:`.CouplingMap` or :class:`.Target`.
     """
 
@@ -175,7 +175,7 @@ class GateDirection(TransformationPass):
         # Don't include directives to avoid things like barrier, which are assumed always supported.
         for node in dag.op_nodes(include_directives=False):
             if isinstance(node.op, ControlFlowOp):
-                node.op = node.op.replace_blocks(
+                new_op = node.op.replace_blocks(
                     dag_to_circuit(
                         self._run_coupling_map(
                             circuit_to_dag(block),
@@ -188,10 +188,11 @@ class GateDirection(TransformationPass):
                     )
                     for block in node.op.blocks
                 )
+                dag.substitute_node(node, new_op, propagate_condition=False)
                 continue
             if len(node.qargs) != 2:
                 continue
-            if dag.has_calibration_for(node):
+            if dag._has_calibration_for(node):
                 continue
             qargs = (wire_map[node.qargs[0]], wire_map[node.qargs[1]])
             if qargs not in edges and (qargs[1], qargs[0]) not in edges:
@@ -222,7 +223,7 @@ class GateDirection(TransformationPass):
         # Don't include directives to avoid things like barrier, which are assumed always supported.
         for node in dag.op_nodes(include_directives=False):
             if isinstance(node.op, ControlFlowOp):
-                node.op = node.op.replace_blocks(
+                new_op = node.op.replace_blocks(
                     dag_to_circuit(
                         self._run_target(
                             circuit_to_dag(block),
@@ -234,10 +235,11 @@ class GateDirection(TransformationPass):
                     )
                     for block in node.op.blocks
                 )
+                dag.substitute_node(node, new_op, propagate_condition=False)
                 continue
             if len(node.qargs) != 2:
                 continue
-            if dag.has_calibration_for(node):
+            if dag._has_calibration_for(node):
                 continue
             qargs = (wire_map[node.qargs[0]], wire_map[node.qargs[1]])
             swapped = (qargs[1], qargs[0])
@@ -309,7 +311,7 @@ class GateDirection(TransformationPass):
                     )
             elif self.target.instruction_supported(node.name, qargs):
                 continue
-            elif self.target.instruction_supported(node.name, swapped) or dag.has_calibration_for(
+            elif self.target.instruction_supported(node.name, swapped) or dag._has_calibration_for(
                 _swap_node_qargs(node)
             ):
                 raise TranspilerError(

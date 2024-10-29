@@ -11,9 +11,9 @@
 # that they have been altered from the originals.
 
 """Set the ``layout`` property to the given layout."""
-from qiskit.transpiler import Layout
-from qiskit.transpiler.exceptions import InvalidLayoutError
 from qiskit.transpiler.basepasses import AnalysisPass
+from qiskit.transpiler.exceptions import InvalidLayoutError
+from qiskit.transpiler.layout import Layout
 
 
 class SetLayout(AnalysisPass):
@@ -63,7 +63,7 @@ class SetLayout(AnalysisPass):
             layout = None
         else:
             raise InvalidLayoutError(
-                f"SetLayout was intialized with the layout type: {type(self.layout)}"
+                f"SetLayout was initialized with the layout type: {type(self.layout)}"
             )
         self.property_set["layout"] = layout
         return dag

@@ -39,7 +39,7 @@ class EfficientSU2(TwoLocal):
     On 3 qubits and using the Pauli :math:`Y` and :math:`Z` su2_gates as single qubit gates, the
     hardware efficient SU(2) circuit is represented by:
 
-    .. parsed-literal::
+    .. code-block:: text
 
         ┌──────────┐┌──────────┐ ░            ░       ░ ┌───────────┐┌───────────┐
         ┤ RY(θ[0]) ├┤ RZ(θ[3]) ├─░────────■───░─ ... ─░─┤ RY(θ[12]) ├┤ RZ(θ[15]) ├
@@ -110,11 +110,11 @@ class EfficientSU2(TwoLocal):
                 If only one gate is provided, the same gate is applied to each qubit.
                 If a list of gates is provided, all gates are applied to each qubit in the provided
                 order.
-            entanglement: Specifies the entanglement structure. Can be a string ('full', 'linear'
-                , 'reverse_linear', 'circular' or 'sca'), a list of integer-pairs specifying the indices
-                of qubits entangled with one another, or a callable returning such a list provided with
-                the index of the entanglement layer.
-                Default to 'reverse_linear' entanglement.
+            entanglement: Specifies the entanglement structure. Can be a string
+                ('full', 'linear', 'reverse_linear', 'pairwise', 'circular', or 'sca'),
+                a list of integer-pairs specifying the indices of qubits entangled with one another,
+                or a callable returning such a list provided with the index of the entanglement layer.
+                Defaults to 'reverse_linear' entanglement.
                 Note that 'reverse_linear' entanglement provides the same unitary as 'full'
                 with fewer entangling gates.
                 See the Examples section of :class:`~qiskit.circuit.library.TwoLocal` for more

@@ -29,6 +29,14 @@ class TestStoreInstruction(QiskitTestCase):
         self.assertEqual(constructed.lvalue, lvalue)
         self.assertEqual(constructed.rvalue, rvalue)
 
+    def test_store_to_index(self):
+        lvalue = expr.index(expr.Var.new("a", types.Uint(8)), 3)
+        rvalue = expr.lift(False)
+        constructed = Store(lvalue, rvalue)
+        self.assertIsInstance(constructed, Store)
+        self.assertEqual(constructed.lvalue, lvalue)
+        self.assertEqual(constructed.rvalue, rvalue)
+
     def test_implicit_cast(self):
         lvalue = expr.Var.new("a", types.Bool())
         rvalue = expr.Var.new("b", types.Uint(8))
@@ -42,6 +50,11 @@ class TestStoreInstruction(QiskitTestCase):
             expr.Var.new("a", types.Bool()), expr.Var.new("b", types.Bool())
         )
         rvalue = expr.lift(False)
+        with self.assertRaisesRegex(CircuitError, "not an l-value"):
+            Store(not_an_lvalue, rvalue)
+
+        not_an_lvalue = expr.index(expr.shift_right(expr.Var.new("a", types.Uint(8)), 1), 2)
+        rvalue = expr.lift(True)
         with self.assertRaisesRegex(CircuitError, "not an l-value"):
             Store(not_an_lvalue, rvalue)
 
@@ -122,6 +135,21 @@ class TestStoreCircuit(QiskitTestCase):
         actual = [instruction.operation for instruction in qc.data]
         self.assertEqual(actual, expected)
 
+    def test_allows_stores_with_index(self):
+        cr = ClassicalRegister(8, "cr")
+        a = expr.Var.new("a", types.Uint(3))
+        qc = QuantumCircuit(cr, inputs=[a])
+        qc.store(expr.index(cr, 0), False)
+        qc.store(expr.index(a, 3), True)
+        qc.store(expr.index(cr, a), expr.index(cr, 0))
+        expected = [
+            Store(expr.index(cr, 0), expr.lift(False)),
+            Store(expr.index(a, 3), expr.lift(True)),
+            Store(expr.index(cr, a), expr.index(cr, 0)),
+        ]
+        actual = [instruction.operation for instruction in qc.data]
+        self.assertEqual(actual, expected)
+
     def test_lifts_values(self):
         a = expr.Var.new("a", types.Bool())
         qc = QuantumCircuit(captures=[a])
@@ -132,6 +160,22 @@ class TestStoreCircuit(QiskitTestCase):
         qc.add_capture(b)
         qc.store(b, 0xFFFF)
         self.assertEqual(qc.data[-1].operation, Store(b, expr.lift(0xFFFF)))
+
+    def test_lifts_integer_literals_to_full_width(self):
+        a = expr.Var.new("a", types.Uint(8))
+        qc = QuantumCircuit(inputs=[a])
+        qc.store(a, 1)
+        self.assertEqual(qc.data[-1].operation, Store(a, expr.Value(1, a.type)))
+        qc.store(a, 255)
+        self.assertEqual(qc.data[-1].operation, Store(a, expr.Value(255, a.type)))
+
+    def test_does_not_widen_bool_literal(self):
+        # `bool` is a subclass of `int` in Python (except some arithmetic operations have different
+        # semantics...).  It's not in Qiskit's value type system, though.
+        a = expr.Var.new("a", types.Uint(8))
+        qc = QuantumCircuit(captures=[a])
+        with self.assertRaisesRegex(CircuitError, "explicit cast is required"):
+            qc.store(a, True)
 
     def test_rejects_vars_not_in_circuit(self):
         a = expr.Var.new("a", types.Bool())

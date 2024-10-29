@@ -18,11 +18,20 @@ from types import SimpleNamespace
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.qobj.pulse_qobj import PulseQobjInstruction, PulseLibraryItem
 from qiskit.qobj.common import QobjDictField, QobjHeader
+from qiskit.utils import deprecate_func
 
 
 class QasmQobjInstruction:
     """A class representing a single instruction in an QasmQobj Experiment."""
 
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="The `Qobj` class and related functionality are part of the deprecated "
+        "`BackendV1` workflow,  and no longer necessary for `BackendV2`. If a user "
+        "workflow requires `Qobj` it likely relies on deprecated functionality and "
+        "should be updated to use `BackendV2`.",
+    )
     def __init__(
         self,
         name,
@@ -131,7 +140,7 @@ class QasmQobjInstruction:
         return out_dict
 
     def __repr__(self):
-        out = "QasmQobjInstruction(name='%s'" % self.name
+        out = f"QasmQobjInstruction(name='{self.name}'"
         for attr in [
             "params",
             "qubits",
@@ -155,7 +164,7 @@ class QasmQobjInstruction:
         return out
 
     def __str__(self):
-        out = "Instruction: %s\n" % self.name
+        out = f"Instruction: {self.name}\n"
         for attr in [
             "params",
             "qubits",
@@ -200,6 +209,14 @@ class QasmQobjExperiment:
     part of a larger OpenQASM 2 qobj.
     """
 
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="The `Qobj` class and related functionality are part of the deprecated "
+        "`BackendV1` workflow,  and no longer necessary for `BackendV2`. If a user "
+        "workflow requires `Qobj` it likely relies on deprecated functionality and "
+        "should be updated to use `BackendV2`.",
+    )
     def __init__(self, config=None, header=None, instructions=None):
         """Instantiate a QasmQobjExperiment.
 
@@ -215,21 +232,19 @@ class QasmQobjExperiment:
     def __repr__(self):
         instructions_str = [repr(x) for x in self.instructions]
         instructions_repr = "[" + ", ".join(instructions_str) + "]"
-        out = "QasmQobjExperiment(config={}, header={}, instructions={})".format(
-            repr(self.config),
-            repr(self.header),
-            instructions_repr,
+        return (
+            f"QasmQobjExperiment(config={repr(self.config)}, header={repr(self.header)},"
+            f" instructions={instructions_repr})"
         )
-        return out
 
     def __str__(self):
         out = "\nOpenQASM2 Experiment:\n"
         config = pprint.pformat(self.config.to_dict())
         header = pprint.pformat(self.header.to_dict())
-        out += "Header:\n%s\n" % header
-        out += "Config:\n%s\n\n" % config
+        out += f"Header:\n{header}\n"
+        out += f"Config:\n{config}\n\n"
         for instruction in self.instructions:
-            out += "\t%s\n" % instruction
+            out += f"\t{instruction}\n"
         return out
 
     def to_dict(self):
@@ -278,6 +293,14 @@ class QasmQobjExperiment:
 class QasmQobjConfig(SimpleNamespace):
     """A configuration for an OpenQASM 2 Qobj."""
 
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="The `Qobj` class and related functionality are part of the deprecated "
+        "`BackendV1` workflow,  and no longer necessary for `BackendV2`. If a user "
+        "workflow requires `Qobj` it likely relies on deprecated functionality and "
+        "should be updated to use `BackendV2`.",
+    )
     def __init__(
         self,
         shots=None,
@@ -412,6 +435,14 @@ class QasmQobjExperimentHeader(QobjDictField):
 class QasmQobjExperimentConfig(QobjDictField):
     """Configuration for a single OpenQASM 2 experiment in the qobj."""
 
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="The `Qobj` class and related functionality are part of the deprecated "
+        "`BackendV1` workflow,  and no longer necessary for `BackendV2`. If a user "
+        "workflow requires `Qobj` it likely relies on deprecated functionality and "
+        "should be updated to use `BackendV2`.",
+    )
     def __init__(self, calibrations=None, qubit_lo_freq=None, meas_lo_freq=None, **kwargs):
         """
         Args:
@@ -448,6 +479,14 @@ class QasmExperimentCalibrations:
     GateCalibrations.
     """
 
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="The `Qobj` class and related functionality are part of the deprecated "
+        "`BackendV1` workflow,  and no longer necessary for `BackendV2`. If a user "
+        "workflow requires `Qobj` it likely relies on deprecated functionality and "
+        "should be updated to use `BackendV2`.",
+    )
     def __init__(self, gates):
         """
         Initialize a container for calibrations.
@@ -488,6 +527,14 @@ class GateCalibration:
     """Each calibration specifies a unique gate by name, qubits and params, and
     contains the Pulse instructions to implement it."""
 
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="The `Qobj` class and related functionality are part of the deprecated "
+        "`BackendV1` workflow,  and no longer necessary for `BackendV2`. If a user "
+        "workflow requires `Qobj` it likely relies on deprecated functionality and "
+        "should be updated to use `BackendV2`.",
+    )
     def __init__(self, name, qubits, params, instructions):
         """
         Initialize a single gate calibration. Instructions may reference waveforms which should be
@@ -543,6 +590,14 @@ class GateCalibration:
 class QasmQobj:
     """An OpenQASM 2 Qobj."""
 
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="The `Qobj` class and related functionality are part of the deprecated "
+        "`BackendV1` workflow,  and no longer necessary for `BackendV2`. If a user "
+        "workflow requires `Qobj` it likely relies on deprecated functionality and "
+        "should be updated to use `BackendV2`.",
+    )
     def __init__(self, qobj_id=None, config=None, experiments=None, header=None):
         """Instantiate a new OpenQASM 2 Qobj Object.
 
@@ -568,23 +623,20 @@ class QasmQobj:
     def __repr__(self):
         experiments_str = [repr(x) for x in self.experiments]
         experiments_repr = "[" + ", ".join(experiments_str) + "]"
-        out = "QasmQobj(qobj_id='{}', config={}, experiments={}, header={})".format(
-            self.qobj_id,
-            repr(self.config),
-            experiments_repr,
-            repr(self.header),
+        return (
+            f"QasmQobj(qobj_id='{self.qobj_id}', config={repr(self.config)},"
+            f" experiments={experiments_repr}, header={repr(self.header)})"
         )
-        return out
 
     def __str__(self):
-        out = "QASM Qobj: %s:\n" % self.qobj_id
+        out = f"QASM Qobj: {self.qobj_id}:\n"
         config = pprint.pformat(self.config.to_dict())
-        out += "Config: %s\n" % str(config)
+        out += f"Config: {str(config)}\n"
         header = pprint.pformat(self.header.to_dict())
-        out += "Header: %s\n" % str(header)
+        out += f"Header: {str(header)}\n"
         out += "Experiments:\n"
         for experiment in self.experiments:
-            out += "%s" % str(experiment)
+            out += str(experiment)
         return out
 
     def to_dict(self):

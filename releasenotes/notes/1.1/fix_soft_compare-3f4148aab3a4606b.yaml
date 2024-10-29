@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    The method :meth:`qiskit.instruction.Instruction.soft_compare` is meant to compare whether two gates match in their name, number of qubits, number of clbits, and the number of parameters. However, there was a typo where it would not check the number of qubits and number of clbits for a match. This resolves the apparent typo.

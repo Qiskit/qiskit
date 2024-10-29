@@ -101,10 +101,10 @@ class ObservablesArray(ShapedMixin):
         """Convert to a nested list"""
         return self._array.tolist()
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         """Convert to an Numpy.ndarray"""
         if dtype is None or dtype == object:
-            return self._array
+            return self._array.copy() if copy else self._array
         raise ValueError("Type must be 'None' or 'object'")
 
     @overload

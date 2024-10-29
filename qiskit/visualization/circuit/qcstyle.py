@@ -72,7 +72,7 @@ class StyleDict(dict):
 
     def __setitem__(self, key: Any, value: Any) -> None:
         # allow using field abbreviations
-        if key in self.ABBREVIATIONS.keys():
+        if key in self.ABBREVIATIONS:
             key = self.ABBREVIATIONS[key]
 
         if key not in self.VALID_FIELDS:
@@ -85,7 +85,7 @@ class StyleDict(dict):
 
     def __getitem__(self, key: Any) -> Any:
         # allow using field abbreviations
-        if key in self.ABBREVIATIONS.keys():
+        if key in self.ABBREVIATIONS:
             key = self.ABBREVIATIONS[key]
 
         return super().__getitem__(key)
