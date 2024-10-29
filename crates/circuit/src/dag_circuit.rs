@@ -15,7 +15,7 @@ use std::hash::Hash;
 use ahash::RandomState;
 use smallvec::SmallVec;
 
-use crate::bit_data::BitData;
+use crate::bit_data::{BitData, WireIndex};
 use crate::circuit_data::CircuitData;
 use crate::circuit_instruction::{
     CircuitInstruction, ExtraInstructionAttributes, OperationFromPython,
@@ -29,7 +29,7 @@ use crate::interner::{Interned, Interner};
 use crate::operations::{Operation, OperationRef, Param, PyInstruction, StandardGate};
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::rustworkx_core_vnext::isomorphism;
-use crate::{BitType, Clbit, Qubit, TupleLikeArg};
+use crate::{Clbit, Qubit, TupleLikeArg};
 
 use hashbrown::{HashMap, HashSet};
 use indexmap::IndexMap;
@@ -82,35 +82,19 @@ static SEMANTIC_EQ_SYMMETRIC: [&str; 4] = ["barrier", "swap", "break_loop", "con
 /// These keys are [Eq], but this is semantically valid only for keys
 /// from the same [DAGCircuit] instance.
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
-pub struct Var(BitType);
+pub struct Var(u32);
 
-impl Var {
-    /// Construct a new [Var] object from a usize. if you have a u32 you can
-    /// create a [Var] object directly with `Var(0u32)`. This will panic
-    /// if the `usize` index exceeds `u32::MAX`.
-    #[inline(always)]
+// Note that the implementation is private to this crate
+// because the visibility of WireIndex is only pub(crate).
+// This is intentional, since it prevents users from creating
+// a Var, which should only be done by DAGCircuit.
+impl WireIndex for Var {
     fn new(index: usize) -> Self {
-        Var(index
-            .try_into()
-            .unwrap_or_else(|_| panic!("Index value '{}' exceeds the maximum bit width!", index)))
+        Var(index.try_into().expect("Variable storage exceeded."))
     }
 
-    /// Get the index of the [Var]
-    #[inline(always)]
     fn index(&self) -> usize {
         self.0 as usize
-    }
-}
-
-impl From<BitType> for Var {
-    fn from(value: BitType) -> Self {
-        Var(value)
-    }
-}
-
-impl From<Var> for BitType {
-    fn from(value: Var) -> Self {
-        value.0
     }
 }
 
@@ -942,10 +926,10 @@ def _format(operand):
             }
             params.push(p.to_object(py));
         }
-        let qubits: Vec<BitType> = self
+        let qubits: Vec<usize> = self
             .qubits
             .map_bits(node.instruction.qubits.bind(py).iter())?
-            .map(|bit| bit.0)
+            .map(|bit| bit.index())
             .collect();
         let qubits = PyTuple::new_bound(py, qubits);
         let params = PyTuple::new_bound(py, params);
