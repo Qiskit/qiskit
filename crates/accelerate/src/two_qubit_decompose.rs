@@ -2442,6 +2442,7 @@ pub struct TwoQubitControlledUDecomposer {
 }
 
 const DEFAULT_ATOL: f64 = 1e-12;
+type InverseReturn = (Option<StandardGate>, SmallVec<[f64; 3]>, SmallVec<[u8; 2]>);
 
 ///  Decompose two-qubit unitary in terms of a desired
 ///  :math:`U \sim U_d(\alpha, 0, 0) \sim \text{Ctrl-U}`
@@ -2452,7 +2453,7 @@ impl TwoQubitControlledUDecomposer {
         &self,
         py: Python,
         gate: (Option<StandardGate>, SmallVec<[f64; 3]>, SmallVec<[u8; 2]>),
-    ) -> PyResult<(Option<StandardGate>, SmallVec<[f64; 3]>, SmallVec<[u8; 2]>)> {
+    ) -> PyResult<InverseReturn> {
         let (gate, params, qubits) = gate;
         if let Some(gate) = gate {
             let inv_gate = gate
@@ -2500,13 +2501,13 @@ impl TwoQubitControlledUDecomposer {
                         })
                         .collect();
                     if let Some(gate) = inverse.operation.try_standard_gate() {
-                        return Ok((Some(gate), params, qubits));
+                        Ok((Some(gate), params, qubits))
                     } else if raw_inverse.is_instance(gate_cls.bind(py))? {
-                        return Ok((None, params, qubits));
+                        Ok((None, params, qubits))
                     } else {
-                        return Err(QiskitError::new_err(
+                        Err(QiskitError::new_err(
                             "rxx gate inverse is not valid for this decomposer",
-                        ));
+                        ))
                     }
                 }
             }
