@@ -284,7 +284,9 @@ class TwoQubitControlledUDecomposer:
                 rxx_equivalent_gate._standard_gate
             )
         else:
-            raise QiskitError("Must be initialized with a standard gate object")
+            self._inner_decomposition = two_qubit_decompose.TwoQubitControlledUDecomposer(
+                rxx_equivalent_gate
+            )
         self.rxx_equivalent_gate = rxx_equivalent_gate
         self.scale = self._inner_decomposition.scale
 

@@ -1440,6 +1440,24 @@ class TestTwoQubitControlledUDecompose(CheckDecompositions):
             "Equivalent gate needs to take exactly 1 angle parameter.", exc.exception.message
         )
 
+    @combine(seed=range(10), name="seed_{seed}")
+    def test_correct_unitary_custom_gate(self, seed):
+        """Test synthesis with a custom controlled u equivalent gate."""
+        unitary = random_unitary(4, seed=seed)
+
+        class CustomXXGate(RXXGate):
+            """Custom RXXGate subclass that's not a standard gate"""
+            _standard_gate = None
+
+            def __init__(self, theta, label=None):
+                super().__init__(theta, label)
+                self.name = "MyCustomXXGate"
+
+        decomposer = TwoQubitControlledUDecomposer(CustomXXGate)
+        circ = decomposer(unitary)
+        self.assertEqual(Operator(unitary), Operator(circ))
+
+
 
 class TestDecomposeProductRaises(QiskitTestCase):
     """Check that exceptions are raised when 2q matrix is not a product of 1q unitaries"""
