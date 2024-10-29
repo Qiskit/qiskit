@@ -56,7 +56,8 @@ class TestScheduledCircuit(QiskitTestCase):
         qc.h(0)  # 195[dt]
         qc.h(1)  # 210[dt]
 
-        backend = GenericBackendV2(2, calibrate_instructions=True, seed=42)
+        with self.assertWarns(DeprecationWarning):
+            backend = GenericBackendV2(2, calibrate_instructions=True, seed=42)
 
         sc = transpile(qc, backend, scheduling_method="alap", layout_method="trivial")
         self.assertEqual(sc.duration, 451095)
@@ -355,12 +356,13 @@ class TestScheduledCircuit(QiskitTestCase):
         """Test that circuit duration unit conversion is applied only when necessary.
         Tests fix for bug reported in PR #11782."""
 
-        backend = GenericBackendV2(num_qubits=3, calibrate_instructions=True, seed=42)
-        schedule_config = ScheduleConfig(
-            inst_map=backend.target.instruction_schedule_map(),
-            meas_map=backend.meas_map,
-            dt=backend.dt,
-        )
+        with self.assertWarns(DeprecationWarning):
+            backend = GenericBackendV2(num_qubits=3, calibrate_instructions=True, seed=42)
+            schedule_config = ScheduleConfig(
+                inst_map=backend.target.instruction_schedule_map(),
+                meas_map=backend.meas_map,
+                dt=backend.dt,
+            )
 
         circ = QuantumCircuit(2)
         circ.cx(0, 1)

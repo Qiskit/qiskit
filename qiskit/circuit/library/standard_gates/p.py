@@ -33,7 +33,7 @@ class PhaseGate(Gate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌──────┐
         q_0: ┤ P(λ) ├
@@ -171,7 +171,7 @@ class CPhaseGate(ControlledGate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
 
         q_0: ─■──
@@ -318,7 +318,7 @@ class MCPhaseGate(ControlledGate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
             q_0: ───■────
                     │
@@ -431,3 +431,11 @@ class MCPhaseGate(ControlledGate):
     def inverse(self, annotated: bool = False):
         r"""Return inverted MCPhase gate (:math:`MCPhase(\lambda)^{\dagger} = MCPhase(-\lambda)`)"""
         return MCPhaseGate(-self.params[0], self.num_ctrl_qubits)
+
+    def __eq__(self, other):
+        return (
+            isinstance(other, MCPhaseGate)
+            and self.num_ctrl_qubits == other.num_ctrl_qubits
+            and self.ctrl_state == other.ctrl_state
+            and self._compare_parameters(other)
+        )
