@@ -514,7 +514,6 @@ fn apply_translation(
         if qargs_with_non_global_operation.contains_key(&node_qarg_as_physical)
             && qargs_with_non_global_operation[&node_qarg_as_physical].contains(node_obj.op.name())
         {
-            // out_dag.push_back(py, node_obj)?;
             out_dag.apply_operation_back(
                 py,
                 node_obj.op.clone(),
