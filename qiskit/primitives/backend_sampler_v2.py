@@ -188,6 +188,7 @@ class BackendSamplerV2(BaseSamplerV2):
         results, _ = _run_circuits(
             flatten_circuits,
             self._backend,
+            clear_metadata=False,
             memory=True,
             shots=shots,
             seed_simulator=self._options.seed_simulator,
