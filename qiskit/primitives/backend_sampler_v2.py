@@ -54,19 +54,9 @@ class Options:
     Default: None.
     """
 
-    noise_model: Any | None = None
-    """A ``NoiseModel`` to pass to pass through a simulator backend (like ones from qiskit-aer)
-    Default: None (option not passed to backend's ``run`` method)
-    """
-
-    meas_level: int | None = None
-    """Measurement level for the backend to return.
-    Default: None (option not passed to backend's ``run`` method)
-    """
-
-    meas_return: str | None = None
-    """Measurement return format for the backend to return.
-    Default: None (option not passed to backend's ``run`` method)
+    run_options: dict[str, Any] | None = None
+    """A dictionary of options to pass to the backend's ``run()`` method.
+    Default: None (no option passed to backend's ``run`` method)
     """
 
 
@@ -115,6 +105,9 @@ class BackendSamplerV2(BaseSamplerV2):
 
     * ``seed_simulator``: The seed to use in the simulator. If None, a random seed will be used.
       Default: None.
+
+    * ``run_options``: A dictionary of options to pass through to the ``run()``
+      method of the wrapped :class:`~.BackendV2` instance.
 
     .. note::
 
@@ -190,13 +183,7 @@ class BackendSamplerV2(BaseSamplerV2):
         for circuits in bound_circuits:
             flatten_circuits.extend(np.ravel(circuits).tolist())
 
-        # Put options in dict to unpacked below so that unset options are left
-        # out rather than being passed as None
-        run_opts = {
-            k: getattr(self._options, k)
-            for k in ("noise_model", "meas_return", "meas_level")
-            if getattr(self._options, k) is not None
-        }
+        run_opts = self._options.run_options or {}
         # run circuits
         results, _ = _run_circuits(
             flatten_circuits,
@@ -211,6 +198,7 @@ class BackendSamplerV2(BaseSamplerV2):
         # pack memory to an ndarray of uint8
         results = []
         start = 0
+        meas_level = None if self._options.run_options is None else self._options.run_options.get("meas_level")
         for pub, bound in zip(pubs, bound_circuits):
             meas_info, max_num_bytes = _analyze_circuit(pub.circuit)
             end = start + bound.size
@@ -222,7 +210,7 @@ class BackendSamplerV2(BaseSamplerV2):
                     meas_info,
                     max_num_bytes,
                     pub.circuit.metadata,
-                    meas_level=self._options.meas_level,
+                    meas_level,
                 )
             )
             start = end
@@ -237,7 +225,7 @@ class BackendSamplerV2(BaseSamplerV2):
         meas_info: list[_MeasureInfo],
         max_num_bytes: int,
         circuit_metadata: dict,
-        meas_level: int | None = None,
+        meas_level: int | None,
     ) -> SamplerPubResult:
         """Converts the memory data into a sampler pub result
 
