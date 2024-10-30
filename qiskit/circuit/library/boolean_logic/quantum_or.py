@@ -190,7 +190,7 @@ class OrGate(Gate):
                 is self-inverse.
 
         Returns:
-            AndGate: inverse gate (self-inverse).
+            OrGate: inverse gate (self-inverse).
         """
         return OrGate(self.num_variable_qubits, self.flags)
 
