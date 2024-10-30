@@ -68,12 +68,15 @@ class TestIQPLibrary(QiskitTestCase):
     def test_random_iqp(self):
         """Test generating a random IQP circuit."""
 
-        circuit = random_iqp(num_qubits=4)
+        circuit = random_iqp(num_qubits=4, seed=426)
         self.assertEqual(circuit.num_qubits, 4)
 
         ops = circuit.count_ops()
         allowed = {"p", "h", "cp"}
-        self.assertTrue(set(ops.keys()).issubset(allowed))
+
+        # we pick a seed where neither the diagonal, nor the off-diagonal is completely 0,
+        # therefore each gate is expected to be present
+        self.assertEqual(set(ops.keys()), allowed)
 
     def test_random_iqp_seed(self):
         """Test setting the seed."""

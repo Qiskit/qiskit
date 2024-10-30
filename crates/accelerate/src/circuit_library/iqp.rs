@@ -85,6 +85,7 @@ fn generate_random_interactions(num_qubits: u32, seed: Option<u64>) -> Array2<i6
 
     let mut mat = Array2::zeros((num_qubits, num_qubits));
     for i in 0..num_qubits {
+        mat[[i, i]] = rng.gen_range(0..8) as i64;
         for j in 0..i {
             mat[[i, j]] = rng.gen_range(0..8) as i64;
             mat[[j, i]] = mat[[i, j]];
