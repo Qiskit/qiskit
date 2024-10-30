@@ -384,13 +384,17 @@ class TestScheduledCircuit(QiskitTestCase):
 
     def test_per_qubit_durations(self):
         """Test target with custom instruction_durations"""
-        target = GenericBackendV2(
-            3,
-            calibrate_instructions=True,
-            coupling_map=[[0, 1], [1, 2]],
-            basis_gates=["cx", "h"],
-            seed=42,
-        ).target
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="argument ``calibrate_instructions`` is deprecated",
+        ):
+            target = GenericBackendV2(
+                3,
+                calibrate_instructions=True,
+                coupling_map=[[0, 1], [1, 2]],
+                basis_gates=["cx", "h"],
+                seed=42,
+            ).target
         target.update_instruction_properties("cx", (0, 1), InstructionProperties(0.00001))
         target.update_instruction_properties("cx", (1, 2), InstructionProperties(0.00001))
         target.update_instruction_properties("h", (0,), InstructionProperties(0.000002))

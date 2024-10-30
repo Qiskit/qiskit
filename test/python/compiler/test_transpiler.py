@@ -1657,13 +1657,17 @@ class TestTranspile(QiskitTestCase):
 
     def test_scheduling_instruction_constraints(self):
         """Test that scheduling-related loose transpile constraints work with target."""
-        target = GenericBackendV2(
-            2,
-            calibrate_instructions=True,
-            coupling_map=[[0, 1]],
-            basis_gates=["cx", "h"],
-            seed=42,
-        ).target
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="argument ``calibrate_instructions`` is deprecated",
+        ):
+            target = GenericBackendV2(
+                2,
+                calibrate_instructions=True,
+                coupling_map=[[0, 1]],
+                basis_gates=["cx", "h"],
+                seed=42,
+            ).target
         qc = QuantumCircuit(2)
         qc.h(0)
         qc.delay(0.000001, 1, "s")
