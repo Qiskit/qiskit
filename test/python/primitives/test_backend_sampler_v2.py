@@ -63,6 +63,7 @@ class Level1BackendV2(GenericBackendV2):
     classical register. For ``meas_return="avg"``, the individual shot results
     are still calculated and then averaged.
     """
+
     level1_sigma = 0.1
 
     def run(self, run_input, **options):
@@ -84,7 +85,9 @@ class Level1BackendV2(GenericBackendV2):
         result_dict = inner_job.result().to_dict()
         for circ, exp_result in zip(run_input, result_dict["results"]):
             num_clbits = sum(cr.size for cr in circ.cregs)
-            bitstrings = [format(int(x, 16), f"0{num_clbits}b") for x in exp_result["data"]["memory"]]
+            bitstrings = [
+                format(int(x, 16), f"0{num_clbits}b") for x in exp_result["data"]["memory"]
+            ]
             new_data = [
                 [
                     [2 * int(d) - 1 + rng.normal(scale=self.level1_sigma), i]
@@ -1016,7 +1019,7 @@ class TestBackendSamplerV2(QiskitTestCase):
             "run_options": {
                 "meas_level": 1,
                 "meas_return": "single",
-            }
+            },
         }
         sampler = BackendSamplerV2(backend=backend, options=options)
         result_single = sampler.run([qc]).result()
@@ -1027,7 +1030,7 @@ class TestBackendSamplerV2(QiskitTestCase):
             "run_options": {
                 "meas_level": 1,
                 "meas_return": "avg",
-            }
+            },
         }
         sampler = BackendSamplerV2(backend=backend, options=options)
         result_avg = sampler.run([qc]).result()

@@ -77,6 +77,7 @@ list of I/Q pairs (list with two floats) for each memory slot if using
 list indexing memory slot.
 """
 
+
 class BackendSamplerV2(BaseSamplerV2):
     """Evaluates bitstrings for provided quantum circuits
 
@@ -199,7 +200,11 @@ class BackendSamplerV2(BaseSamplerV2):
         # pack memory to an ndarray of uint8
         results = []
         start = 0
-        meas_level = None if self._options.run_options is None else self._options.run_options.get("meas_level")
+        meas_level = (
+            None
+            if self._options.run_options is None
+            else self._options.run_options.get("meas_level")
+        )
         for pub, bound in zip(pubs, bound_circuits):
             meas_info, max_num_bytes = _analyze_circuit(pub.circuit)
             end = start + bound.size
