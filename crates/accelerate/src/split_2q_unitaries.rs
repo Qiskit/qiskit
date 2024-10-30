@@ -33,15 +33,18 @@ pub fn split_2q_unitaries(
     for node in nodes {
         if let NodeType::Operation(inst) = &dag.dag()[node] {
             let qubits = dag.get_qargs(inst.qubits).to_vec();
-            let matrix = inst.op.matrix(inst.params_view());
             // We only attempt to split UnitaryGate objects, but this could be extended in future
             // -- however we need to ensure that we can compile the resulting single-qubit unitaries
             // to the supported basis gate set.
             if qubits.len() != 2 || inst.op.name() != "unitary" {
                 continue;
             }
+            let matrix = inst
+                .op
+                .matrix(inst.params_view())
+                .expect("'unitary' gates should always have a matrix form");
             let decomp = TwoQubitWeylDecomposition::new_inner(
-                matrix.unwrap().view(),
+                matrix.view(),
                 Some(requested_fidelity),
                 None,
             )?;
