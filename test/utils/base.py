@@ -176,12 +176,19 @@ class QiskitTestCase(BaseTestCase):
             module="qiskit.providers.fake_provider.fake_backend",
         )
 
+        warnings.filterwarnings(
+            "default",
+            category=DeprecationWarning,
+            message=r".*The property.*condition.*is deprecated.*",
+            module="qiskit_aer",
+        )
+
         # Remove with the condition attribute in 2.0:
         warnings.filterwarnings(
             "ignore",
             category=DeprecationWarning,
             message=r".*The property.*condition.*is deprecated.*",
-            module="qiskit.visualization.circuit",
+            module="qiskit.visualization",
         )
         warnings.filterwarnings(
             "ignore",
@@ -195,6 +202,7 @@ class QiskitTestCase(BaseTestCase):
         ]
         for msg in allow_DeprecationWarning_message:
             warnings.filterwarnings("default", category=DeprecationWarning, message=msg)
+
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
