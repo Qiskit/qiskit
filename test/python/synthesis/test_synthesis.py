@@ -1447,6 +1447,7 @@ class TestTwoQubitControlledUDecompose(CheckDecompositions):
 
         class CustomXXGate(RXXGate):
             """Custom RXXGate subclass that's not a standard gate"""
+
             _standard_gate = None
 
             def __init__(self, theta, label=None):
@@ -1456,7 +1457,6 @@ class TestTwoQubitControlledUDecompose(CheckDecompositions):
         decomposer = TwoQubitControlledUDecomposer(CustomXXGate)
         circ = decomposer(unitary)
         self.assertEqual(Operator(unitary), Operator(circ))
-
 
 
 class TestDecomposeProductRaises(QiskitTestCase):
