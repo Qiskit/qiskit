@@ -1522,14 +1522,18 @@ class TestTranspile(QiskitTestCase):
         qc.delay(500, 1)
         qc.cx(0, 1)
 
-        out = transpile(
-            qc,
-            scheduling_method="alap",
-            basis_gates=["h", "cx"],
-            instruction_durations=[("h", 0, 200), ("cx", [0, 1], 700)],
-            optimization_level=optimization_level,
-            seed_transpiler=42,
-        )
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The `target` parameter should be used instead",
+        ):
+            out = transpile(
+                qc,
+                scheduling_method="alap",
+                basis_gates=["h", "cx"],
+                instruction_durations=[("h", 0, 200), ("cx", [0, 1], 700)],
+                optimization_level=optimization_level,
+                seed_transpiler=42,
+            )
 
         self.assertEqual(out.duration, 1200)
 
@@ -1610,7 +1614,7 @@ class TestTranspile(QiskitTestCase):
                             timing_constraints=timing_constraints,
                         )
 
-    def test_scheduling_instruction_constraints(self):
+    def test_scheduling_instruction_constraints_backend(self):
         """Test that scheduling-related loose transpile constraints
         work with both BackendV1 and BackendV2."""
 
@@ -1638,14 +1642,47 @@ class TestTranspile(QiskitTestCase):
             )
         self.assertEqual(scheduled.duration, 1500)
 
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The `target` parameter should be used instead",
+        ):
+            scheduled = transpile(
+                qc,
+                backend=backend_v2,
+                scheduling_method="alap",
+                instruction_durations=durations,
+                layout_method="trivial",
+            )
+        self.assertEqual(scheduled.duration, 1500)
+
+    def test_scheduling_instruction_constraints(self):
+        """Test that scheduling-related loose transpile constraints work with target."""
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="argument ``calibrate_instructions`` is deprecated",
+        ):
+            target = GenericBackendV2(
+                2,
+                calibrate_instructions=True,
+                coupling_map=[[0, 1]],
+                basis_gates=["cx", "h"],
+                seed=42,
+            ).target
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.delay(0.000001, 1, "s")
+        qc.cx(0, 1)
+
+        # update cx to 2 seconds
+        target.update_instruction_properties("cx", (0, 1), InstructionProperties(0.000001))
+
         scheduled = transpile(
             qc,
-            backend=backend_v2,
+            target=target,
             scheduling_method="alap",
-            instruction_durations=durations,
             layout_method="trivial",
         )
-        self.assertEqual(scheduled.duration, 1500)
+        self.assertEqual(scheduled.duration, 9010)
 
     def test_scheduling_dt_constraints(self):
         """Test that scheduling-related loose transpile constraints
@@ -1675,8 +1712,7 @@ class TestTranspile(QiskitTestCase):
         self.assertEqual(scheduled.duration, original_duration * 2)
 
     def test_backend_props_constraints(self):
-        """Test that loose transpile constraints
-        work with both BackendV1 and BackendV2."""
+        """Test that loose transpile constraints work with both BackendV1 and BackendV2."""
 
         with self.assertWarns(DeprecationWarning):
             backend_v1 = Fake20QV1()
@@ -1733,13 +1769,17 @@ class TestTranspile(QiskitTestCase):
             )
 
         self.assertEqual(result._layout.initial_layout._p2v, vf2_layout)
-        result = transpile(
-            qc,
-            backend=backend_v2,
-            backend_properties=custom_backend_properties,
-            optimization_level=2,
-            seed_transpiler=42,
-        )
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The `target` parameter should be used instead",
+        ):
+            result = transpile(
+                qc,
+                backend=backend_v2,
+                backend_properties=custom_backend_properties,
+                optimization_level=2,
+                seed_transpiler=42,
+            )
 
         self.assertEqual(result._layout.initial_layout._p2v, vf2_layout)
 
@@ -3739,14 +3779,19 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
         qc.cy(20, 28)
         qc.cy(20, 29)
         qc.measure_all()
+
         with self.assertRaises(TranspilerError):
-            transpile(
-                qc,
-                self.backend,
-                layout_method="trivial",
-                routing_method=routing_method,
-                seed_transpiler=42,
-            )
+            with self.assertWarnsRegex(
+                DeprecationWarning,
+                expected_regex="The `target` parameter should be used instead",
+            ):
+                transpile(
+                    qc,
+                    self.backend,
+                    layout_method="trivial",
+                    routing_method=routing_method,
+                    seed_transpiler=42,
+                )
 
     @data("stochastic")
     def test_triple_circuit_invalid_layout_stochastic(self, routing_method):
@@ -3784,15 +3829,14 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
         qc.cy(20, 28)
         qc.cy(20, 29)
         qc.measure_all()
-        with self.assertWarns(DeprecationWarning):
-            with self.assertRaises(TranspilerError):
-                transpile(
-                    qc,
-                    self.backend,
-                    layout_method="trivial",
-                    routing_method=routing_method,
-                    seed_transpiler=42,
-                )
+        with self.assertRaises(TranspilerError):
+            transpile(
+                qc,
+                self.backend,
+                layout_method="trivial",
+                routing_method=routing_method,
+                seed_transpiler=42,
+            )
 
     # Lookahead swap skipped for performance reasons, stochastic moved to new test due to deprecation
     @data("sabre", "basic")
