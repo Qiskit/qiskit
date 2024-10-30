@@ -216,6 +216,7 @@ or of a set of qubit states.
    OrGate
    XOR
    BitwiseXorGate
+   random_bitwise_xor
    InnerProduct
    InnerProductGate
 
@@ -532,6 +533,7 @@ from .boolean_logic import (
     OrGate,
     XOR,
     BitwiseXorGate,
+    random_bitwise_xor,
     InnerProduct,
     InnerProductGate,
 )

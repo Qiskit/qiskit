@@ -31,7 +31,8 @@ class XOR(QuantumCircuit):
 
     @deprecate_func(
         since="1.3",
-        additional_msg="Use qiskit.circuit.library.BitwiseXorGate instead.",
+        additional_msg="Instead, for xor-ing with a specified amount, use BitwiseXorGate,"
+        "and for xor-ing with a random amount, use random_bitwise_xor.",
         pending=True,
     )
     def __init__(
