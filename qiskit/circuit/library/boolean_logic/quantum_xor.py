@@ -134,6 +134,21 @@ class BitwiseXorGate(Gate):
             and self.amount == other.amount
         )
 
+    # pylint: disable=unused-argument
+    def inverse(self, annotated: bool = False):
+        r"""Return inverted BitwiseXorGate gate (itself).
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as this gate
+                is self-inverse.
+
+        Returns:
+            BitwiseXorGate: inverse gate (self-inverse).
+        """
+        return BitwiseXorGate(self.num_qubits, self.amount)
+
 
 def random_bitwise_xor(num_qubits: int, seed: int) -> BitwiseXorGate:
     """

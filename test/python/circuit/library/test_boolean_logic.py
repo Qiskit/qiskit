@@ -94,6 +94,21 @@ class TestBooleanLogicLibrary(QiskitTestCase):
         xor_circuit = XOR(num_qubits, amount)
         self.assertEqual(Operator(xor_gate), Operator(xor_circuit))
 
+    def test_xor_eq(self):
+        """Test BitwiseXorGate's equality method."""
+        xor1 = BitwiseXorGate(num_qubits=5, amount=10)
+        xor2 = BitwiseXorGate(num_qubits=5, amount=10)
+        xor3 = BitwiseXorGate(num_qubits=5, amount=11)
+        self.assertEqual(xor1, xor2)
+        self.assertNotEqual(xor1, xor3)
+
+    def test_xor_inverse(self):
+        """Test correctness of the BitwiseXorGate's inverse."""
+        xor_gate = BitwiseXorGate(num_qubits=5, amount=10)
+        xor_gate_inverse = xor_gate.inverse()
+        self.assertEqual(xor_gate, xor_gate_inverse)
+        self.assertEqual(Operator(xor_gate), Operator(xor_gate_inverse).adjoint())
+
     def test_inner_product(self):
         """Test inner product circuit.
 

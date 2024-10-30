@@ -150,3 +150,6 @@ class InnerProductGate(Gate):
             circuit.cz(qr_a[i], qr_b[i])
 
         self.definition = circuit
+
+    def __eq__(self, other):
+        return isinstance(other, InnerProductGate) and self.num_qubits == other.num_qubits
