@@ -1284,7 +1284,10 @@ class TestGeneratePresetPassManagers(QiskitTestCase):
     @data(0, 1, 2, 3)
     def test_with_backend(self, optimization_level):
         """Test a passmanager is constructed when only a backend and optimization level."""
-        with self.assertWarns(DeprecationWarning):
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex=r"qiskit\.providers\.models\.backendconfiguration\.GateConfig`",
+        ):
             backend = Fake20QV1()
         with self.assertWarnsRegex(
             DeprecationWarning,
@@ -1316,7 +1319,10 @@ class TestGeneratePresetPassManagers(QiskitTestCase):
     def test_with_no_backend(self, optimization_level):
         """Test a passmanager is constructed with no backend and optimization level."""
         target = GenericBackendV2(num_qubits=7, coupling_map=LAGOS_CMAP, seed=42)
-        with self.assertWarns(DeprecationWarning):
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The `target` parameter should be used instead",
+        ):
             pm = generate_preset_pass_manager(
                 optimization_level,
                 coupling_map=target.coupling_map,
