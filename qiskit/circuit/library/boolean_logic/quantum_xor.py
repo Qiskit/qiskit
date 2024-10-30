@@ -102,15 +102,13 @@ class BitwiseXorGate(Gate):
         num_qubits: int,
         amount: int,
     ) -> None:
-        """Return a circuit implementing bitwise xor.
-
+        """
         Args:
             num_qubits: the width of circuit.
             amount: the xor amount in decimal form.
 
         Raises:
             CircuitError: if the xor bitstring exceeds available qubits.
-
         """
         if len(bin(amount)[2:]) > num_qubits:
             raise CircuitError("Bits in 'amount' exceed circuit width")
@@ -119,7 +117,6 @@ class BitwiseXorGate(Gate):
         self.amount = amount
 
     def _define(self):
-        """Create definition circuit."""
         circuit = QuantumCircuit(self.num_qubits, name="xor")
         amount = self.amount
         for i in range(self.num_qubits):

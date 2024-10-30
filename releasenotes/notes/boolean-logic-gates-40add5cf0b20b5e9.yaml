@@ -2,7 +2,7 @@
 features_circuits:
   - |
     Quantum circuits in :mod:`qiskit.circuit.library.boolean_logic` now have equivalent
-    representations as Gates:
+    representations as :class:`.Gate` objects::
 
     * :class:`~qiskit.circuit.library.AndGate`,
       representing :class:`~qiskit.circuit.library.AND`,

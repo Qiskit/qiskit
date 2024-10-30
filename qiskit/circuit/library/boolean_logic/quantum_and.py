@@ -144,8 +144,7 @@ class AndGate(Gate):
         num_variable_qubits: int,
         flags: list[int] | None = None,
     ) -> None:
-        """Create a new AndGate.
-
+        """
         Args:
             num_variable_qubits: The qubits of which the AND is computed. The result will be written
                 into an additional result qubit.
@@ -156,8 +155,6 @@ class AndGate(Gate):
         self.flags = flags
 
     def _define(self):
-        """Create definition circuit."""
-
         # add registers
         qr_variable = QuantumRegister(self.num_variable_qubits, name="variable")
         qr_result = QuantumRegister(1, name="result")
@@ -181,7 +178,7 @@ class AndGate(Gate):
         self.definition = circuit
 
     # pylint: disable=unused-argument
-    def _inverse(self, annotated: bool = False):
+    def inverse(self, annotated: bool = False):
         r"""Return inverted AND gate (itself).
 
         Args:

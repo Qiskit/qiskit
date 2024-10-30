@@ -134,18 +134,16 @@ class InnerProductGate(Gate):
         self,
         num_qubits: int,
     ) -> None:
-        """Return a 2n-qubit gate representing the inner product of 2 n-qubit registers.
-
+        """
         Args:
             num_qubits: width of top and bottom registers (half total number of qubits).
         """
         super().__init__("inner_product", 2 * num_qubits, [])
 
     def _define(self):
-        """Create definition circuit."""
         num_qubits = self.num_qubits // 2
-        qr_a = QuantumRegister(num_qubits)
-        qr_b = QuantumRegister(num_qubits)
+        qr_a = QuantumRegister(num_qubits, name="x")
+        qr_b = QuantumRegister(num_qubits, name="y")
 
         circuit = QuantumCircuit(qr_a, qr_b, name="inner_product")
         for i in range(num_qubits):
