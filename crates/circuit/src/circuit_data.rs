@@ -171,7 +171,7 @@ impl CircuitData {
 
     /// A constructor for CircuitData from an iterator of PackedInstruction objects
     ///
-    /// This is tpically useful when iterating over a CircuitData or DAGCircuit
+    /// This is typically useful when iterating over a CircuitData or DAGCircuit
     /// to construct a new CircuitData from the iterator of PackedInstructions. As
     /// such it requires that you have `BitData` and `Interner` objects to run. If
     /// you just wish to build a circuit data from an iterator of instructions
@@ -190,7 +190,7 @@ impl CircuitData {
     ///     contain all the Interned<Clbit> indices stored in the
     ///     PackedInstructions from `instructions`
     /// * Instructions: An iterator with items of type: `PyResult<PackedInstruction>`
-    ///     that contais the instructions to insert in iterator order to the new
+    ///     that contains the instructions to insert in iterator order to the new
     ///     CircuitData. This returns a `PyResult` to facilitate the case where
     ///     you need to make a python copy (such as with `PackedOperation::py_deepcopy()`)
     ///     of the operation while iterating for constructing the new `CircuitData`. An
@@ -1069,6 +1069,16 @@ impl CircuitData {
         if slf.len()? != other.len()? {
             return Ok(false);
         }
+
+        if let Ok(other_dc) = other.downcast::<CircuitData>() {
+            if !slf
+                .getattr("global_phase")?
+                .eq(other_dc.getattr("global_phase")?)?
+            {
+                return Ok(false);
+            }
+        }
+
         // Implemented using generic iterators on both sides
         // for simplicity.
         let mut ours_itr = slf.iter()?;
