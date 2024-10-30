@@ -17,7 +17,7 @@ from __future__ import annotations
 import warnings
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import Any, Iterable
+from typing import Any, Iterable, Union
 
 import numpy as np
 from numpy.typing import NDArray
@@ -77,6 +77,15 @@ class _MeasureInfo:
     num_bytes: int
     start: int
 
+
+ResultMemory = Union[list[str], list[list[float]], list[list[list[float]]]]
+"""Type alias for possible level 2 and level 1 result memory formats. For level
+2, the format is a list of bit strings. For level 1, format can be either a
+list of I/Q pairs (list with two floats) for each memory slot if using
+``meas_return=avg`` or a list of of lists of I/Q pairs if using
+``meas_return=single`` with the outer list indexing shot number and the inner
+list indexing memory slot.
+"""
 
 class BackendSamplerV2(BaseSamplerV2):
     """Evaluates bitstrings for provided quantum circuits
@@ -222,7 +231,7 @@ class BackendSamplerV2(BaseSamplerV2):
 
     def _postprocess_pub(
         self,
-        result_memory: list[list[str]],
+        result_memory: list[ResultMemory],
         shots: int,
         shape: tuple[int, ...],
         meas_info: list[_MeasureInfo],
@@ -288,7 +297,7 @@ def _analyze_circuit(circuit: QuantumCircuit) -> tuple[list[_MeasureInfo], int]:
     return meas_info, _min_num_bytes(max_num_bits)
 
 
-def _prepare_memory(results: list[Result]) -> list[list[str]]:
+def _prepare_memory(results: list[Result]) -> list[ResultMemory]:
     """Joins splitted results if exceeding max_experiments"""
     lst = []
     for res in results:
