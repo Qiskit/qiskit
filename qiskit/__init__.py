@@ -79,12 +79,14 @@ sys.modules["qiskit._accelerate.remove_diagonal_gates_before_measure"] = (
 sys.modules["qiskit._accelerate.results"] = _accelerate.results
 sys.modules["qiskit._accelerate.sabre"] = _accelerate.sabre
 sys.modules["qiskit._accelerate.sampled_exp_val"] = _accelerate.sampled_exp_val
+sys.modules["qiskit._accelerate.sparse_observable"] = _accelerate.sparse_observable
 sys.modules["qiskit._accelerate.sparse_pauli_op"] = _accelerate.sparse_pauli_op
 sys.modules["qiskit._accelerate.star_prerouting"] = _accelerate.star_prerouting
 sys.modules["qiskit._accelerate.stochastic_swap"] = _accelerate.stochastic_swap
 sys.modules["qiskit._accelerate.elide_permutations"] = _accelerate.elide_permutations
 sys.modules["qiskit._accelerate.target"] = _accelerate.target
 sys.modules["qiskit._accelerate.two_qubit_decompose"] = _accelerate.two_qubit_decompose
+sys.modules["qiskit._accelerate.unitary_synthesis"] = _accelerate.unitary_synthesis
 sys.modules["qiskit._accelerate.vf2_layout"] = _accelerate.vf2_layout
 sys.modules["qiskit._accelerate.synthesis.permutation"] = _accelerate.synthesis.permutation
 sys.modules["qiskit._accelerate.synthesis.linear"] = _accelerate.synthesis.linear
@@ -105,6 +107,7 @@ sys.modules["qiskit._accelerate.gate_direction"] = _accelerate.gate_direction
 sys.modules["qiskit._accelerate.inverse_cancellation"] = _accelerate.inverse_cancellation
 sys.modules["qiskit._accelerate.check_map"] = _accelerate.check_map
 sys.modules["qiskit._accelerate.filter_op_nodes"] = _accelerate.filter_op_nodes
+sys.modules["qiskit._accelerate.remove_identity_equiv"] = _accelerate.remove_identity_equiv
 
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
 

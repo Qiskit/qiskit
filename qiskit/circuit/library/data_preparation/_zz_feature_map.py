@@ -23,7 +23,7 @@ class ZZFeatureMap(PauliFeatureMap):
 
     For 3 qubits and 1 repetition and linear entanglement the circuit is represented by:
 
-    .. parsed-literal::
+    .. code-block:: text
 
         ┌───┐┌────────────────┐
         ┤ H ├┤ P(2.0*φ(x[0])) ├──■───────────────────────────■───────────────────────────────────
@@ -44,7 +44,8 @@ class ZZFeatureMap(PauliFeatureMap):
          prep = ZZFeatureMap(2, reps=1)
          print(prep.decompose())
 
-    .. parsed-literal::
+    .. code-block:: text
+
               ┌───┐┌─────────────┐
          q_0: ┤ H ├┤ P(2.0*x[0]) ├──■──────────────────────────────────────■──
               ├───┤├─────────────┤┌─┴─┐┌────────────────────────────────┐┌─┴─┐
@@ -57,7 +58,7 @@ class ZZFeatureMap(PauliFeatureMap):
          classifier = ZZFeatureMap(3).compose(EfficientSU2(3))
          classifier.num_parameters
 
-    .. parsed-literal::
+    .. code-block:: text
 
          27
 
@@ -65,7 +66,7 @@ class ZZFeatureMap(PauliFeatureMap):
 
          classifier.parameters  # 'x' for the data preparation, 'θ' for the SU2 parameters
 
-    .. parsed-literal::
+    .. code-block:: text
 
          ParameterView([
              ParameterVectorElement(x[0]), ParameterVectorElement(x[1]),
@@ -88,7 +89,7 @@ class ZZFeatureMap(PauliFeatureMap):
 
          classifier.count_ops()
 
-    .. parsed-literal::
+    .. code-block:: text
 
         OrderedDict([('ZZFeatureMap', 1), ('EfficientSU2', 1)])
 
