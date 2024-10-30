@@ -423,7 +423,7 @@ impl CommutationChecker {
             first_qargs
                 .iter()
                 .enumerate()
-                .map(|(i, q)| (q, Qubit(i as u32))),
+                .map(|(i, q)| (q, Qubit::new(i))),
         );
         let mut num_qubits = first_qargs.len() as u32;
         for q in second_qargs {
@@ -653,7 +653,7 @@ fn get_relative_placement(
 ) -> SmallVec<[Option<Qubit>; 2]> {
     let mut qubits_g2: HashMap<&Qubit, Qubit> = HashMap::with_capacity(second_qargs.len());
     second_qargs.iter().enumerate().for_each(|(i_g1, q_g1)| {
-        qubits_g2.insert_unique_unchecked(q_g1, Qubit(i_g1 as u32));
+        qubits_g2.insert_unique_unchecked(q_g1, Qubit::new(i_g1));
     });
 
     first_qargs
@@ -692,6 +692,7 @@ impl CommutationLibrary {
 #[pymethods]
 impl CommutationLibrary {
     #[new]
+    #[pyo3(signature=(py_any=None))]
     fn new(py_any: Option<Bound<PyAny>>) -> Self {
         match py_any {
             Some(pyob) => CommutationLibrary {

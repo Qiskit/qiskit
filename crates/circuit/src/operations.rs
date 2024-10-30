@@ -27,7 +27,7 @@ use smallvec::{smallvec, SmallVec};
 use numpy::IntoPyArray;
 use numpy::PyReadonlyArray2;
 use pyo3::prelude::*;
-use pyo3::types::{IntoPyDict, PyFloat, PyIterator, PyTuple};
+use pyo3::types::{IntoPyDict, PyFloat, PyIterator, PyList, PyTuple};
 use pyo3::{intern, IntoPy, Python};
 
 #[derive(Clone, Debug)]
@@ -278,7 +278,7 @@ impl<'a> Operation for OperationRef<'a> {
 
 #[derive(Clone, Debug, Copy, Eq, PartialEq, Hash)]
 #[repr(u8)]
-#[pyclass(module = "qiskit._accelerate.circuit")]
+#[pyclass(module = "qiskit._accelerate.circuit", eq, eq_int)]
 pub enum StandardGate {
     GlobalPhaseGate = 0,
     HGate = 1,
@@ -706,6 +706,11 @@ impl StandardGate {
     }
 
     #[getter]
+    pub fn get_num_ctrl_qubits(&self) -> u32 {
+        self.num_ctrl_qubits()
+    }
+
+    #[getter]
     pub fn get_num_clbits(&self) -> u32 {
         self.num_clbits()
     }
@@ -720,12 +725,22 @@ impl StandardGate {
         self.name()
     }
 
-    pub fn __eq__(&self, other: &Bound<PyAny>) -> Py<PyAny> {
-        let py = other.py();
-        let Ok(other) = other.extract::<Self>() else {
-            return py.NotImplemented();
-        };
-        (*self == other).into_py(py)
+    #[getter]
+    pub fn is_controlled_gate(&self) -> bool {
+        self.num_ctrl_qubits() > 0
+    }
+
+    #[getter]
+    pub fn get_gate_class(&self, py: Python) -> PyResult<Py<PyAny>> {
+        get_std_gate_class(py, *self)
+    }
+
+    #[staticmethod]
+    pub fn all_gates(py: Python) -> Bound<PyList> {
+        PyList::new_bound(
+            py,
+            (0..STANDARD_GATE_SIZE as u8).map(::bytemuck::checked::cast::<_, Self>),
+        )
     }
 
     pub fn __hash__(&self) -> isize {

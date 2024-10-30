@@ -424,6 +424,7 @@ impl CircuitInstruction {
     ///
     /// Returns:
     ///     CircuitInstruction: A new instance with the given fields replaced.
+    #[pyo3(signature=(operation=None, qubits=None, clbits=None, params=None))]
     pub fn replace(
         &self,
         py: Python,
