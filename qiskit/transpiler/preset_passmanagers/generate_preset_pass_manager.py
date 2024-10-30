@@ -29,6 +29,7 @@ from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.target import Target, target_to_backend_properties
 from qiskit.transpiler.timing_constraints import TimingConstraints
+from qiskit.utils.deprecate_pulse import deprecate_pulse_arg
 
 from .level0 import level_0_pass_manager
 from .level1 import level_1_pass_manager
@@ -36,6 +37,7 @@ from .level2 import level_2_pass_manager
 from .level3 import level_3_pass_manager
 
 
+@deprecate_pulse_arg("inst_map", predicate=lambda inst_map: inst_map is not None)
 def generate_preset_pass_manager(
     optimization_level=2,
     backend=None,
@@ -122,7 +124,7 @@ def generate_preset_pass_manager(
             and ``backend_properties``.
         basis_gates (list): List of basis gate names to unroll to
             (e.g: ``['u1', 'u2', 'u3', 'cx']``).
-        inst_map (InstructionScheduleMap): Mapping object that maps gates to schedules.
+        inst_map (InstructionScheduleMap): DEPRECATED. Mapping object that maps gates to schedules.
             If any user defined calibration is found in the map and this is used in a
             circuit, transpiler attaches the custom gate definition to the circuit.
             This enables one to flexibly override the low-level instruction
@@ -339,7 +341,7 @@ def generate_preset_pass_manager(
         if instruction_durations is None:
             instruction_durations = target.durations()
         if inst_map is None:
-            inst_map = target.instruction_schedule_map()
+            inst_map = target._get_instruction_schedule_map()
         if timing_constraints is None:
             timing_constraints = target.timing_constraints()
         if backend_properties is None:
@@ -452,7 +454,7 @@ def _parse_basis_gates(basis_gates, backend, inst_map, skip_target):
 def _parse_inst_map(inst_map, backend):
     # try getting inst_map from user, else backend
     if inst_map is None and backend is not None:
-        inst_map = backend.target.instruction_schedule_map()
+        inst_map = backend.target._get_instruction_schedule_map()
     return inst_map
 
 
