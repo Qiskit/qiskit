@@ -23,8 +23,10 @@ use hashbrown::HashMap;
 use ndarray::{s, ArrayView1, ArrayView2, Axis};
 use num_complex::Complex64;
 use num_traits::Zero;
-use qiskit_circuit::util::{c64, C_ZERO};
 use rayon::prelude::*;
+use thiserror::Error;
+
+use qiskit_circuit::util::{c64, C_ZERO};
 
 use crate::rayon_ext::*;
 
@@ -316,6 +318,7 @@ impl MatrixCompressedPaulis {
     }
 }
 
+#[derive(Clone, Debug)]
 struct DecomposeOut {
     z: Vec<bool>,
     x: Vec<bool>,
@@ -324,6 +327,19 @@ struct DecomposeOut {
     scale: f64,
     tol: f64,
     num_qubits: usize,
+}
+
+#[derive(Error, Debug)]
+enum DecomposeError {
+    #[error("operators must have two dimensions, not {0}")]
+    BadDimension(usize),
+    #[error("operators must be square with a power-of-two side length, not {0:?}")]
+    BadShape([usize; 2]),
+}
+impl From<DecomposeError> for PyErr {
+    fn from(value: DecomposeError) -> PyErr {
+        PyValueError::new_err(value.to_string())
+    }
 }
 
 /// Decompose a dense complex operator into the symplectic Pauli representation in the
@@ -385,28 +401,61 @@ pub fn decompose_dense(
     operator: PyReadonlyArray2<Complex64>,
     tolerance: f64,
 ) -> PyResult<ZXPaulis> {
-    let num_qubits = operator.shape()[0].ilog2() as usize;
-    let side = 1 << num_qubits;
-    if operator.shape() != [side, side] {
-        return Err(PyValueError::new_err(format!(
-            "bad input shape for {} qubits: {:?}",
-            num_qubits,
-            operator.shape()
-        )));
-    }
-    let (stack, mut out_list, mut scratch) = decompose_first_level(operator.as_array(), num_qubits);
-    decompose_middle_levels(stack, &mut out_list, &mut scratch, num_qubits);
-    let out = decompose_last_level(&mut out_list, &scratch, num_qubits, tolerance)?;
+    let array_view = operator.as_array();
+    let out = py.allow_threads(|| decompose_dense_inner(array_view, tolerance))?;
     Ok(ZXPaulis {
         z: PyArray1::from_vec_bound(py, out.z)
-            .reshape([out.phases.len(), num_qubits])?
+            .reshape([out.phases.len(), out.num_qubits])?
             .into(),
         x: PyArray1::from_vec_bound(py, out.x)
-            .reshape([out.phases.len(), num_qubits])?
+            .reshape([out.phases.len(), out.num_qubits])?
             .into(),
         phases: PyArray1::from_vec_bound(py, out.phases).into(),
         coeffs: PyArray1::from_vec_bound(py, out.coeffs).into(),
     })
+}
+
+/// Rust-only inner component of the `SparsePauliOp` decomposition.
+///
+/// See the top-level documentation of [decompose_dense] for more information on the internal
+/// algorithm at play.
+fn decompose_dense_inner(
+    operator: ArrayView2<Complex64>,
+    tolerance: f64,
+) -> Result<DecomposeOut, DecomposeError> {
+    let op_shape = match operator.shape() {
+        [a, b] => [*a, *b],
+        shape => return Err(DecomposeError::BadDimension(shape.len())),
+    };
+    if op_shape[0].is_zero() {
+        return Err(DecomposeError::BadShape(op_shape));
+    }
+    let num_qubits = op_shape[0].ilog2() as usize;
+    let side = 1 << num_qubits;
+    if op_shape != [side, side] {
+        return Err(DecomposeError::BadShape(op_shape));
+    }
+    if num_qubits.is_zero() {
+        // We have to special-case the zero-qubit operator because our `decompose_last_level` still
+        // needs to "consume" a qubit.
+        return Ok(DecomposeOut {
+            z: vec![],
+            x: vec![],
+            phases: vec![],
+            coeffs: vec![operator[[0, 0]]],
+            scale: 1.0,
+            tol: tolerance,
+            num_qubits: 0,
+        });
+    }
+    let (stack, mut out_list, mut scratch) = decompose_first_level(operator, num_qubits);
+    decompose_middle_levels(stack, &mut out_list, &mut scratch, num_qubits);
+    Ok(decompose_last_level(
+        &mut out_list,
+        &scratch,
+        num_qubits,
+        tolerance,
+    ))
 }
 
 /// Apply the matrix-addition decomposition at the first level.
@@ -417,6 +466,10 @@ pub fn decompose_dense(
 /// of memory that we can 100% guarantee is contiguous, so we can elide all the stride checking.
 /// We split this out so we can do the first decomposition at the same time as scanning over the
 /// operator to copy it.
+///
+/// # Panics
+///
+/// If the number of qubits in the operator is zero.
 fn decompose_first_level(
     in_op: ArrayView2<Complex64>,
     num_qubits: usize,
@@ -426,9 +479,7 @@ fn decompose_first_level(
     let mut out_list = Vec::<PauliLocation>::new();
     let mut scratch = Vec::<Complex64>::with_capacity(side * side);
     match num_qubits {
-        // In the zero-qubit case, we don't need to write out any data and can just leave the
-        // scratch-space empty because nothing will read it.
-        0 => {}
+        0 => panic!("number of qubits must be greater than zero"),
         1 => {
             // If we've only got one qubit, we just want to copy the data over in the correct
             // continuity and let the base case of the iteration take care of outputting it.
@@ -625,9 +676,9 @@ fn decompose_last_level(
     scratch: &[Complex64],
     num_qubits: usize,
     tolerance: f64,
-) -> PyResult<DecomposeOut> {
+) -> DecomposeOut {
     let side = 1 << num_qubits;
-    let scale = 0.5f64.powi(num_qubits.try_into()?);
+    let scale = 0.5f64.powi(num_qubits as i32);
     // Pessimistically allocate assuming that there will be no zero terms in the out list.  We
     // don't really pay much cost if we overallocate, but underallocating means that all four
     // outputs have to copy their data across to a new allocation.
@@ -668,7 +719,7 @@ fn decompose_last_level(
         out.phases.shrink_to_fit();
         out.coeffs.shrink_to_fit();
     }
-    Ok(out)
+    out
 }
 
 // This generates lookup tables of the form
@@ -1206,11 +1257,13 @@ pub fn sparse_pauli_op(m: &Bound<PyModule>) -> PyResult<()> {
 
 #[cfg(test)]
 mod tests {
+    use ndarray::{aview2, Array1};
+
     use super::*;
     use crate::test::*;
 
-    // The purpose of these tests is more about exercising the `unsafe` code; we test for full
-    // correctness from Python space.
+    // The purpose of these tests is more about exercising the `unsafe` code under Miri; we test for
+    // full numerical correctness from Python space.
 
     fn example_paulis() -> MatrixCompressedPaulis {
         MatrixCompressedPaulis {
@@ -1226,6 +1279,166 @@ mod tests {
                 c64(-0.375, 0.0625),
                 c64(-0.5, -0.25),
             ],
+        }
+    }
+
+    /// Helper struct for the decomposition testing.  This is a subset of the `DecomposeOut`
+    /// struct, skipping the unnecessary algorithm-state components of it.
+    ///
+    /// If we add a more Rust-friendly interface to `SparsePauliOp` in the future, hopefully this
+    /// can be removed.
+    #[derive(Clone, PartialEq, Debug)]
+    struct DecomposeMinimal {
+        z: Vec<bool>,
+        x: Vec<bool>,
+        phases: Vec<u8>,
+        coeffs: Vec<Complex64>,
+        num_qubits: usize,
+    }
+    impl From<DecomposeOut> for DecomposeMinimal {
+        fn from(value: DecomposeOut) -> Self {
+            Self {
+                z: value.z,
+                x: value.x,
+                phases: value.phases,
+                coeffs: value.coeffs,
+                num_qubits: value.num_qubits,
+            }
+        }
+    }
+    impl From<MatrixCompressedPaulis> for DecomposeMinimal {
+        fn from(value: MatrixCompressedPaulis) -> Self {
+            let phases = value
+                .z_like
+                .iter()
+                .zip(value.x_like.iter())
+                .map(|(z, x)| ((z & x).count_ones() % 4) as u8)
+                .collect::<Vec<_>>();
+            let coeffs = value
+                .coeffs
+                .iter()
+                .zip(phases.iter())
+                .map(|(c, phase)| match phase {
+                    0 => *c,
+                    1 => Complex64::new(-c.im, c.re),
+                    2 => Complex64::new(-c.re, -c.im),
+                    3 => Complex64::new(c.im, -c.re),
+                    _ => panic!("phase should only in [0, 4)"),
+                })
+                .collect();
+            let z = value
+                .z_like
+                .iter()
+                .flat_map(|digit| (0..value.num_qubits).map(move |i| (digit & (1 << i)) != 0))
+                .collect();
+            let x = value
+                .x_like
+                .iter()
+                .flat_map(|digit| (0..value.num_qubits).map(move |i| (digit & (1 << i)) != 0))
+                .collect();
+            Self {
+                z,
+                x,
+                phases,
+                coeffs,
+                num_qubits: value.num_qubits as usize,
+            }
+        }
+    }
+
+    #[test]
+    fn decompose_empty_operator_fails() {
+        assert!(matches!(
+            decompose_dense_inner(aview2::<Complex64, [_; 0]>(&[]), 0.0),
+            Err(DecomposeError::BadShape(_)),
+        ));
+    }
+
+    #[test]
+    fn decompose_0q_operator() {
+        let coeff = Complex64::new(1.5, -0.5);
+        let arr = [[coeff]];
+        let out = decompose_dense_inner(aview2(&arr), 0.0).unwrap();
+        let expected = DecomposeMinimal {
+            z: vec![],
+            x: vec![],
+            phases: vec![],
+            coeffs: vec![coeff],
+            num_qubits: 0,
+        };
+        assert_eq!(DecomposeMinimal::from(out), expected);
+    }
+
+    #[test]
+    fn decompose_1q_operator() {
+        // Be sure that any sums are given in canonical order of the output, or there will be
+        // spurious test failures.
+        let paulis = [
+            (vec![0], vec![0]),             // I
+            (vec![1], vec![0]),             // X
+            (vec![1], vec![1]),             // Y
+            (vec![0], vec![1]),             // Z
+            (vec![0, 1], vec![0, 0]),       // I, X
+            (vec![0, 1], vec![0, 1]),       // I, Y
+            (vec![0, 0], vec![0, 1]),       // I, Z
+            (vec![1, 1], vec![0, 1]),       // X, Y
+            (vec![1, 0], vec![1, 1]),       // X, Z
+            (vec![1, 0], vec![1, 1]),       // Y, Z
+            (vec![1, 1, 0], vec![0, 1, 1]), // X, Y, Z
+        ];
+        let coeffs = [
+            Complex64::new(1.5, -0.5),
+            Complex64::new(-0.25, 2.0),
+            Complex64::new(0.75, 0.75),
+        ];
+        for (x_like, z_like) in paulis {
+            let paulis = MatrixCompressedPaulis {
+                num_qubits: 1,
+                coeffs: coeffs[0..x_like.len()].to_owned(),
+                x_like,
+                z_like,
+            };
+            let arr = Array1::from_vec(to_matrix_dense_inner(&paulis, false))
+                .into_shape((2, 2))
+                .unwrap();
+            let expected: DecomposeMinimal = paulis.into();
+            let actual: DecomposeMinimal = decompose_dense_inner(arr.view(), 0.0).unwrap().into();
+            assert_eq!(actual, expected);
+        }
+    }
+
+    #[test]
+    fn decompose_3q_operator() {
+        // Be sure that any sums are given in canonical order of the output, or there will be
+        // spurious test failures.
+        let paulis = [
+            (vec![0], vec![0]),             // III
+            (vec![1], vec![0]),             // IIX
+            (vec![2], vec![2]),             // IYI
+            (vec![0], vec![4]),             // ZII
+            (vec![6], vec![6]),             // YYI
+            (vec![7], vec![7]),             // YYY
+            (vec![1, 6, 7], vec![1, 6, 7]), // IIY, YYI, YYY
+            (vec![1, 2, 0], vec![0, 2, 4]), // IIX, IYI, ZII
+        ];
+        let coeffs = [
+            Complex64::new(1.5, -0.5),
+            Complex64::new(-0.25, 2.0),
+            Complex64::new(0.75, 0.75),
+        ];
+        for (x_like, z_like) in paulis {
+            let paulis = MatrixCompressedPaulis {
+                num_qubits: 3,
+                coeffs: coeffs[0..x_like.len()].to_owned(),
+                x_like,
+                z_like,
+            };
+            let arr = Array1::from_vec(to_matrix_dense_inner(&paulis, false))
+                .into_shape((8, 8))
+                .unwrap();
+            let expected: DecomposeMinimal = paulis.into();
+            let actual: DecomposeMinimal = decompose_dense_inner(arr.view(), 0.0).unwrap().into();
+            assert_eq!(actual, expected);
         }
     }
 
