@@ -203,7 +203,6 @@ class QiskitTestCase(BaseTestCase):
         for msg in allow_DeprecationWarning_message:
             warnings.filterwarnings("default", category=DeprecationWarning, message=msg)
 
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.__setup_called = False
