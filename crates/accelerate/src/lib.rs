@@ -77,3 +77,4 @@ pub fn getenv_use_multiple_threads() -> bool {
 }
 
 import_exception!(qiskit.exceptions, QiskitError);
+import_exception!(qiskit.circuit.exceptions, CircuitError);
