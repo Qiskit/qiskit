@@ -28,9 +28,11 @@ from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.pulse_v2 import core, device_info, stylesheet, types
 from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.utils import deprecate_arg
+from qiskit.utils.deprecate_pulse import deprecate_pulse_dependency
 
 
-@deprecate_arg("show_barriers", new_alias="plot_barriers", since="1.1.0", pending=True)
+@deprecate_pulse_dependency(moving_to_dynamics=True)
+@deprecate_arg("show_barrier", new_alias="plot_barrier", since="1.1.0", pending=True)
 def draw(
     program: Union[Waveform, SymbolicPulse, Schedule, ScheduleBlock],
     style: Optional[Dict[str, Any]] = None,
