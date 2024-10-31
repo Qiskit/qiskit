@@ -1112,13 +1112,7 @@ class PauliEvolutionSynthesisRustiq(HighLevelSynthesisPlugin):
             return None
 
         num_qubits = high_level_object.num_qubits
-        pauli_rotations = algo.expand(high_level_object)
-
-        # todo: check if this can be made a part of the expand method
-        pauli_network = [
-            (pauli_string, qubits, np.real_if_close(coeff))
-            for (pauli_string, qubits, coeff) in pauli_rotations
-        ]
+        pauli_network = algo.expand(high_level_object)
 
         optimize_count = options.get("optimize_count", True)
         preserve_order = options.get("preserve_order", True)

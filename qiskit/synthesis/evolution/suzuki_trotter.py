@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import inspect
+import typing
 from collections.abc import Callable
 from itertools import chain
 
@@ -22,8 +23,11 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.quantum_info.operators import SparsePauliOp, Pauli
 from qiskit.utils.deprecation import deprecate_arg
 
-
 from .product_formula import ProductFormula
+
+if typing.TYPE_CHECKING:
+    from qiskit.circuit.quantumcircuit import ParameterValueType
+    from qiskit.circuit.library.pauli_evolution import PauliEvolutionGate
 
 
 class SuzukiTrotter(ProductFormula):
@@ -111,11 +115,31 @@ class SuzukiTrotter(ProductFormula):
             )
         super().__init__(order, reps, insert_barriers, cx_structure, atomic_evolution, wrap)
 
-    def expand(self, evolution):
-        """
-        H = ZZ + IX --> ("X", [0], 1/2), ("ZZ", [0, 1], 1), ("X", [0], 1/2)
+    def expand(
+        self, evolution: PauliEvolutionGate
+    ) -> list[tuple[str, list[int], ParameterValueType]]:
+        """Expand the Hamiltonian into a Suzuki-Trotter sequence of sparse gates.
 
-        ("X", [0], 1/2), ("ZZ", [0, 1], 1), ("X", [0], 1), ("ZZ", [0, 1], 1), ("X", [0], 1/2)
+        For example, the Hamiltonian ``H = IX + ZZ`` for an evolution time ``t`` and
+        1 repetition for an order 2 formula would get decomposed into a list of 3-tuples
+        containing ``(pauli, indices, rz_rotation_angle)``, that is:
+
+        .. code-block:: text
+
+            ("X", [0], t), ("ZZ", [0, 1], 2t), ("X", [0], 2)
+
+        Note that the rotation angle contains a factor of 2, such that that evolution
+        of a Pauli :math:`P` over time :math:`t`, which is :math:`e^{itP}`, is represented
+        by ``(P, indices, 2 * t)``.
+
+        For ``N`` repetitions, this sequence would be repeated ``N`` times and the coefficients
+        divided by ``N``.
+
+        Args:
+            evolution: The evolution gate to expand.
+
+        Returns:
+            The Pauli network implementing the Trotter expansion.
         """
         operators = evolution.operator  # type: SparsePauliOp | list[SparsePauliOp]
         time = evolution.time
@@ -123,16 +147,20 @@ class SuzukiTrotter(ProductFormula):
         # construct the evolution circuit
         if isinstance(operators, list):  # already sorted into commuting bits
             non_commuting = [
-                (time / self.reps * operator).to_sparse_list() for operator in operators
+                (2 / self.reps * time * operator).to_sparse_list() for operator in operators
             ]
         else:
             # Assume no commutativity here. If we were to group commuting Paulis,
             # here would be the location to do so.
-            non_commuting = [[op] for op in (time / self.reps * operators).to_sparse_list()]
+            non_commuting = [[op] for op in (2 / self.reps * time * operators).to_sparse_list()]
+
+        # normalize coefficients, i.e. ensure they are float or ParameterExpression
+        non_commuting = self._normalize_coefficients(non_commuting)
 
         # we're already done here since Lie Trotter does not do any operator repetition
         product_formula = self._recurse(self.order, non_commuting)
         flattened = self.reps * list(chain.from_iterable(product_formula))
+
         return flattened
 
     @staticmethod

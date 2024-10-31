@@ -70,22 +70,22 @@ class TestDataPreparation(QiskitTestCase):
             self.assertTrue(Operator(pauli).equiv(evo))
 
         with self.subTest(pauli_string="XYZ"):
-            # q_0: ─────────────■────────────────────────■──────────────
-            #      ┌─────────┐┌─┴─┐                    ┌─┴─┐┌──────────┐
-            # q_1: ┤ Rx(π/2) ├┤ X ├──■──────────────■──┤ X ├┤ Rx(-π/2) ├
-            #      └──┬───┬──┘└───┘┌─┴─┐┌────────┐┌─┴─┐├───┤└──────────┘
-            # q_2: ───┤ H ├────────┤ X ├┤ P(2.8) ├┤ X ├┤ H ├────────────
-            #         └───┘        └───┘└────────┘└───┘└───┘
+            # q_0: ──────────■────────────────────────■───────
+            #      ┌──────┐┌─┴─┐                    ┌─┴─┐┌────┐
+            # q_1: ┤ √Xdg ├┤ X ├──■──────────────■──┤ X ├┤ √X ├
+            #      └─┬───┬┘└───┘┌─┴─┐┌────────┐┌─┴─┐├───┤└────┘
+            # q_2: ──┤ H ├──────┤ X ├┤ P(2.8) ├┤ X ├┤ H ├──────
+            #        └───┘      └───┘└────────┘└───┘└───┘
             evo = QuantumCircuit(3)
             # X on the most-significant, bottom qubit, Z on the top
             evo.h(2)
-            evo.rx(np.pi / 2, 1)
+            evo.sxdg(1)
             evo.cx(0, 1)
             evo.cx(1, 2)
             evo.p(2 * time, 2)
             evo.cx(1, 2)
             evo.cx(0, 1)
-            evo.rx(-np.pi / 2, 1)
+            evo.sx(1)
             evo.h(2)
 
             pauli = encoding.pauli_evolution("XYZ", time)
