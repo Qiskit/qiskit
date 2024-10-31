@@ -11,8 +11,6 @@
 // that they have been altered from the originals.
 #![allow(clippy::too_many_arguments)]
 
-#[cfg(feature = "cache_pygates")]
-use std::cell::OnceCell;
 use std::f64::consts::PI;
 
 use approx::relative_eq;
@@ -27,7 +25,7 @@ use smallvec::{smallvec, SmallVec};
 
 use pyo3::intern;
 use pyo3::prelude::*;
-use pyo3::types::{IntoPyDict, PyDict, PyList, PyString};
+use pyo3::types::{IntoPyDict, PyDict, PyString};
 use pyo3::wrap_pyfunction;
 use pyo3::Python;
 
@@ -111,7 +109,7 @@ fn apply_synth_dag(
     out_qargs: &[Qubit],
     synth_dag: &DAGCircuit,
 ) -> PyResult<()> {
-    let mut out_dag_concat = out_dag.as_concat(py);
+    let mut out_dag_concat = out_dag.as_concat();
     for out_node in synth_dag.topological_op_nodes()? {
         let out_packed_instr = synth_dag.dag()[out_node].unwrap_operation();
         let synth_qargs = synth_dag.get_qargs(out_packed_instr.qubits);
@@ -135,7 +133,7 @@ fn apply_synth_dag(
             None,
         );
     }
-    out_dag_concat.end(py);
+    out_dag_concat.end();
     out_dag.add_global_phase(py, &synth_dag.get_global_phase())?;
     Ok(())
 }
@@ -146,7 +144,7 @@ fn apply_synth_sequence(
     out_qargs: &[Qubit],
     sequence: &TwoQubitUnitarySequence,
 ) -> PyResult<()> {
-    let mut concat_dag = out_dag.as_concat(py);
+    let mut concat_dag = out_dag.as_concat();
     for (gate, params, qubit_ids) in sequence.gate_sequence.gates() {
         let gate_node = match gate {
             None => sequence.decomp_gate.operation.standard_gate(),
@@ -168,7 +166,7 @@ fn apply_synth_sequence(
             None,
         );
     }
-    concat_dag.end(py);
+    concat_dag.end();
     out_dag.add_global_phase(py, &Param::Float(sequence.gate_sequence.global_phase()))?;
     Ok(())
 }
@@ -240,7 +238,7 @@ fn py_run_main_loop(
     qubit_indices: Vec<usize>,
     min_qubits: usize,
     target: &Target,
-    coupling_edges: &Bound<'_, PyList>,
+    coupling_edges: HashSet<[PhysicalQubit; 2]>,
     approximation_degree: Option<f64>,
     natural_direction: Option<bool>,
 ) -> PyResult<DAGCircuit> {
@@ -283,7 +281,7 @@ fn py_run_main_loop(
                     new_ids,
                     min_qubits,
                     target,
-                    coupling_edges,
+                    coupling_edges.clone(),
                     approximation_degree,
                     natural_direction,
                 )?;
@@ -367,7 +365,7 @@ fn py_run_main_loop(
                     py,
                     unitary,
                     ref_qubits,
-                    coupling_edges,
+                    &coupling_edges,
                     target,
                     approximation_degree,
                     natural_direction,
@@ -398,7 +396,7 @@ fn run_2q_unitary_synthesis(
     py: Python,
     unitary: Array2<Complex64>,
     ref_qubits: &[PhysicalQubit; 2],
-    coupling_edges: &Bound<'_, PyList>,
+    coupling_edges: &HashSet<[PhysicalQubit; 2]>,
     target: &Target,
     approximation_degree: Option<f64>,
     natural_direction: Option<bool>,
@@ -809,7 +807,7 @@ fn preferred_direction(
     decomposer: &DecomposerElement,
     ref_qubits: &[PhysicalQubit; 2],
     natural_direction: Option<bool>,
-    coupling_edges: &Bound<'_, PyList>,
+    coupling_edges: &HashSet<[PhysicalQubit; 2]>,
     target: &Target,
 ) -> PyResult<Option<bool>> {
     // Returns:
@@ -845,14 +843,8 @@ fn preferred_direction(
         Some(false) => None,
         _ => {
             // None or Some(true)
-            let mut edge_set = HashSet::new();
-            for item in coupling_edges.iter() {
-                if let Ok(tuple) = item.extract::<(usize, usize)>() {
-                    edge_set.insert(tuple);
-                }
-            }
-            let zero_one = edge_set.contains(&(qubits[0].0 as usize, qubits[1].0 as usize));
-            let one_zero = edge_set.contains(&(qubits[1].0 as usize, qubits[0].0 as usize));
+            let zero_one = coupling_edges.contains(&qubits);
+            let one_zero = coupling_edges.contains(&[qubits[1], qubits[0]]);
 
             match (zero_one, one_zero) {
                 (true, false) => Some(true),
@@ -1081,7 +1073,7 @@ fn reversed_synth_su4_dag(
 
     let mut target_dag = synth_dag.copy_empty_like(py, "alike")?;
     let flip_bits: [Qubit; 2] = [Qubit(1), Qubit(0)];
-    let mut target_dag_concat = target_dag.as_concat(py);
+    let mut target_dag_concat = target_dag.as_concat();
     for node in synth_dag.topological_op_nodes()? {
         let inst = synth_dag.dag()[node].unwrap_operation();
         let qubits: Vec<Qubit> = synth_dag
@@ -1101,7 +1093,7 @@ fn reversed_synth_su4_dag(
             None,
         );
     }
-    target_dag_concat.end(py);
+    target_dag_concat.end();
     Ok(target_dag)
 }
 
