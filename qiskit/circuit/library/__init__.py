@@ -211,9 +211,15 @@ or of a set of qubit states.
    :template: autosummary/class_no_inherited_members.rst
 
    AND
+   AndGate
    OR
+   OrGate
    XOR
+   BitwiseXorGate
    InnerProduct
+   InnerProductGate
+
+.. autofunction:: random_bitwise_xor
 
 Basis Change Circuits
 =====================
@@ -526,9 +532,14 @@ from .pauli_evolution import PauliEvolutionGate
 from .hamiltonian_gate import HamiltonianGate
 from .boolean_logic import (
     AND,
+    AndGate,
     OR,
+    OrGate,
     XOR,
+    BitwiseXorGate,
+    random_bitwise_xor,
     InnerProduct,
+    InnerProductGate,
 )
 from .basis_change import QFT, QFTGate
 from .arithmetic import (
