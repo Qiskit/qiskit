@@ -2614,14 +2614,43 @@ class TestPauliEvolutionSynthesisPlugins(QiskitTestCase):
     @data("default", "rustiq")
     def test_correctness(self, plugin_name):
         """Test that all plugins return a correct Operator"""
-        op = SparsePauliOp(["XXX", "YYY", "IZZ"], coeffs=[1, 2, 3])
+        op = SparsePauliOp(["XXX", "YYY", "IZZ", "XZY"], coeffs=[1, 2, 3, 4])
         qc = QuantumCircuit(6)
         qc.append(PauliEvolutionGate(op), [1, 2, 4])
         hls_config = HLSConfig(PauliEvolution=[plugin_name])
         hls_pass = HighLevelSynthesis(hls_config=hls_config)
         qct = hls_pass(qc)
-        # self.assertEqual(Operator(qc), Operator(qct))
-        self.assertTrue(Operator(qc).equiv(Operator(qct)))
+        self.assertEqual(Operator(qc), Operator(qct))
+
+    def test_rustiq_options(self):
+        """Test important non-default Rustiq options."""
+        op = SparsePauliOp(["XXXX", "YYYY", "ZZZZ"], coeffs=[1, 2, 3])
+        qc = QuantumCircuit(6)
+        qc.append(PauliEvolutionGate(op), [1, 2, 3, 4])
+
+        # These calls to Rustiq are deterministic.
+        # On the one hand, we may need to change these tests if we switch
+        # to a newer version of Rustiq that implements different heuristics.
+        # On the other hand, these tests serve to show that the options
+        # have the desired effect of reducing the number of CX-gates.
+        with self.subTest("default_options"):
+            hls_config = HLSConfig(PauliEvolution=[("rustiq", {"upto_phase": False})])
+            hls_pass = HighLevelSynthesis(hls_config=hls_config)
+            qct = hls_pass(qc)
+            cnt_ops = qct.count_ops()
+            self.assertEqual(cnt_ops["cx"], 10)
+        with self.subTest("upto_phase"):
+            hls_config = HLSConfig(PauliEvolution=[("rustiq", {"upto_phase": True})])
+            hls_pass = HighLevelSynthesis(hls_config=hls_config)
+            qct = hls_pass(qc)
+            cnt_ops = qct.count_ops()
+            self.assertEqual(cnt_ops["cx"], 9)
+        with self.subTest("upto_clifford"):
+            hls_config = HLSConfig(PauliEvolution=[("rustiq", {"upto_clifford": True})])
+            hls_pass = HighLevelSynthesis(hls_config=hls_config)
+            qct = hls_pass(qc)
+            cnt_ops = qct.count_ops()
+            self.assertEqual(cnt_ops["cx"], 5)
 
 
 if __name__ == "__main__":

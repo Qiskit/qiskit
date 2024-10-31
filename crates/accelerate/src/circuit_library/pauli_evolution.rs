@@ -138,7 +138,7 @@ fn multi_qubit_evolution(
         .filter(|(p, _)| *p != 'z')
         .map(|(p, q)| match p {
             'x' => (StandardGate::HGate, smallvec![], smallvec![*q]),
-            'y' => (StandardGate::SXdgGate, smallvec![], smallvec![*q]),
+            'y' => (StandardGate::SXGate, smallvec![], smallvec![*q]),
             _ => unreachable!("Invalid Pauli string."), // "z" and "i" have been filtered out
         })
         .collect();
@@ -148,7 +148,7 @@ fn multi_qubit_evolution(
         .iter()
         .map(|(gate, _, qubit)| match gate {
             StandardGate::HGate => (StandardGate::HGate, smallvec![], qubit.clone()),
-            StandardGate::SXdgGate => (StandardGate::SXGate, smallvec![], qubit.clone()),
+            StandardGate::SXGate => (StandardGate::SXdgGate, smallvec![], qubit.clone()),
             _ => unreachable!("Invalid basis-changing Clifford."),
         })
         .collect();
