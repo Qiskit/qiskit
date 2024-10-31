@@ -409,13 +409,13 @@ class DAGDependency:
             for elem in qargs:
                 qindices_list.append(self.qubits.index(elem))
 
-            if getattr(operation, "condition", None):
+            if getattr(operation, "_condition", None):
                 # The change to handling operation.condition follows code patterns in quantum_circuit.py.
                 # However:
                 #   (1) cindices_list are specific to template optimization and should not be computed
                 #       in this place.
                 #   (2) Template optimization pass needs currently does not handle general conditions.
-                cond_bits = condition_resources(operation.condition).clbits
+                cond_bits = condition_resources(operation._condition).clbits
                 cindices_list = [self.clbits.index(clbit) for clbit in cond_bits]
             else:
                 cindices_list = []
@@ -609,7 +609,7 @@ class DAGDependency:
         for nd in node_block:
             block_qargs |= set(nd.qargs)
             block_cargs |= set(nd.cargs)
-            cond = getattr(nd.op, "condition", None)
+            cond = getattr(nd.op, "_condition", None)
             if cond is not None:
                 block_cargs.update(condition_resources(cond).clbits)
 
