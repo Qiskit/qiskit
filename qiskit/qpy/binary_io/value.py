@@ -68,9 +68,12 @@ def _encode_replay_entry(inst, expression_tracking, file_obj, version, side=Fals
     elif isinstance(inst, complex):
         inst_type = "c"
         inst_data = struct.pack("!dd", inst.real, inst.imag)
-    elif isinstance(inst, (float, int)):
+    elif isinstance(inst, float):
         inst_type = "f"
         inst_data = struct.pack("!Qd", 0, inst)
+    elif isinstance(inst, int):
+        inst_type = "i"
+        inst_data = struct.pack("!Qq", 0, inst)
     elif isinstance(inst, ParameterExpression):
         if inst not in expression_tracking:
             if not side:
@@ -567,6 +570,8 @@ def _read_parameter_expr_v13(buf, symbol_map, version, vectors):
                 lhs = None
             elif expression_data.LHS_TYPE == b"c":
                 lhs = complex(*struct.unpack("!dd", expression_data.LHS))
+            elif expression_data.LHS_TYPE == b"i":
+                lhs = struct.unpack("!Qq", expression_data.LHS)[1]
             elif expression_data.LHS_TYPE == b"s":
                 lhs = _read_parameter_expr_v13(buf, symbol_map, version, vectors)
                 data = buf.read(formats.PARAM_EXPR_ELEM_V4_SIZE)
@@ -598,6 +603,8 @@ def _read_parameter_expr_v13(buf, symbol_map, version, vectors):
                 rhs = None
             elif expression_data.RHS_TYPE == b"c":
                 rhs = complex(*struct.unpack("!dd", expression_data.LHS))
+            elif expression_data.RHS_TYPE == b"i":
+                rhs = struct.unpack("!Qq", expression_data.RHS)[1]
             elif expression_data.RHS_TYPE == b"s":
                 rhs = _read_parameter_expr_v13(buf, symbol_map, version, vectors)
                 data = buf.read(formats.PARAM_EXPR_ELEM_V4_SIZE)
