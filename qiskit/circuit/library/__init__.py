@@ -56,7 +56,7 @@ For example:
     print(gate.power(1/2).to_matrix())  # √X gate
     print(gate.control(1).to_matrix())  # CX (controlled X) gate
 
-.. parsed-literal::
+.. code-block:: text
 
     [[0.+0.j 1.+0.j]
      [1.+0.j 0.+0.j]]
@@ -160,7 +160,7 @@ set the amount of qubits involved at instantiation time.
     diagonal = Diagonal([1, 1, 1, 1])
     print(diagonal.num_qubits)
 
-.. parsed-literal::
+.. code-block:: text
 
     1
     2
@@ -326,6 +326,9 @@ Particular Quantum Circuits
    PauliEvolutionGate
    HamiltonianGate
    UnitaryOverlap
+
+.. autofunction:: iqp
+.. autofunction:: random_iqp
 
 
 N-local circuits
@@ -571,7 +574,7 @@ from .quantum_volume import QuantumVolume, quantum_volume
 from .fourier_checking import FourierChecking
 from .graph_state import GraphState
 from .hidden_linear_function import HiddenLinearFunction
-from .iqp import IQP
+from .iqp import IQP, iqp, random_iqp
 from .phase_estimation import PhaseEstimation
 from .grover_operator import GroverOperator
 from .phase_oracle import PhaseOracle

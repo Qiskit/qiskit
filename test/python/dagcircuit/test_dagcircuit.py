@@ -1153,7 +1153,7 @@ class TestDagNodeSelection(QiskitTestCase):
         Test that if an DAGOpNode has multiple successors in the DAG along one wire, they are all
         retrieved in order. This could be the case for a circuit such as
 
-        .. parsed-literal::
+        .. code-block:: text
 
                 q0_0: |0>──■─────────■──
                          ┌─┴─┐┌───┐┌─┴─┐

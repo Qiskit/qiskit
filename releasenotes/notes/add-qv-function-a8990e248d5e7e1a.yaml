@@ -9,3 +9,20 @@ features_circuits:
     a :class:`.QuantumCircuit` object instead of building a subclass object. The second is
     that this new function is multithreaded and implemented in rust so it generates the output
     circuit ~10x faster than the :class:`.QuantumVolume` class.
+  - |
+    Improved the runtime performance of constructing the
+    :class:`.QuantumVolume` class with the ``classical_permutation`` argument set
+    to ``True``. Internally it now calls the :func:`.quantum_volume`
+    function which is written in Rust which is ~10x faster to generate a
+    quantum volume circuit.
+
+upgrade_circuits:
+  - |
+    The :class:`.QuantumVolume` class will generate circuits with
+    different unitary matrices and permutations for a given seed value from
+    the previous Qiskit release. This is due to using a new internal random
+    number generator for the circuit generation that will generate the circuit
+    more quickly. If you need an exact circuit with the same seed you can
+    use the previous release of Qiskit and generate the circuit with the
+    ``flatten=True`` argument and export the circuit with :func:`.qpy.dump`
+    and then load it with this release.
