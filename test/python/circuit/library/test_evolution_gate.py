@@ -60,6 +60,14 @@ class TestEvolutionGate(QiskitTestCase):
         decomposed = evo_gate.definition.decompose()
         self.assertEqual(decomposed.count_ops()["cx"], reps * 3 * 4)
 
+    def test_basis_change(self):
+        """Test the basis change is correctly implemented."""
+        op = I ^ X ^ Y ^ Z  # use a string for which we do not have a basis gate
+        time = 0.321
+        evolved = scipy.linalg.expm(-1j * time * op.to_matrix())
+        evo_gate = PauliEvolutionGate(op, time)
+        self.assertTrue(Operator(evo_gate).equiv(evolved))
+
     def test_rzx_order(self):
         """Test ZX and XZ is mapped onto the correct qubits."""
 
