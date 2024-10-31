@@ -28,6 +28,9 @@ pub fn split_2q_unitaries(
     dag: &mut DAGCircuit,
     requested_fidelity: f64,
 ) -> PyResult<()> {
+    if !dag.get_op_counts().contains_key("unitary") {
+        return Ok(());
+    }
     let nodes: Vec<NodeIndex> = dag.op_nodes(false).collect();
 
     for node in nodes {
