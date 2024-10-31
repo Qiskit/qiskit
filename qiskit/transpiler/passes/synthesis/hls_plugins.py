@@ -249,6 +249,29 @@ MCMT Synthesis
    MCMTSynthesisNoAux
    MCMTSynthesisDefault
 
+
+Pauli Evolution Synthesis
+'''''''''''''''''''''''''
+
+.. list-table:: Plugins for :class:`.PauliEvolutionGate` (key = ``"PauliEvolution"``)
+    :header-rows: 1
+
+    * - Plugin name
+      - Plugin class
+      - Targeted connectivity
+    * - ``"rustiq"``
+      - :class:`~.PauliEvolutionSynthesisRustiq`
+      - all-to-all
+    * - ``"default"``
+      - :class:`~.PauliEvolutionSynthesisDefault`
+      - all-to-all
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   PauliEvolutionSynthesisDefault
+   PauliEvolutionSynthesisRustiq
+
 """
 
 from __future__ import annotations
@@ -1046,7 +1069,7 @@ class MCMTSynthesisVChain(HighLevelSynthesisPlugin):
 class PauliEvolutionSynthesisDefault(HighLevelSynthesisPlugin):
     """Synthesize a PauliEvolutionGate using the default synthesis algorithm.
 
-    This plugin name is :``PauliEvolution.rustiq`` which can be used as the key on
+    This plugin name is :``PauliEvolution.default`` which can be used as the key on
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
 
     The default synthesis simply calls the synthesis algorithm attached to a
