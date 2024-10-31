@@ -108,11 +108,10 @@ fn qiskit_rotation_gate(py: Python, paulis: &PauliSet, i: usize, angle: &Param) 
                 'Z' => StandardGate::RZGate,
                 _ => panic!(),
             };
-            // Due to Rustiq's inner workings, we need to multiply the angle by 2.
-            // We also need to negate the angle when there is a phase.
+            // We need to negate the angle when there is a phase.
             let param = match phase {
-                false => multiply_param(angle, 2.0, py),
-                true => multiply_param(angle, -2.0, py),
+                false => angle.clone(),
+                true => multiply_param(angle, -1.0, py),
             };
             return (standard_gate, smallvec![param], smallvec![Qubit(q as u32)]);
         }

@@ -47,8 +47,8 @@ from qiskit.circuit.library import (
     MCXGate,
     SGate,
 )
-from qiskit.circuit.library.generalized_gates import LinearFunction
-from qiskit.quantum_info import Clifford, Operator, Statevector
+from qiskit.circuit.library import LinearFunction, PauliEvolutionGate
+from qiskit.quantum_info import Clifford, Operator, Statevector, SparsePauliOp
 from qiskit.synthesis.linear import random_invertible_binary_matrix
 from qiskit.compiler import transpile
 from qiskit.exceptions import QiskitError
@@ -2599,6 +2599,29 @@ class TestMCXSynthesisPlugins(QiskitTestCase):
         qc.append(MCXGate(3).inverse(annotated=True).control(2, annotated=True), [0, 1, 2, 3, 4, 5])
         qct = transpile(qc, qubits_initially_zero=False)
         self.assertEqual(Operator(qc), Operator(qct))
+
+
+@ddt
+class TestPauliEvolutionSynthesisPlugins(QiskitTestCase):
+    """Tests related to plugins for PauliEvolutionGate."""
+
+    def test_supported_names(self):
+        """Test that "default" and "rustiq" plugins do exist."""
+        supported_plugin_names = high_level_synthesis_plugin_names("PauliEvolution")
+        self.assertIn("default", supported_plugin_names)
+        self.assertIn("rustiq", supported_plugin_names)
+
+    @data("default", "rustiq")
+    def test_correctness(self, plugin_name):
+        """Test that all plugins return a correct Operator"""
+        op = SparsePauliOp(["XXX", "YYY", "IZZ"], coeffs=[1, 2, 3])
+        qc = QuantumCircuit(6)
+        qc.append(PauliEvolutionGate(op), [1, 2, 4])
+        hls_config = HLSConfig(PauliEvolution=[plugin_name])
+        hls_pass = HighLevelSynthesis(hls_config=hls_config)
+        qct = hls_pass(qc)
+        # self.assertEqual(Operator(qc), Operator(qct))
+        self.assertTrue(Operator(qc).equiv(Operator(qct)))
 
 
 if __name__ == "__main__":
