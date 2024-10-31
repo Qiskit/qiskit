@@ -306,6 +306,28 @@ class TestVersionArg(QpyCircuitTestCase):
         qc.measure_all()
         self.assert_roundtrip_equal(qc, version=QPY_COMPATIBILITY_VERSION)
 
+    def test_all_the_expression_ops(self):
+        """Test a circuit with an expression that uses all the ops available."""
+        qc = QuantumCircuit(1)
+        a = Parameter("a")
+        b = Parameter("b")
+        c = Parameter("c")
+        d = Parameter("d")
+
+        expression = (a + b.sin() / 4) * c**2
+        final_expr = (
+            (expression.cos() + d.arccos() - d.arcsin() + d.arctan() + d.tan()) / d.exp()
+            + expression.gradient(a)
+            + expression.log()
+            - a.sin()
+            - b.conjugate()
+        )
+        final_expr = final_expr.abs()
+        final_expr = final_expr.subs({c: a})
+
+        qc.rx(final_expr, 0)
+        self.assert_roundtrip_equal(qc)
+
 
 class TestUseSymengineFlag(QpyCircuitTestCase):
     """Test that the symengine flag works correctly."""

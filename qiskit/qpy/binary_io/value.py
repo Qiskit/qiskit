@@ -112,6 +112,7 @@ def _encode_replay_entry(inst, expression_tracking, file_obj, version, side=Fals
                     "e".encode("utf8"),
                     b"\x00",
                 )
+            file_obj.write(entry)
             inst_type = "n"
             inst_data = b"\x00"
         else:
@@ -569,8 +570,6 @@ def _read_parameter_expr_v13(buf, symbol_map, version, vectors):
             elif expression_data.LHS_TYPE == b"s":
                 lhs = _read_parameter_expr_v13(buf, symbol_map, version, vectors)
                 data = buf.read(formats.PARAM_EXPR_ELEM_V4_SIZE)
-                if expression is not None:
-                    expression = lhs
                 continue
             elif expression_data.LHS_TYPE == b"e":
                 return expression
@@ -602,8 +601,6 @@ def _read_parameter_expr_v13(buf, symbol_map, version, vectors):
             elif expression_data.RHS_TYPE == b"s":
                 rhs = _read_parameter_expr_v13(buf, symbol_map, version, vectors)
                 data = buf.read(formats.PARAM_EXPR_ELEM_V4_SIZE)
-                if expression is not None:
-                    expression = rhs
                 continue
             elif expression_data.RHS_TYPE == b"e":
                 return expression
