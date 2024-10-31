@@ -7023,7 +7023,7 @@ impl<'a> DAGCircuitConcat<'a> {
                 self.dag.dag.remove_edge(edge_id);
                 predecessor_node
             });
-            self.last_qubits[qubit.0 as usize] = Some(new_node);
+            self.last_qubits[qubit.index()] = Some(new_node);
             self.dag
                 .dag
                 .add_edge(qubit_last_node, new_node, Wire::Qubit(*qubit));
@@ -7122,6 +7122,21 @@ impl<'a> DAGCircuitConcat<'a> {
             #[cfg(feature = "cache_pygates")]
             py_op,
         }
+    }
+
+    /// Gets qargs from an interned index without exposing the inner [DAGCircuit].
+    pub fn get_qargs(&self, index: Interned<[Qubit]>) -> &[Qubit] {
+        self.dag.get_qargs(index)
+    }
+
+    /// Gets cargs from an interned index without exposing the inner [DAGCircuit].
+    pub fn get_cargs(&self, index: Interned<[Clbit]>) -> &[Clbit] {
+        self.dag.get_cargs(index)
+    }
+
+    /// Adds a new value to the global phase of the inner [DAGCircuit].
+    pub fn add_global_phase(&mut self, py: Python, param: &Param) -> PyResult<()> {
+        self.dag.add_global_phase(py, param)
     }
 }
 
