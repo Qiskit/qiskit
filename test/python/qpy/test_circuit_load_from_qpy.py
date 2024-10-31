@@ -306,6 +306,16 @@ class TestVersionArg(QpyCircuitTestCase):
         qc.measure_all()
         self.assert_roundtrip_equal(qc, version=QPY_COMPATIBILITY_VERSION)
 
+    def test_nested_params_subs(self):
+        """Test substitution works."""
+        qc = QuantumCircuit(1)
+        a = Parameter("a")
+        b = Parameter("b")
+        expr = a + b
+        expr = expr.subs({b: a})
+        qc.ry(expr, 0)
+        self.assert_roundtrip_equal(qc)
+
     def test_all_the_expression_ops(self):
         """Test a circuit with an expression that uses all the ops available."""
         qc = QuantumCircuit(1)
