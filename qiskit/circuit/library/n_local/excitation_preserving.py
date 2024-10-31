@@ -203,8 +203,8 @@ class ExcitationPreserving(TwoLocal):
 
     .. seealso::
 
-        The :func:`.excitation_preserivng` function constructs the functionally same circuit, but 
-        faster.
+        The :func:`.excitation_preserivng` function constructs a functionally equivalent circuit, 
+        but faster.
 
     """
 

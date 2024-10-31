@@ -18,7 +18,7 @@ import numpy as np
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library.standard_gates import RXGate, RYGate, RZGate, CZGate
 from qiskit.utils.deprecation import deprecate_func
-from qiskit._accelerate.circuit_library.n_local import Block, py_n_local
+from qiskit._accelerate.circuit_library import Block, py_n_local
 from .two_local import TwoLocal
 
 

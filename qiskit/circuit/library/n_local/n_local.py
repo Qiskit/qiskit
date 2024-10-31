@@ -33,10 +33,12 @@ from qiskit.circuit import (
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
 from qiskit.utils.deprecation import deprecate_func
-from qiskit._accelerate.circuit_library import get_entangler_map as fast_entangler_map
 
-from qiskit._accelerate.circuit_library.n_local import Block
-from qiskit._accelerate.circuit_library.n_local import py_n_local
+from qiskit._accelerate.circuit_library import (
+    Block,
+    py_n_local,
+    get_entangler_map as fast_entangler_map,
+)
 
 from ..blueprintcircuit import BlueprintCircuit
 
@@ -244,14 +246,14 @@ def n_local(
 
     data = py_n_local(
         num_qubits=num_qubits,
-        reps=reps,
         rotation_blocks=rotation_blocks,
         entanglement_blocks=entanglement_blocks,
         entanglement=entanglement,
+        reps=reps,
         insert_barriers=insert_barriers,
+        parameter_prefix=parameter_prefix,
         skip_final_rotation_layer=skip_final_rotation_layer,
         skip_unentangled_qubits=skip_unentangled_qubits,
-        parameter_prefix=parameter_prefix,
     )
     circuit = QuantumCircuit._from_circuit_data(data, add_regs=True, name=name)
 
@@ -297,7 +299,7 @@ class NLocal(BlueprintCircuit):
 
     .. seealso::
 
-        The :func:`.n_local` function constructs the functionally same circuit, but faster.
+        The :func:`.n_local` function constructs a functionally equivalent circuit, but faster.
 
     """
 

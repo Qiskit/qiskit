@@ -224,7 +224,7 @@ class RealAmplitudes(TwoLocal):
 
     .. seealso::
 
-        The :func:`.real_amplitudes` function constructs the functionally same circuit, but faster.
+        The :func:`.real_amplitudes` function constructs a functionally equivalent circuit, but faster.
 
     """
 

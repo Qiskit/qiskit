@@ -53,12 +53,9 @@ impl BlockOperation {
                     .get_item(1)?
                     .iter()?
                     .map(|ob| Param::extract_no_coerce(&ob?))
-                    .collect::<PyResult<Vec<Param>>>()?;
+                    .collect::<PyResult<SmallVec<[Param; 3]>>>()?;
 
-                Ok((
-                    operation.operation,
-                    SmallVec::<[Param; 3]>::from_vec(bound_params),
-                ))
+                Ok((operation.operation, bound_params))
             }
         }
     }
@@ -113,12 +110,11 @@ type BlockEntanglement = Vec<Vec<u32>>; // vector of connections for a block (e.
 pub(super) type LayerEntanglement = Vec<BlockEntanglement>; // entanglement of all blocks
 
 /// Represent the entanglement in an n-local circuit.
-///
-/// This eagerly expands the full entanglement for every layer.
-/// This could be done more efficiently, e.g., by creating entanglement objects that store
-/// their underlying representation (e.g. a string or a list of connections) and returning
-/// these when given a layer-index.
 pub struct Entanglement {
+    // Possible optimization in future: This eagerly expands the full entanglement for every layer.
+    // This could be done more efficiently, e.g., by creating entanglement objects that store
+    // their underlying representation (e.g. a string or a list of connections) and returning
+    // these when given a layer-index.
     entanglement_vec: Vec<LayerEntanglement>,
 }
 

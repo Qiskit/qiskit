@@ -183,7 +183,7 @@ class EfficientSU2(TwoLocal):
 
     .. seealso::
 
-        The :func:`.efficient_su2` function constructs the functionally same circuit, but faster.
+        The :func:`.efficient_su2` function constructs a functionally equivalent circuit, but faster.
 
     """
 
