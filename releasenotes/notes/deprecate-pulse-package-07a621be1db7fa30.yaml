@@ -40,6 +40,7 @@ deprecations_transpiler:
       * :class:`~qiskit.transpiler.passes.ValidatePulseGates`
       * :class:`~qiskit.transpiler.passes.RXCalibrationBuilder`
       * :class:`~qiskit.transpiler.passes.RZXCalibrationBuilder`
+      * :class:`~qiskit.transpiler.passes.EchoRZXWeylDecomposition`
   - |
     The `inst_map` argument in :func:`~qiskit.transpiler.generate_preset_pass_manager`,
     :meth:`~transpiler.target.Target.from_configuration` and :func:`~qiskit.transpiler.preset_passmanagers.common.generate_scheduling`

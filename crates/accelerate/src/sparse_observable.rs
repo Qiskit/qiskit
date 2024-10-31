@@ -12,6 +12,7 @@
 
 use std::collections::btree_map;
 
+use hashbrown::HashSet;
 use num_complex::Complex64;
 use num_traits::Zero;
 use thiserror::Error;
@@ -263,8 +264,11 @@ impl ::std::convert::TryFrom<u8> for BitTerm {
     }
 }
 
-/// Error cases stemming from data coherence at the point of entry into `SparseObservable` from raw
-/// arrays.
+/// Error cases stemming from data coherence at the point of entry into `SparseObservable` from
+/// user-provided arrays.
+///
+/// These most typically appear during [from_raw_parts], but can also be introduced by various
+/// remapping arithmetic functions.
 ///
 /// These are generally associated with the Python-space `ValueError` because all of the
 /// `TypeError`-related ones are statically forbidden (within Rust) by the language, and conversion
@@ -285,6 +289,10 @@ pub enum CoherenceError {
     DecreasingBoundaries,
     #[error("the values in `indices` are not term-wise increasing")]
     UnsortedIndices,
+    #[error("the input contains duplicate qubits")]
+    DuplicateIndices,
+    #[error("the provided qubit mapping does not account for all contained qubits")]
+    IndexMapTooSmall,
 }
 impl From<CoherenceError> for PyErr {
     fn from(value: CoherenceError) -> PyErr {
@@ -753,7 +761,9 @@ impl SparseObservable {
             let indices = &indices[left..right];
             if !indices.is_empty() {
                 for (index_left, index_right) in indices[..].iter().zip(&indices[1..]) {
-                    if index_left >= index_right {
+                    if index_left == index_right {
+                        return Err(CoherenceError::DuplicateIndices);
+                    } else if index_left > index_right {
                         return Err(CoherenceError::UnsortedIndices);
                     }
                 }
@@ -928,6 +938,42 @@ impl SparseObservable {
         }
         self.coeffs.push(coeff);
         self.boundaries.push(self.bit_terms.len());
+        Ok(())
+    }
+
+    /// Relabel the `indices` in the operator to new values.
+    ///
+    /// This fails if any of the new indices are too large, or if any mapping would cause a term to
+    /// contain duplicates of the same index.  It may not detect if multiple qubits are mapped to
+    /// the same index, if those qubits never appear together in the same term.  Such a mapping
+    /// would not cause data-coherence problems (the output observable will be valid), but is
+    /// unlikely to be what you intended.
+    ///
+    /// *Panics* if `new_qubits` is not long enough to map every index used in the operator.
+    pub fn relabel_qubits_from_slice(&mut self, new_qubits: &[u32]) -> Result<(), CoherenceError> {
+        for qubit in new_qubits {
+            if *qubit >= self.num_qubits {
+                return Err(CoherenceError::BitIndexTooHigh);
+            }
+        }
+        let mut order = btree_map::BTreeMap::new();
+        for i in 0..self.num_terms() {
+            let start = self.boundaries[i];
+            let end = self.boundaries[i + 1];
+            for j in start..end {
+                order.insert(new_qubits[self.indices[j] as usize], self.bit_terms[j]);
+            }
+            if order.len() != end - start {
+                return Err(CoherenceError::DuplicateIndices);
+            }
+            for (index, dest) in order.keys().zip(&mut self.indices[start..end]) {
+                *dest = *index;
+            }
+            for (bit_term, dest) in order.values().zip(&mut self.bit_terms[start..end]) {
+                *dest = *bit_term;
+            }
+            order.clear();
+        }
         Ok(())
     }
 
@@ -2019,6 +2065,77 @@ impl SparseObservable {
             }
         }
         out
+    }
+
+    /// Apply a transpiler layout to this :class:`SparseObservable`.
+    ///
+    /// Typically you will have defined your observable in terms of the virtual qubits of the
+    /// circuits you will use to prepare states.  After transpilation, the virtual qubits are mapped
+    /// to particular physical qubits on a device, which may be wider than your circuit.  That
+    /// mapping can also change over the course of the circuit.  This method transforms the input
+    /// observable on virtual qubits to an observable that is suitable to apply immediately after
+    /// the fully transpiled *physical* circuit.
+    ///
+    /// Args:
+    ///     layout (TranspileLayout | list[int] | None): The layout to apply.  Most uses of this
+    ///         function should pass the :attr:`.QuantumCircuit.layout` field from a circuit that
+    ///         was transpiled for hardware.  In addition, you can pass a list of new qubit indices.
+    ///         If given as explicitly ``None``, no remapping is applied (but you can still use
+    ///         ``num_qubits`` to expand the observable).
+    ///     num_qubits (int | None): The number of qubits to expand the observable to.  If not
+    ///         supplied, the output will be as wide as the given :class:`.TranspileLayout`, or the
+    ///         same width as the input if the ``layout`` is given in another form.
+    ///
+    /// Returns:
+    ///     A new :class:`SparseObservable` with the provided layout applied.
+    #[pyo3(signature = (/, layout, num_qubits=None), name = "apply_layout")]
+    fn py_apply_layout(&self, layout: Bound<PyAny>, num_qubits: Option<u32>) -> PyResult<Self> {
+        let py = layout.py();
+        let check_inferred_qubits = |inferred: u32| -> PyResult<u32> {
+            if inferred < self.num_qubits {
+                return Err(PyValueError::new_err(format!(
+                    "cannot shrink the qubit count in an observable from {} to {}",
+                    self.num_qubits, inferred
+                )));
+            }
+            Ok(inferred)
+        };
+        if layout.is_none() {
+            let mut out = self.clone();
+            out.num_qubits = check_inferred_qubits(num_qubits.unwrap_or(self.num_qubits))?;
+            return Ok(out);
+        }
+        let (num_qubits, layout) = if layout.is_instance(
+            &py.import_bound(intern!(py, "qiskit.transpiler"))?
+                .getattr(intern!(py, "TranspileLayout"))?,
+        )? {
+            (
+                check_inferred_qubits(
+                    layout.getattr(intern!(py, "_output_qubit_list"))?.len()? as u32
+                )?,
+                layout
+                    .call_method0(intern!(py, "final_index_layout"))?
+                    .extract::<Vec<u32>>()?,
+            )
+        } else {
+            (
+                check_inferred_qubits(num_qubits.unwrap_or(self.num_qubits))?,
+                layout.extract()?,
+            )
+        };
+        if layout.len() < self.num_qubits as usize {
+            return Err(CoherenceError::IndexMapTooSmall.into());
+        }
+        if layout.iter().any(|qubit| *qubit >= num_qubits) {
+            return Err(CoherenceError::BitIndexTooHigh.into());
+        }
+        if layout.iter().collect::<HashSet<_>>().len() != layout.len() {
+            return Err(CoherenceError::DuplicateIndices.into());
+        }
+        let mut out = self.clone();
+        out.num_qubits = num_qubits;
+        out.relabel_qubits_from_slice(&layout)?;
+        Ok(out)
     }
 }
 
