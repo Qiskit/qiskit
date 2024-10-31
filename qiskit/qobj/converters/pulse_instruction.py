@@ -31,6 +31,7 @@ from qiskit.pulse.schedule import Schedule
 from qiskit.qobj import QobjMeasurementOption, PulseLibraryItem, PulseQobjInstruction
 from qiskit.qobj.utils import MeasLevel
 from qiskit.utils import deprecate_func
+from qiskit.utils.deprecate_pulse import deprecate_pulse_dependency
 
 
 class ParametricPulseShapes(Enum):
@@ -87,9 +88,9 @@ class InstructionToQobjConverter:
     This converter converts the Qiskit Pulse in-memory representation into
     the transfer layer format to submit the data from client to the server.
 
-    The transfer layer format must be the text representation that coforms to
+    The transfer layer format must be the text representation that conforms to
     the `OpenPulse specification<https://arxiv.org/abs/1809.03452>`__.
-    Extention to the OpenPulse can be achieved by subclassing this this with
+    Extension to the OpenPulse can be achieved by subclassing this this with
     extra methods corresponding to each augmented instruction. For example,
 
     .. code-block:: python
@@ -509,9 +510,9 @@ class QobjToInstructionConverter:
     This converter converts data from transfer layer into the in-memory representation of
     the front-end of Qiskit Pulse.
 
-    The transfer layer format must be the text representation that coforms to
+    The transfer layer format must be the text representation that conforms to
     the `OpenPulse specification<https://arxiv.org/abs/1809.03452>`__.
-    Extention to the OpenPulse can be achieved by subclassing this this with
+    Extension to the OpenPulse can be achieved by subclassing this this with
     extra methods corresponding to each augmented instruction. For example,
 
     .. code-block:: python
@@ -532,6 +533,7 @@ class QobjToInstructionConverter:
 
     __chan_regex__ = re.compile(r"([a-zA-Z]+)(\d+)")
 
+    @deprecate_pulse_dependency
     def __init__(
         self,
         pulse_library: Optional[List[PulseLibraryItem]] = None,

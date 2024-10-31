@@ -50,9 +50,11 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, ::qiskit_accelerate::optimize_1q_gates::optimize_1q_gates, "optimize_1q_gates")?;
     add_submodule(m, ::qiskit_accelerate::pauli_exp_val::pauli_expval, "pauli_expval")?;
     add_submodule(m, ::qiskit_accelerate::remove_diagonal_gates_before_measure::remove_diagonal_gates_before_measure, "remove_diagonal_gates_before_measure")?;
+    add_submodule(m, ::qiskit_accelerate::remove_identity_equiv::remove_identity_equiv_mod, "remove_identity_equiv")?;
     add_submodule(m, ::qiskit_accelerate::results::results, "results")?;
     add_submodule(m, ::qiskit_accelerate::sabre::sabre, "sabre")?;
     add_submodule(m, ::qiskit_accelerate::sampled_exp_val::sampled_exp_val, "sampled_exp_val")?;
+    add_submodule(m, ::qiskit_accelerate::sparse_observable::sparse_observable, "sparse_observable")?;
     add_submodule(m, ::qiskit_accelerate::sparse_pauli_op::sparse_pauli_op, "sparse_pauli_op")?;
     add_submodule(m, ::qiskit_accelerate::split_2q_unitaries::split_2q_unitaries_mod, "split_2q_unitaries")?;
     add_submodule(m, ::qiskit_accelerate::star_prerouting::star_prerouting, "star_prerouting")?;
@@ -60,6 +62,7 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, ::qiskit_accelerate::synthesis::synthesis, "synthesis")?;
     add_submodule(m, ::qiskit_accelerate::target_transpiler::target, "target")?;
     add_submodule(m, ::qiskit_accelerate::two_qubit_decompose::two_qubit_decompose, "two_qubit_decompose")?;
+    add_submodule(m, ::qiskit_accelerate::unitary_synthesis::unitary_synthesis, "unitary_synthesis")?;
     add_submodule(m, ::qiskit_accelerate::uc_gate::uc_gate, "uc_gate")?;
     add_submodule(m, ::qiskit_accelerate::utils::utils, "utils")?;
     add_submodule(m, ::qiskit_accelerate::vf2_layout::vf2_layout, "vf2_layout")?;
