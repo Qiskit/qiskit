@@ -116,7 +116,7 @@ fn qiskit_rotation_gate(py: Python, paulis: &PauliSet, i: usize, angle: &Param) 
             return (standard_gate, smallvec![param], smallvec![Qubit(q as u32)]);
         }
     }
-    unreachable!("The pauli rotation is guaranteed to be a sinle-qubit rotation.")
+    unreachable!("The pauli rotation is guaranteed to be a single-qubit rotation.")
 }
 
 // Note: The pauli network synthesis algorithm in rustiq-core 0.0.8 only returns
