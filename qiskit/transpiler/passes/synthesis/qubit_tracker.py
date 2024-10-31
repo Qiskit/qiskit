@@ -25,108 +25,98 @@ class QubitTracker:
     unknown state).
     """
 
-    # This could in future be extended to track different state types, if necessary.
-    # However, using sets of integers here is much faster than e.g. storing a dictionary with
-    # {index: state} entries.
-    qubits: tuple[int]
-    clean: set[int]
-    dirty: set[int]
+    def __init__(self, num_qubits: int):
+        self.num_qubits = num_qubits
+        self.state = [False] * num_qubits  # True: clean, False: dirty
+        self.enabled = [True] * num_qubits  # True: allowed to use, False: not allowed to use
+        self.ignored = [False] * num_qubits  # Internal scratch space
 
-    def num_clean(self, active_qubits: Iterable[int] | None = None):
-        """Return the number of clean qubits, not considering the active qubits."""
-        # this could be cached if getting the set length becomes a performance bottleneck
-        return len(self.clean.difference(active_qubits or set()))
+    def set_dirty(self, qubits):
+        """Sets state of the given qubits to dirty."""
+        for q in qubits:
+            self.state[q] = False
 
-    def num_dirty(self, active_qubits: Iterable[int] | None = None):
-        """Return the number of dirty qubits, not considering the active qubits."""
-        return len(self.dirty.difference(active_qubits or set()))
+    def set_clean(self, qubits):
+        """Sets state of the given qubits to clean."""
+        for q in qubits:
+            self.state[q] = True
 
-    def borrow(self, num_qubits: int, active_qubits: Iterable[int] | None = None) -> list[int]:
-        """Get ``num_qubits`` qubits, excluding ``active_qubits``."""
-        active_qubits = set(active_qubits or [])
-        available_qubits = [qubit for qubit in self.qubits if qubit not in active_qubits]
+    def disable(self, qubits):
+        """Disables using the given qubits."""
+        for q in qubits:
+            self.enabled[q] = False
 
-        if num_qubits > (available := len(available_qubits)):
-            raise RuntimeError(f"Cannot borrow {num_qubits} qubits, only {available} available.")
+    def enable(self, qubits):
+        """Enables using the given qubits."""
+        for q in qubits:
+            self.enabled[q] = True
 
-        # for now, prioritize returning clean qubits
-        available_clean = [qubit for qubit in available_qubits if qubit in self.clean]
-        available_dirty = [qubit for qubit in available_qubits if qubit in self.dirty]
+    def num_clean(self, ignored_qubits):
+        """Returns the number of enabled clean qubits, ignoring the given qubits."""
+        count = 0
+        for q in ignored_qubits:
+            self.ignored[q] = True
+        for q in range(self.num_qubits):
+            if (not self.ignored[q]) and self.enabled[q] and self.state[q]:
+                count += 1
+        for q in ignored_qubits:
+            self.ignored[q] = False
+        return count
 
-        borrowed = available_clean[:num_qubits]
-        return borrowed + available_dirty[: (num_qubits - len(borrowed))]
+    def num_dirty(self, ignored_qubits):
+        """Returns the number of enabled dirty qubits, ignoring the given qubits."""
+        count = 0
+        for q in ignored_qubits:
+            self.ignored[q] = True
+        for q in range(self.num_qubits):
+            if (not self.ignored[q]) and self.enabled[q] and not self.state[q]:
+                count += 1
+        for q in ignored_qubits:
+            self.ignored[q] = False
+        return count
 
-    def used(self, qubits: Iterable[int], check: bool = True) -> None:
-        """Set the state of ``qubits`` to used (i.e. False)."""
-        qubits = set(qubits)
+    def borrow(self, num_qubits: int, ignored_qubits: Iterable[int] | None = None) -> list[int]:
+        """Get ``num_qubits`` enabled qubits, excluding ``ignored_qubits`` and prioritizing
+        clean qubits."""
+        res = []
+        for q in ignored_qubits:
+            self.ignored[q] = True
+        for q in range(self.num_qubits):
+            if (not self.ignored[q]) and self.enabled[q] and self.state[q]:
+                res.append(q)
+        for q in range(self.num_qubits):
+            if (not self.ignored[q]) and self.enabled[q] and not self.state[q]:
+                res.append(q)
+        for q in ignored_qubits:
+            self.ignored[q] = False
+        return res[:num_qubits]
 
-        if check:
-            if len(untracked := qubits.difference(self.qubits)) > 0:
-                raise ValueError(f"Setting state of untracked qubits: {untracked}. Tracker: {self}")
+    def copy(self) -> "QubitTracker":
+        """Copies the qubit tracker."""
+        tracker = QubitTracker(self.num_qubits)
+        tracker.state = self.state.copy()
+        tracker.enabled = self.enabled.copy()
+        # no need to copy the scratch space (ignored)
+        return tracker
 
-        self.clean -= qubits
-        self.dirty |= qubits
-
-    def reset(self, qubits: Iterable[int], check: bool = True) -> None:
-        """Set the state of ``qubits`` to 0 (i.e. True)."""
-        qubits = set(qubits)
-
-        if check:
-            if len(untracked := qubits.difference(self.qubits)) > 0:
-                raise ValueError(f"Setting state of untracked qubits: {untracked}. Tracker: {self}")
-
-        self.clean |= qubits
-        self.dirty -= qubits
-
-    def drop(self, qubits: Iterable[int], check: bool = True) -> None:
-        """Drop qubits from the tracker, meaning that they are no longer available."""
-        qubits = set(qubits)
-
-        if check:
-            if len(untracked := qubits.difference(self.qubits)) > 0:
-                raise ValueError(f"Dropping untracked qubits: {untracked}. Tracker: {self}")
-
-        self.qubits = tuple(qubit for qubit in self.qubits if qubit not in qubits)
-        self.clean -= qubits
-        self.dirty -= qubits
-
-    def copy(
-        self, qubit_map: dict[int, int] | None = None, drop: Iterable[int] | None = None
-    ) -> "QubitTracker":
-        """Copy self.
-
-        Args:
-            qubit_map: If provided, apply the mapping ``{old_qubit: new_qubit}`` to
-                the qubits in the tracker. Only those old qubits in the mapping will be
-                part of the new one.
-            drop: If provided, drop these qubits in the copied tracker. This argument is ignored
-                if ``qubit_map`` is given, since the qubits can then just be dropped in the map.
-        """
-        if qubit_map is None and drop is not None:
-            remaining_qubits = [qubit for qubit in self.qubits if qubit not in drop]
-            qubit_map = dict(zip(remaining_qubits, remaining_qubits))
-
-        if qubit_map is None:
-            clean = self.clean.copy()
-            dirty = self.dirty.copy()
-            qubits = self.qubits  # tuple is immutable, no need to copy
-        else:
-            clean, dirty = set(), set()
-            for old_index, new_index in qubit_map.items():
-                if old_index in self.clean:
-                    clean.add(new_index)
-                elif old_index in self.dirty:
-                    dirty.add(new_index)
-                else:
-                    raise ValueError(f"Unknown old qubit index: {old_index}. Tracker: {self}")
-
-            qubits = tuple(qubit_map.values())
-
-        return QubitTracker(qubits, clean=clean, dirty=dirty)
+    def replace_state(self, other: "QubitTracker", qubits):
+        """Replaces the state of the given qubits by their state in the ``other`` tracker."""
+        for q in qubits:
+            self.state[q] = other.state[q]
 
     def __str__(self) -> str:
-        return (
-            f"QubitTracker({len(self.qubits)}, clean: {self.num_clean()}, dirty: {self.num_dirty()})"
-            + f"\n\tclean: {self.clean}"
-            + f"\n\tdirty: {self.dirty}"
-        )
+        """Pretty-prints qubit states."""
+        out = "QubitTracker("
+        for q in range(self.num_qubits):
+            out += str(q) + ": "
+            if not self.enabled[q]:
+                out += "_"
+            elif self.state[q]:
+                out += "0"
+            else:
+                out += "*"
+            if q != self.num_qubits - 1:
+                out += "; "
+            else:
+                out += ")"
+        return out
