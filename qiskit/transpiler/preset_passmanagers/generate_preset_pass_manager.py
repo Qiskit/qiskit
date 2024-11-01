@@ -17,7 +17,13 @@ Preset pass manager generation function
 import copy
 import warnings
 
-from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
+from qiskit.circuit.controlflow import (
+    CONTROL_FLOW_OP_NAMES,
+    IfElseOp,
+    WhileLoopOp,
+    ForLoopOp,
+    SwitchCaseOp,
+)
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
 from qiskit.circuit.quantumregister import Qubit
 from qiskit.providers.backend import Backend
@@ -441,11 +447,15 @@ def generate_preset_pass_manager(
 
 
 def _parse_basis_gates(basis_gates, backend, inst_map, skip_target):
-    name_mapping = {}
     standard_gates = get_standard_gate_name_mapping()
-    # Add control flow gates by default to basis set
+    # Add control flow gates by default to basis set and name mapping
     default_gates = {"measure", "delay", "reset"}.union(CONTROL_FLOW_OP_NAMES)
-
+    name_mapping = {
+        "if_else": IfElseOp,
+        "while_loop": WhileLoopOp,
+        "for_loop": ForLoopOp,
+        "switch_case": SwitchCaseOp,
+    }
     try:
         instructions = set(basis_gates)
         for name in default_gates:
@@ -460,7 +470,15 @@ def _parse_basis_gates(basis_gates, backend, inst_map, skip_target):
             return None, name_mapping, skip_target
 
         for inst in instructions:
-            if inst not in standard_gates or inst not in default_gates:
+            if inst not in standard_gates and inst not in default_gates:
+                warnings.warn(
+                    category=DeprecationWarning,
+                    message="Providing custom gates through the ``basis_gates`` argument is deprecated "
+                    "for both ``transpile`` and ``generate_preset_pass_manager`` as of Qiskit 1.3.0. "
+                    "It will be removed in Qiskit 2.0. The ``target`` parameter should be used instead. "
+                    "You can build a target instance using ``Target.from_configuration()`` and provide"
+                    "custom gate definitions with the ``custom_name_mapping`` argument.",
+                )
                 skip_target = True
                 break
 
@@ -473,7 +491,18 @@ def _parse_basis_gates(basis_gates, backend, inst_map, skip_target):
 
     # Check for custom instructions before removing calibrations
     for inst in instructions:
-        if inst not in standard_gates or inst not in default_gates:
+        if inst not in standard_gates and inst not in default_gates:
+            if inst not in backend.operation_names:
+                # do not raise warning when the custom instruction comes from the backend
+                # (common case with BasicSimulator)
+                warnings.warn(
+                    category=DeprecationWarning,
+                    message="Providing custom gates through the ``basis_gates`` argument is deprecated "
+                    "for both ``transpile`` and ``generate_preset_pass_manager`` as of Qiskit 1.3.0. "
+                    "It will be removed in Qiskit 2.0. The ``target`` parameter should be used instead. "
+                    "You can build a target instance using ``Target.from_configuration()`` and provide"
+                    "custom gate definitions with the ``custom_name_mapping`` argument.",
+                )
             skip_target = True
             break
 
