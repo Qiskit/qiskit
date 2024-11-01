@@ -653,7 +653,8 @@ class TestCliffordPasses(QiskitTestCase):
         qc.cx(1, 0)
         qc.x(0)
         qc.x(1)
-        qc.x(1).c_if(0, 1)
+        with self.assertWarns(DeprecationWarning):
+            qc.x(1).c_if(0, 1)
         qc.x(0)
         qc.x(1)
         qc.cx(0, 1)
@@ -664,7 +665,8 @@ class TestCliffordPasses(QiskitTestCase):
         self.assertEqual(qct.count_ops()["clifford"], 2)
 
         # Make sure that the condition on the middle gate is not lost
-        self.assertIsNotNone(qct.data[1].operation.condition)
+        with self.assertWarns(DeprecationWarning):
+            self.assertIsNotNone(qct.data[1].operation.condition)
 
     def test_collect_with_cliffords(self):
         """Make sure that collecting Clifford gates and replacing them by Clifford

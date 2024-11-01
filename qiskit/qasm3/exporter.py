@@ -30,7 +30,6 @@ from qiskit.circuit import (
     Barrier,
     CircuitInstruction,
     Clbit,
-    ControlledGate,
     Gate,
     Measure,
     Parameter,
@@ -209,46 +208,60 @@ class Exporter:
 # comparisons will work.
 _FIXED_PARAMETERS = (Parameter("p0"), Parameter("p1"), Parameter("p2"), Parameter("p3"))
 
+_CANONICAL_STANDARD_GATES = {
+    standard: standard.gate_class(*_FIXED_PARAMETERS[: standard.num_params])
+    for standard in StandardGate.all_gates()
+    if not standard.is_controlled_gate
+}
+_CANONICAL_CONTROLLED_STANDARD_GATES = {
+    standard: [
+        standard.gate_class(*_FIXED_PARAMETERS[: standard.num_params], ctrl_state=ctrl_state)
+        for ctrl_state in range(1 << standard.num_ctrl_qubits)
+    ]
+    for standard in StandardGate.all_gates()
+    if standard.is_controlled_gate
+}
+
 # Mapping of symbols defined by `stdgates.inc` to their gate definition source.
 _KNOWN_INCLUDES = {
     "stdgates.inc": {
-        "p": library.PhaseGate(*_FIXED_PARAMETERS[:1]),
-        "x": library.XGate(),
-        "y": library.YGate(),
-        "z": library.ZGate(),
-        "h": library.HGate(),
-        "s": library.SGate(),
-        "sdg": library.SdgGate(),
-        "t": library.TGate(),
-        "tdg": library.TdgGate(),
-        "sx": library.SXGate(),
-        "rx": library.RXGate(*_FIXED_PARAMETERS[:1]),
-        "ry": library.RYGate(*_FIXED_PARAMETERS[:1]),
-        "rz": library.RZGate(*_FIXED_PARAMETERS[:1]),
-        "cx": library.CXGate(),
-        "cy": library.CYGate(),
-        "cz": library.CZGate(),
-        "cp": library.CPhaseGate(*_FIXED_PARAMETERS[:1]),
-        "crx": library.CRXGate(*_FIXED_PARAMETERS[:1]),
-        "cry": library.CRYGate(*_FIXED_PARAMETERS[:1]),
-        "crz": library.CRZGate(*_FIXED_PARAMETERS[:1]),
-        "ch": library.CHGate(),
-        "swap": library.SwapGate(),
-        "ccx": library.CCXGate(),
-        "cswap": library.CSwapGate(),
-        "cu": library.CUGate(*_FIXED_PARAMETERS[:4]),
-        "CX": library.CXGate(),
-        "phase": library.PhaseGate(*_FIXED_PARAMETERS[:1]),
-        "cphase": library.CPhaseGate(*_FIXED_PARAMETERS[:1]),
-        "id": library.IGate(),
-        "u1": library.U1Gate(*_FIXED_PARAMETERS[:1]),
-        "u2": library.U2Gate(*_FIXED_PARAMETERS[:2]),
-        "u3": library.U3Gate(*_FIXED_PARAMETERS[:3]),
+        "p": _CANONICAL_STANDARD_GATES[StandardGate.PhaseGate],
+        "x": _CANONICAL_STANDARD_GATES[StandardGate.XGate],
+        "y": _CANONICAL_STANDARD_GATES[StandardGate.YGate],
+        "z": _CANONICAL_STANDARD_GATES[StandardGate.ZGate],
+        "h": _CANONICAL_STANDARD_GATES[StandardGate.HGate],
+        "s": _CANONICAL_STANDARD_GATES[StandardGate.SGate],
+        "sdg": _CANONICAL_STANDARD_GATES[StandardGate.SdgGate],
+        "t": _CANONICAL_STANDARD_GATES[StandardGate.TGate],
+        "tdg": _CANONICAL_STANDARD_GATES[StandardGate.TdgGate],
+        "sx": _CANONICAL_STANDARD_GATES[StandardGate.SXGate],
+        "rx": _CANONICAL_STANDARD_GATES[StandardGate.RXGate],
+        "ry": _CANONICAL_STANDARD_GATES[StandardGate.RYGate],
+        "rz": _CANONICAL_STANDARD_GATES[StandardGate.RZGate],
+        "cx": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CXGate][1],
+        "cy": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CYGate][1],
+        "cz": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CZGate][1],
+        "cp": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CPhaseGate][1],
+        "crx": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CRXGate][1],
+        "cry": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CRYGate][1],
+        "crz": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CRZGate][1],
+        "ch": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CHGate][1],
+        "swap": _CANONICAL_STANDARD_GATES[StandardGate.SwapGate],
+        "ccx": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CCXGate][3],
+        "cswap": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CSwapGate][1],
+        "cu": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CUGate][1],
+        "CX": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CXGate][1],
+        "phase": _CANONICAL_STANDARD_GATES[StandardGate.PhaseGate],
+        "cphase": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CPhaseGate][1],
+        "id": _CANONICAL_STANDARD_GATES[StandardGate.IGate],
+        "u1": _CANONICAL_STANDARD_GATES[StandardGate.U1Gate],
+        "u2": _CANONICAL_STANDARD_GATES[StandardGate.U2Gate],
+        "u3": _CANONICAL_STANDARD_GATES[StandardGate.U3Gate],
     },
 }
 
 _BUILTIN_GATES = {
-    "U": library.UGate(*_FIXED_PARAMETERS[:3]),
+    "U": _CANONICAL_STANDARD_GATES[StandardGate.UGate],
 }
 
 
@@ -479,9 +492,14 @@ class SymbolTable:
     def get_gate(self, gate: Gate) -> ast.Identifier | None:
         """Lookup the identifier for a given `Gate`, if it exists."""
         canonical = _gate_canonical_form(gate)
-        # `our_defn.canonical is None` means a basis gate that we should assume is always valid.
         if (our_defn := self.gates.get(gate.name)) is not None and (
-            our_defn.canonical is None or our_defn.canonical == canonical
+            # We arrange things such that the known definitions for the vast majority of gates we
+            # will encounter are the exact same canonical instance, so an `is` check saves time.
+            our_defn.canonical is canonical
+            # `our_defn.canonical is None` means a basis gate that we should assume is always valid.
+            or our_defn.canonical is None
+            # The last catch, if the canonical form is some custom gate that compares equal to this.
+            or our_defn.canonical == canonical
         ):
             return ast.Identifier(gate.name)
         if canonical._standard_gate is not None:
@@ -506,11 +524,14 @@ def _gate_canonical_form(gate: Gate) -> Gate:
     # If a gate is part of the Qiskit standard-library gates, we know we can safely produce a
     # reparameterised gate by passing the parameters positionally to the standard-gate constructor
     # (and control state, if appropriate).
-    if gate._standard_gate and not isinstance(gate, ControlledGate):
-        return gate.base_class(*_FIXED_PARAMETERS[: len(gate.params)])
-    elif gate._standard_gate:
-        return gate.base_class(*_FIXED_PARAMETERS[: len(gate.params)], ctrl_state=gate.ctrl_state)
-    return gate
+    standard = gate._standard_gate
+    if standard is None:
+        return gate
+    return (
+        _CANONICAL_CONTROLLED_STANDARD_GATES[standard][gate.ctrl_state]
+        if standard.is_controlled_gate
+        else _CANONICAL_STANDARD_GATES[standard]
+    )
 
 
 @dataclasses.dataclass
@@ -988,13 +1009,13 @@ class QASM3Builder:
                     f" but received '{instruction.operation}'"
                 )
 
-            if instruction.operation.condition is None:
+            if instruction.operation._condition is None:
                 statements.extend(nodes)
             else:
                 body = ast.ProgramBlock(nodes)
                 statements.append(
                     ast.BranchingStatement(
-                        self.build_expression(_lift_condition(instruction.operation.condition)),
+                        self.build_expression(_lift_condition(instruction.operation._condition)),
                         body,
                     )
                 )
