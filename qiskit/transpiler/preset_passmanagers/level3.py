@@ -87,12 +87,9 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         layout = None
         routing = None
 
-    if basis_gates:
-        translation = plugin_manager.get_passmanager_stage(
-            "translation", translation_method, pass_manager_config, optimization_level=3
-        )
-    else:
-        translation = None
+    translation = plugin_manager.get_passmanager_stage(
+        "translation", translation_method, pass_manager_config, optimization_level=3
+    )
 
     optimization = plugin_manager.get_passmanager_stage(
         "optimization", optimization_method, pass_manager_config, optimization_level=3

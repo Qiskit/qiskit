@@ -464,7 +464,17 @@ def generate_translation_passmanager(
 
     if method == "translator":
         if target is not None and len(target.operation_names) == 0:
-            unroll = []
+            unroll = [
+                HighLevelSynthesis(
+                    hls_config=hls_config,
+                    coupling_map=coupling_map,
+                    target=target,
+                    use_qubit_indices=True,
+                    equivalence_library=sel,
+                    basis_gates=basis_gates,
+                    qubits_initially_zero=qubits_initially_zero,
+                ),
+            ]
         else:
             unroll = [
                 # Use unitary synthesis for basis aware decomposition of
@@ -492,6 +502,15 @@ def generate_translation_passmanager(
     elif method == "synthesis":
         if target is not None and len(target.operation_names) == 0:
             unroll = [
+                HighLevelSynthesis(
+                    hls_config=hls_config,
+                    coupling_map=coupling_map,
+                    target=target,
+                    use_qubit_indices=True,
+                    basis_gates=basis_gates,
+                    min_qubits=3,
+                    qubits_initially_zero=qubits_initially_zero,
+                ),
                 Unroll3qOrMore(target=target, basis_gates=basis_gates),
                 Collect2qBlocks(),
                 Collect1qRuns(),
@@ -499,6 +518,14 @@ def generate_translation_passmanager(
                     basis_gates=basis_gates,
                     target=target,
                     approximation_degree=approximation_degree,
+                ),
+                HighLevelSynthesis(
+                    hls_config=hls_config,
+                    coupling_map=coupling_map,
+                    target=target,
+                    use_qubit_indices=True,
+                    basis_gates=basis_gates,
+                    qubits_initially_zero=qubits_initially_zero,
                 ),
             ]
         else:

@@ -69,12 +69,9 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         layout = None
         routing = None
 
-    if basis_gates:
-        translation = plugin_manager.get_passmanager_stage(
-            "translation", translation_method, pass_manager_config, optimization_level=0
-        )
-    else:
-        translation = None
+    translation = plugin_manager.get_passmanager_stage(
+        "translation", translation_method, pass_manager_config, optimization_level=0
+    )
 
     if (coupling_map and not coupling_map.is_symmetric) or (
         target is not None and target.get_non_global_operation_names(strict_direction=True)
@@ -100,12 +97,9 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     init = plugin_manager.get_passmanager_stage(
         "init", init_method, pass_manager_config, optimization_level=0
     )
-    if basis_gates or (target and not isinstance(target, FakeTarget)):
-        optimization = plugin_manager.get_passmanager_stage(
-            "optimization", optimization_method, pass_manager_config, optimization_level=0
-        )
-    else:
-        optimization = None
+    optimization = plugin_manager.get_passmanager_stage(
+        "optimization", optimization_method, pass_manager_config, optimization_level=0
+    )
 
     return StagedPassManager(
         pre_init=pre_init,

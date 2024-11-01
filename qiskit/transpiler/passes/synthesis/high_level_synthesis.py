@@ -302,7 +302,9 @@ class HighLevelSynthesis(TransformationPass):
         self._basis_gates = basis_gates
         self._min_qubits = min_qubits
 
-        self._top_level_only = self._basis_gates is None and (self._target is None or len(self._target.operation_names) == 0)
+        self._top_level_only = (self._basis_gates is None or len(self._basis_gates) == 0) and (
+            self._target is None or len(self._target.operation_names) == 0
+        )
 
         # include path for when target exists but target.num_qubits is None (BasicSimulator)
         if not self._top_level_only and (self._target is None or self._target.num_qubits is None):
