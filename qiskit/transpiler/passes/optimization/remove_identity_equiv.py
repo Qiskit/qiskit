@@ -33,7 +33,7 @@ class RemoveIdentityEquivalent(TransformationPass):
 
     .. math::
 
-        \bar{F} = \frac{1 + F_{\text{process}}{1 + d}
+        \bar{F} = \frac{1 + F_{\text{process}}}{1 + d},
 
         F_{\text{process}} = \frac{|\mathrm{Tr}(G)|^2}{d^2}
 
