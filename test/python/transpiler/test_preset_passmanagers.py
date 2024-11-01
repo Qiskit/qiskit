@@ -91,8 +91,7 @@ def circuit_2532():
 class TestPresetPassManager(QiskitTestCase):
     """Test preset passmanagers work as expected."""
 
-    # @combine(level=[0, 1, 2, 3], name="level{level}")
-    @combine(level=[3], name="level{level}")
+    @combine(level=[0, 1, 2, 3], name="level{level}")
     def test_no_coupling_map_with_sabre(self, level):
         """Test that coupling_map can be None with Sabre (level={level})"""
         q = QuantumRegister(2, name="q")
@@ -145,13 +144,7 @@ class TestPresetPassManager(QiskitTestCase):
         circuit.h(q[0])
         circuit.cz(q[0], q[1])
 
-        def callback_func(**kwargs):
-            t_pass = kwargs["pass_"].name()
-            print("callback", t_pass)
-
-        result = transpile(
-            circuit, basis_gates=None, optimization_level=level, callback=callback_func
-        )
+        result = transpile(circuit, basis_gates=None, optimization_level=level)
         self.assertEqual(result, circuit)
 
     def test_level0_keeps_reset(self):
@@ -1271,11 +1264,7 @@ class TestOptimizationOnSize(QiskitTestCase):
         qc.cx(7, 6)
         qc.cx(6, 7)
 
-        def callback_func(**kwargs):
-            t_pass = kwargs["pass_"].name()
-            print("callback", t_pass)
-
-        circ = transpile(qc, optimization_level=level, callback=callback_func).decompose()
+        circ = transpile(qc, optimization_level=level).decompose()
 
         circ_data = circ.data
         free_qubits = {0, 1, 2, 3}

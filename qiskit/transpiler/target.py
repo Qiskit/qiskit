@@ -867,7 +867,7 @@ class Target(BaseTarget):
         if self._coupling_graph is None:
             self._build_coupling_graph()
 
-        # if there is no connectivity constraints in the coupling graph treat it as not
+        # if there are no connectivity constraints in the coupling graph, treat it as not
         # existing and return
         if self._coupling_graph is not None:
             cmap = CouplingMap()
@@ -1068,6 +1068,10 @@ class Target(BaseTarget):
             qubit_properties = qubit_props_list_from_props(properties=backend_properties)
 
         if basis_gates is None:
+            # The Target class requires basis_gates.
+            # If there are no basis_gates, we can't build a proper Target instance,
+            # but we can generate a "pseudo" target that holds connectivity constraints
+            # and is compatible with our transpilation pipeline
             if num_qubits is None and coupling_map is not None:
                 num_qubits = len(coupling_map.graph)
             target = FakeTarget(
@@ -1323,7 +1327,12 @@ def target_to_backend_properties(target: Target):
 
 
 class FakeTarget(Target):
-    """Fake target that only contains a connectivity constraint."""
+    """
+    Pseudo-target class for internal use in the transpilation pipeline.
+    Differently to the :class:`.Target` class, this preudo-target is initialized
+    with a `coupling_map` argument that allows to store connectivity constraints
+    without basis gates.
+    """
 
     def __init__(self, coupling_map=None, **kwargs):
         super().__init__(**kwargs)
@@ -1333,4 +1342,11 @@ class FakeTarget(Target):
         return self._coupling_map
 
     def instruction_supported(self, *args, **kwargs):
-        return True
+        """Checks whether an instruction is supported by the
+        Target based on instruction name and qargs. Note that if there are no
+        basis gates in the Target, this method will always return ``True``.
+        """
+        if len(self.operation_names) == 0:
+            return True
+        else:
+            return super().instruction_supported(*args, **kwargs)

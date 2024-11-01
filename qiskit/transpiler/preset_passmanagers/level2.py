@@ -73,7 +73,6 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     else:
         layout = None
         routing = None
-
     translation = plugin_manager.get_passmanager_stage(
         "translation", translation_method, pass_manager_config, optimization_level=2
     )

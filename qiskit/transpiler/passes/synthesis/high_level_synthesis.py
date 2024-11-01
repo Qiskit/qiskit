@@ -302,6 +302,8 @@ class HighLevelSynthesis(TransformationPass):
         self._basis_gates = basis_gates
         self._min_qubits = min_qubits
 
+        # include cases where target exists with no basis gates, or the basis gates
+        # are an empty list
         self._top_level_only = (self._basis_gates is None or len(self._basis_gates) == 0) and (
             self._target is None or len(self._target.operation_names) == 0
         )

@@ -315,12 +315,11 @@ def generate_preset_pass_manager(
         and timing_constraints is None
     )
     # If it's an edge case => do not build target
-    _skip_target = (
-        target is None
-        and backend is None
-        # and (basis_gates is None or coupling_map is None or instruction_durations is not None)
-        and (instruction_durations is not None)
-    )
+    # NOTE (1.3.0): we are skipping the target in the case where
+    # instruction_durations is provided without additional constraints
+    # instead of providing a target-based alternative because the argument
+    # will be removed in 2.0 as part of the Pulse deprecation efforts.
+    _skip_target = target is None and backend is None and instruction_durations is not None
 
     # Resolve loose constraints case-by-case against backend constraints.
     # The order of priority is loose constraints > backend.

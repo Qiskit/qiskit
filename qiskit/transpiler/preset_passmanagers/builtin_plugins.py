@@ -558,6 +558,9 @@ class OptimizationPassManager(PassManagerStagePlugin):
             )
             if optimization_level == 1:
                 # Steps for optimization level 1
+
+                # If there are no basis gates (None/empty list), don't run
+                # Optimize1qGatesDecomposition
                 if (
                     pass_manager_config.basis_gates is not None
                     and len(pass_manager_config.basis_gates) > 0
@@ -569,6 +572,7 @@ class OptimizationPassManager(PassManagerStagePlugin):
                     ]
                 else:
                     _opt = []
+
                 _opt += [
                     InverseCancellation(
                         [
@@ -589,6 +593,10 @@ class OptimizationPassManager(PassManagerStagePlugin):
                 ]
 
             elif optimization_level == 2:
+                # Steps for optimization level 2
+
+                # If there are no basis gates (None/empty list), don't run
+                # Optimize1qGatesDecomposition
                 if (
                     pass_manager_config.basis_gates is not None
                     and len(pass_manager_config.basis_gates) > 0
@@ -613,7 +621,8 @@ class OptimizationPassManager(PassManagerStagePlugin):
                         approximation_degree=pass_manager_config.approximation_degree,
                     ),
                 ]
-
+                # If there are no basis gates (None/empty list), don't run
+                # Optimize1qGatesDecomposition or UnitarySynthesis
                 if (
                     pass_manager_config.basis_gates is not None
                     and len(pass_manager_config.basis_gates) > 0
@@ -656,6 +665,8 @@ class OptimizationPassManager(PassManagerStagePlugin):
             if optimization_level == 3:
                 optimization.append(_minimum_point_check)
             elif optimization_level == 2:
+                # If there are no basis gates (None/empty list), don't run
+                # UnitarySynthesis
                 if (
                     pass_manager_config.basis_gates is not None
                     and len(pass_manager_config.basis_gates) > 0

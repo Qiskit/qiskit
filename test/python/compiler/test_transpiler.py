@@ -2097,8 +2097,7 @@ class TestTranspile(QiskitTestCase):
             qubit_mapping={qubit: index for index, qubit in enumerate(transpiled.qubits)},
         )
 
-    # @data(1, 2, 3)
-    @data(3)
+    @data(1, 2, 3)
     def test_transpile_identity_circuit_no_target(self, opt_level):
         """Test circuit equivalent to identity is optimized away for all optimization levels >0.
 
@@ -2198,14 +2197,6 @@ class TestTranspile(QiskitTestCase):
     @combine(opt_level=[0, 1, 2, 3])
     def test_transpile_annotated_ops(self, opt_level):
         """Test transpilation of circuits with annotated operations."""
-        passes = []
-        kwargss = []
-
-        def callback_func(**kwargs):
-            t_pass = kwargs["pass_"].name()
-            kwargss.append(kwargs)
-            passes.append(t_pass)
-
         qc = QuantumCircuit(3)
         qc.append(AnnotatedOperation(SGate(), InverseModifier()), [0])
         qc.append(AnnotatedOperation(XGate(), ControlModifier(1)), [1, 2])
@@ -2214,10 +2205,7 @@ class TestTranspile(QiskitTestCase):
         expected.sdg(0)
         expected.cx(1, 2)
         expected.h(2)
-        transpiled = transpile(
-            qc, optimization_level=opt_level, seed_transpiler=42, callback=callback_func
-        )
-        print("Callback out:", passes)
+        transpiled = transpile(qc, optimization_level=opt_level, seed_transpiler=42)
         self.assertNotIn("annotated", transpiled.count_ops().keys())
         self.assertEqual(Operator(qc), Operator(transpiled))
         self.assertEqual(Operator(qc), Operator(expected))
