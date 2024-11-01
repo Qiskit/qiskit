@@ -10,6 +10,10 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+// This stylistic lint suppression should be in `Cargo.toml`, but we can't do that until we're at an
+// MSRV of 1.74 or greater.
+#![allow(clippy::comparison_chain)]
+
 use std::env;
 
 use pyo3::import_exception;
@@ -37,9 +41,11 @@ pub mod nlayout;
 pub mod optimize_1q_gates;
 pub mod pauli_exp_val;
 pub mod remove_diagonal_gates_before_measure;
+pub mod remove_identity_equiv;
 pub mod results;
 pub mod sabre;
 pub mod sampled_exp_val;
+pub mod sparse_observable;
 pub mod sparse_pauli_op;
 pub mod split_2q_unitaries;
 pub mod star_prerouting;
@@ -48,6 +54,7 @@ pub mod synthesis;
 pub mod target_transpiler;
 pub mod two_qubit_decompose;
 pub mod uc_gate;
+pub mod unitary_synthesis;
 pub mod utils;
 pub mod vf2_layout;
 
@@ -70,3 +77,4 @@ pub fn getenv_use_multiple_threads() -> bool {
 }
 
 import_exception!(qiskit.exceptions, QiskitError);
+import_exception!(qiskit.circuit.exceptions, CircuitError);
