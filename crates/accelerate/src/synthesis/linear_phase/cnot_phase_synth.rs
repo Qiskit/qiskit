@@ -43,26 +43,30 @@ impl InstructionIterator {
             index: 0,
         }
     }
+
+    fn current_state(&self) -> (Array2<u8>, Vec<String>) {
+        (self.s_cpy.clone(), self.rust_angles_cpy.clone())
+    }
 }
 
 impl Iterator for InstructionIterator {
     type Item = Instruction;
 
     fn next(&mut self) -> Option<Instruction> {
-        if self.qubit_idx > self.num_qubits {
+        if self.qubit_idx >= self.num_qubits {
             return None;
         }
 
         if self.index < self.s_cpy.ncols() {
             let mut gate_instr: Option<Instruction> = None;
-            self.index += 1;
             let icnot = self.s_cpy.column(self.index).to_vec();
+            self.index += 1;
             let target_state = self.state_cpy.row(self.qubit_idx).to_vec();
 
             if icnot == target_state {
+                self.index -= 1;
                 self.s_cpy.remove_index(numpy::ndarray::Axis(1), self.index);
                 let angle = self.rust_angles_cpy.remove(self.index);
-                self.index -= 1;
 
                 gate_instr = Some(match angle.as_str() {
                     "t" => (
@@ -97,11 +101,15 @@ impl Iterator for InstructionIterator {
                     ),
                 });
             }
-            return gate_instr;
+            if gate_instr.is_none() {
+                self.next()
+            } else {
+                gate_instr
+            }
         } else {
             self.qubit_idx += 1;
             self.index = 0;
-            return self.next();
+            self.next()
         }
     }
 }
@@ -120,18 +128,21 @@ pub fn synth_cnot_phase_aam(
 ) -> PyResult<CircuitData> {
     let s = cnots.as_array().to_owned();
     let num_qubits = s.nrows();
-    let mut s_cpy = s.clone();
     let mut instructions = vec![];
 
-    let mut rust_angles: Vec<String> = angles
+    let rust_angles: Vec<String> = angles
         .iter()
         .filter_map(|data| data.extract::<String>().ok())
         .collect();
     let mut state = Array2::<u8>::eye(num_qubits);
 
-    let instr_iter = InstructionIterator::new(s.clone(), state.clone(), rust_angles.clone());
+    let mut instr_iter = InstructionIterator::new(s.clone(), state.clone(), rust_angles);
 
-    instructions.append(&mut instr_iter.collect::<Vec<Instruction>>());
+    let new_iter = std::iter::from_fn(|| instr_iter.next());
+    let mut ins: Vec<Instruction> = new_iter.collect::<Vec<Instruction>>();
+    let (mut s_cpy, mut rust_angles) = instr_iter.current_state();
+
+    instructions.append(&mut ins);
 
     let epsilon: usize = num_qubits;
     let mut q = vec![(s, (0..num_qubits).collect::<Vec<usize>>(), epsilon)];
