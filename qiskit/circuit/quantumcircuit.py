@@ -4366,9 +4366,12 @@ class QuantumCircuit:
 
             target._data.assign_parameters_mapping(raw_mapping)
         else:
-            # This should be cause a cache retrieval, since we warmed the cache.  We need to keep
-            # hold of this so that if/when we lazily construct this mapping within the calibration
-            # assignments, we don't query the newly-bound version of the inner parameters.
+            # This should be a cache retrieval, since we warmed the cache.  We need to keep hold of
+            # what the parameters were before anything is assigned, because we assign parameters in
+            # the calibrations (which aren't tracked in the internal parameter table) after, which
+            # would change what we create.  We don't make the full Python-space mapping object of
+            # parameters to values eagerly because 99.9% of the time we don't need it, and it's
+            # relatively expensive to do for large numbers of parameters.
             initial_parameters = target._data.parameters
 
             def create_mapping_view():
@@ -4377,14 +4380,19 @@ class QuantumCircuit:
             target._data.assign_parameters_iterable(parameters)
 
         # Finally, assign the parameters inside any of the calibrations.  We don't track these in
-        # the `ParameterTable`, so we manually reconstruct things.  We only construct the mapping
-        # view on the first actual call, and cache the result.
+        # the `ParameterTable`, so we manually reconstruct things.  We lazily construct the mapping
+        # `{parameter: bound_value}` the first time we encounter a binding (we have to scan for
+        # this, because calibrations don't use a parameter-table lookup), rather than always paying
+        # the cost - most circuits don't have parametric calibrations, and it's expensive.
         mapping_view = None
 
         def map_calibration(qubits, parameters, schedule):
+            # All calls to this function should share the same `{Parameter: bound_value}` mapping,
+            # which we only want to lazily construct a single time.
             nonlocal mapping_view
             if mapping_view is None:
                 mapping_view = create_mapping_view()
+
             modified = False
             new_parameters = list(parameters)
             for i, parameter in enumerate(new_parameters):
