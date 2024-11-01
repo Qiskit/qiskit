@@ -17,8 +17,94 @@ use pyo3::{prelude::*, types::PyList};
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::operations::{Param, StandardGate};
 use qiskit_circuit::Qubit;
-use smallvec::smallvec;
+use smallvec::{smallvec, SmallVec};
 use std::f64::consts::PI;
+
+type Instruction = (StandardGate, SmallVec<[Param; 3]>, SmallVec<[Qubit; 2]>);
+
+struct InstructionIterator {
+    s_cpy: Array2<u8>,
+    state_cpy: Array2<u8>,
+    rust_angles_cpy: Vec<String>,
+    num_qubits: usize,
+    qubit_idx: usize,
+    index: usize,
+}
+
+impl InstructionIterator {
+    fn new(s_cpy: Array2<u8>, state_cpy: Array2<u8>, rust_angles_cpy: Vec<String>) -> Self {
+        let num_qubits = s_cpy.nrows();
+        Self {
+            s_cpy,
+            state_cpy,
+            rust_angles_cpy,
+            num_qubits,
+            qubit_idx: 0,
+            index: 0,
+        }
+    }
+}
+
+impl Iterator for InstructionIterator {
+    type Item = Instruction;
+
+    fn next(&mut self) -> Option<Instruction> {
+        if self.qubit_idx > self.num_qubits {
+            return None;
+        }
+
+        if self.index < self.s_cpy.ncols() {
+            let mut gate_instr: Option<Instruction> = None;
+            self.index += 1;
+            let icnot = self.s_cpy.column(self.index).to_vec();
+            let target_state = self.state_cpy.row(self.qubit_idx).to_vec();
+
+            if icnot == target_state {
+                self.s_cpy.remove_index(numpy::ndarray::Axis(1), self.index);
+                let angle = self.rust_angles_cpy.remove(self.index);
+                self.index -= 1;
+
+                gate_instr = Some(match angle.as_str() {
+                    "t" => (
+                        StandardGate::TGate,
+                        smallvec![],
+                        smallvec![Qubit(self.qubit_idx as u32)],
+                    ),
+                    "tgd" => (
+                        StandardGate::TdgGate,
+                        smallvec![],
+                        smallvec![Qubit(self.qubit_idx as u32)],
+                    ),
+                    "s" => (
+                        StandardGate::SGate,
+                        smallvec![],
+                        smallvec![Qubit(self.qubit_idx as u32)],
+                    ),
+                    "sdg" => (
+                        StandardGate::SdgGate,
+                        smallvec![],
+                        smallvec![Qubit(self.qubit_idx as u32)],
+                    ),
+                    "z" => (
+                        StandardGate::ZGate,
+                        smallvec![],
+                        smallvec![Qubit(self.qubit_idx as u32)],
+                    ),
+                    angles_in_pi => (
+                        StandardGate::PhaseGate,
+                        smallvec![Param::Float((angles_in_pi.parse::<f64>().ok()?) % PI)],
+                        smallvec![Qubit(self.qubit_idx as u32)],
+                    ),
+                });
+            }
+            return gate_instr;
+        } else {
+            self.qubit_idx += 1;
+            self.index = 0;
+            return self.next();
+        }
+    }
+}
 
 /// This function implements a Gray-code inspired algorithm of synthesizing a circuit
 /// over CNOT and phase-gates with minimal-CNOT for a given phase-polynomial.
@@ -43,62 +129,9 @@ pub fn synth_cnot_phase_aam(
         .collect();
     let mut state = Array2::<u8>::eye(num_qubits);
 
-    for qubit_idx in 0..num_qubits {
-        let mut index = 0_usize;
-        let mut swtch: bool = true;
+    let instr_iter = InstructionIterator::new(s.clone(), state.clone(), rust_angles.clone());
 
-        while index < s_cpy.ncols() {
-            let icnot = s_cpy.column(index).to_vec();
-            if icnot == state.row(qubit_idx).to_vec() {
-                match rust_angles.remove(index) {
-                    gate if gate == "t" => instructions.push((
-                        StandardGate::TGate,
-                        smallvec![],
-                        smallvec![Qubit(qubit_idx as u32)],
-                    )),
-                    gate if gate == "tdg" => instructions.push((
-                        StandardGate::TdgGate,
-                        smallvec![],
-                        smallvec![Qubit(qubit_idx as u32)],
-                    )),
-                    gate if gate == "s" => instructions.push((
-                        StandardGate::SGate,
-                        smallvec![],
-                        smallvec![Qubit(qubit_idx as u32)],
-                    )),
-                    gate if gate == "sdg" => instructions.push((
-                        StandardGate::SdgGate,
-                        smallvec![],
-                        smallvec![Qubit(qubit_idx as u32)],
-                    )),
-                    gate if gate == "z" => instructions.push((
-                        StandardGate::ZGate,
-                        smallvec![],
-                        smallvec![Qubit(qubit_idx as u32)],
-                    )),
-                    angles_in_pi => instructions.push((
-                        StandardGate::PhaseGate,
-                        smallvec![Param::Float((angles_in_pi.parse::<f64>()?) % PI)],
-                        smallvec![Qubit(qubit_idx as u32)],
-                    )),
-                };
-                s_cpy.remove_index(numpy::ndarray::Axis(1), index);
-                if index == s_cpy.ncols() {
-                    break;
-                }
-                if index == 0 {
-                    swtch = false;
-                } else {
-                    index -= 1;
-                }
-            }
-            if swtch {
-                index += 1;
-            } else {
-                swtch = true;
-            }
-        }
-    }
+    instructions.append(&mut instr_iter.collect::<Vec<Instruction>>());
 
     let epsilon: usize = num_qubits;
     let mut q = vec![(s, (0..num_qubits).collect::<Vec<usize>>(), epsilon)];
