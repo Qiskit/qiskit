@@ -163,7 +163,8 @@ class TestCircuitKey(QiskitTestCase):
             qc.h(0)
             qc.cx(0, 1)
             qc.measure(0, 0)
-            qc.break_loop().c_if(0, True)
+            with self.assertWarns(DeprecationWarning):
+                qc.break_loop().c_if(0, True)
 
         self.assertIsInstance(hash(_circuit_key(qc)), int)
         self.assertIsInstance(json.dumps(_circuit_key(qc)), str)
