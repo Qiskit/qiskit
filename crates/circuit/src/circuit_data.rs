@@ -154,6 +154,7 @@ impl CircuitData {
                 self_.clbits.cached().clone_ref(py),
                 None::<()>,
                 self_.data.len(),
+                self_.global_phase.clone(),
             )
         };
         Ok((ty, args, None::<()>, self_.iter()?).into_py(py))
@@ -782,6 +783,16 @@ impl CircuitData {
         if slf.len()? != other.len()? {
             return Ok(false);
         }
+
+        if let Ok(other_dc) = other.downcast::<CircuitData>() {
+            if !slf
+                .getattr("global_phase")?
+                .eq(other_dc.getattr("global_phase")?)?
+            {
+                return Ok(false);
+            }
+        }
+
         // Implemented using generic iterators on both sides
         // for simplicity.
         let mut ours_itr = slf.iter()?;
