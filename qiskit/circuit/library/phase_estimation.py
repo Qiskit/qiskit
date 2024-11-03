@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.utils.deprecation import deprecate_func
-from qiskit.circuit.library import PermutationGate, QFT, QFTGate
+from qiskit.circuit.library import QFT
 
 
 class PhaseEstimation(QuantumCircuit):
@@ -155,6 +155,9 @@ def phase_estimation(
         quantum-phase-estimation.ipynb>`_
 
     """
+    # pylint: disable=cyclic-import
+    from qiskit.circuit.library import PermutationGate, QFTGate
+
     qr_eval = QuantumRegister(num_evaluation_qubits, "eval")
     qr_state = QuantumRegister(unitary.num_qubits, "q")
     circuit = QuantumCircuit(qr_eval, qr_state, name=name)
