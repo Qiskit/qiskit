@@ -19,7 +19,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.utils.deprecation import deprecate_func
 
-from .generalized_gates.diagonal import Diagonal
+from .generalized_gates.diagonal import Diagonal, DiagonalGate
 
 
 class FourierChecking(QuantumCircuit):
@@ -146,11 +146,12 @@ def fourier_checking(f: List[int], g: List[int]) -> QuantumCircuit:
             "tables, each as a list of 2**n entries of "
             "{1, -1}."
         )
+    num_qubits = int(num_qubits)
 
-    circuit = QuantumCircuit(int(num_qubits), name=f"fc: {f}, {g}")
+    circuit = QuantumCircuit(num_qubits, name=f"fc: {f}, {g}")
     circuit.h(circuit.qubits)
-    circuit.compose(Diagonal(f), inplace=True)
+    circuit.append(DiagonalGate(f), range(num_qubits))
     circuit.h(circuit.qubits)
-    circuit.compose(Diagonal(g), inplace=True)
+    circuit.append(DiagonalGate(g), range(num_qubits))
     circuit.h(circuit.qubits)
     return circuit

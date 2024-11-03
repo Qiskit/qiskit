@@ -340,6 +340,7 @@ Particular Quantum Circuits
 
 .. autofunction:: iqp
 .. autofunction:: random_iqp
+.. autofunction:: fourier_checking
 
 
 N-local circuits
