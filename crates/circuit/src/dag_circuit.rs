@@ -888,6 +888,8 @@ impl DAGCircuit {
     ///
     /// Raises:
     ///     Exception: if the gate is of type string and params is None.
+    ///
+    /// DEPRECATED since Qiskit 1.3.0 and will be removed in Qiskit 2.0.0
     #[pyo3(signature=(gate, qubits, schedule, params=None))]
     fn add_calibration<'py>(
         &mut self,
