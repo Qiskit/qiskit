@@ -128,6 +128,7 @@ def unitary_overlap(
     **Reference Circuit:**
 
     .. plot::
+        :include-source:
 
         import numpy as np
         from qiskit.circuit.library import EfficientSU2, unitary_overlap

@@ -79,17 +79,9 @@ class GraphState(QuantumCircuit):
         if not np.allclose(adjacency_matrix, adjacency_matrix.transpose()):
             raise CircuitError("The adjacency matrix must be symmetric.")
 
-        num_qubits = len(adjacency_matrix)
-        circuit = QuantumCircuit(num_qubits, name=f"graph: {adjacency_matrix}")
-
-        circuit.h(range(num_qubits))
-        for i in range(num_qubits):
-            for j in range(i + 1, num_qubits):
-                if adjacency_matrix[i][j] == 1:
-                    circuit.cz(i, j)
-
-        super().__init__(*circuit.qregs, name=circuit.name)
-        self.compose(circuit.to_gate(), qubits=self.qubits, inplace=True)
+        graph_state_gate = GraphStateGate(adjacency_matrix)
+        super().__init__(graph_state_gate.num_qubits, name=f"graph: {adjacency_matrix}")
+        self.compose(graph_state_gate, qubits=self.qubits, inplace=True)
 
 
 class GraphStateGate(Gate):
@@ -113,6 +105,7 @@ class GraphStateGate(Gate):
     **Reference Circuit:**
 
     .. plot::
+        :include-source:
 
         from qiskit.circuit import QuantumCircuit
         from qiskit.circuit.library import GraphStateGate

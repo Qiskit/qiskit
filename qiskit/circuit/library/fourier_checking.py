@@ -124,6 +124,7 @@ def fourier_checking(f: List[int], g: List[int]) -> QuantumCircuit:
     **Reference Circuit:**
 
     .. plot::
+       :include-source:
 
        from qiskit.circuit.library import fourier_checking
        circuit = fourier_checking([1, -1, -1, -1], [1, 1, -1, -1])

@@ -85,7 +85,7 @@ class HiddenLinearFunction(QuantumCircuit):
         """
         circuit = hidden_linear_function(adjacency_matrix)
         super().__init__(*circuit.qregs, name=circuit.name)
-        self.compose(circuit, qubits=self.qubits, inplace=True)
+        self.append(circuit.to_gate(), self.qubits)
 
 
 def hidden_linear_function(adjacency_matrix: list | np.ndarray) -> QuantumCircuit:
@@ -123,6 +123,7 @@ def hidden_linear_function(adjacency_matrix: list | np.ndarray) -> QuantumCircui
     **Reference Circuit:**
 
     .. plot::
+       :include-source:
 
        from qiskit.circuit.library import hidden_linear_function
        A = [[1, 1, 0], [1, 0, 1], [0, 1, 1]]

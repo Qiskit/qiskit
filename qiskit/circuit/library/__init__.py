@@ -341,6 +341,9 @@ Particular Quantum Circuits
 .. autofunction:: iqp
 .. autofunction:: random_iqp
 .. autofunction:: fourier_checking
+.. autofunction:: hidden_linear_function
+.. autofunction:: unitary_overlap
+.. autofunction:: phase_estimation
 
 
 N-local circuits

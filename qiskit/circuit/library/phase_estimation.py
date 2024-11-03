@@ -131,6 +131,7 @@ def phase_estimation(
     **Reference Circuit:**
 
     .. plot::
+       :include-source:
 
        from qiskit.circuit import QuantumCircuit
        from qiskit.circuit.library import phase_estimation

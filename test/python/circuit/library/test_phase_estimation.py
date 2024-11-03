@@ -18,6 +18,7 @@ import numpy as np
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import PhaseEstimation, QFT, phase_estimation
 from qiskit.quantum_info import Statevector
+from qiskit.compiler import transpile
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -215,6 +216,27 @@ class TestPhaseEstimation(QiskitTestCase):
             pec = phase_estimation(2, unitary)
 
             self.assertPhaseEstimationIsCorrect(pec, eigenstate, phase_as_binary)
+
+    def test_phase_estimation_function_swaps_removed(self):
+        """Test that transpiling the circuit correctly removes swaps and permutations."""
+        with self.subTest("U=S, psi=|1>"):
+            unitary = QuantumCircuit(1)
+            unitary.s(0)
+
+            eigenstate = QuantumCircuit(1)
+            eigenstate.x(0)
+
+            pec = phase_estimation(4, unitary)
+
+            # transpilation (or more precisely HighLevelSynthesis + ElidePermutations) should
+            # remove all swap gates (possibly added when synthesizing the QFTGate in the circuit)
+            # and the final permutation gate
+            transpiled = transpile(pec)
+            transpiled_ops = transpiled.count_ops()
+
+            self.assertNotIn("permutation", transpiled_ops)
+            self.assertNotIn("swap", transpiled_ops)
+            self.assertNotIn("cx", transpiled_ops)
 
 
 if __name__ == "__main__":

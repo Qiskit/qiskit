@@ -92,7 +92,7 @@ class TestGraphStateLibrary(QiskitTestCase):
             GraphStateGate(adjacency_matrix)
 
     def test_circuit_and_gate_equivalence(self):
-        """Test that GraphState-circuit and GraphStateGate yeild equal operators."""
+        """Test that GraphState-circuit and GraphStateGate yield equal operators."""
         adjacency_matrix = [
             [0, 1, 0, 0, 1],
             [1, 0, 1, 0, 0],
