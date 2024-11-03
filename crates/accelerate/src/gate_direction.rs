@@ -52,7 +52,7 @@ use std::f64::consts::PI;
 ///     true iff all two-qubit gates comply with the coupling constraints
 #[pyfunction]
 #[pyo3(name = "check_gate_direction_coupling")]
-fn py_check_with_coupling_map(
+fn py_check_direction_coupling_map(
     py: Python,
     dag: &DAGCircuit,
     coupling_edges: HashSet<[Qubit; 2]>,
@@ -74,7 +74,7 @@ fn py_check_with_coupling_map(
 ///     true iff all two-qubit gates comply with the target's coupling constraints
 #[pyfunction]
 #[pyo3(name = "check_gate_direction_target")]
-fn py_check_with_target(py: Python, dag: &DAGCircuit, target: &Target) -> PyResult<bool> {
+fn py_check_direction_target(py: Python, dag: &DAGCircuit, target: &Target) -> PyResult<bool> {
     let target_check = |inst: &PackedInstruction, op_args: &[Qubit]| -> bool {
         let qargs = smallvec![
             PhysicalQubit::new(op_args[0].0),
@@ -174,7 +174,7 @@ where
 ///     the transformed DAGCircuit
 #[pyfunction]
 #[pyo3(name = "fix_gate_direction_coupling")]
-fn py_fix_with_coupling_map(
+fn py_fix_direction_coupling_map(
     py: Python,
     dag: &mut DAGCircuit,
     coupling_edges: HashSet<[Qubit; 2]>,
@@ -200,7 +200,11 @@ fn py_fix_with_coupling_map(
 ///     the transformed DAGCircuit
 #[pyfunction]
 #[pyo3(name = "fix_gate_direction_target")]
-fn py_fix_with_target(py: Python, dag: &mut DAGCircuit, target: &Target) -> PyResult<DAGCircuit> {
+fn py_fix_direction_target(
+    py: Python,
+    dag: &mut DAGCircuit,
+    target: &Target,
+) -> PyResult<DAGCircuit> {
     let target_check = |inst: &PackedInstruction, op_args: &[Qubit]| -> bool {
         let qargs = smallvec![
             PhysicalQubit::new(op_args[0].0),
@@ -446,7 +450,11 @@ fn add_qreg(py: Python, dag: &mut DAGCircuit, num_qubits: u32) -> PyResult<Vec<Q
 
     for i in 0..num_qubits {
         let qubit = qreg.call_method1(intern!(py, "__getitem__"), (i,))?;
-        qargs.push(dag.qubits().find(&qubit).expect("Qubit should stored"));
+        qargs.push(
+            dag.qubits()
+                .find(&qubit)
+                .expect("Qubit should have been stored in the DAGCircuit"),
+        );
     }
 
     Ok(qargs)
@@ -466,7 +474,7 @@ fn apply_operation_back(
         qargs,
         &[],
         param,
-        ExtraInstructionAttributes::new(None, None, None, None),
+        ExtraInstructionAttributes::default(),
         #[cfg(feature = "cache_pygates")]
         None,
     )?;
@@ -621,9 +629,9 @@ fn rzx_replacement_dag(py: Python, param: &[Param]) -> PyResult<DAGCircuit> {
 
 #[pymodule]
 pub fn gate_direction(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(py_check_with_coupling_map))?;
-    m.add_wrapped(wrap_pyfunction!(py_check_with_target))?;
-    m.add_wrapped(wrap_pyfunction!(py_fix_with_coupling_map))?;
-    m.add_wrapped(wrap_pyfunction!(py_fix_with_target))?;
+    m.add_wrapped(wrap_pyfunction!(py_check_direction_coupling_map))?;
+    m.add_wrapped(wrap_pyfunction!(py_check_direction_target))?;
+    m.add_wrapped(wrap_pyfunction!(py_fix_direction_coupling_map))?;
+    m.add_wrapped(wrap_pyfunction!(py_fix_direction_target))?;
     Ok(())
 }
