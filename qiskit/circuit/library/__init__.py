@@ -211,9 +211,15 @@ or of a set of qubit states.
    :template: autosummary/class_no_inherited_members.rst
 
    AND
+   AndGate
    OR
+   OrGate
    XOR
+   BitwiseXorGate
    InnerProduct
+   InnerProductGate
+
+.. autofunction:: random_bitwise_xor
 
 Basis Change Circuits
 =====================
@@ -331,6 +337,9 @@ Particular Quantum Circuits
    HamiltonianGate
    UnitaryOverlap
    unitary_overlap
+
+.. autofunction:: iqp
+.. autofunction:: random_iqp
 
 
 N-local circuits
@@ -528,9 +537,14 @@ from .pauli_evolution import PauliEvolutionGate
 from .hamiltonian_gate import HamiltonianGate
 from .boolean_logic import (
     AND,
+    AndGate,
     OR,
+    OrGate,
     XOR,
+    BitwiseXorGate,
+    random_bitwise_xor,
     InnerProduct,
+    InnerProductGate,
 )
 from .basis_change import QFT, QFTGate
 from .arithmetic import (
@@ -576,7 +590,7 @@ from .quantum_volume import QuantumVolume, quantum_volume
 from .fourier_checking import FourierChecking, fourier_checking
 from .graph_state import GraphState, GraphStateGate
 from .hidden_linear_function import HiddenLinearFunction, hidden_linear_function
-from .iqp import IQP
+from .iqp import IQP, iqp, random_iqp
 from .phase_estimation import PhaseEstimation, phase_estimation
 from .grover_operator import GroverOperator
 from .phase_oracle import PhaseOracle
