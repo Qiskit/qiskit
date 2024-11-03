@@ -78,7 +78,24 @@ class FourierChecking(QuantumCircuit):
                circuit = FourierChecking(f, g)
                _generate_circuit_library_visualization(circuit)
         """
-        circuit = fourier_checking(f, g)
+        num_qubits = math.log2(len(f))
+
+        if len(f) != len(g) or num_qubits == 0 or not num_qubits.is_integer():
+            raise CircuitError(
+                "The functions f and g must be given as truth "
+                "tables, each as a list of 2**n entries of "
+                "{1, -1}."
+            )
+
+        # This definition circuit is not replaced by the circuit produced by fourier_checking,
+        # as the latter produces a slightly different circuit, with DiagonalGates instead
+        # of Diagonal circuits.
+        circuit = QuantumCircuit(int(num_qubits), name=f"fc: {f}, {g}")
+        circuit.h(circuit.qubits)
+        circuit.compose(Diagonal(f), inplace=True)
+        circuit.h(circuit.qubits)
+        circuit.compose(Diagonal(g), inplace=True)
+        circuit.h(circuit.qubits)
         super().__init__(*circuit.qregs, name=circuit.name)
         self.compose(circuit.to_gate(), qubits=self.qubits, inplace=True)
 
