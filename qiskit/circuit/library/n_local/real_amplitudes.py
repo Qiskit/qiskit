@@ -35,7 +35,8 @@ class RealAmplitudes(TwoLocal):
     For example a ``RealAmplitudes`` circuit with 2 repetitions on 3 qubits with ``'reverse_linear'``
     entanglement is
 
-    .. parsed-literal::
+    .. code-block:: text
+
          ┌──────────┐ ░            ░ ┌──────────┐ ░            ░ ┌──────────┐
          ┤ Ry(θ[0]) ├─░────────■───░─┤ Ry(θ[3]) ├─░────────■───░─┤ Ry(θ[6]) ├
          ├──────────┤ ░      ┌─┴─┐ ░ ├──────────┤ ░      ┌─┴─┐ ░ ├──────────┤

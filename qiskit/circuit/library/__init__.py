@@ -56,7 +56,7 @@ For example:
     print(gate.power(1/2).to_matrix())  # √X gate
     print(gate.control(1).to_matrix())  # CX (controlled X) gate
 
-.. parsed-literal::
+.. code-block:: text
 
     [[0.+0.j 1.+0.j]
      [1.+0.j 0.+0.j]]
@@ -160,7 +160,7 @@ set the amount of qubits involved at instantiation time.
     diagonal = Diagonal([1, 1, 1, 1])
     print(diagonal.num_qubits)
 
-.. parsed-literal::
+.. code-block:: text
 
     1
     2
@@ -181,6 +181,7 @@ set the amount of qubits involved at instantiation time.
    GRX
    GRY
    GRZ
+   MCMTGate
    MCPhaseGate
    MCXGate
    MCXGrayCode
@@ -210,9 +211,15 @@ or of a set of qubit states.
    :template: autosummary/class_no_inherited_members.rst
 
    AND
+   AndGate
    OR
+   OrGate
    XOR
+   BitwiseXorGate
    InnerProduct
+   InnerProductGate
+
+.. autofunction:: random_bitwise_xor
 
 Basis Change Circuits
 =====================
@@ -314,16 +321,29 @@ Particular Quantum Circuits
    :template: autosummary/class_no_inherited_members.rst
 
    FourierChecking
+   fourier_checking
    GraphState
+   GraphStateGate
    HiddenLinearFunction
+   hidden_linear_function
    IQP
    QuantumVolume
+   quantum_volume
    PhaseEstimation
+   phase_estimation
    GroverOperator
    PhaseOracle
    PauliEvolutionGate
    HamiltonianGate
    UnitaryOverlap
+   unitary_overlap
+
+.. autofunction:: iqp
+.. autofunction:: random_iqp
+.. autofunction:: fourier_checking
+.. autofunction:: hidden_linear_function
+.. autofunction:: unitary_overlap
+.. autofunction:: phase_estimation
 
 
 N-local circuits
@@ -500,6 +520,7 @@ from .generalized_gates import (
     Permutation,
     PermutationGate,
     GMS,
+    MCMTGate,
     MSGate,
     GR,
     GRX,
@@ -520,9 +541,14 @@ from .pauli_evolution import PauliEvolutionGate
 from .hamiltonian_gate import HamiltonianGate
 from .boolean_logic import (
     AND,
+    AndGate,
     OR,
+    OrGate,
     XOR,
+    BitwiseXorGate,
+    random_bitwise_xor,
     InnerProduct,
+    InnerProductGate,
 )
 from .basis_change import QFT, QFTGate
 from .arithmetic import (
@@ -564,12 +590,12 @@ from .data_preparation import (
     StatePreparation,
     Initialize,
 )
-from .quantum_volume import QuantumVolume
-from .fourier_checking import FourierChecking
-from .graph_state import GraphState
-from .hidden_linear_function import HiddenLinearFunction
-from .iqp import IQP
-from .phase_estimation import PhaseEstimation
+from .quantum_volume import QuantumVolume, quantum_volume
+from .fourier_checking import FourierChecking, fourier_checking
+from .graph_state import GraphState, GraphStateGate
+from .hidden_linear_function import HiddenLinearFunction, hidden_linear_function
+from .iqp import IQP, iqp, random_iqp
+from .phase_estimation import PhaseEstimation, phase_estimation
 from .grover_operator import GroverOperator
 from .phase_oracle import PhaseOracle
-from .overlap import UnitaryOverlap
+from .overlap import UnitaryOverlap, unitary_overlap

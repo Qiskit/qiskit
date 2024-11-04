@@ -173,6 +173,10 @@ def linkcode_resolve(domain, info):
         except AttributeError:
             return None
 
+    # Unwrap decorators. This requires they used `functools.wrap()`.
+    while hasattr(obj, "__wrapped__"):
+        obj = getattr(obj, "__wrapped__")
+
     try:
         full_file_name = inspect.getsourcefile(obj)
     except TypeError:
@@ -181,7 +185,7 @@ def linkcode_resolve(domain, info):
         return None
     try:
         relative_file_name = Path(full_file_name).resolve().relative_to(REPO_ROOT)
-        file_name = re.sub(r"\.tox\/.+\/site-packages\/", "", str(relative_file_name))
+        file_name = re.sub(r"\.tox\/.+\/site-packages\/", "", relative_file_name.as_posix())
     except ValueError:
         return None
 
