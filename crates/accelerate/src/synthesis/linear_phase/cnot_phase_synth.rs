@@ -19,40 +19,40 @@ use qiskit_circuit::operations::{Param, StandardGate};
 use qiskit_circuit::Qubit;
 use smallvec::{smallvec, SmallVec};
 use std::f64::consts::PI;
-
 type Instruction = (StandardGate, SmallVec<[Param; 3]>, SmallVec<[Qubit; 2]>);
 
-struct InstructionIterator {
+#[derive(Clone)]
+struct PhaseIterator {
     s_cpy: Array2<u8>,
-    state_cpy: Array2<u8>,
-    rust_angles_cpy: Vec<String>,
+    state: Array2<u8>,
+    rust_angles: Vec<String>,
     num_qubits: usize,
     qubit_idx: usize,
     index: usize,
 }
 
-impl InstructionIterator {
-    fn new(s_cpy: Array2<u8>, state_cpy: Array2<u8>, rust_angles_cpy: Vec<String>) -> Self {
-        let num_qubits = s_cpy.nrows();
+impl PhaseIterator {
+    fn new(
+        num_qubits: usize,
+        s_cpy: Array2<u8>,
+        state: Array2<u8>,
+        rust_angles: Vec<String>,
+    ) -> Self {
         Self {
             s_cpy,
-            state_cpy,
-            rust_angles_cpy,
+            state,
+            rust_angles,
             num_qubits,
             qubit_idx: 0,
             index: 0,
         }
     }
-
-    fn current_state(&self) -> (Array2<u8>, Vec<String>) {
-        (self.s_cpy.clone(), self.rust_angles_cpy.clone())
-    }
 }
 
-impl Iterator for InstructionIterator {
+impl Iterator for PhaseIterator {
     type Item = Instruction;
 
-    fn next(&mut self) -> Option<Instruction> {
+    fn next(&mut self) -> Option<Self::Item> {
         if self.qubit_idx >= self.num_qubits {
             return None;
         }
@@ -61,12 +61,12 @@ impl Iterator for InstructionIterator {
             let mut gate_instr: Option<Instruction> = None;
             let icnot = self.s_cpy.column(self.index).to_vec();
             self.index += 1;
-            let target_state = self.state_cpy.row(self.qubit_idx).to_vec();
+            let target_state = self.state.row(self.qubit_idx).to_vec();
 
             if icnot == target_state {
                 self.index -= 1;
                 self.s_cpy.remove_index(numpy::ndarray::Axis(1), self.index);
-                let angle = self.rust_angles_cpy.remove(self.index);
+                let angle = self.rust_angles.remove(self.index);
 
                 gate_instr = Some(match angle.as_str() {
                     "t" => (
@@ -101,15 +101,282 @@ impl Iterator for InstructionIterator {
                     ),
                 });
             }
-            if gate_instr.is_none() {
-                self.next()
-            } else {
+            if gate_instr.is_some() {
                 gate_instr
+            } else {
+                self.next()
             }
         } else {
             self.qubit_idx += 1;
             self.index = 0;
             self.next()
+        }
+    }
+}
+
+#[derive(Clone)]
+struct CXPhaseIterator {
+    s_cpy: Array2<u8>,
+    state: Array2<u8>,
+    rust_angles: Vec<String>,
+    q: Vec<(Array2<u8>, Vec<usize>, usize)>,
+    num_qubits: usize,
+    qubit_idx: usize,
+    keep_iterating: bool,
+    loop_active: bool,
+    _s: Array2<u8>,
+    _i: Vec<usize>,
+    _ep: usize,
+    phase_iter_handle: Option<PhaseIterator>,
+}
+
+impl CXPhaseIterator {
+    fn new(
+        num_qubits: usize,
+        s_cpy: Array2<u8>,
+        state: Array2<u8>,
+        rust_angles: Vec<String>,
+        q: Vec<(Array2<u8>, Vec<usize>, usize)>,
+    ) -> Self {
+        let (init_s, init_i, init_ep) = q.last().unwrap().clone();
+        Self {
+            s_cpy,
+            state,
+            rust_angles,
+            q,
+            num_qubits,
+            qubit_idx: 0,
+            keep_iterating: false,
+            loop_active: false,
+            _s: init_s,
+            _i: init_i,
+            _ep: init_ep,
+            phase_iter_handle: None,
+        }
+    }
+}
+
+impl Iterator for CXPhaseIterator {
+    type Item = Instruction;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some(handle) = self.phase_iter_handle.as_mut() {
+            let data = handle.next();
+            if data.is_none() {
+                self.s_cpy = handle.s_cpy.clone();
+                self.rust_angles = handle.rust_angles.clone();
+                self.phase_iter_handle = None;
+            } else {
+                return data;
+            }
+        }
+
+        if !self.q.is_empty() || self.loop_active || self.keep_iterating {
+            if !self.loop_active && !self.keep_iterating {
+                (self._s, self._i, self._ep) = self.q.pop().unwrap();
+            }
+
+            if !self.loop_active && !self.keep_iterating && self._s.is_empty() {
+                return self.next();
+            }
+
+            if self._ep < self.num_qubits || self.loop_active || self.keep_iterating {
+                if !self.loop_active && !self.keep_iterating {
+                    self.keep_iterating = true;
+                }
+
+                if self.keep_iterating || self.loop_active {
+                    if !self.loop_active {
+                        self.keep_iterating = false;
+                    }
+                    if self.qubit_idx < self.num_qubits {
+                        if (self.qubit_idx != self._ep)
+                            && (self._s.row(self.qubit_idx).sum() as usize
+                                == self._s.row(self.qubit_idx).len())
+                        {
+                            for _k in 0..self.state.ncols() {
+                                self.state[(self._ep, _k)] ^= self.state[(self.qubit_idx, _k)];
+                            }
+
+                            self.phase_iter_handle = Some(PhaseIterator::new(
+                                self.num_qubits,
+                                self.s_cpy.clone(),
+                                self.state.clone(),
+                                self.rust_angles.clone(),
+                            ));
+
+                            self.q.push((self._s.clone(), self._i.clone(), self._ep));
+
+                            for data in &mut self.q {
+                                let (ref mut _temp_s, _, _) = data;
+                                if _temp_s.is_empty() {
+                                    continue;
+                                }
+                                for idx in 0.._temp_s.row(self.qubit_idx).len() {
+                                    _temp_s[(self.qubit_idx, idx)] ^= _temp_s[(self._ep, idx)];
+                                }
+                            }
+                            (self._s, self._i, self._ep) = self.q.pop().unwrap();
+
+                            self.qubit_idx += 1;
+                            self.keep_iterating = true;
+                            self.loop_active = true;
+                            return Some((
+                                StandardGate::CXGate,
+                                smallvec![],
+                                smallvec![
+                                    Qubit((self.qubit_idx - 1) as u32),
+                                    Qubit(self._ep as u32)
+                                ],
+                            ));
+                        } else {
+                            self.qubit_idx += 1;
+                            self.loop_active = true;
+                            return self.next();
+                        }
+                    } else {
+                        self.qubit_idx = 0;
+                        self.loop_active = false;
+                        if self.keep_iterating {
+                            return self.next();
+                        }
+                    }
+                }
+            }
+
+            if self._i.is_empty() {
+                return self.next();
+            }
+
+            let maxes: Vec<usize> = self
+                ._s
+                .axis_iter(numpy::ndarray::Axis(0))
+                .map(|row| {
+                    std::cmp::max(
+                        row.iter().filter(|&&x| x == 0).count(),
+                        row.iter().filter(|&&x| x == 1).count(),
+                    )
+                })
+                .collect();
+
+            let maxes2: Vec<usize> = self._i.iter().map(|&_i_idx| maxes[_i_idx]).collect();
+
+            let _temp_argmax = maxes2
+                .iter()
+                .enumerate()
+                .max_by(|(_, x), (_, y)| x.cmp(y))
+                .map(|(idx, _)| idx)
+                .unwrap();
+
+            let _j = self._i[_temp_argmax];
+
+            let mut cnots0_t = vec![];
+            let mut cnots1_t = vec![];
+
+            let mut cnots0_t_shape = (0_usize, self._s.column(0).len());
+            let mut cnots1_t_shape = (0_usize, 0_usize);
+            cnots1_t_shape.1 = cnots0_t_shape.1;
+            for cols in self._s.columns() {
+                if cols[_j] == 0 {
+                    cnots0_t_shape.0 += 1;
+                    cnots0_t.append(&mut cols.to_vec());
+                } else if cols[_j] == 1 {
+                    cnots1_t_shape.0 += 1;
+                    cnots1_t.append(&mut cols.to_vec());
+                }
+            }
+
+            let cnots0 =
+                Array2::from_shape_vec((cnots0_t_shape.0, cnots0_t_shape.1), cnots0_t).unwrap();
+            let cnots1 =
+                Array2::from_shape_vec((cnots1_t_shape.0, cnots1_t_shape.1), cnots1_t).unwrap();
+
+            let cnots0 = cnots0.reversed_axes().to_owned();
+            let cnots1 = cnots1.reversed_axes().to_owned();
+
+            if self._ep == self.num_qubits {
+                let data = (
+                    cnots1,
+                    self._i.clone().into_iter().filter(|&x| x != _j).collect(),
+                    _j,
+                );
+                if !self.q.contains(&data) {
+                    self.q.push(data);
+                }
+            } else {
+                let data = (
+                    cnots1,
+                    self._i.clone().into_iter().filter(|&x| x != _j).collect(),
+                    self._ep,
+                );
+                if !self.q.contains(&data) {
+                    self.q.push(data);
+                }
+            }
+            let data = (
+                cnots0,
+                self._i.clone().into_iter().filter(|&x| x != _j).collect(),
+                self._ep,
+            );
+            if !self.q.contains(&data) {
+                self.q.push(data);
+            }
+            self.next()
+        } else {
+            None
+        }
+    }
+}
+
+#[derive(Clone)]
+struct BindingIterator {
+    num_qubits: usize,
+    q: Vec<(Array2<u8>, Vec<usize>, usize)>,
+    phase_iter_handle: PhaseIterator,
+    cx_phase_iter_handle: Option<CXPhaseIterator>,
+    phase_iterator_done: bool,
+}
+
+impl BindingIterator {
+    fn new(s: Array2<u8>, angles: Vec<String>, state: Array2<u8>) -> Self {
+        let num_qubits = s.nrows();
+        let q = vec![(
+            s.clone(),
+            (0..num_qubits).collect::<Vec<usize>>(),
+            num_qubits,
+        )];
+        Self {
+            num_qubits,
+            q,
+            phase_iter_handle: PhaseIterator::new(num_qubits, s, state, angles),
+            cx_phase_iter_handle: None,
+            phase_iterator_done: false,
+        }
+    }
+}
+
+impl Iterator for BindingIterator {
+    type Item = Instruction;
+    fn next(&mut self) -> Option<Self::Item> {
+        if !self.phase_iterator_done {
+            let data = self.phase_iter_handle.next();
+            if data.is_none() {
+                self.cx_phase_iter_handle = Some(CXPhaseIterator::new(
+                    self.num_qubits,
+                    self.phase_iter_handle.s_cpy.clone(),
+                    self.phase_iter_handle.state.clone(),
+                    self.phase_iter_handle.rust_angles.clone(),
+                    self.q.clone(),
+                ));
+                self.phase_iterator_done = true;
+                self.next()
+            } else {
+                data
+            }
+        } else if let Some(handle) = self.cx_phase_iter_handle.as_mut() {
+            handle.next()
+        } else {
+            None
         }
     }
 }
@@ -128,209 +395,25 @@ pub fn synth_cnot_phase_aam(
 ) -> PyResult<CircuitData> {
     let s = cnots.as_array().to_owned();
     let num_qubits = s.nrows();
-    let mut instructions = vec![];
 
-    let rust_angles: Vec<String> = angles
+    let rust_angles = angles
         .iter()
         .filter_map(|data| data.extract::<String>().ok())
-        .collect();
-    let mut state = Array2::<u8>::eye(num_qubits);
+        .collect::<Vec<String>>();
 
-    let mut instr_iter = InstructionIterator::new(s.clone(), state.clone(), rust_angles);
+    let state = Array2::<u8>::eye(num_qubits);
 
-    let new_iter = std::iter::from_fn(|| instr_iter.next());
-    let mut ins: Vec<Instruction> = new_iter.collect::<Vec<Instruction>>();
-    let (mut s_cpy, mut rust_angles) = instr_iter.current_state();
+    let mut binding_iter_handle = BindingIterator::new(s, rust_angles, state);
 
-    instructions.append(&mut ins);
+    // Optimize this one!
+    let cx_phase_iter = std::iter::from_fn(|| binding_iter_handle.next());
+    let cx_phase_iter_vec = cx_phase_iter.collect::<Vec<Instruction>>();
 
-    let epsilon: usize = num_qubits;
-    let mut q = vec![(s, (0..num_qubits).collect::<Vec<usize>>(), epsilon)];
+    let residual_state = binding_iter_handle.cx_phase_iter_handle.unwrap().state;
+    let state_bool = residual_state.mapv(|x| x != 0);
 
-    while !q.is_empty() {
-        let (mut _s, mut _i, mut _ep) = q.pop().unwrap();
+    let synth_pmh_iter = synth_pmh(state_bool, section_size).rev();
+    let cnot_synth_iter = cx_phase_iter_vec.into_iter().chain(synth_pmh_iter);
 
-        if _s.is_empty() {
-            continue;
-        }
-
-        if _ep < num_qubits {
-            let mut condition = true;
-            while condition {
-                condition = false;
-
-                for _j in 0..num_qubits {
-                    if (_j != _ep) && (_s.row(_j).sum() as usize == _s.row(_j).len()) {
-                        condition = true;
-                        instructions.push((
-                            StandardGate::CXGate,
-                            smallvec![],
-                            smallvec![Qubit(_j as u32), Qubit(_ep as u32)],
-                        ));
-
-                        for _k in 0..state.ncols() {
-                            state[(_ep, _k)] ^= state[(_j, _k)];
-                        }
-
-                        let mut index = 0_usize;
-                        let mut swtch: bool = true;
-                        while index < s_cpy.ncols() {
-                            let icnot = s_cpy.column(index).to_vec();
-                            if icnot == state.row(_ep).to_vec() {
-                                match rust_angles.remove(index) {
-                                    gate if gate == "t" => instructions.push((
-                                        StandardGate::TGate,
-                                        smallvec![],
-                                        smallvec![Qubit(_ep as u32)],
-                                    )),
-                                    gate if gate == "tdg" => instructions.push((
-                                        StandardGate::TdgGate,
-                                        smallvec![],
-                                        smallvec![Qubit(_ep as u32)],
-                                    )),
-                                    gate if gate == "s" => instructions.push((
-                                        StandardGate::SGate,
-                                        smallvec![],
-                                        smallvec![Qubit(_ep as u32)],
-                                    )),
-                                    gate if gate == "sdg" => instructions.push((
-                                        StandardGate::SdgGate,
-                                        smallvec![],
-                                        smallvec![Qubit(_ep as u32)],
-                                    )),
-                                    gate if gate == "z" => instructions.push((
-                                        StandardGate::ZGate,
-                                        smallvec![],
-                                        smallvec![Qubit(_ep as u32)],
-                                    )),
-                                    angles_in_pi => instructions.push((
-                                        StandardGate::PhaseGate,
-                                        smallvec![Param::Float(
-                                            (angles_in_pi.parse::<f64>()?) % PI
-                                        )],
-                                        smallvec![Qubit(_ep as u32)],
-                                    )),
-                                };
-                                s_cpy.remove_index(numpy::ndarray::Axis(1), index);
-                                if index == s_cpy.ncols() {
-                                    break;
-                                }
-                                if index == 0 {
-                                    swtch = false;
-                                } else {
-                                    index -= 1;
-                                }
-                            }
-                            if swtch {
-                                index += 1;
-                            } else {
-                                swtch = true;
-                            }
-                        }
-
-                        q.push((_s, _i, _ep));
-                        let mut unique_q = vec![];
-                        for data in q.into_iter() {
-                            if !unique_q.contains(&data) {
-                                unique_q.push(data);
-                            }
-                        }
-
-                        q = unique_q;
-
-                        for data in &mut q {
-                            let (ref mut _temp_s, _, _) = data;
-
-                            if _temp_s.is_empty() {
-                                continue;
-                            }
-
-                            for idx in 0.._temp_s.row(_j).len() {
-                                _temp_s[(_j, idx)] ^= _temp_s[(_ep, idx)];
-                            }
-                        }
-
-                        (_s, _i, _ep) = q.pop().unwrap();
-                    }
-                }
-            }
-        }
-
-        if _i.is_empty() {
-            continue;
-        }
-
-        let maxes: Vec<usize> = _s
-            .axis_iter(numpy::ndarray::Axis(0))
-            .map(|row| {
-                std::cmp::max(
-                    row.iter().filter(|&&x| x == 0).count(),
-                    row.iter().filter(|&&x| x == 1).count(),
-                )
-            })
-            .collect();
-
-        let maxes2: Vec<usize> = _i.iter().map(|&_i_idx| maxes[_i_idx]).collect();
-
-        let _temp_argmax = maxes2
-            .iter()
-            .enumerate()
-            .max_by(|(_, x), (_, y)| x.cmp(y))
-            .map(|(idx, _)| idx)
-            .unwrap();
-
-        let _j = _i[_temp_argmax];
-
-        let mut cnots0_t = vec![];
-        let mut cnots1_t = vec![];
-
-        let mut cnots0_t_shape = (0_usize, _s.column(0).len());
-        let mut cnots1_t_shape = (0_usize, 0_usize);
-        cnots1_t_shape.1 = cnots0_t_shape.1;
-        for cols in _s.columns() {
-            if cols[_j] == 0 {
-                cnots0_t_shape.0 += 1;
-                cnots0_t.append(&mut cols.to_vec());
-            } else if cols[_j] == 1 {
-                cnots1_t_shape.0 += 1;
-                cnots1_t.append(&mut cols.to_vec());
-            }
-        }
-
-        let cnots0 =
-            Array2::from_shape_vec((cnots0_t_shape.0, cnots0_t_shape.1), cnots0_t).unwrap();
-        let cnots1 =
-            Array2::from_shape_vec((cnots1_t_shape.0, cnots1_t_shape.1), cnots1_t).unwrap();
-
-        let cnots0 = cnots0.reversed_axes().to_owned();
-        let cnots1 = cnots1.reversed_axes().to_owned();
-
-        if _ep == num_qubits {
-            q.push((
-                cnots1,
-                _i.clone().into_iter().filter(|&x| x != _j).collect(),
-                _j,
-            ));
-        } else {
-            q.push((
-                cnots1,
-                _i.clone().into_iter().filter(|&x| x != _j).collect(),
-                _ep,
-            ));
-        }
-
-        q.push((
-            cnots0,
-            _i.clone().into_iter().filter(|&x| x != _j).collect(),
-            _ep,
-        ));
-    }
-
-    let state_bool = state.mapv(|x| x != 0);
-    let mut instrs = synth_pmh(state_bool, section_size)
-        .into_iter()
-        .rev()
-        .collect();
-    instructions.append(&mut instrs);
-    CircuitData::from_standard_gates(py, num_qubits as u32, instructions, Param::Float(0.0))
+    CircuitData::from_standard_gates(py, num_qubits as u32, cnot_synth_iter, Param::Float(0.0))
 }
