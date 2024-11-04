@@ -541,7 +541,9 @@ class Operator(LinearOp):
         ret._op_shape = new_shape
         return ret
 
-    def power(self, n: float, branch_cut_rotation=cmath.pi * 1e-12) -> Operator:
+    def power(
+        self, n: float, branch_cut_rotation=cmath.pi * 1e-12, assume_unitary=False
+    ) -> Operator:
         """Return the matrix power of the operator.
 
         Non-integer powers of operators with an eigenvalue whose complex phase is :math:`\\pi` have
@@ -572,6 +574,8 @@ class Operator(LinearOp):
                 complex plane.  This shifts the branch cut away from the common point of :math:`-1`,
                 but can cause a different root to be selected as the principal root.  The rotation
                 is anticlockwise, following the standard convention for complex phase.
+            assume_unitary (bool): if `True`, the operator is assumed to be unitary. In this case,
+                for fractional powers we employ a faster implementation based on Schur's decomposition.
 
         Returns:
             Operator: the resulting operator ``O ** n``.
@@ -588,11 +592,23 @@ class Operator(LinearOp):
         else:
             import scipy.linalg
 
-            ret._data = cmath.rect(
-                1, branch_cut_rotation * n
-            ) * scipy.linalg.fractional_matrix_power(
-                cmath.rect(1, -branch_cut_rotation) * self.data, n
-            )
+            if not assume_unitary:
+                ret._data = cmath.rect(
+                    1, branch_cut_rotation * n
+                ) * scipy.linalg.fractional_matrix_power(
+                    cmath.rect(1, -branch_cut_rotation) * self.data, n
+                )
+            else:
+                # Experimentally, for fractional powers this seems to be 3x faster than
+                # calling scipy.linalg.fractional_matrix_power(self.data, exponent)
+                decomposition, unitary = scipy.linalg.schur(
+                    cmath.rect(1, -branch_cut_rotation) * self.data, output="complex"
+                )
+                decomposition_diagonal = decomposition.diagonal()
+                decomposition_power = [pow(element, n) for element in decomposition_diagonal]
+                unitary_power = unitary @ np.diag(decomposition_power) @ unitary.conj().T
+                ret._data = cmath.rect(1, branch_cut_rotation * n) * unitary_power
+
         return ret
 
     def tensor(self, other: Operator) -> Operator:
