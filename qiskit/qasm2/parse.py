@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """Python-space bytecode interpreter for the output of the main Rust parser logic."""
-
+import warnings
 import dataclasses
 import math
 from typing import Iterable, Callable
@@ -89,6 +89,35 @@ class CustomInstruction:
     There is a final ``builtin`` field.  This is optional, and if set true will cause the
     instruction to be defined and available within the parsing, even if there is no definition in
     any included OpenQASM 2 file.
+
+    Examples:
+
+        Instruct the importer to use Qiskit's :class:`.ECRGate` and :class:`.RZXGate` objects to
+        interpret ``gate`` statements that are known to have been created from those same objects
+        during OpenQASM 2 export::
+
+            from qiskit import qasm2
+            from qiskit.circuit import QuantumCircuit, library
+
+            qc = QuantumCircuit(2)
+            qc.ecr(0, 1)
+            qc.rzx(0.3, 0, 1)
+            qc.rzx(0.7, 1, 0)
+            qc.rzx(1.5, 0, 1)
+            qc.ecr(1, 0)
+
+            # This output string includes `gate ecr q0, q1 { ... }` and `gate rzx(p) q0, q1 { ... }`
+            # statements, since `ecr` and `rzx` are neither built-in gates nor in ``qelib1.inc``.
+            dumped = qasm2.dumps(qc)
+
+            # Tell the importer how to interpret the `gate` statements, which we know are safe
+            # because we controlled the input OpenQASM 2 source.
+            custom = [
+                qasm2.CustomInstruction("ecr", 0, 2, library.ECRGate),
+                qasm2.CustomInstruction("rzx", 1, 2, library.RZXGate),
+            ]
+
+            loaded = qasm2.loads(dumped, custom_instructions=custom)
     """
 
     name: str
@@ -226,6 +255,11 @@ def from_bytecode(bytecode, custom_instructions: Iterable[CustomInstruction]):
                 CircuitInstruction(gates[gate_id](*parameters), [qubits[q] for q in op_qubits])
             )
         elif opcode == OpCode.ConditionedGate:
+            warnings.warn(
+                "Conditioned gates in qasm2 will be loaded as an IfElseOp starting in Qiskit 2.0",
+                FutureWarning,
+                stacklevel=3,
+            )
             gate_id, parameters, op_qubits, creg, value = op.operands
             gate = gates[gate_id](*parameters).c_if(qc.cregs[creg], value)
             qc._append(CircuitInstruction(gate, [qubits[q] for q in op_qubits]))
@@ -233,12 +267,22 @@ def from_bytecode(bytecode, custom_instructions: Iterable[CustomInstruction]):
             qubit, clbit = op.operands
             qc._append(CircuitInstruction(Measure(), (qubits[qubit],), (clbits[clbit],)))
         elif opcode == OpCode.ConditionedMeasure:
+            warnings.warn(
+                "Conditioned measurements in qasm2 will be loaded as an IfElseOp starting in Qiskit 2.0",
+                FutureWarning,
+                stacklevel=3,
+            )
             qubit, clbit, creg, value = op.operands
             measure = Measure().c_if(qc.cregs[creg], value)
             qc._append(CircuitInstruction(measure, (qubits[qubit],), (clbits[clbit],)))
         elif opcode == OpCode.Reset:
             qc._append(CircuitInstruction(Reset(), (qubits[op.operands[0]],)))
         elif opcode == OpCode.ConditionedReset:
+            warnings.warn(
+                "Conditioned resets in qasm2 will be loaded as an IfElseOp starting in Qiskit 2.0",
+                FutureWarning,
+                stacklevel=3,
+            )
             qubit, creg, value = op.operands
             reset = Reset().c_if(qc.cregs[creg], value)
             qc._append(CircuitInstruction(reset, (qubits[qubit],)))
@@ -327,7 +371,7 @@ class _DefinedGate(Gate):
     # to pickle ourselves, we just eagerly create the definition and pickle that.
 
     def __getstate__(self):
-        return (self.name, self.num_qubits, self.params, self.definition, self.condition)
+        return (self.name, self.num_qubits, self.params, self.definition, self._condition)
 
     def __setstate__(self, state):
         name, num_qubits, params, definition, condition = state

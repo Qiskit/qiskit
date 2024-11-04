@@ -16,6 +16,7 @@ Matrix Operator class.
 
 from __future__ import annotations
 
+import cmath
 import copy as _copy
 import re
 from numbers import Number
@@ -55,6 +56,30 @@ class Operator(LinearOp):
     .. math::
 
         \rho \mapsto M \rho M^\dagger.
+
+    For example, the following operator :math:`M = X` applied to the zero state
+    :math:`|\psi\rangle=|0\rangle (\rho = |0\rangle\langle 0|)` changes it to the
+    one state :math:`|\psi\rangle=|1\rangle (\rho = |1\rangle\langle 1|)`:
+
+    .. code-block:: python
+
+        >>> import numpy as np
+        >>> from qiskit.quantum_info import Operator
+        >>> op = Operator(np.array([[0.0, 1.0], [1.0, 0.0]]))  # Represents Pauli X operator
+
+        >>> from qiskit.quantum_info import Statevector
+        >>> sv = Statevector(np.array([1.0, 0.0]))
+        >>> sv.evolve(op)
+        Statevector([0.+0.j, 1.+0.j],
+                    dims=(2,))
+
+        >>> from qiskit.quantum_info import DensityMatrix
+        >>> dm = DensityMatrix(np.array([[1.0, 0.0], [0.0, 0.0]]))
+        >>> dm.evolve(op)
+        DensityMatrix([[0.+0.j, 0.+0.j],
+                    [0.+0.j, 1.+0.j]],
+                    dims=(2,))
+
     """
 
     def __init__(
@@ -516,11 +541,37 @@ class Operator(LinearOp):
         ret._op_shape = new_shape
         return ret
 
-    def power(self, n: float) -> Operator:
+    def power(self, n: float, branch_cut_rotation=cmath.pi * 1e-12) -> Operator:
         """Return the matrix power of the operator.
+
+        Non-integer powers of operators with an eigenvalue whose complex phase is :math:`\\pi` have
+        a branch cut in the complex plane, which makes the calculation of the principal root around
+        this cut subject to precision / differences in BLAS implementation.  For example, the square
+        root of Pauli Y can return the :math:`\\pi/2` or :math:`-\\pi/2` Y rotation depending on
+        whether the -1 eigenvalue is found as ``complex(-1, tiny)`` or ``complex(-1, -tiny)``. Such
+        eigenvalues are really common in quantum information, so this function first phase-rotates
+        the input matrix to shift the branch cut to a far less common point.  The underlying
+        numerical precision issues around the branch-cut point remain, if an operator has an
+        eigenvalue close to this phase.  The magnitude of this rotation can be controlled with the
+        ``branch_cut_rotation`` parameter.
+
+        The choice of ``branch_cut_rotation`` affects the principal root that is found.  For
+        example, the square root of :class:`.ZGate` will be calculated as either :class:`.SGate` or
+        :class:`.SdgGate` depending on which way the rotation is done::
+
+            from qiskit.circuit import library
+            from qiskit.quantum_info import Operator
+
+            z_op = Operator(library.ZGate())
+            assert z_op.power(0.5, branch_cut_rotation=1e-3) == Operator(library.SGate())
+            assert z_op.power(0.5, branch_cut_rotation=-1e-3) == Operator(library.SdgGate())
 
         Args:
             n (float): the power to raise the matrix to.
+            branch_cut_rotation (float): The rotation angle to apply to the branch cut in the
+                complex plane.  This shifts the branch cut away from the common point of :math:`-1`,
+                but can cause a different root to be selected as the principal root.  The rotation
+                is anticlockwise, following the standard convention for complex phase.
 
         Returns:
             Operator: the resulting operator ``O ** n``.
@@ -537,13 +588,11 @@ class Operator(LinearOp):
         else:
             import scipy.linalg
 
-            # Experimentally, for fractional powers this seems to be 3x faster than
-            # calling scipy.linalg.fractional_matrix_power(self.data, n)
-            decomposition, unitary = scipy.linalg.schur(self.data, output="complex")
-            decomposition_diagonal = decomposition.diagonal()
-            decomposition_power = [pow(element, n) for element in decomposition_diagonal]
-            unitary_power = unitary @ np.diag(decomposition_power) @ unitary.conj().T
-            ret._data = unitary_power
+            ret._data = cmath.rect(
+                1, branch_cut_rotation * n
+            ) * scipy.linalg.fractional_matrix_power(
+                cmath.rect(1, -branch_cut_rotation) * self.data, n
+            )
         return ret
 
     def tensor(self, other: Operator) -> Operator:
