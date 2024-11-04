@@ -963,7 +963,7 @@ def _format(operand):
     /// case, the operation does not need to be translated to the device basis.
     ///
     /// DEPRECATED since Qiskit 1.3.0 and will be removed in Qiskit 2.0.0
-    fn has_calibration_for(&self, py: Python, node: PyRef<DAGOpNode>) -> PyResult<bool> {
+    pub fn has_calibration_for(&self, py: Python, node: PyRef<DAGOpNode>) -> PyResult<bool> {
         emit_pulse_dependency_deprecation(
             py,
             "method ``qiskit.dagcircuit.dagcircuit.DAGCircuit.has_calibration_for``",
