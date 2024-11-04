@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Test the CX Direction  pass"""
+"""Test the Gate Direction pass"""
 
 import unittest
 from math import pi
@@ -65,9 +65,9 @@ class TestGateDirection(QiskitTestCase):
         """The mapping cannot be fixed by direction mapper
         qr0:---------
 
-        qr1:---(+)---
+        qr1:----.-----
                 |
-        qr2:----.----
+        qr2:---(+)----
 
         CouplingMap map: [2] <- [0] -> [1]
         """
@@ -84,9 +84,9 @@ class TestGateDirection(QiskitTestCase):
 
     def test_direction_correct(self):
         """The CX is in the right direction
-        qr0:---(+)---
+        qr0:----.----
                 |
-        qr1:----.----
+        qr1:---(+)----
 
         CouplingMap map: [0] -> [1]
         """
@@ -103,9 +103,9 @@ class TestGateDirection(QiskitTestCase):
 
     def test_multi_register(self):
         """The CX is in the right direction
-        qr0:---(+)---
+        qr0:----.-----
                 |
-        qr1:----.----
+        qr1:---(+)----
 
         CouplingMap map: [0] -> [1]
         """
@@ -123,15 +123,15 @@ class TestGateDirection(QiskitTestCase):
 
     def test_direction_flip(self):
         """Flip a CX
-        qr0:----.----
+        qr0:---(+)---
                 |
-        qr1:---(+)---
+        qr1:----.----
 
         CouplingMap map: [0] -> [1]
 
-        qr0:-[H]-(+)-[H]--
+        qr0:-[H]--.--[H]--
                   |
-        qr1:-[H]--.--[H]--
+        qr1:-[H]-(+)--[H]--
         """
         qr = QuantumRegister(2, "qr")
         circuit = QuantumCircuit(qr)
@@ -492,7 +492,7 @@ class TestGateDirection(QiskitTestCase):
         circuit.append(gate, (1, 0))
 
         pass_ = GateDirection(None, target)
-        with self.assertRaisesRegex(TranspilerError, "'my_2q_gate' would be supported.*"):
+        with self.assertRaisesRegex(TranspilerError, "my_2q_gate would be supported.*"):
             pass_(circuit)
 
     def test_target_cannot_flip_message_calibrated(self):
@@ -508,7 +508,7 @@ class TestGateDirection(QiskitTestCase):
             circuit.add_calibration(gate, (0, 1), pulse.ScheduleBlock())
 
         pass_ = GateDirection(None, target)
-        with self.assertRaisesRegex(TranspilerError, "'my_2q_gate' would be supported.*"):
+        with self.assertRaisesRegex(TranspilerError, "my_2q_gate would be supported.*"):
             pass_(circuit)
 
     def test_target_unknown_gate_message(self):
@@ -522,7 +522,7 @@ class TestGateDirection(QiskitTestCase):
         circuit.append(gate, (0, 1))
 
         pass_ = GateDirection(None, target)
-        with self.assertRaisesRegex(TranspilerError, "'my_2q_gate'.*not supported on qubits .*"):
+        with self.assertRaisesRegex(TranspilerError, "my_2q_gate.*not supported on qubits .*"):
             pass_(circuit)
 
     def test_allows_calibrated_gates_coupling_map(self):
