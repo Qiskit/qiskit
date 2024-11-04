@@ -43,8 +43,8 @@ deprecations_transpiler:
       * :class:`~qiskit.transpiler.passes.EchoRZXWeylDecomposition`
   - |
     The `inst_map` argument in :func:`~qiskit.transpiler.generate_preset_pass_manager`,
-    :meth:`~transpiler.target.Target.from_configuration` and :func:`~qiskit.transpiler.preset_passmanagers.common.generate_scheduling`
-    is being deprecated.
+    :meth:`~transpiler.target.Target.from_configuration`, :class:`~qiskit.transpiler.PassManagerConfig` initializer
+    and :func:`~qiskit.transpiler.preset_passmanagers.common.generate_scheduling` is being deprecated.
   - |
     The `calibration` argument in :func:`~qiskit.transpiler.target.InstructionProperties` initializer methods is being
     deprecated.
