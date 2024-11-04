@@ -12,9 +12,9 @@
 
 """Fourier checking circuit."""
 
-from typing import List
-
+from collections.abc import Sequence
 import math
+
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.utils.deprecation import deprecate_func
@@ -58,7 +58,7 @@ class FourierChecking(QuantumCircuit):
         additional_msg="Use qiskit.circuit.library.fourier_checking instead.",
         pending=True,
     )
-    def __init__(self, f: List[int], g: List[int]) -> None:
+    def __init__(self, f: Sequence[int], g: Sequence[int]) -> None:
         """Create Fourier checking circuit.
 
         Args:
@@ -100,7 +100,7 @@ class FourierChecking(QuantumCircuit):
         self.compose(circuit.to_gate(), qubits=self.qubits, inplace=True)
 
 
-def fourier_checking(f: List[int], g: List[int]) -> QuantumCircuit:
+def fourier_checking(f: Sequence[int], g: Sequence[int]) -> QuantumCircuit:
     """Fourier checking circuit.
 
     The circuit for the Fourier checking algorithm, introduced in [1],

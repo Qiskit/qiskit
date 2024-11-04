@@ -217,26 +217,25 @@ class TestPhaseEstimation(QiskitTestCase):
 
             self.assertPhaseEstimationIsCorrect(pec, eigenstate, phase_as_binary)
 
-    def test_phase_estimation_function_swaps_removed(self):
+    def test_phase_estimation_function_swaps_get_removed(self):
         """Test that transpiling the circuit correctly removes swaps and permutations."""
-        with self.subTest("U=S, psi=|1>"):
-            unitary = QuantumCircuit(1)
-            unitary.s(0)
+        unitary = QuantumCircuit(1)
+        unitary.s(0)
 
-            eigenstate = QuantumCircuit(1)
-            eigenstate.x(0)
+        eigenstate = QuantumCircuit(1)
+        eigenstate.x(0)
 
-            pec = phase_estimation(4, unitary)
+        pec = phase_estimation(4, unitary)
 
-            # transpilation (or more precisely HighLevelSynthesis + ElidePermutations) should
-            # remove all swap gates (possibly added when synthesizing the QFTGate in the circuit)
-            # and the final permutation gate
-            transpiled = transpile(pec)
-            transpiled_ops = transpiled.count_ops()
+        # transpilation (or more precisely HighLevelSynthesis + ElidePermutations) should
+        # remove all swap gates (possibly added when synthesizing the QFTGate in the circuit)
+        # and the final permutation gate
+        transpiled = transpile(pec)
+        transpiled_ops = transpiled.count_ops()
 
-            self.assertNotIn("permutation", transpiled_ops)
-            self.assertNotIn("swap", transpiled_ops)
-            self.assertNotIn("cx", transpiled_ops)
+        self.assertNotIn("permutation", transpiled_ops)
+        self.assertNotIn("swap", transpiled_ops)
+        self.assertNotIn("cx", transpiled_ops)
 
 
 if __name__ == "__main__":
