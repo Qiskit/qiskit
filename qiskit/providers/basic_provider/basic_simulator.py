@@ -257,7 +257,7 @@ class BasicSimulator(BackendV2):
                 backend_name=self.name,
                 backend_version=self.backend_version,
                 n_qubits=self.num_qubits,
-                basis_gates=self.target.operation_names,
+                basis_gates=list(self.target.operation_names),
                 gates=gates,
                 local=True,
                 simulator=True,

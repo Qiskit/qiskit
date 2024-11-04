@@ -111,7 +111,7 @@ class SuzukiTrotter(ProductFormula):
         if order > 1 and order % 2 == 1:
             raise ValueError(
                 "Suzuki product formulae are symmetric and therefore only defined "
-                "for even orders (or order==1)."
+                f"for when the order is 1 or even, not {order}."
             )
         super().__init__(order, reps, insert_barriers, cx_structure, atomic_evolution, wrap)
 

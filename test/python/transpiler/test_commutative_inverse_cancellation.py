@@ -415,7 +415,8 @@ class TestCommutativeInverseCancellation(QiskitTestCase):
         circuit.h(0)
         circuit.measure(0, 0)
         circuit.cx(1, 2)
-        circuit.cx(1, 2).c_if(circuit.cregs[0], 0)
+        with self.assertWarns(DeprecationWarning):
+            circuit.cx(1, 2).c_if(circuit.cregs[0], 0)
         circuit.measure([1, 2], [0, 1])
 
         passmanager = PassManager(CommutativeInverseCancellation(matrix_based=matrix_based))

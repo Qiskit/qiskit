@@ -2268,7 +2268,8 @@ class TestPostTranspileIntegration(QiskitTestCase):
         base.append(CustomCX(), [3, 6])
         base.append(CustomCX(), [5, 4])
         base.append(CustomCX(), [5, 3])
-        base.append(CustomCX(), [2, 4]).c_if(base.cregs[0], 3)
+        with self.assertWarns(DeprecationWarning):
+            base.append(CustomCX(), [2, 4]).c_if(base.cregs[0], 3)
         base.ry(a, 4)
         base.measure(4, 2)
         return base
@@ -2882,12 +2883,14 @@ class TestTranspileParallel(QiskitTestCase):
         circ = QuantumCircuit(2, 1)
         circ.h(0)
         circ.measure(0, circ.clbits[0])
-        circ.z(1).c_if(circ.clbits[0], 1)
+        with self.assertWarns(DeprecationWarning):
+            circ.z(1).c_if(circ.clbits[0], 1)
         res = transpile(
             [circ, circ], backend, optimization_level=opt_level, seed_transpiler=123456769
         )
         self.assertTrue(res[0].data[-1].operation.mutable)
-        self.assertEqual(res[0].data[-1].operation.condition, (res[0].clbits[0], 1))
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(res[0].data[-1].operation.condition, (res[0].clbits[0], 1))
 
     @data(0, 1, 2, 3)
     def test_backendv2_and_basis_gates(self, opt_level):
@@ -3332,7 +3335,8 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
         for i in range(18):
             qc.measure(i, creg[i])
 
-        qc.ecr(20, 21).c_if(creg, 0)
+        with self.assertWarns(DeprecationWarning):
+            qc.ecr(20, 21).c_if(creg, 0)
         tqc = transpile(qc, self.backend, optimization_level=opt_level, seed_transpiler=42)
 
         def _visit_block(circuit, qubit_mapping=None):
@@ -3368,9 +3372,11 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
         qc.measure(24, creg[0])
         qc.measure(23, creg[1])
         # Component 1
-        qc.h(0).c_if(creg, 0)
+        with self.assertWarns(DeprecationWarning):
+            qc.h(0).c_if(creg, 0)
         for i in range(18):
-            qc.ecr(0, i + 1).c_if(creg, 0)
+            with self.assertWarns(DeprecationWarning):
+                qc.ecr(0, i + 1).c_if(creg, 0)
         tqc = transpile(qc, self.backend, optimization_level=opt_level, seed_transpiler=123456789)
 
         def _visit_block(circuit, qubit_mapping=None):
@@ -3442,9 +3448,11 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
         qc.measure(0, creg[0])
         qc.measure(1, creg[1])
         # Component 1
-        qc.h(24).c_if(creg, 0)
+        with self.assertWarns(DeprecationWarning):
+            qc.h(24).c_if(creg, 0)
         for i in range(23, 5, -1):
-            qc.ecr(24, i).c_if(creg, 0)
+            with self.assertWarns(DeprecationWarning):
+                qc.ecr(24, i).c_if(creg, 0)
         tqc = transpile(qc, self.backend, optimization_level=opt_level, seed_transpiler=2023)
 
         def _visit_block(circuit, qubit_mapping=None):
@@ -3515,15 +3523,19 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
         measure_op = Measure()
         qc.append(measure_op, [9], [creg[0]])
         # Component 1
-        qc.h(10).c_if(creg, 0)
+        with self.assertWarns(DeprecationWarning):
+            qc.h(10).c_if(creg, 0)
         for i in range(11, 20):
-            qc.ecr(10, i).c_if(creg, 0)
+            with self.assertWarns(DeprecationWarning):
+                qc.ecr(10, i).c_if(creg, 0)
         measure_op = Measure()
         qc.append(measure_op, [19], [creg[0]])
         # Component 2
-        qc.h(20).c_if(creg, 0)
+        with self.assertWarns(DeprecationWarning):
+            qc.h(20).c_if(creg, 0)
         for i in range(21, 30):
-            qc.cz(20, i).c_if(creg, 0)
+            with self.assertWarns(DeprecationWarning):
+                qc.cz(20, i).c_if(creg, 0)
         measure_op = Measure()
         qc.append(measure_op, [29], [creg[0]])
         tqc = transpile(qc, self.backend, optimization_level=opt_level, seed_transpiler=2023)
