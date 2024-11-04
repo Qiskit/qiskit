@@ -656,7 +656,7 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
                 ob.getattr(intern!(py, "label"))?.extract()?,
                 duration,
                 unit,
-                ob.getattr(intern!(py, "condition"))?.extract()?,
+                ob.getattr(intern!(py, "_condition"))?.extract()?,
             ))
         };
 

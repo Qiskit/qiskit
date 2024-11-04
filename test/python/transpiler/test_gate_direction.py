@@ -243,8 +243,10 @@ class TestGateDirection(QiskitTestCase):
         cr = ClassicalRegister(1, "c")
 
         circuit = QuantumCircuit(qr, cr)
-        circuit.cx(qr[0], qr[1]).c_if(cr, 0)
-        circuit.cx(qr[1], qr[0]).c_if(cr, 0)
+        with self.assertWarns(DeprecationWarning):
+            circuit.cx(qr[0], qr[1]).c_if(cr, 0)
+        with self.assertWarns(DeprecationWarning):
+            circuit.cx(qr[1], qr[0]).c_if(cr, 0)
 
         circuit.cx(qr[0], qr[1])
         circuit.cx(qr[1], qr[0])
@@ -261,16 +263,22 @@ class TestGateDirection(QiskitTestCase):
         # c: 1/╡ 0x0 ╞╡ 0x0 ╞╡ 0x0 ╞╡ 0x0 ╞╡ 0x0 ╞╡ 0x0 ╞════════════════════
         #      └─────┘└─────┘└─────┘└─────┘└─────┘└─────┘
         expected = QuantumCircuit(qr, cr)
-        expected.cx(qr[0], qr[1]).c_if(cr, 0)
+        with self.assertWarns(DeprecationWarning):
+            expected.cx(qr[0], qr[1]).c_if(cr, 0)
 
         # Order of H gates is important because DAG comparison will consider
         # different conditional order on a creg to be a different circuit.
         # See https://github.com/Qiskit/qiskit-terra/issues/3164
-        expected.h(qr[1]).c_if(cr, 0)
-        expected.h(qr[0]).c_if(cr, 0)
-        expected.cx(qr[0], qr[1]).c_if(cr, 0)
-        expected.h(qr[1]).c_if(cr, 0)
-        expected.h(qr[0]).c_if(cr, 0)
+        with self.assertWarns(DeprecationWarning):
+            expected.h(qr[1]).c_if(cr, 0)
+        with self.assertWarns(DeprecationWarning):
+            expected.h(qr[0]).c_if(cr, 0)
+        with self.assertWarns(DeprecationWarning):
+            expected.cx(qr[0], qr[1]).c_if(cr, 0)
+        with self.assertWarns(DeprecationWarning):
+            expected.h(qr[1]).c_if(cr, 0)
+        with self.assertWarns(DeprecationWarning):
+            expected.h(qr[0]).c_if(cr, 0)
 
         expected.cx(qr[0], qr[1])
         expected.h(qr[1])
