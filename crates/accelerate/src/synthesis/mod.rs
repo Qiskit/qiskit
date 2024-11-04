@@ -13,6 +13,7 @@
 mod clifford;
 pub mod linear;
 pub mod linear_phase;
+mod multi_controlled;
 mod permutation;
 
 use pyo3::prelude::*;
@@ -33,6 +34,10 @@ pub fn synthesis(m: &Bound<PyModule>) -> PyResult<()> {
     let clifford_mod = PyModule::new_bound(m.py(), "clifford")?;
     clifford::clifford(&clifford_mod)?;
     m.add_submodule(&clifford_mod)?;
+
+    let mc_mod = PyModule::new_bound(m.py(), "multi_controlled")?;
+    multi_controlled::multi_controlled(&mc_mod)?;
+    m.add_submodule(&mc_mod)?;
 
     Ok(())
 }

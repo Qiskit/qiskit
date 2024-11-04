@@ -21,6 +21,7 @@ from ddt import ddt, data, idata, unpack
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.quantum_info import Operator
 from qiskit.circuit import ParameterVector, Gate, ControlledGate
+from qiskit.circuit.quantumregister import Qubit
 from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate
 from qiskit.circuit.library import standard_gates
 from qiskit.circuit.library import (
@@ -54,6 +55,8 @@ from qiskit.circuit.library import (
     CZGate,
     RYYGate,
     PhaseGate,
+    PauliGate,
+    UCPauliRotGate,
     CPhaseGate,
     UGate,
     CUGate,
@@ -184,6 +187,18 @@ class TestGateDefinitions(QiskitTestCase):
         self.assertTrue(len(decomposed_circuit) > len(circuit))
         self.assertTrue(Operator(circuit).equiv(Operator(decomposed_circuit), atol=1e-7))
 
+    def test_pauligate_repeat(self):
+        """Test `repeat` method for `PauliGate`."""
+        gate = PauliGate("XYZ")
+        operator = Operator(gate)
+        self.assertTrue(np.allclose(Operator(gate.repeat(2)), operator @ operator))
+
+    def test_ucpaulirotgate_repeat(self):
+        """Test `repeat` method for `UCPauliRotGate`."""
+        gate = UCPauliRotGate([0.3, 0.5], "X")
+        operator = Operator(gate)
+        self.assertTrue(np.allclose(Operator(gate.repeat(2)), operator @ operator))
+
 
 @ddt
 class TestStandardGates(QiskitTestCase):
@@ -279,6 +294,7 @@ class TestGateEquivalenceEqual(QiskitTestCase):
         "UCPauliRotGate",
         "SingleQubitUnitary",
         "MCXGate",
+        "MCMTGate",
         "VariadicZeroParamGate",
         "ClassicalFunction",
         "ClassicalElement",
@@ -295,6 +311,11 @@ class TestGateEquivalenceEqual(QiskitTestCase):
         "_SingletonGateOverrides",
         "_SingletonControlledGateOverrides",
         "QFTGate",
+        "GraphStateGate",
+        "AndGate",
+        "OrGate",
+        "BitwiseXorGate",
+        "InnerProductGate",
     }
 
     # Amazingly, Python's scoping rules for class bodies means that this is the closest we can get
@@ -388,11 +409,11 @@ class TestStandardEquivalenceLibrary(QiskitTestCase):
         self.assertGreaterEqual(len(param_entry), 1)
         self.assertGreaterEqual(len(float_entry), 1)
 
-        param_qc = QuantumCircuit(param_gate.num_qubits)
-        float_qc = QuantumCircuit(float_gate.num_qubits)
+        param_qc = QuantumCircuit([Qubit() for _ in range(param_gate.num_qubits)])
+        float_qc = QuantumCircuit([Qubit() for _ in range(float_gate.num_qubits)])
 
-        param_qc.append(param_gate, param_qc.qregs[0])
-        float_qc.append(float_gate, float_qc.qregs[0])
+        param_qc.append(param_gate, param_qc.qubits)
+        float_qc.append(float_gate, float_qc.qubits)
 
         self.assertTrue(any(equiv == param_qc.decompose() for equiv in param_entry))
         self.assertTrue(any(equiv == float_qc.decompose() for equiv in float_entry))

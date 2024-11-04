@@ -53,4 +53,6 @@ def synth_cz_depth_line_mr(mat: np.ndarray) -> QuantumCircuit:
     """
 
     # Call Rust implementaton
-    return QuantumCircuit._from_circuit_data(synth_cz_depth_line_mr_inner(mat.astype(bool)))
+    return QuantumCircuit._from_circuit_data(
+        synth_cz_depth_line_mr_inner(mat.astype(bool)), add_regs=True
+    )
