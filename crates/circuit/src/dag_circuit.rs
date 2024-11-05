@@ -6885,6 +6885,7 @@ impl DAGCircuit {
         Ok(new_node)
     }
 
+    /// Substitute a give node in the dag with a new operation from python
     pub fn substitute_node_with_py_op(
         &mut self,
         py: Python,
