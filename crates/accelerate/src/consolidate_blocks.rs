@@ -49,6 +49,7 @@ fn is_supported(
     }
 }
 
+// If depth > 20, there will be 1q gates to consolidate.
 const MAX_2Q_DEPTH: usize = 20;
 
 #[allow(clippy::too_many_arguments)]
