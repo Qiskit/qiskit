@@ -143,7 +143,6 @@ class TestPresetPassManager(QiskitTestCase):
         circuit = QuantumCircuit(q)
         circuit.h(q[0])
         circuit.cz(q[0], q[1])
-
         result = transpile(circuit, basis_gates=None, optimization_level=level)
         self.assertEqual(result, circuit)
 

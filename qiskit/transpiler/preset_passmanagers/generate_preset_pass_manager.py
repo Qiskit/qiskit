@@ -33,7 +33,7 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.passmanager_config import PassManagerConfig
-from qiskit.transpiler.target import Target, target_to_backend_properties
+from qiskit.transpiler.target import Target, target_to_backend_properties, _FakeTarget
 from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.utils import deprecate_arg
 from qiskit.utils.deprecate_pulse import deprecate_pulse_arg
@@ -342,30 +342,36 @@ def generate_preset_pass_manager(
             # Only parse backend properties when the target isn't skipped to
             # preserve the former behavior of transpile.
             backend_properties = _parse_backend_properties(backend_properties, backend)
-            # Build target from constraints.
-            with warnings.catch_warnings():
-                # TODO: inst_map will be removed in 2.0
-                warnings.filterwarnings(
-                    "ignore",
-                    category=DeprecationWarning,
-                    message=".*``inst_map`` is deprecated as of Qiskit 1.3.*",
-                    module="qiskit",
-                )
-                target = Target.from_configuration(
-                    basis_gates=basis_gates,
+            if basis_gates is not None:
+                # Build target from constraints.
+                with warnings.catch_warnings():
+                    # TODO: inst_map will be removed in 2.0
+                    warnings.filterwarnings(
+                        "ignore",
+                        category=DeprecationWarning,
+                        message=".*``inst_map`` is deprecated as of Qiskit 1.3.*",
+                        module="qiskit",
+                    )
+                    target = Target.from_configuration(
+                        basis_gates=basis_gates,
+                        num_qubits=backend.num_qubits if backend is not None else None,
+                        coupling_map=coupling_map,
+                        # If the instruction map has custom gates, do not give as config, the information
+                        # will be added to the target with update_from_instruction_schedule_map
+                        inst_map=inst_map if inst_map and not inst_map.has_custom_gate() else None,
+                        backend_properties=backend_properties,
+                        instruction_durations=instruction_durations,
+                        concurrent_measurements=(
+                            backend.target.concurrent_measurements if backend is not None else None
+                        ),
+                        dt=dt,
+                        timing_constraints=timing_constraints,
+                        custom_name_mapping=name_mapping,
+                    )
+            else:
+                target = _FakeTarget.from_configuration(
                     num_qubits=backend.num_qubits if backend is not None else None,
                     coupling_map=coupling_map,
-                    # If the instruction map has custom gates, do not give as config, the information
-                    # will be added to the target with update_from_instruction_schedule_map
-                    inst_map=inst_map if inst_map and not inst_map.has_custom_gate() else None,
-                    backend_properties=backend_properties,
-                    instruction_durations=instruction_durations,
-                    concurrent_measurements=(
-                        backend.target.concurrent_measurements if backend is not None else None
-                    ),
-                    dt=dt,
-                    timing_constraints=timing_constraints,
-                    custom_name_mapping=name_mapping,
                 )
 
     # Update target with custom gate information. Note that this is an exception to the priority
