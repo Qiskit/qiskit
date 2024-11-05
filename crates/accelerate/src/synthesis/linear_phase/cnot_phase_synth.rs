@@ -29,6 +29,7 @@ struct PhaseIterator {
     num_qubits: usize,
     qubit_idx: usize,
     index: usize,
+    iter_once: bool,
 }
 
 impl PhaseIterator {
@@ -45,6 +46,7 @@ impl PhaseIterator {
             num_qubits,
             qubit_idx: 0,
             index: 0,
+            iter_once: false,
         }
     }
 }
@@ -107,6 +109,9 @@ impl Iterator for PhaseIterator {
                 self.next()
             }
         } else {
+            if self.iter_once {
+                return None;
+            }
             self.qubit_idx += 1;
             self.index = 0;
             self.next()
@@ -198,14 +203,28 @@ impl Iterator for CXPhaseIterator {
                                 self.state[(self._ep, _k)] ^= self.state[(self.qubit_idx, _k)];
                             }
 
-                            self.phase_iter_handle = Some(PhaseIterator::new(
+                            let mut phase_iter_h = PhaseIterator::new(
                                 self.num_qubits,
                                 self.s_cpy.clone(),
                                 self.state.clone(),
                                 self.rust_angles.clone(),
-                            ));
+                            );
+
+                            phase_iter_h.iter_once = true;
+                            phase_iter_h.qubit_idx = self._ep;
+                            self.phase_iter_handle = Some(phase_iter_h);
 
                             self.q.push((self._s.clone(), self._i.clone(), self._ep));
+
+                            let mut unique_q = vec![];
+                            for data in self.q.iter() {
+                                if !unique_q.contains(data) {
+                                    let d = (*data).clone();
+                                    unique_q.push(d);
+                                }
+                            }
+
+                            self.q = unique_q;
 
                             for data in &mut self.q {
                                 let (ref mut _temp_s, _, _) = data;
@@ -216,6 +235,7 @@ impl Iterator for CXPhaseIterator {
                                     _temp_s[(self.qubit_idx, idx)] ^= _temp_s[(self._ep, idx)];
                                 }
                             }
+
                             (self._s, self._i, self._ep) = self.q.pop().unwrap();
 
                             self.qubit_idx += 1;
@@ -295,32 +315,24 @@ impl Iterator for CXPhaseIterator {
             let cnots1 = cnots1.reversed_axes().to_owned();
 
             if self._ep == self.num_qubits {
-                let data = (
+                self.q.push((
                     cnots1,
                     self._i.clone().into_iter().filter(|&x| x != _j).collect(),
                     _j,
-                );
-                if !self.q.contains(&data) {
-                    self.q.push(data);
-                }
+                ));
             } else {
-                let data = (
+                self.q.push((
                     cnots1,
                     self._i.clone().into_iter().filter(|&x| x != _j).collect(),
                     self._ep,
-                );
-                if !self.q.contains(&data) {
-                    self.q.push(data);
-                }
+                ));
             }
-            let data = (
+            self.q.push((
                 cnots0,
                 self._i.clone().into_iter().filter(|&x| x != _j).collect(),
                 self._ep,
-            );
-            if !self.q.contains(&data) {
-                self.q.push(data);
-            }
+            ));
+
             self.next()
         } else {
             None
