@@ -149,8 +149,8 @@ class SabreSwap(TransformationPass):
 
             .. math::
 
-                H_{depth} = \frac{1}{\left|{F}\right|} \sum_{gate \in F} \left( D[\pi(gate.q_1)][\pi(gate.q_2)] 
-                + V \cdot \delta(gate.q_1, gate.q_2) \right)
+                H_{depth} = \frac{1}{\left|{F}\right|} \sum_{gate \in F} \left( 
+                    D[\pi(gate.q_1)][\pi(gate.q_2)] + V \cdot \delta(gate.q_1, gate.q_2) \right)
 
             Here, :math:`\delta(gate.q_1, gate.q_2)` represents the estimated increase in
             2-qubit depth from applying a swap on qubits :math:`q_1` and :math:`q_2`. The 
