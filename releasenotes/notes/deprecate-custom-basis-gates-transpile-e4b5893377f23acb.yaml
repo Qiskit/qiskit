@@ -7,6 +7,7 @@ deprecations_transpiler:
     and can be provided through the ``target`` argument. One can build a :class:`.Target` instance
     from scratch or use the :meth:`.Target.from_configuration` method with the ``custom_name_mapping`` 
     argument. For example::
+    
         from qiskit.circuit.library import XGate
         from qiskit.transpiler.target import Target
         
