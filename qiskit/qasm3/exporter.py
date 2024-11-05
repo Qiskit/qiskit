@@ -618,12 +618,10 @@ class QASM3Builder:
         self.scope = old_scope
         self.symbols = old_symbols
 
-    def _lookup_variable(self, variable) -> ast.Identifier:
-        """Lookup a Qiskit object within the current context, and return the name that should be
+    def _lookup_bit(self, bit) -> ast.Identifier:
+        """Lookup a Qiskit bit within the current context, and return the name that should be
         used to represent it in OpenQASM 3 programmes."""
-        if isinstance(variable, Bit):
-            variable = self.scope.bit_map[variable]
-        return self.symbols.get_variable(variable)
+        return self.symbols.get_variable(self.scope.bit_map[bit])
 
     def build_program(self):
         """Builds a Program"""
@@ -930,7 +928,7 @@ class QASM3Builder:
         out = []
         for register in registers:
             name = self.symbols.register_variable(register.name, register, allow_rename=True)
-            elements = [self._lookup_variable(bit) for bit in register]
+            elements = [self._lookup_bit(bit) for bit in register]
             for i, bit in enumerate(register):
                 # This might shadow previous definitions, but that's not a problem.
                 self.symbols.set_object_ident(
@@ -977,18 +975,17 @@ class QASM3Builder:
             if isinstance(instruction.operation, Gate):
                 nodes = [self.build_gate_call(instruction)]
             elif isinstance(instruction.operation, Barrier):
-                operands = [self._lookup_variable(operand) for operand in instruction.qubits]
+                operands = [self._lookup_bit(operand) for operand in instruction.qubits]
                 nodes = [ast.QuantumBarrier(operands)]
             elif isinstance(instruction.operation, Measure):
                 measurement = ast.QuantumMeasurement(
-                    [self._lookup_variable(operand) for operand in instruction.qubits]
+                    [self._lookup_bit(operand) for operand in instruction.qubits]
                 )
-                qubit = self._lookup_variable(instruction.clbits[0])
+                qubit = self._lookup_bit(instruction.clbits[0])
                 nodes = [ast.QuantumMeasurementAssignment(qubit, measurement)]
             elif isinstance(instruction.operation, Reset):
                 nodes = [
-                    ast.QuantumReset(self._lookup_variable(operand))
-                    for operand in instruction.qubits
+                    ast.QuantumReset(self._lookup_bit(operand)) for operand in instruction.qubits
                 ]
             elif isinstance(instruction.operation, Delay):
                 nodes = [self.build_delay(instruction)]
@@ -1009,13 +1006,13 @@ class QASM3Builder:
                     f" but received '{instruction.operation}'"
                 )
 
-            if instruction.operation.condition is None:
+            if instruction.operation._condition is None:
                 statements.extend(nodes)
             else:
                 body = ast.ProgramBlock(nodes)
                 statements.append(
                     ast.BranchingStatement(
-                        self.build_expression(_lift_condition(instruction.operation.condition)),
+                        self.build_expression(_lift_condition(instruction.operation._condition)),
                         body,
                     )
                 )
@@ -1122,9 +1119,14 @@ class QASM3Builder:
             body_ast = ast.ProgramBlock(self.build_current_scope())
         return ast.ForLoopStatement(indexset_ast, loop_parameter_ast, body_ast)
 
+    def _lookup_variable_for_expression(self, var):
+        if isinstance(var, Bit):
+            return self._lookup_bit(var)
+        return self.symbols.get_variable(var)
+
     def build_expression(self, node: expr.Expr) -> ast.Expression:
         """Build an expression."""
-        return node.accept(_ExprBuilder(self._lookup_variable))
+        return node.accept(_ExprBuilder(self._lookup_variable_for_expression))
 
     def build_delay(self, instruction: CircuitInstruction) -> ast.QuantumDelay:
         """Build a built-in delay statement."""
@@ -1144,9 +1146,7 @@ class QASM3Builder:
                 "dt": ast.DurationUnit.SAMPLE,
             }
             duration = ast.DurationLiteral(duration_value, unit_map[unit])
-        return ast.QuantumDelay(
-            duration, [self._lookup_variable(qubit) for qubit in instruction.qubits]
-        )
+        return ast.QuantumDelay(duration, [self._lookup_bit(qubit) for qubit in instruction.qubits])
 
     def build_integer(self, value) -> ast.IntegerLiteral:
         """Build an integer literal, raising a :obj:`.QASM3ExporterError` if the input is not
@@ -1166,9 +1166,11 @@ class QASM3Builder:
         # missing, pending a new system in Terra to replace it (2022-03-07).
         if not isinstance(expression, ParameterExpression):
             return expression
+        if isinstance(expression, Parameter):
+            return self.symbols.get_variable(expression).string
         return expression.subs(
             {
-                param: Parameter(self._lookup_variable(param).string)
+                param: Parameter(self.symbols.get_variable(param).string, uuid=param.uuid)
                 for param in expression.parameters
             }
         )
@@ -1181,18 +1183,14 @@ class QASM3Builder:
         ident = self.symbols.get_gate(instruction.operation)
         if ident is None:
             ident = self.define_gate(instruction.operation)
-        qubits = [self._lookup_variable(qubit) for qubit in instruction.qubits]
-        if self.disable_constants:
-            parameters = [
-                ast.StringifyAndPray(self._rebind_scoped_parameters(param))
-                for param in instruction.operation.params
-            ]
-        else:
-            parameters = [
-                ast.StringifyAndPray(pi_check(self._rebind_scoped_parameters(param), output="qasm"))
-                for param in instruction.operation.params
-            ]
-
+        qubits = [self._lookup_bit(qubit) for qubit in instruction.qubits]
+        parameters = [
+            ast.StringifyAndPray(self._rebind_scoped_parameters(param))
+            for param in instruction.operation.params
+        ]
+        if not self.disable_constants:
+            for parameter in parameters:
+                parameter.obj = pi_check(parameter.obj, output="qasm")
         return ast.QuantumGateCall(ident, qubits, parameters=parameters)
 
 
