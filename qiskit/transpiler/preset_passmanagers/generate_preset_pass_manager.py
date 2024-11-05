@@ -446,7 +446,6 @@ def generate_preset_pass_manager(
 
 
 def _parse_basis_gates(basis_gates, backend, inst_map, skip_target):
-    name_mapping = {}
     standard_gates = get_standard_gate_name_mapping()
     # Add control flow gates by default to basis set and name mapping
     default_gates = {"measure", "delay", "reset"}.union(CONTROL_FLOW_OP_NAMES)

@@ -161,7 +161,11 @@ class TestPresetPassManager(QiskitTestCase):
         qc = QuantumCircuit(2)
         qc.unitary(random_unitary(4, seed=42), [0, 1])
         qc.measure_all()
-        result = transpile(qc, basis_gates=["cx", "u", "unitary"], optimization_level=level)
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            "Providing custom gates through the ``basis_gates`` argument is deprecated",
+        ):
+            result = transpile(qc, basis_gates=["cx", "u", "unitary"], optimization_level=level)
         self.assertEqual(result, qc)
 
     @combine(level=[0, 1, 2, 3], name="level{level}")
@@ -179,12 +183,16 @@ class TestPresetPassManager(QiskitTestCase):
         qc = QuantumCircuit(2)
         qc.unitary(random_unitary(4, seed=424242), [0, 1])
         qc.measure_all()
-        result = transpile(
-            qc,
-            basis_gates=["cx", "u", "unitary"],
-            optimization_level=level,
-            translation_method="synthesis",
-        )
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            "Providing custom gates through the ``basis_gates`` argument is deprecated",
+        ):
+            result = transpile(
+                qc,
+                basis_gates=["cx", "u", "unitary"],
+                optimization_level=level,
+                translation_method="synthesis",
+            )
         self.assertEqual(result, qc)
 
     @combine(level=[0, 1, 2, 3], name="level{level}")

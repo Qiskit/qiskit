@@ -394,9 +394,38 @@ def transpile(  # pylint: disable=too-many-return-statements
     # Edge cases require using the old model (loose constraints) instead of building a target,
     # but we don't populate the passmanager config with loose constraints unless it's one of
     # the known edge cases to control the execution path.
+    # Filter instruction_durations, timing_constraints, backend_properties and inst_map deprecation
     with warnings.catch_warnings():
-        warnings.simplefilter(action="ignore", category=DeprecationWarning)
-        # Filter instruction_durations, timing_constraints and backend_properties deprecation
+        warnings.filterwarnings(
+            "ignore",
+            category=DeprecationWarning,
+            message=".*``inst_map`` is deprecated as of Qiskit 1.3.*",
+            module="qiskit",
+        )
+        warnings.filterwarnings(
+            "ignore",
+            category=DeprecationWarning,
+            message=".*``timing_constraints`` is deprecated as of Qiskit 1.3.*",
+            module="qiskit",
+        )
+        warnings.filterwarnings(
+            "ignore",
+            category=DeprecationWarning,
+            message=".*``instruction_durations`` is deprecated as of Qiskit 1.3.*",
+            module="qiskit",
+        )
+        warnings.filterwarnings(
+            "ignore",
+            category=DeprecationWarning,
+            message=".*``backend_properties`` is deprecated as of Qiskit 1.3.*",
+            module="qiskit",
+        )
+        warnings.filterwarnings(
+            "ignore",
+            category=DeprecationWarning,
+            message=".*``qiskit.transpiler.target.target_to_backend_properties()`` is deprecated as of qiskit 1.2.*",
+            module="qiskit",
+        )
         pm = generate_preset_pass_manager(
             optimization_level,
             target=target,
