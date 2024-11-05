@@ -88,6 +88,7 @@ class Parameter(ParameterExpression):
         self._parameter_symbols = {self: symbol}
         self._name_map = None
         self._qpy_replay = []
+        self._standalone_param = True
 
     def assign(self, parameter, value):
         if parameter != self:
@@ -174,3 +175,4 @@ class Parameter(ParameterExpression):
         self._parameter_symbols = {self: self._symbol_expr}
         self._name_map = None
         self._qpy_replay = []
+        self._standalone_param = True

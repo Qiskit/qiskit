@@ -56,7 +56,7 @@ def _write_parameter_vec(file_obj, obj):
     file_obj.write(name_bytes)
 
 
-def _encode_replay_entry(inst, expression_tracking, file_obj, version, side=False):
+def _encode_replay_entry(inst, file_obj, version, side=False):
     inst_type = None
     inst_data = None
     if inst is None:
@@ -75,52 +75,47 @@ def _encode_replay_entry(inst, expression_tracking, file_obj, version, side=Fals
         inst_type = "i"
         inst_data = struct.pack("!Qq", 0, inst)
     elif isinstance(inst, ParameterExpression):
-        if inst not in expression_tracking:
-            if not side:
-                entry = struct.pack(
-                    formats.PARAM_EXPR_ELEM_V4_PACK,
-                    255,
-                    "s".encode("utf8"),
-                    b"\x00",
-                    "n".encode("utf8"),
-                    b"\x00",
-                )
-            else:
-                entry = struct.pack(
-                    formats.PARAM_EXPR_ELEM_V4_PACK,
-                    255,
-                    "n".encode("utf8"),
-                    b"\x00",
-                    "s".encode("utf8"),
-                    b"\x00",
-                )
-
-            file_obj.write(entry)
-            _write_parameter_expression_v13(file_obj, inst, version)
-            if not side:
-                entry = struct.pack(
-                    formats.PARAM_EXPR_ELEM_V4_PACK,
-                    255,
-                    "e".encode("utf8"),
-                    b"\x00",
-                    "n".encode("utf8"),
-                    b"\x00",
-                )
-            else:
-                entry = struct.pack(
-                    formats.PARAM_EXPR_ELEM_V4_PACK,
-                    255,
-                    "n".encode("utf8"),
-                    b"\x00",
-                    "e".encode("utf8"),
-                    b"\x00",
-                )
-            file_obj.write(entry)
-            inst_type = "n"
-            inst_data = b"\x00"
+        if not side:
+            entry = struct.pack(
+                formats.PARAM_EXPR_ELEM_V4_PACK,
+                255,
+                "s".encode("utf8"),
+                b"\x00",
+                "n".encode("utf8"),
+                b"\x00",
+            )
         else:
-            inst_type = "n"
-            inst_data = b"\x00"
+            entry = struct.pack(
+                formats.PARAM_EXPR_ELEM_V4_PACK,
+                255,
+                "n".encode("utf8"),
+                b"\x00",
+                "s".encode("utf8"),
+                b"\x00",
+            )
+        file_obj.write(entry)
+        _write_parameter_expression_v13(file_obj, inst, version)
+        if not side:
+            entry = struct.pack(
+                formats.PARAM_EXPR_ELEM_V4_PACK,
+                255,
+                "e".encode("utf8"),
+                b"\x00",
+                "n".encode("utf8"),
+                b"\x00",
+            )
+        else:
+            entry = struct.pack(
+                formats.PARAM_EXPR_ELEM_V4_PACK,
+                255,
+                "n".encode("utf8"),
+                b"\x00",
+                "e".encode("utf8"),
+                b"\x00",
+            )
+        file_obj.write(entry)
+        inst_type = "n"
+        inst_data = b"\x00"
     else:
         raise exceptions.QpyError("Invalid parameter expression type")
     return inst_type, inst_data
@@ -147,16 +142,13 @@ def _encode_replay_subs(subs, file_obj, version):
 
 
 def _write_parameter_expression_v13(file_obj, obj, version):
-    expression_tracking = {
-        obj,
-    }
     symbol_map = {}
     for inst in obj._qpy_replay:
         if isinstance(inst, _SUBS):
             symbol_map.update(_encode_replay_subs(inst, file_obj, version))
             continue
-        lhs_type, lhs = _encode_replay_entry(inst.lhs, expression_tracking, file_obj, version)
-        rhs_type, rhs = _encode_replay_entry(inst.rhs, expression_tracking, file_obj, version, True)
+        lhs_type, lhs = _encode_replay_entry(inst.lhs, file_obj, version)
+        rhs_type, rhs = _encode_replay_entry(inst.rhs, file_obj, version, True)
         entry = struct.pack(
             formats.PARAM_EXPR_ELEM_V4_PACK,
             inst.op,
@@ -553,86 +545,70 @@ def _read_parameter_expression_v4(file_obj, vectors, version):
 def _read_parameter_expr_v13(buf, symbol_map, version, vectors):
     param_uuid_map = {symbol.uuid: symbol for symbol in symbol_map if isinstance(symbol, Parameter)}
     name_map = {str(v): k for k, v in symbol_map.items()}
-    expression = None
     data = buf.read(formats.PARAM_EXPR_ELEM_V4_SIZE)
-    rhs = None
-    lhs = None
+    stack = []
     while data:
         expression_data = formats.PARAM_EXPR_ELEM_V4._make(
             struct.unpack(formats.PARAM_EXPR_ELEM_V4_PACK, data)
         )
-        if lhs is None:
-            if expression_data.LHS_TYPE == b"p":
-                lhs = param_uuid_map[uuid.UUID(bytes=expression_data.LHS)]
-            elif expression_data.LHS_TYPE == b"f":
-                lhs = struct.unpack("!Qd", expression_data.LHS)[1]
-            elif expression_data.LHS_TYPE == b"n":
-                lhs = None
-            elif expression_data.LHS_TYPE == b"c":
-                lhs = complex(*struct.unpack("!dd", expression_data.LHS))
-            elif expression_data.LHS_TYPE == b"i":
-                lhs = struct.unpack("!Qq", expression_data.LHS)[1]
-            elif expression_data.LHS_TYPE == b"s":
-                lhs = _read_parameter_expr_v13(buf, symbol_map, version, vectors)
-                data = buf.read(formats.PARAM_EXPR_ELEM_V4_SIZE)
-                continue
-            elif expression_data.LHS_TYPE == b"e":
-                return expression
-            elif expression_data.LHS_TYPE == b"u":
-                size = struct.unpack_from("!QQ", expression_data.LHS)[0]
-                subs_map_data = buf.read(size)
-                with io.BytesIO(subs_map_data) as mapping_buf:
-                    mapping = common.read_mapping(
-                        mapping_buf, deserializer=loads_value, version=version, vectors=vectors
-                    )
-                expression = expression.subs(
-                    {name_map[k]: v for k, v in mapping.items()}, allow_unknown_parameters=True
+        # LHS
+        if expression_data.LHS_TYPE == b"p":
+            stack.append(param_uuid_map[uuid.UUID(bytes=expression_data.LHS)])
+        elif expression_data.LHS_TYPE == b"f":
+            stack.append(struct.unpack("!Qd", expression_data.LHS)[1])
+        elif expression_data.LHS_TYPE == b"n":
+            pass
+        elif expression_data.LHS_TYPE == b"c":
+            stack.append(complex(*struct.unpack("!dd", expression_data.LHS)))
+        elif expression_data.LHS_TYPE == b"i":
+            stack.append(struct.unpack("!Qq", expression_data.LHS)[1])
+        elif expression_data.LHS_TYPE == b"s":
+            data = buf.read(formats.PARAM_EXPR_ELEM_V4_SIZE)
+            continue
+        elif expression_data.LHS_TYPE == b"e":
+            data = buf.read(formats.PARAM_EXPR_ELEM_V4_SIZE)
+            continue
+        elif expression_data.LHS_TYPE == b"u":
+            size = struct.unpack_from("!QQ", expression_data.LHS)[0]
+            subs_map_data = buf.read(size)
+            with io.BytesIO(subs_map_data) as mapping_buf:
+                mapping = common.read_mapping(
+                    mapping_buf, deserializer=loads_value, version=version, vectors=vectors
                 )
-                data = buf.read(formats.PARAM_EXPR_ELEM_V4_SIZE)
-                continue
-            else:
-                raise exceptions.QpyError(
-                    "Unknown ParameterExpression operation type {expression_data.LHS_TYPE}"
-                )
-        if rhs is None:
-            if expression_data.RHS_TYPE == b"p":
-                rhs = param_uuid_map[uuid.UUID(bytes=expression_data.RHS)]
-            elif expression_data.RHS_TYPE == b"f":
-                rhs = struct.unpack("!Qd", expression_data.RHS)[1]
-            elif expression_data.RHS_TYPE == b"n":
-                rhs = None
-            elif expression_data.RHS_TYPE == b"c":
-                rhs = complex(*struct.unpack("!dd", expression_data.LHS))
-            elif expression_data.RHS_TYPE == b"i":
-                rhs = struct.unpack("!Qq", expression_data.RHS)[1]
-            elif expression_data.RHS_TYPE == b"s":
-                rhs = _read_parameter_expr_v13(buf, symbol_map, version, vectors)
-                data = buf.read(formats.PARAM_EXPR_ELEM_V4_SIZE)
-                continue
-            elif expression_data.RHS_TYPE == b"e":
-                return expression
-            else:
-                raise exceptions.QpyError(
-                    f"Unknown ParameterExpression operation type {expression_data.RHS_TYPE}"
-                )
-        reverse_op = False
-        if expression is None:
-            if isinstance(lhs, ParameterExpression):
-                expression = lhs
-            elif isinstance(rhs, ParameterExpression):
-                expression = rhs
-                reverse_op = True
-                rhs = lhs
-            else:
-                raise exceptions.QpyError("Invalid ParameterExpression payload construction")
+            stack.append({name_map[k]: v for k, v in mapping.items()})
+        else:
+            raise exceptions.QpyError(
+                "Unknown ParameterExpression operation type {expression_data.LHS_TYPE}"
+            )
+        # RHS
+        if expression_data.RHS_TYPE == b"p":
+            stack.append(param_uuid_map[uuid.UUID(bytes=expression_data.RHS)])
+        elif expression_data.RHS_TYPE == b"f":
+            stack.append(struct.unpack("!Qd", expression_data.RHS)[1])
+        elif expression_data.RHS_TYPE == b"n":
+            pass
+        elif expression_data.RHS_TYPE == b"c":
+            stack.append(complex(*struct.unpack("!dd", expression_data.RHS)))
+        elif expression_data.RHS_TYPE == b"i":
+            stack.append(struct.unpack("!Qq", expression_data.RHS)[1])
+        elif expression_data.RHS_TYPE == b"s":
+            data = buf.read(formats.PARAM_EXPR_ELEM_V4_SIZE)
+            continue
+        elif expression_data.RHS_TYPE == b"e":
+            data = buf.read(formats.PARAM_EXPR_ELEM_V4_SIZE)
+            continue
+        else:
+            raise exceptions.QpyError(
+                f"Unknown ParameterExpression operation type {expression_data.RHS_TYPE}"
+            )
+        if expression_data.OP_CODE == 255:
+            continue
         method_str = op_code_to_method(_OPCode(expression_data.OP_CODE))
-        # Handle reverse operators
-        if rhs is None and expression is not None:
-            reverse_op = True
-            rhs = lhs
         if expression_data.OP_CODE in {0, 1, 2, 3, 4, 13, 15}:
-            if reverse_op:
-                # Map arithmetic operators to reverse methods
+            rhs = stack.pop()
+            lhs = stack.pop()
+            # Reverse ops
+            if not isinstance(lhs, ParameterExpression) and isinstance(rhs, ParameterExpression):
                 if expression_data.OP_CODE == 0:
                     method_str = "__radd__"
                 elif expression_data.OP_CODE == 1:
@@ -641,23 +617,14 @@ def _read_parameter_expr_v13(buf, symbol_map, version, vectors):
                     method_str = "__rmul__"
                 elif expression_data.OP_CODE == 3:
                     method_str = "__rtruediv__"
-
-            expression = getattr(expression, method_str)(rhs)
+                stack.append(getattr(rhs, method_str)(lhs))
+            else:
+                stack.append(getattr(lhs, method_str)(rhs))
         else:
-            expression = getattr(expression, method_str)()
-        lhs = None
-        rhs = None
+            lhs = stack.pop()
+            stack.append(getattr(lhs, method_str)())
         data = buf.read(formats.PARAM_EXPR_ELEM_V4_SIZE)
-    if expression is None:
-        if isinstance(lhs, ParameterExpression):
-            expression = lhs
-        elif isinstance(rhs, ParameterExpression):
-            expression = rhs
-            reverse_op = True
-            rhs = lhs
-        else:
-            raise exceptions.QpyError("Invalid ParameterExpression payload construction")
-    return expression
+    return stack.pop()
 
 
 def _read_expr(

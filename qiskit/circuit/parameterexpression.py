@@ -84,7 +84,7 @@ def op_code_to_method(op_code: _OPCode):
 @dataclass
 class _INSTRUCTION:
     op: _OPCode
-    lhs: ParameterValueType
+    lhs: ParameterValueType | None
     rhs: ParameterValueType | None = None
 
 
@@ -103,6 +103,7 @@ class ParameterExpression:
         "_symbol_expr",
         "_name_map",
         "_qpy_replay",
+        "_standalone_param",
     ]
 
     def __init__(self, symbol_map: dict, expr, *, _qpy_replay=None):
@@ -124,6 +125,7 @@ class ParameterExpression:
         self._parameter_keys = frozenset(p._hash_key() for p in self._parameter_symbols)
         self._symbol_expr = expr
         self._name_map: dict | None = None
+        self._standalone_param = False
         if _qpy_replay is not None:
             self._qpy_replay = _qpy_replay
         else:
@@ -143,7 +145,10 @@ class ParameterExpression:
 
     def conjugate(self) -> "ParameterExpression":
         """Return the conjugate."""
-        new_op = _INSTRUCTION(_OPCode.CONJ, self)
+        if self._standalone_param:
+            new_op = _INSTRUCTION(_OPCode.CONJ, self)
+        else:
+            new_op = _INSTRUCTION(_OPCode.CONJ, None)
         new_replay = self._qpy_replay.copy()
         new_replay.append(new_op)
         conjugated = ParameterExpression(
@@ -357,10 +362,16 @@ class ParameterExpression:
 
         if reflected:
             expr = operation(other_expr, self_expr)
-            new_op = _INSTRUCTION(op_code, other, self)
+            if self._standalone_param:
+                new_op = _INSTRUCTION(op_code, other, self)
+            else:
+                new_op = _INSTRUCTION(op_code, other, None)
         else:
             expr = operation(self_expr, other_expr)
-            new_op = _INSTRUCTION(op_code, self, other)
+            if self._standalone_param:
+                new_op = _INSTRUCTION(op_code, self, other)
+            else:
+                new_op = _INSTRUCTION(op_code, None, other)
         new_replay = self._qpy_replay.copy()
         new_replay.append(new_op)
 
@@ -386,6 +397,13 @@ class ParameterExpression:
             # If it is not contained then return 0
             return 0.0
 
+        if self._standalone_param:
+            new_op = _INSTRUCTION(_OPCode.DERIV, self, param)
+        else:
+            new_op = _INSTRUCTION(_OPCode.DERIV, None, param)
+        qpy_replay = self._qpy_replay.copy()
+        qpy_replay.append(new_op)
+
         # Compute the gradient of the parameter expression w.r.t. param
         key = self._parameter_symbols[param]
         expr_grad = symengine.Derivative(self._symbol_expr, key)
@@ -399,7 +417,7 @@ class ParameterExpression:
                 parameter_symbols[parameter] = symbol
         # If the gradient corresponds to a parameter expression then return the new expression.
         if len(parameter_symbols) > 0:
-            return ParameterExpression(parameter_symbols, expr=expr_grad)
+            return ParameterExpression(parameter_symbols, expr=expr_grad, _qpy_replay=qpy_replay)
         # If no free symbols left, return a complex or float gradient
         expr_grad_cplx = complex(expr_grad)
         if expr_grad_cplx.imag != 0:
@@ -446,7 +464,10 @@ class ParameterExpression:
         return self._apply_operation(pow, other, reflected=True, op_code=_OPCode.POW)
 
     def _call(self, ufunc, op_code):
-        new_op = _INSTRUCTION(op_code, self)
+        if self._standalone_param:
+            new_op = _INSTRUCTION(op_code, self)
+        else:
+            new_op = _INSTRUCTION(op_code, None)
         new_replay = self._qpy_replay.copy()
         new_replay.append(new_op)
         return ParameterExpression(
