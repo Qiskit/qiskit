@@ -43,7 +43,7 @@ class U2Gate(Gate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌─────────┐
         q_0: ┤ U2(φ,λ) ├

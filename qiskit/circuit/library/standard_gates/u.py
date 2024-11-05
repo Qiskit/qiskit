@@ -35,7 +35,7 @@ class UGate(Gate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌──────────┐
         q_0: ┤ U(ϴ,φ,λ) ├
@@ -218,7 +218,7 @@ class CUGate(ControlledGate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
         q_0: ──────■──────
              ┌─────┴──────┐
@@ -251,7 +251,8 @@ class CUGate(ControlledGate):
         which in our case would be q_1. Thus a textbook matrix for this
         gate will be:
 
-        .. parsed-literal::
+        .. code-block:: text
+
                  ┌────────────┐
             q_0: ┤ U(ϴ,φ,λ,γ) ├
                  └─────┬──────┘

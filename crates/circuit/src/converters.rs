@@ -47,7 +47,10 @@ impl<'py> FromPyObject<'py> for QuantumCircuitData<'py> {
         Ok(QuantumCircuitData {
             data: data_borrowed,
             name: ob.getattr(intern!(py, "name")).ok(),
-            calibrations: ob.getattr(intern!(py, "calibrations"))?.extract().ok(),
+            calibrations: ob
+                .getattr(intern!(py, "_calibrations_prop"))?
+                .extract()
+                .ok(),
             metadata: ob.getattr(intern!(py, "metadata")).ok(),
             qregs: ob
                 .getattr(intern!(py, "qregs"))
