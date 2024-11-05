@@ -92,6 +92,19 @@ Linear Function Synthesis
    PMHSynthesisLinearFunction
    DefaultSynthesisLinearFunction
 
+   
+Pauli Evolution Synthesis
+'''''''''''''''''''''''''
+
+.. list-table:: Plugins for :class:`.PauliEvolutionGate` (key = ``"PauliEvolution"``)
+    :header-rows: 1
+
+    * - Plugin name
+      - Plugin class
+      - Description
+    * - ``"default"``
+      - :class:`.PauliEvolutionSynthesisDefault`
+      - use a diagonalizing Clifford per Pauli term
 
 Permutation Synthesis
 '''''''''''''''''''''
@@ -251,6 +264,8 @@ MCMT Synthesis
 
 """
 
+from __future__ import annotations
+
 import numpy as np
 import rustworkx as rx
 
@@ -288,8 +303,8 @@ from qiskit.synthesis.multi_controlled import (
     synth_mcx_1_clean_b95,
     synth_mcx_gray_code,
     synth_mcx_noaux_v24,
+    synth_mcmt_vchain,
 )
-from qiskit.synthesis.multi_controlled import synth_mcmt_vchain
 from qiskit.transpiler.passes.routing.algorithms import ApproximateTokenSwapper
 from .plugin import HighLevelSynthesisPlugin
 
@@ -1029,3 +1044,11 @@ class MCMTSynthesisVChain(HighLevelSynthesisPlugin):
             high_level_object.num_target_qubits,
             ctrl_state,
         )
+
+
+class PauliEvolutionSynthesisDefault(HighLevelSynthesisPlugin):
+    """The default implementation calling the attached synthesis algorithm."""
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        algo = high_level_object.synthesis
+        return algo.synthesize(high_level_object)
