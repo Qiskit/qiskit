@@ -10,7 +10,9 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use pyo3::intern;
 use pyo3::prelude::*;
+use pyo3::types::PyDict;
 
 use crate::getenv_use_multiple_threads;
 use faer_ext::{IntoFaerComplex, IntoNdarrayComplex};
@@ -100,6 +102,7 @@ fn random_unitaries(seed: u64, size: usize) -> impl Iterator<Item = Array2<Compl
 const UNITARY_PER_SEED: usize = 50;
 
 #[pyfunction]
+#[pyo3(signature=(num_qubits, depth, seed=None))]
 pub fn quantum_volume(
     py: Python,
     num_qubits: u32,
@@ -110,6 +113,8 @@ pub fn quantum_volume(
     let num_unitaries = width * depth;
     let mut permutation: Vec<Qubit> = (0..num_qubits).map(Qubit).collect();
 
+    let kwargs = PyDict::new_bound(py);
+    kwargs.set_item(intern!(py, "num_qubits"), 2)?;
     let mut build_instruction = |(unitary_index, unitary_array): (usize, Array2<Complex64>),
                                  rng: &mut Pcg64Mcg|
      -> PyResult<Instruction> {
@@ -118,9 +123,10 @@ pub fn quantum_volume(
             permutation.shuffle(rng);
         }
         let unitary = unitary_array.into_pyarray_bound(py);
+
         let unitary_gate = UNITARY_GATE
             .get_bound(py)
-            .call1((unitary.clone(), py.None(), false))?;
+            .call((unitary.clone(), py.None(), false), Some(&kwargs))?;
         let instruction = PyInstruction {
             qubits: 2,
             clbits: 0,
