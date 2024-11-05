@@ -165,14 +165,29 @@ impl DecayHeuristic {
     }
 }
 
-/// Define the characteristics of the "depth" heuristic. This is used to penalize swaps that increase the circuit depth.
+/// Defines the characteristics of the "depth" heuristic, used to penalize swaps that increase the circuit depth.
+///
+/// The heuristic is calculated as:
+///
+/// .. math::
+///
+///     H_{depth} = \frac{1}{\left|{F}\right|} \sum_{gate \in F} \left( D[\pi(gate.q_1)][\pi(gate.q_2)]
+///     + V \cdot \delta(gate.q_1, gate.q_2) \right)
+///
+/// where `weight` (V) scales the depth component, and `swap_depth` influences the estimated increase in
+/// 2-qubit depth per swap (`\delta`).
 #[pyclass]
 #[pyo3(module = "qiskit._accelerate.sabre", frozen)]
 #[derive(Clone, Copy, PartialEq)]
 pub struct DepthHeuristic {
-    /// The relative weighting of this heuristic to others.  Typically you should just set this to
-    /// 1.0 and define everything else in terms of this.
+    /// Relative weighting factor to the `BasicHeuristic` for the depth component.
+    /// By default, a score of 1.0 in `BasicHeuristic` is equivalent to the cost of one swap.
+    /// Assuming each swap increases depth by approximately 3 CNOT gates, the default weight
+    /// for `DepthHeuristic` is set to 1/3 to maintain this correspondence.
     pub weight: f64,
+    /// The estimated increase in circuit depth per swap. For example, if each swap increases
+    /// the depth by 3 (e.g., 3 CNOT gates), then `swap_depth = 3`.
+    pub swap_depth: f64,
     /// Set the dynamic scaling of the weight based on the layer it is applying to.
     pub scale: SetScaling,
 }
@@ -180,12 +195,16 @@ pub struct DepthHeuristic {
 #[pymethods]
 impl DepthHeuristic {
     #[new]
-    pub fn new(weight: f64, scale: SetScaling) -> Self {
-        Self { weight, scale }
+    pub fn new(weight: f64, swap_depth: f64, scale: SetScaling) -> Self {
+        Self {
+            weight,
+            swap_depth,
+            scale,
+        }
     }
 
     pub fn __getnewargs__(&self, py: Python) -> Py<PyAny> {
-        (self.weight, self.scale).into_py(py)
+        (self.weight, self.swap_depth, self.scale).into_py(py)
     }
 
     pub fn __eq__(&self, py: Python, other: Py<PyAny>) -> bool {
@@ -199,7 +218,7 @@ impl DepthHeuristic {
     pub fn __repr__(&self, py: Python) -> PyResult<Py<PyAny>> {
         let fmt = "DepthHeuristic(weight={!r}, scale={!r})";
         Ok(PyString::new_bound(py, fmt)
-            .call_method1("format", (self.weight, self.scale))?
+            .call_method1("format", (self.weight, self.swap_depth, self.scale))?
             .into_py(py))
     }
 }
@@ -301,11 +320,16 @@ impl Heuristic {
         }
     }
 
-    /// Set the multiplier increment and reset interval of the depth heuristic.  The reset interval
-    /// must be non-zero.
-    pub fn with_depth(&self, weight: f64, scale: SetScaling) -> Self {
+    /// Sets the weight and swap_depth for the `depth` heuristic. Typically, the `weight` should be
+    /// lower than that of the `basic` heuristic and the `swap_depth` should be greater than or equal
+    /// to 1.0.
+    pub fn with_depth(&self, weight: f64, swap_depth: f64, scale: SetScaling) -> Self {
         Self {
-            depth: Some(DepthHeuristic { weight, scale }),
+            depth: Some(DepthHeuristic {
+                weight,
+                swap_depth,
+                scale,
+            }),
             ..self.clone()
         }
     }
@@ -319,7 +343,7 @@ impl Heuristic {
     }
 
     pub fn __repr__(&self, py: Python) -> PyResult<Py<PyAny>> {
-        let fmt = "Heuristic(basic={!r}, lookahead={!r}, decay={!r}, attempt_limit={!r}, best_epsilon={!r})";
+        let fmt = "Heuristic(basic={!r}, lookahead={!r}, decay={!r}, depth={!r}, attempt_limit={!r}, best_epsilon={!r})";
         Ok(PyString::new_bound(py, fmt)
             .call_method1(
                 "format",

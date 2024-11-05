@@ -29,7 +29,7 @@ use crate::nlayout::PhysicalQubit;
 #[derive(Clone)]
 pub struct FrontLayer {
     /// Map of the (index to the) node to the qubits it acts on.
-    pub nodes: IndexMap<NodeIndex, [PhysicalQubit; 2], ::ahash::RandomState>,
+    nodes: IndexMap<NodeIndex, [PhysicalQubit; 2], ::ahash::RandomState>,
     /// Map of each qubit to the node that acts on it and the other qubit that node acts on, if this
     /// qubit is active (otherwise `None`).
     qubits: Vec<Option<(NodeIndex, PhysicalQubit)>>,

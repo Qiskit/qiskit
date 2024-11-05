@@ -95,8 +95,9 @@ impl<'a, 'b> RoutingState<'a, 'b> {
         self.layout.swap_physical(swap[0], swap[1]);
         if self.heuristic.depth.is_some() {
             // Add 3 since swaps can be decomposed into 3 CNOTs
-            let new_depth =
-                self.qubit_depths[swap[0].index()].max(self.qubit_depths[swap[1].index()]) + 3.0;
+            let new_depth = self.qubit_depths[swap[0].index()]
+                .max(self.qubit_depths[swap[1].index()])
+                + self.heuristic.depth.unwrap().swap_depth;
             self.qubit_depths[swap[0].index()] = new_depth;
             self.qubit_depths[swap[1].index()] = new_depth;
         }
@@ -113,6 +114,12 @@ impl<'a, 'b> RoutingState<'a, 'b> {
         })
     }
 
+    /// Return the current depth of the circuit as represented by `qubit_depths`.
+    ///
+    /// This function returns the maximum value in `qubit_depths`, which represents
+    /// the depth of the circuit's longest "wire". Assumes the `qubit_depths` reflects
+    /// the current state of the circuit during routing, meaning it can change as swaps
+    /// and gates are applied.
     fn circuit_depth(&self) -> f64 {
         *self
             .qubit_depths
@@ -412,8 +419,7 @@ impl<'a, 'b> RoutingState<'a, 'b> {
                 *score += weight * self.extended_set.score(*swap, dist);
             }
         }
-
-        if let Some(DepthHeuristic { weight, scale }) = self.heuristic.depth {
+        if let Some(DepthHeuristic { weight, scale, .. }) = self.heuristic.depth {
             let weight = match scale {
                 SetScaling::Constant => weight,
                 SetScaling::Size => {
@@ -432,7 +438,7 @@ impl<'a, 'b> RoutingState<'a, 'b> {
                 let mut trial_qubit_depths = self.qubit_depths.to_vec();
                 let new_depth = trial_qubit_depths[swap[0].index()]
                     .max(trial_qubit_depths[swap[1].index()])
-                    + 3.0;
+                    + self.heuristic.depth.unwrap().swap_depth;
                 trial_qubit_depths[swap[0].index()] = new_depth;
                 trial_qubit_depths[swap[1].index()] = new_depth;
 
@@ -531,17 +537,14 @@ impl<'a, 'b> RoutingState<'a, 'b> {
                         }
                     }
                 }
-
                 // Calculate the final maximum depth
                 let final_depth = *trial_qubit_depths
                     .iter()
                     .max_by(|a, b| a.partial_cmp(b).unwrap())
                     .unwrap();
                 let depth_increase = final_depth - orig_depth;
-                // Divide the increase in depth by 3 for how 1 swap is equivalent to 3 CNOTs
-                let depth_score = depth_increase / 3.0;
 
-                *score += weight * (self.front_layer.score(*swap, dist) + depth_score);
+                *score += weight * depth_increase;
             }
         }
 
@@ -703,6 +706,13 @@ pub fn swap_map_trial(
     state.route_reachable_nodes(&dag.first_layer);
     state.populate_extended_set();
 
+    // Preallocate a backup vector if depth heuristic is active
+    let mut qubit_depths_backup = if state.heuristic.depth.is_some() {
+        Some(state.qubit_depths.to_vec())
+    } else {
+        None
+    };
+
     // Main logic loop; the front layer only becomes empty when all nodes have been routed.  At
     // each iteration of this loop, we route either one or two gates.
     let mut routable_nodes = Vec::<NodeIndex>::with_capacity(2);
@@ -710,7 +720,11 @@ pub fn swap_map_trial(
 
     while !state.front_layer.is_empty() {
         let mut current_swaps: Vec<[PhysicalQubit; 2]> = Vec::new();
-        let qubit_depths_backup = state.qubit_depths.to_vec();
+        // Perform a backup only if the depth heuristic is active
+        if let Some(ref mut backup) = qubit_depths_backup {
+            backup.copy_from_slice(state.qubit_depths);
+        }
+
         // Swap-mapping loop.  This is the main part of the algorithm, which we repeat until we
         // either successfully route a node, or exceed the maximum number of attempts.
         while routable_nodes.is_empty() && current_swaps.len() <= state.heuristic.attempt_limit {
@@ -738,8 +752,10 @@ pub fn swap_map_trial(
             // If we exceeded the max number of heuristic-chosen swaps without making progress,
             // unwind to the last progress point and greedily swap to bring a ndoe together.
             // Efficiency doesn't matter much; this path never gets taken unless we're unlucky.
-            // Reset the qubit depths to the backup
-            state.qubit_depths.copy_from_slice(&qubit_depths_backup);
+            // Reset the qubit depths to the backup if the depth heuristic is active.
+            if let Some(ref backup) = qubit_depths_backup {
+                state.qubit_depths.copy_from_slice(backup);
+            }
             current_swaps
                 .drain(..)
                 .rev()
