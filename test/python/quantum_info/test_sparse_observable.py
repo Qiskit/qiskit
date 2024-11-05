@@ -1840,10 +1840,10 @@ class TestSparseObservable(QiskitTestCase):
         ]
         self.assertEqual(obs[0], expected[0])
         self.assertEqual(obs[-2], expected[-2])
-        self.assertEqual(obs[2:4], expected[2:4])
-        self.assertEqual(obs[1::2], expected[1::2])
-        self.assertEqual(obs[:], expected)
-        self.assertEqual(obs[-1:-4:-1], expected[-1:-4:-1])
+        self.assertEqual(obs[2:4], SparseObservable(expected[2:4]))
+        self.assertEqual(obs[1::2], SparseObservable(expected[1::2]))
+        self.assertEqual(obs[:], SparseObservable(expected))
+        self.assertEqual(obs[-1:-4:-1], SparseObservable(expected[-1:-4:-1]))
 
     @ddt.data(
         SparseObservable.identity(0),

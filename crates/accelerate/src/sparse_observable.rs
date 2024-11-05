@@ -974,7 +974,7 @@ impl SparseObservable {
         out
     }
 
-    /// Get an owned representation of a single sparse term.
+    /// Get a view onto a representation of a single sparse term.
     ///
     /// This is effectively an indexing operation into the [SparseObservable].  Recall that two
     /// [SparseObservable]s that have different term orders can still represent the same object.
@@ -983,15 +983,15 @@ impl SparseObservable {
     /// # Panics
     ///
     /// If the index is out of bounds.
-    pub fn term(&self, index: usize) -> SparseTerm {
+    pub fn term(&self, index: usize) -> SparseTermView {
         debug_assert!(index < self.num_terms(), "index {index} out of bounds");
         let start = self.boundaries[index];
         let end = self.boundaries[index + 1];
-        SparseTerm {
+        SparseTermView {
             num_qubits: self.num_qubits,
             coeff: self.coeffs[index],
-            bit_terms: (&self.bit_terms[start..end]).into(),
-            indices: (&self.indices[start..end]).into(),
+            bit_terms: &self.bit_terms[start..end],
+            indices: &self.indices[start..end],
         }
     }
 
@@ -1314,15 +1314,15 @@ impl SparseObservable {
     }
 
     fn __getitem__(&self, py: Python, index: PySequenceIndex) -> PyResult<Py<PyAny>> {
-        match index.with_len(self.num_terms())? {
-            SequenceIndex::Int(index) => Ok(self.term(index).into_py(py)),
-            indices => Ok(PyList::new_bound(
-                py,
-                indices.iter().map(|index| self.term(index).into_py(py)),
-            )
-            .into_any()
-            .unbind()),
+        let indices = match index.with_len(self.num_terms())? {
+            SequenceIndex::Int(index) => return Ok(self.term(index).to_term().into_py(py)),
+            indices => indices,
+        };
+        let mut out = SparseObservable::zero(self.num_qubits);
+        for index in indices.iter() {
+            out.add_term(self.term(index))?;
         }
+        Ok(out.into_py(py))
     }
 
     fn __repr__(&self) -> String {
@@ -2521,6 +2521,16 @@ pub struct SparseTermView<'a> {
     pub indices: &'a [u32],
 }
 impl<'a> SparseTermView<'a> {
+    /// Convert this `SparseTermView` into an owning [SparseTerm] of the same data.
+    pub fn to_term(&self) -> SparseTerm {
+        SparseTerm {
+            num_qubits: self.num_qubits,
+            coeff: self.coeff,
+            bit_terms: self.bit_terms.into(),
+            indices: self.indices.into(),
+        }
+    }
+
     fn to_sparse_str(self) -> String {
         let coeff = format!("{}", self.coeff).replace('i', "j");
         let paulis = self
