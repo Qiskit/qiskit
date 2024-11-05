@@ -26,7 +26,7 @@ from .adders import (
     CDKMRippleCarryAdder,
     DraperQFTAdder,
     ModularAdderGate,
-    AdderGate,
+    HalfAdderGate,
     FullAdderGate,
 )
 from .piecewise_chebyshev import PiecewiseChebyshev

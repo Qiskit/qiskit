@@ -530,7 +530,7 @@ from .boolean_logic import (
 from .basis_change import QFT, QFTGate
 from .arithmetic import (
     ModularAdderGate,
-    AdderGate,
+    HalfAdderGate,
     FullAdderGate,
     MultiplierGate,
     FunctionalPauliRotations,

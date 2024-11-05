@@ -279,10 +279,10 @@ Modular Adder Synthesis
    ModularAdderSynthesisD00
    ModularAdderSynthesisV95
 
-Adder Synthesis
-'''''''''''''''
+Half Adder Synthesis
+''''''''''''''''''''
 
-.. list-table:: Plugins for :class:`.AdderGate` (key = ``"Adder"``)
+.. list-table:: Plugins for :class:`.HalfAdderGate` (key = ``"HalfAdder"``)
     :header-rows: 1
 
     * - Plugin name
@@ -290,24 +290,24 @@ Adder Synthesis
       - Number of clean ancillas
       - Description
     * - ``"ripple_cdkm"``
-      - :class:`.AdderSynthesisC04`
+      - :class:`.HalfAdderSynthesisC04`
       - 1
       - a ripple-carry adder
     * - ``"ripple_vbe"``
-      - :class:`.AdderSynthesisV95`
+      - :class:`.HalfAdderSynthesisV95`
       - :math:`n-1`, for :math:`n`-bit numbers
       - a ripple-carry adder
     * - ``"qft"``
-      - :class:`.AdderSynthesisD00`
+      - :class:`.HalfAdderSynthesisD00`
       - 0
       - a QFT-based adder
 
 .. autosummary::
    :toctree: ../stubs/
 
-   AdderSynthesisC04
-   AdderSynthesisD00
-   AdderSynthesisV95
+   HalfAdderSynthesisC04
+   HalfAdderSynthesisD00
+   HalfAdderSynthesisV95
 
 Full Adder Synthesis
 ''''''''''''''''''''
@@ -366,7 +366,17 @@ import numpy as np
 import rustworkx as rx
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.library import LinearFunction, QFTGate, MCXGate, C3XGate, C4XGate
+from qiskit.circuit.library import (
+    LinearFunction,
+    QFTGate,
+    MCXGate,
+    C3XGate,
+    C4XGate,
+    ModularAdderGate,
+    HalfAdderGate,
+    FullAdderGate,
+    MultiplierGate,
+)
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.coupling import CouplingMap
 
@@ -1150,9 +1160,24 @@ class MCMTSynthesisVChain(HighLevelSynthesisPlugin):
 
 
 class ModularAdderSynthesisDefault(HighLevelSynthesisPlugin):
-    """The default modular adder (no carry in, no carry out qubit) synthesis."""
+    """The default modular adder (no carry in, no carry out qubit) synthesis.
+
+    This plugin name is:``ModularAdder.default`` which can be used as the key on
+    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+
+    If at least one clean auxiliary qubit is available, the :class:`ModularAdderSynthesisC04`
+    is used, otherwise :class:`ModularAdderSynthesisD00`.
+
+    The plugin supports the following plugin-specific options:
+
+    * ``num_clean_ancillas``: The number of clean auxiliary qubits available.
+
+    """
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        if not isinstance(high_level_object, ModularAdderGate):
+            return None
+
         if options.get("num_clean_ancillas", 0) >= 1:
             return adder_ripple_c04(high_level_object.num_state_qubits, kind="fixed")
 
@@ -1160,9 +1185,23 @@ class ModularAdderSynthesisDefault(HighLevelSynthesisPlugin):
 
 
 class ModularAdderSynthesisC04(HighLevelSynthesisPlugin):
-    r"""A ripple-carry adder, modulo :math:`2^n`."""
+    r"""A ripple-carry adder, modulo :math:`2^n`.
+
+    This plugin name is:``ModularAdder.ripple_c04`` which can be used as the key on
+    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+
+    This plugin requires at least one clean auxiliary qubit.
+
+    The plugin supports the following plugin-specific options:
+
+    * ``num_clean_ancillas``: The number of clean auxiliary qubits available.
+
+    """
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        if not isinstance(high_level_object, ModularAdderGate):
+            return None
+
         # unless we implement the full adder, this implementation needs an ancilla qubit
         if options.get("num_clean_ancillas", 0) < 1:
             return None
@@ -1171,9 +1210,24 @@ class ModularAdderSynthesisC04(HighLevelSynthesisPlugin):
 
 
 class ModularAdderSynthesisV95(HighLevelSynthesisPlugin):
-    r"""A ripple-carry adder, modulo :math:`2^n`."""
+    r"""A ripple-carry adder, modulo :math:`2^n`.
+
+    This plugin name is:``ModularAdder.ripple_v95`` which can be used as the key on
+    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+
+    For an adder on 2 registers with :math:`n` qubits each, this plugin requires at
+    least :math:`n-1` clean auxiliary qubit.
+
+    The plugin supports the following plugin-specific options:
+
+    * ``num_clean_ancillas``: The number of clean auxiliary qubits available.
+
+    """
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        if not isinstance(high_level_object, ModularAdderGate):
+            return None
+
         num_state_qubits = high_level_object.num_state_qubits
 
         # for more than 1 state qubit, we need an ancilla
@@ -1184,32 +1238,67 @@ class ModularAdderSynthesisV95(HighLevelSynthesisPlugin):
 
 
 class ModularAdderSynthesisD00(HighLevelSynthesisPlugin):
-    r"""A QFT-based adder, modulo :math:`2^n`."""
+    r"""A QFT-based adder, modulo :math:`2^n`.
+
+    This plugin name is:``ModularAdder.qft_d00`` which can be used as the key on
+    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+    """
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        if not isinstance(high_level_object, ModularAdderGate):
+            return None
+
         return adder_qft_d00(high_level_object.num_state_qubits, kind="fixed")
 
 
-class AdderSynthesisDefault(HighLevelSynthesisPlugin):
+class HalfAdderSynthesisDefault(HighLevelSynthesisPlugin):
     r"""The default half-adder (no carry in, but a carry out qubit) synthesis.
 
     If we have an auxiliary qubit available, the Cuccaro ripple-carry adder uses
     :math:`O(n)` CX gates and 1 auxiliary qubit, whereas the Vedral ripple-carry uses more CX
     and :math:`n-1` auxiliary qubits. The QFT-based adder uses no auxiliary qubits, but
     :math:`O(n^2)`, hence it is only used if no auxiliary qubits are available.
+
+    This plugin name is:``HalfAdder.default`` which can be used as the key on
+    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+
+    If at least one clean auxiliary qubit is available, the :class:`HalfAdderSynthesisC04`
+    is used, otherwise :class:`HalfAdderSynthesisD00`.
+
+    The plugin supports the following plugin-specific options:
+
+    * ``num_clean_ancillas``: The number of clean auxiliary qubits available.
+
     """
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        if not isinstance(high_level_object, HalfAdderGate):
+            return None
+
         if options.get("num_clean_ancillas", 0) >= 1:
             return adder_ripple_c04(high_level_object.num_state_qubits, kind="half")
 
         return adder_qft_d00(high_level_object.num_state_qubits, kind="half")
 
 
-class AdderSynthesisC04(HighLevelSynthesisPlugin):
-    """A ripple-carry adder with a carry-out bit."""
+class HalfAdderSynthesisC04(HighLevelSynthesisPlugin):
+    """A ripple-carry adder with a carry-out bit.
+
+    This plugin name is:``HalfAdder.ripple_c04`` which can be used as the key on
+    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+
+    This plugin requires at least one clean auxiliary qubit.
+
+    The plugin supports the following plugin-specific options:
+
+    * ``num_clean_ancillas``: The number of clean auxiliary qubits available.
+
+    """
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        if not isinstance(high_level_object, HalfAdderGate):
+            return None
+
         # unless we implement the full adder, this implementation needs an ancilla qubit
         if options.get("num_clean_ancillas", 0) < 1:
             return None
@@ -1217,10 +1306,24 @@ class AdderSynthesisC04(HighLevelSynthesisPlugin):
         return adder_ripple_c04(high_level_object.num_state_qubits, kind="half")
 
 
-class AdderSynthesisV95(HighLevelSynthesisPlugin):
-    """A ripple-carry adder with a carry-out bit."""
+class HalfAdderSynthesisV95(HighLevelSynthesisPlugin):
+    """A ripple-carry adder with a carry-out bit.
+
+    This plugin name is:``HalfAdder.ripple_v95`` which can be used as the key on
+    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+
+    For an adder on 2 registers with :math:`n` qubits each, this plugin requires at
+    least :math:`n-1` clean auxiliary qubit.
+
+    The plugin supports the following plugin-specific options:
+
+    * ``num_clean_ancillas``: The number of clean auxiliary qubits available.
+    """
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        if not isinstance(high_level_object, HalfAdderGate):
+            return None
+
         num_state_qubits = high_level_object.num_state_qubits
 
         # for more than 1 state qubit, we need an ancilla
@@ -1230,24 +1333,59 @@ class AdderSynthesisV95(HighLevelSynthesisPlugin):
         return adder_ripple_v95(num_state_qubits, kind="half")
 
 
-class AdderSynthesisD00(HighLevelSynthesisPlugin):
-    """A QFT-based adder with a carry-in and a carry-out bit."""
+class HalfAdderSynthesisD00(HighLevelSynthesisPlugin):
+    """A QFT-based adder with a carry-in and a carry-out bit.
+
+    This plugin name is:``HalfAdder.qft_d00`` which can be used as the key on
+    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+    """
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        if not isinstance(high_level_object, HalfAdderGate):
+            return None
+
         return adder_qft_d00(high_level_object.num_state_qubits, kind="half")
 
 
 class FullAdderSynthesisC04(HighLevelSynthesisPlugin):
-    """A ripple-carry adder with a carry-in and a carry-out bit."""
+    """A ripple-carry adder with a carry-in and a carry-out bit.
+
+    This plugin name is:``FullAdder.ripple_c04`` which can be used as the key on
+    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+
+    This plugin requires at least one clean auxiliary qubit.
+
+    The plugin supports the following plugin-specific options:
+
+    * ``num_clean_ancillas``: The number of clean auxiliary qubits available.
+
+    """
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        if not isinstance(high_level_object, FullAdderGate):
+            return None
+
         return adder_ripple_c04(high_level_object.num_state_qubits, kind="full")
 
 
 class FullAdderSynthesisV95(HighLevelSynthesisPlugin):
-    """A ripple-carry adder with a carry-in and a carry-out bit."""
+    """A ripple-carry adder with a carry-in and a carry-out bit.
+
+    This plugin name is:``FullAdder.ripple_v95`` which can be used as the key on
+    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+
+    For an adder on 2 registers with :math:`n` qubits each, this plugin requires at
+    least :math:`n-1` clean auxiliary qubit.
+
+    The plugin supports the following plugin-specific options:
+
+    * ``num_clean_ancillas``: The number of clean auxiliary qubits available.
+    """
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        if not isinstance(high_level_object, FullAdderGate):
+            return None
+
         num_state_qubits = high_level_object.num_state_qubits
 
         # for more than 1 state qubit, we need an ancilla
@@ -1258,18 +1396,32 @@ class FullAdderSynthesisV95(HighLevelSynthesisPlugin):
 
 
 class MultiplierSynthesisH18(HighLevelSynthesisPlugin):
-    """A cumulative multiplier based on controlled adders."""
+    """A cumulative multiplier based on controlled adders.
+
+    This plugin name is:``Multiplier.cumulative_h18`` which can be used as the key on
+    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+    """
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        if not isinstance(high_level_object, MultiplierGate):
+            return None
+
         return multiplier_cumulative_h18(
             high_level_object.num_state_qubits, high_level_object.num_result_qubits
         )
 
 
 class MultiplierSynthesisR17(HighLevelSynthesisPlugin):
-    """A QFT-based multiplier."""
+    """A QFT-based multiplier.
+
+    This plugin name is:``Multiplier.qft_r17`` which can be used as the key on
+    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+    """
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        if not isinstance(high_level_object, MultiplierGate):
+            return None
+
         return multiplier_qft_r17(
             high_level_object.num_state_qubits, high_level_object.num_result_qubits
         )

@@ -23,7 +23,7 @@ from qiskit.circuit.library import (
     DraperQFTAdder,
     VBERippleCarryAdder,
     ModularAdderGate,
-    AdderGate,
+    HalfAdderGate,
     FullAdderGate,
 )
 from qiskit.synthesis.arithmetic import adder_ripple_c04, adder_ripple_v95, adder_qft_d00
@@ -173,7 +173,7 @@ class TestAdder(QiskitTestCase):
         # all gates with the plugins we check
         modes = {
             "ModularAdder": (ModularAdderGate, ["ripple_c04", "ripple_v95", "qft_d00"]),
-            "Adder": (AdderGate, ["ripple_c04", "ripple_v95", "qft_d00"]),
+            "HalfAdder": (HalfAdderGate, ["ripple_c04", "ripple_v95", "qft_d00"]),
             "FullAdder": (FullAdderGate, ["ripple_c04", "ripple_v95"]),
         }
 

@@ -71,7 +71,7 @@ class Adder(QuantumCircuit):
         return self._num_state_qubits
 
 
-class AdderGate(Gate):
+class HalfAdderGate(Gate):
     r"""Compute the sum of two equally-sized qubit registers, including a carry-out bit.
 
     For two registers :math:`|a\rangle_n` and :math:|b\rangle_n` with :math:`n` qubits each, an
@@ -101,6 +101,9 @@ class AdderGate(Gate):
             num_state_qubits: The number of qubits in each of the registers.
             name: The name of the circuit.
         """
+        if num_state_qubits < 1:
+            raise ValueError("Need at least 1 state qubit.")
+
         super().__init__("Adder", 2 * num_state_qubits + 1, [], label=label)
         self._num_state_qubits = num_state_qubits
 
@@ -144,6 +147,9 @@ class ModularAdderGate(Gate):
             num_state_qubits: The number of qubits in each of the registers.
             name: The name of the circuit.
         """
+        if num_state_qubits < 1:
+            raise ValueError("Need at least 1 state qubit.")
+
         super().__init__("ModularAdder", 2 * num_state_qubits, [], label=label)
         self._num_state_qubits = num_state_qubits
 
@@ -188,7 +194,10 @@ class FullAdderGate(Gate):
             num_state_qubits: The number of qubits in each of the registers.
             name: The name of the circuit.
         """
-        super().__init__("FullAdder", 2 * num_state_qubits, [], label=label)
+        if num_state_qubits < 1:
+            raise ValueError("Need at least 1 state qubit.")
+
+        super().__init__("FullAdder", 2 * num_state_qubits + 2, [], label=label)
         self._num_state_qubits = num_state_qubits
 
     @property
