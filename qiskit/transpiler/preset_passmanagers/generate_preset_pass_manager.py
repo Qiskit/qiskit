@@ -29,6 +29,8 @@ from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.target import Target, target_to_backend_properties
 from qiskit.transpiler.timing_constraints import TimingConstraints
+from qiskit.utils import deprecate_arg
+from qiskit.utils.deprecate_pulse import deprecate_pulse_arg
 
 from .level0 import level_0_pass_manager
 from .level1 import level_1_pass_manager
@@ -36,6 +38,33 @@ from .level2 import level_2_pass_manager
 from .level3 import level_3_pass_manager
 
 
+@deprecate_arg(
+    name="instruction_durations",
+    since="1.3",
+    package_name="Qiskit",
+    removal_timeline="in Qiskit 2.0",
+    additional_msg="The `target` parameter should be used instead. You can build a `Target` instance "
+    "with defined instruction durations with "
+    "`Target.from_configuration(..., instruction_durations=...)`",
+)
+@deprecate_arg(
+    name="timing_constraints",
+    since="1.3",
+    package_name="Qiskit",
+    removal_timeline="in Qiskit 2.0",
+    additional_msg="The `target` parameter should be used instead. You can build a `Target` instance "
+    "with defined timing constraints with "
+    "`Target.from_configuration(..., timing_constraints=...)`",
+)
+@deprecate_arg(
+    name="backend_properties",
+    since="1.3",
+    package_name="Qiskit",
+    removal_timeline="in Qiskit 2.0",
+    additional_msg="The `target` parameter should be used instead. You can build a `Target` instance "
+    "with defined properties with Target.from_configuration(..., backend_properties=...)",
+)
+@deprecate_pulse_arg("inst_map", predicate=lambda inst_map: inst_map is not None)
 def generate_preset_pass_manager(
     optimization_level=2,
     backend=None,
@@ -122,7 +151,7 @@ def generate_preset_pass_manager(
             and ``backend_properties``.
         basis_gates (list): List of basis gate names to unroll to
             (e.g: ``['u1', 'u2', 'u3', 'cx']``).
-        inst_map (InstructionScheduleMap): Mapping object that maps gates to schedules.
+        inst_map (InstructionScheduleMap): DEPRECATED. Mapping object that maps gates to schedules.
             If any user defined calibration is found in the map and this is used in a
             circuit, transpiler attaches the custom gate definition to the circuit.
             This enables one to flexibly override the low-level instruction
@@ -339,7 +368,7 @@ def generate_preset_pass_manager(
         if instruction_durations is None:
             instruction_durations = target.durations()
         if inst_map is None:
-            inst_map = target.instruction_schedule_map()
+            inst_map = target._get_instruction_schedule_map()
         if timing_constraints is None:
             timing_constraints = target.timing_constraints()
         if backend_properties is None:
@@ -358,6 +387,7 @@ def generate_preset_pass_manager(
     # Parse non-target dependent pm options
     initial_layout = _parse_initial_layout(initial_layout)
     approximation_degree = _parse_approximation_degree(approximation_degree)
+    seed_transpiler = _parse_seed_transpiler(seed_transpiler)
 
     pm_options = {
         "target": target,
@@ -382,21 +412,28 @@ def generate_preset_pass_manager(
         "qubits_initially_zero": qubits_initially_zero,
     }
 
-    if backend is not None:
-        pm_options["_skip_target"] = _skip_target
-        pm_config = PassManagerConfig.from_backend(backend, **pm_options)
-    else:
-        pm_config = PassManagerConfig(**pm_options)
-    if optimization_level == 0:
-        pm = level_0_pass_manager(pm_config)
-    elif optimization_level == 1:
-        pm = level_1_pass_manager(pm_config)
-    elif optimization_level == 2:
-        pm = level_2_pass_manager(pm_config)
-    elif optimization_level == 3:
-        pm = level_3_pass_manager(pm_config)
-    else:
-        raise ValueError(f"Invalid optimization level {optimization_level}")
+    with warnings.catch_warnings():
+        # inst_map is deprecated in the PassManagerConfig initializer
+        warnings.filterwarnings(
+            "ignore",
+            category=DeprecationWarning,
+            message=".*argument ``inst_map`` is deprecated as of Qiskit 1.3",
+        )
+        if backend is not None:
+            pm_options["_skip_target"] = _skip_target
+            pm_config = PassManagerConfig.from_backend(backend, **pm_options)
+        else:
+            pm_config = PassManagerConfig(**pm_options)
+        if optimization_level == 0:
+            pm = level_0_pass_manager(pm_config)
+        elif optimization_level == 1:
+            pm = level_1_pass_manager(pm_config)
+        elif optimization_level == 2:
+            pm = level_2_pass_manager(pm_config)
+        elif optimization_level == 3:
+            pm = level_3_pass_manager(pm_config)
+        else:
+            raise ValueError(f"Invalid optimization level {optimization_level}")
     return pm
 
 
@@ -451,7 +488,7 @@ def _parse_basis_gates(basis_gates, backend, inst_map, skip_target):
 def _parse_inst_map(inst_map, backend):
     # try getting inst_map from user, else backend
     if inst_map is None and backend is not None:
-        inst_map = backend.target.instruction_schedule_map()
+        inst_map = backend.target._get_instruction_schedule_map()
     return inst_map
 
 
@@ -532,3 +569,11 @@ def _parse_approximation_degree(approximation_degree):
     if approximation_degree < 0.0 or approximation_degree > 1.0:
         raise TranspilerError("Approximation degree must be in [0.0, 1.0]")
     return approximation_degree
+
+
+def _parse_seed_transpiler(seed_transpiler):
+    if seed_transpiler is None:
+        return None
+    if not isinstance(seed_transpiler, int) or seed_transpiler < 0:
+        raise ValueError("Expected non-negative integer as seed for transpiler.")
+    return seed_transpiler

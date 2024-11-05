@@ -125,9 +125,14 @@ Two-Qubit Synthesis
 Multi Controlled Synthesis
 ==========================
 
+.. autofunction:: synth_mcmt_vchain
 .. autofunction:: synth_mcx_n_dirty_i15
 .. autofunction:: synth_mcx_n_clean_m15
 .. autofunction:: synth_mcx_1_clean_b95
+.. autofunction:: synth_mcx_noaux_v24
+.. autofunction:: synth_mcx_gray_code
+.. autofunction:: synth_c3x
+.. autofunction:: synth_c4x
 
 """
 
@@ -180,8 +185,13 @@ from .two_qubit.two_qubit_decompose import (
     two_qubit_cnot_decompose,
     TwoQubitWeylDecomposition,
 )
-from .multi_controlled.mcx_with_ancillas_synth import (
+from .multi_controlled import (
+    synth_mcmt_vchain,
     synth_mcx_n_dirty_i15,
     synth_mcx_n_clean_m15,
     synth_mcx_1_clean_b95,
+    synth_mcx_noaux_v24,
+    synth_mcx_gray_code,
+    synth_c3x,
+    synth_c4x,
 )

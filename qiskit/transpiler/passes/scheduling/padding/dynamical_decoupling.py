@@ -14,6 +14,7 @@
 from __future__ import annotations
 
 import logging
+import warnings
 import numpy as np
 
 from qiskit.circuit import Gate, ParameterExpression, Qubit
@@ -187,11 +188,15 @@ class PadDynamicalDecoupling(BasePadding):
         """
         circ_durations = InstructionDurations()
 
-        if dag.calibrations:
+        if dag._calibrations_prop:
             cal_durations = []
-            for gate, gate_cals in dag.calibrations.items():
-                for (qubits, parameters), schedule in gate_cals.items():
-                    cal_durations.append((gate, qubits, parameters, schedule.duration))
+            with warnings.catch_warnings():
+                warnings.simplefilter(action="ignore", category=DeprecationWarning)
+                # `schedule.duration` emits pulse deprecation warnings which we don't want
+                # to see here
+                for gate, gate_cals in dag._calibrations_prop.items():
+                    for (qubits, parameters), schedule in gate_cals.items():
+                        cal_durations.append((gate, qubits, parameters, schedule.duration))
             circ_durations.update(cal_durations, circ_durations.dt)
 
         if self._durations is not None:
@@ -252,7 +257,13 @@ class PadDynamicalDecoupling(BasePadding):
                 try:
                     # Check calibration.
                     params = self._resolve_params(gate)
-                    gate_length = dag.calibrations[gate.name][((physical_index,), params)].duration
+                    with warnings.catch_warnings():
+                        warnings.simplefilter(action="ignore", category=DeprecationWarning)
+                        # `schedule.duration` emits pulse deprecation warnings which we don't want
+                        # to see here
+                        gate_length = dag._calibrations_prop[gate.name][
+                            ((physical_index,), params)
+                        ].duration
                     if gate_length % self._alignment != 0:
                         # This is necessary to implement lightweight scheduling logic for this pass.
                         # Usually the pulse alignment constraint and pulse data chunk size take
@@ -370,7 +381,10 @@ class PadDynamicalDecoupling(BasePadding):
                 op = prev_node.op
                 theta_l, phi_l, lam_l = op.params
                 op.params = Optimize1qGates.compose_u3(theta, phi, lam, theta_l, phi_l, lam_l)
-                prev_node.op = op
+                new_prev_node = dag.substitute_node(prev_node, op, propagate_condition=False)
+                start_time = self.property_set["node_start_time"].pop(prev_node)
+                if start_time is not None:
+                    self.property_set["node_start_time"][new_prev_node] = start_time
                 sequence_gphase += phase
             else:
                 # Don't do anything if there's no single-qubit gate to absorb the inverse

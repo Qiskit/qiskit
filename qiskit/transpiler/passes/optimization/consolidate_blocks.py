@@ -202,7 +202,11 @@ class ConsolidateBlocks(TransformationPass):
         for node in dag.op_nodes():
             if node.name not in CONTROL_FLOW_OP_NAMES:
                 continue
-            node.op = node.op.replace_blocks(pass_manager.run(block) for block in node.op.blocks)
+            dag.substitute_node(
+                node,
+                node.op.replace_blocks(pass_manager.run(block) for block in node.op.blocks),
+                propagate_condition=False,
+            )
         return dag
 
     def _check_not_in_basis(self, dag, gate_name, qargs):

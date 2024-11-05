@@ -27,6 +27,7 @@ use rustworkx_core::petgraph::prelude::*;
 use rustworkx_core::petgraph::visit::EdgeRef;
 use rustworkx_core::shortest_path::dijkstra;
 use rustworkx_core::token_swapper::token_swapper;
+use smallvec::{smallvec, SmallVec};
 
 use crate::getenv_use_multiple_threads;
 use crate::nlayout::{NLayout, PhysicalQubit};
@@ -323,7 +324,7 @@ impl<'a, 'b> RoutingState<'a, 'b> {
     fn force_enable_closest_node(
         &mut self,
         current_swaps: &mut Vec<[PhysicalQubit; 2]>,
-    ) -> NodeIndex {
+    ) -> SmallVec<[NodeIndex; 2]> {
         let (&closest_node, &qubits) = {
             let dist = &self.target.distance;
             self.front_layer
@@ -365,7 +366,32 @@ impl<'a, 'b> RoutingState<'a, 'b> {
             current_swaps.push([shortest_path[end], shortest_path[end - 1]]);
         }
         current_swaps.iter().for_each(|&swap| self.apply_swap(swap));
-        closest_node
+
+        // If we apply a single swap it could be that we route 2 nodes; that is a setup like
+        //  A - B - A - B
+        // and we swap the middle two qubits. This cannot happen if we apply 2 or more swaps.
+        if current_swaps.len() > 1 {
+            smallvec![closest_node]
+        } else {
+            // check if the closest node has neighbors that are now routable -- for that we get
+            // the other physical qubit that was swapped and check whether the node on it
+            // is now routable
+            let mut possible_other_qubit = current_swaps[0]
+                .iter()
+                // check if other nodes are in the front layer that are connected by this swap
+                .filter_map(|&swap_qubit| self.front_layer.qubits()[swap_qubit.index()])
+                // remove the closest_node, which we know we already routed
+                .filter(|(node_index, _other_qubit)| *node_index != closest_node)
+                .map(|(_node_index, other_qubit)| other_qubit);
+
+            // if there is indeed another candidate, check if that gate is routable
+            if let Some(other_qubit) = possible_other_qubit.next() {
+                if let Some(also_routed) = self.routable_node_on_qubit(other_qubit) {
+                    return smallvec![closest_node, also_routed];
+                }
+            }
+            smallvec![closest_node]
+        }
     }
 
     /// Return the swap of two virtual qubits that produces the best score of all possible swaps.
@@ -580,6 +606,7 @@ impl<'a, 'b> RoutingState<'a, 'b> {
 ///     logical position of the qubit that began in position `i`.
 #[pyfunction]
 #[allow(clippy::too_many_arguments)]
+#[pyo3(signature=(dag, neighbor_table, distance_matrix, heuristic, initial_layout, num_trials, seed=None, run_in_parallel=None))]
 pub fn sabre_routing(
     py: Python,
     dag: &SabreDAG,
@@ -750,7 +777,7 @@ pub fn swap_map_trial(
         }
         if routable_nodes.is_empty() {
             // If we exceeded the max number of heuristic-chosen swaps without making progress,
-            // unwind to the last progress point and greedily swap to bring a ndoe together.
+            // unwind to the last progress point and greedily swap to bring a node together.
             // Efficiency doesn't matter much; this path never gets taken unless we're unlucky.
             // Reset the qubit depths to the backup if the depth heuristic is active.
             if let Some(ref backup) = qubit_depths_backup {
@@ -761,7 +788,7 @@ pub fn swap_map_trial(
                 .rev()
                 .for_each(|swap| state.apply_swap(swap));
             let force_routed = state.force_enable_closest_node(&mut current_swaps);
-            routable_nodes.push(force_routed);
+            routable_nodes.extend(force_routed);
         }
         state.update_route(&routable_nodes, current_swaps);
         if state.heuristic.decay.is_some() {

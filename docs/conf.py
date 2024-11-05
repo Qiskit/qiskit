@@ -114,23 +114,6 @@ autoclass_content = "both"
 autosummary_generate = True
 autosummary_generate_overwrite = False
 
-# The pulse library contains some names that differ only in capitalization, during the changeover
-# surrounding SymbolPulse.  Since these resolve to autosummary filenames that also differ only in
-# capitalization, this causes problems when the documentation is built on an OS/filesystem that is
-# enforcing case-insensitive semantics.  This setting defines some custom names to prevent the clash
-# from happening.
-autosummary_filename_map = {
-    "qiskit.pulse.library.Constant": "qiskit.pulse.library.Constant_class.rst",
-    "qiskit.pulse.library.Sawtooth": "qiskit.pulse.library.Sawtooth_class.rst",
-    "qiskit.pulse.library.Triangle": "qiskit.pulse.library.Triangle_class.rst",
-    "qiskit.pulse.library.Cos": "qiskit.pulse.library.Cos_class.rst",
-    "qiskit.pulse.library.Sin": "qiskit.pulse.library.Sin_class.rst",
-    "qiskit.pulse.library.Gaussian": "qiskit.pulse.library.Gaussian_class.rst",
-    "qiskit.pulse.library.Drag": "qiskit.pulse.library.Drag_class.rst",
-    "qiskit.pulse.library.Square": "qiskit.pulse.library.Square_fun.rst",
-    "qiskit.pulse.library.Sech": "qiskit.pulse.library.Sech_fun.rst",
-}
-
 # We only use Google-style docstrings, and allowing Napoleon to parse Numpy-style docstrings both
 # slows down the build (a little) and can sometimes result in _regular_ section headings in
 # module-level documentation being converted into surprising things.
@@ -190,6 +173,10 @@ def linkcode_resolve(domain, info):
         except AttributeError:
             return None
 
+    # Unwrap decorators. This requires they used `functools.wrap()`.
+    while hasattr(obj, "__wrapped__"):
+        obj = getattr(obj, "__wrapped__")
+
     try:
         full_file_name = inspect.getsourcefile(obj)
     except TypeError:
@@ -198,7 +185,7 @@ def linkcode_resolve(domain, info):
         return None
     try:
         relative_file_name = Path(full_file_name).resolve().relative_to(REPO_ROOT)
-        file_name = re.sub(r"\.tox\/.+\/site-packages\/", "", str(relative_file_name))
+        file_name = re.sub(r"\.tox\/.+\/site-packages\/", "", relative_file_name.as_posix())
     except ValueError:
         return None
 
