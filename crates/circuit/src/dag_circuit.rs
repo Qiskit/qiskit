@@ -6917,7 +6917,11 @@ impl DAGCircuit {
         let (additional_clbits, additional_vars) =
             self.additional_wires(py, new_op.operation.view(), new_op.extra_attrs.condition())?;
         new_wires.extend(additional_clbits.iter().map(|x| Wire::Clbit(*x)));
-        new_wires.extend(additional_vars.iter().map(|x| Wire::Var(self.vars.find(x.bind(py)).unwrap())));
+        new_wires.extend(
+            additional_vars
+                .iter()
+                .map(|x| Wire::Var(self.vars.find(x.bind(py)).unwrap())),
+        );
 
         if old_packed.op.num_qubits() != new_op.operation.num_qubits()
             || old_packed.op.num_clbits() != new_op.operation.num_clbits()

@@ -262,10 +262,7 @@ pub(crate) fn consolidate_blocks(
                 continue;
             }
             let qubit = first_qubits[0];
-            let mut matrix = [
-                [Complex64::new(1., 0.), Complex64::new(0., 0.)],
-                [Complex64::new(0., 0.), Complex64::new(1., 0.)],
-            ];
+            let mut matrix = ONE_QUBIT_IDENTITY;
 
             let mut already_in_block = false;
             for node in &run {
