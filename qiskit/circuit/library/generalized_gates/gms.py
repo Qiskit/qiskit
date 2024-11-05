@@ -157,8 +157,8 @@ class MSGate(Gate):
         qc = QuantumCircuit(q, name=self.name)
         for i in range(self.num_qubits):
             for j in range(i + 1, self.num_qubits):
-                # if theta was just a single angle, use that, otherwise use the correct index
-                theta = thetas if isinstance(thetas, ParameterValueType) else thetas[i][j]
+                # if theta is just a single angle, use that, otherwise use the correct index
+                theta = thetas if not isinstance(thetas, Sequence) else thetas[i][j]
                 qc._append(RXXGate(theta), [q[i], q[j]], [])
 
         self.definition = qc
