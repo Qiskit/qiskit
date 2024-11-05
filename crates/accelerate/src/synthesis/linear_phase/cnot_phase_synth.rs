@@ -21,7 +21,6 @@ use smallvec::{smallvec, SmallVec};
 use std::f64::consts::PI;
 type Instruction = (StandardGate, SmallVec<[Param; 3]>, SmallVec<[Qubit; 2]>);
 
-#[derive(Clone)]
 struct PhaseIterator {
     s_cpy: Array2<u8>,
     state: Array2<u8>,
@@ -61,9 +60,9 @@ impl Iterator for PhaseIterator {
 
         if self.index < self.s_cpy.ncols() {
             let mut gate_instr: Option<Instruction> = None;
-            let icnot = self.s_cpy.column(self.index).to_vec();
+            let icnot = self.s_cpy.column(self.index);
             self.index += 1;
-            let target_state = self.state.row(self.qubit_idx).to_vec();
+            let target_state = self.state.row(self.qubit_idx);
 
             if icnot == target_state {
                 self.index -= 1;
@@ -76,7 +75,7 @@ impl Iterator for PhaseIterator {
                         smallvec![],
                         smallvec![Qubit(self.qubit_idx as u32)],
                     ),
-                    "tgd" => (
+                    "tdg" => (
                         StandardGate::TdgGate,
                         smallvec![],
                         smallvec![Qubit(self.qubit_idx as u32)],
@@ -119,7 +118,6 @@ impl Iterator for PhaseIterator {
     }
 }
 
-#[derive(Clone)]
 struct CXPhaseIterator {
     s_cpy: Array2<u8>,
     state: Array2<u8>,
@@ -340,7 +338,6 @@ impl Iterator for CXPhaseIterator {
     }
 }
 
-#[derive(Clone)]
 struct BindingIterator {
     num_qubits: usize,
     q: Vec<(Array2<u8>, Vec<usize>, usize)>,
