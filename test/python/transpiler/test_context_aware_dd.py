@@ -84,7 +84,10 @@ class Mock127q(GenericBackendV2):
 
 @ddt
 class TestContextAwareDD(QiskitTestCase):
-    """Test context-aware dynamical decoupling."""
+    """Test context-aware dynamical decoupling.
+
+    See the reference: https://arxiv.org/abs/2403.06852v2.
+    """
 
     def setUp(self):
         super().setUp()
@@ -94,20 +97,6 @@ class TestContextAwareDD(QiskitTestCase):
         self.t_cx = 1e3
         self.t_sx = 10
         self.t_x = 20
-
-    def paper_setting(self):
-        """Get the circuit from Fig. 5 of the context-aware DD paper."""
-        circuit = QuantumCircuit(6)
-        circuit.barrier()
-        circuit.cx(1, 0)
-        circuit.cx(3, 4)
-        circuit.barrier()
-        circuit.cx(1, 2)
-        circuit.cx(4, 5)
-        circuit.barrier()
-        circuit.cx(1, 2)
-
-        return circuit
 
     @contextlib.contextmanager
     def assertMultiDelayInserted(self, expected_blocks):
@@ -323,12 +312,11 @@ class TestContextAwareDD(QiskitTestCase):
 
     def test_orthogonal_sequences(self):
         """Check orthogonality of sequences up to the supported order."""
+        target = get_toy_target(5)
+        cadd = ContextAwareDynamicalDecoupling(target)
 
         # get the DD sequences and check for the smallest time frame
-        dd_sequences = [
-            np.asarray(ContextAwareDynamicalDecoupling.get_orthogonal_sequence(order)[0])
-            for order in range(ContextAwareDynamicalDecoupling.MAX_ORDER + 1)
-        ]
+        dd_sequences = [np.asarray(cadd.get_orthogonal_sequence(order)[0]) for order in range(6)]
         # we must exclude 0, which is sometimes used as padding in the end
         smallest_unit = np.min([np.min(row[np.where(row > 0)]) for row in dd_sequences])
 
@@ -342,10 +330,9 @@ class TestContextAwareDD(QiskitTestCase):
                 with self.subTest(i=i, j=j):
                     self.assertAlmostEqual(np.dot(row_i, row_j), 0)
 
-    def test_exceed_highest_order(self):
+    def test_exceed_default_highest_order(self):
         """Check an error is raised if we query a sequence with order too high."""
-
-        order_threshold = 7  # pick an order that is not supported anymore
+        order_threshold = 7  # pick an order above the default max order (5)
         kranka = Target(num_qubits=order_threshold, dt=self.dt)  # a target with scary connectivity
         coupling_web = itertools.combinations(list(range(order_threshold)), 2)
         cx_props = {
@@ -368,8 +355,12 @@ class TestContextAwareDD(QiskitTestCase):
         pm = _get_schedule_pm(kranka, list(range(kranka.num_qubits)))
         pm.append(ContextAwareDynamicalDecoupling(kranka, skip_reset_qubits=False))
 
-        with self.assertRaises(TranspilerError):
-            _ = pm.run(circuit)
+        circuit = pm.run(circuit)
+
+        # number of flips in the first 7 Walsh-Hadamard sequences
+        num_dd_x = 2 + 2 + 4 + 4 + 6 + 6 + 8
+        num_x = circuit.num_qubits  # X layer
+        self.assertEqual(num_x + num_dd_x, circuit.count_ops().get("x", 0))
 
     def test_collecting_pyramid(self):
         """Test collecting the largest adjacent blocks for a pyramid structure.

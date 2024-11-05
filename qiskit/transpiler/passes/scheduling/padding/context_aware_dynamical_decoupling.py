@@ -40,16 +40,16 @@ logger = logging.getLogger(__name__)
 
 
 class ContextAwareDynamicalDecoupling(TransformationPass):
-    """Context-aware dynamical decoupling.
+    """Implement an X-sequence dynamical decoupling considering the gate- and qubit-context.
 
     This pass implements a context-aware dynamical decoupling (DD) [1], which ensures that
 
-        (1) simultaneously occuring DD sequences on device-adjacent qubits are mutually orthogonal, and
+        (1) simultaneously occurring DD sequences on device-adjacent qubits are mutually orthogonal, and
         (2) DD sequences on spectator qubits of ECR and CX gates are orthogonal to the echo
             pulses on the neighboring target/control qubits.
 
     The mutually orthogonal DD sequences are currently Walsh-Hadamard sequences, consisting of only
-    X gates. In some cases it might therefore be benefitial to use :class:`.PadDynamicalDecoupling`
+    X gates. In some cases it might therefore be beneficial to use :class:`.PadDynamicalDecoupling`
     with more generic sequences, such as XY4.
 
     This pass performs best if the two-qubit interactions have the same durations on the
@@ -94,8 +94,6 @@ class ContextAwareDynamicalDecoupling(TransformationPass):
             Context-Aware Compiling, `arXiv:2403.06852 <https://arxiv.org/abs/2403.06852>`_.
 
     """
-
-    MAX_ORDER = 5  # max order for the coloring
 
     def __init__(
         self,
@@ -142,6 +140,7 @@ class ContextAwareDynamicalDecoupling(TransformationPass):
             target.pulse_alignment if pulse_alignment is None else pulse_alignment
         )
         self._coloring_strategy = coloring_strategy
+        self._sequence_generator = WalshHadamardSequence()
 
         # Use PadDelay to insert Delay operations into the DAG before running this pass.
         # This could be integrated into this pass as well, saving one iteration over the DAG,
@@ -199,10 +198,10 @@ class ContextAwareDynamicalDecoupling(TransformationPass):
 
                 op.start_times += start_times
 
-        # 5) Replace each delay operation with it's individual DD sequence
+        # 5) Replace each delay operation with its individual DD sequence
         qubit_map = dict(enumerate(dag.qubits))
         for delay in all_delays:
-            # replace it with it's stored replacement
+            # replace it with its stored replacement
             as_dag = circuit_to_dag(delay.replacement)
             node_ids = [node._node_id for node in as_dag.topological_op_nodes()]
             id_map = dag.substitute_node_with_dag(
@@ -215,28 +214,9 @@ class ContextAwareDynamicalDecoupling(TransformationPass):
 
         return dag
 
-    @staticmethod
-    def get_orthogonal_sequence(order: int) -> tuple[list[float], list[Gate]]:
+    def get_orthogonal_sequence(self, order: int) -> tuple[list[float], list[Gate]]:
         """Return a DD sequence of given order, where different orders are orthogonal."""
-        if order == 0:
-            spacing = [1 / 2, 1 / 2, 0]
-        elif order == 1:
-            spacing = [1 / 4, 1 / 2, 1 / 4]
-        elif order == 2:
-            spacing = [1 / 4, 1 / 4, 1 / 4, 1 / 4, 0]
-        elif order == 3:
-            spacing = [1 / 8, 1 / 4, 1 / 4, 1 / 4, 1 / 8]
-        elif order == 4:
-            spacing = [1 / 8, 1 / 4, 1 / 8, 1 / 8, 1 / 4, 1 / 8, 0]
-        elif order == 5:
-            spacing = [1 / 8, 1 / 8, 1 / 8, 1 / 4, 1 / 8, 1 / 8, 1 / 8]
-        else:
-            max_order = ContextAwareDynamicalDecoupling.MAX_ORDER
-            raise TranspilerError(
-                f"Need more colors ({order}) than supported ({max_order}) to find "
-                "a coloring where no connected qubits share the same color."
-            )
-
+        spacing = self._sequence_generator.get_sequence(order)
         return spacing, [XGate() for _ in spacing[:-1]]
 
     def _get_sorted_delays(
@@ -275,7 +255,7 @@ class ContextAwareDynamicalDecoupling(TransformationPass):
     def _get_wire_coloring(self, dag: DAGCircuit, merged_delay: MultiDelayOp) -> dict[int, int]:
         """Find a wire coloring for a multi-delay operation.
 
-        This function returns a dictionay that includes the coloring (as int) for the indices in the
+        This function returns a dictionary that includes the coloring (as int) for the indices in the
         ``merged_delay`` as ``{index: color}`` pairs. Spectator qubits are handled by assigning
         neighboring qubits with a CX or ECR a color (0 if control, 1 if target) and including them
         in the coloring problem.
@@ -357,7 +337,7 @@ class ContextAwareDynamicalDecoupling(TransformationPass):
                 )
             checked_durations_cache.add(index)
 
-        spacing, dd_sequence = ContextAwareDynamicalDecoupling.get_orthogonal_sequence(order=order)
+        spacing, dd_sequence = self.get_orthogonal_sequence(order=order)
 
         # check if DD can be applied or if there is not enough time
         dd_sequence_duration = sum(instruction_durations.get(gate, index) for gate in dd_sequence)
@@ -407,7 +387,6 @@ class ContextAwareDynamicalDecoupling(TransformationPass):
         self,
         sorted_delay_events: list[DelayEvent],
         qubit_map: dict[Qubit, int],
-        validate: bool = True,
     ) -> list[AdjacentDelayBlock]:
         """Collect delay events into adjacent blocks.
 
@@ -417,7 +396,6 @@ class ContextAwareDynamicalDecoupling(TransformationPass):
         Args:
             sorted_delay_events: All eligible delay operations, sorted by time and type.
             qubit_map: A map from qubit instance to qubit index.
-            validate: If True, validate the output ``AdjacentDelayBlock``s.
 
         Returns:
             A list of adjacent delay blocks.
@@ -437,10 +415,8 @@ class ContextAwareDynamicalDecoupling(TransformationPass):
             """Add another delay event to an existing block to either extend or close it."""
             open_delay_block.events.append(delay_event)
 
-            if delay_event.type == EventType.BEGIN:  # TODO: this is never called
-                open_delay_block.active_qubits += set(delay_event.op_node.qargs)
-            else:
-                open_delay_block.active_qubits -= set(delay_event.op_node.qargs)
+            # at this point we know that delay_event.op_node.qargs is active
+            open_delay_block.active_qubits -= set(delay_event.op_node.qargs)
 
             if not open_delay_block.active_qubits:
                 open_delay_blocks.remove(open_delay_block)
@@ -451,8 +427,9 @@ class ContextAwareDynamicalDecoupling(TransformationPass):
 
             for doomed_delay_group in doomed:
                 # Add events and qubits from doomed block to survivor.
-                if survivor.active_qubits.intersection(doomed_delay_group.active_qubits):
-                    raise RuntimeError("More than one open delay on a qubit?")
+                if logger.isEnabledFor(logging.DEBUG):
+                    if survivor.active_qubits.intersection(doomed_delay_group.active_qubits):
+                        logger.debug("More than one open delay on a qubit?")
 
                 survivor.events.extend(doomed_delay_group.events)
                 survivor.active_qubits.update(doomed_delay_group.active_qubits)
@@ -481,17 +458,18 @@ class ContextAwareDynamicalDecoupling(TransformationPass):
                 # If so, add current event to that group.
 
                 if len(adjacent_open_delay_blocks) == 0:
-                    # Make a new delay
+                    # Make a new delay block
                     _open_delay_block(delay_event)
                 else:
                     # Make a new block and combine that with adjacent open blocks
                     new_block = _open_delay_block(delay_event)
                     _combine_delay_blocks(adjacent_open_delay_blocks + [new_block])
 
-            if delay_event.type == EventType.END:
-                # If crossing a end edge, remove this qubit from the actively delaying qubits"
-                if len(adjacent_open_delay_blocks) != 1:
-                    raise RuntimeError("Closing edge w/o an open delay?")
+            else:
+                if logger.isEnabledFor(logging.DEBUG):
+                    # If crossing a end edge, remove this qubit from the actively delaying qubits"
+                    if len(adjacent_open_delay_blocks) != 1:
+                        logger.debug("Closing edge w/o an open delay?")
 
                 _update_delay_block(adjacent_open_delay_blocks[0], delay_event)
 
@@ -502,14 +480,14 @@ class ContextAwareDynamicalDecoupling(TransformationPass):
 
         # validate the results, there should be no open delays and all active qubits
         # should be accounted for
-        if len(open_delay_blocks) > 0:
-            raise RuntimeError("Failed to close all open delays.")
+        if logger.isEnabledFor(logging.DEBUG):
+            if len(open_delay_blocks) > 0:
+                logger.debug("Failed to close all open delays.")
 
-        for closed_delay in closed_delay_blocks:
-            if len(closed_delay.active_qubits) > 0:
-                raise RuntimeError("Failed remove active qubits on closed delays.")
+            for closed_delay in closed_delay_blocks:
+                if len(closed_delay.active_qubits) > 0:
+                    logger.debug("Failed to remove active qubits on closed delay %s.", closed_delay)
 
-            if validate:
                 closed_delay.validate()
 
         return closed_delay_blocks
@@ -518,7 +496,6 @@ class ContextAwareDynamicalDecoupling(TransformationPass):
         self,
         adjacent_block: AdjacentDelayBlock,
         qubit_map: dict[Qubit, int],
-        validate: bool = True,
     ) -> list[MultiDelayOp]:
         """Split adjacent delay blocks in concurrent layers of maximum width.
 
@@ -582,12 +559,12 @@ class ContextAwareDynamicalDecoupling(TransformationPass):
                 group = tuple(sorted(active_neighbors))  # must be sorted to merge later
                 grouped.append(group)
 
-            if validate:
-                # sanity check: groups must be disjoint
+            # sanity check: groups must be disjoint
+            if logger.isEnabledFor(logging.DEBUG):
                 for i, g1 in enumerate(grouped):
                     for g2 in grouped[i + 1 :]:
                         if len(set(g1).intersection(g2)) > 0:
-                            raise RuntimeError(f"Groups not disjoint: {g1} and {g2}.")
+                            logger.debug("Groups not disjoint: %s and %s.", g1, g2)
 
             active_delays[window] = grouped
 
@@ -606,10 +583,10 @@ class ContextAwareDynamicalDecoupling(TransformationPass):
                     for op in delay.ops:
                         op.breakpoints.remove(window[0])
 
-                    # TODO this is a sanity check
-                    involved_ops = {op_map[(index, window)] for index in open_group}
-                    if len(involved_ops.difference(delay.ops)) > 0:
-                        raise RuntimeError("I cannot think")
+                    if logger.isEnabledFor(logging.DEBUG):
+                        involved_ops = {op_map[(index, window)] for index in open_group}
+                        if len(involved_ops.difference(delay.ops)) > 0:
+                            logger.debug("Not all involved operations are part of the joint delay.")
 
                     next_open_groups[open_group] = delay
                 else:
@@ -652,7 +629,7 @@ class DelayEvent:
 
     @staticmethod
     def sort_key(event: DelayEvent) -> tuple(int, int):
-        """Sort events, first by time then by type ('end' events come for 'begin' events)."""
+        """Sort events, first by time then by type ('end' events come before 'begin' events)."""
         return (
             event.time,  # Sort by event time
             0 if event.type == EventType.END else 1,  # With 'end' events before 'begin'
@@ -683,7 +660,7 @@ class DelayOp:
         This means the delay is active during this window and we add a potential breakpoint.
         """
         if self.end is None:
-            raise RuntimeError("Cannot add window if end is not known.")
+            raise ValueError("Cannot add a window if DelayOp.end is None. Please set it.")
 
         start, end = window
         if self.start < start and start not in self.breakpoints:
@@ -717,7 +694,7 @@ class AdjacentDelayBlock:
         q0: -██████---------  |  qubits q0,q1,q2 have adjacent delay
         q1: ------███████---  |  operations, since the delay operations
         q2: --█████████-----  |  all overlap
-        q3: -----------████-  -> this delay starts when delay on q2 end, so they have no overlap
+        q3: -----------████-  -> this delay starts when delay on q2 ends, so they have no overlap
         q4: ----████--------  -> this clearly has no overlap with someting else
 
     """
@@ -725,24 +702,35 @@ class AdjacentDelayBlock:
     events: list[DelayEvent]
     active_qubits: set[Qubit]
 
-    def validate(self) -> None:
+    def validate(self, log: bool = True) -> None:
         """Validate the list of delay events in the adjacent block.
+
+        Args:
+            log: If ``True`` log invalid blocks on DEBUG level. Otherwise raise an error if the
+                block is invalid.
 
         Raises:
             RuntimeError: If the blocks are not ordered by time and event type.
         """
 
+        def notify(msg, *args):
+            if log:
+                logger.debug(msg, *args)
+            else:
+                raise RuntimeError(msg.format(*args))
+
         for idx, event in enumerate(self.events[:-1]):
             if event.time > self.events[idx + 1].time:
-                raise RuntimeError("adjacent_delay_block.events not ordered by time")
+                notify("adjacent_delay_block.events not ordered by time")
 
             if event.time == self.events[idx + 1].time:
                 # At same time, can either be ('begin', 'begin'), ('end', 'begin') or ('end', 'end')
                 if (event.type, self.events[idx + 1].type) == (EventType.BEGIN, EventType.END):
-                    raise RuntimeError(
+                    notify(
                         "Events in the AdjacentDelayBlock are not correctly sorted by "
                         "event type. At same time, we can have either of (begin, begin), "
-                        f"(end, begin) or (end, end). This happened at time {event.time}."
+                        "(end, begin) or (end, end). This happened at time %s.",
+                        event.time,
                     )
 
 
@@ -754,3 +742,85 @@ def _dfs(qubit, cmap: CouplingMap, visited, active_qubits):
         if neighbor in active_qubits and neighbor not in visited:
             visited.add(neighbor)
             _dfs(neighbor, cmap, visited, active_qubits)
+
+
+class WalshHadamardSequence:
+    """Get Walsh-Hadamard sequences for DD up to arbitrary order."""
+
+    def __init__(self, max_order: int = 5):
+        """
+        Args:
+            max_order: The maximal order for which the sequences are computed.
+        """
+        # these are set in set_max_order
+        self.sequences = None
+        self.max_order = None
+
+        self.set_max_order(max_order)
+
+    def set_max_order(self, max_order: int) -> None:
+        """Set the maximal available order."""
+        if self.max_order is not None:
+            if max_order <= self.max_order:
+                return
+
+        # get the dimension of the transformation matrix we need,
+        # this is given by the smallest power of 2 that includes max_order
+        num_krons = int(np.ceil(np.log2(max_order + 1)))
+        self.max_order = 2**num_krons - 1
+
+        rows = _get_transformation_matrix(num_krons).tolist()
+        distances = [_bitflips_to_timings(row) for row in rows]
+        num_flips = [len(distance) - 1 for distance in distances]
+
+        # sort by the number of flips and throw out the first one,
+        # which corresponds to the 000... bit-sequence, i.e., no flip
+        indices = np.argsort(num_flips)[1:]
+
+        self.sequences = [distances[i] for i in indices]
+
+    def get_sequence(self, order: int) -> list[float]:
+        """Get the Walsh-Hadamard sequence of given order (starts at 0)."""
+        if order > self.max_order:
+            self.set_max_order(order)
+
+        return self.sequences[order]
+
+
+def _get_transformation_matrix(n):
+    """Get a 2^n x 2^n Walsh-Hadamard matrix with elements in [0, 1]."""
+
+    from qiskit.circuit.library import HGate
+
+    had = np.array(HGate()).real * np.sqrt(2)
+
+    def recurse(matrix, m):
+        # we build the matrix recursively, adding one Hadamard kronecker product per recursion
+        if m == 1:
+            # finally, map to [0, 1] by the mapping (1 - H) / 2
+            return ((1 - matrix) / 2).astype(int)
+
+        return recurse(np.kron(had, matrix), m - 1)
+
+    return recurse(had, n)
+
+
+def _bitflips_to_timings(row):
+    num = len(row)
+    distances = []
+    count = 0
+    last = 0  # start in no flip state
+    for el in row:
+        if el == last:
+            count += 1
+        else:
+            distances.append(count / num)
+            last = el
+            count = 1
+
+    distances.append(count / num)
+
+    if len(distances) % 2 == 0:
+        return distances + [0]
+
+    return distances

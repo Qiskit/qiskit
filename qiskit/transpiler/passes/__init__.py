@@ -114,6 +114,7 @@ Scheduling
    TimeUnitConversion
    ALAPScheduleAnalysis
    ASAPScheduleAnalysis
+   ContextAwareDynamicalDecoupling
    PadDynamicalDecoupling
    PadDelay
    ConstrainedReschedule
