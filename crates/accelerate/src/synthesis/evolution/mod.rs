@@ -119,13 +119,21 @@ fn qiskit_rotation_gate(py: Python, paulis: &PauliSet, i: usize, angle: &Param) 
     unreachable!("The pauli rotation is guaranteed to be a single-qubit rotation.")
 }
 
-// Note: The pauli network synthesis algorithm in rustiq-core 0.0.8 only returns
-// the list of Clifford gates that, when simulated, turn every pauli rotation at
-// some point to a single-qubit rotation, in the given order, but up to commutativity.
-// Following the code in Simon's private rustiq-plugin repository, we simulate the
-// clifford gates to find where pauli rotations need to be inserted. If the future
-// the synthesis algorithm will explicitly return where the rotations need to be
-// inserted, a lot of the following code could be removed.
+// Note:
+// The Pauli network synthesis algorithm in rustiq-core 0.0.8 only returns
+// the list of Clifford gates that, when simulated, turn every Pauli rotation
+// at some point to a single-qubit Pauli rotation. As an additional complication,
+// the order in which the Pauli rotations are turned into single-qubit Pauli
+// rotations coincides with the original order only up to commutativity between
+// Pauli rotations.
+// As a temporary solution, we follow the approach in Simon's private rustiq-plugin
+// repository: we simulate the original Pauli network using returned Clifford gates
+// to find where Pauli rotations need to be inserted, and we keep a DAG representing
+// commutativity relations between Pauli rotations to make sure the single-qubit
+// rotations are chosen in the correct order.
+// In the future we are planning to extend the algorithm in rustiq-core to
+// explicitly return the circuit with single-qubit Pauli rotations already inserted.
+// When this happens, we will be able to significantly simplify the code that follows.
 
 /// A DAG that stores ordered Paulis, up to commutativity.
 struct CommutativityDag {
