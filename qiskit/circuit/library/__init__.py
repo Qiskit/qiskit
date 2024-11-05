@@ -345,6 +345,8 @@ Particular Quantum Circuits
 .. autofunction:: unitary_overlap
 .. autofunction:: phase_estimation
 
+.. autofunction:: grover_operator
+
 
 N-local circuits
 ================
@@ -596,6 +598,6 @@ from .graph_state import GraphState, GraphStateGate
 from .hidden_linear_function import HiddenLinearFunction, hidden_linear_function
 from .iqp import IQP, iqp, random_iqp
 from .phase_estimation import PhaseEstimation, phase_estimation
-from .grover_operator import GroverOperator
+from .grover_operator import GroverOperator, grover_operator
 from .phase_oracle import PhaseOracle
 from .overlap import UnitaryOverlap, unitary_overlap
