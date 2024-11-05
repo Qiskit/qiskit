@@ -246,7 +246,7 @@ class Statevector(QuantumState, TolerancesMixin):
         return Operator(mat, input_dims=self.dims(), output_dims=self.dims())
 
     def conjugate(self) -> Statevector:
-        """Return the conjugate of the operator."""
+        """Return the complex conjugate of the state vector."""
         return Statevector(np.conj(self.data), dims=self.dims())
 
     def trace(self) -> np.float64:
