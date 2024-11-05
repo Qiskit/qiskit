@@ -88,8 +88,6 @@ class TestDataPreparation(QiskitTestCase):
             evo.sxdg(1)
             evo.h(2)
 
-            print(evo.draw())
-
             pauli = encoding.pauli_evolution("XYZ", time)
             self.assertTrue(Operator(pauli).equiv(evo))
 

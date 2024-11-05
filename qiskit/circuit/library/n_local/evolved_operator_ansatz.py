@@ -48,13 +48,14 @@ def evolved_operator_ansatz(
 ):
     r"""Construct an ansatz out of operator evolutions.
 
-    For a set of operators :math:`[O_1, ..., O_J]` this circuit is defined as
+    For a set of operators :math:`[O_1, ..., O_J]` and :math:`R` repetitions (``reps``), this circuit
+    is defined as
 
     .. math::
 
-        \prod_{r=1}^{R} \left( \prod_{j=J}^1 e^{i\theta_{j, r} O_j} \right)
+        \prod_{r=1}^{R} \left( \prod_{j=J}^1 e^{-i\theta_{j, r} O_j} \right)
 
-    where the exponentials :math:`exp(i\theta O_j)` are expanded using the product formula
+    where the exponentials :math:`exp(-i\theta O_j)` are expanded using the product formula
     specified by ``evolution``.
 
     Examples:
@@ -197,9 +198,9 @@ def hamiltonian_variational_ansatz(
 
     .. math::
 
-        \prod_{r=1}^{R} \left( \prod_{k=K}^1 e^{i\theta_{k, r} H_k} \right)
+        \prod_{r=1}^{R} \left( \prod_{k=K}^1 e^{-i\theta_{k, r} H_k} \right)
 
-    where the exponentials :math:`exp(i\theta H_k)` are implemented exactly [1, 2]. Note that this
+    where the exponentials :math:`exp(-i\theta H_k)` are implemented exactly [1, 2]. Note that this
     differs from :func:`.evolved_operator_ansatz`, where no assumptions on the structure of the
     operators are done.
 

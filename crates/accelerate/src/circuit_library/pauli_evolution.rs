@@ -14,10 +14,17 @@ use pyo3::prelude::*;
 use pyo3::types::{PyList, PyString, PyTuple};
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::operations::{multiply_param, radd_param, Param, PyInstruction, StandardGate};
-use qiskit_circuit::{imports, Qubit};
+use qiskit_circuit::packed_instruction::PackedOperation;
+use qiskit_circuit::{imports, Clbit, Qubit};
 use smallvec::{smallvec, SmallVec};
 
-use crate::circuit_library::utils::{Instruction, StandardInstruction};
+type StandardInstruction = (StandardGate, SmallVec<[Param; 3]>, SmallVec<[Qubit; 2]>);
+type Instruction = (
+    PackedOperation,
+    SmallVec<[Param; 3]>,
+    Vec<Qubit>,
+    Vec<Clbit>,
+);
 
 // custom types for a more readable code
 

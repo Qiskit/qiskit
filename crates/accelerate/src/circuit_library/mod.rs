@@ -17,7 +17,6 @@ mod iqp;
 mod pauli_evolution;
 mod pauli_feature_map;
 mod quantum_volume;
-mod utils;
 
 pub fn circuit_library(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(pauli_evolution::py_pauli_evolution))?;
