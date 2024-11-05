@@ -15,7 +15,7 @@
 import ddt
 import numpy as np
 
-from qiskit.circuit import QuantumCircuit, twirl_circuit, Gate
+from qiskit.circuit import QuantumCircuit, pauli_twirl_2q_gates, Gate
 from qiskit.circuit.library import (
     CXGate,
     ECRGate,
@@ -45,7 +45,7 @@ class TestTwirling(QiskitTestCase):
         qc.append(gate(), (0, 1))
         for i in range(100):
             with self.subTest(i):
-                res = twirl_circuit(qc, gate, i)
+                res = pauli_twirl_2q_gates(qc, gate, i)
                 np.testing.assert_allclose(
                     Operator(qc), Operator(res), err_msg=f"gate: {gate} not equiv to\n{res}"
                 )
@@ -60,7 +60,7 @@ class TestTwirling(QiskitTestCase):
         qc.cz(0, 1)
         qc.ecr(0, 1)
         qc.iswap(0, 1)
-        res = twirl_circuit(qc, seed=12345)
+        res = pauli_twirl_2q_gates(qc, seed=12345)
         np.testing.assert_allclose(
             Operator(qc), Operator(res), err_msg=f"{qc}\nnot equiv to\n{res}"
         )
@@ -74,7 +74,7 @@ class TestTwirling(QiskitTestCase):
         qc.cz(0, 1)
         qc.ecr(0, 1)
         qc.iswap(0, 1)
-        res = twirl_circuit(qc, twirling_gate=["cx", iSwapGate()], seed=12345)
+        res = pauli_twirl_2q_gates(qc, twirling_gate=["cx", iSwapGate()], seed=12345)
         np.testing.assert_allclose(
             Operator(qc), Operator(res), err_msg=f"{qc}\nnot equiv to\n{res}"
         )
@@ -86,7 +86,7 @@ class TestTwirling(QiskitTestCase):
         """Test the twirled circuits are equivalent if num_twirls>1."""
         qc = QuantumCircuit(2)
         qc.append(gate(), (0, 1))
-        res = twirl_circuit(qc, gate, seed=424242, num_twirls=1000)
+        res = pauli_twirl_2q_gates(qc, gate, seed=424242, num_twirls=1000)
         for twirled_circuit in res:
             np.testing.assert_allclose(
                 Operator(qc), Operator(twirled_circuit), err_msg=f"gate: {gate} not equiv to\n{res}"
@@ -106,13 +106,13 @@ class TestTwirling(QiskitTestCase):
         qc.append(MyGate(), (0, 1))
 
         with self.assertRaises(QiskitError):
-            twirl_circuit(qc, twirling_gate=MyGate())
+            pauli_twirl_2q_gates(qc, twirling_gate=MyGate())
 
     def test_custom_standard_gate(self):
         """Test an error is raised with an unsupported standard gate."""
         qc = QuantumCircuit(2)
         qc.swap(0, 1)
-        res = twirl_circuit(qc, twirling_gate=SwapGate())
+        res = pauli_twirl_2q_gates(qc, twirling_gate=SwapGate())
         np.testing.assert_allclose(
             Operator(qc), Operator(res), err_msg=f"gate: {qc} not equiv to\n{res}"
         )
@@ -123,20 +123,20 @@ class TestTwirling(QiskitTestCase):
         qc = QuantumCircuit(2)
         qc.swap(0, 1)
         with self.assertRaises(QiskitError):
-            twirl_circuit(qc, twirling_gate="swap")
+            pauli_twirl_2q_gates(qc, twirling_gate="swap")
 
     def test_invalid_str_entry_in_list(self):
         """Test an error is raised with an unsupported string gate in list."""
         qc = QuantumCircuit(2)
         qc.swap(0, 1)
         with self.assertRaises(QiskitError):
-            twirl_circuit(qc, twirling_gate=[CXGate, "swap"])
+            pauli_twirl_2q_gates(qc, twirling_gate=[CXGate, "swap"])
 
     def test_invalid_class_entry_in_list(self):
         """Test an error is raised with an unsupported string gate in list."""
         qc = QuantumCircuit(2)
         qc.swap(0, 1)
-        res = twirl_circuit(qc, twirling_gate=[SwapGate(), "cx"])
+        res = pauli_twirl_2q_gates(qc, twirling_gate=[SwapGate(), "cx"])
         np.testing.assert_allclose(
             Operator(qc), Operator(res), err_msg=f"gate: {qc} not equiv to\n{res}"
         )
@@ -147,7 +147,7 @@ class TestTwirling(QiskitTestCase):
         """Test a circuit with a random assortment of gates."""
         qc = random_circuit(5, 25, seed=12345678942)
         qc.append(PermutationGate([1, 2, 0]), [0, 1, 2])
-        res = twirl_circuit(qc)
+        res = pauli_twirl_2q_gates(qc)
         np.testing.assert_allclose(
             Operator(qc), Operator(res), err_msg=f"gate: {gate} not equiv to\n{res}"
         )
@@ -158,7 +158,7 @@ class TestTwirling(QiskitTestCase):
         qc = QuantumCircuit(2, 1)
         with qc.if_test((qc.clbits[0], 0)):
             qc.append(gate(), [0, 1])
-        res = twirl_circuit(qc)
+        res = pauli_twirl_2q_gates(qc)
         np.testing.assert_allclose(
             Operator(res.data[0].operation.blocks[0]),
             Operator(gate()),
@@ -173,7 +173,7 @@ class TestTwirling(QiskitTestCase):
         qc.iswap(0, 1)
         qc.cz(0, 1)
         qc.metadata = {"is_this_circuit_twirled?": True}
-        res = twirl_circuit(qc, twirling_gate=CZGate, num_twirls=5)
+        res = pauli_twirl_2q_gates(qc, twirling_gate=CZGate, num_twirls=5)
         for out_circ in res:
             self.assertEqual(out_circ.metadata, qc.metadata)
 
@@ -183,7 +183,7 @@ class TestTwirling(QiskitTestCase):
         qc.barrier()
         qc = qc.decompose()
         target = Target.from_configuration(basis_gates=["cx", "iswap", "cz", "ecr", "r"])
-        res = twirl_circuit(qc, seed=12345678, num_twirls=5, target=target)
+        res = pauli_twirl_2q_gates(qc, seed=12345678, num_twirls=5, target=target)
         for out_circ in res:
             self.assertEqual(
                 Operator(out_circ),
@@ -201,12 +201,12 @@ class TestTwirling(QiskitTestCase):
         """Test an error is raised on non-2q gates."""
         qc = QuantumCircuit(5)
         with self.assertRaises(QiskitError):
-            twirl_circuit(qc, [CCXGate()])
+            pauli_twirl_2q_gates(qc, [CCXGate()])
         with self.assertRaises(QiskitError):
-            twirl_circuit(qc, [XGate()])
+            pauli_twirl_2q_gates(qc, [XGate()])
 
     def test_error_on_parameterized_gate(self):
         """Test an error is raised on parameterized 2q gates."""
         qc = QuantumCircuit(5)
         with self.assertRaises(QiskitError):
-            twirl_circuit(qc, [RZXGate(3.24)])
+            pauli_twirl_2q_gates(qc, [RZXGate(3.24)])
