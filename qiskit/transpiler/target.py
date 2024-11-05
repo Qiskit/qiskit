@@ -24,6 +24,7 @@ import warnings
 
 from typing import Optional, List, Any
 from collections.abc import Mapping
+import copy
 import datetime
 import io
 import logging
@@ -1318,12 +1319,14 @@ class _FakeTarget(Target):
         super().__init__(**kwargs)
         if coupling_map is None or isinstance(coupling_map, CouplingMap):
             self._coupling_map = coupling_map
+        else:
+            self._coupling_map = CouplingMap(coupling_map)
 
     def __len__(self):
         return len(self._gate_map)
 
-    def build_coupling_map(self, two_q_gate=None, filter_idle_qubits=False):
-        return self._coupling_map
+    def build_coupling_map(self, *args, **kwargs):
+        return copy.deepcopy(self._coupling_map)
 
     def instruction_supported(self, *args, **kwargs):
         """Checks whether an instruction is supported by the
@@ -1339,7 +1342,7 @@ class _FakeTarget(Target):
     def from_configuration(
         cls,
         num_qubits: int | None = None,
-        coupling_map: CouplingMap | None = None,
+        coupling_map: CouplingMap | list | None = None,
     ) -> _FakeTarget:
 
         if num_qubits is None and coupling_map is not None:

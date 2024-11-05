@@ -83,4 +83,9 @@ class GateDirection(TransformationPass):
         """
         if self.target is None:
             return fix_gate_direction_coupling(dag, set(self.coupling_map.get_edges()))
+        # if target.operation_names is an empty list, extract and use the coupling map
+        if self.target is not None and len(self.target.operation_names) == 0:
+            return fix_gate_direction_coupling(
+                dag, set(self.target.build_coupling_map().get_edges())
+            )
         return fix_gate_direction_target(dag, self.target)

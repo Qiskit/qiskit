@@ -213,16 +213,19 @@ def generate_unroll_3q(
         PassManager: The unroll 3q or more pass manager
     """
     unroll_3q = PassManager()
-    unroll_3q.append(
-        UnitarySynthesis(
-            basis_gates,
-            approximation_degree=approximation_degree,
-            method=unitary_synthesis_method,
-            min_qubits=3,
-            plugin_config=unitary_synthesis_plugin_config,
-            target=target,
+    if (basis_gates is not None and len(basis_gates) > 0) or (
+        target is not None and len(target.operation_names) > 0
+    ):
+        unroll_3q.append(
+            UnitarySynthesis(
+                basis_gates,
+                approximation_degree=approximation_degree,
+                method=unitary_synthesis_method,
+                min_qubits=3,
+                plugin_config=unitary_synthesis_plugin_config,
+                target=target,
+            )
         )
-    )
     unroll_3q.append(
         HighLevelSynthesis(
             hls_config=hls_config,
@@ -409,6 +412,7 @@ def generate_pre_op_passmanager(target=None, coupling_map=None, remove_reset_in_
                 condition=_direction_condition,
             )
         )
+
     if remove_reset_in_zero:
         pre_opt.append(RemoveResetInZeroState())
     return pre_opt
