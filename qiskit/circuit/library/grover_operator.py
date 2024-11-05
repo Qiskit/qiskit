@@ -160,7 +160,7 @@ def grover_operator(
             grover_op.draw("mpl")
 
         For a large number of qubits, the multi-controlled X gate used for the zero-reflection
-        can be synthesized in different fashion. Depending on the number of available qubits,
+        can be synthesized in different fashions. Depending on the number of available qubits,
         the compiler will choose a different implementation:
 
         .. code-block:: python
@@ -181,6 +181,7 @@ def grover_operator(
 
             # add extra bits that can be used as scratch space
             grover_op.add_bits([Qubit() for _ in range(num_qubits)])
+            tqc = transpile(grover_op, basis_gates=basis_gates)
             print("2q depth w/ scratch qubits:", tqc.depth(filter_function=is_2q)) # < 100
 
     Args:
@@ -409,6 +410,8 @@ class GroverOperator(QuantumCircuit):
 
         The :func:`.grover_operator` implements the same functionality but keeping the
         :class:`.MCXGate` abstract, such that the compiler may choose the optimal decomposition.
+        We recommend using :func:`.grover_operator` for performance reasons, which does not
+        wrap the circuit into an opaque gate.
 
     References:
         [1]: L. K. Grover (1996), A fast quantum mechanical algorithm for database search,
