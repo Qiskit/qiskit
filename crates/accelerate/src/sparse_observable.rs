@@ -12,15 +12,16 @@
 
 use std::collections::btree_map;
 
+use hashbrown::HashSet;
 use num_complex::Complex64;
+use num_traits::Zero;
 use thiserror::Error;
 
 use numpy::{
     PyArray1, PyArrayDescr, PyArrayDescrMethods, PyArrayLike1, PyReadonlyArray1, PyReadonlyArray2,
     PyUntypedArrayMethods,
 };
-
-use pyo3::exceptions::{PyTypeError, PyValueError};
+use pyo3::exceptions::{PyTypeError, PyValueError, PyZeroDivisionError};
 use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::sync::GILOnceCell;
@@ -67,7 +68,7 @@ static SPARSE_PAULI_OP_TYPE: ImportOnceCell =
 /// return `PyArray1<BitTerm>` at Python-space boundaries) so that it's clear when we're doing
 /// the transmute, and we have to be explicit about the safety of that.
 #[repr(u8)]
-#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum BitTerm {
     /// Pauli X operator.
     X = 0b00_10,
@@ -263,8 +264,11 @@ impl ::std::convert::TryFrom<u8> for BitTerm {
     }
 }
 
-/// Error cases stemming from data coherence at the point of entry into `SparseObservable` from raw
-/// arrays.
+/// Error cases stemming from data coherence at the point of entry into `SparseObservable` from
+/// user-provided arrays.
+///
+/// These most typically appear during [from_raw_parts], but can also be introduced by various
+/// remapping arithmetic functions.
 ///
 /// These are generally associated with the Python-space `ValueError` because all of the
 /// `TypeError`-related ones are statically forbidden (within Rust) by the language, and conversion
@@ -285,6 +289,10 @@ pub enum CoherenceError {
     DecreasingBoundaries,
     #[error("the values in `indices` are not term-wise increasing")]
     UnsortedIndices,
+    #[error("the input contains duplicate qubits")]
+    DuplicateIndices,
+    #[error("the provided qubit mapping does not account for all contained qubits")]
+    IndexMapTooSmall,
 }
 impl From<CoherenceError> for PyErr {
     fn from(value: CoherenceError) -> PyErr {
@@ -367,8 +375,8 @@ impl From<LabelError> for PyErr {
 /// The allowed alphabet forms an overcomplete basis of the operator space.  This means that there
 /// is not a unique summation to represent a given observable.  By comparison,
 /// :class:`.SparsePauliOp` uses a precise basis of the operator space, so (after combining terms of
-/// the same Pauli string, removing zeros, and sorting the terms to some canonical order) there is
-/// only one representation of any operator.
+/// the same Pauli string, removing zeros, and sorting the terms to :ref:`some canonical order
+/// <sparse-observable-canonical-order>`) there is only one representation of any operator.
 ///
 /// :class:`SparseObservable` uses its particular overcomplete basis with the aim of making
 /// "efficiency of measurement" equivalent to "efficiency of representation".  For example, the
@@ -537,6 +545,44 @@ impl From<LabelError> for PyErr {
 ///     >>> obs.bit_terms[:] = obs.bit_terms[:] & 0b00_11
 ///     >>> assert obs == SparseObservable.from_list([("XZY", 1.5j), ("XZY", -0.5)])
 ///
+/// .. _sparse-observable-canonical-order:
+///
+/// Canonical ordering
+/// ------------------
+///
+/// For any given mathematical observable, there are several ways of representing it with
+/// :class:`SparseObservable`.  For example, the same set of single-bit terms and their
+/// corresponding indices might appear multiple times in the observable.  Mathematically, this is
+/// equivalent to having only a single term with all the coefficients summed.  Similarly, the terms
+/// of the sum in a :class:`SparseObservable` can be in any order while representing the same
+/// observable, since addition is commutative (although while floating-point addition is not
+/// associative, :class:`SparseObservable` makes no guarantees about the summation order).
+///
+/// These two categories of representation degeneracy can cause the ``==`` operator to claim that
+/// two observables are not equal, despite representating the same object.  In these cases, it can
+/// be convenient to define some *canonical form*, which allows observables to be compared
+/// structurally.
+///
+/// You can put a :class:`SparseObservable` in canonical form by using the :meth:`simplify` method.
+/// The precise ordering of terms in canonical ordering is not specified, and may change between
+/// versions of Qiskit.  Within the same version of Qiskit, however, you can compare two observables
+/// structurally by comparing their simplified forms.
+///
+/// .. note::
+///
+///     If you wish to account for floating-point tolerance in the comparison, it is safest to use
+///     a recipe such as::
+///
+///         def equivalent(left, right, tol):
+///             return (left - right).simplify(tol) == SparseObservable.zero(left.num_qubits)
+///
+/// .. note::
+///
+///     The canonical form produced by :meth:`simplify` will still not universally detect all
+///     observables that are equivalent due to the over-complete basis alphabet; it is not
+///     computationally feasible to do this at scale.  For example, on observable built from ``+``
+///     and ``-`` components will not canonicalize to a single ``X`` term.
+///
 ///
 /// Construction
 /// ============
@@ -599,6 +645,58 @@ impl From<LabelError> for PyErr {
 ///
 ///   :meth:`identity`              The identity operator on a given number of qubits.
 ///   ============================  ================================================================
+///
+///
+/// Mathematical manipulation
+/// =========================
+///
+/// :class:`SparseObservable` supports the standard set of Python mathematical operators like other
+/// :mod:`~qiskit.quantum_info` operators.
+///
+/// In basic arithmetic, you can:
+///
+/// * add two observables using ``+``
+/// * subtract two observables using ``-``
+/// * multiply or divide by an :class:`int`, :class:`float` or :class:`complex` using ``*`` and ``/``
+/// * negate all the coefficients in an observable with unary ``-``
+///
+/// Each of the basic binary arithmetic operators has a corresponding specialized in-place method,
+/// which mutates the left-hand side in-place.  Using these is typically more efficient than the
+/// infix operators, especially for building an observable in a loop.
+///
+/// The tensor product is calculated with :meth:`tensor` (for standard, juxtaposition ordering of
+/// Pauli labels) or :meth:`expand` (for the reverse order).  The ``^`` operator is overloaded to be
+/// equivalent to :meth:`tensor`.
+///
+/// .. note::
+///
+///     When using the binary operators ``^`` (:meth:`tensor`) and ``&`` (:meth:`compose`), beware
+///     that `Python's operator-precedence rules
+///     <https://docs.python.org/3/reference/expressions.html#operator-precedence>`__ may cause the
+///     evaluation order to be different to your expectation.  In particular, the operator ``+``
+///     binds more tightly than ``^`` or ``&``, just like ``*`` binds more tightly than ``+``.
+///
+///     When using the operators in mixed expressions, it is safest to use parentheses to group the
+///     operands of tensor products.
+///
+/// A :class:`SparseObservable` has a well-defined :meth:`adjoint`.  The notions of scalar complex
+/// conjugation (:meth:`conjugate`) and real-value transposition (:meth:`transpose`) are defined
+/// analogously to the matrix representation of other Pauli operators in Qiskit.
+///
+///
+/// Efficiency notes
+/// ----------------
+///
+/// Internally, :class:`SparseObservable` is in-place mutable, including using over-allocating
+/// growable vectors for extending the number of terms.  This means that the cost of appending to an
+/// observable using ``+=`` is amortised linear in the total number of terms added, rather than
+/// the quadratic complexity that the binary ``+`` would require.
+///
+/// Additions and subtractions are implemented by a term-stacking operation; there is no automatic
+/// "simplification" (summing of like terms), because the majority of additions to build up an
+/// observable generate only a small number of duplications, and like-term detection has additional
+/// costs.  If this does not fit your use cases, you can either periodically call :meth:`simplify`,
+/// or discuss further APIs with us for better building of observables.
 #[pyclass(module = "qiskit.quantum_info")]
 #[derive(Clone, Debug, PartialEq)]
 pub struct SparseObservable {
@@ -663,7 +761,9 @@ impl SparseObservable {
             let indices = &indices[left..right];
             if !indices.is_empty() {
                 for (index_left, index_right) in indices[..].iter().zip(&indices[1..]) {
-                    if index_left >= index_right {
+                    if index_left == index_right {
+                        return Err(CoherenceError::DuplicateIndices);
+                    } else if index_left > index_right {
                         return Err(CoherenceError::UnsortedIndices);
                     }
                 }
@@ -699,6 +799,23 @@ impl SparseObservable {
         }
     }
 
+    /// Create a zero operator with pre-allocated space for the given number of summands and
+    /// single-qubit bit terms.
+    #[inline]
+    pub fn with_capacity(num_qubits: u32, num_terms: usize, num_bit_terms: usize) -> Self {
+        Self {
+            num_qubits,
+            coeffs: Vec::with_capacity(num_terms),
+            bit_terms: Vec::with_capacity(num_bit_terms),
+            indices: Vec::with_capacity(num_bit_terms),
+            boundaries: {
+                let mut boundaries = Vec::with_capacity(num_terms + 1);
+                boundaries.push(0);
+                boundaries
+            },
+        }
+    }
+
     /// Get an iterator over the individual terms of the operator.
     pub fn iter(&'_ self) -> impl ExactSizeIterator<Item = SparseTermView<'_>> + '_ {
         self.coeffs.iter().enumerate().map(|(i, coeff)| {
@@ -710,6 +827,82 @@ impl SparseObservable {
                 indices: &self.indices[start..end],
             }
         })
+    }
+
+    /// Get an iterator over the individual terms of the operator that allows mutation of each term
+    /// in place without affecting its length or indices, both of which would allow breaking data
+    /// coherence.
+    pub fn iter_mut(&mut self) -> IterMut<'_> {
+        self.into()
+    }
+
+    /// Reduce the observable to its canonical form.
+    ///
+    /// This sums like terms, removing them if the final complex coefficient's absolute value is
+    /// less than or equal to the tolerance.  The terms are reordered to some canonical ordering.
+    ///
+    /// This function is idempotent.
+    pub fn canonicalize(&self, tol: f64) -> SparseObservable {
+        let mut terms = btree_map::BTreeMap::new();
+        for term in self.iter() {
+            terms
+                .entry((term.indices, term.bit_terms))
+                .and_modify(|c| *c += term.coeff)
+                .or_insert(term.coeff);
+        }
+        let mut out = SparseObservable::zero(self.num_qubits);
+        for ((indices, bit_terms), coeff) in terms {
+            if coeff.norm_sqr() <= tol * tol {
+                continue;
+            }
+            out.coeffs.push(coeff);
+            out.bit_terms.extend_from_slice(bit_terms);
+            out.indices.extend_from_slice(indices);
+            out.boundaries.push(out.indices.len());
+        }
+        out
+    }
+
+    /// Tensor product of `self` with `other`.
+    ///
+    /// The bit ordering is defined such that the qubit indices of `other` will remain the same, and
+    /// the indices of `self` will be offset by the number of qubits in `other`.  This is the same
+    /// convention as used by the rest of Qiskit's `quantum_info` operators.
+    ///
+    /// Put another way, in the simplest case of two observables formed of dense labels:
+    ///
+    /// ```
+    /// let mut left = SparseObservable::zero(5);
+    /// left.add_dense_label("IXY+Z", Complex64::new(1.0, 0.0));
+    /// let mut right = SparseObservable::zero(6);
+    /// right.add_dense_label("IIrl01", Complex64::new(1.0, 0.0));
+    ///
+    /// // The result is the concatenation of the two labels.
+    /// let mut out = SparseObservable::zero(11);
+    /// out.add_dense_label("IXY+ZIIrl01", Complex64::new(1.0, 0.0));
+    ///
+    /// assert_eq!(left.tensor(right), out);
+    /// ```
+    pub fn tensor(&self, other: &SparseObservable) -> SparseObservable {
+        let mut out = SparseObservable::with_capacity(
+            self.num_qubits + other.num_qubits,
+            self.coeffs.len() * other.coeffs.len(),
+            other.coeffs.len() * self.bit_terms.len() + self.coeffs.len() * other.bit_terms.len(),
+        );
+        let mut self_indices = Vec::new();
+        for self_term in self.iter() {
+            self_indices.clear();
+            self_indices.extend(self_term.indices.iter().map(|i| i + other.num_qubits));
+            for other_term in other.iter() {
+                out.coeffs.push(self_term.coeff * other_term.coeff);
+                out.indices.extend_from_slice(other_term.indices);
+                out.indices.extend_from_slice(&self_indices);
+                out.bit_terms.extend_from_slice(other_term.bit_terms);
+                out.bit_terms.extend_from_slice(self_term.bit_terms);
+                out.boundaries.push(out.bit_terms.len());
+            }
+        }
+        out
     }
 
     /// Add the term implied by a dense string label onto this observable.
@@ -747,13 +940,61 @@ impl SparseObservable {
         self.boundaries.push(self.bit_terms.len());
         Ok(())
     }
+
+    /// Relabel the `indices` in the operator to new values.
+    ///
+    /// This fails if any of the new indices are too large, or if any mapping would cause a term to
+    /// contain duplicates of the same index.  It may not detect if multiple qubits are mapped to
+    /// the same index, if those qubits never appear together in the same term.  Such a mapping
+    /// would not cause data-coherence problems (the output observable will be valid), but is
+    /// unlikely to be what you intended.
+    ///
+    /// *Panics* if `new_qubits` is not long enough to map every index used in the operator.
+    pub fn relabel_qubits_from_slice(&mut self, new_qubits: &[u32]) -> Result<(), CoherenceError> {
+        for qubit in new_qubits {
+            if *qubit >= self.num_qubits {
+                return Err(CoherenceError::BitIndexTooHigh);
+            }
+        }
+        let mut order = btree_map::BTreeMap::new();
+        for i in 0..self.num_terms() {
+            let start = self.boundaries[i];
+            let end = self.boundaries[i + 1];
+            for j in start..end {
+                order.insert(new_qubits[self.indices[j] as usize], self.bit_terms[j]);
+            }
+            if order.len() != end - start {
+                return Err(CoherenceError::DuplicateIndices);
+            }
+            for (index, dest) in order.keys().zip(&mut self.indices[start..end]) {
+                *dest = *index;
+            }
+            for (bit_term, dest) in order.values().zip(&mut self.bit_terms[start..end]) {
+                *dest = *bit_term;
+            }
+            order.clear();
+        }
+        Ok(())
+    }
+
+    /// Return a suitable Python error if two observables do not have equal numbers of qubits.
+    fn check_equal_qubits(&self, other: &SparseObservable) -> PyResult<()> {
+        if self.num_qubits != other.num_qubits {
+            Err(PyValueError::new_err(format!(
+                "incompatible numbers of qubits: {} and {}",
+                self.num_qubits, other.num_qubits
+            )))
+        } else {
+            Ok(())
+        }
+    }
 }
 
 #[pymethods]
 impl SparseObservable {
     #[pyo3(signature = (data, /, num_qubits=None))]
     #[new]
-    fn py_new(data: Bound<PyAny>, num_qubits: Option<u32>) -> PyResult<Self> {
+    fn py_new(data: &Bound<PyAny>, num_qubits: Option<u32>) -> PyResult<Self> {
         let py = data.py();
         let check_num_qubits = |data: &Bound<PyAny>| -> PyResult<()> {
             let Some(num_qubits) = num_qubits else {
@@ -769,11 +1010,11 @@ impl SparseObservable {
         };
 
         if data.is_instance(PAULI_TYPE.get_bound(py))? {
-            check_num_qubits(&data)?;
+            check_num_qubits(data)?;
             return Self::py_from_pauli(data);
         }
         if data.is_instance(SPARSE_PAULI_OP_TYPE.get_bound(py))? {
-            check_num_qubits(&data)?;
+            check_num_qubits(data)?;
             return Self::py_from_sparse_pauli_op(data);
         }
         if let Ok(label) = data.extract::<String>() {
@@ -788,7 +1029,7 @@ impl SparseObservable {
             return Self::py_from_label(&label).map_err(PyErr::from);
         }
         if let Ok(observable) = data.downcast::<Self>() {
-            check_num_qubits(&data)?;
+            check_num_qubits(data)?;
             return Ok(observable.borrow().clone());
         }
         // The type of `vec` is inferred from the subsequent calls to `Self::py_from_list` or
@@ -907,13 +1148,7 @@ impl SparseObservable {
     #[pyo3(signature = (/, num_qubits))]
     #[staticmethod]
     pub fn zero(num_qubits: u32) -> Self {
-        Self {
-            num_qubits,
-            coeffs: vec![],
-            bit_terms: vec![],
-            indices: vec![],
-            boundaries: vec![0],
-        }
+        Self::with_capacity(num_qubits, 0, 0)
     }
 
     /// Get the identity operator over the given number of qubits.
@@ -934,6 +1169,25 @@ impl SparseObservable {
             indices: vec![],
             boundaries: vec![0, 0],
         }
+    }
+
+    /// Clear all the terms from this operator, making it equal to the zero operator again.
+    ///
+    /// This does not change the capacity of the internal allocations, so subsequent addition or
+    /// substraction operations may not need to reallocate.
+    ///
+    /// Examples:
+    ///
+    ///     .. code-block:: python
+    ///
+    ///         >>> obs = SparseObservable.from_list([("IX+-rl", 2.0), ("01YZII", -1j)])
+    ///         >>> obs.clear()
+    ///         >>> assert obs == SparseObservable.zero(obs.num_qubits)
+    pub fn clear(&mut self) {
+        self.coeffs.clear();
+        self.bit_terms.clear();
+        self.indices.clear();
+        self.boundaries.truncate(1);
     }
 
     fn __repr__(&self) -> String {
@@ -996,6 +1250,148 @@ impl SparseObservable {
             return false;
         };
         slf.borrow().eq(&other.borrow())
+    }
+
+    fn __add__(slf_: &Bound<Self>, other: &Bound<PyAny>) -> PyResult<Py<PyAny>> {
+        let py = slf_.py();
+        if slf_.is(other) {
+            // This fast path is for consistency with the in-place `__iadd__`, which would otherwise
+            // struggle to do the addition to itself.
+            return Ok(<&SparseObservable as ::std::ops::Mul<_>>::mul(
+                &slf_.borrow(),
+                Complex64::new(2.0, 0.0),
+            )
+            .into_py(py));
+        }
+        let Some(other) = coerce_to_observable(other)? else {
+            return Ok(py.NotImplemented());
+        };
+        let slf_ = slf_.borrow();
+        let other = other.borrow();
+        slf_.check_equal_qubits(&other)?;
+        Ok(<&SparseObservable as ::std::ops::Add>::add(&slf_, &other).into_py(py))
+    }
+    fn __radd__(&self, other: &Bound<PyAny>) -> PyResult<Py<PyAny>> {
+        // No need to handle the `self is other` case here, because `__add__` will get it.
+        let py = other.py();
+        let Some(other) = coerce_to_observable(other)? else {
+            return Ok(py.NotImplemented());
+        };
+        let other = other.borrow();
+        self.check_equal_qubits(&other)?;
+        Ok((<&SparseObservable as ::std::ops::Add>::add(&other, self)).into_py(py))
+    }
+    fn __iadd__(slf_: Bound<SparseObservable>, other: &Bound<PyAny>) -> PyResult<()> {
+        if slf_.is(other) {
+            *slf_.borrow_mut() *= Complex64::new(2.0, 0.0);
+            return Ok(());
+        }
+        let mut slf_ = slf_.borrow_mut();
+        let Some(other) = coerce_to_observable(other)? else {
+            // This is not well behaved - we _should_ return `NotImplemented` to Python space
+            // without an exception, but limitations in PyO3 prevent this at the moment.  See
+            // https://github.com/PyO3/pyo3/issues/4605.
+            return Err(PyTypeError::new_err(format!(
+                "invalid object for in-place addition of 'SparseObservable': {}",
+                other.repr()?
+            )));
+        };
+        let other = other.borrow();
+        slf_.check_equal_qubits(&other)?;
+        *slf_ += &other;
+        Ok(())
+    }
+
+    fn __sub__(slf_: &Bound<Self>, other: &Bound<PyAny>) -> PyResult<Py<PyAny>> {
+        let py = slf_.py();
+        if slf_.is(other) {
+            return Ok(SparseObservable::zero(slf_.borrow().num_qubits).into_py(py));
+        }
+        let Some(other) = coerce_to_observable(other)? else {
+            return Ok(py.NotImplemented());
+        };
+        let slf_ = slf_.borrow();
+        let other = other.borrow();
+        slf_.check_equal_qubits(&other)?;
+        Ok(<&SparseObservable as ::std::ops::Sub>::sub(&slf_, &other).into_py(py))
+    }
+    fn __rsub__(&self, other: &Bound<PyAny>) -> PyResult<Py<PyAny>> {
+        let py = other.py();
+        let Some(other) = coerce_to_observable(other)? else {
+            return Ok(py.NotImplemented());
+        };
+        let other = other.borrow();
+        self.check_equal_qubits(&other)?;
+        Ok((<&SparseObservable as ::std::ops::Sub>::sub(&other, self)).into_py(py))
+    }
+    fn __isub__(slf_: Bound<SparseObservable>, other: &Bound<PyAny>) -> PyResult<()> {
+        if slf_.is(other) {
+            // This is not strictly the same thing as `a - a` if `a` contains non-finite
+            // floating-point values (`inf - inf` is `NaN`, for example); we don't really have a
+            // clear view on what floating-point guarantees we're going to make right now.
+            slf_.borrow_mut().clear();
+            return Ok(());
+        }
+        let mut slf_ = slf_.borrow_mut();
+        let Some(other) = coerce_to_observable(other)? else {
+            // This is not well behaved - we _should_ return `NotImplemented` to Python space
+            // without an exception, but limitations in PyO3 prevent this at the moment.  See
+            // https://github.com/PyO3/pyo3/issues/4605.
+            return Err(PyTypeError::new_err(format!(
+                "invalid object for in-place subtraction of 'SparseObservable': {}",
+                other.repr()?
+            )));
+        };
+        let other = other.borrow();
+        slf_.check_equal_qubits(&other)?;
+        *slf_ -= &other;
+        Ok(())
+    }
+
+    fn __pos__(&self) -> SparseObservable {
+        self.clone()
+    }
+    fn __neg__(&self) -> SparseObservable {
+        -self
+    }
+
+    fn __mul__(&self, other: Complex64) -> SparseObservable {
+        self * other
+    }
+    fn __rmul__(&self, other: Complex64) -> SparseObservable {
+        other * self
+    }
+    fn __imul__(&mut self, other: Complex64) {
+        *self *= other;
+    }
+
+    fn __truediv__(&self, other: Complex64) -> PyResult<SparseObservable> {
+        if other.is_zero() {
+            return Err(PyZeroDivisionError::new_err("complex division by zero"));
+        }
+        Ok(self / other)
+    }
+    fn __itruediv__(&mut self, other: Complex64) -> PyResult<()> {
+        if other.is_zero() {
+            return Err(PyZeroDivisionError::new_err("complex division by zero"));
+        }
+        *self /= other;
+        Ok(())
+    }
+
+    fn __xor__(&self, other: &Bound<PyAny>) -> PyResult<Py<PyAny>> {
+        let py = other.py();
+        let Some(other) = coerce_to_observable(other)? else {
+            return Ok(py.NotImplemented());
+        };
+        Ok(self.tensor(&other.borrow()).into_py(py))
+    }
+    fn __rxor__(&self, other: &Bound<PyAny>) -> PyResult<Py<PyAny>> {
+        let py = other.py();
+        let Some(other) = coerce_to_observable(other)? else {
+            return Ok(py.NotImplemented());
+        };
+        Ok(other.borrow().tensor(self).into_py(py))
     }
 
     // This doesn't actually have any interaction with Python space, but uses the `py_` prefix on
@@ -1116,14 +1512,7 @@ impl SparseObservable {
             Some(num_qubits) => num_qubits,
             None => iter[0].0.len() as u32,
         };
-        let mut out = Self {
-            num_qubits,
-            coeffs: Vec::with_capacity(iter.len()),
-            bit_terms: Vec::new(),
-            indices: Vec::new(),
-            boundaries: Vec::with_capacity(iter.len() + 1),
-        };
-        out.boundaries.push(0);
+        let mut out = Self::with_capacity(num_qubits, iter.len(), 0);
         for (label, coeff) in iter {
             out.add_dense_label(&label, coeff)?;
         }
@@ -1244,7 +1633,7 @@ impl SparseObservable {
     ///         >>> assert SparseObservable.from_label(label) == SparseObservable.from_pauli(pauli)
     #[staticmethod]
     #[pyo3(name = "from_pauli", signature = (pauli, /))]
-    fn py_from_pauli(pauli: Bound<PyAny>) -> PyResult<Self> {
+    fn py_from_pauli(pauli: &Bound<PyAny>) -> PyResult<Self> {
         let py = pauli.py();
         let num_qubits = pauli.getattr(intern!(py, "num_qubits"))?.extract::<u32>()?;
         let z = pauli
@@ -1311,7 +1700,7 @@ impl SparseObservable {
     ///         <SparseObservable with 3 terms on 3 qubits: (1+0j)() + (0.5+0j)(Z_0) + (0.5+0j)(Z_1)>
     #[staticmethod]
     #[pyo3(name = "from_sparse_pauli_op", signature = (op, /))]
-    fn py_from_sparse_pauli_op(op: Bound<PyAny>) -> PyResult<Self> {
+    fn py_from_sparse_pauli_op(op: &Bound<PyAny>) -> PyResult<Self> {
         let py = op.py();
         let pauli_list_ob = op.getattr(intern!(py, "paulis"))?;
         let coeffs = op
@@ -1454,11 +1843,482 @@ impl SparseObservable {
             Ok(unsafe { Self::new_unchecked(num_qubits, coeffs, bit_terms, indices, boundaries) })
         }
     }
+
+    /// Sum any like terms in this operator, removing them if the resulting complex coefficient has
+    /// an absolute value within tolerance of zero.
+    ///
+    /// As a side effect, this sorts the operator into :ref:`canonical order
+    /// <sparse-observable-canonical-order>`.
+    ///
+    /// .. note::
+    ///
+    ///     When using this for equality comparisons, note that floating-point rounding and the
+    ///     non-associativity fo floating-point addition may cause non-zero coefficients of summed
+    ///     terms to compare unequal.  To compare two observables up to a tolerance, it is safest to
+    ///     compare the canonicalized difference of the two observables to zero.
+    ///
+    /// Args:
+    ///     tol (float): after summing like terms, any coefficients whose absolute value is less
+    ///         than the given absolute tolerance will be suppressed from the output.
+    ///
+    /// Examples:
+    ///
+    ///     Using :meth:`simplify` to compare two operators that represent the same observable, but
+    ///     would compare unequal due to the structural tests by default::
+    ///
+    ///         >>> base = SparseObservable.from_sparse_list([
+    ///         ...     ("XZ", (2, 1), 1e-10),  # value too small
+    ///         ...     ("+-", (3, 1), 2j),
+    ///         ...     ("+-", (3, 1), 2j),     # can be combined with the above
+    ///         ...     ("01", (3, 1), 0.5),    # out of order compared to `expected`
+    ///         ... ], num_qubits=5)
+    ///         >>> expected = SparseObservable.from_list([("I0I1I", 0.5), ("I+I-I", 4j)])
+    ///         >>> assert base != expected  # non-canonical comparison
+    ///         >>> assert base.simplify() == expected.simplify()
+    ///
+    ///     Note that in the above example, the coefficients are chosen such that all floating-point
+    ///     calculations are exact, and there are no intermediate rounding or associativity
+    ///     concerns.  If this cannot be guaranteed to be the case, the safer form is::
+    ///
+    ///         >>> left = SparseObservable.from_list([("XYZ", 1.0/3.0)] * 3)   # sums to 1.0
+    ///         >>> right = SparseObservable.from_list([("XYZ", 1.0/7.0)] * 7)  # doesn't sum to 1.0
+    ///         >>> assert left.simplify() != right.simplify()
+    ///         >>> assert (left - right).simplify() == SparseObservable.zero(left.num_qubits)
+    #[pyo3(
+        signature = (/, tol=1e-8),
+        name = "simplify",
+    )]
+    fn py_simplify(&self, tol: f64) -> SparseObservable {
+        self.canonicalize(tol)
+    }
+
+    /// Tensor product of two observables.
+    ///
+    /// The bit ordering is defined such that the qubit indices of the argument will remain the
+    /// same, and the indices of ``self`` will be offset by the number of qubits in ``other``.  This
+    /// is the same convention as used by the rest of Qiskit's :mod:`~qiskit.quantum_info`
+    /// operators.
+    ///
+    /// This function is used for the infix ``^`` operator.  If using this operator, beware that
+    /// `Python's operator-precedence rules
+    /// <https://docs.python.org/3/reference/expressions.html#operator-precedence>`__ may cause the
+    /// evaluation order to be different to your expectation.  In particular, the operator ``+``
+    /// binds more tightly than ``^``, just like ``*`` binds more tightly than ``+``.  Use
+    /// parentheses to fix the evaluation order, if needed.
+    ///
+    /// The argument will be cast to :class:`SparseObservable` using its default constructor, if it
+    /// is not already in the correct form.
+    ///
+    /// Args:
+    ///
+    ///     other: the observable to put on the right-hand side of the tensor product.
+    ///
+    /// Examples:
+    ///
+    ///     The bit ordering of this is such that the tensor product of two observables made from a
+    ///     single label "looks like" an observable made by concatenating the two strings::
+    ///
+    ///         >>> left = SparseObservable.from_label("XYZ")
+    ///         >>> right = SparseObservable.from_label("+-IIrl")
+    ///         >>> assert left.tensor(right) == SparseObservable.from_label("XYZ+-IIrl")
+    ///
+    ///     You can also use the infix ``^`` operator for tensor products, which will similarly cast
+    ///     the right-hand side of the operation if it is not already a :class:`SparseObservable`::
+    ///
+    ///         >>> assert SparseObservable("rl") ^ Pauli("XYZ") == SparseObservable("rlXYZ")
+    ///
+    /// See also:
+    ///     :meth:`expand`
+    ///
+    ///         The same function, but with the order of arguments flipped.  This can be useful if
+    ///         you like using the casting behavior for the argument, but you want your existing
+    ///         :class:`SparseObservable` to be on the right-hand side of the tensor ordering.
+    #[pyo3(signature = (other, /), name = "tensor")]
+    fn py_tensor(&self, other: &Bound<PyAny>) -> PyResult<Py<PyAny>> {
+        let py = other.py();
+        let Some(other) = coerce_to_observable(other)? else {
+            return Err(PyTypeError::new_err(format!(
+                "unknown type for tensor: {}",
+                other.get_type().repr()?
+            )));
+        };
+        Ok(self.tensor(&other.borrow()).into_py(py))
+    }
+
+    /// Reverse-order tensor product.
+    ///
+    /// This is equivalent to ``other.tensor(self)``, except that ``other`` will first be type-cast
+    /// to :class:`SparseObservable` if it isn't already one (by calling the default constructor).
+    ///
+    /// Args:
+    ///
+    ///     other: the observable to put on the left-hand side of the tensor product.
+    ///
+    /// Examples:
+    ///
+    ///     This is equivalent to :meth:`tensor` with the order of the arguments flipped::
+    ///
+    ///         >>> left = SparseObservable.from_label("XYZ")
+    ///         >>> right = SparseObservable.from_label("+-IIrl")
+    ///         >>> assert left.tensor(right) == right.expand(left)
+    ///
+    /// See also:
+    ///     :meth:`tensor`
+    ///
+    ///         The same function with the order of arguments flipped.  :meth:`tensor` is the more
+    ///         standard argument ordering, and matches Qiskit's other conventions.
+    #[pyo3(signature = (other, /), name = "expand")]
+    fn py_expand(&self, other: &Bound<PyAny>) -> PyResult<Py<PyAny>> {
+        let py = other.py();
+        let Some(other) = coerce_to_observable(other)? else {
+            return Err(PyTypeError::new_err(format!(
+                "unknown type for expand: {}",
+                other.get_type().repr()?
+            )));
+        };
+        Ok(other.borrow().tensor(self).into_py(py))
+    }
+
+    /// Calculate the adjoint of this observable.
+    ///
+    /// This is well defined in the abstract mathematical sense.  All the terms of the single-qubit
+    /// alphabet are self-adjoint, so the result of this operation is the same observable, except
+    /// its coefficients are all their complex conjugates.
+    ///
+    /// Examples:
+    ///
+    ///     .. code-block::
+    ///
+    ///         >>> left = SparseObservable.from_list([("XY+-", 1j)])
+    ///         >>> right = SparseObservable.from_list([("XY+-", -1j)])
+    ///         >>> assert left.adjoint() == right
+    fn adjoint(&self) -> SparseObservable {
+        SparseObservable {
+            num_qubits: self.num_qubits,
+            coeffs: self.coeffs.iter().map(|c| c.conj()).collect(),
+            bit_terms: self.bit_terms.clone(),
+            indices: self.indices.clone(),
+            boundaries: self.boundaries.clone(),
+        }
+    }
+
+    /// Calculate the complex conjugation of this observable.
+    ///
+    /// This operation is defined in terms of the standard matrix conventions of Qiskit, in that the
+    /// matrix form is taken to be in the $Z$ computational basis.  The $X$- and $Z$-related
+    /// alphabet terms are unaffected by the complex conjugation, but $Y$-related terms modify their
+    /// alphabet terms.  Precisely:
+    ///
+    /// * :math:`Y` conjguates to :math:`-Y`
+    /// * :math:`\lvert r\rangle\langle r\rvert` conjugates to :math:`\lvert l\rangle\langle l\rvert`
+    /// * :math:`\lvert l\rangle\langle l\rvert` conjugates to :math:`\lvert r\rangle\langle r\rvert`
+    ///
+    /// Additionally, all coefficients are conjugated.
+    ///
+    /// Examples:
+    ///
+    ///     .. code-block::
+    ///
+    ///         >>> obs = SparseObservable([("III", 1j), ("Yrl", 0.5)])
+    ///         >>> assert obs.conjugate() == SparseObservable([("III", -1j), ("Ylr", -0.5)])
+    fn conjugate(&self) -> SparseObservable {
+        let mut out = self.transpose();
+        for coeff in out.coeffs.iter_mut() {
+            *coeff = coeff.conj();
+        }
+        out
+    }
+
+    /// Calculate the matrix transposition of this observable.
+    ///
+    /// This operation is defined in terms of the standard matrix conventions of Qiskit, in that the
+    /// matrix form is taken to be in the $Z$ computational basis.  The $X$- and $Z$-related
+    /// alphabet terms are unaffected by the transposition, but $Y$-related terms modify their
+    /// alphabet terms.  Precisely:
+    ///
+    /// * :math:`Y` transposes to :math:`-Y`
+    /// * :math:`\lvert r\rangle\langle r\rvert` transposes to :math:`\lvert l\rangle\langle l\rvert`
+    /// * :math:`\lvert l\rangle\langle l\rvert` transposes to :math:`\lvert r\rangle\langle r\rvert`
+    ///
+    /// Examples:
+    ///
+    ///     .. code-block::
+    ///
+    ///         >>> obs = SparseObservable([("III", 1j), ("Yrl", 0.5)])
+    ///         >>> assert obs.transpose() == SparseObservable([("III", 1j), ("Ylr", -0.5)])
+    fn transpose(&self) -> SparseObservable {
+        let mut out = self.clone();
+        for term in out.iter_mut() {
+            for bit_term in term.bit_terms {
+                match bit_term {
+                    BitTerm::Y => {
+                        *term.coeff = -*term.coeff;
+                    }
+                    BitTerm::Right => {
+                        *bit_term = BitTerm::Left;
+                    }
+                    BitTerm::Left => {
+                        *bit_term = BitTerm::Right;
+                    }
+                    _ => (),
+                }
+            }
+        }
+        out
+    }
+
+    /// Apply a transpiler layout to this :class:`SparseObservable`.
+    ///
+    /// Typically you will have defined your observable in terms of the virtual qubits of the
+    /// circuits you will use to prepare states.  After transpilation, the virtual qubits are mapped
+    /// to particular physical qubits on a device, which may be wider than your circuit.  That
+    /// mapping can also change over the course of the circuit.  This method transforms the input
+    /// observable on virtual qubits to an observable that is suitable to apply immediately after
+    /// the fully transpiled *physical* circuit.
+    ///
+    /// Args:
+    ///     layout (TranspileLayout | list[int] | None): The layout to apply.  Most uses of this
+    ///         function should pass the :attr:`.QuantumCircuit.layout` field from a circuit that
+    ///         was transpiled for hardware.  In addition, you can pass a list of new qubit indices.
+    ///         If given as explicitly ``None``, no remapping is applied (but you can still use
+    ///         ``num_qubits`` to expand the observable).
+    ///     num_qubits (int | None): The number of qubits to expand the observable to.  If not
+    ///         supplied, the output will be as wide as the given :class:`.TranspileLayout`, or the
+    ///         same width as the input if the ``layout`` is given in another form.
+    ///
+    /// Returns:
+    ///     A new :class:`SparseObservable` with the provided layout applied.
+    #[pyo3(signature = (/, layout, num_qubits=None), name = "apply_layout")]
+    fn py_apply_layout(&self, layout: Bound<PyAny>, num_qubits: Option<u32>) -> PyResult<Self> {
+        let py = layout.py();
+        let check_inferred_qubits = |inferred: u32| -> PyResult<u32> {
+            if inferred < self.num_qubits {
+                return Err(PyValueError::new_err(format!(
+                    "cannot shrink the qubit count in an observable from {} to {}",
+                    self.num_qubits, inferred
+                )));
+            }
+            Ok(inferred)
+        };
+        if layout.is_none() {
+            let mut out = self.clone();
+            out.num_qubits = check_inferred_qubits(num_qubits.unwrap_or(self.num_qubits))?;
+            return Ok(out);
+        }
+        let (num_qubits, layout) = if layout.is_instance(
+            &py.import_bound(intern!(py, "qiskit.transpiler"))?
+                .getattr(intern!(py, "TranspileLayout"))?,
+        )? {
+            (
+                check_inferred_qubits(
+                    layout.getattr(intern!(py, "_output_qubit_list"))?.len()? as u32
+                )?,
+                layout
+                    .call_method0(intern!(py, "final_index_layout"))?
+                    .extract::<Vec<u32>>()?,
+            )
+        } else {
+            (
+                check_inferred_qubits(num_qubits.unwrap_or(self.num_qubits))?,
+                layout.extract()?,
+            )
+        };
+        if layout.len() < self.num_qubits as usize {
+            return Err(CoherenceError::IndexMapTooSmall.into());
+        }
+        if layout.iter().any(|qubit| *qubit >= num_qubits) {
+            return Err(CoherenceError::BitIndexTooHigh.into());
+        }
+        if layout.iter().collect::<HashSet<_>>().len() != layout.len() {
+            return Err(CoherenceError::DuplicateIndices.into());
+        }
+        let mut out = self.clone();
+        out.num_qubits = num_qubits;
+        out.relabel_qubits_from_slice(&layout)?;
+        Ok(out)
+    }
 }
 
-/// A view object onto a single term of a `SparseObservable`.
+impl ::std::ops::Add<&SparseObservable> for SparseObservable {
+    type Output = SparseObservable;
+
+    fn add(mut self, rhs: &SparseObservable) -> SparseObservable {
+        self += rhs;
+        self
+    }
+}
+impl ::std::ops::Add for &SparseObservable {
+    type Output = SparseObservable;
+
+    fn add(self, rhs: &SparseObservable) -> SparseObservable {
+        let mut out = SparseObservable::with_capacity(
+            self.num_qubits,
+            self.coeffs.len() + rhs.coeffs.len(),
+            self.bit_terms.len() + rhs.bit_terms.len(),
+        );
+        out += self;
+        out += rhs;
+        out
+    }
+}
+impl ::std::ops::AddAssign<&SparseObservable> for SparseObservable {
+    fn add_assign(&mut self, rhs: &SparseObservable) {
+        if self.num_qubits != rhs.num_qubits {
+            panic!("attempt to add two operators with incompatible qubit counts");
+        }
+        self.coeffs.extend_from_slice(&rhs.coeffs);
+        self.bit_terms.extend_from_slice(&rhs.bit_terms);
+        self.indices.extend_from_slice(&rhs.indices);
+        // We only need to write out the new endpoints, not the initial zero.
+        let offset = self.boundaries[self.boundaries.len() - 1];
+        self.boundaries
+            .extend(rhs.boundaries[1..].iter().map(|boundary| offset + boundary));
+    }
+}
+
+impl ::std::ops::Sub<&SparseObservable> for SparseObservable {
+    type Output = SparseObservable;
+
+    fn sub(mut self, rhs: &SparseObservable) -> SparseObservable {
+        self -= rhs;
+        self
+    }
+}
+impl ::std::ops::Sub for &SparseObservable {
+    type Output = SparseObservable;
+
+    fn sub(self, rhs: &SparseObservable) -> SparseObservable {
+        let mut out = SparseObservable::with_capacity(
+            self.num_qubits,
+            self.coeffs.len() + rhs.coeffs.len(),
+            self.bit_terms.len() + rhs.bit_terms.len(),
+        );
+        out += self;
+        out -= rhs;
+        out
+    }
+}
+impl ::std::ops::SubAssign<&SparseObservable> for SparseObservable {
+    fn sub_assign(&mut self, rhs: &SparseObservable) {
+        if self.num_qubits != rhs.num_qubits {
+            panic!("attempt to subtract two operators with incompatible qubit counts");
+        }
+        self.coeffs.extend(rhs.coeffs.iter().map(|coeff| -coeff));
+        self.bit_terms.extend_from_slice(&rhs.bit_terms);
+        self.indices.extend_from_slice(&rhs.indices);
+        // We only need to write out the new endpoints, not the initial zero.
+        let offset = self.boundaries[self.boundaries.len() - 1];
+        self.boundaries
+            .extend(rhs.boundaries[1..].iter().map(|boundary| offset + boundary));
+    }
+}
+
+impl ::std::ops::Mul<Complex64> for SparseObservable {
+    type Output = SparseObservable;
+
+    fn mul(mut self, rhs: Complex64) -> SparseObservable {
+        self *= rhs;
+        self
+    }
+}
+impl ::std::ops::Mul<Complex64> for &SparseObservable {
+    type Output = SparseObservable;
+
+    fn mul(self, rhs: Complex64) -> SparseObservable {
+        if rhs == Complex64::new(0.0, 0.0) {
+            SparseObservable::zero(self.num_qubits)
+        } else {
+            SparseObservable {
+                num_qubits: self.num_qubits,
+                coeffs: self.coeffs.iter().map(|c| c * rhs).collect(),
+                bit_terms: self.bit_terms.clone(),
+                indices: self.indices.clone(),
+                boundaries: self.boundaries.clone(),
+            }
+        }
+    }
+}
+impl ::std::ops::Mul<SparseObservable> for Complex64 {
+    type Output = SparseObservable;
+
+    fn mul(self, mut rhs: SparseObservable) -> SparseObservable {
+        rhs *= self;
+        rhs
+    }
+}
+impl ::std::ops::Mul<&SparseObservable> for Complex64 {
+    type Output = SparseObservable;
+
+    fn mul(self, rhs: &SparseObservable) -> SparseObservable {
+        rhs * self
+    }
+}
+impl ::std::ops::MulAssign<Complex64> for SparseObservable {
+    fn mul_assign(&mut self, rhs: Complex64) {
+        if rhs == Complex64::new(0.0, 0.0) {
+            self.coeffs.clear();
+            self.bit_terms.clear();
+            self.indices.clear();
+            self.boundaries.clear();
+            self.boundaries.push(0);
+        } else {
+            self.coeffs.iter_mut().for_each(|c| *c *= rhs)
+        }
+    }
+}
+
+impl ::std::ops::Div<Complex64> for SparseObservable {
+    type Output = SparseObservable;
+
+    fn div(mut self, rhs: Complex64) -> SparseObservable {
+        self /= rhs;
+        self
+    }
+}
+impl ::std::ops::Div<Complex64> for &SparseObservable {
+    type Output = SparseObservable;
+
+    fn div(self, rhs: Complex64) -> SparseObservable {
+        SparseObservable {
+            num_qubits: self.num_qubits,
+            coeffs: self.coeffs.iter().map(|c| c / rhs).collect(),
+            bit_terms: self.bit_terms.clone(),
+            indices: self.indices.clone(),
+            boundaries: self.boundaries.clone(),
+        }
+    }
+}
+impl ::std::ops::DivAssign<Complex64> for SparseObservable {
+    fn div_assign(&mut self, rhs: Complex64) {
+        self.coeffs.iter_mut().for_each(|c| *c /= rhs)
+    }
+}
+
+impl ::std::ops::Neg for &SparseObservable {
+    type Output = SparseObservable;
+
+    fn neg(self) -> SparseObservable {
+        SparseObservable {
+            num_qubits: self.num_qubits,
+            coeffs: self.coeffs.iter().map(|c| -c).collect(),
+            bit_terms: self.bit_terms.clone(),
+            indices: self.indices.clone(),
+            boundaries: self.boundaries.clone(),
+        }
+    }
+}
+impl ::std::ops::Neg for SparseObservable {
+    type Output = SparseObservable;
+
+    fn neg(mut self) -> SparseObservable {
+        self.coeffs.iter_mut().for_each(|c| *c = -*c);
+        self
+    }
+}
+
+/// A view object onto a single term of a [SparseObservable].
 ///
-/// The lengths of `bit_terms` and `indices` are guaranteed to be created equal, but might be zero
+/// The lengths of [bit_terms] and [indices] are guaranteed to be created equal, but might be zero
 /// (in the case that the term is proportional to the identity).
 #[derive(Clone, Copy, Debug)]
 pub struct SparseTermView<'a> {
@@ -1466,6 +2326,78 @@ pub struct SparseTermView<'a> {
     pub bit_terms: &'a [BitTerm],
     pub indices: &'a [u32],
 }
+
+/// A mutable view object onto a single term of a [SparseObservable].
+///
+/// The lengths of [bit_terms] and [indices] are guaranteed to be created equal, but might be zero
+/// (in the case that the term is proportional to the identity).  [indices] is not mutable because
+/// this would allow data coherence to be broken.
+#[derive(Debug)]
+pub struct SparseTermViewMut<'a> {
+    pub coeff: &'a mut Complex64,
+    pub bit_terms: &'a mut [BitTerm],
+    pub indices: &'a [u32],
+}
+
+/// Iterator type allowing in-place mutation of the [SparseObservable].
+///
+/// Created by [SparseObservable::iter_mut].
+#[derive(Debug)]
+pub struct IterMut<'a> {
+    coeffs: &'a mut [Complex64],
+    bit_terms: &'a mut [BitTerm],
+    indices: &'a [u32],
+    boundaries: &'a [usize],
+    i: usize,
+}
+impl<'a> From<&'a mut SparseObservable> for IterMut<'a> {
+    fn from(value: &mut SparseObservable) -> IterMut {
+        IterMut {
+            coeffs: &mut value.coeffs,
+            bit_terms: &mut value.bit_terms,
+            indices: &value.indices,
+            boundaries: &value.boundaries,
+            i: 0,
+        }
+    }
+}
+impl<'a> Iterator for IterMut<'a> {
+    type Item = SparseTermViewMut<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        // The trick here is that the lifetime of the 'self' borrow is shorter than the lifetime of
+        // the inner borrows.  We can't give out mutable references to our inner borrow, because
+        // after the lifetime on 'self' expired, there'd be nothing preventing somebody using the
+        // 'self' borrow to see _another_ mutable borrow of the inner data, which would be an
+        // aliasing violation.  Instead, we keep splitting the inner views we took out so the
+        // mutable references we return don't overlap with the ones we continue to hold.
+        let coeffs = ::std::mem::take(&mut self.coeffs);
+        let (coeff, other_coeffs) = coeffs.split_first_mut()?;
+        self.coeffs = other_coeffs;
+
+        let len = self.boundaries[self.i + 1] - self.boundaries[self.i];
+        self.i += 1;
+
+        let all_bit_terms = ::std::mem::take(&mut self.bit_terms);
+        let all_indices = ::std::mem::take(&mut self.indices);
+        let (bit_terms, rest_bit_terms) = all_bit_terms.split_at_mut(len);
+        let (indices, rest_indices) = all_indices.split_at(len);
+        self.bit_terms = rest_bit_terms;
+        self.indices = rest_indices;
+
+        Some(SparseTermViewMut {
+            coeff,
+            bit_terms,
+            indices,
+        })
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (self.coeffs.len(), Some(self.coeffs.len()))
+    }
+}
+impl<'a> ExactSizeIterator for IterMut<'a> {}
+impl<'a> ::std::iter::FusedIterator for IterMut<'a> {}
 
 /// Helper class of `ArrayView` that denotes the slot of the `SparseObservable` we're looking at.
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -1684,6 +2616,37 @@ fn cast_array_type<'py, T>(
             ),
         )
         .map(|obj| obj.into_any())
+}
+
+/// Attempt to coerce an arbitrary Python object to a [SparseObservable].
+///
+/// This returns:
+///
+/// * `Ok(Some(obs))` if the coercion was completely successful.
+/// * `Ok(None)` if the input value was just completely the wrong type and no coercion could be
+///    attempted.
+/// * `Err` if the input was a valid type for coercion, but the coercion failed with a Python
+///   exception.
+///
+/// The purpose of this is for conversion the arithmetic operations, which should return
+/// [PyNotImplemented] if the type is not valid for coercion.
+fn coerce_to_observable<'py>(
+    value: &Bound<'py, PyAny>,
+) -> PyResult<Option<Bound<'py, SparseObservable>>> {
+    let py = value.py();
+    if let Ok(obs) = value.downcast_exact::<SparseObservable>() {
+        return Ok(Some(obs.clone()));
+    }
+    match SparseObservable::py_new(value, None) {
+        Ok(obs) => Ok(Some(Bound::new(py, obs)?)),
+        Err(e) => {
+            if e.is_instance_of::<PyTypeError>(py) {
+                Ok(None)
+            } else {
+                Err(e)
+            }
+        }
+    }
 }
 
 pub fn sparse_observable(m: &Bound<PyModule>) -> PyResult<()> {

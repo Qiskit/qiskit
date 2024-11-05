@@ -318,6 +318,13 @@ def _read_instruction(
             use_symengine,
             standalone_vars,
         )
+        if condition is not None:
+            warnings.warn(
+                f"The .condition attribute on {gate_name} will be loaded as an IfElseOp "
+                "starting in Qiskit 2.0",
+                FutureWarning,
+                stacklevel=3,
+            )
         inst_obj.condition = condition
         if instruction.label_size > 0:
             inst_obj.label = label
@@ -414,6 +421,12 @@ def _read_instruction(
                 gate = gate_class(*params)
         if condition:
             if not isinstance(gate, ControlFlowOp):
+                warnings.warn(
+                    f"The .condition attribute on {gate} will be loaded as an "
+                    "IfElseOp starting in Qiskit 2.0",
+                    FutureWarning,
+                    stacklevel=3,
+                )
                 gate = gate.c_if(*condition)
             else:
                 gate.condition = condition
@@ -761,13 +774,13 @@ def _write_instruction(
     condition_type = type_keys.Condition.NONE
     condition_register = b""
     condition_value = 0
-    if (op_condition := getattr(instruction.operation, "condition", None)) is not None:
+    if (op_condition := getattr(instruction.operation, "_condition", None)) is not None:
         if isinstance(op_condition, expr.Expr):
             condition_type = type_keys.Condition.EXPRESSION
         else:
             condition_type = type_keys.Condition.TWO_TUPLE
-            condition_register = _dumps_register(instruction.operation.condition[0], index_map)
-            condition_value = int(instruction.operation.condition[1])
+            condition_register = _dumps_register(instruction.operation._condition[0], index_map)
+            condition_value = int(instruction.operation._condition[1])
 
     gate_class_name = gate_class_name.encode(common.ENCODE)
     label = getattr(instruction.operation, "label", None)
