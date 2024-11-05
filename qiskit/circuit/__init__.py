@@ -1060,9 +1060,10 @@ quantum system, which includes things like incorrect pulse-shapes for gates.
 Pauli twirling is a quantum error suppression technique that uses randomization to shape coherent
 error into stochastic errors by combining the results from many random, but logically equivalent
 circuits, together. Qiskit provides a function to apply Pauli twirling to a given circuit for
-standard two qubit gates.
+standard two qubit gates. For more details you can refer to the documentation of the function
+below:
 
-.. autofunction:: qiskit.circuit.twirl_circuit
+.. autofunction:: qiskit.circuit.pauli_twirl_2q_gates
 
 
 Exceptions
@@ -1309,4 +1310,4 @@ from .controlflow import (
 )
 
 from .annotated_operation import AnnotatedOperation, InverseModifier, ControlModifier, PowerModifier
-from .twirling import twirl_circuit
+from .twirling import pauli_twirl_2q_gates

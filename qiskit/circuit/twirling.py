@@ -33,15 +33,28 @@ NAME_TO_CLASS = {
 }
 
 
-def twirl_circuit(
+def pauli_twirl_2q_gates(
     circuit: QuantumCircuit,
     twirling_gate: None | str | Gate | list[str] | list[Gate] = None,
     seed: int | None = None,
     num_twirls: int | None = None,
     target: Target | None = None,
 ) -> QuantumCircuit | list[QuantumCircuit]:
-    """Create a copy of a given circuit with Pauli twirling applied around a specified two qubit
-    gate.
+    """Create copies of a given circuit with Pauli twirling applied around specified two qubit
+    gates.
+
+    If you're running this function with the intent to twirl a circuit to run on hardware this
+    may not be the most efficient way to perform twirling. Especially if the hardware vendor
+    has implemented the :mod:`.primitives` execution interface with :class:`.SamplerV2` and
+    :class:`.EstimatorV2` this most likely is not the best way to apply twirling to your
+    circuit and you'll want to refer to the implementation of :class:`.SamplerV2` and/or
+    :class:`.EstimatorV2` for the specified hardware vendor.
+
+    If the intent of this function is to be run after :func:`.transpile` or
+    :meth:`.PassManager.run` the optional ``target`` argument can be used
+    so that the inserted 1 qubit Pauli gates are synthesized to be
+    compatible with the given :class:`.Target` so the output circuit(s) are
+    still compatible.
 
     Args:
         circuit: The circuit to twirl
@@ -53,9 +66,9 @@ def twirl_circuit(
             have a matrix defined from its :class:`~.Gate.to_matrix` method for the gate to potentially
             be twirled. If a valid twirling configuration can't be computed that particular gate will
             be silently ignored and not twirled.
-        seed: An integer seed for the random number generator used internally.
+        seed: An integer seed for the random number generator used internally by this function.
             If specified this must be between 0 and 18,446,744,073,709,551,615.
-        num_twirls: The number of twirling circuits to build. This defaults to None and will return
+        num_twirls: The number of twirling circuits to build. This defaults to ``None`` and will return
             a single circuit. If it is an integer a list of circuits with `num_twirls` circuits
             will be returned.
         target: If specified an :class:`.Target` instance to use for running single qubit decomposition
