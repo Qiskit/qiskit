@@ -191,7 +191,8 @@ class TestQuantumCircuitDisassembler(QiskitTestCase):
         qc = QuantumCircuit(qr, cr1, cr2)
         qc.measure(qr[0], cr1)  # Measure not required for a later conditional
         qc.measure(qr[1], cr2[1])  # Measure required for a later conditional
-        qc.h(qr[1]).c_if(cr2, 3)
+        with self.assertWarns(DeprecationWarning):
+            qc.h(qr[1]).c_if(cr2, 3)
         with self.assertWarns(DeprecationWarning):
             qobj = assemble(qc)
             circuits, run_config_out, header = disassemble(qobj)
@@ -207,7 +208,8 @@ class TestQuantumCircuitDisassembler(QiskitTestCase):
         qr = QuantumRegister(1)
         cr = ClassicalRegister(1)
         qc = QuantumCircuit(qr, cr)
-        qc.h(qr[0]).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            qc.h(qr[0]).c_if(cr, 1)
         with self.assertWarns(DeprecationWarning):
             qobj = assemble(qc)
             circuits, run_config_out, header = disassemble(qobj)
@@ -228,7 +230,8 @@ class TestQuantumCircuitDisassembler(QiskitTestCase):
         qr = QuantumRegister(1)
         cr = ClassicalRegister(2)
         qc = QuantumCircuit(qr, cr)
-        qc.h(qr[0]).c_if(cr[0], 1)
+        with self.assertWarns(DeprecationWarning):
+            qc.h(qr[0]).c_if(cr[0], 1)
 
         with self.assertWarns(DeprecationWarning):
             qobj = assemble(qc)
@@ -267,9 +270,12 @@ class TestQuantumCircuitDisassembler(QiskitTestCase):
         qc = QuantumCircuit(qr, cr1, cr2, cr3, cr4)
         qc.x(qr[1])
         qc.h(qr)
-        qc.cx(qr[1], qr[0]).c_if(cr3, 14)
-        qc.ccx(qr[0], qr[2], qr[1]).c_if(cr4, 1)
-        qc.h(qr).c_if(cr1, 3)
+        with self.assertWarns(DeprecationWarning):
+            qc.cx(qr[1], qr[0]).c_if(cr3, 14)
+        with self.assertWarns(DeprecationWarning):
+            qc.ccx(qr[0], qr[2], qr[1]).c_if(cr4, 1)
+        with self.assertWarns(DeprecationWarning):
+            qc.h(qr).c_if(cr1, 3)
         with self.assertWarns(DeprecationWarning):
             qobj = assemble(qc)
             circuits, run_config_out, header = disassemble(qobj)
@@ -285,7 +291,8 @@ class TestQuantumCircuitDisassembler(QiskitTestCase):
         qr = QuantumRegister(2)
         cr = ClassicalRegister(2)
         qc = QuantumCircuit(qr, cr)
-        qc.h(qr[0]).c_if(cr[1], True)
+        with self.assertWarns(DeprecationWarning):
+            qc.h(qr[0]).c_if(cr[1], True)
         with self.assertWarns(DeprecationWarning):
             qobj = assemble(qc)
             circuits, run_config_out, header = disassemble(qobj)
@@ -302,9 +309,12 @@ class TestQuantumCircuitDisassembler(QiskitTestCase):
         cr = ClassicalRegister(2)
         cr1 = ClassicalRegister(2)
         qc = QuantumCircuit(qr, cr, cr1)
-        qc.h(qr[0]).c_if(cr1[1], False)
-        qc.h(qr[1]).c_if(cr[0], True)
-        qc.cx(qr[0], qr[1]).c_if(cr1[0], False)
+        with self.assertWarns(DeprecationWarning):
+            qc.h(qr[0]).c_if(cr1[1], False)
+        with self.assertWarns(DeprecationWarning):
+            qc.h(qr[1]).c_if(cr[0], True)
+        with self.assertWarns(DeprecationWarning):
+            qc.cx(qr[0], qr[1]).c_if(cr1[0], False)
         with self.assertWarns(DeprecationWarning):
             qobj = assemble(qc)
             circuits, run_config_out, header = disassemble(qobj)

@@ -547,7 +547,7 @@ class Operator(LinearOp):
         Non-integer powers of operators with an eigenvalue whose complex phase is :math:`\\pi` have
         a branch cut in the complex plane, which makes the calculation of the principal root around
         this cut subject to precision / differences in BLAS implementation.  For example, the square
-        root of Pauli Y can return the :math:`\\pi/2` or :math:`\\-pi/2` Y rotation depending on
+        root of Pauli Y can return the :math:`\\pi/2` or :math:`-\\pi/2` Y rotation depending on
         whether the -1 eigenvalue is found as ``complex(-1, tiny)`` or ``complex(-1, -tiny)``. Such
         eigenvalues are really common in quantum information, so this function first phase-rotates
         the input matrix to shift the branch cut to a far less common point.  The underlying
