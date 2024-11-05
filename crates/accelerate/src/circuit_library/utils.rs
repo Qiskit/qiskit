@@ -10,14 +10,12 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use pyo3::prelude::*;
 use qiskit_circuit::{
-    imports,
-    operations::{Param, PyInstruction, StandardGate},
+    operations::{Param, StandardGate},
     packed_instruction::PackedOperation,
     Clbit, Qubit,
 };
-use smallvec::{smallvec, SmallVec};
+use smallvec::SmallVec;
 
 pub(super) type StandardInstruction = (StandardGate, SmallVec<[Param; 3]>, SmallVec<[Qubit; 2]>);
 pub(super) type Instruction = (
@@ -26,34 +24,3 @@ pub(super) type Instruction = (
     Vec<Qubit>,
     Vec<Clbit>,
 );
-
-/// Get an iterator that returns a barrier or an empty element.
-pub fn maybe_barrier(
-    py: Python,
-    num_qubits: u32,
-    insert_barriers: bool,
-) -> Box<dyn Iterator<Item = PyResult<Instruction>>> {
-    // TODO could speed this up by only defining the barrier class once
-    if !insert_barriers {
-        Box::new(std::iter::empty())
-    } else {
-        let barrier_cls = imports::BARRIER.get_bound(py);
-        let barrier = barrier_cls
-            .call1((num_qubits,))
-            .expect("Could not create Barrier Python-side");
-        let barrier_inst = PyInstruction {
-            qubits: num_qubits,
-            clbits: 0,
-            params: 0,
-            op_name: "barrier".to_string(),
-            control_flow: false,
-            instruction: barrier.into(),
-        };
-        Box::new(std::iter::once(Ok((
-            barrier_inst.into(),
-            smallvec![],
-            (0..num_qubits).map(Qubit).collect(),
-            vec![] as Vec<Clbit>,
-        ))))
-    }
-}

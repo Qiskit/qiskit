@@ -28,7 +28,7 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.quantum_info import Operator, Pauli, SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
-from qiskit._accelerate.circuit_library import py_pauli_evolution
+from qiskit._accelerate.circuit_library import pauli_evolution
 
 from .n_local import NLocal
 
@@ -137,7 +137,7 @@ def evolved_operator_ansatz(
                     (pauli, indices, 2 * coeff * param) for pauli, indices, coeff in term
                 ]
 
-        data = py_pauli_evolution(num_qubits, expanded_paulis, insert_barriers, False)
+        data = pauli_evolution(num_qubits, expanded_paulis, insert_barriers, False)
         circuit = QuantumCircuit._from_circuit_data(data, add_regs=True)
         circuit.name = name
 
@@ -191,7 +191,7 @@ def hamiltonian_variational_ansatz(
 ):
     r"""Construct a Hamiltonian variational ansatz.
 
-    For a Hamiltonian :math:`H = \sum_{k=1}^K H_k` where the terms :math:`H_k` consists of only
+    For a Hamiltonian :math:`H = \sum_{k=1}^K H_k` where the terms :math:`H_k` consist of only
     commuting Paulis, but the terms do not commute among each other :math:`[H_k, H_{k'}] \neq 0`, the
     Hamiltonian variational ansatz (HVA) is
 
