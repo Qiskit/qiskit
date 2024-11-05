@@ -1057,7 +1057,7 @@ errors arise due to imperfect control of a quantum system. This can be unwanted 
 Hamiltonian, i.e. incorrect unitary evolution, or errors from incorrect temporal control of the
 quantum system, which includes things like incorrect pulse-shapes for gates.
 
-Pauli-twirling is a quantum error suppression technique that uses randomization to shape coherent
+Pauli twirling is a quantum error suppression technique that uses randomization to shape coherent
 error into stochastic errors by combining the results from many random, but logically equivalent
 circuits, together. Qiskit provides a function to apply Pauli twirling to a given circuit for
 standard two qubit gates.

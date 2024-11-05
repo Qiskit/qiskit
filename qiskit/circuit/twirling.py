@@ -48,9 +48,9 @@ def twirl_circuit(
         twirling_gate: The gate to twirl, defaults to `None` which means twirl all default gates:
             :class:`.CXGate`, :class:`.CZGate`, :class:`.ECRGate`, and :class:`.iSwapGate`.
             If supplied it can either be a single gate or a list of gates either as either a gate
-            object or it's string name. Currently only the names `"cx"`, `"cz"`, `"ecr"`,  and
+            object or its string name. Currently only the names `"cx"`, `"cz"`, `"ecr"`,  and
             `"iswap"` are supported. If a gate object is provided outside the default gates it must
-            have a matrix defined from it's :class:`~.Gate.to_matrix` method for the gate to potentially
+            have a matrix defined from its :class:`~.Gate.to_matrix` method for the gate to potentially
             be twirled. If a valid twirling configuration can't be computed that particular gate will
             be silently ignored and not twirled.
         seed: An integer seed for the random number generator used internally.
