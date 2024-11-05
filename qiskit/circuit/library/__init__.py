@@ -152,12 +152,12 @@ set the amount of qubits involved at instantiation time.
 
 .. code-block::
 
-    from qiskit.circuit.library import Diagonal
+    from qiskit.circuit.library import DiagonalGate
 
-    diagonal = Diagonal([1, 1])
+    diagonal = DiagonalGate([1, 1j])
     print(diagonal.num_qubits)
 
-    diagonal = Diagonal([1, 1, 1, 1])
+    diagonal = DiagonalGate([1, 1, 1, -1])
     print(diagonal.num_qubits)
 
 .. code-block:: text
@@ -344,6 +344,8 @@ Particular Quantum Circuits
 .. autofunction:: hidden_linear_function
 .. autofunction:: unitary_overlap
 .. autofunction:: phase_estimation
+
+.. autofunction:: grover_operator
 
 
 N-local circuits
@@ -596,6 +598,6 @@ from .graph_state import GraphState, GraphStateGate
 from .hidden_linear_function import HiddenLinearFunction, hidden_linear_function
 from .iqp import IQP, iqp, random_iqp
 from .phase_estimation import PhaseEstimation, phase_estimation
-from .grover_operator import GroverOperator
+from .grover_operator import GroverOperator, grover_operator
 from .phase_oracle import PhaseOracle
 from .overlap import UnitaryOverlap, unitary_overlap
