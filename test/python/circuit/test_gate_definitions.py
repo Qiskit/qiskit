@@ -311,6 +311,7 @@ class TestGateEquivalenceEqual(QiskitTestCase):
         "_SingletonGateOverrides",
         "_SingletonControlledGateOverrides",
         "QFTGate",
+        "GraphStateGate",
         "AndGate",
         "OrGate",
         "BitwiseXorGate",

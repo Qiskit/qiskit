@@ -2305,7 +2305,7 @@ pub fn multiply_param(param: &Param, mult: f64, py: Python) -> Param {
                 .call_method1(py, intern!(py, "__rmul__"), (mult,))
                 .expect("Multiplication of Parameter expression by float failed."),
         ),
-        Param::Obj(_) => unreachable!(),
+        Param::Obj(_) => unreachable!("Unsupported multiplication of a Param::Obj."),
     }
 }
 
@@ -2339,7 +2339,7 @@ pub fn add_param(param: &Param, summand: f64, py: Python) -> Param {
     }
 }
 
-fn radd_param(param1: Param, param2: Param, py: Python) -> Param {
+pub fn radd_param(param1: Param, param2: Param, py: Python) -> Param {
     match [param1, param2] {
         [Param::Float(theta), Param::Float(lambda)] => Param::Float(theta + lambda),
         [Param::ParameterExpression(theta), Param::ParameterExpression(lambda)] => {
