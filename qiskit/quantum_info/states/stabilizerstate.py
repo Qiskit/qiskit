@@ -189,7 +189,7 @@ class StabilizerState(QuantumState):
         return Clifford(self.clifford).to_operator()
 
     def conjugate(self):
-        """Return the conjugate of the operator."""
+        """Return the complex conjugate of the operator."""
         ret = self.copy()
         ret._data = ret._data.conjugate()
         return ret
