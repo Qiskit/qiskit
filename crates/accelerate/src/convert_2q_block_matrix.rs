@@ -31,10 +31,7 @@ use crate::euler_one_qubit_decomposer::matmul_1q;
 use crate::QiskitError;
 
 #[inline]
-pub fn get_matrix_from_inst<'py>(
-    py: Python<'py>,
-    inst: &'py PackedInstruction,
-) -> PyResult<Array2<Complex64>> {
+pub fn get_matrix_from_inst(py: Python, inst: &PackedInstruction) -> PyResult<Array2<Complex64>> {
     if let Some(mat) = inst.op.matrix(inst.params_view()) {
         Ok(mat)
     } else if inst.op.try_standard_gate().is_some() {
