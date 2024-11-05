@@ -526,8 +526,15 @@ def _parse_inst_map(inst_map, backend):
 def _parse_backend_properties(backend_properties, backend):
     # try getting backend_props from user, else backend
     if backend_properties is None and backend is not None:
-        backend_properties = target_to_backend_properties(backend.target)
-    return backend_properties
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                category=DeprecationWarning,
+                message=".*``qiskit.transpiler.target.target_to_backend_properties()`` is deprecated as of qiskit 1.2.*",
+                module="qiskit",
+            )
+            backend_properties = target_to_backend_properties(backend.target)
+            return backend_properties
 
 
 def _parse_dt(dt, backend):

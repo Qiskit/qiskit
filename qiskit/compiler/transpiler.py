@@ -420,12 +420,6 @@ def transpile(  # pylint: disable=too-many-return-statements
             message=".*``backend_properties`` is deprecated as of Qiskit 1.3.*",
             module="qiskit",
         )
-        warnings.filterwarnings(
-            "ignore",
-            category=DeprecationWarning,
-            message=".*``qiskit.transpiler.target.target_to_backend_properties()`` is deprecated as of qiskit 1.2.*",
-            module="qiskit",
-        )
         pm = generate_preset_pass_manager(
             optimization_level,
             target=target,
