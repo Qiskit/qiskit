@@ -39,7 +39,7 @@ class PadDelay(BasePadding):
 
     The ASAP-scheduled circuit output may become
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌────────────────┐
         q_0: ┤ Delay(160[dt]) ├──■──
