@@ -1215,8 +1215,10 @@ class TestBackendSamplerV2(QiskitTestCase):
         qc.h(0)
         qc.measure(0, c1)
         qc.measure(1, c2)
-        qc.z(2).c_if(c1, 1)
-        qc.x(2).c_if(c2, 1)
+        with self.assertWarns(DeprecationWarning):
+            qc.z(2).c_if(c1, 1)
+        with self.assertWarns(DeprecationWarning):
+            qc.x(2).c_if(c2, 1)
         qc2 = QuantumCircuit(5, 5)
         qc2.compose(qc, [0, 2, 3], [2, 4], inplace=True)
         cregs = [creg.name for creg in qc2.cregs]
@@ -1251,8 +1253,10 @@ class TestBackendSamplerV2(QiskitTestCase):
         qc.h(0)
         qc.measure(0, c1)
         qc.measure(1, c2)
-        qc.z(2).c_if(c1, 1)
-        qc.x(2).c_if(c2, 1)
+        with self.assertWarns(DeprecationWarning):
+            qc.z(2).c_if(c1, 1)
+        with self.assertWarns(DeprecationWarning):
+            qc.x(2).c_if(c2, 1)
         qc2 = QuantumCircuit(5, 5)
         qc2.compose(qc, [0, 2, 3], [2, 4], inplace=True)
         cregs = [creg.name for creg in qc2.cregs]
@@ -1371,9 +1375,10 @@ class TestBackendSamplerV2(QiskitTestCase):
 
     def test_job_size_limit_backend_v1(self):
         """Test BackendSamplerV2 respects backend's job size limit."""
-        backend = GenericBackendV2(
-            2, calibrate_instructions=True, basis_gates=["cx", "u1", "u2", "u3"], seed=42
-        )
+        with self.assertWarns(DeprecationWarning):
+            backend = GenericBackendV2(
+                2, calibrate_instructions=True, basis_gates=["cx", "u1", "u2", "u3"], seed=42
+            )
         qc = QuantumCircuit(1)
         qc.measure_all()
         qc2 = QuantumCircuit(1)

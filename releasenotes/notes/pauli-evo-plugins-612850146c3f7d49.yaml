@@ -2,7 +2,7 @@
 features_quantum_info:
   - |
     Added :meth:`.SparsePauliOperator.to_sparse_list` to convert an operator into
-    a sparse list format. This works analogous to :meth:`.SparsePauliOperator.from_sparse_list`.
+    a sparse list format. This works inversely to :meth:`.SparsePauliOperator.from_sparse_list`.
     For example::
 
       from qiskit.quantum_info import SparsePauliOp
@@ -19,8 +19,11 @@ features_synthesis:
     in a sparse Pauli format.
   - |
     Added the plugin structure for the :class:`.PauliEvolutionGate`. The default plugin,
-    :class:`.PauliEvolutionSynthesisDefault`, constructs circuit as before (but faster as it
-    internally uses Rust).
+    :class:`.PauliEvolutionSynthesisDefault`, constructs circuit as before, but faster as it
+    internally uses Rust. The larger the circuit (e.g. by the Hamiltonian size, the number 
+    of timesteps, or the Suzuki-Trotter order), the higher the speedup. For example,
+    a 100-qubit Heisenberg Hamiltonian with 10 timesteps and a 4th-order Trotter formula is 
+    now constructed ~9.4x faster.
 
 upgrade:
   - | 
