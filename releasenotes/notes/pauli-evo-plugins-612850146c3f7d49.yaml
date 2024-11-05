@@ -19,8 +19,12 @@ features_synthesis:
     in a sparse Pauli format.
   - |
     Added the plugin structure for the :class:`.PauliEvolutionGate`. The default plugin,
-    :class:`.PauliEvolutionSynthesisDefault`, constructs circuit as before (but faster as it
-    internally uses Rust). The new plugin, :class:`.PauliEvolutionSynthesisRustiq`, uses
+    :class:`.PauliEvolutionSynthesisDefault`, constructs circuit as before, but faster as it
+    internally uses Rust. The larger the circuit (e.g. by the Hamiltonian size, the number 
+    of timesteps, or the Suzuki-Trotter order), the higher the speedup. For example,
+    a 100-qubit Heisenberg Hamiltonian with 10 timesteps and a 4th-order Trotter formula is 
+    now constructed ~9.4x faster.
+    The new plugin, :class:`.PauliEvolutionSynthesisRustiq`, uses
     the synthesis algorithm that is described in the paper "Faster and shorter synthesis of
     Hamiltonian simulation circuits" by de Brugière and Martiel (https://arxiv.org/abs/2404.03280)
     and is implemented in https://github.com/smartiel/rustiq-core.
@@ -46,10 +50,10 @@ features_synthesis:
     documentation for :class:`.PauliEvolutionSynthesisRustiq`.
 
 upgrade:
-  - |
+  - | 
     The following classes now use the :math:`\sqrt{X}` operation to diagonalize the Pauli-Y
-    operator: :class:`.PauliEvolutionGate`, :class:`.EvolvedOperatorAnsatz`,
+    operator: :class:`.PauliEvolutionGate`, :class:`.EvolvedOperatorAnsatz`, 
     :class:`.PauliFeatureMap`. Previously, these classes used either :math:`H S` or
-    :math:`R_X(-\pi/2)` as basis transformation. Using the :math:`\sqrt{X}` operation,
+    :math:`R_X(-\pi/2)` as basis transformation. Using the :math:`\sqrt{X}` operation, 
     represented by the :class:`.SXGate` is more efficient as it uses only a single gate
     implemented as singleton.

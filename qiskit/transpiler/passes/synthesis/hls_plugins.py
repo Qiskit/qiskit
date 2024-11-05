@@ -92,6 +92,19 @@ Linear Function Synthesis
    PMHSynthesisLinearFunction
    DefaultSynthesisLinearFunction
 
+   
+Pauli Evolution Synthesis
+'''''''''''''''''''''''''
+
+.. list-table:: Plugins for :class:`.PauliEvolutionGate` (key = ``"PauliEvolution"``)
+    :header-rows: 1
+
+    * - Plugin name
+      - Plugin class
+      - Description
+    * - ``"default"``
+      - :class:`.PauliEvolutionSynthesisDefault`
+      - use a diagonalizing Clifford per Pauli term
 
 Permutation Synthesis
 '''''''''''''''''''''
@@ -277,7 +290,6 @@ Pauli Evolution Synthesis
 from __future__ import annotations
 
 import warnings
-
 import numpy as np
 import rustworkx as rx
 

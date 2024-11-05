@@ -119,7 +119,7 @@ def evolve(pauli_string, time):
         if pauli == "x":
             forward.h(i)
         elif pauli == "y":
-            forward.sxdg(i)
+            forward.sx(i)
 
     for i in range(1, num_qubits):
         forward.cx(num_qubits - i, num_qubits - i - 1)

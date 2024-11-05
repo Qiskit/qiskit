@@ -282,6 +282,19 @@ pub fn py_pauli_evolution(
     CircuitData::from_packed_operations(py, num_qubits as u32, 0, evos, global_phase)
 }
 
+/// Build a CX chain over the active qubits. E.g. with q_1 inactive, this would return
+///
+///                    ┌───┐
+///     q_0: ──────────┤ X ├
+///                    └─┬─┘
+///     q_1: ────────────┼──
+///               ┌───┐  │
+///     q_2: ─────┤ X ├──■──
+///          ┌───┐└─┬─┘
+///     q_3: ┤ X ├──■───────
+///          └─┬─┘
+///     q_4: ──■────────────
+///     
 fn cx_chain(
     active_paulis: Vec<(char, Qubit)>,
 ) -> Box<dyn DoubleEndedIterator<Item = StandardInstruction>> {
@@ -293,6 +306,19 @@ fn cx_chain(
     )
 }
 
+/// Build a CX fountain over the active qubits. E.g. with q_1 inactive, this would return
+///
+////         ┌───┐┌───┐┌───┐
+////    q_0: ┤ X ├┤ X ├┤ X ├
+////         └─┬─┘└─┬─┘└─┬─┘
+////    q_1: ──┼────┼────┼──
+////           │    │    │
+////    q_2: ──■────┼────┼──
+////                │    │
+////    q_3: ───────■────┼──
+////                     │
+////    q_4: ────────────■──
+///     
 fn cx_fountain(
     active_paulis: Vec<(char, Qubit)>,
 ) -> Box<dyn DoubleEndedIterator<Item = StandardInstruction>> {
