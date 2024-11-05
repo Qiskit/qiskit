@@ -47,7 +47,7 @@ class Adder(QuantumCircuit):
         additional_msg=(
             "Use the adder gates provided in qiskit.circuit.library.arithmetic instead. "
             "The gate type depends on the adder kind: fixed, half, full are represented by "
-            "ModularAdderGate, AdderGate, FullAdderGate, respectively. For different adder "
+            "ModularAdderGate, HalfAdderGate, FullAdderGate, respectively. For different adder "
             "implementations, see https://docs.quantum.ibm.com/api/qiskit/synthesis.",
         ),
         pending=True,
@@ -104,7 +104,7 @@ class HalfAdderGate(Gate):
         if num_state_qubits < 1:
             raise ValueError("Need at least 1 state qubit.")
 
-        super().__init__("Adder", 2 * num_state_qubits + 1, [], label=label)
+        super().__init__("HalfAdder", 2 * num_state_qubits + 1, [], label=label)
         self._num_state_qubits = num_state_qubits
 
     @property
