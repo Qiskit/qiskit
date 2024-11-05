@@ -162,13 +162,17 @@ impl BitTerm {
         }
     }
 
-    /// Is this term an operator or a projector to the X basis?
-    pub fn is_x_basis(&self) -> bool {
+    /// Does this term include an X component in its ZX representation?
+    ///
+    /// This is true for the operators and eigenspace projectors associated with X and Y.
+    pub fn has_x_component(&self) -> bool {
         ((*self as u8) & (Self::X as u8)) != 0
     }
 
-    /// Is this term an operator or a projector to the Z basis?
-    pub fn is_z_basis(&self) -> bool {
+    /// Does this term include a Z component in its ZX representation?
+    ///
+    /// This is true for the operators and eigenspace projectors associated with Y and Z.
+    pub fn has_z_component(&self) -> bool {
         ((*self as u8) & (Self::Z as u8)) != 0
     }
 }
@@ -877,6 +881,9 @@ impl SparseObservable {
     }
 
     /// Get an iterator over the individual terms of the operator.
+    ///
+    /// Recall that two [SparseObservable]s that have different term orders can still represent the
+    /// same object.  Use [canonicalize] to apply a canonical ordering to the terms.
     pub fn iter(&'_ self) -> impl ExactSizeIterator<Item = SparseTermView<'_>> + '_ {
         self.coeffs.iter().enumerate().map(|(i, coeff)| {
             let start = self.boundaries[i];
@@ -890,9 +897,10 @@ impl SparseObservable {
         })
     }
 
-    /// Get an iterator over the individual terms of the operator that allows mutation of each term
-    /// in place without affecting its length or indices, both of which would allow breaking data
-    /// coherence.
+    /// Get an iterator over the individual terms of the operator that allows in-place mutation.
+    ///
+    /// The length and indices of these views cannot be mutated, since both would allow breaking
+    /// data coherence.
     pub fn iter_mut(&mut self) -> IterMut<'_> {
         self.into()
     }
@@ -967,6 +975,14 @@ impl SparseObservable {
     }
 
     /// Get an owned representation of a single sparse term.
+    ///
+    /// This is effectively an indexing operation into the [SparseObservable].  Recall that two
+    /// [SparseObservable]s that have different term orders can still represent the same object.
+    /// Use [canonicalize] to apply a canonical ordering to the terms.
+    ///
+    /// # Panics
+    ///
+    /// If the index is out of bounds.
     pub fn term(&self, index: usize) -> SparseTerm {
         debug_assert!(index < self.num_terms(), "index {index} out of bounds");
         let start = self.boundaries[index];
@@ -2302,8 +2318,8 @@ impl SparseObservable {
             let mut x_row = x.row_mut(loc);
             let mut z_row = z.row_mut(loc);
             for (bit_term, index) in term.bit_terms.iter().zip(term.indices) {
-                x_row[*index as usize] = bit_term.is_x_basis();
-                z_row[*index as usize] = bit_term.is_z_basis();
+                x_row[*index as usize] = bit_term.has_x_component();
+                z_row[*index as usize] = bit_term.has_z_component();
             }
         }
         PAULI_LIST_TYPE
@@ -2959,8 +2975,8 @@ impl SparseTerm {
         let mut x = vec![false; self.num_qubits as usize];
         let mut z = vec![false; self.num_qubits as usize];
         for (bit_term, index) in self.bit_terms.iter().zip(self.indices.iter()) {
-            x[*index as usize] = bit_term.is_x_basis();
-            z[*index as usize] = bit_term.is_z_basis();
+            x[*index as usize] = bit_term.has_x_component();
+            z[*index as usize] = bit_term.has_z_component();
         }
         PAULI_TYPE.get_bound(py).call1(((
             PyArray1::from_vec_bound(py, z),
