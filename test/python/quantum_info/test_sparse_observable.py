@@ -13,16 +13,64 @@
 # pylint: disable=missing-module-docstring,missing-class-docstring,missing-function-docstring
 
 import copy
+import itertools
 import pickle
+import random
 import unittest
 
 import ddt
 import numpy as np
 
-from qiskit.circuit import Parameter
+from qiskit import transpile
+from qiskit.circuit import Measure, Parameter, library, QuantumCircuit
+from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import SparseObservable, SparsePauliOp, Pauli
+from qiskit.transpiler import Target
 
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase, combine  # pylint: disable=wrong-import-order
+
+
+def single_cases():
+    return [
+        SparseObservable.zero(0),
+        SparseObservable.zero(10),
+        SparseObservable.identity(0),
+        SparseObservable.identity(1_000),
+        SparseObservable.from_label("IIXIZI"),
+        SparseObservable.from_list([("YIXZII", -0.25), ("01rl+-", 0.25 + 0.5j)]),
+        # Includes a duplicate entry.
+        SparseObservable.from_list([("IXZ", -0.25), ("01I", 0.25 + 0.5j), ("IXZ", 0.75)]),
+    ]
+
+
+def lnn_target(num_qubits):
+    """Create a simple `Target` object with an arbitrary basis-gate set, and open-path
+    connectivity."""
+    out = Target()
+    out.add_instruction(library.RZGate(Parameter("a")), {(q,): None for q in range(num_qubits)})
+    out.add_instruction(library.SXGate(), {(q,): None for q in range(num_qubits)})
+    out.add_instruction(Measure(), {(q,): None for q in range(num_qubits)})
+    out.add_instruction(
+        library.CXGate(),
+        {
+            pair: None
+            for lower in range(num_qubits - 1)
+            for pair in [(lower, lower + 1), (lower + 1, lower)]
+        },
+    )
+    return out
+
+
+class AllowRightArithmetic:
+    """Some type that implements only the right-hand-sided arithmatic operations, and allows
+    `SparseObservable` to pass through them.
+
+    The purpose of this is to detect that `SparseObservable` is correctly delegating binary
+    operators to the other type if given an object it cannot coerce because of its type."""
+
+    SENTINEL = object()
+
+    __radd__ = __rsub__ = __rmul__ = __rtruediv__ = __rxor__ = lambda self, other: self.SENTINEL
 
 
 @ddt.ddt
@@ -176,14 +224,7 @@ class TestSparseObservable(QiskitTestCase):
         }
         self.assertEqual({label: SparseObservable.BitTerm[label] for label in labels}, labels)
 
-    @ddt.data(
-        SparseObservable.zero(0),
-        SparseObservable.zero(10),
-        SparseObservable.identity(0),
-        SparseObservable.identity(1_000),
-        SparseObservable.from_label("IIXIZI"),
-        SparseObservable.from_list([("YIXZII", -0.25), ("01rl+-", 0.25 + 0.5j)]),
-    )
+    @ddt.idata(single_cases())
     def test_pickle(self, observable):
         self.assertEqual(observable, copy.copy(observable))
         self.assertIsNot(observable, copy.copy(observable))
@@ -577,13 +618,7 @@ class TestSparseObservable(QiskitTestCase):
         np.testing.assert_equal(id_0.indices, np.array([], dtype=np.uint32))
         np.testing.assert_equal(id_0.boundaries, np.array([0, 0], dtype=np.uintp))
 
-    @ddt.data(
-        SparseObservable.zero(0),
-        SparseObservable.zero(5),
-        SparseObservable.identity(0),
-        SparseObservable.identity(1_000_000),
-        SparseObservable.from_list([("+-rl01", -0.5), ("IXZYZI", 1.0j)]),
-    )
+    @ddt.idata(single_cases())
     def test_copy(self, obs):
         self.assertEqual(obs, obs.copy())
         self.assertIsNot(obs, obs.copy())
@@ -930,3 +965,748 @@ class TestSparseObservable(QiskitTestCase):
         self.assertIn("bit_terms", repr(obs.bit_terms))
         self.assertIn("indices", repr(obs.indices))
         self.assertIn("boundaries", repr(obs.boundaries))
+
+    @combine(
+        obs=single_cases(),
+        # This includes some elements that aren't native `complex`, but still should be cast.
+        coeff=[0.5, 3j, 2, 0.25 - 0.75j],
+    )
+    def test_multiply(self, obs, coeff):
+        obs = obs.copy()
+        initial = obs.copy()
+        expected = obs.copy()
+        expected.coeffs[:] = np.asarray(expected.coeffs) * complex(coeff)
+        self.assertEqual(obs * coeff, expected)
+        self.assertEqual(coeff * obs, expected)
+        # Check that nothing applied in-place.
+        self.assertEqual(obs, initial)
+        obs *= coeff
+        self.assertEqual(obs, expected)
+        self.assertIs(obs * AllowRightArithmetic(), AllowRightArithmetic.SENTINEL)
+
+    @ddt.idata(single_cases())
+    def test_multiply_zero(self, obs):
+        initial = obs.copy()
+        self.assertEqual(obs * 0.0, SparseObservable.zero(initial.num_qubits))
+        self.assertEqual(0.0 * obs, SparseObservable.zero(initial.num_qubits))
+        self.assertEqual(obs, initial)
+
+        obs *= 0.0
+        self.assertEqual(obs, SparseObservable.zero(initial.num_qubits))
+
+    @combine(
+        obs=single_cases(),
+        # This includes some elements that aren't native `complex`, but still should be cast.  Be
+        # careful that the floating-point operation should not involve rounding.
+        coeff=[0.5, 4j, 2, -0.25],
+    )
+    def test_divide(self, obs, coeff):
+        obs = obs.copy()
+        initial = obs.copy()
+        expected = obs.copy()
+        expected.coeffs[:] = np.asarray(expected.coeffs) / complex(coeff)
+        self.assertEqual(obs / coeff, expected)
+        # Check that nothing applied in-place.
+        self.assertEqual(obs, initial)
+        obs /= coeff
+        self.assertEqual(obs, expected)
+        self.assertIs(obs / AllowRightArithmetic(), AllowRightArithmetic.SENTINEL)
+
+    @ddt.idata(single_cases())
+    def test_divide_zero_raises(self, obs):
+        with self.assertRaises(ZeroDivisionError):
+            _ = obs / 0.0j
+        with self.assertRaises(ZeroDivisionError):
+            obs /= 0.0j
+
+    def test_add_simple(self):
+        num_qubits = 12
+        terms = [
+            ("ZXY", (5, 2, 1), 1.5j),
+            ("+r", (8, 0), -0.25),
+            ("-0l1", (10, 9, 4, 3), 0.5 + 1j),
+            ("XZ", (7, 5), 0.75j),
+            ("rl01", (5, 3, 1, 0), 0.25j),
+        ]
+        expected = SparseObservable.from_sparse_list(terms, num_qubits=num_qubits)
+        for pivot in range(1, len(terms) - 1):
+            left = SparseObservable.from_sparse_list(terms[:pivot], num_qubits=num_qubits)
+            left_initial = left.copy()
+            right = SparseObservable.from_sparse_list(terms[pivot:], num_qubits=num_qubits)
+            right_initial = right.copy()
+            # Addition is documented to be term-stacking, so structural equality without `simplify`
+            # should hold.
+            self.assertEqual(left + right, expected)
+            # This is a different order, so check the simplification and canonicalisation works.
+            self.assertEqual((right + left).simplify(), expected.simplify())
+            # Neither was modified in place.
+            self.assertEqual(left, left_initial)
+            self.assertEqual(right, right_initial)
+
+            left += right
+            self.assertEqual(left, expected)
+            self.assertEqual(right, right_initial)
+
+    @ddt.idata(single_cases())
+    def test_add_self(self, obs):
+        """Test that addition to `self` works fine, including in-place mutation.  This is a case
+        where we might fall afoul of Rust's borrowing rules."""
+        initial = obs.copy()
+        expected = (2.0 * obs).simplify()
+        self.assertEqual((obs + obs).simplify(), expected)
+        self.assertEqual(obs, initial)
+
+        obs += obs
+        self.assertEqual(obs.simplify(), expected)
+
+    @ddt.idata(single_cases())
+    def test_add_zero(self, obs):
+        expected = obs.copy()
+        zero = SparseObservable.zero(obs.num_qubits)
+        self.assertEqual(obs + zero, expected)
+        self.assertEqual(zero + obs, expected)
+
+        obs += zero
+        self.assertEqual(obs, expected)
+        zero += obs
+        self.assertEqual(zero, expected)
+
+    def test_add_coercion(self):
+        """Other quantum-info operators coerce with the ``+`` operator, so we do too."""
+        base = SparseObservable.zero(9)
+
+        pauli_label = "IIIXYZIII"
+        expected = SparseObservable.from_label(pauli_label)
+        self.assertEqual(base + pauli_label, expected)
+        self.assertEqual(pauli_label + base, expected)
+
+        pauli = Pauli(pauli_label)
+        self.assertEqual(base + pauli, expected)
+        self.assertEqual(pauli + base, expected)
+
+        spo = SparsePauliOp(pauli_label)
+        self.assertEqual(base + spo, expected)
+        with self.assertRaisesRegex(QiskitError, "Invalid input data for Pauli"):
+            # This doesn't work because `SparsePauliOp` is badly behaved in its coercion (it gets
+            # first dibs at `__add__`, not our `__radd__`), and will not return `NotImplemented` for
+            # bad types.  This _shouldn't_ raise, and this test here is to remind us to flip it to a
+            # proper assertion of correctness if `Pauli` starts playing nicely.
+            _ = spo + base
+
+        obs_label = "10+-rlXYZ"
+        expected = SparseObservable.from_label(obs_label)
+        self.assertEqual(base + obs_label, expected)
+        self.assertEqual(obs_label + base, expected)
+
+        with self.assertRaises(TypeError):
+            _ = base + {}
+        with self.assertRaises(TypeError):
+            _ = {} + base
+        with self.assertRaisesRegex(ValueError, "only contain letters from the alphabet"):
+            _ = base + "$$$"
+        with self.assertRaisesRegex(ValueError, "only contain letters from the alphabet"):
+            _ = "$$$" + base
+
+        self.assertIs(base + AllowRightArithmetic(), AllowRightArithmetic.SENTINEL)
+        with self.assertRaisesRegex(TypeError, "invalid object for in-place addition"):
+            # This actually _shouldn't_ be a `TypeError` - `__iadd_` should defer to
+            # `AllowRightArithmetic.__radd__` in the same way that `__add__` does, but a limitation
+            # in PyO3 (see PyO3/pyo3#4605) prevents this.
+            base += AllowRightArithmetic()
+
+    def test_add_failures(self):
+        with self.assertRaisesRegex(ValueError, "incompatible numbers of qubits"):
+            _ = SparseObservable.zero(4) + SparseObservable.zero(6)
+        with self.assertRaisesRegex(ValueError, "incompatible numbers of qubits"):
+            _ = SparseObservable.zero(6) + SparseObservable.zero(4)
+
+    def test_sub_simple(self):
+        num_qubits = 12
+        terms = [
+            ("ZXY", (5, 2, 1), 1.5j),
+            ("+r", (8, 0), -0.25),
+            ("-0l1", (10, 9, 4, 3), 0.5 + 1j),
+            ("XZ", (7, 5), 0.75j),
+            ("rl01", (5, 3, 1, 0), 0.25j),
+        ]
+        for pivot in range(1, len(terms) - 1):
+            expected = SparseObservable.from_sparse_list(
+                [
+                    (label, indices, coeff if i < pivot else -coeff)
+                    for i, (label, indices, coeff) in enumerate(terms)
+                ],
+                num_qubits=num_qubits,
+            )
+            left = SparseObservable.from_sparse_list(terms[:pivot], num_qubits=num_qubits)
+            left_initial = left.copy()
+            right = SparseObservable.from_sparse_list(terms[pivot:], num_qubits=num_qubits)
+            right_initial = right.copy()
+            # Addition is documented to be term-stacking, so structural equality without `simplify`
+            # should hold.
+            self.assertEqual(left - right, expected)
+            # This is a different order, so check the simplification and canonicalisation works.
+            self.assertEqual((right - left).simplify(), -expected.simplify())
+            # Neither was modified in place.
+            self.assertEqual(left, left_initial)
+            self.assertEqual(right, right_initial)
+
+            left -= right
+            self.assertEqual(left, expected)
+            self.assertEqual(right, right_initial)
+
+    @ddt.idata(single_cases())
+    def test_sub_self(self, obs):
+        """Test that subtraction of `self` works fine, including in-place mutation.  This is a case
+        where we might fall afoul of Rust's borrowing rules."""
+        initial = obs.copy()
+        expected = SparseObservable.zero(obs.num_qubits)
+        self.assertEqual((obs - obs).simplify(), expected)
+        self.assertEqual(obs, initial)
+
+        obs -= obs
+        self.assertEqual(obs.simplify(), expected)
+
+    @ddt.idata(single_cases())
+    def test_sub_zero(self, obs):
+        expected = obs.copy()
+        zero = SparseObservable.zero(obs.num_qubits)
+        self.assertEqual(obs - zero, expected)
+        self.assertEqual(zero - obs, -expected)
+
+        obs -= zero
+        self.assertEqual(obs, expected)
+        zero -= obs
+        self.assertEqual(zero, -expected)
+
+    def test_sub_coercion(self):
+        """Other quantum-info operators coerce with the ``-`` operator, so we do too."""
+        base = SparseObservable.zero(9)
+
+        pauli_label = "IIIXYZIII"
+        expected = SparseObservable.from_label(pauli_label)
+        self.assertEqual(base - pauli_label, -expected)
+        self.assertEqual(pauli_label - base, expected)
+
+        pauli = Pauli(pauli_label)
+        self.assertEqual(base - pauli, -expected)
+        self.assertEqual(pauli - base, expected)
+
+        spo = SparsePauliOp(pauli_label)
+        self.assertEqual(base - spo, -expected)
+        with self.assertRaisesRegex(QiskitError, "Invalid input data for Pauli"):
+            # This doesn't work because `SparsePauliOp` is badly behaved in its coercion (it gets
+            # first dibs at `__add__`, not our `__radd__`), and will not return `NotImplemented` for
+            # bad types.  This _shouldn't_ raise, and this test here is to remind us to flip it to a
+            # proper assertion of correctness if `Pauli` starts playing nicely.
+            _ = spo + base
+
+        obs_label = "10+-rlXYZ"
+        expected = SparseObservable.from_label(obs_label)
+        self.assertEqual(base - obs_label, -expected)
+        self.assertEqual(obs_label - base, expected)
+
+        with self.assertRaises(TypeError):
+            _ = base - {}
+        with self.assertRaises(TypeError):
+            _ = {} - base
+        with self.assertRaisesRegex(ValueError, "only contain letters from the alphabet"):
+            _ = base - "$$$"
+        with self.assertRaisesRegex(ValueError, "only contain letters from the alphabet"):
+            _ = "$$$" - base
+
+        self.assertIs(base + AllowRightArithmetic(), AllowRightArithmetic.SENTINEL)
+        with self.assertRaisesRegex(TypeError, "invalid object for in-place subtraction"):
+            # This actually _shouldn't_ be a `TypeError` - `__isub_` should defer to
+            # `AllowRightArithmetic.__rsub__` in the same way that `__sub__` does, but a limitation
+            # in PyO3 (see PyO3/pyo3#4605) prevents this.
+            base -= AllowRightArithmetic()
+
+    def test_sub_failures(self):
+        with self.assertRaisesRegex(ValueError, "incompatible numbers of qubits"):
+            _ = SparseObservable.zero(4) - SparseObservable.zero(6)
+        with self.assertRaisesRegex(ValueError, "incompatible numbers of qubits"):
+            _ = SparseObservable.zero(6) - SparseObservable.zero(4)
+
+    @ddt.idata(single_cases())
+    def test_neg(self, obs):
+        initial = obs.copy()
+        expected = obs.copy()
+        expected.coeffs[:] = -np.asarray(expected.coeffs)
+        self.assertEqual(-obs, expected)
+        # Test that there's no in-place modification.
+        self.assertEqual(obs, initial)
+
+    @ddt.idata(single_cases())
+    def test_pos(self, obs):
+        initial = obs.copy()
+        self.assertEqual(+obs, initial)
+        self.assertIsNot(+obs, obs)
+
+    @combine(left=single_cases(), right=single_cases())
+    def test_tensor(self, left, right):
+
+        def expected(left, right):
+            coeffs = []
+            bit_terms = []
+            indices = []
+            boundaries = [0]
+            for left_ptr in range(left.num_terms):
+                left_start, left_end = left.boundaries[left_ptr], left.boundaries[left_ptr + 1]
+                for right_ptr in range(right.num_terms):
+                    right_start = right.boundaries[right_ptr]
+                    right_end = right.boundaries[right_ptr + 1]
+                    coeffs.append(left.coeffs[left_ptr] * right.coeffs[right_ptr])
+                    bit_terms.extend(right.bit_terms[right_start:right_end])
+                    bit_terms.extend(left.bit_terms[left_start:left_end])
+                    indices.extend(right.indices[right_start:right_end])
+                    indices.extend(i + right.num_qubits for i in left.indices[left_start:left_end])
+                    boundaries.append(len(indices))
+            return SparseObservable.from_raw_parts(
+                left.num_qubits + right.num_qubits, coeffs, bit_terms, indices, boundaries
+            )
+
+        # We deliberately have the arguments flipped when appropriate, here.
+        # pylint: disable=arguments-out-of-order
+
+        left_initial = left.copy()
+        right_initial = right.copy()
+        self.assertEqual(left.tensor(right), expected(left, right))
+        self.assertEqual(left, left_initial)
+        self.assertEqual(right, right_initial)
+        self.assertEqual(right.tensor(left), expected(right, left))
+
+        self.assertEqual(left.expand(right), expected(right, left))
+        self.assertEqual(left, left_initial)
+        self.assertEqual(right, right_initial)
+        self.assertEqual(right.expand(left), expected(left, right))
+
+        self.assertEqual(left.tensor(right), right.expand(left))
+        self.assertEqual(left.expand(right), right.tensor(left))
+
+    @combine(
+        obs=single_cases(), identity=[SparseObservable.identity(0), SparseObservable.identity(5)]
+    )
+    def test_tensor_identity(self, obs, identity):
+        initial = obs.copy()
+        expected_left = SparseObservable.from_raw_parts(
+            obs.num_qubits + identity.num_qubits,
+            obs.coeffs,
+            obs.bit_terms,
+            [x + identity.num_qubits for x in obs.indices],
+            obs.boundaries,
+        )
+        expected_right = SparseObservable.from_raw_parts(
+            obs.num_qubits + identity.num_qubits,
+            obs.coeffs,
+            obs.bit_terms,
+            obs.indices,
+            obs.boundaries,
+        )
+        self.assertEqual(obs.tensor(identity), expected_left)
+        self.assertEqual(identity.tensor(obs), expected_right)
+        self.assertEqual(obs.expand(identity), expected_right)
+        self.assertEqual(identity.expand(obs), expected_left)
+        self.assertEqual(obs ^ identity, expected_left)
+        self.assertEqual(identity ^ obs, expected_right)
+        self.assertEqual(obs, initial)
+        obs ^= identity
+        self.assertEqual(obs, expected_left)
+
+    @combine(obs=single_cases(), zero=[SparseObservable.zero(0), SparseObservable.zero(5)])
+    def test_tensor_zero(self, obs, zero):
+        initial = obs.copy()
+        expected = SparseObservable.zero(obs.num_qubits + zero.num_qubits)
+        self.assertEqual(obs.tensor(zero), expected)
+        self.assertEqual(zero.tensor(obs), expected)
+        self.assertEqual(obs.expand(zero), expected)
+        self.assertEqual(zero.expand(obs), expected)
+        self.assertEqual(obs ^ zero, expected)
+        self.assertEqual(zero ^ obs, expected)
+        self.assertEqual(obs, initial)
+        obs ^= zero
+        self.assertEqual(obs, expected)
+
+    def test_tensor_coercion(self):
+        """Other quantum-info operators coerce with the ``tensor`` method and operator, so we do
+        too."""
+        base = SparseObservable.identity(0)
+
+        pauli_label = "IIXYZII"
+        expected = SparseObservable.from_label(pauli_label)
+        self.assertEqual(base.tensor(pauli_label), expected)
+        self.assertEqual(base.expand(pauli_label), expected)
+        self.assertEqual(base ^ pauli_label, expected)
+        self.assertEqual(pauli_label ^ base, expected)
+
+        pauli = Pauli(pauli_label)
+        self.assertEqual(base.tensor(pauli), expected)
+        self.assertEqual(base.expand(pauli), expected)
+        self.assertEqual(base ^ pauli, expected)
+        with self.assertRaisesRegex(QiskitError, "Invalid input data for Pauli"):
+            # This doesn't work because `Pauli` is badly behaved in its coercion (it gets first dibs
+            # at `__xor__`, not our `__rxor__`), and will not return `NotImplemented` for bad types.
+            # This _shouldn't_ raise, and this test here is to remind us to flip it to a proper
+            # assertion of correctness if `Pauli` starts playing nicely.
+            _ = pauli ^ base
+
+        spo = SparsePauliOp(pauli_label)
+        self.assertEqual(base.tensor(spo), expected)
+        self.assertEqual(base.expand(spo), expected)
+        self.assertEqual(base ^ spo, expected)
+        with self.assertRaisesRegex(QiskitError, "Invalid input data for Pauli"):
+            # This doesn't work because `SparsePauliOp` is badly behaved in its coercion (it gets
+            # first dibs at `__xor__`, not our `__rxor__`), and will not return `NotImplemented` for
+            # bad types.  This _shouldn't_ raise, and this test here is to remind us to flip it to a
+            # proper assertion of correctness if `Pauli` starts playing nicely.
+            _ = spo ^ base
+
+        obs_label = "10+-rlXYZ"
+        expected = SparseObservable.from_label(obs_label)
+        self.assertEqual(base.tensor(obs_label), expected)
+        self.assertEqual(base.expand(obs_label), expected)
+        self.assertEqual(base ^ obs_label, expected)
+        self.assertEqual(obs_label ^ base, expected)
+
+        with self.assertRaises(TypeError):
+            _ = base ^ {}
+        with self.assertRaises(TypeError):
+            _ = {} ^ base
+        with self.assertRaisesRegex(ValueError, "only contain letters from the alphabet"):
+            _ = base ^ "$$$"
+        with self.assertRaisesRegex(ValueError, "only contain letters from the alphabet"):
+            _ = "$$$" ^ base
+
+        self.assertIs(base ^ AllowRightArithmetic(), AllowRightArithmetic.SENTINEL)
+
+    @ddt.idata(single_cases())
+    def test_adjoint(self, obs):
+        initial = obs.copy()
+        expected = obs.copy()
+        expected.coeffs[:] = np.conjugate(expected.coeffs)
+        self.assertEqual(obs.adjoint(), expected)
+        self.assertEqual(obs, initial)
+        self.assertEqual(obs.adjoint().adjoint(), initial)
+        self.assertEqual(obs.adjoint(), obs.conjugate().transpose())
+        self.assertEqual(obs.adjoint(), obs.transpose().conjugate())
+
+    @ddt.idata(single_cases())
+    def test_conjugate(self, obs):
+        initial = obs.copy()
+
+        term_map = {term: (term, 1.0) for term in SparseObservable.BitTerm}
+        term_map[SparseObservable.BitTerm.Y] = (SparseObservable.BitTerm.Y, -1.0)
+        term_map[SparseObservable.BitTerm.RIGHT] = (SparseObservable.BitTerm.LEFT, 1.0)
+        term_map[SparseObservable.BitTerm.LEFT] = (SparseObservable.BitTerm.RIGHT, 1.0)
+
+        expected = obs.copy()
+        for i in range(expected.num_terms):
+            start, end = expected.boundaries[i], expected.boundaries[i + 1]
+            coeff = expected.coeffs[i]
+            for offset, bit_term in enumerate(expected.bit_terms[start:end]):
+                new_term, multiplier = term_map[bit_term]
+                coeff *= multiplier
+                expected.bit_terms[start + offset] = new_term
+            expected.coeffs[i] = coeff.conjugate()
+
+        self.assertEqual(obs.conjugate(), expected)
+        self.assertEqual(obs, initial)
+        self.assertEqual(obs.conjugate().conjugate(), initial)
+        self.assertEqual(obs.conjugate(), obs.transpose().adjoint())
+        self.assertEqual(obs.conjugate(), obs.adjoint().transpose())
+
+    def test_conjugate_explicit(self):
+        # The description of conjugation on the operator is not 100% trivial to see is correct, so
+        # here's an explicit case to verify.
+        obs = SparseObservable.from_sparse_list(
+            [
+                ("Y", (1,), 2.0),
+                ("X+-", (5, 4, 3), 1.5),
+                ("Z01", (5, 4, 3), 1.5j),
+                ("YY", (2, 0), 0.25),
+                ("YY", (3, 1), 0.25j),
+                ("YYY", (3, 2, 1), 0.75),
+                ("rlrl", (4, 3, 2, 1), 1.0),
+                ("lrlr", (4, 3, 2, 1), 1.0j),
+                ("", (), 1.5j),
+            ],
+            num_qubits=6,
+        )
+        expected = SparseObservable.from_sparse_list(
+            [
+                ("Y", (1,), -2.0),
+                ("X+-", (5, 4, 3), 1.5),
+                ("Z01", (5, 4, 3), -1.5j),
+                ("YY", (2, 0), 0.25),
+                ("YY", (3, 1), -0.25j),
+                ("YYY", (3, 2, 1), -0.75),
+                ("lrlr", (4, 3, 2, 1), 1.0),
+                ("rlrl", (4, 3, 2, 1), -1.0j),
+                ("", (), -1.5j),
+            ],
+            num_qubits=6,
+        )
+        self.assertEqual(obs.conjugate(), expected)
+        self.assertEqual(obs.conjugate().conjugate(), obs)
+
+    @ddt.idata(single_cases())
+    def test_transpose(self, obs):
+        initial = obs.copy()
+
+        term_map = {term: (term, 1.0) for term in SparseObservable.BitTerm}
+        term_map[SparseObservable.BitTerm.Y] = (SparseObservable.BitTerm.Y, -1.0)
+        term_map[SparseObservable.BitTerm.RIGHT] = (SparseObservable.BitTerm.LEFT, 1.0)
+        term_map[SparseObservable.BitTerm.LEFT] = (SparseObservable.BitTerm.RIGHT, 1.0)
+
+        expected = obs.copy()
+        for i in range(expected.num_terms):
+            start, end = expected.boundaries[i], expected.boundaries[i + 1]
+            coeff = expected.coeffs[i]
+            for offset, bit_term in enumerate(expected.bit_terms[start:end]):
+                new_term, multiplier = term_map[bit_term]
+                coeff *= multiplier
+                expected.bit_terms[start + offset] = new_term
+            expected.coeffs[i] = coeff
+
+        self.assertEqual(obs.transpose(), expected)
+        self.assertEqual(obs, initial)
+        self.assertEqual(obs.transpose().transpose(), initial)
+        self.assertEqual(obs.transpose(), obs.conjugate().adjoint())
+        self.assertEqual(obs.transpose(), obs.adjoint().conjugate())
+
+    def test_transpose_explicit(self):
+        # The description of transposition on the operator is not 100% trivial to see is correct, so
+        # here's a few explicit cases to verify.
+        obs = SparseObservable.from_sparse_list(
+            [
+                ("Y", (1,), 2.0),
+                ("X+-", (5, 4, 3), 1.5),
+                ("Z01", (5, 4, 3), 1.5j),
+                ("YY", (2, 0), 0.25),
+                ("YY", (3, 1), 0.25j),
+                ("YYY", (3, 2, 1), 0.75),
+                ("rlrl", (4, 3, 2, 1), 1.0),
+                ("lrlr", (4, 3, 2, 1), 1.0j),
+                ("", (), 1.5j),
+            ],
+            num_qubits=6,
+        )
+        expected = SparseObservable.from_sparse_list(
+            [
+                ("Y", (1,), -2.0),
+                ("X+-", (5, 4, 3), 1.5),
+                ("Z01", (5, 4, 3), 1.5j),
+                ("YY", (2, 0), 0.25),
+                ("YY", (3, 1), 0.25j),
+                ("YYY", (3, 2, 1), -0.75),
+                ("lrlr", (4, 3, 2, 1), 1.0),
+                ("rlrl", (4, 3, 2, 1), 1.0j),
+                ("", (), 1.5j),
+            ],
+            num_qubits=6,
+        )
+        self.assertEqual(obs.transpose(), expected)
+        self.assertEqual(obs.transpose().transpose(), obs)
+
+    def test_simplify(self):
+        self.assertEqual((1e-10 * SparseObservable("XX")).simplify(1e-8), SparseObservable.zero(2))
+        self.assertEqual((1e-10j * SparseObservable("XX")).simplify(1e-8), SparseObservable.zero(2))
+        self.assertEqual(
+            (1e-7 * SparseObservable("XX")).simplify(1e-8), 1e-7 * SparseObservable("XX")
+        )
+
+        exact_coeff = 2.0**-10
+        self.assertEqual(
+            (exact_coeff * SparseObservable("XX")).simplify(exact_coeff), SparseObservable.zero(2)
+        )
+        self.assertEqual(
+            (exact_coeff * 1j * SparseObservable("XX")).simplify(exact_coeff),
+            SparseObservable.zero(2),
+        )
+        coeff = 3e-5 + 4e-5j
+        self.assertEqual(
+            (coeff * SparseObservable("ZZ")).simplify(abs(coeff)), SparseObservable.zero(2)
+        )
+
+        sum_alike = SparseObservable.from_list(
+            [
+                ("XX", 1.0),
+                ("YY", 1j),
+                ("XX", -1.0),
+            ]
+        )
+        self.assertEqual(sum_alike.simplify(), 1j * SparseObservable("YY"))
+
+        terms = [
+            ("XYIZI", 1.5),
+            ("+-IYI", 2.0),
+            ("XYIZI", 2j),
+            ("+-IYI", -2.0),
+            ("rlIZI", -2.0),
+        ]
+        canonical_forwards = SparseObservable.from_list(terms)
+        canonical_backwards = SparseObservable.from_list(list(reversed(terms)))
+        self.assertNotEqual(canonical_forwards.simplify(), canonical_forwards)
+        self.assertNotEqual(canonical_forwards, canonical_backwards)
+        self.assertEqual(canonical_forwards.simplify(), canonical_backwards.simplify())
+        self.assertEqual(canonical_forwards.simplify(), canonical_forwards.simplify().simplify())
+
+    @ddt.idata(single_cases())
+    def test_clear(self, obs):
+        num_qubits = obs.num_qubits
+        obs.clear()
+        self.assertEqual(obs, SparseObservable.zero(num_qubits))
+
+    def test_apply_layout_list(self):
+        self.assertEqual(
+            SparseObservable.zero(5).apply_layout([4, 3, 2, 1, 0]), SparseObservable.zero(5)
+        )
+        self.assertEqual(
+            SparseObservable.zero(3).apply_layout([0, 2, 1], 8), SparseObservable.zero(8)
+        )
+        self.assertEqual(
+            SparseObservable.identity(2).apply_layout([1, 0]), SparseObservable.identity(2)
+        )
+        self.assertEqual(
+            SparseObservable.identity(3).apply_layout([100, 10_000, 3], 100_000_000),
+            SparseObservable.identity(100_000_000),
+        )
+
+        terms = [
+            ("ZYX", (4, 2, 1), 1j),
+            ("", (), -0.5),
+            ("+-rl01", (10, 8, 6, 4, 2, 0), 2.0),
+        ]
+
+        def map_indices(terms, layout):
+            return [
+                (terms, tuple(layout[bit] for bit in bits), coeff) for terms, bits, coeff in terms
+            ]
+
+        identity = list(range(12))
+        self.assertEqual(
+            SparseObservable.from_sparse_list(terms, num_qubits=12).apply_layout(identity),
+            SparseObservable.from_sparse_list(terms, num_qubits=12),
+        )
+        # We've already tested elsewhere that `SparseObservable.from_sparse_list` produces termwise
+        # sorted indices, so these tests also ensure `apply_layout` is maintaining that invariant.
+        backwards = list(range(12))[::-1]
+        self.assertEqual(
+            SparseObservable.from_sparse_list(terms, num_qubits=12).apply_layout(backwards),
+            SparseObservable.from_sparse_list(map_indices(terms, backwards), num_qubits=12),
+        )
+        shuffled = [4, 7, 1, 10, 0, 11, 3, 2, 8, 5, 6, 9]
+        self.assertEqual(
+            SparseObservable.from_sparse_list(terms, num_qubits=12).apply_layout(shuffled),
+            SparseObservable.from_sparse_list(map_indices(terms, shuffled), num_qubits=12),
+        )
+        self.assertEqual(
+            SparseObservable.from_sparse_list(terms, num_qubits=12).apply_layout(shuffled, 100),
+            SparseObservable.from_sparse_list(map_indices(terms, shuffled), num_qubits=100),
+        )
+        expanded = [78, 69, 82, 68, 32, 97, 108, 101, 114, 116, 33]
+        self.assertEqual(
+            SparseObservable.from_sparse_list(terms, num_qubits=11).apply_layout(expanded, 120),
+            SparseObservable.from_sparse_list(map_indices(terms, expanded), num_qubits=120),
+        )
+
+    def test_apply_layout_transpiled(self):
+        base = SparseObservable.from_sparse_list(
+            [
+                ("ZYX", (4, 2, 1), 1j),
+                ("", (), -0.5),
+                ("+-r", (3, 2, 0), 2.0),
+            ],
+            num_qubits=5,
+        )
+
+        qc = QuantumCircuit(5)
+        initial_list = [3, 4, 0, 2, 1]
+        no_routing = transpile(
+            qc, target=lnn_target(5), initial_layout=initial_list, seed_transpiler=2024_10_25_0
+        ).layout
+        # It's easiest here to test against the `list` form, which we verify separately and
+        # explicitly.
+        self.assertEqual(base.apply_layout(no_routing), base.apply_layout(initial_list))
+
+        expanded = transpile(
+            qc, target=lnn_target(100), initial_layout=initial_list, seed_transpiler=2024_10_25_1
+        ).layout
+        self.assertEqual(
+            base.apply_layout(expanded), base.apply_layout(initial_list, num_qubits=100)
+        )
+
+        qc = QuantumCircuit(5)
+        qargs = list(itertools.permutations(range(5), 2))
+        random.Random(2024_10_25_2).shuffle(qargs)
+        for pair in qargs:
+            qc.cx(*pair)
+
+        routed = transpile(qc, target=lnn_target(5), seed_transpiler=2024_10_25_3).layout
+        self.assertEqual(
+            base.apply_layout(routed),
+            base.apply_layout(routed.final_index_layout(filter_ancillas=True)),
+        )
+
+        routed_expanded = transpile(qc, target=lnn_target(20), seed_transpiler=2024_10_25_3).layout
+        self.assertEqual(
+            base.apply_layout(routed_expanded),
+            base.apply_layout(
+                routed_expanded.final_index_layout(filter_ancillas=True), num_qubits=20
+            ),
+        )
+
+    def test_apply_layout_none(self):
+        self.assertEqual(SparseObservable.zero(0).apply_layout(None), SparseObservable.zero(0))
+        self.assertEqual(SparseObservable.zero(0).apply_layout(None, 3), SparseObservable.zero(3))
+        self.assertEqual(SparseObservable.zero(5).apply_layout(None), SparseObservable.zero(5))
+        self.assertEqual(SparseObservable.zero(3).apply_layout(None, 8), SparseObservable.zero(8))
+        self.assertEqual(
+            SparseObservable.identity(0).apply_layout(None), SparseObservable.identity(0)
+        )
+        self.assertEqual(
+            SparseObservable.identity(0).apply_layout(None, 8), SparseObservable.identity(8)
+        )
+        self.assertEqual(
+            SparseObservable.identity(2).apply_layout(None), SparseObservable.identity(2)
+        )
+        self.assertEqual(
+            SparseObservable.identity(3).apply_layout(None, 100_000_000),
+            SparseObservable.identity(100_000_000),
+        )
+
+        terms = [
+            ("ZYX", (2, 1, 0), 1j),
+            ("", (), -0.5),
+            ("+-rl01", (10, 8, 6, 4, 2, 0), 2.0),
+        ]
+        self.assertEqual(
+            SparseObservable.from_sparse_list(terms, num_qubits=12).apply_layout(None),
+            SparseObservable.from_sparse_list(terms, num_qubits=12),
+        )
+        self.assertEqual(
+            SparseObservable.from_sparse_list(terms, num_qubits=12).apply_layout(
+                None, num_qubits=200
+            ),
+            SparseObservable.from_sparse_list(terms, num_qubits=200),
+        )
+
+    def test_apply_layout_failures(self):
+        obs = SparseObservable.from_list([("IIYI", 2.0), ("IIIX", -1j)])
+        with self.assertRaisesRegex(ValueError, "duplicate"):
+            obs.apply_layout([0, 0, 1, 2])
+        with self.assertRaisesRegex(ValueError, "does not account for all contained qubits"):
+            obs.apply_layout([0, 1])
+        with self.assertRaisesRegex(ValueError, "less than the number of qubits"):
+            obs.apply_layout([0, 2, 4, 6])
+        with self.assertRaisesRegex(ValueError, "cannot shrink"):
+            obs.apply_layout([0, 1], num_qubits=2)
+        with self.assertRaisesRegex(ValueError, "cannot shrink"):
+            obs.apply_layout(None, num_qubits=2)
+
+        qc = QuantumCircuit(3)
+        qc.cx(0, 1)
+        qc.cx(1, 2)
+        qc.cx(2, 0)
+        layout = transpile(qc, target=lnn_target(3), seed_transpiler=2024_10_25).layout
+        with self.assertRaisesRegex(ValueError, "cannot shrink"):
+            obs.apply_layout(layout, num_qubits=2)

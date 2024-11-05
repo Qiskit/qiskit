@@ -21,6 +21,7 @@ from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.passes.calibration.rzx_builder import _check_calibration_type, CRCalType
+from qiskit.utils.deprecate_pulse import deprecate_pulse_dependency
 
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.converters import circuit_to_dag
@@ -34,6 +35,7 @@ class EchoRZXWeylDecomposition(TransformationPass):
     Each pair of RZXGates forms an echoed RZXGate.
     """
 
+    @deprecate_pulse_dependency
     def __init__(self, instruction_schedule_map=None, target=None):
         """EchoRZXWeylDecomposition pass.
 

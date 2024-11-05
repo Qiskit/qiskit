@@ -27,7 +27,7 @@ use smallvec::{smallvec, SmallVec};
 use numpy::IntoPyArray;
 use numpy::PyReadonlyArray2;
 use pyo3::prelude::*;
-use pyo3::types::{IntoPyDict, PyFloat, PyIterator, PyTuple};
+use pyo3::types::{IntoPyDict, PyFloat, PyIterator, PyList, PyTuple};
 use pyo3::{intern, IntoPy, Python};
 
 #[derive(Clone, Debug)]
@@ -706,6 +706,11 @@ impl StandardGate {
     }
 
     #[getter]
+    pub fn get_num_ctrl_qubits(&self) -> u32 {
+        self.num_ctrl_qubits()
+    }
+
+    #[getter]
     pub fn get_num_clbits(&self) -> u32 {
         self.num_clbits()
     }
@@ -718,6 +723,24 @@ impl StandardGate {
     #[getter]
     pub fn get_name(&self) -> &str {
         self.name()
+    }
+
+    #[getter]
+    pub fn is_controlled_gate(&self) -> bool {
+        self.num_ctrl_qubits() > 0
+    }
+
+    #[getter]
+    pub fn get_gate_class(&self, py: Python) -> PyResult<Py<PyAny>> {
+        get_std_gate_class(py, *self)
+    }
+
+    #[staticmethod]
+    pub fn all_gates(py: Python) -> Bound<PyList> {
+        PyList::new_bound(
+            py,
+            (0..STANDARD_GATE_SIZE as u8).map(::bytemuck::checked::cast::<_, Self>),
+        )
     }
 
     pub fn __hash__(&self) -> isize {
@@ -2282,7 +2305,7 @@ pub fn multiply_param(param: &Param, mult: f64, py: Python) -> Param {
                 .call_method1(py, intern!(py, "__rmul__"), (mult,))
                 .expect("Multiplication of Parameter expression by float failed."),
         ),
-        Param::Obj(_) => unreachable!(),
+        Param::Obj(_) => unreachable!("Unsupported multiplication of a Param::Obj."),
     }
 }
 
@@ -2316,7 +2339,7 @@ pub fn add_param(param: &Param, summand: f64, py: Python) -> Param {
     }
 }
 
-fn radd_param(param1: Param, param2: Param, py: Python) -> Param {
+pub fn radd_param(param1: Param, param2: Param, py: Python) -> Param {
     match [param1, param2] {
         [Param::Float(theta), Param::Float(lambda)] => Param::Float(theta + lambda),
         [Param::ParameterExpression(theta), Param::ParameterExpression(lambda)] => {
