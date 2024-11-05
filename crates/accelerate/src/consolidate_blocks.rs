@@ -94,7 +94,9 @@ pub(crate) fn consolidate_blocks(
     });
     let mut all_block_gates: HashSet<NodeIndex> =
         HashSet::with_capacity(blocks.iter().map(|x| x.len()).sum());
+    let mut block_qargs: HashSet<Qubit> = HashSet::with_capacity(2);
     for block in blocks {
+        block_qargs.clear();
         if block.len() == 1 {
             let inst_node = block[0];
             let inst = dag.dag()[inst_node].unwrap_operation();
@@ -119,7 +121,6 @@ pub(crate) fn consolidate_blocks(
         }
         let mut basis_count: usize = 0;
         let mut outside_basis = false;
-        let mut block_qargs: HashSet<Qubit> = HashSet::with_capacity(2);
         for node in &block {
             let inst = dag.dag()[*node].unwrap_operation();
             block_qargs.extend(dag.get_qargs(inst.qubits));
