@@ -123,7 +123,7 @@ class UnitaryGate(Gate):
         return self.adjoint()
 
     def conjugate(self):
-        """Return the conjugate of the unitary."""
+        """Return the complex conjugate of the unitary with respect to the representation returned by ``to_matrix``."""
         return UnitaryGate(numpy.conj(self.to_matrix()))
 
     def adjoint(self):
