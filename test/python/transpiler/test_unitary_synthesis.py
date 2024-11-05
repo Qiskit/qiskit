@@ -18,6 +18,7 @@ Tests for the default UnitarySynthesis transpiler pass.
 
 import unittest
 import numpy as np
+import scipy
 from ddt import ddt, data
 
 from qiskit import transpile
@@ -60,11 +61,15 @@ from qiskit.circuit.library import (
 from qiskit.circuit import Measure
 from qiskit.circuit.controlflow import IfElseOp
 from qiskit.circuit import Parameter, Gate
+from qiskit.synthesis.unitary.qsd import qs_decomposition
+
 from test import combine  # pylint: disable=wrong-import-order
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 from test.python.providers.fake_mumbai_v2 import (  # pylint: disable=wrong-import-order
     FakeMumbaiFractionalCX,
 )
+
+from ..legacy_cmaps import YORKTOWN_CMAP
 
 
 class FakeBackend2QV2(GenericBackendV2):
@@ -675,7 +680,14 @@ class TestUnitarySynthesis(QiskitTestCase):
         circ = QuantumCircuit(qr)
         circ.append(random_unitary(4, seed=1), [1, 0])
         with self.assertWarns(DeprecationWarning):
-            backend = Fake5QV1()
+            backend = GenericBackendV2(
+                num_qubits=5,
+                coupling_map=YORKTOWN_CMAP,
+                basis_gates=["id", "rz", "sx", "x", "cx", "reset"],
+                calibrate_instructions=True,
+                pulse_channels=True,
+                seed=42,
+            )
         tqc = transpile(
             circ,
             backend=backend,
@@ -687,7 +699,7 @@ class TestUnitarySynthesis(QiskitTestCase):
         self.assertTrue(
             all(
                 (
-                    (0, 1) == (tqc_index[instr.qubits[0]], tqc_index[instr.qubits[1]])
+                    (1, 0) == (tqc_index[instr.qubits[0]], tqc_index[instr.qubits[1]])
                     for instr in tqc.get_instructions("cx")
                 )
             )
@@ -908,7 +920,7 @@ class TestUnitarySynthesis(QiskitTestCase):
         qc = QuantumCircuit(1)
         qc.append(ZGate(), [qc.qubits[0]])
         dag = circuit_to_dag(qc)
-        backend = GenericBackendV2(num_qubits=5)
+        backend = GenericBackendV2(num_qubits=5, seed=42)
         unitary_synth_pass = UnitarySynthesis(target=backend.target)
         result_dag = unitary_synth_pass.run(dag)
         result_qc = dag_to_circuit(result_dag)
@@ -1025,6 +1037,18 @@ class TestUnitarySynthesis(QiskitTestCase):
         opcount = qc_transpiled.count_ops()
         self.assertTrue(set(opcount).issubset({"rz", "rx", "rxx"}))
         self.assertTrue(np.allclose(Operator(qc_transpiled), Operator(qc)))
+
+    @data(1, 2, 3)
+    def test_qsd(self, opt):
+        """Test that the unitary synthesis pass runs qsd successfully with a target."""
+        num_qubits = 3
+        target = Target(num_qubits=num_qubits)
+        target.add_instruction(UGate(Parameter("theta"), Parameter("phi"), Parameter("lam")))
+        target.add_instruction(CXGate())
+        mat = scipy.stats.ortho_group.rvs(2**num_qubits)
+        qc = qs_decomposition(mat, opt_a1=True, opt_a2=False)
+        qc_transpiled = transpile(qc, target=target, optimization_level=opt)
+        self.assertTrue(np.allclose(mat, Operator(qc_transpiled).data))
 
 
 if __name__ == "__main__":

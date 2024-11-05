@@ -41,7 +41,6 @@ pub fn eigenvalues(py: Python, unitary: PyReadonlyArray2<Complex<f64>>) -> PyObj
         .into()
 }
 
-#[pymodule]
 pub fn utils(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(eigenvalues))?;
     Ok(())

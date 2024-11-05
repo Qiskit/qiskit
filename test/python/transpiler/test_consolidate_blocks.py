@@ -17,7 +17,7 @@ Tests for the ConsolidateBlocks transpiler pass.
 import unittest
 import numpy as np
 
-from qiskit.circuit import QuantumCircuit, QuantumRegister, IfElseOp
+from qiskit.circuit import QuantumCircuit, QuantumRegister, IfElseOp, Gate
 from qiskit.circuit.library import U2Gate, SwapGate, CXGate, CZGate, UnitaryGate
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.passes import ConsolidateBlocks
@@ -328,7 +328,8 @@ class TestConsolidateBlocks(QiskitTestCase):
         This issue was raised in #2752
         """
         qc = QuantumCircuit(1, 1)
-        qc.h(0).c_if(qc.cregs[0], 1)
+        with self.assertWarns(DeprecationWarning):
+            qc.h(0).c_if(qc.cregs[0], 1)
         qc.measure(0, 0)
 
         pass_manager = PassManager()
@@ -552,6 +553,23 @@ class TestConsolidateBlocks(QiskitTestCase):
                 )
             )
         self.assertEqual(expected, actual)
+
+    def test_custom_no_target(self):
+        """Test pass doesn't fail with custom gate."""
+
+        class MyCustomGate(Gate):
+            """Custom gate."""
+
+            def __init__(self):
+                super().__init__(name="my_custom", num_qubits=2, params=[])
+
+        qc = QuantumCircuit(2)
+        qc.append(MyCustomGate(), [0, 1])
+
+        pm = PassManager([Collect2qBlocks(), ConsolidateBlocks()])
+        res = pm.run(qc)
+
+        self.assertEqual(res, qc)
 
 
 if __name__ == "__main__":

@@ -106,7 +106,6 @@ pub fn score_layout(
     Ok(1. - fidelity)
 }
 
-#[pymodule]
 pub fn vf2_layout(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(score_layout))?;
     m.add_class::<EdgeList>()?;

@@ -454,7 +454,7 @@ attempt to "close over" outer circuit registers, or use hidden parameters inside
 :class:`Instruction`\ s can be related to other circuits to provide a decompositions by using
 their :attr:`Instruction.definition` attribute, which provides a local, one-off decomposition.  This
 can be in whatever basis set of operations is most convenient to you, as long as the definitions of
-all contained gates have some topological order; that is, you cannot use a gate in a definition it
+all contained gates have some topological order; that is, you cannot use a gate in a definition if
 its own definition depends on the parent.  If the :class:`Instruction` should be considered entirely
 opaque to optimizers, its :attr:`~Instruction.definition` can be ``None``.  See
 :ref:`circuit-custom-gates` for more detail.
@@ -579,6 +579,16 @@ The :class:`Store` instruction is particularly special, in that it allows writin
 :class:`Qubit` nor :class:`Clbit` operands, but has an explicit :attr:`~Store.lvalue` and
 :attr:`~Store.rvalue`.
 
+For example, to determine the parity of a bitstring ``cr`` and store it in another register ``creg``,
+the :class:`Store` instruction can be used in the following way::
+
+    parity = expr.lift(cr[0])
+    for i in range(1,n):
+        parity = expr.bit_xor(cr[i], parity)
+    qc.store(creg[0], parity)
+
+
+
 .. autoclass:: Store
     :show-inheritance:
     :members:
@@ -676,6 +686,13 @@ Within :class:`QuantumCircuit`, classical control flow is represented by specifi
 
     ControlFlowOp
 
+For convenience, there is a :class:`frozenset` instance containing the :attr:`.Instruction.name`
+attributes of each of the control-flow operations.
+
+.. data:: CONTROL_FLOW_OP_NAMES
+
+    Set of the instruction names of Qiskit's known control-flow operations.
+
 These control-flow operations (:class:`IfElseOp`, :class:`WhileLoopOp`,
 :class:`SwitchCaseOp` and :class:`ForLoopOp`) all have specific state that defines the branching
 conditions and strategies, but contain all the different subcircuit blocks that might be entered in
@@ -761,6 +778,30 @@ automatically.
 Consult :ref:`the control-flow construction documentation <circuit-control-flow-methods>` for more
 information on how to build circuits with control flow.
 
+Investigating commutation relations
+-----------------------------------
+
+If two operations in a circuit commute, we can swap the order in which they are applied.
+This can allow for optimizations and simplifications, for example, if it allows to merge
+or cancel gates:
+
+.. code-block:: text
+
+         ┌─────────┐     ┌─────────┐               ┌─────────┐
+    q_0: ┤ Rz(0.5) ├──■──┤ Rz(1.2) ├──■──     q_0: ┤ Rz(1.7) ├  
+         └─────────┘┌─┴─┐└──┬───┬──┘┌─┴─┐  =       └──┬───┬──┘ 
+    q_1: ───────────┤ X ├───┤ X ├───┤ X ├     q_1: ───┤ X ├─── 
+                    └───┘   └───┘   └───┘             └───┘     
+
+Performing these optimizations are part of the transpiler, but the tools to investigate commutations
+are available in the :class:`CommutationChecker`.
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   CommutationChecker
+
+   
 .. _circuit-custom-gates:
 
 Creating custom instructions
@@ -1247,6 +1288,7 @@ from .controlflow import (
     CASE_DEFAULT,
     BreakLoopOp,
     ContinueLoopOp,
+    CONTROL_FLOW_OP_NAMES,
 )
 
 from .annotated_operation import AnnotatedOperation, InverseModifier, ControlModifier, PowerModifier

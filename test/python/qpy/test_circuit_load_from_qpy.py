@@ -69,24 +69,26 @@ class TestCalibrationPasses(QpyCircuitTestCase):
     @data(0.1, 0.7, 1.5)
     def test_rzx_calibration(self, angle):
         """RZX builder calibration pass with echo."""
-        pass_ = passes.RZXCalibrationBuilder(self.inst_map)
+        with self.assertWarns(DeprecationWarning):
+            pass_ = passes.RZXCalibrationBuilder(self.inst_map)
         pass_manager = PassManager(pass_)
         test_qc = QuantumCircuit(2)
         test_qc.rzx(angle, 0, 1)
         rzx_qc = pass_manager.run(test_qc)
-
-        self.assert_roundtrip_equal(rzx_qc)
+        with self.assertWarns(DeprecationWarning):
+            self.assert_roundtrip_equal(rzx_qc)
 
     @data(0.1, 0.7, 1.5)
     def test_rzx_calibration_echo(self, angle):
         """RZX builder calibration pass without echo."""
-        pass_ = passes.RZXCalibrationBuilderNoEcho(self.inst_map)
+        with self.assertWarns(DeprecationWarning):
+            pass_ = passes.RZXCalibrationBuilderNoEcho(self.inst_map)
         pass_manager = PassManager(pass_)
         test_qc = QuantumCircuit(2)
         test_qc.rzx(angle, 0, 1)
         rzx_qc = pass_manager.run(test_qc)
-
-        self.assert_roundtrip_equal(rzx_qc)
+        with self.assertWarns(DeprecationWarning):
+            self.assert_roundtrip_equal(rzx_qc)
 
 
 class TestVersions(QpyCircuitTestCase):

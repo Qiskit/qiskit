@@ -36,7 +36,7 @@ from qiskit.transpiler.passes import (
 )
 from qiskit.utils.deprecation import deprecate_func
 
-from .base import BaseEstimatorV1, EstimatorResult
+from .base import BaseEstimator, EstimatorResult
 from .primitive_job import PrimitiveJob
 from .utils import _circuit_key, _observable_key, init_observable
 
@@ -88,17 +88,18 @@ def _prepare_counts(results: list[Result]):
     return counts
 
 
-class BackendEstimator(BaseEstimatorV1[PrimitiveJob[EstimatorResult]]):
+class BackendEstimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
     """Evaluates expectation value using Pauli rotation gates.
 
     The :class:`~.BackendEstimator` class is a generic implementation of the
-    :class:`~.BaseEstimatorV1` interface that is used to wrap a :class:`~.BackendV2`
-    (or :class:`~.BackendV1`) object in the :class:`~.BaseEstimatorV1` API. It
+    :class:`~.BaseEstimator` (V1) interface that is used to wrap a :class:`~.BackendV2`
+    (or :class:`~.BackendV1`) object in the :class:`~.BaseEstimator` V1 API. It
     facilitates using backends that do not provide a native
-    :class:`~.BaseEstimatorV1` implementation in places that work with
-    :class:`~.BaseEstimatorV1`.
+    :class:`~.BaseEstimator` V1 implementation in places that work with
+    :class:`~.BaseEstimator` V1.
     However, if you're using a provider that has a native implementation of
-    :class:`~.BaseEstimatorV1` or :class:`~.BaseEstimatorV2`, it is a better
+    :class:`~.BaseEstimatorV1` ( :class:`~.BaseEstimator`) or
+    :class:`~.BaseEstimatorV2`, it is a better
     choice to leverage that native implementation as it will likely include
     additional optimizations and be a more efficient implementation.
     The generic nature of this class precludes doing any provider- or

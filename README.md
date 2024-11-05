@@ -23,7 +23,7 @@ For more details on how to use Qiskit, refer to the documentation located here:
 ## Installation
 
 > [!WARNING]
-> Do not try to upgrade an existing Qiskit 0.* environment to Qiskit 1.0 in-place. [Read more](https://docs.quantum.ibm.com/api/migration-guides/qiskit-1.0-installation).
+> Do not try to upgrade an existing Qiskit 0.* environment to Qiskit 1.0 in-place. [Read more](https://docs.quantum.ibm.com/migration-guides/qiskit-1.0-installation).
 
 We encourage installing Qiskit via ``pip``:
 
@@ -33,7 +33,7 @@ pip install qiskit
 
 Pip will handle all dependencies automatically and you will always install the latest (and well-tested) version.
 
-To install from source, follow the instructions in the [documentation](https://docs.quantum.ibm.com/start/install-qiskit-source).
+To install from source, follow the instructions in the [documentation](https://docs.quantum.ibm.com/guides/install-qiskit-source).
 
 ## Create your first quantum program in Qiskit
 

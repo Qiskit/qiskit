@@ -19,6 +19,7 @@ import os
 import sys
 from logging import StreamHandler, getLogger
 from unittest.mock import patch
+import warnings
 import numpy as np
 import rustworkx as rx
 from ddt import data, ddt, unpack
@@ -84,6 +85,7 @@ from qiskit.utils import parallel
 from qiskit.transpiler import CouplingMap, Layout, PassManager, TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError, CircuitTooWideForTarget
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements, GateDirection, VF2PostLayout
+
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager, level_0_pass_manager
 from qiskit.transpiler.target import (
@@ -199,7 +201,7 @@ class TestTranspile(QiskitTestCase):
 
         circuit:
 
-        .. parsed-literal::
+        .. code-block:: text
 
                   ┌───┐
             qr_0: ┤ H ├──■──────────── -> 1
@@ -353,7 +355,7 @@ class TestTranspile(QiskitTestCase):
 
         circuit:
 
-        .. parsed-literal::
+        .. code-block:: text
 
                   ┌───┐                  ┌───┐ ░ ┌─┐
             qn_0: ┤ H ├──■────────────■──┤ H ├─░─┤M├─── -> 9
@@ -872,6 +874,33 @@ class TestTranspile(QiskitTestCase):
             transpile(circ, coupling_map=coupling_map, initial_layout=layout)
             self.assertFalse(mock_pass.called)
 
+    def test_do_not_run_elide_permutations_no_routing(self):
+        """Test the ElidePermutations pass doesn't run if we disable routing
+
+        See https://github.com/Qiskit/qiskit/issues/13144 for the details and
+        reproduce in this test
+        """
+        circuit_routed = QuantumCircuit(4)
+        circuit_routed.cx(0, 1)
+        circuit_routed.h(1)
+        circuit_routed.swap(1, 2)
+        circuit_routed.cx(2, 3)
+        pm = generate_preset_pass_manager(
+            basis_gates=["cx", "sx", "rz"], routing_method="none", optimization_level=2
+        )
+        circuit_basis = pm.run(circuit_routed)
+        cx_gate_qubits = []
+        for instruction in circuit_basis.data:
+            if instruction.name == "cx":
+                cx_gate_qubits.append(instruction.qubits)
+        # If we did not Elide the existing swaps then the swap should be
+        # decomposed into 3 cx between 1 and 2 and there are no gates between
+        # 1 and 3
+        self.assertIn((circuit_basis.qubits[1], circuit_basis.qubits[2]), cx_gate_qubits)
+        self.assertIn((circuit_basis.qubits[2], circuit_basis.qubits[1]), cx_gate_qubits)
+        self.assertNotIn((circuit_basis.qubits[1], circuit_basis.qubits[3]), cx_gate_qubits)
+        self.assertNotIn((circuit_basis.qubits[3], circuit_basis.qubits[1]), cx_gate_qubits)
+
     def test_optimize_to_nothing(self):
         """Optimize gates up to fixed point in the default pipeline
         See https://github.com/Qiskit/qiskit-terra/issues/2035
@@ -927,7 +956,10 @@ class TestTranspile(QiskitTestCase):
         circ = QuantumCircuit.from_qasm_file(os.path.join(qasm_dir, "move_measurements.qasm"))
 
         lay = [0, 1, 15, 2, 14, 3, 13, 4, 12, 5, 11, 6]
-        out = transpile(circ, initial_layout=lay, coupling_map=cmap, routing_method="stochastic")
+        with self.assertWarns(DeprecationWarning):
+            out = transpile(
+                circ, initial_layout=lay, coupling_map=cmap, routing_method="stochastic"
+            )
         out_dag = circuit_to_dag(out)
         meas_nodes = out_dag.named_nodes("measure")
         for meas_node in meas_nodes:
@@ -1274,14 +1306,15 @@ class TestTranspile(QiskitTestCase):
         circ.append(custom_180, [0])
         circ.append(custom_90, [1])
 
-        with pulse.build() as q0_x180:
-            pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), pulse.DriveChannel(0))
-        with pulse.build() as q1_y90:
-            pulse.play(pulse.library.Gaussian(20, -1.0, 3.0), pulse.DriveChannel(1))
+        with self.assertWarns(DeprecationWarning):
+            with pulse.build() as q0_x180:
+                pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), pulse.DriveChannel(0))
+            with pulse.build() as q1_y90:
+                pulse.play(pulse.library.Gaussian(20, -1.0, 3.0), pulse.DriveChannel(1))
 
-        # Add calibration
-        circ.add_calibration(custom_180, [0], q0_x180)
-        circ.add_calibration(custom_90, [1], q1_y90)
+            # Add calibration
+            circ.add_calibration(custom_180, [0], q0_x180)
+            circ.add_calibration(custom_90, [1], q1_y90)
 
         transpiled_circuit = transpile(
             circ,
@@ -1289,7 +1322,8 @@ class TestTranspile(QiskitTestCase):
             layout_method="trivial",
             seed_transpiler=42,
         )
-        self.assertEqual(transpiled_circuit.calibrations, circ.calibrations)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(transpiled_circuit.calibrations, circ.calibrations)
         self.assertEqual(list(transpiled_circuit.count_ops().keys()), ["mycustom"])
         self.assertEqual(list(transpiled_circuit.count_ops().values()), [2])
 
@@ -1298,16 +1332,18 @@ class TestTranspile(QiskitTestCase):
         circ = QuantumCircuit(2)
         circ.h(0)
 
-        with pulse.build() as q0_x180:
-            pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), pulse.DriveChannel(0))
+        with self.assertWarns(DeprecationWarning):
+            with pulse.build() as q0_x180:
+                pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), pulse.DriveChannel(0))
 
-        # Add calibration
-        circ.add_calibration("h", [0], q0_x180)
+            # Add calibration
+            circ.add_calibration("h", [0], q0_x180)
 
         transpiled_circuit = transpile(
-            circ, backend=GenericBackendV2(num_qubits=4), seed_transpiler=42
+            circ, backend=GenericBackendV2(num_qubits=4, seed=42), seed_transpiler=42
         )
-        self.assertEqual(transpiled_circuit.calibrations, circ.calibrations)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(transpiled_circuit.calibrations, circ.calibrations)
 
     def test_transpile_calibrated_custom_gate_on_diff_qubit(self):
         """Test if the custom, non calibrated gate raises QiskitError."""
@@ -1316,16 +1352,17 @@ class TestTranspile(QiskitTestCase):
         circ = QuantumCircuit(2)
         circ.append(custom_180, [0])
 
-        with pulse.build() as q0_x180:
-            pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), pulse.DriveChannel(0))
+        with self.assertWarns(DeprecationWarning):
+            with pulse.build() as q0_x180:
+                pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), pulse.DriveChannel(0))
 
-        # Add calibration
-        circ.add_calibration(custom_180, [1], q0_x180)
+            # Add calibration
+            circ.add_calibration(custom_180, [1], q0_x180)
 
         with self.assertRaises(QiskitError):
             transpile(
                 circ,
-                backend=GenericBackendV2(num_qubits=4),
+                backend=GenericBackendV2(num_qubits=4, seed=42),
                 layout_method="trivial",
                 seed_transpiler=42,
                 optimization_level=1,
@@ -1338,16 +1375,18 @@ class TestTranspile(QiskitTestCase):
         circ.h(0)
         circ.h(1)
 
-        with pulse.build() as q0_x180:
-            pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), pulse.DriveChannel(0))
+        with self.assertWarns(DeprecationWarning):
+            with pulse.build() as q0_x180:
+                pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), pulse.DriveChannel(0))
 
-        # Add calibration
-        circ.add_calibration("h", [1], q0_x180)
+            # Add calibration
+            circ.add_calibration("h", [1], q0_x180)
 
         transpiled_circuit = transpile(
             circ, backend=GenericBackendV2(num_qubits=4), seed_transpiler=42, optimization_level=1
         )
-        self.assertEqual(transpiled_circuit.calibrations, circ.calibrations)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(transpiled_circuit.calibrations, circ.calibrations)
         self.assertEqual(set(transpiled_circuit.count_ops().keys()), {"rz", "sx", "h"})
 
     def test_transpile_subset_of_calibrated_gates(self):
@@ -1360,15 +1399,16 @@ class TestTranspile(QiskitTestCase):
         circ.append(x_180, [0])
         circ.h(1)
 
-        with pulse.build() as q0_x180:
-            pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), pulse.DriveChannel(0))
+        with self.assertWarns(DeprecationWarning):
+            with pulse.build() as q0_x180:
+                pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), pulse.DriveChannel(0))
 
-        circ.add_calibration(x_180, [0], q0_x180)
-        circ.add_calibration("h", [1], q0_x180)  # 'h' is calibrated on qubit 1
+            circ.add_calibration(x_180, [0], q0_x180)
+            circ.add_calibration("h", [1], q0_x180)  # 'h' is calibrated on qubit 1
 
         transpiled_circ = transpile(
             circ,
-            backend=GenericBackendV2(num_qubits=4),
+            backend=GenericBackendV2(num_qubits=4, seed=42),
             layout_method="trivial",
             seed_transpiler=42,
         )
@@ -1382,15 +1422,17 @@ class TestTranspile(QiskitTestCase):
         circ.append(Gate("rxt", 1, [2 * 3.14 * tau]), [0])
 
         def q0_rxt(tau):
-            with pulse.build() as q0_rxt:
-                pulse.play(pulse.library.Gaussian(20, 0.4 * tau, 3.0), pulse.DriveChannel(0))
+            with self.assertWarns(DeprecationWarning):
+                with pulse.build() as q0_rxt:
+                    pulse.play(pulse.library.Gaussian(20, 0.4 * tau, 3.0), pulse.DriveChannel(0))
             return q0_rxt
 
-        circ.add_calibration("rxt", [0], q0_rxt(tau), [2 * 3.14 * tau])
+        with self.assertWarns(DeprecationWarning):
+            circ.add_calibration("rxt", [0], q0_rxt(tau), [2 * 3.14 * tau])
 
         transpiled_circ = transpile(
             circ,
-            backend=GenericBackendV2(num_qubits=4),
+            backend=GenericBackendV2(num_qubits=4, seed=42),
             layout_method="trivial",
             seed_transpiler=42,
         )
@@ -1411,12 +1453,14 @@ class TestTranspile(QiskitTestCase):
         qc = QuantumCircuit(2)
         qc.append(Gate("custom", 1, []), [0])
 
-        with pulse.build() as cal:
-            pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), pulse.DriveChannel(0))
-        qc.add_calibration("custom", [0], cal)
+        with self.assertWarns(DeprecationWarning):
+            with pulse.build() as cal:
+                pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), pulse.DriveChannel(0))
+            qc.add_calibration("custom", [0], cal)
 
         out = transpile(qc, scheduling_method="alap", seed_transpiler=42)
-        self.assertEqual(out.duration, cal.duration)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(out.duration, cal.duration)
 
     @data(0, 1, 2, 3)
     def test_multiqubit_gates_calibrations(self, opt_level):
@@ -1430,35 +1474,36 @@ class TestTranspile(QiskitTestCase):
         circ.measure_all()
         backend = GenericBackendV2(num_qubits=6)
 
-        with pulse.build(backend=backend, name="custom") as my_schedule:
-            pulse.play(
-                pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.drive_channel(0)
-            )
-            pulse.play(
-                pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.drive_channel(1)
-            )
-            pulse.play(
-                pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.drive_channel(2)
-            )
-            pulse.play(
-                pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.drive_channel(3)
-            )
-            pulse.play(
-                pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.drive_channel(4)
-            )
-            pulse.play(
-                pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.ControlChannel(1)
-            )
-            pulse.play(
-                pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.ControlChannel(2)
-            )
-            pulse.play(
-                pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.ControlChannel(3)
-            )
-            pulse.play(
-                pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.ControlChannel(4)
-            )
-        circ.add_calibration("my_custom_gate", [0, 1, 2, 3, 4], my_schedule, [])
+        with self.assertWarns(DeprecationWarning):
+            with pulse.build(backend=backend, name="custom") as my_schedule:
+                pulse.play(
+                    pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.drive_channel(0)
+                )
+                pulse.play(
+                    pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.drive_channel(1)
+                )
+                pulse.play(
+                    pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.drive_channel(2)
+                )
+                pulse.play(
+                    pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.drive_channel(3)
+                )
+                pulse.play(
+                    pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.drive_channel(4)
+                )
+                pulse.play(
+                    pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.ControlChannel(1)
+                )
+                pulse.play(
+                    pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.ControlChannel(2)
+                )
+                pulse.play(
+                    pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.ControlChannel(3)
+                )
+                pulse.play(
+                    pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.ControlChannel(4)
+                )
+            circ.add_calibration("my_custom_gate", [0, 1, 2, 3, 4], my_schedule, [])
         trans_circ = transpile(
             circ,
             backend=backend,
@@ -1477,14 +1522,18 @@ class TestTranspile(QiskitTestCase):
         qc.delay(500, 1)
         qc.cx(0, 1)
 
-        out = transpile(
-            qc,
-            scheduling_method="alap",
-            basis_gates=["h", "cx"],
-            instruction_durations=[("h", 0, 200), ("cx", [0, 1], 700)],
-            optimization_level=optimization_level,
-            seed_transpiler=42,
-        )
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The `target` parameter should be used instead",
+        ):
+            out = transpile(
+                qc,
+                scheduling_method="alap",
+                basis_gates=["h", "cx"],
+                instruction_durations=[("h", 0, 200), ("cx", [0, 1], 700)],
+                optimization_level=optimization_level,
+                seed_transpiler=42,
+            )
 
         self.assertEqual(out.duration, 1200)
 
@@ -1524,13 +1573,13 @@ class TestTranspile(QiskitTestCase):
 
         with self.assertWarns(DeprecationWarning):
             backend_v1 = Fake27QPulseV1()
-        backend_v2 = GenericBackendV2(
-            num_qubits=27,
-            calibrate_instructions=True,
-            control_flow=True,
-            coupling_map=MUMBAI_CMAP,
-            seed=42,
-        )
+            backend_v2 = GenericBackendV2(
+                num_qubits=27,
+                calibrate_instructions=True,
+                control_flow=True,
+                coupling_map=MUMBAI_CMAP,
+                seed=42,
+            )
         # the original timing constraints are granularity = min_length = 16
         timing_constraints = TimingConstraints(granularity=32, min_length=64)
         error_msgs = {
@@ -1544,29 +1593,34 @@ class TestTranspile(QiskitTestCase):
                 qc.h(0)
                 qc.cx(0, 1)
                 qc.measure_all()
-                qc.add_calibration(
-                    "h", [0], Schedule(Play(Gaussian(duration, 0.2, 4), DriveChannel(0))), [0, 0]
-                )
-                qc.add_calibration(
-                    "cx",
-                    [0, 1],
-                    Schedule(Play(Gaussian(duration, 0.2, 4), DriveChannel(1))),
-                    [0, 0],
-                )
-                with self.assertRaisesRegex(TranspilerError, error_msgs[duration]):
-                    _ = transpile(
-                        qc,
-                        backend=backend,
-                        timing_constraints=timing_constraints,
+                with self.assertWarns(DeprecationWarning):
+                    qc.add_calibration(
+                        "h",
+                        [0],
+                        Schedule(Play(Gaussian(duration, 0.2, 4), DriveChannel(0))),
+                        [0, 0],
                     )
+                    qc.add_calibration(
+                        "cx",
+                        [0, 1],
+                        Schedule(Play(Gaussian(duration, 0.2, 4), DriveChannel(1))),
+                        [0, 0],
+                    )
+                with self.assertRaisesRegex(TranspilerError, error_msgs[duration]):
+                    with self.assertWarns(DeprecationWarning):
+                        _ = transpile(
+                            qc,
+                            backend=backend,
+                            timing_constraints=timing_constraints,
+                        )
 
-    def test_scheduling_instruction_constraints(self):
+    def test_scheduling_instruction_constraints_backend(self):
         """Test that scheduling-related loose transpile constraints
         work with both BackendV1 and BackendV2."""
 
         with self.assertWarns(DeprecationWarning):
             backend_v1 = Fake27QPulseV1()
-        backend_v2 = BackendV2Converter(backend_v1)
+            backend_v2 = BackendV2Converter(backend_v1)
         qc = QuantumCircuit(2)
         qc.h(0)
         qc.delay(500, 1, "dt")
@@ -1575,16 +1629,60 @@ class TestTranspile(QiskitTestCase):
         durations = InstructionDurations.from_backend(backend_v1)
         durations.update([("cx", [0, 1], 1000, "dt")])
 
-        for backend in [backend_v1, backend_v2]:
-            with self.subTest(backend=backend):
-                scheduled = transpile(
-                    qc,
-                    backend=backend,
-                    scheduling_method="alap",
-                    instruction_durations=durations,
-                    layout_method="trivial",
-                )
-                self.assertEqual(scheduled.duration, 1500)
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The `transpile` function will stop supporting inputs of type `BackendV1` ",
+        ):
+            scheduled = transpile(
+                qc,
+                backend=backend_v1,
+                scheduling_method="alap",
+                instruction_durations=durations,
+                layout_method="trivial",
+            )
+        self.assertEqual(scheduled.duration, 1500)
+
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The `target` parameter should be used instead",
+        ):
+            scheduled = transpile(
+                qc,
+                backend=backend_v2,
+                scheduling_method="alap",
+                instruction_durations=durations,
+                layout_method="trivial",
+            )
+        self.assertEqual(scheduled.duration, 1500)
+
+    def test_scheduling_instruction_constraints(self):
+        """Test that scheduling-related loose transpile constraints work with target."""
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="argument ``calibrate_instructions`` is deprecated",
+        ):
+            target = GenericBackendV2(
+                2,
+                calibrate_instructions=True,
+                coupling_map=[[0, 1]],
+                basis_gates=["cx", "h"],
+                seed=42,
+            ).target
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.delay(0.000001, 1, "s")
+        qc.cx(0, 1)
+
+        # update cx to 2 seconds
+        target.update_instruction_properties("cx", (0, 1), InstructionProperties(0.000001))
+
+        scheduled = transpile(
+            qc,
+            target=target,
+            scheduling_method="alap",
+            layout_method="trivial",
+        )
+        self.assertEqual(scheduled.duration, 9010)
 
     def test_scheduling_dt_constraints(self):
         """Test that scheduling-related loose transpile constraints
@@ -1592,28 +1690,33 @@ class TestTranspile(QiskitTestCase):
 
         with self.assertWarns(DeprecationWarning):
             backend_v1 = Fake27QPulseV1()
-        backend_v2 = BackendV2Converter(backend_v1)
+            backend_v2 = BackendV2Converter(backend_v1)
         qc = QuantumCircuit(1, 1)
         qc.x(0)
         qc.measure(0, 0)
         original_dt = 2.2222222222222221e-10
         original_duration = 3504
 
-        for backend in [backend_v1, backend_v2]:
-            with self.subTest(backend=backend):
-                # halve dt in sec = double duration in dt
-                scheduled = transpile(
-                    qc, backend=backend, scheduling_method="asap", dt=original_dt / 2
-                )
-                self.assertEqual(scheduled.duration, original_duration * 2)
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The `transpile` function will stop supporting inputs of type `BackendV1` ",
+        ):
+            # halve dt in sec = double duration in dt
+            scheduled = transpile(
+                qc, backend=backend_v1, scheduling_method="asap", dt=original_dt / 2
+            )
+        self.assertEqual(scheduled.duration, original_duration * 2)
+
+        # halve dt in sec = double duration in dt
+        scheduled = transpile(qc, backend=backend_v2, scheduling_method="asap", dt=original_dt / 2)
+        self.assertEqual(scheduled.duration, original_duration * 2)
 
     def test_backend_props_constraints(self):
-        """Test that loose transpile constraints
-        work with both BackendV1 and BackendV2."""
+        """Test that loose transpile constraints work with both BackendV1 and BackendV2."""
 
         with self.assertWarns(DeprecationWarning):
             backend_v1 = Fake20QV1()
-        backend_v2 = BackendV2Converter(backend_v1)
+            backend_v2 = BackendV2Converter(backend_v1)
         qr1 = QuantumRegister(3, "qr1")
         qr2 = QuantumRegister(2, "qr2")
         qc = QuantumCircuit(qr1, qr2)
@@ -1625,7 +1728,8 @@ class TestTranspile(QiskitTestCase):
         # generate a fake backend with same number of qubits
         # but different backend properties
         fake_backend = GenericBackendV2(num_qubits=20, seed=42)
-        custom_backend_properties = target_to_backend_properties(fake_backend.target)
+        with self.assertWarns(DeprecationWarning):
+            custom_backend_properties = target_to_backend_properties(fake_backend.target)
 
         # expected layout for custom_backend_properties
         # (different from expected layout for Fake20QV1)
@@ -1652,17 +1756,32 @@ class TestTranspile(QiskitTestCase):
             17: Qubit(QuantumRegister(15, "ancilla"), 14),
         }
 
-        for backend in [backend_v1, backend_v2]:
-            with self.subTest(backend=backend):
-                result = transpile(
-                    qc,
-                    backend=backend,
-                    backend_properties=custom_backend_properties,
-                    optimization_level=2,
-                    seed_transpiler=42,
-                )
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The `transpile` function will stop supporting inputs of type `BackendV1` ",
+        ):
+            result = transpile(
+                qc,
+                backend=backend_v1,
+                backend_properties=custom_backend_properties,
+                optimization_level=2,
+                seed_transpiler=42,
+            )
 
-                self.assertEqual(result._layout.initial_layout._p2v, vf2_layout)
+        self.assertEqual(result._layout.initial_layout._p2v, vf2_layout)
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The `target` parameter should be used instead",
+        ):
+            result = transpile(
+                qc,
+                backend=backend_v2,
+                backend_properties=custom_backend_properties,
+                optimization_level=2,
+                seed_transpiler=42,
+            )
+
+        self.assertEqual(result._layout.initial_layout._p2v, vf2_layout)
 
     @data(1, 2, 3)
     def test_no_infinite_loop(self, optimization_level):
@@ -2101,9 +2220,9 @@ class TestTranspile(QiskitTestCase):
         qc.append(AnnotatedOperation(HGate(), PowerModifier(3)), [2])
         with self.assertWarns(DeprecationWarning):
             backend = Fake20QV1()
-        transpiled = transpile(
-            qc, optimization_level=opt_level, backend=backend, seed_transpiler=42
-        )
+            transpiled = transpile(
+                qc, optimization_level=opt_level, backend=backend, seed_transpiler=42
+            )
         self.assertLessEqual(set(transpiled.count_ops().keys()), {"u1", "u2", "u3", "cx"})
 
     @combine(opt_level=[0, 1, 2, 3])
@@ -2149,7 +2268,8 @@ class TestPostTranspileIntegration(QiskitTestCase):
         base.append(CustomCX(), [3, 6])
         base.append(CustomCX(), [5, 4])
         base.append(CustomCX(), [5, 3])
-        base.append(CustomCX(), [2, 4]).c_if(base.cregs[0], 3)
+        with self.assertWarns(DeprecationWarning):
+            base.append(CustomCX(), [2, 4]).c_if(base.cregs[0], 3)
         base.ry(a, 4)
         base.measure(4, 2)
         return base
@@ -2449,12 +2569,12 @@ class TestPostTranspileIntegration(QiskitTestCase):
         with self.assertWarns(DeprecationWarning):
             backend = Fake20QV1()
 
-        transpiled = transpile(
-            self._regular_circuit(),
-            backend=backend,
-            optimization_level=optimization_level,
-            seed_transpiler=2022_10_17,
-        )
+            transpiled = transpile(
+                self._regular_circuit(),
+                backend=backend,
+                optimization_level=optimization_level,
+                seed_transpiler=2022_10_17,
+            )
         # TODO: There's not a huge amount we can sensibly test for the output here until we can
         # round-trip the OpenQASM 3 back into a Terra circuit.  Mostly we're concerned that the dump
         # itself doesn't throw an error, though.
@@ -2723,18 +2843,22 @@ class TestTranspileParallel(QiskitTestCase):
 
             def run(self, dag):
                 """Run test pass that adds calibration of SX gate of qubit 0."""
-                dag.add_calibration(
-                    "sx",
-                    qubits=(0,),
-                    schedule=self.target["sx"][(0,)].calibration,  # PulseQobj is parsed here
-                )
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore", category=DeprecationWarning)
+                    # DAGCircuit.add_calibration() is deprecated but we can't use self.assertWarns() here
+                    dag.add_calibration(
+                        "sx",
+                        qubits=(0,),
+                        schedule=self.target["sx"][(0,)].calibration,  # PulseQobj is parsed here
+                    )
                 return dag
 
         # Create backend with empty calibrations (PulseQobjEntries)
-        backend = GenericBackendV2(
-            num_qubits=4,
-            calibrate_instructions=False,
-        )
+        with self.assertWarns(DeprecationWarning):
+            backend = GenericBackendV2(
+                num_qubits=4,
+                calibrate_instructions=False,
+            )
 
         # This target has PulseQobj entries that provide a serialized schedule data
         pass_ = TestAddCalibration(backend.target)
@@ -2746,10 +2870,11 @@ class TestTranspileParallel(QiskitTestCase):
         qc_copied = [qc for _ in range(10)]
 
         qcs_cal_added = pm.run(qc_copied)
-        ref_cal = backend.target["sx"][(0,)].calibration
-        for qc_test in qcs_cal_added:
-            added_cal = qc_test.calibrations["sx"][((0,), ())]
-            self.assertEqual(added_cal, ref_cal)
+        with self.assertWarns(DeprecationWarning):
+            ref_cal = backend.target["sx"][(0,)].calibration
+            for qc_test in qcs_cal_added:
+                added_cal = qc_test.calibrations["sx"][((0,), ())]
+                self.assertEqual(added_cal, ref_cal)
 
     @data(0, 1, 2, 3)
     def test_parallel_singleton_conditional_gate(self, opt_level):
@@ -2758,12 +2883,14 @@ class TestTranspileParallel(QiskitTestCase):
         circ = QuantumCircuit(2, 1)
         circ.h(0)
         circ.measure(0, circ.clbits[0])
-        circ.z(1).c_if(circ.clbits[0], 1)
+        with self.assertWarns(DeprecationWarning):
+            circ.z(1).c_if(circ.clbits[0], 1)
         res = transpile(
             [circ, circ], backend, optimization_level=opt_level, seed_transpiler=123456769
         )
         self.assertTrue(res[0].data[-1].operation.mutable)
-        self.assertEqual(res[0].data[-1].operation.condition, (res[0].clbits[0], 1))
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(res[0].data[-1].operation.condition, (res[0].clbits[0], 1))
 
     @data(0, 1, 2, 3)
     def test_backendv2_and_basis_gates(self, opt_level):
@@ -2849,20 +2976,22 @@ class TestTranspileParallel(QiskitTestCase):
             coupling_map=[[0, 1], [1, 0], [1, 2], [1, 3], [2, 1], [3, 1], [3, 4], [4, 3]],
             seed=42,
         )
-        inst_map = InstructionScheduleMap()
-        inst_map.add("newgate", [0, 1], pulse.ScheduleBlock())
+        with self.assertWarns(DeprecationWarning):
+            inst_map = InstructionScheduleMap()
+            inst_map.add("newgate", [0, 1], pulse.ScheduleBlock())
         newgate = Gate("newgate", 2, [])
         circ = QuantumCircuit(2)
         circ.append(newgate, [0, 1])
 
-        tqc = transpile(
-            circ,
-            backend,
-            inst_map=inst_map,
-            basis_gates=["newgate"],
-            optimization_level=opt_level,
-            seed_transpiler=42,
-        )
+        with self.assertWarns(DeprecationWarning):
+            tqc = transpile(
+                circ,
+                backend,
+                inst_map=inst_map,
+                basis_gates=["newgate"],
+                optimization_level=opt_level,
+                seed_transpiler=42,
+            )
         self.assertEqual(len(tqc.data), 1)
         self.assertEqual(tqc.data[0].operation, newgate)
         for x in tqc.data[0].qubits:
@@ -3206,7 +3335,8 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
         for i in range(18):
             qc.measure(i, creg[i])
 
-        qc.ecr(20, 21).c_if(creg, 0)
+        with self.assertWarns(DeprecationWarning):
+            qc.ecr(20, 21).c_if(creg, 0)
         tqc = transpile(qc, self.backend, optimization_level=opt_level, seed_transpiler=42)
 
         def _visit_block(circuit, qubit_mapping=None):
@@ -3242,9 +3372,11 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
         qc.measure(24, creg[0])
         qc.measure(23, creg[1])
         # Component 1
-        qc.h(0).c_if(creg, 0)
+        with self.assertWarns(DeprecationWarning):
+            qc.h(0).c_if(creg, 0)
         for i in range(18):
-            qc.ecr(0, i + 1).c_if(creg, 0)
+            with self.assertWarns(DeprecationWarning):
+                qc.ecr(0, i + 1).c_if(creg, 0)
         tqc = transpile(qc, self.backend, optimization_level=opt_level, seed_transpiler=123456789)
 
         def _visit_block(circuit, qubit_mapping=None):
@@ -3286,19 +3418,19 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
         tqc_dag = circuit_to_dag(tqc)
         qubit_map = {qubit: index for index, qubit in enumerate(tqc_dag.qubits)}
         input_node = tqc_dag.input_map[tqc_dag.clbits[0]]
-        first_meas_node = tqc_dag._multi_graph.find_successors_by_edge(
+        first_meas_node = tqc_dag._find_successors_by_edge(
             input_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
         )[0]
         # The first node should be a measurement
         self.assertIsInstance(first_meas_node.op, Measure)
         # This should be in the first component
         self.assertIn(qubit_map[first_meas_node.qargs[0]], components[0])
-        op_node = tqc_dag._multi_graph.find_successors_by_edge(
+        op_node = tqc_dag._find_successors_by_edge(
             first_meas_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
         )[0]
         while isinstance(op_node, DAGOpNode):
             self.assertIn(qubit_map[op_node.qargs[0]], components[1])
-            op_node = tqc_dag._multi_graph.find_successors_by_edge(
+            op_node = tqc_dag._find_successors_by_edge(
                 op_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
             )[0]
 
@@ -3316,9 +3448,11 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
         qc.measure(0, creg[0])
         qc.measure(1, creg[1])
         # Component 1
-        qc.h(24).c_if(creg, 0)
+        with self.assertWarns(DeprecationWarning):
+            qc.h(24).c_if(creg, 0)
         for i in range(23, 5, -1):
-            qc.ecr(24, i).c_if(creg, 0)
+            with self.assertWarns(DeprecationWarning):
+                qc.ecr(24, i).c_if(creg, 0)
         tqc = transpile(qc, self.backend, optimization_level=opt_level, seed_transpiler=2023)
 
         def _visit_block(circuit, qubit_mapping=None):
@@ -3360,19 +3494,19 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
         tqc_dag = circuit_to_dag(tqc)
         qubit_map = {qubit: index for index, qubit in enumerate(tqc_dag.qubits)}
         input_node = tqc_dag.input_map[tqc_dag.clbits[0]]
-        first_meas_node = tqc_dag._multi_graph.find_successors_by_edge(
+        first_meas_node = tqc_dag._find_successors_by_edge(
             input_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
         )[0]
         # The first node should be a measurement
         self.assertIsInstance(first_meas_node.op, Measure)
         # This should be in the first component
         self.assertIn(qubit_map[first_meas_node.qargs[0]], components[0])
-        op_node = tqc_dag._multi_graph.find_successors_by_edge(
+        op_node = tqc_dag._find_successors_by_edge(
             first_meas_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
         )[0]
         while isinstance(op_node, DAGOpNode):
             self.assertIn(qubit_map[op_node.qargs[0]], components[1])
-            op_node = tqc_dag._multi_graph.find_successors_by_edge(
+            op_node = tqc_dag._find_successors_by_edge(
                 op_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
             )[0]
 
@@ -3389,15 +3523,19 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
         measure_op = Measure()
         qc.append(measure_op, [9], [creg[0]])
         # Component 1
-        qc.h(10).c_if(creg, 0)
+        with self.assertWarns(DeprecationWarning):
+            qc.h(10).c_if(creg, 0)
         for i in range(11, 20):
-            qc.ecr(10, i).c_if(creg, 0)
+            with self.assertWarns(DeprecationWarning):
+                qc.ecr(10, i).c_if(creg, 0)
         measure_op = Measure()
         qc.append(measure_op, [19], [creg[0]])
         # Component 2
-        qc.h(20).c_if(creg, 0)
+        with self.assertWarns(DeprecationWarning):
+            qc.h(20).c_if(creg, 0)
         for i in range(21, 30):
-            qc.cz(20, i).c_if(creg, 0)
+            with self.assertWarns(DeprecationWarning):
+                qc.cz(20, i).c_if(creg, 0)
         measure_op = Measure()
         qc.append(measure_op, [29], [creg[0]])
         tqc = transpile(qc, self.backend, optimization_level=opt_level, seed_transpiler=2023)
@@ -3443,31 +3581,31 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
         tqc_dag = circuit_to_dag(tqc)
         qubit_map = {qubit: index for index, qubit in enumerate(tqc_dag.qubits)}
         input_node = tqc_dag.input_map[tqc_dag.clbits[0]]
-        first_meas_node = tqc_dag._multi_graph.find_successors_by_edge(
+        first_meas_node = tqc_dag._find_successors_by_edge(
             input_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
         )[0]
         self.assertIsInstance(first_meas_node.op, Measure)
         self.assertIn(qubit_map[first_meas_node.qargs[0]], components[0])
-        op_node = tqc_dag._multi_graph.find_successors_by_edge(
+        op_node = tqc_dag._find_successors_by_edge(
             first_meas_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
         )[0]
         while not isinstance(op_node.op, Measure):
             self.assertIn(qubit_map[op_node.qargs[0]], components[1])
-            op_node = tqc_dag._multi_graph.find_successors_by_edge(
+            op_node = tqc_dag._find_successors_by_edge(
                 op_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
             )[0]
         self.assertIn(qubit_map[op_node.qargs[0]], components[1])
-        op_node = tqc_dag._multi_graph.find_successors_by_edge(
+        op_node = tqc_dag._find_successors_by_edge(
             op_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
         )[0]
         while not isinstance(op_node.op, Measure):
             self.assertIn(qubit_map[op_node.qargs[0]], components[2])
-            op_node = tqc_dag._multi_graph.find_successors_by_edge(
+            op_node = tqc_dag._find_successors_by_edge(
                 op_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
             )[0]
         self.assertIn(qubit_map[op_node.qargs[0]], components[2])
 
-    @data("sabre", "stochastic", "basic", "lookahead")
+    @data("sabre", "basic", "lookahead")
     def test_basic_connected_circuit_dense_layout(self, routing_method):
         """Test basic connected circuit on disjoint backend"""
         qc = QuantumCircuit(5)
@@ -3491,8 +3629,34 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
                 continue
             self.assertIn(qubits, self.backend.target[op_name])
 
+    @data("stochastic")
+    def test_basic_connected_circuit_dense_layout_stochastic(self, routing_method):
+        """Test basic connected circuit on disjoint backend for deprecated stochastic swap"""
+        # TODO: Remove when StochasticSwap is removed
+        qc = QuantumCircuit(5)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.cx(0, 2)
+        qc.cx(0, 3)
+        qc.cx(0, 4)
+        qc.measure_all()
+        with self.assertWarns(DeprecationWarning):
+            tqc = transpile(
+                qc,
+                self.backend,
+                layout_method="dense",
+                routing_method=routing_method,
+                seed_transpiler=42,
+            )
+        for inst in tqc.data:
+            qubits = tuple(tqc.find_bit(x).index for x in inst.qubits)
+            op_name = inst.operation.name
+            if op_name == "barrier":
+                continue
+            self.assertIn(qubits, self.backend.target[op_name])
+
     # Lookahead swap skipped for performance
-    @data("sabre", "stochastic", "basic")
+    @data("sabre", "basic")
     def test_triple_circuit_dense_layout(self, routing_method):
         """Test a split circuit with one circuit component per chip."""
         qc = QuantumCircuit(30)
@@ -3541,9 +3705,110 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
                 continue
             self.assertIn(qubits, self.backend.target[op_name])
 
-    @data("sabre", "stochastic", "basic", "lookahead")
+    @data("stochastic")
+    def test_triple_circuit_dense_layout_stochastic(self, routing_method):
+        """Test a split circuit with one circuit component per chip for deprecated StochasticSwap."""
+        # TODO: Remove when StochasticSwap is removed
+        qc = QuantumCircuit(30)
+        qc.h(0)
+        qc.h(10)
+        qc.h(20)
+        qc.cx(0, 1)
+        qc.cx(0, 2)
+        qc.cx(0, 3)
+        qc.cx(0, 4)
+        qc.cx(0, 5)
+        qc.cx(0, 6)
+        qc.cx(0, 7)
+        qc.cx(0, 8)
+        qc.cx(0, 9)
+        qc.ecr(10, 11)
+        qc.ecr(10, 12)
+        qc.ecr(10, 13)
+        qc.ecr(10, 14)
+        qc.ecr(10, 15)
+        qc.ecr(10, 16)
+        qc.ecr(10, 17)
+        qc.ecr(10, 18)
+        qc.ecr(10, 19)
+        qc.cy(20, 21)
+        qc.cy(20, 22)
+        qc.cy(20, 23)
+        qc.cy(20, 24)
+        qc.cy(20, 25)
+        qc.cy(20, 26)
+        qc.cy(20, 27)
+        qc.cy(20, 28)
+        qc.cy(20, 29)
+        qc.measure_all()
+        with self.assertWarns(DeprecationWarning):
+            tqc = transpile(
+                qc,
+                self.backend,
+                layout_method="dense",
+                routing_method=routing_method,
+                seed_transpiler=42,
+            )
+        for inst in tqc.data:
+            qubits = tuple(tqc.find_bit(x).index for x in inst.qubits)
+            op_name = inst.operation.name
+            if op_name == "barrier":
+                continue
+            self.assertIn(qubits, self.backend.target[op_name])
+
+    @data("sabre", "basic", "lookahead")
     def test_triple_circuit_invalid_layout(self, routing_method):
         """Test a split circuit with one circuit component per chip."""
+        qc = QuantumCircuit(30)
+        qc.h(0)
+        qc.h(10)
+        qc.h(20)
+        qc.cx(0, 1)
+        qc.cx(0, 2)
+        qc.cx(0, 3)
+        qc.cx(0, 4)
+        qc.cx(0, 5)
+        qc.cx(0, 6)
+        qc.cx(0, 7)
+        qc.cx(0, 8)
+        qc.cx(0, 9)
+        qc.ecr(10, 11)
+        qc.ecr(10, 12)
+        qc.ecr(10, 13)
+        qc.ecr(10, 14)
+        qc.ecr(10, 15)
+        qc.ecr(10, 16)
+        qc.ecr(10, 17)
+        qc.ecr(10, 18)
+        qc.ecr(10, 19)
+        qc.cy(20, 21)
+        qc.cy(20, 22)
+        qc.cy(20, 23)
+        qc.cy(20, 24)
+        qc.cy(20, 25)
+        qc.cy(20, 26)
+        qc.cy(20, 27)
+        qc.cy(20, 28)
+        qc.cy(20, 29)
+        qc.measure_all()
+
+        with self.assertRaises(TranspilerError):
+            with self.assertWarnsRegex(
+                DeprecationWarning,
+                expected_regex="The `target` parameter should be used instead",
+            ):
+                transpile(
+                    qc,
+                    self.backend,
+                    layout_method="trivial",
+                    routing_method=routing_method,
+                    seed_transpiler=42,
+                )
+
+    @data("stochastic")
+    def test_triple_circuit_invalid_layout_stochastic(self, routing_method):
+        """Test a split circuit with one circuit component per chip for deprecated ``StochasticSwap``"""
+        # TODO: Remove when StochasticSwap is removed
         qc = QuantumCircuit(30)
         qc.h(0)
         qc.h(10)
@@ -3585,8 +3850,8 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
                 seed_transpiler=42,
             )
 
-    # Lookahead swap skipped for performance reasons
-    @data("sabre", "stochastic", "basic")
+    # Lookahead swap skipped for performance reasons, stochastic moved to new test due to deprecation
+    @data("sabre", "basic")
     def test_six_component_circuit_dense_layout(self, routing_method):
         """Test input circuit with more than 1 component per backend component."""
         qc = QuantumCircuit(42)
@@ -3640,6 +3905,71 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
             routing_method=routing_method,
             seed_transpiler=42,
         )
+        for inst in tqc.data:
+            qubits = tuple(tqc.find_bit(x).index for x in inst.qubits)
+            op_name = inst.operation.name
+            if op_name == "barrier":
+                continue
+            self.assertIn(qubits, self.backend.target[op_name])
+
+    # Lookahead swap skipped for performance reasons
+    @data("stochastic")
+    def test_six_component_circuit_dense_layout_stochastic(self, routing_method):
+        """Test input circuit with more than 1 component per backend component
+        for deprecated ``StochasticSwap``."""
+        # TODO: Remove when StochasticSwap is removed
+        qc = QuantumCircuit(42)
+        qc.h(0)
+        qc.h(10)
+        qc.h(20)
+        qc.cx(0, 1)
+        qc.cx(0, 2)
+        qc.cx(0, 3)
+        qc.cx(0, 4)
+        qc.cx(0, 5)
+        qc.cx(0, 6)
+        qc.cx(0, 7)
+        qc.cx(0, 8)
+        qc.cx(0, 9)
+        qc.ecr(10, 11)
+        qc.ecr(10, 12)
+        qc.ecr(10, 13)
+        qc.ecr(10, 14)
+        qc.ecr(10, 15)
+        qc.ecr(10, 16)
+        qc.ecr(10, 17)
+        qc.ecr(10, 18)
+        qc.ecr(10, 19)
+        qc.cy(20, 21)
+        qc.cy(20, 22)
+        qc.cy(20, 23)
+        qc.cy(20, 24)
+        qc.cy(20, 25)
+        qc.cy(20, 26)
+        qc.cy(20, 27)
+        qc.cy(20, 28)
+        qc.cy(20, 29)
+        qc.h(30)
+        qc.cx(30, 31)
+        qc.cx(30, 32)
+        qc.cx(30, 33)
+        qc.h(34)
+        qc.cx(34, 35)
+        qc.cx(34, 36)
+        qc.cx(34, 37)
+        qc.h(38)
+        qc.cx(38, 39)
+        qc.cx(39, 40)
+        qc.cx(39, 41)
+        qc.measure_all()
+        with self.assertWarns(DeprecationWarning):
+            tqc = transpile(
+                qc,
+                self.backend,
+                layout_method="dense",
+                routing_method=routing_method,
+                seed_transpiler=42,
+            )
         for inst in tqc.data:
             qubits = tuple(tqc.find_bit(x).index for x in inst.qubits)
             op_name = inst.operation.name

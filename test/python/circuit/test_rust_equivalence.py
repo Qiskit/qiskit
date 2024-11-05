@@ -66,7 +66,7 @@ class TestRustGateEquivalence(QiskitTestCase):
                 continue
 
             with self.subTest(name=name):
-                params = [pi] * standard_gate._num_params()
+                params = [0.1 * (i + 1) for i in range(standard_gate._num_params())]
                 py_def = gate_class.base_class(*params).definition
                 rs_def = standard_gate._get_definition(params)
                 if py_def is None:
@@ -141,10 +141,26 @@ class TestRustGateEquivalence(QiskitTestCase):
                 continue
 
             with self.subTest(name=name):
-                params = [0.1] * standard_gate._num_params()
+                params = [0.1 * (i + 1) for i in range(standard_gate._num_params())]
                 py_def = gate_class.base_class(*params).to_matrix()
                 rs_def = standard_gate._to_matrix(params)
                 np.testing.assert_allclose(rs_def, py_def)
+
+    def test_inverse(self):
+        """Test that the inverse is the same in rust space."""
+        for name, gate_class in self.standard_gates.items():
+            standard_gate = getattr(gate_class, "_standard_gate", None)
+            if standard_gate is None:
+                # gate is not in rust yet
+                continue
+
+            with self.subTest(name=name):
+                params = [0.1 * (i + 1) for i in range(standard_gate._num_params())]
+                py_def = gate_class.base_class(*params).inverse()
+                rs_def = standard_gate._inverse(params)
+                if rs_def is not None:
+                    self.assertEqual(py_def.name, rs_def[0].name)
+                    np.testing.assert_allclose(py_def.params, rs_def[1])
 
     def test_name(self):
         """Test that the gate name properties match in rust space."""
@@ -227,3 +243,20 @@ class TestRustGateEquivalence(QiskitTestCase):
                 circuit.append(gate, [0, 1, 2])
                 self.assertIsNotNone(getattr(gate, "_standard_gate", None))
                 np.testing.assert_almost_equal(Operator(circuit.data[0].operation).to_matrix(), op)
+
+    def test_extracted_as_standard_gate(self):
+        """Test that every gate in the standard library gets correctly extracted as a Rust-space
+        `StandardGate` in its default configuration when passed through `append`."""
+        standards = set()
+        qc = QuantumCircuit(4)
+        for name, gate in get_standard_gate_name_mapping().items():
+            if gate._standard_gate is None:
+                # Not a standard gate.
+                continue
+            standards.add(name)
+            qc.append(gate, qc.qubits[: gate.num_qubits], [])
+        # Sanity check: the test should have found at least one standard gate in the mapping.
+        self.assertNotEqual(standards, set())
+
+        extracted = {inst.name for inst in qc.data if inst.is_standard_gate()}
+        self.assertEqual(standards, extracted)

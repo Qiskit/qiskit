@@ -18,7 +18,7 @@ from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.transpiler.passes import Decompose
 from qiskit.converters import circuit_to_dag
 from qiskit.circuit.library import HGate, CCXGate, U2Gate
-from qiskit.quantum_info.operators import Operator
+from qiskit.quantum_info.operators import Operator, Clifford
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -117,15 +117,19 @@ class TestDecompose(QiskitTestCase):
         qr = QuantumRegister(1, "qr")
         cr = ClassicalRegister(1, "cr")
         circuit = QuantumCircuit(qr, cr)
-        circuit.h(qr).c_if(cr, 1)
-        circuit.x(qr).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.h(qr).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.x(qr).c_if(cr, 1)
         dag = circuit_to_dag(circuit)
         pass_ = Decompose(HGate)
         after_dag = pass_.run(dag)
 
         ref_circuit = QuantumCircuit(qr, cr)
-        ref_circuit.append(U2Gate(0, pi), [qr[0]]).c_if(cr, 1)
-        ref_circuit.x(qr).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            ref_circuit.append(U2Gate(0, pi), [qr[0]]).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            ref_circuit.x(qr).c_if(cr, 1)
         ref_dag = circuit_to_dag(ref_circuit)
 
         self.assertEqual(after_dag, ref_dag)
@@ -145,7 +149,7 @@ class TestDecompose(QiskitTestCase):
         self.assertEqual(qc1, output)
 
     def test_decomposition_preserves_qregs_order(self):
-        """Test decomposing a gate preserves it's definition registers order"""
+        """Test decomposing a gate preserves the order of registers in its definition"""
         qr = QuantumRegister(2, "qr1")
         qc1 = QuantumCircuit(qr)
         qc1.cx(1, 0)
@@ -317,3 +321,34 @@ class TestDecompose(QiskitTestCase):
         decomposed = circuit.decompose()
 
         self.assertEqual(decomposed, block)
+
+    def test_decompose_synthesis(self):
+        """Test a high-level object with only a synthesis and no definition is correctly decomposed."""
+        qc = QuantumCircuit(1)
+        qc.h(0)
+        cliff = Clifford(qc)
+
+        bigger = QuantumCircuit(1)
+        bigger.append(cliff, [0])
+
+        decomposed = bigger.decompose()
+
+        self.assertEqual(qc, decomposed)
+
+    def test_specify_hls_object(self):
+        """Test specifying an HLS object by name works."""
+        qc = QuantumCircuit(1)
+        qc.h(0)
+        cliff = Clifford(qc)
+
+        bigger = QuantumCircuit(1)
+        bigger.append(cliff, [0])
+        bigger.h(0)  # add another gate that should remain unaffected, but has a definition
+
+        decomposed = bigger.decompose(gates_to_decompose=["clifford"])
+
+        expected = QuantumCircuit(1)
+        expected.h(0)
+        expected.h(0)
+
+        self.assertEqual(expected, decomposed)

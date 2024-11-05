@@ -30,6 +30,7 @@ struct SubsetResult {
     pub error: f64,
     pub map: Vec<usize>,
     pub subgraph: Vec<[usize; 2]>,
+    pub index: usize,
 }
 
 fn bfs_sort(adj_matrix: ArrayView2<f64>, start: usize, num_qubits: usize) -> Vec<usize> {
@@ -190,6 +191,7 @@ pub fn best_subset_inner(
             error,
             map: bfs,
             subgraph,
+            index: k,
         }
     };
 
@@ -199,17 +201,20 @@ pub fn best_subset_inner(
             map: Vec::new(),
             error: f64::INFINITY,
             subgraph: Vec::new(),
+            index: usize::MAX,
         }
     };
 
     let reduce_fn = |best: SubsetResult, curr: SubsetResult| -> SubsetResult {
         if use_error {
-            if curr.count >= best.count && curr.error < best.error {
+            if (curr.count >= best.count && curr.error < best.error)
+                || (curr.count == best.count && curr.error == best.error && curr.index < best.index)
+            {
                 curr
             } else {
                 best
             }
-        } else if curr.count > best.count {
+        } else if curr.count > best.count || (curr.count == best.count && curr.index < best.index) {
             curr
         } else {
             best
@@ -244,7 +249,6 @@ pub fn best_subset_inner(
     [rows, cols, best_map]
 }
 
-#[pymodule]
 pub fn dense_layout(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(best_subset))?;
     Ok(())

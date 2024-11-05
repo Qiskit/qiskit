@@ -28,6 +28,7 @@ from qiskit.circuit import (
     Parameter,
     Operation,
     EquivalenceLibrary,
+    Delay,
 )
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.library import (
@@ -42,9 +43,12 @@ from qiskit.circuit.library import (
     CU3Gate,
     CU1Gate,
     QFTGate,
+    IGate,
+    MCXGate,
+    SGate,
 )
 from qiskit.circuit.library.generalized_gates import LinearFunction
-from qiskit.quantum_info import Clifford
+from qiskit.quantum_info import Clifford, Operator, Statevector
 from qiskit.synthesis.linear import random_invertible_binary_matrix
 from qiskit.compiler import transpile
 from qiskit.exceptions import QiskitError
@@ -57,13 +61,20 @@ from qiskit.transpiler.passes.synthesis.plugin import (
     high_level_synthesis_plugin_names,
 )
 from qiskit.transpiler.passes.synthesis.high_level_synthesis import HighLevelSynthesis, HLSConfig
+from qiskit.transpiler.passes.synthesis.hls_plugins import (
+    MCXSynthesis1CleanB95,
+    MCXSynthesisNCleanM15,
+    MCXSynthesisNDirtyI15,
+    MCXSynthesisGrayCode,
+    MCXSynthesisDefault,
+    MCXSynthesisNoAuxV24,
+)
 from qiskit.circuit.annotated_operation import (
     AnnotatedOperation,
     ControlModifier,
     InverseModifier,
     PowerModifier,
 )
-from qiskit.quantum_info import Operator
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.circuit.library.standard_gates.equivalence_library import (
     StandardEquivalenceLibrary as std_eqlib,
@@ -220,6 +231,39 @@ class MockPluginManager:
         return self.plugins[plugin_name]()
 
 
+class MockPlugin(HighLevelSynthesisPlugin):
+    """A mock HLS using auxiliary qubits."""
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        """Run a mock synthesis for high_level_object being anything with a num_qubits property.
+
+        Replaces the high_level_objects by a layer of X gates, applies S gates on clean
+        ancillas and T gates on dirty ancillas.
+        """
+
+        num_action_qubits = high_level_object.num_qubits
+        num_clean = options["num_clean_ancillas"]
+        num_dirty = options["num_dirty_ancillas"]
+        num_qubits = num_action_qubits + num_clean + num_dirty
+        decomposition = QuantumCircuit(num_qubits)
+        decomposition.x(range(num_action_qubits))
+        if num_clean > 0:
+            decomposition.s(range(num_action_qubits, num_action_qubits + num_clean))
+        if num_dirty > 0:
+            decomposition.t(range(num_action_qubits + num_clean, num_qubits))
+
+        return decomposition
+
+
+class EmptyPlugin(HighLevelSynthesisPlugin):
+    """A mock plugin returning None (i.e. a failed synthesis)."""
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        """Elaborate code to return None :)"""
+        return None
+
+
+@ddt
 class TestHighLevelSynthesisInterface(QiskitTestCase):
     """Tests for the synthesis plugin interface."""
 
@@ -481,7 +525,7 @@ class TestHighLevelSynthesisInterface(QiskitTestCase):
                 [
                     HighLevelSynthesis(
                         hls_config=hls_config,
-                        target=GenericBackendV2(num_qubits=5, basis_gates=["u", "cx"]).target,
+                        target=GenericBackendV2(num_qubits=5, basis_gates=["u", "cx", "id"]).target,
                     )
                 ]
             )
@@ -513,6 +557,111 @@ class TestHighLevelSynthesisInterface(QiskitTestCase):
             # HighLevelSynthesis is initialized with use_qubit_indices=True, which means synthesis
             # plugin should see qubits and complete without errors.
             pm_use_qubits_true.run(qc)
+
+    def test_ancilla_arguments(self):
+        """Test ancillas are correctly labelled."""
+        gate = Gate(name="duckling", num_qubits=5, params=[])
+        hls_config = HLSConfig(duckling=[MockPlugin()])
+
+        qc = QuantumCircuit(10)
+        qc.h([0, 8, 9])  # the two last H gates yield two dirty ancillas
+        qc.barrier()
+        qc.append(gate, range(gate.num_qubits))
+
+        pm = PassManager([HighLevelSynthesis(hls_config=hls_config)])
+
+        synthesized = pm.run(qc)
+
+        count = synthesized.count_ops()
+        self.assertEqual(count.get("x", 0), gate.num_qubits)  # gate qubits
+        self.assertEqual(count.get("s", 0), qc.num_qubits - gate.num_qubits - 2)  # clean
+        self.assertEqual(count.get("t", 0), 2)  # dirty
+
+    def test_ancilla_noop(self):
+        """Test ancillas states are not affected by no-ops."""
+        gate = Gate(name="duckling", num_qubits=1, params=[])
+        hls_config = HLSConfig(duckling=[MockPlugin()])
+        pm = PassManager([HighLevelSynthesis(hls_config)])
+
+        noops = [Delay(100), IGate()]
+        for noop in noops:
+            qc = QuantumCircuit(2)
+            qc.append(noop, [1])  # this noop should still yield a clean ancilla
+            qc.barrier()
+            qc.append(gate, [0])
+
+            synthesized = pm.run(qc)
+            count = synthesized.count_ops()
+            with self.subTest(noop=noop):
+                self.assertEqual(count.get("x", 0), gate.num_qubits)  # gate qubits
+                self.assertEqual(count.get("s", 0), 1)  # clean ancilla
+                self.assertEqual(count.get("t", 0), 0)  # dirty ancilla
+
+    @data(True, False)
+    def test_ancilla_reset(self, reset):
+        """Test ancillas are correctly freed after a reset operation."""
+        gate = Gate(name="duckling", num_qubits=1, params=[])
+        hls_config = HLSConfig(duckling=[MockPlugin()])
+        pm = PassManager([HighLevelSynthesis(hls_config)])
+
+        qc = QuantumCircuit(2)
+        qc.h(1)
+        if reset:
+            qc.reset(1)  # the reset frees the ancilla qubit again
+        qc.barrier()
+        qc.append(gate, [0])
+
+        synthesized = pm.run(qc)
+        count = synthesized.count_ops()
+
+        expected_clean = 1 if reset else 0
+        expected_dirty = 1 - expected_clean
+
+        self.assertEqual(count.get("x", 0), gate.num_qubits)  # gate qubits
+        self.assertEqual(count.get("s", 0), expected_clean)  # clean ancilla
+        self.assertEqual(count.get("t", 0), expected_dirty)  # clean ancilla
+
+    def test_ancilla_state_maintained(self):
+        """Test ancillas states are still dirty/clean after they've been used."""
+        gate = Gate(name="duckling", num_qubits=1, params=[])
+        hls_config = HLSConfig(duckling=[MockPlugin()])
+        pm = PassManager([HighLevelSynthesis(hls_config)])
+
+        qc = QuantumCircuit(3)
+        qc.h(2)  # the final ancilla is dirty
+        qc.barrier()
+        qc.append(gate, [0])
+        qc.append(gate, [0])
+
+        # the ancilla states should be unchanged after the synthesis, i.e. qubit 1 is always
+        # clean (S gate) and qubit 2 is always dirty (T gate)
+        ref = QuantumCircuit(3)
+        ref.h(2)
+        ref.barrier()
+        for _ in range(2):
+            ref.x(0)
+            ref.s(1)
+            ref.t(2)
+
+        self.assertEqual(ref, pm.run(qc))
+
+    def test_synth_fails_definition_exists(self):
+        """Test the case that a synthesis fails but the operation can be unrolled."""
+
+        circuit = QuantumCircuit(1)
+        circuit.ry(0.2, 0)
+
+        config = HLSConfig(ry=[EmptyPlugin()])
+        hls = HighLevelSynthesis(hls_config=config)
+
+        with self.subTest("nothing happened w/o basis gates"):
+            out = hls(circuit)
+            self.assertEqual(out, circuit)
+
+        hls = HighLevelSynthesis(hls_config=config, basis_gates=["u"])
+        with self.subTest("unrolled w/ basis gates"):
+            out = hls(circuit)
+            self.assertEqual(out.count_ops(), {"u": 1})
 
 
 class TestPMHSynthesisLinearFunctionPlugin(QiskitTestCase):
@@ -1224,8 +1373,23 @@ class TestHighLevelSynthesisModifiers(QiskitTestCase):
         lazy_gate3 = AnnotatedOperation(custom_gate, ControlModifier(2))
         circuit = QuantumCircuit(6)
         circuit.append(lazy_gate3, [0, 1, 2, 3, 4, 5])
-        transpiled_circuit = HighLevelSynthesis(basis_gates=["cx", "u"])(circuit)
-        self.assertEqual(Operator(circuit), Operator(transpiled_circuit))
+
+        with self.subTest(qubits_initially_zero=False):
+            # When transpiling without assuming that qubits are initially zero,
+            # we should have that the Operators before and after are equal.
+            transpiled_circuit = HighLevelSynthesis(
+                basis_gates=["cx", "u"], qubits_initially_zero=False
+            )(circuit)
+            self.assertEqual(Operator(circuit), Operator(transpiled_circuit))
+
+        with self.subTest(qubits_initially_zero=True):
+            # When transpiling assuming that qubits are initially zero,
+            # we should have that the Statevectors before and after
+            # are equal (but not the full Operators).
+            transpiled_circuit = HighLevelSynthesis(
+                basis_gates=["cx", "u"], qubits_initially_zero=True
+            )(circuit)
+            self.assertEqual(Statevector(circuit), Statevector(transpiled_circuit))
 
     def test_definition_with_high_level_objects(self):
         """Test annotated gates with definitions involving annotations and
@@ -1326,6 +1490,137 @@ class TestHighLevelSynthesisModifiers(QiskitTestCase):
         for op in ops:
             self.assertIn(op, ["u", "cx", "ecr", "measure"])
 
+    def test_simple_circuit(self):
+        """Test HLS on a simple circuit."""
+        qc = QuantumCircuit(3)
+        qc.cz(1, 2)
+        pass_ = HighLevelSynthesis(basis_gates=["cx", "u"])
+        qct = pass_(qc)
+        self.assertEqual(Operator(qc), Operator(qct))
+
+    def test_simple_circuit2(self):
+        """Test HLS on a simple circuit."""
+        qc = QuantumCircuit(6)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.cx(1, 3)
+        qc.h(5)
+        pass_ = HighLevelSynthesis(basis_gates=["cx", "u", "h"])
+        qct = pass_(qc)
+        self.assertEqual(Operator(qc), Operator(qct))
+
+    def test_circuit_with_recursive_def(self):
+        """Test recursive synthesis of the definition circuit."""
+        inner = QuantumCircuit(2)
+        inner.cz(0, 1)
+        qc = QuantumCircuit(3)
+        qc.append(inner.to_gate(), [0, 2])
+        pass_ = HighLevelSynthesis(basis_gates=["cx", "u"])
+        qct = pass_(qc)
+        self.assertEqual(Operator(qc), Operator(qct))
+
+    def test_circuit_with_recursive_def2(self):
+        """Test recursive synthesis of the definition circuit."""
+        inner1 = QuantumCircuit(2)
+        inner1.cz(0, 1)
+        qc = QuantumCircuit(4)
+        qc.append(inner1.to_instruction(), [2, 3])
+        pass_ = HighLevelSynthesis(basis_gates=["cz", "cx", "u"])
+        qct = pass_(qc)
+        self.assertEqual(Operator(qc), Operator(qct))
+
+    def test_circuit_with_recursive_def3(self):
+        """Test recursive synthesis of the definition circuit."""
+        inner2 = QuantumCircuit(2)
+        inner2.h(0)
+        inner2.cx(0, 1)
+
+        inner1 = QuantumCircuit(4)
+        inner1.cz(0, 1)
+        inner1.append(inner2.to_instruction(), [0, 2])
+
+        qc = QuantumCircuit(6)
+        qc.h(1)
+        qc.h(2)
+        qc.cz(1, 2)
+        qc.append(inner1.to_instruction(), [2, 0, 4, 3])
+        qc.h(2)
+        pass_ = HighLevelSynthesis(basis_gates=["h", "z", "cx", "u"])
+        qct = pass_(qc)
+        self.assertEqual(Operator(qc), Operator(qct))
+
+    def test_circuit_with_mcx(self):
+        """Test synthesis with plugins."""
+        qc = QuantumCircuit(10)
+        qc.mcx([3, 4, 5, 6, 7], 2)
+        basis_gates = ["u", "cx"]
+        qct = HighLevelSynthesis(basis_gates=basis_gates)(qc)
+        self.assertEqual(Statevector(qc), Statevector(qct))
+
+    def test_circuit_with_mcx_def(self):
+        """Test synthesis where the plugin is called within the recursive call
+        on the definition."""
+        circuit = QuantumCircuit(6)
+        circuit.mcx([0, 1, 2, 3, 4], 5)
+        custom_gate = circuit.to_gate()
+        qc = QuantumCircuit(10)
+        qc.append(custom_gate, [3, 4, 5, 6, 7, 2])
+        basis_gates = ["u", "cx"]
+        qct = HighLevelSynthesis(basis_gates=basis_gates)(qc)
+        self.assertEqual(Statevector(qc), Statevector(qct))
+
+    def test_circuit_with_mcx_def_rec(self):
+        """Test synthesis where the plugin is called within the recursive call
+        on the definition."""
+        inner2 = QuantumCircuit(6)
+        inner2.mcx([0, 1, 2, 3, 4], 5)
+        inner1 = QuantumCircuit(7)
+        inner1.append(inner2.to_gate(), [1, 2, 3, 4, 5, 6])
+        qc = QuantumCircuit(10)
+        qc.append(inner1.to_gate(), [2, 3, 4, 5, 6, 7, 8])
+        pass_ = HighLevelSynthesis(basis_gates=["h", "z", "cx", "u"])
+        qct = pass_(qc)
+        self.assertEqual(Statevector(qc), Statevector(qct))
+
+    def test_annotated_gate(self):
+        """Test synthesis with annotated gate."""
+        qc = QuantumCircuit(10)
+        qc.x(1)
+        qc.cz(1, 2)
+        qc.append(SGate().control(3, annotated=True), [0, 1, 8, 9])
+        pass_ = HighLevelSynthesis(basis_gates=["h", "z", "cx", "u"])
+        qct = pass_(qc)
+        self.assertEqual(Operator(qc), Operator(qct))
+
+    def test_annotated_circuit(self):
+        """Test synthesis with annotated custom gate."""
+        circ = QuantumCircuit(2)
+        circ.h(0)
+        circ.cy(0, 1)
+        qc = QuantumCircuit(10)
+        qc.x(1)
+        qc.cz(1, 2)
+        qc.append(circ.to_gate().control(3, annotated=True), [2, 0, 3, 7, 8])
+        pass_ = HighLevelSynthesis(basis_gates=["h", "z", "cx", "u"])
+        qct = pass_(qc)
+        self.assertEqual(Statevector(qc), Statevector(qct))
+
+    def test_annotated_rec(self):
+        """Test synthesis with annotated custom gates and recursion."""
+        inner2 = QuantumCircuit(2)
+        inner2.h(0)
+        inner2.cy(0, 1)
+        inner1 = QuantumCircuit(5)
+        inner1.h(1)
+        inner1.append(inner2.to_gate().control(2, annotated=True), [1, 2, 3, 4])
+        qc = QuantumCircuit(10)
+        qc.x(1)
+        qc.cz(1, 2)
+        qc.append(inner1.to_gate().control(3, annotated=True), [9, 8, 7, 6, 5, 4, 3, 2])
+        pass_ = HighLevelSynthesis(basis_gates=["h", "z", "cx", "u"])
+        qct = pass_(qc)
+        self.assertEqual(Statevector(qc), Statevector(qct))
+
 
 class TestUnrollerCompatability(QiskitTestCase):
     """Tests backward compatibility with the UnrollCustomDefinitions pass.
@@ -1425,9 +1720,12 @@ class TestUnrollerCompatability(QiskitTestCase):
         circuit.rz(0.3, qr)
         circuit.rx(0.1, qr)
         circuit.measure(qr, cr)
-        circuit.x(qr).c_if(cr, 1)
-        circuit.y(qr).c_if(cr, 1)
-        circuit.z(qr).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.x(qr).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.y(qr).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.z(qr).c_if(cr, 1)
         dag = circuit_to_dag(circuit)
         pass_ = HighLevelSynthesis(equivalence_library=std_eqlib, basis_gates=["u1", "u2", "u3"])
         dag = pass_.run(dag)
@@ -1458,9 +1756,12 @@ class TestUnrollerCompatability(QiskitTestCase):
         ref_circuit.append(U1Gate(0.3), [qr[0]])
         ref_circuit.append(U3Gate(0.1, -np.pi / 2, np.pi / 2), [qr[0]])
         ref_circuit.measure(qr[0], cr[0])
-        ref_circuit.append(U3Gate(np.pi, 0, np.pi), [qr[0]]).c_if(cr, 1)
-        ref_circuit.append(U3Gate(np.pi, np.pi / 2, np.pi / 2), [qr[0]]).c_if(cr, 1)
-        ref_circuit.append(U1Gate(np.pi), [qr[0]]).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            ref_circuit.append(U3Gate(np.pi, 0, np.pi), [qr[0]]).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            ref_circuit.append(U3Gate(np.pi, np.pi / 2, np.pi / 2), [qr[0]]).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            ref_circuit.append(U1Gate(np.pi), [qr[0]]).c_if(cr, 1)
         ref_dag = circuit_to_dag(ref_circuit)
 
         self.assertEqual(unrolled_dag, ref_dag)
@@ -1742,6 +2043,20 @@ class TestUnrollerCompatability(QiskitTestCase):
         expected.p(gamma, qr2[3])
 
         self.assertEqual(circuit_to_dag(expected), out_dag)
+
+    def test_unroll_with_clbit(self):
+        """Test unrolling a custom definition that has qubits and clbits."""
+        block = QuantumCircuit(1, 1)
+        block.h(0)
+        block.measure(0, 0)
+
+        circuit = QuantumCircuit(1, 1)
+        circuit.append(block.to_instruction(), [0], [0])
+
+        hls = HighLevelSynthesis(basis_gates=["h", "measure"])
+        out = hls(circuit)
+
+        self.assertEqual(block, out)
 
 
 class TestGate(Gate):
@@ -2130,6 +2445,165 @@ class TestQFTSynthesisPlugins(QiskitTestCase):
         hls_config = HLSConfig(qft=[qft_plugin_name])
         hls_pass = HighLevelSynthesis(hls_config=hls_config)
         qct = hls_pass(qc)
+        self.assertEqual(Operator(qc), Operator(qct))
+
+    @data("line", "full")
+    def test_skip_non_qft(self, qft_plugin_name):
+        """Test that synthesis plugins are not applied on gates that are called `qft`, yet
+        that are not of type `QFTGate`.
+        """
+        qc = QuantumCircuit(1)
+        qc2 = QuantumCircuit(1, name="qft")
+        qc2.s(0)
+        qc.append(qc2.to_instruction(), qc.qregs[0])
+        hls_config = HLSConfig(qft=[qft_plugin_name])
+        hls_pass = HighLevelSynthesis(hls_config=hls_config)
+        qct = hls_pass(qc)
+        # HighLevelSynthesis should replace the custom gate called "qft"
+        # by the user-provided definition.
+        self.assertEqual(Operator(qc2), Operator(qct))
+
+
+@ddt
+class TestMCXSynthesisPlugins(QiskitTestCase):
+    """Tests related to plugins for MCXGate."""
+
+    def test_supported_names(self):
+        """Test that there is a default synthesis plugin for MCXGate."""
+        supported_plugin_names = high_level_synthesis_plugin_names("mcx")
+        self.assertIn("default", supported_plugin_names)
+
+    def test_mcx_plugins_applicability(self):
+        """Test applicability of MCX synthesis plugins for MCX gates."""
+        gate = MCXGate(5)
+
+        with self.subTest(method="n_clean_m15", num_clean_ancillas=4, num_dirty_ancillas=4):
+            # should have a decomposition
+            decomposition = MCXSynthesisNCleanM15().run(
+                gate, num_clean_ancillas=4, num_dirty_ancillas=4
+            )
+            self.assertIsNotNone(decomposition)
+
+        with self.subTest(method="n_clean_m15", num_clean_ancillas=2, num_dirty_ancillas=4):
+            # should not have a decomposition
+            decomposition = MCXSynthesisNCleanM15().run(
+                gate, num_clean_ancillas=2, num_dirty_ancillas=4
+            )
+            self.assertIsNone(decomposition)
+
+        with self.subTest(method="n_dirty_i15", num_clean_ancillas=4, num_dirty_ancillas=4):
+            # should have a decomposition
+            decomposition = MCXSynthesisNDirtyI15().run(
+                gate, num_clean_ancillas=4, num_dirty_ancillas=4
+            )
+            self.assertIsNotNone(decomposition)
+
+        with self.subTest(method="n_dirty_i15", num_clean_ancillas=2, num_dirty_ancillas=2):
+            # should have a decomposition
+            decomposition = MCXSynthesisNDirtyI15().run(
+                gate, num_clean_ancillas=2, num_dirty_ancillas=2
+            )
+            self.assertIsNotNone(decomposition)
+
+        with self.subTest(method="n_dirty_i15", num_clean_ancillas=1, num_dirty_ancillas=1):
+            # should not have a decomposition
+            decomposition = MCXSynthesisNDirtyI15().run(
+                gate, num_clean_ancillas=1, num_dirty_ancillas=1
+            )
+            self.assertIsNone(decomposition)
+
+        with self.subTest(method="1_clean_b95", num_clean_ancillas=1, num_dirty_ancillas=0):
+            # should have a decomposition
+            decomposition = MCXSynthesis1CleanB95().run(
+                gate, num_clean_ancillas=1, num_dirty_ancillas=0
+            )
+            self.assertIsNotNone(decomposition)
+
+        with self.subTest(method="1_clean_b95", num_clean_ancillas=0, num_dirty_ancillas=1):
+            # should not have a decomposition
+            decomposition = MCXSynthesis1CleanB95().run(
+                gate, num_clean_ancillas=0, num_dirty_ancillas=1
+            )
+            self.assertIsNone(decomposition)
+
+        with self.subTest(method="noaux_v24", num_clean_ancillas=1, num_dirty_ancillas=1):
+            # should have a decomposition
+            decomposition = MCXSynthesisNoAuxV24().run(
+                gate, num_clean_ancillas=1, num_dirty_ancillas=1
+            )
+            self.assertIsNotNone(decomposition)
+
+        with self.subTest(method="noaux_v24", num_clean_ancillas=0, num_dirty_ancillas=0):
+            # should have a decomposition
+            decomposition = MCXSynthesisNoAuxV24().run(
+                gate, num_clean_ancillas=0, num_dirty_ancillas=0
+            )
+            self.assertIsNotNone(decomposition)
+
+        with self.subTest(method="gray_code", num_clean_ancillas=1, num_dirty_ancillas=1):
+            # should have a decomposition
+            decomposition = MCXSynthesisGrayCode().run(
+                gate, num_clean_ancillas=1, num_dirty_ancillas=1
+            )
+            self.assertIsNotNone(decomposition)
+
+        with self.subTest(method="gray_code", num_clean_ancillas=0, num_dirty_ancillas=0):
+            # should have a decomposition
+            decomposition = MCXSynthesisGrayCode().run(
+                gate, num_clean_ancillas=0, num_dirty_ancillas=0
+            )
+            self.assertIsNotNone(decomposition)
+
+        with self.subTest(method="default", num_clean_ancillas=1, num_dirty_ancillas=1):
+            # should have a decomposition
+            decomposition = MCXSynthesisDefault().run(
+                gate, num_clean_ancillas=1, num_dirty_ancillas=1
+            )
+            self.assertIsNotNone(decomposition)
+
+        with self.subTest(method="default", num_clean_ancillas=0, num_dirty_ancillas=0):
+            # should have a decomposition
+            decomposition = MCXSynthesisDefault().run(
+                gate, num_clean_ancillas=0, num_dirty_ancillas=0
+            )
+            self.assertIsNotNone(decomposition)
+
+    @data("n_clean_m15", "n_dirty_i15", "1_clean_b95", "noaux_v24", "gray_code", "default")
+    def test_mcx_plugins_correctness_from_arbitrary(self, mcx_plugin_name):
+        """Test that all plugins return a correct Operator when qubits are not
+        initially zero."""
+        qc = QuantumCircuit(6)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.mcx(control_qubits=[0, 1, 2], target_qubit=[3])
+        qc.mcx(control_qubits=[2, 3, 4, 5], target_qubit=[1])
+        qc.mcx(control_qubits=[5, 4, 3, 2, 1], target_qubit=[0])
+        hls_config = HLSConfig(mcx=[mcx_plugin_name])
+        hls_pass = HighLevelSynthesis(hls_config=hls_config, qubits_initially_zero=False)
+        qct = hls_pass(qc)
+        self.assertEqual(Operator(qc), Operator(qct))
+
+    @data("n_clean_m15", "n_dirty_i15", "1_clean_b95", "noaux_v24", "gray_code", "default")
+    def test_mcx_plugins_correctness_from_zero(self, mcx_plugin_name):
+        """Test that all plugins return a correct Statevector when qubits are
+        initially zero."""
+        qc = QuantumCircuit(6)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.mcx(control_qubits=[0, 1, 2], target_qubit=[3])
+        qc.mcx(control_qubits=[2, 3, 4, 5], target_qubit=[1])
+        qc.mcx(control_qubits=[5, 4, 3, 2, 1], target_qubit=[0])
+        hls_config = HLSConfig(mcx=[mcx_plugin_name])
+        hls_pass = HighLevelSynthesis(hls_config=hls_config, qubits_initially_zero=True)
+        qct = hls_pass(qc)
+        self.assertEqual(Statevector(qc), Statevector(qct))
+
+    def test_annotated_mcx(self):
+        """Test synthesis of annotated MCX gates."""
+        qc = QuantumCircuit(6)
+        qc.h(0)
+        qc.append(MCXGate(3).inverse(annotated=True).control(2, annotated=True), [0, 1, 2, 3, 4, 5])
+        qct = transpile(qc, qubits_initially_zero=False)
         self.assertEqual(Operator(qc), Operator(qct))
 
 
