@@ -152,12 +152,12 @@ set the amount of qubits involved at instantiation time.
 
 .. code-block::
 
-    from qiskit.circuit.library import Diagonal
+    from qiskit.circuit.library import DiagonalGate
 
-    diagonal = Diagonal([1, 1])
+    diagonal = DiagonalGate([1, 1j])
     print(diagonal.num_qubits)
 
-    diagonal = Diagonal([1, 1, 1, 1])
+    diagonal = DiagonalGate([1, 1, 1, -1])
     print(diagonal.num_qubits)
 
 .. code-block:: text
