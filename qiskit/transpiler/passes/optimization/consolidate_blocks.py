@@ -74,14 +74,13 @@ class ConsolidateBlocks(TransformationPass):
         if kak_basis_gate is not None:
             self.decomposer = TwoQubitBasisDecomposer(kak_basis_gate)
         elif basis_gates is not None:
-            kak_gates = set(basis_gates or []).intersection(KAK_GATE_NAMES.keys())
+            kak_gates = KAK_GATE_NAMES.keys() & (basis_gates or [])
             kak_gate = None
             if kak_gates:
-                kak_gate = KAK_GATE_NAMES[kak_gates.pop()]
                 self.decomposer = TwoQubitBasisDecomposer(
-                    kak_gate, basis_fidelity=approximation_degree or 1.0
+                    KAK_GATE_NAMES[kak_gates.pop()], basis_fidelity=approximation_degree or 1.0
                 )
-            if kak_gate is None:
+            else:
                 self.decomposer = TwoQubitBasisDecomposer(CXGate())
         else:
             self.decomposer = TwoQubitBasisDecomposer(CXGate())

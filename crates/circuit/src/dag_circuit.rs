@@ -6763,7 +6763,7 @@ impl DAGCircuit {
         Self::from_circuit(py, circ, copy_op, None, None)
     }
 
-    // Replace a block of node indices with a new python operation
+    /// Replace a block of node indices with a new python operation
     pub fn replace_block_with_py_op(
         &mut self,
         py: Python,
