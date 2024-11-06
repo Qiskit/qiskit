@@ -24,11 +24,11 @@ from qiskit._accelerate.synthesis.evolution import (
 def synth_pauli_network_rustiq(
     num_qubits: int,
     pauli_network: list,
-    optimize_count: bool,
-    preserve_order: bool,
-    upto_clifford: bool,
-    upto_phase: bool,
-    resynth_clifford_method: int,
+    optimize_count: bool = True,
+    preserve_order: bool = True,
+    upto_clifford: bool = False,
+    upto_phase: bool = False,
+    resynth_clifford_method: int = 0,
 ) -> QuantumCircuit:
     """
     Calls Rustiq's pauli network synthesis algorithm.

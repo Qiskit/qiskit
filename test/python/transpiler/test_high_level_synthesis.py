@@ -49,6 +49,7 @@ from qiskit.circuit.library import (
 )
 from qiskit.circuit.library import LinearFunction, PauliEvolutionGate
 from qiskit.quantum_info import Clifford, Operator, Statevector, SparsePauliOp
+from qiskit.synthesis.evolution import synth_pauli_network_rustiq
 from qiskit.synthesis.linear import random_invertible_binary_matrix
 from qiskit.compiler import transpile
 from qiskit.exceptions import QiskitError
@@ -2657,6 +2658,16 @@ class TestPauliEvolutionSynthesisPlugins(QiskitTestCase):
             qct = hls_pass(qc)
             cnt_ops = qct.count_ops()
             self.assertEqual(cnt_ops["cx"], 5)
+
+    def test_rustiq_with_parameterized_angles(self):
+        """Test Rustiq's synthesis with parameterized angles."""
+        theta = Parameter("theta")
+        t = Parameter("t")
+        pauli_network = [("XXX", [0, 1, 2], theta), ("Y", [1], t)]
+        qct = synth_pauli_network_rustiq(
+            num_qubits=4, pauli_network=pauli_network, upto_clifford=True
+        )
+        self.assertEqual(set(qct.parameters), {t, theta})
 
 
 if __name__ == "__main__":
