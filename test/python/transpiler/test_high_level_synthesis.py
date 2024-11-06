@@ -2718,13 +2718,13 @@ class TestPauliEvolutionSynthesisPlugins(QiskitTestCase):
 
     def test_rustiq_with_parameterized_angles(self):
         """Test Rustiq's synthesis with parameterized angles."""
-        theta = Parameter("theta")
-        t = Parameter("t")
-        pauli_network = [("XXX", [0, 1, 2], theta), ("Y", [1], t)]
+        alpha = Parameter("alpha")
+        beta = Parameter("beta")
+        pauli_network = [("XXX", [0, 1, 2], alpha), ("Y", [1], beta)]
         qct = synth_pauli_network_rustiq(
             num_qubits=4, pauli_network=pauli_network, upto_clifford=True
         )
-        self.assertEqual(set(qct.parameters), {t, theta})
+        self.assertEqual(set(qct.parameters), {alpha, beta})
 
 
 if __name__ == "__main__":
