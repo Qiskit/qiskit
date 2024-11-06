@@ -10,8 +10,6 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-#![allow(clippy::too_many_arguments)]
-
 mod pauli_network;
 
 use pyo3::prelude::*;
@@ -52,6 +50,7 @@ use crate::synthesis::evolution::pauli_network::pauli_network_synthesis_inner;
 /// the returned circuit is equivalent to the given pauli network.
 #[pyfunction]
 #[pyo3(signature = (num_qubits, pauli_network, optimize_count=true, preserve_order=true, upto_clifford=false, upto_phase=false, resynth_clifford_method=1))]
+#[allow(clippy::too_many_arguments)]
 pub fn pauli_network_synthesis(
     py: Python,
     num_qubits: usize,

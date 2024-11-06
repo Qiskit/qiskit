@@ -10,8 +10,6 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-#![allow(clippy::too_many_arguments)]
-
 use crate::synthesis::clifford::greedy_synthesis::resynthesize_clifford_circuit;
 
 use pyo3::prelude::*;
@@ -41,10 +39,10 @@ type QiskitGate = (StandardGate, SmallVec<[Param; 3]>, SmallVec<[Qubit; 2]>);
 ///
 /// For example: for the input `sparse_pauli = "XY", qubits = [1, 3], num_qubits = 6`,
 /// the function returns `"IXIYII"`.
-fn expand_pauli(sparse_pauli: String, qubits: Vec<u32>, num_qubits: usize) -> String {
+fn expand_pauli(sparse_pauli: String, qubits: &[u32], num_qubits: usize) -> String {
     let mut v: Vec<char> = vec!['I'; num_qubits];
-    for (i, q) in qubits.iter().enumerate() {
-        v[*q as usize] = sparse_pauli.chars().nth(i).unwrap();
+    for (q, p) in qubits.iter().zip(sparse_pauli.chars()) {
+        v[*q as usize] = p;
     }
     v.into_iter().collect()
 }
@@ -97,7 +95,7 @@ fn qiskit_clifford_gate(rustiq_gate: &CliffordGate) -> QiskitGate {
 /// * py: a GIL handle, needed to negate rotation parameters in Python space.
 /// * paulis: Rustiq's data structure storing pauli rotations.
 /// * i: index of the single-qubit Pauli rotation.
-/// * angle: - Qiskit's rotation angle.
+/// * angle: Qiskit's rotation angle.
 fn qiskit_rotation_gate(py: Python, paulis: &PauliSet, i: usize, angle: &Param) -> QiskitGate {
     let (phase, pauli_str) = paulis.get(i);
     for (q, c) in pauli_str.chars().enumerate() {
@@ -106,7 +104,7 @@ fn qiskit_rotation_gate(py: Python, paulis: &PauliSet, i: usize, angle: &Param) 
                 'X' => StandardGate::RXGate,
                 'Y' => StandardGate::RYGate,
                 'Z' => StandardGate::RZGate,
-                _ => panic!(),
+                _ => unreachable!("Only X, Y and Z are possible characters at this point."),
             };
             // We need to negate the angle when there is a phase.
             let param = match phase {
@@ -366,6 +364,7 @@ fn synthesize_final_clifford(
 ///
 /// If `preserve_order` is `true` and both `upto_clifford` and `upto_phase` are `false`,
 /// the returned circuit is equivalent to the given pauli network.
+#[allow(clippy::too_many_arguments)]
 pub fn pauli_network_synthesis_inner(
     py: Python,
     num_qubits: usize,
@@ -393,7 +392,7 @@ pub fn pauli_network_synthesis_inner(
             .map(|v| v.extract())
             .collect::<PyResult<_>>()?;
 
-        paulis.push(expand_pauli(sparse_pauli, qubits, num_qubits));
+        paulis.push(expand_pauli(sparse_pauli, &qubits, num_qubits));
         angles.push(angle);
     }
 
