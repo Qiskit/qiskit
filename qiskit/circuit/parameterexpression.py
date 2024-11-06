@@ -47,7 +47,7 @@ class _OPCode(IntEnum):
     EXP = 10
     LOG = 11
     SIGN = 12
-    DERIV = 13
+    GRAD = 13
     CONJ = 14
     SUBSTITUTE = 15
     ABS = 16
@@ -398,9 +398,9 @@ class ParameterExpression:
             return 0.0
 
         if self._standalone_param:
-            new_op = _INSTRUCTION(_OPCode.DERIV, self, param)
+            new_op = _INSTRUCTION(_OPCode.GRAD, self, param)
         else:
-            new_op = _INSTRUCTION(_OPCode.DERIV, None, param)
+            new_op = _INSTRUCTION(_OPCode.GRAD, None, param)
         qpy_replay = self._qpy_replay.copy()
         qpy_replay.append(new_op)
 
