@@ -16,7 +16,7 @@ Tests the interface for HighLevelSynthesis transpiler pass.
 import itertools
 import unittest.mock
 import numpy as np
-from ddt import ddt, data
+from ddt import ddt, data, unpack
 
 from qiskit.circuit import (
     QuantumCircuit,
@@ -2618,10 +2618,16 @@ class TestPauliEvolutionSynthesisPlugins(QiskitTestCase):
         self.assertIn("default", supported_plugin_names)
         self.assertIn("rustiq", supported_plugin_names)
 
-    @data("default", "rustiq")
-    def test_correctness(self, plugin_name):
+    @data(
+        ("default", ["XXX", "YYY", "IZZ", "XZY"], [1, 2, 3, 4]),
+        ("rustiq", ["XXX", "YYY", "IZZ", "XZY"], [1, 2, 3, 4]),
+        ("default", ["III", "XZY", "III", "III"], [1, 2, 3, 4]),
+        ("rustiq", ["III", "XZY", "III", "III"], [1, 2, 3, 4]),
+    )
+    @unpack
+    def test_correctness(self, plugin_name, paulis, coeffs):
         """Test that all plugins return a correct Operator"""
-        op = SparsePauliOp(["XXX", "YYY", "IZZ", "XZY"], coeffs=[1, 2, 3, 4])
+        op = SparsePauliOp(paulis, coeffs)
         qc = QuantumCircuit(6)
         qc.append(PauliEvolutionGate(op), [1, 2, 4])
         hls_config = HLSConfig(PauliEvolution=[plugin_name])
