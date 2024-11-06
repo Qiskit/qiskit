@@ -56,7 +56,7 @@ def _write_parameter_vec(file_obj, obj):
     file_obj.write(name_bytes)
 
 
-def _encode_replay_entry(inst, file_obj, version, side=False):
+def _encode_replay_entry(inst, file_obj, version, r_side=False):
     inst_type = None
     inst_data = None
     if inst is None:
@@ -75,7 +75,7 @@ def _encode_replay_entry(inst, file_obj, version, side=False):
         inst_type = "i"
         inst_data = struct.pack("!Qq", 0, inst)
     elif isinstance(inst, ParameterExpression):
-        if not side:
+        if not r_side:
             entry = struct.pack(
                 formats.PARAM_EXPR_ELEM_V4_PACK,
                 255,
@@ -95,7 +95,7 @@ def _encode_replay_entry(inst, file_obj, version, side=False):
             )
         file_obj.write(entry)
         _write_parameter_expression_v13(file_obj, inst, version)
-        if not side:
+        if not r_side:
             entry = struct.pack(
                 formats.PARAM_EXPR_ELEM_V4_PACK,
                 255,
