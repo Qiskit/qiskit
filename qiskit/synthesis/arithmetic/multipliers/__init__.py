@@ -10,9 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""The adder circuit library."""
+"""The multiplier circuit library."""
 
-from .cdkm_ripple_carry_adder import CDKMRippleCarryAdder
-from .draper_qft_adder import DraperQFTAdder
-from .vbe_ripple_carry_adder import VBERippleCarryAdder
-from .adder import ModularAdderGate, HalfAdderGate, FullAdderGate
+from .hrs_cumulative_multiplier import multiplier_cumulative_h18
+from .rg_qft_multiplier import multiplier_qft_r17
