@@ -25,6 +25,7 @@ from qiskit.synthesis import LieTrotter, SuzukiTrotter, MatrixExponential, QDrif
 from qiskit.synthesis.evolution.product_formula import reorder_paulis
 from qiskit.converters import circuit_to_dag
 from qiskit.quantum_info import Operator, SparsePauliOp, Pauli, Statevector
+from qiskit.transpiler.passes import HLSConfig, HighLevelSynthesis
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 X = SparsePauliOp("X")
@@ -186,22 +187,40 @@ class TestEvolutionGate(QiskitTestCase):
         self.assertEqual(evo_gate.definition, expected)
         self.assertSuzukiTrotterIsCorrect(evo_gate)
 
-    def test_suzuki_trotter_manual(self):
+    @data(True, False)
+    def test_suzuki_trotter_manual(self, use_plugin):
         """Test the evolution circuit of Suzuki Trotter against a manually constructed circuit."""
         op = (X ^ X ^ I ^ I) + (I ^ Y ^ Y ^ I) + (I ^ I ^ Z ^ Z)
         time, reps = 0.1, 1
-        evo_gate = PauliEvolutionGate(
-            op,
-            time,
-            synthesis=SuzukiTrotter(order=2, reps=reps, reorder=True),
-        )
+
+        if use_plugin:
+            synthesis = None
+            hls_config = HLSConfig(
+                PauliEvolution=[("default", {"reorder": True, "order": 2, "reps": reps})]
+            )
+        else:
+            synthesis = SuzukiTrotter(order=2, reps=reps, reorder=True)
+            hls_config = None
+
+        evo_gate = PauliEvolutionGate(op, time, synthesis=synthesis)
+        circuit = QuantumCircuit(op.num_qubits)
+        circuit.append(evo_gate, circuit.qubits)
+
+        if use_plugin:
+            decomposed = HighLevelSynthesis(hls_config=hls_config)(circuit)
+        else:
+            decomposed = circuit.decompose()
+
         expected = QuantumCircuit(4)
         expected.rzz(time, 0, 1)
         expected.rxx(time, 2, 3)
         expected.ryy(2 * time, 1, 2)
         expected.rxx(time, 2, 3)
         expected.rzz(time, 0, 1)
-        self.assertEqual(evo_gate.definition, expected)
+        self.assertEqual(decomposed, expected)
+
+    def test_suzuki_trotter_plugin(self):
+        """Test setting options via the plugin."""
 
     @data(
         (X + Y, 0.5, 1, [(Pauli("X"), 0.5), (Pauli("X"), 0.5)]),

@@ -253,8 +253,7 @@ def real_or_fail(value, tol=100):
 
 
 def reorder_paulis(
-    paulis: SparsePauliLabel,
-    strategy: rx.ColoringStrategy = rx.ColoringStrategy.Degree,
+    paulis: SparsePauliLabel, strategy: rx.ColoringStrategy = rx.ColoringStrategy.Saturation
 ) -> SparsePauliOp | list[SparsePauliOp]:
     r"""
     Creates an equivalent operator by reordering terms in order to yield a
@@ -313,8 +312,10 @@ def reorder_paulis(
     # rx.graph_greedy_color is supposed to be deterministic
     coloring = rx.graph_greedy_color(graph, strategy=strategy)
     terms_by_color = defaultdict(list)
+
     for term_idx, color in sorted(coloring.items()):
         term = graph.nodes()[term_idx]
+        print(color, term)
         terms_by_color[color].append(term)
 
     terms = sum(terms_by_color.values(), [])

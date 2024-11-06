@@ -110,18 +110,24 @@ class PauliEvolutionGate(Gate):
         else:
             operator = _to_sparse_pauli_op(operator)
 
-        if synthesis is None:
-            from qiskit.synthesis.evolution import LieTrotter
-
-            synthesis = LieTrotter()
-
         if label is None:
             label = _get_default_label(operator)
 
         num_qubits = operator[0].num_qubits if isinstance(operator, list) else operator.num_qubits
         super().__init__(name="PauliEvolution", num_qubits=num_qubits, params=[time], label=label)
         self.operator = operator
-        self.synthesis = synthesis
+        self._synthesis = synthesis
+
+    @property
+    def synthesis(self) -> EvolutionSynthesis:
+        """Return the synthesis used."""
+        if self._synthesis is not None:
+            return self._synthesis
+
+        # pylint: disable=cyclic-import
+        from qiskit.synthesis.evolution import LieTrotter
+
+        return LieTrotter()
 
     @property
     def time(self) -> ParameterValueType:
@@ -143,7 +149,14 @@ class PauliEvolutionGate(Gate):
 
     def _define(self):
         """Unroll, where the default synthesis is matrix based."""
-        self.definition = self.synthesis.synthesize(self)
+        if self.synthesis is None:
+            from qiskit.synthesis.evolution import LieTrotter
+
+            synthesis = LieTrotter()
+        else:
+            synthesis = self.synthesis
+
+        self.definition = synthesis.synthesize(self)
 
     def validate_parameter(self, parameter: ParameterValueType) -> ParameterValueType:
         """Gate parameters should be int, float, or ParameterExpression"""
