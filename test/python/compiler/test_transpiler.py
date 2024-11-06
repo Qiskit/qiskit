@@ -3797,13 +3797,26 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
                 DeprecationWarning,
                 expected_regex="The `target` parameter should be used instead",
             ):
-                transpile(
-                    qc,
-                    self.backend,
-                    layout_method="trivial",
-                    routing_method=routing_method,
-                    seed_transpiler=42,
-                )
+                if routing_method == "stochastic":
+                    with self.assertWarnsRegex(
+                        DeprecationWarning,
+                        expected_regex="The StochasticSwap transpilation pass is a suboptimal",
+                    ):
+                        transpile(
+                            qc,
+                            self.backend,
+                            layout_method="trivial",
+                            routing_method=routing_method,
+                            seed_transpiler=42,
+                        )
+                else:
+                    transpile(
+                        qc,
+                        self.backend,
+                        layout_method="trivial",
+                        routing_method=routing_method,
+                        seed_transpiler=42,
+                    )
 
     @data("stochastic")
     def test_triple_circuit_invalid_layout_stochastic(self, routing_method):
@@ -3842,13 +3855,26 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
         qc.cy(20, 29)
         qc.measure_all()
         with self.assertRaises(TranspilerError):
-            transpile(
-                qc,
-                self.backend,
-                layout_method="trivial",
-                routing_method=routing_method,
-                seed_transpiler=42,
-            )
+            if routing_method == "stochastic":
+                with self.assertWarnsRegex(
+                    DeprecationWarning,
+                    expected_regex="The StochasticSwap transpilation pass is a suboptimal",
+                ):
+                    transpile(
+                        qc,
+                        self.backend,
+                        layout_method="trivial",
+                        routing_method=routing_method,
+                        seed_transpiler=42,
+                    )
+            else:
+                transpile(
+                    qc,
+                    self.backend,
+                    layout_method="trivial",
+                    routing_method=routing_method,
+                    seed_transpiler=42,
+                )
 
     # Lookahead swap skipped for performance reasons, stochastic moved to new test due to deprecation
     @data("sabre", "basic")
