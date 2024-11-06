@@ -328,8 +328,8 @@ pub fn pauli_network_synthesis_inner(
     upto_phase: bool,
     resynth_clifford_method: usize,
 ) -> PyResult<CircuitData> {
-    let mut paulis: Vec<String> = Vec::new();
-    let mut angles: Vec<Param> = Vec::new();
+    let mut paulis: Vec<String> = Vec::with_capacity(pauli_network.len());
+    let mut angles: Vec<Param> = Vec::with_capacity(pauli_network.len());
 
     // go over the input pauli network and extract a list of pauli rotations and
     // the corresponding rotation angles
@@ -337,13 +337,8 @@ pub fn pauli_network_synthesis_inner(
         let tuple = item.downcast::<PyTuple>()?.borrow();
 
         let sparse_pauli: String = tuple.get_item(0)?.downcast::<PyString>()?.extract()?;
+        let qubits: Vec<u32> = tuple.get_item(1)?.extract()?;
         let angle: Param = tuple.get_item(2)?.extract()?;
-        let qubits = tuple.get_item(1)?;
-        let qubits: Vec<u32> = qubits
-            .downcast::<PyList>()?
-            .iter()
-            .map(|v| v.extract())
-            .collect::<PyResult<_>>()?;
 
         paulis.push(expand_pauli(sparse_pauli, &qubits, num_qubits));
         angles.push(angle);
