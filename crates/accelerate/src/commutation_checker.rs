@@ -43,6 +43,8 @@ static SUPPORTED_OP: Lazy<HashSet<&str>> = Lazy::new(|| {
     ])
 });
 
+const TWOPI: f64 = 2.0 * std::f64::consts::PI;
+
 // map rotation gates to their generators, or to ``None`` if we cannot currently efficiently
 // represent the generator in Rust and store the commutation relation in the commutation dictionary
 static SUPPORTED_ROTATIONS: Lazy<HashMap<&str, Option<OperationRef>>> = Lazy::new(|| {
@@ -632,7 +634,7 @@ fn map_rotation<'a>(
         // commute with everything, and we simply return the operation with the flag that
         // it commutes trivially
         if let Param::Float(angle) = params[0] {
-            if (angle % std::f64::consts::PI).abs() < tol {
+            if (angle % TWOPI).abs() < tol {
                 return (op, params, true);
             };
         };
