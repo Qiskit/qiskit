@@ -531,11 +531,11 @@ def _parse_backend_properties(backend_properties, backend):
             warnings.filterwarnings(
                 "ignore",
                 category=DeprecationWarning,
-                message=".*``qiskit.transpiler.target.target_to_backend_properties\\(\\)`` is deprecated as of qiskit 1.2.*",
+                message=".*``qiskit.transpiler.target.target_to_backend_properties\\(\\)``.*",
                 module="qiskit",
             )
             backend_properties = target_to_backend_properties(backend.target)
-            return backend_properties
+    return backend_properties
 
 
 def _parse_dt(dt, backend):
