@@ -352,9 +352,10 @@ Previous QPY versions relied on either ``sympy`` or ``symengine`` to serialize t
 expression. Starting in Version 13, QPY now represents the sequence of API calls used to create the
 :class:`.ParameterExpression`.
 
-The main change in the serialization format is in the :ref:`qpy_param_expr_v3` payload.  The ``expr_size`` bytes following
-the head now contain an array of ``PARAM_EXPR_ELEM_V13`` structs. The intent is for this
-array to be read one struct at a time, where each struct describes one of the calls to make to reconstruct the :class:`.ParameterExpression`.
+The main change in the serialization format is in the :ref:`qpy_param_expr_v3` payload.  The
+``expr_size`` bytes following the head now contain an array of ``PARAM_EXPR_ELEM_V13`` structs. The
+intent is for this array to be read one struct at a time, where each struct describes one of the
+calls to make to reconstruct the :class:`.ParameterExpression`.
 
 PARAM_EXPR_ELEM_V13
 ~~~~~~~~~~~~~~~~~~~
@@ -371,7 +372,8 @@ The struct format is defined as:
         char rhs[16];
     } PARAM_EXPR_ELEM_V13;
 
-The ``op_code`` field is used to define the operation added to the :class:`.ParameterExpression`. The value can be:
+The ``op_code`` field is used to define the operation added to the :class:`.ParameterExpression`.
+The value can be:
 
 .. list-table:: PARAM_EXPR_ELEM_V13 op code values
    :header-rows: 1
@@ -446,15 +448,15 @@ characters:
      - substitution
 
 If the type value is ``f`` ,``c`` or ``i``, the corresponding ``lhs`` or `rhs``
-field widths are 128 bits each. In the case of floats, the literal value is encoded as a double 
+field widths are 128 bits each. In the case of floats, the literal value is encoded as a double
 with 0 padding, while complex numbers are encoded as real part followed by imaginary part,
-taking up 64 bits each. For ``i`, the value is encoded as a 64 bit signed integer with 0 padding for the full
-128 bit width. ``n`` is used to represent a ``None`` and typically isn't directly used as
-it indicates an argument that's not used. For ``p`` the data is the UUID for the
+taking up 64 bits each. For ``i`, the value is encoded as a 64 bit signed integer with 0 padding
+for the full 128 bit width. ``n`` is used to represent a ``None`` and typically isn't directly used
+as it indicates an argument that's not used. For ``p`` the data is the UUID for the
 :class:`.Parameter` which can be looked up in the symbol map described in the
 ``map_elements`` outer :ref:`qpy_param_expr_v3` payload. If the type value is
 ``s`` this marks the start of a a new recursive section for a nested
-:class:`.ParameterExpression`. For example, in the following snippet there is an inner ``expr`` 
+:class:`.ParameterExpression`. For example, in the following snippet there is an inner ``expr``
 contained in ``final_expr``, constituting a nested expression::
 
     from qiskit.circuit import Parameter
@@ -466,7 +468,7 @@ contained in ``final_expr``, constituting a nested expression::
     expr = (x + y) / 2
     final_expr = z**2 + expr
 
-When ``s`` is encountered, this indicates that until an ``e` struct is reached, the next structs 
+When ``s`` is encountered, this indicates that until an ``e` struct is reached, the next structs
 are used for a recursive definition. For both
 ``s`` and ``e`` types, the data values are not used, and always set to 0. The type value
 of ``u`` is used to represent a substitution call. This is only used for ``lhs_type``
