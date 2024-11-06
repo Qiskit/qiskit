@@ -161,7 +161,11 @@ class TestPresetPassManager(QiskitTestCase):
         qc = QuantumCircuit(2)
         qc.unitary(random_unitary(4, seed=42), [0, 1])
         qc.measure_all()
-        result = transpile(qc, basis_gates=["cx", "u", "unitary"], optimization_level=level)
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            "Providing custom gates through the ``basis_gates`` argument is deprecated",
+        ):
+            result = transpile(qc, basis_gates=["cx", "u", "unitary"], optimization_level=level)
         self.assertEqual(result, qc)
 
     @combine(level=[0, 1, 2, 3], name="level{level}")
@@ -179,12 +183,16 @@ class TestPresetPassManager(QiskitTestCase):
         qc = QuantumCircuit(2)
         qc.unitary(random_unitary(4, seed=424242), [0, 1])
         qc.measure_all()
-        result = transpile(
-            qc,
-            basis_gates=["cx", "u", "unitary"],
-            optimization_level=level,
-            translation_method="synthesis",
-        )
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            "Providing custom gates through the ``basis_gates`` argument is deprecated",
+        ):
+            result = transpile(
+                qc,
+                basis_gates=["cx", "u", "unitary"],
+                optimization_level=level,
+                translation_method="synthesis",
+            )
         self.assertEqual(result, qc)
 
     @combine(level=[0, 1, 2, 3], name="level{level}")
@@ -1735,3 +1743,40 @@ class TestIntegrationControlFlow(QiskitTestCase):
             pass
         with self.assertRaisesRegex(TranspilerError, "The control-flow construct.*not supported"):
             transpile(qc, target=target, optimization_level=optimization_level)
+
+    @data(0, 1, 2, 3)
+    def test_custom_basis_gates_raise(self, optimization_level):
+        """Test that trying to provide a list of custom basis gates to generate_preset_pass_manager
+        raises a deprecation warning."""
+
+        with self.subTest(msg="no warning"):
+            # check that the warning isn't raised if the basis gates aren't custom
+            basis_gates = ["x", "cx"]
+            _ = generate_preset_pass_manager(
+                optimization_level=optimization_level, basis_gates=basis_gates
+            )
+
+        with self.subTest(msg="warning only basis gates"):
+            # check that the warning is raised if they are custom
+            basis_gates = ["my_gate"]
+            with self.assertWarnsRegex(
+                DeprecationWarning,
+                "Providing custom gates through the ``basis_gates`` argument is deprecated",
+            ):
+                _ = generate_preset_pass_manager(
+                    optimization_level=optimization_level, basis_gates=basis_gates
+                )
+
+        with self.subTest(msg="no warning custom basis gates in backend"):
+            # check that the warning is not raised if a loose custom gate is found in the backend
+            backend = GenericBackendV2(num_qubits=2)
+            gate = Gate(name="my_gate", num_qubits=1, params=[])
+            backend.target.add_instruction(gate)
+            self.assertEqual(
+                backend.operation_names,
+                ["cx", "id", "rz", "sx", "x", "reset", "delay", "measure", "my_gate"],
+            )
+            basis_gates = ["my_gate"]
+            _ = generate_preset_pass_manager(
+                optimization_level=optimization_level, basis_gates=basis_gates, backend=backend
+            )
