@@ -52,6 +52,9 @@ class _OPCode(IntEnum):
     SUBSTITUTE = 15
     ABS = 16
     ATAN = 17
+    RSUB = 18
+    RDIV = 19
+    RPOW = 20
 
 
 _OP_CODE_MAP = (
@@ -73,6 +76,9 @@ _OP_CODE_MAP = (
     "subs",
     "abs",
     "arctan",
+    "__rsub__",
+    "__rtruediv__",
+    "__rpow__",
 )
 
 
@@ -362,10 +368,16 @@ class ParameterExpression:
 
         if reflected:
             expr = operation(other_expr, self_expr)
-            if self._standalone_param:
-                new_op = _INSTRUCTION(op_code, other, self)
+            if op_code in {_OPCode.RSUB, _OPCode.RDIV, _OPCode.RPOW}:
+                if self._standalone_param:
+                    new_op = _INSTRUCTION(op_code, self, other)
+                else:
+                    new_op = _INSTRUCTION(op_code, None, other)
             else:
-                new_op = _INSTRUCTION(op_code, other, None)
+                if self._standalone_param:
+                    new_op = _INSTRUCTION(op_code, other, self)
+                else:
+                    new_op = _INSTRUCTION(op_code, other, None)
         else:
             expr = operation(self_expr, other_expr)
             if self._standalone_param:
@@ -435,7 +447,7 @@ class ParameterExpression:
         return self._apply_operation(operator.sub, other, op_code=_OPCode.SUB)
 
     def __rsub__(self, other):
-        return self._apply_operation(operator.sub, other, reflected=True, op_code=_OPCode.SUB)
+        return self._apply_operation(operator.sub, other, reflected=True, op_code=_OPCode.RSUB)
 
     def __mul__(self, other):
         return self._apply_operation(operator.mul, other, op_code=_OPCode.MUL)
@@ -455,13 +467,13 @@ class ParameterExpression:
         return self._apply_operation(operator.truediv, other, op_code=_OPCode.DIV)
 
     def __rtruediv__(self, other):
-        return self._apply_operation(operator.truediv, other, reflected=True, op_code=_OPCode.DIV)
+        return self._apply_operation(operator.truediv, other, reflected=True, op_code=_OPCode.RDIV)
 
     def __pow__(self, other):
         return self._apply_operation(pow, other, op_code=_OPCode.POW)
 
     def __rpow__(self, other):
-        return self._apply_operation(pow, other, reflected=True, op_code=_OPCode.POW)
+        return self._apply_operation(pow, other, reflected=True, op_code=_OPCode.RPOW)
 
     def _call(self, ufunc, op_code):
         if self._standalone_param:

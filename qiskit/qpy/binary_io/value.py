@@ -604,19 +604,22 @@ def _read_parameter_expr_v13(buf, symbol_map, version, vectors):
         if expression_data.OP_CODE == 255:
             continue
         method_str = op_code_to_method(_OPCode(expression_data.OP_CODE))
-        if expression_data.OP_CODE in {0, 1, 2, 3, 4, 13, 15}:
+        if expression_data.OP_CODE in {0, 1, 2, 3, 4, 13, 15, 18, 19, 20}:
             rhs = stack.pop()
             lhs = stack.pop()
-            # Reverse ops
-            if not isinstance(lhs, ParameterExpression) and isinstance(rhs, ParameterExpression):
+            # Reverse ops for commutative ops, which are add, mul (0 and 2 respectively)
+            # op codes 13 and 15 can never be reversed and 18, 19, 20
+            # are the reversed versions of non-commuative operations
+            # so 1, 3, 4 and 18, 19, 20 handle this explicitly.
+            if (
+                not isinstance(lhs, ParameterExpression)
+                and isinstance(rhs, ParameterExpression)
+                and expression_data.OP_CODE in {0, 2}
+            ):
                 if expression_data.OP_CODE == 0:
                     method_str = "__radd__"
-                elif expression_data.OP_CODE == 1:
-                    method_str = "__rsub__"
                 elif expression_data.OP_CODE == 2:
                     method_str = "__rmul__"
-                elif expression_data.OP_CODE == 3:
-                    method_str = "__rtruediv__"
                 stack.append(getattr(rhs, method_str)(lhs))
             else:
                 stack.append(getattr(lhs, method_str)(rhs))
