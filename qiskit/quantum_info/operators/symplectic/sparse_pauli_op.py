@@ -256,6 +256,8 @@ class SparsePauliOp(LinearOp):
             raise ValueError(
                 f"incorrect number of operators: expected {len(self.paulis)}, got {len(value)}"
             )
+        self.coeffs *= (-1j) ** value.phase
+        value.phase = 0
         self._pauli_list = value
 
     @property
@@ -558,7 +560,7 @@ class SparsePauliOp(LinearOp):
             print('Weight sorted')
             print(srt)
 
-        .. parsed-literal::
+        .. code-block:: text
 
             Initial Ordering
             SparsePauliOp(['XX', 'XX', 'XX', 'YI', 'II', 'XZ', 'XY', 'XI'],
@@ -627,7 +629,7 @@ class SparsePauliOp(LinearOp):
             print('Weight sorted')
             print(srt)
 
-        .. parsed-literal::
+        .. code-block:: text
 
             Initial Ordering
             SparsePauliOp(['XX', 'XX', 'XX', 'YI', 'II', 'XZ', 'XY', 'XI'],
@@ -792,6 +794,8 @@ class SparsePauliOp(LinearOp):
 
         .. code-block:: python
 
+            from qiskit.quantum_info import SparsePauliOp
+
             # via tuples and the full Pauli string
             op = SparsePauliOp.from_list([("XIIZI", 1), ("IYIIY", 2)])
 
@@ -855,6 +859,8 @@ class SparsePauliOp(LinearOp):
         can be constructed as
 
         .. code-block:: python
+
+            from qiskit.quantum_info import SparsePauliOp
 
             # via triples and local Paulis with indices
             op = SparsePauliOp.from_sparse_list([("ZX", [1, 4], 1), ("YY", [0, 3], 2)], num_qubits=5)
@@ -928,6 +934,14 @@ class SparsePauliOp(LinearOp):
         if array:
             return labels
         return labels.tolist()
+
+    def to_sparse_list(self):
+        """Convert to a sparse Pauli list format with elements (pauli, qubits, coefficient)."""
+        pauli_labels = self.paulis.to_labels()
+        sparse_list = [
+            (*sparsify_label(label), coeff) for label, coeff in zip(pauli_labels, self.coeffs)
+        ]
+        return sparse_list
 
     def to_matrix(self, sparse: bool = False, force_serial: bool = False) -> np.ndarray:
         """Convert to a dense or sparse matrix.
@@ -1051,6 +1065,7 @@ class SparsePauliOp(LinearOp):
 
                 .. code-block:: python
 
+                    >>> from qiskit.quantum_info import SparsePauliOp
                     >>> op = SparsePauliOp.from_list([("XX", 2), ("YY", 1), ("IZ",2j), ("ZZ",1j)])
                     >>> op.group_commuting()
                     [SparsePauliOp(["IZ", "ZZ"], coeffs=[0.+2.j, 0.+1j]),
@@ -1167,6 +1182,14 @@ class SparsePauliOp(LinearOp):
             return type(self)(["I" * n_qubits] * self.size, self.coeffs)
         new_op = type(self)("I" * n_qubits)
         return new_op.compose(self, qargs=layout)
+
+
+def sparsify_label(pauli_string):
+    """Return a sparse format of a Pauli string, e.g. "XIIIZ" -> ("XZ", [0, 4])."""
+    qubits = [i for i, label in enumerate(reversed(pauli_string)) if label != "I"]
+    sparse_label = "".join(pauli_string[~i] for i in qubits)
+
+    return sparse_label, qubits
 
 
 # Update docstrings for API docs

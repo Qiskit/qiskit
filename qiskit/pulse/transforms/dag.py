@@ -32,6 +32,11 @@ def block_to_dag(block: ScheduleBlock) -> rx.PyDAG:
 
     .. code-block:: python
 
+        from qiskit import pulse
+
+        my_gaussian0 = pulse.Gaussian(100, 0.5, 20)
+        my_gaussian1 = pulse.Gaussian(100, 0.3, 10)
+
         with pulse.build() as sched1:
             with pulse.align_left():
                 pulse.play(my_gaussian0, pulse.DriveChannel(0))
@@ -50,6 +55,8 @@ def block_to_dag(block: ScheduleBlock) -> rx.PyDAG:
     Another example is instruction optimization.
 
     .. code-block:: python
+
+        from qiskit import pulse
 
         with pulse.build() as sched:
             with pulse.align_left():

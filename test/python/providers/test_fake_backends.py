@@ -37,8 +37,8 @@ from qiskit.providers.fake_provider import (
 )
 from qiskit.providers.backend_compat import BackendV2Converter, convert_to_target
 from qiskit.providers.models.backendproperties import BackendProperties
+from qiskit.providers.models.backendconfiguration import GateConfig
 from qiskit.providers.backend import BackendV2
-from qiskit.providers.models import GateConfig
 from qiskit.utils import optionals
 from qiskit.circuit.library import (
     SXGate,
@@ -764,7 +764,8 @@ class TestFakeBackends(QiskitTestCase):
             "switch_case",
         ]
         defaults = backend.defaults()
-        target = convert_to_target(configuration, properties, defaults)
+        with self.assertWarns(DeprecationWarning):
+            target = convert_to_target(configuration, properties, defaults)
         self.assertTrue(target.instruction_supported("if_else", ()))
         self.assertFalse(target.instruction_supported("while_loop", ()))
         self.assertTrue(target.instruction_supported("for_loop", ()))
@@ -796,7 +797,8 @@ class TestFakeBackends(QiskitTestCase):
             "switch_case",
         ]
         defaults = backend.defaults()
-        target = convert_to_target(configuration, properties, defaults)
+        with self.assertWarns(DeprecationWarning):
+            target = convert_to_target(configuration, properties, defaults)
         self.assertTrue(target.instruction_supported("if_else", ()))
         self.assertFalse(target.instruction_supported("while_loop", ()))
         self.assertTrue(target.instruction_supported("for_loop", ()))

@@ -10,6 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use ahash::RandomState;
 use indexmap::IndexSet;
 use ndarray::{s, ArrayView2};
 use smallvec::smallvec;
@@ -102,7 +103,7 @@ pub struct GreedyCliffordSynthesis<'a> {
     symplectic_matrix: SymplecticMatrix,
 
     /// Unprocessed qubits.
-    unprocessed_qubits: IndexSet<usize>,
+    unprocessed_qubits: IndexSet<usize, RandomState>,
 }
 
 impl GreedyCliffordSynthesis<'_> {
@@ -121,7 +122,7 @@ impl GreedyCliffordSynthesis<'_> {
             smat: tableau.slice(s![.., 0..2 * num_qubits]).to_owned(),
         };
 
-        let unprocessed_qubits: IndexSet<usize> = (0..num_qubits).collect();
+        let unprocessed_qubits = (0..num_qubits).collect();
 
         Ok(GreedyCliffordSynthesis {
             tableau,
@@ -213,7 +214,7 @@ impl GreedyCliffordSynthesis<'_> {
                     gate_seq.push((
                         StandardGate::SGate,
                         smallvec![],
-                        smallvec![Qubit(*qubit as u32)],
+                        smallvec![Qubit::new(*qubit)],
                     ));
                     self.symplectic_matrix.prepend_s(*qubit);
                 }
@@ -221,7 +222,7 @@ impl GreedyCliffordSynthesis<'_> {
                     gate_seq.push((
                         StandardGate::HGate,
                         smallvec![],
-                        smallvec![Qubit(*qubit as u32)],
+                        smallvec![Qubit::new(*qubit)],
                     ));
                     self.symplectic_matrix.prepend_h(*qubit);
                 }
@@ -229,12 +230,12 @@ impl GreedyCliffordSynthesis<'_> {
                     gate_seq.push((
                         StandardGate::SGate,
                         smallvec![],
-                        smallvec![Qubit(*qubit as u32)],
+                        smallvec![Qubit::new(*qubit)],
                     ));
                     gate_seq.push((
                         StandardGate::HGate,
                         smallvec![],
-                        smallvec![Qubit(*qubit as u32)],
+                        smallvec![Qubit::new(*qubit)],
                     ));
                     self.symplectic_matrix.prepend_s(*qubit);
                     self.symplectic_matrix.prepend_h(*qubit);
@@ -243,12 +244,12 @@ impl GreedyCliffordSynthesis<'_> {
                     gate_seq.push((
                         StandardGate::HGate,
                         smallvec![],
-                        smallvec![Qubit(*qubit as u32)],
+                        smallvec![Qubit::new(*qubit)],
                     ));
                     gate_seq.push((
                         StandardGate::SGate,
                         smallvec![],
-                        smallvec![Qubit(*qubit as u32)],
+                        smallvec![Qubit::new(*qubit)],
                     ));
                     self.symplectic_matrix.prepend_h(*qubit);
                     self.symplectic_matrix.prepend_s(*qubit);
@@ -257,17 +258,17 @@ impl GreedyCliffordSynthesis<'_> {
                     gate_seq.push((
                         StandardGate::SGate,
                         smallvec![],
-                        smallvec![Qubit(*qubit as u32)],
+                        smallvec![Qubit::new(*qubit)],
                     ));
                     gate_seq.push((
                         StandardGate::HGate,
                         smallvec![],
-                        smallvec![Qubit(*qubit as u32)],
+                        smallvec![Qubit::new(*qubit)],
                     ));
                     gate_seq.push((
                         StandardGate::SGate,
                         smallvec![],
-                        smallvec![Qubit(*qubit as u32)],
+                        smallvec![Qubit::new(*qubit)],
                     ));
                     self.symplectic_matrix.prepend_s(*qubit);
                     self.symplectic_matrix.prepend_h(*qubit);
@@ -303,7 +304,7 @@ impl GreedyCliffordSynthesis<'_> {
             gate_seq.push((
                 StandardGate::SwapGate,
                 smallvec![],
-                smallvec![Qubit(min_qubit as u32), Qubit(qubit_a as u32)],
+                smallvec![Qubit::new(min_qubit), Qubit::new(qubit_a)],
             ));
             self.symplectic_matrix.prepend_swap(min_qubit, qubit_a);
 
@@ -326,7 +327,7 @@ impl GreedyCliffordSynthesis<'_> {
             gate_seq.push((
                 StandardGate::CXGate,
                 smallvec![],
-                smallvec![Qubit(min_qubit as u32), Qubit(qubit as u32)],
+                smallvec![Qubit::new(min_qubit), Qubit::new(qubit)],
             ));
             self.symplectic_matrix.prepend_cx(min_qubit, qubit);
         }
@@ -335,7 +336,7 @@ impl GreedyCliffordSynthesis<'_> {
             gate_seq.push((
                 StandardGate::CXGate,
                 smallvec![],
-                smallvec![Qubit(qubit as u32), Qubit(min_qubit as u32)],
+                smallvec![Qubit::new(qubit), Qubit::new(min_qubit)],
             ));
             self.symplectic_matrix.prepend_cx(qubit, min_qubit);
         }
@@ -346,7 +347,7 @@ impl GreedyCliffordSynthesis<'_> {
                 gate_seq.push((
                     StandardGate::CXGate,
                     smallvec![],
-                    smallvec![Qubit(qubit_b as u32), Qubit(*qubit as u32)],
+                    smallvec![Qubit::new(qubit_b), Qubit::new(*qubit)],
                 ));
                 self.symplectic_matrix.prepend_cx(qubit_b, *qubit);
             }
@@ -357,21 +358,21 @@ impl GreedyCliffordSynthesis<'_> {
             gate_seq.push((
                 StandardGate::CXGate,
                 smallvec![],
-                smallvec![Qubit(min_qubit as u32), Qubit(qubit_b as u32)],
+                smallvec![Qubit::new(min_qubit), Qubit::new(qubit_b)],
             ));
             self.symplectic_matrix.prepend_cx(min_qubit, qubit_b);
 
             gate_seq.push((
                 StandardGate::HGate,
                 smallvec![],
-                smallvec![Qubit(qubit_b as u32)],
+                smallvec![Qubit::new(qubit_b)],
             ));
             self.symplectic_matrix.prepend_h(qubit_b);
 
             gate_seq.push((
                 StandardGate::CXGate,
                 smallvec![],
-                smallvec![Qubit(qubit_b as u32), Qubit(min_qubit as u32)],
+                smallvec![Qubit::new(qubit_b), Qubit::new(min_qubit)],
             ));
             self.symplectic_matrix.prepend_cx(qubit_b, min_qubit);
         }
@@ -386,8 +387,8 @@ impl GreedyCliffordSynthesis<'_> {
                 StandardGate::CXGate,
                 smallvec![],
                 smallvec![
-                    Qubit(a_qubits[2 * qubit + 1] as u32),
-                    Qubit(a_qubits[2 * qubit] as u32)
+                    Qubit::new(a_qubits[2 * qubit + 1]),
+                    Qubit::new(a_qubits[2 * qubit])
                 ],
             ));
             self.symplectic_matrix
@@ -396,7 +397,7 @@ impl GreedyCliffordSynthesis<'_> {
             gate_seq.push((
                 StandardGate::CXGate,
                 smallvec![],
-                smallvec![Qubit(a_qubits[2 * qubit] as u32), Qubit(min_qubit as u32)],
+                smallvec![Qubit::new(a_qubits[2 * qubit]), Qubit::new(min_qubit)],
             ));
             self.symplectic_matrix
                 .prepend_cx(a_qubits[2 * qubit], min_qubit);
@@ -404,10 +405,7 @@ impl GreedyCliffordSynthesis<'_> {
             gate_seq.push((
                 StandardGate::CXGate,
                 smallvec![],
-                smallvec![
-                    Qubit(min_qubit as u32),
-                    Qubit(a_qubits[2 * qubit + 1] as u32)
-                ],
+                smallvec![Qubit::new(min_qubit), Qubit::new(a_qubits[2 * qubit + 1])],
             ));
             self.symplectic_matrix
                 .prepend_cx(min_qubit, a_qubits[2 * qubit + 1]);

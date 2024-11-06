@@ -20,9 +20,6 @@ import uuid
 
 import numpy as np
 import symengine
-from symengine.lib.symengine_wrapper import (  # pylint: disable = no-name-in-module
-    load_basic,
-)
 
 
 from qiskit.circuit import CASE_DEFAULT, Clbit, ClassicalRegister
@@ -290,7 +287,7 @@ def _read_parameter_expression_v3(file_obj, vectors, use_symengine):
 
     payload = file_obj.read(data.expr_size)
     if use_symengine:
-        expr_ = load_basic(payload)
+        expr_ = common.load_symengine_payload(payload)
     else:
         from sympy.parsing.sympy_parser import parse_expr
 

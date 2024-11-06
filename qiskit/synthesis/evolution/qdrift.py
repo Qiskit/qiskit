@@ -16,14 +16,19 @@ from __future__ import annotations
 
 import inspect
 import math
+import typing
+from itertools import chain
 from collections.abc import Callable
 import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.quantum_info.operators import SparsePauliOp, Pauli
 from qiskit.utils.deprecation import deprecate_arg
+from qiskit.exceptions import QiskitError
 
 from .product_formula import ProductFormula
-from .lie_trotter import LieTrotter
+
+if typing.TYPE_CHECKING:
+    from qiskit.circuit.library import PauliEvolutionGate
 
 
 class QDrift(ProductFormula):
@@ -94,46 +99,36 @@ class QDrift(ProductFormula):
         self.rng = np.random.default_rng(seed)
         self.reorder = reorder
 
-    def synthesize(self, evolution):
-        # get operators and time to evolve
+    def expand(self, evolution: PauliEvolutionGate) -> list[tuple[str, tuple[int], float]]:
         operators = evolution.operator
-        time = evolution.time
+        time = evolution.time  # used to determine the number of gates
 
-        if not isinstance(operators, list):
-            pauli_list = [(Pauli(op), coeff) for op, coeff in operators.to_list()]
-            coeffs = [np.real(coeff) for op, coeff in operators.to_list()]
+        # QDrift is based on first-order Lie-Trotter, hence we can just concatenate all
+        # Pauli terms and ignore commutations
+        if isinstance(operators, list):
+            paulis = list(chain.from_iterable([op.to_sparse_list() for op in operators]))
         else:
-            pauli_list = [(op, 1) for op in operators]
-            coeffs = [1 for op in operators]
+            paulis = operators.to_sparse_list()
+
+        try:
+            coeffs = [float(np.real_if_close(coeff)) for _, _, coeff in paulis]
+        except TypeError as exc:
+            raise QiskitError("QDrift requires bound, real coefficients.") from exc
 
         # We artificially make the weights positive
         weights = np.abs(coeffs)
         lambd = np.sum(weights)
 
         num_gates = math.ceil(2 * (lambd**2) * (time**2) * self.reps)
+
         # The protocol calls for the removal of the individual coefficients,
         # and multiplication by a constant evolution time.
-        evolution_time = lambd * time / num_gates
-
-        self.sampled_ops = self.rng.choice(
-            np.array(pauli_list, dtype=object),
-            size=(num_gates,),
-            p=weights / lambd,
+        sampled = self.rng.choice(
+            np.array(paulis, dtype=object), size=(num_gates,), p=weights / lambd
         )
 
-        # pylint: disable=cyclic-import
-        from qiskit.circuit.library.pauli_evolution import PauliEvolutionGate
-
-        # Build the evolution circuit using the LieTrotter synthesis with the sampled operators
-        lie_trotter = LieTrotter(
-            insert_barriers=self.insert_barriers,
-            atomic_evolution=self.atomic_evolution,
-            reorder=self.reorder,
-        )
-        evolution_circuit = PauliEvolutionGate(
-            sum(SparsePauliOp(np.sign(coeff) * op) for op, coeff in self.sampled_ops),
-            time=evolution_time,
-            synthesis=lie_trotter,
-        ).definition
-
-        return evolution_circuit
+        rescaled_time = 2 * lambd / num_gates * time
+        sampled_paulis = [
+            (pauli[0], pauli[1], np.real(np.sign(pauli[2])) * rescaled_time) for pauli in sampled
+        ]
+        return sampled_paulis
