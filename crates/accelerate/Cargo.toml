@@ -26,7 +26,7 @@ qiskit-circuit.workspace = true
 thiserror.workspace = true
 ndarray_einsum_beta = "0.7"
 once_cell = "1.20.2"
-rustiq-core = "0.0.8"
+rustiq-core = "0.0.10"
 bytemuck.workspace = true
 
 [dependencies.smallvec]
