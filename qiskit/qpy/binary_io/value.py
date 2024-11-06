@@ -77,7 +77,7 @@ def _encode_replay_entry(inst, file_obj, version, r_side=False):
     elif isinstance(inst, ParameterExpression):
         if not r_side:
             entry = struct.pack(
-                formats.PARAM_EXPR_ELEM_V4_PACK,
+                formats.PARAM_EXPR_ELEM_V13_PACK,
                 255,
                 "s".encode("utf8"),
                 b"\x00",
@@ -86,7 +86,7 @@ def _encode_replay_entry(inst, file_obj, version, r_side=False):
             )
         else:
             entry = struct.pack(
-                formats.PARAM_EXPR_ELEM_V4_PACK,
+                formats.PARAM_EXPR_ELEM_V13_PACK,
                 255,
                 "n".encode("utf8"),
                 b"\x00",
@@ -97,7 +97,7 @@ def _encode_replay_entry(inst, file_obj, version, r_side=False):
         _write_parameter_expression_v13(file_obj, inst, version)
         if not r_side:
             entry = struct.pack(
-                formats.PARAM_EXPR_ELEM_V4_PACK,
+                formats.PARAM_EXPR_ELEM_V13_PACK,
                 255,
                 "e".encode("utf8"),
                 b"\x00",
@@ -106,7 +106,7 @@ def _encode_replay_entry(inst, file_obj, version, r_side=False):
             )
         else:
             entry = struct.pack(
-                formats.PARAM_EXPR_ELEM_V4_PACK,
+                formats.PARAM_EXPR_ELEM_V13_PACK,
                 255,
                 "n".encode("utf8"),
                 b"\x00",
@@ -129,7 +129,7 @@ def _encode_replay_subs(subs, file_obj, version):
         )
         data = mapping_buf.getvalue()
     entry = struct.pack(
-        formats.PARAM_EXPR_ELEM_V4_PACK,
+        formats.PARAM_EXPR_ELEM_V13_PACK,
         subs.op,
         "u".encode("utf8"),
         struct.pack("!QQ", len(data), 0),
@@ -150,7 +150,7 @@ def _write_parameter_expression_v13(file_obj, obj, version):
         lhs_type, lhs = _encode_replay_entry(inst.lhs, file_obj, version)
         rhs_type, rhs = _encode_replay_entry(inst.rhs, file_obj, version, True)
         entry = struct.pack(
-            formats.PARAM_EXPR_ELEM_V4_PACK,
+            formats.PARAM_EXPR_ELEM_V13_PACK,
             inst.op,
             lhs_type.encode("utf8"),
             lhs,
@@ -495,7 +495,7 @@ def _read_parameter_expression_v3(file_obj, vectors, use_symengine):
     return ParameterExpression(symbol_map, expr_)
 
 
-def _read_parameter_expression_v4(file_obj, vectors, version):
+def _read_parameter_expression_v13(file_obj, vectors, version):
     data = formats.PARAMETER_EXPR(
         *struct.unpack(formats.PARAMETER_EXPR_PACK, file_obj.read(formats.PARAMETER_EXPR_SIZE))
     )
@@ -532,7 +532,7 @@ def _read_parameter_expression_v4(file_obj, vectors, version):
         elif elem_key == type_keys.Value.PARAMETER_EXPRESSION:
             value = common.data_from_binary(
                 binary_data,
-                _read_parameter_expression_v4,
+                _read_parameter_expression_v13,
                 vectors=vectors,
             )
         else:
@@ -545,11 +545,11 @@ def _read_parameter_expression_v4(file_obj, vectors, version):
 def _read_parameter_expr_v13(buf, symbol_map, version, vectors):
     param_uuid_map = {symbol.uuid: symbol for symbol in symbol_map if isinstance(symbol, Parameter)}
     name_map = {str(v): k for k, v in symbol_map.items()}
-    data = buf.read(formats.PARAM_EXPR_ELEM_V4_SIZE)
+    data = buf.read(formats.PARAM_EXPR_ELEM_V13_SIZE)
     stack = []
     while data:
-        expression_data = formats.PARAM_EXPR_ELEM_V4._make(
-            struct.unpack(formats.PARAM_EXPR_ELEM_V4_PACK, data)
+        expression_data = formats.PARAM_EXPR_ELEM_V13._make(
+            struct.unpack(formats.PARAM_EXPR_ELEM_V13_PACK, data)
         )
         # LHS
         if expression_data.LHS_TYPE == b"p":
@@ -563,10 +563,10 @@ def _read_parameter_expr_v13(buf, symbol_map, version, vectors):
         elif expression_data.LHS_TYPE == b"i":
             stack.append(struct.unpack("!Qq", expression_data.LHS)[1])
         elif expression_data.LHS_TYPE == b"s":
-            data = buf.read(formats.PARAM_EXPR_ELEM_V4_SIZE)
+            data = buf.read(formats.PARAM_EXPR_ELEM_V13_SIZE)
             continue
         elif expression_data.LHS_TYPE == b"e":
-            data = buf.read(formats.PARAM_EXPR_ELEM_V4_SIZE)
+            data = buf.read(formats.PARAM_EXPR_ELEM_V13_SIZE)
             continue
         elif expression_data.LHS_TYPE == b"u":
             size = struct.unpack_from("!QQ", expression_data.LHS)[0]
@@ -592,10 +592,10 @@ def _read_parameter_expr_v13(buf, symbol_map, version, vectors):
         elif expression_data.RHS_TYPE == b"i":
             stack.append(struct.unpack("!Qq", expression_data.RHS)[1])
         elif expression_data.RHS_TYPE == b"s":
-            data = buf.read(formats.PARAM_EXPR_ELEM_V4_SIZE)
+            data = buf.read(formats.PARAM_EXPR_ELEM_V13_SIZE)
             continue
         elif expression_data.RHS_TYPE == b"e":
-            data = buf.read(formats.PARAM_EXPR_ELEM_V4_SIZE)
+            data = buf.read(formats.PARAM_EXPR_ELEM_V13_SIZE)
             continue
         else:
             raise exceptions.QpyError(
@@ -623,7 +623,7 @@ def _read_parameter_expr_v13(buf, symbol_map, version, vectors):
         else:
             lhs = stack.pop()
             stack.append(getattr(lhs, method_str)())
-        data = buf.read(formats.PARAM_EXPR_ELEM_V4_SIZE)
+        data = buf.read(formats.PARAM_EXPR_ELEM_V13_SIZE)
     return stack.pop()
 
 
@@ -966,7 +966,7 @@ def loads_value(
             )
         else:
             return common.data_from_binary(
-                binary_data, _read_parameter_expression_v4, vectors=vectors, version=version
+                binary_data, _read_parameter_expression_v13, vectors=vectors, version=version
             )
     if type_key == type_keys.Value.EXPRESSION:
         return common.data_from_binary(
