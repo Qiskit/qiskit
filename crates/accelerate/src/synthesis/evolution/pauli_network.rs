@@ -48,7 +48,7 @@ fn expand_pauli(sparse_pauli: String, qubits: &[u32], num_qubits: usize) -> Stri
 }
 
 /// Return the Qiskit's gate corresponding to the given Rustiq's Clifford gate.
-fn qiskit_clifford_gate(rustiq_gate: &CliffordGate) -> QiskitGate {
+fn to_qiskit_clifford_gate(rustiq_gate: &CliffordGate) -> QiskitGate {
     match rustiq_gate {
         CliffordGate::CNOT(i, j) => (
             StandardGate::CXGate,
@@ -223,7 +223,7 @@ fn inject_rotations(
     }
 
     for gate in gates {
-        out_gates.push(qiskit_clifford_gate(gate));
+        out_gates.push(to_qiskit_clifford_gate(gate));
 
         cur_paulis.conjugate_with_gate(gate);
 
@@ -242,10 +242,10 @@ fn inject_rotations(
 
 /// Return the vector of Qiskit's gate corresponding to the given vector
 /// of Rustiq's Clifford gate.
-fn qiskit_clifford_gates(gates: &Vec<CliffordGate>) -> Vec<QiskitGate> {
+fn to_qiskit_clifford_gates(gates: &Vec<CliffordGate>) -> Vec<QiskitGate> {
     let mut qiskit_gates: Vec<QiskitGate> = Vec::with_capacity(gates.len());
     for gate in gates {
-        qiskit_gates.push(qiskit_clifford_gate(gate));
+        qiskit_gates.push(to_qiskit_clifford_gate(gate));
     }
     qiskit_gates
 }
@@ -264,10 +264,10 @@ fn synthesize_final_clifford(
     resynth_clifford_method: usize,
 ) -> Vec<QiskitGate> {
     match resynth_clifford_method {
-        0 => qiskit_clifford_gates(&rcircuit.gates),
+        0 => to_qiskit_clifford_gates(&rcircuit.gates),
         1 => {
             // Qiskit-based resynthesis
-            let qcircuit = qiskit_clifford_gates(&rcircuit.gates);
+            let qcircuit = to_qiskit_clifford_gates(&rcircuit.gates);
             let new_qcircuit = resynthesize_clifford_circuit(rcircuit.nqbits, &qcircuit).unwrap();
             if cnot_count(&qcircuit) < cnot_count(&new_qcircuit) {
                 qcircuit
@@ -280,9 +280,9 @@ fn synthesize_final_clifford(
             let tableau = IsometryTableau::new(rcircuit.nqbits, 0);
             let new_rcircuit = isometry_synthesis(&tableau, &Metric::COUNT, 1);
             if new_rcircuit.cnot_count() < rcircuit.cnot_count() {
-                qiskit_clifford_gates(&new_rcircuit.gates)
+                to_qiskit_clifford_gates(&new_rcircuit.gates)
             } else {
-                qiskit_clifford_gates(&rcircuit.gates)
+                to_qiskit_clifford_gates(&rcircuit.gates)
             }
         }
     }
@@ -306,8 +306,8 @@ fn synthesize_final_clifford(
 ///     and the returned circuit will generally not be equivalent to the given
 ///     pauli network. In addition, the argument `upto_phase` would be ignored.
 /// * upto_phase: if `true`, the global phase of the returned circuit may differ
-///     from the global phase of the given pauli network. The argument is ignored
-///     when `upto_clifford` is `true`.
+///     from the global phase of the given pauli network. The argument is considered
+///     to be `true` when `upto_clifford` is `true`.
 /// * resynth_clifford_method: describes the strategy to synthesize the final
 ///     Clifford operator. If `0` a naive approach is used, which doubles the number
 ///     of gates but preserves the global phase of the circuit. If `1`, the Clifford is

@@ -37,8 +37,8 @@ use crate::synthesis::evolution::pauli_network::pauli_network_synthesis_inner;
 ///     and the returned circuit will generally not be equivalent to the given
 ///     pauli network. In addition, the argument `upto_phase` would be ignored.
 /// * upto_phase: if `true`, the global phase of the returned circuit may differ
-///     from the global phase of the given pauli network. The argument is ignored
-///     when `upto_clifford` is `true`.
+///     from the global phase of the given pauli network. The argument is considered
+///     to be `true` when `upto_clifford` is `true`.
 /// * resynth_clifford_method: describes the strategy to synthesize the final
 ///     Clifford operator. If `0` a naive approach is used, which doubles the number
 ///     of gates but preserves the global phase of the circuit. If `1`, the Clifford is
