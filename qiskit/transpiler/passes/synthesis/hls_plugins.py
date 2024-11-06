@@ -426,7 +426,6 @@ from qiskit.synthesis.multi_controlled import (
     synth_mcx_noaux_v24,
     synth_mcmt_vchain,
 )
-from qiskit.synthesis.multi_controlled import synth_mcmt_vchain
 from qiskit.synthesis.arithmetic import (
     adder_ripple_c04,
     adder_qft_d00,
