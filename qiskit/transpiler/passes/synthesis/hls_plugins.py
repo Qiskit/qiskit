@@ -282,7 +282,7 @@ from qiskit.synthesis.clifford import (
     synth_clifford_ag,
     synth_clifford_bm,
 )
-from qiskit.synthesis.evolution import SuzukiTrotter
+from qiskit.synthesis.evolution import ProductFormula
 from qiskit.synthesis.linear import (
     synth_cnot_count_full_pmh,
     synth_cnot_depth_line_kms,
@@ -1063,7 +1063,7 @@ class PauliEvolutionSynthesisDefault(HighLevelSynthesisPlugin):
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         algo = high_level_object.synthesis
 
-        if "preserve_order" in options:
+        if "preserve_order" in options and isinstance(algo, ProductFormula):
             algo.preserve_order = options["preserve_order"]
 
         return algo.synthesize(high_level_object)

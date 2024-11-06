@@ -287,9 +287,11 @@ def reorder_paulis(
 
     Args:
         paulis: The operator whose terms to preserve_order.
-        strategy: The coloring heuristic to use. See
-          [``rx.ColoringStrategy``](https://www.rustworkx.org/apiref/rustworkx.ColoringStrategy.html#coloringstrategy).
-          Default is ``rx.ColoringStrategy.Degree``.
+        strategy: The coloring heuristic to use, see ``ColoringStrategy`` [#].
+            Default is ``ColoringStrategy.Saturation``.
+
+    .. [#] https://www.rustworkx.org/apiref/rustworkx.ColoringStrategy.html#coloringstrategy
+
     """
 
     def _term_sort_key(term: SparsePauliLabel) -> typing.Any:

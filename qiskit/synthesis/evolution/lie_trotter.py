@@ -82,7 +82,7 @@ class LieTrotter(SuzukiTrotter):
                 effect when ``atomic_evolution is None``.
             preserve_order: Whether to allow preserve_ordering the terms of the operator to
                 potentially yield a shallower evolution circuit. Not relevant
-                when synthesizing operator with a single term. Defaults to ``False``.
+                when synthesizing operator with a single term. Defaults to ``True``.
         """
         super().__init__(
             1,
