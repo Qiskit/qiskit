@@ -293,8 +293,8 @@ def reorder_paulis(
     """
 
     def _term_sort_key(term: SparsePauliLabel) -> typing.Any:
-        # sort by index, pauli, re(coeff), im(coeff)
-        return (term[1], term[0], term[2].real, term[2].imag)
+        # sort by index, then by pauli
+        return (term[1], term[0])
 
     # Do nothing in trivial cases
     if len(paulis) <= 1:
@@ -315,7 +315,6 @@ def reorder_paulis(
 
     for term_idx, color in sorted(coloring.items()):
         term = graph.nodes()[term_idx]
-        print(color, term)
         terms_by_color[color].append(term)
 
     terms = sum(terms_by_color.values(), [])
