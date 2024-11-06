@@ -58,7 +58,7 @@ class TestMultiplier(QiskitTestCase):
 
         # obtain the statevector and the probabilities, we don't trace out the ancilla qubits
         # as we verify that all ancilla qubits have been uncomputed to state 0 again
-        tqc = transpile(circuit, basis_gates=["h", "p", "cp", "rz", "cx", "ccx", "ccp", "swap"])
+        tqc = transpile(circuit, basis_gates=["h", "p", "cp", "rz", "cx", "ccx", "swap"])
         statevector = Statevector(tqc)
         probabilities = statevector.probabilities()
         pad = "0" * circuit.num_ancillas  # state of the ancillas
