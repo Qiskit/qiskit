@@ -25,6 +25,7 @@ pub mod circuit_library;
 pub mod commutation_analysis;
 pub mod commutation_cancellation;
 pub mod commutation_checker;
+pub mod consolidate_blocks;
 pub mod convert_2q_block_matrix;
 pub mod dense_layout;
 pub mod edge_collections;
