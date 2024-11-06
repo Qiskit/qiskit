@@ -1053,30 +1053,17 @@ class PauliEvolutionSynthesisDefault(HighLevelSynthesisPlugin):
     This plugin name is:``PauliEvolution.default`` which can be used as the key on
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
 
-    If the :class:`.PauliEvolutionGate` does not have the ``synthesis`` property
-    set, the plugin uses :class:`.SuzukiTrotter` ad supports the following options:
+    The following plugin option can be set:
 
-    * order: The order of the Suzuki-Trotter formula (an even number, or 1).
-    * reps: The number of Trotter time steps.
-    * reorder: If ``True``, allow re-ordering the Pauli terms in the Hamiltonian to
+    * preserve_order: If ``True``, allow re-ordering the Pauli terms in the Hamiltonian to
         reduce the circuit depth of the decomposition.
-    * insert_barriers: If ``True``, insert barriers in between the Pauli term evolutions.
-    * cx_structure: How to arrange the CX gates for the Pauli evolution. Can be
-        ``"chain"`` (default) or ``"fountain"``.
-    * wrap: If ``True``, wrap the Pauli evolutions into gates. This comes with a performance
-        cost.
+
     """
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
-        algo = high_level_object._synthesis
+        algo = high_level_object.synthesis
 
-        if algo is None:
-            algo = SuzukiTrotter(
-                order=options.get("order", 1),
-                reps=options.get("reps", 1),
-                reorder=options.get("reorder", False),
-                cx_structure=options.get("cx_structure", "chain"),
-                wrap=options.get("wrap", False),
-            )
+        if "preserve_order" in options:
+            algo.preserve_order = options["preserve_order"]
 
         return algo.synthesize(high_level_object)

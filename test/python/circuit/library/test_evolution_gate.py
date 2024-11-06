@@ -163,7 +163,7 @@ class TestEvolutionGate(QiskitTestCase):
         time = 0.1
         reps = 1
         evo_gate = PauliEvolutionGate(
-            op, time, synthesis=SuzukiTrotter(order=4, reps=reps, reorder=False)
+            op, time, synthesis=SuzukiTrotter(order=4, reps=reps, preserve_order=True)
         )
 
         # manually construct expected evolution
@@ -193,13 +193,11 @@ class TestEvolutionGate(QiskitTestCase):
         op = (X ^ X ^ I ^ I) + (I ^ Y ^ Y ^ I) + (I ^ I ^ Z ^ Z)
         time, reps = 0.1, 1
 
+        synthesis = SuzukiTrotter(order=2, reps=reps)
         if use_plugin:
-            synthesis = None
-            hls_config = HLSConfig(
-                PauliEvolution=[("default", {"reorder": True, "order": 2, "reps": reps})]
-            )
+            hls_config = HLSConfig(PauliEvolution=[("default", {"preserve_order": False})])
         else:
-            synthesis = SuzukiTrotter(order=2, reps=reps, reorder=True)
+            synthesis.preserve_order = False
             hls_config = None
 
         evo_gate = PauliEvolutionGate(op, time, synthesis=synthesis)
@@ -398,7 +396,7 @@ class TestEvolutionGate(QiskitTestCase):
         evo_gate = PauliEvolutionGate(
             op,
             time,
-            synthesis=LieTrotter(reps=reps, reorder=True),
+            synthesis=LieTrotter(reps=reps, preserve_order=False),
         )
         # manually construct expected evolution
         expected = QuantumCircuit(4)

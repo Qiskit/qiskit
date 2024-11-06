@@ -68,7 +68,7 @@ class ProductFormula(EvolutionSynthesis):
             | None
         ) = None,
         wrap: bool = False,
-        reorder: bool = False,
+        preserve_order: bool = False,
     ) -> None:
         """
         Args:
@@ -90,7 +90,7 @@ class ProductFormula(EvolutionSynthesis):
             wrap: Whether to wrap the atomic evolutions into custom gate objects. Note that setting
                 this to ``True`` is slower than ``False``. This only takes effect when
                 ``atomic_evolution is None``.
-            reorder: Whether to allow reordering the terms of the operator to
+            preserve_order: Whether to allow preserve_ordering the terms of the operator to
                 potentially yield a shallower evolution circuit. Not relevant
                 when synthesizing operator with a single term.
         """
@@ -98,7 +98,7 @@ class ProductFormula(EvolutionSynthesis):
         self.order = order
         self.reps = reps
         self.insert_barriers = insert_barriers
-        self.reorder = reorder
+        self.preserve_order = preserve_order
 
         # user-provided atomic evolution, stored for serialization
         self._atomic_evolution = atomic_evolution
@@ -187,7 +187,7 @@ class ProductFormula(EvolutionSynthesis):
             "insert_barriers": self.insert_barriers,
             "cx_structure": self._cx_structure,
             "wrap": self._wrap,
-            "reorder": self.reorder,
+            "preserve_order": self.preserve_order,
         }
 
     def _normalize_coefficients(
@@ -256,7 +256,7 @@ def reorder_paulis(
     paulis: SparsePauliLabel, strategy: rx.ColoringStrategy = rx.ColoringStrategy.Saturation
 ) -> SparsePauliOp | list[SparsePauliOp]:
     r"""
-    Creates an equivalent operator by reordering terms in order to yield a
+    Creates an equivalent operator by preserve_ordering terms in order to yield a
     shallower circuit after evolution synthesis. The original operator remains
     unchanged.
 
@@ -279,14 +279,14 @@ def reorder_paulis(
     this method does nothing.
 
     If ``operators`` is a list of :class:`~qiskit.quantum_info.SparsePauliOp`,
-    then reordering is applied to every operator independently, and the list of
-    reordered operators is returned.
+    then preserve_ordering is applied to every operator independently, and the list of
+    preserve_ordered operators is returned.
 
     This method is deterministic and invariant under permutation of the Pauli
     term in ``operators``.
 
     Args:
-        paulis: The operator whose terms to reorder.
+        paulis: The operator whose terms to preserve_order.
         strategy: The coloring heuristic to use. See
           [``rx.ColoringStrategy``](https://www.rustworkx.org/apiref/rustworkx.ColoringStrategy.html#coloringstrategy).
           Default is ``rx.ColoringStrategy.Degree``.

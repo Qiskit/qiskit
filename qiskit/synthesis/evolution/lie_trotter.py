@@ -60,7 +60,7 @@ class LieTrotter(SuzukiTrotter):
             | None
         ) = None,
         wrap: bool = False,
-        reorder: bool = False,
+        preserve_order: bool = False,
     ) -> None:
         """
         Args:
@@ -80,7 +80,7 @@ class LieTrotter(SuzukiTrotter):
                 built.
             wrap: Whether to wrap the atomic evolutions into custom gate objects. This only takes
                 effect when ``atomic_evolution is None``.
-            reorder: Whether to allow reordering the terms of the operator to
+            preserve_order: Whether to allow preserve_ordering the terms of the operator to
                 potentially yield a shallower evolution circuit. Not relevant
                 when synthesizing operator with a single term. Defaults to ``False``.
         """
@@ -91,7 +91,7 @@ class LieTrotter(SuzukiTrotter):
             cx_structure,
             atomic_evolution,
             wrap,
-            reorder=reorder,
+            preserve_order=preserve_order,
         )
 
     @property
