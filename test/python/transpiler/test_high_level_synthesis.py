@@ -2623,6 +2623,8 @@ class TestPauliEvolutionSynthesisPlugins(QiskitTestCase):
         ("rustiq", ["XXX", "YYY", "IZZ", "XZY"], [1, 2, 3, 4]),
         ("default", ["III", "XZY", "III", "III"], [1, 2, 3, 4]),
         ("rustiq", ["III", "XZY", "III", "III"], [1, 2, 3, 4]),
+        ("default", ["XXX", "YYY", "IZZ", "XZY"], None),
+        ("rustiq", ["XXX", "YYY", "IZZ", "XZY"], None),
     )
     @unpack
     def test_correctness(self, plugin_name, paulis, coeffs):
@@ -2664,6 +2666,37 @@ class TestPauliEvolutionSynthesisPlugins(QiskitTestCase):
             qct = hls_pass(qc)
             cnt_ops = qct.count_ops()
             self.assertEqual(cnt_ops["cx"], 5)
+
+    def test_rustiq_upto_phase(self):
+        """Check that Rustiq synthesis with ``upto_phase=True`` produces a correct
+        circuit up to the global phase.
+        """
+        # On this example Rustiq with the option "upto_phase=True" does produce a circuit
+        # with a different global phase.
+        op = SparsePauliOp(
+            [
+                "IIII",
+                "XXII",
+                "XIXI",
+                "XIIX",
+                "YYII",
+                "YIYI",
+                "YIIY",
+                "ZZII",
+                "ZIZI",
+                "ZIIZ",
+                "IXIX",
+                "IYIY",
+                "IZIZ",
+            ]
+        )
+        qc = QuantumCircuit(4)
+        qc.append(PauliEvolutionGate(op), [0, 1, 2, 3])
+        default_config = HLSConfig(PauliEvolution=["default"])
+        qct_default = HighLevelSynthesis(hls_config=default_config)(qc)
+        rustiq_config = HLSConfig(PauliEvolution=[("rustiq", {"upto_phase": True})])
+        qct_rustiq = HighLevelSynthesis(hls_config=rustiq_config)(qc)
+        self.assertTrue(Operator(qct_default).equiv(Operator(qct_rustiq)))
 
     def test_rustiq_with_parameterized_angles(self):
         """Test Rustiq's synthesis with parameterized angles."""

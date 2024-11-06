@@ -92,7 +92,7 @@ Linear Function Synthesis
    PMHSynthesisLinearFunction
    DefaultSynthesisLinearFunction
 
-   
+
 Pauli Evolution Synthesis
 '''''''''''''''''''''''''
 
@@ -336,7 +336,7 @@ from qiskit.synthesis.multi_controlled import (
     synth_mcx_noaux_v24,
     synth_mcmt_vchain,
 )
-from qiskit.synthesis.evolution import synth_pauli_network_rustiq
+from qiskit.synthesis.evolution import ProductFormula, synth_pauli_network_rustiq
 from qiskit.transpiler.passes.routing.algorithms import ApproximateTokenSwapper
 from .plugin import HighLevelSynthesisPlugin
 
@@ -1079,7 +1079,7 @@ class MCMTSynthesisVChain(HighLevelSynthesisPlugin):
 
 
 class PauliEvolutionSynthesisDefault(HighLevelSynthesisPlugin):
-    """Synthesize a PauliEvolutionGate using the default synthesis algorithm.
+    """Synthesize a :class:`.PauliEvolutionGate` using the default synthesis algorithm.
 
     This plugin name is :``PauliEvolution.default`` which can be used as the key on
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
@@ -1099,7 +1099,7 @@ class PauliEvolutionSynthesisDefault(HighLevelSynthesisPlugin):
 
 
 class PauliEvolutionSynthesisRustiq(HighLevelSynthesisPlugin):
-    """Synthesize a PauliEvolutionGate using Rustiq.
+    """Synthesize a :class:`.PauliEvolutionGate` using Rustiq.
 
     This plugin name is :``PauliEvolution.rustiq`` which can be used as the key on
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
@@ -1138,7 +1138,7 @@ class PauliEvolutionSynthesisRustiq(HighLevelSynthesisPlugin):
 
         algo = high_level_object.synthesis
 
-        if not hasattr(algo, "expand"):
+        if not isinstance(algo, ProductFormula):
             warnings.warn(
                 "Cannot apply Rustiq if the evolution synthesis does not implement ``expand``. ",
                 stacklevel=2,
