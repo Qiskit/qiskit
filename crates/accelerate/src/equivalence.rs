@@ -342,7 +342,7 @@ impl ToPyObject for CircuitFromPython {
 type GraphType = StableDiGraph<NodeData, Option<EdgeData>>;
 type KTIType = IndexMap<Key, NodeIndex, RandomState>;
 
-/// A library providing a one-way mapping of Gates to their equivalent
+/// A library providing a one-way mapping of gates to their equivalent
 /// implementations as :class:`.QuantumCircuit` instances.
 #[pyclass(
     subclass,
@@ -441,7 +441,7 @@ impl EquivalenceLibrary {
     }
 
     /// Gets the set of :class:`.QuantumCircuit` instances circuits from the
-    /// library which equivalently implement the given Gate.
+    /// library which equivalently implement the given :class:`.Gate`.
     ///
     /// Parameterized circuits will have their parameters replaced with the
     /// corresponding entries from Gate.params.
