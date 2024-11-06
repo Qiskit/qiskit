@@ -40,7 +40,6 @@ from qiskit.transpiler.preset_passmanagers.plugin import (
 from qiskit.transpiler.passes.optimization import (
     Optimize1qGatesDecomposition,
     CommutativeCancellation,
-    Collect2qBlocks,
     ConsolidateBlocks,
     InverseCancellation,
     RemoveIdentityEquivalent,
@@ -184,7 +183,6 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                 )
             )
             init.append(CommutativeCancellation())
-            init.append(Collect2qBlocks())
             init.append(ConsolidateBlocks())
             # If approximation degree is None that indicates a request to approximate up to the
             # error rates in the target. However, in the init stage we don't yet know the target
@@ -602,7 +600,6 @@ class OptimizationPassManager(PassManagerStagePlugin):
             elif optimization_level == 3:
                 # Steps for optimization level 3
                 _opt = [
-                    Collect2qBlocks(),
                     ConsolidateBlocks(
                         basis_gates=pass_manager_config.basis_gates,
                         target=pass_manager_config.target,
@@ -650,7 +647,6 @@ class OptimizationPassManager(PassManagerStagePlugin):
             elif optimization_level == 2:
                 optimization.append(
                     [
-                        Collect2qBlocks(),
                         ConsolidateBlocks(
                             basis_gates=pass_manager_config.basis_gates,
                             target=pass_manager_config.target,
