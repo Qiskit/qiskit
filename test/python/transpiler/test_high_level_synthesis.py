@@ -2637,8 +2637,8 @@ class TestPauliEvolutionSynthesisPlugins(QiskitTestCase):
         qct = hls_pass(qc)
         self.assertEqual(Operator(qc), Operator(qct))
 
-    def test_rustiq_options(self):
-        """Test important non-default Rustiq options."""
+    def test_rustiq_upto_options(self):
+        """Test non-default Rustiq options upto_phase and upto_clifford."""
         op = SparsePauliOp(["XXXX", "YYYY", "ZZZZ"], coeffs=[1, 2, 3])
         qc = QuantumCircuit(6)
         qc.append(PauliEvolutionGate(op), [1, 2, 3, 4])
@@ -2666,6 +2666,24 @@ class TestPauliEvolutionSynthesisPlugins(QiskitTestCase):
             qct = hls_pass(qc)
             cnt_ops = qct.count_ops()
             self.assertEqual(cnt_ops["cx"], 5)
+
+    def test_rustiq_preserve_order(self):
+        """Test non-default Rustiq option preserve_order."""
+        op = SparsePauliOp(["IXX", "YYI", "IXX", "YYI", "IXX", "YYI"])
+        qc = QuantumCircuit(3)
+        qc.append(PauliEvolutionGate(op), [0, 1, 2])
+        with self.subTest("preserve_order_is_true"):
+            hls_config = HLSConfig(PauliEvolution=[("rustiq", {"preserve_order": True})])
+            hls_pass = HighLevelSynthesis(hls_config=hls_config)
+            qct = hls_pass(qc)
+            cnt_ops = qct.count_ops()
+            self.assertEqual(cnt_ops["cx"], 16)
+        with self.subTest("preserve_order_is_false"):
+            hls_config = HLSConfig(PauliEvolution=[("rustiq", {"preserve_order": False})])
+            hls_pass = HighLevelSynthesis(hls_config=hls_config)
+            qct = hls_pass(qc)
+            cnt_ops = qct.count_ops()
+            self.assertEqual(cnt_ops["cx"], 4)
 
     def test_rustiq_upto_phase(self):
         """Check that Rustiq synthesis with ``upto_phase=True`` produces a correct
