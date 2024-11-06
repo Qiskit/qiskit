@@ -140,19 +140,23 @@ struct CommutativityDag {
 }
 
 impl CommutativityDag {
-    /// Construct a DAG based on commutativity relations between paulis.
-    fn from_paulis(paulis: &PauliSet) -> Self {
+    /// Construct a DAG corresponding to `paulis`.
+    /// When `add_edges` is `true`, we add an edge between pauli `i` and pauli `j`
+    /// iff they commute. When `add_edges` is `false`, we do not add any edges.
+    fn from_paulis(paulis: &PauliSet, add_edges: bool) -> Self {
         let mut dag = StableDiGraph::<usize, ()>::new();
 
         let node_indices: Vec<NodeIndex> = (0..paulis.len()).map(|i| dag.add_node(i)).collect();
 
-        for i in 0..paulis.len() {
-            let pauli_i = paulis.get_as_pauli(i);
-            for j in i + 1..paulis.len() {
-                let pauli_j = paulis.get_as_pauli(j);
+        if add_edges {
+            for i in 0..paulis.len() {
+                let pauli_i = paulis.get_as_pauli(i);
+                for j in i + 1..paulis.len() {
+                    let pauli_j = paulis.get_as_pauli(j);
 
-                if !pauli_i.commutes(&pauli_j) {
-                    dag.add_edge(node_indices[i], node_indices[j], ());
+                    if !pauli_i.commutes(&pauli_j) {
+                        dag.add_edge(node_indices[i], node_indices[j], ());
+                    }
                 }
             }
         }
@@ -176,60 +180,6 @@ impl CommutativityDag {
 
 /// Return a Qiskit circuit with Clifford gates and rotations.
 ///
-/// The rotations are assumed to be unordered.
-///
-/// # Arguments
-///
-/// * py: a GIL handle, needed to negate rotation parameters in Python space.
-/// * gates: the sequence of Rustiq's Clifford gates returned by Rustiq's
-///     pauli network synthesis algorithm.
-/// * paulis: Rustiq's data structure storing the pauli rotations.
-/// * angles: Qiskit's rotation angles corresponding to the pauli rotations.
-fn inject_rotations_unordered(
-    py: Python,
-    gates: &Vec<CliffordGate>,
-    paulis: &PauliSet,
-    angles: &[Param],
-) -> (Vec<QiskitGate>, Param) {
-    let mut out_gates: Vec<QiskitGate> = Vec::with_capacity(gates.len() + paulis.len());
-    let mut global_phase = Param::Float(0.0);
-
-    let mut cur_paulis = paulis.clone();
-    let mut hit_paulis: Vec<bool> = vec![false; cur_paulis.len()];
-
-    // check which paulis are hit at the very start
-    for i in 0..cur_paulis.len() {
-        let pauli_support_size = cur_paulis.support_size(i);
-        if pauli_support_size == 0 {
-            // in case of an all-identity rotation, update global phase by subtracting
-            // the angle
-            global_phase = radd_param(global_phase, multiply_param(&angles[i], -1.0, py), py);
-            hit_paulis[i] = true;
-        } else if pauli_support_size == 1 {
-            out_gates.push(qiskit_rotation_gate(py, &cur_paulis, i, &angles[i]));
-            hit_paulis[i] = true;
-        }
-    }
-
-    for gate in gates {
-        out_gates.push(qiskit_clifford_gate(gate));
-
-        cur_paulis.conjugate_with_gate(gate);
-
-        // check which paulis are hit now
-        for i in 0..cur_paulis.len() {
-            if !hit_paulis[i] && cur_paulis.support_size(i) == 1 {
-                out_gates.push(qiskit_rotation_gate(py, &cur_paulis, i, &angles[i]));
-                hit_paulis[i] = true;
-            }
-        }
-    }
-
-    (out_gates, global_phase)
-}
-
-/// Return a Qiskit circuit with Clifford gates and rotations.
-///
 /// The rotations are assumed to be ordered (up to commutativity).
 ///
 /// # Arguments
@@ -239,11 +189,14 @@ fn inject_rotations_unordered(
 ///     pauli network synthesis algorithm.
 /// * paulis: Rustiq's data structure storing the pauli rotations.
 /// * angles: Qiskit's rotation angles corresponding to the pauli rotations.
-fn inject_rotations_ordered(
+/// * preserve_order: specifies whether the order of paulis should be preserved,
+///     up to commutativity.
+fn inject_rotations(
     py: Python,
-    gates: &Vec<CliffordGate>,
+    gates: &[CliffordGate],
     paulis: &PauliSet,
     angles: &[Param],
+    preserve_order: bool,
 ) -> (Vec<QiskitGate>, Param) {
     let mut out_gates: Vec<QiskitGate> = Vec::with_capacity(gates.len() + paulis.len());
     let mut global_phase = Param::Float(0.0);
@@ -251,7 +204,7 @@ fn inject_rotations_ordered(
     let mut cur_paulis = paulis.clone();
     let mut hit_paulis: Vec<bool> = vec![false; cur_paulis.len()];
 
-    let mut dag = CommutativityDag::from_paulis(paulis);
+    let mut dag = CommutativityDag::from_paulis(paulis, preserve_order);
 
     // check which paulis are hit at the very start
     for i in 0..cur_paulis.len() {
@@ -406,10 +359,8 @@ pub fn pauli_network_synthesis_inner(
     let circuit = greedy_pauli_network(&mut paulis, &metric, preserve_order, 0, false, false);
 
     // post-process algorithm's output, translating to Qiskit's gates and inserting rotation gates
-    let (mut gates, global_phase) = match preserve_order {
-        false => inject_rotations_unordered(py, &circuit.gates, &paulis, &angles),
-        true => inject_rotations_ordered(py, &circuit.gates, &paulis, &angles),
-    };
+    let (mut gates, global_phase) =
+        inject_rotations(py, &circuit.gates, &paulis, &angles, preserve_order);
 
     // if the circuit needs to be synthesized exactly, we cannot use either Rustiq's
     // or Qiskit's synthesis methods for Cliffords, since they do not necessarily preserve
