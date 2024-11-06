@@ -527,10 +527,11 @@ def _parse_backend_properties(backend_properties, backend):
     # try getting backend_props from user, else backend
     if backend_properties is None and backend is not None:
         with warnings.catch_warnings():
+            # filter target_to_backend_properties warning
             warnings.filterwarnings(
                 "ignore",
                 category=DeprecationWarning,
-                message=".*``qiskit.transpiler.target.target_to_backend_properties()`` is deprecated as of qiskit 1.2.*",
+                message=".*``qiskit.transpiler.target.target_to_backend_properties\\(\\)`` is deprecated as of qiskit 1.2.*",
                 module="qiskit",
             )
             backend_properties = target_to_backend_properties(backend.target)

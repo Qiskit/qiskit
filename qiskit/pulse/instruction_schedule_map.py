@@ -169,12 +169,22 @@ class InstructionScheduleMap:
         """
         instruction = _get_instruction_string(instruction)
         if not self.has(instruction, _to_tuple(qubits)):
-            if instruction in self._map:
-                raise PulseError(
-                    f"Operation '{instruction}' exists, but is only defined for qubits "
-                    f"{self.qubits_with_instruction(instruction)}."
+            # TODO: PulseError is deprecated, this code will be removed in 2.0.
+            # In the meantime, we catch the deprecation
+            # warning not to overload users with non-actionable messages
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore",
+                    category=DeprecationWarning,
+                    message=".*The entire Qiskit Pulse package*",
+                    module="qiskit",
                 )
-            raise PulseError(f"Operation '{instruction}' is not defined for this system.")
+                if instruction in self._map:
+                    raise PulseError(
+                        f"Operation '{instruction}' exists, but is only defined for qubits "
+                        f"{self.qubits_with_instruction(instruction)}."
+                    )
+                raise PulseError(f"Operation '{instruction}' is not defined for this system.")
 
     def get(
         self,
