@@ -36,7 +36,7 @@ from qiskit.circuit.library import GraphState
 from qiskit.quantum_info import random_unitary
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.transpiler.preset_passmanagers import level0, level1, level2, level3
-from qiskit.transpiler.passes import Collect2qBlocks, GatesInBasis
+from qiskit.transpiler.passes import ConsolidateBlocks, GatesInBasis
 from qiskit.transpiler.preset_passmanagers.builtin_plugins import OptimizationPassManager
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -270,16 +270,16 @@ class TestPresetPassManager(QiskitTestCase):
         )
         qv_circuit = QuantumVolume(3)
         gates_in_basis_true_count = 0
-        collect_2q_blocks_count = 0
+        consolidate_blocks_count = 0
 
         # pylint: disable=unused-argument
         def counting_callback_func(pass_, dag, time, property_set, count):
             nonlocal gates_in_basis_true_count
-            nonlocal collect_2q_blocks_count
+            nonlocal consolidate_blocks_count
             if isinstance(pass_, GatesInBasis) and property_set["all_gates_in_basis"]:
                 gates_in_basis_true_count += 1
-            if isinstance(pass_, Collect2qBlocks):
-                collect_2q_blocks_count += 1
+            if isinstance(pass_, ConsolidateBlocks):
+                consolidate_blocks_count += 1
 
         transpile(
             qv_circuit,
@@ -288,7 +288,7 @@ class TestPresetPassManager(QiskitTestCase):
             callback=counting_callback_func,
             translation_method="synthesis",
         )
-        self.assertEqual(gates_in_basis_true_count + 2, collect_2q_blocks_count)
+        self.assertEqual(gates_in_basis_true_count + 2, consolidate_blocks_count)
 
 
 @ddt
