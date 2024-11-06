@@ -44,6 +44,19 @@ class DraperQFTAdder(Adder):
         cout_0: ┤2     ├────────────────────────■────────■───────┤2      ├
                 └──────┘                                         └───────┘
 
+    .. seealso::
+
+        The following generic gate objects perform additions, like this circuit class,
+        but allow the compiler to select the optimal decomposition based on the context.
+        Specific implementations can be set via the :class:`.HLSConfig`, e.g. this
+        circuit can be chosen via ``Adder=["qft_d00"]``.
+
+        :class:`.ModularAdderGate`: A generic inplace adder, modulo :math:`2^n`. This
+            is functionally equivalent to ``kind="fixed"``.
+
+        :class:`.AdderGate`: A generic inplace adder. This
+            is functionally equivalent to ``kind="half"``.
+
     **References:**
 
     [1] T. G. Draper, Addition on a Quantum Computer, 2000.

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2021.
+# (C) Copyright IBM 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -10,9 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""The adder circuit library."""
+"""Module containing multi-controlled circuits synthesis"""
 
-from .cdkm_ripple_carry_adder import CDKMRippleCarryAdder
-from .draper_qft_adder import DraperQFTAdder
-from .vbe_ripple_carry_adder import VBERippleCarryAdder
-from .adder import ModularAdderGate, HalfAdderGate, FullAdderGate
+from .cdkm_ripple_carry_adder import adder_ripple_c04
+from .vbe_ripple_carry_adder import adder_ripple_v95
+from .draper_qft_adder import adder_qft_d00
