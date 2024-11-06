@@ -42,6 +42,7 @@ from qiskit.transpiler.passes.optimization import (
     CommutativeCancellation,
     ConsolidateBlocks,
     InverseCancellation,
+    RemoveIdentityEquivalent,
 )
 from qiskit.transpiler.passes import Depth, Size, FixedPoint, MinimumPoint
 from qiskit.transpiler.passes.utils.gates_basis import GatesInBasis
@@ -156,6 +157,13 @@ class DefaultInitPassManager(PassManagerStagePlugin):
             if pass_manager_config.routing_method != "none":
                 init.append(ElidePermutations())
             init.append(RemoveDiagonalGatesBeforeMeasure())
+            # Target not set on RemoveIdentityEquivalent because we haven't applied a Layout
+            # yet so doing anything relative to an error rate in the target is not valid.
+            init.append(
+                RemoveIdentityEquivalent(
+                    approximation_degree=pass_manager_config.approximation_degree
+                )
+            )
             init.append(
                 InverseCancellation(
                     [
@@ -580,6 +588,10 @@ class OptimizationPassManager(PassManagerStagePlugin):
 
             elif optimization_level == 2:
                 _opt = [
+                    RemoveIdentityEquivalent(
+                        approximation_degree=pass_manager_config.approximation_degree,
+                        target=pass_manager_config.target,
+                    ),
                     Optimize1qGatesDecomposition(
                         basis=pass_manager_config.basis_gates, target=pass_manager_config.target
                     ),
@@ -600,6 +612,10 @@ class OptimizationPassManager(PassManagerStagePlugin):
                         backend_props=pass_manager_config.backend_properties,
                         method=pass_manager_config.unitary_synthesis_method,
                         plugin_config=pass_manager_config.unitary_synthesis_plugin_config,
+                        target=pass_manager_config.target,
+                    ),
+                    RemoveIdentityEquivalent(
+                        approximation_degree=pass_manager_config.approximation_degree,
                         target=pass_manager_config.target,
                     ),
                     Optimize1qGatesDecomposition(
