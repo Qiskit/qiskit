@@ -344,14 +344,14 @@ pub fn pauli_network_synthesis_inner(
         angles.push(angle);
     }
 
-    let mut paulis = PauliSet::from_slice(&paulis);
+    let paulis = PauliSet::from_slice(&paulis);
     let metric = match optimize_count {
         true => Metric::COUNT,
         false => Metric::DEPTH,
     };
 
     // Call Rustiq's synthesis algorithm
-    let circuit = greedy_pauli_network(&mut paulis, &metric, preserve_order, 0, false, false);
+    let circuit = greedy_pauli_network(&paulis, &metric, preserve_order, 0, false, false);
 
     // post-process algorithm's output, translating to Qiskit's gates and inserting rotation gates
     let (mut gates, global_phase) =
