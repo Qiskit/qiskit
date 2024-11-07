@@ -674,6 +674,11 @@ class TestNLocalFunction(QiskitTestCase):
         self.assertEqual(2, circuit.count_ops().get("cx", 0))
         self.assertEqual(3, circuit.count_ops().get("cz", 0))
 
+    def test_invalid_entanglement_list(self):
+        """Test passing an invalid list."""
+        with self.assertRaises(TypeError):
+            _ = n_local(3, "h", "cx", entanglement=[0, 1])  # should be [(0, 1)]
+
     def test_mismatching_entanglement_blocks_str(self):
         """Test an error is raised if the number of entanglements does not match the blocks."""
         entanglement = ["full", "linear", "pairwise"]

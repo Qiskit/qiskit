@@ -1313,36 +1313,38 @@ def _normalize_entanglement(
     if isinstance(entanglement, str):
         return [entanglement] * num_entanglement_blocks
 
-    elif not callable(entanglement):
+    if callable(entanglement):
+        return lambda offset: _normalize_entanglement(entanglement(offset), num_entanglement_blocks)
+
+    # here, entanglement is an Iterable
+    if len(entanglement) == 0:
         # handle edge cases when entanglement is set to an empty list
-        if len(entanglement) == 0:
-            return [[]]
+        return [[]]
 
-        if isinstance(entanglement[0], str):
-            # if the entanglement is given as iterable we must make sure it matches
-            # the number of entanglement blocks
-            if len(entanglement) != num_entanglement_blocks:
-                raise QiskitError(
-                    f"Number of block-entanglements ({len(entanglement)}) must match number of "
-                    f"entanglement blocks ({num_entanglement_blocks})!"
-                )
-
-            return entanglement
-
-        # normalize to list[BlockEntanglement]
-        if not isinstance(entanglement[0][0], Iterable):
+    # if the entanglement is Iterable[Iterable[int]], normalize to Iterable[Iterable[Iterable[int]]]
+    try:
+        # if users e.g. gave Iterable[int] this in invalid and will raise a TypeError
+        if isinstance(entanglement[0][0], (int, numpy.integer)):
             entanglement = [entanglement]
+    except TypeError as exc:
+        raise TypeError(f"Invalid entanglement type: {entanglement}.") from exc
 
-        if len(entanglement) != num_entanglement_blocks:
-            raise QiskitError(
-                f"Number of block-entanglements ({len(entanglement)}) must match number of "
-                f"entanglement blocks ({num_entanglement_blocks})!"
-            )
+    # ensure the number of block entanglements matches the number of blocks
+    if len(entanglement) != num_entanglement_blocks:
+        raise QiskitError(
+            f"Number of block-entanglements ({len(entanglement)}) must match number of "
+            f"entanglement blocks ({num_entanglement_blocks})!"
+        )
 
-        return [[tuple(connections) for connections in block] for block in entanglement]
+    # normalize the data: str remains, and Iterable[Iterable[int]] becomes list[tuple[int]]
+    normalized = []
+    for block in entanglement:
+        if isinstance(block, str):
+            normalized.append(block)
+        else:
+            normalized.append([tuple(connections) for connections in block])
 
-    # here, entanglement is a callable
-    return lambda offset: _normalize_entanglement(entanglement(offset), num_entanglement_blocks)
+    return normalized
 
 
 def _normalize_blocks(
@@ -1350,7 +1352,9 @@ def _normalize_blocks(
     supported_gates: dict[str, Gate],
     overwrite_block_parameters: bool,
 ) -> list[Block]:
-    if not isinstance(blocks, Iterable) or isinstance(blocks, str):
+    # normalize the input into an iterable -- we add an extra check for a circuit as
+    # courtesy to the users, since the NLocal class used to accept circuits
+    if isinstance(blocks, (str, Gate, QuantumCircuit)):
         blocks = [blocks]
 
     normalized = []
