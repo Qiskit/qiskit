@@ -145,14 +145,7 @@ class PauliEvolutionGate(Gate):
 
     def _define(self):
         """Unroll, where the default synthesis is matrix based."""
-        if self.synthesis is None:
-            from qiskit.synthesis.evolution import LieTrotter
-
-            synthesis = LieTrotter()
-        else:
-            synthesis = self.synthesis
-
-        self.definition = synthesis.synthesize(self)
+        self.definition = self.synthesis.synthesize(self)
 
     def validate_parameter(self, parameter: ParameterValueType) -> ParameterValueType:
         """Gate parameters should be int, float, or ParameterExpression"""
