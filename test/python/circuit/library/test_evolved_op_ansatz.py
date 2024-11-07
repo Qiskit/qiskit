@@ -179,7 +179,6 @@ class TestEvolvedOperatorAnsatz(QiskitTestCase):
 
         with self.subTest(flatten=False):
             evo = evolved_operator_ansatz(operators, flatten=False)
-            print(evo.draw())
             ops = evo.count_ops()
             self.assertIn("hamiltonian", ops)
             self.assertIn("PauliEvolution", ops)
