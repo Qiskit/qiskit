@@ -332,33 +332,26 @@ Particular Quantum Circuits
    HiddenLinearFunction
    hidden_linear_function
    IQP
+   iqp
+   random_iqp
    QuantumVolume
    quantum_volume
    PhaseEstimation
    phase_estimation
    GroverOperator
+   grover_operator
    PhaseOracle
    PauliEvolutionGate
    HamiltonianGate
    UnitaryOverlap
    unitary_overlap
 
-.. autofunction:: iqp
-.. autofunction:: random_iqp
-.. autofunction:: fourier_checking
-.. autofunction:: hidden_linear_function
-.. autofunction:: unitary_overlap
-.. autofunction:: phase_estimation
-
-.. autofunction:: grover_operator
-
 
 N-local circuits
 ================
 
-These :class:`~qiskit.circuit.library.BlueprintCircuit` subclasses are used
-as parameterized models (a.k.a. ansatzes or variational forms) in variational algorithms.
-They are heavily used in near-term algorithms in e.g. Chemistry, Physics or Optimization.
+The following functions return a parameterized :class:`.QuantumCircuit` to use as ansatz in
+a broad set of variational quantum algorithms:
 
 .. autosummary::
    :toctree: ../stubs/
@@ -369,6 +362,17 @@ They are heavily used in near-term algorithms in e.g. Chemistry, Physics or Opti
    real_amplitudes
    pauli_two_design
    excitation_preserving
+   hamiltonian_variational_ansatz
+   evolved_operator_ansatz
+
+These :class:`~qiskit.circuit.library.BlueprintCircuit` subclasses are used
+as parameterized models (a.k.a. ansatzes or variational forms) in variational algorithms.
+They are heavily used in near-term algorithms in e.g. Chemistry, Physics or Optimization.
+
+.. autosummary::
+   :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
+
    NLocal
    TwoLocal
    PauliTwoDesign
@@ -381,6 +385,17 @@ They are heavily used in near-term algorithms in e.g. Chemistry, Physics or Opti
 
 Data encoding circuits
 ======================
+
+The following functions return a parameterized :class:`.QuantumCircuit` to use as data 
+encoding circuits in a series of variational quantum algorithms:
+
+.. autosummary::
+   :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
+
+   pauli_feature_map
+   z_feature_map
+   zz_feature_map
 
 These :class:`~qiskit.circuit.library.BlueprintCircuit` encode classical
 data in quantum states and are used as feature maps for classification.
@@ -596,9 +611,12 @@ from .n_local import (
     RealAmplitudes,
     efficient_su2,
     EfficientSU2,
+    hamiltonian_variational_ansatz,
+    evolved_operator_ansatz,
     EvolvedOperatorAnsatz,
     excitation_preserving,
     ExcitationPreserving,
+    qaoa_ansatz,
     QAOAAnsatz,
 )
 from .data_preparation import (
