@@ -207,7 +207,7 @@ rz(0) q4835[1];
         self.assertIsInstance(res, QuantumCircuit)
         layout = res._layout.initial_layout
         self.assertEqual(
-            [layout[q] for q in qc.qubits], [11, 19, 18, 16, 26, 8, 21, 1, 5, 15, 3, 12, 14, 13]
+            [layout[q] for q in qc.qubits], [2, 0, 5, 1, 7, 3, 14, 6, 9, 8, 10, 11, 4, 12]
         )
 
     # pylint: disable=line-too-long
@@ -271,7 +271,7 @@ barrier q18585[5],q18585[2],q18585[8],q18585[3],q18585[6];
         self.assertIsInstance(res, QuantumCircuit)
         layout = res._layout.initial_layout
         self.assertEqual(
-            [layout[q] for q in qc.qubits], [22, 7, 2, 12, 1, 5, 14, 4, 11, 0, 16, 15, 3, 10]
+            [layout[q] for q in qc.qubits], [0, 12, 7, 3, 6, 11, 1, 10, 4, 9, 2, 5, 13, 8]
         )
 
     def test_support_var_with_rust_fastpath(self):

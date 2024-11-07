@@ -58,7 +58,6 @@ sys.modules["qiskit._accelerate.basis.basis_translator"] = _accelerate.basis.bas
 sys.modules["qiskit._accelerate.converters"] = _accelerate.converters
 sys.modules["qiskit._accelerate.basis"] = _accelerate.basis
 sys.modules["qiskit._accelerate.basis.basis_translator"] = _accelerate.basis.basis_translator
-sys.modules["qiskit._accelerate.convert_2q_block_matrix"] = _accelerate.convert_2q_block_matrix
 sys.modules["qiskit._accelerate.dense_layout"] = _accelerate.dense_layout
 sys.modules["qiskit._accelerate.equivalence"] = _accelerate.equivalence
 sys.modules["qiskit._accelerate.error_map"] = _accelerate.error_map
@@ -97,6 +96,7 @@ sys.modules["qiskit._accelerate.barrier_before_final_measurement"] = (
 sys.modules["qiskit._accelerate.commutation_checker"] = _accelerate.commutation_checker
 sys.modules["qiskit._accelerate.commutation_analysis"] = _accelerate.commutation_analysis
 sys.modules["qiskit._accelerate.commutation_cancellation"] = _accelerate.commutation_cancellation
+sys.modules["qiskit._accelerate.consolidate_blocks"] = _accelerate.consolidate_blocks
 sys.modules["qiskit._accelerate.synthesis.linear_phase"] = _accelerate.synthesis.linear_phase
 sys.modules["qiskit._accelerate.synthesis.multi_controlled"] = (
     _accelerate.synthesis.multi_controlled
@@ -107,6 +107,7 @@ sys.modules["qiskit._accelerate.inverse_cancellation"] = _accelerate.inverse_can
 sys.modules["qiskit._accelerate.check_map"] = _accelerate.check_map
 sys.modules["qiskit._accelerate.filter_op_nodes"] = _accelerate.filter_op_nodes
 sys.modules["qiskit._accelerate.twirling"] = _accelerate.twirling
+sys.modules["qiskit._accelerate.high_level_synthesis"] = _accelerate.high_level_synthesis
 sys.modules["qiskit._accelerate.remove_identity_equiv"] = _accelerate.remove_identity_equiv
 
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
