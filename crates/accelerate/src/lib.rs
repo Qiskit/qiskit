@@ -54,6 +54,7 @@ pub mod star_prerouting;
 pub mod stochastic_swap;
 pub mod synthesis;
 pub mod target_transpiler;
+pub mod twirling;
 pub mod two_qubit_decompose;
 pub mod uc_gate;
 pub mod unitary_synthesis;
