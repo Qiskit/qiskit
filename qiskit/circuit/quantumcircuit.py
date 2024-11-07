@@ -1177,9 +1177,11 @@ class QuantumCircuit:
         self._unit = value
 
     @classmethod
-    def _from_circuit_data(cls, data: CircuitData, add_regs: bool = False) -> typing.Self:
+    def _from_circuit_data(
+        cls, data: CircuitData, add_regs: bool = False, name: str | None = None
+    ) -> typing.Self:
         """A private constructor from rust space circuit data."""
-        out = QuantumCircuit()
+        out = QuantumCircuit(name=name)
 
         if data.num_qubits > 0:
             if add_regs:
@@ -3752,38 +3754,12 @@ class QuantumCircuit:
                 f"invalid name for a circuit: '{name}'. The name must be a string or 'None'."
             )
         cpy = _copy.copy(self)
-        # copy registers correctly, in copy.copy they are only copied via reference
-        cpy.qregs = self.qregs.copy()
-        cpy.cregs = self.cregs.copy()
-        cpy._builder_api = _OuterCircuitScopeInterface(cpy)
-        cpy._ancillas = self._ancillas.copy()
-        cpy._qubit_indices = self._qubit_indices.copy()
-        cpy._clbit_indices = self._clbit_indices.copy()
 
-        if vars_mode == "alike":
-            # Note that this causes the local variables to be uninitialised, because the stores are
-            # not copied.  This can leave the circuit in a potentially dangerous state for users if
-            # they don't re-add initializer stores.
-            cpy._vars_local = self._vars_local.copy()
-            cpy._vars_input = self._vars_input.copy()
-            cpy._vars_capture = self._vars_capture.copy()
-        elif vars_mode == "captures":
-            cpy._vars_local = {}
-            cpy._vars_input = {}
-            cpy._vars_capture = {var.name: var for var in self.iter_vars()}
-        elif vars_mode == "drop":
-            cpy._vars_local = {}
-            cpy._vars_input = {}
-            cpy._vars_capture = {}
-        else:  # pragma: no cover
-            raise ValueError(f"unknown vars_mode: '{vars_mode}'")
+        _copy_metadata(self, cpy, vars_mode)
 
         cpy._data = CircuitData(
             self._data.qubits, self._data.clbits, global_phase=self._data.global_phase
         )
-
-        cpy._calibrations = _copy.deepcopy(self._calibrations)
-        cpy._metadata = _copy.deepcopy(self._metadata)
 
         if name:
             cpy.name = name
@@ -6820,3 +6796,34 @@ def _bit_argument_conversion_scalar(specifier, bit_sequence, bit_set, type_):
         else f"Invalid bit index: '{specifier}' of type '{type(specifier)}'"
     )
     raise CircuitError(message)
+
+
+def _copy_metadata(original, cpy, vars_mode):
+    # copy registers correctly, in copy.copy they are only copied via reference
+    cpy.qregs = original.qregs.copy()
+    cpy.cregs = original.cregs.copy()
+    cpy._builder_api = _OuterCircuitScopeInterface(cpy)
+    cpy._ancillas = original._ancillas.copy()
+    cpy._qubit_indices = original._qubit_indices.copy()
+    cpy._clbit_indices = original._clbit_indices.copy()
+
+    if vars_mode == "alike":
+        # Note that this causes the local variables to be uninitialised, because the stores are
+        # not copied.  This can leave the circuit in a potentially dangerous state for users if
+        # they don't re-add initializer stores.
+        cpy._vars_local = original._vars_local.copy()
+        cpy._vars_input = original._vars_input.copy()
+        cpy._vars_capture = original._vars_capture.copy()
+    elif vars_mode == "captures":
+        cpy._vars_local = {}
+        cpy._vars_input = {}
+        cpy._vars_capture = {var.name: var for var in original.iter_vars()}
+    elif vars_mode == "drop":
+        cpy._vars_local = {}
+        cpy._vars_input = {}
+        cpy._vars_capture = {}
+    else:  # pragma: no cover
+        raise ValueError(f"unknown vars_mode: '{vars_mode}'")
+
+    cpy._calibrations = _copy.deepcopy(original._calibrations)
+    cpy._metadata = _copy.deepcopy(original._metadata)
