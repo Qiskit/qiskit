@@ -105,9 +105,9 @@ class SuzukiTrotter(ProductFormula):
                 built.
             wrap: Whether to wrap the atomic evolutions into custom gate objects. This only takes
                 effect when ``atomic_evolution is None``.
-            preserve_order: Whether to allow reordering the terms of the operator to
+            preserve_order: If ``False``, allows reordering the terms of the operator to
                 potentially yield a shallower evolution circuit. Not relevant
-                when synthesizing operator with a single term. Defaults to ``True``.
+                when synthesizing operator with a single term.
         Raises:
             ValueError: If order is not even
         """

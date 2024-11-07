@@ -89,10 +89,9 @@ class QDrift(ProductFormula):
             seed: An optional seed for reproducibility of the random sampling process.
             wrap: Whether to wrap the atomic evolutions into custom gate objects. This only takes
                 effect when ``atomic_evolution is None``.
-            preserve_order: Whether to allow reordering the terms of the sampled
-                operator before synthesizing the evolution circuit. Setting this
-                to ``False`` can potentially yield a shallower evolution circuit.
-                Defaults to ``True``.
+            preserve_order: If ``False``, allows reordering the terms of the operator to
+                potentially yield a shallower evolution circuit. Not relevant
+                when synthesizing operator with a single term.
         """
         super().__init__(
             1, reps, insert_barriers, cx_structure, atomic_evolution, wrap, preserve_order

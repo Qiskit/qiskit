@@ -15,7 +15,8 @@
 from __future__ import annotations
 
 import inspect
-from collections.abc import Callable
+import itertools
+from collections.abc import Callable, Sequence
 from collections import defaultdict
 from itertools import combinations
 import typing
@@ -90,7 +91,7 @@ class ProductFormula(EvolutionSynthesis):
             wrap: Whether to wrap the atomic evolutions into custom gate objects. Note that setting
                 this to ``True`` is slower than ``False``. This only takes effect when
                 ``atomic_evolution is None``.
-            preserve_order: Whether to allow preserve_ordering the terms of the operator to
+            preserve_order: If ``False``, allows reordering the terms of the operator to
                 potentially yield a shallower evolution circuit. Not relevant
                 when synthesizing operator with a single term.
         """
@@ -253,40 +254,27 @@ def real_or_fail(value, tol=100):
 
 
 def reorder_paulis(
-    paulis: SparsePauliLabel, strategy: rx.ColoringStrategy = rx.ColoringStrategy.Saturation
-) -> SparsePauliOp | list[SparsePauliOp]:
+    paulis: Sequence[SparsePauliLabel],
+    strategy: rx.ColoringStrategy = rx.ColoringStrategy.Saturation,
+) -> list[SparsePauliLabel]:
     r"""
-    Creates an equivalent operator by preserve_ordering terms in order to yield a
+    Creates an equivalent operator by reordering terms in order to yield a
     shallower circuit after evolution synthesis. The original operator remains
     unchanged.
 
     This method works in three steps. First, a graph is constructed, where the
     nodes are the terms of the operator and where two nodes are connected if
-    their term acts on the same qubit (for example, the terms :math:`IXX` and
+    their terms act on the same qubit (for example, the terms :math:`IXX` and
     :math:`IYI` would be connected, but not :math:`IXX` and :math:`YII`). Then,
     the graph is colored.  Two terms with the same color thus do not act on the
     same qubit, and in particular, their evolution subcircuits can be run in
-    parallel in the greater evolution circuit of ``operator``. Finally, a new
-    :class:`~qiskit.quantum_info.SparsePauliOp` is created where terms of the
-    same color are grouped together.
-
-    In trivial cases, i.e. when either
-    - the input is a :class:`~qiskit.quantum_info.SparsePauliOp` with
-      less than two Pauli terms, or
-    - the input is a list containing a single
-      :class:`~qiskit.quantum_info.SparsePauliOp` which has less than two
-      Pauli terms,
-    this method does nothing.
-
-    If ``operators`` is a list of :class:`~qiskit.quantum_info.SparsePauliOp`,
-    then preserve_ordering is applied to every operator independently, and the list of
-    preserve_ordered operators is returned.
+    parallel in the greater evolution circuit of ``paulis``.
 
     This method is deterministic and invariant under permutation of the Pauli
-    term in ``operators``.
+    term in ``paulis``.
 
     Args:
-        paulis: The operator whose terms to preserve_order.
+        paulis: The operator whose terms to reorder.
         strategy: The coloring heuristic to use, see ``ColoringStrategy`` [#].
             Default is ``ColoringStrategy.Saturation``.
 
@@ -319,5 +307,5 @@ def reorder_paulis(
         term = graph.nodes()[term_idx]
         terms_by_color[color].append(term)
 
-    terms = sum(terms_by_color.values(), [])
+    terms = list(itertools.chain(*terms_by_color.values()))
     return terms
