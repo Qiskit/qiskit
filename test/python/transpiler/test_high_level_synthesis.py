@@ -47,8 +47,9 @@ from qiskit.circuit.library import (
     MCXGate,
     SGate,
 )
-from qiskit.circuit.library.generalized_gates import LinearFunction
-from qiskit.quantum_info import Clifford, Operator, Statevector
+from qiskit.circuit.library import LinearFunction, PauliEvolutionGate
+from qiskit.quantum_info import Clifford, Operator, Statevector, SparsePauliOp
+from qiskit.synthesis.evolution import synth_pauli_network_rustiq
 from qiskit.synthesis.linear import random_invertible_binary_matrix
 from qiskit.compiler import transpile
 from qiskit.exceptions import QiskitError
@@ -2605,6 +2606,153 @@ class TestMCXSynthesisPlugins(QiskitTestCase):
         qc.append(MCXGate(3).inverse(annotated=True).control(2, annotated=True), [0, 1, 2, 3, 4, 5])
         qct = transpile(qc, qubits_initially_zero=False)
         self.assertEqual(Operator(qc), Operator(qct))
+
+
+@ddt
+class TestPauliEvolutionSynthesisPlugins(QiskitTestCase):
+    """Tests related to plugins for PauliEvolutionGate."""
+
+    def test_supported_names(self):
+        """Test that "default" and "rustiq" plugins do exist."""
+        supported_plugin_names = high_level_synthesis_plugin_names("PauliEvolution")
+        self.assertIn("default", supported_plugin_names)
+        self.assertIn("rustiq", supported_plugin_names)
+
+    @data("default", "rustiq")
+    def test_correctness(self, plugin_name):
+        """Test that plugins return the correct Operator."""
+        op = SparsePauliOp(["XXX", "YYY", "IZZ", "XZY"], [1, 2, 3, 4])
+        qc = QuantumCircuit(6)
+        qc.append(PauliEvolutionGate(op), [1, 2, 4])
+        hls_config = HLSConfig(PauliEvolution=[plugin_name])
+        hls_pass = HighLevelSynthesis(hls_config=hls_config)
+        qct = hls_pass(qc)
+        self.assertEqual(count_rotation_gates(qct), 4)
+        self.assertEqual(Operator(qc), Operator(qct))
+
+    @data("default", "rustiq")
+    def test_trivial_rotations(self, plugin_name):
+        """Test that plugins return the correct Operator in the presence of
+        trivial (all-I) rotations.
+        """
+        op = SparsePauliOp(["III", "XZY", "III", "III"], [1, 2, 3, 4])
+        qc = QuantumCircuit(6)
+        qc.append(PauliEvolutionGate(op), [1, 2, 4])
+        hls_config = HLSConfig(PauliEvolution=[plugin_name])
+        hls_pass = HighLevelSynthesis(hls_config=hls_config)
+        qct = hls_pass(qc)
+        self.assertEqual(Operator(qc), Operator(qct))
+        self.assertEqual(count_rotation_gates(qct), 1)
+
+    def test_rustiq_upto_options(self):
+        """Test non-default Rustiq options upto_phase and upto_clifford."""
+        op = SparsePauliOp(["XXXX", "YYYY", "ZZZZ"], coeffs=[1, 2, 3])
+        qc = QuantumCircuit(6)
+        qc.append(PauliEvolutionGate(op), [1, 2, 3, 4])
+
+        # These calls to Rustiq are deterministic.
+        # On the one hand, we may need to change these tests if we switch
+        # to a newer version of Rustiq that implements different heuristics.
+        # On the other hand, these tests serve to show that the options
+        # have the desired effect of reducing the number of CX-gates.
+        with self.subTest("default_options"):
+            hls_config = HLSConfig(PauliEvolution=[("rustiq", {"upto_phase": False})])
+            hls_pass = HighLevelSynthesis(hls_config=hls_config)
+            qct = hls_pass(qc)
+            cnt_ops = qct.count_ops()
+            self.assertEqual(count_rotation_gates(qct), 3)
+            self.assertEqual(cnt_ops["cx"], 10)
+        with self.subTest("upto_phase"):
+            hls_config = HLSConfig(PauliEvolution=[("rustiq", {"upto_phase": True})])
+            hls_pass = HighLevelSynthesis(hls_config=hls_config)
+            qct = hls_pass(qc)
+            cnt_ops = qct.count_ops()
+            self.assertEqual(count_rotation_gates(qct), 3)
+            self.assertEqual(cnt_ops["cx"], 9)
+        with self.subTest("upto_clifford"):
+            hls_config = HLSConfig(PauliEvolution=[("rustiq", {"upto_clifford": True})])
+            hls_pass = HighLevelSynthesis(hls_config=hls_config)
+            qct = hls_pass(qc)
+            cnt_ops = qct.count_ops()
+            self.assertEqual(count_rotation_gates(qct), 3)
+            self.assertEqual(cnt_ops["cx"], 5)
+
+    def test_rustiq_preserve_order(self):
+        """Test non-default Rustiq option preserve_order."""
+        op = SparsePauliOp(["IXX", "YYI", "IXX", "YYI", "IXX", "YYI"])
+        qc = QuantumCircuit(3)
+        qc.append(PauliEvolutionGate(op), [0, 1, 2])
+        with self.subTest("preserve_order_is_true"):
+            hls_config = HLSConfig(PauliEvolution=[("rustiq", {"preserve_order": True})])
+            hls_pass = HighLevelSynthesis(hls_config=hls_config)
+            qct = hls_pass(qc)
+            cnt_ops = qct.count_ops()
+            self.assertEqual(count_rotation_gates(qct), 6)
+            self.assertEqual(cnt_ops["cx"], 16)
+        with self.subTest("preserve_order_is_false"):
+            hls_config = HLSConfig(PauliEvolution=[("rustiq", {"preserve_order": False})])
+            hls_pass = HighLevelSynthesis(hls_config=hls_config)
+            qct = hls_pass(qc)
+            cnt_ops = qct.count_ops()
+            self.assertEqual(count_rotation_gates(qct), 6)
+            self.assertEqual(cnt_ops["cx"], 4)
+
+    def test_rustiq_upto_phase(self):
+        """Check that Rustiq synthesis with ``upto_phase=True`` produces a correct
+        circuit up to the global phase.
+        """
+        # On this example Rustiq with the option "upto_phase=True" does produce a circuit
+        # with a different global phase.
+        op = SparsePauliOp(
+            [
+                "IIII",
+                "XXII",
+                "XIXI",
+                "XIIX",
+                "YYII",
+                "YIYI",
+                "YIIY",
+                "ZZII",
+                "ZIZI",
+                "ZIIZ",
+                "IXIX",
+                "IYIY",
+                "IZIZ",
+            ]
+        )
+        qc = QuantumCircuit(4)
+        qc.append(PauliEvolutionGate(op), [0, 1, 2, 3])
+        default_config = HLSConfig(PauliEvolution=["default"])
+        qct_default = HighLevelSynthesis(hls_config=default_config)(qc)
+        rustiq_config = HLSConfig(PauliEvolution=[("rustiq", {"upto_phase": True})])
+        qct_rustiq = HighLevelSynthesis(hls_config=rustiq_config)(qc)
+        self.assertEqual(count_rotation_gates(qct_default), 12)
+        self.assertEqual(count_rotation_gates(qct_rustiq), 12)
+        self.assertTrue(Operator(qct_default).equiv(Operator(qct_rustiq)))
+
+    def test_rustiq_with_parameterized_angles(self):
+        """Test Rustiq's synthesis with parameterized angles."""
+        alpha = Parameter("alpha")
+        beta = Parameter("beta")
+        pauli_network = [("XXX", [0, 1, 2], alpha), ("Y", [1], beta)]
+        qct = synth_pauli_network_rustiq(
+            num_qubits=4, pauli_network=pauli_network, upto_clifford=True
+        )
+        self.assertEqual(count_rotation_gates(qct), 2)
+        self.assertEqual(set(qct.parameters), {alpha, beta})
+
+
+def count_rotation_gates(qc: QuantumCircuit):
+    """Return the number of rotation gates in a quantum circuit."""
+    ops = qc.count_ops()
+    return (
+        ops.get("rx", 0)
+        + ops.get("ry", 0)
+        + ops.get("rz", 0)
+        + ops.get("rxx", 0)
+        + ops.get("ryy", 0)
+        + ops.get("rzz", 0)
+    )
 
 
 if __name__ == "__main__":

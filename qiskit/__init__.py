@@ -98,6 +98,7 @@ sys.modules["qiskit._accelerate.commutation_analysis"] = _accelerate.commutation
 sys.modules["qiskit._accelerate.commutation_cancellation"] = _accelerate.commutation_cancellation
 sys.modules["qiskit._accelerate.consolidate_blocks"] = _accelerate.consolidate_blocks
 sys.modules["qiskit._accelerate.synthesis.linear_phase"] = _accelerate.synthesis.linear_phase
+sys.modules["qiskit._accelerate.synthesis.evolution"] = _accelerate.synthesis.evolution
 sys.modules["qiskit._accelerate.synthesis.multi_controlled"] = (
     _accelerate.synthesis.multi_controlled
 )
