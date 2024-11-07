@@ -1316,13 +1316,12 @@ def _normalize_entanglement(
     elif isinstance(entanglement, Iterable):
         # handle edge cases when entanglement is set to an empty list
         if len(entanglement) == 0:
-            return [[()]]
+            return [[]]
 
         if isinstance(entanglement[0], str):
             # if the entanglement is given as iterable we must make sure it matches
             # the number of entanglement blocks
             if len(entanglement) != num_entanglement_blocks:
-                print(entanglement)
                 raise QiskitError(
                     f"Number of block-entanglements ({len(entanglement)}) must match number of "
                     f"entanglement blocks ({num_entanglement_blocks})!"
@@ -1335,7 +1334,6 @@ def _normalize_entanglement(
             entanglement = [entanglement]
 
         if len(entanglement) != num_entanglement_blocks:
-            print(entanglement)
             raise QiskitError(
                 f"Number of block-entanglements ({len(entanglement)}) must match number of "
                 f"entanglement blocks ({num_entanglement_blocks})!"

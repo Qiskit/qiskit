@@ -179,10 +179,10 @@ class ExcitationPreserving(TwoLocal):
         q_2: ┤ RZ(θ[2]) ├─░─────────────────────────────┤1           ├┤1           ├─░─┤ RZ(θ[7]) ├
              └──────────┘ ░                             └────────────┘└────────────┘ ░ └──────────┘
 
-        >>> ansatz = ExcitationPreserving(2, reps=1)
+        >>> ansatz = ExcitationPreserving(2, reps=1, flatten=True)
         >>> qc = QuantumCircuit(2)  # create a circuit and append the RY variational form
         >>> qc.cry(0.2, 0, 1)  # do some previous operation
-        >>> qc.compose(ansatz.decompose(), inplace=True)  # add the excitation-preserving
+        >>> qc.compose(ansatz, inplace=True)  # add the excitation-preserving
         >>> qc.draw()
                         ┌──────────┐┌────────────┐┌────────────┐┌──────────┐
         q_0: ─────■─────┤ RZ(θ[0]) ├┤0           ├┤0           ├┤ RZ(θ[3]) ├
@@ -191,7 +191,7 @@ class ExcitationPreserving(TwoLocal):
              └─────────┘└──────────┘└────────────┘└────────────┘└──────────┘
 
         >>> ansatz = ExcitationPreserving(3, reps=1, mode='fsim', entanglement=[[0,2]],
-        ... insert_barriers=True)
+        ... insert_barriers=True, flatten=True)
         >>> print(ansatz.decompose())
              ┌──────────┐ ░ ┌────────────┐┌────────────┐        ░ ┌──────────┐
         q_0: ┤ RZ(θ[0]) ├─░─┤0           ├┤0           ├─■──────░─┤ RZ(θ[5]) ├
@@ -203,7 +203,7 @@ class ExcitationPreserving(TwoLocal):
 
     .. seealso::
 
-        The :func:`.excitation_preserivng` function constructs a functionally equivalent circuit, 
+        The :func:`.excitation_preserving` function constructs a functionally equivalent circuit, 
         but faster.
 
     """

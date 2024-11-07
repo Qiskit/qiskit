@@ -176,8 +176,8 @@ class RealAmplitudes(TwoLocal):
         q_2: ┤ Ry(θ[2]) ├┤ X ├┤ Ry(θ[5]) ├────────────┤ X ├┤ Ry(θ[8]) ├────────────
              └──────────┘└───┘└──────────┘            └───┘└──────────┘
 
-        >>> ansatz = RealAmplitudes(3, entanglement='full', reps=2)  # it is the same unitary as above
-        >>> print(ansatz.decompose())
+        >>> ansatz = RealAmplitudes(3, entanglement='full', reps=2, flatten=True)
+        >>> print(ansatz)
              ┌──────────┐          ┌──────────┐                      ┌──────────┐
         q_0: ┤ RY(θ[0]) ├──■────■──┤ RY(θ[3]) ├──────────────■────■──┤ RY(θ[6]) ├────────────
              ├──────────┤┌─┴─┐  │  └──────────┘┌──────────┐┌─┴─┐  │  └──────────┘┌──────────┐
@@ -186,10 +186,11 @@ class RealAmplitudes(TwoLocal):
         q_2: ┤ RY(θ[2]) ├─────┤ X ├───┤ X ├────┤ RY(θ[5]) ├─────┤ X ├───┤ X ├────┤ RY(θ[8]) ├
              └──────────┘     └───┘   └───┘    └──────────┘     └───┘   └───┘    └──────────┘
 
-        >>> ansatz = RealAmplitudes(3, entanglement='linear', reps=2, insert_barriers=True)
+        >>> ansatz = RealAmplitudes(3, entanglement='linear', reps=2, insert_barriers=True,
+        ... flatten=True)
         >>> qc = QuantumCircuit(3)  # create a circuit and append the RY variational form
         >>> qc.compose(ansatz, inplace=True)
-        >>> qc.decompose().draw()
+        >>> qc.draw()
              ┌──────────┐ ░            ░ ┌──────────┐ ░            ░ ┌──────────┐
         q_0: ┤ RY(θ[0]) ├─░───■────────░─┤ RY(θ[3]) ├─░───■────────░─┤ RY(θ[6]) ├
              ├──────────┤ ░ ┌─┴─┐      ░ ├──────────┤ ░ ┌─┴─┐      ░ ├──────────┤
@@ -198,8 +199,9 @@ class RealAmplitudes(TwoLocal):
         q_2: ┤ RY(θ[2]) ├─░──────┤ X ├─░─┤ RY(θ[5]) ├─░──────┤ X ├─░─┤ RY(θ[8]) ├
              └──────────┘ ░      └───┘ ░ └──────────┘ ░      └───┘ ░ └──────────┘
 
-        >>> ansatz = RealAmplitudes(4, reps=1, entanglement='circular', insert_barriers=True)
-        >>> print(ansatz.decompose())
+        >>> ansatz = RealAmplitudes(4, reps=1, entanglement='circular', insert_barriers=True,
+        ... flatten=True)
+        >>> print(ansatz)
              ┌──────────┐ ░ ┌───┐                ░ ┌──────────┐
         q_0: ┤ RY(θ[0]) ├─░─┤ X ├──■─────────────░─┤ RY(θ[4]) ├
              ├──────────┤ ░ └─┬─┘┌─┴─┐           ░ ├──────────┤
@@ -211,8 +213,8 @@ class RealAmplitudes(TwoLocal):
              └──────────┘ ░                └───┘ ░ └──────────┘
 
         >>> ansatz = RealAmplitudes(4, reps=2, entanglement=[[0,3], [0,2]],
-        ... skip_unentangled_qubits=True)
-        >>> print(ansatz.decompose())
+        ... skip_unentangled_qubits=True, flatten=True)
+        >>> print(ansatz)
              ┌──────────┐                 ┌──────────┐                 ┌──────────┐
         q_0: ┤ RY(θ[0]) ├──■───────■──────┤ RY(θ[3]) ├──■───────■──────┤ RY(θ[6]) ├
              └──────────┘  │       │      └──────────┘  │       │      └──────────┘

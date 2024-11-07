@@ -106,8 +106,14 @@ impl Block {
     }
 }
 
-type BlockEntanglement = Vec<Vec<u32>>; // vector of connections for a block (e.g. CX)
-pub(super) type LayerEntanglement = Vec<BlockEntanglement>; // entanglement of all blocks
+// We introduce typedefs to make the types more legible. We can understand the hierarchy
+// as follows:
+// Connection: Vec<u32> -- indices that the multi-qubit gate acts on
+// BlockEntanglement: Vec<Connection> -- entanglement for single block
+// LayerEntanglement: Vec<BlockEntanglement> -- entanglements for all blocks in the layer
+// Entanglement: Vec<LayerEntanglement> -- entanglement for every layer
+type BlockEntanglement = Vec<Vec<u32>>;
+pub(super) type LayerEntanglement = Vec<BlockEntanglement>;
 
 /// Represent the entanglement in an n-local circuit.
 pub struct Entanglement {

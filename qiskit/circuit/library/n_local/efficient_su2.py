@@ -167,10 +167,11 @@ class EfficientSU2(TwoLocal):
         q_2: ┤ RY(θ[2]) ├┤ RZ(θ[5]) ├─────┤ X ├───┤ X ├────┤ RY(θ[8]) ├┤ RZ(θ[11]) ├
              └──────────┘└──────────┘     └───┘   └───┘    └──────────┘└───────────┘
 
-        >>> ansatz = EfficientSU2(4, su2_gates=['rx', 'y'], entanglement='circular', reps=1)
+        >>> ansatz = EfficientSU2(4, su2_gates=['rx', 'y'], entanglement='circular', reps=1,
+        ... flatten=True)
         >>> qc = QuantumCircuit(4)  # create a circuit and append the RY variational form
         >>> qc.compose(ansatz, inplace=True)
-        >>> qc.decompose().draw()
+        >>> qc.draw()
              ┌──────────┐┌───┐┌───┐     ┌──────────┐   ┌───┐
         q_0: ┤ RX(θ[0]) ├┤ Y ├┤ X ├──■──┤ RX(θ[4]) ├───┤ Y ├─────────────────────
              ├──────────┤├───┤└─┬─┘┌─┴─┐└──────────┘┌──┴───┴───┐   ┌───┐
