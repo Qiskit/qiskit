@@ -37,7 +37,7 @@ For example, to append a multi-controlled CNOT:
    circuit.draw('mpl')
 
 The library is organized in several sections. The function 
-:func:`.get_standard_gate_name_mapping` allows to iterate on the standard gates and operations.
+:func:`.get_standard_gate_name_mapping` allows you to see the available standard gates and operations.
 
 .. autofunction:: get_standard_gate_name_mapping
 
