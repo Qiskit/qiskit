@@ -25,7 +25,7 @@ from symengine.lib.symengine_wrapper import (  # pylint: disable = no-name-in-mo
 
 from qiskit.qpy import formats, exceptions
 
-QPY_VERSION = 12
+QPY_VERSION = 13
 QPY_COMPATIBILITY_VERSION = 10
 ENCODE = "utf8"
 
