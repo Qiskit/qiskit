@@ -60,7 +60,7 @@ class LieTrotter(SuzukiTrotter):
             | None
         ) = None,
         wrap: bool = False,
-        preserve_order: bool = False,
+        preserve_order: bool = True,
     ) -> None:
         """
         Args:

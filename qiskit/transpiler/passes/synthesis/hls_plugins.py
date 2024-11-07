@@ -1535,7 +1535,7 @@ class PauliEvolutionSynthesisRustiq(HighLevelSynthesisPlugin):
             )
             return None
 
-        if "preserve_order" in options and isinstance(algo, ProductFormula):
+        if "preserve_order" in options:
             algo.preserve_order = options["preserve_order"]
 
         num_qubits = high_level_object.num_qubits

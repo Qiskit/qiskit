@@ -85,7 +85,7 @@ class SuzukiTrotter(ProductFormula):
             | None
         ) = None,
         wrap: bool = False,
-        preserve_order: bool = False,
+        preserve_order: bool = True,
     ) -> None:
         """
         Args:
