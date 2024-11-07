@@ -276,9 +276,6 @@ Adders
    :toctree: ../stubs/
    :template: autosummary/class_no_inherited_members.rst
 
-   ModularAdderGate
-   HalfAdderGate
-   FullAdderGate
    DraperQFTAdder
    CDKMRippleCarryAdder
    VBERippleCarryAdder
@@ -291,7 +288,6 @@ Multipliers
    :toctree: ../stubs/
    :template: autosummary/class_no_inherited_members.rst
 
-   MultiplierGate
    HRSCumulativeMultiplier
    RGQFTMultiplier
 
