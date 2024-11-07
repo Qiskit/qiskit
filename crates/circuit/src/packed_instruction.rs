@@ -27,7 +27,8 @@ use crate::circuit_instruction::ExtraInstructionAttributes;
 use crate::imports::{get_std_gate_class, DEEPCOPY};
 use crate::interner::Interned;
 use crate::operations::{
-    Operation, OperationRef, Param, PyGate, PyInstruction, PyOperation, StandardGate,
+    DelayUnit, Operation, OperationRef, Param, PyGate, PyInstruction, PyOperation, StandardGate,
+    StandardInstruction,
 };
 use crate::{Clbit, Qubit};
 
@@ -39,18 +40,43 @@ enum PackedOperationType {
     // will make it appear as a standard gate, which will never allow accidental dangling-pointer
     // dereferencing.
     StandardGate = 0,
-    Gate = 1,
-    Instruction = 2,
-    Operation = 3,
+    PyGatePointer = 1,
+    PyInstructionPointer = 2,
+    PyOperationPointer = 3,
+    ExtendedDataPointer = 4,
+
+    // These exist directly on the PackedOperationType (rather than as part of the upper 62 bit
+    // payload) for simplicity and also to avoid unnecessary bit shifting. At the time of writing,
+    // there is no more space in this enum for additional variants. If we need space for more (e.g.
+    // we need to support more pointer types), we can introduce a new enum for inline data and move
+    // these into the payload.
+    Measure = 5,
+    Barrier = 6,
+    Reset = 7,
+    // Remember to update PackedOperationType::is_valid_bit_pattern below
+    // if you add or remove this enum's variants!
 }
+
 unsafe impl ::bytemuck::CheckedBitPattern for PackedOperationType {
     type Bits = u8;
 
     fn is_valid_bit_pattern(bits: &Self::Bits) -> bool {
-        *bits < 4
+        *bits < 8
     }
 }
 unsafe impl ::bytemuck::NoUninit for PackedOperationType {}
+
+/// An internal type used to store data that does not fit inline within
+/// the 62 payload bits available in a [PackedOperation].
+///
+/// Used as the pointed-to type when [PackedOperation]'s discriminant is
+/// [PackedOperationType::ExtendedDataPointer]. Since it isn't stored in
+/// line, it does not have size requirements and can support future
+/// expansion.
+enum ExtendedData {
+    Delay(usize, DelayUnit),
+    // Eventually Measure too, for target awareness.
+}
 
 /// A bit-packed `OperationType` enumeration.
 ///
@@ -58,7 +84,8 @@ unsafe impl ::bytemuck::NoUninit for PackedOperationType {}
 ///
 /// ```rust
 /// enum Operation {
-///     Standard(StandardGate),
+///     StandardGate(StandardGate),
+///     StandardInstruction(StandardInstruction),
 ///     Gate(Box<PyGate>),
 ///     Instruction(Box<PyInstruction>),
 ///     Operation(Box<PyOperation>),
@@ -77,13 +104,19 @@ unsafe impl ::bytemuck::NoUninit for PackedOperationType {}
 ///
 /// ```text
 /// Standard gate:
-/// 0b_xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxSS_SSSSSS00
-///                                                                |-------|||
+/// 0b_xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxSSS_SSSSS000
+///                                                               |-------||-|
 ///                                                                   |     |
 ///                           Standard gate, stored inline as a u8. --+     +-- Discriminant.
 ///
-/// Python object:
-/// 0b_PPPPPPPP_PPPPPPPP_PPPPPPPP_PPPPPPPP_PPPPPPPP_PPPPPPPP_PPPPPPPP_PPPPP10
+/// Barrier:
+/// 0b_xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxSSS_SSSSSSSS_SSSSSSSS_SSSSSSSS_SSSSS000
+///                                    |----------------------------------||-|
+///                                                      |                  |
+///        Barrier num_qubits, stored inline as a u32. --+                  +-- Discriminant.
+///
+/// Pointer to object:
+/// 0b_PPPPPPPP_PPPPPPPP_PPPPPPPP_PPPPPPPP_PPPPPPPP_PPPPPPPP_PPPPPPPP_PPPP010
 ///    |------------------------------------------------------------------|||
 ///                                   |                                    |
 ///    The high 62 bits of the pointer.  Because of alignment, the low 3   |   Discriminant of the
@@ -92,8 +125,6 @@ unsafe impl ::bytemuck::NoUninit for PackedOperationType {}
 ///    taking the whole `usize` and zeroing the low 3 bits, letting us         that this points to
 ///    store the discriminant in there at other times.                         a `PyInstruction`.
 /// ```
-///
-/// There is currently one spare bit that could be used for additional metadata, if required.
 ///
 /// # Construction
 ///
@@ -118,7 +149,7 @@ pub struct PackedOperation(usize);
 impl PackedOperation {
     /// The bits representing the `PackedOperationType` discriminant.  This can be used to mask out
     /// the discriminant, and defines the rest of the bit shifting.
-    const DISCRIMINANT_MASK: usize = 0b11;
+    const DISCRIMINANT_MASK: usize = 0b111;
     /// The number of bits used to store the discriminant metadata.
     const DISCRIMINANT_BITS: u32 = Self::DISCRIMINANT_MASK.count_ones();
     /// A bitmask that masks out only the standard gate information.  This should always have the
@@ -126,6 +157,9 @@ impl PackedOperation {
     /// this is defensive against us adding further metadata on `StandardGate` later.  After
     /// masking, the resulting integer still needs shifting downwards to retrieve the standard gate.
     const STANDARD_GATE_MASK: usize = (u8::MAX as usize) << Self::DISCRIMINANT_BITS;
+    /// A bitmask that masks out only the `u32` used to store the number of bits in a barrier
+    /// operation. After masking, the resulting integer still needs shifting downwards.
+    const BARRIER_MASK: usize = (u32::MAX as usize) << Self::DISCRIMINANT_BITS;
     /// A bitmask that retrieves the stored pointer directly.  The discriminant is stored in the
     /// low pointer bits that are guaranteed to be 0 by alignment, so no shifting is required.
     const POINTER_MASK: usize = usize::MAX ^ Self::DISCRIMINANT_MASK;
@@ -146,17 +180,21 @@ impl PackedOperation {
             .expect("the caller is responsible for knowing the correct type")
     }
 
-    /// Get the contained pointer to the `PyGate`/`PyInstruction`/`PyOperation` that this object
-    /// contains.
+    /// Get the contained pointer to the `PyGate`/`PyInstruction`/`PyOperation`/`ExtendedData` that
+    /// this object contains.
     ///
-    /// Returns `None` if the object represents a standard gate.
+    /// Returns `None` if the object represents anything else.
     #[inline]
-    pub fn try_pointer(&self) -> Option<NonNull<()>> {
+    fn try_pointer(&self) -> Option<NonNull<()>> {
         match self.discriminant() {
-            PackedOperationType::StandardGate => None,
-            PackedOperationType::Gate
-            | PackedOperationType::Instruction
-            | PackedOperationType::Operation => {
+            PackedOperationType::StandardGate
+            | PackedOperationType::Measure
+            | PackedOperationType::Barrier
+            | PackedOperationType::Reset => None,
+            PackedOperationType::PyGatePointer
+            | PackedOperationType::PyInstructionPointer
+            | PackedOperationType::PyOperationPointer
+            | PackedOperationType::ExtendedDataPointer => {
                 let ptr = (self.0 & Self::POINTER_MASK) as *mut ();
                 // SAFETY: `PackedOperation` can only be constructed from a pointer via `Box`, which
                 // is always non-null (except in the case that we're partway through a `Drop`).
@@ -187,22 +225,59 @@ impl PackedOperation {
         }
     }
 
+    /// Get the contained `StandardInstruction`.
+    ///
+    /// **Panics** if this `PackedOperation` doesn't contain a `StandardInstruction`; see
+    /// `try_standard_instruction`.
+    #[inline]
+    pub fn standard_instruction(&self) -> StandardInstruction {
+        self.try_standard_instruction()
+            .expect("the caller is responsible for knowing the correct type")
+    }
+
+    /// Get the contained `StandardInstruction`, if any.
+    #[inline]
+    pub fn try_standard_instruction(&self) -> Option<StandardInstruction> {
+        match self.discriminant() {
+            PackedOperationType::Barrier => Some(StandardInstruction::Barrier(
+                (self.0 & Self::BARRIER_MASK) >> Self::DISCRIMINANT_BITS,
+            )),
+            PackedOperationType::ExtendedDataPointer => {
+                let data = unsafe { self.pointer().cast::<ExtendedData>().as_ref() };
+                match data {
+                    ExtendedData::Delay(duration, unit) => {
+                        Some(StandardInstruction::Delay(*duration, *unit))
+                    }
+                }
+            }
+            PackedOperationType::Measure => Some(StandardInstruction::Measure),
+            PackedOperationType::Reset => Some(StandardInstruction::Reset),
+            _ => None,
+        }
+    }
+
     /// Get a safe view onto the packed data within, without assuming ownership.
     #[inline]
     pub fn view(&self) -> OperationRef {
         match self.discriminant() {
             PackedOperationType::StandardGate => OperationRef::Standard(self.standard_gate()),
-            PackedOperationType::Gate => {
+            PackedOperationType::PyGatePointer => {
                 let ptr = self.pointer().cast::<PyGate>();
                 OperationRef::Gate(unsafe { ptr.as_ref() })
             }
-            PackedOperationType::Instruction => {
+            PackedOperationType::PyInstructionPointer => {
                 let ptr = self.pointer().cast::<PyInstruction>();
                 OperationRef::Instruction(unsafe { ptr.as_ref() })
             }
-            PackedOperationType::Operation => {
+            PackedOperationType::PyOperationPointer => {
                 let ptr = self.pointer().cast::<PyOperation>();
                 OperationRef::Operation(unsafe { ptr.as_ref() })
+            }
+            _ => {
+                let Some(standard_instruction) = self.try_standard_instruction() else {
+                    panic!("Unhandled operation type in PackedOperation.");
+                };
+                OperationRef::StandardInstruction(standard_instruction)
             }
         }
     }
@@ -213,6 +288,30 @@ impl PackedOperation {
         Self((standard as usize) << Self::DISCRIMINANT_BITS)
     }
 
+    /// Create a `PackedOperation` from a `StandardInstruction`.
+    pub fn from_standard_instruction(instruction: StandardInstruction) -> Self {
+        match instruction {
+            StandardInstruction::Barrier(num_qubits) => {
+                let num_qubits: u32 = num_qubits.try_into().expect(
+                        "The PackedOperation representation currently requires barrier size to be <= 32 bits."
+                    );
+                Self(
+                    ((num_qubits as usize) << Self::DISCRIMINANT_BITS)
+                        | (PackedOperationType::Barrier as usize),
+                )
+            }
+            StandardInstruction::Delay(duration, unit) => {
+                let data = Box::new(ExtendedData::Delay(duration, unit));
+                let ptr = NonNull::from(Box::leak(data)).cast::<()>();
+                unsafe {
+                    Self::from_owned_raw_pointer(PackedOperationType::ExtendedDataPointer, ptr)
+                }
+            }
+            StandardInstruction::Measure => Self(PackedOperationType::Measure as usize),
+            StandardInstruction::Reset => Self(PackedOperationType::Reset as usize),
+        }
+    }
+
     /// Create a `PackedOperation` given a raw pointer to the inner type.
     ///
     /// **Panics** if the given `discriminant` does not correspond to a pointer type.
@@ -221,9 +320,18 @@ impl PackedOperation {
     /// type matches that indicated by the discriminant.  The returned `PackedOperation` takes
     /// ownership of the pointed-to data.
     #[inline]
-    unsafe fn from_py_wrapper(discriminant: PackedOperationType, value: NonNull<()>) -> Self {
-        if discriminant == PackedOperationType::StandardGate {
-            panic!("given standard-gate discriminant during pointer-type construction")
+    unsafe fn from_owned_raw_pointer(
+        discriminant: PackedOperationType,
+        value: NonNull<()>,
+    ) -> Self {
+        if !matches!(
+            discriminant,
+            PackedOperationType::PyGatePointer
+                | PackedOperationType::PyInstructionPointer
+                | PackedOperationType::PyOperationPointer
+                | PackedOperationType::ExtendedDataPointer
+        ) {
+            panic!("given non-pointer discriminant during pointer-type construction");
         }
         let addr = value.as_ptr() as usize;
         assert_eq!(addr & Self::DISCRIMINANT_MASK, 0);
@@ -234,21 +342,21 @@ impl PackedOperation {
     pub fn from_gate(gate: Box<PyGate>) -> Self {
         let ptr = NonNull::from(Box::leak(gate)).cast::<()>();
         // SAFETY: the `ptr` comes directly from a owning `Box` of the correct type.
-        unsafe { Self::from_py_wrapper(PackedOperationType::Gate, ptr) }
+        unsafe { Self::from_owned_raw_pointer(PackedOperationType::PyGatePointer, ptr) }
     }
 
     /// Construct a new `PackedOperation` from an owned heap-allocated `PyInstruction`.
     pub fn from_instruction(instruction: Box<PyInstruction>) -> Self {
         let ptr = NonNull::from(Box::leak(instruction)).cast::<()>();
         // SAFETY: the `ptr` comes directly from a owning `Box` of the correct type.
-        unsafe { Self::from_py_wrapper(PackedOperationType::Instruction, ptr) }
+        unsafe { Self::from_owned_raw_pointer(PackedOperationType::PyInstructionPointer, ptr) }
     }
 
     /// Construct a new `PackedOperation` from an owned heap-allocated `PyOperation`.
     pub fn from_operation(operation: Box<PyOperation>) -> Self {
         let ptr = NonNull::from(Box::leak(operation)).cast::<()>();
         // SAFETY: the `ptr` comes directly from a owning `Box` of the correct type.
-        unsafe { Self::from_py_wrapper(PackedOperationType::Operation, ptr) }
+        unsafe { Self::from_owned_raw_pointer(PackedOperationType::PyOperationPointer, ptr) }
     }
 
     /// Check equality of the operation, including Python-space checks, if appropriate.
@@ -277,6 +385,9 @@ impl PackedOperation {
         let deepcopy = DEEPCOPY.get_bound(py);
         match self.view() {
             OperationRef::Standard(standard) => Ok(standard.into()),
+            OperationRef::StandardInstruction(instruction) => {
+                Ok(Self::from_standard_instruction(instruction))
+            }
             OperationRef::Gate(gate) => Ok(PyGate {
                 gate: deepcopy.call1((&gate.gate, memo))?.unbind(),
                 qubits: gate.qubits,
@@ -311,6 +422,9 @@ impl PackedOperation {
         let copy_attr = intern!(py, "copy");
         match self.view() {
             OperationRef::Standard(standard) => Ok(standard.into()),
+            OperationRef::StandardInstruction(instruction) => {
+                Ok(Self::from_standard_instruction(instruction))
+            }
             OperationRef::Gate(gate) => Ok(Box::new(PyGate {
                 gate: gate.gate.call_method0(py, copy_attr)?,
                 qubits: gate.qubits,
@@ -351,6 +465,9 @@ impl PackedOperation {
                     .downcast::<PyType>()?
                     .is_subclass(py_type)
             }
+            OperationRef::StandardInstruction(standard) => {
+                todo!()
+            }
             OperationRef::Gate(gate) => gate.gate.bind(py),
             OperationRef::Instruction(instruction) => instruction.instruction.bind(py),
             OperationRef::Operation(operation) => operation.operation.bind(py),
@@ -364,6 +481,7 @@ impl Operation for PackedOperation {
         let view = self.view();
         let name = match view {
             OperationRef::Standard(ref standard) => standard.name(),
+            OperationRef::StandardInstruction(ref instruction) => instruction.name(),
             OperationRef::Gate(gate) => gate.name(),
             OperationRef::Instruction(instruction) => instruction.name(),
             OperationRef::Operation(operation) => operation.name(),
@@ -448,6 +566,9 @@ impl Clone for PackedOperation {
     fn clone(&self) -> Self {
         match self.view() {
             OperationRef::Standard(standard) => Self::from_standard(standard),
+            OperationRef::StandardInstruction(instruction) => {
+                Self::from_standard_instruction(instruction)
+            }
             OperationRef::Gate(gate) => Self::from_gate(Box::new(gate.to_owned())),
             OperationRef::Instruction(instruction) => {
                 Self::from_instruction(Box::new(instruction.to_owned()))
@@ -475,10 +596,14 @@ impl Drop for PackedOperation {
         }
 
         match self.discriminant() {
-            PackedOperationType::StandardGate => (),
-            PackedOperationType::Gate => drop_pointer_as::<PyGate>(self),
-            PackedOperationType::Instruction => drop_pointer_as::<PyInstruction>(self),
-            PackedOperationType::Operation => drop_pointer_as::<PyOperation>(self),
+            PackedOperationType::StandardGate
+            | PackedOperationType::Measure
+            | PackedOperationType::Barrier
+            | PackedOperationType::Reset => (),
+            PackedOperationType::PyGatePointer => drop_pointer_as::<PyGate>(self),
+            PackedOperationType::PyInstructionPointer => drop_pointer_as::<PyInstruction>(self),
+            PackedOperationType::PyOperationPointer => drop_pointer_as::<PyOperation>(self),
+            PackedOperationType::ExtendedDataPointer => drop_pointer_as::<ExtendedData>(self),
         }
     }
 }
@@ -575,6 +700,9 @@ impl PackedInstruction {
                     self.params.as_deref().map(SmallVec::as_slice),
                     &self.extra_attrs,
                 ),
+                OperationRef::StandardInstruction(instruction) => {
+                    todo!()
+                }
                 OperationRef::Gate(gate) => Ok(gate.gate.clone_ref(py)),
                 OperationRef::Instruction(instruction) => Ok(instruction.instruction.clone_ref(py)),
                 OperationRef::Operation(operation) => Ok(operation.operation.clone_ref(py)),
@@ -606,6 +734,9 @@ impl PackedInstruction {
     pub fn py_op_eq(&self, py: Python, other: &Self) -> PyResult<bool> {
         match (self.op.view(), other.op.view()) {
             (OperationRef::Standard(left), OperationRef::Standard(right)) => Ok(left == right),
+            (OperationRef::StandardInstruction(left), OperationRef::StandardInstruction(right)) => {
+                Ok(left == right)
+            }
             (OperationRef::Gate(left), OperationRef::Gate(right)) => {
                 left.gate.bind(py).eq(&right.gate)
             }

@@ -12,6 +12,7 @@
 
 use approx::relative_eq;
 use std::f64::consts::PI;
+use std::fmt::format;
 use std::vec;
 
 use crate::circuit_data::CircuitData;
@@ -178,6 +179,7 @@ pub trait Operation {
 #[derive(Debug)]
 pub enum OperationRef<'a> {
     Standard(StandardGate),
+    StandardInstruction(StandardInstruction),
     Gate(&'a PyGate),
     Instruction(&'a PyInstruction),
     Operation(&'a PyOperation),
@@ -188,6 +190,7 @@ impl<'a> Operation for OperationRef<'a> {
     fn name(&self) -> &str {
         match self {
             Self::Standard(standard) => standard.name(),
+            Self::StandardInstruction(instruction) => instruction.name(),
             Self::Gate(gate) => gate.name(),
             Self::Instruction(instruction) => instruction.name(),
             Self::Operation(operation) => operation.name(),
@@ -197,6 +200,7 @@ impl<'a> Operation for OperationRef<'a> {
     fn num_qubits(&self) -> u32 {
         match self {
             Self::Standard(standard) => standard.num_qubits(),
+            Self::StandardInstruction(instruction) => instruction.num_clbits(),
             Self::Gate(gate) => gate.num_qubits(),
             Self::Instruction(instruction) => instruction.num_qubits(),
             Self::Operation(operation) => operation.num_qubits(),
@@ -206,6 +210,7 @@ impl<'a> Operation for OperationRef<'a> {
     fn num_clbits(&self) -> u32 {
         match self {
             Self::Standard(standard) => standard.num_clbits(),
+            Self::StandardInstruction(instruction) => instruction.num_clbits(),
             Self::Gate(gate) => gate.num_clbits(),
             Self::Instruction(instruction) => instruction.num_clbits(),
             Self::Operation(operation) => operation.num_clbits(),
@@ -215,6 +220,7 @@ impl<'a> Operation for OperationRef<'a> {
     fn num_params(&self) -> u32 {
         match self {
             Self::Standard(standard) => standard.num_params(),
+            Self::StandardInstruction(instruction) => instruction.num_params(),
             Self::Gate(gate) => gate.num_params(),
             Self::Instruction(instruction) => instruction.num_params(),
             Self::Operation(operation) => operation.num_params(),
@@ -224,6 +230,7 @@ impl<'a> Operation for OperationRef<'a> {
     fn control_flow(&self) -> bool {
         match self {
             Self::Standard(standard) => standard.control_flow(),
+            Self::StandardInstruction(instruction) => instruction.control_flow(),
             Self::Gate(gate) => gate.control_flow(),
             Self::Instruction(instruction) => instruction.control_flow(),
             Self::Operation(operation) => operation.control_flow(),
@@ -233,6 +240,7 @@ impl<'a> Operation for OperationRef<'a> {
     fn blocks(&self) -> Vec<CircuitData> {
         match self {
             OperationRef::Standard(standard) => standard.blocks(),
+            OperationRef::StandardInstruction(instruction) => instruction.blocks(),
             OperationRef::Gate(gate) => gate.blocks(),
             OperationRef::Instruction(instruction) => instruction.blocks(),
             OperationRef::Operation(operation) => operation.blocks(),
@@ -242,6 +250,7 @@ impl<'a> Operation for OperationRef<'a> {
     fn matrix(&self, params: &[Param]) -> Option<Array2<Complex64>> {
         match self {
             Self::Standard(standard) => standard.matrix(params),
+            Self::StandardInstruction(instruction) => instruction.matrix(params),
             Self::Gate(gate) => gate.matrix(params),
             Self::Instruction(instruction) => instruction.matrix(params),
             Self::Operation(operation) => operation.matrix(params),
@@ -251,6 +260,7 @@ impl<'a> Operation for OperationRef<'a> {
     fn definition(&self, params: &[Param]) -> Option<CircuitData> {
         match self {
             Self::Standard(standard) => standard.definition(params),
+            Self::StandardInstruction(instruction) => instruction.definition(params),
             Self::Gate(gate) => gate.definition(params),
             Self::Instruction(instruction) => instruction.definition(params),
             Self::Operation(operation) => operation.definition(params),
@@ -260,6 +270,7 @@ impl<'a> Operation for OperationRef<'a> {
     fn standard_gate(&self) -> Option<StandardGate> {
         match self {
             Self::Standard(standard) => standard.standard_gate(),
+            Self::StandardInstruction(instruction) => instruction.standard_gate(),
             Self::Gate(gate) => gate.standard_gate(),
             Self::Instruction(instruction) => instruction.standard_gate(),
             Self::Operation(operation) => operation.standard_gate(),
@@ -269,10 +280,85 @@ impl<'a> Operation for OperationRef<'a> {
     fn directive(&self) -> bool {
         match self {
             Self::Standard(standard) => standard.directive(),
+            Self::StandardInstruction(instruction) => instruction.directive(),
             Self::Gate(gate) => gate.directive(),
             Self::Instruction(instruction) => instruction.directive(),
             Self::Operation(operation) => operation.directive(),
         }
+    }
+}
+
+#[derive(Clone, Debug, Copy, Eq, PartialEq, Hash)]
+pub enum DelayUnit {
+    NS,
+    US,
+    MS,
+    S,
+    DT,
+}
+
+#[derive(Clone, Debug, Copy, Eq, PartialEq, Hash)]
+pub enum StandardInstruction {
+    Barrier(usize),
+    Delay(usize, DelayUnit),
+    Measure,
+    Reset,
+}
+
+impl Operation for StandardInstruction {
+    fn name(&self) -> &str {
+        match self {
+            StandardInstruction::Barrier(_) => "barrier",
+            StandardInstruction::Delay(_, _) => "delay",
+            StandardInstruction::Measure => "measure",
+            StandardInstruction::Reset => "reset",
+        }
+    }
+
+    fn num_qubits(&self) -> u32 {
+        match self {
+            StandardInstruction::Barrier(num_qubits) => *num_qubits as u32,
+            StandardInstruction::Delay(_, _) => 1,
+            StandardInstruction::Measure => 1,
+            StandardInstruction::Reset => 1,
+        }
+    }
+
+    fn num_clbits(&self) -> u32 {
+        match self {
+            StandardInstruction::Barrier(_) => 0,
+            StandardInstruction::Delay(_, _) => 0,
+            StandardInstruction::Measure => 1,
+            StandardInstruction::Reset => 0,
+        }
+    }
+
+    fn num_params(&self) -> u32 {
+        0
+    }
+
+    fn control_flow(&self) -> bool {
+        false
+    }
+
+    fn blocks(&self) -> Vec<CircuitData> {
+        vec![]
+    }
+
+    fn matrix(&self, params: &[Param]) -> Option<Array2<Complex64>> {
+        None
+    }
+
+    fn definition(&self, params: &[Param]) -> Option<CircuitData> {
+        None
+    }
+
+    fn standard_gate(&self) -> Option<StandardGate> {
+        None
+    }
+
+    fn directive(&self) -> bool {
+        false
     }
 }
 
@@ -332,13 +418,15 @@ pub enum StandardGate {
     C3XGate = 49,
     C3SXGate = 50,
     RC3XGate = 51,
+    // Remember to update StandardGate::is_valid_bit_pattern below
+    // if you add or remove this enum's variants!
 }
 
 unsafe impl ::bytemuck::CheckedBitPattern for StandardGate {
     type Bits = u8;
 
     fn is_valid_bit_pattern(bits: &Self::Bits) -> bool {
-        *bits < 53
+        *bits < 52
     }
 }
 unsafe impl ::bytemuck::NoUninit for StandardGate {}
