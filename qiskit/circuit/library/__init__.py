@@ -36,7 +36,11 @@ For example, to append a multi-controlled CNOT:
    circuit.append(gate, [0, 1, 4, 2, 3])
    circuit.draw('mpl')
 
-The library is organized in several sections.
+The library is organized in several sections. The function 
+:func:`.get_standard_gate_name_mapping` allows you to see the available standard gates and operations.
+
+.. autofunction:: get_standard_gate_name_mapping
+
 
 Standard gates
 ==============
@@ -125,6 +129,7 @@ For example:
    YGate
    ZGate
    GlobalPhaseGate
+
 
 Standard Directives
 ===================
@@ -569,4 +574,9 @@ from .iqp import IQP
 from .phase_estimation import PhaseEstimation
 from .grover_operator import GroverOperator
 from .phase_oracle import PhaseOracle
+<<<<<<< HEAD
 from .overlap import UnitaryOverlap
+=======
+from .overlap import UnitaryOverlap, unitary_overlap
+from .standard_gates import get_standard_gate_name_mapping
+>>>>>>> 3889fe0bf (added documentation for get_standard_gate_name_mapping (#13230))
