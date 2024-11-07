@@ -69,7 +69,7 @@ class ProductFormula(EvolutionSynthesis):
             | None
         ) = None,
         wrap: bool = False,
-        preserve_order: bool = False,
+        preserve_order: bool = True,
     ) -> None:
         """
         Args:
