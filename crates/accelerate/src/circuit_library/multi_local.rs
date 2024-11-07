@@ -195,35 +195,35 @@ pub fn n_local(
     // it returns an empty iterator. For conveniently injecting barriers in-between operations.
     let maybe_barrier = MaybeBarrier::new(py, num_qubits, insert_barriers)?;
 
-    let mut packed_insts: Box<dyn Iterator<Item = PyResult<Instruction>>> =
-        Box::new((0..reps).flat_map(|layer| {
-            rotation_layer(
-                py,
-                num_qubits,
-                rotation_blocks,
-                ledger.get_parameters(LayerType::Rotation, layer),
-                &skipped_qubits,
-            )
-            .chain(maybe_barrier.get())
-            .chain(entanglement_layer(
-                py,
-                entanglement.get_layer(layer),
-                entanglement_blocks,
-                ledger.get_parameters(LayerType::Entangle, layer),
-            ))
-            .chain(maybe_barrier.get())
-        }));
+    let packed_insts = (0..reps).flat_map(|layer| {
+        rotation_layer(
+            py,
+            num_qubits,
+            rotation_blocks,
+            ledger.get_parameters(LayerType::Rotation, layer),
+            &skipped_qubits,
+        )
+        .chain(maybe_barrier.get())
+        .chain(entanglement_layer(
+            py,
+            entanglement.get_layer(layer),
+            entanglement_blocks,
+            ledger.get_parameters(LayerType::Entangle, layer),
+        ))
+        .chain(maybe_barrier.get())
+    });
     if !skip_final_rotation_layer {
-        packed_insts = Box::new(packed_insts.chain(rotation_layer(
+        let packed_insts = packed_insts.chain(rotation_layer(
             py,
             num_qubits,
             rotation_blocks,
             ledger.get_parameters(LayerType::Rotation, reps),
             &skipped_qubits,
-        )))
+        ));
+        CircuitData::from_packed_operations(py, num_qubits, 0, packed_insts, Param::Float(0.0))
+    } else {
+        CircuitData::from_packed_operations(py, num_qubits, 0, packed_insts, Param::Float(0.0))
     }
-
-    CircuitData::from_packed_operations(py, num_qubits, 0, packed_insts, Param::Float(0.0))
 }
 
 #[pyfunction]

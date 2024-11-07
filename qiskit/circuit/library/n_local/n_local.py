@@ -1313,7 +1313,7 @@ def _normalize_entanglement(
     if isinstance(entanglement, str):
         return [entanglement] * num_entanglement_blocks
 
-    elif isinstance(entanglement, Iterable):
+    elif not callable(entanglement):
         # handle edge cases when entanglement is set to an empty list
         if len(entanglement) == 0:
             return [[]]
