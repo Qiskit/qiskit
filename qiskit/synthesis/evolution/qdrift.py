@@ -133,7 +133,7 @@ class QDrift(ProductFormula):
             (pauli[0], pauli[1], np.real(np.sign(pauli[2])) * rescaled_time) for pauli in sampled
         ]
 
-        if self.preserve_order:
+        if not self.preserve_order:
             sampled_paulis = reorder_paulis(sampled_paulis)
 
         return sampled_paulis
