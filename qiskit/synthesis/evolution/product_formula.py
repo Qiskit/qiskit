@@ -15,9 +15,13 @@
 from __future__ import annotations
 
 import inspect
-from collections.abc import Callable
+import itertools
+from collections.abc import Callable, Sequence
+from collections import defaultdict
+from itertools import combinations
 import typing
 import numpy as np
+import rustworkx as rx
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.quantumcircuit import QuantumCircuit, ParameterValueType
 from qiskit.quantum_info import SparsePauliOp, Pauli
@@ -28,6 +32,8 @@ from .evolution_synthesis import EvolutionSynthesis
 
 if typing.TYPE_CHECKING:
     from qiskit.circuit.library import PauliEvolutionGate
+
+SparsePauliLabel = typing.Tuple[str, list[int], ParameterValueType]
 
 
 class ProductFormula(EvolutionSynthesis):
@@ -63,6 +69,7 @@ class ProductFormula(EvolutionSynthesis):
             | None
         ) = None,
         wrap: bool = False,
+        preserve_order: bool = True,
     ) -> None:
         """
         Args:
@@ -84,11 +91,15 @@ class ProductFormula(EvolutionSynthesis):
             wrap: Whether to wrap the atomic evolutions into custom gate objects. Note that setting
                 this to ``True`` is slower than ``False``. This only takes effect when
                 ``atomic_evolution is None``.
+            preserve_order: If ``False``, allows reordering the terms of the operator to
+                potentially yield a shallower evolution circuit. Not relevant
+                when synthesizing operator with a single term.
         """
         super().__init__()
         self.order = order
         self.reps = reps
         self.insert_barriers = insert_barriers
+        self.preserve_order = preserve_order
 
         # user-provided atomic evolution, stored for serialization
         self._atomic_evolution = atomic_evolution
@@ -177,6 +188,7 @@ class ProductFormula(EvolutionSynthesis):
             "insert_barriers": self.insert_barriers,
             "cx_structure": self._cx_structure,
             "wrap": self._wrap,
+            "preserve_order": self.preserve_order,
         }
 
     def _normalize_coefficients(
@@ -239,3 +251,61 @@ def real_or_fail(value, tol=100):
         return np.real(value)
 
     raise ValueError(f"Encountered complex value {value}, but expected real.")
+
+
+def reorder_paulis(
+    paulis: Sequence[SparsePauliLabel],
+    strategy: rx.ColoringStrategy = rx.ColoringStrategy.Saturation,
+) -> list[SparsePauliLabel]:
+    r"""
+    Creates an equivalent operator by reordering terms in order to yield a
+    shallower circuit after evolution synthesis. The original operator remains
+    unchanged.
+
+    This method works in three steps. First, a graph is constructed, where the
+    nodes are the terms of the operator and where two nodes are connected if
+    their terms act on the same qubit (for example, the terms :math:`IXX` and
+    :math:`IYI` would be connected, but not :math:`IXX` and :math:`YII`). Then,
+    the graph is colored.  Two terms with the same color thus do not act on the
+    same qubit, and in particular, their evolution subcircuits can be run in
+    parallel in the greater evolution circuit of ``paulis``.
+
+    This method is deterministic and invariant under permutation of the Pauli
+    term in ``paulis``.
+
+    Args:
+        paulis: The operator whose terms to reorder.
+        strategy: The coloring heuristic to use, see ``ColoringStrategy`` [#].
+            Default is ``ColoringStrategy.Saturation``.
+
+    .. [#] https://www.rustworkx.org/apiref/rustworkx.ColoringStrategy.html#coloringstrategy
+
+    """
+
+    def _term_sort_key(term: SparsePauliLabel) -> typing.Any:
+        # sort by index, then by pauli
+        return (term[1], term[0])
+
+    # Do nothing in trivial cases
+    if len(paulis) <= 1:
+        return paulis
+
+    terms = sorted(paulis, key=_term_sort_key)
+    graph = rx.PyGraph()
+    graph.add_nodes_from(terms)
+    indexed_nodes = list(enumerate(graph.nodes()))
+    for (idx1, (_, ind1, _)), (idx2, (_, ind2, _)) in combinations(indexed_nodes, 2):
+        # Add an edge between two terms if they touch the same qubit
+        if len(set(ind1).intersection(ind2)) > 0:
+            graph.add_edge(idx1, idx2, None)
+
+    # rx.graph_greedy_color is supposed to be deterministic
+    coloring = rx.graph_greedy_color(graph, strategy=strategy)
+    terms_by_color = defaultdict(list)
+
+    for term_idx, color in sorted(coloring.items()):
+        term = graph.nodes()[term_idx]
+        terms_by_color[color].append(term)
+
+    terms = list(itertools.chain(*terms_by_color.values()))
+    return terms
