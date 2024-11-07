@@ -36,7 +36,11 @@ For example, to append a multi-controlled CNOT:
    circuit.append(gate, [0, 1, 4, 2, 3])
    circuit.draw('mpl')
 
-The library is organized in several sections.
+The library is organized in several sections. The function 
+:func:`.get_standard_gate_name_mapping` allows you to see the available standard gates and operations.
+
+.. autofunction:: get_standard_gate_name_mapping
+
 
 Standard gates
 ==============
@@ -126,6 +130,7 @@ For example:
    ZGate
    GlobalPhaseGate
 
+
 Standard Directives
 ===================
 
@@ -152,12 +157,12 @@ set the amount of qubits involved at instantiation time.
 
 .. code-block::
 
-    from qiskit.circuit.library import Diagonal
+    from qiskit.circuit.library import DiagonalGate
 
-    diagonal = Diagonal([1, 1])
+    diagonal = DiagonalGate([1, 1j])
     print(diagonal.num_qubits)
 
-    diagonal = Diagonal([1, 1, 1, 1])
+    diagonal = DiagonalGate([1, 1, 1, -1])
     print(diagonal.num_qubits)
 
 .. code-block:: text
@@ -271,6 +276,9 @@ Adders
    :toctree: ../stubs/
    :template: autosummary/class_no_inherited_members.rst
 
+   ModularAdderGate
+   HalfAdderGate
+   FullAdderGate
    DraperQFTAdder
    CDKMRippleCarryAdder
    VBERippleCarryAdder
@@ -283,6 +291,7 @@ Multipliers
    :toctree: ../stubs/
    :template: autosummary/class_no_inherited_members.rst
 
+   MultiplierGate
    HRSCumulativeMultiplier
    RGQFTMultiplier
 
@@ -327,27 +336,38 @@ Particular Quantum Circuits
    HiddenLinearFunction
    hidden_linear_function
    IQP
+   iqp
+   random_iqp
    QuantumVolume
    quantum_volume
    PhaseEstimation
    phase_estimation
    GroverOperator
+   grover_operator
    PhaseOracle
    PauliEvolutionGate
    HamiltonianGate
    UnitaryOverlap
    unitary_overlap
 
-.. autofunction:: iqp
-.. autofunction:: random_iqp
-.. autofunction:: fourier_checking
-.. autofunction:: hidden_linear_function
-.. autofunction:: unitary_overlap
-.. autofunction:: phase_estimation
-
 
 N-local circuits
 ================
+
+The following functions return a parameterized :class:`.QuantumCircuit` to use as ansatz in
+a broad set of variational quantum algorithms:
+
+.. autosummary::
+   :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
+
+   n_local
+   efficient_su2
+   real_amplitudes
+   pauli_two_design
+   excitation_preserving
+   hamiltonian_variational_ansatz
+   evolved_operator_ansatz
 
 These :class:`~qiskit.circuit.library.BlueprintCircuit` subclasses are used
 as parameterized models (a.k.a. ansatzes or variational forms) in variational algorithms.
@@ -357,9 +377,6 @@ They are heavily used in near-term algorithms in e.g. Chemistry, Physics or Opti
    :toctree: ../stubs/
    :template: autosummary/class_no_inherited_members.rst
 
-   hamiltonian_variational_ansatz
-   evolved_operator_ansatz
-   qaoa_ansatz
    NLocal
    TwoLocal
    PauliTwoDesign
@@ -372,6 +389,17 @@ They are heavily used in near-term algorithms in e.g. Chemistry, Physics or Opti
 
 Data encoding circuits
 ======================
+
+The following functions return a parameterized :class:`.QuantumCircuit` to use as data 
+encoding circuits in a series of variational quantum algorithms:
+
+.. autosummary::
+   :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
+
+   pauli_feature_map
+   z_feature_map
+   zz_feature_map
 
 These :class:`~qiskit.circuit.library.BlueprintCircuit` encode classical
 data in quantum states and are used as feature maps for classification.
@@ -555,6 +583,10 @@ from .boolean_logic import (
 )
 from .basis_change import QFT, QFTGate
 from .arithmetic import (
+    ModularAdderGate,
+    HalfAdderGate,
+    FullAdderGate,
+    MultiplierGate,
     FunctionalPauliRotations,
     LinearPauliRotations,
     PiecewiseLinearPauliRotations,
@@ -574,14 +606,19 @@ from .arithmetic import (
 )
 
 from .n_local import (
+    n_local,
     NLocal,
     TwoLocal,
+    pauli_two_design,
     PauliTwoDesign,
+    real_amplitudes,
     RealAmplitudes,
+    efficient_su2,
     EfficientSU2,
     hamiltonian_variational_ansatz,
     evolved_operator_ansatz,
     EvolvedOperatorAnsatz,
+    excitation_preserving,
     ExcitationPreserving,
     qaoa_ansatz,
     QAOAAnsatz,
@@ -602,6 +639,7 @@ from .graph_state import GraphState, GraphStateGate
 from .hidden_linear_function import HiddenLinearFunction, hidden_linear_function
 from .iqp import IQP, iqp, random_iqp
 from .phase_estimation import PhaseEstimation, phase_estimation
-from .grover_operator import GroverOperator
+from .grover_operator import GroverOperator, grover_operator
 from .phase_oracle import PhaseOracle
 from .overlap import UnitaryOverlap, unitary_overlap
+from .standard_gates import get_standard_gate_name_mapping

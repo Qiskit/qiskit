@@ -35,7 +35,7 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, ::qiskit_accelerate::commutation_analysis::commutation_analysis, "commutation_analysis")?;
     add_submodule(m, ::qiskit_accelerate::commutation_cancellation::commutation_cancellation, "commutation_cancellation")?;
     add_submodule(m, ::qiskit_accelerate::commutation_checker::commutation_checker, "commutation_checker")?;
-    add_submodule(m, ::qiskit_accelerate::convert_2q_block_matrix::convert_2q_block_matrix, "convert_2q_block_matrix")?;
+    add_submodule(m, ::qiskit_accelerate::consolidate_blocks::consolidate_blocks_mod, "consolidate_blocks")?;
     add_submodule(m, ::qiskit_accelerate::dense_layout::dense_layout, "dense_layout")?;
     add_submodule(m, ::qiskit_accelerate::equivalence::equivalence, "equivalence")?;
     add_submodule(m, ::qiskit_accelerate::error_map::error_map, "error_map")?;
@@ -49,6 +49,7 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, ::qiskit_accelerate::nlayout::nlayout, "nlayout")?;
     add_submodule(m, ::qiskit_accelerate::optimize_1q_gates::optimize_1q_gates, "optimize_1q_gates")?;
     add_submodule(m, ::qiskit_accelerate::pauli_exp_val::pauli_expval, "pauli_expval")?;
+    add_submodule(m, ::qiskit_accelerate::high_level_synthesis::high_level_synthesis_mod, "high_level_synthesis")?;
     add_submodule(m, ::qiskit_accelerate::remove_diagonal_gates_before_measure::remove_diagonal_gates_before_measure, "remove_diagonal_gates_before_measure")?;
     add_submodule(m, ::qiskit_accelerate::remove_identity_equiv::remove_identity_equiv_mod, "remove_identity_equiv")?;
     add_submodule(m, ::qiskit_accelerate::results::results, "results")?;
@@ -61,6 +62,7 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, ::qiskit_accelerate::stochastic_swap::stochastic_swap, "stochastic_swap")?;
     add_submodule(m, ::qiskit_accelerate::synthesis::synthesis, "synthesis")?;
     add_submodule(m, ::qiskit_accelerate::target_transpiler::target, "target")?;
+    add_submodule(m, ::qiskit_accelerate::twirling::twirling, "twirling")?;
     add_submodule(m, ::qiskit_accelerate::two_qubit_decompose::two_qubit_decompose, "two_qubit_decompose")?;
     add_submodule(m, ::qiskit_accelerate::unitary_synthesis::unitary_synthesis, "unitary_synthesis")?;
     add_submodule(m, ::qiskit_accelerate::uc_gate::uc_gate, "uc_gate")?;
