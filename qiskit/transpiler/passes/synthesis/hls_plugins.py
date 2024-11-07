@@ -93,19 +93,6 @@ Linear Function Synthesis
    DefaultSynthesisLinearFunction
 
 
-Pauli Evolution Synthesis
-'''''''''''''''''''''''''
-
-.. list-table:: Plugins for :class:`.PauliEvolutionGate` (key = ``"PauliEvolution"``)
-    :header-rows: 1
-
-    * - Plugin name
-      - Plugin class
-      - Description
-    * - ``"default"``
-      - :class:`.PauliEvolutionSynthesisDefault`
-      - use a diagonalizing Clifford per Pauli term
-
 Permutation Synthesis
 '''''''''''''''''''''
 
@@ -272,12 +259,15 @@ Pauli Evolution Synthesis
 
     * - Plugin name
       - Plugin class
+      - Description
       - Targeted connectivity
     * - ``"rustiq"``
       - :class:`~.PauliEvolutionSynthesisRustiq`
+      - use a diagonalizing Clifford per Pauli term
       - all-to-all
     * - ``"default"``
       - :class:`~.PauliEvolutionSynthesisDefault`
+      - use ``rustiq_core`` synthesis library
       - all-to-all
 
 .. autosummary::
@@ -285,8 +275,8 @@ Pauli Evolution Synthesis
 
    PauliEvolutionSynthesisDefault
    PauliEvolutionSynthesisRustiq
-   
-   
+
+
 Modular Adder Synthesis
 '''''''''''''''''''''''
 
@@ -378,6 +368,7 @@ Multiplier Synthesis
 
 .. list-table:: Plugins for :class:`.MultiplierGate` (key = ``"Multiplier"``)
     :header-rows: 1
+
     * - Plugin name
       - Plugin class
       - Number of clean ancillas
