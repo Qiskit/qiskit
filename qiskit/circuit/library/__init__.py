@@ -357,6 +357,9 @@ They are heavily used in near-term algorithms in e.g. Chemistry, Physics or Opti
    :toctree: ../stubs/
    :template: autosummary/class_no_inherited_members.rst
 
+   hamiltonian_variational_ansatz
+   evolved_operator_ansatz
+   qaoa_ansatz
    NLocal
    TwoLocal
    PauliTwoDesign
@@ -365,13 +368,6 @@ They are heavily used in near-term algorithms in e.g. Chemistry, Physics or Opti
    EvolvedOperatorAnsatz
    ExcitationPreserving
    QAOAAnsatz
-
-The following functions return a parameterized :class:`.QuantumCircuit` to use as ansatz in
-a broad set of variational algorithms:
-
-.. autofunction:: hamiltonian_variational_ansatz
-.. autofunction:: evolved_operator_ansatz
-.. autofunction:: qaoa_ansatz
 
 
 Data encoding circuits

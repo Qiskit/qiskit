@@ -18,6 +18,7 @@ use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{imports, Clbit, Qubit};
 use smallvec::{smallvec, SmallVec};
 
+// custom types for a more readable code
 type StandardInstruction = (StandardGate, SmallVec<[Param; 3]>, SmallVec<[Qubit; 2]>);
 type Instruction = (
     PackedOperation,
@@ -25,8 +26,6 @@ type Instruction = (
     Vec<Qubit>,
     Vec<Clbit>,
 );
-
-// custom types for a more readable code
 
 /// Return instructions (using only StandardGate operations) to implement a Pauli evolution
 /// of a given Pauli string over a given time (as Param).

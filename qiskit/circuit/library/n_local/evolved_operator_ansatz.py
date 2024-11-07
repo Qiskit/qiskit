@@ -45,7 +45,7 @@ def evolved_operator_ansatz(
     parameter_prefix: str | Sequence[str] = "t",
     remove_identities: bool = True,
     flatten: bool | None = None,
-):
+) -> QuantumCircuit:
     r"""Construct an ansatz out of operator evolutions.
 
     For a set of operators :math:`[O_1, ..., O_J]` and :math:`R` repetitions (``reps``), this circuit
@@ -189,7 +189,7 @@ def hamiltonian_variational_ansatz(
     insert_barriers: bool = False,
     name: str = "HVA",
     parameter_prefix: str = "t",
-):
+) -> QuantumCircuit:
     r"""Construct a Hamiltonian variational ansatz.
 
     For a Hamiltonian :math:`H = \sum_{k=1}^K H_k` where the terms :math:`H_k` consist of only

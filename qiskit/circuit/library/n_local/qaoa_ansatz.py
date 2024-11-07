@@ -38,8 +38,23 @@ def qaoa_ansatz(
     insert_barriers: bool = False,
     name: str = "QAOA",
     flatten: bool = True,
-):
+) -> QuantumCircuit:
     r"""A generalized QAOA quantum circuit with a support of custom initial states and mixers.
+
+    Examples:
+
+        To define the QAOA ansatz we require a cost Hamiltonian, encoding the classical
+        optimization problem:
+
+        .. plot::
+            :include-source:
+
+            from qiskit.quantum_info import SparsePauliOp
+            from qiskit.circuit.library import qaoa_ansatz
+
+            cost_operator = SparsePauliOp(["ZZII", "IIZZ", "ZIIZ"])
+            ansatz = qaoa_ansatz(cost_operator, reps=3, insert_barriers=True)
+            ansatz.draw("mpl")
 
     Args:
         cost_operator: The operator representing the cost of the optimization problem, denoted as
