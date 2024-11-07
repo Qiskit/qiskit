@@ -1287,7 +1287,7 @@ impl CircuitData {
     }
 
     /// Insert qargs into the interner and return the interned value
-    pub fn set_qargs(&mut self, qubits: &[Qubit]) -> Interned<[Qubit]> {
+    pub fn add_qargs(&mut self, qubits: &[Qubit]) -> Interned<[Qubit]> {
         self.qargs_interner.insert(qubits)
     }
 

@@ -198,8 +198,8 @@ fn twirl_gate(
 ) -> PyResult<()> {
     let qubits = circ.get_qargs(inst.qubits);
     let (twirl, twirl_phase) = twirl_set.choose(rng).unwrap();
-    let bit_zero = out_circ.set_qargs(std::slice::from_ref(&qubits[0]));
-    let bit_one = out_circ.set_qargs(std::slice::from_ref(&qubits[1]));
+    let bit_zero = out_circ.add_qargs(std::slice::from_ref(&qubits[0]));
+    let bit_one = out_circ.add_qargs(std::slice::from_ref(&qubits[1]));
     out_circ.push(
         py,
         PackedInstruction {
