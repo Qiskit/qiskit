@@ -1463,11 +1463,14 @@ class MultiplierSynthesisR17(HighLevelSynthesisPlugin):
 class PauliEvolutionSynthesisDefault(HighLevelSynthesisPlugin):
     """Synthesize a :class:`.PauliEvolutionGate` using the default synthesis algorithm.
 
-    This plugin name is :``PauliEvolution.default`` which can be used as the key on
+    This plugin name is:``PauliEvolution.default`` which can be used as the key on
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
 
-    The default synthesis simply calls the synthesis algorithm attached to a
-    PauliEvolutionGate.
+    The following plugin option can be set:
+
+    * preserve_order: If ``False``, allow re-ordering the Pauli terms in the Hamiltonian to
+        reduce the circuit depth of the decomposition.
+
     """
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
@@ -1477,6 +1480,10 @@ class PauliEvolutionSynthesisDefault(HighLevelSynthesisPlugin):
             return None
 
         algo = high_level_object.synthesis
+
+        if "preserve_order" in options and isinstance(algo, ProductFormula):
+            algo.preserve_order = options["preserve_order"]
+
         return algo.synthesize(high_level_object)
 
 
@@ -1527,6 +1534,9 @@ class PauliEvolutionSynthesisRustiq(HighLevelSynthesisPlugin):
                 category=RuntimeWarning,
             )
             return None
+
+        if "preserve_order" in options:
+            algo.preserve_order = options["preserve_order"]
 
         num_qubits = high_level_object.num_qubits
         pauli_network = algo.expand(high_level_object)
