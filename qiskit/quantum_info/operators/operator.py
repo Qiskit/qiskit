@@ -574,7 +574,7 @@ class Operator(LinearOp):
                 complex plane.  This shifts the branch cut away from the common point of :math:`-1`,
                 but can cause a different root to be selected as the principal root.  The rotation
                 is anticlockwise, following the standard convention for complex phase.
-            assume_unitary (bool): if `True`, the operator is assumed to be unitary. In this case,
+            assume_unitary (bool): if ``True``, the operator is assumed to be unitary. In this case,
                 for fractional powers we employ a faster implementation based on Schur's decomposition.
 
         Returns:
@@ -583,6 +583,11 @@ class Operator(LinearOp):
         Raises:
             QiskitError: if the input and output dimensions of the operator
                          are not equal.
+
+        .. note::
+            It is only safe to set the argument ``assume_unitary`` to ``True`` when the operator
+            is unitary (or, more generally, normal). Otherwise, the function will return an
+            incorrect output.
         """
         if self.input_dims() != self.output_dims():
             raise QiskitError("Can only power with input_dims = output_dims.")
@@ -592,13 +597,7 @@ class Operator(LinearOp):
         else:
             import scipy.linalg
 
-            if not assume_unitary:
-                ret._data = cmath.rect(
-                    1, branch_cut_rotation * n
-                ) * scipy.linalg.fractional_matrix_power(
-                    cmath.rect(1, -branch_cut_rotation) * self.data, n
-                )
-            else:
+            if assume_unitary:
                 # Experimentally, for fractional powers this seems to be 3x faster than
                 # calling scipy.linalg.fractional_matrix_power(self.data, exponent)
                 decomposition, unitary = scipy.linalg.schur(
@@ -608,6 +607,12 @@ class Operator(LinearOp):
                 decomposition_power = [pow(element, n) for element in decomposition_diagonal]
                 unitary_power = unitary @ np.diag(decomposition_power) @ unitary.conj().T
                 ret._data = cmath.rect(1, branch_cut_rotation * n) * unitary_power
+            else:
+                ret._data = cmath.rect(
+                    1, branch_cut_rotation * n
+                ) * scipy.linalg.fractional_matrix_power(
+                    cmath.rect(1, -branch_cut_rotation) * self.data, n
+                )
 
         return ret
 
