@@ -264,26 +264,33 @@ class TestCommutationChecker(QiskitTestCase):
 
         # Currently, in all cases commutativity checker should returns False.
         # This is definitely suboptimal.
-        self.assertFalse(
-            scc.commute(CXGate().c_if(cr[0], 0), [qr[0], qr[1]], [], XGate(), [qr[2]], [])
-        )
-        self.assertFalse(
-            scc.commute(CXGate().c_if(cr[0], 0), [qr[0], qr[1]], [], XGate(), [qr[1]], [])
-        )
-        self.assertFalse(
-            scc.commute(
-                CXGate().c_if(cr[0], 0),
-                [qr[0], qr[1]],
-                [],
-                CXGate().c_if(cr[0], 0),
-                [qr[0], qr[1]],
-                [],
+        with self.assertWarns(DeprecationWarning):
+            self.assertFalse(
+                scc.commute(CXGate().c_if(cr[0], 0), [qr[0], qr[1]], [], XGate(), [qr[2]], [])
             )
-        )
-        self.assertFalse(
-            scc.commute(XGate().c_if(cr[0], 0), [qr[0]], [], XGate().c_if(cr[0], 1), [qr[0]], [])
-        )
-        self.assertFalse(scc.commute(XGate().c_if(cr[0], 0), [qr[0]], [], XGate(), [qr[0]], []))
+        with self.assertWarns(DeprecationWarning):
+            self.assertFalse(
+                scc.commute(CXGate().c_if(cr[0], 0), [qr[0], qr[1]], [], XGate(), [qr[1]], [])
+            )
+        with self.assertWarns(DeprecationWarning):
+            self.assertFalse(
+                scc.commute(
+                    CXGate().c_if(cr[0], 0),
+                    [qr[0], qr[1]],
+                    [],
+                    CXGate().c_if(cr[0], 0),
+                    [qr[0], qr[1]],
+                    [],
+                )
+            )
+        with self.assertWarns(DeprecationWarning):
+            self.assertFalse(
+                scc.commute(
+                    XGate().c_if(cr[0], 0), [qr[0]], [], XGate().c_if(cr[0], 1), [qr[0]], []
+                )
+            )
+        with self.assertWarns(DeprecationWarning):
+            self.assertFalse(scc.commute(XGate().c_if(cr[0], 0), [qr[0]], [], XGate(), [qr[0]], []))
 
     def test_complex_gates(self):
         """Check commutativity involving more complex gates."""

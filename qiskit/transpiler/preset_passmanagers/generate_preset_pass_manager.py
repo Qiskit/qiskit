@@ -412,21 +412,28 @@ def generate_preset_pass_manager(
         "qubits_initially_zero": qubits_initially_zero,
     }
 
-    if backend is not None:
-        pm_options["_skip_target"] = _skip_target
-        pm_config = PassManagerConfig.from_backend(backend, **pm_options)
-    else:
-        pm_config = PassManagerConfig(**pm_options)
-    if optimization_level == 0:
-        pm = level_0_pass_manager(pm_config)
-    elif optimization_level == 1:
-        pm = level_1_pass_manager(pm_config)
-    elif optimization_level == 2:
-        pm = level_2_pass_manager(pm_config)
-    elif optimization_level == 3:
-        pm = level_3_pass_manager(pm_config)
-    else:
-        raise ValueError(f"Invalid optimization level {optimization_level}")
+    with warnings.catch_warnings():
+        # inst_map is deprecated in the PassManagerConfig initializer
+        warnings.filterwarnings(
+            "ignore",
+            category=DeprecationWarning,
+            message=".*argument ``inst_map`` is deprecated as of Qiskit 1.3",
+        )
+        if backend is not None:
+            pm_options["_skip_target"] = _skip_target
+            pm_config = PassManagerConfig.from_backend(backend, **pm_options)
+        else:
+            pm_config = PassManagerConfig(**pm_options)
+        if optimization_level == 0:
+            pm = level_0_pass_manager(pm_config)
+        elif optimization_level == 1:
+            pm = level_1_pass_manager(pm_config)
+        elif optimization_level == 2:
+            pm = level_2_pass_manager(pm_config)
+        elif optimization_level == 3:
+            pm = level_3_pass_manager(pm_config)
+        else:
+            raise ValueError(f"Invalid optimization level {optimization_level}")
     return pm
 
 

@@ -43,7 +43,7 @@ use instruction_properties::InstructionProperties;
 
 use self::exceptions::TranspilerError;
 
-mod exceptions {
+pub(crate) mod exceptions {
     use pyo3::import_exception_bound;
     import_exception_bound! {qiskit.exceptions, QiskitError}
     import_exception_bound! {qiskit.transpiler.exceptions, TranspilerError}
