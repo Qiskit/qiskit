@@ -120,6 +120,14 @@ autosummary_generate_overwrite = False
 napoleon_google_docstring = True
 napoleon_numpy_docstring = False
 
+# Autosummary generates stub filenames based on the import name.
+# Sometimes, two distinct interfaces only differ in capitalization; this
+# creates a problem on case-insensitive OS/filesystems like macOS. So,
+# we manually avoid the clash by renaming one of the files.
+autosummary_filename_map = {
+    "qiskit.circuit.library.iqp": "qiskit.circuit.library.iqp_function",
+}
+
 
 # ----------------------------------------------------------------------------------
 # Doctest
