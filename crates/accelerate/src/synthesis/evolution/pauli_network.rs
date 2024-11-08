@@ -15,7 +15,6 @@ use crate::synthesis::clifford::greedy_synthesis::resynthesize_clifford_circuit;
 use pyo3::prelude::*;
 use pyo3::types::{PyList, PyString, PyTuple};
 use smallvec::{smallvec, SmallVec};
-use std::borrow::Borrow;
 
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::operations::{multiply_param, radd_param, Param, StandardGate};
@@ -334,7 +333,7 @@ pub fn pauli_network_synthesis_inner(
     // go over the input pauli network and extract a list of pauli rotations and
     // the corresponding rotation angles
     for item in pauli_network {
-        let tuple = item.downcast::<PyTuple>()?.borrow();
+        let tuple = item.downcast::<PyTuple>()?;
 
         let sparse_pauli: String = tuple.get_item(0)?.downcast::<PyString>()?.extract()?;
         let qubits: Vec<u32> = tuple.get_item(1)?.extract()?;
