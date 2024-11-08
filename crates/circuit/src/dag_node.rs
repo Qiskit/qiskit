@@ -10,9 +10,9 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use std::hash::Hasher;
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
-use std::hash::Hasher;
 
 use crate::circuit_instruction::{CircuitInstruction, OperationFromPython};
 use crate::imports::QUANTUM_CIRCUIT;

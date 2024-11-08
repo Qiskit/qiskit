@@ -11,9 +11,9 @@
 // that they have been altered from the originals.
 #![allow(clippy::too_many_arguments)]
 
+use std::f64::consts::PI;
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
-use std::f64::consts::PI;
 
 use approx::relative_eq;
 use hashbrown::{HashMap, HashSet};
