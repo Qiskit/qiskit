@@ -1242,7 +1242,8 @@ pub(crate) fn optimize_1q_gates_decomposition(
     Ok(())
 }
 
-fn matmul_1q(operator: &mut [[Complex64; 2]; 2], other: Array2<Complex64>) {
+#[inline(always)]
+pub fn matmul_1q(operator: &mut [[Complex64; 2]; 2], other: Array2<Complex64>) {
     *operator = [
         [
             other[[0, 0]] * operator[0][0] + other[[0, 1]] * operator[1][0],
