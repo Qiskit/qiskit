@@ -11,7 +11,7 @@
 // that they have been altered from the originals.
 
 #[cfg(feature = "cache_pygates")]
-use std::cell::OnceCell;
+use std::sync::OnceLock;
 
 use crate::bit_data::BitData;
 use crate::circuit_instruction::{
@@ -302,7 +302,7 @@ impl CircuitData {
                     params: inst.params.clone(),
                     extra_attrs: inst.extra_attrs.clone(),
                     #[cfg(feature = "cache_pygates")]
-                    py_op: OnceCell::new(),
+                    py_op: OnceLock::new(),
                 });
             }
         } else if copy_instructions {
@@ -314,7 +314,7 @@ impl CircuitData {
                     params: inst.params.clone(),
                     extra_attrs: inst.extra_attrs.clone(),
                     #[cfg(feature = "cache_pygates")]
-                    py_op: OnceCell::new(),
+                    py_op: OnceLock::new(),
                 });
             }
         } else {
@@ -939,7 +939,7 @@ impl CircuitData {
                 params,
                 extra_attrs: ExtraInstructionAttributes::default(),
                 #[cfg(feature = "cache_pygates")]
-                py_op: OnceCell::new(),
+                py_op: OnceLock::new(),
             });
             res.track_instruction_parameters(py, res.data.len() - 1)?;
         }
@@ -1048,7 +1048,7 @@ impl CircuitData {
                 params,
                 extra_attrs: ExtraInstructionAttributes::default(),
                 #[cfg(feature = "cache_pygates")]
-                py_op: OnceCell::new(),
+                py_op: OnceLock::new(),
             });
             res.track_instruction_parameters(py, res.data.len() - 1)?;
         }
@@ -1106,7 +1106,7 @@ impl CircuitData {
             params,
             extra_attrs: ExtraInstructionAttributes::default(),
             #[cfg(feature = "cache_pygates")]
-            py_op: OnceCell::new(),
+            py_op: OnceLock::new(),
         });
         Ok(())
     }
