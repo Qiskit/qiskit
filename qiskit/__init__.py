@@ -98,6 +98,7 @@ sys.modules["qiskit._accelerate.commutation_analysis"] = _accelerate.commutation
 sys.modules["qiskit._accelerate.commutation_cancellation"] = _accelerate.commutation_cancellation
 sys.modules["qiskit._accelerate.consolidate_blocks"] = _accelerate.consolidate_blocks
 sys.modules["qiskit._accelerate.synthesis.linear_phase"] = _accelerate.synthesis.linear_phase
+sys.modules["qiskit._accelerate.synthesis.evolution"] = _accelerate.synthesis.evolution
 sys.modules["qiskit._accelerate.synthesis.multi_controlled"] = (
     _accelerate.synthesis.multi_controlled
 )
@@ -106,6 +107,7 @@ sys.modules["qiskit._accelerate.gate_direction"] = _accelerate.gate_direction
 sys.modules["qiskit._accelerate.inverse_cancellation"] = _accelerate.inverse_cancellation
 sys.modules["qiskit._accelerate.check_map"] = _accelerate.check_map
 sys.modules["qiskit._accelerate.filter_op_nodes"] = _accelerate.filter_op_nodes
+sys.modules["qiskit._accelerate.twirling"] = _accelerate.twirling
 sys.modules["qiskit._accelerate.high_level_synthesis"] = _accelerate.high_level_synthesis
 sys.modules["qiskit._accelerate.remove_identity_equiv"] = _accelerate.remove_identity_equiv
 
