@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fix a bug that causes Statevector.expectation_value to yield incorrect result
+    for the identity operator when the statevector is not normalized to 1.
