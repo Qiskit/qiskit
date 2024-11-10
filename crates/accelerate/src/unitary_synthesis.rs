@@ -666,6 +666,7 @@ fn get_2q_decomposers_from_target(
             if let Some(approx_degree) = approximation_degree {
                 basis_2q_fidelity *= approx_degree;
             }
+            let basis_1q = EulerBasis::__new__(basis_1q)?;
             let decomposer = TwoQubitBasisDecomposer::new_inner(
                 gate.operation.name().to_string(),
                 gate.operation.matrix(&gate.params).unwrap().view(),
@@ -761,7 +762,7 @@ fn get_2q_decomposers_from_target(
                         pi_2_basis.to_string(),
                         StandardGate::CXGate.matrix(&[]).unwrap().view(),
                         fidelity,
-                        basis_1q,
+                        EulerBasis::__new__(basis_1q)?,
                         Some(true),
                     )?)
                 } else {
