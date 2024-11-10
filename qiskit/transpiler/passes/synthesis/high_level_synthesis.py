@@ -25,6 +25,7 @@ import numpy as np
 from qiskit.circuit.annotated_operation import Modifier
 from qiskit.circuit.operation import Operation
 from qiskit.circuit.instruction import Instruction
+from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -813,7 +814,10 @@ class HighLevelSynthesis(TransformationPass):
             dag._has_calibration_for(node)
             or len(node.qargs) < self._min_qubits
             or node.is_directive()
-            or self._instruction_supported(node.name, qubits)
+            or (
+                self._instruction_supported(node.name, qubits)
+                and node.name not in CONTROL_FLOW_OP_NAMES
+            )
         ):
             return True
 
