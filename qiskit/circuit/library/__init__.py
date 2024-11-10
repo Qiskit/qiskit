@@ -36,7 +36,7 @@ For example, to append a multi-controlled CNOT:
    circuit.append(gate, [0, 1, 4, 2, 3])
    circuit.draw('mpl')
 
-The library is organized in several sections. The function 
+The library is organized in several sections. The function
 :func:`.get_standard_gate_name_mapping` allows you to see the available standard gates and operations.
 
 .. autofunction:: get_standard_gate_name_mapping
@@ -280,6 +280,9 @@ Adders
    CDKMRippleCarryAdder
    VBERippleCarryAdder
    WeightedAdder
+   ModularAdderGate
+   HalfAdderGate
+   FullAdderGate
 
 Multipliers
 -----------
@@ -290,6 +293,7 @@ Multipliers
 
    HRSCumulativeMultiplier
    RGQFTMultiplier
+   MultiplierGate
 
 Comparators
 -----------
@@ -386,7 +390,7 @@ They are heavily used in near-term algorithms in e.g. Chemistry, Physics or Opti
 Data encoding circuits
 ======================
 
-The following functions return a parameterized :class:`.QuantumCircuit` to use as data 
+The following functions return a parameterized :class:`.QuantumCircuit` to use as data
 encoding circuits in a series of variational quantum algorithms:
 
 .. autosummary::
