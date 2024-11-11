@@ -171,7 +171,7 @@ class FullAdderGate(Gate):
 
     .. math::
 
-        |c_{\text{in}\rangle_1 |a\rangle_n |b\rangle_n
+        |c_{\text{in}}\rangle_1 |a\rangle_n |b\rangle_n
         \mapsto |a\rangle_n |c_{\text{in}} + a + b \rangle_{n + 1}.
 
     The quantum register :math:`|a\rangle_n` (and analogously :math:`|b\rangle_n`)
