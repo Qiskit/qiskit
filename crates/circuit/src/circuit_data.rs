@@ -977,7 +977,7 @@ impl CircuitData {
                         )),
                         extra_attrs: instr.extra_attrs.clone(),
                         #[cfg(feature = "cache_pygates")]
-                        py_op: OnceCell::new(),
+                        py_op: OnceLock::new(),
                     })
                 } else {
                     Ok(instr.clone())
