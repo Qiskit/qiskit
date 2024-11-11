@@ -76,7 +76,7 @@ impl Block {
     pub fn from_standard_gate(gate: StandardGate) -> Self {
         Block {
             operation: BlockOperation::Standard { gate },
-            num_qubits: gate.num_qubits() as usize,
+            num_qubits: gate.num_qubits(),
             num_parameters: gate.num_params() as usize,
         }
     }

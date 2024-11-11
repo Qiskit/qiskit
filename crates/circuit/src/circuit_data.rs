@@ -906,8 +906,8 @@ impl CircuitData {
     /// * global_phase: The global phase to use for the circuit
     pub fn from_packed_operations<I>(
         py: Python,
-        num_qubits: u32,
-        num_clbits: u32,
+        num_qubits: usize,
+        num_clbits: usize,
         instructions: I,
         global_phase: Param,
     ) -> PyResult<Self>
@@ -1099,8 +1099,8 @@ impl CircuitData {
     /// Build an empty CircuitData object with an initially allocated instruction capacity
     pub fn with_capacity(
         py: Python,
-        num_qubits: u32,
-        num_clbits: u32,
+        num_qubits: usize,
+        num_clbits: usize,
         instruction_capacity: usize,
         global_phase: Param,
     ) -> PyResult<Self> {

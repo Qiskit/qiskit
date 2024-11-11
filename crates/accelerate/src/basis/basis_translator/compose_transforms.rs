@@ -26,7 +26,7 @@ use smallvec::SmallVec;
 use crate::equivalence::CircuitFromPython;
 
 // Custom types
-pub type GateIdentifier = (String, u32);
+pub type GateIdentifier = (String, usize);
 pub type BasisTransformIn = (SmallVec<[Param; 3]>, CircuitFromPython);
 pub type BasisTransformOut = (SmallVec<[Param; 3]>, DAGCircuit);
 

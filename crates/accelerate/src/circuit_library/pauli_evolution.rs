@@ -219,7 +219,7 @@ fn multi_qubit_evolution(
 #[pyfunction]
 #[pyo3(name = "pauli_evolution", signature = (num_qubits, sparse_paulis, insert_barriers=false, do_fountain=false))]
 pub fn py_pauli_evolution(
-    num_qubits: i64,
+    num_qubits: usize,
     sparse_paulis: &Bound<PyList>,
     insert_barriers: bool,
     do_fountain: bool,

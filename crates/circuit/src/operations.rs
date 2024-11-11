@@ -160,8 +160,8 @@ impl<'py> Iterator for ParamParameterIter<'py> {
 /// needed for something to be addable to the circuit struct
 pub trait Operation {
     fn name(&self) -> &str;
-    fn num_qubits(&self) -> u32;
-    fn num_clbits(&self) -> u32;
+    fn num_qubits(&self) -> usize;
+    fn num_clbits(&self) -> usize;
     fn num_params(&self) -> u32;
     fn control_flow(&self) -> bool;
     fn blocks(&self) -> Vec<CircuitData>;
@@ -194,7 +194,7 @@ impl<'a> Operation for OperationRef<'a> {
         }
     }
     #[inline]
-    fn num_qubits(&self) -> u32 {
+    fn num_qubits(&self) -> usize {
         match self {
             Self::Standard(standard) => standard.num_qubits(),
             Self::Gate(gate) => gate.num_qubits(),
@@ -203,7 +203,7 @@ impl<'a> Operation for OperationRef<'a> {
         }
     }
     #[inline]
-    fn num_clbits(&self) -> u32 {
+    fn num_clbits(&self) -> usize {
         match self {
             Self::Standard(standard) => standard.num_clbits(),
             Self::Gate(gate) => gate.num_clbits(),
@@ -349,7 +349,7 @@ impl ToPyObject for StandardGate {
     }
 }
 
-static STANDARD_GATE_NUM_QUBITS: [u32; STANDARD_GATE_SIZE] = [
+static STANDARD_GATE_NUM_QUBITS: [usize; STANDARD_GATE_SIZE] = [
     0, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 0-9
     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 10-19
     1, 2, 2, 2, 2, 2, 2, 2, 2, 2, // 20-29
@@ -367,7 +367,7 @@ static STANDARD_GATE_NUM_PARAMS: [u32; STANDARD_GATE_SIZE] = [
     0, 0, // 50-51
 ];
 
-static STANDARD_GATE_NUM_CTRL_QUBITS: [u32; STANDARD_GATE_SIZE] = [
+static STANDARD_GATE_NUM_CTRL_QUBITS: [usize; STANDARD_GATE_SIZE] = [
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0-9
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 10-19
     0, 1, 1, 1, 1, 0, 0, 0, 0, 1, // 20-29
@@ -479,7 +479,7 @@ impl StandardGate {
         }
     }
 
-    pub fn num_ctrl_qubits(&self) -> u32 {
+    pub fn num_ctrl_qubits(&self) -> usize {
         STANDARD_GATE_NUM_CTRL_QUBITS[*self as usize]
     }
 
@@ -701,17 +701,17 @@ impl StandardGate {
     }
 
     #[getter]
-    pub fn get_num_qubits(&self) -> u32 {
+    pub fn get_num_qubits(&self) -> usize {
         self.num_qubits()
     }
 
     #[getter]
-    pub fn get_num_ctrl_qubits(&self) -> u32 {
+    pub fn get_num_ctrl_qubits(&self) -> usize {
         self.num_ctrl_qubits()
     }
 
     #[getter]
-    pub fn get_num_clbits(&self) -> u32 {
+    pub fn get_num_clbits(&self) -> usize {
         self.num_clbits()
     }
 
@@ -760,11 +760,11 @@ impl Operation for StandardGate {
         STANDARD_GATE_NAME[*self as usize]
     }
 
-    fn num_qubits(&self) -> u32 {
+    fn num_qubits(&self) -> usize {
         STANDARD_GATE_NUM_QUBITS[*self as usize]
     }
 
-    fn num_clbits(&self) -> u32 {
+    fn num_clbits(&self) -> usize {
         0
     }
 
@@ -2563,11 +2563,11 @@ impl Operation for PyInstruction {
     fn name(&self) -> &str {
         self.op_name.as_str()
     }
-    fn num_qubits(&self) -> u32 {
-        self.qubits
+    fn num_qubits(&self) -> usize {
+        self.qubits as usize
     }
-    fn num_clbits(&self) -> u32 {
-        self.clbits
+    fn num_clbits(&self) -> usize {
+        self.clbits as usize
     }
     fn num_params(&self) -> u32 {
         self.params
@@ -2649,11 +2649,11 @@ impl Operation for PyGate {
     fn name(&self) -> &str {
         self.op_name.as_str()
     }
-    fn num_qubits(&self) -> u32 {
-        self.qubits
+    fn num_qubits(&self) -> usize {
+        self.qubits as usize
     }
-    fn num_clbits(&self) -> u32 {
-        self.clbits
+    fn num_clbits(&self) -> usize {
+        self.clbits as usize
     }
     fn num_params(&self) -> u32 {
         self.params
@@ -2728,11 +2728,11 @@ impl Operation for PyOperation {
     fn name(&self) -> &str {
         self.op_name.as_str()
     }
-    fn num_qubits(&self) -> u32 {
-        self.qubits
+    fn num_qubits(&self) -> usize {
+        self.qubits as usize
     }
-    fn num_clbits(&self) -> u32 {
-        self.clbits
+    fn num_clbits(&self) -> usize {
+        self.clbits as usize
     }
     fn num_params(&self) -> u32 {
         self.params

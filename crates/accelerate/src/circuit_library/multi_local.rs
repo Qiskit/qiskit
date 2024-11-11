@@ -55,7 +55,7 @@ fn rotation_layer<'a>(
     num_qubits: usize,
     rotation_blocks: &'a [&'a Block],
     parameters: Vec<Vec<Vec<&'a Param>>>,
-    skipped_qubits: &'a HashSet<u32>,
+    skipped_qubits: &'a HashSet<usize>,
 ) -> impl Iterator<Item = PyResult<Instruction>> + 'a {
     rotation_blocks
         .iter()
@@ -158,7 +158,7 @@ fn entanglement_layer<'a>(
 #[allow(clippy::too_many_arguments)]
 pub fn n_local(
     py: Python,
-    num_qubits: u32,
+    num_qubits: usize,
     rotation_blocks: &[&Block],
     entanglement_blocks: &[&Block],
     entanglement: &Entanglement,
@@ -184,7 +184,7 @@ pub fn n_local(
     // Compute the qubits that are skipped in the rotation layer. If this is set,
     // we skip qubits that do not appear in any of the entanglement layers.
     let skipped_qubits = if skip_unentangled_qubits {
-        let active: HashSet<&u32> =
+        let active: HashSet<&usize> =
             HashSet::from_iter(entanglement.iter().flatten().flatten().flatten());
         HashSet::from_iter((0..num_qubits).filter(|i| !active.contains(i)))
     } else {
@@ -231,7 +231,7 @@ pub fn n_local(
 #[allow(clippy::too_many_arguments)]
 pub fn py_n_local(
     py: Python,
-    num_qubits: u32,
+    num_qubits: usize,
     rotation_blocks: Vec<PyRef<Block>>,
     entanglement_blocks: Vec<PyRef<Block>>,
     entanglement: &Bound<PyAny>,
@@ -280,14 +280,14 @@ struct MaybeBarrier {
 }
 
 impl MaybeBarrier {
-    fn new(py: Python, num_qubits: u32, insert_barriers: bool) -> PyResult<Self> {
+    fn new(py: Python, num_qubits: usize, insert_barriers: bool) -> PyResult<Self> {
         if !insert_barriers {
             Ok(Self { barrier: None })
         } else {
             let barrier_cls = imports::BARRIER.get_bound(py);
             let py_barrier = barrier_cls.call1((num_qubits,))?;
             let py_inst = PyInstruction {
-                qubits: num_qubits,
+                qubits: num_qubits.try_into().unwrap(),
                 clbits: 0,
                 params: 0,
                 op_name: "barrier".to_string(),

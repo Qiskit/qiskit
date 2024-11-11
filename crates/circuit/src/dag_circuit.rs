@@ -3235,8 +3235,8 @@ def _format(operand):
                             &mut self.dag[*new_node_index]
                         {
                             new_inst.op = PyInstruction {
-                                qubits: old_op.num_qubits(),
-                                clbits: old_op.num_clbits(),
+                                qubits: old_op.num_qubits() as u32,
+                                clbits: old_op.num_clbits() as u32,
                                 params: old_op.num_params(),
                                 control_flow: old_op.control_flow(),
                                 op_name: old_op.name().to_string(),
@@ -6848,7 +6848,7 @@ impl DAGCircuit {
 
         let py_op = op.extract::<OperationFromPython>()?;
 
-        if py_op.operation.num_qubits() as usize != block_qargs.len() {
+        if py_op.operation.num_qubits() != block_qargs.len() {
             return Err(DAGCircuitError::new_err(format!(
                 "Number of qubits in the replacement operation ({}) is not equal to the number of qubits in the block ({})!", py_op.operation.num_qubits(), block_qargs.len()
             )));

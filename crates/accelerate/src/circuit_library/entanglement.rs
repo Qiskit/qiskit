@@ -23,7 +23,7 @@ use crate::QiskitError;
 /// Get all-to-all entanglement. For 4 qubits and block size 2 we have:
 /// [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]
 fn full(num_qubits: usize, block_size: usize) -> impl Iterator<Item = Vec<usize>> {
-    (0..num_qubits).combinations(block_size as usize)
+    (0..num_qubits).combinations(block_size)
 }
 
 /// Get a linear entanglement structure. For ``n`` qubits and block size ``m`` we have:
@@ -85,8 +85,8 @@ fn shift_circular_alternating(
     // and define ``split`` as equivalent to a Python index of ``-offset``
     let split = (num_qubits - (offset % num_qubits)) % num_qubits;
     let shifted = circular(num_qubits, block_size)
-        .skip(split as usize)
-        .chain(circular(num_qubits, block_size).take(split as usize));
+        .skip(split)
+        .chain(circular(num_qubits, block_size).take(split));
     if offset % 2 == 0 {
         Box::new(shifted)
     } else {
@@ -196,7 +196,7 @@ fn _check_entanglement_list<'a>(
     let entanglement_iter = list.iter().map(move |el| {
         let connections: Vec<usize> = el.extract()?;
 
-        if connections.len() != block_size as usize {
+        if connections.len() != block_size {
             return Err(QiskitError::new_err(format!(
                 "Entanglement {:?} does not match block size {}",
                 connections, block_size
