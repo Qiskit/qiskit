@@ -17,7 +17,6 @@
 import os
 
 from qiskit import QuantumCircuit
-
 from qiskit.circuit import pauli_twirl_2q_gates
 from qiskit.passmanager import PropertySet
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
