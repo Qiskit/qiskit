@@ -221,10 +221,10 @@ or of a set of qubit states.
    OrGate
    XOR
    BitwiseXorGate
+   random_bitwise_xor
    InnerProduct
    InnerProductGate
 
-.. autofunction:: random_bitwise_xor
 
 Basis Change Circuits
 =====================
