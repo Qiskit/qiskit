@@ -294,10 +294,8 @@ fn extract_basis_target(
         // single qubit operation for (1,) as valid. This pattern also holds
         // true for > 2q ops too (so for 4q operations we need to check for 3q, 2q,
         // and 1q operations in the same manner)
-        let physical_qargs: SmallVec<[PhysicalQubit; 2]> = qargs
-            .iter()
-            .map(|x| PhysicalQubit(x.index() as u32))
-            .collect();
+        let physical_qargs: SmallVec<[PhysicalQubit; 2]> =
+            qargs.iter().cloned().map(PhysicalQubit::from_bit).collect();
         let physical_qargs_as_set: HashSet<PhysicalQubit> =
             HashSet::from_iter(physical_qargs.iter().copied());
         if qargs_with_non_global_operation.contains_key(&Some(physical_qargs))
@@ -375,10 +373,8 @@ fn extract_basis_target_circ(
         // single qubit operation for (1,) as valid. This pattern also holds
         // true for > 2q ops too (so for 4q operations we need to check for 3q, 2q,
         // and 1q operations in the same manner)
-        let physical_qargs: SmallVec<[PhysicalQubit; 2]> = qargs
-            .iter()
-            .map(|x| PhysicalQubit(x.index() as u32))
-            .collect();
+        let physical_qargs: SmallVec<[PhysicalQubit; 2]> =
+            qargs.iter().cloned().map(PhysicalQubit::from_bit).collect();
         let physical_qargs_as_set: HashSet<PhysicalQubit> =
             HashSet::from_iter(physical_qargs.iter().copied());
         if qargs_with_non_global_operation.contains_key(&Some(physical_qargs))
@@ -516,7 +512,8 @@ fn apply_translation(
         let node_qarg_as_physical: Option<Qargs> = Some(
             node_qarg
                 .iter()
-                .map(|x| PhysicalQubit(x.index() as u32))
+                .cloned()
+                .map(PhysicalQubit::from_bit)
                 .collect(),
         );
         if qargs_with_non_global_operation.contains_key(&node_qarg_as_physical)
@@ -574,7 +571,8 @@ fn apply_translation(
             Some(
                 qubit_set
                     .iter()
-                    .map(|x| PhysicalQubit(x.index() as u32))
+                    .cloned()
+                    .map(PhysicalQubit::from_bit)
                     .collect(),
             )
         };
