@@ -366,6 +366,7 @@ a broad set of variational quantum algorithms:
    real_amplitudes
    pauli_two_design
    excitation_preserving
+   qaoa_ansatz
    hamiltonian_variational_ansatz
    evolved_operator_ansatz
 
