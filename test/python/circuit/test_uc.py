@@ -47,19 +47,21 @@ class TestUCGate(QiskitTestCase):
             [_id, 1j * _id],
             [_id, _not, _id, _not],
             [_rand, _had, _rand, _had, _rand, _had, _rand, _had],
+            [_had, _had, _had, _had, _had, _had, _had, _had],
             [random_unitary(2, seed=541234).data for _ in range(2**2)],
             [random_unitary(2, seed=975163).data for _ in range(2**3)],
             [random_unitary(2, seed=629462).data for _ in range(2**4)],
         ],
         up_to_diagonal=[True, False],
+        mux_simp=[True, False],
     )
-    def test_ucg(self, squs, up_to_diagonal):
+    def test_ucg(self, squs, up_to_diagonal, mux_simp):
         """Test uniformly controlled gates."""
         num_con = int(np.log2(len(squs)))
         q = QuantumRegister(num_con + 1)
         qc = QuantumCircuit(q)
 
-        uc = UCGate(squs, up_to_diagonal=up_to_diagonal)
+        uc = UCGate(squs, up_to_diagonal=up_to_diagonal, mux_simp=mux_simp)
         qc.append(uc, q)
 
         # Decompose the gate
@@ -68,7 +70,7 @@ class TestUCGate(QiskitTestCase):
         # Simulate the decomposed gate
         unitary = Operator(qc).data
         if up_to_diagonal:
-            ucg = UCGate(squs, up_to_diagonal=up_to_diagonal)
+            ucg = UCGate(squs, up_to_diagonal=up_to_diagonal, mux_simp=mux_simp)
             diag = np.diagflat(ucg._get_diagonal())
             unitary = np.dot(diag, unitary)
 
