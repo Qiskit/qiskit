@@ -301,10 +301,7 @@ fn py_run_main_loop(
             // Run 1q synthesis
             [2, 2] => {
                 let qubit = dag.get_qargs(packed_instr.qubits)[0];
-                let target_basis_set = get_target_basis_set(
-                    target,
-                    PhysicalQubit::new(qubit.index().try_into().unwrap()),
-                );
+                let target_basis_set = get_target_basis_set(target, PhysicalQubit::from_bit(qubit));
                 let sequence = unitary_to_gate_sequence_inner(
                     unitary.view(),
                     &target_basis_set,

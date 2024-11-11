@@ -10,7 +10,6 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::nlayout::PhysicalQubit;
 use crate::target_transpiler::exceptions::TranspilerError;
 use crate::target_transpiler::Target;
 use hashbrown::HashSet;
@@ -75,10 +74,7 @@ fn py_check_direction_coupling_map(
 #[pyo3(name = "check_gate_direction_target")]
 fn py_check_direction_target(py: Python, dag: &DAGCircuit, target: &Target) -> PyResult<bool> {
     let target_check = |inst: &PackedInstruction, op_args: &[Qubit]| -> bool {
-        let qargs = smallvec![
-            PhysicalQubit::new(op_args[0].index().try_into().unwrap()),
-            PhysicalQubit::new(op_args[1].index().try_into().unwrap())
-        ];
+        let qargs = smallvec![op_args[0].into(), op_args[1].into()];
 
         target.instruction_supported(inst.op.name(), Some(&qargs))
     };
@@ -205,10 +201,7 @@ fn py_fix_direction_target(
     target: &Target,
 ) -> PyResult<DAGCircuit> {
     let target_check = |inst: &PackedInstruction, op_args: &[Qubit]| -> bool {
-        let qargs = smallvec![
-            PhysicalQubit::new(op_args[0].index() as u32),
-            PhysicalQubit::new(op_args[1].index() as u32)
-        ];
+        let qargs = smallvec![op_args[0].into(), op_args[1].into()];
 
         // Take this path so Target can check for exact match of the parameterized gate's angle
         if let OperationRef::Standard(std_gate) = inst.op.view() {
