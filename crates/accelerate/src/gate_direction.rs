@@ -448,7 +448,9 @@ fn add_qreg(py: Python, dag: &mut DAGCircuit, num_qubits: usize) -> PyResult<Vec
     dag.add_qreg(py, &qreg)?;
 
     // We are adding brand new bits, so we know exactly the indices that got added.
-    Ok((first_bit..(first_bit + num_qubits)).map(Qubit::new).collect())
+    Ok((first_bit..(first_bit + num_qubits))
+        .map(Qubit::new)
+        .collect())
 }
 
 #[inline]

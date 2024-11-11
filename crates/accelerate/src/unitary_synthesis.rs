@@ -289,9 +289,7 @@ fn py_run_main_loop(
                 py_op: new_node.unbind().into(),
             };
         }
-        if !(packed_instr.op.name() == "unitary"
-            && packed_instr.op.num_qubits() >= min_qubits)
-        {
+        if !(packed_instr.op.name() == "unitary" && packed_instr.op.num_qubits() >= min_qubits) {
             out_dag.push_back(py, packed_instr)?;
             continue;
         }
