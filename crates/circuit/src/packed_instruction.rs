@@ -387,7 +387,7 @@ impl Operation for PackedOperation {
         self.view().num_clbits()
     }
     #[inline]
-    fn num_params(&self) -> u32 {
+    fn num_params(&self) -> usize {
         self.view().num_params()
     }
     #[inline]

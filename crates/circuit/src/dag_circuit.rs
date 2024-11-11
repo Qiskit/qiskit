@@ -3237,7 +3237,7 @@ def _format(operand):
                             new_inst.op = PyInstruction {
                                 qubits: old_op.num_qubits() as u32,
                                 clbits: old_op.num_clbits() as u32,
-                                params: old_op.num_params(),
+                                params: old_op.num_params() as u32,
                                 control_flow: old_op.control_flow(),
                                 op_name: old_op.name().to_string(),
                                 instruction: new_op.clone().unbind(),

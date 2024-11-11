@@ -77,7 +77,7 @@ impl Block {
         Block {
             operation: BlockOperation::Standard { gate },
             num_qubits: gate.num_qubits(),
-            num_parameters: gate.num_params() as usize,
+            num_parameters: gate.num_params(),
         }
     }
 
@@ -85,8 +85,8 @@ impl Block {
     #[pyo3(signature = (num_qubits, num_parameters, builder,))]
     pub fn from_callable(
         py: Python,
-        num_qubits: i64,
-        num_parameters: i64,
+        num_qubits: usize,
+        num_parameters: usize,
         builder: &Bound<PyAny>,
     ) -> PyResult<Self> {
         if !builder.is_callable() {
@@ -98,8 +98,8 @@ impl Block {
             operation: BlockOperation::PyCustom {
                 builder: builder.to_object(py),
             },
-            num_qubits: num_qubits as usize,
-            num_parameters: num_parameters as usize,
+            num_qubits,
+            num_parameters,
         };
 
         Ok(block)

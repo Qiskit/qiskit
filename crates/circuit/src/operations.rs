@@ -162,7 +162,7 @@ pub trait Operation {
     fn name(&self) -> &str;
     fn num_qubits(&self) -> usize;
     fn num_clbits(&self) -> usize;
-    fn num_params(&self) -> u32;
+    fn num_params(&self) -> usize;
     fn control_flow(&self) -> bool;
     fn blocks(&self) -> Vec<CircuitData>;
     fn matrix(&self, params: &[Param]) -> Option<Array2<Complex64>>;
@@ -212,7 +212,7 @@ impl<'a> Operation for OperationRef<'a> {
         }
     }
     #[inline]
-    fn num_params(&self) -> u32 {
+    fn num_params(&self) -> usize {
         match self {
             Self::Standard(standard) => standard.num_params(),
             Self::Gate(gate) => gate.num_params(),
@@ -358,7 +358,7 @@ static STANDARD_GATE_NUM_QUBITS: [usize; STANDARD_GATE_SIZE] = [
     4, 4, // 50-51
 ];
 
-static STANDARD_GATE_NUM_PARAMS: [u32; STANDARD_GATE_SIZE] = [
+static STANDARD_GATE_NUM_PARAMS: [usize; STANDARD_GATE_SIZE] = [
     1, 0, 0, 0, 0, 0, 1, 2, 1, 1, // 0-9
     1, 0, 0, 0, 0, 0, 0, 3, 1, 2, // 10-19
     3, 0, 0, 0, 0, 0, 0, 0, 0, 1, // 20-29
@@ -688,7 +688,7 @@ impl StandardGate {
             .map(|x| x.into_pyarray_bound(py).into())
     }
 
-    pub fn _num_params(&self) -> u32 {
+    pub fn _num_params(&self) -> usize {
         self.num_params()
     }
 
@@ -716,7 +716,7 @@ impl StandardGate {
     }
 
     #[getter]
-    pub fn get_num_params(&self) -> u32 {
+    pub fn get_num_params(&self) -> usize {
         self.num_params()
     }
 
@@ -768,7 +768,7 @@ impl Operation for StandardGate {
         0
     }
 
-    fn num_params(&self) -> u32 {
+    fn num_params(&self) -> usize {
         STANDARD_GATE_NUM_PARAMS[*self as usize]
     }
 
@@ -2569,8 +2569,8 @@ impl Operation for PyInstruction {
     fn num_clbits(&self) -> usize {
         self.clbits as usize
     }
-    fn num_params(&self) -> u32 {
-        self.params
+    fn num_params(&self) -> usize {
+        self.params as usize
     }
     fn control_flow(&self) -> bool {
         self.control_flow
@@ -2655,8 +2655,8 @@ impl Operation for PyGate {
     fn num_clbits(&self) -> usize {
         self.clbits as usize
     }
-    fn num_params(&self) -> u32 {
-        self.params
+    fn num_params(&self) -> usize {
+        self.params as usize
     }
     fn control_flow(&self) -> bool {
         false
@@ -2734,8 +2734,8 @@ impl Operation for PyOperation {
     fn num_clbits(&self) -> usize {
         self.clbits as usize
     }
-    fn num_params(&self) -> u32 {
-        self.params
+    fn num_params(&self) -> usize {
+        self.params as usize
     }
     fn control_flow(&self) -> bool {
         false
