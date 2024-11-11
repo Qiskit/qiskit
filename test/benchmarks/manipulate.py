@@ -17,7 +17,8 @@
 import os
 
 from qiskit import QuantumCircuit
-from qiskit.circuit import twirl_circuit
+
+from qiskit.circuit import pauli_twirl_2q_gates
 from qiskit.passmanager import PropertySet
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from .utils import multi_control_circuit
@@ -38,7 +39,7 @@ class TestCircuitManipulate:
         """Perform Pauli-twirling on a 100Q QV
         circuit
         """
-        out = twirl_circuit(self.dtc_qc, seed=12345678942)
+        out = pauli_twirl_2q_gates(self.dtc_qc, seed=12345678942)
         return out
 
     def time_multi_control_decompose(self):
