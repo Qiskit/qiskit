@@ -36,7 +36,7 @@ fn iqp(
 
     // The initial and final Hadamard layer.
     let h_layer =
-        (0..num_qubits).map(|i| (StandardGate::HGate, smallvec![], smallvec![Qubit(i as u32)]));
+        (0..num_qubits).map(|i| (StandardGate::HGate, smallvec![], smallvec![Qubit::new(i)]));
 
     // The circuit interactions are powers of the CSGate, which is implemented by calling
     // the CPhaseGate with angles of Pi/2 times the power. The gate powers are given by the
@@ -49,7 +49,7 @@ fn iqp(
                 (
                     StandardGate::CPhaseGate,
                     smallvec![Param::Float(PI2 * value as f64)],
-                    smallvec![Qubit(i as u32), Qubit(j as u32)],
+                    smallvec![Qubit::new(i), Qubit::new(j)],
                 )
             })
     });
@@ -64,7 +64,7 @@ fn iqp(
             (
                 StandardGate::PhaseGate,
                 smallvec![Param::Float(PI8 * value as f64)],
-                smallvec![Qubit(i as u32)],
+                smallvec![Qubit::new(i)],
             )
         });
 

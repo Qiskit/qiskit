@@ -52,7 +52,7 @@ type Instruction = (
 /// An iterator for the rotation instructions.
 fn rotation_layer<'a>(
     py: Python<'a>,
-    num_qubits: u32,
+    num_qubits: usize,
     rotation_blocks: &'a [&'a Block],
     parameters: Vec<Vec<Vec<&'a Param>>>,
     skipped_qubits: &'a HashSet<u32>,
@@ -62,7 +62,7 @@ fn rotation_layer<'a>(
         .zip(parameters)
         .flat_map(move |(block, block_params)| {
             (0..num_qubits)
-                .step_by(block.num_qubits as usize)
+                .step_by(block.num_qubits)
                 .filter(move |start_idx| {
                     skipped_qubits.is_disjoint(&HashSet::from_iter(
                         *start_idx..(*start_idx + block.num_qubits),
@@ -78,7 +78,7 @@ fn rotation_layer<'a>(
                         bound_op,
                         bound_params,
                         (0..block.num_qubits)
-                            .map(|i| Qubit(start_idx + i))
+                            .map(|i| Qubit::new(start_idx + i))
                             .collect(),
                         vec![] as Vec<Clbit>,
                     ))
@@ -122,7 +122,7 @@ fn entanglement_layer<'a>(
                 Ok((
                     bound_op,
                     bound_params,
-                    indices.iter().map(|i| Qubit(*i)).collect(),
+                    indices.iter().map(|i| Qubit::new(*i)).collect(),
                     vec![] as Vec<Clbit>,
                 ))
             })
@@ -298,7 +298,7 @@ impl MaybeBarrier {
             let inst = (
                 py_inst.into(),
                 smallvec![],
-                (0..num_qubits).map(Qubit).collect(),
+                (0..num_qubits).map(Qubit::new).collect(),
                 vec![] as Vec<Clbit>,
             );
 

@@ -1063,7 +1063,7 @@ impl CircuitData {
     /// * global_phase: The global phase to use for the circuit
     pub fn from_standard_gates<I>(
         py: Python,
-        num_qubits: u32,
+        num_qubits: usize,
         instructions: I,
         global_phase: Param,
     ) -> PyResult<Self>
