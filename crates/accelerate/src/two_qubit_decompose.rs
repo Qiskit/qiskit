@@ -2780,7 +2780,7 @@ impl TwoQubitControlledUDecomposer {
                 )?;
                 let decomposer_equiv = TwoQubitWeylDecomposition::new_inner(
                     mat.view(),
-                    None,
+                    Some(DEFAULT_FIDELITY),
                     Some(Specialization::ControlledEquiv),
                 )?;
                 let scale_a = decomposer_rxx.a / decomposer_equiv.a;
