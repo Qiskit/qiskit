@@ -25,7 +25,7 @@ from qiskit.quantum_info.operators import SparsePauliOp, Pauli
 from qiskit.utils.deprecation import deprecate_arg
 from qiskit.exceptions import QiskitError
 
-from .product_formula import ProductFormula
+from .product_formula import ProductFormula, reorder_paulis
 
 if typing.TYPE_CHECKING:
     from qiskit.circuit.library import PauliEvolutionGate
@@ -68,6 +68,7 @@ class QDrift(ProductFormula):
         ) = None,
         seed: int | None = None,
         wrap: bool = False,
+        preserve_order: bool = True,
     ) -> None:
         r"""
         Args:
@@ -88,8 +89,13 @@ class QDrift(ProductFormula):
             seed: An optional seed for reproducibility of the random sampling process.
             wrap: Whether to wrap the atomic evolutions into custom gate objects. This only takes
                 effect when ``atomic_evolution is None``.
+            preserve_order: If ``False``, allows reordering the terms of the operator to
+                potentially yield a shallower evolution circuit. Not relevant
+                when synthesizing operator with a single term.
         """
-        super().__init__(1, reps, insert_barriers, cx_structure, atomic_evolution, wrap)
+        super().__init__(
+            1, reps, insert_barriers, cx_structure, atomic_evolution, wrap, preserve_order
+        )
         self.sampled_ops = None
         self.rng = np.random.default_rng(seed)
 
@@ -125,4 +131,8 @@ class QDrift(ProductFormula):
         sampled_paulis = [
             (pauli[0], pauli[1], np.real(np.sign(pauli[2])) * rescaled_time) for pauli in sampled
         ]
+
+        if not self.preserve_order:
+            sampled_paulis = reorder_paulis(sampled_paulis)
+
         return sampled_paulis
