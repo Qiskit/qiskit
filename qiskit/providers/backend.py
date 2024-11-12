@@ -20,7 +20,6 @@ from abc import abstractmethod
 import datetime
 from typing import List, Union, Iterable, Tuple
 
-from qiskit.providers.provider import Provider
 from qiskit.providers.models.backendstatus import BackendStatus
 from qiskit.circuit.gate import Instruction
 from qiskit.utils import deprecate_func
@@ -159,14 +158,6 @@ class BackendV1(Backend, ABC):
         """
         return None
 
-    def provider(self):
-        """Return the backend Provider.
-
-        Returns:
-            Provider: the Provider responsible for the backend.
-        """
-        return self._provider
-
     def status(self):
         """Return the backend status.
 
@@ -251,7 +242,7 @@ class QubitProperties:
 
     This class provides the optional properties that a backend can provide for
     a qubit. These represent the set of qubit properties that Qiskit can
-    currently work with if present. However if your backend provides additional
+    currently work with if present. However, if your backend provides additional
     properties of qubits you should subclass this to add additional custom
     attributes for those custom/additional properties provided by the backend.
     """
@@ -327,7 +318,6 @@ class BackendV2(Backend, ABC):
 
     def __init__(
         self,
-        provider: Provider = None,
         name: str = None,
         description: str = None,
         online_date: datetime.datetime = None,
@@ -337,9 +327,6 @@ class BackendV2(Backend, ABC):
         """Initialize a BackendV2 based backend
 
         Args:
-            provider: An optional backwards reference to the
-                :class:`~qiskit.providers.Provider` object that the backend
-                is from
             name: An optional name for the backend
             description: An optional description of the backend
             online_date: An optional datetime the backend was brought online
@@ -358,7 +345,6 @@ class BackendV2(Backend, ABC):
         """
 
         self._options = self._default_options()
-        self._provider = provider
         if fields:
             for field in fields:
                 if field not in self._options.data:
@@ -630,15 +616,6 @@ class BackendV2(Backend, ABC):
         method.
         """
         return self._options
-
-    @property
-    def provider(self):
-        """Return the backend Provider.
-
-        Returns:
-            Provider: the Provider responsible for the backend.
-        """
-        return self._provider
 
     @abstractmethod
     def run(self, run_input, **options):

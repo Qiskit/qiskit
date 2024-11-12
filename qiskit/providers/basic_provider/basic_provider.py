@@ -23,7 +23,6 @@ import logging
 
 from qiskit.exceptions import QiskitError
 from qiskit.providers.backend import Backend
-from qiskit.providers.provider import ProviderV1
 from qiskit.providers.exceptions import QiskitBackendNotFoundError
 from qiskit.providers.providerutils import filter_backends
 
@@ -35,7 +34,7 @@ logger = logging.getLogger(__name__)
 SIMULATORS = [BasicSimulator]
 
 
-class BasicProvider(ProviderV1):
+class BasicProvider:
     """Provider for test simulators."""
 
     def __init__(self) -> None:

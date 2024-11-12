@@ -41,7 +41,6 @@ import numpy as np
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import UnitaryGate
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping, GlobalPhaseGate
-from qiskit.providers import Provider
 from qiskit.providers.backend import BackendV2
 from qiskit.providers.models.backendconfiguration import BackendConfiguration
 from qiskit.providers.options import Options
@@ -74,15 +73,11 @@ class BasicSimulator(BackendV2):
 
     def __init__(
         self,
-        provider: Provider | None = None,
         target: Target | None = None,
         **fields,
     ) -> None:
         """
         Args:
-            provider: An optional backwards reference to the
-                :class:`~qiskit.providers.Provider` object that the backend
-                is from.
             target: An optional target to configure the simulator.
             fields: kwargs for the values to use to override the default
                 options.
@@ -93,7 +88,6 @@ class BasicSimulator(BackendV2):
         """
 
         super().__init__(
-            provider=provider,
             name="basic_simulator",
             description="A python simulator for quantum experiments",
             backend_version="0.1",
