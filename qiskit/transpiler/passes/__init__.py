@@ -75,7 +75,6 @@ Optimizations
    CollectLinearFunctions
    CollectCliffords
    ConsolidateBlocks
-   CXCancellation
    InverseCancellation
    CommutationAnalysis
    CommutativeCancellation

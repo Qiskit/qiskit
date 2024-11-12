@@ -107,11 +107,10 @@ also add initial logical optimization prior to routing, you would do something l
 
     import numpy as np
     from qiskit.providers.fake_provider import GenericBackendV2
-    from qiskit.circuit.library import HGate, PhaseGate, RXGate, TdgGate, TGate, XGate
+    from qiskit.circuit.library import HGate, PhaseGate, RXGate, TdgGate, TGate, XGate, CXGate
     from qiskit.transpiler import PassManager, generate_preset_pass_manager
     from qiskit.transpiler.passes import (
         ALAPScheduleAnalysis,
-        CXCancellation,
         InverseCancellation,
         PadDynamicalDecoupling,
     )
@@ -132,7 +131,7 @@ also add initial logical optimization prior to routing, you would do something l
     ]
     logical_opt = PassManager(
         [
-            CXCancellation(),
+            InverseCancellation([CXGate()]),
             InverseCancellation(inverse_gate_list),
         ]
     )
