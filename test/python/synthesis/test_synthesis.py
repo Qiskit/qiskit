@@ -16,6 +16,7 @@ import pickle
 import unittest
 import contextlib
 import logging
+import math
 import numpy as np
 import scipy
 import scipy.stats
@@ -23,7 +24,8 @@ from ddt import ddt, data
 
 from qiskit import QiskitError, transpile
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
-from qiskit.circuit import QuantumCircuit, QuantumRegister
+from qiskit.circuit import QuantumCircuit, QuantumRegister, Gate
+from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.converters import dag_to_circuit, circuit_to_dag
 from qiskit.circuit.library import (
     HGate,
@@ -1459,6 +1461,35 @@ class TestTwoQubitControlledUDecompose(CheckDecompositions):
         decomposer = TwoQubitControlledUDecomposer(CustomXXGate)
         circ = decomposer(unitary)
         self.assertEqual(Operator(unitary), Operator(circ))
+
+    def test_unitary_custom_gate_raises(self):
+        """Test that a custom gate raises an exception, as it's not equivalent to an RXX gate"""
+
+        class CustomXYGate(Gate):
+            """Custom Gate subclass that's not a standard gate and not RXX equivalent"""
+
+            _standard_gate = None
+
+            def __init__(self, theta: ParameterValueType, label=None):
+                """Create new custom rotstion XY gate."""
+                super().__init__("MyCustomXYGate", 2, [theta])
+
+            def __array__(self, dtype=None):
+                """Return a Numpy.array for the custom gate."""
+                theta = self.params[0]
+                cos = math.cos(theta)
+                isin = 1j * math.sin(theta)
+                return np.array(
+                    [[1, 0, 0, 0], [0, cos, -isin, 0], [0, -isin, cos, 0], [0, 0, 0, 1]],
+                    dtype=dtype,
+                )
+
+            def inverse(self, annotated: bool = False):
+                return CustomXYGate(-self.params[0])
+
+        with self.assertRaises(QiskitError) as exc:
+            _ = TwoQubitControlledUDecomposer(CustomXYGate)
+        self.assertIn("Specialization: ControlledEquiv calculated fidelity", exc.exception.message)
 
 
 class TestDecomposeProductRaises(QiskitTestCase):
