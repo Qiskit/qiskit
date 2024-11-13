@@ -1153,7 +1153,7 @@ class TestStatevector(QiskitTestCase):
         self.assertAlmostEqual(expval, target)
 
     def test_expval_identity(self):
-        # Test whether the calculation for identity operator has been fixed
+        """Test whether the calculation for identity operator has been fixed"""
 
         # 1 qubit case test
         state_1 = Statevector.from_label("0")
