@@ -1487,9 +1487,8 @@ class TestTwoQubitControlledUDecompose(CheckDecompositions):
             def inverse(self, annotated: bool = False):
                 return CustomXYGate(-self.params[0])
 
-        with self.assertRaises(QiskitError) as exc:
-            _ = TwoQubitControlledUDecomposer(CustomXYGate)
-        self.assertIn("Specialization: ControlledEquiv calculated fidelity", exc.exception.message)
+        with self.assertRaisesRegex(QiskitError, "ControlledEquiv calculated fidelity"):
+            TwoQubitControlledUDecomposer(CustomXYGate)
 
 
 class TestDecomposeProductRaises(QiskitTestCase):
