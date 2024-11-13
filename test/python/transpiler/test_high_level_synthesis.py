@@ -669,7 +669,7 @@ class TestHighLevelSynthesisInterface(QiskitTestCase):
         """Test that a gate is not synthesized when it belongs to basis_gates,
         regardless of whether there is a plugin method available.
 
-        See: https://github.com/Qiskit/qiskit-terra/issues/13412 for more
+        See: https://github.com/Qiskit/qiskit/issues/13412 for more
         details.
         """
         qc = QAOAAnsatz(SparsePauliOp("Z"), initial_state=QuantumCircuit(1))
