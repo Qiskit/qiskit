@@ -16,6 +16,7 @@ import pickle
 import unittest
 import contextlib
 import logging
+import math
 import numpy as np
 import scipy
 import scipy.stats
@@ -23,7 +24,8 @@ from ddt import ddt, data
 
 from qiskit import QiskitError, transpile
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
-from qiskit.circuit import QuantumCircuit, QuantumRegister
+from qiskit.circuit import QuantumCircuit, QuantumRegister, Gate
+from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.converters import dag_to_circuit, circuit_to_dag
 from qiskit.circuit.library import (
     HGate,
@@ -46,6 +48,8 @@ from qiskit.circuit.library import (
     RZXGate,
     CPhaseGate,
     CRZGate,
+    CRXGate,
+    CRYGate,
     RXGate,
     RYGate,
     RZGate,
@@ -1426,7 +1430,7 @@ class TestTwoQubitControlledUDecompose(CheckDecompositions):
     def test_correct_unitary(self, seed):
         """Verify unitary for different gates in the decomposition"""
         unitary = random_unitary(4, seed=seed)
-        for gate in [RXXGate, RYYGate, RZZGate, RZXGate, CPhaseGate, CRZGate]:
+        for gate in [RXXGate, RYYGate, RZZGate, RZXGate, CPhaseGate, CRZGate, CRXGate, CRYGate]:
             decomposer = TwoQubitControlledUDecomposer(gate)
             circ = decomposer(unitary)
             self.assertEqual(Operator(unitary), Operator(circ))
@@ -1439,6 +1443,52 @@ class TestTwoQubitControlledUDecompose(CheckDecompositions):
         self.assertIn(
             "Equivalent gate needs to take exactly 1 angle parameter.", exc.exception.message
         )
+
+    @combine(seed=range(10), name="seed_{seed}")
+    def test_correct_unitary_custom_gate(self, seed):
+        """Test synthesis with a custom controlled u equivalent gate."""
+        unitary = random_unitary(4, seed=seed)
+
+        class CustomXXGate(RXXGate):
+            """Custom RXXGate subclass that's not a standard gate"""
+
+            _standard_gate = None
+
+            def __init__(self, theta, label=None):
+                super().__init__(theta, label)
+                self.name = "MyCustomXXGate"
+
+        decomposer = TwoQubitControlledUDecomposer(CustomXXGate)
+        circ = decomposer(unitary)
+        self.assertEqual(Operator(unitary), Operator(circ))
+
+    def test_unitary_custom_gate_raises(self):
+        """Test that a custom gate raises an exception, as it's not equivalent to an RXX gate"""
+
+        class CustomXYGate(Gate):
+            """Custom Gate subclass that's not a standard gate and not RXX equivalent"""
+
+            _standard_gate = None
+
+            def __init__(self, theta: ParameterValueType, label=None):
+                """Create new custom rotstion XY gate."""
+                super().__init__("MyCustomXYGate", 2, [theta])
+
+            def __array__(self, dtype=None):
+                """Return a Numpy.array for the custom gate."""
+                theta = self.params[0]
+                cos = math.cos(theta)
+                isin = 1j * math.sin(theta)
+                return np.array(
+                    [[1, 0, 0, 0], [0, cos, -isin, 0], [0, -isin, cos, 0], [0, 0, 0, 1]],
+                    dtype=dtype,
+                )
+
+            def inverse(self, annotated: bool = False):
+                return CustomXYGate(-self.params[0])
+
+        with self.assertRaisesRegex(QiskitError, "ControlledEquiv calculated fidelity"):
+            TwoQubitControlledUDecomposer(CustomXYGate)
 
 
 class TestDecomposeProductRaises(QiskitTestCase):
