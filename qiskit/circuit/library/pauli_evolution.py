@@ -110,17 +110,19 @@ class PauliEvolutionGate(Gate):
         else:
             operator = _to_sparse_pauli_op(operator)
 
-        if synthesis is None:
-            from qiskit.synthesis.evolution import LieTrotter
-
-            synthesis = LieTrotter()
-
         if label is None:
             label = _get_default_label(operator)
 
         num_qubits = operator[0].num_qubits if isinstance(operator, list) else operator.num_qubits
         super().__init__(name="PauliEvolution", num_qubits=num_qubits, params=[time], label=label)
         self.operator = operator
+
+        if synthesis is None:
+            # pylint: disable=cyclic-import
+            from qiskit.synthesis.evolution import LieTrotter
+
+            synthesis = LieTrotter()
+
         self.synthesis = synthesis
 
     @property

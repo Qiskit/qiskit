@@ -30,9 +30,9 @@ project_copyright = f"2017-{datetime.date.today().year}, Qiskit Development Team
 author = "Qiskit Development Team"
 
 # The short X.Y version
-version = "1.3"
+version = "2.0"
 # The full version, including alpha/beta/rc tags
-release = "1.3.0"
+release = "2.0.0"
 
 language = "en"
 
@@ -119,6 +119,14 @@ autosummary_generate_overwrite = False
 # module-level documentation being converted into surprising things.
 napoleon_google_docstring = True
 napoleon_numpy_docstring = False
+
+# Autosummary generates stub filenames based on the import name.
+# Sometimes, two distinct interfaces only differ in capitalization; this
+# creates a problem on case-insensitive OS/filesystems like macOS. So,
+# we manually avoid the clash by renaming one of the files.
+autosummary_filename_map = {
+    "qiskit.circuit.library.iqp": "qiskit.circuit.library.iqp_function",
+}
 
 
 # ----------------------------------------------------------------------------------
