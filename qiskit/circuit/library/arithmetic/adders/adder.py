@@ -21,7 +21,7 @@ from qiskit.utils.deprecation import deprecate_func
 class Adder(QuantumCircuit):
     r"""Compute the sum of two equally sized qubit registers.
 
-    For two registers :math:`|a\rangle_n` and :math:|b\rangle_n` with :math:`n` qubits each, an
+    For two registers :math:`|a\rangle_n` and :math:`|b\rangle_n` with :math:`n` qubits each, an
     adder performs the following operation
 
     .. math::
@@ -74,7 +74,7 @@ class Adder(QuantumCircuit):
 class HalfAdderGate(Gate):
     r"""Compute the sum of two equally-sized qubit registers, including a carry-out bit.
 
-    For two registers :math:`|a\rangle_n` and :math:|b\rangle_n` with :math:`n` qubits each, an
+    For two registers :math:`|a\rangle_n` and :math:`|b\rangle_n` with :math:`n` qubits each, an
     adder performs the following operation
 
     .. math::
@@ -120,7 +120,7 @@ class HalfAdderGate(Gate):
 class ModularAdderGate(Gate):
     r"""Compute the sum modulo :math:`2^n` of two :math:`n`-sized qubit registers.
 
-    For two registers :math:`|a\rangle_n` and :math:|b\rangle_n` with :math:`n` qubits each, an
+    For two registers :math:`|a\rangle_n` and :math:`|b\rangle_n` with :math:`n` qubits each, an
     adder performs the following operation
 
     .. math::
@@ -166,12 +166,12 @@ class ModularAdderGate(Gate):
 class FullAdderGate(Gate):
     r"""Compute the sum of two :math:`n`-sized qubit registers, including carry-in and -out bits.
 
-    For two registers :math:`|a\rangle_n` and :math:|b\rangle_n` with :math:`n` qubits each, an
+    For two registers :math:`|a\rangle_n` and :math:`|b\rangle_n` with :math:`n` qubits each, an
     adder performs the following operation
 
     .. math::
 
-        |c_{\text{in}\rangle_1 |a\rangle_n |b\rangle_n
+        |c_{\text{in}}\rangle_1 |a\rangle_n |b\rangle_n
         \mapsto |a\rangle_n |c_{\text{in}} + a + b \rangle_{n + 1}.
 
     The quantum register :math:`|a\rangle_n` (and analogously :math:`|b\rangle_n`)
