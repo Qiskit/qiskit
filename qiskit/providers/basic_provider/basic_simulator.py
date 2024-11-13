@@ -73,11 +73,14 @@ class BasicSimulator(BackendV2):
 
     def __init__(
         self,
+        provider=None,
         target: Target | None = None,
         **fields,
     ) -> None:
         """
         Args:
+            provider: An optional backwards reference to the provider object that the backend
+                is from.
             target: An optional target to configure the simulator.
             fields: kwargs for the values to use to override the default
                 options.
@@ -88,6 +91,7 @@ class BasicSimulator(BackendV2):
         """
 
         super().__init__(
+            provider=provider,
             name="basic_simulator",
             description="A python simulator for quantum experiments",
             backend_version="0.1",
