@@ -325,29 +325,40 @@ Other arithmetic functions
 Particular Quantum Circuits
 ===========================
 
+The following gates and quantum circuits define specific
+quantum circuits of interest:
+
 .. autosummary::
    :toctree: ../stubs/
    :template: autosummary/class_no_inherited_members.rst
 
    FourierChecking
-   fourier_checking
    GraphState
    GraphStateGate
    HiddenLinearFunction
-   hidden_linear_function
    IQP
-   iqp
-   random_iqp
    QuantumVolume
-   quantum_volume
    PhaseEstimation
-   phase_estimation
    GroverOperator
-   grover_operator
    PhaseOracle
    PauliEvolutionGate
    HamiltonianGate
    UnitaryOverlap
+
+For circuits that have a well-defined structure it is preferrable
+to use the following functions to construct them:
+
+.. autosummary::
+   :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
+
+   fourier_checking
+   hidden_linear_function
+   iqp
+   random_iqp
+   quantum_volume
+   phase_estimation
+   grover_operator
    unitary_overlap
 
 
@@ -412,6 +423,17 @@ data in quantum states and are used as feature maps for classification.
    PauliFeatureMap
    ZFeatureMap
    ZZFeatureMap
+
+
+Data preparation circuits
+=========================
+
+The following operations are used for state preparation:
+
+.. autosummary::
+   :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
+
    StatePreparation
    Initialize
 
