@@ -20,6 +20,7 @@ use numpy::prelude::*;
 use numpy::{PyArray1, PyArray2, PyReadonlyArray1, PyReadonlyArray2, PyUntypedArrayMethods};
 
 use hashbrown::HashMap;
+use indexmap::IndexMap;
 use ndarray::{s, ArrayView1, ArrayView2, Axis};
 use num_complex::Complex64;
 use num_traits::Zero;
@@ -298,7 +299,7 @@ impl MatrixCompressedPaulis {
     /// explicitly stored operations, if there are duplicates.  After the summation, any terms that
     /// have become zero are dropped.
     pub fn combine(&mut self) {
-        let mut hash_table = HashMap::<(u64, u64), Complex64>::with_capacity(self.coeffs.len());
+        let mut hash_table = IndexMap::<(u64, u64), Complex64>::with_capacity(self.coeffs.len());
         for (key, coeff) in self
             .x_like
             .drain(..)
