@@ -22,9 +22,7 @@ use pyo3::{intern, IntoPy, PyObject, PyResult};
 
 use smallvec::SmallVec;
 
-use crate::imports::{
-    CONTROLLED_GATE, CONTROL_FLOW_OP, GATE, INSTRUCTION, OPERATION, WARNINGS_WARN,
-};
+use crate::imports::{CONTROLLED_GATE, CONTROL_FLOW_OP, GATE, INSTRUCTION, OPERATION, WARNINGS_WARN, get_std_instruction_types};
 use crate::operations::{
     Operation, OperationRef, Param, PyGate, PyInstruction, PyOperation, StandardGate,
 };
@@ -707,6 +705,13 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
             return Ok(OperationFromPython {
                 operation: PackedOperation::from_gate(gate),
                 params,
+                extra_attrs: extract_extra()?,
+            });
+        }
+        if ob_type.is_subclass(get_std_instruction_types(py))? {
+            return Ok(OperationFromPython {
+                operation: PackedOperation::from_standard_instruction(standard),
+                params: extract_params()?,
                 extra_attrs: extract_extra()?,
             });
         }
