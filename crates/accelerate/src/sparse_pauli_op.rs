@@ -10,6 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use ahash::RandomState;
 use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::PyTuple;
@@ -299,7 +300,11 @@ impl MatrixCompressedPaulis {
     /// explicitly stored operations, if there are duplicates.  After the summation, any terms that
     /// have become zero are dropped.
     pub fn combine(&mut self) {
-        let mut hash_table = IndexMap::<(u64, u64), Complex64>::with_capacity(self.coeffs.len());
+        let mut hash_table =
+            IndexMap::<(u64, u64), Complex64, RandomState>::with_capacity_and_hasher(
+                self.coeffs.len(),
+                RandomState::new(),
+            );
         for (key, coeff) in self
             .x_like
             .drain(..)
