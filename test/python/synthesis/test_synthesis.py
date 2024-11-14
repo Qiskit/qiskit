@@ -1490,6 +1490,42 @@ class TestTwoQubitControlledUDecompose(CheckDecompositions):
         with self.assertRaisesRegex(QiskitError, "ControlledEquiv calculated fidelity"):
             TwoQubitControlledUDecomposer(CustomXYGate)
 
+    @combine(seed=range(10), name="seed_{seed}")
+    def test_correct_unitary_custom_rxx_equiv_gate(self, seed):
+        """Test synthesis with a custom controlled u equivalent gate."""
+
+        class CustomRZZeqGate(Gate):
+            """Custom Gate subclass that's not a standard gate"""
+
+            _standard_gate = None
+
+            def __init__(self, theta: ParameterValueType, invert=False, label=None):
+                """Create new custom rotstion XY gate."""
+                super().__init__("MyCustomRZZeqGate", 2, [theta, invert], label)
+
+            def __array__(self, dtype=None):
+                """Return a Numpy.array for the custom gate: h(0) rzz(0,1) h(1)"""
+                theta = self.params[0]
+                a = np.exp(-1j * theta / 2.0) / 2.0
+                b = np.exp(1j * theta / 2.0) / 2.0
+                c = -np.exp(-1j * theta / 2.0) / 2.0
+                d = -np.exp(1j * theta / 2.0) / 2.0
+
+                if self.params[1]:
+                    mat = [[b, a, b, a], [b, c, b, c], [a, b, c, d], [a, d, c, b]]
+                else:
+                    mat = [[a, a, b, b], [b, d, a, c], [a, a, d, d], [b, d, c, a]]
+
+                return np.array(mat, dtype=dtype)
+
+            def inverse(self, annotated: bool = False):
+                return CustomRZZeqGate(self.params[0], not self.params[1])
+
+        unitary = random_unitary(4, seed=seed)
+        decomposer = TwoQubitControlledUDecomposer(CustomRZZeqGate)
+        circ = decomposer(unitary)
+        self.assertEqual(Operator(unitary), Operator(circ))
+
 
 class TestDecomposeProductRaises(QiskitTestCase):
     """Check that exceptions are raised when 2q matrix is not a product of 1q unitaries"""
