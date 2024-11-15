@@ -26,7 +26,7 @@ def deprecate_func(
     since: str,
     additional_msg: str | None = None,
     pending: bool = False,
-    package_name: str = "qiskit",
+    package_name: str = "Qiskit",
     removal_timeline: str = "no earlier than 3 months after the release date",
     is_property: bool = False,
     stacklevel: int = 2,
