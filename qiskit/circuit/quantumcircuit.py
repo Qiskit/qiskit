@@ -1177,9 +1177,11 @@ class QuantumCircuit:
         self._unit = value
 
     @classmethod
-    def _from_circuit_data(cls, data: CircuitData, add_regs: bool = False) -> typing.Self:
+    def _from_circuit_data(
+        cls, data: CircuitData, add_regs: bool = False, name: str | None = None
+    ) -> typing.Self:
         """A private constructor from rust space circuit data."""
-        out = QuantumCircuit()
+        out = QuantumCircuit(name=name)
 
         if data.num_qubits > 0:
             if add_regs:
@@ -2733,7 +2735,10 @@ class QuantumCircuit:
         """
         if isinstance(name_or_param, str):
             return self.get_parameter(name_or_param, None) is not None
-        return self.get_parameter(name_or_param.name) == name_or_param
+        return (
+            isinstance(name_or_param, Parameter)
+            and self.get_parameter(name_or_param.name, None) == name_or_param
+        )
 
     @typing.overload
     def get_var(self, name: str, default: T) -> Union[expr.Var, T]: ...
@@ -3749,38 +3754,12 @@ class QuantumCircuit:
                 f"invalid name for a circuit: '{name}'. The name must be a string or 'None'."
             )
         cpy = _copy.copy(self)
-        # copy registers correctly, in copy.copy they are only copied via reference
-        cpy.qregs = self.qregs.copy()
-        cpy.cregs = self.cregs.copy()
-        cpy._builder_api = _OuterCircuitScopeInterface(cpy)
-        cpy._ancillas = self._ancillas.copy()
-        cpy._qubit_indices = self._qubit_indices.copy()
-        cpy._clbit_indices = self._clbit_indices.copy()
 
-        if vars_mode == "alike":
-            # Note that this causes the local variables to be uninitialised, because the stores are
-            # not copied.  This can leave the circuit in a potentially dangerous state for users if
-            # they don't re-add initializer stores.
-            cpy._vars_local = self._vars_local.copy()
-            cpy._vars_input = self._vars_input.copy()
-            cpy._vars_capture = self._vars_capture.copy()
-        elif vars_mode == "captures":
-            cpy._vars_local = {}
-            cpy._vars_input = {}
-            cpy._vars_capture = {var.name: var for var in self.iter_vars()}
-        elif vars_mode == "drop":
-            cpy._vars_local = {}
-            cpy._vars_input = {}
-            cpy._vars_capture = {}
-        else:  # pragma: no cover
-            raise ValueError(f"unknown vars_mode: '{vars_mode}'")
+        _copy_metadata(self, cpy, vars_mode)
 
         cpy._data = CircuitData(
             self._data.qubits, self._data.clbits, global_phase=self._data.global_phase
         )
-
-        cpy._calibrations = _copy.deepcopy(self._calibrations)
-        cpy._metadata = _copy.deepcopy(self._metadata)
 
         if name:
             cpy.name = name
@@ -4371,30 +4350,57 @@ class QuantumCircuit:
 
         if isinstance(parameters, collections.abc.Mapping):
             raw_mapping = parameters if flat_input else self._unroll_param_dict(parameters)
-            our_parameters = self._data.unsorted_parameters()
-            if strict and (extras := raw_mapping.keys() - our_parameters):
+            if strict and (
+                extras := [
+                    parameter for parameter in raw_mapping if not self.has_parameter(parameter)
+                ]
+            ):
                 raise CircuitError(
                     f"Cannot bind parameters ({', '.join(str(x) for x in extras)}) not present in"
                     " the circuit."
                 )
-            parameter_binds = _ParameterBindsDict(raw_mapping, our_parameters)
-            target._data.assign_parameters_mapping(parameter_binds)
+
+            def create_mapping_view():
+                return raw_mapping
+
+            target._data.assign_parameters_mapping(raw_mapping)
         else:
-            parameter_binds = _ParameterBindsSequence(target._data.parameters, parameters)
+            # This should be a cache retrieval, since we warmed the cache.  We need to keep hold of
+            # what the parameters were before anything is assigned, because we assign parameters in
+            # the calibrations (which aren't tracked in the internal parameter table) after, which
+            # would change what we create.  We don't make the full Python-space mapping object of
+            # parameters to values eagerly because 99.9% of the time we don't need it, and it's
+            # relatively expensive to do for large numbers of parameters.
+            initial_parameters = target._data.parameters
+
+            def create_mapping_view():
+                return dict(zip(initial_parameters, parameters))
+
             target._data.assign_parameters_iterable(parameters)
 
         # Finally, assign the parameters inside any of the calibrations.  We don't track these in
-        # the `ParameterTable`, so we manually reconstruct things.
+        # the `ParameterTable`, so we manually reconstruct things.  We lazily construct the mapping
+        # `{parameter: bound_value}` the first time we encounter a binding (we have to scan for
+        # this, because calibrations don't use a parameter-table lookup), rather than always paying
+        # the cost - most circuits don't have parametric calibrations, and it's expensive.
+        mapping_view = None
+
         def map_calibration(qubits, parameters, schedule):
+            # All calls to this function should share the same `{Parameter: bound_value}` mapping,
+            # which we only want to lazily construct a single time.
+            nonlocal mapping_view
+            if mapping_view is None:
+                mapping_view = create_mapping_view()
+
             modified = False
             new_parameters = list(parameters)
             for i, parameter in enumerate(new_parameters):
                 if not isinstance(parameter, ParameterExpression):
                     continue
-                if not (contained := parameter.parameters & parameter_binds.mapping.keys()):
+                if not (contained := parameter.parameters & mapping_view.keys()):
                     continue
                 for to_bind in contained:
-                    parameter = parameter.assign(to_bind, parameter_binds.mapping[to_bind])
+                    parameter = parameter.assign(to_bind, mapping_view[to_bind])
                 if not parameter.parameters:
                     parameter = parameter.numeric()
                     if isinstance(parameter, complex):
@@ -4402,7 +4408,7 @@ class QuantumCircuit:
                 new_parameters[i] = parameter
                 modified = True
             if modified:
-                schedule.assign_parameters(parameter_binds.mapping)
+                schedule.assign_parameters(mapping_view)
             return (qubits, tuple(new_parameters)), schedule
 
         target._calibrations = defaultdict(
@@ -6726,42 +6732,6 @@ def _validate_expr(circuit_scope: CircuitScopeInterface, node: expr.Expr) -> exp
     return node
 
 
-class _ParameterBindsDict:
-    __slots__ = ("mapping", "allowed_keys")
-
-    def __init__(self, mapping, allowed_keys):
-        self.mapping = mapping
-        self.allowed_keys = allowed_keys
-
-    def items(self):
-        """Iterator through all the keys in the mapping that we care about.  Wrapping the main
-        mapping allows us to avoid reconstructing a new 'dict', but just use the given 'mapping'
-        without any copy / reconstruction."""
-        for parameter, value in self.mapping.items():
-            if parameter in self.allowed_keys:
-                yield parameter, value
-
-
-class _ParameterBindsSequence:
-    __slots__ = ("parameters", "values", "mapping_cache")
-
-    def __init__(self, parameters, values):
-        self.parameters = parameters
-        self.values = values
-        self.mapping_cache = None
-
-    def items(self):
-        """Iterator through all the keys in the mapping that we care about."""
-        return zip(self.parameters, self.values)
-
-    @property
-    def mapping(self):
-        """Cached version of a mapping.  This is only generated on demand."""
-        if self.mapping_cache is None:
-            self.mapping_cache = dict(zip(self.parameters, self.values))
-        return self.mapping_cache
-
-
 def _bit_argument_conversion(specifier, bit_sequence, bit_set, type_) -> list[Bit]:
     """Get the list of bits referred to by the specifier ``specifier``.
 
@@ -6826,3 +6796,34 @@ def _bit_argument_conversion_scalar(specifier, bit_sequence, bit_set, type_):
         else f"Invalid bit index: '{specifier}' of type '{type(specifier)}'"
     )
     raise CircuitError(message)
+
+
+def _copy_metadata(original, cpy, vars_mode):
+    # copy registers correctly, in copy.copy they are only copied via reference
+    cpy.qregs = original.qregs.copy()
+    cpy.cregs = original.cregs.copy()
+    cpy._builder_api = _OuterCircuitScopeInterface(cpy)
+    cpy._ancillas = original._ancillas.copy()
+    cpy._qubit_indices = original._qubit_indices.copy()
+    cpy._clbit_indices = original._clbit_indices.copy()
+
+    if vars_mode == "alike":
+        # Note that this causes the local variables to be uninitialised, because the stores are
+        # not copied.  This can leave the circuit in a potentially dangerous state for users if
+        # they don't re-add initializer stores.
+        cpy._vars_local = original._vars_local.copy()
+        cpy._vars_input = original._vars_input.copy()
+        cpy._vars_capture = original._vars_capture.copy()
+    elif vars_mode == "captures":
+        cpy._vars_local = {}
+        cpy._vars_input = {}
+        cpy._vars_capture = {var.name: var for var in original.iter_vars()}
+    elif vars_mode == "drop":
+        cpy._vars_local = {}
+        cpy._vars_input = {}
+        cpy._vars_capture = {}
+    else:  # pragma: no cover
+        raise ValueError(f"unknown vars_mode: '{vars_mode}'")
+
+    cpy._calibrations = _copy.deepcopy(original._calibrations)
+    cpy._metadata = _copy.deepcopy(original._metadata)

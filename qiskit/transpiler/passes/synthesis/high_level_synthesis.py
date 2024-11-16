@@ -42,8 +42,8 @@ from qiskit.circuit.annotated_operation import (
     PowerModifier,
 )
 
+from qiskit._accelerate.high_level_synthesis import QubitTracker, QubitContext
 from .plugin import HighLevelSynthesisPluginManager
-from .qubit_tracker import QubitTracker
 
 if typing.TYPE_CHECKING:
     from qiskit.dagcircuit import DAGOpNode
@@ -133,60 +133,6 @@ class HLSConfig:
         """Sets the list of synthesis methods for a given higher-level-object. This overwrites
         the lists of methods if also set previously."""
         self.methods[hls_name] = hls_methods
-
-
-class QubitContext:
-    """Correspondence between local qubits and global qubits.
-
-    An internal class for handling recursion within HighLevelSynthesis.
-    Provides correspondence between the qubit indices of an internal DAG,
-    aka the "local qubits" (for instance, of the definition circuit
-    of a custom gate), and the qubit indices of the original DAG, aka the
-    "global qubits".
-
-    Since the local qubits are consecutive integers starting at zero,
-    i.e. 0, 1, 2, etc., the correspondence is kept using a list, with the
-    entry in position `k` representing the global qubit that corresponds
-    to the local qubit `k`.
-    """
-
-    def __init__(self, local_to_global: list):
-        self._local_to_global = local_to_global
-
-    def num_qubits(self) -> int:
-        """Returns the number of local qubits."""
-        return len(self._local_to_global)
-
-    def add_qubit(self, global_qubit) -> int:
-        """Extends the correspondence by an additional qubit that
-        maps to the given global qubit. Returns the index of the
-        new local qubit.
-        """
-        new_local_qubit = len(self._local_to_global)
-        self._local_to_global.append(global_qubit)
-        return new_local_qubit
-
-    def to_global_mapping(self) -> list:
-        """Returns the local-to-global mapping."""
-        return self._local_to_global
-
-    def to_local_mapping(self) -> dict:
-        """Returns the global-to-local mapping ."""
-        return {j: i for (i, j) in enumerate(self._local_to_global)}
-
-    def restrict(self, qubits: list[int] | tuple[int]) -> "QubitContext":
-        """Restricts the context to a subset of qubits, remapping the indices
-        to be consecutive integers starting at zero.
-        """
-        return QubitContext([self._local_to_global[q] for q in qubits])
-
-    def to_global(self, qubit: int) -> int:
-        """Returns the global qubits corresponding to the given local qubits."""
-        return self._local_to_global[qubit]
-
-    def to_globals(self, qubits: list[int]) -> list[int]:
-        """Returns the global qubits corresponding to the given local qubits."""
-        return [self._local_to_global[q] for q in qubits]
 
 
 class HighLevelSynthesis(TransformationPass):
@@ -436,7 +382,7 @@ class HighLevelSynthesis(TransformationPass):
 
             # If the synthesis changed the operation (i.e. it is not None), store the result.
             if synthesized is not None:
-                synthesized_nodes[node] = (synthesized, synthesized_context)
+                synthesized_nodes[node._node_id] = (synthesized, synthesized_context)
 
             # If the synthesis did not change anything, just update the qubit tracker.
             elif not processed:
@@ -461,8 +407,9 @@ class HighLevelSynthesis(TransformationPass):
         outer_to_local = context.to_local_mapping()
 
         for node in dag.topological_op_nodes():
-            if node in synthesized_nodes:
-                op, op_context = synthesized_nodes[node]
+
+            if op_tuple := synthesized_nodes.get(node._node_id, None):
+                op, op_context = op_tuple
 
                 if isinstance(op, Operation):
                     out.apply_operation_back(op, node.qargs, node.cargs)
@@ -867,6 +814,7 @@ class HighLevelSynthesis(TransformationPass):
             dag._has_calibration_for(node)
             or len(node.qargs) < self._min_qubits
             or node.is_directive()
+            or (self._instruction_supported(node.name, qubits) and not node.is_control_flow())
         ):
             return True
 
@@ -884,15 +832,12 @@ class HighLevelSynthesis(TransformationPass):
             # If all the above constraints hold, and it's already supported or the basis translator
             # can handle it, we'll leave it be.
             and (
-                self._instruction_supported(node.name, qubits)
                 # This uses unfortunately private details of `EquivalenceLibrary`, but so does the
                 # `BasisTranslator`, and this is supposed to just be temporary til this is moved
                 # into Rust space.
-                or (
-                    self._equiv_lib is not None
-                    and equivalence.Key(name=node.name, num_qubits=node.num_qubits)
-                    in self._equiv_lib.keys()
-                )
+                self._equiv_lib is not None
+                and equivalence.Key(name=node.name, num_qubits=node.num_qubits)
+                in self._equiv_lib.keys()
             )
         )
 

@@ -17,7 +17,13 @@ Preset pass manager generation function
 import copy
 import warnings
 
-from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
+from qiskit.circuit.controlflow import (
+    CONTROL_FLOW_OP_NAMES,
+    IfElseOp,
+    WhileLoopOp,
+    ForLoopOp,
+    SwitchCaseOp,
+)
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
 from qiskit.circuit.quantumregister import Qubit
 from qiskit.providers.backend import Backend
@@ -312,6 +318,7 @@ def generate_preset_pass_manager(
     _skip_target = (
         target is None
         and backend is None
+        # Note: instruction_durations is deprecated and will be removed in 2.0 (no need for alternative)
         and (basis_gates is None or coupling_map is None or instruction_durations is not None)
     )
 
@@ -336,23 +343,31 @@ def generate_preset_pass_manager(
             # Only parse backend properties when the target isn't skipped to
             # preserve the former behavior of transpile.
             backend_properties = _parse_backend_properties(backend_properties, backend)
-            # Build target from constraints.
-            target = Target.from_configuration(
-                basis_gates=basis_gates,
-                num_qubits=backend.num_qubits if backend is not None else None,
-                coupling_map=coupling_map,
-                # If the instruction map has custom gates, do not give as config, the information
-                # will be added to the target with update_from_instruction_schedule_map
-                inst_map=inst_map if inst_map and not inst_map.has_custom_gate() else None,
-                backend_properties=backend_properties,
-                instruction_durations=instruction_durations,
-                concurrent_measurements=(
-                    backend.target.concurrent_measurements if backend is not None else None
-                ),
-                dt=dt,
-                timing_constraints=timing_constraints,
-                custom_name_mapping=name_mapping,
-            )
+            with warnings.catch_warnings():
+                # TODO: inst_map will be removed in 2.0
+                warnings.filterwarnings(
+                    "ignore",
+                    category=DeprecationWarning,
+                    message=".*``inst_map`` is deprecated as of Qiskit 1.3.*",
+                    module="qiskit",
+                )
+                # Build target from constraints.
+                target = Target.from_configuration(
+                    basis_gates=basis_gates,
+                    num_qubits=backend.num_qubits if backend is not None else None,
+                    coupling_map=coupling_map,
+                    # If the instruction map has custom gates, do not give as config, the information
+                    # will be added to the target with update_from_instruction_schedule_map
+                    inst_map=inst_map if inst_map and not inst_map.has_custom_gate() else None,
+                    backend_properties=backend_properties,
+                    instruction_durations=instruction_durations,
+                    concurrent_measurements=(
+                        backend.target.concurrent_measurements if backend is not None else None
+                    ),
+                    dt=dt,
+                    timing_constraints=timing_constraints,
+                    custom_name_mapping=name_mapping,
+                )
 
     # Update target with custom gate information. Note that this is an exception to the priority
     # order (target > loose constraints), added to handle custom gates for scheduling passes.
@@ -412,30 +427,41 @@ def generate_preset_pass_manager(
         "qubits_initially_zero": qubits_initially_zero,
     }
 
-    if backend is not None:
-        pm_options["_skip_target"] = _skip_target
-        pm_config = PassManagerConfig.from_backend(backend, **pm_options)
-    else:
-        pm_config = PassManagerConfig(**pm_options)
-    if optimization_level == 0:
-        pm = level_0_pass_manager(pm_config)
-    elif optimization_level == 1:
-        pm = level_1_pass_manager(pm_config)
-    elif optimization_level == 2:
-        pm = level_2_pass_manager(pm_config)
-    elif optimization_level == 3:
-        pm = level_3_pass_manager(pm_config)
-    else:
-        raise ValueError(f"Invalid optimization level {optimization_level}")
+    with warnings.catch_warnings():
+        # inst_map is deprecated in the PassManagerConfig initializer
+        warnings.filterwarnings(
+            "ignore",
+            category=DeprecationWarning,
+            message=".*argument ``inst_map`` is deprecated as of Qiskit 1.3",
+        )
+        if backend is not None:
+            pm_options["_skip_target"] = _skip_target
+            pm_config = PassManagerConfig.from_backend(backend, **pm_options)
+        else:
+            pm_config = PassManagerConfig(**pm_options)
+        if optimization_level == 0:
+            pm = level_0_pass_manager(pm_config)
+        elif optimization_level == 1:
+            pm = level_1_pass_manager(pm_config)
+        elif optimization_level == 2:
+            pm = level_2_pass_manager(pm_config)
+        elif optimization_level == 3:
+            pm = level_3_pass_manager(pm_config)
+        else:
+            raise ValueError(f"Invalid optimization level {optimization_level}")
     return pm
 
 
 def _parse_basis_gates(basis_gates, backend, inst_map, skip_target):
-    name_mapping = {}
     standard_gates = get_standard_gate_name_mapping()
-    # Add control flow gates by default to basis set
+    # Add control flow gates by default to basis set and name mapping
     default_gates = {"measure", "delay", "reset"}.union(CONTROL_FLOW_OP_NAMES)
-
+    name_mapping = {
+        "if_else": IfElseOp,
+        "while_loop": WhileLoopOp,
+        "for_loop": ForLoopOp,
+        "switch_case": SwitchCaseOp,
+    }
     try:
         instructions = set(basis_gates)
         for name in default_gates:
@@ -450,7 +476,15 @@ def _parse_basis_gates(basis_gates, backend, inst_map, skip_target):
             return None, name_mapping, skip_target
 
         for inst in instructions:
-            if inst not in standard_gates or inst not in default_gates:
+            if inst not in standard_gates and inst not in default_gates:
+                warnings.warn(
+                    category=DeprecationWarning,
+                    message="Providing custom gates through the ``basis_gates`` argument is deprecated "
+                    "for both ``transpile`` and ``generate_preset_pass_manager`` as of Qiskit 1.3.0. "
+                    "It will be removed in Qiskit 2.0. The ``target`` parameter should be used instead. "
+                    "You can build a target instance using ``Target.from_configuration()`` and provide"
+                    "custom gate definitions with the ``custom_name_mapping`` argument.",
+                )
                 skip_target = True
                 break
 
@@ -463,7 +497,18 @@ def _parse_basis_gates(basis_gates, backend, inst_map, skip_target):
 
     # Check for custom instructions before removing calibrations
     for inst in instructions:
-        if inst not in standard_gates or inst not in default_gates:
+        if inst not in standard_gates and inst not in default_gates:
+            if inst not in backend.operation_names:
+                # do not raise warning when the custom instruction comes from the backend
+                # (common case with BasicSimulator)
+                warnings.warn(
+                    category=DeprecationWarning,
+                    message="Providing custom gates through the ``basis_gates`` argument is deprecated "
+                    "for both ``transpile`` and ``generate_preset_pass_manager`` as of Qiskit 1.3.0. "
+                    "It will be removed in Qiskit 2.0. The ``target`` parameter should be used instead. "
+                    "You can build a target instance using ``Target.from_configuration()`` and provide"
+                    "custom gate definitions with the ``custom_name_mapping`` argument.",
+                )
             skip_target = True
             break
 
@@ -488,7 +533,15 @@ def _parse_inst_map(inst_map, backend):
 def _parse_backend_properties(backend_properties, backend):
     # try getting backend_props from user, else backend
     if backend_properties is None and backend is not None:
-        backend_properties = target_to_backend_properties(backend.target)
+        with warnings.catch_warnings():
+            # filter target_to_backend_properties warning
+            warnings.filterwarnings(
+                "ignore",
+                category=DeprecationWarning,
+                message=".*``qiskit.transpiler.target.target_to_backend_properties\\(\\)``.*",
+                module="qiskit",
+            )
+            backend_properties = target_to_backend_properties(backend.target)
     return backend_properties
 
 

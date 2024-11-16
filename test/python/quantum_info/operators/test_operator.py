@@ -522,8 +522,16 @@ class TestOperator(OperatorTestCase):
         expected = Operator([[1.0 + 0.0j, 0.5 - 0.5j], [0.0 + 0.0j, 0.0 + 1.0j]])
         assert_allclose(powered.data, expected.data)
 
-    @ddt.data(0.5, 1.0 / 3.0, 0.25)
-    def test_root_stability(self, root):
+    @ddt.data(
+        (0.5, False),
+        (1.0 / 3.0, False),
+        (0.25, False),
+        (0.5, True),
+        (1.0 / 3.0, True),
+        (0.25, True),
+    )
+    @ddt.unpack
+    def test_root_stability(self, root, assume_unitary):
         """Test that the root of operators that have eigenvalues that are -1 up to floating-point
         imprecision stably choose the positive side of the principal-root branch cut."""
         rng = np.random.default_rng(2024_10_22)
@@ -540,17 +548,24 @@ class TestOperator(OperatorTestCase):
         matrices = [basis.conj().T @ np.diag(eigenvalues) @ basis for basis in bases]
         expected = [basis.conj().T @ np.diag(root_eigenvalues) @ basis for basis in bases]
         self.assertEqual(
-            [Operator(matrix).power(root) for matrix in matrices],
+            [Operator(matrix).power(root, assume_unitary=assume_unitary) for matrix in matrices],
             [Operator(single) for single in expected],
         )
 
-    def test_root_branch_cut(self):
+    @ddt.data(True, False)
+    def test_root_branch_cut(self, assume_unitary):
         """Test that we can choose where the branch cut appears in the root."""
         z_op = Operator(library.ZGate())
         # Depending on the direction we move the branch cut, we should be able to select the root to
         # be either of the two valid options.
-        self.assertEqual(z_op.power(0.5, branch_cut_rotation=1e-3), Operator(library.SGate()))
-        self.assertEqual(z_op.power(0.5, branch_cut_rotation=-1e-3), Operator(library.SdgGate()))
+        self.assertEqual(
+            z_op.power(0.5, branch_cut_rotation=1e-3, assume_unitary=assume_unitary),
+            Operator(library.SGate()),
+        )
+        self.assertEqual(
+            z_op.power(0.5, branch_cut_rotation=-1e-3, assume_unitary=assume_unitary),
+            Operator(library.SdgGate()),
+        )
 
     def test_expand(self):
         """Test expand method."""
