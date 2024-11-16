@@ -18,9 +18,7 @@ use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::operations::{Param, StandardGate};
 use qiskit_circuit::Qubit;
 use smallvec::{smallvec, SmallVec};
-use std::cell::RefCell;
 use std::f64::consts::PI;
-use std::rc::Rc;
 type Instruction = (StandardGate, SmallVec<[Param; 3]>, SmallVec<[Qubit; 2]>);
 
 fn get_instr(angle: String, qubit_idx: usize) -> Option<Instruction> {
@@ -84,9 +82,6 @@ pub fn synth_cnot_phase_aam(
 
     let mut state = Array2::<u8>::eye(num_qubits);
 
-    let x: Rc<RefCell<Option<Array2<u8>>>> = Rc::new(RefCell::new(None));
-    let x_clone = Rc::clone(&x);
-
     let mut s_cpy = s.clone();
     let mut q = vec![(
         s.clone(),
@@ -105,6 +100,8 @@ pub fn synth_cnot_phase_aam(
     let mut cx_phase_done: bool = false;
     let mut qubit_idx: usize = 0;
     let mut index: usize = 0;
+    let mut pmh_init_done: bool = false;
+    let mut synth_pmh_iter: Option<Box<dyn Iterator<Item = Instruction>>> = None;
 
     let cx_phase_iter = std::iter::from_fn(move || {
         let mut gate_instr: Option<Instruction> = None;
@@ -285,20 +282,23 @@ pub fn synth_cnot_phase_aam(
             ));
         } // end 'outer_loop
 
-        if phase_done && cx_phase_done {
-            *x_clone.borrow_mut() = Some(state.clone());
-            None
-        } else {
-            gate_instr
+        if phase_done && cx_phase_done && !pmh_init_done {
+            synth_pmh_iter = Some(Box::new(
+                synth_pmh(state.mapv(|x| x != 0), section_size).rev(),
+            ));
+            pmh_init_done = true;
         }
+
+        if pmh_init_done {
+            if let Some(ref mut data) = synth_pmh_iter {
+                gate_instr = data.next();
+            } else {
+                gate_instr = None;
+            }
+        }
+
+        gate_instr
     });
 
-    let cx_phase_vec = cx_phase_iter.collect::<Vec<Instruction>>();
-
-    let borrowed_x = x.borrow();
-    let residue_state = borrowed_x.as_ref().unwrap();
-    let state_bool = residue_state.mapv(|x| x != 0);
-    let synth_pmh_iter = synth_pmh(state_bool, section_size).rev();
-    let synth_aam_iter = cx_phase_vec.into_iter().chain(synth_pmh_iter);
-    CircuitData::from_standard_gates(py, num_qubits as u32, synth_aam_iter, Param::Float(0.0))
+    CircuitData::from_standard_gates(py, num_qubits as u32, cx_phase_iter, Param::Float(0.0))
 }
