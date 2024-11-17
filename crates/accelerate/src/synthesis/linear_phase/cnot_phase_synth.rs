@@ -68,7 +68,12 @@ pub fn synth_cnot_phase_aam(
     angles: &Bound<PyList>,
     section_size: Option<i64>,
 ) -> PyResult<CircuitData> {
+    // converting to Option<usize>
+    let section_size: Option<usize> =
+        section_size.and_then(|num| if num >= 0 { Some(num as usize) } else { None });
+
     let s = cnots.as_array().to_owned();
+    let s = s.mapv(|x| x != 0);
     let num_qubits = s.nrows();
 
     let mut rust_angles = angles
@@ -80,7 +85,8 @@ pub fn synth_cnot_phase_aam(
         })
         .collect::<Vec<String>>();
 
-    let mut state = Array2::<u8>::eye(num_qubits);
+    let state = Array2::<u8>::eye(num_qubits);
+    let mut state = state.mapv(|x| x != 0);
 
     let mut s_cpy = s.clone();
     let mut q = vec![(
@@ -146,9 +152,7 @@ pub fn synth_cnot_phase_aam(
                     keep_iterating = false;
                 }
                 while qubit_idx < num_qubits {
-                    if (qubit_idx != _ep)
-                        && (_s.row(qubit_idx).sum() as usize == _s.row(qubit_idx).len())
-                    {
+                    if (qubit_idx != _ep) && !_s.row(qubit_idx).iter().any(|&b| !b) {
                         if !cx_gate_done && !phase_loop_on {
                             keep_iterating = true;
                             cx_gate_done = true;
@@ -221,8 +225,8 @@ pub fn synth_cnot_phase_aam(
                 .axis_iter(numpy::ndarray::Axis(0))
                 .map(|row| {
                     std::cmp::max(
-                        row.iter().filter(|&&x| x == 0).count(),
-                        row.iter().filter(|&&x| x == 1).count(),
+                        row.iter().filter(|&&x| !x).count(),
+                        row.iter().filter(|&&x| x).count(),
                     )
                 })
                 .collect();
@@ -245,10 +249,10 @@ pub fn synth_cnot_phase_aam(
             let mut cnots1_t_shape = (0_usize, 0_usize);
             cnots1_t_shape.1 = cnots0_t_shape.1;
             for cols in _s.columns() {
-                if cols[_j] == 0 {
+                if !cols[_j] {
                     cnots0_t_shape.0 += 1;
                     cnots0_t.append(&mut cols.to_vec());
-                } else if cols[_j] == 1 {
+                } else {
                     cnots1_t_shape.0 += 1;
                     cnots1_t.append(&mut cols.to_vec());
                 }
@@ -283,9 +287,7 @@ pub fn synth_cnot_phase_aam(
         } // end 'outer_loop
 
         if phase_done && cx_phase_done && !pmh_init_done {
-            synth_pmh_iter = Some(Box::new(
-                synth_pmh(state.mapv(|x| x != 0), section_size).rev(),
-            ));
+            synth_pmh_iter = Some(Box::new(synth_pmh(state.clone(), section_size).rev()));
             pmh_init_done = true;
         }
 

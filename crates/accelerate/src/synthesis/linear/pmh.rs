@@ -161,6 +161,8 @@ pub fn synth_cnot_count_full_pmh(
     let arrayview = matrix.as_array();
     let mat: Array2<bool> = arrayview.to_owned();
     let num_qubits = mat.nrows();
+    let section_size: Option<usize> =
+        section_size.and_then(|num| if num >= 0 { Some(num as usize) } else { None });
 
     let instructions = synth_pmh(mat, section_size);
     CircuitData::from_standard_gates(py, num_qubits as u32, instructions, Param::Float(0.0))
@@ -169,7 +171,7 @@ pub fn synth_cnot_count_full_pmh(
 type Instruction = (StandardGate, SmallVec<[Param; 3]>, SmallVec<[Qubit; 2]>);
 pub fn synth_pmh(
     mat: Array2<bool>,
-    section_size: Option<i64>,
+    section_size: Option<usize>,
 ) -> impl DoubleEndedIterator<Item = Instruction> {
     let mut mat = mat;
     let num_qubits = mat.nrows(); // is a quadratic matrix
@@ -181,7 +183,7 @@ pub fn synth_pmh(
     // until ~100 qubits.
     let alpha = 0.56;
     let blocksize = match section_size {
-        Some(section_size) => section_size as usize,
+        Some(section_size) => section_size,
         None => std::cmp::max(2, (alpha * (num_qubits as f64).log2()).floor() as usize),
     };
 
