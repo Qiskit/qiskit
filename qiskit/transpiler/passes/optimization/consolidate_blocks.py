@@ -12,9 +12,11 @@
 
 """Replace each block of consecutive gates by a single Unitary node."""
 from __future__ import annotations
+from math import pi
 
 from qiskit.synthesis.two_qubit import TwoQubitBasisDecomposer
-from qiskit.circuit.library.standard_gates import CXGate, CZGate, iSwapGate, ECRGate
+from qiskit.circuit.library.standard_gates import CXGate, CZGate, iSwapGate, ECRGate, RXXGate
+
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.passmanager import PassManager
 from qiskit._accelerate.consolidate_blocks import consolidate_blocks
@@ -27,6 +29,7 @@ KAK_GATE_NAMES = {
     "cz": CZGate(),
     "iswap": iSwapGate(),
     "ecr": ECRGate(),
+    "rxx": RXXGate(pi / 2),
 }
 
 
@@ -70,7 +73,6 @@ class ConsolidateBlocks(TransformationPass):
         if basis_gates is not None:
             self.basis_gates = set(basis_gates)
         self.force_consolidate = force_consolidate
-
         if kak_basis_gate is not None:
             self.decomposer = TwoQubitBasisDecomposer(kak_basis_gate)
         elif basis_gates is not None:
