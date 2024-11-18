@@ -80,7 +80,7 @@ class ConsolidateBlocks(TransformationPass):
                     KAK_GATE_NAMES[kak_gates.pop()], basis_fidelity=approximation_degree or 1.0
                 )
             else:
-                self.decomposer = TwoQubitBasisDecomposer(CXGate())
+                self.decomposer = None
         else:
             self.decomposer = TwoQubitBasisDecomposer(CXGate())
 
