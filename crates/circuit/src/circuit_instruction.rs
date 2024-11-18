@@ -22,9 +22,12 @@ use pyo3::{intern, IntoPy, PyObject, PyResult};
 
 use smallvec::SmallVec;
 
-use crate::imports::{CONTROLLED_GATE, CONTROL_FLOW_OP, GATE, INSTRUCTION, OPERATION, WARNINGS_WARN, get_std_instruction_types};
+use crate::imports::{
+    CONTROLLED_GATE, CONTROL_FLOW_OP, GATE, INSTRUCTION, OPERATION, WARNINGS_WARN,
+};
 use crate::operations::{
     Operation, OperationRef, Param, PyGate, PyInstruction, PyOperation, StandardGate,
+    StandardInstruction,
 };
 use crate::packed_instruction::PackedOperation;
 
@@ -330,6 +333,9 @@ impl CircuitInstruction {
             OperationRef::Standard(standard) => standard
                 .create_py_op(py, Some(&self.params), &self.extra_attrs)?
                 .into_any(),
+            OperationRef::StandardInstruction(instruction) => {
+                instruction.create_py_op(py, &self.extra_attrs)?.into_any()
+            }
             OperationRef::Gate(gate) => gate.gate.clone_ref(py),
             OperationRef::Instruction(instruction) => instruction.instruction.clone_ref(py),
             OperationRef::Operation(operation) => operation.operation.clone_ref(py),
@@ -659,6 +665,8 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
         };
 
         'standard: {
+            // Our standard gates have a `_standard_gate` field at the class level so we can quickly
+            // identify them here without an `isinstance` check.
             let Some(standard) = ob_type
                 .getattr(intern!(py, "_standard_gate"))
                 .and_then(|standard| standard.extract::<StandardGate>())
@@ -693,6 +701,23 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
                 extra_attrs: extract_extra()?,
             });
         }
+        'standard_instr: {
+            // We check the *instance* for a `_standard_instruction` field since standard
+            // instructions (unlike standard gates) can have a payload and are thus stateful.
+            let Some(standard) = ob
+                .getattr(intern!(py, "_standard_instruction"))
+                .and_then(|standard| standard.extract::<StandardInstruction>())
+                .ok()
+            else {
+                break 'standard_instr;
+            };
+            return Ok(OperationFromPython {
+                operation: PackedOperation::from_standard_instruction(standard),
+                params: extract_params()?,
+                extra_attrs: extract_extra()?,
+            });
+        }
+
         if ob_type.is_subclass(GATE.get_bound(py))? {
             let params = extract_params()?;
             let gate = Box::new(PyGate {
@@ -705,13 +730,6 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
             return Ok(OperationFromPython {
                 operation: PackedOperation::from_gate(gate),
                 params,
-                extra_attrs: extract_extra()?,
-            });
-        }
-        if ob_type.is_subclass(get_std_instruction_types(py))? {
-            return Ok(OperationFromPython {
-                operation: PackedOperation::from_standard_instruction(standard),
-                params: extract_params()?,
                 extra_attrs: extract_extra()?,
             });
         }

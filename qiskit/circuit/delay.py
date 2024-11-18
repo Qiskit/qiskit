@@ -20,6 +20,7 @@ from qiskit.circuit.gate import Gate
 from qiskit.circuit import _utils
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.utils import deprecate_func
+from qiskit._accelerate.circuit import StandardInstruction, DelayUnit
 
 
 @_utils.with_gate_array(np.eye(2, dtype=complex))
@@ -32,13 +33,23 @@ class Delay(Instruction):
             duration: the length of time of the duration.  Given in units of ``unit``.
             unit: the unit of the duration.  Must be ``"dt"`` or an SI-prefixed seconds unit.
         """
-        if unit not in {"s", "ms", "us", "ns", "ps", "dt"}:
+        units = {
+            "s": DelayUnit.S,
+            "ms": DelayUnit.MS,
+            "us": DelayUnit.US,
+            "ns": DelayUnit.NS,
+            "ps": DelayUnit.PS,
+            "dt": DelayUnit.DT,
+        }
+        if delay_unit := units.get(unit, None) is None:
             raise CircuitError(f"Unknown unit {unit} is specified.")
         # Double underscore to differentiate from the private attribute in
         # `Instruction`. This can be changed to `_unit` in 2.0 after we
         # remove `unit` and `duration` from the standard instruction model
         # as it only will exist in `Delay` after that point.
         self.__unit = unit
+        # TODO: how can the delay be updated in the setter?
+        self._standard_instruction = StandardInstruction.Delay(duration, delay_unit)
         super().__init__("delay", 1, 0, params=[duration])
 
     broadcast_arguments = Gate.broadcast_arguments

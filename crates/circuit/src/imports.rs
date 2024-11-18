@@ -18,9 +18,7 @@ use pyo3::prelude::*;
 use pyo3::sync::GILOnceCell;
 use pyo3::types::PyTuple;
 
-use crate::operations::{
-    StandardGate, StandardInstruction, STANDARD_GATE_SIZE, STANDARD_INSTRUCTION_SIZE,
-};
+use crate::operations::{StandardGate, STANDARD_GATE_SIZE};
 
 /// Helper wrapper around `GILOnceCell` instances that are just intended to store a Python object
 /// that is lazily imported.
@@ -360,23 +358,8 @@ pub fn get_std_instruction_types(py: Python) -> &Bound<PyTuple> {
                     MEASURE.get_bound(py),
                     RESET.get_bound(py),
                 ],
-            ).unbind()
+            )
+            .unbind()
         })
         .bind(py)
-}
-
-#[inline]
-pub fn get_std_instruction_class(py: Python, rs_instr: StandardInstruction) -> PyResult<PyObject> {
-    Ok(match rs_instr {
-        StandardInstruction::Barrier(_) => {
-            // TODO: bake in num gates by returning a custom callable?
-            BARRIER.get_bound(py).unbind()
-        }
-        StandardInstruction::Delay(_, _) => {
-            // TODO: bake in parameters like duration by returning a custom callable?
-            DELAY.get_bound(py).unbind()
-        }
-        StandardInstruction::Measure => MEASURE.get_bound(py).unbind(),
-        StandardInstruction::Reset => RESET.get_bound(py).unbind(),
-    })
 }

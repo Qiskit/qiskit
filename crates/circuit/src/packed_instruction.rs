@@ -24,7 +24,7 @@ use smallvec::SmallVec;
 
 use crate::circuit_data::CircuitData;
 use crate::circuit_instruction::ExtraInstructionAttributes;
-use crate::imports::{get_std_gate_class, DEEPCOPY};
+use crate::imports::{get_std_gate_class, BARRIER, DEEPCOPY, DELAY, MEASURE, RESET};
 use crate::interner::Interned;
 use crate::operations::{
     DelayUnit, Operation, OperationRef, Param, PyGate, PyInstruction, PyOperation, StandardGate,
@@ -250,8 +250,8 @@ impl PackedOperation {
                     }
                 }
             }
-            PackedOperationType::Measure => Some(StandardInstruction::Measure),
-            PackedOperationType::Reset => Some(StandardInstruction::Reset),
+            PackedOperationType::Measure => Some(StandardInstruction::Measure()),
+            PackedOperationType::Reset => Some(StandardInstruction::Reset()),
             _ => None,
         }
     }
@@ -307,8 +307,8 @@ impl PackedOperation {
                     Self::from_owned_raw_pointer(PackedOperationType::ExtendedDataPointer, ptr)
                 }
             }
-            StandardInstruction::Measure => Self(PackedOperationType::Measure as usize),
-            StandardInstruction::Reset => Self(PackedOperationType::Reset as usize),
+            StandardInstruction::Measure() => Self(PackedOperationType::Measure as usize),
+            StandardInstruction::Reset() => Self(PackedOperationType::Reset as usize),
         }
     }
 
@@ -466,7 +466,24 @@ impl PackedOperation {
                     .is_subclass(py_type)
             }
             OperationRef::StandardInstruction(standard) => {
-                todo!()
+                return match standard {
+                    StandardInstruction::Barrier(_) => BARRIER
+                        .get_bound(py)
+                        .downcast::<PyType>()?
+                        .is_subclass(py_type),
+                    StandardInstruction::Delay(_, _) => DELAY
+                        .get_bound(py)
+                        .downcast::<PyType>()?
+                        .is_subclass(py_type),
+                    StandardInstruction::Measure() => MEASURE
+                        .get_bound(py)
+                        .downcast::<PyType>()?
+                        .is_subclass(py_type),
+                    StandardInstruction::Reset() => RESET
+                        .get_bound(py)
+                        .downcast::<PyType>()?
+                        .is_subclass(py_type),
+                }
             }
             OperationRef::Gate(gate) => gate.gate.bind(py),
             OperationRef::Instruction(instruction) => instruction.instruction.bind(py),
@@ -687,11 +704,11 @@ impl PackedInstruction {
 
     /// Build a reference to the Python-space operation object (the `Gate`, etc) packed into this
     /// instruction.  This may construct the reference if the `PackedInstruction` is a standard
-    /// gate with no already stored operation.
+    /// gate or instruction with no already stored operation.
     ///
-    /// A standard-gate operation object returned by this function is disconnected from the
-    /// containing circuit; updates to its parameters, label, duration, unit and condition will not
-    /// be propagated back.
+    /// A standard-gate or standard-instruction operation object returned by this function is
+    /// disconnected from the containing circuit; updates to its parameters, label, duration, unit
+    /// and condition will not be propagated back.
     pub fn unpack_py_op(&self, py: Python) -> PyResult<Py<PyAny>> {
         let unpack = || -> PyResult<Py<PyAny>> {
             match self.op.view() {
@@ -701,7 +718,7 @@ impl PackedInstruction {
                     &self.extra_attrs,
                 ),
                 OperationRef::StandardInstruction(instruction) => {
-                    todo!()
+                    instruction.create_py_op(py, &self.extra_attrs)
                 }
                 OperationRef::Gate(gate) => Ok(gate.gate.clone_ref(py)),
                 OperationRef::Instruction(instruction) => Ok(instruction.instruction.clone_ref(py)),

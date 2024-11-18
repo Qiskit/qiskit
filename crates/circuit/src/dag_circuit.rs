@@ -3396,7 +3396,8 @@ def _format(operand):
                                 OperationRef::Operation(py_op) => {
                                     py_op.operation.setattr(py, "condition", new_condition)?;
                                 }
-                                OperationRef::Standard(_) => {}
+                                OperationRef::Standard(_)
+                                | OperationRef::StandardInstruction(_) => {}
                             }
                         }
                     }
@@ -6502,7 +6503,7 @@ impl DAGCircuit {
             };
             #[cfg(feature = "cache_pygates")]
             let py_op = match new_op.operation.view() {
-                OperationRef::Standard(_) => OnceCell::new(),
+                OperationRef::Standard(_) | OperationRef::StandardInstruction(_) => OnceCell::new(),
                 OperationRef::Gate(gate) => OnceCell::from(gate.gate.clone_ref(py)),
                 OperationRef::Instruction(instruction) => {
                     OnceCell::from(instruction.instruction.clone_ref(py))

@@ -15,6 +15,7 @@ Qubit reset to computational zero.
 """
 
 from qiskit.circuit.singleton import SingletonInstruction, stdlib_singleton_key
+from qiskit._accelerate.circuit import StandardInstruction
 
 
 class Reset(SingletonInstruction):
@@ -26,6 +27,7 @@ class Reset(SingletonInstruction):
             label: optional string label of this instruction.
         """
         super().__init__("reset", 1, 0, [], label=label, duration=duration, unit=unit)
+        self._standard_instruction = StandardInstruction.Reset
 
     _singleton_lookup_key = stdlib_singleton_key()
 
