@@ -13,6 +13,7 @@
 """Built-in transpiler stage plugins for preset pass managers."""
 
 import os
+import warnings
 
 from qiskit.transpiler.passes.optimization.split_2q_unitaries import Split2QUnitaries
 from qiskit.transpiler.passmanager import PassManager
@@ -39,9 +40,9 @@ from qiskit.transpiler.preset_passmanagers.plugin import (
 from qiskit.transpiler.passes.optimization import (
     Optimize1qGatesDecomposition,
     CommutativeCancellation,
-    Collect2qBlocks,
     ConsolidateBlocks,
     InverseCancellation,
+    RemoveIdentityEquivalent,
 )
 from qiskit.transpiler.passes import Depth, Size, FixedPoint, MinimumPoint
 from qiskit.transpiler.passes.utils.gates_basis import GatesInBasis
@@ -156,6 +157,13 @@ class DefaultInitPassManager(PassManagerStagePlugin):
             if pass_manager_config.routing_method != "none":
                 init.append(ElidePermutations())
             init.append(RemoveDiagonalGatesBeforeMeasure())
+            # Target not set on RemoveIdentityEquivalent because we haven't applied a Layout
+            # yet so doing anything relative to an error rate in the target is not valid.
+            init.append(
+                RemoveIdentityEquivalent(
+                    approximation_degree=pass_manager_config.approximation_degree
+                )
+            )
             init.append(
                 InverseCancellation(
                     [
@@ -175,7 +183,6 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                 )
             )
             init.append(CommutativeCancellation())
-            init.append(Collect2qBlocks())
             init.append(ConsolidateBlocks())
             # If approximation degree is None that indicates a request to approximate up to the
             # error rates in the target. However, in the init stage we don't yet know the target
@@ -581,6 +588,10 @@ class OptimizationPassManager(PassManagerStagePlugin):
 
             elif optimization_level == 2:
                 _opt = [
+                    RemoveIdentityEquivalent(
+                        approximation_degree=pass_manager_config.approximation_degree,
+                        target=pass_manager_config.target,
+                    ),
                     Optimize1qGatesDecomposition(
                         basis=pass_manager_config.basis_gates, target=pass_manager_config.target
                     ),
@@ -589,7 +600,6 @@ class OptimizationPassManager(PassManagerStagePlugin):
             elif optimization_level == 3:
                 # Steps for optimization level 3
                 _opt = [
-                    Collect2qBlocks(),
                     ConsolidateBlocks(
                         basis_gates=pass_manager_config.basis_gates,
                         target=pass_manager_config.target,
@@ -602,6 +612,10 @@ class OptimizationPassManager(PassManagerStagePlugin):
                         backend_props=pass_manager_config.backend_properties,
                         method=pass_manager_config.unitary_synthesis_method,
                         plugin_config=pass_manager_config.unitary_synthesis_plugin_config,
+                        target=pass_manager_config.target,
+                    ),
+                    RemoveIdentityEquivalent(
+                        approximation_degree=pass_manager_config.approximation_degree,
                         target=pass_manager_config.target,
                     ),
                     Optimize1qGatesDecomposition(
@@ -633,7 +647,6 @@ class OptimizationPassManager(PassManagerStagePlugin):
             elif optimization_level == 2:
                 optimization.append(
                     [
-                        Collect2qBlocks(),
                         ConsolidateBlocks(
                             basis_gates=pass_manager_config.basis_gates,
                             target=pass_manager_config.target,
@@ -676,9 +689,13 @@ class AlapSchedulingPassManager(PassManagerStagePlugin):
         inst_map = pass_manager_config.inst_map
         target = pass_manager_config.target
 
-        return common.generate_scheduling(
-            instruction_durations, scheduling_method, timing_constraints, inst_map, target
-        )
+        with warnings.catch_warnings():
+            warnings.simplefilter(action="ignore", category=DeprecationWarning)
+            # Passing `inst_map` to `generate_scheduling` is deprecated in Qiskit 1.3
+            # so filtering these warning when building pass managers
+            return common.generate_scheduling(
+                instruction_durations, scheduling_method, timing_constraints, inst_map, target
+            )
 
 
 class AsapSchedulingPassManager(PassManagerStagePlugin):
@@ -693,9 +710,13 @@ class AsapSchedulingPassManager(PassManagerStagePlugin):
         inst_map = pass_manager_config.inst_map
         target = pass_manager_config.target
 
-        return common.generate_scheduling(
-            instruction_durations, scheduling_method, timing_constraints, inst_map, target
-        )
+        with warnings.catch_warnings():
+            warnings.simplefilter(action="ignore", category=DeprecationWarning)
+            # Passing `inst_map` to `generate_scheduling` is deprecated in Qiskit 1.3
+            # so filtering these warning when building pass managers
+            return common.generate_scheduling(
+                instruction_durations, scheduling_method, timing_constraints, inst_map, target
+            )
 
 
 class DefaultSchedulingPassManager(PassManagerStagePlugin):
@@ -710,9 +731,13 @@ class DefaultSchedulingPassManager(PassManagerStagePlugin):
         inst_map = pass_manager_config.inst_map
         target = pass_manager_config.target
 
-        return common.generate_scheduling(
-            instruction_durations, scheduling_method, timing_constraints, inst_map, target
-        )
+        with warnings.catch_warnings():
+            warnings.simplefilter(action="ignore", category=DeprecationWarning)
+            # Passing `inst_map` to `generate_scheduling` is deprecated in Qiskit 1.3
+            # so filtering these warning when building pass managers
+            return common.generate_scheduling(
+                instruction_durations, scheduling_method, timing_constraints, inst_map, target
+            )
 
 
 class DefaultLayoutPassManager(PassManagerStagePlugin):

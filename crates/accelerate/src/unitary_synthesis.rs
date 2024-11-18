@@ -11,9 +11,9 @@
 // that they have been altered from the originals.
 #![allow(clippy::too_many_arguments)]
 
-#[cfg(feature = "cache_pygates")]
-use std::cell::OnceCell;
 use std::f64::consts::PI;
+#[cfg(feature = "cache_pygates")]
+use std::sync::OnceLock;
 
 use approx::relative_eq;
 use hashbrown::{HashMap, HashSet};
@@ -27,7 +27,7 @@ use smallvec::{smallvec, SmallVec};
 
 use pyo3::intern;
 use pyo3::prelude::*;
-use pyo3::types::{IntoPyDict, PyDict, PyList, PyString};
+use pyo3::types::{IntoPyDict, PyDict, PyString};
 use pyo3::wrap_pyfunction;
 use pyo3::Python;
 
@@ -149,7 +149,7 @@ fn apply_synth_sequence(
             params: new_params,
             extra_attrs: ExtraInstructionAttributes::default(),
             #[cfg(feature = "cache_pygates")]
-            py_op: OnceCell::new(),
+            py_op: OnceLock::new(),
         };
         instructions.push(instruction);
     }
@@ -225,7 +225,7 @@ fn py_run_main_loop(
     qubit_indices: Vec<usize>,
     min_qubits: usize,
     target: &Target,
-    coupling_edges: &Bound<'_, PyList>,
+    coupling_edges: HashSet<[PhysicalQubit; 2]>,
     approximation_degree: Option<f64>,
     natural_direction: Option<bool>,
 ) -> PyResult<DAGCircuit> {
@@ -268,7 +268,7 @@ fn py_run_main_loop(
                     new_ids,
                     min_qubits,
                     target,
-                    coupling_edges,
+                    coupling_edges.clone(),
                     approximation_degree,
                     natural_direction,
                 )?;
@@ -352,7 +352,7 @@ fn py_run_main_loop(
                     py,
                     unitary,
                     ref_qubits,
-                    coupling_edges,
+                    &coupling_edges,
                     target,
                     approximation_degree,
                     natural_direction,
@@ -383,7 +383,7 @@ fn run_2q_unitary_synthesis(
     py: Python,
     unitary: Array2<Complex64>,
     ref_qubits: &[PhysicalQubit; 2],
-    coupling_edges: &Bound<'_, PyList>,
+    coupling_edges: &HashSet<[PhysicalQubit; 2]>,
     target: &Target,
     approximation_degree: Option<f64>,
     natural_direction: Option<bool>,
@@ -794,7 +794,7 @@ fn preferred_direction(
     decomposer: &DecomposerElement,
     ref_qubits: &[PhysicalQubit; 2],
     natural_direction: Option<bool>,
-    coupling_edges: &Bound<'_, PyList>,
+    coupling_edges: &HashSet<[PhysicalQubit; 2]>,
     target: &Target,
 ) -> PyResult<Option<bool>> {
     // Returns:
@@ -830,14 +830,8 @@ fn preferred_direction(
         Some(false) => None,
         _ => {
             // None or Some(true)
-            let mut edge_set = HashSet::new();
-            for item in coupling_edges.iter() {
-                if let Ok(tuple) = item.extract::<(usize, usize)>() {
-                    edge_set.insert(tuple);
-                }
-            }
-            let zero_one = edge_set.contains(&(qubits[0].0 as usize, qubits[1].0 as usize));
-            let one_zero = edge_set.contains(&(qubits[1].0 as usize, qubits[0].0 as usize));
+            let zero_one = coupling_edges.contains(&qubits);
+            let one_zero = coupling_edges.contains(&[qubits[1], qubits[0]]);
 
             match (zero_one, one_zero) {
                 (true, false) => Some(true),
