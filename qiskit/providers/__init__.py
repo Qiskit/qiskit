@@ -75,15 +75,6 @@ mandatory/the minimum version).
 Abstract Classes
 ================
 
-Provider
---------
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   Provider
-   ProviderV1
-
 Backend
 -------
 
