@@ -1,7 +1,7 @@
 ---
 features:
   - |
-    Support for level 1 data was added to :class:`~.BackendSamplerV2` as was
+    Support for level 1 data was added to :class:`~.BackendSamplerV2`, as was
     support for passing options through to the ``run()`` method of the wrapped
     :class:`~.BackendV2`. The run options can be specified using a
     ``"run_options"`` entry inside of the ``options`` dicitonary passed to

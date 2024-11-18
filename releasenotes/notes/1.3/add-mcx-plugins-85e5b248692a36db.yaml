@@ -17,7 +17,7 @@ features_transpiler:
     * :class:`.MCXSynthesisNoAuxV24`, based on :func:`.synth_mcx_noaux_v24`.
     * :class:`.MCXSynthesisGrayCode`, based on :func:`.synth_mcx_gray_code`.
 
-    As well:
+    As well as:
 
     * :class:`.MCXSynthesisDefault`, choosing the most efficient synthesis
       method based on the number of clean and dirty ancilla qubits available.

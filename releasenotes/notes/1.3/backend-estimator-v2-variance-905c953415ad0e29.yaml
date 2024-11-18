@@ -1,5 +1,5 @@
 ---
 fixes:
   - |
-    Changes the way in which the :class:`.BackendEstimatorV2` class calculates the ``std`` to ensure that
-    it matches the correct formula.
+    A fix has been introduced to the :class:`.BackendEstimatorV2` class that ensures the calculation of
+    ``std`` matches the correct formula.
