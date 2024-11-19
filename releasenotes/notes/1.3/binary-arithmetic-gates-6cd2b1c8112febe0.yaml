@@ -13,7 +13,7 @@ features_circuits:
     synthesis, depending on the circuit's context.
   - |
     Added the :class:`.MultiplierGate` for multiplication of two :math:`n`-qubit registers, that is
-    :math:`|a\rangle |b\rangle \mapsto |a\rangle |b\rangle |a \cdot b\rangle`.
+    :math:`|a\rangle |b\rangle |0\rangle \mapsto |a\rangle |b\rangle |a \cdot b\rangle`.
     See the class documentation for details and examples.
 features_synthesis:
   - |
