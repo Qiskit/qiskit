@@ -45,7 +45,7 @@ def deprecate_func(
             For example, "Instead, use the function ``new_func`` from the module
             ``<my_module>.<my_submodule>``, which is similar but uses GPU acceleration."
         pending: Set to ``True`` if the deprecation is still pending.
-        package_name: The PyPI package name, e.g. "qiskit-nature".
+        package_name: The package name shown in the deprecation message (e.g. the PyPI package name).
         removal_timeline: How soon can this deprecation be removed? Expects a value
             like "no sooner than 6 months after the latest release" or "in release 9.99".
         is_property: If the deprecated function is a `@property`, set this to True so that the
@@ -130,7 +130,7 @@ def deprecate_arg(
             (if new_alias is not set). For example, "Instead, use the argument `new_arg`,
             which is similar but does not impact the circuit's setup."
         pending: Set to `True` if the deprecation is still pending.
-        package_name: The PyPI package name, e.g. "qiskit-nature".
+        package_name: The package name shown in the deprecation message (e.g. the PyPI package name).
         new_alias: If the arg has simply been renamed, set this to the new name. The decorator will
             dynamically update the `kwargs` so that when the user sets the old arg, it will be
             passed in as the `new_alias` arg.
