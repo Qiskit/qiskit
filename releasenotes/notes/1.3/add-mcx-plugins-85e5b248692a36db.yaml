@@ -19,7 +19,7 @@ features_transpiler:
 
     As well as:
 
-    * :class:`.MCXSynthesisDefault`, choosing the most efficient synthesis
+    * :class:`.MCXSynthesisDefault`, for choosing the most efficient synthesis
       method based on the number of clean and dirty ancilla qubits available.
 
     As an example, consider how the transpilation of the following circuit::

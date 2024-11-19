@@ -3,5 +3,5 @@ fixes:
   - |
     For :class:`~.BasicSimulator`, the ``basis_gates`` entry in the
     configuration instance returned by the ``configuration()`` method is
-    now a list rather than a ``dict_keys`` instance, matching the expected
+    now a list instead of a ``dict_keys`` instance, matching the expected
     type and allowing for configuration instance to be deep copied.
