@@ -291,6 +291,7 @@ impl<'a> Operation for OperationRef<'a> {
 #[pyclass(module = "qiskit._accelerate.circuit", eq, eq_int)]
 pub enum DelayUnit {
     NS,
+    PS,
     US,
     MS,
     S,
@@ -304,6 +305,7 @@ impl fmt::Display for DelayUnit {
             "{}",
             match self {
                 DelayUnit::NS => "ns",
+                DelayUnit::PS => "ps",
                 DelayUnit::US => "us",
                 DelayUnit::MS => "ms",
                 DelayUnit::S => "s",

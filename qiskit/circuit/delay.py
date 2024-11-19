@@ -49,7 +49,8 @@ class Delay(Instruction):
         # as it only will exist in `Delay` after that point.
         self.__unit = unit
         # TODO: how can the delay be updated in the setter?
-        self._standard_instruction = StandardInstruction.Delay(duration, delay_unit)
+        # TODO: looks like Delay is a Parameter type, so this is disabled for now
+        # self._standard_instruction = StandardInstruction.Delay(duration, delay_unit)
         super().__init__("delay", 1, 0, params=[duration])
 
     broadcast_arguments = Gate.broadcast_arguments
