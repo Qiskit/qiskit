@@ -1,0 +1,7 @@
+features_transpiler:
+  - |
+    The :class:`.BasisTranslator` transpiler pass has been reimplemented
+    to work purely in Rust, taking advantage of all the other structures
+    that currently live there such as the :class:`.Target`, :class:`.EquivalenceLibrary`,
+    and the :class:`.DAGCircuit`. The pass itself now runs anywhere from
+    3x to 5x faster than it did in Python.
