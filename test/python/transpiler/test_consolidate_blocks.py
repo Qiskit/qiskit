@@ -16,20 +16,19 @@ Tests for the ConsolidateBlocks transpiler pass.
 
 import unittest
 import numpy as np
+from ddt import ddt, data
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister, IfElseOp, Gate
 from qiskit.circuit.library import U2Gate, SwapGate, CXGate, CZGate, UnitaryGate
 from qiskit.converters import circuit_to_dag
-from qiskit.transpiler.passes import ConsolidateBlocks
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.operators.measures import process_fidelity
-from qiskit.transpiler import PassManager
-from qiskit.transpiler import Target
-from qiskit.transpiler.passes import Collect1qRuns
-from qiskit.transpiler.passes import Collect2qBlocks
+from qiskit.transpiler import PassManager, Target, generate_preset_pass_manager
+from qiskit.transpiler.passes import ConsolidateBlocks, Collect1qRuns, Collect2qBlocks
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
+@ddt
 class TestConsolidateBlocks(QiskitTestCase):
     """
     Tests to verify that consolidating blocks of gates into unitaries
@@ -570,6 +569,26 @@ class TestConsolidateBlocks(QiskitTestCase):
         res = pm.run(qc)
 
         self.assertEqual(res, qc)
+
+    @data(2, 3)
+    def test_no_kak_gates_in_preset_pm(self, opt_level):
+        """Test correct initialization of ConsolidateBlocks pass when kak_gates aren't found.
+        Reproduces https://github.com/Qiskit/qiskit/issues/13438."""
+
+        qc = QuantumCircuit(2)
+        qc.cz(0, 1)
+        qc.sx([0, 1])
+        qc.cz(0, 1)
+
+        ref_pm = generate_preset_pass_manager(
+            optimization_level=1, basis_gates=["rz", "rzz", "sx", "x", "rx"]
+        )
+        ref_tqc = ref_pm.run(qc)
+        pm = generate_preset_pass_manager(
+            optimization_level=opt_level, basis_gates=["rz", "rzz", "sx", "x", "rx"]
+        )
+        tqc = pm.run(qc)
+        self.assertEqual(ref_tqc, tqc)
 
 
 if __name__ == "__main__":
