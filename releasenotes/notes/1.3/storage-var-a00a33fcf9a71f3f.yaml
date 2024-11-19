@@ -117,6 +117,6 @@ upgrade_providers:
     classical variables (see :mod:`qiskit.circuit.classical`) and the :class:`.Store` instruction,
     if they do not have support for them.  The new :class:`.Store` instruction is treated by the
     transpiler as an always-available "directive" (like :class:`.Barrier`); if your backends do not
-    support this won't be caught by the :mod:`~qiskit.transpiler`.
+    support it, this won't be caught by the :mod:`~qiskit.transpiler`.
 
     See :ref:`providers-guide-real-time-variables` for more information.

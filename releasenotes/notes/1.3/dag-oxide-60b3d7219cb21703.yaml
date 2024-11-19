@@ -1,25 +1,23 @@
 ---
 features_transpiler:
   - |
-    The implementation of the :class:`.DAGCircuit` has been rewritten in Rust. This rewrite of
-    the Python class should be fully API compatible with the previous Python implementation of
-    the class. While the class was previously implemented using
-    `rustworkx <https://www.rustworkx.org/>`__ and its underlying data graph structure existed
-    in Rust, the implementation of the class and all the data was stored in Python. This new
-    version of :class:`.DAGCircuit` stores a Rust native representation for all its data and
-    is fully implemented in Rust. This new implementation should be more efficient in memory
-    usage as it compresses     the qubit and clbit representation for instructions at rest.
-    It also enables speed up for     transpiler passes as they can fully manipulate a
-    :class:`.DAGCircuit` from Rust.
+    The :class:`.DAGCircuit` has been reimplemented in Rust. This rewrite of the Python class
+    should be fully API compatible with the previous Python implementation. While the class
+    was previously implemented using `rustworkx <https://www.rustworkx.org/>`__, for which
+    the underlying data graph structure exists in Rust, the implementation of the class and
+    all the data was lived in Python. This new version of :class:`.DAGCircuit` stores Rust friendly
+    datatypes and is more memory-efficient due to the compressed qubit and clbit representation
+    designed for instructions at rest. It also enables transpiler passes to fully manipulate a
+    :class:`.DAGCircuit` from Rust, enabling potential improvements in performance.
 upgrade_transpiler:
   - |
     :class:`.DAGNode` objects (and its subclasses :class:`.DAGInNode`, :class:`.DAGOutNode`, and
     :class:`.DAGOpNode`) no longer return references to the same underlying object from
     :class:`.DAGCircuit` methods. This was never a guarantee before that all returned nodes would
-    be shared reference to the same object, but with the migration of the :class:`.DAGCircuit` to
-    Rust when a :class:`.DAGNode` a new :class:`.DAGNode` instance is generated on the fly when
-    a node is returned to Python. These objects will evaluate as equal using ``==`` or similar
-    checks that rely on ``__eq__`` but will no longer identify as the same object.
+    be shared reference to the same object. However, with the migration of the :class:`.DAGCircuit` to
+    Rust, a new :class:`.DAGNode` instance is generated on the fly when a node is returned to Python.
+    These objects will evaluate as equal using ``==`` or similar checks that rely on ``__eq__``
+    but will no longer identify as the same object.
   - |
     The :class:`.DAGOpNode` instances returned from the :class:`.DAGCircuit` are no longer shared
     references to the underlying data stored on the DAG. In previous release it was possible to

@@ -6,10 +6,10 @@ features:
     :class:`~.BackendV2`. The run options can be specified by using a
     ``"run_options"`` entry inside the ``options`` dictionary passed to
     :class:`~.BackendSamplerV2`. The ``"run_options"`` entry should be a
-    dictionary mapping argument names to values for passing to the backend's
-    ``run()`` method. When a ``"meas_level"`` option with a value of 1 is set
+    dictionary that maps argument names to values to be passed to the backend's
+    ``run()`` method. When a ``"meas_level = 1 "`` is set
     in the run options, the results from the backend will be treated as level 1
-    results rather as bit arrays (the level 2 format).
+    results instead of bit arrays (the level 2 format).
 upgrade:
   - |
     When using :class:`~.BackendSamplerV2`, circuit metadata is no longer

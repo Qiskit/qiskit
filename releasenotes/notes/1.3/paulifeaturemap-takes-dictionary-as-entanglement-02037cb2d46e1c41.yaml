@@ -1,9 +1,9 @@
 ---
 fixes:
   - |
-    Fixed that the entanglement in :class:`.PauliFeatureMap` and :class:`.ZZFeatureMap`
+    Previously, the entanglement in :class:`.PauliFeatureMap` and :class:`.ZZFeatureMap`
     could be given as ``List[int]`` or ``List[List[int]]``, which was incompatible with the fact
-    that entanglement blocks of different sizes are used. Instead, the entanglement can be 
+    that entanglement blocks of different sizes are used. Now, the entanglement can be 
     given as dictionary with ``{block_size: entanglement}`` pairs.
 features_circuits:
   - |

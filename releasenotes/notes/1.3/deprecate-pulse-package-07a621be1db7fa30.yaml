@@ -1,8 +1,9 @@
 ---
 deprecations:
   - |
-    The Qiskit Pulse package is being deprecated and will be removed in Qiskit 2.0.0. Pulse-level
-    access is currently only supported on a subset of Eagle devices and not supported on the Heron architecture. Furthermore, newer IBM Quantum architectures will not support pulse-level access.
+    The Qiskit Pulse package is now deprecated and will be removed in Qiskit 2.0.0. Pulse-level
+    access is currently only supported on a subset of Eagle devices and not supported on the Heron architecture.
+    Furthermore, newer IBM Quantum architectures will not support pulse-level access.
     As a consequence, supporting Pulse as a first-class citizen frontend in the Qiskit SDK itself makes little
     sense going forward. The deprecation includes all pulse code in :mod:`qiskit.pulse` as well as functionality
     dependant or related to pulse such as pulse visualization, serialization and custom calibration support. For
@@ -23,9 +24,9 @@ deprecations_circuits:
       * :attr:`qiskit.dagcircuit.DAGDependency.calibrations`
 deprecations_qpy:
   - |
-    As part of the Qiskit Pulse package deprecation, serializing a :class:`qiskit.pulse.ScheduleBlock`-based payloads
-    is being deprecated. In particular, passing :class:`qiskit.pulse.ScheduleBlock` objects to the `programs` argument in
-    the :func:`qiskit.qpy.dump` function is being deprecated.
+    As part of the Qiskit Pulse package deprecation, serializing :class:`qiskit.pulse.ScheduleBlock`-based payloads
+    is also being deprecated. Particularly the passing of :class:`qiskit.pulse.ScheduleBlock` objects to the `programs`
+    argument in the :func:`qiskit.qpy.dump`.
 deprecations_transpiler:
   - |
     As part of the Qiskit Pulse package deprecation, pulse-related aspects in the :class:`qiskit.transpiler.Target` class are being deprecated. These include:
@@ -35,7 +36,7 @@ deprecations_transpiler:
       * :meth:`~qiskit.transpiler.Target.get_calibration`
       * :meth:`~qiskit.transpiler.Target.instruction_schedule_map`
 
-    In addition the following transpiler passer are also being deprecated:
+    In addition the following transpiler passes are also being deprecated:
       * :class:`~qiskit.transpiler.passes.PulseGates`
       * :class:`~qiskit.transpiler.passes.ValidatePulseGates`
       * :class:`~qiskit.transpiler.passes.RXCalibrationBuilder`

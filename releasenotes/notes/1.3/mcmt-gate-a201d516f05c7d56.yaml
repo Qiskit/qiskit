@@ -21,8 +21,8 @@ features_circuits:
       synthesized = transpile(circuit, hls_config=config)
 
 
-    The :class:`.MCMTGate` in addition also supports custom (i.e., open) control states of
-    the control qubits.
+    Additionally, the :class:`.MCMTGate` also supports custom (i.e., open) control states
+    of the control qubits.
 
 features_synthesis:
   - |

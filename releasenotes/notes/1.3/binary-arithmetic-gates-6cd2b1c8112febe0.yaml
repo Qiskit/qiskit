@@ -1,8 +1,8 @@
 ---
 features_circuits:
   - |
-    Added binary arithmetic gates for inplace addition two :math:`n`-qubit registers, that is
-    :math:`|a\rangle |b\rangle \mapsto |a\rangle |a+b\rangle`.
+    Added binary arithmetic gates for inplace addition of two :math:`n`-qubit registers,
+    that is :math:`|a\rangle |b\rangle \mapsto |a\rangle |a+b\rangle`.
     The :class:`.ModularAdderGate` implements addition modulo :math:`2^n`, the 
     :class:`.AdderGate` implements standard addition including a carry-out, and the 
     :class:`.FullAdderGate` includes a carry-in qubit. See the respective documentation for 

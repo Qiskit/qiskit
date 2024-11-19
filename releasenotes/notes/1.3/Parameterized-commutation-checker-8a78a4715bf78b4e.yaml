@@ -8,7 +8,7 @@ features_circuits:
     :class:`.U1Gate`,:class:`.CRXGate`,:class:`.CRYGate`,:class:`.CRZGate`,
     :class:`.CPhaseGate`.
 
-    Before these were only supported with bound parameters.
+    Before, these were only supported with bound parameters.
 
 
 
