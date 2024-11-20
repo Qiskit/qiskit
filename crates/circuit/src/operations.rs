@@ -384,7 +384,12 @@ impl Operation for StandardInstruction {
     }
 
     fn directive(&self) -> bool {
-        false
+        match self {
+            StandardInstruction::Barrier(_) => true,
+            StandardInstruction::Delay(_, _) => false,
+            StandardInstruction::Measure() => false,
+            StandardInstruction::Reset() => false,
+        }
     }
 }
 
