@@ -163,7 +163,7 @@ class TestPresetPassManager(QiskitTestCase):
         qc.measure_all()
         with self.assertWarnsRegex(
             DeprecationWarning,
-            "Providing custom gates through the ``basis_gates`` argument is deprecated",
+            "Providing non-standard gates \\(unitary\\) through the ``basis_gates`` argument",
         ):
             result = transpile(qc, basis_gates=["cx", "u", "unitary"], optimization_level=level)
         self.assertEqual(result, qc)
@@ -185,7 +185,7 @@ class TestPresetPassManager(QiskitTestCase):
         qc.measure_all()
         with self.assertWarnsRegex(
             DeprecationWarning,
-            "Providing custom gates through the ``basis_gates`` argument is deprecated",
+            "Providing non-standard gates \\(unitary\\) through the ``basis_gates`` argument",
         ):
             result = transpile(
                 qc,
@@ -1761,7 +1761,7 @@ class TestIntegrationControlFlow(QiskitTestCase):
             basis_gates = ["my_gate"]
             with self.assertWarnsRegex(
                 DeprecationWarning,
-                "Providing custom gates through the ``basis_gates`` argument is deprecated",
+                "Providing non-standard gates \\(my_gate\\) through the ``basis_gates`` argument",
             ):
                 _ = generate_preset_pass_manager(
                     optimization_level=optimization_level, basis_gates=basis_gates
