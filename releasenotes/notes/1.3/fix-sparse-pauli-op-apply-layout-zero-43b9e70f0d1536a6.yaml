@@ -1,7 +1,7 @@
 fixes:
   - |
     Fixed :meth:`.SparsePauliOp.apply_layout` to work correctly with zero-qubit operators.
-    For example, if you previously created a zero-qubit operator and applied a layout like::
+    For example, previously if you created a zero-qubit operator and applied a layout like the following, it would have raised an error::
     
         op = SparsePauliOp("")
         op.apply_layout(None, 3)

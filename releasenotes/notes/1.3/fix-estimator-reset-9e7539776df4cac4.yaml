@@ -4,7 +4,7 @@ features_primitives:
     :class:`.Estimator` and :class:`.StatevectorEstimator` return
     expectation values in a stochastic way if the input circuit includes
     a reset for some subsystems.
-    The result was previously not reproducible, but now it can be if a
+    The result was previously not reproducible, but now it can be reproduced if a
     random seed is set. For example::
 
       from qiskit.primitives import StatevectorEstimator
