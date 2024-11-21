@@ -15,13 +15,13 @@ features_quantum_info:
 
 features_synthesis:
   - |
-    Added :meth:`.ProductFormula.expand` which allows to view the expansion of a product formula
+    Added :meth:`.ProductFormula.expand`, which lets you view the expansion of a product formula
     in a sparse Pauli format.
   - |
     Added the plugin structure for the :class:`.PauliEvolutionGate`. The default plugin,
-    :class:`.PauliEvolutionSynthesisDefault`, constructs circuit as before, but faster as it
-    internally uses Rust. The larger the circuit (e.g. by the Hamiltonian size, the number 
-    of timesteps, or the Suzuki-Trotter order), the higher the speedup. For example,
+    :class:`.PauliEvolutionSynthesisDefault`, constructs circuit as before, but faster, as it
+    internally uses Rust. The larger the circuit (for example. by the Hamiltonian size, the number 
+    of timesteps, or the Suzuki-Trotter order), the greater the speedup. For example,
     a 100-qubit Heisenberg Hamiltonian with 10 timesteps and a 4th-order Trotter formula is 
     now constructed ~9.4x faster.
     The new plugin, :class:`.PauliEvolutionSynthesisRustiq`, uses
@@ -45,14 +45,14 @@ features_synthesis:
 
     This code snippet uses the ``"rustiq"`` plugin to synthesize :class:`.PauliEvolutionGate`
     objects in the quantum circuit `qc`. The plugin is called with the additional option
-    ``"upto_phase" = False`` allowing to obtain smaller circuits at the expense of possibly
-    not preserving the global phase. For the full list of supported options, see
+    ``"upto_phase" = False``, allowing you to obtain smaller circuits at the expense of possibly
+    not preserving the global phase. For the full list of supported options, see the
     documentation for :class:`.PauliEvolutionSynthesisRustiq`.
 
 upgrade:
   - | 
     The following classes now use the :math:`\sqrt{X}` operation to diagonalize the Pauli-Y
-    operator: :class:`.PauliEvolutionGate`, :class:`.EvolvedOperatorAnsatz`, 
+    operator: :class:`.PauliEvolutionGate`, :class:`.EvolvedOperatorAnsatz`, and  
     :class:`.PauliFeatureMap`. Previously, these classes used either :math:`H S` or
     :math:`R_X(-\pi/2)` as basis transformation. Using the :math:`\sqrt{X}` operation, 
     represented by the :class:`.SXGate` is more efficient as it uses only a single gate
