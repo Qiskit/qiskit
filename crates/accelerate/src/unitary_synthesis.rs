@@ -12,6 +12,8 @@
 #![allow(clippy::too_many_arguments)]
 
 use std::f64::consts::PI;
+#[cfg(feature = "cache_pygates")]
+use std::sync::OnceLock;
 
 use approx::relative_eq;
 use hashbrown::{HashMap, HashSet};
