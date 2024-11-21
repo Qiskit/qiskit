@@ -693,8 +693,8 @@ attributes of each of the control-flow operations.
 
     Set of the instruction names of Qiskit's known control-flow operations.
 
-In addition to this, the function :func:`.get_control_flow_name_mapping` returns a dictionary
-mapping the names of the control-flow operations to their corresponding classes."
+The :func:`.get_control_flow_name_mapping` function allows to access the control-flow operation
+classes associated to each name.
 
 .. autofunction:: get_control_flow_name_mapping
 
