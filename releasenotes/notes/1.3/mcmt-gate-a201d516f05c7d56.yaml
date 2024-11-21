@@ -6,7 +6,7 @@ features_circuits:
     circuit allows the compiler to select the best available implementation
     according to the number and the state of auxiliary qubits present in the circuit.
 
-    Specific implementation can be chosen by specifying the high-level synthesis plugin::
+    The desired implementation can be chosen by specifying the high-level synthesis plugin::
 
       from qiskit import QuantumCircuit, transpile
       from qiskit.circuit.library import MCMTGate, HGate

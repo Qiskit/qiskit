@@ -22,7 +22,7 @@ features_transpiler:
     * :class:`.MCXSynthesisDefault`, for choosing the most efficient synthesis
       method based on the number of clean and dirty ancilla qubits available.
 
-    As an example, consider how the transpilation of the following circuit::
+    As an example, consider the transpilation of the following circuit::
 
       from qiskit.circuit import QuantumCircuit
       from qiskit.compiler import transpile

@@ -6,5 +6,5 @@ fixes:
         op = SparsePauliOp("")
         op.apply_layout(None, 3)
 
-    this would have previously raised an error. Now this will correctly return an operator of the form:
+    Now, the above code correctly returns an operator of the following form::
     ``SparsePauliOp(['III'], coeffs=[1.+0.j])``

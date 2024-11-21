@@ -18,7 +18,7 @@ features_circuits:
 features_synthesis:
   - |
     Added :func:`.adder_qft_d00`, :func:`.adder_ripple_c04`, and :func:`.adder_ripple_v95`
-    to synthesize the adder gates, :class:`.ModularAdderGate`, :class:`.AdderGate`, and
+    to synthesize the adder gates, :class:`.ModularAdderGate`, :class:`.HalfAdderGate`, and
     :class:`.FullAdderGate`.
   - |
     Added :func:`.multiplier_cumulative_h18` and :func:`.multiplier_qft_r17`
