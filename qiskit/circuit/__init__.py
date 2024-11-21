@@ -1307,6 +1307,7 @@ from .controlflow import (
     BreakLoopOp,
     ContinueLoopOp,
     CONTROL_FLOW_OP_NAMES,
+    get_control_flow_name_mapping,
 )
 
 from .annotated_operation import AnnotatedOperation, InverseModifier, ControlModifier, PowerModifier
