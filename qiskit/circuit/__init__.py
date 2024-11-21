@@ -693,6 +693,11 @@ attributes of each of the control-flow operations.
 
     Set of the instruction names of Qiskit's known control-flow operations.
 
+In addition to this, the function :func:`.get_control_flow_name_mapping` returns a dictionary
+mapping the names of the control-flow operations to their corresponding classes."
+
+.. autofunction:: get_control_flow_name_mapping
+
 These control-flow operations (:class:`IfElseOp`, :class:`WhileLoopOp`,
 :class:`SwitchCaseOp` and :class:`ForLoopOp`) all have specific state that defines the branching
 conditions and strategies, but contain all the different subcircuit blocks that might be entered in

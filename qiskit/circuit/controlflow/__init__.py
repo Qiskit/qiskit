@@ -29,8 +29,8 @@ CONTROL_FLOW_OP_NAMES = frozenset(("for_loop", "while_loop", "if_else", "switch_
 
 
 def get_control_flow_name_mapping():
-    """Return a dictionary mapping the name of control-flow operations
-    to its corresponding class"
+    """Return a dictionary mapping the names of control-flow operations
+    to their corresponding classes."
 
     Examples:
 
