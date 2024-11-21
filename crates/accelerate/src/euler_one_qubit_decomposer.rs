@@ -581,7 +581,7 @@ pub fn generate_circuit(
 
 const EULER_BASIS_SIZE: usize = 12;
 
-static EULER_BASES: [&[&str]; EULER_BASIS_SIZE] = [
+pub static EULER_BASES: [&[&str]; EULER_BASIS_SIZE] = [
     &["u3"],
     &["u3", "u2", "u1"],
     &["u"],
@@ -595,7 +595,7 @@ static EULER_BASES: [&[&str]; EULER_BASIS_SIZE] = [
     &["rz", "sx", "x"],
     &["rz", "sx"],
 ];
-static EULER_BASIS_NAMES: [EulerBasis; EULER_BASIS_SIZE] = [
+pub static EULER_BASIS_NAMES: [EulerBasis; EULER_BASIS_SIZE] = [
     EulerBasis::U3,
     EulerBasis::U321,
     EulerBasis::U,
@@ -1242,7 +1242,8 @@ pub(crate) fn optimize_1q_gates_decomposition(
     Ok(())
 }
 
-fn matmul_1q(operator: &mut [[Complex64; 2]; 2], other: Array2<Complex64>) {
+#[inline(always)]
+pub fn matmul_1q(operator: &mut [[Complex64; 2]; 2], other: Array2<Complex64>) {
     *operator = [
         [
             other[[0, 0]] * operator[0][0] + other[[0, 1]] * operator[1][0],

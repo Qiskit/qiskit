@@ -86,7 +86,7 @@ def pauli_feature_map(
 
     which will produce blocks of the form
 
-    .. parsed-literal::
+    .. code-block:: text
 
         ┌───┐┌─────────────┐┌──────────┐                                            ┌───────────┐
         ┤ H ├┤ P(2.0*x[0]) ├┤ RX(pi/2) ├──■──────────────────────────────────────■──┤ RX(-pi/2) ├
@@ -160,9 +160,9 @@ def pauli_feature_map(
             data_map_func=data_map_func,
             alpha=alpha,
             insert_barriers=insert_barriers,
-        )
+        ),
+        name=name,
     )
-    circuit.name = name
 
     return circuit
 
@@ -183,7 +183,7 @@ def z_feature_map(
 
     On 3 qubits and with 2 repetitions the circuit is represented by:
 
-    .. parsed-literal::
+    .. code-block:: text
 
         ┌───┐┌─────────────┐┌───┐┌─────────────┐
         ┤ H ├┤ P(2.0*x[0]) ├┤ H ├┤ P(2.0*x[0]) ├
@@ -262,7 +262,7 @@ def zz_feature_map(
 
     For 3 qubits and 1 repetition and linear entanglement the circuit is represented by:
 
-    .. parsed-literal::
+    .. code-block:: text
 
         ┌───┐┌────────────────┐
         ┤ H ├┤ P(2.0*φ(x[0])) ├──■───────────────────────────■───────────────────────────────────
@@ -353,7 +353,7 @@ class PauliFeatureMap(NLocal):
 
     which will produce blocks of the form
 
-    .. parsed-literal::
+    .. code-block:: text
 
         ┌───┐┌─────────────┐┌──────────┐                                            ┌───────────┐
         ┤ H ├┤ P(2.0*x[0]) ├┤ RX(pi/2) ├──■──────────────────────────────────────■──┤ RX(-pi/2) ├
@@ -585,7 +585,10 @@ class PauliFeatureMap(NLocal):
                 if pauli == "X":
                     circuit.h(i)
                 elif pauli == "Y":
-                    circuit.rx(-np.pi / 2 if inverse else np.pi / 2, i)
+                    if inverse:
+                        circuit.sxdg(i)
+                    else:
+                        circuit.sx(i)
 
         def cx_chain(circuit, inverse=False):
             num_cx = len(indices) - 1
