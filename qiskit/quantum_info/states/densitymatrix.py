@@ -305,19 +305,17 @@ class DensityMatrix(QuantumState, TolerancesMixin):
 
     def evolve(
         self,
-        other: Operator | QuantumChannel | Instruction | QuantumCircuit,
+        other: Operator | QuantumChannel | circuit.instruction.Instruction | QuantumCircuit,
         qargs: list[int] | None = None,
     ) -> DensityMatrix:
         """Evolve a quantum state by an operator.
 
         Args:
-            other (Operator or QuantumChannel
-                   or Instruction or Circuit): The operator to evolve by.
-            qargs (list): a list of QuantumState subsystem positions to apply
-                           the operator on.
+            other: The operator to evolve by.
+            qargs: a list of QuantumState subsystem positions to apply the operator on.
 
         Returns:
-            DensityMatrix: the output density matrix.
+            The output density matrix.
 
         Raises:
             QiskitError: if the operator dimension does not match the
@@ -600,7 +598,9 @@ class DensityMatrix(QuantumState, TolerancesMixin):
         return DensityMatrix(state, dims=dims)
 
     @classmethod
-    def from_instruction(cls, instruction: Instruction | QuantumCircuit) -> DensityMatrix:
+    def from_instruction(
+        cls, instruction: circuit.instruction.Instruction | QuantumCircuit
+    ) -> DensityMatrix:
         """Return the output density matrix of an instruction.
 
         The statevector is initialized in the state :math:`|{0,\\ldots,0}\\rangle` of
@@ -608,10 +608,10 @@ class DensityMatrix(QuantumState, TolerancesMixin):
         by the input instruction, and the output statevector returned.
 
         Args:
-            instruction (qiskit.circuit.Instruction or QuantumCircuit): instruction or circuit
+            instruction: instruction or circuit
 
         Returns:
-            DensityMatrix: the final density matrix.
+            The final density matrix.
 
         Raises:
             QiskitError: if the instruction contains invalid instructions for
