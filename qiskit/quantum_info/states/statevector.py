@@ -18,6 +18,7 @@ import copy as _copy
 import math
 import re
 from numbers import Number
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -37,27 +38,26 @@ from qiskit._accelerate.pauli_expval import (
     expval_pauli_with_x,
 )
 
+if TYPE_CHECKING:
+    from qiskit import circuit
 
 class Statevector(QuantumState, TolerancesMixin):
     """Statevector class"""
 
     def __init__(
         self,
-        data: np.ndarray | list | Statevector | Operator | QuantumCircuit | Instruction,
+        data: np.ndarray | list | Statevector | Operator | QuantumCircuit | circuit.instruction.Instruction,
         dims: int | tuple | list | None = None,
     ):
         """Initialize a statevector object.
 
         Args:
-            data (np.array or list or Statevector or Operator or QuantumCircuit or
-                  qiskit.circuit.Instruction):
-                Data from which the statevector can be constructed. This can be either a complex
+            data: Data from which the statevector can be constructed. This can be either a complex
                 vector, another statevector, a ``Operator`` with only one column or a
                 ``QuantumCircuit`` or ``Instruction``.  If the data is a circuit or instruction,
                 the statevector is constructed by assuming that all qubits are initialized to the
                 zero state.
-            dims (int or tuple or list): Optional. The subsystem dimension of
-                                         the state (See additional information).
+            dims: The subsystem dimension of the state (See additional information).
 
         Raises:
             QiskitError: if input data is not valid.

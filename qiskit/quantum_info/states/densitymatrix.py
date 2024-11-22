@@ -17,9 +17,11 @@ DensityMatrix quantum state class.
 from __future__ import annotations
 import copy as _copy
 from numbers import Number
+from typing import TYPE_CHECKING
+
 import numpy as np
 
-from qiskit import _numpy_compat
+from qiskit import _numpy_compat, circuit
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.instruction import Instruction
 from qiskit.exceptions import QiskitError
@@ -37,27 +39,26 @@ from qiskit.quantum_info.operators.channel.superop import SuperOp
 from qiskit._accelerate.pauli_expval import density_expval_pauli_no_x, density_expval_pauli_with_x
 from qiskit.quantum_info.states.statevector import Statevector
 
+if TYPE_CHECKING:
+    from qiskit import circuit
 
 class DensityMatrix(QuantumState, TolerancesMixin):
     """DensityMatrix class"""
 
     def __init__(
         self,
-        data: np.ndarray | list | QuantumCircuit | Instruction | QuantumState,
+        data: np.ndarray | list | QuantumCircuit | circuit.instruction.Instruction | QuantumState,
         dims: int | tuple | list | None = None,
     ):
         """Initialize a density matrix object.
 
         Args:
-            data (np.ndarray or list or matrix_like or QuantumCircuit or
-                  qiskit.circuit.Instruction):
-                A statevector, quantum instruction or an object with a ``to_operator`` or
+            data: A statevector, quantum instruction or an object with a ``to_operator`` or
                 ``to_matrix`` method from which the density matrix can be constructed.
                 If a vector the density matrix is constructed as the projector of that vector.
                 If a quantum instruction, the density matrix is constructed by assuming all
                 qubits are initialized in the zero state.
-            dims (int or tuple or list): Optional. The subsystem dimension
-                    of the state (See additional information).
+            dims: The subsystem dimension of the state (See additional information).
 
         Raises:
             QiskitError: if input data is not valid.
