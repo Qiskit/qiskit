@@ -665,8 +665,8 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
         };
 
         'standard: {
-            // Our standard gates have a `_standard_gate` field at the class level so we can quickly
-            // identify them here without an `isinstance` check.
+            // Our Python standard gates have a `_standard_gate` field at the class level so we can
+            // quickly identify them here without an `isinstance` check.
             let Some(standard) = ob_type
                 .getattr(intern!(py, "_standard_gate"))
                 .and_then(|standard| standard.extract::<StandardGate>())
@@ -702,6 +702,10 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
             });
         }
         'standard_instr: {
+            // Our Python standard instructions have a `_standard_instruction_type` field at the
+            // class level so we can quickly identify them here without an `isinstance` check.
+            // Once we know the type, we query the object for any type-specific fields we need to
+            // read (e.g. a Barrier's number of qubits) to build the Rust representation.
             let Some(standard_type) = ob_type
                 .getattr(intern!(py, "_standard_instruction_type"))
                 .and_then(|standard| standard.extract::<StandardInstructionType>())
