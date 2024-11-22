@@ -79,8 +79,8 @@ unsafe impl ::bytemuck::NoUninit for PackedOperationType {}
 ///
 /// Explicitly, this is logical memory layout of `PackedOperation` on a 64-bit system, written out
 /// as a binary integer.  `x` marks padding bits with undefined values, `S` is the bits that make up
-/// a `StandardGate` or `StandardInstruction`, `D` is the data payload of a standard instruction,
-/// and `P` is bits that make up part of a pointer.
+/// a `StandardGate` or `StandardInstructionType`, `D` is the data payload of a standard
+/// instruction, and `P` is bits that make up part of a pointer.
 ///
 /// ```text
 /// Standard gate:
@@ -90,7 +90,7 @@ unsafe impl ::bytemuck::NoUninit for PackedOperationType {}
 ///                           Standard gate, stored inline as a u8. --+     +-- Discriminant.
 ///
 /// Standard instruction:
-/// 0b_xxxxxxxx_xxxxxxxx_xxxxxDDD_DDDDDDDD_DDDDDDDD_DDDDDDDD_DDDDDSSS_SSSSS000
+/// 0b_xxxxxxxx_xxxxxxxx_xxxxxDDD_DDDDDDDD_DDDDDDDD_DDDDDDDD_DDDDDSSS_SSSSS001
 ///                           |----------------------------------||-------||-|
 ///                                            |                      |     |
 ///         An optional 32 bit data payload. --+                      |     |
