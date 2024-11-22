@@ -16,7 +16,6 @@
 
 use pyo3::prelude::*;
 use pyo3::sync::GILOnceCell;
-use pyo3::types::PyTuple;
 
 use crate::operations::{StandardGate, STANDARD_GATE_SIZE};
 
@@ -298,5 +297,3 @@ pub fn get_std_gate_class(py: Python, rs_gate: StandardGate) -> PyResult<PyObjec
     }
     Ok(out_gate)
 }
-
-static STD_INSTRUCTION_TYPES: GILOnceCell<Py<PyTuple>> = GILOnceCell::new();
