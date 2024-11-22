@@ -715,7 +715,7 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
                     StandardInstruction::Barrier(num_qubits)
                 }
                 StandardInstructionType::Delay => {
-                    let unit = ob.getattr(intern!(py, "__unit"))?.extract()?;
+                    let unit = ob.getattr(intern!(py, "unit"))?.extract()?;
                     StandardInstruction::Delay(unit)
                 }
                 StandardInstructionType::Measure => StandardInstruction::Measure(),
