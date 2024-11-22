@@ -373,8 +373,8 @@ unsafe impl ::bytemuck::NoUninit for StandardInstructionType {}
 pub enum StandardInstruction {
     Barrier(usize),
     Delay(DelayUnit),
-    Measure(),
-    Reset(),
+    Measure,
+    Reset,
 }
 
 // This must be kept up-to-date with `StandardInstruction` when adding or removing
@@ -389,8 +389,8 @@ impl Operation for StandardInstruction {
         match self {
             StandardInstruction::Barrier(_) => "barrier",
             StandardInstruction::Delay(_) => "delay",
-            StandardInstruction::Measure() => "measure",
-            StandardInstruction::Reset() => "reset",
+            StandardInstruction::Measure => "measure",
+            StandardInstruction::Reset => "reset",
         }
     }
 
@@ -398,8 +398,8 @@ impl Operation for StandardInstruction {
         match self {
             StandardInstruction::Barrier(num_qubits) => *num_qubits as u32,
             StandardInstruction::Delay(_) => 1,
-            StandardInstruction::Measure() => 1,
-            StandardInstruction::Reset() => 1,
+            StandardInstruction::Measure => 1,
+            StandardInstruction::Reset => 1,
         }
     }
 
@@ -407,8 +407,8 @@ impl Operation for StandardInstruction {
         match self {
             StandardInstruction::Barrier(_) => 0,
             StandardInstruction::Delay(_) => 0,
-            StandardInstruction::Measure() => 1,
-            StandardInstruction::Reset() => 0,
+            StandardInstruction::Measure => 1,
+            StandardInstruction::Reset => 0,
         }
     }
 
@@ -440,8 +440,8 @@ impl Operation for StandardInstruction {
         match self {
             StandardInstruction::Barrier(_) => true,
             StandardInstruction::Delay(_) => false,
-            StandardInstruction::Measure() => false,
-            StandardInstruction::Reset() => false,
+            StandardInstruction::Measure => false,
+            StandardInstruction::Reset => false,
         }
     }
 }
@@ -470,8 +470,8 @@ impl StandardInstruction {
                     .get_bound(py)
                     .call1((duration.to_object(py), unit.to_string()))?
             }
-            StandardInstruction::Measure() => MEASURE.get_bound(py).call((), kwargs.as_ref())?,
-            StandardInstruction::Reset() => RESET.get_bound(py).call((), kwargs.as_ref())?,
+            StandardInstruction::Measure => MEASURE.get_bound(py).call((), kwargs.as_ref())?,
+            StandardInstruction::Reset => RESET.get_bound(py).call((), kwargs.as_ref())?,
         };
 
         if label.is_some() || unit.is_some() || duration.is_some() || condition.is_some() {

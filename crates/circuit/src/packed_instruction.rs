@@ -247,8 +247,8 @@ impl PackedOperation {
                         let unit: DelayUnit = ::bytemuck::checked::cast(payload(self) as u8);
                         Some(StandardInstruction::Delay(unit))
                     }
-                    StandardInstructionType::Measure => Some(StandardInstruction::Measure()),
-                    StandardInstructionType::Reset => Some(StandardInstruction::Reset()),
+                    StandardInstructionType::Measure => Some(StandardInstruction::Measure),
+                    StandardInstructionType::Reset => Some(StandardInstruction::Reset),
                 }
             }
             _ => None,
@@ -299,8 +299,8 @@ impl PackedOperation {
                 ((unit as usize) << Self::STANDARD_INSTRUCTION_BITS)
                     | (StandardInstructionType::Delay as usize)
             }
-            StandardInstruction::Measure() => StandardInstructionType::Measure as usize,
-            StandardInstruction::Reset() => StandardInstructionType::Reset as usize,
+            StandardInstruction::Measure => StandardInstructionType::Measure as usize,
+            StandardInstruction::Reset => StandardInstructionType::Reset as usize,
         };
         Self((body << Self::DISCRIMINANT_BITS) | PackedOperationType::StandardInstruction as usize)
     }
@@ -470,11 +470,11 @@ impl PackedOperation {
                         .get_bound(py)
                         .downcast::<PyType>()?
                         .is_subclass(py_type),
-                    StandardInstruction::Measure() => MEASURE
+                    StandardInstruction::Measure => MEASURE
                         .get_bound(py)
                         .downcast::<PyType>()?
                         .is_subclass(py_type),
-                    StandardInstruction::Reset() => RESET
+                    StandardInstruction::Reset => RESET
                         .get_bound(py)
                         .downcast::<PyType>()?
                         .is_subclass(py_type),

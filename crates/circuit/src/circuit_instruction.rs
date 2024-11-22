@@ -718,8 +718,8 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
                     let unit = ob.getattr(intern!(py, "unit"))?.extract()?;
                     StandardInstruction::Delay(unit)
                 }
-                StandardInstructionType::Measure => StandardInstruction::Measure(),
-                StandardInstructionType::Reset => StandardInstruction::Reset(),
+                StandardInstructionType::Measure => StandardInstruction::Measure,
+                StandardInstructionType::Reset => StandardInstruction::Reset,
             };
             return Ok(OperationFromPython {
                 operation: PackedOperation::from_standard_instruction(standard),
