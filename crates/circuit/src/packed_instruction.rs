@@ -102,26 +102,27 @@ unsafe impl ::bytemuck::NoUninit for PackedOperationType {}
 ///     number of qubits in a Barrier and the unit of a Delay.
 ///
 /// Pointer to object:
-/// 0b_PPPPPPPP_PPPPPPPP_PPPPPPPP_PPPPPPPP_PPPPPPPP_PPPPPPPP_PPPPPPPP_PPPP010
-///    |------------------------------------------------------------------|||
+/// 0b_PPPPPPPP_PPPPPPPP_PPPPPPPP_PPPPPPPP_PPPPPPPP_PPPPPPPP_PPPPPPPP_PPPP011
+///    |-----------------------------------------------------------------||-|
 ///                                   |                                    |
 ///    The high 62 bits of the pointer.  Because of alignment, the low 3   |   Discriminant of the
-///    bits of the full 64 bits are guaranteed to be zero (so one marked   +-- enumeration.  This
-///    `P` is always zero here), so we can retrieve the "full" pointer by      is 0b10, which means
-///    taking the whole `usize` and zeroing the low 3 bits, letting us         that this points to
-///    store the discriminant in there at other times.                         a `PyInstruction`.
+///    bits of the full 64 bits are guaranteed to be zero so we can        +-- enumeration.  This
+///    retrieve the "full" pointer by taking the whole `usize` and zeroing     is 0b011, which means
+///    the low 3 bits, letting us store the discriminant in there at other     that this points to
+///    times.                                                                  a `PyInstruction`.
 /// ```
 ///
 /// # Construction
 ///
 /// From Rust space, build this type using one of the `from_*` methods, depending on which
-/// implementer of `Operation` you have.  `StandardGate` has an implementation of `Into` for this.
+/// implementer of `Operation` you have.  `StandardGate` and `StandardInstruction` have
+/// implementations of `Into` for this.
 ///
 /// From Python space, use the supplied `FromPyObject`.
 ///
 /// # Safety
 ///
-/// `PackedOperation` asserts ownership over its contained pointer (if not a `StandardGate`).  This
+/// `PackedOperation` asserts ownership over its contained pointer (if it contains one).  This
 /// has the following requirements:
 ///
 /// * The pointer must be managed by a `Box` using the global allocator.
@@ -141,15 +142,17 @@ impl PackedOperation {
     /// A bitmask that masks out only the standard gate information.  This should always have the
     /// same effect as `POINTER_MASK` because the high bits should be 0 for a `StandardGate`, but
     /// this is defensive against us adding further metadata on `StandardGate` later.  After
-    /// masking, the resulting integer still needs shifting downwards to retrieve the standard gate.
+    /// masking, the resulting integer still needs shifting downwards by the width of the
+    /// discriminant, `DISCRIMINANT_BITS`.
     const STANDARD_GATE_MASK: usize = (u8::MAX as usize) << Self::DISCRIMINANT_BITS;
-    /// A bitmask that masks out only the standard instruction type.  After masking, the resulting
-    /// integer must be shifted downwards by the width of the discriminant.
+    /// A bitmask that masks out only the standard instruction type.  After masking, the result must
+    /// shifted downwards by `DISCRIMINANT_BITS`.
     const STANDARD_INSTRUCTION_MASK: usize = (u8::MAX as usize) << Self::DISCRIMINANT_BITS;
     /// The number of bits used to store the standard instruction type.
     const STANDARD_INSTRUCTION_BITS: u32 = Self::STANDARD_INSTRUCTION_MASK.count_ones();
-    /// A bitmask that masks out a standard instruction's payload data. After masking, the resulting
-    /// integer must be shifted downwards again by the payload shift amount.
+    /// A bitmask that masks out a standard instruction's payload data. After masking, the result
+    /// must be shifted downwards again by the payload shift amount, which is
+    /// `(STANDARD_INSTRUCTION_BITS + DISCRIMINANT_BITS)`.
     const STANDARD_INSTRUCTION_PAYLOAD_MASK: usize =
         (u32::MAX as usize) << (Self::STANDARD_INSTRUCTION_BITS + Self::DISCRIMINANT_BITS);
     /// A bitmask that retrieves the stored pointer directly.  The discriminant is stored in the
@@ -550,6 +553,13 @@ impl From<StandardGate> for PackedOperation {
     #[inline]
     fn from(value: StandardGate) -> Self {
         Self::from_standard(value)
+    }
+}
+
+impl From<StandardInstruction> for PackedOperation {
+    #[inline]
+    fn from(value: StandardInstruction) -> Self {
+        Self::from_standard_instruction(value)
     }
 }
 
