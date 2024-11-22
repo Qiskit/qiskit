@@ -348,8 +348,8 @@ impl<'py> FromPyObject<'py> for DelayUnit {
 /// An internal type used to further discriminate the payload of a `PackedOperation` when its
 /// discriminant is `PackedOperationType::StandardInstruction`.
 ///
-/// This is also used to tag standard instructions via the `_standard_instruction` class attribute
-/// in the corresponding Python class.
+/// This is also used to tag standard instructions via the `_standard_instruction_type` class
+/// attribute in the corresponding Python class.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[pyclass(module = "qiskit._accelerate.circuit", eq, eq_int)]
 #[repr(u8)]
