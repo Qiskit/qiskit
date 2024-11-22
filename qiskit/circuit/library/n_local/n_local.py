@@ -1109,11 +1109,11 @@ class NLocal(BlueprintCircuit):
                     if k not in skipped_blocks
                 )
                 for qubits in all_qubits:
-                    instr = CircuitInstruction(
-                        simple_block.gate(*itertools.islice(param_iter, simple_block.num_params)),
+                    circuit._append_standard_gate(
+                        simple_block.gate,
                         qubits,
+                        [next(param_iter) for _ in range(simple_block.num_params)],
                     )
-                    circuit._append(instr)
             else:
                 block_indices = [
                     list(range(k * block.num_qubits, (k + 1) * block.num_qubits))
@@ -1139,11 +1139,12 @@ class NLocal(BlueprintCircuit):
                     # It's actually nontrivially faster to use a listcomp and pass that to `tuple`
                     # than to pass a generator expression directly.
                     # pylint: disable=consider-using-generator
-                    instr = CircuitInstruction(
-                        simple_block.gate(*itertools.islice(param_iter, simple_block.num_params)),
-                        tuple([target_qubits[i] for i in indices]),
+                    qubits = tuple([target_qubits[i] for i in indices])
+                    circuit._append_standard_gate(
+                        simple_block.gate,
+                        qubits,
+                        [next(param_iter) for _ in range(simple_block.num_params)],
                     )
-                    circuit._append(instr)
             else:
                 # apply the operations in the layer
                 for indices in entangler_map:
@@ -1277,7 +1278,6 @@ def get_entangler_map(
 
 
 _StdlibGateResult = collections.namedtuple("_StdlibGateResult", ("gate", "num_params"))
-_STANDARD_GATE_MAPPING = get_standard_gate_name_mapping()
 
 
 def _stdlib_gate_from_simple_block(block: QuantumCircuit) -> _StdlibGateResult | None:
@@ -1291,14 +1291,13 @@ def _stdlib_gate_from_simple_block(block: QuantumCircuit) -> _StdlibGateResult |
     if (
         instruction.clbits
         or tuple(instruction.qubits) != tuple(block.qubits)
-        or (
-            getattr(_STANDARD_GATE_MAPPING.get(instruction.operation.name), "base_class", None)
-            is not instruction.operation.base_class
-        )
+        or getattr(instruction.operation, "_standard_gate", None) is None
         or tuple(instruction.operation.params) != tuple(block.parameters)
     ):
         return None
-    return _StdlibGateResult(instruction.operation.base_class, len(instruction.operation.params))
+    return _StdlibGateResult(
+        instruction.operation._standard_gate, len(instruction.operation.params)
+    )
 
 
 def _normalize_entanglement(

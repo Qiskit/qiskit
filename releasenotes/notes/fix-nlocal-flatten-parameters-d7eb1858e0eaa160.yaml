@@ -1,0 +1,18 @@
+---
+fixes:
+  - |
+    Fixed a bug in :class:`.NLocal` and derivatives, occurring when ``flatten=True`` was set
+    and standard gates backed by Rust were used. When binding parameters in-place to such a
+    circuit, the new parameter values were not correctly propagated to the circuit instructions.
+
+    The circuit could still be compiled and used as expected, however, inspecting the individual
+    operations would still show the old parameter values. For example::
+
+      from qiskit.circuit.library import EfficientSU2
+
+      circuit = EfficientSU2(2, flatten=True)
+      circuit.assign_parameters([1.25] * circuit.num_parameters, inplace=True)
+
+      print(circuit.data[0].operation.params)  # would print θ[0] instead of 1.25
+
+    Fixed `#13478 <https://github.com/Qiskit/qiskit/issues/13478>`__.
