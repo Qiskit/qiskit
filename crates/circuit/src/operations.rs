@@ -26,6 +26,7 @@ use smallvec::{smallvec, SmallVec};
 
 use numpy::IntoPyArray;
 use numpy::PyReadonlyArray2;
+use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyFloat, PyIterator, PyList, PyTuple};
 use pyo3::{intern, IntoPy, Python};
@@ -289,7 +290,6 @@ impl<'a> Operation for OperationRef<'a> {
 
 #[derive(Clone, Debug, Copy, Eq, PartialEq, Hash)]
 #[repr(u8)]
-#[pyclass(module = "qiskit._accelerate.circuit", eq, eq_int)]
 pub enum DelayUnit {
     NS,
     PS,
@@ -325,8 +325,51 @@ impl fmt::Display for DelayUnit {
     }
 }
 
+impl<'py> FromPyObject<'py> for DelayUnit {
+    fn extract_bound(b: &Bound<'py, PyAny>) -> Result<Self, PyErr> {
+        let str: String = b.extract()?;
+        Ok(match str.as_str() {
+            "ns" => DelayUnit::NS,
+            "ps" => DelayUnit::PS,
+            "us" => DelayUnit::US,
+            "ms" => DelayUnit::MS,
+            "s" => DelayUnit::S,
+            "dt" => DelayUnit::DT,
+            unknown_unit => {
+                return Err(PyValueError::new_err(format!(
+                    "Unit '{}' is invalid.",
+                    unknown_unit
+                )));
+            }
+        })
+    }
+}
+
+/// An internal type used to further discriminate the payload of a `PackedOperation` when its
+/// discriminant is `PackedOperationType::StandardInstruction`.
+///
+/// This is also used to tag standard instructions via the `_standard_instruction` class attribute
+/// in the corresponding Python class.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[pyclass(module = "qiskit._accelerate.circuit", eq, eq_int)]
+#[repr(u8)]
+pub(crate) enum StandardInstructionType {
+    Barrier = 0,
+    Delay = 1,
+    Measure = 2,
+    Reset = 3,
+}
+
+unsafe impl ::bytemuck::CheckedBitPattern for StandardInstructionType {
+    type Bits = u8;
+
+    fn is_valid_bit_pattern(bits: &Self::Bits) -> bool {
+        *bits < 4
+    }
+}
+unsafe impl ::bytemuck::NoUninit for StandardInstructionType {}
+
 #[derive(Clone, Debug, Copy, Eq, PartialEq, Hash)]
-#[pyclass(module = "qiskit._accelerate.circuit", eq)]
 pub enum StandardInstruction {
     Barrier(usize),
     Delay(DelayUnit),
@@ -400,14 +443,6 @@ impl Operation for StandardInstruction {
             StandardInstruction::Measure() => false,
             StandardInstruction::Reset() => false,
         }
-    }
-}
-
-#[pymethods]
-impl StandardInstruction {
-    fn __getstate__(&self, py: Python) -> PyObject {
-        let siasdfe = *self as usize;
-        siasdfe.into_py(py)
     }
 }
 

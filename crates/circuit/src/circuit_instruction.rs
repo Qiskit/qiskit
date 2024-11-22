@@ -27,7 +27,7 @@ use crate::imports::{
 };
 use crate::operations::{
     Operation, OperationRef, Param, PyGate, PyInstruction, PyOperation, StandardGate,
-    StandardInstruction,
+    StandardInstruction, StandardInstructionType,
 };
 use crate::packed_instruction::PackedOperation;
 
@@ -702,21 +702,25 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
             });
         }
         'standard_instr: {
-            // We check the *instance* for a `_standard_instruction` field since standard
-            // instructions (unlike standard gates) can have a payload and are thus stateful.
-            let Some(standard) = ob
-                .getattr(intern!(py, "_standard_instruction"))
-                .and_then(|standard| standard.extract::<StandardInstruction>())
+            let Some(standard_type) = ob_type
+                .getattr(intern!(py, "_standard_instruction_type"))
+                .and_then(|standard| standard.extract::<StandardInstructionType>())
                 .ok()
             else {
                 break 'standard_instr;
             };
-            match standard {
-                StandardInstruction::Barrier(num_bits) => {
-                    println!("Extracted barrier with size {:?}", num_bits);
+            let standard = match standard_type {
+                StandardInstructionType::Barrier => {
+                    let num_qubits = ob.getattr(intern!(py, "num_qubits"))?.extract()?;
+                    StandardInstruction::Barrier(num_qubits)
                 }
-                _ => ()
-            }
+                StandardInstructionType::Delay => {
+                    let unit = ob.getattr(intern!(py, "__unit"))?.extract()?;
+                    StandardInstruction::Delay(unit)
+                }
+                StandardInstructionType::Measure => StandardInstruction::Measure(),
+                StandardInstructionType::Reset => StandardInstruction::Reset(),
+            };
             return Ok(OperationFromPython {
                 operation: PackedOperation::from_standard_instruction(standard),
                 params: extract_params()?,

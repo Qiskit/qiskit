@@ -21,7 +21,7 @@ from __future__ import annotations
 from qiskit.exceptions import QiskitError
 from qiskit.utils import deprecate_func
 from .instruction import Instruction
-from qiskit._accelerate.circuit import StandardInstruction
+from qiskit._accelerate.circuit import StandardInstructionType
 
 
 class Barrier(Instruction):
@@ -32,6 +32,7 @@ class Barrier(Instruction):
     """
 
     _directive = True
+    _standard_instruction_type = StandardInstructionType.Barrier
 
     def __init__(self, num_qubits: int, label: str | None = None):
         """
@@ -41,7 +42,6 @@ class Barrier(Instruction):
         """
         self._label = label
         super().__init__("barrier", num_qubits, 0, [], label=label)
-        self._standard_instruction = StandardInstruction.Barrier(num_qubits)
 
     def inverse(self, annotated: bool = False):
         """Special case. Return self."""

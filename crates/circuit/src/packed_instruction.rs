@@ -28,7 +28,7 @@ use crate::imports::{get_std_gate_class, BARRIER, DEEPCOPY, DELAY, MEASURE, RESE
 use crate::interner::Interned;
 use crate::operations::{
     DelayUnit, Operation, OperationRef, Param, PyGate, PyInstruction, PyOperation, StandardGate,
-    StandardInstruction,
+    StandardInstruction, StandardInstructionType,
 };
 use crate::{Clbit, Qubit};
 
@@ -56,26 +56,6 @@ unsafe impl ::bytemuck::CheckedBitPattern for PackedOperationType {
     }
 }
 unsafe impl ::bytemuck::NoUninit for PackedOperationType {}
-
-/// A private type used to further discriminate the payload of a `PackedOperation` when its
-/// discriminant is `PackedOperationType::StandardInstruction`.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[repr(u8)]
-enum StandardInstructionType {
-    Barrier = 0,
-    Delay = 1,
-    Measure = 2,
-    Reset = 3,
-}
-
-unsafe impl ::bytemuck::CheckedBitPattern for StandardInstructionType {
-    type Bits = u8;
-
-    fn is_valid_bit_pattern(bits: &Self::Bits) -> bool {
-        *bits < 4
-    }
-}
-unsafe impl ::bytemuck::NoUninit for StandardInstructionType {}
 
 /// A bit-packed `OperationType` enumeration.
 ///
@@ -171,7 +151,7 @@ impl PackedOperation {
     /// A bitmask that masks out a standard instruction's payload data. After masking, the resulting
     /// integer must be shifted downwards again by the payload shift amount.
     const STANDARD_INSTRUCTION_PAYLOAD_MASK: usize =
-        (u32::MAX as usize) << Self::STANDARD_INSTRUCTION_BITS + Self::DISCRIMINANT_BITS;
+        (u32::MAX as usize) << (Self::STANDARD_INSTRUCTION_BITS + Self::DISCRIMINANT_BITS);
     /// A bitmask that retrieves the stored pointer directly.  The discriminant is stored in the
     /// low pointer bits that are guaranteed to be 0 by alignment, so no shifting is required.
     const POINTER_MASK: usize = usize::MAX ^ Self::DISCRIMINANT_MASK;

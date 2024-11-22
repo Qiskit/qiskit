@@ -16,11 +16,13 @@ Quantum measurement in the computational basis.
 
 from qiskit.circuit.singleton import SingletonInstruction, stdlib_singleton_key
 from qiskit.circuit.exceptions import CircuitError
-from qiskit._accelerate.circuit import StandardInstruction
+from qiskit._accelerate.circuit import StandardInstructionType
 
 
 class Measure(SingletonInstruction):
     """Quantum measurement in the computational basis."""
+
+    _standard_instruction_type = StandardInstructionType.Measure
 
     def __init__(self, label=None, *, duration=None, unit="dt"):
         """
@@ -28,8 +30,6 @@ class Measure(SingletonInstruction):
             label: optional string label for this instruction.
         """
         super().__init__("measure", 1, 1, [], label=label, duration=duration, unit=unit)
-        # TODO: store stateless standard instructions like measure on the class
-        self._standard_instruction = StandardInstruction.Measure
 
     _singleton_lookup_key = stdlib_singleton_key()
 
