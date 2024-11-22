@@ -253,25 +253,6 @@ static STDGATE_IMPORT_PATHS: [[&str; 2]; STANDARD_GATE_SIZE] = [
     ["qiskit.circuit.library.standard_gates.x", "RC3XGate"],
 ];
 
-// /// A mapping from the enum variant in crate::operations::StandardInstruction to the python
-// /// module path and class name to import it. This is used to populate the conversion table
-// /// when a gate is added directly via the StandardInstruction path and there isn't a Python object
-// /// to poll the _standard_instruction attribute for.
-// ///
-// /// NOTE: the order here is significant, the StandardInstruction variant's number must match
-// /// index of it's entry in this table. This is all done statically for performance
-// // TODO: replace placeholders with actual implementation
-// static STDINSTRUCTION_IMPORT_PATHS: [[&str; 2]; STANDARD_INSTRUCTION_SIZE] = [
-//     // Barrier = 0
-//     ["qiskit.circuit", "Barrier"],
-//     // Delay = 1
-//     ["qiskit.circuit", "Delay"],
-//     // Measure = 2
-//     ["qiskit.circuit", "Measure"],
-//     // Reset = 3
-//     ["qiskit.circuit", "Reset"],
-// ];
-
 /// A mapping from the enum variant in crate::operations::StandardGate to the python object for the
 /// class that matches it. This is typically used when we need to convert from the internal rust
 /// representation to a Python object for a python user to interact with.
@@ -280,15 +261,6 @@ static STDGATE_IMPORT_PATHS: [[&str; 2]; STANDARD_GATE_SIZE] = [
 /// index of it's entry in this table. This is all done statically for performance
 static mut STDGATE_PYTHON_GATES: GILOnceCell<[Option<PyObject>; STANDARD_GATE_SIZE]> =
     GILOnceCell::new();
-
-// /// A mapping from the enum variant in crate::operations::StandardInstruction to the python object for the
-// /// class that matches it. This is typically used when we need to convert from the internal rust
-// /// representation to a Python object for a python user to interact with.
-// ///
-// /// NOTE: the order here is significant it must match the StandardInstruction variant's number must match
-// /// index of it's entry in this table. This is all done statically for performance
-// static mut STDINSTRUCTION_PYTHON_GATES: GILOnceCell<[Option<PyObject>; STANDARD_INSTRUCTION_SIZE]> =
-//     GILOnceCell::new();
 
 #[inline]
 pub fn populate_std_gate_map(py: Python, rs_gate: StandardGate, py_gate: PyObject) {
@@ -307,24 +279,6 @@ pub fn populate_std_gate_map(py: Python, rs_gate: StandardGate, py_gate: PyObjec
         gate_map[rs_gate as usize] = Some(py_gate.clone_ref(py));
     }
 }
-//
-// #[inline]
-// pub fn populate_std_instruction_map(py: Python, rs_instr: StandardInstruction, py_instr: PyObject) {
-//     let instr_map = unsafe {
-//         match STDINSTRUCTION_PYTHON_GATES.get_mut() {
-//             Some(gate_map) => gate_map,
-//             None => {
-//                 let array: [Option<PyObject>; STANDARD_INSTRUCTION_SIZE] = std::array::from_fn(|_| None);
-//                 STDINSTRUCTION_PYTHON_GATES.set(py, array).unwrap();
-//                 STDINSTRUCTION_PYTHON_GATES.get_mut().unwrap()
-//             }
-//         }
-//     };
-//     let instr_cls = &instr_map[rs_instr as usize];
-//     if instr_cls.is_none() {
-//         instr_map[rs_instr as usize] = Some(py_instr.clone_ref(py));
-//     }
-// }
 
 #[inline]
 pub fn get_std_gate_class(py: Python, rs_gate: StandardGate) -> PyResult<PyObject> {
@@ -346,20 +300,3 @@ pub fn get_std_gate_class(py: Python, rs_gate: StandardGate) -> PyResult<PyObjec
 }
 
 static STD_INSTRUCTION_TYPES: GILOnceCell<Py<PyTuple>> = GILOnceCell::new();
-
-pub fn get_std_instruction_types(py: Python) -> &Bound<PyTuple> {
-    STD_INSTRUCTION_TYPES
-        .get_or_init(py, || {
-            PyTuple::new_bound(
-                py,
-                [
-                    BARRIER.get_bound(py),
-                    DELAY.get_bound(py),
-                    MEASURE.get_bound(py),
-                    RESET.get_bound(py),
-                ],
-            )
-            .unbind()
-        })
-        .bind(py)
-}
