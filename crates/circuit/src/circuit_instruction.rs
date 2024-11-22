@@ -333,9 +333,9 @@ impl CircuitInstruction {
             OperationRef::Standard(standard) => standard
                 .create_py_op(py, Some(&self.params), &self.extra_attrs)?
                 .into_any(),
-            OperationRef::StandardInstruction(instruction) => {
-                instruction.create_py_op(py, &self.extra_attrs)?.into_any()
-            }
+            OperationRef::StandardInstruction(instruction) => instruction
+                .create_py_op(py, Some(&self.params), &self.extra_attrs)?
+                .into_any(),
             OperationRef::Gate(gate) => gate.gate.clone_ref(py),
             OperationRef::Instruction(instruction) => instruction.instruction.clone_ref(py),
             OperationRef::Operation(operation) => operation.operation.clone_ref(py),
@@ -711,6 +711,12 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
             else {
                 break 'standard_instr;
             };
+            match standard {
+                StandardInstruction::Barrier(num_bits) => {
+                    println!("Extracted barrier with size {:?}", num_bits);
+                }
+                _ => ()
+            }
             return Ok(OperationFromPython {
                 operation: PackedOperation::from_standard_instruction(standard),
                 params: extract_params()?,

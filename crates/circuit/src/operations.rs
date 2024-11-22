@@ -199,7 +199,7 @@ impl<'a> Operation for OperationRef<'a> {
     fn num_qubits(&self) -> u32 {
         match self {
             Self::Standard(standard) => standard.num_qubits(),
-            Self::StandardInstruction(instruction) => instruction.num_clbits(),
+            Self::StandardInstruction(instruction) => instruction.num_qubits(),
             Self::Gate(gate) => gate.num_qubits(),
             Self::Instruction(instruction) => instruction.num_qubits(),
             Self::Operation(operation) => operation.num_qubits(),
@@ -288,6 +288,7 @@ impl<'a> Operation for OperationRef<'a> {
 }
 
 #[derive(Clone, Debug, Copy, Eq, PartialEq, Hash)]
+#[repr(u8)]
 #[pyclass(module = "qiskit._accelerate.circuit", eq, eq_int)]
 pub enum DelayUnit {
     NS,
@@ -297,6 +298,15 @@ pub enum DelayUnit {
     S,
     DT,
 }
+
+unsafe impl ::bytemuck::CheckedBitPattern for DelayUnit {
+    type Bits = u8;
+
+    fn is_valid_bit_pattern(bits: &Self::Bits) -> bool {
+        *bits < 6
+    }
+}
+unsafe impl ::bytemuck::NoUninit for DelayUnit {}
 
 impl fmt::Display for DelayUnit {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -319,7 +329,7 @@ impl fmt::Display for DelayUnit {
 #[pyclass(module = "qiskit._accelerate.circuit", eq)]
 pub enum StandardInstruction {
     Barrier(usize),
-    Delay(usize, DelayUnit),
+    Delay(DelayUnit),
     Measure(),
     Reset(),
 }
@@ -335,7 +345,7 @@ impl Operation for StandardInstruction {
     fn name(&self) -> &str {
         match self {
             StandardInstruction::Barrier(_) => "barrier",
-            StandardInstruction::Delay(_, _) => "delay",
+            StandardInstruction::Delay(_) => "delay",
             StandardInstruction::Measure() => "measure",
             StandardInstruction::Reset() => "reset",
         }
@@ -344,7 +354,7 @@ impl Operation for StandardInstruction {
     fn num_qubits(&self) -> u32 {
         match self {
             StandardInstruction::Barrier(num_qubits) => *num_qubits as u32,
-            StandardInstruction::Delay(_, _) => 1,
+            StandardInstruction::Delay(_) => 1,
             StandardInstruction::Measure() => 1,
             StandardInstruction::Reset() => 1,
         }
@@ -353,7 +363,7 @@ impl Operation for StandardInstruction {
     fn num_clbits(&self) -> u32 {
         match self {
             StandardInstruction::Barrier(_) => 0,
-            StandardInstruction::Delay(_, _) => 0,
+            StandardInstruction::Delay(_) => 0,
             StandardInstruction::Measure() => 1,
             StandardInstruction::Reset() => 0,
         }
@@ -371,11 +381,11 @@ impl Operation for StandardInstruction {
         vec![]
     }
 
-    fn matrix(&self, params: &[Param]) -> Option<Array2<Complex64>> {
+    fn matrix(&self, _params: &[Param]) -> Option<Array2<Complex64>> {
         None
     }
 
-    fn definition(&self, params: &[Param]) -> Option<CircuitData> {
+    fn definition(&self, _params: &[Param]) -> Option<CircuitData> {
         None
     }
 
@@ -386,10 +396,18 @@ impl Operation for StandardInstruction {
     fn directive(&self) -> bool {
         match self {
             StandardInstruction::Barrier(_) => true,
-            StandardInstruction::Delay(_, _) => false,
+            StandardInstruction::Delay(_) => false,
             StandardInstruction::Measure() => false,
             StandardInstruction::Reset() => false,
         }
+    }
+}
+
+#[pymethods]
+impl StandardInstruction {
+    fn __getstate__(&self, py: Python) -> PyObject {
+        let siasdfe = *self as usize;
+        siasdfe.into_py(py)
     }
 }
 
@@ -397,6 +415,7 @@ impl StandardInstruction {
     pub fn create_py_op(
         &self,
         py: Python,
+        params: Option<&[Param]>,
         extra_attrs: &ExtraInstructionAttributes,
     ) -> PyResult<Py<PyAny>> {
         let (label, unit, duration, condition) = (
@@ -410,9 +429,12 @@ impl StandardInstruction {
             StandardInstruction::Barrier(num_qubits) => BARRIER
                 .get_bound(py)
                 .call1((num_qubits.into_py(py), label.to_object(py)))?,
-            StandardInstruction::Delay(duration, unit) => DELAY
-                .get_bound(py)
-                .call1((duration.into_py(py), unit.to_string()))?,
+            StandardInstruction::Delay(unit) => {
+                let duration = &params.unwrap()[0];
+                DELAY
+                    .get_bound(py)
+                    .call1((duration.to_object(py), unit.to_string()))?
+            }
             StandardInstruction::Measure() => MEASURE.get_bound(py).call((), kwargs.as_ref())?,
             StandardInstruction::Reset() => RESET.get_bound(py).call((), kwargs.as_ref())?,
         };
@@ -441,27 +463,6 @@ impl StandardInstruction {
             }
         }
         Ok(out.unbind())
-    }
-
-    pub fn num_ctrl_qubits(&self) -> u32 {
-        todo!()
-    }
-
-    pub fn inverse(&self, params: &[Param]) -> Option<(StandardInstruction, SmallVec<[Param; 3]>)> {
-        match self {
-            StandardInstruction::Barrier(num_qubits) => {
-                Some((StandardInstruction::Barrier(*num_qubits), smallvec![]))
-            }
-            StandardInstruction::Delay(_, _) => {
-                todo!()
-            }
-            StandardInstruction::Measure() => {
-                todo!()
-            }
-            StandardInstruction::Reset() => {
-                todo!()
-            }
-        }
     }
 }
 
