@@ -35,6 +35,7 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 if TYPE_CHECKING:
     from qiskit import circuit
 
+
 class PTM(QuantumChannel):
     r"""Pauli Transfer Matrix (PTM) representation of a Quantum Channel.
 

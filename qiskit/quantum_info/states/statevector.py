@@ -41,12 +41,20 @@ from qiskit._accelerate.pauli_expval import (
 if TYPE_CHECKING:
     from qiskit import circuit
 
+
 class Statevector(QuantumState, TolerancesMixin):
     """Statevector class"""
 
     def __init__(
         self,
-        data: np.ndarray | list | Statevector | Operator | QuantumCircuit | circuit.instruction.Instruction,
+        data: (
+            np.ndarray
+            | list
+            | Statevector
+            | Operator
+            | QuantumCircuit
+            | circuit.instruction.Instruction
+        ),
         dims: int | tuple | list | None = None,
     ):
         """Initialize a statevector object.

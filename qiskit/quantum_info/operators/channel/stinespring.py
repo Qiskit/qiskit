@@ -37,6 +37,7 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 if TYPE_CHECKING:
     from qiskit import circuit
 
+
 class Stinespring(QuantumChannel):
     r"""Stinespring representation of a quantum channel.
 

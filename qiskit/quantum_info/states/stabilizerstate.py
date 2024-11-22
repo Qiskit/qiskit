@@ -32,6 +32,7 @@ from qiskit.circuit import QuantumCircuit, Instruction
 if TYPE_CHECKING:
     from qiskit import circuit
 
+
 class StabilizerState(QuantumState):
     """StabilizerState class.
     Stabilizer simulator using the convention from reference [1].

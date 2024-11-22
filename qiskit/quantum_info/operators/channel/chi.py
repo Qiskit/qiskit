@@ -36,6 +36,7 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 if TYPE_CHECKING:
     from qiskit import circuit
 
+
 class Chi(QuantumChannel):
     r"""Pauli basis Chi-matrix representation of a quantum channel.
 

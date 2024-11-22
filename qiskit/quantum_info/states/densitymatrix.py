@@ -21,7 +21,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from qiskit import _numpy_compat, circuit
+from qiskit import _numpy_compat
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.instruction import Instruction
 from qiskit.exceptions import QiskitError
@@ -41,6 +41,7 @@ from qiskit.quantum_info.states.statevector import Statevector
 
 if TYPE_CHECKING:
     from qiskit import circuit
+
 
 class DensityMatrix(QuantumState, TolerancesMixin):
     """DensityMatrix class"""
