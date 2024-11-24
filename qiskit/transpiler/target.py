@@ -662,6 +662,7 @@ class Target(BaseTarget):
         Args:
             operation_name: The name of the operation for the instruction.
             qargs: The tuple of qubit indices for the instruction.
+            operation_params: The parameters for the Instruction.
 
         Returns:
             Returns ``True`` if the calibration is supported and ``False`` if it isn't.
@@ -678,6 +679,10 @@ class Target(BaseTarget):
             return False
         if qargs not in self._gate_map[operation_name]:
             return False
+
+        if operation_params is not None and operation_params not in self._gate_name_map[operation_name].params:
+            return False
+
         return getattr(self._gate_map[operation_name][qargs], "_calibration", None) is not None
 
     @deprecate_pulse_dependency
@@ -702,7 +707,9 @@ class Target(BaseTarget):
         Returns:
             Calibrated pulse schedule of corresponding instruction.
         """
-        return self._get_calibration(operation_name, qargs, *args, *kwargs)
+        return self._get_calibration(
+            operation_name, qargs, *args, operation_params=operation_params, **kwargs
+        )
 
     def _get_calibration(
         self,

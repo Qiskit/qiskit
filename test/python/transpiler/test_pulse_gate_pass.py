@@ -159,8 +159,6 @@ class TestPulseGate(QiskitTestCase):
         qc.sx(1)
         qc.measure_all()
 
-        transpiled_qc = transpile(qc, initial_layout=[0, 1], target=target)
-
         ref_calibration = {
             "sx": {
                 ((0,), ()): self.custom_sx_q0,
@@ -168,6 +166,7 @@ class TestPulseGate(QiskitTestCase):
             }
         }
         with self.assertWarns(DeprecationWarning):
+            transpiled_qc = transpile(qc, initial_layout=[0, 1], target=target)
             self.assertDictEqual(transpiled_qc.calibrations, ref_calibration)
 
     def test_transpile_with_instmap(self):

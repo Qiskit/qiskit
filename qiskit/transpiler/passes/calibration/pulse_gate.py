@@ -97,4 +97,8 @@ class PulseGates(CalibrationBuilder):
         Raises:
             TranspilerError: When node is parameterized and calibration is raw schedule object.
         """
-        return self.target._get_calibration(node_op.name, tuple(qubits), *node_op.params)
+        return self.target.get_calibration(
+            node_op.name, tuple(qubits), operation_params=None, *node_op.params
+        )
+
+
