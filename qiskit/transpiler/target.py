@@ -687,9 +687,8 @@ class Target(BaseTarget):
         if qargs not in self._gate_map[operation_name]:
             return False
 
-        if (
-            operation_params is not None
-            and operation_params not in self._gate_name_map[operation_name].params
+        if operation_params is not None and not (
+            operation_params == self._gate_name_map[operation_name].params
         ):
             return False
 
@@ -733,7 +732,8 @@ class Target(BaseTarget):
     ) -> Schedule | ScheduleBlock:
         if not self._has_calibration(operation_name, qargs, operation_params):
             raise KeyError(
-                f"Calibration of instruction {operation_name} for qubit {qargs} is not defined."
+                f"Calibration of instruction: `{operation_name}`, with params: "
+                f"`{operation_params}` for qubit: {qargs} is not defined."
             )
         cal_entry = getattr(self._gate_map[operation_name][qargs], "_calibration")
         return cal_entry.get_schedule(*args, **kwargs)
