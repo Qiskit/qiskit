@@ -656,8 +656,10 @@ class Target(BaseTarget):
         self,
         operation_name: str,
         qargs: tuple[int, ...],
+        operation_params: list[float] | float | None = None,
     ) -> bool:
-        """Return whether the instruction (operation + qubits) defines a calibration.
+        """Return whether the instruction (operation + operation_params + qubits) defines
+        a calibration.
 
         Args:
             operation_name: The name of the operation for the instruction.
@@ -667,20 +669,28 @@ class Target(BaseTarget):
         Returns:
             Returns ``True`` if the calibration is supported and ``False`` if it isn't.
         """
-        return self._has_calibration(operation_name, qargs)
+        return self._has_calibration(operation_name, qargs, operation_params)
 
     def _has_calibration(
         self,
         operation_name: str,
         qargs: tuple[int, ...],
+        operation_params: list[float] | float | None = None,
     ) -> bool:
         qargs = tuple(qargs)
+        if operation_params is not None and not isinstance(operation_params, list):
+            operation_params = [operation_params]
+
         if operation_name not in self._gate_map:
             return False
+
         if qargs not in self._gate_map[operation_name]:
             return False
 
-        if operation_params is not None and operation_params not in self._gate_name_map[operation_name].params:
+        if (
+            operation_params is not None
+            and operation_params not in self._gate_name_map[operation_name].params
+        ):
             return False
 
         return getattr(self._gate_map[operation_name][qargs], "_calibration", None) is not None
@@ -691,6 +701,7 @@ class Target(BaseTarget):
         operation_name: str,
         qargs: tuple[int, ...],
         *args: ParameterValueType,
+        operation_params: list[float] | float | None = None,
         **kwargs: ParameterValueType,
     ) -> Schedule | ScheduleBlock:
         """Get calibrated pulse schedule for the instruction.
@@ -702,6 +713,7 @@ class Target(BaseTarget):
             operation_name: The name of the operation for the instruction.
             qargs: The tuple of qubit indices for the instruction.
             args: Parameter values to build schedule if any.
+            operation_params: The parameters for the Instruction.
             kwargs: Parameter values with name to build schedule if any.
 
         Returns:
@@ -716,9 +728,10 @@ class Target(BaseTarget):
         operation_name: str,
         qargs: tuple[int, ...],
         *args: ParameterValueType,
+        operation_params: list[float] | float | None = None,
         **kwargs: ParameterValueType,
     ) -> Schedule | ScheduleBlock:
-        if not self._has_calibration(operation_name, qargs):
+        if not self._has_calibration(operation_name, qargs, operation_params):
             raise KeyError(
                 f"Calibration of instruction {operation_name} for qubit {qargs} is not defined."
             )

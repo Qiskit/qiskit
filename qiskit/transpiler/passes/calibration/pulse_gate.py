@@ -100,5 +100,3 @@ class PulseGates(CalibrationBuilder):
         return self.target.get_calibration(
             node_op.name, tuple(qubits), operation_params=None, *node_op.params
         )
-
-

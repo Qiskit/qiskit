@@ -1485,7 +1485,7 @@ Instructions:
 
 class TestHasCalibrationAndGetCalibration(QiskitTestCase):
     """
-    This test is to make sure :func:`Target.has_calibration` and 
+    This test is to make sure :func:`Target.has_calibration` and
     :func:`Target.get_schedule` works for parameterized gates.
 
     Follow below mentiond issues for more information.
