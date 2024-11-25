@@ -16,7 +16,7 @@ prelude: >
         construction speed. These changes include improvements such as improved qubit
         tracking for :class:`.HighLevelSynthesis`, structural circuits as part of the library
         such as IQP, and the addition of :class:`.PauliEvolutionGate` and its operability with 
-        `Rusqiq <https://github.com/smartiel/rustiq>`_.
+        `Rustiq <https://github.com/smartiel/rustiq>`_.
 
       * The deprecation of the Qiskit pulse module and all of its related components. 
-        The pulse module and its functionality will be part of `Qiskit Dynamics <https://github.com/qiskit-community/qiskit-dynamics>`
+        The pulse module and its functionality will be part of `Qiskit Dynamics <https://github.com/qiskit-community/qiskit-dynamics>`_.
