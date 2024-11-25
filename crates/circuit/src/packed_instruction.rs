@@ -72,46 +72,101 @@ unsafe impl ::bytemuck::NoUninit for PackedOperationType {}
 /// }
 /// ```
 ///
-/// including all ownership semantics, except it bit-packs the enumeration into a single pointer.
-/// This works because `PyGate` (and friends) have an alignment of 8, so pointers to them always
-/// have the low three bits set to 0, and `StandardGate` has a width much smaller than a pointer.
-/// This lets us store the enum discriminant in the low data bits, and then type-pun a suitable
-/// bitmask on the contained value back into proper data.
+/// including all ownership semantics, except it bit-packs the enumeration into just 64 bits.
 ///
-/// Explicitly, this is logical memory layout of `PackedOperation` on a 64-bit system, written out
-/// as a binary integer.  `x` marks padding bits with undefined values, `S` is the bits that make up
-/// a `StandardGate` or `StandardInstructionType`, `D` is the data payload of a standard
-/// instruction, and `P` is bits that make up part of a pointer.
+/// These bits are wrapped in a union with two fields, `data` and `pointer`. The `data` field
+/// provides a view of the bits as a struct containing two `u32` fields, `lo` and `hi`.
+/// The `lo` field always contains the enum's discriminant, which is stored in its lowest 3 bits
+/// (and thus, this enum MUST NOT be made to exceed 8 variants). For standard gates and
+/// instructions, the `lo` field also encodes an enumeration using its other bits to further
+/// discriminate its type. The `hi` field is used to store an optional 32 bit payload for standard
+/// instructions.
+///
+/// For pointer variants like `PyGate`, the `pointer` field provides a view of the bits as a
+/// pointer. On 64-bit systems, this pointer would normally span the entire type, but since these
+/// pointers are guaranteed to be align(8), we take advantage of the lowest 3 bits always being 0
+/// to store our discriminant. As such, the lowest 3 bits must always be 0'ed before the value of
+/// `pointer` is reinterpreted. On a 32-bit system, `pointer` will only span the 32 bits
+/// corresponding to `data.hi`, and can thus be interpreted as a pointer without manipulation.
+///
+///
+/// This is the logical memory layout of `PackedOperation` written out as two 32 bit binary integer.
+/// `x` marks padding bits with undefined values, `S` is the bits that make up a `StandardGate` or
+/// `StandardInstructionType`, `D` is the data payload of a standard instruction, and `P` is bits
+/// that make up part of a pointer.
 ///
 /// ```text
 /// Standard gate:
-/// 0b_xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxSSS_SSSSS000
-///                                                               |-------||-|
-///                                                                   |     |
-///                           Standard gate, stored inline as a u8. --+     +-- Discriminant.
+///
+///         hi: 0b_xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx
+///         lo: 0b_xxxxxxxx_xxxxxxxx_xxxxxSSS_SSSSS000
+///                                       |-------||-|
+///                                           |     |
+///                 Standard gate, as a u8. --+     +-- Discriminant.
 ///
 /// Standard instruction:
-/// 0b_xxxxxxxx_xxxxxxxx_xxxxxDDD_DDDDDDDD_DDDDDDDD_DDDDDDDD_DDDDDSSS_SSSSS001
-///                           |----------------------------------||-------||-|
-///                                            |                      |     |
-///         An optional 32 bit data payload. --+                      |     |
-///               Standard instruction type, stored inline as a u8. --+     +-- Discriminant.
 ///
-///     Optional data payload:
+///         hi: 0b_DDDDDDDD_DDDDDDDD_DDDDDDDD_DDDDDDDD <--- optional payload
+///         lo: 0b_xxxxxxxx_xxxxxxxx_xxxxxSSS_SSSSS001
+///                                       |-------||-|
+///                                           |     |
+///          Standard instruction, as a u8. --+     +-- Discriminant.
+///
+///
+///     Optional payload:
 ///     Depending on the variant of the standard instruction type, a 32 bit
-///     data payload may be present. Currently, this is used to store the
-///     number of qubits in a Barrier and the unit of a Delay.
+///     data payload may be present in the hi bits. Currently, this is used to
+///     store the number of qubits in a Barrier and the unit of a Delay.
 ///
-/// Pointer to object:
-/// 0b_PPPPPPPP_PPPPPPPP_PPPPPPPP_PPPPPPPP_PPPPPPPP_PPPPPPPP_PPPPPPPP_PPPP011
-///    |-----------------------------------------------------------------||-|
-///                                   |                                    |
-///    The high 62 bits of the pointer.  Because of alignment, the low 3   |   Discriminant of the
-///    bits of the full 64 bits are guaranteed to be zero so we can        +-- enumeration.  This
-///    retrieve the "full" pointer by taking the whole `usize` and zeroing     is 0b011, which means
-///    the low 3 bits, letting us store the discriminant in there at other     that this points to
-///    times.                                                                  a `PyInstruction`.
+/// Pointer (64-bit system):
+///
+///         hi: 0b_PPPPPPPP_PPPPPPPP_PPPPPPPP_PPPPPPPP <--- upper 32 bits of pointer
+///         lo: 0b_PPPPPPPP_PPPPPPPP_PPPPPPPP_PPPPP001
+///                |------------------------------||-|
+///                                |                |
+///     lower 32 bits of pointer --+                +-- Discriminant, 0b011 means `PyInstruction`.
+///
+///   Or, read via the `pointer` field:
+///
+///   pointer:
+///   0b_PPPPPPPP_PPPPPPPP_PPPPPPPP_PPPPPPPP_PPPPPPPP_PPPPPPPP_PPPPPPPP_PPPP011
+///      |-----------------------------------------------------------------||-|
+///                                     |                                    |
+///      The high 62 bits of the pointer.  Because of alignment, the low 3   |   Discriminant of the
+///      bits of the full 64 bits are guaranteed to be zero so we can        +-- enumeration.  This
+///      retrieve the "full" pointer by taking the whole `usize` and zeroing     is 0b011, which
+///      the low 3 bits, letting us store the discriminant in there at other     means that this
+///      times.                                                                  points to a
+///                                                                              `PyInstruction`.
+/// Pointer (32-bit system):
+///
+///         hi: 0b_PPPPPPPP_PPPPPPPP_PPPPPPPP_PPPPPPPP <--- the entire pointer
+///         lo: 0b_xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxx011
+///                                                |-|
+///                                                 |
+///    Discriminant, 0b011 means `PyInstruction`. --+
+///
+///   Or, read via the `pointer` field:
+///
+///   pointer:
+///   0b_PPPPPPPP_PPPPPPPP_PPPPPPPP_PPPPPPPP
+///      |---------------------------------|
+///                      |
+///                      +-- Because `pointer` is a usize, this is just 32 bits. It is made to line
+///                          up with the `hi` field, so that it doesn't collide with the
+///                          discriminant stored in `lo`.
 /// ```
+///
+/// To deal with target endianess, the order of the `hi` and `lo` fields are swapped at compile
+/// time. For a 64 bit little endian machine, `lo` comes before `hi`. For 64 bit big endian and all
+/// 32-bit systems (regardless of endian) `hi` comes before `lo`, since on a 32-bit system, this
+/// aligns the `pointer` field (a `usize`) with the `hi` field, to avoid clobbering the
+/// discriminant.
+///
+/// Also note the alignment of this union. On 64-bit systems, its alignment will be 8 because the
+/// `pointer` field (a `usize`) will be 8 bytes. On a 32-bit system, it becomes 4, since `pointer`
+/// will be 4 bytes, and the `lo` / `hi` fields in `data` are also 4 bytes each. This is intentional
+/// to avoid waste.
 ///
 /// # Construction
 ///
@@ -132,56 +187,18 @@ unsafe impl ::bytemuck::NoUninit for PackedOperationType {}
 ///   contained pointer.
 #[repr(C)]
 pub union PackedOperation {
-    parts: LoHi,
-    data: usize,
+    data: LoHi,
+    pointer: usize,
 }
 
 impl fmt::Debug for PackedOperation {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        unsafe {
-            fmt.debug_struct("PackedOperation")
-                .field("lo", &self.parts.lo)
-                .field("hi", &self.parts.hi)
-                .finish()
-        }
+        fmt.debug_struct("PackedOperation")
+            .field("lo", unsafe { &self.data.lo })
+            .field("hi", unsafe { &self.data.hi })
+            .finish()
     }
 }
-
-/// Little endian, 64 bit:
-// pub union PackedOpLE64 {
-// parts: {
-//     lo: u32
-//     hi: u32
-// },
-// pointer: u64
-// }
-
-/// Big endian, 64 bit:
-// pub union PackedOpBE64 {
-// parts: {
-//     hi: u32
-//     lo: u32
-// },
-// pointer: u64
-// }
-
-/// Little endian, 32 bit:
-// pub union PackedOpLE32 {
-// parts: {
-//     hi: u32
-//     lo: u32
-// },
-// pointer: u32
-// }
-
-/// Big endian, 32 bit:
-// pub union PackedOpBE32 {
-// parts: {
-//     hi: u32
-//     lo: u32
-// },
-// pointer: u32
-// }
 
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -198,33 +215,6 @@ struct LoHi {
     hi: u32,
     lo: u32,
 }
-
-// #[repr(C)]
-// union BitField {
-//     parts: LoHi,
-//     data: usize,
-// }
-//
-// impl BitField {
-//     /// The bits representing the `PackedOperationType` discriminant.  This can be used to mask out
-//     /// the discriminant, and defines the rest of the bit shifting.
-//     const DISCRIMINANT_MASK: u32 = 0b111;
-//
-//     #[inline]
-//     fn discriminant(&self) -> PackedOperationType {
-//         ::bytemuck::checked::cast((self.parts.lo & Self::DISCRIMINANT_MASK) as u8)
-//     }
-// }
-//
-// #[cfg(target_pointer_width = "64")]
-// impl BitField {
-//     fn pointer(&mut self) -> &mut u64 {
-//         &mut self.data
-//     }
-//
-// }
-
-// #[cfg(all(target_pointer_width = "64", target_endian = "little"))]
 
 impl PackedOperation {
     /// The bits representing the `PackedOperationType` discriminant.  This can be used to mask out
@@ -248,7 +238,7 @@ impl PackedOperation {
     /// Extract the discriminant of the operation.
     #[inline]
     fn discriminant(&self) -> PackedOperationType {
-        unsafe { ::bytemuck::checked::cast((self.parts.lo & Self::DISCRIMINANT_MASK) as u8) }
+        ::bytemuck::checked::cast((unsafe { self.data.lo } & Self::DISCRIMINANT_MASK) as u8)
     }
 
     /// Get the contained pointer to the `PyGate`/`PyInstruction`/`PyOperation` that this object
@@ -274,7 +264,7 @@ impl PackedOperation {
             | PackedOperationType::PyInstructionPointer
             | PackedOperationType::PyOperationPointer => {
                 #[cfg(target_pointer_width = "64")]
-                let ptr = { unsafe { (self.data & Self::POINTER_MASK) as *mut () } };
+                let ptr = { unsafe { (self.pointer & Self::POINTER_MASK) as *mut () } };
                 #[cfg(target_pointer_width = "32")]
                 let ptr = { unsafe { self.data as *mut () } };
                 // SAFETY: `PackedOperation` can only be constructed from a pointer via `Box`, which
@@ -297,14 +287,13 @@ impl PackedOperation {
     /// Get the contained `StandardGate`, if any.
     #[inline]
     pub fn try_standard_gate(&self) -> Option<StandardGate> {
-        unsafe {
-            match self.discriminant() {
-                PackedOperationType::StandardGate => ::bytemuck::checked::try_cast(
-                    ((self.parts.lo & Self::STANDARD_GATE_MASK) >> Self::DISCRIMINANT_BITS) as u8,
-                )
-                .ok(),
-                _ => None,
-            }
+        match self.discriminant() {
+            PackedOperationType::StandardGate => ::bytemuck::checked::try_cast(
+                ((unsafe { self.data.lo } & Self::STANDARD_GATE_MASK) >> Self::DISCRIMINANT_BITS)
+                    as u8,
+            )
+            .ok(),
+            _ => None,
         }
     }
 
@@ -321,28 +310,27 @@ impl PackedOperation {
     /// Get the contained `StandardInstruction`, if any.
     #[inline]
     pub fn try_standard_instruction(&self) -> Option<StandardInstruction> {
-        unsafe {
-            match self.discriminant() {
-                PackedOperationType::StandardInstruction => {
-                    let standard_type: StandardInstructionType = ::bytemuck::checked::cast(
-                        ((self.parts.lo & Self::STANDARD_INSTRUCTION_MASK)
-                            >> Self::DISCRIMINANT_BITS) as u8,
-                    );
-                    match standard_type {
-                        StandardInstructionType::Barrier => {
-                            let num_qubits = self.parts.hi;
-                            Some(StandardInstruction::Barrier(num_qubits as usize))
-                        }
-                        StandardInstructionType::Delay => {
-                            let unit: DelayUnit = ::bytemuck::checked::cast(self.parts.hi as u8);
-                            Some(StandardInstruction::Delay(unit))
-                        }
-                        StandardInstructionType::Measure => Some(StandardInstruction::Measure),
-                        StandardInstructionType::Reset => Some(StandardInstruction::Reset),
+        match self.discriminant() {
+            PackedOperationType::StandardInstruction => {
+                let standard_type: StandardInstructionType = ::bytemuck::checked::cast(
+                    ((unsafe { self.data.lo } & Self::STANDARD_INSTRUCTION_MASK)
+                        >> Self::DISCRIMINANT_BITS) as u8,
+                );
+                match standard_type {
+                    StandardInstructionType::Barrier => {
+                        let num_qubits = unsafe { self.data.hi };
+                        Some(StandardInstruction::Barrier(num_qubits as usize))
                     }
+                    StandardInstructionType::Delay => {
+                        let unit: DelayUnit =
+                            ::bytemuck::checked::cast(unsafe { self.data.hi } as u8);
+                        Some(StandardInstruction::Delay(unit))
+                    }
+                    StandardInstructionType::Measure => Some(StandardInstruction::Measure),
+                    StandardInstructionType::Reset => Some(StandardInstruction::Reset),
                 }
-                _ => None,
             }
+            _ => None,
         }
     }
 
@@ -373,7 +361,7 @@ impl PackedOperation {
     #[inline]
     pub fn from_standard(standard: StandardGate) -> Self {
         Self {
-            parts: LoHi {
+            data: LoHi {
                 lo: (standard as u32) << Self::DISCRIMINANT_BITS,
                 hi: 0,
             },
@@ -383,7 +371,7 @@ impl PackedOperation {
     /// Create a `PackedOperation` from a `StandardInstruction`.
     pub fn from_standard_instruction(instruction: StandardInstruction) -> Self {
         Self {
-            parts: match instruction {
+            data: match instruction {
                 StandardInstruction::Barrier(num_qubits) => {
                     LoHi {
                         lo: ((StandardInstructionType::Barrier as u32) << Self::DISCRIMINANT_BITS) | PackedOperationType::StandardInstruction as u32,
@@ -440,13 +428,13 @@ impl PackedOperation {
         {
             assert_eq!(addr & (Self::DISCRIMINANT_MASK as usize), 0);
             Self {
-                data: addr | (discriminant as usize),
+                pointer: addr | (discriminant as usize),
             }
         }
         #[cfg(target_pointer_width = "32")]
         {
             Self {
-                parts: LoHi {
+                data: LoHi {
                     lo: discriminant as u32,
                     hi: addr as u32,
                 },
@@ -734,7 +722,7 @@ impl Drop for PackedOperation {
             // pointer can only be null if we were already dropped.  We set our discriminant to mark
             // ourselves as plain old data immediately just as a defensive measure.
             let boxed = unsafe { Box::from_raw(pointer.cast::<T>().as_ptr()) };
-            slf.parts.lo = PackedOperationType::StandardGate as u32;
+            slf.data.lo = PackedOperationType::StandardGate as u32;
             ::std::mem::drop(boxed);
         }
 
