@@ -12,6 +12,7 @@
 
 #[cfg(feature = "cache_pygates")]
 use std::cell::OnceCell;
+use std::fmt;
 use std::ptr::NonNull;
 
 use pyo3::intern;
@@ -129,14 +130,106 @@ unsafe impl ::bytemuck::NoUninit for PackedOperationType {}
 /// * The pointed-to data must match the type of the discriminant used to store it.
 /// * `PackedOperation` must take care to forward implementations of `Clone` and `Drop` to the
 ///   contained pointer.
-#[derive(Debug)]
-#[repr(transparent)]
-pub struct PackedOperation(usize);
+#[repr(C)]
+pub union PackedOperation {
+    parts: LoHi,
+    data: usize,
+}
+
+impl fmt::Debug for PackedOperation {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        unsafe {
+            fmt.debug_struct("PackedOperation")
+                .field("lo", &self.parts.lo)
+                .field("hi", &self.parts.hi)
+                .finish()
+        }
+    }
+}
+
+/// Little endian, 64 bit:
+// pub union PackedOpLE64 {
+// parts: {
+//     lo: u32
+//     hi: u32
+// },
+// pointer: u64
+// }
+
+/// Big endian, 64 bit:
+// pub union PackedOpBE64 {
+// parts: {
+//     hi: u32
+//     lo: u32
+// },
+// pointer: u64
+// }
+
+/// Little endian, 32 bit:
+// pub union PackedOpLE32 {
+// parts: {
+//     hi: u32
+//     lo: u32
+// },
+// pointer: u32
+// }
+
+/// Big endian, 32 bit:
+// pub union PackedOpBE32 {
+// parts: {
+//     hi: u32
+//     lo: u32
+// },
+// pointer: u32
+// }
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+#[cfg(all(target_endian = "little", target_pointer_width = "64"))]
+struct LoHi {
+    lo: u32,
+    hi: u32,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+#[cfg(any(target_endian = "big", target_pointer_width = "32"))]
+struct LoHi {
+    hi: u32,
+    lo: u32,
+}
+
+// #[repr(C)]
+// union BitField {
+//     parts: LoHi,
+//     data: usize,
+// }
+//
+// impl BitField {
+//     /// The bits representing the `PackedOperationType` discriminant.  This can be used to mask out
+//     /// the discriminant, and defines the rest of the bit shifting.
+//     const DISCRIMINANT_MASK: u32 = 0b111;
+//
+//     #[inline]
+//     fn discriminant(&self) -> PackedOperationType {
+//         ::bytemuck::checked::cast((self.parts.lo & Self::DISCRIMINANT_MASK) as u8)
+//     }
+// }
+//
+// #[cfg(target_pointer_width = "64")]
+// impl BitField {
+//     fn pointer(&mut self) -> &mut u64 {
+//         &mut self.data
+//     }
+//
+// }
+
+// #[cfg(all(target_pointer_width = "64", target_endian = "little"))]
 
 impl PackedOperation {
     /// The bits representing the `PackedOperationType` discriminant.  This can be used to mask out
     /// the discriminant, and defines the rest of the bit shifting.
-    const DISCRIMINANT_MASK: usize = 0b111;
+    const DISCRIMINANT_MASK: u32 = 0b111;
     /// The number of bits used to store the discriminant metadata.
     const DISCRIMINANT_BITS: u32 = Self::DISCRIMINANT_MASK.count_ones();
     /// A bitmask that masks out only the standard gate information.  This should always have the
@@ -144,25 +237,18 @@ impl PackedOperation {
     /// this is defensive against us adding further metadata on `StandardGate` later.  After
     /// masking, the resulting integer still needs shifting downwards by the width of the
     /// discriminant, `DISCRIMINANT_BITS`.
-    const STANDARD_GATE_MASK: usize = (u8::MAX as usize) << Self::DISCRIMINANT_BITS;
+    const STANDARD_GATE_MASK: u32 = (u8::MAX as u32) << Self::DISCRIMINANT_BITS;
     /// A bitmask that masks out only the standard instruction type.  After masking, the result must
     /// shifted downwards by `DISCRIMINANT_BITS`.
-    const STANDARD_INSTRUCTION_MASK: usize = (u8::MAX as usize) << Self::DISCRIMINANT_BITS;
-    /// The number of bits used to store the standard instruction type.
-    const STANDARD_INSTRUCTION_BITS: u32 = Self::STANDARD_INSTRUCTION_MASK.count_ones();
-    /// A bitmask that masks out a standard instruction's payload data. After masking, the result
-    /// must be shifted downwards again by the payload shift amount, which is
-    /// `(STANDARD_INSTRUCTION_BITS + DISCRIMINANT_BITS)`.
-    const STANDARD_INSTRUCTION_PAYLOAD_MASK: usize =
-        (u32::MAX as usize) << (Self::STANDARD_INSTRUCTION_BITS + Self::DISCRIMINANT_BITS);
-    /// A bitmask that retrieves the stored pointer directly.  The discriminant is stored in the
-    /// low pointer bits that are guaranteed to be 0 by alignment, so no shifting is required.
-    const POINTER_MASK: usize = usize::MAX ^ Self::DISCRIMINANT_MASK;
+    const STANDARD_INSTRUCTION_MASK: u32 = (u8::MAX as u32) << Self::DISCRIMINANT_BITS;
+    /// For 64-bit machines only, a bitmask that retrieves a 64-bit pointer from the full width of
+    /// the `PackedOperation` by zeroing its low bits, which store the discriminant.
+    const POINTER_MASK: usize = usize::MAX ^ (Self::DISCRIMINANT_MASK as usize);
 
     /// Extract the discriminant of the operation.
     #[inline]
     fn discriminant(&self) -> PackedOperationType {
-        ::bytemuck::checked::cast((self.0 & Self::DISCRIMINANT_MASK) as u8)
+        unsafe { ::bytemuck::checked::cast((self.parts.lo & Self::DISCRIMINANT_MASK) as u8) }
     }
 
     /// Get the contained pointer to the `PyGate`/`PyInstruction`/`PyOperation` that this object
@@ -180,13 +266,17 @@ impl PackedOperation {
     ///
     /// Returns `None` if the object represents anything else.
     #[inline]
+    #[cfg(target_pointer_width = "64")]
     fn try_pointer(&self) -> Option<NonNull<()>> {
         match self.discriminant() {
             PackedOperationType::StandardGate | PackedOperationType::StandardInstruction => None,
             PackedOperationType::PyGatePointer
             | PackedOperationType::PyInstructionPointer
             | PackedOperationType::PyOperationPointer => {
-                let ptr = (self.0 & Self::POINTER_MASK) as *mut ();
+                #[cfg(target_pointer_width = "64")]
+                let ptr = { unsafe { (self.data & Self::POINTER_MASK) as *mut () } };
+                #[cfg(target_pointer_width = "32")]
+                let ptr = { unsafe { self.data as *mut () } };
                 // SAFETY: `PackedOperation` can only be constructed from a pointer via `Box`, which
                 // is always non-null (except in the case that we're partway through a `Drop`).
                 Some(unsafe { NonNull::new_unchecked(ptr) })
@@ -207,12 +297,14 @@ impl PackedOperation {
     /// Get the contained `StandardGate`, if any.
     #[inline]
     pub fn try_standard_gate(&self) -> Option<StandardGate> {
-        match self.discriminant() {
-            PackedOperationType::StandardGate => ::bytemuck::checked::try_cast(
-                ((self.0 & Self::STANDARD_GATE_MASK) >> Self::DISCRIMINANT_BITS) as u8,
-            )
-            .ok(),
-            _ => None,
+        unsafe {
+            match self.discriminant() {
+                PackedOperationType::StandardGate => ::bytemuck::checked::try_cast(
+                    ((self.parts.lo & Self::STANDARD_GATE_MASK) >> Self::DISCRIMINANT_BITS) as u8,
+                )
+                .ok(),
+                _ => None,
+            }
         }
     }
 
@@ -229,32 +321,28 @@ impl PackedOperation {
     /// Get the contained `StandardInstruction`, if any.
     #[inline]
     pub fn try_standard_instruction(&self) -> Option<StandardInstruction> {
-        #[inline]
-        fn payload(slf: &PackedOperation) -> u32 {
-            ((slf.0 & PackedOperation::STANDARD_INSTRUCTION_PAYLOAD_MASK)
-                >> (PackedOperation::STANDARD_INSTRUCTION_BITS
-                    + PackedOperation::DISCRIMINANT_BITS)) as u32
-        }
-
-        match self.discriminant() {
-            PackedOperationType::StandardInstruction => {
-                let standard_type: StandardInstructionType = ::bytemuck::checked::cast(
-                    ((self.0 & Self::STANDARD_INSTRUCTION_MASK) >> Self::DISCRIMINANT_BITS) as u8,
-                );
-                match standard_type {
-                    StandardInstructionType::Barrier => {
-                        let num_qubits = payload(self);
-                        Some(StandardInstruction::Barrier(num_qubits as usize))
+        unsafe {
+            match self.discriminant() {
+                PackedOperationType::StandardInstruction => {
+                    let standard_type: StandardInstructionType = ::bytemuck::checked::cast(
+                        ((self.parts.lo & Self::STANDARD_INSTRUCTION_MASK)
+                            >> Self::DISCRIMINANT_BITS) as u8,
+                    );
+                    match standard_type {
+                        StandardInstructionType::Barrier => {
+                            let num_qubits = self.parts.hi;
+                            Some(StandardInstruction::Barrier(num_qubits as usize))
+                        }
+                        StandardInstructionType::Delay => {
+                            let unit: DelayUnit = ::bytemuck::checked::cast(self.parts.hi as u8);
+                            Some(StandardInstruction::Delay(unit))
+                        }
+                        StandardInstructionType::Measure => Some(StandardInstruction::Measure),
+                        StandardInstructionType::Reset => Some(StandardInstruction::Reset),
                     }
-                    StandardInstructionType::Delay => {
-                        let unit: DelayUnit = ::bytemuck::checked::cast(payload(self) as u8);
-                        Some(StandardInstruction::Delay(unit))
-                    }
-                    StandardInstructionType::Measure => Some(StandardInstruction::Measure),
-                    StandardInstructionType::Reset => Some(StandardInstruction::Reset),
                 }
+                _ => None,
             }
-            _ => None,
         }
     }
 
@@ -284,28 +372,46 @@ impl PackedOperation {
     /// Create a `PackedOperation` from a `StandardGate`.
     #[inline]
     pub fn from_standard(standard: StandardGate) -> Self {
-        Self((standard as usize) << Self::DISCRIMINANT_BITS)
+        Self {
+            parts: LoHi {
+                lo: (standard as u32) << Self::DISCRIMINANT_BITS,
+                hi: 0,
+            },
+        }
     }
 
     /// Create a `PackedOperation` from a `StandardInstruction`.
     pub fn from_standard_instruction(instruction: StandardInstruction) -> Self {
-        let body = match instruction {
-            StandardInstruction::Barrier(num_qubits) => {
-                let num_qubits: u32 = num_qubits.try_into().expect(
-                    "The PackedOperation representation currently requires barrier size to be <= 32 bits."
-                );
-
-                ((num_qubits as usize) << Self::STANDARD_INSTRUCTION_BITS)
-                    | (StandardInstructionType::Barrier as usize)
+        Self {
+            parts: match instruction {
+                StandardInstruction::Barrier(num_qubits) => {
+                    LoHi {
+                        lo: ((StandardInstructionType::Barrier as u32) << Self::DISCRIMINANT_BITS) | PackedOperationType::StandardInstruction as u32,
+                        hi: num_qubits.try_into().expect(
+                            "The PackedOperation representation currently requires barrier size to be <= 32 bits."
+                        ),
+                    }
+                }
+                StandardInstruction::Delay(unit) => {
+                    LoHi {
+                        lo: ((StandardInstructionType::Delay as u32) << Self::DISCRIMINANT_BITS) | PackedOperationType::StandardInstruction as u32,
+                        hi: unit as u32,
+                    }
+                }
+                StandardInstruction::Measure => {
+                    LoHi {
+                        lo: ((StandardInstructionType::Measure as u32) << Self::DISCRIMINANT_BITS) | PackedOperationType::StandardInstruction as u32,
+                        hi: 0,
+                    }
+                }
+                StandardInstruction::Reset => {
+                    LoHi {
+                        lo: ((StandardInstructionType::Reset as u32) << Self::DISCRIMINANT_BITS) | PackedOperationType::StandardInstruction as u32,
+                        hi: 0,
+                    }
+                }
             }
-            StandardInstruction::Delay(unit) => {
-                ((unit as usize) << Self::STANDARD_INSTRUCTION_BITS)
-                    | (StandardInstructionType::Delay as usize)
-            }
-            StandardInstruction::Measure => StandardInstructionType::Measure as usize,
-            StandardInstruction::Reset => StandardInstructionType::Reset as usize,
-        };
-        Self((body << Self::DISCRIMINANT_BITS) | PackedOperationType::StandardInstruction as usize)
+        }
     }
 
     /// Create a `PackedOperation` given a raw pointer to the inner type.
@@ -329,8 +435,23 @@ impl PackedOperation {
             panic!("given non-pointer discriminant during pointer-type construction");
         }
         let addr = value.as_ptr() as usize;
-        assert_eq!(addr & Self::DISCRIMINANT_MASK, 0);
-        Self(addr | (discriminant as usize))
+
+        #[cfg(target_pointer_width = "64")]
+        {
+            assert_eq!(addr & (Self::DISCRIMINANT_MASK as usize), 0);
+            Self {
+                data: addr | (discriminant as usize),
+            }
+        }
+        #[cfg(target_pointer_width = "32")]
+        {
+            Self {
+                parts: LoHi {
+                    lo: discriminant as u32,
+                    hi: addr as u32,
+                },
+            }
+        };
     }
 
     /// Construct a new `PackedOperation` from an owned heap-allocated `PyGate`.
@@ -613,7 +734,7 @@ impl Drop for PackedOperation {
             // pointer can only be null if we were already dropped.  We set our discriminant to mark
             // ourselves as plain old data immediately just as a defensive measure.
             let boxed = unsafe { Box::from_raw(pointer.cast::<T>().as_ptr()) };
-            slf.0 = PackedOperationType::StandardGate as usize;
+            slf.parts.lo = PackedOperationType::StandardGate as u32;
             ::std::mem::drop(boxed);
         }
 
