@@ -793,7 +793,7 @@ class DefaultLayoutPassManager(PassManagerStagePlugin):
             )
             choose_layout_1 = VF2Layout(
                 coupling_map=pass_manager_config.coupling_map,
-                seed=pass_manager_config.seed_transpiler,
+                seed=-1,
                 call_limit=int(5e4),  # Set call limit to ~100ms with rustworkx 0.10.2
                 properties=pass_manager_config.backend_properties,
                 target=pass_manager_config.target,
@@ -826,7 +826,7 @@ class DefaultLayoutPassManager(PassManagerStagePlugin):
         elif optimization_level == 2:
             choose_layout_0 = VF2Layout(
                 coupling_map=pass_manager_config.coupling_map,
-                seed=pass_manager_config.seed_transpiler,
+                seed=-1,
                 call_limit=int(5e6),  # Set call limit to ~10s with rustworkx 0.10.2
                 properties=pass_manager_config.backend_properties,
                 target=pass_manager_config.target,
@@ -861,7 +861,7 @@ class DefaultLayoutPassManager(PassManagerStagePlugin):
         elif optimization_level == 3:
             choose_layout_0 = VF2Layout(
                 coupling_map=pass_manager_config.coupling_map,
-                seed=pass_manager_config.seed_transpiler,
+                seed=-1,
                 call_limit=int(3e7),  # Set call limit to ~60s with rustworkx 0.10.2
                 properties=pass_manager_config.backend_properties,
                 target=pass_manager_config.target,

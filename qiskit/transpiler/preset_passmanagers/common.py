@@ -358,7 +358,7 @@ def generate_routing_passmanager(
                     target,
                     coupling_map,
                     backend_properties,
-                    seed_transpiler,
+                    seed=-1,
                     call_limit=vf2_call_limit,
                     max_trials=vf2_max_trials,
                     strict_direction=False,
