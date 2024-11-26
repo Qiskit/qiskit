@@ -361,6 +361,19 @@ class TestParameters(QiskitTestCase):
         self.assertEqual(qc.assign_parameters(dict(zip(qc.parameters, binds)).values()), expected)
         self.assertEqual(qc.assign_parameters(bind for bind in binds), expected)
 
+    def test_assign_parameters_with_cache(self):
+        """Test assigning parameters on a circuit with already triggered cache."""
+        x = Parameter("x")
+        qc = QuantumCircuit(1)
+        qc.append(RZGate(x), [0])  # add via ``append`` to create a CircuitInstruction
+
+        _ = qc.data[0].operation.definition  # trigger building the cache
+
+        binds = [1.2]
+        qc.assign_parameters(binds, inplace=True)
+
+        self.assertAlmostEqual(binds[0], qc.data[0].operation.params[0])
+
     def test_bind_parameters_custom_definition_global_phase(self):
         """Test that a custom gate with a parametrized `global_phase` is assigned correctly."""
         x = Parameter("x")
