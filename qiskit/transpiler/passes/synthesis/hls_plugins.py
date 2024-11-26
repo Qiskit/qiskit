@@ -263,7 +263,7 @@ Pauli Evolution Synthesis
       - Targeted connectivity
     * - ``"rustiq"``
       - :class:`~.PauliEvolutionSynthesisRustiq`
-      - use the synthesis method from `this quantum circuit synthesis library <https://github.com/smartiel/rustiq-core>`_
+      - use the synthesis method from `Rustiq circuit synthesis library <https://github.com/smartiel/rustiq-core>`_
       - all-to-all
     * - ``"default"``
       - :class:`~.PauliEvolutionSynthesisDefault`
