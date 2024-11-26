@@ -263,11 +263,11 @@ Pauli Evolution Synthesis
       - Targeted connectivity
     * - ``"rustiq"``
       - :class:`~.PauliEvolutionSynthesisRustiq`
-      - use a diagonalizing Clifford per Pauli term
+      - use the synthesis method from https://github.com/smartiel/rustiq-core
       - all-to-all
     * - ``"default"``
       - :class:`~.PauliEvolutionSynthesisDefault`
-      - use ``rustiq_core`` synthesis library
+      - use a diagonalizing Clifford per Pauli term
       - all-to-all
 
 .. autosummary::
