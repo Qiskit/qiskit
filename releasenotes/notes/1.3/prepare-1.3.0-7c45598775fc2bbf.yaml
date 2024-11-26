@@ -12,8 +12,8 @@ prelude: >
         :class:`.CommutationAnalysis`, :class:`.ConsolidateBlocks`, :class:`.UnitarySynthesis`,
         and others.
 
-      * Improvements to the circuit library that improve compilation quality and
-        construction speed. These changes include improvements such as improved qubit
+      * Improvements to the circuit library that increase compilation quality and
+        construction speed. These changes include developments such as improved qubit
         tracking for :class:`.HighLevelSynthesis`, structural circuits as part of the library
         such as IQP, and the addition of :class:`.PauliEvolutionGate` and its operability with 
         `Rustiq <https://github.com/smartiel/rustiq>`_.
