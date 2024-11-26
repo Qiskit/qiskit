@@ -51,6 +51,7 @@ from qiskit.providers.fake_provider import (
     Fake7QPulseV1,
 )
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from qiskit.providers.backend import QubitProperties
 from test.python.providers.fake_mumbai_v2 import (  # pylint: disable=wrong-import-order
     FakeMumbaiFractionalCX,
 )
@@ -1184,6 +1185,20 @@ Instructions:
 
         # Perform check again, should not throw exception
         self.assertTrue(deserialized_target.instruction_supported("u_var", (0, 1)))
+
+    def test_target_no_num_qubits_qubit_properties(self):
+        """Checks that a Target can be initialized with no qubits but a list of Qubit Properities"""
+
+        # Initialize target qubit properties
+        qubit_properties = [QubitProperties()]
+
+        # Initialize the Target with only a list of qubit properties
+        target = Target(
+            qubit_properties=qubit_properties,
+        )
+
+        # Check that the Target num_qubit attribute matches the length of qubit properties
+        self.assertEqual(target.num_qubits, len(qubit_properties))
 
 
 class TestPulseTarget(QiskitTestCase):

@@ -136,9 +136,9 @@ def dump(
             used as the ``cls`` kwarg on the `json.dump()`` call to JSON serialize that dictionary.
         use_symengine: If True, all objects containing symbolic expressions will be serialized
             using symengine's native mechanism. This is a faster serialization alternative,
-            but not supported in all platforms. Please check that your target platform is supported
-            by the symengine library before setting this option, as it will be required by qpy to
-            deserialize the payload. For this reason, the option defaults to False.
+            but not supported in all platforms. This flag only has an effect if the emitted QPY format
+            version is 10, 11, or 12. For QPY format version >= 13 (which is the default starting in
+            Qiskit 1.3.0) this flag is no longer used.
         version: The QPY format version to emit. By default this defaults to
             the latest supported format of :attr:`~.qpy.QPY_VERSION`, however for
             compatibility reasons if you need to load the generated QPY payload with an older

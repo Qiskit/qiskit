@@ -36,7 +36,11 @@ For example, to append a multi-controlled CNOT:
    circuit.append(gate, [0, 1, 4, 2, 3])
    circuit.draw('mpl')
 
-The library is organized in several sections.
+The library is organized in several sections. The function
+:func:`.get_standard_gate_name_mapping` allows you to see the available standard gates and operations.
+
+.. autofunction:: get_standard_gate_name_mapping
+
 
 Standard gates
 ==============
@@ -128,6 +132,7 @@ For example:
    ZGate
    GlobalPhaseGate
 
+
 Standard Directives
 ===================
 
@@ -156,12 +161,12 @@ set the amount of qubits involved at instantiation time.
    :include-source:
    :nofigs:
 
-    from qiskit.circuit.library import Diagonal
+    from qiskit.circuit.library import DiagonalGate
 
-    diagonal = Diagonal([1, 1])
+    diagonal = DiagonalGate([1, 1j])
     print(diagonal.num_qubits)
 
-    diagonal = Diagonal([1, 1, 1, 1])
+    diagonal = DiagonalGate([1, 1, 1, -1])
     print(diagonal.num_qubits)
 
 .. code-block:: text
@@ -215,9 +220,15 @@ or of a set of qubit states.
    :template: autosummary/class_no_inherited_members.rst
 
    AND
+   AndGate
    OR
+   OrGate
    XOR
+   BitwiseXorGate
+   random_bitwise_xor
    InnerProduct
+   InnerProductGate
+
 
 Basis Change Circuits
 =====================
@@ -273,6 +284,9 @@ Adders
    CDKMRippleCarryAdder
    VBERippleCarryAdder
    WeightedAdder
+   ModularAdderGate
+   HalfAdderGate
+   FullAdderGate
 
 Multipliers
 -----------
@@ -283,6 +297,7 @@ Multipliers
 
    HRSCumulativeMultiplier
    RGQFTMultiplier
+   MultiplierGate
 
 Comparators
 -----------
@@ -314,16 +329,19 @@ Other arithmetic functions
 Particular Quantum Circuits
 ===========================
 
+The following gates and quantum circuits define specific
+quantum circuits of interest:
+
 .. autosummary::
    :toctree: ../stubs/
    :template: autosummary/class_no_inherited_members.rst
 
    FourierChecking
    GraphState
+   GraphStateGate
    HiddenLinearFunction
    IQP
    QuantumVolume
-   quantum_volume
    PhaseEstimation
    GroverOperator
    PhaseOracle
@@ -331,9 +349,41 @@ Particular Quantum Circuits
    HamiltonianGate
    UnitaryOverlap
 
+For circuits that have a well-defined structure it is preferrable
+to use the following functions to construct them:
+
+.. autosummary::
+   :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
+
+   fourier_checking
+   hidden_linear_function
+   iqp
+   random_iqp
+   quantum_volume
+   phase_estimation
+   grover_operator
+   unitary_overlap
+
 
 N-local circuits
 ================
+
+The following functions return a parameterized :class:`.QuantumCircuit` to use as ansatz in
+a broad set of variational quantum algorithms:
+
+.. autosummary::
+   :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
+
+   n_local
+   efficient_su2
+   real_amplitudes
+   pauli_two_design
+   excitation_preserving
+   qaoa_ansatz
+   hamiltonian_variational_ansatz
+   evolved_operator_ansatz
 
 These :class:`~qiskit.circuit.library.BlueprintCircuit` subclasses are used
 as parameterized models (a.k.a. ansatzes or variational forms) in variational algorithms.
@@ -356,6 +406,17 @@ They are heavily used in near-term algorithms in e.g. Chemistry, Physics or Opti
 Data encoding circuits
 ======================
 
+The following functions return a parameterized :class:`.QuantumCircuit` to use as data
+encoding circuits in a series of variational quantum algorithms:
+
+.. autosummary::
+   :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
+
+   pauli_feature_map
+   z_feature_map
+   zz_feature_map
+
 These :class:`~qiskit.circuit.library.BlueprintCircuit` encode classical
 data in quantum states and are used as feature maps for classification.
 
@@ -366,6 +427,17 @@ data in quantum states and are used as feature maps for classification.
    PauliFeatureMap
    ZFeatureMap
    ZZFeatureMap
+
+
+Data preparation circuits
+=========================
+
+The following operations are used for state preparation:
+
+.. autosummary::
+   :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
+
    StatePreparation
    Initialize
 
@@ -529,12 +601,21 @@ from .pauli_evolution import PauliEvolutionGate
 from .hamiltonian_gate import HamiltonianGate
 from .boolean_logic import (
     AND,
+    AndGate,
     OR,
+    OrGate,
     XOR,
+    BitwiseXorGate,
+    random_bitwise_xor,
     InnerProduct,
+    InnerProductGate,
 )
 from .basis_change import QFT, QFTGate
 from .arithmetic import (
+    ModularAdderGate,
+    HalfAdderGate,
+    FullAdderGate,
+    MultiplierGate,
     FunctionalPauliRotations,
     LinearPauliRotations,
     PiecewiseLinearPauliRotations,
@@ -554,13 +635,21 @@ from .arithmetic import (
 )
 
 from .n_local import (
+    n_local,
     NLocal,
     TwoLocal,
+    pauli_two_design,
     PauliTwoDesign,
+    real_amplitudes,
     RealAmplitudes,
+    efficient_su2,
     EfficientSU2,
+    hamiltonian_variational_ansatz,
+    evolved_operator_ansatz,
     EvolvedOperatorAnsatz,
+    excitation_preserving,
     ExcitationPreserving,
+    qaoa_ansatz,
     QAOAAnsatz,
 )
 from .data_preparation import (
@@ -574,11 +663,12 @@ from .data_preparation import (
     Initialize,
 )
 from .quantum_volume import QuantumVolume, quantum_volume
-from .fourier_checking import FourierChecking
-from .graph_state import GraphState
-from .hidden_linear_function import HiddenLinearFunction
-from .iqp import IQP
-from .phase_estimation import PhaseEstimation
-from .grover_operator import GroverOperator
+from .fourier_checking import FourierChecking, fourier_checking
+from .graph_state import GraphState, GraphStateGate
+from .hidden_linear_function import HiddenLinearFunction, hidden_linear_function
+from .iqp import IQP, iqp, random_iqp
+from .phase_estimation import PhaseEstimation, phase_estimation
+from .grover_operator import GroverOperator, grover_operator
 from .phase_oracle import PhaseOracle
-from .overlap import UnitaryOverlap
+from .overlap import UnitaryOverlap, unitary_overlap
+from .standard_gates import get_standard_gate_name_mapping

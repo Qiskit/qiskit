@@ -11,12 +11,13 @@
 // that they have been altered from the originals.
 
 #[cfg(feature = "cache_pygates")]
-use std::cell::OnceCell;
+use std::sync::OnceLock;
 
 use crate::bit_data::BitData;
 use crate::circuit_instruction::{
     CircuitInstruction, ExtraInstructionAttributes, OperationFromPython,
 };
+use crate::dag_circuit::add_global_phase;
 use crate::imports::{ANNOTATED_OPERATION, CLBIT, QUANTUM_CIRCUIT, QUBIT};
 use crate::interner::{Interned, Interner};
 use crate::operations::{Operation, OperationRef, Param, StandardGate};
@@ -156,6 +157,7 @@ impl CircuitData {
                 self_.clbits.cached().clone_ref(py),
                 None::<()>,
                 self_.data.len(),
+                self_.global_phase.clone(),
             )
         };
         Ok((ty, args, None::<()>, self_.iter()?).into_py(py))
@@ -303,7 +305,7 @@ impl CircuitData {
                     params: inst.params.clone(),
                     extra_attrs: inst.extra_attrs.clone(),
                     #[cfg(feature = "cache_pygates")]
-                    py_op: OnceCell::new(),
+                    py_op: OnceLock::new(),
                 });
             }
         } else if copy_instructions {
@@ -315,7 +317,7 @@ impl CircuitData {
                     params: inst.params.clone(),
                     extra_attrs: inst.extra_attrs.clone(),
                     #[cfg(feature = "cache_pygates")]
-                    py_op: OnceCell::new(),
+                    py_op: OnceLock::new(),
                 });
             }
         } else {
@@ -734,13 +736,19 @@ impl CircuitData {
     }
 
     /// Assign all uses of the circuit parameters as keys `mapping` to their corresponding values.
+    ///
+    /// Any items in the mapping that are not present in the circuit are skipped; it's up to Python
+    /// space to turn extra bindings into an error, if they choose to do it.
     fn assign_parameters_mapping(&mut self, mapping: Bound<PyAny>) -> PyResult<()> {
         let py = mapping.py();
         let mut items = Vec::new();
         for item in mapping.call_method0("items")?.iter()? {
             let (param_ob, value) = item?.extract::<(Py<PyAny>, AssignParam)>()?;
             let uuid = ParameterUuid::from_parameter(param_ob.bind(py))?;
-            items.push((param_ob, value.0, self.param_table.pop(uuid)?));
+            // It's fine if the mapping contains parameters that we don't have - just skip those.
+            if let Ok(uses) = self.param_table.pop(uuid) {
+                items.push((param_ob, value.0, uses));
+            }
         }
         self.assign_parameters_inner(py, items)
     }
@@ -778,6 +786,16 @@ impl CircuitData {
         if slf.len()? != other.len()? {
             return Ok(false);
         }
+
+        if let Ok(other_dc) = other.downcast::<CircuitData>() {
+            if !slf
+                .getattr("global_phase")?
+                .eq(other_dc.getattr("global_phase")?)?
+            {
+                return Ok(false);
+            }
+        }
+
         // Implemented using generic iterators on both sides
         // for simplicity.
         let mut ours_itr = slf.iter()?;
@@ -924,7 +942,7 @@ impl CircuitData {
                 params,
                 extra_attrs: ExtraInstructionAttributes::default(),
                 #[cfg(feature = "cache_pygates")]
-                py_op: OnceCell::new(),
+                py_op: OnceLock::new(),
             });
             res.track_instruction_parameters(py, res.data.len() - 1)?;
         }
@@ -1033,7 +1051,7 @@ impl CircuitData {
                 params,
                 extra_attrs: ExtraInstructionAttributes::default(),
                 #[cfg(feature = "cache_pygates")]
-                py_op: OnceCell::new(),
+                py_op: OnceLock::new(),
             });
             res.track_instruction_parameters(py, res.data.len() - 1)?;
         }
@@ -1091,7 +1109,7 @@ impl CircuitData {
             params,
             extra_attrs: ExtraInstructionAttributes::default(),
             #[cfg(feature = "cache_pygates")]
-            py_op: OnceCell::new(),
+            py_op: OnceLock::new(),
         });
         Ok(())
     }
@@ -1268,6 +1286,11 @@ impl CircuitData {
     /// Unpacks from interned value to `[Qubit]`
     pub fn get_qargs(&self, index: Interned<[Qubit]>) -> &[Qubit] {
         self.qargs_interner().get(index)
+    }
+
+    /// Insert qargs into the interner and return the interned value
+    pub fn add_qargs(&mut self, qubits: &[Qubit]) -> Interned<[Qubit]> {
+        self.qargs_interner.insert(qubits)
     }
 
     /// Unpacks from InternerIndex to `[Clbit]`
@@ -1482,6 +1505,60 @@ impl CircuitData {
     /// Retrieves the python `Param` object based on its `ParameterUuid`.
     pub fn get_parameter_by_uuid(&self, uuid: ParameterUuid) -> Option<&Py<PyAny>> {
         self.param_table.py_parameter_by_uuid(uuid)
+    }
+
+    /// Get an immutable view of the instructions in the circuit data
+    pub fn data(&self) -> &[PackedInstruction] {
+        &self.data
+    }
+
+    /// Clone an empty CircuitData from a given reference.
+    ///
+    /// The new copy will have the global properties from the provided `CircuitData`.
+    /// The the bit data fields and interners, global phase, etc will be copied to
+    /// the new returned `CircuitData`, but the `data` field's instruction list will
+    /// be empty. This can be useful for scenarios where you want to rebuild a copy
+    /// of the circuit from a reference but insert new gates in the middle.
+    ///
+    /// # Arguments
+    ///
+    /// * other - The other `CircuitData` to clone an empty `CircuitData` from.
+    /// * capacity - The capacity for instructions to use in the output `CircuitData`
+    ///     If `None` the length of `other` will be used, if `Some` the integer
+    ///     value will be used as the capacity.
+    pub fn clone_empty_like(other: &Self, capacity: Option<usize>) -> Self {
+        CircuitData {
+            data: Vec::with_capacity(capacity.unwrap_or(other.data.len())),
+            qargs_interner: other.qargs_interner.clone(),
+            cargs_interner: other.cargs_interner.clone(),
+            qubits: other.qubits.clone(),
+            clbits: other.clbits.clone(),
+            param_table: ParameterTable::new(),
+            global_phase: other.global_phase.clone(),
+        }
+    }
+
+    /// Append a PackedInstruction to the circuit data.
+    ///
+    /// # Arguments
+    ///
+    /// * packed: The new packed instruction to insert to the end of the CircuitData
+    ///     The qubits and clbits **must** already be present in the interner for this
+    ///     function to work. If they are not this will corrupt the circuit.
+    pub fn push(&mut self, py: Python, packed: PackedInstruction) -> PyResult<()> {
+        let new_index = self.data.len();
+        self.data.push(packed);
+        self.track_instruction_parameters(py, new_index)
+    }
+
+    /// Add a param to the current global phase of the circuit
+    pub fn add_global_phase(&mut self, py: Python, value: &Param) -> PyResult<()> {
+        match value {
+            Param::Obj(_) => Err(PyTypeError::new_err(
+                "Invalid parameter type, only float and parameter expression are supported",
+            )),
+            _ => self.set_global_phase(py, add_global_phase(py, &self.global_phase, value)?),
+        }
     }
 }
 
