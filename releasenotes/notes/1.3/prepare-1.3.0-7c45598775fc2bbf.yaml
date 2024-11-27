@@ -9,19 +9,27 @@ prelude: >
       * Essential features of Qiskit have either been ported into Rust
         or have a representation with Rust-native datatypes. Some of these
         components include the :class:`.DAGCircuit`, the :class:`.Target`,
-        the :class:`.EquivalenceLibrary`.
+        the :class:`.EquivalenceLibrary`, and others.
 
       * The majority of the transpiler passes used by the preset pass 
         manager have been ported into Rust, resulting in a 6x overall runtime 
         improvement compared to Qiskit 1.2.4. The ported passes include :class:`.BasisTranslator`,
-        :class:`.CommutationAnalysis`, :class:`.ConsolidateBlocks`, :class:`.UnitarySynthesis`,
-        and others.
+        :class:`.CommutationAnalysis`, :class:`.ConsolidateBlocks`, and :class:`.UnitarySynthesis`.
 
-      * Improvements to the circuit library that increase compilation quality and
-        construction speed. These changes include developments such as improved qubit
-        tracking for :class:`.HighLevelSynthesis`, structural circuits as part of the library
-        such as :func:`.iqp`. Additionally the :class:`.PauliEvolutionGate` has been updated
-        to leverage high level synthesis plugins including a new plugin that leverages the
-        circuit synthesis library `Rustiq <https://github.com/smartiel/rustiq>`_.
-      
+      * Improvements to the circuit library that increase compilation quality and circuit
+        construction speed. Operations are now distinguished into:
+
+        * Structural operations, that have a unique decomposition, and are represented as
+          functions that return a :class:`.QuantumCircuit` (for example: :func:`.real_amplitudes`).
+          Most of these functions are built in Rust, resulting in significantly faster circuit
+          construction runtime.
+        * Abstract operations, that can be implemented using different decompositions, are
+          represented as :class:`.Gate` or :class:`qiskit.circuit.Instruction` (for example:
+          :class:`.PauliEvolutionGate`). This allows building an abstract quantum circuit
+          and letting the compiler choose the optimal decomposition.
+
+        Using an abstract circuit description is especially powerful in combination with 
+        improvements to the :class:`.HighLevelSynthesis` transpiler pass, which can now take
+        into account idle auxiliary qubits to find the best available decomposition for a given gate.
+
       * The minimum required Python version is now 3.9.
