@@ -5,7 +5,7 @@ features_transpiler:
     returned by :func:`.generate_preset_pass_manager` and used internally
     by :func:`.transpile` were ported into Rust. This has significantly
     improved the runtime performance of each pass which has led to a
-    significant improvement in the overall runtime performance of the
+    significant improvement in the overall operational efficiency of the
     transpiler. The list of passes ported to Rust in this release are:
 
     * :class:`.ConsolidateBlocks`
