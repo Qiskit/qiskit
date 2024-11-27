@@ -8,7 +8,7 @@ deprecations_providers:
     (``backend.target``).
 
     Here is a quick guide for accessing the most common ``BackendConfiguration`` attributes in the 
-    :class:`BackendV2` model:
+    :class:`BackendV2` model::
 
       BackendV1 model (deprecated) ------------> BackendV2 model
       ----------------------------               ---------------
