@@ -16,7 +16,25 @@ features_quantum_info:
 features_synthesis:
   - |
     Added :meth:`.ProductFormula.expand`, which lets you view the expansion of a product formula
-    in a sparse Pauli format.
+    in a sparse Pauli format. For example, we can query the format of a second-order Trotter expansion
+    of a Hamiltonian as::
+    
+        from qiskit.quantum_info import SparsePauliOp
+        from qiskit.circuit.library import PauliEvolutionGate
+        from qiskit.synthesis.evolution import SuzukiTrotter
+        
+        hamiltonian = SparsePauliOp(["IX", "XI", "ZZ"], coeffs=[-1, -1, 1])
+        evo = PauliEvolutionGate(hamiltonian, time=3.14)
+        trotter = SuzukiTrotter(order=2)
+        print(trotter.expand(evo))
+        
+    which will print
+    
+    .. parsed-literal::
+    
+        [('X', [0], -3.14), ('X', [1], -3.14), ('ZZ', [0, 1], 6.28), 
+        ('X', [1], -3.14), ('X', [0], -3.14)]
+
   - |
     Added the plugin structure for the :class:`.PauliEvolutionGate`. The default plugin,
     :class:`.PauliEvolutionSynthesisDefault`, constructs circuit as before, but faster, as it
