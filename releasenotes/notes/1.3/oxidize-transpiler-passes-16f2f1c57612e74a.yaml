@@ -1,46 +1,34 @@
 ---
 features_transpiler:
   - |
-    Most of the transpiler passes required by the preset pass manager have
-    been ported into Rust, these include:
+    The majority of the transpiler passes used in the preset pass managers
+    returned by :func:`.generate_preset_pass_manager` and used internally
+    by :func:`.transpile` were ported into Rust. This has significantly
+    improved the runtime performance of each pass which has led to a
+    significant improvement in the overall runtime performance of the
+    transpiler. The list of passes ported to Rust in this release are:
 
-    * :class:`.ConsolidateBlocks`: the pass now runs up to 3x faster than it did with Python.
-    
-    * :class:`.BasisTranslator`: it now runs 3x to 5x faster than it did in Python.
+    * :class:`.ConsolidateBlocks`
+    * :class:`.BasisTranslator`
+    * :class:`.CommutationAnalysis`
+    * :class:`.CommutativeCancellation`
+    * :class:`.ElidePermutations`
+    * :class:`.Optimize1qGatesDecomposition`
+    * :class:`.UnitarySynthesis`
+    * :class:`.GateDirection`
+    * :class:`.CheckGateDirection`
+    * :class:`.RemoveDiagonalGatesBeforeMeasure`
+    * :class:`.CheckMap`
+    * :class:`.Split2QUnitaties`
+    * :class:`.FilterOpNodes`
+    * :class:`.Depth`
+    * :class:`.Size`
+    * :class:`.GatesInBasis`
+    * :class:`.InverseCancellation`
+    * :class:`.BarrierBeforeFinalMeasure`
 
-    * :class:`.CommutationAnalysis`: exists in rust as :func:`.analyze_commutations`.
-      Testing on ASV benchmarks reveals increased performance of up to 3x compared to Python.
-
-    * :class:`~.ElidePermutations`: On certain tests the demostrated speedup is between 5x and 10x from
-      its previous Python implementation.
-
-    * :class:`.Optimize1qGatesDecomposition`: the runtime performance of the pass has
-      improved between 5x to 10x.
-    
-    * :class:`.CommutationChecker`: Depending on the circuit type we can observe a speedup of
-      up to 5x in comparison to Python.
-    
-    * The circuit library functions rust-native functions :func:`.pauli_feature_map`,
-      :func:`.z_feature_map`, and :func:`.zz_feature_map` will replace the current
-      circuit library objects: :class:`.PauliFeatureMap`, :class:`.ZFeatureMap`, and
-      :class:`.ZZFeatureMap`. From multiple benchmark runs, a speedup of up to 8x was
-      observed, in comparison to Python.
-
-    * :class:`.UnitarySynthesis`: the pass seems to run about 1.5x faster than it did in Python.
-
-    * :class:`.GateDirection`: runs between 9x and 16x faster than it did in Python.
-
-    * :class:`.CheckGateDirection`: runs an average of 12x faster than it did in Python.
-
-    * :class:`.RemoveDiagonalGatesBeforeMeasure`: runs an average of 23x faster than it did
-      in Python.
-
-    * :class:`.CheckMap`: Runs up to 50x faster than in Python.
-
-    * :class:`.Split2QUnitaties`: Runs about 1.5x faster than in Python.
-
-    * :class:`.StarPrerouting`: Runs about 1.2x faster than in Python.
-    
-    Other ported passes include: :class:`.FilterOpNodes`, :class:`.Depth`, :class:`.Size`,
-    :class:`.GatesInBasis`, and :class:`.InverseCancellation`.
-  
+features_circuits:
+  - |
+    The :class:`.CommutationChecker` class has been rewritten in Rust.
+    This class retains the same functionality and public API as before
+    but is now significantly faster in most cases.

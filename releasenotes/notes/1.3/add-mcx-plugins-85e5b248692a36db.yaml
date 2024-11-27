@@ -36,7 +36,7 @@ features_transpiler:
       qc.mcx([0, 1, 2, 3, 4], [5])
       qc.mcx([0, 1, 2, 3, 4, 5], [6])
 
-      transpile(qc).draw('mpl')
+      transpile(qc).draw('mpl', fold=-1)
 
     For the first MCX gate, qubits ``5`` and ``6`` can be used as clean
     ancillas, and the best available synthesis method ``synth_mcx_n_clean_m15``
