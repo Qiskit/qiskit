@@ -8,7 +8,7 @@ features_transpiler:
     all the data was lived in Python. This new version of :class:`.DAGCircuit` stores Rust friendly
     datatypes and is more memory-efficient due to the compressed qubit and clbit representation
     designed for instructions at rest. It also enables transpiler passes to fully manipulate a
-    :class:`.DAGCircuit` from Rust, enabling potential improvements in performance.
+    :class:`.DAGCircuit` from Rust, enabling improvements in performance.
 upgrade_transpiler:
   - |
     :class:`.DAGNode` objects (and its subclasses :class:`.DAGInNode`, :class:`.DAGOutNode`, and

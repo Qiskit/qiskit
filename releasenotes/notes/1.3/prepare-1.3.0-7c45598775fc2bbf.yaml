@@ -4,7 +4,7 @@ prelude: >
     for the transpiler. The minimum required Python version is now 3.9.
 
     There have been many new features, fixes and improvements introduced in this
-    new version of Qiskit, some of which include:
+    new version of Qiskit, the highlights are:
 
       * The majority of the transpiler passes used by the preset pass 
         manager have been ported into Rust, resulting in a 6x overall runtime 

@@ -7,11 +7,11 @@ issues:
   - |
     When using QPY formats 10, 11, or 12 with circuits that contain
     :class:`.ParamerExpression`s, if the version of the ``symengine`` package
-    installed in the environment that generated the payload (:func:.qpy.dump) does
+    installed in the environment that generated the payload (:func:`.qpy.dump`) does
     not match the version of ``symengine`` installed in the enviroment where the
-    payload is loaded (:func:.qpy.load), you will get an error. If you encounter
+    payload is loaded (:func:`.qpy.load`), you will get an error. If you encounter
     this error, install the ``symengine`` version from the error message
-    before calling :func:.qpy.load. QPY format versions 13 or later
+    before calling :func:`.qpy.load`. QPY format versions 13 or later
     (or prior to 10) will not have this issue. Therefore, if you're serializing
     :class:`.ParameterExpression` objects as part of your circuit or any
     :class:`.ScheduleBlock` objects, it is recommended that you use version 13 to avoid
