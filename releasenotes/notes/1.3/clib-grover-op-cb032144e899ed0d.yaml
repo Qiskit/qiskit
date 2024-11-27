@@ -8,7 +8,8 @@ features_circuits:
     Additionally, it does not wrap the circuit into an opaque gate and is 
     faster because fewer decompositions are required for transpilation.
 
-    Example::
+    .. plot::
+      :include-source:
 
         from qiskit.circuit import QuantumCircuit
         from qiskit.circuit.library import grover_operator
@@ -16,4 +17,4 @@ features_circuits:
         oracle = QuantumCircuit(2)
         oracle.z(0)  # good state = first qubit is |1>
         grover_op = grover_operator(oracle, insert_barriers=True)
-        print(grover_op.draw())
+        grover_op.draw('mpl')

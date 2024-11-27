@@ -22,7 +22,10 @@ features_transpiler:
     * :class:`.MCXSynthesisDefault`, for choosing the most efficient synthesis
       method based on the number of clean and dirty ancilla qubits available.
 
-    As an example, consider the transpilation of the following circuit::
+    As an example, consider the transpilation of the following circuit:
+
+    .. plot::
+      :include-source:
 
       from qiskit.circuit import QuantumCircuit
       from qiskit.compiler import transpile
@@ -33,7 +36,7 @@ features_transpiler:
       qc.mcx([0, 1, 2, 3, 4], [5])
       qc.mcx([0, 1, 2, 3, 4, 5], [6])
 
-      transpile(qc)
+      transpile(qc).draw('mpl')
 
     For the first MCX gate, qubits ``5`` and ``6`` can be used as clean
     ancillas, and the best available synthesis method ``synth_mcx_n_clean_m15``

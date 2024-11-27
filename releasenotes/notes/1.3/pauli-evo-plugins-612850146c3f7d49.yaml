@@ -46,7 +46,10 @@ features_synthesis:
     the synthesis algorithm that is described in the paper "`Faster and shorter synthesis of
     Hamiltonian simulation circuits" by (de) Brugière and Martiel <https://arxiv.org/abs/2404.03280>`__"
     and is implemented in `Rustiq <https://github.com/smartiel/rustiq-core>`__.
-    For example::
+    For example:
+
+    .. plot::
+      :include-source:
 
       from qiskit.circuit import QuantumCircuit
       from qiskit.quantum_info import SparsePauliOp
