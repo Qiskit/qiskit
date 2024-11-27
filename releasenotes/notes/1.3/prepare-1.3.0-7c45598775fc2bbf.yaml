@@ -7,7 +7,7 @@ prelude: >
     new version of Qiskit, the highlights are:
 
       * Essential features of Qiskit have either been ported into Rust
-        or have an implementation with Rust-native datatypes. Some of these
+        or have a representation with Rust-native datatypes. Some of these
         components include the :class:`.DAGCircuit`, the :class:`.Target`,
         the :class:`.EquivalenceLibrary`.
 
