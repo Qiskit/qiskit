@@ -10,7 +10,7 @@ features_primitives:
     ``run()`` method. When a ``"meas_level = 1 "`` is set
     in the run options, the results from the backend will be treated as level 1
     results instead of bit arrays (the level 2 format).
-upgrade:
+upgrade_primitives:
   - |
     When using :class:`~.BackendSamplerV2`, circuit metadata is no longer
     cleared before passing circuits to the ``run()`` method of the wrapped

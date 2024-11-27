@@ -1,10 +1,15 @@
 ---
 prelude: >
     Qiskit version 1.3.0 brings in major performance and quality improvements
-    for the transpiler. The minimum required Python version is now 3.9.
+    for the transpiler.
 
     There have been many new features, fixes and improvements introduced in this
     new version of Qiskit, the highlights are:
+
+      * Essential features of Qiskit have either been ported into Rust
+        or have an implementation with Rust-native datatypes. Some of these
+        components include the :class:`.DAGCircuit`, the :class:`.Target`,
+        the :class:`.EquivalenceLibrary`.
 
       * The majority of the transpiler passes used by the preset pass 
         manager have been ported into Rust, resulting in a 6x overall runtime 
@@ -15,8 +20,8 @@ prelude: >
       * Improvements to the circuit library that increase compilation quality and
         construction speed. These changes include developments such as improved qubit
         tracking for :class:`.HighLevelSynthesis`, structural circuits as part of the library
-        such as :func:`.iqp`. Additionally the :class:`.PauliEvolutionGate` has been updated to leverage high level synthesis plugins including a new plugin that leverages the circuit synthesis library 
-        `Rustiq <https://github.com/smartiel/rustiq>`_.
-
-      * The deprecation of the Qiskit pulse module and all of its related components. 
-        The pulse module and its functionality will be part of `Qiskit Dynamics <https://github.com/qiskit-community/qiskit-dynamics>`_.
+        such as :func:`.iqp`. Additionally the :class:`.PauliEvolutionGate` has been updated
+        to leverage high level synthesis plugins including a new plugin that leverages the
+        circuit synthesis library `Rustiq <https://github.com/smartiel/rustiq>`_.
+      
+      * The minimum required Python version is now 3.9.

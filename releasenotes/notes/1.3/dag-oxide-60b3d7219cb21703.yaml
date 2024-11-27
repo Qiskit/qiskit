@@ -5,10 +5,10 @@ features_transpiler:
     should be fully API compatible with the previous Python implementation. While the class
     was previously implemented using `rustworkx <https://www.rustworkx.org/>`__, for which
     the underlying data graph structure exists in Rust, the implementation of the class and
-    all the data was lived in Python. This new version of :class:`.DAGCircuit` stores Rust friendly
-    datatypes and is more memory-efficient due to the compressed qubit and clbit representation
-    designed for instructions at rest. It also enables transpiler passes to fully manipulate a
-    :class:`.DAGCircuit` from Rust, enabling improvements in performance.
+    all the data was lived in Python. This new version of :class:`.DAGCircuit` stores Rust native
+    representations for all its data and is more memory-efficient due to the compressed qubit
+    and clbit representation designed for instructions at rest. It also enables transpiler passes
+    to fully manipulate a :class:`.DAGCircuit` from Rust, enabling improvements in performance.
 upgrade_transpiler:
   - |
     :class:`.DAGNode` objects (and its subclasses :class:`.DAGInNode`, :class:`.DAGOutNode`, and
