@@ -15,7 +15,7 @@ prelude: >
       * Improvements to the circuit library that increase compilation quality and
         construction speed. These changes include developments such as improved qubit
         tracking for :class:`.HighLevelSynthesis`, structural circuits as part of the library
-        such as IQP, and the addition of :class:`.PauliEvolutionGate` and its operability with 
+        such as :func:`.iqp`. Additionally the :class:`.PauliEvolutionGate` has been updated to leverage high level synthesis plugins including a new plugin that leverages the circuit synthesis library 
         `Rustiq <https://github.com/smartiel/rustiq>`_.
 
       * The deprecation of the Qiskit pulse module and all of its related components. 
