@@ -25,7 +25,7 @@ features_transpiler:
     * :class:`.Size`
     * :class:`.GatesInBasis`
     * :class:`.InverseCancellation`
-    * :class:`.BarrierBeforeFinalMeasure`
+    * :class:`.BarrierBeforeFinalMeasurements`
 
 features_circuits:
   - |
