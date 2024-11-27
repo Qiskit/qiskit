@@ -1,5 +1,0 @@
----
-fixes:
-  - |
-    A fix has been introduced to the :class:`.BackendEstimatorV2` class that ensures the calculation of
-    ``std`` matches the correct formula.
