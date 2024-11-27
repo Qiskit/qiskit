@@ -479,10 +479,11 @@ def _parse_basis_gates(basis_gates, backend, inst_map, skip_target):
             if inst not in standard_gates and inst not in default_gates:
                 warnings.warn(
                     category=DeprecationWarning,
-                    message="Providing custom gates through the ``basis_gates`` argument is deprecated "
-                    "for both ``transpile`` and ``generate_preset_pass_manager`` as of Qiskit 1.3.0. "
+                    message=f"Providing non-standard gates ({inst}) through the ``basis_gates`` "
+                    "argument is deprecated for both ``transpile`` and ``generate_preset_pass_manager`` "
+                    "as of Qiskit 1.3.0. "
                     "It will be removed in Qiskit 2.0. The ``target`` parameter should be used instead. "
-                    "You can build a target instance using ``Target.from_configuration()`` and provide"
+                    "You can build a target instance using ``Target.from_configuration()`` and provide "
                     "custom gate definitions with the ``custom_name_mapping`` argument.",
                 )
                 skip_target = True
