@@ -25,9 +25,9 @@ features_synthesis:
     a 100-qubit Heisenberg Hamiltonian with 10 timesteps and a 4th-order Trotter formula is 
     now constructed ~9.4x faster.
     The new plugin, :class:`.PauliEvolutionSynthesisRustiq`, uses
-    the synthesis algorithm that is described in the paper "Faster and shorter synthesis of
-    Hamiltonian simulation circuits" by (de) Brugière and Martiel (https://arxiv.org/abs/2404.03280)
-    and is implemented in https://github.com/smartiel/rustiq-core.
+    the synthesis algorithm that is described in the paper "`Faster and shorter synthesis of
+    Hamiltonian simulation circuits" by (de) Brugière and Martiel <https://arxiv.org/abs/2404.03280>`__"
+    and is implemented in `Rustiq <https://github.com/smartiel/rustiq-core>`__.
     For example::
 
       from qiskit.circuit import QuantumCircuit
@@ -43,11 +43,11 @@ features_synthesis:
       tqc = transpile(qc, basis_gates=["cx", "u"], hls_config=config)
       tqc.draw(output='mpl')
 
-    This code snippet uses the ``"rustiq"`` plugin to synthesize :class:`.PauliEvolutionGate`
-    objects in the quantum circuit `qc`. The plugin is called with the additional option
-    ``"upto_phase" = False``, allowing you to obtain smaller circuits at the expense of possibly
-    not preserving the global phase. For the full list of supported options, see the
-    documentation for :class:`.PauliEvolutionSynthesisRustiq`.
+    This code snippet uses the `Rustiq <https://github.com/smartiel/rustiq-core>`__ plugin
+    to synthesize :class:`.PauliEvolutionGate` objects in the quantum circuit `qc`. The plugin
+    is called with the additional option ``upto_phase = False``, allowing you to obtain
+    smaller circuits at the expense of possibly not preserving the global phase. For the full
+    list of supported options, see the documentation for :class:`.PauliEvolutionSynthesisRustiq`.
 
 upgrade:
   - | 
