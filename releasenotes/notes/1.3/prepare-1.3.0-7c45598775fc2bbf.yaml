@@ -7,8 +7,8 @@ prelude: >
     new version of Qiskit, the highlights are:
 
       * The core data structures for transpilation in Qiskit have been ported
-         to Rust internally. This includes components such as the
-         :class:`.DAGCircuit`, :class:`.Target`, :class:`.EquivalenceLibrary`,
+        to Rust internally. This includes components such as the
+        :class:`.DAGCircuit`, :class:`.Target`, :class:`.EquivalenceLibrary`,
         and others. The public APIs for all of these data structures remains
         unchanged but the performance after the rewrites has improved.
 
@@ -28,6 +28,7 @@ prelude: >
           functions that return a :class:`.QuantumCircuit` (for example: :func:`.real_amplitudes`).
           Most of these functions are built in Rust, resulting in significantly faster circuit
           construction runtime.
+
         * Abstract operations, that can be implemented using different decompositions, are
           represented as :class:`.Gate` or :class:`qiskit.circuit.Instruction` (for example:
           :class:`.PauliEvolutionGate`). This allows building an abstract quantum circuit
@@ -39,3 +40,4 @@ prelude: >
 
       * The minimum supported Python version is now 3.9 as Python 3.8 went end of life in 2024-10.
         Official support for Python 3.13 support was also added in this release.
+

@@ -2,52 +2,45 @@
 features_transpiler:
   - |
     Most of the transpiler passes required by the preset pass manager have
-    been ported into Rust.
+    been ported into Rust, these include:
 
-    * The :class:`.ConsolidateBlocks` pass will now run the equivalent of the
-      :class:`.Collect2qBlocks` pass internally if it was not run in a pass
-      manager prior to the pass. Previously, 
-      :class:`.Collect2qBlocks` or :class:`.Collect1qRuns` had to be run before
-      :class:`.ConsolidateBlocks` for :class:`.ConsolidateBlocks` to do
-      anything. By doing the collection internally, the overhead from the pass
-      is reduced. If :class:`.Collect2qBlocks` or :class:`.Collect1qRuns` are
-      run prior to :class:`.ConsolidateBlocks,` the collected runs by those
-      passes from the property set are used and there is no change in behavior
-      for the pass. The pass now runs up to 3x faster than it did with Python.
+    * :class:`.ConsolidateBlocks`: the pass now runs up to 3x faster than it did with Python.
     
-    * The :class:`.BasisTranslator` transpiler pass has been reimplemented
-      to work purely from Rust, taking advantage of all the other structures
-      that currently exist there, such as the :class:`.Target`, :class:`.EquivalenceLibrary`,
-      and the :class:`.DAGCircuit`. The pass itself now runs 
-      3x to 5x faster than it did in Python.
+    * :class:`.BasisTranslator`: it now runs 3x to 5x faster than it did in Python.
 
-    * Added a Rust implementation of :class:`.CommutationAnalysis` in :func:`.analyze_commutations`.
+    * :class:`.CommutationAnalysis`: exists in rust as :func:`.analyze_commutations`.
       Testing on ASV benchmarks reveals increased performance of up to 3x compared to Python.
 
-    * Port most of the logic of the transpiler pass :class:`~.ElidePermutations`
-      to Rust. On certain tests the demostrated speedup is between 5x and 10x from
+    * :class:`~.ElidePermutations`: On certain tests the demostrated speedup is between 5x and 10x from
       its previous Python implementation.
 
-    * Ported the entirety of the :class:`.Optimize1qGatesDecomposition` transpiler
-      pass to Rust. This improves the runtime performance of the pass between 5x
-      to 10x.
+    * :class:`.Optimize1qGatesDecomposition`: the runtime performance of the pass has
+      improved between 5x to 10x.
     
-    * The :class:`.CommutationChecker` class has been reimplemented in
-      Rust. This retains the same functionality as before but is now
-      significantly faster in most cases. Depending on the circuit type
-      we can observe a speedup of 5x.
+    * :class:`.CommutationChecker`: Depending on the circuit type we can observe a speedup of
+      up to 5x in comparison to Python.
     
-    * Added circuit library functions :func:`.pauli_feature_map`, :func:`.z_feature_map`,
-      :func:`.zz_feature_map` to construct Pauli feature map circuits. These functions
-      are approximately 8x faster than the current circuit library objects,
-      :class:`.PauliFeatureMap`, :class:`.ZFeatureMap`, and :class:`.ZZFeatureMap`,
-      and will replace them in the future. Note, that the new functions return a plain
-      :class:`.QuantumCircuit` instead of a :class:`.BlueprintCircuit`. From multiple benchmarks
-      a speedup of up to 8x was observed, in comparison to Python.
+    * The circuit library functions rust-native functions :func:`.pauli_feature_map`,
+      :func:`.z_feature_map`, and :func:`.zz_feature_map` will replace the current
+      circuit library objects: :class:`.PauliFeatureMap`, :class:`.ZFeatureMap`, and
+      :class:`.ZZFeatureMap`. From multiple benchmark runs, a speedup of up to 8x was
+      observed, in comparison to Python.
 
-      The functions can be used as drop-in replacement::
+    * :class:`.UnitarySynthesis`: the pass seems to run about 1.5x faster than it did in Python.
 
-        from qiskit.circuit.library import pauli_feature_map, PauliFeatureMap
+    * :class:`.GateDirection`: runs between 9x and 16x faster than it did in Python.
 
-        fm = pauli_feature_map(20, paulis=["z", "xx", "yyy"])
-        also_fm = PauliFeatureMap(20, paulis=["z", "xx", "yyy"]).decompose()
+    * :class:`.CheckGateDirection`: runs an average of 12x faster than it did in Python.
+
+    * :class:`.RemoveDiagonalGatesBeforeMeasure`: runs an average of 23x faster than it did
+      in Python.
+
+    * :class:`.CheckMap`: Runs up to 50x faster than in Python.
+
+    * :class:`.Split2QUnitaties`: Runs about 1.5x faster than in Python.
+
+    * :class:`.StarPrerouting`: Runs about 1.2x faster than in Python.
+    
+    Other ported passes include: :class:`.FilterOpNodes`, :class:`.Depth`, :class:`.Size`,
+    :class:`.GatesInBasis`, and :class:`.InverseCancellation`.
+  
