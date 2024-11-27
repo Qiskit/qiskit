@@ -37,4 +37,5 @@ prelude: >
         improvements to the :class:`.HighLevelSynthesis` transpiler pass, which can now take
         into account idle auxiliary qubits to find the best available decomposition for a given gate.
 
-      * The minimum supported Python version is now 3.9 as Python 3.8 went end of life in 2024-10. Official support for Python 3.13 support was also added in this release.
+      * The minimum supported Python version is now 3.9 as Python 3.8 went end of life in 2024-10.
+        Official support for Python 3.13 support was also added in this release.
