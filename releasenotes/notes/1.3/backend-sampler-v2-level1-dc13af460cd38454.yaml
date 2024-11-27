@@ -14,6 +14,6 @@ upgrade_primitives:
   - |
     When using :class:`~.BackendSamplerV2`, circuit metadata is no longer
     cleared before passing circuits to the ``run()`` method of the wrapped
-    :class:`~.BackendV2` instance. If you were previously 
-    relying on this behavior you can manually clear the metadata before 
-    calling :meth:`.BackendSamplerV2.run` by calling `circuit.metadata.clear()`
+    :class:`~.BackendV2` instance. If you were previously
+    relying on this behavior you can manually clear the metadata before
+    calling :meth:`.BackendSamplerV2.run` by calling ``circuit.metadata.clear()``

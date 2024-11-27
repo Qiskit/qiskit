@@ -1,6 +1,6 @@
 fixes:
   - |
-    The transpilation pass :class`.InverseCancellation` now will recurse into :class`.ControlFlowOp`
-    operations present in a :class:`.QuantumCircuit`. Previously, the pass would ignorez
+    The transpilation pass :class:`.InverseCancellation` now will recurse into :class`.ControlFlowOp`
+    operations present in a :class:`.QuantumCircuit`. Previously, the pass would ignore
     inverse gate pairs inside control flow blocks that could have been cancelled. Refer to
-    `#13437 <https://github.com/Qiskit/qiskit/issues/13437>` for more details.
+    `#13437 <https://github.com/Qiskit/qiskit/issues/13437>`__ for more details.

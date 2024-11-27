@@ -1,8 +1,8 @@
 ---
 features_circuits:
   - |
-    Added circuit library functions :func:`.pauli_feature_map`, :func:`.z_feature_map`,
-    :func:`.zz_feature_map` to construct Pauli feature map circuits. These functions
+    Added circuit library functions :func:`~qiskit.circuit.library.pauli_feature_map`, :func:`~qiskit.circuit.library.z_feature_map`,
+    :func:`~qiskit.circuit.library.zz_feature_map` to construct Pauli feature map circuits. These functions
     are approximately 8x faster than the current circuit library objects,
     :class:`.PauliFeatureMap`, :class:`.ZFeatureMap`, and :class:`.ZZFeatureMap`,
     and will replace them in the future. Note, that the new functions return a plain

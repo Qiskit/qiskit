@@ -1,11 +1,11 @@
 ---
 features_circuits:
   - |
-    Added :func:`.grover_operator` to construct a Grover operator circuit, used in 
+    Added :func:`~qiskit.circuit.library.grover_operator` to construct a Grover operator circuit, used in
     Grover's algorithm and amplitude estimation/amplification, for example. This function is similar to
     :class:`.GroverOperator`, but does not require you to choose the implementation of the
     multi-controlled X gate, but instead lets the compiler determine the optimal decomposition.
-    Additionally, it does not wrap the circuit into an opaque gate and is 
+    Additionally, it does not wrap the circuit into an opaque gate and is
     faster because fewer decompositions are required for transpilation.
 
     .. plot::
