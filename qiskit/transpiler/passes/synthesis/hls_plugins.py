@@ -376,7 +376,7 @@ Multiplier Synthesis
       - Description
     * - ``"cumulative"``
       - :class:`.MultiplierSynthesisH18`
-      - depending on the :class:`.AdderGate` used
+      - depending on the :class:`.HalfAdderGate` used
       - a cumulative adder based on controlled adders
     * - ``"qft"``
       - :class:`.MultiplierSynthesisR17`
