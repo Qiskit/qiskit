@@ -78,3 +78,8 @@ upgrade:
     :math:`R_X(-\pi/2)` as basis transformation. Using the :math:`\sqrt{X}` operation,
     represented by the :class:`.SXGate` is more efficient as it uses only a single gate
     implemented as singleton.
+
+    If you were relying on the previous gate usage, we recommend building the circuits with
+    Qiskit 1.2 and exporting them with :func:`.qpy.dump`, or to write a custom
+    :class:`.TransformationPass`, which performs the translation to your desired basis change
+    gate.
