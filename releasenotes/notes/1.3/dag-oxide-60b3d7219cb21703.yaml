@@ -28,8 +28,8 @@ upgrade_transpiler:
 
     however this type of mutation was always unsound as it could break the DAG's internal caching
     and cause corruption of the data structure. Instead you should use the API provided by
-    :class:`.DAGCircuit` for mutation such as :meth:`.DAGCircuit.substitute_node`,
-    :meth:`.DAGCircuit.substitute_node_with_dag`, or :meth:`.DAGCircuit.contract_node`. For example
+    :class:`.DAGCircuit` for mutation such as :meth:`.DAGCircuit.substitute_node` or
+    :meth:`.DAGCircuit.substitute_node_with_dag`. For example
     the above code block would become::
 
         for node in dag.op_nodes():

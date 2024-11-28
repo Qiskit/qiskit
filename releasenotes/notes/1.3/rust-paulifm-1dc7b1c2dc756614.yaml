@@ -5,8 +5,7 @@ features_circuits:
     :func:`~qiskit.circuit.library.zz_feature_map` to construct Pauli feature map circuits. These functions
     are approximately 8x faster than the current circuit library objects,
     :class:`.PauliFeatureMap`, :class:`.ZFeatureMap`, and :class:`.ZZFeatureMap`,
-    and will replace them in the future. Note, that the new functions return a plain
-    :class:`.QuantumCircuit` instead of a :class:`.BlueprintCircuit`.
+    and will replace them in the future. 
 
     The functions can be used as drop-in replacement::
 
