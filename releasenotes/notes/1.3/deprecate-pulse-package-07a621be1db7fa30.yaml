@@ -34,7 +34,6 @@ deprecations_qpy:
 deprecations_transpiler:
   - |
     As part of the Qiskit Pulse package deprecation, pulse-related aspects in the :class:`qiskit.transpiler.Target` class are being deprecated. These include:
-      * :attr:`~qiskit.transpiler.Target.calibration`
       * :meth:`~qiskit.transpiler.Target.update_from_instruction_schedule_map`
       * :meth:`~qiskit.transpiler.Target.has_calibration`
       * :meth:`~qiskit.transpiler.Target.get_calibration`
@@ -47,16 +46,12 @@ deprecations_transpiler:
       * :class:`~qiskit.transpiler.passes.RZXCalibrationBuilder`
       * :class:`~qiskit.transpiler.passes.EchoRZXWeylDecomposition`
   - |
-    The ``inst_map`` argument in :func:`~qiskit.transpiler.generate_preset_pass_manager`,
-    :meth:`~transpiler.target.Target.from_configuration`, :class:`~qiskit.transpiler.PassManagerConfig` initializer
+    The ``inst_map`` argument in :func:`.generate_preset_pass_manager`,
+    :meth:`~.Target.from_configuration`, :class:`~qiskit.transpiler.PassManagerConfig` initializer
     and :func:`~qiskit.transpiler.preset_passmanagers.common.generate_scheduling` is being deprecated.
   - |
     The ``calibration`` argument in :func:`~qiskit.transpiler.target.InstructionProperties` initializer methods is being
     deprecated.
-deprecations_visualization:
-  - |
-    As part of the Qiskit Pulse package deprecation, pulse drawing via :meth:`qiskit.visualization.pulse_drawer`
-    is being deprecated.
 deprecations_providers:
   - |
     As part of the Qiskit Pulse package deprecation, all pulse-related functionality in :class:`qiskit.providers.BackendV2` class is being deprecated. This includes the following methods:
@@ -72,7 +67,7 @@ deprecations_providers:
     In addition, the ``pulse_channels`` and ``calibrate_instructions`` arguments in the :class:`~qiskit.providers.BackendV2`
     initializer method are being deprecated.
   - |
-    The ``defaults`` argument is being deprecated from the :func:`qiskit.providers.backend_compat.convert_to_target` function.
+    The ``defaults`` argument is being deprecated from the :func:`qiskit.providers.convert_to_target` function.
 deprecations_misc:
   - |
     As part of the Qiskit Pulse package deprecation, the following functions and class are being deprecated as well:

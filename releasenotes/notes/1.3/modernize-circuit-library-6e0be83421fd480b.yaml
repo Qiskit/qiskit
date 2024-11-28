@@ -6,7 +6,11 @@ features_circuits:
     constructed using a synthesis method:
 
     * :class:`.GraphState` is represented by :class:`.GraphStateGate`,
-    * :class:`.FourierChecking` can be constructed using :meth:`.fourier_checking`,
-    * :class:`.UnitaryOverlap` can be constructed using :meth:`.unitary_overlap`,
-    * :class:`.HiddenLinearFunction` can be constructed using :meth:`.hidden_linear_function`,
-    * :class:`.PhaseEstimation` can be constructed using :meth:`.phase_estimation`.
+    * :class:`.FourierChecking` can be constructed using 
+      :func:`~qiskit.circuit.library.fourier_checking.fourier_checking`,
+    * :class:`.UnitaryOverlap` can be constructed using 
+      :func:`~qiskit.circuit.library.overlap.unitary_overlap`,
+    * :class:`.HiddenLinearFunction` can be constructed using 
+      :func:`~qiskit.circuit.library.hidden_linear_function.hidden_linear_function`,
+    * :class:`.PhaseEstimation` can be constructed using 
+      :func:`~qiskit.circuit.library.phase_estimation.phase_estimation`.

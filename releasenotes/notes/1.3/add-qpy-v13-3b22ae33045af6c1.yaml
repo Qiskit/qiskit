@@ -6,7 +6,7 @@ features_qpy:
 issues:
   - |
     When using QPY formats 10, 11, or 12 with circuits that contain
-    :class:`.ParamerExpression`\s, if the version of the ``symengine`` package
+    :class:`.ParameterExpression`\s, if the version of the ``symengine`` package
     installed in the environment that generated the payload (:func:`.qpy.dump`) does
     not match the version of ``symengine`` installed in the enviroment where the
     payload is loaded (:func:`.qpy.load`), you will get an error. If you encounter

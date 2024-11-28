@@ -25,12 +25,13 @@ prelude: >
         construction speed. Operations are now distinguished into:
 
         * Structural operations, that have a unique decomposition, and are represented as
-          functions that return a :class:`.QuantumCircuit` (for example: :func:`.real_amplitudes`).
+          functions that return a :class:`.QuantumCircuit` (for example:
+          :func:`~qiskit.circuit.library.real_amplitudes`).
           Most of these functions are built in Rust, resulting in significantly faster circuit
           construction runtime.
 
         * Abstract operations, that can be implemented using different decompositions, are
-          represented as :class:`.Gate` or :class:`qiskit.circuit.Instruction` (for example:
+          represented as :class:`.Gate` or :class:`~qiskit.circuit.Instruction` (for example:
           :class:`.PauliEvolutionGate`). This allows building an abstract quantum circuit
           and letting the compiler choose the optimal decomposition.
 

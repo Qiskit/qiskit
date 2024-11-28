@@ -8,7 +8,7 @@ deprecations_providers:
     (``backend.target``).
 
     Here is a quick guide for accessing the most common ``BackendConfiguration`` attributes in the 
-    :class:`BackendV2` model::
+    :class:`.BackendV2` model::
 
       BackendV1 model (deprecated) ------------> BackendV2 model
       ----------------------------               ---------------
@@ -25,7 +25,7 @@ deprecations_providers:
       backend.configuration().memory             No representation      
       backend.configuration().max_shots          No representation      
 
-    (*) Note that :attr:`.Backend.target.operation_names` includes ``basis_gates`` and additional 
+    (*) Note that ``Backend.target.operation_names`` includes ``basis_gates`` and additional 
     non-gate instructions, in some implementations it might be necessary to filter the output.
 
     See `this guide <https://docs.quantum.ibm.com/api/qiskit/providers#migrating-from-backendv1-to-backendv2>`__

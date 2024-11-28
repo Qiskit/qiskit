@@ -84,7 +84,7 @@ class CDKMRippleCarryAdder(Adder):
         :class:`.ModularAdderGate`: A generic inplace adder, modulo :math:`2^n`. This
             is functionally equivalent to ``kind="fixed"``.
 
-        :class:`.AdderGate`: A generic inplace adder. This
+        :class:`.HalfAdderGate`: A generic inplace adder. This
             is functionally equivalent to ``kind="half"``.
 
         :class:`.FullAdderGate`: A generic inplace adder, with a carry-in bit. This
