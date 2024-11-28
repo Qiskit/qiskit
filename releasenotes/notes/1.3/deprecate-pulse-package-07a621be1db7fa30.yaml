@@ -52,10 +52,6 @@ deprecations_transpiler:
   - |
     The ``calibration`` argument in :func:`~qiskit.transpiler.target.InstructionProperties` initializer methods is being
     deprecated.
-deprecations_visualization:
-  - |
-    As part of the Qiskit Pulse package deprecation, pulse drawing via :func:`qiskit.visualization.pulse_drawer`
-    is being deprecated.
 deprecations_providers:
   - |
     As part of the Qiskit Pulse package deprecation, all pulse-related functionality in :class:`qiskit.providers.BackendV2` class is being deprecated. This includes the following methods:
