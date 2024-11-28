@@ -19,7 +19,7 @@ features_transpiler:
     * :class:`.CheckGateDirection`
     * :class:`.RemoveDiagonalGatesBeforeMeasure`
     * :class:`.CheckMap`
-    * :class:`.Split2QUnitaties`
+    * :class:`.Split2QUnitaries`
     * :class:`.FilterOpNodes`
     * :class:`.Depth`
     * :class:`.Size`
