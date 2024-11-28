@@ -18,7 +18,10 @@ features_synthesis:
     which will lead to the ``RZZ`` and ``RYY`` rotations being applied in parallel, instead
     of three sequential rotations in the first part.
 
-    This option can be set via the plugin interface::
+    This option can be set via the plugin interface:
+
+    .. plot::
+      :include-source:
 
         from qiskit import QuantumCircuit, transpile
         from qiskit.circuit.library import PauliEvolutionGate
@@ -36,5 +39,5 @@ features_synthesis:
         circuit.append(PauliEvolutionGate(op, time), circuit.qubits)
 
         tqc = transpile(circuit, basis_gates=["u", "cx"], hls_config=hls_config)
-        print(tqc.draw())
+        tqc.draw('mpl')
 

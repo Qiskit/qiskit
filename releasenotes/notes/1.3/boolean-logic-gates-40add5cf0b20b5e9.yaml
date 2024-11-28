@@ -1,8 +1,10 @@
 ---
 features_circuits:
   - |
-    Quantum circuits in :mod:`qiskit.circuit.library.boolean_logic` now have equivalent
-    representations as :class:`.Gate` objects:
+    The boolean logic quantum circuits in :mod:`qiskit.circuit.library`
+    now have equivalent representations as :class:`.Gate` objects enabling
+    their use with :class:`.HighLevelSynthesis` transpiler pass and plugin
+    infrastructure.
 
     * :class:`~qiskit.circuit.library.AndGate`,
       representing :class:`~qiskit.circuit.library.AND`,

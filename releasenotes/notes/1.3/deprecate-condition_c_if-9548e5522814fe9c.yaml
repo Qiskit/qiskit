@@ -21,9 +21,9 @@ deprecations_circuits:
 
         qc = QuantumCircuit(2, 2)
         qc.h(0)
-        with expected.if_test((expected.clbits[0], True)):
+        with qc.if_test((qc.clbits[0], True)):
             qc.x(0)
-        with expected.if_test((expected.clbits[1], False)):
+        with qc.if_test((qc.clbits[1], False)):
             qc.z(1)
         qc.measure(0, 0)
         qc.measure(1, 1)
