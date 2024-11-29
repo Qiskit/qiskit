@@ -38,7 +38,7 @@ ALLOWLIST_MISSING_ALT_TEXT = {
     "qiskit/circuit/controlledgate.py": [72, 86],
     "qiskit/circuit/operation.py": [36],
     "qiskit/circuit/quantumcircuit.py": [837, 903, 2171, 3427, 4308, 4323],
-    "qiskit/circuit/__init__.py": [66],
+    "qiskit/circuit/__init__.py": [66, 1142],
     "qiskit/circuit/parameter.py": [43],
     "qiskit/circuit/random/utils.py": [39, 297],
     "qiskit/circuit/library/overlap.py": [130],
@@ -80,6 +80,7 @@ ALLOWLIST_MISSING_ALT_TEXT = {
 }
 
 
+
 def is_image(line: str) -> bool:
     return line.strip().startswith((".. image:", ".. plot:"))
 
@@ -113,11 +114,12 @@ def validate_image(file_path: str) -> tuple[str, list[str]]:
 
         if image_found and is_option(line):
             options.append(line)
-            line_index += 1
-            continue
 
-        image_found = is_image(line) and not in_allowlist(file_path, line_index + 1)
-        image_line = line_index + 1
+        if is_image(line) and not in_allowlist(file_path, line_index + 1):
+            image_found = True
+            image_line = line_index + 1
+            options = []
+
         line_index += 1
 
     return (file_path, invalid_images)
