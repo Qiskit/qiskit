@@ -205,6 +205,86 @@ def _mcsu2_real_diagonal(
     return circuit
 
 
+def _mcsu2_with_params(
+    unitary_type: str,  #'rz', 'ry' or 'rz'
+    theta: ParameterValueType,
+    num_controls: int,
+    ctrl_state: Optional[str] = None,
+) -> QuantumCircuit:
+    """
+    Return a parametrized multi-controlled RX or RY or RZ gate [1]_.
+
+    Args:
+        unitary_type: SU(2) unitary matrix type: 'rx' or 'ry' or 'rz'.
+        num_controls: The number of control qubits.
+        ctrl_state: The state on which the SU(2) operation is controlled. Defaults to all
+            control qubits being in state 1.
+
+    Returns:
+        A :class:`.QuantumCircuit` implementing the multi-controlled RX / RY / RZ gate.
+
+    References:
+
+        .. [1]: R. Vale et al. Decomposition of Multi-controlled Special Unitary Single-Qubit Gates
+            `arXiv:2302.06377 (2023) <https://arxiv.org/abs/2302.06377>`__
+
+    """
+    from .x import MCXVChain
+    from qiskit.circuit.library.standard_gates.ry import RYGate
+    from qiskit.circuit.library.standard_gates.rz import RZGate
+
+    if unitary_type == "ry":
+        s_gate = RYGate(-theta / 4)
+    elif unitary_type in ("rz", "rx"):
+        s_gate = RZGate(-theta / 4)
+    else:
+        raise QiskitError("The unitary given is not of type rx, ry or rz.")
+
+    k_1 = math.ceil(num_controls / 2.0)
+    k_2 = math.floor(num_controls / 2.0)
+
+    ctrl_state_k_1 = None
+    ctrl_state_k_2 = None
+
+    if ctrl_state is not None:
+        str_ctrl_state = f"{ctrl_state:0{num_controls}b}"
+        ctrl_state_k_1 = str_ctrl_state[::-1][:k_1][::-1]
+        ctrl_state_k_2 = str_ctrl_state[::-1][k_1:][::-1]
+
+    circuit = QuantumCircuit(num_controls + 1, name="MCSU2")
+    controls = list(range(num_controls))  # control indices, defined for code legibility
+    target = num_controls  # target index, defined for code legibility
+
+    if unitary_type == "rx":
+        circuit.h(target)
+
+    mcx_1 = MCXVChain(num_ctrl_qubits=k_1, dirty_ancillas=True, ctrl_state=ctrl_state_k_1)
+    circuit.append(mcx_1, controls[:k_1] + [target] + controls[k_1 : 2 * k_1 - 2])
+    circuit.append(s_gate, [target])
+
+    mcx_2 = MCXVChain(
+        num_ctrl_qubits=k_2,
+        dirty_ancillas=True,
+        ctrl_state=ctrl_state_k_2,
+        # action_only=general_su2_optimization # Requires PR #9687
+    )
+    circuit.append(mcx_2.inverse(), controls[k_1:] + [target] + controls[k_1 - k_2 + 2 : k_1])
+    circuit.append(s_gate.inverse(), [target])
+
+    mcx_3 = MCXVChain(num_ctrl_qubits=k_1, dirty_ancillas=True, ctrl_state=ctrl_state_k_1)
+    circuit.append(mcx_3, controls[:k_1] + [target] + controls[k_1 : 2 * k_1 - 2])
+    circuit.append(s_gate, [target])
+
+    mcx_4 = MCXVChain(num_ctrl_qubits=k_2, dirty_ancillas=True, ctrl_state=ctrl_state_k_2)
+    circuit.append(mcx_4, controls[k_1:] + [target] + controls[k_1 - k_2 + 2 : k_1])
+    circuit.append(s_gate.inverse(), [target])
+
+    if unitary_type == "rx":
+        circuit.h(target)
+
+    return circuit
+
+
 def mcrx(
     self,
     theta: ParameterValueType,
@@ -221,9 +301,6 @@ def mcrx(
         q_controls (QuantumRegister or list(Qubit)): The list of control qubits
         q_target (Qubit): The target qubit
         use_basis_gates (bool): use p, u, cx
-
-    Raises:
-        QiskitError: parameter errors
     """
     from .rx import RXGate
 
@@ -259,14 +336,20 @@ def mcrx(
         )
     else:
         if isinstance(theta, ParameterExpression):
-            raise QiskitError(f"Cannot synthesize MCRX with unbound parameter: {theta}.")
+            cgate = _mcsu2_with_params(
+                "rx",
+                theta,
+                num_controls=len(control_qubits),
+            )
+            self.compose(cgate, control_qubits + [target_qubit], inplace=True)
 
-        cgate = _mcsu2_real_diagonal(
-            RXGate(theta).to_matrix(),
-            num_controls=len(control_qubits),
-            use_basis_gates=use_basis_gates,
-        )
-        self.compose(cgate, control_qubits + [target_qubit], inplace=True)
+        else:
+            cgate = _mcsu2_real_diagonal(
+                RXGate(theta).to_matrix(),
+                num_controls=len(control_qubits),
+                use_basis_gates=use_basis_gates,
+            )
+            self.compose(cgate, control_qubits + [target_qubit], inplace=True)
 
 
 def mcry(
@@ -290,8 +373,6 @@ def mcry(
         mode (string): The implementation mode to use
         use_basis_gates (bool): use p, u, cx
 
-    Raises:
-        QiskitError: parameter errors
     """
     from .ry import RYGate
 
@@ -337,14 +418,20 @@ def mcry(
             )
         else:
             if isinstance(theta, ParameterExpression):
-                raise QiskitError(f"Cannot synthesize MCRY with unbound parameter: {theta}.")
+                cgate = _mcsu2_with_params(
+                    "ry",
+                    theta,
+                    num_controls=len(control_qubits),
+                )
+                self.compose(cgate, control_qubits + [target_qubit], inplace=True)
 
-            cgate = _mcsu2_real_diagonal(
-                RYGate(theta).to_matrix(),
-                num_controls=len(control_qubits),
-                use_basis_gates=use_basis_gates,
-            )
-            self.compose(cgate, control_qubits + [target_qubit], inplace=True)
+            else:
+                cgate = _mcsu2_real_diagonal(
+                    RYGate(theta).to_matrix(),
+                    num_controls=len(control_qubits),
+                    use_basis_gates=use_basis_gates,
+                )
+                self.compose(cgate, control_qubits + [target_qubit], inplace=True)
     else:
         raise QiskitError(f"Unrecognized mode for building MCRY circuit: {mode}.")
 
@@ -365,9 +452,6 @@ def mcrz(
         q_controls (list(Qubit)): The list of control qubits
         q_target (Qubit): The target qubit
         use_basis_gates (bool): use p, u, cx
-
-    Raises:
-        QiskitError: parameter errors
     """
     from .rz import CRZGate, RZGate
 
@@ -390,14 +474,20 @@ def mcrz(
             self.append(CRZGate(lam), control_qubits + [target_qubit])
     else:
         if isinstance(lam, ParameterExpression):
-            raise QiskitError(f"Cannot synthesize MCRZ with unbound parameter: {lam}.")
+            cgate = _mcsu2_with_params(
+                "rz",
+                lam,
+                num_controls=len(control_qubits),
+            )
+            self.compose(cgate, control_qubits + [target_qubit], inplace=True)
 
-        cgate = _mcsu2_real_diagonal(
-            RZGate(lam).to_matrix(),
-            num_controls=len(control_qubits),
-            use_basis_gates=use_basis_gates,
-        )
-        self.compose(cgate, control_qubits + [target_qubit], inplace=True)
+        else:
+            cgate = _mcsu2_real_diagonal(
+                RZGate(lam).to_matrix(),
+                num_controls=len(control_qubits),
+                use_basis_gates=use_basis_gates,
+            )
+            self.compose(cgate, control_qubits + [target_qubit], inplace=True)
 
 
 QuantumCircuit.mcrx = mcrx
