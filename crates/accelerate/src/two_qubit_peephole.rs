@@ -31,13 +31,20 @@ use crate::euler_one_qubit_decomposer::{
 };
 use crate::nlayout::PhysicalQubit;
 use crate::target_transpiler::Target;
-use crate::two_qubit_decompose::{TwoQubitBasisDecomposer, TwoQubitGateSequence};
+use crate::two_qubit_decompose::{
+    RXXEquivalent, TwoQubitBasisDecomposer, TwoQubitControlledUDecomposer, TwoQubitGateSequence,
+};
+
+enum TwoQubitDecomposer {
+    Basis(TwoQubitBasisDecomposer),
+    ControlledU(TwoQubitControlledUDecomposer),
+}
 
 fn get_decomposers_from_target(
     target: &Target,
     qubits: &[Qubit],
     fidelity: f64,
-) -> PyResult<Vec<TwoQubitBasisDecomposer>> {
+) -> PyResult<Vec<TwoQubitDecomposer>> {
     let physical_qubits = smallvec![PhysicalQubit(qubits[0].0), PhysicalQubit(qubits[1].0)];
     let gate_names = match target.operation_names_for_qargs(Some(&physical_qubits)) {
         Ok(names) => names,
@@ -94,7 +101,7 @@ fn get_decomposers_from_target(
 
     let euler_bases: Vec<EulerBasis> = target_basis_set.get_bases().collect();
 
-    available_kak_gate
+    let decomposers: PyResult<Vec<TwoQubitDecomposer>> = available_kak_gate
         .iter()
         .filter_map(|(two_qubit_name, two_qubit_gate, params)| {
             let matrix = two_qubit_gate.matrix(params);
@@ -107,11 +114,26 @@ fn get_decomposers_from_target(
                         *euler_basis,
                         None,
                     )
+                    .map(TwoQubitDecomposer::Basis)
                 })
             })
         })
         .flatten()
-        .collect()
+        .collect();
+    let mut decomposers = decomposers?;
+    for gate in [
+        StandardGate::RXXGate,
+        StandardGate::RZZGate,
+        StandardGate::RYYGate,
+        StandardGate::RZXGate,
+    ] {
+        if gate_names.contains(gate.name()) {
+            decomposers.push(TwoQubitDecomposer::ControlledU(
+                TwoQubitControlledUDecomposer::new(RXXEquivalent::Standard(gate))?,
+            ));
+        }
+    }
+    Ok(decomposers)
 }
 
 #[inline]
@@ -229,13 +251,22 @@ pub(crate) fn two_qubit_unitary_peephole_optimize(
 
             let sequence = decomposers
                 .iter()
-                .map(|decomposer| {
-                    (
+                .map(|decomposer| match decomposer {
+                    TwoQubitDecomposer::Basis(decomposer) => (
                         decomposer
                             .call_inner(matrix.view(), None, true, None)
                             .unwrap(),
                         decomposer.gate_name().to_string(),
-                    )
+                    ),
+                    TwoQubitDecomposer::ControlledU(decomposer) => (
+                        decomposer.call_inner(matrix.view(), 1e-12).unwrap(),
+                        match decomposer.rxx_equivalent_gate {
+                            RXXEquivalent::Standard(gate) => gate.name().to_string(),
+                            RXXEquivalent::CustomPython(_) => {
+                                unreachable!("Decomposer only uses standard gates")
+                            }
+                        },
+                    ),
                 })
                 .enumerate()
                 .min_by(order_sequence)
