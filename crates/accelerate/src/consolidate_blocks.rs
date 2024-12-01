@@ -54,11 +54,12 @@ const MAX_2Q_DEPTH: usize = 20;
 
 #[allow(clippy::too_many_arguments)]
 #[pyfunction]
-#[pyo3(signature = (dag, decomposer, force_consolidate, target=None, basis_gates=None, blocks=None, runs=None))]
+#[pyo3(signature = (dag, decomposer, basis_gate_name, force_consolidate, target=None, basis_gates=None, blocks=None, runs=None))]
 pub(crate) fn consolidate_blocks(
     py: Python,
     dag: &mut DAGCircuit,
     decomposer: &TwoQubitBasisDecomposer,
+    basis_gate_name: &str,
     force_consolidate: bool,
     target: Option<&Target>,
     basis_gates: Option<HashSet<String>>,
@@ -125,7 +126,7 @@ pub(crate) fn consolidate_blocks(
             let inst = dag.dag()[*node].unwrap_operation();
             block_qargs.extend(dag.get_qargs(inst.qubits));
             all_block_gates.insert(*node);
-            if inst.op.name() == decomposer.gate_name() {
+            if inst.op.name() == basis_gate_name {
                 basis_count += 1;
             }
             if !is_supported(

@@ -22,6 +22,7 @@ import numpy as np
 
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
 from qiskit.circuit import Qubit, Gate, ControlFlowOp, ForLoopOp
+from qiskit.circuit.library import quantum_volume
 from qiskit.compiler import transpile
 from qiskit.transpiler import CouplingMap, Layout, PassManager, TranspilerError, Target
 from qiskit.circuit.library import U2Gate, U3Gate, QuantumVolume, CXGate, CZGate, XGate
@@ -163,7 +164,7 @@ class TestPresetPassManager(QiskitTestCase):
         qc.measure_all()
         with self.assertWarnsRegex(
             DeprecationWarning,
-            "Providing custom gates through the ``basis_gates`` argument is deprecated",
+            "Providing non-standard gates \\(unitary\\) through the ``basis_gates`` argument",
         ):
             result = transpile(qc, basis_gates=["cx", "u", "unitary"], optimization_level=level)
         self.assertEqual(result, qc)
@@ -185,7 +186,7 @@ class TestPresetPassManager(QiskitTestCase):
         qc.measure_all()
         with self.assertWarnsRegex(
             DeprecationWarning,
-            "Providing custom gates through the ``basis_gates`` argument is deprecated",
+            "Providing non-standard gates \\(unitary\\) through the ``basis_gates`` argument",
         ):
             result = transpile(
                 qc,
@@ -342,6 +343,24 @@ class TestTranspileLevels(QiskitTestCase):
                 circuit(), backend=backend, optimization_level=level, seed_transpiler=42
             )
         self.assertIsInstance(result, QuantumCircuit)
+
+    @data(0, 1, 2, 3)
+    def test_quantum_volume_function_transpile(self, opt_level):
+        """Test quantum_volume transpilation."""
+        qc = quantum_volume(10, 10, 12345)
+        backend = GenericBackendV2(
+            num_qubits=100,
+            basis_gates=["cz", "rz", "sx", "x", "id"],
+            coupling_map=CouplingMap.from_grid(10, 10),
+        )
+        pm = generate_preset_pass_manager(opt_level, backend)
+        res = pm.run(qc)
+        for inst in res.data:
+            self.assertTrue(
+                backend.target.instruction_supported(
+                    inst.operation.name, qargs=tuple(res.find_bit(x).index for x in inst.qubits)
+                )
+            )
 
 
 @ddt
@@ -1761,7 +1780,7 @@ class TestIntegrationControlFlow(QiskitTestCase):
             basis_gates = ["my_gate"]
             with self.assertWarnsRegex(
                 DeprecationWarning,
-                "Providing custom gates through the ``basis_gates`` argument is deprecated",
+                "Providing non-standard gates \\(my_gate\\) through the ``basis_gates`` argument",
             ):
                 _ = generate_preset_pass_manager(
                     optimization_level=optimization_level, basis_gates=basis_gates
