@@ -35,6 +35,12 @@ use crate::two_qubit_decompose::{
     RXXEquivalent, TwoQubitBasisDecomposer, TwoQubitControlledUDecomposer, TwoQubitGateSequence,
 };
 
+// The difference between these two types is large where TwoQubitBasisDecomposer
+// is 1640 bytes and TwoQubitControlledUDecomposer is only 24 bytes. This means
+// each element of ControlledU is wasting > 1600 bytes but that is acceptable in
+// this case to avoid the layer of pointer indirection as these are stored
+// temporarily in a vec inside a thread to decompose a unitary.
+#[allow(clippy::large_enum_variant)]
 enum TwoQubitDecomposer {
     Basis(TwoQubitBasisDecomposer),
     ControlledU(TwoQubitControlledUDecomposer),
