@@ -934,10 +934,10 @@ impl Target {
     // TODO: Remove once `Target` is being consumed.
     #[allow(dead_code)]
     pub fn operations(&self) -> impl Iterator<Item = &NormalOperation> {
-        return self._gate_name_map.values().filter_map(|oper| match oper {
+        self._gate_name_map.values().filter_map(|oper| match oper {
             TargetOperation::Normal(oper) => Some(oper),
             _ => None,
-        });
+        })
     }
 
     /// Get the error rate of a given instruction in the target
@@ -1025,7 +1025,7 @@ impl Target {
         } else if self.non_global_basis.is_some() {
             return self.non_global_basis.as_deref();
         }
-        return Some(self.generate_non_global_op_names(strict_direction));
+        Some(self.generate_non_global_op_names(strict_direction))
     }
 
     /// Gets all the operation names that use these qargs. Rust native equivalent of ``BaseTarget.operation_names_for_qargs()``
