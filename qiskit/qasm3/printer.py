@@ -412,6 +412,11 @@ class BasicPrinter:
         self.stream.write("barrier ")
         self._visit_sequence(node.indexIdentifierList, separator=", ")
         self._end_statement()
+    
+    def _visit_QuantumGlobalBarrier(self, node: ast.QuantumGlobalBarrier) -> None:
+        self._start_line()
+        self.stream.write("barrier ")
+        self._end_statement()    
 
     def _visit_ProgramBlock(self, node: ast.ProgramBlock) -> None:
         self.stream.write("{\n")

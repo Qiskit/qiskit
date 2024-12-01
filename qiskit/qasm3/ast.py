@@ -477,6 +477,12 @@ class QuantumBarrier(QuantumInstruction):
     def __init__(self, indexIdentifierList: List[Identifier]):
         self.indexIdentifierList = indexIdentifierList
 
+class QuantumGlobalBarrier():
+    """
+    quantumBarrier
+        : 'barrier' 
+    """
+    __slots__ = ()        
 
 class QuantumReset(QuantumInstruction):
     """A built-in ``reset q0;`` statement."""
