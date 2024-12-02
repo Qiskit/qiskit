@@ -109,6 +109,7 @@ class ConsolidateBlocks(TransformationPass):
         consolidate_blocks(
             dag,
             self.decomposer._inner_decomposer,
+            self.decomposer.gate.name,
             self.force_consolidate,
             target=self.target,
             basis_gates=self.basis_gates,
