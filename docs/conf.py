@@ -102,14 +102,21 @@ html_last_updated_fmt = "%Y/%m/%d"
 # documentation created by autosummary uses a template file (in autosummary in the templates path),
 # which likely overrides the autodoc defaults.
 
+# These options impact when using `.. autoclass::` manually.
+# They do not impact the `.. autosummary::` templates.
+autodoc_default_options = {
+    "show-inheritance": True,
+}
+
 # Move type hints from signatures to the parameter descriptions (except in overload cases, where
 # that's not possible).
 autodoc_typehints = "description"
-# Only add type hints from signature to description body if the parameter has documentation.  The
-# return type is always added to the description (if in the signature).
-autodoc_typehints_description_target = "documented_params"
-
 autoclass_content = "both"
+# Some type hints are too long to be understandable. So, we set up aliases to be used instead.
+autodoc_type_aliases = {
+    "EstimatorPubLike": "EstimatorPubLike",
+    "SamplerPubLike": "SamplerPubLike",
+}
 
 autosummary_generate = True
 autosummary_generate_overwrite = False
