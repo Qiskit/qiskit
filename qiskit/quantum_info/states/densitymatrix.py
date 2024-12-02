@@ -443,7 +443,9 @@ class DensityMatrix(QuantumState, TolerancesMixin):
             with :math:`\\rho_1=|+\\rangle\\!\\langle+|`,
             :math:`\\rho_0=|0\\rangle\\!\\langle0|`.
 
-            .. code-block::
+            .. plot::
+               :include-source:
+               :nofigs:
 
                 from qiskit.quantum_info import DensityMatrix
 
@@ -470,7 +472,9 @@ class DensityMatrix(QuantumState, TolerancesMixin):
             We can also permute the order of qubits in the ``qargs`` list
             to change the qubit position in the probabilities output
 
-            .. code-block::
+            .. plot::
+               :include-source:
+               :nofigs:
 
                 from qiskit.quantum_info import DensityMatrix
 
@@ -647,7 +651,9 @@ class DensityMatrix(QuantumState, TolerancesMixin):
             The ket-form of a 2-qubit density matrix
             :math:`rho = |-\rangle\!\langle -|\otimes |0\rangle\!\langle 0|`
 
-            .. code-block::
+            .. plot::
+               :include-source:
+               :nofigs:
 
                 from qiskit.quantum_info import DensityMatrix
 
@@ -666,7 +672,9 @@ class DensityMatrix(QuantumState, TolerancesMixin):
             For non-qubit subsystems the integer range can go from 0 to 9. For
             example in a qutrit system
 
-            .. code-block::
+            .. plot::
+               :include-source:
+               :nofigs:
 
                 import numpy as np
                 from qiskit.quantum_info import DensityMatrix
@@ -687,7 +695,9 @@ class DensityMatrix(QuantumState, TolerancesMixin):
             following example is for a 20-dimensional system consisting of
             a qubit and 10-dimensional qudit.
 
-            .. code-block::
+            .. plot::
+               :include-source:
+               :nofigs:
 
                 import numpy as np
                 from qiskit.quantum_info import DensityMatrix
