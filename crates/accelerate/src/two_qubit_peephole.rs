@@ -142,25 +142,38 @@ fn get_decomposers_from_target(
     Ok(decomposers)
 }
 
+/// Score a given sequence using the error rate reported in the target
+///
+/// Return a tuple of the predicted fidelity and the number of 2q gates in the sequence
 #[inline]
 fn score_sequence<'a>(
     target: &'a Target,
     kak_gate_name: &str,
     sequence: impl Iterator<Item = (Option<StandardGate>, SmallVec<[Qubit; 2]>)> + 'a,
-) -> f64 {
-    1. - sequence
-        .map(|(gate, local_qubits)| {
-            let qubits = local_qubits
-                .iter()
-                .map(|qubit| PhysicalQubit(qubit.0))
-                .collect::<Vec<_>>();
-            let name = match gate.as_ref() {
-                Some(g) => g.name(),
-                None => kak_gate_name,
-            };
-            1. - target.get_error(name, qubits.as_slice()).unwrap_or(0.)
-        })
-        .product::<f64>()
+) -> (f64, usize) {
+    let mut gate_count = 0;
+    let res = (
+        1. - sequence
+            .filter_map(|(gate, local_qubits)| {
+                let qubits = local_qubits
+                    .iter()
+                    .map(|qubit| PhysicalQubit(qubit.0))
+                    .collect::<Vec<_>>();
+                if qubits.len() == 2 {
+                    gate_count += 1;
+                }
+                let name = match gate.as_ref() {
+                    Some(g) => g.name(),
+                    None => kak_gate_name,
+                };
+                target
+                    .get_error(name, qubits.as_slice())
+                    .map(|error| 1. - error)
+            })
+            .product::<f64>(),
+        gate_count,
+    );
+    res
 }
 
 type MappingIterItem = Option<((TwoQubitGateSequence, String), [Qubit; 2])>;
@@ -204,7 +217,7 @@ pub(crate) fn two_qubit_unitary_peephole_optimize(
                 .unwrap();
             let matrix = blocks_to_matrix(dag, node_indices, block_qubit_map)?;
             let decomposers = get_decomposers_from_target(target, &block_qubit_map, fidelity)?;
-            let mut decomposer_scores: Vec<Option<f64>> = vec![None; decomposers.len()];
+            let mut decomposer_scores: Vec<Option<(f64, usize)>> = vec![None; decomposers.len()];
 
             let order_sequence =
                 |(index_a, sequence_a): &(usize, (TwoQubitGateSequence, String)),
@@ -212,7 +225,7 @@ pub(crate) fn two_qubit_unitary_peephole_optimize(
                     let score_a = match decomposer_scores[*index_a] {
                         Some(score) => score,
                         None => {
-                            let score: f64 =
+                            let score: (f64, usize) =
                                 score_sequence(
                                     target,
                                     sequence_a.1.as_str(),
@@ -234,7 +247,7 @@ pub(crate) fn two_qubit_unitary_peephole_optimize(
                     let score_b = match decomposer_scores[*index_b] {
                         Some(score) => score,
                         None => {
-                            let score: f64 =
+                            let score: (f64, usize) =
                                 score_sequence(
                                     target,
                                     sequence_b.1.as_str(),
@@ -276,9 +289,9 @@ pub(crate) fn two_qubit_unitary_peephole_optimize(
                 })
                 .enumerate()
                 .min_by(order_sequence)
-                .unwrap()
-                .1;
+                .unwrap();
             let mut original_err: f64 = 1.;
+            let mut original_count: usize = 0;
             let mut outside_target = false;
             for node_index in node_indices {
                 let NodeType::Operation(ref inst) = dag.dag()[*node_index] else {
@@ -289,6 +302,9 @@ pub(crate) fn two_qubit_unitary_peephole_optimize(
                     .iter()
                     .map(|qubit| PhysicalQubit(qubit.0))
                     .collect::<Vec<_>>();
+                if qubits.len() == 2 {
+                    original_count += 1;
+                }
                 let name = inst.op.name();
                 let gate_err = match target.get_error(name, qubits.as_slice()) {
                     Some(err) => 1. - err,
@@ -308,13 +324,15 @@ pub(crate) fn two_qubit_unitary_peephole_optimize(
                 };
                 original_err *= gate_err;
             }
-            let original_score = 1. - original_err;
-            let new_score: f64 = if !outside_target {
-                score_sequence(
+            let original_score = (1. - original_err, original_count);
+            let new_score: (f64, usize) = match decomposer_scores[sequence.0] {
+                Some(score) => score,
+                None => score_sequence(
                     target,
-                    sequence.1.as_str(),
+                    sequence.1 .1.as_str(),
                     sequence
-                        .0
+                        .1
+                         .0
                         .gates
                         .iter()
                         .map(|(gate, _params, local_qubits)| {
@@ -324,31 +342,9 @@ pub(crate) fn two_qubit_unitary_peephole_optimize(
                                 .collect();
                             (*gate, qubits)
                         }),
-                )
-            } else {
-                1.
+                ),
             };
-
-            if outside_target
-                || new_score > original_score
-                || (new_score == original_score
-                    && sequence
-                        .0
-                        .gates
-                        .iter()
-                        .filter(|(_, __, qubits)| qubits.len() == 2)
-                        .count()
-                        >= node_indices
-                            .iter()
-                            .filter(|node_index| {
-                                let NodeType::Operation(ref inst) = dag.dag()[**node_index] else {
-                                    unreachable!("All run nodes will be ops")
-                                };
-                                let qubits = dag.get_qargs(inst.qubits);
-                                qubits.len() == 2
-                            })
-                            .count())
-            {
+            if !outside_target && new_score > original_score {
                 return Ok(None);
             }
             // This is done at the end of the map in some attempt to minimize
@@ -358,7 +354,7 @@ pub(crate) fn two_qubit_unitary_peephole_optimize(
             for node in node_indices {
                 node_mapping.insert(*node, run_index);
             }
-            Ok(Some((sequence, block_qubit_map)))
+            Ok(Some((sequence.1, block_qubit_map)))
         })
         .collect();
 
