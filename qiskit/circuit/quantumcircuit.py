@@ -1390,7 +1390,12 @@ class QuantumCircuit:
                 0: Qubit(QuantumRegister(3, 'q'), 0),
                 1: Qubit(QuantumRegister(3, 'q'), 1),
                 2: Qubit(QuantumRegister(3, 'q'), 2)
-                }), input_qubit_mapping={Qubit(QuantumRegister(3, 'q'), 0): 0, Qubit(QuantumRegister(3, 'q'), 1): 1, Qubit(QuantumRegister(3, 'q'), 2): 2}, final_layout=None, _input_qubit_count=3, _output_qubit_list=[Qubit(QuantumRegister(3, 'q'), 0), Qubit(QuantumRegister(3, 'q'), 1), Qubit(QuantumRegister(3, 'q'), 2)])
+                }), input_qubit_mapping={Qubit(QuantumRegister(3, 'q'), 0): 0,
+                Qubit(QuantumRegister(3, 'q'), 1): 1, Qubit(QuantumRegister(3,
+                'q'), 2): 2}, final_layout=None, _input_qubit_count=3,
+                _output_qubit_list=[Qubit(QuantumRegister(3, 'q'), 0), Qubit
+                (QuantumRegister(3, 'q'), 1), Qubit(QuantumRegister(3, 'q'),
+                2)])
 
 
 
