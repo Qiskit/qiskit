@@ -536,7 +536,9 @@ class Statevector(QuantumState, TolerancesMixin):
             Consider a 2-qubit product state
             :math:`|\\psi\\rangle=|+\\rangle\\otimes|0\\rangle`.
 
-            .. code-block::
+            .. plot::
+               :include-source:
+               :nofigs:
 
                 from qiskit.quantum_info import Statevector
 
@@ -563,7 +565,9 @@ class Statevector(QuantumState, TolerancesMixin):
             We can also permute the order of qubits in the ``qargs`` list
             to change the qubit position in the probabilities output
 
-            .. code-block::
+            .. plot::
+               :include-source:
+               :nofigs:
 
                 from qiskit.quantum_info import Statevector
 
@@ -787,7 +791,9 @@ class Statevector(QuantumState, TolerancesMixin):
             The ket-form of a 2-qubit statevector
             :math:`|\psi\rangle = |-\rangle\otimes |0\rangle`
 
-            .. code-block::
+            .. plot::
+               :include-source:
+               :nofigs:
 
                 from qiskit.quantum_info import Statevector
 
@@ -801,7 +807,9 @@ class Statevector(QuantumState, TolerancesMixin):
             For non-qubit subsystems the integer range can go from 0 to 9. For
             example in a qutrit system
 
-            .. code-block::
+            .. plot::
+               :include-source:
+               :nofigs:
 
                 import numpy as np
                 from qiskit.quantum_info import Statevector
@@ -820,7 +828,9 @@ class Statevector(QuantumState, TolerancesMixin):
             following example is for a 20-dimensional system consisting of
             a qubit and 10-dimensional qudit.
 
-            .. code-block::
+            .. plot::
+               :include-source:
+               :nofigs:
 
                 import numpy as np
                 from qiskit.quantum_info import Statevector
