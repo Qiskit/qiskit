@@ -54,7 +54,9 @@ def assemble_schedules(
 
     Examples:
 
-        .. code-block:: python
+        .. plot::
+           :include-source:
+           :nofigs:
 
             from qiskit import pulse
             from qiskit.assembler import assemble_schedules
