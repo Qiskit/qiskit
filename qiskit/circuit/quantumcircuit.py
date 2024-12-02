@@ -1352,6 +1352,49 @@ class QuantumCircuit:
         selected physical qubits on the :class:`~.Target`, and a final layout
         which is an output permutation caused by :class:`~.SwapGate`\s
         inserted during routing.
+
+        Example:
+
+            .. plot::
+                :include-source:
+                :nofigs:
+
+                from qiskit import QuantumCircuit
+                from qiskit.circuit.library import GroverOperator, Diagonal
+                from qiskit.providers.fake_provider import GenericBackendV2
+                from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
+
+                # Create circuit to test transpiler on
+                oracle = Diagonal([1] * 7 + [-1])
+                qc = QuantumCircuit(3)
+                qc.h([0, 1, 2])
+                qc = qc.compose(GroverOperator(oracle))
+
+                # Add measurements to the circuit
+                qc.measure_all()
+
+                # Specify the QPU to target
+                backend = GenericBackendV2(3)
+
+                # Transpile the circuit
+                pass_manager = generate_preset_pass_manager(
+                    optimization_level=1, backend=backend
+                )
+                transpiled_circ = pass_manager.run(qc)
+
+                print(transpiled_circ.layout)
+
+            .. code-block:: text
+
+                TranspileLayout(initial_layout=Layout({
+                0: Qubit(QuantumRegister(3, 'q'), 0),
+                1: Qubit(QuantumRegister(3, 'q'), 1),
+                2: Qubit(QuantumRegister(3, 'q'), 2)
+                }), input_qubit_mapping={Qubit(QuantumRegister(3, 'q'), 0): 0, Qubit(QuantumRegister(3, 'q'), 1): 1, Qubit(QuantumRegister(3, 'q'), 2): 2}, final_layout=None, _input_qubit_count=3, _output_qubit_list=[Qubit(QuantumRegister(3, 'q'), 0), Qubit(QuantumRegister(3, 'q'), 1), Qubit(QuantumRegister(3, 'q'), 2)])
+
+
+
+
         """
         return self._layout
 
