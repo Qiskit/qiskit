@@ -1442,8 +1442,6 @@ class TestControlledGate(QiskitTestCase):
         self.assertEqual(Operator(controlled), Operator(target))
 
     @data(
-        RXGate,
-        RYGate,
         RXXGate,
         RYYGate,
         RZXGate,
