@@ -216,7 +216,7 @@ pub struct ZXPaulisView<'py> {
     coeffs: ArrayView1<'py, Complex64>,
 }
 
-impl<'py> ZXPaulisView<'py> {
+impl ZXPaulisView<'_> {
     /// The number of qubits this operator acts on.
     pub fn num_qubits(&self) -> usize {
         self.x.shape()[1]

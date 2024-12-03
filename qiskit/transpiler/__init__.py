@@ -85,7 +85,9 @@ If you'd like to work directly with a
 preset pass manager you can use the :func:`~.generate_preset_pass_manager`
 function to easily generate one. For example:
 
-.. code-block:: python
+.. plot::
+   :include-source:
+   :nofigs:
 
     from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
     from qiskit.providers.fake_provider import GenericBackendV2
@@ -103,7 +105,9 @@ stage using dynamical decoupling (via the :class:`~.PadDynamicalDecoupling` pass
 also add initial logical optimization prior to routing, you would do something like
 (building off the previous example):
 
-.. code-block:: python
+.. plot::
+   :include-source:
+   :nofigs:
 
     import numpy as np
     from qiskit.providers.fake_provider import GenericBackendV2
@@ -205,7 +209,9 @@ The specific information needed by the transpiler is described by the
 For example, to construct a simple :class:`~.Target` object, one can iteratively add
 descriptions of the instructions it supports:
 
-.. code-block::
+.. plot::
+   :include-source:
+   :nofigs:
 
     from qiskit.circuit import Parameter, Measure
     from qiskit.transpiler import Target, InstructionProperties
@@ -521,7 +527,9 @@ reset operations.  However, most quantum devices only natively support a handful
 and non-gate operations. The allowed instructions for a given backend can be found by querying the
 :class:`~.Target` for the devices:
 
-.. code-block::
+.. plot::
+   :include-source:
+   :nofigs:
 
    from qiskit.providers.fake_provider import GenericBackendV2
    backend = GenericBackendV2(5)
@@ -558,6 +566,7 @@ a fake backend with a specified number of qubits for test purposes):
 
 .. plot::
    :include-source:
+   :context: reset
 
    from qiskit import transpile
    from qiskit import QuantumCircuit
@@ -579,7 +588,10 @@ a fake backend with a specified number of qubits for test purposes):
 A few things to highlight. First, the circuit has gotten longer with respect to the
 original.  This can be verified by checking the depth of both circuits:
 
-.. code-block::
+.. plot::
+   :include-source:
+   :nofigs:
+   :context:
 
    print('Original depth:', qc.depth(), 'Decomposed Depth:', qc_basis.depth())
 
@@ -596,7 +608,9 @@ It is important to highlight two special cases:
 
 1. If A swap gate is not a native gate and must be decomposed this requires three CNOT gates:
 
-   .. code-block::
+   .. plot::
+      :include-source:
+      :nofigs:
 
       from qiskit.providers.fake_provider import GenericBackendV2
       backend = GenericBackendV2(5)

@@ -57,7 +57,9 @@ import_exception!(qiskit.circuit.exceptions, CircuitError);
 ///
 /// For example,
 ///
-/// .. code-block::
+/// .. plot::
+///    :include-source:
+///    :no-figs:
 ///
 ///     qubits = [Qubit()]
 ///     data = CircuitData(qubits)

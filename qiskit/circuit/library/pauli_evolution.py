@@ -49,7 +49,9 @@ class PauliEvolutionGate(Gate):
 
     **Examples:**
 
-    .. code-block:: python
+    .. plot::
+       :include-source:
+       :nofigs:
 
         from qiskit.circuit import QuantumCircuit
         from qiskit.circuit.library import PauliEvolutionGate
@@ -68,7 +70,9 @@ class PauliEvolutionGate(Gate):
         circuit.append(evo, range(2))
         print(circuit.draw())
 
-    The above will print (note that the ``-0.1`` coefficient is not printed!)::
+    The above will print (note that the ``-0.1`` coefficient is not printed!):
+
+    .. code-block:: text
 
              ┌──────────────────────────┐
         q_0: ┤0                         ├
