@@ -45,7 +45,9 @@ class UnitaryGate(Gate):
         quantum circuit. The matrix can also be directly applied to the quantum
         circuit, see :meth:`.QuantumCircuit.unitary`.
 
-        .. code-block:: python
+        .. plot::
+           :include-source:
+           :nofigs:
 
             from qiskit import QuantumCircuit
             from qiskit.circuit.library import UnitaryGate

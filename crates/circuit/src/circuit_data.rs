@@ -57,7 +57,9 @@ import_exception!(qiskit.circuit.exceptions, CircuitError);
 ///
 /// For example,
 ///
-/// .. code-block::
+/// .. plot::
+///    :include-source:
+///    :no-figs:
 ///
 ///     qubits = [Qubit()]
 ///     data = CircuitData(qubits)
@@ -1361,12 +1363,9 @@ impl CircuitData {
                             let Param::ParameterExpression(expr) = &params[parameter] else {
                                 return Err(inconsistent());
                             };
-                            params[parameter] = match bind_expr(
-                                expr.bind_borrowed(py),
-                                &param_ob,
-                                value.as_ref(),
-                                true,
-                            )? {
+                            let new_param =
+                                bind_expr(expr.bind_borrowed(py), &param_ob, value.as_ref(), true)?;
+                            params[parameter] = match new_param.clone_ref(py) {
                                 Param::Obj(obj) => {
                                     return Err(CircuitError::new_err(format!(
                                         "bad type after binding for gate '{}': '{}'",
@@ -1382,8 +1381,13 @@ impl CircuitData {
                             #[cfg(feature = "cache_pygates")]
                             {
                                 // Standard gates can all rebuild their definitions, so if the
-                                // cached py_op exists, just clear out any existing cache.
+                                // cached py_op exists, update the `params` attribute and clear out
+                                // any existing cache.
                                 if let Some(borrowed) = previous.py_op.get() {
+                                    borrowed
+                                        .bind(py)
+                                        .getattr(params_attr)?
+                                        .set_item(parameter, new_param)?;
                                     borrowed.bind(py).setattr("_definition", py.None())?
                                 }
                             }
