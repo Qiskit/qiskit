@@ -99,7 +99,7 @@ class ContextAwareDynamicalDecoupling(TransformationPass):
         self,
         target: Target,
         *,
-        min_joinable_duration: int = 0,
+        min_joinable_duration: int | None = None,
         skip_reset_qubits: bool = True,
         skip_dd_threshold: float = 1.0,
         pulse_alignment: int | None = None,
@@ -110,7 +110,8 @@ class ContextAwareDynamicalDecoupling(TransformationPass):
             target: The :class:`.Target` of the device to run the circuit.
             min_joinable_duration: Minimal delay duration (in ``dt``) to join delays. This
                 can be useful, e.g. if a big delay block would be interrupted and split into
-                smaller blocks due to a very short, adjacent delay.
+                smaller blocks due to a very short, adjacent delay. If ``None``, this is set
+                to be at least twice the difference of the longest/shortest CX or ECR gate.
             skip_reset_qubits: Skip initial delays and delays after a reset.
             skip_dd_threshold: Skip dynamical decoupling on an idle qubit, if the duration of
                 the decoupling sequence exceeds this fraction of the idle window. For example, to
@@ -135,6 +136,9 @@ class ContextAwareDynamicalDecoupling(TransformationPass):
 
         if not (0 <= skip_dd_threshold <= 1):
             raise ValueError(f"skip_dd_threshold must be in [0, 1], but is {skip_dd_threshold}")
+
+        if min_joinable_duration is None:
+            min_joinable_duration = 2 * _gate_length_variance(target)
 
         self._min_joinable_duration = min_joinable_duration
         self._skip_reset_qubits = skip_reset_qubits
@@ -835,3 +839,25 @@ def _bitflips_to_timings(row):
         return distances + [0]
 
     return distances
+
+
+def _gate_length_variance(target: Target) -> float:
+    max_length, min_length = None, None
+
+    for gate, properties in target.items():
+        if gate not in ["cx", "cz", "ecr"]:
+            continue
+
+        for prop in properties.values():
+            duration = prop.duration
+            if max_length is None or max_length < duration:
+                max_length = duration
+            if min_length is None or min_length > duration:
+                min_length = duration
+
+    # it could be that there are no 2q gates available, in this
+    # case we just return 0, which will mean we join all idle times
+    if max_length is None or min_length is None:
+        return 0
+
+    return max_length - min_length

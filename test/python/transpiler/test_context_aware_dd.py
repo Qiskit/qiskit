@@ -189,6 +189,7 @@ class TestContextAwareDD(QiskitTestCase):
         circuit.cx(1, 2)
 
         target = get_toy_target(num_qubits=5)
+
         pm = _get_schedule_pm(target, list(range(circuit.num_qubits)))
         pm.append(ContextAwareDynamicalDecoupling(target, skip_reset_qubits=False))
 
@@ -196,6 +197,18 @@ class TestContextAwareDD(QiskitTestCase):
 
         for inst in circuit.data:
             self.assertIsNotNone(inst.operation.duration)
+
+    def test_min_joinable_default(self):
+        """Test the default value for minimum joinable durations."""
+        circuit = QuantumCircuit(3)
+        circuit.cx(0, 1)
+        circuit.cx(1, 2)
+
+        # target = get_toy_target(num_qubits=5)
+        target, max_diff = get_varying_target(5)
+        dd = ContextAwareDynamicalDecoupling(target)
+
+        self.assertAlmostEqual(2 * max_diff, dd._min_joinable_duration)
 
     def test_2q_gate_combos(self):
         """Test the ctrl/tgt specific behavior for CX/ECR and default for others (like CZ).
@@ -738,3 +751,42 @@ def get_toy_target(num_qubits, dt=1e-9, t_cx=1e3, t_sx=10, t_x=20):
     target.add_instruction(Reset(), x_props)  # support resets, duration does not matter here
 
     return target
+
+
+def get_varying_target(
+    num_qubits, dt=1e-9, t_cx_range=(5e2, 5e3), t_sx_range=(10, 80), t_x_range=(20, 160)
+):
+    """Get a toy target."""
+
+    # set up an idealistic target to test context-aware DD in a clean setting
+    # (if I don't also add realistic settings I should be scolded)
+    target = Target(num_qubits=num_qubits, dt=dt)
+    # bidirectional linear next neighbor
+    linear_topo = [(i, i + 1) for i in range(num_qubits - 1)]
+    linear_topo += [tuple(reversed(connection)) for connection in linear_topo]
+    # CX, SX and X gate durations (somewhat sensible durations and errors chosen)
+    cx_props = {
+        connection: InstructionProperties(duration=dt * np.random.randint(*t_cx_range), error=1e-2)
+        for connection in linear_topo
+    }
+    sx_props = {
+        (i,): InstructionProperties(duration=dt * np.random.randint(*t_sx_range), error=1e-4)
+        for i in range(num_qubits)
+    }
+    x_props = {
+        (i,): InstructionProperties(duration=dt * np.random.randint(*t_x_range), error=1e-4)
+        for i in range(num_qubits)
+    }
+    target.add_instruction(CXGate(), cx_props)
+    target.add_instruction(ECRGate(), cx_props)  # re-use CX props for ECR
+    target.add_instruction(CZGate(), cx_props)  # re-use CX props for CZ
+    target.add_instruction(SXGate(), sx_props)
+    target.add_instruction(XGate(), x_props)
+    target.add_instruction(Delay(1), sx_props)  # support delays, duration does not matter here
+    target.add_instruction(Reset(), x_props)  # support resets, duration does not matter here
+
+    # get the maximal time difference of the 2q gates, this is used for verification
+    cx_durations = [prop.duration for prop in cx_props.values()]
+    max_cx_diff = max(cx_durations) - min(cx_durations)
+
+    return target, max_cx_diff
