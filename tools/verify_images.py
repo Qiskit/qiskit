@@ -110,13 +110,18 @@ def validate_image(file_path: str) -> tuple[str, list[str]]:
     options: list[str] = []
 
     for line_index, line in enumerate(lines):
-        if image_found and is_option(line):
-            options.append(line)
-            continue
+        if image_found:
+            if is_option(line):
+                options.append(line)
+                continue
 
-        if image_found and not is_valid_image(options):
-            image_line = line_index - len(options)
-            invalid_images.append(f"- Error in line {image_line}: {lines[image_line-1].strip()}")
+            # Else, the prior image_found has no more options so we should determine if it was valid.
+            #
+            # Note that, either way, we do not early exit out of the loop iteration because this `line`
+            # might be the start of a new image.
+            if not is_valid_image(options):
+                image_line = line_index - len(options)
+                invalid_images.append(f"- Error in line {image_line}: {lines[image_line-1].strip()}")
 
         image_found = is_image(line)
         options = []
@@ -130,7 +135,7 @@ def main() -> None:
     with multiprocessing.Pool() as pool:
         results = pool.map(validate_image, files)
 
-    failed_files = [x for x in results if len(x[1])]
+    failed_files = {file: image_errors for file, image_errors in results if image_errors}
 
     if not len(failed_files):
         print("✅ All images have alt text")
@@ -138,8 +143,8 @@ def main() -> None:
 
     print("💔 Some images are missing the alt text", file=sys.stderr)
 
-    for filename, image_errors in failed_files:
-        print(f"\nErrors found in {filename}:", file=sys.stderr)
+    for file, image_errors in failed_files.items():
+        print(f"\nErrors found in {file}:", file=sys.stderr)
 
         for image_error in image_errors:
             print(image_error, file=sys.stderr)
