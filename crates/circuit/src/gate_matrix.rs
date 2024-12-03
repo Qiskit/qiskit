@@ -19,6 +19,12 @@ use crate::util::{
 };
 
 pub static ONE_QUBIT_IDENTITY: GateArray1Q = [[C_ONE, C_ZERO], [C_ZERO, C_ONE]];
+pub static TWO_QUBIT_IDENTITY: GateArray2Q = [
+    [C_ONE, C_ZERO, C_ZERO, C_ZERO],
+    [C_ZERO, C_ONE, C_ZERO, C_ZERO],
+    [C_ZERO, C_ZERO, C_ONE, C_ZERO],
+    [C_ZERO, C_ZERO, C_ZERO, C_ONE],
+];
 
 // Utility for generating static matrices for controlled gates with "n" control qubits.
 // Assumptions:
@@ -387,12 +393,12 @@ pub fn cu_gate(theta: f64, phi: f64, lam: f64, gamma: f64) -> GateArray2Q {
             C_ZERO,
             c64(0., gamma).exp() * cos_theta,
             C_ZERO,
-            c64(0., gamma + phi).exp() * (-1.) * sin_theta,
+            c64(0., gamma + lam).exp() * (-1.) * sin_theta,
         ],
         [C_ZERO, C_ZERO, C_ONE, C_ZERO],
         [
             C_ZERO,
-            c64(0., gamma + lam).exp() * sin_theta,
+            c64(0., gamma + phi).exp() * sin_theta,
             C_ZERO,
             c64(0., gamma + phi + lam).exp() * cos_theta,
         ],

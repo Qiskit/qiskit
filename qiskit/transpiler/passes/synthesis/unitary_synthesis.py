@@ -52,7 +52,8 @@ from qiskit.circuit.library.standard_gates import (
     RGate,
 )
 from qiskit.converters import circuit_to_dag, dag_to_circuit
-from qiskit.dagcircuit.dagcircuit import DAGCircuit, DAGOpNode
+from qiskit.dagcircuit.dagcircuit import DAGCircuit
+from qiskit.dagcircuit.dagnode import DAGOpNode
 from qiskit.exceptions import QiskitError
 from qiskit.providers.models.backendproperties import BackendProperties
 from qiskit.quantum_info import Operator
@@ -72,6 +73,7 @@ from qiskit.transpiler.passes.optimization.optimize_1q_decomposition import (
 from qiskit.transpiler.passes.synthesis import plugin
 from qiskit.transpiler.target import Target
 
+from qiskit._accelerate.unitary_synthesis import run_default_main_loop
 
 GATE_NAME_MAP = {
     "cx": CXGate._standard_gate,
@@ -455,37 +457,6 @@ class UnitarySynthesis(TransformationPass):
             default_kwargs = {}
             method_list = [(plugin_method, plugin_kwargs), (default_method, default_kwargs)]
 
-        for method, kwargs in method_list:
-            if method.supports_basis_gates:
-                kwargs["basis_gates"] = self._basis_gates
-            if method.supports_natural_direction:
-                kwargs["natural_direction"] = self._natural_direction
-            if method.supports_pulse_optimize:
-                kwargs["pulse_optimize"] = self._pulse_optimize
-            if method.supports_gate_lengths:
-                _gate_lengths = _gate_lengths or _build_gate_lengths(
-                    self._backend_props, self._target
-                )
-                kwargs["gate_lengths"] = _gate_lengths
-            if method.supports_gate_errors:
-                _gate_errors = _gate_errors or _build_gate_errors(self._backend_props, self._target)
-                kwargs["gate_errors"] = _gate_errors
-            if method.supports_gate_lengths_by_qubit:
-                _gate_lengths_by_qubit = _gate_lengths_by_qubit or _build_gate_lengths_by_qubit(
-                    self._backend_props, self._target
-                )
-                kwargs["gate_lengths_by_qubit"] = _gate_lengths_by_qubit
-            if method.supports_gate_errors_by_qubit:
-                _gate_errors_by_qubit = _gate_errors_by_qubit or _build_gate_errors_by_qubit(
-                    self._backend_props, self._target
-                )
-                kwargs["gate_errors_by_qubit"] = _gate_errors_by_qubit
-            supported_bases = method.supported_bases
-            if supported_bases is not None:
-                kwargs["matched_basis"] = _choose_bases(self._basis_gates, supported_bases)
-            if method.supports_target:
-                kwargs["target"] = self._target
-
         # Handle approximation degree as a special case for backwards compatibility, it's
         # not part of the plugin interface and only something needed for the default
         # pass.
@@ -500,9 +471,60 @@ class UnitarySynthesis(TransformationPass):
             if plugin_method.supports_coupling_map or default_method.supports_coupling_map
             else {}
         )
-        return self._run_main_loop(
-            dag, qubit_indices, plugin_method, plugin_kwargs, default_method, default_kwargs
-        )
+
+        if self.method == "default" and self._target is not None:
+            _coupling_edges = (
+                set(self._coupling_map.get_edges()) if self._coupling_map is not None else set()
+            )
+
+            out = run_default_main_loop(
+                dag,
+                list(qubit_indices.values()),
+                self._min_qubits,
+                self._target,
+                _coupling_edges,
+                self._approximation_degree,
+                self._natural_direction,
+            )
+            return out
+        else:
+            for method, kwargs in method_list:
+                if method.supports_basis_gates:
+                    kwargs["basis_gates"] = self._basis_gates
+                if method.supports_natural_direction:
+                    kwargs["natural_direction"] = self._natural_direction
+                if method.supports_pulse_optimize:
+                    kwargs["pulse_optimize"] = self._pulse_optimize
+                if method.supports_gate_lengths:
+                    _gate_lengths = _gate_lengths or _build_gate_lengths(
+                        self._backend_props, self._target
+                    )
+                    kwargs["gate_lengths"] = _gate_lengths
+                if method.supports_gate_errors:
+                    _gate_errors = _gate_errors or _build_gate_errors(
+                        self._backend_props, self._target
+                    )
+                    kwargs["gate_errors"] = _gate_errors
+                if method.supports_gate_lengths_by_qubit:
+                    _gate_lengths_by_qubit = _gate_lengths_by_qubit or _build_gate_lengths_by_qubit(
+                        self._backend_props, self._target
+                    )
+                    kwargs["gate_lengths_by_qubit"] = _gate_lengths_by_qubit
+                if method.supports_gate_errors_by_qubit:
+                    _gate_errors_by_qubit = _gate_errors_by_qubit or _build_gate_errors_by_qubit(
+                        self._backend_props, self._target
+                    )
+                    kwargs["gate_errors_by_qubit"] = _gate_errors_by_qubit
+                supported_bases = method.supported_bases
+                if supported_bases is not None:
+                    kwargs["matched_basis"] = _choose_bases(self._basis_gates, supported_bases)
+                if method.supports_target:
+                    kwargs["target"] = self._target
+
+            out = self._run_main_loop(
+                dag, qubit_indices, plugin_method, plugin_kwargs, default_method, default_kwargs
+            )
+            return out
 
     def _run_main_loop(
         self, dag, qubit_indices, plugin_method, plugin_kwargs, default_method, default_kwargs
@@ -511,7 +533,7 @@ class UnitarySynthesis(TransformationPass):
         for node in dag.op_nodes():
             if node.name not in CONTROL_FLOW_OP_NAMES:
                 continue
-            node.op = node.op.replace_blocks(
+            new_op = node.op.replace_blocks(
                 [
                     dag_to_circuit(
                         self._run_main_loop(
@@ -530,6 +552,7 @@ class UnitarySynthesis(TransformationPass):
                     for block in node.op.blocks
                 ]
             )
+            dag.substitute_node(node, new_op, propagate_condition=False)
 
         out_dag = dag.copy_empty_like()
         for node in dag.topological_op_nodes():
@@ -572,15 +595,13 @@ class UnitarySynthesis(TransformationPass):
                                 user_gate_node._to_circuit_instruction().replace(
                                     params=user_gate_node.params,
                                     qubits=tuple(qubits[x] for x in qargs),
-                                ),
-                                dag=out_dag,
+                                )
                             )
                         else:
                             node = DAGOpNode.from_instruction(
                                 CircuitInstruction.from_standard(
                                     gate, tuple(qubits[x] for x in qargs), params
-                                ),
-                                dag=out_dag,
+                                )
                             )
                         out_dag._apply_op_node_back(node)
                     out_dag.global_phase += global_phase

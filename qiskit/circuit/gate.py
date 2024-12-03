@@ -89,7 +89,9 @@ class Gate(Instruction):
         from qiskit.circuit.library.generalized_gates.unitary import UnitaryGate
 
         if not annotated:
-            return UnitaryGate(Operator(self).power(exponent), label=f"{self.name}^{exponent}")
+            return UnitaryGate(
+                Operator(self).power(exponent, assume_unitary=True), label=f"{self.name}^{exponent}"
+            )
         else:
             return AnnotatedOperation(self, PowerModifier(exponent))
 
@@ -97,7 +99,10 @@ class Gate(Instruction):
         return self.power(exponent)
 
     def _return_repeat(self, exponent: float) -> "Gate":
-        return Gate(name=f"{self.name}*{exponent}", num_qubits=self.num_qubits, params=self.params)
+        gate = Gate(name=f"{self.name}*{exponent}", num_qubits=self.num_qubits, params=[])
+        gate.validate_parameter = self.validate_parameter
+        gate.params = self.params
+        return gate
 
     def control(
         self,

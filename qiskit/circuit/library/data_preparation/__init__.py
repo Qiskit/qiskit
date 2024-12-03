@@ -38,15 +38,18 @@ of the complete initial data.
 
 """
 
-from .pauli_feature_map import PauliFeatureMap
-from .z_feature_map import ZFeatureMap
-from .zz_feature_map import ZZFeatureMap
+from .pauli_feature_map import PauliFeatureMap, pauli_feature_map, z_feature_map, zz_feature_map
+from ._z_feature_map import ZFeatureMap
+from ._zz_feature_map import ZZFeatureMap
 from .state_preparation import StatePreparation, UniformSuperpositionGate
 from .initializer import Initialize
 
 __all__ = [
+    "pauli_feature_map",
     "PauliFeatureMap",
+    "z_feature_map",
     "ZFeatureMap",
+    "zz_feature_map",
     "ZZFeatureMap",
     "StatePreparation",
     "UniformSuperpositionGate",
