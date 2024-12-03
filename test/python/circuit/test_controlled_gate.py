@@ -1451,8 +1451,8 @@ class TestControlledGate(QiskitTestCase):
         XXMinusYYGate,
         XXPlusYYGate,
     )
-    def test_mc_failure_without_annotation(self, gate_cls):
-        """Test error for gates that cannot be multi-controlled without annotation."""
+    def test_mc_without_annotation(self, gate_cls):
+        """Test multi-controlled gates with and without annotation."""
         theta = Parameter("theta")
         num_params = len(_get_free_params(gate_cls.__init__, ignore=["self"]))
         params = [theta] + (num_params - 1) * [1.234]
@@ -1460,22 +1460,17 @@ class TestControlledGate(QiskitTestCase):
         for annotated in [False, None]:
             with self.subTest(annotated=annotated):
                 # if annotated is False, check that a sensible error is raised
-                if annotated is False:
-                    with self.assertRaisesRegex(QiskitError, "unbound parameter"):
-                        _ = gate_cls(*params).control(5, annotated=False)
-
                 # else, check that the gate can be synthesized after all parameters
                 # have been bound
-                else:
-                    mc_gate = gate_cls(*params).control(5)
+                mc_gate = gate_cls(*params).control(5)
 
-                    circuit = QuantumCircuit(mc_gate.num_qubits)
-                    circuit.append(mc_gate, circuit.qubits)
+                circuit = QuantumCircuit(mc_gate.num_qubits)
+                circuit.append(mc_gate, circuit.qubits)
 
-                    bound = circuit.assign_parameters([0.5123])
-                    unrolled = transpile(bound, basis_gates=["u", "cx"], optimization_level=0)
+                bound = circuit.assign_parameters([0.5123])
+                unrolled = transpile(bound, basis_gates=["u", "cx"], optimization_level=0)
 
-                    self.assertEqual(unrolled.num_parameters, 0)
+                self.assertEqual(unrolled.num_parameters, 0)
 
     def assertEqualTranslated(self, circuit, unrolled_reference, basis):
         """Assert that the circuit is equal to the unrolled reference circuit."""
