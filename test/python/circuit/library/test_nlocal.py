@@ -790,6 +790,12 @@ class TestNLocalFamily(QiskitTestCase):
         expected = n_local(4, ["ry", "rz"], "cx", "reverse_linear", reps=3)
         self.assertEqual(expected.assign_parameters(circuit.parameters), circuit)
 
+    def test_efficient_su2_numqubits_equal1(self):
+        """Test the efficient SU(2) circuit."""
+        circuit = efficient_su2(1)
+        expected = n_local(1, ["ry", "rz"], [], "reverse_linear", reps=3)
+        self.assertEqual(expected.assign_parameters(circuit.parameters), circuit)
+
     @data("fsim", "iswap")
     def test_excitation_preserving(self, mode):
         """Test the excitation preserving circuit."""
