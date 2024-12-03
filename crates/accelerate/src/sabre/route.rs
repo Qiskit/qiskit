@@ -83,7 +83,7 @@ struct RoutingState<'a, 'b> {
     seed: u64,
 }
 
-impl<'a, 'b> RoutingState<'a, 'b> {
+impl RoutingState<'_, '_> {
     /// Apply a swap to the program-state structures (front layer, extended set and current
     /// layout).
     #[inline]

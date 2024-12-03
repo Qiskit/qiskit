@@ -37,7 +37,9 @@ class RXCalibrationBuilder(CalibrationBuilder):
     It is recommended to place this pass in the post-optimization stage of a passmanager.
     A simple demo:
 
-    .. code-block:: python
+    .. plot::
+       :include-source:
+       :nofigs:
 
        from qiskit.providers.fake_provider import GenericBackendV2
        from qiskit.transpiler import PassManager, PassManagerConfig
