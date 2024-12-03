@@ -159,7 +159,6 @@ and operations.
 
 .. autosummary::
    :toctree: ../stubs/
-   :template: autosummary/class_no_inherited_members.rst
 
    C3SXGate
    C3XGate
@@ -245,11 +244,9 @@ Operations are non-reversible changes in the quantum state of the circuit.
 Generalized Gates
 =================
 
-These "gates" (many are :class:`~qiskit.circuit.QuantumCircuit` subclasses) allow to
-set the amount of qubits involved at instantiation time.
-
-
-.. code-block::
+This module extends the standard gates by a broader collection of basic gates. This includes
+gates that are variadic, meaning that the number of qubits depends on the input.
+For example::
 
     from qiskit.circuit.library import DiagonalGate
 
@@ -259,27 +256,18 @@ set the amount of qubits involved at instantiation time.
     diagonal = DiagonalGate([1, 1, 1, -1])
     print(diagonal.num_qubits)
 
+which prints:
+
 .. code-block:: text
 
     1
     2
 
-
 .. autosummary::
    :toctree: ../stubs/
-   :template: autosummary/class_no_inherited_members.rst
 
-   Diagonal
    DiagonalGate
-   MCMT
-   MCMTVChain
-   Permutation
    PermutationGate
-   GMS
-   GR
-   GRX
-   GRY
-   GRZ
    MCMTGate
    MCPhaseGate
    MCXGate
@@ -297,47 +285,77 @@ set the amount of qubits involved at instantiation time.
    UCRYGate
    UCRZGate
 
+The above objects derive :class:`.Gate` or :class:`~.circuit.Instruction`, which allows the 
+compiler to reason about them on an abstract level. We therefore suggest using these instead 
+of the following which derive :class:`.QuantumCircuit` and are eagerly constructed.
+
+.. autosummary::
+   :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
+
+   Diagonal
+   MCMT
+   MCMTVChain
+   Permutation
+   GMS
+   GR
+   GRX
+   GRY
+   GRZ
 
 .. _boolean-logic:
 
 Boolean Logic Circuits
 ======================
 
-These are :class:`~qiskit.circuit.QuantumCircuit` subclasses
-that implement boolean logic operations, such as the logical
+These :class:`.Gate`\ s implement boolean logic operations, such as the logical
 or of a set of qubit states.
 
+.. autosummary::
+   :toctree: ../stubs/
+
+   AndGate
+   OrGate
+   BitwiseXorGate
+   random_bitwise_xor
+   InnerProductGate
+
+The above objects derive :class:`.Gate` (or return this type), which allows the 
+compiler to reason about them on an abstract level. We therefore suggest using these instead 
+of the following which derive :class:`.QuantumCircuit` and are eagerly constructed.
 
 .. autosummary::
    :toctree: ../stubs/
    :template: autosummary/class_no_inherited_members.rst
 
    AND
-   AndGate
    OR
-   OrGate
    XOR
-   BitwiseXorGate
-   random_bitwise_xor
    InnerProduct
-   InnerProductGate
-
 
 .. _basis-change:
    
 Basis Change Circuits
 =====================
 
-These circuits allow basis transformations of the qubit states. For example,
+These gates allow basis transformations of the qubit states. For example,
 in the case of the Quantum Fourier Transform (QFT), it transforms between
 the computational basis and the Fourier basis.
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   QFTGate
+
+The above objects derive :class:`.Gate`, which allows the 
+compiler to reason about them on an abstract level. We therefore suggest using these instead 
+of the following which derive :class:`.QuantumCircuit` and are eagerly constructed.
 
 .. autosummary::
    :toctree: ../stubs/
    :template: autosummary/class_no_inherited_members.rst
 
    QFT
-   QFTGate
 
 
 .. _arithmetic:
@@ -376,18 +394,36 @@ Adders
 
 .. autosummary::
    :toctree: ../stubs/
+
+   ModularAdderGate
+   HalfAdderGate
+   FullAdderGate
+
+The above objects derive :class:`.Gate`, which allows the 
+compiler to reason about them on an abstract level. We therefore suggest using these instead 
+of the following which derive :class:`.QuantumCircuit` and are eagerly constructed.
+
+.. autosummary::
+   :toctree: ../stubs/
    :template: autosummary/class_no_inherited_members.rst
 
    DraperQFTAdder
    CDKMRippleCarryAdder
    VBERippleCarryAdder
    WeightedAdder
-   ModularAdderGate
-   HalfAdderGate
-   FullAdderGate
+
 
 Multipliers
 -----------
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   MultiplierGate
+
+The above object derives :class:`.Gate`, which allows the 
+compiler to reason about it on an abstract level. We therefore suggest using these instead 
+of the following which derive :class:`.QuantumCircuit` and are eagerly constructed.
 
 .. autosummary::
    :toctree: ../stubs/
@@ -395,7 +431,6 @@ Multipliers
 
    HRSCumulativeMultiplier
    RGQFTMultiplier
-   MultiplierGate
 
 Comparators
 -----------
@@ -435,7 +470,6 @@ quantum circuits of interest:
 
 .. autosummary::
    :toctree: ../stubs/
-   :template: autosummary/class_no_inherited_members.rst
 
    fourier_checking
    hidden_linear_function
@@ -506,7 +540,6 @@ and combine it with:
 
 .. autosummary::
    :toctree: ../stubs/
-   :template: autosummary/class_no_inherited_members.rst
 
    n_local
    efficient_su2
@@ -545,7 +578,6 @@ encoding circuits in a series of variational quantum algorithms:
 
 .. autosummary::
    :toctree: ../stubs/
-   :template: autosummary/class_no_inherited_members.rst
 
    pauli_feature_map
    z_feature_map
@@ -572,7 +604,6 @@ The following operations are used for state preparation:
 
 .. autosummary::
    :toctree: ../stubs/
-   :template: autosummary/class_no_inherited_members.rst
 
    StatePreparation
    Initialize
