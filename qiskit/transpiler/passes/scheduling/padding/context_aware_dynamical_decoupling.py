@@ -134,7 +134,7 @@ class ContextAwareDynamicalDecoupling(TransformationPass):
         """
         super().__init__()
 
-        if not (0 <= skip_dd_threshold <= 1):
+        if not 0 <= skip_dd_threshold <= 1:
             raise ValueError(f"skip_dd_threshold must be in [0, 1], but is {skip_dd_threshold}")
 
         if min_joinable_duration is None:

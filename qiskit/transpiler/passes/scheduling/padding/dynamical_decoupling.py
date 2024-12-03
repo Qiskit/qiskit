@@ -186,7 +186,6 @@ class PadDynamicalDecoupling(BasePadding):
         standalone input, the circuit calibration durations will be used.
         The priority order for instruction durations is: target > standalone > circuit.
         """
-        return self._durations or InstructionDurations()
         circ_durations = InstructionDurations()
 
         if dag._calibrations_prop:
