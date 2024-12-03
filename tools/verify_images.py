@@ -80,14 +80,17 @@ ALLOWLIST_MISSING_ALT_TEXT = [
 
 
 def is_image(line: str) -> bool:
+    """Determine if a line is an image"""
     return line.strip().startswith((".. image:", ".. plot:"))
 
 
 def is_option(line: str) -> bool:
+    """Determine if a line is an option"""
     return line.strip().startswith(":")
 
 
 def is_valid_image(options: list[str]) -> bool:
+    """Validate one single image"""
     alt_exists = any(option.strip().startswith(":alt:") for option in options)
     nofigs_exists = any(option.strip().startswith(":nofigs:") for option in options)
 
@@ -131,7 +134,7 @@ def validate_image(file_path: str) -> tuple[str, list[str]]:
     return (file_path, invalid_images)
 
 
-def main() -> None:
+def _main() -> None:
     files = glob.glob("qiskit/**/*.py", recursive=True)
 
     with multiprocessing.Pool() as pool:
@@ -139,7 +142,7 @@ def main() -> None:
 
     failed_files = {file: image_errors for file, image_errors in results if image_errors}
 
-    if not len(failed_files):
+    if not failed_files:
         print("✅ All images have alt text")
         sys.exit(0)
 
@@ -152,7 +155,11 @@ def main() -> None:
             print(image_error, file=sys.stderr)
 
     print(
-        "\nAlt text is crucial for making documentation accessible to all users. It should serve the same purpose as the images on the page, conveying the same meaning rather than describing visual characteristics. When an image contains words that are important to understanding the content, the alt text should include those words as well.",
+        "\nAlt text is crucial for making documentation accessible to all users.",
+        "It should serve the same purpose as the images on the page,",
+        "conveying the same meaning rather than describing visual characteristics.",
+        "When an image contains words that are important to understanding the content,",
+        "the alt text should include those words as well.",
         file=sys.stderr,
     )
 
@@ -160,4 +167,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    _main()
