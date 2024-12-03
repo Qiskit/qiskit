@@ -108,17 +108,19 @@ class ContextAwareDynamicalDecoupling(TransformationPass):
         """
         Args:
             target: The :class:`.Target` of the device to run the circuit.
-            min_joinable_duration: Do not join delays with others below this duration. This
+            min_joinable_duration: Minimal delay duration (in ``dt``) to join delays. This
                 can be useful, e.g. if a big delay block would be interrupted and split into
                 smaller blocks due to a very short, adjacent delay.
             skip_reset_qubits: Skip initial delays and delays after a reset.
             skip_dd_threshold: Skip dynamical decoupling on an idle qubit, if the duration of
-                the decoupling sequence exceeds this fraction of the idle window. Per default,
-                the sequence is applied if it fits into the window.
-            pulse_alignment: The hardware constraints for gate timing allocation.
-                This is usually provided om ``backend.configuration().timing_constraints``.
-                If provided, the delay length, i.e. ``spacing``, is implicitly adjusted to
-                satisfy this constraint. If ``None``, this is extracted from the ``target``.
+                the decoupling sequence exceeds this fraction of the idle window. For example, to
+                skip a DD sequence if it would take up more than 95% of the idle time, set this
+                value to 0.95. A value of 1. means that the DD sequence is applied if it fits into
+                the window.
+            pulse_alignment: The hardware constraints (in ``dt``) for gate timing allocation.
+                If provided, the inserted gates will only be executed on integer multiples of
+                this value. This is usually provided on ``backend.configuration().timing_constraints``.
+                If ``None``, this is extracted from the ``target``.
             coloring_strategy: The coloring strategy used for ``rx.greedy_graph_color``.
                 Defaults to a saturation strategy, which is optimal on bipartite graphs,
                 see Section 1.2.2.8 of [2].
@@ -130,6 +132,9 @@ class ContextAwareDynamicalDecoupling(TransformationPass):
 
         """
         super().__init__()
+
+        if not (0 <= skip_dd_threshold <= 1):
+            raise ValueError(f"skip_dd_threshold must be in [0, 1], but is {skip_dd_threshold}")
 
         self._min_joinable_duration = min_joinable_duration
         self._skip_reset_qubits = skip_reset_qubits
@@ -363,6 +368,12 @@ class ContextAwareDynamicalDecoupling(TransformationPass):
                 start_times.append(time)
                 time += tau
             if gate is not None:
+                # at this point we know which qubit the gate acts on, so we can attach
+                # the gate duration (the newly inserted gates don't yet have a duration, since
+                # they weren't present when the scheduling pass was run)
+                gate = gate.to_mutable()
+                gate.duration = instruction_durations.get(gate, index)
+
                 seq.append(gate, [0])
                 start_times.append(time)
                 time += instruction_durations.get(gate, index)
