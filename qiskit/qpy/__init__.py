@@ -40,7 +40,24 @@ serializers in Python's standard library, ``pickle`` and ``json``. There are
 2 user facing functions: :func:`qiskit.qpy.dump` and
 :func:`qiskit.qpy.load` which are used to dump QPY data
 to a file object and load circuits from QPY data in a file object respectively.
-For example::
+For example:
+
+.. plot::
+    :nofigs:
+    :context: reset
+
+    # This code is hidden from users
+    # It's a hack to avoid writing to file when testing the code examples
+    import io
+    bytestream = io.BytesIO()
+    bytestream.close = lambda: bytestream.seek(0)
+    def open(*args):
+        return bytestream
+
+.. plot::
+    :include-source:
+    :nofigs:
+    :context:
 
     from qiskit.circuit import QuantumCircuit
     from qiskit import qpy
@@ -57,15 +74,26 @@ For example::
         new_qc = qpy.load(fd)[0]
 
 The :func:`qiskit.qpy.dump` function also lets you
-include multiple circuits in a single QPY file::
+include multiple circuits in a single QPY file:
+
+.. plot::
+    :include-source:
+    :nofigs:
+    :context:
 
     with open('twenty_bells.qpy', 'wb') as fd:
         qpy.dump([qc] * 20, fd)
 
 and then loading that file will return a list with all the circuits
 
+.. plot::
+    :include-source:
+    :nofigs:
+    :context:
+
     with open('twenty_bells.qpy', 'rb') as fd:
         twenty_new_bells = qpy.load(fd)
+
 
 API documentation
 =================
@@ -984,7 +1012,9 @@ SCHEDULE_BLOCK
 :class:`~.ScheduleBlock` is first supported in QPY Version 5. This allows
 users to save pulse programs in the QPY binary format as follows:
 
-.. code-block:: python
+.. plot::
+   :include-source:
+   :nofigs:
 
     from qiskit import pulse, qpy
 
@@ -992,10 +1022,17 @@ users to save pulse programs in the QPY binary format as follows:
         pulse.play(pulse.Gaussian(160, 0.1, 40), pulse.DriveChannel(0))
 
     with open('schedule.qpy', 'wb') as fd:
-        qpy.dump(qc, fd)
+        qpy.dump(schedule, fd)
 
     with open('schedule.qpy', 'rb') as fd:
-        new_qc = qpy.load(fd)[0]
+        new_schedule = qpy.load(fd)[0]
+
+.. plot::
+   :nofigs:
+
+   # This block is hidden from readers. It's cleanup code.
+   from pathlib import Path
+   Path("schedule.qpy").unlink()
 
 Note that circuit and schedule block are serialized and deserialized through
 the same QPY interface. Input data type is implicitly analyzed and

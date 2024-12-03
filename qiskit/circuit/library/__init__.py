@@ -132,7 +132,9 @@ and :meth:`~qiskit.circuit.Gate.control`, which we can generally only apply to u
 
 For example:
 
-.. code-block::
+.. plot::
+   :include-source:
+   :nofigs:
 
     from qiskit.circuit.library import XGate
     gate = XGate()
@@ -619,7 +621,9 @@ to replace the match with the inverse of the remainder from the template.
 
 In this example, the identity constant in a template is checked:
 
-.. code-block::
+.. plot::
+   :include-source:
+   :nofigs:
 
     from qiskit.circuit.library.templates import template_nct_4b_1
     from qiskit.quantum_info import Operator
