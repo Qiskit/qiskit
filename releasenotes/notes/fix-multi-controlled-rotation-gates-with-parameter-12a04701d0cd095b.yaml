@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fix a bug in the multi-controlled rotation circuit methods `QuantumCircuit.mcrx`, `QuantumCircuit.mcry,
+    and `QuantumCircuit.mcrz`, when the user provides an unbounded parameter.
+    Previously, the user would have got an error that this gate cannot be synthesized with unbound parameter,
+    and now these multi-controlled rotation circuits can be synthesized.
