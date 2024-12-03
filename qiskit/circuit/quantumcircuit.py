@@ -1177,9 +1177,11 @@ class QuantumCircuit:
         self._unit = value
 
     @classmethod
-    def _from_circuit_data(cls, data: CircuitData, add_regs: bool = False) -> typing.Self:
+    def _from_circuit_data(
+        cls, data: CircuitData, add_regs: bool = False, name: str | None = None
+    ) -> typing.Self:
         """A private constructor from rust space circuit data."""
-        out = QuantumCircuit()
+        out = QuantumCircuit(name=name)
 
         if data.num_qubits > 0:
             if add_regs:
@@ -3752,38 +3754,12 @@ class QuantumCircuit:
                 f"invalid name for a circuit: '{name}'. The name must be a string or 'None'."
             )
         cpy = _copy.copy(self)
-        # copy registers correctly, in copy.copy they are only copied via reference
-        cpy.qregs = self.qregs.copy()
-        cpy.cregs = self.cregs.copy()
-        cpy._builder_api = _OuterCircuitScopeInterface(cpy)
-        cpy._ancillas = self._ancillas.copy()
-        cpy._qubit_indices = self._qubit_indices.copy()
-        cpy._clbit_indices = self._clbit_indices.copy()
 
-        if vars_mode == "alike":
-            # Note that this causes the local variables to be uninitialised, because the stores are
-            # not copied.  This can leave the circuit in a potentially dangerous state for users if
-            # they don't re-add initializer stores.
-            cpy._vars_local = self._vars_local.copy()
-            cpy._vars_input = self._vars_input.copy()
-            cpy._vars_capture = self._vars_capture.copy()
-        elif vars_mode == "captures":
-            cpy._vars_local = {}
-            cpy._vars_input = {}
-            cpy._vars_capture = {var.name: var for var in self.iter_vars()}
-        elif vars_mode == "drop":
-            cpy._vars_local = {}
-            cpy._vars_input = {}
-            cpy._vars_capture = {}
-        else:  # pragma: no cover
-            raise ValueError(f"unknown vars_mode: '{vars_mode}'")
+        _copy_metadata(self, cpy, vars_mode)
 
         cpy._data = CircuitData(
             self._data.qubits, self._data.clbits, global_phase=self._data.global_phase
         )
-
-        cpy._calibrations = _copy.deepcopy(self._calibrations)
-        cpy._metadata = _copy.deepcopy(self._metadata)
 
         if name:
             cpy.name = name
@@ -3891,7 +3867,10 @@ class QuantumCircuit:
             In this example, a qubit is measured and the result of that measurement is stored in the
             classical bit (usually expressed in diagrams as a double line):
 
-            .. code-block::
+            .. plot::
+               :include-source:
+               :nofigs:
+               :context: reset
 
                from qiskit import QuantumCircuit
                circuit = QuantumCircuit(1, 1)
@@ -3911,12 +3890,18 @@ class QuantumCircuit:
             It is possible to call ``measure`` with lists of ``qubits`` and ``cbits`` as a shortcut
             for one-to-one measurement. These two forms produce identical results:
 
-            .. code-block::
+            .. plot::
+               :include-source:
+               :nofigs:
+               :context:
 
                circuit = QuantumCircuit(2, 2)
                circuit.measure([0,1], [0,1])
 
-            .. code-block::
+            .. plot::
+               :include-source:
+               :nofigs:
+               :context:
 
                circuit = QuantumCircuit(2, 2)
                circuit.measure(0, 0)
@@ -3925,7 +3910,10 @@ class QuantumCircuit:
             Instead of lists, you can use :class:`~qiskit.circuit.QuantumRegister` and
             :class:`~qiskit.circuit.ClassicalRegister` under the same logic.
 
-            .. code-block::
+            .. plot::
+               :include-source:
+               :nofigs:
+               :context: reset
 
                 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
                 qreg = QuantumRegister(2, "qreg")
@@ -3935,7 +3923,10 @@ class QuantumCircuit:
 
             This is equivalent to:
 
-            .. code-block::
+            .. plot::
+               :include-source:
+               :nofigs:
+               :context:
 
                 circuit = QuantumCircuit(qreg, creg)
                 circuit.measure(qreg[0], creg[0])
@@ -4184,7 +4175,9 @@ class QuantumCircuit:
 
             The snippet below shows that insertion order of parameters does not matter.
 
-            .. code-block:: python
+            .. plot::
+               :include-source:
+               :nofigs:
 
                 >>> from qiskit.circuit import QuantumCircuit, Parameter
                 >>> a, b, elephant = Parameter("a"), Parameter("b"), Parameter("elephant")
@@ -4198,7 +4191,9 @@ class QuantumCircuit:
             Bear in mind that alphabetical sorting might be unintuitive when it comes to numbers.
             The literal "10" comes before "2" in strict alphabetical sorting.
 
-            .. code-block:: python
+            .. plot::
+               :include-source:
+               :nofigs:
 
                 >>> from qiskit.circuit import QuantumCircuit, Parameter
                 >>> angles = [Parameter("angle_1"), Parameter("angle_2"), Parameter("angle_10")]
@@ -4213,7 +4208,9 @@ class QuantumCircuit:
 
             To respect numerical sorting, a :class:`.ParameterVector` can be used.
 
-            .. code-block:: python
+            .. plot::
+               :include-source:
+               :nofigs:
 
                 >>> from qiskit.circuit import QuantumCircuit, Parameter, ParameterVector
                 >>> x = ParameterVector("x", 12)
@@ -5744,7 +5741,9 @@ class QuantumCircuit:
         Examples:
             Prepare a qubit in the state :math:`(|0\rangle - |1\rangle) / \sqrt{2}`.
 
-            .. code-block::
+            .. plot::
+               :include-source:
+               :nofigs:
 
                 import numpy as np
                 from qiskit import QuantumCircuit
@@ -5767,7 +5766,9 @@ class QuantumCircuit:
             More information about labels for basis states are in
             :meth:`.Statevector.from_label`.
 
-            .. code-block::
+            .. plot::
+               :include-source:
+               :nofigs:
 
                 import numpy as np
                 from qiskit import QuantumCircuit
@@ -5788,7 +5789,10 @@ class QuantumCircuit:
 
 
             Initialize two qubits from an array of complex amplitudes
-            .. code-block::
+
+            .. plot::
+                :include-source:
+                :nofigs:
 
                 import numpy as np
                 from qiskit import QuantumCircuit
@@ -5859,7 +5863,9 @@ class QuantumCircuit:
         Examples:
             Prepare a qubit in the state :math:`(|0\rangle - |1\rangle) / \sqrt{2}`.
 
-            .. code-block::
+            .. plot::
+               :include-source:
+               :nofigs:
 
                 import numpy as np
                 from qiskit import QuantumCircuit
@@ -5882,7 +5888,9 @@ class QuantumCircuit:
             More information about labels for basis states are in
             :meth:`.Statevector.from_label`.
 
-            .. code-block::
+            .. plot::
+               :include-source:
+               :nofigs:
 
                 import numpy as np
                 from qiskit import QuantumCircuit
@@ -5903,7 +5911,9 @@ class QuantumCircuit:
 
             Initialize two qubits from an array of complex amplitudes.
 
-            .. code-block::
+            .. plot::
+               :include-source:
+               :nofigs:
 
                 import numpy as np
                 from qiskit import QuantumCircuit
@@ -5954,7 +5964,9 @@ class QuantumCircuit:
 
             Apply a gate specified by a unitary matrix to a quantum circuit
 
-            .. code-block:: python
+            .. plot::
+               :include-source:
+               :nofigs:
 
                 from qiskit import QuantumCircuit
                 matrix = [[0, 0, 0, 1],
@@ -6820,3 +6832,34 @@ def _bit_argument_conversion_scalar(specifier, bit_sequence, bit_set, type_):
         else f"Invalid bit index: '{specifier}' of type '{type(specifier)}'"
     )
     raise CircuitError(message)
+
+
+def _copy_metadata(original, cpy, vars_mode):
+    # copy registers correctly, in copy.copy they are only copied via reference
+    cpy.qregs = original.qregs.copy()
+    cpy.cregs = original.cregs.copy()
+    cpy._builder_api = _OuterCircuitScopeInterface(cpy)
+    cpy._ancillas = original._ancillas.copy()
+    cpy._qubit_indices = original._qubit_indices.copy()
+    cpy._clbit_indices = original._clbit_indices.copy()
+
+    if vars_mode == "alike":
+        # Note that this causes the local variables to be uninitialised, because the stores are
+        # not copied.  This can leave the circuit in a potentially dangerous state for users if
+        # they don't re-add initializer stores.
+        cpy._vars_local = original._vars_local.copy()
+        cpy._vars_input = original._vars_input.copy()
+        cpy._vars_capture = original._vars_capture.copy()
+    elif vars_mode == "captures":
+        cpy._vars_local = {}
+        cpy._vars_input = {}
+        cpy._vars_capture = {var.name: var for var in original.iter_vars()}
+    elif vars_mode == "drop":
+        cpy._vars_local = {}
+        cpy._vars_input = {}
+        cpy._vars_capture = {}
+    else:  # pragma: no cover
+        raise ValueError(f"unknown vars_mode: '{vars_mode}'")
+
+    cpy._calibrations = _copy.deepcopy(original._calibrations)
+    cpy._metadata = _copy.deepcopy(original._metadata)
