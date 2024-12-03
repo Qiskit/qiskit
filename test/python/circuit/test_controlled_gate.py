@@ -684,6 +684,23 @@ class TestControlledGate(QiskitTestCase):
         dag = circuit_to_dag(circuit)
         self.assertEqual(len(list(dag.idle_wires())), 0)
 
+    @combine(num_controls=[1, 2, 3], base_gate=[RXGate, RYGate, RZGate, CPhaseGate])
+    def test_multi_controlled_rotation_gate_with_parameter(self, num_controls, base_gate):
+        """Test multi-controlled rotation gates and MCPhase gate with Parameter synthesis."""
+        theta = Parameter("theta")
+        params = [theta]
+        val = 0.4123
+        rot_matrix = base_gate(val).to_matrix()
+        mc_matrix = _compute_control_matrix(rot_matrix, num_controls)
+
+        mc_gate = base_gate(*params).control(num_controls)
+        circuit = QuantumCircuit(mc_gate.num_qubits)
+        circuit.append(mc_gate, circuit.qubits)
+
+        bound = circuit.assign_parameters([val])
+        unrolled = transpile(bound, basis_gates=["u", "cx"], optimization_level=0)
+        self.assertTrue(np.allclose(mc_matrix, Operator(unrolled).to_matrix()))
+
     @data(1, 2)
     def test_mcx_gates_yield_explicit_gates(self, num_ctrl_qubits):
         """Test the creating a MCX gate yields the explicit definition if we know it."""
