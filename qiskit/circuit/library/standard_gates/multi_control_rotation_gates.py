@@ -18,7 +18,7 @@ import math
 from typing import Optional, Union, Tuple, List
 import numpy as np
 
-from qiskit.circuit import QuantumCircuit, QuantumRegister, Qubit, ParameterExpression
+from qiskit.circuit import QuantumCircuit, QuantumRegister, Qubit, Gate
 from qiskit.circuit.library.standard_gates.x import MCXGate
 from qiskit.circuit.library.standard_gates.u3 import _generate_gray_code
 from qiskit.circuit.parameterexpression import ParameterValueType
@@ -85,7 +85,7 @@ def _apply_mcu_graycode(circuit, theta, phi, lam, ctls, tgt, use_basis_gates):
 
 
 def _mcsu2_real_diagonal(
-    unitary: np.ndarray,
+    gate: Gate,
     num_controls: int,
     ctrl_state: Optional[str] = None,
     use_basis_gates: bool = False,
@@ -94,7 +94,7 @@ def _mcsu2_real_diagonal(
     Return a multi-controlled SU(2) gate [1]_ with a real main diagonal or secondary diagonal.
 
     Args:
-        unitary: SU(2) unitary matrix with one real diagonal.
+        gate: SU(2) Gate whose unitary matrix has one real diagonal.
         num_controls: The number of control qubits.
         ctrl_state: The state on which the SU(2) operation is controlled. Defaults to all
             control qubits being in state 1.
@@ -114,48 +114,67 @@ def _mcsu2_real_diagonal(
     """
     # pylint: disable=cyclic-import
     from .x import MCXVChain
+    from qiskit.circuit.library.standard_gates import RXGate, RYGate, RZGate
     from qiskit.circuit.library.generalized_gates import UnitaryGate
     from qiskit.quantum_info.operators.predicates import is_unitary_matrix
     from qiskit.compiler import transpile
 
-    if unitary.shape != (2, 2):
-        raise QiskitError(f"The unitary must be a 2x2 matrix, but has shape {unitary.shape}.")
+    if isinstance(gate, RYGate):
+        theta = gate.params[0]
+        s_gate = RYGate(-theta / 4)
+        is_secondary_diag_real = True
+    elif isinstance(gate, RZGate):
+        theta = gate.params[0]
+        s_gate = RZGate(-theta / 4)
+        is_secondary_diag_real = True
+    elif isinstance(gate, RXGate):
+        theta = gate.params[0]
+        s_gate = RZGate(-theta / 4)
+        is_secondary_diag_real = False
 
-    if not is_unitary_matrix(unitary):
-        raise QiskitError(f"The unitary in must be an unitary matrix, but is {unitary}.")
-
-    if not np.isclose(1.0, np.linalg.det(unitary)):
-        raise QiskitError("Invalid Value _mcsu2_real_diagonal requires det(unitary) equal to one.")
-
-    is_main_diag_real = np.isclose(unitary[0, 0].imag, 0.0) and np.isclose(unitary[1, 1].imag, 0.0)
-    is_secondary_diag_real = np.isclose(unitary[0, 1].imag, 0.0) and np.isclose(
-        unitary[1, 0].imag, 0.0
-    )
-
-    if not is_main_diag_real and not is_secondary_diag_real:
-        raise QiskitError("The unitary must have one real diagonal.")
-
-    if is_secondary_diag_real:
-        x = unitary[0, 1]
-        z = unitary[1, 1]
     else:
-        x = -unitary[0, 1].real
-        z = unitary[1, 1] - unitary[0, 1].imag * 1.0j
+        unitary = gate.to_matrix()
+        if unitary.shape != (2, 2):
+            raise QiskitError(f"The unitary must be a 2x2 matrix, but has shape {unitary.shape}.")
 
-    if np.isclose(z, -1):
-        s_op = [[1.0, 0.0], [0.0, 1.0j]]
-    else:
-        alpha_r = math.sqrt((math.sqrt((z.real + 1.0) / 2.0) + 1.0) / 2.0)
-        alpha_i = z.imag / (
-            2.0 * math.sqrt((z.real + 1.0) * (math.sqrt((z.real + 1.0) / 2.0) + 1.0))
+        if not is_unitary_matrix(unitary):
+            raise QiskitError(f"The unitary in must be an unitary matrix, but is {unitary}.")
+
+        if not np.isclose(1.0, np.linalg.det(unitary)):
+            raise QiskitError(
+                "Invalid Value _mcsu2_real_diagonal requires det(unitary) equal to one."
+            )
+
+        is_main_diag_real = np.isclose(unitary[0, 0].imag, 0.0) and np.isclose(
+            unitary[1, 1].imag, 0.0
         )
-        alpha = alpha_r + 1.0j * alpha_i
-        beta = x / (2.0 * math.sqrt((z.real + 1.0) * (math.sqrt((z.real + 1.0) / 2.0) + 1.0)))
+        is_secondary_diag_real = np.isclose(unitary[0, 1].imag, 0.0) and np.isclose(
+            unitary[1, 0].imag, 0.0
+        )
 
-        # S gate definition
-        s_op = np.array([[alpha, -np.conj(beta)], [beta, np.conj(alpha)]])
+        if not is_main_diag_real and not is_secondary_diag_real:
+            raise QiskitError("The unitary must have one real diagonal.")
 
-    s_gate = UnitaryGate(s_op)
+        if is_secondary_diag_real:
+            x = unitary[0, 1]
+            z = unitary[1, 1]
+        else:
+            x = -unitary[0, 1].real
+            z = unitary[1, 1] - unitary[0, 1].imag * 1.0j
+
+        if np.isclose(z, -1):
+            s_op = [[1.0, 0.0], [0.0, 1.0j]]
+        else:
+            alpha_r = math.sqrt((math.sqrt((z.real + 1.0) / 2.0) + 1.0) / 2.0)
+            alpha_i = z.imag / (
+                2.0 * math.sqrt((z.real + 1.0) * (math.sqrt((z.real + 1.0) / 2.0) + 1.0))
+            )
+            alpha = alpha_r + 1.0j * alpha_i
+            beta = x / (2.0 * math.sqrt((z.real + 1.0) * (math.sqrt((z.real + 1.0) / 2.0) + 1.0)))
+
+            # S gate definition
+            s_op = np.array([[alpha, -np.conj(beta)], [beta, np.conj(alpha)]])
+        s_gate = UnitaryGate(s_op)
 
     k_1 = math.ceil(num_controls / 2.0)
     k_2 = math.floor(num_controls / 2.0)
@@ -201,86 +220,6 @@ def _mcsu2_real_diagonal(
 
     if use_basis_gates:
         circuit = transpile(circuit, basis_gates=["p", "u", "cx"], qubits_initially_zero=False)
-
-    return circuit
-
-
-def _mcsu2_with_params(
-    unitary_type: str,  #'rz', 'ry' or 'rz'
-    theta: ParameterValueType,
-    num_controls: int,
-    ctrl_state: Optional[str] = None,
-) -> QuantumCircuit:
-    """
-    Return a parametrized multi-controlled RX or RY or RZ gate [1]_.
-
-    Args:
-        unitary_type: SU(2) unitary matrix type: 'rx' or 'ry' or 'rz'.
-        num_controls: The number of control qubits.
-        ctrl_state: The state on which the SU(2) operation is controlled. Defaults to all
-            control qubits being in state 1.
-
-    Returns:
-        A :class:`.QuantumCircuit` implementing the multi-controlled RX / RY / RZ gate.
-
-    References:
-
-        .. [1]: R. Vale et al. Decomposition of Multi-controlled Special Unitary Single-Qubit Gates
-            `arXiv:2302.06377 (2023) <https://arxiv.org/abs/2302.06377>`__
-
-    """
-    from .x import MCXVChain
-    from qiskit.circuit.library.standard_gates.ry import RYGate
-    from qiskit.circuit.library.standard_gates.rz import RZGate
-
-    if unitary_type == "ry":
-        s_gate = RYGate(-theta / 4)
-    elif unitary_type in ("rz", "rx"):
-        s_gate = RZGate(-theta / 4)
-    else:
-        raise QiskitError("The unitary given is not of type rx, ry or rz.")
-
-    k_1 = math.ceil(num_controls / 2.0)
-    k_2 = math.floor(num_controls / 2.0)
-
-    ctrl_state_k_1 = None
-    ctrl_state_k_2 = None
-
-    if ctrl_state is not None:
-        str_ctrl_state = f"{ctrl_state:0{num_controls}b}"
-        ctrl_state_k_1 = str_ctrl_state[::-1][:k_1][::-1]
-        ctrl_state_k_2 = str_ctrl_state[::-1][k_1:][::-1]
-
-    circuit = QuantumCircuit(num_controls + 1, name="MCSU2")
-    controls = list(range(num_controls))  # control indices, defined for code legibility
-    target = num_controls  # target index, defined for code legibility
-
-    if unitary_type == "rx":
-        circuit.h(target)
-
-    mcx_1 = MCXVChain(num_ctrl_qubits=k_1, dirty_ancillas=True, ctrl_state=ctrl_state_k_1)
-    circuit.append(mcx_1, controls[:k_1] + [target] + controls[k_1 : 2 * k_1 - 2])
-    circuit.append(s_gate, [target])
-
-    mcx_2 = MCXVChain(
-        num_ctrl_qubits=k_2,
-        dirty_ancillas=True,
-        ctrl_state=ctrl_state_k_2,
-        # action_only=general_su2_optimization # Requires PR #9687
-    )
-    circuit.append(mcx_2.inverse(), controls[k_1:] + [target] + controls[k_1 - k_2 + 2 : k_1])
-    circuit.append(s_gate.inverse(), [target])
-
-    mcx_3 = MCXVChain(num_ctrl_qubits=k_1, dirty_ancillas=True, ctrl_state=ctrl_state_k_1)
-    circuit.append(mcx_3, controls[:k_1] + [target] + controls[k_1 : 2 * k_1 - 2])
-    circuit.append(s_gate, [target])
-
-    mcx_4 = MCXVChain(num_ctrl_qubits=k_2, dirty_ancillas=True, ctrl_state=ctrl_state_k_2)
-    circuit.append(mcx_4, controls[k_1:] + [target] + controls[k_1 - k_2 + 2 : k_1])
-    circuit.append(s_gate.inverse(), [target])
-
-    if unitary_type == "rx":
-        circuit.h(target)
 
     return circuit
 
@@ -335,21 +274,12 @@ def mcrx(
             use_basis_gates=use_basis_gates,
         )
     else:
-        if isinstance(theta, ParameterExpression):
-            cgate = _mcsu2_with_params(
-                "rx",
-                theta,
-                num_controls=len(control_qubits),
-            )
-            self.compose(cgate, control_qubits + [target_qubit], inplace=True)
-
-        else:
-            cgate = _mcsu2_real_diagonal(
-                RXGate(theta).to_matrix(),
-                num_controls=len(control_qubits),
-                use_basis_gates=use_basis_gates,
-            )
-            self.compose(cgate, control_qubits + [target_qubit], inplace=True)
+        cgate = _mcsu2_real_diagonal(
+            RXGate(theta),
+            num_controls=len(control_qubits),
+            use_basis_gates=use_basis_gates,
+        )
+        self.compose(cgate, control_qubits + [target_qubit], inplace=True)
 
 
 def mcry(
@@ -417,21 +347,12 @@ def mcry(
                 use_basis_gates=use_basis_gates,
             )
         else:
-            if isinstance(theta, ParameterExpression):
-                cgate = _mcsu2_with_params(
-                    "ry",
-                    theta,
-                    num_controls=len(control_qubits),
-                )
-                self.compose(cgate, control_qubits + [target_qubit], inplace=True)
-
-            else:
-                cgate = _mcsu2_real_diagonal(
-                    RYGate(theta).to_matrix(),
-                    num_controls=len(control_qubits),
-                    use_basis_gates=use_basis_gates,
-                )
-                self.compose(cgate, control_qubits + [target_qubit], inplace=True)
+            cgate = _mcsu2_real_diagonal(
+                RYGate(theta),
+                num_controls=len(control_qubits),
+                use_basis_gates=use_basis_gates,
+            )
+            self.compose(cgate, control_qubits + [target_qubit], inplace=True)
     else:
         raise QiskitError(f"Unrecognized mode for building MCRY circuit: {mode}.")
 
@@ -473,21 +394,12 @@ def mcrz(
         else:
             self.append(CRZGate(lam), control_qubits + [target_qubit])
     else:
-        if isinstance(lam, ParameterExpression):
-            cgate = _mcsu2_with_params(
-                "rz",
-                lam,
-                num_controls=len(control_qubits),
-            )
-            self.compose(cgate, control_qubits + [target_qubit], inplace=True)
-
-        else:
-            cgate = _mcsu2_real_diagonal(
-                RZGate(lam).to_matrix(),
-                num_controls=len(control_qubits),
-                use_basis_gates=use_basis_gates,
-            )
-            self.compose(cgate, control_qubits + [target_qubit], inplace=True)
+        cgate = _mcsu2_real_diagonal(
+            RZGate(lam),
+            num_controls=len(control_qubits),
+            use_basis_gates=use_basis_gates,
+        )
+        self.compose(cgate, control_qubits + [target_qubit], inplace=True)
 
 
 QuantumCircuit.mcrx = mcrx

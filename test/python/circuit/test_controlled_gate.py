@@ -552,9 +552,9 @@ class TestControlledGate(QiskitTestCase):
         """Test mcsu2_real_diagonal"""
         num_ctrls = 6
         theta = 0.3
-        ry_matrix = RYGate(theta).to_matrix()
-        qc = _mcsu2_real_diagonal(ry_matrix, num_ctrls)
+        qc = _mcsu2_real_diagonal(RYGate(theta), num_ctrls)
 
+        ry_matrix = RYGate(theta).to_matrix()
         mcry_matrix = _compute_control_matrix(ry_matrix, 6)
         self.assertTrue(np.allclose(mcry_matrix, Operator(qc).to_matrix()))
 
