@@ -18,7 +18,6 @@ import unittest
 import numpy as np
 
 from qiskit import QuantumCircuit, QuantumRegister
-from qiskit.circuit import Qubit, Clbit
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes import InverseCancellation
 from qiskit.transpiler import PassManager
