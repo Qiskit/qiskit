@@ -46,6 +46,7 @@ from qiskit.circuit.library import (
     IGate,
     MCXGate,
     SGate,
+    QAOAAnsatz,
 )
 from qiskit.circuit.library import LinearFunction, PauliEvolutionGate
 from qiskit.quantum_info import Clifford, Operator, Statevector, SparsePauliOp
@@ -663,6 +664,18 @@ class TestHighLevelSynthesisInterface(QiskitTestCase):
         with self.subTest("unrolled w/ basis gates"):
             out = hls(circuit)
             self.assertEqual(out.count_ops(), {"u": 1})
+
+    def test_both_basis_gates_and_plugin_specified(self):
+        """Test that a gate is not synthesized when it belongs to basis_gates,
+        regardless of whether there is a plugin method available.
+
+        See: https://github.com/Qiskit/qiskit/issues/13412 for more
+        details.
+        """
+        qc = QAOAAnsatz(SparsePauliOp("Z"), initial_state=QuantumCircuit(1))
+        pm = PassManager([HighLevelSynthesis(basis_gates=["PauliEvolution"])])
+        qct = pm.run(qc)
+        self.assertEqual(qct.count_ops()["PauliEvolution"], 2)
 
 
 class TestPMHSynthesisLinearFunctionPlugin(QiskitTestCase):
