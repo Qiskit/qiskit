@@ -71,6 +71,7 @@ Optimizations
    Collect1qRuns
    Collect2qBlocks
    CollectMultiQBlocks
+   CollectAndCollapse
    CollectLinearFunctions
    CollectCliffords
    ConsolidateBlocks
@@ -91,6 +92,8 @@ Optimizations
    ElidePermutations
    NormalizeRXAngle
    OptimizeAnnotated
+   Split2QUnitaries
+   RemoveIdentityEquivalent
 
 Calibration
 =============
@@ -237,6 +240,7 @@ from .optimization import HoareOptimizer
 from .optimization import TemplateOptimization
 from .optimization import InverseCancellation
 from .optimization import EchoRZXWeylDecomposition
+from .optimization import CollectAndCollapse
 from .optimization import CollectLinearFunctions
 from .optimization import CollectCliffords
 from .optimization import ResetAfterMeasureSimplification
@@ -244,6 +248,8 @@ from .optimization import OptimizeCliffords
 from .optimization import ElidePermutations
 from .optimization import NormalizeRXAngle
 from .optimization import OptimizeAnnotated
+from .optimization import RemoveIdentityEquivalent
+from .optimization import Split2QUnitaries
 
 # circuit analysis
 from .analysis import ResourceEstimation

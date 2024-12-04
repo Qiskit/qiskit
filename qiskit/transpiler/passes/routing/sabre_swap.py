@@ -18,7 +18,7 @@ import time
 
 import rustworkx
 
-from qiskit.circuit import SwitchCaseOp, ControlFlowOp, Clbit, ClassicalRegister
+from qiskit.circuit import SwitchCaseOp, Clbit, ClassicalRegister
 from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.circuit.controlflow import condition_resources, node_resources
 from qiskit.converters import dag_to_circuit
@@ -28,15 +28,10 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.target import Target
 from qiskit.transpiler.passes.layout import disjoint_utils
-from qiskit.dagcircuit import DAGCircuit
+from qiskit.dagcircuit import DAGCircuit, DAGOpNode
 from qiskit.utils.parallel import CPU_COUNT
 
-from qiskit._accelerate.sabre import (
-    sabre_routing,
-    Heuristic,
-    NeighborTable,
-    SabreDAG,
-)
+from qiskit._accelerate.sabre import sabre_routing, Heuristic, SetScaling, NeighborTable, SabreDAG
 from qiskit._accelerate.nlayout import NLayout
 
 logger = logging.getLogger(__name__)
@@ -46,8 +41,9 @@ class SabreSwap(TransformationPass):
     r"""Map input circuit onto a backend topology via insertion of SWAPs.
 
     Implementation of the SWAP-based heuristic search from the SABRE qubit
-    mapping paper [1] (Algorithm 1). The heuristic aims to minimize the number
-    of lossy SWAPs inserted and the depth of the circuit.
+    mapping paper [2] (Algorithm 1) with the modifications from the LightSABRE
+    paper [1]. The heuristic aims to minimize the number of lossy SWAPs inserted
+    and the depth of the circuit.
 
     This algorithm starts from an initial layout of virtual qubits onto physical
     qubits, and iterates over the circuit DAG until all gates are exhausted,
@@ -74,7 +70,10 @@ class SabreSwap(TransformationPass):
 
     **References:**
 
-    [1] Li, Gushu, Yufei Ding, and Yuan Xie. "Tackling the qubit mapping problem
+    [1] Henry Zou and Matthew Treinish and Kevin Hartman and Alexander Ivrii and Jake Lishman.
+    "LightSABRE: A Lightweight and Enhanced SABRE Algorithm"
+    `arXiv:2409.08368 <https://doi.org/10.48550/arXiv.2409.08368>`__
+    [2] Li, Gushu, Yufei Ding, and Yuan Xie. "Tackling the qubit mapping problem
     for NISQ-era quantum devices." ASPLOS 2019.
     `arXiv:1809.02573 <https://arxiv.org/pdf/1809.02573.pdf>`_
     """
@@ -211,12 +210,25 @@ class SabreSwap(TransformationPass):
                 " This circuit cannot be routed to this device."
             )
 
-        if self.heuristic == "basic":
-            heuristic = Heuristic.Basic
+        if isinstance(self.heuristic, Heuristic):
+            heuristic = self.heuristic
+        elif self.heuristic == "basic":
+            heuristic = Heuristic(attempt_limit=10 * num_dag_qubits).with_basic(
+                1.0, SetScaling.Size
+            )
         elif self.heuristic == "lookahead":
-            heuristic = Heuristic.Lookahead
+            heuristic = (
+                Heuristic(attempt_limit=10 * num_dag_qubits)
+                .with_basic(1.0, SetScaling.Size)
+                .with_lookahead(0.5, 20, SetScaling.Size)
+            )
         elif self.heuristic == "decay":
-            heuristic = Heuristic.Decay
+            heuristic = (
+                Heuristic(attempt_limit=10 * num_dag_qubits)
+                .with_basic(1.0, SetScaling.Size)
+                .with_lookahead(0.5, 20, SetScaling.Size)
+                .with_decay(0.001, 5)
+            )
         else:
             raise TranspilerError(f"Heuristic {self.heuristic} not recognized.")
         disjoint_utils.require_layout_isolated_to_component(
@@ -289,9 +301,9 @@ def _build_sabre_dag(dag, num_physical_qubits, qubit_indices):
         node_blocks = {}
         for node in block_dag.topological_op_nodes():
             cargs_bits = set(node.cargs)
-            if node.op.condition is not None:
-                cargs_bits.update(condition_resources(node.op.condition).clbits)
-            if isinstance(node.op, SwitchCaseOp):
+            if node.condition is not None:
+                cargs_bits.update(condition_resources(node.condition).clbits)
+            if node.is_control_flow() and isinstance(node.op, SwitchCaseOp):
                 target = node.op.target
                 if isinstance(target, Clbit):
                     cargs_bits.add(target)
@@ -300,7 +312,7 @@ def _build_sabre_dag(dag, num_physical_qubits, qubit_indices):
                 else:  # Expr
                     cargs_bits.update(node_resources(target).clbits)
             cargs = {block_dag.find_bit(x).index for x in cargs_bits}
-            if isinstance(node.op, ControlFlowOp):
+            if node.is_control_flow():
                 node_blocks[node._node_id] = [
                     recurse(
                         block,
@@ -313,7 +325,7 @@ def _build_sabre_dag(dag, num_physical_qubits, qubit_indices):
                     node._node_id,
                     [wire_map[x] for x in node.qargs],
                     cargs,
-                    getattr(node.op, "_directive", False),
+                    node.is_directive(),
                 )
             )
         return SabreDAG(num_physical_qubits, block_dag.num_clbits(), dag_list, node_blocks)
@@ -364,7 +376,7 @@ def _apply_sabre_result(
         empty.add_clbits(block.clbits)
         for creg in block.cregs:
             empty.add_creg(creg)
-        empty._global_phase = block.global_phase
+        empty.global_phase = block.global_phase
         return empty
 
     def apply_swaps(dest_dag, swaps, layout):
@@ -380,17 +392,18 @@ def _apply_sabre_result(
         the virtual qubit in the root source DAG that it is bound to."""
         swap_map, node_order, node_block_results = result
         for node_id in node_order:
-            node = source_dag._multi_graph[node_id]
+            node = source_dag.node(node_id)
             if node_id in swap_map:
                 apply_swaps(dest_dag, swap_map[node_id], layout)
-            if not isinstance(node.op, ControlFlowOp):
-                dest_dag.apply_operation_back(
-                    node.op,
-                    [
-                        physical_qubits[layout.virtual_to_physical(root_logical_map[q])]
-                        for q in node.qargs
-                    ],
-                    node.cargs,
+            if not node.is_control_flow():
+                qubits = [
+                    physical_qubits[layout.virtual_to_physical(root_logical_map[q])]
+                    for q in node.qargs
+                ]
+                dest_dag._apply_op_node_back(
+                    DAGOpNode.from_instruction(
+                        node._to_circuit_instruction().replace(qubits=qubits)
+                    ),
                     check=False,
                 )
                 continue

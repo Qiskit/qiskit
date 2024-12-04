@@ -53,7 +53,7 @@ class AlignmentKind(abc.ABC):
         When the context has two pulses in different channels,
         a sequential context subtype intends to return following scheduling outcome.
 
-        .. parsed-literal::
+        .. code-block:: text
 
                 ┌────────┐
             D0: ┤ pulse1 ├────────────
@@ -63,7 +63,7 @@ class AlignmentKind(abc.ABC):
 
         On the other hand, parallel context with ``is_sequential=False`` returns
 
-        .. parsed-literal::
+        .. code-block:: text
 
                 ┌────────┐
             D0: ┤ pulse1 ├
@@ -338,8 +338,10 @@ class AlignFunc(AlignmentKind):
 
     .. code-block:: python
 
+        import numpy as np
+
         def udd10_pos(j):
-        return np.sin(np.pi*j/(2*10 + 2))**2
+            return np.sin(np.pi*j/(2*10 + 2))**2
 
     .. note::
 

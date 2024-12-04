@@ -1,0 +1,16 @@
+---
+features_circuits:
+  - |
+    The boolean logic quantum circuits in :mod:`qiskit.circuit.library`
+    now have equivalent representations as :class:`.Gate` objects enabling
+    their use with :class:`.HighLevelSynthesis` transpiler pass and plugin
+    infrastructure.
+
+    * :class:`~qiskit.circuit.library.AndGate`,
+      representing :class:`~qiskit.circuit.library.AND`,
+    * :class:`~qiskit.circuit.library.OrGate`,
+      representing :class:`~qiskit.circuit.library.OR`,
+    * :class:`~qiskit.circuit.library.BitwiseXorGate`,
+      representing :class:`~qiskit.circuit.library.XOR`,
+    * :class:`~qiskit.circuit.library.InnerProductGate`,
+      representing :class:`~qiskit.circuit.library.InnerProduct`.

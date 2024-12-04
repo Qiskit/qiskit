@@ -14,6 +14,7 @@
 
 import unittest
 
+
 from test import combine
 from ddt import ddt, data
 
@@ -21,6 +22,7 @@ import numpy as np
 
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
 from qiskit.circuit import Qubit, Gate, ControlFlowOp, ForLoopOp
+from qiskit.circuit.library import quantum_volume
 from qiskit.compiler import transpile
 from qiskit.transpiler import CouplingMap, Layout, PassManager, TranspilerError, Target
 from qiskit.circuit.library import U2Gate, U3Gate, QuantumVolume, CXGate, CZGate, XGate
@@ -35,11 +37,11 @@ from qiskit.circuit.library import GraphState
 from qiskit.quantum_info import random_unitary
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.transpiler.preset_passmanagers import level0, level1, level2, level3
-from qiskit.transpiler.passes import Collect2qBlocks, GatesInBasis
+from qiskit.transpiler.passes import ConsolidateBlocks, GatesInBasis
 from qiskit.transpiler.preset_passmanagers.builtin_plugins import OptimizationPassManager
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
-from ..legacy_cmaps import MELBOURNE_CMAP, RUESCHLIKON_CMAP, LAGOS_CMAP, TOKYO_CMAP
+from ..legacy_cmaps import MELBOURNE_CMAP, RUESCHLIKON_CMAP, LAGOS_CMAP, TOKYO_CMAP, BOGOTA_CMAP
 
 
 def mock_get_passmanager_stage(
@@ -160,7 +162,11 @@ class TestPresetPassManager(QiskitTestCase):
         qc = QuantumCircuit(2)
         qc.unitary(random_unitary(4, seed=42), [0, 1])
         qc.measure_all()
-        result = transpile(qc, basis_gates=["cx", "u", "unitary"], optimization_level=level)
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            "Providing non-standard gates \\(unitary\\) through the ``basis_gates`` argument",
+        ):
+            result = transpile(qc, basis_gates=["cx", "u", "unitary"], optimization_level=level)
         self.assertEqual(result, qc)
 
     @combine(level=[0, 1, 2, 3], name="level{level}")
@@ -178,12 +184,16 @@ class TestPresetPassManager(QiskitTestCase):
         qc = QuantumCircuit(2)
         qc.unitary(random_unitary(4, seed=424242), [0, 1])
         qc.measure_all()
-        result = transpile(
-            qc,
-            basis_gates=["cx", "u", "unitary"],
-            optimization_level=level,
-            translation_method="synthesis",
-        )
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            "Providing non-standard gates \\(unitary\\) through the ``basis_gates`` argument",
+        ):
+            result = transpile(
+                qc,
+                basis_gates=["cx", "u", "unitary"],
+                optimization_level=level,
+                translation_method="synthesis",
+            )
         self.assertEqual(result, qc)
 
     @combine(level=[0, 1, 2, 3], name="level{level}")
@@ -222,8 +232,12 @@ class TestPresetPassManager(QiskitTestCase):
         circuit.h(q[0])
         circuit.cz(q[0], q[1])
         with unittest.mock.patch("qiskit.transpiler.passes.TimeUnitConversion.run") as mock:
-            with self.assertWarns(DeprecationWarning):
-                backend = Fake20QV1()
+            backend = GenericBackendV2(
+                num_qubits=20,
+                coupling_map=TOKYO_CMAP,
+                basis_gates=["id", "u1", "u2", "u3", "cx"],
+                seed=42,
+            )
             transpile(circuit, backend=backend, optimization_level=level)
         mock.assert_not_called()
 
@@ -238,27 +252,35 @@ class TestPresetPassManager(QiskitTestCase):
         with unittest.mock.patch(
             "qiskit.transpiler.passes.TimeUnitConversion.run", return_value=circuit_to_dag(circuit)
         ) as mock:
-            with self.assertWarns(DeprecationWarning):
-                backend = Fake20QV1()
+            backend = GenericBackendV2(
+                num_qubits=20,
+                coupling_map=TOKYO_CMAP,
+                basis_gates=["id", "u1", "u2", "u3", "cx"],
+                seed=42,
+            )
             transpile(circuit, backend=backend, optimization_level=level)
         mock.assert_called_once()
 
     def test_unroll_only_if_not_gates_in_basis(self):
         """Test that the list of passes _unroll only runs if a gate is not in the basis."""
-        with self.assertWarns(DeprecationWarning):
-            qcomp = Fake5QV1()
+        qcomp = GenericBackendV2(
+            num_qubits=5,
+            coupling_map=BOGOTA_CMAP,
+            basis_gates=["id", "u1", "u2", "u3", "cx"],
+            seed=42,
+        )
         qv_circuit = QuantumVolume(3)
         gates_in_basis_true_count = 0
-        collect_2q_blocks_count = 0
+        consolidate_blocks_count = 0
 
         # pylint: disable=unused-argument
         def counting_callback_func(pass_, dag, time, property_set, count):
             nonlocal gates_in_basis_true_count
-            nonlocal collect_2q_blocks_count
+            nonlocal consolidate_blocks_count
             if isinstance(pass_, GatesInBasis) and property_set["all_gates_in_basis"]:
                 gates_in_basis_true_count += 1
-            if isinstance(pass_, Collect2qBlocks):
-                collect_2q_blocks_count += 1
+            if isinstance(pass_, ConsolidateBlocks):
+                consolidate_blocks_count += 1
 
         transpile(
             qv_circuit,
@@ -267,7 +289,7 @@ class TestPresetPassManager(QiskitTestCase):
             callback=counting_callback_func,
             translation_method="synthesis",
         )
-        self.assertEqual(gates_in_basis_true_count + 1, collect_2q_blocks_count)
+        self.assertEqual(gates_in_basis_true_count + 2, consolidate_blocks_count)
 
 
 @ddt
@@ -278,8 +300,18 @@ class TestTranspileLevels(QiskitTestCase):
         circuit=[emptycircuit, circuit_2532],
         level=[0, 1, 2, 3],
         backend=[
-            Fake5QV1(),
-            Fake20QV1(),
+            GenericBackendV2(
+                num_qubits=5,
+                coupling_map=BOGOTA_CMAP,
+                basis_gates=["id", "u1", "u2", "u3", "cx"],
+                seed=42,
+            ),
+            GenericBackendV2(
+                num_qubits=20,
+                coupling_map=TOKYO_CMAP,
+                basis_gates=["id", "u1", "u2", "u3", "cx"],
+                seed=42,
+            ),
             None,
         ],
         dsc="Transpiler {circuit.__name__} on {backend} backend at level {level}",
@@ -289,6 +321,46 @@ class TestTranspileLevels(QiskitTestCase):
         """All the levels with all the backends"""
         result = transpile(circuit(), backend=backend, optimization_level=level, seed_transpiler=42)
         self.assertIsInstance(result, QuantumCircuit)
+
+    @combine(
+        circuit=[emptycircuit, circuit_2532],
+        level=[0, 1, 2, 3],
+        backend=[
+            Fake5QV1(),
+            Fake20QV1(),
+        ],
+        dsc="Transpiler {circuit.__name__} on {backend} backend V1 at level {level}",
+        name="{circuit.__name__}_{backend}_level{level}",
+    )
+    def test_v1(self, circuit, level, backend):
+        """All the levels with all the backends"""
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The `transpile` function will "
+            "stop supporting inputs of type `BackendV1`",
+        ):
+            result = transpile(
+                circuit(), backend=backend, optimization_level=level, seed_transpiler=42
+            )
+        self.assertIsInstance(result, QuantumCircuit)
+
+    @data(0, 1, 2, 3)
+    def test_quantum_volume_function_transpile(self, opt_level):
+        """Test quantum_volume transpilation."""
+        qc = quantum_volume(10, 10, 12345)
+        backend = GenericBackendV2(
+            num_qubits=100,
+            basis_gates=["cz", "rz", "sx", "x", "id"],
+            coupling_map=CouplingMap.from_grid(10, 10),
+        )
+        pm = generate_preset_pass_manager(opt_level, backend)
+        res = pm.run(qc)
+        for inst in res.data:
+            self.assertTrue(
+                backend.target.instruction_supported(
+                    inst.operation.name, qargs=tuple(res.find_bit(x).index for x in inst.qubits)
+                )
+            )
 
 
 @ddt
@@ -452,7 +524,7 @@ class TestPassesInspection(QiskitTestCase):
         self.assertNotIn("SabreSwap", self.passes)
 
     def test_level1_runs_vf2post_layout_when_routing_method_set_and_required(self):
-        """Test that if we run routing as part of sabre layout VF2PostLayout runs."""
+        """Test that if we run routing as part of sabre layout then VF2PostLayout runs."""
         target = GenericBackendV2(num_qubits=7, coupling_map=LAGOS_CMAP, seed=42)
         qc = QuantumCircuit(5)
         qc.h(0)
@@ -462,7 +534,7 @@ class TestPassesInspection(QiskitTestCase):
         qc.cy(0, 4)
         qc.measure_all()
         _ = transpile(
-            qc, target, optimization_level=1, routing_method="stochastic", callback=self.callback
+            qc, target, optimization_level=1, routing_method="sabre", callback=self.callback
         )
         # Expected call path for layout and routing is:
         # 1. TrivialLayout (no perfect match)
@@ -473,7 +545,6 @@ class TestPassesInspection(QiskitTestCase):
         self.assertIn("VF2Layout", self.passes)
         self.assertIn("SabreLayout", self.passes)
         self.assertIn("VF2PostLayout", self.passes)
-        self.assertIn("StochasticSwap", self.passes)
 
     def test_level1_not_runs_vf2post_layout_when_layout_method_set(self):
         """Test that if we don't run VF2PostLayout with custom layout_method."""
@@ -787,8 +858,12 @@ class TestInitialLayouts(QiskitTestCase):
             19: ancilla[16],
         }
 
-        with self.assertWarns(DeprecationWarning):
-            backend = Fake20QV1()
+        backend = GenericBackendV2(
+            num_qubits=20,
+            coupling_map=TOKYO_CMAP,
+            basis_gates=["id", "u1", "u2", "u3", "cx"],
+            seed=42,
+        )
         qc_b = transpile(qc, backend, initial_layout=initial_layout, optimization_level=level)
 
         self.assertEqual(qc_b._layout.initial_layout._p2v, final_layout)
@@ -1044,8 +1119,12 @@ class TestFinalLayouts(QiskitTestCase):
 
         expected_layouts = [trivial_layout, trivial_layout]
 
-        with self.assertWarns(DeprecationWarning):
-            backend = Fake20QV1()
+        backend = GenericBackendV2(
+            num_qubits=20,
+            coupling_map=TOKYO_CMAP,
+            basis_gates=["id", "u1", "u2", "u3", "cx"],
+            seed=42,
+        )
         result = transpile(qc, backend, optimization_level=level, seed_transpiler=42)
         self.assertEqual(result._layout.initial_layout._p2v, expected_layouts[level])
 
@@ -1078,8 +1157,12 @@ class TestFinalLayouts(QiskitTestCase):
             18: qr[9],
         }
 
-        with self.assertWarns(DeprecationWarning):
-            backend = Fake20QV1()
+        backend = GenericBackendV2(
+            num_qubits=20,
+            coupling_map=TOKYO_CMAP,
+            basis_gates=["id", "u1", "u2", "u3", "cx"],
+            seed=42,
+        )
         result = transpile(
             qc, backend, optimization_level=level, initial_layout=initial_layout, seed_transpiler=42
         )
@@ -1158,16 +1241,22 @@ class TestOptimizationWithCondition(QiskitTestCase):
         qr = QuantumRegister(2)
         cr = ClassicalRegister(1)
         qc = QuantumCircuit(qr, cr)
-        qc.cx(0, 1).c_if(cr, 1)
         with self.assertWarns(DeprecationWarning):
-            backend = Fake20QV1()
+            qc.cx(0, 1).c_if(cr, 1)
+        backend = GenericBackendV2(
+            num_qubits=20,
+            coupling_map=TOKYO_CMAP,
+            basis_gates=["id", "u1", "u2", "u3", "cx"],
+            seed=42,
+        )
         circ = transpile(qc, backend, optimization_level=level)
         self.assertIsInstance(circ, QuantumCircuit)
 
     def test_input_dag_copy(self):
         """Test substitute_node_with_dag input_dag copy on condition"""
         qc = QuantumCircuit(2, 1)
-        qc.cx(0, 1).c_if(qc.cregs[0], 1)
+        with self.assertWarns(DeprecationWarning):
+            qc.cx(0, 1).c_if(qc.cregs[0], 1)
         qc.cx(1, 0)
         circ = transpile(qc, basis_gates=["u3", "cz"])
         self.assertIsInstance(circ, QuantumCircuit)
@@ -1224,9 +1313,17 @@ class TestGeneratePresetPassManagers(QiskitTestCase):
     @data(0, 1, 2, 3)
     def test_with_backend(self, optimization_level):
         """Test a passmanager is constructed when only a backend and optimization level."""
-        with self.assertWarns(DeprecationWarning):
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex=r"qiskit\.providers\.models\.backendconfiguration\.GateConfig`",
+        ):
             backend = Fake20QV1()
-        pm = generate_preset_pass_manager(optimization_level, backend)
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The `generate_preset_pass_manager` function will "
+            "stop supporting inputs of type `BackendV1`",
+        ):
+            pm = generate_preset_pass_manager(optimization_level, backend)
         self.assertIsInstance(pm, PassManager)
 
     def test_default_optimization_level(self):
@@ -1251,15 +1348,19 @@ class TestGeneratePresetPassManagers(QiskitTestCase):
     def test_with_no_backend(self, optimization_level):
         """Test a passmanager is constructed with no backend and optimization level."""
         target = GenericBackendV2(num_qubits=7, coupling_map=LAGOS_CMAP, seed=42)
-        pm = generate_preset_pass_manager(
-            optimization_level,
-            coupling_map=target.coupling_map,
-            basis_gates=target.operation_names,
-            inst_map=target.instruction_schedule_map,
-            instruction_durations=target.instruction_durations,
-            timing_constraints=target.target.timing_constraints(),
-            target=target.target,
-        )
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The `target` parameter should be used instead",
+        ):
+            pm = generate_preset_pass_manager(
+                optimization_level,
+                coupling_map=target.coupling_map,
+                basis_gates=target.operation_names,
+                inst_map=target.instruction_schedule_map,
+                instruction_durations=target.instruction_durations,
+                timing_constraints=target.target.timing_constraints(),
+                target=target.target,
+            )
         self.assertIsInstance(pm, PassManager)
 
     @data(0, 1, 2, 3)
@@ -1463,6 +1564,18 @@ class TestGeneratePresetPassManagers(QiskitTestCase):
         self.assertIsInstance(pm_object, PassManager)
         self.assertEqual(tqc_list, tqc_obj)
 
+    def test_parse_seed_transpiler_raises_value_error(self):
+        """Test that seed for transpiler is non-negative integer."""
+        with self.assertRaisesRegex(
+            ValueError, "Expected non-negative integer as seed for transpiler."
+        ):
+            generate_preset_pass_manager(optimization_level=1, seed_transpiler=-1)
+
+        with self.assertRaisesRegex(
+            ValueError, "Expected non-negative integer as seed for transpiler."
+        ):
+            generate_preset_pass_manager(seed_transpiler=0.1)
+
 
 @ddt
 class TestIntegrationControlFlow(QiskitTestCase):
@@ -1597,9 +1710,12 @@ class TestIntegrationControlFlow(QiskitTestCase):
     def test_unsupported_basis_gates_raise(self, optimization_level):
         """Test that trying to transpile a control-flow circuit for a backend that doesn't support
         the necessary operations in its `basis_gates` will raise a sensible error."""
-        with self.assertWarns(DeprecationWarning):
-            backend = Fake20QV1()
-
+        backend = GenericBackendV2(
+            num_qubits=20,
+            coupling_map=TOKYO_CMAP,
+            basis_gates=["id", "u1", "u2", "u3", "cx"],
+            seed=42,
+        )
         qc = QuantumCircuit(1, 1)
         with qc.for_loop((0,)):
             pass
@@ -1646,3 +1762,40 @@ class TestIntegrationControlFlow(QiskitTestCase):
             pass
         with self.assertRaisesRegex(TranspilerError, "The control-flow construct.*not supported"):
             transpile(qc, target=target, optimization_level=optimization_level)
+
+    @data(0, 1, 2, 3)
+    def test_custom_basis_gates_raise(self, optimization_level):
+        """Test that trying to provide a list of custom basis gates to generate_preset_pass_manager
+        raises a deprecation warning."""
+
+        with self.subTest(msg="no warning"):
+            # check that the warning isn't raised if the basis gates aren't custom
+            basis_gates = ["x", "cx"]
+            _ = generate_preset_pass_manager(
+                optimization_level=optimization_level, basis_gates=basis_gates
+            )
+
+        with self.subTest(msg="warning only basis gates"):
+            # check that the warning is raised if they are custom
+            basis_gates = ["my_gate"]
+            with self.assertWarnsRegex(
+                DeprecationWarning,
+                "Providing non-standard gates \\(my_gate\\) through the ``basis_gates`` argument",
+            ):
+                _ = generate_preset_pass_manager(
+                    optimization_level=optimization_level, basis_gates=basis_gates
+                )
+
+        with self.subTest(msg="no warning custom basis gates in backend"):
+            # check that the warning is not raised if a loose custom gate is found in the backend
+            backend = GenericBackendV2(num_qubits=2)
+            gate = Gate(name="my_gate", num_qubits=1, params=[])
+            backend.target.add_instruction(gate)
+            self.assertEqual(
+                backend.operation_names,
+                ["cx", "id", "rz", "sx", "x", "reset", "delay", "measure", "my_gate"],
+            )
+            basis_gates = ["my_gate"]
+            _ = generate_preset_pass_manager(
+                optimization_level=optimization_level, basis_gates=basis_gates, backend=backend
+            )

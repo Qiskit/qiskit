@@ -1,0 +1,15 @@
+---
+features_circuits:
+  - |
+    Added circuit library functions :func:`~qiskit.circuit.library.pauli_feature_map`, :func:`~qiskit.circuit.library.z_feature_map`,
+    :func:`~qiskit.circuit.library.zz_feature_map` to construct Pauli feature map circuits. These functions
+    are approximately 8x faster than the current circuit library objects,
+    :class:`.PauliFeatureMap`, :class:`.ZFeatureMap`, and :class:`.ZZFeatureMap`,
+    and will replace them in the future. 
+
+    The functions can be used as drop-in replacement::
+
+      from qiskit.circuit.library import pauli_feature_map, PauliFeatureMap
+
+      fm = pauli_feature_map(20, paulis=["z", "xx", "yyy"])
+      also_fm = PauliFeatureMap(20, paulis=["z", "xx", "yyy"]).decompose()

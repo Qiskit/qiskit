@@ -207,7 +207,6 @@ fn apply_swap(
     }
 }
 
-#[pymodule]
 pub fn star_prerouting(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(star_preroute))?;
     Ok(())

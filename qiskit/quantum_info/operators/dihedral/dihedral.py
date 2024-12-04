@@ -62,7 +62,7 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
          # Print the CNOTDihedral element
          print(elem)
 
-    .. parsed-literal::
+    .. code-block:: text
 
         phase polynomial =
         0 + 3*x_0 + 3*x_1 + 2*x_0*x_1

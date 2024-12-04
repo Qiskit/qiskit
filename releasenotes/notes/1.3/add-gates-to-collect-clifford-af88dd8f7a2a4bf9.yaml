@@ -1,0 +1,8 @@
+---
+features_transpiler:
+  - |
+    Add argument ``matrix_based`` to the :class:`.CollectCliffords` transpiler pass.
+    If the new parameter ``matrix_based=True``, the :class:`.CollectCliffords` transpiler pass
+    can collect unitary gates that are Clifford gates for certain parameters, for example
+    :class:`.RZGate` gates with angles that are multiples of :math:`\pi / 2`.
+

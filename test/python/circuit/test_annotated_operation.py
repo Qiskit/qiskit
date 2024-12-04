@@ -204,6 +204,17 @@ class TestAnnotatedOperationClass(QiskitTestCase):
             with self.assertRaises(AttributeError):
                 _ = annotated.validate_parameter(1.2)
 
+    def test_invariant_under_assign(self):
+        """Test the annotated operation is not changed by assigning."""
+        p = Parameter("p")
+        annotated = RXGate(p).control(2, annotated=True)
+        circuit = QuantumCircuit(annotated.num_qubits)
+        circuit.append(annotated, circuit.qubits)
+        bound = circuit.assign_parameters([1.23])
+
+        self.assertEqual(list(circuit.parameters), [p])
+        self.assertEqual(len(bound.parameters), 0)
+
 
 if __name__ == "__main__":
     unittest.main()

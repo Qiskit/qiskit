@@ -85,7 +85,10 @@ class TestPassManagerRun(QiskitTestCase):
         circuit.cx(qr[2], qr[3])
 
         backend = GenericBackendV2(
-            num_qubits=20, coupling_map=ALMADEN_CMAP, basis_gates=["id", "u1", "u2", "u3", "cx"]
+            num_qubits=20,
+            coupling_map=ALMADEN_CMAP,
+            basis_gates=["id", "u1", "u2", "u3", "cx"],
+            seed=42,
         )
         initial_layout = [None, qr[0], qr[1], qr[2], None, qr[3]]
 
@@ -187,7 +190,10 @@ class TestPassManagerRun(QiskitTestCase):
         initial_layout = [None, qr[0], qr[1], qr[2], None, qr[3]]
 
         backend = GenericBackendV2(
-            num_qubits=20, coupling_map=coupling_map, basis_gates=["id", "u1", "u2", "u3", "cx"]
+            num_qubits=20,
+            coupling_map=coupling_map,
+            basis_gates=["id", "u1", "u2", "u3", "cx"],
+            seed=42,
         )
 
         pass_manager = level_1_pass_manager(

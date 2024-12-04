@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 """Test operations on circuit.data."""
+import pickle
 import ddt
 
 from qiskit._accelerate.circuit import CircuitData
@@ -110,6 +111,7 @@ class TestQuantumCircuitData(QiskitTestCase):
                 CircuitInstruction(Measure(), [qr[0]], [cr[1]]),
                 CircuitInstruction(Measure(), [qr[1]], [cr[0]]),
             ],
+            global_phase=1,
         )
         qubits = data.qubits
         clbits = data.clbits
@@ -125,6 +127,25 @@ class TestQuantumCircuitData(QiskitTestCase):
         with self.subTest("clbits are equal but held in a new list"):
             self.assertIsNot(data_copy.clbits, clbits)
             self.assertEqual(data_copy.clbits, clbits)
+
+        with self.subTest("global_phase is equal"):
+            self.assertEqual(data.global_phase, data_copy.global_phase)
+
+    def test_pickle_roundtrip(self):
+        """Test pickle roundtrip coverage"""
+        qr = QuantumRegister(1)
+        cr = ClassicalRegister(1)
+        data = CircuitData(
+            qubits=qr,
+            clbits=cr,
+            data=[
+                CircuitInstruction(XGate(), [qr[0]], []),
+                CircuitInstruction(Measure(), [qr[0]], [cr[0]]),
+            ],
+            global_phase=1,
+        )
+
+        self.assertEqual(data, pickle.loads(pickle.dumps(data)))
 
     @ddt.data(
         (QuantumRegister(5), ClassicalRegister(5)),
@@ -859,6 +880,6 @@ class TestQuantumCircuitInstructionData(QiskitTestCase):
         # A fancy way of doing qc0_instance = qc0.data[0] and qc1_instance = qc1.data[0]
         # but this at least verifies the parameter table is point from the parameter to
         # the correct instruction (which is the only one)
-        qc0_instance = qc0._data[next(iter(qc0._data._get_param(b.uuid.int)))[0]]
-        qc1_instance = qc1._data[next(iter(qc1._data._get_param(a.uuid.int)))[0]]
+        qc0_instance = qc0._data[next(iter(qc0._data._raw_parameter_table_entry(b)))[0]]
+        qc1_instance = qc1._data[next(iter(qc1._data._raw_parameter_table_entry(a)))[0]]
         self.assertNotEqual(qc0_instance, qc1_instance)

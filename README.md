@@ -23,7 +23,7 @@ For more details on how to use Qiskit, refer to the documentation located here:
 ## Installation
 
 > [!WARNING]
-> Do not try to upgrade an existing Qiskit 0.* environment to Qiskit 1.0 in-place. [Read more](https://docs.quantum.ibm.com/api/migration-guides/qiskit-1.0-installation).
+> Do not try to upgrade an existing Qiskit 0.* environment to Qiskit 1.0 in-place. [Read more](https://docs.quantum.ibm.com/migration-guides/qiskit-1.0-installation).
 
 We encourage installing Qiskit via ``pip``:
 
@@ -33,7 +33,7 @@ pip install qiskit
 
 Pip will handle all dependencies automatically and you will always install the latest (and well-tested) version.
 
-To install from source, follow the instructions in the [documentation](https://docs.quantum.ibm.com/start/install-qiskit-source).
+To install from source, follow the instructions in the [documentation](https://docs.quantum.ibm.com/guides/install-qiskit-source).
 
 ## Create your first quantum program in Qiskit
 
@@ -66,13 +66,13 @@ we use `measure_all(inplace=False)` to get a copy of the circuit in which all th
 qc_measured = qc_example.measure_all(inplace=False)
 
 # 3. Execute using the Sampler primitive
-from qiskit.primitives.sampler import Sampler
-sampler = Sampler()
-job = sampler.run(qc_measured, shots=1000)
+from qiskit.primitives import StatevectorSampler
+sampler = StatevectorSampler()
+job = sampler.run([qc_measured], shots=1000)
 result = job.result()
-print(f" > Quasi probability distribution: {result.quasi_dists}")
+print(f" > Counts: {result[0].meas.get_counts()}")
 ```
-Running this will give an outcome similar to `{0: 0.497, 7: 0.503}` which is `000` 50% of the time and `111` 50% of the time up to statistical fluctuations.
+Running this will give an outcome similar to `{'000': 497, '111': 503}` which is `000` 50% of the time and `111` 50% of the time up to statistical fluctuations.
 To illustrate the power of Estimator, we now use the quantum information toolbox to create the operator $XXY+XYX+YXX-YYY$ and pass it to the `run()` function, along with our quantum circuit. Note the Estimator requires a circuit _**without**_ measurement, so we use the `qc_example` circuit we created earlier.
 
 ```python
@@ -81,17 +81,17 @@ from qiskit.quantum_info import SparsePauliOp
 operator = SparsePauliOp.from_list([("XXY", 1), ("XYX", 1), ("YXX", 1), ("YYY", -1)])
 
 # 3. Execute using the Estimator primitive
-from qiskit.primitives import Estimator
-estimator = Estimator()
-job = estimator.run(qc_example, operator, shots=1000)
+from qiskit.primitives import StatevectorEstimator
+estimator = StatevectorEstimator()
+job = estimator.run([(qc_example, operator)], precision=1e-3)
 result = job.result()
-print(f" > Expectation values: {result.values}")
+print(f" > Expectation values: {result[0].data.evs}")
 ```
 
 Running this will give the outcome `4`. For fun, try to assign a value of +/- 1 to each single-qubit operator X and Y 
 and see if you can achieve this outcome. (Spoiler alert: this is not possible!)
 
-Using the Qiskit-provided `qiskit.primitives.Sampler` and `qiskit.primitives.Estimator` will not take you very far.
+Using the Qiskit-provided `qiskit.primitives.StatevectorSampler` and `qiskit.primitives.StatevectorEstimator` will not take you very far.
 The power of quantum computing cannot be simulated on classical computers and you need to use real quantum hardware to scale to larger quantum circuits.
 However, running a quantum circuit on hardware requires rewriting to the basis gates and connectivity of the quantum hardware.
 The tool that does this is the [transpiler](https://docs.quantum.ibm.com/api/qiskit/transpiler), and Qiskit includes transpiler passes for synthesis, optimization, mapping, and scheduling.
@@ -106,7 +106,7 @@ qc_transpiled = transpile(qc_example, basis_gates = ['cz', 'sx', 'rz'], coupling
 ### Executing your code on real quantum hardware
 
 Qiskit provides an abstraction layer that lets users run quantum circuits on hardware from any vendor that provides a compatible interface. 
-The best way to use Qiskit is with a runtime environment that provides optimized implementations of `sampler` and `estimator` for a given hardware platform. This runtime may involve using pre- and post-processing, such as optimized transpiler passes with error suppression, error mitigation, and, eventually, error correction built in. A runtime implements `qiskit.primitives.BaseSampler` and `qiskit.primitives.BaseEstimator` interfaces. For example,
+The best way to use Qiskit is with a runtime environment that provides optimized implementations of `sampler` and `estimator` for a given hardware platform. This runtime may involve using pre- and post-processing, such as optimized transpiler passes with error suppression, error mitigation, and, eventually, error correction built in. A runtime implements `qiskit.primitives.BaseSamplerV2` and `qiskit.primitives.BaseEstimatorV2` interfaces. For example,
 some packages that provide implementations of a runtime primitive implementation are:
 
 * https://github.com/Qiskit/qiskit-ibm-runtime

@@ -19,7 +19,7 @@ import random
 import numpy as np
 from rustworkx import PyDiGraph, PyGraph, connected_components
 
-from qiskit.circuit import ControlFlowOp, ForLoopOp
+from qiskit.circuit import ForLoopOp
 from qiskit.converters import circuit_to_dag
 from qiskit._accelerate import vf2_layout
 from qiskit._accelerate.nlayout import NLayout
@@ -37,7 +37,7 @@ def build_interaction_graph(dag, strict_direction=True):
 
     def _visit(dag, weight, wire_map):
         for node in dag.op_nodes(include_directives=False):
-            if isinstance(node.op, ControlFlowOp):
+            if node.is_control_flow():
                 if isinstance(node.op, ForLoopOp):
                     inner_weight = len(node.op.params[0]) * weight
                 else:
@@ -57,7 +57,7 @@ def build_interaction_graph(dag, strict_direction=True):
                     im_graph_node_map[qargs[0]] = im_graph.add_node(weights)
                     reverse_im_graph_node_map[im_graph_node_map[qargs[0]]] = qargs[0]
                 else:
-                    im_graph[im_graph_node_map[qargs[0]]][node.op.name] += weight
+                    im_graph[im_graph_node_map[qargs[0]]][node.name] += weight
             if len_args == 2:
                 if qargs[0] not in im_graph_node_map:
                     im_graph_node_map[qargs[0]] = im_graph.add_node(defaultdict(int))

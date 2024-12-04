@@ -17,12 +17,12 @@ from qiskit.circuit import (
     CircuitInstruction,
     ClassicalRegister,
     Clbit,
-    ControlFlowOp,
     IfElseOp,
     QuantumCircuit,
 )
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.utils import deprecate_func
 
 
 class ConvertConditionsToIfOps(TransformationPass):
@@ -32,12 +32,16 @@ class ConvertConditionsToIfOps(TransformationPass):
     This is a simple pass aimed at easing the conversion from the old style of using
     :meth:`.InstructionSet.c_if` into the new style of using more complex conditional logic."""
 
+    @deprecate_func(since="1.3.0", removal_timeline="in Qiskit 2.0.0")
+    def __init__(self):
+        super().__init__()
+
     def _run_inner(self, dag):
         """Run the pass on one :class:`.DAGCircuit`, mutating it.  Returns ``True`` if the circuit
         was modified and ``False`` if not."""
         modified = False
         for node in dag.op_nodes():
-            if isinstance(node.op, ControlFlowOp):
+            if node.is_control_flow():
                 modified_blocks = False
                 new_dags = []
                 for block in node.op.blocks:
@@ -51,7 +55,7 @@ class ConvertConditionsToIfOps(TransformationPass):
                     node.op.replace_blocks(dag_to_circuit(block) for block in new_dags),
                     inplace=True,
                 )
-            elif getattr(node.op, "condition", None) is None:
+            elif node.condition is None:
                 continue
             else:
                 target, value = node.op.condition

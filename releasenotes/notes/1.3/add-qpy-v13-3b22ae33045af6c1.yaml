@@ -1,0 +1,26 @@
+---
+features_qpy:
+  - |
+    Added a new QPY format version 13 that adds a Qiskit native representation
+    of :class:`.ParameterExpression` objects.
+issues:
+  - |
+    When using QPY formats 10, 11, or 12 with circuits that contain
+    :class:`.ParameterExpression`\s, if the version of the ``symengine`` package
+    installed in the environment that generated the payload (:func:`.qpy.dump`) does
+    not match the version of ``symengine`` installed in the enviroment where the
+    payload is loaded (:func:`.qpy.load`), you will get an error. If you encounter
+    this error, install the ``symengine`` version from the error message
+    before calling :func:`.qpy.load`. QPY format versions 13 or later
+    (or prior to 10) will not have this issue. Therefore, if you're serializing
+    :class:`.ParameterExpression` objects as part of your circuit or any
+    :class:`.ScheduleBlock` objects, it is recommended that you use version 13 to avoid
+    this issue in the future.
+upgrade_qpy:
+  - |
+    The :func:`.qpy.dump` function now emits format version 13 by default.
+    This means payloads generated with this function by default are only
+    compatible with Qiskit 1.3.0 or later. If the payload needs to be
+    loaded by an earlier version of Qiskit, use the ``version`` flag on
+    :func:`.qpy.dump` to emit the appropriate version. Refer to
+    :ref:`qpy_compatibility` for more details.
