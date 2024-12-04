@@ -241,17 +241,23 @@ class ContextAwareDynamicalDecoupling(TransformationPass):
             predecessor = next(dag.predecessors(node))  # a delay has one 1 predecessor
             return isinstance(predecessor, DAGInNode) or isinstance(predecessor.op, Reset)
 
+        qubit_map = {bit: index for index, bit in enumerate(dag.qubits)}
+
         eligible_delays = [
             DelayEvent(
                 event_type,
-                (start_time if event_type == EventType.BEGIN else start_time + node.op.duration),
+                (
+                    start_time
+                    if event_type == EventType.BEGIN
+                    else start_time + self._duration(node, qubit_map)
+                ),
                 node,
             )
             for node, start_time in self.property_set["node_start_time"].items()
             if (
                 node.op.name == "delay"
                 and not is_after_reset(node)
-                and node.op.duration > self._min_joinable_duration
+                and self._duration(node, qubit_map) > self._min_joinable_duration
             )
             for event_type in (EventType.BEGIN, EventType.END)
         ]
@@ -271,7 +277,8 @@ class ContextAwareDynamicalDecoupling(TransformationPass):
         """
         # get neighboring wires, for which we will give initial colors
         neighbors = set()
-        qubit_map = dict(enumerate(dag.qubits))
+        index_map = dict(enumerate(dag.qubits))
+        qubit_map = {bit: index for index, bit in enumerate(dag.qubits)}
 
         for delay_op in merged_delay.ops:
             # use coupling_map.graph.neighbors_undirected once Qiskit/rustworkx#1254 is in a release
@@ -294,7 +301,7 @@ class ContextAwareDynamicalDecoupling(TransformationPass):
             for op_node in dag.nodes_on_wire(dag.qubits[wire], only_ops=True):
                 # check if the operation occurs during the delay
                 op_start = self.property_set["node_start_time"][op_node]
-                op_end = op_start + op_node.op.duration
+                op_end = op_start + self._duration(op_node, qubit_map)
                 if (
                     isinstance(op_node.op, (CXGate, ECRGate))
                     and op_start < merged_delay.end
@@ -302,9 +309,9 @@ class ContextAwareDynamicalDecoupling(TransformationPass):
                 ):
                     # set coloring to 0 if ctrl, and to 1 if tgt
                     ctrl, tgt = op_node.qargs
-                    if qubit_map[wire] == ctrl:
+                    if index_map[wire] == ctrl:
                         preset_coloring[glob2loc[wire]] = 0
-                    if qubit_map[wire] == tgt:
+                    if index_map[wire] == tgt:
                         preset_coloring[glob2loc[wire]] = 1
 
         local_coloring = rx.graph_greedy_color(
@@ -372,12 +379,6 @@ class ContextAwareDynamicalDecoupling(TransformationPass):
                 start_times.append(time)
                 time += tau
             if gate is not None:
-                # at this point we know which qubit the gate acts on, so we can attach
-                # the gate duration (the newly inserted gates don't yet have a duration, since
-                # they weren't present when the scheduling pass was run)
-                gate = gate.to_mutable()
-                gate.duration = instruction_durations.get(gate, index)
-
                 seq.append(gate, [0])
                 start_times.append(time)
                 time += instruction_durations.get(gate, index)
@@ -625,6 +626,16 @@ class ContextAwareDynamicalDecoupling(TransformationPass):
         logger.debug("Split adjacent delay block into %s", "\n".join(map(str, merged_delays)))
 
         return merged_delays
+
+    def _duration(self, node: DAGOpNode, qubit_map: dict[Qubit, int]) -> float:
+        # this is cached on the target, so we can repeatedly call it w/o penalty
+        instruction_durations = self._target.durations()
+        # if len(node.qargs) > 1:
+        indices = [qubit_map[bit] for bit in node.qargs]
+        # else:
+        # index = qubit_map[node.qargs[]]
+
+        return instruction_durations.get(node.op, indices)
 
 
 class EventType(Enum):

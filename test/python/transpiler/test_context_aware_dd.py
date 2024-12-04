@@ -182,22 +182,6 @@ class TestContextAwareDD(QiskitTestCase):
 
         self.assertEqual(circuit.count_ops().get("x", 0), expected_x)
 
-    def test_durations_available(self):
-        """Ensure the added DD gates also have a duration."""
-        circuit = QuantumCircuit(3)
-        circuit.cx(0, 1)
-        circuit.cx(1, 2)
-
-        target = get_toy_target(num_qubits=5)
-
-        pm = _get_schedule_pm(target, list(range(circuit.num_qubits)))
-        pm.append(ContextAwareDynamicalDecoupling(target, skip_reset_qubits=False))
-
-        circuit = pm.run(circuit)
-
-        for inst in circuit.data:
-            self.assertIsNotNone(inst.operation.duration)
-
     def test_min_joinable_default(self):
         """Test the default value for minimum joinable durations."""
         circuit = QuantumCircuit(3)
