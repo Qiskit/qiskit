@@ -819,7 +819,7 @@ class TestNLocalFamily(QiskitTestCase):
         self.assertEqual(
             expected.assign_parameters(circuit.parameters).decompose(), circuit.decompose()
         )
-    
+
     @data("fsim", "iswap")
     def test_excitation_preserving_numqubits_equal1(self, mode):
         """Test the excitation preserving circuit for a single qubit."""
