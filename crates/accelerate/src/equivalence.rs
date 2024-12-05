@@ -37,7 +37,7 @@ use rustworkx_core::petgraph::{
 
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
-use qiskit_circuit::imports::{ImportOnceCell, QUANTUM_CIRCUIT};
+use qiskit_circuit::imports::{COPY, PYDIGRAPH, QUANTUM_CIRCUIT};
 use qiskit_circuit::operations::Param;
 use qiskit_circuit::operations::{Operation, OperationRef};
 use qiskit_circuit::packed_instruction::PackedOperation;
@@ -46,7 +46,6 @@ mod exceptions {
     use pyo3::import_exception_bound;
     import_exception_bound! {qiskit.circuit.exceptions, CircuitError}
 }
-pub static PYDIGRAPH: ImportOnceCell = ImportOnceCell::new("rustworkx", "PyDiGraph");
 
 // Custom Structs
 
@@ -605,8 +604,13 @@ impl EquivalenceLibrary {
         raise_if_param_mismatch(py, params, equivalent_circuit.0.unsorted_parameters(py)?)?;
         let key: Key = Key::from_operation(gate);
         let equiv = Equivalence {
-            circuit: equivalent_circuit.clone(),
-            params: params.into(),
+            circuit: CircuitFromPython(equivalent_circuit.0.copy(py, true, false)?),
+            params: params
+                .iter()
+                .map(|param| -> PyResult<Param> {
+                    COPY.get_bound(py).call1((param.to_object(py),))?.extract()
+                })
+                .collect::<PyResult<SmallVec<[Param; 3]>>>()?,
         };
 
         let target = self.set_default_node(key);
