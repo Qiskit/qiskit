@@ -14,6 +14,7 @@
 """Test the BasisTranslator pass"""
 
 import os
+from pickle import loads, dumps
 
 from numpy import pi
 import scipy
@@ -21,6 +22,7 @@ import scipy
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import transpile
 from qiskit.circuit import Gate, Parameter, EquivalenceLibrary, Qubit, Clbit, Measure
+from qiskit.circuit.equivalence_library import StandardEquivalenceLibrary as std_eq_lib
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.library import (
     HGate,
@@ -480,6 +482,29 @@ class TestBasisTranslator(QiskitTestCase):
         basis = {"rz", "sx", "cx", "for_loop", "if_else", "while_loop", "measure"}
         out = BasisTranslator(std_eqlib, basis).run(circuit_to_dag(base))
         self.assertEqual(set(out.count_ops(recurse=True)), basis)
+
+    def test_equivalence_library_serialization(self):
+        """Test correct serialization of the EquivalenceLibrart that the BasisTranslator
+        depends on."""
+        backend = GenericBackendV2(5)
+        # Create a single step PassManager that runs the basis translator
+        pass_ = BasisTranslator(equivalence_library=std_eq_lib, target_basis=backend._basis_gates)
+
+        # Add a parameter a which we will share between circuits
+        param = Parameter("a")
+        gate = RXGate(param)
+
+        qc = QuantumCircuit(1)
+        qc.append(gate, [0])
+
+        # Before serialization, should not fail.
+        first = pass_.run(circuit_to_dag(qc))
+
+        # After serialization, should not fail.
+        pass_ = BasisTranslator(
+            equivalence_library=loads(dumps(std_eq_lib)), target_basis=["cx", "id", "rz", "sx", "x"]
+        )
+        self.assertEqual(first, pass_.run(circuit_to_dag(qc)))
 
 
 class TestUnrollerCompatability(QiskitTestCase):
