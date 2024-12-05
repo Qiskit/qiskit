@@ -486,8 +486,6 @@ class TestBasisTranslator(QiskitTestCase):
     def test_equivalence_library_serialization(self):
         """Test correct serialization of the EquivalenceLibrart that the BasisTranslator
         depends on."""
-        backend = GenericBackendV2(5)
-        # Create a single step PassManager that runs the basis translator
         pass_ = BasisTranslator(
             equivalence_library=std_eq_lib, target_basis=["cx", "id", "rz", "sx", "x"]
         )
