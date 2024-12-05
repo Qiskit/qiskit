@@ -112,17 +112,21 @@ def excitation_preserving(
         raise ValueError(f"Unsupported mode {mode}, choose one of {supported_modes}")
 
     theta = Parameter("θ")
-    swap = QuantumCircuit(2, name="Interaction")
-    swap.rxx(theta, 0, 1)
-    swap.ryy(theta, 0, 1)
-    if mode == "fsim":
-        phi = Parameter("φ")
-        swap.cp(phi, 0, 1)
+    if num_qubits > 1:
+        swap = QuantumCircuit(2, name="Interaction")
+        swap.rxx(theta, 0, 1)
+        swap.ryy(theta, 0, 1)
+        if mode == "fsim":
+            phi = Parameter("φ")
+            swap.cp(phi, 0, 1)
+        entanglement_blocks = [swap.to_gate()]
+    else:
+        entanglement_blocks = []
 
     return n_local(
         num_qubits,
         ["rz"],
-        [swap.to_gate()],
+        entanglement_blocks,
         entanglement,
         reps,
         insert_barriers,

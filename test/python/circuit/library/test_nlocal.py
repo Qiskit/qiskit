@@ -780,14 +780,14 @@ class TestNLocalFamily(QiskitTestCase):
 
     def test_real_amplitudes(self):
         """Test the real amplitudes circuit."""
-        circuit = real_amplitudes(1)
-        expected = n_local(1, ["ry", "rz"], [])
+        circuit = real_amplitudes(4)
+        expected = n_local(4, "ry", "cx", "reverse_linear", reps=3)
         self.assertEqual(expected.assign_parameters(circuit.parameters), circuit)
 
     def test_real_amplitudes_numqubits_equal1(self):
         """Test the real amplitudes circuit for a single qubit."""
-        circuit = real_amplitudes(4)
-        expected = n_local(4, "ry", "cx", "reverse_linear", reps=3)
+        circuit = real_amplitudes(1)
+        expected = n_local(1, "ry", [])
         self.assertEqual(expected.assign_parameters(circuit.parameters), circuit)
 
     def test_efficient_su2(self):
@@ -824,16 +824,7 @@ class TestNLocalFamily(QiskitTestCase):
     def test_excitation_preserving_numqubits_equal1(self, mode):
         """Test the excitation preserving circuit for a single qubit."""
         circuit = excitation_preserving(1, mode=mode)
-
-        x = Parameter("x")
-        block = QuantumCircuit(2)
-        block.rxx(x, 0, 1)
-        block.ryy(x, 0, 1)
-        if mode == "fsim":
-            y = Parameter("y")
-            block.cp(y, 0, 1)
-
-        expected = n_local(4, "rz", block.to_gate(), "full", reps=3)
+        expected = n_local(1, "rz", [])
         self.assertEqual(
             expected.assign_parameters(circuit.parameters).decompose(), circuit.decompose()
         )
