@@ -13,6 +13,7 @@
 """Splits each two-qubit gate in the `dag` into two single-qubit gates, if possible without error."""
 
 from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.transpiler.layout import Layout
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit._accelerate.split_2q_unitaries import split_2q_unitaries
 
@@ -36,5 +37,22 @@ class Split2QUnitaries(TransformationPass):
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the Split2QUnitaries pass on `dag`."""
-        split_2q_unitaries(dag, self.requested_fidelity)
-        return dag
+        result = split_2q_unitaries(dag, self.requested_fidelity)
+        if result is None:
+            return dag
+        
+        (new_dag, qubit_mapping) = result
+        input_qubit_mapping = {qubit: index for index, qubit in enumerate(dag.qubits)}
+        self.property_set["original_layout"] = Layout(input_qubit_mapping)
+        if self.property_set["original_qubit_indices"] is None:
+            self.property_set["original_qubit_indices"] = input_qubit_mapping
+
+        new_layout = Layout({dag.qubits[out]: idx for idx, out in enumerate(qubit_mapping)})
+        if current_layout := self.property_set["virtual_permutation_layout"]:
+            self.property_set["virtual_permutation_layout"] = new_layout.compose(
+                current_layout.inverse(dag.qubits, dag.qubits), dag.qubits
+            )
+        else:
+            self.property_set["virtual_permutation_layout"] = new_layout
+        return new_dag
+    

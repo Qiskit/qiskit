@@ -266,3 +266,49 @@ class TestSplit2QUnitaries(QiskitTestCase):
         no_split = Split2QUnitaries()(qc)
 
         self.assertDictEqual({"mygate": 1}, no_split.count_ops())
+
+    def test_2q_swap(self):
+        """Test that a 2q unitary matching a swap gate is correctly processed."""
+        qc = QuantumCircuit(2)
+        qc.swap(0,1)
+        qc.global_phase += 1.2345
+        qc_split = QuantumCircuit(2)
+        qc_split.append(UnitaryGate(Operator(qc)), [0, 1])
+
+        pm = PassManager()
+        pm.append(Collect2qBlocks())
+        pm.append(ConsolidateBlocks())
+        pm.append(Split2QUnitaries())
+        res = pm.run(qc_split)
+        res_op = Operator.from_circuit(res, final_layout=res.layout.final_layout)
+        expected_op = Operator(qc_split)
+
+        self.assertTrue(expected_op.equiv(res_op))
+        self.assertTrue(
+            matrix_equal(expected_op.data, res_op.data, ignore_phase=False)
+        )
+
+    def test_2q_swap_with_1_qubit_gates(self):
+        """Test that a 2q unitary matching a swap gate with 1-qubit gates before and after is correctly processed."""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.x(1)
+        qc.swap(0,1)
+        qc.sx(0)
+        qc.sdg(1)
+        qc.global_phase += 1.2345
+        qc_split = QuantumCircuit(2)
+        qc_split.append(UnitaryGate(Operator(qc)), [0, 1])
+
+        pm = PassManager()
+        pm.append(Collect2qBlocks())
+        pm.append(ConsolidateBlocks())
+        pm.append(Split2QUnitaries())
+        res = pm.run(qc_split)
+        res_op = Operator.from_circuit(res, final_layout=res.layout.final_layout)
+        expected_op = Operator(qc_split)
+
+        self.assertTrue(expected_op.equiv(res_op))
+        self.assertTrue(
+            matrix_equal(expected_op.data, res_op.data, ignore_phase=False)
+        )
