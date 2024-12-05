@@ -415,7 +415,7 @@ class BasicPrinter:
     
     def _visit_QuantumGlobalBarrier(self, node: ast.QuantumGlobalBarrier) -> None:
         self._start_line()
-        self.stream.write("barrier ")
+        self.stream.write("barrier")
         self._end_statement()    
 
     def _visit_ProgramBlock(self, node: ast.ProgramBlock) -> None:
