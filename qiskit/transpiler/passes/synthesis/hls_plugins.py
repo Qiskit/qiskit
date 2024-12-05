@@ -300,6 +300,11 @@ Modular Adder Synthesis
       - :class:`.ModularAdderSynthesisD00`
       - 0
       - a QFT-based adder
+    * - ``"default"``
+      - :class:`~.ModularAdderSynthesisDefault`
+      - any
+      - any
+      - chooses the best algorithm based on the ancillas available
 
 .. autosummary::
    :toctree: ../stubs/
@@ -307,6 +312,7 @@ Modular Adder Synthesis
    ModularAdderSynthesisC04
    ModularAdderSynthesisD00
    ModularAdderSynthesisV95
+   ModularAdderSynthesisDefault
 
 Half Adder Synthesis
 ''''''''''''''''''''
@@ -330,6 +336,11 @@ Half Adder Synthesis
       - :class:`.HalfAdderSynthesisD00`
       - 0
       - a QFT-based adder
+    * - ``"default"``
+      - :class:`~.HalfAdderSynthesisDefault`
+      - any
+      - any
+      - chooses the best algorithm based on the ancillas available
 
 .. autosummary::
    :toctree: ../stubs/
@@ -337,6 +348,7 @@ Half Adder Synthesis
    HalfAdderSynthesisC04
    HalfAdderSynthesisD00
    HalfAdderSynthesisV95
+   HalfAdderSynthesisDefault
 
 Full Adder Synthesis
 ''''''''''''''''''''
@@ -356,12 +368,18 @@ Full Adder Synthesis
       - :class:`.FullAdderSynthesisV95`
       - :math:`n-1`, for :math:`n`-bit numbers
       - a ripple-carry adder
+    * - ``"default"``
+      - :class:`~.FullAdderSynthesisDefault`
+      - any
+      - any
+      - chooses the best algorithm based on the ancillas available
 
 .. autosummary::
    :toctree: ../stubs/
 
    FullAdderSynthesisC04
    FullAdderSynthesisV95
+   FullAdderSynthesisDefault
 
 
 Multiplier Synthesis
@@ -1212,10 +1230,26 @@ class ModularAdderSynthesisDefault(HighLevelSynthesisPlugin):
         if not isinstance(high_level_object, ModularAdderGate):
             return None
 
-        if options.get("num_clean_ancillas", 0) >= 1:
-            return adder_ripple_c04(high_level_object.num_state_qubits, kind="fixed")
+        # For up to 5 qubits, the QFT-based adder is best
+        if high_level_object.num_state_qubits <= 5:
+            decomposition = ModularAdderSynthesisD00().run(
+                high_level_object, coupling_map, target, qubits, **options
+            )
+            if decomposition is not None:
+                return decomposition
 
-        return adder_qft_d00(high_level_object.num_state_qubits, kind="fixed")
+        # Otherwise, the following decomposition is best (if there are enough ancillas)
+        if (
+            decomposition := ModularAdderSynthesisC04().run(
+                high_level_object, coupling_map, target, qubits, **options
+            )
+        ) is not None:
+            return decomposition
+
+        # Otherwise, use the QFT-adder again
+        return ModularAdderSynthesisD00().run(
+            high_level_object, coupling_map, target, qubits, **options
+        )
 
 
 class ModularAdderSynthesisC04(HighLevelSynthesisPlugin):
@@ -1264,8 +1298,8 @@ class ModularAdderSynthesisV95(HighLevelSynthesisPlugin):
 
         num_state_qubits = high_level_object.num_state_qubits
 
-        # for more than 1 state qubit, we need an ancilla
-        if num_state_qubits > 1 > options.get("num_clean_ancillas", 1):
+        # The synthesis method needs n-1 clean ancilla qubits
+        if num_state_qubits - 1 > options.get("num_clean_ancillas", 0):
             return None
 
         return adder_ripple_v95(num_state_qubits, kind="fixed")
@@ -1309,10 +1343,24 @@ class HalfAdderSynthesisDefault(HighLevelSynthesisPlugin):
         if not isinstance(high_level_object, HalfAdderGate):
             return None
 
-        if options.get("num_clean_ancillas", 0) >= 1:
-            return adder_ripple_c04(high_level_object.num_state_qubits, kind="half")
+        # For up to 3 qubits, ripple_v95 is better (if there are enough ancilla qubits)
+        if high_level_object.num_state_qubits <= 3:
+            decomposition = HalfAdderSynthesisV95().run(
+                high_level_object, coupling_map, target, qubits, **options
+            )
+            if decomposition is not None:
+                return decomposition
 
-        return adder_qft_d00(high_level_object.num_state_qubits, kind="half")
+        # The next best option is to use ripple_c04 (if there are enough ancilla qubits)
+        if (
+            decomposition := HalfAdderSynthesisC04().run(
+                high_level_object, coupling_map, target, qubits, **options
+            )
+        ) is not None:
+            return decomposition
+
+        # The QFT-based adder does not require ancilla qubits and should always succeed
+        return HalfAdderSynthesisD00.run(high_level_object, coupling_map, target, qubits, **options)
 
 
 class HalfAdderSynthesisC04(HighLevelSynthesisPlugin):
@@ -1360,8 +1408,8 @@ class HalfAdderSynthesisV95(HighLevelSynthesisPlugin):
 
         num_state_qubits = high_level_object.num_state_qubits
 
-        # for more than 1 state qubit, we need an ancilla
-        if num_state_qubits > 1 > options.get("num_clean_ancillas", 1):
+        # The synthesis method needs n-1 clean ancilla qubits
+        if num_state_qubits - 1 > options.get("num_clean_ancillas", 0):
             return None
 
         return adder_ripple_v95(num_state_qubits, kind="half")
@@ -1381,18 +1429,38 @@ class HalfAdderSynthesisD00(HighLevelSynthesisPlugin):
         return adder_qft_d00(high_level_object.num_state_qubits, kind="half")
 
 
+class FullAdderSynthesisDefault(HighLevelSynthesisPlugin):
+    """A ripple-carry adder with a carry-in and a carry-out bit.
+
+    This plugin name is:``FullAdder.default`` which can be used as the key on
+    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+    """
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        if not isinstance(high_level_object, FullAdderGate):
+            return None
+
+        # FullAdderSynthesisC04 requires no ancilla qubits and returns better results
+        # than FullAdderSynthesisV95 in all cases except for n=1.
+        if high_level_object.num_state_qubits == 1:
+            decomposition = FullAdderSynthesisV95().run(
+                high_level_object, coupling_map, target, qubits, **options
+            )
+            if decomposition is not None:
+                return decomposition
+
+        return FullAdderSynthesisC04().run(
+            high_level_object, coupling_map, target, qubits, **options
+        )
+
+
 class FullAdderSynthesisC04(HighLevelSynthesisPlugin):
     """A ripple-carry adder with a carry-in and a carry-out bit.
 
     This plugin name is:``FullAdder.ripple_c04`` which can be used as the key on
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
 
-    This plugin requires at least one clean auxiliary qubit.
-
-    The plugin supports the following plugin-specific options:
-
-    * ``num_clean_ancillas``: The number of clean auxiliary qubits available.
-
+    This plugin requires no auxiliary qubits.
     """
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
@@ -1409,7 +1477,7 @@ class FullAdderSynthesisV95(HighLevelSynthesisPlugin):
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
 
     For an adder on 2 registers with :math:`n` qubits each, this plugin requires at
-    least :math:`n-1` clean auxiliary qubit.
+    least :math:`n-1` clean auxiliary qubits.
 
     The plugin supports the following plugin-specific options:
 
@@ -1422,8 +1490,8 @@ class FullAdderSynthesisV95(HighLevelSynthesisPlugin):
 
         num_state_qubits = high_level_object.num_state_qubits
 
-        # for more than 1 state qubit, we need an ancilla
-        if num_state_qubits > 1 > options.get("num_clean_ancillas", 1):
+        # The synthesis method needs n-1 clean ancilla qubits
+        if num_state_qubits - 1 > options.get("num_clean_ancillas", 0):
             return None
 
         return adder_ripple_v95(num_state_qubits, kind="full")
