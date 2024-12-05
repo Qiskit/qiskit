@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Add missing calls to `copy` to the :class:`.Parameter` and :class:`.CircuitData` instances
+    being added to an `Equivalence` when calling :meth:`.EquivalenceLibrary.add_equivalence` in
+    :class:`.EquivalenceLibrary`.
