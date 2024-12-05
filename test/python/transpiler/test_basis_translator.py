@@ -488,7 +488,9 @@ class TestBasisTranslator(QiskitTestCase):
         depends on."""
         backend = GenericBackendV2(5)
         # Create a single step PassManager that runs the basis translator
-        pass_ = BasisTranslator(equivalence_library=std_eq_lib, target_basis=backend._basis_gates)
+        pass_ = BasisTranslator(
+            equivalence_library=std_eq_lib, target_basis=["cx", "id", "rz", "sx", "x"]
+        )
 
         # Add a parameter a which we will share between circuits
         param = Parameter("a")
