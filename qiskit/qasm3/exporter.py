@@ -975,10 +975,12 @@ class QASM3Builder:
             if isinstance(instruction.operation, Gate):
                 nodes = [self.build_gate_call(instruction)]
             elif isinstance(instruction.operation, Barrier):
-                if ExperimentalFeatures.GLOBAL_BARRIER in self.experimental and len(instruction.qubits)==len(self.scope.circuit.qubits):
+                if ExperimentalFeatures.GLOBAL_BARRIER in self.experimental and len(
+                    instruction.qubits
+                ) == len(self.scope.circuit.qubits):
                     operands = [self._lookup_bit(operand) for operand in instruction.qubits]
                     nodes = [ast.QuantumGlobalBarrier()]
-                else:    
+                else:
                     operands = [self._lookup_bit(operand) for operand in instruction.qubits]
                     nodes = [ast.QuantumBarrier(operands)]
             elif isinstance(instruction.operation, Measure):

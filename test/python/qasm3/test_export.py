@@ -2667,7 +2667,7 @@ switch (switch_dummy_0) {
 
     def test_global_barrier_all_qubits(self):
         """Simple test that the global barrir is created"""
-        qc= QuantumCircuit(3)
+        qc = QuantumCircuit(3)
         qc.x(0)
         qc.barrier()
         qc.x(1)
@@ -2680,13 +2680,13 @@ barrier;
 x q[1];
 """
         test = dumps(qc, experimental=ExperimentalFeatures.GLOBAL_BARRIER)
-        self.assertEqual(test, expected) 
+        self.assertEqual(test, expected)
 
     def test_global_barrier_partial_qubits(self):
         """Simple test that the global barrir is created"""
-        qc= QuantumCircuit(3)
+        qc = QuantumCircuit(3)
         qc.x(0)
-        qc.barrier(0,1)
+        qc.barrier(0, 1)
         qc.x(1)
         expected = """\
 OPENQASM 3.0;
@@ -2698,6 +2698,7 @@ x q[1];
 """
         test = dumps(qc, experimental=ExperimentalFeatures.GLOBAL_BARRIER)
         self.assertEqual(test, expected)
+
 
 @ddt
 class TestQASM3ExporterFailurePaths(QiskitTestCase):
