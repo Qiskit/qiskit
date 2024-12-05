@@ -23,7 +23,9 @@ use hashbrown::HashMap;
 /// overhead, so we just allow conversion to and from any valid `PyLong`.
 macro_rules! qubit_newtype {
     ($id: ident) => {
-        #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+        #[derive(
+            Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, IntoPyObject, IntoPyObjectRef,
+        )]
         pub struct $id(pub u32);
 
         impl $id {
@@ -37,17 +39,6 @@ macro_rules! qubit_newtype {
             }
         }
 
-        impl pyo3::IntoPy<PyObject> for $id {
-            fn into_py(self, py: Python<'_>) -> PyObject {
-                self.0.into_py(py)
-            }
-        }
-        impl pyo3::ToPyObject for $id {
-            fn to_object(&self, py: Python<'_>) -> PyObject {
-                self.0.to_object(py)
-            }
-        }
-
         impl pyo3::FromPyObject<'_> for $id {
             fn extract_bound(ob: &Bound<'_, PyAny>) -> PyResult<Self> {
                 Ok(Self(ob.extract()?))
@@ -57,8 +48,8 @@ macro_rules! qubit_newtype {
         unsafe impl numpy::Element for $id {
             const IS_COPY: bool = true;
 
-            fn get_dtype_bound(py: Python<'_>) -> Bound<'_, numpy::PyArrayDescr> {
-                u32::get_dtype_bound(py)
+            fn get_dtype(py: Python<'_>) -> Bound<'_, numpy::PyArrayDescr> {
+                u32::get_dtype(py)
             }
 
             fn clone_ref(&self, _py: Python<'_>) -> Self {
@@ -124,11 +115,12 @@ impl NLayout {
 
     fn __reduce__(&self, py: Python) -> PyResult<Py<PyAny>> {
         Ok((
-            py.get_type_bound::<Self>()
-                .getattr("from_virtual_to_physical")?,
-            (self.virt_to_phys.to_object(py),),
+            py.get_type::<Self>().getattr("from_virtual_to_physical")?,
+            (self.virt_to_phys.clone().into_pyobject(py).unwrap(),),
         )
-            .into_py(py))
+            .into_pyobject(py)?
+            .into_any()
+            .unbind())
     }
 
     /// Return the layout mapping.
@@ -143,8 +135,8 @@ impl NLayout {
     ///     where the virtual qubit is the index in the qubit index in the circuit.
     ///
     #[pyo3(text_signature = "(self, /)")]
-    fn layout_mapping(&self, py: Python<'_>) -> Py<PyList> {
-        PyList::new_bound(py, self.iter_virtual()).into()
+    fn layout_mapping(&self, py: Python<'_>) -> PyResult<Py<PyList>> {
+        PyList::new(py, self.iter_virtual()).map(|x| x.unbind())
     }
 
     /// Get physical bit from virtual bit

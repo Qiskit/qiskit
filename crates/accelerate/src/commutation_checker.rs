@@ -21,7 +21,7 @@ use numpy::PyReadonlyArray2;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::intern;
 use pyo3::prelude::*;
-use pyo3::types::{IntoPyDict, PyBool, PyDict, PySequence, PyTuple};
+use pyo3::types::{PyBool, PyDict, PySequence, PyTuple};
 
 use qiskit_circuit::bit_data::BitData;
 use qiskit_circuit::circuit_instruction::{ExtraInstructionAttributes, OperationFromPython};
@@ -169,14 +169,10 @@ impl CommutationChecker {
         cargs2: Option<&Bound<PySequence>>,
         max_num_qubits: u32,
     ) -> PyResult<bool> {
-        let qargs1 =
-            qargs1.map_or_else(|| Ok(PyTuple::empty_bound(py)), PySequenceMethods::to_tuple)?;
-        let cargs1 =
-            cargs1.map_or_else(|| Ok(PyTuple::empty_bound(py)), PySequenceMethods::to_tuple)?;
-        let qargs2 =
-            qargs2.map_or_else(|| Ok(PyTuple::empty_bound(py)), PySequenceMethods::to_tuple)?;
-        let cargs2 =
-            cargs2.map_or_else(|| Ok(PyTuple::empty_bound(py)), PySequenceMethods::to_tuple)?;
+        let qargs1 = qargs1.map_or_else(|| Ok(PyTuple::empty(py)), PySequenceMethods::to_tuple)?;
+        let cargs1 = cargs1.map_or_else(|| Ok(PyTuple::empty(py)), PySequenceMethods::to_tuple)?;
+        let qargs2 = qargs2.map_or_else(|| Ok(PyTuple::empty(py)), PySequenceMethods::to_tuple)?;
+        let cargs2 = cargs2.map_or_else(|| Ok(PyTuple::empty(py)), PySequenceMethods::to_tuple)?;
 
         let (qargs1, qargs2) = get_bits::<Qubit>(py, &qargs1, &qargs2)?;
         let (cargs1, cargs2) = get_bits::<Clbit>(py, &cargs1, &cargs2)?;
@@ -208,15 +204,15 @@ impl CommutationChecker {
     }
 
     fn __getstate__(&self, py: Python) -> PyResult<Py<PyDict>> {
-        let out_dict = PyDict::new_bound(py);
+        let out_dict = PyDict::new(py);
         out_dict.set_item("cache_max_entries", self.cache_max_entries)?;
         out_dict.set_item("current_cache_entries", self.current_cache_entries)?;
-        let cache_dict = PyDict::new_bound(py);
+        let cache_dict = PyDict::new(py);
         for (key, value) in &self.cache {
             cache_dict.set_item(key, commutation_entry_to_pydict(py, value)?)?;
         }
         out_dict.set_item("cache", cache_dict)?;
-        out_dict.set_item("library", self.library.library.to_object(py))?;
+        out_dict.set_item("library", self.library.library.clone().into_pyobject(py)?)?;
         out_dict.set_item("gates", self.gates.clone())?;
         Ok(out_dict.unbind())
     }
@@ -709,7 +705,7 @@ impl CommutationLibrary {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, IntoPyObject)]
 pub enum CommutationLibraryEntry {
     Commutes(bool),
     QubitMapping(HashMap<SmallVec<[Option<Qubit>; 2]>, bool>),
@@ -732,25 +728,6 @@ impl<'py> FromPyObject<'py> for CommutationLibraryEntry {
     }
 }
 
-impl ToPyObject for CommutationLibraryEntry {
-    fn to_object(&self, py: Python) -> PyObject {
-        match self {
-            CommutationLibraryEntry::Commutes(b) => b.into_py(py),
-            CommutationLibraryEntry::QubitMapping(qm) => qm
-                .iter()
-                .map(|(k, v)| {
-                    (
-                        PyTuple::new_bound(py, k.iter().map(|q| q.map(|t| t.0))),
-                        PyBool::new_bound(py, *v),
-                    )
-                })
-                .into_py_dict_bound(py)
-                .unbind()
-                .into(),
-        }
-    }
-}
-
 type CacheKey = (
     SmallVec<[Option<Qubit>; 2]>,
     (SmallVec<[ParameterKey; 3]>, SmallVec<[ParameterKey; 3]>),
@@ -759,14 +736,14 @@ type CacheKey = (
 type CommutationCacheEntry = HashMap<CacheKey, bool>;
 
 fn commutation_entry_to_pydict(py: Python, entry: &CommutationCacheEntry) -> PyResult<Py<PyDict>> {
-    let out_dict = PyDict::new_bound(py);
+    let out_dict = PyDict::new(py);
     for (k, v) in entry.iter() {
-        let qubits = PyTuple::new_bound(py, k.0.iter().map(|q| q.map(|t| t.0)));
-        let params0 = PyTuple::new_bound(py, k.1 .0.iter().map(|pk| pk.0));
-        let params1 = PyTuple::new_bound(py, k.1 .1.iter().map(|pk| pk.0));
+        let qubits = PyTuple::new(py, k.0.iter().map(|q| q.map(|t| t.0)))?;
+        let params0 = PyTuple::new(py, k.1 .0.iter().map(|pk| pk.0))?;
+        let params1 = PyTuple::new(py, k.1 .1.iter().map(|pk| pk.0))?;
         out_dict.set_item(
-            PyTuple::new_bound(py, [qubits, PyTuple::new_bound(py, [params0, params1])]),
-            PyBool::new_bound(py, *v),
+            PyTuple::new(py, [qubits, PyTuple::new(py, [params0, params1])?])?,
+            PyBool::new(py, *v),
         )?;
     }
     Ok(out_dict.unbind())

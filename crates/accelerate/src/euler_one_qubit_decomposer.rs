@@ -109,11 +109,17 @@ impl OneQubitGateSequence {
 
     fn __getitem__(&self, py: Python, idx: PySequenceIndex) -> PyResult<PyObject> {
         match idx.with_len(self.gates.len())? {
-            SequenceIndex::Int(idx) => Ok(self.gates[idx].to_object(py)),
-            indices => Ok(PyList::new_bound(
+            SequenceIndex::Int(idx) => Ok(self.gates[idx]
+                .clone()
+                .into_pyobject(py)?
+                .into_any()
+                .unbind()),
+            indices => Ok(PyList::new(
                 py,
-                indices.iter().map(|pos| self.gates[pos].to_object(py)),
-            )
+                indices
+                    .iter()
+                    .map(|pos| self.gates[pos].clone().into_pyobject(py).unwrap()),
+            )?
             .into_any()
             .unbind()),
         }
@@ -712,12 +718,11 @@ impl EulerBasis {
 
 #[pymethods]
 impl EulerBasis {
-    fn __reduce__(&self, py: Python) -> Py<PyAny> {
-        (
-            py.get_type_bound::<Self>(),
-            (PyString::new_bound(py, self.as_str()),),
-        )
-            .into_py(py)
+    fn __reduce__(&self, py: Python) -> PyResult<Py<PyAny>> {
+        Ok((py.get_type::<Self>(), (PyString::new(py, self.as_str()),))
+            .into_pyobject(py)?
+            .into_any()
+            .unbind())
     }
 
     #[new]

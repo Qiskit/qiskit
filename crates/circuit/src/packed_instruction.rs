@@ -111,7 +111,7 @@ unsafe impl ::bytemuck::NoUninit for PackedOperationType {}
 /// * The pointed-to data must match the type of the discriminant used to store it.
 /// * `PackedOperation` must take care to forward implementations of `Clone` and `Drop` to the
 ///   contained pointer.
-#[derive(Debug)]
+#[derive(Debug, IntoPyObject, IntoPyObjectRef)]
 #[repr(transparent)]
 pub struct PackedOperation(usize);
 

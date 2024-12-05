@@ -122,10 +122,7 @@ impl<'py> Iterator for BroadcastQubitsIter<'py> {
             BroadcastItem::Register(bits) => bits[offset].clone_ref(self.py),
         };
         self.offset += 1;
-        Some(PyTuple::new_bound(
-            self.py,
-            self.items.iter().map(to_scalar),
-        ))
+        Some(PyTuple::new(self.py, self.items.iter().map(to_scalar)).unwrap())
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
@@ -156,8 +153,8 @@ impl<'py> Iterator for BroadcastMeasureIter<'_, 'py> {
         };
         self.offset += 1;
         Some((
-            PyTuple::new_bound(self.py, &[to_scalar(self.qarg)]),
-            PyTuple::new_bound(self.py, &[to_scalar(self.carg)]),
+            PyTuple::new(self.py, &[to_scalar(self.qarg)]).unwrap(),
+            PyTuple::new(self.py, &[to_scalar(self.carg)]).unwrap(),
         ))
     }
 
@@ -177,7 +174,10 @@ fn broadcast_bits_for_identifier<T: PyRegister>(
         Ok(BroadcastItem::Bit(bit.clone()))
     } else if let Some(reg) = registers.get(iden_symbol) {
         Ok(BroadcastItem::Register(
-            reg.bit_list(py).iter().map(|obj| obj.into_py(py)).collect(),
+            reg.bit_list(py)
+                .iter()
+                .map(|obj| obj.into_pyobject(py).unwrap().into_any().unbind())
+                .collect(),
         ))
     } else {
         Err(QASM3ImporterError::new_err(format!(

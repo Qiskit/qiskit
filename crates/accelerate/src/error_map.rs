@@ -101,14 +101,19 @@ impl ErrorMap {
     }
 
     #[pyo3(signature=(key, default=None))]
-    fn get(&self, py: Python, key: [PhysicalQubit; 2], default: Option<PyObject>) -> PyObject {
-        match self.error_map.get(&key).copied() {
-            Some(val) => val.to_object(py),
+    fn get(
+        &self,
+        py: Python,
+        key: [PhysicalQubit; 2],
+        default: Option<PyObject>,
+    ) -> PyResult<PyObject> {
+        Ok(match self.error_map.get(&key).copied() {
+            Some(val) => val.into_pyobject(py)?.into_any().unbind(),
             None => match default {
                 Some(val) => val,
                 None => py.None(),
             },
-        }
+        })
     }
 }
 

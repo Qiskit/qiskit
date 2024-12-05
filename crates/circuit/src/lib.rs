@@ -33,7 +33,7 @@ use pyo3::prelude::*;
 use pyo3::types::{PySequence, PyTuple};
 
 pub type BitType = u32;
-#[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq, FromPyObject)]
+#[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq, FromPyObject, IntoPyObject)]
 pub struct Qubit(pub BitType);
 
 impl Qubit {
@@ -56,7 +56,7 @@ impl Qubit {
     }
 }
 
-#[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq, FromPyObject, IntoPyObject)]
 pub struct Clbit(pub BitType);
 
 impl Clbit {
@@ -87,12 +87,12 @@ impl<'py> FromPyObject<'py> for TupleLikeArg<'py> {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         let value = match ob.downcast::<PySequence>() {
             Ok(seq) => seq.to_tuple()?,
-            Err(_) => PyTuple::new_bound(
+            Err(_) => PyTuple::new(
                 ob.py(),
-                ob.iter()?
+                ob.try_iter()?
                     .map(|o| Ok(o?.unbind()))
                     .collect::<PyResult<Vec<PyObject>>>()?,
-            ),
+            )?,
         };
         Ok(TupleLikeArg { value })
     }

@@ -12,8 +12,8 @@
 
 use hashbrown::{HashMap, HashSet};
 use ndarray::{aview2, Array2};
-use num_complex::Complex64;
-use numpy::{IntoPyArray, PyReadonlyArray2};
+use num_complex::{Complex, Complex64};
+use numpy::{IntoPyArray, PyArray, PyReadonlyArray2};
 use pyo3::intern;
 use pyo3::prelude::*;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
@@ -112,7 +112,7 @@ pub(crate) fn consolidate_blocks(
                     Ok(mat) => mat,
                     Err(_) => continue,
                 };
-                let array = matrix.into_pyarray_bound(py);
+                let array = matrix.into_pyarray(py);
                 let unitary_gate = UNITARY_GATE
                     .get_bound(py)
                     .call1((array, py.None(), false))?;
@@ -180,10 +180,11 @@ pub(crate) fn consolidate_blocks(
                     dag.remove_op_node(node);
                 }
             } else {
-                let unitary_gate =
-                    UNITARY_GATE
-                        .get_bound(py)
-                        .call1((array.to_object(py), py.None(), false))?;
+                let unitary_gate = UNITARY_GATE.get_bound(py).call1((
+                    <pyo3::Bound<'_, PyArray<Complex<f64>, ndarray::Dim<[usize; 2]>>> as Clone>::clone(&array).into_pyobject(py)?,
+                    py.None(),
+                    false,
+                ))?;
                 let clbit_pos_map = HashMap::new();
                 dag.replace_block_with_py_op(
                     py,
@@ -212,7 +213,7 @@ pub(crate) fn consolidate_blocks(
                             dag.remove_op_node(node);
                         }
                     } else {
-                        let array = matrix.into_pyarray_bound(py);
+                        let array = matrix.into_pyarray(py);
                         let unitary_gate =
                             UNITARY_GATE
                                 .get_bound(py)
@@ -257,7 +258,7 @@ pub(crate) fn consolidate_blocks(
                     Ok(mat) => mat,
                     Err(_) => continue,
                 };
-                let array = matrix.into_pyarray_bound(py);
+                let array = matrix.into_pyarray(py);
                 let unitary_gate = UNITARY_GATE
                     .get_bound(py)
                     .call1((array, py.None(), false))?;
@@ -292,7 +293,7 @@ pub(crate) fn consolidate_blocks(
                     dag.remove_op_node(node);
                 }
             } else {
-                let array = aview2(&matrix).to_owned().into_pyarray_bound(py);
+                let array = aview2(&matrix).to_owned().into_pyarray(py);
                 let unitary_gate = UNITARY_GATE
                     .get_bound(py)
                     .call1((array, py.None(), false))?;

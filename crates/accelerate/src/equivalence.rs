@@ -78,10 +78,7 @@ impl Key {
     }
 
     fn __getnewargs__(slf: PyRef<Self>) -> (Bound<PyString>, u32) {
-        (
-            PyString::new_bound(slf.py(), slf.name.as_str()),
-            slf.num_qubits,
-        )
+        (PyString::new(slf.py(), slf.name.as_str()), slf.num_qubits)
     }
 
     // Ord methods for Python
@@ -304,7 +301,7 @@ impl<'py> FromPyObject<'py> for GateOper {
 /// of [CircuitData].
 ///
 /// [`QuantumCircuit`]: https://docs.quantum.ibm.com/api/qiskit/qiskit.circuit.QuantumCircuit
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, IntoPyObject)]
 pub struct CircuitFromPython(pub CircuitData);
 
 impl FromPyObject<'_> for CircuitFromPython {
@@ -319,22 +316,6 @@ impl FromPyObject<'_> for CircuitFromPython {
                 "Provided object was not an instance of QuantumCircuit",
             ))
         }
-    }
-}
-
-impl IntoPy<PyObject> for CircuitFromPython {
-    fn into_py(self, py: Python<'_>) -> PyObject {
-        QUANTUM_CIRCUIT
-            .get_bound(py)
-            .call_method1("_from_circuit_data", (self.0,))
-            .unwrap()
-            .unbind()
-    }
-}
-
-impl ToPyObject for CircuitFromPython {
-    fn to_object(&self, py: Python<'_>) -> PyObject {
-        self.clone().into_py(py)
     }
 }
 
@@ -465,7 +446,7 @@ impl EquivalenceLibrary {
             ._get_equivalences(&key)
             .into_iter()
             .filter_map(|equivalence| rebind_equiv(py, equivalence, &query_params).ok());
-        let return_list = PyList::empty_bound(py);
+        let return_list = PyList::empty(py);
         for equiv in bound_equivalencies {
             return_list.append(equiv)?;
         }
@@ -512,9 +493,9 @@ impl EquivalenceLibrary {
     ///     List: Keys to the key to node index map.
     #[pyo3(name = "keys")]
     fn py_keys(slf: PyRef<Self>) -> PyResult<PyObject> {
-        let py_dict = PyDict::new_bound(slf.py());
+        let py_dict = PyDict::new(slf.py());
         for key in slf.keys() {
-            py_dict.set_item(key.clone().into_py(slf.py()), slf.py().None())?;
+            py_dict.set_item(key.clone(), slf.py().None())?;
         }
         Ok(py_dict.as_any().call_method0("keys")?.into())
     }
@@ -532,26 +513,26 @@ impl EquivalenceLibrary {
     }
 
     fn __getstate__(slf: PyRef<Self>) -> PyResult<Bound<PyDict>> {
-        let ret = PyDict::new_bound(slf.py());
+        let ret = PyDict::new(slf.py());
         ret.set_item("rule_id", slf.rule_id)?;
-        let key_to_usize_node: Bound<PyDict> = PyDict::new_bound(slf.py());
+        let key_to_usize_node: Bound<PyDict> = PyDict::new(slf.py());
         for (key, val) in slf.key_to_node_index.iter() {
-            key_to_usize_node.set_item(key.clone().into_py(slf.py()), val.index())?;
+            key_to_usize_node.set_item(key.clone(), val.index())?;
         }
         ret.set_item("key_to_node_index", key_to_usize_node)?;
-        let graph_nodes: Bound<PyList> = PyList::empty_bound(slf.py());
+        let graph_nodes: Bound<PyList> = PyList::empty(slf.py());
         for weight in slf.graph.node_weights() {
-            graph_nodes.append(weight.clone().into_py(slf.py()))?;
+            graph_nodes.append(weight.clone())?;
         }
         ret.set_item("graph_nodes", graph_nodes.unbind())?;
         let edges = slf.graph.edge_references().map(|edge| {
             (
                 edge.source().index(),
                 edge.target().index(),
-                edge.weight().clone().into_py(slf.py()),
+                edge.weight().clone().into_pyobject(slf.py()).unwrap(),
             )
         });
-        let graph_edges = PyList::empty_bound(slf.py());
+        let graph_edges = PyList::empty(slf.py());
         for edge in edges {
             graph_edges.append(edge)?;
         }
@@ -720,7 +701,7 @@ fn raise_if_param_mismatch(
     gate_params: &[Param],
     circuit_parameters: Bound<PySet>,
 ) -> PyResult<()> {
-    let gate_params_obj = PySet::new_bound(
+    let gate_params_obj = PySet::new(
         py,
         gate_params
             .iter()
@@ -801,10 +782,10 @@ impl Display for EquivalenceError {
 
 // Conversion helpers
 
-fn to_pygraph<N, E>(py: Python, pet_graph: &StableDiGraph<N, E>) -> PyResult<PyObject>
+fn to_pygraph<'py, N, E>(py: Python<'py>, pet_graph: &'py StableDiGraph<N, E>) -> PyResult<PyObject>
 where
-    N: IntoPy<PyObject> + Clone,
-    E: IntoPy<PyObject> + Clone,
+    N: IntoPyObject<'py> + Clone,
+    E: IntoPyObject<'py> + Clone,
 {
     let graph = PYDIGRAPH.get_bound(py).call0()?;
     let node_weights: Vec<N> = pet_graph.node_weights().cloned().collect();
