@@ -69,6 +69,7 @@ from qiskit.circuit.library import (
     HalfAdderGate,
     ModularAdderGate,
     LinearFunction,
+    MultiplierGate,
 )
 from qiskit.circuit.library.standard_gates.equivalence_library import (
     StandardEquivalenceLibrary as std_eqlib,
@@ -228,6 +229,13 @@ class TestGateDefinitions(QiskitTestCase):
         """Test ModularAdder gate matrix and definition."""
         circ = QuantumCircuit(2)
         circ.append(ModularAdderGate(1), [0, 1])
+        decomposed_circ = circ.decompose()
+        self.assertTrue(Operator(circ).equiv(Operator(decomposed_circ)))
+
+    def test_multiplier_gate_definition(self):
+        """Test Multiplier gate matrix and definition."""
+        circ = QuantumCircuit(4)
+        circ.append(MultiplierGate(1), [0, 1, 2, 3])
         decomposed_circ = circ.decompose()
         self.assertTrue(Operator(circ).equiv(Operator(decomposed_circ)))
 
