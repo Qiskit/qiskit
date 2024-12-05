@@ -2520,7 +2520,7 @@ pub struct SparseTermView<'a> {
     pub bit_terms: &'a [BitTerm],
     pub indices: &'a [u32],
 }
-impl<'a> SparseTermView<'a> {
+impl SparseTermView<'_> {
     /// Convert this `SparseTermView` into an owning [SparseTerm] of the same data.
     pub fn to_term(&self) -> SparseTerm {
         SparseTerm {
@@ -2618,8 +2618,8 @@ impl<'a> Iterator for IterMut<'a> {
         (self.coeffs.len(), Some(self.coeffs.len()))
     }
 }
-impl<'a> ExactSizeIterator for IterMut<'a> {}
-impl<'a> ::std::iter::FusedIterator for IterMut<'a> {}
+impl ExactSizeIterator for IterMut<'_> {}
+impl ::std::iter::FusedIterator for IterMut<'_> {}
 
 /// Helper class of `ArrayView` that denotes the slot of the `SparseObservable` we're looking at.
 #[derive(Clone, Copy, PartialEq, Eq)]

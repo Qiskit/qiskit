@@ -488,6 +488,21 @@ class TestNLocal(QiskitTestCase):
 
         self.assertCircuitEqual(ref, expected)
 
+    def test_inplace_assignment_with_cache(self):
+        """Test parameters are correctly re-bound in the cached gates.
+
+        This test requires building with the Rust feature "cache_pygates" enabled, otherwise
+        it does not test what it is supposed to.
+
+        Regression test of #13478.
+        """
+        qc = EfficientSU2(2, flatten=True)
+        binds = [1.25] * qc.num_parameters
+
+        qc.assign_parameters(binds, inplace=True)
+        bound_op = qc.data[0].operation
+        self.assertAlmostEqual(bound_op.params[0], binds[0])
+
 
 @ddt
 class TestNLocalFunction(QiskitTestCase):

@@ -183,7 +183,7 @@ pub enum OperationRef<'a> {
     Operation(&'a PyOperation),
 }
 
-impl<'a> Operation for OperationRef<'a> {
+impl Operation for OperationRef<'_> {
     #[inline]
     fn name(&self) -> &str {
         match self {
