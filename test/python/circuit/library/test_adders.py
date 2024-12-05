@@ -168,7 +168,7 @@ class TestAdder(QiskitTestCase):
             _ = adder(-1)
 
     def test_plugins(self):
-        """Test setting the HLS plugins for the modular adder."""
+        """Test calling HLS plugins for various adder types."""
 
         # all gates with the plugins we check
         modes = {
@@ -203,6 +203,35 @@ class TestAdder(QiskitTestCase):
                     ops = set(synth.count_ops().keys())
 
                     self.assertTrue(expected_ops[plugin] in ops)
+
+    def test_plugins_when_do_not_apply(self):
+        """Test that plugins do not do anything when not enough
+        clean ancilla qubits are available.
+        """
+        with self.subTest(name="FullAdder"):
+            adder = FullAdderGate(3)
+            circuit = QuantumCircuit(9)
+            circuit.append(adder, range(adder.num_qubits))
+            hls_config = HLSConfig(FullAdder=["ripple_v95"])
+            hls = HighLevelSynthesis(hls_config=hls_config)
+            synth = hls(circuit)
+            self.assertEqual(synth.count_ops(), {"FullAdder": 1})
+        with self.subTest(name="HalfAdder"):
+            adder = HalfAdderGate(3)
+            circuit = QuantumCircuit(8)
+            circuit.append(adder, range(adder.num_qubits))
+            hls_config = HLSConfig(HalfAdder=["ripple_v95"])
+            hls = HighLevelSynthesis(hls_config=hls_config)
+            synth = hls(circuit)
+            self.assertEqual(synth.count_ops(), {"HalfAdder": 1})
+        with self.subTest(name="ModularAdder"):
+            adder = ModularAdderGate(3)
+            circuit = QuantumCircuit(7)
+            circuit.append(adder, range(adder.num_qubits))
+            hls_config = HLSConfig(ModularAdder=["ripple_v95"])
+            hls = HighLevelSynthesis(hls_config=hls_config)
+            synth = hls(circuit)
+            self.assertEqual(synth.count_ops(), {"ModularAdder": 1})
 
 
 if __name__ == "__main__":
