@@ -113,15 +113,6 @@ def control(
 
     if operation.name in basis:
         apply_basic_controlled_gate(controlled_circ, operation, q_control, q_target[0])
-
-        # TODO: double check if this is necessary
-        if (
-            operation.definition is not None
-            and operation.definition.global_phase
-            and operation.name != "rz"
-        ):
-            global_phase += operation.definition.global_phase
-
     else:
         if isinstance(operation, controlledgate.ControlledGate):
             operation = operation.to_mutable()

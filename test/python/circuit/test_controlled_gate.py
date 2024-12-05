@@ -1561,9 +1561,6 @@ class TestSingleControlledRotationGates(QiskitTestCase):
             op_mat = (np.cos(0.5 * self.theta) * iden - 1j * np.sin(0.5 * self.theta) * zgen).data
         else:
             op_mat = Operator(gate).data
-
-        print(self.ugu1)
-        print(cgate)
         ref_mat = Operator(cgate).data
         cop_mat = _compute_control_matrix(op_mat, self.num_ctrl)
         self.assertTrue(matrix_equal(cop_mat, ref_mat))
@@ -1575,13 +1572,15 @@ class TestSingleControlledRotationGates(QiskitTestCase):
         uqc = dag_to_circuit(basis_translator.run(unroller.run(dag)))
         self.log.info("%s gate count: %d", cgate.name, uqc.size())
         self.log.info("\n%s", str(uqc))
-        # these limits could be changed
-        if gate.name == "ry":
-            self.assertLessEqual(uqc.size(), 32, f"\n{uqc}")
+
+        if gate.name in ["ry", "rx"]:
+            expected_cx = 8
         elif gate.name == "rz":
-            self.assertLessEqual(uqc.size(), 43, f"\n{uqc}")
-        else:
-            self.assertLessEqual(uqc.size(), 23, f"\n{uqc}")
+            expected_cx = 4
+        else:  # u1
+            expected_cx = 6
+
+        self.assertLessEqual(uqc.count_ops().get("cx", 0), expected_cx, f"\n{uqc}")
 
     def test_composite(self):
         """Test composite gate count."""
@@ -1602,7 +1601,7 @@ class TestSingleControlledRotationGates(QiskitTestCase):
     def test_mcrz_complexity(self):
         """Test MCRZ is decomposed using the efficient MC-SU(2) algorithm.
 
-        Regression test of #13427.
+        Regression test of #13473.
         """
         basis_gates = ["sx", "x", "rz", "ecr"]
         pm = generate_preset_pass_manager(
@@ -1616,7 +1615,7 @@ class TestSingleControlledRotationGates(QiskitTestCase):
 
         isa_qc = pm.run(qc)
 
-        self.assertLessEqual(isa_qc.count_ops().get("ecr", 0), 65)
+        self.assertLessEqual(isa_qc.count_ops().get("ecr", 0), 40)
 
 
 @ddt
