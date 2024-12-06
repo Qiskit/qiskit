@@ -303,7 +303,6 @@ Modular Adder Synthesis
     * - ``"default"``
       - :class:`~.ModularAdderSynthesisDefault`
       - any
-      - any
       - chooses the best algorithm based on the ancillas available
 
 .. autosummary::
@@ -339,7 +338,6 @@ Half Adder Synthesis
     * - ``"default"``
       - :class:`~.HalfAdderSynthesisDefault`
       - any
-      - any
       - chooses the best algorithm based on the ancillas available
 
 .. autosummary::
@@ -370,7 +368,6 @@ Full Adder Synthesis
       - a ripple-carry adder
     * - ``"default"``
       - :class:`~.FullAdderSynthesisDefault`
-      - any
       - any
       - chooses the best algorithm based on the ancillas available
 
