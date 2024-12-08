@@ -36,13 +36,13 @@ pub fn barrier_before_final_measurements(
             let NodeType::Operation(ref inst) = dag.dag()[*node] else {
                 unreachable!();
             };
-            if !FINAL_OP_NAMES.contains(&inst.op.name()) {
+            if !FINAL_OP_NAMES.contains(&inst.op().name()) {
                 return false;
             }
             let is_final_op = dag.bfs_successors(*node).all(|(_, child_successors)| {
                 !child_successors.iter().any(|suc| match dag.dag()[*suc] {
                     NodeType::Operation(ref suc_inst) => {
-                        !FINAL_OP_NAMES.contains(&suc_inst.op.name())
+                        !FINAL_OP_NAMES.contains(&suc_inst.op().name())
                     }
                     _ => false,
                 })
