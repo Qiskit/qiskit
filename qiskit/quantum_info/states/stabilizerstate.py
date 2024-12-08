@@ -24,7 +24,7 @@ import numpy as np
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.op_shape import OpShape
 from qiskit.quantum_info.operators.operator import Operator
-from qiskit.quantum_info.operators.symplectic import Clifford, Pauli, PauliList
+from qiskit.quantum_info.operators.symplectic import Clifford, Pauli, PauliList, SparsePauliOp
 from qiskit.quantum_info.operators.symplectic.clifford_circuits import _append_x
 from qiskit.quantum_info.states.quantum_state import QuantumState
 from qiskit.circuit import QuantumCircuit, Instruction
@@ -259,7 +259,34 @@ class StabilizerState(QuantumState):
         ret._data = self.clifford.compose(other.clifford, qargs=qargs)
         return ret
 
-    def expectation_value(self, oper: Pauli, qargs: None | list = None) -> complex:
+    def expectation_value(self, oper: Pauli | SparsePauliOp, qargs: None | list = None) -> complex:
+        """Compute the expectation value of a Pauli or SparsePauliOp operator.
+
+        Args:
+            oper (Pauli or SparsePauliOp): a Pauli or SparsePauliOp operator to evaluate expval.
+            qargs (None or list): subsystems to apply the operator on.
+
+        Returns:
+            complex: the expectation value.
+
+        Raises:
+            QiskitError: if oper is not a Pauli or SparsePauliOp operator.
+        """
+        if isinstance(oper, Pauli):
+            return self._expectation_value_pauli(oper, qargs)
+
+        if isinstance(oper, SparsePauliOp):
+            return sum(
+                coeff * self._expectation_value_pauli(Pauli((z, x)), qargs)
+                for z, x, coeff in zip(oper.paulis.z, oper.paulis.x, oper.coeffs)
+            )
+
+        else:
+            raise QiskitError(
+                "Operator for expectation value is not a Pauli or SparsePauliOp operator."
+            )
+
+    def _expectation_value_pauli(self, oper: Pauli, qargs: None | list = None) -> complex:
         """Compute the expectation value of a Pauli operator.
 
         Args:
