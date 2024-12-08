@@ -4702,6 +4702,7 @@ class QuantumCircuit:
             q_target (Qubit): The target qubit
             use_basis_gates (bool): use p, u, cx
         """
+        # pylint: disable=cyclic-import
         from .library.standard_gates.rx import RXGate
         from qiskit.synthesis.multi_controlled import (
             _apply_cu,
@@ -4712,7 +4713,7 @@ class QuantumCircuit:
         control_qubits = self._qbit_argument_conversion(q_controls)
         target_qubit = self._qbit_argument_conversion(q_target)
         if len(target_qubit) != 1:
-            raise QiskitError("The mcrz gate needs a single qubit as target.")
+            raise QiskitError("The mcrx gate needs a single qubit as target.")
         all_qubits = control_qubits + target_qubit
         target_qubit = target_qubit[0]
         self._check_dups(all_qubits)
@@ -4769,6 +4770,7 @@ class QuantumCircuit:
             use_basis_gates (bool): use p, u, cx
 
         """
+        # pylint: disable=cyclic-import
         from .library.standard_gates.ry import RYGate
         from .library.standard_gates.x import MCXGate
         from qiskit.synthesis.multi_controlled import (
@@ -4780,7 +4782,7 @@ class QuantumCircuit:
         control_qubits = self._qbit_argument_conversion(q_controls)
         target_qubit = self._qbit_argument_conversion(q_target)
         if len(target_qubit) != 1:
-            raise QiskitError("The mcrz gate needs a single qubit as target.")
+            raise QiskitError("The mcry gate needs a single qubit as target.")
         ancillary_qubits = [] if q_ancillae is None else self._qbit_argument_conversion(q_ancillae)
         all_qubits = control_qubits + target_qubit + ancillary_qubits
         target_qubit = target_qubit[0]
@@ -4850,6 +4852,7 @@ class QuantumCircuit:
             q_target (Qubit): The target qubit
             use_basis_gates (bool): use p, u, cx
         """
+        # pylint: disable=cyclic-import
         from .library.standard_gates.rz import CRZGate, RZGate
         from qiskit.synthesis.multi_controlled import _mcsu2_real_diagonal
 
