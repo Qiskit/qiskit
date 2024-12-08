@@ -14,7 +14,6 @@ Multiple-Controlled U3 gate utilities. Not using ancillary qubits.
 """
 
 import math
-from typing import Optional
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit, Gate
@@ -84,7 +83,6 @@ def _apply_mcu_graycode(circuit, theta, phi, lam, ctls, tgt, use_basis_gates):
 def _mcsu2_real_diagonal(
     gate: Gate,
     num_controls: int,
-    ctrl_state: Optional[str] = None,
     use_basis_gates: bool = False,
 ) -> QuantumCircuit:
     """
@@ -93,8 +91,6 @@ def _mcsu2_real_diagonal(
     Args:
         gate: SU(2) Gate whose unitary matrix has one real diagonal.
         num_controls: The number of control qubits.
-        ctrl_state: The state on which the SU(2) operation is controlled. Defaults to all
-            control qubits being in state 1.
         use_basis_gates: If ``True``, use ``[p, u, cx]`` gates to implement the decomposition.
 
     Returns:
@@ -110,11 +106,11 @@ def _mcsu2_real_diagonal(
 
     """
     # pylint: disable=cyclic-import
-    from qiskit.circuit.library.standard_gates.x import MCXVChain
     from qiskit.circuit.library.standard_gates import RXGate, RYGate, RZGate
     from qiskit.circuit.library.generalized_gates import UnitaryGate
     from qiskit.quantum_info.operators.predicates import is_unitary_matrix
     from qiskit.compiler import transpile
+    from qiskit.synthesis.multi_controlled import synth_mcx_n_dirty_i15
 
     if isinstance(gate, RYGate):
         theta = gate.params[0]
@@ -176,14 +172,6 @@ def _mcsu2_real_diagonal(
     k_1 = math.ceil(num_controls / 2.0)
     k_2 = math.floor(num_controls / 2.0)
 
-    ctrl_state_k_1 = None
-    ctrl_state_k_2 = None
-
-    if ctrl_state is not None:
-        str_ctrl_state = f"{ctrl_state:0{num_controls}b}"
-        ctrl_state_k_1 = str_ctrl_state[::-1][:k_1][::-1]
-        ctrl_state_k_2 = str_ctrl_state[::-1][k_1:][::-1]
-
     circuit = QuantumCircuit(num_controls + 1, name="MCSU2")
     controls = list(range(num_controls))  # control indices, defined for code legibility
     target = num_controls  # target index, defined for code legibility
@@ -191,24 +179,20 @@ def _mcsu2_real_diagonal(
     if not is_secondary_diag_real:
         circuit.h(target)
 
-    mcx_1 = MCXVChain(num_ctrl_qubits=k_1, dirty_ancillas=True, ctrl_state=ctrl_state_k_1)
+    mcx_1 = synth_mcx_n_dirty_i15(num_ctrl_qubits=k_1)
     circuit.append(mcx_1, controls[:k_1] + [target] + controls[k_1 : 2 * k_1 - 2])
     circuit.append(s_gate, [target])
 
-    mcx_2 = MCXVChain(
-        num_ctrl_qubits=k_2,
-        dirty_ancillas=True,
-        ctrl_state=ctrl_state_k_2,
-        # action_only=general_su2_optimization # Requires PR #9687
-    )
+    # TODO: improve CX count by using action_only=True (based on #9687)
+    mcx_2 = synth_mcx_n_dirty_i15(num_ctrl_qubits=k_2)
     circuit.append(mcx_2.inverse(), controls[k_1:] + [target] + controls[k_1 - k_2 + 2 : k_1])
     circuit.append(s_gate.inverse(), [target])
 
-    mcx_3 = MCXVChain(num_ctrl_qubits=k_1, dirty_ancillas=True, ctrl_state=ctrl_state_k_1)
+    mcx_3 = synth_mcx_n_dirty_i15(num_ctrl_qubits=k_1)
     circuit.append(mcx_3, controls[:k_1] + [target] + controls[k_1 : 2 * k_1 - 2])
     circuit.append(s_gate, [target])
 
-    mcx_4 = MCXVChain(num_ctrl_qubits=k_2, dirty_ancillas=True, ctrl_state=ctrl_state_k_2)
+    mcx_4 = synth_mcx_n_dirty_i15(num_ctrl_qubits=k_2)
     circuit.append(mcx_4, controls[k_1:] + [target] + controls[k_1 - k_2 + 2 : k_1])
     circuit.append(s_gate.inverse(), [target])
 
