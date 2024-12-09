@@ -571,19 +571,11 @@ impl PackedInstruction {
 
     /// Retrieves an immutable reference to the index under which the interner has stored `qubits`.
     pub fn qubits_mut(&mut self) -> &mut Interned<[Qubit]> {
-        #[cfg(feature = "cache_pygates")]
-        {
-            self.py_op.take();
-        }
         &mut self.qubits
     }
 
     /// Retrieves an immutable reference to the index under which the interner has stored `clbits`.
     pub fn clbits_mut(&mut self) -> &mut Interned<[Clbit]> {
-        #[cfg(feature = "cache_pygates")]
-        {
-            self.py_op.take();
-        }
         &mut self.clbits
     }
 
