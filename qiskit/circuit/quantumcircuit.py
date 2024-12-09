@@ -4796,9 +4796,9 @@ class QuantumCircuit:
 
         if mode == "basic":
             self.ry(theta / 2, q_target)
-            self.mcx(q_controls, q_target, q_ancillae, mode="v-chain")
+            self.mcx(list(q_controls), q_target, q_ancillae, mode="v-chain")
             self.ry(-theta / 2, q_target)
-            self.mcx(q_controls, q_target, q_ancillae, mode="v-chain")
+            self.mcx(list(q_controls), q_target, q_ancillae, mode="v-chain")
         elif mode == "noancilla":
             n_c = len(control_qubits)
             if n_c == 1:  # cu
