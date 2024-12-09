@@ -35,7 +35,6 @@ from typing import (
     Any,
     DefaultDict,
     Literal,
-    List,
     overload,
 )
 from math import pi
@@ -4688,7 +4687,7 @@ class QuantumCircuit:
     def mcrx(
         self,
         theta: ParameterValueType,
-        q_controls: Union[QuantumRegister, List[Qubit]],
+        q_controls: QuantumRegister | list[Qubit],
         q_target: Qubit,
         use_basis_gates: bool = False,
     ):
@@ -4696,11 +4695,10 @@ class QuantumCircuit:
         Apply Multiple-Controlled X rotation gate
 
         Args:
-            self (QuantumCircuit): The QuantumCircuit object to apply the mcrx gate on.
-            theta (float): angle theta
-            q_controls (QuantumRegister or list(Qubit)): The list of control qubits
-            q_target (Qubit): The target qubit
-            use_basis_gates (bool): use p, u, cx
+            theta: angle theta
+            q_controls: The list of control qubits
+            q_target: The target qubit
+            use_basis_gates: use p, u, cx
         """
         # pylint: disable=cyclic-import
         from .library.standard_gates.rx import RXGate
@@ -4751,7 +4749,7 @@ class QuantumCircuit:
     def mcry(
         self,
         theta: ParameterValueType,
-        q_controls: Union[QuantumRegister, List[Qubit]],
+        q_controls: QuantumRegister | list[Qubit],
         q_target: Qubit,
         q_ancillae: Optional[Union[QuantumRegister, Tuple[QuantumRegister, int]]] = None,
         mode: Optional[str] = None,
@@ -4761,13 +4759,12 @@ class QuantumCircuit:
         Apply Multiple-Controlled Y rotation gate
 
         Args:
-            self (QuantumCircuit): The QuantumCircuit object to apply the mcry gate on.
-            theta (float): angle theta
-            q_controls (list(Qubit)): The list of control qubits
-            q_target (Qubit): The target qubit
-            q_ancillae (QuantumRegister or tuple(QuantumRegister, int)): The list of ancillary qubits.
-            mode (string): The implementation mode to use
-            use_basis_gates (bool): use p, u, cx
+            theta: angle theta
+            q_controls: The list of control qubits
+            q_target: The target qubit
+            q_ancillae: The list of ancillary qubits.
+            mode: The implementation mode to use
+            use_basis_gates: use p, u, cx
 
         """
         # pylint: disable=cyclic-import
@@ -4838,7 +4835,7 @@ class QuantumCircuit:
     def mcrz(
         self,
         lam: ParameterValueType,
-        q_controls: Union[QuantumRegister, List[Qubit]],
+        q_controls: QuantumRegister | list[Qubit],
         q_target: Qubit,
         use_basis_gates: bool = False,
     ):
@@ -4846,11 +4843,10 @@ class QuantumCircuit:
         Apply Multiple-Controlled Z rotation gate
 
         Args:
-            self (QuantumCircuit): The QuantumCircuit object to apply the mcrz gate on.
-            lam (float): angle lambda
-            q_controls (list(Qubit)): The list of control qubits
-            q_target (Qubit): The target qubit
-            use_basis_gates (bool): use p, u, cx
+            lam: angle lambda
+            q_controls: The list of control qubits
+            q_target: The target qubit
+            use_basis_gates: use p, u, cx
         """
         # pylint: disable=cyclic-import
         from .library.standard_gates.rz import CRZGate, RZGate
