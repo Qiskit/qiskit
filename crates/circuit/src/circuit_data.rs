@@ -928,6 +928,7 @@ impl CircuitData {
             instruction_iter.size_hint().0,
             global_phase,
         )?;
+
         for item in instruction_iter {
             let (operation, params, qargs, cargs) = item?;
             let qubits = res.qargs_interner.insert_owned(qargs);
@@ -994,8 +995,12 @@ impl CircuitData {
             qubits,
             clbits,
             param_table: ParameterTable::new(),
-            global_phase,
+            global_phase: Param::Float(0.0),
         };
+
+        // use the global phase setter to ensure parameters are registered
+        // in the parameter table
+        res.set_global_phase(py, global_phase)?;
 
         for inst in instruction_iter {
             res.data.push(inst?);
@@ -1038,6 +1043,7 @@ impl CircuitData {
             instruction_iter.size_hint().0,
             global_phase,
         )?;
+
         let no_clbit_index = res.cargs_interner.get_default();
         for (operation, params, qargs) in instruction_iter {
             let qubits = res.qargs_interner.insert(&qargs);
@@ -1071,8 +1077,13 @@ impl CircuitData {
             qubits: BitData::new(py, "qubits".to_string()),
             clbits: BitData::new(py, "clbits".to_string()),
             param_table: ParameterTable::new(),
-            global_phase,
+            global_phase: Param::Float(0.0),
         };
+
+        // use the global phase setter to ensure parameters are registered
+        // in the parameter table
+        res.set_global_phase(py, global_phase)?;
+
         if num_qubits > 0 {
             let qubit_cls = QUBIT.get_bound(py);
             for _i in 0..num_qubits {
@@ -1526,16 +1537,18 @@ impl CircuitData {
     /// * capacity - The capacity for instructions to use in the output `CircuitData`
     ///     If `None` the length of `other` will be used, if `Some` the integer
     ///     value will be used as the capacity.
-    pub fn clone_empty_like(other: &Self, capacity: Option<usize>) -> Self {
-        CircuitData {
+    pub fn clone_empty_like(py: Python, other: &Self, capacity: Option<usize>) -> PyResult<Self> {
+        let mut empty = CircuitData {
             data: Vec::with_capacity(capacity.unwrap_or(other.data.len())),
             qargs_interner: other.qargs_interner.clone(),
             cargs_interner: other.cargs_interner.clone(),
             qubits: other.qubits.clone(),
             clbits: other.clbits.clone(),
             param_table: ParameterTable::new(),
-            global_phase: other.global_phase.clone(),
-        }
+            global_phase: Param::Float(0.0),
+        };
+        empty.set_global_phase(py, other.global_phase.clone())?;
+        Ok(empty)
     }
 
     /// Append a PackedInstruction to the circuit data.
