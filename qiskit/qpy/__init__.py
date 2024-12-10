@@ -475,10 +475,10 @@ characters:
    * - ``u``
      - substitution
 
-If the type value is ``f`` ,``c`` or ``i``, the corresponding ``lhs`` or `rhs``
-field widths are 128 bits each. In the case of floats, the literal value is encoded as a double
+If the type value is ``f``, ``c``, or ``i``, the corresponding ``lhs`` or `rhs``
+field widths are 128 bits ach. In the case of floats, the literal value is encoded as a double
 with 0 padding, while complex numbers are encoded as real part followed by imaginary part,
-taking up 64 bits each. For ``i`, the value is encoded as a 64 bit signed integer with 0 padding
+taking up 64 bits each. For ``i``, the value is encoded as a 64 bit signed integer with 0 padding
 for the full 128 bit width. ``n`` is used to represent a ``None`` and typically isn't directly used
 as it indicates an argument that's not used. For ``p`` the data is the UUID for the
 :class:`.Parameter` which can be looked up in the symbol map described in the
