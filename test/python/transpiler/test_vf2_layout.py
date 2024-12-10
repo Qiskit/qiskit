@@ -295,10 +295,7 @@ class TestVF2LayoutLattice(LayoutTestCase):
     def graph_state_from_pygraph(self, graph):
         """Creates a GraphStateGate circuit from a PyGraph"""
         adjacency_matrix = rustworkx.adjacency_matrix(graph)
-        num_qubits = adjacency_matrix.shape[0]
-        qc = QuantumCircuit(num_qubits)
-        qc.append(GraphStateGate(adjacency_matrix), range(num_qubits))
-        return qc.decompose()
+        return GraphStateGate(adjacency_matrix).definition
 
     def test_hexagonal_lattice_graph_20_in_25(self):
         """A 20x20 interaction map in 25x25 coupling map"""
@@ -515,10 +512,8 @@ class TestVF2LayoutBackend(LayoutTestCase):
         num_qubits = 65
         adj_matrix = numpy.zeros((num_qubits, num_qubits))
         adj_matrix[rows, cols] = 1
-        circuit = QuantumCircuit(num_qubits)
 
-        circuit.append(GraphStateGate(adj_matrix), range(num_qubits))
-        circuit = circuit.decompose()
+        circuit = GraphStateGate(adj_matrix).definition
         circuit.measure_all()
 
         dag = circuit_to_dag(circuit)

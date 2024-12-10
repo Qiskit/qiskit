@@ -1045,11 +1045,9 @@ class TestFinalLayouts(QiskitTestCase):
         rows = [x[0] for x in backend.coupling_map]
         cols = [x[1] for x in backend.coupling_map]
 
-        num_qubits = 20
-        adjacency_matrix = np.zeros((num_qubits, num_qubits))
-        qc = QuantumCircuit(num_qubits)
+        adjacency_matrix = np.zeros((20, 20))
         adjacency_matrix[rows, cols] = 1
-        qc.append(GraphStateGate(adjacency_matrix), range(num_qubits))
+        qc = GraphStateGate(adjacency_matrix).definition
         qc.measure_all()
         expected = {
             0: Qubit(QuantumRegister(20, "q"), 0),
