@@ -845,6 +845,14 @@ class TestNLocalFamily(QiskitTestCase):
 
         self.assertTrue(circuit_ops.issubset(expected_ops))
 
+    def test_two_design_numqubits_equal1(self):
+        """Test the Pauli 2-design circuit for a single qubit."""
+        circuit = pauli_two_design(1)
+        expected_ops = {"rx", "ry", "rz", "id"}
+        circuit_ops = set(circuit.count_ops().keys())
+
+        self.assertTrue(circuit_ops.issubset(expected_ops))
+
     def test_two_design_seed(self):
         """Test the seed"""
         seed1 = 123

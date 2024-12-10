@@ -1,5 +1,6 @@
 fixes:
   - |
-    Fixed a bug that caused library functions that call :meth:`n_local`, such as :meth:`efficient_su2`
-    to error out when passed a num_qubits argument that equals 1. The default entanglement blocks for these
-    methods was being set to "cx", but now if num_qubits <= 1, then entanglements_blocks will equal an empty array.
+    Fixed a bug that caused the circuit library functions :func:`.efficient_su2`,
+    :func:`.real_amplitudes`, :func:`.excitation_preserving` and :func:`.pauli_two_design`
+    to error out when constructed for ``num_qubits==1``. For a single qubit these 
+    circuits will not contain any 2-qubit gates.
