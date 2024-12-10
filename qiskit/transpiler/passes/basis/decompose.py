@@ -77,8 +77,6 @@ class Decompose(TransformationPass):
                 if self.apply_synthesis:
                     # note that node_as_dag does not include the condition, which will
                     # be propagated in ``substitute_node_with_dag``
-                    # node_as_dag = dag.copy_empty_like()
-                    # node_as_dag.apply_operation_back(node.op, node.qargs, node.cargs)
                     node_as_dag = _node_to_dag(node)
                     synthesized = hls.run(node_as_dag)
                     dag.substitute_node_with_dag(node, synthesized, propagate_condition=True)
@@ -136,7 +134,7 @@ def _node_to_dag(node: DAGOpNode) -> DAGCircuit:
     # Control flow is already handled separately, however that does not capture
     # c_if, which we are treating here. We explicitly ignore the condition attribute,
     # which will be handled by ``substitute_node_with_dag``, so we create a copy of the node
-    # and set the condition to None. Once ``c_if`` is remoevd for 2.0, this block can go, too.
+    # and set the condition to None. Once ``c_if`` is removed for 2.0, this block can go, too.
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=DeprecationWarning)
         if getattr(node.op, "condition", None) is not None:
