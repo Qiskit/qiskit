@@ -4751,8 +4751,8 @@ class QuantumCircuit:
         theta: ParameterValueType,
         q_controls: QuantumRegister | list[Qubit],
         q_target: Qubit,
-        q_ancillae: Optional[Union[QuantumRegister, Tuple[QuantumRegister, int]]] = None,
-        mode: Optional[str] = None,
+        q_ancillae: QuantumRegister | list[Qubit] | None = None,
+        mode: str | None = None,
         use_basis_gates: bool = False,
     ):
         """
