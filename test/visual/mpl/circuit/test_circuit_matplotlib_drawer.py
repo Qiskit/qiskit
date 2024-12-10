@@ -37,8 +37,8 @@ from qiskit.circuit.library import (
     CPhaseGate,
     HamiltonianGate,
     Isometry,
+    iqp,
 )
-from qiskit.circuit.library import MCXVChain
 from qiskit.circuit.annotated_operation import (
     AnnotatedOperation,
     InverseModifier,
@@ -46,7 +46,6 @@ from qiskit.circuit.annotated_operation import (
     PowerModifier,
 )
 from qiskit.circuit import Parameter, Qubit, Clbit, IfElseOp, SwitchCaseOp
-from qiskit.circuit.library import IQP
 from qiskit.circuit.classical import expr, types
 from qiskit.quantum_info import random_clifford
 from qiskit.quantum_info.random import random_unitary
@@ -543,7 +542,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         """Test large gates with params"""
         qr = QuantumRegister(6, "q")
         circuit = QuantumCircuit(qr)
-        circuit.append(IQP([[6, 5, 3], [5, 4, 5], [3, 5, 1]]), [0, 1, 2])
+        circuit.append(iqp([[6, 5, 3], [5, 4, 5], [3, 5, 1]]), [0, 1, 2])
 
         desired_vector = [
             1 / math.sqrt(16) * complex(0, 1),
@@ -585,7 +584,6 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.ccx(0, 1, 2)
         circuit.append(XGate().control(3, ctrl_state="010"), [qr[2], qr[3], qr[0], qr[1]])
         circuit.append(MCXGate(num_ctrl_qubits=3, ctrl_state="101"), [qr[0], qr[1], qr[2], qr[4]])
-        circuit.append(MCXVChain(3, dirty_ancillas=True), [qr[0], qr[1], qr[2], qr[3], qr[5]])
 
         fname = "cnot.png"
         self.circuit_drawer(circuit, output="mpl", filename=fname)

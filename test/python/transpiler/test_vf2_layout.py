@@ -29,7 +29,7 @@ from qiskit._accelerate.error_map import ErrorMap
 from qiskit.converters import circuit_to_dag
 from qiskit.providers.fake_provider import Fake5QV1, Fake127QPulseV1, GenericBackendV2
 from qiskit.circuit import Measure
-from qiskit.circuit.library import GraphState, CXGate, XGate, HGate
+from qiskit.circuit.library import GraphStateGate, CXGate, XGate, HGate
 from qiskit.transpiler import PassManager, AnalysisPass
 from qiskit.transpiler.target import InstructionProperties
 from qiskit.transpiler.preset_passmanagers.common import generate_embed_passmanager
@@ -293,9 +293,12 @@ class TestVF2LayoutLattice(LayoutTestCase):
     cmap25 = CouplingMap.from_hexagonal_lattice(25, 25, bidirectional=False)
 
     def graph_state_from_pygraph(self, graph):
-        """Creates a GraphState circuit from a PyGraph"""
+        """Creates a GraphStateGate circuit from a PyGraph"""
         adjacency_matrix = rustworkx.adjacency_matrix(graph)
-        return GraphState(adjacency_matrix).decompose()
+        num_qubits = adjacency_matrix.shape[0]
+        qc = QuantumCircuit(num_qubits)
+        qc.append(GraphStateGate(adjacency_matrix), range(num_qubits))
+        return qc.decompose()
 
     def test_hexagonal_lattice_graph_20_in_25(self):
         """A 20x20 interaction map in 25x25 coupling map"""
@@ -509,10 +512,13 @@ class TestVF2LayoutBackend(LayoutTestCase):
         rows = [x[0] for x in MANHATTAN_CMAP]
         cols = [x[1] for x in MANHATTAN_CMAP]
 
-        adj_matrix = numpy.zeros((65, 65))
+        num_qubits = 65
+        adj_matrix = numpy.zeros((num_qubits, num_qubits))
         adj_matrix[rows, cols] = 1
+        circuit = QuantumCircuit(num_qubits)
 
-        circuit = GraphState(adj_matrix).decompose()
+        circuit.append(GraphStateGate(adj_matrix), range(num_qubits))
+        circuit = circuit.decompose()
         circuit.measure_all()
 
         dag = circuit_to_dag(circuit)
