@@ -137,7 +137,8 @@ def _node_to_dag(node: DAGOpNode) -> DAGCircuit:
     # c_if, which we are treating here. We explicitly ignore the condition attribute,
     # which will be handled by ``substitute_node_with_dag``, so we create a copy of the node
     # and set the condition to None. Once ``c_if`` is remoevd for 2.0, this block can go, too.
-    with warnings.catch_warnings(action="ignore", category=DeprecationWarning):
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=DeprecationWarning)
         if getattr(node.op, "condition", None) is not None:
             op = node.op.copy()
             op.condition = None
