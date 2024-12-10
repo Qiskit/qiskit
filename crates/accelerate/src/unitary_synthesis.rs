@@ -12,8 +12,6 @@
 #![allow(clippy::too_many_arguments)]
 
 use std::f64::consts::PI;
-#[cfg(feature = "cache_pygates")]
-use std::sync::OnceLock;
 
 use approx::relative_eq;
 use hashbrown::{HashMap, HashSet};
@@ -320,8 +318,6 @@ fn py_run_main_loop(
                                 &[],
                                 Some(new_params),
                                 ExtraInstructionAttributes::default(),
-                                #[cfg(feature = "cache_pygates")]
-                                None,
                             )?;
                         }
                         out_dag.add_global_phase(py, &Param::Float(sequence.global_phase))?;

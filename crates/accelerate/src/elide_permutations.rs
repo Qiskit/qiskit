@@ -89,8 +89,6 @@ fn run(py: Python, dag: &mut DAGCircuit) -> PyResult<Option<(DAGCircuit, Vec<usi
                         cargs,
                         (!inst.params_view().is_empty()).then_some(inst.params_view().into()),
                         inst.extra_attrs().clone(),
-                        #[cfg(feature = "cache_pygates")]
-                        None,
                     )?;
                 }
             }

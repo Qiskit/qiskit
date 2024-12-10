@@ -406,7 +406,7 @@ fn has_calibration_for_op_node(
                         .collect(),
                     extra_attrs: packed_inst.extra_attrs().clone(),
                     #[cfg(feature = "cache_pygates")]
-                    py_op: packed_inst.py_op.clone(),
+                    py_op: packed_inst.py_op().clone(),
                 },
                 sort_key: "".into_py(py),
             },
@@ -479,8 +479,6 @@ fn apply_operation_back(
         &[],
         param,
         ExtraInstructionAttributes::default(),
-        #[cfg(feature = "cache_pygates")]
-        None,
     )?;
 
     Ok(())

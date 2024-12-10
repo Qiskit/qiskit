@@ -3253,7 +3253,7 @@ def _format(operand):
                             .into();
                             #[cfg(feature = "cache_pygates")]
                             {
-                                new_inst.py_op = new_op.unbind().into();
+                                *new_inst.py_op_mut() = new_op.unbind().into();
                             }
                         }
                     }
@@ -3271,10 +3271,6 @@ def _format(operand):
                             new_inst
                                 .extra_attrs_mut()
                                 .set_condition(new_condition.clone());
-                            #[cfg(feature = "cache_pygates")]
-                            {
-                                new_inst.py_op.take();
-                            }
                             match new_inst.op().view() {
                                 OperationRef::Instruction(py_inst) => {
                                     py_inst
@@ -3351,7 +3347,7 @@ def _format(operand):
             node.instruction.extra_attrs = new_weight.extra_attrs().clone();
             #[cfg(feature = "cache_pygates")]
             {
-                node.instruction.py_op = new_weight.py_op.clone();
+                node.instruction.py_op = new_weight.py_op().clone();
             }
             Ok(node.into_py(py))
         } else {
@@ -5065,19 +5061,8 @@ impl DAGCircuit {
         cargs: &[Clbit],
         params: Option<SmallVec<[Param; 3]>>,
         extra_attrs: ExtraInstructionAttributes,
-        #[cfg(feature = "cache_pygates")] py_op: Option<PyObject>,
     ) -> PyResult<NodeIndex> {
-        self.inner_apply_op(
-            py,
-            op,
-            qargs,
-            cargs,
-            params,
-            extra_attrs,
-            #[cfg(feature = "cache_pygates")]
-            py_op,
-            false,
-        )
+        self.inner_apply_op(py, op, qargs, cargs, params, extra_attrs, false)
     }
 
     /// Apply a [PackedOperation] to the front of the circuit.
@@ -5089,19 +5074,8 @@ impl DAGCircuit {
         cargs: &[Clbit],
         params: Option<SmallVec<[Param; 3]>>,
         extra_attrs: ExtraInstructionAttributes,
-        #[cfg(feature = "cache_pygates")] py_op: Option<PyObject>,
     ) -> PyResult<NodeIndex> {
-        self.inner_apply_op(
-            py,
-            op,
-            qargs,
-            cargs,
-            params,
-            extra_attrs,
-            #[cfg(feature = "cache_pygates")]
-            py_op,
-            true,
-        )
+        self.inner_apply_op(py, op, qargs, cargs, params, extra_attrs, true)
     }
 
     #[inline]
@@ -5114,7 +5088,6 @@ impl DAGCircuit {
         cargs: &[Clbit],
         params: Option<SmallVec<[Param; 3]>>,
         extra_attrs: ExtraInstructionAttributes,
-        #[cfg(feature = "cache_pygates")] py_op: Option<PyObject>,
         front: bool,
     ) -> PyResult<NodeIndex> {
         // Check that all qargs are within an acceptable range
@@ -5140,13 +5113,6 @@ impl DAGCircuit {
             }
             Ok(())
         })?;
-
-        #[cfg(feature = "cache_pygates")]
-        let py_op = if let Some(py_op) = py_op {
-            py_op.into()
-        } else {
-            OnceLock::new()
-        };
         let packed_instruction = PackedInstruction::new(
             op,
             self.qargs_interner.insert(qargs),
@@ -5642,7 +5608,7 @@ impl DAGCircuit {
                                     .collect(),
                                 extra_attrs: packed.extra_attrs().clone(),
                                 #[cfg(feature = "cache_pygates")]
-                                py_op: packed.py_op.clone(),
+                                py_op: packed.py_op().clone(),
                             },
                             sort_key: format!("{:?}", self.sort_key(id)).into_py(py),
                         },
@@ -6923,9 +6889,6 @@ impl DAGCircuit {
                 )));
         }
 
-        #[cfg(feature = "cache_pygates")]
-        let mut py_op_cache = Some(op.clone().unbind());
-
         let mut extra_attrs = new_op.extra_attrs.clone();
         // If either operation is a control-flow operation, propagate_condition is ignored
         if propagate_condition
@@ -6962,10 +6925,6 @@ impl DAGCircuit {
                         intern!(py, "c_if"),
                         old_condition.downcast_bound::<PyTuple>(py)?,
                     )?;
-                }
-                #[cfg(feature = "cache_pygates")]
-                {
-                    py_op_cache = None;
                 }
             }
         };

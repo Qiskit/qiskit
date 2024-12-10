@@ -74,8 +74,6 @@ pub(super) fn compose_transforms<'a>(
                 Some(gate_obj.params)
             },
             gate_obj.extra_attrs,
-            #[cfg(feature = "cache_pygates")]
-            Some(gate.into()),
         )?;
         mapped_instructions.insert((gate_name, gate_num_qubits), (placeholder_params, dag));
 

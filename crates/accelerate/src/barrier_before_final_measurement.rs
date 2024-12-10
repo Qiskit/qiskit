@@ -84,29 +84,14 @@ pub fn barrier_before_final_measurements(
         instruction: new_barrier.unbind(),
     };
     let qargs: Vec<Qubit> = (0..dag.num_qubits() as u32).map(Qubit).collect();
-    #[cfg(feature = "cache_pygates")]
-    {
-        dag.apply_operation_back(
-            py,
-            PackedOperation::from_instruction(Box::new(new_barrier_py_inst)),
-            qargs.as_slice(),
-            &[],
-            None,
-            ExtraInstructionAttributes::new(label, None, None, None),
-            Some(new_barrier.unbind()),
-        )?;
-    }
-    #[cfg(not(feature = "cache_pygates"))]
-    {
-        dag.apply_operation_back(
-            py,
-            PackedOperation::from_instruction(Box::new(new_barrier_py_inst)),
-            qargs.as_slice(),
-            &[],
-            None,
-            ExtraInstructionAttributes::new(label, None, None, None),
-        )?;
-    }
+    dag.apply_operation_back(
+        py,
+        PackedOperation::from_instruction(Box::new(new_barrier_py_inst)),
+        qargs.as_slice(),
+        &[],
+        None,
+        ExtraInstructionAttributes::new(label, None, None, None),
+    )?;
     for inst in final_packed_ops {
         dag.push_back(py, inst)?;
     }

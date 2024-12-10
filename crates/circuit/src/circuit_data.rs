@@ -10,9 +10,6 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-#[cfg(feature = "cache_pygates")]
-use std::sync::OnceLock;
-
 use crate::bit_data::BitData;
 use crate::circuit_instruction::{
     CircuitInstruction, ExtraInstructionAttributes, OperationFromPython,
@@ -405,7 +402,7 @@ impl CircuitData {
             *inst.extra_attrs_mut() = result.extra_attrs;
             #[cfg(feature = "cache_pygates")]
             {
-                inst.py_op = py_op.unbind().into();
+                *inst.py_op_mut() = py_op.unbind().into();
             }
         }
         Ok(())
@@ -515,7 +512,7 @@ impl CircuitData {
                     .collect(),
                 extra_attrs: inst.extra_attrs().clone(),
                 #[cfg(feature = "cache_pygates")]
-                py_op: inst.py_op.clone(),
+                py_op: inst.py_op().clone(),
             }
             .into_py(py)
         };
@@ -1374,7 +1371,7 @@ impl CircuitData {
                                 // Standard gates can all rebuild their definitions, so if the
                                 // cached py_op exists, update the `params` attribute and clear out
                                 // any existing cache.
-                                if let Some(borrowed) = previous.py_op.get() {
+                                if let Some(borrowed) = previous.py_op().get() {
                                     borrowed
                                         .bind(py)
                                         .getattr(params_attr)?
@@ -1447,10 +1444,6 @@ impl CircuitData {
                                 .params_view_mut()
                                 .swap_with_slice(&mut new_op.params);
                             *previous.extra_attrs_mut() = new_op.extra_attrs;
-                            #[cfg(feature = "cache_pygates")]
-                            {
-                                previous.py_op = op.into_py(py).into();
-                            }
                             for uuid in uuids.iter() {
                                 self.param_table.add_use(*uuid, usage)?
                             }

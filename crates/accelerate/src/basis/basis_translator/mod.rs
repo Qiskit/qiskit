@@ -481,8 +481,6 @@ fn apply_translation(
                     node_carg,
                     (!new_op.params.is_empty()).then_some(new_op.params),
                     new_op.extra_attrs,
-                    #[cfg(feature = "cache_pygates")]
-                    None,
                 )?;
             } else {
                 out_dag.apply_operation_back(
@@ -498,8 +496,6 @@ fn apply_translation(
                             .collect(),
                     ),
                     node_obj.extra_attrs().clone(),
-                    #[cfg(feature = "cache_pygates")]
-                    None,
                 )?;
             }
             continue;
@@ -523,8 +519,6 @@ fn apply_translation(
                         .collect(),
                 ),
                 node_obj.extra_attrs().clone(),
-                #[cfg(feature = "cache_pygates")]
-                None,
             )?;
             continue;
         }
@@ -543,8 +537,6 @@ fn apply_translation(
                         .collect(),
                 ),
                 node_obj.extra_attrs().clone(),
-                #[cfg(feature = "cache_pygates")]
-                None,
             )?;
             continue;
         }
@@ -642,8 +634,6 @@ fn replace_node(
                 &new_clbits,
                 (!new_params.is_empty()).then_some(new_params),
                 new_extra_props,
-                #[cfg(feature = "cache_pygates")]
-                None,
             )?;
         }
         dag.add_global_phase(py, target_dag.global_phase())?;
@@ -742,8 +732,6 @@ fn replace_node(
                 &new_clbits,
                 (!new_params.is_empty()).then_some(new_params),
                 inner_node.extra_attrs().clone(),
-                #[cfg(feature = "cache_pygates")]
-                None,
             )?;
         }
 

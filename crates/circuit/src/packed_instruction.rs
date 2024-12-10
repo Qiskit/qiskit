@@ -514,7 +514,7 @@ pub struct PackedInstruction {
     /// requires the GIL to even `get` (of course!), which makes implementing `Clone` hard for us.
     /// We can revisit once we're on PyO3 0.22+ and have been able to disable its `py-clone`
     /// feature.
-    pub py_op: OnceLock<Py<PyAny>>,
+    py_op: OnceLock<Py<PyAny>>,
 }
 
 impl PackedInstruction {
@@ -554,8 +554,15 @@ impl PackedInstruction {
         self.clbits
     }
 
+    /// Retrieves an immutable reference to the extra_attributes of this instruction.
     pub fn extra_attrs(&self) -> &ExtraInstructionAttributes {
         &self.extra_attrs
+    }
+
+    /// Retrieves the cached py_gate immutably.
+    #[cfg(feature = "cache_pygates")]
+    pub fn py_op(&self) -> &OnceLock<PyObject> {
+        &self.py_op
     }
 
     // Setters
@@ -579,12 +586,19 @@ impl PackedInstruction {
         &mut self.clbits
     }
 
+    /// Retrieves a mutable reference to the extra_attributes of this instruction.
     pub fn extra_attrs_mut(&mut self) -> &mut ExtraInstructionAttributes {
         #[cfg(feature = "cache_pygates")]
         {
             self.py_op.take();
         }
         &mut self.extra_attrs
+    }
+
+    /// Retrieves the cached py_gate immutably.
+    #[cfg(feature = "cache_pygates")]
+    pub fn py_op_mut(&mut self) -> &mut OnceLock<PyObject> {
+        &mut self.py_op
     }
 
     /// Access the standard gate in this `PackedInstruction`, if it is one.  If the instruction

@@ -353,8 +353,6 @@ fn generate_twirled_circuit(
                         ),
                         inst.extra_attrs().clone(),
                     );
-                    #[cfg(feature = "cache_pygates")]
-                    new_inst.py_op.set(new_inst_obj).unwrap();
                     out_circ.push(py, new_inst)?;
                 } else {
                     out_circ.push(py, inst.clone())?;
