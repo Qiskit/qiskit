@@ -404,9 +404,6 @@ class TestDecompose(QiskitTestCase):
             expect.rz(-0.25, 1)
             expect.cx(0, 1)
 
-        print(qc.decompose().draw())
-        print(expect.draw())
-
         self.assertEqual(expect, qc.decompose())
 
     def test_control_flow_for(self):
