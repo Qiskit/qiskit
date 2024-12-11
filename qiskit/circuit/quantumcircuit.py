@@ -902,7 +902,7 @@ class QuantumCircuit:
     graphically:
 
     .. image:: /source_images/depth.gif
-       :alt: [Rotate the circuit and let each gate fall as far as possible. The gates fall 
+       :alt: [Rotate the circuit and let each gate fall as far as possible. The gates fall \
               into "layers". The depth of the circuit is the number of layers.]
 
     We can verify our graphical result using :meth:`QuantumCircuit.depth`::

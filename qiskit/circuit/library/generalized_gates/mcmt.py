@@ -129,6 +129,7 @@ class MCMTVChain(MCMT):
     **Expanded Circuit:**
 
     .. plot::
+       :alt: [Diagram illustrating the previously described circuit.]
 
        from qiskit.circuit.library import MCMTVChain, ZGate
        from qiskit.visualization.library import _generate_circuit_library_visualization

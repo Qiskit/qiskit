@@ -70,6 +70,7 @@ def excitation_preserving(
         With linear entanglement, this circuit is given by:
 
         .. plot::
+            :alt: [Circuit diagram output by the previous code.]
             :include-source:
             :context:
 
@@ -83,6 +84,7 @@ def excitation_preserving(
         in each block:
 
         .. plot::
+            :alt: [Circuit diagram output by the previous code.]
             :include-source:
             :context:
 
