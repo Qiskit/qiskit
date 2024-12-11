@@ -135,6 +135,34 @@ class HLSConfig:
         self.methods[hls_name] = hls_methods
 
 
+class HLSData:
+    """Internal class for keeping immutable data required by HighLevelSynthesis."""
+
+    def __init__(
+        self,
+        hls_config,
+        hls_plugin_manager,
+        coupling_map,
+        target,
+        use_qubit_indices,
+        qubits_initially_zero,
+        equivalence_library,
+        min_qubits,
+        top_level_only,
+        device_insts,
+    ):
+        self.hls_config = hls_config
+        self.hls_plugin_manager = hls_plugin_manager
+        self.coupling_map = coupling_map
+        self.target = target
+        self.use_qubit_indices = use_qubit_indices
+        self.qubits_initially_zero = qubits_initially_zero
+        self.equivalence_library = equivalence_library
+        self.min_qubits = min_qubits
+        self.top_level_only = top_level_only
+        self.device_insts = device_insts
+
+
 class HighLevelSynthesis(TransformationPass):
     r"""Synthesize higher-level objects and unroll custom definitions.
 
@@ -230,32 +258,37 @@ class HighLevelSynthesis(TransformationPass):
         """
         super().__init__()
 
-        if hls_config is not None:
-            self.hls_config = hls_config
-        else:
-            # When the config file is not provided, we will use the "default" method
-            # to synthesize Operations (when available).
-            self.hls_config = HLSConfig(True)
+        # When the config file is not provided, we will use the "default" method
+        # to synthesize Operations (when available).
+        hls_config = hls_config or HLSConfig(True)
+        hls_plugin_manager = HighLevelSynthesisPluginManager()
 
-        self.hls_plugin_manager = HighLevelSynthesisPluginManager()
-        self._coupling_map = coupling_map
-        self._target = target
-        self._use_qubit_indices = use_qubit_indices
-        self.qubits_initially_zero = qubits_initially_zero
         if target is not None:
-            self._coupling_map = self._target.build_coupling_map()
-        self._equiv_lib = equivalence_library
-        self._basis_gates = basis_gates
-        self._min_qubits = min_qubits
+            coupling_map = target.build_coupling_map()
+        else:
+            coupling_map = coupling_map
 
-        self._top_level_only = self._basis_gates is None and self._target is None
+        top_level_only = basis_gates is None and target is None
 
         # include path for when target exists but target.num_qubits is None (BasicSimulator)
-        if not self._top_level_only and (self._target is None or self._target.num_qubits is None):
+        if not top_level_only and (target is None or target.num_qubits is None):
             basic_insts = {"measure", "reset", "barrier", "snapshot", "delay", "store"}
-            self._device_insts = basic_insts | set(self._basis_gates)
+            device_insts = basic_insts | set(basis_gates)
         else:
-            self._device_insts = set()
+            device_insts = set()
+
+        self.data = HLSData(
+            hls_config=hls_config,
+            hls_plugin_manager=hls_plugin_manager,
+            coupling_map=coupling_map,
+            target=target,
+            use_qubit_indices=use_qubit_indices,
+            qubits_initially_zero=qubits_initially_zero,
+            equivalence_library=equivalence_library,
+            min_qubits=min_qubits,
+            top_level_only=top_level_only,
+            device_insts=device_insts,
+        )
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the HighLevelSynthesis pass on `dag`.
@@ -273,7 +306,7 @@ class HighLevelSynthesis(TransformationPass):
         qubits = tuple(dag.find_bit(q).index for q in dag.qubits)
         context = QubitContext(list(range(len(dag.qubits))))
         tracker = QubitTracker(num_qubits=dag.num_qubits())
-        if self.qubits_initially_zero:
+        if self.data.qubits_initially_zero:
             tracker.set_clean(context.to_globals(qubits))
 
         out_dag = self._run(dag, tracker, context, use_ancillas=True, top_level=True)
@@ -535,7 +568,7 @@ class HighLevelSynthesis(TransformationPass):
         # If it was no AnnotatedOperation, try synthesizing via HLS or by unrolling.
         else:
             # Try synthesis via HLS -- which will return ``None`` if unsuccessful.
-            indices = qubits if self._use_qubit_indices else None
+            indices = qubits if self.data.use_qubit_indices else None
             if len(hls_methods := self._methods_to_try(operation.name)) > 0:
                 if use_ancillas:
                     num_clean_available = tracker.num_clean(context.to_globals(qubits))
@@ -567,7 +600,7 @@ class HighLevelSynthesis(TransformationPass):
                             qubits.append(new_local_qubit)
 
             # If HLS did not apply, or was unsuccessful, try unrolling custom definitions.
-            if synthesized is None and not self._top_level_only:
+            if synthesized is None and not self.data.top_level_only:
                 synthesized = self._get_custom_definition(operation, indices)
 
         if synthesized is None:
@@ -643,7 +676,10 @@ class HighLevelSynthesis(TransformationPass):
         if not (isinstance(inst, ControlledGate) and inst._open_ctrl):
             # include path for when target exists but target.num_qubits is None (BasicSimulator)
             inst_supported = self._instruction_supported(inst.name, qubits)
-            if inst_supported or (self._equiv_lib is not None and self._equiv_lib.has_entry(inst)):
+            if inst_supported or (
+                self.data.equivalence_library is not None
+                and self.data.equivalence_library.has_entry(inst)
+            ):
                 return None  # we support this operation already
 
         # if not, try to get the definition
@@ -659,13 +695,13 @@ class HighLevelSynthesis(TransformationPass):
 
     def _methods_to_try(self, name: str):
         """Get a sequence of methods to try for a given op name."""
-        if (methods := self.hls_config.methods.get(name)) is not None:
+        if (methods := self.data.hls_config.methods.get(name)) is not None:
             # the operation's name appears in the user-provided config,
             # we use the list of methods provided by the user
             return methods
         if (
-            self.hls_config.use_default_on_unspecified
-            and "default" in self.hls_plugin_manager.method_names(name)
+            self.data.hls_config.use_default_on_unspecified
+            and "default" in self.data.hls_plugin_manager.method_names(name)
         ):
             # the operation's name does not appear in the user-specified config,
             # we use the "default" method when instructed to do so and the "default"
@@ -692,7 +728,7 @@ class HighLevelSynthesis(TransformationPass):
         when no synthesis methods is available or specified, or when there is
         an insufficient number of auxiliary qubits).
         """
-        hls_plugin_manager = self.hls_plugin_manager
+        hls_plugin_manager = self.data.hls_plugin_manager
 
         best_decomposition = None
         best_score = np.inf
@@ -732,8 +768,8 @@ class HighLevelSynthesis(TransformationPass):
 
             decomposition = plugin_method.run(
                 op,
-                coupling_map=self._coupling_map,
-                target=self._target,
+                coupling_map=self.data.coupling_map,
+                target=self.data.target,
                 qubits=qubits,
                 **plugin_args,
             )
@@ -741,7 +777,7 @@ class HighLevelSynthesis(TransformationPass):
             # The synthesis methods that are not suited for the given higher-level-object
             # will return None.
             if decomposition is not None:
-                if self.hls_config.plugin_selection == "sequential":
+                if self.data.hls_config.plugin_selection == "sequential":
                     # In the "sequential" mode the first successful decomposition is
                     # returned.
                     best_decomposition = decomposition
@@ -749,7 +785,7 @@ class HighLevelSynthesis(TransformationPass):
 
                 # In the "run everything" mode we update the best decomposition
                 # discovered
-                current_score = self.hls_config.plugin_evaluation_fn(decomposition)
+                current_score = self.data.hls_config.plugin_evaluation_fn(decomposition)
                 if current_score < best_score:
                     best_decomposition = decomposition
                     best_score = current_score
@@ -812,7 +848,7 @@ class HighLevelSynthesis(TransformationPass):
 
         if (
             dag._has_calibration_for(node)
-            or len(node.qargs) < self._min_qubits
+            or len(node.qargs) < self.data.min_qubits
             or node.is_directive()
             or (self._instruction_supported(node.name, qubits) and not node.is_control_flow())
         ):
@@ -835,17 +871,17 @@ class HighLevelSynthesis(TransformationPass):
                 # This uses unfortunately private details of `EquivalenceLibrary`, but so does the
                 # `BasisTranslator`, and this is supposed to just be temporary til this is moved
                 # into Rust space.
-                self._equiv_lib is not None
+                self.data.equivalence_library is not None
                 and equivalence.Key(name=node.name, num_qubits=node.num_qubits)
-                in self._equiv_lib.keys()
+                in self.data.equivalence_library.keys()
             )
         )
 
     def _instruction_supported(self, name: str, qubits: tuple[int] | None) -> bool:
         # include path for when target exists but target.num_qubits is None (BasicSimulator)
-        if self._target is None or self._target.num_qubits is None:
-            return name in self._device_insts
-        return self._target.instruction_supported(operation_name=name, qargs=qubits)
+        if self.data.target is None or self.data.target.num_qubits is None:
+            return name in self.data.device_insts
+        return self.data.target.instruction_supported(operation_name=name, qargs=qubits)
 
 
 def _instruction_to_circuit(inst: Instruction) -> QuantumCircuit:
