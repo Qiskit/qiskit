@@ -35,7 +35,7 @@ class QuantumVolume(QuantumCircuit):
     **Reference Circuit:**
 
     .. plot::
-       :alt: [Circuit diagram output by the previous code.]
+       :alt: [Diagram illustrating the previously described circuit.]
 
        from qiskit.circuit.library import QuantumVolume
        circuit = QuantumVolume(5, 6, seed=10)
@@ -44,7 +44,7 @@ class QuantumVolume(QuantumCircuit):
     **Expanded Circuit:**
 
     .. plot::
-       :alt: [Circuit diagram output by the previous code.]
+       :alt: [Diagram illustrating the previously described circuit.]
 
        from qiskit.circuit.library import QuantumVolume
        from qiskit.visualization.library import _generate_circuit_library_visualization
@@ -152,7 +152,7 @@ def quantum_volume(
     **Reference Circuit:**
 
     .. plot::
-       :alt: [Circuit diagram output by the previous code.]
+       :alt: [Diagram illustrating the previously described circuit.]
 
        from qiskit.circuit.library import quantum_volume
        circuit = quantum_volume(5, 6, seed=10)
