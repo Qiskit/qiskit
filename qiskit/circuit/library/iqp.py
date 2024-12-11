@@ -38,7 +38,7 @@ class IQP(QuantumCircuit):
     **Reference Circuit:**
 
     .. plot::
-       
+       :alt: [Circuit diagram output by the previous code.]
 
        from qiskit.circuit.library import IQP
        A = [[6, 5, 3], [5, 4, 5], [3, 5, 1]]
