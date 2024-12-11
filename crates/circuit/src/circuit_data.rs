@@ -1394,13 +1394,7 @@ impl CircuitData {
                                 // Standard gates can all rebuild their definitions, so if the
                                 // cached py_op exists, update the `params` attribute and clear out
                                 // any existing cache.
-                                if let Some(borrowed) = previous.py_op.get() {
-                                    borrowed
-                                        .bind(py)
-                                        .getattr(params_attr)?
-                                        .set_item(parameter, new_param)?;
-                                    borrowed.bind(py).setattr("_definition", py.None())?
-                                }
+                                previous.py_op.take();
                             }
                         } else {
                             // Track user operations we've seen so we can rebind their definitions.
