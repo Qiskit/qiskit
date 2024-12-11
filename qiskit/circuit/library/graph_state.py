@@ -42,6 +42,7 @@ class GraphState(QuantumCircuit):
 
     .. plot::
        :alt: [Circuit diagram output by the previous code.]
+       :include-source:
 
        from qiskit.circuit.library import GraphState
        from qiskit.visualization.library import _generate_circuit_library_visualization
