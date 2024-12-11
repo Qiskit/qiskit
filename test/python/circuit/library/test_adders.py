@@ -233,6 +233,57 @@ class TestAdder(QiskitTestCase):
             synth = hls(circuit)
             self.assertEqual(synth.count_ops(), {"ModularAdder": 1})
 
+    def test_default_plugins(self):
+        """Tests covering different branches in the default synthesis plugins.."""
+        with self.subTest(name="HalfAdderTest1"):
+            adder = HalfAdderGate(3)
+            circuit = QuantumCircuit(9)
+            circuit.append(adder, range(7))
+            hls = HighLevelSynthesis()
+            _ = hls(circuit)
+        with self.subTest(name="HalfAdderTest2"):
+            adder = HalfAdderGate(4)
+            circuit = QuantumCircuit(12)
+            circuit.append(adder, range(9))
+            hls = HighLevelSynthesis()
+            _ = hls(circuit)
+        with self.subTest(name="HalfAdderTest3"):
+            adder = HalfAdderGate(4)
+            circuit = QuantumCircuit(9)
+            circuit.append(adder, range(9))
+            hls = HighLevelSynthesis()
+            _ = hls(circuit)
+        with self.subTest(name="FullAdderTest1"):
+            adder = FullAdderGate(4)
+            circuit = QuantumCircuit(10)
+            circuit.append(adder, range(10))
+            hls = HighLevelSynthesis()
+            _ = hls(circuit)
+        with self.subTest(name="FullAdderTest2"):
+            adder = FullAdderGate(1)
+            circuit = QuantumCircuit(10)
+            circuit.append(adder, range(4))
+            hls = HighLevelSynthesis()
+            _ = hls(circuit)
+        with self.subTest(name="ModularAdderTest1"):
+            adder = ModularAdderGate(4)
+            circuit = QuantumCircuit(8)
+            circuit.append(adder, range(8))
+            hls = HighLevelSynthesis()
+            _ = hls(circuit)
+        with self.subTest(name="ModularAdderTest2"):
+            adder = ModularAdderGate(6)
+            circuit = QuantumCircuit(12)
+            circuit.append(adder, range(12))
+            hls = HighLevelSynthesis()
+            _ = hls(circuit)
+        with self.subTest(name="ModularAdderTest3"):
+            adder = ModularAdderGate(6)
+            circuit = QuantumCircuit(16)
+            circuit.append(adder, range(12))
+            hls = HighLevelSynthesis()
+            _ = hls(circuit)
+
 
 if __name__ == "__main__":
     unittest.main()

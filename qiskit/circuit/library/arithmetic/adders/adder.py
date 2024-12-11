@@ -231,4 +231,5 @@ class FullAdderGate(Gate):
         """Populates self.definition with a decomposition of this gate."""
         from qiskit.synthesis.arithmetic import adder_ripple_c04
 
+        # In the case of a full adder, this method does not use any ancilla qubits
         self.definition = adder_ripple_c04(self.num_state_qubits, kind="full")

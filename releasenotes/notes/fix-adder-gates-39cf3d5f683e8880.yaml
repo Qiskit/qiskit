@@ -1,16 +1,7 @@
 ---
-features_transpiler:
-  - |
-    Added :class:`.FullAdderSynthesisDefault` plugin that chooses the best decomposition
-    for :class:`.FullAdderGate` based on the number of clean ancilla qubits 
-    available. 
-  - |
-    Improved :class:`.HalfAdderSynthesisDefault` and :class:`.ModularAdderSynthesisDefault`
-    plugins for :class:`.HalfAdderGate` and :class:`.ModularAdderGate` respectively,
-    choosing the best decomposition based on the number of clean ancilla qubits available.
 fixes:
   - |
-    Adding default definitions for :class:`.FullAdderGate`, :class:`.HalfAdderGate`,
+    Added default definitions for :class:`.FullAdderGate`, :class:`.HalfAdderGate`,
     :class:`.ModularAdderGate` and :class:`.MultiplierGate` gates, allowing to 
     contruct :class:`qiskit.quantum_info.Operator`\s from quantum circuits 
     containing these gates.
@@ -18,3 +9,11 @@ fixes:
     Fixed the number of clean ancilla qubits required by
     :class:`.FullAdderSynthesisV95`, :class:`.HalfAdderSynthesisV95`, and
     :class:`.ModularAdderSynthesisV95` plugins.
+  - |
+    Added missing :class:`.FullAdderSynthesisDefault` plugin that chooses the best
+    decomposition for :class:`.FullAdderGate` based on the number of clean ancilla qubits
+    available.
+  - |
+    Fixed :class:`.HalfAdderSynthesisDefault` and :class:`.ModularAdderSynthesisDefault`
+    plugins, for :class:`.HalfAdderGate` and :class:`.ModularAdderGate` respectively,
+    to choose the best decomposition based on the number of clean ancilla qubits available.

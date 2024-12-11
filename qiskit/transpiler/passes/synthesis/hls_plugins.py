@@ -1357,7 +1357,9 @@ class HalfAdderSynthesisDefault(HighLevelSynthesisPlugin):
             return decomposition
 
         # The QFT-based adder does not require ancilla qubits and should always succeed
-        return HalfAdderSynthesisD00.run(high_level_object, coupling_map, target, qubits, **options)
+        return HalfAdderSynthesisD00().run(
+            high_level_object, coupling_map, target, qubits, **options
+        )
 
 
 class HalfAdderSynthesisC04(HighLevelSynthesisPlugin):
