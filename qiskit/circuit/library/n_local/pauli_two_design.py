@@ -88,8 +88,11 @@ def pauli_two_design(
     """
     rng = np.random.default_rng(seed)
     random_block = Block.from_callable(1, 1, lambda params: _random_pauli_builder(params, rng))
-    entanglement_block = (Block.from_standard_gate(CZGate._standard_gate) if num_qubits > 1 
-                            else Block.from_standard_gate(IGate._standard_gate))
+    entanglement_block = (
+        Block.from_standard_gate(CZGate._standard_gate)
+        if num_qubits > 1
+        else Block.from_standard_gate(IGate._standard_gate)
+    )
 
     data = py_n_local(
         num_qubits=num_qubits,
