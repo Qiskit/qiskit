@@ -26,7 +26,10 @@ use qiskit_circuit::Qubit;
 
 use crate::two_qubit_decompose::{Specialization, TwoQubitWeylDecomposition};
 
-fn create_k1_gates<'a>(decomp: &'a TwoQubitWeylDecomposition, py: Python<'a>) -> PyResult<(Bound<'a,PyAny>, Bound<'a,PyAny>)> {
+fn create_k1_gates<'a>(
+    decomp: &'a TwoQubitWeylDecomposition,
+    py: Python<'a>,
+) -> PyResult<(Bound<'a, PyAny>, Bound<'a, PyAny>)> {
     let k1r_arr = decomp.K1r(py);
     let k1l_arr = decomp.K1l(py);
     let kwargs = PyDict::new_bound(py);
@@ -37,10 +40,16 @@ fn create_k1_gates<'a>(decomp: &'a TwoQubitWeylDecomposition, py: Python<'a>) ->
     let k1l_gate = UNITARY_GATE
         .get_bound(py)
         .call((k1l_arr, py.None(), false), Some(&kwargs))?;
-    return Ok((k1r_gate, k1l_gate));
-}    
+    Ok((k1r_gate, k1l_gate))
+}
 
-fn add_new_op(new_dag: &mut DAGCircuit, new_op: OperationFromPython, qargs: Vec<Qubit>, mapping: &Vec<usize>, py: Python) -> PyResult<()> {
+fn add_new_op(
+    new_dag: &mut DAGCircuit,
+    new_op: OperationFromPython,
+    qargs: Vec<Qubit>,
+    mapping: &[usize],
+    py: Python,
+) -> PyResult<()> {
     let inst = PackedInstruction {
         op: new_op.operation,
         qubits: new_dag.qargs_interner.insert_owned(qargs),
@@ -52,16 +61,16 @@ fn add_new_op(new_dag: &mut DAGCircuit, new_op: OperationFromPython, qargs: Vec<
     };
     let qargs = new_dag.get_qargs(inst.qubits);
     let mapped_qargs: Vec<Qubit> = qargs
-    .iter()
-    .map(|q| Qubit::new(mapping[q.index()]))
-    .collect();
+        .iter()
+        .map(|q| Qubit::new(mapping[q.index()]))
+        .collect();
     new_dag.apply_operation_back(
         py,
         inst.op.clone(),
         &mapped_qargs,
         &[],
         inst.params.as_deref().cloned(),
-        inst.extra_attrs.clone(),
+        inst.extra_attrs,
         #[cfg(feature = "cache_pygates")]
         None,
     )?;
@@ -145,15 +154,27 @@ pub fn split_2q_unitaries(
                     let qargs = dag.get_qargs(inst.qubits);
                     let index0 = qargs[0].index();
                     let index1 = qargs[1].index();
-                    mapping.swap(index0, index1);                   
+                    mapping.swap(index0, index1);
                     // now add the two 1-qubit gates
                     let (k1r_gate, k1l_gate) = create_k1_gates(&decomp, py)?;
-                    add_new_op(&mut new_dag, k1r_gate.extract()?, vec![qubits[0]], &mapping, py)?;
-                    add_new_op(&mut new_dag, k1l_gate.extract()?, vec![qubits[1]], &mapping, py)?;
-                    new_dag.add_global_phase(py, &Param::Float(decomp.global_phase+PI4))?;
+                    add_new_op(
+                        &mut new_dag,
+                        k1r_gate.extract()?,
+                        vec![qubits[0]],
+                        &mapping,
+                        py,
+                    )?;
+                    add_new_op(
+                        &mut new_dag,
+                        k1l_gate.extract()?,
+                        vec![qubits[1]],
+                        &mapping,
+                        py,
+                    )?;
+                    new_dag.add_global_phase(py, &Param::Float(decomp.global_phase + PI4))?;
                 }
             }
-            if !is_swap{
+            if !is_swap {
                 // General instruction
                 let qargs = dag.get_qargs(inst.qubits);
                 let cargs = dag.get_cargs(inst.clbits);
@@ -175,7 +196,7 @@ pub fn split_2q_unitaries(
             }
         }
     }
-    return Ok(Some((new_dag, mapping)));
+    Ok(Some((new_dag, mapping)))
 }
 
 pub fn split_2q_unitaries_mod(m: &Bound<PyModule>) -> PyResult<()> {
