@@ -340,7 +340,7 @@ class ParameterExpression:
         either a constant or a second ParameterExpression.
 
         Args:
-            operation: One of operator.{add,sub,mul,truediv}.
+            operation: An operator, such as add, sub, mul, and truediv.
             other: The second argument to be used with self in operation.
             reflected: Optional - The default ordering is "self operator other".
                        If reflected is True, this is switched to "other operator self".
