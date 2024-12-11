@@ -537,8 +537,6 @@ impl PackedInstruction {
         }
     }
 
-    // Getters
-
     /// Retrieves an immutable reference to the instruction's underlying operation.
     pub fn op(&self) -> &PackedOperation {
         &self.op
@@ -565,8 +563,6 @@ impl PackedInstruction {
         &self.py_op
     }
 
-    // Setters
-
     /// Retrieves a mutable reference to the instruction's underlying operation.
     pub fn op_mut(&mut self) -> &mut PackedOperation {
         #[cfg(feature = "cache_pygates")]
@@ -581,7 +577,7 @@ impl PackedInstruction {
         &mut self.qubits
     }
 
-    /// Retrieves an immutable reference to the index under which the interner has stored `clbits`.
+    /// Retrieves a mutable reference to the index under which the interner has stored `clbits`.
     pub fn clbits_mut(&mut self) -> &mut Interned<[Clbit]> {
         &mut self.clbits
     }
@@ -731,7 +727,7 @@ impl PackedInstruction {
 }
 
 // When cloning a `PackedInstruction` we will need to delete the old cached
-// `Gate` to avoid having duplicated references to the same python object.
+// operation to avoid having duplicated references to the same python object.
 impl Clone for PackedInstruction {
     fn clone(&self) -> Self {
         Self {
