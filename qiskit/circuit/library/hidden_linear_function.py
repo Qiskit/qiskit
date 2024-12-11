@@ -55,8 +55,7 @@ class HiddenLinearFunction(QuantumCircuit):
     **Reference Circuit:**
 
         .. plot::
-           :alt: [Circuit diagram output by the previous code.]
-           :include-source:
+           :nofigs:
 
            from qiskit.circuit.library import HiddenLinearFunction
            from qiskit.visualization.library import _generate_circuit_library_visualization
