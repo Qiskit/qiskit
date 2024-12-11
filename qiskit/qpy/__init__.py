@@ -574,7 +574,7 @@ Type code  Meaning
 Changes to EXPR_VAR
 ~~~~~~~~~~~~~~~~~~~
 
-The EXPR_VAR variable has gained a new type code and payload, in addition to the pre-existing ones:
+The ``EXPR_VAR`` variable has gained a new type code and payload, in addition to the pre-existing ones:
 
 ===========================  =========  ============================================================
 Python class                 Type code  Payload
@@ -721,9 +721,9 @@ Each of these are described in the following table:
 ======================  =========  =======================================================  ========
 Qiskit class            Type code  Payload                                                  Children
 ======================  =========  =======================================================  ========
-:class:`~.expr.Var`     ``x``      One EXPR_VAR.                                            0
+:class:`~.expr.Var`     ``x``      One ``EXPR_VAR``.                                        0
 
-:class:`~.expr.Value`   ``v``      One EXPR_VALUE.                                          0
+:class:`~.expr.Value`   ``v``      One ``EXPR_VALUE``.                                      0
 
 :class:`~.expr.Cast`    ``c``      One ``_Bool``  that corresponds to the value of          1
                                    ``implicit``.
