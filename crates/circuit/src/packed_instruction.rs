@@ -567,7 +567,7 @@ impl PackedInstruction {
 
     // Setters
 
-    /// Retrieves an immutable reference to the instruction's underlying operation.
+    /// Retrieves a mutable reference to the instruction's underlying operation.
     pub fn op_mut(&mut self) -> &mut PackedOperation {
         #[cfg(feature = "cache_pygates")]
         {
@@ -576,7 +576,7 @@ impl PackedInstruction {
         &mut self.op
     }
 
-    /// Retrieves an immutable reference to the index under which the interner has stored `qubits`.
+    /// Retrieves a mutable reference to the index under which the interner has stored `qubits`.
     pub fn qubits_mut(&mut self) -> &mut Interned<[Qubit]> {
         &mut self.qubits
     }
@@ -595,7 +595,7 @@ impl PackedInstruction {
         &mut self.extra_attrs
     }
 
-    /// Retrieves the cached py_gate immutably.
+    /// Retrieves the cached py_gate mutably.
     #[cfg(feature = "cache_pygates")]
     pub fn py_op_mut(&mut self) -> &mut OnceLock<PyObject> {
         &mut self.py_op
