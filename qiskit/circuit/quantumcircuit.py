@@ -1497,7 +1497,7 @@ class QuantumCircuit:
                 # Print the start times of each instruction in the transpiled circuit
                 print("Start times of instructions in the transpiled circuit:")
                 for instruction, start_time in zip(transpiled_qc.data, transpiled_qc.op_start_times):
-                print(f"{instruction.operation.name}: {start_time}")
+                    print(f"{instruction.operation.name}: {start_time}")
 
             .. code-block:: text
 
