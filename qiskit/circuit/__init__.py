@@ -64,7 +64,7 @@ defined as:
 
 
 .. plot::
-   :alt: [Circuit diagram output by the previous code.]
+   :alt: Circuit diagram output by the previous code.
    :include-source:
 
    from qiskit import QuantumCircuit
@@ -1145,7 +1145,7 @@ If we draw this circuit, we will see that Qiskit places the zeroth qubit on the 
 drawing:
 
 .. plot::
-    :alt: [Circuit diagram output by the previous code.]
+    :alt: Circuit diagram output by the previous code.
     :include-source:
     :context:
     :show-source-link: False

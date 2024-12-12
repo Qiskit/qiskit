@@ -45,7 +45,7 @@ class GR(QuantumCircuit):
     **Expanded Circuit:**
 
     .. plot::
-       :alt: [Diagram illustrating the previously described circuit.]
+       :alt: Diagram illustrating the previously described circuit.
 
        from qiskit.circuit.library import GR
        from qiskit.visualization.library import _generate_circuit_library_visualization

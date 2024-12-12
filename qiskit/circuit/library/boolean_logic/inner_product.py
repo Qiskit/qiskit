@@ -55,7 +55,7 @@ class InnerProduct(QuantumCircuit):
 
     Reference Circuit:
         .. plot::
-           :alt: [Diagram illustrating the previously described circuit.]
+           :alt: Diagram illustrating the previously described circuit.
 
            from qiskit.circuit.library import InnerProduct
            from qiskit.visualization.library import _generate_circuit_library_visualization
@@ -122,7 +122,7 @@ class InnerProductGate(Gate):
 
     Reference Circuit:
         .. plot::
-           :alt: [Diagram illustrating the previously described circuit.]
+           :alt: Diagram illustrating the previously described circuit.
 
            from qiskit.circuit import QuantumCircuit
            from qiskit.circuit.library import InnerProductGate

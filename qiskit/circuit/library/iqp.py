@@ -38,7 +38,7 @@ class IQP(QuantumCircuit):
     **Reference Circuit:**
 
     .. plot::
-       :alt: [Diagram illustrating the previously described circuit.]
+       :alt: Diagram illustrating the previously described circuit.
 
        from qiskit.circuit.library import IQP
        A = [[6, 5, 3], [5, 4, 5], [3, 5, 1]]
@@ -48,7 +48,7 @@ class IQP(QuantumCircuit):
     **Expanded Circuit:**
 
         .. plot::
-           :alt: [Diagram illustrating the previously described circuit.]
+           :alt: Diagram illustrating the previously described circuit.
 
            from qiskit.circuit.library import IQP
            from qiskit.visualization.library import _generate_circuit_library_visualization
@@ -156,7 +156,7 @@ def random_iqp(
     Example:
 
     .. plot::
-       :alt: [Circuit diagram output by the previous code.]
+       :alt: Circuit diagram output by the previous code.
        :include-source:
 
        from qiskit.circuit.library import random_iqp

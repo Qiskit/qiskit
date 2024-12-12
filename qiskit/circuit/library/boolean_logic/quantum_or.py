@@ -33,7 +33,7 @@ class OR(QuantumCircuit):
     The OR gate without special flags:
 
     .. plot::
-       :alt: [Diagram illustrating the previously described circuit.]
+       :alt: Diagram illustrating the previously described circuit.
 
        from qiskit.circuit.library import OR
        from qiskit.visualization.library import _generate_circuit_library_visualization
@@ -45,7 +45,7 @@ class OR(QuantumCircuit):
     flags ``[-1, 0, 0, 1, 1]``.
 
     .. plot::
-       :alt: [Diagram illustrating the previously described circuit.]
+       :alt: Diagram illustrating the previously described circuit.
 
        from qiskit.circuit.library import OR
        from qiskit.visualization.library import _generate_circuit_library_visualization
@@ -119,7 +119,7 @@ class OrGate(Gate):
     The OrGate gate without special flags:
 
     .. plot::
-       :alt: [Diagram illustrating the previously described circuit.]
+       :alt: Diagram illustrating the previously described circuit.
 
        from qiskit.circuit import QuantumCircuit
        from qiskit.circuit.library import OrGate
@@ -133,7 +133,7 @@ class OrGate(Gate):
     flags ``[-1, 0, 0, 1, 1]``.
 
     .. plot::
-       :alt: [Diagram illustrating the previously described circuit.]
+       :alt: Diagram illustrating the previously described circuit.
 
        from qiskit.circuit import QuantumCircuit
        from qiskit.circuit.library import OrGate

@@ -71,7 +71,7 @@ def efficient_su2(
         CX gates, is equivalent to an all-to-all entanglement:
 
         .. plot::
-            :alt: [Circuit diagram output by the previous code.]
+            :alt: Circuit diagram output by the previous code.
             :include-source:
             :context:
 
@@ -85,7 +85,7 @@ def efficient_su2(
         For example:
 
         .. plot::
-            :alt: [Circuit diagram output by the previous code.]
+            :alt: Circuit diagram output by the previous code.
             :include-source:
             :context:
 

@@ -68,7 +68,7 @@ def real_amplitudes(
     Examples:
 
         .. plot::
-           :alt: [Circuit diagram output by the previous code.]
+           :alt: Circuit diagram output by the previous code.
            :include-source:
            :context:
 
@@ -78,7 +78,7 @@ def real_amplitudes(
            ansatz.draw("mpl")
 
         .. plot::
-           :alt: [Circuit diagram output by the previous code.]
+           :alt: Circuit diagram output by the previous code.
            :include-source:
            :context:
 
@@ -86,7 +86,7 @@ def real_amplitudes(
            ansatz.draw("mpl")
 
         .. plot::
-           :alt: [Circuit diagram output by the previous code.]
+           :alt: Circuit diagram output by the previous code.
            :include-source:
            :context:
 
@@ -94,7 +94,7 @@ def real_amplitudes(
            ansatz.draw("mpl")
 
         .. plot::
-           :alt: [Circuit diagram output by the previous code.]
+           :alt: Circuit diagram output by the previous code.
            :include-source:
            :context:
 

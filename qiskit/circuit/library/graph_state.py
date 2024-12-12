@@ -41,7 +41,7 @@ class GraphState(QuantumCircuit):
     **Reference Circuit:**
 
     .. plot::
-       :alt: [Diagram illustrating the previously described circuit.]
+       :alt: Diagram illustrating the previously described circuit.
 
        from qiskit.circuit.library import GraphState
        from qiskit.visualization.library import _generate_circuit_library_visualization
@@ -106,7 +106,7 @@ class GraphStateGate(Gate):
     **Reference Circuit:**
 
     .. plot::
-        :alt: [Circuit diagram output by the previous code.]
+        :alt: Circuit diagram output by the previous code.
         :include-source:
 
         from qiskit.circuit import QuantumCircuit

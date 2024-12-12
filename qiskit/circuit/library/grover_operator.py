@@ -103,7 +103,7 @@ def grover_operator(
         We can construct a Grover operator just from the phase oracle:
 
         .. plot::
-            :alt: [Circuit diagram output by the previous code.]
+            :alt: Circuit diagram output by the previous code.
             :include-source:
             :context:
 
@@ -118,7 +118,7 @@ def grover_operator(
         We can also modify the state preparation:
 
         .. plot::
-            :alt: [Circuit diagram output by the previous code.]
+            :alt: Circuit diagram output by the previous code.
             :include-source:
             :context:
 
@@ -134,7 +134,7 @@ def grover_operator(
         the oracle:
 
         .. plot::
-            :alt: [Circuit diagram output by the previous code.]
+            :alt: Circuit diagram output by the previous code.
             :include-source:
             :context:
 
@@ -152,7 +152,7 @@ def grover_operator(
         objects:
 
         .. plot::
-            :alt: [Circuit diagram output by the previous code.]
+            :alt: Circuit diagram output by the previous code.
             :include-source:
             :context:
 
