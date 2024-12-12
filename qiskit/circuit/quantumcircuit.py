@@ -1489,7 +1489,8 @@ class QuantumCircuit:
 
                 # Transpile the circuit with a specific basis gates list and print the resulting circuit
                 backend = GenericBackendV2(2, basis_gates=['u1', 'u2', 'u3', 'cx'])
-                pm = generate_preset_pass_manager(optimization_level=1, backend=backend, scheduling_method='alap')
+                pm = generate_preset_pass_manager(optimization_level=1,
+                backend=backend, scheduling_method='alap')
                 transpiled_qc = pm.run(qc)
                 print("Transpiled circuit with basis gates ['u1', 'u2', 'u3', 'cx']:")
                 print(transpiled_qc)
@@ -3820,12 +3821,63 @@ class QuantumCircuit:
 
     @property
     def num_ancillas(self) -> int:
-        """Return the number of ancilla qubits."""
+        """Return the number of ancilla qubits.
+
+        Example:
+
+            .. plot::
+                :include-source:
+                :nofigs:
+
+                from qiskit import QuantumCircuit, QuantumRegister, AncillaRegister
+
+                # Create a 2-qubit quantum circuit
+
+                reg = QuantumRegister(2)
+
+                qc = QuantumCircuit(reg)
+
+                # Create an ancilla register with 1 qubit
+
+                anc = AncillaRegister(1)
+
+                qc.add_register(anc)  # Add the ancilla register to the circuit
+
+                print("Number of ancilla qubits:")
+                    print(qc.num_ancillas)
+
+            .. code-block:: text
+
+                Number of ancilla qubits:
+                1
+        """
         return len(self.ancillas)
 
     @property
     def num_clbits(self) -> int:
-        """Return number of classical bits."""
+        """Return number of classical bits.
+
+        Example:
+
+            .. plot::
+                :include-source:
+                :nofigs:
+
+                from qiskit import QuantumCircuit
+
+                # Create a new circuit with two qubits and one classical bit
+                qc = QuantumCircuit(2, 1)
+
+                # Add a Hadamard gate to qubit 0
+                qc.h(0)
+
+                # Perform a controlled-X gate on qubit 1, controlled by qubit 0
+                qc.cx(0, 1)
+
+                print("Number of classical bits:")
+                    print(qc.num_clbits)
+
+        """
         return self._data.num_clbits
 
     # The stringified return type is because OrderedDict can't be subscripted before Python 3.9, and
