@@ -3,8 +3,7 @@ fixes:
   - |
     Added default definitions for :class:`.FullAdderGate`, :class:`.HalfAdderGate`,
     :class:`.ModularAdderGate` and :class:`.MultiplierGate` gates, allowing to 
-    contruct :class:`qiskit.quantum_info.Operator`\s from quantum circuits 
-    containing these gates.
+    contruct :class:`.Operator`\s from quantum circuits containing these gates.
   - |
     Fixed the number of clean ancilla qubits required by
     :class:`.FullAdderSynthesisV95`, :class:`.HalfAdderSynthesisV95`, and
