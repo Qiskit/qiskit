@@ -1469,11 +1469,11 @@ class QuantumCircuit:
         runs on the quantum circuit.
 
         Example:
-        
+
             .. plot::
                 :include-source:
                 :nofigs:
-                
+
                 from qiskit import QuantumCircuit
                 from qiskit.providers.fake_provider import GenericBackendV2
                 from qiskit.transpiler import generate_preset_pass_manager
@@ -1498,27 +1498,27 @@ class QuantumCircuit:
                 print("Start times of instructions in the transpiled circuit:")
                 for instruction, start_time in zip(transpiled_qc.data, transpiled_qc.op_start_times):
                 print(f"{instruction.operation.name}: {start_time}")
-                    
+
             .. code-block:: text
-            
+
 
                 Original circuit:
-                        ┌───┐      ░ ┌─┐   
+                        ┌───┐      ░ ┌─┐
                 q_0: ┤ H ├──■───░─┤M├───
                         └───┘┌─┴─┐ ░ └╥┘┌─┐
                 q_1: ─────┤ X ├─░──╫─┤M├
                             └───┘ ░  ║ └╥┘
                 meas: 2/══════════════╩══╩═
-                                    0  1 
+                                    0  1
 
                 Transpiled circuit with basis gates ['u1', 'u2', 'u3', 'cx']:
                             ┌─────────┐          ░ ┌─────────────────┐┌─┐
                 q_0 -> 0 ───┤ U2(0,π) ├──────■───░─┤ Delay(1255[dt]) ├┤M├
                         ┌──┴─────────┴───┐┌─┴─┐ ░ └───────┬─┬───────┘└╥┘
                 q_1 -> 1 ┤ Delay(196[dt]) ├┤ X ├─░─────────┤M├─────────╫─
-                        └────────────────┘└───┘ ░         └╥┘         ║ 
+                        └────────────────┘└───┘ ░         └╥┘         ║
                 meas: 2/═══════════════════════════════════╩══════════╩═
-                                                            1          0 
+                                                            1          0
 
                 Start times of instructions in the transpiled circuit:
                 u2: 0
