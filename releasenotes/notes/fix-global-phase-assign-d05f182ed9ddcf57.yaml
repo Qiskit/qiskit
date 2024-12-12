@@ -1,8 +1,8 @@
 ---
 fixes:
   - |
-    Fixed a series of bugs when processing circuit with parameterized global phases,
-    where upon assignment the global phase was not correctly assigned.
+    Fixed a series of bugs when processing circuits with parameterized global phases
+    in which the global phase was not properly assigned during parameter assignment.
     Known cases this affected include:
 
     * assigning parameters after calling :meth:`.QuantumCircuit.decompose` on a circuit, 
