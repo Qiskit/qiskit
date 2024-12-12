@@ -3843,13 +3843,11 @@ class QuantumCircuit:
 
                 qc.add_register(anc)  # Add the ancilla register to the circuit
 
-                print("Number of ancilla qubits:")
-                    print(qc.num_ancillas)
+                print("Number of ancilla qubits:", qc.num_ancillas)
 
             .. code-block:: text
 
-                Number of ancilla qubits:
-                1
+                Number of ancilla qubits: 1
         """
         return len(self.ancillas)
 
@@ -3874,8 +3872,12 @@ class QuantumCircuit:
                 # Perform a controlled-X gate on qubit 1, controlled by qubit 0
                 qc.cx(0, 1)
 
-                print("Number of classical bits:")
-                    print(qc.num_clbits)
+                print("Number of classical bits:", qc.num_clbits)
+
+            .. code-block:: text
+
+                Number of classical bits: 1
+
 
         """
         return self._data.num_clbits
