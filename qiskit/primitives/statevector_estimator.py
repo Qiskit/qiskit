@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Estimator class
+Statevector Estimator V2 class
 """
 
 from __future__ import annotations
@@ -19,13 +19,13 @@ from collections.abc import Iterable
 
 import numpy as np
 
-from qiskit.quantum_info import SparsePauliOp, Statevector
+from qiskit.quantum_info import SparsePauliOp
 
 from .base import BaseEstimatorV2
 from .containers import DataBin, EstimatorPubLike, PrimitiveResult, PubResult
 from .containers.estimator_pub import EstimatorPub
 from .primitive_job import PrimitiveJob
-from .utils import bound_circuit_to_instruction
+from .utils import _statevector_from_circuit
 
 
 class StatevectorEstimator(BaseEstimatorV2):
@@ -40,6 +40,13 @@ class StatevectorEstimator(BaseEstimatorV2):
     Each tuple of ``(circuit, observables, <optional> parameter values, <optional> precision)``,
     called an estimator primitive unified bloc (PUB), produces its own array-based result. The
     :meth:`~.EstimatorV2.run` method can be given a sequence of pubs to run in one call.
+
+    .. note::
+        The result of this class is exact if the circuit contains only unitary operations.
+        On the other hand, the result could be stochastic if the circuit contains a non-unitary
+        operation such as a reset for a some subsystems.
+        The stochastic result can be made reproducible by setting ``seed``, e.g.,
+        ``StatevectorEstimator(seed=123)``.
 
     .. plot::
         :include-source:
@@ -136,7 +143,7 @@ class StatevectorEstimator(BaseEstimatorV2):
         return job
 
     def _run(self, pubs: list[EstimatorPub]) -> PrimitiveResult[PubResult]:
-        return PrimitiveResult([self._run_pub(pub) for pub in pubs])
+        return PrimitiveResult([self._run_pub(pub) for pub in pubs], metadata={"version": 2})
 
     def _run_pub(self, pub: EstimatorPub) -> PubResult:
         rng = np.random.default_rng(self._seed)
@@ -151,7 +158,7 @@ class StatevectorEstimator(BaseEstimatorV2):
         for index in np.ndindex(*bc_circuits.shape):
             bound_circuit = bc_circuits[index]
             observable = bc_obs[index]
-            final_state = Statevector(bound_circuit_to_instruction(bound_circuit))
+            final_state = _statevector_from_circuit(bound_circuit, rng)
             paulis, coeffs = zip(*observable.items())
             obs = SparsePauliOp(paulis, coeffs)  # TODO: support non Pauli operators
             expectation_value = np.real_if_close(final_state.expectation_value(obs))
@@ -162,4 +169,6 @@ class StatevectorEstimator(BaseEstimatorV2):
             evs[index] = expectation_value
 
         data = DataBin(evs=evs, stds=stds, shape=evs.shape)
-        return PubResult(data, metadata={"precision": precision})
+        return PubResult(
+            data, metadata={"target_precision": precision, "circuit_metadata": pub.circuit.metadata}
+        )

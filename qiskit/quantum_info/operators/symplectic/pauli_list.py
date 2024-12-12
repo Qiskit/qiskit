@@ -54,7 +54,10 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
 
     For example,
 
-    .. code-block::
+    .. plot::
+       :include-source:
+       :nofigs:
+       :context: reset
 
         import numpy as np
 
@@ -80,7 +83,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         pauli_list = PauliList.from_symplectic(z, x, phase)
         print("4. ", pauli_list)
 
-    .. parsed-literal::
+    .. code-block:: text
 
         1.  ['II', 'ZI', '-iYY']
         2.  ['iXI']
@@ -93,14 +96,17 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
     operator which accepts integer, lists, or slices for selecting subsets
     of PauliList. If integer is given, it returns Pauli not PauliList.
 
-    .. code-block::
+    .. plot::
+       :include-source:
+       :nofigs:
+       :context:
 
         pauli_list = PauliList(["XX", "ZZ", "IZ"])
         print("Integer: ", repr(pauli_list[1]))
         print("List: ", repr(pauli_list[[0, 2]]))
         print("Slice: ", repr(pauli_list[0:2]))
 
-    .. parsed-literal::
+    .. code-block:: text
 
         Integer:  Pauli('ZZ')
         List:  PauliList(['XX', 'IZ'])
@@ -382,8 +388,8 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         if not qubit:
             if max(ind) >= len(self):
                 raise QiskitError(
-                    "Indices {} are not all less than the size"
-                    " of the PauliList ({})".format(ind, len(self))
+                    f"Indices {ind} are not all less than the size"
+                    f" of the PauliList ({len(self)})"
                 )
             z = np.delete(self._z, ind, axis=0)
             x = np.delete(self._x, ind, axis=0)
@@ -394,8 +400,8 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         # Column (qubit) deletion
         if max(ind) >= self.num_qubits:
             raise QiskitError(
-                "Indices {} are not all less than the number of"
-                " qubits in the PauliList ({})".format(ind, self.num_qubits)
+                f"Indices {ind} are not all less than the number of"
+                f" qubits in the PauliList ({self.num_qubits})"
             )
         z = np.delete(self._z, ind, axis=1)
         x = np.delete(self._x, ind, axis=1)
@@ -432,8 +438,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         if not qubit:
             if ind > size:
                 raise QiskitError(
-                    "Index {} is larger than the number of rows in the"
-                    " PauliList ({}).".format(ind, size)
+                    f"Index {ind} is larger than the number of rows in the" f" PauliList ({size})."
                 )
             base_z = np.insert(self._z, ind, value._z, axis=0)
             base_x = np.insert(self._x, ind, value._x, axis=0)
@@ -443,8 +448,8 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         # Column insertion
         if ind > self.num_qubits:
             raise QiskitError(
-                "Index {} is greater than number of qubits"
-                " in the PauliList ({})".format(ind, self.num_qubits)
+                f"Index {ind} is greater than number of qubits"
+                f" in the PauliList ({self.num_qubits})"
             )
         if len(value) == 1:
             # Pad blocks to correct size
@@ -461,7 +466,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
             raise QiskitError(
                 "Input PauliList must have a single row, or"
                 " the same number of rows as the Pauli Table"
-                " ({}).".format(size)
+                f" ({size})."
             )
         # Build new array by blocks
         z = np.hstack([self.z[:, :ind], value_z, self.z[:, ind:]])
@@ -545,7 +550,9 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
 
         Consider sorting all a random ordering of all 2-qubit Paulis
 
-        .. code-block::
+        .. plot::
+           :include-source:
+           :nofigs:
 
             from numpy.random import shuffle
             from qiskit.quantum_info.operators import PauliList
@@ -569,7 +576,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
             print('Weight sorted')
             print(srt)
 
-        .. parsed-literal::
+        .. code-block:: text
 
             Initial Ordering
             ['YX', 'ZZ', 'XZ', 'YI', 'YZ', 'II', 'XX', 'XI', 'XY', 'YY', 'IX', 'IZ',
@@ -596,7 +603,9 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
 
         **Example**
 
-        .. code-block::
+        .. plot::
+           :include-source:
+           :nofigs:
 
             from qiskit.quantum_info.operators import PauliList
 
@@ -604,7 +613,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
             unique = pt.unique()
             print(unique)
 
-        .. parsed-literal::
+        .. code-block:: text
 
             ['X', 'Y', '-X', 'I', 'Z', 'iZ']
 
@@ -647,7 +656,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         index = index[sort_inds]
         unique = PauliList(BasePauli(self._z[index], self._x[index], self._phase[index]))
 
-        # Concatinate return tuples
+        # Concatenate return tuples
         ret = (unique,)
         if return_index:
             ret += (index,)
@@ -1215,7 +1224,9 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
             qubit_wise (bool): whether the commutation rule is applied to the whole operator,
                 or on a per-qubit basis.  For example:
 
-                .. code-block:: python
+                .. plot::
+                   :include-source:
+                   :nofigs:
 
                     >>> from qiskit.quantum_info import PauliList
                     >>> op = PauliList(["XX", "YY", "IZ", "ZZ"])

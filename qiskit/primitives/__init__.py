@@ -51,7 +51,7 @@ define a computation unit of work for the estimator to complete:
 * a collection parameter value sets to bind the circuit against, :math:`\theta_k`.
 
 Running an estimator returns a :class:`~qiskit.primitives.BasePrimitiveJob` object, where calling
-the method :meth:`~qiskit.primitives.BasePrimitiveJob.result` results in expectation value estimates 
+the method :meth:`~qiskit.primitives.BasePrimitiveJob.result` results in expectation value estimates
 and metadata for each pub:
 
 .. math::
@@ -66,7 +66,9 @@ is in general array-valued as well. For more information, please check
 
 Here is an example of how an estimator is used.
 
-.. code-block:: python
+.. plot::
+   :include-source:
+   :nofigs:
 
     from qiskit.primitives import StatevectorEstimator as Estimator
     from qiskit.circuit.library import RealAmplitudes
@@ -95,7 +97,7 @@ Here is an example of how an estimator is used.
     #             [<psi2(theta2)|H2|psi2(theta2)>] ]
     job2 = estimator.run(
         [
-            (psi1, [H1, H3], [theta1, theta3]), 
+            (psi1, [H1, H3], [theta1, theta3]),
             (psi2, H2, theta2)
         ],
         precision=0.01
@@ -103,7 +105,7 @@ Here is an example of how an estimator is used.
     job_result = job2.result()
     print(f"The primitive-job finished with result {job_result}")
 
-    
+
 Overview of SamplerV2
 =====================
 
@@ -126,7 +128,9 @@ for each pub.
 Here is an example of how a sampler is used.
 
 
-.. code-block:: python
+.. plot::
+   :include-source:
+   :nofigs:
 
     from qiskit.primitives import StatevectorSampler as Sampler
     from qiskit import QuantumCircuit
@@ -153,12 +157,12 @@ Here is an example of how a sampler is used.
     # collect 128 shots from the Bell circuit
     job = sampler.run([bell], shots=128)
     job_result = job.result()
-    print(f"The primitive-job finished with result {job_result}"))
+    print(f"The primitive-job finished with result {job_result}")
 
     # run a sampler job on the parameterized circuits
-    job2 = sampler.run([(pqc, theta1), (pqc2, theta2)]
+    job2 = sampler.run([(pqc, theta1), (pqc2, theta2)])
     job_result = job2.result()
-    print(f"The primitive-job finished with result {job_result}"))
+    print(f"The primitive-job finished with result {job_result}")
 
 
 Overview of EstimatorV1
@@ -192,7 +196,9 @@ the estimation.
 
 Here is an example of how the estimator is used.
 
-.. code-block:: python
+.. plot::
+   :include-source:
+   :nofigs:
 
     from qiskit.primitives import Estimator
     from qiskit.circuit.library import RealAmplitudes
@@ -214,14 +220,14 @@ Here is an example of how the estimator is used.
     # calculate [ <psi1(theta1)|H1|psi1(theta1)> ]
     job = estimator.run([psi1], [H1], [theta1])
     job_result = job.result() # It will block until the job finishes.
-    print(f"The primitive-job finished with result {job_result}"))
+    print(f"The primitive-job finished with result {job_result}")
 
     # calculate [ <psi1(theta1)|H1|psi1(theta1)>,
     #             <psi2(theta2)|H2|psi2(theta2)>,
     #             <psi1(theta3)|H3|psi1(theta3)> ]
     job2 = estimator.run(
-        [psi1, psi2, psi1], 
-        [H1, H2, H3], 
+        [psi1, psi2, psi1],
+        [H1, H2, H3],
         [theta1, theta2, theta3]
     )
     job_result = job2.result()
@@ -251,7 +257,9 @@ plus optional metadata like error bars in the samples.
 
 Here is an example of how sampler is used.
 
-.. code-block:: python
+.. plot::
+   :include-source:
+   :nofigs:
 
     from qiskit.primitives import Sampler
     from qiskit import QuantumCircuit

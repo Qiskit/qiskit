@@ -33,6 +33,8 @@ if TYPE_CHECKING:
 
 # utility for _to_matrix
 _PARITY = np.array([-1 if bin(i).count("1") % 2 else 1 for i in range(256)], dtype=complex)
+# Utility for `_to_label`
+_TO_LABEL_CHARS = np.array([ord("I"), ord("X"), ord("Z"), ord("Y")], dtype=np.uint8)
 
 
 class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
@@ -184,7 +186,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         return BasePauli(self._z, self._x, np.mod(self._phase + phase, 4))
 
     def conjugate(self):
-        """Return the conjugate of each Pauli in the list."""
+        """Return the complex conjugate of the Pauli with respect to the Z basis."""
         complex_phase = np.mod(self._phase, 2)
         if np.all(complex_phase == 0):
             return self
@@ -215,12 +217,12 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         if qargs is not None and len(qargs) != other.num_qubits:
             raise QiskitError(
                 "Number of qubits of other Pauli does not match number of "
-                "qargs ({} != {}).".format(other.num_qubits, len(qargs))
+                f"qargs ({other.num_qubits} != {len(qargs)})."
             )
         if qargs is None and self.num_qubits != other.num_qubits:
             raise QiskitError(
                 "Number of qubits of other Pauli does not match the current "
-                "Pauli ({} != {}).".format(other.num_qubits, self.num_qubits)
+                f"Pauli ({other.num_qubits} != {self.num_qubits})."
             )
         if qargs is not None:
             inds = list(qargs)
@@ -262,15 +264,12 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         # Check dimension
         if qargs is not None and len(qargs) != other.num_qubits:
             raise QiskitError(
-                "Incorrect number of qubits for Clifford circuit ({} != {}).".format(
-                    other.num_qubits, len(qargs)
-                )
+                f"Incorrect number of qubits for Clifford circuit ({other.num_qubits} != {len(qargs)})."
             )
         if qargs is None and self.num_qubits != other.num_qubits:
             raise QiskitError(
-                "Incorrect number of qubits for Clifford circuit ({} != {}).".format(
-                    other.num_qubits, self.num_qubits
-                )
+                f"Incorrect number of qubits for Clifford circuit "
+                f"({other.num_qubits} != {self.num_qubits})."
             )
 
         # Evolve via Pauli
@@ -499,25 +498,15 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
                             the phase ``q`` for the coefficient :math:`(-i)^(q + x.z)`
                             for the label from the full Pauli group.
         """
-        num_qubits = z.size
-        phase = int(phase)
-        coeff_labels = {0: "", 1: "-i", 2: "-", 3: "i"}
-        label = ""
-        for i in range(num_qubits):
-            if not z[num_qubits - 1 - i]:
-                if not x[num_qubits - 1 - i]:
-                    label += "I"
-                else:
-                    label += "X"
-            elif not x[num_qubits - 1 - i]:
-                label += "Z"
-            else:
-                label += "Y"
-                if not group_phase:
-                    phase -= 1
-        phase %= 4
+        # Map each qubit to the {I: 0, X: 1, Z: 2, Y: 3} integer form, then use Numpy advanced
+        # indexing to get a new data buffer which is compatible with an ASCII string label.
+        index = z << 1
+        index += x
+        ascii_label = _TO_LABEL_CHARS[index[::-1]].data.tobytes()
+        phase = (int(phase) if group_phase else int(phase) - ascii_label.count(b"Y")) % 4
+        label = ascii_label.decode("ascii")
         if phase and full_group:
-            label = coeff_labels[phase] + label
+            label = ("", "-i", "-", "i")[phase] + label
         if return_phase:
             return label, phase
         return label
@@ -571,9 +560,8 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
                 raise QiskitError(f"Cannot apply Instruction: {gate.name}")
             if not isinstance(gate.definition, QuantumCircuit):
                 raise QiskitError(
-                    "{} instruction definition is {}; expected QuantumCircuit".format(
-                        gate.name, type(gate.definition)
-                    )
+                    f"{gate.name} instruction definition is {type(gate.definition)};"
+                    f" expected QuantumCircuit"
                 )
 
             circuit = gate.definition

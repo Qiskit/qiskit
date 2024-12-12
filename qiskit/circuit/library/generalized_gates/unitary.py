@@ -45,7 +45,9 @@ class UnitaryGate(Gate):
         quantum circuit. The matrix can also be directly applied to the quantum
         circuit, see :meth:`.QuantumCircuit.unitary`.
 
-        .. code-block:: python
+        .. plot::
+           :include-source:
+           :nofigs:
 
             from qiskit import QuantumCircuit
             from qiskit.circuit.library import UnitaryGate
@@ -165,7 +167,7 @@ class UnitaryGate(Gate):
         num_ctrl_qubits: int = 1,
         label: str | None = None,
         ctrl_state: int | str | None = None,
-        annotated: bool = False,
+        annotated: bool | None = None,
     ) -> ControlledGate | AnnotatedOperation:
         """Return controlled version of gate.
 
@@ -174,8 +176,8 @@ class UnitaryGate(Gate):
             label: Optional gate label.
             ctrl_state: The control state in decimal or as a bit string (e.g. ``"1011"``).
                 If ``None``, use ``2**num_ctrl_qubits - 1``.
-            annotated: indicates whether the controlled gate can be implemented
-                as an annotated gate.
+            annotated: indicates whether the controlled gate should be implemented
+                as an annotated gate. If ``None``, this is handled as ``False``.
 
         Returns:
             Controlled version of gate.

@@ -415,7 +415,7 @@ class QCircuitImage:
                         cwire_list = []
 
                     if len(wire_list) == 1 and not node.cargs:
-                        self._latex[wire_list[0]][column] = "\\gate{%s}" % gate_text
+                        self._latex[wire_list[0]][column] = f"\\gate{{{gate_text}}}"
 
                     elif isinstance(op, ControlledGate):
                         num_cols_op = self._build_ctrl_gate(op, gate_text, wire_list, column)
@@ -443,20 +443,20 @@ class QCircuitImage:
             self._latex[wire_min][col] = (
                 f"\\multigate{{{wire_max - wire_min}}}{{{gate_text}}}_"
                 + "<" * (len(str(wire_ind)) + 2)
-                + "{%s}" % wire_ind
+                + f"{{{wire_ind}}}"
             )
             for wire in range(wire_min + 1, wire_max + 1):
                 if wire < cwire_start:
-                    ghost_box = "\\ghost{%s}" % gate_text
+                    ghost_box = f"\\ghost{{{gate_text}}}"
                     if wire in wire_list:
                         wire_ind = wire_list.index(wire)
                 else:
-                    ghost_box = "\\cghost{%s}" % gate_text
+                    ghost_box = f"\\cghost{{{gate_text}}}"
                     if wire in cwire_list:
                         wire_ind = cwire_list.index(wire)
                 if wire in wire_list + cwire_list:
                     self._latex[wire][col] = (
-                        ghost_box + "_" + "<" * (len(str(wire_ind)) + 2) + "{%s}" % wire_ind
+                        ghost_box + "_" + "<" * (len(str(wire_ind)) + 2) + f"{{{wire_ind}}}"
                     )
                 else:
                     self._latex[wire][col] = ghost_box
@@ -484,7 +484,7 @@ class QCircuitImage:
             elif isinstance(op.base_gate, (U1Gate, PhaseGate)):
                 num_cols_op = self._build_symmetric_gate(op, gate_text, wire_list, col)
             else:
-                self._latex[wireqargs[0]][col] = "\\gate{%s}" % gate_text
+                self._latex[wireqargs[0]][col] = f"\\gate{{{gate_text}}}"
         else:
             # Treat special cases of swap and rzz gates
             if isinstance(op.base_gate, (SwapGate, RZZGate)):
@@ -527,7 +527,7 @@ class QCircuitImage:
         )
         self._latex[wire_last][col] = "\\control \\qw"
         # Put side text to the right between bottom wire in wire_list and the one above it
-        self._latex[wire_max - 1][col + 1] = "\\dstick{\\hspace{2.0em}%s} \\qw" % gate_text
+        self._latex[wire_max - 1][col + 1] = f"\\dstick{{\\hspace{{2.0em}}{gate_text}}} \\qw"
         return 4  # num_cols for side text gates
 
     def _build_measure(self, node, col):
@@ -544,11 +544,9 @@ class QCircuitImage:
                 idx_str = str(self._circuit.find_bit(node.cargs[0]).registers[0][1])
             else:
                 wire2 = self._wire_map[node.cargs[0]]
-
-            self._latex[wire2][col] = "\\dstick{_{_{\\hspace{%sem}%s}}} \\cw \\ar @{<=} [-%s,0]" % (
-                cond_offset,
-                idx_str,
-                str(wire2 - wire1),
+            self._latex[wire2][col] = (
+                f"\\dstick{{_{{_{{\\hspace{{{cond_offset}em}}{idx_str}}}}}}} "
+                f"\\cw \\ar @{{<=}} [-{str(wire2 - wire1)},0]"
             )
         else:
             wire2 = self._wire_map[node.cargs[0]]
@@ -573,7 +571,7 @@ class QCircuitImage:
             if node.op.label is not None:
                 pos = indexes[0]
                 label = node.op.label.replace(" ", "\\,")
-                self._latex[pos][col] = "\\cds{0}{^{\\mathrm{%s}}}" % label
+                self._latex[pos][col] = f"\\cds{{0}}{{^{{\\mathrm{{{label}}}}}}}"
 
     def _add_controls(self, wire_list, ctrlqargs, ctrl_state, col):
         """Add one or more controls to a gate"""
@@ -615,11 +613,10 @@ class QCircuitImage:
             )
             gap = cwire - max(wire_list)
             control = "\\control" if op.condition[1] else "\\controlo"
-            self._latex[cwire][col] = f"{control}" + " \\cw^(%s){^{\\mathtt{%s}}} \\cwx[-%s]" % (
-                meas_offset,
-                label,
-                str(gap),
-            )
+            self._latex[cwire][
+                col
+            ] = f"{control} \\cw^({meas_offset}){{^{{\\mathtt{{{label}}}}}}} \\cwx[-{str(gap)}]"
+
         # If condition is a register and cregbundle is false
         else:
             # First sort the val_bits in the order of the register bits in the circuit

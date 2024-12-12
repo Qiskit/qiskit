@@ -3,7 +3,7 @@ features:
   - |
     Added a new function :func:`~.marginal_memory` which is used to marginalize
     shot memory arrays. Provided with the shot memory array and the indices
-    of interest, the function will return a maginized shot memory array. This
+    of interest, the function will return a marginalized shot memory array. This
     function differs from the memory support in the :func:`~.marginal_counts`
     method which only works on the ``memory`` field in a :class:`~.Results`
     object.

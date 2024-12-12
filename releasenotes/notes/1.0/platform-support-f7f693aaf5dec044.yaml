@@ -13,7 +13,7 @@ upgrade:
   - |
     Support for 32 bit platforms, i686 Linux and 32 bit Windows, on
     Python < 3.10 has been downgraded from Tier 2 to Tier 3, as documented in
-    the `platform support page <https://docs.quantum.ibm.com/start/install#operating-system-support>`_. This is a consequence of making
+    the `platform support page <https://docs.quantum.ibm.com/guides/install-qiskit#operating-system-support>`_. This is a consequence of making
     ``symengine`` required for all users, as there is a lack of pre-compiled packages
     available for these platforms, so users will need to build Symengine from
     source.

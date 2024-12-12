@@ -237,7 +237,7 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
             if raise_on_failure:
                 raise CircuitError(
                     "Not enough qubits in the circuit, need at least "
-                    "{}.".format(self.num_state_qubits + 1)
+                    f"{self.num_state_qubits + 1}."
                 )
 
         if len(self.breakpoints) != len(self.coeffs) + 1:

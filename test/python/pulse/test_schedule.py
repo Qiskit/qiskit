@@ -47,11 +47,14 @@ from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.schedule import Schedule, _overlaps, _find_insertion_index
 from qiskit.providers.fake_provider import FakeOpenPulse2Q
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from qiskit.utils.deprecate_pulse import decorate_test_methods, ignore_pulse_deprecation_warnings
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class BaseTestSchedule(QiskitTestCase):
     """Schedule tests."""
 
+    @ignore_pulse_deprecation_warnings
     def setUp(self):
         super().setUp()
 
@@ -61,9 +64,11 @@ class BaseTestSchedule(QiskitTestCase):
             return slope * x + intercept
 
         self.linear = linear
-        self.config = FakeOpenPulse2Q().configuration()
+        with self.assertWarns(DeprecationWarning):
+            self.config = FakeOpenPulse2Q().configuration()
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestScheduleBuilding(BaseTestSchedule):
     """Test construction of schedules."""
 
@@ -468,6 +473,7 @@ class TestScheduleBuilding(BaseTestSchedule):
         self.assertDictEqual(new_sched.metadata, ref_metadata)
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestReplace(BaseTestSchedule):
     """Test schedule replacement."""
 
@@ -526,6 +532,7 @@ class TestReplace(BaseTestSchedule):
             sched.replace(old, new)
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestDelay(BaseTestSchedule):
     """Test Delay Instruction"""
 
@@ -600,6 +607,7 @@ class TestDelay(BaseTestSchedule):
             self.assertIsInstance(sched, Schedule)
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestScheduleFilter(BaseTestSchedule):
     """Test Schedule filtering methods"""
 
@@ -881,6 +889,7 @@ class TestScheduleFilter(BaseTestSchedule):
         return filtered, excluded
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestScheduleEquality(BaseTestSchedule):
     """Test equality of schedules."""
 
@@ -944,6 +953,7 @@ class TestScheduleEquality(BaseTestSchedule):
         )
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestTimingUtils(QiskitTestCase):
     """Test the Schedule helper functions."""
 

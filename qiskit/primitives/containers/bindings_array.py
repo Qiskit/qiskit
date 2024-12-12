@@ -67,7 +67,9 @@ class BindingsArray(ShapedMixin):
     allows flexibility about whether values for different parameters are stored in one big array, or
     across several smaller arrays.
 
-    .. code-block:: python
+    .. plot::
+       :include-source:
+       :nofigs:
 
         # 0-d array (i.e. only one binding)
         BindingsArray({"a": 4, ("b", "c"): [5, 6]})
@@ -95,7 +97,7 @@ class BindingsArray(ShapedMixin):
         be inferred from the provided arrays. Ambiguity arises whenever the key of an entry of
         ``data`` contains only one parameter and the corresponding array's shape ends in a one.
         In this case, it can't be decided whether that one is an index over parameters, or whether
-        it should be encorporated in :attr:`~shape`.
+        it should be incorporated in :attr:`~shape`.
 
         Since :class:`~.Parameter` objects are only allowed to represent float values, this
         class casts all given values to float. If an incompatible dtype is given, such as complex
@@ -131,7 +133,7 @@ class BindingsArray(ShapedMixin):
 
     def __getitem__(self, args) -> BindingsArray:
         # because the parameters live on the last axis, we don't need to do anything special to
-        # accomodate them because there will always be an implicit slice(None, None, None)
+        # accommodate them because there will always be an implicit slice(None, None, None)
         # on all unspecified trailing dimensions
         # separately, we choose to not disallow args which touch the last dimension, even though it
         # would not be a particularly friendly way to chop parameters

@@ -85,7 +85,7 @@ class TestExprProperties(QiskitTestCase):
         self.assertNotEqual(var_a_bool, expr.Var.new("a", types.Bool()))
 
         # Manually constructing the same object with the same UUID should cause it compare equal,
-        # though, for serialisation ease.
+        # though, for serialization ease.
         self.assertEqual(var_a_bool, expr.Var(var_a_bool.var, types.Bool(), name="a"))
 
         # This is a badly constructed variable because it's using a different type to refer to the

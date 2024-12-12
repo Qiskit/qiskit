@@ -91,6 +91,7 @@ Basis Change Synthesis
 ======================
 
 .. autofunction:: synth_qft_line
+.. autofunction:: synth_qft_full
 
 Unitary Synthesis
 =================
@@ -120,6 +121,34 @@ Two-Qubit Synthesis
    TwoQubitWeylDecomposition
 
 .. autofunction:: two_qubit_cnot_decompose
+
+Multi Controlled Synthesis
+==========================
+
+.. autofunction:: synth_mcmt_vchain
+.. autofunction:: synth_mcx_n_dirty_i15
+.. autofunction:: synth_mcx_n_clean_m15
+.. autofunction:: synth_mcx_1_clean_b95
+.. autofunction:: synth_mcx_noaux_v24
+.. autofunction:: synth_mcx_gray_code
+.. autofunction:: synth_c3x
+.. autofunction:: synth_c4x
+
+Binary Arithmetic Synthesis
+===========================
+
+Adders
+------
+
+.. autofunction:: adder_qft_d00
+.. autofunction:: adder_ripple_c04
+.. autofunction:: adder_ripple_v95
+
+Multipliers
+-----------
+
+.. autofunction:: multiplier_cumulative_h18 
+.. autofunction:: multiplier_qft_r17
 
 """
 
@@ -162,7 +191,7 @@ from .stabilizer import (
     synth_circuit_from_stabilizers,
 )
 from .discrete_basis import SolovayKitaevDecomposition, generate_basic_approximations
-from .qft import synth_qft_line
+from .qft import synth_qft_line, synth_qft_full
 from .unitary.qsd import qs_decomposition
 from .unitary import aqc
 from .one_qubit import OneQubitEulerDecomposer
@@ -171,4 +200,21 @@ from .two_qubit.two_qubit_decompose import (
     TwoQubitBasisDecomposer,
     two_qubit_cnot_decompose,
     TwoQubitWeylDecomposition,
+)
+from .multi_controlled import (
+    synth_mcmt_vchain,
+    synth_mcx_n_dirty_i15,
+    synth_mcx_n_clean_m15,
+    synth_mcx_1_clean_b95,
+    synth_mcx_noaux_v24,
+    synth_mcx_gray_code,
+    synth_c3x,
+    synth_c4x,
+)
+from .arithmetic import (
+    adder_qft_d00,
+    adder_ripple_c04,
+    adder_ripple_v95,
+    multiplier_cumulative_h18,
+    multiplier_qft_r17,
 )

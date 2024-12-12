@@ -31,6 +31,7 @@ from qiskit.circuit.parameterexpression import ParameterExpression, ParameterVal
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.library.pulse import Pulse
 from qiskit.pulse.library.waveform import Waveform
+from qiskit.utils.deprecate_pulse import deprecate_pulse_func
 
 
 def _lifted_gaussian(
@@ -313,7 +314,7 @@ class SymbolicPulse(Pulse):
     This is how a user can instantiate a symbolic pulse instance.
     In this example, we instantiate a custom `Sawtooth` envelope.
 
-    .. code-block::
+    .. code-block:: python
 
         from qiskit.pulse.library import SymbolicPulse
 
@@ -352,7 +353,9 @@ class SymbolicPulse(Pulse):
     Note that it would be convenient to define a factory function that automatically
     accomplishes this procedure.
 
-    .. code-block:: python
+    .. plot::
+       :include-source:
+       :nofigs:
 
         def Sawtooth(duration, amp, freq, name):
             t, amp, freq = sympy.symbols("t, amp, freq")
@@ -403,6 +406,7 @@ class SymbolicPulse(Pulse):
     _constraints_lam = LambdifiedExpression("_constraints")
     _valid_amp_conditions_lam = LambdifiedExpression("_valid_amp_conditions")
 
+    @deprecate_pulse_func
     def __init__(
         self,
         pulse_type: str,
@@ -570,11 +574,8 @@ class SymbolicPulse(Pulse):
 
     def __repr__(self) -> str:
         param_repr = ", ".join(f"{p}={v}" for p, v in self.parameters.items())
-        return "{}({}{})".format(
-            self._pulse_type,
-            param_repr,
-            f", name='{self.name}'" if self.name is not None else "",
-        )
+        name_repr = f", name='{self.name}'" if self.name is not None else ""
+        return f"{self._pulse_type}({param_repr}{name_repr})"
 
     __hash__ = None
 
@@ -783,6 +784,10 @@ class Gaussian(metaclass=_PulseType):
             valid_amp_conditions=valid_amp_conditions_expr,
         )
 
+    @deprecate_pulse_func
+    def __init__(self):
+        pass
+
 
 class GaussianSquare(metaclass=_PulseType):
     """A square pulse with a Gaussian shaped risefall on both sides lifted such that
@@ -911,7 +916,12 @@ class GaussianSquare(metaclass=_PulseType):
             valid_amp_conditions=valid_amp_conditions_expr,
         )
 
+    @deprecate_pulse_func
+    def __init__(self):
+        pass
 
+
+@deprecate_pulse_func
 def GaussianSquareDrag(
     duration: int | ParameterExpression,
     amp: float | ParameterExpression,
@@ -1064,6 +1074,7 @@ def GaussianSquareDrag(
     )
 
 
+@deprecate_pulse_func
 def gaussian_square_echo(
     duration: int | ParameterValueType,
     amp: float | ParameterExpression,
@@ -1267,6 +1278,7 @@ def gaussian_square_echo(
     )
 
 
+@deprecate_pulse_func
 def GaussianDeriv(
     duration: int | ParameterValueType,
     amp: float | ParameterExpression,
@@ -1427,6 +1439,10 @@ class Drag(metaclass=_PulseType):
             valid_amp_conditions=valid_amp_conditions_expr,
         )
 
+    @deprecate_pulse_func
+    def __init__(self):
+        pass
+
 
 class Constant(metaclass=_PulseType):
     """A simple constant pulse, with an amplitude value and a duration:
@@ -1488,7 +1504,12 @@ class Constant(metaclass=_PulseType):
             valid_amp_conditions=valid_amp_conditions_expr,
         )
 
+    @deprecate_pulse_func
+    def __init__(self):
+        pass
 
+
+@deprecate_pulse_func
 def Sin(
     duration: int | ParameterExpression,
     amp: float | ParameterExpression,
@@ -1553,6 +1574,7 @@ def Sin(
     )
 
 
+@deprecate_pulse_func
 def Cos(
     duration: int | ParameterExpression,
     amp: float | ParameterExpression,
@@ -1617,6 +1639,7 @@ def Cos(
     )
 
 
+@deprecate_pulse_func
 def Sawtooth(
     duration: int | ParameterExpression,
     amp: float | ParameterExpression,
@@ -1685,6 +1708,7 @@ def Sawtooth(
     )
 
 
+@deprecate_pulse_func
 def Triangle(
     duration: int | ParameterExpression,
     amp: float | ParameterExpression,
@@ -1753,6 +1777,7 @@ def Triangle(
     )
 
 
+@deprecate_pulse_func
 def Square(
     duration: int | ParameterValueType,
     amp: float | ParameterExpression,
@@ -1776,12 +1801,13 @@ def Square(
     is the sign function with the convention :math:`\\text{sign}\\left(0\\right)=1`.
 
     Args:
-        duration: Pulse length in terms of the sampling period `dt`.
-        amp: The magnitude of the amplitude of the square wave. Wave range is [-`amp`,`amp`].
+        duration: Pulse length in terms of the sampling period ``dt``.
+        amp: The magnitude of the amplitude of the square wave. Wave range is
+            :math:`\\left[-\\texttt{amp},\\texttt{amp}\\right]`.
         phase: The phase of the square wave (note that this is not equivalent to the angle of
             the complex amplitude).
         freq: The frequency of the square wave, in terms of 1 over sampling period.
-            If not provided defaults to a single cycle (i.e :math:'\\frac{1}{\\text{duration}}').
+            If not provided defaults to a single cycle (i.e :math:`\\frac{1}{\\text{duration}}`).
             The frequency is limited to the range :math:`\\left(0,0.5\\right]` (the Nyquist frequency).
         angle: The angle in radians of the complex phase factor uniformly
             scaling the pulse. Default value 0.
@@ -1823,6 +1849,7 @@ def Square(
     )
 
 
+@deprecate_pulse_func
 def Sech(
     duration: int | ParameterValueType,
     amp: float | ParameterExpression,
@@ -1899,6 +1926,7 @@ def Sech(
     )
 
 
+@deprecate_pulse_func
 def SechDeriv(
     duration: int | ParameterValueType,
     amp: float | ParameterExpression,

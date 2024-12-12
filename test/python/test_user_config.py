@@ -25,7 +25,7 @@ from test import QiskitTestCase  # pylint: disable=wrong-import-order
 class TestUserConfig(QiskitTestCase):
     def setUp(self):
         super().setUp()
-        self.file_path = "test_%s.conf" % uuid4()
+        self.file_path = f"test_{uuid4()}.conf"
 
     def test_empty_file_read(self):
         config = user_config.UserConfig(self.file_path)

@@ -66,7 +66,7 @@ def single_gate_matrix(gate: str, params: list[float] | None = None) -> np.ndarr
     if gate in SINGLE_QUBIT_GATES:
         gc = SINGLE_QUBIT_GATES[gate]
     else:
-        raise QiskitError("Gate is not a valid basis gate for this simulator: %s" % gate)
+        raise QiskitError(f"Gate is not a valid basis gate for this simulator: {gate}")
 
     return gc(*params).to_matrix()
 

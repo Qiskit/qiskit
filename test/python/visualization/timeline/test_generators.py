@@ -109,9 +109,7 @@ class TestGates(QiskitTestCase):
         self.assertListEqual(list(drawing_obj.yvals), [0.0])
         self.assertListEqual(drawing_obj.bits, [self.qubit])
         self.assertEqual(drawing_obj.text, "u3(0.00, 0.00, 0.00)[20]")
-        ref_latex = "{name}(0.00, 0.00, 0.00)[20]".format(
-            name=self.formatter["latex_symbol.gates"]["u3"]
-        )
+        ref_latex = f"{self.formatter['latex_symbol.gates']['u3']}(0.00, 0.00, 0.00)[20]"
         self.assertEqual(drawing_obj.latex, ref_latex)
 
         ref_styles = {
@@ -132,7 +130,7 @@ class TestGates(QiskitTestCase):
         self.assertListEqual(list(drawing_obj.yvals), [self.formatter["label_offset.frame_change"]])
         self.assertListEqual(drawing_obj.bits, [self.qubit])
         self.assertEqual(drawing_obj.text, "u1(0.00)")
-        ref_latex = "{name}(0.00)".format(name=self.formatter["latex_symbol.gates"]["u1"])
+        ref_latex = f"{self.formatter['latex_symbol.gates']['u1']}(0.00)"
         self.assertEqual(drawing_obj.latex, ref_latex)
 
         ref_styles = {
@@ -159,7 +157,7 @@ class TestGates(QiskitTestCase):
         self.assertListEqual(list(drawing_obj.yvals), [0.0])
         self.assertListEqual(drawing_obj.bits, [self.qubit])
         self.assertEqual(drawing_obj.text, "u3")
-        ref_latex = "{name}".format(name=self.formatter["latex_symbol.gates"]["u3"])
+        ref_latex = f"{self.formatter['latex_symbol.gates']['u3']}"
         self.assertEqual(drawing_obj.latex, ref_latex)
 
         ref_styles = {
@@ -180,7 +178,7 @@ class TestGates(QiskitTestCase):
         self.assertListEqual(list(drawing_obj.yvals), [self.formatter["label_offset.frame_change"]])
         self.assertListEqual(drawing_obj.bits, [self.qubit])
         self.assertEqual(drawing_obj.text, "u1")
-        ref_latex = "{name}".format(name=self.formatter["latex_symbol.gates"]["u1"])
+        ref_latex = f"{self.formatter['latex_symbol.gates']['u1']}"
         self.assertEqual(drawing_obj.latex, ref_latex)
 
         ref_styles = {
@@ -250,6 +248,7 @@ class TestTimeslot(QiskitTestCase):
         self.assertListEqual(list(drawing_obj.yvals), [0])
         self.assertListEqual(drawing_obj.bits, [self.qubit])
         self.assertEqual(drawing_obj.text, "bar")
+        # pylint: disable-next=consider-using-f-string
         ref_latex = r"{{\rm {register}}}_{{{index}}}".format(register="q", index="0")
         self.assertEqual(drawing_obj.latex, ref_latex)
 

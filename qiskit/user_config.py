@@ -35,6 +35,7 @@ class UserConfig:
     transpile_optimization_level = 1
     parallel = False
     num_processes = 4
+    sabre_all_threads = true
 
     """
 
@@ -63,9 +64,9 @@ class UserConfig:
             if circuit_drawer:
                 if circuit_drawer not in ["text", "mpl", "latex", "latex_source", "auto"]:
                     raise exceptions.QiskitUserConfigError(
-                        "%s is not a valid circuit drawer backend. Must be "
+                        f"{circuit_drawer} is not a valid circuit drawer backend. Must be "
                         "either 'text', 'mpl', 'latex', 'latex_source', or "
-                        "'auto'." % circuit_drawer
+                        "'auto'."
                     )
                 self.settings["circuit_drawer"] = circuit_drawer
 
@@ -96,8 +97,8 @@ class UserConfig:
             if circuit_mpl_style:
                 if not isinstance(circuit_mpl_style, str):
                     warn(
-                        "%s is not a valid mpl circuit style. Must be "
-                        "a text string. Will not load style." % circuit_mpl_style,
+                        f"{circuit_mpl_style} is not a valid mpl circuit style. Must be "
+                        "a text string. Will not load style.",
                         UserWarning,
                         2,
                     )
@@ -112,8 +113,8 @@ class UserConfig:
                 for path in cpath_list:
                     if not os.path.exists(os.path.expanduser(path)):
                         warn(
-                            "%s is not a valid circuit mpl style path."
-                            " Correct the path in ~/.qiskit/settings.conf." % path,
+                            f"{path} is not a valid circuit mpl style path."
+                            " Correct the path in ~/.qiskit/settings.conf.",
                             UserWarning,
                             2,
                         )
@@ -168,6 +169,13 @@ class UserConfig:
                     )
                 self.settings["num_processes"] = num_processes
 
+            # Parse sabre_all_threads
+            sabre_all_threads = self.config_parser.getboolean(
+                "default", "sabre_all_threads", fallback=None
+            )
+            if sabre_all_threads is not None:
+                self.settings["sabre_all_threads"] = sabre_all_threads
+
 
 def set_config(key, value, section=None, file_path=None):
     """Adds or modifies a user configuration
@@ -208,6 +216,7 @@ def set_config(key, value, section=None, file_path=None):
         "transpile_optimization_level",
         "parallel",
         "num_processes",
+        "sabre_all_threads",
     }
 
     if section in [None, "default"]:

@@ -24,6 +24,7 @@ use ndarray::prelude::*;
 use numpy::{IntoPyArray, PyReadonlyArray1, PyReadonlyArray2};
 
 use qiskit_circuit::gate_matrix::ONE_QUBIT_IDENTITY;
+use qiskit_circuit::util::C_ZERO;
 
 /// Find special unitary matrix that maps [c0,c1] to [r,0] or [0,r] if basis_state=0 or
 /// basis_state=1 respectively
@@ -315,11 +316,7 @@ pub fn merge_ucgate_and_diag(
         .enumerate()
         .map(|(i, raw_gate)| {
             let gate = raw_gate.as_array();
-            let res = aview2(&[
-                [diag[2 * i], Complex64::new(0., 0.)],
-                [Complex64::new(0., 0.), diag[2 * i + 1]],
-            ])
-            .dot(&gate);
+            let res = aview2(&[[diag[2 * i], C_ZERO], [C_ZERO, diag[2 * i + 1]]]).dot(&gate);
             res.into_pyarray_bound(py).into()
         })
         .collect()
@@ -348,7 +345,6 @@ fn b(k: usize, s: usize) -> usize {
     k - (a(k, s) * 2_usize.pow(s as u32))
 }
 
-#[pymodule]
 pub fn isometry(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(diag_is_identity_up_to_global_phase))?;
     m.add_wrapped(wrap_pyfunction!(find_squs_for_disentangling))?;

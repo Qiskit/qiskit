@@ -128,7 +128,7 @@ def _read_registers_v4(file_obj, num_registers):
             )
         )
         name = file_obj.read(data.name_size).decode("utf8")
-        REGISTER_ARRAY_PACK = "!%sq" % data.size
+        REGISTER_ARRAY_PACK = f"!{data.size}q"
         bit_indices_raw = file_obj.read(struct.calcsize(REGISTER_ARRAY_PACK))
         bit_indices = list(struct.unpack(REGISTER_ARRAY_PACK, bit_indices_raw))
         if data.type.decode("utf8") == "q":
@@ -148,7 +148,7 @@ def _read_registers(file_obj, num_registers):
             )
         )
         name = file_obj.read(data.name_size).decode("utf8")
-        REGISTER_ARRAY_PACK = "!%sI" % data.size
+        REGISTER_ARRAY_PACK = f"!{data.size}I"
         bit_indices_raw = file_obj.read(struct.calcsize(REGISTER_ARRAY_PACK))
         bit_indices = list(struct.unpack(REGISTER_ARRAY_PACK, bit_indices_raw))
         if data.type.decode("utf8") == "q":
@@ -318,6 +318,13 @@ def _read_instruction(
             use_symengine,
             standalone_vars,
         )
+        if condition is not None:
+            warnings.warn(
+                f"The .condition attribute on {gate_name} will be loaded as an IfElseOp "
+                "starting in Qiskit 2.0",
+                FutureWarning,
+                stacklevel=3,
+            )
         inst_obj.condition = condition
         if instruction.label_size > 0:
             inst_obj.label = label
@@ -352,7 +359,7 @@ def _read_instruction(
     elif gate_name == "Clifford":
         gate_class = Clifford
     else:
-        raise AttributeError("Invalid instruction type: %s" % gate_name)
+        raise AttributeError(f"Invalid instruction type: {gate_name}")
 
     if instruction.label_size <= 0:
         label = None
@@ -397,6 +404,8 @@ def _read_instruction(
             "DiagonalGate",
         }:
             gate = gate_class(params)
+        elif gate_name == "QFTGate":
+            gate = gate_class(len(qargs), *params)
         else:
             if gate_name == "Barrier":
                 params = [len(qargs)]
@@ -412,6 +421,12 @@ def _read_instruction(
                 gate = gate_class(*params)
         if condition:
             if not isinstance(gate, ControlFlowOp):
+                warnings.warn(
+                    f"The .condition attribute on {gate} will be loaded as an "
+                    "IfElseOp starting in Qiskit 2.0",
+                    FutureWarning,
+                    stacklevel=3,
+                )
                 gate = gate.c_if(*condition)
             else:
                 gate.condition = condition
@@ -507,7 +522,7 @@ def _parse_custom_operation(
     if type_key == type_keys.CircuitInstruction.PAULI_EVOL_GATE:
         return definition
 
-    raise ValueError("Invalid custom instruction type '%s'" % type_str)
+    raise ValueError(f"Invalid custom instruction type '{type_str}'")
 
 
 def _read_pauli_evolution_gate(file_obj, version, vectors):
@@ -759,13 +774,13 @@ def _write_instruction(
     condition_type = type_keys.Condition.NONE
     condition_register = b""
     condition_value = 0
-    if (op_condition := getattr(instruction.operation, "condition", None)) is not None:
+    if (op_condition := getattr(instruction.operation, "_condition", None)) is not None:
         if isinstance(op_condition, expr.Expr):
             condition_type = type_keys.Condition.EXPRESSION
         else:
             condition_type = type_keys.Condition.TWO_TUPLE
-            condition_register = _dumps_register(instruction.operation.condition[0], index_map)
-            condition_value = int(instruction.operation.condition[1])
+            condition_register = _dumps_register(instruction.operation._condition[0], index_map)
+            condition_value = int(instruction.operation._condition[1])
 
     gate_class_name = gate_class_name.encode(common.ENCODE)
     label = getattr(instruction.operation, "label", None)
@@ -1031,7 +1046,7 @@ def _write_registers(file_obj, in_circ_regs, full_bits):
                 )
             )
             file_obj.write(reg_name)
-            REGISTER_ARRAY_PACK = "!%sq" % reg.size
+            REGISTER_ARRAY_PACK = f"!{reg.size}q"
             bit_indices = []
             for bit in reg:
                 bit_indices.append(bitmap.get(bit, -1))
@@ -1308,7 +1323,7 @@ def write_circuit(
     instruction_buffer.close()
 
     # Write calibrations
-    _write_calibrations(file_obj, circuit.calibrations, metadata_serializer, version=version)
+    _write_calibrations(file_obj, circuit._calibrations_prop, metadata_serializer, version=version)
     _write_layout(file_obj, circuit)
 
 
@@ -1438,7 +1453,9 @@ def read_circuit(file_obj, version, metadata_deserializer=None, use_symengine=Fa
 
     # Read calibrations
     if version >= 5:
-        circ.calibrations = _read_calibrations(file_obj, version, vectors, metadata_deserializer)
+        circ._calibrations_prop = _read_calibrations(
+            file_obj, version, vectors, metadata_deserializer
+        )
 
     for vec_name, (vector, initialized_params) in vectors.items():
         if len(initialized_params) != len(vector):

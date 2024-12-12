@@ -21,16 +21,17 @@
 //! keyword; the spec technically says that any real number is valid, but in reality that leads to
 //! weirdness like `200.0e-2` being a valid version specifier.  We do things with a custom
 //! context-dependent match after seeing an `OPENQASM` token, to avoid clashes with the general
-//! real-number tokenisation.
+//! real-number tokenization.
 
 use hashbrown::HashMap;
+use num_bigint::BigUint;
 use pyo3::prelude::PyResult;
 
 use std::path::Path;
 
 use crate::error::{message_generic, Position, QASM2ParseError};
 
-/// Tokenised version information data.  This is more structured than the real number suggested by
+/// Tokenized version information data.  This is more structured than the real number suggested by
 /// the specification.
 #[derive(Clone, Debug)]
 pub struct Version {
@@ -279,6 +280,15 @@ impl Token {
         context.text[self.index].parse().unwrap()
     }
 
+    /// If the token is an integer (by type, not just by value), this method can be called to
+    /// evaluate its value as a big integer.  Panics if the token is not an integer type.
+    pub fn bigint(&self, context: &TokenContext) -> BigUint {
+        if self.ttype != TokenType::Integer {
+            panic!()
+        }
+        context.text[self.index].parse().unwrap()
+    }
+
     /// If the token is a filename path, this method can be called to get a (regular) string
     /// representing it.  Panics if the token type was not a filename.
     pub fn filename(&self, context: &TokenContext) -> String {
@@ -353,7 +363,7 @@ impl TokenStream {
             line_buffer: Vec::with_capacity(80),
             done: false,
             // The first line is numbered "1", and the first column is "0".  The counts are
-            // initialised like this so the first call to `next_byte` can easily detect that it
+            // initialized like this so the first call to `next_byte` can easily detect that it
             // needs to extract the next line.
             line: 0,
             col: 0,

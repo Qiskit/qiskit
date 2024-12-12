@@ -150,7 +150,7 @@ class TestCliffordGates(QiskitTestCase):
             "sx",
             "sxdg",
         ):
-            with self.subTest(msg="append gate %s" % gate_name):
+            with self.subTest(msg=f"append gate {gate_name}"):
                 cliff = Clifford([[1, 0], [0, 1]])
                 cliff = _append_operation(cliff, gate_name, [0])
                 value_table = cliff.tableau[:, :-1]
@@ -170,7 +170,7 @@ class TestCliffordGates(QiskitTestCase):
         """Tests identity relations for 1-qubit gates"""
 
         for gate_name in ("x", "y", "z", "h"):
-            with self.subTest(msg="identity for gate %s" % gate_name):
+            with self.subTest(msg=f"identity for gate {gate_name}"):
                 cliff = Clifford([[1, 0], [0, 1]])
                 cliff1 = cliff.copy()
                 cliff = _append_operation(cliff, gate_name, [0])
@@ -181,7 +181,7 @@ class TestCliffordGates(QiskitTestCase):
         inv_gates = ["sdg", "sinv", "w"]
 
         for gate_name, inv_gate in zip(gates, inv_gates):
-            with self.subTest(msg="identity for gate %s" % gate_name):
+            with self.subTest(msg=f"identity for gate {gate_name}"):
                 cliff = Clifford([[1, 0], [0, 1]])
                 cliff1 = cliff.copy()
                 cliff = _append_operation(cliff, gate_name, [0])
@@ -203,7 +203,7 @@ class TestCliffordGates(QiskitTestCase):
         ]
 
         for rel in rels:
-            with self.subTest(msg="relation %s" % rel):
+            with self.subTest(msg=f"relation {rel}"):
                 split_rel = rel.split()
                 cliff = Clifford([[1, 0], [0, 1]])
                 cliff1 = cliff.copy()
@@ -227,7 +227,7 @@ class TestCliffordGates(QiskitTestCase):
         ]
 
         for rel in rels:
-            with self.subTest(msg="relation %s" % rel):
+            with self.subTest(msg=f"relation {rel}"):
                 split_rel = rel.split()
                 cliff = Clifford([[1, 0], [0, 1]])
                 cliff1 = cliff.copy()
@@ -387,7 +387,8 @@ class TestCliffordGates(QiskitTestCase):
     def test_from_circuit_with_conditional_gate(self):
         """Test initialization from circuit with conditional gate."""
         qc = QuantumCircuit(2, 1)
-        qc.h(0).c_if(0, 0)
+        with self.assertWarns(DeprecationWarning):
+            qc.h(0).c_if(0, 0)
         qc.cx(0, 1)
 
         with self.assertRaises(QiskitError):
@@ -424,9 +425,9 @@ class TestCliffordGates(QiskitTestCase):
         """Test initialization from linear function."""
         rng = np.random.default_rng(1234)
         samples = 50
-
-        for _ in range(samples):
-            mat = random_invertible_binary_matrix(num_qubits, seed=rng)
+        seeds = rng.integers(100000, size=samples, dtype=np.uint64)
+        for seed in seeds:
+            mat = random_invertible_binary_matrix(num_qubits, seed=seed)
             lin = LinearFunction(mat)
             cliff = Clifford(lin)
             self.assertTrue(Operator(cliff).equiv(Operator(lin)))
@@ -492,8 +493,8 @@ class TestCliffordGates(QiskitTestCase):
 
         # Additionally, make sure that it produces the correct clifford.
         expected_clifford_dict = {
-            "stabilizer": ["-IZX", "+ZYZ", "+ZII"],
-            "destabilizer": ["+ZIZ", "+ZXZ", "-XIX"],
+            "stabilizer": ["-IZX", "+XXZ", "-YYZ"],
+            "destabilizer": ["-YYI", "-XZI", "-ZXY"],
         }
         expected_clifford = Clifford.from_dict(expected_clifford_dict)
         self.assertEqual(combined_clifford, expected_clifford)
@@ -597,6 +598,23 @@ class TestCliffordDecomposition(QiskitTestCase):
             self.assertEqual(decomp.num_qubits, circ.num_qubits)
             # Convert back to clifford and check it is the same
             self.assertEqual(Clifford(decomp), target)
+
+    def test_to_circuit_manual(self):
+        """Test a manual comparison to a known circuit.
+
+        This also tests whether the resulting Clifford circuit has quantum registers, thereby
+        regression testing #13041.
+        """
+        # this is set to a circuit that remains the same under Clifford reconstruction
+        circuit = QuantumCircuit(2)
+        circuit.z(0)
+        circuit.h(0)
+        circuit.cx(0, 1)
+
+        cliff = Clifford(circuit)
+        reconstructed = cliff.to_circuit()
+
+        self.assertEqual(circuit, reconstructed)
 
     @combine(num_qubits=[1, 2, 3, 4, 5])
     def test_to_instruction(self, num_qubits):

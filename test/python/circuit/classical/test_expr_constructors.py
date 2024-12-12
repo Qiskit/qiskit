@@ -26,46 +26,54 @@ class TestExprConstructors(QiskitTestCase):
         clbit = Clbit()
 
         inst = Instruction("custom", 1, 0, [])
-        inst.c_if(cr, 7)
-        self.assertEqual(
-            expr.lift_legacy_condition(inst.condition),
-            expr.Binary(
-                expr.Binary.Op.EQUAL,
-                expr.Var(cr, types.Uint(cr.size)),
-                expr.Value(7, types.Uint(cr.size)),
-                types.Bool(),
-            ),
-        )
+        with self.assertWarns(DeprecationWarning):
+            inst.c_if(cr, 7)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(
+                expr.lift_legacy_condition(inst.condition),
+                expr.Binary(
+                    expr.Binary.Op.EQUAL,
+                    expr.Var(cr, types.Uint(cr.size)),
+                    expr.Value(7, types.Uint(cr.size)),
+                    types.Bool(),
+                ),
+            )
 
         inst = Instruction("custom", 1, 0, [])
-        inst.c_if(cr, 255)
-        self.assertEqual(
-            expr.lift_legacy_condition(inst.condition),
-            expr.Binary(
-                expr.Binary.Op.EQUAL,
-                expr.Cast(expr.Var(cr, types.Uint(cr.size)), types.Uint(8), implicit=True),
-                expr.Value(255, types.Uint(8)),
-                types.Bool(),
-            ),
-        )
+        with self.assertWarns(DeprecationWarning):
+            inst.c_if(cr, 255)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(
+                expr.lift_legacy_condition(inst.condition),
+                expr.Binary(
+                    expr.Binary.Op.EQUAL,
+                    expr.Cast(expr.Var(cr, types.Uint(cr.size)), types.Uint(8), implicit=True),
+                    expr.Value(255, types.Uint(8)),
+                    types.Bool(),
+                ),
+            )
 
         inst = Instruction("custom", 1, 0, [])
-        inst.c_if(clbit, False)
-        self.assertEqual(
-            expr.lift_legacy_condition(inst.condition),
-            expr.Unary(
-                expr.Unary.Op.LOGIC_NOT,
+        with self.assertWarns(DeprecationWarning):
+            inst.c_if(clbit, False)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(
+                expr.lift_legacy_condition(inst.condition),
+                expr.Unary(
+                    expr.Unary.Op.LOGIC_NOT,
+                    expr.Var(clbit, types.Bool()),
+                    types.Bool(),
+                ),
+            )
+
+        inst = Instruction("custom", 1, 0, [])
+        with self.assertWarns(DeprecationWarning):
+            inst.c_if(clbit, True)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(
+                expr.lift_legacy_condition(inst.condition),
                 expr.Var(clbit, types.Bool()),
-                types.Bool(),
-            ),
-        )
-
-        inst = Instruction("custom", 1, 0, [])
-        inst.c_if(clbit, True)
-        self.assertEqual(
-            expr.lift_legacy_condition(inst.condition),
-            expr.Var(clbit, types.Bool()),
-        )
+            )
 
     def test_value_lifts_qiskit_scalars(self):
         cr = ClassicalRegister(3, "c")
@@ -224,7 +232,7 @@ class TestExprConstructors(QiskitTestCase):
     )
     @ddt.unpack
     def test_binary_bitwise_uint_inference(self, function, opcode):
-        """The binary bitwise functions have specialised inference for the widths of integer
+        """The binary bitwise functions have specialized inference for the widths of integer
         literals, since the bitwise functions require the operands to already be of exactly the same
         width without promotion."""
         cr = ClassicalRegister(8, "c")
@@ -247,7 +255,7 @@ class TestExprConstructors(QiskitTestCase):
             ),
         )
 
-        # Inference between two integer literals is "best effort".  This behaviour isn't super
+        # Inference between two integer literals is "best effort".  This behavior isn't super
         # important to maintain if we want to change the expression system.
         self.assertEqual(
             function(5, 255),

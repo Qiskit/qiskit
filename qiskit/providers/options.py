@@ -116,7 +116,7 @@ class Options(Mapping):
     def __setitem__(self, key, value):
         self.update_options(**{key: value})
 
-    # backwards-compatibilty with Qiskit Experiments:
+    # backwards-compatibility with Qiskit Experiments:
 
     @property
     def __dict__(self):
@@ -170,7 +170,7 @@ class Options(Mapping):
 
     def __repr__(self):
         items = (f"{k}={v!r}" for k, v in self._fields.items())
-        return "{}({})".format(type(self).__name__, ", ".join(items))
+        return f"{type(self).__name__}({', '.join(items)})"
 
     def __eq__(self, other):
         if isinstance(self, Options) and isinstance(other, Options):
@@ -211,7 +211,7 @@ class Options(Mapping):
         """
 
         if field not in self._fields:
-            raise KeyError("Field '%s' is not present in this options object" % field)
+            raise KeyError(f"Field '{field}' is not present in this options object")
         if isinstance(validator_value, tuple):
             if len(validator_value) != 2:
                 raise ValueError(

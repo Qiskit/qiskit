@@ -13,7 +13,7 @@
 """Builder types for the basic control-flow constructs."""
 
 # This file is in circuit.controlflow rather than the root of circuit because the constructs here
-# are only intended to be localised to constructing the control flow instructions.  We anticipate
+# are only intended to be localized to constructing the control flow instructions.  We anticipate
 # having a far more complete builder of all circuits, with more classical control and creation, in
 # the future.
 
@@ -206,7 +206,7 @@ class InstructionPlaceholder(Instruction, abc.ABC):
     When appending a placeholder instruction into a circuit scope, you should create the
     placeholder, and then ask it what resources it should be considered as using from the start by
     calling :meth:`.InstructionPlaceholder.placeholder_instructions`.  This set will be a subset of
-    the final resources it asks for, but it is used for initialising resources that *must* be
+    the final resources it asks for, but it is used for initializing resources that *must* be
     supplied, such as the bits used in the conditions of placeholder ``if`` statements.
 
     .. warning::
@@ -284,7 +284,7 @@ class InstructionPlaceholder(Instruction, abc.ABC):
             The same instruction instance that was passed, but mutated to propagate the tracked
             changes to this class.
         """
-        instruction.condition = self.condition
+        instruction._condition = self._condition
         return instruction
 
     # Provide some better error messages, just in case something goes wrong during development and
@@ -360,7 +360,7 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
                 which use a classical register as their condition.
             allow_jumps: Whether this builder scope should allow ``break`` and ``continue``
                 statements within it.  This is intended to help give sensible error messages when
-                dangerous behaviour is encountered, such as using ``break`` inside an ``if`` context
+                dangerous behavior is encountered, such as using ``break`` inside an ``if`` context
                 manager that is not within a ``for`` manager.  This can only be safe if the user is
                 going to place the resulting :obj:`.QuantumCircuit` inside a :obj:`.ForLoopOp` that
                 uses *exactly* the same set of resources.  We cannot verify this from within the
@@ -395,7 +395,7 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
     def allow_jumps(self):
         """Whether this builder scope should allow ``break`` and ``continue`` statements within it.
 
-        This is intended to help give sensible error messages when dangerous behaviour is
+        This is intended to help give sensible error messages when dangerous behavior is
         encountered, such as using ``break`` inside an ``if`` context manager that is not within a
         ``for`` manager.  This can only be safe if the user is going to place the resulting
         :obj:`.QuantumCircuit` inside a :obj:`.ForLoopOp` that uses *exactly* the same set of
@@ -639,8 +639,8 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
                         # a register is already present, so we use our own tracking.
                         self.add_register(register)
                         out.add_register(register)
-            if getattr(op, "condition", None) is not None:
-                for register in condition_resources(op.condition).cregs:
+            if getattr(op, "_condition", None) is not None:
+                for register in condition_resources(op._condition).cregs:
                     if register not in self.registers:
                         self.add_register(register)
                         out.add_register(register)

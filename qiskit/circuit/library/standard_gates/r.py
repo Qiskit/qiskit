@@ -20,6 +20,7 @@ import numpy
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.parameterexpression import ParameterValueType
+from qiskit._accelerate.circuit import StandardGate
 
 
 class RGate(Gate):
@@ -30,7 +31,7 @@ class RGate(Gate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌──────┐
         q_0: ┤ R(ϴ) ├
@@ -48,6 +49,8 @@ class RGate(Gate):
                 -i e^{i \phi} \sin\left(\rotationangle\right) & \cos\left(\rotationangle\right)
             \end{pmatrix}
     """
+
+    _standard_gate = StandardGate.RGate
 
     def __init__(
         self,

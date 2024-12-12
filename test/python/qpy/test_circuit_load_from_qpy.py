@@ -61,30 +61,34 @@ class TestCalibrationPasses(QpyCircuitTestCase):
 
     def setUp(self):
         super().setUp()
-        # This backend provides CX(0,1) with native ECR direction.
-        self.inst_map = Fake27QPulseV1().defaults().instruction_schedule_map
+        # TODO remove context once https://github.com/Qiskit/qiskit/issues/12759 is fixed
+        with self.assertWarns(DeprecationWarning):
+            # This backend provides CX(0,1) with native ECR direction.
+            self.inst_map = Fake27QPulseV1().defaults().instruction_schedule_map
 
     @data(0.1, 0.7, 1.5)
     def test_rzx_calibration(self, angle):
         """RZX builder calibration pass with echo."""
-        pass_ = passes.RZXCalibrationBuilder(self.inst_map)
+        with self.assertWarns(DeprecationWarning):
+            pass_ = passes.RZXCalibrationBuilder(self.inst_map)
         pass_manager = PassManager(pass_)
         test_qc = QuantumCircuit(2)
         test_qc.rzx(angle, 0, 1)
         rzx_qc = pass_manager.run(test_qc)
-
-        self.assert_roundtrip_equal(rzx_qc)
+        with self.assertWarns(DeprecationWarning):
+            self.assert_roundtrip_equal(rzx_qc)
 
     @data(0.1, 0.7, 1.5)
     def test_rzx_calibration_echo(self, angle):
         """RZX builder calibration pass without echo."""
-        pass_ = passes.RZXCalibrationBuilderNoEcho(self.inst_map)
+        with self.assertWarns(DeprecationWarning):
+            pass_ = passes.RZXCalibrationBuilderNoEcho(self.inst_map)
         pass_manager = PassManager(pass_)
         test_qc = QuantumCircuit(2)
         test_qc.rzx(angle, 0, 1)
         rzx_qc = pass_manager.run(test_qc)
-
-        self.assert_roundtrip_equal(rzx_qc)
+        with self.assertWarns(DeprecationWarning):
+            self.assert_roundtrip_equal(rzx_qc)
 
 
 class TestVersions(QpyCircuitTestCase):
@@ -112,7 +116,7 @@ class TestLayout(QpyCircuitTestCase):
         qc.h(0)
         qc.cx(0, 1)
         qc.measure_all()
-        backend = GenericBackendV2(num_qubits=127)
+        backend = GenericBackendV2(num_qubits=127, seed=42)
         tqc = transpile(qc, backend, optimization_level=opt_level)
         self.assert_roundtrip_equal(tqc)
 
@@ -126,7 +130,7 @@ class TestLayout(QpyCircuitTestCase):
         qc.cx(0, 3)
         qc.cx(0, 4)
         qc.measure_all()
-        backend = GenericBackendV2(num_qubits=127)
+        backend = GenericBackendV2(num_qubits=127, seed=42)
         tqc = transpile(qc, backend, optimization_level=opt_level)
         self.assert_roundtrip_equal(tqc)
 
@@ -137,7 +141,7 @@ class TestLayout(QpyCircuitTestCase):
         qc.h(0)
         qc.cx(0, 1)
         qc.measure_all()
-        backend = GenericBackendV2(num_qubits=127)
+        backend = GenericBackendV2(num_qubits=127, seed=42)
         tqc = transpile(qc, backend, optimization_level=opt_level)
         tqc.layout.final_layout = None
         self.assert_roundtrip_equal(tqc)
@@ -201,7 +205,7 @@ class TestLayout(QpyCircuitTestCase):
         qc.cx(0, 3)
         qc.cx(0, 4)
         qc.measure_all()
-        backend = GenericBackendV2(num_qubits=127)
+        backend = GenericBackendV2(num_qubits=127, seed=42)
         tqc = transpile(qc, backend, optimization_level=opt_level)
         self.assert_roundtrip_equal(tqc)
 
@@ -213,7 +217,7 @@ class TestLayout(QpyCircuitTestCase):
         qc.h(0)
         qc.cx(0, 1)
         qc.measure_all()
-        backend = GenericBackendV2(num_qubits=127)
+        backend = GenericBackendV2(num_qubits=127, seed=42)
         tqc = transpile(qc, backend, optimization_level=opt_level)
         # Manually validate to deal with qubit equality needing exact objects
         qpy_file = io.BytesIO()
@@ -301,6 +305,71 @@ class TestVersionArg(QpyCircuitTestCase):
         qc.cx(0, 1)
         qc.measure_all()
         self.assert_roundtrip_equal(qc, version=QPY_COMPATIBILITY_VERSION)
+
+    def test_nested_params_subs(self):
+        """Test substitution works."""
+        qc = QuantumCircuit(1)
+        a = Parameter("a")
+        b = Parameter("b")
+        expr = a + b
+        expr = expr.subs({b: a})
+        qc.ry(expr, 0)
+        self.assert_roundtrip_equal(qc)
+
+    def test_all_the_expression_ops(self):
+        """Test a circuit with an expression that uses all the ops available."""
+        qc = QuantumCircuit(1)
+        a = Parameter("a")
+        b = Parameter("b")
+        c = Parameter("c")
+        d = Parameter("d")
+
+        expression = (a + b.sin() / 4) * c**2
+        final_expr = (
+            (expression.cos() + d.arccos() - d.arcsin() + d.arctan() + d.tan()) / d.exp()
+            + expression.gradient(a)
+            + expression.log()
+            - a.sin()
+            - b.conjugate()
+        )
+        final_expr = final_expr.abs()
+        final_expr = final_expr.subs({c: a})
+
+        qc.rx(final_expr, 0)
+        self.assert_roundtrip_equal(qc)
+
+    def test_rpow(self):
+        """Test rpow works as expected"""
+        qc = QuantumCircuit(1)
+        a = Parameter("A")
+        b = Parameter("B")
+        expr = 3.14159**a
+        expr = expr**b
+        expr = 1.2345**expr
+        qc.ry(expr, 0)
+        self.assert_roundtrip_equal(qc)
+
+    def test_rsub(self):
+        """Test rsub works as expected"""
+        qc = QuantumCircuit(1)
+        a = Parameter("A")
+        b = Parameter("B")
+        expr = 3.14159 - a
+        expr = expr - b
+        expr = 1.2345 - expr
+        qc.ry(expr, 0)
+        self.assert_roundtrip_equal(qc)
+
+    def test_rdiv(self):
+        """Test rdiv works as expected"""
+        qc = QuantumCircuit(1)
+        a = Parameter("A")
+        b = Parameter("B")
+        expr = 3.14159 / a
+        expr = expr / b
+        expr = 1.2345 / expr
+        qc.ry(expr, 0)
+        self.assert_roundtrip_equal(qc)
 
 
 class TestUseSymengineFlag(QpyCircuitTestCase):

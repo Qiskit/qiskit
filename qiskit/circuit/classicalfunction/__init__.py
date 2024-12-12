@@ -25,7 +25,7 @@ potentially irreversible functions into quantum circuits.  Below is a simple exa
 how to synthesize a simple boolean function defined using Python into a
 QuantumCircuit:
 
-   .. code-block::
+  .. code-block:: python
 
       from qiskit.circuit.classicalfunction import classical_function
       from qiskit.circuit.classicalfunction.types import Int1
@@ -36,6 +36,8 @@ QuantumCircuit:
 
       quantum_circuit = grover_oracle.synth(registerless=False)
       quantum_circuit.draw('text')
+
+  .. code-block:: text
 
            a: ──o──
                 │
@@ -50,6 +52,14 @@ QuantumCircuit:
 
 Following Qiskit's little-endian bit ordering convention, the left-most bit (``a``) is the most
 significant bit and the right-most bit (``d``) is the least significant bit.
+
+.. warning::
+
+    The functionality of `qiskit.circuit.classicalfunction` requires `tweedledum`, 
+    which isn't available on all platforms (up to Python version 3.11).
+    See `tweedledum installation guide 
+    <https://github.com/boschmitt/tweedledum/tree/master?tab=readme-ov-file#installation>`_ 
+    for more details.
 
 Supplementary Information
 =========================

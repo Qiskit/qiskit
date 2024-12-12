@@ -87,10 +87,11 @@ class TestSampler(QiskitTestCase):
     def test_sampler_run(self):
         """Test Sampler.run()."""
         bell = self._circuit[1]
-        sampler = Sampler()
-        job = sampler.run(circuits=[bell])
-        result = job.result()
-        self.assertIsInstance(result, SamplerResult)
+        with self.assertWarns(DeprecationWarning):
+            sampler = Sampler()
+            job = sampler.run(circuits=[bell])
+            result = job.result()
+            self.assertIsInstance(result, SamplerResult)
         self._compare_probs(result.quasi_dists, self._target[1])
 
     def test_sample_run_multiple_circuits(self):
@@ -98,8 +99,9 @@ class TestSampler(QiskitTestCase):
         # executes three Bell circuits
         # Argument `parameters` is optional.
         bell = self._circuit[1]
-        sampler = Sampler()
-        result = sampler.run([bell, bell, bell]).result()
+        with self.assertWarns(DeprecationWarning):
+            sampler = Sampler()
+            result = sampler.run([bell, bell, bell]).result()
         self._compare_probs(result.quasi_dists[0], self._target[1])
         self._compare_probs(result.quasi_dists[1], self._target[1])
         self._compare_probs(result.quasi_dists[2], self._target[1])
@@ -112,8 +114,9 @@ class TestSampler(QiskitTestCase):
         pqc2 = self._pqc2
         theta1, theta2, theta3 = self._theta
 
-        sampler = Sampler()
-        result = sampler.run([pqc, pqc, pqc2], [theta1, theta2, theta3]).result()
+        with self.assertWarns(DeprecationWarning):
+            sampler = Sampler()
+            result = sampler.run([pqc, pqc, pqc2], [theta1, theta2, theta3]).result()
 
         # result of pqc(theta1)
         prob1 = {
@@ -150,9 +153,10 @@ class TestSampler(QiskitTestCase):
         qc2.x(0)
         qc2.measure_all()
 
-        sampler = Sampler()
-        result = sampler.run([qc, qc2]).result()
-        self.assertIsInstance(result, SamplerResult)
+        with self.assertWarns(DeprecationWarning):
+            sampler = Sampler()
+            result = sampler.run([qc, qc2]).result()
+            self.assertIsInstance(result, SamplerResult)
         self.assertEqual(len(result.quasi_dists), 2)
 
         for i in range(2):
@@ -174,9 +178,10 @@ class TestSampler(QiskitTestCase):
         qc3.x([0, 1])
         qc3.measure_all()
 
-        sampler = Sampler()
-        result = sampler.run([qc0, qc1, qc2, qc3]).result()
-        self.assertIsInstance(result, SamplerResult)
+        with self.assertWarns(DeprecationWarning):
+            sampler = Sampler()
+            result = sampler.run([qc0, qc1, qc2, qc3]).result()
+            self.assertIsInstance(result, SamplerResult)
         self.assertEqual(len(result.quasi_dists), 4)
 
         for i in range(4):
@@ -187,15 +192,16 @@ class TestSampler(QiskitTestCase):
     def test_run_single_circuit(self):
         """Test for single circuit case."""
 
-        sampler = Sampler()
-
         with self.subTest("No parameter"):
             circuit = self._circuit[1]
             target = self._target[1]
             param_vals = [None, [], [[]], np.array([]), np.array([[]])]
             for val in param_vals:
                 with self.subTest(f"{circuit.name} w/ {val}"):
-                    result = sampler.run(circuit, val).result()
+                    with self.assertWarns(DeprecationWarning):
+                        sampler = Sampler()
+                    with self.assertWarns(DeprecationWarning):
+                        result = sampler.run(circuit, val).result()
                     self._compare_probs(result.quasi_dists, target)
                     self.assertEqual(len(result.metadata), 1)
 
@@ -214,7 +220,10 @@ class TestSampler(QiskitTestCase):
             ]
             for val in param_vals:
                 with self.subTest(f"{circuit.name} w/ {val}"):
-                    result = sampler.run(circuit, val).result()
+                    with self.assertWarns(DeprecationWarning):
+                        sampler = Sampler()
+                    with self.assertWarns(DeprecationWarning):
+                        result = sampler.run(circuit, val).result()
                     self._compare_probs(result.quasi_dists, target)
                     self.assertEqual(len(result.metadata), 1)
 
@@ -230,7 +239,10 @@ class TestSampler(QiskitTestCase):
             ]
             for val in param_vals:
                 with self.subTest(f"{circuit.name} w/ {val}"):
-                    result = sampler.run(circuit, val).result()
+                    with self.assertWarns(DeprecationWarning):
+                        sampler = Sampler()
+                    with self.assertWarns(DeprecationWarning):
+                        result = sampler.run(circuit, val).result()
                     self._compare_probs(result.quasi_dists, target)
                     self.assertEqual(len(result.metadata), 1)
 
@@ -247,9 +259,10 @@ class TestSampler(QiskitTestCase):
         qc.measure(1, 1)
         qc.measure(2, 0)
 
-        sampler = Sampler()
-        result = sampler.run([qc] * 2, [[0, 0], [np.pi / 2, 0]]).result()
-        self.assertIsInstance(result, SamplerResult)
+        with self.assertWarns(DeprecationWarning):
+            sampler = Sampler()
+            result = sampler.run([qc] * 2, [[0, 0], [np.pi / 2, 0]]).result()
+            self.assertIsInstance(result, SamplerResult)
         self.assertEqual(len(result.quasi_dists), 2)
 
         # qc({x: 0, y: 0})
@@ -274,37 +287,40 @@ class TestSampler(QiskitTestCase):
         with qc5.for_loop(range(5)):
             qc5.h(0)
 
-        sampler = Sampler()
-        with self.subTest("set parameter values to a non-parameterized circuit"):
-            with self.assertRaises(ValueError):
-                _ = sampler.run([qc1], [[1e2]])
-        with self.subTest("missing all parameter values for a parameterized circuit"):
-            with self.assertRaises(ValueError):
-                _ = sampler.run([qc2], [[]])
-        with self.subTest("missing some parameter values for a parameterized circuit"):
-            with self.assertRaises(ValueError):
-                _ = sampler.run([qc2], [[1e2]])
-        with self.subTest("too many parameter values for a parameterized circuit"):
-            with self.assertRaises(ValueError):
-                _ = sampler.run([qc2], [[1e2]] * 100)
-        with self.subTest("no classical bits"):
-            with self.assertRaises(ValueError):
-                _ = sampler.run([qc3], [[]])
-        with self.subTest("no measurement"):
-            with self.assertRaises(ValueError):
-                _ = sampler.run([qc4], [[]])
-        with self.subTest("no measurement in control flow"):
-            with self.assertRaises(ValueError):
-                _ = sampler.run([qc5], [[]])
+        with self.assertWarns(DeprecationWarning):
+            sampler = Sampler()
+            with self.subTest("set parameter values to a non-parameterized circuit"):
+                with self.assertRaises(ValueError):
+                    _ = sampler.run([qc1], [[1e2]])
+            with self.subTest("missing all parameter values for a parameterized circuit"):
+                with self.assertRaises(ValueError):
+                    _ = sampler.run([qc2], [[]])
+            with self.subTest("missing some parameter values for a parameterized circuit"):
+                with self.assertRaises(ValueError):
+                    _ = sampler.run([qc2], [[1e2]])
+            with self.subTest("too many parameter values for a parameterized circuit"):
+                with self.assertRaises(ValueError):
+                    _ = sampler.run([qc2], [[1e2]] * 100)
+            with self.subTest("no classical bits"):
+                with self.assertRaises(ValueError):
+                    _ = sampler.run([qc3], [[]])
+            with self.subTest("no measurement"):
+                with self.assertRaises(ValueError):
+                    _ = sampler.run([qc4], [[]])
+            with self.subTest("no measurement in control flow"):
+                with self.assertRaises(ValueError):
+                    _ = sampler.run([qc5], [[]])
 
     def test_run_empty_parameter(self):
         """Test for empty parameter"""
         n = 5
         qc = QuantumCircuit(n, n - 1)
         qc.measure(range(n - 1), range(n - 1))
-        sampler = Sampler()
+        with self.assertWarns(DeprecationWarning):
+            sampler = Sampler()
         with self.subTest("one circuit"):
-            result = sampler.run([qc], shots=1000).result()
+            with self.assertWarns(DeprecationWarning):
+                result = sampler.run([qc], shots=1000).result()
             self.assertEqual(len(result.quasi_dists), 1)
             for q_d in result.quasi_dists:
                 quasi_dist = {k: v for k, v in q_d.items() if v != 0.0}
@@ -328,8 +344,9 @@ class TestSampler(QiskitTestCase):
         params_array = rng.random((k, qc.num_parameters))
         params_list = params_array.tolist()
         params_list_array = list(params_array)
-        sampler = Sampler()
-        target = sampler.run([qc] * k, params_list).result()
+        with self.assertWarns(DeprecationWarning):
+            sampler = Sampler()
+            target = sampler.run([qc] * k, params_list).result()
 
         with self.subTest("ndarrary"):
             result = sampler.run([qc] * k, params_array).result()
@@ -346,21 +363,23 @@ class TestSampler(QiskitTestCase):
     def test_run_with_shots_option(self):
         """test with shots option."""
         params, target = self._generate_params_target([1])
-        sampler = Sampler()
-        result = sampler.run(
-            circuits=[self._pqc], parameter_values=params, shots=1024, seed=15
-        ).result()
+        with self.assertWarns(DeprecationWarning):
+            sampler = Sampler()
+            result = sampler.run(
+                circuits=[self._pqc], parameter_values=params, shots=1024, seed=15
+            ).result()
         self._compare_probs(result.quasi_dists, target)
 
     def test_run_with_shots_option_none(self):
         """test with shots=None option. Seed is ignored then."""
-        sampler = Sampler()
-        result_42 = sampler.run(
-            [self._pqc], parameter_values=[[0, 1, 1, 2, 3, 5]], shots=None, seed=42
-        ).result()
-        result_15 = sampler.run(
-            [self._pqc], parameter_values=[[0, 1, 1, 2, 3, 5]], shots=None, seed=15
-        ).result()
+        with self.assertWarns(DeprecationWarning):
+            sampler = Sampler()
+            result_42 = sampler.run(
+                [self._pqc], parameter_values=[[0, 1, 1, 2, 3, 5]], shots=None, seed=42
+            ).result()
+            result_15 = sampler.run(
+                [self._pqc], parameter_values=[[0, 1, 1, 2, 3, 5]], shots=None, seed=15
+            ).result()
         self.assertDictAlmostEqual(result_42.quasi_dists, result_15.quasi_dists)
 
     def test_run_shots_result_size(self):
@@ -370,8 +389,9 @@ class TestSampler(QiskitTestCase):
         qc = QuantumCircuit(n)
         qc.h(range(n))
         qc.measure_all()
-        sampler = Sampler()
-        result = sampler.run(qc, [], shots=shots, seed=42).result()
+        with self.assertWarns(DeprecationWarning):
+            sampler = Sampler()
+            result = sampler.run(qc, [], shots=shots, seed=42).result()
         self.assertEqual(len(result.quasi_dists), 1)
         self.assertLessEqual(len(result.quasi_dists[0]), shots)
         self.assertAlmostEqual(sum(result.quasi_dists[0].values()), 1.0)
@@ -379,15 +399,17 @@ class TestSampler(QiskitTestCase):
     def test_primitive_job_status_done(self):
         """test primitive job's status"""
         bell = self._circuit[1]
-        sampler = Sampler()
-        job = sampler.run(circuits=[bell])
-        _ = job.result()
+        with self.assertWarns(DeprecationWarning):
+            sampler = Sampler()
+            job = sampler.run(circuits=[bell])
+            _ = job.result()
         self.assertEqual(job.status(), JobStatus.DONE)
 
     def test_options(self):
         """Test for options"""
         with self.subTest("init"):
-            sampler = Sampler(options={"shots": 3000})
+            with self.assertWarns(DeprecationWarning):
+                sampler = Sampler(options={"shots": 3000})
             self.assertEqual(sampler.options.get("shots"), 3000)
         with self.subTest("set_options"):
             sampler.set_options(shots=1024, seed=15)
@@ -395,7 +417,8 @@ class TestSampler(QiskitTestCase):
             self.assertEqual(sampler.options.get("seed"), 15)
         with self.subTest("run"):
             params, target = self._generate_params_target([1])
-            result = sampler.run([self._pqc], parameter_values=params).result()
+            with self.assertWarns(DeprecationWarning):
+                result = sampler.run([self._pqc], parameter_values=params).result()
             self._compare_probs(result.quasi_dists, target)
             self.assertEqual(result.quasi_dists[0].shots, 1024)
 
@@ -407,8 +430,9 @@ class TestSampler(QiskitTestCase):
         circuit.append(gate, [0])
         circuit.measure_all()
 
-        sampler = Sampler()
-        sampler_result = sampler.run([circuit]).result()
+        with self.assertWarns(DeprecationWarning):
+            sampler = Sampler()
+            sampler_result = sampler.run([circuit]).result()
         self.assertDictAlmostEqual(sampler_result.quasi_dists[0], {0: 1, 1: 0})
 
 

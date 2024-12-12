@@ -87,7 +87,7 @@ template: |
       New features related to the qiskit.qpy module.
   features_quantum_info:
     - |
-      New features releated to the qiskit.quantum_info module.
+      New features related to the qiskit.quantum_info module.
   features_synthesis:
     - |
       New features related to the qiskit.synthesis module.
@@ -178,7 +178,7 @@ template: |
       Deprecations related to the qiskit.qpy module.
   deprecations_quantum_info:
     - |
-      Deprecations releated to the qiskit.quantum_info module.
+      Deprecations related to the qiskit.quantum_info module.
   deprecations_synthesis:
     - |
       Deprecations related to the qiskit.synthesis module.

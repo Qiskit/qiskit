@@ -46,7 +46,9 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
      The phase polynomial is a polynomial of degree at most 3,
      in :math:`N` variables, whose coefficients are in the ring Z_8 with 8 elements.
 
-     .. code-block::
+     .. plot::
+        :include-source:
+        :nofigs:
 
          from qiskit import QuantumCircuit
          from qiskit.quantum_info import CNOTDihedral
@@ -62,7 +64,7 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
          # Print the CNOTDihedral element
          print(elem)
 
-    .. parsed-literal::
+    .. code-block:: text
 
         phase polynomial =
         0 + 3*x_0 + 3*x_1 + 2*x_0*x_1
@@ -97,7 +99,7 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
             with optimal number of two qubit gates*, `Quantum 4(369), 2020
             <https://quantum-journal.org/papers/q-2020-12-07-369/>`_
          2. Andrew W. Cross, Easwar Magesan, Lev S. Bishop, John A. Smolin and Jay M. Gambetta,
-            *Scalable randomised benchmarking of non-Clifford gates*,
+            *Scalable randomized benchmarking of non-Clifford gates*,
             npj Quantum Inf 2, 16012 (2016).
     """
 
@@ -325,7 +327,7 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
                with optimal number of two qubit gates*, `Quantum 4(369), 2020
                <https://quantum-journal.org/papers/q-2020-12-07-369/>`_
             2. Andrew W. Cross, Easwar Magesan, Lev S. Bishop, John A. Smolin and Jay M. Gambetta,
-               *Scalable randomised benchmarking of non-Clifford gates*,
+               *Scalable randomized benchmarking of non-Clifford gates*,
                npj Quantum Inf 2, 16012 (2016).
         """
         # pylint: disable=cyclic-import

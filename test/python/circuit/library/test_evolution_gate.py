@@ -12,16 +12,20 @@
 
 """Test the evolution gate."""
 
+from itertools import permutations
+
 import unittest
 import numpy as np
 import scipy
 from ddt import ddt, data, unpack
 
 from qiskit.circuit import QuantumCircuit, Parameter
-from qiskit.circuit.library import PauliEvolutionGate
+from qiskit.circuit.library import PauliEvolutionGate, HamiltonianGate
 from qiskit.synthesis import LieTrotter, SuzukiTrotter, MatrixExponential, QDrift
+from qiskit.synthesis.evolution.product_formula import reorder_paulis
 from qiskit.converters import circuit_to_dag
 from qiskit.quantum_info import Operator, SparsePauliOp, Pauli, Statevector
+from qiskit.transpiler.passes import HLSConfig, HighLevelSynthesis
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 X = SparsePauliOp("X")
@@ -39,6 +43,19 @@ class TestEvolutionGate(QiskitTestCase):
         # fix random seed for reproducibility (used in QDrift)
         self.seed = 2
 
+    def assertSuzukiTrotterIsCorrect(self, gate):
+        """Assert the Suzuki Trotter evolution is correct."""
+        op = gate.operator
+        time = gate.time
+        synthesis = gate.synthesis
+
+        exact_suzuki = SuzukiTrotter(
+            reps=synthesis.reps, order=synthesis.order, atomic_evolution=exact_atomic_evolution
+        )
+        exact_gate = PauliEvolutionGate(op, time, synthesis=exact_suzuki)
+
+        self.assertTrue(Operator(gate).equiv(exact_gate))
+
     def test_matrix_decomposition(self):
         """Test the default decomposition."""
         op = (X ^ X ^ X) + (Y ^ Y ^ Y) + (Z ^ Z ^ Z)
@@ -51,6 +68,31 @@ class TestEvolutionGate(QiskitTestCase):
 
         self.assertTrue(Operator(evo_gate).equiv(evolved))
 
+    def test_reorder_paulis_invariant(self):
+        """
+        Tests that reorder_paulis is deterministic and does not depend on the
+        order of the terms of the input operator.
+        """
+        terms = [
+            (I ^ I ^ X ^ X),
+            (I ^ I ^ Z ^ Z),
+            (I ^ Y ^ Y ^ I),
+            (X ^ I ^ I ^ I),
+            (X ^ X ^ I ^ I),
+            (Y ^ I ^ I ^ Y),
+        ]
+        results = []
+        for seed, tms in enumerate(permutations(terms)):
+            np.random.seed(seed)
+            op = reorder_paulis(SparsePauliOp(sum(tms)).to_sparse_list())
+            results.append([(t[0], t[1]) for t in op])
+            np.random.seed(seed + 42)
+            op = reorder_paulis(SparsePauliOp(sum(tms)).to_sparse_list())
+            results.append([(t[0], t[1]) for t in op])
+
+        for lst in results[1:]:
+            self.assertListEqual(lst, results[0])
+
     def test_lie_trotter(self):
         """Test constructing the circuit with Lie Trotter decomposition."""
         op = (X ^ X ^ X) + (Y ^ Y ^ Y) + (Z ^ Z ^ Z)
@@ -58,7 +100,16 @@ class TestEvolutionGate(QiskitTestCase):
         reps = 4
         evo_gate = PauliEvolutionGate(op, time, synthesis=LieTrotter(reps=reps))
         decomposed = evo_gate.definition.decompose()
+
         self.assertEqual(decomposed.count_ops()["cx"], reps * 3 * 4)
+        self.assertSuzukiTrotterIsCorrect(evo_gate)
+
+    def test_basis_change(self):
+        """Test the basis change is correctly implemented."""
+        op = I ^ Y  # use a string for which we do not have a basis gate
+        time = 0.321
+        evo_gate = PauliEvolutionGate(op, time)
+        self.assertSuzukiTrotterIsCorrect(evo_gate)
 
     def test_rzx_order(self):
         """Test ZX and XZ is mapped onto the correct qubits."""
@@ -104,13 +155,16 @@ class TestEvolutionGate(QiskitTestCase):
                 )
                 decomposed = evo_gate.definition.decompose()
                 self.assertEqual(decomposed.count_ops()["cx"], expected_cx)
+                self.assertSuzukiTrotterIsCorrect(evo_gate)
 
-    def test_suzuki_trotter_manual(self):
+    def test_suzuki_trotter_manual_no_reorder(self):
         """Test the evolution circuit of Suzuki Trotter against a manually constructed circuit."""
         op = X + Y
         time = 0.1
         reps = 1
-        evo_gate = PauliEvolutionGate(op, time, synthesis=SuzukiTrotter(order=4, reps=reps))
+        evo_gate = PauliEvolutionGate(
+            op, time, synthesis=SuzukiTrotter(order=4, reps=reps, preserve_order=True)
+        )
 
         # manually construct expected evolution
         expected = QuantumCircuit(1)
@@ -130,7 +184,41 @@ class TestEvolutionGate(QiskitTestCase):
             expected.ry(2 * p_4 * time, 0)
             expected.rx(p_4 * time, 0)
 
-        self.assertEqual(evo_gate.definition.decompose(), expected)
+        self.assertEqual(evo_gate.definition, expected)
+        self.assertSuzukiTrotterIsCorrect(evo_gate)
+
+    @data(True, False)
+    def test_suzuki_trotter_manual(self, use_plugin):
+        """Test the evolution circuit of Suzuki Trotter against a manually constructed circuit."""
+        op = (X ^ X ^ I ^ I) + (I ^ Y ^ Y ^ I) + (I ^ I ^ Z ^ Z)
+        time, reps = 0.1, 1
+
+        synthesis = SuzukiTrotter(order=2, reps=reps)
+        if use_plugin:
+            hls_config = HLSConfig(PauliEvolution=[("default", {"preserve_order": False})])
+        else:
+            synthesis.preserve_order = False
+            hls_config = None
+
+        evo_gate = PauliEvolutionGate(op, time, synthesis=synthesis)
+        circuit = QuantumCircuit(op.num_qubits)
+        circuit.append(evo_gate, circuit.qubits)
+
+        if use_plugin:
+            decomposed = HighLevelSynthesis(hls_config=hls_config)(circuit)
+        else:
+            decomposed = circuit.decompose()
+
+        expected = QuantumCircuit(4)
+        expected.rzz(time, 0, 1)
+        expected.rxx(time, 2, 3)
+        expected.ryy(2 * time, 1, 2)
+        expected.rxx(time, 2, 3)
+        expected.rzz(time, 0, 1)
+        self.assertEqual(decomposed, expected)
+
+    def test_suzuki_trotter_plugin(self):
+        """Test setting options via the plugin."""
 
     @data(
         (X + Y, 0.5, 1, [(Pauli("X"), 0.5), (Pauli("X"), 0.5)]),
@@ -175,11 +263,16 @@ class TestEvolutionGate(QiskitTestCase):
 
         self.assertAlmostEqual(energy(exact), np.average(qdrift_energy), places=2)
 
-    def test_passing_grouped_paulis(self):
+    @data(True, False)
+    def test_passing_grouped_paulis(self, wrap):
         """Test passing a list of already grouped Paulis."""
         grouped_ops = [(X ^ Y) + (Y ^ X), (Z ^ I) + (Z ^ Z) + (I ^ Z), (X ^ X)]
-        evo_gate = PauliEvolutionGate(grouped_ops, time=0.12, synthesis=LieTrotter())
-        decomposed = evo_gate.definition.decompose()
+        evo_gate = PauliEvolutionGate(grouped_ops, time=0.12, synthesis=LieTrotter(wrap=wrap))
+        if wrap:
+            decomposed = evo_gate.definition.decompose()
+        else:
+            decomposed = evo_gate.definition
+
         self.assertEqual(decomposed.count_ops()["rz"], 4)
         self.assertEqual(decomposed.count_ops()["rzz"], 1)
         self.assertEqual(decomposed.count_ops()["rxx"], 1)
@@ -246,6 +339,7 @@ class TestEvolutionGate(QiskitTestCase):
             expected.cx(1, 0)
 
         self.assertEqual(expected, evo.definition)
+        self.assertSuzukiTrotterIsCorrect(evo)
 
     @data(
         Pauli("XI"),
@@ -270,6 +364,7 @@ class TestEvolutionGate(QiskitTestCase):
         circuit = evo.definition.decompose()
         rz_angle = circuit.data[0].operation.params[0]
         self.assertEqual(rz_angle, 10)
+        self.assertSuzukiTrotterIsCorrect(evo)
 
     def test_paulisumop_coefficients_respected(self):
         """Test that global ``PauliSumOp`` coefficients are being taken care of."""
@@ -281,6 +376,7 @@ class TestEvolutionGate(QiskitTestCase):
             circuit.data[2].operation.params[0],  # Z
         ]
         self.assertListEqual(rz_angles, [20, 30, -10])
+        self.assertSuzukiTrotterIsCorrect(evo)
 
     def test_lie_trotter_two_qubit_correct_order(self):
         """Test that evolutions on two qubit operators are in the right order.
@@ -289,10 +385,26 @@ class TestEvolutionGate(QiskitTestCase):
         """
         operator = I ^ Z ^ Z
         time = 0.5
-        exact = scipy.linalg.expm(-1j * time * operator.to_matrix())
         lie_trotter = PauliEvolutionGate(operator, time, synthesis=LieTrotter())
 
-        self.assertTrue(Operator(lie_trotter).equiv(exact))
+        self.assertSuzukiTrotterIsCorrect(lie_trotter)
+
+    def test_lie_trotter_reordered_manual(self):
+        """Test the evolution circuit of Lie Trotter against a manually constructed circuit."""
+        op = (X ^ I ^ I ^ I) + (X ^ X ^ I ^ I) + (I ^ Y ^ Y ^ I) + (I ^ I ^ Z ^ Z)
+        time, reps = 0.1, 1
+        evo_gate = PauliEvolutionGate(
+            op,
+            time,
+            synthesis=LieTrotter(reps=reps, preserve_order=False),
+        )
+        # manually construct expected evolution
+        expected = QuantumCircuit(4)
+        expected.rxx(2 * time, 2, 3)
+        expected.rzz(2 * time, 0, 1)
+        expected.rx(2 * time, 3)
+        expected.ryy(2 * time, 1, 2)
+        self.assertEqual(evo_gate.definition, expected)
 
     def test_complex_op_raises(self):
         """Test an operator with complex coefficient raises an error."""
@@ -326,6 +438,106 @@ class TestEvolutionGate(QiskitTestCase):
                 evo = PauliEvolutionGate(op)
                 self.assertEqual(evo.name, "PauliEvolution")
                 self.assertEqual(evo.label, f"exp(-it {label})")
+
+    def test_atomic_evolution(self):
+        """Test a custom atomic_evolution."""
+
+        def atomic_evolution(pauli, time):
+            if isinstance(pauli, SparsePauliOp):
+                if len(pauli.paulis) != 1:
+                    raise ValueError("Unsupported input.")
+                time *= np.real(pauli.coeffs[0])
+                pauli = pauli.paulis[0]
+
+            cliff = diagonalizing_clifford(pauli)
+            chain = cnot_chain(pauli)
+
+            target = None
+            for i, pauli_i in enumerate(reversed(pauli.to_label())):
+                if pauli_i != "I":
+                    target = i
+                    break
+
+            definition = QuantumCircuit(pauli.num_qubits)
+            definition.compose(cliff, inplace=True)
+            definition.compose(chain, inplace=True)
+            definition.rz(2 * time, target)
+            definition.compose(chain.inverse(), inplace=True)
+            definition.compose(cliff.inverse(), inplace=True)
+
+            return definition
+
+        op = (X ^ X ^ X) + (Y ^ Y ^ Y) + (Z ^ Z ^ Z)
+        time = 0.123
+        reps = 4
+        with self.assertWarns(PendingDeprecationWarning):
+            evo_gate = PauliEvolutionGate(
+                op,
+                time,
+                synthesis=LieTrotter(reps=reps, atomic_evolution=atomic_evolution),
+            )
+        decomposed = evo_gate.definition.decompose()
+        self.assertEqual(decomposed.count_ops()["cx"], reps * 3 * 4)
+
+
+def exact_atomic_evolution(circuit, pauli, time):
+    """An exact atomic evolution for Suzuki-Trotter.
+
+    Note that the Pauli has a x2 coefficient already, hence we evolve for time/2.
+    """
+    circuit.append(HamiltonianGate(pauli.to_matrix(), time / 2), circuit.qubits)
+
+
+def diagonalizing_clifford(pauli: Pauli) -> QuantumCircuit:
+    """Get the clifford circuit to diagonalize the Pauli operator."""
+    cliff = QuantumCircuit(pauli.num_qubits)
+    for i, pauli_i in enumerate(reversed(pauli.to_label())):
+        if pauli_i == "Y":
+            cliff.sx(i)
+        elif pauli_i == "X":
+            cliff.h(i)
+
+    return cliff
+
+
+def cnot_chain(pauli: Pauli) -> QuantumCircuit:
+    """CX chain.
+
+    For example, for the Pauli with the label 'XYZIX'.
+
+    .. parsed-literal::
+
+                       ┌───┐
+        q_0: ──────────┤ X ├
+                       └─┬─┘
+        q_1: ────────────┼──
+                  ┌───┐  │
+        q_2: ─────┤ X ├──■──
+             ┌───┐└─┬─┘
+        q_3: ┤ X ├──■───────
+             └─┬─┘
+        q_4: ──■────────────
+
+    """
+
+    chain = QuantumCircuit(pauli.num_qubits)
+    control, target = None, None
+
+    # iterate over the Pauli's and add CNOTs
+    for i, pauli_i in enumerate(pauli.to_label()):
+        i = pauli.num_qubits - i - 1
+        if pauli_i != "I":
+            if control is None:
+                control = i
+            else:
+                target = i
+
+        if control is not None and target is not None:
+            chain.cx(control, target)
+            control = i
+            target = None
+
+    return chain
 
 
 if __name__ == "__main__":

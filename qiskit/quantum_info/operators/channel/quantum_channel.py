@@ -53,9 +53,9 @@ class QuantumChannel(LinearOp):
         """Initialize a quantum channel Superoperator operator.
 
         Args:
-            data (array or list): quantum channel data array.
-            op_shape (OpShape): the operator shape of the channel.
-            num_qubits (int): the number of qubits if the channel is N-qubit.
+            data: quantum channel data array.
+            op_shape: the operator shape of the channel.
+            num_qubits: the number of qubits if the channel is N-qubit.
 
         Raises:
             QiskitError: if arguments are invalid.
@@ -66,12 +66,9 @@ class QuantumChannel(LinearOp):
     def __repr__(self):
         prefix = f"{self._channel_rep}("
         pad = len(prefix) * " "
-        return "{}{},\n{}input_dims={}, output_dims={})".format(
-            prefix,
-            np.array2string(np.asarray(self.data), separator=", ", prefix=prefix),
-            pad,
-            self.input_dims(),
-            self.output_dims(),
+        return (
+            f"{prefix}{np.array2string(np.asarray(self.data), separator=', ', prefix=prefix)}"
+            f",\n{pad}input_dims={self.input_dims()}, output_dims={self.output_dims()})"
         )
 
     def __eq__(self, other: Self):

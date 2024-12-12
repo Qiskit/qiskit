@@ -13,6 +13,7 @@
 """Gate cancellation pass testing"""
 
 import unittest
+
 import numpy as np
 
 from qiskit import QuantumRegister, QuantumCircuit
@@ -76,7 +77,7 @@ class TestCommutativeCancellation(QiskitTestCase):
         expected = QuantumCircuit(qr)
         expected.append(RZGate(2.0), [qr[0]])
         expected.rx(1.0, qr[0])
-
+        expected.global_phase = 0.5
         self.assertEqual(expected, new_circuit)
 
     def test_commutative_circuit1(self):
@@ -198,7 +199,7 @@ class TestCommutativeCancellation(QiskitTestCase):
         self.assertEqual(expected, new_circuit)
 
     def test_control_bit_of_cnot1(self):
-        """A simple circuit where the two cnots shoule be cancelled.
+        """A simple circuit where the two cnots should be cancelled.
 
         qr0:----.------[Z]------.--       qr0:---[Z]---
                 |               |
@@ -219,7 +220,7 @@ class TestCommutativeCancellation(QiskitTestCase):
         self.assertEqual(expected, new_circuit)
 
     def test_control_bit_of_cnot2(self):
-        """A simple circuit where the two cnots shoule be cancelled.
+        """A simple circuit where the two cnots should be cancelled.
 
         qr0:----.------[T]------.--       qr0:---[T]---
                 |               |
@@ -240,7 +241,7 @@ class TestCommutativeCancellation(QiskitTestCase):
         self.assertEqual(expected, new_circuit)
 
     def test_control_bit_of_cnot3(self):
-        """A simple circuit where the two cnots shoule be cancelled.
+        """A simple circuit where the two cnots should be cancelled.
 
         qr0:----.------[Rz]------.--       qr0:---[Rz]---
                 |                |
@@ -261,7 +262,7 @@ class TestCommutativeCancellation(QiskitTestCase):
         self.assertEqual(expected, new_circuit)
 
     def test_control_bit_of_cnot4(self):
-        """A simple circuit where the two cnots shoule be cancelled.
+        """A simple circuit where the two cnots should be cancelled.
 
         qr0:----.------[T]------.--       qr0:---[T]---
                 |               |
@@ -433,7 +434,7 @@ class TestCommutativeCancellation(QiskitTestCase):
         expected.append(RZGate(np.pi * 17 / 12), [qr[2]])
         expected.append(RZGate(np.pi * 2 / 3), [qr[3]])
         expected.cx(qr[2], qr[1])
-
+        expected.global_phase = 3 * np.pi / 8
         self.assertEqual(
             expected, new_circuit, msg=f"expected:\n{expected}\nnew_circuit:\n{new_circuit}"
         )
@@ -563,7 +564,8 @@ class TestCommutativeCancellation(QiskitTestCase):
         circuit.h(0)
         circuit.measure(0, 0)
         circuit.cx(1, 2)
-        circuit.cx(1, 2).c_if(circuit.cregs[0], 0)
+        with self.assertWarns(DeprecationWarning):
+            circuit.cx(1, 2).c_if(circuit.cregs[0], 0)
         circuit.measure([1, 2], [0, 1])
 
         new_pm = PassManager(CommutativeCancellation())
@@ -662,7 +664,7 @@ class TestCommutativeCancellation(QiskitTestCase):
         self.assertEqual(Operator(circ), Operator(ccirc))
 
     def test_basis_global_phase_03(self):
-        """Test global phase preservation if cummulative z-rotation is 0"""
+        """Test global phase preservation if cumulative z-rotation is 0"""
         circ = QuantumCircuit(1)
         circ.rz(np.pi / 2, 0)
         circ.p(np.pi / 2, 0)
@@ -676,8 +678,10 @@ class TestCommutativeCancellation(QiskitTestCase):
         """Test that transpile runs without internal errors when dealing with commutable operations
         with classical controls. Regression test for gh-8553."""
         original = QuantumCircuit(2, 1)
-        original.x(0).c_if(original.cregs[0], 0)
-        original.x(1).c_if(original.cregs[0], 0)
+        with self.assertWarns(DeprecationWarning):
+            original.x(0).c_if(original.cregs[0], 0)
+        with self.assertWarns(DeprecationWarning):
+            original.x(1).c_if(original.cregs[0], 0)
         # This transpilation shouldn't change anything, but it should succeed.  At one point it was
         # triggering an internal logic error and crashing.
         transpiled = PassManager([CommutativeCancellation()]).run(original)
