@@ -1392,15 +1392,12 @@ impl CircuitData {
                             #[cfg(feature = "cache_pygates")]
                             {
                                 // Standard gates can all rebuild their definitions, so if the
-                                // cached py_op exists, update the `params` attribute and clear out
-                                // any existing cache.
-                                if let Some(borrowed) = previous.py_op.get() {
-                                    borrowed
-                                        .bind(py)
-                                        .getattr(params_attr)?
-                                        .set_item(parameter, new_param)?;
-                                    borrowed.bind(py).setattr("_definition", py.None())?
-                                }
+                                // cached py_op exists, discard it to prompt the instruction
+                                // to rebuild its cached python gate upon request later on. This is
+                                // done to avoid an unintentional duplicated reference to the same gate
+                                // instance in python. For more information, see
+                                // https://github.com/Qiskit/qiskit/issues/13504
+                                previous.py_op.take();
                             }
                         } else {
                             // Track user operations we've seen so we can rebind their definitions.
