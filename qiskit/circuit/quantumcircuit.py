@@ -2173,7 +2173,7 @@ class QuantumCircuit:
 
             .. plot::
                :alt: Circuit diagram output by the previous code.
-               :include-source
+               :include-source:
 
                from qiskit import QuantumCircuit
                top = QuantumCircuit(1)
@@ -3430,7 +3430,7 @@ class QuantumCircuit:
         Example:
             .. plot::
                :alt: Circuit diagram output by the previous code.
-               :include-source
+               :include-source:
 
                from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
                qc = QuantumCircuit(1, 1)
@@ -4333,7 +4333,7 @@ class QuantumCircuit:
 
             .. plot::
                :alt: Circuit diagram output by the previous code.
-               :include-source
+               :include-source:
 
                from qiskit.circuit import QuantumCircuit, Parameter
 
@@ -4349,7 +4349,7 @@ class QuantumCircuit:
 
             .. plot::
                :alt: Circuit diagram output by the previous code.
-               :include-source
+               :include-source:
 
                from qiskit.circuit import QuantumCircuit, ParameterVector
 
