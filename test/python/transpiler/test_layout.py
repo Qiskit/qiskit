@@ -17,7 +17,7 @@ import pickle
 import unittest
 import numpy
 
-from qiskit.circuit import QuantumRegister
+from qiskit.circuit import QuantumRegister, Qubit
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.exceptions import LayoutError
 from qiskit._accelerate.nlayout import NLayout
