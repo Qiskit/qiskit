@@ -58,22 +58,6 @@ unsafe impl ::bytemuck::CheckedBitPattern for PackedOperationType {
 }
 unsafe impl ::bytemuck::NoUninit for PackedOperationType {}
 
-impl PackedOperationType {
-    const fn into_bits(self) -> u8 {
-        self as _
-    }
-    const fn from_bits(value: u8) -> Self {
-        match value {
-            0 => Self::StandardGate,
-            1 => Self::StandardInstruction,
-            2 => Self::PyGatePointer,
-            3 => Self::PyInstructionPointer,
-            4 => Self::PyOperationPointer,
-            _ => panic!("unexpected operation type!"),
-        }
-    }
-}
-
 /// A bit-packed `OperationType` enumeration.
 ///
 /// This is logically equivalent to:
@@ -152,9 +136,9 @@ pub struct PackedOperation(OpBitField);
 
 #[bitfield(u64)]
 #[derive(PartialEq, Eq)]
-pub struct OpBitField {
+struct OpBitField {
     #[bits(3)]
-    discriminant: PackedOperationType,
+    discriminant: u8,
     #[bits(8)]
     op_code: u8,
     #[bits(21)]
@@ -209,43 +193,39 @@ impl OpBitField {
     }
 }
 
-impl OpBitField {
-    #[inline]
-    fn standard_gate(&self) -> StandardGate {
-        bytemuck::checked::cast(self.op_code())
-    }
-    #[inline]
-    fn with_standard_gate(self, gate: StandardGate) -> Self {
-        self.with_op_code(bytemuck::cast(gate))
-    }
-
-    #[inline]
-    fn standard_instruction(&self) -> StandardInstructionType {
-        bytemuck::checked::cast(self.op_code())
-    }
-
-    #[inline]
-    fn with_standard_instruction(self, instruction: StandardInstructionType) -> Self {
-        self.with_op_code(bytemuck::cast(instruction))
-    }
-
-    fn delay_unit(&self) -> DelayUnit {
-        bytemuck::checked::cast(self.payload() as u8)
-    }
-
-    fn with_delay_unit(self, unit: DelayUnit) -> Self {
-        self.with_payload(bytemuck::cast::<_, u8>(unit) as u32)
-    }
-}
+// impl OpBitField {
+//     #[inline]
+//     fn standard_instruction(&self) -> StandardInstructionType {
+//         bytemuck::checked::cast(self.op_code())
+//     }
+//
+//     #[inline]
+//     fn with_standard_instruction(self, instruction: StandardInstructionType) -> Self {
+//         self.with_op_code(bytemuck::cast(instruction))
+//     }
+//
+//     fn delay_unit(&self) -> DelayUnit {
+//         bytemuck::checked::cast(self.payload() as u8)
+//     }
+//
+//     fn with_delay_unit(self, unit: DelayUnit) -> Self {
+//         self.with_payload(bytemuck::cast::<_, u8>(unit) as u32)
+//     }
+// }
 
 impl PackedOperation {
+    #[inline]
+    fn discriminant(&self) -> PackedOperationType {
+        bytemuck::checked::cast(self.0.discriminant())
+    }
+
     /// Get the contained pointer to the `PyGate`/`PyInstruction`/`PyOperation` that
     /// this object contains.
     ///
     /// Returns `None` if the object represents anything else.
     #[inline]
     fn try_pointer(&self) -> Option<NonNull<()>> {
-        match self.0.discriminant() {
+        match self.discriminant() {
             PackedOperationType::StandardGate | PackedOperationType::StandardInstruction => None,
             PackedOperationType::PyGatePointer
             | PackedOperationType::PyInstructionPointer
@@ -270,8 +250,8 @@ impl PackedOperation {
     /// Get the contained `StandardGate`, if any.
     #[inline]
     pub fn try_standard_gate(&self) -> Option<StandardGate> {
-        match self.0.discriminant() {
-            PackedOperationType::StandardGate => Some(self.0.standard_gate()),
+        match self.discriminant() {
+            PackedOperationType::StandardGate => Some(::bytemuck::checked::cast(self.0.op_code())),
             _ => None,
         }
     }
@@ -289,15 +269,15 @@ impl PackedOperation {
     /// Get the contained `StandardInstruction`, if any.
     #[inline]
     pub fn try_standard_instruction(&self) -> Option<StandardInstruction> {
-        match self.0.discriminant() {
+        match self.discriminant() {
             PackedOperationType::StandardInstruction => {
-                let op_code = self.0.standard_instruction();
+                let op_code: StandardInstructionType = ::bytemuck::checked::cast(self.0.op_code());
                 Some(match op_code {
                     StandardInstructionType::Barrier => {
                         StandardInstruction::Barrier(self.0.payload() as usize)
                     }
                     StandardInstructionType::Delay => {
-                        StandardInstruction::Delay(self.0.delay_unit())
+                        StandardInstruction::Delay(::bytemuck::checked::cast(self.0.payload() as u8))
                     }
                     StandardInstructionType::Measure => StandardInstruction::Measure,
                     StandardInstructionType::Reset => StandardInstruction::Reset,
@@ -310,7 +290,7 @@ impl PackedOperation {
     /// Get a safe view onto the packed data within, without assuming ownership.
     #[inline]
     pub fn view(&self) -> OperationRef {
-        match self.0.discriminant() {
+        match self.discriminant() {
             PackedOperationType::StandardGate => OperationRef::Standard(self.standard_gate()),
             PackedOperationType::StandardInstruction => {
                 OperationRef::StandardInstruction(self.standard_instruction())
@@ -335,15 +315,15 @@ impl PackedOperation {
     pub fn from_standard(standard: StandardGate) -> Self {
         Self(
             OpBitField::new()
-                .with_discriminant(PackedOperationType::StandardGate)
-                .with_standard_gate(standard),
+                .with_discriminant(::bytemuck::cast(PackedOperationType::StandardGate))
+                .with_op_code(::bytemuck::cast(standard))
         )
     }
 
     /// Create a `PackedOperation` from a `StandardInstruction`.
     pub fn from_standard_instruction(instruction: StandardInstruction) -> Self {
         let mut bit_field =
-            OpBitField::new().with_discriminant(PackedOperationType::StandardInstruction);
+            OpBitField::new().with_discriminant(::bytemuck::cast(PackedOperationType::StandardInstruction));
 
         match instruction {
             StandardInstruction::Barrier(num_qubits) => {
@@ -351,19 +331,19 @@ impl PackedOperation {
                     "The PackedOperation representation currently requires barrier size to be <= 32 bits."
                 );
                 bit_field = bit_field
-                    .with_standard_instruction(StandardInstructionType::Barrier)
+                    .with_op_code(::bytemuck::cast(StandardInstructionType::Barrier))
                     .with_payload(num_qubits);
             }
             StandardInstruction::Delay(unit) => {
                 bit_field = bit_field
-                    .with_standard_instruction(StandardInstructionType::Delay)
-                    .with_delay_unit(unit);
+                    .with_op_code(::bytemuck::cast(StandardInstructionType::Delay))
+                    .with_payload(::bytemuck::cast::<_, u8>(unit) as u32);
             }
             StandardInstruction::Measure => {
-                bit_field = bit_field.with_standard_instruction(StandardInstructionType::Measure);
+                bit_field = bit_field.with_op_code(::bytemuck::cast(StandardInstructionType::Measure));
             }
             StandardInstruction::Reset => {
-                bit_field = bit_field.with_standard_instruction(StandardInstructionType::Reset);
+                bit_field = bit_field.with_op_code(::bytemuck::cast(StandardInstructionType::Reset));
             }
         };
         Self(bit_field)
@@ -375,7 +355,7 @@ impl PackedOperation {
         // SAFETY: the `ptr` comes directly from a owning `Box` of the correct type.
         Self(unsafe {
             OpBitField::new()
-                .with_discriminant(PackedOperationType::PyGatePointer)
+                .with_discriminant(::bytemuck::cast(PackedOperationType::PyGatePointer))
                 .with_pointer(ptr)
         })
     }
@@ -386,7 +366,7 @@ impl PackedOperation {
         // SAFETY: the `ptr` comes directly from a owning `Box` of the correct type.
         Self(unsafe {
             OpBitField::new()
-                .with_discriminant(PackedOperationType::PyInstructionPointer)
+                .with_discriminant(::bytemuck::cast(PackedOperationType::PyInstructionPointer))
                 .with_pointer(ptr)
         })
     }
@@ -397,7 +377,7 @@ impl PackedOperation {
         // SAFETY: the `ptr` comes directly from a owning `Box` of the correct type.
         Self(unsafe {
             OpBitField::new()
-                .with_discriminant(PackedOperationType::PyOperationPointer)
+                .with_discriminant(::bytemuck::cast(PackedOperationType::PyOperationPointer))
                 .with_pointer(ptr)
         })
     }
@@ -661,7 +641,7 @@ impl Drop for PackedOperation {
             // pointer can only be null if we were already dropped.  We set our discriminant to mark
             // ourselves as plain old data immediately just as a defensive measure.
             let boxed = unsafe { Box::from_raw(pointer.cast::<T>().as_ptr()) };
-            slf.0 = OpBitField::new().with_discriminant(PackedOperationType::StandardGate);
+            slf.0 = OpBitField::new().with_discriminant(::bytemuck::cast(PackedOperationType::StandardGate));
             ::std::mem::drop(boxed);
         }
 
