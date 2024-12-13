@@ -94,7 +94,7 @@ def pauli_two_design(
         num_qubits=num_qubits,
         reps=reps,
         rotation_blocks=[random_block],
-        entanglement_blocks=[entanglement_block] if num_qubits > 1 else [],
+        entanglement_blocks=entanglement_block,
         entanglement=["pairwise"],
         insert_barriers=insert_barriers,
         skip_final_rotation_layer=False,
