@@ -35,6 +35,7 @@ def multiplier_qft_r17(
     For example, on 3 state qubits, a full multiplier is given by:
 
     .. plot::
+        :alt: Output from the previous code.
         :include-source:
 
         from qiskit.synthesis.arithmetic import multiplier_qft_r17

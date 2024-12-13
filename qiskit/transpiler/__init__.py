@@ -33,6 +33,8 @@ branches, and other complex behaviors. That being said, the standard
 compilation flow follows the structure given below:
 
 .. image:: /source_images/transpiling_core_steps.png
+   :alt: The transpilation process takes the input circuit, applies the transpilation \
+      passes, then produces the output circuit.
 
 .. raw:: html
 
@@ -335,8 +337,9 @@ For example, if we wanted to visualize the :class:`~.CouplingMap` for the
 example 3 qubit :class:`~.Target` above:
 
 .. plot::
-   :include-source:
 
+   :include-source:
+   :alt: Output from the previous code.
    from qiskit.circuit import Parameter, Measure
    from qiskit.transpiler import Target, InstructionProperties
    from qiskit.circuit.library import UGate, RZGate, RXGate, RYGate, CXGate, CZGate
@@ -395,6 +398,7 @@ see the individual connectivity, you can pass the operation name to
 :meth:`.CouplingMap.build_coupling_map`:
 
 .. plot::
+   :alt: Output from the previous code.
    :include-source:
 
    from qiskit.circuit import Parameter, Measure
@@ -450,6 +454,7 @@ see the individual connectivity, you can pass the operation name to
    target.build_coupling_map('cx').draw()
 
 .. plot::
+   :alt: Output from the previous code.
    :include-source:
 
    from qiskit.circuit import Parameter, Measure
@@ -564,6 +569,7 @@ the target IBM Quantum device (the :class:`~.GenericBackendV2` class generates
 a fake backend with a specified number of qubits for test purposes):
 
 .. plot::
+   :alt: Output from the previous code.
    :include-source:
    :context: reset
 
@@ -621,6 +627,7 @@ It is important to highlight two special cases:
       ['id', 'rz', 'sx', 'x', 'cx', 'measure', 'delay']
 
    .. plot:
+      :alt: Output from the previous code.
       :include-source:
 
       from qiskit.circuit import QuantumCircuit
@@ -641,6 +648,7 @@ It is important to highlight two special cases:
    this gate must be decomposed.  This decomposition is quite costly:
 
    .. plot::
+      :alt: Output from the previous code.
       :include-source:
 
       from qiskit.circuit import QuantumCircuit
@@ -665,7 +673,8 @@ Quantum circuits are abstract entities whose qubits are "virtual" representation
 qubits used in computations.  We need to be able to map these virtual qubits in a one-to-one
 manner to the "physical" qubits in an actual quantum device.
 
-.. image:: /source_images/mapping.png
+.. image:: /source_images/
+   :alt: Diagram illustrating how virtual qubits are mapped to physical qubits.
 
 
 By default, qiskit will do this mapping for you.  The choice of mapping depends on the
@@ -713,6 +722,7 @@ and we can view this layout selection graphically using
 :func:`qiskit.visualization.plot_circuit_layout`:
 
 .. plot::
+   :alt: Output from the previous code.
    :include-source:
 
    from qiskit import QuantumCircuit, transpile
@@ -731,6 +741,7 @@ and we can view this layout selection graphically using
 - **Layout Using Optimization Level 0**
 
    .. plot::
+      :alt: Output from the previous code.
       :include-source:
 
       from qiskit import QuantumCircuit, transpile
@@ -750,6 +761,7 @@ and we can view this layout selection graphically using
 - **Layout Using Optimization Level 3**
 
    .. plot::
+      :alt: Output from the previous code.
       :include-source:
 
       from qiskit import QuantumCircuit, transpile
@@ -773,6 +785,7 @@ keyword argument, where the index labels the virtual qubit in the circuit and th
 corresponding value is the label for the physical qubit to map onto:
 
 .. plot::
+   :alt: Output from the previous code.
    :include-source:
 
    from qiskit import QuantumCircuit, transpile
@@ -820,6 +833,7 @@ In order to highlight this, we run a GHZ circuit 100 times, using a "bad" (disco
 ``initial_layout`` in a heavy hex coupling map:
 
 .. plot::
+   :alt: Diagram illustrating the previously described circuit.
 
    from qiskit import QuantumCircuit, transpile
 
@@ -829,6 +843,7 @@ In order to highlight this, we run a GHZ circuit 100 times, using a "bad" (disco
    ghz.draw(output='mpl')
 
 .. plot::
+   :alt: Output from the previous code.
    :include-source:
 
    import matplotlib.pyplot as plt
@@ -901,6 +916,7 @@ setting the optimization level higher:
 
 
 .. plot::
+   :alt: Diagram illustrating the previously described circuit.
 
    import matplotlib.pyplot as plt
    from qiskit import QuantumCircuit, transpile
@@ -913,6 +929,7 @@ setting the optimization level higher:
    ghz.draw(output='mpl')
 
 .. plot::
+   :alt: Output from the previous code.
    :include-source:
 
    import matplotlib.pyplot as plt
@@ -959,6 +976,7 @@ for idle time on the qubits between the execution of instructions. For example, 
 circuit such as:
 
 .. plot::
+   :alt: Diagram illustrating the previously described circuit.
 
    from qiskit import QuantumCircuit
 
@@ -970,6 +988,7 @@ circuit such as:
 we can then call :func:`~.transpile` on it with ``scheduling_method`` set:
 
 .. plot::
+   :alt: Output from the previous code.
    :include-source:
 
    from qiskit import QuantumCircuit, transpile
@@ -989,6 +1008,7 @@ account for idle time on each qubit. To get a better idea of the timing of the c
 also look at it with the :func:`.timeline.draw` function:
 
 .. plot::
+   :alt: Diagram illustrating the previously described circuit.
 
    from qiskit.visualization.timeline import draw as timeline_draw
 
