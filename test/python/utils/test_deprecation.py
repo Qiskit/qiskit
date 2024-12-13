@@ -20,9 +20,7 @@ from textwrap import dedent
 from qiskit.utils.deprecation import (
     add_deprecation_to_docstring,
     deprecate_arg,
-    deprecate_arguments,
     deprecate_func,
-    deprecate_function,
 )
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -73,7 +71,7 @@ class TestDeprecationDecorators(QiskitTestCase):
                 f"""\
 
                 .. deprecated:: 9.99
-                  The function ``{__name__}._deprecated_func()`` is deprecated as of qiskit \
+                  The function ``{__name__}._deprecated_func()`` is deprecated as of Qiskit \
 9.99. It will be removed in 2 releases. Instead, use new_func().
                 """
             ),
@@ -84,7 +82,7 @@ class TestDeprecationDecorators(QiskitTestCase):
                 f"""\
 
                 .. deprecated:: 9.99_pending
-                  The class ``{__name__}._Foo`` is pending deprecation as of qiskit 9.99. It \
+                  The class ``{__name__}._Foo`` is pending deprecation as of Qiskit 9.99. It \
 will be marked deprecated in a future release, and then removed no earlier than 3 months after \
 the release date.
                 """
@@ -97,7 +95,7 @@ the release date.
                 Method.
 
                 .. deprecated:: 9.99
-                  The method ``{__name__}._Foo.my_method()`` is deprecated as of qiskit \
+                  The method ``{__name__}._Foo.my_method()`` is deprecated as of Qiskit \
 9.99. It will be removed no earlier than 3 months after the release date. Stop using this!
                 """
             ),
@@ -109,11 +107,21 @@ the release date.
                 Property.
 
                 .. deprecated:: 9.99
-                  The property ``{__name__}._Foo.my_property`` is deprecated as of qiskit \
+                  The property ``{__name__}._Foo.my_property`` is deprecated as of Qiskit \
 9.99. It will be removed no earlier than 3 months after the release date.
                 """
             ),
         )
+
+    def test_deprecate_func_package_name(self) -> None:
+        """Test setting the package name works."""
+
+        @deprecate_func(since="9.99", package_name="riskit")
+        def my_func() -> None:
+            pass
+
+        with self.assertWarnsRegex(DeprecationWarning, "is deprecated as of riskit 9.99"):
+            my_func()
 
     def test_deprecate_arg_docstring(self) -> None:
         """Test that `@deprecate_arg` adds the correct message to the docstring."""
@@ -144,67 +152,22 @@ the release date.
 
                 .. deprecated:: 9.99
                   ``{__name__}.{my_func.__qualname__}()``'s argument ``arg4`` is deprecated as of \
-qiskit 9.99. It will be removed no earlier than 3 months after the release date. Instead, \
+Qiskit 9.99. It will be removed no earlier than 3 months after the release date. Instead, \
 use foo.
 
                 .. deprecated:: 9.99
-                  Using the argument arg3 is deprecated as of qiskit 9.99. It will be \
+                  Using the argument arg3 is deprecated as of Qiskit 9.99. It will be \
 removed no earlier than 3 months after the release date. Instead, use the argument ``new_arg3``, \
 which behaves identically.
 
                 .. deprecated:: 9.99_pending
                   ``{__name__}.{my_func.__qualname__}()``'s argument ``arg2`` is pending \
-deprecation as of qiskit 9.99. It will be marked deprecated in a future release, and then \
+deprecation as of Qiskit 9.99. It will be marked deprecated in a future release, and then \
 removed no earlier than 3 months after the release date.
 
                 .. deprecated:: 9.99
                   ``{__name__}.{my_func.__qualname__}()``'s argument ``arg1`` is deprecated as of \
-qiskit 9.99. It will be removed in 2 releases.
-                """
-            ),
-        )
-
-    def test_deprecate_arguments_docstring(self) -> None:
-        """Test that `@deprecate_arguments` adds the correct message to the docstring."""
-
-        @deprecate_arguments(
-            {"old_arg1": "new_arg1", "old_arg2": None},
-            category=PendingDeprecationWarning,
-            since="9.99",
-        )
-        def my_func() -> None:
-            pass
-
-        self.assertEqual(
-            my_func.__doc__,
-            dedent(
-                f"""\
-
-                .. deprecated:: 9.99_pending
-                  {my_func.__qualname__} keyword argument old_arg1 is deprecated and replaced with \
-new_arg1.
-
-                .. deprecated:: 9.99_pending
-                  {my_func.__qualname__} keyword argument old_arg2 is deprecated and will in the \
-future be removed.
-                """
-            ),
-        )
-
-    def test_deprecate_function_docstring(self) -> None:
-        """Test that `@deprecate_function` adds the correct message to the docstring."""
-
-        @deprecate_function("Stop using my_func!", since="9.99")
-        def my_func() -> None:
-            pass
-
-        self.assertEqual(
-            my_func.__doc__,
-            dedent(
-                """\
-
-                .. deprecated:: 9.99
-                  Stop using my_func!
+Qiskit 9.99. It will be removed in 2 releases.
                 """
             ),
         )
@@ -312,53 +275,6 @@ future be removed.
             my_func2(my_kwarg=5)
         with self.assertWarnsRegex(DeprecationWarning, "my_kwarg"):
             my_func2(my_kwarg=5, another_arg=0, yet_another=0)
-
-    def test_deprecate_arguments_runtime_warning(self) -> None:
-        """Test that `@deprecate_arguments` warns whenever the arguments are used.
-
-        Also check that old arguments are passed in as their new alias.
-        """
-
-        @deprecate_arguments({"arg1": "new_arg1", "arg2": None}, since="9.99")
-        def my_func(arg1: str = "a", arg2: str = "a", new_arg1: str | None = None) -> None:
-            del arg2
-            # If the old arg was set, we should set its `new_alias` to that value.
-            if arg1 != "a":
-                self.assertEqual(new_arg1, "z")
-            if new_arg1 is not None:
-                self.assertEqual(new_arg1, "z")
-
-        # No warnings if no deprecated args used.
-        my_func()
-        my_func(new_arg1="z")
-
-        # Warn if argument is specified, regardless of positional vs kwarg.
-        with self.assertWarnsRegex(DeprecationWarning, "arg1"):
-            my_func("z")
-        with self.assertWarnsRegex(DeprecationWarning, "arg1"):
-            my_func(arg1="z")
-        with self.assertWarnsRegex(DeprecationWarning, "arg2"):
-            my_func("z", "z")
-        with self.assertWarnsRegex(DeprecationWarning, "arg2"):
-            my_func(arg2="z")
-
-        # Error if new_alias specified at the same time as old argument name.
-        with self.assertRaises(TypeError):
-            my_func("a", new_arg1="z")
-        with self.assertRaises(TypeError):
-            my_func(arg1="a", new_arg1="z")
-        with self.assertRaises(TypeError):
-            my_func("a", "a", "z")
-
-    def test_deprecate_function_runtime_warning(self) -> None:
-        """Test that `@deprecate_function` warns whenever the function is used."""
-
-        @deprecate_function("Stop using my_func!", since="9.99")
-        def my_func() -> None:
-            pass
-
-        with self.assertWarnsRegex(DeprecationWarning, "Stop using my_func!"):
-            my_func()
 
 
 class AddDeprecationDocstringTest(QiskitTestCase):

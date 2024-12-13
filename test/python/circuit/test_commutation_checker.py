@@ -16,7 +16,7 @@ import unittest
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 import numpy as np
-from ddt import data, ddt
+from ddt import idata, ddt
 
 from qiskit import ClassicalRegister
 from qiskit.circuit import (
@@ -52,8 +52,24 @@ from qiskit.circuit.library import (
     SGate,
     XGate,
     ZGate,
+    HGate,
 )
 from qiskit.dagcircuit import DAGOpNode
+
+ROTATION_GATES = [
+    RXGate,
+    RYGate,
+    RZGate,
+    PhaseGate,
+    CRXGate,
+    CRYGate,
+    CRZGate,
+    CPhaseGate,
+    RXXGate,
+    RYYGate,
+    RZZGate,
+    RZXGate,
+]
 
 
 class NewGateCX(Gate):
@@ -373,20 +389,7 @@ class TestCommutationChecker(QiskitTestCase):
         cc2.commute_nodes(dop1, dop2)
         self.assertEqual(cc2.num_cached_entries(), 1)
 
-    @data(
-        RXGate,
-        RYGate,
-        RZGate,
-        PhaseGate,
-        CRXGate,
-        CRYGate,
-        CRZGate,
-        CPhaseGate,
-        RXXGate,
-        RYYGate,
-        RZZGate,
-        RZXGate,
-    )
+    @idata(ROTATION_GATES)
     def test_cutoff_angles(self, gate_cls):
         """Check rotations with a small enough angle are cut off."""
         max_power = 30
@@ -405,6 +408,27 @@ class TestCommutationChecker(QiskitTestCase):
                 self.assertTrue(scc.commute(generic_gate, [0, 1], [], gate, qargs, []))
             else:
                 self.assertFalse(scc.commute(generic_gate, [0, 1], [], gate, qargs, []))
+
+    @idata(ROTATION_GATES)
+    def test_rotation_mod_2pi(self, gate_cls):
+        """Test the rotations modulo 2pi commute with any gate."""
+        generic_gate = HGate()  # does not commute with any rotation gate
+        even = np.arange(-6, 7, 2)
+
+        with self.subTest(msg="even multiples"):
+            for multiple in even:
+                gate = gate_cls(multiple * np.pi)
+                self.assertTrue(
+                    scc.commute(generic_gate, [0], [], gate, list(range(gate.num_qubits)), [])
+                )
+
+        odd = np.arange(-5, 6, 2)
+        with self.subTest(msg="odd multiples"):
+            for multiple in odd:
+                gate = gate_cls(multiple * np.pi)
+                self.assertFalse(
+                    scc.commute(generic_gate, [0], [], gate, list(range(gate.num_qubits)), [])
+                )
 
 
 if __name__ == "__main__":

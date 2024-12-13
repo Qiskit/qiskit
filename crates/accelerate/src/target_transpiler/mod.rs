@@ -227,18 +227,18 @@ impl Target {
     #[new]
     #[pyo3(signature = (
         description = None,
-        num_qubits = None,
+        num_qubits = 0,
         dt = None,
-        granularity = None,
-        min_length = None,
-        pulse_alignment = None,
-        acquire_alignment = None,
+        granularity = 1,
+        min_length = 1,
+        pulse_alignment = 1,
+        acquire_alignment = 1,
         qubit_properties = None,
         concurrent_measurements = None,
     ))]
     fn new(
         description: Option<String>,
-        num_qubits: Option<usize>,
+        mut num_qubits: Option<usize>,
         dt: Option<f64>,
         granularity: Option<u32>,
         min_length: Option<usize>,
@@ -247,10 +247,9 @@ impl Target {
         qubit_properties: Option<Vec<PyObject>>,
         concurrent_measurements: Option<Vec<Vec<PhysicalQubit>>>,
     ) -> PyResult<Self> {
-        let mut num_qubits = num_qubits;
         if let Some(qubit_properties) = qubit_properties.as_ref() {
-            if let Some(num_qubits) = num_qubits {
-                if num_qubits != qubit_properties.len() {
+            if num_qubits.is_some_and(|num_qubits| num_qubits > 0) {
+                if num_qubits.unwrap() != qubit_properties.len() {
                     return Err(PyValueError::new_err(
                         "The value of num_qubits specified does not match the \
                             length of the input qubit_properties list",
@@ -935,10 +934,10 @@ impl Target {
     // TODO: Remove once `Target` is being consumed.
     #[allow(dead_code)]
     pub fn operations(&self) -> impl Iterator<Item = &NormalOperation> {
-        return self._gate_name_map.values().filter_map(|oper| match oper {
+        self._gate_name_map.values().filter_map(|oper| match oper {
             TargetOperation::Normal(oper) => Some(oper),
             _ => None,
-        });
+        })
     }
 
     /// Get the error rate of a given instruction in the target
@@ -1026,7 +1025,7 @@ impl Target {
         } else if self.non_global_basis.is_some() {
             return self.non_global_basis.as_deref();
         }
-        return Some(self.generate_non_global_op_names(strict_direction));
+        Some(self.generate_non_global_op_names(strict_direction))
     }
 
     /// Gets all the operation names that use these qargs. Rust native equivalent of ``BaseTarget.operation_names_for_qargs()``

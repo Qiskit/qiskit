@@ -80,7 +80,10 @@ class Schedule:
 
     - Appending an instruction to the end of a channel
 
-      .. code-block:: python
+      .. plot::
+         :include-source:
+         :nofigs:
+         :context: reset
 
           from qiskit.pulse import Schedule, Gaussian, DriveChannel, Play
           sched = Schedule()
@@ -88,14 +91,20 @@ class Schedule:
 
     - Appending an instruction shifted in time by a given amount
 
-      .. code-block:: python
+      .. plot::
+         :include-source:
+         :nofigs:
+         :context:
 
           sched = Schedule()
           sched += Play(Gaussian(160, 0.1, 40), DriveChannel(0)) << 30
 
     - Merge two schedules
 
-      .. code-block:: python
+      .. plot::
+         :include-source:
+         :nofigs:
+         :context:
 
           sched1 = Schedule()
           sched1 += Play(Gaussian(160, 0.1, 40), DriveChannel(0))
@@ -629,7 +638,10 @@ class Schedule:
 
         The replacement matching is based on an instruction equality check.
 
-        .. code-block::
+        .. plot::
+           :include-source:
+           :nofigs:
+           :context: reset
 
             from qiskit import pulse
 
@@ -648,9 +660,12 @@ class Schedule:
 
         Only matches at the top-level of the schedule tree. If you wish to
         perform this replacement over all instructions in the schedule tree.
-        Flatten the schedule prior to running::
+        Flatten the schedule prior to running:
 
-        .. code-block::
+        .. plot::
+           :include-source:
+           :nofigs:
+           :context:
 
             sched = pulse.Schedule()
 
@@ -884,7 +899,10 @@ class ScheduleBlock:
     reference key "grand_child".  You can call a subroutine without specifying
     a substantial program.
 
-    .. code-block::
+    .. plot::
+       :include-source:
+       :nofigs:
+       :context: reset
 
         from qiskit import pulse
         from qiskit.circuit.parameter import Parameter
@@ -914,7 +932,10 @@ class ScheduleBlock:
     The program calling the "grand_child" has a reference program description
     which is accessed through :attr:`ScheduleBlock.references`.
 
-    .. code-block::
+    .. plot::
+       :include-source:
+       :nofigs:
+       :context:
 
         print(sched_outer.references)
 
@@ -927,7 +948,10 @@ class ScheduleBlock:
     Here we try a different approach to define subroutine. Namely, we call
     a subroutine from the root program with the actual program ``sched2``.
 
-    .. code-block::
+    .. plot::
+       :include-source:
+       :nofigs:
+       :context:
 
         amp3 = Parameter("amp3")
 
@@ -946,7 +970,10 @@ class ScheduleBlock:
 
     Note that the root program is only aware of its direct references.
 
-    .. code-block::
+    .. plot::
+       :include-source:
+       :nofigs:
+       :context:
 
         print(main.references)
 
@@ -960,7 +987,10 @@ class ScheduleBlock:
     However, the returned :class:`.ReferenceManager` is a dict-like object, and you can still
     reach to "grand_child" via the "child" program with the following chained dict access.
 
-    .. code-block::
+    .. plot::
+       :include-source:
+       :nofigs:
+       :context:
 
         main.references[("child", )].references[("grand_child", )]
 
@@ -1454,7 +1484,10 @@ class ScheduleBlock:
         which are directly referred within the current scope.
         Let's see following example:
 
-        .. code-block:: python
+        .. plot::
+           :include-source:
+           :nofigs:
+           :context: reset
 
             from qiskit import pulse
 
@@ -1479,14 +1512,35 @@ class ScheduleBlock:
         you must first assign "A" of the ``sub_prog``,
         and then assign the ``sub_prog`` to the ``main_prog``.
 
-        .. code-block:: python
+        .. plot::
+           :include-source:
+           :nofigs:
+           :context:
 
             sub_prog.assign_references({("A", ): nested_prog}, inplace=True)
             main_prog.assign_references({("B", ): sub_prog}, inplace=True)
 
         Alternatively, you can also write
 
-        .. code-block:: python
+        .. plot::
+           :nofigs:
+           :context: reset
+
+            # This code is hidden from readers
+            # It resets the variables so the following code example runs correctly
+            from qiskit import pulse
+            with pulse.build() as nested_prog:
+                pulse.delay(10, pulse.DriveChannel(0))
+            with pulse.build() as sub_prog:
+                pulse.reference("A")
+            with pulse.build() as main_prog:
+                pulse.reference("B")
+
+
+        .. plot::
+           :include-source:
+           :nofigs:
+           :context:
 
             main_prog.assign_references({("B", ): sub_prog}, inplace=True)
             main_prog.references[("B", )].assign_references({("A", ): nested_prog}, inplace=True)
@@ -1530,7 +1584,9 @@ class ScheduleBlock:
         because these different objects are identified by their unique uuid.
         For example,
 
-        .. code-block:: python
+        .. plot::
+           :include-source:
+           :nofigs:
 
             from qiskit import pulse, circuit
 

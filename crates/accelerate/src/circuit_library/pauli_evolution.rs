@@ -254,12 +254,7 @@ pub fn py_pauli_evolution(
         |(((i, pauli), qubits), time)| {
             let as_packed = pauli_evolution(pauli, qubits, time, false, do_fountain).map(
                 |(gate, params, qubits)| -> PyResult<Instruction> {
-                    Ok((
-                        gate.into(),
-                        params,
-                        Vec::from_iter(qubits.into_iter()),
-                        Vec::new(),
-                    ))
+                    Ok((gate.into(), params, Vec::from_iter(qubits), Vec::new()))
                 },
             );
 
@@ -294,7 +289,7 @@ pub fn py_pauli_evolution(
 ///     q_3: ┤ X ├──■───────
 ///          └─┬─┘
 ///     q_4: ──■────────────
-///     
+///
 fn cx_chain(
     active_paulis: Vec<(char, Qubit)>,
 ) -> Box<dyn DoubleEndedIterator<Item = StandardInstruction>> {
@@ -308,17 +303,17 @@ fn cx_chain(
 
 /// Build a CX fountain over the active qubits. E.g. with q_1 inactive, this would return
 ///
-////         ┌───┐┌───┐┌───┐
-////    q_0: ┤ X ├┤ X ├┤ X ├
-////         └─┬─┘└─┬─┘└─┬─┘
-////    q_1: ──┼────┼────┼──
-////           │    │    │
-////    q_2: ──■────┼────┼──
-////                │    │
-////    q_3: ───────■────┼──
-////                     │
-////    q_4: ────────────■──
-///     
+///         ┌───┐┌───┐┌───┐
+///    q_0: ┤ X ├┤ X ├┤ X ├
+///         └─┬─┘└─┬─┘└─┬─┘
+///    q_1: ──┼────┼────┼──
+///           │    │    │
+///    q_2: ──■────┼────┼──
+///                │    │
+///    q_3: ───────■────┼──
+///                     │
+///    q_4: ────────────■──
+///
 fn cx_fountain(
     active_paulis: Vec<(char, Qubit)>,
 ) -> Box<dyn DoubleEndedIterator<Item = StandardInstruction>> {

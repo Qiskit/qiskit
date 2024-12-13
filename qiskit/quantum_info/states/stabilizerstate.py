@@ -17,6 +17,7 @@ Stabilizer state class.
 from __future__ import annotations
 
 from collections.abc import Collection
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -28,13 +29,18 @@ from qiskit.quantum_info.operators.symplectic.clifford_circuits import _append_x
 from qiskit.quantum_info.states.quantum_state import QuantumState
 from qiskit.circuit import QuantumCircuit, Instruction
 
+if TYPE_CHECKING:
+    from qiskit import circuit
+
 
 class StabilizerState(QuantumState):
     """StabilizerState class.
     Stabilizer simulator using the convention from reference [1].
     Based on the internal class :class:`~qiskit.quantum_info.Clifford`.
 
-    .. code-block::
+    .. plot::
+       :include-source:
+       :nofigs:
 
         from qiskit import QuantumCircuit
         from qiskit.quantum_info import StabilizerState, Pauli
@@ -63,7 +69,9 @@ class StabilizerState(QuantumState):
     Given a list of stabilizers, :meth:`qiskit.quantum_info.StabilizerState.from_stabilizer_list`
     returns a state stabilized by the list
 
-    .. code-block:: python
+    .. plot::
+       :include-source:
+       :nofigs:
 
         from qiskit.quantum_info import StabilizerState
 
@@ -79,17 +87,14 @@ class StabilizerState(QuantumState):
 
     def __init__(
         self,
-        data: StabilizerState | Clifford | Pauli | QuantumCircuit | Instruction,
+        data: StabilizerState | Clifford | Pauli | QuantumCircuit | circuit.instruction.Instruction,
         validate: bool = True,
     ):
         """Initialize a StabilizerState object.
 
         Args:
-            data (StabilizerState or Clifford or Pauli or QuantumCircuit or
-                  qiskit.circuit.Instruction):
-                Data from which the stabilizer state can be constructed.
-            validate (boolean): validate that the stabilizer state data is
-                a valid Clifford.
+            data: Data from which the stabilizer state can be constructed.
+            validate: validate that the stabilizer state data is a valid Clifford.
         """
 
         # Initialize from another StabilizerState
