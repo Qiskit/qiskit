@@ -655,7 +655,7 @@ class Target(BaseTarget):
     def has_calibration(
         self,
         operation_name: str,
-        qargs: tuple[int, ...] | list[int, ...],
+        qargs: tuple[int, ...],
         operation_params: list[float] | float | None = None,
     ) -> bool:
         """Return whether the instruction (operation + operation_params + qubits) defines
@@ -664,7 +664,9 @@ class Target(BaseTarget):
         Args:
             operation_name: The name of the operation for the instruction.
             qargs: The qubit indices for the instruction.
-            operation_params: The parameters for the Instruction.
+            operation_params: The parameters for the Instruction. In case
+            of multi-parameter gates, the order of parameters in the tuple
+            must match the order of the gate parameters.
 
         Returns:
             Returns ``True`` if the calibration is supported and ``False`` if it isn't.
@@ -698,7 +700,7 @@ class Target(BaseTarget):
     def get_calibration(
         self,
         operation_name: str,
-        qargs: tuple[int, ...] | list[int, ...],
+        qargs: tuple[int, ...],
         *args: ParameterValueType,
         operation_params: list[float] | float | None = None,
         **kwargs: ParameterValueType,
@@ -712,7 +714,9 @@ class Target(BaseTarget):
             operation_name: The name of the operation for the instruction.
             qargs: The qubit indices for the instruction.
             args: Parameter values to build schedule if any.
-            operation_params: The parameters for the Instruction.
+            operation_params: The parameters for the Instruction. In case
+            of multi-parameter gate, the order of parameters in the tuple
+            must match the order of the gate parameters.
             kwargs: Parameter values with name to build schedule if any.
 
         Returns:
@@ -725,7 +729,7 @@ class Target(BaseTarget):
     def _get_calibration(
         self,
         operation_name: str,
-        qargs: tuple[int, ...] | list[int, ...],
+        qargs: tuple[int, ...],
         *args: ParameterValueType,
         operation_params: list[float] | float | None = None,
         **kwargs: ParameterValueType,
