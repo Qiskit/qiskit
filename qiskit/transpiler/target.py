@@ -676,10 +676,9 @@ class Target(BaseTarget):
     def _has_calibration(
         self,
         operation_name: str,
-        qargs: tuple[int, ...] | list[int, ...],
+        qargs: tuple[int, ...],
         operation_params: list[float] | float | None = None,
     ) -> bool:
-        qargs = tuple(qargs)
         if operation_params is not None and not isinstance(operation_params, list):
             operation_params = [operation_params]
 
@@ -734,7 +733,6 @@ class Target(BaseTarget):
         operation_params: list[float] | float | None = None,
         **kwargs: ParameterValueType,
     ) -> Schedule | ScheduleBlock:
-        qargs = tuple(qargs)
         if not self._has_calibration(operation_name, qargs, operation_params):
             raise KeyError(
                 f"Calibration of instruction: `{operation_name}`, with params: "
