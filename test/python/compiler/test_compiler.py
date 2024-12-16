@@ -188,7 +188,6 @@ class TestCompiler(QiskitTestCase):
 
     def test_parallel_compile(self):
         """Trigger parallel routines in compile."""
-        backend = Fake20QV1()
         qr = QuantumRegister(16)
         cr = ClassicalRegister(2)
         qc = QuantumCircuit(qr, cr)
@@ -198,6 +197,7 @@ class TestCompiler(QiskitTestCase):
         qc.measure(qr[5], cr[0])
         qlist = [qc for k in range(10)]
         with self.assertWarns(DeprecationWarning):
+            backend = Fake20QV1()
             qobj = assemble(transpile(qlist, backend=backend))
         self.assertEqual(len(qobj.experiments), 10)
 
@@ -500,7 +500,8 @@ class TestCompiler(QiskitTestCase):
 
         See: https://github.com/Qiskit/qiskit-terra/issues/607
         """
-        backend = Fake5QV1()
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake5QV1()
         qr = QuantumRegister(2)
         circ1 = QuantumCircuit(qr)
         circ1.cx(qr[0], qr[1])

@@ -31,10 +31,11 @@ from qiskit.circuit.exceptions import CircuitError
 from qiskit.compiler import assemble, transpile
 from qiskit import pulse
 from qiskit.quantum_info import Operator
-from qiskit.providers.fake_provider import Fake5QV1
+from qiskit.providers.fake_provider import Fake5QV1, GenericBackendV2
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.utils import parallel_map
 from test import QiskitTestCase, combine  # pylint: disable=wrong-import-order
+from ..legacy_cmaps import BOGOTA_CMAP
 
 
 def raise_if_parameter_table_invalid(circuit):
@@ -53,7 +54,9 @@ def raise_if_parameter_table_invalid(circuit):
         for parameter in param.parameters
         if isinstance(param, ParameterExpression)
     }
-    table_parameters = set(circuit._data.get_params_unsorted())
+    if isinstance(circuit.global_phase, ParameterExpression):
+        circuit_parameters |= circuit.global_phase.parameters
+    table_parameters = set(circuit._data.unsorted_parameters())
 
     if circuit_parameters != table_parameters:
         raise CircuitError(
@@ -66,24 +69,31 @@ def raise_if_parameter_table_invalid(circuit):
     circuit_instructions = [instr.operation for instr in circuit._data]
 
     for parameter in table_parameters:
-        instr_list = circuit._data._get_param(parameter.uuid.int)
+        instr_list = circuit._data._raw_parameter_table_entry(parameter)
         for instr_index, param_index in instr_list:
-            instr = circuit.data[instr_index].operation
-            if instr not in circuit_instructions:
-                raise CircuitError(f"ParameterTable instruction not present in circuit: {instr}.")
+            if instr_index is None:
+                # Global phase.
+                expression = circuit.global_phase
+                instr = "<global phase>"
+            else:
+                instr = circuit.data[instr_index].operation
+                if instr not in circuit_instructions:
+                    raise CircuitError(
+                        f"ParameterTable instruction not present in circuit: {instr}."
+                    )
+                expression = instr.params[param_index]
 
-            if not isinstance(instr.params[param_index], ParameterExpression):
+            if not isinstance(expression, ParameterExpression):
                 raise CircuitError(
                     "ParameterTable instruction does not have a "
                     f"ParameterExpression at param_index {param_index}: {instr}."
                 )
 
-            if parameter not in instr.params[param_index].parameters:
+            if parameter not in expression.parameters:
                 raise CircuitError(
-                    "ParameterTable instruction parameters does "
-                    "not match ParameterTable key. Instruction "
-                    f"parameters: {instr.params[param_index].parameters}"
-                    f" ParameterTable key: {parameter}."
+                    "ParameterTable instruction parameters does not match ParameterTable key."
+                    f"\nInstruction parameters: {expression.parameters}"
+                    f"\nParameterTable key: {parameter}."
                 )
 
     # Assert circuit has no other parameter locations other than those in table.
@@ -93,8 +103,8 @@ def raise_if_parameter_table_invalid(circuit):
                 parameters = param.parameters
 
                 for parameter in parameters:
-                    if (instr_index, param_index) not in circuit._data._get_param(
-                        parameter.uuid.int
+                    if (instr_index, param_index) not in circuit._data._raw_parameter_table_entry(
+                        parameter
                     ):
                         raise CircuitError(
                             "Found parameterized instruction not "
@@ -182,9 +192,10 @@ class TestParameters(QiskitTestCase):
         qc = QuantumCircuit(qr)
         rxg = RXGate(theta)
         qc.append(rxg, [qr[0]], [])
-        self.assertEqual(qc._data.num_params(), 1)
-        self.assertIs(theta, next(iter(qc._data.get_params_unsorted())))
-        self.assertEqual(rxg, qc.data[next(iter(qc._data._get_param(theta.uuid.int)))[0]].operation)
+        self.assertEqual(qc._data.num_parameters(), 1)
+        self.assertIs(theta, next(iter(qc._data.unsorted_parameters())))
+        ((instruction_index, _),) = list(qc._data._raw_parameter_table_entry(theta))
+        self.assertEqual(rxg, qc.data[instruction_index].operation)
 
     def test_parameters_property_by_index(self):
         """Test getting parameters by index"""
@@ -335,6 +346,33 @@ class TestParameters(QiskitTestCase):
         self.assertEqual(
             qc.assign_parameters({a: 1, b: 2, c: 3}), qc.assign_parameters({"a": 1, "b": 2, "c": 3})
         )
+
+    def test_assign_parameters_by_iterable(self):
+        """Assignment works with weird iterables."""
+        a, b, c = Parameter("a"), Parameter("b"), Parameter("c")
+        qc = QuantumCircuit(1)
+        qc.rz(a, 0)
+        qc.rz(b + c, 0)
+
+        binds = [1.25, 2.5, 0.125]
+        expected = qc.assign_parameters(dict(zip(qc.parameters, binds)))
+        self.assertEqual(qc.assign_parameters(iter(binds)), expected)
+        self.assertEqual(qc.assign_parameters(dict.fromkeys(binds).keys()), expected)
+        self.assertEqual(qc.assign_parameters(dict(zip(qc.parameters, binds)).values()), expected)
+        self.assertEqual(qc.assign_parameters(bind for bind in binds), expected)
+
+    def test_assign_parameters_with_cache(self):
+        """Test assigning parameters on a circuit with already triggered cache."""
+        x = Parameter("x")
+        qc = QuantumCircuit(1)
+        qc.append(RZGate(x), [0])  # add via ``append`` to create a CircuitInstruction
+
+        _ = qc.data[0].operation.definition  # trigger building the cache
+
+        binds = [1.2]
+        qc.assign_parameters(binds, inplace=True)
+
+        self.assertAlmostEqual(binds[0], qc.data[0].operation.params[0])
 
     def test_bind_parameters_custom_definition_global_phase(self):
         """Test that a custom gate with a parametrized `global_phase` is assigned correctly."""
@@ -580,12 +618,12 @@ class TestParameters(QiskitTestCase):
         qc.rx(theta, 0)
         qc.ry(phi, 0)
 
-        self.assertEqual(qc._data._get_entry_count(theta), 1)
-        self.assertEqual(qc._data._get_entry_count(phi), 1)
+        self.assertEqual(len(qc._data._raw_parameter_table_entry(theta)), 1)
+        self.assertEqual(len(qc._data._raw_parameter_table_entry(phi)), 1)
 
         qc.assign_parameters({theta: -phi}, inplace=True)
 
-        self.assertEqual(qc._data._get_entry_count(phi), 2)
+        self.assertEqual(len(qc._data._raw_parameter_table_entry(phi)), 2)
 
     def test_expression_partial_binding_zero(self):
         """Verify that binding remains possible even if a previous partial bind
@@ -608,6 +646,47 @@ class TestParameters(QiskitTestCase):
 
         self.assertEqual(fbqc.parameters, set())
         self.assertEqual(float(fbqc.data[0].operation.params[0]), 0)
+
+    def test_assignment_to_annotated_operation(self):
+        """Test that assignments to an ``AnnotatedOperation`` are propagated all the way down."""
+
+        class MyGate(Gate):
+            """Arbitrary non-standard gate."""
+
+            def __init__(self, param):
+                super().__init__("my_gate", 1, [param])
+                # Eagerly create our definition.
+                _ = self.definition
+
+            def _define(self):
+                self._definition = QuantumCircuit(1, name="my_gate_inner")
+                self._definition.ry(self.params[0], 0)
+
+        theta = Parameter("theta")
+
+        # Sanity check for the test; it won't catch errors if this fails.
+        self.assertEqual(MyGate(theta), MyGate(theta))
+        self.assertNotEqual(MyGate(theta), MyGate(1.23))
+
+        parametric_gate = MyGate(theta)
+        qc = QuantumCircuit(2)
+        qc.append(parametric_gate.control(1, annotated=True), [0, 1], copy=True)
+        assigned = qc.assign_parameters([1.23])
+
+        expected = QuantumCircuit(2)
+        expected.append(MyGate(1.23).control(1, annotated=True), [0, 1])
+        self.assertEqual(assigned, expected)
+        self.assertEqual(
+            assigned.data[0].operation.base_op.definition,
+            expected.data[0].operation.base_op.definition,
+        )
+
+        qc.assign_parameters([1.23], inplace=True)
+        self.assertEqual(qc, expected)
+
+        # Test that the underlying gate was not modified.
+        self.assertEqual(parametric_gate.params, [theta])
+        self.assertEqual(set(parametric_gate.definition.parameters), {theta})
 
     def test_raise_if_assigning_params_not_in_circuit(self):
         """Verify binding parameters which are not present in the circuit raises an error."""
@@ -640,7 +719,7 @@ class TestParameters(QiskitTestCase):
         qc.append(gate, [0], [])
         qc.append(gate, [0], [])
         qc2 = qc.assign_parameters({theta: 1.0})
-        self.assertEqual(qc2._data.num_params(), 0)
+        self.assertEqual(qc2._data.num_parameters(), 0)
         for instruction in qc2.data:
             self.assertEqual(float(instruction.operation.params[0]), 1.0)
 
@@ -651,14 +730,15 @@ class TestParameters(QiskitTestCase):
         circ.append(Gate("rxt", 1, [theta]), [0])
         circ.measure(0, 0)
 
-        rxt_q0 = pulse.Schedule(
-            pulse.Play(
-                pulse.library.Gaussian(duration=128, sigma=16, amp=0.2 * theta / 3.14),
-                pulse.DriveChannel(0),
+        with self.assertWarns(DeprecationWarning):
+            rxt_q0 = pulse.Schedule(
+                pulse.Play(
+                    pulse.library.Gaussian(duration=128, sigma=16, amp=0.2 * theta / 3.14),
+                    pulse.DriveChannel(0),
+                )
             )
-        )
 
-        circ.add_calibration("rxt", [0], rxt_q0, [theta])
+            circ.add_calibration("rxt", [0], rxt_q0, [theta])
         circ = circ.assign_parameters({theta: 3.14})
 
         instruction = circ.data[0]
@@ -667,9 +747,11 @@ class TestParameters(QiskitTestCase):
             tuple(instruction.operation.params),
         )
         self.assertEqual(cal_key, ((0,), (3.14,)))
-        # Make sure that key from instruction data matches the calibrations dictionary
-        self.assertIn(cal_key, circ.calibrations["rxt"])
-        sched = circ.calibrations["rxt"][cal_key]
+
+        with self.assertWarns(DeprecationWarning):
+            # Make sure that key from instruction data matches the calibrations dictionary
+            self.assertIn(cal_key, circ.calibrations["rxt"])
+            sched = circ.calibrations["rxt"][cal_key]
         self.assertEqual(sched.instructions[0][1].pulse.amp, 0.2)
 
     def test_calibration_assignment_doesnt_mutate(self):
@@ -679,19 +761,21 @@ class TestParameters(QiskitTestCase):
         circ.append(Gate("rxt", 1, [theta]), [0])
         circ.measure(0, 0)
 
-        rxt_q0 = pulse.Schedule(
-            pulse.Play(
-                pulse.library.Gaussian(duration=128, sigma=16, amp=0.2 * theta / 3.14),
-                pulse.DriveChannel(0),
+        with self.assertWarns(DeprecationWarning):
+            rxt_q0 = pulse.Schedule(
+                pulse.Play(
+                    pulse.library.Gaussian(duration=128, sigma=16, amp=0.2 * theta / 3.14),
+                    pulse.DriveChannel(0),
+                )
             )
-        )
 
-        circ.add_calibration("rxt", [0], rxt_q0, [theta])
+            circ.add_calibration("rxt", [0], rxt_q0, [theta])
         circ_copy = copy.deepcopy(circ)
         assigned_circ = circ.assign_parameters({theta: 3.14})
 
-        self.assertEqual(circ.calibrations, circ_copy.calibrations)
-        self.assertNotEqual(assigned_circ.calibrations, circ.calibrations)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(circ.calibrations, circ_copy.calibrations)
+            self.assertNotEqual(assigned_circ.calibrations, circ.calibrations)
 
     def test_calibration_assignment_w_expressions(self):
         """That calibrations with multiple parameters are assigned correctly"""
@@ -701,14 +785,15 @@ class TestParameters(QiskitTestCase):
         circ.append(Gate("rxt", 1, [theta / 2, sigma]), [0])
         circ.measure(0, 0)
 
-        rxt_q0 = pulse.Schedule(
-            pulse.Play(
-                pulse.library.Gaussian(duration=128, sigma=4 * sigma, amp=0.2 * theta / 3.14),
-                pulse.DriveChannel(0),
+        with self.assertWarns(DeprecationWarning):
+            rxt_q0 = pulse.Schedule(
+                pulse.Play(
+                    pulse.library.Gaussian(duration=128, sigma=4 * sigma, amp=0.2 * theta / 3.14),
+                    pulse.DriveChannel(0),
+                )
             )
-        )
 
-        circ.add_calibration("rxt", [0], rxt_q0, [theta / 2, sigma])
+            circ.add_calibration("rxt", [0], rxt_q0, [theta / 2, sigma])
         circ = circ.assign_parameters({theta: 3.14, sigma: 4})
 
         instruction = circ.data[0]
@@ -717,9 +802,10 @@ class TestParameters(QiskitTestCase):
             tuple(instruction.operation.params),
         )
         self.assertEqual(cal_key, ((0,), (3.14 / 2, 4)))
-        # Make sure that key from instruction data matches the calibrations dictionary
-        self.assertIn(cal_key, circ.calibrations["rxt"])
-        sched = circ.calibrations["rxt"][cal_key]
+        with self.assertWarns(DeprecationWarning):
+            # Make sure that key from instruction data matches the calibrations dictionary
+            self.assertIn(cal_key, circ.calibrations["rxt"])
+            sched = circ.calibrations["rxt"][cal_key]
         self.assertEqual(sched.instructions[0][1].pulse.amp, 0.2)
         self.assertEqual(sched.instructions[0][1].pulse.sigma, 16)
 
@@ -727,16 +813,19 @@ class TestParameters(QiskitTestCase):
         """Test Parameter substitution (vs bind)."""
         alpha = Parameter("⍺")
         beta = Parameter("beta")
-        schedule = pulse.Schedule(pulse.ShiftPhase(alpha, pulse.DriveChannel(0)))
+        with self.assertWarns(DeprecationWarning):
+            schedule = pulse.Schedule(pulse.ShiftPhase(alpha, pulse.DriveChannel(0)))
 
         circ = QuantumCircuit(3, 3)
         circ.append(Gate("my_rz", 1, [alpha]), [0])
-        circ.add_calibration("my_rz", [0], schedule, [alpha])
+        with self.assertWarns(DeprecationWarning):
+            circ.add_calibration("my_rz", [0], schedule, [alpha])
 
         circ = circ.assign_parameters({alpha: 2 * beta})
 
         circ = circ.assign_parameters({beta: 1.57})
-        cal_sched = circ.calibrations["my_rz"][((0,), (3.14,))]
+        with self.assertWarns(DeprecationWarning):
+            cal_sched = circ.calibrations["my_rz"][((0,), (3.14,))]
         self.assertEqual(float(cal_sched.instructions[0][1].phase), 3.14)
 
     def test_partial_assignment(self):
@@ -746,14 +835,16 @@ class TestParameters(QiskitTestCase):
         gamma = Parameter("γ")
         phi = Parameter("ϕ")
 
-        with pulse.build() as my_cal:
-            pulse.set_frequency(alpha + beta, pulse.DriveChannel(0))
-            pulse.shift_frequency(gamma + beta, pulse.DriveChannel(0))
-            pulse.set_phase(phi, pulse.DriveChannel(1))
+        with self.assertWarns(DeprecationWarning):
+            with pulse.build() as my_cal:
+                pulse.set_frequency(alpha + beta, pulse.DriveChannel(0))
+                pulse.shift_frequency(gamma + beta, pulse.DriveChannel(0))
+                pulse.set_phase(phi, pulse.DriveChannel(1))
 
         circ = QuantumCircuit(2, 2)
         circ.append(Gate("custom", 2, [alpha, beta, gamma, phi]), [0, 1])
-        circ.add_calibration("custom", [0, 1], my_cal, [alpha, beta, gamma, phi])
+        with self.assertWarns(DeprecationWarning):
+            circ.add_calibration("custom", [0, 1], my_cal, [alpha, beta, gamma, phi])
 
         # Partial bind
         delta = 1e9
@@ -762,22 +853,34 @@ class TestParameters(QiskitTestCase):
         phase = 3.14 / 4
 
         circ = circ.assign_parameters({alpha: freq - delta})
-        cal_sched = list(circ.calibrations["custom"].values())[0]
-        self.assertEqual(cal_sched.instructions[0][1].frequency, freq - delta + beta)
+        with self.assertWarns(DeprecationWarning):
+            cal_sched = list(circ.calibrations["custom"].values())[0]
+        with self.assertWarns(DeprecationWarning):
+            # instructions triggers conversion to Schedule
+            self.assertEqual(cal_sched.instructions[0][1].frequency, freq - delta + beta)
 
         circ = circ.assign_parameters({beta: delta})
-        cal_sched = list(circ.calibrations["custom"].values())[0]
-        self.assertEqual(float(cal_sched.instructions[0][1].frequency), freq)
-        self.assertEqual(cal_sched.instructions[1][1].frequency, gamma + delta)
+        with self.assertWarns(DeprecationWarning):
+            cal_sched = list(circ.calibrations["custom"].values())[0]
+        with self.assertWarns(DeprecationWarning):
+            # instructions triggers conversion to Schedule
+            self.assertEqual(float(cal_sched.instructions[0][1].frequency), freq)
+            self.assertEqual(cal_sched.instructions[1][1].frequency, gamma + delta)
 
         circ = circ.assign_parameters({gamma: shift - delta})
-        cal_sched = list(circ.calibrations["custom"].values())[0]
-        self.assertEqual(float(cal_sched.instructions[1][1].frequency), shift)
+        with self.assertWarns(DeprecationWarning):
+            cal_sched = list(circ.calibrations["custom"].values())[0]
+        with self.assertWarns(DeprecationWarning):
+            # instructions triggers conversion to Schedule
+            self.assertEqual(float(cal_sched.instructions[1][1].frequency), shift)
+            self.assertEqual(cal_sched.instructions[2][1].phase, phi)
 
-        self.assertEqual(cal_sched.instructions[2][1].phase, phi)
         circ = circ.assign_parameters({phi: phase})
-        cal_sched = list(circ.calibrations["custom"].values())[0]
-        self.assertEqual(float(cal_sched.instructions[2][1].phase), phase)
+        with self.assertWarns(DeprecationWarning):
+            cal_sched = list(circ.calibrations["custom"].values())[0]
+        with self.assertWarns(DeprecationWarning):
+            # instructions triggers conversion to Schedule
+            self.assertEqual(float(cal_sched.instructions[2][1].phase), phase)
 
     def test_circuit_generation(self):
         """Test creating a series of circuits parametrically"""
@@ -1075,6 +1178,31 @@ class TestParameters(QiskitTestCase):
         self.assertTrue(len(job.result().results), 2)
 
     @data(0, 1, 2, 3)
+    def test_transpile_across_optimization_levelsV1(self, opt_level):
+        """Verify parameterized circuits can be transpiled with all default pass managers.
+        To remove once Fake5QV1 gets removed"""
+
+        qc = QuantumCircuit(5, 5)
+
+        theta = Parameter("theta")
+        phi = Parameter("phi")
+
+        qc.rx(theta, 0)
+        qc.x(0)
+        for i in range(5 - 1):
+            qc.rxx(phi, i, i + 1)
+
+        qc.measure(range(5 - 1), range(5 - 1))
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake5QV1()
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The `transpile` function will "
+            "stop supporting inputs of type `BackendV1`",
+        ):
+            transpile(qc, backend, optimization_level=opt_level)
+
+    @data(0, 1, 2, 3)
     def test_transpile_across_optimization_levels(self, opt_level):
         """Verify parameterized circuits can be transpiled with all default pass managers."""
 
@@ -1090,7 +1218,15 @@ class TestParameters(QiskitTestCase):
 
         qc.measure(range(5 - 1), range(5 - 1))
 
-        transpile(qc, Fake5QV1(), optimization_level=opt_level)
+        transpile(
+            qc,
+            GenericBackendV2(
+                num_qubits=5,
+                coupling_map=BOGOTA_CMAP,
+                seed=42,
+            ),
+            optimization_level=opt_level,
+        )
 
     def test_repeated_gates_to_dag_and_back(self):
         """Verify circuits with repeated parameterized gates can be converted
@@ -1109,6 +1245,18 @@ class TestParameters(QiskitTestCase):
 
         bound_test_qc = test_qc.assign_parameters({theta: 1})
         self.assertEqual(len(bound_test_qc.parameters), 0)
+
+    def test_global_phase_to_dag_and_back(self):
+        """Test global phase parameters are correctly handled to dag and back."""
+        from qiskit.converters import circuit_to_dag, dag_to_circuit
+
+        theta = Parameter("theta")
+        qc = QuantumCircuit(global_phase=theta)
+
+        test_qc = dag_to_circuit(circuit_to_dag(qc))
+
+        bound_test_qc = test_qc.assign_parameters({theta: 1})
+        self.assertEqual(bound_test_qc.global_phase, 1)
 
     def test_rebinding_instruction_copy(self):
         """Test rebinding a copied instruction does not modify the original."""
@@ -1350,6 +1498,18 @@ class TestParameters(QiskitTestCase):
         self.assertEqual(qc.parameters, set())
         raise_if_parameter_table_invalid(qc)
 
+    def test_nonfinal_insert_maintains_valid_table(self):
+        """Inserts other than appends should still maintain valid tracking, for as long as we
+        continue to allow non-final inserts."""
+        a, b, c = [Parameter(x) for x in "abc"]
+        qc = QuantumCircuit(1)
+        qc.global_phase = a / 2
+        qc.rz(a, 0)
+        qc.rz(b + c, 0)
+        raise_if_parameter_table_invalid(qc)
+        qc.data.insert(0, qc.data.pop())
+        raise_if_parameter_table_invalid(qc)
+
     def test_circuit_with_ufunc(self):
         """Test construction of circuit and binding of parameters
         after we apply universal functions."""
@@ -1468,6 +1628,22 @@ class TestParameters(QiskitTestCase):
 
         subbed = x.subs({y: z}, allow_unknown_parameters=True)
         self.assertEqual(subbed, x)
+
+    def test_decompose_with_global_phase(self):
+        """Test decomposing a circuit which introduces a global phase is correctly bound.
+
+        Regression test of #13534.
+        """
+        x = Parameter("x")
+        qc = QuantumCircuit(1)
+        qc.rz(x, 0)
+
+        bound = qc.decompose().assign_parameters([1])
+
+        expect = QuantumCircuit(1)
+        expect.rz(1, 0)
+
+        self.assertEqual(expect.decompose(), bound)
 
 
 def _construct_circuit(param, qr):

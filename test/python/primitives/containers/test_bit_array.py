@@ -232,6 +232,7 @@ class BitArrayTestCase(QiskitTestCase):
 
         counts1 = convert(Counts({"0b101010": 2, "0b1": 3, "0x010203": 4}))
         counts2 = convert(Counts({1: 3, 2: 6}))
+        counts3 = convert(Counts({0: 2}))
 
         bit_array = BitArray.from_counts(counts1)
         expected = BitArray(u_8([[0, 0, 42]] * 2 + [[0, 0, 1]] * 3 + [[1, 2, 3]] * 4), 17)
@@ -248,6 +249,10 @@ class BitArrayTestCase(QiskitTestCase):
         ]
         self.assertEqual(bit_array, BitArray(u_8(expected), 17))
 
+        bit_array = BitArray.from_counts(counts3)
+        expected = BitArray(u_8([[0], [0]]), 1)
+        self.assertEqual(bit_array, expected)
+
     def test_from_samples_bitstring(self):
         """Test the from_samples static constructor."""
         bit_array = BitArray.from_samples(["110", "1", "1111111111"])
@@ -255,6 +260,9 @@ class BitArrayTestCase(QiskitTestCase):
 
         bit_array = BitArray.from_samples(["110", "1", "1111111111"], 20)
         self.assertEqual(bit_array, BitArray(u_8([[0, 0, 6], [0, 0, 1], [0, 3, 255]]), 20))
+
+        bit_array = BitArray.from_samples(["000", "0"])
+        self.assertEqual(bit_array, BitArray(u_8([[0], [0]]), 1))
 
     def test_from_samples_hex(self):
         """Test the from_samples static constructor."""
@@ -264,6 +272,9 @@ class BitArrayTestCase(QiskitTestCase):
         bit_array = BitArray.from_samples(["0x01", "0x0a12", "0x0105"], 20)
         self.assertEqual(bit_array, BitArray(u_8([[0, 0, 1], [0, 10, 18], [0, 1, 5]]), 20))
 
+        bit_array = BitArray.from_samples(["0x0", "0x0"])
+        self.assertEqual(bit_array, BitArray(u_8([[0], [0]]), 1))
+
     def test_from_samples_int(self):
         """Test the from_samples static constructor."""
         bit_array = BitArray.from_samples([1, 2578, 261])
@@ -271,6 +282,9 @@ class BitArrayTestCase(QiskitTestCase):
 
         bit_array = BitArray.from_samples([1, 2578, 261], 20)
         self.assertEqual(bit_array, BitArray(u_8([[0, 0, 1], [0, 10, 18], [0, 1, 5]]), 20))
+
+        bit_array = BitArray.from_samples([0, 0, 0])
+        self.assertEqual(bit_array, BitArray(u_8([[0], [0], [0]]), 1))
 
     def test_reshape(self):
         """Test the reshape method."""
@@ -523,6 +537,20 @@ class BitArrayTestCase(QiskitTestCase):
             for j in range(2):
                 self.assertEqual(ba.get_counts((0, j, 2)), ba2.get_counts(j))
 
+        with self.subTest("errors"):
+            with self.assertRaisesRegex(IndexError, "index 2 is out of bounds"):
+                _ = ba[0, 2, 2]
+            with self.assertRaisesRegex(IndexError, "index -3 is out of bounds"):
+                _ = ba[0, -3, 2]
+            with self.assertRaisesRegex(
+                IndexError, "BitArray cannot be sliced along the shots axis"
+            ):
+                _ = ba[0, 1, 2, 3]
+            with self.assertRaisesRegex(
+                IndexError, "BitArray cannot be sliced along the bits axis"
+            ):
+                _ = ba[0, 1, 2, 3, 4]
+
     def test_slice_bits(self):
         """Test the slice_bits method."""
         # this creates incrementing bitstrings from 0 to 59
@@ -567,9 +595,9 @@ class BitArrayTestCase(QiskitTestCase):
                 self.assertEqual(ba2.get_counts((i, j, k)), expect)
 
         with self.subTest("errors"):
-            with self.assertRaisesRegex(ValueError, "index -1 is out of bounds"):
+            with self.assertRaisesRegex(IndexError, "index -1 is out of bounds"):
                 _ = ba.slice_bits(-1)
-            with self.assertRaisesRegex(ValueError, "index 9 is out of bounds"):
+            with self.assertRaisesRegex(IndexError, "index 9 is out of bounds"):
                 _ = ba.slice_bits(9)
 
     def test_slice_shots(self):
@@ -617,9 +645,9 @@ class BitArrayTestCase(QiskitTestCase):
                 self.assertEqual(ba2.get_bitstrings((i, j, k)), expected)
 
         with self.subTest("errors"):
-            with self.assertRaisesRegex(ValueError, "index -1 is out of bounds"):
+            with self.assertRaisesRegex(IndexError, "index -1 is out of bounds"):
                 _ = ba.slice_shots(-1)
-            with self.assertRaisesRegex(ValueError, "index 10 is out of bounds"):
+            with self.assertRaisesRegex(IndexError, "index 10 is out of bounds"):
                 _ = ba.slice_shots(10)
 
     def test_expectation_values(self):
@@ -705,3 +733,82 @@ class BitArrayTestCase(QiskitTestCase):
                 _ = ba.expectation_values("Z")
             with self.assertRaisesRegex(ValueError, "is not diagonal"):
                 _ = ba.expectation_values("X" * ba.num_bits)
+
+    def test_postselection(self):
+        """Test the postselection method."""
+
+        flat_data = np.array(
+            [
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 1, 1, 1, 1, 1],
+                [0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+            ],
+            dtype=bool,
+        )
+
+        shaped_data = np.array(
+            [
+                [
+                    [
+                        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                        [0, 0, 0, 0, 0, 1, 1, 1, 1, 1],
+                        [0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+                    ],
+                    [
+                        [1, 0, 1, 0, 1, 0, 1, 0, 1, 0],
+                        [1, 1, 1, 1, 1, 0, 0, 0, 0, 0],
+                        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                    ],
+                ]
+            ],
+            dtype=bool,
+        )
+
+        for dataname, bool_array in zip(["flat", "shaped"], [flat_data, shaped_data]):
+
+            bit_array = BitArray.from_bool_array(bool_array, order="little")
+            # indices value of i <-> creg[i] <-> bool_array[..., i]
+
+            num_bits = bool_array.shape[-1]
+            bool_array = bool_array.reshape(-1, num_bits)
+
+            test_cases = [
+                ("basic", [0, 1], [0, 0]),
+                ("multibyte", [0, 9], [0, 1]),
+                ("repeated", [5, 5, 5], [0, 0, 0]),
+                ("contradict", [5, 5, 5], [1, 0, 0]),
+                ("unsorted", [5, 0, 9, 3], [1, 0, 1, 0]),
+                ("negative", [-5, 1, -2, -10], [1, 0, 1, 0]),
+                ("negcontradict", [4, -6], [1, 0]),
+                ("trivial", [], []),
+                ("bareindex", 6, 0),
+            ]
+
+            for name, indices, selection in test_cases:
+                with self.subTest("_".join([dataname, name])):
+                    postselected_bools = np.unpackbits(
+                        bit_array.postselect(indices, selection).array[:, ::-1],
+                        count=num_bits,
+                        axis=-1,
+                        bitorder="little",
+                    ).astype(bool)
+                    if isinstance(indices, int):
+                        indices = (indices,)
+                    if isinstance(selection, bool):
+                        selection = (selection,)
+                    answer = bool_array[np.all(bool_array[:, indices] == selection, axis=-1)]
+                    if name in ["contradict", "negcontradict"]:
+                        self.assertEqual(len(answer), 0)
+                    else:
+                        self.assertGreater(len(answer), 0)
+                    np.testing.assert_equal(postselected_bools, answer)
+
+            error_cases = [
+                ("aboverange", [0, 6, 10], [True, True, False], IndexError),
+                ("belowrange", [0, 6, -11], [True, True, False], IndexError),
+                ("mismatch", [0, 1, 2], [False, False], ValueError),
+            ]
+            for name, indices, selection, error in error_cases:
+                with self.subTest(dataname + "_" + name):
+                    with self.assertRaises(error):
+                        bit_array.postselect(indices, selection)

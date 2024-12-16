@@ -59,7 +59,11 @@ are:
 If you want to enable multiple experimental features, you should combine the flags using the ``|``
 operator, such as ``flag1 | flag2``.
 
-For example, to perform an export using the early semantics of ``switch`` support::
+For example, to perform an export using the early semantics of ``switch`` support:
+
+.. plot::
+    :include-source:
+    :nofigs:
 
     from qiskit import qasm3, QuantumCircuit, QuantumRegister, ClassicalRegister
 
@@ -209,6 +213,7 @@ custom Python constructors to use for particular gates.  These custom constructo
 using the :class:`CustomGate` object:
 
 .. autoclass:: CustomGate
+    :members:
 
 In ``custom_gates`` is not given, Qiskit will attempt to use its standard-library gate objects for
 the gates defined in OpenQASM 3 standard library file ``stdgates.inc``.  This sequence of gates is

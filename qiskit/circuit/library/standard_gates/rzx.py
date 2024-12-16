@@ -11,11 +11,14 @@
 # that they have been altered from the originals.
 
 """Two-qubit ZX-rotation gate."""
+
+from __future__ import annotations
+
 import math
 from typing import Optional
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.circuit.parameterexpression import ParameterValueType
+from qiskit.circuit.parameterexpression import ParameterValueType, ParameterExpression
 from qiskit._accelerate.circuit import StandardGate
 
 
@@ -32,7 +35,7 @@ class RZXGate(Gate):
 
     **Circuit Symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌─────────┐
         q_0: ┤0        ├
@@ -62,7 +65,7 @@ class RZXGate(Gate):
         Instead, if we apply it on (q_1, q_0), the matrix will
         be :math:`Z \otimes X`:
 
-        .. parsed-literal::
+        .. code-block:: text
 
                  ┌─────────┐
             q_0: ┤1        ├
@@ -97,19 +100,19 @@ class RZXGate(Gate):
 
         .. math::
 
-            R_{ZX}(\theta = 0) = I
+            R_{ZX}(\theta = 0)\ q_0, q_1 = I
 
         .. math::
 
-            R_{ZX}(\theta = 2\pi) = -I
+            R_{ZX}(\theta = 2\pi)\ q_0, q_1 = -I
 
         .. math::
 
-            R_{ZX}(\theta = \pi) = -i Z \otimes X
+            R_{ZX}(\theta = \pi)\ q_0, q_1 = -i X \otimes Z
 
         .. math::
 
-            RZX(\theta = \frac{\pi}{2}) = \frac{1}{\sqrt{2}}
+            R_{ZX}(\theta = \frac{\pi}{2})\ q_0, q_1 = \frac{1}{\sqrt{2}}
                                     \begin{pmatrix}
                                         1  & 0 & -i & 0 \\
                                         0  & 1 & 0  & i \\
@@ -154,6 +157,39 @@ class RZXGate(Gate):
             qc._append(instr, qargs, cargs)
 
         self.definition = qc
+
+    def control(
+        self,
+        num_ctrl_qubits: int = 1,
+        label: str | None = None,
+        ctrl_state: str | int | None = None,
+        annotated: bool | None = None,
+    ):
+        """Return a (multi-)controlled-RZX gate.
+
+        Args:
+            num_ctrl_qubits: number of control qubits.
+            label: An optional label for the gate [Default: ``None``]
+            ctrl_state: control state expressed as integer,
+                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
+            annotated: indicates whether the controlled gate should be implemented
+                as an annotated gate. If ``None``, this is set to ``True`` if
+                the gate contains free parameters, in which case it cannot
+                yet be synthesized.
+
+        Returns:
+            ControlledGate: controlled version of this gate.
+        """
+        if annotated is None:
+            annotated = any(isinstance(p, ParameterExpression) for p in self.params)
+
+        gate = super().control(
+            num_ctrl_qubits=num_ctrl_qubits,
+            label=label,
+            ctrl_state=ctrl_state,
+            annotated=annotated,
+        )
+        return gate
 
     def inverse(self, annotated: bool = False):
         """Return inverse RZX gate (i.e. with the negative rotation angle).

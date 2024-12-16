@@ -50,7 +50,7 @@ use crate::error::QASM3ImporterError;
 ///     :class:`.QuantumCircuit`: the constructed circuit object.
 ///
 /// Raises:
-///     :class:`.QASM3ImporterError`: if an error occurred during parsing or semantic analysis.
+///     :exc:`.QASM3ImporterError`: if an error occurred during parsing or semantic analysis.
 ///         In the case of a parsing error, most of the error messages are printed to the terminal
 ///         and formatted, for better legibility.
 #[pyfunction]
@@ -120,7 +120,7 @@ pub fn loads(
 ///     :class:`.QuantumCircuit`: the constructed circuit object.
 ///
 /// Raises:
-///     :class:`.QASM3ImporterError`: if an error occurred during parsing or semantic analysis.
+///     :exc:`.QASM3ImporterError`: if an error occurred during parsing or semantic analysis.
 ///         In the case of a parsing error, most of the error messages are printed to the terminal
 ///         and formatted, for better legibility.
 #[pyfunction]
@@ -153,7 +153,6 @@ pub fn load(
 
 /// Internal module supplying the OpenQASM 3 import capabilities.  The entries in it should largely
 /// be re-exposed directly to public Python space.
-#[pymodule]
 pub fn qasm3(module: &Bound<PyModule>) -> PyResult<()> {
     module.add_function(wrap_pyfunction!(loads, module)?)?;
     module.add_function(wrap_pyfunction!(load, module)?)?;

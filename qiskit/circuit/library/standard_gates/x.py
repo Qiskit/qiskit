@@ -13,13 +13,14 @@
 """X, CX, CCX and multi-controlled X gates."""
 from __future__ import annotations
 from typing import Optional, Union, Type
-from math import ceil, pi
+from math import pi
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, stdlib_singleton_key
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import _ctrl_state_to_int, with_gate_array, with_controlled_gate_array
 from qiskit._accelerate.circuit import StandardGate
+from qiskit.utils.deprecation import deprecate_func
 
 _X_ARRAY = [[0, 1], [1, 0]]
 _SX_ARRAY = [[0.5 + 0.5j, 0.5 - 0.5j], [0.5 - 0.5j, 0.5 + 0.5j]]
@@ -43,7 +44,7 @@ class XGate(SingletonGate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌───┐
         q_0: ┤ X ├
@@ -112,7 +113,7 @@ class XGate(SingletonGate):
             label: An optional label for the gate [Default: ``None``]
             ctrl_state: control state expressed as integer,
                 string (e.g. ``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: indicates whether the controlled gate can be implemented
+            annotated: indicates whether the controlled gate should be implemented
                 as an annotated gate.
 
         Returns:
@@ -162,7 +163,7 @@ class CXGate(SingletonControlledGate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
         q_0: ──■──
              ┌─┴─┐
@@ -190,7 +191,8 @@ class CXGate(SingletonControlledGate):
         which in our case would be q_1. Thus a textbook matrix for this
         gate will be:
 
-        .. parsed-literal::
+        .. code-block:: text
+
                  ┌───┐
             q_0: ┤ X ├
                  └─┬─┘
@@ -257,7 +259,7 @@ class CXGate(SingletonControlledGate):
             label: An optional label for the gate [Default: ``None``]
             ctrl_state: control state expressed as integer,
                 string (e.g. ``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: indicates whether the controlled gate can be implemented
+            annotated: indicates whether the controlled gate should be implemented
                 as an annotated gate.
 
         Returns:
@@ -309,7 +311,7 @@ class CCXGate(SingletonControlledGate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
         q_0: ──■──
                │
@@ -343,7 +345,8 @@ class CCXGate(SingletonControlledGate):
         which in our case would be q_2 and q_1. Thus a textbook matrix for this
         gate will be:
 
-        .. parsed-literal::
+        .. code-block:: text
+
                  ┌───┐
             q_0: ┤ X ├
                  └─┬─┘
@@ -453,7 +456,7 @@ class CCXGate(SingletonControlledGate):
             label: An optional label for the gate [Default: ``None``]
             ctrl_state: control state expressed as integer,
                 string (e.g. ``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: indicates whether the controlled gate can be implemented
+            annotated: indicates whether the controlled gate should be implemented
                 as an annotated gate.
 
         Returns:
@@ -801,7 +804,7 @@ class C3XGate(SingletonControlledGate):
             label: An optional label for the gate [Default: ``None``]
             ctrl_state: control state expressed as integer,
                 string (e.g. ``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: indicates whether the controlled gate can be implemented
+            annotated: indicates whether the controlled gate should be implemented
                 as an annotated gate.
 
         Returns:
@@ -1047,7 +1050,7 @@ class C4XGate(SingletonControlledGate):
             label: An optional label for the gate [Default: ``None``]
             ctrl_state: control state expressed as integer,
                 string (e.g. ``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: indicates whether the controlled gate can be implemented
+            annotated: indicates whether the controlled gate should be implemented
                 as an annotated gate.
 
         Returns:
@@ -1168,6 +1171,19 @@ class MCXGate(ControlledGate):
         return MCXGate(num_ctrl_qubits=self.num_ctrl_qubits, ctrl_state=self.ctrl_state)
 
     @staticmethod
+    @deprecate_func(
+        additional_msg=(
+            "For an MCXGate it is no longer possible to know the number of ancilla qubits "
+            "that would be eventually used by the transpiler when the gate is created. "
+            "Instead, it is recommended to use MCXGate and let HighLevelSynthesis choose "
+            "the best synthesis method depending on the number of ancilla qubits available. "
+            "However, if a specific synthesis method using a specific number of ancilla "
+            "qubits is require, one can create a custom gate by calling the corresponding "
+            "synthesis function directly."
+        ),
+        since="1.3",
+        pending=True,
+    )
     def get_num_ancilla_qubits(num_ctrl_qubits: int, mode: str = "noancilla") -> int:
         """Get the number of required ancilla qubits without instantiating the class.
 
@@ -1185,23 +1201,10 @@ class MCXGate(ControlledGate):
     def _define(self):
         """This definition is based on MCPhaseGate implementation."""
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.synthesis.multi_controlled import synth_mcx_noaux_v24
 
-        q = QuantumRegister(self.num_qubits, name="q")
-        qc = QuantumCircuit(q)
-        if self.num_qubits == 4:
-            qc._append(C3XGate(), q[:], [])
-            self.definition = qc
-        elif self.num_qubits == 5:
-            qc._append(C4XGate(), q[:], [])
-            self.definition = qc
-        else:
-            q_controls = list(range(self.num_ctrl_qubits))
-            q_target = self.num_ctrl_qubits
-            qc.h(q_target)
-            qc.mcp(numpy.pi, q_controls, q_target)
-            qc.h(q_target)
-            self.definition = qc
+        qc = synth_mcx_noaux_v24(self.num_ctrl_qubits)
+        self.definition = qc
 
     @property
     def num_ancilla_qubits(self):
@@ -1222,7 +1225,7 @@ class MCXGate(ControlledGate):
             label: An optional label for the gate [Default: ``None``]
             ctrl_state: control state expressed as integer,
                 string (e.g. ``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: indicates whether the controlled gate can be implemented
+            annotated: indicates whether the controlled gate should be implemented
                 as an annotated gate.
 
         Returns:
@@ -1280,6 +1283,17 @@ class MCXGrayCode(MCXGate):
             return gate
         return super().__new__(cls)
 
+    @deprecate_func(
+        additional_msg=(
+            "It is recommended to use MCXGate and let HighLevelSynthesis choose "
+            "the best synthesis method depending on the number of ancilla qubits available. "
+            "If this specific synthesis method is required, one can specify it using the "
+            "high-level-synthesis plugin `gray_code` for MCX gates, or, alternatively, "
+            "one can use synth_mcx_gray_code to construct the gate directly."
+        ),
+        since="1.3",
+        pending=True,
+    )
     def __init__(
         self,
         num_ctrl_qubits: int,
@@ -1305,15 +1319,9 @@ class MCXGrayCode(MCXGate):
     def _define(self):
         """Define the MCX gate using the Gray code."""
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .u1 import MCU1Gate
-        from .h import HGate
+        from qiskit.synthesis.multi_controlled import synth_mcx_gray_code
 
-        q = QuantumRegister(self.num_qubits, name="q")
-        qc = QuantumCircuit(q, name=self.name)
-        qc._append(HGate(), [q[-1]], [])
-        qc._append(MCU1Gate(numpy.pi, num_ctrl_qubits=self.num_ctrl_qubits), q[:], [])
-        qc._append(HGate(), [q[-1]], [])
+        qc = synth_mcx_gray_code(self.num_ctrl_qubits)
         self.definition = qc
 
 
@@ -1330,6 +1338,17 @@ class MCXRecursive(MCXGate):
         2. Iten et al., 2015. https://arxiv.org/abs/1501.06911
     """
 
+    @deprecate_func(
+        additional_msg=(
+            "It is recommended to use MCXGate and let HighLevelSynthesis choose "
+            "the best synthesis method depending on the number of ancilla qubits available. "
+            "If this specific synthesis method is required, one can specify it using the "
+            "high-level-synthesis plugin '1_clean_b95' for MCX gates, or, alternatively, "
+            "one can use synth_mcx_1_clean to construct the gate directly."
+        ),
+        since="1.3",
+        pending=True,
+    )
     def __init__(
         self,
         num_ctrl_qubits: int,
@@ -1371,47 +1390,12 @@ class MCXRecursive(MCXGate):
 
     def _define(self):
         """Define the MCX gate using recursion."""
+
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.synthesis.multi_controlled import synth_mcx_1_clean_b95
 
-        q = QuantumRegister(self.num_qubits, name="q")
-        qc = QuantumCircuit(q, name=self.name)
-        if self.num_qubits == 4:
-            qc._append(C3XGate(), q[:], [])
-            self.definition = qc
-        elif self.num_qubits == 5:
-            qc._append(C4XGate(), q[:], [])
-            self.definition = qc
-        else:
-            num_ctrl_qubits = len(q) - 1
-            q_ancilla = q[-1]
-            q_target = q[-2]
-            middle = ceil(num_ctrl_qubits / 2)
-            first_half = [*q[:middle]]
-            second_half = [*q[middle : num_ctrl_qubits - 1], q_ancilla]
-
-            qc._append(
-                MCXVChain(num_ctrl_qubits=len(first_half), dirty_ancillas=True),
-                qargs=[*first_half, q_ancilla, *q[middle : middle + len(first_half) - 2]],
-                cargs=[],
-            )
-            qc._append(
-                MCXVChain(num_ctrl_qubits=len(second_half), dirty_ancillas=True),
-                qargs=[*second_half, q_target, *q[: len(second_half) - 2]],
-                cargs=[],
-            )
-            qc._append(
-                MCXVChain(num_ctrl_qubits=len(first_half), dirty_ancillas=True),
-                qargs=[*first_half, q_ancilla, *q[middle : middle + len(first_half) - 2]],
-                cargs=[],
-            )
-            qc._append(
-                MCXVChain(num_ctrl_qubits=len(second_half), dirty_ancillas=True),
-                qargs=[*second_half, q_target, *q[: len(second_half) - 2]],
-                cargs=[],
-            )
-
-            self.definition = qc
+        qc = synth_mcx_1_clean_b95(self.num_ctrl_qubits)
+        self.definition = qc
 
 
 class MCXVChain(MCXGate):
@@ -1444,6 +1428,18 @@ class MCXVChain(MCXGate):
             unit=unit,
         )
 
+    @deprecate_func(
+        additional_msg=(
+            "It is recommended to use MCXGate and let HighLevelSynthesis choose "
+            "the best synthesis method depending on the number of ancilla qubits available. "
+            "If this specific synthesis method is required, one can specify it using the "
+            "high-level-synthesis plugins `n_clean_m15` (using clean ancillas) or "
+            "`n_dirty_i15` (using dirty ancillas) for MCX gates. Alternatively, one can "
+            "use synth_mcx_n_dirty_i15 and synth_mcx_n_clean_m15 to construct the gate directly."
+        ),
+        since="1.3",
+        pending=True,
+    )
     def __init__(
         self,
         num_ctrl_qubits: int,
@@ -1513,92 +1509,21 @@ class MCXVChain(MCXGate):
 
     def _define(self):
         """Define the MCX gate using a V-chain of CX gates."""
-        # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-
-        q = QuantumRegister(self.num_qubits, name="q")
-        qc = QuantumCircuit(q, name=self.name)
-        q_controls = q[: self.num_ctrl_qubits]
-        q_target = q[self.num_ctrl_qubits]
-        q_ancillas = q[self.num_ctrl_qubits + 1 :]
 
         if self._dirty_ancillas:
-            if self.num_ctrl_qubits < 3:
-                qc.mcx(q_controls, q_target)
-            elif not self._relative_phase and self.num_ctrl_qubits == 3:
-                qc._append(C3XGate(), [*q_controls, q_target], [])
-            else:
-                num_ancillas = self.num_ctrl_qubits - 2
-                targets = [q_target] + q_ancillas[:num_ancillas][::-1]
+            # pylint: disable=cyclic-import
+            from qiskit.synthesis.multi_controlled import synth_mcx_n_dirty_i15
 
-                for j in range(2):
-                    for i in range(self.num_ctrl_qubits):  # action part
-                        if i < self.num_ctrl_qubits - 2:
-                            if targets[i] != q_target or self._relative_phase:
-                                # gate cancelling
+            qc = synth_mcx_n_dirty_i15(
+                self.num_ctrl_qubits,
+                self._relative_phase,
+                self._action_only,
+            )
 
-                                # cancel rightmost gates of action part
-                                # with leftmost gates of reset part
-                                if self._relative_phase and targets[i] == q_target and j == 1:
-                                    qc.cx(q_ancillas[num_ancillas - i - 1], targets[i])
-                                    qc.t(targets[i])
-                                    qc.cx(q_controls[self.num_ctrl_qubits - i - 1], targets[i])
-                                    qc.tdg(targets[i])
-                                    qc.h(targets[i])
-                                else:
-                                    qc.h(targets[i])
-                                    qc.t(targets[i])
-                                    qc.cx(q_controls[self.num_ctrl_qubits - i - 1], targets[i])
-                                    qc.tdg(targets[i])
-                                    qc.cx(q_ancillas[num_ancillas - i - 1], targets[i])
-                            else:
-                                controls = [
-                                    q_controls[self.num_ctrl_qubits - i - 1],
-                                    q_ancillas[num_ancillas - i - 1],
-                                ]
+        else:  # use clean ancillas
+            # pylint: disable=cyclic-import
+            from qiskit.synthesis.multi_controlled import synth_mcx_n_clean_m15
 
-                                qc.ccx(controls[0], controls[1], targets[i])
-                        else:
-                            # implements an optimized toffoli operation
-                            # up to a diagonal gate, akin to lemma 6 of arXiv:1501.06911
-                            qc.h(targets[i])
-                            qc.t(targets[i])
-                            qc.cx(q_controls[self.num_ctrl_qubits - i - 2], targets[i])
-                            qc.tdg(targets[i])
-                            qc.cx(q_controls[self.num_ctrl_qubits - i - 1], targets[i])
-                            qc.t(targets[i])
-                            qc.cx(q_controls[self.num_ctrl_qubits - i - 2], targets[i])
-                            qc.tdg(targets[i])
-                            qc.h(targets[i])
-
-                            break
-
-                    for i in range(num_ancillas - 1):  # reset part
-                        qc.cx(q_ancillas[i], q_ancillas[i + 1])
-                        qc.t(q_ancillas[i + 1])
-                        qc.cx(q_controls[2 + i], q_ancillas[i + 1])
-                        qc.tdg(q_ancillas[i + 1])
-                        qc.h(q_ancillas[i + 1])
-
-                    if self._action_only:
-                        qc.ccx(q_controls[-1], q_ancillas[-1], q_target)
-
-                        break
-        else:
-            qc.rccx(q_controls[0], q_controls[1], q_ancillas[0])
-            i = 0
-            for j in range(2, self.num_ctrl_qubits - 1):
-                qc.rccx(q_controls[j], q_ancillas[i], q_ancillas[i + 1])
-
-                i += 1
-
-            qc.ccx(q_controls[-1], q_ancillas[i], q_target)
-
-            for j in reversed(range(2, self.num_ctrl_qubits - 1)):
-                qc.rccx(q_controls[j], q_ancillas[i - 1], q_ancillas[i])
-
-                i -= 1
-
-            qc.rccx(q_controls[0], q_controls[1], q_ancillas[i])
+            qc = synth_mcx_n_clean_m15(self.num_ctrl_qubits)
 
         self.definition = qc
