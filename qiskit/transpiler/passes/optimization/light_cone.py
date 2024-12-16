@@ -11,29 +11,15 @@
 # that they have been altered from the originals.
 
 """Cancel the redundant (self-adjoint) gates through commutation relations."""
+from __future__ import annotations
 
-from collections import defaultdict
-
-import numpy as np
-
-from qiskit.circuit.classicalregister import ClassicalRegister
 from qiskit.circuit.commutation_checker import CommutationChecker
 from qiskit.circuit.commutation_library import standard_gates_commutations
-from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.library.generalized_gates.pauli import PauliGate
-from qiskit.circuit.library.standard_gates.p import PhaseGate
-from qiskit.circuit.library.standard_gates.rx import RXGate
-from qiskit.circuit.library.standard_gates.rz import RZGate
-from qiskit.circuit.library.standard_gates.u1 import U1Gate
-from qiskit.circuit.quantumregister import QuantumRegister, Qubit
-from qiskit.converters import circuit_to_dag, dag_to_circuit
-from qiskit.dagcircuit import DAGCircuit, DAGInNode, DAGNode, DAGOutNode
+from qiskit.dagcircuit import DAGCircuit, DAGOpNode
 from qiskit.quantum_info import Pauli
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.transpiler.passes.optimization.commutation_analysis import \
-    CommutationAnalysis
-from qiskit.transpiler.passmanager import PassManager
 
 commutator = CommutationChecker(standard_gates_commutations)
 
@@ -62,32 +48,53 @@ class LightCone(TransformationPass):
 
     @staticmethod
     def _find_measurement_qubits(dag: DAGCircuit):
-        """For now this method assumes that all the measurements in the circuit are
-        final measurements."""
+        """For now, this method considers only final circuit measurements:
+        mid-circuit measurements are discarded.
+        """
         qubits_measured = set()
+
+        # Iterate over the DAG nodes in topological order
         for node in dag.topological_nodes():
-            # print(getattr(node, "name", False))
+            # Check if the node is a measurement operation
             if getattr(node, "name", False) == "measure":
-                qubits_measured |= {x for x in node.qargs}
-        print(qubits_measured)
+                qubits = set(node.qargs)
+
+                # Check if these qubits are used in any subsequent operations
+                is_final_measurement = True
+                for subsequent_node in dag.successors(node):
+                    if isinstance(subsequent_node, DAGOpNode):
+                        is_final_measurement = False
+                        break
+
+                qubits_measured |= qubits if is_final_measurement else set()
+        if not qubits_measured:
+            raise ValueError("No measurements found in the circuit.")
         return qubits_measured
 
     def _get_initial_lightcone(
         self, dag: DAGCircuit
     ) -> tuple[set[int], tuple[Instruction, list[int]]]:
         """Returns the initial lightcone.
-        If obervable is None, the lightcone is a different Z operator in each one of the
-        qubits with a measurement. If a Pauli observable is defined, that will be
-        the first gate in the circuit.
+        If obervable is `None`, the lightcone is the set of measured qubits.
+        If a Pauli observable is provided, the qubit corresponding to
+        the non-trivial Paulis define the lightcone.
         """
         if self.observable is None:
             qubits_measured = self._find_measurement_qubits(dag)
             light_cone = qubits_measured
-            light_cone_ops = [(PauliGate("Z"), [qubit_index]) for qubit_index in qubits_measured]
+            light_cone_ops = [(PauliGate("Z"), [qubit_index]) for qubit_index in light_cone]
         else:
             pauli_string = str(self.observable)
+            # Check if the size of the observable matches the number of qubits in the circuit
+            if len(pauli_string) != len(dag.qubits):
+                raise ValueError(
+                    "Observable size does not match the number of qubits in the circuit."
+                )
+            stripped_pauli_string = pauli_string.replace("I", "")
+            if len(stripped_pauli_string) == 0:
+                raise ValueError("Observable is the identity operator.")
             light_cone = [dag.qubits[i] for i, p in enumerate(pauli_string) if p != "I"]
-            light_cone_ops = [(PauliGate(pauli_string.replace("I", "")), light_cone)]
+            light_cone_ops = [(PauliGate(stripped_pauli_string), light_cone)]
 
         return set(light_cone), light_cone_ops
 
@@ -100,42 +107,34 @@ class LightCone(TransformationPass):
         Returns:
             DAGCircuit: the optimized DAG.
         """
+        # Get the initial light cone and operations
         light_cone, light_cone_ops = self._get_initial_lightcone(dag)
 
-        print(light_cone, light_cone_ops)
-        # iterate over the nodes in reverse topological order
+        #  Initialize a new, empty DAG
+        new_dag = DAGCircuit()
+
+        new_dag.add_qreg(*dag.qregs.values())
+
+        if dag.cregs:  # Add classical registers if they exist
+            new_dag.add_creg(*dag.cregs.values())
+
+        # Iterate over the nodes in reverse topological order
         for node in reversed(list(dag.topological_op_nodes())):
-            if not light_cone.intersection(node.qargs):
-                dag.remove_op_node(node)
-                continue
+            # Check if the node belongs to the light cone
+            if light_cone.intersection(node.qargs):
+                # Check commutation with all previous operations
+                commutes_bool = True
+                for op in light_cone_ops:
+                    commute_bool = commutator.commute(op[0], op[1], [], node.op, node.qargs, [])
+                    if not commute_bool:
+                        # If the current node does not commute, update the light cone
+                        light_cone.update(node.qargs)
+                        light_cone_ops.append((node.op, node.qargs))
+                        commutes_bool = False
+                        break
 
-            commutes_bool = True
-            for op in light_cone_ops:
-                commute_bool = commutator.commute(op[0], op[1], [], node.op, node.qargs, [])
-                if not commute_bool:
-                    light_cone.update(node.qargs)
-                    light_cone_ops.append((node.op, node.qargs))
-                    commutes_bool = False
-                    break
-
-            if commutes_bool:
-                dag.remove_op_node(node)
-
-        return dag
-
-
-if __name__ == "__main__":
-    """This main will be only for testing purposes and will be removed
-    before merging the PR."""
-    from qiskit.circuit.library import RealAmplitudes
-    from qiskit.converters import circuit_to_dag
-
-    qc = RealAmplitudes(10, entanglement="pairwise").decompose()
-    pm = PassManager([LightCone(Pauli("I" * 9 + "Z"))])
-    pm_measure = PassManager([LightCone()])
-    # print(qc)
-    print(pm.run(qc))
-    qc.add_register(ClassicalRegister(2))
-    qc.measure(1, 0)
-    qc.measure(5, 1)
-    print(pm_measure.run(qc))
+                # If the node is in the light cone and commutes with previous ops,
+                # add it to the new DAG at the front
+                if not commutes_bool:
+                    new_dag.apply_operation_front(node.op, node.qargs, node.cargs)
+        return new_dag
