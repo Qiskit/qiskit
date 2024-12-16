@@ -290,7 +290,9 @@ class TwoQubitControlledUDecomposer:
         self.rxx_equivalent_gate = rxx_equivalent_gate
         self.scale = self._inner_decomposition.scale
 
-    def __call__(self, unitary: Operator | np.ndarray, *, atol=DEFAULT_ATOL) -> QuantumCircuit:
+    def __call__(
+        self, unitary: Operator | np.ndarray, approximate=False, use_dag=False, atol=DEFAULT_ATOL
+    ) -> QuantumCircuit:
         """Returns the Weyl decomposition in circuit form.
         Args:
             unitary (Operator or ndarray): :math:`4 \times 4` unitary to synthesize.
