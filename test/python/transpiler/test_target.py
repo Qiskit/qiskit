@@ -1483,6 +1483,82 @@ Instructions:
         self.assertSetEqual(names_before, names_after)
 
 
+class TestHasCalibrationAndGetCalibration(QiskitTestCase):
+    """
+    This test is to make sure :func:`Target.has_calibration` and
+    :func:`Target.get_schedule` works for parameterized gates.
+
+    Follow below mentiond issues for more information.
+    Refer to `#11657 <https://github.com/Qiskit/qiskit/issues/11657>`__
+    and, `#11658 <https://github.com/Qiskit/qiskit/issues/11658>`__
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.theta = Parameter("theta")
+        self.amp = Parameter("amp")
+        self.sigma = Parameter("sigma")
+        self.beta = Parameter("beta")
+
+        self.target = Target()
+
+        # Setting an arbitrary Pulse Schedule just for the sake of testing.
+        with self.assertWarns(DeprecationWarning):
+            self.calibration = pulse.Schedule(
+                pulse.Play(
+                    pulse.Drag(
+                        duration=1700, amp=self.amp, sigma=self.sigma, beta=self.beta, angle=0.3
+                    ),
+                    pulse.channels.DriveChannel(0),
+                ),
+                name="my_test_schedule",
+            )
+
+            rx_props = {
+                (0,): InstructionProperties(
+                    duration=1700, error=1.2e-6, calibration=self.calibration
+                )
+            }
+            self.target.add_instruction(RXGate(self.theta), rx_props)
+
+    def test_has_calibration_for_oper_with_right_param(self):
+        with self.assertWarns(DeprecationWarning):
+            self.assertTrue(
+                self.target.has_calibration(
+                    operation_name="rx", qargs=(0,), operation_params=self.theta
+                )
+            )
+
+    def test_has_calibration_for_oper_with_wrong_param(self):
+        with self.assertWarns(DeprecationWarning):
+            self.assertFalse(
+                self.target.has_calibration(operation_name="rx", qargs=(0,), operation_params=0.55)
+            )
+
+    def test_get_calibration_raise_oper_with_wrong_param(self):
+        with self.assertWarns(DeprecationWarning):
+            with self.assertRaisesRegex(KeyError, ".is not defined."):
+                self.target.get_calibration(operation_name="rx", qargs=(0,), operation_params=0.55)
+
+    def test_get_calibration_for_oper_with_param(self):
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(
+                self.target.get_calibration(
+                    operation_name="rx", qargs=(0,), operation_params=self.theta
+                ).name,
+                "my_test_schedule",
+            )
+
+    def test_get_calibration_for_oper_with_param_pulse_with_param(self):
+        args = {0.23, 0.123, 0.2}
+        with self.assertWarns(DeprecationWarning):
+            self.assertFalse(
+                self.target.get_calibration(
+                    "rx", (0,), operation_params=self.theta, *args
+                ).is_parameterized()
+            )
+
+
 class TestGlobalVariableWidthOperations(QiskitTestCase):
     def setUp(self):
         super().setUp()

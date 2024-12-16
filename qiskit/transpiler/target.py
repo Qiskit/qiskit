@@ -656,28 +656,43 @@ class Target(BaseTarget):
         self,
         operation_name: str,
         qargs: tuple[int, ...],
+        operation_params: list[float] | float | None = None,
     ) -> bool:
-        """Return whether the instruction (operation + qubits) defines a calibration.
+        """Return whether the instruction (operation + operation_params + qubits) defines
+        a calibration.
 
         Args:
             operation_name: The name of the operation for the instruction.
-            qargs: The tuple of qubit indices for the instruction.
+            qargs: The qubit indices for the instruction.
+            operation_params: The parameters for the Instruction. In case
+            of multi-parameter gates, the order of parameters in the tuple
+            must match the order of the gate parameters.
 
         Returns:
             Returns ``True`` if the calibration is supported and ``False`` if it isn't.
         """
-        return self._has_calibration(operation_name, qargs)
+        return self._has_calibration(operation_name, qargs, operation_params)
 
     def _has_calibration(
         self,
         operation_name: str,
         qargs: tuple[int, ...],
+        operation_params: list[float] | float | None = None,
     ) -> bool:
-        qargs = tuple(qargs)
+        if operation_params is not None and not isinstance(operation_params, list):
+            operation_params = [operation_params]
+
         if operation_name not in self._gate_map:
             return False
+
         if qargs not in self._gate_map[operation_name]:
             return False
+
+        if operation_params is not None and not (
+            operation_params == self._gate_name_map[operation_name].params
+        ):
+            return False
+
         return getattr(self._gate_map[operation_name][qargs], "_calibration", None) is not None
 
     @deprecate_pulse_dependency
@@ -686,6 +701,7 @@ class Target(BaseTarget):
         operation_name: str,
         qargs: tuple[int, ...],
         *args: ParameterValueType,
+        operation_params: list[float] | float | None = None,
         **kwargs: ParameterValueType,
     ) -> Schedule | ScheduleBlock:
         """Get calibrated pulse schedule for the instruction.
@@ -695,25 +711,32 @@ class Target(BaseTarget):
 
         Args:
             operation_name: The name of the operation for the instruction.
-            qargs: The tuple of qubit indices for the instruction.
+            qargs: The qubit indices for the instruction.
             args: Parameter values to build schedule if any.
+            operation_params: The parameters for the Instruction. In case
+            of multi-parameter gate, the order of parameters in the tuple
+            must match the order of the gate parameters.
             kwargs: Parameter values with name to build schedule if any.
 
         Returns:
             Calibrated pulse schedule of corresponding instruction.
         """
-        return self._get_calibration(operation_name, qargs, *args, *kwargs)
+        return self._get_calibration(
+            operation_name, qargs, *args, operation_params=operation_params, **kwargs
+        )
 
     def _get_calibration(
         self,
         operation_name: str,
         qargs: tuple[int, ...],
         *args: ParameterValueType,
+        operation_params: list[float] | float | None = None,
         **kwargs: ParameterValueType,
     ) -> Schedule | ScheduleBlock:
-        if not self._has_calibration(operation_name, qargs):
+        if not self._has_calibration(operation_name, qargs, operation_params):
             raise KeyError(
-                f"Calibration of instruction {operation_name} for qubit {qargs} is not defined."
+                f"Calibration of instruction: `{operation_name}`, with params: "
+                f"`{operation_params}` for qubit: {qargs} is not defined."
             )
         cal_entry = getattr(self._gate_map[operation_name][qargs], "_calibration")
         return cal_entry.get_schedule(*args, **kwargs)

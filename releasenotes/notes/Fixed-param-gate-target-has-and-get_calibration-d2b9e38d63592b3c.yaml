@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed an issue with :meth:`.Target.has_calibration` and :meth:`.Target.get_calibration` 
+    where passing a parameterized Gate doesn't work as expected.
+    Refer to `qiskit/#11657 <https://github.com/Qiskit/qiskit/issues/11657>`__ and, 
+    `qiskit/#11658 <https://github.com/Qiskit/qiskit/issues/11658>`__ for more information.
+

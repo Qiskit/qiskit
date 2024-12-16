@@ -159,14 +159,13 @@ class TestPulseGate(QiskitTestCase):
         qc.sx(1)
         qc.measure_all()
 
-        transpiled_qc = transpile(qc, initial_layout=[0, 1], target=target)
-
         ref_calibration = {
             "sx": {
                 ((0,), ()): self.custom_sx_q0,
                 ((1,), ()): self.custom_sx_q1,
             }
         }
+        transpiled_qc = transpile(qc, initial_layout=[0, 1], target=target)
         with self.assertWarns(DeprecationWarning):
             self.assertDictEqual(transpiled_qc.calibrations, ref_calibration)
 
