@@ -397,7 +397,11 @@ import warnings
 import numpy as np
 import rustworkx as rx
 
+from qiskit.dagcircuit.dagcircuit import DAGCircuit
+from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.operation import Operation
+from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.library import (
     LinearFunction,
     QFTGate,
@@ -409,6 +413,13 @@ from qiskit.circuit.library import (
     HalfAdderGate,
     FullAdderGate,
     MultiplierGate,
+)
+from qiskit.circuit.annotated_operation import (
+    AnnotatedOperation,
+    Modifier,
+    ControlModifier,
+    InverseModifier,
+    PowerModifier,
 )
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.coupling import CouplingMap
@@ -1557,3 +1568,126 @@ class PauliEvolutionSynthesisRustiq(HighLevelSynthesisPlugin):
             upto_phase=upto_phase,
             resynth_clifford_method=resynth_clifford_method,
         )
+
+
+class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
+    """Synthesize :class:`.AnnotatedOperation`"""
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        # pylint: disable=cyclic-import
+        from .high_level_synthesis import _synthesize_operation
+
+        if not isinstance(high_level_object, AnnotatedOperation):
+            return None
+
+        operation = high_level_object
+        modifiers = high_level_object.modifiers
+        tracker = options.get("_qubit_tracker", None)
+        context = options.get("_qubit_context", None)
+        data = options.get("_data")
+        num_clean_ancillas = options.get("num_clean_ancillas", 0)
+        num_dirty_ancillas = options.get("num_dirty_ancillas", 0)
+        use_ancillas = (num_clean_ancillas + num_dirty_ancillas) > 0
+
+        if len(modifiers) > 0:
+            # Note: the base operation must be synthesized without using potential control qubits
+            # used in the modifiers.
+            num_ctrl = sum(
+                mod.num_ctrl_qubits for mod in modifiers if isinstance(mod, ControlModifier)
+            )
+            baseop_qubits = qubits[num_ctrl:]  # reminder: control qubits are the first ones
+
+            # get qubits of base operation
+            control_qubits = qubits[0:num_ctrl]
+
+            # Do not allow access to control qubits
+            tracker.disable(context.to_globals(control_qubits))
+            synthesized_base_op, _ = _synthesize_operation(
+                data,
+                operation.base_op,
+                baseop_qubits,
+                tracker,
+                context,
+                use_ancillas=use_ancillas,
+            )
+
+            if synthesized_base_op is None:
+                synthesized_base_op = operation.base_op
+            elif isinstance(synthesized_base_op, DAGCircuit):
+                synthesized_base_op = dag_to_circuit(synthesized_base_op)
+
+            # Handle the case that synthesizing the base operation introduced
+            # additional qubits (e.g. the base operation is a circuit that includes
+            # an MCX gate).
+            if synthesized_base_op.num_qubits > len(baseop_qubits):
+                global_aux_qubits = tracker.borrow(
+                    synthesized_base_op.num_qubits - len(baseop_qubits),
+                    context.to_globals(baseop_qubits),
+                )
+                global_to_local = context.to_local_mapping()
+                for aq in global_aux_qubits:
+                    if aq in global_to_local:
+                        qubits.append(global_to_local[aq])
+                    else:
+                        new_local_qubit = context.add_qubit(aq)
+                        qubits.append(new_local_qubit)
+            # Restore access to control qubits.
+            tracker.enable(context.to_globals(control_qubits))
+
+            # This step currently does not introduce ancilla qubits.
+            synthesized = _apply_annotations(data, synthesized_base_op, operation.modifiers)
+            return synthesized
+
+        return None
+
+
+def _apply_annotations(
+    data: "HLSData", synthesized: Operation | QuantumCircuit, modifiers: list[Modifier]
+) -> QuantumCircuit:
+    """
+    Recursively synthesizes annotated operations.
+    Returns either the synthesized operation or None (which occurs when the operation
+    is not an annotated operation).
+    """
+
+    for modifier in modifiers:
+        if isinstance(modifier, InverseModifier):
+            # Both QuantumCircuit and Gate have inverse method
+            synthesized = synthesized.inverse()
+
+        elif isinstance(modifier, ControlModifier):
+            # Both QuantumCircuit and Gate have control method, however for circuits
+            # it is more efficient to avoid constructing the controlled quantum circuit.
+            if isinstance(synthesized, QuantumCircuit):
+                synthesized = synthesized.to_gate()
+
+            synthesized = synthesized.control(
+                num_ctrl_qubits=modifier.num_ctrl_qubits,
+                label=None,
+                ctrl_state=modifier.ctrl_state,
+                annotated=False,
+            )
+
+            if isinstance(synthesized, AnnotatedOperation):
+                raise TranspilerError(
+                    "HighLevelSynthesis failed to synthesize the control modifier."
+                )
+
+        elif isinstance(modifier, PowerModifier):
+            # QuantumCircuit has power method, and Gate needs to be converted
+            # to a quantum circuit.
+            if not isinstance(synthesized, QuantumCircuit):
+                synthesized = _instruction_to_circuit(synthesized)
+
+            synthesized = synthesized.power(modifier.power)
+
+        else:
+            raise TranspilerError(f"Unknown modifier {modifier}.")
+
+    return synthesized
+
+
+def _instruction_to_circuit(inst: Instruction) -> QuantumCircuit:
+    circuit = QuantumCircuit(inst.num_qubits, inst.num_clbits)
+    circuit.append(inst, circuit.qubits, circuit.clbits)
+    return circuit

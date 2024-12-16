@@ -519,92 +519,47 @@ def _synthesize_operation(
 
     synthesized = None
 
-    # Try synthesizing via AnnotatedOperation. This is faster than an isinstance check
-    # but a bit less safe since someone could create operations with a ``modifiers`` attribute.
-    if len(modifiers := getattr(operation, "modifiers", [])) > 0:
-        # Note: the base operation must be synthesized without using potential control qubits
-        # used in the modifiers.
-        num_ctrl = sum(mod.num_ctrl_qubits for mod in modifiers if isinstance(mod, ControlModifier))
-        baseop_qubits = qubits[num_ctrl:]  # reminder: control qubits are the first ones
+    # Try synthesis via HLS -- which will return ``None`` if unsuccessful.
+    indices = (
+        qubits if data.use_qubit_indices or isinstance(operation, AnnotatedOperation) else None
+    )
+    if len(hls_methods := _methods_to_try(data, operation.name)) > 0:
+        if use_ancillas:
+            num_clean_available = tracker.num_clean(context.to_globals(qubits))
+            num_dirty_available = tracker.num_dirty(context.to_globals(qubits))
+        else:
+            num_clean_available = 0
+            num_dirty_available = 0
 
-        # get qubits of base operation
-        control_qubits = qubits[0:num_ctrl]
-
-        # Do not allow access to control qubits
-        tracker.disable(context.to_globals(control_qubits))
-        synthesized_base_op, _ = _synthesize_operation(
+        synthesized = _synthesize_op_using_plugins(
             data,
-            operation.base_op,
-            baseop_qubits,
-            tracker,
-            context,
-            use_ancillas=use_ancillas,
+            hls_methods,
+            operation,
+            indices,
+            num_clean_available,
+            num_dirty_available,
+            tracker=tracker,
+            context=context,
         )
 
-        if synthesized_base_op is None:
-            synthesized_base_op = operation.base_op
-        elif isinstance(synthesized_base_op, DAGCircuit):
-            synthesized_base_op = dag_to_circuit(synthesized_base_op)
-
-        # Handle the case that synthesizing the base operation introduced
-        # additional qubits (e.g. the base operation is a circuit that includes
-        # an MCX gate).
-        if synthesized_base_op.num_qubits > len(baseop_qubits):
+        # It may happen that the plugin synthesis method uses clean/dirty ancilla qubits
+        if (synthesized is not None) and (synthesized.num_qubits > len(qubits)):
+            # need to borrow more qubits from tracker
             global_aux_qubits = tracker.borrow(
-                synthesized_base_op.num_qubits - len(baseop_qubits),
-                context.to_globals(baseop_qubits),
+                synthesized.num_qubits - len(qubits), context.to_globals(qubits)
             )
             global_to_local = context.to_local_mapping()
+
             for aq in global_aux_qubits:
                 if aq in global_to_local:
                     qubits.append(global_to_local[aq])
                 else:
                     new_local_qubit = context.add_qubit(aq)
                     qubits.append(new_local_qubit)
-        # Restore access to control qubits.
-        tracker.enable(context.to_globals(control_qubits))
 
-        # This step currently does not introduce ancilla qubits.
-        synthesized = _apply_annotations(data, synthesized_base_op, operation.modifiers)
-
-    # If it was no AnnotatedOperation, try synthesizing via HLS or by unrolling.
-    else:
-        # Try synthesis via HLS -- which will return ``None`` if unsuccessful.
-        indices = qubits if data.use_qubit_indices else None
-        if len(hls_methods := _methods_to_try(data, operation.name)) > 0:
-            if use_ancillas:
-                num_clean_available = tracker.num_clean(context.to_globals(qubits))
-                num_dirty_available = tracker.num_dirty(context.to_globals(qubits))
-            else:
-                num_clean_available = 0
-                num_dirty_available = 0
-            synthesized = _synthesize_op_using_plugins(
-                data,
-                hls_methods,
-                operation,
-                indices,
-                num_clean_available,
-                num_dirty_available,
-            )
-
-            # It may happen that the plugin synthesis method uses clean/dirty ancilla qubits
-            if (synthesized is not None) and (synthesized.num_qubits > len(qubits)):
-                # need to borrow more qubits from tracker
-                global_aux_qubits = tracker.borrow(
-                    synthesized.num_qubits - len(qubits), context.to_globals(qubits)
-                )
-                global_to_local = context.to_local_mapping()
-
-                for aq in global_aux_qubits:
-                    if aq in global_to_local:
-                        qubits.append(global_to_local[aq])
-                    else:
-                        new_local_qubit = context.add_qubit(aq)
-                        qubits.append(new_local_qubit)
-
-        # If HLS did not apply, or was unsuccessful, try unrolling custom definitions.
-        if synthesized is None and not data.top_level_only:
-            synthesized = _get_custom_definition(data, operation, indices)
+    # If HLS did not apply, or was unsuccessful, try unrolling custom definitions.
+    if synthesized is None and not data.top_level_only:
+        synthesized = _get_custom_definition(data, operation, indices)
 
     if synthesized is None:
         # if we didn't synthesize, there was nothing to unroll
@@ -719,6 +674,8 @@ def _synthesize_op_using_plugins(
     qubits: list[int] | None,
     num_clean_ancillas: int = 0,
     num_dirty_ancillas: int = 0,
+    tracker: QubitTracker = None,
+    context: QubitContext = None,
 ) -> QuantumCircuit | None:
     """
     Attempts to synthesize op using plugin mechanism.
@@ -768,6 +725,9 @@ def _synthesize_op_using_plugins(
         # Set the number of available clean and dirty auxiliary qubits via plugin args.
         plugin_args["num_clean_ancillas"] = num_clean_ancillas
         plugin_args["num_dirty_ancillas"] = num_dirty_ancillas
+        plugin_args["_qubit_tracker"] = tracker
+        plugin_args["_qubit_context"] = context
+        plugin_args["_data"] = data
 
         decomposition = plugin_method.run(
             op,
@@ -794,51 +754,6 @@ def _synthesize_op_using_plugins(
                 best_score = current_score
 
     return best_decomposition
-
-
-def _apply_annotations(
-    data: HLSData, synthesized: Operation | QuantumCircuit, modifiers: list[Modifier]
-) -> QuantumCircuit:
-    """
-    Recursively synthesizes annotated operations.
-    Returns either the synthesized operation or None (which occurs when the operation
-    is not an annotated operation).
-    """
-    for modifier in modifiers:
-        if isinstance(modifier, InverseModifier):
-            # Both QuantumCircuit and Gate have inverse method
-            synthesized = synthesized.inverse()
-
-        elif isinstance(modifier, ControlModifier):
-            # Both QuantumCircuit and Gate have control method, however for circuits
-            # it is more efficient to avoid constructing the controlled quantum circuit.
-            if isinstance(synthesized, QuantumCircuit):
-                synthesized = synthesized.to_gate()
-
-            synthesized = synthesized.control(
-                num_ctrl_qubits=modifier.num_ctrl_qubits,
-                label=None,
-                ctrl_state=modifier.ctrl_state,
-                annotated=False,
-            )
-
-            if isinstance(synthesized, AnnotatedOperation):
-                raise TranspilerError(
-                    "HighLevelSynthesis failed to synthesize the control modifier."
-                )
-
-        elif isinstance(modifier, PowerModifier):
-            # QuantumCircuit has power method, and Gate needs to be converted
-            # to a quantum circuit.
-            if not isinstance(synthesized, QuantumCircuit):
-                synthesized = _instruction_to_circuit(synthesized)
-
-            synthesized = synthesized.power(modifier.power)
-
-        else:
-            raise TranspilerError(f"Unknown modifier {modifier}.")
-
-    return synthesized
 
 
 def _definitely_skip_node(
@@ -888,9 +803,3 @@ def _instruction_supported(data: HLSData, name: str, qubits: tuple[int] | None) 
     if data.target is None or data.target.num_qubits is None:
         return name in data.device_insts
     return data.target.instruction_supported(operation_name=name, qargs=qubits)
-
-
-def _instruction_to_circuit(inst: Instruction) -> QuantumCircuit:
-    circuit = QuantumCircuit(inst.num_qubits, inst.num_clbits)
-    circuit.append(inst, circuit.qubits, circuit.clbits)
-    return circuit
