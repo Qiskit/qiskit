@@ -725,7 +725,7 @@ class Target(BaseTarget):
 
     @property
     def instructions(self):
-        """Get the list of tuples ``(:class:`~qiskit.circuit.Instruction`, (qargs))``
+        """Get the list of tuples (:class:`~qiskit.circuit.Instruction`, (qargs))
         for the target
 
         For globally defined variable width operations the tuple will be of the form
