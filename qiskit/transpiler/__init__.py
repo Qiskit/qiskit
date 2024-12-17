@@ -673,7 +673,7 @@ Quantum circuits are abstract entities whose qubits are "virtual" representation
 qubits used in computations.  We need to be able to map these virtual qubits in a one-to-one
 manner to the "physical" qubits in an actual quantum device.
 
-.. image:: /source_images/
+.. image:: /source_images/mapping.png
    :alt: Diagram illustrating how virtual qubits are mapped to physical qubits.
 
 
