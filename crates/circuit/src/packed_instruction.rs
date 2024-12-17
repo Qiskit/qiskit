@@ -158,18 +158,18 @@ impl BitField {
             ((1 << StandardGateBits::DISCRIMINANT_BITS) - 1)
                 << StandardGateBits::DISCRIMINANT_OFFSET
                 == Self::DISCRIMINANT_MASK,
-            "discriminant MUST be the 3 lowest bits!"
+            "(StandardGateBits) discriminant MUST be the 3 lowest bits!"
         );
         assert!(
             ((1 << StandardInstructionBits::DISCRIMINANT_BITS) - 1)
                 << StandardInstructionBits::DISCRIMINANT_OFFSET
                 == Self::DISCRIMINANT_MASK,
-            "discriminant MUST be the 3 lowest bits!"
+            "(StandardInstructionBits) discriminant MUST be the 3 lowest bits!"
         );
         assert!(
             ((1 << PointerBits::DISCRIMINANT_BITS) - 1) << PointerBits::DISCRIMINANT_OFFSET
                 == Self::DISCRIMINANT_MASK,
-            "discriminant MUST be the 3 lowest bits!"
+            "(PointerBits) discriminant MUST be the 3 lowest bits!"
         );
     };
 }
