@@ -299,6 +299,15 @@ pub enum DelayUnit {
     DT,
 }
 
+unsafe impl ::bytemuck::CheckedBitPattern for DelayUnit {
+    type Bits = u8;
+
+    fn is_valid_bit_pattern(bits: &Self::Bits) -> bool {
+        *bits < 6
+    }
+}
+unsafe impl ::bytemuck::NoUninit for DelayUnit {}
+
 impl fmt::Display for DelayUnit {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(

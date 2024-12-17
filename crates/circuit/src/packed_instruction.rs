@@ -279,7 +279,7 @@ impl ImmediateValue {
 
     #[inline]
     fn delay_unit(&self) -> DelayUnit {
-        todo!()
+        ::bytemuck::checked::cast(self.0 as u8)
     }
 
     #[inline]
