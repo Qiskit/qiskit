@@ -127,10 +127,7 @@ pub struct PackedOperation(BitField);
 
 impl fmt::Debug for BitField {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // SAFETY: we read (just!) the discriminant from any of the union's members,
-        // since we guarantee it is found in the same place for all bitfields.
-        let discriminant = unsafe { self.gate.discriminant() };
-        match discriminant {
+        match self.discriminant() {
             PackedOperationType::StandardGate => unsafe { self.gate }.fmt(f),
             PackedOperationType::StandardInstruction => unsafe { self.instruction }.fmt(f),
             PackedOperationType::PyGatePointer => unsafe { self.pointer }.fmt(f),
@@ -172,6 +169,13 @@ impl BitField {
             "(PointerBits) discriminant MUST be the 3 lowest bits!"
         );
     };
+
+    #[inline]
+    fn discriminant(&self) -> PackedOperationType {
+        // SAFETY: we read (just!) the discriminant from any of the union's members,
+        // since we guarantee it is found in the same place for all bitfields.
+        unsafe { self.gate.discriminant() }
+    }
 }
 
 impl From<StandardGateBits> for BitField {
@@ -191,50 +195,6 @@ impl From<PointerBits> for BitField {
         Self { pointer }
     }
 }
-
-// #[bitfield(u64)]
-// #[derive(PartialEq, Eq)]
-// struct OpBitField {
-//     #[bits(3)]
-//     discriminant: u8,
-//     #[bits(8)]
-//     op_code: u8,
-//     #[bits(21)]
-//     _pad1: u32,
-//     #[bits(32)]
-//     payload: u32,
-// }
-
-// #[cfg(target_pointer_width = "64")]
-// impl OpBitField {
-//     /// The bits representing the `PackedOperationType` discriminant.  This can be used to mask out
-//     /// the discriminant, and defines the rest of the bit shifting.
-//     const DISCRIMINANT_MASK: u64 = 0b111;
-//
-//     /// A bitmask that retrieves the stored pointer directly.  The discriminant is stored in the
-//     /// low pointer bits that are guaranteed to be 0 by alignment, so no shifting is required.
-//     const POINTER_MASK: u64 = u64::MAX ^ Self::DISCRIMINANT_MASK;
-//
-//     #[inline]
-//     unsafe fn pointer(&self) -> NonNull<()> {
-//         let ptr = (self.0 & Self::POINTER_MASK) as *mut ();
-//         NonNull::new_unchecked(ptr)
-//     }
-//
-//     /// Create a `OpBitField` given a raw pointer to the inner type.
-//     ///
-//     /// TODO: assert is pointer discriminant
-//     ///
-//     /// SAFETY: the inner pointer must have come from an owning `Box` in the global allocator, whose
-//     /// type matches that indicated by the discriminant.  The returned `PackedOperation` takes
-//     /// ownership of the pointed-to data.
-//     #[inline]
-//     unsafe fn with_pointer(self, value: NonNull<()>) -> Self {
-//         let addr = value.as_ptr() as u64;
-//         assert_eq!(addr & Self::DISCRIMINANT_MASK, 0);
-//         Self(addr | self.0)
-//     }
-// }
 
 impl StandardGate {
     const fn into_bits(self) -> u8 {
@@ -388,31 +348,6 @@ impl OpBitField {
 }
 
 impl PackedOperation {
-    // /// Get the contained pointer to the `PyGate`/`PyInstruction`/`PyOperation` that
-    // /// this object contains.
-    // ///
-    // /// Returns `None` if the object represents anything else.
-    // #[inline]
-    // fn try_pointer(&self) -> Option<NonNull<()>> {
-    //     match self.discriminant() {
-    //         PackedOperationType::StandardGate | PackedOperationType::StandardInstruction => None,
-    //         PackedOperationType::PyGatePointer
-    //         | PackedOperationType::PyInstructionPointer
-    //         | PackedOperationType::PyOperationPointer => {
-    //             // SAFETY: `PackedOperation` can only be constructed from a pointer via `Box`, which
-    //             // is always non-null (except in the case that we're partway through a `Drop`).
-    //             Some(unsafe { self.0.pointer() })
-    //         }
-    //     }
-    // }
-
-    #[inline]
-    fn discriminant(&self) -> PackedOperationType {
-        // This is a slight hack to read the discriminant. Even though this isn't necessarily
-        // a standard gate, we pretend that it is and read the actual discriminant.
-        unsafe { self.0.gate.discriminant() }
-    }
-
     /// Get the contained `StandardGate`.
     ///
     /// **Panics** if this `PackedOperation` doesn't contain a `StandardGate`; see
@@ -426,7 +361,7 @@ impl PackedOperation {
     /// Get the contained `StandardGate`, if any.
     #[inline]
     pub fn try_standard_gate(&self) -> Option<StandardGate> {
-        match self.discriminant() {
+        match self.0.discriminant() {
             PackedOperationType::StandardGate => Some(unsafe { self.0.gate.standard_gate() }),
             _ => None,
         }
@@ -445,7 +380,7 @@ impl PackedOperation {
     /// Get the contained `StandardInstruction`, if any.
     #[inline]
     pub fn try_standard_instruction(&self) -> Option<StandardInstruction> {
-        match self.discriminant() {
+        match self.0.discriminant() {
             PackedOperationType::StandardInstruction => {
                 let instruction = unsafe { self.0.instruction };
                 Some(match instruction.standard_instruction() {
@@ -466,7 +401,7 @@ impl PackedOperation {
     /// Get a safe view onto the packed data within, without assuming ownership.
     #[inline]
     pub fn view(&self) -> OperationRef {
-        match self.discriminant() {
+        match self.0.discriminant() {
             PackedOperationType::StandardGate => OperationRef::Standard(self.standard_gate()),
             PackedOperationType::StandardInstruction => {
                 OperationRef::StandardInstruction(self.standard_instruction())
@@ -809,7 +744,7 @@ impl Drop for PackedOperation {
             ::std::mem::drop(boxed);
         }
 
-        match self.discriminant() {
+        match self.0.discriminant() {
             PackedOperationType::StandardGate | PackedOperationType::StandardInstruction => (),
             PackedOperationType::PyGatePointer => drop_pointer_as::<PyGate>(self),
             PackedOperationType::PyInstructionPointer => drop_pointer_as::<PyInstruction>(self),
