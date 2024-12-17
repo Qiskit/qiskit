@@ -49,7 +49,7 @@ class PrimitiveJob(BasePrimitiveJob[ResultT, JobStatus]):
         executor.shutdown(wait=False)
 
     def _prepare_dump(self):
-    """This method allows PrimitiveJob to be serialized"""
+        """This method allows PrimitiveJob to be serialized"""
         _ = self.result()
         _ = self.status()
         self._future = None
