@@ -47,15 +47,6 @@ enum PackedOperationType {
     // if you add or remove this enum's variants!
 }
 
-unsafe impl ::bytemuck::CheckedBitPattern for PackedOperationType {
-    type Bits = u8;
-
-    fn is_valid_bit_pattern(bits: &Self::Bits) -> bool {
-        *bits < 5
-    }
-}
-unsafe impl ::bytemuck::NoUninit for PackedOperationType {}
-
 /// A bit-packed `OperationType` enumeration.
 ///
 /// This is logically equivalent to:

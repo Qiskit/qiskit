@@ -299,15 +299,6 @@ pub enum DelayUnit {
     DT,
 }
 
-unsafe impl ::bytemuck::CheckedBitPattern for DelayUnit {
-    type Bits = u8;
-
-    fn is_valid_bit_pattern(bits: &Self::Bits) -> bool {
-        *bits < 6
-    }
-}
-unsafe impl ::bytemuck::NoUninit for DelayUnit {}
-
 impl fmt::Display for DelayUnit {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
@@ -359,15 +350,6 @@ pub(crate) enum StandardInstructionType {
     Measure = 2,
     Reset = 3,
 }
-
-unsafe impl ::bytemuck::CheckedBitPattern for StandardInstructionType {
-    type Bits = u8;
-
-    fn is_valid_bit_pattern(bits: &Self::Bits) -> bool {
-        *bits < 4
-    }
-}
-unsafe impl ::bytemuck::NoUninit for StandardInstructionType {}
 
 #[derive(Clone, Debug, Copy, Eq, PartialEq, Hash)]
 pub enum StandardInstruction {
