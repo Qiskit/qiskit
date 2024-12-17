@@ -337,7 +337,6 @@ For example, if we wanted to visualize the :class:`~.CouplingMap` for the
 example 3 qubit :class:`~.Target` above:
 
 .. plot::
-
    :include-source:
    :alt: Output from the previous code.
    
