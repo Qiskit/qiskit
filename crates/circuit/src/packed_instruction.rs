@@ -288,20 +288,39 @@ impl ImmediateValue {
     }
 }
 
+#[cfg(target_pointer_width = "64")]
 #[bitfield(u64, new = false)]
 struct PointerBits {
     #[bits(3, access = RO)]
     discriminant: PackedOperationType,
-    #[bits(61, from = address_from_u64, into = u64_from_address)]
-    address: u64,
+    #[bits(61, from = PointerBits::unpack_address, into = PointerBits::pack_address)]
+    address: usize,
 }
 
-const fn address_from_u64(value: u64) -> u64 {
-    value << 3
+// On a 64-bit system, we tell the bitfield-struct crate to use these when reading and writing the
+// address, since the lower 3 bits contain our discriminant.
+#[cfg(target_pointer_width = "64")]
+impl PointerBits {
+    const fn unpack_address(value: usize) -> usize {
+        value << 3
+    }
+
+    const fn pack_address(value: usize) -> usize {
+        value >> 3
+    }
 }
 
-const fn u64_from_address(value: u64) -> u64 {
-    value >> 3
+#[cfg(target_pointer_width = "32")]
+#[bitfield(u64, new = false)]
+struct PointerBits {
+    #[bits(3, access = RO)]
+    discriminant: PackedOperationType,
+    // The padding here is used to get the address aligned to a word to give the compiler the best
+    // chance at optimizing-out the bit shift needed to read it from this bitfield.
+    #[bits(29)]
+    __: u32,
+    #[bits(32)]
+    address: usize,
 }
 
 impl PointerBits {
@@ -325,25 +344,13 @@ impl PointerBits {
     }
 
     #[inline]
+    #[allow(clippy::assertions_on_constants)]
     fn with_pointer(self, value: NonNull<()>) -> Self {
-        let addr = value.as_ptr() as u64;
-        assert_eq!(addr & BitField::DISCRIMINANT_MASK, 0);
+        let addr = value.as_ptr() as usize;
+        assert!(
+            cfg!(target_pointer_width = "32") || (addr as u64 & BitField::DISCRIMINANT_MASK == 0)
+        );
         self.with_address(addr)
-    }
-}
-
-#[cfg(target_pointer_width = "32")]
-impl OpBitField {
-    #[inline]
-    unsafe fn pointer(&self) -> NonNull<()> {
-        let ptr = self.payload().u32 as *mut ();
-        NonNull::new_unchecked(ptr)
-    }
-
-    #[inline]
-    unsafe fn with_pointer(self, value: NonNull<()>) -> Self {
-        let addr = value.as_ptr() as u32;
-        self.with_payload(OpPayload { u32: addr })
     }
 }
 
