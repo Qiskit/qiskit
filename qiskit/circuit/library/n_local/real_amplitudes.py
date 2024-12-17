@@ -118,11 +118,13 @@ def real_amplitudes(
     Returns:
         A real-amplitudes circuit.
     """
+    # Set entanglement_blocks to None when num_qubits == 1
+    entanglement_blocks = ["cx"] if num_qubits > 1 else []
 
     return n_local(
         num_qubits,
         ["ry"],
-        ["cx"],
+        entanglement_blocks,
         entanglement,
         reps,
         insert_barriers,

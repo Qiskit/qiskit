@@ -34,7 +34,7 @@ from qiskit.circuit.exceptions import CircuitError
 from qiskit.exceptions import QiskitError
 from qiskit._accelerate import uc_gate
 
-from .diagonal import Diagonal
+from .diagonal import DiagonalGate
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
@@ -276,7 +276,7 @@ class UCGate(Gate):
             # Important: the diagonal gate is given in the computational basis of the qubits
             # q[k-1],...,q[0],q_target (ordered with decreasing significance),
             # where q[i] are the control qubits and t denotes the target qubit.
-            diagonal = Diagonal(diag)
+            diagonal = DiagonalGate(diag)
 
             circuit.append(diagonal, [q_target] + q_controls)
         return circuit, diag

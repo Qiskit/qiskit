@@ -132,10 +132,10 @@ def unitary_overlap(
         :include-source:
 
         import numpy as np
-        from qiskit.circuit.library import EfficientSU2, unitary_overlap
+        from qiskit.circuit.library import efficient_su2, unitary_overlap
 
         # get two circuit to prepare states of which we compute the overlap
-        circuit = EfficientSU2(2, reps=1)
+        circuit = efficient_su2(2, reps=1)
         unitary1 = circuit.assign_parameters(np.random.random(circuit.num_parameters))
         unitary2 = circuit.assign_parameters(np.random.random(circuit.num_parameters))
 
