@@ -340,6 +340,7 @@ example 3 qubit :class:`~.Target` above:
 
    :include-source:
    :alt: Output from the previous code.
+   
    from qiskit.circuit import Parameter, Measure
    from qiskit.transpiler import Target, InstructionProperties
    from qiskit.circuit.library import UGate, RZGate, RXGate, RYGate, CXGate, CZGate
