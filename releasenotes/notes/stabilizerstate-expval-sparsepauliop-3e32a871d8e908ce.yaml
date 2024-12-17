@@ -2,4 +2,4 @@
 features_quantum_info:
   - |
     The method :meth:`.StabilizerState.expectation_value` can now accept an operator of type
-    :class:`SparsePauliOp`.
+    :class:`.SparsePauliOp`.

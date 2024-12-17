@@ -263,11 +263,11 @@ class StabilizerState(QuantumState):
         """Compute the expectation value of a Pauli or SparsePauliOp operator.
 
         Args:
-            oper (Pauli or SparsePauliOp): a Pauli or SparsePauliOp operator to evaluate expval.
-            qargs (None or list): subsystems to apply the operator on.
+            oper: A Pauli or SparsePauliOp operator to evaluate the expectation value.
+            qargs: Subsystems to apply the operator on.
 
         Returns:
-            complex: the expectation value.
+            The expectation value.
 
         Raises:
             QiskitError: if oper is not a Pauli or SparsePauliOp operator.
@@ -281,10 +281,10 @@ class StabilizerState(QuantumState):
                 for z, x, coeff in zip(oper.paulis.z, oper.paulis.x, oper.coeffs)
             )
 
-        else:
-            raise QiskitError(
-                "Operator for expectation value is not a Pauli or SparsePauliOp operator."
-            )
+        raise QiskitError(
+            "Operator for expectation value is not a Pauli or SparsePauliOp operator, "
+            f"but {type(oper)}."
+        )
 
     def _expectation_value_pauli(self, oper: Pauli, qargs: None | list = None) -> complex:
         """Compute the expectation value of a Pauli operator.
