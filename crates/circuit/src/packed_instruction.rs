@@ -28,7 +28,10 @@ use crate::circuit_data::CircuitData;
 use crate::circuit_instruction::ExtraInstructionAttributes;
 use crate::imports::{get_std_gate_class, BARRIER, DEEPCOPY, DELAY, MEASURE, RESET};
 use crate::interner::Interned;
-use crate::operations::{DelayUnit, Operation, OperationRef, Param, PyGate, PyInstruction, PyOperation, STANDARD_GATE_SIZE, StandardGate, StandardInstruction, StandardInstructionType};
+use crate::operations::{
+    DelayUnit, Operation, OperationRef, Param, PyGate, PyInstruction, PyOperation, StandardGate,
+    StandardInstruction, StandardInstructionType, STANDARD_GATE_SIZE,
+};
 use crate::{Clbit, Qubit};
 
 /// The logical discriminant of `PackedOperation`.
@@ -152,20 +155,28 @@ impl BitField {
     #[allow(clippy::assertions_on_constants)]
     const _CHECK: () = {
         assert!(
-            ((1 << StandardGateBits::DISCRIMINANT_BITS) - 1) << StandardGateBits::DISCRIMINANT_OFFSET == Self::DISCRIMINANT_MASK, "discriminant MUST be the 3 lowest bits!");
+            ((1 << StandardGateBits::DISCRIMINANT_BITS) - 1)
+                << StandardGateBits::DISCRIMINANT_OFFSET
+                == Self::DISCRIMINANT_MASK,
+            "discriminant MUST be the 3 lowest bits!"
+        );
         assert!(
-            ((1 << StandardInstructionBits::DISCRIMINANT_BITS) - 1) << StandardInstructionBits::DISCRIMINANT_OFFSET == Self::DISCRIMINANT_MASK, "discriminant MUST be the 3 lowest bits!");
+            ((1 << StandardInstructionBits::DISCRIMINANT_BITS) - 1)
+                << StandardInstructionBits::DISCRIMINANT_OFFSET
+                == Self::DISCRIMINANT_MASK,
+            "discriminant MUST be the 3 lowest bits!"
+        );
         assert!(
-            ((1 << PointerBits::DISCRIMINANT_BITS) - 1) << PointerBits::DISCRIMINANT_OFFSET == Self::DISCRIMINANT_MASK, "discriminant MUST be the 3 lowest bits!");
+            ((1 << PointerBits::DISCRIMINANT_BITS) - 1) << PointerBits::DISCRIMINANT_OFFSET
+                == Self::DISCRIMINANT_MASK,
+            "discriminant MUST be the 3 lowest bits!"
+        );
     };
 }
 
-
 impl From<StandardGateBits> for BitField {
     fn from(gate: StandardGateBits) -> Self {
-        Self {
-            gate
-        }
+        Self { gate }
     }
 }
 
@@ -243,11 +254,12 @@ impl StandardInstructionType {
     }
 
     const fn from_bits(value: u8) -> Self {
-        match value { 0 => StandardInstructionType::Barrier,
-            1=> StandardInstructionType::Delay,
-            2=> StandardInstructionType::Measure,
-            3=>StandardInstructionType::Reset,
-            _=> panic!("unexpected instruction type!")
+        match value {
+            0 => StandardInstructionType::Barrier,
+            1 => StandardInstructionType::Delay,
+            2 => StandardInstructionType::Measure,
+            3 => StandardInstructionType::Reset,
+            _ => panic!("unexpected instruction type!"),
         }
     }
 }
@@ -260,11 +272,10 @@ impl PackedOperationType {
             2 => Self::PyGatePointer,
             3 => Self::PyInstructionPointer,
             4 => Self::PyOperationPointer,
-            _ => panic!("unexpected discriminant type!")
+            _ => panic!("unexpected discriminant type!"),
         }
     }
 }
-
 
 #[bitfield(u64)]
 struct StandardGateBits {
@@ -273,7 +284,7 @@ struct StandardGateBits {
     #[bits(8)]
     standard_gate: StandardGate,
     #[bits(53)]
-    __: u64
+    __: u64,
 }
 
 #[bitfield(u64)]
@@ -317,7 +328,7 @@ impl ImmediateValue {
     }
 }
 
-#[bitfield(u64, new=false)]
+#[bitfield(u64, new = false)]
 struct PointerBits {
     #[bits(3, access = RO)]
     discriminant: PackedOperationType,
@@ -335,7 +346,12 @@ const fn u64_from_address(value: u64) -> u64 {
 
 impl PointerBits {
     fn new(discriminant: PackedOperationType) -> Self {
-        if !matches!(discriminant, PackedOperationType::PyGatePointer | PackedOperationType::PyInstructionPointer | PackedOperationType::PyOperationPointer) {
+        if !matches!(
+            discriminant,
+            PackedOperationType::PyGatePointer
+                | PackedOperationType::PyInstructionPointer
+                | PackedOperationType::PyOperationPointer
+        ) {
             panic!("discriminant not valid for pointer!")
         }
         Self::from_bits(discriminant as u64)
@@ -411,9 +427,7 @@ impl PackedOperation {
     #[inline]
     pub fn try_standard_gate(&self) -> Option<StandardGate> {
         match self.discriminant() {
-            PackedOperationType::StandardGate =>  {
-                Some(unsafe {self.0.gate.standard_gate() })
-            },
+            PackedOperationType::StandardGate => Some(unsafe { self.0.gate.standard_gate() }),
             _ => None,
         }
     }
@@ -508,19 +522,31 @@ impl PackedOperation {
     /// Construct a new `PackedOperation` from an owned heap-allocated `PyGate`.
     pub fn from_gate(gate: Box<PyGate>) -> Self {
         let ptr = NonNull::from(Box::leak(gate)).cast::<()>();
-        Self(PointerBits::new(PackedOperationType::PyGatePointer).with_pointer(ptr).into())
+        Self(
+            PointerBits::new(PackedOperationType::PyGatePointer)
+                .with_pointer(ptr)
+                .into(),
+        )
     }
 
     /// Construct a new `PackedOperation` from an owned heap-allocated `PyInstruction`.
     pub fn from_instruction(instruction: Box<PyInstruction>) -> Self {
         let ptr = NonNull::from(Box::leak(instruction)).cast::<()>();
-        Self(PointerBits::new(PackedOperationType::PyInstructionPointer).with_pointer(ptr).into())
+        Self(
+            PointerBits::new(PackedOperationType::PyInstructionPointer)
+                .with_pointer(ptr)
+                .into(),
+        )
     }
 
     /// Construct a new `PackedOperation` from an owned heap-allocated `PyOperation`.
     pub fn from_operation(operation: Box<PyOperation>) -> Self {
         let ptr = NonNull::from(Box::leak(operation)).cast::<()>();
-        Self(PointerBits::new(PackedOperationType::PyOperationPointer).with_pointer(ptr).into())
+        Self(
+            PointerBits::new(PackedOperationType::PyOperationPointer)
+                .with_pointer(ptr)
+                .into(),
+        )
     }
 
     /// Check equality of the operation, including Python-space checks, if appropriate.
