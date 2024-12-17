@@ -46,8 +46,6 @@ enum PackedOperationType {
     PyGatePointer = 2,
     PyInstructionPointer = 3,
     PyOperationPointer = 4,
-    // Remember to update PackedOperationType::is_valid_bit_pattern below
-    // if you add or remove this enum's variants!
 }
 
 /// A bit-packed `OperationType` enumeration.
@@ -64,45 +62,74 @@ enum PackedOperationType {
 /// }
 /// ```
 ///
-/// including all ownership semantics, except it bit-packs the enumeration into a single pointer.
-/// This works because `PyGate` (and friends) have an alignment of 8, so pointers to them always
-/// have the low three bits set to 0, and `StandardGate` has a width much smaller than a pointer.
-/// This lets us store the enum discriminant in the low data bits, and then type-pun a suitable
-/// bitmask on the contained value back into proper data.
+/// including all ownership semantics, except it bit-packs the enumeration into a single `u64`-sized
+/// bitfield.
 ///
-/// Explicitly, this is logical memory layout of `PackedOperation` on a 64-bit system, written out
-/// as a binary integer.  `x` marks padding bits with undefined values, `S` is the bits that make up
-/// a `StandardGate` or `StandardInstructionType`, `D` is the data payload of a standard
-/// instruction, and `P` is bits that make up part of a pointer.
+/// The lowest three bits of this `u64` is always the discriminant and identifies which of the
+/// above variants the field contains (and thus the layout of the bitfield required to decode it).
+/// This works even for pointer variants (like `PyGate`) on 64-bit systems, which would normally
+/// span the entire `u64`, since pointers on these systems have a natural alignment of 8 (and thus
+/// their lowest three bits are always 0). This lets us store the discriminant within the address
+/// and mask it out before reinterpreting it as a pointer.
+///
+/// The inner type, `BitField`, is a union of three bitfield structs, one for each potential layout
+/// of an operation. They are:
+///
+/// - `StandardGateBits`: the layout used by standard gates.
+/// - `StandardInstructionBits`: the layout used by standard instructions.
+/// - `PointerBits`: the layout used by all of the pointer variants
+///   (i.e. `PyGate`, `PyInstruction`, `PyOperation`).
+///
+/// The discriminant is used to determine which enum variant is contained with the operation, and
+/// then the `BitField` union member corresponding to the layout for that discriminant is used to
+/// decode the rest of the operation. This is (aptly) conceptually very similar to CPU ISA
+/// encodings (e.g. J-Type, I-Type, etc.).
+///
+/// The (very powerful) `bitfield-struct` crate is used to define these bitfield structs using
+/// macros. It provides compile-time validation of their layouts (i.e. which bit ranges contain
+/// what) and generated builders and accessors for each.
+///
+/// The layouts for each of these bitfields are described as follows, written out as a 64-bit
+/// binary integer. `x` marks padding bits with undefined values. See their struct definitions for
+/// more detail.
 ///
 /// ```text
-/// Standard gate:
+/// StandardGateBits:
 /// 0b_xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxSSS_SSSSS000
 ///                                                               |-------||-|
 ///                                                                   |     |
 ///                           Standard gate, stored inline as a u8. --+     +-- Discriminant.
 ///
-/// Standard instruction:
-/// 0b_xxxxxxxx_xxxxxxxx_xxxxxDDD_DDDDDDDD_DDDDDDDD_DDDDDDDD_DDDDDSSS_SSSSS001
-///                           |----------------------------------||-------||-|
-///                                            |                      |     |
-///         An optional 32 bit data payload. --+                      |     |
+/// StandardInstructionBits:
+/// 0b_DDDDDDDD_DDDDDDDD_DDDDDDDD_DDDDDDDD_xxxxxxxx_xxxxxxxx_xxxxxSSS_SSSSS001
+///    |---------------------------------|                        |-------||-|
+///                    |                                              |     |
+///                    +-- An optional 32 bit immediate value.        |     |
 ///               Standard instruction type, stored inline as a u8. --+     +-- Discriminant.
 ///
-///     Optional data payload:
+///     Optional immediate value:
 ///     Depending on the variant of the standard instruction type, a 32 bit
-///     data payload may be present. Currently, this is used to store the
+///     inline value may be present. Currently, this is used to store the
 ///     number of qubits in a Barrier and the unit of a Delay.
 ///
-/// Pointer to object:
+/// PointerBits (64-bit systems):
 /// 0b_PPPPPPPP_PPPPPPPP_PPPPPPPP_PPPPPPPP_PPPPPPPP_PPPPPPPP_PPPPPPPP_PPPP011
 ///    |-----------------------------------------------------------------||-|
 ///                                   |                                    |
 ///    The high 62 bits of the pointer.  Because of alignment, the low 3   |   Discriminant of the
 ///    bits of the full 64 bits are guaranteed to be zero so we can        +-- enumeration.  This
-///    retrieve the "full" pointer by taking the whole `usize` and zeroing     is 0b011, which means
+///    retrieve the "full" pointer by taking the whole `u64` and zeroing       is 0b011, which means
 ///    the low 3 bits, letting us store the discriminant in there at other     that this points to
 ///    times.                                                                  a `PyInstruction`.
+///
+/// PointerBits (32-bit systems)
+/// 0b_PPPPPPPP_PPPPPPPP_PPPPPPPP_PPPPPPPP_xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxx011
+///    |---------------------------------|                                |-|
+///                    |                                                   |
+///    On 32-bit systems, the upper 32-bits are used to store the full     +-- Discriminant. This is
+///    address. This gives the compiler the best chance at eliminating         0b100, so in this
+///    the otherwise required bit-shift needed to read the pointer.            case, this points to
+///                                                                            a `PyOperation`.
 /// ```
 ///
 /// # Construction
@@ -122,6 +149,8 @@ enum PackedOperationType {
 /// * The pointed-to data must match the type of the discriminant used to store it.
 /// * `PackedOperation` must take care to forward implementations of `Clone` and `Drop` to the
 ///   contained pointer.
+/// * The inner `BitField` serves only as storage. Ownership of contained pointers lies with the
+///   `PackedOperation` itself.
 #[derive(Debug)]
 pub struct PackedOperation(BitField);
 
@@ -137,6 +166,12 @@ impl fmt::Debug for BitField {
     }
 }
 
+/// A private union of all possible bitfield layouts used by `PackedOperation` variants.
+/// It requires (and asserts, statically) that all of its members locate the discriminant
+/// in exactly their 3 lowest bits.
+///
+/// # Safety
+/// Use [BitField::discriminant] to determine which field is valid for access.
 #[repr(C)]
 union BitField {
     gate: StandardGateBits,
@@ -196,6 +231,7 @@ impl From<PointerBits> for BitField {
     }
 }
 
+// Used by bitfield-struct to convert into and out of the bitfield.
 impl StandardGate {
     const fn into_bits(self) -> u8 {
         self as _
@@ -204,10 +240,13 @@ impl StandardGate {
         if value as usize >= STANDARD_GATE_SIZE {
             panic!("unexpected standard gate type!")
         }
+        // It would've been nice to use bytemuck here, but it doesn't support const
+        // casting for enums.
         unsafe { std::mem::transmute(value) }
     }
 }
 
+// Used by bitfield-struct to convert into and out of the bitfield.
 impl StandardInstructionType {
     const fn into_bits(self) -> u8 {
         self as _
@@ -219,7 +258,7 @@ impl StandardInstructionType {
             1 => StandardInstructionType::Delay,
             2 => StandardInstructionType::Measure,
             3 => StandardInstructionType::Reset,
-            _ => panic!("unexpected instruction type!"),
+            _ => panic!("unexpected standard instruction type!"),
         }
     }
 }
@@ -237,6 +276,7 @@ impl PackedOperationType {
     }
 }
 
+/// The bitfield layout used for standard gates.
 #[bitfield(u64)]
 struct StandardGateBits {
     #[bits(3, default = PackedOperationType::StandardGate, access = RO)]
@@ -247,6 +287,7 @@ struct StandardGateBits {
     __: u64,
 }
 
+/// The bitfield layout used for standard instructions.
 #[bitfield(u64)]
 struct StandardInstructionBits {
     #[bits(3, default = PackedOperationType::StandardInstruction, access = RO)]
@@ -256,9 +297,11 @@ struct StandardInstructionBits {
     #[bits(21)]
     _pad1: u32,
     #[bits(32)]
-    payload: ImmediateValue,
+    value: ImmediateValue,
 }
 
+/// An inline value present within [StandardInstructionBits] layouts used to store arbitrary
+/// data to be interpreted according to the encoded standard instruction.
 #[derive(Clone, Copy, Debug)]
 #[repr(transparent)]
 struct ImmediateValue(u32);
@@ -288,6 +331,11 @@ impl ImmediateValue {
     }
 }
 
+/// The bitfield layout used by pointer types, like `PyGate`, `PyInstruction`, and `PyOperation`.
+///
+/// On 64-bit systems, the address is stored in the upper 62 bits, and is converted into and out of
+/// its packed form using `unpack_address` and `pack_address`. On 32-bit systems, the address is
+/// simply stored in the upper 32 bits.
 #[cfg(target_pointer_width = "64")]
 #[bitfield(u64, new = false)]
 struct PointerBits {
@@ -324,6 +372,9 @@ struct PointerBits {
 }
 
 impl PointerBits {
+    /// Constructs the bitfield.
+    ///
+    /// The discriminant MUST be one of the known pointer types.
     fn new(discriminant: PackedOperationType) -> Self {
         if !matches!(
             discriminant,
@@ -343,6 +394,11 @@ impl PointerBits {
         unsafe { NonNull::new_unchecked(ptr) }
     }
 
+    /// Sets the pointer.
+    ///
+    /// # Safety
+    /// The caller is responsible for ensuring that the provided pointer actually points
+    /// to data typed accordingly to the operation type used when calling [PointerBits::new].
     #[inline]
     #[allow(clippy::assertions_on_constants)]
     fn with_pointer(self, value: NonNull<()>) -> Self {
@@ -392,10 +448,10 @@ impl PackedOperation {
                 let instruction = unsafe { self.0.instruction };
                 Some(match instruction.standard_instruction() {
                     StandardInstructionType::Barrier => {
-                        StandardInstruction::Barrier(instruction.payload().u32() as usize)
+                        StandardInstruction::Barrier(instruction.value().u32() as usize)
                     }
                     StandardInstructionType::Delay => {
-                        StandardInstruction::Delay(instruction.payload().delay_unit())
+                        StandardInstruction::Delay(instruction.value().delay_unit())
                     }
                     StandardInstructionType::Measure => StandardInstruction::Measure,
                     StandardInstructionType::Reset => StandardInstruction::Reset,
@@ -444,12 +500,12 @@ impl PackedOperation {
                 );
                 bits = bits
                     .with_standard_instruction(StandardInstructionType::Barrier)
-                    .with_payload(ImmediateValue(num_qubits))
+                    .with_value(ImmediateValue(num_qubits))
             }
             StandardInstruction::Delay(unit) => {
                 bits = bits
                     .with_standard_instruction(StandardInstructionType::Delay)
-                    .with_payload(ImmediateValue::from_delay_unit(unit))
+                    .with_value(ImmediateValue::from_delay_unit(unit))
             }
             StandardInstruction::Measure => {
                 bits = bits.with_standard_instruction(StandardInstructionType::Measure);
