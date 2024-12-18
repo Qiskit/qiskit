@@ -139,6 +139,17 @@ class TestSparsePauliOpInit(QiskitTestCase):
             paulis.z[:] = False
             coeffs[:] = 0
             self.assertEqual(spp_op, ref_op)
+            
+    def test_sparse_pauli_op_init_long_ys(self):
+        """Test SparsePauliOp initialization."""
+        with self.subTest(msg="make SparsePauliOp from SparsePauliOp"):
+            # produces non-zero imaginary component
+            yyy = SparsePauliOp('Y'*100)
+            print(yyy.coeffs)
+            # correctly contains no imaginary component
+            yy = SparsePauliOp('Y'*99)
+            print(yy.coeffs)
+            self.assertNotEqual(yyy, yy)
 
 
 @ddt.ddt

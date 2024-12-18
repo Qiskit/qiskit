@@ -158,16 +158,23 @@ class SparsePauliOp(LinearOp):
             )
 
         if ignore_pauli_phase:
-            # Fast path used in copy operations, where the phase of the PauliList is already known
-            # to be zero.  This path only works if the input data is compatible with the internal
-            # ZX-phase convention.
+            # If we know phases are zero or correctly adjusted, just assign directly
             self._pauli_list = pauli_list
             self._coeffs = coeffs
         else:
-            # move the phase of `pauli_list` to `self._coeffs`
+            # Adjust coefficients based on internal ZX-phase convention
             phase = pauli_list._phase
             count_y = pauli_list._count_y()
-            self._coeffs = np.asarray((-1j) ** (phase - count_y) * coeffs, dtype=coeffs.dtype)
+
+            # Compute exponentiation via integer arithmetic and lookup table to avoid floating point errors
+            exp_val = (phase - count_y) % 4
+            p = (3 * exp_val) % 4  # (−i)^(phase - count_y) = i^(3*(phase - count_y))
+            lookup = np.array([1+0j, 1j, -1+0j, -1j], dtype=coeffs.dtype)
+
+            vals = lookup[p]
+            self._coeffs = vals * coeffs
+
+            # Update pauli_list phase
             pauli_list._phase = np.mod(count_y, 4)
             self._pauli_list = pauli_list
 
