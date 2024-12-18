@@ -19,8 +19,7 @@ import sys
 import glob
 
 # List of allowlist files that the checker will not verify
-ALLOWLIST_MISSING_ALT_TEXT = [
-]
+ALLOWLIST_MISSING_ALT_TEXT = []
 
 
 def is_image(line: str) -> bool:
