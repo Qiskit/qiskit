@@ -282,7 +282,7 @@ impl CircuitInstruction {
             params: op_parts.params,
             extra_attrs: op_parts.extra_attrs,
             #[cfg(feature = "cache_pygates")]
-            py_op: operation.into_pyobject(py).into(),
+            py_op: operation.clone().unbind().into(),
         })
     }
 
@@ -455,7 +455,7 @@ impl CircuitInstruction {
                 params: params.unwrap_or(op_parts.params),
                 extra_attrs: op_parts.extra_attrs,
                 #[cfg(feature = "cache_pygates")]
-                py_op: operation.into_pyobject(py).into(),
+                py_op: operation.clone().unbind().into(),
             })
         } else {
             Ok(Self {

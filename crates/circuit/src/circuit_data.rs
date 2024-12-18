@@ -1484,7 +1484,7 @@ impl CircuitData {
                             previous.extra_attrs = new_op.extra_attrs;
                             #[cfg(feature = "cache_pygates")]
                             {
-                                previous.py_op = op.into_pyobject(py).into();
+                                previous.py_op = op.unbind().into();
                             }
                             for uuid in uuids.iter() {
                                 self.param_table.add_use(*uuid, usage)?
