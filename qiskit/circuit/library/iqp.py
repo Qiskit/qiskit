@@ -99,6 +99,7 @@ def iqp(
     **Reference Circuit:**
 
     .. plot::
+       :alt: Diagram illustrating the previously described circuit.
 
        from qiskit.circuit.library import iqp
        A = [[6, 5, 3], [5, 4, 5], [3, 5, 1]]
@@ -108,6 +109,7 @@ def iqp(
     **Expanded Circuit:**
 
         .. plot::
+           :alt: Diagram illustrating the previously described circuit.
 
            from qiskit.circuit.library import iqp
            from qiskit.visualization.library import _generate_circuit_library_visualization

@@ -544,6 +544,7 @@ Every quantum circuit run on the target device must be expressed using only thes
 For example, to run a simple phase estimation circuit:
 
 .. plot::
+   :alt: Output from the previous code.
    :include-source:
 
    import numpy as np
