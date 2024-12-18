@@ -15,8 +15,7 @@ QuantumCircuit.data while maintaining the interface of a python list."""
 
 from collections.abc import MutableSequence
 
-import qiskit._accelerate.circuit
-from qiskit._accelerate.circuit import CircuitInstruction  # pylint: disable=unused-import
+from qiskit._accelerate.circuit import CircuitInstruction
 
 from .exceptions import CircuitError
 from .instruction import Instruction
