@@ -88,11 +88,31 @@ impl TargetOperation {
 
 /// Represents a Qiskit `Gate` object, keeps a reference to its Python
 /// instance for caching purposes.
-#[derive(Debug, Clone, IntoPyObject, IntoPyObjectRef)]
+#[derive(Debug, Clone)]
 pub(crate) struct NormalOperation {
     pub operation: PackedOperation,
     pub params: SmallVec<[Param; 3]>,
     op_object: PyObject,
+}
+
+impl<'py> IntoPyObject<'py> for NormalOperation {
+    type Target = PyAny;
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        Ok(self.op_object.bind(py).clone())
+    }
+}
+
+impl<'py> IntoPyObject<'py> for &NormalOperation {
+    type Target = PyAny;
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        Ok(self.op_object.bind(py).clone())
+    }
 }
 
 impl<'py> FromPyObject<'py> for NormalOperation {
