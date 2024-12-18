@@ -124,13 +124,13 @@ def fourier_checking(f: Sequence[int], g: Sequence[int]) -> QuantumCircuit:
 
     **Reference Circuit:**
 
-       .. plot::
-          :alt: Circuit diagram output by the previous code.
-          :include-source:
+    .. plot::
+       :alt: Circuit diagram output by the previous code.
+       :include-source:
 
-          from qiskit.circuit.library import fourier_checking
-          circuit = fourier_checking([1, -1, -1, -1], [1, 1, -1, -1])
-          circuit.draw('mpl')
+       from qiskit.circuit.library import fourier_checking
+       circuit = fourier_checking([1, -1, -1, -1], [1, 1, -1, -1])
+       circuit.draw('mpl')
 
     **Reference:**
 

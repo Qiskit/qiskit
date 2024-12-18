@@ -52,7 +52,7 @@ from qiskit.utils.deprecate_pulse import deprecate_pulse_func
 class InstructionScheduleMap:
     """Mapping from :py:class:`~qiskit.circuit.QuantumCircuit`
     :py:class:`qiskit.circuit.Instruction` names and qubits to
-    :py:class:`~qiskit.pulse.Schedule` s. In particular, the mapping is formatted as type
+    :py:class:`~qiskit.pulse.Schedule` s. In particular, the mapping is formatted as type::
 
          Dict[str, Dict[Tuple[int], Schedule]]
 
