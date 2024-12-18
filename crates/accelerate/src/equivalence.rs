@@ -301,8 +301,21 @@ impl<'py> FromPyObject<'py> for GateOper {
 /// of [CircuitData].
 ///
 /// [`QuantumCircuit`]: https://docs.quantum.ibm.com/api/qiskit/qiskit.circuit.QuantumCircuit
-#[derive(Debug, Clone, IntoPyObject)]
+#[derive(Debug, Clone)]
 pub struct CircuitFromPython(pub CircuitData);
+
+impl<'py> IntoPyObject<'py> for CircuitFromPython {
+    type Target = PyAny;
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        Ok(QUANTUM_CIRCUIT
+            .get_bound(py)
+            .call_method1("_from_circuit_data", (self.0,))?
+            .clone())
+    }
+}
 
 impl FromPyObject<'_> for CircuitFromPython {
     fn extract_bound(ob: &Bound<'_, PyAny>) -> PyResult<Self> {

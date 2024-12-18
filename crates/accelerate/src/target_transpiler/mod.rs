@@ -643,7 +643,7 @@ impl Target {
                         let mut matching_params = false;
                         let obj_at_index = &obj_params[index];
                         if matches!(obj_at_index, Param::ParameterExpression(_))
-                            || python_compare(py, &params, &obj_params[index])?
+                            || python_compare(py, params, &obj_params[index])?
                         {
                             matching_params = true;
                         }
