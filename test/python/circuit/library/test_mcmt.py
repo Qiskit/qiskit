@@ -20,14 +20,12 @@ from qiskit.exceptions import QiskitError
 from qiskit.compiler import transpile
 from qiskit.circuit import QuantumCircuit, QuantumRegister, Parameter
 from qiskit.circuit.library import (
-    MCMT,
-    MCMTVChain,
-    CHGate,
+    HGate,
     XGate,
     ZGate,
     RYGate,
     CXGate,
-    CZGate,
+    CHGate,
     MCMTGate,
     GlobalPhaseGate,
     SwapGate,
@@ -47,11 +45,10 @@ from test import QiskitTestCase  # pylint: disable=wrong-import-order
 class TestMCMT(QiskitTestCase):
     """Test the multi-controlled multi-target circuit."""
 
-    @data(MCMT, MCMTVChain)
-    def test_mcmt_as_normal_control(self, mcmt_class):
+    def test_mcmt_as_normal_control(self):
         """Test that the MCMT can act as normal control gate."""
         qc = QuantumCircuit(2)
-        mcmt = mcmt_class(gate=CHGate(), num_ctrl_qubits=1, num_target_qubits=1)
+        mcmt = MCMTGate(gate=CHGate(), num_ctrl_qubits=1, num_target_qubits=1)
         qc = qc.compose(mcmt, [0, 1])
 
         ref = QuantumCircuit(2)
@@ -66,11 +63,11 @@ class TestMCMT(QiskitTestCase):
         """Test that an error is raised if qubits are missing."""
         with self.subTest(msg="no control qubits"):
             with self.assertRaises(AttributeError):
-                _ = MCMT(XGate(), num_ctrl_qubits=0, num_target_qubits=1)
+                _ = MCMTGate(XGate(), num_ctrl_qubits=0, num_target_qubits=1)
 
         with self.subTest(msg="no target qubits"):
             with self.assertRaises(AttributeError):
-                _ = MCMT(ZGate(), num_ctrl_qubits=4, num_target_qubits=0)
+                _ = MCMTGate(ZGate(), num_ctrl_qubits=4, num_target_qubits=0)
 
     def test_different_gate_types(self):
         """Test the different supported input types for the target gate."""
@@ -78,7 +75,7 @@ class TestMCMT(QiskitTestCase):
         x_circ.x(0)
         for input_gate in [x_circ, QuantumCircuit.cx, QuantumCircuit.x, "cx", "x", CXGate()]:
             with self.subTest(input_gate=input_gate):
-                mcmt = MCMT(input_gate, 2, 2)
+                mcmt = MCMTGate(input_gate, 2, 2)
                 if isinstance(input_gate, QuantumCircuit):
                     self.assertEqual(mcmt.gate.definition[0].operation, XGate())
                     self.assertEqual(len(mcmt.gate.definition), 1)
@@ -89,25 +86,25 @@ class TestMCMT(QiskitTestCase):
         """Test too few and too many ancillas for the MCMT V-chain mode."""
         with self.subTest(msg="insufficient number of auxiliary qubits on gate"):
             qc = QuantumCircuit(5)
-            mcmt = MCMTVChain(ZGate(), 3, 1)
+            mcmt = MCMTGate(ZGate(), 3, 1)
             with self.assertRaises(QiskitError):
                 qc.append(mcmt, range(5))
 
         with self.subTest(msg="too many auxiliary qubits on gate"):
             qc = QuantumCircuit(9)
-            mcmt = MCMTVChain(ZGate(), 3, 1)
+            mcmt = MCMTGate(ZGate(), 3, 1)
             with self.assertRaises(QiskitError):
                 qc.append(mcmt, range(9))
 
     @data(
-        [CZGate(), 1, 1],
-        [CHGate(), 1, 1],
-        [CZGate(), 3, 3],
-        [CHGate(), 3, 3],
-        [CZGate(), 1, 5],
-        [CHGate(), 1, 5],
-        [CZGate(), 5, 1],
-        [CHGate(), 5, 1],
+        [ZGate(), 1, 1],
+        [HGate(), 1, 1],
+        [ZGate(), 3, 3],
+        [HGate(), 3, 3],
+        [ZGate(), 1, 5],
+        [HGate(), 1, 5],
+        [ZGate(), 5, 1],
+        [HGate(), 5, 1],
     )
     @unpack
     def test_mcmt_v_chain_simulation(self, cgate, num_controls, num_targets):
@@ -135,7 +132,7 @@ class TestMCMT(QiskitTestCase):
             for i in subset:
                 qc.x(controls[i])
 
-            mcmt = MCMTVChain(cgate, num_controls, num_targets)
+            mcmt = MCMTGate(cgate, num_controls, num_targets)
             qc.compose(mcmt, qubits, inplace=True)
 
             for i in subset:
@@ -146,11 +143,11 @@ class TestMCMT(QiskitTestCase):
             # target register is initially |11...1>, with length equal to 2**(n_targets)
             vec_exp = np.array([0] * (2 ** (num_targets) - 1) + [1])
 
-            if isinstance(cgate, CZGate):
+            if isinstance(cgate, ZGate):
                 # Z gate flips the last qubit only if it's applied an odd number of times
                 if len(subset) == num_controls and (num_controls % 2) == 1:
                     vec_exp[-1] = -1
-            elif isinstance(cgate, CHGate):
+            elif isinstance(cgate, HGate):
                 # if all the control qubits have been activated,
                 # we repeatedly apply the kronecker product of the Hadamard
                 # with itself and then multiply the results for the original

@@ -575,8 +575,6 @@ from .blueprintcircuit import BlueprintCircuit
 from .generalized_gates import (
     Diagonal,
     DiagonalGate,
-    MCMT,
-    MCMTVChain,
     Permutation,
     PermutationGate,
     GMS,
