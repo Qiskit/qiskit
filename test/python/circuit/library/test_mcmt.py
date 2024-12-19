@@ -62,11 +62,11 @@ class TestMCMT(QiskitTestCase):
     def test_missing_qubits(self):
         """Test that an error is raised if qubits are missing."""
         with self.subTest(msg="no control qubits"):
-            with self.assertRaises(AttributeError):
+            with self.assertRaises(ValueError):
                 _ = MCMTGate(XGate(), num_ctrl_qubits=0, num_target_qubits=1)
 
         with self.subTest(msg="no target qubits"):
-            with self.assertRaises(AttributeError):
+            with self.assertRaises(ValueError):
                 _ = MCMTGate(ZGate(), num_ctrl_qubits=4, num_target_qubits=0)
 
     def test_different_gate_types(self):
@@ -107,12 +107,12 @@ class TestMCMT(QiskitTestCase):
         [HGate(), 5, 1],
     )
     @unpack
-    def test_mcmt_v_chain_simulation(self, cgate, num_controls, num_targets):
+    def test_mcmt_v_chain_simulation(self, gate, num_controls, num_targets):
         """Test the MCMT V-chain implementation test on a simulation."""
         controls = QuantumRegister(num_controls)
         targets = QuantumRegister(num_targets)
 
-        subsets = [tuple(range(i)) for i in range(num_controls + 1)]
+        subsets = [tuple(range(i)) for i in range(num_controls)]
         for subset in subsets:
             qc = QuantumCircuit(targets, controls)
             # Initialize all targets to 1, just to be sure that
@@ -132,7 +132,7 @@ class TestMCMT(QiskitTestCase):
             for i in subset:
                 qc.x(controls[i])
 
-            mcmt = MCMTGate(cgate, num_controls, num_targets)
+            mcmt = MCMTGate(gate, num_controls, num_targets)
             qc.compose(mcmt, qubits, inplace=True)
 
             for i in subset:
@@ -143,11 +143,11 @@ class TestMCMT(QiskitTestCase):
             # target register is initially |11...1>, with length equal to 2**(n_targets)
             vec_exp = np.array([0] * (2 ** (num_targets) - 1) + [1])
 
-            if isinstance(cgate, ZGate):
+            if isinstance(gate, ZGate):
                 # Z gate flips the last qubit only if it's applied an odd number of times
                 if len(subset) == num_controls and (num_controls % 2) == 1:
                     vec_exp[-1] = -1
-            elif isinstance(cgate, HGate):
+            elif isinstance(gate, HGate):
                 # if all the control qubits have been activated,
                 # we repeatedly apply the kronecker product of the Hadamard
                 # with itself and then multiply the results for the original
@@ -159,7 +159,7 @@ class TestMCMT(QiskitTestCase):
                         h_tot = np.kron(h_tot, h_i)
                     vec_exp = np.dot(h_tot, vec_exp)
             else:
-                raise ValueError(f"Test not implement for gate: {cgate}")
+                raise ValueError(f"Test not implement for gate: {gate}")
 
             # append the remaining part of the state
             vec_exp = np.concatenate(
