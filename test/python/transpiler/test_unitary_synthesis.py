@@ -110,8 +110,8 @@ class FakeBackend5QV2(GenericBackendV2):
 
 
 @ddt
-class TestUnitarySynthesis(QiskitTestCase):
-    """Test UnitarySynthesis pass."""
+class TestUnitarySynthesisBasisGates(QiskitTestCase):
+    """Test UnitarySynthesis pass with basis gates."""
 
     def test_empty_basis_gates(self):
         """Verify when basis_gates is None, we do not synthesize unitaries."""
@@ -619,7 +619,7 @@ class TestUnitarySynthesis(QiskitTestCase):
 
     @data(1, 2, 3)
     def test_coupling_map_transpile(self, opt):
-        """test natural_direction works with transpile/execute"""
+        """test natural_direction works with transpile"""
         qr = QuantumRegister(2)
         circ = QuantumCircuit(qr)
         circ.append(random_unitary(4, seed=1), [0, 1])
@@ -649,6 +649,59 @@ class TestUnitarySynthesis(QiskitTestCase):
             )
         )
 
+    def test_if_simple(self):
+        """Test a simple if statement."""
+        basis_gates = {"u", "cx"}
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(2)
+
+        qc_uni = QuantumCircuit(2)
+        qc_uni.h(0)
+        qc_uni.cx(0, 1)
+        qc_uni_mat = Operator(qc_uni)
+
+        qc_true_body = QuantumCircuit(2)
+        qc_true_body.unitary(qc_uni_mat, [0, 1])
+
+        qc = QuantumCircuit(qr, cr)
+        qc.if_test((cr, 1), qc_true_body, [0, 1], [])
+        dag = circuit_to_dag(qc)
+        cdag = UnitarySynthesis(basis_gates=basis_gates).run(dag)
+        cqc = dag_to_circuit(cdag)
+        cbody = cqc.data[0].operation.params[0]
+        self.assertEqual(cbody.count_ops().keys(), basis_gates)
+        self.assertEqual(qc_uni_mat, Operator(cbody))
+
+    def test_nested_control_flow(self):
+        """Test unrolling nested control flow blocks."""
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(1)
+        qc_uni1 = QuantumCircuit(2)
+        qc_uni1.swap(0, 1)
+        qc_uni1_mat = Operator(qc_uni1)
+
+        qc = QuantumCircuit(qr, cr)
+        with qc.for_loop(range(3)):
+            with qc.while_loop((cr, 0)):
+                qc.unitary(qc_uni1_mat, [0, 1])
+        dag = circuit_to_dag(qc)
+        cdag = UnitarySynthesis(basis_gates=["u", "cx"]).run(dag)
+        cqc = dag_to_circuit(cdag)
+        cbody = cqc.data[0].operation.params[2].data[0].operation.params[0]
+        self.assertEqual(cbody.count_ops().keys(), {"u", "cx"})
+        self.assertEqual(qc_uni1_mat, Operator(cbody))
+
+    def test_default_does_not_fail_on_no_syntheses(self):
+        qc = QuantumCircuit(1)
+        qc.unitary(np.eye(2), [0])
+        pass_ = UnitarySynthesis(["unknown", "gates"])
+        self.assertEqual(qc, pass_(qc))
+
+
+@ddt
+class TestUnitarySynthesisTarget(QiskitTestCase):
+    """Test UnitarySynthesis pass with target/BackendV2."""
+
     @combine(
         opt_level=[0, 1, 2, 3],
         bidirectional=[True, False],
@@ -675,7 +728,7 @@ class TestUnitarySynthesis(QiskitTestCase):
 
     @data(1, 2, 3)
     def test_coupling_map_unequal_durations(self, opt):
-        """Test direction with transpile/execute with backend durations."""
+        """Test direction with transpile with backend durations."""
         qr = QuantumRegister(2)
         circ = QuantumCircuit(qr)
         circ.append(random_unitary(4, seed=1), [1, 0])
@@ -841,48 +894,6 @@ class TestUnitarySynthesis(QiskitTestCase):
         self.assertGreaterEqual(dag_100.depth(), dag_99.depth())
         self.assertEqual(Operator(dag_to_circuit(dag_100)), Operator(circ))
 
-    def test_if_simple(self):
-        """Test a simple if statement."""
-        basis_gates = {"u", "cx"}
-        qr = QuantumRegister(2)
-        cr = ClassicalRegister(2)
-
-        qc_uni = QuantumCircuit(2)
-        qc_uni.h(0)
-        qc_uni.cx(0, 1)
-        qc_uni_mat = Operator(qc_uni)
-
-        qc_true_body = QuantumCircuit(2)
-        qc_true_body.unitary(qc_uni_mat, [0, 1])
-
-        qc = QuantumCircuit(qr, cr)
-        qc.if_test((cr, 1), qc_true_body, [0, 1], [])
-        dag = circuit_to_dag(qc)
-        cdag = UnitarySynthesis(basis_gates=basis_gates).run(dag)
-        cqc = dag_to_circuit(cdag)
-        cbody = cqc.data[0].operation.params[0]
-        self.assertEqual(cbody.count_ops().keys(), basis_gates)
-        self.assertEqual(qc_uni_mat, Operator(cbody))
-
-    def test_nested_control_flow(self):
-        """Test unrolling nested control flow blocks."""
-        qr = QuantumRegister(2)
-        cr = ClassicalRegister(1)
-        qc_uni1 = QuantumCircuit(2)
-        qc_uni1.swap(0, 1)
-        qc_uni1_mat = Operator(qc_uni1)
-
-        qc = QuantumCircuit(qr, cr)
-        with qc.for_loop(range(3)):
-            with qc.while_loop((cr, 0)):
-                qc.unitary(qc_uni1_mat, [0, 1])
-        dag = circuit_to_dag(qc)
-        cdag = UnitarySynthesis(basis_gates=["u", "cx"]).run(dag)
-        cqc = dag_to_circuit(cdag)
-        cbody = cqc.data[0].operation.params[2].data[0].operation.params[0]
-        self.assertEqual(cbody.count_ops().keys(), {"u", "cx"})
-        self.assertEqual(qc_uni1_mat, Operator(cbody))
-
     def test_mapping_control_flow(self):
         """Test that inner dags use proper qubit mapping."""
         qr = QuantumRegister(3, "q")
@@ -972,12 +983,6 @@ class TestUnitarySynthesis(QiskitTestCase):
         result_qc = dag_to_circuit(result_dag)
         self.assertEqual(result_qc, qc)
 
-    def test_default_does_not_fail_on_no_syntheses(self):
-        qc = QuantumCircuit(1)
-        qc.unitary(np.eye(2), [0])
-        pass_ = UnitarySynthesis(["unknown", "gates"])
-        self.assertEqual(qc, pass_(qc))
-
     def test_iswap_no_cx_synthesis_succeeds(self):
         """Test basis set with iswap but no cx can synthesize a circuit"""
         target = Target()
@@ -1021,6 +1026,7 @@ class TestUnitarySynthesis(QiskitTestCase):
         dag = circuit_to_dag(qc)
         result_dag = unitary_synth_pass.run(dag)
         result_qc = dag_to_circuit(result_dag)
+        print(result_qc.draw())
         self.assertTrue(np.allclose(Operator(result_qc.to_gate()).to_matrix(), cxmat))
 
     def test_parameterized_basis_gate_in_target(self):
