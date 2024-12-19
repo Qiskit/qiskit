@@ -1,0 +1,4 @@
+---
+upgrade_circuits:
+  - |
+    The classes ``MCMT`` and ``MCMTVChain`` had been removed in favor of :class:`~MCMTGate`. 
