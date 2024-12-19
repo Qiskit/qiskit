@@ -114,10 +114,13 @@ def efficient_su2(
     if su2_gates is None:
         su2_gates = ["ry", "rz"]
 
+    # Set entanglement_blocks to None when num_qubits == 1
+    entanglement_blocks = ["cx"] if num_qubits > 1 else []
+
     return n_local(
         num_qubits,
         su2_gates,
-        ["cx"],
+        entanglement_blocks,
         entanglement,
         reps,
         insert_barriers,
