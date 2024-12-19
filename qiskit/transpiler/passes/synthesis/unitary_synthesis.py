@@ -188,7 +188,7 @@ def _decomposer_2q_from_basis_gates(basis_gates, pulse_optimize=None, approximat
     #    decomposer2q = XXDecomposer(euler_basis=euler_basis, backup_optimizer=backup_optimizer)
 
     if kak_gate in KAK_GATE_PARAM_NAMES.values():
-        decomposer2q = TwoQubitControlledUDecomposer(kak_gate)
+        decomposer2q = TwoQubitControlledUDecomposer(kak_gate, euler_basis)
     elif kak_gate is not None:
         decomposer2q = TwoQubitBasisDecomposer(
             kak_gate,

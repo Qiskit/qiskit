@@ -131,7 +131,7 @@ class TestUnitarySynthesis(QiskitTestCase):
         ["u3", "cx"],
         ["u1", "u2", "u3", "cx"],
         ["ry", "rz", "rxx"],
-        ["ry", "rz", "rzz"],
+        ["rx", "rz", "rzz"],
         ["rx", "rz", "iswap"],
         ["u3", "rx", "rz", "cz", "iswap"],
     )
