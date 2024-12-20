@@ -1,0 +1,7 @@
+fixes:
+  - |
+    Fixed a bug where a floating point arithmetic error caused a heavy-weight 
+    initialization of :class:`.SparsePauliOp` (pauli list of size > 99) without any 
+    specified coeffs, to have non-zero imaginary components. The fix involved using
+    modular arithmetic to set the correct coefficients based on the phase and count_y of
+    the :class:`.PauliList`.
