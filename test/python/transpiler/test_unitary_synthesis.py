@@ -1050,6 +1050,18 @@ class TestUnitarySynthesis(QiskitTestCase):
         qc_transpiled = transpile(qc, target=target, optimization_level=opt)
         self.assertTrue(np.allclose(mat, Operator(qc_transpiled).data))
 
+    def test_3q_with_measure(self):
+        """Test 3-qubit synthesis with measurements."""
+        backend = FakeBackend5QV2()
+
+        qc = QuantumCircuit(3, 1)
+        qc.unitary(np.eye(2**3), range(3))
+        qc.measure(0, 0)
+
+        qc_transpiled = transpile(qc, backend)
+        self.assertTrue(qc_transpiled.size, 1)
+        self.assertTrue(qc_transpiled.count_ops().get("measure", 0), 1)
+
 
 if __name__ == "__main__":
     unittest.main()
