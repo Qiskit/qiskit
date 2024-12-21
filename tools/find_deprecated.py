@@ -69,7 +69,9 @@ class DeprecationDecorator(Deprecation):
         if not self._since:
             for kwarg in self.decorator_node.keywords:
                 if kwarg.arg == "since":
-                    self._since = ".".join(cast(ast.Constant, kwarg.value).value.split(".")[:2])
+                    self._since = ".".join(
+                        str(cast(ast.Constant, kwarg.value).value).split(".")[:2]
+                    )
         return self._since
 
     @property
@@ -109,6 +111,7 @@ class DeprecationCall(Deprecation):
         self.filename = filename
         self.decorator_node = decorator_call
         self.lineno = decorator_call.lineno
+        self.pending: bool | None = None
         self._target: str | None = None
         self._since: str | None = None
 
@@ -210,7 +213,7 @@ class DeprecationCollection:
         grouped = defaultdict(list)
         for obj in self.deprecations:
             grouped[getattr(obj, attribute_idx)].append(obj)
-        for key in sorted(grouped.keys()):
+        for key in sorted(grouped.keys(), key=str):
             self.grouped[key] = grouped[key]
 
     @staticmethod
@@ -223,7 +226,7 @@ class DeprecationCollection:
         return decorator_visitor.deprecations
 
 
-def print_main(directory: str, pending: str) -> None:
+def print_main(directory: str, pending: str, format_: str) -> None:
     # pylint: disable=invalid-name
     """Prints output"""
     collection = DeprecationCollection(Path(directory))
@@ -231,9 +234,9 @@ def print_main(directory: str, pending: str) -> None:
 
     DATA_JSON = LAST_TIME_MINOR = DETAILS = None
     try:
-        DATA_JSON = requests.get("https://pypi.org/pypi/qiskit-terra/json", timeout=5).json()
+        DATA_JSON = requests.get("https://pypi.org/pypi/qiskit/json", timeout=5).json()
     except requests.exceptions.ConnectionError:
-        print("https://pypi.org/pypi/qiskit-terra/json timeout...", file=sys.stderr)
+        print("https://pypi.org/pypi/qiskit/json timeout...", file=sys.stderr)
 
     if DATA_JSON:
         LAST_MINOR = ".".join(DATA_JSON["info"]["version"].split(".")[:2])
@@ -251,9 +254,9 @@ def print_main(directory: str, pending: str) -> None:
                 diff_days = (LAST_TIME_MINOR - release_minor_datetime).days
                 DETAILS = f"Released in {release_minor_date}"
                 if diff_days:
-                    DETAILS += f" (wrt last minor release, {round(diff_days / 30.4)} month old)"
+                    DETAILS += f" ({round(diff_days / 30.4)} month since the last minor release)"
             except KeyError:
-                DETAILS = "Future release"
+                DETAILS = "Future release?"
         lines = []
         for deprecation in deprecations:
             if pending == "exclude" and deprecation.pending:
@@ -261,7 +264,13 @@ def print_main(directory: str, pending: str) -> None:
             if pending == "only" and not deprecation.pending:
                 continue
             pending_arg = " - PENDING" if deprecation.pending else ""
-            lines.append(f" - {deprecation.location_str} ({deprecation.target}){pending_arg}")
+            if format_ == "console":
+                lines.append(f" - {deprecation.location_str} ({deprecation.target}){pending_arg}")
+            if format_ == "md":
+                lines.append(f" - `{deprecation.location_str}` (`{deprecation.target}`)")
+        if format_ == "md":
+            since_version = f"**{since_version or 'n/a'}**"
+            DETAILS = ""
         if lines:
             print(f"\n{since_version}: {DETAILS}")
             print("\n".join(lines))
@@ -283,9 +292,16 @@ def create_parser() -> argparse.ArgumentParser:
         default="exclude",
         help="show pending deprecations",
     )
+    parser.add_argument(
+        "-f",
+        "--format",
+        choices=["console", "md"],
+        default="console",
+        help="format the output",
+    )
     return parser
 
 
 if __name__ == "__main__":
     args = create_parser().parse_args()
-    print_main(args.directory, args.pending)
+    print_main(args.directory, args.pending, args.format)
