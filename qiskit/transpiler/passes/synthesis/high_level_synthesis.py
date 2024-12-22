@@ -331,52 +331,52 @@ class HighLevelSynthesis(TransformationPass):
 
 
 def _run(
-    dag: QuantumCircuit,
+    input_circuit: QuantumCircuit,
     data: HLSData,
     tracker: QubitTracker,
     context: QubitContext,
     use_ancillas: bool,
 ) -> QuantumCircuit:
     """
-    The main recursive function that synthesizes a DAGCircuit.
+    The main recursive function that synthesizes a QuantumCircuit.
 
     Input:
-        dag: the DAG to be synthesized.
+        circuit: the circuit to be synthesized.
         tracker: the global tracker, tracking the state of original qubits.
-        context: the correspondence between the dag's qubits and the global qubits.
+        context: the correspondence between the circuit's qubits and the global qubits.
         use_ancillas: if True, synthesis algorithms are allowed to use ancillas.
 
-    The function returns the synthesized DAG.
+    The function returns the synthesized QuantumCircuit.
 
-    Note that by using the auxiliary qubits to synthesize operations present in the input DAG,
-    the synthesized DAG may be defined over more qubits than the input DAG. In this case,
+    Note that by using the auxiliary qubits to synthesize operations present in the input circuit,
+    the synthesized circuit may be defined over more qubits than the input circuit. In this case,
     the function update in-place the global qubits tracker and extends the local-to-global
     context.
     """
 
-    assert isinstance(dag, QuantumCircuit)
+    assert isinstance(input_circuit, QuantumCircuit)
 
 
-    if dag.num_qubits != context.num_qubits():
+    if input_circuit.num_qubits != context.num_qubits():
         raise TranspilerError("HighLevelSynthesis internal error.")
 
   
-    # STEP 2: Analyze the nodes in the DAG. For each node in the DAG that needs
+    # STEP 2: Analyze the nodes in the circuit. For each node in the circuit that needs
     # to be synthesized, we recursively synthesize it and store the result. For
-    # instance, the result of synthesizing a custom gate is a DAGCircuit corresponding
+    # instance, the result of synthesizing a custom gate is a QuantumCircuit corresponding
     # to the (recursively synthesized) gate's definition. When the result is a
-    # DAG, we also store its context (the mapping of its qubits to global qubits).
+    # circuit, we also store its context (the mapping of its qubits to global qubits).
     # In addition, we keep track of the qubit states using the (global) qubits tracker.
     #
     # Note: This is a first version of a potentially more elaborate approach to find
     # good operation/ancilla allocations. The current approach is greedy and just gives
     # all available ancilla qubits to the current operation ("the-first-takes-all" approach).
-    # It does not distribute ancilla qubits between different operations present in the DAG.
+    # It does not distribute ancilla qubits between different operations present in the circuit.
     synthesized_nodes = {}
 
-    for (idx, inst) in enumerate(dag):
+    for (idx, inst) in enumerate(input_circuit):
         op = inst.operation
-        qubits = tuple(dag.find_bit(q).index for q in inst.qubits)
+        qubits = tuple(input_circuit.find_bit(q).index for q in inst.qubits)
         processed = False
         synthesized = None
         synthesized_context = None
@@ -394,7 +394,7 @@ def _run(
             processed = True
 
         # check if synthesis for the operation can be skipped
-        elif _definitely_skip_op(data, op, qubits, dag):
+        elif _definitely_skip_op(data, op, qubits, input_circuit):
             tracker.set_dirty(context.to_globals(qubits))
 
         # next check control flow
@@ -420,9 +420,9 @@ def _run(
         # now we are free to synthesize
         else:
             # This returns the synthesized operation and its context (when the result is
-            # a DAG, it's the correspondence between its qubits and the global qubits).
-            # Also note that the DAG may use auxiliary qubits. The qubits tracker and the
-            # current DAG's context are updated in-place.
+            # a circuit, it's the correspondence between its qubits and the global qubits).
+            # Also note that the circuit may use auxiliary qubits. The qubits tracker and the
+            # current circuit's context are updated in-place.
             synthesized, synthesized_context = _synthesize_operation(
                 data, op, qubits, tracker, context, use_ancillas=use_ancillas
             )
@@ -437,15 +437,15 @@ def _run(
 
     # We did not change anything just return the input.
     if len(synthesized_nodes) == 0:
-        if dag.num_qubits != context.num_qubits():
+        if input_circuit.num_qubits != context.num_qubits():
             raise TranspilerError("HighLevelSynthesis internal error.")
-        assert isinstance(dag, QuantumCircuit)
-        return dag
+        assert isinstance(input_circuit, QuantumCircuit)
+        return input_circuit
 
-    # STEP 3. We rebuild the DAG with new operations. Note that we could also
+    # STEP 3. We rebuild the circuit with new operations. Note that we could also
     # check if no operation changed in size and substitute in-place, but rebuilding is
     # generally as fast or faster, unless very few operations are changed.
-    out = dag.copy_empty_like()
+    out = input_circuit.copy_empty_like()
     num_additional_qubits = context.num_qubits() - out.num_qubits
 
     if num_additional_qubits > 0:
@@ -454,7 +454,7 @@ def _run(
     index_to_qubit = dict(enumerate(out.qubits))
     outer_to_local = context.to_local_mapping()
 
-    for (idx, inst) in enumerate(dag):
+    for (idx, inst) in enumerate(input_circuit):
         op = inst.operation
 
         if op_tuple := synthesized_nodes.get(idx, None):
