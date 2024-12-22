@@ -1653,9 +1653,6 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
         tracker = options.get("_qubit_tracker", None)
         context = options.get("_qubit_context", None)
         data = options.get("_data")
-        num_clean_ancillas = options.get("num_clean_ancillas", 0)
-        num_dirty_ancillas = options.get("num_dirty_ancillas", 0)
-        use_ancillas = (num_clean_ancillas + num_dirty_ancillas) > 0
 
         if len(modifiers) > 0:
             # Note: the base operation must be synthesized without using potential control qubits
@@ -1676,13 +1673,12 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
                 baseop_qubits,
                 tracker,
                 context,
-                use_ancillas=use_ancillas,
             )
 
             if synthesized_base_op is None:
                 synthesized_base_op = operation.base_op
-            elif isinstance(synthesized_base_op, DAGCircuit):
-                synthesized_base_op = dag_to_circuit(synthesized_base_op)
+
+            assert not isinstance(synthesized_base_op, DAGCircuit)
 
             # Handle the case that synthesizing the base operation introduced
             # additional qubits (e.g. the base operation is a circuit that includes

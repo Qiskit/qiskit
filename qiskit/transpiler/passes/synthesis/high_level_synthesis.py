@@ -324,7 +324,7 @@ class HighLevelSynthesis(TransformationPass):
 
         # ToDo: try to avoid this conversion
         circuit = dag_to_circuit(dag)
-        out_circuit = _run(circuit, self.data, tracker, context, use_ancillas=True)
+        out_circuit = _run(circuit, self.data, tracker, context)
         assert isinstance(out_circuit, QuantumCircuit)
         out_dag = circuit_to_dag(out_circuit)
         return out_dag
@@ -335,7 +335,6 @@ def _run(
     data: HLSData,
     tracker: QubitTracker,
     context: QubitContext,
-    use_ancillas: bool,
 ) -> QuantumCircuit:
     """
     The main recursive function that synthesizes a QuantumCircuit.
@@ -344,7 +343,6 @@ def _run(
         circuit: the circuit to be synthesized.
         tracker: the global tracker, tracking the state of original qubits.
         context: the correspondence between the circuit's qubits and the global qubits.
-        use_ancillas: if True, synthesis algorithms are allowed to use ancillas.
 
     The function returns the synthesized QuantumCircuit.
 
@@ -409,7 +407,6 @@ def _run(
                     data=data,
                     tracker=tracker,
                     context=inner_context,
-                    use_ancillas=False,
                 )
             synthesized = op.replace_blocks([circuit_mapping(block) for block in op.blocks])
             # print(f"SYNTHESIZED: {synthesized}")
@@ -424,7 +421,7 @@ def _run(
             # Also note that the circuit may use auxiliary qubits. The qubits tracker and the
             # current circuit's context are updated in-place.
             synthesized, synthesized_context = _synthesize_operation(
-                data, op, qubits, tracker, context, use_ancillas=use_ancillas
+                data, op, qubits, tracker, context,
             )
 
         # If the synthesis changed the operation (i.e. it is not None), store the result.
@@ -504,7 +501,6 @@ def _synthesize_operation(
     qubits: tuple[int],
     tracker: QubitTracker,
     context: QubitContext,
-    use_ancillas: bool,
 ) -> tuple[QuantumCircuit | None, QubitContext | None]:
     """
     Synthesizes an operation. The function receives the qubits on which the operation
@@ -542,12 +538,8 @@ def _synthesize_operation(
         qubits if data.use_qubit_indices or isinstance(operation, AnnotatedOperation) else None
     )
     if len(hls_methods := _methods_to_try(data, operation.name)) > 0:
-        if use_ancillas:
-            num_clean_available = tracker.num_clean(context.to_globals(qubits))
-            num_dirty_available = tracker.num_dirty(context.to_globals(qubits))
-        else:
-            num_clean_available = 0
-            num_dirty_available = 0
+        num_clean_available = tracker.num_clean(context.to_globals(qubits))
+        num_dirty_available = tracker.num_dirty(context.to_globals(qubits))
 
         synthesized = _synthesize_op_using_plugins(
             data,
@@ -589,17 +581,6 @@ def _synthesize_operation(
         # we should no longer be here!
         assert False
 
-        resynthesized, resynthesized_context = _synthesize_operation(
-            data, synthesized, qubits, tracker, context, use_ancillas=use_ancillas
-        )
-
-        if resynthesized is not None:
-            synthesized = resynthesized
-        else:
-            tracker.set_dirty(context.to_globals(qubits))
-        if isinstance(resynthesized, DAGCircuit):
-            synthesized_context = resynthesized_context
-
     elif isinstance(synthesized, QuantumCircuit):
         # Synthesized is a quantum circuit which we want to process recursively.
         # For example, it's the definition circuit of a custom gate
@@ -617,7 +598,7 @@ def _synthesize_operation(
         # which ancilla qubits will be allocated.
         saved_tracker = tracker.copy()
         synthesized = _run(
-            as_dag, data, tracker, inner_context, use_ancillas=use_ancillas, 
+            as_dag, data, tracker, inner_context, 
         )
         synthesized_context = inner_context
 
