@@ -14,6 +14,7 @@
 """List deprecated decorators."""
 from __future__ import annotations
 from typing import cast, Optional
+from re import findall
 from pathlib import Path
 from collections import OrderedDict, defaultdict
 import ast
@@ -50,15 +51,15 @@ class DeprecationDecorator(Deprecation):
 
     Args:
         filename: where is the deprecation.
-        decorator_node: AST node of the decorator call.
+        deprecation_node: AST node of the decorator call.
         func_node: AST node of the decorated call.
     """
 
     def __init__(
-        self, filename: Path, decorator_node: ast.Call, func_node: ast.FunctionDef
+        self, filename: Path, deprecation_node: ast.Call, func_node: ast.FunctionDef
     ) -> None:
         self.filename = filename
-        self.decorator_node = decorator_node
+        self.deprecation_node = deprecation_node
         self.func_node = func_node
         self._since: str | None = None
         self._pending: bool | None = None
@@ -67,7 +68,7 @@ class DeprecationDecorator(Deprecation):
     def since(self) -> str | None:
         """Version since the deprecation applies."""
         if not self._since:
-            for kwarg in self.decorator_node.keywords:
+            for kwarg in self.deprecation_node.keywords:
                 if kwarg.arg == "since":
                     self._since = ".".join(
                         str(cast(ast.Constant, kwarg.value).value).split(".")[:2]
@@ -81,7 +82,7 @@ class DeprecationDecorator(Deprecation):
             self._pending = next(
                 (
                     kwarg.value.value
-                    for kwarg in self.decorator_node.keywords
+                    for kwarg in self.deprecation_node.keywords
                     if kwarg.arg == "pending"
                 ),
                 False,
@@ -91,7 +92,7 @@ class DeprecationDecorator(Deprecation):
     @property
     def lineno(self) -> int:
         """Line number of the decorator."""
-        return self.decorator_node.lineno
+        return self.deprecation_node.lineno
 
     @property
     def target(self) -> str:
@@ -109,7 +110,7 @@ class DeprecationCall(Deprecation):
 
     def __init__(self, filename: Path, decorator_call: ast.Call) -> None:
         self.filename = filename
-        self.decorator_node = decorator_call
+        self.deprecation_node = decorator_call
         self.lineno = decorator_call.lineno
         self.pending: bool | None = None
         self._target: str | None = None
@@ -119,7 +120,7 @@ class DeprecationCall(Deprecation):
     def target(self) -> str | None:
         """what's deprecated."""
         if not self._target:
-            arg = self.decorator_node.args.__getitem__(0)
+            arg = self.deprecation_node.args.__getitem__(0)
             if isinstance(arg, ast.Attribute):
                 self._target = f"{arg.value.id}.{arg.attr}"
             if isinstance(arg, ast.Name):
@@ -130,10 +131,41 @@ class DeprecationCall(Deprecation):
     def since(self) -> str | None:
         """Version since the deprecation applies."""
         if not self._since:
-            for kwarg in self.decorator_node.func.keywords:
+            for kwarg in self.deprecation_node.func.keywords:
                 if kwarg.arg == "since":
                     self._since = ".".join(cast(ast.Constant, kwarg.value).value.split(".")[:2])
         return self._since
+
+
+class DeprecationWarn(DeprecationDecorator):
+    """
+    Deprecation via manual warning
+
+    Args:
+        filename: where is the deprecation.
+        deprecation_node: AST node of the decorator call.
+        func_node: AST node of the decorated call.
+    """
+
+    @property
+    def since(self) -> str | None:
+        if not self._since:
+            candidates = []
+            for arg in self.deprecation_node.args:
+                if isinstance(arg, ast.Constant):
+                    candidates += [v.strip(".") for v in findall(r"\s+([\d.]+)", arg.value)]
+            self._since = (min(candidates, default=0) or "n/a") + "?"
+        return self._since
+
+    @property
+    def pending(self) -> bool | None:
+        """If it is a pending deprecation."""
+        if self._pending is None:
+            self._pending = False
+            for arg in self.deprecation_node.args:
+                if hasattr(arg, "id") and arg.id == "PendingDeprecationWarning":
+                    self._pending = True
+        return self._pending
 
 
 class DecoratorVisitor(ast.NodeVisitor):
@@ -157,6 +189,19 @@ class DecoratorVisitor(ast.NodeVisitor):
         )
 
     @staticmethod
+    def is_deprecation_warning(node: ast.expr) -> bool:
+        """Check if a node is a deprecation warning"""
+        if (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr == "warn"
+        ):
+            for arg in node.args:
+                if hasattr(arg, "id") and "DeprecationWarning" in arg.id:
+                    return True
+        return False
+
+    @staticmethod
     def is_deprecation_call(node: ast.expr) -> bool:
         """Check if a node is a deprecation call"""
         return (
@@ -167,11 +212,14 @@ class DecoratorVisitor(ast.NodeVisitor):
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:  # pylint: disable=invalid-name
         """Visitor for function declarations"""
-        self.deprecations += [
-            DeprecationDecorator(self.filename, cast(ast.Call, d_node), node)
-            for d_node in node.decorator_list
-            if DecoratorVisitor.is_deprecation_decorator(d_node)
-        ]
+        for d_node in node.decorator_list:
+            if DecoratorVisitor.is_deprecation_decorator(d_node):
+                self.deprecations.append(
+                    DeprecationDecorator(self.filename, cast(ast.Call, d_node), node)
+                )
+        for stmt in ast.walk(node):
+            if DecoratorVisitor.is_deprecation_warning(stmt):
+                self.deprecations.append(DeprecationWarn(self.filename, stmt, node))
         ast.NodeVisitor.generic_visit(self, node)
 
     def visit_Call(self, node: ast.Call) -> None:  # pylint: disable=invalid-name
