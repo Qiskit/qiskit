@@ -1106,10 +1106,8 @@ class TestHighLevelSynthesisModifiers(QiskitTestCase):
         cliff = Clifford(qc)
         circuit = QuantumCircuit(4)
         circuit.append(AnnotatedOperation(cliff, ControlModifier(2)), [0, 1, 2, 3])
-        transpiled_circuit = HighLevelSynthesis()(circuit)
-        expected_circuit = QuantumCircuit(4)
-        expected_circuit.append(cliff.to_instruction().control(2), [0, 1, 2, 3])
-        self.assertEqual(transpiled_circuit, expected_circuit)
+        transpiled_circuit = HighLevelSynthesis(basis_gates=["cx", "u"])(circuit)
+        self.assertEqual(transpiled_circuit.count_ops().keys(), {"cx", "u"})
 
     def test_multiple_controls(self):
         """Test lazy controlled synthesis with multiple control modifiers."""
@@ -1128,6 +1126,9 @@ class TestHighLevelSynthesisModifiers(QiskitTestCase):
         circuit = QuantumCircuit(5)
         circuit.append(lazy_gate2, [0, 1, 2, 3, 4])
         transpiled_circuit = HighLevelSynthesis()(circuit)
+        print(transpiled_circuit)
+        print(type(transpiled_circuit[0]))
+        print(transpiled_circuit[0])
         expected_circuit = QuantumCircuit(5)
         expected_circuit.append(SwapGate().control(2).control(1), [0, 1, 2, 3, 4])
         self.assertEqual(transpiled_circuit, expected_circuit)

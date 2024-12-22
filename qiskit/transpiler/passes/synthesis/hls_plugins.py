@@ -397,6 +397,7 @@ import warnings
 import numpy as np
 import rustworkx as rx
 
+from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -1636,6 +1637,8 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
 
             # This step currently does not introduce ancilla qubits.
             synthesized = _apply_annotations(data, synthesized_base_op, operation.modifiers)
+            assert isinstance(synthesized, QuantumCircuit)
+
             return synthesized
 
         return None
@@ -1658,15 +1661,39 @@ def _apply_annotations(
         elif isinstance(modifier, ControlModifier):
             # Both QuantumCircuit and Gate have control method, however for circuits
             # it is more efficient to avoid constructing the controlled quantum circuit.
-            if isinstance(synthesized, QuantumCircuit):
-                synthesized = synthesized.to_gate()
 
-            synthesized = synthesized.control(
-                num_ctrl_qubits=modifier.num_ctrl_qubits,
-                label=None,
-                ctrl_state=modifier.ctrl_state,
-                annotated=False,
-            )
+            assert synthesized.num_clbits == 0
+
+            controlled_circ = QuantumCircuit(modifier.num_ctrl_qubits + synthesized.num_qubits)
+
+            if isinstance(synthesized, QuantumCircuit):
+                for inst in synthesized:
+                    inst_op = inst.operation
+                    inst_qubits = inst.qubits
+                    controlled_op = inst_op.control(
+                        num_ctrl_qubits=modifier.num_ctrl_qubits,
+                        label=None,
+                        ctrl_state=modifier.ctrl_state,
+                        annotated=False,
+                    )
+                    controlled_qubits = list(range(0, modifier.num_ctrl_qubits)) + [
+                        modifier.num_ctrl_qubits + synthesized.find_bit(q).index
+                        for q in inst_qubits
+                    ]
+                    controlled_circ.append(controlled_op, controlled_qubits)
+            else:
+
+                assert (synthesized, Operation)
+                synthesized = synthesized.control(
+                    num_ctrl_qubits=modifier.num_ctrl_qubits,
+                    label=None,
+                    ctrl_state=modifier.ctrl_state,
+                    annotated=False,
+                )
+
+                controlled_circ.append(synthesized, controlled_circ.qubits)
+
+            synthesized = controlled_circ
 
             if isinstance(synthesized, AnnotatedOperation):
                 raise TranspilerError(
@@ -1683,6 +1710,11 @@ def _apply_annotations(
 
         else:
             raise TranspilerError(f"Unknown modifier {modifier}.")
+
+    if not isinstance(synthesized, QuantumCircuit):
+        circuit = QuantumCircuit(synthesized.num_qubits)
+        circuit.append(synthesized, circuit.qubits)
+        return circuit
 
     return synthesized
 
