@@ -128,14 +128,14 @@ GateNameToGate = get_standard_gate_name_mapping()
 def _choose_kak_gate(basis_gates):
     """Choose the first available 2q gate to use in the KAK decomposition."""
     kak_gate = None
-    kak_gates = set(basis_gates or []).intersection(KAK_GATE_NAMES.keys())
-    kak_gates_params = set(basis_gates or []).intersection(KAK_GATE_PARAM_NAMES.keys())
+    kak_gates = sorted(set(basis_gates or []).intersection(KAK_GATE_NAMES.keys()))
+    kak_gates_params = sorted(set(basis_gates or []).intersection(KAK_GATE_PARAM_NAMES.keys()))
 
     if kak_gates_params:
-        kak_gate = KAK_GATE_PARAM_NAMES[kak_gates_params.pop()]
+        kak_gate = KAK_GATE_PARAM_NAMES[kak_gates_params[0]]
 
     elif kak_gates:
-        kak_gate = KAK_GATE_NAMES[kak_gates.pop()]
+        kak_gate = KAK_GATE_NAMES[kak_gates[0]]
 
     return kak_gate
 
