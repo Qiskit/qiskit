@@ -2583,14 +2583,14 @@ impl TwoQubitControlledUDecomposer {
         gates.push((None, smallvec![self.scale * angle], smallvec![0, 1]));
 
         if let Some(unitary_k1r) = unitary_k1r {
-            global_phase += unitary_k1r.global_phase;
+            global_phase -= unitary_k1r.global_phase;
             for gate in unitary_k1r.gates.into_iter().rev() {
                 let (inv_gate_name, inv_gate_params) = invert_1q_gate(gate);
                 gates.push((Some(inv_gate_name), inv_gate_params, smallvec![0]));
             }
         }
         if let Some(unitary_k1l) = unitary_k1l {
-            global_phase += unitary_k1l.global_phase;
+            global_phase -= unitary_k1l.global_phase;
             for gate in unitary_k1l.gates.into_iter().rev() {
                 let (inv_gate_name, inv_gate_params) = invert_1q_gate(gate);
                 gates.push((Some(inv_gate_name), inv_gate_params, smallvec![1]));
@@ -2727,13 +2727,13 @@ impl TwoQubitControlledUDecomposer {
         global_phase += gates1.global_phase;
 
         if let Some(unitary_c1r) = unitary_c1r {
-            global_phase -= unitary_c1r.global_phase;
+            global_phase += unitary_c1r.global_phase;
             for gate in unitary_c1r.gates.into_iter() {
                 gates1.gates.push((Some(gate.0), gate.1, smallvec![0]));
             }
         }
         if let Some(unitary_c1l) = unitary_c1l {
-            global_phase -= unitary_c1l.global_phase;
+            global_phase += unitary_c1l.global_phase;
             for gate in unitary_c1l.gates.into_iter() {
                 gates1.gates.push((Some(gate.0), gate.1, smallvec![1]));
             }

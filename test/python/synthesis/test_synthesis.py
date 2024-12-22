@@ -1427,9 +1427,22 @@ class TestTwoQubitControlledUDecompose(CheckDecompositions):
     """Test TwoQubitControlledUDecomposer() for exact decompositions and raised exceptions"""
 
     @combine(
-        seed=range(10),
+        seed=range(5),
         gate=[RXXGate, RYYGate, RZZGate, RZXGate, CPhaseGate, CRZGate, CRXGate, CRYGate],
-        euler_basis=["ZYZ", "ZXZ"],
+        euler_basis=[
+            "ZYZ",
+            "ZXZ",
+            "XYX",
+            "XZX",
+            "RR",
+            "U",
+            "U3",
+            "U321",
+            "PSX",
+            "ZSX",
+            "ZSXX",
+            "U1X",
+        ],
         name="seed_{seed}",
     )
     def test_correct_unitary(self, seed, gate, euler_basis):
