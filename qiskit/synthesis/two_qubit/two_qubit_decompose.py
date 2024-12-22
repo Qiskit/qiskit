@@ -276,10 +276,13 @@ class TwoQubitControlledUDecomposer:
         Args:
             rxx_equivalent_gate: Gate that is locally equivalent to an :class:`.RXXGate`:
                 :math:`U \sim U_d(\alpha, 0, 0) \sim \text{Ctrl-U}` gate.
+                Valid options are [:class:`.RZZGate`, :class:`.RXXGate`, :class:`.RYYGate`,
+                :class:`.RZXGate`, :class:`.CPhaseGate`, :class:`.CRXGate`, :class:`.CRYGate`,
+                :class:`.CRZGate`].
             euler_basis: Basis string to be provided to :class:`.OneQubitEulerDecomposer`
                 for 1Q synthesis.
-                Valid options are [``'ZYZ'``, ``'ZXZ'``, ``'XYX'``, ``'U'``, ``'U3'``, ``'U1X'``,
-                ``'PSX'``, ``'ZSX'``, ``'RR'``].
+                Valid options are [``'ZYZ'``, ``'ZXZ'``, ``'XYX'``, ``'XZX'``, ``'U'``, ``'U3'``,
+                ``'U321'``, ``'U1X'``, ``'PSX'``, ``'ZSX'``, ``'ZSXX'``, ``'RR'``].
 
         Raises:
             QiskitError: If the gate is not locally equivalent to an :class:`.RXXGate`.
