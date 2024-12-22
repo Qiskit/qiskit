@@ -243,6 +243,25 @@ impl QubitContext {
     fn to_globals(&self, qubits: Vec<usize>) -> Vec<usize> {
         qubits.iter().map(|q| self.local_to_global[*q]).collect()
     }
+
+    /// Pretty-prints
+    pub fn __str__(&self) -> String {
+        let mut out = String::from("QubitContext(");
+        for (q_loc, q_glob ) in self.local_to_global.iter().enumerate() {
+            out.push_str(&q_loc.to_string());
+            out.push(':');
+            out.push(' ');
+            out.push_str(&q_glob.to_string());
+
+            if q_loc != self.local_to_global.len() - 1 {
+                out.push(';');
+                out.push(' ');
+            } else {
+                out.push(')');
+            }
+        }
+        out
+    }
 }
 
 pub fn high_level_synthesis_mod(m: &Bound<PyModule>) -> PyResult<()> {
