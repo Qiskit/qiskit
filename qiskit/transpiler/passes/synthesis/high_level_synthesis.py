@@ -439,7 +439,7 @@ def _run(
             # Also note that the circuit may use auxiliary qubits. The qubits tracker and the
             # current circuit's context are updated in-place.
             synthesized, op_output_qubits = _synthesize_operation(
-                data, op, op_qubits, tracker, op_global_qubits,
+                data, op, tracker, op_global_qubits,
             )
             # print(f"{op = }, {op_output_qubits = }")
 
@@ -525,7 +525,6 @@ def _run(
 def _synthesize_operation(
     data: HLSData,
     operation: Operation,
-    qubits: tuple[int],
     tracker: QubitTracker,
     input_qubits: tuple[int],
 ) -> tuple[QuantumCircuit | None, tuple[int]]:
@@ -556,21 +555,16 @@ def _synthesize_operation(
     # until no further change occurred. At this point, we convert circuits to DAGs (the final
     # possible return type). If there was no change, we just return ``None``.
     num_original_qubits = len(input_qubits)
-    qubits = list(qubits)
 
     synthesized = None
     output_qubits = input_qubits
 
     # Try synthesis via HLS -- which will return ``None`` if unsuccessful.
-    indices = (
-        qubits if data.use_qubit_indices or isinstance(operation, AnnotatedOperation) else None
-    )
     if len(hls_methods := _methods_to_try(data, operation.name)) > 0:
         res = _synthesize_op_using_plugins(
             data,
             hls_methods,
             operation,
-            indices,
             input_qubits,
             tracker=tracker,
         )
@@ -593,7 +587,7 @@ def _synthesize_operation(
 
     # If HLS did not apply, or was unsuccessful, try unrolling custom definitions.
     if synthesized is None and not data.top_level_only:
-        synthesized, output_qubits = _get_custom_definition(data, operation, indices, input_qubits)
+        synthesized, output_qubits = _get_custom_definition(data, operation, input_qubits)
 
     if synthesized is None:
         # if we didn't synthesize, there was nothing to unroll
@@ -630,11 +624,12 @@ def _synthesize_operation(
 
 
 def _get_custom_definition(
-    data: HLSData, inst: Instruction, qubits: list[int] | None, input_qubits: tuple[int]
+    data: HLSData, inst: Instruction, input_qubits: tuple[int]
 ) -> tuple[QuantumCircuit | None, tuple[int]]:
     # check if the operation is already supported natively
     if not (isinstance(inst, ControlledGate) and inst._open_ctrl):
         # include path for when target exists but target.num_qubits is None (BasicSimulator)
+        qubits = input_qubits if data.use_qubit_indices else None
         inst_supported = _instruction_supported(data, inst.name, qubits)
         if inst_supported or (
             data.equivalence_library is not None and data.equivalence_library.has_entry(inst)
@@ -674,7 +669,6 @@ def _synthesize_op_using_plugins(
     data: HLSData,
     hls_methods: list,
     op: Operation,
-    qubits: list[int] | None,
     input_qubits: tuple[int],
     tracker: QubitTracker = None,
 ) -> tuple[QuantumCircuit | None, tuple[int]]:
@@ -732,6 +726,8 @@ def _synthesize_op_using_plugins(
         plugin_args["_qubit_tracker"] = tracker
         plugin_args["_data"] = data
         plugin_args["input_qubits"] = input_qubits
+
+        qubits = input_qubits if data.use_qubit_indices else None
 
         decomposition = plugin_method.run(
             op,

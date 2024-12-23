@@ -1663,7 +1663,7 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
                 mod.num_ctrl_qubits for mod in modifiers if isinstance(mod, ControlModifier)
             )
 
-            baseop_qubits = qubits[num_ctrl:]  # reminder: control qubits are the first ones
+            # baseop_qubits = qubits[num_ctrl:]  # reminder: control qubits are the first ones
             input_baseop_qubits = input_qubits[num_ctrl:]
 
             # Do not allow access to control qubits
@@ -1671,7 +1671,6 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
             synthesized_base_op, _ = _synthesize_operation(
                 data,
                 operation.base_op,
-                baseop_qubits,
                 tracker,
                 input_baseop_qubits
             )
