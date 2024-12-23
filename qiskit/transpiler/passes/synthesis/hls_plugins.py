@@ -420,6 +420,7 @@ from qiskit.circuit.library import (
     C3XGate,
     C4XGate,
     PauliEvolutionGate,
+    MCMTGate,
     ModularAdderGate,
     HalfAdderGate,
     FullAdderGate,
@@ -1156,6 +1157,9 @@ class MCMTSynthesisDefault(HighLevelSynthesisPlugin):
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         # first try to use the V-chain synthesis if enough auxiliary qubits are available
+        if not isinstance(high_level_object, MCMTGate):
+            return None
+
         if (
             decomposition := MCMTSynthesisVChain().run(
                 high_level_object, coupling_map, target, qubits, **options
@@ -1170,6 +1174,9 @@ class MCMTSynthesisNoAux(HighLevelSynthesisPlugin):
     """A V-chain based synthesis for ``MCMTGate``."""
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        if not isinstance(high_level_object, MCMTGate):
+            return None
+
         base_gate = high_level_object.base_gate
         ctrl_state = options.get("ctrl_state", None)
 
@@ -1195,6 +1202,9 @@ class MCMTSynthesisVChain(HighLevelSynthesisPlugin):
     """A V-chain based synthesis for ``MCMTGate``."""
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        if not isinstance(high_level_object, MCMTGate):
+            return None
+
         if options.get("num_clean_ancillas", 0) < high_level_object.num_ctrl_qubits - 1:
             return None  # insufficient number of auxiliary qubits
 
