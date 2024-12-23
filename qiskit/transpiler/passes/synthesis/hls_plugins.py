@@ -1625,6 +1625,7 @@ class PauliEvolutionSynthesisRustiq(HighLevelSynthesisPlugin):
         preserve_order = options.get("preserve_order", True)
         upto_clifford = options.get("upto_clifford", False)
         upto_phase = options.get("upto_phase", False)
+        input_qubits = options.get("input_qubits")
         resynth_clifford_method = options.get("resynth_clifford_method", 1)
 
         return synth_pauli_network_rustiq(
@@ -1653,6 +1654,7 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
         tracker = options.get("_qubit_tracker", None)
         context = options.get("_qubit_context", None)
         data = options.get("_data")
+        input_qubits = options.get("input_qubits")
 
         if len(modifiers) > 0:
             # Note: the base operation must be synthesized without using potential control qubits
@@ -1667,12 +1669,13 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
 
             # Do not allow access to control qubits
             tracker.disable(context.to_globals(control_qubits))
-            synthesized_base_op, _ = _synthesize_operation(
+            synthesized_base_op, _, _ = _synthesize_operation(
                 data,
                 operation.base_op,
                 baseop_qubits,
                 tracker,
                 context,
+                input_qubits[num_ctrl:]
             )
 
             if synthesized_base_op is None:

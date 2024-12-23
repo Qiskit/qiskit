@@ -42,6 +42,10 @@ impl QubitTracker {
         }
     }
 
+    fn num_qubits(&self) -> usize {
+        self.num_qubits
+    }
+
     /// Sets state of the given qubits to dirty
     fn set_dirty(&mut self, qubits: Vec<usize>) {
         for q in qubits {
