@@ -318,13 +318,15 @@ class HighLevelSynthesis(TransformationPass):
 
         qubits = tuple(dag.find_bit(q).index for q in dag.qubits)
         context = QubitContext(list(range(len(dag.qubits))))
-        tracker = QubitTracker(num_qubits=dag.num_qubits())
-        if self.data.qubits_initially_zero:
-            tracker.set_clean(context.to_globals(qubits))
+
 
         # ToDo: try to avoid this conversion
         circuit = dag_to_circuit(dag)
         input_qubits = list(range(circuit.num_qubits))
+        tracker = QubitTracker(num_qubits=dag.num_qubits())
+        if self.data.qubits_initially_zero:
+            tracker.set_clean(input_qubits)
+
         (output_circuit, output_qubits) = _run(circuit, self.data, tracker, context, input_qubits)
         assert isinstance(output_circuit, QuantumCircuit)
         out_dag = circuit_to_dag(output_circuit)
@@ -355,11 +357,7 @@ def _run(
     """
 
     assert isinstance(input_circuit, QuantumCircuit)
-    # assert context.to_globals(range(input_circuit.num_qubits)) == input_qubits
-
-
-    if input_circuit.num_qubits != context.num_qubits():
-        raise TranspilerError("HighLevelSynthesis internal error.")
+    assert input_circuit.num_qubits == len(input_qubits)
 
   
     # STEP 2: Analyze the nodes in the circuit. For each node in the circuit that needs
@@ -382,7 +380,6 @@ def _run(
     output_qubits = input_qubits
     num_output_qubits = len(input_qubits)
 
-    assert input_circuit.num_qubits == len(input_qubits)
     print(f"===> {input_circuit.num_qubits = }, {input_qubits = }")
 
     for (idx, inst) in enumerate(input_circuit):
@@ -578,8 +575,8 @@ def _synthesize_operation(
         qubits if data.use_qubit_indices or isinstance(operation, AnnotatedOperation) else None
     )
     if len(hls_methods := _methods_to_try(data, operation.name)) > 0:
-        num_clean_available = tracker.num_clean(context.to_globals(qubits))
-        num_dirty_available = tracker.num_dirty(context.to_globals(qubits))
+        num_clean_available = tracker.num_clean(input_qubits)
+        num_dirty_available = tracker.num_dirty(input_qubits)
 
         res = _synthesize_op_using_plugins(
             data,
