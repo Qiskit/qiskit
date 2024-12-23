@@ -555,7 +555,7 @@ def _synthesize_operation(
     # If any of the above were triggered, we will recurse and go again through these steps
     # until no further change occurred. At this point, we convert circuits to DAGs (the final
     # possible return type). If there was no change, we just return ``None``.
-    num_original_qubits = len(qubits)
+    num_original_qubits = len(input_qubits)
     qubits = list(qubits)
 
     synthesized = None
@@ -566,17 +566,12 @@ def _synthesize_operation(
         qubits if data.use_qubit_indices or isinstance(operation, AnnotatedOperation) else None
     )
     if len(hls_methods := _methods_to_try(data, operation.name)) > 0:
-        num_clean_available = tracker.num_clean(input_qubits)
-        num_dirty_available = tracker.num_dirty(input_qubits)
-
         res = _synthesize_op_using_plugins(
             data,
             hls_methods,
             operation,
             indices,
             input_qubits,
-            num_clean_available,
-            num_dirty_available,
             tracker=tracker,
         )
 
@@ -681,9 +676,6 @@ def _synthesize_op_using_plugins(
     op: Operation,
     qubits: list[int] | None,
     input_qubits: tuple[int],
-
-    num_clean_ancillas: int = 0,
-    num_dirty_ancillas: int = 0,
     tracker: QubitTracker = None,
 ) -> tuple[QuantumCircuit | None, tuple[int]]:
     """
@@ -698,6 +690,9 @@ def _synthesize_op_using_plugins(
     an insufficient number of auxiliary qubits).
     """
     hls_plugin_manager = data.hls_plugin_manager
+    num_clean_ancillas = tracker.num_clean(input_qubits)
+    num_dirty_ancillas = tracker.num_dirty(input_qubits)
+
 
     best_decomposition = None
     best_score = np.inf
