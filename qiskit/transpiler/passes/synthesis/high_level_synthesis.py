@@ -43,7 +43,7 @@ from qiskit.circuit.annotated_operation import (
     PowerModifier,
 )
 
-from qiskit._accelerate.high_level_synthesis import QubitTracker, QubitContext
+from qiskit._accelerate.high_level_synthesis import QubitTracker
 from .plugin import HighLevelSynthesisPluginManager
 
 if typing.TYPE_CHECKING:
@@ -317,7 +317,6 @@ class HighLevelSynthesis(TransformationPass):
 
 
         qubits = tuple(dag.find_bit(q).index for q in dag.qubits)
-        context = QubitContext(list(range(len(dag.qubits))))
 
 
         # ToDo: try to avoid this conversion
@@ -327,7 +326,7 @@ class HighLevelSynthesis(TransformationPass):
         if self.data.qubits_initially_zero:
             tracker.set_clean(input_qubits)
 
-        (output_circuit, output_qubits) = _run(circuit, self.data, tracker, context, input_qubits)
+        (output_circuit, output_qubits) = _run(circuit, self.data, tracker, input_qubits)
         assert isinstance(output_circuit, QuantumCircuit)
         out_dag = circuit_to_dag(output_circuit)
         return out_dag
@@ -337,7 +336,6 @@ def _run(
     input_circuit: QuantumCircuit,
     data: HLSData,
     tracker: QubitTracker,
-    context: QubitContext,
     input_qubits: tuple[int],
 ) -> tuple[QuantumCircuit, tuple[int]]:
     """
@@ -346,8 +344,7 @@ def _run(
     Input:
         circuit: the circuit to be synthesized.
         tracker: the global tracker, tracking the state of original qubits.
-        context: the correspondence between the circuit's qubits and the global qubits.
-
+        
     The function returns the synthesized QuantumCircuit.
 
     Note that by using the auxiliary qubits to synthesize operations present in the input circuit,
@@ -380,7 +377,7 @@ def _run(
     output_qubits = input_qubits
     num_output_qubits = len(input_qubits)
 
-    print(f"===> {input_circuit.num_qubits = }, {input_qubits = }")
+    # print(f"===> {input_circuit.num_qubits = }, {input_qubits = }")
 
     for (idx, inst) in enumerate(input_circuit):
         op = inst.operation
@@ -388,14 +385,13 @@ def _run(
         # local qubit index (within the current input_circuit)
         op_qubits = tuple(input_circuit.find_bit(q).index for q in inst.qubits)
 
-        print(f"I AM HERE 15: {input_qubits = }, {context}, {op = }, {op_qubits = }")
+        # print(f"I AM HERE 15: {input_qubits = }, {op = }, {op_qubits = }")
 
         # global qubits
         op_global_qubits = [input_qubits[q] for q in op_qubits]
 
         processed = False
         synthesized = None
-        synthesized_context = None
 
         # Start by handling special operations. Other cases can also be
         # considered: swaps, automatically simplifying control gate (e.g. if
@@ -416,11 +412,9 @@ def _run(
         # next check control flow
         elif isinstance(op, ControlFlowOp):
             # print("I AM HERE")
-            # print(f"CONTEXT: {context}")
             # print(f"TRACKER: {tracker}")
 
             new_blocks = []
-            inner_context = context.restrict(op_qubits)
             block_tracker=tracker.copy()
             block_tracker.disable([q for q in range(tracker.num_qubits()) if q not in op_global_qubits])
 
@@ -430,13 +424,12 @@ def _run(
                 # print(f"{op.num_qubits = }")
                 # print(f"{block.num_qubits = }")
                 # print(f"{op_global_qubits = }")
-                new_block = _run(block, data=data, tracker=block_tracker, context=inner_context, input_qubits=op_global_qubits)[0]
+                new_block = _run(block, data=data, tracker=block_tracker, input_qubits=op_global_qubits)[0]
                 new_blocks.append(new_block)
             synthesized = op.replace_blocks(new_blocks)
             op_output_qubits = op_global_qubits
             # print(f"SYNTHESIZED: {synthesized}")
             # synthesized = _wrap_in_circuit(synthesized)
-            # synthesized_context = context
             
 
         # now we are free to synthesize
@@ -445,10 +438,10 @@ def _run(
             # a circuit, it's the correspondence between its qubits and the global qubits).
             # Also note that the circuit may use auxiliary qubits. The qubits tracker and the
             # current circuit's context are updated in-place.
-            synthesized, synthesized_context, op_output_qubits = _synthesize_operation(
-                data, op, op_qubits, tracker, context, op_global_qubits,
+            synthesized, op_output_qubits = _synthesize_operation(
+                data, op, op_qubits, tracker, op_global_qubits,
             )
-            print(f"{op = }, {op_output_qubits = }")
+            # print(f"{op = }, {op_output_qubits = }")
 
             for q in op_output_qubits:
                 if q not in global_to_local:
@@ -467,7 +460,7 @@ def _run(
 
     # We did not change anything just return the input.
     if len(synthesized_nodes) == 0:
-        print(f"I AM HERE 10: {input_circuit.num_qubits = }, {len(input_qubits) = }")
+        # print(f"I AM HERE 10: {input_circuit.num_qubits = }, {len(input_qubits) = }")
         if input_circuit.num_qubits != len(input_qubits):
             raise TranspilerError("HighLevelSynthesis internal error.")
         
@@ -522,7 +515,7 @@ def _run(
 
 
     assert isinstance(out, QuantumCircuit)
-    print(f"I AM HERE: {out.num_qubits = }, {len(output_qubits) = }")
+    # print(f"I AM HERE: {out.num_qubits = }, {len(output_qubits) = }")
     if out.num_qubits != len(output_qubits):
         raise TranspilerError("HighLevelSynthesis internal error.")
 
@@ -534,9 +527,8 @@ def _synthesize_operation(
     operation: Operation,
     qubits: tuple[int],
     tracker: QubitTracker,
-    context: QubitContext,
     input_qubits: tuple[int],
-) -> tuple[QuantumCircuit | None, QubitContext | None, tuple[int]]:
+) -> tuple[QuantumCircuit | None, tuple[int]]:
     """
     Synthesizes an operation. The function receives the qubits on which the operation
     is defined in the current DAG, the correspondence between the qubits of the current
@@ -550,8 +542,7 @@ def _synthesize_operation(
     """
 
     assert operation.num_qubits == len(input_qubits)
-    synthesized_context = None
-    print(f"OK_SO_FAR: {operation.num_qubits = }, {len(input_qubits) = }")
+    # print(f"OK_SO_FAR: {operation.num_qubits = }, {len(input_qubits) = }")
     # Try to synthesize the operation. We'll go through the following options:
     #  (1) Annotations: if the operator is annotated, synthesize the base operation
     #       and then apply the modifiers. Returns a circuit (e.g. applying a power)
@@ -587,33 +578,22 @@ def _synthesize_operation(
             num_clean_available,
             num_dirty_available,
             tracker=tracker,
-            context=context,
         )
 
-        print(f"HERE: {operation = }, {type(res) = }, {res = }")
+        # print(f"HERE: {operation = }, {type(res) = }, {res = }")
         (synthesized, _) = res
 
         # It may happen that the plugin synthesis method uses clean/dirty ancilla qubits
         if synthesized is not None:
-            print(f"=> OK?: {synthesized.num_qubits = }, {len(qubits) = }, {len(output_qubits) = }")
-            if synthesized.num_qubits > len(qubits):
+            # print(f"=> OK?: {synthesized.num_qubits = }, {len(qubits) = }, {len(output_qubits) = }")
+            if synthesized.num_qubits > len(output_qubits):
                 # need to borrow more qubits from tracker
-                global_aux_qubits = tracker.borrow(
-                    synthesized.num_qubits - len(qubits), context.to_globals(qubits)
-                )
-                global_to_local = context.to_local_mapping()
+                global_aux_qubits = tracker.borrow(synthesized.num_qubits - len(output_qubits), output_qubits)
+                output_qubits = output_qubits + global_aux_qubits
 
-                for aq in global_aux_qubits:
-                    if aq in global_to_local:
-                        qubits.append(global_to_local[aq])
-                    else:
-                        new_local_qubit = context.add_qubit(aq)
-                        qubits.append(new_local_qubit)
-                    if aq not in output_qubits:
-                        output_qubits.append(aq)
 
         if synthesized is not None:
-            print(f"WHAT IS GOING ON: {synthesized.num_qubits = }, {len(output_qubits) = }")
+            # print(f"WHAT IS GOING ON: {synthesized.num_qubits = }, {len(output_qubits) = }")
             assert synthesized.num_qubits == len(output_qubits)
 
     # If HLS did not apply, or was unsuccessful, try unrolling custom definitions.
@@ -631,44 +611,25 @@ def _synthesize_operation(
         # or a circuit obtained by calling a synthesis method on a high-level-object.
         # In the second case, synthesized may have more qubits than the original node.
 
-        inner_context = context.restrict(qubits)
-
-        if synthesized.num_qubits != inner_context.num_qubits():
-            raise TranspilerError("HighLevelSynthesis internal error.")
-
         # We save the current state of the tracker to be able to return the ancilla
         # qubits to the current positions. Note that at this point we do not know
         # which ancilla qubits will be allocated.
         saved_tracker = tracker.copy()
-        synthesized, output_qubits = _run(synthesized, data, tracker, inner_context, output_qubits)
-        synthesized_context = inner_context
-        print(f"CHECK: {synthesized.num_qubits = }, {output_qubits = }, {len(output_qubits) = }")
+        synthesized, output_qubits = _run(synthesized, data, tracker, output_qubits)
+        # print(f"CHECK: {synthesized.num_qubits = }, {output_qubits = }, {len(output_qubits) = }")
 
 
-        if (synthesized is not None) and (synthesized.num_qubits > len(qubits)):
+        if (synthesized is not None) and (synthesized.num_qubits > len(output_qubits)):
             # need to borrow more qubits from tracker
-            global_aux_qubits = tracker.borrow(
-                synthesized.num_qubits - len(qubits), context.to_globals(qubits)
-            )
-            global_to_local = context.to_local_mapping()
+            global_aux_qubits = tracker.borrow(synthesized.num_qubits - len(output_qubits), output_qubits)
+            output_qubits = output_qubits + global_aux_qubits
 
-            for aq in global_aux_qubits:
-                if aq in global_to_local:
-                    qubits.append(global_to_local[aq])
-                else:
-                    new_local_qubit = context.add_qubit(aq)
-                    qubits.append(new_local_qubit)
+        if len(output_qubits) > num_original_qubits:
+            tracker.replace_state(saved_tracker, output_qubits[num_original_qubits:])
 
-        if len(qubits) > num_original_qubits:
-            tracker.replace_state(saved_tracker, context.to_globals(qubits[num_original_qubits:]))
-
-
-    
-    if isinstance(synthesized, DAGCircuit) and synthesized_context is None:
-        raise TranspilerError("HighLevelSynthesis internal error.")
 
     assert synthesized is None or isinstance(synthesized, QuantumCircuit)
-    return synthesized, synthesized_context, output_qubits
+    return synthesized, output_qubits
 
 
 
@@ -724,7 +685,6 @@ def _synthesize_op_using_plugins(
     num_clean_ancillas: int = 0,
     num_dirty_ancillas: int = 0,
     tracker: QubitTracker = None,
-    context: QubitContext = None,
 ) -> tuple[QuantumCircuit | None, tuple[int]]:
     """
     Attempts to synthesize op using plugin mechanism.
@@ -775,7 +735,6 @@ def _synthesize_op_using_plugins(
         plugin_args["num_clean_ancillas"] = num_clean_ancillas
         plugin_args["num_dirty_ancillas"] = num_dirty_ancillas
         plugin_args["_qubit_tracker"] = tracker
-        plugin_args["_qubit_context"] = context
         plugin_args["_data"] = data
         plugin_args["input_qubits"] = input_qubits
 

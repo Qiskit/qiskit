@@ -1652,9 +1652,9 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
         operation = high_level_object
         modifiers = high_level_object.modifiers
         tracker = options.get("_qubit_tracker", None)
-        context = options.get("_qubit_context", None)
         data = options.get("_data")
         input_qubits = options.get("input_qubits")
+        output_qubits = input_qubits
 
         if len(modifiers) > 0:
             # Note: the base operation must be synthesized without using potential control qubits
@@ -1662,20 +1662,18 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
             num_ctrl = sum(
                 mod.num_ctrl_qubits for mod in modifiers if isinstance(mod, ControlModifier)
             )
-            baseop_qubits = qubits[num_ctrl:]  # reminder: control qubits are the first ones
 
-            # get qubits of base operation
-            control_qubits = qubits[0:num_ctrl]
+            baseop_qubits = qubits[num_ctrl:]  # reminder: control qubits are the first ones
+            input_baseop_qubits = input_qubits[num_ctrl:]
 
             # Do not allow access to control qubits
-            tracker.disable(context.to_globals(control_qubits))
-            synthesized_base_op, _, _ = _synthesize_operation(
+            tracker.disable(input_qubits[0:num_ctrl])
+            synthesized_base_op, _ = _synthesize_operation(
                 data,
                 operation.base_op,
                 baseop_qubits,
                 tracker,
-                context,
-                input_qubits[num_ctrl:]
+                input_baseop_qubits
             )
 
             if synthesized_base_op is None:
@@ -1686,20 +1684,15 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
             # Handle the case that synthesizing the base operation introduced
             # additional qubits (e.g. the base operation is a circuit that includes
             # an MCX gate).
-            if synthesized_base_op.num_qubits > len(baseop_qubits):
+            if synthesized_base_op.num_qubits > len(input_baseop_qubits):
                 global_aux_qubits = tracker.borrow(
-                    synthesized_base_op.num_qubits - len(baseop_qubits),
-                    context.to_globals(baseop_qubits),
+                    synthesized_base_op.num_qubits - len(input_baseop_qubits),
+                    input_baseop_qubits,
                 )
-                global_to_local = context.to_local_mapping()
-                for aq in global_aux_qubits:
-                    if aq in global_to_local:
-                        qubits.append(global_to_local[aq])
-                    else:
-                        new_local_qubit = context.add_qubit(aq)
-                        qubits.append(new_local_qubit)
+                output_qubits = output_qubits + global_aux_qubits
+
             # Restore access to control qubits.
-            tracker.enable(context.to_globals(control_qubits))
+            tracker.enable(input_qubits[0:num_ctrl])
 
             # This step currently does not introduce ancilla qubits.
             synthesized = _apply_annotations(data, synthesized_base_op, operation.modifiers)
