@@ -537,7 +537,7 @@ def _synthesize_operation(
 
     # If HLS did not apply, or was unsuccessful, try unrolling custom definitions.
     if output_circuit is None and not data.top_level_only:
-        output_circuit, output_qubits = _get_custom_definition(data, operation, input_qubits)
+        output_circuit, output_qubits = _get_custom_definition(operation, input_qubits, data)
 
     if output_circuit is not None:
         if not isinstance(output_circuit, QuantumCircuit) or (
@@ -570,26 +570,32 @@ def _synthesize_operation(
 
 
 def _get_custom_definition(
-    data: HLSData, inst: Instruction, input_qubits: tuple[int]
+    operation: Operation, input_qubits: tuple[int], data: HLSData
 ) -> tuple[QuantumCircuit | None, tuple[int]]:
+    """Returns the definition for the given operation. 
+    
+    Returns None if the operation is already supported or does not have
+    the definition.
+    """
+
     # check if the operation is already supported natively
-    if not (isinstance(inst, ControlledGate) and inst._open_ctrl):
+    if not (isinstance(operation, ControlledGate) and operation._open_ctrl):
         # include path for when target exists but target.num_qubits is None (BasicSimulator)
         qubits = input_qubits if data.use_qubit_indices else None
-        inst_supported = _instruction_supported(data, inst.name, qubits)
+        inst_supported = _instruction_supported(data, operation.name, qubits)
         if inst_supported or (
-            data.equivalence_library is not None and data.equivalence_library.has_entry(inst)
+            data.equivalence_library is not None and data.equivalence_library.has_entry(operation)
         ):
             return (None, input_qubits)  # we support this operation already
 
     # if not, try to get the definition
     try:
-        definition = inst.definition
+        definition = operation.definition
     except (TypeError, AttributeError) as err:
-        raise TranspilerError(f"HighLevelSynthesis was unable to define {inst.name}.") from err
+        raise TranspilerError(f"HighLevelSynthesis is unable to define {operation.name}.") from err
 
     if definition is None:
-        raise TranspilerError(f"HighLevelSynthesis was unable to synthesize {inst}.")
+        raise TranspilerError(f"HighLevelSynthesis is unable to synthesize {operation}.")
 
     return (definition, input_qubits)
 
@@ -612,16 +618,20 @@ def _methods_to_try(data: HLSData, name: str):
 
 
 def _synthesize_op_using_plugins(
-    op: Operation, input_qubits: tuple[int], data: HLSData, tracker: QubitTracker, hls_methods: list
+    operation: Operation, input_qubits: tuple[int], data: HLSData, tracker: QubitTracker, hls_methods: list
 ) -> tuple[QuantumCircuit | None, tuple[int]]:
     """
-    Attempts to synthesize op using plugin mechanism.
+    Attempts to synthesize an operation using plugin mechanism.
 
-    The arguments ``num_clean_ancillas`` and ``num_dirty_ancillas`` specify
-    the number of clean and dirty qubits available to synthesize the given
-    operation. A synthesis method does not need to use these additional qubits.
+    Input:
+        operation: the operation to be synthesized.
+        input_qubits: a list of global qubits (qubits in the original circuit) over
+            which the operation is defined.
+        data: high-level-synthesis data and options.
+        tracker: the global tracker, tracking the state of global qubits.
+        hls_methods: the list of synthesis methods to try.
 
-    Returns either the synthesized circuit or None (which may occur
+    Returns either the synthesized circuit or ``None`` (which may occur
     when no synthesis methods is available or specified, or when there is
     an insufficient number of auxiliary qubits).
     """
@@ -653,26 +663,38 @@ def _synthesize_op_using_plugins(
         # or directly as a class inherited from HighLevelSynthesisPlugin (which then
         # does not need to be specified in entry_points).
         if isinstance(plugin_specifier, str):
-            if plugin_specifier not in hls_plugin_manager.method_names(op.name):
+            if plugin_specifier not in hls_plugin_manager.method_names(operation.name):
                 raise TranspilerError(
                     f"Specified method: {plugin_specifier} not found in available "
-                    f"plugins for {op.name}"
+                    f"plugins for {operation.name}"
                 )
-            plugin_method = hls_plugin_manager.method(op.name, plugin_specifier)
+            plugin_method = hls_plugin_manager.method(operation.name, plugin_specifier)
         else:
             plugin_method = plugin_specifier
 
-        # Set the number of available clean and dirty auxiliary qubits via plugin args.
+        # The additional arguments we pass to every plugin include the list of global
+        # qubits over which the operation is defined, high-level-synthesis data and options, 
+        # and the tracker that tracks the state for global qubits. 
+        #
+        # Note: the difference between the argument "qubits" passed explicitely to "run" 
+        # and "input_qubits" passed via "plugin_args" is that for backwards compatibility
+        # the former should be None if the synthesis is done before layout/routing. 
+        # However, plugins may need access to the global qubits over which the operation
+        # is defined, as well as their state, in particular the plugin for AnnotatedOperations
+        # requires these arguments to be able to process the base operation recursively.
+        #
+        # We may want to refactor the inputs and the outputs for the plugins' "run" method,
+        # however this needs to be backwards-compatible.
+        plugin_args["input_qubits"] = input_qubits
+        plugin_args["_data"] = data
+        plugin_args["_qubit_tracker"] = tracker
         plugin_args["num_clean_ancillas"] = num_clean_ancillas
         plugin_args["num_dirty_ancillas"] = num_dirty_ancillas
-        plugin_args["_qubit_tracker"] = tracker
-        plugin_args["_data"] = data
-        plugin_args["input_qubits"] = input_qubits
 
         qubits = input_qubits if data.use_qubit_indices else None
 
         decomposition = plugin_method.run(
-            op,
+            operation,
             coupling_map=data.coupling_map,
             target=data.target,
             qubits=qubits,
@@ -695,6 +717,11 @@ def _synthesize_op_using_plugins(
                 best_decomposition = decomposition
                 best_score = current_score
 
+    # A synthesis method may have potentially used available ancilla qubits.
+    # The following greedily grabs global qubits available. In the additional
+    # refactoring mentioned previously, we want each plugin to actually return
+    # the global qubits used, especially when the synthesis is done on the physical
+    # circuit, and the choice of which ancilla qubits to use really matters. 
     output_qubits = input_qubits
     if best_decomposition is not None:
         if best_decomposition.num_qubits > len(input_qubits):
