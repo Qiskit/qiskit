@@ -660,7 +660,7 @@ def _synthesize_op_using_plugins(
     hls_methods: list,
     op: Operation,
     input_qubits: tuple[int],
-    tracker: QubitTracker = None,
+    tracker: QubitTracker,
 ) -> tuple[QuantumCircuit | None, tuple[int]]:
     """
     Attempts to synthesize op using plugin mechanism.
@@ -673,6 +673,7 @@ def _synthesize_op_using_plugins(
     when no synthesis methods is available or specified, or when there is
     an insufficient number of auxiliary qubits).
     """
+    
     hls_plugin_manager = data.hls_plugin_manager
     num_clean_ancillas = tracker.num_clean(input_qubits)
     num_dirty_ancillas = tracker.num_dirty(input_qubits)

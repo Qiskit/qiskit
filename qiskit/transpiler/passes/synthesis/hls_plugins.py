@@ -1668,7 +1668,7 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
 
             # Do not allow access to control qubits
             tracker.disable(input_qubits[0:num_ctrl])
-            synthesized_base_op, _ = _synthesize_operation(
+            synthesized_base_op, output_qubits = _synthesize_operation(
                 data,
                 operation.base_op,
                 tracker,
@@ -1679,16 +1679,6 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
                 synthesized_base_op = operation.base_op
 
             assert not isinstance(synthesized_base_op, DAGCircuit)
-
-            # Handle the case that synthesizing the base operation introduced
-            # additional qubits (e.g. the base operation is a circuit that includes
-            # an MCX gate).
-            if synthesized_base_op.num_qubits > len(input_baseop_qubits):
-                global_aux_qubits = tracker.borrow(
-                    synthesized_base_op.num_qubits - len(input_baseop_qubits),
-                    input_baseop_qubits,
-                )
-                output_qubits = output_qubits + global_aux_qubits
 
             # Restore access to control qubits.
             tracker.enable(input_qubits[0:num_ctrl])
