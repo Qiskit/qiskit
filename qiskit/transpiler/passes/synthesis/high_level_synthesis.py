@@ -347,7 +347,7 @@ def _run(
         tracker: the global tracker, tracking the state of global qubits.
 
     The function returns the synthesized circuit and the global qubits over which this
-    output circuit is defined. Note that by using the auxiliary qubits, the output circuit
+    output circuit is defined. Note that by using auxiliary qubits, the output circuit
     may be defined over more qubits than the input circuit.
 
     The function also updates in-place the qubit tracker which keeps track of the status of
@@ -429,7 +429,7 @@ def _run(
         # circuit is defined. Also note that the synthesized circuit may involve auxiliary
         # global qubits not used by the input circuit.
         synthesized_circuit, synthesized_circuit_qubits = _synthesize_operation(
-            data, op, tracker, op_qubits
+            op, op_qubits, data, tracker
         )
 
         # If the synthesis did not change anything, we add the operation to the output circuit and update the
@@ -480,37 +480,44 @@ def _run(
 
 
 def _synthesize_operation(
-    data: HLSData,
     operation: Operation,
-    tracker: QubitTracker,
     input_qubits: tuple[int],
+    data: HLSData,
+    tracker: QubitTracker,
 ) -> tuple[QuantumCircuit | None, tuple[int]]:
     """
-    Synthesizes an operation. The function receives the qubits on which the operation
-    is defined in the current DAG, the correspondence between the qubits of the current
-    DAG and the global qubits and the global qubits tracker. The function returns the
-    result of synthesizing the operation. The value of `None` means that the operation
-    should remain as it is. When it's a circuit, we also return the context, i.e. the
-    correspondence of its local qubits and the global qubits. The function changes
-    in-place the tracker (state of the global qubits), the qubits (when the synthesized
-    operation is defined over additional ancilla qubits), and the context (to keep track
-    of where these ancilla qubits maps to).
+    Recursively synthesizes a single operation. 
+
+    Input:
+        operation: the operation to be synthesized.
+        input_qubits: a list of global qubits (qubits in the original circuit) over
+            which the operation is defined.
+        data: high-level-synthesis data and options.
+        tracker: the global tracker, tracking the state of global qubits.
+    
+    The function returns the synthesized circuit and the global qubits over which this
+    output circuit is defined. Note that by using auxiliary qubits, the output circuit
+    may be defined over more qubits than the input operation. In addition, the output
+    circuit may be ``None``, which means that the operation should remain as it is.    
+
+    The function also updates in-place the qubit tracker which keeps track of the status of
+    each global qubit (whether it's clean, dirty, or cannot be used).
     """
 
-    assert operation.num_qubits == len(input_qubits)
-    # print(f"OK_SO_FAR: {operation.num_qubits = }, {len(input_qubits) = }")
-    # Try to synthesize the operation. We'll go through the following options:
-    #  (1) Annotations: if the operator is annotated, synthesize the base operation
-    #       and then apply the modifiers. Returns a circuit (e.g. applying a power)
-    #       or operation (e.g adding control on an X gate).
-    #  (2) High-level objects: try running the battery of high-level synthesis plugins (e.g.
-    #       if the operation is a Clifford). Returns a circuit.
-    #  (3) Unrolling custom definitions: try defining the operation if it is not yet
-    #       in the set of supported instructions. Returns a circuit.
+    if operation.num_qubits != len(input_qubits):
+        raise TranspilerError("HighLevelSynthesis error: the input to 'synthesize_operation' is incorrect.")
+
+    # Synthesize the operation: 
     #
-    # If any of the above were triggered, we will recurse and go again through these steps
-    # until no further change occurred. At this point, we convert circuits to DAGs (the final
-    # possible return type). If there was no change, we just return ``None``.
+    #  (1) Synthesis plugins: try running the battery of high-level synthesis plugins (e.g. 
+    #      if the operation is a Clifford). If succeeds, this returns a circuit. The plugin 
+    #      mechanism also includes handling of AnnonatedOperations. 
+    #  (2) Unrolling custom definitions: try defining the operation if it is not yet
+    #       in the set of supported instructions. If succeeds, this returns a circuit.
+    #
+    # If any of the above is triggered, the returned circuit is recursively synthesized,
+    # so that the final circuit only consists of supported operations. If there was no change, 
+    # we just return ``None``.
     num_original_qubits = len(input_qubits)
 
     synthesized = None
