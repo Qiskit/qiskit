@@ -557,25 +557,13 @@ def _synthesize_operation(
 
     # Try synthesis via HLS -- which will return ``None`` if unsuccessful.
     if len(hls_methods := _methods_to_try(data, operation.name)) > 0:
-        res = _synthesize_op_using_plugins(
+        (synthesized, output_qubits) = _synthesize_op_using_plugins(
             data,
             hls_methods,
             operation,
             input_qubits,
             tracker=tracker,
         )
-
-        # print(f"HERE: {operation = }, {type(res) = }, {res = }")
-        (synthesized, _) = res
-
-        # It may happen that the plugin synthesis method uses clean/dirty ancilla qubits
-        if synthesized is not None:
-            # print(f"=> OK?: {synthesized.num_qubits = }, {len(qubits) = }, {len(output_qubits) = }")
-            if synthesized.num_qubits > len(output_qubits):
-                # need to borrow more qubits from tracker
-                global_aux_qubits = tracker.borrow(synthesized.num_qubits - len(output_qubits), output_qubits)
-                output_qubits = output_qubits + global_aux_qubits
-
 
         if synthesized is not None:
             # print(f"WHAT IS GOING ON: {synthesized.num_qubits = }, {len(output_qubits) = }")
@@ -673,7 +661,7 @@ def _synthesize_op_using_plugins(
     when no synthesis methods is available or specified, or when there is
     an insufficient number of auxiliary qubits).
     """
-    
+
     hls_plugin_manager = data.hls_plugin_manager
     num_clean_ancillas = tracker.num_clean(input_qubits)
     num_dirty_ancillas = tracker.num_dirty(input_qubits)
@@ -744,8 +732,14 @@ def _synthesize_op_using_plugins(
                 best_decomposition = decomposition
                 best_score = current_score
 
-    # FIXME:
-    return (best_decomposition, None)
+
+    output_qubits = input_qubits
+    if best_decomposition is not None:
+        if best_decomposition.num_qubits > len(input_qubits):
+            global_aux_qubits = tracker.borrow(best_decomposition.num_qubits - len(output_qubits), output_qubits)
+            output_qubits = output_qubits + global_aux_qubits
+
+    return (best_decomposition, output_qubits)
 
 
 def _definitely_skip_node(
