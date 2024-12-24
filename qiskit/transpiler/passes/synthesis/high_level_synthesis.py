@@ -305,8 +305,8 @@ class HighLevelSynthesis(TransformationPass):
             (for instance, when the specified synthesis method is not available).
         """
 
-        # STEP 1: Check if HighLevelSynthesis can be skipped altogether. This is only
-        # done at the top-level since this does not update the global qubits tracker.
+        # Fast-path: check if HighLevelSynthesis can be skipped altogether. This is only
+        # done at the top-level since this does not track the qubit states.
         for node in dag.op_nodes():
             qubits = tuple(dag.find_bit(q).index for q in node.qargs)
             if not _definitely_skip_node(self.data, node, qubits, dag):
@@ -315,17 +315,16 @@ class HighLevelSynthesis(TransformationPass):
             # The for-loop terminates without reaching the break statement
             return dag
 
-        # ToDo: try to avoid this conversion
+        # Regular-path: we synthesize the circuit recursively. Except for 
+        # this conversion from DAGCircuit to QuantumCircuit and back, all
+        # the recursive functions work with QuantumCircuit objects only.
         circuit = dag_to_circuit(dag)
         input_qubits = list(range(circuit.num_qubits))
         tracker = QubitTracker(num_qubits=dag.num_qubits())
         if self.data.qubits_initially_zero:
             tracker.set_clean(input_qubits)
-
-        (output_circuit, _) = _run(circuit, input_qubits, self.data, tracker)
-        assert isinstance(output_circuit, QuantumCircuit)
-        out_dag = circuit_to_dag(output_circuit)
-        return out_dag
+        output_circuit, _ = _run(circuit, input_qubits, self.data, tracker)
+        return circuit_to_dag(output_circuit)
 
 
 def _run(
