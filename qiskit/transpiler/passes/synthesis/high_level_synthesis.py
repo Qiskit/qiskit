@@ -315,7 +315,7 @@ class HighLevelSynthesis(TransformationPass):
             # The for-loop terminates without reaching the break statement
             return dag
 
-        # Regular-path: we synthesize the circuit recursively. Except for 
+        # Regular-path: we synthesize the circuit recursively. Except for
         # this conversion from DAGCircuit to QuantumCircuit and back, all
         # the recursive functions work with QuantumCircuit objects only.
         circuit = dag_to_circuit(dag)
@@ -396,7 +396,7 @@ def _run(
             continue
 
         # Check if synthesis for this operation can be skipped
-        if _definitely_skip_op(data, op, op_qubits, input_circuit):
+        if _definitely_skip_op(op, op_qubits, data, input_circuit):
             output_circuit.append(op, inst.qubits, inst.clbits)
             tracker.set_dirty(op_qubits)
             continue
@@ -571,8 +571,8 @@ def _synthesize_operation(
 def _get_custom_definition(
     operation: Operation, input_qubits: tuple[int], data: HLSData
 ) -> tuple[QuantumCircuit | None, tuple[int]]:
-    """Returns the definition for the given operation. 
-    
+    """Returns the definition for the given operation.
+
     Returns None if the operation is already supported or does not have
     the definition.
     """
@@ -617,7 +617,11 @@ def _methods_to_try(data: HLSData, name: str):
 
 
 def _synthesize_op_using_plugins(
-    operation: Operation, input_qubits: tuple[int], data: HLSData, tracker: QubitTracker, hls_methods: list
+    operation: Operation,
+    input_qubits: tuple[int],
+    data: HLSData,
+    tracker: QubitTracker,
+    hls_methods: list,
 ) -> tuple[QuantumCircuit | None, tuple[int]]:
     """
     Attempts to synthesize an operation using plugin mechanism.
@@ -672,12 +676,12 @@ def _synthesize_op_using_plugins(
             plugin_method = plugin_specifier
 
         # The additional arguments we pass to every plugin include the list of global
-        # qubits over which the operation is defined, high-level-synthesis data and options, 
-        # and the tracker that tracks the state for global qubits. 
+        # qubits over which the operation is defined, high-level-synthesis data and options,
+        # and the tracker that tracks the state for global qubits.
         #
-        # Note: the difference between the argument "qubits" passed explicitely to "run" 
+        # Note: the difference between the argument "qubits" passed explicitely to "run"
         # and "input_qubits" passed via "plugin_args" is that for backwards compatibility
-        # the former should be None if the synthesis is done before layout/routing. 
+        # the former should be None if the synthesis is done before layout/routing.
         # However, plugins may need access to the global qubits over which the operation
         # is defined, as well as their state, in particular the plugin for AnnotatedOperations
         # requires these arguments to be able to process the base operation recursively.
@@ -720,7 +724,7 @@ def _synthesize_op_using_plugins(
     # The following greedily grabs global qubits available. In the additional
     # refactoring mentioned previously, we want each plugin to actually return
     # the global qubits used, especially when the synthesis is done on the physical
-    # circuit, and the choice of which ancilla qubits to use really matters. 
+    # circuit, and the choice of which ancilla qubits to use really matters.
     output_qubits = input_qubits
     if best_decomposition is not None:
         if best_decomposition.num_qubits > len(input_qubits):
@@ -735,12 +739,13 @@ def _synthesize_op_using_plugins(
 def _definitely_skip_node(
     data: HLSData, node: DAGOpNode, qubits: tuple[int] | None, dag: DAGCircuit
 ) -> bool:
-    """Fast-path determination of whether a node can certainly be skipped (i.e. nothing will
-    attempt to synthesise it) without accessing its Python-space `Operation`.
+    """Fast-path determination of whether a DAG node can certainly be skipped
+    (i.e. nothing will attempt to synthesise it) without accessing its Python-space
+    `Operation`.
 
-    This is tightly coupled to `_recursively_handle_op`; it exists as a temporary measure to
-    avoid Python-space `Operation` creation from a `DAGOpNode` if we wouldn't do anything to the
-    node (which is _most_ nodes)."""
+    This exists as a temporary measure to avoid Python-space `Operation` creation from a
+    `DAGOpNode` if we wouldn't do anything to the node (which is _most_ nodes).
+    """
 
     if (
         dag._has_calibration_for(node)
@@ -774,16 +779,11 @@ def _definitely_skip_node(
     )
 
 
-# ToDo: try to avoid duplication with other function
-def _definitely_skip_op(data: HLSData, op: Operation, qubits: tuple[int], dag: DAGCircuit) -> bool:
-    """Fast-path determination of whether a node can certainly be skipped (i.e. nothing will
-    attempt to synthesise it) without accessing its Python-space `Operation`.
+def _definitely_skip_op(op: Operation, qubits: tuple[int], data: HLSData, dag: DAGCircuit) -> bool:
+    """Check if an operation does not need to be synthesized."""
 
-    This is tightly coupled to `_recursively_handle_op`; it exists as a temporary measure to
-    avoid Python-space `Operation` creation from a `DAGOpNode` if we wouldn't do anything to the
-    node (which is _most_ nodes)."""
-
-    assert qubits is not None
+    # It would be nice to avoid code duplication with the previous function, the difference is
+    # that this function is called on "Operation"s rather than "DAGOpNode"s.
 
     if (
         len(qubits) < data.min_qubits
@@ -817,13 +817,8 @@ def _definitely_skip_op(data: HLSData, op: Operation, qubits: tuple[int], dag: D
 
 
 def _instruction_supported(data: HLSData, name: str, qubits: tuple[int] | None) -> bool:
+    """Check whether operation is natively supported."""
     # include path for when target exists but target.num_qubits is None (BasicSimulator)
     if data.target is None or data.target.num_qubits is None:
         return name in data.device_insts
     return data.target.instruction_supported(operation_name=name, qargs=qubits)
-
-
-def _wrap_in_circuit(op: Operation) -> QuantumCircuit:
-    circuit = QuantumCircuit(op.num_qubits, op.num_clbits)
-    circuit.append(op, circuit.qubits, circuit.clbits)
-    return circuit
