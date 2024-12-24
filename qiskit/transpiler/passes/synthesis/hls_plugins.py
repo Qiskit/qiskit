@@ -1669,10 +1669,7 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
             # Do not allow access to control qubits
             tracker.disable(input_qubits[0:num_ctrl])
             synthesized_base_op, output_qubits = _synthesize_operation(
-                data,
-                operation.base_op,
-                tracker,
-                input_baseop_qubits
+                data, operation.base_op, tracker, input_baseop_qubits
             )
 
             if synthesized_base_op is None:
