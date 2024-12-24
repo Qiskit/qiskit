@@ -337,6 +337,8 @@ def _run(
     """
     The main recursive function that synthesizes a QuantumCircuit.
 
+    FIXME!!!
+    
     Input:
         circuit: the circuit to be synthesized.
         tracker: the global tracker, tracking the state of original qubits.
@@ -352,7 +354,8 @@ def _run(
     assert isinstance(input_circuit, QuantumCircuit)
     assert input_circuit.num_qubits == len(input_qubits)
 
-  
+
+    # FIXME!!!
     # STEP 2: Analyze the nodes in the circuit. For each node in the circuit that needs
     # to be synthesized, we recursively synthesize it and store the result. For
     # instance, the result of synthesizing a custom gate is a QuantumCircuit corresponding
@@ -364,158 +367,108 @@ def _run(
     # good operation/ancilla allocations. The current approach is greedy and just gives
     # all available ancilla qubits to the current operation ("the-first-takes-all" approach).
     # It does not distribute ancilla qubits between different operations present in the circuit.
-    synthesized_nodes = {}
+    # STEP 3. We rebuild the circuit with new operations. Note that we could also
+    # check if no operation changed in size and substitute in-place, but rebuilding is
+    # generally as fast or faster, unless very few operations are changed.
+
+    output_circuit = input_circuit.copy_empty_like()
+    output_qubits = input_qubits
 
     global_to_local = dict()
     for i, q in enumerate(input_qubits):
         global_to_local[q] = i
 
-    output_qubits = input_qubits
     num_output_qubits = len(input_qubits)
 
-    # print(f"===> {input_circuit.num_qubits = }, {input_qubits = }")
-
-    for (idx, inst) in enumerate(input_circuit):
+    for inst in input_circuit:
         op = inst.operation
 
-        # local qubit index (within the current input_circuit)
-        op_qubits = tuple(input_circuit.find_bit(q).index for q in inst.qubits)
+        # FIXME: combine the following two lines into one
 
-        # print(f"I AM HERE 15: {input_qubits = }, {op = }, {op_qubits = }")
+        # op's qubits as viewed from within the input circuit
+        op_local_qubits = tuple(input_circuit.find_bit(q).index for q in inst.qubits)
 
-        # global qubits
-        op_global_qubits = [input_qubits[q] for q in op_qubits]
+        # op's qubits as viewed globally
+        op_qubits = [input_qubits[q] for q in op_local_qubits]
 
-        processed = False
-        synthesized = None
-
-        # Start by handling special operations. Other cases can also be
-        # considered: swaps, automatically simplifying control gate (e.g. if
-        # a control is 0).
+        # Start by handling special operations. 
+        # In the future, we can also consider other possible optimizations, e.g.:
+        #   - improved qubit tracking after a SWAP gate
+        #   - automatically simplify control gates with control at 0. 
         if op.name in ["id", "delay", "barrier"]:
-            # tracker not updated, these are no-ops
-            processed = True
+            # tracker is not updated, these are no-ops
+            output_circuit.append(op, inst.qubits, inst.clbits)
+            continue
 
-        elif op.name == "reset":
-            # reset qubits to 0
-            tracker.set_clean(op_global_qubits)
-            processed = True
+        if op.name == "reset":
+            # tracker resets qubits to 0
+            output_circuit.append(op, inst.qubits, inst.clbits)
+            tracker.set_clean(op_qubits)
+            continue
 
-        # check if synthesis for the operation can be skipped
-        elif _definitely_skip_op(data, op, op_global_qubits, input_circuit):
-            tracker.set_dirty(op_global_qubits)
+        # Check if synthesis for this operation can be skipped
+        if _definitely_skip_op(data, op, op_qubits, input_circuit):
+            output_circuit.append(op, inst.qubits, inst.clbits)
+            tracker.set_dirty(op_qubits)
+            continue
 
-        # next check control flow
-        elif isinstance(op, ControlFlowOp):
-            # print("I AM HERE")
-            # print(f"TRACKER: {tracker}")
-
+        # Recursively handle control-flow
+        if isinstance(op, ControlFlowOp):
             new_blocks = []
             block_tracker=tracker.copy()
-            block_tracker.disable([q for q in range(tracker.num_qubits()) if q not in op_global_qubits])
+            block_tracker.disable([q for q in range(tracker.num_qubits()) if q not in op_qubits])
 
             for block in op.blocks:
-                # print("=================")
-                # print(block)
-                # print(f"{op.num_qubits = }")
-                # print(f"{block.num_qubits = }")
-                # print(f"{op_global_qubits = }")
-                new_block = _run(block, data=data, tracker=block_tracker, input_qubits=op_global_qubits)[0]
+                new_block = _run(block, data=data, tracker=block_tracker, input_qubits=op_qubits)[0]
                 new_blocks.append(new_block)
-            synthesized = op.replace_blocks(new_blocks)
-            op_output_qubits = op_global_qubits
-            # print(f"SYNTHESIZED: {synthesized}")
-            # synthesized = _wrap_in_circuit(synthesized)
-            
+            synthesized_op = op.replace_blocks(new_blocks)
+            output_circuit.append(synthesized_op, inst.qubits, inst.clbits)
+            synthesized_op_qubits = op_qubits
+            tracker.set_dirty(synthesized_op_qubits)
+            continue
 
-        # now we are free to synthesize
-        else:
-            # This returns the synthesized operation and its context (when the result is
-            # a circuit, it's the correspondence between its qubits and the global qubits).
-            # Also note that the circuit may use auxiliary qubits. The qubits tracker and the
-            # current circuit's context are updated in-place.
-            synthesized, op_output_qubits = _synthesize_operation(
-                data, op, tracker, op_global_qubits,
-            )
-            # print(f"{op = }, {op_output_qubits = }")
-
-            for q in op_output_qubits:
-                if q not in global_to_local:
-                    global_to_local[q] = num_output_qubits
-                    num_output_qubits += 1
-                    output_qubits.append(q)
-
-
-        # If the synthesis changed the operation (i.e. it is not None), store the result.
-        if synthesized is not None:
-            synthesized_nodes[idx] = (synthesized, op_output_qubits)
+        # The function synthesize_operations returns None if the operation does not need to be
+        # synthesized, or a quantum circuit together with the global qubits on which this
+        # circuit is defined. Also note that the synthesized circuit may involve auxiliary
+        # global qubits not used by the input circuit.
+        synthesized_circuit, synthesized_circuit_qubits = _synthesize_operation(data, op, tracker, op_qubits)
 
         # If the synthesis did not change anything, just update the qubit tracker.
-        elif not processed:
-            tracker.set_dirty(op_global_qubits)
+        if synthesized_circuit is None:
+            output_circuit.append(op, inst.qubits, inst.clbits)
+            tracker.set_dirty(op_qubits)
+            continue
 
-    # We did not change anything just return the input.
-    if len(synthesized_nodes) == 0:
-        # print(f"I AM HERE 10: {input_circuit.num_qubits = }, {len(input_qubits) = }")
-        if input_circuit.num_qubits != len(input_qubits):
-            raise TranspilerError("HighLevelSynthesis internal error.")
-        
-        assert isinstance(input_circuit, QuantumCircuit)
-        return (input_circuit, input_qubits)
+        if not isinstance(synthesized_circuit, QuantumCircuit):
+            raise TranspilerError("HighLevelSynthesis error: synthesize_operation did not return a QuantumCircuit")
 
-    # STEP 3. We rebuild the circuit with new operations. Note that we could also
-    # check if no operation changed in size and substitute in-place, but rebuilding is
-    # generally as fast or faster, unless very few operations are changed.
-    out = input_circuit.copy_empty_like()
-    num_additional_qubits = num_output_qubits - out.num_qubits
+        # FIXME: see if this can be improved
 
-    if num_additional_qubits > 0:
-        out.add_bits([Qubit() for _ in range(num_additional_qubits)])
+        # Update output circuit's qubits 
+        for q in synthesized_circuit_qubits:
+            if q not in global_to_local:
+                global_to_local[q] = num_output_qubits
+                num_output_qubits += 1
+                output_qubits.append(q)
+                output_circuit.add_bits([Qubit()])
 
-    index_to_qubit = dict(enumerate(out.qubits))
+        # Add the operations from the op's synthesized circuit to the output circuit, using the correspondence
+        # syntesized circuit's qubits -> global qubits -> output circuit's qubits
+        qubit_map = {synthesized_circuit.qubits[i]: output_circuit.qubits[global_to_local[q]] for (i, q) in enumerate(synthesized_circuit_qubits)}
+        clbit_map = dict(zip(synthesized_circuit.clbits, output_circuit.clbits))
 
-    for (idx, inst) in enumerate(input_circuit):
-        op = inst.operation
+        for inst_inner in synthesized_circuit:
+            output_circuit.append(inst_inner.operation,
+                tuple(qubit_map[q] for q in inst_inner.qubits),
+                tuple(clbit_map[c] for c in inst_inner.clbits),
+            )
 
-        if op_tuple := synthesized_nodes.get(idx, None):
-            op, op_output_qubits = op_tuple
+        output_circuit.global_phase += synthesized_circuit.global_phase
 
-            if isinstance(op, Operation):
-                # We are here for controlled flow ops
-                # We should not be here
-                # assert False
-                # out.apply_operation_back(op, node.qargs, node.cargs)
-                # print(f"{inst.qubits = }, {inst.clbits = }")
-                out.append(op, inst.qubits, inst.clbits)
-                continue
+    if output_circuit.num_qubits != len(output_qubits):
+        raise TranspilerError("HighLevelSynthesis error: ")
 
-            assert isinstance(op, QuantumCircuit)
-
-            qubit_map = {
-                q: index_to_qubit[global_to_local[op_output_qubits[i]]]
-                for (i, q) in enumerate(op.qubits)
-            }
-            clbit_map = dict(zip(op.clbits, inst.clbits))
-
-            for sub_node in op:
-                out.append(
-                    sub_node.operation,
-                    tuple(qubit_map[qarg] for qarg in sub_node.qubits),
-                    tuple(clbit_map[carg] for carg in sub_node.clbits),
-                )
-            out.global_phase += op.global_phase
-
-
-        else:
-            out.append(op, inst.qubits, inst.clbits)
-
-
-    assert isinstance(out, QuantumCircuit)
-    # print(f"I AM HERE: {out.num_qubits = }, {len(output_qubits) = }")
-    if out.num_qubits != len(output_qubits):
-        raise TranspilerError("HighLevelSynthesis internal error.")
-
-    return (out, output_qubits)
+    return (output_circuit, output_qubits)
 
 
 def _synthesize_operation(
