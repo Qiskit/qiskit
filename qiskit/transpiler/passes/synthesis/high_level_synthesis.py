@@ -315,10 +315,6 @@ class HighLevelSynthesis(TransformationPass):
             # The for-loop terminates without reaching the break statement
             return dag
 
-
-        qubits = tuple(dag.find_bit(q).index for q in dag.qubits)
-
-
         # ToDo: try to avoid this conversion
         circuit = dag_to_circuit(dag)
         input_qubits = list(range(circuit.num_qubits))
@@ -326,7 +322,7 @@ class HighLevelSynthesis(TransformationPass):
         if self.data.qubits_initially_zero:
             tracker.set_clean(input_qubits)
 
-        (output_circuit, output_qubits) = _run(circuit, self.data, tracker, input_qubits)
+        (output_circuit, _) = _run(circuit, self.data, tracker, input_qubits)
         assert isinstance(output_circuit, QuantumCircuit)
         out_dag = circuit_to_dag(output_circuit)
         return out_dag
@@ -606,12 +602,6 @@ def _synthesize_operation(
         saved_tracker = tracker.copy()
         synthesized, output_qubits = _run(synthesized, data, tracker, output_qubits)
         # print(f"CHECK: {synthesized.num_qubits = }, {output_qubits = }, {len(output_qubits) = }")
-
-
-        if (synthesized is not None) and (synthesized.num_qubits > len(output_qubits)):
-            # need to borrow more qubits from tracker
-            global_aux_qubits = tracker.borrow(synthesized.num_qubits - len(output_qubits), output_qubits)
-            output_qubits = output_qubits + global_aux_qubits
 
         if len(output_qubits) > num_original_qubits:
             tracker.replace_state(saved_tracker, output_qubits[num_original_qubits:])
