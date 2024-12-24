@@ -486,7 +486,7 @@ def _synthesize_operation(
     tracker: QubitTracker,
 ) -> tuple[QuantumCircuit | None, tuple[int]]:
     """
-    Recursively synthesizes a single operation. 
+    Recursively synthesizes a single operation.
 
     Input:
         operation: the operation to be synthesized.
@@ -494,76 +494,79 @@ def _synthesize_operation(
             which the operation is defined.
         data: high-level-synthesis data and options.
         tracker: the global tracker, tracking the state of global qubits.
-    
+
     The function returns the synthesized circuit and the global qubits over which this
     output circuit is defined. Note that by using auxiliary qubits, the output circuit
     may be defined over more qubits than the input operation. In addition, the output
-    circuit may be ``None``, which means that the operation should remain as it is.    
+    circuit may be ``None``, which means that the operation should remain as it is.
 
     The function also updates in-place the qubit tracker which keeps track of the status of
     each global qubit (whether it's clean, dirty, or cannot be used).
     """
 
     if operation.num_qubits != len(input_qubits):
-        raise TranspilerError("HighLevelSynthesis error: the input to 'synthesize_operation' is incorrect.")
+        raise TranspilerError(
+            "HighLevelSynthesis error: the input to 'synthesize_operation' is incorrect."
+        )
 
-    # Synthesize the operation: 
+    # Synthesize the operation:
     #
-    #  (1) Synthesis plugins: try running the battery of high-level synthesis plugins (e.g. 
-    #      if the operation is a Clifford). If succeeds, this returns a circuit. The plugin 
-    #      mechanism also includes handling of AnnonatedOperations. 
+    #  (1) Synthesis plugins: try running the battery of high-level synthesis plugins (e.g.
+    #      if the operation is a Clifford). If succeeds, this returns a circuit. The plugin
+    #      mechanism also includes handling of AnnonatedOperations.
     #  (2) Unrolling custom definitions: try defining the operation if it is not yet
     #       in the set of supported instructions. If succeeds, this returns a circuit.
     #
     # If any of the above is triggered, the returned circuit is recursively synthesized,
-    # so that the final circuit only consists of supported operations. If there was no change, 
+    # so that the final circuit only consists of supported operations. If there was no change,
     # we just return ``None``.
     num_original_qubits = len(input_qubits)
 
-    synthesized = None
+    output_circuit = None
     output_qubits = input_qubits
 
     # Try synthesis via HLS -- which will return ``None`` if unsuccessful.
     if len(hls_methods := _methods_to_try(data, operation.name)) > 0:
-        (synthesized, output_qubits) = _synthesize_op_using_plugins(
-            data,
-            hls_methods,
+        output_circuit, output_qubits = _synthesize_op_using_plugins(
             operation,
             input_qubits,
-            tracker=tracker,
+            data,
+            tracker,
+            hls_methods,
         )
 
-        if synthesized is not None:
-            # print(f"WHAT IS GOING ON: {synthesized.num_qubits = }, {len(output_qubits) = }")
-            assert synthesized.num_qubits == len(output_qubits)
-
     # If HLS did not apply, or was unsuccessful, try unrolling custom definitions.
-    if synthesized is None and not data.top_level_only:
-        synthesized, output_qubits = _get_custom_definition(data, operation, input_qubits)
+    if output_circuit is None and not data.top_level_only:
+        output_circuit, output_qubits = _get_custom_definition(data, operation, input_qubits)
 
-    if synthesized is None:
-        # if we didn't synthesize, there was nothing to unroll
-        # updating the tracker will be handled upstream
+    if output_circuit is not None:
+        if not isinstance(output_circuit, QuantumCircuit) or (
+            output_circuit.num_qubits != len(output_qubits)
+        ):
+            raise TranspilerError(
+                "HighLevelSynthesis error: the intermediate circuit is incorrect."
+            )
+
+    if output_circuit is None:
+        # if we didn't synthesize, there is nothing to do.
+        # Updating the tracker will be handled upstream.
         pass
     else:
-        assert isinstance(synthesized, QuantumCircuit)
-        # Synthesized is a quantum circuit which we want to process recursively.
-        # For example, it's the definition circuit of a custom gate
-        # or a circuit obtained by calling a synthesis method on a high-level-object.
-        # In the second case, synthesized may have more qubits than the original node.
-
+        # Output circuit is a quantum circuit which we want to process recursively.
         # We save the current state of the tracker to be able to return the ancilla
-        # qubits to the current positions. Note that at this point we do not know
-        # which ancilla qubits will be allocated.
+        # qubits to the current positions.
         saved_tracker = tracker.copy()
-        synthesized, output_qubits = _run(synthesized, output_qubits, data, tracker)
-        # print(f"CHECK: {synthesized.num_qubits = }, {output_qubits = }, {len(output_qubits) = }")
+        output_circuit, output_qubits = _run(output_circuit, output_qubits, data, tracker)
 
         if len(output_qubits) > num_original_qubits:
             tracker.replace_state(saved_tracker, output_qubits[num_original_qubits:])
 
-    assert synthesized is None or isinstance(synthesized, QuantumCircuit)
-    return synthesized, output_qubits
+    if (output_circuit is not None) and (output_circuit.num_qubits != len(output_qubits)):
+        raise TranspilerError(
+            "HighLevelSynthesis error: the output of 'synthesize_operation' is incorrect."
+        )
+
+    return output_circuit, output_qubits
 
 
 def _get_custom_definition(
@@ -609,11 +612,7 @@ def _methods_to_try(data: HLSData, name: str):
 
 
 def _synthesize_op_using_plugins(
-    data: HLSData,
-    hls_methods: list,
-    op: Operation,
-    input_qubits: tuple[int],
-    tracker: QubitTracker,
+    op: Operation, input_qubits: tuple[int], data: HLSData, tracker: QubitTracker, hls_methods: list
 ) -> tuple[QuantumCircuit | None, tuple[int]]:
     """
     Attempts to synthesize op using plugin mechanism.
