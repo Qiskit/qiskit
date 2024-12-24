@@ -322,7 +322,7 @@ class HighLevelSynthesis(TransformationPass):
         if self.data.qubits_initially_zero:
             tracker.set_clean(input_qubits)
 
-        (output_circuit, _) = _run(circuit, self.data, tracker, input_qubits)
+        (output_circuit, _) = _run(circuit, input_qubits, self.data, tracker)
         assert isinstance(output_circuit, QuantumCircuit)
         out_dag = circuit_to_dag(output_circuit)
         return out_dag
@@ -330,46 +330,42 @@ class HighLevelSynthesis(TransformationPass):
 
 def _run(
     input_circuit: QuantumCircuit,
+    input_qubits: tuple[int],
     data: HLSData,
     tracker: QubitTracker,
-    input_qubits: tuple[int],
 ) -> tuple[QuantumCircuit, tuple[int]]:
     """
-    The main recursive function that synthesizes a QuantumCircuit.
+    Recursively synthesizes a subcircuit. This subcircuit may be either the original 
+    circuit, the definition circuit for one of the gates, or a circuit returned by
+    by a plugin. 
 
-    FIXME!!!
-    
     Input:
-        circuit: the circuit to be synthesized.
-        tracker: the global tracker, tracking the state of original qubits.
+        input_circuit: the subcircuit to be synthesized.
+        input_qubits: a list of global qubits (qubits in the original circuit) over 
+            which the input circuit is defined.
+        data: high-level-synthesis data and options.
+        tracker: the global tracker, tracking the state of global qubits.
         
-    The function returns the synthesized QuantumCircuit.
-
-    Note that by using the auxiliary qubits to synthesize operations present in the input circuit,
-    the synthesized circuit may be defined over more qubits than the input circuit. In this case,
-    the function update in-place the global qubits tracker and extends the local-to-global
-    context.
+    The function returns the synthesized circuit and the global qubits over which this 
+    output circuit is defined. Note that by using the auxiliary qubits, the output circuit 
+    may be defined over more qubits than the input circuit. 
+    
+    The function also updates in-place the qubit tracker which keeps track of the status of
+    each global qubit (whether it's clean, dirty, or cannot be used).
     """
 
-    assert isinstance(input_circuit, QuantumCircuit)
-    assert input_circuit.num_qubits == len(input_qubits)
+    if not isinstance(input_circuit, QuantumCircuit) or (input_circuit.num_qubits != len(input_qubits)):
+        raise TranspilerError("HighLevelSynthesis error: the input to 'run' is incorrect.")
 
-
-    # FIXME!!!
-    # STEP 2: Analyze the nodes in the circuit. For each node in the circuit that needs
-    # to be synthesized, we recursively synthesize it and store the result. For
-    # instance, the result of synthesizing a custom gate is a QuantumCircuit corresponding
-    # to the (recursively synthesized) gate's definition. When the result is a
-    # circuit, we also store its context (the mapping of its qubits to global qubits).
-    # In addition, we keep track of the qubit states using the (global) qubits tracker.
+    # We iteratively process circuit instructions in the order they appear in the input circuit,
+    # and add the synthesized instructions to the output circuit. Note that in the process the
+    # output circuit may need to be extended with additional qubits. In addition, we keep track
+    # of the status of the original qubits using the qubits tracker.
     #
     # Note: This is a first version of a potentially more elaborate approach to find
     # good operation/ancilla allocations. The current approach is greedy and just gives
     # all available ancilla qubits to the current operation ("the-first-takes-all" approach).
     # It does not distribute ancilla qubits between different operations present in the circuit.
-    # STEP 3. We rebuild the circuit with new operations. Note that we could also
-    # check if no operation changed in size and substitute in-place, but rebuilding is
-    # generally as fast or faster, unless very few operations are changed.
 
     output_circuit = input_circuit.copy_empty_like()
     output_qubits = input_qubits
@@ -419,7 +415,7 @@ def _run(
             block_tracker.disable([q for q in range(tracker.num_qubits()) if q not in op_qubits])
 
             for block in op.blocks:
-                new_block = _run(block, data=data, tracker=block_tracker, input_qubits=op_qubits)[0]
+                new_block = _run(block, input_qubits=op_qubits, data=data, tracker=block_tracker)[0]
                 new_blocks.append(new_block)
             synthesized_op = op.replace_blocks(new_blocks)
             output_circuit.append(synthesized_op, inst.qubits, inst.clbits)
@@ -541,7 +537,7 @@ def _synthesize_operation(
         # qubits to the current positions. Note that at this point we do not know
         # which ancilla qubits will be allocated.
         saved_tracker = tracker.copy()
-        synthesized, output_qubits = _run(synthesized, data, tracker, output_qubits)
+        synthesized, output_qubits = _run(synthesized, output_qubits, data, tracker)
         # print(f"CHECK: {synthesized.num_qubits = }, {output_qubits = }, {len(output_qubits) = }")
 
         if len(output_qubits) > num_original_qubits:
