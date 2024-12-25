@@ -425,6 +425,7 @@ from qiskit.circuit.library import (
     HalfAdderGate,
     FullAdderGate,
     MultiplierGate,
+    GlobalPhaseGate,
 )
 from qiskit.circuit.annotated_operation import (
     AnnotatedOperation,
@@ -1727,6 +1728,15 @@ def _apply_annotations(circuit: QuantumCircuit, modifiers: list[Modifier]) -> Qu
 
             # Apply the control modifier to each gate in the circuit.
             controlled_circuit = QuantumCircuit(modifier.num_ctrl_qubits + circuit.num_qubits)
+            if circuit.global_phase != 0:
+                controlled_op = GlobalPhaseGate(circuit.global_phase).control(
+                    num_ctrl_qubits=modifier.num_ctrl_qubits,
+                    label=None,
+                    ctrl_state=modifier.ctrl_state,
+                    annotated=False,
+                )
+                controlled_qubits = list(range(0, modifier.num_ctrl_qubits))
+                controlled_circuit.append(controlled_op, controlled_qubits)
             for inst in circuit:
                 inst_op = inst.operation
                 inst_qubits = inst.qubits

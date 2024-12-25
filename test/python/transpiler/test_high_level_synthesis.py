@@ -1617,6 +1617,24 @@ class TestHighLevelSynthesisModifiers(QiskitTestCase):
         qct = pass_(qc)
         self.assertEqual(Statevector(qc), Statevector(qct))
 
+    def test_annotated_circuit_with_phase(self):
+        inner = QuantumCircuit(2)
+        inner.global_phase = 1
+        inner.h(0)
+        inner.cx(0, 1)
+        gate = inner.to_gate()
+
+        qc1 = QuantumCircuit(3)
+        qc1.append(gate.control(annotated=False), [0, 1, 2])
+        qct1 = HighLevelSynthesis(basis_gates=["cx", "u"])(qc1)
+
+        qc2 = QuantumCircuit(3)
+        qc2.append(gate.control(annotated=True), [0, 1, 2])
+        qct2 = HighLevelSynthesis(basis_gates=["cx", "u"])(qc2)
+
+        self.assertEqual(Operator(qc1), Operator(qc2))
+        self.assertEqual(Operator(qct1), Operator(qct2))
+
     def test_annotated_rec(self):
         """Test synthesis with annotated custom gates and recursion."""
         inner2 = QuantumCircuit(2)
