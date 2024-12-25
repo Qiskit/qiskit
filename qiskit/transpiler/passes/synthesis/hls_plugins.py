@@ -1662,7 +1662,6 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
         tracker = options.get("qubit_tracker", None)
         data = options.get("hls_data")
         input_qubits = options.get("input_qubits")
-        # output_qubits = input_qubits
 
         if len(modifiers) > 0:
             num_ctrl = sum(
@@ -1697,97 +1696,77 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
             if synthesized_base_op is None:
                 synthesized_base_op = _instruction_to_circuit(operation.base_op)
 
-            assert not isinstance(synthesized_base_op, DAGCircuit)
-
             tracker.set_dirty(input_qubits[num_ctrl:])
 
-            # This step currently does not introduce ancilla qubits.
-            synthesized = _apply_annotations(data, synthesized_base_op, operation.modifiers)
-            assert isinstance(synthesized, QuantumCircuit)
+            # This step currently does not introduce ancilla qubits. However it makes
+            # a lot of sense to allow this in the future.
+            synthesized = _apply_annotations(synthesized_base_op, operation.modifiers)
+
+            if not isinstance(synthesized, QuantumCircuit):
+                raise TranspilerError(
+                    "HighLevelSynthesis: problem with the default plugin for annotated operations."
+                )
 
             return synthesized
 
         return None
 
 
-def _apply_annotations(
-    data: "HLSData", synthesized: Operation | QuantumCircuit, modifiers: list[Modifier]
-) -> QuantumCircuit:
+def _apply_annotations(circuit: QuantumCircuit, modifiers: list[Modifier]) -> QuantumCircuit:
     """
-    Recursively synthesizes annotated operations.
-    Returns either the synthesized operation or None (which occurs when the operation
-    is not an annotated operation).
+    Applies modifiers to a quantum circuit.
     """
 
-    assert isinstance(synthesized, QuantumCircuit)
+    if not isinstance(circuit, QuantumCircuit):
+        raise TranspilerError("HighLevelSynthesis: incorrect input to 'apply_annotations'.")
 
     for modifier in modifiers:
         if isinstance(modifier, InverseModifier):
-            # Both QuantumCircuit and Gate have inverse method
-            synthesized = synthesized.inverse()
+            circuit = circuit.inverse()
 
         elif isinstance(modifier, ControlModifier):
-            # Both QuantumCircuit and Gate have control method, however for circuits
-            # it is more efficient to avoid constructing the controlled quantum circuit.
+            if circuit.num_clbits > 0:
+                raise TranspilerError(
+                    "HighLevelSynthesis: cannot control a circuit with classical bits."
+                )
 
-            assert synthesized.num_clbits == 0
-
-            controlled_circ = QuantumCircuit(modifier.num_ctrl_qubits + synthesized.num_qubits)
-
-            if isinstance(synthesized, QuantumCircuit):
-                for inst in synthesized:
-                    inst_op = inst.operation
-                    inst_qubits = inst.qubits
-                    controlled_op = inst_op.control(
-                        num_ctrl_qubits=modifier.num_ctrl_qubits,
-                        label=None,
-                        ctrl_state=modifier.ctrl_state,
-                        annotated=False,
-                    )
-                    controlled_qubits = list(range(0, modifier.num_ctrl_qubits)) + [
-                        modifier.num_ctrl_qubits + synthesized.find_bit(q).index
-                        for q in inst_qubits
-                    ]
-                    controlled_circ.append(controlled_op, controlled_qubits)
-            else:
-                assert False
-                assert (synthesized, Operation)
-                synthesized = synthesized.control(
+            # Apply the control modifier to each gate in the circuit.
+            controlled_circuit = QuantumCircuit(modifier.num_ctrl_qubits + circuit.num_qubits)
+            for inst in circuit:
+                inst_op = inst.operation
+                inst_qubits = inst.qubits
+                controlled_op = inst_op.control(
                     num_ctrl_qubits=modifier.num_ctrl_qubits,
                     label=None,
                     ctrl_state=modifier.ctrl_state,
                     annotated=False,
                 )
+                controlled_qubits = list(range(0, modifier.num_ctrl_qubits)) + [
+                    modifier.num_ctrl_qubits + circuit.find_bit(q).index for q in inst_qubits
+                ]
+                controlled_circuit.append(controlled_op, controlled_qubits)
 
-                controlled_circ.append(synthesized, controlled_circ.qubits)
+            circuit = controlled_circuit
 
-            synthesized = controlled_circ
-
-            if isinstance(synthesized, AnnotatedOperation):
+            if isinstance(circuit, AnnotatedOperation):
                 raise TranspilerError(
-                    "HighLevelSynthesis failed to synthesize the control modifier."
+                    "HighLevelSynthesis: failed to synthesize the control modifier."
                 )
 
         elif isinstance(modifier, PowerModifier):
-            # QuantumCircuit has power method, and Gate needs to be converted
-            # to a quantum circuit.
-            if not isinstance(synthesized, QuantumCircuit):
-                synthesized = _instruction_to_circuit(synthesized)
-
-            synthesized = synthesized.power(modifier.power)
+            circuit = circuit.power(modifier.power)
 
         else:
-            raise TranspilerError(f"Unknown modifier {modifier}.")
+            raise TranspilerError(f"HighLevelSynthesis: Unknown modifier {modifier}.")
 
-    if not isinstance(synthesized, QuantumCircuit):
-        circuit = QuantumCircuit(synthesized.num_qubits)
-        circuit.append(synthesized, circuit.qubits)
-        return circuit
+    if not isinstance(circuit, QuantumCircuit):
+        raise TranspilerError("HighLevelSynthesis: incorrect output of 'apply_annotations'.")
 
-    return synthesized
+    return circuit
 
 
-def _instruction_to_circuit(inst: Instruction) -> QuantumCircuit:
-    circuit = QuantumCircuit(inst.num_qubits, inst.num_clbits)
-    circuit.append(inst, circuit.qubits, circuit.clbits)
+def _instruction_to_circuit(op: Operation) -> QuantumCircuit:
+    """Wraps a single operation into a quantum circuit."""
+    circuit = QuantumCircuit(op.num_qubits, op.num_clbits)
+    circuit.append(op, circuit.qubits, circuit.clbits)
     return circuit

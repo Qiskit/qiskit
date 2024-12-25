@@ -356,7 +356,7 @@ def _run(
     if not isinstance(input_circuit, QuantumCircuit) or (
         input_circuit.num_qubits != len(input_qubits)
     ):
-        raise TranspilerError("HighLevelSynthesis error: the input to 'run' is incorrect.")
+        raise TranspilerError("HighLevelSynthesis: the input to 'run' is incorrect.")
 
     # We iteratively process circuit instructions in the order they appear in the input circuit,
     # and add the synthesized instructions to the output circuit. Note that in the process the
@@ -443,7 +443,7 @@ def _run(
             synthesized_circuit.num_qubits != len(synthesized_circuit_qubits)
         ):
             raise TranspilerError(
-                "HighLevelSynthesis error: the output from 'synthesize_operation' is incorrect."
+                "HighLevelSynthesis: the output from 'synthesize_operation' is incorrect."
             )
 
         # If the synthesized circuit uses (auxiliary) global qubits that are not in the output circuit,
@@ -473,7 +473,7 @@ def _run(
 
     # Another pedantic check that can possibly be removed.
     if output_circuit.num_qubits != len(output_qubits):
-        raise TranspilerError("HighLevelSynthesis error: the input from 'run' is incorrect.")
+        raise TranspilerError("HighLevelSynthesis: the input from 'run' is incorrect.")
 
     return (output_circuit, output_qubits)
 
@@ -505,7 +505,7 @@ def _synthesize_operation(
 
     if operation.num_qubits != len(input_qubits):
         raise TranspilerError(
-            "HighLevelSynthesis error: the input to 'synthesize_operation' is incorrect."
+            "HighLevelSynthesis: the input to 'synthesize_operation' is incorrect."
         )
 
     # Synthesize the operation:
@@ -542,9 +542,7 @@ def _synthesize_operation(
         if not isinstance(output_circuit, QuantumCircuit) or (
             output_circuit.num_qubits != len(output_qubits)
         ):
-            raise TranspilerError(
-                "HighLevelSynthesis error: the intermediate circuit is incorrect."
-            )
+            raise TranspilerError("HighLevelSynthesis: the intermediate circuit is incorrect.")
 
     if output_circuit is None:
         # if we didn't synthesize, there is nothing to do.
@@ -562,7 +560,7 @@ def _synthesize_operation(
 
     if (output_circuit is not None) and (output_circuit.num_qubits != len(output_qubits)):
         raise TranspilerError(
-            "HighLevelSynthesis error: the output of 'synthesize_operation' is incorrect."
+            "HighLevelSynthesis: the output of 'synthesize_operation' is incorrect."
         )
 
     return output_circuit, output_qubits
@@ -737,7 +735,7 @@ def _synthesize_op_using_plugins(
         # of ancilla qubits to borrow from the tracker.
         if best_decomposition.num_qubits != len(output_qubits):
             raise TranspilerError(
-                "HighLevelSynthesis error: the result from 'synthesize_op_using_plugin' is incorrect."
+                "HighLevelSynthesis: the result from 'synthesize_op_using_plugin' is incorrect."
             )
 
     return (best_decomposition, output_qubits)
