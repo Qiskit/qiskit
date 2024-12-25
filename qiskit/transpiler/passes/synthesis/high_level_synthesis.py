@@ -17,31 +17,20 @@ High-level-synthesis transpiler pass.
 from __future__ import annotations
 
 import typing
-from functools import partial
 from collections.abc import Callable
 
 import numpy as np
 
-from qiskit.circuit.annotated_operation import Modifier
 from qiskit.circuit.controlflow.control_flow import ControlFlowOp
 from qiskit.circuit.operation import Operation
-from qiskit.circuit.instruction import Instruction
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit import ControlledGate, EquivalenceLibrary, equivalence, Qubit
-from qiskit.transpiler.passes.utils import control_flow
 from qiskit.transpiler.target import Target
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.transpiler.exceptions import TranspilerError
-
-from qiskit.circuit.annotated_operation import (
-    AnnotatedOperation,
-    InverseModifier,
-    ControlModifier,
-    PowerModifier,
-)
 
 from qiskit._accelerate.high_level_synthesis import QubitTracker
 from .plugin import HighLevelSynthesisPluginManager
@@ -266,8 +255,6 @@ class HighLevelSynthesis(TransformationPass):
 
         if target is not None:
             coupling_map = target.build_coupling_map()
-        else:
-            coupling_map = coupling_map
 
         top_level_only = basis_gates is None and target is None
 
@@ -396,7 +383,7 @@ def _run(
             continue
 
         # Check if synthesis for this operation can be skipped
-        if _definitely_skip_op(op, op_qubits, data, input_circuit):
+        if _definitely_skip_op(op, op_qubits, data):
             output_circuit.append(op, inst.qubits, inst.clbits)
             tracker.set_dirty(op_qubits)
             continue
@@ -431,8 +418,8 @@ def _run(
             op, op_qubits, data, tracker
         )
 
-        # If the synthesis did not change anything, we add the operation to the output circuit and update the
-        # qubit tracker.
+        # If the synthesis did not change anything, we add the operation to the output circuit
+        # and update the qubit tracker.
         if synthesized_circuit is None:
             output_circuit.append(op, inst.qubits, inst.clbits)
             tracker.set_dirty(op_qubits)
@@ -788,7 +775,7 @@ def _definitely_skip_node(
     )
 
 
-def _definitely_skip_op(op: Operation, qubits: tuple[int], data: HLSData, dag: DAGCircuit) -> bool:
+def _definitely_skip_op(op: Operation, qubits: tuple[int], data: HLSData) -> bool:
     """Check if an operation does not need to be synthesized."""
 
     # It would be nice to avoid code duplication with the previous function, the difference is

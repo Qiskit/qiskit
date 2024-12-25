@@ -13,7 +13,6 @@
 """Test multiplier circuits."""
 
 import unittest
-import re
 import numpy as np
 from ddt import ddt, data, unpack
 

@@ -412,12 +412,8 @@ import warnings
 import numpy as np
 import rustworkx as rx
 
-from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.dagcircuit.dagcircuit import DAGCircuit
-from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.operation import Operation
-from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.library import (
     LinearFunction,
     QFTGate,
@@ -1625,7 +1621,6 @@ class PauliEvolutionSynthesisRustiq(HighLevelSynthesisPlugin):
         preserve_order = options.get("preserve_order", True)
         upto_clifford = options.get("upto_clifford", False)
         upto_phase = options.get("upto_phase", False)
-        input_qubits = options.get("input_qubits")
         resynth_clifford_method = options.get("resynth_clifford_method", 1)
 
         return synth_pauli_network_rustiq(
