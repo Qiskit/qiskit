@@ -251,7 +251,7 @@ impl QubitContext {
     /// Pretty-prints
     pub fn __str__(&self) -> String {
         let mut out = String::from("QubitContext(");
-        for (q_loc, q_glob ) in self.local_to_global.iter().enumerate() {
+        for (q_loc, q_glob) in self.local_to_global.iter().enumerate() {
             out.push_str(&q_loc.to_string());
             out.push(':');
             out.push(' ');
