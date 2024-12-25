@@ -1618,6 +1618,7 @@ class TestHighLevelSynthesisModifiers(QiskitTestCase):
         self.assertEqual(Statevector(qc), Statevector(qct))
 
     def test_annotated_circuit_with_phase(self):
+        """Test controlled-annotated circuits with global phase."""
         inner = QuantumCircuit(2)
         inner.global_phase = 1
         inner.h(0)
