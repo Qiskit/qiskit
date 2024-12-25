@@ -550,8 +550,12 @@ def _synthesize_operation(
         pass
     else:
         # Output circuit is a quantum circuit which we want to process recursively.
-        # We save the current state of the tracker to be able to return the ancilla
-        # qubits to the current positions.
+        # Currently, neither 'synthesize_op_using_plugins' nor 'get_custom_definition'
+        # update the tracker (we might want to change this in the future), which makes
+        # sense because we have not synthesized the output circuit yet.
+        # So we pass the tracker to '_run' but make sure to restore the status of
+        # clean ancilla qubits after the circuit is synthesized. In order to do that,
+        # we save the current state of the tracker.
         saved_tracker = tracker.copy()
         output_circuit, output_qubits = _run(output_circuit, output_qubits, data, tracker)
 
