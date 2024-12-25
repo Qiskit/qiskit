@@ -21,6 +21,7 @@ import scipy
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import transpile
 from qiskit.circuit import Gate, Parameter, EquivalenceLibrary, Qubit, Clbit, Measure
+from qiskit.circuit.equivalence_library import StandardEquivalenceLibrary as std_eq_lib
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.library import (
     HGate,
@@ -480,6 +481,22 @@ class TestBasisTranslator(QiskitTestCase):
         basis = {"rz", "sx", "cx", "for_loop", "if_else", "while_loop", "measure"}
         out = BasisTranslator(std_eqlib, basis).run(circuit_to_dag(base))
         self.assertEqual(set(out.count_ops(recurse=True)), basis)
+
+    def test_correct_parameter_assignment(self):
+        """Test correct parameter assignment from an equivalence during translation"""
+        rx_key = next(key for key in std_eq_lib.keys() if key.name == "rx")
+
+        # The circuit doesn't need to be parametric.
+        qc = QuantumCircuit(1)
+        qc.rx(0.5, 0)
+
+        BasisTranslator(
+            equivalence_library=std_eq_lib,
+            target_basis=["cx", "id", "rz", "sx", "x"],
+        )(qc)
+
+        inst = std_eq_lib._get_equivalences(rx_key)[0].circuit.data[0]
+        self.assertEqual(inst.params, inst.operation.params)
 
 
 class TestUnrollerCompatability(QiskitTestCase):

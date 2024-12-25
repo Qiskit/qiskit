@@ -24,7 +24,7 @@ from ddt import ddt, data
 from qiskit import transpile
 from qiskit.providers.fake_provider import Fake5QV1, GenericBackendV2
 from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
-from qiskit.circuit.library import QuantumVolume
+from qiskit.circuit.library import quantum_volume
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.transpiler.passes import UnitarySynthesis
 from qiskit.quantum_info.operators import Operator
@@ -558,7 +558,7 @@ class TestUnitarySynthesis(QiskitTestCase):
 
     def test_qv_natural(self):
         """check that quantum volume circuit compiles for natural direction"""
-        qv64 = QuantumVolume(5, seed=15)
+        qv64 = quantum_volume(5, seed=15)
 
         def construct_passmanager(basis_gates, coupling_map, synthesis_fidelity, pulse_optimize):
             seed = 2
