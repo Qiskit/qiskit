@@ -689,8 +689,8 @@ def _synthesize_op_using_plugins(
         # We may want to refactor the inputs and the outputs for the plugins' "run" method,
         # however this needs to be backwards-compatible.
         plugin_args["input_qubits"] = input_qubits
-        plugin_args["_data"] = data
-        plugin_args["_qubit_tracker"] = tracker
+        plugin_args["hls_data"] = data
+        plugin_args["qubit_tracker"] = tracker
         plugin_args["num_clean_ancillas"] = num_clean_ancillas
         plugin_args["num_dirty_ancillas"] = num_dirty_ancillas
 
@@ -729,9 +729,16 @@ def _synthesize_op_using_plugins(
     if best_decomposition is not None:
         if best_decomposition.num_qubits > len(input_qubits):
             global_aux_qubits = tracker.borrow(
-                best_decomposition.num_qubits - len(output_qubits), output_qubits
+                best_decomposition.num_qubits - len(input_qubits), input_qubits
             )
             output_qubits = output_qubits + global_aux_qubits
+
+        # This checks (in particular) that there is indeed a sufficient number
+        # of ancilla qubits to borrow from the tracker.
+        if best_decomposition.num_qubits != len(output_qubits):
+            raise TranspilerError(
+                "HighLevelSynthesis error: the result from 'synthesize_op_using_plugin' is incorrect."
+            )
 
     return (best_decomposition, output_qubits)
 
