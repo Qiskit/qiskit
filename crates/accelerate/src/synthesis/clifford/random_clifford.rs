@@ -132,10 +132,10 @@ pub fn random_clifford_tableau_inner(num_qubits: usize, seed: Option<u64>) -> Ar
 
     // Apply qubit permutation
     for i in 0..num_qubits {
-        replace_row_inner(table.view_mut(), i, table2.slice(s![i, ..]));
+        replace_row_inner(table.view_mut(), i, table2.slice(s![perm[i], ..]));
         replace_row_inner(
             table.view_mut(),
-            perm[i] + num_qubits,
+            i + num_qubits,
             table2.slice(s![perm[i] + num_qubits, ..]),
         );
     }

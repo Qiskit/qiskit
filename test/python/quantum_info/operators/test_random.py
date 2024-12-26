@@ -181,7 +181,7 @@ class TestRandomClifford(QiskitTestCase):
         self.assertEqual(value1, value2)
 
     def test_not_global_seed(self):
-        """Test fixing random_hermitian seed is locally scoped."""
+        """Test fixing random_seed is locally scoped."""
         seed = 314159
         test_cases = 100
         random_hermitian(2, seed=seed)
@@ -189,6 +189,26 @@ class TestRandomClifford(QiskitTestCase):
         random_hermitian(2, seed=seed)
         rng_after = np.random.randint(1000, size=test_cases)
         self.assertFalse(np.all(rng_before == rng_after))
+
+    def test_cliffords_2q(self):
+        """Test that we get all 2-qubit Cliffords (actually symplectic
+        matrices) with sufficiently many trials.
+        """
+        seen = set()
+        for seed in range(10000):
+            cliff = random_clifford(2, seed)
+            seen.add(cliff.symplectic_matrix.tobytes())
+        self.assertEqual(len(seen), 720)
+
+    def test_clifford_2q_decompositions(self):
+        """Test that we get all possible CX-counts for 2q-random cliffords
+        with sufficiently many trials.
+        """
+        seen = set()
+        for seed in range(100):
+            cliff = random_clifford(2, seed)
+            seen.add(cliff.to_circuit().count_ops().get("cx", 0))
+        self.assertEqual(seen, {0, 1, 2, 3})
 
 
 @ddt
