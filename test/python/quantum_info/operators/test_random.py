@@ -181,7 +181,7 @@ class TestRandomClifford(QiskitTestCase):
         self.assertEqual(value1, value2)
 
     def test_not_global_seed(self):
-        """Test fixing random_seed is locally scoped."""
+        """Test fixing random_hermitian seed is locally scoped."""
         seed = 314159
         test_cases = 100
         random_hermitian(2, seed=seed)
