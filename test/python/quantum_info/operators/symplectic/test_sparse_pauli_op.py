@@ -148,6 +148,7 @@ class TestSparsePauliOpInit(QiskitTestCase):
         print(yy.coeffs)
         self.assertEqual(yyy.coeffs, yy.coeffs)
 
+
 @ddt.ddt
 class TestSparsePauliOpConversions(QiskitTestCase):
     """Tests SparsePauliOp representation conversions."""
