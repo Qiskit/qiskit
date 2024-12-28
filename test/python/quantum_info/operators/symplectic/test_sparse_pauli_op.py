@@ -142,13 +142,11 @@ class TestSparsePauliOpInit(QiskitTestCase):
 
     def test_sparse_pauli_op_init_long_ys(self):
         """Test heavy-weight SparsePauliOp initialization."""
-        with self.subTest(msg="make SparsePauliOp from string of Y's"):
-            yyy = SparsePauliOp("Y" * 100)
-            print(yyy.coeffs)
-            yy = SparsePauliOp("Y" * 99)
-            print(yy.coeffs)
-            self.assertEqual(yyy.coeffs, yy.coeffs)
-
+        yyy = SparsePauliOp("Y" * 100)
+        print(yyy.coeffs)
+        yy = SparsePauliOp("Y" * 99)
+        print(yy.coeffs)
+        self.assertEqual(yyy.coeffs, yy.coeffs)
 
 @ddt.ddt
 class TestSparsePauliOpConversions(QiskitTestCase):
