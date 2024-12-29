@@ -168,7 +168,8 @@ class SparsePauliOp(LinearOp):
             phase = pauli_list._phase
             count_y = pauli_list._count_y()
 
-            # Compute exponentiation via integer arithmetic and lookup table to avoid floating point errors
+            # Compute exponentiation via integer arithmetic and lookup table to avoid 
+            # floating point errors
             exponent = (phase - count_y) % 4
             lookup = np.array([1 + 0j, -1j, -1 + 0j, 1j], dtype=coeffs.dtype)
 
