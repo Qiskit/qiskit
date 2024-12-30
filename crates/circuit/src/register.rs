@@ -7,7 +7,7 @@ use crate::{Clbit, Qubit};
 /// This represents the hash value of a Register according to the register's
 /// name and number of qubits.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub(crate) struct RegisterAsKey(u64);
+pub struct RegisterAsKey(u64);
 
 impl RegisterAsKey {
     pub fn new(name: Option<&str>, num_qubits: u32) -> Self {
@@ -30,36 +30,6 @@ impl<'py> FromPyObject<'py> for RegisterAsKey {
         ))
     }
 }
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub(crate) struct RegistryIndex(u32);
-
-impl From<usize> for RegistryIndex {
-    fn from(value: usize) -> Self {
-        Self(value.try_into().expect("Index falls out of range"))
-    }
-}
-
-impl From<u32> for RegistryIndex {
-    fn from(value: u32) -> Self {
-        Self(value)
-    }
-}
-
-/// Represents a collection of registers of a certain type within a circuit.
-#[derive(Debug, Clone)]
-pub(crate) struct CircuitRegistry<T: Register> {
-    registry: IndexSet<T>,
-}
-
-impl<T: Register> Index<RegistryIndex> for CircuitRegistry<T> {
-    type Output = T;
-
-    fn index(&self, index: RegistryIndex) -> &Self::Output {
-        &self.registry[index.0 as usize]
-    }
-}
-
 /// Described the desired behavior of a Register.
 pub trait Register {
     /// The type of bit stored by the [Register]
@@ -71,11 +41,13 @@ pub trait Register {
     fn contains(&self, bit: Self::Bit) -> bool;
     /// Finds the local index of a certain bit within [Register].
     fn find_index(&self, bit: Self::Bit) -> Option<u32>;
+    /// Return an iterator over all the bits in the register
+    fn bits(&self) -> impl ExactSizeIterator<Item=Self::Bit>;
 }
 
 macro_rules! create_register {
     ($name:ident, $bit:ty) => {
-        #[derive(Debug, Clone)]
+        #[derive(Debug, Clone, Eq)]
         pub struct $name {
             register: IndexSet<<$name as Register>::Bit>,
             name: Option<String>,
@@ -104,6 +76,10 @@ macro_rules! create_register {
             fn find_index(&self, bit: Self::Bit) -> Option<u32> {
                 self.register.get_index_of(&bit).map(|idx| idx as u32)
             }
+
+            fn bits(&self) -> impl ExactSizeIterator<Item=Self::Bit> {
+                self.register.iter().copied()
+            }
         }
         
         impl Hash for $name {
@@ -111,8 +87,49 @@ macro_rules! create_register {
                 (self.name.as_ref(), self.len()).hash(state);
             }
         }
+
+        impl PartialEq for $name {
+            fn eq(&self, other: &Self) -> bool {
+                self.register.len() == other.register.len() && self.name == other.name
+            }
+        }
     };
 }
 
 create_register!(QuantumRegister, Qubit);
 create_register!(ClassicalRegister, Clbit);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct RegistryIndex(u32);
+
+impl From<usize> for RegistryIndex {
+    fn from(value: usize) -> Self {
+        Self(value.try_into().expect("Index falls out of range"))
+    }
+}
+
+impl From<u32> for RegistryIndex {
+    fn from(value: u32) -> Self {
+        Self(value)
+    }
+}
+/// Represents a collection of registers of a certain type within a circuit.
+#[derive(Debug, Clone)]
+pub(crate) struct CircuitRegistry<T: Register> {
+    registry: IndexSet<T>,
+}
+
+impl<T: Register> Index<RegistryIndex> for CircuitRegistry<T> {
+    type Output = T;
+
+    fn index(&self, index: RegistryIndex) -> &Self::Output {
+        &self.registry[index.0 as usize]
+    }
+}
+
+impl<T: Register + Hash + Eq> CircuitRegistry<T> {
+    /// Retreives the index of a register if it exists within a registry.
+    pub fn find_index(&self, register: &T) -> Option<RegistryIndex> {
+        self.registry.get_index_of(register).map(RegistryIndex::from)
+    }
+}
