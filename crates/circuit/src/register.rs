@@ -1,8 +1,11 @@
-use std::{hash::{DefaultHasher, Hash, Hasher}, ops::Index};
 use indexmap::IndexSet;
 use pyo3::{intern, types::PyAnyMethods, FromPyObject};
+use std::hash::{DefaultHasher, Hash, Hasher};
 
-use crate::{Clbit, Qubit};
+use crate::{
+    interner::{Interned, Interner},
+    Clbit, Qubit,
+};
 
 /// This represents the hash value of a Register according to the register's
 /// name and number of qubits.
@@ -25,7 +28,7 @@ impl<'py> FromPyObject<'py> for RegisterAsKey {
             ob.getattr(intern!(ob.py(), "num_qubits"))?.extract()?,
         );
         Ok(RegisterAsKey::new(
-            name.as_ref().map(|x| x.as_str()),
+            name.as_deref(),
             num_qubits,
         ))
     }
@@ -34,7 +37,7 @@ impl<'py> FromPyObject<'py> for RegisterAsKey {
 pub trait Register {
     /// The type of bit stored by the [Register]
     type Bit;
-    
+
     /// Returns the size of the [Register].
     fn len(&self) -> usize;
     /// Checks if a bit exists within the [Register].
@@ -42,7 +45,7 @@ pub trait Register {
     /// Finds the local index of a certain bit within [Register].
     fn find_index(&self, bit: Self::Bit) -> Option<u32>;
     /// Return an iterator over all the bits in the register
-    fn bits(&self) -> impl ExactSizeIterator<Item=Self::Bit>;
+    fn bits(&self) -> impl ExactSizeIterator<Item = Self::Bit>;
 }
 
 macro_rules! create_register {
@@ -52,7 +55,7 @@ macro_rules! create_register {
             register: IndexSet<<$name as Register>::Bit>,
             name: Option<String>,
         }
-        
+
         impl $name {
             pub fn new(size: usize, name: Option<String>) -> Self {
                 Self {
@@ -61,27 +64,27 @@ macro_rules! create_register {
                 }
             }
         }
-        
+
         impl Register for $name {
             type Bit = $bit;
-        
+
             fn len(&self) -> usize {
                 self.register.len()
             }
-        
+
             fn contains(&self, bit: Self::Bit) -> bool {
                 self.register.contains(&bit)
             }
-        
+
             fn find_index(&self, bit: Self::Bit) -> Option<u32> {
                 self.register.get_index_of(&bit).map(|idx| idx as u32)
             }
 
-            fn bits(&self) -> impl ExactSizeIterator<Item=Self::Bit> {
+            fn bits(&self) -> impl ExactSizeIterator<Item = Self::Bit> {
                 self.register.iter().copied()
             }
         }
-        
+
         impl Hash for $name {
             fn hash<H: Hasher>(&self, state: &mut H) {
                 (self.name.as_ref(), self.len()).hash(state);
@@ -99,37 +102,24 @@ macro_rules! create_register {
 create_register!(QuantumRegister, Qubit);
 create_register!(ClassicalRegister, Clbit);
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct RegistryIndex(u32);
-
-impl From<usize> for RegistryIndex {
-    fn from(value: usize) -> Self {
-        Self(value.try_into().expect("Index falls out of range"))
-    }
-}
-
-impl From<u32> for RegistryIndex {
-    fn from(value: u32) -> Self {
-        Self(value)
-    }
-}
 /// Represents a collection of registers of a certain type within a circuit.
 #[derive(Debug, Clone)]
-pub(crate) struct CircuitRegistry<T: Register> {
-    registry: IndexSet<T>,
+pub(crate) struct CircuitRegistry<T: Register + Clone> {
+    registry: Interner<T>,
 }
 
-impl<T: Register> Index<RegistryIndex> for CircuitRegistry<T> {
-    type Output = T;
-
-    fn index(&self, index: RegistryIndex) -> &Self::Output {
-        &self.registry[index.0 as usize]
+impl<T: Register + Hash + Eq + Clone> CircuitRegistry<T> {
+    pub fn add_register(&mut self, register: T) -> Interned<T> {
+        self.registry.insert_owned(register)
     }
-}
 
-impl<T: Register + Hash + Eq> CircuitRegistry<T> {
     /// Retreives the index of a register if it exists within a registry.
-    pub fn find_index(&self, register: &T) -> Option<RegistryIndex> {
-        self.registry.get_index_of(register).map(RegistryIndex::from)
+    pub fn find_index(&self, register: &T) -> Option<Interned<T>> {
+        self.registry.get_interned(register)
+    }
+
+    /// Checks if a register exists within a circuit
+    pub fn contains(&self, register: &T) -> bool {
+        self.registry.contains(register)
     }
 }
