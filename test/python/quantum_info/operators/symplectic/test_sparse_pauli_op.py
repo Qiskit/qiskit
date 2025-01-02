@@ -142,7 +142,7 @@ class TestSparsePauliOpInit(QiskitTestCase):
 
     def test_sparse_pauli_op_init_long_ys(self):
         """Test heavy-weight SparsePauliOp initialization."""
-        y = SparsePauliOp("Y" * 1000) 
+        y = SparsePauliOp("Y" * 1000)
         self.assertEqual(1, y.coeffs[0])
 
 
