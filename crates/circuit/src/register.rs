@@ -1,36 +1,40 @@
 use indexmap::IndexSet;
 use pyo3::{intern, types::PyAnyMethods, FromPyObject};
-use std::hash::{DefaultHasher, Hash, Hasher};
+use std::{
+    hash::{Hash, Hasher},
+    sync::Mutex,
+};
 
 use crate::{
     interner::{Interned, Interner},
     Clbit, Qubit,
 };
 
+static REGISTER_INSTANCE_COUNTER: Mutex<u32> = Mutex::new(0);
+static PREFIX: &str = "reg";
+
 /// This represents the hash value of a Register according to the register's
 /// name and number of qubits.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct RegisterAsKey(u64);
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct RegisterAsKey(String, u32);
 
 impl RegisterAsKey {
-    pub fn new(name: Option<&str>, num_qubits: u32) -> Self {
-        let mut hasher = DefaultHasher::default();
-        (name, num_qubits).hash(&mut hasher);
-        Self(hasher.finish())
+    pub fn new(name: &str, num_qubits: u32) -> Self {
+        Self(name.to_string(), num_qubits)
+    }
+
+    pub fn reduce(&self) -> (&str, u32) {
+        (self.0.as_str(), self.1)
     }
 }
 
 impl<'py> FromPyObject<'py> for RegisterAsKey {
     fn extract_bound(ob: &pyo3::Bound<'py, pyo3::PyAny>) -> pyo3::PyResult<Self> {
         let (name, num_qubits) = (
-            ob.getattr(intern!(ob.py(), "name"))?
-                .extract::<Option<String>>()?,
-            ob.getattr(intern!(ob.py(), "num_qubits"))?.extract()?,
+            ob.getattr(intern!(ob.py(), "name"))?.extract()?,
+            ob.len()? as u32,
         );
-        Ok(RegisterAsKey::new(
-            name.as_deref(),
-            num_qubits,
-        ))
+        Ok(RegisterAsKey(name, num_qubits))
     }
 }
 /// Described the desired behavior of a Register.
@@ -53,11 +57,23 @@ macro_rules! create_register {
         #[derive(Debug, Clone, Eq)]
         pub struct $name {
             register: IndexSet<<$name as Register>::Bit>,
-            name: Option<String>,
+            name: String,
         }
 
         impl $name {
             pub fn new(size: usize, name: Option<String>) -> Self {
+                let name = if let Some(name) = name {
+                    name
+                } else {
+                    let count = if let Ok(ref mut count) = REGISTER_INSTANCE_COUNTER.try_lock() {
+                        let curr = **count;
+                        **count += 1;
+                        curr
+                    } else {
+                        panic!("Could not access register counter.")
+                    };
+                    format!("{}{}", PREFIX, count)
+                };
                 Self {
                     register: (0..size).map(|bit| <$bit>::new(bit)).collect(),
                     name,
@@ -87,7 +103,7 @@ macro_rules! create_register {
 
         impl Hash for $name {
             fn hash<H: Hasher>(&self, state: &mut H) {
-                (self.name.as_ref(), self.len()).hash(state);
+                (self.name.as_str(), self.len()).hash(state);
             }
         }
 
