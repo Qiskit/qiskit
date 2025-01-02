@@ -26,6 +26,8 @@ use qiskit_circuit::Qubit;
 
 use crate::two_qubit_decompose::{Specialization, TwoQubitWeylDecomposition};
 
+/// Extracts the K1r and K1l gates from the decomposition
+/// and creates them as new 1-qubit unitary gates.
 fn create_k1_gates<'a>(
     decomp: &'a TwoQubitWeylDecomposition,
     py: Python<'a>,
@@ -43,6 +45,7 @@ fn create_k1_gates<'a>(
     Ok((k1r_gate, k1l_gate))
 }
 
+/// Creates a new instruction and adds it to the DAG.
 fn add_new_op(
     new_dag: &mut DAGCircuit,
     new_op: OperationFromPython,
