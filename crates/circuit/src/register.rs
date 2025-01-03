@@ -1,11 +1,18 @@
 use indexmap::IndexSet;
-use pyo3::{intern, types::PyAnyMethods, FromPyObject};
+use pyo3::{
+    intern,
+    prelude::*,
+    types::{PyAnyMethods, PySet},
+    FromPyObject,
+};
 use std::{
     hash::{Hash, Hasher},
     sync::Mutex,
 };
 
 use crate::{
+    bit::PyBit,
+    circuit_data::CircuitError,
     interner::{Interned, Interner},
     Clbit, Qubit,
 };
@@ -53,7 +60,9 @@ pub trait Register {
 }
 
 macro_rules! create_register {
-    ($name:ident, $bit:ty) => {
+    ($name:ident, $bit:ty, $counter:ident, $prefix:literal) => {
+        static $counter: Mutex<u32> = Mutex::new(0);
+
         #[derive(Debug, Clone, Eq)]
         pub struct $name {
             register: IndexSet<<$name as Register>::Bit>,
@@ -65,14 +74,14 @@ macro_rules! create_register {
                 let name = if let Some(name) = name {
                     name
                 } else {
-                    let count = if let Ok(ref mut count) = REGISTER_INSTANCE_COUNTER.try_lock() {
+                    let count = if let Ok(ref mut count) = $counter.try_lock() {
                         let curr = **count;
                         **count += 1;
                         curr
                     } else {
                         panic!("Could not access register counter.")
                     };
-                    format!("{}{}", PREFIX, count)
+                    format!("{}{}", $prefix, count)
                 };
                 Self {
                     register: (0..size).map(|bit| <$bit>::new(bit)).collect(),
@@ -115,8 +124,8 @@ macro_rules! create_register {
     };
 }
 
-create_register!(QuantumRegister, Qubit);
-create_register!(ClassicalRegister, Clbit);
+create_register!(QuantumRegister, Qubit, QREG_COUNTER, "qr");
+create_register!(ClassicalRegister, Clbit, CREG_COUNTER, "cr");
 
 /// Represents a collection of registers of a certain type within a circuit.
 #[derive(Debug, Clone)]
@@ -137,5 +146,76 @@ impl<T: Register + Hash + Eq + Clone> CircuitRegistry<T> {
     /// Checks if a register exists within a circuit
     pub fn contains(&self, register: &T) -> bool {
         self.registry.contains(register)
+    }
+}
+
+/// Python representation of a generic register
+#[derive(Debug, Clone)]
+#[pyclass(name = "Register", module = "qiskit.circuit.register", subclass)]
+pub struct PyRegister {
+    /// Bits are stored in Python-space.
+    bits: Vec<Py<PyBit>>,
+    /// Name of the register in question
+    name: String,
+    /// Size of the register
+    size: u32,
+}
+
+#[pymethods]
+impl PyRegister {
+    #[new]
+    pub fn new(
+        py: Python,
+        mut size: Option<u32>,
+        mut name: Option<String>,
+        bits: Option<Vec<Py<PyBit>>>,
+    ) -> PyResult<Self> {
+        if (size.is_none(), bits.is_none()) == (false, false) || (size.is_some() && bits.is_some())
+        {
+            return Err(
+                CircuitError::new_err(
+                    format!("Exactly one of the size or bits arguments can be provided. Provided size={:?} bits={:?}.", size, bits)
+                )
+            );
+        }
+        if let Some(bits) = bits.as_ref() {
+            size = Some(bits.len() as u32);
+        }
+        if name.is_none() {
+            let count = if let Ok(ref mut count) = REGISTER_INSTANCE_COUNTER.try_lock() {
+                let curr = **count;
+                **count += 1;
+                curr
+            } else {
+                panic!("Could not access register counter.")
+            };
+            name = Some(format!("{}{}", "reg", count));
+        }
+        if let Some(bits) = bits {
+            if size != Some(PySet::new_bound(py, bits.iter())?.len() as u32) {
+                return Err(CircuitError::new_err(format!(
+                    "Register bits must not be duplicated. bits={:?}",
+                    bits
+                )));
+            }
+            Ok(Self {
+                bits,
+                name: name.unwrap(),
+                size: size.unwrap(),
+            })
+        } else {
+            let name = name.unwrap();
+            let size = size.unwrap();
+            let bits = (0..size)
+                .map(|idx| {
+                    Py::new(
+                        py,
+                        PyBit::new(Some(RegisterAsKey(name.clone(), size)), Some(idx)).unwrap(),
+                    )
+                    .unwrap()
+                })
+                .collect();
+            Ok(Self { bits, name, size })
+        }
     }
 }
