@@ -1,6 +1,6 @@
 use std::hash::{DefaultHasher, Hash, Hasher};
 
-use pyo3::{prelude::*, types::PyDict};
+use pyo3::{exceptions::PyTypeError, prelude::*, types::PyDict};
 
 use crate::{
     circuit_data::CircuitError,
@@ -90,13 +90,33 @@ impl PyBit {
     fn __setstate__(mut slf: PyRefMut<'_, Self>, state: (Option<(String, u32)>, Option<u32>)) {
         slf.register = state
             .0
-            .map(|(name, num_qubits)| RegisterAsKey::new(name.as_str(), num_qubits));
+            .map(|(name, num_qubits)| RegisterAsKey::Register((name, num_qubits)));
         slf.index = state.1;
+    }
+
+    fn __repr__(slf: Bound<Self>) -> PyResult<String> {
+        let borrowed = slf.borrow();
+        if borrowed.register.is_none() && borrowed.index.is_none() {
+            return Ok(slf.py_super()?.repr()?.to_string());
+        }
+        let reg = borrowed.register.as_ref().unwrap();
+        Ok(format!(
+            "{}({}({:?}, {}), {})",
+            slf.get_type().name()?,
+            reg.type_identifier(),
+            reg.name(),
+            reg.index(),
+            borrowed.index.unwrap()
+        ))
+    }
+
+    pub fn is_new(&self) -> bool {
+        self.index.is_none() && self.register.is_none()
     }
 }
 
 macro_rules! create_py_bit {
-    ($name:ident, $pyname:literal, $module:literal) => {
+    ($name:ident, $pyname:literal, $reg_type:pat, $module:literal) => {
         #[pyclass(name=$pyname, extends=PyBit, subclass, module=$module)]
         #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
         pub struct $name();
@@ -109,15 +129,23 @@ macro_rules! create_py_bit {
                 register: Option<RegisterAsKey>,
                 index: Option<u32>,
             ) -> PyResult<(Self, PyBit)> {
-                Ok((Self(), PyBit::new(register, index)?))
+                if register.is_none() || matches!(register, Some($reg_type)) {
+                    Ok((Self(), PyBit::new(register, index)?))
+                } else {
+                    Err(PyTypeError::new_err(format!(
+                        "The incorrect register was assigned. Bit type {}, Register type {}",
+                        $pyname,
+                        register.unwrap().type_identifier()
+                    )))
+                }
             }
         }
     };
 }
 
 // Create python instances
-create_py_bit! {PyQubit, "Qubit", "qiskit._accelerate.bit"}
-create_py_bit! {PyClbit, "Clbit", "qiskit._accelerate.bit"}
+create_py_bit! {PyQubit, "Qubit", RegisterAsKey::Quantum(_), "qiskit._accelerate.bit"}
+create_py_bit! {PyClbit, "Clbit", RegisterAsKey::Classical(_), "qiskit._accelerate.bit"}
 
 /// Keeps information about where a qubit is located within the circuit.
 #[derive(Debug, Clone)]
