@@ -25,7 +25,12 @@ class PadDelay(BasePadding):
 
     Consecutive delays will be merged in the output of this pass.
 
-    .. code-block:: python
+    .. plot::
+       :include-source:
+       :nofigs:
+
+        from qiskit import QuantumCircuit
+        from qiskit.transpiler import InstructionDurations
 
         durations = InstructionDurations([("x", None, 160), ("cx", None, 800)])
 
@@ -36,7 +41,7 @@ class PadDelay(BasePadding):
 
     The ASAP-scheduled circuit output may become
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌────────────────┐
         q_0: ┤ Delay(160[dt]) ├──■──

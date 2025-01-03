@@ -20,7 +20,7 @@ from typing import Dict, List, Optional, Union
 
 import numpy as np
 
-from qiskit.assembler import assemble_circuits, assemble_schedules
+from qiskit.assembler import assemble_schedules
 from qiskit.assembler.run_config import RunConfig
 from qiskit.circuit import Parameter, QuantumCircuit, Qubit
 from qiskit.exceptions import QiskitError
@@ -29,6 +29,8 @@ from qiskit.pulse import Instruction, LoConfig, Schedule, ScheduleBlock
 from qiskit.pulse.channels import PulseChannel
 from qiskit.qobj import QasmQobj, PulseQobj, QobjHeader
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
+from qiskit.utils import deprecate_func
+from qiskit.assembler.assemble_circuits import _assemble_circuits
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +41,14 @@ def _log_assembly_time(start_time, end_time):
 
 
 # TODO: parallelize over the experiments (serialize each separately, then add global header/config)
+@deprecate_func(
+    since="1.2",
+    removal_timeline="in the 2.0 release",
+    additional_msg="The `Qobj` class and related functionality are part of the deprecated "
+    "`BackendV1` workflow,  and no longer necessary for `BackendV2`. If a user "
+    "workflow requires `Qobj` it likely relies on deprecated functionality and "
+    "should be updated to use `BackendV2`.",
+)
 def assemble(
     experiments: Union[
         QuantumCircuit,
@@ -81,7 +91,7 @@ def assemble(
     to create ``Qobj`` "experiments". It further annotates the experiment payload with
     header and configurations.
 
-    NOTE: Backend.options is not used within assemble. The required values
+    NOTE: ``Backend.options`` is not used within assemble. The required values
     (previously given by backend.set_options) should be manually extracted
     from options and supplied directly when calling.
 
@@ -153,26 +163,101 @@ def assemble(
     Raises:
         QiskitError: if the input cannot be interpreted as either circuits or schedules
     """
-    start_time = time()
-    experiments = experiments if isinstance(experiments, list) else [experiments]
-    pulse_qobj = any(isinstance(exp, (ScheduleBlock, Schedule, Instruction)) for exp in experiments)
-    qobj_id, qobj_header, run_config_common_dict = _parse_common_args(
+    return _assemble(
+        experiments,
         backend,
         qobj_id,
         qobj_header,
         shots,
         memory,
         seed_simulator,
-        init_qubits,
-        rep_delay,
         qubit_lo_freq,
         meas_lo_freq,
         qubit_lo_range,
         meas_lo_range,
         schedule_los,
-        pulse_qobj=pulse_qobj,
+        meas_level,
+        meas_return,
+        meas_map,
+        memory_slot_size,
+        rep_time,
+        rep_delay,
+        parameter_binds,
+        parametric_pulses,
+        init_qubits,
         **run_config,
     )
+
+
+# Note for future: this method is used in `BasicSimulator` and may need to be kept past the
+# `assemble` removal deadline (2.0). If it is kept (potentially in a different location),
+# we will need an alternative for the backend.configuration() access that currently takes
+# place in L566 (`parse_circuit_args`) and L351 (`parse_common_args`)
+# because backend.configuration() is also set for removal in 2.0.
+# The ultimate goal will be to move away from relying on any kind of `assemble` implementation
+# because of how tightly coupled it is to these legacy data structures. But as a transition step,
+# given that we would only have to support the subcase of `BasicSimulator`, we could probably just
+# inline the relevant config values that are already hardcoded in the basic simulator configuration
+# generator.
+def _assemble(
+    experiments: Union[
+        QuantumCircuit,
+        List[QuantumCircuit],
+        Schedule,
+        List[Schedule],
+        ScheduleBlock,
+        List[ScheduleBlock],
+    ],
+    backend: Optional[Backend] = None,
+    qobj_id: Optional[str] = None,
+    qobj_header: Optional[Union[QobjHeader, Dict]] = None,
+    shots: Optional[int] = None,
+    memory: Optional[bool] = False,
+    seed_simulator: Optional[int] = None,
+    qubit_lo_freq: Optional[List[float]] = None,
+    meas_lo_freq: Optional[List[float]] = None,
+    qubit_lo_range: Optional[List[float]] = None,
+    meas_lo_range: Optional[List[float]] = None,
+    schedule_los: Optional[
+        Union[
+            List[Union[Dict[PulseChannel, float], LoConfig]],
+            Union[Dict[PulseChannel, float], LoConfig],
+        ]
+    ] = None,
+    meas_level: Union[int, MeasLevel] = MeasLevel.CLASSIFIED,
+    meas_return: Union[str, MeasReturnType] = MeasReturnType.AVERAGE,
+    meas_map: Optional[List[List[Qubit]]] = None,
+    memory_slot_size: int = 100,
+    rep_time: Optional[int] = None,
+    rep_delay: Optional[float] = None,
+    parameter_binds: Optional[List[Dict[Parameter, float]]] = None,
+    parametric_pulses: Optional[List[str]] = None,
+    init_qubits: bool = True,
+    **run_config: Dict,
+) -> Union[QasmQobj, PulseQobj]:
+    start_time = time()
+    experiments = experiments if isinstance(experiments, list) else [experiments]
+    pulse_qobj = any(isinstance(exp, (ScheduleBlock, Schedule, Instruction)) for exp in experiments)
+    with warnings.catch_warnings():
+        # The Qobj class is deprecated, the backend.configuration() method is too
+        warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+        qobj_id, qobj_header, run_config_common_dict = _parse_common_args(
+            backend,
+            qobj_id,
+            qobj_header,
+            shots,
+            memory,
+            seed_simulator,
+            init_qubits,
+            rep_delay,
+            qubit_lo_freq,
+            meas_lo_freq,
+            qubit_lo_range,
+            meas_lo_range,
+            schedule_los,
+            pulse_qobj=pulse_qobj,
+            **run_config,
+        )
 
     # assemble either circuits or schedules
     if all(isinstance(exp, QuantumCircuit) for exp in experiments):
@@ -191,7 +276,7 @@ def assemble(
         )
         end_time = time()
         _log_assembly_time(start_time, end_time)
-        return assemble_circuits(
+        return _assemble_circuits(
             circuits=bound_experiments,
             qobj_id=qobj_id,
             qobj_header=qobj_header,
@@ -479,9 +564,12 @@ def _parse_circuit_args(
     run_config_dict = {"parameter_binds": parameter_binds, **run_config}
     if parametric_pulses is None:
         if backend:
-            run_config_dict["parametric_pulses"] = getattr(
-                backend.configuration(), "parametric_pulses", []
-            )
+            with warnings.catch_warnings():
+                # TODO (2.0): See comment on L192 regarding backend.configuration removal
+                warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+                run_config_dict["parametric_pulses"] = getattr(
+                    backend.configuration(), "parametric_pulses", []
+                )
         else:
             run_config_dict["parametric_pulses"] = []
     else:

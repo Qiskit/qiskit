@@ -35,11 +35,7 @@ from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit._accelerate.nlayout import NLayout
-from qiskit._accelerate.sabre import (
-    sabre_layout_and_routing,
-    Heuristic,
-    NeighborTable,
-)
+from qiskit._accelerate.sabre import sabre_layout_and_routing, Heuristic, NeighborTable, SetScaling
 from qiskit.transpiler.passes.routing.sabre_swap import _build_sabre_dag, _apply_sabre_result
 from qiskit.transpiler.target import Target
 from qiskit.transpiler.coupling import CouplingMap
@@ -105,7 +101,10 @@ class SabreLayout(TransformationPass):
 
     **References:**
 
-    [1] Li, Gushu, Yufei Ding, and Yuan Xie. "Tackling the qubit mapping problem
+    [1] Henry Zou and Matthew Treinish and Kevin Hartman and Alexander Ivrii and Jake Lishman.
+    "LightSABRE: A Lightweight and Enhanced SABRE Algorithm"
+    `arXiv:2409.08368 <https://doi.org/10.48550/arXiv.2409.08368>`__
+    [2] Li, Gushu, Yufei Ding, and Yuan Xie. "Tackling the qubit mapping problem
     for NISQ-era quantum devices." ASPLOS 2019.
     `arXiv:1809.02573 <https://arxiv.org/pdf/1809.02573.pdf>`_
     """
@@ -149,7 +148,9 @@ class SabreLayout(TransformationPass):
                 (and ``routing_pass`` is not set) then the number of local
                 physical CPUs will be used as the default value. This option is
                 mutually exclusive with the ``routing_pass`` argument and an error
-                will be raised if both are used.
+                will be raised if both are used. An additional 3 or 4 trials
+                depending on the ``coupling_map`` value are run with common layouts
+                on top of the random trial count specified by this value.
             skip_routing (bool): If this is set ``True`` and ``routing_pass`` is not used
                 then routing will not be applied to the output circuit.  Only the layout
                 will be set in the property set. This is a tradeoff to run custom
@@ -314,7 +315,7 @@ class SabreLayout(TransformationPass):
             mapped_dag.add_captured_var(var)
         for var in dag.iter_declared_vars():
             mapped_dag.add_declared_var(var)
-        mapped_dag._global_phase = dag._global_phase
+        mapped_dag.global_phase = dag.global_phase
         self.property_set["original_qubit_indices"] = {
             bit: index for index, bit in enumerate(dag.qubits)
         }
@@ -393,12 +394,18 @@ class SabreLayout(TransformationPass):
             coupling_map.size(),
             original_qubit_indices,
         )
+        heuristic = (
+            Heuristic(attempt_limit=10 * coupling_map.size())
+            .with_basic(1.0, SetScaling.Size)
+            .with_lookahead(0.5, 20, SetScaling.Size)
+            .with_decay(0.001, 5)
+        )
         sabre_start = time.perf_counter()
         (initial_layout, final_permutation, sabre_result) = sabre_layout_and_routing(
             sabre_dag,
             neighbor_table,
             dist_matrix,
-            Heuristic.Decay,
+            heuristic,
             self.max_iterations,
             self.swap_trials,
             self.layout_trials,

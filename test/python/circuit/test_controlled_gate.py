@@ -19,7 +19,7 @@ import numpy as np
 from numpy import pi
 from ddt import ddt, data, unpack
 
-from qiskit import QuantumRegister, QuantumCircuit, QiskitError
+from qiskit import QuantumRegister, QuantumCircuit, QiskitError, transpile
 from qiskit.circuit import ControlledGate, Parameter, Gate
 from qiskit.circuit.annotated_operation import AnnotatedOperation
 from qiskit.circuit.singleton import SingletonControlledGate, _SingletonControlledGateOverrides
@@ -29,6 +29,7 @@ from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info.states import Statevector
 import qiskit.circuit.add_control as ac
 from qiskit.transpiler.passes import UnrollCustomDefinitions, BasisTranslator
+from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.converters.dag_to_circuit import dag_to_circuit
 from qiskit.quantum_info import Operator
@@ -46,9 +47,13 @@ from qiskit.circuit.library import (
     CCXGate,
     HGate,
     RZGate,
-    RXGate,
-    CPhaseGate,
     RYGate,
+    RXGate,
+    RZZGate,
+    RZXGate,
+    RYYGate,
+    RXXGate,
+    CPhaseGate,
     CRYGate,
     CRXGate,
     CSwapGate,
@@ -73,8 +78,11 @@ from qiskit.circuit.library import (
     C3SXGate,
     C4XGate,
     MCPhaseGate,
+    XXMinusYYGate,
+    XXPlusYYGate,
     GlobalPhaseGate,
     UnitaryGate,
+    MCMTGate,
 )
 from qiskit.circuit._utils import _compute_control_matrix
 import qiskit.circuit.library.standard_gates as allGates
@@ -501,112 +509,41 @@ class TestControlledGate(QiskitTestCase):
             with self.subTest(msg=f"control state = {ctrl_state}"):
                 self.assertTrue(matrix_equal(simulated, expected))
 
-    @data(1, 2, 3, 4)
-    def test_multi_control_toffoli_matrix_clean_ancillas(self, num_controls):
-        """Test the multi-control Toffoli gate with clean ancillas.
-
-        Based on the test moved here from Aqua:
-        https://github.com/Qiskit/qiskit-aqua/blob/769ca8f/test/aqua/test_mct.py
-        """
-        # set up circuit
-        q_controls = QuantumRegister(num_controls)
-        q_target = QuantumRegister(1)
-        qc = QuantumCircuit(q_controls, q_target)
-
-        if num_controls > 2:
-            num_ancillas = num_controls - 2
-            q_ancillas = QuantumRegister(num_controls)
-            qc.add_register(q_ancillas)
-        else:
-            num_ancillas = 0
-            q_ancillas = None
-
-        # apply hadamard on control qubits and toffoli gate
-        qc.mcx(q_controls, q_target[0], q_ancillas, mode="basic")
-
-        # obtain unitary for circuit
-        simulated = Operator(qc).data
-
-        # compare to expectation
-        if num_ancillas > 0:
-            simulated = simulated[: 2 ** (num_controls + 1), : 2 ** (num_controls + 1)]
-
-        base = XGate().to_matrix()
-        expected = _compute_control_matrix(base, num_controls)
-        self.assertTrue(matrix_equal(simulated, expected))
-
-    @data(1, 2, 3, 4, 5)
-    def test_multi_control_toffoli_matrix_basic_dirty_ancillas(self, num_controls):
-        """Test the multi-control Toffoli gate with dirty ancillas (basic-dirty-ancilla).
-
-        Based on the test moved here from Aqua:
-        https://github.com/Qiskit/qiskit-aqua/blob/769ca8f/test/aqua/test_mct.py
-        """
+    @combine(
+        num_controls=[2, 3, 4, 5, 6],
+        mode=[
+            "noancilla",
+            "recursion",
+            "v-chain",
+            "v-chain-dirty",
+            "advanced",
+            "basic",
+            "basic-dirty-ancilla",
+        ],
+    )
+    def test_multi_control_toffoli_matrix_advanced_num_ancillas(self, num_controls, mode):
+        """Test the multi-control Toffoli gate methods with and w/o ancillas."""
         q_controls = QuantumRegister(num_controls)
         q_target = QuantumRegister(1)
         qc = QuantumCircuit(q_controls, q_target)
 
         q_ancillas = None
-        if num_controls <= 2:
+        if mode == "noancilla":
             num_ancillas = 0
-        else:
-            num_ancillas = num_controls - 2
+        if mode in ["recursion", "advanced"]:
+            num_ancillas = int(num_controls > 4)
+            q_ancillas = QuantumRegister(num_ancillas)
+            qc.add_register(q_ancillas)
+        if mode[:7] == "v-chain" or mode[:5] == "basic":
+            num_ancillas = max(0, num_controls - 2)
             q_ancillas = QuantumRegister(num_ancillas)
             qc.add_register(q_ancillas)
 
-        qc.mcx(q_controls, q_target[0], q_ancillas, mode="basic-dirty-ancilla")
+        qc.mcx(q_controls, q_target[0], q_ancillas, mode=mode)
 
         simulated = Operator(qc).data
         if num_ancillas > 0:
             simulated = simulated[: 2 ** (num_controls + 1), : 2 ** (num_controls + 1)]
-
-        base = XGate().to_matrix()
-        expected = _compute_control_matrix(base, num_controls)
-        self.assertTrue(matrix_equal(simulated, expected, atol=1e-8))
-
-    @data(1, 2, 3, 4, 5)
-    def test_multi_control_toffoli_matrix_advanced_dirty_ancillas(self, num_controls):
-        """Test the multi-control Toffoli gate with dirty ancillas (advanced).
-
-        Based on the test moved here from Aqua:
-        https://github.com/Qiskit/qiskit-aqua/blob/769ca8f/test/aqua/test_mct.py
-        """
-        q_controls = QuantumRegister(num_controls)
-        q_target = QuantumRegister(1)
-        qc = QuantumCircuit(q_controls, q_target)
-
-        q_ancillas = None
-        if num_controls <= 4:
-            num_ancillas = 0
-        else:
-            num_ancillas = 1
-            q_ancillas = QuantumRegister(num_ancillas)
-            qc.add_register(q_ancillas)
-
-        qc.mcx(q_controls, q_target[0], q_ancillas, mode="advanced")
-
-        simulated = Operator(qc).data
-        if num_ancillas > 0:
-            simulated = simulated[: 2 ** (num_controls + 1), : 2 ** (num_controls + 1)]
-
-        base = XGate().to_matrix()
-        expected = _compute_control_matrix(base, num_controls)
-        self.assertTrue(matrix_equal(simulated, expected, atol=1e-8))
-
-    @data(1, 2, 3)
-    def test_multi_control_toffoli_matrix_noancilla_dirty_ancillas(self, num_controls):
-        """Test the multi-control Toffoli gate with dirty ancillas (noancilla).
-
-        Based on the test moved here from Aqua:
-        https://github.com/Qiskit/qiskit-aqua/blob/769ca8f/test/aqua/test_mct.py
-        """
-        q_controls = QuantumRegister(num_controls)
-        q_target = QuantumRegister(1)
-        qc = QuantumCircuit(q_controls, q_target)
-
-        qc.mcx(q_controls, q_target[0], None, mode="noancilla")
-
-        simulated = Operator(qc)
 
         base = XGate().to_matrix()
         expected = _compute_control_matrix(base, num_controls)
@@ -761,7 +698,6 @@ class TestControlledGate(QiskitTestCase):
         yields the expected number of cx gates."""
         qc = QuantumCircuit(num_ctrl_qubits + 1)
         qc.append(MCXGate(num_ctrl_qubits), range(num_ctrl_qubits + 1))
-        from qiskit import transpile
 
         cqc = transpile(qc, basis_gates=["u", "cx"])
         cx_count = cqc.count_ops()["cx"]
@@ -774,7 +710,7 @@ class TestControlledGate(QiskitTestCase):
         qc = QuantumCircuit(num_ctrl_qubits + 1)
         qc.append(MCXGrayCode(num_ctrl_qubits), list(range(qc.num_qubits)), [])
         explicit = {1: CXGate, 2: CCXGate, 3: C3XGate, 4: C4XGate}
-        self.assertEqual(type(qc[0].operation), explicit[num_ctrl_qubits])
+        self.assertEqual(qc[0].operation.base_class, explicit[num_ctrl_qubits])
 
     @data(3, 4, 5, 8)
     def test_mcx_gates(self, num_ctrl_qubits):
@@ -808,8 +744,6 @@ class TestControlledGate(QiskitTestCase):
     def test_mcxvchain_dirty_ancilla_cx_count(self, num_ctrl_qubits):
         """Test if cx count of the v-chain mcx with dirty ancilla
         is less than upper bound."""
-        from qiskit import transpile
-
         mcx_vchain = MCXVChain(num_ctrl_qubits, dirty_ancillas=True)
         qc = QuantumCircuit(mcx_vchain.num_qubits)
 
@@ -819,6 +753,34 @@ class TestControlledGate(QiskitTestCase):
         cx_count = tr_mcx_vchain.count_ops()["cx"]
 
         self.assertLessEqual(cx_count, 8 * num_ctrl_qubits - 6)
+
+    @data(5, 10, 15)
+    def test_mcxvchain_clean_ancilla_cx_count(self, num_ctrl_qubits):
+        """Test if cx count of the v-chain mcx with clean ancilla
+        is less than upper bound."""
+        mcx_vchain = MCXVChain(num_ctrl_qubits, dirty_ancillas=False)
+        qc = QuantumCircuit(mcx_vchain.num_qubits)
+
+        qc.append(mcx_vchain, list(range(mcx_vchain.num_qubits)))
+
+        tr_mcx_vchain = transpile(qc, basis_gates=["u", "cx"])
+        cx_count = tr_mcx_vchain.count_ops()["cx"]
+
+        self.assertLessEqual(cx_count, 6 * num_ctrl_qubits - 6)
+
+    @data(7, 10, 15)
+    def test_mcxrecursive_clean_ancilla_cx_count(self, num_ctrl_qubits):
+        """Test if cx count of the mcx with one clean ancilla
+        is less than upper bound."""
+        mcx_recursive = MCXRecursive(num_ctrl_qubits)
+        qc = QuantumCircuit(mcx_recursive.num_qubits)
+
+        qc.append(mcx_recursive, list(range(mcx_recursive.num_qubits)))
+
+        tr_mcx_rec = transpile(qc, basis_gates=["u", "cx"])
+        cx_count = tr_mcx_rec.count_ops()["cx"]
+
+        self.assertLessEqual(cx_count, 16 * num_ctrl_qubits - 8)
 
     def test_mcxvchain_dirty_ancilla_action_only(self):
         """Test the v-chain mcx with dirty auxiliary qubits
@@ -1127,13 +1089,18 @@ class TestControlledGate(QiskitTestCase):
         """
         if gate_class in {SingletonControlledGate, _SingletonControlledGateOverrides}:
             self.skipTest("SingletonControlledGate isn't directly instantiated.")
-        gate_params = _get_free_params(gate_class.__init__, ignore=["self"])
-        num_free_params = len(gate_params)
-        free_params = [0.1 * i for i in range(num_free_params)]
-        # set number of control qubits
-        for i in range(num_free_params):
-            if gate_params[i] == "num_ctrl_qubits":
-                free_params[i] = 3
+
+        if gate_class is MCMTGate:
+            # parameters are (base_gate, num_controls, num_targets)
+            free_params = [HGate(), 3, 2]
+        else:
+            gate_params = _get_free_params(gate_class.__init__, ignore=["self"])
+            num_free_params = len(gate_params)
+            free_params = [0.1 * i for i in range(num_free_params)]
+            # set number of control qubits
+            for i in range(num_free_params):
+                if gate_params[i] == "num_ctrl_qubits":
+                    free_params[i] = 3
 
         base_gate = gate_class(*free_params)
         cgate = base_gate.control()
@@ -1475,6 +1442,44 @@ class TestControlledGate(QiskitTestCase):
         target.flat[-1] = -1
         self.assertEqual(Operator(controlled), Operator(target))
 
+    @data(
+        RXGate,
+        RYGate,
+        RXXGate,
+        RYYGate,
+        RZXGate,
+        RZZGate,
+        UGate,
+        U3Gate,
+        XXMinusYYGate,
+        XXPlusYYGate,
+    )
+    def test_mc_failure_without_annotation(self, gate_cls):
+        """Test error for gates that cannot be multi-controlled without annotation."""
+        theta = Parameter("theta")
+        num_params = len(_get_free_params(gate_cls.__init__, ignore=["self"]))
+        params = [theta] + (num_params - 1) * [1.234]
+
+        for annotated in [False, None]:
+            with self.subTest(annotated=annotated):
+                # if annotated is False, check that a sensible error is raised
+                if annotated is False:
+                    with self.assertRaisesRegex(QiskitError, "unbound parameter"):
+                        _ = gate_cls(*params).control(5, annotated=False)
+
+                # else, check that the gate can be synthesized after all parameters
+                # have been bound
+                else:
+                    mc_gate = gate_cls(*params).control(5)
+
+                    circuit = QuantumCircuit(mc_gate.num_qubits)
+                    circuit.append(mc_gate, circuit.qubits)
+
+                    bound = circuit.assign_parameters([0.5123])
+                    unrolled = transpile(bound, basis_gates=["u", "cx"], optimization_level=0)
+
+                    self.assertEqual(unrolled.num_parameters, 0)
+
     def assertEqualTranslated(self, circuit, unrolled_reference, basis):
         """Assert that the circuit is equal to the unrolled reference circuit."""
         unroller = UnrollCustomDefinitions(std_eqlib, basis)
@@ -1492,13 +1497,19 @@ class TestOpenControlledToMatrix(QiskitTestCase):
         """Test open controlled to_matrix."""
         if gate_class in {SingletonControlledGate, _SingletonControlledGateOverrides}:
             self.skipTest("SingletonGateClass isn't intended for direct initalization")
-        gate_params = _get_free_params(gate_class.__init__, ignore=["self"])
-        num_free_params = len(gate_params)
-        free_params = [0.1 * i for i in range(1, num_free_params + 1)]
-        # set number of control qubits
-        for i in range(num_free_params):
-            if gate_params[i] == "num_ctrl_qubits":
-                free_params[i] = 3
+
+        if gate_class is MCMTGate:
+            # parameters are (base_gate, num_controls, num_targets)
+            free_params = [HGate(), 3, 2]
+        else:
+            gate_params = _get_free_params(gate_class.__init__, ignore=["self"])
+            num_free_params = len(gate_params)
+            free_params = [0.1 * i for i in range(1, num_free_params + 1)]
+            # set number of control qubits
+            for i in range(num_free_params):
+                if gate_params[i] == "num_ctrl_qubits":
+                    free_params[i] = 3
+
         cgate = gate_class(*free_params)
         cgate.ctrl_state = ctrl_state
 
@@ -1561,13 +1572,15 @@ class TestSingleControlledRotationGates(QiskitTestCase):
         uqc = dag_to_circuit(basis_translator.run(unroller.run(dag)))
         self.log.info("%s gate count: %d", cgate.name, uqc.size())
         self.log.info("\n%s", str(uqc))
-        # these limits could be changed
-        if gate.name == "ry":
-            self.assertLessEqual(uqc.size(), 32, f"\n{uqc}")
+
+        if gate.name in ["ry", "rx"]:
+            expected_cx = 8
         elif gate.name == "rz":
-            self.assertLessEqual(uqc.size(), 43, f"\n{uqc}")
-        else:
-            self.assertLessEqual(uqc.size(), 20, f"\n{uqc}")
+            expected_cx = 4
+        else:  # u1
+            expected_cx = 6
+
+        self.assertLessEqual(uqc.count_ops().get("cx", 0), expected_cx, f"\n{uqc}")
 
     def test_composite(self):
         """Test composite gate count."""
@@ -1584,6 +1597,25 @@ class TestSingleControlledRotationGates(QiskitTestCase):
         uqc = dag_to_circuit(basis_translator.run(unroller.run(dag)))
         self.log.info("%s gate count: %d", uqc.name, uqc.size())
         self.assertLessEqual(uqc.size(), 96, f"\n{uqc}")  # this limit could be changed
+
+    def test_mcrz_complexity(self):
+        """Test MCRZ is decomposed using the efficient MC-SU(2) algorithm.
+
+        Regression test of #13473.
+        """
+        basis_gates = ["sx", "x", "rz", "ecr"]
+        pm = generate_preset_pass_manager(
+            optimization_level=3, basis_gates=basis_gates, seed_transpiler=12345
+        )
+
+        num_qubits = 6
+        angle = np.pi / 7
+        qc = QuantumCircuit(num_qubits)
+        qc.append(RZGate(angle).control(num_qubits - 1), qc.qubits)
+
+        isa_qc = pm.run(qc)
+
+        self.assertLessEqual(isa_qc.count_ops().get("ecr", 0), 40)
 
 
 @ddt

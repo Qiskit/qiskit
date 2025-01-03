@@ -13,17 +13,17 @@
 """Tests for Estimator."""
 
 import unittest
+from test import QiskitTestCase
 
 import numpy as np
 
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.primitives import StatevectorEstimator
+from qiskit.primitives.containers.bindings_array import BindingsArray
 from qiskit.primitives.containers.estimator_pub import EstimatorPub
 from qiskit.primitives.containers.observables_array import ObservablesArray
-from qiskit.primitives.containers.bindings_array import BindingsArray
 from qiskit.quantum_info import SparsePauliOp
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestStatevectorEstimator(QiskitTestCase):
@@ -129,7 +129,7 @@ class TestStatevectorEstimator(QiskitTestCase):
                 self.subTest(f"{val}")
                 result = est.run([(qc, op, val)]).result()
                 np.testing.assert_allclose(result[0].data.evs, target)
-                self.assertEqual(result[0].metadata["precision"], 0)
+                self.assertEqual(result[0].metadata["target_precision"], 0)
 
         with self.subTest("One parameter"):
             param = Parameter("x")
@@ -145,7 +145,7 @@ class TestStatevectorEstimator(QiskitTestCase):
                 self.subTest(f"{val}")
                 result = est.run([(qc, op, val)]).result()
                 np.testing.assert_allclose(result[0].data.evs, target)
-                self.assertEqual(result[0].metadata["precision"], 0)
+                self.assertEqual(result[0].metadata["target_precision"], 0)
 
         with self.subTest("More than one parameter"):
             qc = self.psi[0]
@@ -162,7 +162,7 @@ class TestStatevectorEstimator(QiskitTestCase):
                 self.subTest(f"{val}")
                 result = est.run([(qc, op, val)]).result()
                 np.testing.assert_allclose(result[0].data.evs, target)
-                self.assertEqual(result[0].metadata["precision"], 0)
+                self.assertEqual(result[0].metadata["target_precision"], 0)
 
     def test_run_1qubit(self):
         """Test for 1-qubit cases"""
@@ -289,6 +289,53 @@ class TestStatevectorEstimator(QiskitTestCase):
         result = estimator.run(iter([(circuit, observable), (circuit, observable)])).result()
         np.testing.assert_allclose(result[0].data.evs, [-1.284366511861733])
         np.testing.assert_allclose(result[1].data.evs, [-1.284366511861733])
+
+    def test_metadata(self):
+        """Test for metadata"""
+        qc = QuantumCircuit(2)
+        qc2 = QuantumCircuit(2)
+        qc2.metadata = {"a": 1}
+        estimator = StatevectorEstimator()
+        result = estimator.run([(qc, "ZZ"), (qc2, "ZZ")], precision=0.1).result()
+
+        self.assertEqual(len(result), 2)
+        self.assertEqual(result.metadata, {"version": 2})
+        self.assertEqual(
+            result[0].metadata, {"target_precision": 0.1, "circuit_metadata": qc.metadata}
+        )
+        self.assertEqual(
+            result[1].metadata, {"target_precision": 0.1, "circuit_metadata": qc2.metadata}
+        )
+
+    def test_reset(self):
+        """Test for circuits with reset."""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.reset(0)
+        op = SparsePauliOp("ZI")
+
+        seed = 12
+        n = 1000
+        estimator = StatevectorEstimator(seed=seed)
+        with self.subTest("precision=0"):
+            result = estimator.run([(qc, [op] * n)]).result()
+            # expectation values should be stochastic due to reset for subsystems
+            np.testing.assert_allclose(result[0].data.evs.mean(), 0, atol=1e-1)
+
+            result2 = estimator.run([(qc, [op] * n)]).result()
+            # expectation values should be reproducible due to seed
+            np.testing.assert_allclose(result[0].data.evs, result2[0].data.evs)
+
+        with self.subTest("precision=0.01"):
+            precision = 0.01
+            result = estimator.run([(qc, [op] * n)], precision=precision).result()
+            # expectation values should be stochastic due to reset for subsystems
+            np.testing.assert_allclose(result[0].data.evs.mean(), 0, atol=1e-1)
+
+            result2 = estimator.run([(qc, [op] * n)], precision=precision).result()
+            # expectation values should be reproducible due to seed
+            np.testing.assert_allclose(result[0].data.evs, result2[0].data.evs)
 
 
 if __name__ == "__main__":

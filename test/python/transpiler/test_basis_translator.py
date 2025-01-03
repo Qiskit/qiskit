@@ -16,10 +16,12 @@
 import os
 
 from numpy import pi
+import scipy
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import transpile
 from qiskit.circuit import Gate, Parameter, EquivalenceLibrary, Qubit, Clbit, Measure
+from qiskit.circuit.equivalence_library import StandardEquivalenceLibrary as std_eq_lib
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.library import (
     HGate,
@@ -33,13 +35,17 @@ from qiskit.circuit.library import (
     XGate,
     SXGate,
     CXGate,
+    RXGate,
+    RZZGate,
 )
 from qiskit.converters import circuit_to_dag, dag_to_circuit, circuit_to_instruction
 from qiskit.exceptions import QiskitError
+from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.quantum_info import Operator
 from qiskit.transpiler.target import Target, InstructionProperties
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes.basis import BasisTranslator, UnrollCustomDefinitions
+from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.circuit.library.standard_gates.equivalence_library import (
     StandardEquivalenceLibrary as std_eqlib,
 )
@@ -476,6 +482,22 @@ class TestBasisTranslator(QiskitTestCase):
         out = BasisTranslator(std_eqlib, basis).run(circuit_to_dag(base))
         self.assertEqual(set(out.count_ops(recurse=True)), basis)
 
+    def test_correct_parameter_assignment(self):
+        """Test correct parameter assignment from an equivalence during translation"""
+        rx_key = next(key for key in std_eq_lib.keys() if key.name == "rx")
+
+        # The circuit doesn't need to be parametric.
+        qc = QuantumCircuit(1)
+        qc.rx(0.5, 0)
+
+        BasisTranslator(
+            equivalence_library=std_eq_lib,
+            target_basis=["cx", "id", "rz", "sx", "x"],
+        )(qc)
+
+        inst = std_eq_lib._get_equivalences(rx_key)[0].circuit.data[0]
+        self.assertEqual(inst.params, inst.operation.params)
+
 
 class TestUnrollerCompatability(QiskitTestCase):
     """Tests backward compatability with the Unroller pass.
@@ -571,9 +593,12 @@ class TestUnrollerCompatability(QiskitTestCase):
         circuit.rz(0.3, qr)
         circuit.rx(0.1, qr)
         circuit.measure(qr, cr)
-        circuit.x(qr).c_if(cr, 1)
-        circuit.y(qr).c_if(cr, 1)
-        circuit.z(qr).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.x(qr).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.y(qr).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.z(qr).c_if(cr, 1)
         dag = circuit_to_dag(circuit)
         pass_ = UnrollCustomDefinitions(std_eqlib, ["u1", "u2", "u3"])
         dag = pass_.run(dag)
@@ -604,9 +629,12 @@ class TestUnrollerCompatability(QiskitTestCase):
         ref_circuit.append(U1Gate(0.3), [qr[0]])
         ref_circuit.append(U3Gate(0.1, -pi / 2, pi / 2), [qr[0]])
         ref_circuit.measure(qr[0], cr[0])
-        ref_circuit.append(U3Gate(pi, 0, pi), [qr[0]]).c_if(cr, 1)
-        ref_circuit.append(U3Gate(pi, pi / 2, pi / 2), [qr[0]]).c_if(cr, 1)
-        ref_circuit.append(U1Gate(pi), [qr[0]]).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            ref_circuit.append(U3Gate(pi, 0, pi), [qr[0]]).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            ref_circuit.append(U3Gate(pi, pi / 2, pi / 2), [qr[0]]).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            ref_circuit.append(U1Gate(pi), [qr[0]]).c_if(cr, 1)
         ref_dag = circuit_to_dag(ref_circuit)
 
         self.assertEqual(unrolled_dag, ref_dag)
@@ -1068,7 +1096,8 @@ class TestBasisExamples(QiskitTestCase):
         circ.h(0)
         circ.cx(0, 1)
         circ.measure(1, 1)
-        circ.h(0).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            circ.h(0).c_if(cr, 1)
         circ_transpiled = transpile(circ, optimization_level=3, basis_gates=["cx", "id", "u"])
 
         #      ┌────────────┐        ┌────────────┐
@@ -1084,7 +1113,8 @@ class TestBasisExamples(QiskitTestCase):
         expected.u(pi / 2, 0, pi, 0)
         expected.cx(0, 1)
         expected.measure(1, 1)
-        expected.u(pi / 2, 0, pi, 0).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            expected.u(pi / 2, 0, pi, 0).c_if(cr, 1)
 
         self.assertEqual(circ_transpiled, expected)
 
@@ -1101,6 +1131,7 @@ class TestBasisExamples(QiskitTestCase):
             circ,
             basis_gates=["id", "rz", "sx", "x", "cx"],
             seed_transpiler=42,
+            optimization_level=1,
         )
         self.assertEqual(circ_transpiled.count_ops(), {"cx": 91, "rz": 66, "sx": 22})
 
@@ -1223,3 +1254,48 @@ class TestBasisTranslatorWithTarget(QiskitTestCase):
 
         out = BasisTranslator(eq_lib, {"my_h", "my_cx"}, target)(qc)
         self.assertEqual(out, expected)
+
+    def test_fractional_gate_in_basis_from_string(self):
+        """Test transpiling with RZZ in basis with only basis_gates option."""
+        num_qubits = 2
+        seed = 9169
+        basis_gates = ["rz", "rx", "rzz"]
+        qc = QuantumCircuit(num_qubits)
+        mat = scipy.stats.unitary_group.rvs(2**num_qubits, random_state=seed)
+        qc.unitary(mat, range(num_qubits))
+        pm = generate_preset_pass_manager(
+            optimization_level=1, basis_gates=basis_gates, seed_transpiler=134
+        )
+        cqc = pm.run(qc)
+        self.assertEqual(Operator(qc), Operator(cqc))
+
+    def test_fractional_gate_in_basis_from_backendv2(self):
+        """Test transpiling with RZZ in basis of backendv2."""
+        num_qubits = 2
+        seed = 9169
+        basis_gates = ["rz", "rx", "rzz"]
+        qc = QuantumCircuit(num_qubits)
+        mat = scipy.stats.unitary_group.rvs(2**num_qubits, random_state=seed)
+        qc.unitary(mat, range(num_qubits))
+        backend = GenericBackendV2(num_qubits, basis_gates=basis_gates)
+        target = backend.target
+        pm = generate_preset_pass_manager(optimization_level=1, target=target, seed_transpiler=134)
+        cqc = pm.run(qc)
+        self.assertEqual(Operator(qc), Operator.from_circuit(cqc))
+
+    def test_fractional_gate_in_basis_from_custom_target(self):
+        """Test transpiling with RZZ in basis of custom target."""
+        num_qubits = 2
+        seed = 9169
+        qc = QuantumCircuit(num_qubits)
+        mat = scipy.stats.unitary_group.rvs(2**num_qubits, random_state=seed)
+        qc.unitary(mat, range(num_qubits))
+        target = Target()
+        target.add_instruction(RZGate(self.theta), {(i,): None for i in range(qc.num_qubits)})
+        target.add_instruction(RXGate(self.phi), {(i,): None for i in range(qc.num_qubits)})
+        target.add_instruction(
+            RZZGate(self.lam), {(i, i + 1): None for i in range(qc.num_qubits - 1)}
+        )
+        pm = generate_preset_pass_manager(optimization_level=1, target=target, seed_transpiler=134)
+        cqc = pm.run(qc)
+        self.assertEqual(Operator(qc), Operator.from_circuit(cqc))

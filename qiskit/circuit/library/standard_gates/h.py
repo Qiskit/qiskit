@@ -11,6 +11,9 @@
 # that they have been altered from the originals.
 
 """Hadamard gate."""
+
+from __future__ import annotations
+
 from math import sqrt, pi
 from typing import Optional, Union
 import numpy
@@ -35,7 +38,7 @@ class HGate(SingletonGate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌───┐
         q_0: ┤ H ├
@@ -79,9 +82,9 @@ class HGate(SingletonGate):
     def control(
         self,
         num_ctrl_qubits: int = 1,
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[int, str]] = None,
-        annotated: bool = False,
+        label: str | None = None,
+        ctrl_state: int | str | None = None,
+        annotated: bool | None = None,
     ):
         """Return a (multi-)controlled-H gate.
 
@@ -92,8 +95,8 @@ class HGate(SingletonGate):
             label: An optional label for the gate [Default: ``None``]
             ctrl_state: control state expressed as integer,
                 string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: indicates whether the controlled gate can be implemented
-                as an annotated gate.
+            annotated: indicates whether the controlled gate should be implemented
+                as an annotated gate. If ``None``, this is handled as ``False``.
 
         Returns:
             ControlledGate: controlled version of this gate.
@@ -139,7 +142,7 @@ class CHGate(SingletonControlledGate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
         q_0: ──■──
              ┌─┴─┐
@@ -167,7 +170,8 @@ class CHGate(SingletonControlledGate):
         which in our case would be q_1. Thus a textbook matrix for this
         gate will be:
 
-        .. parsed-literal::
+        .. code-block:: text
+
                  ┌───┐
             q_0: ┤ H ├
                  └─┬─┘

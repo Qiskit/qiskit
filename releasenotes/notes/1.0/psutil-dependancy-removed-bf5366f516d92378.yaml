@@ -11,5 +11,5 @@ upgrade:
     number of processes used you can use the new ``num_processes`` argument to those functions, or
     the ``QISKIT_NUM_PROCS`` environment variable or ``num_processes`` field in a user configuration
     file (see the `local configuration guide
-    <https://docs.quantum.ibm.com/start/configure-qiskit-local>`__
+    <https://docs.quantum.ibm.com/guides/configure-qiskit-local>`__
     for more details) if you need to adjust the number of processes that Qiskit potentially uses.

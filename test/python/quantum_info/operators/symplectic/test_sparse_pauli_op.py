@@ -19,11 +19,11 @@ from test import QiskitTestCase, combine
 import numpy as np
 import rustworkx as rx
 import scipy.sparse
-from ddt import ddt
+import ddt
 
 from qiskit import QiskitError
 from qiskit.circuit import Parameter, ParameterExpression, ParameterVector
-from qiskit.circuit.library import EfficientSU2
+from qiskit.circuit.library import efficient_su2
 from qiskit.circuit.parametertable import ParameterView
 from qiskit.compiler.transpiler import transpile
 from qiskit.primitives import BackendEstimator
@@ -141,18 +141,48 @@ class TestSparsePauliOpInit(QiskitTestCase):
             self.assertEqual(spp_op, ref_op)
 
 
-@ddt
+@ddt.ddt
 class TestSparsePauliOpConversions(QiskitTestCase):
     """Tests SparsePauliOp representation conversions."""
 
-    def test_from_operator(self):
+    @ddt.data(1, 2, 4)
+    def test_from_operator_single(self, num_qubits):
         """Test from_operator methods."""
-        for tup in it.product(["I", "X", "Y", "Z"], repeat=2):
+        for tup in it.product(["I", "X", "Y", "Z"], repeat=num_qubits):
             label = "".join(tup)
             with self.subTest(msg=label):
                 spp_op = SparsePauliOp.from_operator(Operator(pauli_mat(label)))
                 np.testing.assert_array_equal(spp_op.coeffs, [1])
                 self.assertEqual(spp_op.paulis, PauliList(label))
+
+    @ddt.data(
+        SparsePauliOp.from_sparse_list([("", (), 1.0), ("X", (0,), -2.0j)], num_qubits=1),
+        SparsePauliOp.from_sparse_list([("", (), 1.0), ("Y", (0,), -2.0j)], num_qubits=1),
+        SparsePauliOp.from_sparse_list([("Y", (0,), 1.0), ("Z", (0,), -2.0j)], num_qubits=1),
+        SparsePauliOp.from_sparse_list(
+            [("Y", (0,), 1.0), ("YY", (1, 0), -0.5), ("YYY", (2, 1, 0), 1j)], num_qubits=3
+        ),
+        SparsePauliOp.from_sparse_list(
+            [("XZ", (2, 0), 1.0), ("YZ", (1, 0), -0.5), ("ZZ", (2, 1), 1j)], num_qubits=3
+        ),
+    )
+    def test_from_operator_roundtrip(self, op):
+        """Test `SparsePauliOp.from_operator` roundtrips things correctly."""
+        # Ensure canonical order of the input. Part of this test is ensuring that the output is
+        # given in canonical order too.  The coefficients in the inputs are chosen to be simple
+        # multiples of powers of two, so there are no floating-point rounding or associativity
+        # concerns.
+        op = op.simplify().sort()
+        roundtrip = SparsePauliOp.from_operator(op.to_matrix())
+        self.assertEqual(roundtrip, op)
+
+    def test_from_operator_tolerance(self):
+        """Test that terms whose coefficient falls below the tolerance are removed."""
+        operator = SparsePauliOp.from_list(
+            [("IIXI", 0.25), ("IIZI", -0.25j), ("IXYI", 0.5j)]
+        ).to_matrix()
+        expected = SparsePauliOp.from_list([("IXYI", 0.5j)])
+        self.assertEqual(SparsePauliOp.from_operator(operator, 0.26), expected)
 
     def test_from_list(self):
         """Test from_list method."""
@@ -271,7 +301,7 @@ class TestSparsePauliOpConversions(QiskitTestCase):
 
         zero_sparse = zero.to_matrix(sparse=True)
         self.assertIsInstance(zero_sparse, scipy.sparse.csr_matrix)
-        np.testing.assert_array_equal(zero_sparse.A, zero_numpy)
+        np.testing.assert_array_equal(zero_sparse.todense(), zero_numpy)
 
     def test_to_matrix_parallel_vs_serial(self):
         """Parallel execution should produce the same results as serial execution up to
@@ -416,7 +446,7 @@ def bind_parameters_to_one(array):
     return np.vectorize(bind_one, otypes=[complex])(array)
 
 
-@ddt
+@ddt.ddt
 class TestSparsePauliOpMethods(QiskitTestCase):
     """Tests for SparsePauliOp operator methods."""
 
@@ -1097,9 +1127,28 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         with self.assertRaisesRegex(ValueError, "incorrect number of operators"):
             op.paulis = PauliList([Pauli("XY"), Pauli("ZX"), Pauli("YZ")])
 
+    def test_paulis_setter_absorbs_phase(self):
+        """Test that the setter for `paulis` absorbs `paulis.phase` to `self.coeffs`."""
+        coeffs_init = np.array([1, 1j])
+        op = SparsePauliOp(["XY", "ZX"], coeffs=coeffs_init)
+        paulis_new = PauliList(["-1jXY", "1jZX"])
+        op.paulis = paulis_new
+        # Paulis attribute should have no phase:
+        self.assertEqual(op.paulis, PauliList(["XY", "ZX"]))
+        # Coeffs attribute should now include that phase:
+        self.assertTrue(np.allclose(op.coeffs, coeffs_init * np.array([-1j, 1j])))
+        # The phase of the input array is now zero:
+        self.assertTrue(np.allclose(paulis_new.phase, np.array([0, 0])))
+
+    def test_paulis_setter_absorbs_phase_2(self):
+        """Test that `paulis` setter followed by `simplify()` handle phase OK."""
+        spo = SparsePauliOp(["X", "X"])
+        spo.paulis = ["X", "-X"]
+        self.assertEqual(spo.simplify(), SparsePauliOp(["I"], coeffs=[0.0 + 0.0j]))
+
     def test_apply_layout_with_transpile(self):
         """Test the apply_layout method with a transpiler layout."""
-        psi = EfficientSU2(4, reps=4, entanglement="circular")
+        psi = efficient_su2(4, reps=4, entanglement="circular")
         op = SparsePauliOp.from_list([("IIII", 1), ("IZZZ", 2), ("XXXI", 3)])
         backend = GenericBackendV2(num_qubits=7)
         transpiled_psi = transpile(psi, backend, optimization_level=3, seed_transpiler=12345)
@@ -1114,16 +1163,18 @@ class TestSparsePauliOpMethods(QiskitTestCase):
 
     def test_permute_sparse_pauli_op_estimator_example(self):
         """Test using the apply_layout method with an estimator workflow."""
-        psi = EfficientSU2(4, reps=4, entanglement="circular")
+        psi = efficient_su2(4, reps=4, entanglement="circular")
         op = SparsePauliOp.from_list([("IIII", 1), ("IZZZ", 2), ("XXXI", 3)])
         backend = GenericBackendV2(num_qubits=7, seed=0)
         backend.set_options(seed_simulator=123)
-        estimator = BackendEstimator(backend=backend, skip_transpilation=True)
+        with self.assertWarns(DeprecationWarning):
+            estimator = BackendEstimator(backend=backend, skip_transpilation=True)
         thetas = list(range(len(psi.parameters)))
         transpiled_psi = transpile(psi, backend, optimization_level=3)
         permuted_op = op.apply_layout(transpiled_psi.layout)
-        job = estimator.run(transpiled_psi, permuted_op, thetas)
-        res = job.result().values
+        with self.assertWarns(DeprecationWarning):
+            job = estimator.run(transpiled_psi, permuted_op, thetas)
+            res = job.result().values
         if optionals.HAS_AER:
             np.testing.assert_allclose(res, [1.419922], rtol=0.5, atol=0.2)
         else:
