@@ -101,11 +101,11 @@ impl PyBit {
         }
         let reg = borrowed.register.as_ref().unwrap();
         Ok(format!(
-            "{}({}({:?}, {}), {})",
+            "{}({}({}, '{}'), {})",
             slf.get_type().name()?,
             reg.type_identifier(),
-            reg.name(),
             reg.index(),
+            reg.name(),
             borrowed.index.unwrap()
         ))
     }

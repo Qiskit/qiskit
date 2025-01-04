@@ -9,7 +9,7 @@ use pyo3::{
 };
 use std::{
     hash::{Hash, Hasher},
-    sync::Mutex,
+    sync::{Mutex, OnceLock},
 };
 
 use crate::{
@@ -174,11 +174,13 @@ create_register!(ClassicalRegister, Clbit, CREG_COUNTER, "cr");
 
 /// Represents a collection of registers of a certain type within a circuit.
 #[derive(Debug, Clone)]
-pub(crate) struct CircuitRegistry<T: Register + Clone> {
+pub(crate) struct CircuitRegistry<T: Register + Clone, P> {
     registry: Interner<T>,
+    /// Python cache for registers
+    python_cache: HashMap<Interned<T>, OnceLock<Py<P>>>,
 }
 
-impl<T: Register + Hash + Eq + Clone> CircuitRegistry<T> {
+impl<T: Register + Hash + Eq + Clone, P> CircuitRegistry<T, P> {
     pub fn add_register(&mut self, register: T) -> Interned<T> {
         self.registry.insert_owned(register)
     }
@@ -301,10 +303,10 @@ impl PyRegister {
     fn __repr__(slf: Bound<Self>) -> PyResult<String> {
         let borrowed = slf.borrow();
         Ok(format!(
-            "{}({:?}, {})",
+            "{}({}, '{}')",
             slf.get_type().name()?,
+            borrowed.size,
             borrowed.name,
-            borrowed.size
         ))
     }
 
@@ -363,6 +365,18 @@ impl PyRegister {
             .iter()
     }
 
+    fn __getnewargs__(&self, py: Python) -> (Option<u32>, String, PyObject) {
+        (
+            None,
+            self.name.clone(),
+            self.bits
+                .iter()
+                .map(|bit| bit.clone_ref(py))
+                .collect::<Vec<_>>()
+                .into_py(py),
+        )
+    }
+
     fn __getstate__(&self, py: Python) -> (String, u32, PyObject) {
         (
             self.name.clone(),
@@ -417,7 +431,7 @@ impl PyRegister {
 }
 
 #[derive(Debug, Clone)]
-#[pyclass(name="QuantumRegister", extends=PyRegister)]
+#[pyclass(name="QuantumRegister", module="qiskit.circuit.quantumregister", extends=PyRegister)]
 pub struct PyQuantumRegister();
 
 #[pymethods]
@@ -446,7 +460,7 @@ impl PyQuantumRegister {
             } else {
                 panic!("Could not access register counter.")
             };
-            name = Some(format!("{}{}", "qr", count));
+            name = Some(format!("{}{}", "q", count));
         }
         if bits.is_none() && size.is_some() {
             bits = Some(
@@ -491,7 +505,7 @@ impl PyQuantumRegister {
 }
 
 #[derive(Debug, Clone)]
-#[pyclass(name="ClassicalRegister", extends=PyRegister)]
+#[pyclass(name="ClassicalRegister", module="qiskit.circuit.classicalregister", extends=PyRegister)]
 pub struct PyClassicalRegister();
 
 #[pymethods]
@@ -540,7 +554,7 @@ impl PyClassicalRegister {
             } else {
                 panic!("Could not access register counter.")
             };
-            name = Some(format!("{}{}", "cr", count));
+            name = Some(format!("{}{}", "c", count));
         }
         Ok((
             Self(),
