@@ -102,7 +102,7 @@ class ObservablesArray(ShapedMixin):
 
         Similar to Numpy's ``tolist`` method, the level of nesting
         depends on the dimension of the observables array. In the
-        case of dimension 0 the method returns a single observable 
+        case of dimension 0 the method returns a single observable
         (``dict`` in the case of a weighted sum of Paulis) instead of a list.
 
         Examples::
