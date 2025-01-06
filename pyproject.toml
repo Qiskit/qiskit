@@ -109,7 +109,7 @@ sk = "qiskit.transpiler.passes.synthesis.solovay_kitaev_synthesis:SolovayKitaevS
 "HalfAdder.ripple_c04" = "qiskit.transpiler.passes.synthesis.hls_plugins:HalfAdderSynthesisC04"
 "HalfAdder.ripple_v95" = "qiskit.transpiler.passes.synthesis.hls_plugins:HalfAdderSynthesisV95"
 "HalfAdder.qft_d00" = "qiskit.transpiler.passes.synthesis.hls_plugins:HalfAdderSynthesisD00"
-"FullAdder.default" = "qiskit.transpiler.passes.synthesis.hls_plugins:FullAdderSynthesisC04"
+"FullAdder.default" = "qiskit.transpiler.passes.synthesis.hls_plugins:FullAdderSynthesisDefault"
 "FullAdder.ripple_c04" = "qiskit.transpiler.passes.synthesis.hls_plugins:FullAdderSynthesisC04"
 "FullAdder.ripple_v95" = "qiskit.transpiler.passes.synthesis.hls_plugins:FullAdderSynthesisV95"
 "Multiplier.default" = "qiskit.transpiler.passes.synthesis.hls_plugins:MultiplierSynthesisR17"
@@ -184,7 +184,6 @@ environment = 'PATH="$PATH:$HOME/.cargo/bin" CARGO_NET_GIT_FETCH_WITH_CLI="true"
 repair-wheel-command = "auditwheel repair -w {dest_dir} {wheel} && pipx run abi3audit --strict --report {wheel}"
 
 [tool.cibuildwheel.macos]
-environment = "MACOSX_DEPLOYMENT_TARGET=10.12"
 repair-wheel-command = "delocate-wheel --require-archs {delocate_archs} -w {dest_dir} -v {wheel} && pipx run abi3audit --strict --report {wheel}"
 
 [tool.cibuildwheel.windows]

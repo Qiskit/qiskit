@@ -125,9 +125,9 @@ def pauli_feature_map(
         q_1: ┤ H ├────────────┤ X ├┤ P(2.0*(pi - x[0])*(pi - x[1])) ├┤ X ├─────────────
              └───┘            └───┘└────────────────────────────────┘└───┘
 
-        >>> from qiskit.circuit.library import EfficientSU2
+        >>> from qiskit.circuit.library import efficient_su2
         >>> prep = pauli_feature_map(3, reps=3, paulis=["Z", "YY", "ZXZ"])
-        >>> wavefunction = EfficientSU2(3)
+        >>> wavefunction = efficient_su2(3)
         >>> classifier = prep.compose(wavefunction)
         >>> classifier.num_parameters
         27
@@ -286,8 +286,8 @@ def zz_feature_map(
         q_1: ┤ H ├┤ P(2.0*x[1]) ├┤ X ├┤ P(2.0*(pi - x[0])*(pi - x[1])) ├┤ X ├
              └───┘└─────────────┘└───┘└────────────────────────────────┘└───┘
 
-        >>> from qiskit.circuit.library import EfficientSU2
-        >>> classifier = zz_feature_map(3) + EfficientSU2(3)
+        >>> from qiskit.circuit.library import efficient_su2
+        >>> classifier = zz_feature_map(3).compose(efficient_su2(3))
         >>> classifier.num_parameters
         15
         >>> classifier.parameters  # 'x' for the data preparation, 'θ' for the SU2 parameters

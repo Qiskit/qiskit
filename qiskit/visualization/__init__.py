@@ -61,6 +61,7 @@ You can specify ``legend``, ``title``, ``figsize`` and ``color`` by passing to t
 
 .. plot::
    :include-source:
+   :context: reset
 
    from qiskit.visualization import plot_histogram
 
@@ -84,6 +85,7 @@ You can save the figure to file either by passing the file name to ``filename`` 
 
    hist = plot_histogram(data)
    hist.savefig('new_hist.png')
+
 
 Counts Visualizations
 =====================
