@@ -290,6 +290,50 @@ class TestCollect2qBlocks(QiskitTestCase):
 
         pass_manager.run(qc)
 
+    def test_collect_from_back(self):
+        """Test the option to collect blocks from the outputs towards
+        the inputs.
+             ┌───┐
+        q_0: ┤ H ├──■────■────■───────
+             └───┘┌─┴─┐  │    │
+        q_1: ─────┤ X ├──┼────┼───────
+                  └───┘┌─┴─┐  │
+        q_2: ──────────┤ X ├──┼───────
+                       └───┘┌─┴─┐┌───┐
+        q_3: ───────────────┤ X ├┤ H ├
+                            └───┘└───┘
+        """
+        qc = QuantumCircuit(4)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.cx(0, 2)
+        qc.cx(0, 3)
+        qc.h(3)
+
+        # When collecting blocks of size-3 using the default direction,
+        # the first block should contain the H-gate and two CX-gates,
+        # and the second block should contain a single CX-gate and an H-gate.
+        pass_manager = PassManager()
+        pass_manager.append(CollectMultiQBlocks(max_block_size=3, collect_from_back=False))
+        pass_manager.run(qc)
+
+        block_list = pass_manager.property_set["block_list"]
+        self.assertEqual(len(block_list), 2)
+        self.assertEq(len(block_list[0]), 3)
+        self.assertEq(len(block_list[1]), 2)
+
+        # When collecting blocks of size-3 using the opposite direction,
+        # the first block should contain the H-gate and a single CX-gate,
+        # and the second block should contain two CX-gates and an H-gate.
+        pass_manager = PassManager()
+        pass_manager.append(CollectMultiQBlocks(max_block_size=3, collect_from_back=True))
+        pass_manager.run(qc)
+
+        block_list = pass_manager.property_set["block_list"]
+        self.assertEqual(len(block_list), 2)
+        self.assertEqual(len(block_list[0]), 2)
+        self.assertEqual(len(block_list[1]), 3)
+
 
 if __name__ == "__main__":
     unittest.main()

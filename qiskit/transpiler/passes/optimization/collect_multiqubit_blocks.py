@@ -33,14 +33,15 @@ class CollectMultiQBlocks(AnalysisPass):
     Some gates may not be present in any block (e.g. if the number
     of operands is greater than ``max_block_size``)
 
+    By default, blocks are collected in the direction from the inputs towards the
+    outputs of the DAG. The option ``collect_from_back`` allows to change this
+    direction, that is to collect blocks from the outputs towards the inputs.
+    Note that the blocks are still reported in a valid topological order.
+
     A Disjoint Set Union data structure (DSU) is used to maintain blocks as
     gates are processed. This data structure points each qubit to a set at all
     times and the sets correspond to current blocks. These change over time
     and the data structure allows these changes to be done quickly.
-
-    By default, blocks are collected in the direction from the inputs towards the
-    outputs of the DAG. The option ``collect_from_back`` allows to change this
-    direction, that is collect blocks from the outputs towards the inputs of the DAG.
     """
 
     def __init__(self, max_block_size=2, collect_from_back=False):
