@@ -22,10 +22,9 @@ import numpy as np
 
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
 from qiskit.circuit import Qubit, Gate, ControlFlowOp, ForLoopOp
-from qiskit.circuit.library import quantum_volume
 from qiskit.compiler import transpile
 from qiskit.transpiler import CouplingMap, Layout, PassManager, TranspilerError, Target
-from qiskit.circuit.library import U2Gate, U3Gate, QuantumVolume, CXGate, CZGate, XGate
+from qiskit.circuit.library import U2Gate, U3Gate, quantum_volume, CXGate, CZGate, XGate
 from qiskit.transpiler.passes import (
     ALAPScheduleAnalysis,
     PadDynamicalDecoupling,
@@ -33,7 +32,7 @@ from qiskit.transpiler.passes import (
 )
 from qiskit.providers.fake_provider import Fake5QV1, Fake20QV1, GenericBackendV2
 from qiskit.converters import circuit_to_dag
-from qiskit.circuit.library import GraphState
+from qiskit.circuit.library import GraphStateGate
 from qiskit.quantum_info import random_unitary
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.transpiler.preset_passmanagers import level0, level1, level2, level3
@@ -269,7 +268,7 @@ class TestPresetPassManager(QiskitTestCase):
             basis_gates=["id", "u1", "u2", "u3", "cx"],
             seed=42,
         )
-        qv_circuit = QuantumVolume(3)
+        qv_circuit = quantum_volume(3)
         gates_in_basis_true_count = 0
         consolidate_blocks_count = 0
 
@@ -1048,7 +1047,7 @@ class TestFinalLayouts(QiskitTestCase):
 
         adjacency_matrix = np.zeros((20, 20))
         adjacency_matrix[rows, cols] = 1
-        qc = GraphState(adjacency_matrix)
+        qc = GraphStateGate(adjacency_matrix).definition
         qc.measure_all()
         expected = {
             0: Qubit(QuantumRegister(20, "q"), 0),
