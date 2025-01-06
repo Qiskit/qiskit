@@ -151,6 +151,21 @@ impl<'py> FromPyObject<'py> for BitTerm {
     }
 }
 
+impl Into<PySparseObservable> for SparseObservable {
+    fn into(self) -> PySparseObservable {
+        PySparseObservable {
+            inner: Arc::new(RwLock::new(self)),
+        }
+    }
+}
+
+impl IntoPy<Py<PyAny>> for SparseObservable {
+    fn into_py(self, py: Python) -> Py<PyAny> {
+        let obs: PySparseObservable = self.into();
+        obs.into_py(py)
+    }
+}
+
 /// A single term from a complete :class:`SparseObservable`.
 ///
 /// These are typically created by indexing into or iterating through a :class:`SparseObservable`.
@@ -217,9 +232,7 @@ impl PySparseTerm {
             self.inner.indices().to_vec(),
             vec![0, self.inner.bit_terms().len()],
         )?;
-        Ok(PySparseObservable {
-            inner: Arc::new(RwLock::new(obs)),
-        })
+        Ok(obs.into())
     }
 
     fn __eq__(slf: Bound<Self>, other: Bound<PyAny>) -> PyResult<bool> {
@@ -796,9 +809,7 @@ impl Clone for PySparseObservable {
     // is cloned, not the reference to it
     fn clone(&self) -> Self {
         let inner = self.inner.read().unwrap();
-        Self {
-            inner: Arc::new(RwLock::new(inner.clone())),
-        }
+        inner.clone().into()
     }
 }
 
@@ -971,10 +982,7 @@ impl PySparseObservable {
     #[pyo3(signature = (/, num_qubits))]
     #[staticmethod]
     pub fn zero(num_qubits: u32) -> Self {
-        let inner = SparseObservable::zero(num_qubits);
-        Self {
-            inner: Arc::new(RwLock::new(inner)),
-        }
+        SparseObservable::zero(num_qubits).into()
     }
 
     /// Get the identity operator over the given number of qubits.
@@ -988,10 +996,7 @@ impl PySparseObservable {
     #[pyo3(signature = (/, num_qubits))]
     #[staticmethod]
     pub fn identity(num_qubits: u32) -> Self {
-        let inner = SparseObservable::identity(num_qubits);
-        Self {
-            inner: Arc::new(RwLock::new(inner)),
-        }
+        SparseObservable::identity(num_qubits).into()
     }
 
     /// Construct a :class:`.SparseObservable` from a single :class:`.Pauli` instance.
@@ -1054,9 +1059,7 @@ impl PySparseObservable {
         };
         let coeffs = vec![phase];
         let inner = SparseObservable::new(num_qubits, coeffs, bit_terms, indices, boundaries)?;
-        Ok(Self {
-            inner: Arc::new(RwLock::new(inner)),
-        })
+        Ok(inner.into())
     }
 
     /// Construct a single-term observable from a dense string label.
@@ -1088,9 +1091,7 @@ impl PySparseObservable {
     fn from_label(label: &str) -> Result<Self, LabelError> {
         let mut inner = SparseObservable::zero(label.len() as u32);
         inner.add_dense_label(label, Complex64::new(1.0, 0.0))?;
-        Ok(Self {
-            inner: Arc::new(RwLock::new(inner)),
-        })
+        Ok(inner.into())
     }
 
     /// Construct an observable from a list of dense labels and coefficients.
@@ -1167,9 +1168,7 @@ impl PySparseObservable {
         for (label, coeff) in iter {
             inner.add_dense_label(&label, coeff)?;
         }
-        Ok(Self {
-            inner: Arc::new(RwLock::new(inner)),
-        })
+        Ok(inner.into())
     }
 
     /// Construct an observable from a list of labels, the qubits each item applies to, and the
@@ -1260,9 +1259,7 @@ impl PySparseObservable {
             boundaries.push(bit_terms.len());
         }
         let inner = SparseObservable::new(num_qubits, coeffs, bit_terms, indices, boundaries)?;
-        Ok(Self {
-            inner: Arc::new(RwLock::new(inner)),
-        })
+        Ok(inner.into())
     }
 
     /// Construct a :class:`.SparseObservable` from a :class:`.SparsePauliOp` instance.
@@ -1343,9 +1340,7 @@ impl PySparseObservable {
 
         let inner =
             SparseObservable::new(num_qubits as u32, coeffs, bit_terms, indices, boundaries)?;
-        Ok(Self {
-            inner: Arc::new(RwLock::new(inner)),
-        })
+        Ok(inner.into())
     }
 
     /// Construct a :class:`SparseObservable` out of individual terms.
@@ -1383,9 +1378,7 @@ impl PySparseObservable {
             let py_term = bound_py_term?.downcast::<PySparseTerm>()?.borrow();
             inner.add_term(py_term.inner.view())?;
         }
-        Ok(Self {
-            inner: Arc::new(RwLock::new(inner)),
-        })
+        Ok(inner.into())
     }
 
     // SAFETY: this cannot invoke undefined behaviour if `check = true`, but if `check = false` then
@@ -1465,10 +1458,7 @@ impl PySparseObservable {
                 SparseObservable::new_unchecked(num_qubits, coeffs, bit_terms, indices, boundaries)
             })
         }?;
-
-        Ok(Self {
-            inner: Arc::new(RwLock::new(inner)),
-        })
+        Ok(inner.into())
     }
 
     /// Clear all the terms from this operator, making it equal to the zero operator again.
@@ -1535,9 +1525,7 @@ impl PySparseObservable {
     fn simplify(&self, tol: f64) -> PyResult<Self> {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
         let simplified = inner.canonicalize(tol);
-        Ok(Self {
-            inner: Arc::new(RwLock::new(simplified)),
-        })
+        Ok(simplified.into())
     }
 
     /// Calculate the adjoint of this observable.
@@ -1556,9 +1544,7 @@ impl PySparseObservable {
     ///         >>> assert left.adjoint() == right
     fn adjoint(&self) -> PyResult<Self> {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
-        Ok(Self {
-            inner: Arc::new(RwLock::new(inner.adjoint())),
-        })
+        Ok(inner.adjoint().into())
     }
 
     /// Calculate the matrix transposition of this observable.
@@ -1580,9 +1566,7 @@ impl PySparseObservable {
     ///         >>> assert obs.transpose() == SparseObservable([("III", 1j), ("Ylr", -0.5)])
     fn transpose(&self) -> PyResult<Self> {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
-        Ok(Self {
-            inner: Arc::new(RwLock::new(inner.transpose())),
-        })
+        Ok(inner.transpose().into())
     }
 
     /// Calculate the complex conjugation of this observable.
@@ -1606,9 +1590,7 @@ impl PySparseObservable {
     ///         >>> assert obs.conjugate() == SparseObservable([("III", -1j), ("Ylr", -0.5)])
     fn conjugate(&self) -> PyResult<Self> {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
-        Ok(Self {
-            inner: Arc::new(RwLock::new(inner.conjugate())),
-        })
+        Ok(inner.conjugate().into())
     }
 
     /// Tensor product of two observables.
@@ -1667,10 +1649,7 @@ impl PySparseObservable {
         let other_inner = other.inner.read().map_err(|_| InnerReadError)?;
 
         let result = inner.tensor(&other_inner);
-        Ok(Self {
-            inner: Arc::new(RwLock::new(result)),
-        }
-        .into_py(py))
+        Ok(result.into_py(py))
     }
 
     /// Reverse-order tensor product.
@@ -1710,10 +1689,7 @@ impl PySparseObservable {
         let other_inner = other.inner.read().map_err(|_| InnerReadError)?;
 
         let result = other_inner.tensor(&inner);
-        Ok(Self {
-            inner: Arc::new(RwLock::new(result)),
-        }
-        .into_py(py))
+        Ok(result.into_py(py))
     }
 
     /// Apply a transpiler layout to this :class:`SparseObservable`.
@@ -1778,9 +1754,7 @@ impl PySparseObservable {
             )
         };
         let out = inner.apply_layout(layout.as_deref(), num_qubits)?;
-        Ok(Self {
-            inner: Arc::new(RwLock::new(out)),
-        })
+        Ok(out.into())
     }
 
     /// Get a :class:`.PauliList` object that represents the measurement basis needed for each term
@@ -1835,10 +1809,7 @@ impl PySparseObservable {
             out.add_term(inner.term(index))?;
         }
 
-        let py_out = Self {
-            inner: Arc::new(RwLock::new(out)),
-        };
-        Ok(py_out.into_py(py))
+        Ok(out.into_py(py))
     }
 
     fn __eq__(slf: Bound<Self>, other: Bound<PyAny>) -> PyResult<bool> {
@@ -1915,10 +1886,7 @@ impl PySparseObservable {
             let inner = slf_.inner.read().map_err(|_| InnerReadError)?;
             let doubled =
                 <&SparseObservable as ::std::ops::Mul<_>>::mul(&inner, Complex64::new(2.0, 0.0));
-            return Ok(Self {
-                inner: Arc::new(RwLock::new(doubled)),
-            }
-            .into_py(py));
+            return Ok(doubled.into_py(py));
         }
         let Some(other) = coerce_to_observable(other)? else {
             return Ok(py.NotImplemented());
@@ -1928,12 +1896,9 @@ impl PySparseObservable {
         let other = other.borrow();
         let other_inner = other.inner.read().map_err(|_| InnerReadError)?;
         slf_inner.check_equal_qubits(&other_inner)?;
-        let added = <&SparseObservable as ::std::ops::Add>::add(&slf_inner, &other_inner);
 
-        Ok(Self {
-            inner: Arc::new(RwLock::new(added)),
-        }
-        .into_py(py))
+        let added = <&SparseObservable as ::std::ops::Add>::add(&slf_inner, &other_inner);
+        Ok(added.into_py(py))
     }
 
     fn __radd__(&self, other: &Bound<PyAny>) -> PyResult<Py<PyAny>> {
@@ -1948,12 +1913,9 @@ impl PySparseObservable {
         let other = other.borrow();
         let other_inner = other.inner.read().map_err(|_| InnerReadError)?;
         inner.check_equal_qubits(&other_inner)?;
-        let added = <&SparseObservable as ::std::ops::Add>::add(&other_inner, &inner);
 
-        Ok(Self {
-            inner: Arc::new(RwLock::new(added)),
-        }
-        .into_py(py))
+        let added = <&SparseObservable as ::std::ops::Add>::add(&other_inner, &inner);
+        Ok(added.into_py(py))
     }
 
     fn __iadd__(slf_: Bound<PySparseObservable>, other: &Bound<PyAny>) -> PyResult<()> {
@@ -1995,12 +1957,9 @@ impl PySparseObservable {
         let other = other.borrow();
         let other_inner = other.inner.read().map_err(|_| InnerReadError)?;
         slf_inner.check_equal_qubits(&other_inner)?;
-        let subtracted = <&SparseObservable as ::std::ops::Sub>::sub(&slf_inner, &other_inner);
 
-        Ok(Self {
-            inner: Arc::new(RwLock::new(subtracted)),
-        }
-        .into_py(py))
+        let subtracted = <&SparseObservable as ::std::ops::Sub>::sub(&slf_inner, &other_inner);
+        Ok(subtracted.into_py(py))
     }
 
     fn __rsub__(&self, other: &Bound<PyAny>) -> PyResult<Py<PyAny>> {
@@ -2013,12 +1972,9 @@ impl PySparseObservable {
         let other = other.borrow();
         let other_inner = other.inner.read().map_err(|_| InnerReadError)?;
         inner.check_equal_qubits(&other_inner)?;
-        let subtracted = <&SparseObservable as ::std::ops::Sub>::sub(&other_inner, &inner);
 
-        Ok(Self {
-            inner: Arc::new(RwLock::new(subtracted)),
-        }
-        .into_py(py))
+        let subtracted = <&SparseObservable as ::std::ops::Sub>::sub(&other_inner, &inner);
+        Ok(subtracted.into_py(py))
     }
 
     fn __isub__(slf_: Bound<PySparseObservable>, other: &Bound<PyAny>) -> PyResult<()> {
@@ -2054,17 +2010,13 @@ impl PySparseObservable {
     fn __neg__(&self) -> PyResult<Self> {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
         let neg = <&SparseObservable as ::std::ops::Neg>::neg(&inner);
-        Ok(Self {
-            inner: Arc::new(RwLock::new(neg)),
-        })
+        Ok(neg.into())
     }
 
     fn __mul__(&self, other: Complex64) -> PyResult<Self> {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
         let mult = <&SparseObservable as ::std::ops::Mul<_>>::mul(&inner, other);
-        Ok(Self {
-            inner: Arc::new(RwLock::new(mult)),
-        })
+        Ok(mult.into())
     }
     fn __rmul__(&self, other: Complex64) -> PyResult<Self> {
         self.__mul__(other)
@@ -2084,9 +2036,7 @@ impl PySparseObservable {
         }
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
         let div = <&SparseObservable as ::std::ops::Div<_>>::div(&inner, other);
-        Ok(Self {
-            inner: Arc::new(RwLock::new(div)),
-        })
+        Ok(div.into())
     }
     fn __itruediv__(&mut self, other: Complex64) -> PyResult<()> {
         if other.is_zero() {
