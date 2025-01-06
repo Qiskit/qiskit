@@ -57,7 +57,9 @@ from qiskit.circuit.library import (
     RYYGate,
     RZZGate,
     RXXGate,
+    PauliEvolutionGate,
 )
+from qiskit.quantum_info import SparsePauliOp
 from qiskit.circuit import Measure
 from qiskit.circuit.controlflow import IfElseOp
 from qiskit.circuit import Parameter, Gate
@@ -1061,6 +1063,43 @@ class TestUnitarySynthesis(QiskitTestCase):
         qc_transpiled = transpile(qc, backend)
         self.assertTrue(qc_transpiled.size, 1)
         self.assertTrue(qc_transpiled.count_ops().get("measure", 0), 1)
+
+    def test_3q_series(self):
+        """Test a series of 3-qubit blocks."""
+        backend = GenericBackendV2(5, basis_gates=["u", "cx"])
+
+        x = QuantumCircuit(3)
+        x.x(2)
+        x_mat = Operator(x)
+
+        qc = QuantumCircuit(3)
+        qc.unitary(x_mat, range(3))
+        qc.unitary(np.eye(2**3), range(3))
+
+        tqc = transpile(qc, backend, optimization_level=0, initial_layout=[0, 1, 2])
+
+        expected = np.kron(np.eye(2**2), x_mat)
+        self.assertTrue(Operator(tqc).equiv(expected))
+
+    def test_3q_measure_all(self):
+        """Regression test of #13586."""
+        hamiltonian = SparsePauliOp.from_list(
+            [("IXX", 1), ("IYY", 1), ("IZZ", 1), ("XXI", 1), ("YYI", 1), ("ZZI", 1)]
+        )
+
+        qc = QuantumCircuit(3)
+        qc.x([1, 2])
+        op = PauliEvolutionGate(hamiltonian, time=1)
+        qc.append(op.power(8), [0, 1, 2])
+        qc.measure_all()
+
+        backend = GenericBackendV2(5, basis_gates=["u", "cx"])
+        tqc = transpile(qc, backend)
+
+        ops = tqc.count_ops()
+        self.assertIn("u", ops)
+        self.assertIn("cx", ops)
+        self.assertIn("measure", ops)
 
 
 if __name__ == "__main__":
