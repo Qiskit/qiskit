@@ -73,36 +73,6 @@ impl<'py> FromPyObject<'py> for Param {
     }
 }
 
-//impl<'py> IntoPyObject<'py> for Param {
-//    type Target = PyAny; // the Python type
-//    type Output = Bound<'py, Self::Target>; // in most cases this will be `Bound`
-//    type Error = std::convert::Infallible;
-//
-//    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-//        Ok(match &self {
-//            Self::Float(val) => val.into_pyobject(py)?.into_any(),
-//            Self::ParameterExpression(val) => val.bind(py).clone(),
-//            Self::Obj(val) => val.bind(py).clone(),
-//        })
-//    }
-//}
-//
-//impl<'py> IntoPyObject<'py> for &Param {
-//    type Target = PyAny; // the Python type
-//    type Output = Bound<'py, Self::Target>; // in most cases this will be `Bound`
-//    type Error = std::convert::Infallible;
-//
-//    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-//        Ok(match &self {
-//            Param::Float(val) => val.into_pyobject(py)?.into_any(),
-//            Param::ParameterExpression(val) => val.bind(py).clone(),
-//            Param::Obj(val) => val.bind(py).clone(),
-//        })
-//    }
-//
-//
-//}
-
 impl Param {
     /// Get an iterator over any Python-space `Parameter` instances tracked within this `Param`.
     pub fn iter_parameters<'py>(&self, py: Python<'py>) -> PyResult<ParamParameterIter<'py>> {
@@ -344,30 +314,6 @@ pub enum StandardGate {
     C3SXGate = 50,
     RC3XGate = 51,
 }
-
-//impl<'py> IntoPyObject<'py> for StandardGate {
-//    type Target = PyAny; // the Python type
-//    type Output = Bound<'py, Self::Target>; // in most cases this will be `Bound`
-//    type Error = std::convert::Infallible;
-//
-//    // Required method
-//    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-//        self.into_pyobject(py)
-//    }
-//
-//}
-//
-//impl<'a, 'py> IntoPyObject<'py> for &'a StandardGate {
-//    type Target = PyAny; // the Python type
-//    type Output = Bound<'py, Self::Target>; // in most cases this will be `Bound`
-//    type Error = std::convert::Infallible;
-//
-//    // Required method
-//    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-//        (*self).into_pyobject(py)
-//    }
-//
-//}
 
 unsafe impl ::bytemuck::CheckedBitPattern for StandardGate {
     type Bits = u8;
