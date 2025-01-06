@@ -228,7 +228,7 @@ pub enum ArithmeticError {
 
 /// An observable over Pauli bases that stores its data in a qubit-sparse format.
 ///
-/// See PySparseObservable in crates/accelerate/src/py_sparse_observable for detailed docs.
+/// See [PySparseObservable] for detailed docs.
 #[derive(Clone, Debug, PartialEq)]
 pub struct SparseObservable {
     /// The number of qubits the operator acts on.  This is not inferable from any other shape or
@@ -383,42 +383,48 @@ impl SparseObservable {
     }
 
     #[inline]
-    pub fn coeffs(&self) -> &Vec<Complex64> {
+    pub fn coeffs(&self) -> &[Complex64] {
         &self.coeffs
     }
 
     #[inline]
-    pub fn coeffs_mut(&mut self) -> &mut Vec<Complex64> {
+    pub fn coeffs_mut(&mut self) -> &mut [Complex64] {
         &mut self.coeffs
     }
 
     #[inline]
-    pub fn indices(&self) -> &Vec<u32> {
+    pub fn indices(&self) -> &[u32] {
         &self.indices
     }
 
+    /// Get a mutable slice of the indices.
+    ///
+    /// This is unsafe as modifying the indices could lead to incoherent internal data.
     #[inline]
-    pub fn indices_mut(&mut self) -> &mut Vec<u32> {
+    pub unsafe fn indices_mut(&mut self) -> &mut [u32] {
         &mut self.indices
     }
 
     #[inline]
-    pub fn boundaries(&self) -> &Vec<usize> {
+    pub fn boundaries(&self) -> &[usize] {
         &self.boundaries
     }
 
+    /// Get a mutable slice of the boundaries.
+    ///
+    /// This is unsafe as modifying the boundaries could lead to incoherent internal data.
     #[inline]
-    pub fn boundaries_mut(&mut self) -> &mut Vec<usize> {
+    pub unsafe fn boundaries_mut(&mut self) -> &mut [usize] {
         &mut self.boundaries
     }
 
     #[inline]
-    pub fn bit_terms(&self) -> &Vec<BitTerm> {
+    pub fn bit_terms(&self) -> &[BitTerm] {
         &self.bit_terms
     }
 
     #[inline]
-    pub fn bit_terms_mut(&mut self) -> &mut Vec<BitTerm> {
+    pub fn bit_terms_mut(&mut self) -> &mut [BitTerm] {
         &mut self.bit_terms
     }
 

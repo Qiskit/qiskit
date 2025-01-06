@@ -1,8 +1,0 @@
----
-upgrade:
-  - |
-    Binary arithmetic operations on :class:`.SparseObservable` have a slightly updated
-    error message, if the two observables in the operation have incompatible numberss of qubits.
-    Previously, the resulting ``ValueError`` contained the message
-    ``incompatible numbers of qubits: A and B``, which now is
-    ``mismatched numbers of qubits: A, B``.

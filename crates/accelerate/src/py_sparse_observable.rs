@@ -2222,8 +2222,12 @@ impl ArrayView {
         match self.slot {
             ArraySlot::Coeffs => set_in_slice::<_, Complex64>(obs.coeffs_mut(), index, values),
             ArraySlot::BitTerms => set_in_slice::<BitTerm, u8>(obs.bit_terms_mut(), index, values),
-            ArraySlot::Indices => set_in_slice::<_, u32>(obs.indices_mut(), index, values),
-            ArraySlot::Boundaries => set_in_slice::<_, usize>(obs.boundaries_mut(), index, values),
+            ArraySlot::Indices => unsafe {
+                set_in_slice::<_, u32>(obs.indices_mut(), index, values)
+            },
+            ArraySlot::Boundaries => unsafe {
+                set_in_slice::<_, usize>(obs.boundaries_mut(), index, values)
+            },
         }
     }
 
