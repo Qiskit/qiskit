@@ -100,7 +100,7 @@ class ObservablesArray(ShapedMixin):
     def tolist(self) -> list:
         """Convert to a nested list.
 
-        Similar to Numpy's `tolist` method, the level of nesting
+        Similar to Numpy's ``tolist`` method, the level of nesting
         depends on the dimension of the observables array. In the
         case of dimension 0 the method returns a single observable
         instead of a list.
