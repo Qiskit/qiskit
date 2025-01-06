@@ -210,6 +210,16 @@ class TestRandomClifford(QiskitTestCase):
             seen.add(cliff.to_circuit().count_ops().get("cx", 0))
         self.assertEqual(seen, {0, 1, 2, 3})
 
+    def test_clifford_3q_decompositions(self):
+        """Test that we get all possible CX-counts for 3q-random cliffords
+        with sufficiently many trials.
+        """
+        seen = set()
+        for seed in range(10000):
+            cliff = random_clifford(3, seed)
+            seen.add(cliff.to_circuit().count_ops().get("cx", 0))
+        self.assertEqual(seen, {0, 1, 2, 3, 4, 5, 6})
+
 
 @ddt
 class TestRandomPauliList(QiskitTestCase):
