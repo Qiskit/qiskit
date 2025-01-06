@@ -319,8 +319,8 @@ class TestCollect2qBlocks(QiskitTestCase):
 
         block_list = pass_manager.property_set["block_list"]
         self.assertEqual(len(block_list), 2)
-        self.assertEq(len(block_list[0]), 3)
-        self.assertEq(len(block_list[1]), 2)
+        self.assertEqual(len(block_list[0]), 3)
+        self.assertEqual(len(block_list[1]), 2)
 
         # When collecting blocks of size-3 using the opposite direction,
         # the first block should contain the H-gate and a single CX-gate,
