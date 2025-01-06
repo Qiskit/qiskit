@@ -804,15 +804,6 @@ pub struct PySparseObservable {
     inner: Arc<RwLock<SparseObservable>>,
 }
 
-impl Clone for PySparseObservable {
-    // we need to implement clone specifically to ensure the underlying inner data
-    // is cloned, not the reference to it
-    fn clone(&self) -> Self {
-        let inner = self.inner.read().unwrap();
-        inner.clone().into()
-    }
-}
-
 #[pymethods]
 impl PySparseObservable {
     #[pyo3(signature = (data, /, num_qubits=None))]
@@ -853,7 +844,9 @@ impl PySparseObservable {
         }
         if let Ok(observable) = data.downcast_exact::<Self>() {
             check_num_qubits(data)?;
-            return Ok(observable.borrow().clone());
+            let borrowed = observable.borrow();
+            let inner = borrowed.inner.read().map_err(|_| InnerReadError)?;
+            return Ok(inner.clone().into());
         }
         // The type of `vec` is inferred from the subsequent calls to `Self::py_from_list` or
         // `Self::py_from_sparse_list` to be either the two-tuple or the three-tuple form during the
@@ -890,8 +883,9 @@ impl PySparseObservable {
     ///         >>> obs = SparseObservable.from_list([("IXZ+lr01", 2.5), ("ZXI-rl10", 0.5j)])
     ///         >>> assert obs == obs.copy()
     ///         >>> assert obs is not obs.copy()
-    fn copy(&self) -> Self {
-        self.clone()
+    fn copy(&self) -> PyResult<Self> {
+        let inner = self.inner.read().map_err(|_| InnerReadError)?;
+        Ok(inner.clone().into())
     }
 
     /// The number of qubits the operator acts on.
@@ -1717,6 +1711,8 @@ impl PySparseObservable {
     fn apply_layout(&self, layout: Bound<PyAny>, num_qubits: Option<u32>) -> PyResult<Self> {
         let py = layout.py();
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
+
+        // A utility to check the number of qubits is compatible with the observable.
         let check_inferred_qubits = |inferred: u32| -> PyResult<u32> {
             if inferred < inner.num_qubits() {
                 return Err(CoherenceError::NotEnoughQubits {
@@ -1728,10 +1724,9 @@ impl PySparseObservable {
             Ok(inferred)
         };
 
-        // get the number of qubits in the layout and map the layout to Vec<u32> to
-        // call SparseObservable.apply_layout
+        // Normalize the number of qubits in the layout and the layout itself, depending on the
+        // input types, before calling SparseObservable.apply_layout to do the actual work.
         let (num_qubits, layout): (u32, Option<Vec<u32>>) = if layout.is_none() {
-            // if the layout is none,
             (num_qubits.unwrap_or(inner.num_qubits()), None)
         } else if layout.is_instance(
             &py.import_bound(intern!(py, "qiskit.transpiler"))?
@@ -1753,6 +1748,7 @@ impl PySparseObservable {
                 Some(layout.extract()?),
             )
         };
+
         let out = inner.apply_layout(layout.as_deref(), num_qubits)?;
         Ok(out.into())
     }
@@ -1859,8 +1855,6 @@ impl PySparseObservable {
     }
 
     fn __reduce__(&self, py: Python) -> PyResult<Py<PyAny>> {
-        // we acquire the read lock once here and use the internal methods
-        // to avoid checking and acquiring the lock in every method call
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
         let bit_terms: &[u8] = ::bytemuck::cast_slice(inner.bit_terms());
         Ok((
@@ -1907,7 +1901,6 @@ impl PySparseObservable {
         let Some(other) = coerce_to_observable(other)? else {
             return Ok(py.NotImplemented());
         };
-        // let other = other.borrow();
 
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
         let other = other.borrow();
@@ -2003,8 +1996,9 @@ impl PySparseObservable {
         Ok(())
     }
 
-    fn __pos__(&self) -> Self {
-        self.clone()
+    fn __pos__(&self) -> PyResult<Self> {
+        let inner = self.inner.read().map_err(|_| InnerReadError)?;
+        Ok(inner.clone().into())
     }
 
     fn __neg__(&self) -> PyResult<Self> {
@@ -2023,8 +2017,6 @@ impl PySparseObservable {
     }
 
     fn __imul__(&mut self, other: Complex64) -> PyResult<()> {
-        // we obtain write access to ``inner`` and call SparseObservable::mul_assign to mutate the
-        // the ``inner`` data directly
         let mut inner = self.inner.write().map_err(|_| InnerWriteError)?;
         inner.mul_assign(other);
         Ok(())
