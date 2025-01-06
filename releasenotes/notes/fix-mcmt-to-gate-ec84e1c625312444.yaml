@@ -7,3 +7,9 @@ fixes:
     named ``"mcmt"``, and implicitly converting it into an instruction e.g. when appending 
     it to a circuit.
     Fixed `#13563 <https://github.com/Qiskit/qiskit/issues/13563>`__.
+upgrades:
+  - |
+    The plugins for :class:`.LinearFunction` no longer raise an error if another object
+    than :class:`.LinearFunction` is passed into the ``run`` method. Instead, ``None`` is 
+    returned, which is consistent with the other plugins. If you relied on this error being raised,
+    you can manually perform an instance-check.
