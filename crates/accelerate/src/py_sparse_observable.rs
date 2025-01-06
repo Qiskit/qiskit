@@ -157,11 +157,7 @@ impl<'py> FromPyObject<'py> for BitTerm {
 #[pyclass(name = "Term", frozen, module = "qiskit.quantum_info")]
 #[derive(Clone, Debug)]
 struct PySparseTerm {
-    // This class keeps a pointer to a pure Rust-SparseTerm and serves as interface from Python.
-    // Note that we can use the standard clone, since the PySparseTerm is immutable from Python
-    // space, hence we can just clone the pointer. Otherwise we'd have to impl Clone manually,
-    // like for the PySparseObservable.
-    inner: Arc<RwLock<SparseTerm>>,
+    inner: SparseTerm,
 }
 
 #[pymethods]
@@ -209,20 +205,17 @@ impl PySparseTerm {
             bit_terms,
             sorted_indices.into_boxed_slice(),
         )?;
-        Ok(PySparseTerm {
-            inner: Arc::new(RwLock::new(inner)),
-        })
+        Ok(PySparseTerm { inner })
     }
 
     /// Convert this term to a complete :class:`SparseObservable`.
     fn to_observable(&self) -> PyResult<PySparseObservable> {
-        let inner = self.inner.read().map_err(|_| InnerReadError)?;
         let obs = SparseObservable::new(
-            inner.num_qubits(),
-            vec![inner.coeff()],
-            inner.bit_terms().to_vec(),
-            inner.indices().to_vec(),
-            vec![0, inner.bit_terms().len()],
+            self.inner.num_qubits(),
+            vec![self.inner.coeff()],
+            self.inner.bit_terms().to_vec(),
+            self.inner.indices().to_vec(),
+            vec![0, self.inner.bit_terms().len()],
         )?;
         Ok(PySparseObservable {
             inner: Arc::new(RwLock::new(obs)),
@@ -238,28 +231,28 @@ impl PySparseTerm {
         };
         let slf = slf.borrow();
         let other = other.borrow();
-        let slf_inner = slf.inner.read().map_err(|_| InnerReadError)?;
-        let other_inner = other.inner.read().map_err(|_| InnerReadError)?;
-        Ok(slf_inner.eq(&other_inner))
+        Ok(slf.inner.eq(&other.inner))
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        let inner = self.inner.read().map_err(|_| InnerReadError)?;
         Ok(format!(
             "<{} on {} qubit{}: {}>",
             Self::type_qualname(),
-            inner.num_qubits(),
-            if inner.num_qubits() == 1 { "" } else { "s" },
-            inner.view().to_sparse_str(),
+            self.inner.num_qubits(),
+            if self.inner.num_qubits() == 1 {
+                ""
+            } else {
+                "s"
+            },
+            self.inner.view().to_sparse_str(),
         ))
     }
 
     fn __getnewargs__(slf_: Bound<Self>, py: Python) -> Py<PyAny> {
         let borrowed = slf_.borrow();
-        let inner = borrowed.inner.read().unwrap();
         (
-            inner.num_qubits(),
-            inner.coeff(),
+            borrowed.inner.num_qubits(),
+            borrowed.inner.coeff(),
             Self::get_bit_terms(slf_.clone()),
             Self::get_indices(slf_),
         )
@@ -278,8 +271,7 @@ impl PySparseTerm {
     #[getter]
     fn get_bit_terms(slf_: Bound<Self>) -> Bound<PyArray1<u8>> {
         let borrowed = slf_.borrow();
-        let inner = borrowed.inner.read().unwrap();
-        let bit_terms = inner.bit_terms();
+        let bit_terms = borrowed.inner.bit_terms();
         let arr = ::ndarray::aview1(::bytemuck::cast_slice::<_, u8>(bit_terms));
         // SAFETY: in order to call this function, the lifetime of `self` must be managed by Python.
         // We tie the lifetime of the array to `slf_`, and there are no public ways to modify the
@@ -292,16 +284,14 @@ impl PySparseTerm {
 
     /// The number of qubits the term is defined on.
     #[getter]
-    fn get_num_qubits(&self) -> PyResult<u32> {
-        let inner = self.inner.read().map_err(|_| InnerReadError)?;
-        Ok(inner.num_qubits())
+    fn get_num_qubits(&self) -> u32 {
+        self.inner.num_qubits()
     }
 
     /// The term's coefficient.
     #[getter]
-    fn get_coeff(&self) -> PyResult<Complex64> {
-        let inner = self.inner.read().map_err(|_| InnerReadError)?;
-        Ok(inner.coeff())
+    fn get_coeff(&self) -> Complex64 {
+        self.inner.coeff()
     }
 
     /// Read-only view onto the indices of each non-identity single-qubit term.
@@ -310,8 +300,7 @@ impl PySparseTerm {
     #[getter]
     fn get_indices(slf_: Bound<Self>) -> Bound<PyArray1<u32>> {
         let borrowed = slf_.borrow();
-        let inner = borrowed.inner.read().unwrap();
-        let indices = inner.indices();
+        let indices = borrowed.inner.indices();
         let arr = ::ndarray::aview1(&indices);
         // SAFETY: in order to call this function, the lifetime of `self` must be managed by Python.
         // We tie the lifetime of the array to `slf_`, and there are no public ways to modify the
@@ -335,10 +324,14 @@ impl PySparseTerm {
     ///     :meth:`SparseObservable.pauli_bases`
     ///         A similar method for an entire observable at once.
     fn pauli_base<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
-        let inner = self.inner.read().map_err(|_| InnerReadError)?;
-        let mut x = vec![false; inner.num_qubits() as usize];
-        let mut z = vec![false; inner.num_qubits() as usize];
-        for (bit_term, index) in inner.bit_terms().iter().zip(inner.indices().iter()) {
+        let mut x = vec![false; self.inner.num_qubits() as usize];
+        let mut z = vec![false; self.inner.num_qubits() as usize];
+        for (bit_term, index) in self
+            .inner
+            .bit_terms()
+            .iter()
+            .zip(self.inner.indices().iter())
+        {
             x[*index as usize] = bit_term.has_x_component();
             z[*index as usize] = bit_term.has_z_component();
         }
@@ -1383,14 +1376,12 @@ impl PySparseObservable {
                     ));
                 };
                 let py_term = first?.downcast::<PySparseTerm>()?.borrow();
-                let term = py_term.inner.read().map_err(|_| InnerReadError)?;
-                term.to_observable()
+                py_term.inner.to_observable()
             }
         };
         for bound_py_term in iter {
             let py_term = bound_py_term?.downcast::<PySparseTerm>()?.borrow();
-            let term = py_term.inner.read().map_err(|_| InnerReadError)?;
-            inner.add_term(term.view())?;
+            inner.add_term(py_term.inner.view())?;
         }
         Ok(Self {
             inner: Arc::new(RwLock::new(inner)),
@@ -1834,9 +1825,7 @@ impl PySparseObservable {
         let indices = match index.with_len(inner.num_terms())? {
             SequenceIndex::Int(index) => {
                 let term = inner.term(index).to_term();
-                let py_term = PySparseTerm {
-                    inner: Arc::new(RwLock::new(term)),
-                };
+                let py_term = PySparseTerm { inner: term };
                 return Ok(py_term.into_py(py));
             }
             indices => indices,
