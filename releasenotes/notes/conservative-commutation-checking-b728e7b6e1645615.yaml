@@ -15,3 +15,4 @@ fixes:
     with non-numeric values in the :attr:`~.circuit.Instruction.params` attribute (such as the
     :class:`.PauliGate`) could raise an error.
     Fixed `#13570 <https://github.com/Qiskit/qiskit/issues/13570>`__.
+
