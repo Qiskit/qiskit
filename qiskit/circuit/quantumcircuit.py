@@ -3471,7 +3471,7 @@ class QuantumCircuit:
         quantum gates take time to implement, the depth of a circuit
         roughly corresponds to the amount of time it takes the quantum
         computer to execute the circuit.
-        
+
 
         .. warning::
             This operation is not well defined if the circuit contains control-flow operations.
