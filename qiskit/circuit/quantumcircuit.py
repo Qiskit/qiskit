@@ -3464,6 +3464,7 @@ class QuantumCircuit:
         ),
     ) -> int:
         """Return circuit depth (i.e., length of critical path).
+
         The depth of a quantum circuit is a measure of how many
         "layers" of quantum gates, executed in parallel, it takes to
         complete the computation defined by the circuit.  Because
