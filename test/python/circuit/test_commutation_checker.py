@@ -453,10 +453,21 @@ class TestCommutationChecker(QiskitTestCase):
                     scc.commute(generic_gate, [0], [], gate, list(range(gate.num_qubits)), [])
                 )
 
+    def test_custom_gate(self):
+        """Test a custom gate."""
+        my_cx = NewGateCX()
+
+        self.assertTrue(scc.commute(my_cx, [0, 1], [], XGate(), [1], []))
+        self.assertFalse(scc.commute(my_cx, [0, 1], [], XGate(), [0], []))
+        self.assertTrue(scc.commute(my_cx, [0, 1], [], ZGate(), [0], []))
+
+        self.assertFalse(scc.commute(my_cx, [0, 1], [], my_cx, [1, 0], []))
+        self.assertTrue(scc.commute(my_cx, [0, 1], [], my_cx, [0, 1], []))
+
     def test_custom_gate_caching(self):
         """Test a custom gate is correctly handled on consecutive runs."""
 
-        all_commuter = MyEvilRXGate(0)  # this will with anything
+        all_commuter = MyEvilRXGate(0)  # this will commute with anything
         some_rx = MyEvilRXGate(1.6192)  # this should not commute with H
 
         # the order here is important: we're testing whether the gate that commutes with
