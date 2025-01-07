@@ -431,6 +431,11 @@ static STANDARD_GATE_NAME: [&str; STANDARD_GATE_SIZE] = [
     "rcccx",        // 51 ("rc3x")
 ];
 
+/// Get a slice of all standard gate names.
+pub fn get_standard_gate_names() -> &'static [&'static str] {
+    &STANDARD_GATE_NAME
+}
+
 impl StandardGate {
     pub fn create_py_op(
         &self,
