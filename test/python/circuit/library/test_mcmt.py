@@ -296,7 +296,7 @@ class TestMCMT(QiskitTestCase):
         circuit.append(mcmt, circuit.qubits)  # append the MCMT circuit as gate called "MCMT"
 
         transpiled = transpile(circuit, basis_gates=["u", "cx"])
-        self.assertTrue(Operator(transpiled).equiv(gate.control(1)))
+        self.assertEqual(Operator(transpiled), Operator(gate.control(1)))
 
 
 if __name__ == "__main__":
