@@ -28,14 +28,21 @@ use qiskit_circuit::circuit_instruction::{ExtraInstructionAttributes, OperationF
 use qiskit_circuit::dag_node::DAGOpNode;
 use qiskit_circuit::imports::QI_OPERATOR;
 use qiskit_circuit::operations::OperationRef::{Gate as PyGateType, Operation as PyOperationType};
-use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardGate};
+use qiskit_circuit::operations::{
+    get_standard_gate_names, Operation, OperationRef, Param, StandardGate,
+};
 use qiskit_circuit::{BitType, Clbit, Qubit};
 
 use crate::unitary_compose;
 use crate::QiskitError;
 
+const TWOPI: f64 = 2.0 * std::f64::consts::PI;
+
+// These gates do not commute with other gates, we do not check them.
 static SKIPPED_NAMES: [&str; 4] = ["measure", "reset", "delay", "initialize"];
-static NO_CACHE_NAMES: [&str; 2] = ["annotated", "linear_function"];
+
+// We keep a hash-set of operations eligible for commutation checking. This is because checking
+// eligibility is not for free.
 static SUPPORTED_OP: Lazy<HashSet<&str>> = Lazy::new(|| {
     HashSet::from([
         "rxx", "ryy", "rzz", "rzx", "h", "x", "y", "z", "sx", "sxdg", "t", "tdg", "s", "sdg", "cx",
@@ -43,9 +50,7 @@ static SUPPORTED_OP: Lazy<HashSet<&str>> = Lazy::new(|| {
     ])
 });
 
-const TWOPI: f64 = 2.0 * std::f64::consts::PI;
-
-// map rotation gates to their generators, or to ``None`` if we cannot currently efficiently
+// Map rotation gates to their generators, or to ``None`` if we cannot currently efficiently
 // represent the generator in Rust and store the commutation relation in the commutation dictionary
 static SUPPORTED_ROTATIONS: Lazy<HashMap<&str, Option<OperationRef>>> = Lazy::new(|| {
     HashMap::from([
@@ -322,15 +327,17 @@ impl CommutationChecker {
             (qargs1, qargs2)
         };
 
-        let skip_cache: bool = NO_CACHE_NAMES.contains(&first_op.name()) ||
-            NO_CACHE_NAMES.contains(&second_op.name()) ||
-            // Skip params that do not evaluate to floats for caching and commutation library
-            first_params.iter().any(|p| !matches!(p, Param::Float(_))) ||
-            second_params.iter().any(|p| !matches!(p, Param::Float(_)))
-            && !SUPPORTED_OP.contains(op1.name())
-            && !SUPPORTED_OP.contains(op2.name());
+        // For our cache to work correctly, we require the gate's definition to only depend on the
+        // ``params`` attribute. This cannot be guaranteed for custom gates, so we only check
+        // the cache for our standard gates, which we know are defined by the ``params`` AND
+        // that the ``params`` are float-only at this point.
+        let whitelist = get_standard_gate_names();
+        let check_cache = whitelist.contains(&first_op.name())
+            && whitelist.contains(&second_op.name())
+            && first_params.iter().all(|p| matches!(p, Param::Float(_)))
+            && second_params.iter().all(|p| matches!(p, Param::Float(_)));
 
-        if skip_cache {
+        if !check_cache {
             return self.commute_matmul(
                 py,
                 first_op,
@@ -630,21 +637,24 @@ fn map_rotation<'a>(
 ) -> (&'a OperationRef<'a>, &'a [Param], bool) {
     let name = op.name();
     if let Some(generator) = SUPPORTED_ROTATIONS.get(name) {
-        // if the rotation angle is below the tolerance, the gate is assumed to
+        // If the rotation angle is below the tolerance, the gate is assumed to
         // commute with everything, and we simply return the operation with the flag that
-        // it commutes trivially
+        // it commutes trivially.
         if let Param::Float(angle) = params[0] {
             if (angle % TWOPI).abs() < tol {
                 return (op, params, true);
             };
         };
 
-        // otherwise, we check if a generator is given -- if not, we'll just return the operation
-        // itself (e.g. RXX does not have a generator and is just stored in the commutations
-        // dictionary)
+        // Otherwise we need to cover two cases -- either a generator is given, in which case
+        // we return it, or we don't have a generator yet, but we know we have the operation
+        // stored in the commutation library. For example, RXX does not have a generator in Rust
+        // yet (PauliGate is not in Rust currently), but it is stored in the library, so we
+        // can strip the parameters and just return the gate.
         if let Some(gate) = generator {
             return (gate, &[], false);
         };
+        return (op, &[], false);
     }
     (op, params, false)
 }
