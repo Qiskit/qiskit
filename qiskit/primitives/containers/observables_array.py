@@ -97,7 +97,7 @@ class ObservablesArray(ShapedMixin):
         array = np.array2string(self._array, prefix=prefix, suffix=suffix, threshold=50)
         return prefix + array + suffix
 
-    def tolist(self) -> list:
+    def tolist(self) -> list | ObservableLike:
         """Convert to a nested list.
 
         Similar to Numpy's ``tolist`` method, the level of nesting
