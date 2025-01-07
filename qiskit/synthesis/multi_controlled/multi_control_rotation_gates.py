@@ -23,7 +23,6 @@ from qiskit.exceptions import QiskitError
 
 def _apply_cu(circuit, theta, phi, lam, control, target, use_basis_gates=True):
     if use_basis_gates:
-        # pylint: disable=cyclic-import
         #          ┌──────────────┐
         # control: ┤ P(λ/2 + φ/2) ├──■──────────────────────────────────■────────────────
         #          ├──────────────┤┌─┴─┐┌────────────────────────────┐┌─┴─┐┌────────────┐
