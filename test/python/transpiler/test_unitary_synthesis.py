@@ -1079,7 +1079,7 @@ class TestUnitarySynthesis(QiskitTestCase):
         tqc = transpile(qc, backend, optimization_level=0, initial_layout=[0, 1, 2])
 
         expected = np.kron(np.eye(2**2), x_mat)
-        self.assertTrue(Operator(tqc).equiv(expected))
+        self.assertEqual(Operator(tqc), Operator(expected))
 
     def test_3q_measure_all(self):
         """Regression test of #13586."""
