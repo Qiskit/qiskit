@@ -238,7 +238,6 @@ class BasicSwapPassManager(PassManagerStagePlugin):
 
     def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
         """Build routing stage PassManager."""
-        seed_transpiler = pass_manager_config.seed_transpiler
         target = pass_manager_config.target
         coupling_map = pass_manager_config.coupling_map
         backend_properties = pass_manager_config.backend_properties
@@ -358,7 +357,6 @@ class LookaheadSwapPassManager(PassManagerStagePlugin):
 
     def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
         """Build routing stage PassManager."""
-        seed_transpiler = pass_manager_config.seed_transpiler
         target = pass_manager_config.target
         coupling_map = pass_manager_config.coupling_map
         coupling_map_routing = target
@@ -515,7 +513,6 @@ class NoneRoutingPassManager(PassManagerStagePlugin):
 
     def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
         """Build routing stage PassManager."""
-        seed_transpiler = pass_manager_config.seed_transpiler
         target = pass_manager_config.target
         coupling_map = pass_manager_config.coupling_map
         routing_pass = Error(
