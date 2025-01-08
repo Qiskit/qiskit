@@ -12,6 +12,8 @@
 
 """The S, Sdg, CS and CSdg gates."""
 
+from __future__ import annotations
+
 from math import pi
 from typing import Optional, Union
 
@@ -49,7 +51,7 @@ class SGate(SingletonGate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌───┐
         q_0: ┤ S ├
@@ -82,6 +84,39 @@ class SGate(SingletonGate):
             qc._append(instr, qargs, cargs)
 
         self.definition = qc
+
+    def control(
+        self,
+        num_ctrl_qubits: int = 1,
+        label: str | None = None,
+        ctrl_state: int | str | None = None,
+        annotated: bool | None = None,
+    ):
+        """Return a (multi-)controlled-S gate.
+
+        One control qubit returns a :class:`.CSGate`.
+
+        Args:
+            num_ctrl_qubits: number of control qubits.
+            label: An optional label for the gate [Default: ``None``]
+            ctrl_state: control state expressed as integer,
+                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
+            annotated: indicates whether the controlled gate should be implemented
+                as an annotated gate. If ``None``, this is handled as ``False``.
+
+        Returns:
+            ControlledGate: controlled version of this gate.
+        """
+        if not annotated and num_ctrl_qubits == 1:
+            gate = CSGate(label=label, ctrl_state=ctrl_state, _base_label=self.label)
+        else:
+            gate = super().control(
+                num_ctrl_qubits=num_ctrl_qubits,
+                label=label,
+                ctrl_state=ctrl_state,
+                annotated=annotated,
+            )
+        return gate
 
     def inverse(self, annotated: bool = False):
         """Return inverse of S (SdgGate).
@@ -128,7 +163,7 @@ class SdgGate(SingletonGate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌─────┐
         q_0: ┤ Sdg ├
@@ -162,6 +197,39 @@ class SdgGate(SingletonGate):
 
         self.definition = qc
 
+    def control(
+        self,
+        num_ctrl_qubits: int = 1,
+        label: str | None = None,
+        ctrl_state: int | str | None = None,
+        annotated: bool | None = None,
+    ):
+        """Return a (multi-)controlled-Sdg gate.
+
+        One control qubit returns a :class:`.CSdgGate`.
+
+        Args:
+            num_ctrl_qubits: number of control qubits.
+            label: An optional label for the gate [Default: ``None``]
+            ctrl_state: control state expressed as integer,
+                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
+            annotated: indicates whether the controlled gate should be implemented
+                as an annotated gate. If ``None``, this is handled as ``False``.
+
+        Returns:
+            ControlledGate: controlled version of this gate.
+        """
+        if not annotated and num_ctrl_qubits == 1:
+            gate = CSdgGate(label=label, ctrl_state=ctrl_state, _base_label=self.label)
+        else:
+            gate = super().control(
+                num_ctrl_qubits=num_ctrl_qubits,
+                label=label,
+                ctrl_state=ctrl_state,
+                annotated=annotated,
+            )
+        return gate
+
     def inverse(self, annotated: bool = False):
         """Return inverse of Sdg (SGate).
 
@@ -194,7 +262,7 @@ class CSGate(SingletonControlledGate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
         q_0: ──■──
              ┌─┴─┐
@@ -282,7 +350,7 @@ class CSdgGate(SingletonControlledGate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
         q_0: ───■───
              ┌──┴──┐

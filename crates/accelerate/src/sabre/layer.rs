@@ -47,6 +47,11 @@ impl FrontLayer {
         }
     }
 
+    /// Number of gates currently stored in the layer.
+    pub fn len(&self) -> usize {
+        self.nodes.len()
+    }
+
     /// View onto the mapping between qubits and their `(node, other_qubit)` pair.  Index `i`
     /// corresponds to physical qubit `i`.
     pub fn qubits(&self) -> &[Option<(NodeIndex, PhysicalQubit)>] {
@@ -65,7 +70,10 @@ impl FrontLayer {
     pub fn remove(&mut self, index: &NodeIndex) {
         // The actual order in the indexmap doesn't matter as long as it's reproducible.
         // Swap-remove is more efficient than a full shift-remove.
-        let [a, b] = self.nodes.swap_remove(index).unwrap();
+        let [a, b] = self
+            .nodes
+            .swap_remove(index)
+            .expect("Tried removing index that does not exist.");
         self.qubits[a.index()] = None;
         self.qubits[b.index()] = None;
     }
@@ -77,11 +85,8 @@ impl FrontLayer {
     }
 
     /// Calculate the score _difference_ caused by this swap, compared to not making the swap.
-    #[inline]
+    #[inline(always)]
     pub fn score(&self, swap: [PhysicalQubit; 2], dist: &ArrayView2<f64>) -> f64 {
-        if self.is_empty() {
-            return 0.0;
-        }
         // At most there can be two affected gates in the front layer (one on each qubit in the
         // swap), since any gate whose closest path passes through the swapped qubit link has its
         // "virtual-qubit path" order changed, but not the total weight.  In theory, we should
@@ -96,18 +101,14 @@ impl FrontLayer {
         if let Some((_, c)) = self.qubits[b.index()] {
             total += dist[[a.index(), c.index()]] - dist[[b.index(), c.index()]]
         }
-        total / self.nodes.len() as f64
+        total
     }
 
     /// Calculate the total absolute of the current front layer on the given layer.
     pub fn total_score(&self, dist: &ArrayView2<f64>) -> f64 {
-        if self.is_empty() {
-            return 0.0;
-        }
         self.iter()
             .map(|(_, &[a, b])| dist[[a.index(), b.index()]])
             .sum::<f64>()
-            / self.nodes.len() as f64
     }
 
     /// Apply a physical swap to the current layout data structure.
@@ -181,10 +182,8 @@ impl ExtendedSet {
     }
 
     /// Calculate the score of applying the given swap, relative to not applying it.
+    #[inline(always)]
     pub fn score(&self, swap: [PhysicalQubit; 2], dist: &ArrayView2<f64>) -> f64 {
-        if self.is_empty() {
-            return 0.0;
-        }
         let [a, b] = swap;
         let mut total = 0.0;
         for other in self.qubits[a.index()].iter() {
@@ -201,14 +200,12 @@ impl ExtendedSet {
             }
             total += dist[[a.index(), other.index()]] - dist[[b.index(), other.index()]];
         }
-        total / self.len as f64
+        total
     }
 
     /// Calculate the total absolute score of this set of nodes over the given layout.
     pub fn total_score(&self, dist: &ArrayView2<f64>) -> f64 {
-        if self.is_empty() {
-            return 0.0;
-        }
+        // Factor of two is to remove double-counting of each gate.
         self.qubits
             .iter()
             .enumerate()
@@ -216,7 +213,7 @@ impl ExtendedSet {
                 others.iter().map(move |b| dist[[a_index, b.index()]])
             })
             .sum::<f64>()
-            / (2.0 * self.len as f64) // Factor of two is to remove double-counting of each gate.
+            * 0.5
     }
 
     /// Clear all nodes from the extended set.

@@ -28,7 +28,7 @@ pub struct ImportOnceCell {
 }
 
 impl ImportOnceCell {
-    const fn new(module: &'static str, object: &'static str) -> Self {
+    pub const fn new(module: &'static str, object: &'static str) -> Self {
         Self {
             module,
             object,
@@ -57,25 +57,73 @@ impl ImportOnceCell {
 }
 
 pub static BUILTIN_LIST: ImportOnceCell = ImportOnceCell::new("builtins", "list");
+pub static BUILTIN_SET: ImportOnceCell = ImportOnceCell::new("builtins", "set");
 pub static OPERATION: ImportOnceCell = ImportOnceCell::new("qiskit.circuit.operation", "Operation");
 pub static INSTRUCTION: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.instruction", "Instruction");
 pub static GATE: ImportOnceCell = ImportOnceCell::new("qiskit.circuit.gate", "Gate");
+pub static CONTROL_FLOW_OP: ImportOnceCell =
+    ImportOnceCell::new("qiskit.circuit.controlflow", "ControlFlowOp");
 pub static QUBIT: ImportOnceCell = ImportOnceCell::new("qiskit.circuit.quantumregister", "Qubit");
 pub static CLBIT: ImportOnceCell = ImportOnceCell::new("qiskit.circuit.classicalregister", "Clbit");
+pub static QUANTUM_REGISTER: ImportOnceCell =
+    ImportOnceCell::new("qiskit.circuit.quantumregister", "QuantumRegister");
+pub static CLASSICAL_REGISTER: ImportOnceCell =
+    ImportOnceCell::new("qiskit.circuit.classicalregister", "ClassicalRegister");
 pub static PARAMETER_EXPRESSION: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.parameterexpression", "ParameterExpression");
+pub static PARAMETER_VECTOR: ImportOnceCell =
+    ImportOnceCell::new("qiskit.circuit.parametervector", "ParameterVector");
 pub static QUANTUM_CIRCUIT: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.quantumcircuit", "QuantumCircuit");
 pub static SINGLETON_GATE: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.singleton", "SingletonGate");
 pub static SINGLETON_CONTROLLED_GATE: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.singleton", "SingletonControlledGate");
+pub static VARIABLE_MAPPER: ImportOnceCell =
+    ImportOnceCell::new("qiskit.circuit._classical_resource_map", "VariableMapper");
+pub static IF_ELSE_OP: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "IfElseOp");
+pub static FOR_LOOP_OP: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "ForLoopOp");
+pub static SWITCH_CASE_OP: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "SwitchCaseOp");
+pub static WHILE_LOOP_OP: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "WhileLoopOp");
+pub static STORE_OP: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "Store");
+pub static EXPR: ImportOnceCell = ImportOnceCell::new("qiskit.circuit.classical.expr", "Expr");
+pub static ITER_VARS: ImportOnceCell =
+    ImportOnceCell::new("qiskit.circuit.classical.expr", "iter_vars");
+pub static DAG_NODE: ImportOnceCell = ImportOnceCell::new("qiskit.dagcircuit", "DAGNode");
 pub static CONTROLLED_GATE: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit", "ControlledGate");
+pub static ANNOTATED_OPERATION: ImportOnceCell =
+    ImportOnceCell::new("qiskit.circuit", "AnnotatedOperation");
 pub static DEEPCOPY: ImportOnceCell = ImportOnceCell::new("copy", "deepcopy");
 pub static QI_OPERATOR: ImportOnceCell = ImportOnceCell::new("qiskit.quantum_info", "Operator");
 pub static WARNINGS_WARN: ImportOnceCell = ImportOnceCell::new("warnings", "warn");
+pub static CIRCUIT_TO_DAG: ImportOnceCell =
+    ImportOnceCell::new("qiskit.converters", "circuit_to_dag");
+pub static DAG_TO_CIRCUIT: ImportOnceCell =
+    ImportOnceCell::new("qiskit.converters", "dag_to_circuit");
+pub static LEGACY_CONDITION_CHECK: ImportOnceCell =
+    ImportOnceCell::new("qiskit.dagcircuit.dagnode", "_legacy_condition_eq");
+pub static CONDITION_OP_CHECK: ImportOnceCell =
+    ImportOnceCell::new("qiskit.dagcircuit.dagnode", "_condition_op_eq");
+pub static SWITCH_CASE_OP_CHECK: ImportOnceCell =
+    ImportOnceCell::new("qiskit.dagcircuit.dagnode", "_switch_case_eq");
+pub static FOR_LOOP_OP_CHECK: ImportOnceCell =
+    ImportOnceCell::new("qiskit.dagcircuit.dagnode", "_for_loop_eq");
+pub static UUID: ImportOnceCell = ImportOnceCell::new("uuid", "UUID");
+pub static BARRIER: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "Barrier");
+pub static UNITARY_GATE: ImportOnceCell = ImportOnceCell::new(
+    "qiskit.circuit.library.generalized_gates.unitary",
+    "UnitaryGate",
+);
+pub static QS_DECOMPOSITION: ImportOnceCell =
+    ImportOnceCell::new("qiskit.synthesis.unitary.qsd", "qs_decomposition");
+pub static XX_DECOMPOSER: ImportOnceCell =
+    ImportOnceCell::new("qiskit.synthesis.two_qubit.xx_decompose", "XXDecomposer");
+pub static XX_EMBODIMENTS: ImportOnceCell =
+    ImportOnceCell::new("qiskit.synthesis.two_qubit.xx_decompose", "XXEmbodiments");
+pub static NUMPY_COPY_ONLY_IF_NEEDED: ImportOnceCell =
+    ImportOnceCell::new("qiskit._numpy_compat", "COPY_ONLY_IF_NEEDED");
 
 /// A mapping from the enum variant in crate::operations::StandardGate to the python
 /// module path and class name to import it. This is used to populate the conversion table

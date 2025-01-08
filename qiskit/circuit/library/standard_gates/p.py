@@ -33,35 +33,35 @@ class PhaseGate(Gate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌──────┐
-        q_0: ┤ P(λ) ├
+        q_0: ┤ P(θ) ├
              └──────┘
 
     **Matrix Representation:**
 
     .. math::
 
-        P(\lambda) =
+        P(\theta) =
             \begin{pmatrix}
                 1 & 0 \\
-                0 & e^{i\lambda}
+                0 & e^{i\theta}
             \end{pmatrix}
 
     **Examples:**
 
         .. math::
 
-            P(\lambda = \pi) = Z
+            P(\theta = \pi) = Z
 
         .. math::
 
-            P(\lambda = \pi/2) = S
+            P(\theta = \pi/2) = S
 
         .. math::
 
-            P(\lambda = \pi/4) = T
+            P(\theta = \pi/4) = T
 
     .. seealso::
 
@@ -70,7 +70,7 @@ class PhaseGate(Gate):
 
             .. math::
 
-                P(\lambda) = e^{i{\lambda}/2} RZ(\lambda)
+                P(\theta) = e^{i{\theta}/2} RZ(\theta)
 
         Reference for virtual Z gate implementation:
         `1612.00858 <https://arxiv.org/abs/1612.00858>`_
@@ -99,7 +99,7 @@ class PhaseGate(Gate):
         num_ctrl_qubits: int = 1,
         label: str | None = None,
         ctrl_state: str | int | None = None,
-        annotated: bool = False,
+        annotated: bool | None = None,
     ):
         """Return a (multi-)controlled-Phase gate.
 
@@ -108,8 +108,8 @@ class PhaseGate(Gate):
             label: An optional label for the gate [Default: ``None``]
             ctrl_state: control state expressed as integer,
                 string (e.g. ``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: indicates whether the controlled gate can be implemented
-                as an annotated gate.
+            annotated: indicates whether the controlled gate should be implemented
+                as an annotated gate. If ``None``, this is handled as ``False``.
 
         Returns:
             ControlledGate: controlled version of this gate.
@@ -171,11 +171,11 @@ class CPhaseGate(ControlledGate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
 
         q_0: ─■──
-              │λ
+              │θ
         q_1: ─■──
 
 
@@ -189,7 +189,7 @@ class CPhaseGate(ControlledGate):
                 1 & 0 & 0 & 0 \\
                 0 & 1 & 0 & 0 \\
                 0 & 0 & 1 & 0 \\
-                0 & 0 & 0 & e^{i\lambda}
+                0 & 0 & 0 & e^{i\theta}
             \end{pmatrix}
 
     .. seealso::
@@ -255,7 +255,7 @@ class CPhaseGate(ControlledGate):
         num_ctrl_qubits: int = 1,
         label: str | None = None,
         ctrl_state: str | int | None = None,
-        annotated: bool = False,
+        annotated: bool | None = None,
     ):
         """Controlled version of this gate.
 
@@ -264,8 +264,8 @@ class CPhaseGate(ControlledGate):
             label: An optional label for the gate [Default: ``None``]
             ctrl_state: control state expressed as integer,
                 string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: indicates whether the controlled gate can be implemented
-                as an annotated gate.
+            annotated: indicates whether the controlled gate should be implemented
+                as an annotated gate. If ``None``, this is handled as ``False``.
 
         Returns:
             ControlledGate: controlled version of this gate.
@@ -318,7 +318,7 @@ class MCPhaseGate(ControlledGate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
             q_0: ───■────
                     │
@@ -377,7 +377,8 @@ class MCPhaseGate(ControlledGate):
                 q_target = self.num_ctrl_qubits
                 new_target = q_target
                 for k in range(self.num_ctrl_qubits):
-                    qc.mcrz(lam / (2**k), q_controls, new_target, use_basis_gates=True)
+                    # Note: it's better *not* to run transpile recursively
+                    qc.mcrz(lam / (2**k), q_controls, new_target, use_basis_gates=False)
                     new_target = q_controls.pop()
                 qc.p(lam / (2**self.num_ctrl_qubits), new_target)
             else:  # in this case type(lam) is ParameterValueType
@@ -396,7 +397,7 @@ class MCPhaseGate(ControlledGate):
         num_ctrl_qubits: int = 1,
         label: str | None = None,
         ctrl_state: str | int | None = None,
-        annotated: bool = False,
+        annotated: bool | None = None,
     ):
         """Controlled version of this gate.
 
@@ -405,8 +406,8 @@ class MCPhaseGate(ControlledGate):
             label: An optional label for the gate [Default: ``None``]
             ctrl_state: control state expressed as integer,
                 string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: indicates whether the controlled gate can be implemented
-                as an annotated gate.
+            annotated: indicates whether the controlled gate should be implemented
+                as an annotated gate. If ``None``, this is handled as ``False``.
 
         Returns:
             ControlledGate: controlled version of this gate.
@@ -430,3 +431,11 @@ class MCPhaseGate(ControlledGate):
     def inverse(self, annotated: bool = False):
         r"""Return inverted MCPhase gate (:math:`MCPhase(\lambda)^{\dagger} = MCPhase(-\lambda)`)"""
         return MCPhaseGate(-self.params[0], self.num_ctrl_qubits)
+
+    def __eq__(self, other):
+        return (
+            isinstance(other, MCPhaseGate)
+            and self.num_ctrl_qubits == other.num_ctrl_qubits
+            and self.ctrl_state == other.ctrl_state
+            and self._compare_parameters(other)
+        )

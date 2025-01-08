@@ -14,13 +14,13 @@
 
 import warnings
 
-from qiskit.transpiler import InstructionDurations
-from qiskit.transpiler.basepasses import AnalysisPass
-from qiskit.transpiler.passes.scheduling.time_unit_conversion import TimeUnitConversion
-from qiskit.dagcircuit import DAGOpNode, DAGCircuit
 from qiskit.circuit import Delay, Gate
 from qiskit.circuit.parameterexpression import ParameterExpression
+from qiskit.dagcircuit import DAGOpNode, DAGCircuit
+from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.instruction_durations import InstructionDurations
+from qiskit.transpiler.passes.scheduling.time_unit_conversion import TimeUnitConversion
 from qiskit.transpiler.target import Target
 
 
@@ -64,17 +64,21 @@ class BaseScheduler(AnalysisPass):
         """A helper method to get duration from node or calibration."""
         indices = [dag.find_bit(qarg).index for qarg in node.qargs]
 
-        if dag.has_calibration_for(node):
+        if dag._has_calibration_for(node):
             # If node has calibration, this value should be the highest priority
             cal_key = tuple(indices), tuple(float(p) for p in node.op.params)
-            duration = dag.calibrations[node.op.name][cal_key].duration
+            with warnings.catch_warnings():
+                warnings.simplefilter(action="ignore", category=DeprecationWarning)
+                # `schedule.duration` emits pulse deprecation warnings which we don't want
+                # to see here
+                duration = dag._calibrations_prop[node.op.name][cal_key].duration
 
             # Note that node duration is updated (but this is analysis pass)
             op = node.op.to_mutable()
             op.duration = duration
-            node.op = op
+            dag.substitute_node(node, op, propagate_condition=False)
         else:
-            duration = node.op.duration
+            duration = node.duration
 
         if isinstance(duration, ParameterExpression):
             raise TranspilerError(

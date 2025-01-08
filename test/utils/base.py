@@ -123,10 +123,78 @@ class QiskitTestCase(BaseTestCase):
         # Safe to remove once https://github.com/Qiskit/qiskit-aer/pull/2179 is in a release version
         # of Aer.
         warnings.filterwarnings(
-            "default",
+            "ignore",  # If "default", it floods the CI output
             category=DeprecationWarning,
             message="Treating CircuitInstruction as an iterable is deprecated",
             module=r"qiskit_aer(\.[a-zA-Z0-9_]+)*",
+        )
+
+        # Safe to remove once https://github.com/Qiskit/qiskit-aer/issues/2197 is in a release version
+        # of Aer.
+        warnings.filterwarnings(
+            "ignore",  # If "default", it floods the CI output
+            category=DeprecationWarning,
+            message=r".*qiskit\.providers\.models.*",
+            module=r"qiskit_aer(\.[a-zA-Z0-9_]+)*",
+        )
+
+        # Safe to remove once https://github.com/Qiskit/qiskit-aer/issues/2065 is in a release version
+        # of Aer.
+        warnings.filterwarnings(
+            "ignore",  # If "default", it floods the CI output
+            category=DeprecationWarning,
+            message=r".*The `Qobj` class and related functionality.*",
+            module=r"qiskit_aer",
+        )
+
+        # Safe to remove once https://github.com/Qiskit/qiskit-aer/pull/2184 is in a release version
+        # of Aer.
+        warnings.filterwarnings(
+            "ignore",  # If "default", it floods the CI output
+            category=DeprecationWarning,
+            message=r".*The abstract Provider and ProviderV1 classes are deprecated.*",
+            module="qiskit_aer",
+        )
+
+        # Remove these two filters in Qiskit 2.0.0 when we remove unit and duration
+        warnings.filterwarnings(
+            "ignore",
+            category=DeprecationWarning,
+            message=r".*The property.*qiskit.*duration.*",
+        )
+        warnings.filterwarnings(
+            "ignore",
+            category=DeprecationWarning,
+            message=r".*The property.*qiskit.*unit.*",
+        )
+
+        # Safe to remove once `FakeBackend` is removed (2.0)
+        warnings.filterwarnings(
+            "ignore",  # If "default", it floods the CI output
+            category=DeprecationWarning,
+            message=r".*from_backend using V1 based backend is deprecated as of Aer 0.15*",
+            module="qiskit.providers.fake_provider.fake_backend",
+        )
+
+        warnings.filterwarnings(
+            "default",
+            category=DeprecationWarning,
+            message=r".*The property.*condition.*is deprecated.*",
+            module="qiskit_aer",
+        )
+
+        # Remove with the condition attribute in 2.0:
+        warnings.filterwarnings(
+            "ignore",
+            category=DeprecationWarning,
+            message=r".*The property.*condition.*is deprecated.*",
+            module="qiskit.visualization",
+        )
+        warnings.filterwarnings(
+            "ignore",
+            category=DeprecationWarning,
+            message=r".*The property.*condition_bits.*is deprecated.*",
+            module="qiskit.transpiler.passes.scheduling",
         )
 
         allow_DeprecationWarning_message = [

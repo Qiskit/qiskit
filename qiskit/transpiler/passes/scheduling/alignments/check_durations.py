@@ -14,7 +14,7 @@
 from qiskit.circuit.delay import Delay
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import AnalysisPass
-from qiskit.transpiler import Target
+from qiskit.transpiler.target import Target
 
 
 class InstructionDurationCheck(AnalysisPass):
@@ -70,7 +70,7 @@ class InstructionDurationCheck(AnalysisPass):
                 return
 
         # Check custom gate durations
-        for inst_defs in dag.calibrations.values():
+        for inst_defs in dag._calibrations_prop.values():
             for caldef in inst_defs.values():
                 dur = caldef.duration
                 if not (dur % self.acquire_align == 0 and dur % self.pulse_align == 0):

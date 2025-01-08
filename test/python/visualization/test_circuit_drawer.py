@@ -151,7 +151,8 @@ class TestCircuitDrawer(QiskitTestCase):
         circuit.h(0)
         circuit.h(3)
         circuit.x(1)
-        circuit.x(3).c_if(cr, 10)
+        with self.assertWarns(DeprecationWarning):
+            circuit.x(3).c_if(cr, 10)
 
         expected = "\n".join(
             [
@@ -183,7 +184,8 @@ class TestCircuitDrawer(QiskitTestCase):
         circuit.h(0)
         circuit.h(3)
         circuit.x(1)
-        circuit.x(3).c_if(cr, 10)
+        with self.assertWarns(DeprecationWarning):
+            circuit.x(3).c_if(cr, 10)
 
         expected = "\n".join(
             [
@@ -249,7 +251,7 @@ class TestCircuitDrawer(QiskitTestCase):
         error_message = re.escape(
             f"Setting QuantumCircuit.draw()’s or circuit_drawer()'s justify argument: {bad_arg}, to a "
             "value other than 'left', 'right', 'none' or None (='left'). Default 'left' will be used. "
-            "Support for invalid justify arguments is deprecated as of qiskit 1.2.0. Starting no "
+            "Support for invalid justify arguments is deprecated as of Qiskit 1.2.0. Starting no "
             "earlier than 3 months after the release date, invalid arguments will error.",
         )
 

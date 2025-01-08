@@ -142,7 +142,11 @@ class Pauli(BasePauli):
 
     For example
 
-    .. code-block:: python
+    .. plot::
+       :include-source:
+       :nofigs:
+
+        from qiskit.quantum_info import Pauli
 
         P = Pauli('-iXYZ')
 

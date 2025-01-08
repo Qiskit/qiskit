@@ -22,12 +22,13 @@ from test import QiskitTestCase  # pylint: disable=wrong-import-order
 class BackendpropertiesTestCase(QiskitTestCase):
     """Test usability methods of backend.properties()."""
 
-    backend = Fake5QV1()
-    backend_name = "fake_ourense"
+    # TODO the full file can be removed once BackendV1 is removed, since it is the
+    #  only one with backend.properties()
 
     def setUp(self):
         super().setUp()
-        self.backend = Fake5QV1()
+        with self.assertWarns(DeprecationWarning):
+            self.backend = Fake5QV1()
         self.properties = self.backend.properties()
         self.ref_gate = next(
             g for g in self.backend.configuration().basis_gates if g not in ["id", "rz"]

@@ -24,7 +24,7 @@ use hashbrown::HashMap;
 macro_rules! qubit_newtype {
     ($id: ident) => {
         #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-        pub struct $id(u32);
+        pub struct $id(pub u32);
 
         impl $id {
             #[inline]
@@ -49,7 +49,7 @@ macro_rules! qubit_newtype {
         }
 
         impl pyo3::FromPyObject<'_> for $id {
-            fn extract(ob: &PyAny) -> PyResult<Self> {
+            fn extract_bound(ob: &Bound<'_, PyAny>) -> PyResult<Self> {
                 Ok(Self(ob.extract()?))
             }
         }
@@ -59,6 +59,10 @@ macro_rules! qubit_newtype {
 
             fn get_dtype_bound(py: Python<'_>) -> Bound<'_, numpy::PyArrayDescr> {
                 u32::get_dtype_bound(py)
+            }
+
+            fn clone_ref(&self, _py: Python<'_>) -> Self {
+                *self
             }
         }
     };
@@ -72,6 +76,7 @@ impl PhysicalQubit {
         layout.phys_to_virt[self.index()]
     }
 }
+
 qubit_newtype!(VirtualQubit);
 impl VirtualQubit {
     /// Get the physical qubit that currently corresponds to this index of virtual qubit in the
@@ -216,7 +221,6 @@ impl NLayout {
     }
 }
 
-#[pymodule]
 pub fn nlayout(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<NLayout>()?;
     Ok(())

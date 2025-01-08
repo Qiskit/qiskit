@@ -13,8 +13,9 @@
 """Test the Sabre Swap pass"""
 
 import unittest
-
+import warnings
 import itertools
+
 import ddt
 import numpy.random
 
@@ -24,7 +25,7 @@ from qiskit.circuit.classical import expr
 from qiskit.circuit.random import random_circuit
 from qiskit.compiler.transpiler import transpile
 from qiskit.converters import circuit_to_dag, dag_to_circuit
-from qiskit.providers.fake_provider import Fake27QPulseV1, GenericBackendV2
+from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.transpiler.passes import SabreSwap, TrivialLayout, CheckMap
 from qiskit.transpiler import CouplingMap, Layout, PassManager, Target, TranspilerError
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
@@ -41,7 +42,7 @@ def looping_circuit(uphill_swaps=1, additional_local_minimum_gates=0):
     This looks like (using cz gates to show the symmetry, though we actually output cx for testing
     purposes):
 
-    .. parsed-literal::
+    .. code-block:: text
 
          q_0: ─■────────────────
                │
@@ -278,8 +279,7 @@ class TestSabreSwap(QiskitTestCase):
 
         from qiskit_aer import Aer
 
-        with self.assertWarns(DeprecationWarning):
-            sim = Aer.get_backend("aer_simulator")
+        sim = Aer.get_backend("aer_simulator")
         in_results = sim.run(qc, shots=4096).result().get_counts()
         out_results = sim.run(routed, shots=4096).result().get_counts()
         self.assertEqual(set(in_results), set(out_results))
@@ -293,7 +293,8 @@ class TestSabreSwap(QiskitTestCase):
         with self.subTest("1 bit in register"):
             qc = QuantumCircuit(2, 1)
             qc.z(0)
-            qc.z(0).c_if(qc.cregs[0], 0)
+            with self.assertWarns(DeprecationWarning):
+                qc.z(0).c_if(qc.cregs[0], 0)
             cm = CouplingMap([(0, 1), (1, 0)])
             expected = PassManager([TrivialLayout(cm)]).run(qc)
             actual = PassManager([TrivialLayout(cm), SabreSwap(cm)]).run(qc)
@@ -302,8 +303,10 @@ class TestSabreSwap(QiskitTestCase):
             cregs = [ClassicalRegister(3), ClassicalRegister(4)]
             qc = QuantumCircuit(QuantumRegister(2, name="q"), *cregs)
             qc.z(0)
-            qc.z(0).c_if(cregs[0], 0)
-            qc.z(0).c_if(cregs[1], 0)
+            with self.assertWarns(DeprecationWarning):
+                qc.z(0).c_if(cregs[0], 0)
+            with self.assertWarns(DeprecationWarning):
+                qc.z(0).c_if(cregs[1], 0)
             cm = CouplingMap([(0, 1), (1, 0)])
             expected = PassManager([TrivialLayout(cm)]).run(qc)
             actual = PassManager([TrivialLayout(cm), SabreSwap(cm)]).run(qc)
@@ -316,40 +319,54 @@ class TestSabreSwap(QiskitTestCase):
         """
         with self.subTest("missing measurement"):
             qc = QuantumCircuit(3, 1)
-            qc.cx(0, 2).c_if(0, 0)
+            with self.assertWarns(DeprecationWarning):
+                qc.cx(0, 2).c_if(0, 0)
             qc.measure(1, 0)
-            qc.h(2).c_if(0, 0)
+            with self.assertWarns(DeprecationWarning):
+                qc.h(2).c_if(0, 0)
             expected = QuantumCircuit(3, 1)
             expected.swap(1, 2)
-            expected.cx(0, 1).c_if(0, 0)
+            with self.assertWarns(DeprecationWarning):
+                expected.cx(0, 1).c_if(0, 0)
             expected.measure(2, 0)
-            expected.h(1).c_if(0, 0)
+            with self.assertWarns(DeprecationWarning):
+                expected.h(1).c_if(0, 0)
             result = SabreSwap(CouplingMap.from_line(3), seed=12345)(qc)
             self.assertEqual(result, expected)
         with self.subTest("reordered measurement"):
             qc = QuantumCircuit(3, 1)
-            qc.cx(0, 1).c_if(0, 0)
+            with self.assertWarns(DeprecationWarning):
+                qc.cx(0, 1).c_if(0, 0)
             qc.measure(1, 0)
-            qc.h(0).c_if(0, 0)
+            with self.assertWarns(DeprecationWarning):
+                qc.h(0).c_if(0, 0)
             expected = QuantumCircuit(3, 1)
-            expected.cx(0, 1).c_if(0, 0)
+            with self.assertWarns(DeprecationWarning):
+                expected.cx(0, 1).c_if(0, 0)
             expected.measure(1, 0)
-            expected.h(0).c_if(0, 0)
+            with self.assertWarns(DeprecationWarning):
+                expected.h(0).c_if(0, 0)
             result = SabreSwap(CouplingMap.from_line(3), seed=12345)(qc)
             self.assertEqual(result, expected)
 
     def test_conditional_measurement(self):
         """Test that instructions with cargs and conditions are handled correctly."""
         qc = QuantumCircuit(3, 2)
-        qc.cx(0, 2).c_if(0, 0)
-        qc.measure(2, 0).c_if(1, 0)
-        qc.h(2).c_if(0, 0)
+        with self.assertWarns(DeprecationWarning):
+            qc.cx(0, 2).c_if(0, 0)
+        with self.assertWarns(DeprecationWarning):
+            qc.measure(2, 0).c_if(1, 0)
+        with self.assertWarns(DeprecationWarning):
+            qc.h(2).c_if(0, 0)
         qc.measure(1, 1)
         expected = QuantumCircuit(3, 2)
         expected.swap(1, 2)
-        expected.cx(0, 1).c_if(0, 0)
-        expected.measure(1, 0).c_if(1, 0)
-        expected.h(1).c_if(0, 0)
+        with self.assertWarns(DeprecationWarning):
+            expected.cx(0, 1).c_if(0, 0)
+        with self.assertWarns(DeprecationWarning):
+            expected.measure(1, 0).c_if(1, 0)
+        with self.assertWarns(DeprecationWarning):
+            expected.h(1).c_if(0, 0)
         expected.measure(2, 1)
         result = SabreSwap(CouplingMap.from_line(3), seed=12345)(qc)
         self.assertEqual(result, expected)
@@ -1327,11 +1344,19 @@ class TestSabreSwapRandomCircuitValidOutput(QiskitTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.backend = Fake27QPulseV1()
-        cls.backend.configuration().coupling_map = MUMBAI_CMAP
-        cls.backend.configuration().basis_gates += ["for_loop", "while_loop", "if_else"]
-        cls.coupling_edge_set = {tuple(x) for x in cls.backend.configuration().coupling_map}
-        cls.basis_gates = set(cls.backend.configuration().basis_gates)
+        with warnings.catch_warnings():
+            # Catch warnings since self.assertWarns cannot be used here.
+            # The `calibrate_instructions` argument is deprecated in Qiksit 1.3
+            warnings.simplefilter("ignore", category=DeprecationWarning)
+            cls.backend = GenericBackendV2(
+                num_qubits=27,
+                calibrate_instructions=True,
+                control_flow=True,
+                coupling_map=MUMBAI_CMAP,
+                seed=42,
+            )
+        cls.coupling_edge_set = {tuple(x) for x in cls.backend.coupling_map}
+        cls.basis_gates = set(cls.backend.operation_names)
 
     def assert_valid_circuit(self, transpiled):
         """Assert circuit complies with constraints of backend."""
@@ -1389,7 +1414,7 @@ class TestSabreSwapRandomCircuitValidOutput(QiskitTestCase):
             routing_method="sabre",
             layout_method="sabre",
             seed_transpiler=12342,
-            target=GenericBackendV2(num_qubits=27, coupling_map=MUMBAI_CMAP).target,
+            target=GenericBackendV2(num_qubits=27, coupling_map=MUMBAI_CMAP, seed=42).target,
         )
         self.assert_valid_circuit(tqc)
 

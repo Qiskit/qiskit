@@ -23,9 +23,10 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.pulse import InstructionScheduleMap, Schedule
 from qiskit.providers.backend import Backend
-from qiskit.scheduler import ScheduleConfig
+from qiskit.scheduler.config import ScheduleConfig
 from qiskit.scheduler.schedule_circuit import schedule_circuit
 from qiskit.utils.parallel import parallel_map
+from qiskit.utils.deprecate_pulse import deprecate_pulse_dependency
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +36,7 @@ def _log_schedule_time(start_time, end_time):
     logger.info(log_msg)
 
 
+@deprecate_pulse_dependency(moving_to_dynamics=True)
 def schedule(
     circuits: Union[QuantumCircuit, List[QuantumCircuit]],
     backend: Optional[Backend] = None,

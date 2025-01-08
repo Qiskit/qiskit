@@ -11,13 +11,16 @@
 # that they have been altered from the originals.
 
 """Two-pulse single-qubit gate."""
+
+from __future__ import annotations
+
 import math
 from cmath import exp
 from typing import Optional, Union
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.parameterexpression import ParameterValueType
+from qiskit.circuit.parameterexpression import ParameterValueType, ParameterExpression
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit._accelerate.circuit import StandardGate
 
@@ -40,7 +43,7 @@ class U3Gate(Gate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌───────────┐
         q_0: ┤ U3(ϴ,φ,λ) ├
@@ -115,9 +118,9 @@ class U3Gate(Gate):
     def control(
         self,
         num_ctrl_qubits: int = 1,
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[str, int]] = None,
-        annotated: bool = False,
+        label: str | None = None,
+        ctrl_state: str | int | None = None,
+        annotated: bool | None = None,
     ):
         """Return a (multi-)controlled-U3 gate.
 
@@ -126,8 +129,10 @@ class U3Gate(Gate):
             label: An optional label for the gate [Default: ``None``]
             ctrl_state: control state expressed as integer,
                 string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: indicates whether the controlled gate can be implemented
-                as an annotated gate.
+            annotated: indicates whether the controlled gate should be implemented
+                as an annotated gate. If ``None``, this is set to ``True`` if
+                the gate contains free parameters and more than one control qubit, in which
+                case it cannot yet be synthesized. Otherwise it is set to ``False``.
 
         Returns:
             ControlledGate: controlled version of this gate.
@@ -136,6 +141,11 @@ class U3Gate(Gate):
             gate = CU3Gate(*self.params, label=label, ctrl_state=ctrl_state)
             gate.base_gate.label = self.label
         else:
+            # If the gate parameters contain free parameters, we cannot eagerly synthesize
+            # the controlled gate decomposition. In this case, we annotate the gate per default.
+            if annotated is None:
+                annotated = any(isinstance(p, ParameterExpression) for p in self.params)
+
             gate = super().control(
                 num_ctrl_qubits=num_ctrl_qubits,
                 label=label,
@@ -168,6 +178,9 @@ class U3Gate(Gate):
             dtype=dtype or complex,
         )
 
+    def __eq__(self, other):
+        return isinstance(other, U3Gate) and self._compare_parameters(other)
+
 
 class CU3Gate(ControlledGate):
     r"""Controlled-U3 gate (3-parameter two-qubit gate).
@@ -176,9 +189,26 @@ class CU3Gate(ControlledGate):
     It is restricted to 3 parameters, and so cannot cover generic two-qubit
     controlled gates).
 
+    .. warning::
+
+       This gate is deprecated. Instead, the :class:`.CUGate` should be used
+
+       .. math::
+
+           CU3(\theta, \phi, \lambda) = CU(\theta, \phi, \lambda, 0)
+
+       .. code-block:: python
+
+          circuit = QuantumCircuit(2)
+          gamma = 0
+          circuit.cu(theta, phi, lambda, gamma, 0, 1)
+
+
+
+
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
         q_0: ──────■──────
              ┌─────┴─────┐
@@ -209,7 +239,8 @@ class CU3Gate(ControlledGate):
         which in our case would be q_1. Thus a textbook matrix for this
         gate will be:
 
-        .. parsed-literal::
+        .. code-block:: text
+
                  ┌───────────┐
             q_0: ┤ U3(ϴ,φ,λ) ├
                  └─────┬─────┘
@@ -340,6 +371,13 @@ class CU3Gate(ControlledGate):
                 ],
                 dtype=dtype or complex,
             )
+
+    def __eq__(self, other):
+        return (
+            isinstance(other, CU3Gate)
+            and self.ctrl_state == other.ctrl_state
+            and self._compare_parameters(other)
+        )
 
 
 def _generate_gray_code(num_bits):

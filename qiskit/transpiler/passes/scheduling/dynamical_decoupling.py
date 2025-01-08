@@ -13,6 +13,7 @@
 """Dynamical Decoupling insertion pass."""
 
 import itertools
+import warnings
 
 import numpy as np
 from qiskit.circuit import Gate, Delay, Reset
@@ -20,10 +21,10 @@ from qiskit.circuit.library.standard_gates import IGate, UGate, U3Gate
 from qiskit.dagcircuit import DAGOpNode, DAGInNode
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.synthesis.one_qubit import OneQubitEulerDecomposer
-from qiskit.transpiler import InstructionDurations
-from qiskit.transpiler.passes.optimization import Optimize1qGates
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.instruction_durations import InstructionDurations
+from qiskit.transpiler.passes.optimization import Optimize1qGates
 from qiskit.utils.deprecation import deprecate_func
 
 
@@ -288,11 +289,15 @@ class DynamicalDecoupling(TransformationPass):
         """
         circ_durations = InstructionDurations()
 
-        if dag.calibrations:
+        if dag._calibrations_prop:
             cal_durations = []
-            for gate, gate_cals in dag.calibrations.items():
-                for (qubits, parameters), schedule in gate_cals.items():
-                    cal_durations.append((gate, qubits, parameters, schedule.duration))
+            with warnings.catch_warnings():
+                warnings.simplefilter(action="ignore", category=DeprecationWarning)
+                # `schedule.duration` emits pulse deprecation warnings which we don't want
+                # to see here
+                for gate, gate_cals in dag._calibrations_prop.items():
+                    for (qubits, parameters), schedule in gate_cals.items():
+                        cal_durations.append((gate, qubits, parameters, schedule.duration))
             circ_durations.update(cal_durations, circ_durations.dt)
 
         if self._durations is not None:

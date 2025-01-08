@@ -297,7 +297,8 @@ class TestCollectBlocks(QiskitTestCase):
         qc.x(0)
         qc.x(1)
         qc.cx(1, 0)
-        qc.x(1).c_if(0, 1)
+        with self.assertWarns(DeprecationWarning):
+            qc.x(1).c_if(0, 1)
         qc.x(0)
         qc.x(1)
         qc.cx(0, 1)
@@ -317,11 +318,13 @@ class TestCollectBlocks(QiskitTestCase):
         # conditional gate (note that x(1) following the measure is collected into the first
         # block).
         block_collector = BlockCollector(circuit_to_dag(qc))
-        blocks = block_collector.collect_all_matching_blocks(
-            lambda node: node.op.name in ["x", "cx"] and not getattr(node.op, "condition", None),
-            split_blocks=False,
-            min_block_size=1,
-        )
+        with self.assertWarns(DeprecationWarning):
+            blocks = block_collector.collect_all_matching_blocks(
+                lambda node: node.op.name in ["x", "cx"]
+                and not getattr(node.op, "condition", None),
+                split_blocks=False,
+                min_block_size=1,
+            )
         self.assertEqual(len(blocks), 2)
         self.assertEqual(len(blocks[0]), 4)
         self.assertEqual(len(blocks[1]), 2)
@@ -334,7 +337,8 @@ class TestCollectBlocks(QiskitTestCase):
         qc.x(0)
         qc.x(1)
         qc.cx(1, 0)
-        qc.x(1).c_if(0, 1)
+        with self.assertWarns(DeprecationWarning):
+            qc.x(1).c_if(0, 1)
         qc.x(0)
         qc.x(1)
         qc.cx(0, 1)
@@ -354,11 +358,13 @@ class TestCollectBlocks(QiskitTestCase):
         # conditional gate (note that x(1) following the measure is collected into the first
         # block).
         block_collector = BlockCollector(circuit_to_dag(qc))
-        blocks = block_collector.collect_all_matching_blocks(
-            lambda node: node.op.name in ["x", "cx"] and not getattr(node.op, "condition", None),
-            split_blocks=False,
-            min_block_size=1,
-        )
+        with self.assertWarns(DeprecationWarning):
+            blocks = block_collector.collect_all_matching_blocks(
+                lambda node: node.op.name in ["x", "cx"]
+                and not getattr(node.op, "condition", None),
+                split_blocks=False,
+                min_block_size=1,
+            )
         self.assertEqual(len(blocks), 2)
         self.assertEqual(len(blocks[0]), 4)
         self.assertEqual(len(blocks[1]), 2)
@@ -598,11 +604,13 @@ class TestCollectBlocks(QiskitTestCase):
         condition."""
 
         qc = QuantumCircuit(4, 3)
-        qc.cx(0, 1).c_if(0, 1)
+        with self.assertWarns(DeprecationWarning):
+            qc.cx(0, 1).c_if(0, 1)
         qc.cx(2, 3)
         qc.cx(1, 2)
         qc.cx(0, 1)
-        qc.cx(2, 3).c_if(1, 0)
+        with self.assertWarns(DeprecationWarning):
+            qc.cx(2, 3).c_if(1, 0)
 
         dag = circuit_to_dag(qc)
 
@@ -621,7 +629,8 @@ class TestCollectBlocks(QiskitTestCase):
             return op
 
         # Collapse block with measures into a single "COLLAPSED" block
-        dag = BlockCollapser(dag).collapse_to_operation(blocks, _collapse_fn)
+        with self.assertWarns(DeprecationWarning):
+            dag = BlockCollapser(dag).collapse_to_operation(blocks, _collapse_fn)
         collapsed_qc = dag_to_circuit(dag)
 
         self.assertEqual(len(collapsed_qc.data), 1)
@@ -634,11 +643,13 @@ class TestCollectBlocks(QiskitTestCase):
         under conditions, using DAGDependency."""
 
         qc = QuantumCircuit(4, 3)
-        qc.cx(0, 1).c_if(0, 1)
+        with self.assertWarns(DeprecationWarning):
+            qc.cx(0, 1).c_if(0, 1)
         qc.cx(2, 3)
         qc.cx(1, 2)
         qc.cx(0, 1)
-        qc.cx(2, 3).c_if(1, 0)
+        with self.assertWarns(DeprecationWarning):
+            qc.cx(2, 3).c_if(1, 0)
 
         dag = circuit_to_dagdependency(qc)
 
@@ -657,7 +668,8 @@ class TestCollectBlocks(QiskitTestCase):
             return op
 
         # Collapse block with measures into a single "COLLAPSED" block
-        dag = BlockCollapser(dag).collapse_to_operation(blocks, _collapse_fn)
+        with self.assertWarns(DeprecationWarning):
+            dag = BlockCollapser(dag).collapse_to_operation(blocks, _collapse_fn)
         collapsed_qc = dagdependency_to_circuit(dag)
 
         self.assertEqual(len(collapsed_qc.data), 1)
@@ -674,10 +686,13 @@ class TestCollectBlocks(QiskitTestCase):
         cbit = Clbit()
 
         qc = QuantumCircuit(qreg, creg, [cbit])
-        qc.cx(0, 1).c_if(creg[1], 1)
-        qc.cx(2, 3).c_if(cbit, 0)
+        with self.assertWarns(DeprecationWarning):
+            qc.cx(0, 1).c_if(creg[1], 1)
+        with self.assertWarns(DeprecationWarning):
+            qc.cx(2, 3).c_if(cbit, 0)
         qc.cx(1, 2)
-        qc.cx(0, 1).c_if(creg[2], 1)
+        with self.assertWarns(DeprecationWarning):
+            qc.cx(0, 1).c_if(creg[2], 1)
 
         dag = circuit_to_dag(qc)
 
@@ -696,7 +711,8 @@ class TestCollectBlocks(QiskitTestCase):
             return op
 
         # Collapse block with measures into a single "COLLAPSED" block
-        dag = BlockCollapser(dag).collapse_to_operation(blocks, _collapse_fn)
+        with self.assertWarns(DeprecationWarning):
+            dag = BlockCollapser(dag).collapse_to_operation(blocks, _collapse_fn)
         collapsed_qc = dag_to_circuit(dag)
 
         self.assertEqual(len(collapsed_qc.data), 1)
@@ -713,10 +729,13 @@ class TestCollectBlocks(QiskitTestCase):
         cbit = Clbit()
 
         qc = QuantumCircuit(qreg, creg, [cbit])
-        qc.cx(0, 1).c_if(creg[1], 1)
-        qc.cx(2, 3).c_if(cbit, 0)
+        with self.assertWarns(DeprecationWarning):
+            qc.cx(0, 1).c_if(creg[1], 1)
+        with self.assertWarns(DeprecationWarning):
+            qc.cx(2, 3).c_if(cbit, 0)
         qc.cx(1, 2)
-        qc.cx(0, 1).c_if(creg[2], 1)
+        with self.assertWarns(DeprecationWarning):
+            qc.cx(0, 1).c_if(creg[2], 1)
 
         dag = circuit_to_dag(qc)
 
@@ -735,7 +754,8 @@ class TestCollectBlocks(QiskitTestCase):
             return op
 
         # Collapse block with measures into a single "COLLAPSED" block
-        dag = BlockCollapser(dag).collapse_to_operation(blocks, _collapse_fn)
+        with self.assertWarns(DeprecationWarning):
+            dag = BlockCollapser(dag).collapse_to_operation(blocks, _collapse_fn)
         collapsed_qc = dag_to_circuit(dag)
 
         self.assertEqual(len(collapsed_qc.data), 1)
@@ -752,9 +772,11 @@ class TestCollectBlocks(QiskitTestCase):
         creg2 = ClassicalRegister(2, "cr2")
 
         qc = QuantumCircuit(qreg, creg, creg2)
-        qc.cx(0, 1).c_if(creg, 3)
+        with self.assertWarns(DeprecationWarning):
+            qc.cx(0, 1).c_if(creg, 3)
         qc.cx(1, 2)
-        qc.cx(0, 1).c_if(creg[2], 1)
+        with self.assertWarns(DeprecationWarning):
+            qc.cx(0, 1).c_if(creg[2], 1)
 
         dag = circuit_to_dag(qc)
 
@@ -773,7 +795,8 @@ class TestCollectBlocks(QiskitTestCase):
             return op
 
         # Collapse block with measures into a single "COLLAPSED" block
-        dag = BlockCollapser(dag).collapse_to_operation(blocks, _collapse_fn)
+        with self.assertWarns(DeprecationWarning):
+            dag = BlockCollapser(dag).collapse_to_operation(blocks, _collapse_fn)
         collapsed_qc = dag_to_circuit(dag)
 
         self.assertEqual(len(collapsed_qc.data), 1)
@@ -791,9 +814,11 @@ class TestCollectBlocks(QiskitTestCase):
         creg2 = ClassicalRegister(2, "cr2")
 
         qc = QuantumCircuit(qreg, creg, creg2)
-        qc.cx(0, 1).c_if(creg, 3)
+        with self.assertWarns(DeprecationWarning):
+            qc.cx(0, 1).c_if(creg, 3)
         qc.cx(1, 2)
-        qc.cx(0, 1).c_if(creg[2], 1)
+        with self.assertWarns(DeprecationWarning):
+            qc.cx(0, 1).c_if(creg[2], 1)
 
         dag = circuit_to_dagdependency(qc)
 
@@ -812,7 +837,8 @@ class TestCollectBlocks(QiskitTestCase):
             return op
 
         # Collapse block with measures into a single "COLLAPSED" block
-        dag = BlockCollapser(dag).collapse_to_operation(blocks, _collapse_fn)
+        with self.assertWarns(DeprecationWarning):
+            dag = BlockCollapser(dag).collapse_to_operation(blocks, _collapse_fn)
         collapsed_qc = dagdependency_to_circuit(dag)
 
         self.assertEqual(len(collapsed_qc.data), 1)
@@ -971,14 +997,19 @@ class TestCollectBlocks(QiskitTestCase):
     def test_block_collapser_register_condition(self):
         """Test that BlockCollapser can handle a register being used more than once."""
         qc = QuantumCircuit(1, 2)
-        qc.x(0).c_if(qc.cregs[0], 0)
-        qc.y(0).c_if(qc.cregs[0], 1)
+        with self.assertWarns(DeprecationWarning):
+            qc.x(0).c_if(qc.cregs[0], 0)
+        with self.assertWarns(DeprecationWarning):
+            qc.y(0).c_if(qc.cregs[0], 1)
 
         dag = circuit_to_dag(qc)
         blocks = BlockCollector(dag).collect_all_matching_blocks(
             lambda _: True, split_blocks=False, min_block_size=1
         )
-        dag = BlockCollapser(dag).collapse_to_operation(blocks, lambda circ: circ.to_instruction())
+        with self.assertWarns(DeprecationWarning):
+            dag = BlockCollapser(dag).collapse_to_operation(
+                blocks, lambda circ: circ.to_instruction()
+            )
         collapsed_qc = dag_to_circuit(dag)
 
         self.assertEqual(len(collapsed_qc.data), 1)
