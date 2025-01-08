@@ -827,6 +827,17 @@ class TestPMHSynthesisLinearFunctionPlugin(QiskitTestCase):
             self.assertEqual(qct.size(), 24)
             self.assertEqual(qct.depth(), 13)
 
+    def test_unfortunate_name(self):
+        """Test the synthesis is not triggered for a custom gate with the same name."""
+        intruder = QuantumCircuit(2, name="linear_function")
+        circuit = QuantumCircuit(2)
+        circuit.append(intruder.to_gate(), [0, 1])
+
+        hls = HighLevelSynthesis()
+        synthesized = hls(circuit)
+
+        self.assertIn("linear_function", synthesized.count_ops())
+
 
 class TestKMSSynthesisLinearFunctionPlugin(QiskitTestCase):
     """Tests for the KMSSynthesisLinearFunction plugin for synthesizing linear functions."""
@@ -876,6 +887,17 @@ class TestKMSSynthesisLinearFunctionPlugin(QiskitTestCase):
             self.assertEqual(LinearFunction(qct), LinearFunction(qc))
             self.assertEqual(qct.size(), 87)
             self.assertEqual(qct.depth(), 32)
+
+    def test_unfortunate_name(self):
+        """Test the synthesis is not triggered for a custom gate with the same name."""
+        intruder = QuantumCircuit(2, name="linear_function")
+        circuit = QuantumCircuit(2)
+        circuit.append(intruder.to_gate(), [0, 1])
+
+        hls = HighLevelSynthesis()
+        synthesized = hls(circuit)
+
+        self.assertIn("linear_function", synthesized.count_ops())
 
 
 class TestTokenSwapperPermutationPlugin(QiskitTestCase):
@@ -1058,6 +1080,17 @@ class TestTokenSwapperPermutationPlugin(QiskitTestCase):
             for inst in qc_transpiled:
                 qubits = tuple(qc_transpiled.find_bit(q).index for q in inst.qubits)
                 self.assertIn(qubits, edges)
+
+    def test_unfortunate_name(self):
+        """Test the synthesis is not triggered for a custom gate with the same name."""
+        intruder = QuantumCircuit(2, name="permutation")
+        circuit = QuantumCircuit(2)
+        circuit.append(intruder.to_gate(), [0, 1])
+
+        hls = HighLevelSynthesis()
+        synthesized = hls(circuit)
+
+        self.assertIn("permutation", synthesized.count_ops())
 
 
 class TestHighLevelSynthesisModifiers(QiskitTestCase):
