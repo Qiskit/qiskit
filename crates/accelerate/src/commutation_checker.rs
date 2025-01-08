@@ -705,10 +705,35 @@ impl CommutationLibrary {
     }
 }
 
-#[derive(Clone, Debug, IntoPyObject)]
+#[derive(Clone, Debug)]
 pub enum CommutationLibraryEntry {
     Commutes(bool),
     QubitMapping(HashMap<SmallVec<[Option<Qubit>; 2]>, bool>),
+}
+
+impl<'py> IntoPyObject<'py> for CommutationLibraryEntry {
+    type Target = PyAny;
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        let py_out = match self {
+            CommutationLibraryEntry::Commutes(b) => {
+                let temp = b.into_pyobject(py)?;
+                <pyo3::Bound<'_, PyBool> as Clone>::clone(&temp).into_any()
+            }
+            CommutationLibraryEntry::QubitMapping(qm) => {
+                let out = PyDict::new(py);
+                for (k, v) in qm {
+                    let key = PyTuple::new(py, k.iter().map(|q| q.map(|t| t.0)))?;
+                    let value = PyBool::new(py, v);
+                    out.set_item(key, value)?;
+                }
+                out.into_any()
+            }
+        };
+        Ok(py_out)
+    }
 }
 
 impl<'py> FromPyObject<'py> for CommutationLibraryEntry {

@@ -256,15 +256,13 @@ impl DAGOpNode {
 
     fn __reduce__(slf: PyRef<Self>, py: Python) -> PyResult<PyObject> {
         let state = (slf.as_ref().node.map(|node| node.index()), &slf.sort_key);
-        Ok((
-            py.get_type::<Self>(),
-            (
-                slf.instruction.get_operation(py)?,
-                &slf.instruction.qubits,
-                &slf.instruction.clbits,
-            ),
-            state,
-        )
+        let temp = (
+            slf.instruction.get_operation(py)?,
+            &slf.instruction.qubits,
+            &slf.instruction.clbits,
+        );
+        println!("{:?}", temp);
+        Ok((py.get_type::<Self>(), temp, state)
             .into_pyobject(py)?
             .into_any()
             .unbind())
