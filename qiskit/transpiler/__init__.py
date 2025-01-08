@@ -620,7 +620,7 @@ It is important to highlight two special cases:
 
       ['id', 'rz', 'sx', 'x', 'cx', 'measure', 'delay']
 
-   .. plot:
+   .. plot::
       :include-source:
 
       from qiskit.circuit import QuantumCircuit
