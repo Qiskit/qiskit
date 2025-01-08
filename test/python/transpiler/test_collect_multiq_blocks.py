@@ -320,7 +320,7 @@ class TestCollect2qBlocks(QiskitTestCase):
         pass_ = CollectMultiQBlocks(max_block_size=3, collect_from_back=False)
         pass_.run(dag)
         expected_blocks = [[topo_ops[0], topo_ops[1], topo_ops[2]], [topo_ops[3], topo_ops[4]]]
-        self.assertTrue(pass_.property_set["block_list"], expected_blocks)
+        self.assertEqual(pass_.property_set["block_list"], expected_blocks)
 
         # When collecting blocks of size-3 using the opposite direction,
         # the first block should contain the H-gate and a single CX-gate,
@@ -328,7 +328,7 @@ class TestCollect2qBlocks(QiskitTestCase):
         pass_ = CollectMultiQBlocks(max_block_size=3, collect_from_back=True)
         pass_.run(dag)
         expected_blocks = [[topo_ops[0], topo_ops[1]], [topo_ops[2], topo_ops[3], topo_ops[4]]]
-        self.assertTrue(pass_.property_set["block_list"], expected_blocks)
+        self.assertEqual(pass_.property_set["block_list"], expected_blocks)
 
 
 if __name__ == "__main__":
