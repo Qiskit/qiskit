@@ -261,7 +261,6 @@ impl DAGOpNode {
             &slf.instruction.qubits,
             &slf.instruction.clbits,
         );
-        println!("{:?}", temp);
         Ok((py.get_type::<Self>(), temp, state)
             .into_pyobject(py)?
             .into_any()

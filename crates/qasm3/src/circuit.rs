@@ -27,7 +27,7 @@ pub trait PyRegister {
 macro_rules! register_type {
     ($name: ident) => {
         /// Rust-space wrapper around Qiskit `Register` objects.
-        #[derive(IntoPyObject, Clone)]
+        #[derive(Clone)]
         pub struct $name {
             /// The actual register instance.
             object: Py<PyAny>,
@@ -41,6 +41,16 @@ macro_rules! register_type {
         impl PyRegister for $name {
             fn bit_list<'a>(&'a self, py: Python<'a>) -> &'a Bound<'a, PyList> {
                 self.items.bind(py)
+            }
+        }
+
+        impl<'py> IntoPyObject<'py> for $name {
+            type Target = PyAny;
+            type Output = Bound<'py, Self::Target>;
+            type Error = PyErr;
+
+            fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+                Ok(self.object.bind(py).clone())
             }
         }
     };
