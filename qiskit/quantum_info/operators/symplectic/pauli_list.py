@@ -455,7 +455,6 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
             #  Blocks are already correct size
             value_x = value.x
             value_z = value.z
-            value_phase = value.phase
         elif len(value) == 1:
             # Pad blocks to correct size
             value_x = np.vstack(size * [value.x])
