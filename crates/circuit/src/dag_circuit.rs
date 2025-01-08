@@ -397,7 +397,7 @@ impl DAGCircuit {
                 py,
                 concat!(
                     "The property ``qiskit.dagcircuit.dagcircuit.DAGCircuit.duration`` is ",
-                    "deprecated as of qiskit 1.3.0. It will be removed in Qiskit 2.0.0.",
+                    "deprecated as of Qiskit 1.3.0. It will be removed in Qiskit 2.0.0.",
                 )
             ),
             py.get_type_bound::<PyDeprecationWarning>(),
@@ -416,7 +416,7 @@ impl DAGCircuit {
                 py,
                 concat!(
                     "The property ``qiskit.dagcircuit.dagcircuit.DAGCircuit.unit`` is ",
-                    "deprecated as of qiskit 1.3.0. It will be removed in Qiskit 2.0.0.",
+                    "deprecated as of Qiskit 1.3.0. It will be removed in Qiskit 2.0.0.",
                 )
             ),
             py.get_type_bound::<PyDeprecationWarning>(),
@@ -6751,7 +6751,7 @@ fn emit_pulse_dependency_deprecation(py: Python, msg: &str) {
         PyString::new_bound(
             py,
             &format!(
-                "The {} is deprecated as of qiskit 1.3.0. It will be removed in Qiskit 2.0.0. \
+                "The {} is deprecated as of Qiskit 1.3.0. It will be removed in Qiskit 2.0.0. \
                 The entire Qiskit Pulse package is being deprecated \
                 and this is a dependency on the package.",
                 msg

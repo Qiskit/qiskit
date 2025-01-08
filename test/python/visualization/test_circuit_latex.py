@@ -30,9 +30,9 @@ from qiskit.circuit.library import (
     CPhaseGate,
     HamiltonianGate,
     Isometry,
+    iqp,
 )
 from qiskit.circuit import Parameter, Qubit, Clbit
-from qiskit.circuit.library import IQP
 from qiskit.quantum_info.random import random_unitary
 from qiskit.utils import optionals
 from .visualization import QiskitVisualizationTestCase
@@ -234,7 +234,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         filename = self._get_resource_path("test_latex_big_gates.tex")
         qr = QuantumRegister(6, "q")
         circuit = QuantumCircuit(qr)
-        circuit.append(IQP([[6, 5, 3], [5, 4, 5], [3, 5, 1]]), [0, 1, 2])
+        circuit.append(iqp([[6, 5, 3], [5, 4, 5], [3, 5, 1]]), [0, 1, 2])
 
         desired_vector = [
             1 / math.sqrt(16) * complex(0, 1),

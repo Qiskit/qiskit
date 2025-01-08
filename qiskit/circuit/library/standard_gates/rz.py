@@ -19,7 +19,7 @@ from typing import Optional, Union
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.circuit.parameterexpression import ParameterValueType, ParameterExpression
+from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit._accelerate.circuit import StandardGate
 
 
@@ -113,11 +113,6 @@ class RZGate(Gate):
             gate = CRZGate(self.params[0], label=label, ctrl_state=ctrl_state)
             gate.base_gate.label = self.label
         else:
-            # If the gate parameters contain free parameters, we cannot eagerly synthesize
-            # the controlled gate decomposition. In this case, we annotate the gate per default.
-            if annotated is None:
-                annotated = any(isinstance(p, ParameterExpression) for p in self.params)
-
             gate = super().control(
                 num_ctrl_qubits=num_ctrl_qubits,
                 label=label,

@@ -190,3 +190,12 @@ class MultiplierGate(Gate):
             The number of result qubits.
         """
         return self._num_result_qubits
+
+    def _define(self):
+        """Populates self.definition with some decomposition of this gate."""
+        from qiskit.synthesis.arithmetic import multiplier_qft_r17
+
+        # This particular decomposition does not use any ancilla qubits.
+        # Note that the transpiler may choose a different decomposition
+        # based on the number of ancilla qubits available.
+        self.definition = multiplier_qft_r17(self.num_state_qubits)
