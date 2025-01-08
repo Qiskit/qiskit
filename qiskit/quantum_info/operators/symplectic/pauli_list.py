@@ -451,16 +451,16 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
                 f"Index {ind} is greater than number of qubits"
                 f" in the PauliList ({self.num_qubits})"
             )
-        if len(value) == 1:
-            # Pad blocks to correct size
-            value_x = np.vstack(size * [value.x])
-            value_z = np.vstack(size * [value.z])
-            value_phase = np.vstack(size * [value.phase])
-        elif len(value) == size:
+        if len(value) == size:
             #  Blocks are already correct size
             value_x = value.x
             value_z = value.z
             value_phase = value.phase
+        elif len(value) == 1:
+            # Pad blocks to correct size
+            value_x = np.vstack(size * [value.x])
+            value_z = np.vstack(size * [value.z])
+            value_phase = np.vstack(size * [value.phase])
         else:
             # Blocks are incorrect size
             raise QiskitError(
