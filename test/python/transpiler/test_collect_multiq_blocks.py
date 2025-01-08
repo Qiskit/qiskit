@@ -310,29 +310,25 @@ class TestCollect2qBlocks(QiskitTestCase):
         qc.cx(0, 3)
         qc.h(3)
 
+        dag = circuit_to_dag(qc)
+        # For the circuit above, the topological order is unique
+        topo_ops = list(dag.topological_op_nodes())
+
         # When collecting blocks of size-3 using the default direction,
         # the first block should contain the H-gate and two CX-gates,
         # and the second block should contain a single CX-gate and an H-gate.
-        pass_manager = PassManager()
-        pass_manager.append(CollectMultiQBlocks(max_block_size=3, collect_from_back=False))
-        pass_manager.run(qc)
-
-        block_list = pass_manager.property_set["block_list"]
-        self.assertEqual(len(block_list), 2)
-        self.assertEqual(len(block_list[0]), 3)
-        self.assertEqual(len(block_list[1]), 2)
+        pass_ = CollectMultiQBlocks(max_block_size=3, collect_from_back=False)
+        pass_.run(dag)
+        expected_blocks = [[topo_ops[0], topo_ops[1], topo_ops[2]], [topo_ops[3], topo_ops[4]]]
+        self.assertTrue(pass_.property_set["block_list"], expected_blocks)
 
         # When collecting blocks of size-3 using the opposite direction,
         # the first block should contain the H-gate and a single CX-gate,
         # and the second block should contain two CX-gates and an H-gate.
-        pass_manager = PassManager()
-        pass_manager.append(CollectMultiQBlocks(max_block_size=3, collect_from_back=True))
-        pass_manager.run(qc)
-
-        block_list = pass_manager.property_set["block_list"]
-        self.assertEqual(len(block_list), 2)
-        self.assertEqual(len(block_list[0]), 2)
-        self.assertEqual(len(block_list[1]), 3)
+        pass_ = CollectMultiQBlocks(max_block_size=3, collect_from_back=True)
+        pass_.run(dag)
+        expected_blocks = [[topo_ops[0], topo_ops[1]], [topo_ops[2], topo_ops[3], topo_ops[4]]]
+        self.assertTrue(pass_.property_set["block_list"], expected_blocks)
 
 
 if __name__ == "__main__":
