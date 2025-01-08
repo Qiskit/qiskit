@@ -1130,6 +1130,8 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         Returns:
             PauliList: the constructed PauliList.
         """
+        if isinstance(phase, np.ndarray) and np.ndim(phase) > 1:
+            raise ValueError(f"phase should be at most 1D but has {np.ndim(phase)} dimensions.")
         base_z, base_x, base_phase = cls._from_array(z, x, phase)
         return cls(BasePauli(base_z, base_x, base_phase))
 
