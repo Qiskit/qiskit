@@ -460,7 +460,6 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
             # Pad blocks to correct size
             value_x = np.vstack(size * [value.x])
             value_z = np.vstack(size * [value.z])
-            value_phase = np.vstack(size * [value.phase])
         else:
             # Blocks are incorrect size
             raise QiskitError(
@@ -471,7 +470,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         # Build new array by blocks
         z = np.hstack([self.z[:, :ind], value_z, self.z[:, ind:]])
         x = np.hstack([self.x[:, :ind], value_x, self.x[:, ind:]])
-        phase = self.phase + value_phase
+        phase = self.phase + value.phase
 
         return PauliList.from_symplectic(z, x, phase)
 
