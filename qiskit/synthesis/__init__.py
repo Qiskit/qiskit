@@ -147,7 +147,7 @@ Adders
 Multipliers
 -----------
 
-.. autofunction:: multiplier_cumulative_h18 
+.. autofunction:: multiplier_cumulative_h18
 .. autofunction:: multiplier_qft_r17
 
 """
