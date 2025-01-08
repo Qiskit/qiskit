@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -15,14 +15,13 @@
 import unittest
 from inspect import signature
 from math import pi
-
 import numpy as np
 from scipy.linalg import expm
 from ddt import data, ddt, unpack
-from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, execute
+
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.test import QiskitTestCase
 from qiskit.circuit import Gate, ControlledGate
 from qiskit.circuit.library import (
     U1Gate,
@@ -37,12 +36,12 @@ from qiskit.circuit.library import (
     YGate,
     GlobalPhaseGate,
 )
-from qiskit import BasicAer
 from qiskit.quantum_info import Pauli
 from qiskit.quantum_info.operators.predicates import matrix_equal, is_unitary_matrix
 from qiskit.utils.optionals import HAS_TWEEDLEDUM
 from qiskit.quantum_info import Operator
 from qiskit import transpile
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestStandard1Q(QiskitTestCase):
@@ -77,7 +76,8 @@ class TestStandard1Q(QiskitTestCase):
     def test_conditional_barrier_invalid(self):
         qc = self.circuit
         barrier = qc.barrier(self.qr)
-        self.assertRaises(QiskitError, barrier.c_if, self.cr, 0)
+        with self.assertWarns(DeprecationWarning):
+            self.assertRaises(QiskitError, barrier.c_if, self.cr, 0)
 
     def test_barrier_reg(self):
         self.circuit.barrier(self.qr)
@@ -132,16 +132,20 @@ class TestStandard1Q(QiskitTestCase):
         self.assertRaises(CircuitError, qc.ch, "a", self.qr[1])
 
     def test_cif_reg(self):
-        self.circuit.h(self.qr[0]).c_if(self.cr, 7)
+        with self.assertWarns(DeprecationWarning):
+            self.circuit.h(self.qr[0]).c_if(self.cr, 7)
         self.assertEqual(self.circuit[0].operation.name, "h")
         self.assertEqual(self.circuit[0].qubits, (self.qr[0],))
-        self.assertEqual(self.circuit[0].operation.condition, (self.cr, 7))
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(self.circuit[0].operation.condition, (self.cr, 7))
 
     def test_cif_single_bit(self):
-        self.circuit.h(self.qr[0]).c_if(self.cr[0], True)
+        with self.assertWarns(DeprecationWarning):
+            self.circuit.h(self.qr[0]).c_if(self.cr[0], True)
         self.assertEqual(self.circuit[0].operation.name, "h")
         self.assertEqual(self.circuit[0].qubits, (self.qr[0],))
-        self.assertEqual(self.circuit[0].operation.condition, (self.cr[0], True))
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(self.circuit[0].operation.condition, (self.cr[0], True))
 
     def test_crz(self):
         self.circuit.crz(1, self.qr[0], self.qr[1])
@@ -1380,7 +1384,6 @@ class TestStandardMethods(QiskitTestCase):
 
         params = [0.1 * (i + 1) for i in range(10)]
         gate_class_list = Gate.__subclasses__() + ControlledGate.__subclasses__()
-        simulator = BasicAer.get_backend("unitary_simulator")
         for gate_class in gate_class_list:
             if hasattr(gate_class, "__abstractmethods__"):
                 # gate_class is abstract
@@ -1410,10 +1413,10 @@ class TestStandardMethods(QiskitTestCase):
                 # gate doesn't implement to_matrix method: skip
                 self.log.info('to_matrix method FAILED for "%s" gate', gate.name)
                 continue
-            definition_unitary = execute([circ], simulator).result().get_unitary()
+            definition_unitary = Operator(circ)
 
             with self.subTest(gate_class):
-                # TODO check for exact equality once BasicAer can handle global phase
+                # TODO check for exact equality
                 self.assertTrue(matrix_equal(definition_unitary, gate_matrix, ignore_phase=True))
                 self.assertTrue(is_unitary_matrix(gate_matrix))
 

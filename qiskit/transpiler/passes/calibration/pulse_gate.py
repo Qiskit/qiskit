@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Instruction scheduel map reference pass."""
+"""Instruction schedule map reference pass."""
 
 from typing import List, Union
 
@@ -19,6 +19,7 @@ from qiskit.pulse import Schedule, ScheduleBlock
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.transpiler.target import Target
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.utils.deprecate_pulse import deprecate_pulse_dependency
 
 from .base_builder import CalibrationBuilder
 
@@ -47,6 +48,7 @@ class PulseGates(CalibrationBuilder):
           https://arxiv.org/abs/2104.14722
     """
 
+    @deprecate_pulse_dependency
     def __init__(
         self,
         inst_map: InstructionScheduleMap = None,
@@ -57,7 +59,7 @@ class PulseGates(CalibrationBuilder):
         Args:
             inst_map: Instruction schedule map that user may override.
             target: The :class:`~.Target` representing the target backend, if both
-                ``inst_map`` and this are specified then it updates instructions
+                ``inst_map`` and ``target`` are specified then it updates instructions
                 in the ``target`` with ``inst_map``.
         """
         super().__init__()
@@ -80,7 +82,7 @@ class PulseGates(CalibrationBuilder):
         Returns:
             Return ``True`` is calibration can be provided.
         """
-        return self.target.has_calibration(node_op.name, tuple(qubits))
+        return self.target._has_calibration(node_op.name, tuple(qubits))
 
     def get_calibration(self, node_op: CircuitInst, qubits: List) -> Union[Schedule, ScheduleBlock]:
         """Gets the calibrated schedule for the given instruction and qubits.
@@ -95,4 +97,4 @@ class PulseGates(CalibrationBuilder):
         Raises:
             TranspilerError: When node is parameterized and calibration is raw schedule object.
         """
-        return self.target.get_calibration(node_op.name, tuple(qubits), *node_op.params)
+        return self.target._get_calibration(node_op.name, tuple(qubits), *node_op.params)

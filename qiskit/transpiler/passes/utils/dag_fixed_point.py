@@ -21,7 +21,7 @@ class DAGFixedPoint(AnalysisPass):
     """Check if the DAG has reached a fixed point.
 
     A dummy analysis pass that checks if the DAG a fixed point (the DAG is not
-    modified anymore). The results is saved in
+    modified anymore). The result is saved in
     ``property_set['dag_fixed_point']`` as a boolean.
     """
 

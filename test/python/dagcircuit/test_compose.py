@@ -22,13 +22,14 @@ from qiskit.circuit import (
     WhileLoopOp,
     SwitchCaseOp,
     CASE_DEFAULT,
+    Store,
 )
 from qiskit.circuit.classical import expr, types
-from qiskit.dagcircuit import DAGCircuit
+from qiskit.dagcircuit import DAGCircuit, DAGCircuitError
 from qiskit.converters import circuit_to_dag, dag_to_circuit
-from qiskit.test import QiskitTestCase
 from qiskit.pulse import Schedule
 from qiskit.circuit.gate import Gate
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestDagCompose(QiskitTestCase):
@@ -320,8 +321,10 @@ class TestDagCompose(QiskitTestCase):
         creg = ClassicalRegister(2, "rcr")
 
         circuit_right = QuantumCircuit(qreg, creg)
-        circuit_right.x(qreg[1]).c_if(creg, 2)
-        circuit_right.h(qreg[0]).c_if(creg, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit_right.x(qreg[1]).c_if(creg, 2)
+        with self.assertWarns(DeprecationWarning):
+            circuit_right.h(qreg[0]).c_if(creg, 1)
         circuit_right.measure(qreg, creg)
 
         # permuted subset of qubits and clbits
@@ -329,16 +332,19 @@ class TestDagCompose(QiskitTestCase):
         dag_right = circuit_to_dag(circuit_right)
 
         # permuted subset of qubits and clbits
-        dag_left.compose(
-            dag_right,
-            qubits=[self.left_qubit1, self.left_qubit4],
-            clbits=[self.left_clbit1, self.left_clbit0],
-        )
+        with self.assertWarns(DeprecationWarning):
+            dag_left.compose(
+                dag_right,
+                qubits=[self.left_qubit1, self.left_qubit4],
+                clbits=[self.left_clbit1, self.left_clbit0],
+            )
         circuit_composed = dag_to_circuit(dag_left)
 
         circuit_expected = self.circuit_left.copy()
-        circuit_expected.x(self.left_qubit4).c_if(*self.condition1)
-        circuit_expected.h(self.left_qubit1).c_if(*self.condition2)
+        with self.assertWarns(DeprecationWarning):
+            circuit_expected.x(self.left_qubit4).c_if(*self.condition1)
+        with self.assertWarns(DeprecationWarning):
+            circuit_expected.h(self.left_qubit1).c_if(*self.condition2)
         circuit_expected.measure(self.left_qubit4, self.left_clbit0)
         circuit_expected.measure(self.left_qubit1, self.left_clbit1)
 
@@ -422,12 +428,13 @@ class TestDagCompose(QiskitTestCase):
 
         circuit_left = QuantumCircuit(qreg, creg1, creg2)
         circuit_right = QuantumCircuit(qreg, creg1, creg2)
-        circuit_right.h(0).c_if(creg1, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit_right.h(0).c_if(creg1, 1)
 
         dag_left = circuit_to_dag(circuit_left)
         dag_right = circuit_to_dag(circuit_right)
-
-        dag_composed = dag_left.compose(dag_right, qubits=[0], clbits=[0, 1], inplace=False)
+        with self.assertWarns(DeprecationWarning):
+            dag_composed = dag_left.compose(dag_right, qubits=[0], clbits=[0, 1], inplace=False)
 
         dag_expected = circuit_to_dag(circuit_right.copy())
 
@@ -540,19 +547,107 @@ class TestDagCompose(QiskitTestCase):
 
         self.assertEqual(dest, circuit_to_dag(expected))
 
+    def test_join_unrelated_dags(self):
+        """This isn't expected to be common, but should work anyway."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Bool())
+        c = expr.Var.new("c", types.Uint(8))
+
+        dest = DAGCircuit()
+        dest.add_input_var(a)
+        dest.apply_operation_back(Store(a, expr.lift(False)), (), ())
+        source = DAGCircuit()
+        source.add_declared_var(b)
+        source.add_input_var(c)
+        source.apply_operation_back(Store(b, expr.lift(True)), (), ())
+        dest.compose(source)
+
+        expected = DAGCircuit()
+        expected.add_input_var(a)
+        expected.add_declared_var(b)
+        expected.add_input_var(c)
+        expected.apply_operation_back(Store(a, expr.lift(False)), (), ())
+        expected.apply_operation_back(Store(b, expr.lift(True)), (), ())
+
+        self.assertEqual(dest, expected)
+
+    def test_join_unrelated_dags_captures(self):
+        """This isn't expected to be common, but should work anyway."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Bool())
+        c = expr.Var.new("c", types.Uint(8))
+
+        dest = DAGCircuit()
+        dest.add_captured_var(a)
+        dest.apply_operation_back(Store(a, expr.lift(False)), (), ())
+        source = DAGCircuit()
+        source.add_declared_var(b)
+        source.add_captured_var(c)
+        source.apply_operation_back(Store(b, expr.lift(True)), (), ())
+        dest.compose(source, inline_captures=False)
+
+        expected = DAGCircuit()
+        expected.add_captured_var(a)
+        expected.add_declared_var(b)
+        expected.add_captured_var(c)
+        expected.apply_operation_back(Store(a, expr.lift(False)), (), ())
+        expected.apply_operation_back(Store(b, expr.lift(True)), (), ())
+
+        self.assertEqual(dest, expected)
+
+    def test_inline_capture_var(self):
+        """Should be able to append uses onto another DAG."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Bool())
+
+        dest = DAGCircuit()
+        dest.add_input_var(a)
+        dest.add_input_var(b)
+        dest.apply_operation_back(Store(a, expr.lift(False)), (), ())
+        source = DAGCircuit()
+        source.add_captured_var(b)
+        source.apply_operation_back(Store(b, expr.lift(True)), (), ())
+        dest.compose(source, inline_captures=True)
+
+        expected = DAGCircuit()
+        expected.add_input_var(a)
+        expected.add_input_var(b)
+        expected.apply_operation_back(Store(a, expr.lift(False)), (), ())
+        expected.apply_operation_back(Store(b, expr.lift(True)), (), ())
+
+        self.assertEqual(dest, expected)
+
+    def test_reject_inline_to_nonexistent_var(self):
+        """Should not be able to inline a variable that doesn't exist."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Bool())
+
+        dest = DAGCircuit()
+        dest.add_input_var(a)
+        dest.apply_operation_back(Store(a, expr.lift(False)), (), ())
+        source = DAGCircuit()
+        source.add_captured_var(b)
+        with self.assertRaisesRegex(
+            DAGCircuitError, "Variable '.*' to be inlined is not in the base DAG"
+        ):
+            dest.compose(source, inline_captures=True)
+
     def test_compose_calibrations(self):
         """Test that compose carries over the calibrations."""
         dag_cal = QuantumCircuit(1)
         dag_cal.append(Gate("", 1, []), qargs=[0])
-        dag_cal.add_calibration(Gate("", 1, []), [0], Schedule())
+        with self.assertWarns(DeprecationWarning):
+            dag_cal.add_calibration(Gate("", 1, []), [0], Schedule())
 
         empty_dag = circuit_to_dag(QuantumCircuit(1))
         calibrated_dag = circuit_to_dag(dag_cal)
         composed_dag = empty_dag.compose(calibrated_dag, inplace=False)
 
-        cal = {"": {((0,), ()): Schedule(name="sched0")}}
-        self.assertEqual(composed_dag.calibrations, cal)
-        self.assertEqual(calibrated_dag.calibrations, cal)
+        with self.assertWarns(DeprecationWarning):
+            cal = {"": {((0,), ()): Schedule(name="sched0")}}
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(composed_dag.calibrations, cal)
+            self.assertEqual(calibrated_dag.calibrations, cal)
 
 
 if __name__ == "__main__":

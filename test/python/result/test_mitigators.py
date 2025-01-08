@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2021.
+# (C) Copyright IBM 2017, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -33,8 +33,8 @@ from qiskit.result.mitigation.utils import (
     str2diag,
 )
 from qiskit.result.utils import marginal_counts
-from qiskit.test import QiskitTestCase
-from qiskit.providers.fake_provider import FakeYorktown
+from qiskit.providers.fake_provider import Fake5QV1
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestReadoutMitigation(QiskitTestCase):
@@ -97,7 +97,7 @@ class TestReadoutMitigation(QiskitTestCase):
     @staticmethod
     def assignment_matrices():
         """A 3-qubit readout noise assignment matrices"""
-        return LocalReadoutMitigator(backend=FakeYorktown())._assignment_mats[0:3]
+        return LocalReadoutMitigator(backend=Fake5QV1())._assignment_mats[0:3]
 
     @staticmethod
     def counts_data(circuit, assignment_matrices, shots=1024):
@@ -119,18 +119,23 @@ class TestReadoutMitigation(QiskitTestCase):
     def test_mitigation_improvement(self):
         """Test whether readout mitigation led to more accurate results"""
         shots = 1024
-        assignment_matrices = self.assignment_matrices()
-        num_qubits = len(assignment_matrices)
-        mitigators = self.mitigators(assignment_matrices)
+        with self.assertWarns(DeprecationWarning):
+            # TODO self.assignment_matrices calls LocalReadoutMitigator,
+            #  which only supports BackendV1 at the moment:
+            #  https://github.com/Qiskit/qiskit/issues/12832
+            assignment_matrices = self.assignment_matrices()
+            mitigators = self.mitigators(assignment_matrices)
         circuit, circuit_name, num_qubits = self.ghz_3_circuit()
         counts_ideal, counts_noise, probs_noise = self.counts_data(
             circuit, assignment_matrices, shots
         )
         unmitigated_error = self.compare_results(counts_ideal, counts_noise)
-        unmitigated_stddev = stddev(probs_noise, shots)
+        with self.assertWarns(DeprecationWarning):
+            unmitigated_stddev = stddev(probs_noise, shots)
 
         for mitigator in mitigators:
-            mitigated_quasi_probs = mitigator.quasi_probabilities(counts_noise)
+            with self.assertWarns(DeprecationWarning):
+                mitigated_quasi_probs = mitigator.quasi_probabilities(counts_noise)
             mitigated_probs = (
                 mitigated_quasi_probs.nearest_probability_distribution().binary_probabilities(
                     num_bits=num_qubits
@@ -140,30 +145,25 @@ class TestReadoutMitigation(QiskitTestCase):
             self.assertLess(
                 mitigated_error,
                 unmitigated_error * 0.8,
-                "Mitigator {} did not improve circuit {} measurements".format(
-                    mitigator, circuit_name
-                ),
+                f"Mitigator {mitigator} did not improve circuit {circuit_name} measurements",
             )
             mitigated_stddev_upper_bound = mitigated_quasi_probs._stddev_upper_bound
             max_unmitigated_stddev = max(unmitigated_stddev.values())
             self.assertGreaterEqual(
                 mitigated_stddev_upper_bound,
                 max_unmitigated_stddev,
-                "Mitigator {} on circuit {} gave stddev upper bound {} "
-                "while unmitigated stddev maximum is {}".format(
-                    mitigator,
-                    circuit_name,
-                    mitigated_stddev_upper_bound,
-                    max_unmitigated_stddev,
-                ),
+                f"Mitigator {mitigator} on circuit {circuit_name} gave stddev upper bound "
+                f"{mitigated_stddev_upper_bound} while unmitigated stddev maximum is "
+                f"{max_unmitigated_stddev}",
             )
 
     def test_expectation_improvement(self):
         """Test whether readout mitigation led to more accurate results
         and that its standard deviation is increased"""
         shots = 1024
-        assignment_matrices = self.assignment_matrices()
-        mitigators = self.mitigators(assignment_matrices)
+        with self.assertWarns(DeprecationWarning):
+            assignment_matrices = self.assignment_matrices()
+            mitigators = self.mitigators(assignment_matrices)
         num_qubits = len(assignment_matrices)
         diagonals = []
         diagonals.append("IZ0")
@@ -172,82 +172,82 @@ class TestReadoutMitigation(QiskitTestCase):
         qubit_index = {i: i for i in range(num_qubits)}
         circuit, circuit_name, num_qubits = self.ghz_3_circuit()
         counts_ideal, counts_noise, _ = self.counts_data(circuit, assignment_matrices, shots)
-        probs_ideal, _ = counts_probability_vector(counts_ideal, qubit_index=qubit_index)
-        probs_noise, _ = counts_probability_vector(counts_noise, qubit_index=qubit_index)
+        with self.assertWarns(DeprecationWarning):
+            probs_ideal, _ = counts_probability_vector(counts_ideal, qubit_index=qubit_index)
+            probs_noise, _ = counts_probability_vector(counts_noise, qubit_index=qubit_index)
         for diagonal in diagonals:
             if isinstance(diagonal, str):
-                diagonal = str2diag(diagonal)
-            unmitigated_expectation, unmitigated_stddev = expval_with_stddev(
-                diagonal, probs_noise, shots=counts_noise.shots()
-            )
+                with self.assertWarns(DeprecationWarning):
+                    diagonal = str2diag(diagonal)
+            with self.assertWarns(DeprecationWarning):
+                unmitigated_expectation, unmitigated_stddev = expval_with_stddev(
+                    diagonal, probs_noise, shots=counts_noise.shots()
+                )
             ideal_expectation = np.dot(probs_ideal, diagonal)
             unmitigated_error = np.abs(ideal_expectation - unmitigated_expectation)
             for mitigator in mitigators:
-                mitigated_expectation, mitigated_stddev = mitigator.expectation_value(
-                    counts_noise, diagonal
-                )
+                with self.assertWarns(DeprecationWarning):
+                    mitigated_expectation, mitigated_stddev = mitigator.expectation_value(
+                        counts_noise, diagonal
+                    )
                 mitigated_error = np.abs(ideal_expectation - mitigated_expectation)
                 self.assertLess(
                     mitigated_error,
                     unmitigated_error,
-                    "Mitigator {} did not improve circuit {} expectation computation for diagonal {} "
-                    "ideal: {}, unmitigated: {} mitigated: {}".format(
-                        mitigator,
-                        circuit_name,
-                        diagonal,
-                        ideal_expectation,
-                        unmitigated_expectation,
-                        mitigated_expectation,
-                    ),
+                    f"Mitigator {mitigator} did not improve circuit {circuit_name} expectation "
+                    f"computation for diagonal {diagonal} ideal: {ideal_expectation}, unmitigated:"
+                    f" {unmitigated_expectation} mitigated: {mitigated_expectation}",
                 )
                 self.assertGreaterEqual(
                     mitigated_stddev,
                     unmitigated_stddev,
-                    "Mitigator {} did not increase circuit {} the standard deviation".format(
-                        mitigator, circuit_name
-                    ),
+                    f"Mitigator {mitigator} did not increase circuit {circuit_name} the"
+                    f" standard deviation",
                 )
 
     def test_clbits_parameter(self):
         """Test whether the clbits parameter is handled correctly"""
         shots = 10000
-        assignment_matrices = self.assignment_matrices()
-        mitigators = self.mitigators(assignment_matrices)
+        with self.assertWarns(DeprecationWarning):
+            assignment_matrices = self.assignment_matrices()
+            mitigators = self.mitigators(assignment_matrices)
         circuit, _, _ = self.first_qubit_h_3_circuit()
         counts_ideal, counts_noise, _ = self.counts_data(circuit, assignment_matrices, shots)
         counts_ideal_12 = marginal_counts(counts_ideal, [1, 2])
         counts_ideal_02 = marginal_counts(counts_ideal, [0, 2])
 
         for mitigator in mitigators:
-            mitigated_probs_12 = (
-                mitigator.quasi_probabilities(counts_noise, qubits=[1, 2], clbits=[1, 2])
-                .nearest_probability_distribution()
-                .binary_probabilities(num_bits=2)
-            )
+            with self.assertWarns(DeprecationWarning):
+                mitigated_probs_12 = (
+                    mitigator.quasi_probabilities(counts_noise, qubits=[1, 2], clbits=[1, 2])
+                    .nearest_probability_distribution()
+                    .binary_probabilities(num_bits=2)
+                )
             mitigated_error = self.compare_results(counts_ideal_12, mitigated_probs_12)
             self.assertLess(
                 mitigated_error,
                 0.001,
-                "Mitigator {} did not correctly marganalize for qubits 1,2".format(mitigator),
+                f"Mitigator {mitigator} did not correctly marginalize for qubits 1,2",
             )
-
-            mitigated_probs_02 = (
-                mitigator.quasi_probabilities(counts_noise, qubits=[0, 2], clbits=[0, 2])
-                .nearest_probability_distribution()
-                .binary_probabilities(num_bits=2)
-            )
+            with self.assertWarns(DeprecationWarning):
+                mitigated_probs_02 = (
+                    mitigator.quasi_probabilities(counts_noise, qubits=[0, 2], clbits=[0, 2])
+                    .nearest_probability_distribution()
+                    .binary_probabilities(num_bits=2)
+                )
             mitigated_error = self.compare_results(counts_ideal_02, mitigated_probs_02)
             self.assertLess(
                 mitigated_error,
                 0.001,
-                "Mitigator {} did not correctly marganalize for qubits 0,2".format(mitigator),
+                f"Mitigator {mitigator} did not correctly marginalize for qubits 0,2",
             )
 
     def test_qubits_parameter(self):
         """Test whether the qubits parameter is handled correctly"""
         shots = 10000
-        assignment_matrices = self.assignment_matrices()
-        mitigators = self.mitigators(assignment_matrices)
+        with self.assertWarns(DeprecationWarning):
+            assignment_matrices = self.assignment_matrices()
+            mitigators = self.mitigators(assignment_matrices)
         circuit, _, _ = self.first_qubit_h_3_circuit()
         counts_ideal, counts_noise, _ = self.counts_data(circuit, assignment_matrices, shots)
         counts_ideal_012 = counts_ideal
@@ -255,130 +255,137 @@ class TestReadoutMitigation(QiskitTestCase):
         counts_ideal_102 = Counts({"000": counts_ideal["000"], "010": counts_ideal["001"]})
 
         for mitigator in mitigators:
-            mitigated_probs_012 = (
-                mitigator.quasi_probabilities(counts_noise, qubits=[0, 1, 2])
-                .nearest_probability_distribution()
-                .binary_probabilities(num_bits=3)
-            )
+            with self.assertWarns(DeprecationWarning):
+                mitigated_probs_012 = (
+                    mitigator.quasi_probabilities(counts_noise, qubits=[0, 1, 2])
+                    .nearest_probability_distribution()
+                    .binary_probabilities(num_bits=3)
+                )
             mitigated_error = self.compare_results(counts_ideal_012, mitigated_probs_012)
             self.assertLess(
                 mitigated_error,
                 0.001,
-                "Mitigator {} did not correctly handle qubit order 0, 1, 2".format(mitigator),
+                f"Mitigator {mitigator} did not correctly handle qubit order 0, 1, 2",
             )
-
-            mitigated_probs_210 = (
-                mitigator.quasi_probabilities(counts_noise, qubits=[2, 1, 0])
-                .nearest_probability_distribution()
-                .binary_probabilities(num_bits=3)
-            )
+            with self.assertWarns(DeprecationWarning):
+                mitigated_probs_210 = (
+                    mitigator.quasi_probabilities(counts_noise, qubits=[2, 1, 0])
+                    .nearest_probability_distribution()
+                    .binary_probabilities(num_bits=3)
+                )
             mitigated_error = self.compare_results(counts_ideal_210, mitigated_probs_210)
             self.assertLess(
                 mitigated_error,
                 0.001,
-                "Mitigator {} did not correctly handle qubit order 2, 1, 0".format(mitigator),
+                f"Mitigator {mitigator} did not correctly handle qubit order 2, 1, 0",
             )
-
-            mitigated_probs_102 = (
-                mitigator.quasi_probabilities(counts_noise, qubits=[1, 0, 2])
-                .nearest_probability_distribution()
-                .binary_probabilities(num_bits=3)
-            )
+            with self.assertWarns(DeprecationWarning):
+                mitigated_probs_102 = (
+                    mitigator.quasi_probabilities(counts_noise, qubits=[1, 0, 2])
+                    .nearest_probability_distribution()
+                    .binary_probabilities(num_bits=3)
+                )
             mitigated_error = self.compare_results(counts_ideal_102, mitigated_probs_102)
             self.assertLess(
                 mitigated_error,
                 0.001,
-                "Mitigator {} did not correctly handle qubit order 1, 0, 2".format(mitigator),
+                "Mitigator {mitigator} did not correctly handle qubit order 1, 0, 2",
             )
 
     def test_repeated_qubits_parameter(self):
         """Tests the order of mitigated qubits."""
         shots = 10000
-        assignment_matrices = self.assignment_matrices()
-        mitigators = self.mitigators(assignment_matrices, qubits=[0, 1, 2])
+        with self.assertWarns(DeprecationWarning):
+            assignment_matrices = self.assignment_matrices()
+            mitigators = self.mitigators(assignment_matrices, qubits=[0, 1, 2])
         circuit, _, _ = self.first_qubit_h_3_circuit()
         counts_ideal, counts_noise, _ = self.counts_data(circuit, assignment_matrices, shots)
         counts_ideal_012 = counts_ideal
         counts_ideal_210 = Counts({"000": counts_ideal["000"], "100": counts_ideal["001"]})
 
         for mitigator in mitigators:
-            mitigated_probs_210 = (
-                mitigator.quasi_probabilities(counts_noise, qubits=[2, 1, 0])
-                .nearest_probability_distribution()
-                .binary_probabilities(num_bits=3)
-            )
+            with self.assertWarns(DeprecationWarning):
+                mitigated_probs_210 = (
+                    mitigator.quasi_probabilities(counts_noise, qubits=[2, 1, 0])
+                    .nearest_probability_distribution()
+                    .binary_probabilities(num_bits=3)
+                )
             mitigated_error = self.compare_results(counts_ideal_210, mitigated_probs_210)
             self.assertLess(
                 mitigated_error,
                 0.001,
-                "Mitigator {} did not correctly handle qubit order 2,1,0".format(mitigator),
+                f"Mitigator {mitigator} did not correctly handle qubit order 2,1,0",
             )
-
-            # checking qubit order 2,1,0 should not "overwrite" the default 0,1,2
-            mitigated_probs_012 = (
-                mitigator.quasi_probabilities(counts_noise)
-                .nearest_probability_distribution()
-                .binary_probabilities(num_bits=3)
-            )
+            with self.assertWarns(DeprecationWarning):
+                # checking qubit order 2,1,0 should not "overwrite" the default 0,1,2
+                mitigated_probs_012 = (
+                    mitigator.quasi_probabilities(counts_noise)
+                    .nearest_probability_distribution()
+                    .binary_probabilities(num_bits=3)
+                )
             mitigated_error = self.compare_results(counts_ideal_012, mitigated_probs_012)
             self.assertLess(
                 mitigated_error,
                 0.001,
-                "Mitigator {} did not correctly handle qubit order 0,1,2 (the expected default)".format(
-                    mitigator
-                ),
+                f"Mitigator {mitigator} did not correctly handle qubit order 0,1,2 "
+                f"(the expected default)",
             )
 
     def test_qubits_subset_parameter(self):
         """Tests mitigation on a subset of the initial set of qubits."""
 
         shots = 10000
-        assignment_matrices = self.assignment_matrices()
-        mitigators = self.mitigators(assignment_matrices, qubits=[2, 4, 6])
+        with self.assertWarns(DeprecationWarning):
+            assignment_matrices = self.assignment_matrices()
+            mitigators = self.mitigators(assignment_matrices, qubits=[2, 4, 6])
         circuit, _, _ = self.first_qubit_h_3_circuit()
         counts_ideal, counts_noise, _ = self.counts_data(circuit, assignment_matrices, shots)
         counts_ideal_2 = marginal_counts(counts_ideal, [0])
         counts_ideal_6 = marginal_counts(counts_ideal, [2])
 
         for mitigator in mitigators:
-            mitigated_probs_2 = (
-                mitigator.quasi_probabilities(counts_noise, qubits=[2])
-                .nearest_probability_distribution()
-                .binary_probabilities(num_bits=1)
-            )
+            with self.assertWarns(DeprecationWarning):
+                mitigated_probs_2 = (
+                    mitigator.quasi_probabilities(counts_noise, qubits=[2])
+                    .nearest_probability_distribution()
+                    .binary_probabilities(num_bits=1)
+                )
             mitigated_error = self.compare_results(counts_ideal_2, mitigated_probs_2)
             self.assertLess(
                 mitigated_error,
                 0.001,
-                "Mitigator {} did not correctly handle qubit subset".format(mitigator),
+                "Mitigator {mitigator} did not correctly handle qubit subset",
             )
-
-            mitigated_probs_6 = (
-                mitigator.quasi_probabilities(counts_noise, qubits=[6])
-                .nearest_probability_distribution()
-                .binary_probabilities(num_bits=1)
-            )
+            with self.assertWarns(DeprecationWarning):
+                mitigated_probs_6 = (
+                    mitigator.quasi_probabilities(counts_noise, qubits=[6])
+                    .nearest_probability_distribution()
+                    .binary_probabilities(num_bits=1)
+                )
             mitigated_error = self.compare_results(counts_ideal_6, mitigated_probs_6)
             self.assertLess(
                 mitigated_error,
                 0.001,
-                "Mitigator {} did not correctly handle qubit subset".format(mitigator),
+                f"Mitigator {mitigator} did not correctly handle qubit subset",
             )
-            diagonal = str2diag("ZZ")
+            with self.assertWarns(DeprecationWarning):
+                diagonal = str2diag("ZZ")
             ideal_expectation = 0
-            mitigated_expectation, _ = mitigator.expectation_value(
-                counts_noise, diagonal, qubits=[2, 6]
-            )
+            with self.assertWarns(DeprecationWarning):
+                mitigated_expectation, _ = mitigator.expectation_value(
+                    counts_noise, diagonal, qubits=[2, 6]
+                )
             mitigated_error = np.abs(ideal_expectation - mitigated_expectation)
             self.assertLess(
                 mitigated_error,
                 0.1,
-                "Mitigator {} did not improve circuit expectation".format(mitigator),
+                f"Mitigator {mitigator} did not improve circuit expectation",
             )
 
     def test_from_backend(self):
         """Test whether a local mitigator can be created directly from backend properties"""
-        backend = FakeYorktown()
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake5QV1()
         num_qubits = len(backend.properties().qubits)
         probs = TestReadoutMitigation.rng.random((num_qubits, 2))
         for qubit_idx, qubit_prop in enumerate(backend.properties().qubits):
@@ -387,7 +394,8 @@ class TestReadoutMitigation(QiskitTestCase):
                     prop.value = probs[qubit_idx][0]
                 if prop.name == "prob_meas0_prep1":
                     prop.value = probs[qubit_idx][1]
-        LRM_from_backend = LocalReadoutMitigator(backend=backend)
+        with self.assertWarns(DeprecationWarning):
+            LRM_from_backend = LocalReadoutMitigator(backend=backend)
 
         mats = []
         for qubit_idx in range(num_qubits):
@@ -398,7 +406,8 @@ class TestReadoutMitigation(QiskitTestCase):
                 ]
             )
             mats.append(mat)
-        LRM_from_matrices = LocalReadoutMitigator(assignment_matrices=mats)
+        with self.assertWarns(DeprecationWarning):
+            LRM_from_matrices = LocalReadoutMitigator(assignment_matrices=mats)
         self.assertTrue(
             matrix_equal(
                 LRM_from_backend.assignment_matrix(), LRM_from_matrices.assignment_matrix()
@@ -412,7 +421,8 @@ class TestReadoutMitigation(QiskitTestCase):
         good_matrix_A = np.array([[0.2, 1], [0.8, 0]])
         for bad_matrix in [bad_matrix_A, bad_matrix_B]:
             with self.assertRaises(QiskitError) as cm:
-                CorrelatedReadoutMitigator(bad_matrix)
+                with self.assertWarns(DeprecationWarning):
+                    CorrelatedReadoutMitigator(bad_matrix)
             self.assertEqual(
                 cm.exception.message,
                 "Assignment matrix columns must be valid probability distributions",
@@ -420,7 +430,8 @@ class TestReadoutMitigation(QiskitTestCase):
 
         with self.assertRaises(QiskitError) as cm:
             amats = [good_matrix_A, bad_matrix_A]
-            LocalReadoutMitigator(amats)
+            with self.assertWarns(DeprecationWarning):
+                LocalReadoutMitigator(amats)
         self.assertEqual(
             cm.exception.message,
             "Assignment matrix columns must be valid probability distributions",
@@ -428,7 +439,8 @@ class TestReadoutMitigation(QiskitTestCase):
 
         with self.assertRaises(QiskitError) as cm:
             amats = [bad_matrix_B, good_matrix_A]
-            LocalReadoutMitigator(amats)
+            with self.assertWarns(DeprecationWarning):
+                LocalReadoutMitigator(amats)
         self.assertEqual(
             cm.exception.message,
             "Assignment matrix columns must be valid probability distributions",
@@ -436,10 +448,13 @@ class TestReadoutMitigation(QiskitTestCase):
 
     def test_expectation_value_endian(self):
         """Test that endian for expval is little."""
-        mitigators = self.mitigators(self.assignment_matrices())
+        with self.assertWarns(DeprecationWarning):
+            assignment_matrices = self.assignment_matrices()
+            mitigators = self.mitigators(assignment_matrices)
         counts = Counts({"10": 3, "11": 24, "00": 74, "01": 923})
         for mitigator in mitigators:
-            expval, _ = mitigator.expectation_value(counts, diagonal="IZ", qubits=[0, 1])
+            with self.assertWarns(DeprecationWarning):
+                expval, _ = mitigator.expectation_value(counts, diagonal="IZ", qubits=[0, 1])
             self.assertAlmostEqual(expval, -1.0, places=0)
 
     def test_quasi_probabilities_shots_passing(self):
@@ -447,13 +462,16 @@ class TestReadoutMitigation(QiskitTestCase):
 
         We require the number of shots to be set in the output.
         """
-        mitigator = LocalReadoutMitigator([np.array([[0.9, 0.1], [0.1, 0.9]])], qubits=[0])
+        with self.assertWarns(DeprecationWarning):
+            mitigator = LocalReadoutMitigator([np.array([[0.9, 0.1], [0.1, 0.9]])], qubits=[0])
         counts = Counts({"10": 3, "11": 24, "00": 74, "01": 923})
-        quasi_dist = mitigator.quasi_probabilities(counts)
+        with self.assertWarns(DeprecationWarning):
+            quasi_dist = mitigator.quasi_probabilities(counts)
         self.assertEqual(quasi_dist.shots, sum(counts.values()))
 
         # custom number of shots
-        quasi_dist = mitigator.quasi_probabilities(counts, shots=1025)
+        with self.assertWarns(DeprecationWarning):
+            quasi_dist = mitigator.quasi_probabilities(counts, shots=1025)
         self.assertEqual(quasi_dist.shots, 1025)
 
 
@@ -463,12 +481,15 @@ class TestLocalReadoutMitigation(QiskitTestCase):
     def test_assignment_matrix(self):
         """Tests that the local mitigator generates the full assignment matrix correctly"""
         qubits = [7, 2, 3]
-        assignment_matrices = LocalReadoutMitigator(backend=FakeYorktown())._assignment_mats[0:3]
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake5QV1()
+            assignment_matrices = LocalReadoutMitigator(backend=backend)._assignment_mats[0:3]
         expected_assignment_matrix = np.kron(
             np.kron(assignment_matrices[2], assignment_matrices[1]), assignment_matrices[0]
         )
         expected_mitigation_matrix = np.linalg.inv(expected_assignment_matrix)
-        LRM = LocalReadoutMitigator(assignment_matrices, qubits)
+        with self.assertWarns(DeprecationWarning):
+            LRM = LocalReadoutMitigator(assignment_matrices, qubits)
         self.assertTrue(matrix_equal(expected_mitigation_matrix, LRM.mitigation_matrix()))
         self.assertTrue(matrix_equal(expected_assignment_matrix, LRM.assignment_matrix()))
 

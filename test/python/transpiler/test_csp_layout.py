@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019.
+# (C) Copyright IBM 2019, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -16,12 +16,14 @@ import unittest
 from time import process_time
 
 from qiskit import QuantumRegister, QuantumCircuit
+from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.transpiler import CouplingMap
 from qiskit.transpiler.passes import CSPLayout
 from qiskit.converters import circuit_to_dag
-from qiskit.test import QiskitTestCase
-from qiskit.providers.fake_provider import FakeTenerife, FakeRueschlikon, FakeTokyo, FakeYorktownV2
 from qiskit.utils import optionals
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
+
+from ..legacy_cmaps import TENERIFE_CMAP, RUESCHLIKON_CMAP, TOKYO_CMAP, YORKTOWN_CMAP
 
 
 @unittest.skipUnless(optionals.HAS_CONSTRAINT, "needs python-constraint")
@@ -56,8 +58,7 @@ class TestCSPLayout(QiskitTestCase):
               |   /
                4
         """
-        cmap5 = FakeTenerife().configuration().coupling_map
-
+        cmap5 = TENERIFE_CMAP
         qr = QuantumRegister(3, "qr")
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[1], qr[0])  # qr1 -> qr0
@@ -82,13 +83,16 @@ class TestCSPLayout(QiskitTestCase):
               |   /
                4
         """
-        target = FakeYorktownV2().target
+        target = GenericBackendV2(
+            num_qubits=5,
+            coupling_map=YORKTOWN_CMAP,
+        ).target
 
         qr = QuantumRegister(3, "qr")
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[1], qr[0])  # qr1 -> qr0
         circuit.cx(qr[0], qr[2])  # qr0 -> qr2
-        circuit.cx(qr[1], qr[2])  # qr1 -> qr2
+        circuit.cx(qr[1], qr[2])  # qr1 -> qr2s
 
         dag = circuit_to_dag(circuit)
         pass_ = CSPLayout(target, strict_direction=False, seed=self.seed)
@@ -106,7 +110,7 @@ class TestCSPLayout(QiskitTestCase):
           |       |       |       |       |       |       |     |
         q0[2] - q1[4] -- 14 ---- 13 ---- 12 ---- 11 ---- 10 --- 9
         """
-        cmap16 = FakeRueschlikon().configuration().coupling_map
+        cmap16 = RUESCHLIKON_CMAP
 
         qr0 = QuantumRegister(4, "q0")
         qr1 = QuantumRegister(5, "q1")
@@ -157,7 +161,7 @@ class TestCSPLayout(QiskitTestCase):
                ↑  ↙
                4
         """
-        cmap5 = FakeTenerife().configuration().coupling_map
+        cmap5 = TENERIFE_CMAP
 
         qr = QuantumRegister(3, "qr")
         circuit = QuantumCircuit(qr)
@@ -181,7 +185,7 @@ class TestCSPLayout(QiskitTestCase):
           ↓       ↑      ↓      ↓       ↑       ↓        ↓      ↑
         q0[2] ← q1[4] → 14  ←  13   ←  12   →  11   →   10   ←  9
         """
-        cmap16 = FakeRueschlikon().configuration().coupling_map
+        cmap16 = RUESCHLIKON_CMAP
 
         qr0 = QuantumRegister(4, "q0")
         qr1 = QuantumRegister(5, "q1")
@@ -213,7 +217,7 @@ class TestCSPLayout(QiskitTestCase):
                q0[0]
         q0[3] ↙     ↘ q0[4]
         """
-        cmap16 = FakeRueschlikon().configuration().coupling_map
+        cmap16 = RUESCHLIKON_CMAP
 
         qr = QuantumRegister(5, "q")
         circuit = QuantumCircuit(qr)
@@ -269,7 +273,7 @@ class TestCSPLayout(QiskitTestCase):
     def test_time_limit(self):
         """Hard to solve situations hit the time limit"""
         dag = TestCSPLayout.create_hard_dag()
-        coupling_map = CouplingMap(FakeTokyo().configuration().coupling_map)
+        coupling_map = CouplingMap(TOKYO_CMAP)
         pass_ = CSPLayout(coupling_map, call_limit=None, time_limit=1)
 
         start = process_time()
@@ -282,7 +286,7 @@ class TestCSPLayout(QiskitTestCase):
     def test_call_limit(self):
         """Hard to solve situations hit the call limit"""
         dag = TestCSPLayout.create_hard_dag()
-        coupling_map = CouplingMap(FakeTokyo().configuration().coupling_map)
+        coupling_map = CouplingMap(TOKYO_CMAP)
         pass_ = CSPLayout(coupling_map, call_limit=1, time_limit=None)
 
         start = process_time()
@@ -297,7 +301,7 @@ class TestCSPLayout(QiskitTestCase):
         seed_1 = 42
         seed_2 = 43
 
-        cmap5 = FakeTenerife().configuration().coupling_map
+        cmap5 = TENERIFE_CMAP
 
         qr = QuantumRegister(3, "qr")
         circuit = QuantumCircuit(qr)

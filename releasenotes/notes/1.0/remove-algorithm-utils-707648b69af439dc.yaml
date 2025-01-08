@@ -1,0 +1,25 @@
+---
+upgrade_algorithms:
+  - |
+    The following tools in :mod:`qiskit.utils` have been removed from the codebase:
+
+    * Utils in ``qiskit.utils.arithmetic``
+    * Utils in ``qiskit.utils.circuit_utils``
+    * Utils in ``qiskit.utils.entangler_map``
+    * Utils in ``qiskit.utils.name_unnamed_args``
+
+    These functions were used exclusively in the context of ``qiskit.algorithms`` and
+    ``qiskit.opflow``, and were deprecated in Qiskit 0.46. ``qiskit.algorithms`` and
+    ``qiskit.opflow`` have been deprecated since Qiskit 0.45 and Qiskit Terra 0.24
+    respectively.
+
+    The following utilities have also been removed:
+
+    * Utils in ``qiskit.utils.validation``
+    * ``algorithm_globals``
+
+    These were deprecated in Qiskit 0.45 as a consequence of the migration
+    of ``qiskit.algorithms`` to `a standalone package
+    <https://github.com/qiskit-community/qiskit-algorithms>`_, where
+    these utilities have also been migrated. They can be found in the new package
+    under ``qiskit_algorithms.utils``.

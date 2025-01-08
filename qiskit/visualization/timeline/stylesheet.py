@@ -37,7 +37,6 @@ Because a single stylesheet doesn't generate multiple images with different appe
 only one layout function can be chosen for each stylesheet.
 """
 
-import warnings
 from typing import Dict, Any, Mapping
 
 from qiskit.visualization.timeline import generators, layouts
@@ -45,8 +44,6 @@ from qiskit.visualization.timeline import generators, layouts
 
 class QiskitTimelineStyle(dict):
     """Stylesheet for pulse drawer."""
-
-    _deprecated_keys = {"link_interval_dt": "link_interval_percent"}
 
     def __init__(self):
         super().__init__()
@@ -57,14 +54,7 @@ class QiskitTimelineStyle(dict):
     def update(self, __m: Mapping[str, Any], **kwargs) -> None:
         super().update(__m, **kwargs)
         for key, value in __m.items():
-            if key in self._deprecated_keys:
-                warnings.warn(
-                    f"{key} is deprecated. Use {self._deprecated_keys[key]} instead.",
-                    DeprecationWarning,
-                )
-                self.__setitem__(self._deprecated_keys[key], value)
-            else:
-                self.__setitem__(key, value)
+            self.__setitem__(key, value)
         self.stylesheet = __m.__class__.__name__
 
     @property

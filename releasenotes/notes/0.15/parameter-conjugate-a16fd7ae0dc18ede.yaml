@@ -5,4 +5,4 @@ features:
     been added to the :class:`~qiskit.circuit.ParameterExpression` class.
     This enables calling ``numpy.conj()`` without raising an error. Since a
     :class:`~qiskit.circuit.ParameterExpression` object is real, it will
-    return itself. This behaviour is analogous to Python floats/ints.
+    return itself. This behavior is analogous to Python floats/ints.

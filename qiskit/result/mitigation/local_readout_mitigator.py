@@ -14,10 +14,12 @@ Readout mitigator class based on the 1-qubit local tensored mitigation method
 """
 
 
+import math
 from typing import Optional, List, Tuple, Iterable, Callable, Union, Dict
 import numpy as np
 
 from qiskit.exceptions import QiskitError
+from qiskit.utils.deprecation import deprecate_func
 from ..distributions.quasi import QuasiDistribution
 from ..counts import Counts
 from .base_readout_mitigator import BaseReadoutMitigator
@@ -25,7 +27,7 @@ from .utils import counts_probability_vector, z_diagonal, str2diag
 
 
 class LocalReadoutMitigator(BaseReadoutMitigator):
-    """1-qubit tensor product readout error mitigator.
+    """This class is DEPRECATED. 1-qubit tensor product readout error mitigator.
 
     Mitigates :meth:`expectation_value` and :meth:`quasi_probabilities`.
     The mitigator should either be calibrated using qiskit experiments,
@@ -36,6 +38,13 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
     so it is more efficient than the :class:`CorrelatedReadoutMitigator` class.
     """
 
+    @deprecate_func(
+        since="1.3",
+        package_name="Qiskit",
+        removal_timeline="in Qiskit 2.0",
+        additional_msg="The `qiskit.result.mitigation` module is deprecated in favor of "
+        "the https://github.com/Qiskit/qiskit-addon-mthree package.",
+    )
     def __init__(
         self,
         assignment_matrices: Optional[List[np.ndarray]] = None,
@@ -67,8 +76,8 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
         else:
             if len(qubits) != len(assignment_matrices):
                 raise QiskitError(
-                    "The number of given qubits ({}) is different than the number of qubits "
-                    "inferred from the matrices ({})".format(len(qubits), len(assignment_matrices))
+                    f"The number of given qubits ({len(qubits)}) is different than the number of qubits "
+                    f"inferred from the matrices ({len(assignment_matrices)})"
                 )
             self._qubits = qubits
             self._num_qubits = len(self._qubits)
@@ -288,7 +297,7 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
             float: the standard deviation upper bound.
         """
         gamma = self._compute_gamma(qubits=qubits)
-        return gamma / np.sqrt(shots)
+        return gamma / math.sqrt(shots)
 
     def _from_backend(self, backend, qubits):
         """Calculates amats from backend properties readout_error"""

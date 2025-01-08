@@ -58,6 +58,7 @@ from enum import Enum
 import numpy as np
 
 from qiskit import circuit
+from qiskit.transpiler.target import Target
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.timeline import drawings, types
 from qiskit.visualization.timeline.stylesheet import QiskitTimelineStyle
@@ -138,11 +139,13 @@ class DrawerCanvas:
         self._collections[data.data_key] = data
 
     # pylint: disable=cyclic-import
-    def load_program(self, program: circuit.QuantumCircuit):
+    def load_program(self, program: circuit.QuantumCircuit, target: Target | None = None):
         """Load quantum circuit and create drawing..
 
         Args:
             program: Scheduled circuit object to draw.
+            target: The target the circuit is scheduled for. This contains backend information
+                including the instruction durations used in scheduling.
 
         Raises:
            VisualizationError: When circuit is not scheduled.
@@ -159,6 +162,7 @@ class DrawerCanvas:
                 "This circuit should be transpiled with scheduler though it consists of "
                 "instructions with explicit durations.",
                 DeprecationWarning,
+                stacklevel=3,
             )
 
             try:
@@ -179,16 +183,37 @@ class DrawerCanvas:
             for bit_pos, bit in enumerate(bits):
                 if not isinstance(instruction.operation, not_gate_like):
                     # Generate draw object for gates
+                    if target is not None:
+                        duration = None
+                        op_props = target.get(instruction.operation.name)
+                        if op_props is not None:
+                            inst_props = op_props.get(tuple(instruction.qubits))
+                            if inst_props is not None:
+                                duration = inst_props.getattr("duration")
+
+                        if duration is None:
+                            # Warn here because an incomplete target isn't obvious most of the time
+                            warnings.warn(
+                                "Target doesn't contain a duration for "
+                                f"{instruction.operation.name} on {bit_pos}, this will error in "
+                                "Qiskit 2.0.",
+                                DeprecationWarning,
+                                stacklevel=3,
+                            )
+                            duration = instruction.operation.duration
+                    else:
+                        duration = instruction.operation.duration
                     gate_source = types.ScheduledGate(
                         t0=t0,
                         operand=instruction.operation,
-                        duration=instruction.operation.duration,
+                        duration=duration,
                         bits=bits,
                         bit_position=bit_pos,
                     )
                     for gen in self.generator["gates"]:
-                        obj_generator = partial(gen, formatter=self.formatter)
-                        for datum in obj_generator(gate_source):
+                        if getattr(gen, "accepts_program", False):
+                            gen = partial(gen, program=program)
+                        for datum in gen(gate_source, formatter=self.formatter):
                             self.add_data(datum)
                     if len(bits) > 1 and bit_pos == 0:
                         # Generate draw object for gate-gate link
@@ -197,23 +222,26 @@ class DrawerCanvas:
                             t0=line_pos, opname=instruction.operation.name, bits=bits
                         )
                         for gen in self.generator["gate_links"]:
-                            obj_generator = partial(gen, formatter=self.formatter)
-                            for datum in obj_generator(link_source):
+                            if getattr(gen, "accepts_program", False):
+                                gen = partial(gen, program=program)
+                            for datum in gen(link_source, formatter=self.formatter):
                                 self.add_data(datum)
                 if isinstance(instruction.operation, circuit.Barrier):
                     # Generate draw object for barrier
                     barrier_source = types.Barrier(t0=t0, bits=bits, bit_position=bit_pos)
                     for gen in self.generator["barriers"]:
-                        obj_generator = partial(gen, formatter=self.formatter)
-                        for datum in obj_generator(barrier_source):
+                        if getattr(gen, "accepts_program", False):
+                            gen = partial(gen, program=program)
+                        for datum in gen(barrier_source, formatter=self.formatter):
                             self.add_data(datum)
 
         self.bits = list(program.qubits) + list(program.clbits)
         for bit in self.bits:
             for gen in self.generator["bits"]:
                 # Generate draw objects for bit
-                obj_generator = partial(gen, formatter=self.formatter)
-                for datum in obj_generator(bit):
+                if getattr(gen, "accepts_program", False):
+                    gen = partial(gen, program=program)
+                for datum in gen(bit, formatter=self.formatter):
                     self.add_data(datum)
 
         # update time range

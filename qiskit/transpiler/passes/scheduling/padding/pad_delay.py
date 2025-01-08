@@ -25,7 +25,12 @@ class PadDelay(BasePadding):
 
     Consecutive delays will be merged in the output of this pass.
 
-    .. code-block:: python
+    .. plot::
+       :include-source:
+       :nofigs:
+
+        from qiskit import QuantumCircuit
+        from qiskit.transpiler import InstructionDurations
 
         durations = InstructionDurations([("x", None, 160), ("cx", None, 800)])
 
@@ -36,7 +41,7 @@ class PadDelay(BasePadding):
 
     The ASAP-scheduled circuit output may become
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌────────────────┐
         q_0: ┤ Delay(160[dt]) ├──■──
@@ -57,7 +62,7 @@ class PadDelay(BasePadding):
         Args:
             fill_very_end: Set ``True`` to fill the end of circuit with delay.
             target: The :class:`~.Target` representing the target backend.
-                If it supplied and it does not support delay instruction on a qubit,
+                If it is supplied and does not support delay instruction on a qubit,
                 padding passes do not pad any idle time of the qubit.
         """
         super().__init__(target=target)

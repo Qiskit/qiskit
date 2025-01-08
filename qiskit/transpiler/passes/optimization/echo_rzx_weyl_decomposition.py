@@ -21,6 +21,7 @@ from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.passes.calibration.rzx_builder import _check_calibration_type, CRCalType
+from qiskit.utils.deprecate_pulse import deprecate_pulse_dependency
 
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.converters import circuit_to_dag
@@ -34,6 +35,7 @@ class EchoRZXWeylDecomposition(TransformationPass):
     Each pair of RZXGates forms an echoed RZXGate.
     """
 
+    @deprecate_pulse_dependency
     def __init__(self, instruction_schedule_map=None, target=None):
         """EchoRZXWeylDecomposition pass.
 
@@ -41,7 +43,7 @@ class EchoRZXWeylDecomposition(TransformationPass):
             instruction_schedule_map (InstructionScheduleMap): the mapping from circuit
                 :class:`~.circuit.Instruction` names and arguments to :class:`.Schedule`\\ s.
             target (Target): The :class:`~.Target` representing the target backend, if both
-                ``instruction_schedule_map`` and this are specified then this argument will take
+                ``instruction_schedule_map`` and ``target`` are specified then this argument will take
                 precedence and ``instruction_schedule_map`` will be ignored.
         """
         super().__init__()
@@ -62,7 +64,7 @@ class EchoRZXWeylDecomposition(TransformationPass):
     def _echo_rzx_dag(theta):
         """Return the following circuit
 
-        .. parsed-literal::
+        .. code-block:: text
 
                  ┌───────────────┐┌───┐┌────────────────┐┌───┐
             q_0: ┤0              ├┤ X ├┤0               ├┤ X ├
@@ -83,7 +85,7 @@ class EchoRZXWeylDecomposition(TransformationPass):
     def _reverse_echo_rzx_dag(theta):
         """Return the following circuit
 
-        .. parsed-literal::
+        .. code-block:: text
 
                  ┌───┐┌───────────────┐     ┌────────────────┐┌───┐
             q_0: ┤ H ├┤1              ├─────┤1               ├┤ H ├─────
@@ -123,7 +125,7 @@ class EchoRZXWeylDecomposition(TransformationPass):
 
         # pylint: disable=cyclic-import
         from qiskit.quantum_info import Operator
-        from qiskit.quantum_info.synthesis.two_qubit_decompose import TwoQubitControlledUDecomposer
+        from qiskit.synthesis.two_qubit.two_qubit_decompose import TwoQubitControlledUDecomposer
 
         if len(dag.qregs) > 1:
             raise TranspilerError(

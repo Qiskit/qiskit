@@ -27,7 +27,7 @@ class LinearPauliRotations(FunctionalPauliRotations):
     For a register of state qubits :math:`|x\rangle`, a target qubit :math:`|0\rangle` and the
     basis ``'Y'`` this circuit acts as:
 
-    .. parsed-literal::
+    .. code-block:: text
 
             q_0: ─────────────────────────■───────── ... ──────────────────────
                                           │
@@ -153,7 +153,7 @@ class LinearPauliRotations(FunctionalPauliRotations):
             if raise_on_failure:
                 raise CircuitError(
                     "Not enough qubits in the circuit, need at least "
-                    "{}.".format(self.num_state_qubits + 1)
+                    f"{self.num_state_qubits + 1}."
                 )
 
         return valid

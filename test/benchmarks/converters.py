@@ -14,7 +14,6 @@
 # pylint: disable=attribute-defined-outside-init,unsubscriptable-object
 
 from qiskit import converters
-from qiskit import qasm
 
 from .utils import random_circuit
 
@@ -38,7 +37,6 @@ class ConverterBenchmarks:
                 raise NotImplementedError
         self.qc = random_circuit(n_qubits, depth, measure=True, conditional=True, seed=seed)
         self.dag = converters.circuit_to_dag(self.qc)
-        self.qasm = qasm.Qasm(data=self.qc.qasm()).parse()
 
     def time_circuit_to_dag(self, *_):
         converters.circuit_to_dag(self.qc)
@@ -48,6 +46,3 @@ class ConverterBenchmarks:
 
     def time_dag_to_circuit(self, *_):
         converters.dag_to_circuit(self.dag)
-
-    def time_ast_to_circuit(self, *_):
-        converters.ast_to_dag(self.qasm)

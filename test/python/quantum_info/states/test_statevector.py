@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2019.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -20,20 +20,19 @@ from ddt import ddt, data
 import numpy as np
 from numpy.testing import assert_allclose
 
-from qiskit.test import QiskitTestCase
 from qiskit import QiskitError
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit import transpile
-from qiskit.circuit.library import HGate, QFT, GlobalPhaseGate
-from qiskit.providers.basicaer import QasmSimulatorPy
+from qiskit.circuit.library import HGate, QFTGate, GlobalPhaseGate
+from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.utils import optionals
-
 from qiskit.quantum_info.random import random_unitary, random_statevector, random_pauli
 from qiskit.quantum_info.states import Statevector
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.symplectic import Pauli, SparsePauliOp
 from qiskit.quantum_info.operators.predicates import matrix_equal
-from qiskit.visualization.state_visualization import numbers_to_latex_terms, state_to_latex
+from qiskit.visualization.state_visualization import state_to_latex
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 logger = logging.getLogger(__name__)
 
@@ -1153,6 +1152,31 @@ class TestStatevector(QiskitTestCase):
         expval = state.expectation_value(op, qubits)
         self.assertAlmostEqual(expval, target)
 
+    def test_expval_identity(self):
+        """Test whether the calculation for identity operator has been fixed"""
+
+        # 1 qubit case test
+        state_1 = Statevector.from_label("0")
+        state_1_n1 = 2 * state_1  # test the same state with different norms
+        state_1_n2 = (1 + 2j) * state_1
+        identity_op_1 = SparsePauliOp.from_list([("I", 1)])
+        expval_state_1 = state_1.expectation_value(identity_op_1)
+        expval_state_1_n1 = state_1_n1.expectation_value(identity_op_1)
+        expval_state_1_n2 = state_1_n2.expectation_value(identity_op_1)
+        self.assertAlmostEqual(expval_state_1, 1.0 + 0j)
+        self.assertAlmostEqual(expval_state_1_n1, 4 + 0j)
+        self.assertAlmostEqual(expval_state_1_n2, 5 + 0j)
+
+        # Let's try a multi-qubit case
+        n_qubits = 3
+        state_coeff = 3 - 4j
+        op_coeff = 2 - 2j
+        state_test = state_coeff * Statevector.from_label("0" * n_qubits)
+        op_test = SparsePauliOp.from_list([("I" * n_qubits, op_coeff)])
+        expval = state_test.expectation_value(op_test)
+        target = op_coeff * np.abs(state_coeff) ** 2
+        self.assertAlmostEqual(expval, target)
+
     @data(*(qargs for i in range(4) for qargs in permutations(range(4), r=i + 1)))
     def test_probabilities_qargs(self, qargs):
         """Test probabilities method with qargs"""
@@ -1168,7 +1192,7 @@ class TestStatevector(QiskitTestCase):
         probs = state.probabilities(qargs)
 
         # Estimate target probs from simulator measurement
-        sim = QasmSimulatorPy()
+        sim = BasicSimulator()
         shots = 5000
         seed = 100
         circ = transpile(state_circ, sim)
@@ -1194,7 +1218,7 @@ class TestStatevector(QiskitTestCase):
 
     def test_reverse_qargs(self):
         """Test reverse_qargs method"""
-        circ1 = QFT(5)
+        circ1 = QFTGate(5).definition
         circ2 = circ1.reverse_bits()
 
         state1 = Statevector.from_instruction(circ1)
@@ -1205,7 +1229,7 @@ class TestStatevector(QiskitTestCase):
     @unittest.skipUnless(optionals.HAS_PYLATEX, "requires pylatexenc")
     def test_drawings(self):
         """Test draw method"""
-        qc1 = QFT(5)
+        qc1 = QFTGate(5).definition
         sv = Statevector.from_instruction(qc1)
         with self.subTest(msg="str(statevector)"):
             str(sv)
@@ -1319,28 +1343,6 @@ class TestStatevector(QiskitTestCase):
             latex_representation,
             "0.354 |000\\rangle+0.354 |001\\rangle- 0.354 i |110\\rangle+0.354 i |111\\rangle",
         )
-
-    def test_number_to_latex_terms(self):
-        """Test conversions of complex numbers to latex terms"""
-
-        cases = [
-            ([1 - 8e-17, 0], ["", None]),
-            ([0, -1], [None, "-"]),
-            ([0, 1], [None, ""]),
-            ([0, 1j], [None, "i"]),
-            ([-1, 1], ["-", "+"]),
-            ([0, 1j], [None, "i"]),
-            ([-1, 1j], ["-", "+i"]),
-            ([1e-16 + 1j], ["i"]),
-            ([-1 + 1e-16 * 1j], ["-"]),
-            ([-1, -1 - 1j], ["-", "+(-1 - i)"]),
-            ([np.sqrt(2) / 2, np.sqrt(2) / 2], ["\\frac{\\sqrt{2}}{2}", "+\\frac{\\sqrt{2}}{2}"]),
-            ([1 + np.sqrt(2)], ["(1 + \\sqrt{2})"]),
-        ]
-        with self.assertWarns(DeprecationWarning):
-            for numbers, latex_terms in cases:
-                terms = numbers_to_latex_terms(numbers, 15)
-                self.assertListEqual(terms, latex_terms)
 
     def test_statevector_draw_latex_regression(self):
         """Test numerical rounding errors are not printed"""

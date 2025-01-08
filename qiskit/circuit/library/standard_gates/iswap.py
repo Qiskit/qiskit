@@ -16,9 +16,10 @@ from typing import Optional
 
 import numpy as np
 
-from qiskit.circuit.singleton_gate import SingletonGate
+from qiskit.circuit.singleton import SingletonGate, stdlib_singleton_key
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import with_gate_array
+from qiskit._accelerate.circuit import StandardGate
 
 from .xx_plus_yy import XXPlusYYGate
 
@@ -37,7 +38,7 @@ class iSwapGate(SingletonGate):
 
     **Circuit Symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
         q_0: ─⨂─
               │
@@ -45,7 +46,7 @@ class iSwapGate(SingletonGate):
 
     **Reference Implementation:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌───┐┌───┐     ┌───┐
         q_0: ┤ S ├┤ H ├──■──┤ X ├─────
@@ -85,13 +86,13 @@ class iSwapGate(SingletonGate):
             \end{pmatrix}
     """
 
-    def __init__(self, label: Optional[str] = None, duration=None, unit=None, _condition=None):
+    _standard_gate = StandardGate.ISwapGate
+
+    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create new iSwap gate."""
-        if unit is None:
-            unit = "dt"
-        super().__init__(
-            "iswap", 2, [], label=label, _condition=_condition, duration=duration, unit=unit
-        )
+        super().__init__("iswap", 2, [], label=label, duration=duration, unit=unit)
+
+    _singleton_lookup_key = stdlib_singleton_key()
 
     def _define(self):
         """
@@ -126,6 +127,8 @@ class iSwapGate(SingletonGate):
 
         self.definition = qc
 
-    def power(self, exponent: float):
-        """Raise gate to a power."""
+    def power(self, exponent: float, annotated: bool = False):
         return XXPlusYYGate(-np.pi * exponent)
+
+    def __eq__(self, other):
+        return isinstance(other, iSwapGate)

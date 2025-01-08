@@ -17,12 +17,18 @@ Experiment Results (:mod:`qiskit.result`)
 
 .. currentmodule:: qiskit.result
 
+Core classes
+============
+
 .. autosummary::
    :toctree: ../stubs/
 
    Result
    ResultError
    Counts
+
+Marginalization
+===============
 
 .. autofunction:: marginal_counts
 .. autofunction:: marginal_distribution

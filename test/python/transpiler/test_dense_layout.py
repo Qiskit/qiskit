@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2017, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -23,9 +23,10 @@ from qiskit.circuit.library import CXGate, UGate, ECRGate, RZGate
 from qiskit.transpiler import CouplingMap, Target, InstructionProperties, TranspilerError
 from qiskit.transpiler.passes import DenseLayout
 from qiskit.converters import circuit_to_dag
-from qiskit.test import QiskitTestCase
-from qiskit.providers.fake_provider import FakeTokyo
 from qiskit.transpiler.passes.layout.dense_layout import _build_error_matrix
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
+
+from ..legacy_cmaps import TOKYO_CMAP
 
 
 class TestDenseLayout(QiskitTestCase):
@@ -33,7 +34,7 @@ class TestDenseLayout(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        self.cmap20 = FakeTokyo().configuration().coupling_map
+        self.cmap20 = TOKYO_CMAP
         self.target_19 = Target()
         rng = np.random.default_rng(12345)
         instruction_props = {

@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed a performance issue in the :func:`.qpy.load` function when
+    deserializing QPY payloads with large numbers of qubits or clbits in
+    a circuit.

@@ -1,0 +1,5 @@
+---
+upgrade:
+  - |
+    The ``QasmSimulator`` python-based simulator included in :class:`qiskit.providers.basicaer` 
+    now includes ``'h'`` (:class:`.HGate`), ``'p'`` (:class:`.PhaseGate`), and ``'u'`` (:class:`.UGate`) in its basis gate set.

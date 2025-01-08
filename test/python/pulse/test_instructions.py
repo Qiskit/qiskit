@@ -14,12 +14,13 @@
 
 import numpy as np
 
-from qiskit import pulse, circuit
+from qiskit import circuit
 from qiskit.pulse import channels, configuration, instructions, library, exceptions
-from qiskit.pulse.transforms import inline_subroutines, target_qobj_transform
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from qiskit.utils.deprecate_pulse import decorate_test_methods, ignore_pulse_deprecation_warnings
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestAcquire(QiskitTestCase):
     """Acquisition tests."""
 
@@ -86,6 +87,7 @@ class TestAcquire(QiskitTestCase):
         self.assertEqual(hash_1, hash_2)
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestDelay(QiskitTestCase):
     """Delay tests."""
 
@@ -122,6 +124,7 @@ class TestDelay(QiskitTestCase):
         self.assertEqual(op_delay, op_identity)
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestSetFrequency(QiskitTestCase):
     """Set frequency tests."""
 
@@ -156,6 +159,7 @@ class TestSetFrequency(QiskitTestCase):
         self.assertSetEqual(instr.parameters, {p1, p2})
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestShiftFrequency(QiskitTestCase):
     """Shift frequency tests."""
 
@@ -192,6 +196,7 @@ class TestShiftFrequency(QiskitTestCase):
         self.assertSetEqual(instr.parameters, {p1, p2})
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestSetPhase(QiskitTestCase):
     """Test the instruction construction."""
 
@@ -227,6 +232,7 @@ class TestSetPhase(QiskitTestCase):
         self.assertSetEqual(instr.parameters, {p1, p2})
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestShiftPhase(QiskitTestCase):
     """Test the instruction construction."""
 
@@ -262,6 +268,7 @@ class TestShiftPhase(QiskitTestCase):
         self.assertSetEqual(instr.parameters, {p1, p2})
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestSnapshot(QiskitTestCase):
     """Snapshot tests."""
 
@@ -277,9 +284,11 @@ class TestSnapshot(QiskitTestCase):
         self.assertEqual(repr(snapshot), "Snapshot(test_name, state, name='test_name')")
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestPlay(QiskitTestCase):
     """Play tests."""
 
+    @ignore_pulse_deprecation_warnings
     def setUp(self):
         """Setup play tests."""
         super().setUp()
@@ -305,6 +314,7 @@ class TestPlay(QiskitTestCase):
             instructions.Play(self.pulse_op, channels.AcquireChannel(0))
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestDirectives(QiskitTestCase):
     """Test pulse directives."""
 
@@ -324,89 +334,3 @@ class TestDirectives(QiskitTestCase):
         self.assertEqual(barrier.duration, 0)
         self.assertEqual(barrier.channels, chans)
         self.assertEqual(barrier.operands, chans)
-
-
-class TestCall(QiskitTestCase):
-    """Test call instruction."""
-
-    def setUp(self):
-        super().setUp()
-
-        with pulse.build() as _subroutine:
-            pulse.delay(10, pulse.DriveChannel(0))
-        self.subroutine = _subroutine
-
-        self.param1 = circuit.Parameter("amp1")
-        self.param2 = circuit.Parameter("amp2")
-        with pulse.build() as _function:
-            pulse.play(pulse.Gaussian(160, self.param1, 40), pulse.DriveChannel(0))
-            pulse.play(pulse.Gaussian(160, self.param2, 40), pulse.DriveChannel(0))
-            pulse.play(pulse.Gaussian(160, self.param1, 40), pulse.DriveChannel(0))
-        self.function = _function
-
-    def test_call(self):
-        """Test basic call instruction."""
-        with self.assertWarns(DeprecationWarning):
-            call = instructions.Call(subroutine=self.subroutine)
-
-        self.assertEqual(call.duration, 10)
-        self.assertEqual(call.subroutine, self.subroutine)
-
-    def test_parameterized_call(self):
-        """Test call instruction with parameterized subroutine."""
-        with self.assertWarns(DeprecationWarning):
-            call = instructions.Call(subroutine=self.function)
-
-        self.assertTrue(call.is_parameterized())
-        self.assertEqual(len(call.parameters), 2)
-
-    def test_assign_parameters_to_call(self):
-        """Test create schedule by calling subroutine and assign parameters to it."""
-        init_dict = {self.param1: 0.1, self.param2: 0.5}
-
-        with pulse.build() as test_sched:
-            pulse.call(self.function)
-
-        test_sched = test_sched.assign_parameters(value_dict=init_dict)
-        test_sched = inline_subroutines(test_sched)
-
-        with pulse.build() as ref_sched:
-            pulse.play(pulse.Gaussian(160, 0.1, 40), pulse.DriveChannel(0))
-            pulse.play(pulse.Gaussian(160, 0.5, 40), pulse.DriveChannel(0))
-            pulse.play(pulse.Gaussian(160, 0.1, 40), pulse.DriveChannel(0))
-
-        self.assertEqual(target_qobj_transform(test_sched), target_qobj_transform(ref_sched))
-
-    def test_call_initialize_with_parameter(self):
-        """Test call instruction with parameterized subroutine with initial dict."""
-        init_dict = {self.param1: 0.1, self.param2: 0.5}
-        with self.assertWarns(DeprecationWarning):
-            call = instructions.Call(subroutine=self.function, value_dict=init_dict)
-
-        with pulse.build() as ref_sched:
-            pulse.play(pulse.Gaussian(160, 0.1, 40), pulse.DriveChannel(0))
-            pulse.play(pulse.Gaussian(160, 0.5, 40), pulse.DriveChannel(0))
-            pulse.play(pulse.Gaussian(160, 0.1, 40), pulse.DriveChannel(0))
-
-        self.assertEqual(
-            target_qobj_transform(call.assigned_subroutine()), target_qobj_transform(ref_sched)
-        )
-
-    def test_call_subroutine_with_different_parameters(self):
-        """Test call subroutines with different parameters in the same schedule."""
-        init_dict1 = {self.param1: 0.1, self.param2: 0.5}
-        init_dict2 = {self.param1: 0.3, self.param2: 0.7}
-
-        with pulse.build() as test_sched:
-            pulse.call(self.function, value_dict=init_dict1)
-            pulse.call(self.function, value_dict=init_dict2)
-
-        with pulse.build() as ref_sched:
-            pulse.play(pulse.Gaussian(160, 0.1, 40), pulse.DriveChannel(0))
-            pulse.play(pulse.Gaussian(160, 0.5, 40), pulse.DriveChannel(0))
-            pulse.play(pulse.Gaussian(160, 0.1, 40), pulse.DriveChannel(0))
-            pulse.play(pulse.Gaussian(160, 0.3, 40), pulse.DriveChannel(0))
-            pulse.play(pulse.Gaussian(160, 0.7, 40), pulse.DriveChannel(0))
-            pulse.play(pulse.Gaussian(160, 0.3, 40), pulse.DriveChannel(0))
-
-        self.assertEqual(target_qobj_transform(test_sched), target_qobj_transform(ref_sched))

@@ -1,105 +1,59 @@
 ---
-name: Wheel Builds
+name: Deploy release artifacts
 on:
   push:
     tags:
       - '*'
 jobs:
-  build_wheels_s390x:
-    name: Build wheels on s390x
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest]
+  build-core:
+    name: Build core
+    uses: ./.github/workflows/wheels-build.yml
+    with:
+      artifact-prefix: "deploy-core-"
+      default-action: "skip"
+      wheels-tier-1: "build"
+      wheels-32bit: "build"
+      sdist: "build"
+  upload-core:
+    name: Deploy core
+    needs: ["build-core"]
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      id-token: write
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        name: Install Python
+      - uses: actions/download-artifact@v4
         with:
-          python-version: '3.10'
-      - uses: dtolnay/rust-toolchain@stable
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v1
+          pattern: 'deploy-core-*'
+          merge-multiple: true
+          path: deploy
+      - uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          platforms: all
-      - name: Build wheels
-        uses: pypa/cibuildwheel@v2.13.0
-        env:
-          CIBW_ARCHS_LINUX: s390x
-          CIBW_TEST_SKIP: "cp*"
-      - uses: actions/upload-artifact@v3
-        with:
-          path: ./wheelhouse/*.whl
-      - name: Install twine
-        run: python -m pip install twine
-      - name: Upload to PyPI
-        run: twine upload ./wheelhouse/*.whl
-        env:
-          TWINE_PASSWORD: ${{ secrets.TWINE_PASSWORD }}
-          TWINE_USERNAME: qiskit
-  build_wheels_ppc64le:
-    name: Build wheels on ppc64le
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest]
+          packages-dir: deploy
+
+  build-others:
+    name: Build others
+    needs: ["upload-core"]
+    uses: ./.github/workflows/wheels-build.yml
+    with:
+      artifact-prefix: "deploy-others-"
+      default-action: "build"
+      wheels-tier-1: "skip"
+      wheels-32bit: "skip"
+      sdist: "skip"
+  upload-others:
+    name: Deploy other
+    needs: ["build-others"]
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      id-token: write
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        name: Install Python
+      - uses: actions/download-artifact@v4
         with:
-          python-version: '3.10'
-      - uses: dtolnay/rust-toolchain@stable
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v1
+          pattern: 'deploy-others-*'
+          merge-multiple: true
+          path: deploy
+      - uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          platforms: all
-      - name: Build wheels
-        uses: pypa/cibuildwheel@v2.13.0
-        env:
-          CIBW_ARCHS_LINUX: ppc64le
-          CIBW_TEST_SKIP: "cp*"
-      - uses: actions/upload-artifact@v3
-        with:
-          path: ./wheelhouse/*.whl
-      - name: Install twine
-        run: python -m pip install twine
-      - name: Upload to PyPI
-        run: twine upload ./wheelhouse/*.whl
-        env:
-          TWINE_PASSWORD: ${{ secrets.TWINE_PASSWORD }}
-          TWINE_USERNAME: qiskit
-  build_wheels_aarch64:
-    name: Build wheels on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest]
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        name: Install Python
-        with:
-          python-version: '3.10'
-      - uses: dtolnay/rust-toolchain@stable
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v1
-        with:
-          platforms: all
-      - name: Build wheels
-        uses: pypa/cibuildwheel@v2.13.0
-        env:
-          CIBW_ARCHS_LINUX: aarch64
-      - uses: actions/upload-artifact@v3
-        with:
-          path: ./wheelhouse/*.whl
-      - name: Install twine
-        run: python -m pip install twine
-      - name: Upload to PyPI
-        run: twine upload ./wheelhouse/*.whl
-        env:
-          TWINE_PASSWORD: ${{ secrets.TWINE_PASSWORD }}
-          TWINE_USERNAME: qiskit
+          packages-dir: deploy

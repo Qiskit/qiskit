@@ -17,26 +17,10 @@ Base register reference object.
 """
 
 from __future__ import annotations
-import re
 import itertools
-import warnings
 import numpy as np
 
 from qiskit.circuit.exceptions import CircuitError
-
-
-class _NameFormat:
-    REGEX = re.compile("[a-z][a-zA-Z0-9_]*")
-
-    def __get__(self, obj, objtype=None):
-        warnings.warn(
-            "Register.name_format is deprecated as of Qiskit Terra 0.23, and will be removed in a"
-            " future release. There is no longer a restriction on the names of registers, so the"
-            " attribute has no meaning any more.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.REGEX
 
 
 class Register:
@@ -49,11 +33,6 @@ class Register:
     """
 
     __slots__ = ["_name", "_size", "_bits", "_bit_indices", "_hash", "_repr"]
-
-    # In historical version of Terra, registers' name had to conform to the OpenQASM 2 specification
-    # (see appendix A of https://arxiv.org/pdf/1707.03429v2.pdf), and this regex enforced it.  That
-    # restriction has been relaxed, so this is no longer necessary.
-    name_format = _NameFormat()
 
     # Counter for the number of instances in this class.
     instances_counter = itertools.count()
@@ -88,7 +67,7 @@ class Register:
         if (size, bits) == (None, None) or (size is not None and bits is not None):
             raise CircuitError(
                 "Exactly one of the size or bits arguments can be "
-                "provided. Provided size=%s bits=%s." % (size, bits)
+                f"provided. Provided size={size} bits={bits}."
             )
 
         # validate (or cast) size
@@ -102,20 +81,18 @@ class Register:
 
         if not valid_size:
             raise CircuitError(
-                "Register size must be an integer. (%s '%s' was provided)"
-                % (type(size).__name__, size)
+                f"Register size must be an integer. ({type(size).__name__} '{size}' was provided)"
             )
         size = int(size)  # cast to int
 
         if size < 0:
             raise CircuitError(
-                "Register size must be non-negative (%s '%s' was provided)"
-                % (type(size).__name__, size)
+                f"Register size must be non-negative ({type(size).__name__} '{size}' was provided)"
             )
 
         # validate (or cast) name
         if name is None:
-            name = "%s%i" % (self.prefix, next(self.instances_counter))
+            name = f"{self.prefix}{next(self.instances_counter)}"
         else:
             try:
                 name = str(name)
@@ -129,7 +106,7 @@ class Register:
         self._size = size
 
         self._hash = hash((type(self), self._name, self._size))
-        self._repr = "%s(%d, '%s')" % (self.__class__.__qualname__, self.size, self.name)
+        self._repr = f"{self.__class__.__qualname__}({self.size}, '{self.name}')"
         if bits is not None:
             # check duplicated bits
             if self._size != len(set(bits)):

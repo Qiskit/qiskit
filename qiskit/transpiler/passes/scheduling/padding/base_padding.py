@@ -99,7 +99,7 @@ class BasePadding(TransformationPass):
         new_dag.name = dag.name
         new_dag.metadata = dag.metadata
         new_dag.unit = self.property_set["time_unit"]
-        new_dag.calibrations = dag.calibrations
+        new_dag._calibrations_prop = dag._calibrations_prop
         new_dag.global_phase = dag.global_phase
 
         idle_after = {bit: 0 for bit in dag.qubits}
@@ -198,11 +198,11 @@ class BasePadding(TransformationPass):
         t_start: int,
         oper: Instruction,
         qubits: Qubit | Iterable[Qubit],
-        clbits: Clbit | Iterable[Clbit] | None = None,
+        clbits: Clbit | Iterable[Clbit] = (),
     ):
         """Add new operation to DAG with scheduled information.
 
-        This is identical to apply_operation_back + updating the node_start_time propety.
+        This is identical to apply_operation_back + updating the node_start_time property.
 
         Args:
             dag: DAG circuit on which the sequence is applied.

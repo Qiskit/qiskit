@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2020.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,14 +13,13 @@
 """Test library of phase estimation circuits."""
 
 import unittest
-
 import numpy as np
 
-from qiskit.test.base import QiskitTestCase
-from qiskit import BasicAer, execute
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.library import PhaseEstimation, QFT
+from qiskit.circuit.library import PhaseEstimation, QFT, phase_estimation
 from qiskit.quantum_info import Statevector
+from qiskit.compiler import transpile
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestPhaseEstimation(QiskitTestCase):
@@ -64,11 +63,7 @@ class TestPhaseEstimation(QiskitTestCase):
             inplace=True,
         )
         circuit.compose(pec, inplace=True)
-        # TODO use Statevector for simulation once Qiskit/qiskit-terra#4681 is resolved
-        # actual = Statevector.from_instruction(circuit).data
-        backend = BasicAer.get_backend("statevector_simulator")
-        actual = execute(circuit, backend).result().get_statevector()
-
+        actual = Statevector(circuit)
         np.testing.assert_almost_equal(reference, actual)
 
     def test_phase_estimation(self):
@@ -154,6 +149,93 @@ class TestPhaseEstimation(QiskitTestCase):
             iqft = QFT(3, approximation_degree=2).inverse()
             pec = PhaseEstimation(3, unitary, iqft=iqft)
             self.assertEqual(pec.decompose().data[-1].operation.definition, iqft.decompose())
+
+    def test_phase_estimation_function(self):
+        """Test the phase estimation function."""
+        with self.subTest("U=S, psi=|1>"):
+            unitary = QuantumCircuit(1)
+            unitary.s(0)
+
+            eigenstate = QuantumCircuit(1)
+            eigenstate.x(0)
+
+            # eigenvalue is 1j = exp(2j pi 0.25) thus phi = 0.25 = 0.010 = '010'
+            # using three digits as 3 evaluation qubits are used
+            phase_as_binary = "0100"
+
+            pec = phase_estimation(4, unitary)
+
+            self.assertPhaseEstimationIsCorrect(pec, eigenstate, phase_as_binary)
+
+        with self.subTest("U=SZ, psi=|11>"):
+            unitary = QuantumCircuit(2)
+            unitary.z(0)
+            unitary.s(1)
+
+            eigenstate = QuantumCircuit(2)
+            eigenstate.x([0, 1])
+
+            # eigenvalue is -1j = exp(2j pi 0.75) thus phi = 0.75 = 0.110 = '110'
+            # using three digits as 3 evaluation qubits are used
+            phase_as_binary = "110"
+
+            pec = phase_estimation(3, unitary)
+
+            self.assertPhaseEstimationIsCorrect(pec, eigenstate, phase_as_binary)
+
+        with self.subTest("a 3-q unitary"):
+            #      ┌───┐
+            # q_0: ┤ X ├──■────■───────
+            #      ├───┤  │    │
+            # q_1: ┤ X ├──■────■───────
+            #      ├───┤┌───┐┌─┴─┐┌───┐
+            # q_2: ┤ X ├┤ H ├┤ X ├┤ H ├
+            #      └───┘└───┘└───┘└───┘
+            unitary = QuantumCircuit(3)
+            unitary.x([0, 1, 2])
+            unitary.cz(0, 1)
+            unitary.h(2)
+            unitary.ccx(0, 1, 2)
+            unitary.h(2)
+
+            #      ┌───┐
+            # q_0: ┤ H ├──■────■──
+            #      └───┘┌─┴─┐  │
+            # q_1: ─────┤ X ├──┼──
+            #           └───┘┌─┴─┐
+            # q_2: ──────────┤ X ├
+            #                └───┘
+            eigenstate = QuantumCircuit(3)
+            eigenstate.h(0)
+            eigenstate.cx(0, 1)
+            eigenstate.cx(0, 2)
+
+            # the unitary acts as identity on the eigenstate, thus the phase is 0
+            phase_as_binary = "00"
+
+            pec = phase_estimation(2, unitary)
+
+            self.assertPhaseEstimationIsCorrect(pec, eigenstate, phase_as_binary)
+
+    def test_phase_estimation_function_swaps_get_removed(self):
+        """Test that transpiling the circuit correctly removes swaps and permutations."""
+        unitary = QuantumCircuit(1)
+        unitary.s(0)
+
+        eigenstate = QuantumCircuit(1)
+        eigenstate.x(0)
+
+        pec = phase_estimation(4, unitary)
+
+        # transpilation (or more precisely HighLevelSynthesis + ElidePermutations) should
+        # remove all swap gates (possibly added when synthesizing the QFTGate in the circuit)
+        # and the final permutation gate
+        transpiled = transpile(pec)
+        transpiled_ops = transpiled.count_ops()
+
+        self.assertNotIn("permutation", transpiled_ops)
+        self.assertNotIn("swap", transpiled_ops)
+        self.assertNotIn("cx", transpiled_ops)
 
 
 if __name__ == "__main__":

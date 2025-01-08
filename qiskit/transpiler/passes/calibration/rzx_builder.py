@@ -14,6 +14,7 @@
 from __future__ import annotations
 
 import enum
+import math
 import warnings
 from collections.abc import Sequence
 from math import pi, erf
@@ -35,7 +36,7 @@ from qiskit.pulse import builder
 from qiskit.pulse.filters import filter_instructions
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.transpiler.target import Target
-from qiskit.utils.deprecation import deprecate_arg
+from qiskit.utils.deprecate_pulse import deprecate_pulse_dependency
 
 from .base_builder import CalibrationBuilder
 from .exceptions import CalibrationNotAvailable
@@ -65,11 +66,10 @@ class RZXCalibrationBuilder(CalibrationBuilder):
     angle. Additional details can be found in https://arxiv.org/abs/2012.11660.
     """
 
-    @deprecate_arg("qubit_channel_mapping", since="0.22.0")
+    @deprecate_pulse_dependency
     def __init__(
         self,
         instruction_schedule_map: InstructionScheduleMap = None,
-        qubit_channel_mapping: list[list[str]] = None,
         verbose: bool = True,
         target: Target = None,
     ):
@@ -79,8 +79,6 @@ class RZXCalibrationBuilder(CalibrationBuilder):
         Args:
             instruction_schedule_map: The :obj:`InstructionScheduleMap` object representing the
                 default pulse calibrations for the target backend
-            qubit_channel_mapping: The list mapping qubit indices to the list of
-                channel names that apply on that qubit.
             verbose: Set True to raise a user warning when RZX schedule cannot be built.
             target: The :class:`~.Target` representing the target backend, if both
                  ``instruction_schedule_map`` and this are specified then this argument will take
@@ -89,12 +87,11 @@ class RZXCalibrationBuilder(CalibrationBuilder):
         Raises:
             QiskitError: Instruction schedule map is not provided.
         """
-        del qubit_channel_mapping
         super().__init__()
         self._inst_map = instruction_schedule_map
         self._verbose = verbose
         if target:
-            self._inst_map = target.instruction_schedule_map()
+            self._inst_map = target._instruction_schedule_map()
         if self._inst_map is None:
             raise QiskitError("Calibrations can only be added to Pulse-enabled backends")
 
@@ -141,7 +138,7 @@ class RZXCalibrationBuilder(CalibrationBuilder):
         # The error function is used because the Gaussian may have chopped tails.
         # Area is normalized by amplitude.
         # This makes widths robust to the rounding error.
-        risefall_area = params["sigma"] * np.sqrt(2 * pi) * erf(risefall_sigma_ratio)
+        risefall_area = params["sigma"] * math.sqrt(2 * pi) * erf(risefall_sigma_ratio)
         full_area = params["width"] + risefall_area
 
         # Get estimate of target area. Assume this is pi/2 controlled rotation.
@@ -207,15 +204,20 @@ class RZXCalibrationBuilder(CalibrationBuilder):
 
         # The CR instruction is in the forward (native) direction
         if cal_type in [CRCalType.ECR_CX_FORWARD, CRCalType.ECR_FORWARD]:
-            xgate = self._inst_map.get("x", qubits[0])
-            with builder.build(
-                default_alignment="sequential", name="rzx(%.3f)" % theta
-            ) as rzx_theta_native:
-                for cr_tone, comp_tone in zip(cr_tones, comp_tones):
-                    with builder.align_left():
-                        self.rescale_cr_inst(cr_tone, theta)
-                        self.rescale_cr_inst(comp_tone, theta)
-                    builder.call(xgate)
+            with warnings.catch_warnings():
+                warnings.simplefilter(action="ignore", category=DeprecationWarning)
+                # `InstructionScheduleMap.get` and the pulse builder emit deprecation warnings
+                # as they use classes and methods which are deprecated in Qiskit 1.3 as part of the
+                # Qiskit Pulse deprecation
+                xgate = self._inst_map.get("x", qubits[0])
+                with builder.build(
+                    default_alignment="sequential", name=f"rzx({theta:.3f})"
+                ) as rzx_theta_native:
+                    for cr_tone, comp_tone in zip(cr_tones, comp_tones):
+                        with builder.align_left():
+                            self.rescale_cr_inst(cr_tone, theta)
+                            self.rescale_cr_inst(comp_tone, theta)
+                        builder.call(xgate)
             return rzx_theta_native
 
         # The direction is not native. Add Hadamard gates to flip the direction.
@@ -235,7 +237,7 @@ class RZXCalibrationBuilder(CalibrationBuilder):
             builder.call(szt, name="szt")
 
         with builder.build(
-            default_alignment="sequential", name="rzx(%.3f)" % theta
+            default_alignment="sequential", name=f"rzx({theta:.3f})"
         ) as rzx_theta_flip:
             builder.call(hadamard, name="hadamard")
             for cr_tone, comp_tone in zip(cr_tones, comp_tones):
@@ -302,11 +304,15 @@ class RZXCalibrationBuilderNoEcho(RZXCalibrationBuilder):
 
         # RZXCalibrationNoEcho only good for forward CR direction
         if cal_type in [CRCalType.ECR_CX_FORWARD, CRCalType.ECR_FORWARD]:
-            with builder.build(default_alignment="left", name="rzx(%.3f)" % theta) as rzx_theta:
-                stretched_dur = self.rescale_cr_inst(cr_tones[0], 2 * theta)
-                self.rescale_cr_inst(comp_tones[0], 2 * theta)
-                # Placeholder to make pulse gate work
-                builder.delay(stretched_dur, DriveChannel(qubits[0]))
+            with warnings.catch_warnings():
+                warnings.simplefilter(action="ignore", category=DeprecationWarning)
+                # Pulse builder emits deprecation warnings as part of the
+                # Qiskit Pulse deprecation
+                with builder.build(default_alignment="left", name=f"rzx({theta:.3f})") as rzx_theta:
+                    stretched_dur = self.rescale_cr_inst(cr_tones[0], 2 * theta)
+                    self.rescale_cr_inst(comp_tones[0], 2 * theta)
+                    # Placeholder to make pulse gate work
+                    builder.delay(stretched_dur, DriveChannel(qubits[0]))
             return rzx_theta
 
         raise QiskitError("RZXCalibrationBuilderNoEcho only supports hardware-native RZX gates.")
@@ -352,22 +358,27 @@ def _check_calibration_type(
         QiskitError: Unknown calibration type is detected.
     """
     cal_type = None
-    if inst_sched_map.has("cx", qubits):
-        cr_sched = inst_sched_map.get("cx", qubits=qubits)
-    elif inst_sched_map.has("ecr", qubits):
-        cr_sched = inst_sched_map.get("ecr", qubits=qubits)
-        cal_type = CRCalType.ECR_FORWARD
-    elif inst_sched_map.has("ecr", tuple(reversed(qubits))):
-        cr_sched = inst_sched_map.get("ecr", tuple(reversed(qubits)))
-        cal_type = CRCalType.ECR_REVERSE
-    else:
-        raise QiskitError(
-            f"Native direction cannot be determined: operation on qubits {qubits} "
-            f"for the following instruction schedule map:\n{inst_sched_map}"
-        )
+    with warnings.catch_warnings():
+        warnings.simplefilter(action="ignore", category=DeprecationWarning)
+        # `InstructionScheduleMap.get` and `filter_instructions` emit deprecation warnings
+        # as they use classes and methods which are deprecated in Qiskit 1.3 as part of the
+        # Qiskit Pulse deprecation
+        if inst_sched_map.has("cx", qubits):
+            cr_sched = inst_sched_map.get("cx", qubits=qubits)
+        elif inst_sched_map.has("ecr", qubits):
+            cr_sched = inst_sched_map.get("ecr", qubits=qubits)
+            cal_type = CRCalType.ECR_FORWARD
+        elif inst_sched_map.has("ecr", tuple(reversed(qubits))):
+            cr_sched = inst_sched_map.get("ecr", tuple(reversed(qubits)))
+            cal_type = CRCalType.ECR_REVERSE
+        else:
+            raise QiskitError(
+                f"Native direction cannot be determined: operation on qubits {qubits} "
+                f"for the following instruction schedule map:\n{inst_sched_map}"
+            )
 
-    cr_tones = [t[1] for t in filter_instructions(cr_sched, [_filter_cr_tone]).instructions]
-    comp_tones = [t[1] for t in filter_instructions(cr_sched, [_filter_comp_tone]).instructions]
+        cr_tones = [t[1] for t in filter_instructions(cr_sched, [_filter_cr_tone]).instructions]
+        comp_tones = [t[1] for t in filter_instructions(cr_sched, [_filter_comp_tone]).instructions]
 
     if cal_type is None:
         if len(comp_tones) == 0:

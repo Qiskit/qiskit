@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed a performance issue in the :class:`~.BackendSamplerV2` and
+    :class:`~.BackendEstimatorV2`.
+    Fixed `#12290 <https://github.com/Qiskit/qiskit-terra/issues/12290>`__

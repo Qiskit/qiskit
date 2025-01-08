@@ -16,8 +16,8 @@ import unittest
 
 from qiskit.circuit import QuantumCircuit, Parameter, QuantumRegister, ClassicalRegister
 from qiskit.transpiler import PassManager
-from qiskit.test import QiskitTestCase
 from qiskit.transpiler.passes.utils.unroll_forloops import UnrollForLoops
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestUnrollForLoops(QiskitTestCase):
@@ -135,7 +135,8 @@ class TestUnrollForLoops(QiskitTestCase):
             circuit.h(0)
             circuit.cx(0, 1)
             circuit.measure(0, 0)
-            circuit.break_loop().c_if(0, True)
+            with self.assertWarns(DeprecationWarning):
+                circuit.break_loop().c_if(0, True)
 
         passmanager = PassManager()
         passmanager.append(UnrollForLoops())

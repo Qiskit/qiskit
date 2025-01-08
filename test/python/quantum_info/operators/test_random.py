@@ -18,24 +18,16 @@ from test import combine
 import numpy as np
 from ddt import ddt
 
-from qiskit.quantum_info import (
-    Choi,
-    Clifford,
-    Operator,
-    PauliList,
-    PauliTable,
-    Stinespring,
-)
+from qiskit.quantum_info import Choi, Clifford, Operator, PauliList, Stinespring
 from qiskit.quantum_info.operators.predicates import is_hermitian_matrix
 from qiskit.quantum_info.random import (
     random_clifford,
     random_hermitian,
     random_pauli_list,
-    random_pauli_table,
     random_quantum_channel,
     random_unitary,
 )
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt
@@ -198,47 +190,40 @@ class TestRandomClifford(QiskitTestCase):
         rng_after = np.random.randint(1000, size=test_cases)
         self.assertFalse(np.all(rng_before == rng_after))
 
+    def test_cliffords_2q(self):
+        """Test that we get all 2-qubit Cliffords (actually symplectic
+        matrices) with sufficiently many trials.
+        """
+        seen = set()
+        for seed in range(10000):
+            cliff = random_clifford(2, seed)
+            seen.add(cliff.symplectic_matrix.tobytes())
+        self.assertEqual(len(seen), 720)
 
-@ddt
-class TestPauliTwoDesignTable(QiskitTestCase):
-    """DEPRECATED: Testing random_pauli_table function."""
+    def test_clifford_2q_decompositions(self):
+        """Test that we get all possible CX-counts for 2q-random cliffords
+        with sufficiently many trials.
+        """
+        seen = set()
+        for seed in range(100):
+            cliff = random_clifford(2, seed)
+            seen.add(cliff.to_circuit().count_ops().get("cx", 0))
+        self.assertEqual(seen, {0, 1, 2, 3})
 
-    @combine(num_qubits=[1, 2, 3, 4, 5, 10, 50, 100, 200, 250], size=[1, 10, 100])
-    def test_valid(self, num_qubits, size):
-        """Test random_pauli_table {num_qubits}-qubits, size {size}."""
-        with self.assertWarns(DeprecationWarning):
-            value = random_pauli_table(num_qubits, size=size)
-        with self.subTest(msg="Test type"):
-            self.assertIsInstance(value, PauliTable)
-        with self.subTest(msg="Test num_qubits"):
-            self.assertEqual(value.num_qubits, num_qubits)
-        with self.subTest(msg="Test type"):
-            self.assertEqual(len(value), size)
-
-    def test_fixed_seed(self):
-        """Test fixing seed fixes output"""
-        seed = 1532
-        with self.assertWarns(DeprecationWarning):
-            value1 = random_pauli_table(10, size=10, seed=seed)
-            value2 = random_pauli_table(10, size=10, seed=seed)
-        self.assertEqual(value1, value2)
-
-    def test_not_global_seed(self):
-        """Test fixing random_hermitian seed is locally scoped."""
-        seed = 314159
-        test_cases = 100
-        with self.assertWarns(DeprecationWarning):
-            random_pauli_table(10, size=10, seed=seed)
-        rng_before = np.random.randint(1000, size=test_cases)
-        with self.assertWarns(DeprecationWarning):
-            random_pauli_table(10, seed=seed)
-        rng_after = np.random.randint(1000, size=test_cases)
-        self.assertFalse(np.all(rng_before == rng_after))
+    def test_clifford_3q_decompositions(self):
+        """Test that we get all possible CX-counts for 3q-random cliffords
+        with sufficiently many trials.
+        """
+        seen = set()
+        for seed in range(10000):
+            cliff = random_clifford(3, seed)
+            seen.add(cliff.to_circuit().count_ops().get("cx", 0))
+        self.assertEqual(seen, {0, 1, 2, 3, 4, 5, 6})
 
 
 @ddt
 class TestRandomPauliList(QiskitTestCase):
-    """Testing random_pauli_table function."""
+    """Testing random_pauli_list function."""
 
     @combine(num_qubits=[1, 2, 3, 4, 5, 10, 50, 100, 200, 250], size=[1, 10, 100])
     def test_valid(self, num_qubits, size):

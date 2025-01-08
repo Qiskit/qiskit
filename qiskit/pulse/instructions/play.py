@@ -13,13 +13,15 @@
 """An instruction to transmit a given pulse on a ``PulseChannel`` (i.e., those which support
 transmitted pulses, such as ``DriveChannel``).
 """
-from typing import Optional, Union, Tuple, Set
+from __future__ import annotations
 
+from qiskit.circuit import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.pulse.channels import PulseChannel
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.instructions.instruction import Instruction
 from qiskit.pulse.library.pulse import Pulse
+from qiskit.utils.deprecate_pulse import deprecate_pulse_func
 
 
 class Play(Instruction):
@@ -31,7 +33,8 @@ class Play(Instruction):
     cycle time, dt, of the backend.
     """
 
-    def __init__(self, pulse: Pulse, channel: PulseChannel, name: Optional[str] = None):
+    @deprecate_pulse_func
+    def __init__(self, pulse: Pulse, channel: PulseChannel, name: str | None = None):
         """Create a new pulse instruction.
 
         Args:
@@ -70,19 +73,19 @@ class Play(Instruction):
         return self.operands[1]
 
     @property
-    def channels(self) -> Tuple[PulseChannel]:
+    def channels(self) -> tuple[PulseChannel]:
         """Returns the channels that this schedule uses."""
         return (self.channel,)
 
     @property
-    def duration(self) -> Union[int, ParameterExpression]:
+    def duration(self) -> int | ParameterExpression:
         """Duration of this instruction."""
         return self.pulse.duration
 
     @property
-    def parameters(self) -> Set:
+    def parameters(self) -> set[Parameter]:
         """Parameters which determine the instruction behavior."""
-        parameters = set()
+        parameters: set[Parameter] = set()
 
         # Note that Pulse.parameters returns dict rather than set for convention.
         # We need special handling for Play instruction.

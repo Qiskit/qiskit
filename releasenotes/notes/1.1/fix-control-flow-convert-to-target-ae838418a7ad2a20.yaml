@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixed an issue with the :func:`.convert_to_target` where the converter
+    would incorrectly ignore control flow instructions if they were specified
+    in the :attr:`.BackendConfiguration.supported_instructions` attribute which
+    is the typical location that control flow instructions are specified in a
+    :class:`.BackendConfiguration` object.
+    Fixed `#11872 <https://github.com/Qiskit/qiskit/issues/11872>`__.

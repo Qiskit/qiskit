@@ -30,8 +30,7 @@ from qiskit.transpiler.passes import (
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.target import Target, InstructionProperties
-
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt
@@ -375,11 +374,13 @@ class TestPadDynamicalDecoupling(QiskitTestCase):
 
         # Change duration to 100 from the 50 in self.durations to make sure
         # gate duration is used correctly.
-        with pulse.builder.build() as x_sched:
-            pulse.builder.delay(100, pulse.DriveChannel(0))
+        with self.assertWarns(DeprecationWarning):
+            with pulse.builder.build() as x_sched:
+                pulse.builder.delay(100, pulse.DriveChannel(0))
 
         circ_in = self.ghz4.measure_all(inplace=False)
-        circ_in.add_calibration(XGate(), (0,), x_sched)
+        with self.assertWarns(DeprecationWarning):
+            circ_in.add_calibration(XGate(), (0,), x_sched)
 
         ghz4_dd = pm.run(circ_in)
 
@@ -398,7 +399,8 @@ class TestPadDynamicalDecoupling(QiskitTestCase):
         expected = expected.compose(Delay(300), [1])
 
         expected.measure_all()
-        expected.add_calibration(XGate(), (0,), x_sched)
+        with self.assertWarns(DeprecationWarning):
+            expected.add_calibration(XGate(), (0,), x_sched)
 
         self.assertEqual(ghz4_dd, expected)
 
@@ -431,11 +433,12 @@ class TestPadDynamicalDecoupling(QiskitTestCase):
         # Change duration to 100 from the 50 in self.durations to make sure
         # gate duration is used correctly.
         amp = Parameter("amp")
-        with pulse.builder.build() as sched:
-            pulse.builder.play(
-                pulse.Gaussian(100, amp=amp, sigma=10.0),
-                pulse.DriveChannel(0),
-            )
+        with self.assertWarns(DeprecationWarning):
+            with pulse.builder.build() as sched:
+                pulse.builder.play(
+                    pulse.Gaussian(100, amp=amp, sigma=10.0),
+                    pulse.DriveChannel(0),
+                )
 
         class Echo(Gate):
             """Dummy Gate subclass for testing
@@ -448,7 +451,9 @@ class TestPadDynamicalDecoupling(QiskitTestCase):
             representation to satisfy PadDynamicalDecoupling's check.
             """
 
-            def __array__(self, dtype=None):
+            def __array__(self, dtype=None, copy=None):
+                if copy is False:
+                    raise ValueError("cannot produce matrix without calculation")
                 return np.eye(2, dtype=dtype)
 
         # A gate with one unbound and one bound parameter to leave in the final
@@ -456,7 +461,8 @@ class TestPadDynamicalDecoupling(QiskitTestCase):
         echo = Echo("echo", 1, [amp, 10.0])
 
         circ_in = self.ghz4.measure_all(inplace=False)
-        circ_in.add_calibration(echo, (0,), sched)
+        with self.assertWarns(DeprecationWarning):
+            circ_in.add_calibration(echo, (0,), sched)
 
         dd_sequence = [echo, echo]
         pm = PassManager(
@@ -483,7 +489,8 @@ class TestPadDynamicalDecoupling(QiskitTestCase):
         expected = expected.compose(Delay(300), [1])
 
         expected.measure_all()
-        expected.add_calibration(echo, (0,), sched)
+        with self.assertWarns(DeprecationWarning):
+            expected.add_calibration(echo, (0,), sched)
 
         self.assertEqual(ghz4_dd, expected)
 
@@ -586,7 +593,7 @@ class TestPadDynamicalDecoupling(QiskitTestCase):
 
         midmeas_dd = pm.run(self.midmeas)
 
-        combined_u = UGate(0, -pi / 2, pi / 2)
+        combined_u = UGate(0, 0, 0)
 
         expected = QuantumCircuit(3, 1)
         expected.cx(0, 1)
@@ -601,7 +608,7 @@ class TestPadDynamicalDecoupling(QiskitTestCase):
         expected.cx(1, 2)
         expected.cx(0, 1)
         expected.delay(700, 2)
-        expected.global_phase = pi / 2
+        expected.global_phase = pi
 
         self.assertEqual(midmeas_dd, expected)
         # check the absorption into U was done correctly
@@ -856,10 +863,14 @@ class TestPadDynamicalDecoupling(QiskitTestCase):
 
         rx_duration = int(param_value * 1000)
 
-        with pulse.build() as rx:
-            pulse.play(pulse.Gaussian(rx_duration, 0.1, rx_duration // 4), pulse.DriveChannel(1))
+        with self.assertWarns(DeprecationWarning):
+            with pulse.build() as rx:
+                pulse.play(
+                    pulse.Gaussian(rx_duration, 0.1, rx_duration // 4), pulse.DriveChannel(1)
+                )
 
-        circ.add_calibration("rx", (1,), rx, params=[param_value])
+        with self.assertWarns(DeprecationWarning):
+            circ.add_calibration("rx", (1,), rx, params=[param_value])
 
         durations = InstructionDurations([("x", None, 100), ("cx", None, 300)])
 
@@ -1030,6 +1041,42 @@ class TestPadDynamicalDecoupling(QiskitTestCase):
         expected.x([0])
         expected.delay(200, [0])
         self.assertEqual(expected, scheduled)
+
+    def test_paramaterized_global_phase(self):
+        """Test paramaterized global phase in DD circuit.
+        See:https://github.com/Qiskit/qiskit-terra/issues/10569
+        """
+        dd_sequence = [XGate(), YGate()] * 2
+        qc = QuantumCircuit(1, 1)
+        qc.h(0)
+        qc.delay(1700, 0)
+        qc.y(0)
+        qc.global_phase = Parameter("a")
+        pm = PassManager(
+            [
+                ALAPScheduleAnalysis(self.durations),
+                PadDynamicalDecoupling(self.durations, dd_sequence),
+            ]
+        )
+
+        self.assertEqual(qc.global_phase + np.pi, pm.run(qc).global_phase)
+
+    def test_misalignment_at_boundaries(self):
+        """Test the correct error message is raised for misalignments at In/Out nodes."""
+        # a circuit where the previous node is DAGInNode, and the next DAGOutNode
+        circuit = QuantumCircuit(1)
+        circuit.delay(101)
+
+        dd_sequence = [XGate(), XGate()]
+        pm = PassManager(
+            [
+                ALAPScheduleAnalysis(self.durations),
+                PadDynamicalDecoupling(self.durations, dd_sequence, pulse_alignment=2),
+            ]
+        )
+
+        with self.assertRaises(TranspilerError):
+            _ = pm.run(circuit)
 
 
 if __name__ == "__main__":
