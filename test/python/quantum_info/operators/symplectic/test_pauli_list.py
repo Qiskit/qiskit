@@ -1568,7 +1568,7 @@ class TestPauliListMethods(QiskitTestCase):
             value0 = pauli.insert(1, insert, qubit=True)
             self.assertEqual(value0, target0)
             self.assertEqual(value0.phase.shape, (1,))
-        
+
         # Insert single column
         pauli = PauliList(["X", "Y", "Z", "-iI"])
         for i in ["I", "X", "Y", "Z", "iY"]:
