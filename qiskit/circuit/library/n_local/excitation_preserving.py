@@ -71,7 +71,7 @@ def excitation_preserving(
 
         .. plot::
             :include-source:
-            :context:
+            :context: close-figs
 
             from qiskit.circuit.library import excitation_preserving
 
