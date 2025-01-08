@@ -544,7 +544,7 @@ Every quantum circuit run on the target device must be expressed using only thes
 For example, to run a simple phase estimation circuit:
 
 .. plot::
-   :alt: Output from the previous code.
+   :alt: Circuit diagram output by the previous code.
    :include-source:
 
    import numpy as np
@@ -570,7 +570,7 @@ the target IBM Quantum device (the :class:`~.GenericBackendV2` class generates
 a fake backend with a specified number of qubits for test purposes):
 
 .. plot::
-   :alt: Output from the previous code.
+   :alt: Circuit diagram output by the previous code.
    :include-source:
    :context: reset
 
@@ -628,7 +628,7 @@ It is important to highlight two special cases:
       ['id', 'rz', 'sx', 'x', 'cx', 'measure', 'delay']
 
    .. plot:
-      :alt: Output from the previous code.
+      :alt: Circuit diagram output by the previous code.
       :include-source:
 
       from qiskit.circuit import QuantumCircuit
@@ -649,7 +649,7 @@ It is important to highlight two special cases:
    this gate must be decomposed.  This decomposition is quite costly:
 
    .. plot::
-      :alt: Output from the previous code.
+      :alt: Circuit diagram output by the previous code.
       :include-source:
 
       from qiskit.circuit import QuantumCircuit
@@ -723,7 +723,7 @@ and we can view this layout selection graphically using
 :func:`qiskit.visualization.plot_circuit_layout`:
 
 .. plot::
-   :alt: Output from the previous code.
+   :alt: Circuit diagram output by the previous code.
    :include-source:
 
    from qiskit import QuantumCircuit, transpile
@@ -989,7 +989,7 @@ circuit such as:
 we can then call :func:`~.transpile` on it with ``scheduling_method`` set:
 
 .. plot::
-   :alt: Output from the previous code.
+   :alt: Circuit diagram output by the previous code.
    :include-source:
 
    from qiskit import QuantumCircuit, transpile
@@ -1009,7 +1009,7 @@ account for idle time on each qubit. To get a better idea of the timing of the c
 also look at it with the :func:`.timeline.draw` function:
 
 .. plot::
-   :alt: Diagram illustrating the previously described circuit.
+   :alt: Output from circuit timeline drawer.
 
    from qiskit.visualization.timeline import draw as timeline_draw
 
