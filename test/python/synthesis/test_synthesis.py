@@ -17,6 +17,7 @@ import unittest
 import contextlib
 import logging
 import math
+import itertools
 import numpy as np
 import scipy
 import scipy.stats
@@ -54,6 +55,7 @@ from qiskit.circuit.library import (
     RYGate,
     RZGate,
     UnitaryGate,
+    UCGate,
 )
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.random import random_unitary
@@ -1768,6 +1770,87 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
             qc.to_gate().control(1)
         except UnboundLocalError as uerr:
             self.fail(str(uerr))
+
+    def _create_random_multiplexed_gate(self, num_qubits):
+        num_blocks = 2
+        blocks = [scipy.stats.unitary_group.rvs(2**(num_qubits-1)) for _ in range(num_blocks)]
+        mat = scipy.linalg.block_diag(*blocks)  # control on "top" qubit
+        multiplexed_gate = UnitaryGate(mat)
+        return multiplexed_gate, mat
+
+    def test_tensor_block_uc_2q(self):
+        np.set_printoptions(linewidth=250, precision=2, suppress=True)
+        num_qubits = 2
+        gate, mat = self._create_random_multiplexed_gate(num_qubits)
+        print(f'original matrix:\n', mat)
+        for layout in itertools.permutations(range(num_qubits)):
+            print('='*30)
+            # create gate with "control" on different qubits
+            qc = QuantumCircuit(num_qubits)
+            qc.append(gate, layout)
+            hidden_mat = Operator(qc).data
+            print(f'layout = {layout}')
+            print(hidden_mat)
+            for j in range(num_qubits):
+                um00, um11, um01, um10 = qsd._extract_multiplex_blocks(
+                    hidden_mat, k=j)
+                # Check the off-diagonal
+                is_mult = qsd._off_diagonals_are_zero(um01, um10)
+                print(f"Is multiplexed wrt qubit {j}? {is_mult}")
+                if is_mult:
+                    qc_uc = QuantumCircuit(num_qubits)
+                    ucgate = UCGate([um00, um11])
+                    ucgate.definition
+                    qc_uc.append(ucgate, layout)
+                    uc_op = Operator(qc_uc)
+                    self.assertEqual(Operator(qc), uc_op)
+
+    def _get_multiplex_matrix(self, um00, um11, k):
+        """form matrix multiplexed wrt qubit k"""
+        halfdim = um00.shape[0]
+        dim = 2 * halfdim
+        N = halfdim.bit_length()
+        Ure4d = np.zeros((2, halfdim, 2, halfdim), dtype=complex)
+        Ure4d[0,:,0,:] = um00
+        Ure4d[1,:,1,:] = um11
+        UreNd = Ure4d.reshape((2,)*N + (2,)*N)
+        UreNd = np.moveaxis(UreNd, N, k+N)
+        UreNd = np.moveaxis(UreNd, 0, k)
+        Ure = UreNd.reshape(dim, dim)
+        return Ure
+
+    def test_tensor_block_uc_3q(self):
+        """Create 3q gate with multiplexed controls"""
+        np.set_printoptions(linewidth=250, precision=2, suppress=True)
+        num_qubits = 3
+        gate, mat = self._create_random_multiplexed_gate(num_qubits)
+        print(f'original matrix:\n', mat)
+        for layout in itertools.permutations(range(num_qubits)):
+            print('='*30)
+            # create gate with "control" on different qubits
+            qc = QuantumCircuit(num_qubits)
+            qc.append(gate, layout)
+            hidden_mat = Operator(qc).data
+            print(f'layout = {layout}')
+            print(hidden_mat)
+            for j in range(num_qubits):
+                um00, um11, um01, um10 = qsd._extract_multiplex_blocks(hidden_mat, k=j)
+                # Check the off-diagonal
+                is_mult = qsd._off_diagonals_are_zero(um01, um10)
+                print(f"Is multiplexed wrt qubit {j}? {is_mult}")
+                if is_mult:
+                    qc_uc = QuantumCircuit(num_qubits)
+                    uc_mat = self._get_multiplex_matrix(um00, um11, j)
+                    uc_gate = UnitaryGate(uc_mat)
+                    qc_uc.append(uc_gate, range(num_qubits))
+                    uc_op = Operator(qc_uc)
+                    if Operator(qc) == uc_op:
+                        print(f'VALIDATED: {layout}, index={j}')
+                    else:
+                        print(f'NOT VALID: {layout}, index={j}')
+                        print(uc_mat)
+                        print('um01:\n', um01)
+                        print('um10:\n', um10)
 
 
 class TestTwoQubitDecomposeUpToDiagonal(QiskitTestCase):
