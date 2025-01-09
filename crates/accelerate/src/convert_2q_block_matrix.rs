@@ -16,8 +16,7 @@ use pyo3::Python;
 
 use nalgebra::UnitQuaternion;
 use num_complex::Complex64;
-use numpy::ndarray::linalg::kron;
-use numpy::ndarray::{arr2, aview2, Array2, ArrayView2};
+use numpy::ndarray::{arr2, aview2, Array2, ArrayView2, ArrayViewMut2};
 use numpy::PyReadonlyArray2;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
@@ -79,19 +78,31 @@ impl Separable1q {
         self.qubits[n] = versor.action * self.qubits[n];
     }
 
-    fn matrix(&self) -> Array2<Complex64> {
+    /// Construct the two-qubit gate matrix implied by these two runs.
+    #[inline]
+    fn matrix_into<'a>(&self, target: &'a mut [[Complex64; 4]; 4]) -> ArrayView2<'a, Complex64> {
         let q0 = VersorGate {
             phase: self.phase,
             action: self.qubits[0],
-        };
-        let q1 = VersorGate {
-            phase: 0.,
-            action: self.qubits[1],
-        };
-        kron(
-            &aview2(&q1.matrix_contiguous()),
-            &aview2(&q0.matrix_contiguous()),
-        )
+        }
+        .matrix_contiguous();
+
+        // This is the manually unrolled Kronecker product.
+        let q1 = self.qubits[1].quaternion();
+        let q1_row = [Complex64::new(q1.w, q1.i), Complex64::new(q1.j, q1.k)];
+        for out_row in 0..2 {
+            for out_col in 0..4 {
+                target[out_row][out_col] = q1_row[(out_col & 2) >> 1] * q0[out_row][out_col & 1];
+            }
+        }
+        let q1_row = [Complex64::new(-q1.j, q1.k), Complex64::new(q1.w, -q1.i)];
+        for out_row in 0..2 {
+            for out_col in 0..4 {
+                target[out_row + 2][out_col] =
+                    q1_row[(out_col & 2) >> 1] * q0[out_row][out_col & 1];
+            }
+        }
+        aview2(target)
     }
 }
 
@@ -142,6 +153,7 @@ pub fn blocks_to_matrix(
         }
     };
 
+    let mut work: [[Complex64; 4]; 4] = Default::default();
     let mut qubits_1q: Option<Separable1q> = None;
     let mut output_matrix: Option<Array2<Complex64>> = None;
     for node in op_list {
@@ -158,10 +170,10 @@ pub fn blocks_to_matrix(
             Qarg::Q01 | Qarg::Q10 => {
                 let mut matrix = get_matrix_from_inst(py, inst)?;
                 if qarg == Qarg::Q10 {
-                    matrix = change_basis(matrix.view());
+                    change_basis_inplace(matrix.view_mut());
                 }
                 if let Some(sep) = qubits_1q.take() {
-                    matrix = matrix.dot(&sep.matrix());
+                    matrix = matrix.dot(&sep.matrix_into(&mut work));
                 }
                 output_matrix = if let Some(state) = output_matrix {
                     Some(matrix.dot(&state))
@@ -171,10 +183,13 @@ pub fn blocks_to_matrix(
             }
         }
     }
-    match (qubits_1q.as_ref().map(Separable1q::matrix), output_matrix) {
+    match (
+        qubits_1q.map(|sep| sep.matrix_into(&mut work)),
+        output_matrix,
+    ) {
         (Some(sep), Some(state)) => Ok(sep.dot(&state)),
         (None, Some(state)) => Ok(state),
-        (Some(sep), None) => Ok(sep),
+        (Some(sep), None) => Ok(sep.to_owned()),
         // This shouldn't actually ever trigger, because we expect blocks to be non-empty, but it's
         // trivial to handle anyway.
         (None, None) => Ok(arr2(&TWO_QUBIT_IDENTITY)),
@@ -193,4 +208,15 @@ pub fn change_basis(matrix: ArrayView2<Complex64>) -> Array2<Complex64> {
         trans_matrix.swap([1, index], [2, index]);
     }
     trans_matrix
+}
+
+/// Change the qubit order of a 2q matrix in place.
+#[inline]
+pub fn change_basis_inplace(mut matrix: ArrayViewMut2<Complex64>) {
+    matrix.swap((0, 1), (0, 2));
+    matrix.swap((3, 1), (3, 2));
+    matrix.swap((1, 0), (2, 0));
+    matrix.swap((1, 3), (2, 3));
+    matrix.swap((1, 1), (2, 2));
+    matrix.swap((1, 2), (2, 1));
 }
