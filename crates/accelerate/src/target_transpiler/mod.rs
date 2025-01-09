@@ -105,13 +105,13 @@ impl<'py> IntoPyObject<'py> for NormalOperation {
     }
 }
 
-impl<'py> IntoPyObject<'py> for &NormalOperation {
+impl<'a, 'py> IntoPyObject<'py> for &'a NormalOperation {
     type Target = PyAny;
-    type Output = Bound<'py, Self::Target>;
+    type Output = Borrowed<'a, 'py, Self::Target>;
     type Error = PyErr;
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        Ok(self.op_object.bind(py).clone())
+        Ok(self.op_object.bind_borrowed(py))
     }
 }
 
