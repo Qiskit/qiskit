@@ -223,7 +223,7 @@ class TestUnitarySynthesisBasisGates(QiskitTestCase):
         pm = PassManager([triv_layout_pass, unisynth_pass])
         qc_out = pm.run(qc)
 
-        if natural_direction == False:
+        if natural_direction is False:
             self.assertTrue(
                 all(((qr[1], qr[0]) == instr.qubits for instr in qc_out.get_instructions("cx")))
             )
@@ -319,7 +319,9 @@ class TestUnitarySynthesisBasisGates(QiskitTestCase):
         )
 
     def test_two_qubit_natural_direction_true_gate_length_raises(self):
-        """Verify that error is raised if preferred direction cannot be inferred from gate lenghts/errors."""
+        """Verify that error is raised if preferred direction cannot be inferred
+        from gate lenghts/errors.
+        """
         with self.assertWarns(DeprecationWarning):
             backend = Fake5QV1()
         conf = backend.configuration()
