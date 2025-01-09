@@ -1299,12 +1299,7 @@ impl TwoQubitGateSequence {
         match idx.with_len(self.gates.len())? {
             SequenceIndex::Int(idx) => {
                 let item = &self.gates[idx];
-                (
-                    item.0,
-                    PyList::new(py, &item.1)?,
-                    PyList::new(py, &item.2)?,
-                )
-                    .into_py_any(py)
+                (item.0, PyList::new(py, &item.1)?, PyList::new(py, &item.2)?).into_py_any(py)
             }
             indices => Ok(PyList::new(
                 py,
