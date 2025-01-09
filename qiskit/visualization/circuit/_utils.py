@@ -50,6 +50,11 @@ def _is_boolean_expression(gate_text, op):
 
 def get_gate_ctrl_text(op, drawer, style=None, calibrations=None):
     """Load the gate_text and ctrl_text strings based on names and labels"""
+
+    # The measure doesn't have any text since it uses a dial icon
+    if drawer == "mpl" and isinstance(op, Measure):
+        return "", "", ""
+
     anno_list = []
     anno_text = ""
     if isinstance(op, AnnotatedOperation) and op.modifiers:
@@ -398,7 +403,7 @@ def _get_valid_justify_arg(justify):
 
 
 def _get_layered_instructions(
-    circuit, reverse_bits=False, justify=None, idle_wires=True, wire_order=None, wire_map=None
+    circuit, reverse_bits=False, justify=None, idle_wires=True, wire_order=None, wire_map=None, drawer=""
 ):
     """
     Given a circuit, return a tuple (qubits, clbits, nodes) where
@@ -459,7 +464,7 @@ def _get_layered_instructions(
         for node in dag.topological_op_nodes():
             nodes.append([node])
     else:
-        nodes = _LayerSpooler(dag, qubits, clbits, justify, measure_map)
+        nodes = _LayerSpooler(dag, qubits, clbits, justify, measure_map, drawer)
 
     # Optionally remove all idle wires and instructions that are on them and
     # on them only.
@@ -485,7 +490,7 @@ def _sorted_nodes(dag_layer):
     return nodes
 
 
-def _get_gate_span(qubits, node):
+def _get_gate_span(qubits, node, drawer):
     """Get the list of qubits drawing this gate would cover
     qiskit-terra #2802
     """
@@ -503,7 +508,7 @@ def _get_gate_span(qubits, node):
     # type of op must be the only op in the layer
     if isinstance(node.op, ControlFlowOp):
         span = qubits
-    elif node.cargs or getattr(node.op, "condition", None):
+    elif (drawer == "mpl" and not isinstance(node.op, Measure) and node.cargs) or getattr(node.op, "condition", None):
         span = qubits[min_index : len(qubits)]
     else:
         span = qubits[min_index : max_index + 1]
@@ -511,11 +516,11 @@ def _get_gate_span(qubits, node):
     return span
 
 
-def _any_crossover(qubits, node, nodes):
+def _any_crossover(qubits, node, nodes, drawer):
     """Return True .IFF. 'node' crosses over any 'nodes'."""
     return bool(
-        set(_get_gate_span(qubits, node)).intersection(
-            bit for check_node in nodes for bit in _get_gate_span(qubits, check_node)
+        set(_get_gate_span(qubits, node, drawer)).intersection(
+            bit for check_node in nodes for bit in _get_gate_span(qubits, check_node, drawer)
         )
     )
 
@@ -526,7 +531,7 @@ _GLOBAL_NID = 0
 class _LayerSpooler(list):
     """Manipulate list of layer dicts for _get_layered_instructions."""
 
-    def __init__(self, dag, qubits, clbits, justification, measure_map):
+    def __init__(self, dag, qubits, clbits, justification, measure_map, drawer):
         """Create spool"""
         super().__init__()
         self.dag = dag
@@ -534,6 +539,7 @@ class _LayerSpooler(list):
         self.clbits = clbits
         self.justification = justification
         self.measure_map = measure_map
+        self.drawer = drawer
         self.cregs = [self.dag.cregs[reg] for reg in self.dag.cregs]
 
         if self.justification == "left":
@@ -541,7 +547,7 @@ class _LayerSpooler(list):
                 current_index = len(self) - 1
                 dag_nodes = _sorted_nodes(dag_layer)
                 for node in dag_nodes:
-                    self.add(node, current_index)
+                    self.add(node, current_index, drawer)
         else:
             dag_layers = []
             for dag_layer in dag.layers():
@@ -554,7 +560,7 @@ class _LayerSpooler(list):
                 current_index = 0
                 dag_nodes = _sorted_nodes(dag_layer)
                 for node in dag_nodes:
-                    self.add(node, current_index)
+                    self.add(node, current_index, drawer)
 
     def is_found_in(self, node, nodes):
         """Is any qreq in node found in any of nodes?"""
@@ -568,11 +574,9 @@ class _LayerSpooler(list):
         """True .IFF. we can add 'node' to layer 'nodes'"""
         return not _any_crossover(self.qubits, node, nodes)
 
-    def slide_from_left(self, node, index):
+    def slide_from_left(self, node, index, drawer):
         """Insert node into first layer where there is no conflict going l > r"""
         measure_layer = None
-        if isinstance(node.op, Measure):
-            measure_bit = next(bit for bit in self.measure_map if node.cargs[0] == bit)
 
         if not self:
             inserted = True
@@ -581,21 +585,23 @@ class _LayerSpooler(list):
             inserted = False
             curr_index = index
             last_insertable_index = -1
-            index_stop = -1
-            if (condition := getattr(node.op, "condition", None)) is not None:
-                index_stop = max(
-                    (self.measure_map[bit] for bit in condition_resources(condition).clbits),
-                    default=index_stop,
-                )
-            if node.cargs:
-                for carg in node.cargs:
-                    try:
-                        carg_bit = next(bit for bit in self.measure_map if carg == bit)
-                        if self.measure_map[carg_bit] > index_stop:
-                            index_stop = self.measure_map[carg_bit]
-                    except StopIteration:
-                        pass
-            while curr_index > index_stop:
+
+            if drawer != "mpl":
+                index_stop = -1
+                if (condition := getattr(node.op, "condition", None)) is not None:
+                    index_stop = max(
+                        (self.measure_map[bit] for bit in condition_resources(condition).clbits),
+                        default=index_stop,
+                    )
+                if node.cargs:
+                    for carg in node.cargs:
+                        try:
+                            carg_bit = next(bit for bit in self.measure_map if carg == bit)
+                            if self.measure_map[carg_bit] > index_stop:
+                                index_stop = self.measure_map[carg_bit]
+                        except StopIteration:
+                            pass
+            while curr_index > 0:
                 if self.is_found_in(node, self[curr_index]):
                     break
                 if self.insertable(node, self[curr_index]):
@@ -620,9 +626,10 @@ class _LayerSpooler(list):
         if not inserted:
             self.append([node])
 
-        if isinstance(node.op, Measure):
-            if not measure_layer:
-                measure_layer = len(self) - 1
+        if drawer != "mpl":
+            if isinstance(node.op, Measure):
+                if not measure_layer:
+                    measure_layer = len(self) - 1
             if measure_layer > self.measure_map[measure_bit]:
                 self.measure_map[measure_bit] = measure_layer
 
@@ -658,7 +665,7 @@ class _LayerSpooler(list):
         if not inserted:
             self.insert(0, [node])
 
-    def add(self, node, index):
+    def add(self, node, index, drawer):
         """Add 'node' where it belongs, starting the try at 'index'."""
         # Before we add the node, we set its node ID to be globally unique
         # within this spooler. This is necessary because nodes may span
@@ -670,6 +677,6 @@ class _LayerSpooler(list):
         node._node_id = _GLOBAL_NID
         _GLOBAL_NID += 1
         if self.justification == "left":
-            self.slide_from_left(node, index)
+            self.slide_from_left(node, index, drawer)
         else:
-            self.slide_from_right(node, index)
+            self.slide_from_right(node, index, drawer)

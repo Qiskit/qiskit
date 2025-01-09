@@ -419,6 +419,7 @@ def _text_circuit_drawer(
         justify=justify,
         idle_wires=idle_wires,
         wire_order=wire_order,
+        drawer="text",
     )
     text_drawing = _text.TextDrawing(
         qubits,
@@ -614,6 +615,7 @@ def _generate_latex_source(
         justify=justify,
         idle_wires=idle_wires,
         wire_order=wire_order,
+        drawer="latex",
     )
     qcimg = _latex.QCircuitImage(
         qubits,
@@ -703,6 +705,7 @@ def _matplotlib_circuit_drawer(
         justify=justify,
         idle_wires=idle_wires,
         wire_order=wire_order,
+        drawer="mpl",
     )
     if fold is None:
         fold = 25
