@@ -106,33 +106,60 @@ fn versor_from_1q_gate(py: Python, inst: &PackedInstruction) -> PyResult<VersorG
 }
 
 /// Return the matrix Operator resulting from a block of Instructions.
+///
+/// # Panics
+///
+/// If any node in `op_list` is not a 1q or 2q gate.
 pub fn blocks_to_matrix(
     py: Python,
     dag: &DAGCircuit,
     op_list: &[NodeIndex],
     block_index_map: [Qubit; 2],
 ) -> PyResult<Array2<Complex64>> {
-    let map_bit = |bit: &Qubit| -> u8 { (block_index_map[1] == *bit) as u8 };
+    #[derive(Clone, Copy, PartialEq, Eq)]
+    enum Qarg {
+        Q0 = 0,
+        Q1 = 1,
+        Q01,
+        Q10,
+    }
+    let qarg_lookup = |qargs| {
+        let interned = dag.get_qargs(qargs);
+        if interned.len() == 1 {
+            if interned[0] == block_index_map[0] {
+                Qarg::Q0
+            } else {
+                Qarg::Q1
+            }
+        } else if interned.len() == 2 {
+            if interned[0] == block_index_map[0] {
+                Qarg::Q01
+            } else {
+                Qarg::Q10
+            }
+        } else {
+            panic!("not a one- or two-qubit gate");
+        }
+    };
+
     let mut qubits_1q: Option<Separable1q> = None;
     let mut output_matrix: Option<Array2<Complex64>> = None;
     for node in op_list {
         let inst = dag.dag()[*node].unwrap_operation();
-        match dag
-            .get_qargs(inst.qubits)
-            .iter()
-            .map(map_bit)
-            .collect::<Vec<_>>()
-            .as_slice()
-        {
-            [q @ (0 | 1)] => {
+        let qarg = qarg_lookup(inst.qubits);
+        match qarg {
+            Qarg::Q0 | Qarg::Q1 => {
                 let versor = versor_from_1q_gate(py, inst)?;
                 match qubits_1q.as_mut() {
-                    Some(sep) => sep.apply_on_qubit(*q as usize, &versor),
-                    None => qubits_1q = Some(Separable1q::from_qubit(*q as usize, versor)),
+                    Some(sep) => sep.apply_on_qubit(qarg as usize, &versor),
+                    None => qubits_1q = Some(Separable1q::from_qubit(qarg as usize, versor)),
                 };
             }
-            [0, 1] => {
+            Qarg::Q01 | Qarg::Q10 => {
                 let mut matrix = get_matrix_from_inst(py, inst)?;
+                if qarg == Qarg::Q10 {
+                    matrix = change_basis(matrix.view());
+                }
                 if let Some(sep) = qubits_1q.take() {
                     matrix = matrix.dot(&sep.matrix());
                 }
@@ -142,18 +169,6 @@ pub fn blocks_to_matrix(
                     Some(matrix)
                 };
             }
-            [1, 0] => {
-                let mut matrix = change_basis(get_matrix_from_inst(py, inst)?.view());
-                if let Some(sep) = qubits_1q.take() {
-                    matrix = matrix.dot(&sep.matrix());
-                }
-                output_matrix = if let Some(state) = output_matrix {
-                    Some(matrix.dot(&state))
-                } else {
-                    Some(matrix)
-                };
-            }
-            _ => unreachable!(),
         }
     }
     match (qubits_1q.as_ref().map(Separable1q::matrix), output_matrix) {
