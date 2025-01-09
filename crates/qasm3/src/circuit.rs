@@ -12,6 +12,7 @@
 
 use pyo3::prelude::*;
 use pyo3::types::{PyAny, PyList, PyString, PyTuple, PyType};
+use pyo3::IntoPyObjectExt;
 
 use crate::error::QASM3ImporterError;
 
@@ -219,12 +220,7 @@ impl PyCircuitModule {
                 .downcast_into::<PyType>()?
                 .unbind(),
             // Measure is a singleton, so just store the object.
-            measure: module
-                .getattr("Measure")?
-                .call0()?
-                .into_pyobject(py)?
-                .into_any()
-                .unbind(),
+            measure: module.getattr("Measure")?.call0()?.into_py_any(py)?,
         })
     }
 

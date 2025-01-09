@@ -21,6 +21,7 @@ use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::types::PyList;
 use pyo3::wrap_pyfunction;
+use pyo3::IntoPyObjectExt;
 use pyo3::Python;
 use rand::prelude::*;
 use rand_pcg::Pcg64Mcg;
@@ -322,7 +323,7 @@ fn generate_twirled_circuit(
                                 custom_gate_map,
                                 optimizer_target,
                             )?;
-                            Ok(new_block.into_pyobject(py)?.into_any().unbind())
+                            new_block.into_py_any(py)
                         })
                         .collect();
                     let new_blocks = new_blocks?;
@@ -356,9 +357,7 @@ fn generate_twirled_circuit(
                         params: Some(Box::new(
                             new_blocks
                                 .iter()
-                                .map(|x| {
-                                    Ok(Param::Obj(x.clone().into_pyobject(py)?.into_any().unbind()))
-                                })
+                                .map(|x| Ok(Param::Obj(x.clone().into_py_any(py)?)))
                                 .collect::<PyResult<SmallVec<[Param; 3]>>>()?,
                         )),
                         extra_attrs: inst.extra_attrs.clone(),

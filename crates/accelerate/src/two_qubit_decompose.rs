@@ -39,6 +39,7 @@ use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedStr;
 use pyo3::types::{PyList, PyTuple, PyType};
+use pyo3::IntoPyObjectExt;
 
 use crate::convert_2q_block_matrix::change_basis;
 use crate::euler_one_qubit_decomposer::{
@@ -462,10 +463,7 @@ impl Specialization {
             Self::fSimabbEquiv => 8,
             Self::fSimabmbEquiv => 9,
         };
-        Ok((py.get_type::<Self>().getattr("_from_u8")?, (val,))
-            .into_pyobject(py)?
-            .into_any()
-            .unbind())
+        (py.get_type::<Self>().getattr("_from_u8")?, (val,)).into_py_any(py)
     }
 
     #[staticmethod]
@@ -1088,7 +1086,7 @@ impl TwoQubitWeylDecomposition {
     }
 
     fn __reduce__(&self, py: Python) -> PyResult<Py<PyAny>> {
-        Ok((
+        (
             py.get_type::<Self>().getattr("_from_state")?,
             (
                 [self.a, self.b, self.c, self.global_phase],
@@ -1105,9 +1103,7 @@ impl TwoQubitWeylDecomposition {
                 self.requested_fidelity,
             ),
         )
-            .into_pyobject(py)?
-            .into_any()
-            .unbind())
+            .into_py_any(py)
     }
 
     #[new]
@@ -1301,11 +1297,7 @@ impl TwoQubitGateSequence {
 
     fn __getitem__(&self, py: Python, idx: PySequenceIndex) -> PyResult<PyObject> {
         match idx.with_len(self.gates.len())? {
-            SequenceIndex::Int(idx) => Ok(self.gates[idx]
-                .clone()
-                .into_pyobject(py)?
-                .into_any()
-                .unbind()),
+            SequenceIndex::Int(idx) => self.gates[idx].clone().into_py_any(py),
             indices => Ok(PyList::new(
                 py,
                 indices

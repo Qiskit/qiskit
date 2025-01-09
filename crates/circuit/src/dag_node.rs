@@ -29,6 +29,7 @@ use numpy::PyArray2;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::PyTuple;
+use pyo3::IntoPyObjectExt;
 use pyo3::{intern, PyObject, PyResult};
 
 /// Parent class for DAGOpNode, DAGInNode, and DAGOutNode.
@@ -251,7 +252,7 @@ impl DAGOpNode {
             instruction,
             sort_key,
         });
-        Ok(Py::new(py, sub)?.into_pyobject(py)?.into_any().unbind())
+        Py::new(py, sub)?.into_py_any(py)
     }
 
     fn __reduce__(slf: PyRef<Self>, py: Python) -> PyResult<PyObject> {
@@ -261,10 +262,7 @@ impl DAGOpNode {
             &slf.instruction.qubits,
             &slf.instruction.clbits,
         );
-        Ok((py.get_type::<Self>(), temp, state)
-            .into_pyobject(py)?
-            .into_any()
-            .unbind())
+        (py.get_type::<Self>(), temp, state).into_py_any(py)
     }
 
     fn __setstate__(mut slf: PyRefMut<Self>, state: &Bound<PyAny>) -> PyResult<()> {
@@ -565,13 +563,9 @@ impl DAGOutNode {
         ))
     }
 
-    fn __reduce__(slf: PyRef<Self>, py: Python) -> PyObject {
+    fn __reduce__(slf: PyRef<Self>, py: Python) -> PyResult<PyObject> {
         let state = (slf.as_ref().node.map(|node| node.index()), &slf.sort_key);
-        (py.get_type::<Self>(), (&slf.wire,), state)
-            .into_pyobject(py)
-            .unwrap()
-            .into_any()
-            .unbind()
+        (py.get_type::<Self>(), (&slf.wire,), state).into_py_any(py)
     }
 
     fn __setstate__(mut slf: PyRefMut<Self>, state: &Bound<PyAny>) -> PyResult<()> {

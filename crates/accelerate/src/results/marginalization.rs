@@ -19,6 +19,7 @@ use num_complex::Complex64;
 use numpy::IntoPyArray;
 use numpy::{PyReadonlyArray1, PyReadonlyArray2, PyReadonlyArray3};
 use pyo3::prelude::*;
+use pyo3::IntoPyObjectExt;
 use rayon::prelude::*;
 
 fn marginalize<T: std::ops::AddAssign + Copy>(
@@ -132,7 +133,7 @@ pub fn marginal_memory(
     let first_elem = memory.first();
     if first_elem.is_none() {
         let res: Vec<String> = Vec::new();
-        return res.into_pyobject(py).map(|x| x.into_any().unbind());
+        return res.into_py_any(py);
     }
 
     let clbit_size = hex_to_bin(first_elem.unwrap()).len();
@@ -154,20 +155,16 @@ pub fn marginal_memory(
                 .iter()
                 .map(|x| BigUint::parse_bytes(x.as_bytes(), 2).unwrap())
                 .collect::<Vec<BigUint>>()
-                .into_pyobject(py)?
-                .into_any()
-                .unbind())
+                .into_py_any(py)?)
         } else {
             Ok(out_mem
                 .par_iter()
                 .map(|x| BigUint::parse_bytes(x.as_bytes(), 2).unwrap())
                 .collect::<Vec<BigUint>>()
-                .into_pyobject(py)?
-                .into_any()
-                .unbind())
+                .into_py_any(py)?)
         }
     } else {
-        out_mem.into_pyobject(py).map(|x| x.into_any().unbind())
+        out_mem.into_py_any(py)
     }
 }
 

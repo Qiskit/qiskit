@@ -13,6 +13,7 @@
 use crate::QiskitError;
 use numpy::{IntoPyArray, PyArray2, PyReadonlyArray2, PyReadwriteArray2};
 use pyo3::prelude::*;
+use pyo3::IntoPyObjectExt;
 
 mod pmh;
 pub mod utils;
@@ -39,7 +40,7 @@ fn gauss_elimination_with_perm(
 ) -> PyResult<PyObject> {
     let matmut = mat.as_array_mut();
     let perm = utils::gauss_elimination_with_perm_inner(matmut, ncols, full_elim);
-    Ok(perm.into_pyobject(py)?.into_any().unbind())
+    perm.into_py_any(py)
 }
 
 #[pyfunction]
@@ -72,7 +73,7 @@ fn gauss_elimination(
 fn compute_rank_after_gauss_elim(py: Python, mat: PyReadonlyArray2<bool>) -> PyResult<PyObject> {
     let view = mat.as_array();
     let rank = utils::compute_rank_after_gauss_elim_inner(view);
-    Ok(rank.into_pyobject(py)?.into_any().unbind())
+    rank.into_py_any(py)
 }
 
 #[pyfunction]
@@ -84,7 +85,7 @@ fn compute_rank_after_gauss_elim(py: Python, mat: PyReadonlyArray2<bool>) -> PyR
 ///     rank: the rank of the matrix
 fn compute_rank(py: Python, mat: PyReadonlyArray2<bool>) -> PyResult<PyObject> {
     let rank = utils::compute_rank_inner(mat.as_array());
-    Ok(rank.into_pyobject(py)?.into_any().unbind())
+    rank.into_py_any(py)
 }
 
 #[pyfunction]

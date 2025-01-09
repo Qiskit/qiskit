@@ -24,6 +24,7 @@ use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::{PyList, PyString};
 use pyo3::wrap_pyfunction;
+use pyo3::IntoPyObjectExt;
 use pyo3::Python;
 
 use ndarray::prelude::*;
@@ -109,11 +110,7 @@ impl OneQubitGateSequence {
 
     fn __getitem__(&self, py: Python, idx: PySequenceIndex) -> PyResult<PyObject> {
         match idx.with_len(self.gates.len())? {
-            SequenceIndex::Int(idx) => Ok(self.gates[idx]
-                .clone()
-                .into_pyobject(py)?
-                .into_any()
-                .unbind()),
+            SequenceIndex::Int(idx) => Ok(self.gates[idx].clone().into_py_any(py)?),
             indices => Ok(PyList::new(
                 py,
                 indices
@@ -719,10 +716,7 @@ impl EulerBasis {
 #[pymethods]
 impl EulerBasis {
     fn __reduce__(&self, py: Python) -> PyResult<Py<PyAny>> {
-        Ok((py.get_type::<Self>(), (PyString::new(py, self.as_str()),))
-            .into_pyobject(py)?
-            .into_any()
-            .unbind())
+        (py.get_type::<Self>(), (PyString::new(py, self.as_str()),)).into_py_any(py)
     }
 
     #[new]

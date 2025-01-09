@@ -40,6 +40,7 @@ use pyo3::exceptions::{
 };
 use pyo3::intern;
 use pyo3::prelude::*;
+use pyo3::IntoPyObjectExt;
 
 use pyo3::types::{
     IntoPyDict, PyDict, PyInt, PyIterator, PyList, PySequence, PySet, PyString, PyTuple, PyType,
@@ -147,14 +148,12 @@ pub enum Wire {
 
 impl Wire {
     fn to_pickle(&self, py: Python) -> PyResult<PyObject> {
-        Ok(match self {
-            Self::Qubit(bit) => (0, bit.0.into_pyobject(py)?),
-            Self::Clbit(bit) => (1, bit.0.into_pyobject(py)?),
-            Self::Var(var) => (2, var.0.into_pyobject(py)?),
+        match self {
+            Self::Qubit(bit) => (0, bit.0.into_py_any(py)?),
+            Self::Clbit(bit) => (1, bit.0.into_py_any(py)?),
+            Self::Var(var) => (2, var.0.into_py_any(py)?),
         }
-        .into_pyobject(py)?
-        .into_any()
-        .unbind())
+        .into_py_any(py)
     }
 
     fn from_pickle(b: &Bound<PyAny>) -> PyResult<Self> {
@@ -573,12 +572,7 @@ impl DAGCircuit {
         let mut nodes: Vec<PyObject> = Vec::with_capacity(self.dag.node_count());
         for node_idx in self.dag.node_indices() {
             let node_data = self.get_node(py, node_idx)?;
-            nodes.push(
-                (node_idx.index(), node_data)
-                    .into_pyobject(py)?
-                    .into_any()
-                    .unbind(),
-            );
+            nodes.push((node_idx.index(), node_data).into_py_any(py)?);
         }
         out_dict.set_item("nodes", nodes)?;
         out_dict.set_item(
@@ -597,9 +591,7 @@ impl DAGCircuit {
                         endpoints.1.index(),
                         edge_w.clone().to_pickle(py)?,
                     )
-                        .into_pyobject(py)?
-                        .into_any()
-                        .unbind()
+                        .into_py_any(py)?
                 }
                 None => py.None(),
             };
@@ -996,7 +988,7 @@ def _format(operand):
                     continue;
                 }
             }
-            params.push(p.into_pyobject(py)?.into_any().unbind());
+            params.push(p.into_py_any(py)?);
         }
         let qubits: Vec<BitType> = self
             .qubits
@@ -2038,12 +2030,7 @@ def _format(operand):
             dag.cregs.bind(py).values().into_any(),
             Some(edge_map.clone()),
             None,
-            Some(
-                wrap_pyfunction!(reject_new_register, py)?
-                    .into_pyobject(py)?
-                    .into_any()
-                    .unbind(),
-            ),
+            Some(wrap_pyfunction!(reject_new_register, py)?.into_py_any(py)?),
         )?;
 
         for node in other.topological_nodes()? {
@@ -2149,7 +2136,7 @@ def _format(operand):
         }
 
         if !inplace {
-            let out_obj = dag.into_pyobject(py)?.into_any().unbind();
+            let out_obj = dag.into_py_any(py)?;
             Ok(Some(out_obj))
         } else {
             Ok(None)
@@ -3369,7 +3356,7 @@ def _format(operand):
             {
                 node.instruction.py_op = new_weight.py_op.clone();
             }
-            Ok(node.into_pyobject(py)?.into_any().unbind())
+            node.into_py_any(py)
         } else {
             self.get_node(py, node_index)
         }
@@ -4212,7 +4199,7 @@ def _format(operand):
             }
 
             let layer_dict = [
-                ("graph", new_layer.into_pyobject(py)?.into_any().unbind()),
+                ("graph", new_layer.into_py_any(py)?),
                 ("partition", support_list.into_any().unbind()),
             ]
             .into_py_dict(py)?;
@@ -4371,11 +4358,7 @@ def _format(operand):
     ///     Mapping[str, int]: a mapping of operation names to the number of times it appears.
     #[pyo3(name = "count_ops", signature = (*, recurse=true))]
     fn py_count_ops(&self, py: Python, recurse: bool) -> PyResult<PyObject> {
-        Ok(self
-            .count_ops(py, recurse)?
-            .into_pyobject(py)?
-            .into_any()
-            .unbind())
+        self.count_ops(py, recurse)?.into_py_any(py)
     }
 
     /// Count the occurrences of operation names on the longest path.
@@ -4501,33 +4484,12 @@ def _format(operand):
     /// Return a dictionary of circuit properties.
     fn properties(&self, py: Python) -> PyResult<HashMap<&str, PyObject>> {
         Ok(HashMap::from_iter([
-            (
-                "size",
-                self.size(py, false)?.into_pyobject(py)?.into_any().unbind(),
-            ),
-            (
-                "depth",
-                self.depth(py, false)?
-                    .into_pyobject(py)?
-                    .into_any()
-                    .unbind(),
-            ),
-            ("width", self.width().into_pyobject(py)?.into_any().unbind()),
-            (
-                "qubits",
-                self.num_qubits().into_pyobject(py)?.into_any().unbind(),
-            ),
-            (
-                "bits",
-                self.num_clbits().into_pyobject(py)?.into_any().unbind(),
-            ),
-            (
-                "factors",
-                self.num_tensor_factors()
-                    .into_pyobject(py)?
-                    .into_any()
-                    .unbind(),
-            ),
+            ("size", self.size(py, false)?.into_py_any(py)?),
+            ("depth", self.depth(py, false)?.into_py_any(py)?),
+            ("width", self.width().into_py_any(py)?),
+            ("qubits", self.num_qubits().into_py_any(py)?),
+            ("bits", self.num_clbits().into_py_any(py)?),
+            ("factors", self.num_tensor_factors().into_py_any(py)?),
             ("operations", self.py_count_ops(py, true)?),
         ]))
     }
@@ -4801,33 +4763,15 @@ def _format(operand):
         Ok(result)
     }
 
-    fn _edges(&self, py: Python) -> Vec<PyObject> {
+    fn _edges(&self, py: Python) -> PyResult<Vec<PyObject>> {
         self.dag
             .edge_indices()
             .map(|index| {
                 let wire = self.dag.edge_weight(index).unwrap();
                 match wire {
-                    Wire::Qubit(qubit) => self
-                        .qubits
-                        .get(*qubit)
-                        .into_pyobject(py)
-                        .unwrap()
-                        .into_any()
-                        .unbind(),
-                    Wire::Clbit(clbit) => self
-                        .clbits
-                        .get(*clbit)
-                        .into_pyobject(py)
-                        .unwrap()
-                        .into_any()
-                        .unbind(),
-                    Wire::Var(var) => self
-                        .vars
-                        .get(*var)
-                        .into_pyobject(py)
-                        .unwrap()
-                        .into_any()
-                        .unbind(),
+                    Wire::Qubit(qubit) => self.qubits.get(*qubit).into_py_any(py),
+                    Wire::Clbit(clbit) => self.clbits.get(*clbit).into_py_any(py),
+                    Wire::Var(var) => self.vars.get(*var).into_py_any(py),
                 }
             })
             .collect()
@@ -5711,10 +5655,7 @@ impl DAGCircuit {
                                 #[cfg(feature = "cache_pygates")]
                                 py_op: packed.py_op.clone(),
                             },
-                            sort_key: format!("{:?}", self.sort_key(id))
-                                .into_pyobject(py)?
-                                .into_any()
-                                .unbind(),
+                            sort_key: format!("{:?}", self.sort_key(id)).into_py_any(py)?,
                         },
                         DAGNode { node: Some(id) },
                     ),
@@ -6419,7 +6360,7 @@ impl DAGCircuit {
             let qubits = PyTuple::new(py, qargs.iter().map(|x| x.0))?;
             self.calibrations[instruction.op.name()]
                 .bind(py)
-                .contains((qubits, params).into_pyobject(py)?.into_any().unbind())
+                .contains((qubits, params).into_py_any(py)?)
         } else {
             Err(DAGCircuitError::new_err("Specified node is not an op node"))
         }

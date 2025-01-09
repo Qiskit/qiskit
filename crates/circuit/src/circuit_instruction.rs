@@ -18,6 +18,7 @@ use pyo3::basic::CompareOp;
 use pyo3::exceptions::{PyDeprecationWarning, PyTypeError};
 use pyo3::prelude::*;
 use pyo3::types::{PyBool, PyList, PyString, PyTuple, PyType};
+use pyo3::IntoPyObjectExt;
 use pyo3::{intern, PyObject, PyResult};
 
 use num_complex::Complex64;
@@ -471,14 +472,12 @@ impl CircuitInstruction {
     }
 
     pub fn __getnewargs__(&self, py: Python<'_>) -> PyResult<PyObject> {
-        Ok((
+        (
             self.get_operation(py)?,
             self.qubits.bind(py),
             self.clbits.bind(py),
         )
-            .into_pyobject(py)?
-            .into_any()
-            .unbind())
+            .into_py_any(py)
     }
 
     pub fn __repr__(self_: &Bound<Self>, py: Python<'_>) -> PyResult<String> {
@@ -512,24 +511,18 @@ impl CircuitInstruction {
 
     pub fn __getitem__(&self, py: Python<'_>, key: &Bound<PyAny>) -> PyResult<PyObject> {
         warn_on_legacy_circuit_instruction_iteration(py)?;
-        Ok(self
-            ._legacy_format(py)?
+        self._legacy_format(py)?
             .as_any()
             .get_item(key)?
-            .into_pyobject(py)?
-            .into_any()
-            .unbind())
+            .into_py_any(py)
     }
 
     pub fn __iter__(&self, py: Python<'_>) -> PyResult<PyObject> {
         warn_on_legacy_circuit_instruction_iteration(py)?;
-        Ok(self
-            ._legacy_format(py)?
+        self._legacy_format(py)?
             .as_any()
             .try_iter()?
-            .into_pyobject(py)?
-            .into_any()
-            .unbind())
+            .into_py_any(py)
     }
 
     pub fn __len__(&self, py: Python) -> PyResult<usize> {

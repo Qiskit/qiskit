@@ -12,6 +12,7 @@
 
 use pyo3::prelude::*;
 use pyo3::types::PyList;
+use pyo3::IntoPyObjectExt;
 
 use hashbrown::HashMap;
 
@@ -114,13 +115,11 @@ impl NLayout {
     }
 
     fn __reduce__(&self, py: Python) -> PyResult<Py<PyAny>> {
-        Ok((
+        (
             py.get_type::<Self>().getattr("from_virtual_to_physical")?,
             (self.virt_to_phys.clone().into_pyobject(py).unwrap(),),
         )
-            .into_pyobject(py)?
-            .into_any()
-            .unbind())
+            .into_py_any(py)
     }
 
     /// Return the layout mapping.

@@ -12,6 +12,7 @@
 
 use pyo3::exceptions::PyIndexError;
 use pyo3::prelude::*;
+use pyo3::IntoPyObjectExt;
 
 use crate::nlayout::PhysicalQubit;
 
@@ -108,7 +109,7 @@ impl ErrorMap {
         default: Option<PyObject>,
     ) -> PyResult<PyObject> {
         Ok(match self.error_map.get(&key).copied() {
-            Some(val) => val.into_pyobject(py)?.into_any().unbind(),
+            Some(val) => val.into_py_any(py)?,
             None => match default {
                 Some(val) => val,
                 None => py.None(),

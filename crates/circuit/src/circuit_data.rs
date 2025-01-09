@@ -31,6 +31,7 @@ use pyo3::exceptions::{PyRuntimeError, PyTypeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedStr;
 use pyo3::types::{IntoPyDict, PyDict, PyList, PySet, PyTuple, PyType};
+use pyo3::IntoPyObjectExt;
 use pyo3::{import_exception, intern, PyTraverseError, PyVisit};
 
 use hashbrown::{HashMap, HashSet};
@@ -160,10 +161,7 @@ impl CircuitData {
                 self_.global_phase.clone(),
             )
         };
-        Ok((ty, args, None::<()>, self_.try_iter()?)
-            .into_pyobject(py)?
-            .into_any()
-            .unbind())
+        (ty, args, None::<()>, self_.try_iter()?).into_py_any(py)
     }
 
     /// Returns the current sequence of registered :class:`.Qubit` instances as a list.
@@ -523,17 +521,12 @@ impl CircuitData {
                 #[cfg(feature = "cache_pygates")]
                 py_op: inst.py_op.clone(),
             }
-            .into_pyobject(py)
+            .into_py_any(py)
             .unwrap()
-            .into_any()
-            .unbind()
         };
         match index.with_len(self.data.len())? {
             SequenceIndex::Int(index) => Ok(get_single(index)),
-            indices => Ok(PyList::new(py, indices.iter().map(get_single))?
-                .into_pyobject(py)?
-                .into_any()
-                .unbind()),
+            indices => PyList::new(py, indices.iter().map(get_single))?.into_py_any(py),
         }
     }
 
@@ -1348,10 +1341,7 @@ impl CircuitData {
                          value: &Param,
                          coerce: bool|
          -> PyResult<Param> {
-            let new_expr = expr.call_method1(
-                assign_attr,
-                (param_ob, value.into_pyobject(py)?.into_any().unbind()),
-            )?;
+            let new_expr = expr.call_method1(assign_attr, (param_ob, value.into_py_any(py)?))?;
             if new_expr.getattr(parameters_attr)?.len()? == 0 {
                 let out = new_expr.call_method0(numeric_attr)?;
                 if coerce {

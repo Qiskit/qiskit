@@ -23,6 +23,7 @@ use numpy::{IntoPyArray, ToPyArray};
 use pyo3::exceptions::PyIndexError;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
+use pyo3::IntoPyObjectExt;
 use pyo3::Python;
 
 use crate::nlayout::PhysicalQubit;
@@ -70,7 +71,7 @@ impl NodeBlockResults {
         match self.results.get(&object) {
             Some(val) => Ok(val
                 .iter()
-                .map(|x| x.clone().into_pyobject(py).map(|x| x.into_any().unbind()))
+                .map(|x| x.clone().into_py_any(py))
                 .collect::<PyResult<Vec<_>>>()?
                 .into_pyarray(py)
                 .into_any()
@@ -101,7 +102,7 @@ impl BlockResult {
         Ok(self
             .swap_epilogue
             .iter()
-            .map(|x| x.into_pyobject(py).map(|x| x.into_any().unbind()))
+            .map(|x| x.into_py_any(py))
             .collect::<PyResult<Vec<_>>>()?
             .into_pyarray(py)
             .into_any()

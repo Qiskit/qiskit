@@ -12,6 +12,7 @@
 
 use pyo3::prelude::*;
 use pyo3::types::PyTuple;
+use pyo3::IntoPyObjectExt;
 
 use hashbrown::HashMap;
 
@@ -176,7 +177,7 @@ fn broadcast_bits_for_identifier<T: PyRegister>(
         Ok(BroadcastItem::Register(
             reg.bit_list(py)
                 .iter()
-                .map(|obj| obj.into_pyobject(py).unwrap().into_any().unbind())
+                .map(|obj| obj.into_py_any(py).unwrap())
                 .collect(),
         ))
     } else {
