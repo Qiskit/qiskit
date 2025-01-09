@@ -435,31 +435,6 @@ class TestInstructions(QiskitTestCase):
             f"num_clbits={ins2.num_clbits}, params={ins2.params})",
         )
 
-    def test_instruction_condition_bits(self):
-        """Test that the ``condition_bits`` property behaves correctly until it is deprecated and
-        removed."""
-        bits = [Clbit(), Clbit()]
-        cr1 = ClassicalRegister(2, "cr1")
-        cr2 = ClassicalRegister(2, "cr2")
-        body = QuantumCircuit(cr1, cr2, bits)
-
-        def key(bit):
-            return body.find_bit(bit).index
-
-        op = IfElseOp((bits[0], False), body)
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(op.condition_bits, [bits[0]])
-
-        op = IfElseOp((cr1, 3), body)
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(op.condition_bits, list(cr1))
-
-        op = IfElseOp(expr.logic_and(bits[1], expr.equal(cr2, 3)), body)
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(
-                sorted(op.condition_bits, key=key), sorted([bits[1]] + list(cr2), key=key)
-            )
-
     def test_label_type_enforcement(self):
         """Test instruction label type enforcement."""
         with self.subTest("accepts string labels"):

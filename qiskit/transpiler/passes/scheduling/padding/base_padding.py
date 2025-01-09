@@ -79,7 +79,6 @@ class BasePadding(TransformationPass):
             return None
         return props.duration
 
-
     def run(self, dag: DAGCircuit):
         """Run the padding pass on ``dag``.
 

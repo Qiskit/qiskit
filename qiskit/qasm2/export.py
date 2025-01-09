@@ -252,9 +252,7 @@ def _instruction_call_site(operation):
             raise QASM2ExportError(
                 "OpenQASM 2 can only condition on registers, but got '{operation.condition[0]}'"
             )
-        qasm2_call = (
-            f"if({cond[0].name}=={cond[1]:d}) " + qasm2_call
-        )
+        qasm2_call = f"if({cond[0].name}=={cond[1]:d}) " + qasm2_call
     return qasm2_call
 
 
