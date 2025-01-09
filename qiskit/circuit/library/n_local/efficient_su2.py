@@ -87,7 +87,7 @@ def efficient_su2(
         .. plot::
             :alt: Circuit diagram output by the previous code.
             :include-source:
-            :context:
+            :context: close-figs
 
             circuit = efficient_su2(4, su2_gates=["rx", "y"], entanglement="circular", reps=1)
             circuit.draw("mpl")

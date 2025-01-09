@@ -80,7 +80,7 @@ def real_amplitudes(
         .. plot::
            :alt: Circuit diagram output by the previous code.
            :include-source:
-           :context:
+           :context: close-figs
 
            ansatz = real_amplitudes(3, entanglement="full", reps=2)  # it is the same unitary as above
            ansatz.draw("mpl")
@@ -88,7 +88,7 @@ def real_amplitudes(
         .. plot::
            :alt: Circuit diagram output by the previous code.
            :include-source:
-           :context:
+           :context: close-figs
 
            ansatz = real_amplitudes(3, entanglement="linear", reps=2, insert_barriers=True)
            ansatz.draw("mpl")
@@ -96,7 +96,7 @@ def real_amplitudes(
         .. plot::
            :alt: Circuit diagram output by the previous code.
            :include-source:
-           :context:
+           :context: close-figs
 
            ansatz = real_amplitudes(4, reps=2, entanglement=[[0,3], [0,2]], skip_unentangled_qubits=True)
            ansatz.draw("mpl")

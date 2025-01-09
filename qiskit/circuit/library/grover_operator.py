@@ -120,7 +120,7 @@ def grover_operator(
         .. plot::
             :alt: Circuit diagram output by the previous code.
             :include-source:
-            :context:
+            :context: close-figs
 
             oracle = QuantumCircuit(1)
             oracle.z(0)  # the qubit state |1> is the good state
@@ -136,7 +136,7 @@ def grover_operator(
         .. plot::
             :alt: Circuit diagram output by the previous code.
             :include-source:
-            :context:
+            :context: close-figs
 
             oracle = QuantumCircuit(4)
             oracle.z(3)
@@ -154,7 +154,7 @@ def grover_operator(
         .. plot::
             :alt: Circuit diagram output by the previous code.
             :include-source:
-            :context:
+            :context: close-figs
 
             from qiskit.quantum_info import Statevector, DensityMatrix, Operator
 
