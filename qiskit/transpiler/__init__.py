@@ -615,10 +615,7 @@ It is important to highlight two special cases:
       ['id', 'rz', 'sx', 'x', 'cx', 'measure', 'delay']
 
    .. plot:
-<<<<<<< HEAD
-=======
       :alt: Circuit diagram output by the previous code.
->>>>>>> b872e886 (Add alt text to images (#13555))
       :include-source:
 
       from qiskit.circuit import QuantumCircuit
