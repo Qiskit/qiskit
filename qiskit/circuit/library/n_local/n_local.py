@@ -148,6 +148,7 @@ def n_local(
         are made up of a single block per layer:
 
         .. plot::
+            :alt: Circuit diagram output by the previous code.
             :include-source:
             :context:
 
@@ -160,6 +161,7 @@ def n_local(
         Pauli-Y and Pauli-Z rotations in the rotation layer:
 
         .. plot::
+            :alt: Circuit diagram output by the previous code.
             :include-source:
             :context:
 
@@ -169,6 +171,7 @@ def n_local(
         To omit rotation or entanglement layers, the block can be set to an empty list:
 
         .. plot::
+            :alt: Circuit diagram output by the previous code.
             :include-source:
             :context:
 
@@ -178,6 +181,7 @@ def n_local(
         The entanglement can be set explicitly via the ``entanglement`` argument:
 
         .. plot::
+            :alt: Circuit diagram output by the previous code.
             :include-source:
             :context:
 
@@ -189,7 +193,8 @@ def n_local(
         as input the current layer index, and returns the entanglement structure. For example,
         the following uses different entanglements for odd and even layers:
 
-        .. plot:
+        .. plot::
+            :alt: Circuit diagram output by the previous code.
             :include-source:
             :context:
 
