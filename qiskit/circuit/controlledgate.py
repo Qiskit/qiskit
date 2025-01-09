@@ -68,6 +68,7 @@ class ControlledGate(Gate):
         Create a controlled standard gate and apply it to a circuit.
 
         .. plot::
+           :alt: Circuit diagram output by the previous code.
            :include-source:
 
            from qiskit import QuantumCircuit, QuantumRegister
@@ -82,6 +83,7 @@ class ControlledGate(Gate):
         Create a controlled custom gate and apply it to a circuit.
 
         .. plot::
+           :alt: Circuit diagram output by the previous code.
            :include-source:
 
            from qiskit import QuantumCircuit, QuantumRegister

@@ -836,6 +836,7 @@ class QuantumCircuit:
     Consider the following circuit:
 
     .. plot::
+       :alt: Circuit diagram output by the previous code.
        :include-source:
 
        from qiskit import QuantumCircuit
@@ -902,6 +903,8 @@ class QuantumCircuit:
     graphically:
 
     .. image:: /source_images/depth.gif
+       :alt: Rotate the circuit and let each gate fall as far as possible. The gates fall \
+              into "layers". The depth of the circuit is the number of layers.
 
     We can verify our graphical result using :meth:`QuantumCircuit.depth`::
 
@@ -2170,6 +2173,7 @@ class QuantumCircuit:
         Examples:
 
             .. plot::
+               :alt: Circuit diagram output by the previous code.
                :include-source:
 
                from qiskit import QuantumCircuit
@@ -3426,6 +3430,7 @@ class QuantumCircuit:
 
         Example:
             .. plot::
+               :alt: Circuit diagram output by the previous code.
                :include-source:
 
                from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
@@ -4328,6 +4333,7 @@ class QuantumCircuit:
             Create a parameterized circuit and assign the parameters in-place.
 
             .. plot::
+               :alt: Circuit diagram output by the previous code.
                :include-source:
 
                from qiskit.circuit import QuantumCircuit, Parameter
@@ -4343,6 +4349,7 @@ class QuantumCircuit:
             Bind the values out-of-place by list and get a copy of the original circuit.
 
             .. plot::
+               :alt: Circuit diagram output by the previous code.
                :include-source:
 
                from qiskit.circuit import QuantumCircuit, ParameterVector
