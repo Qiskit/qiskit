@@ -14,20 +14,21 @@ use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::Python;
 
+use nalgebra::UnitQuaternion;
 use num_complex::Complex64;
 use numpy::ndarray::linalg::kron;
-use numpy::ndarray::{aview2, Array2, ArrayView2};
+use numpy::ndarray::{arr2, aview2, Array2, ArrayView2};
 use numpy::PyReadonlyArray2;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 use qiskit_circuit::dag_circuit::DAGCircuit;
-use qiskit_circuit::gate_matrix::ONE_QUBIT_IDENTITY;
+use qiskit_circuit::gate_matrix::TWO_QUBIT_IDENTITY;
 use qiskit_circuit::imports::QI_OPERATOR;
 use qiskit_circuit::operations::{Operation, OperationRef};
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::Qubit;
 
-use crate::euler_one_qubit_decomposer::matmul_1q;
+use crate::qi::VersorGate;
 use crate::QiskitError;
 
 #[inline]
@@ -53,6 +54,57 @@ pub fn get_matrix_from_inst(py: Python, inst: &PackedInstruction) -> PyResult<Ar
     }
 }
 
+/// Quaternion-based collect of two parallel runs of 1q gates.
+#[derive(Clone, Debug)]
+struct Separable1q {
+    phase: f64,
+    qubits: [UnitQuaternion<f64>; 2],
+}
+impl Separable1q {
+    /// Construct an initial state from a single qubit operation.
+    #[inline]
+    fn from_qubit(n: usize, versor: VersorGate) -> Self {
+        let mut qubits: [UnitQuaternion<f64>; 2] = Default::default();
+        qubits[n] = versor.action;
+        Self {
+            phase: versor.phase,
+            qubits,
+        }
+    }
+
+    /// Apply a new gate to one of the two qubits.
+    #[inline]
+    fn apply_on_qubit(&mut self, n: usize, versor: &VersorGate) {
+        self.phase += versor.phase;
+        self.qubits[n] = versor.action * self.qubits[n];
+    }
+
+    fn matrix(&self) -> Array2<Complex64> {
+        let q0 = VersorGate {
+            phase: self.phase,
+            action: self.qubits[0],
+        };
+        let q1 = VersorGate {
+            phase: 0.,
+            action: self.qubits[1],
+        };
+        kron(
+            &aview2(&q1.matrix_contiguous()),
+            &aview2(&q0.matrix_contiguous()),
+        )
+    }
+}
+
+/// Extract a versor representation of an arbitrary 1q DAG instruction.
+fn versor_from_1q_gate(py: Python, inst: &PackedInstruction) -> PyResult<VersorGate> {
+    let versor_result = if let Some(gate) = inst.standard_gate() {
+        VersorGate::from_standard(gate, inst.params_view())
+    } else {
+        VersorGate::from_ndarray(&get_matrix_from_inst(py, inst)?.view(), 1e-12)
+    };
+    versor_result.map_err(|err| QiskitError::new_err(err.to_string()))
+}
+
 /// Return the matrix Operator resulting from a block of Instructions.
 pub fn blocks_to_matrix(
     py: Python,
@@ -60,87 +112,58 @@ pub fn blocks_to_matrix(
     op_list: &[NodeIndex],
     block_index_map: [Qubit; 2],
 ) -> PyResult<Array2<Complex64>> {
-    let map_bits = |bit: &Qubit| -> u8 {
-        if *bit == block_index_map[0] {
-            0
-        } else {
-            1
-        }
-    };
-    let mut qubit_0 = ONE_QUBIT_IDENTITY;
-    let mut qubit_1 = ONE_QUBIT_IDENTITY;
-    let mut one_qubit_components_modified = false;
+    let map_bit = |bit: &Qubit| -> u8 { (block_index_map[1] == *bit) as u8 };
+    let mut qubits_1q: Option<Separable1q> = None;
     let mut output_matrix: Option<Array2<Complex64>> = None;
     for node in op_list {
         let inst = dag.dag()[*node].unwrap_operation();
-        let op_matrix = get_matrix_from_inst(py, inst)?;
         match dag
             .get_qargs(inst.qubits)
             .iter()
-            .map(map_bits)
+            .map(map_bit)
             .collect::<Vec<_>>()
             .as_slice()
         {
-            [0] => {
-                matmul_1q(&mut qubit_0, op_matrix);
-                one_qubit_components_modified = true;
-            }
-            [1] => {
-                matmul_1q(&mut qubit_1, op_matrix);
-                one_qubit_components_modified = true;
+            [q @ (0 | 1)] => {
+                let versor = versor_from_1q_gate(py, inst)?;
+                match qubits_1q.as_mut() {
+                    Some(sep) => sep.apply_on_qubit(*q as usize, &versor),
+                    None => qubits_1q = Some(Separable1q::from_qubit(*q as usize, versor)),
+                };
             }
             [0, 1] => {
-                if one_qubit_components_modified {
-                    let one_qubits_combined = kron(&aview2(&qubit_1), &aview2(&qubit_0));
-                    output_matrix = Some(match output_matrix {
-                        None => op_matrix.dot(&one_qubits_combined),
-                        Some(current) => {
-                            let temp = one_qubits_combined.dot(&current);
-                            op_matrix.dot(&temp)
-                        }
-                    });
-                    qubit_0 = ONE_QUBIT_IDENTITY;
-                    qubit_1 = ONE_QUBIT_IDENTITY;
-                    one_qubit_components_modified = false;
-                } else {
-                    output_matrix = Some(match output_matrix {
-                        None => op_matrix,
-                        Some(current) => op_matrix.dot(&current),
-                    });
+                let mut matrix = get_matrix_from_inst(py, inst)?;
+                if let Some(sep) = qubits_1q.take() {
+                    matrix = matrix.dot(&sep.matrix());
                 }
+                output_matrix = if let Some(state) = output_matrix {
+                    Some(matrix.dot(&state))
+                } else {
+                    Some(matrix)
+                };
             }
             [1, 0] => {
-                let matrix = change_basis(op_matrix.view());
-                if one_qubit_components_modified {
-                    let one_qubits_combined = kron(&aview2(&qubit_1), &aview2(&qubit_0));
-                    output_matrix = Some(match output_matrix {
-                        None => matrix.dot(&one_qubits_combined),
-                        Some(current) => matrix.dot(&one_qubits_combined.dot(&current)),
-                    });
-                    qubit_0 = ONE_QUBIT_IDENTITY;
-                    qubit_1 = ONE_QUBIT_IDENTITY;
-                    one_qubit_components_modified = false;
-                } else {
-                    output_matrix = Some(match output_matrix {
-                        None => matrix,
-                        Some(current) => matrix.dot(&current),
-                    });
+                let mut matrix = change_basis(get_matrix_from_inst(py, inst)?.view());
+                if let Some(sep) = qubits_1q.take() {
+                    matrix = matrix.dot(&sep.matrix());
                 }
+                output_matrix = if let Some(state) = output_matrix {
+                    Some(matrix.dot(&state))
+                } else {
+                    Some(matrix)
+                };
             }
             _ => unreachable!(),
         }
     }
-    Ok(match output_matrix {
-        Some(matrix) => {
-            if one_qubit_components_modified {
-                let one_qubits_combined = kron(&aview2(&qubit_1), &aview2(&qubit_0));
-                one_qubits_combined.dot(&matrix)
-            } else {
-                matrix
-            }
-        }
-        None => kron(&aview2(&qubit_1), &aview2(&qubit_0)),
-    })
+    match (qubits_1q.as_ref().map(Separable1q::matrix), output_matrix) {
+        (Some(sep), Some(state)) => Ok(sep.dot(&state)),
+        (None, Some(state)) => Ok(state),
+        (Some(sep), None) => Ok(sep),
+        // This shouldn't actually ever trigger, because we expect blocks to be non-empty, but it's
+        // trivial to handle anyway.
+        (None, None) => Ok(arr2(&TWO_QUBIT_IDENTITY)),
+    }
 }
 
 /// Switches the order of qubits in a two qubit operation.
