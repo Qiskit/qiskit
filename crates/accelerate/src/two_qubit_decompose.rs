@@ -1297,7 +1297,15 @@ impl TwoQubitGateSequence {
 
     fn __getitem__(&self, py: Python, idx: PySequenceIndex) -> PyResult<PyObject> {
         match idx.with_len(self.gates.len())? {
-            SequenceIndex::Int(idx) => self.gates[idx].clone().into_py_any(py),
+            SequenceIndex::Int(idx) => {
+                let item = &self.gates[idx];
+                (
+                    item.0,
+                    PyList::new(py, &item.1)?,
+                    PyList::new(py, &item.2)?,
+                )
+                    .into_py_any(py)
+            }
             indices => Ok(PyList::new(
                 py,
                 indices
