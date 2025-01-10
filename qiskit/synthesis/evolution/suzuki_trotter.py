@@ -18,7 +18,9 @@ import inspect
 import typing
 from collections.abc import Callable
 from itertools import chain
+import numpy as np
 
+from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.quantum_info.operators import SparsePauliOp, Pauli
 from qiskit.utils.deprecation import deprecate_arg
@@ -157,7 +159,10 @@ class SuzukiTrotter(ProductFormula):
         time = evolution.time
 
         def to_sparse_list(operator):
-            paulis = (time * (2 / self.reps) * operator).to_sparse_list()
+            paulis = [
+                (pauli, indices, real_or_fail(coeff) * time * 2 / self.reps)
+                for pauli, indices, coeff in operator.to_sparse_list()
+            ]
             if not self.preserve_order:
                 return reorder_paulis(paulis)
 
@@ -170,9 +175,6 @@ class SuzukiTrotter(ProductFormula):
             # Assume no commutativity here. If we were to group commuting Paulis,
             # here would be the location to do so.
             non_commuting = [[op] for op in to_sparse_list(operators)]
-
-        # normalize coefficients, i.e. ensure they are float or ParameterExpression
-        non_commuting = self._normalize_coefficients(non_commuting)
 
         # we're already done here since Lie Trotter does not do any operator repetition
         product_formula = self._recurse(self.order, non_commuting)
@@ -213,3 +215,18 @@ class SuzukiTrotter(ProductFormula):
                 ],
             )
             return outer + inner + outer
+
+
+def real_or_fail(value, tol=100):
+    """Return real if close, otherwise fail. Unbound parameters are left unchanged.
+
+    Based on NumPy's ``real_if_close``, i.e. ``tol`` is in terms of machine precision for float.
+    """
+    if isinstance(value, ParameterExpression):
+        return value
+
+    abstol = tol * np.finfo(float).eps
+    if abs(np.imag(value)) < abstol:
+        return np.real(value)
+
+    raise ValueError(f"Encountered complex value {value}, but expected real.")
