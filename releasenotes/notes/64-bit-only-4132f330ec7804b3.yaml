@@ -10,5 +10,7 @@ upgrade:
     scientific/numeric Python community's trend away from 32 bit platform
     support maintaining support for 32bit platforms is no longer viable.
     Qiskit 1.x will still continue to support 32 bit platforms, but starting
-    in this 2.0.0 release Qiskit no longer supports these platforms, and will
-    not publish pre-compiled binaries for these platforms any longer.
+    in this 2.0.0 release Qiskit no longer supports these platforms, will
+    not publish pre-compiled binaries for these platforms any longer, and
+    there is no longer any guarantee of being able to build from source on
+    32 bit platforms.
