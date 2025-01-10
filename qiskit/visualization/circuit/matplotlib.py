@@ -575,7 +575,7 @@ class MatplotlibDrawer:
                         # Get the layered node lists and instantiate a new drawer class for
                         # the circuit inside the ControlFlowOp.
                         qubits, clbits, flow_nodes = _get_layered_instructions(
-                            circuit, wire_map=flow_wire_map
+                            circuit, wire_map=flow_wire_map, drawer="mpl"
                         )
                         flow_drawer = MatplotlibDrawer(
                             qubits,
