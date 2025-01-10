@@ -306,12 +306,13 @@ def draw(
 
     Examples:
         To visualize a pulse program, you can call this function with set of
-        control arguments. Most of appearance of the output image can be controlled by the
+        control arguments. Most of the appearance of the output image can be controlled by the
         stylesheet.
 
         Drawing with the default stylesheet.
 
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
             from qiskit import QuantumCircuit, transpile, schedule
@@ -330,6 +331,7 @@ def draw(
         Drawing with the stylesheet suited for publication.
 
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
             from qiskit import QuantumCircuit, transpile, schedule
@@ -348,6 +350,7 @@ def draw(
         Drawing with the stylesheet suited for program debugging.
 
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
             from qiskit import QuantumCircuit, transpile, schedule

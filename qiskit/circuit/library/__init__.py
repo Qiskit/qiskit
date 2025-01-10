@@ -26,6 +26,7 @@ method and so the circuit library allows users to program at higher levels of ab
 For example, to append a multi-controlled CNOT:
 
 .. plot::
+   :alt: Circuit diagram output by the previous code.
    :include-source:
 
    from qiskit.circuit.library import MCXGate
