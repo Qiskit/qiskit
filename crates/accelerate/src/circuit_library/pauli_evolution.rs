@@ -193,22 +193,21 @@ fn multi_qubit_evolution(
 /// is uncomputed and the inverse basis transformation applied. E.g. for the evolution under the
 /// Pauli string XIYZ we have the circuit
 ///
-///                 ┌───┐┌───────┐┌───┐
-/// 0: ─────────────┤ X ├┤ Rz(2) ├┤ X ├───────────
-///    ┌──────┐┌───┐└─┬─┘└───────┘└─┬─┘┌───┐┌────┐
-/// 1: ┤ √Xdg ├┤ X ├──■─────────────■──┤ X ├┤ √X ├
-///    └──────┘└─┬─┘                   └─┬─┘└────┘
-/// 2: ──────────┼───────────────────────┼────────
-///     ┌───┐    │                       │  ┌───┐
-/// 3: ─┤ H ├────■───────────────────────■──┤ H ├─
-///     └───┘                               └───┘
+///        ┌───┐      ┌───┐┌───────┐┌───┐┌───┐
+///     0: ┤ H ├──────┤ X ├┤ Rz(2) ├┤ X ├┤ H ├────────
+///        └───┘      └─┬─┘└───────┘└─┬─┘└───┘
+///     1: ─────────────┼─────────────┼───────────────
+///        ┌────┐┌───┐  │             │  ┌───┐┌──────┐
+///     2: ┤ √X ├┤ X ├──■─────────────■──┤ X ├┤ √Xdg ├
+///        └────┘└─┬─┘                   └─┬─┘└──────┘
+///     3: ────────■───────────────────────■──────────
 ///
 /// Args:
 ///     num_qubits: The number of qubits in the Hamiltonian.
 ///     sparse_paulis: The Paulis to implement. Given in a sparse-list format with elements
 ///         ``(pauli_string, qubit_indices, rz_rotation_angle)``. An element of the form
 ///         ``("XIYZ", [0,1,2,3], 2)``, for example, is interpreted in terms of qubit indices as
-///          I_q0 X_q1 Y_q2 Z_q3 and will use a RZ rotation angle of 2.
+///         X_q0 I_q1 Y_q2 Z_q3 and will use a RZ rotation angle of 2.
 ///     insert_barriers: If ``true``, insert a barrier in between the evolution of individual
 ///         Pauli terms.
 ///     do_fountain: If ``true``, implement the CX propagation as "fountain" shape, where each
