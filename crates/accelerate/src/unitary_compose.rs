@@ -238,3 +238,11 @@ pub fn allclose(
     }
     true
 }
+
+pub fn gate_fidelity(left: &ArrayView2<Complex64>, right: &ArrayView2<Complex64>) -> f64 {
+    let dim = left.nrows() as f64; // == left.ncols() == right.nrows() == right.ncols()
+    let trace = left.t().mapv(|el| el.conj()).dot(right).diag().sum();
+    let process_fidelity = (trace / dim).abs().powi(2);
+    let gate_fidelity = (dim * process_fidelity + 1.) / (dim + 1.);
+    gate_fidelity
+}

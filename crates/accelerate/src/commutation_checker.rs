@@ -10,6 +10,8 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use core::f64;
+
 use hashbrown::{HashMap, HashSet};
 use ndarray::linalg::kron;
 use ndarray::Array2;
@@ -273,7 +275,8 @@ impl CommutationChecker {
         // relative and absolute tolerance used to (1) check whether rotation gates commute
         // trivially (i.e. the rotation angle is so small we assume it commutes) and (2) define
         // comparison for the matrix-based commutation checks
-        let rtol = 1e-5;
+        // let rtol = 1e-5;
+        let rtol = f64::EPSILON;
         let atol = 1e-8;
 
         // if we have rotation gates, we attempt to map them to their generators, for example
@@ -460,81 +463,68 @@ impl CommutationChecker {
             None => return Ok(false),
         };
 
-        if first_qarg == second_qarg {
-            match first_qarg.len() {
-                1 => Ok(unitary_compose::commute_1q(
-                    &first_mat.view(),
-                    &second_mat.view(),
-                    rtol,
-                    atol,
-                )),
-                2 => Ok(unitary_compose::commute_2q(
-                    &first_mat.view(),
-                    &second_mat.view(),
-                    &[Qubit(0), Qubit(1)],
-                    rtol,
-                    atol,
-                )),
-                _ => Ok(unitary_compose::allclose(
-                    &second_mat.dot(&first_mat).view(),
-                    &first_mat.dot(&second_mat).view(),
-                    rtol,
-                    atol,
-                )),
-            }
+        // if first_qarg == second_qarg {
+        // match first_qarg.len() {
+        //     1 => Ok(unitary_compose::commute_1q(
+        //         &first_mat.view(),
+        //         &second_mat.view(),
+        //         rtol,
+        //         atol,
+        //     )),
+        //     2 => Ok(unitary_compose::commute_2q(
+        //         &first_mat.view(),
+        //         &second_mat.view(),
+        //         &[Qubit(0), Qubit(1)],
+        //         rtol,
+        //         atol,
+        //     )),
+        //     _ => Ok(unitary_compose::allclose(
+        //         &second_mat.dot(&first_mat).view(),
+        //         &first_mat.dot(&second_mat).view(),
+        //         rtol,
+        //         atol,
+        //     )),
+        // }
+        //     let fid = unitary_compose::gate_fidelity(&first_mat.view(), &second_mat.view());
+        //     Ok((1.0 - fid).abs() < rtol)
+        // } else {
+        // TODO Optimize this bit to avoid unnecessary Kronecker products:
+        //  1. We currently sort the operations for the cache by operation size, putting the
+        //     *smaller* operation first: (smaller op, larger op)
+        //  2. This code here expands the first op to match the second -- hence we always
+        //     match the operator sizes.
+        // This whole extension logic could be avoided since we know the second one is larger.
+        let extra_qarg2 = num_qubits - first_qarg.len() as u32;
+        let first_mat = if extra_qarg2 > 0 {
+            let id_op = Array2::<Complex64>::eye(usize::pow(2, extra_qarg2));
+            kron(&id_op, &first_mat)
         } else {
-            // TODO Optimize this bit to avoid unnecessary Kronecker products:
-            //  1. We currently sort the operations for the cache by operation size, putting the
-            //     *smaller* operation first: (smaller op, larger op)
-            //  2. This code here expands the first op to match the second -- hence we always
-            //     match the operator sizes.
-            // This whole extension logic could be avoided since we know the second one is larger.
-            let extra_qarg2 = num_qubits - first_qarg.len() as u32;
-            let first_mat = if extra_qarg2 > 0 {
-                let id_op = Array2::<Complex64>::eye(usize::pow(2, extra_qarg2));
-                kron(&id_op, &first_mat)
-            } else {
-                first_mat
-            };
+            first_mat
+        };
 
-            // the 1 qubit case cannot happen, since that would already have been captured
-            // by the previous if clause; first_qarg == second_qarg (if they overlap they must
-            // be the same)
-            if num_qubits == 2 {
-                return Ok(unitary_compose::commute_2q(
-                    &first_mat.view(),
-                    &second_mat.view(),
-                    &second_qarg,
-                    rtol,
-                    atol,
-                ));
-            };
-
-            let op12 = match unitary_compose::compose(
-                &first_mat.view(),
-                &second_mat.view(),
-                &second_qarg,
-                false,
-            ) {
-                Ok(matrix) => matrix,
-                Err(e) => return Err(PyRuntimeError::new_err(e)),
-            };
-            let op21 = match unitary_compose::compose(
-                &first_mat.view(),
-                &second_mat.view(),
-                &second_qarg,
-                true,
-            ) {
-                Ok(matrix) => matrix,
-                Err(e) => return Err(PyRuntimeError::new_err(e)),
-            };
-            Ok(unitary_compose::allclose(
-                &op12.view(),
-                &op21.view(),
-                rtol,
-                atol,
-            ))
-        }
+        // the 1 qubit case cannot happen, since that would already have been captured
+        // by the previous if clause; first_qarg == second_qarg (if they overlap they must
+        // be the same)
+        let op12 = match unitary_compose::compose(
+            &first_mat.view(),
+            &second_mat.view(),
+            &second_qarg,
+            false,
+        ) {
+            Ok(matrix) => matrix,
+            Err(e) => return Err(PyRuntimeError::new_err(e)),
+        };
+        let op21 = match unitary_compose::compose(
+            &first_mat.view(),
+            &second_mat.view(),
+            &second_qarg,
+            true,
+        ) {
+            Ok(matrix) => matrix,
+            Err(e) => return Err(PyRuntimeError::new_err(e)),
+        };
+        let fid = unitary_compose::gate_fidelity(&op12.view(), &op21.view());
+        Ok((1.0 - fid).abs() < rtol)
     }
 
     fn clear_cache(&mut self) {
@@ -641,7 +631,10 @@ fn map_rotation<'a>(
         // commute with everything, and we simply return the operation with the flag that
         // it commutes trivially.
         if let Param::Float(angle) = params[0] {
-            if (angle % TWOPI).abs() < tol {
+            // if (angle % TWOPI).abs() < tol {
+            let gate_fidelity = rotation_fidelity(name, angle).unwrap_or(0.);
+            println!("gate: {} angle: {} fid: {}", name, angle, gate_fidelity);
+            if (1. - gate_fidelity).abs() < tol {
                 return (op, params, true);
             };
         };
@@ -657,6 +650,47 @@ fn map_rotation<'a>(
         return (op, &[], false);
     }
     (op, params, false)
+}
+
+/// Compute the gate fidelity of a rotation gate.
+// fn rotation_fidelity(rotation: &OperationRef, angle: f64) -> Option<f64> {
+//     if let OperationRef::Standard(gate) = rotation {
+//         match gate {
+//             StandardGate::RXGate
+//             | StandardGate::RYGate
+//             | StandardGate::RZGate
+//             | StandardGate::PhaseGate => return Some(2. * (angle / 2.).cos()),
+//             StandardGate::RXXGate
+//             | StandardGate::RYYGate
+//             | StandardGate::RZXGate
+//             | StandardGate::RZZGate => return Some(4. * (angle / 2.).cos()),
+//             StandardGate::CRXGate
+//             | StandardGate::CRYGate
+//             | StandardGate::CRZGate
+//             | StandardGate::CPhaseGate => return Some(2. + 2. * (angle / 2.).cos()),
+//             _ => return None,
+//         };
+//     };
+//     None
+// }
+
+fn rotation_fidelity(rotation: &str, angle: f64) -> Option<f64> {
+    let dim = match rotation {
+        "rx" | "ry" | "rz" | "p" => 2.,
+        _ => 4.,
+    };
+
+    match rotation {
+        "rx" | "ry" | "rz" | "p" | "rxx" | "ryy" | "rzx" | "rzz" => {
+            let gate_fid = (angle / 2.).cos().powi(2);
+            Some((dim * gate_fid + 1.) / (dim + 1.))
+        }
+        "crx" | "cry" | "crz" | "cp" => {
+            let gate_fid = (0.5 + 0.5 * (angle / 2.).cos()).powi(2);
+            Some((dim * gate_fid + 1.) / (dim + 1.))
+        }
+        _ => None,
+    }
 }
 
 fn get_relative_placement(
