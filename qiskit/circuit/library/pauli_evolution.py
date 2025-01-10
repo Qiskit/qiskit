@@ -49,7 +49,9 @@ class PauliEvolutionGate(Gate):
 
     **Examples:**
 
-    .. code-block:: python
+    .. plot::
+       :include-source:
+       :nofigs:
 
         from qiskit.circuit import QuantumCircuit
         from qiskit.circuit.library import PauliEvolutionGate
@@ -68,7 +70,9 @@ class PauliEvolutionGate(Gate):
         circuit.append(evo, range(2))
         print(circuit.draw())
 
-    The above will print (note that the ``-0.1`` coefficient is not printed!)::
+    The above will print (note that the ``-0.1`` coefficient is not printed!):
+
+    .. code-block:: text
 
              ┌──────────────────────────┐
         q_0: ┤0                         ├
@@ -110,17 +114,19 @@ class PauliEvolutionGate(Gate):
         else:
             operator = _to_sparse_pauli_op(operator)
 
-        if synthesis is None:
-            from qiskit.synthesis.evolution import LieTrotter
-
-            synthesis = LieTrotter()
-
         if label is None:
             label = _get_default_label(operator)
 
         num_qubits = operator[0].num_qubits if isinstance(operator, list) else operator.num_qubits
         super().__init__(name="PauliEvolution", num_qubits=num_qubits, params=[time], label=label)
         self.operator = operator
+
+        if synthesis is None:
+            # pylint: disable=cyclic-import
+            from qiskit.synthesis.evolution import LieTrotter
+
+            synthesis = LieTrotter()
+
         self.synthesis = synthesis
 
     @property

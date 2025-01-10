@@ -726,7 +726,7 @@ class Target(BaseTarget):
 
     @property
     def instructions(self):
-        """Get the list of tuples ``(:class:`~qiskit.circuit.Instruction`, (qargs))``
+        """Get the list of tuples (:class:`~qiskit.circuit.Instruction`, (qargs))
         for the target
 
         For globally defined variable width operations the tuple will be of the form
@@ -1157,9 +1157,16 @@ class Target(BaseTarget):
                     if error is None and duration is None and calibration is None:
                         gate_properties[(qubit,)] = None
                     else:
-                        gate_properties[(qubit,)] = InstructionProperties(
-                            duration=duration, error=error, calibration=calibration
-                        )
+                        with warnings.catch_warnings():
+                            warnings.filterwarnings(
+                                "ignore",
+                                category=DeprecationWarning,
+                                message=".*``calibration`` is deprecated as of Qiskit 1.3.*",
+                                module="qiskit",
+                            )
+                            gate_properties[(qubit,)] = InstructionProperties(
+                                duration=duration, error=error, calibration=calibration
+                            )
                 target.add_instruction(name_mapping[gate], properties=gate_properties, name=gate)
             edges = list(coupling_map.get_edges())
             for gate in two_qubit_gates:
@@ -1199,9 +1206,16 @@ class Target(BaseTarget):
                     if error is None and duration is None and calibration is None:
                         gate_properties[edge] = None
                     else:
-                        gate_properties[edge] = InstructionProperties(
-                            duration=duration, error=error, calibration=calibration
-                        )
+                        with warnings.catch_warnings():
+                            warnings.filterwarnings(
+                                "ignore",
+                                category=DeprecationWarning,
+                                message=".*``calibration`` is deprecated as of Qiskit 1.3.*",
+                                module="qiskit",
+                            )
+                            gate_properties[edge] = InstructionProperties(
+                                duration=duration, error=error, calibration=calibration
+                            )
                 target.add_instruction(name_mapping[gate], properties=gate_properties, name=gate)
             for gate in global_ideal_variable_width_gates:
                 target.add_instruction(name_mapping[gate], name=gate)

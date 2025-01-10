@@ -183,7 +183,7 @@ pub enum OperationRef<'a> {
     Operation(&'a PyOperation),
 }
 
-impl<'a> Operation for OperationRef<'a> {
+impl Operation for OperationRef<'_> {
     #[inline]
     fn name(&self) -> &str {
         match self {
@@ -430,6 +430,11 @@ static STANDARD_GATE_NAME: [&str; STANDARD_GATE_SIZE] = [
     "c3sx",         // 50
     "rcccx",        // 51 ("rc3x")
 ];
+
+/// Get a slice of all standard gate names.
+pub fn get_standard_gate_names() -> &'static [&'static str] {
+    &STANDARD_GATE_NAME
+}
 
 impl StandardGate {
     pub fn create_py_op(

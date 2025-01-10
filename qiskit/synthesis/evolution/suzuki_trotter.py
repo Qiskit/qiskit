@@ -18,12 +18,14 @@ import inspect
 import typing
 from collections.abc import Callable
 from itertools import chain
+import numpy as np
 
+from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.quantum_info.operators import SparsePauliOp, Pauli
 from qiskit.utils.deprecation import deprecate_arg
 
-from .product_formula import ProductFormula
+from .product_formula import ProductFormula, reorder_paulis
 
 if typing.TYPE_CHECKING:
     from qiskit.circuit.quantumcircuit import ParameterValueType
@@ -85,6 +87,7 @@ class SuzukiTrotter(ProductFormula):
             | None
         ) = None,
         wrap: bool = False,
+        preserve_order: bool = True,
     ) -> None:
         """
         Args:
@@ -104,6 +107,9 @@ class SuzukiTrotter(ProductFormula):
                 built.
             wrap: Whether to wrap the atomic evolutions into custom gate objects. This only takes
                 effect when ``atomic_evolution is None``.
+            preserve_order: If ``False``, allows reordering the terms of the operator to
+                potentially yield a shallower evolution circuit. Not relevant
+                when synthesizing operator with a single term.
         Raises:
             ValueError: If order is not even
         """
@@ -113,7 +119,15 @@ class SuzukiTrotter(ProductFormula):
                 "Suzuki product formulae are symmetric and therefore only defined "
                 f"for when the order is 1 or even, not {order}."
             )
-        super().__init__(order, reps, insert_barriers, cx_structure, atomic_evolution, wrap)
+        super().__init__(
+            order,
+            reps,
+            insert_barriers,
+            cx_structure,
+            atomic_evolution,
+            wrap,
+            preserve_order=preserve_order,
+        )
 
     def expand(
         self, evolution: PauliEvolutionGate
@@ -144,18 +158,23 @@ class SuzukiTrotter(ProductFormula):
         operators = evolution.operator  # type: SparsePauliOp | list[SparsePauliOp]
         time = evolution.time
 
+        def to_sparse_list(operator):
+            paulis = [
+                (pauli, indices, real_or_fail(coeff) * time * 2 / self.reps)
+                for pauli, indices, coeff in operator.to_sparse_list()
+            ]
+            if not self.preserve_order:
+                return reorder_paulis(paulis)
+
+            return paulis
+
         # construct the evolution circuit
         if isinstance(operators, list):  # already sorted into commuting bits
-            non_commuting = [
-                (2 / self.reps * time * operator).to_sparse_list() for operator in operators
-            ]
+            non_commuting = [to_sparse_list(operator) for operator in operators]
         else:
             # Assume no commutativity here. If we were to group commuting Paulis,
             # here would be the location to do so.
-            non_commuting = [[op] for op in (2 / self.reps * time * operators).to_sparse_list()]
-
-        # normalize coefficients, i.e. ensure they are float or ParameterExpression
-        non_commuting = self._normalize_coefficients(non_commuting)
+            non_commuting = [[op] for op in to_sparse_list(operators)]
 
         # we're already done here since Lie Trotter does not do any operator repetition
         product_formula = self._recurse(self.order, non_commuting)
@@ -196,3 +215,18 @@ class SuzukiTrotter(ProductFormula):
                 ],
             )
             return outer + inner + outer
+
+
+def real_or_fail(value, tol=100):
+    """Return real if close, otherwise fail. Unbound parameters are left unchanged.
+
+    Based on NumPy's ``real_if_close``, i.e. ``tol`` is in terms of machine precision for float.
+    """
+    if isinstance(value, ParameterExpression):
+        return value
+
+    abstol = tol * np.finfo(float).eps
+    if abs(np.imag(value)) < abstol:
+        return np.real(value)
+
+    raise ValueError(f"Encountered complex value {value}, but expected real.")

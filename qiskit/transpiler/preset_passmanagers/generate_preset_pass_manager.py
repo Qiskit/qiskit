@@ -484,10 +484,11 @@ def _parse_basis_gates(basis_gates, backend, inst_map, skip_target):
             if inst not in standard_gates and inst not in default_gates:
                 warnings.warn(
                     category=DeprecationWarning,
-                    message="Providing custom gates through the ``basis_gates`` argument is deprecated "
-                    "for both ``transpile`` and ``generate_preset_pass_manager`` as of Qiskit 1.3.0. "
+                    message=f"Providing non-standard gates ({inst}) through the ``basis_gates`` "
+                    "argument is deprecated for both ``transpile`` and ``generate_preset_pass_manager`` "
+                    "as of Qiskit 1.3.0. "
                     "It will be removed in Qiskit 2.0. The ``target`` parameter should be used instead. "
-                    "You can build a target instance using ``Target.from_configuration()`` and provide"
+                    "You can build a target instance using ``Target.from_configuration()`` and provide "
                     "custom gate definitions with the ``custom_name_mapping`` argument.",
                 )
                 skip_target = True
@@ -538,7 +539,15 @@ def _parse_inst_map(inst_map, backend):
 def _parse_backend_properties(backend_properties, backend):
     # try getting backend_props from user, else backend
     if backend_properties is None and backend is not None:
-        backend_properties = target_to_backend_properties(backend.target)
+        with warnings.catch_warnings():
+            # filter target_to_backend_properties warning
+            warnings.filterwarnings(
+                "ignore",
+                category=DeprecationWarning,
+                message=".*``qiskit.transpiler.target.target_to_backend_properties\\(\\)``.*",
+                module="qiskit",
+            )
+            backend_properties = target_to_backend_properties(backend.target)
     return backend_properties
 
 
