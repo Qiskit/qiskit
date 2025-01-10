@@ -403,7 +403,13 @@ def _get_valid_justify_arg(justify):
 
 
 def _get_layered_instructions(
-    circuit, reverse_bits=False, justify=None, idle_wires=True, wire_order=None, wire_map=None, drawer=""
+    circuit,
+    reverse_bits=False,
+    justify=None,
+    idle_wires=True,
+    wire_order=None,
+    wire_map=None,
+    drawer="",
 ):
     """
     Given a circuit, return a tuple (qubits, clbits, nodes) where
@@ -508,7 +514,9 @@ def _get_gate_span(qubits, node, drawer):
     # type of op must be the only op in the layer
     if isinstance(node.op, ControlFlowOp):
         span = qubits
-    elif (drawer == "mpl" and not isinstance(node.op, Measure) and node.cargs) or getattr(node.op, "condition", None):
+    elif (node.cargs and (drawer != "mpl" or not isinstance(node.op, Measure))) or getattr(
+        node.op, "condition", None
+    ):
         span = qubits[min_index : len(qubits)]
     else:
         span = qubits[min_index : max_index + 1]
@@ -570,13 +578,15 @@ class _LayerSpooler(list):
                 all_qargs.append(qarg)
         return any(i in node.qargs for i in all_qargs)
 
-    def insertable(self, node, nodes):
+    def insertable(self, node, nodes, drawer):
         """True .IFF. we can add 'node' to layer 'nodes'"""
-        return not _any_crossover(self.qubits, node, nodes)
+        return not _any_crossover(self.qubits, node, nodes, drawer)
 
     def slide_from_left(self, node, index, drawer):
         """Insert node into first layer where there is no conflict going l > r"""
         measure_layer = None
+        if isinstance(node.op, Measure):
+            measure_bit = next(bit for bit in self.measure_map if node.cargs[0] == bit)
 
         if not self:
             inserted = True
@@ -604,7 +614,7 @@ class _LayerSpooler(list):
             while curr_index > 0:
                 if self.is_found_in(node, self[curr_index]):
                     break
-                if self.insertable(node, self[curr_index]):
+                if self.insertable(node, self[curr_index], drawer):
                     last_insertable_index = curr_index
                 curr_index = curr_index - 1
 
@@ -616,7 +626,7 @@ class _LayerSpooler(list):
                 inserted = False
                 curr_index = index
                 while curr_index < len(self):
-                    if self.insertable(node, self[curr_index]):
+                    if self.insertable(node, self[curr_index], drawer):
                         self[curr_index].append(node)
                         measure_layer = curr_index
                         inserted = True
@@ -630,10 +640,10 @@ class _LayerSpooler(list):
             if isinstance(node.op, Measure):
                 if not measure_layer:
                     measure_layer = len(self) - 1
-            if measure_layer > self.measure_map[measure_bit]:
-                self.measure_map[measure_bit] = measure_layer
+                if measure_layer > self.measure_map[measure_bit]:
+                    self.measure_map[measure_bit] = measure_layer
 
-    def slide_from_right(self, node, index):
+    def slide_from_right(self, node, index, drawer):
         """Insert node into rightmost layer as long there is no conflict."""
         if not self:
             self.insert(0, [node])
@@ -646,7 +656,7 @@ class _LayerSpooler(list):
             while curr_index < len(self):
                 if self.is_found_in(node, self[curr_index]):
                     break
-                if self.insertable(node, self[curr_index]):
+                if self.insertable(node, self[curr_index], drawer):
                     last_insertable_index = curr_index
                 curr_index = curr_index + 1
 
@@ -656,7 +666,7 @@ class _LayerSpooler(list):
             else:
                 curr_index = index
                 while curr_index > -1:
-                    if self.insertable(node, self[curr_index]):
+                    if self.insertable(node, self[curr_index], drawer):
                         self[curr_index].append(node)
                         inserted = True
                         break
