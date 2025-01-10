@@ -599,9 +599,8 @@ fn get_2q_decomposers_from_target(
                         _ => continue,
                     }
                     // Filter out non-2q-gate candidates
-                    match op.operation.num_qubits() {
-                        2 => (),
-                        _ => continue,
+                    if op.operation.num_qubits() != 2 {
+                        continue
                     }
                     available_2q_basis.insert(key, replace_parametrized_gate(op.clone()));
 
