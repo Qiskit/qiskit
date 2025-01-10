@@ -1577,8 +1577,9 @@ class TestGeneratePresetPassManagers(QiskitTestCase):
 
     @data(0, 1)
     def test_gate_direction_with_asymmetric_cmap(self, optimization_level):
-        "Test that GateDirection is run when only an asymmetric coupling_map is provided."
-        "Only testing optimization levels 0 and 1 to avoid non-determinism in the result due to Sabre"
+        """Test that GateDirection is run when only an asymmetric coupling_map is provided.
+        Only testing optimization levels 0 and 1 to avoid non-determinism in the result due to Sabre
+        """
         qc = QuantumCircuit(2, 2)
         qc.cx(0, 1)
         expected = QuantumCircuit(2, 2)

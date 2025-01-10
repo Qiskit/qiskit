@@ -1324,8 +1324,7 @@ class _FakeTarget(Target):
     """
     Pseudo-target class for INTERNAL use in the transpilation pipeline.
     It's essentially an empty :class:`.Target` instance with a a `coupling_map`
-    argument that allows to store connectivity constraints
-    without basis gates.
+    argument that allows to store connectivity constraints without basis gates.
     This is intended to replace the use of loose constraints in the pipeline.
     """
 
