@@ -479,6 +479,20 @@ class TestEvolutionGate(QiskitTestCase):
         decomposed = evo_gate.definition.decompose()
         self.assertEqual(decomposed.count_ops()["cx"], reps * 3 * 4)
 
+    def test_sympify_is_real(self):
+        """Test converting the parameters to sympy is real.
+
+        Regression test of #13642, where the parameters in the Pauli evolution had a spurious
+        zero complex part. Even though this is not noticable upon binding or printing the parameter,
+        it does affect the output of Parameter.sympify.
+        """
+        time = Parameter("t")
+        evo = PauliEvolutionGate(Z, time=time)
+
+        angle = evo.definition.data[0].operation.params[0]
+        expected = (2.0 * time).sympify()
+        self.assertEqual(expected, angle.sympify())
+
 
 def exact_atomic_evolution(circuit, pauli, time):
     """An exact atomic evolution for Suzuki-Trotter.

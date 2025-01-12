@@ -836,6 +836,7 @@ class QuantumCircuit:
     Consider the following circuit:
 
     .. plot::
+       :alt: Circuit diagram output by the previous code.
        :include-source:
 
        from qiskit import QuantumCircuit
@@ -887,25 +888,6 @@ class QuantumCircuit:
     :meth:`size`::
 
        assert qc.size() == 19
-
-    A particularly important circuit property is known as the circuit :meth:`depth`.  The depth
-    of a quantum circuit is a measure of how many "layers" of quantum gates, executed in
-    parallel, it takes to complete the computation defined by the circuit.  Because quantum
-    gates take time to implement, the depth of a circuit roughly corresponds to the amount of
-    time it takes the quantum computer to execute the circuit.  Thus, the depth of a circuit
-    is one important quantity used to measure if a quantum circuit can be run on a device.
-
-    The depth of a quantum circuit has a mathematical definition as the longest path in a
-    directed acyclic graph (DAG).  However, such a definition is a bit hard to grasp, even for
-    experts.  Fortunately, the depth of a circuit can be easily understood by anyone familiar
-    with playing `Tetris <https://en.wikipedia.org/wiki/Tetris>`_.  Lets see how to compute this
-    graphically:
-
-    .. image:: /source_images/depth.gif
-
-    We can verify our graphical result using :meth:`QuantumCircuit.depth`::
-
-       assert qc.depth() == 9
 
     .. automethod:: count_ops
     .. automethod:: depth
@@ -2170,6 +2152,7 @@ class QuantumCircuit:
         Examples:
 
             .. plot::
+               :alt: Circuit diagram output by the previous code.
                :include-source:
 
                from qiskit import QuantumCircuit
@@ -3426,6 +3409,7 @@ class QuantumCircuit:
 
         Example:
             .. plot::
+               :alt: Circuit diagram output by the previous code.
                :include-source:
 
                from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
@@ -3484,6 +3468,14 @@ class QuantumCircuit:
         ),
     ) -> int:
         """Return circuit depth (i.e., length of critical path).
+
+        The depth of a quantum circuit is a measure of how many
+        "layers" of quantum gates, executed in parallel, it takes to
+        complete the computation defined by the circuit.  Because
+        quantum gates take time to implement, the depth of a circuit
+        roughly corresponds to the amount of time it takes the quantum
+        computer to execute the circuit.
+
 
         .. warning::
             This operation is not well defined if the circuit contains control-flow operations.
@@ -4328,6 +4320,7 @@ class QuantumCircuit:
             Create a parameterized circuit and assign the parameters in-place.
 
             .. plot::
+               :alt: Circuit diagram output by the previous code.
                :include-source:
 
                from qiskit.circuit import QuantumCircuit, Parameter
@@ -4343,6 +4336,7 @@ class QuantumCircuit:
             Bind the values out-of-place by list and get a copy of the original circuit.
 
             .. plot::
+               :alt: Circuit diagram output by the previous code.
                :include-source:
 
                from qiskit.circuit import QuantumCircuit, ParameterVector
