@@ -170,10 +170,9 @@ pub fn synth_cnot_count_full_pmh(
 
 type Instruction = (StandardGate, SmallVec<[Param; 3]>, SmallVec<[Qubit; 2]>);
 pub fn synth_pmh(
-    mat: Array2<bool>,
+    mut mat: Array2<bool>,
     section_size: Option<usize>,
 ) -> impl DoubleEndedIterator<Item = Instruction> {
-    let mut mat = mat;
     let num_qubits = mat.nrows(); // is a quadratic matrix
 
     // If given, use the user-specified input size. If None, we default to

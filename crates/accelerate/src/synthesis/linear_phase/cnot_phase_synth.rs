@@ -56,10 +56,26 @@ fn get_instr(angle: String, qubit_idx: usize) -> Option<Instruction> {
     })
 }
 
-/// This function implements a Gray-code inspired algorithm of synthesizing a circuit
-/// over CNOT and phase-gates with minimal-CNOT for a given phase-polynomial.
-/// The algorithm is described as "Gray-Synth" algorithm in Algorithm-1, page 12
-/// of paper "https://arxiv.org/abs/1712.01859".
+/// This function is an implementation of the `GraySynth` algorithm which is a heuristic
+/// algorithm described in detail in section 4 of [1] for synthesizing small parity networks.
+/// It is inspired by Gray codes. Given a set of binary strings :math:`S`
+/// (called ``cnots`` bellow), the algorithm synthesizes a parity network for :math:`S` by
+/// repeatedly choosing an index :math:`i` to expand and then effectively recursing on
+/// the co-factors :math:`S_0` and :math:`S_1`, consisting of the strings :math:`y \in S`,
+/// with :math:`y_i = 0` or :math:`1` respectively. As a subset :math:`S` is recursively expanded,
+/// ``cx`` gates are applied so that a designated target bit contains the
+/// (partial) parity :math:`\chi_y(x)` where :math:`y_i = 1` if and only if :math:`y'_i = 1` for all
+/// :math:`y' \in S`. If :math:`S` contains a single element :math:`\{y'\}`, then :math:`y = y'`,
+/// and the target bit contains the value :math:`\chi_{y'}(x)` as desired.
+/// Notably, rather than uncomputing this sequence of ``cx`` (CNOT) gates when a subset :math:`S`
+/// is finished being synthesized, the algorithm maintains the invariant that the remaining
+/// parities to be computed are expressed over the current state of bits. This allows the algorithm
+/// to avoid the 'backtracking' inherent in uncomputing-based methods.
+/// References:
+///        1. Matthew Amy, Parsiad Azimzadeh, and Michele Mosca.
+///           *On the controlled-NOT complexity of controlled-NOT–phase circuits.*,
+///           Quantum Science and Technology 4.1 (2018): 015002.
+///           `arXiv:1712.01859 <https://arxiv.org/abs/1712.01859>`_
 #[pyfunction]
 #[pyo3(signature = (cnots, angles, section_size=2))]
 pub fn synth_cnot_phase_aam(
@@ -72,11 +88,10 @@ pub fn synth_cnot_phase_aam(
     let section_size: Option<usize> =
         section_size.and_then(|num| if num >= 0 { Some(num as usize) } else { None });
 
-    let s = cnots.as_array().to_owned();
-    let s = s.mapv(|x| x != 0);
-    let num_qubits = s.nrows();
+    let cnots: Array2<bool> = cnots.as_array().mapv(|x| x != 0);
+    let num_qubits = cnots.nrows();
 
-    let mut rust_angles = angles
+    let mut angles = angles
         .iter()
         .filter_map(|data| {
             data.extract::<String>()
@@ -85,16 +100,15 @@ pub fn synth_cnot_phase_aam(
         })
         .collect::<Vec<String>>();
 
-    let state = Array2::<u8>::eye(num_qubits);
-    let mut state = state.mapv(|x| x != 0);
+    let mut state: Array2<bool> = Array2::from_shape_fn((num_qubits, num_qubits), |(i, j)| i == j);
 
-    let mut s_cpy = s.clone();
+    let mut cnots_cpy = cnots.clone();
     let mut q = vec![(
-        s.clone(),
+        cnots.clone(),
         (0..num_qubits).collect::<Vec<usize>>(),
         num_qubits,
     )];
-    let mut _s = s;
+    let mut _cnots = cnots;
     let mut _i = (0..num_qubits).collect::<Vec<usize>>();
     let mut _ep = num_qubits;
 
@@ -113,18 +127,18 @@ pub fn synth_cnot_phase_aam(
         let mut gate_instr: Option<Instruction> = None;
 
         while !phase_done {
-            let icnot = s_cpy.column(index);
+            let icnot = cnots_cpy.column(index);
             index += 1;
             let target_state = state.row(qubit_idx);
 
             if icnot == target_state {
                 index -= 1;
-                s_cpy.remove_index(numpy::ndarray::Axis(1), index);
-                let angle = rust_angles.remove(index);
+                cnots_cpy.remove_index(numpy::ndarray::Axis(1), index);
+                let angle = angles.remove(index);
                 gate_instr = get_instr(angle, qubit_idx);
                 break;
             }
-            if index == s_cpy.ncols() {
+            if index == cnots_cpy.ncols() {
                 qubit_idx += 1;
                 index = 0;
             }
@@ -141,9 +155,9 @@ pub fn synth_cnot_phase_aam(
                 break 'outer_loop;
             }
             if !phase_loop_on {
-                (_s, _i, _ep) = q.pop().unwrap();
+                (_cnots, _i, _ep) = q.pop().unwrap();
             }
-            if !phase_loop_on && _s.is_empty() {
+            if !phase_loop_on && _cnots.is_empty() {
                 continue 'outer_loop;
             }
 
@@ -152,7 +166,7 @@ pub fn synth_cnot_phase_aam(
                     keep_iterating = false;
                 }
                 while qubit_idx < num_qubits {
-                    if (qubit_idx != _ep) && !_s.row(qubit_idx).iter().any(|&b| !b) {
+                    if (qubit_idx != _ep) && !_cnots.row(qubit_idx).iter().any(|&b| !b) {
                         if !cx_gate_done && !phase_loop_on {
                             keep_iterating = true;
                             cx_gate_done = true;
@@ -171,23 +185,23 @@ pub fn synth_cnot_phase_aam(
 
                         cx_gate_done = false;
                         while phase_loop_on {
-                            if index == s_cpy.ncols() {
+                            if index == cnots_cpy.ncols() {
                                 phase_loop_on = false;
                                 break;
                             }
-                            let icnot = s_cpy.column(index);
+                            let icnot = cnots_cpy.column(index);
                             index += 1;
                             let target_state = state.row(_ep);
                             if icnot == target_state {
                                 index -= 1;
-                                s_cpy.remove_index(numpy::ndarray::Axis(1), index);
-                                let angle = rust_angles.remove(index);
+                                cnots_cpy.remove_index(numpy::ndarray::Axis(1), index);
+                                let angle = angles.remove(index);
                                 gate_instr = get_instr(angle, _ep);
                                 break 'outer_loop;
                             }
                         }
 
-                        q.push((_s.clone(), _i.clone(), _ep));
+                        q.push((_cnots.clone(), _i.clone(), _ep));
                         let mut unique_q = vec![];
 
                         for data in q.iter() {
@@ -199,17 +213,17 @@ pub fn synth_cnot_phase_aam(
                         q = unique_q;
 
                         for data in &mut q {
-                            let (ref mut _temp_s, _, _) = data;
-                            if _temp_s.is_empty() {
+                            let (ref mut _temp_cnots, _, _) = data;
+                            if _temp_cnots.is_empty() {
                                 continue;
                             }
 
-                            for idx in 0.._temp_s.row(qubit_idx).len() {
-                                _temp_s[(qubit_idx, idx)] ^= _temp_s[(_ep, idx)];
+                            for idx in 0.._temp_cnots.row(qubit_idx).len() {
+                                _temp_cnots[(qubit_idx, idx)] ^= _temp_cnots[(_ep, idx)];
                             }
                         }
 
-                        (_s, _i, _ep) = q.pop().unwrap();
+                        (_cnots, _i, _ep) = q.pop().unwrap();
                     } // end of if _ep < num_qubits ...
                     qubit_idx += 1;
                 } // end of while check qubit_idx < num_qubits ...
@@ -221,7 +235,7 @@ pub fn synth_cnot_phase_aam(
                 continue 'outer_loop;
             }
 
-            let maxes: Vec<usize> = _s
+            let maxes: Vec<usize> = _cnots
                 .axis_iter(numpy::ndarray::Axis(0))
                 .map(|row| {
                     std::cmp::max(
@@ -245,10 +259,10 @@ pub fn synth_cnot_phase_aam(
             let mut cnots0_t = vec![];
             let mut cnots1_t = vec![];
 
-            let mut cnots0_t_shape = (0_usize, _s.column(0).len());
+            let mut cnots0_t_shape = (0_usize, _cnots.column(0).len());
             let mut cnots1_t_shape = (0_usize, 0_usize);
             cnots1_t_shape.1 = cnots0_t_shape.1;
-            for cols in _s.columns() {
+            for cols in _cnots.columns() {
                 if !cols[_j] {
                     cnots0_t_shape.0 += 1;
                     cnots0_t.append(&mut cols.to_vec());
@@ -258,13 +272,12 @@ pub fn synth_cnot_phase_aam(
                 }
             }
 
-            let cnots0 =
-                Array2::from_shape_vec((cnots0_t_shape.0, cnots0_t_shape.1), cnots0_t).unwrap();
-            let cnots1 =
-                Array2::from_shape_vec((cnots1_t_shape.0, cnots1_t_shape.1), cnots1_t).unwrap();
-
-            let cnots0 = cnots0.reversed_axes().to_owned();
-            let cnots1 = cnots1.reversed_axes().to_owned();
+            let cnots0 = Array2::from_shape_vec((cnots0_t_shape.0, cnots0_t_shape.1), cnots0_t)
+                .unwrap()
+                .reversed_axes();
+            let cnots1 = Array2::from_shape_vec((cnots1_t_shape.0, cnots1_t_shape.1), cnots1_t)
+                .unwrap()
+                .reversed_axes();
 
             if _ep == num_qubits {
                 q.push((
