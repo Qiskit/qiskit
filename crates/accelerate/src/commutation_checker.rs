@@ -633,7 +633,6 @@ fn map_rotation<'a>(
         if let Param::Float(angle) = params[0] {
             // if (angle % TWOPI).abs() < tol {
             let gate_fidelity = rotation_fidelity(name, angle).unwrap_or(0.);
-            println!("gate: {} angle: {} fid: {}", name, angle, gate_fidelity);
             if (1. - gate_fidelity).abs() < tol {
                 return (op, params, true);
             };
