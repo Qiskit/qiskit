@@ -27,7 +27,7 @@ use rayon::prelude::*;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::imports::UNITARY_GATE;
 use qiskit_circuit::operations::Param;
-use qiskit_circuit::operations::PyInstruction;
+use qiskit_circuit::operations::PyGate;
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Clbit, Qubit};
 use smallvec::{smallvec, SmallVec};
@@ -127,17 +127,16 @@ pub fn quantum_volume(
         let unitary_gate = UNITARY_GATE
             .get_bound(py)
             .call((unitary.clone(), py.None(), false), Some(&kwargs))?;
-        let instruction = PyInstruction {
+        let instruction = PyGate {
             qubits: 2,
             clbits: 0,
             params: 1,
             op_name: "unitary".to_string(),
-            control_flow: false,
-            instruction: unitary_gate.unbind(),
+            gate: unitary_gate.unbind(),
         };
         let qubit = layer_index * 2;
         Ok((
-            PackedOperation::from_instruction(Box::new(instruction)),
+            PackedOperation::from_gate(Box::new(instruction)),
             smallvec![Param::Obj(unitary.unbind().into())],
             vec![permutation[qubit], permutation[qubit + 1]],
             vec![],
