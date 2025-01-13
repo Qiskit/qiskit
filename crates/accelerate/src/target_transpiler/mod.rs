@@ -1151,6 +1151,12 @@ impl Target {
 
     /// Checks whether an instruction is supported by the Target based on instruction name and qargs.
     pub fn instruction_supported(&self, operation_name: &str, qargs: Option<&Qargs>) -> bool {
+        // Handle case where num_qubits is None by checking globally supported operations
+        let qargs: Option<&Qargs> = if self.num_qubits.is_none() {
+            None
+        } else {
+            qargs
+        };
         if self.gate_map.contains_key(operation_name) {
             if let Some(_qargs) = qargs {
                 let qarg_set: HashSet<&PhysicalQubit> = _qargs.iter().collect();
@@ -1163,7 +1169,6 @@ impl Target {
                         match obj {
                             TargetOperation::Variadic(_) => {
                                 return qargs.is_none()
-                                    || self.num_qubits == None
                                     || _qargs.iter().all(|qarg| {
                                         qarg.index() <= self.num_qubits.unwrap_or_default()
                                     }) && qarg_set.len() == _qargs.len();
@@ -1172,8 +1177,7 @@ impl Target {
                                 let qubit_comparison = obj.operation.num_qubits();
                                 return qubit_comparison == _qargs.len() as u32
                                     && _qargs.iter().all(|qarg| {
-                                        (qarg.index() < self.num_qubits.unwrap_or_default())
-                                            || self.num_qubits == None
+                                        qarg.index() < self.num_qubits.unwrap_or_default()
                                     });
                             }
                         }
@@ -1184,7 +1188,6 @@ impl Target {
                     match obj {
                         TargetOperation::Variadic(_) => {
                             return qargs.is_none()
-                                || self.num_qubits == None
                                 || _qargs.iter().all(|qarg| {
                                     qarg.index() <= self.num_qubits.unwrap_or_default()
                                 }) && qarg_set.len() == _qargs.len();
@@ -1193,8 +1196,7 @@ impl Target {
                             let qubit_comparison = obj.operation.num_qubits();
                             return qubit_comparison == _qargs.len() as u32
                                 && _qargs.iter().all(|qarg| {
-                                    (qarg.index() < self.num_qubits.unwrap_or_default())
-                                        || self.num_qubits == None
+                                    qarg.index() < self.num_qubits.unwrap_or_default()
                                 });
                         }
                     }

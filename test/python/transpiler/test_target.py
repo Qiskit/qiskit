@@ -1173,9 +1173,9 @@ Instructions:
         """Checks that instruction supported works when target.num_qubits is None."""
         target = Target.from_configuration(["u", "cx", "rxx"])
         self.assertTrue(target.instruction_supported("u", (0,)))
-        self.assertTrue(target.instruction_supported("cx", (0,1)))
+        self.assertTrue(target.instruction_supported("cx", (0, 1)))
         self.assertTrue(target.instruction_supported("cx", None))
-        self.assertTrue(target.instruction_supported("rxx", (2,3)))
+        self.assertTrue(target.instruction_supported("rxx", (2, 3)))
 
     def test_target_serialization_preserve_variadic(self):
         """Checks that variadics are still seen as variadic after serialization"""
