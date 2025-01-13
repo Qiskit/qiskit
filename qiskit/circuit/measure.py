@@ -31,6 +31,12 @@ class Measure(SingletonInstruction):
         """
         super().__init__("measure", 1, 1, [], label=label, duration=duration, unit=unit)
 
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        # Subclasses of Measure are not "standard", so we set this to None to
+        # prevent the Rust code from treating them as such.
+        cls._standard_instruction_type = None
+
     _singleton_lookup_key = stdlib_singleton_key()
 
     def broadcast_arguments(self, qargs, cargs):
