@@ -372,6 +372,7 @@ def generate_preset_pass_manager(
                 target = _FakeTarget.from_configuration(
                     num_qubits=backend.num_qubits if backend is not None else None,
                     coupling_map=coupling_map,
+                    dt=dt,
                 )
 
     # Update target with custom gate information. Note that this is an exception to the priority

@@ -1356,12 +1356,11 @@ class _FakeTarget(Target):
         cls,
         num_qubits: int | None = None,
         coupling_map: CouplingMap | list | None = None,
+        *args,
+        **kwargs,
     ) -> _FakeTarget:
 
         if num_qubits is None and coupling_map is not None:
             num_qubits = len(coupling_map.graph)
 
-        return cls(
-            num_qubits=num_qubits,
-            coupling_map=coupling_map,
-        )
+        return cls(num_qubits=num_qubits, coupling_map=coupling_map, *args, **kwargs)
