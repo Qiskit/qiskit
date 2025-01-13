@@ -152,7 +152,7 @@ fn score_sequence<'a>(
     sequence: impl Iterator<Item = (Option<StandardGate>, SmallVec<[Qubit; 2]>)> + 'a,
 ) -> (f64, usize) {
     let mut gate_count = 0;
-    let res = (
+    (
         1. - sequence
             .filter_map(|(gate, local_qubits)| {
                 let qubits = local_qubits
@@ -172,8 +172,7 @@ fn score_sequence<'a>(
             })
             .product::<f64>(),
         gate_count,
-    );
-    res
+    )
 }
 
 type MappingIterItem = Option<((TwoQubitGateSequence, String), [Qubit; 2])>;
