@@ -919,6 +919,21 @@ class TestUnitarySynthesisTarget(QiskitTestCase):
         self.assertIn("cx", ops)
         self.assertIn("measure", ops)
 
+    def test_target_with_global_gates(self):
+        """Test that 2q decomposition can handle a target with global gates."""
+
+        basis_gates = ["h", "p", "cp", "rz", "cx", "ccx", "swap"]
+        target = Target.from_configuration(basis_gates=basis_gates)
+
+        bell = QuantumCircuit(2)
+        bell.h(0)
+        bell.cx(0, 1)
+        bell_op = Operator(bell)
+        qc = QuantumCircuit(2)
+        qc.unitary(bell_op, [0, 1])
+        tqc = transpile(qc, target=target)
+        self.assertTrue(set(tqc.count_ops()).issubset(basis_gates))
+
 
 if __name__ == "__main__":
     unittest.main()
