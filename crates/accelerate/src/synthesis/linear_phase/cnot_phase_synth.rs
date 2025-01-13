@@ -80,15 +80,14 @@ fn get_instr(angle: String, qubit_idx: usize) -> Option<Instruction> {
 #[pyo3(signature = (cnots, angles, section_size=2))]
 pub fn synth_cnot_phase_aam(
     py: Python,
-    cnots: PyReadonlyArray2<u8>,
+    cnots: PyReadonlyArray2<bool>,
     angles: &Bound<PyList>,
     section_size: Option<i64>,
 ) -> PyResult<CircuitData> {
     // converting to Option<usize>
     let section_size: Option<usize> =
         section_size.and_then(|num| if num >= 0 { Some(num as usize) } else { None });
-
-    let cnots: Array2<bool> = cnots.as_array().mapv(|x| x != 0);
+    let cnots = cnots.as_array().to_owned();
     let num_qubits = cnots.nrows();
 
     let mut angles = angles
