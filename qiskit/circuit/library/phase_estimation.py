@@ -76,6 +76,7 @@ class PhaseEstimation(QuantumCircuit):
 
         Reference Circuit:
             .. plot::
+               :alt: Diagram illustrating the previously described circuit.
 
                from qiskit.circuit import QuantumCircuit
                from qiskit.circuit.library import PhaseEstimation
@@ -131,6 +132,7 @@ def phase_estimation(
     **Reference Circuit:**
 
     .. plot::
+       :alt: Circuit diagram output by the previous code.
        :include-source:
 
        from qiskit.circuit import QuantumCircuit
