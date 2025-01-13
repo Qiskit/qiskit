@@ -1,5 +1,0 @@
----
-features_synthesis:
-  - |
-    The :method:`.optimize_cx_circ_depth_5n_line` synthesis method has been rewritten
-    in Rust for better performance.
