@@ -64,6 +64,7 @@ defined as:
 
 
 .. plot::
+   :alt: Circuit diagram output by the previous code.
    :include-source:
 
    from qiskit import QuantumCircuit
@@ -559,7 +560,11 @@ Hardware can be instructed to apply a real-time idle period on a given qubit.  A
 
 The :class:`Barrier` instruction can span an arbitrary number of qubits and clbits, and is a no-op
 in hardware.  During transpilation and optimization, however, it blocks any optimizations from
-"crossing" the barrier; that is, in::
+"crossing" the barrier; that is, in:
+
+.. plot::
+    :include-source:
+    :nofigs:
 
     from qiskit.circuit import QuantumCircuit
 
@@ -1140,6 +1145,7 @@ If we draw this circuit, we will see that Qiskit places the zeroth qubit on the 
 drawing:
 
 .. plot::
+    :alt: Circuit diagram output by the previous code.
     :include-source:
     :context:
     :show-source-link: False

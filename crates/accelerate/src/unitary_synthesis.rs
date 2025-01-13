@@ -372,7 +372,8 @@ fn py_run_main_loop(
                     None,
                     None,
                 )?;
-                out_dag = synth_dag;
+                let out_qargs = dag.get_qargs(packed_instr.qubits);
+                apply_synth_dag(py, &mut out_dag, out_qargs, &synth_dag)?;
             }
         }
     }

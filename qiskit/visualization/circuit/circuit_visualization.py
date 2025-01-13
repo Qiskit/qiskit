@@ -189,6 +189,7 @@ def circuit_drawer(
 
     Example:
         .. plot::
+            :alt: Circuit diagram output by the previous code.
             :include-source:
 
             from qiskit import QuantumCircuit
