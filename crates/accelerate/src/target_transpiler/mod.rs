@@ -1163,6 +1163,7 @@ impl Target {
                         match obj {
                             TargetOperation::Variadic(_) => {
                                 return qargs.is_none()
+                                    || self.num_qubits == None
                                     || _qargs.iter().all(|qarg| {
                                         qarg.index() <= self.num_qubits.unwrap_or_default()
                                     }) && qarg_set.len() == _qargs.len();
@@ -1171,7 +1172,8 @@ impl Target {
                                 let qubit_comparison = obj.operation.num_qubits();
                                 return qubit_comparison == _qargs.len() as u32
                                     && _qargs.iter().all(|qarg| {
-                                        qarg.index() < self.num_qubits.unwrap_or_default()
+                                        (qarg.index() < self.num_qubits.unwrap_or_default())
+                                            || self.num_qubits == None
                                     });
                             }
                         }
@@ -1182,6 +1184,7 @@ impl Target {
                     match obj {
                         TargetOperation::Variadic(_) => {
                             return qargs.is_none()
+                                || self.num_qubits == None
                                 || _qargs.iter().all(|qarg| {
                                     qarg.index() <= self.num_qubits.unwrap_or_default()
                                 }) && qarg_set.len() == _qargs.len();
@@ -1190,7 +1193,8 @@ impl Target {
                             let qubit_comparison = obj.operation.num_qubits();
                             return qubit_comparison == _qargs.len() as u32
                                 && _qargs.iter().all(|qarg| {
-                                    qarg.index() < self.num_qubits.unwrap_or_default()
+                                    (qarg.index() < self.num_qubits.unwrap_or_default())
+                                        || self.num_qubits == None
                                 });
                         }
                     }
