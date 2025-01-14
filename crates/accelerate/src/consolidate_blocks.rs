@@ -181,7 +181,7 @@ pub(crate) fn consolidate_blocks(
                 }
             } else {
                 let unitary_gate = UNITARY_GATE.get_bound(py).call1((
-                    <pyo3::Bound<'_, PyArray<Complex<f64>, ndarray::Dim<[usize; 2]>>> as Clone>::clone(&array).into_pyobject(py)?,
+                    array.as_ref().into_pyobject(py)?,
                     py.None(),
                     false,
                 ))?;

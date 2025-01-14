@@ -728,10 +728,7 @@ impl<'py> IntoPyObject<'py> for CommutationLibraryEntry {
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
         let py_out = match self {
-            CommutationLibraryEntry::Commutes(b) => {
-                let temp = b.into_pyobject(py)?;
-                <pyo3::Bound<'_, PyBool> as Clone>::clone(&temp).into_any()
-            }
+            CommutationLibraryEntry::Commutes(b) => b.into_pyobject(py)?.into_bound().into_any(),
             CommutationLibraryEntry::QubitMapping(qm) => {
                 let out = PyDict::new(py);
                 for (k, v) in qm {
