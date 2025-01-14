@@ -206,6 +206,8 @@ class PulseDefaults:
         self.converter = QobjToInstructionConverter(pulse_library)
 
         for inst in cmd_def:
+            if inst.name in {"u1", "u2", "u3"}:
+                continue
             entry = PulseQobjDef(converter=self.converter, name=inst.name)
             entry.define(inst.sequence, user_provided=False)
             self.instruction_schedule_map._add(
