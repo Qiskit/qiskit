@@ -12,8 +12,8 @@
 
 use hashbrown::{HashMap, HashSet};
 use ndarray::{aview2, Array2};
-use num_complex::{Complex, Complex64};
-use numpy::{IntoPyArray, PyArray, PyReadonlyArray2};
+use num_complex::Complex64;
+use numpy::{IntoPyArray, PyReadonlyArray2};
 use pyo3::intern;
 use pyo3::prelude::*;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
