@@ -22,6 +22,7 @@ use pyo3::exceptions::PyRuntimeError;
 use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::types::{PyBool, PyDict, PySequence, PyTuple};
+use pyo3::BoundObject;
 
 use qiskit_circuit::bit_data::BitData;
 use qiskit_circuit::circuit_instruction::{ExtraInstructionAttributes, OperationFromPython};
