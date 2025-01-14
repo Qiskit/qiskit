@@ -1319,12 +1319,7 @@ impl SparseObservable {
 
     fn __getitem__(&self, py: Python, index: PySequenceIndex) -> PyResult<Py<PyAny>> {
         let indices = match index.with_len(self.num_terms())? {
-            SequenceIndex::Int(index) => {
-                return self
-                    .term(index)
-                    .to_term()
-                    .into_py_any(py)
-            }
+            SequenceIndex::Int(index) => return self.term(index).to_term().into_py_any(py),
             indices => indices,
         };
         let mut out = SparseObservable::zero(self.num_qubits);
