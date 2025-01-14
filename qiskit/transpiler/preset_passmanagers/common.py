@@ -289,7 +289,7 @@ def generate_routing_passmanager(
     coupling_map=None,
     vf2_call_limit=None,
     backend_properties=None,
-    seed_transpiler=None,
+    seed_transpiler=-1,
     check_trivial=False,
     use_barrier_before_measurement=True,
     vf2_max_trials=None,
@@ -308,7 +308,10 @@ def generate_routing_passmanager(
         backend_properties (BackendProperties): Properties of a backend to
             synthesize for (e.g. gate fidelities).
         seed_transpiler (int): Sets random seed for the stochastic parts of
-            the transpiler.
+            the transpiler. This is currently only used for :class:`.VF2PostLayout` and the
+            default value of ``-1`` is strongly recommended (which is no randomization).
+            If a value of ``None`` is provided this will seed from system
+            entropy.
         check_trivial (bool): If set to true this will condition running the
             :class:`~.VF2PostLayout` pass after routing on whether a trivial
             layout was tried and was found to not be perfect. This is only
@@ -366,7 +369,7 @@ def generate_routing_passmanager(
                     target,
                     coupling_map,
                     backend_properties,
-                    seed_transpiler,
+                    seed=seed_transpiler,
                     call_limit=vf2_call_limit,
                     max_trials=vf2_max_trials,
                     strict_direction=False,
