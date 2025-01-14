@@ -847,7 +847,11 @@ class HighLevelSynthesis(TransformationPass):
 
     def _instruction_supported(self, name: str, qubits: tuple[int] | None) -> bool:
         # include path for when target exists but target.num_qubits is None (BasicSimulator)
-        if self._target is None or self._target.num_qubits is None:
+        if (
+            self._target is None
+            or self._target.num_qubits is None
+            or len(self._target.operation_names) == 0
+        ):
             return name in self._device_insts
         return self._target.instruction_supported(operation_name=name, qargs=qubits)
 
