@@ -508,7 +508,7 @@ def generate_translation_passmanager(
             ]
     elif method == "synthesis":
         if target is not None and len(target.operation_names) == 0:
-            unroll = [
+            synth_block = [
                 HighLevelSynthesis(
                     hls_config=hls_config,
                     coupling_map=coupling_map,
@@ -517,28 +517,12 @@ def generate_translation_passmanager(
                     basis_gates=basis_gates,
                     min_qubits=3,
                     qubits_initially_zero=qubits_initially_zero,
-                ),
-                Unroll3qOrMore(target=target, basis_gates=basis_gates),
-                Collect2qBlocks(),
-                Collect1qRuns(),
-                ConsolidateBlocks(
-                    basis_gates=basis_gates,
-                    target=target,
-                    approximation_degree=approximation_degree,
-                ),
-                HighLevelSynthesis(
-                    hls_config=hls_config,
-                    coupling_map=coupling_map,
-                    target=target,
-                    use_qubit_indices=True,
-                    basis_gates=basis_gates,
-                    qubits_initially_zero=qubits_initially_zero,
-                ),
+                )
             ]
         else:
-            unroll = [
-                # # Use unitary synthesis for basis aware decomposition of
-                # UnitaryGates > 2q before collection
+            # Use unitary synthesis for basis aware decomposition of
+            # UnitaryGates > 2q before collection
+            synth_block = [
                 UnitarySynthesis(
                     basis_gates,
                     approximation_degree=approximation_degree,
@@ -558,6 +542,11 @@ def generate_translation_passmanager(
                     min_qubits=3,
                     qubits_initially_zero=qubits_initially_zero,
                 ),
+            ]
+
+        unroll = (
+            synth_block
+            + [
                 Unroll3qOrMore(target=target, basis_gates=basis_gates),
                 Collect2qBlocks(),
                 Collect1qRuns(),
@@ -566,24 +555,9 @@ def generate_translation_passmanager(
                     target=target,
                     approximation_degree=approximation_degree,
                 ),
-                UnitarySynthesis(
-                    basis_gates=basis_gates,
-                    approximation_degree=approximation_degree,
-                    coupling_map=coupling_map,
-                    backend_props=backend_props,
-                    plugin_config=unitary_synthesis_plugin_config,
-                    method=unitary_synthesis_method,
-                    target=target,
-                ),
-                HighLevelSynthesis(
-                    hls_config=hls_config,
-                    coupling_map=coupling_map,
-                    target=target,
-                    use_qubit_indices=True,
-                    basis_gates=basis_gates,
-                    qubits_initially_zero=qubits_initially_zero,
-                ),
             ]
+            + synth_block
+        )
     else:
         raise TranspilerError(f"Invalid translation method {method}.")
     return PassManager(unroll)

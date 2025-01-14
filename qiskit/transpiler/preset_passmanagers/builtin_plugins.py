@@ -559,11 +559,12 @@ class OptimizationPassManager(PassManagerStagePlugin):
                 pass_manager_config,
                 optimization_level=optimization_level,
             )
-            if optimization_level == 1:
-                # Steps for optimization level 1
 
-                # If there are no basis gates (None/empty list), don't run
-                # Optimize1qGatesDecomposition
+            # Basic steps for optimization level 1:
+            # 1. Optimize1qGatesDecomposition (only if basis gates)
+            # 2. InverseCancellation
+            if optimization_level == 1:
+                # Only run Optimize1qGatesDecomposition if there are basis_gates in the config
                 if (
                     pass_manager_config.basis_gates is not None
                     and len(pass_manager_config.basis_gates) > 0
@@ -595,36 +596,39 @@ class OptimizationPassManager(PassManagerStagePlugin):
                     ),
                 ]
 
+            # Basic steps for optimization level 2:
+            # 1. RemoveIdentityEquivalent
+            # 2. Optimize1qGatesDecomposition (only if basis gates)
+            # 3. CommutativeCancelation
             elif optimization_level == 2:
-                # Steps for optimization level 2
-
-                # If there are no basis gates (None/empty list), don't run
-                # Optimize1qGatesDecomposition
+                _opt = [
+                    RemoveIdentityEquivalent(
+                        approximation_degree=pass_manager_config.approximation_degree,
+                        target=pass_manager_config.target,
+                    )
+                ]
+                # Only run Optimize1qGatesDecomposition if there are basis_gates in the config
                 if (
                     pass_manager_config.basis_gates is not None
                     and len(pass_manager_config.basis_gates) > 0
                 ):
-                    _opt = [
-                        RemoveIdentityEquivalent(
-                            approximation_degree=pass_manager_config.approximation_degree,
-                            target=pass_manager_config.target,
-                        ),
+                    _opt += [
                         Optimize1qGatesDecomposition(
                             basis=pass_manager_config.basis_gates, target=pass_manager_config.target
                         ),
                     ]
-                else:
-                    _opt = [
-                        RemoveIdentityEquivalent(
-                            approximation_degree=pass_manager_config.approximation_degree,
-                            target=pass_manager_config.target,
-                        )
-                    ]
+
                 _opt += [
                     CommutativeCancellation(target=pass_manager_config.target),
                 ]
+
+            # Basic steps for optimization level 3:
+            # 1. ConsolidateBlocks
+            # 2. UnitarySynthesis (only if basis gates)
+            # 3. RemoveIdentityEquivalent (only if basis gates)
+            # 4. Optimize1qGatesDecomposition (only if basis gates)
+            # 5. CommutativeCancelation
             elif optimization_level == 3:
-                # Steps for optimization level 3
                 _opt = [
                     ConsolidateBlocks(
                         basis_gates=pass_manager_config.basis_gates,
@@ -632,8 +636,8 @@ class OptimizationPassManager(PassManagerStagePlugin):
                         approximation_degree=pass_manager_config.approximation_degree,
                     ),
                 ]
-                # If there are no basis gates (None/empty list), don't run
-                # Optimize1qGatesDecomposition or UnitarySynthesis
+                # Only run UnitarySynthesis, RemoveIdentityEquivalent and
+                # Optimize1qGatesDeecomposition if there are basis_gates in the config
                 if (
                     pass_manager_config.basis_gates is not None
                     and len(pass_manager_config.basis_gates) > 0
@@ -667,11 +671,11 @@ class OptimizationPassManager(PassManagerStagePlugin):
 
             unroll = translation.to_flow_controller()
 
-            # Build nested Flow controllers
+            # Build nested flow controllers
             def _unroll_condition(property_set):
                 return not property_set["all_gates_in_basis"]
 
-            # Check if any gate is not in the basis, and if so, run unroll passes
+            # Check if any gate is not in the basis, and if so, run unroll/translation passes
             _unroll_if_out_of_basis = [
                 GatesInBasis(pass_manager_config.basis_gates, target=pass_manager_config.target),
                 ConditionalController(unroll, condition=_unroll_condition),
@@ -680,40 +684,30 @@ class OptimizationPassManager(PassManagerStagePlugin):
             if optimization_level == 3:
                 optimization.append(_minimum_point_check)
             elif optimization_level == 2:
-                # If there are no basis gates (None/empty list), don't run
-                # UnitarySynthesis
+                _extra_opt = [
+                    ConsolidateBlocks(
+                        basis_gates=pass_manager_config.basis_gates,
+                        target=pass_manager_config.target,
+                        approximation_degree=pass_manager_config.approximation_degree,
+                    ),
+                ]
+                # Only run UnitarySynthesis if there are basis_gates in the config
                 if (
                     pass_manager_config.basis_gates is not None
                     and len(pass_manager_config.basis_gates) > 0
                 ):
-                    optimization.append(
-                        [
-                            ConsolidateBlocks(
-                                basis_gates=pass_manager_config.basis_gates,
-                                target=pass_manager_config.target,
-                                approximation_degree=pass_manager_config.approximation_degree,
-                            ),
-                            UnitarySynthesis(
-                                pass_manager_config.basis_gates,
-                                approximation_degree=pass_manager_config.approximation_degree,
-                                coupling_map=pass_manager_config.coupling_map,
-                                backend_props=pass_manager_config.backend_properties,
-                                method=pass_manager_config.unitary_synthesis_method,
-                                plugin_config=pass_manager_config.unitary_synthesis_plugin_config,
-                                target=pass_manager_config.target,
-                            ),
-                        ]
-                    )
-                else:
-                    optimization.append(
-                        [
-                            ConsolidateBlocks(
-                                basis_gates=pass_manager_config.basis_gates,
-                                target=pass_manager_config.target,
-                                approximation_degree=pass_manager_config.approximation_degree,
-                            ),
-                        ]
-                    )
+                    _extra_opt += [
+                        UnitarySynthesis(
+                            pass_manager_config.basis_gates,
+                            approximation_degree=pass_manager_config.approximation_degree,
+                            coupling_map=pass_manager_config.coupling_map,
+                            backend_props=pass_manager_config.backend_properties,
+                            method=pass_manager_config.unitary_synthesis_method,
+                            plugin_config=pass_manager_config.unitary_synthesis_plugin_config,
+                            target=pass_manager_config.target,
+                        ),
+                    ]
+                optimization.append(_extra_opt)
                 optimization.append(_depth_check + _size_check)
             else:
                 optimization.append(_depth_check + _size_check)

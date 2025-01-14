@@ -1338,7 +1338,7 @@ class _FakeTarget(Target):
     def __len__(self):
         return len(self._gate_map)
 
-    def build_coupling_map(self, *args, **kwargs):
+    def build_coupling_map(self, *args, **kwargs):  # pylint: disable=unused-argument
         return copy.deepcopy(self._coupling_map)
 
     def instruction_supported(self, *args, **kwargs):
@@ -1354,9 +1354,9 @@ class _FakeTarget(Target):
     @classmethod
     def from_configuration(
         cls,
+        *args,
         num_qubits: int | None = None,
         coupling_map: CouplingMap | list | None = None,
-        *args,
         **kwargs,
     ) -> _FakeTarget:
 

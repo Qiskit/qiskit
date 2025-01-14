@@ -433,7 +433,6 @@ class TestElidePermutationsInTranspileFlow(QiskitTestCase):
             self.assertTrue(Operator.from_circuit(res).equiv(Operator(qc)))
 
         with self.subTest("larger coupling map"):
-
             spm = generate_preset_pass_manager(
                 optimization_level=3,
                 seed_transpiler=42,

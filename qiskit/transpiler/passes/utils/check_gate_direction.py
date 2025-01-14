@@ -45,7 +45,8 @@ class CheckGateDirection(AnalysisPass):
         Args:
             dag (DAGCircuit): DAG to check.
         """
-
+        # Only use "check_gate_direction_target" if a target exists and target.operation_names
+        # is not empty, else use "check_gate_direction_coupling".
         if self.target is None:
             self.property_set["is_direction_mapped"] = check_gate_direction_coupling(
                 dag, set(self.coupling_map.get_edges())
