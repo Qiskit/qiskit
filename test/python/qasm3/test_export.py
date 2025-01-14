@@ -2680,7 +2680,6 @@ qubit[1] q;
 unitary q[0];
 """
         test = dumps(qc)
-        print(test)
         self.assertEqual(test, expected)
 
 
