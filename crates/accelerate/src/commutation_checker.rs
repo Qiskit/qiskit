@@ -59,16 +59,22 @@ static SUPPORTED_ROTATIONS: Lazy<HashMap<&str, Option<OperationRef>>> = Lazy::ne
         ("rz", Some(OperationRef::Standard(StandardGate::ZGate))),
         ("p", Some(OperationRef::Standard(StandardGate::ZGate))),
         ("u1", Some(OperationRef::Standard(StandardGate::ZGate))),
-        ("crx", Some(OperationRef::Standard(StandardGate::CXGate))),
-        ("cry", Some(OperationRef::Standard(StandardGate::CYGate))),
-        ("crz", Some(OperationRef::Standard(StandardGate::CZGate))),
-        ("cp", Some(OperationRef::Standard(StandardGate::CZGate))),
         ("rxx", None), // None means the gate is in the commutation dictionary
         ("ryy", None),
         ("rzx", None),
         ("rzz", None),
     ])
 });
+
+static SUPPORTED_CONTROLLED_ROTATIONS: Lazy<HashMap<&str, Option<OperationRef>>> =
+    Lazy::new(|| {
+        HashMap::from([
+            ("crx", Some(OperationRef::Standard(StandardGate::CXGate))),
+            ("cry", Some(OperationRef::Standard(StandardGate::CYGate))),
+            ("crz", Some(OperationRef::Standard(StandardGate::CZGate))),
+            ("cp", Some(OperationRef::Standard(StandardGate::CZGate))),
+        ])
+    });
 
 fn get_bits<T>(
     py: Python,
@@ -117,6 +123,7 @@ impl CommutationChecker {
         // Initialize sets before they are used in the commutation checker
         Lazy::force(&SUPPORTED_OP);
         Lazy::force(&SUPPORTED_ROTATIONS);
+        Lazy::force(&SUPPORTED_CONTROLLED_ROTATIONS);
         CommutationChecker {
             library: CommutationLibrary::new(standard_gate_commutations),
             cache: HashMap::new(),
@@ -636,27 +643,40 @@ fn map_rotation<'a>(
     tol: f64,
 ) -> (&'a OperationRef<'a>, &'a [Param], bool) {
     let name = op.name();
-    if let Some(generator) = SUPPORTED_ROTATIONS.get(name) {
-        // If the rotation angle is below the tolerance, the gate is assumed to
-        // commute with everything, and we simply return the operation with the flag that
-        // it commutes trivially.
-        if let Param::Float(angle) = params[0] {
-            if (angle % TWOPI).abs() < tol {
-                return (op, params, true);
-            };
-        };
 
-        // Otherwise we need to cover two cases -- either a generator is given, in which case
-        // we return it, or we don't have a generator yet, but we know we have the operation
-        // stored in the commutation library. For example, RXX does not have a generator in Rust
-        // yet (PauliGate is not in Rust currently), but it is stored in the library, so we
-        // can strip the parameters and just return the gate.
-        if let Some(gate) = generator {
-            return (gate, &[], false);
+    let (generator, periodicity) = if let Some(generator) = SUPPORTED_ROTATIONS.get(name) {
+        (generator, TWOPI)
+    } else if let Some(generator) = SUPPORTED_CONTROLLED_ROTATIONS.get(name) {
+        (generator, 2. * TWOPI)
+    } else {
+        return (op, params, false);
+    };
+
+    // if SUPPORTED_ROTATIONS.contains_key(name) {
+    //     let g
+    // }
+
+    // if let Some(generator) = SUPPORTED_ROTATIONS.get(name) {
+    // If the rotation angle is below the tolerance, the gate is assumed to
+    // commute with everything, and we simply return the operation with the flag that
+    // it commutes trivially.
+    if let Param::Float(angle) = params[0] {
+        if (angle % periodicity).abs() < tol {
+            return (op, params, true);
         };
-        return (op, &[], false);
-    }
-    (op, params, false)
+    };
+
+    // Otherwise we need to cover two cases -- either a generator is given, in which case
+    // we return it, or we don't have a generator yet, but we know we have the operation
+    // stored in the commutation library. For example, RXX does not have a generator in Rust
+    // yet (PauliGate is not in Rust currently), but it is stored in the library, so we
+    // can strip the parameters and just return the gate.
+    if let Some(gate) = generator {
+        return (gate, &[], false);
+    };
+    return (op, &[], false);
+    // }
+    // (op, params, false)
 }
 
 fn get_relative_placement(
