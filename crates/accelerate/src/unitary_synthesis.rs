@@ -11,9 +11,9 @@
 // that they have been altered from the originals.
 #![allow(clippy::too_many_arguments)]
 
-#[cfg(feature = "cache_pygates")]
-use std::cell::OnceCell;
 use std::f64::consts::PI;
+#[cfg(feature = "cache_pygates")]
+use std::sync::OnceLock;
 
 use approx::relative_eq;
 use hashbrown::{HashMap, HashSet};
@@ -149,7 +149,7 @@ fn apply_synth_sequence(
             params: new_params,
             extra_attrs: ExtraInstructionAttributes::default(),
             #[cfg(feature = "cache_pygates")]
-            py_op: OnceCell::new(),
+            py_op: OnceLock::new(),
         };
         instructions.push(instruction);
     }
@@ -372,7 +372,8 @@ fn py_run_main_loop(
                     None,
                     None,
                 )?;
-                out_dag = synth_dag;
+                let out_qargs = dag.get_qargs(packed_instr.qubits);
+                apply_synth_dag(py, &mut out_dag, out_qargs, &synth_dag)?;
             }
         }
     }
@@ -544,6 +545,7 @@ fn get_2q_decomposers_from_target(
     let mut available_2q_props: IndexMap<&str, (Option<f64>, Option<f64>)> = IndexMap::new();
 
     let mut qubit_gate_map = IndexMap::new();
+
     match target.operation_names_for_qargs(Some(&qubits)) {
         Ok(direct_keys) => {
             qubit_gate_map.insert(&qubits, direct_keys);
@@ -596,7 +598,10 @@ fn get_2q_decomposers_from_target(
                         OperationRef::Standard(_) => (),
                         _ => continue,
                     }
-
+                    // Filter out non-2q-gate candidates
+                    if op.operation.num_qubits() != 2 {
+                        continue;
+                    }
                     available_2q_basis.insert(key, replace_parametrized_gate(op.clone()));
 
                     if target.contains_key(key) {

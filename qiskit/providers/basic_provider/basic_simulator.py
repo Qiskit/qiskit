@@ -17,7 +17,9 @@ to run on the simulator. It is exponential in the number of qubits.
 
 The simulator is run using
 
-.. code-block:: python
+.. plot::
+   :include-source:
+   :nofigs:
 
    BasicSimulator().run(run_input)
 
