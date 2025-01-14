@@ -1637,7 +1637,7 @@ def _common_method(*classes):
     return decorator
 
 
-@deprecate_arg("show_barriers", new_alias="plot_barriers", since="1.1.0", pending=True)
+@deprecate_arg("show_barriers", new_alias="plot_barriers", since="1.4")
 @_common_method(Schedule, ScheduleBlock)
 def draw(
     self,
