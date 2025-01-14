@@ -545,6 +545,7 @@ fn get_2q_decomposers_from_target(
     let mut available_2q_props: IndexMap<&str, (Option<f64>, Option<f64>)> = IndexMap::new();
 
     let mut qubit_gate_map = IndexMap::new();
+
     match target.operation_names_for_qargs(Some(&qubits)) {
         Ok(direct_keys) => {
             qubit_gate_map.insert(&qubits, direct_keys);
@@ -597,7 +598,10 @@ fn get_2q_decomposers_from_target(
                         OperationRef::Standard(_) => (),
                         _ => continue,
                     }
-
+                    // Filter out non-2q-gate candidates
+                    if op.operation.num_qubits() != 2 {
+                        continue;
+                    }
                     available_2q_basis.insert(key, replace_parametrized_gate(op.clone()));
 
                     if target.contains_key(key) {
