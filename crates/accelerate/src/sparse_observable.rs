@@ -28,6 +28,7 @@ use pyo3::prelude::*;
 use pyo3::sync::GILOnceCell;
 use pyo3::types::{IntoPyDict, PyList, PyType};
 use pyo3::BoundObject;
+use pyo3::IntoPyObjectExt;
 
 use qiskit_circuit::imports::{ImportOnceCell, NUMPY_COPY_ONLY_IF_NEEDED};
 use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};
@@ -1319,12 +1320,10 @@ impl SparseObservable {
     fn __getitem__(&self, py: Python, index: PySequenceIndex) -> PyResult<Py<PyAny>> {
         let indices = match index.with_len(self.num_terms())? {
             SequenceIndex::Int(index) => {
-                return Ok(self
+                return self
                     .term(index)
                     .to_term()
-                    .into_pyobject(py)?
-                    .into_any()
-                    .unbind())
+                    .into_py_any(py)
             }
             indices => indices,
         };
