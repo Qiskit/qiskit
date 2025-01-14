@@ -60,6 +60,8 @@ pub mod uc_gate;
 pub mod unitary_synthesis;
 pub mod utils;
 pub mod vf2_layout;
+mod gates;
+mod xx_decompose;
 
 mod rayon_ext;
 #[cfg(test)]

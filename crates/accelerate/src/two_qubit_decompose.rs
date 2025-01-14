@@ -47,6 +47,7 @@ use crate::euler_one_qubit_decomposer::{
 };
 use crate::utils;
 use crate::QiskitError;
+use crate::gates::{rz_matrix};
 
 use rand::prelude::*;
 use rand_distr::StandardNormal;
@@ -145,7 +146,7 @@ pub trait TraceToFidelity {
 
 impl TraceToFidelity for Complex64 {
     fn trace_to_fid(self) -> f64 {
-        (4.0 + self.abs().powi(2)) / 20.0
+        (4.0 + self.norm_sqr()) / 20.0
     }
 }
 
@@ -344,10 +345,10 @@ fn ry_matrix(theta: f64) -> Array2<Complex64> {
     array![[cos, -sin], [sin, cos]]
 }
 
-fn rz_matrix(theta: f64) -> Array2<Complex64> {
-    let ilam2 = c64(0., 0.5 * theta);
-    array![[(-ilam2).exp(), C_ZERO], [C_ZERO, ilam2.exp()]]
-}
+// fn rz_matrix(theta: f64) -> Array2<Complex64> {
+//     let ilam2 = c64(0., 0.5 * theta);
+//     array![[(-ilam2).exp(), C_ZERO], [C_ZERO, ilam2.exp()]]
+// }
 
 /// Generates the array :math:`e^{(i a XX + i b YY + i c ZZ)}`
 fn ud(a: f64, b: f64, c: f64) -> Array2<Complex64> {
