@@ -622,6 +622,13 @@ python setup.py build_rust --inplace
 PYTHONUSERBASE="$VIRTUAL_ENV" cargo test --no-default-features
 ```
 
+> [!IMPORTANT]
+> On Linux, you may need to first set your `LD_LIBRARY_PATH` env var to include the
+> path to your Python installation's shared lib, e.g.:
+> ```bash
+> export LD_LIBRARY_PATH="$(python -c 'import sysconfig; print(sysconfig.get_config_var("LIBDIR"))'):$LD_LIBRARY_PATH"
+> ```
+
 The first command builds Qiskit in editable mode,
 which ensures that Rust tests that interact with Qiskit's Python code actually
 use the latest Python code from your working directory.
