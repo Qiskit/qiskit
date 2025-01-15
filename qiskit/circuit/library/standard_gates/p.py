@@ -372,24 +372,16 @@ class MCPhaseGate(ControlledGate):
             qc.cp(self.params[0], 0, 1)
         else:
             lam = self.params[0]
-            if type(lam) in [float, int]:
-                q_controls = list(range(self.num_ctrl_qubits))
-                q_target = self.num_ctrl_qubits
-                new_target = q_target
-                for k in range(self.num_ctrl_qubits):
-                    # Note: it's better *not* to run transpile recursively
-                    qc.mcrz(lam / (2**k), q_controls, new_target, use_basis_gates=False)
-                    new_target = q_controls.pop()
-                qc.p(lam / (2**self.num_ctrl_qubits), new_target)
-            else:  # in this case type(lam) is ParameterValueType
-                from .u3 import _gray_code_chain
 
-                scaled_lam = self.params[0] / (2 ** (self.num_ctrl_qubits - 1))
-                bottom_gate = CPhaseGate(scaled_lam)
-                for operation, qubits, clbits in _gray_code_chain(
-                    qr, self.num_ctrl_qubits, bottom_gate
-                ):
-                    qc._append(operation, qubits, clbits)
+            q_controls = list(range(self.num_ctrl_qubits))
+            q_target = self.num_ctrl_qubits
+            new_target = q_target
+            for k in range(self.num_ctrl_qubits):
+                # Note: it's better *not* to run transpile recursively
+                qc.mcrz(lam / (2**k), q_controls, new_target, use_basis_gates=False)
+                new_target = q_controls.pop()
+            qc.p(lam / (2**self.num_ctrl_qubits), new_target)
+
         self.definition = qc
 
     def control(

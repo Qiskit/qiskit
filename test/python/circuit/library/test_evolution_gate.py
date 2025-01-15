@@ -479,6 +479,50 @@ class TestEvolutionGate(QiskitTestCase):
         decomposed = evo_gate.definition.decompose()
         self.assertEqual(decomposed.count_ops()["cx"], reps * 3 * 4)
 
+    def test_all_identity(self):
+        """Test circuit with all identity Paulis works correctly."""
+        evo = PauliEvolutionGate(I ^ I, time=1).definition
+        expected = QuantumCircuit(2, global_phase=-1)
+        self.assertEqual(expected, evo)
+
+    def test_global_phase(self):
+        """Test a circuit with parameterized global phase terms.
+
+        Regression test of #13625.
+        """
+        pauli = (X ^ X) + (I ^ I) + (I ^ X)
+        time = Parameter("t")
+        evo = PauliEvolutionGate(pauli, time=time)
+
+        expected = QuantumCircuit(2, global_phase=-time)
+        expected.rxx(2 * time, 0, 1)
+        expected.rx(2 * time, 0)
+
+        with self.subTest(msg="check circuit"):
+            self.assertEqual(expected, evo.definition)
+
+        # since all terms in the Pauli operator commute, we can compare to an
+        # exact matrix exponential
+        time_value = 1.76123
+        bound = evo.definition.assign_parameters([time_value])
+        exact = scipy.linalg.expm(-1j * time_value * pauli.to_matrix())
+        with self.subTest(msg="check correctness"):
+            self.assertEqual(Operator(exact), Operator(bound))
+
+    def test_sympify_is_real(self):
+        """Test converting the parameters to sympy is real.
+
+        Regression test of #13642, where the parameters in the Pauli evolution had a spurious
+        zero complex part. Even though this is not noticable upon binding or printing the parameter,
+        it does affect the output of Parameter.sympify.
+        """
+        time = Parameter("t")
+        evo = PauliEvolutionGate(Z, time=time)
+
+        angle = evo.definition.data[0].operation.params[0]
+        expected = (2.0 * time).sympify()
+        self.assertEqual(expected, angle.sympify())
+
 
 def exact_atomic_evolution(circuit, pauli, time):
     """An exact atomic evolution for Suzuki-Trotter.
