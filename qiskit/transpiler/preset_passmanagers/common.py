@@ -213,19 +213,16 @@ def generate_unroll_3q(
         PassManager: The unroll 3q or more pass manager
     """
     unroll_3q = PassManager()
-    if (basis_gates is not None and len(basis_gates) > 0) or (
-        target is not None and len(target.operation_names) > 0
-    ):
-        unroll_3q.append(
-            UnitarySynthesis(
-                basis_gates,
-                approximation_degree=approximation_degree,
-                method=unitary_synthesis_method,
-                min_qubits=3,
-                plugin_config=unitary_synthesis_plugin_config,
-                target=target,
-            )
+    unroll_3q.append(
+        UnitarySynthesis(
+            basis_gates,
+            approximation_degree=approximation_degree,
+            method=unitary_synthesis_method,
+            min_qubits=3,
+            plugin_config=unitary_synthesis_plugin_config,
+            target=target,
         )
+    )
     unroll_3q.append(
         HighLevelSynthesis(
             hls_config=hls_config,
@@ -240,12 +237,7 @@ def generate_unroll_3q(
     )
     # If there are no target instructions revert to using unroll3qormore so
     # routing works.
-    if (
-        basis_gates is None
-        and target is None
-        or target is not None
-        and len(target.operation_names) == 0
-    ):
+    if basis_gates is None and target is None:
         unroll_3q.append(Unroll3qOrMore(target, basis_gates))
     else:
         unroll_3q.append(BasisTranslator(sel, basis_gates, target=target, min_qubits=3))
@@ -415,7 +407,6 @@ def generate_pre_op_passmanager(target=None, coupling_map=None, remove_reset_in_
                 condition=_direction_condition,
             )
         )
-
     if remove_reset_in_zero:
         pre_opt.append(RemoveResetInZeroState())
     return pre_opt
@@ -470,94 +461,77 @@ def generate_translation_passmanager(
         return PassManager([])
 
     if method == "translator":
-        if target is not None and len(target.operation_names) == 0:
-            unroll = [
-                HighLevelSynthesis(
-                    hls_config=hls_config,
-                    coupling_map=coupling_map,
-                    target=target,
-                    use_qubit_indices=True,
-                    equivalence_library=sel,
-                    basis_gates=basis_gates,
-                    qubits_initially_zero=qubits_initially_zero,
-                ),
-            ]
-        else:
-            unroll = [
-                # Use unitary synthesis for basis aware decomposition of
-                # UnitaryGates before custom unrolling
-                UnitarySynthesis(
-                    basis_gates,
-                    approximation_degree=approximation_degree,
-                    coupling_map=coupling_map,
-                    backend_props=backend_props,
-                    plugin_config=unitary_synthesis_plugin_config,
-                    method=unitary_synthesis_method,
-                    target=target,
-                ),
-                HighLevelSynthesis(
-                    hls_config=hls_config,
-                    coupling_map=coupling_map,
-                    target=target,
-                    use_qubit_indices=True,
-                    equivalence_library=sel,
-                    basis_gates=basis_gates,
-                    qubits_initially_zero=qubits_initially_zero,
-                ),
-                BasisTranslator(sel, basis_gates, target),
-            ]
-    elif method == "synthesis":
-        if target is not None and len(target.operation_names) == 0:
-            synth_block = [
-                HighLevelSynthesis(
-                    hls_config=hls_config,
-                    coupling_map=coupling_map,
-                    target=target,
-                    use_qubit_indices=True,
-                    basis_gates=basis_gates,
-                    min_qubits=3,
-                    qubits_initially_zero=qubits_initially_zero,
-                )
-            ]
-        else:
+        unroll = [
             # Use unitary synthesis for basis aware decomposition of
-            # UnitaryGates > 2q before collection
-            synth_block = [
-                UnitarySynthesis(
-                    basis_gates,
-                    approximation_degree=approximation_degree,
-                    coupling_map=coupling_map,
-                    backend_props=backend_props,
-                    plugin_config=unitary_synthesis_plugin_config,
-                    method=unitary_synthesis_method,
-                    min_qubits=3,
-                    target=target,
-                ),
-                HighLevelSynthesis(
-                    hls_config=hls_config,
-                    coupling_map=coupling_map,
-                    target=target,
-                    use_qubit_indices=True,
-                    basis_gates=basis_gates,
-                    min_qubits=3,
-                    qubits_initially_zero=qubits_initially_zero,
-                ),
-            ]
+            # UnitaryGates before custom unrolling
+            UnitarySynthesis(
+                basis_gates,
+                approximation_degree=approximation_degree,
+                coupling_map=coupling_map,
+                backend_props=backend_props,
+                plugin_config=unitary_synthesis_plugin_config,
+                method=unitary_synthesis_method,
+                target=target,
+            ),
+            HighLevelSynthesis(
+                hls_config=hls_config,
+                coupling_map=coupling_map,
+                target=target,
+                use_qubit_indices=True,
+                equivalence_library=sel,
+                basis_gates=basis_gates,
+                qubits_initially_zero=qubits_initially_zero,
+            ),
+            BasisTranslator(sel, basis_gates, target),
+        ]
 
-        unroll = (
-            synth_block
-            + [
-                Unroll3qOrMore(target=target, basis_gates=basis_gates),
-                Collect2qBlocks(),
-                Collect1qRuns(),
-                ConsolidateBlocks(
-                    basis_gates=basis_gates,
-                    target=target,
-                    approximation_degree=approximation_degree,
-                ),
-            ]
-            + synth_block
-        )
+    elif method == "synthesis":
+        unroll = [
+            # # Use unitary synthesis for basis aware decomposition of
+            # UnitaryGates > 2q before collection
+            UnitarySynthesis(
+                basis_gates,
+                approximation_degree=approximation_degree,
+                coupling_map=coupling_map,
+                backend_props=backend_props,
+                plugin_config=unitary_synthesis_plugin_config,
+                method=unitary_synthesis_method,
+                min_qubits=3,
+                target=target,
+            ),
+            HighLevelSynthesis(
+                hls_config=hls_config,
+                coupling_map=coupling_map,
+                target=target,
+                use_qubit_indices=True,
+                basis_gates=basis_gates,
+                min_qubits=3,
+                qubits_initially_zero=qubits_initially_zero,
+            ),
+            Unroll3qOrMore(target=target, basis_gates=basis_gates),
+            Collect2qBlocks(),
+            Collect1qRuns(),
+            ConsolidateBlocks(
+                basis_gates=basis_gates, target=target, approximation_degree=approximation_degree
+            ),
+            UnitarySynthesis(
+                basis_gates=basis_gates,
+                approximation_degree=approximation_degree,
+                coupling_map=coupling_map,
+                backend_props=backend_props,
+                plugin_config=unitary_synthesis_plugin_config,
+                method=unitary_synthesis_method,
+                target=target,
+            ),
+            HighLevelSynthesis(
+                hls_config=hls_config,
+                coupling_map=coupling_map,
+                target=target,
+                use_qubit_indices=True,
+                basis_gates=basis_gates,
+                qubits_initially_zero=qubits_initially_zero,
+            ),
+        ]
     else:
         raise TranspilerError(f"Invalid translation method {method}.")
     return PassManager(unroll)

@@ -561,23 +561,14 @@ class OptimizationPassManager(PassManagerStagePlugin):
             )
 
             # Basic steps for optimization level 1:
-            # 1. Optimize1qGatesDecomposition (only if basis gates)
+            # 1. Optimize1qGatesDecomposition
             # 2. InverseCancellation
             if optimization_level == 1:
-                # Only run Optimize1qGatesDecomposition if there are basis_gates in the config
-                if (
-                    pass_manager_config.basis_gates is not None
-                    and len(pass_manager_config.basis_gates) > 0
-                ):
-                    _opt = [
-                        Optimize1qGatesDecomposition(
-                            basis=pass_manager_config.basis_gates, target=pass_manager_config.target
-                        )
-                    ]
-                else:
-                    _opt = []
 
-                _opt += [
+                _opt = [
+                    Optimize1qGatesDecomposition(
+                        basis=pass_manager_config.basis_gates, target=pass_manager_config.target
+                    ),
                     InverseCancellation(
                         [
                             CXGate(),
@@ -598,35 +589,25 @@ class OptimizationPassManager(PassManagerStagePlugin):
 
             # Basic steps for optimization level 2:
             # 1. RemoveIdentityEquivalent
-            # 2. Optimize1qGatesDecomposition (only if basis gates)
+            # 2. Optimize1qGatesDecomposition
             # 3. CommutativeCancelation
             elif optimization_level == 2:
                 _opt = [
                     RemoveIdentityEquivalent(
                         approximation_degree=pass_manager_config.approximation_degree,
                         target=pass_manager_config.target,
-                    )
-                ]
-                # Only run Optimize1qGatesDecomposition if there are basis_gates in the config
-                if (
-                    pass_manager_config.basis_gates is not None
-                    and len(pass_manager_config.basis_gates) > 0
-                ):
-                    _opt += [
-                        Optimize1qGatesDecomposition(
-                            basis=pass_manager_config.basis_gates, target=pass_manager_config.target
-                        ),
-                    ]
-
-                _opt += [
+                    ),
+                    Optimize1qGatesDecomposition(
+                        basis=pass_manager_config.basis_gates, target=pass_manager_config.target
+                    ),
                     CommutativeCancellation(target=pass_manager_config.target),
                 ]
 
             # Basic steps for optimization level 3:
             # 1. ConsolidateBlocks
-            # 2. UnitarySynthesis (only if basis gates)
-            # 3. RemoveIdentityEquivalent (only if basis gates)
-            # 4. Optimize1qGatesDecomposition (only if basis gates)
+            # 2. UnitarySynthesis
+            # 3. RemoveIdentityEquivalent
+            # 4. Optimize1qGatesDecomposition
             # 5. CommutativeCancelation
             elif optimization_level == 3:
                 _opt = [
@@ -635,33 +616,24 @@ class OptimizationPassManager(PassManagerStagePlugin):
                         target=pass_manager_config.target,
                         approximation_degree=pass_manager_config.approximation_degree,
                     ),
+                    UnitarySynthesis(
+                        pass_manager_config.basis_gates,
+                        approximation_degree=pass_manager_config.approximation_degree,
+                        coupling_map=pass_manager_config.coupling_map,
+                        backend_props=pass_manager_config.backend_properties,
+                        method=pass_manager_config.unitary_synthesis_method,
+                        plugin_config=pass_manager_config.unitary_synthesis_plugin_config,
+                        target=pass_manager_config.target,
+                    ),
+                    RemoveIdentityEquivalent(
+                        approximation_degree=pass_manager_config.approximation_degree,
+                        target=pass_manager_config.target,
+                    ),
+                    Optimize1qGatesDecomposition(
+                        basis=pass_manager_config.basis_gates, target=pass_manager_config.target
+                    ),
+                    CommutativeCancellation(target=pass_manager_config.target),
                 ]
-                # Only run UnitarySynthesis, RemoveIdentityEquivalent and
-                # Optimize1qGatesDeecomposition if there are basis_gates in the config
-                if (
-                    pass_manager_config.basis_gates is not None
-                    and len(pass_manager_config.basis_gates) > 0
-                ):
-                    _opt += [
-                        UnitarySynthesis(
-                            pass_manager_config.basis_gates,
-                            approximation_degree=pass_manager_config.approximation_degree,
-                            coupling_map=pass_manager_config.coupling_map,
-                            backend_props=pass_manager_config.backend_properties,
-                            method=pass_manager_config.unitary_synthesis_method,
-                            plugin_config=pass_manager_config.unitary_synthesis_plugin_config,
-                            target=pass_manager_config.target,
-                        ),
-                        RemoveIdentityEquivalent(
-                            approximation_degree=pass_manager_config.approximation_degree,
-                            target=pass_manager_config.target,
-                        ),
-                        Optimize1qGatesDecomposition(
-                            basis=pass_manager_config.basis_gates, target=pass_manager_config.target
-                        ),
-                    ]
-
-                _opt += [CommutativeCancellation(target=pass_manager_config.target)]
 
                 def _opt_control(property_set):
                     return not property_set["optimization_loop_minimum_point"]
@@ -690,23 +662,16 @@ class OptimizationPassManager(PassManagerStagePlugin):
                         target=pass_manager_config.target,
                         approximation_degree=pass_manager_config.approximation_degree,
                     ),
+                    UnitarySynthesis(
+                        pass_manager_config.basis_gates,
+                        approximation_degree=pass_manager_config.approximation_degree,
+                        coupling_map=pass_manager_config.coupling_map,
+                        backend_props=pass_manager_config.backend_properties,
+                        method=pass_manager_config.unitary_synthesis_method,
+                        plugin_config=pass_manager_config.unitary_synthesis_plugin_config,
+                        target=pass_manager_config.target,
+                    ),
                 ]
-                # Only run UnitarySynthesis if there are basis_gates in the config
-                if (
-                    pass_manager_config.basis_gates is not None
-                    and len(pass_manager_config.basis_gates) > 0
-                ):
-                    _extra_opt += [
-                        UnitarySynthesis(
-                            pass_manager_config.basis_gates,
-                            approximation_degree=pass_manager_config.approximation_degree,
-                            coupling_map=pass_manager_config.coupling_map,
-                            backend_props=pass_manager_config.backend_properties,
-                            method=pass_manager_config.unitary_synthesis_method,
-                            plugin_config=pass_manager_config.unitary_synthesis_plugin_config,
-                            target=pass_manager_config.target,
-                        ),
-                    ]
                 optimization.append(_extra_opt)
                 optimization.append(_depth_check + _size_check)
             else:

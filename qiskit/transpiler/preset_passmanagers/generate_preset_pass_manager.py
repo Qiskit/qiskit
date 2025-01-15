@@ -384,7 +384,7 @@ def generate_preset_pass_manager(
     if target is not None:
         if coupling_map is None:
             coupling_map = target.build_coupling_map()
-        if basis_gates is None:
+        if basis_gates is None and len(target.operation_names) > 0:
             basis_gates = target.operation_names
         if instruction_durations is None:
             instruction_durations = target.durations()
