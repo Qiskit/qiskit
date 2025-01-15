@@ -246,6 +246,9 @@ impl PackedOperationType {
 }
 
 /// The bitfield layout used for standard gates.
+///
+/// NOTE: this _looks_ like a named struct, but the `bitfield` attribute macro
+/// turns it into a transparent wrapper around a `u64`.
 #[bitfield(u64)]
 struct StandardGateBits {
     #[bits(3, default = PackedOperationType::StandardGate, access = RO)]
@@ -257,6 +260,9 @@ struct StandardGateBits {
 }
 
 /// The bitfield layout used for standard instructions.
+///
+/// NOTE: this _looks_ like a named struct, but the `bitfield` attribute macro
+/// turns it into a transparent wrapper around a `u64`.
 #[bitfield(u64)]
 struct StandardInstructionBits {
     #[bits(3, default = PackedOperationType::StandardInstruction, access = RO)]
@@ -304,6 +310,9 @@ impl ImmediateValue {
 ///
 /// The address is stored in the upper 62 bits, and is converted into and out of
 /// its packed form using `unpack_address` and `pack_address`.
+///
+/// NOTE: this _looks_ like a named struct, but the `bitfield` attribute macro
+/// turns it into a transparent wrapper around a `u64`.
 #[bitfield(u64, new = false)]
 struct PointerBits {
     #[bits(3, access = RO)]
