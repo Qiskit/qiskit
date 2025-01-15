@@ -90,11 +90,11 @@ impl Float {
 impl Display for Float {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         let float_str = match self {
-            Float::Half => "16".to_string(),
-            Float::Single => "32".to_string(),
-            Float::Double => "64".to_string(),
-            Float::Quad => "128".to_string(),
-            Float::Oct => "256".to_string(),
+            Float::Half => "16",
+            Float::Single => "32",
+            Float::Double => "64",
+            Float::Quad => "128",
+            Float::Oct => "256",
         };
         write!(f, "{}", float_str)
     }
@@ -106,7 +106,6 @@ pub struct Int {
 }
 
 #[derive(Debug, Clone)]
-
 pub struct Uint {
     pub size: Option<u32>,
 }
@@ -159,7 +158,6 @@ pub struct Identifier {
 pub struct ClassicalDeclaration {
     pub type_: ClassicalType,
     pub identifier: Identifier,
-    // pub initializer: Option<Box<dyn Anytype>>,
 }
 
 #[derive(Debug, Clone)]
@@ -196,10 +194,6 @@ pub enum Statement {
     QuantumMeasurementAssignment(QuantumMeasurementAssignment),
     Assignment(Assignment),
     QuantumGateDefinition(QuantumGateDefinition),
-    // Branch(Branch),
-    // ForLoop(ForLoop),
-    // WhileLoop(WhileLoop),
-    // Switch(Switch),
     Break(Break),
     Continue(Continue),
 }
@@ -241,7 +235,6 @@ pub struct QuantumMeasurementAssignment {
     pub quantum_measurement: QuantumMeasurement,
 }
 
-#[derive(Debug)]
 pub struct QuantumGateSignature {
     pub name: Identifier,
     pub qarg_list: Vec<Identifier>,
@@ -351,6 +344,7 @@ pub enum OP<'a> {
     UnaryOp(&'a UnaryOp),
     BinaryOp(&'a BinaryOp),
 }
+
 #[derive(Debug)]
 pub struct Unary {
     pub op: UnaryOp,
@@ -366,12 +360,12 @@ pub enum UnaryOp {
 
 impl Display for UnaryOp {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        let unit_str = match self {
+        let op_str = match self {
             UnaryOp::LogicNot => "!",
             UnaryOp::BitNot => "~",
             UnaryOp::Default => "",
         };
-        write!(f, "{}", unit_str)
+        write!(f, "{}", op_str)
     }
 }
 
@@ -394,7 +388,7 @@ pub enum BinaryOp {
 
 impl Display for BinaryOp {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        let unit_str = match self {
+        let op_str = match self {
             BinaryOp::BitAnd => "&",
             BinaryOp::BitOr => "|",
             BinaryOp::BitXor => "^",
@@ -409,7 +403,7 @@ impl Display for BinaryOp {
             BinaryOp::ShiftLeft => "<<",
             BinaryOp::ShiftRight => ">>",
         };
-        write!(f, "{}", unit_str)
+        write!(f, "{}", op_str)
     }
 }
 
