@@ -37,6 +37,7 @@ from typing import (
     Literal,
     overload,
 )
+from math import pi
 import numpy as np
 from qiskit._accelerate.circuit import CircuitData
 from qiskit._accelerate.circuit import StandardGate
@@ -863,6 +864,7 @@ class QuantumCircuit:
     Consider the following circuit:
 
     .. plot::
+       :alt: Circuit diagram output by the previous code.
        :include-source:
 
        from qiskit import QuantumCircuit
@@ -914,25 +916,6 @@ class QuantumCircuit:
     :meth:`size`::
 
        assert qc.size() == 19
-
-    A particularly important circuit property is known as the circuit :meth:`depth`.  The depth
-    of a quantum circuit is a measure of how many "layers" of quantum gates, executed in
-    parallel, it takes to complete the computation defined by the circuit.  Because quantum
-    gates take time to implement, the depth of a circuit roughly corresponds to the amount of
-    time it takes the quantum computer to execute the circuit.  Thus, the depth of a circuit
-    is one important quantity used to measure if a quantum circuit can be run on a device.
-
-    The depth of a quantum circuit has a mathematical definition as the longest path in a
-    directed acyclic graph (DAG).  However, such a definition is a bit hard to grasp, even for
-    experts.  Fortunately, the depth of a circuit can be easily understood by anyone familiar
-    with playing `Tetris <https://en.wikipedia.org/wiki/Tetris>`_.  Lets see how to compute this
-    graphically:
-
-    .. image:: /source_images/depth.gif
-
-    We can verify our graphical result using :meth:`QuantumCircuit.depth`::
-
-       assert qc.depth() == 9
 
     .. automethod:: count_ops
     .. automethod:: depth
@@ -2391,6 +2374,7 @@ class QuantumCircuit:
         Examples:
 
             .. plot::
+               :alt: Circuit diagram output by the previous code.
                :include-source:
 
                from qiskit import QuantumCircuit
@@ -3683,6 +3667,7 @@ class QuantumCircuit:
 
         Example:
             .. plot::
+               :alt: Circuit diagram output by the previous code.
                :include-source:
 
                from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
@@ -3741,6 +3726,14 @@ class QuantumCircuit:
         ),
     ) -> int:
         """Return circuit depth (i.e., length of critical path).
+
+        The depth of a quantum circuit is a measure of how many
+        "layers" of quantum gates, executed in parallel, it takes to
+        complete the computation defined by the circuit.  Because
+        quantum gates take time to implement, the depth of a circuit
+        roughly corresponds to the amount of time it takes the quantum
+        computer to execute the circuit.
+
 
         .. warning::
             This operation is not well defined if the circuit contains control-flow operations.
@@ -4676,6 +4669,7 @@ class QuantumCircuit:
             Create a parameterized circuit and assign the parameters in-place.
 
             .. plot::
+               :alt: Circuit diagram output by the previous code.
                :include-source:
 
                from qiskit.circuit import QuantumCircuit, Parameter
@@ -4691,6 +4685,7 @@ class QuantumCircuit:
             Bind the values out-of-place by list and get a copy of the original circuit.
 
             .. plot::
+               :alt: Circuit diagram output by the previous code.
                :include-source:
 
                from qiskit.circuit import QuantumCircuit, ParameterVector
@@ -5031,6 +5026,198 @@ class QuantumCircuit:
             [],
             copy=False,
         )
+
+    def mcrx(
+        self,
+        theta: ParameterValueType,
+        q_controls: Sequence[QubitSpecifier],
+        q_target: QubitSpecifier,
+        use_basis_gates: bool = False,
+    ):
+        """
+        Apply Multiple-Controlled X rotation gate
+
+        Args:
+            theta: The angle of the rotation.
+            q_controls: The qubits used as the controls.
+            q_target: The qubit targeted by the gate.
+            use_basis_gates: use p, u, cx basis gates.
+        """
+        # pylint: disable=cyclic-import
+        from .library.standard_gates.rx import RXGate
+        from qiskit.synthesis.multi_controlled import (
+            _apply_cu,
+            _apply_mcu_graycode,
+            _mcsu2_real_diagonal,
+        )
+
+        control_qubits = self._qbit_argument_conversion(q_controls)
+        target_qubit = self._qbit_argument_conversion(q_target)
+        if len(target_qubit) != 1:
+            raise QiskitError("The mcrx gate needs a single qubit as target.")
+        all_qubits = control_qubits + target_qubit
+        target_qubit = target_qubit[0]
+        self._check_dups(all_qubits)
+
+        n_c = len(control_qubits)
+        if n_c == 1:  # cu
+            _apply_cu(
+                self,
+                theta,
+                -pi / 2,
+                pi / 2,
+                control_qubits[0],
+                target_qubit,
+                use_basis_gates=use_basis_gates,
+            )
+        elif n_c < 4:
+            theta_step = theta * (1 / (2 ** (n_c - 1)))
+            _apply_mcu_graycode(
+                self,
+                theta_step,
+                -pi / 2,
+                pi / 2,
+                control_qubits,
+                target_qubit,
+                use_basis_gates=use_basis_gates,
+            )
+        else:
+            cgate = _mcsu2_real_diagonal(
+                RXGate(theta),
+                num_controls=len(control_qubits),
+                use_basis_gates=use_basis_gates,
+            )
+            self.compose(cgate, control_qubits + [target_qubit], inplace=True)
+
+    def mcry(
+        self,
+        theta: ParameterValueType,
+        q_controls: Sequence[QubitSpecifier],
+        q_target: QubitSpecifier,
+        q_ancillae: QubitSpecifier | Sequence[QubitSpecifier] | None = None,
+        mode: str | None = None,
+        use_basis_gates: bool = False,
+    ):
+        """
+        Apply Multiple-Controlled Y rotation gate
+
+        Args:
+            theta: The angle of the rotation.
+            q_controls: The qubits used as the controls.
+            q_target: The qubit targeted by the gate.
+            q_ancillae: The list of ancillary qubits.
+            mode: The implementation mode to use.
+            use_basis_gates: use p, u, cx basis gates
+        """
+        # pylint: disable=cyclic-import
+        from .library.standard_gates.ry import RYGate
+        from .library.standard_gates.x import MCXGate
+        from qiskit.synthesis.multi_controlled import (
+            _apply_cu,
+            _apply_mcu_graycode,
+            _mcsu2_real_diagonal,
+        )
+
+        control_qubits = self._qbit_argument_conversion(q_controls)
+        target_qubit = self._qbit_argument_conversion(q_target)
+        if len(target_qubit) != 1:
+            raise QiskitError("The mcry gate needs a single qubit as target.")
+        ancillary_qubits = [] if q_ancillae is None else self._qbit_argument_conversion(q_ancillae)
+        all_qubits = control_qubits + target_qubit + ancillary_qubits
+        target_qubit = target_qubit[0]
+        self._check_dups(all_qubits)
+
+        # auto-select the best mode
+        if mode is None:
+            # if enough ancillary qubits are provided, use the 'v-chain' method
+            additional_vchain = MCXGate.get_num_ancilla_qubits(len(control_qubits), "v-chain")
+            if len(ancillary_qubits) >= additional_vchain:
+                mode = "basic"
+            else:
+                mode = "noancilla"
+
+        if mode == "basic":
+            self.ry(theta / 2, q_target)
+            self.mcx(list(q_controls), q_target, q_ancillae, mode="v-chain")
+            self.ry(-theta / 2, q_target)
+            self.mcx(list(q_controls), q_target, q_ancillae, mode="v-chain")
+        elif mode == "noancilla":
+            n_c = len(control_qubits)
+            if n_c == 1:  # cu
+                _apply_cu(
+                    self,
+                    theta,
+                    0,
+                    0,
+                    control_qubits[0],
+                    target_qubit,
+                    use_basis_gates=use_basis_gates,
+                )
+            elif n_c < 4:
+                theta_step = theta * (1 / (2 ** (n_c - 1)))
+                _apply_mcu_graycode(
+                    self,
+                    theta_step,
+                    0,
+                    0,
+                    control_qubits,
+                    target_qubit,
+                    use_basis_gates=use_basis_gates,
+                )
+            else:
+                cgate = _mcsu2_real_diagonal(
+                    RYGate(theta),
+                    num_controls=len(control_qubits),
+                    use_basis_gates=use_basis_gates,
+                )
+                self.compose(cgate, control_qubits + [target_qubit], inplace=True)
+        else:
+            raise QiskitError(f"Unrecognized mode for building MCRY circuit: {mode}.")
+
+    def mcrz(
+        self,
+        lam: ParameterValueType,
+        q_controls: Sequence[QubitSpecifier],
+        q_target: QubitSpecifier,
+        use_basis_gates: bool = False,
+    ):
+        """
+        Apply Multiple-Controlled Z rotation gate
+
+        Args:
+            lam: The angle of the rotation.
+            q_controls: The qubits used as the controls.
+            q_target: The qubit targeted by the gate.
+            use_basis_gates: use p, u, cx basis gates.
+        """
+        # pylint: disable=cyclic-import
+        from .library.standard_gates.rz import CRZGate, RZGate
+        from qiskit.synthesis.multi_controlled import _mcsu2_real_diagonal
+
+        control_qubits = self._qbit_argument_conversion(q_controls)
+        target_qubit = self._qbit_argument_conversion(q_target)
+        if len(target_qubit) != 1:
+            raise QiskitError("The mcrz gate needs a single qubit as target.")
+        all_qubits = control_qubits + target_qubit
+        target_qubit = target_qubit[0]
+        self._check_dups(all_qubits)
+
+        n_c = len(control_qubits)
+        if n_c == 1:
+            if use_basis_gates:
+                self.u(0, 0, lam / 2, target_qubit)
+                self.cx(control_qubits[0], target_qubit)
+                self.u(0, 0, -lam / 2, target_qubit)
+                self.cx(control_qubits[0], target_qubit)
+            else:
+                self.append(CRZGate(lam), control_qubits + [target_qubit])
+        else:
+            cgate = _mcsu2_real_diagonal(
+                RZGate(lam),
+                num_controls=len(control_qubits),
+                use_basis_gates=use_basis_gates,
+            )
+            self.compose(cgate, control_qubits + [target_qubit], inplace=True)
 
     def r(
         self, theta: ParameterValueType, phi: ParameterValueType, qubit: QubitSpecifier

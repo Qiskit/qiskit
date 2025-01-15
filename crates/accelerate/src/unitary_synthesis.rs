@@ -17,7 +17,7 @@ use std::sync::OnceLock;
 
 use approx::relative_eq;
 use hashbrown::{HashMap, HashSet};
-use indexmap::IndexMap;
+use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use ndarray::prelude::*;
 use num_complex::{Complex, Complex64};
@@ -372,7 +372,8 @@ fn py_run_main_loop(
                     None,
                     None,
                 )?;
-                out_dag = synth_dag;
+                let out_qargs = dag.get_qargs(packed_instr.qubits);
+                apply_synth_dag(py, &mut out_dag, out_qargs, &synth_dag)?;
             }
         }
     }
@@ -544,6 +545,7 @@ fn get_2q_decomposers_from_target(
     let mut available_2q_props: IndexMap<&str, (Option<f64>, Option<f64>)> = IndexMap::new();
 
     let mut qubit_gate_map = IndexMap::new();
+
     match target.operation_names_for_qargs(Some(&qubits)) {
         Ok(direct_keys) => {
             qubit_gate_map.insert(&qubits, direct_keys);
@@ -596,7 +598,10 @@ fn get_2q_decomposers_from_target(
                         OperationRef::Standard(_) => (),
                         _ => continue,
                     }
-
+                    // Filter out non-2q-gate candidates
+                    if op.operation.num_qubits() != 2 {
+                        continue;
+                    }
                     available_2q_basis.insert(key, replace_parametrized_gate(op.clone()));
 
                     if target.contains_key(key) {
@@ -622,8 +627,8 @@ fn get_2q_decomposers_from_target(
     }
 
     let target_basis_set = get_target_basis_set(target, qubits[0]);
-    let available_1q_basis: HashSet<&str> =
-        HashSet::from_iter(target_basis_set.get_bases().map(|basis| basis.as_str()));
+    let available_1q_basis: IndexSet<&str> =
+        IndexSet::from_iter(target_basis_set.get_bases().map(|basis| basis.as_str()));
     let mut decomposers: Vec<DecomposerElement> = Vec::new();
 
     #[inline]
@@ -684,10 +689,10 @@ fn get_2q_decomposers_from_target(
     // If our 2q basis gates are a subset of cx, ecr, or cz then we know TwoQubitBasisDecomposer
     // is an ideal decomposition and there is no need to bother calculating the XX embodiments
     // or try the XX decomposer
-    let available_basis_set: HashSet<&str> = available_2q_basis.keys().copied().collect();
+    let available_basis_set: IndexSet<&str> = available_2q_basis.keys().copied().collect();
 
     #[inline]
-    fn check_goodbye(basis_set: &HashSet<&str>) -> bool {
+    fn check_goodbye(basis_set: &IndexSet<&str>) -> bool {
         basis_set.iter().all(|gate| GOODBYE_SET.contains(gate))
     }
 
