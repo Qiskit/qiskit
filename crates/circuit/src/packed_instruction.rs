@@ -421,7 +421,7 @@ impl PackedOperation {
                 let instruction = unsafe { self.0.instruction };
                 Some(match instruction.standard_instruction() {
                     StandardInstructionType::Barrier => {
-                        StandardInstruction::Barrier(instruction.value().u32() as usize)
+                        StandardInstruction::Barrier(instruction.value().u32())
                     }
                     StandardInstructionType::Delay => {
                         StandardInstruction::Delay(instruction.value().delay_unit())
@@ -468,9 +468,6 @@ impl PackedOperation {
         let mut bits = StandardInstructionBits::new();
         match instruction {
             StandardInstruction::Barrier(num_qubits) => {
-                let num_qubits: u32 = num_qubits.try_into().expect(
-                    "The PackedOperation representation currently requires barrier size to be <= 32 bits."
-                );
                 bits = bits
                     .with_standard_instruction(StandardInstructionType::Barrier)
                     .with_value(ImmediateValue(num_qubits))

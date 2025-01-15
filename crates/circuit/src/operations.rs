@@ -362,7 +362,7 @@ pub(crate) enum StandardInstructionType {
 
 #[derive(Clone, Debug, Copy, Eq, PartialEq, Hash)]
 pub enum StandardInstruction {
-    Barrier(usize),
+    Barrier(u32),
     Delay(DelayUnit),
     Measure,
     Reset,
@@ -387,7 +387,7 @@ impl Operation for StandardInstruction {
 
     fn num_qubits(&self) -> u32 {
         match self {
-            StandardInstruction::Barrier(num_qubits) => *num_qubits as u32,
+            StandardInstruction::Barrier(num_qubits) => *num_qubits,
             StandardInstruction::Delay(_) => 1,
             StandardInstruction::Measure => 1,
             StandardInstruction::Reset => 1,
