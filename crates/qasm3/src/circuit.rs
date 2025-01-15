@@ -109,9 +109,8 @@ impl PyGate {
     pub fn construct<'py, A>(&'py self, py: Python<'py>, args: A) -> PyResult<Py<PyAny>>
     where
         A: pyo3::IntoPyObject<'py, Target = PyTuple, Output = Bound<'py, PyTuple>>,
-        <A as pyo3::IntoPyObject<'py>>::Error: std::fmt::Debug,
     {
-        let args = args.into_pyobject(py).unwrap();
+        let args = args.into_pyobject_or_pyerr(py)?;
         let received_num_params = args.len();
         if received_num_params == self.num_params {
             self.constructor.call1(py, args)
@@ -283,15 +282,13 @@ impl PyCircuitModule {
         C: IntoPyObject<'a>,
         <Q as pyo3::IntoPyObject<'a>>::Output: pyo3::IntoPyObject<'a>,
         <C as pyo3::IntoPyObject<'a>>::Output: pyo3::IntoPyObject<'a>,
-        pyo3::PyErr: From<<Q as pyo3::IntoPyObject<'a>>::Error>,
-        pyo3::PyErr: From<<C as pyo3::IntoPyObject<'a>>::Error>,
     {
         self.circuit_instruction.call1(
             py,
             (
                 operation,
-                qubits.into_pyobject(py)?,
-                clbits.into_pyobject(py)?,
+                qubits.into_pyobject_or_pyerr(py)?,
+                clbits.into_pyobject_or_pyerr(py)?,
             ),
         )
     }

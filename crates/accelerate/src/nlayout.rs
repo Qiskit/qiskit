@@ -117,7 +117,7 @@ impl NLayout {
     fn __reduce__(&self, py: Python) -> PyResult<Py<PyAny>> {
         (
             py.get_type::<Self>().getattr("from_virtual_to_physical")?,
-            (self.virt_to_phys.clone().into_pyobject(py).unwrap(),),
+            (self.virt_to_phys.clone().into_pyobject(py)?,),
         )
             .into_py_any(py)
     }
