@@ -1189,13 +1189,9 @@ class QuantumCircuit:
                 :include-source:
                 :nofigs:
 
-                from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+                from qiskit import QuantumCircuit
 
-                q = QuantumRegister(2)
-                c = ClassicalRegister(2)
-                qc = QuantumCircuit(q, c)
-
-                qc.metadata = {'experiment_type': 'Bell state experiment'}
+                qc = QuantumCircuit(2, 2, metadata={'experiment_type': 'Bell state experiment'})
 
                 print(qc.metadata)
 
