@@ -1,0 +1,21 @@
+[package]
+name = "ndarray_einsum"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+keywords = ["einsum", "einstein-summation", "tensor", "contraction", "ndarray"]
+categories = ["science"]
+description = "Implementation of the einsum function for the Rust ndarray crate. Fork of https://github.com/oracleofnj/einsum"
+
+[dependencies]
+regex = "1"
+lazy_static = "1"
+ndarray = { workspace = true, features = ["approx"] }
+num-traits = "0.2"
+hashbrown = "0.15"
+
+[dev-dependencies]
+approx = "0.5"
+ndarray-rand = "0.15.0"
+rand="0.8"

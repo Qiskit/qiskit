@@ -21,8 +21,8 @@ hashbrown.version = "0.14.5"
 num-bigint = "0.4"
 num-complex = "0.4"
 nalgebra = "0.33"
-ndarray = "0.15"
 numpy = "0.23"
+ndarray = "0.16"
 smallvec = "1.13"
 thiserror = "2.0"
 rustworkx-core = "0.15"
@@ -43,6 +43,7 @@ qiskit-accelerate = { path = "crates/accelerate" }
 qiskit-circuit = { path = "crates/circuit" }
 qiskit-qasm2 = { path = "crates/qasm2" }
 qiskit-qasm3 = { path = "crates/qasm3" }
+ndarray_einsum = { path = "crates/ndarray_einsum" }
 
 [workspace.lints.clippy]
 # The lint forbids things like `if a < b {} else if a == b {}`, and suggests matching on `a.cmp(&b)`
