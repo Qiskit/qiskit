@@ -112,7 +112,7 @@ enum PackedOperationType {
 ///     inline value may be present. Currently, this is used to store the
 ///     number of qubits in a Barrier and the unit of a Delay.
 ///
-/// PointerBits (64-bit systems):
+/// PointerBits:
 /// 0b_PPPPPPPP_PPPPPPPP_PPPPPPPP_PPPPPPPP_PPPPPPPP_PPPPPPPP_PPPPPPPP_PPPP011
 ///    |-----------------------------------------------------------------||-|
 ///                                   |                                    |
@@ -121,15 +121,6 @@ enum PackedOperationType {
 ///    retrieve the "full" pointer by taking the whole `u64` and zeroing       is 0b011, which means
 ///    the low 3 bits, letting us store the discriminant in there at other     that this points to
 ///    times.                                                                  a `PyInstruction`.
-///
-/// PointerBits (32-bit systems)
-/// 0b_PPPPPPPP_PPPPPPPP_PPPPPPPP_PPPPPPPP_xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxx011
-///    |---------------------------------|                                |-|
-///                    |                                                   |
-///    On 32-bit systems, the upper 32-bits are used to store the full     +-- Discriminant. This is
-///    address. This gives the compiler the best chance at eliminating         0b100, so in this
-///    the otherwise required bit-shift needed to read the pointer.            case, this points to
-///                                                                            a `PyOperation`.
 /// ```
 ///
 /// # Construction
@@ -333,10 +324,8 @@ impl ImmediateValue {
 
 /// The bitfield layout used by pointer types, like `PyGate`, `PyInstruction`, and `PyOperation`.
 ///
-/// On 64-bit systems, the address is stored in the upper 62 bits, and is converted into and out of
-/// its packed form using `unpack_address` and `pack_address`. On 32-bit systems, the address is
-/// simply stored in the upper 32 bits.
-#[cfg(target_pointer_width = "64")]
+/// The address is stored in the upper 62 bits, and is converted into and out of
+/// its packed form using `unpack_address` and `pack_address`.
 #[bitfield(u64, new = false)]
 struct PointerBits {
     #[bits(3, access = RO)]
@@ -345,9 +334,8 @@ struct PointerBits {
     address: usize,
 }
 
-// On a 64-bit system, we tell the bitfield-struct crate to use these when reading and writing the
+// We tell the bitfield-struct crate to use these when reading and writing the
 // address, since the lower 3 bits contain our discriminant.
-#[cfg(target_pointer_width = "64")]
 impl PointerBits {
     const fn unpack_address(value: usize) -> usize {
         value << 3
@@ -356,19 +344,6 @@ impl PointerBits {
     const fn pack_address(value: usize) -> usize {
         value >> 3
     }
-}
-
-#[cfg(target_pointer_width = "32")]
-#[bitfield(u64, new = false)]
-struct PointerBits {
-    #[bits(3, access = RO)]
-    discriminant: PackedOperationType,
-    // The padding here is used to get the address aligned to a word to give the compiler the best
-    // chance at optimizing-out the bit shift needed to read it from this bitfield.
-    #[bits(29)]
-    __: u32,
-    #[bits(32)]
-    address: usize,
 }
 
 impl PointerBits {
@@ -403,9 +378,7 @@ impl PointerBits {
     #[allow(clippy::assertions_on_constants)]
     fn with_pointer(self, value: NonNull<()>) -> Self {
         let addr = value.as_ptr() as usize;
-        assert!(
-            cfg!(target_pointer_width = "32") || (addr as u64 & BitField::DISCRIMINANT_MASK == 0)
-        );
+        assert!((addr as u64 & BitField::DISCRIMINANT_MASK == 0));
         self.with_address(addr)
     }
 }
