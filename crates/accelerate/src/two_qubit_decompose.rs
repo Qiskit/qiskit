@@ -2445,6 +2445,7 @@ impl RXXEquivalent {
     }
 }
 
+#[derive(Clone, Debug)]
 #[pyclass(module = "qiskit._accelerate.two_qubit_decompose", subclass)]
 pub struct TwoQubitControlledUDecomposer {
     rxx_equivalent_gate: RXXEquivalent,
@@ -2678,7 +2679,7 @@ impl TwoQubitControlledUDecomposer {
 
     ///  Returns the Weyl decomposition in circuit form.
     ///  Note: atol is passed to OneQubitEulerDecomposer.
-    fn call_inner(
+    pub fn call_inner(
         &self,
         py: Python,
         unitary: ArrayView2<Complex64>,
