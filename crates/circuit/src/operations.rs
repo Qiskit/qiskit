@@ -664,7 +664,7 @@ impl StandardGate {
 
     // These pymethods are for testing:
     pub fn _to_matrix<'py>(
-        &'py self,
+        &self,
         py: Python<'py>,
         params: Vec<Param>,
     ) -> Option<Bound<'py, PyArray2<Complex64>>> {
