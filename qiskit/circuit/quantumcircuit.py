@@ -1099,17 +1099,9 @@ class QuantumCircuit:
                 :nofigs:
                 :context: reset
 
-                from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+                from qiskit import QuantumCircuit
 
-                qr = QuantumRegister(2)
-                cr = ClassicalRegister(2)
-                qc = QuantumCircuit(qr, cr)
-
-                qc.h(qr[0])
-                qc.cx(qr[0], qr[1])
-                qc.measure(qr, cr)
-                qc.name = "my_circuit"
-
+                qc = QuantumCircuit(2, 2, name="my_circuit")
                 print(qc.name)
 
             .. code-block:: text
