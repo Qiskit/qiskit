@@ -17,7 +17,7 @@ use std::sync::OnceLock;
 
 use approx::relative_eq;
 use hashbrown::{HashMap, HashSet};
-use indexmap::IndexMap;
+use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use ndarray::prelude::*;
 use num_complex::{Complex, Complex64};
@@ -674,8 +674,8 @@ fn get_2q_decomposers_from_target(
     }
 
     let target_basis_set = get_target_basis_set(target, qubits[0]);
-    let available_1q_basis: HashSet<&str> =
-        HashSet::from_iter(target_basis_set.get_bases().map(|basis| basis.as_str()));
+    let available_1q_basis: IndexSet<&str> =
+        IndexSet::from_iter(target_basis_set.get_bases().map(|basis| basis.as_str()));
     let mut decomposers: Vec<DecomposerElement> = Vec::new();
 
     #[inline]
@@ -734,10 +734,10 @@ fn get_2q_decomposers_from_target(
 
     // If our 2q basis gates are a subset of cx, ecr, or cz then we know TwoQubitBasisDecomposer
     // is an ideal decomposition and there is no need to try other decomposers
-    let available_basis_set: HashSet<&str> = available_2q_basis.keys().copied().collect();
+    let available_basis_set: IndexSet<&str> = available_2q_basis.keys().copied().collect();
 
     #[inline]
-    fn check_goodbye(basis_set: &HashSet<&str>) -> bool {
+    fn check_goodbye(basis_set: &IndexSet<&str>) -> bool {
         !basis_set.is_empty() && basis_set.iter().all(|gate| GOODBYE_SET.contains(gate))
     }
 
@@ -763,11 +763,11 @@ fn get_2q_decomposers_from_target(
     // If our 2q basis gates are a subset of PARAM_SET, then we will use the TwoQubitControlledUDecomposer
     // and there is no need to try other decomposers
 
-    let available_basis_param_set: HashSet<&str> =
+    let available_basis_param_set: IndexSet<&str> =
         available_2q_param_basis.keys().copied().collect();
 
     #[inline]
-    fn check_parametrized_goodbye(basis_set: &HashSet<&str>) -> bool {
+    fn check_parametrized_goodbye(basis_set: &IndexSet<&str>) -> bool {
         !basis_set.is_empty() && basis_set.iter().all(|gate| PARAM_SET.contains(gate))
     }
 

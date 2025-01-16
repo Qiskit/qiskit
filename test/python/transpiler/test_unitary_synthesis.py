@@ -21,7 +21,7 @@ import numpy as np
 import scipy
 from ddt import ddt, data
 
-from qiskit import transpile
+from qiskit import transpile, generate_preset_pass_manager
 from qiskit.providers.fake_provider import Fake5QV1, GenericBackendV2
 from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.circuit.library import quantum_volume
@@ -922,7 +922,6 @@ class TestUnitarySynthesisTarget(QiskitTestCase):
 
     def test_target_with_global_gates(self):
         """Test that 2q decomposition can handle a target with global gates."""
-
         basis_gates = ["h", "p", "cp", "rz", "cx", "ccx", "swap"]
         target = Target.from_configuration(basis_gates=basis_gates)
 
@@ -932,8 +931,27 @@ class TestUnitarySynthesisTarget(QiskitTestCase):
         bell_op = Operator(bell)
         qc = QuantumCircuit(2)
         qc.unitary(bell_op, [0, 1])
+
         tqc = transpile(qc, target=target)
         self.assertTrue(set(tqc.count_ops()).issubset(basis_gates))
+
+    def test_determinism(self):
+        """Test that the decomposition is deterministic."""
+        gate_counts = {"rx": 6, "rz": 12, "iswap": 2}
+        basis_gates = ["rx", "rz", "iswap"]
+        target = Target.from_configuration(basis_gates=basis_gates)
+        pm = generate_preset_pass_manager(target=target, optimization_level=2, seed_transpiler=42)
+
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+
+        for _ in range(10):
+            out = pm.run(qc)
+            self.assertTrue(Operator(out).equiv(qc))
+            self.assertTrue(set(out.count_ops()).issubset(basis_gates))
+            for basis_gate in basis_gates:
+                self.assertLessEqual(out.count_ops()[basis_gate], gate_counts[basis_gate])
 
 
 if __name__ == "__main__":
