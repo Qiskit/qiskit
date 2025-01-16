@@ -21,9 +21,16 @@ from ddt import ddt, data
 import numpy as np
 
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
-from qiskit.circuit import Qubit, Gate, ControlFlowOp, ForLoopOp
+from qiskit.circuit import Qubit, Gate, ControlFlowOp, ForLoopOp, Measure
 from qiskit.compiler import transpile
-from qiskit.transpiler import CouplingMap, Layout, PassManager, TranspilerError, Target
+from qiskit.transpiler import (
+    CouplingMap,
+    Layout,
+    PassManager,
+    TranspilerError,
+    Target,
+    InstructionProperties,
+)
 from qiskit.circuit.library import U2Gate, U3Gate, quantum_volume, CXGate, CZGate, XGate
 from qiskit.transpiler.passes import (
     ALAPScheduleAnalysis,
@@ -1767,3 +1774,50 @@ class TestIntegrationControlFlow(QiskitTestCase):
             _ = generate_preset_pass_manager(
                 optimization_level=optimization_level, basis_gates=basis_gates, backend=backend
             )
+
+    @data(0, 1, 2, 3)
+    def test_custom_measurement_subclass(self, optimization_level):
+        """Test that a custom measurement subclass is treated appropriately."""
+        backend = GenericBackendV2(num_qubits=2)
+
+        class CustomMeasurement(Measure):
+            """A custom specialized measurement."""
+
+            def __init__(self, label=None):
+                super().__init__(label=label)
+                self.name = "custom_measure"
+
+        backend = GenericBackendV2(num_qubits=2, coupling_map=[[0, 1]], control_flow=True)
+        backend.target.add_instruction(
+            CustomMeasurement(),
+            {
+                (0,): InstructionProperties(error=1e-2, duration=1e-8),
+                (1,): InstructionProperties(error=1e-2, duration=1e-8),
+            },
+        )
+        pm = generate_preset_pass_manager(backend=backend, optimization_level=optimization_level)
+        qc = QuantumCircuit(2, 3)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.append(CustomMeasurement(), [0], [0])
+        qc.append(CustomMeasurement(), [1], [1])
+        qc.reset(0)
+        with qc.if_test((qc.clbits[0], 1)):
+            qc.x(0)
+        with qc.if_test((qc.clbits[1], 1)):
+            qc.z(0)
+        qc.measure(0, 2)
+        res = pm.run(qc)
+        counts = res.count_ops()
+        self.assertIn("custom_measure", counts)
+        self.assertEqual(counts["custom_measure"], 2)
+        encountered = 0
+        for inst in res.data:
+            if inst.name == "custom_measure":
+                encountered += 1
+                self.assertIsInstance(inst.operation, CustomMeasurement)
+                self.assertIsInstance(inst.operation, Measure)
+
+        self.assertEqual(
+            encountered, 2, "Despite count ops no custom measurements were encountered"
+        )

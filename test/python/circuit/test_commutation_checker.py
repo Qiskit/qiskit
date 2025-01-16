@@ -56,6 +56,7 @@ from qiskit.circuit.library import (
     XGate,
     ZGate,
     HGate,
+    UnitaryGate,
 )
 from qiskit.dagcircuit import DAGOpNode
 
@@ -64,14 +65,14 @@ ROTATION_GATES = [
     RYGate,
     RZGate,
     PhaseGate,
-    CRXGate,
-    CRYGate,
-    CRZGate,
-    CPhaseGate,
     RXXGate,
     RYYGate,
     RZZGate,
     RZXGate,
+    CRXGate,
+    CRYGate,
+    CRZGate,
+    CPhaseGate,
 ]
 
 
@@ -398,25 +399,24 @@ class TestCommutationChecker(QiskitTestCase):
                 self.assertFalse(scc.commute(generic_gate, [0, 1], [], gate, qargs, []))
 
     @idata(ROTATION_GATES)
-    def test_rotation_mod_2pi(self, gate_cls):
-        """Test the rotations modulo 2pi commute with any gate."""
+    def test_controlled_rotation_mod_4pi(self, gate_cls):
+        """Test the rotations modulo 2pi (4pi for controlled-rx/y/z) commute with any gate."""
         generic_gate = HGate()  # does not commute with any rotation gate
-        even = np.arange(-6, 7, 2)
+        multiples = np.arange(-6, 7)
 
-        with self.subTest(msg="even multiples"):
-            for multiple in even:
+        for multiple in multiples:
+            with self.subTest(multiple=multiple):
                 gate = gate_cls(multiple * np.pi)
-                self.assertTrue(
-                    scc.commute(generic_gate, [0], [], gate, list(range(gate.num_qubits)), [])
+                numeric = UnitaryGate(gate.to_matrix())
+
+                # compute a numeric reference, that doesn't go through any special cases and
+                # uses a matrix-based commutation check
+                expected = scc.commute(
+                    generic_gate, [0], [], numeric, list(range(gate.num_qubits)), []
                 )
 
-        odd = np.arange(-5, 6, 2)
-        with self.subTest(msg="odd multiples"):
-            for multiple in odd:
-                gate = gate_cls(multiple * np.pi)
-                self.assertFalse(
-                    scc.commute(generic_gate, [0], [], gate, list(range(gate.num_qubits)), [])
-                )
+                result = scc.commute(generic_gate, [0], [], gate, list(range(gate.num_qubits)), [])
+                self.assertEqual(expected, result)
 
     def test_custom_gate(self):
         """Test a custom gate."""
