@@ -1333,7 +1333,7 @@ class QuantumCircuit:
                 from qiskit import QuantumCircuit
                 from qiskit.providers.fake_provider import GenericBackendV2
                 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
-                
+
                 # Create circuit to test transpiler on
                 qc = QuantumCircuit(3)
                 qc.h([0, 1, 2])
