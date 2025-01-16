@@ -10,13 +10,19 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::BitType;
+use crate::bit::BitInfo;
+use crate::imports::{CLASSICAL_REGISTER, QUANTUM_REGISTER, REGISTER};
+use crate::register::{Register, RegisterAsKey};
+use crate::{BitType, ToPyBit};
 use hashbrown::HashMap;
+use indexmap::{Equivalent, IndexSet};
 use pyo3::exceptions::{PyKeyError, PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
-use pyo3::types::PyList;
+use pyo3::types::{PyDict, PyList};
+use std::borrow::Borrow;
 use std::fmt::Debug;
 use std::hash::{Hash, Hasher};
+use std::sync::OnceLock;
 
 /// Private wrapper for Python-side Bit instances that implements
 /// [Hash] and [Eq], allowing them to be used in Rust hash-based
@@ -29,7 +35,7 @@ use std::hash::{Hash, Hasher};
 /// it call `repr()` on both sides, which has a significant
 /// performance advantage.
 #[derive(Clone, Debug)]
-struct BitAsKey {
+pub(crate) struct BitAsKey {
     /// Python's `hash()` of the wrapped instance.
     hash: isize,
     /// The wrapped instance.
@@ -228,5 +234,392 @@ where
     pub fn dispose(&mut self) {
         self.indices.clear();
         self.bits.clear();
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct NewBitData<T: From<BitType>, R: Register + Hash + Eq> {
+    /// The public field name (i.e. `qubits` or `clbits`).
+    description: String,
+    /// Registered Python bits.
+    bits: Vec<OnceLock<PyObject>>,
+    /// Maps Python bits to native type.
+    indices: HashMap<BitAsKey, T>,
+    /// Mapping between bit index and its register info
+    bit_info: Vec<Option<BitInfo>>,
+    /// Registers in the circuit
+    registry: IndexSet<R>,
+    /// Registers in Python
+    registers: Vec<OnceLock<PyObject>>,
+}
+
+impl<T, R> NewBitData<T, R>
+where
+    T: From<BitType> + Copy + Debug + ToPyBit,
+    R: Register<Bit = T>
+        + Equivalent<RegisterAsKey>
+        + for<'a> Borrow<&'a RegisterAsKey>
+        + Hash
+        + Eq
+        + From<(usize, Option<String>)>
+        + for<'a> From<&'a [T]>
+        + for<'a> From<(&'a [T], Option<String>)>,
+    BitType: From<T>,
+{
+    pub fn new(description: String) -> Self {
+        NewBitData {
+            description,
+            bits: Vec::new(),
+            indices: HashMap::new(),
+            bit_info: Vec::new(),
+            registry: IndexSet::new(),
+            registers: Vec::new(),
+        }
+    }
+
+    pub fn with_capacity(description: String, capacity: usize) -> Self {
+        NewBitData {
+            description,
+            bits: Vec::with_capacity(capacity),
+            indices: HashMap::with_capacity(capacity),
+            bit_info: Vec::with_capacity(capacity),
+            registry: IndexSet::with_capacity(capacity),
+            registers: Vec::with_capacity(capacity),
+        }
+    }
+
+    /// Gets the number of bits.
+    pub fn len(&self) -> usize {
+        self.bits.len()
+    }
+
+    /// Gets the number of registers.
+    pub fn len_regs(&self) -> usize {
+        self.registry.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.bits.is_empty()
+    }
+
+    /// Gets a reference to the underlying vector of Python bits.
+    #[inline]
+    pub fn bits(&self) -> &Vec<OnceLock<PyObject>> {
+        &self.bits
+    }
+
+    /// Adds a register onto the [BitData] of the circuit.
+    pub fn add_register(
+        &mut self,
+        name: Option<String>,
+        size: Option<usize>,
+        bits: Option<&[T]>,
+    ) -> u32 {
+        match (size, bits) {
+            (None, None) => panic!("You should at least provide either a size or the bit indices."),
+            (None, Some(bits)) => {
+                let reg: R = (bits, name).into();
+                let idx = self.registry.len().try_into().unwrap_or_else(|_| {
+                    panic!(
+                        "The {} registry in this circuit has reached its maximum capacity.",
+                        self.description
+                    )
+                });
+                // Add register info cancel if any qubit is duplicated
+                for (bit_idx, bit) in bits.iter().enumerate() {
+                    let bit_info = &mut self.bit_info[BitType::from(*bit) as usize];
+                    if bit_info.is_some() {
+                        panic!(
+                            "The bit {:?} is currently assigned to another register.",
+                            bit
+                        )
+                    } else {
+                        *bit_info = Some(BitInfo::new(
+                            idx,
+                            bit_idx.try_into().unwrap_or_else(|_| {
+                                panic!(
+                                    "The current register exceeds its capacity limit. Bits {}",
+                                    reg.len()
+                                )
+                            }),
+                        ))
+                    }
+                }
+                self.registry.insert(reg);
+                self.registers.push(OnceLock::new());
+                idx
+            }
+            (Some(size), None) => {
+                let bits: Vec<T> = (0..size).map(|_| self.add_bit()).collect();
+                let reg = (bits.as_slice(), name).into();
+                let idx = self.registry.len().try_into().unwrap_or_else(|_| {
+                    panic!(
+                        "The {} registry in this circuit has reached its maximum capacity.",
+                        self.description
+                    )
+                });
+                self.registry.insert(reg);
+                self.registers.push(OnceLock::new());
+                idx
+            }
+            (Some(_), Some(_)) => {
+                panic!("You should only provide either a size or the bit indices, not both.")
+            }
+        }
+    }
+
+    /// Adds a bit index into the circuit's [BitData].
+    ///
+    /// _**Note:** You cannot add bits to registers once they are added._
+    pub fn add_bit(&mut self) -> T {
+        let idx: BitType = self.bits.len().try_into().unwrap_or_else(|_| {
+            panic!(
+                "The number of {} in the circuit has exceeded the maximum capacity",
+                self.description
+            )
+        });
+        self.bit_info.push(None);
+        self.bits.push(OnceLock::new());
+        idx.into()
+    }
+
+    /// Retrieves a register by its index within the circuit
+    pub fn get_register(&self, index: u32) -> Option<&R> {
+        self.registry.get_index(index as usize)
+    }
+
+    pub fn get_register_by_key(&self, key: &RegisterAsKey) -> Option<&R> {
+        self.registry.get(&key)
+    }
+
+    // =======================
+    //        PyMethods
+    // =======================
+
+    /// Finds the native bit index of the given Python bit.
+    #[inline]
+    pub fn py_find_bit(&self, bit: &Bound<PyAny>) -> Option<T> {
+        self.indices.get(&BitAsKey::new(bit)).copied()
+    }
+
+    /// Map the provided Python bits to their native indices.
+    /// An error is returned if any bit is not registered.
+    pub fn py_map_bits<'py>(
+        &self,
+        bits: impl IntoIterator<Item = Bound<'py, PyAny>>,
+    ) -> PyResult<impl Iterator<Item = T>> {
+        let v: Result<Vec<_>, _> = bits
+            .into_iter()
+            .map(|b| {
+                self.indices
+                    .get(&BitAsKey::new(&b))
+                    .copied()
+                    .ok_or_else(|| {
+                        PyKeyError::new_err(format!(
+                            "Bit {:?} has not been added to this circuit.",
+                            b
+                        ))
+                    })
+            })
+            .collect();
+        v.map(|x| x.into_iter())
+    }
+
+    /// Gets the Python bit corresponding to the given native
+    /// bit index.
+    #[inline]
+    pub fn py_get_bit(&mut self, py: Python, index: T) -> PyResult<Option<&PyObject>> {
+        /*
+        For this method we want to make sure a couple of things are done first:
+
+        - First off, the method needs mutable access to all of `BitData` for a couple
+          of reasons, but mainly because it needs to be able to initialize the `OnceCell`
+          for both the `Bit` instance as well as the register.
+
+          There is a problem with this as it could cause two mutable references to `BitData`.
+          How do we solve this? I guess we solved it LOL
+         */
+        let index_as_usize = BitType::from(index) as usize;
+        // First check if the cell is in range if not, return none
+        if self.bits.get(index_as_usize).is_none() {
+            Ok(None)
+        }
+        // If the bit has an assigned register, check if it has been initialized.
+        else if let Some(bit_info) = self.bit_info[index_as_usize] {
+            // If it is not initalized and has a register, initialize the register
+            // and retrieve it from there the first time
+            if self.bits[index_as_usize].get().is_none() {
+                // A register index is guaranteed to exist in the instance of `BitData`.
+                let py_reg = self.py_get_register(py, bit_info.register_index())?;
+                let res = py_reg.unwrap().bind(py).get_item(bit_info.index())?;
+                self.bits[index_as_usize]
+                    .set(res.into())
+                    .map_err(|_| PyRuntimeError::new_err("Could not set the OnceCell correctly"))?;
+                return Ok(self.bits[index_as_usize].get());
+            }
+            // If it is initialized, just retrieve.
+            else {
+                return Ok(self.bits[index_as_usize].get());
+            }
+        } else if let Some(bit) = self.bits[index_as_usize].get() {
+            Ok(Some(bit))
+        } else {
+            self.bits[index_as_usize]
+                .set(T::to_py_bit(py)?)
+                .map_err(|_| PyRuntimeError::new_err("Could not set the OnceCell correctly"))?;
+            Ok(self.bits[index_as_usize].get())
+        }
+    }
+
+    /// Retrieves a register instance from Python based on the rust description.
+    pub fn py_get_register(&mut self, py: Python, index: u32) -> PyResult<Option<&PyObject>> {
+        let index_as_usize = index as usize;
+        // First check if the cell is in range if not, return none
+        if self.registers.get(index_as_usize).is_none() {
+            Ok(None)
+        } else if self.registers[index_as_usize].get().is_none() {
+            let register = &self.registry[index as usize];
+            // Decide the register type based on its key
+            let reg_as_key = register.as_key();
+            let reg_type = match reg_as_key {
+                RegisterAsKey::Register(_) => REGISTER.get_bound(py),
+                RegisterAsKey::Quantum(_) => QUANTUM_REGISTER.get_bound(py),
+                RegisterAsKey::Classical(_) => CLASSICAL_REGISTER.get_bound(py),
+            };
+            // Check if any indices have been initialized, if such is the case
+            // Treat the rest of indices as new `Bits``
+            if register
+                .bits()
+                .any(|bit| self.bits[BitType::from(bit) as usize].get().is_some())
+            {
+                let bits: Vec<PyObject> = register
+                    .bits()
+                    .map(|bit| -> PyResult<PyObject> {
+                        if let Some(bit_obj) = self.bits[BitType::from(bit) as usize].get() {
+                            Ok(bit_obj.clone_ref(py))
+                        } else {
+                            T::to_py_bit(py)
+                        }
+                    })
+                    .collect::<PyResult<_>>()?;
+
+                // Extract kwargs
+                let kwargs = PyDict::new_bound(py);
+                kwargs.set_item("name", register.name())?;
+                kwargs.set_item("bits", bits)?;
+
+                // Create register and assign to OnceCell
+                let reg = reg_type.call((), Some(&kwargs))?;
+                self.registers[index_as_usize]
+                    .set(reg.into())
+                    .map_err(|_| PyRuntimeError::new_err("Could not set the OnceCell correctly"))?;
+                Ok(self.registers[index_as_usize].get())
+            } else {
+                let reg = reg_type.call1((register.len(), register.name()))?;
+                self.registers[index_as_usize]
+                    .set(reg.into())
+                    .map_err(|_| PyRuntimeError::new_err("Could not set the OnceCell correctly"))?;
+                Ok(self.registers[index_as_usize].get())
+            }
+        } else {
+            Ok(self.registers[index_as_usize].get())
+        }
+    }
+
+    /// Adds a new Python bit.
+    ///
+    /// _**Note:** If this Bit has register information, it will not be reflected unless
+    /// the Register is also added._
+    pub fn py_add_bit(&mut self, bit: &Bound<PyAny>, strict: bool) -> PyResult<T> {
+        let py: Python<'_> = bit.py();
+
+        let idx: BitType = self.bits.len().try_into().map_err(|_| {
+            PyRuntimeError::new_err(format!(
+                "The number of {} in the circuit has exceeded the maximum capacity",
+                self.description
+            ))
+        })?;
+        if self
+            .indices
+            .try_insert(BitAsKey::new(bit), idx.into())
+            .is_ok()
+        {
+            self.bit_info.push(None);
+            self.bits.push(bit.into_py(py).into());
+            // self.cached.bind(py).append(bit)?;
+        } else if strict {
+            return Err(PyValueError::new_err(format!(
+                "Existing bit {:?} cannot be re-added in strict mode.",
+                bit
+            )));
+        }
+        Ok(idx.into())
+    }
+
+    pub fn py_add_register(&mut self, register: &Bound<PyAny>) -> PyResult<u32> {
+        // let index: u32 = self.registers.len().try_into().map_err(|_| {
+        //     PyRuntimeError::new_err(format!(
+        //         "The number of {} registers in the circuit has exceeded the maximum capacity",
+        //         self.description
+        //     ))
+        // })?;
+
+        let bits: Vec<T> = register
+            .iter()?
+            .map(|bit| -> PyResult<T> {
+                let bit = bit?;
+                if let Some(idx) = self.indices.get(&BitAsKey::new(&bit)) {
+                    Ok(*idx)
+                } else {
+                    self.py_add_bit(&bit, true)
+                }
+            })
+            .collect::<PyResult<_>>()?;
+
+        let name: String = register.getattr("name")?.extract()?;
+        self.registers.push(register.clone().unbind().into());
+        Ok(self.add_register(Some(name), None, Some(&bits)))
+    }
+
+    pub fn py_remove_bit_indices<I>(&mut self, py: Python, indices: I) -> PyResult<()>
+    where
+        I: IntoIterator<Item = T>,
+    {
+        let mut indices_sorted: Vec<usize> = indices
+            .into_iter()
+            .map(|i| <BitType as From<T>>::from(i) as usize)
+            .collect();
+        indices_sorted.sort();
+
+        for index in indices_sorted.into_iter().rev() {
+            // self.cached.bind(py).del_item(index)?;
+            let bit = self
+                .py_get_bit(py, (index as BitType).into())?
+                .unwrap()
+                .clone_ref(py);
+            self.indices.remove(&BitAsKey::new(bit.bind(py)));
+            self.bits.remove(index);
+            self.bit_info.remove(index);
+        }
+        // Update indices.
+        for i in 0..self.bits.len() {
+            let bit = self
+                .py_get_bit(py, (i as BitType).into())?
+                .unwrap()
+                .clone_ref(py);
+            self.indices
+                .insert(BitAsKey::new(bit.bind(py)), (i as BitType).into());
+        }
+        Ok(())
+    }
+
+    /// Called during Python garbage collection, only!.
+    /// Note: INVALIDATES THIS INSTANCE.
+    pub fn dispose(&mut self) {
+        self.indices.clear();
+        self.bits.clear();
+        self.registers.clear();
+        self.bit_info.clear();
+        self.registry.clear();
     }
 }

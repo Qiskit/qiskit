@@ -31,6 +31,7 @@ pub mod util;
 
 mod rustworkx_core_vnext;
 
+use imports::{CLBIT, QUBIT};
 use pyo3::prelude::*;
 use pyo3::types::{PySequence, PyTuple};
 
@@ -124,13 +125,28 @@ impl From<Clbit> for BitType {
     }
 }
 
+/// **For development purposes only.** This ensures we convert to the correct Bit
+/// type in Python since [BitData] does not know what its types are inherently.
+pub trait ToPyBit {
+    /// Creates an empty bit from a rust bit instance of the correct type.
+    ///
+    /// _**Note:** Should only be used when dealing with fully opaque bits._
+    fn to_py_bit(py: Python) -> PyResult<PyObject>;
+}
+
+impl ToPyBit for Qubit {
+    fn to_py_bit(py: Python) -> PyResult<PyObject> {
+        QUBIT.get_bound(py).call0().map(|bit| bit.into())
+    }
+}
+
+impl ToPyBit for Clbit {
+    fn to_py_bit(py: Python) -> PyResult<PyObject> {
+        CLBIT.get_bound(py).call0().map(|bit| bit.into())
+    }
+}
+
 pub fn circuit(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_class::<bit::PyBit>()?;
-    m.add_class::<bit::PyClbit>()?;
-    m.add_class::<bit::PyQubit>()?;
-    m.add_class::<register::PyRegister>()?;
-    m.add_class::<register::PyQuantumRegister>()?;
-    m.add_class::<register::PyClassicalRegister>()?;
     m.add_class::<circuit_data::CircuitData>()?;
     m.add_class::<circuit_instruction::CircuitInstruction>()?;
     m.add_class::<dag_circuit::DAGCircuit>()?;
