@@ -3841,13 +3841,6 @@ class QuantumCircuit:
 
                 # Create a new circuit with two qubits and one classical bit
                 qc = QuantumCircuit(2, 1)
-
-                # Add a Hadamard gate to qubit 0
-                qc.h(0)
-
-                # Perform a controlled-X gate on qubit 1, controlled by qubit 0
-                qc.cx(0, 1)
-
                 print("Number of classical bits:", qc.num_clbits)
 
             .. code-block:: text
