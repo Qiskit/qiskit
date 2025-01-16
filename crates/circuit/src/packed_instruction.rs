@@ -14,6 +14,7 @@ use bitfield_struct::bitfield;
 #[cfg(feature = "cache_pygates")]
 use std::cell::OnceCell;
 use std::fmt;
+use std::fmt::Formatter;
 use std::ptr::NonNull;
 
 use pyo3::intern;
@@ -272,37 +273,42 @@ struct StandardInstructionBits {
     #[bits(21)]
     _pad1: u32,
     #[bits(32)]
-    value: ImmediateValue,
+    value: Immediate32,
 }
 
 /// An inline value present within [StandardInstructionBits] layouts used to store arbitrary
 /// data to be interpreted according to the encoded standard instruction.
-#[derive(Clone, Copy, Debug)]
-#[repr(transparent)]
-struct ImmediateValue(u32);
+#[repr(C)]
+union Immediate32 {
+    raw: u32,
+    delay_unit: DelayUnit,
+}
 
-impl ImmediateValue {
+impl Immediate32 {
     const fn into_bits(self) -> u32 {
-        self.0
+        unsafe { self.raw }
     }
 
     const fn from_bits(value: u32) -> Self {
-        Self(value)
+        Self { raw: value }
     }
+}
 
-    #[inline]
-    fn from_delay_unit(unit: DelayUnit) -> Self {
-        Self(unit as u32)
+impl fmt::Debug for Immediate32 {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        unsafe { self.raw }.fmt(f)
     }
+}
 
-    #[inline]
-    fn delay_unit(&self) -> DelayUnit {
-        ::bytemuck::checked::cast(self.0 as u8)
+impl From<u32> for Immediate32 {
+    fn from(value: u32) -> Self {
+        Immediate32 { raw: value }
     }
+}
 
-    #[inline]
-    fn u32(&self) -> u32 {
-        self.0
+impl From<DelayUnit> for Immediate32 {
+    fn from(value: DelayUnit) -> Self {
+        Immediate32 { delay_unit: value }
     }
 }
 
@@ -408,10 +414,10 @@ impl PackedOperation {
                 let instruction = unsafe { self.0.instruction };
                 Some(match instruction.standard_instruction() {
                     StandardInstructionType::Barrier => {
-                        StandardInstruction::Barrier(instruction.value().u32())
+                        StandardInstruction::Barrier(unsafe { instruction.value().raw })
                     }
                     StandardInstructionType::Delay => {
-                        StandardInstruction::Delay(instruction.value().delay_unit())
+                        StandardInstruction::Delay(unsafe { instruction.value().delay_unit })
                     }
                     StandardInstructionType::Measure => StandardInstruction::Measure,
                     StandardInstructionType::Reset => StandardInstruction::Reset,
@@ -457,12 +463,12 @@ impl PackedOperation {
             StandardInstruction::Barrier(num_qubits) => {
                 bits = bits
                     .with_standard_instruction(StandardInstructionType::Barrier)
-                    .with_value(ImmediateValue(num_qubits))
+                    .with_value(num_qubits.into())
             }
             StandardInstruction::Delay(unit) => {
                 bits = bits
                     .with_standard_instruction(StandardInstructionType::Delay)
-                    .with_value(ImmediateValue::from_delay_unit(unit))
+                    .with_value(unit.into())
             }
             StandardInstruction::Measure => {
                 bits = bits.with_standard_instruction(StandardInstructionType::Measure);
