@@ -435,7 +435,7 @@ class TestCommutationChecker(QiskitTestCase):
 
     @idata(ROTATION_GATES)
     def test_controlled_rotation_mod_4pi(self, gate_cls):
-        """Test the rotations modulo 2pi (controlled 4pi) commute with any gate."""
+        """Test the rotations modulo 2pi (4pi for controlled-rx/y/z) commute with any gate."""
         generic_gate = HGate()  # does not commute with any rotation gate
         multiples = np.arange(-6, 7)
 
