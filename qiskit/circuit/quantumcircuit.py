@@ -4435,15 +4435,11 @@ class QuantumCircuit:
                 :nofigs:
                 :context: reset
 
-                from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+                from qiskit import QuantumCircuit
 
-                qreg_q = QuantumRegister(2, 'q')
-                creg_c = ClassicalRegister(2, 'c')
-                circuit = QuantumCircuit(qreg_q, creg_c)
-
-                circuit.h(qreg_q[0])
-                circuit.cx(qreg_q[0], qreg_q[1])
-
+                circuit = QuantumCircuit(2)
+                circuit.h(0)
+                circuit.cx(0, 1)
                 print(circuit.global_phase) # find the global phase of the current circuit
 
             .. code-block:: text
