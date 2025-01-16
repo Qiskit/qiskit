@@ -1331,12 +1331,10 @@ class QuantumCircuit:
                 :nofigs:
 
                 from qiskit import QuantumCircuit
-                from qiskit.circuit.library import GroverOperator, Diagonal
                 from qiskit.providers.fake_provider import GenericBackendV2
                 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
-
+                
                 # Create circuit to test transpiler on
-                oracle = Diagonal([1] * 7 + [-1])
                 qc = QuantumCircuit(3)
                 qc.h([0, 1, 2])
                 qc = qc.compose(GroverOperator(oracle))
