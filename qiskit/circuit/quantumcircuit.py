@@ -1330,7 +1330,7 @@ class QuantumCircuit:
                 :include-source:
                 :nofigs:
 
-                from qiskit import QuantumCircuit
+                from qiskit import QuantumCircuit, GroverOperator
                 from qiskit.providers.fake_provider import GenericBackendV2
                 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 
