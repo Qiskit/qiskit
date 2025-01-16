@@ -732,6 +732,19 @@ fn get_2q_decomposers_from_target(
         }
     }
 
+    // If our 2q basis gates are a subset of cx, ecr, or cz then we know TwoQubitBasisDecomposer
+    // is an ideal decomposition and there is no need to try other decomposers
+    let available_basis_set: HashSet<&str> = available_2q_basis.keys().copied().collect();
+
+    #[inline]
+    fn check_goodbye(basis_set: &HashSet<&str>) -> bool {
+        !basis_set.is_empty() && basis_set.iter().all(|gate| GOODBYE_SET.contains(gate))
+    }
+
+    if check_goodbye(&available_basis_set) {
+        return Ok(Some(decomposers));
+    }
+
     for basis_1q in &available_1q_basis {
         for (_basis_2q, gate) in available_2q_param_basis.iter() {
             let decomposer = TwoQubitControlledUDecomposer::new(
@@ -747,25 +760,15 @@ fn get_2q_decomposers_from_target(
         }
     }
 
-    // If our 2q basis gates are a subset of cx, ecr, or cz then we know TwoQubitBasisDecomposer
-    // is an ideal decomposition and there is no need to bother calculating the XX embodiments
-    // or try the XX decomposer
-    let available_basis_set: HashSet<&str> = available_2q_basis.keys().copied().collect();
+    // If our 2q basis gates are a subset of PARAM_SET, then we will use the TwoQubitControlledUDecomposer
+    // and there is no need to try other decomposers
+
     let available_basis_param_set: HashSet<&str> =
         available_2q_param_basis.keys().copied().collect();
 
     #[inline]
-    fn check_goodbye(basis_set: &HashSet<&str>) -> bool {
-        basis_set.iter().all(|gate| GOODBYE_SET.contains(gate))
-    }
-
-    if check_goodbye(&available_basis_set) {
-        return Ok(Some(decomposers));
-    }
-
-    #[inline]
     fn check_parametrized_goodbye(basis_set: &HashSet<&str>) -> bool {
-        basis_set.iter().all(|gate| PARAM_SET.contains(gate))
+        !basis_set.is_empty() && basis_set.iter().all(|gate| PARAM_SET.contains(gate))
     }
 
     if check_parametrized_goodbye(&available_basis_param_set) {
