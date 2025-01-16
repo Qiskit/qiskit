@@ -523,7 +523,7 @@ impl CommutationChecker {
             Ok(matrix) => matrix,
             Err(e) => return Err(PyRuntimeError::new_err(e)),
         };
-        let fid = unitary_compose::gate_fidelity(&op12.view(), &op21.view());
+        let fid = unitary_compose::gate_fidelity(&op12.view(), &op21.view(), None);
         Ok((1.0 - fid).abs() < rtol)
     }
 

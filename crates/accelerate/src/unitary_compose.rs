@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use ndarray::{Array, Array2, ArrayView, ArrayView2, IxDyn};
+use ndarray::{arr2, Array, Array2, ArrayView, ArrayView2, IxDyn};
 use ndarray_einsum_beta::*;
 use num_complex::{Complex, Complex64, ComplexFloat};
 use num_traits::Zero;
@@ -239,10 +239,58 @@ pub fn allclose(
     true
 }
 
-pub fn gate_fidelity(left: &ArrayView2<Complex64>, right: &ArrayView2<Complex64>) -> f64 {
-    let dim = left.nrows() as f64; // == left.ncols() == right.nrows() == right.ncols()
-    let trace = left.t().mapv(|el| el.conj()).dot(right).diag().sum();
+pub fn gate_fidelity(
+    left: &ArrayView2<Complex64>,
+    right: &ArrayView2<Complex64>,
+    qargs: Option<&[Qubit]>,
+) -> f64 {
+    let dim = left.nrows(); // == left.ncols() == right.nrows() == right.ncols()
+                            // let trace = left.t().mapv(|el| el.conj()).dot(right).diag().sum();
+
+    let left = left.t().mapv(|el| el.conj());
+    let product = match dim {
+        2 => mm1q(&left.view(), right),
+        4 => mm2q(&left.view(), right, qargs.unwrap_or(&[Qubit(0), Qubit(1)])),
+        _ => left.dot(right),
+    };
+    let trace = product.diag().sum();
+
+    let dim = dim as f64;
     let process_fidelity = (trace / dim).abs().powi(2);
     let gate_fidelity = (dim * process_fidelity + 1.) / (dim + 1.);
     gate_fidelity
+}
+
+fn mm1q(left: &ArrayView2<Complex64>, right: &ArrayView2<Complex64>) -> Array2<Complex64> {
+    let zero = Complex64::zero();
+    let mut out = arr2(&[[zero, zero], [zero, zero]]);
+    out[[0, 0]] = left[[0, 0]] * right[[0, 0]] + left[[0, 1]] * right[[1, 0]];
+    out[[0, 1]] = left[[0, 0]] * right[[0, 1]] + left[[0, 1]] * right[[1, 1]];
+    out[[1, 0]] = left[[1, 0]] * right[[0, 0]] + left[[1, 1]] * right[[1, 0]];
+    out[[1, 1]] = left[[1, 0]] * right[[0, 1]] + left[[1, 1]] * right[[1, 1]];
+    out
+}
+
+pub fn mm2q(
+    left: &ArrayView2<Complex64>,
+    right: &ArrayView2<Complex64>,
+    qargs: &[Qubit],
+) -> Array2<Complex64> {
+    let zero = Complex64::zero();
+    let mut out = arr2(&[
+        [zero, zero, zero, zero],
+        [zero, zero, zero, zero],
+        [zero, zero, zero, zero],
+        [zero, zero, zero, zero],
+    ]);
+
+    let rev = qargs[0].0 == 1;
+    for i in 0..4usize {
+        for j in 0..4usize {
+            for k in 0..4usize {
+                out[[j, k]] += left[[_ind(i, rev), _ind(k, rev)]] * right[[k, j]];
+            }
+        }
+    }
+    out
 }
