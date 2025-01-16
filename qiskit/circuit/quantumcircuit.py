@@ -1458,8 +1458,9 @@ class QuantumCircuit:
 
                 # Transpile the circuit with a specific basis gates list and print the resulting circuit
                 backend = GenericBackendV2(2, basis_gates=['u1', 'u2', 'u3', 'cx'])
-                pm = generate_preset_pass_manager(optimization_level=1,
-                backend=backend, scheduling_method='alap')
+                pm = generate_preset_pass_manager(
+                    optimization_level=1, backend=backend, scheduling_method="alap"
+                )
                 transpiled_qc = pm.run(qc)
                 print("Transpiled circuit with basis gates ['u1', 'u2', 'u3', 'cx']:")
                 print(transpiled_qc)
@@ -3811,15 +3812,11 @@ class QuantumCircuit:
                 from qiskit import QuantumCircuit, QuantumRegister, AncillaRegister
 
                 # Create a 2-qubit quantum circuit
-
                 reg = QuantumRegister(2)
-
                 qc = QuantumCircuit(reg)
 
                 # Create an ancilla register with 1 qubit
-
                 anc = AncillaRegister(1)
-
                 qc.add_register(anc)  # Add the ancilla register to the circuit
 
                 print("Number of ancilla qubits:", qc.num_ancillas)
