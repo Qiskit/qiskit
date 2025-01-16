@@ -579,9 +579,7 @@ class TestCircuitProperties(QiskitTestCase):
         qc.cx(q1[1], q2[1])
         qc.cx(q2[1], q1[2])
         qc.cx(q1[2], q2[0])
-        # Internally calls op.condition_bits
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(qc.num_connected_components(), 1)
+        self.assertEqual(qc.num_connected_components(), 1)
 
     def test_circuit_connected_components_multi_reg2(self):
         """Test tensor factors works over multi registers #2."""
@@ -602,9 +600,7 @@ class TestCircuitProperties(QiskitTestCase):
         qc.cx(q1[0], q2[1])
         qc.cx(q2[0], q1[2])
         qc.cx(q1[1], q2[0])
-        # Internally calls op.condition_bits
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(qc.num_connected_components(), 2)
+        self.assertEqual(qc.num_connected_components(), 2)
 
     def test_circuit_connected_components_disconnected(self):
         """Test tensor factors works with 2q subspaces."""
@@ -637,9 +633,7 @@ class TestCircuitProperties(QiskitTestCase):
         qc.cx(q1[2], q2[2])
         qc.cx(q1[3], q2[1])
         qc.cx(q1[4], q2[0])
-        # Internally calls op.condition_bits
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(qc.num_connected_components(), 5)
+        self.assertEqual(qc.num_connected_components(), 5)
 
     def test_circuit_connected_components_with_clbits(self):
         """Test tensor components with classical register."""
@@ -667,9 +661,7 @@ class TestCircuitProperties(QiskitTestCase):
         qc.measure(q[1], c[1])
         qc.measure(q[2], c[2])
         qc.measure(q[3], c[3])
-        # Internally calls op.condition_bits
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(qc.num_connected_components(), 4)
+        self.assertEqual(qc.num_connected_components(), 4)
 
     def test_circuit_unitary_factors1(self):
         """Test unitary factors empty circuit."""
@@ -712,7 +704,8 @@ class TestCircuitProperties(QiskitTestCase):
         qc.h(q[3])
         qc.cx(q[1], q[2])
         qc.cx(q[1], q[2])
-        # qc.cx(q[0], q[3]).c_if(c, 2)
+        with qc.if_test((c, 2)):
+            qc.cx(q[0], q[3])
         qc.cx(q[0], q[3])
         qc.cx(q[0], q[3])
         qc.cx(q[0], q[3])
