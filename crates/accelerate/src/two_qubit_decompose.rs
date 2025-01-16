@@ -2454,7 +2454,7 @@ pub struct TwoQubitControlledUDecomposer {
     scale: f64,
 }
 
-const DEFAULT_ATOL: f64 = 1e-12;
+pub const DEFAULT_ATOL: f64 = 1e-12;
 type InverseReturn = (Option<StandardGate>, SmallVec<[f64; 3]>, SmallVec<[u8; 2]>);
 
 ///  Decompose two-qubit unitary in terms of a desired
