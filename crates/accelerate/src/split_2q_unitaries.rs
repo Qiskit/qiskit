@@ -34,7 +34,7 @@ pub fn split_2q_unitaries(
     let nodes: Vec<NodeIndex> = dag.op_node_indices(false).collect();
 
     for node in nodes {
-        if let NodeType::Operation(inst) = &dag.dag()[node] {
+        if let NodeType::Operation(inst) = &dag[node] {
             let qubits = dag.get_qargs(inst.qubits).to_vec();
             // We only attempt to split UnitaryGate objects, but this could be extended in future
             // -- however we need to ensure that we can compile the resulting single-qubit unitaries
