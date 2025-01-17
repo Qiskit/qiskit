@@ -212,8 +212,7 @@ fn extract_basis(
         basis: &mut HashSet<GateIdentifier>,
         min_qubits: usize,
     ) -> PyResult<()> {
-        for node in circuit.op_nodes(true) {
-            let operation: &PackedInstruction = circuit.dag()[node].unwrap_operation();
+        for (node, operation) in circuit.op_nodes(true) {
             if !circuit.has_calibration_for_index(py, node)?
                 && circuit.get_qargs(operation.qubits).len() >= min_qubits
             {
@@ -279,8 +278,7 @@ fn extract_basis_target(
     min_qubits: usize,
     qargs_with_non_global_operation: &HashMap<Option<Qargs>, HashSet<String>>,
 ) -> PyResult<()> {
-    for node in dag.op_nodes(true) {
-        let node_obj: &PackedInstruction = dag.dag()[node].unwrap_operation();
+    for (node, node_obj) in dag.op_nodes(true) {
         let qargs: &[Qubit] = dag.get_qargs(node_obj.qubits);
         if dag.has_calibration_for_index(py, node)? || qargs.len() < min_qubits {
             continue;

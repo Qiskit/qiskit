@@ -23,7 +23,7 @@ use qiskit_circuit::{
     circuit_instruction::CircuitInstruction,
     circuit_instruction::ExtraInstructionAttributes,
     converters::{circuit_to_dag, QuantumCircuitData},
-    dag_circuit::{DAGCircuit, NodeType},
+    dag_circuit::DAGCircuit,
     dag_node::{DAGNode, DAGOpNode},
     imports,
     imports::get_std_gate_class,
@@ -105,11 +105,7 @@ fn check_gate_direction<T>(
 where
     T: Fn(&PackedInstruction, &[Qubit]) -> bool,
 {
-    for node in dag.op_nodes(false) {
-        let NodeType::Operation(packed_inst) = &dag.dag()[node] else {
-            panic!("PackedInstruction is expected");
-        };
-
+    for (_, packed_inst) in dag.op_nodes(false) {
         let inst_qargs = dag.get_qargs(packed_inst.qubits);
 
         if let OperationRef::Instruction(py_inst) = packed_inst.op.view() {
@@ -254,9 +250,7 @@ where
     let mut nodes_to_replace: Vec<(NodeIndex, DAGCircuit)> = Vec::new();
     let mut ops_to_replace: Vec<(NodeIndex, Vec<Bound<PyAny>>)> = Vec::new();
 
-    for node in dag.op_nodes(false) {
-        let packed_inst = dag.dag()[node].unwrap_operation();
-
+    for (node, packed_inst) in dag.op_nodes(false) {
         let op_args = dag.get_qargs(packed_inst.qubits);
 
         if let OperationRef::Instruction(py_inst) = packed_inst.op.view() {
