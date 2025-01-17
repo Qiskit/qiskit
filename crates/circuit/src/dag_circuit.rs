@@ -5668,28 +5668,15 @@ impl DAGCircuit {
     }
 
     /// Returns an iterator over all the indices that refer to an `Operation` node in the `DAGCircuit.`
-    pub fn op_nodes<'a>(
-        &'a self,
-        include_directives: bool,
-    ) -> Box<dyn Iterator<Item = NodeIndex> + 'a> {
-        let node_ops_iter = self
-            .dag
+    pub fn op_nodes(&self, include_directives: bool) -> impl Iterator<Item = NodeIndex> + '_ {
+        self.dag
             .node_references()
-            .filter_map(|(node_index, node_type)| match node_type {
-                NodeType::Operation(ref node) => Some((node_index, node)),
-                _ => None,
-            });
-        if !include_directives {
-            Box::new(node_ops_iter.filter_map(|(index, node)| {
-                if !node.op.directive() {
-                    Some(index)
-                } else {
-                    None
+            .filter_map(move |(node_index, node_type)| match node_type {
+                NodeType::Operation(ref node) => {
+                    (include_directives || !node.op.directive()).then_some(node_index)
                 }
-            }))
-        } else {
-            Box::new(node_ops_iter.map(|(index, _)| index))
-        }
+                _ => None,
+            })
     }
 
     /// Return an iterator of 2 qubit operations. Ignore directives like snapshot and barrier.
