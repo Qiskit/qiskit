@@ -1,4 +1,3 @@
-use hashbrown::Equivalent;
 use indexmap::IndexSet;
 use pyo3::{exceptions::PyTypeError, intern, types::PyAnyMethods, FromPyObject};
 use std::{
@@ -25,27 +24,27 @@ impl RegisterAsKey {
     #[inline]
     pub fn reduce(&self) -> (u32, &str) {
         match self {
-            RegisterAsKey::Register((name, num_qubits)) => (*num_qubits, name.as_str()),
-            RegisterAsKey::Quantum((name, num_qubits)) => (*num_qubits, name.as_str()),
-            RegisterAsKey::Classical((name, num_qubits)) => (*num_qubits, name.as_str()),
+            RegisterAsKey::Register(key) => (key.1, key.0.as_str()),
+            RegisterAsKey::Quantum(key) => (key.1, key.0.as_str()),
+            RegisterAsKey::Classical(key) => (key.1, key.0.as_str()),
         }
     }
 
     #[inline]
     pub fn name(&self) -> &str {
         match self {
-            RegisterAsKey::Register((name, _)) => name.as_str(),
-            RegisterAsKey::Quantum((name, _)) => name.as_str(),
-            RegisterAsKey::Classical((name, _)) => name.as_str(),
+            RegisterAsKey::Register(key) => key.0.as_str(),
+            RegisterAsKey::Quantum(key) => key.0.as_str(),
+            RegisterAsKey::Classical(key) => key.0.as_str(),
         }
     }
 
     #[inline]
     pub fn index(&self) -> u32 {
         match self {
-            RegisterAsKey::Register((_, idx)) => *idx,
-            RegisterAsKey::Quantum((_, idx)) => *idx,
-            RegisterAsKey::Classical((_, idx)) => *idx,
+            RegisterAsKey::Register(key) => key.1,
+            RegisterAsKey::Quantum(key) => key.1,
+            RegisterAsKey::Classical(key) => key.1,
         }
     }
 
@@ -97,7 +96,7 @@ pub trait Register {
     /// Return an iterator over all the bits in the register
     fn bits(&self) -> impl ExactSizeIterator<Item = Self::Bit>;
     /// Returns the register as a Key
-    fn as_key(&self) -> RegisterAsKey;
+    fn as_key(&self) -> &RegisterAsKey;
 }
 
 macro_rules! create_register {
@@ -107,12 +106,12 @@ macro_rules! create_register {
         #[derive(Debug, Clone, Eq)]
         pub struct $name {
             register: IndexSet<<$name as Register>::Bit>,
-            name: String,
+            key: RegisterAsKey,
         }
 
         impl $name {
             pub fn new(size: Option<usize>, name: Option<String>, bits: Option<&[$bit]>) -> Self {
-                let register = if let Some(size) = size {
+                let register: IndexSet<<$name as Register>::Bit> = if let Some(size) = size {
                     (0..size).map(|bit| <$bit>::new(bit)).collect()
                 } else if let Some(bits) = bits {
                     bits.iter().copied().collect()
@@ -131,7 +130,11 @@ macro_rules! create_register {
                     };
                     format!("{}{}", $prefix, count)
                 };
-                Self { register, name }
+                let length: u32 = register.len().try_into().unwrap();
+                Self {
+                    register,
+                    key: $key((name, length)),
+                }
             }
         }
 
@@ -147,7 +150,7 @@ macro_rules! create_register {
             }
 
             fn name(&self) -> &str {
-                self.name.as_str()
+                self.key.name()
             }
 
             fn contains(&self, bit: Self::Bit) -> bool {
@@ -162,20 +165,20 @@ macro_rules! create_register {
                 self.register.iter().copied()
             }
 
-            fn as_key(&self) -> RegisterAsKey {
-                $key((self.name.clone(), self.len().try_into().unwrap()))
+            fn as_key(&self) -> &RegisterAsKey {
+                &self.key
             }
         }
 
         impl Hash for $name {
             fn hash<H: Hasher>(&self, state: &mut H) {
-                (self.name.as_str(), self.len()).hash(state);
+                (self.key).hash(state);
             }
         }
 
         impl PartialEq for $name {
             fn eq(&self, other: &Self) -> bool {
-                self.register.len() == other.register.len() && self.name == other.name
+                self.register.len() == other.register.len() && self.key == other.key
             }
         }
 
@@ -222,26 +225,3 @@ create_register!(
     "cr",
     RegisterAsKey::Classical
 );
-
-// Add equivalencies between Keys and Registers
-impl Equivalent<QuantumRegister> for RegisterAsKey {
-    fn equivalent(&self, key: &QuantumRegister) -> bool {
-        match self {
-            Self::Quantum((name, length)) => {
-                name == &key.name && *length == key.len().try_into().unwrap()
-            }
-            _ => false,
-        }
-    }
-}
-
-impl Equivalent<ClassicalRegister> for RegisterAsKey {
-    fn equivalent(&self, key: &ClassicalRegister) -> bool {
-        match self {
-            Self::Classical((name, length)) => {
-                name == &key.name && *length == key.len().try_into().unwrap()
-            }
-            _ => false,
-        }
-    }
-}
