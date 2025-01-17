@@ -209,13 +209,14 @@ jobs:
   wheels-linux-aarch64:
     name: "Wheels / Linux AArch64"
     if: (inputs.wheels-linux-aarch64 == 'default' && inputs.default-action || inputs.wheels-linux-aarch64) == 'build'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ inputs.python-version }}
       - uses: dtolnay/rust-toolchain@stable
+<<<<<<< HEAD
       - uses: docker/setup-qemu-action@v3
         with:
           platforms: all
@@ -223,6 +224,9 @@ jobs:
         env:
           CIBW_ARCHS_LINUX: aarch64
           CIBW_TEST_COMMAND: cp -r {project}/test . && QISKIT_PARALLEL=FALSE stestr --test-path test/python run --abbreviate -n test.python.compiler.test_transpiler
+=======
+      - uses: pypa/cibuildwheel@v2.22.0
+>>>>>>> 3150351f (Build Linux AArch64 wheels natively without QEMU (#13682))
       - uses: actions/upload-artifact@v4
         with:
           path: ./wheelhouse/*.whl
