@@ -47,12 +47,7 @@ fn run_remove_diagonal_before_measure(dag: &mut DAGCircuit) -> PyResult<()> {
     static DIAGONAL_3Q_GATES: [StandardGate; 1] = [StandardGate::CCZGate];
 
     let mut nodes_to_remove = Vec::new();
-    for index in dag.op_nodes(true) {
-        let node = &dag.dag()[index];
-        let NodeType::Operation(inst) = node else {
-            panic!()
-        };
-
+    for (index, inst) in dag.op_nodes(true) {
         if inst.op.name() == "measure" {
             let predecessor = (dag.quantum_predecessors(index))
                 .next()

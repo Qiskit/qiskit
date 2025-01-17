@@ -3773,12 +3773,9 @@ def _format(operand):
     /// Get list of 2 qubit operations. Ignore directives like snapshot and barrier.
     #[pyo3(name = "two_qubit_ops")]
     pub fn py_two_qubit_ops(&self, py: Python) -> PyResult<Vec<Py<PyAny>>> {
-        let mut nodes = Vec::new();
-        for node in self.two_qubit_ops() {
-            let weight = self.dag.node_weight(node).expect("NodeIndex in graph");
-            nodes.push(self.unpack_into(py, node, weight)?);
-        }
-        Ok(nodes)
+        self.two_qubit_ops()
+            .map(|(index, _)| self.unpack_into(py, index, &self.dag[index]))
+            .collect()
     }
 
     /// Get list of 3+ qubit operations. Ignore directives like snapshot and barrier.
@@ -4141,18 +4138,12 @@ def _format(operand):
 
             new_layer.extend(py, op_nodes.iter().map(|(inst, _)| (*inst).clone()))?;
 
-            let new_layer_op_nodes = new_layer.op_nodes(false).filter_map(|node_index| {
-                match new_layer.dag.node_weight(node_index) {
-                    Some(NodeType::Operation(ref node)) => Some(node),
-                    _ => None,
-                }
-            });
-            let support_iter = new_layer_op_nodes.into_iter().map(|node| {
+            let support_iter = new_layer.op_nodes(false).map(|(_, instruction)| {
                 PyTuple::new_bound(
                     py,
                     new_layer
                         .qubits
-                        .map_indices(new_layer.qargs_interner.get(node.qubits)),
+                        .map_indices(new_layer.qargs_interner.get(instruction.qubits)),
                 )
             });
             let support_list = PyList::empty_bound(py);
@@ -5667,29 +5658,38 @@ impl DAGCircuit {
         Ok(dag_node)
     }
 
-    /// Returns an iterator over all the indices that refer to an `Operation` node in the `DAGCircuit.`
-    pub fn op_nodes(&self, include_directives: bool) -> impl Iterator<Item = NodeIndex> + '_ {
+    /// An iterator of the DAG indices and corresponding `PackedInstruction` references for
+    /// the `NodeType::Operation` variants stored in the DAG.
+    ///
+    /// See also [op_node_indices], which provides only the indices.
+    pub fn op_nodes(
+        &self,
+        include_directives: bool,
+    ) -> impl Iterator<Item = (NodeIndex, &PackedInstruction)> + '_ {
         self.dag
             .node_references()
             .filter_map(move |(node_index, node_type)| match node_type {
                 NodeType::Operation(ref node) => {
-                    (include_directives || !node.op.directive()).then_some(node_index)
+                    (include_directives || !node.op.directive()).then_some((node_index, node))
                 }
                 _ => None,
             })
     }
 
+    /// An iterator of the DAG indices corresponding to `NodeType::Operation` variants.
+    ///
+    /// See also [op_nodes], which also provides a reference to the contained `PackedInstruction`.
+    pub fn op_node_indices(
+        &self,
+        include_directives: bool,
+    ) -> impl Iterator<Item = NodeIndex> + '_ {
+        self.op_nodes(include_directives).map(|(index, _)| index)
+    }
+
     /// Return an iterator of 2 qubit operations. Ignore directives like snapshot and barrier.
-    pub fn two_qubit_ops(&self) -> impl Iterator<Item = NodeIndex> + '_ {
-        Box::new(self.op_nodes(false).filter(|index| {
-            let weight = self.dag.node_weight(*index).expect("NodeIndex in graph");
-            if let NodeType::Operation(ref packed) = weight {
-                let qargs = self.qargs_interner.get(packed.qubits);
-                qargs.len() == 2
-            } else {
-                false
-            }
-        }))
+    pub fn two_qubit_ops(&self) -> impl Iterator<Item = (NodeIndex, &PackedInstruction)> + '_ {
+        self.op_nodes(false)
+            .filter(|(_, instruction)| self.qargs_interner.get(instruction.qubits).len() == 2)
     }
 
     // Filter any nodes that don't match a given predicate function
@@ -5697,40 +5697,13 @@ impl DAGCircuit {
     where
         F: FnMut(&PackedInstruction) -> bool,
     {
-        let mut remove_nodes: Vec<NodeIndex> = Vec::new();
-        for node in self.op_nodes(true) {
-            let NodeType::Operation(op) = &self.dag[node] else {
-                unreachable!()
-            };
-            if !predicate(op) {
-                remove_nodes.push(node);
-            }
-        }
-        for node in remove_nodes {
+        let remove_indices = self
+            .op_nodes(true)
+            .filter_map(|(index, instruction)| (!predicate(instruction)).then_some(index))
+            .collect::<Vec<_>>();
+        for node in remove_indices {
             self.remove_op_node(node);
         }
-    }
-
-    pub fn op_nodes_by_py_type<'a>(
-        &'a self,
-        op: &'a Bound<PyType>,
-        include_directives: bool,
-    ) -> impl Iterator<Item = NodeIndex> + 'a {
-        self.dag
-            .node_references()
-            .filter_map(move |(node, weight)| {
-                if let NodeType::Operation(ref packed) = weight {
-                    if !include_directives && packed.op.directive() {
-                        None
-                    } else if packed.op.py_op_is_instance(op).unwrap() {
-                        Some(node)
-                    } else {
-                        None
-                    }
-                } else {
-                    None
-                }
-            })
     }
 
     /// Returns an iterator over a list layers of the `DAGCircuit``.
