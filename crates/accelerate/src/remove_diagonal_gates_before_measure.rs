@@ -53,7 +53,7 @@ fn run_remove_diagonal_before_measure(dag: &mut DAGCircuit) -> PyResult<()> {
                 .next()
                 .expect("index is an operation node, so it must have a predecessor.");
 
-            match &dag.dag()[predecessor] {
+            match &dag[predecessor] {
                 NodeType::Operation(pred_inst) => match pred_inst.standard_gate() {
                     Some(gate) => {
                         if DIAGONAL_1Q_GATES.contains(&gate) {
@@ -64,8 +64,7 @@ fn run_remove_diagonal_before_measure(dag: &mut DAGCircuit) -> PyResult<()> {
                             let successors = dag.quantum_successors(predecessor);
                             let remove_s = successors
                                 .map(|s| {
-                                    let node_s = &dag.dag()[s];
-                                    if let NodeType::Operation(inst_s) = node_s {
+                                    if let NodeType::Operation(inst_s) = &dag[s] {
                                         inst_s.op.name() == "measure"
                                     } else {
                                         false

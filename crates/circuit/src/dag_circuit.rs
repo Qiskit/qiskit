@@ -6967,6 +6967,14 @@ impl DAGCircuit {
     }
 }
 
+impl ::std::ops::Index<NodeIndex> for DAGCircuit {
+    type Output = NodeType;
+
+    fn index(&self, index: NodeIndex) -> &Self::Output {
+        self.dag.index(index)
+    }
+}
+
 /// Add to global phase. Global phase can only be Float or ParameterExpression so this
 /// does not handle the full possibility of parameter values.
 pub(crate) fn add_global_phase(py: Python, phase: &Param, other: &Param) -> PyResult<Param> {

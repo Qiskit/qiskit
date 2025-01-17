@@ -112,7 +112,7 @@ fn apply_synth_dag(
     synth_dag: &DAGCircuit,
 ) -> PyResult<()> {
     for out_node in synth_dag.topological_op_nodes()? {
-        let mut out_packed_instr = synth_dag.dag()[out_node].unwrap_operation().clone();
+        let mut out_packed_instr = synth_dag[out_node].unwrap_operation().clone();
         let synth_qargs = synth_dag.get_qargs(out_packed_instr.qubits);
         let mapped_qargs: Vec<Qubit> = synth_qargs
             .iter()
@@ -237,7 +237,7 @@ fn py_run_main_loop(
 
     // Iterate over dag nodes and determine unitary synthesis approach
     for node in dag.topological_op_nodes()? {
-        let mut packed_instr = dag.dag()[node].unwrap_operation().clone();
+        let mut packed_instr = dag[node].unwrap_operation().clone();
 
         if packed_instr.op.control_flow() {
             let OperationRef::Instruction(py_instr) = packed_instr.op.view() else {
@@ -486,7 +486,7 @@ fn run_2q_unitary_synthesis(
                     .topological_op_nodes()
                     .expect("Unexpected error in dag.topological_op_nodes()")
                     .map(|node| {
-                        let NodeType::Operation(inst) = &synth_dag.dag()[node] else {
+                        let NodeType::Operation(inst) = &synth_dag[node] else {
                             unreachable!("DAG node must be an instruction")
                         };
                         let inst_qubits = synth_dag
@@ -1002,7 +1002,7 @@ fn synth_su4_dag(
         Some(preferred_dir) => {
             let mut synth_direction: Option<Vec<u32>> = None;
             for node in synth_dag.topological_op_nodes()? {
-                let inst = &synth_dag.dag()[node].unwrap_operation();
+                let inst = &synth_dag[node].unwrap_operation();
                 if inst.op.num_qubits() == 2 {
                     let qargs = synth_dag.get_qargs(inst.qubits);
                     synth_direction = Some(vec![qargs[0].0, qargs[1].0]);
@@ -1066,7 +1066,7 @@ fn reversed_synth_su4_dag(
     let mut target_dag = synth_dag.copy_empty_like(py, "alike")?;
     let flip_bits: [Qubit; 2] = [Qubit(1), Qubit(0)];
     for node in synth_dag.topological_op_nodes()? {
-        let mut inst = synth_dag.dag()[node].unwrap_operation().clone();
+        let mut inst = synth_dag[node].unwrap_operation().clone();
         let qubits: Vec<Qubit> = synth_dag
             .qargs_interner()
             .get(inst.qubits)

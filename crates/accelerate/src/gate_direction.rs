@@ -351,7 +351,7 @@ where
     }
 
     for (node, op_blocks) in ops_to_replace {
-        let packed_inst = dag.dag()[node].unwrap_operation();
+        let packed_inst = dag[node].unwrap_operation();
         let OperationRef::Instruction(py_inst) = packed_inst.op.view() else {
             panic!("PyInstruction is expected");
         };
