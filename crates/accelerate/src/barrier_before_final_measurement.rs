@@ -39,7 +39,7 @@ pub fn barrier_before_final_measurements(
             }
             dag.bfs_successors(node)
                 .all(|(_, child_successors)| {
-                    child_successors.iter().all(|suc| match dag.dag()[*suc] {
+                    child_successors.iter().all(|suc| match dag[*suc] {
                         NodeType::Operation(ref suc_inst) => is_exactly_final(suc_inst),
                         _ => true,
                     })
@@ -57,7 +57,7 @@ pub fn barrier_before_final_measurements(
     let final_packed_ops: Vec<PackedInstruction> = ordered_node_indices
         .into_iter()
         .map(|node| {
-            let NodeType::Operation(ref inst) = dag.dag()[node] else {
+            let NodeType::Operation(ref inst) = dag[node] else {
                 unreachable!()
             };
             let res = inst.clone();
