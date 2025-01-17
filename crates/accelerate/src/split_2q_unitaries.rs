@@ -31,7 +31,7 @@ pub fn split_2q_unitaries(
     if !dag.get_op_counts().contains_key("unitary") {
         return Ok(());
     }
-    let nodes: Vec<NodeIndex> = dag.op_nodes(false).collect();
+    let nodes: Vec<NodeIndex> = dag.op_node_indices(false).collect();
 
     for node in nodes {
         if let NodeType::Operation(inst) = &dag.dag()[node] {
