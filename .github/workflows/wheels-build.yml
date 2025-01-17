@@ -173,16 +173,13 @@ jobs:
   wheels-linux-aarch64:
     name: "Wheels / Linux AArch64"
     if: (inputs.wheels-linux-aarch64 == 'default' && inputs.default-action || inputs.wheels-linux-aarch64) == 'build'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ inputs.python-version }}
       - uses: dtolnay/rust-toolchain@stable
-      - uses: docker/setup-qemu-action@v3
-        with:
-          platforms: all
       - uses: pypa/cibuildwheel@v2.22.0
         env:
           CIBW_ARCHS_LINUX: aarch64
