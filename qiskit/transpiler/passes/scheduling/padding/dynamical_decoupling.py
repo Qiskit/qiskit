@@ -53,6 +53,7 @@ class PadDynamicalDecoupling(BasePadding):
     (including global phase).
 
     .. plot::
+       :alt: Output from the previous code.
        :include-source:
 
         import numpy as np

@@ -60,6 +60,7 @@ class LieTrotter(SuzukiTrotter):
             | None
         ) = None,
         wrap: bool = False,
+        preserve_order: bool = True,
     ) -> None:
         """
         Args:
@@ -79,8 +80,19 @@ class LieTrotter(SuzukiTrotter):
                 built.
             wrap: Whether to wrap the atomic evolutions into custom gate objects. This only takes
                 effect when ``atomic_evolution is None``.
+            preserve_order: If ``False``, allows reordering the terms of the operator to
+                potentially yield a shallower evolution circuit. Not relevant
+                when synthesizing operator with a single term.
         """
-        super().__init__(1, reps, insert_barriers, cx_structure, atomic_evolution, wrap)
+        super().__init__(
+            1,
+            reps,
+            insert_barriers,
+            cx_structure,
+            atomic_evolution,
+            wrap,
+            preserve_order=preserve_order,
+        )
 
     @property
     def settings(self) -> dict[str, Any]:
