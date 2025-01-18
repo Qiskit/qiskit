@@ -96,7 +96,8 @@ def qs_decomposition(
     """
     #  _depth (int): Internal use parameter to track recursion depth.
     dim = mat.shape[0]
-    nqubits = int(math.log2(dim))
+    nqubits = dim.bit_length() - 1
+    
     if np.allclose(np.identity(dim), mat):
         return QuantumCircuit(nqubits)
     if dim == 2:
@@ -126,8 +127,9 @@ def qs_decomposition(
             for ctrl_index in range(nqubits):
                 um00, um11, um01, um10 = _extract_multiplex_blocks(mat, ctrl_index)
                 if _off_diagonals_are_zero(um01, um10):
-                    return _demultiplex(um01, um11, opt_a1=opt_a1, opt_a2=opt_a2,
-                                        _depth=_depth, _ctrl_index=ctrl_index)
+                    decirc = _demultiplex(um00, um11, opt_a1=opt_a1, opt_a2=opt_a2,
+                                          _depth=_depth, _ctrl_index=ctrl_index)
+                    return decirc
         qr = QuantumRegister(nqubits)
         circ = QuantumCircuit(qr)
         dim_o2 = dim // 2
@@ -196,7 +198,14 @@ def _demultiplex(um0, um1, opt_a1=False, opt_a2=False, *, _depth=0, _ctrl_index=
         QuantumCircuit: decomposed circuit
     """
     dim = um0.shape[0] + um1.shape[0]  # these should be same dimension
-    nqubits = int(math.log2(dim))
+    nqubits = dim.bit_length() - 1
+    layout = list(range(nqubits))
+    if _ctrl_index:
+        rindex = np.arange(nqubits)[::-1][_ctrl_index]
+        pop_element = layout.pop(rindex)
+        layout = layout + [pop_element]
+        print(f"ctrl_index = {_ctrl_index}")
+    
     um0um1 = um0 @ um1.T.conjugate()
     if is_hermitian_matrix(um0um1):
         eigvals, vmat = scipy.linalg.eigh(um0um1)
@@ -214,20 +223,18 @@ def _demultiplex(um0, um1, opt_a1=False, opt_a2=False, *, _depth=0, _ctrl_index=
     left_gate = qs_decomposition(
         wmat, opt_a1=opt_a1, opt_a2=opt_a2, _depth=_depth + 1
     ).to_instruction()
-
-    qr_sub = [qr[i] for i in range(nqubits) if i != _ctrl_index]
-    circ.append(left_gate, qr_sub)
+    circ.append(left_gate, layout[:nqubits-1])
 
     # multiplexed Rz
     angles = 2 * np.angle(np.conj(dvals))
     ucrz = UCRZGate(angles.tolist())
-    circ.append(ucrz, [qr[_ctrl_index]] + qr_sub)
+    circ.append(ucrz, [layout[-1]] + layout[:nqubits-1])
 
     # right gate
     right_gate = qs_decomposition(
         vmat, opt_a1=opt_a1, opt_a2=opt_a2, _depth=_depth + 1
     ).to_instruction()
-    circ.append(right_gate, qr_sub)
+    circ.append(right_gate, layout[:nqubits - 1])
 
     return circ
 
@@ -303,15 +310,15 @@ def _extract_multiplex_blocks(U, k):
     A block diagonal gate is represented as 
     """
     dim = U.shape[0]
-    N = dim.bit_length() - 1
+    nqubits = dim.bit_length() - 1
     halfdim = dim // 2
 
-    U_tensor = U.reshape((2,) * N + (2,) * N)
+    U_tensor = U.reshape((2,) * nqubits + (2,) * nqubits)
 
     # Move qubit k to top
     if k != 0:
         U_tensor = np.moveaxis(U_tensor, k,   0)
-        U_tensor = np.moveaxis(U_tensor, k+N, N)
+        U_tensor = np.moveaxis(U_tensor, k+nqubits, nqubits)
 
     # reshape for extraction
     U_4d = U_tensor.reshape(2, halfdim, 2, halfdim)

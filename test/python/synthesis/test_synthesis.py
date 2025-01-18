@@ -1819,7 +1819,7 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
         Ure = UreNd.reshape(dim, dim)
         return Ure
 
-    def test_tensor_block_uc_3q(self):
+    def test_tensor_block_3q(self):
         """Create 3q gate with multiplexed controls"""
         np.set_printoptions(linewidth=250, precision=2, suppress=True)
         num_qubits = 3
@@ -1852,6 +1852,56 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
                         print('um01:\n', um01)
                         print('um10:\n', um10)
 
+    @data(3, 4)
+    def test_block_diag_opt(self, num_qubits):
+        gate, mat = self._create_random_multiplexed_gate(num_qubits)
+        for layout in itertools.permutations(range(num_qubits)):
+            # create gate with "control" on different qubits
+            qc = QuantumCircuit(num_qubits)
+            qc.append(gate, layout)
+            hidden_op = Operator(qc)
+            hidden_mat = hidden_op.data
+            cqc = transpile(qc, basis_gates=["u", "cx"])
+
+            qc2 = qsd.qs_decomposition(hidden_mat, opt_a2=False)
+            cqc2 = transpile(qc2, basis_gates=["u", "cx"])
+            op2 = Operator(qc2)
+            mat2 = op2.data
+            print('-'*30)
+            print(f"num ops: {cqc.count_ops()}")            
+            print(f"num ops: {cqc2.count_ops()}")
+            self.assertEqual(hidden_op, op2)
+            # TODO: replace comparison with exact expectation.
+            self.assertLess(cqc2.count_ops().get('cx', 0), 0.6 * cqc.count_ops().get('cx', 0))
+
+    @data(3, 4, 5, 6)
+    def test_mcx_opt(self, num_qubits):
+        np.set_printoptions(linewidth=200, precision=2, suppress=True)
+        from qiskit.circuit._utils import _compute_control_matrix        
+        gate = UnitaryGate(_compute_control_matrix(XGate().to_matrix(), num_qubits-1))
+        for layout in itertools.permutations(range(num_qubits)):
+            # create gate with "control" on different qubits
+            qc = QuantumCircuit(num_qubits)
+            qr = qc.qubits
+            
+            #qc.append(gate, layout)
+            qc.mcx(qr[:-1], qr[-1], layout)
+
+            hidden_op = Operator(qc)
+            hidden_mat = hidden_op.data
+            cqc = transpile(qc, basis_gates=["u", "cx"])
+
+            qc2 = qsd.qs_decomposition(hidden_mat, opt_a2=False)
+            cqc2 = transpile(qc2, basis_gates=["u", "cx"])
+            op2 = Operator(qc2)
+            mat2 = op2.data
+            print('-'*30)
+            print(f"num ops: {cqc.count_ops()}")            
+            print(f"num ops: {cqc2.count_ops()}")
+            self.assertEqual(hidden_op, op2)
+            # TODO: replace comparison with exact expectation.
+            #self.assertLess(cqc2.count_ops().get('cx', 0), 0.6 * cqc.count_ops().get('cx', 0))
+            
 
 class TestTwoQubitDecomposeUpToDiagonal(QiskitTestCase):
     """test TwoQubitDecomposeUpToDiagonal class"""
