@@ -5,13 +5,13 @@ fixes:
     :class:`~.circuit.Instruction`\ s with  float-only ``params`` as key to query the relation.
     This could lead to incorrect results if the instruction's definition
     depended on additional information beyond just the :attr:`~.circuit.Instruction.params`
-    attribute, as in the case of :class:`.PauliEvolutionGate`.
-    This behavior is now fixed, and the commutation checker conservatively caches
+    attribute, as, for example, in the case of :class:`.PauliEvolutionGate`.
+    This behavior is now fixed, and the commutation checker eagerly caches
     commutations only for Qiskit-native standard gates.
-    For custom gates, this change may incur a performance cost, however guarantees correct
+    For custom gates, this change might incur a performance cost; however, guarantees correct
     results by avoiding unsafe caching.
   - |
-    Fixed a bug in the :class:`.CommmutationChecker`, where checking commutation relations of
+    Fixed a bug in the :class:`.CommutationChecker`, where checking commutation relations of
     an instruction
     with non-numeric values in the :attr:`~.circuit.Instruction.params` attribute (as in the
     case of :class:`.PauliGate`) could raise an error.
