@@ -11,10 +11,10 @@
 // that they have been altered from the originals.
 
 #[cfg(feature = "cache_pygates")]
-use std::cell::OnceCell;
+use std::sync::OnceLock;
 
-use ::pyo3::prelude::*;
 use hashbrown::HashMap;
+use pyo3::prelude::*;
 use pyo3::{
     intern,
     types::{PyDict, PyList},
@@ -106,7 +106,7 @@ pub fn dag_to_circuit(
         dag.qargs_interner().clone(),
         dag.cargs_interner().clone(),
         dag.topological_op_nodes()?.map(|node_index| {
-            let NodeType::Operation(ref instr) = dag.dag()[node_index] else {
+            let NodeType::Operation(ref instr) = dag[node_index] else {
                 unreachable!(
                     "The received node from topological_op_nodes() is not an Operation node."
                 )
@@ -126,7 +126,7 @@ pub fn dag_to_circuit(
                     )),
                     extra_attrs: instr.extra_attrs.clone(),
                     #[cfg(feature = "cache_pygates")]
-                    py_op: OnceCell::new(),
+                    py_op: OnceLock::new(),
                 })
             } else {
                 Ok(instr.clone())

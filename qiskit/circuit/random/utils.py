@@ -357,6 +357,7 @@ def random_circuit(
     from the set of standard gates in :mod:`qiskit.circuit.library.standard_gates`. For example:
 
     .. plot::
+       :alt: Circuit diagram output by the previous code.
        :include-source:
 
        from qiskit.circuit.random import random_circuit
@@ -585,6 +586,7 @@ def random_clifford_circuit(num_qubits, num_gates, gates="all", seed=None):
     gates from the set of standard gates in :mod:`qiskit.circuit.library.standard_gates`. For example:
 
     .. plot::
+       :alt: Circuit diagram output by the previous code.
        :include-source:
 
        from qiskit.circuit.random import random_clifford_circuit

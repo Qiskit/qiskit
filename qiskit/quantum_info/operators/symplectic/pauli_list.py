@@ -54,7 +54,10 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
 
     For example,
 
-    .. code-block::
+    .. plot::
+       :include-source:
+       :nofigs:
+       :context: reset
 
         import numpy as np
 
@@ -93,7 +96,10 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
     operator which accepts integer, lists, or slices for selecting subsets
     of PauliList. If integer is given, it returns Pauli not PauliList.
 
-    .. code-block::
+    .. plot::
+       :include-source:
+       :nofigs:
+       :context:
 
         pauli_list = PauliList(["XX", "ZZ", "IZ"])
         print("Integer: ", repr(pauli_list[1]))
@@ -445,16 +451,14 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
                 f"Index {ind} is greater than number of qubits"
                 f" in the PauliList ({self.num_qubits})"
             )
-        if len(value) == 1:
-            # Pad blocks to correct size
-            value_x = np.vstack(size * [value.x])
-            value_z = np.vstack(size * [value.z])
-            value_phase = np.vstack(size * [value.phase])
-        elif len(value) == size:
+        if len(value) == size:
             #  Blocks are already correct size
             value_x = value.x
             value_z = value.z
-            value_phase = value.phase
+        elif len(value) == 1:
+            # Pad blocks to correct size
+            value_x = np.vstack(size * [value.x])
+            value_z = np.vstack(size * [value.z])
         else:
             # Blocks are incorrect size
             raise QiskitError(
@@ -465,7 +469,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         # Build new array by blocks
         z = np.hstack([self.z[:, :ind], value_z, self.z[:, ind:]])
         x = np.hstack([self.x[:, :ind], value_x, self.x[:, ind:]])
-        phase = self.phase + value_phase
+        phase = self.phase + value.phase
 
         return PauliList.from_symplectic(z, x, phase)
 
@@ -544,7 +548,9 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
 
         Consider sorting all a random ordering of all 2-qubit Paulis
 
-        .. code-block::
+        .. plot::
+           :include-source:
+           :nofigs:
 
             from numpy.random import shuffle
             from qiskit.quantum_info.operators import PauliList
@@ -595,7 +601,9 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
 
         **Example**
 
-        .. code-block::
+        .. plot::
+           :include-source:
+           :nofigs:
 
             from qiskit.quantum_info.operators import PauliList
 
@@ -1121,6 +1129,8 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         Returns:
             PauliList: the constructed PauliList.
         """
+        if isinstance(phase, np.ndarray) and np.ndim(phase) > 1:
+            raise ValueError(f"phase should be at most 1D but has {np.ndim(phase)} dimensions.")
         base_z, base_x, base_phase = cls._from_array(z, x, phase)
         return cls(BasePauli(base_z, base_x, base_phase))
 
@@ -1214,7 +1224,9 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
             qubit_wise (bool): whether the commutation rule is applied to the whole operator,
                 or on a per-qubit basis.  For example:
 
-                .. code-block:: python
+                .. plot::
+                   :include-source:
+                   :nofigs:
 
                     >>> from qiskit.quantum_info import PauliList
                     >>> op = PauliList(["XX", "YY", "IZ", "ZZ"])

@@ -180,7 +180,9 @@ class TestMCMT(QiskitTestCase):
         gate = XGate()
         mcmt = MCMTGate(gate, num_controls, num_target)
 
-        hls = HighLevelSynthesis()
+        # make sure MCX-synthesis does not use ancilla qubits
+        config = HLSConfig(mcx=["noaux_v24"])
+        hls = HighLevelSynthesis(hls_config=config)
 
         # test a decomposition without sufficient ancillas for MCMT V-chain
         with self.subTest(msg="insufficient auxiliaries"):
@@ -282,6 +284,19 @@ class TestMCMT(QiskitTestCase):
         self.assertEqual(circuit.count_ops().get("cry", 0), num_target)
         self.assertEqual(circuit.num_parameters, 1)
         self.assertIs(circuit.parameters[0], theta)
+
+    def test_mcmt_circuit_as_gate(self):
+        """Test the MCMT plugin is only triggered for the gate, not the same-named circuit.
+
+        Regression test of #13563.
+        """
+        circuit = QuantumCircuit(2)
+        gate = RYGate(0.1)
+        mcmt = MCMT(gate=gate, num_ctrl_qubits=1, num_target_qubits=1)
+        circuit.append(mcmt, circuit.qubits)  # append the MCMT circuit as gate called "MCMT"
+
+        transpiled = transpile(circuit, basis_gates=["u", "cx"])
+        self.assertEqual(Operator(transpiled), Operator(gate.control(1)))
 
 
 if __name__ == "__main__":
