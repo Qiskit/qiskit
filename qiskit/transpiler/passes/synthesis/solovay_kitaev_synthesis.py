@@ -170,7 +170,7 @@ class SolovayKitaev(TransformationPass):
 
             # ignore operations on which the algorithm cannot run
             if (
-                (not node.op.num_qubits == 1)
+                (node.op.num_qubits != 1)
                 or node.is_parameterized()
                 or (not hasattr(node.op, "to_matrix"))
             ):
