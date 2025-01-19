@@ -277,7 +277,7 @@ def random_circuit_from_graph(
                         )
                     )
 
-            if current_instr.is_parameterized():
+            if current_instr.params != []:
                 # Check if instruction is mutable, so that it could accept parameters.
                 if not current_instr.mutable:
                     current_instr = current_instr.to_mutable()
@@ -317,7 +317,7 @@ def random_circuit_from_graph(
                     extra_1q_gates["class"], extra_1q_gates["num_params"], qubit_idx_not_used
                 ):
 
-                    if current_instr.is_parameterized():
+                    if current_instr.params != []:
                         # Check if instruction is mutable, so that it could accept parameters.
                         if not current_instr.mutable:
                             current_instr = current_instr.to_mutable()
@@ -417,9 +417,16 @@ def random_circuit(
     if num_qubits == 0:
         return QuantumCircuit()
 
-    gates_1q = _get_gates(n_qubits=1)
+    # Remove 'reset' and 'measure', this will be added later if required.
+    gates_1q = [
+        (oper, qargs, n_params)
+        for oper, qargs, n_params in _get_gates(n_qubits=1)
+        if not oper.name in {"measure", "reset"}
+    ]
+
     if reset:
         gates_1q.append((Reset(), 1, 0))
+
     gates_1q = np.array(
         gates_1q,
         dtype=[("class", object), ("num_qubits", np.int64), ("num_params", np.int64)],
@@ -532,7 +539,7 @@ def random_circuit(
                 p_indices[1:],
                 is_conditional,
             ):
-                if current_instr.is_parameterized():
+                if current_instr.params != []:
                     # Instruction needs to be mutable to change the parameters.
                     if not current_instr.mutable:
                         current_instr.to_mutable()
@@ -557,7 +564,7 @@ def random_circuit(
             for current_instr, q_start, q_end, p_start, p_end in zip(
                 gate_specs["class"], q_indices[:-1], q_indices[1:], p_indices[:-1], p_indices[1:]
             ):
-                if current_instr.is_parameterized():
+                if current_instr.params != []:
                     # Instruction needs to be mutable to change the parameters.
                     if not current_instr.mutable:
                         current_instr.to_mutable()
