@@ -315,11 +315,11 @@ class BitArray(ShapedMixin):
         return BitArray(array.reshape(-1, num_bytes), num_bits)
 
     def to_bool_array(self, order: Literal["big", "little"] = "big") -> NDArray[np.bool_]:
-        """Convert this ``BitArray`` to a boolean array.
+        """Convert this :class:`~BitArray` to a boolean array.
 
         Args:
-            order: One of ``"big"`` or ``"little"``, indicating whether the most significant bit
-                or the least significant bit of each bitstring should be placed at ``[..., 0]``.
+            order: One of ``"big"`` or ``"little"``, respectively indicating whether the most significant
+                bit or the least significant bit of each bitstring should be placed at ``[..., 0]``.
 
         Returns:
             A NumPy array of bools.
