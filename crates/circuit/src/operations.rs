@@ -360,6 +360,15 @@ pub(crate) enum StandardInstructionType {
     Reset = 3,
 }
 
+unsafe impl ::bytemuck::CheckedBitPattern for StandardInstructionType {
+    type Bits = u8;
+
+    fn is_valid_bit_pattern(bits: &Self::Bits) -> bool {
+        *bits < 4
+    }
+}
+unsafe impl ::bytemuck::NoUninit for StandardInstructionType {}
+
 #[derive(Clone, Debug, Copy, Eq, PartialEq, Hash)]
 pub enum StandardInstruction {
     Barrier(u32),
