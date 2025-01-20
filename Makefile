@@ -94,7 +94,7 @@ cheader:
 	cbindgen --crate qiskit-cext --output qiskit.h --lang C
 
 # Use ctest to run C API tests
-ctest: cbuild
+ctest: cheader
 	# -S specifically specifies the source path to be the current folder
 	# -B specifically specifies the build path to be inside test/c/build
 	cmake -S. -Btest/c/build
