@@ -158,9 +158,9 @@ def load_style(style: dict | str = "color") -> StyleDict:
         else:
             style_name = style
     else:
-        raise exceptions.VisualizationError("Invalid style {style}")
+        raise exceptions.VisualizationError(f"Invalid style {style}")
 
-    if style_name in ["color"]:
+    if style_name == "color":
         current_style = DefaultStyle().style
     else:
         # Search for file in 'styles' dir, and then the current directory
