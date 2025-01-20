@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::synthesis::linear::utils::{_col_op, _row_op, calc_inverse_matrix_inner};
+use crate::synthesis::linear::utils::{_col_op_inv, _row_op, _row_sum, calc_inverse_matrix_inner};
 use ndarray::{Array1, Array2, ArrayView1, ArrayView2, ArrayViewMut2};
 use numpy::PyReadonlyArray2;
 use smallvec::smallvec;
@@ -30,17 +30,7 @@ use qiskit_circuit::Qubit;
 // `arXiv:quant-ph/0701194 <https://arxiv.org/abs/quant-ph/0701194>`_.
 
 type InstructionList = Vec<(usize, usize)>;
-fn _row_sum(row_1: ArrayView1<bool>, row_2: ArrayView1<bool>) -> Result<Array1<bool>, String> {
-    if row_1.len() != row_2.len() {
-        Err(format!(
-            "row sum performed on rows with different lengths ({} and {})",
-            row_1.len(),
-            row_2.len()
-        ))
-    } else {
-        Ok((0..row_1.len()).map(|i| row_1[i] ^ row_2[i]).collect())
-    }
-}
+
 /// Add a cx gate to the instructions and update the matrix mat
 fn _row_op_update_instructions(
     cx_instructions: &mut InstructionList,
@@ -73,7 +63,7 @@ fn _get_lower_triangular<'a>(
         let cols_to_update: Vec<usize> = (0..n).rev().filter(|&j| mat[[i, j]]).collect();
         let (first_j, cols_to_update) = cols_to_update.split_first().unwrap();
         cols_to_update.iter().for_each(|j| {
-            _col_op(mat.view_mut(), *j, *first_j);
+            _col_op_inv(mat.view_mut(), *j, *first_j);
         });
 
         // Use row operations directed upwards to zero out all "1"s above the remaining "1" in row i
@@ -85,7 +75,7 @@ fn _get_lower_triangular<'a>(
     // Apply only U instructions to get the permuted L
     for (ctrl, trgt) in cx_instructions_rows {
         _row_op(mat_t.view_mut(), ctrl, trgt);
-        _col_op(mat_inv_t.view_mut(), ctrl, trgt);
+        _col_op_inv(mat_inv_t.view_mut(), ctrl, trgt);
     }
     (mat_t, mat_inv_t)
 }
