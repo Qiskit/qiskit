@@ -194,6 +194,16 @@ pub fn _add_row_or_col(mut mat: ArrayViewMut2<bool>, add_cols: &bool, ctrl: usiz
     row1.zip_mut_with(&row0, |x, &y| *x ^= y);
 }
 
+/// Perform ROW operation on a matrix mat
+pub fn _row_op(mat: ArrayViewMut2<bool>, ctrl: usize, trgt: usize) {
+    _add_row_or_col(mat, &false, ctrl, trgt);
+}
+
+/// Perform COL operation on a matrix mat (in the inverse direction)
+pub fn _col_op(mat: ArrayViewMut2<bool>, ctrl: usize, trgt: usize) {
+    _add_row_or_col(mat, &true, trgt, ctrl);
+}
+
 /// Generate a random invertible n x n binary matrix.
 pub fn random_invertible_binary_matrix_inner(num_qubits: usize, seed: Option<u64>) -> Array2<bool> {
     let mut rng = match seed {
