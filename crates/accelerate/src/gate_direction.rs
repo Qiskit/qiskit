@@ -23,7 +23,7 @@ use qiskit_circuit::{
     circuit_instruction::CircuitInstruction,
     circuit_instruction::ExtraInstructionAttributes,
     converters::{circuit_to_dag, QuantumCircuitData},
-    dag_circuit::DAGCircuit,
+    dag_circuit::{DAGCircuit, OperationIndex},
     dag_node::{DAGNode, DAGOpNode},
     imports,
     imports::get_std_gate_class,
@@ -33,7 +33,6 @@ use qiskit_circuit::{
     packed_instruction::PackedInstruction,
     Qubit,
 };
-use rustworkx_core::petgraph::stable_graph::NodeIndex;
 use smallvec::{smallvec, SmallVec};
 use std::f64::consts::PI;
 
@@ -247,8 +246,8 @@ fn fix_gate_direction<'a, T>(
 where
     T: Fn(&PackedInstruction, &[Qubit]) -> bool,
 {
-    let mut nodes_to_replace: Vec<(NodeIndex, DAGCircuit)> = Vec::new();
-    let mut ops_to_replace: Vec<(NodeIndex, Vec<Bound<PyAny>>)> = Vec::new();
+    let mut nodes_to_replace: Vec<(OperationIndex, DAGCircuit)> = Vec::new();
+    let mut ops_to_replace: Vec<(OperationIndex, Vec<Bound<PyAny>>)> = Vec::new();
 
     for (node, packed_inst) in dag.op_nodes(false) {
         let op_args = dag.get_qargs(packed_inst.qubits);
@@ -292,7 +291,7 @@ where
             }
         }
 
-        if op_args.len() != 2 || dag.has_calibration_for_index(py, node)? {
+        if op_args.len() != 2 || dag.has_calibration_for_instruction(py, packed_inst)? {
             continue;
         };
 
@@ -351,7 +350,7 @@ where
     }
 
     for (node, op_blocks) in ops_to_replace {
-        let packed_inst = dag[node].unwrap_operation();
+        let packed_inst = &dag[node];
         let OperationRef::Instruction(py_inst) = packed_inst.op.view() else {
             panic!("PyInstruction is expected");
         };

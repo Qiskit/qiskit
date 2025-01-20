@@ -32,7 +32,7 @@ use pyo3::wrap_pyfunction;
 use pyo3::Python;
 
 use qiskit_circuit::converters::{circuit_to_dag, QuantumCircuitData};
-use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
+use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::imports;
 use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardGate};
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
@@ -112,7 +112,7 @@ fn apply_synth_dag(
     synth_dag: &DAGCircuit,
 ) -> PyResult<()> {
     for out_node in synth_dag.topological_op_nodes()? {
-        let mut out_packed_instr = synth_dag[out_node].unwrap_operation().clone();
+        let mut out_packed_instr = synth_dag[out_node].clone();
         let synth_qargs = synth_dag.get_qargs(out_packed_instr.qubits);
         let mapped_qargs: Vec<Qubit> = synth_qargs
             .iter()
@@ -237,7 +237,7 @@ fn py_run_main_loop(
 
     // Iterate over dag nodes and determine unitary synthesis approach
     for node in dag.topological_op_nodes()? {
-        let mut packed_instr = dag[node].unwrap_operation().clone();
+        let mut packed_instr = dag[node].clone();
 
         if packed_instr.op.control_flow() {
             let OperationRef::Instruction(py_instr) = packed_instr.op.view() else {
@@ -482,24 +482,19 @@ fn run_2q_unitary_synthesis(
                     preferred_dir,
                     approximation_degree,
                 )?;
-                let scoring_info = synth_dag
-                    .topological_op_nodes()
-                    .expect("Unexpected error in dag.topological_op_nodes()")
-                    .map(|node| {
-                        let NodeType::Operation(inst) = &synth_dag[node] else {
-                            unreachable!("DAG node must be an instruction")
-                        };
-                        let inst_qubits = synth_dag
-                            .get_qargs(inst.qubits)
-                            .iter()
-                            .map(|q| ref_qubits[q.0 as usize])
-                            .collect();
-                        (
-                            inst.op.name().to_string(),
-                            inst.params.clone().map(|boxed| *boxed),
-                            inst_qubits,
-                        )
-                    });
+                let scoring_info = synth_dag.topological_op_nodes()?.map(|node| {
+                    let inst = &synth_dag[node];
+                    let inst_qubits = synth_dag
+                        .get_qargs(inst.qubits)
+                        .iter()
+                        .map(|q| ref_qubits[q.0 as usize])
+                        .collect();
+                    (
+                        inst.op.name().to_string(),
+                        inst.params.clone().map(|boxed| *boxed),
+                        inst_qubits,
+                    )
+                });
                 let synth_error_from_target = synth_error(py, scoring_info, target);
                 synth_errors_dag.push((synth_dag, synth_error_from_target));
             }
@@ -1002,7 +997,7 @@ fn synth_su4_dag(
         Some(preferred_dir) => {
             let mut synth_direction: Option<Vec<u32>> = None;
             for node in synth_dag.topological_op_nodes()? {
-                let inst = &synth_dag[node].unwrap_operation();
+                let inst = &synth_dag[node];
                 if inst.op.num_qubits() == 2 {
                     let qargs = synth_dag.get_qargs(inst.qubits);
                     synth_direction = Some(vec![qargs[0].0, qargs[1].0]);
@@ -1066,7 +1061,7 @@ fn reversed_synth_su4_dag(
     let mut target_dag = synth_dag.copy_empty_like(py, "alike")?;
     let flip_bits: [Qubit; 2] = [Qubit(1), Qubit(0)];
     for node in synth_dag.topological_op_nodes()? {
-        let mut inst = synth_dag[node].unwrap_operation().clone();
+        let mut inst = synth_dag[node].clone();
         let qubits: Vec<Qubit> = synth_dag
             .qargs_interner()
             .get(inst.qubits)

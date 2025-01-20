@@ -13,7 +13,9 @@
 /// Remove diagonal gates (including diagonal 2Q gates) before a measurement.
 use pyo3::prelude::*;
 
-use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
+use indexmap::IndexSet;
+
+use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::operations::Operation;
 use qiskit_circuit::operations::StandardGate;
 
@@ -35,7 +37,7 @@ fn run_remove_diagonal_before_measure(dag: &mut DAGCircuit) -> PyResult<()> {
         StandardGate::U1Gate,
         StandardGate::PhaseGate,
     ];
-    static DIAGONAL_2Q_GATES: [StandardGate; 7] = [
+    static DIAGONAL_MULTIQ_GATES: [StandardGate; 8] = [
         StandardGate::CZGate,
         StandardGate::CRZGate,
         StandardGate::CU1Gate,
@@ -43,54 +45,32 @@ fn run_remove_diagonal_before_measure(dag: &mut DAGCircuit) -> PyResult<()> {
         StandardGate::CPhaseGate,
         StandardGate::CSGate,
         StandardGate::CSdgGate,
+        StandardGate::CCZGate,
     ];
-    static DIAGONAL_3Q_GATES: [StandardGate; 1] = [StandardGate::CCZGate];
 
-    let mut nodes_to_remove = Vec::new();
-    for (index, inst) in dag.op_nodes(true) {
-        if inst.op.name() == "measure" {
-            let predecessor = (dag.quantum_predecessors(index))
+    let nodes_to_remove = dag
+        .op_nodes(true)
+        .filter_map(|(index, inst)| {
+            if inst.op.name() != "measure" {
+                return None;
+            }
+            let predecessor = (dag.quantum_predecessors(index.node()))
                 .next()
                 .expect("index is an operation node, so it must have a predecessor.");
-
-            match &dag[predecessor] {
-                NodeType::Operation(pred_inst) => match pred_inst.standard_gate() {
-                    Some(gate) => {
-                        if DIAGONAL_1Q_GATES.contains(&gate) {
-                            nodes_to_remove.push(predecessor);
-                        } else if DIAGONAL_2Q_GATES.contains(&gate)
-                            || DIAGONAL_3Q_GATES.contains(&gate)
-                        {
-                            let successors = dag.quantum_successors(predecessor);
-                            let remove_s = successors
-                                .map(|s| {
-                                    if let NodeType::Operation(inst_s) = &dag[s] {
-                                        inst_s.op.name() == "measure"
-                                    } else {
-                                        false
-                                    }
-                                })
-                                .all(|ok_to_remove| ok_to_remove);
-                            if remove_s {
-                                nodes_to_remove.push(predecessor);
-                            }
-                        }
-                    }
-                    None => {
-                        continue;
-                    }
-                },
-                _ => {
-                    continue;
-                }
-            }
-        }
-    }
+            let (pred_index, pred_inst) = dag.get_operation(predecessor)?;
+            let gate = pred_inst.standard_gate()?;
+            (DIAGONAL_1Q_GATES.contains(&gate)
+                || (DIAGONAL_MULTIQ_GATES.contains(&gate)
+                    && dag.quantum_successors(pred_index.node()).all(|s| {
+                        dag.get_operation(s)
+                            .is_some_and(|(_, inst)| inst.op.name() == "measure")
+                    })))
+            .then_some(pred_index)
+        })
+        .collect::<IndexSet<_>>();
 
     for node_to_remove in nodes_to_remove {
-        if dag.dag().node_weight(node_to_remove).is_some() {
-            dag.remove_op_node(node_to_remove);
-        }
+        dag.remove_op_node(node_to_remove);
     }
 
     Ok(())
