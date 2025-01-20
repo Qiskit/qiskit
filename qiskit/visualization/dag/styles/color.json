@@ -2,5 +2,9 @@
   "name": "color",
   "inputnodecolor": "green",
   "outputnodecolor": "red",
-  "opnodecolor": "lightblue"
+  "opnodecolor": "lightblue",
+  "barriercolor": "grey",
+  "directivecolor": "red",
+  "conditioncolor": "green",
+  "measurecolor": "white"
 }
