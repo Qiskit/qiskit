@@ -77,6 +77,7 @@ def random_circuit_from_graph(
     Example:
 
     .. plot::
+       :alt: Pass in interaction graph and minimum 2Q gate per edge as a bare minimum.
        :include-source:
 
        from qiskit.circuit.random.utils import random_circuit_from_graph
