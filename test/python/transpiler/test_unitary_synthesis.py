@@ -844,7 +844,8 @@ class TestUnitarySynthesisTarget(QiskitTestCase):
         result_qc = dag_to_circuit(result_dag)
         self.assertTrue(np.allclose(Operator(result_qc.to_gate()).to_matrix(), cxmat))
 
-    def test_parameterized_basis_gate_in_target(self):
+    @data(True, False)
+    def test_parameterized_basis_gate_in_target(self, is_random):
         """Test synthesis with parameterized RXX gate."""
         theta = Parameter("θ")
         lam = Parameter("λ")
@@ -853,6 +854,8 @@ class TestUnitarySynthesisTarget(QiskitTestCase):
         target.add_instruction(RXGate(theta))
         target.add_instruction(RXXGate(theta))
         qc = QuantumCircuit(2)
+        if is_random:
+            qc.unitary(random_unitary(4, seed=1234), [0, 1])
         qc.cp(np.pi / 2, 0, 1)
         qc_transpiled = transpile(qc, target=target, optimization_level=3, seed_transpiler=42)
         opcount = qc_transpiled.count_ops()
