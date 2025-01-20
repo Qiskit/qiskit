@@ -140,10 +140,19 @@ fn apply_synth_sequence(
             None => sequence.decomp_gate.operation.standard_gate(),
             Some(gate) => *gate,
         };
+
         let mapped_qargs: Vec<Qubit> = qubit_ids.iter().map(|id| out_qargs[*id as usize]).collect();
         let new_params: Option<Box<SmallVec<[Param; 3]>>> = match gate {
             Some(_) => Some(Box::new(params.iter().map(|p| Param::Float(*p)).collect())),
-            None => Some(Box::new(sequence.decomp_gate.params.clone())),
+            None => {
+                if !sequence.decomp_gate.params.is_empty()
+                    && matches!(sequence.decomp_gate.params[0], Param::Float(_))
+                {
+                    Some(Box::new(sequence.decomp_gate.params.clone()))
+                } else {
+                    Some(Box::new(params.iter().map(|p| Param::Float(*p)).collect()))
+                }
+            }
         };
         let instruction = PackedInstruction {
             op: PackedOperation::from_standard(gate_node),
