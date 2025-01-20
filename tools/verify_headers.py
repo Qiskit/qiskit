@@ -42,6 +42,8 @@ def discover_files(code_paths):
                         or subfile.endswith(".pyx")
                         or subfile.endswith(".pxd")
                         or subfile.endswith(".rs")
+                        or subfile.endswith(".c")
+                        or subfile.endswith(".h")
                     ):
                         out_paths.append(os.path.join(dir_path, subfile))
     return out_paths
@@ -86,7 +88,7 @@ def validate_header(file_path):
         if line_start.search(line):
             start = index
             break
-    if file_path.endswith(".rs"):
+    if file_path.endswith(".rs") or file_path.endswith(".c") or file_path.endswith(".h"):
         if "".join(lines[start : start + 2]) != header_rs:
             return (file_path, False, f"Header up to copyright line does not match: {header}")
         if not copyright_line.search(lines[start + 2]):

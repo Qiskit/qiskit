@@ -618,6 +618,50 @@ GitHub Action file.  This same file may also include patches to dependencies to
 make them compatible with Miri, which you would need to temporarily apply as
 well.
 
+### Testing the C API
+
+The C API test suite is located at `test/c/`. It is built and run using `cmake`
+and `ctest` which can be triggered simply via:
+```bash
+make ctest
+```
+
+#### Writing C API tests
+
+The C API test suite automatically discovers any files inside `test/c/` matching
+the pattern `test_*.c`. Each one of these files should follow a template similar
+to the following.
+```c
+#include "common.h"
+
+// Individual tests may be implemented by custom functions. The return value
+// should be `Ok` (from `test/c/common.h`) when the test was successful or one
+// of the other error codes (`>0`) indicating the error type.
+int test_something()
+{
+    return Ok;
+}
+
+// One main function must exist, WHOSE FUNCTION NAME MATCHES THE FILENAME!
+int test_FILE_NAME()
+{
+    // Ideally, this function should track the number of failed subtests.
+    int num_failed = 0;
+
+    // The RUN_TEST macro will execute the provided test function and perform a
+    // minimal amount of logging to indicate the success/failure of this test.
+    num_failed += RUN_TEST(test_something);
+
+    // Finally, this test should report the number of failed subtests.
+    fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);
+    fflush(stderr);
+
+    // And return the number of failed subtests. If this is greater than 0,
+    // ctest will indicate the failure.
+    return num_failed;
+}
+```
+
 ## Style and lint
 
 Qiskit uses three tools for verify code formatting and lint checking. The
