@@ -54,9 +54,9 @@ const PI4: f64 = PI / 4.;
 
 #[derive(Clone, Debug)]
 enum DecomposerType {
-    TwoQubitBasisDecomposer(Box<TwoQubitBasisDecomposer>),
-    TwoQubitControlledUDecomposer(Box<TwoQubitControlledUDecomposer>),
-    XXDecomposer(PyObject),
+    TwoQubitBasis(Box<TwoQubitBasisDecomposer>),
+    TwoQubitControlledU(Box<TwoQubitControlledUDecomposer>),
+    XX(PyObject),
 }
 
 struct DecomposerElement {
@@ -420,7 +420,7 @@ fn run_2q_unitary_synthesis(
             target,
         )?;
         match decomposer_item.decomposer {
-            DecomposerType::TwoQubitBasisDecomposer(_) => {
+            DecomposerType::TwoQubitBasis(_) => {
                 let synth = synth_su4_sequence(
                     py,
                     &unitary,
@@ -430,7 +430,7 @@ fn run_2q_unitary_synthesis(
                 )?;
                 apply_synth_sequence(py, out_dag, out_qargs, &synth)?;
             }
-            DecomposerType::TwoQubitControlledUDecomposer(_) => {
+            DecomposerType::TwoQubitControlledU(_) => {
                 let synth = synth_su4_sequence(
                     py,
                     &unitary,
@@ -440,7 +440,7 @@ fn run_2q_unitary_synthesis(
                 )?;
                 apply_synth_sequence(py, out_dag, out_qargs, &synth)?;
             }
-            DecomposerType::XXDecomposer(_) => {
+            DecomposerType::XX(_) => {
                 let synth = synth_su4_dag(
                     py,
                     &unitary,
@@ -465,7 +465,7 @@ fn run_2q_unitary_synthesis(
             target,
         )?;
         match &decomposer.decomposer {
-            DecomposerType::TwoQubitBasisDecomposer(_) => {
+            DecomposerType::TwoQubitBasis(_) => {
                 let sequence = synth_su4_sequence(
                     py,
                     &unitary,
@@ -502,7 +502,7 @@ fn run_2q_unitary_synthesis(
                 let synth_error_from_target = synth_error(py, scoring_info, target);
                 synth_errors_sequence.push((sequence, synth_error_from_target));
             }
-            DecomposerType::TwoQubitControlledUDecomposer(_) => {
+            DecomposerType::TwoQubitControlledU(_) => {
                 let sequence = synth_su4_sequence(
                     py,
                     &unitary,
@@ -539,7 +539,7 @@ fn run_2q_unitary_synthesis(
                 let synth_error_from_target = synth_error(py, scoring_info, target);
                 synth_errors_sequence.push((sequence, synth_error_from_target));
             }
-            DecomposerType::XXDecomposer(_) => {
+            DecomposerType::XX(_) => {
                 let synth_dag = synth_su4_dag(
                     py,
                     &unitary,
@@ -747,7 +747,7 @@ fn get_2q_decomposers_from_target(
             )?;
 
             decomposers.push(DecomposerElement {
-                decomposer: DecomposerType::TwoQubitBasisDecomposer(Box::new(decomposer)),
+                decomposer: DecomposerType::TwoQubitBasis(Box::new(decomposer)),
                 gate: gate.clone(),
             });
         }
@@ -775,7 +775,7 @@ fn get_2q_decomposers_from_target(
             )?;
 
             decomposers.push(DecomposerElement {
-                decomposer: DecomposerType::TwoQubitControlledUDecomposer(Box::new(decomposer)),
+                decomposer: DecomposerType::TwoQubitControlledU(Box::new(decomposer)),
                 gate: gate.clone(),
             });
         }
@@ -883,7 +883,7 @@ fn get_2q_decomposers_from_target(
                 .extract::<NormalOperation>()?;
 
             decomposers.push(DecomposerElement {
-                decomposer: DecomposerType::XXDecomposer(decomposer.into()),
+                decomposer: DecomposerType::XX(decomposer.into()),
                 gate: decomposer_gate,
             });
         }
@@ -984,10 +984,9 @@ fn synth_su4_sequence(
     approximation_degree: Option<f64>,
 ) -> PyResult<TwoQubitUnitarySequence> {
     let is_approximate = approximation_degree.is_none() || approximation_degree.unwrap() != 1.0;
-    let synth = if let DecomposerType::TwoQubitBasisDecomposer(decomp) = &decomposer_2q.decomposer {
+    let synth = if let DecomposerType::TwoQubitBasis(decomp) = &decomposer_2q.decomposer {
         decomp.call_inner(su4_mat.view(), None, is_approximate, None)?
-    } else if let DecomposerType::TwoQubitControlledUDecomposer(decomp) = &decomposer_2q.decomposer
-    {
+    } else if let DecomposerType::TwoQubitControlledU(decomp) = &decomposer_2q.decomposer {
         decomp.call_inner(py, su4_mat.view(), DEFAULT_ATOL)?
     } else {
         unreachable!("synth_su4_sequence should only be called for TwoQubitBasisDecomposer.")
@@ -1049,10 +1048,9 @@ fn reversed_synth_su4_sequence(
     let (mut col_1, mut col_2) = su4_mat.multi_slice_mut((s![.., 1], s![.., 2]));
     azip!((x in &mut col_1, y in &mut col_2) (*x, *y) = (*y, *x));
 
-    let synth = if let DecomposerType::TwoQubitBasisDecomposer(decomp) = &decomposer_2q.decomposer {
+    let synth = if let DecomposerType::TwoQubitBasis(decomp) = &decomposer_2q.decomposer {
         decomp.call_inner(su4_mat.view(), None, is_approximate, None)?
-    } else if let DecomposerType::TwoQubitControlledUDecomposer(decomp) = &decomposer_2q.decomposer
-    {
+    } else if let DecomposerType::TwoQubitControlledU(decomp) = &decomposer_2q.decomposer {
         decomp.call_inner(py, su4_mat.view(), DEFAULT_ATOL)?
     } else {
         unreachable!(
@@ -1087,7 +1085,7 @@ fn synth_su4_dag(
     approximation_degree: Option<f64>,
 ) -> PyResult<DAGCircuit> {
     let is_approximate = approximation_degree.is_none() || approximation_degree.unwrap() != 1.0;
-    let synth_dag = if let DecomposerType::XXDecomposer(decomposer) = &decomposer_2q.decomposer {
+    let synth_dag = if let DecomposerType::XX(decomposer) = &decomposer_2q.decomposer {
         let kwargs: HashMap<&str, bool> = [("approximate", is_approximate), ("use_dag", true)]
             .into_iter()
             .collect();
@@ -1153,7 +1151,7 @@ fn reversed_synth_su4_dag(
     let (mut col_1, mut col_2) = su4_mat.multi_slice_mut((s![.., 1], s![.., 2]));
     azip!((x in &mut col_1, y in &mut col_2) (*x, *y) = (*y, *x));
 
-    let synth_dag = if let DecomposerType::XXDecomposer(decomposer) = &decomposer_2q.decomposer {
+    let synth_dag = if let DecomposerType::XX(decomposer) = &decomposer_2q.decomposer {
         let kwargs: HashMap<&str, bool> = [("approximate", is_approximate), ("use_dag", true)]
             .into_iter()
             .collect();
