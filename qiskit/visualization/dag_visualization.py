@@ -223,27 +223,19 @@ def dag_drawer(
                 n["style"] = "filled"
 
                 if "nodecolor" in style:
-                    n["nodecolor"] = style["nodecolor"]
-                    n["style"] = "filled"
+                    n["fillcolor"] = style["nodecolor"]
 
                 if "fontsize" in style:
                     n["fontsize"] = str(style["fontsize"])
 
-                if isinstance(node, DAGInNode):
-                    if "inputnodecolor" in style:
-                        n["fillcolor"] = style["inputnodecolor"]
-                    if "inputnodefontcolor" in style:
-                        n["fontcolor"] = style["inputnodefontcolor"]
-                if isinstance(node, DAGOutNode):
-                    if "outputnodecolor" in style:
-                        n["fillcolor"] = style["outputnodecolor"]
-                    if "outputnodefontcolor" in style:
-                        n["fontcolor"] = style["outputnodefontcolor"]
-                if isinstance(node, DAGOpNode):
-                    if "opnodecolor" in style:
-                        n["fillcolor"] = style["opnodecolor"]
-                    if "opnodefontcolor" in style:
-                        n["fontcolor"] = style["opnodefontcolor"]
+                if node.name == "barrier":
+                    n["fillcolor"] = style["barriercolor"]
+                elif getattr(node.op, "_directive", False):
+                    n["fillcolor"] = style["directivecolor"]
+                elif getattr(node.op, "condition", None):
+                    n["fillcolor"] = style["conditioncolor"]
+                elif node.name == "measure":
+                    n["fillcolor"] = style["measurecolor"]
 
                 return n
             else:
