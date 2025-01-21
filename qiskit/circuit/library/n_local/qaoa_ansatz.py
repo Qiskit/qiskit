@@ -47,6 +47,7 @@ def qaoa_ansatz(
         optimization problem:
 
         .. plot::
+            :alt: Circuit diagram output by the previous code.
             :include-source:
 
             from qiskit.quantum_info import SparsePauliOp

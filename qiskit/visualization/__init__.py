@@ -47,6 +47,7 @@ individual documentation for exact details.
 The following example demonstrates the common usage of these arguments:
 
 .. plot::
+   :alt: Output from the previous code.
    :include-source:
 
    from qiskit.visualization import plot_histogram
@@ -60,6 +61,7 @@ The following example demonstrates the common usage of these arguments:
 You can specify ``legend``, ``title``, ``figsize`` and ``color`` by passing to the kwargs.
 
 .. plot::
+   :alt: Output from the previous code.
    :include-source:
    :context: reset
 
@@ -103,6 +105,7 @@ Example Usage
 Here is an example of using :func:`plot_histogram` to visualize measurement outcome counts:
 
 .. plot::
+   :alt: Output from the previous code.
    :include-source:
 
    from qiskit.visualization import plot_histogram
@@ -144,6 +147,7 @@ Example Usage
 Here is an example of using :func:`plot_state_city` to visualize a quantum state:
 
 .. plot::
+   :alt: Output from the previous code.
    :include-source:
 
    from qiskit.visualization import plot_state_city
@@ -157,6 +161,7 @@ The state can be array-like list of lists, ``numpy.array``, or more commonly
 obtained from a :class:`~qiskit.circuit.QuantumCircuit`:
 
 .. plot::
+   :alt: Output from the previous code.
    :include-source:
 
    from qiskit import QuantumCircuit
@@ -172,6 +177,7 @@ obtained from a :class:`~qiskit.circuit.QuantumCircuit`:
    plot_state_city(state)
 
 .. plot::
+   :alt: Output from the previous code.
    :include-source:
 
    from qiskit import QuantumCircuit
