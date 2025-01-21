@@ -202,7 +202,7 @@ class UnitaryGate(Gate):
             )
         return gate
 
-    def _qasm2_decomposition(self):
+    def _qasm_decomposition(self):
         """Return an unparameterized version of ourselves, so the OQ2 exporter doesn't choke on the
         non-standard things in our `params` field."""
         out = self.definition.to_gate()

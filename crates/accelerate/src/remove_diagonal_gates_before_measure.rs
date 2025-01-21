@@ -47,18 +47,13 @@ fn run_remove_diagonal_before_measure(dag: &mut DAGCircuit) -> PyResult<()> {
     static DIAGONAL_3Q_GATES: [StandardGate; 1] = [StandardGate::CCZGate];
 
     let mut nodes_to_remove = Vec::new();
-    for index in dag.op_nodes(true) {
-        let node = &dag.dag()[index];
-        let NodeType::Operation(inst) = node else {
-            panic!()
-        };
-
+    for (index, inst) in dag.op_nodes(true) {
         if inst.op.name() == "measure" {
             let predecessor = (dag.quantum_predecessors(index))
                 .next()
                 .expect("index is an operation node, so it must have a predecessor.");
 
-            match &dag.dag()[predecessor] {
+            match &dag[predecessor] {
                 NodeType::Operation(pred_inst) => match pred_inst.standard_gate() {
                     Some(gate) => {
                         if DIAGONAL_1Q_GATES.contains(&gate) {
@@ -66,14 +61,14 @@ fn run_remove_diagonal_before_measure(dag: &mut DAGCircuit) -> PyResult<()> {
                         } else if DIAGONAL_2Q_GATES.contains(&gate)
                             || DIAGONAL_3Q_GATES.contains(&gate)
                         {
+
                             let mut successors = dag.quantum_successors(predecessor);
                             if successors.all(|s| {
                                 let node_s = &dag.dag()[s];
                                 if let NodeType::Operation(inst_s) = node_s {
                                     inst_s.op.name() == "measure"
                                 } else {
-                                    false
-                                }
+                                    false}
                             }) {
                                 nodes_to_remove.push(predecessor);
                             }
