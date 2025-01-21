@@ -143,12 +143,12 @@ class DrawerCanvas:
         """Load quantum circuit and create drawing..
 
         .. deprecated:: 1.3
-           Visualizing un-scheduled circuit with timeline drawer has been deprecated in Qiskit 1.3.
-           This circuit should be transpiled with scheduler though it consists of
-           instructions with explicit durations.
+           Visualization of unscheduled circuits with the timeline drawer has been deprecated in Qiskit 1.3.
+           This circuit should be transpiled with a scheduler, despite having instructions 
+           with explicit durations.
 
         .. deprecated:: 1.3
-           Target with duration-less operations are going to error in Qiskit 2.0.
+           Targets with duration-less operations are going to error in Qiskit 2.0.
 
         Args:
             program: Scheduled circuit object to draw.

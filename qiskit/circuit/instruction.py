@@ -76,7 +76,7 @@ class Instruction(Operation):
             params (list[int|float|complex|str|ndarray|list|ParameterExpression]):
                 list of parameters
             duration (int|float): (DEPRECATED) instruction's duration. it must be
-                integer if ``unit`` is ``'dt'``
+                an integer if ``unit`` is ``'dt'``
             unit (str): (DEPRECATED) time unit of duration
             label (str or None): An optional label for identifying the instruction.
 
