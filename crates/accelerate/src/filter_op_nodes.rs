@@ -13,9 +13,8 @@
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 
-use qiskit_circuit::dag_circuit::DAGCircuit;
+use qiskit_circuit::dag_circuit::{DAGCircuit, OperationIndex};
 use qiskit_circuit::packed_instruction::PackedInstruction;
-use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 #[pyfunction]
 #[pyo3(name = "filter_op_nodes")]
@@ -24,11 +23,11 @@ pub fn py_filter_op_nodes(
     dag: &mut DAGCircuit,
     predicate: &Bound<PyAny>,
 ) -> PyResult<()> {
-    let callable = |node: NodeIndex| -> PyResult<bool> {
-        let dag_op_node = dag.get_node(py, node)?;
+    let callable = |node: OperationIndex| -> PyResult<bool> {
+        let dag_op_node = dag.get_node(py, node.node())?;
         predicate.call1((dag_op_node,))?.extract()
     };
-    let mut remove_nodes: Vec<NodeIndex> = Vec::new();
+    let mut remove_nodes = Vec::new();
     for node in dag.op_node_indices(true) {
         if !callable(node)? {
             remove_nodes.push(node);

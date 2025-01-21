@@ -21,7 +21,7 @@ use pyo3::{
 };
 
 use crate::circuit_data::CircuitData;
-use crate::dag_circuit::{DAGCircuit, NodeType};
+use crate::dag_circuit::DAGCircuit;
 use crate::packed_instruction::PackedInstruction;
 
 /// An extractable representation of a QuantumCircuit reserved only for
@@ -106,11 +106,7 @@ pub fn dag_to_circuit(
         dag.qargs_interner().clone(),
         dag.cargs_interner().clone(),
         dag.topological_op_nodes()?.map(|node_index| {
-            let NodeType::Operation(ref instr) = dag[node_index] else {
-                unreachable!(
-                    "The received node from topological_op_nodes() is not an Operation node."
-                )
-            };
+            let instr = &dag[node_index];
             if copy_operations {
                 let op = instr.op.py_deepcopy(py, None)?;
                 Ok(PackedInstruction {
