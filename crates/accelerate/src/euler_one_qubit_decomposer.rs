@@ -110,12 +110,12 @@ impl OneQubitGateSequence {
 
     fn __getitem__(&self, py: Python, idx: PySequenceIndex) -> PyResult<PyObject> {
         match idx.with_len(self.gates.len())? {
-            SequenceIndex::Int(idx) => Ok(self.gates[idx].clone().into_py_any(py)?),
+            SequenceIndex::Int(idx) => Ok((&self.gates[idx]).into_py_any(py)?),
             indices => Ok(PyList::new(
                 py,
                 indices
                     .iter()
-                    .map(|pos| self.gates[pos].clone().into_pyobject(py).unwrap()),
+                    .map(|pos| (&self.gates[pos]).into_pyobject(py).unwrap()),
             )?
             .into_any()
             .unbind()),

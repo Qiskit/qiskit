@@ -315,6 +315,20 @@ pub enum StandardGate {
     RC3XGate = 51,
 }
 
+// `StandardGate` is a `pyclass` that is also `Copy`.  PyO3 0.23.4 doesn't implement `IntoPyObject`
+// for the reference to pyclasses, since in general you need the owned copy to make it accessible on
+// the Python heap.  Most of the time things work fine without this, but it matters when you're
+// trying to called derived implementations of `IntoPyObject` on things like `(&T1, &T2)`.
+impl<'py> IntoPyObject<'py> for &StandardGate {
+    type Target = <StandardGate as IntoPyObject<'py>>::Target;
+    type Output = <StandardGate as IntoPyObject<'py>>::Output;
+    type Error = <StandardGate as IntoPyObject<'py>>::Error;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        (*self).into_pyobject(py)
+    }
+}
+
 unsafe impl ::bytemuck::CheckedBitPattern for StandardGate {
     type Bits = u8;
 
