@@ -266,21 +266,23 @@ class TestRandomCircuitFromGraph(QiskitTestCase):
                 reset=True,
                 seed=seed,  # Do not change the seed or the args.
                 insert_1q_oper=True,
-                prob_conditional=0.41,
+                prob_conditional=0.95,
                 prob_reset=0.50,
             )
 
+        # Check if reset is applied.
         self.assertIn("reset", qc.count_ops())
 
         # Now, checking for conditionals
-        conditions = []
+        cond_counter = 0
         for instr in qc:
             cond = getattr(instr.operation, "_condition", None)
             if not cond is None:
-                conditions.append(cond)
+                cond_counter += 1
+                break  # even one conditional is enough for the check.
 
         # See if conditionals are present.
-        self.assertNotEqual(conditions, [])
+        self.assertNotEqual(cond_counter, 0)
 
     @ddt.data(*test_cases)
     @ddt.unpack
@@ -381,3 +383,106 @@ class TestRandomCircuitFromGraph(QiskitTestCase):
         pydi_graph.add_edges_from(cp_mp)
         with self.assertRaisesRegex(ValueError, ".probability."):
             _ = random_circuit_from_graph(interaction_graph=pydi_graph, min_2q_gate_per_edge=1)
+
+    def test_raise_no_edges_insert_1q_oper_to_false(self):
+        """Test if the function raises CircuitError when no edges are present in the
+        interaction graph, which means there cannot be any 2Q gates, and only
+        1Q gates present in the circuit, but `insert_1q_oper` is set to False"""
+        inter_graph = rx.PyDiGraph()
+        inter_graph.add_nodes_from(range(10))
+        with self.assertRaisesRegex(CircuitError, ".there could be no 2Q gates."):
+            with self.assertWarns(DeprecationWarning):
+                _ = random_circuit_from_graph(
+                    interaction_graph=inter_graph,
+                    min_2q_gate_per_edge=2,
+                    max_operands=2,
+                    measure=False,
+                    conditional=True,
+                    reset=True,
+                    seed=0,
+                    insert_1q_oper=False,  # This will error out!
+                    prob_conditional=0.9,
+                    prob_reset=0.9,
+                )
+
+    def test_no_1q_when_insert_1q_oper_is_false(self):
+        """Test no 1Q gates in the circuit, if `insert_1q_oper` is set to False."""
+        num_qubits = 7
+        pydi_graph = rx.PyDiGraph()
+        pydi_graph.add_nodes_from(range(num_qubits))
+        cp_map = [(0, 1, 10), (1, 2, 11), (2, 3, 0), (3, 4, 9), (4, 5, 12), (5, 6, 13)]
+        pydi_graph.add_edges_from(cp_map)
+
+        with self.assertWarns(DeprecationWarning):
+            qc = random_circuit_from_graph(
+                interaction_graph=pydi_graph,
+                min_2q_gate_per_edge=2,
+                max_operands=2,
+                measure=True,
+                conditional=True,
+                reset=True,
+                seed=0,
+                insert_1q_oper=False,
+                prob_conditional=0.8,
+                prob_reset=0.6,
+            )
+
+        count_1q = 0
+        count_2q = 0
+
+        for instr in qc:
+            if instr.operation.name in {"measure", "delay", "reset"}:
+                continue
+
+            if instr.operation.num_qubits == 1:
+                count_1q += 1
+            if instr.operation.num_qubits == 2:
+                count_2q += 1
+
+        # 1Q gates should not be there in the circuits.
+        self.assertEqual(count_1q, 0)
+
+        # 2Q gates should be in the circuits.
+        self.assertNotEqual(count_2q, 0)
+
+    def test_conditionals_on_1q_operation(self):
+        """Test if conditionals are present on 1Q operations"""
+
+        num_qubits = 7
+        pydi_graph = rx.PyDiGraph()
+        pydi_graph.add_nodes_from(range(num_qubits))
+        cp_map = [(0, 1, 10), (1, 2, 11), (2, 3, 0), (3, 4, 9), (4, 5, 12), (5, 6, 13)]
+        pydi_graph.add_edges_from(cp_map)
+
+        with self.assertWarns(DeprecationWarning):
+            qc = random_circuit_from_graph(
+                interaction_graph=pydi_graph,
+                min_2q_gate_per_edge=4,
+                max_operands=2,
+                measure=True,
+                conditional=True,
+                reset=True,
+                seed=0,
+                insert_1q_oper=True,
+                prob_conditional=0.91,
+                prob_reset=0.6,
+            )
+
+        cond_counter_1q = 0
+        cond_counter_2q = 0
+
+        for instr in qc:
+            if instr.operation.name in {"measure", "delay", "reset"}:
+                continue
+
+            cond = getattr(instr.operation, "_condition", None)
+            if not cond is None:
+                if instr.operation.num_qubits == 1:
+                    cond_counter_1q += 1
+
+                if instr.operation.num_qubits == 2:
+                    cond_counter_2q += 1
+
+        # Check if conditionals are present on 1Q and 2Q gates.
+        self.assertNotEqual(cond_counter_1q, 0)
+        self.assertNotEqual(cond_counter_2q, 0)
