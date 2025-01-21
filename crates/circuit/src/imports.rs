@@ -255,10 +255,63 @@ static STDGATE_IMPORT_PATHS: [[&str; 2]; STANDARD_GATE_SIZE] = [
 ///
 /// NOTE: the order here is significant it must match the StandardGate variant's number must match
 /// index of it's entry in this table. This is all done statically for performance
-static mut STDGATE_PYTHON_GATES: GILOnceCell<[Option<PyObject>; STANDARD_GATE_SIZE]> =
-    GILOnceCell::new();
+static STDGATE_PYTHON_GATES: [GILOnceCell<PyObject>; STANDARD_GATE_SIZE] = [
+    GILOnceCell::new(),
+    GILOnceCell::new(),
+    GILOnceCell::new(),
+    GILOnceCell::new(),
+    GILOnceCell::new(),
+    GILOnceCell::new(),
+    GILOnceCell::new(),
+    GILOnceCell::new(),
+    GILOnceCell::new(),
+    GILOnceCell::new(),
+    GILOnceCell::new(),
+    GILOnceCell::new(),
+    GILOnceCell::new(),
+    GILOnceCell::new(),
+    GILOnceCell::new(),
+    GILOnceCell::new(),
+    GILOnceCell::new(),
+    GILOnceCell::new(),
+    GILOnceCell::new(),
+    GILOnceCell::new(),
+    GILOnceCell::new(),
+    GILOnceCell::new(),
+    GILOnceCell::new(),
+    GILOnceCell::new(),
+    GILOnceCell::new(),
+    GILOnceCell::new(),
+    GILOnceCell::new(),
+    GILOnceCell::new(),
+    GILOnceCell::new(),
+    GILOnceCell::new(),
+    GILOnceCell::new(),
+    GILOnceCell::new(),
+    GILOnceCell::new(),
+    GILOnceCell::new(),
+    GILOnceCell::new(),
+    GILOnceCell::new(),
+    GILOnceCell::new(),
+    GILOnceCell::new(),
+    GILOnceCell::new(),
+    GILOnceCell::new(),
+    GILOnceCell::new(),
+    GILOnceCell::new(),
+    GILOnceCell::new(),
+    GILOnceCell::new(),
+    GILOnceCell::new(),
+    GILOnceCell::new(),
+    GILOnceCell::new(),
+    GILOnceCell::new(),
+    GILOnceCell::new(),
+    GILOnceCell::new(),
+    GILOnceCell::new(),
+    GILOnceCell::new(),
+];
 
 #[inline]
+<<<<<<< HEAD
 pub fn populate_std_gate_map(py: Python, rs_gate: StandardGate, py_gate: PyObject) {
     let gate_map = unsafe {
         match STDGATE_PYTHON_GATES.get_mut() {
@@ -293,4 +346,11 @@ pub fn get_std_gate_class(py: Python, rs_gate: StandardGate) -> PyResult<PyObjec
         populate_std_gate_map(py, rs_gate, out_gate.clone_ref(py));
     }
     Ok(out_gate)
+=======
+pub fn get_std_gate_class(py: Python, rs_gate: StandardGate) -> PyResult<&'static Py<PyAny>> {
+    STDGATE_PYTHON_GATES[rs_gate as usize].get_or_try_init(py, || {
+        let [py_mod, py_class] = STDGATE_IMPORT_PATHS[rs_gate as usize];
+        Ok(py.import(py_mod)?.getattr(py_class)?.unbind())
+    })
+>>>>>>> 7b0b6fcd (Remove need for mutable reference to static (#13705))
 }
