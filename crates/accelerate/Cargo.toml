@@ -11,7 +11,7 @@ doctest = false
 
 [dependencies]
 rayon.workspace = true
-numpy.workspace = true
+nalgebra.workspace = true
 rand = "0.8"
 rand_pcg = "0.3"
 rand_distr = "0.4.3"
@@ -36,6 +36,10 @@ features = ["union"]
 [dependencies.pyo3]
 workspace = true
 features = ["hashbrown", "indexmap", "num-complex", "num-bigint", "smallvec"]
+
+[dependencies.numpy]
+workspace = true
+features = ["nalgebra"]
 
 [dependencies.ndarray]
 workspace = true

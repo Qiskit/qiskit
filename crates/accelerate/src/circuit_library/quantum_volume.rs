@@ -15,10 +15,10 @@ use pyo3::prelude::*;
 use pyo3::types::PyDict;
 
 use crate::getenv_use_multiple_threads;
-use faer_ext::{IntoFaerComplex, IntoNdarrayComplex};
-use ndarray::prelude::*;
+use nalgebra::Matrix4;
 use num_complex::Complex64;
-use numpy::IntoPyArray;
+use num_complex::ComplexFloat;
+use numpy::ToPyArray;
 use rand::prelude::*;
 use rand_distr::StandardNormal;
 use rand_pcg::Pcg64Mcg;
@@ -50,11 +50,11 @@ fn random_complex(rng: &mut Pcg64Mcg) -> Complex64 {
 //
 // https://github.com/scipy/scipy/blob/v1.14.1/scipy/stats/_multivariate.py#L4224-L4256
 #[inline]
-fn random_unitaries(seed: u64, size: usize) -> impl Iterator<Item = Array2<Complex64>> {
+fn random_unitaries(seed: u64, size: usize) -> impl Iterator<Item = Matrix4<Complex64>> {
     let mut rng = Pcg64Mcg::seed_from_u64(seed);
 
     (0..size).map(move |_| {
-        let raw_numbers: [[Complex64; 4]; 4] = [
+        let raw_numbers: Matrix4<Complex64> = [
             [
                 random_complex(&mut rng),
                 random_complex(&mut rng),
@@ -79,18 +79,15 @@ fn random_unitaries(seed: u64, size: usize) -> impl Iterator<Item = Array2<Compl
                 random_complex(&mut rng),
                 random_complex(&mut rng),
             ],
-        ];
+        ]
+        .into();
 
-        let qr = aview2(&raw_numbers).into_faer_complex().qr();
-        let r = qr.compute_r();
-        let diag: [Complex64; 4] = [
-            r[(0, 0)].to_num_complex() / r[(0, 0)].abs(),
-            r[(1, 1)].to_num_complex() / r[(1, 1)].abs(),
-            r[(2, 2)].to_num_complex() / r[(2, 2)].abs(),
-            r[(3, 3)].to_num_complex() / r[(3, 3)].abs(),
-        ];
-        let mut q = qr.compute_q().as_ref().into_ndarray_complex().to_owned();
-        q.axis_iter_mut(Axis(0)).for_each(|mut row| {
+        let qr = raw_numbers.qr();
+        let r = qr.r();
+        let mut diag = r.diagonal();
+        diag.iter_mut().for_each(|x| *x /= x.abs());
+        let mut q = qr.q();
+        q.row_iter_mut().for_each(|mut row| {
             row.iter_mut()
                 .enumerate()
                 .for_each(|(index, val)| *val *= diag[index])
@@ -115,14 +112,14 @@ pub fn quantum_volume(
 
     let kwargs = PyDict::new(py);
     kwargs.set_item(intern!(py, "num_qubits"), 2)?;
-    let mut build_instruction = |(unitary_index, unitary_array): (usize, Array2<Complex64>),
+    let mut build_instruction = |(unitary_index, unitary_array): (usize, Matrix4<Complex64>),
                                  rng: &mut Pcg64Mcg|
      -> PyResult<Instruction> {
         let layer_index = unitary_index % width;
         if layer_index == 0 {
             permutation.shuffle(rng);
         }
-        let unitary = unitary_array.into_pyarray(py);
+        let unitary = unitary_array.to_pyarray(py);
 
         let unitary_gate = UNITARY_GATE
             .get_bound(py)
@@ -156,7 +153,7 @@ pub fn quantum_volume(
         .take(num_unitaries)
         .collect();
 
-    let unitaries: Vec<Array2<Complex64>> = if getenv_use_multiple_threads() && num_unitaries > 200
+    let unitaries: Vec<Matrix4<Complex64>> = if getenv_use_multiple_threads() && num_unitaries > 200
     {
         seed_vec
             .par_chunks(per_thread)
