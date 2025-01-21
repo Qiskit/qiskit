@@ -320,10 +320,6 @@ class TestQuantumCircuitData(QiskitTestCase):
 
         del data_list[sli]
         del data[sli]
-        if data_list[sli] != data[sli]:
-            print(f"data_list: {data_list}")
-            print(f"data: {list(data)}")
-
         self.assertEqual(data[sli], data_list[sli])
 
     @ddt.data(
