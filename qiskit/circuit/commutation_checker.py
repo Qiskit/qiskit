@@ -12,10 +12,11 @@
 
 """Code from commutative_analysis pass that checks commutation relations between DAG nodes."""
 
-from typing import List, Union, Set, Optional
+from typing import List, Optional, Set, Union
 
+from qiskit._accelerate.commutation_checker import \
+    CommutationChecker as RustChecker
 from qiskit.circuit.operation import Operation
-from qiskit._accelerate.commutation_checker import CommutationChecker as RustChecker
 
 
 class CommutationChecker:

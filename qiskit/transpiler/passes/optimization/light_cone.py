@@ -125,7 +125,10 @@ class LightCone(TransformationPass):
                 # Check commutation with all previous operations
                 commutes_bool = True
                 for op in light_cone_ops:
+                    print("A", op)
+                    print("B", node.op)
                     commute_bool = commutator.commute(op[0], op[1], [], node.op, node.qargs, [])
+                    print("Success")
                     if not commute_bool:
                         # If the current node does not commute, update the light cone
                         light_cone.update(node.qargs)

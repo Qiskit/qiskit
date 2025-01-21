@@ -13,6 +13,7 @@
 """Test the LightCone pass"""
 
 import unittest
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 import numpy as np
 
@@ -23,7 +24,6 @@ from qiskit.quantum_info import Operator, Pauli
 from qiskit.transpiler.passes import RemoveFinalMeasurements
 from qiskit.transpiler.passes.optimization.light_cone import LightCone
 from qiskit.transpiler.passmanager import PassManager
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 # Missing cases:
 #   - Rotational gates with notable angles (0, np.pi);
@@ -36,6 +36,14 @@ class TestLightConePass(QiskitTestCase):
     def __init__(self, methodName: str = "runTest") -> None:
         super().__init__(methodName)
         self.num_qubits = 4
+
+    def test_parametrized_Z_observable(self):
+        """Test the LightCone pass can be run for large circuits."""
+
+        num_qubits = 120
+        qc = RealAmplitudes(num_qubits, entanglement="pairwise", reps=3).decompose()
+        pm = PassManager([LightCone(Pauli("I" * (num_qubits - 1) + "Z"))])
+        new_circuit = pm.run(qc)
 
     def test_parametrized_Z_observable(self):
         """Test the LightCone pass with a single Z observable."""
