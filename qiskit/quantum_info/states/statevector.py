@@ -181,6 +181,7 @@ class Statevector(QuantumState, TolerancesMixin):
             Plot one of the Bell states
 
             .. plot::
+               :alt: Output from the previous code.
                :include-source:
 
                 from numpy import sqrt

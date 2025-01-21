@@ -295,13 +295,14 @@ def draw(
             for more details. No default layout is set. (default `None`).
 
     Examples:
-        To visualize a scheduled circuit program, you can call this function with set of
+        To visualize a scheduled circuit program, you can call this function with a set of
         control arguments. Most of the appearance of the output image can be controlled by the
         stylesheet.
 
         Drawing with the default stylesheet.
 
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
             from qiskit import QuantumCircuit, transpile, schedule
@@ -318,6 +319,7 @@ def draw(
         Drawing with the simple stylesheet.
 
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
             from qiskit import QuantumCircuit, transpile, schedule
@@ -334,6 +336,7 @@ def draw(
         Drawing with the stylesheet suited for program debugging.
 
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
             from qiskit import QuantumCircuit, transpile, schedule
@@ -360,7 +363,7 @@ def draw(
 
         In the same way as above, you can create custom generator or layout functions
         and update existing stylesheet with custom functions.
-        This feature enables you to control the most of appearance of the output image
+        This feature enables you to control the most of the appearance of the output image
         without modifying the codebase of the scheduled circuit drawer.
     """
     del show_idle

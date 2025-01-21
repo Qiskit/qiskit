@@ -29,7 +29,7 @@ pub fn py_filter_op_nodes(
         predicate.call1((dag_op_node,))?.extract()
     };
     let mut remove_nodes: Vec<NodeIndex> = Vec::new();
-    for node in dag.op_nodes(true) {
+    for node in dag.op_node_indices(true) {
         if !callable(node)? {
             remove_nodes.push(node);
         }

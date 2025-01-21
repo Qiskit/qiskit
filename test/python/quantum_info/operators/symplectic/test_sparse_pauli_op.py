@@ -140,6 +140,11 @@ class TestSparsePauliOpInit(QiskitTestCase):
             coeffs[:] = 0
             self.assertEqual(spp_op, ref_op)
 
+    def test_sparse_pauli_op_init_long_ys(self):
+        """Test heavy-weight SparsePauliOp initialization."""
+        y = SparsePauliOp("Y" * 1000)
+        self.assertEqual(1, y.coeffs[0])
+
 
 @ddt.ddt
 class TestSparsePauliOpConversions(QiskitTestCase):
