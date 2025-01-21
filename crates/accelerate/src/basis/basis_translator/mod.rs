@@ -212,8 +212,7 @@ fn extract_basis(
         basis: &mut HashSet<GateIdentifier>,
         min_qubits: usize,
     ) -> PyResult<()> {
-        for node in circuit.op_nodes(true) {
-            let operation: &PackedInstruction = circuit.dag()[node].unwrap_operation();
+        for (node, operation) in circuit.op_nodes(true) {
             if !circuit.has_calibration_for_index(py, node)?
                 && circuit.get_qargs(operation.qubits).len() >= min_qubits
             {
@@ -279,8 +278,7 @@ fn extract_basis_target(
     min_qubits: usize,
     qargs_with_non_global_operation: &HashMap<Option<Qargs>, HashSet<String>>,
 ) -> PyResult<()> {
-    for node in dag.op_nodes(true) {
-        let node_obj: &PackedInstruction = dag.dag()[node].unwrap_operation();
+    for (node, node_obj) in dag.op_nodes(true) {
         let qargs: &[Qubit] = dag.get_qargs(node_obj.qubits);
         if dag.has_calibration_for_index(py, node)? || qargs.len() < min_qubits {
             continue;
@@ -430,7 +428,7 @@ fn apply_translation(
     let mut is_updated = false;
     let mut out_dag = dag.copy_empty_like(py, "alike")?;
     for node in dag.topological_op_nodes()? {
-        let node_obj = dag.dag()[node].unwrap_operation();
+        let node_obj = dag[node].unwrap_operation();
         let node_qarg = dag.get_qargs(node_obj.qubits);
         let node_carg = dag.get_cargs(node_obj.clbits);
         let qubit_set: HashSet<Qubit> = HashSet::from_iter(node_qarg.iter().copied());
@@ -608,7 +606,7 @@ fn replace_node(
     }
     if node.params_view().is_empty() {
         for inner_index in target_dag.topological_op_nodes()? {
-            let inner_node = &target_dag.dag()[inner_index].unwrap_operation();
+            let inner_node = &target_dag[inner_index].unwrap_operation();
             let old_qargs = dag.get_qargs(node.qubits);
             let old_cargs = dag.get_cargs(node.clbits);
             let new_qubits: Vec<Qubit> = target_dag
@@ -669,7 +667,7 @@ fn replace_node(
             .zip(node.params_view())
             .into_py_dict(py)?;
         for inner_index in target_dag.topological_op_nodes()? {
-            let inner_node = &target_dag.dag()[inner_index].unwrap_operation();
+            let inner_node = &target_dag[inner_index].unwrap_operation();
             let old_qargs = dag.get_qargs(node.qubits);
             let old_cargs = dag.get_cargs(node.clbits);
             let new_qubits: Vec<Qubit> = target_dag
