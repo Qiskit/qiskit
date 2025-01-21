@@ -12,7 +12,6 @@ jobs:
       artifact-prefix: "deploy-core-"
       default-action: "skip"
       wheels-tier-1: "build"
-      wheels-32bit: "build"
       sdist: "build"
   upload-core:
     name: Deploy core
@@ -39,7 +38,6 @@ jobs:
       artifact-prefix: "deploy-others-"
       default-action: "build"
       wheels-tier-1: "skip"
-      wheels-32bit: "skip"
       sdist: "skip"
   upload-others:
     name: Deploy other

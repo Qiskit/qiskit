@@ -86,7 +86,7 @@ from qiskit.circuit.library import (
 )
 from qiskit.circuit._utils import _compute_control_matrix
 import qiskit.circuit.library.standard_gates as allGates
-from qiskit.circuit.library.standard_gates.multi_control_rotation_gates import _mcsu2_real_diagonal
+from qiskit.synthesis.multi_controlled.multi_control_rotation_gates import _mcsu2_real_diagonal
 from qiskit.circuit.library.standard_gates.equivalence_library import (
     StandardEquivalenceLibrary as std_eqlib,
 )
@@ -553,9 +553,9 @@ class TestControlledGate(QiskitTestCase):
         """Test mcsu2_real_diagonal"""
         num_ctrls = 6
         theta = 0.3
-        ry_matrix = RYGate(theta).to_matrix()
-        qc = _mcsu2_real_diagonal(ry_matrix, num_ctrls)
+        qc = _mcsu2_real_diagonal(RYGate(theta), num_ctrls)
 
+        ry_matrix = RYGate(theta).to_matrix()
         mcry_matrix = _compute_control_matrix(ry_matrix, 6)
         self.assertTrue(np.allclose(mcry_matrix, Operator(qc).to_matrix()))
 
@@ -684,6 +684,23 @@ class TestControlledGate(QiskitTestCase):
         # selected, the bottom qubit would remain unused.
         dag = circuit_to_dag(circuit)
         self.assertEqual(len(list(dag.idle_wires())), 0)
+
+    @combine(num_controls=[1, 2, 3], base_gate=[RXGate, RYGate, RZGate, CPhaseGate])
+    def test_multi_controlled_rotation_gate_with_parameter(self, num_controls, base_gate):
+        """Test multi-controlled rotation gates and MCPhase gate with Parameter synthesis."""
+        theta = Parameter("theta")
+        params = [theta]
+        val = 0.4123
+        rot_matrix = base_gate(val).to_matrix()
+        mc_matrix = _compute_control_matrix(rot_matrix, num_controls)
+
+        mc_gate = base_gate(*params).control(num_controls)
+        circuit = QuantumCircuit(mc_gate.num_qubits)
+        circuit.append(mc_gate, circuit.qubits)
+
+        bound = circuit.assign_parameters([val])
+        unrolled = transpile(bound, basis_gates=["u", "cx"], optimization_level=0)
+        self.assertTrue(np.allclose(mc_matrix, Operator(unrolled).to_matrix()))
 
     @data(1, 2)
     def test_mcx_gates_yield_explicit_gates(self, num_ctrl_qubits):
@@ -1443,8 +1460,6 @@ class TestControlledGate(QiskitTestCase):
         self.assertEqual(Operator(controlled), Operator(target))
 
     @data(
-        RXGate,
-        RYGate,
         RXXGate,
         RYYGate,
         RZXGate,
@@ -1454,8 +1469,8 @@ class TestControlledGate(QiskitTestCase):
         XXMinusYYGate,
         XXPlusYYGate,
     )
-    def test_mc_failure_without_annotation(self, gate_cls):
-        """Test error for gates that cannot be multi-controlled without annotation."""
+    def test_mc_without_annotation(self, gate_cls):
+        """Test multi-controlled gates with and without annotation."""
         theta = Parameter("theta")
         num_params = len(_get_free_params(gate_cls.__init__, ignore=["self"]))
         params = [theta] + (num_params - 1) * [1.234]
@@ -1463,22 +1478,17 @@ class TestControlledGate(QiskitTestCase):
         for annotated in [False, None]:
             with self.subTest(annotated=annotated):
                 # if annotated is False, check that a sensible error is raised
-                if annotated is False:
-                    with self.assertRaisesRegex(QiskitError, "unbound parameter"):
-                        _ = gate_cls(*params).control(5, annotated=False)
-
                 # else, check that the gate can be synthesized after all parameters
                 # have been bound
-                else:
-                    mc_gate = gate_cls(*params).control(5)
+                mc_gate = gate_cls(*params).control(5)
 
-                    circuit = QuantumCircuit(mc_gate.num_qubits)
-                    circuit.append(mc_gate, circuit.qubits)
+                circuit = QuantumCircuit(mc_gate.num_qubits)
+                circuit.append(mc_gate, circuit.qubits)
 
-                    bound = circuit.assign_parameters([0.5123])
-                    unrolled = transpile(bound, basis_gates=["u", "cx"], optimization_level=0)
+                bound = circuit.assign_parameters([0.5123])
+                unrolled = transpile(bound, basis_gates=["u", "cx"], optimization_level=0)
 
-                    self.assertEqual(unrolled.num_parameters, 0)
+                self.assertEqual(unrolled.num_parameters, 0)
 
     def assertEqualTranslated(self, circuit, unrolled_reference, basis):
         """Assert that the circuit is equal to the unrolled reference circuit."""

@@ -191,12 +191,6 @@ class ProductFormula(EvolutionSynthesis):
             "preserve_order": self.preserve_order,
         }
 
-    def _normalize_coefficients(
-        self, paulis: list[str | list[int], float | complex | ParameterExpression]
-    ) -> list[str | list[int] | ParameterValueType]:
-        """Ensure the coefficients are real (or parameter expressions)."""
-        return [[(op, qubits, real_or_fail(coeff)) for op, qubits, coeff in ops] for ops in paulis]
-
     def _custom_evolution(self, num_qubits, pauli_rotations):
         """Implement the evolution for the non-standard path.
 

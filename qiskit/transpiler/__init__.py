@@ -33,6 +33,8 @@ branches, and other complex behaviors. That being said, the standard
 compilation flow follows the structure given below:
 
 .. image:: /source_images/transpiling_core_steps.png
+   :alt: The transpilation process takes the input circuit, applies the transpilation \
+      passes, then produces the output circuit.
 
 Qiskit uses the graph-based :class:`.DAGCircuit` intermediate representation (IR) of a circuit
 throughout the transpiler stack, rather than the tree-based :class:`.QuantumCircuit`.  A transpiler
@@ -994,6 +996,7 @@ example 3 qubit :class:`~.Target` above:
 
 .. plot::
    :include-source:
+   :alt: Output from the previous code.
 
    from qiskit.circuit import Parameter, Measure
    from qiskit.transpiler import Target, InstructionProperties
@@ -1053,6 +1056,7 @@ see the individual connectivity, you can pass the operation name to
 :meth:`.CouplingMap.build_coupling_map`:
 
 .. plot::
+   :alt: Output from the previous code.
    :include-source:
 
    from qiskit.circuit import Parameter, Measure
@@ -1108,6 +1112,7 @@ see the individual connectivity, you can pass the operation name to
    target.build_coupling_map('cx').draw()
 
 .. plot::
+   :alt: Output from the previous code.
    :include-source:
 
    from qiskit.circuit import Parameter, Measure
@@ -1183,6 +1188,7 @@ for idle time on the qubits between the execution of instructions. For example, 
 circuit such as:
 
 .. plot::
+   :alt: Diagram illustrating the previously described circuit.
 
    from qiskit import QuantumCircuit
 
@@ -1194,6 +1200,7 @@ circuit such as:
 we can then call :func:`~.transpile` on it with ``scheduling_method`` set:
 
 .. plot::
+   :alt: Circuit diagram output by the previous code.
    :include-source:
 
    from qiskit import QuantumCircuit, transpile
@@ -1213,6 +1220,7 @@ account for idle time on each qubit. To get a better idea of the timing of the c
 also look at it with the :func:`.timeline.draw` function:
 
 .. plot::
+   :alt: Output from circuit timeline drawer.
 
    from qiskit.visualization.timeline import draw as timeline_draw
 
