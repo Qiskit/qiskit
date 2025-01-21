@@ -715,7 +715,7 @@ impl StandardGate {
     }
 
     #[getter]
-    pub fn get_gate_class(&self, py: Python) -> PyResult<Py<PyAny>> {
+    pub fn get_gate_class(&self, py: Python) -> PyResult<&'static Py<PyAny>> {
         get_std_gate_class(py, *self)
     }
 
