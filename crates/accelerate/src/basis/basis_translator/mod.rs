@@ -223,7 +223,7 @@ fn extract_basis(
                     unreachable!("Control flow operation is not an instance of PyInstruction.")
                 };
                 let inst_bound = inst.instruction.bind(py);
-                for block in inst_bound.getattr("blocks")?.iter()? {
+                for block in inst_bound.getattr("blocks")?.try_iter()? {
                     recurse_circuit(py, block?, basis, min_qubits)?;
                 }
             }
@@ -254,7 +254,7 @@ fn extract_basis(
             if inst.op.control_flow() {
                 let operation_ob = instruction_object.getattr(intern!(py, "operation"))?;
                 let blocks = operation_ob.getattr("blocks")?;
-                for block in blocks.iter()? {
+                for block in blocks.try_iter()? {
                     recurse_circuit(py, block?, basis, min_qubits)?;
                 }
             }
@@ -324,7 +324,7 @@ fn extract_basis_target(
             let bound_inst = op.instruction.bind(py);
             // Use python side extraction instead of the Rust method `op.blocks` due to
             // required usage of a python-space method `QuantumCircuit.has_calibration_for`.
-            let blocks = bound_inst.getattr("blocks")?.iter()?;
+            let blocks = bound_inst.getattr("blocks")?.try_iter()?;
             for block in blocks {
                 extract_basis_target_circ(
                     &block?,
@@ -401,7 +401,7 @@ fn extract_basis_target_circ(
                 unreachable!("Control flow op is not a control flow op. But control_flow is `true`")
             };
             let bound_inst = op.instruction.bind(py);
-            let blocks = bound_inst.getattr("blocks")?.iter()?;
+            let blocks = bound_inst.getattr("blocks")?.try_iter()?;
             for block in blocks {
                 extract_basis_target_circ(
                     &block?,
@@ -428,7 +428,7 @@ fn apply_translation(
     let mut is_updated = false;
     let mut out_dag = dag.copy_empty_like(py, "alike")?;
     for node in dag.topological_op_nodes()? {
-        let node_obj = dag.dag()[node].unwrap_operation();
+        let node_obj = dag[node].unwrap_operation();
         let node_qarg = dag.get_qargs(node_obj.qubits);
         let node_carg = dag.get_cargs(node_obj.clbits);
         let qubit_set: HashSet<Qubit> = HashSet::from_iter(node_qarg.iter().copied());
@@ -441,7 +441,7 @@ fn apply_translation(
                 let mut flow_blocks = vec![];
                 let bound_obj = control_op.instruction.bind(py);
                 let blocks = bound_obj.getattr("blocks")?;
-                for block in blocks.iter()? {
+                for block in blocks.try_iter()? {
                     let block = block?;
                     let dag_block: DAGCircuit =
                         circuit_to_dag(py, block.extract()?, true, None, None)?;
@@ -606,7 +606,7 @@ fn replace_node(
     }
     if node.params_view().is_empty() {
         for inner_index in target_dag.topological_op_nodes()? {
-            let inner_node = &target_dag.dag()[inner_index].unwrap_operation();
+            let inner_node = &target_dag[inner_index].unwrap_operation();
             let old_qargs = dag.get_qargs(node.qubits);
             let old_cargs = dag.get_cargs(node.clbits);
             let new_qubits: Vec<Qubit> = target_dag
@@ -665,9 +665,9 @@ fn replace_node(
         let parameter_map = target_params
             .iter()
             .zip(node.params_view())
-            .into_py_dict_bound(py);
+            .into_py_dict(py)?;
         for inner_index in target_dag.topological_op_nodes()? {
-            let inner_node = &target_dag.dag()[inner_index].unwrap_operation();
+            let inner_node = &target_dag[inner_index].unwrap_operation();
             let old_qargs = dag.get_qargs(node.qubits);
             let old_cargs = dag.get_cargs(node.clbits);
             let new_qubits: Vec<Qubit> = target_dag
@@ -700,7 +700,7 @@ fn replace_node(
                     if let Param::ParameterExpression(param_obj) = param {
                         let bound_param = param_obj.bind(py);
                         let exp_params = param.iter_parameters(py)?;
-                        let bind_dict = PyDict::new_bound(py);
+                        let bind_dict = PyDict::new(py);
                         for key in exp_params {
                             let key = key?;
                             bind_dict.set_item(&key, parameter_map.get_item(&key)?)?;
@@ -767,7 +767,7 @@ fn replace_node(
 
         if let Param::ParameterExpression(old_phase) = target_dag.global_phase() {
             let bound_old_phase = old_phase.bind(py);
-            let bind_dict = PyDict::new_bound(py);
+            let bind_dict = PyDict::new(py);
             for key in target_dag.global_phase().iter_parameters(py)? {
                 let key = key?;
                 bind_dict.set_item(&key, parameter_map.get_item(&key)?)?;
@@ -788,7 +788,7 @@ fn replace_node(
             }
             if !new_phase.getattr(intern!(py, "parameters"))?.is_truthy()? {
                 new_phase = new_phase.call_method0(intern!(py, "numeric"))?;
-                if new_phase.is_instance(&PyComplex::type_object_bound(py))? {
+                if new_phase.is_instance(&PyComplex::type_object(py))? {
                     return Err(TranspilerError::new_err(format!(
                         "Global phase must be real, but got {}",
                         new_phase.repr()?
