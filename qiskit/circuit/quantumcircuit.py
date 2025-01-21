@@ -1091,13 +1091,6 @@ class QuantumCircuit:
             "qiskit.circuit.controlflow.builder.ControlFlowBuilderBlock"
         ] = []
 
-        self.qregs: list[QuantumRegister] = []
-        """A list of the :class:`QuantumRegister`\\ s in this circuit.  You should not mutate
-        this."""
-        self.cregs: list[ClassicalRegister] = []
-        """A list of the :class:`ClassicalRegister`\\ s in this circuit.  You should not mutate
-        this."""
-
         # Dict mapping Qubit or Clbit instances to tuple comprised of 0) the
         # corresponding index in circuit.{qubits,clbits} and 1) a list of
         # Register-int pairs for each Register containing the Bit and its index
@@ -1169,25 +1162,25 @@ class QuantumCircuit:
         if data.num_qubits > 0:
             if add_regs:
                 qr = QuantumRegister(name="q", bits=data.qubits)
-                out.qregs = [qr]
                 out._qubit_indices = {
                     bit: BitLocations(index, [(qr, index)]) for index, bit in enumerate(data.qubits)
                 }
             else:
                 out._qubit_indices = {
-                    bit: BitLocations(index, []) for index, bit in enumerate(data.qubits)
+                    bit: BitLocations(index, [data.get_qubit_location(bit)])
+                    for index, bit in enumerate(data.qubits)
                 }
 
         if data.num_clbits > 0:
             if add_regs:
                 cr = ClassicalRegister(name="c", bits=data.clbits)
-                out.cregs = [cr]
                 out._clbit_indices = {
                     bit: BitLocations(index, [(cr, index)]) for index, bit in enumerate(data.clbits)
                 }
             else:
                 out._clbit_indices = {
-                    bit: BitLocations(index, []) for index, bit in enumerate(data.clbits)
+                    bit: BitLocations(index, [data.get_clbit_location(bit)])
+                    for index, bit in enumerate(data.clbits)
                 }
 
         out._data = data
@@ -2233,6 +2226,26 @@ class QuantumCircuit:
         return self._data.clbits
 
     @property
+    def qregs(self) -> list[QuantumRegister]:
+        """A list of :class:`Qubit`\\ s in the order that they were added.  You should not mutate
+        this."""
+        return self._data.qregs
+
+    @qregs.setter
+    def qregs(self, other: list[QuantumRegister]):
+        self._data.qregs = other
+
+    @property
+    def cregs(self) -> list[ClassicalRegister]:
+        """A list of :class:`Clbit`\\ s in the order that they were added.  You should not mutate
+        this."""
+        return self._data.cregs
+
+    @cregs.setter
+    def cregs(self, other: list[ClassicalRegister]):
+        self._data.cregs = other
+
+    @property
     def ancillas(self) -> list[AncillaQubit]:
         """A list of :class:`AncillaQubit`\\ s in the order that they were added.  You should not
         mutate this."""
@@ -3087,7 +3100,7 @@ class QuantumCircuit:
                 raise CircuitError("expected a register")
 
     def _add_qreg(self, qreg: QuantumRegister) -> None:
-        self.qregs.append(qreg)
+        self._data.add_qreg(qreg)
 
         for idx, bit in enumerate(qreg):
             if bit in self._qubit_indices:

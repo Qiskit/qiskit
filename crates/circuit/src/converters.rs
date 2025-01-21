@@ -136,10 +136,10 @@ pub fn dag_to_circuit(
     )?;
     // Manually add qregs and cregs
     for reg in dag.qregs.bind(py).values() {
-        circuit.add_qreg(&reg)?;
+        circuit.py_add_qreg(&reg)?;
     }
     for reg in dag.cregs.bind(py).values() {
-        circuit.add_creg(&reg)?;
+        circuit.py_add_creg(&reg)?;
     }
     Ok(circuit)
 }

@@ -246,7 +246,7 @@ pub struct NewBitData<T: From<BitType>, R: Register + Hash + Eq> {
     /// Maps Register keys to indices
     reg_keys: HashMap<RegisterAsKey, u32>,
     /// Mapping between bit index and its register info
-    bit_info: Vec<Option<BitInfo>>,
+    bit_info: Vec<Vec<BitInfo>>,
     /// Registers in the circuit
     registry: Vec<R>,
     /// Registers in Python
@@ -334,22 +334,15 @@ where
                 // Add register info cancel if any qubit is duplicated
                 for (bit_idx, bit) in bits.iter().enumerate() {
                     let bit_info = &mut self.bit_info[BitType::from(*bit) as usize];
-                    if bit_info.is_some() {
-                        panic!(
-                            "The bit {:?} is currently assigned to another register.",
-                            bit
-                        )
-                    } else {
-                        *bit_info = Some(BitInfo::new(
-                            idx,
-                            bit_idx.try_into().unwrap_or_else(|_| {
-                                panic!(
-                                    "The current register exceeds its capacity limit. Bits {}",
-                                    reg.len()
-                                )
-                            }),
-                        ))
-                    }
+                    bit_info.push(BitInfo::new(
+                        idx,
+                        bit_idx.try_into().unwrap_or_else(|_| {
+                            panic!(
+                                "The current register exceeds its capacity limit. Bits {}",
+                                reg.len()
+                            )
+                        }),
+                    ))
                 }
                 self.reg_keys.insert(reg.as_key().clone(), idx);
                 self.registry.push(reg);
@@ -390,13 +383,13 @@ where
                 self.description
             )
         });
-        self.bit_info.push(None);
+        self.bit_info.push(vec![]);
         self.bits.push(OnceLock::new());
         idx.into()
     }
 
     /// Retrieves the register info of a bit. Will panic if the index is out of range.
-    pub fn get_bit_info(&self, index: T) -> Option<&BitInfo> {
+    pub fn get_bit_info(&self, index: T) -> &[BitInfo] {
         self.bit_info[BitType::from(index) as usize].as_ref()
     }
 
@@ -434,13 +427,30 @@ where
         self.indices.get(&BitAsKey::new(bit)).copied()
     }
 
-    /// Gets a reference to the cached Python list, maintained by
+    /// Gets a reference to the cached Python list, with the bits maintained by
     /// this instance.
     #[inline]
     pub fn py_cached_bits(&self, py: Python) -> &Py<PyList> {
-        self
-            .cached_py_bits
-            .get_or_init(|| PyList::empty_bound(py).into())
+        self.cached_py_bits.get_or_init(|| {
+            PyList::new_bound(
+                py,
+                (0..self.len()).map(|idx| self.py_get_bit(py, (idx as u32).into()).unwrap()),
+            )
+            .into()
+        })
+    }
+
+    /// Gets a reference to the cached Python list, with the registers maintained by
+    /// this instance.
+    #[inline]
+    pub fn py_cached_regs(&self, py: Python) -> &Py<PyList> {
+        self.cached_py_regs.get_or_init(|| {
+            PyList::new_bound(
+                py,
+                (0..self.len_regs()).map(|idx| self.py_get_register(py, idx as u32).unwrap()),
+            )
+            .into()
+        })
     }
 
     /// Gets a reference to the underlying vector of Python bits.
@@ -452,6 +462,24 @@ where
                     .map(|bit| bit.unwrap())
             })
             .collect::<PyResult<_>>()
+    }
+
+    /// Gets the location of a bit within the circuit
+    pub fn py_get_bit_location(&self, bit: &Bound<PyAny>) -> PyResult<Vec<(u32, &PyObject)>> {
+        let py = bit.py();
+        let index = self.py_find_bit(bit).ok_or(PyKeyError::new_err(format!(
+            "The provided {} is not part of this circuit",
+            self.description
+        )))?;
+        self.get_bit_info(index)
+            .iter()
+            .map(|info| -> PyResult<(u32, &PyObject)> {
+                Ok((
+                    info.index(),
+                    self.py_get_register(py, info.register_index())?.unwrap(),
+                ))
+            })
+            .collect::<PyResult<Vec<_>>>()
     }
 
     /// Gets a reference to the underlying vector of Python registers.
@@ -520,7 +548,7 @@ where
             Ok(None)
         }
         // If the bit has an assigned register, check if it has been initialized.
-        else if let Some(bit_info) = self.bit_info[index_as_usize] {
+        else if let Some(bit_info) = self.bit_info[index_as_usize].first() {
             // If it is not initalized and has a register, initialize the register
             // and retrieve it from there the first time
             if self.bits[index_as_usize].get().is_none() {
@@ -608,13 +636,7 @@ where
     pub fn py_add_bit(&mut self, bit: &Bound<PyAny>, strict: bool) -> PyResult<T> {
         let py: Python<'_> = bit.py();
 
-        if self.bits.len()
-            != self
-                .cached_py_bits
-                .get_or_init(|| PyList::empty_bound(py).into())
-                .bind(bit.py())
-                .len()
-        {
+        if self.bits.len() != self.py_cached_bits(py).bind(bit.py()).len() {
             return Err(PyRuntimeError::new_err(
             format!("This circuit's {} list has become out of sync with the circuit data. Did something modify it?", self.description)
             ));
@@ -631,12 +653,9 @@ where
             .try_insert(BitAsKey::new(bit), idx.into())
             .is_ok()
         {
-            self.bit_info.push(None);
+            self.py_cached_bits(py).bind(py).append(bit)?;
+            self.bit_info.push(vec![]);
             self.bits.push(bit.into_py(py).into());
-            self.cached_py_bits
-                .get_or_init(|| PyList::empty_bound(py).into())
-                .bind(py)
-                .append(bit)?;
             // self.cached.bind(py).append(bit)?;
         } else if strict {
             return Err(PyValueError::new_err(format!(
@@ -647,26 +666,21 @@ where
         Ok(idx.into())
     }
 
+    /// Adds new register from Python.
     pub fn py_add_register(&mut self, register: &Bound<PyAny>) -> PyResult<u32> {
         let py = register.py();
-        if self.registers.len()
-            != self
-                .cached_py_regs
-                .get_or_init(|| PyList::empty_bound(py).into())
-                .bind(py)
-                .len()
-        {
+        if self.registers.len() != self.py_cached_regs(py).bind(py).len() {
             return Err(PyRuntimeError::new_err(
-            format!("This circuit's {} list has become out of sync with the circuit data. Did something modify it?", self.description)
+            format!("This circuit's {} register list has become out of sync with the circuit data. Did something modify it?", self.description)
             ));
         }
 
-        // let index: u32 = self.registers.len().try_into().map_err(|_| {
-        //     PyRuntimeError::new_err(format!(
-        //         "The number of {} registers in the circuit has exceeded the maximum capacity",
-        //         self.description
-        //     ))
-        // })?;
+        let _: u32 = self.registers.len().try_into().map_err(|_| {
+            PyRuntimeError::new_err(format!(
+                "The number of {} registers in the circuit has exceeded the maximum capacity",
+                self.description
+            ))
+        })?;
 
         let bits: Vec<T> = register
             .iter()?
@@ -681,12 +695,34 @@ where
             .collect::<PyResult<_>>()?;
 
         let name: String = register.getattr("name")?.extract()?;
+        self.py_cached_regs(py).bind(py).append(register)?;
         self.registers.push(register.clone().unbind().into());
-        self.cached_py_regs
-            .get_or_init(|| PyList::empty_bound(py).into())
-            .bind(py)
-            .append(register)?;
         Ok(self.add_register(Some(name), None, Some(&bits)))
+    }
+
+    /// Works as a setter for Python registers when the circuit needs to discard old data.
+    /// This method discards the current registers and the data associated with them from its
+    /// respective bits.
+    pub fn py_set_registers(&mut self, other: &Bound<PyList>) -> PyResult<()> {
+        // First invalidate everything related to registers
+        // This is done to ensure we regenerate the lost information
+        let current_length = self.len();
+        self.bit_info = (0..current_length).map(|_| vec![]).collect();
+        self.bits.iter_mut().for_each(|cell| {
+            cell.take();
+        });
+        self.cached_py_bits.take();
+
+        self.registers.clear();
+        self.registry.clear();
+        self.cached_py_regs.take();
+
+        // Re-assign
+        for reg in other.iter() {
+            self.py_add_register(&reg)?;
+        }
+
+        Ok(())
     }
 
     pub fn py_remove_bit_indices<I>(&mut self, py: Python, indices: I) -> PyResult<()>
@@ -700,7 +736,7 @@ where
         indices_sorted.sort();
 
         for index in indices_sorted.into_iter().rev() {
-            // self.cached.bind(py).del_item(index)?;
+            self.py_cached_bits(py).bind(py).del_item(index)?;
             let bit = self
                 .py_get_bit(py, (index as BitType).into())?
                 .unwrap()
@@ -759,10 +795,10 @@ where
                 .collect(),
             indices: bit_data.indices.clone(),
             reg_keys: HashMap::new(),
-            bit_info: (0..bit_data.len()).map(|_| None).collect(),
+            bit_info: (0..bit_data.len()).map(|_| vec![]).collect(),
             registry: Vec::new(),
             registers: Vec::new(),
-            cached_py_bits: bit_data.cached().clone_ref(py).into(),
+            cached_py_bits: OnceLock::new(),
             cached_py_regs: OnceLock::new(),
         }
     }
