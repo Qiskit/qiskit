@@ -314,7 +314,7 @@ class SymbolicPulse(Pulse):
     This is how a user can instantiate a symbolic pulse instance.
     In this example, we instantiate a custom `Sawtooth` envelope.
 
-    .. code-block::
+    .. code-block:: python
 
         from qiskit.pulse.library import SymbolicPulse
 
@@ -330,6 +330,7 @@ class SymbolicPulse(Pulse):
     without knowing the envelope definition. Now you need to provide the envelope.
 
     .. plot::
+       :alt: Output from the previous code.
        :include-source:
 
         import sympy
@@ -353,7 +354,9 @@ class SymbolicPulse(Pulse):
     Note that it would be convenient to define a factory function that automatically
     accomplishes this procedure.
 
-    .. code-block:: python
+    .. plot::
+       :include-source:
+       :nofigs:
 
         def Sawtooth(duration, amp, freq, name):
             t, amp, freq = sympy.symbols("t, amp, freq")

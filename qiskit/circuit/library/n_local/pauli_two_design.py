@@ -59,6 +59,7 @@ def pauli_two_design(
     Examples:
 
         .. plot::
+            :alt: Circuit diagram output by the previous code.
             :include-source:
 
             from qiskit.circuit.library import pauli_two_design
@@ -88,19 +89,20 @@ def pauli_two_design(
     """
     rng = np.random.default_rng(seed)
     random_block = Block.from_callable(1, 1, lambda params: _random_pauli_builder(params, rng))
-    cz_block = Block.from_standard_gate(CZGate._standard_gate)
+    entanglement_block = [Block.from_standard_gate(CZGate._standard_gate)] if num_qubits > 1 else []
 
     data = py_n_local(
         num_qubits=num_qubits,
         reps=reps,
         rotation_blocks=[random_block],
-        entanglement_blocks=[cz_block],
+        entanglement_blocks=entanglement_block,
         entanglement=["pairwise"],
         insert_barriers=insert_barriers,
         skip_final_rotation_layer=False,
         skip_unentangled_qubits=False,
         parameter_prefix=parameter_prefix,
     )
+
     two_design = QuantumCircuit._from_circuit_data(data)
 
     circuit = QuantumCircuit(num_qubits, name=name)
@@ -147,6 +149,7 @@ class PauliTwoDesign(TwoLocal):
     Examples:
 
         .. plot::
+           :alt: Circuit diagram output by the previous code.
            :include-source:
 
            from qiskit.circuit.library import PauliTwoDesign

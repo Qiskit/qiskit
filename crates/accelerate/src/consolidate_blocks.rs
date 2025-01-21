@@ -100,7 +100,7 @@ pub(crate) fn consolidate_blocks(
         block_qargs.clear();
         if block.len() == 1 {
             let inst_node = block[0];
-            let inst = dag.dag()[inst_node].unwrap_operation();
+            let inst = dag[inst_node].unwrap_operation();
             if !is_supported(
                 target,
                 basis_gates.as_ref(),
@@ -123,7 +123,7 @@ pub(crate) fn consolidate_blocks(
         let mut basis_count: usize = 0;
         let mut outside_basis = false;
         for node in &block {
-            let inst = dag.dag()[*node].unwrap_operation();
+            let inst = dag[*node].unwrap_operation();
             block_qargs.extend(dag.get_qargs(inst.qubits));
             all_block_gates.insert(*node);
             if inst.op.name() == basis_gate_name {
@@ -151,7 +151,7 @@ pub(crate) fn consolidate_blocks(
                 block_qargs.len() as u32,
                 0,
                 block.iter().map(|node| {
-                    let inst = dag.dag()[*node].unwrap_operation();
+                    let inst = dag[*node].unwrap_operation();
 
                     Ok((
                         inst.op.clone(),
@@ -242,7 +242,7 @@ pub(crate) fn consolidate_blocks(
                 continue;
             }
             let first_inst_node = run[0];
-            let first_inst = dag.dag()[first_inst_node].unwrap_operation();
+            let first_inst = dag[first_inst_node].unwrap_operation();
             let first_qubits = dag.get_qargs(first_inst.qubits);
 
             if run.len() == 1
@@ -272,7 +272,7 @@ pub(crate) fn consolidate_blocks(
                 if all_block_gates.contains(node) {
                     already_in_block = true;
                 }
-                let gate = dag.dag()[*node].unwrap_operation();
+                let gate = dag[*node].unwrap_operation();
                 let operator = match get_matrix_from_inst(py, gate) {
                     Ok(mat) => mat,
                     Err(_) => {

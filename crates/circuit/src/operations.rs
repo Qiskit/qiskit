@@ -183,7 +183,7 @@ pub enum OperationRef<'a> {
     Operation(&'a PyOperation),
 }
 
-impl<'a> Operation for OperationRef<'a> {
+impl Operation for OperationRef<'_> {
     #[inline]
     fn name(&self) -> &str {
         match self {
@@ -430,6 +430,11 @@ static STANDARD_GATE_NAME: [&str; STANDARD_GATE_SIZE] = [
     "c3sx",         // 50
     "rcccx",        // 51 ("rc3x")
 ];
+
+/// Get a slice of all standard gate names.
+pub fn get_standard_gate_names() -> &'static [&'static str] {
+    &STANDARD_GATE_NAME
+}
 
 impl StandardGate {
     pub fn create_py_op(
@@ -2340,8 +2345,14 @@ pub fn add_param(param: &Param, summand: f64, py: Python) -> Param {
 }
 
 pub fn radd_param(param1: Param, param2: Param, py: Python) -> Param {
-    match [param1, param2] {
+    match [&param1, &param2] {
         [Param::Float(theta), Param::Float(lambda)] => Param::Float(theta + lambda),
+        [Param::Float(theta), Param::ParameterExpression(_lambda)] => {
+            add_param(&param2, *theta, py)
+        }
+        [Param::ParameterExpression(_theta), Param::Float(lambda)] => {
+            add_param(&param1, *lambda, py)
+        }
         [Param::ParameterExpression(theta), Param::ParameterExpression(lambda)] => {
             Param::ParameterExpression(
                 theta
