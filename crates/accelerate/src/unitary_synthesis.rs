@@ -11,13 +11,13 @@
 // that they have been altered from the originals.
 #![allow(clippy::too_many_arguments)]
 
-#[cfg(feature = "cache_pygates")]
-use std::cell::OnceCell;
 use std::f64::consts::PI;
+#[cfg(feature = "cache_pygates")]
+use std::sync::OnceLock;
 
 use approx::relative_eq;
 use hashbrown::{HashMap, HashSet};
-use indexmap::IndexMap;
+use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use ndarray::prelude::*;
 use num_complex::{Complex, Complex64};
@@ -112,7 +112,7 @@ fn apply_synth_dag(
     synth_dag: &DAGCircuit,
 ) -> PyResult<()> {
     for out_node in synth_dag.topological_op_nodes()? {
-        let mut out_packed_instr = synth_dag.dag()[out_node].unwrap_operation().clone();
+        let mut out_packed_instr = synth_dag[out_node].unwrap_operation().clone();
         let synth_qargs = synth_dag.get_qargs(out_packed_instr.qubits);
         let mapped_qargs: Vec<Qubit> = synth_qargs
             .iter()
@@ -149,7 +149,7 @@ fn apply_synth_sequence(
             params: new_params,
             extra_attrs: ExtraInstructionAttributes::default(),
             #[cfg(feature = "cache_pygates")]
-            py_op: OnceCell::new(),
+            py_op: OnceLock::new(),
         };
         instructions.push(instruction);
     }
@@ -237,7 +237,7 @@ fn py_run_main_loop(
 
     // Iterate over dag nodes and determine unitary synthesis approach
     for node in dag.topological_op_nodes()? {
-        let mut packed_instr = dag.dag()[node].unwrap_operation().clone();
+        let mut packed_instr = dag[node].unwrap_operation().clone();
 
         if packed_instr.op.control_flow() {
             let OperationRef::Instruction(py_instr) = packed_instr.op.view() else {
@@ -372,7 +372,8 @@ fn py_run_main_loop(
                     None,
                     None,
                 )?;
-                out_dag = synth_dag;
+                let out_qargs = dag.get_qargs(packed_instr.qubits);
+                apply_synth_dag(py, &mut out_dag, out_qargs, &synth_dag)?;
             }
         }
     }
@@ -485,7 +486,7 @@ fn run_2q_unitary_synthesis(
                     .topological_op_nodes()
                     .expect("Unexpected error in dag.topological_op_nodes()")
                     .map(|node| {
-                        let NodeType::Operation(inst) = &synth_dag.dag()[node] else {
+                        let NodeType::Operation(inst) = &synth_dag[node] else {
                             unreachable!("DAG node must be an instruction")
                         };
                         let inst_qubits = synth_dag
@@ -544,6 +545,7 @@ fn get_2q_decomposers_from_target(
     let mut available_2q_props: IndexMap<&str, (Option<f64>, Option<f64>)> = IndexMap::new();
 
     let mut qubit_gate_map = IndexMap::new();
+
     match target.operation_names_for_qargs(Some(&qubits)) {
         Ok(direct_keys) => {
             qubit_gate_map.insert(&qubits, direct_keys);
@@ -596,7 +598,10 @@ fn get_2q_decomposers_from_target(
                         OperationRef::Standard(_) => (),
                         _ => continue,
                     }
-
+                    // Filter out non-2q-gate candidates
+                    if op.operation.num_qubits() != 2 {
+                        continue;
+                    }
                     available_2q_basis.insert(key, replace_parametrized_gate(op.clone()));
 
                     if target.contains_key(key) {
@@ -622,8 +627,8 @@ fn get_2q_decomposers_from_target(
     }
 
     let target_basis_set = get_target_basis_set(target, qubits[0]);
-    let available_1q_basis: HashSet<&str> =
-        HashSet::from_iter(target_basis_set.get_bases().map(|basis| basis.as_str()));
+    let available_1q_basis: IndexSet<&str> =
+        IndexSet::from_iter(target_basis_set.get_bases().map(|basis| basis.as_str()));
     let mut decomposers: Vec<DecomposerElement> = Vec::new();
 
     #[inline]
@@ -684,10 +689,10 @@ fn get_2q_decomposers_from_target(
     // If our 2q basis gates are a subset of cx, ecr, or cz then we know TwoQubitBasisDecomposer
     // is an ideal decomposition and there is no need to bother calculating the XX embodiments
     // or try the XX decomposer
-    let available_basis_set: HashSet<&str> = available_2q_basis.keys().copied().collect();
+    let available_basis_set: IndexSet<&str> = available_2q_basis.keys().copied().collect();
 
     #[inline]
-    fn check_goodbye(basis_set: &HashSet<&str>) -> bool {
+    fn check_goodbye(basis_set: &IndexSet<&str>) -> bool {
         basis_set.iter().all(|gate| GOODBYE_SET.contains(gate))
     }
 
@@ -997,7 +1002,7 @@ fn synth_su4_dag(
         Some(preferred_dir) => {
             let mut synth_direction: Option<Vec<u32>> = None;
             for node in synth_dag.topological_op_nodes()? {
-                let inst = &synth_dag.dag()[node].unwrap_operation();
+                let inst = &synth_dag[node].unwrap_operation();
                 if inst.op.num_qubits() == 2 {
                     let qargs = synth_dag.get_qargs(inst.qubits);
                     synth_direction = Some(vec![qargs[0].0, qargs[1].0]);
@@ -1061,7 +1066,7 @@ fn reversed_synth_su4_dag(
     let mut target_dag = synth_dag.copy_empty_like(py, "alike")?;
     let flip_bits: [Qubit; 2] = [Qubit(1), Qubit(0)];
     for node in synth_dag.topological_op_nodes()? {
-        let mut inst = synth_dag.dag()[node].unwrap_operation().clone();
+        let mut inst = synth_dag[node].unwrap_operation().clone();
         let qubits: Vec<Qubit> = synth_dag
             .qargs_interner()
             .get(inst.qubits)
