@@ -16,10 +16,9 @@ use hashbrown::{HashMap, HashSet};
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use pyo3::{pyfunction, wrap_pyfunction, Bound, PyResult, Python};
-use rustworkx_core::petgraph::stable_graph::NodeIndex;
 use smallvec::{smallvec, SmallVec};
 
-use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, Wire};
+use qiskit_circuit::dag_circuit::{DAGCircuit, OperationIndex};
 use qiskit_circuit::operations::StandardGate::{
     CXGate, CYGate, CZGate, HGate, PhaseGate, RXGate, RZGate, SGate, TGate, U1Gate, XGate, YGate,
     ZGate,
@@ -98,24 +97,14 @@ pub(crate) fn cancel_commutations(
         qubits and commutation sets.
     */
     let (commutation_set, node_indices) = analyze_commutations_inner(py, dag, commutation_checker)?;
-    let mut cancellation_sets: HashMap<CancellationSetKey, Vec<NodeIndex>> = HashMap::new();
+    let mut cancellation_sets: HashMap<CancellationSetKey, Vec<OperationIndex>> = HashMap::new();
 
     (0..dag.num_qubits() as u32).for_each(|qubit| {
-        let wire = Qubit(qubit);
-        if let Some(wire_commutation_set) = commutation_set.get(&Wire::Qubit(wire)) {
+        let qubit = Qubit(qubit);
+        if let Some(wire_commutation_set) = commutation_set.get(&qubit) {
             for (com_set_idx, com_set) in wire_commutation_set.iter().enumerate() {
-                if let Some(&nd) = com_set.first() {
-                    if !matches!(dag[nd], NodeType::Operation(_)) {
-                        continue;
-                    }
-                } else {
-                    continue;
-                }
                 for node in com_set.iter() {
-                    let instr = match &dag[*node] {
-                        NodeType::Operation(instr) => instr,
-                        _ => panic!("Unexpected type in commutation set."),
-                    };
+                    let instr = &dag[*node];
                     let num_qargs = dag.get_qargs(instr.qubits).len();
                     // no support for cancellation of parameterized gates
                     if instr.is_parameterized() {
@@ -126,11 +115,11 @@ pub(crate) fn cancel_commutations(
                             cancellation_sets
                                 .entry(CancellationSetKey {
                                     gate: GateOrRotation::Gate(op_gate),
-                                    qubits: smallvec![wire],
+                                    qubits: smallvec![qubit],
                                     com_set_index: com_set_idx,
                                     second_index: None,
                                 })
-                                .or_insert_with(Vec::new)
+                                .or_default()
                                 .push(*node);
                         }
 
@@ -138,38 +127,36 @@ pub(crate) fn cancel_commutations(
                             cancellation_sets
                                 .entry(CancellationSetKey {
                                     gate: GateOrRotation::ZRotation,
-                                    qubits: smallvec![wire],
+                                    qubits: smallvec![qubit],
                                     com_set_index: com_set_idx,
                                     second_index: None,
                                 })
-                                .or_insert_with(Vec::new)
+                                .or_default()
                                 .push(*node);
                         }
                         if num_qargs == 1 && X_ROTATIONS.contains(&op_gate) {
                             cancellation_sets
                                 .entry(CancellationSetKey {
                                     gate: GateOrRotation::XRotation,
-                                    qubits: smallvec![wire],
+                                    qubits: smallvec![qubit],
                                     com_set_index: com_set_idx,
                                     second_index: None,
                                 })
-                                .or_insert_with(Vec::new)
+                                .or_default()
                                 .push(*node);
                         }
                         // Don't deal with Y rotation, because Y rotation doesn't commute with
                         // CNOT, so it should be dealt with by optimized1qgate pass
-                        if num_qargs == 2 && dag.get_qargs(instr.qubits)[0] == wire {
+                        if num_qargs == 2 && dag.get_qargs(instr.qubits)[0] == qubit {
                             let second_qarg = dag.get_qargs(instr.qubits)[1];
                             cancellation_sets
                                 .entry(CancellationSetKey {
                                     gate: GateOrRotation::Gate(op_gate),
-                                    qubits: smallvec![wire, second_qarg],
+                                    qubits: smallvec![qubit, second_qarg],
                                     com_set_index: com_set_idx,
-                                    second_index: node_indices
-                                        .get(&(*node, Wire::Qubit(second_qarg)))
-                                        .copied(),
+                                    second_index: node_indices.get(&(*node, second_qarg)).copied(),
                                 })
-                                .or_insert_with(Vec::new)
+                                .or_default()
                                 .push(*node);
                         }
                     }
@@ -198,10 +185,7 @@ pub(crate) fn cancel_commutations(
                 let mut total_angle: f64 = 0.0;
                 let mut total_phase: f64 = 0.0;
                 for current_node in cancel_set {
-                    let node_op = match &dag[*current_node] {
-                        NodeType::Operation(instr) => instr,
-                        _ => panic!("Unexpected type in commutation set run."),
-                    };
+                    let node_op = &dag[*current_node];
                     let node_op_name = node_op.op.name();
 
                     let node_angle = if ROTATION_GATES.contains(&node_op_name) {

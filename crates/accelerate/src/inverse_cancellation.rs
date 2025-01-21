@@ -14,10 +14,9 @@ use ahash::RandomState;
 use hashbrown::HashSet;
 use indexmap::IndexMap;
 use pyo3::prelude::*;
-use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 use qiskit_circuit::circuit_instruction::OperationFromPython;
-use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
+use qiskit_circuit::dag_circuit::{DAGCircuit, OperationIndex};
 use qiskit_circuit::operations::Operation;
 use qiskit_circuit::packed_instruction::PackedInstruction;
 
@@ -59,37 +58,23 @@ fn run_on_self_inverse(
         }
         let mut collect_set: HashSet<String> = HashSet::with_capacity(1);
         collect_set.insert(gate.operation.name().to_string());
-        let gate_runs: Vec<Vec<NodeIndex>> = dag.collect_runs(collect_set).collect();
+        let gate_runs: Vec<Vec<OperationIndex>> = dag.collect_runs(collect_set).collect();
         for gate_cancel_run in gate_runs {
-            let mut partitions: Vec<Vec<NodeIndex>> = Vec::new();
-            let mut chunk: Vec<NodeIndex> = Vec::new();
+            let mut partitions: Vec<Vec<OperationIndex>> = Vec::new();
+            let mut chunk: Vec<OperationIndex> = Vec::new();
             let max_index = gate_cancel_run.len() - 1;
             for (i, cancel_gate) in gate_cancel_run.iter().enumerate() {
-                let node = &dag[*cancel_gate];
-                if let NodeType::Operation(inst) = node {
-                    if gate_eq(py, inst, &gate)? {
-                        chunk.push(*cancel_gate);
-                    } else {
-                        if !chunk.is_empty() {
-                            partitions.push(std::mem::take(&mut chunk));
-                        }
-                        continue;
-                    }
-                    if i == max_index {
-                        partitions.push(std::mem::take(&mut chunk));
-                    } else {
-                        let next_qargs =
-                            if let NodeType::Operation(next_inst) = &dag[gate_cancel_run[i + 1]] {
-                                next_inst.qubits
-                            } else {
-                                panic!("Not an op node")
-                            };
-                        if inst.qubits != next_qargs {
-                            partitions.push(std::mem::take(&mut chunk));
-                        }
-                    }
+                let inst = &dag[*cancel_gate];
+                if gate_eq(py, inst, &gate)? {
+                    chunk.push(*cancel_gate);
                 } else {
-                    panic!("Not an op node");
+                    if !chunk.is_empty() {
+                        partitions.push(std::mem::take(&mut chunk));
+                    }
+                    continue;
+                }
+                if i == max_index || inst.qubits != dag[gate_cancel_run[i + 1]].qubits {
+                    partitions.push(std::mem::take(&mut chunk));
                 }
             }
             for chunk in partitions {
@@ -127,28 +112,21 @@ fn run_on_inverse_pairs(
             .iter()
             .map(|x| x.operation.name().to_string())
             .collect();
-        let runs: Vec<Vec<NodeIndex>> = dag.collect_runs(names).collect();
+        let runs: Vec<Vec<OperationIndex>> = dag.collect_runs(names).collect();
         for nodes in runs {
             let mut i = 0;
             while i < nodes.len() - 1 {
-                if let NodeType::Operation(inst) = &dag[nodes[i]] {
-                    if let NodeType::Operation(next_inst) = &dag[nodes[i + 1]] {
-                        if inst.qubits == next_inst.qubits
-                            && ((gate_eq(py, inst, &gate_0)? && gate_eq(py, next_inst, &gate_1)?)
-                                || (gate_eq(py, inst, &gate_1)?
-                                    && gate_eq(py, next_inst, &gate_0)?))
-                        {
-                            dag.remove_op_node(nodes[i]);
-                            dag.remove_op_node(nodes[i + 1]);
-                            i += 2;
-                        } else {
-                            i += 1;
-                        }
-                    } else {
-                        panic!("Not an op node")
-                    }
+                let inst = &dag[nodes[i]];
+                let next_inst = &dag[nodes[i + 1]];
+                if inst.qubits == next_inst.qubits
+                    && ((gate_eq(py, inst, &gate_0)? && gate_eq(py, next_inst, &gate_1)?)
+                        || (gate_eq(py, inst, &gate_1)? && gate_eq(py, next_inst, &gate_0)?))
+                {
+                    dag.remove_op_node(nodes[i]);
+                    dag.remove_op_node(nodes[i + 1]);
+                    i += 2;
                 } else {
-                    panic!("Not an op node")
+                    i += 1;
                 }
             }
         }

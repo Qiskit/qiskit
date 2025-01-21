@@ -29,10 +29,9 @@ use pyo3::Python;
 use ndarray::prelude::*;
 use numpy::PyReadonlyArray2;
 use pyo3::pybacked::PyBackedStr;
-use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
+use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::dag_node::DAGOpNode;
 use qiskit_circuit::operations::{Operation, Param, StandardGate};
 use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};
@@ -1080,7 +1079,7 @@ pub(crate) fn optimize_1q_gates_decomposition(
     basis_gates: Option<HashSet<String>>,
     global_decomposers: Option<Vec<String>>,
 ) -> PyResult<()> {
-    let runs: Vec<Vec<NodeIndex>> = dag.collect_1q_runs().unwrap().collect();
+    let runs = dag.collect_1q_runs().collect::<Vec<_>>();
     let dag_qubits = dag.num_qubits();
     let mut target_basis_per_qubit: Vec<EulerBasisSet> = vec![EulerBasisSet::new(); dag_qubits];
     let mut basis_gates_per_qubit: Vec<Option<HashSet<&str>>> = vec![None; dag_qubits];
@@ -1089,15 +1088,11 @@ pub(crate) fn optimize_1q_gates_decomposition(
             Some(_) => 1.,
             None => raw_run.len() as f64,
         };
-        let qubit: PhysicalQubit = if let NodeType::Operation(inst) = &dag[raw_run[0]] {
-            PhysicalQubit::new(dag.get_qargs(inst.qubits)[0].0)
-        } else {
-            unreachable!("nodes in runs will always be op nodes")
-        };
+        let qubit = PhysicalQubit::new(dag.get_qargs(dag[raw_run[0]].qubits)[0].0);
         if !dag.calibrations_empty() {
             let mut has_calibration = false;
             for node in &raw_run {
-                if dag.has_calibration_for_index(py, *node)? {
+                if dag.has_calibration_for_instruction(py, &dag[*node])? {
                     has_calibration = true;
                     break;
                 }
@@ -1175,15 +1170,11 @@ pub(crate) fn optimize_1q_gates_decomposition(
         let operator = raw_run
             .iter()
             .map(|node_index| {
-                let node = &dag[*node_index];
-                if let NodeType::Operation(inst) = node {
-                    if let Some(target) = target {
-                        error *= compute_error_term_from_target(inst.op.name(), target, qubit);
-                    }
-                    inst.op.matrix(inst.params_view()).unwrap()
-                } else {
-                    unreachable!("Can only have op nodes here")
+                let inst = &dag[*node_index];
+                if let Some(target) = target {
+                    error *= compute_error_term_from_target(inst.op.name(), target, qubit);
                 }
+                inst.op.matrix(inst.params_view()).unwrap()
             })
             .fold(
                 [
@@ -1218,11 +1209,9 @@ pub(crate) fn optimize_1q_gates_decomposition(
         let mut outside_basis = false;
         if let Some(basis) = basis_gates {
             for node in &raw_run {
-                if let NodeType::Operation(inst) = &dag[*node] {
-                    if !basis.contains(inst.op.name()) {
-                        outside_basis = true;
-                        break;
-                    }
+                if !basis.contains(dag[*node].op.name()) {
+                    outside_basis = true;
+                    break;
                 }
             }
         } else {

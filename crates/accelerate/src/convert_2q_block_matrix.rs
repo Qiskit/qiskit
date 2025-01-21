@@ -18,9 +18,8 @@ use num_complex::Complex64;
 use numpy::ndarray::linalg::kron;
 use numpy::ndarray::{aview2, Array2, ArrayView2};
 use numpy::PyReadonlyArray2;
-use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
-use qiskit_circuit::dag_circuit::DAGCircuit;
+use qiskit_circuit::dag_circuit::{DAGCircuit, OperationIndex};
 use qiskit_circuit::gate_matrix::ONE_QUBIT_IDENTITY;
 use qiskit_circuit::imports::QI_OPERATOR;
 use qiskit_circuit::operations::{Operation, OperationRef};
@@ -57,7 +56,7 @@ pub fn get_matrix_from_inst(py: Python, inst: &PackedInstruction) -> PyResult<Ar
 pub fn blocks_to_matrix(
     py: Python,
     dag: &DAGCircuit,
-    op_list: &[NodeIndex],
+    op_list: &[OperationIndex],
     block_index_map: [Qubit; 2],
 ) -> PyResult<Array2<Complex64>> {
     let map_bits = |bit: &Qubit| -> u8 {
@@ -72,7 +71,7 @@ pub fn blocks_to_matrix(
     let mut one_qubit_components_modified = false;
     let mut output_matrix: Option<Array2<Complex64>> = None;
     for node in op_list {
-        let inst = dag[*node].unwrap_operation();
+        let inst = &dag[*node];
         let op_matrix = get_matrix_from_inst(py, inst)?;
         match dag
             .get_qargs(inst.qubits)

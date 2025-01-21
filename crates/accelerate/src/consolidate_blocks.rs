@@ -14,12 +14,13 @@ use hashbrown::{HashMap, HashSet};
 use ndarray::{aview2, Array2};
 use num_complex::Complex64;
 use numpy::{IntoPyArray, PyReadonlyArray2};
+use pyo3::exceptions::PyValueError;
 use pyo3::intern;
 use pyo3::prelude::*;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::dag_circuit::DAGCircuit;
+use qiskit_circuit::dag_circuit::{DAGCircuit, OperationIndex};
 use qiskit_circuit::gate_matrix::{ONE_QUBIT_IDENTITY, TWO_QUBIT_IDENTITY};
 use qiskit_circuit::imports::{QI_OPERATOR, QUANTUM_CIRCUIT, UNITARY_GATE};
 use qiskit_circuit::operations::{Operation, Param};
@@ -66,41 +67,48 @@ pub(crate) fn consolidate_blocks(
     blocks: Option<Vec<Vec<usize>>>,
     runs: Option<Vec<Vec<usize>>>,
 ) -> PyResult<()> {
+    let usize_run_to_indices = |run: Vec<usize>| -> PyResult<Vec<OperationIndex>> {
+        run.into_iter()
+            .map(|index| {
+                dag.get_operation(NodeIndex::new(index))
+                    .map(|(index, _)| index)
+                    .ok_or_else(|| {
+                        PyValueError::new_err(format!(
+                            "node {index} does not refer to an operation in this DAG"
+                        ))
+                    })
+            })
+            .collect()
+    };
     let blocks = match blocks {
         Some(runs) => runs
             .into_iter()
-            .map(|run| {
-                run.into_iter()
-                    .map(NodeIndex::new)
-                    .collect::<Vec<NodeIndex>>()
-            })
-            .collect(),
+            .map(usize_run_to_indices)
+            .collect::<PyResult<Vec<_>>>()?,
         // If runs are specified but blocks are none we're in a legacy configuration where external
         // collection passes are being used. In this case don't collect blocks because it's
         // unexpected.
         None => match runs {
             Some(_) => vec![],
-            None => dag.collect_2q_runs().unwrap(),
+            None => dag.collect_2q_runs().collect(),
         },
     };
 
-    let runs: Option<Vec<Vec<NodeIndex>>> = runs.map(|runs| {
-        runs.into_iter()
-            .map(|run| {
-                run.into_iter()
-                    .map(NodeIndex::new)
-                    .collect::<Vec<NodeIndex>>()
-            })
-            .collect()
-    });
-    let mut all_block_gates: HashSet<NodeIndex> =
+    let runs = runs
+        .map(|runs| {
+            runs.into_iter()
+                .map(usize_run_to_indices)
+                .collect::<PyResult<Vec<_>>>()
+        })
+        .transpose()?;
+    let mut all_block_gates: HashSet<OperationIndex> =
         HashSet::with_capacity(blocks.iter().map(|x| x.len()).sum());
     let mut block_qargs: HashSet<Qubit> = HashSet::with_capacity(2);
     for block in blocks {
         block_qargs.clear();
         if block.len() == 1 {
             let inst_node = block[0];
-            let inst = dag[inst_node].unwrap_operation();
+            let inst = &dag[inst_node];
             if !is_supported(
                 target,
                 basis_gates.as_ref(),
@@ -123,7 +131,7 @@ pub(crate) fn consolidate_blocks(
         let mut basis_count: usize = 0;
         let mut outside_basis = false;
         for node in &block {
-            let inst = dag[*node].unwrap_operation();
+            let inst = &dag[*node];
             block_qargs.extend(dag.get_qargs(inst.qubits));
             all_block_gates.insert(*node);
             if inst.op.name() == basis_gate_name {
@@ -151,7 +159,7 @@ pub(crate) fn consolidate_blocks(
                 block_qargs.len() as u32,
                 0,
                 block.iter().map(|node| {
-                    let inst = dag[*node].unwrap_operation();
+                    let inst = &dag[*node];
 
                     Ok((
                         inst.op.clone(),
@@ -242,7 +250,7 @@ pub(crate) fn consolidate_blocks(
                 continue;
             }
             let first_inst_node = run[0];
-            let first_inst = dag[first_inst_node].unwrap_operation();
+            let first_inst = &dag[first_inst_node];
             let first_qubits = dag.get_qargs(first_inst.qubits);
 
             if run.len() == 1
@@ -272,7 +280,7 @@ pub(crate) fn consolidate_blocks(
                 if all_block_gates.contains(node) {
                     already_in_block = true;
                 }
-                let gate = dag[*node].unwrap_operation();
+                let gate = &dag[*node];
                 let operator = match get_matrix_from_inst(py, gate) {
                     Ok(mat) => mat,
                     Err(_) => {

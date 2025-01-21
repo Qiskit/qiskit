@@ -12,7 +12,6 @@
 
 use hashbrown::HashSet;
 use pyo3::prelude::*;
-use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 use qiskit_circuit::circuit_instruction::ExtraInstructionAttributes;
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
@@ -31,13 +30,13 @@ pub fn barrier_before_final_measurements(
     label: Option<String>,
 ) -> PyResult<()> {
     let is_exactly_final = |inst: &PackedInstruction| FINAL_OP_NAMES.contains(&inst.op.name());
-    let final_ops: HashSet<NodeIndex> = dag
+    let final_ops: HashSet<_> = dag
         .op_nodes(true)
         .filter_map(|(node, inst)| {
             if !is_exactly_final(inst) {
                 return None;
             }
-            dag.bfs_successors(node)
+            dag.bfs_successors(node.node())
                 .all(|(_, child_successors)| {
                     child_successors.iter().all(|suc| match dag[*suc] {
                         NodeType::Operation(ref suc_inst) => is_exactly_final(suc_inst),
@@ -50,20 +49,13 @@ pub fn barrier_before_final_measurements(
     if final_ops.is_empty() {
         return Ok(());
     }
-    let ordered_node_indices: Vec<NodeIndex> = dag
+    let ordered_node_indices: Vec<_> = dag
         .topological_op_nodes()?
         .filter(|node| final_ops.contains(node))
         .collect();
     let final_packed_ops: Vec<PackedInstruction> = ordered_node_indices
         .into_iter()
-        .map(|node| {
-            let NodeType::Operation(ref inst) = dag[node] else {
-                unreachable!()
-            };
-            let res = inst.clone();
-            dag.remove_op_node(node);
-            res
-        })
+        .map(|node| dag.remove_op_node(node))
         .collect();
     let new_barrier = BARRIER
         .get_bound(py)

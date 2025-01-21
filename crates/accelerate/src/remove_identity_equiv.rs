@@ -13,11 +13,10 @@
 use num_complex::Complex64;
 use num_complex::ComplexFloat;
 use pyo3::prelude::*;
-use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 use crate::nlayout::PhysicalQubit;
 use crate::target_transpiler::Target;
-use qiskit_circuit::dag_circuit::DAGCircuit;
+use qiskit_circuit::dag_circuit::{DAGCircuit, OperationIndex};
 use qiskit_circuit::operations::Operation;
 use qiskit_circuit::operations::OperationRef;
 use qiskit_circuit::operations::Param;
@@ -31,7 +30,7 @@ fn remove_identity_equiv(
     approx_degree: Option<f64>,
     target: Option<&Target>,
 ) {
-    let mut remove_list: Vec<NodeIndex> = Vec::new();
+    let mut remove_list: Vec<OperationIndex> = Vec::new();
 
     let get_error_cutoff = |inst: &PackedInstruction| -> f64 {
         match approx_degree {
