@@ -768,7 +768,7 @@ fn get_2q_decomposers_from_target(
 
     for basis_1q in &available_1q_basis {
         for (_basis_2q, gate) in available_2q_param_basis.iter() {
-            let decomposer = TwoQubitControlledUDecomposer::new(
+            let decomposer = TwoQubitControlledUDecomposer::new_inner(
                 py,
                 RXXEquivalent::Standard(gate.operation.standard_gate()),
                 basis_1q,

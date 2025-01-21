@@ -2743,21 +2743,9 @@ impl TwoQubitControlledUDecomposer {
         gates1.global_phase = global_phase;
         Ok(gates1)
     }
-}
 
-#[pymethods]
-impl TwoQubitControlledUDecomposer {
-    ///  Initialize the KAK decomposition.
-    ///  Args:
-    ///      rxx_equivalent_gate: Gate that is locally equivalent to an :class:`.RXXGate`:
-    ///      :math:`U \sim U_d(\alpha, 0, 0) \sim \text{Ctrl-U}` gate.
-    ///     euler_basis: Basis string to be provided to :class:`.OneQubitEulerDecomposer`
-    ///     for 1Q synthesis.
-    ///  Raises:
-    ///      QiskitError: If the gate is not locally equivalent to an :class:`.RXXGate`.
-    #[new]
-    #[pyo3(signature=(rxx_equivalent_gate, euler_basis="ZYZ"))]
-    pub fn new(
+    /// Initialize the KAK decomposition.
+    pub fn new_inner(
         py: Python,
         rxx_equivalent_gate: RXXEquivalent,
         euler_basis: &str,
@@ -2827,6 +2815,27 @@ impl TwoQubitControlledUDecomposer {
             rxx_equivalent_gate,
             euler_basis: EulerBasis::__new__(euler_basis)?,
         })
+    }
+}
+
+#[pymethods]
+impl TwoQubitControlledUDecomposer {
+    ///  Initialize the KAK decomposition.
+    ///  Args:
+    ///      rxx_equivalent_gate: Gate that is locally equivalent to an :class:`.RXXGate`:
+    ///      :math:`U \sim U_d(\alpha, 0, 0) \sim \text{Ctrl-U}` gate.
+    ///     euler_basis: Basis string to be provided to :class:`.OneQubitEulerDecomposer`
+    ///     for 1Q synthesis.
+    ///  Raises:
+    ///      QiskitError: If the gate is not locally equivalent to an :class:`.RXXGate`.
+    #[new]
+    #[pyo3(signature=(rxx_equivalent_gate, euler_basis="ZYZ"))]
+    pub fn new(
+        py: Python,
+        rxx_equivalent_gate: RXXEquivalent,
+        euler_basis: &str,
+    ) -> PyResult<Self> {
+        TwoQubitControlledUDecomposer::new_inner(py, rxx_equivalent_gate, euler_basis)
     }
 
     #[pyo3(signature=(unitary, atol))]
