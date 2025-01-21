@@ -1159,29 +1159,15 @@ class QuantumCircuit:
         """A private constructor from rust space circuit data."""
         out = QuantumCircuit(name=name)
 
-        if data.num_qubits > 0:
-            if add_regs:
-                qr = QuantumRegister(name="q", bits=data.qubits)
-                out._qubit_indices = {
-                    bit: BitLocations(index, [(qr, index)]) for index, bit in enumerate(data.qubits)
-                }
-            else:
-                out._qubit_indices = {
-                    bit: BitLocations(index, [data.get_qubit_location(bit)])
-                    for index, bit in enumerate(data.qubits)
-                }
+        out._qubit_indices = {
+            bit: BitLocations(index, data.get_qubit_location(bit))
+            for index, bit in enumerate(data.qubits)
+        }
 
-        if data.num_clbits > 0:
-            if add_regs:
-                cr = ClassicalRegister(name="c", bits=data.clbits)
-                out._clbit_indices = {
-                    bit: BitLocations(index, [(cr, index)]) for index, bit in enumerate(data.clbits)
-                }
-            else:
-                out._clbit_indices = {
-                    bit: BitLocations(index, [data.get_clbit_location(bit)])
-                    for index, bit in enumerate(data.clbits)
-                }
+        out._clbit_indices = {
+            bit: BitLocations(index, data.get_clbit_location(bit))
+            for index, bit in enumerate(data.clbits)
+        }
 
         out._data = data
 
@@ -3106,7 +3092,6 @@ class QuantumCircuit:
             if bit in self._qubit_indices:
                 self._qubit_indices[bit].registers.append((qreg, idx))
             else:
-                self._data.add_qubit(bit)
                 self._qubit_indices[bit] = BitLocations(self._data.num_qubits - 1, [(qreg, idx)])
 
     def add_bits(self, bits: Iterable[Bit]) -> None:
