@@ -18,7 +18,7 @@ use crate::circuit_data::CircuitData;
 use crate::circuit_instruction::ExtraInstructionAttributes;
 use crate::imports::get_std_gate_class;
 use crate::imports::{PARAMETER_EXPRESSION, QUANTUM_CIRCUIT};
-use crate::{gate_matrix, Qubit};
+use crate::{gate_matrix, impl_intopyobject_for_copy_pyclass, Qubit};
 
 use ndarray::{aview2, Array2};
 use num_complex::Complex64;
@@ -314,20 +314,7 @@ pub enum StandardGate {
     C3SXGate = 50,
     RC3XGate = 51,
 }
-
-// `StandardGate` is a `pyclass` that is also `Copy`.  PyO3 0.23.4 doesn't implement `IntoPyObject`
-// for the reference to pyclasses, since in general you need the owned copy to make it accessible on
-// the Python heap.  Most of the time things work fine without this, but it matters when you're
-// trying to called derived implementations of `IntoPyObject` on things like `(&T1, &T2)`.
-impl<'py> IntoPyObject<'py> for &StandardGate {
-    type Target = <StandardGate as IntoPyObject<'py>>::Target;
-    type Output = <StandardGate as IntoPyObject<'py>>::Output;
-    type Error = <StandardGate as IntoPyObject<'py>>::Error;
-
-    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        (*self).into_pyobject(py)
-    }
-}
+impl_intopyobject_for_copy_pyclass!(StandardGate);
 
 unsafe impl ::bytemuck::CheckedBitPattern for StandardGate {
     type Bits = u8;

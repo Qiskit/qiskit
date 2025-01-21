@@ -60,7 +60,7 @@ use qiskit_circuit::operations::{Operation, Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};
 use qiskit_circuit::util::{c64, GateArray1Q, GateArray2Q, C_M_ONE, C_ONE, C_ZERO, IM, M_IM};
-use qiskit_circuit::Qubit;
+use qiskit_circuit::{impl_intopyobject_for_copy_pyclass, Qubit};
 
 const PI2: f64 = PI / 2.;
 const PI4: f64 = PI / 4.;
@@ -445,6 +445,7 @@ pub enum Specialization {
     #[allow(non_camel_case_types)]
     fSimabmbEquiv,
 }
+impl_intopyobject_for_copy_pyclass!(Specialization);
 
 #[pymethods]
 impl Specialization {

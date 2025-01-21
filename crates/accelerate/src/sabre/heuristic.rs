@@ -16,6 +16,8 @@ use pyo3::types::PyString;
 use pyo3::IntoPyObjectExt;
 use pyo3::Python;
 
+use qiskit_circuit::impl_intopyobject_for_copy_pyclass;
+
 /// Affect the dynamic scaling of the weight of node-set-based heuristics (basic and lookahead).
 #[pyclass]
 #[pyo3(module = "qiskit._accelerate.sabre", frozen, eq)]
@@ -27,6 +29,7 @@ pub enum SetScaling {
     /// the weight will be multiplied by ``0.2``).
     Size,
 }
+impl_intopyobject_for_copy_pyclass!(SetScaling);
 #[pymethods]
 impl SetScaling {
     pub fn __reduce__(&self, py: Python) -> PyResult<Py<PyAny>> {
@@ -54,6 +57,7 @@ pub struct BasicHeuristic {
     /// Set the dynamic scaling of the weight based on the layer it is applying to.
     pub scale: SetScaling,
 }
+impl_intopyobject_for_copy_pyclass!(BasicHeuristic);
 #[pymethods]
 impl BasicHeuristic {
     #[new]
@@ -95,6 +99,7 @@ pub struct LookaheadHeuristic {
     /// Dynamic scaling of the heuristic weight depending on the lookahead set.
     pub scale: SetScaling,
 }
+impl_intopyobject_for_copy_pyclass!(LookaheadHeuristic);
 #[pymethods]
 impl LookaheadHeuristic {
     #[new]
@@ -139,6 +144,7 @@ pub struct DecayHeuristic {
     /// How frequently (in terms of swaps in the layer) to reset all qubit multipliers back to 1.0.
     pub reset: usize,
 }
+impl_intopyobject_for_copy_pyclass!(DecayHeuristic);
 #[pymethods]
 impl DecayHeuristic {
     #[new]

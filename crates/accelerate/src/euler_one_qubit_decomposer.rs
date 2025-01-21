@@ -38,7 +38,7 @@ use qiskit_circuit::dag_node::DAGOpNode;
 use qiskit_circuit::operations::{Operation, Param, StandardGate};
 use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};
 use qiskit_circuit::util::c64;
-use qiskit_circuit::Qubit;
+use qiskit_circuit::{impl_intopyobject_for_copy_pyclass, Qubit};
 
 use crate::nlayout::PhysicalQubit;
 use crate::target_transpiler::Target;
@@ -693,6 +693,7 @@ pub enum EulerBasis {
     ZSXX = 10,
     ZSX = 11,
 }
+impl_intopyobject_for_copy_pyclass!(EulerBasis);
 
 impl EulerBasis {
     pub fn as_str(&self) -> &'static str {

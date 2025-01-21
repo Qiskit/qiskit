@@ -30,6 +30,7 @@ use pyo3::types::{IntoPyDict, PyList, PyType};
 use pyo3::BoundObject;
 use pyo3::IntoPyObjectExt;
 
+use qiskit_circuit::impl_intopyobject_for_copy_pyclass;
 use qiskit_circuit::imports::{ImportOnceCell, NUMPY_COPY_ONLY_IF_NEEDED};
 use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};
 
@@ -233,7 +234,7 @@ fn make_py_bit_term(py: Python) -> PyResult<Py<PyType>> {
 // Python space; the efficient Numpy-like array paths use `u8` directly so Numpy can act on it
 // efficiently.
 impl<'py> IntoPyObject<'py> for BitTerm {
-    type Target = PyAny; // the Python type
+    type Target = PyAny;
     type Output = Bound<'py, Self::Target>;
     type Error = PyErr;
 
@@ -262,6 +263,7 @@ impl<'py> IntoPyObject<'py> for BitTerm {
             .to_owned())
     }
 }
+impl_intopyobject_for_copy_pyclass!(BitTerm);
 
 impl<'py> FromPyObject<'py> for BitTerm {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
