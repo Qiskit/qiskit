@@ -270,7 +270,7 @@ class TwoQubitControlledUDecomposer:
     :math:`U \sim U_d(\alpha, 0, 0) \sim \text{Ctrl-U}`
     gate that is locally equivalent to an :class:`.RXXGate`."""
 
-    def __init__(self, rxx_equivalent_gate: Type[Gate], euler_basis: str = "ZYZ"):
+    def __init__(self, rxx_equivalent_gate: Type[Gate], euler_basis: str = "ZXZ"):
         r"""Initialize the KAK decomposition.
 
         Args:
@@ -281,7 +281,7 @@ class TwoQubitControlledUDecomposer:
                 :class:`.CRZGate`].
             euler_basis: Basis string to be provided to :class:`.OneQubitEulerDecomposer`
                 for 1Q synthesis.
-                Valid options are [``'ZYZ'``, ``'ZXZ'``, ``'XYX'``, ``'XZX'``, ``'U'``, ``'U3'``,
+                Valid options are [``'ZXZ'``, ``'ZYZ'``, ``'XYX'``, ``'XZX'``, ``'U'``, ``'U3'``,
                 ``'U321'``, ``'U1X'``, ``'PSX'``, ``'ZSX'``, ``'ZSXX'``, ``'RR'``].
 
         Raises:

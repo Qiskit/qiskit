@@ -2829,7 +2829,7 @@ impl TwoQubitControlledUDecomposer {
     ///  Raises:
     ///      QiskitError: If the gate is not locally equivalent to an :class:`.RXXGate`.
     #[new]
-    #[pyo3(signature=(rxx_equivalent_gate, euler_basis="ZYZ"))]
+    #[pyo3(signature=(rxx_equivalent_gate, euler_basis="ZXZ"))]
     pub fn new(
         py: Python,
         rxx_equivalent_gate: RXXEquivalent,
