@@ -569,17 +569,17 @@ class TemplateSubstitution:
         for circuit_param, template_param in zip(circuit_params, template_params):
             if isinstance(template_param, ParameterExpression):
                 if isinstance(circuit_param, ParameterExpression):
-                    circ_param_sym = circuit_param.sympify()
+                    circ_param_sym = sym.sympify(str(circuit_param))
                 else:
                     circ_param_sym = parse_expr(str(circuit_param))
-                equations.append(sym.Eq(template_param.sympify(), circ_param_sym))
+                equations.append(sym.Eq(sym.sympify(str(template_param)), circ_param_sym))
 
                 for param in template_param.parameters:
-                    temp_symbols[param] = param.sympify()
+                    temp_symbols[param] = sym.sympify(str(param))
 
                 if isinstance(circuit_param, ParameterExpression):
                     for param in circuit_param.parameters:
-                        circ_dict[param] = param.sympify()
+                        circ_dict[param] = sym.sympify(str(param))
             elif template_param != circuit_param:
                 # Both are numeric parameters, but aren't equal.
                 return None
@@ -595,7 +595,7 @@ class TemplateSubstitution:
             return None
         # If there's multiple solutions, arbitrarily pick the first one.
         sol = {
-            param.name: ParameterExpression(circ_dict, to_native_symbolic(expr))
+            param.name: ParameterExpression(circ_dict, str(to_native_symbolic(expr)))
             for param, expr in sym_sol[0].items()
         }
         fake_bind = {key: sol[key.name] for key in temp_symbols}
