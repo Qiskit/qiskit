@@ -27,6 +27,7 @@ use crate::imports::{
 };
 use crate::operations::{
     Operation, OperationRef, Param, PyGate, PyInstruction, PyOperation, StandardGate,
+    StandardInstruction, StandardInstructionType,
 };
 use crate::packed_instruction::PackedOperation;
 
@@ -330,6 +331,9 @@ impl CircuitInstruction {
 
         let out = match self.operation.view() {
             OperationRef::Standard(standard) => standard
+                .create_py_op(py, Some(&self.params), &self.extra_attrs)?
+                .into_any(),
+            OperationRef::StandardInstruction(instruction) => instruction
                 .create_py_op(py, Some(&self.params), &self.extra_attrs)?
                 .into_any(),
             OperationRef::Gate(gate) => gate.gate.clone_ref(py),
@@ -661,6 +665,8 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
         };
 
         'standard: {
+            // Our Python standard gates have a `_standard_gate` field at the class level so we can
+            // quickly identify them here without an `isinstance` check.
             let Some(standard) = ob_type
                 .getattr(intern!(py, "_standard_gate"))
                 .and_then(|standard| standard.extract::<StandardGate>())
@@ -695,6 +701,37 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
                 extra_attrs: extract_extra()?,
             });
         }
+        'standard_instr: {
+            // Our Python standard instructions have a `_standard_instruction_type` field at the
+            // class level so we can quickly identify them here without an `isinstance` check.
+            // Once we know the type, we query the object for any type-specific fields we need to
+            // read (e.g. a Barrier's number of qubits) to build the Rust representation.
+            let Some(standard_type) = ob_type
+                .getattr(intern!(py, "_standard_instruction_type"))
+                .and_then(|standard| standard.extract::<StandardInstructionType>())
+                .ok()
+            else {
+                break 'standard_instr;
+            };
+            let standard = match standard_type {
+                StandardInstructionType::Barrier => {
+                    let num_qubits = ob.getattr(intern!(py, "num_qubits"))?.extract()?;
+                    StandardInstruction::Barrier(num_qubits)
+                }
+                StandardInstructionType::Delay => {
+                    let unit = ob.getattr(intern!(py, "unit"))?.extract()?;
+                    StandardInstruction::Delay(unit)
+                }
+                StandardInstructionType::Measure => StandardInstruction::Measure,
+                StandardInstructionType::Reset => StandardInstruction::Reset,
+            };
+            return Ok(OperationFromPython {
+                operation: PackedOperation::from_standard_instruction(standard),
+                params: extract_params()?,
+                extra_attrs: extract_extra()?,
+            });
+        }
+
         if ob_type.is_subclass(GATE.get_bound(py))? {
             let params = extract_params()?;
             let gate = Box::new(PyGate {

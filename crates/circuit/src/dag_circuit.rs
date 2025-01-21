@@ -2574,7 +2574,8 @@ def _format(operand):
                     };
 
                     match [inst1.op.view(), inst2.op.view()] {
-                        [OperationRef::Standard(_op1), OperationRef::Standard(_op2)] => {
+                        [OperationRef::Standard(_), OperationRef::Standard(_)]
+                        | [OperationRef::StandardInstruction(_), OperationRef::StandardInstruction(_)] => {
                             Ok(inst1.py_op_eq(py, inst2)?
                                 && check_args()
                                 && check_conditions()?
@@ -2619,13 +2620,14 @@ def _format(operand):
                         [OperationRef::Operation(_op1), OperationRef::Operation(_op2)] => {
                             Ok(inst1.py_op_eq(py, inst2)? && check_args())
                         }
-                        // Handle the case we end up with a pygate for a standardgate
-                        // this typically only happens if it's a ControlledGate in python
+                        // Handle the edge case where we end up with a Python object and a standard
+                        // gate/instruction.
+                        // This typically only happens if we have a ControlledGate in Python
                         // and we have mutable state set.
-                        [OperationRef::Standard(_op1), OperationRef::Gate(_op2)] => {
-                            Ok(inst1.py_op_eq(py, inst2)? && check_args() && check_conditions()?)
-                        }
-                        [OperationRef::Gate(_op1), OperationRef::Standard(_op2)] => {
+                        [OperationRef::Standard(_), OperationRef::Gate(_)]
+                        | [OperationRef::Gate(_), OperationRef::Standard(_)]
+                        | [OperationRef::StandardInstruction(_), OperationRef::Instruction(_)]
+                        | [OperationRef::Instruction(_), OperationRef::StandardInstruction(_)] => {
                             Ok(inst1.py_op_eq(py, inst2)? && check_args() && check_conditions()?)
                         }
                         _ => Ok(false),
@@ -3293,7 +3295,8 @@ def _format(operand):
                                 OperationRef::Operation(py_op) => {
                                     py_op.operation.setattr(py, "condition", new_condition)?;
                                 }
-                                OperationRef::Standard(_) => {}
+                                OperationRef::Standard(_)
+                                | OperationRef::StandardInstruction(_) => {}
                             }
                         }
                     }
@@ -6236,7 +6239,7 @@ impl DAGCircuit {
             };
             #[cfg(feature = "cache_pygates")]
             let py_op = match new_op.operation.view() {
-                OperationRef::Standard(_) => OnceLock::new(),
+                OperationRef::Standard(_) | OperationRef::StandardInstruction(_) => OnceLock::new(),
                 OperationRef::Gate(gate) => OnceLock::from(gate.gate.clone_ref(py)),
                 OperationRef::Instruction(instruction) => {
                     OnceLock::from(instruction.instruction.clone_ref(py))
