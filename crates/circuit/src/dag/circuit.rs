@@ -21,15 +21,16 @@ use crate::circuit_instruction::{
     CircuitInstruction, ExtraInstructionAttributes, OperationFromPython,
 };
 use crate::converters::QuantumCircuitData;
-use crate::dag_node::{DAGInNode, DAGNode, DAGOpNode, DAGOutNode};
-use crate::dot_utils::build_dot;
-use crate::error::DAGCircuitError;
 use crate::imports;
 use crate::interner::{Interned, Interner};
 use crate::operations::{Operation, OperationRef, Param, PyInstruction, StandardGate};
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
-use crate::rustworkx_core_vnext::isomorphism;
-use crate::{BitType, Clbit, Qubit, TupleLikeArg};
+use crate::{BitType, Clbit, Qubit, TupleLikeArg, Var};
+
+use super::dot_utils::build_dot;
+use super::node::{DAGInNode, DAGNode, DAGOpNode, DAGOutNode};
+use super::rustworkx_core_vnext::isomorphism;
+use super::DAGCircuitError;
 
 use hashbrown::{HashMap, HashSet};
 use indexmap::IndexMap;
@@ -73,47 +74,6 @@ use std::sync::OnceLock;
 
 static CONTROL_FLOW_OP_NAMES: [&str; 4] = ["for_loop", "while_loop", "if_else", "switch_case"];
 static SEMANTIC_EQ_SYMMETRIC: [&str; 4] = ["barrier", "swap", "break_loop", "continue_loop"];
-
-/// An opaque key type that identifies a variable within a [DAGCircuit].
-///
-/// When a new variable is added to the DAG, it is associated internally
-/// with one of these keys. When enumerating DAG nodes and edges, you can
-/// retrieve the associated variable instance via [DAGCircuit::get_var].
-///
-/// These keys are [Eq], but this is semantically valid only for keys
-/// from the same [DAGCircuit] instance.
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
-pub struct Var(BitType);
-
-impl Var {
-    /// Construct a new [Var] object from a usize. if you have a u32 you can
-    /// create a [Var] object directly with `Var(0u32)`. This will panic
-    /// if the `usize` index exceeds `u32::MAX`.
-    #[inline(always)]
-    fn new(index: usize) -> Self {
-        Var(index
-            .try_into()
-            .unwrap_or_else(|_| panic!("Index value '{}' exceeds the maximum bit width!", index)))
-    }
-
-    /// Get the index of the [Var]
-    #[inline(always)]
-    fn index(&self) -> usize {
-        self.0 as usize
-    }
-}
-
-impl From<BitType> for Var {
-    fn from(value: BitType) -> Self {
-        Var(value)
-    }
-}
-
-impl From<Var> for BitType {
-    fn from(value: Var) -> Self {
-        value.0
-    }
-}
 
 #[derive(Clone, Debug)]
 pub enum NodeType {
@@ -1984,7 +1944,7 @@ def _format(operand):
             Py::new(py, slf.clone())?.into_bound(py).borrow_mut()
         };
 
-        dag.global_phase = add_global_phase(py, &dag.global_phase, &other.global_phase)?;
+        dag.global_phase = dag.global_phase.add_numeric(py, &other.global_phase)?;
 
         for (gate, cals) in other.calibrations.iter() {
             let calibrations = match dag.calibrations.get(gate) {
@@ -3192,7 +3152,7 @@ def _format(operand):
                 &var_map,
             )?
         };
-        self.global_phase = add_global_phase(py, &self.global_phase, &input_dag.global_phase)?;
+        self.global_phase = self.global_phase.add_numeric(py, &input_dag.global_phase)?;
 
         let wire_map_dict = PyDict::new(py);
         for (source, target) in clbit_wire_map.iter() {
@@ -6283,7 +6243,7 @@ impl DAGCircuit {
                     "Invalid parameter type, only float and parameter expression are supported",
                 ))
             }
-            _ => self.set_global_phase(add_global_phase(py, &self.global_phase, value)?)?,
+            _ => self.set_global_phase(self.global_phase.add_numeric(py, value)?)?,
         }
         Ok(())
     }
@@ -6982,30 +6942,6 @@ impl ::std::ops::Index<NodeIndex> for DAGCircuit {
     fn index(&self, index: NodeIndex) -> &Self::Output {
         self.dag.index(index)
     }
-}
-
-/// Add to global phase. Global phase can only be Float or ParameterExpression so this
-/// does not handle the full possibility of parameter values.
-pub(crate) fn add_global_phase(py: Python, phase: &Param, other: &Param) -> PyResult<Param> {
-    Ok(match [phase, other] {
-        [Param::Float(a), Param::Float(b)] => Param::Float(a + b),
-        [Param::Float(a), Param::ParameterExpression(b)] => Param::ParameterExpression(
-            b.clone_ref(py)
-                .call_method1(py, intern!(py, "__radd__"), (*a,))?,
-        ),
-        [Param::ParameterExpression(a), Param::Float(b)] => Param::ParameterExpression(
-            a.clone_ref(py)
-                .call_method1(py, intern!(py, "__add__"), (*b,))?,
-        ),
-        [Param::ParameterExpression(a), Param::ParameterExpression(b)] => {
-            Param::ParameterExpression(a.clone_ref(py).call_method1(
-                py,
-                intern!(py, "__add__"),
-                (b,),
-            )?)
-        }
-        _ => panic!("Invalid global phase"),
-    })
 }
 
 type SortKeyType<'a> = (&'a [Qubit], &'a [Clbit]);

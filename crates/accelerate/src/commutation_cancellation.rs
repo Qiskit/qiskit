@@ -19,7 +19,7 @@ use pyo3::{pyfunction, wrap_pyfunction, Bound, PyResult, Python};
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 use smallvec::{smallvec, SmallVec};
 
-use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, Wire};
+use qiskit_circuit::dag::{DAGCircuit, NodeType, Wire};
 use qiskit_circuit::operations::StandardGate::{
     CXGate, CYGate, CZGate, HGate, PhaseGate, RXGate, RZGate, SGate, TGate, U1Gate, XGate, YGate,
     ZGate,

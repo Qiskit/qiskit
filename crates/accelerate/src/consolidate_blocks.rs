@@ -19,7 +19,7 @@ use pyo3::prelude::*;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::dag_circuit::DAGCircuit;
+use qiskit_circuit::dag::DAGCircuit;
 use qiskit_circuit::gate_matrix::{ONE_QUBIT_IDENTITY, TWO_QUBIT_IDENTITY};
 use qiskit_circuit::imports::{QI_OPERATOR, QUANTUM_CIRCUIT, UNITARY_GATE};
 use qiskit_circuit::operations::{Operation, Param};

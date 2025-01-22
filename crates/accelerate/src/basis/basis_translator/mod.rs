@@ -34,7 +34,7 @@ use qiskit_circuit::operations::Param;
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::{
     circuit_data::CircuitData,
-    dag_circuit::DAGCircuit,
+    dag::DAGCircuit,
     operations::{Operation, OperationRef},
 };
 use qiskit_circuit::{Clbit, Qubit};

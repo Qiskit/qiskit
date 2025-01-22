@@ -59,6 +59,34 @@ impl Param {
             _ => self.eq(py, other),
         }
     }
+
+    /// Add two [Param] instances together that are asserted by the caller to both be [Float] or
+    /// [ParameterExpression].
+    ///
+    /// # Panics
+    ///
+    /// If either `self` or `other` is not a [Float] or [ParameterExpression] variant.
+    pub fn add_numeric(&self, py: Python, other: &Param) -> PyResult<Param> {
+        Ok(match [self, other] {
+            [Param::Float(a), Param::Float(b)] => Param::Float(a + b),
+            [Param::Float(a), Param::ParameterExpression(b)] => Param::ParameterExpression(
+                b.clone_ref(py)
+                    .call_method1(py, intern!(py, "__radd__"), (*a,))?,
+            ),
+            [Param::ParameterExpression(a), Param::Float(b)] => Param::ParameterExpression(
+                a.clone_ref(py)
+                    .call_method1(py, intern!(py, "__add__"), (*b,))?,
+            ),
+            [Param::ParameterExpression(a), Param::ParameterExpression(b)] => {
+                Param::ParameterExpression(a.clone_ref(py).call_method1(
+                    py,
+                    intern!(py, "__add__"),
+                    (b,),
+                )?)
+            }
+            _ => panic!("Invalid global phase"),
+        })
+    }
 }
 
 impl<'py> FromPyObject<'py> for Param {
