@@ -311,46 +311,9 @@ static STDGATE_PYTHON_GATES: [GILOnceCell<PyObject>; STANDARD_GATE_SIZE] = [
 ];
 
 #[inline]
-<<<<<<< HEAD
-pub fn populate_std_gate_map(py: Python, rs_gate: StandardGate, py_gate: PyObject) {
-    let gate_map = unsafe {
-        match STDGATE_PYTHON_GATES.get_mut() {
-            Some(gate_map) => gate_map,
-            None => {
-                let array: [Option<PyObject>; STANDARD_GATE_SIZE] = std::array::from_fn(|_| None);
-                STDGATE_PYTHON_GATES.set(py, array).unwrap();
-                STDGATE_PYTHON_GATES.get_mut().unwrap()
-            }
-        }
-    };
-    let gate_cls = &gate_map[rs_gate as usize];
-    if gate_cls.is_none() {
-        gate_map[rs_gate as usize] = Some(py_gate.clone_ref(py));
-    }
-}
-
-#[inline]
-pub fn get_std_gate_class(py: Python, rs_gate: StandardGate) -> PyResult<PyObject> {
-    let gate_map =
-        unsafe { STDGATE_PYTHON_GATES.get_or_init(py, || std::array::from_fn(|_| None)) };
-    let gate = &gate_map[rs_gate as usize];
-    let populate = gate.is_none();
-    let out_gate = match gate {
-        Some(gate) => gate.clone_ref(py),
-        None => {
-            let [py_mod, py_class] = STDGATE_IMPORT_PATHS[rs_gate as usize];
-            py.import_bound(py_mod)?.getattr(py_class)?.unbind()
-        }
-    };
-    if populate {
-        populate_std_gate_map(py, rs_gate, out_gate.clone_ref(py));
-    }
-    Ok(out_gate)
-=======
 pub fn get_std_gate_class(py: Python, rs_gate: StandardGate) -> PyResult<&'static Py<PyAny>> {
     STDGATE_PYTHON_GATES[rs_gate as usize].get_or_try_init(py, || {
         let [py_mod, py_class] = STDGATE_IMPORT_PATHS[rs_gate as usize];
         Ok(py.import(py_mod)?.getattr(py_class)?.unbind())
     })
->>>>>>> 7b0b6fcd (Remove need for mutable reference to static (#13705))
 }
