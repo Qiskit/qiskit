@@ -31,17 +31,19 @@ class Split2QUnitaries(TransformationPass):
     to how it's done in :class:`ElidePermutations`.
     """
 
-    def __init__(self, fidelity: float = 1.0 - 1e-16):
+    def __init__(self, fidelity: float = 1.0 - 1e-16, split_swap: bool = False):
         """
         Args:
             fidelity: Allowed tolerance for splitting two-qubit unitaries and gate decompositions.
+            split_swap: Whether to attempt to split swap gates, resulting in a permutation of the qubits.
         """
         super().__init__()
         self.requested_fidelity = fidelity
+        self.split_swap = split_swap
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the Split2QUnitaries pass on `dag`."""
-        result = split_2q_unitaries(dag, self.requested_fidelity)
+        result = split_2q_unitaries(dag, self.requested_fidelity, self.split_swap)
         if result is None:
             return dag
 

@@ -85,6 +85,7 @@ pub fn split_2q_unitaries(
     py: Python,
     dag: &mut DAGCircuit,
     requested_fidelity: f64,
+    split_swaps: bool,
 ) -> PyResult<Option<(DAGCircuit, Vec<usize>)>> {
     if !dag.get_op_counts().contains_key("unitary") {
         return Ok(None);
@@ -130,7 +131,7 @@ pub fn split_2q_unitaries(
             }
         }
     }
-    if !has_swaps {
+    if !split_swaps || !has_swaps {
         return Ok(None);
     }
     // We have swap-like unitaries, so we create a new DAG in a manner similar to
