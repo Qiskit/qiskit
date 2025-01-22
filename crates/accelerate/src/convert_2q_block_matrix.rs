@@ -14,7 +14,6 @@ use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::Python;
 
-use nalgebra::UnitQuaternion;
 use num_complex::Complex64;
 use numpy::ndarray::{arr2, aview2, Array2, ArrayView2, ArrayViewMut2};
 use numpy::PyReadonlyArray2;
@@ -27,7 +26,7 @@ use qiskit_circuit::operations::{Operation, OperationRef};
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::Qubit;
 
-use crate::qi::VersorGate;
+use crate::qi::{VersorSU2, VersorU2};
 use crate::QiskitError;
 
 #[inline]
@@ -57,14 +56,14 @@ pub fn get_matrix_from_inst(py: Python, inst: &PackedInstruction) -> PyResult<Ar
 #[derive(Clone, Debug)]
 struct Separable1q {
     phase: f64,
-    qubits: [UnitQuaternion<f64>; 2],
+    qubits: [VersorSU2; 2],
 }
 impl Separable1q {
     /// Construct an initial state from a single qubit operation.
     #[inline]
-    fn from_qubit(n: usize, versor: VersorGate) -> Self {
-        let mut qubits: [UnitQuaternion<f64>; 2] = Default::default();
-        qubits[n] = versor.action;
+    fn from_qubit(n: usize, versor: VersorU2) -> Self {
+        let mut qubits: [VersorSU2; 2] = Default::default();
+        qubits[n] = versor.su2;
         Self {
             phase: versor.phase,
             qubits,
@@ -73,29 +72,29 @@ impl Separable1q {
 
     /// Apply a new gate to one of the two qubits.
     #[inline]
-    fn apply_on_qubit(&mut self, n: usize, versor: &VersorGate) {
+    fn apply_on_qubit(&mut self, n: usize, versor: &VersorU2) {
         self.phase += versor.phase;
-        self.qubits[n] = versor.action * self.qubits[n];
+        self.qubits[n] = versor.su2 * self.qubits[n];
     }
 
     /// Construct the two-qubit gate matrix implied by these two runs.
     #[inline]
     fn matrix_into<'a>(&self, target: &'a mut [[Complex64; 4]; 4]) -> ArrayView2<'a, Complex64> {
-        let q0 = VersorGate {
+        let q0 = VersorU2 {
             phase: self.phase,
-            action: self.qubits[0],
+            su2: self.qubits[0],
         }
         .matrix_contiguous();
 
         // This is the manually unrolled Kronecker product.
-        let q1 = self.qubits[1].quaternion();
-        let q1_row = [Complex64::new(q1.w, q1.i), Complex64::new(q1.j, q1.k)];
+        let [iz, iy, ix, scalar] = *self.qubits[1].0.quaternion().coords.as_ref();
+        let q1_row = [Complex64::new(scalar, iz), Complex64::new(iy, ix)];
         for out_row in 0..2 {
             for out_col in 0..4 {
                 target[out_row][out_col] = q1_row[(out_col & 2) >> 1] * q0[out_row][out_col & 1];
             }
         }
-        let q1_row = [Complex64::new(-q1.j, q1.k), Complex64::new(q1.w, -q1.i)];
+        let q1_row = [Complex64::new(-iy, ix), Complex64::new(scalar, -iz)];
         for out_row in 0..2 {
             for out_col in 0..4 {
                 target[out_row + 2][out_col] =
@@ -107,11 +106,11 @@ impl Separable1q {
 }
 
 /// Extract a versor representation of an arbitrary 1q DAG instruction.
-fn versor_from_1q_gate(py: Python, inst: &PackedInstruction) -> PyResult<VersorGate> {
+fn versor_from_1q_gate(py: Python, inst: &PackedInstruction) -> PyResult<VersorU2> {
     let versor_result = if let Some(gate) = inst.standard_gate() {
-        VersorGate::from_standard(gate, inst.params_view())
+        VersorU2::from_standard(gate, inst.params_view())
     } else {
-        VersorGate::from_ndarray(&get_matrix_from_inst(py, inst)?.view(), 1e-12)
+        VersorU2::from_ndarray(&get_matrix_from_inst(py, inst)?.view(), 1e-12)
     };
     versor_result.map_err(|err| QiskitError::new_err(err.to_string()))
 }

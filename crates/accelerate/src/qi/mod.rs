@@ -13,6 +13,6 @@
 //! Quantum-information and linear-algebra related functionality, typically used as drivers for
 //! numeric compiler routines.
 
-mod versor_gate;
+mod versor_u2;
 
-pub use self::versor_gate::{VersorGate, VersorGateError};
+pub use self::versor_u2::{VersorSU2, VersorU2, VersorU2Error};
