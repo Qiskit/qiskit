@@ -314,6 +314,6 @@ static STDGATE_PYTHON_GATES: [GILOnceCell<PyObject>; STANDARD_GATE_SIZE] = [
 pub fn get_std_gate_class(py: Python, rs_gate: StandardGate) -> PyResult<&'static Py<PyAny>> {
     STDGATE_PYTHON_GATES[rs_gate as usize].get_or_try_init(py, || {
         let [py_mod, py_class] = STDGATE_IMPORT_PATHS[rs_gate as usize];
-        Ok(py.import(py_mod)?.getattr(py_class)?.unbind())
+        Ok(py.import_bound(py_mod)?.getattr(py_class)?.unbind())
     })
 }
