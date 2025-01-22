@@ -831,6 +831,17 @@ class TestCliffordPasses(QiskitTestCase):
         qct = PassManager(CollectCliffords(matrix_based=True)).run(qc)
         self.assertEqual(qct.count_ops()["clifford"], 1)
 
+    def test_plugin_unfortunate_name(self):
+        """Test the synthesis is not triggered for a custom gate with the same name."""
+        intruder = QuantumCircuit(2, name="clifford")
+        circuit = QuantumCircuit(2)
+        circuit.append(intruder.to_gate(), [0, 1])
+
+        hls = HighLevelSynthesis()
+        synthesized = hls(circuit)
+
+        self.assertIn("clifford", synthesized.count_ops())
+
 
 if __name__ == "__main__":
     unittest.main()
