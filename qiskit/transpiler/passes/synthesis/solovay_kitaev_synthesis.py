@@ -33,6 +33,7 @@ from qiskit.synthesis.discrete_basis.generate_basis_approximations import (
     generate_basic_approximations,
 )
 from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.transpiler.passes.utils.control_flow import trivial_recurse
 
 from .plugin import UnitarySynthesisPlugin
 
@@ -154,6 +155,7 @@ class SolovayKitaev(TransformationPass):
         self.recursion_degree = recursion_degree
         self._sk = SolovayKitaevDecomposition(basic_approximations)
 
+    @trivial_recurse
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the ``SolovayKitaev`` pass on `dag`.
 

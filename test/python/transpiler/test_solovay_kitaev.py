@@ -275,16 +275,20 @@ class TestSolovayKitaev(QiskitTestCase):
         cr = ClassicalRegister(1)
         qc = QuantumCircuit(qr, cr)
 
-        qc.x(0)
         with qc.if_test((cr[0], 0)) as else_:
             qc.y(0)
         with else_:
             qc.z(0)
         transpiled = SolovayKitaev()(qc)
-        self.assertEqual(set(transpiled.count_ops()), {"h", "t", "if_else"})
+
+        # check that we still have an if-else block and all the operations within
+        # have been recursively synthesized
+        self.assertEqual(transpiled[0].name, "if_else")
+        for block in transpiled[0].operation.blocks:
+            self.assertLessEqual(set(block.count_ops()), {"h", "t", "tdg"})
 
     def test_no_to_matrix(self):
-        """Test the Solovay-Kitaev transpiler pass on circuits with gates without to_matrix."""
+        """Test the Solovay-Kitaev transpiler pass ignores gates without to_matrix."""
         qc = QuantumCircuit(1)
         qc.initialize("0")
 
