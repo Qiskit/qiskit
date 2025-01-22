@@ -1,0 +1,5 @@
+---
+upgrade:
+  - 
+    The `mcx_synthesis` module has been updated to utilize the `phasegate` module instead of the previously used `u1gate`. 
+    Corresponding tests have also been updated to reflect this change and ensure seamless integration.
