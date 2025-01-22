@@ -11,6 +11,7 @@
 // that they have been altered from the originals.
 
 use crate::bit::BitInfo;
+use crate::circuit_data::CircuitError;
 use crate::imports::{CLASSICAL_REGISTER, QUANTUM_REGISTER, REGISTER};
 use crate::register::{Register, RegisterAsKey};
 use crate::{BitType, ToPyBit};
@@ -674,6 +675,14 @@ where
             format!("This circuit's {} register list has become out of sync with the circuit data. Did something modify it?", self.description)
             ));
         }
+        let key: RegisterAsKey = register.extract()?;
+        if self.reg_keys.contains_key(&key) {
+            return Err(CircuitError::new_err(format!(
+                "A {} register of name {} already exists in the circuit",
+                &self.description,
+                key.name()
+            )));
+        }
 
         let _: u32 = self.registers.len().try_into().map_err(|_| {
             PyRuntimeError::new_err(format!(
@@ -694,10 +703,11 @@ where
             })
             .collect::<PyResult<_>>()?;
 
-        let name: String = register.getattr("name")?.extract()?;
+        let name: String = key.name().to_string();
         self.py_cached_regs(py).bind(py).append(register)?;
-        self.registers.push(register.clone().unbind().into());
-        Ok(self.add_register(Some(name), None, Some(&bits)))
+        let idx = self.add_register(Some(name), None, Some(&bits));
+        self.registers[idx as usize] = register.clone().unbind().into();
+        Ok(idx)
     }
 
     /// Works as a setter for Python registers when the circuit needs to discard old data.
@@ -706,13 +716,9 @@ where
     pub fn py_set_registers(&mut self, other: &Bound<PyList>) -> PyResult<()> {
         // First invalidate everything related to registers
         // This is done to ensure we regenerate the lost information
-        let current_length = self.len();
-        self.bit_info = (0..current_length).map(|_| vec![]).collect();
-        self.bits.iter_mut().for_each(|cell| {
-            cell.take();
-        });
-        self.cached_py_bits.take();
+        // Do not touch qubits.
 
+        self.reg_keys.clear();
         self.registers.clear();
         self.registry.clear();
         self.cached_py_regs.take();
