@@ -137,8 +137,7 @@ this can be overridden by passing explicit ``<stage>_method="<choice>"`` argumen
     argument to the generator functions.
 
     This stochasticity is because many of the problems the transpiler must solve are known to be
-    non-polynomial in complexity, and we need to ensure we finish the job in a workable amount of
-    time.
+    non-polynomial in complexity, but transpilation must complete in a workable amount of time.
 
 Choosing preset stage implementations
 -------------------------------------
@@ -177,10 +176,10 @@ For example, to generate a preset pass manager at optimization level 1 that expl
     internal construction of the :class:`.PassManager` representing the stage is not, however; the
     order of passes might change between minor versions, or new passes might be introduced.
 
-    For any stage that has one, the method named ``"default"`` is most subject to change.  We will
-    typically only make complete algorithmic changes in the default method across a major-version
-    boundary, but we may well rebalance heuristics and add new passes to default methods between
-    minor versions.
+    For any stage that has one, the method named ``"default"`` is most subject to change.  Qiskit
+    will typically only make complete algorithmic changes in the default method across a
+    major-version boundary, but it may well rebalance heuristics and add new passes to default
+    methods between minor versions.
 
 Since the output of :func:`.generate_preset_pass_manager` is a :class:`.StagedPassManager`, you can
 also modify the pass manager after its creation to provide an entirely custom stage implementation.
