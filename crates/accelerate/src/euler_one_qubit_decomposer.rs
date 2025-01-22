@@ -33,8 +33,7 @@ use pyo3::pybacked::PyBackedStr;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::dag::{DAGCircuit, NodeType};
-use qiskit_circuit::dag::DAGOpNode;
+use qiskit_circuit::dag::{DAGCircuit, DAGOpNode, NodeType};
 use qiskit_circuit::operations::{Operation, Param, StandardGate};
 use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};
 use qiskit_circuit::util::c64;
