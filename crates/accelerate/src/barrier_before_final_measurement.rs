@@ -12,10 +12,9 @@
 
 use hashbrown::HashSet;
 use pyo3::prelude::*;
-use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 use qiskit_circuit::circuit_instruction::ExtraInstructionAttributes;
-use qiskit_circuit::dag::{DAGCircuit, NodeType};
+use qiskit_circuit::dag::{DAGCircuit, NodeIndex, NodeType};
 use qiskit_circuit::imports::BARRIER;
 use qiskit_circuit::operations::{Operation, PyInstruction};
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};

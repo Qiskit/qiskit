@@ -53,7 +53,8 @@ use rustworkx_core::graph_ext::ContractNodesDirected;
 use rustworkx_core::petgraph;
 use rustworkx_core::petgraph::prelude::StableDiGraph;
 use rustworkx_core::petgraph::prelude::*;
-use rustworkx_core::petgraph::stable_graph::{EdgeReference, NodeIndex};
+use rustworkx_core::petgraph::stable_graph::EdgeReference;
+pub use rustworkx_core::petgraph::stable_graph::NodeIndex;
 use rustworkx_core::petgraph::unionfind::UnionFind;
 use rustworkx_core::petgraph::visit::{
     EdgeIndexable, IntoEdgeReferences, IntoNodeReferences, NodeFiltered, NodeIndexable,

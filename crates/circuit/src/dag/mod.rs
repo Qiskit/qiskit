@@ -18,6 +18,6 @@ mod rustworkx_core_vnext;
 ::pyo3::import_exception!(qiskit.dagcircuit.exceptions, DAGCircuitError);
 
 pub use self::{
-    circuit::{DAGCircuit, NodeType, Wire},
+    circuit::{DAGCircuit, NodeIndex, NodeType, Wire},
     node::{DAGInNode, DAGNode, DAGOpNode, DAGOutNode},
 };

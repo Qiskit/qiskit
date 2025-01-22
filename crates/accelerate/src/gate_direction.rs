@@ -24,8 +24,7 @@ use qiskit_circuit::{
     circuit_instruction::CircuitInstruction,
     circuit_instruction::ExtraInstructionAttributes,
     converters::{circuit_to_dag, QuantumCircuitData},
-    dag::DAGCircuit,
-    dag::{DAGNode, DAGOpNode},
+    dag::{DAGCircuit, DAGNode, DAGOpNode, NodeIndex},
     imports,
     imports::get_std_gate_class,
     operations::Operation,
@@ -34,7 +33,6 @@ use qiskit_circuit::{
     packed_instruction::PackedInstruction,
     Qubit,
 };
-use rustworkx_core::petgraph::stable_graph::NodeIndex;
 use smallvec::{smallvec, SmallVec};
 use std::f64::consts::PI;
 
