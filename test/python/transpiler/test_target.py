@@ -2081,12 +2081,16 @@ class TestTargetFromConfiguration(QiskitTestCase):
             fake_backend = Fake5QV1()
         config = fake_backend.configuration()
         properties = fake_backend.properties()
-        target = Target.from_configuration(
-            basis_gates=config.basis_gates,
-            num_qubits=config.num_qubits,
-            coupling_map=CouplingMap(config.coupling_map),
-            backend_properties=properties,
-        )
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex=".*``backend_properties`` is deprecated as of Qiskit 1.4",
+        ):
+            target = Target.from_configuration(
+                basis_gates=config.basis_gates,
+                num_qubits=config.num_qubits,
+                coupling_map=CouplingMap(config.coupling_map),
+                backend_properties=properties,
+            )
         self.assertEqual(0, target["rz"][(0,)].error)
         self.assertEqual(0, target["rz"][(0,)].duration)
 
@@ -2096,15 +2100,19 @@ class TestTargetFromConfiguration(QiskitTestCase):
         config = fake_backend.configuration()
         properties = fake_backend.properties()
         durations = InstructionDurations([("rz", 0, 0.5)], dt=1.0)
-        target = Target.from_configuration(
-            basis_gates=config.basis_gates,
-            num_qubits=config.num_qubits,
-            coupling_map=CouplingMap(config.coupling_map),
-            backend_properties=properties,
-            instruction_durations=durations,
-            dt=config.dt,
-        )
-        self.assertEqual(0.5, target["rz"][(0,)].duration)
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex=".*``backend_properties`` is deprecated as of Qiskit 1.4",
+        ):
+            target = Target.from_configuration(
+                basis_gates=config.basis_gates,
+                num_qubits=config.num_qubits,
+                coupling_map=CouplingMap(config.coupling_map),
+                backend_properties=properties,
+                instruction_durations=durations,
+                dt=config.dt,
+            )
+            self.assertEqual(0.5, target["rz"][(0,)].duration)
 
     def test_inst_map(self):
         with self.assertWarns(DeprecationWarning):

@@ -73,6 +73,7 @@ from qiskit.transpiler.passes.optimization.optimize_1q_decomposition import (
 from qiskit.transpiler.passes.synthesis import plugin
 from qiskit.transpiler.target import Target
 
+from qiskit.utils.deprecation import deprecate_arg
 from qiskit._accelerate.unitary_synthesis import run_default_main_loop
 
 GATE_NAME_MAP = {
@@ -315,6 +316,13 @@ def _preferred_direction(
 class UnitarySynthesis(TransformationPass):
     """Synthesize gates according to their basis gates."""
 
+    @deprecate_arg(
+        name="backend_props",
+        since="1.4",
+        package_name="Qiskit",
+        removal_timeline="in Qiskit 2.0",
+        additional_msg="The `target` parameter should be used instead",
+    )
     def __init__(
         self,
         basis_gates: list[str] = None,

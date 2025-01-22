@@ -344,11 +344,17 @@ def generate_preset_pass_manager(
             # preserve the former behavior of transpile.
             backend_properties = _parse_backend_properties(backend_properties, backend)
             with warnings.catch_warnings():
-                # TODO: inst_map will be removed in 2.0
+                # TODO: inst_map and backend_properties will be removed in 2.0
                 warnings.filterwarnings(
                     "ignore",
                     category=DeprecationWarning,
                     message=".*``inst_map`` is deprecated as of Qiskit 1.3.*",
+                    module="qiskit",
+                )
+                warnings.filterwarnings(
+                    "ignore",
+                    category=DeprecationWarning,
+                    message=".* ``backend_properties`` is deprecated as of Qiskit 1.4",
                     module="qiskit",
                 )
                 # Build target from constraints.
@@ -428,11 +434,17 @@ def generate_preset_pass_manager(
     }
 
     with warnings.catch_warnings():
-        # inst_map is deprecated in the PassManagerConfig initializer
+        # inst_map and backend_properties are deprecated in the PassManagerConfig initializer
         warnings.filterwarnings(
             "ignore",
             category=DeprecationWarning,
             message=".*argument ``inst_map`` is deprecated as of Qiskit 1.3",
+        )
+        warnings.filterwarnings(
+            "ignore",
+            category=DeprecationWarning,
+            message=".*argument ``backend_properties`` is deprecated as of Qiskit 1.4",
+            module="qiskit",
         )
         if backend is not None:
             pm_options["_skip_target"] = _skip_target

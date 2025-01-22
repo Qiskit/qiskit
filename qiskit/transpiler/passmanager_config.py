@@ -18,11 +18,19 @@ import warnings
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.utils.deprecate_pulse import deprecate_pulse_arg
+from qiskit.utils.deprecation import deprecate_arg
 
 
 class PassManagerConfig:
     """Pass Manager Configuration."""
 
+    @deprecate_arg(
+        name="backend_properties",
+        since="1.4",
+        package_name="Qiskit",
+        removal_timeline="in Qiskit 2.0",
+        additional_msg="The `target` parameter should be used instead.",
+    )
     @deprecate_pulse_arg("inst_map", predicate=lambda inst_map: inst_map is not None)
     def __init__(
         self,

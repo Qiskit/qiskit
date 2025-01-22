@@ -24,6 +24,7 @@ from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes.layout import vf2_utils
 
+from qiskit.utils import deprecate_arg
 
 logger = logging.getLogger(__name__)
 
@@ -73,6 +74,13 @@ class VF2Layout(AnalysisPass):
     ``vf2_avg_error_map`` key in the property set when :class:`~.VF2Layout` is run.
     """
 
+    @deprecate_arg(
+        name="properties",
+        since="1.4",
+        package_name="Qiskit",
+        removal_timeline="in Qiskit 2.0",
+        additional_msg="The `target` parameter should be used instead.",
+    )
     def __init__(
         self,
         coupling_map=None,

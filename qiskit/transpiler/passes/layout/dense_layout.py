@@ -21,6 +21,8 @@ from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes.layout import disjoint_utils
 
+from qiskit.utils import deprecate_arg
+
 from qiskit._accelerate.dense_layout import best_subset
 
 
@@ -36,6 +38,13 @@ class DenseLayout(AnalysisPass):
         by being set in ``property_set``.
     """
 
+    @deprecate_arg(
+        name="backend_prop",
+        since="1.4",
+        package_name="Qiskit",
+        removal_timeline="in Qiskit 2.0",
+        additional_msg="The `target` parameter should be used instead.",
+    )
     def __init__(self, coupling_map=None, backend_prop=None, target=None):
         """DenseLayout initializer.
 
