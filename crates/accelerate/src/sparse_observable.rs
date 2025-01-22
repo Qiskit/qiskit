@@ -1192,6 +1192,52 @@ impl From<ArithmeticError> for PyErr {
     }
 }
 
+/// Construct the Python-space `IntEnum` that represents the same values as the Rust-spce `BitTerm`.
+///
+/// We don't make `BitTerm` a direct `pyclass` because we want the behaviour of `IntEnum`, which
+/// specifically also makes its variants subclasses of the Python `int` type; we use a type-safe
+/// enum in Rust, but from Python space we expect people to (carefully) deal with the raw ints in
+/// Numpy arrays for efficiency.
+///
+/// The resulting class is attached to `SparseObservable` as a class attribute, and its
+/// `__qualname__` is set to reflect this.
+fn make_py_bit_term(py: Python) -> PyResult<Py<PyType>> {
+    let terms = [
+        BitTerm::X,
+        BitTerm::Plus,
+        BitTerm::Minus,
+        BitTerm::Y,
+        BitTerm::Right,
+        BitTerm::Left,
+        BitTerm::Z,
+        BitTerm::Zero,
+        BitTerm::One,
+    ]
+    .into_iter()
+    .flat_map(|term| {
+        let mut out = vec![(term.py_name(), term as u8)];
+        if term.py_name() != term.py_label() {
+            // Also ensure that the labels are created as aliases.  These can't be (easily) accessed
+            // by attribute-getter (dot) syntax, but will work with the item-getter (square-bracket)
+            // syntax, or programmatically with `getattr`.
+            out.push((term.py_label(), term as u8));
+        }
+        out
+    })
+    .collect::<Vec<_>>();
+    let obj = py.import_bound("enum")?.getattr("IntEnum")?.call(
+        ("BitTerm", terms),
+        Some(
+            &[
+                ("module", "qiskit.quantum_info"),
+                ("qualname", "SparseObservable.BitTerm"),
+            ]
+            .into_py_dict_bound(py),
+        ),
+    )?;
+    Ok(obj.downcast_into::<PyType>()?.unbind())
+}
+
 // Return the relevant value from the Python-space sister enumeration.  These are Python-space
 // singletons and subclasses of Python `int`.  We only use this for interaction with "high level"
 // Python space; the efficient Numpy-like array paths use `u8` directly so Numpy can act on it
@@ -1244,21 +1290,6 @@ impl<'py> FromPyObject<'py> for BitTerm {
     }
 }
 
-impl From<SparseObservable> for PySparseObservable {
-    fn from(val: SparseObservable) -> PySparseObservable {
-        PySparseObservable {
-            inner: Arc::new(RwLock::new(val)),
-        }
-    }
-}
-
-impl IntoPy<Py<PyAny>> for SparseObservable {
-    fn into_py(self, py: Python) -> Py<PyAny> {
-        let obs: PySparseObservable = self.into();
-        obs.into_py(py)
-    }
-}
-
 /// A single term from a complete :class:`SparseObservable`.
 ///
 /// These are typically created by indexing into or iterating through a :class:`SparseObservable`.
@@ -1267,7 +1298,6 @@ impl IntoPy<Py<PyAny>> for SparseObservable {
 struct PySparseTerm {
     inner: SparseTerm,
 }
-
 #[pymethods]
 impl PySparseTerm {
     // Mark the Python class as being defined "within" the `SparseObservable` class namespace.
@@ -1446,52 +1476,6 @@ impl PySparseTerm {
             PyArray1::from_vec_bound(py, x),
         ),))
     }
-}
-
-/// Construct the Python-space `IntEnum` that represents the same values as the Rust-spce `BitTerm`.
-///
-/// We don't make `BitTerm` a direct `pyclass` because we want the behaviour of `IntEnum`, which
-/// specifically also makes its variants subclasses of the Python `int` type; we use a type-safe
-/// enum in Rust, but from Python space we expect people to (carefully) deal with the raw ints in
-/// Numpy arrays for efficiency.
-///
-/// The resulting class is attached to `SparseObservable` as a class attribute, and its
-/// `__qualname__` is set to reflect this.
-fn make_py_bit_term(py: Python) -> PyResult<Py<PyType>> {
-    let terms = [
-        BitTerm::X,
-        BitTerm::Plus,
-        BitTerm::Minus,
-        BitTerm::Y,
-        BitTerm::Right,
-        BitTerm::Left,
-        BitTerm::Z,
-        BitTerm::Zero,
-        BitTerm::One,
-    ]
-    .into_iter()
-    .flat_map(|term| {
-        let mut out = vec![(term.py_name(), term as u8)];
-        if term.py_name() != term.py_label() {
-            // Also ensure that the labels are created as aliases.  These can't be (easily) accessed
-            // by attribute-getter (dot) syntax, but will work with the item-getter (square-bracket)
-            // syntax, or programmatically with `getattr`.
-            out.push((term.py_label(), term as u8));
-        }
-        out
-    })
-    .collect::<Vec<_>>();
-    let obj = py.import_bound("enum")?.getattr("IntEnum")?.call(
-        ("BitTerm", terms),
-        Some(
-            &[
-                ("module", "qiskit.quantum_info"),
-                ("qualname", "SparseObservable.BitTerm"),
-            ]
-            .into_py_dict_bound(py),
-        ),
-    )?;
-    Ok(obj.downcast_into::<PyType>()?.unbind())
 }
 
 /// An observable over Pauli bases that stores its data in a qubit-sparse format.
@@ -1896,7 +1880,6 @@ pub struct PySparseObservable {
     // This class keeps a pointer to a pure Rust-SparseTerm and serves as interface from Python.
     inner: Arc<RwLock<SparseObservable>>,
 }
-
 #[pymethods]
 impl PySparseObservable {
     #[pyo3(signature = (data, /, num_qubits=None))]
@@ -3169,6 +3152,19 @@ impl PySparseObservable {
     #[classattr]
     fn Term(py: Python) -> Bound<PyType> {
         py.get_type_bound::<PySparseTerm>()
+    }
+}
+impl From<SparseObservable> for PySparseObservable {
+    fn from(val: SparseObservable) -> PySparseObservable {
+        PySparseObservable {
+            inner: Arc::new(RwLock::new(val)),
+        }
+    }
+}
+impl IntoPy<Py<PyAny>> for SparseObservable {
+    fn into_py(self, py: Python) -> Py<PyAny> {
+        let obs: PySparseObservable = self.into();
+        obs.into_py(py)
     }
 }
 
