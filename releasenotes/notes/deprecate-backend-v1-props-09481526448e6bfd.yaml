@@ -1,0 +1,20 @@
+---
+deprecations_transpiler:
+  - |
+    The following uses of the ``BackendProperties`` object in the transpilation
+    pipeline have been deprecated as of Qiskit 1.4 and will be removed in Qiskit 2.0:
+
+    * ``backend_prop`` input argument in :class:`.DenseLayout`
+    * ``properties`` input argument in :class:`.VF2Layout`
+    * ``properties`` input argument in :class:`.VF2PostLayout`
+    * ``backend_props`` input argument in :class:`.UnitarySynthesis`
+    * ``backend_properties`` in :class:`.PassManagerConfig`
+    * ``backend_properties`` in :func:`.generate_routing_passmanager`
+    * ``backend_properties`` in :func:`.generate_translation_passmanager`
+    * ``backend_properties`` in  :meth:`.Target.from_configuration`
+
+    The ``BackendProperties`` class has been deprecated since Qiskit 1.2, as it was part
+    of the BackendV1 workflow. Specific instruction properties such as gate errors or 
+    durations can be added to a :class:`.Target` upon construction through the 
+    :meth:`.Target.add_instruction` method, and communicated to the relevant transpiler
+    passes through the `target` input argument.
