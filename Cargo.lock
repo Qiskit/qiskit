@@ -1062,7 +1062,6 @@ dependencies = [
  "bytemuck",
  "libm",
  "num-complex",
- "pulp-macro",
  "reborrow",
 ]
 
@@ -1076,6 +1075,7 @@ dependencies = [
  "cfg-if",
  "libm",
  "num-complex",
+ "pulp-macro",
  "reborrow",
  "version_check",
 ]
@@ -1191,7 +1191,7 @@ dependencies = [
  "num-traits",
  "numpy",
  "once_cell",
- "pulp 0.18.22",
+ "pulp 0.21.4",
  "pyo3",
  "qiskit-circuit",
  "rand",
