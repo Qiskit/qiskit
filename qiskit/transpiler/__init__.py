@@ -39,18 +39,18 @@ compilation flow follows the structure given below:
 Qiskit uses the graph-based :class:`.DAGCircuit` intermediate representation (IR) of a circuit
 throughout the transpiler stack, rather than the tree-based :class:`.QuantumCircuit`.  A transpiler
 pipeline is a :class:`.PassManager` object, whose :meth:`.PassManager.run` method takes in a
-:class:`.QuantumCircuit`, converts it to a :class:`.DAGCircuit`, then subjects the IR to a sequence
+:class:`.QuantumCircuit` and converts it to a :class:`.DAGCircuit`, then subjects the IR to a sequence
 of *passes*, finally returning a :class:`.QuantumCircuit` back.  A pass is either an
 :class:`.AnalysisPass`, whose purpose is to calculate and store properties about the circuit in the
 stateful :class:`.PropertySet`, or a :class:`.TransformationPass`, whose purpose is to modify the IR
-to achieve a particular singular goal.  We typically think of a pipeline as being split into
+to achieve a particular singular goal.  You can think of a pipeline as being split into
 "stages", where each stage is responsible for one high-level transformation.
 
-Qiskit exposes a default transpilation pipeline builder via the function
+Qiskit exposes a default transpilation pipeline builder using the function
 :func:`.generate_preset_pass_manager`.  This will return a properly configured pipeline for complete
 transpilation, at a chosen ``optimization_level`` (between 0 and 3, inclusive).  Unless you are
 looking for something highly specialized, this is almost certainly the entry point you want.  A
-sample transpilation looks like::
+sample transpilation looks like:
 
     from qiskit.circuit import QuantumCircuit
     from qiskit.transpiler import generate_preset_pass_manager
@@ -75,20 +75,20 @@ The rest of this page details how to harness the low-level capabilities of the t
 
 .. _transpiler-preset:
 
-Preset Pass Managers
+Preset pass managers
 ====================
 
 The function :func:`.generate_preset_pass_manager` creates the "preset pass managers".
-These are all instances of :class:`.PassManager`, so are used by pass a :class:`.QuantumCircuit` to
+These are all instances of :class:`.PassManager`, so are used by passing a :class:`.QuantumCircuit` to
 the :meth:`.PassManager.run` method.  More specifically, the preset pass managers are instances of
 :class:`.StagedPassManager`, which allows greater configuration of the individual stages of a
-tranpsilation, include pre- and post-stage hooks.
+transpilation, include pre- and post-stage hooks.
 
 A preset pass manager has up to six named stages.  These are summarized, in order of execution,
 below, with more in-depth information in the following subsections.
 
 ``init``
-    Abstract-circuit optimizations, and reduction of multi-qubit operations to 1- and 2-qubit
+    Abstract-circuit optimizations, and reduction of multi-qubit operations to one- and two-qubit
     operations.  See :ref:`transpiler-preset-stage-init` for more detail.
 
 ``layout``
@@ -118,8 +118,8 @@ below, with more in-depth information in the following subsections.
     :ref:`transpiler-preset-stage-scheduling` for more details.
 
 The preset transpiler pipelines can also be configured at a high level by setting an
-``optimization_level``.  This is in integer from 0 to 3 inclusive, indicating the relative effort to
-put into attempting to optimize the circuit for the hardware.  Level 0 disables all unnecessary
+``optimization_level``.  This is an integer from 0 to 3 inclusive, indicating the relative effort to
+exert in attempting to optimize the circuit for the hardware.  Level 0 disables all unnecessary
 optimizations; only transformations needed to make the circuit runnable at all will be present.  On
 the other end, level 3 enables a full barrage of optimization techniques, some of which can be very
 expensive in compilation time.  Similar to classical compilers, optimization level 3 is not always
@@ -140,7 +140,7 @@ this can be overridden by passing explicit ``<stage>_method="<choice>"`` argumen
     non-polynomial in complexity, and we need to ensure we finish the job in a workable amount of
     time.
 
-Choosing Preset Stage Implementations
+Choosing preset stage implementations
 -------------------------------------
 
 Qiskit includes several implementations of several of the above stages, and more can be installed as
@@ -184,7 +184,7 @@ For example, to generate a preset pass manager at optimization level 1 that expl
 
 Since the output of :func:`.generate_preset_pass_manager` is a :class:`.StagedPassManager`, you can
 also modify the pass manager after its creation to provide an entirely custom stage implementation.
-For example, if you wanted to run a custom scheduling stage using dynamical decoupling (via the
+For example, if you wanted to run a custom scheduling stage using dynamical decoupling (using the
 :class:`~.PadDynamicalDecoupling` pass) and also add initial logical optimization prior to routing,
 you would do something like (building off the previous example):
 
@@ -234,7 +234,7 @@ low-level helper functions in :mod:`qiskit.transpiler.preset_passmanagers` usefu
 
 .. _transpiler-preset-stage-init:
 
-Initialization Stage
+Initialization stage
 --------------------
 
 .. seealso::
@@ -242,12 +242,12 @@ Initialization Stage
         Higher-level user-facing explanation of the init stage in the IBM Quantum guide.
 
 The ``init`` stage is responsible for high-level, logical optimizations on abstract circuits, and
-for lowering multi-qubit (3+) operations down to a series of 1- and 2-qubit operations.  As this is
+for lowering multi-qubit (3+) operations down to a series of one- and two-qubit operations.  As this is
 the first stage run, its input is a fully abstract circuit.  The ``init`` stage must be able to
 handle custom user-defined gates, and all the high-level abstract circuit-description objects, such
 as :class:`.AnnotatedOperation`.
 
-The output of the ``init`` stage is an abstract circuit that contains only 1- and 2-qubit
+The output of the ``init`` stage is an abstract circuit that contains only one- and two-qubit
 operations.
 
 When writing :ref:`stage plugins <transpiler-preset-stage-plugins>`, the entry point for ``init`` is
@@ -280,15 +280,15 @@ optimizations.  This includes:
 
 * "virtual permutation elision" (see :class:`.ElidePermutations`), where explicit
   permutation-inducing operations are removed and instead effected as remapping of virtual qubits.
-* analysis of the commutation structure of the IR to find pairs of gates that can be cancelled out.
-* numerical splitting of two-qubit operations that can be expressed as series of separable one-qubit
+* analysis of the commutation structure of the IR to find pairs of gates that can be canceled out.
+* numerical splitting of two-qubit operations that can be expressed as a series of separable one-qubit
   operations.
 * removal of imperceivable operations, such as tiny-angle Pauli rotations and diagonal operations
   immediately preceding measurements.
 
 .. _transpiler-preset-stage-layout:
 
-Layout Stage
+Layout stage
 ------------
 
 .. seealso::
@@ -320,7 +320,7 @@ pipelines do not use this currently.
     :alt: Illustration of how virtual qubits from an input circuit could be mapped to hardware
         qubits on a backend device's connectivity map.
 
-The layout stage is not responsible for ensuring that the connectivity of the target of the target
+The layout stage is not responsible for ensuring that the connectivity of the target
 is respected all the way through the circuit, nor that all operations are valid for direct execution
 on the target; these are the responsibilities of the :ref:`routing
 <transpiler-preset-stage-routing>` and :ref:`translation <transpiler-preset-stage-translation>`
@@ -438,7 +438,7 @@ Summarily, the layout component of `the original Sabre algorithm <sabre-original
 choose an initial layout arbitrarily, then to "improve" it by running routing on the circuit,
 reversing the circuit, and running routing on the reversed circuit with the previous "final"
 virtual-to-hardware assignment as the initial state.  The configured optimization level decides how
-many iterations of this to-and-fro we do, and how many different random initial layouts we try.
+many iterations of this to-and-fro to do, and how many different random initial layouts to try.
 
 The principal difference to the :ref:`default stage <transpiler-preset-stage-layout-default>` at
 optimization levels other than zero is that this plugin *only* runs the Sabre-based algorithm.  It
@@ -448,7 +448,7 @@ does not attempt to find a perfect layout, nor attempt the trivial layout.
 
 .. _transpiler-preset-stage-routing:
 
-Routing Stage
+Routing stage
 -------------
 
 .. seealso::
@@ -482,10 +482,10 @@ circuit topology.
 
 .. note::
 
-    Qiskit's built-in routing plugins will all generally assume that all pairs of qubits with a
+    Qiskit's built-in routing plugins all generally assume that all pairs of qubits with a
     defined two-qubit link have a *universal* set of gates defined for those two qubits.  Hardware
     does not necessarily need to respect this (for example, if the only defined two-qubit gate is
-    ``swap``, then entangling operations like ``cx`` cannot be realised), but Qiskit does not yet
+    ``swap``, then entangling operations like ``cx`` cannot be realized), but Qiskit does not yet
     consider this possibility.
 
 .. note::
@@ -542,7 +542,7 @@ executable on the device.
 The optimization level only affects the amount of work the :class:`.VF2PostLayout` step does to
 attempt to improve the initial layout after routing.
 
-This method typically has incredibly poor output quality.
+This method typically has poor output quality.
 
 .. _transpiler-preset-stage-routing-stochastic:
 
@@ -598,7 +598,7 @@ all cases where routing is necessary.
 
 .. _transpiler-preset-stage-translation:
 
-Translation Stage
+Translation stage
 -----------------
 
 .. seealso::
@@ -625,7 +625,7 @@ The translation stage is called before entering the optimization stage. Optimiza
 (including Qiskit's built-in plugins) may also use the translation stage as a "fixup" stage after
 the optimization loop, if the optimization loop returns a circuit that includes non-ISA gates.  This
 latter situation is fairly common; the optimization loop may only be concerned with minimizing
-properties like "number of two qubit gates", and will leave its output in terms of locally
+properties like "number of two-qubit gates", and will leave its output in terms of locally
 equivalent gates, which the translation stage can easily rewrite without affecting the target
 optimization properties.  This allows easier separation of concerns between the two stages.  Some
 optimization plugins may be stricter in their output, and so this follow-up to the translation stage
@@ -644,7 +644,7 @@ When writing :ref:`stage plugins <transpiler-preset-stage-plugins>`, the entry p
       - Symbolic translation of gates to the target basis using known equivalences.
 
     * - :ref:`synthesis <transpiler-preset-stage-translation-synthesis>`
-      - Collect each run of one- and two-qubit gates into a matrix representation, and resynthesis
+      - Collect each run of one- and two-qubit gates into a matrix representation, and resynthesize
         from there.
 
 .. _transpiler-preset-stage-translation-synthesis:
@@ -652,17 +652,17 @@ When writing :ref:`stage plugins <transpiler-preset-stage-plugins>`, the entry p
 Built-in ``synthesis`` plugin
 .............................
 
-Collect runs of gates on the same qubits into matrix form, and then resynthesise using the
+Collect runs of gates on the same qubits into matrix form, and then resynthesize using the
 :class:`.UnitarySynthesis` pass (with the configured ``unitary_synthesis_method``).  This is, in
 large part, similar to the optimization loop itself at high optimization levels.
 
 The collection to matrices is typically more expensive than matrix-free translations, but in
 principle the quality of the translations can be better.  In practice, this requires a synthesis
 algorithm tailored to the target ISA, which makes this method less general than other methods. It
-can produce higher quality results when targeting simple ISAs that match the synthesis routines
+can produce higher-quality results when targeting simple ISAs that match the synthesis routines
 already in Qiskit.
 
-If this method is used, one often does not need the optimization loop at all.
+If this method is used, you might not need the optimization loop at all.
 
 The optimization level has no effect on this plugin.
 
@@ -684,7 +684,7 @@ The optimization level has no effect on this plugin.
 
 .. _transpiler-preset-stage-optimization:
 
-Optimization Stage
+Optimization stage
 ------------------
 
 .. seealso::
@@ -693,7 +693,7 @@ Optimization Stage
 
 .. __: https://docs.quantum.ibm.com/guides/transpiler-stages#optimization-stage
 
-The optimization stage is for low level hardware-aware optimizations.  Unlike :ref:`the init stage
+The optimization stage is for low-level hardware-aware optimizations.  Unlike :ref:`the init stage
 <transpiler-preset-stage-init>`, the input to this stage is a circuit that is already
 ISA-compatible, so a low-level optimization plugin can be tailored for a particular ISA.
 
@@ -702,8 +702,8 @@ circuits, and returns ISA-supported circuits.  An optimization plugin will often
 such as the :class:`.DoWhileController`, and may choose to include the configured translation stage
 as a fix-up pipeline.
 
-Qiskit's built-in optimization plugins are general, and apply well to most real-word ISAs for
-non-error-corrected devices.  The built-in plugins are less well suited to ISAs that have no
+Qiskit's built-in optimization plugins are general, and apply well to most real-world ISAs for
+non-error-corrected devices.  The built-in plugins are less well-suited to ISAs that have no
 continuously parametrized single-qubit gate, such as a Clifford+T basis set.
 
 When writing :ref:`stage plugins <transpiler-preset-stage-plugins>`, the entry point for
@@ -749,7 +749,7 @@ Optimization level 3 is typically very expensive for large circuits.
 
 .. _transpiler-preset-stage-scheduling:
 
-Scheduling Stage
+Scheduling stage
 ----------------
 
 .. seealso::
@@ -777,7 +777,7 @@ When writing :ref:`stage plugins <transpiler-preset-stage-plugins>`, the entry p
       - Summary
 
     * - :ref:`default <transpiler-preset-stage-scheduling-default>`
-      - Attempt to satisfy timing alignment constraints without otherwise scheduling
+      - Attempt to satisfy timing alignment constraints without otherwise scheduling.
 
     * - :ref:`alap <transpiler-preset-stage-scheduling-alap>`
       - Schedule the circuit preferring operations to be as late as possible.
@@ -811,7 +811,7 @@ Explicitly schedule all operations using an "as soon as possible" strategy.  Thi
 :class:`.ASAPScheduleAnalysis` algorithm to decide where to place gates.
 
 
-Custom Pass Managers
+Custom pass managers
 ====================
 
 In addition to modifying preset pass managers, it is also possible to construct a pass
@@ -819,7 +819,7 @@ manager to build an entirely custom pipeline for transforming input
 circuits. You can use the :class:`~.StagedPassManager` class directly to do
 this. You can define arbitrary stage names and populate them with a :class:`~.PassManager`
 instance. For example, the following code creates a new :class:`~.StagedPassManager`
-that has 2 stages, ``init`` and ``translation``.
+that has two stages, ``init`` and ``translation``.
 
 .. code-block::
 
@@ -1171,7 +1171,7 @@ see the individual connectivity, you can pass the operation name to
 
 .. _transpiler-scheduling-description:
 
-Scheduling of Circuits
+Scheduling of circuits
 ======================
 
 ..
@@ -1252,7 +1252,7 @@ the scheduling and adjustments/rescheduling are finished, a padding pass,
 such as :class:`~.PadDelay` or :class:`~.PadDynamicalDecoupling` is run
 to insert the instructions into the circuit, which completes the scheduling.
 
-Scheduling Analysis with control flow instructions
+Scheduling analysis with control-flow instructions
 --------------------------------------------------
 
 When running scheduling analysis passes on a circuit, you must keep in mind that there
@@ -1451,7 +1451,7 @@ See https://arxiv.org/abs/2102.01682 for more details.
 Transpiler API
 ==============
 
-Hardware Description
+Hardware description
 --------------------
 
 .. autosummary::

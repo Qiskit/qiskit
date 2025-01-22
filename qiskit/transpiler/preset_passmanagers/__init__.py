@@ -32,7 +32,7 @@ part) the stages that comprise the preset pass managers
 
 .. _preset_pass_manager_generators:
 
-Low-level Preset Pass Manager Generation
+Low-level preset pass manager generation
 ----------------------------------------
 
 .. autofunction:: level_0_pass_manager
@@ -46,7 +46,7 @@ Low-level Preset Pass Manager Generation
 
 .. _stage_generators:
 
-Stage Generator Functions
+Stage generator functions
 -------------------------
 
 .. autofunction:: generate_control_flow_options_check

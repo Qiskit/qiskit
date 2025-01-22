@@ -37,8 +37,8 @@ see :mod:`qiskit.transpiler.passes.synthesis.plugin`.
 Plugin Stages
 =============
 
-Currently, there are 6 stages in the preset pass managers, all of which actively
-load external plugins via corresponding entry points.  The table below gives a quick summary of each
+Currently, there are six stages in the preset pass managers, all of which actively
+load external plugins using corresponding entry points.  The following table gives a quick summary of each
 stage.  For more details on the description and expectations of each stage, follow the link in the
 stages' names to the full documentation.
 
@@ -54,7 +54,7 @@ stages' names to the full documentation.
      - ``qiskit.transpiler.init``
      - ``default``
      - High-level, logical optimizations on abstract circuits, and reduction of multi-qubit
-       operations to 1- and 2-qubit operations.
+       operations to one- and two-qubit operations.
 
    * - :ref:`layout <transpiler-preset-stage-layout>`
      - ``qiskit.transpiler.layout``
