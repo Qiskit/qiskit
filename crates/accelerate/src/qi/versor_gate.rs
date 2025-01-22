@@ -19,8 +19,8 @@ use thiserror::Error;
 
 use qiskit_circuit::operations::{Param, StandardGate};
 
-const COS_PI_8: f64 = 0.9238795325112867;
-const SIN_PI_8: f64 = 0.3826834323650898;
+const COS_FRAC_PI_8: f64 = 0.9238795325112867;
+const SIN_FRAC_PI_8: f64 = 0.3826834323650898;
 
 #[derive(Error, Debug)]
 pub enum VersorGateError {
@@ -256,7 +256,10 @@ impl VersorGate {
                 Ok(Self {
                     phase: FRAC_PI_8,
                     action: UnitQuaternion::new_unchecked(Quaternion::new(
-                        COS_PI_8, -SIN_PI_8, 0., 0.,
+                        COS_FRAC_PI_8,
+                        -SIN_FRAC_PI_8,
+                        0.,
+                        0.,
                     )),
                 })
             }
@@ -265,7 +268,10 @@ impl VersorGate {
                 Ok(Self {
                     phase: -FRAC_PI_8,
                     action: UnitQuaternion::new_unchecked(Quaternion::new(
-                        COS_PI_8, SIN_PI_8, 0., 0.,
+                        COS_FRAC_PI_8,
+                        SIN_FRAC_PI_8,
+                        0.,
+                        0.,
                     )),
                 })
             }
