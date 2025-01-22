@@ -157,7 +157,7 @@ pub fn blocks_to_matrix(
     let mut qubits_1q: Option<Separable1q> = None;
     let mut output_matrix: Option<Array2<Complex64>> = None;
     for node in op_list {
-        let inst = dag.dag()[*node].unwrap_operation();
+        let inst = dag[*node].unwrap_operation();
         let qarg = qarg_lookup(inst.qubits);
         match qarg {
             Qarg::Q0 | Qarg::Q1 => {
