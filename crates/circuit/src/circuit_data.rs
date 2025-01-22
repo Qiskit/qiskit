@@ -150,7 +150,8 @@ impl CircuitData {
         Ok(self_)
     }
 
-    pub fn __reduce__(self_: &Bound<CircuitData>, py: Python<'_>) -> PyResult<PyObject> {
+    pub fn __reduce__(self_: &Bound<CircuitData>) -> PyResult<PyObject> {
+        let py = self_.py();
         let ty: Bound<PyType> = self_.get_type();
         let args = {
             let self_ = self_.borrow();
@@ -162,7 +163,28 @@ impl CircuitData {
                 self_.global_phase.clone(),
             )
         };
-        Ok((ty, args, None::<()>, self_.iter()?).into_py(py))
+        let state = {
+            let borrowed = self_.borrow();
+            (
+                borrowed.qubits.py_cached_regs(py).clone_ref(py),
+                borrowed.clbits.py_cached_regs(py).clone_ref(py),
+            )
+        };
+        Ok((ty, args, state, self_.iter()?).into_py(py))
+    }
+
+    pub fn __setstate__(
+        self_: &Bound<CircuitData>,
+        state: (Bound<PyList>, Bound<PyList>),
+    ) -> PyResult<()> {
+        let mut borrowed_mut = self_.borrow_mut();
+        for qreg in state.0.iter() {
+            borrowed_mut.py_add_qreg(&qreg)?;
+        }
+        for creg in state.1.iter() {
+            borrowed_mut.py_add_creg(&creg)?;
+        }
+        Ok(())
     }
 
     /// Returns the current mapping of registered :class:`.QuantumRegisters` names and instances
@@ -176,8 +198,8 @@ impl CircuitData {
     /// Returns:
     ///     dict(:class:`.QuantumRegister`): The current sequence of registered qubits.
     #[getter("qregs")]
-    pub fn py_qregs(&self, py: Python<'_>) -> Py<PyList> {
-        self.qubits.py_cached_regs(py).clone_ref(py)
+    pub fn py_qregs(&self, py: Python<'_>) -> &Py<PyList> {
+        self.qubits.py_cached_regs(py)
     }
 
     /// Setter for registers, in case of forced updates.
@@ -227,8 +249,8 @@ impl CircuitData {
     /// Returns:
     ///     dict(:class:`.QuantumRegister`): The current sequence of registered qubits.
     #[getter("cregs")]
-    pub fn py_cregs(&self, py: Python<'_>) -> Py<PyList> {
-        self.clbits.py_cached_regs(py).clone_ref(py)
+    pub fn py_cregs(&self, py: Python<'_>) -> &Py<PyList> {
+        self.clbits.py_cached_regs(py)
     }
 
     /// Setter for registers, in case of forced updates.
@@ -254,8 +276,8 @@ impl CircuitData {
     /// Returns:
     ///     list(:class:`.Clbit`): The current sequence of registered clbits.
     #[getter("clbits")]
-    pub fn py_clbits(&self, py: Python<'_>) -> Py<PyList> {
-        self.clbits.py_cached_bits(py).clone_ref(py)
+    pub fn py_clbits(&self, py: Python<'_>) -> &Py<PyList> {
+        self.clbits.py_cached_bits(py)
     }
 
     /// Return the number of clbits. This is equivalent to the length of the list returned by
@@ -424,7 +446,7 @@ impl CircuitData {
     ///
     /// Returns:
     ///     tuple[set[:class:`.Qubit`], set[:class:`.Clbit`]]: The active qubits and clbits.
-    pub fn active_bits(&mut self, py: Python<'_>) -> PyResult<Py<PyTuple>> {
+    pub fn active_bits(&self, py: Python<'_>) -> PyResult<Py<PyTuple>> {
         let qubits = PySet::empty_bound(py)?;
         let clbits = PySet::empty_bound(py)?;
         for inst in self.data.iter() {
@@ -548,14 +570,28 @@ impl CircuitData {
     ///             CircuitInstruction(XGate(), [qr[1]], []),
     ///             CircuitInstruction(XGate(), [qr[0]], []),
     ///         ])
-    #[pyo3(signature = (qubits=None, clbits=None))]
+    #[pyo3(signature = (qubits=None, clbits=None, qregs=None, cregs=None))]
     pub fn replace_bits(
         &mut self,
         py: Python<'_>,
         qubits: Option<&Bound<PyAny>>,
         clbits: Option<&Bound<PyAny>>,
+        qregs: Option<&Bound<PyAny>>,
+        cregs: Option<&Bound<PyAny>>,
     ) -> PyResult<()> {
         let mut temp = CircuitData::py_new(py, qubits, clbits, None, 0, self.global_phase.clone())?;
+        // Add qregs if provided.
+        if let Some(qregs) = qregs {
+            for qreg in qregs.iter()? {
+                temp.py_add_qreg(&qreg?)?;
+            }
+        }
+        // Add cregs if provided.
+        if let Some(cregs) = cregs {
+            for creg in cregs.iter()? {
+                temp.py_add_creg(&creg?)?;
+            }
+        }
         if qubits.is_some() {
             if temp.num_qubits() < self.num_qubits() {
                 return Err(PyValueError::new_err(format!(
@@ -584,9 +620,9 @@ impl CircuitData {
     }
 
     // Note: we also rely on this to make us iterable!
-    pub fn __getitem__(&mut self, py: Python, index: PySequenceIndex) -> PyResult<PyObject> {
+    pub fn __getitem__(&self, py: Python, index: PySequenceIndex) -> PyResult<PyObject> {
         // Get a single item, assuming the index is validated as in bounds.
-        let mut get_single = |index: usize| -> PyResult<PyObject> {
+        let get_single = |index: usize| -> PyResult<PyObject> {
             let inst = &self.data[index];
             let qubits = self.qargs_interner.get(inst.qubits);
             let clbits = self.cargs_interner.get(inst.clbits);

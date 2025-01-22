@@ -518,7 +518,7 @@ where
     /// bit instances.
     /// Panics if any of the indices are out of range.
     pub fn py_map_indices(
-        &mut self,
+        &self,
         py: Python,
         bits: &[T],
     ) -> PyResult<impl ExactSizeIterator<Item = &Py<PyAny>>> {
@@ -533,16 +533,6 @@ where
     /// bit index.
     #[inline]
     pub fn py_get_bit(&self, py: Python, index: T) -> PyResult<Option<&PyObject>> {
-        /*
-        For this method we want to make sure a couple of things are done first:
-
-        - First off, the method needs mutable access to all of `BitData` for a couple
-          of reasons, but mainly because it needs to be able to initialize the `OnceCell`
-          for both the `Bit` instance as well as the register.
-
-          There is a problem with this as it could cause two mutable references to `BitData`.
-          How do we solve this? I guess we solved it LOL
-         */
         let index_as_usize = BitType::from(index) as usize;
         // First check if the cell is in range if not, return none
         if self.bits.get(index_as_usize).is_none() {
@@ -550,7 +540,7 @@ where
         }
         // If the bit has an assigned register, check if it has been initialized.
         else if let Some(bit_info) = self.bit_info[index_as_usize].first() {
-            // If it is not initalized and has a register, initialize the register
+            // If it is not initalized and has a register, initialize the first register
             // and retrieve it from there the first time
             if self.bits[index_as_usize].get().is_none() {
                 // A register index is guaranteed to exist in the instance of `BitData`.
@@ -743,20 +733,14 @@ where
 
         for index in indices_sorted.into_iter().rev() {
             self.py_cached_bits(py).bind(py).del_item(index)?;
-            let bit = self
-                .py_get_bit(py, (index as BitType).into())?
-                .unwrap()
-                .clone_ref(py);
+            let bit = self.py_get_bit(py, (index as BitType).into())?.unwrap();
             self.indices.remove(&BitAsKey::new(bit.bind(py)));
             self.bits.remove(index);
             self.bit_info.remove(index);
         }
         // Update indices.
         for i in 0..self.bits.len() {
-            let bit = self
-                .py_get_bit(py, (i as BitType).into())?
-                .unwrap()
-                .clone_ref(py);
+            let bit = self.py_get_bit(py, (i as BitType).into())?.unwrap();
             self.indices
                 .insert(BitAsKey::new(bit.bind(py)), (i as BitType).into());
         }

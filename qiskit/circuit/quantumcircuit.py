@@ -1419,6 +1419,8 @@ class QuantumCircuit:
         result._data.replace_bits(
             qubits=_copy.deepcopy(self._data.qubits, memo),
             clbits=_copy.deepcopy(self._data.clbits, memo),
+            qregs=_copy.deepcopy(self._data.qregs, memo),
+            cregs=_copy.deepcopy(self._data.cregs, memo),
         )
         return result
 

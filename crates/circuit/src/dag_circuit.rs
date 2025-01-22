@@ -6677,16 +6677,12 @@ impl DAGCircuit {
         }
 
         // Add all the registers
-        if let Some(qregs) = qc.qregs {
-            for qreg in qregs.iter() {
-                new_dag.add_qreg(py, &qreg)?;
-            }
+        for qreg in qc_data.py_qregs(py).bind(py).iter() {
+            new_dag.add_qreg(py, &qreg)?;
         }
 
-        if let Some(cregs) = qc.cregs {
-            for creg in cregs.iter() {
-                new_dag.add_creg(py, &creg)?;
-            }
+        for creg in qc_data.py_cregs(py).bind(py).iter() {
+            new_dag.add_creg(py, &creg)?;
         }
 
         // Pre-process and re-intern all indices again.
@@ -6754,8 +6750,6 @@ impl DAGCircuit {
             name: None,
             calibrations: None,
             metadata: None,
-            qregs: None,
-            cregs: None,
             input_vars: Vec::new(),
             captured_vars: Vec::new(),
             declared_vars: Vec::new(),
