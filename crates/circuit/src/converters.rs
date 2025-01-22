@@ -13,8 +13,8 @@
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
 
-use ::pyo3::prelude::*;
 use hashbrown::HashMap;
+use pyo3::prelude::*;
 use pyo3::{intern, types::PyDict};
 
 use crate::dag_circuit::{DAGCircuit, NodeType};
@@ -49,15 +49,15 @@ impl<'py> FromPyObject<'py> for QuantumCircuitData<'py> {
             metadata: ob.getattr(intern!(py, "metadata")).ok(),
             input_vars: ob
                 .call_method0(intern!(py, "iter_input_vars"))?
-                .iter()?
+                .try_iter()?
                 .collect::<PyResult<Vec<_>>>()?,
             captured_vars: ob
                 .call_method0(intern!(py, "iter_captured_vars"))?
-                .iter()?
+                .try_iter()?
                 .collect::<PyResult<Vec<_>>>()?,
             declared_vars: ob
                 .call_method0(intern!(py, "iter_declared_vars"))?
-                .iter()?
+                .try_iter()?
                 .collect::<PyResult<Vec<_>>>()?,
         })
     }
@@ -93,7 +93,7 @@ pub fn dag_to_circuit(
         dag.qargs_interner().clone(),
         dag.cargs_interner().clone(),
         dag.topological_op_nodes()?.map(|node_index| {
-            let NodeType::Operation(ref instr) = dag.dag()[node_index] else {
+            let NodeType::Operation(ref instr) = dag[node_index] else {
                 unreachable!(
                     "The received node from topological_op_nodes() is not an Operation node."
                 )

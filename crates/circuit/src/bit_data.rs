@@ -97,7 +97,7 @@ where
             description,
             bits: Vec::new(),
             indices: HashMap::new(),
-            cached: PyList::empty_bound(py).unbind(),
+            cached: PyList::empty(py).unbind(),
         }
     }
 
@@ -106,7 +106,7 @@ where
             description,
             bits: Vec::with_capacity(capacity),
             indices: HashMap::with_capacity(capacity),
-            cached: PyList::empty_bound(py).unbind(),
+            cached: PyList::empty(py).unbind(),
         }
     }
 
@@ -194,7 +194,7 @@ where
             .try_insert(BitAsKey::new(bit), idx.into())
             .is_ok()
         {
-            self.bits.push(bit.into_py(py));
+            self.bits.push(bit.clone().unbind());
             self.cached.bind(py).append(bit)?;
         } else if strict {
             return Err(PyValueError::new_err(format!(
@@ -433,10 +433,11 @@ where
     #[inline]
     pub fn py_cached_bits(&self, py: Python) -> &Py<PyList> {
         self.cached_py_bits.get_or_init(|| {
-            PyList::new_bound(
+            PyList::new(
                 py,
                 (0..self.len()).map(|idx| self.py_get_bit(py, (idx as u32).into()).unwrap()),
             )
+            .unwrap()
             .into()
         })
     }
@@ -446,10 +447,11 @@ where
     #[inline]
     pub fn py_cached_regs(&self, py: Python) -> &Py<PyList> {
         self.cached_py_regs.get_or_init(|| {
-            PyList::new_bound(
+            PyList::new(
                 py,
                 (0..self.len_regs()).map(|idx| self.py_get_register(py, idx as u32).unwrap()),
             )
+            .unwrap()
             .into()
         })
     }
@@ -598,7 +600,7 @@ where
                     .collect::<PyResult<_>>()?;
 
                 // Extract kwargs
-                let kwargs = PyDict::new_bound(py);
+                let kwargs = PyDict::new(py);
                 kwargs.set_item("name", register.name())?;
                 kwargs.set_item("bits", bits)?;
 
@@ -646,7 +648,7 @@ where
         {
             self.py_cached_bits(py).bind(py).append(bit)?;
             self.bit_info.push(vec![]);
-            self.bits.push(bit.into_py(py).into());
+            self.bits.push(bit.clone().unbind().into());
             // self.cached.bind(py).append(bit)?;
         } else if strict {
             return Err(PyValueError::new_err(format!(
@@ -682,7 +684,7 @@ where
         })?;
 
         let bits: Vec<T> = register
-            .iter()?
+            .try_iter()?
             .map(|bit| -> PyResult<T> {
                 let bit = bit?;
                 if let Some(idx) = self.indices.get(&BitAsKey::new(&bit)) {
