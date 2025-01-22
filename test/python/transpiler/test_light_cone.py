@@ -13,17 +13,19 @@
 """Test the LightCone pass"""
 
 import unittest
+from qiskit.circuit.library.n_local.efficient_su2 import efficient_su2
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 import numpy as np
 
 from qiskit.circuit import ParameterVector, QuantumCircuit, QuantumRegister
 from qiskit.circuit.classicalregister import ClassicalRegister
-from qiskit.circuit.library import RealAmplitudes
+from qiskit.circuit.library import real_amplitudes
 from qiskit.quantum_info import Operator, Pauli
 from qiskit.transpiler.passes import RemoveFinalMeasurements
 from qiskit.transpiler.passes.optimization.light_cone import LightCone
 from qiskit.transpiler.passmanager import PassManager
+from qiskit.quantum_info import Statevector
 
 # Missing cases:
 #   - Rotational gates with notable angles (0, np.pi);
@@ -35,26 +37,28 @@ class TestLightConePass(QiskitTestCase):
 
     def __init__(self, methodName: str = "runTest") -> None:
         super().__init__(methodName)
-        self.num_qubits = 4
 
-    def test_parametrized_Z_observable(self):
+    def test_large_circuit(self):
         """Test the LightCone pass can be run for large circuits."""
 
         num_qubits = 120
-        qc = RealAmplitudes(num_qubits, entanglement="pairwise", reps=3).decompose()
-        pm = PassManager([LightCone(Pauli("I" * (num_qubits - 1) + "Z"))])
+        qc = real_amplitudes(num_qubits, entanglement="pairwise", reps=3).decompose()
+        pm = PassManager([LightCone(Pauli("Z" + "I" * (num_qubits - 1)))])
+        pm.run(qc)
+
+    def test_parametrized(self):
+        """Test the LightCone pass with a parameterized circuit."""
+
+        num_qubits = 4
+        qc = real_amplitudes(num_qubits, entanglement="pairwise", reps=3)
+        pm = PassManager([LightCone(Pauli("Z" + "I" * (num_qubits - 1)))])
         new_circuit = pm.run(qc)
 
-    def test_parametrized_Z_observable(self):
-        """Test the LightCone pass with a single Z observable."""
+        self.assertEqual(new_circuit.num_parameters, 11)
 
-        qc = RealAmplitudes(self.num_qubits, entanglement="pairwise", reps=3).decompose()
-        pm = PassManager([LightCone(Pauli("I" * (self.num_qubits - 1) + "Z"))])
-        new_circuit = pm.run(qc)
-
-        qr = QuantumRegister(self.num_qubits)
+        qr = QuantumRegister(num_qubits)
         expected = QuantumCircuit(qr)
-        theta = ParameterVector("θ", self.num_qubits**2)
+        theta = ParameterVector("θ", num_qubits**2)
 
         expected.ry(theta[0], qr[0])
         expected.ry(theta[1], qr[1])
@@ -75,22 +79,48 @@ class TestLightConePass(QiskitTestCase):
         expected.cx(qr[2], qr[3])
         expected.ry(theta[15], qr[3])
 
-        params = np.random.rand(11)
+        rng = np.random.default_rng(0)
+        params = rng.uniform(-1, 1, 11)
         new_circuit.assign_parameters(params, inplace=True)
         expected.assign_parameters(params, inplace=True)
 
         self.assertEqual(Operator(expected), Operator(new_circuit))
 
-    def test_parametrized_doubleZ_observable(self):
-        """Test the LightCone pass with a double Z observable."""
+    def test_expectation_value(self):
+        """
+        Test the LightCone pass with a double Z observable. This test has a symmetric observable.
+        """
 
-        qc = RealAmplitudes(self.num_qubits, entanglement="pairwise", reps=3).decompose()
-        pm = PassManager([LightCone(Pauli("Z" + "I" * (self.num_qubits - 2) + "Z"))])
+        num_qubits = 8
+        qc = efficient_su2(num_qubits, entanglement="pairwise", reps=3)
+        pauli = Pauli("IIIXIIIZ")
+        pm = PassManager([LightCone(pauli)])
         new_circuit = pm.run(qc)
 
-        qr = QuantumRegister(self.num_qubits)
+        theta = qc.parameters
+
+        rng = np.random.default_rng(0)
+        params = {t: rng.uniform(-1.0, 1.0) for t in theta}
+        new_circuit.assign_parameters(params, strict=False, inplace=True)
+        qc.assign_parameters(params, strict=False, inplace=True)
+
+        expected_value = Statevector(qc).expectation_value(pauli)
+        new_value = Statevector(new_circuit).expectation_value(pauli)
+        np.testing.assert_almost_equal(expected_value, new_value)
+
+    def test_parametrized_doubleZ_observable(self):
+        """
+        Test the LightCone pass with a double Z observable. This test has a symmetric observable.
+        """
+
+        num_qubits = 4
+        qc = real_amplitudes(num_qubits, entanglement="pairwise", reps=3).decompose()
+        pm = PassManager([LightCone(Pauli("Z" + "I" * (num_qubits - 2) + "Z"))])
+        new_circuit = pm.run(qc)
+
+        qr = QuantumRegister(num_qubits)
         expected = QuantumCircuit(qr)
-        theta = ParameterVector("θ", self.num_qubits**2)
+        theta = qc.parameters
 
         expected.ry(theta[0], qr[0])
         expected.ry(theta[1], qr[1])
@@ -115,15 +145,17 @@ class TestLightConePass(QiskitTestCase):
         expected.cx(qr[2], qr[3])
         expected.ry(theta[15], qr[3])
 
-        params = np.random.rand(14)
-        new_circuit.assign_parameters(params, inplace=True)
-        expected.assign_parameters(params, inplace=True)
+        rng = np.random.default_rng(0)
+        params = {t: rng.uniform(-1.0, 1.0) for t in theta}
+        new_circuit.assign_parameters(params, strict=False, inplace=True)
+        expected.assign_parameters(params, strict=False, inplace=True)
 
         self.assertEqual(Operator(expected), Operator(new_circuit))
 
     def test_parametrized_measurement(self):
         """Test the LightCone pass with measurements."""
-        qc = RealAmplitudes(self.num_qubits, entanglement="pairwise", reps=3).decompose()
+        num_qubits = 4
+        qc = real_amplitudes(num_qubits, entanglement="pairwise", reps=3).decompose()
         qc.add_register(ClassicalRegister(2))
         qc.measure(1, 0)
         qc.measure(3, 1)
@@ -131,10 +163,10 @@ class TestLightConePass(QiskitTestCase):
         pm = PassManager([LightCone(), RemoveFinalMeasurements()])
         new_circuit = pm.run(qc)
 
-        qr = QuantumRegister(self.num_qubits)
+        qr = QuantumRegister(num_qubits)
         expected = QuantumCircuit(qr)
 
-        theta = ParameterVector("θ", self.num_qubits**2)
+        theta = ParameterVector("θ", num_qubits**2)
 
         expected.ry(theta[0], qr[0])
         expected.ry(theta[1], qr[1])
@@ -174,13 +206,14 @@ class TestLightConePass(QiskitTestCase):
         before the `PassManager` run.
         """
 
-        qc = RealAmplitudes(self.num_qubits, entanglement="pairwise", reps=3).decompose()
-        pm = PassManager([LightCone(Pauli("Y" + ("I" * (self.num_qubits - 2)) + "Y"))])
+        num_qubits = 4
+        qc = real_amplitudes(num_qubits, entanglement="pairwise", reps=3).decompose()
+        pm = PassManager([LightCone(Pauli("Y" + ("I" * (num_qubits - 2)) + "Y"))])
         params = np.random.rand(16)
         qc.assign_parameters(params, inplace=True)
         new_circuit = pm.run(qc)
 
-        qr = QuantumRegister(self.num_qubits)
+        qr = QuantumRegister(num_qubits)
         expected = QuantumCircuit(qr)
 
         expected.ry(params[0], qr[0])
@@ -209,9 +242,10 @@ class TestLightConePass(QiskitTestCase):
     def test_all_commuting(self):
         """Test the LightCone pass for a circuit that fully commutes with an observable."""
 
-        qr = QuantumRegister(self.num_qubits)
+        num_qubits = 4
+        qr = QuantumRegister(num_qubits)
         qc = QuantumCircuit(qr)
-        pm = PassManager([LightCone(Pauli("Z" + "I" * (self.num_qubits - 1)))])
+        pm = PassManager([LightCone(Pauli("I" * (num_qubits - 1) + "Z"))])
 
         qc.s(qr[0])
         qc.z(qr[0])
@@ -228,11 +262,10 @@ class TestLightConePass(QiskitTestCase):
         one by one and commuting blocks are thus ignored.
         """
 
-        qr = QuantumRegister(self.num_qubits + 1)
+        num_qubits = 4
+        qr = QuantumRegister(num_qubits + 1)
         qc = QuantumCircuit(qr)
-        pm = PassManager(
-            [LightCone(Pauli("I" * (self.num_qubits - 2) + "X" + "I" * (self.num_qubits - 2)))]
-        )
+        pm = PassManager([LightCone(Pauli("I" * (num_qubits - 2) + "X" + "I" * (num_qubits - 2)))])
 
         qc.cx(qr[2], qr[1])
         qc.cx(qr[3], qr[4])
@@ -242,7 +275,7 @@ class TestLightConePass(QiskitTestCase):
         qc.x(qr[1])
         qc.cx(qr[2], qr[1])
 
-        qr = QuantumRegister(self.num_qubits + 1)
+        qr = QuantumRegister(num_qubits + 1)
         expected = QuantumCircuit(qr)
 
         expected.cx(qr[2], qr[1])

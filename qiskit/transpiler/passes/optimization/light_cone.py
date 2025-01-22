@@ -73,7 +73,7 @@ class LightCone(TransformationPass):
 
     def _get_initial_lightcone(
         self, dag: DAGCircuit
-    ) -> tuple[set[int], tuple[Instruction, list[int]]]:
+    ) -> tuple[set[int], list[tuple[PauliGate, list[int]]]]:
         """Returns the initial lightcone.
         If obervable is `None`, the lightcone is the set of measured qubits.
         If a Pauli observable is provided, the qubit corresponding to
@@ -84,17 +84,20 @@ class LightCone(TransformationPass):
             light_cone = qubits_measured
             light_cone_ops = [(PauliGate("Z"), [qubit_index]) for qubit_index in light_cone]
         else:
-            pauli_string = str(self.observable)
             # Check if the size of the observable matches the number of qubits in the circuit
-            if len(pauli_string) != len(dag.qubits):
+            if self.observable.num_qubits != dag.num_qubits():
                 raise ValueError(
                     "Observable size does not match the number of qubits in the circuit."
                 )
-            stripped_pauli_string = pauli_string.replace("I", "")
-            if len(stripped_pauli_string) == 0:
-                raise ValueError("Observable is the identity operator.")
-            light_cone = [dag.qubits[i] for i, p in enumerate(pauli_string) if p != "I"]
-            light_cone_ops = [(PauliGate(stripped_pauli_string), light_cone)]
+            # stripped_pauli = pauli_string.replace("I", "")
+            # if len(stripped_pauli_string) == 0:
+            #     raise ValueError("Observable is the identity operator.")
+            non_trivial_indices = [i for i, p in enumerate(self.observable) if p != Pauli("I")]
+            light_cone = [dag.qubits[i] for i in non_trivial_indices]
+            stripped_pauli_label = "".join(
+                [self.observable[i].to_label() for i in reversed(non_trivial_indices)]
+            )
+            light_cone_ops = [(PauliGate(stripped_pauli_label), light_cone)]
 
         return set(light_cone), light_cone_ops
 
@@ -125,10 +128,7 @@ class LightCone(TransformationPass):
                 # Check commutation with all previous operations
                 commutes_bool = True
                 for op in light_cone_ops:
-                    print("A", op)
-                    print("B", node.op)
                     commute_bool = commutator.commute(op[0], op[1], [], node.op, node.qargs, [])
-                    print("Success")
                     if not commute_bool:
                         # If the current node does not commute, update the light cone
                         light_cone.update(node.qargs)
