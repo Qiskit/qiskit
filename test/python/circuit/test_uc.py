@@ -75,8 +75,10 @@ class TestUCGate(QiskitTestCase):
             unitary = np.dot(diag, unitary)
 
         unitary_desired = _get_ucg_matrix(squs)
-
-        self.assertTrue(matrix_equal(unitary_desired, unitary, ignore_phase=True))
+        self.assertTrue(
+            matrix_equal(unitary_desired, unitary, ignore_phase=True),
+            f"{unitary_desired}\ndoes not equal\n{unitary}",
+        )
 
     def test_global_phase_ucg(self):
         """Test global phase of uniformly controlled gates"""
