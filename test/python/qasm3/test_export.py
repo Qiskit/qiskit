@@ -2665,6 +2665,23 @@ switch (switch_dummy_0) {
         test = dumps(qc, experimental=ExperimentalFeatures.SWITCH_CASE_V1)
         self.assertEqual(test, expected)
 
+    def test_circuit_with_unitary(self):
+        """Test that circuits with `unitary` gate are correctly handled"""
+        matrix = [[0, 1], [1, 0]]
+        qc = QuantumCircuit(1)
+        qc.unitary(matrix, [0])
+        expected = """\
+OPENQASM 3.0;
+include "stdgates.inc";
+gate unitary _gate_q_0 {
+  U(pi, -pi, 0) _gate_q_0;
+}
+qubit[1] q;
+unitary q[0];
+"""
+        test = dumps(qc)
+        self.assertEqual(test, expected)
+
 
 @ddt
 class TestQASM3ExporterFailurePaths(QiskitTestCase):
