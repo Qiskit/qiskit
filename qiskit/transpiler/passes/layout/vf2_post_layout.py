@@ -78,8 +78,7 @@ class VF2PostLayout(AnalysisPass):
         * ``">2q gates in basis"``: If VF2PostLayout can't work with the basis of the circuit.
 
     By default, this pass will construct a heuristic scoring map based on
-    the error rates in the provided ``target`` (or ``properties`` if ``target``
-    is not provided). However, analysis passes can be run prior to this pass
+    the error rates in the provided ``target``. However, analysis passes can be run prior to this pass
     and set ``vf2_avg_error_map`` in the property set with a :class:`~.ErrorMap`
     instance. If a value is ``NaN`` that is treated as an ideal edge
     For example if an error map is created as::
@@ -103,7 +102,6 @@ class VF2PostLayout(AnalysisPass):
         self,
         target=None,
         coupling_map=None,
-        properties=None,
         seed=None,
         call_limit=None,
         time_limit=None,
@@ -114,12 +112,8 @@ class VF2PostLayout(AnalysisPass):
 
         Args:
             target (Target): A target representing the backend device to run ``VF2PostLayout`` on.
-                If specified it will supersede a set value for ``properties`` and
-                ``coupling_map``.
+                If specified it will supersede a set value for ``coupling_map``.
             coupling_map (CouplingMap): Directed graph representing a coupling map.
-            properties (BackendProperties): The backend properties for the backend. If
-                :meth:`~qiskit.providers.models.BackendProperties.readout_error` is available
-                it is used to score the layout.
             seed (int): Sets the seed of the PRNG. -1 Means no node shuffling.
             call_limit (int): The number of state visits to attempt in each execution of
                 VF2.
@@ -143,7 +137,6 @@ class VF2PostLayout(AnalysisPass):
         super().__init__()
         self.target = target
         self.coupling_map = coupling_map
-        self.properties = properties
         self.call_limit = call_limit
         self.time_limit = time_limit
         self.max_trials = max_trials
@@ -153,15 +146,13 @@ class VF2PostLayout(AnalysisPass):
 
     def run(self, dag):
         """run the layout method"""
-        if self.target is None and (self.coupling_map is None or self.properties is None):
-            raise TranspilerError(
-                "A target must be specified or a coupling map and properties must be provided"
-            )
+        if self.target is None and self.coupling_map is None:
+            raise TranspilerError("A target must be specified or a coupling map must be provided")
         if not self.strict_direction:
             self.avg_error_map = self.property_set["vf2_avg_error_map"]
             if self.avg_error_map is None:
                 self.avg_error_map = vf2_utils.build_average_error_map(
-                    self.target, self.properties, self.coupling_map
+                    self.target, self.coupling_map
                 )
 
         result = vf2_utils.build_interaction_graph(dag, self.strict_direction)

@@ -2008,41 +2008,10 @@ class TestTargetFromConfiguration(QiskitTestCase):
         self.assertEqual({(0,), (1,), (2,)}, target["u"].keys())
         self.assertEqual({(0, 1), (1, 2), (2, 0)}, target["cx"].keys())
 
-    def test_properties(self):
-        with self.assertWarns(DeprecationWarning):
-            fake_backend = Fake5QV1()
-        config = fake_backend.configuration()
-        properties = fake_backend.properties()
-        target = Target.from_configuration(
-            basis_gates=config.basis_gates,
-            num_qubits=config.num_qubits,
-            coupling_map=CouplingMap(config.coupling_map),
-            backend_properties=properties,
-        )
-        self.assertEqual(0, target["rz"][(0,)].error)
-        self.assertEqual(0, target["rz"][(0,)].duration)
-
-    def test_properties_with_durations(self):
-        with self.assertWarns(DeprecationWarning):
-            fake_backend = Fake5QV1()
-        config = fake_backend.configuration()
-        properties = fake_backend.properties()
-        durations = InstructionDurations([("rz", 0, 0.5)], dt=1.0)
-        target = Target.from_configuration(
-            basis_gates=config.basis_gates,
-            num_qubits=config.num_qubits,
-            coupling_map=CouplingMap(config.coupling_map),
-            backend_properties=properties,
-            instruction_durations=durations,
-            dt=config.dt,
-        )
-        self.assertEqual(0.5, target["rz"][(0,)].duration)
-
     def test_inst_map(self):
         with self.assertWarns(DeprecationWarning):
             fake_backend = Fake7QPulseV1()
         config = fake_backend.configuration()
-        properties = fake_backend.properties()
         defaults = fake_backend.defaults()
         constraints = TimingConstraints(**config.timing_constraints)
         with self.assertWarns(DeprecationWarning):
@@ -2050,7 +2019,6 @@ class TestTargetFromConfiguration(QiskitTestCase):
                 basis_gates=config.basis_gates,
                 num_qubits=config.num_qubits,
                 coupling_map=CouplingMap(config.coupling_map),
-                backend_properties=properties,
                 dt=config.dt,
                 inst_map=defaults.instruction_schedule_map,
                 timing_constraints=constraints,
