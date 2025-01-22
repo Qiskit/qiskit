@@ -1201,7 +1201,7 @@ dependencies = [
  "rustiq-core",
  "rustworkx-core",
  "smallvec",
- "thiserror 1.0.69",
+ "thiserror 2.0.11",
 ]
 
 [[package]]
@@ -1221,7 +1221,7 @@ dependencies = [
  "rayon",
  "rustworkx-core",
  "smallvec",
- "thiserror 1.0.69",
+ "thiserror 2.0.11",
 ]
 
 [[package]]
