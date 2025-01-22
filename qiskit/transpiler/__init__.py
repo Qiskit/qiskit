@@ -82,7 +82,7 @@ The function :func:`.generate_preset_pass_manager` creates the "preset pass mana
 These are all instances of :class:`.PassManager`, so are used by pass a :class:`.QuantumCircuit` to
 the :meth:`.PassManager.run` method.  More specifically, the preset pass managers are instances of
 :class:`.StagedPassManager`, which allows greater configuration of the individual stages of a
-tranpsilation.
+tranpsilation, include pre- and post-stage hooks.
 
 A preset pass manager has up to six named stages.  These are summarized, in order of execution,
 below, with more in-depth information in the following subsections.
@@ -123,7 +123,8 @@ put into attempting to optimize the circuit for the hardware.  Level 0 disables 
 optimizations; only transformations needed to make the circuit runnable at all will be present.  On
 the other end, level 3 enables a full barrage of optimization techniques, some of which can be very
 expensive in compilation time.  Similar to classical compilers, optimization level 3 is not always
-guaranteed to produce the best results.  Qiskit defaults to optimization level 2.
+guaranteed to produce the best results.  Qiskit defaults to optimization level 2, as a trade-off
+between compilation time and the expected amount of optimization.
 
 The optimization level affects which implementations are used for a given stage by default, though
 this can be overridden by passing explicit ``<stage>_method="<choice>"`` arguments to
