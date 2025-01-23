@@ -67,14 +67,23 @@ class BlueprintCircuit(QuantumCircuit, ABC):
 
     def _invalidate(self) -> None:
         """Invalidate the current circuit build."""
+        # Take out the registers before invalidating
+        qregs = self._data.qregs
+        cregs = self._data.cregs
         self._data = CircuitData(self._data.qubits, self._data.clbits)
+        for qreg in qregs:
+            self._data.add_qreg(qreg)
+        for creg in cregs:
+            self._data.add_creg(creg)
         self.global_phase = 0
         self._is_built = False
 
     @property
     def qregs(self):
         """A list of the quantum registers associated with the circuit."""
-        return self._qregs
+        if not self._is_initialized:
+            return self._qregs
+        return super().qregs
 
     @qregs.setter
     def qregs(self, qregs):

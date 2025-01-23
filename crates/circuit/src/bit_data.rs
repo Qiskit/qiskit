@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::bit::BitInfo;
+use crate::bit::{BitInfo, BitLocation};
 use crate::circuit_data::CircuitError;
 use crate::imports::{CLASSICAL_REGISTER, QUANTUM_REGISTER, REGISTER};
 use crate::register::{Register, RegisterAsKey};
@@ -247,7 +247,7 @@ pub struct NewBitData<T: From<BitType>, R: Register + Hash + Eq> {
     /// Maps Register keys to indices
     reg_keys: HashMap<RegisterAsKey, u32>,
     /// Mapping between bit index and its register info
-    bit_info: Vec<Vec<BitInfo>>,
+    bit_info: Vec<BitInfo>,
     /// Registers in the circuit
     registry: Vec<R>,
     /// Registers in Python
@@ -312,12 +312,20 @@ where
     }
 
     /// Adds a register onto the [BitData] of the circuit.
+    ///
+    /// _**Note:** If providing the ``bits`` argument, the bits must exist in the circuit._
     pub fn add_register(
         &mut self,
         name: Option<String>,
         size: Option<usize>,
         bits: Option<&[T]>,
     ) -> u32 {
+        let idx = self.registry.len().try_into().unwrap_or_else(|_| {
+            panic!(
+                "The {} registry in this circuit has reached its maximum capacity.",
+                self.description
+            )
+        });
         match (size, bits) {
             (None, None) => panic!("You should at least provide either a size or the bit indices."),
             (None, Some(bits)) => {
@@ -326,24 +334,19 @@ where
                 } else {
                     bits.into()
                 };
-                let idx = self.registry.len().try_into().unwrap_or_else(|_| {
-                    panic!(
-                        "The {} registry in this circuit has reached its maximum capacity.",
-                        self.description
-                    )
-                });
                 // Add register info cancel if any qubit is duplicated
                 for (bit_idx, bit) in bits.iter().enumerate() {
                     let bit_info = &mut self.bit_info[BitType::from(*bit) as usize];
-                    bit_info.push(BitInfo::new(
+                    bit_info.add_register(
                         idx,
                         bit_idx.try_into().unwrap_or_else(|_| {
                             panic!(
-                                "The current register exceeds its capacity limit. Bits {}",
+                                "The current register exceeds its capacity limit. Number of {} : {}",
+                                self.description,
                                 reg.len()
                             )
                         }),
-                    ))
+                    );
                 }
                 self.reg_keys.insert(reg.as_key().clone(), idx);
                 self.registry.push(reg);
@@ -351,7 +354,20 @@ where
                 idx
             }
             (Some(size), None) => {
-                let bits: Vec<T> = (0..size).map(|_| self.add_bit()).collect();
+                let bits: Vec<T> = (0..size)
+                    .map(|bit| {
+                        self.add_bit_inner(Some((
+                            idx,
+                            bit.try_into().unwrap_or_else(|_| {
+                                panic!(
+                                    "The current register exceeds its capacity limit. Number of {} : {}",
+                                    self.description,
+                                    size
+                                )
+                            }),
+                        )))
+                    })
+                    .collect();
                 let reg: R = if let Some(name) = name {
                     (bits.as_slice(), name).into()
                 } else {
@@ -378,20 +394,24 @@ where
     ///
     /// _**Note:** You cannot add bits to registers once they are added._
     pub fn add_bit(&mut self) -> T {
+        self.add_bit_inner(None)
+    }
+
+    fn add_bit_inner(&mut self, reg: Option<(u32, u32)>) -> T {
         let idx: BitType = self.bits.len().try_into().unwrap_or_else(|_| {
             panic!(
                 "The number of {} in the circuit has exceeded the maximum capacity",
                 self.description
             )
         });
-        self.bit_info.push(vec![]);
+        self.bit_info.push(BitInfo::new(reg));
         self.bits.push(OnceLock::new());
         idx.into()
     }
 
     /// Retrieves the register info of a bit. Will panic if the index is out of range.
-    pub fn get_bit_info(&self, index: T) -> &[BitInfo] {
-        self.bit_info[BitType::from(index) as usize].as_ref()
+    pub fn get_bit_info(&self, index: T) -> &[BitLocation] {
+        self.bit_info[BitType::from(index) as usize].get_registers()
     }
 
     /// Retrieves a register by its index within the circuit
@@ -417,11 +437,20 @@ where
     pub fn contains_register_by_key(&self, reg: &RegisterAsKey) -> bool {
         self.reg_keys.contains_key(reg)
     }
+}
 
-    // =======================
-    //        PyMethods
-    // =======================
-
+// PyMethods
+impl<T, R> NewBitData<T, R>
+where
+    T: From<BitType> + Copy + Debug + ToPyBit,
+    R: Register<Bit = T>
+        + Hash
+        + Eq
+        + From<(usize, Option<String>)>
+        + for<'a> From<&'a [T]>
+        + for<'a> From<(&'a [T], String)>,
+    BitType: From<T>,
+{
     /// Finds the native bit index of the given Python bit.
     #[inline]
     pub fn py_find_bit(&self, bit: &Bound<PyAny>) -> Option<T> {
@@ -541,8 +570,8 @@ where
             Ok(None)
         }
         // If the bit has an assigned register, check if it has been initialized.
-        else if let Some(bit_info) = self.bit_info[index_as_usize].first() {
-            // If it is not initalized and has a register, initialize the first register
+        else if let Some(bit_info) = self.bit_info[index_as_usize].orig_register_index() {
+            // If it is not initalized and has a register, initialize the original register
             // and retrieve it from there the first time
             if self.bits[index_as_usize].get().is_none() {
                 // A register index is guaranteed to exist in the instance of `BitData`.
@@ -647,7 +676,7 @@ where
             .is_ok()
         {
             self.py_cached_bits(py).bind(py).append(bit)?;
-            self.bit_info.push(vec![]);
+            self.bit_info.push(BitInfo::new(None));
             self.bits.push(bit.clone().unbind().into());
             // self.cached.bind(py).append(bit)?;
         } else if strict {
@@ -676,7 +705,7 @@ where
             )));
         }
 
-        let _: u32 = self.registers.len().try_into().map_err(|_| {
+        let idx: u32 = self.registers.len().try_into().map_err(|_| {
             PyRuntimeError::new_err(format!(
                 "The number of {} registers in the circuit has exceeded the maximum capacity",
                 self.description
@@ -685,13 +714,23 @@ where
 
         let bits: Vec<T> = register
             .try_iter()?
-            .map(|bit| -> PyResult<T> {
+            .enumerate()
+            .map(|(bit_index, bit)| -> PyResult<T> {
+                let bit_index: u32 = bit_index.try_into().map_err(|_| {
+                    CircuitError::new_err(format!(
+                        "The current register exceeds its capacity limit. Number of {} : {}",
+                        self.description,
+                        key.size()
+                    ))
+                })?;
                 let bit = bit?;
-                if let Some(idx) = self.indices.get(&BitAsKey::new(&bit)) {
-                    Ok(*idx)
+                let index = if let Some(idx) = self.indices.get(&BitAsKey::new(&bit)) {
+                    *idx
                 } else {
-                    self.py_add_bit(&bit, true)
-                }
+                    self.py_add_bit(&bit, true)?
+                };
+                self.bit_info[BitType::from(index) as usize].add_register(idx, bit_index);
+                Ok(index)
             })
             .collect::<PyResult<_>>()?;
 
@@ -708,7 +747,7 @@ where
     pub fn py_set_registers(&mut self, other: &Bound<PyList>) -> PyResult<()> {
         // First invalidate everything related to registers
         // This is done to ensure we regenerate the lost information
-        // Do not touch qubits.
+        // self.bit_info.clear()
 
         self.reg_keys.clear();
         self.registers.clear();
@@ -787,7 +826,7 @@ where
                 .collect(),
             indices: bit_data.indices.clone(),
             reg_keys: HashMap::new(),
-            bit_info: (0..bit_data.len()).map(|_| vec![]).collect(),
+            bit_info: (0..bit_data.len()).map(|_| BitInfo::new(None)).collect(),
             registry: Vec::new(),
             registers: Vec::new(),
             cached_py_bits: OnceLock::new(),

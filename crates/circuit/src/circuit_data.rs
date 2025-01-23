@@ -13,7 +13,7 @@
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
 
-use crate::bit::BitInfo;
+use crate::bit::BitLocation;
 use crate::bit_data::NewBitData;
 use crate::circuit_instruction::{
     CircuitInstruction, ExtraInstructionAttributes, OperationFromPython,
@@ -1089,7 +1089,7 @@ impl CircuitData {
     }
 
     /// Get qubit location in the circuit
-    pub fn get_qubit_location(&self, qubit: Qubit) -> &[BitInfo] {
+    pub fn get_qubit_location(&self, qubit: Qubit) -> &[BitLocation] {
         self.qubits.get_bit_info(qubit)
     }
 
@@ -1119,7 +1119,7 @@ impl CircuitData {
     }
 
     /// Get qubit location in the circuit
-    pub fn get_clbit_location(&self, clbit: Clbit) -> &[BitInfo] {
+    pub fn get_clbit_location(&self, clbit: Clbit) -> &[BitLocation] {
         self.clbits.get_bit_info(clbit)
     }
 

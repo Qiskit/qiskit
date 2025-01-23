@@ -40,7 +40,7 @@ impl RegisterAsKey {
     }
 
     #[inline]
-    pub fn index(&self) -> u32 {
+    pub fn size(&self) -> u32 {
         match self {
             RegisterAsKey::Register(key) => key.1,
             RegisterAsKey::Quantum(key) => key.1,
