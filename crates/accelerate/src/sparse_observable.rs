@@ -1987,9 +1987,10 @@ impl PySparseObservable {
     /// The coefficients of each abstract term in in the sum.  This has as many elements as terms in
     /// the sum.
     #[getter]
-    fn get_coeffs(slf_: Py<Self>) -> ArrayView {
+    fn get_coeffs(slf_: &Bound<Self>) -> ArrayView {
+        let borrowed = slf_.borrow();
         ArrayView {
-            base: slf_,
+            base: borrowed.inner.clone(),
             slot: ArraySlot::Coeffs,
         }
     }
@@ -1997,9 +1998,10 @@ impl PySparseObservable {
     /// A flat list of single-qubit terms.  This is more naturally a list of lists, but is stored
     /// flat for memory usage and locality reasons, with the sublists denoted by `boundaries.`
     #[getter]
-    fn get_bit_terms(slf_: Py<Self>) -> ArrayView {
+    fn get_bit_terms(slf_: &Bound<Self>) -> ArrayView {
+        let borrowed = slf_.borrow();
         ArrayView {
-            base: slf_,
+            base: borrowed.inner.clone(),
             slot: ArraySlot::BitTerms,
         }
     }
@@ -2013,9 +2015,10 @@ impl PySparseObservable {
     ///     If writing to this attribute from Python space, you *must* ensure that you only write in
     ///     indices that are term-wise sorted.
     #[getter]
-    fn get_indices(slf_: Py<Self>) -> ArrayView {
+    fn get_indices(slf_: &Bound<Self>) -> ArrayView {
+        let borrowed = slf_.borrow();
         ArrayView {
-            base: slf_,
+            base: borrowed.inner.clone(),
             slot: ArraySlot::Indices,
         }
     }
@@ -2026,9 +2029,10 @@ impl PySparseObservable {
     /// unspecified qubit indices are implicitly the identity.  This is one item longer than
     /// :attr:`coeffs`, since ``boundaries[0]`` is always an explicit zero (for algorithmic ease).
     #[getter]
-    fn get_boundaries(slf_: Py<Self>) -> ArrayView {
+    fn get_boundaries(slf_: &Bound<Self>) -> ArrayView {
+        let borrowed = slf_.borrow();
         ArrayView {
-            base: slf_,
+            base: borrowed.inner.clone(),
             slot: ArraySlot::Boundaries,
         }
     }
@@ -3185,14 +3189,13 @@ enum ArraySlot {
 /// Python space.
 #[pyclass(frozen, sequence)]
 struct ArrayView {
-    base: Py<PySparseObservable>,
+    base: Arc<RwLock<SparseObservable>>,
     slot: ArraySlot,
 }
 #[pymethods]
 impl ArrayView {
     fn __repr__(&self, py: Python) -> PyResult<String> {
-        let borrowed = self.base.borrow(py);
-        let obs = borrowed.inner.read().map_err(|_| InnerReadError)?;
+        let obs = self.base.read().map_err(|_| InnerReadError)?;
         let data = match self.slot {
             // Simple integers look the same in Rust-space debug as Python.
             ArraySlot::Indices => format!("{:?}", obs.indices()),
@@ -3245,8 +3248,7 @@ impl ArrayView {
             }
         }
 
-        let borrowed = self.base.borrow(py);
-        let obs = borrowed.inner.read().map_err(|_| InnerReadError)?;
+        let obs = self.base.read().map_err(|_| InnerReadError)?;
         match self.slot {
             ArraySlot::Coeffs => get_from_slice::<_, Complex64>(py, obs.coeffs(), index),
             ArraySlot::BitTerms => get_from_slice::<_, u8>(py, obs.bit_terms(), index),
@@ -3308,8 +3310,7 @@ impl ArrayView {
             }
         }
 
-        let borrowed = self.base.borrow(values.py());
-        let mut obs = borrowed.inner.write().map_err(|_| InnerWriteError)?;
+        let mut obs = self.base.write().map_err(|_| InnerWriteError)?;
         match self.slot {
             ArraySlot::Coeffs => set_in_slice::<_, Complex64>(obs.coeffs_mut(), index, values),
             ArraySlot::BitTerms => set_in_slice::<BitTerm, u8>(obs.bit_terms_mut(), index, values),
@@ -3322,9 +3323,8 @@ impl ArrayView {
         }
     }
 
-    fn __len__(&self, py: Python) -> PyResult<usize> {
-        let borrowed = self.base.borrow(py);
-        let obs = borrowed.inner.read().map_err(|_| InnerReadError)?;
+    fn __len__(&self, _py: Python) -> PyResult<usize> {
+        let obs = self.base.read().map_err(|_| InnerReadError)?;
         let len = match self.slot {
             ArraySlot::Coeffs => obs.coeffs().len(),
             ArraySlot::BitTerms => obs.bit_terms().len(),
@@ -3350,8 +3350,7 @@ impl ArrayView {
                 "cannot produce a safe view onto movable memory",
             ));
         }
-        let borrowed = self.base.borrow(py);
-        let obs = borrowed.inner.read().map_err(|_| InnerReadError)?;
+        let obs = self.base.read().map_err(|_| InnerReadError)?;
         match self.slot {
             ArraySlot::Coeffs => cast_array_type(py, PyArray1::from_slice(py, obs.coeffs()), dtype),
             ArraySlot::Indices => {
@@ -3426,7 +3425,7 @@ fn coerce_to_observable<'py>(
         }
     }
 }
-pub fn py_sparse_observable(m: &Bound<PyModule>) -> PyResult<()> {
+pub fn sparse_observable(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<PySparseObservable>()?;
     Ok(())
 }
