@@ -2558,7 +2558,7 @@ class TestPostTranspileIntegration(QiskitTestCase):
             num_qubits=20,
             coupling_map=TOKYO_CMAP,
             basis_gates=["id", "u1", "u2", "u3", "cx"],
-            control_flow=True
+            control_flow=True,
         )
 
         transpiled = transpile(

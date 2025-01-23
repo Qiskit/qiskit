@@ -618,7 +618,7 @@ def generate_scheduling(
         )
     if scheduling_method:
         # Call padding pass if circuit is scheduled
-        scheduling.append(PadDelay(target=target))
+        scheduling.append(PadDelay(target=target, durations=instruction_durations))
 
     return scheduling
 

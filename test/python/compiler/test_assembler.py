@@ -275,7 +275,6 @@ class TestCircuitAssembler(QiskitTestCase):
         self.assertEqual(qobj.experiments[0].instructions[4].params[0], 0.300000000000000)
         self.assertEqual(qobj.experiments[0].instructions[5].params[0], 0.600000000000000)
 
-
     def test_assemble_circuits_raises_for_bind_circuit_mismatch(self):
         """Verify assemble_circuits raises error for parameterized circuits without matching
         binds."""

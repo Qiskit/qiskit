@@ -41,6 +41,7 @@ from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
+from qiskit.circuit.duration import duration_in_dt
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.pulse.calibration_entries import CalibrationEntry, ScheduleDef
 from qiskit.pulse.schedule import Schedule, ScheduleBlock
@@ -968,6 +969,18 @@ class Target(BaseTarget):
         self._instruction_durations = state["instruction_durations"]
         self._instruction_schedule_map = state["instruction_schedule_map"]
         super().__setstate__(state["base"])
+
+    def convert_to_dt(self, duration: float) -> int:
+        """Convert a given duration in seconds to units of dt
+
+        Args:
+            duration: The duration in seconds, such as in an :class:`.InstructionProperties`
+                field for an instruction in the target.
+
+        Returns
+            duration: The duration in units of dt
+        """
+        return duration_in_dt(duration, self.dt)
 
     @classmethod
     @deprecate_pulse_arg("inst_map")
