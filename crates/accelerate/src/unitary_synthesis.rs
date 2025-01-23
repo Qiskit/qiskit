@@ -422,7 +422,6 @@ fn run_2q_unitary_synthesis(
         match decomposer_item.decomposer {
             DecomposerType::TwoQubitBasis(_) => {
                 let synth = synth_su4_sequence(
-                    py,
                     &unitary,
                     decomposer_item,
                     preferred_dir,
@@ -432,7 +431,6 @@ fn run_2q_unitary_synthesis(
             }
             DecomposerType::TwoQubitControlledU(_) => {
                 let synth = synth_su4_sequence(
-                    py,
                     &unitary,
                     decomposer_item,
                     preferred_dir,
@@ -466,13 +464,8 @@ fn run_2q_unitary_synthesis(
         )?;
         match &decomposer.decomposer {
             DecomposerType::TwoQubitBasis(_) => {
-                let sequence = synth_su4_sequence(
-                    py,
-                    &unitary,
-                    decomposer,
-                    preferred_dir,
-                    approximation_degree,
-                )?;
+                let sequence =
+                    synth_su4_sequence(&unitary, decomposer, preferred_dir, approximation_degree)?;
                 let scoring_info =
                     sequence
                         .gate_sequence
@@ -503,13 +496,8 @@ fn run_2q_unitary_synthesis(
                 synth_errors_sequence.push((sequence, synth_error_from_target));
             }
             DecomposerType::TwoQubitControlledU(_) => {
-                let sequence = synth_su4_sequence(
-                    py,
-                    &unitary,
-                    decomposer,
-                    preferred_dir,
-                    approximation_degree,
-                )?;
+                let sequence =
+                    synth_su4_sequence(&unitary, decomposer, preferred_dir, approximation_degree)?;
                 let scoring_info =
                     sequence
                         .gate_sequence
@@ -769,7 +757,6 @@ fn get_2q_decomposers_from_target(
     for basis_1q in &available_1q_basis {
         for (_basis_2q, gate) in available_2q_param_basis.iter() {
             let decomposer = TwoQubitControlledUDecomposer::new_inner(
-                py,
                 RXXEquivalent::Standard(gate.operation.standard_gate()),
                 basis_1q,
             )?;
@@ -977,7 +964,6 @@ fn preferred_direction(
 }
 
 fn synth_su4_sequence(
-    py: Python,
     su4_mat: &Array2<Complex64>,
     decomposer_2q: &DecomposerElement,
     preferred_direction: Option<bool>,
@@ -987,7 +973,7 @@ fn synth_su4_sequence(
     let synth = if let DecomposerType::TwoQubitBasis(decomp) = &decomposer_2q.decomposer {
         decomp.call_inner(su4_mat.view(), None, is_approximate, None)?
     } else if let DecomposerType::TwoQubitControlledU(decomp) = &decomposer_2q.decomposer {
-        decomp.call_inner(py, su4_mat.view(), DEFAULT_ATOL)?
+        decomp.call_inner(su4_mat.view(), DEFAULT_ATOL)?
     } else {
         unreachable!("synth_su4_sequence should only be called for TwoQubitBasisDecomposer.")
     };
@@ -1019,7 +1005,6 @@ fn synth_su4_sequence(
                     };
                     if synth_dir != preferred_dir {
                         reversed_synth_su4_sequence(
-                            py,
                             su4_mat.clone(),
                             decomposer_2q,
                             approximation_degree,
@@ -1034,7 +1019,6 @@ fn synth_su4_sequence(
 }
 
 fn reversed_synth_su4_sequence(
-    py: Python,
     mut su4_mat: Array2<Complex64>,
     decomposer_2q: &DecomposerElement,
     approximation_degree: Option<f64>,
@@ -1051,7 +1035,7 @@ fn reversed_synth_su4_sequence(
     let synth = if let DecomposerType::TwoQubitBasis(decomp) = &decomposer_2q.decomposer {
         decomp.call_inner(su4_mat.view(), None, is_approximate, None)?
     } else if let DecomposerType::TwoQubitControlledU(decomp) = &decomposer_2q.decomposer {
-        decomp.call_inner(py, su4_mat.view(), DEFAULT_ATOL)?
+        decomp.call_inner(su4_mat.view(), DEFAULT_ATOL)?
     } else {
         unreachable!(
             "reversed_synth_su4_sequence should only be called for TwoQubitBasisDecomposer."
