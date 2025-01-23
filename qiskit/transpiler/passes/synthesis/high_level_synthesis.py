@@ -16,6 +16,7 @@ High-level-synthesis transpiler pass.
 
 from __future__ import annotations
 
+import dataclasses
 import typing
 from collections.abc import Callable
 
@@ -125,32 +126,20 @@ class HLSConfig:
         self.methods[hls_name] = hls_methods
 
 
+@dataclasses.dataclass
 class HLSData:
     """Internal class for keeping immutable data required by HighLevelSynthesis."""
 
-    def __init__(
-        self,
-        hls_config,
-        hls_plugin_manager,
-        coupling_map,
-        target,
-        use_qubit_indices,
-        qubits_initially_zero,
-        equivalence_library,
-        min_qubits,
-        top_level_only,
-        device_insts,
-    ):
-        self.hls_config = hls_config
-        self.hls_plugin_manager = hls_plugin_manager
-        self.coupling_map = coupling_map
-        self.target = target
-        self.use_qubit_indices = use_qubit_indices
-        self.qubits_initially_zero = qubits_initially_zero
-        self.equivalence_library = equivalence_library
-        self.min_qubits = min_qubits
-        self.top_level_only = top_level_only
-        self.device_insts = device_insts
+    hls_config: HLSConfig
+    hls_plugin_manager: HighLevelSynthesisPluginManager
+    coupling_map: CouplingMap | None
+    target: Target | None
+    use_qubit_indices: bool
+    equivalence_library: EquivalenceLibrary | None
+    min_qubits: int
+    unroll_definitions: bool
+    device_insts,
+
 
 
 class HighLevelSynthesis(TransformationPass):
@@ -256,14 +245,16 @@ class HighLevelSynthesis(TransformationPass):
         if target is not None:
             coupling_map = target.build_coupling_map()
 
-        top_level_only = basis_gates is None and target is None
+        unroll_definitions = not(basis_gates is None and target is None)
 
         # include path for when target exists but target.num_qubits is None (BasicSimulator)
-        if not top_level_only and (target is None or target.num_qubits is None):
+        if unroll_definitions and (target is None or target.num_qubits is None):
             basic_insts = {"measure", "reset", "barrier", "snapshot", "delay", "store"}
             device_insts = basic_insts | set(basis_gates)
         else:
             device_insts = set()
+
+        self.qubits_initially_zero = qubits_initially_zero
 
         self.data = HLSData(
             hls_config=hls_config,
@@ -271,10 +262,9 @@ class HighLevelSynthesis(TransformationPass):
             coupling_map=coupling_map,
             target=target,
             use_qubit_indices=use_qubit_indices,
-            qubits_initially_zero=qubits_initially_zero,
             equivalence_library=equivalence_library,
             min_qubits=min_qubits,
-            top_level_only=top_level_only,
+            unroll_definitions=unroll_definitions,
             device_insts=device_insts,
         )
 
@@ -308,7 +298,7 @@ class HighLevelSynthesis(TransformationPass):
         circuit = dag_to_circuit(dag)
         input_qubits = list(range(circuit.num_qubits))
         tracker = QubitTracker(num_qubits=dag.num_qubits())
-        if self.data.qubits_initially_zero:
+        if self.qubits_initially_zero:
             tracker.set_clean(input_qubits)
         output_circuit, _ = _run(circuit, input_qubits, self.data, tracker)
         return circuit_to_dag(output_circuit)
@@ -522,7 +512,7 @@ def _synthesize_operation(
         )
 
     # If HLS did not apply, or was unsuccessful, try unrolling custom definitions.
-    if output_circuit is None and not data.top_level_only:
+    if output_circuit is None and data.unroll_definitions:
         output_circuit, output_qubits = _get_custom_definition(operation, input_qubits, data)
 
     if output_circuit is not None:
