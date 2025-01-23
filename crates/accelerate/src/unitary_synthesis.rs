@@ -45,7 +45,7 @@ use crate::nlayout::PhysicalQubit;
 use crate::target_transpiler::{NormalOperation, Target};
 use crate::two_qubit_decompose::{
     RXXEquivalent, TwoQubitBasisDecomposer, TwoQubitControlledUDecomposer, TwoQubitGateSequence,
-    TwoQubitWeylDecomposition, DEFAULT_ATOL,
+    TwoQubitWeylDecomposition,
 };
 use crate::QiskitError;
 
@@ -973,7 +973,7 @@ fn synth_su4_sequence(
     let synth = if let DecomposerType::TwoQubitBasis(decomp) = &decomposer_2q.decomposer {
         decomp.call_inner(su4_mat.view(), None, is_approximate, None)?
     } else if let DecomposerType::TwoQubitControlledU(decomp) = &decomposer_2q.decomposer {
-        decomp.call_inner(su4_mat.view(), DEFAULT_ATOL)?
+        decomp.call_inner(su4_mat.view(), None)?
     } else {
         unreachable!("synth_su4_sequence should only be called for TwoQubitBasisDecomposer.")
     };
@@ -1035,7 +1035,7 @@ fn reversed_synth_su4_sequence(
     let synth = if let DecomposerType::TwoQubitBasis(decomp) = &decomposer_2q.decomposer {
         decomp.call_inner(su4_mat.view(), None, is_approximate, None)?
     } else if let DecomposerType::TwoQubitControlledU(decomp) = &decomposer_2q.decomposer {
-        decomp.call_inner(su4_mat.view(), DEFAULT_ATOL)?
+        decomp.call_inner(su4_mat.view(), None)?
     } else {
         unreachable!(
             "reversed_synth_su4_sequence should only be called for TwoQubitBasisDecomposer."

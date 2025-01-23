@@ -2454,7 +2454,7 @@ pub struct TwoQubitControlledUDecomposer {
     scale: f64,
 }
 
-pub const DEFAULT_ATOL: f64 = 1e-12;
+const DEFAULT_ATOL: f64 = 1e-12;
 type InverseReturn = (Option<StandardGate>, SmallVec<[f64; 3]>, SmallVec<[u8; 2]>);
 
 ///  Decompose two-qubit unitary in terms of a desired
@@ -2680,7 +2680,7 @@ impl TwoQubitControlledUDecomposer {
     pub fn call_inner(
         &self,
         unitary: ArrayView2<Complex64>,
-        atol: f64,
+        atol: Option<f64>,
     ) -> PyResult<TwoQubitGateSequence> {
         let target_decomposed =
             TwoQubitWeylDecomposition::new_inner(unitary, Some(DEFAULT_FIDELITY), None)?;
@@ -2721,7 +2721,7 @@ impl TwoQubitControlledUDecomposer {
             gates,
             global_phase,
         };
-        self.weyl_gate(&mut gates1, target_decomposed, atol)?;
+        self.weyl_gate(&mut gates1, target_decomposed, atol.unwrap_or(DEFAULT_ATOL))?;
         global_phase += gates1.global_phase;
 
         if let Some(unitary_c1r) = unitary_c1r {
@@ -2830,12 +2830,12 @@ impl TwoQubitControlledUDecomposer {
         TwoQubitControlledUDecomposer::new_inner(rxx_equivalent_gate, euler_basis)
     }
 
-    #[pyo3(signature=(unitary, atol))]
+    #[pyo3(signature=(unitary, atol=None))]
     fn __call__(
         &self,
         py: Python,
         unitary: PyReadonlyArray2<Complex64>,
-        atol: f64,
+        atol: Option<f64>,
     ) -> PyResult<CircuitData> {
         let sequence = self.call_inner(unitary.as_array(), atol)?;
         match &self.rxx_equivalent_gate {
