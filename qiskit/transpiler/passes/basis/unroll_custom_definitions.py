@@ -67,7 +67,8 @@ class UnrollCustomDefinitions(TransformationPass):
         for node in dag.op_nodes():
             if isinstance(node.op, ControlFlowOp):
                 dag.substitute_node(
-                    node, control_flow.map_blocks(self.run, node.op),
+                    node,
+                    control_flow.map_blocks(self.run, node.op),
                 )
                 continue
 

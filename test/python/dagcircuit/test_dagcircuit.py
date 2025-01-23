@@ -2238,6 +2238,7 @@ class TestDagSubstitute(QiskitTestCase):
         with self.assertRaisesRegex(DAGCircuitError, "Cannot replace a node with a DAG with more"):
             src.substitute_node_with_dag(node, replace, wires={})
 
+
 @ddt
 class TestDagSubstituteNode(QiskitTestCase):
     """Test substituting a dagnode with a node."""
