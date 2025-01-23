@@ -332,27 +332,6 @@ class TestDecompose(QiskitTestCase):
 
         self.assertEqual(expected, decomposed)
 
-    def test_cif(self):
-        """Test decomposition with c_if."""
-        circuit = QuantumCircuit(1, 1)
-        with self.assertWarns(DeprecationWarning):
-            circuit.x(0).c_if(0, 0)
-
-        ops = circuit.decompose().count_ops()
-        self.assertEqual(ops.get("u3", 0), 1)
-
-    def test_cif_no_definition(self):
-        """Test decomposition with c_if when the gate has no definition.
-
-        Regression test of #13493.
-        """
-        circuit = QuantumCircuit(1, 1)
-        with self.assertWarns(DeprecationWarning):
-            circuit.u(1, 2, 3, 0).c_if(0, 0)
-
-        ops = circuit.decompose().count_ops()
-        self.assertEqual(ops.get("u", 0), 1)
-
     def test_control_flow_if(self):
         """Test decompose with control flow."""
         qr = QuantumRegister(2)

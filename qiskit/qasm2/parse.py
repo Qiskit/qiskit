@@ -255,37 +255,25 @@ def from_bytecode(bytecode, custom_instructions: Iterable[CustomInstruction]):
                 CircuitInstruction(gates[gate_id](*parameters), [qubits[q] for q in op_qubits])
             )
         elif opcode == OpCode.ConditionedGate:
-            warnings.warn(
-                "Conditioned gates in qasm2 will be loaded as an IfElseOp starting in Qiskit 2.0",
-                FutureWarning,
-                stacklevel=3,
-            )
             gate_id, parameters, op_qubits, creg, value = op.operands
-            gate = gates[gate_id](*parameters).c_if(qc.cregs[creg], value)
-            qc._append(CircuitInstruction(gate, [qubits[q] for q in op_qubits]))
+            with qc.if_test((qc.cregs[creg], value)):
+                gate = gates[gate_id](*parameters)
+                qc.append(gate, [qubits[q] for q in op_qubits])
         elif opcode == OpCode.Measure:
             qubit, clbit = op.operands
             qc._append(CircuitInstruction(Measure(), (qubits[qubit],), (clbits[clbit],)))
         elif opcode == OpCode.ConditionedMeasure:
-            warnings.warn(
-                "Conditioned measurements in qasm2 will be loaded as an IfElseOp starting in Qiskit 2.0",
-                FutureWarning,
-                stacklevel=3,
-            )
             qubit, clbit, creg, value = op.operands
-            measure = Measure().c_if(qc.cregs[creg], value)
-            qc._append(CircuitInstruction(measure, (qubits[qubit],), (clbits[clbit],)))
+            with qc.if_test((qc.cregs[creg], value)):
+                measure = Measure()
+                qc.append(measure, (qubits[qubit],), (clbits[clbit],))
         elif opcode == OpCode.Reset:
             qc._append(CircuitInstruction(Reset(), (qubits[op.operands[0]],)))
         elif opcode == OpCode.ConditionedReset:
-            warnings.warn(
-                "Conditioned resets in qasm2 will be loaded as an IfElseOp starting in Qiskit 2.0",
-                FutureWarning,
-                stacklevel=3,
-            )
             qubit, creg, value = op.operands
-            reset = Reset().c_if(qc.cregs[creg], value)
-            qc._append(CircuitInstruction(reset, (qubits[qubit],)))
+            with qc.if_test((qc.cregs[creg], value)):
+                reset = Reset()
+                qc.append(reset, (qubits[qubit],))
         elif opcode == OpCode.Barrier:
             op_qubits = op.operands[0]
             qc._append(CircuitInstruction(Barrier(len(op_qubits)), [qubits[q] for q in op_qubits]))
