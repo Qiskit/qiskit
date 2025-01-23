@@ -122,7 +122,8 @@ def generate_random_circuits():
         qc.measure_all()
         for j in range(i):
             qc.reset(j)
-        qc.x(0).c_if(qc.cregs[0], i)
+        with qc.if_test((qc.cregs[0], i)):
+            qc.x(0)
         for j in range(i):
             qc.measure(j, j)
         random_circuits.append(qc)
@@ -288,7 +289,8 @@ def generate_single_clbit_condition_teleportation():  # pylint: disable=invalid-
     teleport_qc = QuantumCircuit(qr, cr, name="Reset Test")
     teleport_qc.x(0)
     teleport_qc.measure(0, cr[0])
-    teleport_qc.x(0).c_if(cr[0], 1)
+    with teleport_qc.if_test((cr[0], 1)):
+        teleport_qc.x(0)
     teleport_qc.measure(0, cr[1])
     return teleport_qc
 
@@ -380,7 +382,8 @@ def generate_control_flow_circuits():
     body.h(0)
     body.cx(0, 1)
     body.measure(0, 0)
-    body.break_loop().c_if(0, True)
+    with body.if_test((0, True)):
+        body.break_loop()
     for_loop_op = ForLoopOp(range(5), None, body=body)
     qc.append(for_loop_op, [0, 1], [0])
     circuits.append(qc)
