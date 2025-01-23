@@ -17,19 +17,20 @@ use std::vec;
 use crate::circuit_data::CircuitData;
 use crate::imports::get_std_gate_class;
 use crate::imports::{PARAMETER_EXPRESSION, QUANTUM_CIRCUIT};
-use crate::{gate_matrix, Qubit};
+use crate::{gate_matrix, impl_intopyobject_for_copy_pyclass, Qubit};
 
 use ndarray::{aview2, Array2};
 use num_complex::Complex64;
 use smallvec::{smallvec, SmallVec};
 
 use numpy::IntoPyArray;
+use numpy::PyArray2;
 use numpy::PyReadonlyArray2;
 use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyFloat, PyIterator, PyList, PyTuple};
-use pyo3::{intern, IntoPy, Python};
+use pyo3::{intern, Python};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, IntoPyObject, IntoPyObjectRef)]
 pub enum Param {
     ParameterExpression(PyObject),
     Float(f64),
@@ -71,26 +72,6 @@ impl<'py> FromPyObject<'py> for Param {
     }
 }
 
-impl IntoPy<PyObject> for Param {
-    fn into_py(self, py: Python) -> PyObject {
-        match &self {
-            Self::Float(val) => val.to_object(py),
-            Self::ParameterExpression(val) => val.clone_ref(py),
-            Self::Obj(val) => val.clone_ref(py),
-        }
-    }
-}
-
-impl ToPyObject for Param {
-    fn to_object(&self, py: Python) -> PyObject {
-        match self {
-            Self::Float(val) => val.to_object(py),
-            Self::ParameterExpression(val) => val.clone_ref(py),
-            Self::Obj(val) => val.clone_ref(py),
-        }
-    }
-}
-
 impl Param {
     /// Get an iterator over any Python-space `Parameter` instances tracked within this `Param`.
     pub fn iter_parameters<'py>(&self, py: Python<'py>) -> PyResult<ParamParameterIter<'py>> {
@@ -98,13 +79,13 @@ impl Param {
         match self {
             Param::Float(_) => Ok(ParamParameterIter(None)),
             Param::ParameterExpression(expr) => Ok(ParamParameterIter(Some(
-                expr.bind(py).getattr(parameters_attr)?.iter()?,
+                expr.bind(py).getattr(parameters_attr)?.try_iter()?,
             ))),
             Param::Obj(obj) => {
                 let obj = obj.bind(py);
                 if obj.is_instance(QUANTUM_CIRCUIT.get_bound(py))? {
                     Ok(ParamParameterIter(Some(
-                        obj.getattr(parameters_attr)?.iter()?,
+                        obj.getattr(parameters_attr)?.try_iter()?,
                     )))
                 } else {
                     Ok(ParamParameterIter(None))
@@ -332,6 +313,7 @@ pub enum StandardGate {
     C3SXGate = 50,
     RC3XGate = 51,
 }
+impl_intopyobject_for_copy_pyclass!(StandardGate);
 
 unsafe impl ::bytemuck::CheckedBitPattern for StandardGate {
     type Bits = u8;
@@ -341,12 +323,6 @@ unsafe impl ::bytemuck::CheckedBitPattern for StandardGate {
     }
 }
 unsafe impl ::bytemuck::NoUninit for StandardGate {}
-
-impl ToPyObject for StandardGate {
-    fn to_object(&self, py: Python) -> Py<PyAny> {
-        (*self).into_py(py)
-    }
-}
 
 static STANDARD_GATE_NUM_QUBITS: [u32; STANDARD_GATE_SIZE] = [
     0, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 0-9
@@ -444,15 +420,14 @@ impl StandardGate {
     ) -> PyResult<Py<PyAny>> {
         let gate_class = get_std_gate_class(py, *self)?;
         let args = match params.unwrap_or(&[]) {
-            &[] => PyTuple::empty_bound(py),
-            params => PyTuple::new_bound(py, params),
+            &[] => PyTuple::empty(py),
+            params => PyTuple::new(py, params.iter().map(|x| x.into_pyobject(py).unwrap()))?,
         };
-        if label.is_some() {
-            let kwargs =
-                [("label", label.map(|x| x.as_ref()).to_object(py))].into_py_dict_bound(py);
-            gate_class.call_bound(py, args, Some(&kwargs))
+        if let Some(label) = label {
+            let kwargs = [("label", label.clone().into_pyobject(py)?)].into_py_dict(py)?;
+            gate_class.call(py, args, Some(&kwargs))
         } else {
-            gate_class.call_bound(py, args, None)
+            gate_class.call(py, args, None)
         }
     }
 
@@ -660,9 +635,12 @@ impl StandardGate {
     }
 
     // These pymethods are for testing:
-    pub fn _to_matrix(&self, py: Python, params: Vec<Param>) -> Option<PyObject> {
-        self.matrix(&params)
-            .map(|x| x.into_pyarray_bound(py).into())
+    pub fn _to_matrix<'py>(
+        &self,
+        py: Python<'py>,
+        params: Vec<Param>,
+    ) -> Option<Bound<'py, PyArray2<Complex64>>> {
+        self.matrix(&params).map(|x| x.into_pyarray(py))
     }
 
     pub fn _num_params(&self) -> u32 {
@@ -708,13 +686,13 @@ impl StandardGate {
     }
 
     #[getter]
-    pub fn get_gate_class(&self, py: Python) -> PyResult<Py<PyAny>> {
+    pub fn get_gate_class(&self, py: Python) -> PyResult<&'static Py<PyAny>> {
         get_std_gate_class(py, *self)
     }
 
     #[staticmethod]
-    pub fn all_gates(py: Python) -> Bound<PyList> {
-        PyList::new_bound(
+    pub fn all_gates(py: Python) -> PyResult<Bound<PyList>> {
+        PyList::new(
             py,
             (0..STANDARD_GATE_SIZE as u8).map(::bytemuck::checked::cast::<_, Self>),
         )

@@ -26,10 +26,10 @@ const PARALLEL_THRESHOLD: usize = 19;
 #[pulp::with_simd(fast_sum = pulp::Arch::new())]
 #[inline(always)]
 pub fn fast_sum_with_simd<S: Simd>(simd: S, values: &[f64]) -> f64 {
-    let (head, tail) = S::f64s_as_simd(values);
+    let (head, tail) = S::as_simd_f64s(values);
     let sum: f64 = head
         .iter()
-        .fold(0., |acc, chunk| acc + simd.f64s_reduce_sum(*chunk));
+        .fold(0., |acc, chunk| acc + simd.reduce_sum_f64s(*chunk));
     sum + tail.iter().sum::<f64>()
 }
 

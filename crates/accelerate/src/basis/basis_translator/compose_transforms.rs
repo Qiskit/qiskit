@@ -18,7 +18,7 @@ use qiskit_circuit::parameter_table::ParameterUuid;
 use qiskit_circuit::Qubit;
 use qiskit_circuit::{
     circuit_data::CircuitData,
-    dag_circuit::{DAGCircuit, NodeType},
+    dag_circuit::DAGCircuit,
     operations::{Operation, Param},
 };
 use smallvec::SmallVec;
@@ -83,30 +83,24 @@ pub(super) fn compose_transforms<'a>(
             for (_, dag) in &mut mapped_instructions.values_mut() {
                 let nodes_to_replace = dag
                     .op_nodes(true)
-                    .filter_map(|node| {
-                        if let Some(NodeType::Operation(op)) = dag.dag().node_weight(node) {
-                            if (gate_name.as_str(), *gate_num_qubits)
-                                == (op.op.name(), op.op.num_qubits())
-                            {
-                                Some((
-                                    node,
-                                    op.params_view()
-                                        .iter()
-                                        .map(|x| x.clone_ref(py))
-                                        .collect::<SmallVec<[Param; 3]>>(),
-                                ))
-                            } else {
-                                None
-                            }
-                        } else {
-                            None
-                        }
+                    .filter(|(_, op)| {
+                        (op.op.num_qubits() == *gate_num_qubits)
+                            && (op.op.name() == gate_name.as_str())
+                    })
+                    .map(|(node, op)| {
+                        (
+                            node,
+                            op.params_view()
+                                .iter()
+                                .map(|x| x.clone_ref(py))
+                                .collect::<SmallVec<[Param; 3]>>(),
+                        )
                     })
                     .collect::<Vec<_>>();
                 for (node, params) in nodes_to_replace {
                     let param_mapping: HashMap<ParameterUuid, Param> = equiv_params
                         .iter()
-                        .map(|x| ParameterUuid::from_parameter(x.to_object(py).bind(py)))
+                        .map(|x| ParameterUuid::from_parameter(&x.into_pyobject(py).unwrap()))
                         .zip(params)
                         .map(|(uuid, param)| -> PyResult<(ParameterUuid, Param)> {
                             Ok((uuid?, param.clone_ref(py)))
@@ -141,17 +135,15 @@ fn get_gates_num_params(
     dag: &DAGCircuit,
     example_gates: &mut HashMap<GateIdentifier, usize>,
 ) -> PyResult<()> {
-    for node in dag.op_nodes(true) {
-        if let Some(NodeType::Operation(op)) = dag.dag().node_weight(node) {
-            example_gates.insert(
-                (op.op.name().to_string(), op.op.num_qubits()),
-                op.params_view().len(),
-            );
-            if op.op.control_flow() {
-                let blocks = op.op.blocks();
-                for block in blocks {
-                    get_gates_num_params_circuit(&block, example_gates)?;
-                }
+    for (_, inst) in dag.op_nodes(true) {
+        example_gates.insert(
+            (inst.op.name().to_string(), inst.op.num_qubits()),
+            inst.params_view().len(),
+        );
+        if inst.op.control_flow() {
+            let blocks = inst.op.blocks();
+            for block in blocks {
+                get_gates_num_params_circuit(&block, example_gates)?;
             }
         }
     }
