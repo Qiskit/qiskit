@@ -113,28 +113,6 @@ class TestDecompose(QiskitTestCase):
         for node in op_nodes:
             self.assertIn(node.name, ["h", "t", "tdg", "cx"])
 
-    def test_decompose_conditional(self):
-        """Test decompose a 1-qubit gates with a conditional."""
-        qr = QuantumRegister(1, "qr")
-        cr = ClassicalRegister(1, "cr")
-        circuit = QuantumCircuit(qr, cr)
-        with self.assertWarns(DeprecationWarning):
-            circuit.h(qr).c_if(cr, 1)
-        with self.assertWarns(DeprecationWarning):
-            circuit.x(qr).c_if(cr, 1)
-        dag = circuit_to_dag(circuit)
-        pass_ = Decompose(HGate)
-        after_dag = pass_.run(dag)
-
-        ref_circuit = QuantumCircuit(qr, cr)
-        with self.assertWarns(DeprecationWarning):
-            ref_circuit.append(U2Gate(0, pi), [qr[0]]).c_if(cr, 1)
-        with self.assertWarns(DeprecationWarning):
-            ref_circuit.x(qr).c_if(cr, 1)
-        ref_dag = circuit_to_dag(ref_circuit)
-
-        self.assertEqual(after_dag, ref_dag)
-
     def test_decompose_oversized_instruction(self):
         """Test decompose on a single-op gate that doesn't use all qubits."""
         # ref: https://github.com/Qiskit/qiskit-terra/issues/3440

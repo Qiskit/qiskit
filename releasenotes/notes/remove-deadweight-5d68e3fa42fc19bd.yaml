@@ -37,3 +37,5 @@ upgrade_transpiler:
     :meth:`~.DAGCircuit.substitute_node_with_dag` and :meth:`~.DAGCircuit.substitute_node` has been
     removed. These arguments were deprecated in Qiskit 1.4.0 and were removed because the larger
     removal of ``Instruction.condition`` it no longer served a purpose.
+  - |
+    The previously deprecated ``AlignMeasures`` transpiler pass has been removed.
