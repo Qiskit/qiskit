@@ -21,10 +21,17 @@ from ddt import ddt, data
 import numpy as np
 
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
-from qiskit.circuit import Qubit, Gate, ControlFlowOp, ForLoopOp
+from qiskit.circuit import Qubit, Gate, ControlFlowOp, ForLoopOp, Measure
 from qiskit.compiler import transpile
-from qiskit.transpiler import CouplingMap, Layout, PassManager, TranspilerError, Target
-from qiskit.circuit.library import U2Gate, U3Gate, QuantumVolume, CXGate, CZGate, XGate
+from qiskit.transpiler import (
+    CouplingMap,
+    Layout,
+    PassManager,
+    TranspilerError,
+    Target,
+    InstructionProperties,
+)
+from qiskit.circuit.library import U2Gate, U3Gate, quantum_volume, CXGate, CZGate, XGate
 from qiskit.transpiler.passes import (
     ALAPScheduleAnalysis,
     PadDynamicalDecoupling,
@@ -32,7 +39,7 @@ from qiskit.transpiler.passes import (
 )
 from qiskit.providers.fake_provider import Fake5QV1, Fake20QV1, GenericBackendV2
 from qiskit.converters import circuit_to_dag
-from qiskit.circuit.library import GraphState
+from qiskit.circuit.library import GraphStateGate
 from qiskit.quantum_info import random_unitary
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.transpiler.preset_passmanagers import level0, level1, level2, level3
@@ -268,7 +275,7 @@ class TestPresetPassManager(QiskitTestCase):
             basis_gates=["id", "u1", "u2", "u3", "cx"],
             seed=42,
         )
-        qv_circuit = QuantumVolume(3)
+        qv_circuit = quantum_volume(3)
         gates_in_basis_true_count = 0
         consolidate_blocks_count = 0
 
@@ -342,6 +349,24 @@ class TestTranspileLevels(QiskitTestCase):
                 circuit(), backend=backend, optimization_level=level, seed_transpiler=42
             )
         self.assertIsInstance(result, QuantumCircuit)
+
+    @data(0, 1, 2, 3)
+    def test_quantum_volume_function_transpile(self, opt_level):
+        """Test quantum_volume transpilation."""
+        qc = quantum_volume(10, 10, 12345)
+        backend = GenericBackendV2(
+            num_qubits=100,
+            basis_gates=["cz", "rz", "sx", "x", "id"],
+            coupling_map=CouplingMap.from_grid(10, 10),
+        )
+        pm = generate_preset_pass_manager(opt_level, backend)
+        res = pm.run(qc)
+        for inst in res.data:
+            self.assertTrue(
+                backend.target.instruction_supported(
+                    inst.operation.name, qargs=tuple(res.find_bit(x).index for x in inst.qubits)
+                )
+            )
 
 
 @ddt
@@ -1029,7 +1054,7 @@ class TestFinalLayouts(QiskitTestCase):
 
         adjacency_matrix = np.zeros((20, 20))
         adjacency_matrix[rows, cols] = 1
-        qc = GraphState(adjacency_matrix)
+        qc = GraphStateGate(adjacency_matrix).definition
         qc.measure_all()
         expected = {
             0: Qubit(QuantumRegister(20, "q"), 0),
@@ -1780,3 +1805,50 @@ class TestIntegrationControlFlow(QiskitTestCase):
             _ = generate_preset_pass_manager(
                 optimization_level=optimization_level, basis_gates=basis_gates, backend=backend
             )
+
+    @data(0, 1, 2, 3)
+    def test_custom_measurement_subclass(self, optimization_level):
+        """Test that a custom measurement subclass is treated appropriately."""
+        backend = GenericBackendV2(num_qubits=2)
+
+        class CustomMeasurement(Measure):
+            """A custom specialized measurement."""
+
+            def __init__(self, label=None):
+                super().__init__(label=label)
+                self.name = "custom_measure"
+
+        backend = GenericBackendV2(num_qubits=2, coupling_map=[[0, 1]], control_flow=True)
+        backend.target.add_instruction(
+            CustomMeasurement(),
+            {
+                (0,): InstructionProperties(error=1e-2, duration=1e-8),
+                (1,): InstructionProperties(error=1e-2, duration=1e-8),
+            },
+        )
+        pm = generate_preset_pass_manager(backend=backend, optimization_level=optimization_level)
+        qc = QuantumCircuit(2, 3)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.append(CustomMeasurement(), [0], [0])
+        qc.append(CustomMeasurement(), [1], [1])
+        qc.reset(0)
+        with qc.if_test((qc.clbits[0], 1)):
+            qc.x(0)
+        with qc.if_test((qc.clbits[1], 1)):
+            qc.z(0)
+        qc.measure(0, 2)
+        res = pm.run(qc)
+        counts = res.count_ops()
+        self.assertIn("custom_measure", counts)
+        self.assertEqual(counts["custom_measure"], 2)
+        encountered = 0
+        for inst in res.data:
+            if inst.name == "custom_measure":
+                encountered += 1
+                self.assertIsInstance(inst.operation, CustomMeasurement)
+                self.assertIsInstance(inst.operation, Measure)
+
+        self.assertEqual(
+            encountered, 2, "Despite count ops no custom measurements were encountered"
+        )

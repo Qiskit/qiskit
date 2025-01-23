@@ -12,6 +12,7 @@
 
 use pyo3::prelude::*;
 use pyo3::types::PyTuple;
+use pyo3::IntoPyObjectExt;
 
 use hashbrown::HashMap;
 
@@ -122,17 +123,14 @@ impl<'py> Iterator for BroadcastQubitsIter<'py> {
             BroadcastItem::Register(bits) => bits[offset].clone_ref(self.py),
         };
         self.offset += 1;
-        Some(PyTuple::new_bound(
-            self.py,
-            self.items.iter().map(to_scalar),
-        ))
+        Some(PyTuple::new(self.py, self.items.iter().map(to_scalar)).unwrap())
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
         (self.len - self.offset, Some(self.len - self.offset))
     }
 }
-impl<'py> ExactSizeIterator for BroadcastQubitsIter<'py> {}
+impl ExactSizeIterator for BroadcastQubitsIter<'_> {}
 
 struct BroadcastMeasureIter<'a, 'py> {
     py: Python<'py>,
@@ -142,7 +140,7 @@ struct BroadcastMeasureIter<'a, 'py> {
     carg: &'a BroadcastItem,
 }
 
-impl<'a, 'py> Iterator for BroadcastMeasureIter<'a, 'py> {
+impl<'py> Iterator for BroadcastMeasureIter<'_, 'py> {
     type Item = (Bound<'py, PyTuple>, Bound<'py, PyTuple>);
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -156,8 +154,8 @@ impl<'a, 'py> Iterator for BroadcastMeasureIter<'a, 'py> {
         };
         self.offset += 1;
         Some((
-            PyTuple::new_bound(self.py, &[to_scalar(self.qarg)]),
-            PyTuple::new_bound(self.py, &[to_scalar(self.carg)]),
+            PyTuple::new(self.py, &[to_scalar(self.qarg)]).unwrap(),
+            PyTuple::new(self.py, &[to_scalar(self.carg)]).unwrap(),
         ))
     }
 
@@ -165,7 +163,7 @@ impl<'a, 'py> Iterator for BroadcastMeasureIter<'a, 'py> {
         (self.len - self.offset, Some(self.len - self.offset))
     }
 }
-impl<'a, 'py> ExactSizeIterator for BroadcastMeasureIter<'a, 'py> {}
+impl ExactSizeIterator for BroadcastMeasureIter<'_, '_> {}
 
 fn broadcast_bits_for_identifier<T: PyRegister>(
     py: Python,
@@ -177,7 +175,10 @@ fn broadcast_bits_for_identifier<T: PyRegister>(
         Ok(BroadcastItem::Bit(bit.clone()))
     } else if let Some(reg) = registers.get(iden_symbol) {
         Ok(BroadcastItem::Register(
-            reg.bit_list(py).iter().map(|obj| obj.into_py(py)).collect(),
+            reg.bit_list(py)
+                .iter()
+                .map(|obj| obj.into_py_any(py).unwrap())
+                .collect(),
         ))
     } else {
         Err(QASM3ImporterError::new_err(format!(

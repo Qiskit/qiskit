@@ -83,7 +83,7 @@ struct RoutingState<'a, 'b> {
     seed: u64,
 }
 
-impl<'a, 'b> RoutingState<'a, 'b> {
+impl RoutingState<'_, '_> {
     /// Apply a swap to the program-state structures (front layer, extended set and current
     /// layout).
     #[inline]
@@ -470,9 +470,9 @@ pub fn sabre_routing(
     );
     (
         res.map,
-        res.node_order.into_pyarray_bound(py).into(),
+        res.node_order.into_pyarray(py).into_any().unbind(),
         res.node_block_results,
-        PyArray::from_iter_bound(
+        PyArray::from_iter(
             py,
             (0u32..neighbor_table.num_qubits().try_into().unwrap()).map(|phys| {
                 PhysicalQubit::new(phys)
@@ -480,7 +480,8 @@ pub fn sabre_routing(
                     .to_phys(&final_layout)
             }),
         )
-        .into(),
+        .into_any()
+        .unbind(),
     )
 }
 

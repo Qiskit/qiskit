@@ -314,8 +314,8 @@ def _define_custom_operation(operation, gates_to_define):
     # definition, but still continue to return the given object as the call-site object.
     if operation.base_class in known_good_parameterized:
         parameterized_operation = type(operation)(*_FIXED_PARAMETERS[: len(operation.params)])
-    elif hasattr(operation, "_qasm2_decomposition"):
-        new_op = operation._qasm2_decomposition()
+    elif hasattr(operation, "_qasm_decomposition"):
+        new_op = operation._qasm_decomposition()
         parameterized_operation = operation = new_op.copy(name=_escape_name(new_op.name, "gate_"))
     else:
         parameterized_operation = operation
