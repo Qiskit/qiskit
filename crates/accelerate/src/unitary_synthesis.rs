@@ -115,7 +115,7 @@ fn apply_synth_dag(
     synth_dag: &DAGCircuit,
 ) -> PyResult<()> {
     for out_node in synth_dag.topological_op_nodes()? {
-        let mut out_packed_instr = synth_dag.dag()[out_node].unwrap_operation().clone();
+        let mut out_packed_instr = synth_dag[out_node].unwrap_operation().clone();
         let synth_qargs = synth_dag.get_qargs(out_packed_instr.qubits);
         let mapped_qargs: Vec<Qubit> = synth_qargs
             .iter()
@@ -249,7 +249,7 @@ fn py_run_main_loop(
 
     // Iterate over dag nodes and determine unitary synthesis approach
     for node in dag.topological_op_nodes()? {
-        let mut packed_instr = dag.dag()[node].unwrap_operation().clone();
+        let mut packed_instr = dag[node].unwrap_operation().clone();
 
         if packed_instr.op.control_flow() {
             let OperationRef::Instruction(py_instr) = packed_instr.op.view() else {
@@ -259,7 +259,7 @@ fn py_run_main_loop(
                 .instruction
                 .getattr(py, "blocks")?
                 .bind(py)
-                .iter()?
+                .try_iter()?
                 .collect();
             let mut new_blocks = Vec::with_capacity(raw_blocks.len());
             for raw_block in raw_blocks {
@@ -376,7 +376,7 @@ fn py_run_main_loop(
             // Run 3q+ synthesis
             _ => {
                 let qs_decomposition: &Bound<'_, PyAny> = imports::QS_DECOMPOSITION.get_bound(py);
-                let synth_circ = qs_decomposition.call1((unitary.into_pyarray_bound(py),))?;
+                let synth_circ = qs_decomposition.call1((unitary.into_pyarray(py),))?;
                 let synth_dag = circuit_to_dag(
                     py,
                     QuantumCircuitData::extract_bound(&synth_circ)?,
@@ -539,7 +539,7 @@ fn run_2q_unitary_synthesis(
                     .topological_op_nodes()
                     .expect("Unexpected error in dag.topological_op_nodes()")
                     .map(|node| {
-                        let NodeType::Operation(inst) = &synth_dag.dag()[node] else {
+                        let NodeType::Operation(inst) = &synth_dag[node] else {
                             unreachable!("DAG node must be an instruction")
                         };
                         let inst_qubits = synth_dag
@@ -812,7 +812,7 @@ fn get_2q_decomposers_from_target(
                 fidelity_value *= approx_degree;
             }
             let mut embodiment =
-                xx_embodiments.get_item(op.to_object(py).getattr(py, "base_class")?)?;
+                xx_embodiments.get_item(op.into_pyobject(py)?.getattr("base_class")?)?;
 
             if embodiment.getattr("parameters")?.len()? == 1 {
                 embodiment = embodiment.call_method1("assign_parameters", (vec![strength],))?;
@@ -825,11 +825,11 @@ fn get_2q_decomposers_from_target(
         },
     );
 
-    let basis_2q_fidelity_dict = PyDict::new_bound(py);
-    let embodiments_dict = PyDict::new_bound(py);
+    let basis_2q_fidelity_dict = PyDict::new(py);
+    let embodiments_dict = PyDict::new(py);
     for (strength, fidelity, embodiment) in xx_decomposer_args.flatten() {
         basis_2q_fidelity_dict.set_item(strength, fidelity)?;
-        embodiments_dict.set_item(strength, embodiment.into_py(py))?;
+        embodiments_dict.set_item(strength, embodiment)?;
     }
 
     // Iterate over 2q fidelities and select decomposers
@@ -861,7 +861,7 @@ fn get_2q_decomposers_from_target(
 
             let decomposer = xx_decomposer.call1((
                 &basis_2q_fidelity_dict,
-                PyString::new_bound(py, basis_1q),
+                PyString::new(py, basis_1q),
                 &embodiments_dict,
                 pi2_decomposer,
             ))?;
@@ -1074,10 +1074,10 @@ fn synth_su4_dag(
             .into_iter()
             .collect();
         decomposer
-            .call_bound(
+            .call(
                 py,
-                (su4_mat.clone().into_pyarray_bound(py),),
-                Some(&kwargs.into_py_dict_bound(py)),
+                (su4_mat.clone().into_pyarray(py),),
+                Some(&kwargs.into_py_dict(py)?),
             )?
             .extract::<DAGCircuit>(py)?
     } else {
@@ -1089,7 +1089,7 @@ fn synth_su4_dag(
         Some(preferred_dir) => {
             let mut synth_direction: Option<Vec<u32>> = None;
             for node in synth_dag.topological_op_nodes()? {
-                let inst = &synth_dag.dag()[node].unwrap_operation();
+                let inst = &synth_dag[node].unwrap_operation();
                 if inst.op.num_qubits() == 2 {
                     let qargs = synth_dag.get_qargs(inst.qubits);
                     synth_direction = Some(vec![qargs[0].0, qargs[1].0]);
@@ -1140,10 +1140,10 @@ fn reversed_synth_su4_dag(
             .into_iter()
             .collect();
         decomposer
-            .call_bound(
+            .call(
                 py,
-                (su4_mat.clone().into_pyarray_bound(py),),
-                Some(&kwargs.into_py_dict_bound(py)),
+                (su4_mat.clone().into_pyarray(py),),
+                Some(&kwargs.into_py_dict(py)?),
             )?
             .extract::<DAGCircuit>(py)?
     } else {
@@ -1153,7 +1153,7 @@ fn reversed_synth_su4_dag(
     let mut target_dag = synth_dag.copy_empty_like(py, "alike")?;
     let flip_bits: [Qubit; 2] = [Qubit(1), Qubit(0)];
     for node in synth_dag.topological_op_nodes()? {
-        let mut inst = synth_dag.dag()[node].unwrap_operation().clone();
+        let mut inst = synth_dag[node].unwrap_operation().clone();
         let qubits: Vec<Qubit> = synth_dag
             .qargs_interner()
             .get(inst.qubits)
