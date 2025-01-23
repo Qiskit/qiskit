@@ -7083,7 +7083,7 @@ impl<'a> DAGCircuitConcat<'a> {
         let py_op = if let Some(py_op) = py_op {
             py_op.into()
         } else {
-            OnceCell::new()
+            OnceLock::new()
         };
         let qubits = if let Some(qubits) = qubits {
             match qubits {
