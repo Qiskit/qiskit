@@ -324,7 +324,7 @@ pub fn py_synth_cnot_depth_line_kms(
 
     let instructions = cx_instructions_rows_m2nw
         .into_iter()
-        .chain(cx_instructions_rows_nw2id.into_iter())
+        .chain(cx_instructions_rows_nw2id)
         .map(|(ctrl, target)| {
             (
                 StandardGate::CXGate,
