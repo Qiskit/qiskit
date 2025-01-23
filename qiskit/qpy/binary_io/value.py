@@ -396,8 +396,9 @@ def _read_parameter_vec(file_obj, vectors):
     )
     param_uuid = uuid.UUID(bytes=data.uuid)
     name = file_obj.read(data.vector_name_size).decode(common.ENCODE)
-    if name not in vectors:
-        vectors[name] = (ParameterVector(name, data.vector_size), set())
+
+    # if name not in vectors:
+    vectors[name] = (ParameterVector(name, data.vector_size), set())
     vector = vectors[name][0]
     if vector[data.index].uuid != param_uuid:
         vectors[name][1].add(data.index)
