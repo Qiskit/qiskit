@@ -272,7 +272,7 @@ class BaseSchedulerTransform(TransformationPass):
             duration = dag._calibrations_prop[node.op.name][cal_key].duration
         else:
             try:
-                duration = self.durations.get(node.op, node.qargs)
+                duration = self.durations.get(node.op, indices)
             except TranspilerError:
                 duration = None
 
