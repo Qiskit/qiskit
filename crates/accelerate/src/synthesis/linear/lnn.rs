@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::synthesis::linear::utils::{_col_op_inv, _row_op, _row_sum, calc_inverse_matrix_inner};
+use crate::synthesis::linear::utils::{_col_op, _row_op, _row_sum, calc_inverse_matrix_inner};
 use ndarray::{Array1, Array2, ArrayView1, ArrayView2, ArrayViewMut2};
 use numpy::PyReadonlyArray2;
 use smallvec::smallvec;
@@ -44,10 +44,12 @@ fn _row_op_update_instructions(
 
 /// Get the instructions for a lower triangular basis change of a matrix mat.
 /// See the proof of Proposition 7.3 in [1].
+/// mat_inv needs to be the inverted matrix of mat
+/// The outputs are the permuted versions of mat and mat_inv
 fn _get_lower_triangular<'a>(
     n: usize,
     mat: ArrayView2<bool>,
-    mut mat_inv_t: ArrayViewMut2<'a, bool>,
+    mut mat_inv: ArrayViewMut2<'a, bool>,
 ) -> (Array2<bool>, ArrayViewMut2<'a, bool>) {
     let mut mat = mat.to_owned();
     let mut mat_t = mat.to_owned();
@@ -55,7 +57,7 @@ fn _get_lower_triangular<'a>(
     let mut cx_instructions_rows: InstructionList = Vec::new();
     // Use the instructions in U, which contains only gates of the form cx(a,b) a>b
     // to transform the matrix to a permuted lower-triangular matrix.
-    // The original Matrix mat is unchanged, but mat_inv_t is
+    // The original Matrix mat is unchanged, but mat_inv is
 
     for i in (0..n).rev() {
         // Find the last "1" in row i, use COL operations to the left in order to
@@ -63,7 +65,7 @@ fn _get_lower_triangular<'a>(
         let cols_to_update: Vec<usize> = (0..n).rev().filter(|&j| mat[[i, j]]).collect();
         let (first_j, cols_to_update) = cols_to_update.split_first().unwrap();
         cols_to_update.iter().for_each(|j| {
-            _col_op_inv(mat.view_mut(), *j, *first_j);
+            _col_op(mat.view_mut(), *first_j, *j);
         });
 
         // Use row operations directed upwards to zero out all "1"s above the remaining "1" in row i
@@ -75,9 +77,9 @@ fn _get_lower_triangular<'a>(
     // Apply only U instructions to get the permuted L
     for (ctrl, trgt) in cx_instructions_rows {
         _row_op(mat_t.view_mut(), ctrl, trgt);
-        _col_op_inv(mat_inv_t.view_mut(), ctrl, trgt);
+        _col_op(mat_inv.view_mut(), trgt, ctrl); // performs an inverted col_op
     }
-    (mat_t, mat_inv_t)
+    (mat_t, mat_inv)
 }
 
 /// For each row in mat_t, save the column index of the last "1"
@@ -104,9 +106,9 @@ fn _in_linear_combination(
 
 /// Returns label_arr_t = label_arr^(-1)
 fn _get_label_arr_t(n: usize, label_arr: &[usize]) -> Vec<usize> {
-    let mut label_err_t: Vec<usize> = vec![0; n];
-    (0..n).for_each(|i| label_err_t[label_arr[i]] = i);
-    label_err_t
+    let mut label_arr_t: Vec<usize> = vec![0; n];
+    (0..n).for_each(|i| label_arr_t[label_arr[i]] = i);
+    label_arr_t
 }
 
 /// Transform an arbitrary boolean invertible matrix to a north-west triangular matrix
@@ -243,9 +245,7 @@ fn _north_west_to_identity(n: usize, mut mat: ArrayViewMut2<bool>) -> Instructio
 }
 
 /// Perform steps (a) and (b) of algorithm [1]
-fn _optimize_cx_circ_depth_5n_line(
-    arrayview: ArrayView2<bool>,
-) -> (InstructionList, InstructionList) {
+fn _synth_cnot_lnn_instructions(arrayview: ArrayView2<bool>) -> (InstructionList, InstructionList) {
     // According to [1] the synthesis is done on the inverse matrix
     // so the matrix mat is inverted at this step
     let mut mat_inv: Array2<bool> = arrayview.to_owned();
@@ -266,7 +266,7 @@ fn _optimize_cx_circ_depth_5n_line(
     (cx_instructions_rows_m2nw, cx_instructions_rows_nw2id)
 }
 
-/// Optimize CX circuit in depth bounded by 5n for LNN connectivity.
+/// Synthesize CX circuit in depth bounded by 5n for LNN connectivity.
 /// The algorithm [1] has two steps:
 /// a) transform the original matrix to a north-west matrix (m2nw),
 /// b) transform the north-west matrix to identity (nw2id).
@@ -287,14 +287,13 @@ fn _optimize_cx_circ_depth_5n_line(
 /// `arXiv:quant-ph/0701194 <https://arxiv.org/abs/quant-ph/0701194>`_.
 #[pyfunction]
 #[pyo3(signature = (mat))]
-pub fn optimize_cx_circ_depth_5n_line(
-    _py: Python,
+pub fn py_synth_cnot_lnn_instructions(
     mat: PyReadonlyArray2<bool>,
 ) -> PyResult<(InstructionList, InstructionList)> {
-    Ok(_optimize_cx_circ_depth_5n_line(mat.as_array()))
+    Ok(_synth_cnot_lnn_instructions(mat.as_array()))
 }
 
-/// Optimize CX circuit in depth bounded by 5n for LNN connectivity.
+/// Synthesize CX circuit in depth bounded by 5n for LNN connectivity.
 /// The algorithm [1] has two steps:
 /// a) transform the original matrix to a north-west matrix (m2nw),
 /// b) transform the north-west matrix to identity (nw2id).
@@ -315,10 +314,13 @@ pub fn optimize_cx_circ_depth_5n_line(
 /// `arXiv:quant-ph/0701194 <https://arxiv.org/abs/quant-ph/0701194>`_.
 #[pyfunction]
 #[pyo3(signature = (mat))]
-pub fn synth_cnot_depth_line_kms(py: Python, mat: PyReadonlyArray2<bool>) -> PyResult<CircuitData> {
+pub fn py_synth_cnot_depth_line_kms(
+    py: Python,
+    mat: PyReadonlyArray2<bool>,
+) -> PyResult<CircuitData> {
     let num_qubits = mat.as_array().nrows(); // is a quadratic matrix
     let (cx_instructions_rows_m2nw, cx_instructions_rows_nw2id) =
-        _optimize_cx_circ_depth_5n_line(mat.as_array());
+        _synth_cnot_lnn_instructions(mat.as_array());
 
     let instructions = cx_instructions_rows_m2nw
         .into_iter()

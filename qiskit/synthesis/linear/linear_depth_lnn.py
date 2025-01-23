@@ -26,7 +26,7 @@ import numpy as np
 from qiskit.exceptions import QiskitError
 from qiskit.circuit import QuantumCircuit
 from qiskit.synthesis.linear.linear_matrix_utils import check_invertible_binary_matrix
-from qiskit._accelerate.synthesis.linear import synth_cnot_depth_line_kms as fast_kms
+from qiskit._accelerate.synthesis.linear import py_synth_cnot_depth_line_kms as fast_kms
 
 
 def synth_cnot_depth_line_kms(mat: np.ndarray[bool]) -> QuantumCircuit:
@@ -55,8 +55,6 @@ def synth_cnot_depth_line_kms(mat: np.ndarray[bool]) -> QuantumCircuit:
     if not check_invertible_binary_matrix(mat):
         raise QiskitError("The input matrix is not invertible.")
 
-    # Returns the quantum circuit constructed from the instructions
-    # that we got in _optimize_cx_circ_depth_5n_line
     circuit_data = fast_kms(mat)
 
     # construct circuit from the data

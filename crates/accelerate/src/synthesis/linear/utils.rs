@@ -201,9 +201,9 @@ pub fn _row_op(mat: ArrayViewMut2<bool>, ctrl: usize, trgt: usize) {
     _add_row_or_col(mat, &false, ctrl, trgt);
 }
 
-/// Perform COL operation on a matrix mat (in the inverse direction)
-pub fn _col_op_inv(mat: ArrayViewMut2<bool>, ctrl: usize, trgt: usize) {
-    _add_row_or_col(mat, &true, trgt, ctrl);
+/// Perform COL operation on a matrix mat
+pub fn _col_op(mat: ArrayViewMut2<bool>, ctrl: usize, trgt: usize) {
+    _add_row_or_col(mat, &true, ctrl, trgt);
 }
 
 /// Returns the element-wise sum of two boolean rows (i.e. addition modulo 2)
