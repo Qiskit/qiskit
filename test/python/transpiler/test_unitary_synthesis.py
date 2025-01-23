@@ -846,7 +846,7 @@ class TestUnitarySynthesisTarget(QiskitTestCase):
 
     @data(True, False)
     def test_parameterized_basis_gate_in_target(self, is_random):
-        """Test synthesis with parameterized RXX gate."""
+        """Test synthesis with parameterized RZZ gate."""
         theta = Parameter("θ")
         lam = Parameter("λ")
         phi = Parameter("ϕ")
@@ -861,6 +861,22 @@ class TestUnitarySynthesisTarget(QiskitTestCase):
         qc_transpiled = transpile(qc, target=target, optimization_level=3, seed_transpiler=42)
         opcount = qc_transpiled.count_ops()
         self.assertTrue(set(opcount).issubset({"rz", "rx", "rzz"}))
+        self.assertTrue(np.allclose(Operator(qc_transpiled), Operator(qc)))
+
+    @data(
+        ["rx", "ry", "rxx"],
+        ["rx", "rz", "rzz"],
+    )
+    def test_parameterized_backend(self, basis_gates):
+        """Test synthesis with parameterized backend."""
+        backend = GenericBackendV2(3, basis_gates=basis_gates)
+        qc = QuantumCircuit(3)
+        qc.unitary(random_unitary(4, seed=1234), [0, 1])
+        qc.unitary(random_unitary(4, seed=4321), [0, 2])
+        qc.cp(np.pi / 2, 0, 1)
+        qc_transpiled = transpile(qc, backend, optimization_level=3, seed_transpiler=42)
+        opcount = qc_transpiled.count_ops()
+        self.assertTrue(set(opcount).issubset(basis_gates))
         self.assertTrue(np.allclose(Operator(qc_transpiled), Operator(qc)))
 
     @data(1, 2, 3)
