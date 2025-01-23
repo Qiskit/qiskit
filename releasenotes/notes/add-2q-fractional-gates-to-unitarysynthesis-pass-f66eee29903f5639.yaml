@@ -1,0 +1,10 @@
+---
+features_synthesis:
+  - |
+    Add a :class:`.TwoQubitControlledUDecomposer` that decomposes any two-qubit unitary
+    in terms of basis two-qubit fractional gates, such as :class:`.RZZGate`
+    (or two-gates gates which are locally equivalent to :class:`.RZZGate` up to single qubit gates).
+features_transpiler:
+  - |
+    Add two-qubit fractional basis gates, such as :class:`.RZZGate`, to the
+    :class:`.UnitarySynthesis` transpiler pass.
