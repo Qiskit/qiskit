@@ -113,13 +113,7 @@ pub(super) fn compose_transforms<'a>(
                     let replace_dag: DAGCircuit =
                         DAGCircuit::from_circuit_data(py, replacement.0, true)?;
                     let op_node = dag.get_node(py, node)?;
-                    dag.py_substitute_node_with_dag(
-                        py,
-                        op_node.bind(py),
-                        &replace_dag,
-                        None,
-                        true,
-                    )?;
+                    dag.py_substitute_node_with_dag(py, op_node.bind(py), &replace_dag, None)?;
                 }
             }
         }

@@ -2785,26 +2785,19 @@ def _format(operand):
     ///         and the order gets matched to the node wires by qargs first, then cargs, then
     ///         conditions.  If a dictionary, then a mapping of bits in the ``input_dag`` to those
     ///         that the ``node`` acts on.
-    ///     propagate_condition (bool): If ``True`` (default), then any ``condition`` attribute on
-    ///         the operation within ``node`` is propagated to each node in the ``input_dag``.  If
-    ///         ``False``, then the ``input_dag`` is assumed to faithfully implement suitable
-    ///         conditional logic already.  This is ignored for :class:`.ControlFlowOp`\\ s (i.e.
-    ///         treated as if it is ``False``); replacements of those must already fulfill the same
-    ///         conditional logic or this function would be close to useless for them.
     ///
     /// Returns:
     ///     dict: maps node IDs from `input_dag` to their new node incarnations in `self`.
     ///
     /// Raises:
     ///     DAGCircuitError: if met with unexpected predecessor/successors
-    #[pyo3(name = "substitute_node_with_dag", signature = (node, input_dag, wires=None, propagate_condition=true))]
+    #[pyo3(name = "substitute_node_with_dag", signature = (node, input_dag, wires=None))]
     pub fn py_substitute_node_with_dag(
         &mut self,
         py: Python,
         node: &Bound<PyAny>,
         input_dag: &DAGCircuit,
         wires: Option<Bound<PyAny>>,
-        propagate_condition: bool,
     ) -> PyResult<Py<PyDict>> {
         let (node_index, bound_node) = match node.downcast::<DAGOpNode>() {
             Ok(bound_node) => (bound_node.borrow().as_ref().node.unwrap(), bound_node),
@@ -2829,7 +2822,7 @@ def _format(operand):
             let cargs_list = cargs_list.downcast::<PyList>().unwrap();
             let cargs_set = imports::BUILTIN_SET.get_bound(py).call1((cargs_list,))?;
             let cargs_set = cargs_set.downcast::<PySet>().unwrap();
-            if !propagate_condition && self.may_have_additional_wires(py, &node) {
+            if self.may_have_additional_wires(py, &node) {
                 let (add_cargs, _add_vars) = self.additional_wires(py, node.op.view())?;
                 for wire in add_cargs.iter() {
                     let clbit = &self.clbits.get(*wire).unwrap();
@@ -3100,10 +3093,6 @@ def _format(operand):
     ///     inplace (bool): Optional, default False. If True, existing DAG node
     ///         will be modified to include op. Otherwise, a new DAG node will
     ///         be used.
-    ///     propagate_condition (bool): Optional, default True.  If True, a condition on the
-    ///         ``node`` to be replaced will be applied to the new ``op``.  This is the legacy
-    ///         behaviour.  If either node is a control-flow operation, this will be ignored.  If
-    ///         the ``op`` already has a condition, :exc:`.DAGCircuitError` is raised.
     ///
     /// Returns:
     ///     DAGOpNode: the new node containing the added operation.
@@ -3111,13 +3100,12 @@ def _format(operand):
     /// Raises:
     ///     DAGCircuitError: If replacement operation was incompatible with
     ///     location of target node.
-    #[pyo3(name = "substitute_node", signature = (node, op, inplace=false, propagate_condition=true))]
+    #[pyo3(name = "substitute_node", signature = (node, op, inplace=false))]
     pub fn py_substitute_node(
         &mut self,
         node: &Bound<PyAny>,
         op: &Bound<PyAny>,
         inplace: bool,
-        propagate_condition: bool,
     ) -> PyResult<Py<PyAny>> {
         let mut node: PyRefMut<DAGOpNode> = match node.downcast() {
             Ok(node) => node.borrow_mut(),

@@ -75,11 +75,9 @@ class Decompose(TransformationPass):
             elif getattr(node.op, "definition", None) is None:
                 # if we try to synthesize, turn the node into a DAGCircuit and run HLS
                 if self.apply_synthesis:
-                    # note that node_as_dag does not include the condition, which will
-                    # be propagated in ``substitute_node_with_dag``
                     node_as_dag = _node_to_dag(node)
                     synthesized = hls.run(node_as_dag)
-                    dag.substitute_node_with_dag(node, synthesized, propagate_condition=True)
+                    dag.substitute_node_with_dag(node, synthesized)
 
                 # else: no definition and synthesis not enabled, so we do nothing
             else:

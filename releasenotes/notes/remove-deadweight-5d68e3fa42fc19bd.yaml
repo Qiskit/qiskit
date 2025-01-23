@@ -32,3 +32,8 @@ upgrade_transpiler:
     not be able to determine the duration of instructions in the circuit and will error. Previously
     these passes would determine these values from the now removed ``duration`` attribute of
     :class:`.Instruction` objects.
+  - |
+    The previously deprecated argument ``propagate_condition`` on the :class:`.DAGCircuit` methods
+    :meth:`~.DAGCircuit.substitute_node_with_dag` and :meth:`~.DAGCircuit.substitute_node` has been
+    removed. These arguments were deprecated in Qiskit 1.4.0 and were removed because the larger
+    removal of ``Instruction.condition`` it no longer served a purpose.

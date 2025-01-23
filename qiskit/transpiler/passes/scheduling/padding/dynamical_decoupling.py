@@ -382,7 +382,7 @@ class PadDynamicalDecoupling(BasePadding):
                 op = prev_node.op
                 theta_l, phi_l, lam_l = op.params
                 op.params = Optimize1qGates.compose_u3(theta, phi, lam, theta_l, phi_l, lam_l)
-                new_prev_node = dag.substitute_node(prev_node, op, propagate_condition=False)
+                new_prev_node = dag.substitute_node(prev_node, op)
                 start_time = self.property_set["node_start_time"].pop(prev_node)
                 if start_time is not None:
                     self.property_set["node_start_time"][new_prev_node] = start_time
