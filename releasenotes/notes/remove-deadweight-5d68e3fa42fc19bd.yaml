@@ -1,4 +1,8 @@
 ---
+features_transpiler:
+  - |
+    The scheduling passes :class:`.PadDelay` and :class:`.PadDynamicalDecoupling` has new arguments on
+    their constructors ``target`` and ``durations``.
 upgrade_circuits:
   - |
     The deprecated attributes for :class:`.Instruction` and :class:`.Gate`: ``duration`` and ``unit``.
@@ -21,3 +25,10 @@ upgrade_transpiler:
     ``condition`` attribute of :class:`.Instruction` class has been removed so this transpiler pass
     no longer had anything to convert from. Instead you should directly use :class:`.IfElseOp` to
     classically condition the execution of an operation.
+  - |
+    The :class:`.PadDelay` and :class:`.PadDynamicalDecoupling` transpiler passes now require a new
+    argument when constructed. Either ``target`` or ``durations`` need to be specified with a
+    :class:`.Target` or :class:`.InstructionDurations` respectively. Without these the passes will
+    not be able to determine the duration of instructions in the circuit and will error. Previously
+    these passes would determine these values from the now removed ``duration`` attribute of
+    :class:`.Instruction` objects.
