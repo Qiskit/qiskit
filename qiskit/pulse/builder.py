@@ -39,6 +39,7 @@ execution. For example, to play a series of pulses on channels is as simple as:
 
 
 .. plot::
+   :alt: Output from the previous code.
    :include-source:
 
    from qiskit import pulse
@@ -61,6 +62,7 @@ statements. For example, below we write a simple program that :func:`play`\s
 a pulse:
 
 .. plot::
+   :alt: Output from the previous code.
    :include-source:
 
    from qiskit import pulse
@@ -90,6 +92,7 @@ state we prepared. This program which mixes circuits and pulses will be
 automatically lowered to be run as a pulse program:
 
 .. plot::
+   :alt: Output from the previous code.
    :include-source:
 
    from math import pi
@@ -277,6 +280,7 @@ Instructions
 Pulse instructions are available within the builder interface. Here's an example:
 
 .. plot::
+   :alt: Output from the previous code.
    :include-source:
 
     from qiskit import pulse
@@ -325,6 +329,7 @@ example an alignment context like :func:`align_right` may
 be used to align all pulses as late as possible in a pulse program.
 
 .. plot::
+   :alt: Output from the previous code.
    :include-source:
 
    from qiskit import pulse
@@ -1188,6 +1193,7 @@ def align_equispaced(duration: int | ParameterExpression) -> Generator[None, Non
     Examples:
 
     .. plot::
+       :alt: Output from the previous code.
        :include-source:
 
         from qiskit import pulse
@@ -1242,6 +1248,7 @@ def align_func(
     Examples:
 
     .. plot::
+       :alt: Output from the previous code.
        :include-source:
 
         import numpy as np
@@ -2116,6 +2123,7 @@ def macro(func: Callable):
     Examples:
 
     .. plot::
+       :alt: Output from the previous code.
        :include-source:
 
         from qiskit import pulse
