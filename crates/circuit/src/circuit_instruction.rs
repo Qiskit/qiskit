@@ -298,7 +298,7 @@ impl CircuitInstruction {
             qubits: as_tuple(py, qubits)?.unbind(),
             clbits: PyTuple::empty(py).unbind(),
             params,
-            label: label.map(|x| Box::new(x)),
+            label: label.map(Box::new),
             #[cfg(feature = "cache_pygates")]
             py_op: OnceLock::new(),
         })
@@ -628,7 +628,7 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
 
         let extract_label = || -> PyResult<Option<Box<String>>> {
             let raw = ob.getattr(intern!(py, "label"))?;
-            Ok(raw.extract::<Option<String>>()?.map(|x| Box::new(x)))
+            Ok(raw.extract::<Option<String>>()?.map(Box::new))
         };
 
         'standard: {

@@ -399,7 +399,7 @@ impl DAGOpNode {
 
     #[setter]
     fn set_label(&mut self, val: Option<String>) {
-        self.instruction.label = val.map(|x| Box::new(x));
+        self.instruction.label = val.map(Box::new);
     }
 
     #[getter]

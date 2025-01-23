@@ -4925,7 +4925,7 @@ impl DAGCircuit {
             qubits: self.qargs_interner.insert(qargs),
             clbits: self.cargs_interner.insert(cargs),
             params: params.map(Box::new),
-            label: label.map(|x| Box::new(x)),
+            label: label.map(Box::new),
             #[cfg(feature = "cache_pygates")]
             py_op,
         };
