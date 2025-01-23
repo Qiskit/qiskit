@@ -849,17 +849,18 @@ class TestUnitarySynthesisTarget(QiskitTestCase):
         """Test synthesis with parameterized RXX gate."""
         theta = Parameter("θ")
         lam = Parameter("λ")
+        phi = Parameter("ϕ")
         target = Target(num_qubits=2)
         target.add_instruction(RZGate(lam))
-        target.add_instruction(RXGate(theta))
-        target.add_instruction(RXXGate(theta))
+        target.add_instruction(RXGate(phi))
+        target.add_instruction(RZZGate(theta))
         qc = QuantumCircuit(2)
         if is_random:
             qc.unitary(random_unitary(4, seed=1234), [0, 1])
         qc.cp(np.pi / 2, 0, 1)
         qc_transpiled = transpile(qc, target=target, optimization_level=3, seed_transpiler=42)
         opcount = qc_transpiled.count_ops()
-        self.assertTrue(set(opcount).issubset({"rz", "rx", "rxx"}))
+        self.assertTrue(set(opcount).issubset({"rz", "rx", "rzz"}))
         self.assertTrue(np.allclose(Operator(qc_transpiled), Operator(qc)))
 
     @data(1, 2, 3)
