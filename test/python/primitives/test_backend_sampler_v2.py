@@ -1317,7 +1317,7 @@ class TestBackendSamplerV2(QiskitTestCase):
             basis_gates=["id", "rz", "sx", "x", "cx", "reset"],
             coupling_map=LAGOS_CMAP,
             seed=42,
-            control_flow=True
+            control_flow=True,
         )
         q = QuantumRegister(3, "q")
         c1 = ClassicalRegister(1, "c1")

@@ -204,6 +204,7 @@ class TestScheduledCircuit(QiskitTestCase):
                 scheduling_method="alap",
                 basis_gates=["h", "cx"],
                 instruction_durations=[("h", 0, 200), ("cx", [0, 1], 700)],
+                dt=1e-7,
             )
         self.assertEqual(scheduled.duration, 1200)
 
@@ -220,7 +221,10 @@ class TestScheduledCircuit(QiskitTestCase):
             expected_regex="The `target` parameter should be used instead",
         ):
             scheduled = transpile(
-                qc, scheduling_method="alap", instruction_durations=[("bell", [0, 1], 1000)]
+                qc,
+                scheduling_method="alap",
+                instruction_durations=[("bell", [0, 1], 1000)],
+                dt=1e-2,
             )
         self.assertEqual(scheduled.duration, 1500)
 
@@ -282,6 +286,7 @@ class TestScheduledCircuit(QiskitTestCase):
                 basis_gates=["h", "cx", "delay"],
                 scheduling_method="alap",
                 instruction_durations=[("h", 0, 200), ("cx", None, 900)],
+                dt=1e-6,
             )
         self.assertEqual(scheduled.duration, 1400)
         with self.assertWarnsRegex(
@@ -294,6 +299,7 @@ class TestScheduledCircuit(QiskitTestCase):
                 basis_gates=["h", "cx", "delay"],
                 scheduling_method="alap",
                 instruction_durations=[("h", 0, 200), ("cx", None, 900), ("cx", [0, 1], 800)],
+                dt=1e-7,
             )
         self.assertEqual(scheduled.duration, 1300)
 
@@ -346,6 +352,7 @@ class TestScheduledCircuit(QiskitTestCase):
                 scheduling_method="alap",
                 basis_gates=["h", "cx"],
                 instruction_durations=[("h", None, 200), ("cx", [0, 1], 700)],
+                dt=1e-7,
             )
         self.assertEqual(sc.qubit_start_time(0), 300)
         self.assertEqual(sc.qubit_stop_time(0), 1200)
@@ -371,6 +378,7 @@ class TestScheduledCircuit(QiskitTestCase):
                     ("cx", [0, 1], 700),
                     ("measure", None, 1000),
                 ],
+                dt=1e-8,
             )
         q = sc.qubits
         self.assertEqual(sc.qubit_start_time(q[0]), 300)

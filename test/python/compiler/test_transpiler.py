@@ -1531,6 +1531,7 @@ class TestTranspile(QiskitTestCase):
                 scheduling_method="alap",
                 basis_gates=["h", "cx"],
                 instruction_durations=[("h", 0, 200), ("cx", [0, 1], 700)],
+                dt=1e-9,
                 optimization_level=optimization_level,
                 seed_transpiler=42,
             )

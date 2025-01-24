@@ -169,7 +169,7 @@ class DrawerCanvas:
                 program = transpile(
                     program,
                     scheduling_method="alap",
-                    instruction_durations=InstructionDurations(),
+                    target=target,
                     optimization_level=0,
                 )
             except TranspilerError as ex:

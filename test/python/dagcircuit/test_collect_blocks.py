@@ -275,8 +275,7 @@ class TestCollectBlocks(QiskitTestCase):
 
         block_collector = BlockCollector(circuit_to_dag(qc))
         blocks = block_collector.collect_all_matching_blocks(
-            lambda node: node.op.name in ["x", "cx"]
-            and not getattr(node.op, "condition", None),
+            lambda node: node.op.name in ["x", "cx"] and not getattr(node.op, "condition", None),
             split_blocks=False,
             min_block_size=1,
         )

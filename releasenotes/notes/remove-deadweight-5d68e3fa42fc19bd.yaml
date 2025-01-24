@@ -39,3 +39,11 @@ upgrade_transpiler:
     removal of ``Instruction.condition`` it no longer served a purpose.
   - |
     The previously deprecated ``AlignMeasures`` transpiler pass has been removed.
+  - |
+    When calling :func:`.generate_preset_pass_manager` or :func:`.transpile` and specifying the ``instruction_durations`` argument
+    with a list instead of an :class:`.InstructionDurations` object and the list specifies durations in units of ``dt`` a ``dt`` parameter
+    is required if scheduling the circuit.
+
+upgrade_visualization:
+  - |
+    The timeline drawer now requires the target argument is specified when called. This was deprecated in 1.4.0.

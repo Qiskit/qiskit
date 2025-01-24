@@ -45,7 +45,7 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
         qc.measure_all()
 
         durations = InstructionDurations(
-            [("h", 0, 200), ("cx", [0, 1], 700), ("measure", None, 1000)]
+            [("h", 0, 200), ("cx", [0, 1], 700), ("measure", None, 1000)], dt=1e-7
         )
 
         pm = PassManager([ALAPScheduleAnalysis(durations), PadDelay(durations=durations)])
@@ -115,7 +115,7 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
         qc.measure(0, 0)
         qc.measure(1, 0)
 
-        durations = InstructionDurations([("x", None, 200), ("measure", None, 1000)])
+        durations = InstructionDurations([("x", None, 200), ("measure", None, 1000)], dt=1e-7)
         pm = PassManager([schedule_pass(durations), PadDelay(durations=durations)])
         scheduled = pm.run(qc)
 
@@ -154,7 +154,7 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
         qc.measure(0, 0)
         qc.measure(1, 0)
 
-        durations = InstructionDurations([("measure", [0], 1000), ("measure", [1], 700)])
+        durations = InstructionDurations([("measure", [0], 1000), ("measure", [1], 700)], dt=1e-7)
         pm = PassManager([schedule_pass(durations), PadDelay(durations=durations)])
         scheduled = pm.run(qc)
 
@@ -204,7 +204,7 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
         qc.measure(1, 1)
 
         durations = InstructionDurations(
-            [("x", [0], 200), ("x", [1], 400), ("measure", None, 1000)]
+            [("x", [0], 200), ("x", [1], 400), ("measure", None, 1000)], dt=1e-7
         )
         pm = PassManager([ALAPScheduleAnalysis(durations), PadDelay(durations=durations)])
         qc_alap = pm.run(qc)
@@ -268,7 +268,7 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
         qc.measure(1, 1)
 
         durations = InstructionDurations(
-            [("x", [0], 200), ("x", [1], 400), ("measure", None, 1000)]
+            [("x", [0], 200), ("x", [1], 400), ("measure", None, 1000)], dt=1e-7
         )
         pm = PassManager([ALAPScheduleAnalysis(durations), PadDelay(durations=durations)])
         qc_alap = pm.run(qc)
@@ -308,7 +308,7 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
             xsched = Schedule(Play(Constant(300, 0.1), DriveChannel(0)))
             qc.add_calibration("x", (0,), xsched)
 
-        durations = InstructionDurations([("x", None, 160), ("cx", None, 600)])
+        durations = InstructionDurations([("x", None, 160), ("cx", None, 600)], dt=1e-7)
         pm = PassManager([ASAPScheduleAnalysis(durations), PadDelay(durations=durations)])
         scheduled = pm.run(qc)
 
@@ -352,7 +352,7 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
         qc.x(1)
         qc.measure(0, 0)
 
-        durations = InstructionDurations([("x", None, 160), ("measure", None, 1000)])
+        durations = InstructionDurations([("x", None, 160), ("measure", None, 1000)], dt=1e-77)
 
         scheduled = PassManager(
             [

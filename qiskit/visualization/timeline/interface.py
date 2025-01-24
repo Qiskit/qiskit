@@ -369,11 +369,8 @@ def draw(
     temp_style.update(style or stylesheet.IQXStandard())
 
     if target is None:
-        warnings.warn(
-            "Target is not specified. In Qiskit 2.0.0 this will be required to get the duration of "
-            "instructions.",
-            PendingDeprecationWarning,
-            stacklevel=2,
+        raise VisualizationError(
+            "No target is specified, this is required to get the duration of instructions."
         )
 
     # update control properties
