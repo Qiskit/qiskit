@@ -33,7 +33,19 @@ use pyo3::prelude::*;
 use pyo3::types::{PySequence, PyTuple};
 
 pub type BitType = u32;
-#[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq, FromPyObject)]
+#[derive(
+    Copy,
+    Clone,
+    Debug,
+    Hash,
+    Ord,
+    PartialOrd,
+    Eq,
+    PartialEq,
+    FromPyObject,
+    IntoPyObject,
+    IntoPyObjectRef,
+)]
 pub struct Qubit(pub BitType);
 
 impl Qubit {

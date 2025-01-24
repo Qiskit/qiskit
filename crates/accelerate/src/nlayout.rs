@@ -10,9 +10,12 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::PyList;
 use pyo3::IntoPyObjectExt;
+
+use qiskit_circuit::{BitType, Qubit};
 
 use hashbrown::HashMap;
 
@@ -27,16 +30,28 @@ macro_rules! qubit_newtype {
         #[derive(
             Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, IntoPyObject, IntoPyObjectRef,
         )]
-        pub struct $id(pub u32);
+        #[repr(transparent)]
+        pub struct $id(pub Qubit);
 
         impl $id {
             #[inline]
-            pub fn new(val: u32) -> Self {
-                Self(val)
+            pub fn new(val: usize) -> Self {
+                Self(Qubit::new(val))
             }
             #[inline]
             pub fn index(&self) -> usize {
-                self.0 as usize
+                self.0.index()
+            }
+        }
+
+        impl From<Qubit> for $id {
+            fn from(val: Qubit) -> Self {
+                Self(val)
+            }
+        }
+        impl From<$id> for Qubit {
+            fn from(val: $id) -> Qubit {
+                val.0
             }
         }
 
@@ -104,8 +119,8 @@ impl NLayout {
         physical_qubits: usize,
     ) -> Self {
         let mut res = NLayout {
-            virt_to_phys: vec![PhysicalQubit(u32::MAX); virtual_qubits],
-            phys_to_virt: vec![VirtualQubit(u32::MAX); physical_qubits],
+            virt_to_phys: vec![PhysicalQubit::new(BitType::MAX as usize); virtual_qubits],
+            phys_to_virt: vec![VirtualQubit::new(BitType::MAX as usize); physical_qubits],
         };
         for (virt, phys) in qubit_indices {
             res.virt_to_phys[virt.index()] = phys;
@@ -171,18 +186,21 @@ impl NLayout {
     }
 
     #[staticmethod]
-    pub fn generate_trivial_layout(num_qubits: u32) -> Self {
+    pub fn generate_trivial_layout(num_qubits: usize) -> Self {
         NLayout {
-            virt_to_phys: (0..num_qubits).map(PhysicalQubit).collect(),
-            phys_to_virt: (0..num_qubits).map(VirtualQubit).collect(),
+            virt_to_phys: (0..num_qubits).map(PhysicalQubit::new).collect(),
+            phys_to_virt: (0..num_qubits).map(VirtualQubit::new).collect(),
         }
     }
 
     #[staticmethod]
     pub fn from_virtual_to_physical(virt_to_phys: Vec<PhysicalQubit>) -> PyResult<Self> {
-        let mut phys_to_virt = vec![VirtualQubit(u32::MAX); virt_to_phys.len()];
+        if virt_to_phys.len() >= BitType::MAX as usize {
+            return Err(PyValueError::new_err("too may qubits in layout"));
+        }
+        let mut phys_to_virt = vec![VirtualQubit::new(BitType::MAX as usize); virt_to_phys.len()];
         for (virt, phys) in virt_to_phys.iter().enumerate() {
-            phys_to_virt[phys.index()] = VirtualQubit(virt.try_into()?);
+            phys_to_virt[phys.index()] = VirtualQubit::new(virt);
         }
         Ok(NLayout {
             virt_to_phys,
@@ -199,7 +217,7 @@ impl NLayout {
         self.virt_to_phys
             .iter()
             .enumerate()
-            .map(|(v, p)| (VirtualQubit::new(v as u32), *p))
+            .map(|(v, p)| (VirtualQubit::new(v), *p))
     }
     /// Iterator of `(PhysicalQubit, VirtualQubit)` pairs, in order of the `PhysicalQubit` indices.
     pub fn iter_physical(
@@ -208,7 +226,7 @@ impl NLayout {
         self.phys_to_virt
             .iter()
             .enumerate()
-            .map(|(p, v)| (PhysicalQubit::new(p as u32), *v))
+            .map(|(p, v)| (PhysicalQubit::new(p), *v))
     }
 }
 

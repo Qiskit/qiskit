@@ -1089,8 +1089,8 @@ pub(crate) fn optimize_1q_gates_decomposition(
             Some(_) => 1.,
             None => raw_run.len() as f64,
         };
-        let qubit: PhysicalQubit = if let NodeType::Operation(inst) = &dag[raw_run[0]] {
-            PhysicalQubit::new(dag.get_qargs(inst.qubits)[0].0)
+        let qubit = if let NodeType::Operation(inst) = &dag[raw_run[0]] {
+            PhysicalQubit(dag.get_qargs(inst.qubits)[0])
         } else {
             unreachable!("nodes in runs will always be op nodes")
         };

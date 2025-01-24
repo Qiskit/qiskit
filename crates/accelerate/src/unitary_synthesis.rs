@@ -222,7 +222,7 @@ fn synth_error(
 fn py_run_main_loop(
     py: Python,
     dag: &mut DAGCircuit,
-    qubit_indices: Vec<usize>,
+    qubit_indices: Vec<PhysicalQubit>,
     min_qubits: usize,
     target: &Target,
     coupling_edges: HashSet<[PhysicalQubit; 2]>,
@@ -254,7 +254,7 @@ fn py_run_main_loop(
                 let new_ids = dag
                     .get_qargs(packed_instr.qubits)
                     .iter()
-                    .map(|qarg| qubit_indices[qarg.0 as usize])
+                    .map(|qarg| qubit_indices[qarg.index()])
                     .collect_vec();
                 let res = py_run_main_loop(
                     py,
@@ -303,11 +303,11 @@ fn py_run_main_loop(
             // Run 1q synthesis
             [2, 2] => {
                 let qubit = dag.get_qargs(packed_instr.qubits)[0];
-                let target_basis_set = get_target_basis_set(target, PhysicalQubit::new(qubit.0));
+                let target_basis_set = get_target_basis_set(target, PhysicalQubit(qubit));
                 let sequence = unitary_to_gate_sequence_inner(
                     unitary.view(),
                     &target_basis_set,
-                    qubit.0 as usize,
+                    qubit.index(),
                     None,
                     true,
                     None,
@@ -341,8 +341,8 @@ fn py_run_main_loop(
                 let out_qargs = dag.get_qargs(packed_instr.qubits);
                 // "ref_qubits" is used to access properties in the target. It accounts for control flow mapping.
                 let ref_qubits: &[PhysicalQubit; 2] = &[
-                    PhysicalQubit::new(qubit_indices[out_qargs[0].0 as usize] as u32),
-                    PhysicalQubit::new(qubit_indices[out_qargs[1].0 as usize] as u32),
+                    qubit_indices[out_qargs[0].index()],
+                    qubit_indices[out_qargs[1].index()],
                 ];
                 let apply_original_op = |out_dag: &mut DAGCircuit| -> PyResult<()> {
                     out_dag.push_back(py, packed_instr.clone())?;

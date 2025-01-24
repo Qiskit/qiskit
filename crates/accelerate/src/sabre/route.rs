@@ -217,8 +217,8 @@ impl RoutingState<'_, '_> {
             swaps
                 .into_iter()
                 .map(|(l, r)| {
-                    let p_l = PhysicalQubit::new(l.index().try_into().unwrap());
-                    let p_r = PhysicalQubit::new(r.index().try_into().unwrap());
+                    let p_l = PhysicalQubit::new(l.index());
+                    let p_r = PhysicalQubit::new(r.index());
                     block_final_layout.swap_physical(p_l, p_r);
                     [p_l, p_r]
                 })
@@ -313,7 +313,7 @@ impl RoutingState<'_, '_> {
                 .get(&NodeIndex::new(qubits[1].index()))
                 .unwrap()
                 .iter()
-                .map(|n| PhysicalQubit::new(n.index() as u32))
+                .map(|n| PhysicalQubit::new(n.index()))
                 .collect::<Vec<_>>()
         };
         // Insert greedy swaps along that shortest path, splitting them between moving the left side
@@ -474,7 +474,7 @@ pub fn sabre_routing(
         res.node_block_results,
         PyArray::from_iter(
             py,
-            (0u32..neighbor_table.num_qubits().try_into().unwrap()).map(|phys| {
+            (0..neighbor_table.num_qubits()).map(|phys| {
                 PhysicalQubit::new(phys)
                     .to_virt(initial_layout)
                     .to_phys(&final_layout)

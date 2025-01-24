@@ -77,10 +77,7 @@ fn py_check_direction_coupling_map(
 #[pyo3(name = "check_gate_direction_target")]
 fn py_check_direction_target(py: Python, dag: &DAGCircuit, target: &Target) -> PyResult<bool> {
     let target_check = |inst: &PackedInstruction, op_args: &[Qubit]| -> bool {
-        let qargs = smallvec![
-            PhysicalQubit::new(op_args[0].0),
-            PhysicalQubit::new(op_args[1].0)
-        ];
+        let qargs = smallvec![PhysicalQubit(op_args[0]), PhysicalQubit(op_args[1])];
 
         target.instruction_supported(inst.op.name(), Some(&qargs))
     };
@@ -203,10 +200,7 @@ fn py_fix_direction_target(
     target: &Target,
 ) -> PyResult<DAGCircuit> {
     let target_check = |inst: &PackedInstruction, op_args: &[Qubit]| -> bool {
-        let qargs = smallvec![
-            PhysicalQubit::new(op_args[0].0),
-            PhysicalQubit::new(op_args[1].0)
-        ];
+        let qargs = smallvec![PhysicalQubit(op_args[0]), PhysicalQubit(op_args[1])];
 
         // Take this path so Target can check for exact match of the parameterized gate's angle
         if let OperationRef::Standard(std_gate) = inst.op.view() {

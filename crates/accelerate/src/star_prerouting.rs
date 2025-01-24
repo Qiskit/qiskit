@@ -200,8 +200,8 @@ fn apply_swap(
         out_map.insert(
             next_node_id,
             vec![[
-                PhysicalQubit::new(qubit_mapping[idx0].try_into().unwrap()),
-                PhysicalQubit::new(qubit_mapping[idx1].try_into().unwrap()),
+                PhysicalQubit::new(qubit_mapping[idx0]),
+                PhysicalQubit::new(qubit_mapping[idx1]),
             ]],
         );
     }

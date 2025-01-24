@@ -45,7 +45,7 @@ pub fn sabre_layout_and_routing(
     num_swap_trials: usize,
     num_random_trials: usize,
     seed: Option<u64>,
-    mut partial_layouts: Vec<Vec<Option<u32>>>,
+    mut partial_layouts: Vec<Vec<Option<PhysicalQubit>>>,
 ) -> (NLayout, PyObject, (SwapMap, PyObject, NodeBlockResults)) {
     let run_in_parallel = getenv_use_multiple_threads();
     let target = RoutingTargetView {
@@ -53,7 +53,7 @@ pub fn sabre_layout_and_routing(
         coupling: &neighbor_table.coupling_graph(),
         distance: distance_matrix.as_array(),
     };
-    let mut starting_layouts: Vec<Vec<Option<u32>>> =
+    let mut starting_layouts: Vec<Vec<Option<PhysicalQubit>>> =
         (0..num_random_trials).map(|_| vec![]).collect();
     starting_layouts.append(&mut partial_layouts);
     // Run a dense layout trial
@@ -63,14 +63,14 @@ pub fn sabre_layout_and_routing(
         run_in_parallel,
     ));
     starting_layouts.push(
-        (0..target.neighbors.num_qubits() as u32)
-            .map(Some)
+        (0..target.neighbors.num_qubits())
+            .map(|x| Some(PhysicalQubit::new(x)))
             .collect(),
     );
     starting_layouts.push(
-        (0..target.neighbors.num_qubits() as u32)
+        (0..target.neighbors.num_qubits())
             .rev()
-            .map(Some)
+            .map(|x| Some(PhysicalQubit::new(x)))
             .collect(),
     );
     // This layout targets the largest ring on an IBM eagle device. It has been
@@ -89,7 +89,7 @@ pub fn sabre_layout_and_routing(
                 37, 38, 39, 33, 20, 21, 19, 18, 14,
             ]
             .into_iter()
-            .map(Some)
+            .map(|x| Some(PhysicalQubit::new(x)))
             .collect(),
         );
     } else if target.neighbors.num_qubits() == 133 {
@@ -105,7 +105,7 @@ pub fn sabre_layout_and_routing(
                 127, 128, 113, 109,
             ]
             .into_iter()
-            .map(Some)
+            .map(|x| Some(PhysicalQubit::new(x)))
             .collect(),
         );
     } else if target.neighbors.num_qubits() == 156 {
@@ -122,7 +122,7 @@ pub fn sabre_layout_and_routing(
                 150, 149, 148, 147, 146, 145, 144, 143,
             ]
             .into_iter()
-            .map(Some)
+            .map(|x| Some(PhysicalQubit::new(x)))
             .collect(),
         );
     }
@@ -199,9 +199,9 @@ fn layout_trial(
     max_iterations: usize,
     num_swap_trials: usize,
     run_swap_in_parallel: bool,
-    starting_layout: &[Option<u32>],
+    starting_layout: &[Option<PhysicalQubit>],
 ) -> (NLayout, Vec<PhysicalQubit>, SabreResult) {
-    let num_physical_qubits: u32 = target.neighbors.num_qubits().try_into().unwrap();
+    let num_physical_qubits: usize = target.neighbors.num_qubits();
     let mut rng = Pcg64Mcg::seed_from_u64(seed);
 
     // This is purely for RNG compatibility during a refactor.
@@ -210,22 +210,20 @@ fn layout_trial(
     // Pick a random initial layout including a full ancilla allocation.
     let mut initial_layout = {
         let physical_qubits: Vec<PhysicalQubit> = if !starting_layout.is_empty() {
-            let used_bits: HashSet<u32> = starting_layout
+            let used_bits: HashSet<PhysicalQubit> = starting_layout
                 .iter()
                 .filter_map(|x| x.as_ref())
                 .copied()
                 .collect();
-            let mut free_bits: Vec<u32> = (0..num_physical_qubits)
+            let mut free_bits: Vec<PhysicalQubit> = (0..num_physical_qubits)
+                .map(PhysicalQubit::new)
                 .filter(|x| !used_bits.contains(x))
                 .collect();
             free_bits.shuffle(&mut rng);
             (0..num_physical_qubits)
-                .map(|x| {
-                    let bit_index = match starting_layout.get(x as usize) {
-                        Some(phys) => phys.unwrap_or_else(|| free_bits.pop().unwrap()),
-                        None => free_bits.pop().unwrap(),
-                    };
-                    PhysicalQubit::new(bit_index)
+                .map(|x| match starting_layout.get(x) {
+                    Some(phys) => phys.unwrap_or_else(|| free_bits.pop().unwrap()),
+                    None => free_bits.pop().unwrap(),
                 })
                 .collect()
         } else {
@@ -287,7 +285,7 @@ fn compute_dense_starting_layout(
     num_qubits: usize,
     target: &RoutingTargetView,
     run_in_parallel: bool,
-) -> Vec<Option<u32>> {
+) -> Vec<Option<PhysicalQubit>> {
     let mut adj_matrix = target.distance.to_owned();
     if run_in_parallel {
         adj_matrix.par_mapv_inplace(|x| if x == 1. { 1. } else { 0. });
@@ -303,5 +301,7 @@ fn compute_dense_starting_layout(
         true,
         aview2(&[[0.]]),
     );
-    map.into_iter().map(|x| Some(x as u32)).collect()
+    map.into_iter()
+        .map(|x| Some(PhysicalQubit::new(x)))
+        .collect()
 }

@@ -39,7 +39,7 @@ fn is_supported(
 ) -> bool {
     match target {
         Some(target) => {
-            let physical_qargs = qargs.iter().map(|bit| PhysicalQubit(bit.0)).collect();
+            let physical_qargs = qargs.iter().map(|bit| PhysicalQubit(*bit)).collect();
             target.instruction_supported(name, Some(&physical_qargs))
         }
         None => match basis_gates {

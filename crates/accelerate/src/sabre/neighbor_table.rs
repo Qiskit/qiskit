@@ -68,43 +68,36 @@ impl std::ops::Index<PhysicalQubit> for NeighborTable {
 impl NeighborTable {
     #[new]
     #[pyo3(signature = (adjacency_matrix=None))]
-    pub fn new(adjacency_matrix: Option<PyReadonlyArray2<f64>>) -> PyResult<Self> {
+    pub fn new(adjacency_matrix: Option<PyReadonlyArray2<f64>>) -> Self {
         let run_in_parallel = getenv_use_multiple_threads();
         let neighbors = match adjacency_matrix {
             Some(adjacency_matrix) => {
                 let adj_mat = adjacency_matrix.as_array();
-                let build_neighbors =
-                    |row: ArrayView1<f64>| -> PyResult<SmallVec<[PhysicalQubit; 4]>> {
-                        row.iter()
-                            .enumerate()
-                            .filter_map(|(row_index, value)| {
-                                if *value == 0. {
-                                    None
-                                } else {
-                                    Some(match row_index.try_into() {
-                                        Ok(index) => Ok(PhysicalQubit::new(index)),
-                                        Err(err) => Err(err.into()),
-                                    })
-                                }
-                            })
-                            .collect()
-                    };
+                let build_neighbors = |row: ArrayView1<f64>| -> SmallVec<[PhysicalQubit; 4]> {
+                    row.iter()
+                        .enumerate()
+                        .filter_map(|(row_index, value)| {
+                            if *value == 0. {
+                                None
+                            } else {
+                                Some(PhysicalQubit::new(row_index))
+                            }
+                        })
+                        .collect()
+                };
                 if run_in_parallel {
                     adj_mat
                         .axis_iter(Axis(0))
                         .into_par_iter()
                         .map(build_neighbors)
-                        .collect::<PyResult<_>>()?
+                        .collect()
                 } else {
-                    adj_mat
-                        .axis_iter(Axis(0))
-                        .map(build_neighbors)
-                        .collect::<PyResult<_>>()?
+                    adj_mat.axis_iter(Axis(0)).map(build_neighbors).collect()
                 }
             }
             None => Vec::new(),
         };
-        Ok(NeighborTable { neighbors })
+        NeighborTable { neighbors }
     }
 
     fn __getstate__(&self, py: Python<'_>) -> PyResult<Py<PyList>> {
