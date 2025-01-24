@@ -247,8 +247,7 @@ class TestInstructions(QiskitTestCase):
         circ.barrier()
         circ.u(0.1, 0.2, -0.2, q[0])
         circ.t(q[1])
-        with self.assertWarns(DeprecationWarning):
-            inst_reverse = circ.to_instruction()
+        inst_reverse = circ.to_instruction()
 
         self.assertEqual(inst.reverse_ops().definition, inst_reverse.definition)
 

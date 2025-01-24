@@ -149,13 +149,8 @@ class ConstrainedReschedule(AnalysisPass):
             new_t1c = new_t1q
             this_clbits = set(node.cargs)
         else:
-            if node.op.condition_bits:
-                # conditional access ends at the beginning of node start time
-                new_t1c = this_t0
-                this_clbits = set(node.op.condition_bits)
-            else:
-                new_t1c = None
-                this_clbits = set()
+            new_t1c = None
+            this_clbits = set()
 
         # Check immediate successors for overlap
         for next_node in self._get_next_gate(dag, node):
@@ -167,13 +162,8 @@ class ConstrainedReschedule(AnalysisPass):
                 next_t0c = next_t0q + clbit_write_latency
                 next_clbits = set(next_node.cargs)
             else:
-                if next_node.op.condition_bits:
-                    # conditional access starts before node start time
-                    next_t0c = next_t0q - conditional_latency
-                    next_clbits = set(next_node.op.condition_bits)
-                else:
-                    next_t0c = None
-                    next_clbits = set()
+                next_t0c = None
+                next_clbits = set()
             # Compute overlap if there is qubits overlap
             if any(this_qubits & next_qubits):
                 qreg_overlap = new_t1q - next_t0q

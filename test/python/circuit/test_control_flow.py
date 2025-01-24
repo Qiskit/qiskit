@@ -587,8 +587,6 @@ class TestAddingControlFlowOperations(QiskitTestCase):
 
         self.assertEqual(qc.data[0].operation.name, "switch_case")
         self.assertEqual(qc.data[0].operation.params, bodies[: len(labels)])
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(qc.data[0].operation.condition, None)
         self.assertEqual(qc.data[0].qubits, tuple(qc.qubits[1:4]))
         self.assertEqual(qc.data[0].clbits, (qc.clbits[1],))
 
@@ -619,7 +617,6 @@ class TestAddingControlFlowOperations(QiskitTestCase):
 
         self.assertEqual(qc.data[0].operation.name, "switch_case")
         self.assertEqual(qc.data[0].operation.params, bodies[: len(labels)])
-        self.assertEqual(qc.data[0].operation._condition, None)
         self.assertEqual(qc.data[0].qubits, tuple(qc.qubits[1:4]))
         self.assertEqual(qc.data[0].clbits, (qc.clbits[1],))
 

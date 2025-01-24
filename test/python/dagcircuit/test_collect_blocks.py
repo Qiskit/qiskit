@@ -274,13 +274,12 @@ class TestCollectBlocks(QiskitTestCase):
         qc.cx(0, 1)
 
         block_collector = BlockCollector(circuit_to_dag(qc))
-        with self.assertWarns(DeprecationWarning):
-            blocks = block_collector.collect_all_matching_blocks(
-                lambda node: node.op.name in ["x", "cx"]
-                and not getattr(node.op, "condition", None),
-                split_blocks=False,
-                min_block_size=1,
-            )
+        blocks = block_collector.collect_all_matching_blocks(
+            lambda node: node.op.name in ["x", "cx"]
+            and not getattr(node.op, "condition", None),
+            split_blocks=False,
+            min_block_size=1,
+        )
         self.assertEqual(len(blocks), 2)
         self.assertEqual(len(blocks[0]), 4)
         self.assertEqual(len(blocks[1]), 2)
@@ -679,90 +678,6 @@ class TestCollectBlocks(QiskitTestCase):
         self.assertEqual(collapsed_qc.data[0].operation.definition.num_qubits, 4)
         self.assertEqual(collapsed_qc.data[0].operation.definition.num_clbits, 3)
 
-    def test_collect_blocks_with_cregs(self):
-        """Test collecting and collapsing blocks with classical registers appearing under
-        condition."""
-
-        qreg = QuantumRegister(4, "qr")
-        creg = ClassicalRegister(3, "cr")
-        creg2 = ClassicalRegister(2, "cr2")
-
-        qc = QuantumCircuit(qreg, creg, creg2)
-        with self.assertWarns(DeprecationWarning):
-            qc.cx(0, 1).c_if(creg, 3)
-        qc.cx(1, 2)
-        with self.assertWarns(DeprecationWarning):
-            qc.cx(0, 1).c_if(creg[2], 1)
-
-        dag = circuit_to_dag(qc)
-
-        # Collect all cx gates (including the conditional ones)
-        blocks = BlockCollector(dag).collect_all_matching_blocks(
-            lambda node: node.op.name == "cx", split_blocks=False, min_block_size=1
-        )
-
-        # We should have a single block consisting of all CX nodes
-        self.assertEqual(len(blocks), 1)
-        self.assertEqual(len(blocks[0]), 3)
-
-        def _collapse_fn(circuit):
-            op = circuit_to_instruction(circuit)
-            op.name = "COLLAPSED"
-            return op
-
-        # Collapse block with measures into a single "COLLAPSED" block
-        with self.assertWarns(DeprecationWarning):
-            dag = BlockCollapser(dag).collapse_to_operation(blocks, _collapse_fn)
-        collapsed_qc = dag_to_circuit(dag)
-
-        self.assertEqual(len(collapsed_qc.data), 1)
-        self.assertEqual(collapsed_qc.data[0].operation.name, "COLLAPSED")
-        self.assertEqual(len(collapsed_qc.data[0].operation.definition.cregs), 1)
-        self.assertEqual(collapsed_qc.data[0].operation.definition.num_qubits, 3)
-        self.assertEqual(collapsed_qc.data[0].operation.definition.num_clbits, 3)
-
-    def test_collect_blocks_with_cregs_dagdependency(self):
-        """Test collecting and collapsing blocks with classical registers appearing under
-        condition, using DAGDependency."""
-
-        qreg = QuantumRegister(4, "qr")
-        creg = ClassicalRegister(3, "cr")
-        creg2 = ClassicalRegister(2, "cr2")
-
-        qc = QuantumCircuit(qreg, creg, creg2)
-        with self.assertWarns(DeprecationWarning):
-            qc.cx(0, 1).c_if(creg, 3)
-        qc.cx(1, 2)
-        with self.assertWarns(DeprecationWarning):
-            qc.cx(0, 1).c_if(creg[2], 1)
-
-        dag = circuit_to_dagdependency(qc)
-
-        # Collect all cx gates (including the conditional ones)
-        blocks = BlockCollector(dag).collect_all_matching_blocks(
-            lambda node: node.op.name == "cx", split_blocks=False, min_block_size=1
-        )
-
-        # We should have a single block consisting of all CX nodes
-        self.assertEqual(len(blocks), 1)
-        self.assertEqual(len(blocks[0]), 3)
-
-        def _collapse_fn(circuit):
-            op = circuit_to_instruction(circuit)
-            op.name = "COLLAPSED"
-            return op
-
-        # Collapse block with measures into a single "COLLAPSED" block
-        with self.assertWarns(DeprecationWarning):
-            dag = BlockCollapser(dag).collapse_to_operation(blocks, _collapse_fn)
-        collapsed_qc = dagdependency_to_circuit(dag)
-
-        self.assertEqual(len(collapsed_qc.data), 1)
-        self.assertEqual(collapsed_qc.data[0].operation.name, "COLLAPSED")
-        self.assertEqual(len(collapsed_qc.data[0].operation.definition.cregs), 1)
-        self.assertEqual(collapsed_qc.data[0].operation.definition.num_qubits, 3)
-        self.assertEqual(collapsed_qc.data[0].operation.definition.num_clbits, 3)
-
     def test_collect_blocks_backwards_dagcircuit(self):
         """Test collecting H gates from DAGCircuit in the forward vs. the reverse
         directions."""
@@ -909,28 +824,6 @@ class TestCollectBlocks(QiskitTestCase):
         self.assertEqual(len(blocks[1]), 2)
         self.assertEqual(len(blocks[2]), 1)
         self.assertEqual(len(blocks[3]), 1)
-
-    def test_block_collapser_register_condition(self):
-        """Test that BlockCollapser can handle a register being used more than once."""
-        qc = QuantumCircuit(1, 2)
-        with self.assertWarns(DeprecationWarning):
-            qc.x(0).c_if(qc.cregs[0], 0)
-        with self.assertWarns(DeprecationWarning):
-            qc.y(0).c_if(qc.cregs[0], 1)
-
-        dag = circuit_to_dag(qc)
-        blocks = BlockCollector(dag).collect_all_matching_blocks(
-            lambda _: True, split_blocks=False, min_block_size=1
-        )
-        with self.assertWarns(DeprecationWarning):
-            dag = BlockCollapser(dag).collapse_to_operation(
-                blocks, lambda circ: circ.to_instruction()
-            )
-        collapsed_qc = dag_to_circuit(dag)
-
-        self.assertEqual(len(collapsed_qc.data), 1)
-        self.assertEqual(collapsed_qc.data[0].operation.definition.num_qubits, 1)
-        self.assertEqual(collapsed_qc.data[0].operation.definition.num_clbits, 2)
 
 
 if __name__ == "__main__":

@@ -1310,9 +1310,15 @@ class TestBackendSamplerV2(QiskitTestCase):
                     self.assertTrue(hasattr(data, creg.name))
                     self._assert_allclose(getattr(data, creg.name), np.array(target[creg.name]))
 
-    @combine(backend=BACKENDS_V2)
-    def test_circuit_with_aliased_cregs(self, backend):
+    def test_circuit_with_aliased_cregs(self):
         """Test for circuit with aliased classical registers."""
+        backend = GenericBackendV2(
+            num_qubits=7,
+            basis_gates=["id", "rz", "sx", "x", "cx", "reset"],
+            coupling_map=LAGOS_CMAP,
+            seed=42,
+            control_flow=True
+        )
         q = QuantumRegister(3, "q")
         c1 = ClassicalRegister(1, "c1")
         c2 = ClassicalRegister(1, "c2")
@@ -1339,49 +1345,6 @@ class TestBackendSamplerV2(QiskitTestCase):
 
         sampler = BackendSamplerV2(backend=backend, options=self._options)
         pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
-        qc2 = pm.run(qc2)
-        result = sampler.run([qc2], shots=self._shots).result()
-        self.assertEqual(len(result), 1)
-        data = result[0].data
-        self.assertEqual(len(data), 3)
-        for creg_name, creg in target.items():
-            self.assertTrue(hasattr(data, creg_name))
-            self._assert_allclose(getattr(data, creg_name), np.array(creg))
-
-    @combine(backend=BACKENDS_V1)
-    def test_circuit_with_aliased_cregs_v1(self, backend):
-        """Test for circuit with aliased classical registers."""
-        q = QuantumRegister(3, "q")
-        c1 = ClassicalRegister(1, "c1")
-        c2 = ClassicalRegister(1, "c2")
-
-        qc = QuantumCircuit(q, c1, c2)
-        qc.ry(np.pi / 4, 2)
-        qc.cx(2, 1)
-        qc.cx(0, 1)
-        qc.h(0)
-        qc.measure(0, c1)
-        qc.measure(1, c2)
-        with qc.if_test((c1, 1)):
-            qc.z(2)
-        with qc.if_test((c2, 1)):
-            qc.x(2)
-        qc2 = QuantumCircuit(5, 5)
-        qc2.compose(qc, [0, 2, 3], [2, 4], inplace=True)
-        cregs = [creg.name for creg in qc2.cregs]
-        target = {
-            cregs[0]: {0: 4255, 4: 4297, 16: 720, 20: 726},
-            cregs[1]: {0: 5000, 1: 5000},
-            cregs[2]: {0: 8500, 1: 1500},
-        }
-
-        sampler = BackendSamplerV2(backend=backend, options=self._options)
-        with self.assertWarnsRegex(
-            DeprecationWarning,
-            expected_regex="The `generate_preset_pass_manager` function will "
-            "stop supporting inputs of type `BackendV1`",
-        ):
-            pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
         qc2 = pm.run(qc2)
         result = sampler.run([qc2], shots=self._shots).result()
         self.assertEqual(len(result), 1)

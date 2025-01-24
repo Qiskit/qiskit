@@ -402,15 +402,13 @@ class TestLoadFromQPY(QiskitTestCase):
         """Test multiple circuits can be serialized together."""
         circuits = []
         for i in range(10):
-            with self.assertWarns(DeprecationWarning):
-                circuits.append(
-                    random_circuit(10, 10, measure=True, conditional=True, reset=True, seed=42 + i)
-                )
+            circuits.append(
+                random_circuit(10, 10, measure=True, conditional=True, reset=True, seed=42 + i)
+            )
         qpy_file = io.BytesIO()
         dump(circuits, qpy_file)
         qpy_file.seek(0)
-        with self.assertWarns(DeprecationWarning):
-            new_circs = load(qpy_file)
+        new_circs = load(qpy_file)
         self.assertEqual(circuits, new_circs)
         for old, new in zip(circuits, new_circs):
             self.assertDeprecatedBitProperties(old, new)
@@ -1124,8 +1122,7 @@ class TestLoadFromQPY(QiskitTestCase):
         qpy_file = io.BytesIO()
         dump(qc, qpy_file)
         qpy_file.seek(0)
-        with self.assertWarns(DeprecationWarning):
-            new_circuit = load(qpy_file)[0]
+        new_circuit = load(qpy_file)[0]
         self.assertEqual(qc, new_circuit)
         self.assertDeprecatedBitProperties(qc, new_circuit)
 
@@ -1142,8 +1139,7 @@ class TestLoadFromQPY(QiskitTestCase):
         qpy_file = io.BytesIO()
         dump(qc, qpy_file)
         qpy_file.seek(0)
-        with self.assertWarns(DeprecationWarning):
-            new_circuit = load(qpy_file)[0]
+        new_circuit = load(qpy_file)[0]
         self.assertEqual(qc, new_circuit)
         self.assertDeprecatedBitProperties(qc, new_circuit)
 
