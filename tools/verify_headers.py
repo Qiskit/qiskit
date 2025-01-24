@@ -37,6 +37,7 @@ def discover_files(code_paths):
             for directory in os.walk(path):
                 dir_path = directory[0]
                 for subfile in directory[2]:
+                    # pylint: disable=too-many-boolean-expressions
                     if (
                         subfile.endswith(".py")
                         or subfile.endswith(".pyx")
