@@ -10,6 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use std::borrow::Cow;
 use std::hash::Hash;
 
 use ahash::RandomState;
@@ -168,23 +169,6 @@ impl Wire {
         } else {
             Err(PyTypeError::new_err("Invalid wire type"))
         }
-    }
-}
-
-/// Allows the acceptance of either owned bit indices or a borrowed slice.
-pub enum OwnedOrSlice<'a, T> {
-    Slice(&'a [T]),
-    Owned(Vec<T>),
-}
-impl<'a, T> From<&'a [T]> for OwnedOrSlice<'a, T> {
-    fn from(value: &'a [T]) -> Self {
-        Self::Slice(value)
-    }
-}
-
-impl<'a, T> From<Vec<T>> for OwnedOrSlice<'a, T> {
-    fn from(value: Vec<T>) -> Self {
-        Self::Owned(value)
     }
 }
 
@@ -6546,7 +6530,7 @@ impl DAGCircuit {
         let mut concat = new_dag.as_concat();
         // Add all of the instructions into the DAG
         for instr in qc_data.iter() {
-            let new_qargs: OwnedOrSlice<Qubit> = if let Some(qubit_mapping) = &qubit_map {
+            let new_qargs: Cow<[Qubit]> = if let Some(qubit_mapping) = &qubit_map {
                 qc_data
                     .get_qargs(instr.qubits)
                     .iter()
@@ -6557,7 +6541,7 @@ impl DAGCircuit {
                 qc_data.get_qargs(instr.qubits).into()
             };
             // Remap the clbits
-            let new_cargs: OwnedOrSlice<Clbit> = if let Some(clbit_mapping) = &clbit_map {
+            let new_cargs: Cow<[Clbit]> = if let Some(clbit_mapping) = &clbit_map {
                 qc_data
                     .get_cargs(instr.clbits)
                     .iter()
@@ -6940,8 +6924,8 @@ impl<'a> DAGCircuitConcat<'a> {
         &mut self,
         py: Python,
         op: PackedOperation,
-        qubits: Option<OwnedOrSlice<Qubit>>,
-        clbits: Option<OwnedOrSlice<Clbit>>,
+        qubits: Option<Cow<[Qubit]>>,
+        clbits: Option<Cow<[Clbit]>>,
         params: Option<SmallVec<[Param; 3]>>,
         extra_attrs: ExtraInstructionAttributes,
         #[cfg(feature = "cache_pygates")] py_op: Option<PyObject>,
@@ -7073,8 +7057,8 @@ impl<'a> DAGCircuitConcat<'a> {
     fn pack_instruction(
         &mut self,
         op: PackedOperation,
-        qubits: Option<OwnedOrSlice<Qubit>>,
-        clbits: Option<OwnedOrSlice<Clbit>>,
+        qubits: Option<Cow<[Qubit]>>,
+        clbits: Option<Cow<[Clbit]>>,
         params: Option<SmallVec<[Param; 3]>>,
         extra_attrs: ExtraInstructionAttributes,
         #[cfg(feature = "cache_pygates")] py_op: Option<PyObject>,
@@ -7087,16 +7071,16 @@ impl<'a> DAGCircuitConcat<'a> {
         };
         let qubits = if let Some(qubits) = qubits {
             match qubits {
-                OwnedOrSlice::Owned(owned) => self.dag.qargs_interner.insert_owned(owned),
-                OwnedOrSlice::Slice(slice) => self.dag.qargs_interner.insert(slice),
+                Cow::Owned(owned) => self.dag.qargs_interner.insert_owned(owned),
+                Cow::Borrowed(slice) => self.dag.qargs_interner.insert(slice),
             }
         } else {
             self.dag.qargs_interner.get_default()
         };
         let clbits = if let Some(clbits) = clbits {
             match clbits {
-                OwnedOrSlice::Owned(owned) => self.dag.cargs_interner.insert_owned(owned),
-                OwnedOrSlice::Slice(slice) => self.dag.cargs_interner.insert(slice),
+                Cow::Owned(owned) => self.dag.cargs_interner.insert_owned(owned),
+                Cow::Borrowed(slice) => self.dag.cargs_interner.insert(slice),
             }
         } else {
             self.dag.cargs_interner.get_default()
