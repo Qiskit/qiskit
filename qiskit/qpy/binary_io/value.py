@@ -387,7 +387,7 @@ def _read_parameter(file_obj):
     return Parameter(name, uuid=param_uuid)
 
 
-def _read_parameter_vec(file_obj, vectors):
+def _read_parameter_vec(file_obj, vectors, from_expr):
     data = formats.PARAMETER_VECTOR_ELEMENT(
         *struct.unpack(
             formats.PARAMETER_VECTOR_ELEMENT_PACK,
@@ -397,8 +397,8 @@ def _read_parameter_vec(file_obj, vectors):
     param_uuid = uuid.UUID(bytes=data.uuid)
     name = file_obj.read(data.vector_name_size).decode(common.ENCODE)
 
-    # if name not in vectors:
-    vectors[name] = (ParameterVector(name, data.vector_size), set())
+    if from_expr or name not in vectors:
+        vectors[name] = (ParameterVector(name, data.vector_size), set())
     vector = vectors[name][0]
     if vector[data.index].uuid != param_uuid:
         vectors[name][1].add(data.index)
@@ -468,7 +468,7 @@ def _read_parameter_expression_v3(file_obj, vectors, use_symengine):
         if symbol_key == type_keys.Value.PARAMETER:
             symbol = _read_parameter(file_obj)
         elif symbol_key == type_keys.Value.PARAMETER_VECTOR:
-            symbol = _read_parameter_vec(file_obj, vectors)
+            symbol = _read_parameter_vec(file_obj, vectors, False)
         else:
             raise exceptions.QpyError(f"Invalid parameter expression map type: {symbol_key}")
 
@@ -516,7 +516,7 @@ def _read_parameter_expression_v13(file_obj, vectors, version):
         if symbol_key == type_keys.Value.PARAMETER:
             symbol = _read_parameter(file_obj)
         elif symbol_key == type_keys.Value.PARAMETER_VECTOR:
-            symbol = _read_parameter_vec(file_obj, vectors)
+            symbol = _read_parameter_vec(file_obj, vectors, True)
         else:
             raise exceptions.QpyError(f"Invalid parameter expression map type: {symbol_key}")
 
@@ -955,7 +955,9 @@ def loads_value(
     if type_key == type_keys.Value.CASE_DEFAULT:
         return CASE_DEFAULT
     if type_key == type_keys.Value.PARAMETER_VECTOR:
-        return common.data_from_binary(binary_data, _read_parameter_vec, vectors=vectors)
+        return common.data_from_binary(
+            binary_data, _read_parameter_vec, vectors=vectors, from_expr=False
+        )
     if type_key == type_keys.Value.PARAMETER:
         return common.data_from_binary(binary_data, _read_parameter)
     if type_key == type_keys.Value.PARAMETER_EXPRESSION:
