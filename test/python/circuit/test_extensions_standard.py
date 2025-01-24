@@ -131,22 +131,6 @@ class TestStandard1Q(QiskitTestCase):
         self.assertRaises(CircuitError, qc.ch, self.cr, self.qr)
         self.assertRaises(CircuitError, qc.ch, "a", self.qr[1])
 
-    def test_cif_reg(self):
-        with self.assertWarns(DeprecationWarning):
-            self.circuit.h(self.qr[0]).c_if(self.cr, 7)
-        self.assertEqual(self.circuit[0].operation.name, "h")
-        self.assertEqual(self.circuit[0].qubits, (self.qr[0],))
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(self.circuit[0].operation.condition, (self.cr, 7))
-
-    def test_cif_single_bit(self):
-        with self.assertWarns(DeprecationWarning):
-            self.circuit.h(self.qr[0]).c_if(self.cr[0], True)
-        self.assertEqual(self.circuit[0].operation.name, "h")
-        self.assertEqual(self.circuit[0].qubits, (self.qr[0],))
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(self.circuit[0].operation.condition, (self.cr[0], True))
-
     def test_crz(self):
         self.circuit.crz(1, self.qr[0], self.qr[1])
         self.assertEqual(self.circuit[0].operation.name, "crz")

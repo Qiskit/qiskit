@@ -1324,10 +1324,10 @@ class TestBackendSamplerV2(QiskitTestCase):
         qc.h(0)
         qc.measure(0, c1)
         qc.measure(1, c2)
-        with self.assertWarns(DeprecationWarning):
-            qc.z(2).c_if(c1, 1)
-        with self.assertWarns(DeprecationWarning):
-            qc.x(2).c_if(c2, 1)
+        with qc.if_test((c1, 1)):
+            qc.z(2)
+        with qc.if_test((c2, 1)):
+            qc.x(2)
         qc2 = QuantumCircuit(5, 5)
         qc2.compose(qc, [0, 2, 3], [2, 4], inplace=True)
         cregs = [creg.name for creg in qc2.cregs]
@@ -1362,10 +1362,10 @@ class TestBackendSamplerV2(QiskitTestCase):
         qc.h(0)
         qc.measure(0, c1)
         qc.measure(1, c2)
-        with self.assertWarns(DeprecationWarning):
-            qc.z(2).c_if(c1, 1)
-        with self.assertWarns(DeprecationWarning):
-            qc.x(2).c_if(c2, 1)
+        with qc.if_test((c1, 1)):
+            qc.z(2)
+        with qc.if_test((c2, 1)):
+            qc.x(2)
         qc2 = QuantumCircuit(5, 5)
         qc2.compose(qc, [0, 2, 3], [2, 4], inplace=True)
         cregs = [creg.name for creg in qc2.cregs]
