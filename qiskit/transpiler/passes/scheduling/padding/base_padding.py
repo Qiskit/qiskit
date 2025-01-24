@@ -97,7 +97,10 @@ class BasePadding(TransformationPass):
             props = props_dict.get(tuple(indices))
             if not props:
                 return None
-            return self.target.convert_to_dt(props.duration)
+            if self.target.dt is None:
+                return props.duration
+            else:
+                return self.target.convert_to_dt(props.duration)
         return self.durations.get(node.name, indices)
 
     def run(self, dag: DAGCircuit):

@@ -65,7 +65,10 @@ class BaseScheduler(AnalysisPass):
         indices = [dag.find_bit(qarg).index for qarg in node.qargs]
 
         if node.name == "delay":
-            duration = self.durations._convert_unit(node.op.duration, node.op.unit, "dt")
+            if self.durations.dt is None:
+                duration = self.durations._convert_unit(node.op.duration, node.op.unit, "s")
+            else:
+                duration = self.durations._convert_unit(node.op.duration, node.op.unit, "dt")
         elif dag._has_calibration_for(node):
             # If node has calibration, this value should be the highest priority
             cal_key = tuple(indices), tuple(float(p) for p in node.op.params)
@@ -76,7 +79,10 @@ class BaseScheduler(AnalysisPass):
                 duration = dag._calibrations_prop[node.op.name][cal_key].duration
         else:
             try:
-                duration = self.durations.get(node.name, indices)
+                if self.durations.dt is None:
+                    duration = self.durations.get(node.name, indices, unit="s")
+                else:
+                    duration = self.durations.get(node.name, indices)
             except TranspilerError:
                 duration = None
 
