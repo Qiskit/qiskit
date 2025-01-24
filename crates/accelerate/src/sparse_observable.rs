@@ -3438,7 +3438,7 @@ fn coerce_to_observable<'py>(
         }
     }
 }
-pub fn py_sparse_observable(m: &Bound<PyModule>) -> PyResult<()> {
+pub fn sparse_observable(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<PySparseObservable>()?;
     Ok(())
 }
