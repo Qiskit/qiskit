@@ -187,22 +187,25 @@ class DrawerCanvas:
                         duration = None
                         op_props = target.get(instruction.operation.name)
                         if op_props is not None:
-                            inst_props = op_props.get(tuple(instruction.qubits))
+                            inst_props = op_props.get(
+                                tuple(program.find_bit(x).index for x in instruction.qubits)
+                            )
                             if inst_props is not None:
-                                duration = inst_props.getattr("duration")
-
+                                duration = target.convert_to_dt(getattr(inst_props, "duration"))
+                        if instruction.name == "delay":
+                            duration = instruction.operation.duration
                         if duration is None:
                             # Warn here because an incomplete target isn't obvious most of the time
-                            warnings.warn(
+                            raise VisualizationError(
                                 "Target doesn't contain a duration for "
-                                f"{instruction.operation.name} on {bit_pos}, this will error in "
-                                "Qiskit 2.0.",
-                                DeprecationWarning,
-                                stacklevel=3,
+                                f"{instruction.operation.name} on {bit_pos}."
                             )
-                            duration = instruction.operation.duration
-                    else:
+                    elif instruction.name == "delay":
                         duration = instruction.operation.duration
+                    else:
+                        raise VisualizationError(
+                            "Target not specified this is required to provide instruction " "timing"
+                        )
                     gate_source = types.ScheduledGate(
                         t0=t0,
                         operand=instruction.operation,
@@ -217,7 +220,7 @@ class DrawerCanvas:
                             self.add_data(datum)
                     if len(bits) > 1 and bit_pos == 0:
                         # Generate draw object for gate-gate link
-                        line_pos = t0 + 0.5 * instruction.operation.duration
+                        line_pos = t0 + 0.5 * duration
                         link_source = types.GateLink(
                             t0=line_pos, opname=instruction.operation.name, bits=bits
                         )

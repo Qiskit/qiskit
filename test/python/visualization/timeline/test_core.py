@@ -15,7 +15,7 @@
 from qiskit import QuantumCircuit, transpile
 from qiskit.visualization.timeline import core, stylesheet, generators, layouts
 from qiskit.transpiler.target import Target, InstructionProperties
-from qiskit.circuit import Delay, Parameter
+from qiskit.circuit import Delay, Parameter, Measure
 from qiskit.circuit.library import HGate, CXGate
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -75,7 +75,7 @@ class TestCanvas(QiskitTestCase):
             "time_axis_map": layouts.time_map_in_dt,
         }
 
-        canvas.load_program(self.circ)
+        canvas.load_program(self.circ, target=self.target)
         canvas.update()
         drawings_tested = list(canvas.collections)
 
@@ -110,7 +110,7 @@ class TestCanvas(QiskitTestCase):
             "time_axis_map": layouts.time_map_in_dt,
         }
 
-        canvas.load_program(self.circ)
+        canvas.load_program(self.circ, self.target)
         canvas.update()
         drawings_tested = list(canvas.collections)
 
@@ -136,8 +136,7 @@ class TestCanvas(QiskitTestCase):
             "bit_arrange": layouts.qreg_creg_ascending,
             "time_axis_map": layouts.time_map_in_dt,
         }
-
-        canvas.load_program(self.circ)
+        canvas.load_program(self.circ, target=self.target)
         canvas.set_time_range(t_start=400, t_end=600)
         canvas.update()
         drawings_tested = list(canvas.collections)
@@ -192,8 +191,15 @@ class TestCanvas(QiskitTestCase):
             "barriers": [],
             "gate_links": [generators.gen_gate_link],
         }
-
-        canvas.load_program(circ)
+        target = Target(num_qubits=2, dt=1e-7)
+        target.add_instruction(
+            Measure(),
+            {
+                (0,): InstructionProperties(duration=2000 * 1e-7),
+                (1,): InstructionProperties(duration=2000 * 1e-7),
+            },
+        )
+        canvas.load_program(circ, target)
         canvas.update()
         self.assertEqual(len(canvas._output_dataset), 0)
 
@@ -228,7 +234,15 @@ class TestCanvas(QiskitTestCase):
             "barriers": [],
             "gate_links": [generators.gen_gate_link],
         }
+        target = Target(num_qubits=2, dt=1e-7)
+        target.add_instruction(
+            Measure(),
+            {
+                (0,): InstructionProperties(duration=2000 * 1e-7),
+                (1,): InstructionProperties(duration=2000 * 1e-7),
+            },
+        )
 
-        canvas.load_program(circ)
+        canvas.load_program(circ, target)
         canvas.update()
         self.assertEqual(len(canvas._output_dataset), 2)
