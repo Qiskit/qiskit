@@ -76,7 +76,7 @@ class TestCircuitRandom(QiskitTestCase):
         self.assertEqual(circ.width(), 2 * num_qubits)
         op_names = [instruction.operation.name for instruction in circ]
         # Before a condition, there needs to be measurement in all the qubits.
-        self.assertEqual(4, len(op_names))
+        self.assertEqual(5, len(op_names))
         self.assertEqual(["measure"] * num_qubits, op_names[1 : 1 + num_qubits])
         conditions = [
             bool(getattr(instruction.operation, "condition", None)) for instruction in circ

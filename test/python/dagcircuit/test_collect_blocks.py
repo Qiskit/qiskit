@@ -617,7 +617,7 @@ class TestCollectBlocks(QiskitTestCase):
 
         # We should have a single block consisting of all CX nodes
         self.assertEqual(len(blocks), 1)
-        self.assertEqual(len(blocks[0]), 4)
+        self.assertEqual(len(blocks[0]), 1)
 
         def _collapse_fn(circuit):
             op = circuit_to_instruction(circuit)
@@ -660,7 +660,7 @@ class TestCollectBlocks(QiskitTestCase):
 
         # We should have a single block consisting of all CX nodes
         self.assertEqual(len(blocks), 1)
-        self.assertEqual(len(blocks[0]), 4)
+        self.assertEqual(len(blocks[0]), 1)
 
         def _collapse_fn(circuit):
             op = circuit_to_instruction(circuit)
