@@ -397,8 +397,8 @@ class TestBackendSampler(QiskitTestCase):
             qc.h(0)
             qc.cx(0, 1)
             qc.measure(0, 0)
-            with self.assertWarns(DeprecationWarning):
-                qc.break_loop().c_if(0, True)
+            with qc.if_test((0, True)):
+                qc.break_loop()
 
         with self.assertWarns(DeprecationWarning):
             backend = Aer.get_backend("aer_simulator")
@@ -406,7 +406,7 @@ class TestBackendSampler(QiskitTestCase):
             sampler.set_options(seed_simulator=15)
             sampler.set_transpile_options(seed_transpiler=15)
             result = sampler.run(qc).result()
-        self.assertDictAlmostEqual(result.quasi_dists[0], {0: 0.5029296875, 1: 0.4970703125})
+        self.assertDictAlmostEqual(result.quasi_dists[0], {0: 0.021484375, 1: 0.978515625})
 
     def test_sequential_run(self):
         """Test sequential run."""
