@@ -34,7 +34,7 @@ on:
 
 jobs:
   tests-linux:
-    if: github.repository_owner == 'Qiskit'
+    # if: github.repository_owner == 'Qiskit'
     name: ubuntu-latest-tests-Python-${{ inputs.python-version }}
     runs-on: ubuntu-latest
     env:

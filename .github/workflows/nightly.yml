@@ -17,11 +17,12 @@ jobs:
     #
     # For this to run on a branch, the `schedules` trigger  up at the top of this
     # file needs to match on _both_ `main` and the branch itself.
-    if: ${{ github.repository_owner == 'Qiskit'}}
+    # if: ${{ github.repository_owner == 'Qiskit'}}
     uses: ./.github/workflows/on-nightly.yml
   nightly-failure:
     name: Create comment on failed test run
-    if: ${{ github.repository_owner == 'Qiskit' && failure() }}
+    # if: ${{ github.repository_owner == 'Qiskit' && failure() }}
+    if: ${{ failure() }}
     runs-on: ubuntu-latest
     steps:
       - uses: peter-evans/create-or-update-comment@v4
