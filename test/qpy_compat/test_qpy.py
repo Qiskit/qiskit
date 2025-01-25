@@ -110,7 +110,7 @@ def generate_unitary_gate_circuit():
     return unitary_circuit
 
 
-def generate_random_circuits():
+def generate_random_circuits(version):
     """Generate multiple random circuits."""
     random_circuits = []
     for i in range(1, 15):
@@ -122,8 +122,11 @@ def generate_random_circuits():
         qc.measure_all()
         for j in range(i):
             qc.reset(j)
-        with qc.if_test((qc.cregs[0], i)):
-            qc.x(0)
+            if version >= (2, 0, 0):
+                with qc.if_test((qc.cregs[0], i)):
+                    qc.x(0)
+            else:
+                qc.x(0).c_if(qc.cregs[0], i)
         for j in range(i):
             qc.measure(j, j)
         random_circuits.append(qc)
@@ -282,15 +285,18 @@ def generate_param_phase():
     return output_circuits
 
 
-def generate_single_clbit_condition_teleportation():  # pylint: disable=invalid-name
+def generate_single_clbit_condition_teleportation(version):  # pylint: disable=invalid-name
     """Generate single clbit condition teleportation circuit."""
     qr = QuantumRegister(1)
     cr = ClassicalRegister(2, name="name")
     teleport_qc = QuantumCircuit(qr, cr, name="Reset Test")
     teleport_qc.x(0)
     teleport_qc.measure(0, cr[0])
-    with teleport_qc.if_test((cr[0], 1)):
-        teleport_qc.x(0)
+    if version >= (2, 0, 0):
+        with teleport_qc.if_test((cr[0], 1)):
+            teleport_qc.x(0)
+    else:
+        teleport_qc.x(0).c_if(cr[0], 1)
     teleport_qc.measure(0, cr[1])
     return teleport_qc
 
@@ -828,7 +834,7 @@ def generate_circuits(version_parts):
     output_circuits = {
         "full.qpy": [generate_full_circuit()],
         "unitary.qpy": [generate_unitary_gate_circuit()],
-        "multiple.qpy": generate_random_circuits(),
+        "multiple.qpy": generate_random_circuits(version),
         "string_parameters.qpy": [generate_string_parameters()],
         "register_edge_cases.qpy": generate_register_edge_cases(),
         "parameterized.qpy": [generate_parameterized_circuit()],
@@ -838,7 +844,9 @@ def generate_circuits(version_parts):
 
     if version_parts >= (0, 18, 1):
         output_circuits["qft_circuit.qpy"] = [generate_qft_circuit()]
-        output_circuits["teleport.qpy"] = [generate_single_clbit_condition_teleportation()]
+        output_circuits["teleport.qpy"] = [
+            generate_single_clbit_condition_teleportation(version_parts)
+        ]
 
     if version_parts >= (0, 19, 0):
         output_circuits["param_phase.qpy"] = generate_param_phase()
