@@ -3173,7 +3173,7 @@ def _format(operand):
             let temp: OperationFromPython = op.extract()?;
             node.instruction.operation = temp.operation;
             node.instruction.params = new_weight.params_view().iter().cloned().collect();
-            node.instruction.label = new_weight.label.clone();
+            node.instruction.label.clone_from(&new_weight.label);
             #[cfg(feature = "cache_pygates")]
             {
                 node.instruction.py_op = new_weight.py_op.clone();
