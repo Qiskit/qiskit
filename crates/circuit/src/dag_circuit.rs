@@ -307,6 +307,20 @@ impl PyVariableMapper {
         })
     }
 
+    fn map_condition<'py>(
+        &self,
+        condition: &Bound<'py, PyAny>,
+        allow_reorder: bool,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        let py = condition.py();
+        let kwargs: HashMap<&str, bool> = HashMap::from_iter([("allow_reorder", allow_reorder)]);
+        self.mapper.bind(py).call_method(
+            intern!(py, "map_condition"),
+            (condition,),
+            Some(&kwargs.into_py_dict(py)?),
+        )
+    }
+
     fn map_target<'py>(&self, target: &Bound<'py, PyAny>) -> PyResult<Bound<'py, PyAny>> {
         let py = target.py();
         self.mapper
@@ -2085,12 +2099,22 @@ def _format(operand):
                         py_op = py_op.call_method0(intern!(py, "to_mutable"))?;
                     }
 
-                    if py_op.is_instance(imports::SWITCH_CASE_OP.get_bound(py))? {
-                        py_op.setattr(
-                            intern!(py, "target"),
-                            variable_mapper.map_target(&py_op.getattr(intern!(py, "target"))?)?,
-                        )?;
-                    };
+                    if op.op.control_flow() {
+                        if py_op.is_instance(imports::IF_ELSE_OP.get_bound(py))?
+                            || py_op.is_instance(imports::WHILE_LOOP_OP.get_bound(py))?
+                        {
+                            if let Ok(condition) = py_op.getattr(intern!(py, "condition")) {
+                                let condition = variable_mapper.map_condition(&condition, true)?;
+                                py_op.setattr(intern!(py, "condition"), condition)?;
+                            }
+                        } else if py_op.is_instance(imports::SWITCH_CASE_OP.get_bound(py))? {
+                            py_op.setattr(
+                                intern!(py, "target"),
+                                variable_mapper
+                                    .map_target(&py_op.getattr(intern!(py, "target"))?)?,
+                            )?;
+                        };
+                    }
 
                     dag.py_apply_operation_back(
                         py,

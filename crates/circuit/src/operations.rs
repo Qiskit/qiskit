@@ -416,7 +416,7 @@ impl StandardGate {
         &self,
         py: Python,
         params: Option<&[Param]>,
-        label: Option<&Box<String>>,
+        label: Option<&str>,
     ) -> PyResult<Py<PyAny>> {
         let gate_class = get_std_gate_class(py, *self)?;
         let args = match params.unwrap_or(&[]) {
@@ -424,7 +424,7 @@ impl StandardGate {
             params => PyTuple::new(py, params.iter().map(|x| x.into_pyobject(py).unwrap()))?,
         };
         if let Some(label) = label {
-            let kwargs = [("label", label.clone().into_pyobject(py)?)].into_py_dict(py)?;
+            let kwargs = [("label", label.into_pyobject(py)?)].into_py_dict(py)?;
             gate_class.call(py, args, Some(&kwargs))
         } else {
             gate_class.call(py, args, None)

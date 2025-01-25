@@ -168,7 +168,11 @@ impl CircuitInstruction {
 
         let out = match self.operation.view() {
             OperationRef::Standard(standard) => standard
-                .create_py_op(py, Some(&self.params), self.label.as_ref())?
+                .create_py_op(
+                    py,
+                    Some(&self.params),
+                    self.label.as_ref().map(|x| x.as_str()),
+                )?
                 .into_any(),
             OperationRef::Gate(gate) => gate.gate.clone_ref(py),
             OperationRef::Instruction(instruction) => instruction.instruction.clone_ref(py),
