@@ -81,7 +81,7 @@ class TestCircuitRandom(QiskitTestCase):
         conditions = [
             bool(getattr(instruction.operation, "condition", None)) for instruction in circ
         ]
-        self.assertEqual([False, False, False, True], conditions)
+        self.assertEqual([False, False, False, False, True], conditions)
 
     def test_random_circuit_num_operand_distribution(self):
         """Test that num_operand_distribution argument generates gates in correct proportion"""

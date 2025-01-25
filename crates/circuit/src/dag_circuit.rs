@@ -3094,6 +3094,36 @@ def _format(operand):
                                 new_inst.py_op = new_op.unbind().into();
                             }
                         }
+                    } else if old_inst.op.control_flow() {
+                        if let Ok(condition) =
+                            old_op.instruction.getattr(py, intern!(py, "condition"))
+                        {
+                            if old_inst.op.name() != "switch_case" {
+                                let new_condition: Option<PyObject> = variable_mapper
+                                    .map_condition(condition.bind(py), false)?
+                                    .extract()?;
+                                flush_new_registers(self)?;
+
+                                if let NodeType::Operation(ref mut new_inst) =
+                                    &mut self.dag[*new_node_index]
+                                {
+                                    #[cfg(feature = "cache_pygates")]
+                                    {
+                                        new_inst.py_op.take();
+                                    }
+                                    match new_inst.op.view() {
+                                        OperationRef::Instruction(py_inst) => {
+                                            py_inst.instruction.setattr(
+                                                py,
+                                                "condition",
+                                                new_condition,
+                                            )?;
+                                        }
+                                        _ => panic!("Instruction mismatch"),
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }

@@ -36,6 +36,7 @@ from qiskit.providers.fake_provider import Fake7QPulseV1, GenericBackendV2
 from qiskit.result import Result
 from qiskit.qobj.utils import MeasReturnType, MeasLevel
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
+from qiskit.utils import optionals
 from ..legacy_cmaps import LAGOS_CMAP
 
 BACKENDS_V1 = [Fake7QPulseV1()]
@@ -1310,6 +1311,7 @@ class TestBackendSamplerV2(QiskitTestCase):
                     self.assertTrue(hasattr(data, creg.name))
                     self._assert_allclose(getattr(data, creg.name), np.array(target[creg.name]))
 
+    @unittest.skipUnless(optionals.HAS_AER, "Aer is required to simuate control flow")
     def test_circuit_with_aliased_cregs(self):
         """Test for circuit with aliased classical registers."""
         backend = GenericBackendV2(

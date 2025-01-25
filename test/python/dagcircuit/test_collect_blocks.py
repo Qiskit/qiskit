@@ -535,7 +535,7 @@ class TestCollectBlocks(QiskitTestCase):
 
         # We should have a single block consisting of all CX nodes
         self.assertEqual(len(blocks), 1)
-        self.assertEqual(len(blocks[0]), 5)
+        self.assertEqual(len(blocks[0]), 3)
 
         def _collapse_fn(circuit):
             op = circuit_to_instruction(circuit)
@@ -543,14 +543,14 @@ class TestCollectBlocks(QiskitTestCase):
             return op
 
         # Collapse block with measures into a single "COLLAPSED" block
-        with self.assertWarns(DeprecationWarning):
-            dag = BlockCollapser(dag).collapse_to_operation(blocks, _collapse_fn)
+        dag = BlockCollapser(dag).collapse_to_operation(blocks, _collapse_fn)
         collapsed_qc = dag_to_circuit(dag)
+        print(collapsed_qc)
 
-        self.assertEqual(len(collapsed_qc.data), 1)
-        self.assertEqual(collapsed_qc.data[0].operation.name, "COLLAPSED")
-        self.assertEqual(collapsed_qc.data[0].operation.definition.num_qubits, 4)
-        self.assertEqual(collapsed_qc.data[0].operation.definition.num_clbits, 2)
+        self.assertEqual(len(collapsed_qc.data), 3)
+        self.assertEqual(collapsed_qc.data[1].operation.name, "COLLAPSED")
+        self.assertEqual(collapsed_qc.data[1].operation.definition.num_qubits, 4)
+        self.assertEqual(collapsed_qc.data[1].operation.definition.num_clbits, 0)
 
     def test_collect_blocks_with_clbits_dagdependency(self):
         """Test collecting and collapsing blocks with classical bits appearing
@@ -574,7 +574,7 @@ class TestCollectBlocks(QiskitTestCase):
 
         # We should have a single block consisting of all CX nodes
         self.assertEqual(len(blocks), 1)
-        self.assertEqual(len(blocks[0]), 5)
+        self.assertEqual(len(blocks[0]), 3)
 
         def _collapse_fn(circuit):
             op = circuit_to_instruction(circuit)
@@ -582,14 +582,13 @@ class TestCollectBlocks(QiskitTestCase):
             return op
 
         # Collapse block with measures into a single "COLLAPSED" block
-        with self.assertWarns(DeprecationWarning):
-            dag = BlockCollapser(dag).collapse_to_operation(blocks, _collapse_fn)
+        dag = BlockCollapser(dag).collapse_to_operation(blocks, _collapse_fn)
         collapsed_qc = dagdependency_to_circuit(dag)
 
-        self.assertEqual(len(collapsed_qc.data), 1)
-        self.assertEqual(collapsed_qc.data[0].operation.name, "COLLAPSED")
-        self.assertEqual(collapsed_qc.data[0].operation.definition.num_qubits, 4)
-        self.assertEqual(collapsed_qc.data[0].operation.definition.num_clbits, 2)
+        self.assertEqual(len(collapsed_qc.data), 3)
+        self.assertEqual(collapsed_qc.data[1].operation.name, "COLLAPSED")
+        self.assertEqual(collapsed_qc.data[1].operation.definition.num_qubits, 4)
+        self.assertEqual(collapsed_qc.data[1].operation.definition.num_clbits, 0)
 
     def test_collect_blocks_with_clbits2(self):
         """Test collecting and collapsing blocks with classical bits appearing under
@@ -625,14 +624,14 @@ class TestCollectBlocks(QiskitTestCase):
             return op
 
         # Collapse block with measures into a single "COLLAPSED" block
-        with self.assertWarns(DeprecationWarning):
-            dag = BlockCollapser(dag).collapse_to_operation(blocks, _collapse_fn)
+        dag = BlockCollapser(dag).collapse_to_operation(blocks, _collapse_fn)
         collapsed_qc = dag_to_circuit(dag)
+        print(collapsed_qc)
 
-        self.assertEqual(len(collapsed_qc.data), 1)
-        self.assertEqual(collapsed_qc.data[0].operation.name, "COLLAPSED")
-        self.assertEqual(collapsed_qc.data[0].operation.definition.num_qubits, 4)
-        self.assertEqual(collapsed_qc.data[0].operation.definition.num_clbits, 3)
+        self.assertEqual(len(collapsed_qc.data), 4)
+        self.assertEqual(collapsed_qc.data[2].operation.name, "COLLAPSED")
+        self.assertEqual(collapsed_qc.data[2].operation.definition.num_qubits, 2)
+        self.assertEqual(collapsed_qc.data[2].operation.definition.num_clbits, 0)
 
     def test_collect_blocks_with_clbits2_dagdependency(self):
         """Test collecting and collapsing blocks with classical bits appearing under
@@ -668,14 +667,13 @@ class TestCollectBlocks(QiskitTestCase):
             return op
 
         # Collapse block with measures into a single "COLLAPSED" block
-        with self.assertWarns(DeprecationWarning):
-            dag = BlockCollapser(dag).collapse_to_operation(blocks, _collapse_fn)
+        dag = BlockCollapser(dag).collapse_to_operation(blocks, _collapse_fn)
         collapsed_qc = dag_to_circuit(dag)
 
-        self.assertEqual(len(collapsed_qc.data), 1)
-        self.assertEqual(collapsed_qc.data[0].operation.name, "COLLAPSED")
-        self.assertEqual(collapsed_qc.data[0].operation.definition.num_qubits, 4)
-        self.assertEqual(collapsed_qc.data[0].operation.definition.num_clbits, 3)
+        self.assertEqual(len(collapsed_qc.data), 4)
+        self.assertEqual(collapsed_qc.data[2].operation.name, "COLLAPSED")
+        self.assertEqual(collapsed_qc.data[2].operation.definition.num_qubits, 2)
+        self.assertEqual(collapsed_qc.data[2].operation.definition.num_clbits, 0)
 
     def test_collect_blocks_backwards_dagcircuit(self):
         """Test collecting H gates from DAGCircuit in the forward vs. the reverse

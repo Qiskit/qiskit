@@ -2204,7 +2204,6 @@ class TestDagSubstitute(QiskitTestCase):
         expected.apply_operation_back(
             IfElseOp(expr.logic_and(b, expr.equal(c1_src, 1)), body_rep, None), [q_src[2]], []
         )
-
         self.assertEqual(src, expected)
 
     def test_contract_var_use_to_nothing(self):

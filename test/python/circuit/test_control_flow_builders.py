@@ -622,9 +622,9 @@ class TestControlFlowBuilders(QiskitTestCase):
 
         true_body = QuantumCircuit([qr[0]], cr[0], cr[1], cr[2])
         true_body.h(qr[0])
-        qc.measure(0, cr[1])
+        true_body.measure(0, cr[1])
         true_body.h(qr[0])
-        true_bod.measure(0, cr[1])
+        true_body.measure(0, cr[1])
         false_body = QuantumCircuit([qr[0]], cr[0], cr[1], cr[2])
         false_body.h(qr[0])
         false_body.measure(0, cr[2])
@@ -1407,7 +1407,7 @@ class TestControlFlowBuilders(QiskitTestCase):
                         loop_operation(test)
                     # inner true 2
                     with test.if_test(cond_inner):
-                        with self.if_test((3, 0)):
+                        with test.if_test((3, 0)):
                             test.h(0)
                     with test.if_test((4, 0)):
                         test.h(1)
@@ -1432,7 +1432,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             outer_true_body1.if_test(
                 cond_inner, inner_true_body2, [qubits[0]], [clbits[0], clbits[3]]
             )
-            with out_true_body1.if_test((clbits[4], 0)):
+            with outer_true_body1.if_test((clbits[4], 0)):
                 outer_true_body1.h(qubits[1])
 
             outer_true_body2 = QuantumCircuit([qubits[2], clbits[1], clbits[5]])
