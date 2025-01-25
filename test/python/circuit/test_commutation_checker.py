@@ -18,7 +18,6 @@ from test import QiskitTestCase  # pylint: disable=wrong-import-order
 import numpy as np
 from ddt import idata, ddt
 
-from qiskit import ClassicalRegister
 from qiskit.circuit import (
     AnnotatedOperation,
     ControlModifier,

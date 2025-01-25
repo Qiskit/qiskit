@@ -20,7 +20,7 @@ from math import pi
 from ddt import ddt, data, unpack
 
 from qiskit.circuit import Gate, QuantumCircuit
-from qiskit.circuit import QuantumRegister, ClassicalRegister
+from qiskit.circuit import QuantumRegister
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import Collect2qBlocks

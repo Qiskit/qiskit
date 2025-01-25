@@ -14,7 +14,7 @@
 
 import unittest
 
-from ddt import ddt, data, unpack
+from ddt import ddt, data
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import Delay, Parameter

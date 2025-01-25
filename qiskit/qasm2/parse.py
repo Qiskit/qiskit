@@ -11,7 +11,6 @@
 # that they have been altered from the originals.
 
 """Python-space bytecode interpreter for the output of the main Rust parser logic."""
-import warnings
 import dataclasses
 import math
 from typing import Iterable, Callable

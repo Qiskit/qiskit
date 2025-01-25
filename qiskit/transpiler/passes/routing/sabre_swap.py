@@ -20,7 +20,7 @@ import rustworkx
 
 from qiskit.circuit import SwitchCaseOp, Clbit, ClassicalRegister
 from qiskit.circuit.library.standard_gates import SwapGate
-from qiskit.circuit.controlflow import condition_resources, node_resources
+from qiskit.circuit.controlflow import node_resources
 from qiskit.converters import dag_to_circuit
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.coupling import CouplingMap

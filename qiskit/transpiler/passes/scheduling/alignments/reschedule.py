@@ -117,7 +117,6 @@ class ConstrainedReschedule(AnalysisPass):
             node: Current node.
         """
         node_start_time = self.property_set["node_start_time"]
-        conditional_latency = self.property_set.get("conditional_latency", 0)
         clbit_write_latency = self.property_set.get("clbit_write_latency", 0)
 
         if isinstance(node.op, Gate):

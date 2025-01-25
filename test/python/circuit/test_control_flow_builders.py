@@ -31,7 +31,6 @@ from qiskit.circuit import (
 )
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.controlflow import ForLoopOp, IfElseOp, WhileLoopOp, SwitchCaseOp, CASE_DEFAULT
-from qiskit.circuit.controlflow.if_else import IfElsePlaceholder
 from qiskit.circuit.exceptions import CircuitError
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 from test.utils._canonical import canonicalize_control_flow  # pylint: disable=wrong-import-order
@@ -1664,7 +1663,7 @@ class TestControlFlowBuilders(QiskitTestCase):
                 inner24_false.h(qubits[9])
 
             outer2_true = QuantumCircuit(loop_bits)
-            with outer_true.if_test((clbits[6], 0)):
+            with outer2_true.if_test((clbits[6], 0)):
                 outer2_true.h(qubits[3])
             outer2_true.if_else(cond_inner, inner21_true, inner21_false, loop_qubits, loop_clbits)
             outer2_true.if_else(cond_inner, inner22_true, inner22_false, loop_qubits, loop_clbits)
@@ -1674,7 +1673,7 @@ class TestControlFlowBuilders(QiskitTestCase):
                 loop_qubits,
                 loop_clbits,
             )
-            with outer_true.if_test((clbits[9], 0)):
+            with outer2_true.if_test((clbits[9], 0)):
                 outer2_true.h(qubits[6])
             outer2_false = QuantumCircuit(loop_bits)
             with outer2_false.if_test((clbits[10], 0)):

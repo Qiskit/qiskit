@@ -37,12 +37,11 @@ import copy
 import warnings
 from itertools import zip_longest
 import math
-from typing import List, Type
+from typing import Type
 
 import numpy
 
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.qobj.qasm_qobj import QasmQobjInstruction
 from qiskit.circuit.parameter import ParameterExpression
 from qiskit.circuit.operation import Operation

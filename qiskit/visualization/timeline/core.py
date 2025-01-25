@@ -155,7 +155,7 @@ class DrawerCanvas:
         if getattr(program, "_op_start_times") is None:
             # Run scheduling for backward compatibility
             from qiskit import transpile
-            from qiskit.transpiler import InstructionDurations, TranspilerError
+            from qiskit.transpiler import TranspilerError
 
             warnings.warn(
                 "Visualizing un-scheduled circuit with timeline drawer has been deprecated. "

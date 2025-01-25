@@ -72,7 +72,7 @@ class BasePadding(TransformationPass):
         self.target = target
         self.durations = durations
 
-    def get_duration(self, node, dag):
+    def get_duration(self, node, dag):  # pylint: disable=too-many-return-statements
         """Get duration of a given node in the circuit."""
         if node.name == "delay":
             return node.op.duration

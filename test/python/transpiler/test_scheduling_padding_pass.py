@@ -14,7 +14,7 @@
 
 import unittest
 
-from ddt import ddt, data, unpack
+from ddt import ddt, data
 from qiskit import QuantumCircuit
 from qiskit.circuit import Measure
 from qiskit.circuit.library import CXGate, HGate
@@ -24,7 +24,6 @@ from qiskit.transpiler.passes import (
     ASAPScheduleAnalysis,
     ALAPScheduleAnalysis,
     PadDelay,
-    SetIOLatency,
 )
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.exceptions import TranspilerError

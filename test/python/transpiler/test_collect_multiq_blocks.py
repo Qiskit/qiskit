@@ -17,7 +17,7 @@ Tests for the Collect2qBlocks transpiler pass.
 import math
 import unittest
 
-from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
+from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import CollectMultiQBlocks

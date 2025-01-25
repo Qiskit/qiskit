@@ -16,11 +16,11 @@ import os
 import tempfile
 import unittest
 
-from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit, Qubit, Clbit, Store
+from qiskit.circuit import QuantumRegister, QuantumCircuit, Qubit, Clbit, Store
 from qiskit.visualization import dag_drawer
 from qiskit.exceptions import InvalidFileError
 from qiskit.visualization import VisualizationError
-from qiskit.converters import circuit_to_dag, circuit_to_dagdependency
+from qiskit.converters import circuit_to_dag
 from qiskit.utils import optionals as _optionals
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.circuit.classical import expr, types

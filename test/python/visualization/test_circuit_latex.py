@@ -27,7 +27,6 @@ from qiskit.circuit.library import (
     RZZGate,
     SwapGate,
     DCXGate,
-    CPhaseGate,
     HamiltonianGate,
     Isometry,
     iqp,

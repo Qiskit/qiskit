@@ -26,7 +26,7 @@ from qiskit.circuit.random import random_circuit
 from qiskit.compiler.transpiler import transpile
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.providers.fake_provider import GenericBackendV2
-from qiskit.transpiler.passes import SabreSwap, TrivialLayout, CheckMap
+from qiskit.transpiler.passes import SabreSwap, CheckMap
 from qiskit.transpiler import CouplingMap, Layout, PassManager, Target, TranspilerError
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit.utils import optionals

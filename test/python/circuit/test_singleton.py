@@ -32,12 +32,11 @@ from qiskit.circuit.library import (
     CZGate,
     CSwapGate,
     CHGate,
-    CCXGate,
     XGate,
     C4XGate,
 )
 from qiskit.circuit import Measure, Reset
-from qiskit.circuit import Clbit, QuantumCircuit, QuantumRegister, ClassicalRegister
+from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.singleton import SingletonGate
 from qiskit.converters import dag_to_circuit, circuit_to_dag
 from test.utils.base import QiskitTestCase  # pylint: disable=wrong-import-order

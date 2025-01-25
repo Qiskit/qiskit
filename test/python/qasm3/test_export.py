@@ -22,7 +22,7 @@ import re
 from ddt import ddt, data
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, transpile
-from qiskit.circuit import Parameter, Qubit, Clbit, Gate, Delay, Barrier, ParameterVector
+from qiskit.circuit import Parameter, Qubit, Clbit, Gate, ParameterVector
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.controlflow import CASE_DEFAULT
 from qiskit.circuit.library import PauliEvolutionGate

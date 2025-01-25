@@ -20,7 +20,6 @@ from collections.abc import MutableSequence
 from typing import Callable
 
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.utils import deprecate_func
 from .classicalregister import Clbit, ClassicalRegister
 from .operation import Operation
 from .quantumcircuitdata import CircuitInstruction

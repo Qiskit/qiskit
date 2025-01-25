@@ -41,7 +41,6 @@ class ALAPScheduleAnalysis(BaseScheduler):
         if len(dag.qregs) != 1 or dag.qregs.get("q", None) is None:
             raise TranspilerError("ALAP schedule runs on physical circuits only")
 
-        conditional_latency = self.property_set.get("conditional_latency", 0)
         clbit_write_latency = self.property_set.get("clbit_write_latency", 0)
 
         node_start_time = {}

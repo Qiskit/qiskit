@@ -251,7 +251,6 @@ from __future__ import annotations
 
 import functools
 
-from qiskit.utils import deprecate_func
 from .instruction import Instruction
 from .gate import Gate
 from .controlledgate import ControlledGate, _ctrl_state_to_int

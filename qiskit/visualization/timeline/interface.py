@@ -20,7 +20,6 @@ the configured canvas is passed to one of the plotter APIs to generate a visuali
 """
 
 from typing import Optional, Dict, Any, List, Tuple
-import warnings
 
 from qiskit import circuit
 from qiskit.transpiler.target import Target

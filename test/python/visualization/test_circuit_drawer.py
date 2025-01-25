@@ -21,7 +21,7 @@ import unittest
 import warnings
 from unittest.mock import patch
 
-from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, visualization
+from qiskit import QuantumCircuit, visualization
 from qiskit.utils import optionals
 from qiskit.visualization.circuit import styles, text
 from qiskit.visualization.exceptions import VisualizationError
