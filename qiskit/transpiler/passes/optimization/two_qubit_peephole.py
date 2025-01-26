@@ -16,8 +16,6 @@ from __future__ import annotations
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.passmanager import PassManager
-from qiskit.transpiler.passes.optimization import Collect2qBlocks, ConsolidateBlocks
-from qiskit.transpiler.passes.synthesis import UnitarySynthesis
 from qiskit.transpiler.target import Target
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit._accelerate.two_qubit_peephole import two_qubit_unitary_peephole_optimize
@@ -38,6 +36,9 @@ class TwoQubitPeepholeOptimization(TransformationPass):
         self._approximation_degree = approximation_degree
         self._pm = None
         if method != "default":
+            from qiskit.transpiler.passes.optimization import Collect2qBlocks, ConsolidateBlocks
+            from qiskit.transpiler.passes.synthesis import UnitarySynthesis
+
             self._pm = PassManager(
                 [
                     Collect2qBlocks(),
