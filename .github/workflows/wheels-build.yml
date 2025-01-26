@@ -85,12 +85,12 @@ jobs:
           # Used for the ARM builds.
           - macos-14
           - windows-latest
+          - ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ inputs.python-version }}
-          architecture: ${{ matrix.os == 'macos-14' && 'arm64' || 'x64' }}
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: llvm-tools-preview
@@ -169,22 +169,6 @@ jobs:
         with:
           path: ./wheelhouse/*.whl
           name: ${{ inputs.artifact-prefix }}wheels-linux-ppc64le
-
-  wheels-linux-aarch64:
-    name: "Wheels / Linux AArch64"
-    if: (inputs.wheels-linux-aarch64 == 'default' && inputs.default-action || inputs.wheels-linux-aarch64) == 'build'
-    runs-on: ubuntu-24.04-arm
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ inputs.python-version }}
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: pypa/cibuildwheel@v2.22.0
-      - uses: actions/upload-artifact@v4
-        with:
-          path: ./wheelhouse/*.whl
-          name: ${{ inputs.artifact-prefix }}wheels-linux-aarch64
 
   sdist:
     name: "sdist"
