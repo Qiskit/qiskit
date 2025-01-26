@@ -2674,9 +2674,8 @@ def _format(operand):
     ///
     /// Args:
     ///     key (Callable): A callable which will take a DAGNode object and
-    ///         return a string sort key. If not specified the
-    ///         :attr:`~qiskit.dagcircuit.DAGNode.sort_key` attribute will be
-    ///         used as the sort key for each node.
+    ///         return a string sort key. If not specified the bit qargs and
+    ///         cargs of a node will be used for sorting.
     ///
     /// Returns:
     ///     generator(DAGOpNode, DAGInNode, or DAGOutNode): node in topological order
@@ -2710,9 +2709,8 @@ def _format(operand):
     ///
     /// Args:
     ///     key (Callable): A callable which will take a DAGNode object and
-    ///         return a string sort key. If not specified the
-    ///         :attr:`~qiskit.dagcircuit.DAGNode.sort_key` attribute will be
-    ///         used as the sort key for each node.
+    ///         return a string sort key. If not specified the qargs and
+    ///         cargs of a node will be used for sorting.
     ///
     /// Returns:
     ///     generator(DAGOpNode): op node in topological order
@@ -5612,22 +5610,22 @@ impl DAGCircuit {
         let dag_node = match weight {
             NodeType::QubitIn(qubit) => Py::new(
                 py,
-                DAGInNode::new(py, id, self.qubits.get(*qubit).unwrap().clone_ref(py)),
+                DAGInNode::new(id, self.qubits.get(*qubit).unwrap().clone_ref(py)),
             )?
             .into_any(),
             NodeType::QubitOut(qubit) => Py::new(
                 py,
-                DAGOutNode::new(py, id, self.qubits.get(*qubit).unwrap().clone_ref(py)),
+                DAGOutNode::new(id, self.qubits.get(*qubit).unwrap().clone_ref(py)),
             )?
             .into_any(),
             NodeType::ClbitIn(clbit) => Py::new(
                 py,
-                DAGInNode::new(py, id, self.clbits.get(*clbit).unwrap().clone_ref(py)),
+                DAGInNode::new(id, self.clbits.get(*clbit).unwrap().clone_ref(py)),
             )?
             .into_any(),
             NodeType::ClbitOut(clbit) => Py::new(
                 py,
-                DAGOutNode::new(py, id, self.clbits.get(*clbit).unwrap().clone_ref(py)),
+                DAGOutNode::new(id, self.clbits.get(*clbit).unwrap().clone_ref(py)),
             )?
             .into_any(),
             NodeType::Operation(packed) => {
@@ -5646,7 +5644,6 @@ impl DAGCircuit {
                                 #[cfg(feature = "cache_pygates")]
                                 py_op: packed.py_op.clone(),
                             },
-                            sort_key: format!("{:?}", self.sort_key(id)).into_py_any(py)?,
                         },
                         DAGNode { node: Some(id) },
                     ),
@@ -5655,12 +5652,12 @@ impl DAGCircuit {
             }
             NodeType::VarIn(var) => Py::new(
                 py,
-                DAGInNode::new(py, id, self.vars.get(*var).unwrap().clone_ref(py)),
+                DAGInNode::new(id, self.vars.get(*var).unwrap().clone_ref(py)),
             )?
             .into_any(),
             NodeType::VarOut(var) => Py::new(
                 py,
-                DAGOutNode::new(py, id, self.vars.get(*var).unwrap().clone_ref(py)),
+                DAGOutNode::new(id, self.vars.get(*var).unwrap().clone_ref(py)),
             )?
             .into_any(),
         };
