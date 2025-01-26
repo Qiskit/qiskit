@@ -32,7 +32,7 @@ class PassManagerConfig:
         coupling_map=None,
         layout_method=None,
         routing_method=None,
-        translation_method=None,
+        translation_method="default",
         scheduling_method=None,
         instruction_durations=None,
         backend_properties=None,

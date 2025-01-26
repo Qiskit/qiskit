@@ -18,6 +18,7 @@ from typing import Optional
 
 from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
 from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
+from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
 
 from qiskit.passmanager.flow_controllers import ConditionalController
 from qiskit.transpiler.passmanager import PassManager
@@ -526,6 +527,58 @@ def generate_translation_passmanager(
                 use_qubit_indices=True,
                 basis_gates=basis_gates,
                 qubits_initially_zero=qubits_initially_zero,
+            ),
+        ]
+    elif method == "discrete":
+
+        gates_1q = []
+        gates_2q = []
+        for gate in basis_gates:
+            gate_class = get_standard_gate_name_mapping().get(gate, None)
+            if (gate_class is not None) and getattr(gate_class, "_standard_gate", False):
+                if gate_class.num_qubits == 1:
+                    gates_1q.append(gate)
+                elif gate_class.num_qubits == 2:
+                    gates_2q.append(gate)
+        universal_basis = gates_2q + ["u"]
+
+        unroll = [
+            # collect and resynthesize 2q unitaries
+            Collect2qBlocks(),
+            Collect1qRuns(),
+            ConsolidateBlocks(
+                basis_gates=universal_basis,
+                target=None,
+                approximation_degree=approximation_degree,
+                force_consolidate=True,
+            ),
+            UnitarySynthesis(
+                basis_gates=universal_basis,
+                approximation_degree=approximation_degree,
+                coupling_map=coupling_map,
+                backend_props=backend_props,
+                plugin_config=unitary_synthesis_plugin_config,
+                method=unitary_synthesis_method,
+                min_qubits=2,
+                target=None,
+            ),
+            # collect and resynthesize 1q unitaries using SK unitary synthesis plugin
+            Collect1qRuns(),
+            ConsolidateBlocks(
+                basis_gates=None,
+                target=None,
+                approximation_degree=approximation_degree,
+                force_consolidate=True,
+            ),
+            UnitarySynthesis(
+                basis_gates=gates_1q,
+                approximation_degree=approximation_degree,
+                coupling_map=coupling_map,
+                backend_props=backend_props,
+                plugin_config=unitary_synthesis_plugin_config,
+                method="sk",
+                min_qubits=1,
+                target=target,
             ),
         ]
     else:

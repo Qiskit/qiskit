@@ -66,7 +66,9 @@ from qiskit.circuit.library.standard_gates import (
     CYGate,
     SXGate,
     SXdgGate,
+    get_standard_gate_name_mapping,
 )
+from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
 from qiskit.utils.parallel import CPU_COUNT
 from qiskit import user_config
 
@@ -231,6 +233,52 @@ class UnitarySynthesisPassManager(PassManagerStagePlugin):
             hls_config=pass_manager_config.hls_config,
             qubits_initially_zero=pass_manager_config.qubits_initially_zero,
         )
+
+
+class DefaultTranslatorPassManager(PassManagerStagePlugin):
+    """Plugin class for translation stage with :class:`~.BasisTranslator`"""
+
+    @staticmethod
+    def _is_discrete_basis(basis_gates):
+        """Returns whether basis_gates is a discrete basis set."""
+        name_mapping = get_standard_gate_name_mapping()
+
+        for gate_name in basis_gates:
+            if (gate_name in ["delay", "barrier"]) or (gate_name in CONTROL_FLOW_OP_NAMES):
+                # This instruction is ignored
+                continue
+
+            if (gate_class := name_mapping.get(gate_name, None)) is None:
+                # This is not a known gate; we conservatively return False
+                return False
+
+            if getattr(gate_class, "_directive", False):
+                # This instruction is ignored
+                continue
+
+            if gate_class.is_parameterized():
+                # This is a parameterized gate; hence the basis set is not discrete
+                return False
+
+        return True
+
+    def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
+        if self._is_discrete_basis(pass_manager_config.basis_gates):
+            pm = common.generate_translation_passmanager(
+                pass_manager_config.target,
+                basis_gates=pass_manager_config.basis_gates,
+                method="discrete",
+                approximation_degree=pass_manager_config.approximation_degree,
+                coupling_map=pass_manager_config.coupling_map,
+                backend_props=pass_manager_config.backend_properties,
+                unitary_synthesis_method=pass_manager_config.unitary_synthesis_method,
+                unitary_synthesis_plugin_config=pass_manager_config.unitary_synthesis_plugin_config,
+                hls_config=pass_manager_config.hls_config,
+                qubits_initially_zero=pass_manager_config.qubits_initially_zero,
+            )
+        else:
+            pm = BasisTranslatorPassManager().pass_manager(pass_manager_config, optimization_level)
+        return pm
 
 
 class BasicSwapPassManager(PassManagerStagePlugin):
