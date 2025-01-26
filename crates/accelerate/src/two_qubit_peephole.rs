@@ -134,9 +134,16 @@ fn get_decomposers_from_target(
         StandardGate::RZXGate,
     ] {
         if gate_names.contains(gate.name()) {
-            decomposers.push(TwoQubitDecomposer::ControlledU(
-                TwoQubitControlledUDecomposer::new(RXXEquivalent::Standard(gate))?,
-            ));
+            let op = target.operation_from_name(gate.name()).unwrap();
+            if op
+                .params
+                .iter()
+                .all(|x| matches!(x, Param::ParameterExpression(_)))
+            {
+                decomposers.push(TwoQubitDecomposer::ControlledU(
+                    TwoQubitControlledUDecomposer::new(RXXEquivalent::Standard(gate))?,
+                ));
+            }
         }
     }
     Ok(decomposers)
