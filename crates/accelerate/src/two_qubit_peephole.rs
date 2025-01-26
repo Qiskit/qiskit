@@ -61,13 +61,11 @@ fn get_decomposers_from_target(
         .into_iter()
         .map(|x| (x, false))
         .collect();
-    let reverse_names = target
-        .operation_names_for_qargs(Some(&reverse_qubits))
-        .unwrap();
-
-    if !reverse_names.is_empty() {
-        for name in reverse_names {
-            gate_names.insert((name, true));
+    if let Ok(reverse_names) = target.operation_names_for_qargs(Some(&reverse_qubits)) {
+        if !reverse_names.is_empty() {
+            for name in reverse_names {
+                gate_names.insert((name, true));
+            }
         }
     }
     let available_kak_gate: Vec<(&str, &PackedOperation, &[Param], bool)> = gate_names
@@ -351,8 +349,11 @@ pub(crate) fn two_qubit_unitary_peephole_optimize(
                         }
                     })
                     .enumerate()
-                    .min_by(order_sequence)
-                    .unwrap();
+                    .min_by(order_sequence);
+                if sequence.is_none() {
+                    return Ok(None);
+                }
+                let sequence = sequence.unwrap();
                 let mut original_err: f64 = 1.;
                 let mut original_count: usize = 0;
                 let mut outside_target = false;
