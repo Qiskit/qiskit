@@ -14,6 +14,8 @@ use std::cmp::Ordering;
 use std::sync::Mutex;
 
 use hashbrown::{HashMap, HashSet};
+use ndarray::prelude::*;
+use num_complex::Complex64;
 use pyo3::prelude::*;
 use rayon::prelude::*;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
@@ -50,24 +52,30 @@ fn get_decomposers_from_target(
     target: &Target,
     qubits: &[Qubit],
     fidelity: f64,
-) -> PyResult<Vec<TwoQubitDecomposer>> {
+) -> PyResult<Vec<(TwoQubitDecomposer, bool)>> {
     let physical_qubits = smallvec![PhysicalQubit(qubits[0].0), PhysicalQubit(qubits[1].0)];
-    let gate_names = match target.operation_names_for_qargs(Some(&physical_qubits)) {
-        Ok(names) => names,
-        Err(_) => {
-            let reverse_qubits = physical_qubits.iter().rev().copied().collect();
-            target
-                .operation_names_for_qargs(Some(&reverse_qubits))
-                .unwrap()
-        }
-    };
+    let reverse_qubits = physical_qubits.iter().rev().copied().collect();
+    let mut gate_names: HashSet<(&str, bool)> = target
+        .operation_names_for_qargs(Some(&physical_qubits))
+        .unwrap()
+        .into_iter()
+        .map(|x| (x, false))
+        .collect();
+    let reverse_names = target
+        .operation_names_for_qargs(Some(&reverse_qubits))
+        .unwrap();
 
-    let available_kak_gate: Vec<(&str, &PackedOperation, &[Param])> = gate_names
+    if !reverse_names.is_empty() {
+        for name in reverse_names {
+            gate_names.insert((name, true));
+        }
+    }
+    let available_kak_gate: Vec<(&str, &PackedOperation, &[Param], bool)> = gate_names
         .iter()
-        .filter_map(|name| match target.operation_from_name(name) {
+        .filter_map(|(name, rev)| match target.operation_from_name(name) {
             Ok(raw_op) => match raw_op.operation.view() {
                 OperationRef::Standard(_) | OperationRef::Gate(_) => {
-                    Some((*name, &raw_op.operation, raw_op.params.as_slice()))
+                    Some((*name, &raw_op.operation, raw_op.params.as_slice(), *rev))
                 }
                 _ => None,
             },
@@ -105,22 +113,20 @@ fn get_decomposers_from_target(
         target_basis_set.remove(EulerBasis::ZSX);
     }
 
-    let euler_bases: Vec<EulerBasis> = target_basis_set.get_bases().collect();
-
-    let decomposers: PyResult<Vec<TwoQubitDecomposer>> = available_kak_gate
+    let decomposers: PyResult<Vec<(TwoQubitDecomposer, bool)>> = available_kak_gate
         .iter()
-        .filter_map(|(two_qubit_name, two_qubit_gate, params)| {
+        .filter_map(|(two_qubit_name, two_qubit_gate, params, rev)| {
             let matrix = two_qubit_gate.matrix(params);
             matrix.map(|matrix| {
-                euler_bases.iter().map(move |euler_basis| {
+                target_basis_set.get_bases().map(move |euler_basis| {
                     TwoQubitBasisDecomposer::new_inner(
                         two_qubit_name.to_string(),
                         matrix.view(),
                         fidelity,
-                        *euler_basis,
+                        euler_basis,
                         None,
                     )
-                    .map(TwoQubitDecomposer::Basis)
+                    .map(|x| (TwoQubitDecomposer::Basis(x), *rev))
                 })
             })
         })
@@ -133,20 +139,32 @@ fn get_decomposers_from_target(
         StandardGate::RYYGate,
         StandardGate::RZXGate,
     ] {
-        if gate_names.contains(gate.name()) {
+        if gate_names.contains(&(gate.name(), false)) {
             let op = target.operation_from_name(gate.name()).unwrap();
             if op
                 .params
                 .iter()
                 .all(|x| matches!(x, Param::ParameterExpression(_)))
             {
-                decomposers.push(TwoQubitDecomposer::ControlledU(
-                    TwoQubitControlledUDecomposer::new(RXXEquivalent::Standard(gate))?,
+                decomposers.push((
+                    TwoQubitDecomposer::ControlledU(TwoQubitControlledUDecomposer::new(
+                        RXXEquivalent::Standard(gate),
+                    )?),
+                    false,
                 ));
             }
         }
     }
     Ok(decomposers)
+}
+
+fn reverse_mat(matrix: &mut Array2<Complex64>) {
+    // Swap rows 1 and 2
+    let (mut row_1, mut row_2) = matrix.multi_slice_mut((s![1, ..], s![2, ..]));
+    azip!((x in &mut row_1, y in &mut row_2) (*x, *y) = (*y, *x));
+    // Swap columns 1 and 2
+    let (mut col_1, mut col_2) = matrix.multi_slice_mut((s![.., 1], s![.., 2]));
+    azip!((x in &mut col_1, y in &mut col_2) (*x, *y) = (*y, *x));
 }
 
 /// Score a given sequence using the error rate reported in the target
@@ -282,22 +300,55 @@ pub(crate) fn two_qubit_unitary_peephole_optimize(
 
                 let sequence = decomposers
                     .iter()
-                    .map(|decomposer| match decomposer {
-                        TwoQubitDecomposer::Basis(decomposer) => (
-                            decomposer
-                                .call_inner(matrix.view(), None, true, None)
-                                .unwrap(),
-                            decomposer.gate_name().to_string(),
-                        ),
-                        TwoQubitDecomposer::ControlledU(decomposer) => (
-                            decomposer.call_inner(matrix.view(), 1e-12).unwrap(),
-                            match decomposer.rxx_equivalent_gate {
-                                RXXEquivalent::Standard(gate) => gate.name().to_string(),
-                                RXXEquivalent::CustomPython(_) => {
-                                    unreachable!("Decomposer only uses standard gates")
+                    .map(|decomposer| {
+                        if decomposer.1 {
+                            let mut mat = matrix.clone();
+                            reverse_mat(&mut mat);
+                            match &decomposer.0 {
+                                TwoQubitDecomposer::Basis(decomposer) => {
+                                    let synth = decomposer
+                                        .call_inner(mat.view(), None, true, None)
+                                        .unwrap();
+                                    let mut reversed_gates = Vec::with_capacity(synth.gates.len());
+                                    let flip_bits: [u8; 2] = [1, 0];
+                                    for (gate, params, qubit_ids) in synth.gates() {
+                                        let new_qubit_ids = qubit_ids
+                                            .into_iter()
+                                            .map(|x| flip_bits[*x as usize])
+                                            .collect::<SmallVec<[u8; 2]>>();
+                                        reversed_gates.push((
+                                            *gate,
+                                            params.clone(),
+                                            new_qubit_ids.clone(),
+                                        ));
+                                    }
+                                    let mut reversed_synth: TwoQubitGateSequence =
+                                        TwoQubitGateSequence::new();
+                                    reversed_synth
+                                        .set_state((reversed_gates, synth.global_phase()));
+                                    (reversed_synth, decomposer.gate_name().to_string())
                                 }
-                            },
-                        ),
+                                _ => unreachable!("Only TwoQubitBasisDecomposer is reversible"),
+                            }
+                        } else {
+                            match &decomposer.0 {
+                                TwoQubitDecomposer::Basis(decomposer) => (
+                                    decomposer
+                                        .call_inner(matrix.view(), None, true, None)
+                                        .unwrap(),
+                                    decomposer.gate_name().to_string(),
+                                ),
+                                TwoQubitDecomposer::ControlledU(decomposer) => (
+                                    decomposer.call_inner(matrix.view(), 1e-12).unwrap(),
+                                    match decomposer.rxx_equivalent_gate {
+                                        RXXEquivalent::Standard(gate) => gate.name().to_string(),
+                                        RXXEquivalent::CustomPython(_) => {
+                                            unreachable!("Decomposer only uses standard gates")
+                                        }
+                                    },
+                                ),
+                            }
+                        }
                     })
                     .enumerate()
                     .min_by(order_sequence)
@@ -435,7 +486,7 @@ pub(crate) fn two_qubit_unitary_peephole_optimize(
                                     gate.operation.clone(),
                                     qubits.as_slice(),
                                     &[],
-                                    out_params,
+                                    Some(gate.params.clone()),
                                     ExtraInstructionAttributes::default(),
                                     None,
                                 )
@@ -447,7 +498,7 @@ pub(crate) fn two_qubit_unitary_peephole_optimize(
                                     gate.operation.clone(),
                                     qubits.as_slice(),
                                     &[],
-                                    out_params,
+                                    Some(gate.params.clone()),
                                     ExtraInstructionAttributes::default(),
                                 )
                             }

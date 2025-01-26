@@ -40,3 +40,4 @@ from .optimize_annotated import OptimizeAnnotated
 from .remove_identity_equiv import RemoveIdentityEquivalent
 from .split_2q_unitaries import Split2QUnitaries
 from .collect_and_collapse import CollectAndCollapse
+from .two_qubit_peephole import TwoQubitPeepholeOptimization
