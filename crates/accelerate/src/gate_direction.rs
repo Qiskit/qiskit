@@ -17,7 +17,6 @@ use hashbrown::HashSet;
 use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::types::PyTuple;
-use pyo3::IntoPyObjectExt;
 use qiskit_circuit::operations::OperationRef;
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{
@@ -399,7 +398,6 @@ fn has_calibration_for_op_node(
                     #[cfg(feature = "cache_pygates")]
                     py_op: packed_inst.py_op.clone(),
                 },
-                sort_key: "".into_py_any(py)?,
             },
             DAGNode { node: None },
         ),
