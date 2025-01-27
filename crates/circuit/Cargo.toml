@@ -9,6 +9,9 @@ license.workspace = true
 name = "qiskit_circuit"
 doctest = false
 
+[lints]
+workspace = true
+
 [dependencies]
 rayon.workspace = true
 ahash.workspace = true

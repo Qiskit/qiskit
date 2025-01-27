@@ -9,6 +9,9 @@ license.workspace = true
 name = "qiskit_accelerate"
 doctest = false
 
+[lints]
+workspace = true
+
 [dependencies]
 rayon.workspace = true
 numpy.workspace = true
