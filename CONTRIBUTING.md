@@ -664,7 +664,7 @@ int test_FILE_NAME()
 
 ## Style and lint
 
-Qiskit uses three tools for verify code formatting and lint checking. The
+Qiskit uses three tools for Python code formatting and lint checking. The
 first tool is [black](https://github.com/psf/black) which is a code formatting
 tool that will automatically update the code formatting to a consistent style.
 The second tool is [pylint](https://www.pylint.org/) which is a code linter
@@ -702,6 +702,15 @@ conform to the style guidelines. This is very similar to running `tox -eblack` f
 
 Rust lint and formatting checks are included in the the `tox -elint` command. For CI to pass you will need both checks to pass without any warnings or errors. Note that this command checks the code but won't apply any modifications, if you need to update formatting, you'll need to run `cargo fmt`.
 
+### C style and lint
+
+Qiskit uses [clang-format](https://clang.llvm.org/docs/ClangFormat.html) to format C code.
+The style is based on LLVM, with some few Qiskit-specific adjustments. 
+To check whether the C code conforms to the style guide, you can run `make cformat`. This check
+will need to execute without any warnings or errors for CI to pass.
+
+Automatic formatting will not be applied by `make cformat`, but instead you can call
+`./tools/run_clang_format.sh apply`.
 
 ## Building API docs locally
 
