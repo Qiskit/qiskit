@@ -2085,7 +2085,7 @@ impl PySparseObservable {
     /// Examples:
     ///
     ///     .. code-block:: python
-    ///         
+    ///
     ///         >>> label = "IYXZI"
     ///         >>> pauli = Pauli(label)
     ///         >>> SparseObservable.from_pauli(pauli)
@@ -2150,7 +2150,7 @@ impl PySparseObservable {
     /// Examples:
     ///
     ///     .. code-block:: python
-    ///         
+    ///
     ///         >>> SparseObservable.from_label("IIII+ZI")
     ///         <SparseObservable with 1 term on 7 qubits: (1+0j)(+_2 Z_1)>
     ///         >>> label = "IYXZI"
