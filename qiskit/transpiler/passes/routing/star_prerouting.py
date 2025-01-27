@@ -342,12 +342,11 @@ class StarPreRouting(TransformationPass):
             processing_order = processing_order_index_map.get(node, None)
             if processing_order is not None:
                 return processing_order
-            else:
-                if isinstance(node, (DAGInNode, DAGOutNode)):
-                    return str(node.wire)
-                return ",".join(
-                    f"{dag.find_bit(q).index:04d}" for q in itertools.chain(node.qargs, node.cargs)
-                )
+            if isinstance(node, (DAGInNode, DAGOutNode)):
+                return str(node.wire)
+            return ",".join(
+                f"{dag.find_bit(q).index:04d}" for q in itertools.chain(node.qargs, node.cargs)
+            )
 
         rust_processing_order = _extract_nodes(dag.topological_op_nodes(key=tie_breaker_key), dag)
 
