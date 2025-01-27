@@ -400,9 +400,9 @@ class TestCliffordPasses(QiskitTestCase):
         self.assertEqual(qct.size(), 1)
         self.assertIn("clifford", qct.count_ops().keys())
 
-    def test_collect_cliffords_max_width(self):
+    def test_collect_cliffords_max_block_width(self):
         """Make sure that collecting Clifford gates and replacing them by Clifford
-        works correctly when the option ``max_width`` is specified."""
+        works correctly when the option ``max_block_width`` is specified."""
 
         # original circuit (consisting of Clifford gates only)
         qc = QuantumCircuit(3)
