@@ -285,7 +285,7 @@ fn _synth_cnot_lnn_instructions(arrayview: ArrayView2<bool>) -> (InstructionList
 }
 
 /// Find instruction to synthesize CX circuit in depth bounded by 5n for LNN connectivity.
-/// Uses the algorithm by Kutin, Moulton, Smithline 
+/// Uses the algorithm by Kutin, Moulton, Smithline
 /// described in `arXiv:quant-ph/0701194 <https://arxiv.org/abs/quant-ph/0701194>`_.
 /// Returns: Tuple with two lists of instructions for CX gates
 /// Corresponding to the two parts of the algorithm
@@ -298,7 +298,7 @@ pub fn py_synth_cnot_lnn_instructions(
 }
 
 /// Synthesize CX circuit in depth bounded by 5n for LNN connectivity.
-/// Uses the algorithm by Kutin, Moulton, Smithline 
+/// Uses the algorithm by Kutin, Moulton, Smithline
 /// described in `arXiv:quant-ph/0701194 <https://arxiv.org/abs/quant-ph/0701194>`_.
 /// Returns: The CircuitData of the synthesized circuit.
 #[pyfunction]
