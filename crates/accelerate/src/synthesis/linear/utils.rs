@@ -10,7 +10,9 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use ndarray::{azip, concatenate, s, Array2, ArrayView1, ArrayView2, ArrayViewMut2, Axis, Zip};
+use ndarray::{
+    azip, concatenate, s, Array1, Array2, ArrayView1, ArrayView2, ArrayViewMut2, Axis, Zip,
+};
 use rand::{Rng, SeedableRng};
 use rand_pcg::Pcg64Mcg;
 use rayon::iter::{IndexedParallelIterator, ParallelIterator};
@@ -192,6 +194,29 @@ pub fn _add_row_or_col(mut mat: ArrayViewMut2<bool>, add_cols: &bool, ctrl: usiz
 
     // add them inplace
     row1.zip_mut_with(&row0, |x, &y| *x ^= y);
+}
+
+/// Perform ROW operation on a matrix mat
+pub fn _row_op(mat: ArrayViewMut2<bool>, ctrl: usize, trgt: usize) {
+    _add_row_or_col(mat, &false, ctrl, trgt);
+}
+
+/// Perform COL operation on a matrix mat
+pub fn _col_op(mat: ArrayViewMut2<bool>, ctrl: usize, trgt: usize) {
+    _add_row_or_col(mat, &true, ctrl, trgt);
+}
+
+/// Returns the element-wise sum of two boolean rows (i.e. addition modulo 2)
+pub fn _row_sum(row_1: ArrayView1<bool>, row_2: ArrayView1<bool>) -> Result<Array1<bool>, String> {
+    if row_1.len() != row_2.len() {
+        Err(format!(
+            "row sum performed on rows with different lengths ({} and {})",
+            row_1.len(),
+            row_2.len()
+        ))
+    } else {
+        Ok((0..row_1.len()).map(|i| row_1[i] ^ row_2[i]).collect())
+    }
 }
 
 /// Generate a random invertible n x n binary matrix.
