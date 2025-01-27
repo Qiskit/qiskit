@@ -140,7 +140,7 @@ class SuzukiTrotter(ProductFormula):
 
         .. code-block:: text
 
-            ("X", [0], t), ("ZZ", [0, 1], 2t), ("X", [0], 2)
+            ("X", [0], t), ("ZZ", [0, 1], 2t), ("X", [0], t)
 
         Note that the rotation angle contains a factor of 2, such that that evolution
         of a Pauli :math:`P` over time :math:`t`, which is :math:`e^{itP}`, is represented

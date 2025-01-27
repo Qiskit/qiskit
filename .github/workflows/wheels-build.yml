@@ -27,15 +27,6 @@ on:
         default: "default"
         required: false
 
-      wheels-32bit:
-        description: >-
-          The action to take for Tier 1 wheels.
-          Choose from 'default', 'build' or 'skip'.
-          This builds multiple artifacts, which all match 'wheels-32bit-*'.
-        type: string
-        default: "default"
-        required: false
-
       wheels-linux-s390x:
         description: >-
           The action to take for Linux s390x wheels.
@@ -133,33 +124,6 @@ jobs:
           path: ./wheelhouse/*.whl
           name: ${{ inputs.artifact-prefix }}wheels-tier-1-${{ matrix.os }}
 
-  wheels-32bit:
-    name: "Wheels / 32bit"
-    if: (inputs.wheels-32bit == 'default' && inputs.default-action || inputs.wheels-32bit) == 'build'
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os:
-          - ubuntu-latest
-          - windows-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ inputs.python-version }}
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          components: llvm-tools-preview
-      - name: Build wheels
-        uses: pypa/cibuildwheel@v2.22.0
-        env:
-          CIBW_SKIP: 'pp* cp36-* cp37-* cp38-* *musllinux* *amd64 *x86_64'
-      - uses: actions/upload-artifact@v4
-        with:
-          path: ./wheelhouse/*.whl
-          name: ${{ inputs.artifact-prefix }}wheels-32bit-${{ matrix.os }}
-
   wheels-linux-s390x:
     name: "Wheels / Linux s390x"
     if: (inputs.wheels-linux-s390x == 'default' && inputs.default-action || inputs.wheels-linux-s390x) == 'build'
@@ -209,20 +173,14 @@ jobs:
   wheels-linux-aarch64:
     name: "Wheels / Linux AArch64"
     if: (inputs.wheels-linux-aarch64 == 'default' && inputs.default-action || inputs.wheels-linux-aarch64) == 'build'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ inputs.python-version }}
       - uses: dtolnay/rust-toolchain@stable
-      - uses: docker/setup-qemu-action@v3
-        with:
-          platforms: all
       - uses: pypa/cibuildwheel@v2.22.0
-        env:
-          CIBW_ARCHS_LINUX: aarch64
-          CIBW_TEST_COMMAND: cp -r {project}/test . && QISKIT_PARALLEL=FALSE stestr --test-path test/python run --abbreviate -n test.python.compiler.test_transpiler
       - uses: actions/upload-artifact@v4
         with:
           path: ./wheelhouse/*.whl
