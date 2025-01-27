@@ -263,7 +263,9 @@ class DefaultTranslatorPassManager(PassManagerStagePlugin):
         return True
 
     def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
-        if self._is_discrete_basis(pass_manager_config.basis_gates):
+        if (pass_manager_config.basis_gates is not None) and self._is_discrete_basis(
+            pass_manager_config.basis_gates
+        ):
             pm = common.generate_translation_passmanager(
                 pass_manager_config.target,
                 basis_gates=pass_manager_config.basis_gates,

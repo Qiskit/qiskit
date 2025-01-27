@@ -182,7 +182,7 @@ class PassManagerConfig:
                 res.target = backend.target
         if res.scheduling_method is None and hasattr(backend, "get_scheduling_stage_plugin"):
             res.scheduling_method = backend.get_scheduling_stage_plugin()
-        if res.translation_method is None and hasattr(backend, "get_translation_stage_plugin"):
+        if res.translation_method == "default" and hasattr(backend, "get_translation_stage_plugin"):
             res.translation_method = backend.get_translation_stage_plugin()
         return res
 

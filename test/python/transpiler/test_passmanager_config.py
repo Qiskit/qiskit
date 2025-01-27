@@ -134,7 +134,7 @@ class TestPassManagerConfig(QiskitTestCase):
 \tcoupling_map: None
 \tlayout_method: None
 \trouting_method: None
-\ttranslation_method: None
+\ttranslation_method: default
 \tscheduling_method: None
 \tinstruction_durations:\u0020
 \tbackend_properties: None
