@@ -244,7 +244,25 @@ fn _north_west_to_identity(n: usize, mut mat: ArrayViewMut2<bool>) -> Instructio
     cx_instructions_rows
 }
 
-/// Perform steps (a) and (b) of algorithm [1]
+/// Find instruction to synthesize CX circuit in depth bounded by 5n for LNN connectivity.
+/// The algorithm [1] has two steps:
+/// a) transform the original matrix to a north-west matrix (m2nw),
+/// b) transform the north-west matrix to identity (nw2id).
+///
+/// A square n-by-n matrix A is called north-west if A[i][j]=0 for all i+j>=n
+/// For example, the following matrix is north-west:
+/// [[0, 1, 0, 1]
+/// [1, 1, 1, 0]
+/// [0, 1, 0, 0]
+/// [1, 0, 0, 0]]
+
+/// According to [1] the synthesis is done on the inverse matrix
+/// so the matrix mat is inverted at this step
+
+/// References:
+/// [1]: Kutin, S., Moulton, D. P., Smithline, L. (2007).
+/// Computation at a Distance.
+/// `arXiv:quant-ph/0701194 <https://arxiv.org/abs/quant-ph/0701194>`_.
 fn _synth_cnot_lnn_instructions(arrayview: ArrayView2<bool>) -> (InstructionList, InstructionList) {
     // According to [1] the synthesis is done on the inverse matrix
     // so the matrix mat is inverted at this step
@@ -266,25 +284,11 @@ fn _synth_cnot_lnn_instructions(arrayview: ArrayView2<bool>) -> (InstructionList
     (cx_instructions_rows_m2nw, cx_instructions_rows_nw2id)
 }
 
-/// Synthesize CX circuit in depth bounded by 5n for LNN connectivity.
-/// The algorithm [1] has two steps:
-/// a) transform the original matrix to a north-west matrix (m2nw),
-/// b) transform the north-west matrix to identity (nw2id).
-///
-/// A square n-by-n matrix A is called north-west if A[i][j]=0 for all i+j>=n
-/// For example, the following matrix is north-west:
-/// [[0, 1, 0, 1]
-/// [1, 1, 1, 0]
-/// [0, 1, 0, 0]
-/// [1, 0, 0, 0]]
-
-/// According to [1] the synthesis is done on the inverse matrix
-/// so the matrix mat is inverted at this step
-
-/// References:
-/// [1]: Kutin, S., Moulton, D. P., Smithline, L. (2007).
-/// Computation at a Distance.
-/// `arXiv:quant-ph/0701194 <https://arxiv.org/abs/quant-ph/0701194>`_.
+/// Find instruction to synthesize CX circuit in depth bounded by 5n for LNN connectivity.
+/// Uses the algorithm by Kutin, Moulton, Smithline 
+/// described in `arXiv:quant-ph/0701194 <https://arxiv.org/abs/quant-ph/0701194>`_.
+/// Returns: Tuple with two lists of instructions for CX gates
+/// Corresponding to the two parts of the algorithm
 #[pyfunction]
 #[pyo3(signature = (mat))]
 pub fn py_synth_cnot_lnn_instructions(
@@ -294,24 +298,9 @@ pub fn py_synth_cnot_lnn_instructions(
 }
 
 /// Synthesize CX circuit in depth bounded by 5n for LNN connectivity.
-/// The algorithm [1] has two steps:
-/// a) transform the original matrix to a north-west matrix (m2nw),
-/// b) transform the north-west matrix to identity (nw2id).
-///
-/// A square n-by-n matrix A is called north-west if A[i][j]=0 for all i+j>=n
-/// For example, the following matrix is north-west:
-/// [[0, 1, 0, 1]
-/// [1, 1, 1, 0]
-/// [0, 1, 0, 0]
-/// [1, 0, 0, 0]]
-
-/// According to [1] the synthesis is done on the inverse matrix
-/// so the matrix mat is inverted at this step
-
-/// References:
-/// [1]: Kutin, S., Moulton, D. P., Smithline, L. (2007).
-/// Computation at a Distance.
-/// `arXiv:quant-ph/0701194 <https://arxiv.org/abs/quant-ph/0701194>`_.
+/// Uses the algorithm by Kutin, Moulton, Smithline 
+/// described in `arXiv:quant-ph/0701194 <https://arxiv.org/abs/quant-ph/0701194>`_.
+/// Returns: The CircuitData of the synthesized circuit.
 #[pyfunction]
 #[pyo3(signature = (mat))]
 pub fn py_synth_cnot_depth_line_kms(
