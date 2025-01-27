@@ -211,7 +211,10 @@ impl CircuitData {
 
     /// Gets the location of the bit inside of the circuit
     #[pyo3(name = "get_qubit_location")]
-    pub fn py_get_qubit_location(&self, bit: &Bound<PyAny>) -> PyResult<Vec<(u32, &PyObject)>> {
+    pub fn py_get_qubit_location(
+        &self,
+        bit: &Bound<PyAny>,
+    ) -> PyResult<(u32, Vec<(&PyObject, u32)>)> {
         self.qubits.py_get_bit_location(bit)
     }
 
@@ -262,8 +265,11 @@ impl CircuitData {
 
     /// Gets the location of the bit inside of the circuit
     #[pyo3(name = "get_clbit_location")]
-    pub fn py_get_clbit_location(&self, bit: &Bound<PyAny>) -> PyResult<Vec<(u32, &PyObject)>> {
-        self.qubits.py_get_bit_location(bit)
+    pub fn py_get_clbit_location(
+        &self,
+        bit: &Bound<PyAny>,
+    ) -> PyResult<(u32, Vec<(&PyObject, u32)>)> {
+        self.clbits.py_get_bit_location(bit)
     }
 
     /// Returns the current sequence of registered :class:`.Clbit`

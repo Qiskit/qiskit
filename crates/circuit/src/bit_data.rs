@@ -497,21 +497,27 @@ where
     }
 
     /// Gets the location of a bit within the circuit
-    pub fn py_get_bit_location(&self, bit: &Bound<PyAny>) -> PyResult<Vec<(u32, &PyObject)>> {
+    pub fn py_get_bit_location(
+        &self,
+        bit: &Bound<PyAny>,
+    ) -> PyResult<(u32, Vec<(&PyObject, u32)>)> {
         let py = bit.py();
         let index = self.py_find_bit(bit).ok_or(PyKeyError::new_err(format!(
             "The provided {} is not part of this circuit",
             self.description
         )))?;
-        self.get_bit_info(index)
-            .iter()
-            .map(|info| -> PyResult<(u32, &PyObject)> {
-                Ok((
-                    info.index(),
-                    self.py_get_register(py, info.register_index())?.unwrap(),
-                ))
-            })
-            .collect::<PyResult<Vec<_>>>()
+        Ok((
+            index.into(),
+            self.get_bit_info(index)
+                .iter()
+                .map(|info| -> PyResult<(&PyObject, u32)> {
+                    Ok((
+                        self.py_get_register(py, info.register_index())?.unwrap(),
+                        info.index(),
+                    ))
+                })
+                .collect::<PyResult<Vec<_>>>()?,
+        ))
     }
 
     /// Gets a reference to the underlying vector of Python registers.
@@ -705,7 +711,7 @@ where
             )));
         }
 
-        let idx: u32 = self.registers.len().try_into().map_err(|_| {
+        let _: u32 = self.registers.len().try_into().map_err(|_| {
             PyRuntimeError::new_err(format!(
                 "The number of {} registers in the circuit has exceeded the maximum capacity",
                 self.description
@@ -716,7 +722,7 @@ where
             .try_iter()?
             .enumerate()
             .map(|(bit_index, bit)| -> PyResult<T> {
-                let bit_index: u32 = bit_index.try_into().map_err(|_| {
+                let _: u32 = bit_index.try_into().map_err(|_| {
                     CircuitError::new_err(format!(
                         "The current register exceeds its capacity limit. Number of {} : {}",
                         self.description,
@@ -729,7 +735,6 @@ where
                 } else {
                     self.py_add_bit(&bit, true)?
                 };
-                self.bit_info[BitType::from(index) as usize].add_register(idx, bit_index);
                 Ok(index)
             })
             .collect::<PyResult<_>>()?;

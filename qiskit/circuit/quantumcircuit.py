@@ -1162,28 +1162,18 @@ class QuantumCircuit:
         if data.num_qubits > 0:
             if add_regs:
                 qr = QuantumRegister(name="q", bits=data.qubits)
-                out.qregs = [qr]
-                out._qubit_indices = {
-                    bit: BitLocations(index, [(qr, index)]) for index, bit in enumerate(data.qubits)
-                }
-            else:
-                out._qubit_indices = {
-                    bit: BitLocations(index, data.get_qubit_location(bit))
-                    for index, bit in enumerate(data.qubits)
-                }
+                data.qregs = [qr]
 
+            out._qubit_indices = {
+                bit: BitLocations(*data.get_qubit_location(bit)) for bit in data.qubits
+            }
         if data.num_clbits > 0:
             if add_regs:
                 cr = ClassicalRegister(name="c", bits=data.clbits)
-                out.cregs = [cr]
-                out._clbit_indices = {
-                    bit: BitLocations(index, [(cr, index)]) for index, bit in enumerate(data.clbits)
-                }
-            else:
-                out._clbit_indices = {
-                    bit: BitLocations(index, data.get_clbit_location(bit))
-                    for index, bit in enumerate(data.clbits)
-                }
+                data.cregs = [cr]
+            out._clbit_indices = {
+                bit: BitLocations(*data.get_clbit_location(bit)) for bit in data.clbits
+            }
 
         out._data = data
 
@@ -3089,13 +3079,8 @@ class QuantumCircuit:
             elif isinstance(register, ClassicalRegister):
                 self._data.add_creg(register)
 
-                for idx, bit in enumerate(register):
-                    if bit in self._clbit_indices:
-                        self._clbit_indices[bit].registers.append((register, idx))
-                    else:
-                        self._clbit_indices[bit] = BitLocations(
-                            self._data.num_clbits - 1, [(register, idx)]
-                        )
+                for bit in register:
+                    self._clbit_indices[bit] = BitLocations(*self._data.get_clbit_location(bit))
 
             elif isinstance(register, list):
                 self.add_bits(register)
@@ -3105,11 +3090,8 @@ class QuantumCircuit:
     def _add_qreg(self, qreg: QuantumRegister) -> None:
         self._data.add_qreg(qreg)
 
-        for idx, bit in enumerate(qreg):
-            if bit in self._qubit_indices:
-                self._qubit_indices[bit].registers.append((qreg, idx))
-            else:
-                self._qubit_indices[bit] = BitLocations(self._data.num_qubits - 1, [(qreg, idx)])
+        for bit in qreg:
+            self._qubit_indices[bit] = BitLocations(*self._data.get_qubit_location(bit))
 
     def add_bits(self, bits: Iterable[Bit]) -> None:
         """Add Bits to the circuit."""
@@ -3124,10 +3106,10 @@ class QuantumCircuit:
                 self._ancillas.append(bit)
             if isinstance(bit, Qubit):
                 self._data.add_qubit(bit)
-                self._qubit_indices[bit] = BitLocations(self._data.num_qubits - 1, [])
+                self._qubit_indices[bit] = BitLocations(*self._data.get_qubit_location(bit))
             elif isinstance(bit, Clbit):
                 self._data.add_clbit(bit)
-                self._clbit_indices[bit] = BitLocations(self._data.num_clbits - 1, [])
+                self._clbit_indices[bit] = BitLocations(*self._data.get_clbit_location(bit))
             else:
                 raise CircuitError(
                     "Expected an instance of Qubit, Clbit, or "
@@ -3768,6 +3750,12 @@ class QuantumCircuit:
         cpy._data = CircuitData(
             self._data.qubits, self._data.clbits, global_phase=self._data.global_phase
         )
+
+        for qreg in self.qregs:
+            cpy.add_register(qreg)
+
+        for creg in self.cregs:
+            cpy.add_register(creg)
 
         if name:
             cpy.name = name
