@@ -30,7 +30,7 @@ use numpy::PyReadonlyArray2;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyFloat, PyIterator, PyList, PyTuple};
-use pyo3::{intern, Python};
+use pyo3::{intern, IntoPyObjectExt, Python};
 
 #[derive(Clone, Debug, IntoPyObject, IntoPyObjectRef)]
 pub enum Param {
@@ -440,16 +440,18 @@ impl StandardInstruction {
             extra_attrs.duration(),
             extra_attrs.condition(),
         );
-        let kwargs = label.map(|label| [("label", label.to_object(py))].into_py_dict_bound(py));
+        let kwargs = label
+            .map(|label| [("label", label.into_py_any(py)?)].into_py_dict(py))
+            .transpose()?;
         let mut out = match self {
             StandardInstruction::Barrier(num_qubits) => BARRIER
                 .get_bound(py)
-                .call1((num_qubits.into_py(py), label.to_object(py)))?,
+                .call1((num_qubits.into_py_any(py)?, label.into_py_any(py)?))?,
             StandardInstruction::Delay(unit) => {
                 let duration = &params.unwrap()[0];
                 DELAY
                     .get_bound(py)
-                    .call1((duration.to_object(py), unit.to_string()))?
+                    .call1((duration.into_py_any(py)?, unit.to_string()))?
             }
             StandardInstruction::Measure => MEASURE.get_bound(py).call((), kwargs.as_ref())?,
             StandardInstruction::Reset => RESET.get_bound(py).call((), kwargs.as_ref())?,

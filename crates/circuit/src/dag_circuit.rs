@@ -7031,10 +7031,10 @@ fn emit_pulse_dependency_deprecation(py: Python, msg: &str) {
 
 #[cfg(all(test, not(miri)))]
 mod test {
-    use crate::circuit_instruction::OperationFromPython;
+    use crate::circuit_instruction::ExtraInstructionAttributes;
     use crate::dag_circuit::{DAGCircuit, Wire};
-    use crate::imports::{CLASSICAL_REGISTER, MEASURE, QUANTUM_REGISTER};
-    use crate::operations::StandardGate;
+    use crate::imports::{CLASSICAL_REGISTER, QUANTUM_REGISTER};
+    use crate::operations::{StandardGate, StandardInstruction};
     use crate::packed_instruction::{PackedInstruction, PackedOperation};
     use crate::{Clbit, Qubit};
     use ahash::HashSet;
@@ -7054,7 +7054,7 @@ mod test {
     macro_rules! cx_gate {
         ($dag:expr, $q0:expr, $q1:expr) => {
             PackedInstruction {
-                op: PackedOperation::from_standard(StandardGate::CXGate),
+                op: PackedOperation::from_standard_gate(StandardGate::CXGate),
                 qubits: $dag
                     .qargs_interner
                     .insert_owned(vec![Qubit($q0), Qubit($q1)]),
@@ -7069,21 +7069,17 @@ mod test {
 
     macro_rules! measure {
         ($dag:expr, $qarg:expr, $carg:expr) => {{
-            Python::with_gil(|py| {
-                let py_op = MEASURE.get_bound(py).call0().unwrap();
-                let op_from_py: OperationFromPython = py_op.extract().unwrap();
-                let qubits = $dag.qargs_interner.insert_owned(vec![Qubit($qarg)]);
-                let clbits = $dag.cargs_interner.insert_owned(vec![Clbit($qarg)]);
-                PackedInstruction {
-                    op: op_from_py.operation,
-                    qubits,
-                    clbits,
-                    params: Some(Box::new(op_from_py.params)),
-                    extra_attrs: op_from_py.extra_attrs,
-                    #[cfg(feature = "cache_pygates")]
-                    py_op: Default::default(),
-                }
-            })
+            let qubits = $dag.qargs_interner.insert_owned(vec![Qubit($qarg)]);
+            let clbits = $dag.cargs_interner.insert_owned(vec![Clbit($qarg)]);
+            PackedInstruction {
+                op: PackedOperation::from_standard_instruction(StandardInstruction::Measure),
+                qubits,
+                clbits,
+                params: None,
+                extra_attrs: ExtraInstructionAttributes::new(None, None, None, None),
+                #[cfg(feature = "cache_pygates")]
+                py_op: Default::default(),
+            }
         }};
     }
 
