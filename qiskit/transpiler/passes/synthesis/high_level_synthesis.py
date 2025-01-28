@@ -140,6 +140,9 @@ class HLSData:
     available for various high-level-objects.
     """
 
+    hls_op_names: list[str]
+    """The high-level-objects with available high-level-synthesis methods."""
+
     coupling_map: CouplingMap | None
     """Optional, directed graph represented as a coupling map."""
 
@@ -267,6 +270,7 @@ class HighLevelSynthesis(TransformationPass):
         # to synthesize Operations (when available).
         hls_config = hls_config or HLSConfig(True)
         hls_plugin_manager = HighLevelSynthesisPluginManager()
+        hls_op_names = hls_plugin_manager.op_names()
 
         if target is not None:
             coupling_map = target.build_coupling_map()
@@ -285,6 +289,7 @@ class HighLevelSynthesis(TransformationPass):
         self.data = HLSData(
             hls_config=hls_config,
             hls_plugin_manager=hls_plugin_manager,
+            hls_op_names=hls_op_names,
             coupling_map=coupling_map,
             target=target,
             use_qubit_indices=use_qubit_indices,
@@ -308,26 +313,31 @@ class HighLevelSynthesis(TransformationPass):
             (for instance, when the specified synthesis method is not available).
         """
 
-        # Fast-path: check if HighLevelSynthesis can be skipped altogether. This is only
-        # done at the top-level since this does not track the qubit states.
-        for node in dag.op_nodes():
-            qubits = tuple(dag.find_bit(q).index for q in node.qargs)
-            if not _definitely_skip_node(self.data, node, qubits, dag):
-                break
-        else:
-            # The for-loop terminates without reaching the break statement
-            return dag
+        return _run_on_dag(dag, self.data, self.qubits_initially_zero)
 
-        # Regular-path: we synthesize the circuit recursively. Except for
-        # this conversion from DAGCircuit to QuantumCircuit and back, all
-        # the recursive functions work with QuantumCircuit objects only.
-        circuit = dag_to_circuit(dag)
-        input_qubits = list(range(circuit.num_qubits))
-        tracker = QubitTracker(num_qubits=dag.num_qubits())
-        if self.qubits_initially_zero:
-            tracker.set_clean(input_qubits)
-        output_circuit, _ = _run(circuit, input_qubits, self.data, tracker)
-        return circuit_to_dag(output_circuit)
+
+def _run_on_dag(dag: DAGCircuit, data: HLSData, qubits_initially_zero: bool):
+    # Fast-path: check if HighLevelSynthesis can be skipped altogether. This is only
+    # done at the top-level since this does not track the qubit states.
+
+    for node in dag.op_nodes():
+        qubits = tuple(dag.find_bit(q).index for q in node.qargs)
+        if not _definitely_skip_node(data, node, qubits, dag):
+            break
+    else:
+        # The for-loop terminates without reaching the break statement
+        return dag
+
+    # Regular-path: we synthesize the circuit recursively. Except for
+    # this conversion from DAGCircuit to QuantumCircuit and back, all
+    # the recursive functions work with QuantumCircuit objects only.
+    circuit = dag_to_circuit(dag)
+    input_qubits = list(range(circuit.num_qubits))
+    tracker = QubitTracker(num_qubits=dag.num_qubits())
+    if qubits_initially_zero:
+        tracker.set_clean(input_qubits)
+    output_circuit, _ = _run(circuit, input_qubits, data, tracker)
+    return circuit_to_dag(output_circuit)
 
 
 def _run(
@@ -777,7 +787,7 @@ def _definitely_skip_node(
         # not immediately return False when encountering a controlled gate over 2 qubits.
         and not (node.is_controlled_gate() and node.num_qubits >= 3)
         # If there are plugins to try, they need to be tried.
-        and not _methods_to_try(data, node.name)
+        and node.name not in data.hls_op_names
         # If all the above constraints hold, and it's already supported or the basis translator
         # can handle it, we'll leave it be.
         and (
@@ -814,7 +824,7 @@ def _definitely_skip_op(op: Operation, qubits: tuple[int], data: HLSData) -> boo
         # not immediately return False when encountering a controlled gate over 2 qubits.
         and not (isinstance(op, ControlFlowOp) and op.num_qubits >= 3)
         # If there are plugins to try, they need to be tried.
-        and not _methods_to_try(data, op.name)
+        and op.name not in data.hls_op_names
         # If all the above constraints hold, and it's already supported or the basis translator
         # can handle it, we'll leave it be.
         and (

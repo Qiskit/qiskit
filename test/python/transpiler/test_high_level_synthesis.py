@@ -232,6 +232,9 @@ class MockPluginManager:
         plugin_name = op_name + "." + method_name
         return self.plugins[plugin_name]()
 
+    def op_names(self):
+        return list(self.plugins_by_op.keys())
+
 
 class MockPlugin(HighLevelSynthesisPlugin):
     """A mock HLS using auxiliary qubits."""
