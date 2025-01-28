@@ -664,7 +664,7 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
             ))
         };
 
-        'standard: {
+        'standard_gate: {
             // Our Python standard gates have a `_standard_gate` field at the class level so we can
             // quickly identify them here without an `isinstance` check.
             let Some(standard) = ob_type
@@ -672,7 +672,7 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
                 .and_then(|standard| standard.extract::<StandardGate>())
                 .ok()
             else {
-                break 'standard;
+                break 'standard_gate;
             };
 
             // If the instruction is a controlled gate with a not-all-ones control state, it doesn't
@@ -693,7 +693,7 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
                         .getattr(intern!(py, "label"))?
                         .is_none())
             {
-                break 'standard;
+                break 'standard_gate;
             }
             return Ok(OperationFromPython {
                 operation: PackedOperation::from_standard(standard),
