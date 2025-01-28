@@ -204,7 +204,7 @@ class DrawerCanvas:
                         duration = instruction.operation.duration
                     else:
                         raise VisualizationError(
-                            "Target not specified this is required to provide instruction " "timing"
+                            "Target not specified this is required to provide instruction timing"
                         )
                     gate_source = types.ScheduledGate(
                         t0=t0,
