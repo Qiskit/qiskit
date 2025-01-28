@@ -790,14 +790,7 @@ def _definitely_skip_node(
         and node.name not in data.hls_op_names
         # If all the above constraints hold, and it's already supported or the basis translator
         # can handle it, we'll leave it be.
-        and (
-            # This uses unfortunately private details of `EquivalenceLibrary`, but so does the
-            # `BasisTranslator`, and this is supposed to just be temporary til this is moved
-            # into Rust space.
-            data.equivalence_library is not None
-            and equivalence.Key(name=node.name, num_qubits=node.num_qubits)
-            in data.equivalence_library.keys()
-        )
+        and (data.equivalence_library is not None and data.equivalence_library.has_entry(node.op))
     )
 
 
@@ -827,14 +820,7 @@ def _definitely_skip_op(op: Operation, qubits: tuple[int], data: HLSData) -> boo
         and op.name not in data.hls_op_names
         # If all the above constraints hold, and it's already supported or the basis translator
         # can handle it, we'll leave it be.
-        and (
-            # This uses unfortunately private details of `EquivalenceLibrary`, but so does the
-            # `BasisTranslator`, and this is supposed to just be temporary til this is moved
-            # into Rust space.
-            data.equivalence_library is not None
-            and equivalence.Key(name=op.name, num_qubits=len(qubits))
-            in data.equivalence_library.keys()
-        )
+        and (data.equivalence_library is not None and data.equivalence_library.has_entry(op))
     )
 
 
