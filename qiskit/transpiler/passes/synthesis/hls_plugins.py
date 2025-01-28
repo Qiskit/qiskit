@@ -1656,8 +1656,13 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
         # arguments: namely high-level-synthesis data and options, the global qubits over which
         # the operation is defined, and the initial state of each global qubit.
         tracker = options.get("qubit_tracker", None)
-        data = options.get("hls_data")
-        input_qubits = options.get("input_qubits")
+        data = options.get("hls_data", None)
+        input_qubits = options.get("input_qubits", None)
+
+        if data is None or input_qubits is None:
+            raise TranspilerError(
+                "HighLevelSynthesis: problem with the default plugin for annotated operations."
+            )
 
         if len(modifiers) > 0:
             num_ctrl = sum(
