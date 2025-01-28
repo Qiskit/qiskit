@@ -24,7 +24,7 @@ import warnings
 import numpy as np
 
 from qiskit import circuit as circuit_mod
-from qiskit.circuit import library, controlflow, CircuitInstruction, ControlFlowOp
+from qiskit.circuit import library, controlflow, CircuitInstruction, ControlFlowOp, IfElseOp
 from qiskit.circuit.classical import expr
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.circuit.gate import Gate
@@ -319,13 +319,9 @@ def _read_instruction(
             standalone_vars,
         )
         if condition is not None:
-            warnings.warn(
-                f"The .condition attribute on {gate_name} will be loaded as an IfElseOp "
-                "starting in Qiskit 2.0",
-                FutureWarning,
-                stacklevel=3,
-            )
-        inst_obj.condition = condition
+            body = QuantumCircuit(qargs, cargs)
+            body.append(inst_obj, qargs, cargs)
+            inst_obj = IfElseOp(condition, body)
         if instruction.label_size > 0:
             inst_obj.label = label
         if circuit is None:
@@ -421,13 +417,9 @@ def _read_instruction(
                 gate = gate_class(*params)
         if condition:
             if not isinstance(gate, ControlFlowOp):
-                warnings.warn(
-                    f"The .condition attribute on {gate} will be loaded as an "
-                    "IfElseOp starting in Qiskit 2.0",
-                    FutureWarning,
-                    stacklevel=3,
-                )
-                gate = gate.c_if(*condition)
+                body = QuantumCircuit(qargs, cargs)
+                body.append(gate, qargs, cargs)
+                gate = IfElseOp(condition, body)
             else:
                 gate.condition = condition
     if circuit is None:

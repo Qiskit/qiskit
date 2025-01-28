@@ -388,8 +388,9 @@ def generate_control_flow_circuits():
     body.h(0)
     body.cx(0, 1)
     body.measure(0, 0)
-    with body.if_test((0, True)):
-        body.break_loop()
+    if_body = QuantumCircuit(qc.qubits, qc.clbits)
+    if_body.break_loop()
+    body.if_else((0, True), if_body, None, qc.qubits, qc.clbits)
     for_loop_op = ForLoopOp(range(5), None, body=body)
     qc.append(for_loop_op, [0, 1], [0])
     circuits.append(qc)
@@ -433,16 +434,10 @@ def generate_control_flow_switch_circuits():
     return circuits
 
 
-def generate_schedule_blocks():
+def generate_schedule_blocks(current_version):
     """Standard QPY testcase for schedule blocks."""
     from qiskit.pulse import builder, channels, library
 
-    current_version = current_version_str.split(".")
-    for i in range(len(current_version[2])):
-        if current_version[2][i].isalpha():
-            current_version[2] = current_version[2][:i]
-            break
-    current_version = tuple(int(x) for x in current_version)
     # Parameterized schedule test is avoided.
     # Generated reference and loaded QPY object may induce parameter uuid mismatch.
     # As workaround, we need test with bounded parameters, however, schedule.parameters
@@ -829,12 +824,12 @@ def generate_v12_expr():
     return [index, shift]
 
 
-def generate_circuits(version_parts):
+def generate_circuits(version_parts, current_version):
     """Generate reference circuits."""
     output_circuits = {
         "full.qpy": [generate_full_circuit()],
         "unitary.qpy": [generate_unitary_gate_circuit()],
-        "multiple.qpy": generate_random_circuits(version_parts),
+        "multiple.qpy": generate_random_circuits(current_version),
         "string_parameters.qpy": [generate_string_parameters()],
         "register_edge_cases.qpy": generate_register_edge_cases(),
         "parameterized.qpy": [generate_parameterized_circuit()],
@@ -845,7 +840,7 @@ def generate_circuits(version_parts):
     if version_parts >= (0, 18, 1):
         output_circuits["qft_circuit.qpy"] = [generate_qft_circuit()]
         output_circuits["teleport.qpy"] = [
-            generate_single_clbit_condition_teleportation(version_parts)
+            generate_single_clbit_condition_teleportation(current_version)
         ]
 
     if version_parts >= (0, 19, 0):
@@ -860,7 +855,7 @@ def generate_circuits(version_parts):
     if version_parts >= (0, 19, 2):
         output_circuits["control_flow.qpy"] = generate_control_flow_circuits()
     if version_parts >= (0, 21, 0):
-        output_circuits["schedule_blocks.qpy"] = generate_schedule_blocks()
+        output_circuits["schedule_blocks.qpy"] = generate_schedule_blocks(current_version)
         output_circuits["pulse_gates.qpy"] = generate_calibrated_circuits()
     if version_parts >= (0, 24, 0):
         output_circuits["referenced_schedule_blocks.qpy"] = generate_referenced_schedule()
@@ -999,13 +994,20 @@ def _main():
     )
     args = parser.parse_args()
 
+    current_version = current_version_str.split(".")
+    for i in range(len(current_version[2])):
+        if current_version[2][i].isalpha():
+            current_version[2] = current_version[2][:i]
+            break
+    current_version = tuple(int(x) for x in current_version)
+
     # Terra 0.18.0 was the first release with QPY, so that's the default.
     version_parts = (0, 18, 0)
     if args.version:
         version_match = re.search(VERSION_PATTERN, args.version, re.VERBOSE | re.IGNORECASE)
         version_parts = tuple(int(x) for x in version_match.group("release").split("."))
 
-    qpy_files = generate_circuits(version_parts)
+    qpy_files = generate_circuits(version_parts, current_version)
     if args.command == "generate":
         generate_qpy(qpy_files)
     else:
