@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixed a bug in meth :class:`.qpy.load` that would fail to deserialize
+    the :class:`.PauliFeatureMap` class because of a clash of parameter
+    names in the parameter expression replay. This clash was only seen when
+    handling certain instances of :class:`.NLocal` such as 
+    :class:`.PauliFeatureMap` or :class:`.PauliZZMap`.
+    Fixed `#13720 <https://github.com/Qiskit/qiskit/issues/13720>`__.
