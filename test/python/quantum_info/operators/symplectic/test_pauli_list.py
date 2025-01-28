@@ -231,6 +231,7 @@ class TestPauliListInit(QiskitTestCase):
         except ValueError as e:
             assert str(e) == "phase should be at most 1D but has 2 dimensions."
 
+
 @ddt
 class TestPauliListProperties(QiskitTestCase):
     """Tests for PauliList properties."""
