@@ -94,7 +94,7 @@ class BasicSimulator(BackendV2):
         super().__init__(
             provider=provider,
             name="basic_simulator",
-            description="A python simulator for quantum experiments",
+            description="A Python simulator for basic quantum experiments",
             backend_version="0.1",
             **fields,
         )
@@ -103,14 +103,13 @@ class BasicSimulator(BackendV2):
         # Internal simulator variables
         self._local_random = None
         self._classical_memory = 0
-        self._classical_register = 0
         self._statevector = 0
         self._number_of_cmembits = 0
         self._number_of_qubits = 0
         self._shots = self.options.get("shots")
         self._memory = self.options.get("memory")
         self._initial_statevector = self.options.get("initial_statevector")
-        self._chop_threshold = self.options.get("chop_threashold")
+        self._seed_simulator = self.options.get("seed_simulator")
         self._sample_measure = False
 
     @property
@@ -215,7 +214,6 @@ class BasicSimulator(BackendV2):
             shots=1024,
             memory=False,
             initial_statevector=None,
-            chop_threshold=1e-15,
             allow_sample_measuring=True,
             seed_simulator=None,
             parameter_binds=None,
@@ -243,7 +241,7 @@ class BasicSimulator(BackendV2):
         """Simulate the outcome of measurement of a qubit.
 
         Args:
-            qubit: the qubit to measure
+            qubit: index indicating the qubit to measure
 
         Return:
             pair (outcome, probability) where outcome is '0' or '1' and
@@ -261,7 +259,7 @@ class BasicSimulator(BackendV2):
         return "1", probabilities[1]
 
     def _add_sample_measure(
-        self, measure_params: list[list[int, int]], num_samples: int
+        self, measure_params: list[tuple[int, int]], num_samples: int
     ) -> list[hex]:
         """Generate memory samples from current statevector.
 
@@ -275,7 +273,7 @@ class BasicSimulator(BackendV2):
         """
         # Get unique qubits that are actually measured and sort in
         # ascending order
-        measured_qubits = sorted({qubit for qubit, cmembit in measure_params})
+        measured_qubits = sorted({qubit for qubit, _ in measure_params})
         num_measured = len(measured_qubits)
         # We use the axis kwarg for numpy.sum to compute probabilities
         # this sums over all non-measured qubits to return a vector
@@ -305,25 +303,18 @@ class BasicSimulator(BackendV2):
             memory.append(hex(int(value, 2)))
         return memory
 
-    def _add_measure(self, qubit: int, cmembit: int, cregbit: int | None = None) -> None:
+    def _add_measure(self, qubit: int, cmembit: int) -> None:
         """Apply a measure instruction to a qubit.
 
         Args:
-            qubit: qubit is the qubit measured.
-            cmembit: is the classical memory bit to store outcome in.
-            cregbit: is the classical register bit to store outcome in.
+            qubit: index of the qubit measured.
+            cmembit: index of the classical memory bit to store outcome in.
         """
         # get measure outcome
         outcome, probability = self._get_measure_outcome(qubit)
         # update classical state
         membit = 1 << cmembit
         self._classical_memory = (self._classical_memory & (~membit)) | (int(outcome) << cmembit)
-
-        if cregbit is not None:
-            regbit = 1 << cregbit
-            self._classical_register = (self._classical_register & (~regbit)) | (
-                int(outcome) << cregbit
-            )
 
         # update quantum state
         if outcome == "0":
@@ -367,32 +358,35 @@ class BasicSimulator(BackendV2):
             )
 
     def _set_options(self, backend_options: dict | None = None) -> None:
-        """Set the backend options for all experiments"""
+        """Set the backend options for all circuits"""
         # Reset default options
         self._initial_statevector = self.options.get("initial_statevector")
-        self._chop_threshold = self.options.get("chop_threshold")
         if "backend_options" in backend_options and backend_options["backend_options"]:
             backend_options = backend_options["backend_options"]
 
         # Check for custom initial statevector in backend_options first,
         # then config second
-        if (
-            "initial_statevector" in backend_options
-            and backend_options["initial_statevector"] is not None
-        ):
+        if getattr(backend_options, "initial_statevector", None) is not None:
             self._initial_statevector = np.array(
                 backend_options["initial_statevector"], dtype=complex
             )
-
         if self._initial_statevector is not None:
             # Check the initial statevector is normalized
             norm = np.linalg.norm(self._initial_statevector)
             if round(norm, 12) != 1:
-                raise BasicProviderError(f"initial statevector is not normalized: norm {norm} != 1")
-        # Check for custom chop threshold
-        # Replace with custom options
-        if "chop_threshold" in backend_options:
-            self._chop_threshold = backend_options["chop_threshold"]
+                raise BasicProviderError(f"Initial statevector is not normalized: norm {norm} != 1")
+        if "shots" in backend_options:
+            self._shots = backend_options["shots"]
+        if "seed_simulator" in backend_options:
+            seed_simulator = backend_options["seed_simulator"]
+        elif getattr(self.options, "seed_simulator", None) is not None:
+            seed_simulator = self.options["seed_simulator"]
+        else:
+            # For compatibility on Windows force dyte to be int32
+            # and set the maximum value to be (2 ** 31) - 1
+            seed_simulator = np.random.randint(2147483647, dtype="int32")
+        self._seed_simulator = seed_simulator
+        self._local_random = np.random.default_rng(seed=seed_simulator)
 
     def _initialize_statevector(self) -> None:
         """Set the initial statevector for simulation"""
@@ -404,6 +398,28 @@ class BasicSimulator(BackendV2):
             self._statevector = self._initial_statevector.copy()
         # Reshape to rank-N tensor
         self._statevector = np.reshape(self._statevector, self._number_of_qubits * [2])
+
+    def _validate_measure_sampling(self, circuit: QuantumCircuit) -> None:
+        """Determine if measure sampling is allowed for an experiment"""
+        measure_flag = False
+        # If shots=1 we should disable measure sampling.
+        # This is also required for statevector simulator to return the
+        # correct final statevector without silently dropping final measurements.
+        if self._shots > 1:
+            for instruction in circuit.data:
+                # If circuit contains reset operations we cannot sample
+                if instruction.name == "reset":
+                    measure_flag = False
+                # If circuit contains a measure option then we can
+                # sample only if all following operations are measures
+                if measure_flag:
+                    # If we find a non-measure instruction
+                    # we cannot do measure sampling
+                    if instruction.name not in ["measure", "barrier", "id", "u0"]:
+                        measure_flag = False
+                elif instruction.name == "measure":
+                    measure_flag = True
+        self._sample_measure = measure_flag
 
     def run(
         self, run_input: QuantumCircuit | list[QuantumCircuit], **backend_options
@@ -418,7 +434,7 @@ class BasicSimulator(BackendV2):
             BasicProviderJob: derived from BaseJob
 
         Additional Information:
-            backend_options: Is a dict of options for the backend. It may contain
+            backend_options: Is a dict of options for the backend. It may contain:
                 * "initial_statevector": vector_like
 
             The "initial_statevector" option specifies a custom initial
@@ -442,16 +458,15 @@ class BasicSimulator(BackendV2):
                 out_options[key] = value
         self._set_options(backend_options=backend_options)
         job_id = str(uuid.uuid4())
-        job = BasicProviderJob(self, job_id, self._run_job(job_id, run_input, **out_options))
+        job = BasicProviderJob(self, job_id, self._run_job(job_id, run_input))
         return job
 
-    def _run_job(self, job_id: str, run_input, **backend_options) -> Result:
-        """Run experiments in job
+    def _run_job(self, job_id: str, run_input) -> Result:
+        """Run circuits in job.
 
         Args:
             job_id: unique id for the job.
             run_input: circuits to be run.
-            **backend_options: run options.
 
         Returns:
             Result object
@@ -463,8 +478,8 @@ class BasicSimulator(BackendV2):
         result_list = []
         self._memory = True
         start = time.time()
-        for experiment in run_input:
-            result_list.append(self._run_circuit(experiment, **backend_options))
+        for circuit in run_input:
+            result_list.append(self._run_circuit(circuit))
         end = time.time()
         result = {
             "backend_name": self.name,
@@ -479,93 +494,27 @@ class BasicSimulator(BackendV2):
 
         return Result.from_dict(result)
 
-    def _run_circuit(self, circuit, **backend_options):
+    def _run_circuit(self, circuit) -> dict:
+        """Simulate a single circuit run.
+
+        Args:
+            circuit: circuit to be run.
+
+        Returns:
+            Dictionary with run result.
+        """
         start = time.time()
 
-        # from _assemble_circuit ==================
-        num_qubits = 0
-        memory_slots = 0
-        qubit_labels = []
-        clbit_labels = []
-
-        qreg_sizes = []
-        creg_sizes = []
-        for qreg in circuit.qregs:
-            qreg_sizes.append([qreg.name, qreg.size])
-            for j in range(qreg.size):
-                qubit_labels.append([qreg.name, j])
-            num_qubits += qreg.size
-        for creg in circuit.cregs:
-            creg_sizes.append([creg.name, creg.size])
-            for j in range(creg.size):
-                clbit_labels.append([creg.name, j])
-            memory_slots += creg.size
-
-        metadata = circuit.metadata
-        if metadata is None:
-            metadata = {}
-
-        is_conditional_experiment = any(
-            getattr(instruction.operation, "_condition", None) for instruction in circuit.data
-        )
-
-        # till here ====================
-        self._number_of_qubits = num_qubits
-        self._number_of_cmembits = memory_slots
+        self._number_of_qubits = circuit.num_qubits
+        self._number_of_cmembits = circuit.num_clbits
         self._statevector = 0
         self._classical_memory = 0
-        self._classical_register = 0
-        self._sample_measure = False
-        global_phase = circuit.global_phase
-
-        qubit_indices = {qubit: idx for idx, qubit in enumerate(circuit.qubits)}
-        clbit_indices = {clbit: idx for idx, clbit in enumerate(circuit.clbits)}
 
         # Validate the dimension of initial statevector if set
         self._validate_initial_statevector()
 
-        # Get the seed looking in user options, stored options, and then random.
-        if "seed_simulator" in backend_options:
-            seed_simulator = backend_options["seed_simulator"]
-        elif hasattr(self.options, "seed_simulator"):
-            seed_simulator = self.options["seed_simulator"]
-        else:
-            # For compatibility on Windows force dyte to be int32
-            # and set the maximum value to be (2 ** 31) - 1
-            seed_simulator = np.random.randint(2147483647, dtype="int32")
-
-        self._local_random = np.random.default_rng(seed=seed_simulator)
         # Check if measure sampling is supported for current circuit
-
-        # From self._validate_measure_sampling ====================
-
-        if "shots" in backend_options:
-            self._shots = backend_options["shots"]
-
-        # If shots=1 we should disable measure sampling.
-        # This is also required for statevector simulator to return the
-        # correct final statevector without silently dropping final measurements.
-        if self._shots <= 1:
-            measure_flag = False
-        else:
-            measure_flag = False
-            for instruction in circuit.data:
-                # If circuit contains reset operations we cannot sample
-                if instruction.name == "reset":
-                    measure_flag = False
-                # If circuit contains a measure option then we can
-                # sample only if all following operations are measures
-                if measure_flag:
-                    # If we find a non-measure instruction
-                    # we cannot do measure sampling
-                    if instruction.name not in ["measure", "barrier", "id", "u0"]:
-                        measure_flag = False
-                elif instruction.name == "measure":
-                    measure_flag = True
-        # measure sampling is allowed
-        self._sample_measure = measure_flag
-
-        # ========================================== up till here
+        self._validate_measure_sampling(circuit)
 
         # List of final counts for all shots
         memory = []
@@ -582,15 +531,13 @@ class BasicSimulator(BackendV2):
         for _ in range(shots):
             self._initialize_statevector()
             # apply global_phase
-            self._statevector *= np.exp(1j * global_phase)
+            self._statevector *= np.exp(1j * circuit.global_phase)
             # Initialize classical memory to all 0
             self._classical_memory = 0
-            self._classical_register = 0
 
             for operation in circuit.data:
                 if operation.name == "unitary":
-                    qargs = operation.qubits
-                    qubits = [qubit_indices[qubit] for qubit in qargs]
+                    qubits = [circuit.find_bit(bit).index for bit in operation.qubits]
                     gate = operation.params[0]
                     self._add_unitary(gate, qubits)
                 elif operation.name in ("id", "u0", "delay"):
@@ -602,14 +549,12 @@ class BasicSimulator(BackendV2):
                 # Check if single qubit gate
                 elif operation.name in SINGLE_QUBIT_GATES:
                     params = getattr(operation, "params", None)
-                    qargs = operation.qubits
-                    qubit = [qubit_indices[qubit] for qubit in qargs][0]
+                    qubit = [circuit.find_bit(bit).index for bit in operation.qubits][0]
                     gate = single_gate_matrix(operation.name, params)
                     self._add_unitary(gate, [qubit])
                 elif operation.name in TWO_QUBIT_GATES_WITH_PARAMETERS:
                     params = getattr(operation, "params", None)
-                    qargs = operation.qubits
-                    qubits = [qubit_indices[qubit] for qubit in qargs]
+                    qubits = [circuit.find_bit(bit).index for bit in operation.qubits]
                     qubit0 = qubits[0]
                     qubit1 = qubits[1]
                     gate = TWO_QUBIT_GATES_WITH_PARAMETERS[operation.name](*params).to_matrix()
@@ -617,15 +562,13 @@ class BasicSimulator(BackendV2):
                 elif operation.name in ("id", "u0"):
                     pass
                 elif operation.name in TWO_QUBIT_GATES:
-                    qargs = operation.qubits
-                    qubits = [qubit_indices[qubit] for qubit in qargs]
+                    qubits = [circuit.find_bit(bit).index for bit in operation.qubits]
                     qubit0 = qubits[0]
                     qubit1 = qubits[1]
                     gate = TWO_QUBIT_GATES[operation.name]
                     self._add_unitary(gate, [qubit0, qubit1])
                 elif operation.name in THREE_QUBIT_GATES:
-                    qargs = operation.qubits
-                    qubits = [qubit_indices[qubit] for qubit in qargs]
+                    qubits = [circuit.find_bit(bit).index for bit in operation.qubits]
                     qubit0 = qubits[0]
                     qubit1 = qubits[1]
                     qubit2 = qubits[2]
@@ -633,8 +576,7 @@ class BasicSimulator(BackendV2):
                     self._add_unitary(gate, [qubit0, qubit1, qubit2])
                 # Check if reset
                 elif operation.name == "reset":
-                    qargs = operation.qubits
-                    qubits = [qubit_indices[qubit] for qubit in qargs]
+                    qubits = [circuit.find_bit(bit).index for bit in operation.qubits]
                     qubit = qubits[0]
                     self._add_reset(qubit)
                 # Check if barrier
@@ -642,23 +584,15 @@ class BasicSimulator(BackendV2):
                     pass
                 # Check if measure
                 elif operation.name == "measure":
-                    qargs = operation.qubits
-                    qubit = [qubit_indices[qubit] for qubit in qargs][0]
-                    cargs = operation.clbits
-                    cmembit = [clbit_indices[clbit] for clbit in cargs][0]
-                    cregbit = (
-                        [clbit_indices[clbit] for clbit in cargs][0]
-                        if is_conditional_experiment
-                        else None
-                    )
-
+                    qubit = [circuit.find_bit(bit).index for bit in operation.qubits][0]
+                    cmembit = [circuit.find_bit(bit).index for bit in operation.clbits][0]
                     if self._sample_measure:
                         # If sampling measurements record the qubit and cmembit
                         # for this measurement for later sampling
                         measure_sample_ops.append((qubit, cmembit))
                     else:
                         # If not sampling perform measurement as normal
-                        self._add_measure(qubit, cmembit, cregbit)
+                        self._add_measure(qubit, cmembit)
                 else:
                     backend = self.name
                     err_msg = '{0} encountered unrecognized operation "{1}"'
@@ -674,28 +608,30 @@ class BasicSimulator(BackendV2):
                     outcome = bin(self._classical_memory)[2:]
                     memory.append(hex(int(outcome, 2)))
 
-        # Add data
+        # Add counts to result data
         data = {"counts": dict(Counter(memory))}
-        # Optionally add memory list
+        # Optionally, add memory list to result data
         if self._memory:
             data["memory"] = memory
         end = time.time()
 
+        # Define header to be used by Result class to interpret counts
         header = {
-            "qubit_labels": qubit_labels,
-            "n_qubits": circuit.num_qubits,
-            "qreg_sizes": qreg_sizes,
-            "creg_sizes": creg_sizes,
-            "clbit_labels": clbit_labels,
-            "memory_slots": memory_slots,
             "name": circuit.name,
+            "n_qubits": circuit.num_qubits,
+            "qreg_sizes": [[qreg.name, qreg.size] for qreg in circuit.qregs],
+            "creg_sizes": [[creg.name, creg.size] for creg in circuit.cregs],
+            "qubit_labels": [[qreg.name, j] for qreg in circuit.qregs for j in range(qreg.size)],
+            "clbit_labels": [[creg.name, j] for creg in circuit.cregs for j in range(creg.size)],
+            "memory_slots": circuit.num_clbits,
             "global_phase": circuit.global_phase,
-            "metadata": circuit.metadata,
+            "metadata": circuit.metadata if circuit.metadata is not None else {},
         }
 
+        # Return result dictionary
         return {
             "name": circuit.name,
-            "seed_simulator": seed_simulator,
+            "seed_simulator": self._seed_simulator,
             "shots": self._shots,
             "data": data,
             "status": "DONE",
