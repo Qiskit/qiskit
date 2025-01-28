@@ -131,15 +131,41 @@ class HLSData:
     """Internal class for keeping immutable data required by HighLevelSynthesis."""
 
     hls_config: HLSConfig
-    hls_plugin_manager: HighLevelSynthesisPluginManager
-    coupling_map: CouplingMap | None
-    target: Target | None
-    use_qubit_indices: bool
-    equivalence_library: EquivalenceLibrary | None
-    min_qubits: int
-    unroll_definitions: bool
-    device_insts,
+    """The high-level-synthesis config that specifies the synthesis methods 
+    to use for high-level-objects in the circuit.
+    """
 
+    hls_plugin_manager: HighLevelSynthesisPluginManager
+    """The high-level-synthesis plugin manager that specifies the synthesis methods
+    available for various high-level-objects.
+    """
+
+    coupling_map: CouplingMap | None
+    """Optional, directed graph represented as a coupling map."""
+
+    target: Target | None
+    """Optional, the backend target to use for this pass. If it is specified,
+    it will be used instead of the coupling map.
+    """
+
+    use_qubit_indices: bool
+    """A flag indicating whether the qubit indices of high-level-objects in the 
+    circuit correspond to qubit indices on the target backend.
+    """
+
+    equivalence_library: EquivalenceLibrary | None
+    """The equivalence library used (instructions in this library will not
+    be unrolled by this pass).
+    """
+
+    min_qubits: int
+    """The minimum number of qubits for operations in the input dag to translate."""
+
+    unroll_definitions: bool
+    """Indicates whether to use custom definitions."""
+
+    device_insts: set
+    """Supported instructions in case that target is not specified."""
 
 
 class HighLevelSynthesis(TransformationPass):
@@ -245,7 +271,7 @@ class HighLevelSynthesis(TransformationPass):
         if target is not None:
             coupling_map = target.build_coupling_map()
 
-        unroll_definitions = not(basis_gates is None and target is None)
+        unroll_definitions = not (basis_gates is None and target is None)
 
         # include path for when target exists but target.num_qubits is None (BasicSimulator)
         if unroll_definitions and (target is None or target.num_qubits is None):
