@@ -2228,6 +2228,8 @@ class QuantumCircuit:
     @qregs.setter
     def qregs(self, other: list[QuantumRegister]):
         self._data.qregs = other
+        for qubit in self.qubits:
+            self._qubit_indices[qubit] = BitLocations(*self._data.get_qubit_location(qubit))
 
     @property
     def cregs(self) -> list[ClassicalRegister]:
@@ -2238,6 +2240,8 @@ class QuantumCircuit:
     @cregs.setter
     def cregs(self, other: list[ClassicalRegister]):
         self._data.cregs = other
+        for clbit in self.clbits:
+            self._clbit_indices[clbit] = BitLocations(*self._data.get_clbit_location(clbit))
 
     @property
     def ancillas(self) -> list[AncillaQubit]:
@@ -4073,10 +4077,17 @@ class QuantumCircuit:
         circ.cregs = []
         circ._clbit_indices = {}
 
+        # Save the old qregs
+        old_qregs = circ.qregs
+
         # Clear instruction info
         circ._data = CircuitData(
             qubits=circ._data.qubits, reserve=len(circ._data), global_phase=circ.global_phase
         )
+
+        # Re-add old registers
+        for qreg in old_qregs:
+            circ.add_register(qreg)
 
         # We must add the clbits first to preserve the original circuit
         # order. This way, add_register never adds clbits and just

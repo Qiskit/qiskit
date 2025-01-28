@@ -313,7 +313,7 @@ where
 
     /// Adds a register onto the [BitData] of the circuit.
     ///
-    /// _**Note:** If providing the ``bits`` argument, the bits must exist in the circuit._
+    /// _**Note:** If providing the ``bits`` argument, the bits must already exist in the circuit._
     pub fn add_register(
         &mut self,
         name: Option<String>,
@@ -711,7 +711,7 @@ where
             )));
         }
 
-        let _: u32 = self.registers.len().try_into().map_err(|_| {
+        let idx: u32 = self.registers.len().try_into().map_err(|_| {
             PyRuntimeError::new_err(format!(
                 "The number of {} registers in the circuit has exceeded the maximum capacity",
                 self.description
@@ -722,7 +722,7 @@ where
             .try_iter()?
             .enumerate()
             .map(|(bit_index, bit)| -> PyResult<T> {
-                let _: u32 = bit_index.try_into().map_err(|_| {
+                let bit_index: u32 = bit_index.try_into().map_err(|_| {
                     CircuitError::new_err(format!(
                         "The current register exceeds its capacity limit. Number of {} : {}",
                         self.description,
@@ -730,19 +730,28 @@ where
                     ))
                 })?;
                 let bit = bit?;
-                let index = if let Some(idx) = self.indices.get(&BitAsKey::new(&bit)) {
-                    *idx
+                let index = if let Some(index) = self.indices.get(&BitAsKey::new(&bit)) {
+                    let bit_info = &mut self.bit_info[BitType::from(*index) as usize];
+                    bit_info.add_register(idx, bit_index);
+                    *index
                 } else {
-                    self.py_add_bit(&bit, true)?
+                    let index = self.py_add_bit(&bit, true)?;
+                    self.bit_info[BitType::from(index) as usize] =
+                        BitInfo::new(Some((idx, bit_index)));
+                    index
                 };
                 Ok(index)
             })
             .collect::<PyResult<_>>()?;
 
+        // Create the native register
         let name: String = key.name().to_string();
+        let reg: R = (bits.as_slice(), name).into();
+
         self.py_cached_regs(py).bind(py).append(register)?;
-        let idx = self.add_register(Some(name), None, Some(&bits));
-        self.registers[idx as usize] = register.clone().unbind().into();
+        self.reg_keys.insert(reg.as_key().clone(), idx);
+        self.registry.push(reg);
+        self.registers.push(register.clone().unbind().into());
         Ok(idx)
     }
 
@@ -752,7 +761,8 @@ where
     pub fn py_set_registers(&mut self, other: &Bound<PyList>) -> PyResult<()> {
         // First invalidate everything related to registers
         // This is done to ensure we regenerate the lost information
-        // self.bit_info.clear()
+        // Clear all information bits may have on registers
+        self.bit_info = (0..self.len()).map(|_| BitInfo::new(None)).collect();
 
         self.reg_keys.clear();
         self.registers.clear();
