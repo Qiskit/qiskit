@@ -789,6 +789,15 @@ impl PackedInstruction {
             (OperationRef::Gate(left), OperationRef::Standard(_right)) => {
                 other.unpack_py_op(py)?.bind(py).eq(&left.gate)
             }
+            // Handle the case we end up with a pyinstruction for a standard instruction
+            (OperationRef::StandardInstruction(_left), OperationRef::Instruction(right)) => {
+                println!("RHS is just instruction...");
+                self.unpack_py_op(py)?.bind(py).eq(&right.instruction)
+            }
+            (OperationRef::Instruction(left), OperationRef::StandardInstruction(_right)) => {
+                println!("LHS is just instruction...");
+                other.unpack_py_op(py)?.bind(py).eq(&left.instruction)
+            }
             _ => Ok(false),
         }
     }
