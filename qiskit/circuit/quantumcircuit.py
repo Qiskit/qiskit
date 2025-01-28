@@ -3169,8 +3169,12 @@ class QuantumCircuit:
 
         try:
             if isinstance(bit, Qubit):
+                if bit not in self._qubit_indices:
+                    self._qubit_indices[bit] = BitLocations(*self._data.get_qubit_location(bit))
                 return self._qubit_indices[bit]
             elif isinstance(bit, Clbit):
+                if bit not in self._clbit_indices:
+                    self._clbit_indices[bit] = BitLocations(*self._data.get_clbit_location(bit))
                 return self._clbit_indices[bit]
             else:
                 raise CircuitError(f"Could not locate bit of unknown type: {type(bit)}")
