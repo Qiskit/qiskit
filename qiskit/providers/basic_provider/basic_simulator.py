@@ -576,8 +576,14 @@ class BasicSimulator(BackendV2):
         self._memory = getattr(qobj.config, "memory", False)
         self._qobj_config = qobj.config
         start = time.time()
-        for experiment in qobj.experiments:
-            result_list.append(self.run_experiment(experiment))
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                category=DeprecationWarning,
+                message=r".+qiskit\.providers\.basic_provider\.basic_simulator\..+",
+            )
+            for experiment in qobj.experiments:
+                result_list.append(self.run_experiment(experiment))
         end = time.time()
         result = {
             "backend_name": self.name,
