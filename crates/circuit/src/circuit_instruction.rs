@@ -330,7 +330,7 @@ impl CircuitInstruction {
         }
 
         let out = match self.operation.view() {
-            OperationRef::Standard(standard) => standard
+            OperationRef::StandardGate(standard) => standard
                 .create_py_op(py, Some(&self.params), &self.extra_attrs)?
                 .into_any(),
             OperationRef::StandardInstruction(instruction) => instruction
@@ -397,7 +397,7 @@ impl CircuitInstruction {
     /// :class:`.ControlledGate`?
     pub fn is_controlled_gate(&self, py: Python) -> PyResult<bool> {
         match self.operation.view() {
-            OperationRef::Standard(standard) => Ok(standard.num_ctrl_qubits() != 0),
+            OperationRef::StandardGate(standard) => Ok(standard.num_ctrl_qubits() != 0),
             OperationRef::Gate(gate) => gate
                 .gate
                 .bind(py)
@@ -696,7 +696,7 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
                 break 'standard_gate;
             }
             return Ok(OperationFromPython {
-                operation: PackedOperation::from_standard(standard),
+                operation: PackedOperation::from_standard_gate(standard),
                 params: extract_params()?,
                 extra_attrs: extract_extra()?,
             });

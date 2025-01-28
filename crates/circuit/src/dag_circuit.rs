@@ -2574,7 +2574,7 @@ def _format(operand):
                     };
 
                     match [inst1.op.view(), inst2.op.view()] {
-                        [OperationRef::Standard(_), OperationRef::Standard(_)]
+                        [OperationRef::StandardGate(_), OperationRef::StandardGate(_)]
                         | [OperationRef::StandardInstruction(_), OperationRef::StandardInstruction(_)] => {
                             Ok(inst1.py_op_eq(py, inst2)?
                                 && check_args()
@@ -2624,8 +2624,8 @@ def _format(operand):
                         // gate/instruction.
                         // This typically only happens if we have a ControlledGate in Python
                         // and we have mutable state set.
-                        [OperationRef::Standard(_), OperationRef::Gate(_)]
-                        | [OperationRef::Gate(_), OperationRef::Standard(_)]
+                        [OperationRef::StandardGate(_), OperationRef::Gate(_)]
+                        | [OperationRef::Gate(_), OperationRef::StandardGate(_)]
                         | [OperationRef::StandardInstruction(_), OperationRef::Instruction(_)]
                         | [OperationRef::Instruction(_), OperationRef::StandardInstruction(_)] => {
                             Ok(inst1.py_op_eq(py, inst2)? && check_args() && check_conditions()?)
@@ -3295,7 +3295,7 @@ def _format(operand):
                                 OperationRef::Operation(py_op) => {
                                     py_op.operation.setattr(py, "condition", new_condition)?;
                                 }
-                                OperationRef::Standard(_)
+                                OperationRef::StandardGate(_)
                                 | OperationRef::StandardInstruction(_) => {}
                             }
                         }
@@ -3745,7 +3745,7 @@ def _format(operand):
             .node_references()
             .filter_map(|(node, weight)| match weight {
                 NodeType::Operation(ref packed) => match packed.op.view() {
-                    OperationRef::Gate(_) | OperationRef::Standard(_) => {
+                    OperationRef::Gate(_) | OperationRef::StandardGate(_) => {
                         Some(self.unpack_into(py, node, weight))
                     }
                     _ => None,
@@ -4853,7 +4853,7 @@ impl DAGCircuit {
             let node = &self.dag[node_index];
             match node {
                 NodeType::Operation(inst) => match inst.op.view() {
-                    OperationRef::Standard(gate) => Ok(Some(
+                    OperationRef::StandardGate(gate) => Ok(Some(
                         gate.num_qubits() <= 2
                             && inst.condition().is_none()
                             && !inst.is_parameterized(),
@@ -6239,7 +6239,9 @@ impl DAGCircuit {
             };
             #[cfg(feature = "cache_pygates")]
             let py_op = match new_op.operation.view() {
-                OperationRef::Standard(_) | OperationRef::StandardInstruction(_) => OnceLock::new(),
+                OperationRef::StandardGate(_) | OperationRef::StandardInstruction(_) => {
+                    OnceLock::new()
+                }
                 OperationRef::Gate(gate) => OnceLock::from(gate.gate.clone_ref(py)),
                 OperationRef::Instruction(instruction) => {
                     OnceLock::from(instruction.instruction.clone_ref(py))

@@ -208,7 +208,7 @@ fn py_fix_direction_target(
         ];
 
         // Take this path so Target can check for exact match of the parameterized gate's angle
-        if let OperationRef::Standard(std_gate) = inst.op.view() {
+        if let OperationRef::StandardGate(std_gate) = inst.op.view() {
             match std_gate {
                 StandardGate::RXXGate
                 | StandardGate::RYYGate
@@ -309,7 +309,7 @@ where
 
         // If the op has a pre-defined replacement - replace if the other direction is supported otherwise error
         // If no pre-defined replacement for the op - if the other direction is supported error saying no pre-defined rule otherwise error saying op is not supported
-        if let OperationRef::Standard(std_gate) = packed_inst.op.view() {
+        if let OperationRef::StandardGate(std_gate) = packed_inst.op.view() {
             match std_gate {
                 StandardGate::CXGate
                 | StandardGate::ECRGate
@@ -464,7 +464,7 @@ fn apply_operation_back(
 ) -> PyResult<()> {
     dag.apply_operation_back(
         py,
-        PackedOperation::from_standard(gate),
+        PackedOperation::from_standard_gate(gate),
         qargs,
         &[],
         param,

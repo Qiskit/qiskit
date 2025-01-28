@@ -178,7 +178,7 @@ pub trait Operation {
 /// This is the main way that we interact immutably with general circuit operations from Rust space.
 #[derive(Debug)]
 pub enum OperationRef<'a> {
-    Standard(StandardGate),
+    StandardGate(StandardGate),
     StandardInstruction(StandardInstruction),
     Gate(&'a PyGate),
     Instruction(&'a PyInstruction),
@@ -189,7 +189,7 @@ impl Operation for OperationRef<'_> {
     #[inline]
     fn name(&self) -> &str {
         match self {
-            Self::Standard(standard) => standard.name(),
+            Self::StandardGate(standard) => standard.name(),
             Self::StandardInstruction(instruction) => instruction.name(),
             Self::Gate(gate) => gate.name(),
             Self::Instruction(instruction) => instruction.name(),
@@ -199,7 +199,7 @@ impl Operation for OperationRef<'_> {
     #[inline]
     fn num_qubits(&self) -> u32 {
         match self {
-            Self::Standard(standard) => standard.num_qubits(),
+            Self::StandardGate(standard) => standard.num_qubits(),
             Self::StandardInstruction(instruction) => instruction.num_qubits(),
             Self::Gate(gate) => gate.num_qubits(),
             Self::Instruction(instruction) => instruction.num_qubits(),
@@ -209,7 +209,7 @@ impl Operation for OperationRef<'_> {
     #[inline]
     fn num_clbits(&self) -> u32 {
         match self {
-            Self::Standard(standard) => standard.num_clbits(),
+            Self::StandardGate(standard) => standard.num_clbits(),
             Self::StandardInstruction(instruction) => instruction.num_clbits(),
             Self::Gate(gate) => gate.num_clbits(),
             Self::Instruction(instruction) => instruction.num_clbits(),
@@ -219,7 +219,7 @@ impl Operation for OperationRef<'_> {
     #[inline]
     fn num_params(&self) -> u32 {
         match self {
-            Self::Standard(standard) => standard.num_params(),
+            Self::StandardGate(standard) => standard.num_params(),
             Self::StandardInstruction(instruction) => instruction.num_params(),
             Self::Gate(gate) => gate.num_params(),
             Self::Instruction(instruction) => instruction.num_params(),
@@ -229,7 +229,7 @@ impl Operation for OperationRef<'_> {
     #[inline]
     fn control_flow(&self) -> bool {
         match self {
-            Self::Standard(standard) => standard.control_flow(),
+            Self::StandardGate(standard) => standard.control_flow(),
             Self::StandardInstruction(instruction) => instruction.control_flow(),
             Self::Gate(gate) => gate.control_flow(),
             Self::Instruction(instruction) => instruction.control_flow(),
@@ -239,7 +239,7 @@ impl Operation for OperationRef<'_> {
     #[inline]
     fn blocks(&self) -> Vec<CircuitData> {
         match self {
-            OperationRef::Standard(standard) => standard.blocks(),
+            OperationRef::StandardGate(standard) => standard.blocks(),
             OperationRef::StandardInstruction(instruction) => instruction.blocks(),
             OperationRef::Gate(gate) => gate.blocks(),
             OperationRef::Instruction(instruction) => instruction.blocks(),
@@ -249,7 +249,7 @@ impl Operation for OperationRef<'_> {
     #[inline]
     fn matrix(&self, params: &[Param]) -> Option<Array2<Complex64>> {
         match self {
-            Self::Standard(standard) => standard.matrix(params),
+            Self::StandardGate(standard) => standard.matrix(params),
             Self::StandardInstruction(instruction) => instruction.matrix(params),
             Self::Gate(gate) => gate.matrix(params),
             Self::Instruction(instruction) => instruction.matrix(params),
@@ -259,7 +259,7 @@ impl Operation for OperationRef<'_> {
     #[inline]
     fn definition(&self, params: &[Param]) -> Option<CircuitData> {
         match self {
-            Self::Standard(standard) => standard.definition(params),
+            Self::StandardGate(standard) => standard.definition(params),
             Self::StandardInstruction(instruction) => instruction.definition(params),
             Self::Gate(gate) => gate.definition(params),
             Self::Instruction(instruction) => instruction.definition(params),
@@ -269,7 +269,7 @@ impl Operation for OperationRef<'_> {
     #[inline]
     fn standard_gate(&self) -> Option<StandardGate> {
         match self {
-            Self::Standard(standard) => standard.standard_gate(),
+            Self::StandardGate(standard) => standard.standard_gate(),
             Self::StandardInstruction(instruction) => instruction.standard_gate(),
             Self::Gate(gate) => gate.standard_gate(),
             Self::Instruction(instruction) => instruction.standard_gate(),
@@ -279,7 +279,7 @@ impl Operation for OperationRef<'_> {
     #[inline]
     fn directive(&self) -> bool {
         match self {
-            Self::Standard(standard) => standard.directive(),
+            Self::StandardGate(standard) => standard.directive(),
             Self::StandardInstruction(instruction) => instruction.directive(),
             Self::Gate(gate) => gate.directive(),
             Self::Instruction(instruction) => instruction.directive(),

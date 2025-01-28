@@ -387,7 +387,7 @@ impl PackedOperation {
     #[inline]
     pub fn view(&self) -> OperationRef {
         match self.discriminant() {
-            PackedOperationType::StandardGate => OperationRef::Standard(self.standard_gate()),
+            PackedOperationType::StandardGate => OperationRef::StandardGate(self.standard_gate()),
             PackedOperationType::StandardInstruction => {
                 OperationRef::StandardInstruction(self.standard_instruction())
             }
@@ -403,7 +403,7 @@ impl PackedOperation {
 
     /// Create a `PackedOperation` from a `StandardGate`.
     #[inline]
-    pub fn from_standard(standard: StandardGate) -> Self {
+    pub fn from_standard_gate(standard: StandardGate) -> Self {
         standard.into()
     }
 
@@ -430,7 +430,9 @@ impl PackedOperation {
     /// Check equality of the operation, including Python-space checks, if appropriate.
     pub fn py_eq(&self, py: Python, other: &PackedOperation) -> PyResult<bool> {
         match (self.view(), other.view()) {
-            (OperationRef::Standard(left), OperationRef::Standard(right)) => Ok(left == right),
+            (OperationRef::StandardGate(left), OperationRef::StandardGate(right)) => {
+                Ok(left == right)
+            }
             (OperationRef::StandardInstruction(left), OperationRef::StandardInstruction(right)) => {
                 Ok(left == right)
             }
@@ -455,7 +457,7 @@ impl PackedOperation {
     ) -> PyResult<Self> {
         let deepcopy = DEEPCOPY.get_bound(py);
         match self.view() {
-            OperationRef::Standard(standard) => Ok(standard.into()),
+            OperationRef::StandardGate(standard) => Ok(standard.into()),
             OperationRef::StandardInstruction(instruction) => {
                 Ok(Self::from_standard_instruction(instruction))
             }
@@ -492,7 +494,7 @@ impl PackedOperation {
     pub fn py_copy(&self, py: Python) -> PyResult<Self> {
         let copy_attr = intern!(py, "copy");
         match self.view() {
-            OperationRef::Standard(standard) => Ok(standard.into()),
+            OperationRef::StandardGate(standard) => Ok(standard.into()),
             OperationRef::StandardInstruction(instruction) => {
                 Ok(Self::from_standard_instruction(instruction))
             }
@@ -530,7 +532,7 @@ impl PackedOperation {
     pub fn py_op_is_instance(&self, py_type: &Bound<PyType>) -> PyResult<bool> {
         let py = py_type.py();
         let py_op = match self.view() {
-            OperationRef::Standard(standard) => {
+            OperationRef::StandardGate(standard) => {
                 return get_std_gate_class(py, standard)?
                     .bind(py)
                     .downcast::<PyType>()?
@@ -568,7 +570,7 @@ impl Operation for PackedOperation {
     fn name(&self) -> &str {
         let view = self.view();
         let name = match view {
-            OperationRef::Standard(ref standard) => standard.name(),
+            OperationRef::StandardGate(ref standard) => standard.name(),
             OperationRef::StandardInstruction(ref instruction) => instruction.name(),
             OperationRef::Gate(gate) => gate.name(),
             OperationRef::Instruction(instruction) => instruction.name(),
@@ -625,7 +627,7 @@ impl Operation for PackedOperation {
 impl Clone for PackedOperation {
     fn clone(&self) -> Self {
         match self.view() {
-            OperationRef::Standard(standard) => Self::from_standard(standard),
+            OperationRef::StandardGate(standard) => Self::from_standard_gate(standard),
             OperationRef::StandardInstruction(instruction) => {
                 Self::from_standard_instruction(instruction)
             }
@@ -727,7 +729,7 @@ impl PackedInstruction {
     pub fn unpack_py_op(&self, py: Python) -> PyResult<Py<PyAny>> {
         let unpack = || -> PyResult<Py<PyAny>> {
             match self.op.view() {
-                OperationRef::Standard(standard) => standard.create_py_op(
+                OperationRef::StandardGate(standard) => standard.create_py_op(
                     py,
                     self.params.as_deref().map(SmallVec::as_slice),
                     &self.extra_attrs,
@@ -767,7 +769,9 @@ impl PackedInstruction {
     /// Check equality of the operation, including Python-space checks, if appropriate.
     pub fn py_op_eq(&self, py: Python, other: &Self) -> PyResult<bool> {
         match (self.op.view(), other.op.view()) {
-            (OperationRef::Standard(left), OperationRef::Standard(right)) => Ok(left == right),
+            (OperationRef::StandardGate(left), OperationRef::StandardGate(right)) => {
+                Ok(left == right)
+            }
             (OperationRef::StandardInstruction(left), OperationRef::StandardInstruction(right)) => {
                 Ok(left == right)
             }
@@ -783,10 +787,10 @@ impl PackedInstruction {
             // Handle the case we end up with a pygate for a standard gate
             // this typically only happens if it's a ControlledGate in python
             // and we have mutable state set.
-            (OperationRef::Standard(_left), OperationRef::Gate(right)) => {
+            (OperationRef::StandardGate(_left), OperationRef::Gate(right)) => {
                 self.unpack_py_op(py)?.bind(py).eq(&right.gate)
             }
-            (OperationRef::Gate(left), OperationRef::Standard(_right)) => {
+            (OperationRef::Gate(left), OperationRef::StandardGate(_right)) => {
                 other.unpack_py_op(py)?.bind(py).eq(&left.gate)
             }
             // Handle the case we end up with a pyinstruction for a standard instruction
