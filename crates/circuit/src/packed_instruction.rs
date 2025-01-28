@@ -40,9 +40,9 @@ enum PackedOperationType {
     // dereferencing.
     StandardGate = 0,
     StandardInstruction = 1,
-    PyGatePointer = 2,
-    PyInstructionPointer = 3,
-    PyOperationPointer = 4,
+    PyGate = 2,
+    PyInstruction = 3,
+    PyOperation = 4,
 }
 
 unsafe impl ::bytemuck::CheckedBitPattern for PackedOperationType {
@@ -291,9 +291,9 @@ mod pointer {
         };
     }
 
-    impl_packable_pointer!(PyGate, PackedOperationType::PyGatePointer);
-    impl_packable_pointer!(PyInstruction, PackedOperationType::PyInstructionPointer);
-    impl_packable_pointer!(PyOperation, PackedOperationType::PyOperationPointer);
+    impl_packable_pointer!(PyGate, PackedOperationType::PyGate);
+    impl_packable_pointer!(PyInstruction, PackedOperationType::PyInstruction);
+    impl_packable_pointer!(PyOperation, PackedOperationType::PyOperation);
 
     impl<T: PackablePointer> From<Box<T>> for PackedOperation {
         fn from(value: Box<T>) -> Self {
@@ -335,9 +335,9 @@ mod pointer {
 
             match self.discriminant() {
                 PackedOperationType::StandardGate | PackedOperationType::StandardInstruction => (),
-                PackedOperationType::PyGatePointer => drop_pointer_as::<PyGate>(self),
-                PackedOperationType::PyInstructionPointer => drop_pointer_as::<PyInstruction>(self),
-                PackedOperationType::PyOperationPointer => drop_pointer_as::<PyOperation>(self),
+                PackedOperationType::PyGate => drop_pointer_as::<PyGate>(self),
+                PackedOperationType::PyInstruction => drop_pointer_as::<PyInstruction>(self),
+                PackedOperationType::PyOperation => drop_pointer_as::<PyOperation>(self),
             }
         }
     }
@@ -391,13 +391,11 @@ impl PackedOperation {
             PackedOperationType::StandardInstruction => {
                 OperationRef::StandardInstruction(self.standard_instruction())
             }
-            PackedOperationType::PyGatePointer => OperationRef::Gate(self.try_into().unwrap()),
-            PackedOperationType::PyInstructionPointer => {
+            PackedOperationType::PyGate => OperationRef::Gate(self.try_into().unwrap()),
+            PackedOperationType::PyInstruction => {
                 OperationRef::Instruction(self.try_into().unwrap())
             }
-            PackedOperationType::PyOperationPointer => {
-                OperationRef::Operation(self.try_into().unwrap())
-            }
+            PackedOperationType::PyOperation => OperationRef::Operation(self.try_into().unwrap()),
         }
     }
 
