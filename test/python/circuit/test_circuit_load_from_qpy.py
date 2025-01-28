@@ -937,7 +937,8 @@ class TestLoadFromQPY(QiskitTestCase):
         self.assertDeprecatedBitProperties(qc, new_circ)
 
     def test_pauli_feature_map(self):
-        """Test PauliFeatureMap class."""
+        """Test PauliFeatureMap class. Regression test for
+        https://github.com/Qiskit/qiskit/issues/13720."""
         qc = PauliFeatureMap(feature_dimension=5, reps=1)
         qpy_file = io.BytesIO()
         dump(qc, qpy_file)
