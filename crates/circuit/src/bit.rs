@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-/// Keeps informatyion about where a bit is located within the circuit.
+/// Keeps information about where a bit is located within the circuit.
 ///
 /// This information includes whether the bit was added by a register,
 /// which register it belongs to and where it is located within it.
