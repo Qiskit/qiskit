@@ -382,7 +382,7 @@ class BasicSimulator(BackendV2):
         elif getattr(self.options, "seed_simulator", None) is not None:
             seed_simulator = self.options["seed_simulator"]
         else:
-            # For compatibility on Windows force dyte to be int32
+            # For compatibility on Windows force dtype to be int32
             # and set the maximum value to be (2 ** 31) - 1
             seed_simulator = np.random.randint(2147483647, dtype="int32")
         self._seed_simulator = seed_simulator
@@ -409,14 +409,16 @@ class BasicSimulator(BackendV2):
             for instruction in circuit.data:
                 # If circuit contains reset operations we cannot sample
                 if instruction.name == "reset":
-                    measure_flag = False
+                    self._sample_measure = False
+                    return
                 # If circuit contains a measure option then we can
                 # sample only if all following operations are measures
                 if measure_flag:
                     # If we find a non-measure instruction
                     # we cannot do measure sampling
                     if instruction.name not in ["measure", "barrier", "id", "u0"]:
-                        measure_flag = False
+                        self._sample_measure = False
+                        return
                 elif instruction.name == "measure":
                     measure_flag = True
         self._sample_measure = measure_flag
@@ -501,7 +503,22 @@ class BasicSimulator(BackendV2):
             circuit: circuit to be run.
 
         Returns:
-            Dictionary with run result.
+             A result dictionary which looks something like::
+                {
+                "name": name of this experiment (obtained from qobj.experiment header)
+                "seed": random seed used for simulation
+                "shots": number of shots used in the simulation
+                "data":
+                    {
+                    "counts": {'0x9: 5, ...},
+                    "memory": ['0x9', '0xF', '0x1D', ..., '0x9']
+                    },
+                "status": status string for the simulation
+                "success": boolean
+                "time_taken": simulation time of this single experiment
+                }
+        Raises:
+            BasicProviderError: if an error occurred.
         """
         start = time.time()
 
