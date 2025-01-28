@@ -1064,27 +1064,35 @@ impl CircuitData {
                 num_qubits
                     .try_into()
                     .expect("The number of qubits provided exceeds the limit for a circuit."),
-                0,
+                if add_qreg { 1 } else { 0 },
             ),
             clbits: NewBitData::with_capacity(
                 "clbits".to_owned(),
                 num_clbits
                     .try_into()
                     .expect("The number of clbits provided exceeds the limit for a circuit."),
-                0,
+                if add_creg { 1 } else { 0 },
             ),
             param_table: ParameterTable::new(),
             global_phase,
         };
         // Add all the bits into a register
         if add_qreg {
-            let indices: Vec<Qubit> = (0..data.qubits.len() as u32).map(Qubit).collect();
+            let indices: Vec<Qubit> = (0..num_qubits).map(|_| data.add_qubit()).collect();
             data.add_qreg(Some("q".to_string()), None, Some(&indices));
+        } else {
+            (0..num_qubits).for_each(|_| {
+                data.add_qubit();
+            });
         }
         // Add all the bits into a register
         if add_creg {
-            let indices: Vec<Clbit> = (0..data.clbits.len() as u32).map(Clbit).collect();
+            let indices: Vec<Clbit> = (0..num_clbits).map(|_| data.add_clbit()).collect();
             data.add_creg(Some("c".to_string()), None, Some(&indices));
+        } else {
+            (0..num_clbits).for_each(|_| {
+                data.add_qubit();
+            });
         }
         data
     }
@@ -1109,6 +1117,11 @@ impl CircuitData {
         self.qubits.add_register(name, num_qubits, bits)
     }
 
+    /// Returns an iterator with all the QuantumRegisters in the circuit
+    pub fn qregs(&self) -> impl Iterator<Item = &QuantumRegister> {
+        (0..self.qubits.len_regs()).flat_map(|index| self.qubits.get_register(index as u32))
+    }
+
     /// Adds a generic qubit to a circuit
     pub fn add_clbit(&mut self) -> Clbit {
         self.clbits.add_bit()
@@ -1122,6 +1135,11 @@ impl CircuitData {
         bits: Option<&[Clbit]>,
     ) -> u32 {
         self.clbits.add_register(name, num_qubits, bits)
+    }
+
+    /// Returns an iterator with all the QuantumRegisters in the circuit
+    pub fn cregs(&self) -> impl Iterator<Item = &ClassicalRegister> {
+        (0..self.clbits.len_regs()).flat_map(|index| self.clbits.get_register(index as u32))
     }
 
     /// Get qubit location in the circuit
@@ -1825,5 +1843,29 @@ struct AssignParam(Param);
 impl<'py> FromPyObject<'py> for AssignParam {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         Ok(Self(Param::extract_no_coerce(ob)?))
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_circuit_construction() {
+        let circuit_data = CircuitData::new(4, 3, Param::Float(0.0), true, true);
+        let qregs: Vec<&QuantumRegister> = circuit_data.qregs().collect();
+        let cregs: Vec<&ClassicalRegister> = circuit_data.cregs().collect();
+
+        // Expected qregs
+        let example_qreg = QuantumRegister::new(Some(4), Some("q".to_owned()), None);
+        let expected_qregs: Vec<&QuantumRegister> = vec![&example_qreg];
+
+        assert_eq!(qregs, expected_qregs);
+
+        // Expected cregs
+        let example_creg = ClassicalRegister::new(Some(3), Some("c".to_owned()), None);
+        let expected_cregs: Vec<&ClassicalRegister> = vec![&example_creg];
+
+        assert_eq!(cregs, expected_cregs)
     }
 }
