@@ -222,14 +222,12 @@ class TestPauliListInit(QiskitTestCase):
         self.assertEqual(pauli_list, from_settings)
 
     def test_from_symplectic_phase_check(self):
+        """Test the from_symplectic method of PauliList for phase dimension check."""
         z = np.array([[0], [0]])
         x = np.array([[0], [0]])
         phase = np.array([[0], [0]])  # 2D phase
-        try:
+        with self.assertRaisesRegex(ValueError, "phase should be at most 1D but has 2 dimensions."):
             PauliList.from_symplectic(z, x, phase)
-            assert False, "Expected ValueError for 2D phase"
-        except ValueError as e:
-            assert str(e) == "phase should be at most 1D but has 2 dimensions."
 
 
 @ddt
