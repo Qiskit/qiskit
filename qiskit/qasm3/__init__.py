@@ -130,6 +130,7 @@ For example, we can define a quantum program using OpenQASM 3, and use :func:`lo
 convert it into a :class:`.QuantumCircuit`:
 
 .. plot::
+    :alt: Circuit diagram output by the previous code.
     :include-source:
 
     import qiskit.qasm3

@@ -32,7 +32,7 @@ if typing.TYPE_CHECKING:
 
 
 class QDrift(ProductFormula):
-    r"""The QDrift Trotterization method, which selects each each term in the
+    r"""The QDrift Trotterization method, which selects each term in the
     Trotterization randomly, with a probability proportional to its weight. Based on the work
     of Earl Campbell in Ref. [1].
 

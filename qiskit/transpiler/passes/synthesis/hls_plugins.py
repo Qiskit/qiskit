@@ -421,6 +421,8 @@ from qiskit.circuit.library import (
     C3XGate,
     C4XGate,
     PauliEvolutionGate,
+    PermutationGate,
+    MCMTGate,
     ModularAdderGate,
     HalfAdderGate,
     FullAdderGate,
@@ -434,7 +436,6 @@ from qiskit.circuit.annotated_operation import (
     InverseModifier,
     PowerModifier,
 )
-from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.coupling import CouplingMap
 
 from qiskit.synthesis.clifford import (
@@ -476,6 +477,7 @@ from qiskit.synthesis.arithmetic import (
     multiplier_qft_r17,
     multiplier_cumulative_h18,
 )
+from qiskit.quantum_info.operators import Clifford
 from qiskit.transpiler.passes.routing.algorithms import ApproximateTokenSwapper
 from .plugin import HighLevelSynthesisPlugin
 
@@ -493,6 +495,9 @@ class DefaultSynthesisClifford(HighLevelSynthesisPlugin):
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given Clifford."""
+        if not isinstance(high_level_object, Clifford):
+            return None
+
         decomposition = synth_clifford_full(high_level_object)
         return decomposition
 
@@ -506,6 +511,9 @@ class AGSynthesisClifford(HighLevelSynthesisPlugin):
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given Clifford."""
+        if not isinstance(high_level_object, Clifford):
+            return None
+
         decomposition = synth_clifford_ag(high_level_object)
         return decomposition
 
@@ -522,10 +530,14 @@ class BMSynthesisClifford(HighLevelSynthesisPlugin):
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given Clifford."""
+        if not isinstance(high_level_object, Clifford):
+            return None
+
         if high_level_object.num_qubits <= 3:
             decomposition = synth_clifford_bm(high_level_object)
         else:
             decomposition = None
+
         return decomposition
 
 
@@ -539,6 +551,9 @@ class GreedySynthesisClifford(HighLevelSynthesisPlugin):
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given Clifford."""
+        if not isinstance(high_level_object, Clifford):
+            return None
+
         decomposition = synth_clifford_greedy(high_level_object)
         return decomposition
 
@@ -553,6 +568,9 @@ class LayerSynthesisClifford(HighLevelSynthesisPlugin):
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given Clifford."""
+        if not isinstance(high_level_object, Clifford):
+            return None
+
         decomposition = synth_clifford_layers(high_level_object)
         return decomposition
 
@@ -568,6 +586,9 @@ class LayerLnnSynthesisClifford(HighLevelSynthesisPlugin):
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given Clifford."""
+        if not isinstance(high_level_object, Clifford):
+            return None
+
         decomposition = synth_clifford_depth_lnn(high_level_object)
         return decomposition
 
@@ -581,6 +602,9 @@ class DefaultSynthesisLinearFunction(HighLevelSynthesisPlugin):
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given LinearFunction."""
+        if not isinstance(high_level_object, LinearFunction):
+            return None
+
         decomposition = synth_cnot_count_full_pmh(high_level_object.linear)
         return decomposition
 
@@ -604,11 +628,8 @@ class KMSSynthesisLinearFunction(HighLevelSynthesisPlugin):
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given LinearFunction."""
-
         if not isinstance(high_level_object, LinearFunction):
-            raise TranspilerError(
-                "PMHSynthesisLinearFunction only accepts objects of type LinearFunction"
-            )
+            return None
 
         use_inverted = options.get("use_inverted", False)
         use_transposed = options.get("use_transposed", False)
@@ -655,11 +676,8 @@ class PMHSynthesisLinearFunction(HighLevelSynthesisPlugin):
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given LinearFunction."""
-
         if not isinstance(high_level_object, LinearFunction):
-            raise TranspilerError(
-                "PMHSynthesisLinearFunction only accepts objects of type LinearFunction"
-            )
+            return None
 
         section_size = options.get("section_size", 2)
         use_inverted = options.get("use_inverted", False)
@@ -691,6 +709,9 @@ class KMSSynthesisPermutation(HighLevelSynthesisPlugin):
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given Permutation."""
+        if not isinstance(high_level_object, PermutationGate):
+            return None
+
         decomposition = synth_permutation_depth_lnn_kms(high_level_object.pattern)
         return decomposition
 
@@ -704,6 +725,9 @@ class BasicSynthesisPermutation(HighLevelSynthesisPlugin):
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given Permutation."""
+        if not isinstance(high_level_object, PermutationGate):
+            return None
+
         decomposition = synth_permutation_basic(high_level_object.pattern)
         return decomposition
 
@@ -717,6 +741,9 @@ class ACGSynthesisPermutation(HighLevelSynthesisPlugin):
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given Permutation."""
+        if not isinstance(high_level_object, PermutationGate):
+            return None
+
         decomposition = synth_permutation_acg(high_level_object.pattern)
         return decomposition
 
@@ -866,6 +893,9 @@ class TokenSwapperSynthesisPermutation(HighLevelSynthesisPlugin):
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given Permutation."""
+
+        if not isinstance(high_level_object, PermutationGate):
+            return None
 
         trials = options.get("trials", 5)
         seed = options.get("seed", 0)
@@ -1165,6 +1195,9 @@ class MCMTSynthesisDefault(HighLevelSynthesisPlugin):
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         # first try to use the V-chain synthesis if enough auxiliary qubits are available
+        if not isinstance(high_level_object, MCMTGate):
+            return None
+
         if (
             decomposition := MCMTSynthesisVChain().run(
                 high_level_object, coupling_map, target, qubits, **options
@@ -1179,6 +1212,9 @@ class MCMTSynthesisNoAux(HighLevelSynthesisPlugin):
     """A V-chain based synthesis for ``MCMTGate``."""
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        if not isinstance(high_level_object, MCMTGate):
+            return None
+
         base_gate = high_level_object.base_gate
         ctrl_state = options.get("ctrl_state", None)
 
@@ -1204,6 +1240,9 @@ class MCMTSynthesisVChain(HighLevelSynthesisPlugin):
     """A V-chain based synthesis for ``MCMTGate``."""
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        if not isinstance(high_level_object, MCMTGate):
+            return None
+
         if options.get("num_clean_ancillas", 0) < high_level_object.num_ctrl_qubits - 1:
             return None  # insufficient number of auxiliary qubits
 
