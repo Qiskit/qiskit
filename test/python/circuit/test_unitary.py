@@ -12,11 +12,9 @@
 
 """UnitaryGate tests"""
 
-import json
 import numpy
 from numpy.testing import assert_allclose
 
-import qiskit
 from qiskit.circuit.library import UnitaryGate, CXGate
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.transpiler import PassManager

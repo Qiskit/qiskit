@@ -103,7 +103,7 @@ class TranspilerBenchSuite:
         self.basis = ["id", "rz", "sx", "x", "cx", "reset"]
 
     def time_single_gate_compile(self):
-        circ = qiskit.compiler.transpile(
+        qiskit.compiler.transpile(
             self.single_gate_circuit,
             coupling_map=self.coupling_map,
             basis_gates=self.basis,
@@ -111,7 +111,7 @@ class TranspilerBenchSuite:
         )
 
     def time_cx_compile(self):
-        circ = qiskit.compiler.transpile(
+        qiskit.compiler.transpile(
             self.cx_circuit,
             coupling_map=self.coupling_map,
             basis_gates=self.basis,
@@ -119,7 +119,7 @@ class TranspilerBenchSuite:
         )
 
     def time_compile_from_large_qasm(self):
-        circ = qiskit.compiler.transpile(
+        qiskit.compiler.transpile(
             self.large_qasm,
             coupling_map=self.coupling_map,
             basis_gates=self.basis,
