@@ -352,7 +352,7 @@ where
 
     /// Return whether this value is already in the [Interner].
     ///
-    /// Typically you want to use [try_get], which returns the key if present, or [insert], which
+    /// Typically you want to use [try_key], which returns the key if present, or [insert], which
     /// stores the value if it wasn't already present.
     pub fn contains(&self, value: &T) -> bool {
         self.try_key(value).is_some()
