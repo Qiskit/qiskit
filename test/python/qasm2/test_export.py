@@ -434,7 +434,7 @@ mcx q[0],q[1],q[2],q[3];"""
         (?P=u14) q[0],q[1],q[2],q[3],q[4],q[5],q[6],q[7],q[8];""",
             re.MULTILINE,
         )
-        self.assertRegex(dumps(qc), expected_qasm)
+        self.assertRegex(qasm2.dumps(qc), expected_qasm)
 
     def test_registerless_bits(self):
         """Test that registerless bits do not have naming collisions in their registers."""
