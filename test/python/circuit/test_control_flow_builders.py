@@ -610,23 +610,23 @@ class TestControlFlowBuilders(QiskitTestCase):
 
         test = QuantumCircuit(qr, *cr)
         with test.if_test((cr[0], 0)) as else_:
-            test.h(0)
-            test.measure(0, cr[1])
+            with test.if_test((cr[1], 0)):
+                test.h(0)
             # Test repetition.
-            test.h(0)
-            test.measure(0, cr[1])
+            with test.if_test((cr[1], 0)):
+                test.h(0)
         with else_:
-            test.h(0)
-            test.measure(0, cr[2])
+            with test.if_test((cr[2], 0)):
+                test.h(0)
 
         true_body = QuantumCircuit([qr[0]], cr[0], cr[1], cr[2])
-        true_body.h(qr[0])
-        true_body.measure(0, cr[1])
-        true_body.h(qr[0])
-        true_body.measure(0, cr[1])
+        with true_body.if_test((cr[1], 0)):
+            true_body.h(qr[0])
+        with true_body.if_test((cr[1], 0)):
+            true_body.h(qr[0])
         false_body = QuantumCircuit([qr[0]], cr[0], cr[1], cr[2])
-        false_body.h(qr[0])
-        false_body.measure(0, cr[2])
+        with false_body.if_test((cr[2], 0)):
+            false_body.h(qr[0])
 
         expected = QuantumCircuit(qr, *cr)
         expected.if_else(
