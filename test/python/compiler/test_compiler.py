@@ -18,7 +18,7 @@ import unittest
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.transpiler import PassManager
 from qiskit.circuit.library import U1Gate, U2Gate
-from qiskit.compiler import transpile, assemble
+from qiskit.compiler import transpile
 from qiskit.providers.fake_provider import Fake20QV1, Fake5QV1
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.qobj import QasmQobj
@@ -186,21 +186,6 @@ class TestCompiler(QiskitTestCase):
         ).result()
         self.assertEqual(result.get_counts(qc), {"010000": 1024})
 
-    def test_parallel_compile(self):
-        """Trigger parallel routines in compile."""
-        qr = QuantumRegister(16)
-        cr = ClassicalRegister(2)
-        qc = QuantumCircuit(qr, cr)
-        qc.h(qr[0])
-        for k in range(1, 15):
-            qc.cx(qr[0], qr[k])
-        qc.measure(qr[5], cr[0])
-        qlist = [qc for k in range(10)]
-        with self.assertWarns(DeprecationWarning):
-            backend = Fake20QV1()
-            qobj = assemble(transpile(qlist, backend=backend))
-        self.assertEqual(len(qobj.experiments), 10)
-
     def test_no_conflict_backend_passmanager(self):
         """See: https://github.com/Qiskit/qiskit-terra/issues/5037"""
         backend = BasicSimulator()
@@ -241,13 +226,11 @@ class TestCompiler(QiskitTestCase):
         circuit2 = transpile(
             circuit, backend=None, coupling_map=cmap, basis_gates=["u2"], initial_layout=layout
         )
-        with self.assertWarns(DeprecationWarning):
-            qobj = assemble(circuit2)
 
-        compiled_instruction = qobj.experiments[0].instructions[0]
+        compiled_instruction = circuit2.data[0]
 
         self.assertEqual(compiled_instruction.name, "u2")
-        self.assertEqual(compiled_instruction.qubits, [12])
+        self.assertEqual(circuit2.find_bit(compiled_instruction.qubits[0]).index, 12)
         self.assertEqual(compiled_instruction.params, [0, 3.141592653589793])
 
     def test_compile_pass_manager(self):
@@ -494,31 +477,6 @@ class TestCompiler(QiskitTestCase):
         target = {key: shots * val for key, val in expected_probs.items()}
         threshold = 0.04 * shots
         self.assertDictAlmostEqual(counts, target, threshold)
-
-    def test_yzy_zyz_cases(self):
-        """yzy_to_zyz works in previously failed cases.
-
-        See: https://github.com/Qiskit/qiskit-terra/issues/607
-        """
-        with self.assertWarns(DeprecationWarning):
-            backend = Fake5QV1()
-        qr = QuantumRegister(2)
-        circ1 = QuantumCircuit(qr)
-        circ1.cx(qr[0], qr[1])
-        circ1.rz(0.7, qr[1])
-        circ1.rx(1.570796, qr[1])
-        with self.assertWarns(DeprecationWarning):
-            qobj1 = assemble(transpile(circ1, backend))
-        self.assertIsInstance(qobj1, QasmQobj)
-
-        circ2 = QuantumCircuit(qr)
-        circ2.y(qr[0])
-        circ2.h(qr[0])
-        circ2.s(qr[0])
-        circ2.h(qr[0])
-        with self.assertWarns(DeprecationWarning):
-            qobj2 = assemble(transpile(circ2, backend))
-        self.assertIsInstance(qobj2, QasmQobj)
 
 
 if __name__ == "__main__":

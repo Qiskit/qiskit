@@ -290,9 +290,6 @@ class InstructionPlaceholder(Instruction, abc.ABC):
     # Provide some better error messages, just in case something goes wrong during development and
     # the placeholder type leaks out to somewhere visible.
 
-    def assemble(self):
-        raise CircuitError("Cannot assemble a placeholder instruction.")
-
     def repeat(self, n):
         raise CircuitError("Cannot repeat a placeholder instruction.")
 

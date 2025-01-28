@@ -28,7 +28,7 @@ from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.circuit import Gate, Instruction, Parameter, ParameterExpression, ParameterVector
 from qiskit.circuit.parametertable import ParameterView
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.compiler import assemble, transpile
+from qiskit.compiler import transpile
 from qiskit import pulse
 from qiskit.quantum_info import Operator
 from qiskit.providers.fake_provider import Fake5QV1, GenericBackendV2
@@ -896,10 +896,9 @@ class TestParameters(QiskitTestCase):
         theta_list = numpy.linspace(0, numpy.pi, 20)
         for theta_i in theta_list:
             circs.append(qc_aer.assign_parameters({theta: theta_i}))
-        with self.assertWarns(DeprecationWarning):
-            qobj = assemble(circs)
+
         for index, theta_i in enumerate(theta_list):
-            res = float(qobj.experiments[index].instructions[0].params[0])
+            res = float(circs[index].data[0].params[0])
             self.assertTrue(math.isclose(res, theta_i), f"{res} != {theta_i}")
 
     def test_circuit_composition(self):

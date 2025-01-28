@@ -16,7 +16,7 @@
 from ddt import ddt, data
 
 from qiskit import QuantumCircuit, QiskitError
-from qiskit import transpile, assemble
+from qiskit import transpile
 from qiskit.circuit import Parameter
 from qiskit.circuit.duration import convert_durations_to_dt
 from qiskit.providers.fake_provider import Fake27QPulseV1, GenericBackendV2
@@ -130,8 +130,6 @@ class TestScheduledCircuit(QiskitTestCase):
         self.assertEqual(sc.data[4].operation.name, "delay")
         self.assertAlmostEqual(sc.data[4].operation.duration, 1.0e-4 + 1.0e-7)
         self.assertEqual(sc.data[4].operation.unit, "s")
-        with self.assertRaises(DeprecationWarning):
-            assemble(sc, self.backend_without_dt)
 
     def test_cannot_schedule_circuit_with_mixed_SI_and_dt_when_no_one_tells_dt(self):
         """dt is unknown but delays and gate times have a mix of SI and dt"""
@@ -561,7 +559,7 @@ class TestScheduledCircuit(QiskitTestCase):
         self.assertEqual(circ.duration, None)  # not scheduled
         self.assertEqual(circ.data[1].operation.duration, 450)  # converted in dt
 
-    def test_can_transpile_and_assemble_circuits_with_assigning_parameters_inbetween(self):
+    def test_can_transpile_circuits_with_assigning_parameters_inbetween(self):
         idle_dur = Parameter("t")
         qc = QuantumCircuit(1, 1)
         qc.x(0)
@@ -574,10 +572,8 @@ class TestScheduledCircuit(QiskitTestCase):
         ):
             circ = transpile(qc, self.backend_with_dt)
         circ = circ.assign_parameters({idle_dur: 0.1})
-        with self.assertWarns(DeprecationWarning):
-            qobj = assemble(circ, self.backend_with_dt)
-        self.assertEqual(qobj.experiments[0].instructions[1].name, "delay")
-        self.assertEqual(qobj.experiments[0].instructions[1].params[0], 450)
+        self.assertEqual(circ.data[1].name, "delay")
+        self.assertEqual(circ.data[1].params[0], 450)
 
     def test_can_transpile_circuits_with_unbounded_parameters(self):
         idle_dur = Parameter("t")
@@ -597,21 +593,6 @@ class TestScheduledCircuit(QiskitTestCase):
         self.assertEqual(
             circ.data[1].operation.duration, idle_dur * 1e-6 / self.dt
         )  # still parameterized
-
-    def test_fail_to_assemble_circuits_with_unbounded_parameters(self):
-        idle_dur = Parameter("t")
-        qc = QuantumCircuit(1, 1)
-        qc.x(0)
-        qc.delay(idle_dur, 0, "us")
-        qc.measure(0, 0)
-        with self.assertWarnsRegex(
-            DeprecationWarning,
-            expected_regex="The `transpile` function will "
-            "stop supporting inputs of type `BackendV1`",
-        ):
-            qc = transpile(qc, self.backend_with_dt)
-        with self.assertRaises(DeprecationWarning):
-            assemble(qc, self.backend_with_dt)
 
     @data("asap", "alap")
     def test_can_schedule_circuits_with_bounded_parameters(self, scheduling_method):

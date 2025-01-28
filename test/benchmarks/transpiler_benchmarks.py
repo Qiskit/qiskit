@@ -109,7 +109,6 @@ class TranspilerBenchSuite:
             basis_gates=self.basis,
             seed_transpiler=20220125,
         )
-        qiskit.compiler.assemble(circ)
 
     def time_cx_compile(self):
         circ = qiskit.compiler.transpile(
@@ -118,7 +117,6 @@ class TranspilerBenchSuite:
             basis_gates=self.basis,
             seed_transpiler=20220125,
         )
-        qiskit.compiler.assemble(circ)
 
     def time_compile_from_large_qasm(self):
         circ = qiskit.compiler.transpile(
@@ -127,4 +125,3 @@ class TranspilerBenchSuite:
             basis_gates=self.basis,
             seed_transpiler=20220125,
         )
-        qiskit.compiler.assemble(circ)
