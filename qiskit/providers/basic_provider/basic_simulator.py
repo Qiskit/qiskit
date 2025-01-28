@@ -593,6 +593,13 @@ class BasicSimulator(BackendV2):
 
         return Result.from_dict(result)
 
+    @deprecate_func(
+        since="1.4.0",
+        removal_timeline="in Qiskit 2.0.0",
+        additional_msg="This method takes a `QasmQobjExperiment` as input argument. "
+        "The `Qobj` class and related functionality are part of the deprecated "
+        "`BackendV1` workflow,  and no longer necessary for `BackendV2`. Use `run` instead.",
+    )
     def run_experiment(self, experiment: QasmQobjExperiment) -> dict[str, ...]:
         """Run an experiment (circuit) and return a single experiment result.
 
