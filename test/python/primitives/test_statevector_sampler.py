@@ -665,6 +665,44 @@ class TestStatevectorSampler(QiskitTestCase):
         self.assertEqual(result[0].metadata, {"shots": 10, "circuit_metadata": qc.metadata})
         self.assertEqual(result[1].metadata, {"shots": 20, "circuit_metadata": qc2.metadata})
 
+    def test_sampler_run_with_seed(self):
+        """Test run() with seed."""
+        bell, _, target = self._cases[1]
+        sampler = StatevectorSampler(seed=self._seed)
+        job = sampler.run([bell], shots=self._shots)
+        result = job.result()
+        self.assertIsInstance(result, PrimitiveResult)
+        self.assertIsInstance(result.metadata, dict)
+        self.assertEqual(len(result), 1)
+        self.assertIsInstance(result[0], PubResult)
+        self.assertIsInstance(result[0].data, DataBin)
+        self.assertIsInstance(result[0].data.meas, BitArray)
+        self._assert_allclose(result[0].data.meas, np.array(target))
+
+        # Run again with the same seed and check if the results are the same
+        job2 = sampler.run([bell], shots=self._shots)
+        result2 = job2.result()
+        self.assertIsInstance(result2, PrimitiveResult)
+        self.assertIsInstance(result2.metadata, dict)
+        self.assertEqual(len(result2), 1)
+        self.assertIsInstance(result2[0], PubResult)
+        self.assertIsInstance(result2[0].data, DataBin)
+        self.assertIsInstance(result2[0].data.meas, BitArray)
+        self._assert_allclose(result2[0].data.meas, np.array(target))
+
+        # Run with a different seed and check if the results are different
+        sampler2 = StatevectorSampler(seed=self._seed + 1)
+        job3 = sampler2.run([bell], shots=self._shots)
+        result3 = job3.result()
+        self.assertIsInstance(result3, PrimitiveResult)
+        self.assertIsInstance(result3.metadata, dict)
+        self.assertEqual(len(result3), 1)
+        self.assertIsInstance(result3[0], PubResult)
+        self.assertIsInstance(result3[0].data, DataBin)
+        self.assertIsInstance(result3[0].data.meas, BitArray)
+        with self.assertRaises(AssertionError):
+            self._assert_allclose(result3[0].data.meas, np.array(target))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -143,6 +143,7 @@ class StatevectorSampler(BaseSamplerV2):
         """
         self._default_shots = default_shots
         self._seed = seed
+        self._rng = np.random.default_rng(seed) if seed is not None else np.random.default_rng()
 
     @property
     def default_shots(self) -> int:
@@ -186,7 +187,7 @@ class StatevectorSampler(BaseSamplerV2):
         }
         for index, bound_circuit in np.ndenumerate(bound_circuits):
             final_state = Statevector(bound_circuit_to_instruction(bound_circuit))
-            final_state.seed(self._seed)
+            final_state.seed(self._rng)
             if qargs:
                 samples = final_state.sample_memory(shots=pub.shots, qargs=qargs)
             else:
