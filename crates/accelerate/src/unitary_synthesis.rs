@@ -27,7 +27,7 @@ use smallvec::{smallvec, SmallVec};
 
 use pyo3::intern;
 use pyo3::prelude::*;
-use pyo3::types::{IntoPyDict, PyDict, PyString};
+use pyo3::types::{IntoPyDict, PyDict, PyString, PyType};
 use pyo3::wrap_pyfunction;
 use pyo3::Python;
 
@@ -59,6 +59,7 @@ enum DecomposerType {
     XX(PyObject),
 }
 
+#[derive(Clone, Debug)]
 struct DecomposerElement {
     decomposer: DecomposerType,
     gate: NormalOperation,
@@ -136,11 +137,10 @@ fn apply_synth_sequence(
 ) -> PyResult<()> {
     let mut instructions = Vec::with_capacity(sequence.gate_sequence.gates().len());
     for (gate, params, qubit_ids) in sequence.gate_sequence.gates() {
-        let gate_node = match gate {
-            None => sequence.decomp_gate.operation.standard_gate(),
-            Some(gate) => *gate,
+        let packed_op = match gate {
+            None => &sequence.decomp_gate.operation,
+            Some(gate) => &PackedOperation::from_standard(*gate),
         };
-
         let mapped_qargs: Vec<Qubit> = qubit_ids.iter().map(|id| out_qargs[*id as usize]).collect();
         let new_params: Option<Box<SmallVec<[Param; 3]>>> = match gate {
             Some(_) => Some(Box::new(params.iter().map(|p| Param::Float(*p)).collect())),
@@ -155,7 +155,7 @@ fn apply_synth_sequence(
             }
         };
         let instruction = PackedInstruction {
-            op: PackedOperation::from_standard(gate_node),
+            op: packed_op.clone(),
             qubits: out_dag.qargs_interner.insert(&mapped_qargs),
             clbits: out_dag.cargs_interner.get_default(),
             params: new_params,
@@ -419,6 +419,7 @@ fn run_2q_unitary_synthesis(
             coupling_edges,
             target,
         )?;
+
         match decomposer_item.decomposer {
             DecomposerType::TwoQubitBasis(_) => {
                 let synth = synth_su4_sequence(
@@ -481,12 +482,7 @@ fn run_2q_unitary_synthesis(
                                     inst_qubits,
                                 ),
                                 None => (
-                                    sequence
-                                        .decomp_gate
-                                        .operation
-                                        .standard_gate()
-                                        .name()
-                                        .to_string(),
+                                    sequence.decomp_gate.operation.name().to_string(),
                                     Some(params.iter().map(|p| Param::Float(*p)).collect()),
                                     inst_qubits,
                                 ),
@@ -513,12 +509,7 @@ fn run_2q_unitary_synthesis(
                                     inst_qubits,
                                 ),
                                 None => (
-                                    sequence
-                                        .decomp_gate
-                                        .operation
-                                        .standard_gate()
-                                        .name()
-                                        .to_string(),
+                                    sequence.decomp_gate.operation.name().to_string(),
                                     Some(params.iter().map(|p| Param::Float(*p)).collect()),
                                     inst_qubits,
                                 ),
@@ -620,15 +611,10 @@ fn get_2q_decomposers_from_target(
     }
 
     #[inline]
-    fn check_parametrized_gate(op: NormalOperation) -> bool {
-        if let Some(std_gate) = op.operation.try_standard_gate() {
-            if PARAM_SET.contains(&std_gate.name()) {
-                if let Param::ParameterExpression(_) = op.params[0] {
-                    return true;
-                }
-            }
-        }
-        false
+    fn check_parametrized_gate(op: &NormalOperation) -> bool {
+        // The gate counts as parametrized if there is any
+        // non-float parameter
+        !op.params.iter().all(|p| matches!(p, Param::Float(_)))
     }
 
     for (q_pair, gates) in qubit_gate_map {
@@ -644,7 +630,7 @@ fn get_2q_decomposers_from_target(
                     if op.operation.num_qubits() != 2 {
                         continue;
                     }
-                    if check_parametrized_gate(op.clone()) {
+                    if check_parametrized_gate(op) {
                         available_2q_param_basis.insert(key, op.clone());
                         if target.contains_key(key) {
                             available_2q_param_props.insert(
@@ -756,15 +742,28 @@ fn get_2q_decomposers_from_target(
 
     for basis_1q in &available_1q_basis {
         for (_basis_2q, gate) in available_2q_param_basis.iter() {
-            let decomposer = TwoQubitControlledUDecomposer::new_inner(
-                RXXEquivalent::Standard(gate.operation.standard_gate()),
-                basis_1q,
-            )?;
+            let rxx_equivalent_gate = if let Some(std_gate) = gate.operation.try_standard_gate() {
+                RXXEquivalent::Standard(std_gate)
+            } else {
+                let module = PyModule::import(py, "builtins")?;
+                let py_type = module.getattr("type")?;
+                let gate_type = py_type
+                    .call1((gate.clone().into_pyobject(py)?,))?
+                    .downcast_into::<PyType>()?
+                    .unbind();
 
-            decomposers.push(DecomposerElement {
-                decomposer: DecomposerType::TwoQubitControlledU(Box::new(decomposer)),
-                gate: gate.clone(),
-            });
+                RXXEquivalent::CustomPython(gate_type)
+            };
+
+            match TwoQubitControlledUDecomposer::new_inner(rxx_equivalent_gate, basis_1q) {
+                Ok(decomposer) => {
+                    decomposers.push(DecomposerElement {
+                        decomposer: DecomposerType::TwoQubitControlledU(Box::new(decomposer)),
+                        gate: gate.clone(),
+                    });
+                }
+                Err(_) => continue,
+            };
         }
     }
 
