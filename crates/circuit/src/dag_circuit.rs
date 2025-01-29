@@ -13,6 +13,7 @@
 use std::hash::Hash;
 
 use ahash::RandomState;
+use approx::relative_eq;
 use smallvec::SmallVec;
 
 use crate::bit_data::BitData;
@@ -26,7 +27,7 @@ use crate::dot_utils::build_dot;
 use crate::error::DAGCircuitError;
 use crate::imports;
 use crate::interner::{Interned, InternedMap, Interner};
-use crate::operations::{Operation, OperationRef, Param, PyInstruction, StandardGate};
+use crate::operations::{ArrayType, Operation, OperationRef, Param, PyInstruction, StandardGate};
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::rustworkx_core_vnext::isomorphism;
 use crate::{BitType, Clbit, Qubit, TupleLikeArg};
@@ -2631,6 +2632,96 @@ def _format(operand):
                         | [OperationRef::Instruction(_), OperationRef::StandardInstruction(_)] => {
                             Ok(inst1.py_op_eq(py, inst2)? && check_args() && check_conditions()?)
                         }
+                        [OperationRef::Unitary(op_a), OperationRef::Unitary(op_b)] => {
+                            match [&op_a.array, &op_b.array] {
+                                [ArrayType::NDArray(a), ArrayType::NDArray(b)] => {
+                                    Ok(relative_eq!(a, b, max_relative = 1e-5, epsilon = 1e-8))
+                                }
+                                [ArrayType::NDArray(a), ArrayType::OneQ(b)] => {
+                                    if a.shape()[0] == 2 {
+                                        for i in 0..2 {
+                                            for j in 0..2 {
+                                                if !relative_eq!(
+                                                    a[[i, j]],
+                                                    b[(i, j)],
+                                                    max_relative = 1e-5,
+                                                    epsilon = 1e-8
+                                                ) {
+                                                    return Ok(false);
+                                                }
+                                            }
+                                        }
+                                        Ok(true)
+                                    } else {
+                                        Ok(false)
+                                    }
+                                }
+                                [ArrayType::NDArray(a), ArrayType::TwoQ(b)] => {
+                                    if a.shape()[0] == 4 {
+                                        for i in 0..4 {
+                                            for j in 0..4 {
+                                                if !relative_eq!(
+                                                    a[[i, j]],
+                                                    b[(i, j)],
+                                                    max_relative = 1e-5,
+                                                    epsilon = 1e-8
+                                                ) {
+                                                    return Ok(false);
+                                                }
+                                            }
+                                        }
+                                        Ok(true)
+                                    } else {
+                                        Ok(false)
+                                    }
+                                }
+                                [ArrayType::OneQ(a), ArrayType::NDArray(b)] => {
+                                    if b.shape()[0] == 2 {
+                                        for i in 0..2 {
+                                            for j in 0..2 {
+                                                if !relative_eq!(
+                                                    b[[i, j]],
+                                                    a[(i, j)],
+                                                    max_relative = 1e-5,
+                                                    epsilon = 1e-8
+                                                ) {
+                                                    return Ok(false);
+                                                }
+                                            }
+                                        }
+                                        Ok(true)
+                                    } else {
+                                        Ok(false)
+                                    }
+                                }
+                                [ArrayType::TwoQ(a), ArrayType::NDArray(b)] => {
+                                    if b.shape()[0] == 4 {
+                                        for i in 0..4 {
+                                            for j in 0..4 {
+                                                if !relative_eq!(
+                                                    b[[i, j]],
+                                                    a[(i, j)],
+                                                    max_relative = 1e-5,
+                                                    epsilon = 1e-8
+                                                ) {
+                                                    return Ok(false);
+                                                }
+                                            }
+                                        }
+                                        Ok(true)
+                                    } else {
+                                        Ok(false)
+                                    }
+                                }
+                                [ArrayType::OneQ(a), ArrayType::OneQ(b)] => {
+                                    Ok(relative_eq!(a, b, max_relative = 1e-5, epsilon = 1e-8))
+                                }
+                                [ArrayType::TwoQ(a), ArrayType::TwoQ(b)] => {
+                                    Ok(relative_eq!(a, b, max_relative = 1e-5, epsilon = 1e-8))
+                                }
+                                _ => Ok(false),
+                            }
+                        }
                         _ => Ok(false),
                     }
                 }
@@ -3295,7 +3386,8 @@ def _format(operand):
                                     py_op.operation.setattr(py, "condition", new_condition)?;
                                 }
                                 OperationRef::StandardGate(_)
-                                | OperationRef::StandardInstruction(_) => {}
+                                | OperationRef::StandardInstruction(_)
+                                | OperationRef::Unitary(_) => {}
                             }
                         }
                     }
@@ -6315,9 +6407,9 @@ impl DAGCircuit {
             };
             #[cfg(feature = "cache_pygates")]
             let py_op = match new_op.operation.view() {
-                OperationRef::StandardGate(_) | OperationRef::StandardInstruction(_) => {
-                    OnceLock::new()
-                }
+                OperationRef::StandardGate(_)
+                | OperationRef::StandardInstruction(_)
+                | OperationRef::Unitary(_) => OnceLock::new(),
                 OperationRef::Gate(gate) => OnceLock::from(gate.gate.clone_ref(py)),
                 OperationRef::Instruction(instruction) => {
                     OnceLock::from(instruction.instruction.clone_ref(py))

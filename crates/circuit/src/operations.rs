@@ -17,19 +17,21 @@ use std::{fmt, vec};
 use crate::circuit_data::CircuitData;
 use crate::circuit_instruction::ExtraInstructionAttributes;
 use crate::imports::{get_std_gate_class, BARRIER, DELAY, MEASURE, RESET};
-use crate::imports::{PARAMETER_EXPRESSION, QUANTUM_CIRCUIT};
+use crate::imports::{PARAMETER_EXPRESSION, QUANTUM_CIRCUIT, UNITARY_GATE};
 use crate::{gate_matrix, impl_intopyobject_for_copy_pyclass, Qubit};
 
-use ndarray::{aview2, Array2};
+use nalgebra::{Matrix2, Matrix4};
+use ndarray::{array, aview2, Array2};
 use num_complex::Complex64;
 use smallvec::{smallvec, SmallVec};
 
 use numpy::IntoPyArray;
 use numpy::PyArray2;
 use numpy::PyReadonlyArray2;
+use numpy::ToPyArray;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
-use pyo3::types::{IntoPyDict, PyFloat, PyIterator, PyList, PyTuple};
+use pyo3::types::{IntoPyDict, PyDict, PyFloat, PyIterator, PyList, PyTuple};
 use pyo3::{intern, IntoPyObjectExt, Python};
 
 #[derive(Clone, Debug, IntoPyObject, IntoPyObjectRef)]
@@ -164,6 +166,7 @@ pub enum OperationRef<'a> {
     Gate(&'a PyGate),
     Instruction(&'a PyInstruction),
     Operation(&'a PyOperation),
+    Unitary(&'a UnitaryGate),
 }
 
 impl Operation for OperationRef<'_> {
@@ -175,6 +178,7 @@ impl Operation for OperationRef<'_> {
             Self::Gate(gate) => gate.name(),
             Self::Instruction(instruction) => instruction.name(),
             Self::Operation(operation) => operation.name(),
+            Self::Unitary(unitary) => unitary.name(),
         }
     }
     #[inline]
@@ -185,6 +189,7 @@ impl Operation for OperationRef<'_> {
             Self::Gate(gate) => gate.num_qubits(),
             Self::Instruction(instruction) => instruction.num_qubits(),
             Self::Operation(operation) => operation.num_qubits(),
+            Self::Unitary(unitary) => unitary.num_qubits(),
         }
     }
     #[inline]
@@ -195,6 +200,7 @@ impl Operation for OperationRef<'_> {
             Self::Gate(gate) => gate.num_clbits(),
             Self::Instruction(instruction) => instruction.num_clbits(),
             Self::Operation(operation) => operation.num_clbits(),
+            Self::Unitary(unitary) => unitary.num_clbits(),
         }
     }
     #[inline]
@@ -205,6 +211,7 @@ impl Operation for OperationRef<'_> {
             Self::Gate(gate) => gate.num_params(),
             Self::Instruction(instruction) => instruction.num_params(),
             Self::Operation(operation) => operation.num_params(),
+            Self::Unitary(unitary) => unitary.num_params(),
         }
     }
     #[inline]
@@ -215,6 +222,7 @@ impl Operation for OperationRef<'_> {
             Self::Gate(gate) => gate.control_flow(),
             Self::Instruction(instruction) => instruction.control_flow(),
             Self::Operation(operation) => operation.control_flow(),
+            Self::Unitary(unitary) => unitary.control_flow(),
         }
     }
     #[inline]
@@ -225,6 +233,7 @@ impl Operation for OperationRef<'_> {
             OperationRef::Gate(gate) => gate.blocks(),
             OperationRef::Instruction(instruction) => instruction.blocks(),
             OperationRef::Operation(operation) => operation.blocks(),
+            Self::Unitary(unitary) => unitary.blocks(),
         }
     }
     #[inline]
@@ -235,6 +244,7 @@ impl Operation for OperationRef<'_> {
             Self::Gate(gate) => gate.matrix(params),
             Self::Instruction(instruction) => instruction.matrix(params),
             Self::Operation(operation) => operation.matrix(params),
+            Self::Unitary(unitary) => unitary.matrix(params),
         }
     }
     #[inline]
@@ -245,6 +255,7 @@ impl Operation for OperationRef<'_> {
             Self::Gate(gate) => gate.definition(params),
             Self::Instruction(instruction) => instruction.definition(params),
             Self::Operation(operation) => operation.definition(params),
+            Self::Unitary(unitary) => unitary.definition(params),
         }
     }
     #[inline]
@@ -255,6 +266,7 @@ impl Operation for OperationRef<'_> {
             Self::Gate(gate) => gate.standard_gate(),
             Self::Instruction(instruction) => instruction.standard_gate(),
             Self::Operation(operation) => operation.standard_gate(),
+            Self::Unitary(unitary) => unitary.standard_gate(),
         }
     }
     #[inline]
@@ -265,6 +277,7 @@ impl Operation for OperationRef<'_> {
             Self::Gate(gate) => gate.directive(),
             Self::Instruction(instruction) => instruction.directive(),
             Self::Operation(operation) => operation.directive(),
+            Self::Unitary(unitary) => unitary.directive(),
         }
     }
 }
@@ -2790,5 +2803,103 @@ impl Operation for PyOperation {
                 Err(_) => false,
             }
         })
+    }
+}
+
+#[derive(Clone, Debug)]
+pub enum ArrayType {
+    NDArray(Array2<Complex64>),
+    OneQ(Matrix2<Complex64>),
+    TwoQ(Matrix4<Complex64>),
+}
+
+/// This class is used to wrap a Python side Operation that is not in the standard library
+#[derive(Clone, Debug)]
+// We bit-pack pointers to this, so having a known alignment even on 32-bit systems is good.
+#[repr(align(8))]
+pub struct UnitaryGate {
+    pub array: ArrayType,
+}
+
+impl Operation for UnitaryGate {
+    fn name(&self) -> &str {
+        "unitary"
+    }
+    fn num_qubits(&self) -> u32 {
+        match &self.array {
+            ArrayType::NDArray(arr) => arr.shape()[0].ilog2(),
+            ArrayType::OneQ(_) => 1,
+            ArrayType::TwoQ(_) => 2,
+        }
+    }
+    fn num_clbits(&self) -> u32 {
+        0
+    }
+    fn num_params(&self) -> u32 {
+        0
+    }
+    fn control_flow(&self) -> bool {
+        false
+    }
+    fn blocks(&self) -> Vec<CircuitData> {
+        vec![]
+    }
+    fn matrix(&self, _params: &[Param]) -> Option<Array2<Complex64>> {
+        match &self.array {
+            ArrayType::NDArray(arr) => Some(arr.clone()),
+            ArrayType::OneQ(mat) => Some(array!(
+                [mat[(0, 0)], mat[(0, 1)]],
+                [mat[(1, 0)], mat[(1, 1)]],
+            )),
+            ArrayType::TwoQ(mat) => Some(array!(
+                [mat[(0, 0)], mat[(0, 1)], mat[(0, 2)], mat[(0, 3)]],
+                [mat[(1, 0)], mat[(1, 1)], mat[(1, 2)], mat[(1, 3)]],
+                [mat[(2, 0)], mat[(2, 1)], mat[(2, 2)], mat[(2, 3)]],
+                [mat[(3, 0)], mat[(3, 1)], mat[(3, 2)], mat[(3, 3)]],
+            )),
+        }
+    }
+    fn definition(&self, _params: &[Param]) -> Option<CircuitData> {
+        None
+    }
+    fn standard_gate(&self) -> Option<StandardGate> {
+        None
+    }
+
+    fn directive(&self) -> bool {
+        false
+    }
+}
+
+impl UnitaryGate {
+    pub fn create_py_op(
+        &self,
+        py: Python,
+        extra_attrs: &ExtraInstructionAttributes,
+    ) -> PyResult<Py<PyAny>> {
+        let (label, _unit, _duration, condition) = (
+            extra_attrs.label(),
+            extra_attrs.unit(),
+            extra_attrs.duration(),
+            extra_attrs.condition(),
+        );
+        let kwargs = PyDict::new(py);
+        if let Some(label) = label {
+            kwargs.set_item(intern!(py, "label"), label.into_py_any(py)?)?;
+        }
+        let out_array = match &self.array {
+            ArrayType::NDArray(arr) => arr.to_pyarray(py),
+            ArrayType::OneQ(arr) => arr.to_pyarray(py),
+            ArrayType::TwoQ(arr) => arr.to_pyarray(py),
+        };
+        kwargs.set_item(intern!(py, "check_input"), false)?;
+        kwargs.set_item(intern!(py, "num_qubits"), self.num_qubits())?;
+        let mut gate = UNITARY_GATE
+            .get_bound(py)
+            .call((out_array,), Some(&kwargs))?;
+        if let Some(cond) = condition {
+            gate = gate.call_method1(intern!(py, "c_if"), (cond,))?;
+        }
+        Ok(gate.unbind())
     }
 }

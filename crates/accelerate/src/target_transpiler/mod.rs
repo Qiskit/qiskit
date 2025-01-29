@@ -783,6 +783,9 @@ impl Target {
                     OperationRef::Gate(gate) => gate.gate.clone_ref(py),
                     OperationRef::Instruction(instruction) => instruction.instruction.clone_ref(py),
                     OperationRef::Operation(operation) => operation.operation.clone_ref(py),
+                    OperationRef::Unitary(unitary) => unitary
+                        .create_py_op(py, &ExtraInstructionAttributes::default())?
+                        .into_any(),
                 },
                 TargetOperation::Variadic(op_cls) => op_cls.clone_ref(py),
             };

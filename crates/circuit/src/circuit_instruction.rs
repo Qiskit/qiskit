@@ -13,7 +13,7 @@
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
 
-use numpy::{IntoPyArray, PyArray2};
+use numpy::{IntoPyArray, PyArray2, PyReadonlyArray2};
 use pyo3::basic::CompareOp;
 use pyo3::exceptions::{PyDeprecationWarning, PyTypeError};
 use pyo3::prelude::*;
@@ -21,6 +21,7 @@ use pyo3::types::{PyBool, PyList, PyString, PyTuple, PyType};
 use pyo3::IntoPyObjectExt;
 use pyo3::{intern, PyObject, PyResult};
 
+use nalgebra::{MatrixView2, MatrixView4};
 use num_complex::Complex64;
 use smallvec::SmallVec;
 
@@ -28,8 +29,8 @@ use crate::imports::{
     CONTROLLED_GATE, CONTROL_FLOW_OP, GATE, INSTRUCTION, OPERATION, WARNINGS_WARN,
 };
 use crate::operations::{
-    Operation, OperationRef, Param, PyGate, PyInstruction, PyOperation, StandardGate,
-    StandardInstruction, StandardInstructionType,
+    ArrayType, Operation, OperationRef, Param, PyGate, PyInstruction, PyOperation, StandardGate,
+    StandardInstruction, StandardInstructionType, UnitaryGate,
 };
 use crate::packed_instruction::PackedOperation;
 
@@ -341,6 +342,9 @@ impl CircuitInstruction {
             OperationRef::Gate(gate) => gate.gate.clone_ref(py),
             OperationRef::Instruction(instruction) => instruction.instruction.clone_ref(py),
             OperationRef::Operation(operation) => operation.operation.clone_ref(py),
+            OperationRef::Unitary(unitary) => {
+                unitary.create_py_op(py, &self.extra_attrs)?.into_any()
+            }
         };
 
         #[cfg(feature = "cache_pygates")]
@@ -760,6 +764,45 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
                 params: extract_params()?,
                 extra_attrs: extract_extra()?,
             });
+        }
+
+        // We need to check by name here to avoid a circular import during initial loading
+        if ob.getattr(intern!(py, "name"))?.extract::<String>()? == "unitary" {
+            let params = extract_params()?;
+            if let Param::Obj(data) = &params[0] {
+                let py_matrix: PyReadonlyArray2<Complex64> = data.extract(py)?;
+                let matrix: Option<MatrixView2<Complex64>> = py_matrix.try_as_matrix();
+                if let Some(x) = matrix {
+                    let unitary_gate = UnitaryGate {
+                        array: ArrayType::OneQ(x.into_owned()),
+                    };
+                    return Ok(OperationFromPython {
+                        operation: PackedOperation::from_unitary(Box::new(unitary_gate)),
+                        params: SmallVec::new(),
+                        extra_attrs: extract_extra()?,
+                    });
+                }
+                let matrix: Option<MatrixView4<Complex64>> = py_matrix.try_as_matrix();
+                if let Some(x) = matrix {
+                    let unitary_gate = UnitaryGate {
+                        array: ArrayType::TwoQ(x.into_owned()),
+                    };
+                    return Ok(OperationFromPython {
+                        operation: PackedOperation::from_unitary(Box::new(unitary_gate)),
+                        params: SmallVec::new(),
+                        extra_attrs: extract_extra()?,
+                    });
+                } else {
+                    let unitary_gate = UnitaryGate {
+                        array: ArrayType::NDArray(py_matrix.as_array().to_owned()),
+                    };
+                    return Ok(OperationFromPython {
+                        operation: PackedOperation::from_unitary(Box::new(unitary_gate)),
+                        params: SmallVec::new(),
+                        extra_attrs: extract_extra()?,
+                    });
+                };
+            }
         }
 
         if ob_type.is_subclass(GATE.get_bound(py))? {
