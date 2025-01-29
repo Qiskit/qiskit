@@ -6811,7 +6811,7 @@ mod test {
                     .insert_owned(vec![Qubit($q0), Qubit($q1)]),
                 clbits: $dag.cargs_interner.get_default(),
                 params: None,
-                extra_attrs: Default::default(),
+                label: None,
                 #[cfg(feature = "cache_pygates")]
                 py_op: Default::default(),
             }
@@ -6830,7 +6830,7 @@ mod test {
                     qubits,
                     clbits,
                     params: Some(Box::new(op_from_py.params)),
-                    extra_attrs: op_from_py.extra_attrs,
+                    label: None,
                     #[cfg(feature = "cache_pygates")]
                     py_op: Default::default(),
                 }
