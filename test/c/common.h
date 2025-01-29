@@ -19,6 +19,7 @@ enum TestResult {
     Ok,
     EqualityError,
     RuntimeError,
+    NullptrError, // an unexpected null pointer
 };
 
 // A macro for running a test function. This calls the run function below with

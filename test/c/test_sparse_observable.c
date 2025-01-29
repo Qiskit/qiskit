@@ -27,7 +27,7 @@ int test_zero() {
     if (num_terms != 0 || num_qubits != 100) {
         return EqualityError;
     }
-    return 0;
+    return Ok;
 }
 
 /**
@@ -42,7 +42,7 @@ int test_identity() {
     if (num_terms != 1 || num_qubits != 100) {
         return EqualityError;
     }
-    return 0;
+    return Ok;
 }
 
 /**
@@ -61,7 +61,7 @@ int test_copy() {
         return EqualityError;
     }
 
-    return 0;
+    return Ok;
 }
 
 /**
@@ -82,7 +82,7 @@ int test_add() {
         return EqualityError;
     }
 
-    return 0;
+    return Ok;
 }
 
 /**
@@ -116,7 +116,7 @@ int test_mult() {
         }
     }
 
-    return 0;
+    return Ok;
 }
 
 /**
@@ -150,7 +150,7 @@ int test_canonicalize() {
         return EqualityError;
     }
 
-    return 0;
+    return Ok;
 }
 
 /**
@@ -228,8 +228,7 @@ int test_custom_build() {
     if (num_terms != 2 || num_terms_simplified != 1) {
         return EqualityError;
     }
-
-    return 0;
+    return Ok;
 }
 
 /**
@@ -271,7 +270,7 @@ int test_term() {
 
     qk_obs_free(obs);
 
-    int result = 0;
+    int result = Ok;
     int expected_nnis[2] = {0, 3};
     int expected_bits[3] = {QkBitTerm_X, QkBitTerm_Y, QkBitTerm_Z};
     int expected_indices[3] = {0, 1, 2};
@@ -358,7 +357,7 @@ int test_copy_term() {
     if (!equal) {
         return EqualityError;
     }
-    return 0;
+    return Ok;
 }
 
 /**
@@ -403,7 +402,7 @@ int test_inplace_mut() {
     if (!equal) {
         return EqualityError;
     }
-    return 0;
+    return Ok;
 }
 
 /**
@@ -416,13 +415,13 @@ int test_bitterm_label() {
                          QkBitTerm_Z, QkBitTerm_Zero, QkBitTerm_One};
 
     for (int i = 0; i < 9; i++) {
-        char label = qk_bitterm_label(&bits[i]);
+        char label = qk_bitterm_label(bits[i]);
         if (label != expected[i]) {
             return EqualityError;
         }
     }
 
-    return 0;
+    return Ok;
 }
 
 /**
@@ -434,7 +433,7 @@ int test_coeffs() {
 
     // read the first coefficient
     complex double first = coeffs[0];
-    int result = 0;
+    int result = Ok;
     if (first != 1) {
         result = EqualityError;
     }
@@ -467,7 +466,7 @@ int test_bit_terms() {
 
     // test read access
     QkBitTerm element = borrowed[4];
-    int result = 0;
+    int result = Ok;
     if (element != QkBitTerm_Zero) {
         result = EqualityError;
     }
@@ -500,7 +499,7 @@ int test_indices() {
 
     // test read access
     uint32_t element = indices[2];
-    int result = 0;
+    int result = Ok;
     if (element != 7) {
         result = EqualityError;
     }
@@ -543,7 +542,82 @@ int test_boundaries() {
             return EqualityError;
         }
     }
-    return EXIT_SUCCESS;
+    return Ok;
+}
+
+/**
+ * Test direct setting.
+ */
+int test_direct_build() {
+    // define the raw data for the 100-qubit observable |01><01|_{0, 1} - |+-><+-|_{98, 99}
+    uint32_t num_qubits = 100;
+    uint64_t num_terms = 2;
+    uint64_t num_bits = 4;
+
+    complex double coeffs[2] = {1, -1};
+    QkBitTerm bits[4] = {QkBitTerm_Zero, QkBitTerm_One, QkBitTerm_Plus, QkBitTerm_Minus};
+    uint32_t indices[4] = {0, 1, 98, 99};
+    size_t boundaries[3] = {0, 2, 4};
+
+    // set the pointers to the new data
+    QkSparseObservable *obs =
+        qk_obs_new(num_qubits, num_terms, num_bits, coeffs, bits, indices, boundaries);
+
+    // check the construction was successful
+    if (!obs) {
+        return NullptrError;
+    }
+
+    // check the data content
+    int result = Ok;
+    complex double *obs_coeffs = qk_obs_coeffs(obs);
+    size_t *obs_boundaries = qk_obs_boundaries(obs);
+    for (uint64_t i = 0; i < num_terms; i++) {
+        if (coeffs[i] != obs_coeffs[i] || boundaries[i] != obs_boundaries[i]) {
+            result = EqualityError;
+        }
+    }
+    if (boundaries[num_terms] != obs_boundaries[num_terms])
+        result = EqualityError;
+
+    QkBitTerm *obs_bits = qk_obs_bit_terms(obs);
+    uint32_t *obs_indices = qk_obs_indices(obs);
+    for (uint64_t i = 0; i < num_bits; i++) {
+        if (bits[i] != obs_bits[i] || indices[i] != obs_indices[i]) {
+            result = EqualityError;
+        }
+    }
+
+    qk_obs_free(obs);
+    return result;
+}
+
+/**
+ * Test direct setting fails.
+ */
+int test_direct_fail() {
+    // define the faulty raw data
+    uint32_t num_qubits = 100;
+    uint64_t num_terms = 2;
+    uint64_t num_bits = 4;
+
+    complex double coeffs[2] = {1, -1};
+    QkBitTerm bits[4] = {QkBitTerm_Zero, QkBitTerm_One, QkBitTerm_Plus, QkBitTerm_Minus};
+    uint32_t indices[4] = {0, 1, 99, 98}; // <-- needs to be ordered
+    size_t boundaries[3] = {0, 2, 4};
+
+    // set the pointers to the new data
+    QkSparseObservable *obs =
+        qk_obs_new(num_qubits, num_terms, num_bits, coeffs, bits, indices, boundaries);
+
+    // check the construction failed
+    if (!obs) {
+        return Ok;
+    }
+
+    // if for some magical reason an observable was constructed, free it
+    qk_obs_free(obs);
+    return NullptrError;
 }
 
 int test_sparse_observable() {
@@ -565,6 +639,8 @@ int test_sparse_observable() {
     num_failed += RUN_TEST(test_bit_terms);
     num_failed += RUN_TEST(test_indices);
     num_failed += RUN_TEST(test_boundaries);
+    num_failed += RUN_TEST(test_direct_build);
+    num_failed += RUN_TEST(test_direct_fail);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);
