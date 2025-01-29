@@ -366,7 +366,7 @@ class TestRandomCircuitFromGraph(QiskitTestCase):
 
         pydi_graph = rx.PyDiGraph()
         pydi_graph.add_nodes_from(range(10))
-        with self.assertRaisesRegex(CircuitError, ".function is intended to only work on."):
+        with self.assertRaisesRegex(CircuitError, ".should be either."):
             _ = random_circuit_from_graph(
                 interaction_graph=pydi_graph,
                 min_2q_gate_per_edge=2,
@@ -381,7 +381,7 @@ class TestRandomCircuitFromGraph(QiskitTestCase):
         cp_mp = [(0, 1, -10), (1, 2, 54), (2, 3, 23), (3, 4, 32)]
 
         pydi_graph.add_edges_from(cp_mp)
-        with self.assertRaisesRegex(ValueError, ".probability."):
+        with self.assertRaisesRegex(ValueError, "Probabilities cannot be negative"):
             _ = random_circuit_from_graph(interaction_graph=pydi_graph, min_2q_gate_per_edge=1)
 
     def test_raise_no_edges_insert_1q_oper_to_false(self):
@@ -390,7 +390,7 @@ class TestRandomCircuitFromGraph(QiskitTestCase):
         1Q gates present in the circuit, but `insert_1q_oper` is set to False"""
         inter_graph = rx.PyDiGraph()
         inter_graph.add_nodes_from(range(10))
-        with self.assertRaisesRegex(CircuitError, ".there could be no 2Q gates."):
+        with self.assertRaisesRegex(CircuitError, ".there could be only 1Q gates."):
             with self.assertWarns(DeprecationWarning):
                 _ = random_circuit_from_graph(
                     interaction_graph=inter_graph,

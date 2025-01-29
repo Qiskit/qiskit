@@ -45,7 +45,7 @@ def random_circuit_from_graph(
     prob_conditional: float = 0.1,
     prob_reset: float = 0.1,
 ):
-    """Generate random circuit of arbitrary size and form which strictly respect the interaction
+    """Generate random circuit of arbitrary size and form which strictly respects the interaction
     graph passed as argument. Interaction Graph is a graph G=(V, E) where V are the qubits in the
     circuit, and, E is the set of two-qubit gate interactions between two particular qubits in the
     circuit.
@@ -62,11 +62,11 @@ def random_circuit_from_graph(
     If numerical values are present as probabilities but some/any are None, or negative, this will
     raise a ValueError.
 
-    If :arg:`max_operands` is set to 1, then there are no 2Q operations, so no need to take care
+    If `max_operands` is set to 1, then there are no 2Q operations, so no need to take care
     of the edges, in such case the function will return a circuit from the `random_circuit` function,
-    which would be passed with the :arg:`max_operands` as 1.
+    which would be passed with the `max_operands` as 1.
 
-    If :arg:`max_operands` is set to 2, then in every iteration `N` 2Q gates and qubit-pairs which
+    If `max_operands` is set to 2, then in every iteration `N` 2Q gates and qubit-pairs which
     exists in the input interaction graph are chosen at random, the qubit-pairs are also chosen at
     random based on the probability attached to the qubit-pair, the 2Q gates are applied on the
     qubit-pairs which are idle for that particular iteration, this is to make sure that for a particular
@@ -101,10 +101,10 @@ def random_circuit_from_graph(
         reset (bool): if True, insert middle resets. (optional, default: False)
         seed (int): sets random seed. (If `None`, a random seed is chosen) (optional)
         insert_1q_oper (bool): Insert 1Q operations to the circuit. (optional, default: True)
-        prob_conditional (float): Probability less than 1.0, this is used to control the occurence
+        prob_conditional (float): Probability less than 1.0, this is used to control the occurrence
         of conditionals in the circuit. (optional, default: 0.1)
-        prob_reset (float): Probability less than 1.0, this is used to control the occurence of
-        reset in the cirucit. (optional, default: 0.1)
+        prob_reset (float): Probability less than 1.0, this is used to control the occurrence of
+        reset in the circuit. (optional, default: 0.1)
 
     Returns:
         QuantumCircuit: constructed circuit
@@ -116,14 +116,12 @@ def random_circuit_from_graph(
         CircuitError: When the interaction graph has no edges, so only 1Q gates are possible in
         the circuit, but `insert_1q_oper` is set to False.
         ValueError: when any edge have probability None but not all or, any of the probabilities
-        are negatve.
+        are negative.
     """
 
     # max_operands should be 1 or 2
     if max_operands not in {1, 2}:
-        raise CircuitError(
-            "This function is intended to only work on single-qubit and two-qubit gates"
-        )
+        raise CircuitError("`max_operands` should be either 1 or 2")
 
     if max_operands == 1 and not insert_1q_oper:
         raise CircuitError(
@@ -143,8 +141,8 @@ def random_circuit_from_graph(
 
     if num_edges == 0 and not insert_1q_oper:
         raise CircuitError(
-            "There are no edges in the `interaction_graph` so, there could be no 2Q gates, "
-            "and only 1Q gates in the circuit, however `insert_1q_oper` is set to `False`."
+            "There are no edges in the `interaction_graph` so, there could be only 1Q gates, "
+            "in the circuit, however `insert_1q_oper` is set to `False`."
         )
 
     if num_edges == 0 or max_operands == 1:
@@ -171,8 +169,14 @@ def random_circuit_from_graph(
     # Now, zeros are filtered out in above if-block.
     # Now, If none of the edges_probs are `None`
     if all(edges_probs):
+
+        # edge weights in interaction_graph must be positive
+        for prob in edges_probs:
+            if prob < 0:
+                raise ValueError("Probabilities cannot be negative")
+
+        # Normalize edge weights if not already normalized.
         if not np.isclose(np.sum(edges_probs), 1.000, rtol=0.001):
-            # Normalize edge weights if not already normalized.
             edges_probs = edges_probs / np.sum(edges_probs)
 
     # If any of the values of the probability is None, then it would raise an error.
@@ -185,11 +189,6 @@ def random_circuit_from_graph(
     # If all edge weights are none, assume the weight of each edge to be 1/N.
     elif None in edges_probs:
         edges_probs = [1.0 / num_edges for _ in range(num_edges)]
-
-    # edge weights in interaction_graph must be positive
-    for prob in edges_probs:
-        if prob < 0:
-            raise ValueError("The probability should be positive")
 
     gates_1q = None
     if insert_1q_oper:
@@ -224,12 +223,12 @@ def random_circuit_from_graph(
 
     edges_used = {edge: 0 for edge in edge_list}
 
-    # Declearing variables, so that lint doesn't complaint.
+    # Declaring variables, so that lint doesn't complaint.
     reset_2q = None
     cond_val_2q = None
     cond_val_1q = None
 
-    # If conditional is not required, there is not need to calculate random numbers.
+    # If conditional is not required, there is no need to calculate random numbers.
     # But, since the variables are required in the for-loop so let's get an array of false.
     if not conditional:
         cond_1q = np.zeros(num_qubits, dtype=bool)
@@ -260,9 +259,9 @@ def random_circuit_from_graph(
         cumsum_params = np.cumsum(gate_choices["num_params"], dtype=np.int64)
         parameters = rng.uniform(0, 2 * np.pi, size=cumsum_params[-1])
 
-        # If reset is required, then, Generating a random boolean matrix of
-        # num_edges x 2, corresponding to probable reset on both control,
-        # target qubit of the edge from the edge_list.
+        # If reset is required, then, generating a random boolean matrix of
+        # num_edges x 2, corresponding to probable reset on both control and
+        # target qubits of the edge from the edge_list.
         if reset:
             reset_2q = rng.random(size=(num_edges, 2)) < prob_reset
 
@@ -309,7 +308,7 @@ def random_circuit_from_graph(
                         )
 
                 if current_instr.params != []:
-                    # Check if instruction is mutable, so that it could accept parameters.
+                    # Check if the instruction is mutable, so that it could accept parameters.
                     if not current_instr.mutable:
                         current_instr = current_instr.to_mutable()
                     params = parameters[:num_gate_params]
@@ -360,7 +359,7 @@ def random_circuit_from_graph(
                     cond_1q,
                 ):
                     if current_instr.params != []:
-                        # Check if instruction is mutable, so that it could accept parameters.
+                        # Check if the instruction is mutable, so that it could accept parameters.
                         if not current_instr.mutable:
                             current_instr = current_instr.to_mutable()
                         param = parameters_1q[:num_gate_params]
