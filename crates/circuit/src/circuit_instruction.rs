@@ -649,6 +649,18 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
                 .transpose()
                 .map(|params| params.unwrap_or_default())
         };
+        let extract_params_no_coerce = || {
+            ob.getattr(intern!(py, "params"))
+                .ok()
+                .map(|params| {
+                    params
+                        .try_iter()?
+                        .map(|p| Param::extract_no_coerce(&p?))
+                        .collect()
+                })
+                .transpose()
+                .map(|params| params.unwrap_or_default())
+        };
         let extract_extra = || -> PyResult<_> {
             let unit = {
                 // We accept Python-space `None` or `"dt"` as both meaning the default `"dt"`.
@@ -730,7 +742,15 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
                 }
                 StandardInstructionType::Delay => {
                     let unit = ob.getattr(intern!(py, "unit"))?.extract()?;
-                    StandardInstruction::Delay(unit)
+                    return Ok(OperationFromPython {
+                        operation: PackedOperation::from_standard_instruction(
+                            StandardInstruction::Delay(unit),
+                        ),
+                        // If the delay's duration is a Python int, we preserve it rather than
+                        // coercing it to a float (e.g. when unit is 'dt').
+                        params: extract_params_no_coerce()?,
+                        extra_attrs: extract_extra()?,
+                    });
                 }
                 StandardInstructionType::Measure => StandardInstruction::Measure,
                 StandardInstructionType::Reset => StandardInstruction::Reset,
