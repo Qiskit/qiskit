@@ -479,6 +479,7 @@ from qiskit.synthesis.arithmetic import (
 )
 from qiskit.quantum_info.operators import Clifford
 from qiskit.transpiler.passes.routing.algorithms import ApproximateTokenSwapper
+from qiskit.transpiler.exceptions import TranspilerError
 from .plugin import HighLevelSynthesisPlugin
 
 
