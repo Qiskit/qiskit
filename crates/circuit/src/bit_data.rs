@@ -460,29 +460,61 @@ where
     /// Gets a reference to the cached Python list, with the bits maintained by
     /// this instance.
     #[inline]
-    pub fn py_cached_bits(&self, py: Python) -> &Py<PyList> {
-        self.cached_py_bits.get_or_init(|| {
+    pub fn py_cached_bits(&self, py: Python) -> PyResult<&Py<PyList>> {
+        let res = self.cached_py_bits.get_or_init(|| {
             PyList::new(
                 py,
                 (0..self.len()).map(|idx| self.py_get_bit(py, (idx as u32).into()).unwrap()),
             )
             .unwrap()
             .into()
-        })
+        });
+
+        // If the length is different from the stored bits, rebuild cache
+        let res_as_bound = res.bind(py);
+        if res_as_bound.len() != self.len() {
+            let current_length = res_as_bound.len();
+            for index in 0..self.len() {
+                if index < current_length {
+                    res_as_bound.set_item(index, self.py_get_bit(py, (index as u32).into())?)?
+                } else {
+                    res_as_bound.append(self.py_get_bit(py, (index as u32).into())?)?
+                }
+            }
+            Ok(res)
+        } else {
+            Ok(res)
+        }
     }
 
     /// Gets a reference to the cached Python list, with the registers maintained by
     /// this instance.
     #[inline]
-    pub fn py_cached_regs(&self, py: Python) -> &Py<PyList> {
-        self.cached_py_regs.get_or_init(|| {
+    pub fn py_cached_regs(&self, py: Python) -> PyResult<&Py<PyList>> {
+        let res = self.cached_py_regs.get_or_init(|| {
             PyList::new(
                 py,
                 (0..self.len_regs()).map(|idx| self.py_get_register(py, idx as u32).unwrap()),
             )
             .unwrap()
             .into()
-        })
+        });
+
+        // If the length is different from the stored bits, rebuild cache
+        let res_as_bound = res.bind(py);
+        if res_as_bound.len() != self.len_regs() {
+            let current_length = res_as_bound.len();
+            for index in 0..self.len_regs() {
+                if index < current_length {
+                    res_as_bound.set_item(index, self.py_get_register(py, index as u32)?)?
+                } else {
+                    res_as_bound.append(self.py_get_register(py, index as u32)?)?
+                }
+            }
+            Ok(res)
+        } else {
+            Ok(res)
+        }
     }
 
     /// Gets a reference to the underlying vector of Python bits.
@@ -664,7 +696,7 @@ where
     pub fn py_add_bit(&mut self, bit: &Bound<PyAny>, strict: bool) -> PyResult<T> {
         let py: Python<'_> = bit.py();
 
-        if self.bits.len() != self.py_cached_bits(py).bind(bit.py()).len() {
+        if self.bits.len() != self.py_cached_bits(py)?.bind(bit.py()).len() {
             return Err(PyRuntimeError::new_err(
             format!("This circuit's {} list has become out of sync with the circuit data. Did something modify it?", self.description)
             ));
@@ -681,10 +713,10 @@ where
             .try_insert(BitAsKey::new(bit), idx.into())
             .is_ok()
         {
-            self.py_cached_bits(py).bind(py).append(bit)?;
+            // Append to cache before bits to avoid rebuilding cache.
+            self.py_cached_bits(py)?.bind(py).append(bit)?;
             self.bit_info.push(BitInfo::new(None));
             self.bits.push(bit.clone().unbind().into());
-            // self.cached.bind(py).append(bit)?;
         } else if strict {
             return Err(PyValueError::new_err(format!(
                 "Existing bit {:?} cannot be re-added in strict mode.",
@@ -697,7 +729,7 @@ where
     /// Adds new register from Python.
     pub fn py_add_register(&mut self, register: &Bound<PyAny>) -> PyResult<u32> {
         let py = register.py();
-        if self.registers.len() != self.py_cached_regs(py).bind(py).len() {
+        if self.registers.len() != self.py_cached_regs(py)?.bind(py).len() {
             return Err(PyRuntimeError::new_err(
             format!("This circuit's {} register list has become out of sync with the circuit data. Did something modify it?", self.description)
             ));
@@ -748,7 +780,8 @@ where
         let name: String = key.name().to_string();
         let reg: R = (bits.as_slice(), name).into();
 
-        self.py_cached_regs(py).bind(py).append(register)?;
+        // Append to cache before bits to avoid rebuilding cache.
+        self.py_cached_regs(py)?.bind(py).append(register)?;
         self.reg_keys.insert(reg.as_key().clone(), idx);
         self.registry.push(reg);
         self.registers.push(register.clone().unbind().into());
@@ -788,7 +821,7 @@ where
         indices_sorted.sort();
 
         for index in indices_sorted.into_iter().rev() {
-            self.py_cached_bits(py).bind(py).del_item(index)?;
+            self.py_cached_bits(py)?.bind(py).del_item(index)?;
             let bit = self.py_get_bit(py, (index as BitType).into())?.unwrap();
             self.indices.remove(&BitAsKey::new(bit.bind(py)));
             self.bits.remove(index);

@@ -157,8 +157,8 @@ impl CircuitData {
         let args = {
             let self_ = self_.borrow();
             (
-                self_.qubits.py_cached_bits(py).clone_ref(py),
-                self_.clbits.py_cached_bits(py).clone_ref(py),
+                self_.qubits.py_cached_bits(py)?.clone_ref(py),
+                self_.clbits.py_cached_bits(py)?.clone_ref(py),
                 None::<()>,
                 self_.data.len(),
                 self_.global_phase.clone(),
@@ -167,8 +167,8 @@ impl CircuitData {
         let state = {
             let borrowed = self_.borrow();
             (
-                borrowed.qubits.py_cached_regs(py).clone_ref(py),
-                borrowed.clbits.py_cached_regs(py).clone_ref(py),
+                borrowed.qubits.py_cached_regs(py)?.clone_ref(py),
+                borrowed.clbits.py_cached_regs(py)?.clone_ref(py),
             )
         };
         (ty, args, state, self_.try_iter()?).into_py_any(py)
@@ -199,7 +199,7 @@ impl CircuitData {
     /// Returns:
     ///     dict(:class:`.QuantumRegister`): The current sequence of registered qubits.
     #[getter("qregs")]
-    pub fn py_qregs(&self, py: Python<'_>) -> &Py<PyList> {
+    pub fn py_qregs(&self, py: Python<'_>) -> PyResult<&Py<PyList>> {
         self.qubits.py_cached_regs(py)
     }
 
@@ -228,8 +228,8 @@ impl CircuitData {
     /// Returns:
     ///     list(:class:`.Qubit`): The current sequence of registered qubits.
     #[getter("qubits")]
-    pub fn py_qubits(&self, py: Python<'_>) -> Py<PyList> {
-        self.qubits.py_cached_bits(py).clone_ref(py)
+    pub fn py_qubits(&self, py: Python<'_>) -> PyResult<&Py<PyList>> {
+        self.qubits.py_cached_bits(py)
     }
 
     /// Return the number of qubits. This is equivalent to the length of the list returned by
@@ -253,7 +253,7 @@ impl CircuitData {
     /// Returns:
     ///     dict(:class:`.QuantumRegister`): The current sequence of registered qubits.
     #[getter("cregs")]
-    pub fn py_cregs(&self, py: Python<'_>) -> &Py<PyList> {
+    pub fn py_cregs(&self, py: Python<'_>) -> PyResult<&Py<PyList>> {
         self.clbits.py_cached_regs(py)
     }
 
@@ -283,7 +283,7 @@ impl CircuitData {
     /// Returns:
     ///     list(:class:`.Clbit`): The current sequence of registered clbits.
     #[getter("clbits")]
-    pub fn py_clbits(&self, py: Python<'_>) -> &Py<PyList> {
+    pub fn py_clbits(&self, py: Python<'_>) -> PyResult<&Py<PyList>> {
         self.clbits.py_cached_bits(py)
     }
 
@@ -390,8 +390,8 @@ impl CircuitData {
     pub fn copy(&self, py: Python<'_>, copy_instructions: bool, deepcopy: bool) -> PyResult<Self> {
         let mut res = CircuitData::py_new(
             py,
-            Some(self.qubits.py_cached_bits(py).bind(py)),
-            Some(self.clbits.py_cached_bits(py).bind(py)),
+            Some(self.qubits.py_cached_bits(py)?.bind(py)),
+            Some(self.clbits.py_cached_bits(py)?.bind(py)),
             None,
             self.data.len(),
             self.global_phase.clone(),
@@ -400,10 +400,10 @@ impl CircuitData {
         res.cargs_interner = self.cargs_interner.clone();
         res.param_table.clone_from(&self.param_table);
 
-        for qreg in self.py_qregs(py).bind(py).iter() {
+        for qreg in self.py_qregs(py)?.bind(py).iter() {
             res.py_add_qreg(&qreg)?;
         }
-        for creg in self.py_cregs(py).bind(py).iter() {
+        for creg in self.py_cregs(py)?.bind(py).iter() {
             res.py_add_creg(&creg)?;
         }
 

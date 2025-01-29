@@ -6643,11 +6643,11 @@ impl DAGCircuit {
         }
 
         // Add all the registers
-        for qreg in qc_data.py_qregs(py).bind(py).iter() {
+        for qreg in qc_data.py_qregs(py)?.bind(py).iter() {
             new_dag.add_qreg(py, &qreg)?;
         }
 
-        for creg in qc_data.py_cregs(py).bind(py).iter() {
+        for creg in qc_data.py_cregs(py)?.bind(py).iter() {
             new_dag.add_creg(py, &creg)?;
         }
 
