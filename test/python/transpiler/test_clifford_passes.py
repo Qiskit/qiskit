@@ -400,6 +400,29 @@ class TestCliffordPasses(QiskitTestCase):
         self.assertEqual(qct.size(), 1)
         self.assertIn("clifford", qct.count_ops().keys())
 
+    def test_collect_cliffords_max_block_width(self):
+        """Make sure that collecting Clifford gates and replacing them by Clifford
+        works correctly when the option ``max_block_width`` is specified."""
+
+        # original circuit (consisting of Clifford gates only)
+        qc = QuantumCircuit(3)
+        qc.h(0)
+        qc.s(1)
+        qc.cx(0, 1)
+        qc.sdg(0)
+        qc.x(1)
+        qc.swap(2, 1)
+        qc.h(1)
+        qc.swap(1, 2)
+
+        # We should end up with two Clifford objects
+        qct = PassManager(CollectCliffords(max_block_width=2)).run(qc)
+        self.assertEqual(qct.size(), 2)
+        self.assertEqual(qct[0].name, "clifford")
+        self.assertEqual(len(qct[0].qubits), 2)
+        self.assertEqual(qct[1].name, "clifford")
+        self.assertEqual(len(qct[1].qubits), 2)
+
     def test_collect_cliffords_multiple_blocks(self):
         """Make sure that when collecting Clifford gates, non-Clifford gates
         are not collected, and the pass correctly splits disconnected Clifford
@@ -830,6 +853,17 @@ class TestCliffordPasses(QiskitTestCase):
 
         qct = PassManager(CollectCliffords(matrix_based=True)).run(qc)
         self.assertEqual(qct.count_ops()["clifford"], 1)
+
+    def test_plugin_unfortunate_name(self):
+        """Test the synthesis is not triggered for a custom gate with the same name."""
+        intruder = QuantumCircuit(2, name="clifford")
+        circuit = QuantumCircuit(2)
+        circuit.append(intruder.to_gate(), [0, 1])
+
+        hls = HighLevelSynthesis()
+        synthesized = hls(circuit)
+
+        self.assertIn("clifford", synthesized.count_ops())
 
 
 if __name__ == "__main__":
