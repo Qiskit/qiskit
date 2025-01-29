@@ -493,8 +493,8 @@ where
         // Workspace for the mapping function. The aim here is that we're working on the stack, so
         // the mapping doesn't need to make heap allocations.  We could either guess (which the
         // higher-level `merge_slice_map` does), or force the caller to tell us how much stack space
-        // to allocate.  This method is lower leveel, so in this case we ask them to tell us; if
-        // they're optimising to the point of re-using the return allocations, they probably have a
+        // to allocate.  This method is lower level, so in this case we ask them to tell us; if
+        // they're optimizing to the point of re-using the return allocations, they probably have a
         // good idea about the maximum slice size of the interner they'll be merging in.
         let mut work = SmallVec::<[T; N]>::with_capacity(N);
         target.map.clear();
