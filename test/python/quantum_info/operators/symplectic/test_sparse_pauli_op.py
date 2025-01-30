@@ -28,7 +28,13 @@ from qiskit.circuit.parametertable import ParameterView
 from qiskit.compiler.transpiler import transpile
 from qiskit.primitives import BackendEstimator
 from qiskit.providers.fake_provider import GenericBackendV2
-from qiskit.quantum_info.operators import Operator, Pauli, PauliList, SparsePauliOp
+from qiskit.quantum_info import SparseObservable
+from qiskit.quantum_info.operators import (
+    Operator,
+    Pauli,
+    PauliList,
+    SparsePauliOp,
+)
 from qiskit.utils import optionals
 
 
@@ -360,6 +366,19 @@ class TestSparsePauliOpConversions(QiskitTestCase):
         op = SparsePauliOp(labels, coeffs)
         target = list(zip(labels, coeffs))
         self.assertEqual(op.to_list(), target)
+
+    def test_from_sparse_observable(self):
+        """Test from a SparseObservable."""
+        obs = SparseObservable("XrZ")
+        expected = SparsePauliOp(["XIZ", "XYZ"], coeffs=[0.5, -0.5])
+        self.assertEqual(expected, SparsePauliOp.from_sparse_observable(obs))
+
+    def test_sparse_observable_roundtrip(self):
+        """Test SPO -> OBS -> SPO."""
+        op = SparsePauliOp(["ZZI", "IZZ", "IIX", "IXI", "YII"])
+        obs = SparseObservable.from_sparse_pauli_op(op)
+        roundtrip = SparsePauliOp.from_sparse_observable(obs)
+        self.assertEqual(op, roundtrip)
 
 
 class TestSparsePauliOpIteration(QiskitTestCase):

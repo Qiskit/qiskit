@@ -15,6 +15,7 @@ N-Qubit Sparse Pauli Operator class.
 
 from __future__ import annotations
 from typing import TYPE_CHECKING, List
+import warnings
 
 from collections.abc import Mapping, Sequence, Iterable
 from numbers import Number
@@ -30,6 +31,7 @@ from qiskit._accelerate.sparse_pauli_op import (
     to_matrix_sparse,
     unordered_unique,
 )
+from qiskit._accelerate.sparse_observable import SparseObservable
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.parametertable import ParameterView
@@ -928,6 +930,45 @@ class SparsePauliOp(LinearOp):
 
         paulis = PauliList(labels)
         return SparsePauliOp(paulis, coeffs, copy=False)
+
+    @staticmethod
+    def from_sparse_observable(
+        obs: SparseObservable, warn_if_expensive: bool = True
+    ) -> SparsePauliOp:
+        r"""Initialize from a :class:`.SparseObservable`.
+
+        .. warning::
+
+            A :class:`.SparseObservable` can efficiently represent eigenstate projectors
+            (such as :math:`|0\langle\rangle 0|`), but a :class:`.SparsePauliOp` **cannot**.
+            If the input ``obs`` has :math:`n` single-qubit projectors, the resulting
+            :class:`.SparsePauliOp` will use :math:`2^n` terms, which is an exponentially
+            expensive representation that can quickly run out of memory.
+
+        Args:
+            obs: The :class:`.SparseObservable` to convert.
+            warn_if_expensive: Triggers a warning if the input observable contains a
+                large number of projectors. Defaults to ``True``, but set to ``False`` to for more
+                efficiency.
+
+        Returns:
+            A :class:`.SparsePauliOp` version of the observable.
+        """
+        if warn_if_expensive:
+            bterm = SparseObservable.BitTerm
+            num_projectors = sum(bit not in [bterm.X, bterm.Y, bterm.Z] for bit in obs.bit_terms)
+
+            # 16 is an arbitrary threshold, but at this point please use a SparseObservable
+            if num_projectors > 16:
+                warnings.warn(
+                    f"SparseObservable contains a lot of projectors ({num_projectors}), which will "
+                    f"lead to at least {2 ** num_projectors} terms.",
+                    stacklevel=2,
+                    category=RuntimeWarning,
+                )
+
+        as_sparse_list = obs.to_sparse_list()
+        return SparsePauliOp.from_sparse_list(as_sparse_list, obs.num_qubits)
 
     def to_list(self, array: bool = False):
         """Convert to a list Pauli string labels and coefficients.

@@ -24,7 +24,7 @@ import numpy as np
 from qiskit import transpile
 from qiskit.circuit import Measure, Parameter, library, QuantumCircuit
 from qiskit.exceptions import QiskitError
-from qiskit.quantum_info import SparseObservable, SparsePauliOp, Pauli, PauliList
+from qiskit.quantum_info import SparseObservable, SparsePauliOp, Pauli, PauliList, Operator
 from qiskit.transpiler import Target
 
 from test import QiskitTestCase, combine  # pylint: disable=wrong-import-order
@@ -2008,3 +2008,43 @@ class TestSparseObservable(QiskitTestCase):
             Pauli("YYYII"),
         ]
         self.assertEqual([term.pauli_base() for term in obs], expected)
+
+    def test_to_sparse_list(self):
+        """Test converting to a sparse list."""
+        obs = SparseObservable.zero(100)
+        with self.subTest(msg="zero"):
+            self.assertEqual(0, len(obs.to_sparse_list()))
+
+        obs = SparseObservable.identity(100)
+        sparse_list = obs.to_sparse_list()
+        with self.subTest(msg="identity"):
+            self.assertEqual(1, len(sparse_list))
+            self.assertEqual("", sparse_list[0][0])
+
+        obs = SparseObservable("IXYZ")
+        sparse_list = obs.to_sparse_list()
+        with self.subTest(msg="IXYZ"):
+            self.assertEqual(1, len(sparse_list))
+            self.assertEqual("ZYX", sparse_list[0][0])
+            self.assertListEqual([0, 1, 2], sparse_list[0][1])
+
+        obs = SparseObservable("lrI0")
+        sparse_list = obs.to_sparse_list()
+
+        as_spo = SparsePauliOp.from_sparse_list(sparse_list, 4)
+        expect = SparsePauliOp.from_sparse_list(
+            [
+                ("", [], 1 / 8),
+                ("Y", [2], -1 / 8),
+                ("YY", [3, 2], -1 / 8),
+                ("Z", [0], 1 / 8),
+                ("YZ", [2, 0], -1 / 8),
+                ("YYZ", [3, 2, 0], -1 / 8),
+                ("Y", [3], 1 / 8),
+                ("YZ", [3, 0], 1 / 8),
+            ],
+            4,
+        )
+
+        with self.subTest(msg="lrI0"):
+            self.assertEqual(Operator(expect), Operator(as_spo))
