@@ -26,7 +26,7 @@ import sysconfig
 
 # This allows the Python interpreter baked into our test executable to find the
 # Qiskit installed in the active environment.
-os.environ["PYTHONPATH"] = os.pathsep.join(site.getsitepackages())
+os.environ["PYTHONPATH"] = os.pathsep.join([os.getcwd()] + site.getsitepackages())
 
 # Uncomment to debug PyO3's build / link against Python.
 # os.environ["PYO3_PRINT_CONFIG"] = "1"
