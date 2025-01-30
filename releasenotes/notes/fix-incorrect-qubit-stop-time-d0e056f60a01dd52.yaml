@@ -1,6 +1,7 @@
 ---
 fixes:
   - |
-    This addresses the incorrect stop time bug #8729. See the linked issue here
-    <https://github.com/Qiskit/qiskit/issues/8729>. Also added an extra test to
-    ensure consistent functionality moving forward.
+    Fixed an issue where :meth:`.QuantumCircuit.qubit_stop_time` and 
+    :meth:`.QuantumCircuit.qubit_duration` returned incorrect time (duration)
+    when some qubits have instructions but the others idle.
+    Fixed `#8729 <https://github.com/Qiskit/qiskit/issues/8729>`__.
