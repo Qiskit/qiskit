@@ -10,7 +10,10 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+mod lookup;
+
 use hashbrown::HashSet;
+use indexmap::IndexSet;
 use itertools::Itertools;
 use ndarray::Array2;
 use num_complex::Complex64;
@@ -28,6 +31,7 @@ use pyo3::{
     IntoPyObjectExt, PyErr,
 };
 use std::{
+    cmp::Ordering,
     collections::btree_map,
     ops::{AddAssign, DivAssign, MulAssign, SubAssign},
     sync::{Arc, RwLock},
@@ -272,6 +276,87 @@ pub enum LabelError {
 pub enum ArithmeticError {
     #[error("mismatched numbers of qubits: {left}, {right}")]
     MismatchedQubits { left: u32, right: u32 },
+}
+
+/// One part of the type of the iteration value from [PairwiseOrdered].
+///
+/// The struct iterates over two sorted lists, and returns values from the left iterator, the right
+/// iterator, or both simultaneously, depending on some "ordering" key attached to each.  This
+/// `enum` is to pass on the information on which iterator is being returned from.
+enum Paired<T> {
+    Left(T),
+    Right(T),
+    Both(T, T),
+}
+
+/// An iterator combinator that zip-merges two sorted iterators.
+///
+/// This is created by [pairwise_ordered]; see that method for the description.
+struct PairwiseOrdered<C, T, I1, I2>
+where
+    C: Ord,
+    I1: Iterator<Item = (C, T)>,
+    I2: Iterator<Item = (C, T)>,
+{
+    left: ::std::iter::Peekable<I1>,
+    right: ::std::iter::Peekable<I2>,
+}
+impl<C, T, I1, I2> Iterator for PairwiseOrdered<C, T, I1, I2>
+where
+    C: Ord,
+    I1: Iterator<Item = (C, T)>,
+    I2: Iterator<Item = (C, T)>,
+{
+    type Item = (C, Paired<T>);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let order = match (self.left.peek(), self.right.peek()) {
+            (None, None) => return None,
+            (Some(_), None) => Ordering::Less,
+            (None, Some(_)) => Ordering::Greater,
+            (Some((left, _)), Some((right, _))) => left.cmp(right),
+        };
+        match order {
+            Ordering::Less => self.left.next().map(|(i, value)| (i, Paired::Left(value))),
+            Ordering::Greater => self
+                .right
+                .next()
+                .map(|(i, value)| (i, Paired::Right(value))),
+            Ordering::Equal => {
+                let (index, left) = self.left.next().unwrap();
+                let (_, right) = self.right.next().unwrap();
+                Some((index, Paired::Both(left, right)))
+            }
+        }
+    }
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let left = self.left.size_hint();
+        let right = self.right.size_hint();
+        (
+            left.0.max(right.0),
+            left.1.and_then(|left| right.1.map(|right| left.max(right))),
+        )
+    }
+}
+/// An iterator combinator that zip-merges two sorted iterators.
+///
+/// The two iterators must yield the same items, where each item comprises some totally ordered
+/// index, and an associated value.  Both input iterators must be sorted in terms of the index.  The
+/// output iteration is over 2-tuples, also in sorted order, of the seen ordered index values, and a
+/// [Paired] object indicating which iterator (or both) the values were drawn from.
+fn pairwise_ordered<C, T, I1, I2>(
+    left: I1,
+    right: I2,
+) -> PairwiseOrdered<C, T, <I1 as IntoIterator>::IntoIter, <I2 as IntoIterator>::IntoIter>
+where
+    C: Ord,
+    I1: IntoIterator<Item = (C, T)>,
+    I2: IntoIterator<Item = (C, T)>,
+{
+    PairwiseOrdered {
+        left: left.into_iter().peekable(),
+        right: right.into_iter().peekable(),
+    }
 }
 
 /// An observable over Pauli bases that stores its data in a qubit-sparse format.
@@ -635,6 +720,128 @@ impl SparseObservable {
         let mut out = self.transpose();
         for coeff in out.coeffs.iter_mut() {
             *coeff = coeff.conj();
+        }
+        out
+    }
+
+    /// Compose another [SparseObservable] onto this one.
+    ///
+    /// In terms of operator algebras, composition corresponds to left-multiplication:
+    /// ``let c = a.compose(b);`` corresponds to $C = B A$.
+    ///
+    /// Beware that this function can cause exponential explosion of the memory usage of the
+    /// observable, as the alphabet of [SparseObservable] is not closed under composition; the
+    /// composition of two single-bit terms can be a sum, which multiplies the total number of
+    /// terms.  This memory usage is not _necessarily_ inherent to the resultant observable, but
+    /// finding an efficient re-factorization of the sum is generally equally computationally hard.
+    /// It's better to use domain knowledge of your observables to minimize the number of terms that
+    /// ever exist, rather than trying to simplify them after the fact.
+    ///
+    /// # Panics
+    ///
+    /// If `self` and `other` have different numbers of qubits.
+    pub fn compose(&self, other: &SparseObservable) -> SparseObservable {
+        if other.num_qubits != self.num_qubits {
+            panic!(
+                "operand ({}) has a different number of qubits to the base ({})",
+                other.num_qubits, self.num_qubits
+            );
+        }
+        let mut out = SparseObservable::zero(self.num_qubits);
+        let mut term_state = compose::Iter::new(self.num_qubits);
+
+        for left in other.iter() {
+            for right in self.iter() {
+                term_state.load_from(
+                    left.coeff * right.coeff,
+                    left.indices
+                        .iter()
+                        .copied()
+                        .zip(left.bit_terms.iter().copied()),
+                    right
+                        .indices
+                        .iter()
+                        .copied()
+                        .zip(right.bit_terms.iter().copied()),
+                );
+                out.boundaries.reserve(term_state.num_terms());
+                out.coeffs.reserve(term_state.num_terms());
+                out.indices
+                    .reserve(term_state.num_terms() * term_state.term_len());
+                out.bit_terms
+                    .reserve(term_state.num_terms() * term_state.term_len());
+                while let Some(term) = term_state.next() {
+                    out.add_term(term)
+                        .expect("qubit counts were checked during initialisation");
+                }
+            }
+        }
+        out
+    }
+
+    /// Compose another [SparseObservable] onto this one, remapping the qubits.
+    ///
+    /// The `qubit_fn` is called for each qubit in each term in `other` to determine which qubit in
+    /// `self` it corresponds to; this should typically be a very cheap function to call, like a
+    /// getter from a slice.
+    ///
+    /// See [compose] for further information.
+    ///
+    /// # Panics
+    ///
+    /// If `other` has more qubits than `self`, if the `qubit_fn` returns a qubit index greater
+    /// or equal to the number of qubits in `self`, or if `qubit_fn` returns a duplicate index (this
+    /// is only guaranteed to be detected if an individual term contains duplicates).
+    pub fn compose_map(
+        &self,
+        other: &SparseObservable,
+        mut qubit_fn: impl FnMut(u32) -> u32,
+    ) -> SparseObservable {
+        if other.num_qubits > self.num_qubits {
+            panic!(
+                "operand has more qubits ({}) than the base ({})",
+                other.num_qubits, self.num_qubits
+            );
+        }
+        let mut out = SparseObservable::zero(self.num_qubits);
+        let mut mapped_term = btree_map::BTreeMap::<u32, BitTerm>::new();
+        let mut term_state = compose::Iter::new(self.num_qubits);
+
+        // This choice of loop ordering is because we already know that `self`'s `indices` are
+        // sorted, but there's no reason that that the output of `qubit_fn` should maintain order,
+        // and this way round, we sort as few times as possible.
+        for left in other.iter() {
+            mapped_term.clear();
+            for (index, term) in left.indices.iter().zip(left.bit_terms) {
+                let qubit = qubit_fn(*index);
+                if qubit >= self.num_qubits {
+                    panic!("remapped {index} to {qubit}, which is out of bounds");
+                }
+                if mapped_term.insert(qubit, *term).is_some() {
+                    panic!("duplicate qubit {qubit} in remapped term");
+                };
+            }
+            for right in self.iter() {
+                term_state.load_from(
+                    left.coeff * right.coeff,
+                    mapped_term.iter().map(|(k, v)| (*k, *v)),
+                    right
+                        .indices
+                        .iter()
+                        .copied()
+                        .zip(right.bit_terms.iter().copied()),
+                );
+                out.boundaries.reserve(term_state.num_terms());
+                out.coeffs.reserve(term_state.num_terms());
+                out.indices
+                    .reserve(term_state.num_terms() * term_state.term_len());
+                out.bit_terms
+                    .reserve(term_state.num_terms() * term_state.term_len());
+                while let Some(term) = term_state.next() {
+                    out.add_term(term)
+                        .expect("qubit counts were checked during initialisation");
+                }
+            }
         }
         out
     }
@@ -1023,6 +1230,181 @@ impl ::std::ops::Neg for SparseObservable {
     fn neg(mut self) -> SparseObservable {
         self.coeffs.iter_mut().for_each(|c| *c = -*c);
         self
+    }
+}
+
+/// Worker objects for the [SparseObservable::compose]-alike functions.
+mod compose {
+    use super::*;
+
+    /// An non-scalar entry in the multi-Cartesian product iteration.
+    ///
+    /// Each [MultipleItem] corresponds to a bit index that becomes a summation as part of the
+    /// composition, so the multi-Cartesian product has to keep iterating through it.
+    struct MultipleItem {
+        /// The index into the full `bit_terms` [Vec] that this item refers to.
+        loc: usize,
+        /// The next item in the slice that should be written out.  If this equal to the length
+        /// of the slice, the implication is that it needs to be reset to 0 by a lower-index
+        /// item getting incremented and flowing forwards.
+        cur: usize,
+        /// The underlying slice of the multiple iteration, from the compose lookup table.
+        slice: &'static [(Complex64, BitTerm)],
+    }
+
+    /// An implementation of the multiple Cartesian-product iterator that produces the sum terms
+    /// that make up the composition of two individual [SparseObservable] terms.
+    ///
+    /// This mutates itself in-place to keep track of the state, which allows us to re-use
+    /// partial results and to avoid allocations per item (since we have to copy out of the
+    /// buffers to the output [SparseObservable] each time anyway).
+    pub struct Iter {
+        num_qubits: u32,
+        /// Tracking data for the places in the output that have multiple branches to take.
+        multiples: Vec<MultipleItem>,
+        /// Stack of the coefficients to this point.  We could recalculate by a full
+        /// multiplication on each go, but most steps will be in the low indices, where we can
+        /// re-use all the multiplications that came before.  This is one longer than the length
+        /// of `multliples`, because it starts off populated with the product of the
+        /// non-multiple coefficients (or 1).
+        coeffs: Vec<Complex64>,
+        /// The full set of indices (including ones that don't correspond to multiples).  Within
+        /// a given iteration, this never changes; it's just stored to make it easier to memcpy
+        /// out of.
+        indices: Vec<u32>,
+        /// The full set of [BitTerm]s (including ones that don't correspond to multiples).  The
+        /// multiple ones get updated inplace during iteration.
+        bit_terms: Vec<BitTerm>,
+        /// Whether iteration has started.
+        started: bool,
+        /// We always have at least one item to put out, but we're exhausted once we've iterated
+        /// through all our product terms.
+        exhausted: bool,
+    }
+    impl Iter {
+        pub fn new(num_qubits: u32) -> Self {
+            Self {
+                num_qubits,
+                multiples: Vec::new(),
+                coeffs: vec![Complex64::new(1., 0.)],
+                indices: Vec::new(),
+                bit_terms: Vec::new(),
+                started: false,
+                exhausted: false,
+            }
+        }
+        /// Load up the next terms an iterator over the `(index, term)` pairs from the left-hand
+        /// side and the right-hand side.  The iterators must return indices in strictly increasing
+        /// order.
+        pub fn load_from(
+            &mut self,
+            coeff: Complex64,
+            left: impl IntoIterator<Item = (u32, BitTerm)>,
+            right: impl IntoIterator<Item = (u32, BitTerm)>,
+        ) {
+            self.multiples.clear();
+            self.coeffs.clear();
+            self.coeffs.push(coeff);
+            self.indices.clear();
+            self.bit_terms.clear();
+            self.started = false;
+            self.exhausted = false;
+
+            for (index, values) in pairwise_ordered(left, right) {
+                match values {
+                    Paired::Left(term) | Paired::Right(term) => {
+                        self.indices.push(index);
+                        self.bit_terms.push(term);
+                    }
+                    Paired::Both(left, right) => {
+                        let Some(slice) = lookup::matmul(left, right) else {
+                            self.exhausted = true;
+                            return;
+                        };
+                        match slice {
+                            &[] => (),
+                            &[(coeff, term)] => {
+                                self.coeffs[0] *= coeff;
+                                self.indices.push(index);
+                                self.bit_terms.push(term);
+                            }
+                            slice => {
+                                self.multiples.push(MultipleItem {
+                                    loc: self.bit_terms.len(),
+                                    cur: 0,
+                                    slice,
+                                });
+                                self.indices.push(index);
+                                self.coeffs.push(Default::default());
+                                self.bit_terms.push(slice[0].1);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        /// Expose the current iteration item, assuming the state has been updated.
+        fn iter_item(&self) -> SparseTermView {
+            SparseTermView {
+                num_qubits: self.num_qubits,
+                coeff: *self.coeffs.last().expect("coeffs is never empty"),
+                indices: &self.indices,
+                bit_terms: &self.bit_terms,
+            }
+        }
+        // Not actually the iterator method, because we're borrowing from `self`.
+        /// Get the next term in the iteration.
+        pub fn next(&mut self) -> Option<SparseTermView> {
+            if self.exhausted {
+                return None;
+            }
+            if !self.started {
+                self.started = true;
+                // Initialising the struct has to put us in a place where the indices and bit terms
+                // are ready, but we still need to initialise the coefficient stack.
+                for (i, item) in self.multiples.iter().enumerate() {
+                    // `item.cur` should always be 0 at this point.
+                    self.coeffs[i + 1] = self.coeffs[i] * item.slice[item.cur].0;
+                }
+                return Some(self.iter_item());
+            }
+            // The lowest index into `multiples` that didn't overflow as we were updating the
+            // bit-terms state.
+            let non_overflow_index = 'inc_index: {
+                for (i, item) in self.multiples.iter_mut().enumerate().rev() {
+                    // The slices are always non-empty.
+                    if item.cur == item.slice.len() - 1 {
+                        item.cur = 0;
+                    } else {
+                        item.cur += 1;
+                    }
+                    self.bit_terms[item.loc] = item.slice[item.cur].1;
+                    if item.cur > 0 {
+                        break 'inc_index i;
+                    }
+                }
+                self.exhausted = true;
+                return None;
+            };
+            // Now run forwards updating the coefficient tree from the point it changes.
+            for (offset, item) in self.multiples[non_overflow_index..].iter_mut().enumerate() {
+                let base = non_overflow_index + offset;
+                self.coeffs[base + 1] = self.coeffs[base] * item.slice[item.cur].0;
+            }
+            Some(self.iter_item())
+        }
+        /// The total number of items in the iteration (this ignores the iteration state; only
+        /// [load_from] changes it).  If a 0 multiplier is encountered during the load, the
+        /// iterator is empty.
+        pub fn num_terms(&self) -> usize {
+            self.exhausted
+                .then_some(0)
+                .unwrap_or_else(|| self.multiples.iter().map(|item| item.slice.len()).product())
+        }
+        /// The length of each individual term in the iteration.
+        pub fn term_len(&self) -> usize {
+            self.bit_terms.len()
+        }
     }
 }
 
@@ -2939,6 +3321,118 @@ impl PySparseObservable {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
         let other_inner = other.inner.read().map_err(|_| InnerReadError)?;
         other_inner.tensor(&inner).into_pyobject(py)
+    }
+
+    /// Compose another :class:`SparseObservable` onto this one.
+    ///
+    /// In terms of operator algebras, composition corresponds to left-multiplication:
+    /// ``c = a.compose(b)`` corresponds to $C = B A$.  In other words, ``a.compose(b)`` returns an
+    /// operator that "performs ``a``, and then performs ``b`` on the result".  The argument
+    /// ``front=True`` instead makes this a right multiplication.
+    ///
+    /// ``self`` and ``other`` must be the same size, unless ``qargs`` is given, in which case
+    /// ``other`` can be smaller than ``self``, provided the number of qubits in ``other`` and the
+    /// length of ``qargs`` match.  ``qargs`` can never contain duplicates or indices of qubits that
+    /// do not exist in ``self``.
+    ///
+    /// Beware that this function can cause exponential explosion of the memory usage of the
+    /// observable, as the alphabet of :class:`SparseObservable` is not closed under composition;
+    /// the composition of two single-bit terms can be a sum, which multiplies the total number of
+    /// terms.  This memory usage is not _necessarily_ inherent to the resultant observable, but
+    /// finding an efficient re-factorization of the sum is generally equally computationally hard.
+    /// It's better to use domain knowledge of your observables to minimize the number of terms that
+    /// ever exist, rather than trying to simplify them after the fact.
+    ///
+    /// Args:
+    ///     other: the observable used to left-multiply ``self``.
+    ///     qargs: if given, the qubits in ``self`` to associated with the qubits in ``other``.  Put
+    ///         another way: if this is given, it is similar to a more efficient implementation of::
+    ///
+    ///             self.compose(other.apply_layout(qargs, self.num_qubits))
+    ///
+    ///         as no temporary observable is created to store the applied-layout form of ``other``.
+    ///     front: if ``True``, then right-multiply by ``other`` instead of left-multiplying
+    ///         (default ``False``).  The ``qargs`` are still applied to ``other``.  This is most
+    ///         useful when ``qargs`` is set, or ``other`` might be an object that must be coerced
+    ///         to :class:`SparseObservable`.
+    #[pyo3(signature = (other, /, qargs=None, *, front=false))]
+    fn compose<'py>(
+        &self,
+        other: &Bound<'py, PyAny>,
+        qargs: Option<&Bound<'py, PyAny>>,
+        front: bool,
+    ) -> PyResult<Bound<'py, PySparseObservable>> {
+        let py = other.py();
+        let Some(other) = coerce_to_observable(other)? else {
+            return Err(PyTypeError::new_err(format!(
+                "unknown type for compose: {}",
+                other.get_type().repr()?
+            )));
+        };
+        let other = other.borrow();
+        let inner = self.inner.read().map_err(|_| InnerReadError)?;
+        let other_inner = other.inner.read().map_err(|_| InnerReadError)?;
+        if let Some(order) = qargs {
+            if other_inner.num_qubits() > inner.num_qubits() {
+                return Err(PyValueError::new_err(format!(
+                    "argument ({}) has more qubits than the base ({})",
+                    other_inner.num_qubits(),
+                    inner.num_qubits()
+                )));
+            }
+            let in_length = order.len()?;
+            if other_inner.num_qubits() as usize != in_length {
+                return Err(PyValueError::new_err(format!(
+                    "input qargs has length {}, but the observable is on {} qubit(s)",
+                    in_length,
+                    other_inner.num_qubits()
+                )));
+            }
+            let order = order
+                .try_iter()?
+                .map(|obj| obj.and_then(|obj| obj.extract::<u32>()))
+                .collect::<PyResult<IndexSet<u32>>>()?;
+            if order.len() != in_length {
+                return Err(PyValueError::new_err("duplicate indices in qargs"));
+            }
+            if order
+                .iter()
+                .max()
+                .is_some_and(|max| *max >= inner.num_qubits())
+            {
+                return Err(PyValueError::new_err("qargs contains out-of-range qubits"));
+            }
+            if front {
+                // This implementation can be improved if it turns out to be needed a lot and the
+                // extra copy is a bottleneck.
+                let other_to_self = order.iter().copied().collect::<Vec<_>>();
+                other_inner
+                    .apply_layout(Some(other_to_self.as_slice()), inner.num_qubits)?
+                    .compose(&inner)
+                    .into_pyobject(py)
+            } else {
+                inner
+                    .compose_map(&other_inner, |bit| {
+                        *order
+                            .get_index(bit as usize)
+                            .expect("order has the same length and no duplicates")
+                    })
+                    .into_pyobject(py)
+            }
+        } else {
+            if other_inner.num_qubits() != inner.num_qubits() {
+                return Err(PyValueError::new_err(format!(
+                    "mismatched numbers of qubits: {} (base) and {} (argument)",
+                    inner.num_qubits(),
+                    other_inner.num_qubits()
+                )));
+            }
+            if front {
+                other_inner.compose(&inner).into_pyobject(py)
+            } else {
+                inner.compose(&other_inner).into_pyobject(py)
+            }
+        }
     }
 
     /// Apply a transpiler layout to this :class:`SparseObservable`.

@@ -1,0 +1,6 @@
+---
+features_quantum_info:
+  - |
+    :class:`.SparseObservable` now supports operator composition using the
+    :meth:`~.SparseObservable.compose` method, similar to other :mod:`.quantum_info` classes.
+    This is analagous to matrix multiplication, though the method is entirely matrix free.
