@@ -21,12 +21,15 @@ found by PyO3 / our Rust test executable.
 
 import os
 import subprocess
-import sys
+import site
 import sysconfig
 
 # This allows the Python interpreter baked into our test executable to find the
 # Qiskit installed in the active environment.
-os.environ["PYTHONUSERBASE"] = sys.prefix
+os.environ["PYTHONPATH"] = os.pathsep.join(site.getsitepackages())
+
+# Uncomment to debug PyO3's build / link against Python.
+# os.environ["PYO3_PRINT_CONFIG"] = "1"
 
 # On Linux, the test executable's RPATH doesn't contain libpython, so we add it
 # to the dlopen search path here.
