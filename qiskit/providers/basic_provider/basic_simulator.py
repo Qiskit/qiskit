@@ -100,17 +100,13 @@ class BasicSimulator(BackendV2):
         )
 
         self._target = target
+
         # Internal simulator variables
-        self._local_random = None
         self._classical_memory = 0
         self._statevector = 0
         self._number_of_cmembits = 0
         self._number_of_qubits = 0
-        self._shots = self.options.get("shots")
-        self._memory = self.options.get("memory")
-        self._initial_statevector = self.options.get("initial_statevector")
-        self._seed_simulator = self.options.get("seed_simulator")
-        self._sample_measure = False
+        self._local_rng = None
 
     @property
     def max_circuits(self) -> None:
@@ -212,11 +208,9 @@ class BasicSimulator(BackendV2):
     def _default_options(cls) -> Options:
         return Options(
             shots=1024,
-            memory=False,
+            memory=True,
             initial_statevector=None,
-            allow_sample_measuring=True,
             seed_simulator=None,
-            parameter_binds=None,
         )
 
     def _add_unitary(self, gate: np.ndarray, qubits: list[int]) -> None:
@@ -252,7 +246,7 @@ class BasicSimulator(BackendV2):
         axis.remove(self._number_of_qubits - 1 - qubit)
         probabilities = np.sum(np.abs(self._statevector) ** 2, axis=tuple(axis))
         # Compute einsum index string for 1-qubit matrix multiplication
-        random_number = self._local_random.random()
+        random_number = self._local_rng.random()
         if random_number < probabilities[0]:
             return "0", probabilities[0]
         # Else outcome was '1'
@@ -289,7 +283,7 @@ class BasicSimulator(BackendV2):
         # Generate samples on measured qubits as ints with qubit
         # position in the bit-string for each int given by the qubit
         # position in the sorted measured_qubits list
-        samples = self._local_random.choice(range(2**num_measured), num_samples, p=probabilities)
+        samples = self._local_rng.choice(range(2**num_measured), num_samples, p=probabilities)
         # Convert the ints to bitstrings
         memory = []
         for sample in samples:
@@ -357,36 +351,35 @@ class BasicSimulator(BackendV2):
                 f"initial statevector is incorrect length: {length} != {required_dim}"
             )
 
-    def _set_options(self, backend_options: dict | None = None) -> None:
-        """Set the backend options for all circuits"""
-        # Reset default options
-        self._initial_statevector = self.options.get("initial_statevector")
-        if "backend_options" in backend_options and backend_options["backend_options"]:
-            backend_options = backend_options["backend_options"]
+    def _set_run_options(self, run_options: dict | None = None) -> None:
+        """Set the backend run options for all circuits"""
 
-        # Check for custom initial statevector in backend_options first,
-        # then config second
-        if getattr(backend_options, "initial_statevector", None) is not None:
-            self._initial_statevector = np.array(
-                backend_options["initial_statevector"], dtype=complex
-            )
+        # Reset internal variables every time "run" is called using saved options
+        self._shots = self.options.get("shots")
+        self._memory = self.options.get("memory")
+        self._initial_statevector = self.options.get("initial_statevector")
+        self._seed_simulator = self.options.get("seed_simulator")
+
+        # Apply custom run options
+        if run_options.get("initial_statevector", None) is not None:
+            self._initial_statevector = np.array(run_options["initial_statevector"], dtype=complex)
         if self._initial_statevector is not None:
             # Check the initial statevector is normalized
             norm = np.linalg.norm(self._initial_statevector)
             if round(norm, 12) != 1:
                 raise BasicProviderError(f"Initial statevector is not normalized: norm {norm} != 1")
-        if "shots" in backend_options:
-            self._shots = backend_options["shots"]
-        if "seed_simulator" in backend_options:
-            seed_simulator = backend_options["seed_simulator"]
-        elif getattr(self.options, "seed_simulator", None) is not None:
-            seed_simulator = self.options["seed_simulator"]
-        else:
+        if "shots" in run_options:
+            self._shots = run_options["shots"]
+        if "seed_simulator" in run_options:
+            self._seed_simulator = run_options["seed_simulator"]
+        elif self._seed_simulator is None:
             # For compatibility on Windows force dtype to be int32
             # and set the maximum value to be (2 ** 31) - 1
-            seed_simulator = np.random.randint(2147483647, dtype="int32")
-        self._seed_simulator = seed_simulator
-        self._local_random = np.random.default_rng(seed=seed_simulator)
+            self._seed_simulator = np.random.randint(2147483647, dtype="int32")
+        if "memory" in run_options:
+            self._memory = run_options["memory"]
+        # Set seed for local random number gen.
+        self._local_rng = np.random.default_rng(seed=self._seed_simulator)
 
     def _initialize_statevector(self) -> None:
         """Set the initial statevector for simulation"""
@@ -424,41 +417,43 @@ class BasicSimulator(BackendV2):
         self._sample_measure = measure_flag
 
     def run(
-        self, run_input: QuantumCircuit | list[QuantumCircuit], **backend_options
+        self, run_input: QuantumCircuit | list[QuantumCircuit], **run_options
     ) -> BasicProviderJob:
         """Run on the backend.
 
         Args:
-            run_input: payload of the experiment
-            backend_options: backend options
+            run_input (QuantumCircuit or list): the QuantumCircuit (or list
+                of QuantumCircuit objects) to run
+            run_options (kwargs): additional runtime backend options
 
         Returns:
             BasicProviderJob: derived from BaseJob
 
         Additional Information:
-            backend_options: Is a dict of options for the backend. It may contain:
-                * "initial_statevector": vector_like
+            * kwarg options specified in ``run_options`` will temporarily override
+              any set options of the same name for the current run. These may include:
 
-            The "initial_statevector" option specifies a custom
-            initial statevector for the simulator to be used instead of the all
-            zero state. This size of this vector must be correct for the number
-            of qubits in ``run_input`` parameter.
-
+                * "initial_statevector": vector_like. The "initial_statevector" option specifies a custom
+                    initial statevector for the simulator to be used instead of the all
+                    zero state. This size of this vector must be correct for the number
+                    of qubits in ``run_input`` parameter.
+                * "seed_simulator": int. This is the internal seed for sample generation.
+                * "shots": int. number of shots used in the simulation.
+                * "memory": bool. If True, the result will contained the results of every individual shot
+                    simulation.
             Example::
 
-                backend_options = {
-                    "initial_statevector": np.array([1, 0, 0, 1j]) / math.sqrt(2),
-                }
+                backend.run(circuit, initial_statevector = np.array([1, 0, 0, 1j]) / math.sqrt(2))
         """
         out_options = {}
-        for key, value in backend_options.items():
+        for key, value in run_options.items():
             if not hasattr(self.options, key):
                 warnings.warn(
                     f"Option {key} is not used by this backend", UserWarning, stacklevel=2
                 )
             else:
                 out_options[key] = value
-        self._set_options(backend_options=backend_options)
+        self._set_run_options(run_options=run_options)
         job_id = str(uuid.uuid4())
         job = BasicProviderJob(self, job_id, self._run_job(job_id, run_input))
         return job
@@ -478,7 +473,6 @@ class BasicSimulator(BackendV2):
 
         self._validate(run_input)
         result_list = []
-        self._memory = True
         start = time.time()
         for circuit in run_input:
             result_list.append(self._run_circuit(circuit))
