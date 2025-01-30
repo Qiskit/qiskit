@@ -107,6 +107,11 @@ class BasicSimulator(BackendV2):
         self._number_of_cmembits = 0
         self._number_of_qubits = 0
         self._local_rng = None
+        self._sample_measure = False
+        self._shots = self.options.get("shots")
+        self._memory = self.options.get("memory")
+        self._initial_statevector = self.options.get("initial_statevector")
+        self._seed_simulator = self.options.get("seed_simulator")
 
     @property
     def max_circuits(self) -> None:
@@ -421,29 +426,37 @@ class BasicSimulator(BackendV2):
     ) -> BasicProviderJob:
         """Run on the backend.
 
-                Args:
-                    run_input (QuantumCircuit or list): the QuantumCircuit (or list
-                        of QuantumCircuit objects) to run
-                    run_options (kwargs): additional runtime backend options
+        Args:
+            run_input (QuantumCircuit or list): the QuantumCircuit (or list
+                of QuantumCircuit objects) to run
+            run_options (kwargs): additional runtime backend options
 
-                Returns:
-                    BasicProviderJob: derived from BaseJob
+        Returns:
+            BasicProviderJob: derived from BaseJob
 
-                Additional Information:
-                    * kwarg options specified in ``run_options`` will temporarily override
-                      any set options of the same name for the current run. These may include:
+        Additional Information:
+            * kwarg options specified in ``run_options`` will temporarily override
+              any set options of the same name for the current run. These may include:
 
-                        * "initial_statevector": vector_like. The "initial_statevector" option specifies a custom
-                            initial statevector for the simulator to be used instead of the all
-                            zero state. This size of this vector must be correct for the number
-                            of qubits in the ``run_input`` parameter.
-                        * "seed_simulator": int. This is the internal seed for sample generation.
-                        * "shots": int. number of shots used in the simulation.
-                        * "memory": bool. If True, the result will contained the results of every individual shot
-                            simulation.
-                    Example::
-        D
-                        backend.run(circuit, initial_statevector = np.array([1, 0, 0, 1j]) / math.sqrt(2))
+                * "initial_statevector": vector_like. The "initial_statevector"
+                  option specifies a custom initial statevector to be used instead
+                  of the all-zero state. The size of this vector must correspond to
+                  the number of qubits in the ``run_input`` argument.
+
+                * "seed_simulator": int. This is the internal seed for sample
+                  generation.
+
+                * "shots": int. number of shots used in the simulation.
+
+                * "memory": bool. If True, the result will contain the results
+                  of every individual shot simulation.
+
+            Example::
+
+                backend.run(
+                    circuit_2q,
+                    initial_statevector = np.array([1, 0, 0, 1j]) / math.sqrt(2)
+                )
         """
         out_options = {}
         for key, value in run_options.items():
