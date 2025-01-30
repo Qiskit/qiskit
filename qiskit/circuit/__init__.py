@@ -305,6 +305,8 @@ assist compilation workflows.  These include:
 There is also a utility for generating random circuits:
 
 * :func:`random.random_circuit`
+* :func:`random.random_circuit_from_graph`
+* :func:`random.random_clifford_circuit`
 
 Finally, the circuit module has its own exception class, to indicate when things went wrong in
 circuit-specific manners:
@@ -1039,18 +1041,6 @@ default instances of the :class:`.BasisTranslator`.
     :meth:`~EquivalenceLibrary.add_equivalence`.  It inherits all the built-in rules of
     :data:`StandardEquivalenceLibrary`.
 
-
-
-Generating random circuits
---------------------------
-
-..
-    If we expand these capabilities in the future, it's probably best to move it to its own
-    module-level documentation page than to expand this "inline" module documentation.
-
-.. currentmodule:: qiskit.circuit.random
-.. autofunction:: random_circuit
-.. currentmodule:: qiskit.circuit
 
 Apply Pauli twirling to a circuit
 ---------------------------------

@@ -92,19 +92,19 @@ def random_circuit_from_graph(
     Args:
         interaction_graph (PyGraph | PyDiGraph): Interaction Graph
         min_2q_gate_per_edge (int): Minimum number of times every qubit-pair must be used
-        in the random circuit.
+                                    in the random circuit.
         max_operands (int): maximum qubit operands of each gate(should be 1 or 2)
-        (optional, default:2)
+                            (optional, default:2)
         measure (bool): if True, measure all qubits at the end. (optional, default: False)
         conditional (bool): if True, insert middle measurements and conditionals.
-        (optional, default: False)
+                            (optional, default: False)
         reset (bool): if True, insert middle resets. (optional, default: False)
         seed (int): sets random seed. (If `None`, a random seed is chosen) (optional)
         insert_1q_oper (bool): Insert 1Q operations to the circuit. (optional, default: True)
         prob_conditional (float): Probability less than 1.0, this is used to control the occurrence
-        of conditionals in the circuit. (optional, default: 0.1)
+                                  of conditionals in the circuit. (optional, default: 0.1)
         prob_reset (float): Probability less than 1.0, this is used to control the occurrence of
-        reset in the circuit. (optional, default: 0.1)
+                            reset in the circuit. (optional, default: 0.1)
 
     Returns:
         QuantumCircuit: constructed circuit
@@ -112,11 +112,11 @@ def random_circuit_from_graph(
     Raises:
         CircuitError: When `max_operands` is not 1 or 2.
         CircuitError: When `max_operands` is set to 1, but no 1Q operations are allowed by setting
-        `insert_1q_oper` to false.
+                      `insert_1q_oper` to false.
         CircuitError: When the interaction graph has no edges, so only 1Q gates are possible in
-        the circuit, but `insert_1q_oper` is set to False.
+                      the circuit, but `insert_1q_oper` is set to False.
         ValueError: when any edge have probability None but not all or, any of the probabilities
-        are negative.
+                    are negative.
     """
 
     # max_operands should be 1 or 2
@@ -142,7 +142,7 @@ def random_circuit_from_graph(
     if num_edges == 0 and not insert_1q_oper:
         raise CircuitError(
             "There are no edges in the `interaction_graph` so, there could be only 1Q gates, "
-            "in the circuit, however `insert_1q_oper` is set to `False`."
+            "however `insert_1q_oper` is set to `False`"
         )
 
     if num_edges == 0 or max_operands == 1:
@@ -421,10 +421,10 @@ def random_circuit(
         conditional (bool): if True, insert middle measurements and conditionals
         reset (bool): if True, insert middle resets
         seed (int): sets random seed (optional)
-        num_operand_distribution (dict): a distribution of gates that specifies the ratio
-        of 1-qubit, 2-qubit, 3-qubit, ..., n-qubit gates in the random circuit. Expect a
-        deviation from the specified ratios that depends on the size of the requested
-        random circuit. (optional)
+        num_operand_distribution (dict): a distribution of gates that specifies the ratio of 1-qubit,
+                                         2-qubit, 3-qubit, ..., n-qubit gates in the random circuit.
+                                         Expect a deviation from the specified ratios that depends
+                                         on the size of the requested random circuit. (optional)
 
     Returns:
         QuantumCircuit: constructed circuit
@@ -650,7 +650,7 @@ def random_clifford_circuit(num_qubits, num_gates, gates="all", seed=None):
         num_qubits (int): number of quantum wires.
         num_gates (int): number of gates in the circuit.
         gates (list[str]): optional list of Clifford gate names to randomly sample from.
-            If ``"all"`` (default), use all Clifford gates in the standard library.
+                           If ``"all"`` (default), use all Clifford gates in the standard library.
         seed (int | np.random.Generator): sets random seed/generator (optional).
 
     Returns:
