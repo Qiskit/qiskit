@@ -421,29 +421,29 @@ class BasicSimulator(BackendV2):
     ) -> BasicProviderJob:
         """Run on the backend.
 
-        Args:
-            run_input (QuantumCircuit or list): the QuantumCircuit (or list
-                of QuantumCircuit objects) to run
-            run_options (kwargs): additional runtime backend options
+                Args:
+                    run_input (QuantumCircuit or list): the QuantumCircuit (or list
+                        of QuantumCircuit objects) to run
+                    run_options (kwargs): additional runtime backend options
 
-        Returns:
-            BasicProviderJob: derived from BaseJob
+                Returns:
+                    BasicProviderJob: derived from BaseJob
 
-        Additional Information:
-            * kwarg options specified in ``run_options`` will temporarily override
-              any set options of the same name for the current run. These may include:
+                Additional Information:
+                    * kwarg options specified in ``run_options`` will temporarily override
+                      any set options of the same name for the current run. These may include:
 
-                * "initial_statevector": vector_like. The "initial_statevector" option specifies a custom
-                    initial statevector for the simulator to be used instead of the all
-                    zero state. This size of this vector must be correct for the number
-                    of qubits in ``run_input`` parameter.
-                * "seed_simulator": int. This is the internal seed for sample generation.
-                * "shots": int. number of shots used in the simulation.
-                * "memory": bool. If True, the result will contained the results of every individual shot
-                    simulation.
-            Example::
-
-                backend.run(circuit, initial_statevector = np.array([1, 0, 0, 1j]) / math.sqrt(2))
+                        * "initial_statevector": vector_like. The "initial_statevector" option specifies a custom
+                            initial statevector for the simulator to be used instead of the all
+                            zero state. This size of this vector must be correct for the number
+                            of qubits in the ``run_input`` parameter.
+                        * "seed_simulator": int. This is the internal seed for sample generation.
+                        * "shots": int. number of shots used in the simulation.
+                        * "memory": bool. If True, the result will contained the results of every individual shot
+                            simulation.
+                    Example::
+        D
+                        backend.run(circuit, initial_statevector = np.array([1, 0, 0, 1j]) / math.sqrt(2))
         """
         out_options = {}
         for key, value in run_options.items():
@@ -499,9 +499,20 @@ class BasicSimulator(BackendV2):
         Returns:
              A result dictionary which looks something like::
                 {
-                "name": name of this experiment (obtained from qobj.experiment header)
+                "name": name of this experiment
                 "seed": random seed used for simulation
                 "shots": number of shots used in the simulation
+                "header: {
+                    "name": "circuit-206",
+                    "n_qubits": 3,
+                    "qreg_sizes": [['qr', 3]],
+                    "creg_sizes": [['cr', 3]],
+                    "qubit_labels": [['qr', 0], ['qr', 1], ['qr', 2]],
+                    "clbit_labels": [['cr', 0], ['cr', 1], ['cr', 2]],
+                    "memory_slots": 3,
+                    "global_phase": 0.0,
+                    "metadata": {},
+                    }
                 "data":
                     {
                     "counts": {'0x9: 5, ...},
@@ -638,7 +649,7 @@ class BasicSimulator(BackendV2):
             "global_phase": circuit.global_phase,
             "metadata": circuit.metadata if circuit.metadata is not None else {},
         }
-
+        print(header)
         # Return result dictionary
         return {
             "name": circuit.name,
