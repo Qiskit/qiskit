@@ -54,7 +54,9 @@ use rand_pcg::Pcg64Mcg;
 
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
-use qiskit_circuit::gate_matrix::{CX_GATE, H_GATE, ONE_QUBIT_IDENTITY, SX_GATE, X_GATE};
+use qiskit_circuit::gate_matrix::{
+    CX_GATE, H_GATE, ONE_QUBIT_IDENTITY, SDG_GATE, SX_GATE, S_GATE, X_GATE,
+};
 use qiskit_circuit::operations::{Operation, Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};
@@ -2631,19 +2633,57 @@ impl TwoQubitControlledUDecomposer {
         circ.gates.extend(circ_a.gates);
         let mut global_phase = circ_a.global_phase;
 
+        let mut target_1q_basis_list = EulerBasisSet::new();
+        target_1q_basis_list.add_basis(self.euler_basis);
+
+        let s_decomp = unitary_to_gate_sequence_inner(
+            aview2(&S_GATE),
+            &target_1q_basis_list,
+            0,
+            None,
+            true,
+            None,
+        );
+        let sdg_decomp = unitary_to_gate_sequence_inner(
+            aview2(&SDG_GATE),
+            &target_1q_basis_list,
+            0,
+            None,
+            true,
+            None,
+        );
+        let h_decomp = unitary_to_gate_sequence_inner(
+            aview2(&H_GATE),
+            &target_1q_basis_list,
+            0,
+            None,
+            true,
+            None,
+        );
+
         // translate the RYYGate(b) into a circuit based on the desired Ctrl-U gate.
         if (target_decomposed.b).abs() > atol {
             let circ_b = self.to_rxx_gate(-2.0 * target_decomposed.b)?;
             global_phase += circ_b.global_phase;
-            circ.gates
-                .push((Some(StandardGate::SdgGate), smallvec![], smallvec![0]));
-            circ.gates
-                .push((Some(StandardGate::SdgGate), smallvec![], smallvec![1]));
+            if let Some(sdg_decomp) = sdg_decomp {
+                global_phase += 2.0 * sdg_decomp.global_phase;
+                for gate in sdg_decomp.gates.into_iter() {
+                    let gate_params = gate.1;
+                    circ.gates
+                        .push((Some(gate.0), gate_params.clone(), smallvec![0]));
+                    circ.gates.push((Some(gate.0), gate_params, smallvec![1]));
+                }
+            }
             circ.gates.extend(circ_b.gates);
-            circ.gates
-                .push((Some(StandardGate::SGate), smallvec![], smallvec![0]));
-            circ.gates
-                .push((Some(StandardGate::SGate), smallvec![], smallvec![1]));
+            if let Some(s_decomp) = s_decomp {
+                global_phase += 2.0 * s_decomp.global_phase;
+                for gate in s_decomp.gates.into_iter() {
+                    let gate_params = gate.1;
+                    circ.gates
+                        .push((Some(gate.0), gate_params.clone(), smallvec![0]));
+                    circ.gates.push((Some(gate.0), gate_params, smallvec![1]));
+                }
+            }
         }
 
         // # translate the RZZGate(c) into a circuit based on the desired Ctrl-U gate.
@@ -2657,34 +2697,55 @@ impl TwoQubitControlledUDecomposer {
             if gamma <= 0.0 {
                 let circ_c = self.to_rxx_gate(gamma)?;
                 global_phase += circ_c.global_phase;
-                circ.gates
-                    .push((Some(StandardGate::HGate), smallvec![], smallvec![0]));
-                circ.gates
-                    .push((Some(StandardGate::HGate), smallvec![], smallvec![1]));
+
+                if let Some(ref h_decomp) = h_decomp {
+                    global_phase += 2.0 * h_decomp.global_phase;
+                    for gate in h_decomp.gates.clone().into_iter() {
+                        let gate_params = gate.1;
+                        circ.gates
+                            .push((Some(gate.0), gate_params.clone(), smallvec![0]));
+                        circ.gates.push((Some(gate.0), gate_params, smallvec![1]));
+                    }
+                }
                 circ.gates.extend(circ_c.gates);
-                circ.gates
-                    .push((Some(StandardGate::HGate), smallvec![], smallvec![0]));
-                circ.gates
-                    .push((Some(StandardGate::HGate), smallvec![], smallvec![1]));
+                if let Some(ref h_decomp) = h_decomp {
+                    global_phase += 2.0 * h_decomp.global_phase;
+                    for gate in h_decomp.gates.clone().into_iter() {
+                        let gate_params = gate.1;
+                        circ.gates
+                            .push((Some(gate.0), gate_params.clone(), smallvec![0]));
+                        circ.gates.push((Some(gate.0), gate_params, smallvec![1]));
+                    }
+                }
             } else {
                 // invert the circuit above
                 gamma *= -1.0;
                 let circ_c = self.to_rxx_gate(gamma)?;
                 global_phase -= circ_c.global_phase;
-                circ.gates
-                    .push((Some(StandardGate::HGate), smallvec![], smallvec![0]));
-                circ.gates
-                    .push((Some(StandardGate::HGate), smallvec![], smallvec![1]));
+                if let Some(ref h_decomp) = h_decomp {
+                    global_phase += 2.0 * h_decomp.global_phase;
+                    for gate in h_decomp.gates.clone().into_iter() {
+                        let gate_params = gate.1;
+                        circ.gates
+                            .push((Some(gate.0), gate_params.clone(), smallvec![0]));
+                        circ.gates.push((Some(gate.0), gate_params, smallvec![1]));
+                    }
+                }
                 for gate in circ_c.gates.into_iter().rev() {
                     let (inv_gate_name, inv_gate_params, inv_gate_qubits) =
                         self.invert_2q_gate(gate)?;
                     circ.gates
                         .push((inv_gate_name, inv_gate_params, inv_gate_qubits));
                 }
-                circ.gates
-                    .push((Some(StandardGate::HGate), smallvec![], smallvec![0]));
-                circ.gates
-                    .push((Some(StandardGate::HGate), smallvec![], smallvec![1]));
+                if let Some(ref h_decomp) = h_decomp {
+                    global_phase += 2.0 * h_decomp.global_phase;
+                    for gate in h_decomp.gates.clone().into_iter() {
+                        let gate_params = gate.1;
+                        circ.gates
+                            .push((Some(gate.0), gate_params.clone(), smallvec![0]));
+                        circ.gates.push((Some(gate.0), gate_params, smallvec![1]));
+                    }
+                }
             }
         }
 
