@@ -37,6 +37,7 @@ from qiskit.circuit.library import (
     CPhaseGate,
     HamiltonianGate,
     Isometry,
+    iqp,
 )
 from qiskit.circuit.library import MCXVChain
 from qiskit.circuit.annotated_operation import (
@@ -46,7 +47,6 @@ from qiskit.circuit.annotated_operation import (
     PowerModifier,
 )
 from qiskit.circuit import Parameter, Qubit, Clbit, IfElseOp, SwitchCaseOp
-from qiskit.circuit.library import IQP
 from qiskit.circuit.classical import expr, types
 from qiskit.quantum_info import random_clifford
 from qiskit.quantum_info.random import random_unitary
@@ -543,7 +543,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         """Test large gates with params"""
         qr = QuantumRegister(6, "q")
         circuit = QuantumCircuit(qr)
-        circuit.append(IQP([[6, 5, 3], [5, 4, 5], [3, 5, 1]]), [0, 1, 2])
+        circuit.append(iqp([[6, 5, 3], [5, 4, 5], [3, 5, 1]]), [0, 1, 2])
 
         desired_vector = [
             1 / math.sqrt(16) * complex(0, 1),

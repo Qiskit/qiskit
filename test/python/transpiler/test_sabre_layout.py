@@ -18,7 +18,7 @@ import math
 
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.circuit.classical import expr, types
-from qiskit.circuit.library import EfficientSU2, QuantumVolume
+from qiskit.circuit.library import efficient_su2, quantum_volume
 from qiskit.transpiler import CouplingMap, AnalysisPass, PassManager
 from qiskit.transpiler.passes import SabreLayout, DenseLayout, StochasticSwap, Unroll3qOrMore
 from qiskit.transpiler.exceptions import TranspilerError
@@ -321,7 +321,7 @@ barrier q18585[5],q18585[2],q18585[8],q18585[3],q18585[6];
 
         Regression test of #13081.
         """
-        qv = QuantumVolume(500, seed=42)
+        qv = quantum_volume(500, seed=42)
         qv.measure_all()
         qc = Unroll3qOrMore()(qv)
 
@@ -476,7 +476,7 @@ class TestSabrePreLayout(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        circuit = EfficientSU2(16, entanglement="circular", reps=6, flatten=True)
+        circuit = efficient_su2(16, entanglement="circular", reps=6)
         circuit.assign_parameters([math.pi / 2] * len(circuit.parameters), inplace=True)
         circuit.measure_all()
         self.circuit = circuit

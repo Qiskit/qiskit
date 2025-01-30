@@ -31,10 +31,10 @@ pub fn split_2q_unitaries(
     if !dag.get_op_counts().contains_key("unitary") {
         return Ok(());
     }
-    let nodes: Vec<NodeIndex> = dag.op_nodes(false).collect();
+    let nodes: Vec<NodeIndex> = dag.op_node_indices(false).collect();
 
     for node in nodes {
-        if let NodeType::Operation(inst) = &dag.dag()[node] {
+        if let NodeType::Operation(inst) = &dag[node] {
             let qubits = dag.get_qargs(inst.qubits()).to_vec();
             // We only attempt to split UnitaryGate objects, but this could be extended in future
             // -- however we need to ensure that we can compile the resulting single-qubit unitaries
@@ -54,7 +54,7 @@ pub fn split_2q_unitaries(
             if matches!(decomp.specialization, Specialization::IdEquiv) {
                 let k1r_arr = decomp.K1r(py);
                 let k1l_arr = decomp.K1l(py);
-                let kwargs = PyDict::new_bound(py);
+                let kwargs = PyDict::new(py);
                 kwargs.set_item(intern!(py, "num_qubits"), 1)?;
                 let k1r_gate = UNITARY_GATE
                     .get_bound(py)

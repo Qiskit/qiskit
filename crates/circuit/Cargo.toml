@@ -9,6 +9,9 @@ license.workspace = true
 name = "qiskit_circuit"
 doctest = false
 
+[lints]
+workspace = true
+
 [dependencies]
 rayon.workspace = true
 ahash.workspace = true
@@ -39,3 +42,6 @@ features = ["union"]
 
 [features]
 cache_pygates = []
+
+[dev-dependencies]
+pyo3 = { workspace = true, features = ["auto-initialize"] }

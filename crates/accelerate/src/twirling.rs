@@ -21,6 +21,7 @@ use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::types::PyList;
 use pyo3::wrap_pyfunction;
+use pyo3::IntoPyObjectExt;
 use pyo3::Python;
 use rand::prelude::*;
 use rand_pcg::Pcg64Mcg;
@@ -259,7 +260,7 @@ fn generate_twirled_circuit(
     custom_gate_map: Option<&CustomGateTwirlingMap>,
     optimizer_target: Option<&Target>,
 ) -> PyResult<CircuitData> {
-    let mut out_circ = CircuitData::clone_empty_like(circ, None);
+    let mut out_circ = CircuitData::clone_empty_like(py, circ, None)?;
 
     for inst in circ.data() {
         if let Some(custom_gate_map) = custom_gate_map {
@@ -314,11 +315,11 @@ fn generate_twirled_circuit(
                                 custom_gate_map,
                                 optimizer_target,
                             )?;
-                            Ok(new_block.into_py(py))
+                            new_block.into_py_any(py)
                         })
                         .collect();
                     let new_blocks = new_blocks?;
-                    let blocks_list = PyList::new_bound(
+                    let blocks_list = PyList::new(
                         py,
                         new_blocks.iter().map(|block| {
                             QUANTUM_CIRCUIT
@@ -326,7 +327,7 @@ fn generate_twirled_circuit(
                                 .call_method1(intern!(py, "_from_circuit_data"), (block,))
                                 .unwrap()
                         }),
-                    );
+                    )?;
 
                     let new_inst_obj = py_inst
                         .instruction
@@ -348,8 +349,8 @@ fn generate_twirled_circuit(
                         (!new_blocks.is_empty()).then_some(
                             new_blocks
                                 .iter()
-                                .map(|x| x.extract(py).unwrap())
-                                .collect::<SmallVec<[Param; 3]>>(),
+                                .map(|x| Ok(Param::Obj(x.clone().into_py_any(py)?)))
+                                .collect::<PyResult<SmallVec<[Param; 3]>>>()?,
                         ),
                         inst.extra_attrs().clone(),
                     );

@@ -100,6 +100,7 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
     Example:
         .. plot::
            :include-source:
+           :nofigs:
 
             from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
             from qiskit.dagcircuit import DAGCircuit
