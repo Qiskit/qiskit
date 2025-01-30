@@ -57,10 +57,15 @@ expand_lookup_binary!(
 /// interpreted as a sum of the coefficient multiplied by the [BitTerm] pairs.  An empty slice means
 /// the identity.
 #[inline(always)]
-pub const fn matmul(left: BitTerm, right: BitTerm) -> Option<&'static [(Complex64, BitTerm)]> {
+pub fn matmul(left: BitTerm, right: BitTerm) -> Option<&'static [(Complex64, BitTerm)]> {
+    // This can be `const` from Rust 1.83 - before that, `const` functions can't refer to `static`s.
     MATMUL[((left as usize) << 4) | (right as usize)]
 }
 
+/// The `const` version of [matmul].
+///
+/// This is less efficient at runtime than [matmul] (which inlines to a couple of bitwise operations
+/// and a single offset load), but can be used in `const` contexts.
 const fn matmul_generate(left: BitTerm, right: BitTerm) -> Option<&'static [(Complex64, BitTerm)]> {
     // This typically gets compiled to a non-inlinable (because the code size is too big) two
     // separate sets of operate-and-jump instructions, but we use it in the `const` context to build
