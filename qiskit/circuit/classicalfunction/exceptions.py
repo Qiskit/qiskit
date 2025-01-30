@@ -21,6 +21,12 @@ class ClassicalFunctionCompilerError(QiskitError):
     pass
 
 
+class BooleanExpressionCompilerError(QiskitError):
+    """BooleanExpression compiler generic error."""
+
+    pass
+
+
 class ClassicalFunctionParseError(ClassicalFunctionCompilerError):
     """ClassicalFunction compiler parse error.
     The classicalfunction function fails at parsing time."""
@@ -31,5 +37,12 @@ class ClassicalFunctionParseError(ClassicalFunctionCompilerError):
 class ClassicalFunctionCompilerTypeError(ClassicalFunctionCompilerError):
     """ClassicalFunction compiler type error.
     The classicalfunction function fails at type checking time."""
+
+    pass
+
+
+class BooleanExpressionParseError(BooleanExpressionCompilerError):
+    """BooleanExpressionParseError compiler parse error.
+    The BooleanExpression function fails at parsing time."""
 
     pass

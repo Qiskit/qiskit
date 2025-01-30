@@ -19,11 +19,9 @@ from numpy import sqrt, isclose
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import PhaseOracle
 from qiskit.quantum_info import Statevector
-from qiskit.utils.optionals import HAS_TWEEDLEDUM
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
-@unittest.skipUnless(HAS_TWEEDLEDUM, "Tweedledum is required for these tests")
 @ddt
 class TestPhaseOracle(QiskitTestCase):
     """Test phase oracle object."""

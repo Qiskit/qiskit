@@ -18,14 +18,10 @@ from ddt import ddt, unpack, data
 
 from qiskit import transpile
 from qiskit.providers.basic_provider import BasicSimulator
-from qiskit.utils.optionals import HAS_TWEEDLEDUM
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
-
-if HAS_TWEEDLEDUM:
-    from qiskit.circuit.classicalfunction.boolean_expression import BooleanExpression
+from qiskit.circuit.classicalfunction.boolean_expression import BooleanExpression
 
 
-@unittest.skipUnless(HAS_TWEEDLEDUM, "Tweedledum is required for these tests.")
 @ddt
 class TestBooleanExpression(QiskitTestCase):
     # pylint: disable=possibly-used-before-assignment
@@ -75,7 +71,6 @@ class TestBooleanExpression(QiskitTestCase):
         self.assertEqual(bool(int(result)), expected)
 
 
-@unittest.skipUnless(HAS_TWEEDLEDUM, "Tweedledum is required for these tests.")
 class TestBooleanExpressionDIMACS(QiskitTestCase):
     """Loading from a cnf file"""
 
@@ -91,13 +86,14 @@ class TestBooleanExpressionDIMACS(QiskitTestCase):
         self.assertEqual(simple.name, "simple_v3_c2.cnf")
         self.assertEqual(simple.num_qubits, 4)
         self.assertTrue(simple.simulate("101"))
+        self.assertFalse(simple.simulate("001"))
 
     def test_quinn(self):
         """Loads quinn.cnf and simulate"""
         filename = self.normalize_filenames("dimacs/quinn.cnf")
         simple = BooleanExpression.from_dimacs_file(filename)
         self.assertEqual(simple.name, "quinn.cnf")
-        self.assertEqual(simple.num_qubits, 16)
+        self.assertEqual(simple.num_qubits, 17)
         self.assertFalse(simple.simulate("1010101010101010"))
 
 
