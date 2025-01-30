@@ -439,7 +439,7 @@ class BasicSimulator(BackendV2):
             backend_options: Is a dict of options for the backend. It may contain:
                 * "initial_statevector": vector_like
 
-            The "initial_statevector" option specifies a custom initial
+            The "initial_statevector" option specifies a custom
             initial statevector for the simulator to be used instead of the all
             zero state. This size of this vector must be correct for the number
             of qubits in ``run_input`` parameter.
@@ -464,7 +464,7 @@ class BasicSimulator(BackendV2):
         return job
 
     def _run_job(self, job_id: str, run_input) -> Result:
-        """Run circuits in job.
+        """Run circuits in run_input.
 
         Args:
             job_id: unique id for the job.
