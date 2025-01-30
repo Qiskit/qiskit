@@ -595,8 +595,7 @@ def _get_custom_definition(
     # check if the operation is already supported natively
     if not (isinstance(operation, ControlledGate) and operation._open_ctrl):
         # include path for when target exists but target.num_qubits is None (BasicSimulator)
-        qubits = input_qubits if data.use_qubit_indices else None
-        inst_supported = _instruction_supported(data, operation.name, qubits)
+        inst_supported = _instruction_supported(data, operation.name, input_qubits)
         if inst_supported or (
             data.equivalence_library is not None and data.equivalence_library.has_entry(operation)
         ):
@@ -824,9 +823,13 @@ def _definitely_skip_op(op: Operation, qubits: tuple[int], data: HLSData) -> boo
     )
 
 
-def _instruction_supported(data: HLSData, name: str, qubits: tuple[int] | None) -> bool:
+def _instruction_supported(data: HLSData, name: str, qubits: tuple[int]) -> bool:
     """Check whether operation is natively supported."""
     # include path for when target exists but target.num_qubits is None (BasicSimulator)
     if data.target is None or data.target.num_qubits is None:
         return name in data.device_insts
-    return data.target.instruction_supported(operation_name=name, qargs=qubits)
+
+    if data.use_qubit_indices:
+        return data.target.instruction_supported(operation_name=name, qargs=qubits)
+    else:
+        return data.target.instruction_supported(operation_name=name, qargs=None)
