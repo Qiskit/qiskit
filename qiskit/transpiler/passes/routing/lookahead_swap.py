@@ -90,7 +90,7 @@ class LookaheadSwap(TransformationPass):
             coupling_map (Union[CouplingMap, Target]): CouplingMap of the target backend.
             search_depth (int): lookahead tree depth when ranking best SWAP options.
             search_width (int): lookahead tree width when ranking best SWAP options.
-            fake_run (bool): if true, it only pretend to do routing, i.e., no
+            fake_run (bool): if true, it will only pretend to do routing, i.e., no
                 swap is effectively added.
         """
 
@@ -169,7 +169,13 @@ class LookaheadSwap(TransformationPass):
 
             mapped_gates.extend(gates_mapped)
 
-        self.property_set["final_layout"] = current_state.layout
+        if self.property_set["final_layout"] is None:
+            self.property_set["final_layout"] = current_state.layout
+        else:
+            self.property_set["final_layout"] = current_state.layout.compose(
+                self.property_set["final_layout"], dag.qubits
+            )
+
         if self.fake_run:
             return dag
 

@@ -37,16 +37,20 @@ from qiskit.pulse.channels import (
     SnapshotChannel,
 )
 from qiskit.pulse.instructions import directives
-from qiskit.test import QiskitTestCase
 from qiskit.providers.fake_provider import FakeOpenPulse2Q
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from qiskit.utils.deprecate_pulse import decorate_test_methods, ignore_pulse_deprecation_warnings
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestAlignMeasures(QiskitTestCase):
     """Test the helper function which aligns acquires."""
 
+    @ignore_pulse_deprecation_warnings
     def setUp(self):
         super().setUp()
-        self.backend = FakeOpenPulse2Q()
+        with self.assertWarns(DeprecationWarning):
+            self.backend = FakeOpenPulse2Q()
         self.config = self.backend.configuration()
         self.inst_map = self.backend.defaults().instruction_schedule_map
         self.short_pulse = pulse.Waveform(
@@ -197,12 +201,15 @@ class TestAlignMeasures(QiskitTestCase):
                 self.assertEqual(time, 0)
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestAddImplicitAcquires(QiskitTestCase):
     """Test the helper function which makes implicit acquires explicit."""
 
+    @ignore_pulse_deprecation_warnings
     def setUp(self):
         super().setUp()
-        self.backend = FakeOpenPulse2Q()
+        with self.assertWarns(DeprecationWarning):
+            self.backend = FakeOpenPulse2Q()
         self.config = self.backend.configuration()
         self.short_pulse = pulse.Waveform(
             samples=np.array([0.02739068], dtype=np.complex128), name="p0"
@@ -250,6 +257,7 @@ class TestAddImplicitAcquires(QiskitTestCase):
         self.assertEqual(sched.instructions, ((0, acq_q0), (2400, acq_q0)))
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestPad(QiskitTestCase):
     """Test padding of schedule with delays."""
 
@@ -386,6 +394,7 @@ def get_pulse_ids(schedules: List[Schedule]) -> Set[int]:
     return ids
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestCompressTransform(QiskitTestCase):
     """Compress function test."""
 
@@ -512,6 +521,7 @@ class TestCompressTransform(QiskitTestCase):
         self.assertEqual(len(compressed_pulse_ids), 2)
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestAlignSequential(QiskitTestCase):
     """Test sequential alignment transform."""
 
@@ -560,6 +570,7 @@ class TestAlignSequential(QiskitTestCase):
         self.assertEqual(schedule, reference)
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestAlignLeft(QiskitTestCase):
     """Test left alignment transform."""
 
@@ -623,6 +634,7 @@ class TestAlignLeft(QiskitTestCase):
         self.assertEqual(schedule, reference)
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestAlignRight(QiskitTestCase):
     """Test right alignment transform."""
 
@@ -687,6 +699,7 @@ class TestAlignRight(QiskitTestCase):
         self.assertEqual(schedule, reference)
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestAlignEquispaced(QiskitTestCase):
     """Test equispaced alignment transform."""
 
@@ -765,6 +778,7 @@ class TestAlignEquispaced(QiskitTestCase):
         self.assertEqual(schedule, reference)
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestAlignFunc(QiskitTestCase):
     """Test callback alignment transform."""
 
@@ -810,6 +824,7 @@ class TestAlignFunc(QiskitTestCase):
         self.assertEqual(schedule, reference)
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestFlatten(QiskitTestCase):
     """Test flattening transform."""
 
@@ -859,6 +874,7 @@ class _TestDirective(directives.Directive):
         return self.operands
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestRemoveDirectives(QiskitTestCase):
     """Test removing of directives."""
 
@@ -879,6 +895,7 @@ class TestRemoveDirectives(QiskitTestCase):
         self.assertEqual(schedule, reference)
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestRemoveTrivialBarriers(QiskitTestCase):
     """Test scheduling transforms."""
 
@@ -893,88 +910,6 @@ class TestRemoveTrivialBarriers(QiskitTestCase):
         reference = pulse.Schedule()
         reference += directives.RelativeBarrier(pulse.DriveChannel(0), pulse.DriveChannel(1))
         self.assertEqual(schedule, reference)
-
-
-class TestRemoveSubroutines(QiskitTestCase):
-    """Test removing of subroutines."""
-
-    def test_remove_subroutines(self):
-        """Test that nested subroutiens are removed."""
-        d0 = pulse.DriveChannel(0)
-
-        nested_routine = pulse.Schedule()
-        nested_routine.insert(10, pulse.Delay(10, d0), inplace=True)
-
-        subroutine = pulse.Schedule()
-        subroutine.insert(0, pulse.Delay(20, d0), inplace=True)
-        with self.assertWarns(DeprecationWarning):
-            subroutine.insert(20, pulse.instructions.Call(nested_routine), inplace=True)
-        subroutine.insert(50, pulse.Delay(10, d0), inplace=True)
-
-        main_program = pulse.Schedule()
-        main_program.insert(0, pulse.Delay(10, d0), inplace=True)
-        with self.assertWarns(DeprecationWarning):
-            main_program.insert(30, pulse.instructions.Call(subroutine), inplace=True)
-
-        target = transforms.inline_subroutines(main_program)
-
-        reference = pulse.Schedule()
-        reference.insert(0, pulse.Delay(10, d0), inplace=True)
-        reference.insert(30, pulse.Delay(20, d0), inplace=True)
-        reference.insert(60, pulse.Delay(10, d0), inplace=True)
-        reference.insert(80, pulse.Delay(10, d0), inplace=True)
-
-        self.assertEqual(target, reference)
-
-    def test_call_in_nested_schedule(self):
-        """Test that subroutines in nested schedule."""
-        d0 = pulse.DriveChannel(0)
-
-        subroutine = pulse.Schedule()
-        subroutine.insert(10, pulse.Delay(10, d0), inplace=True)
-
-        nested_sched = pulse.Schedule()
-        with self.assertWarns(DeprecationWarning):
-            nested_sched.insert(0, pulse.instructions.Call(subroutine), inplace=True)
-
-        main_sched = pulse.Schedule()
-        main_sched.insert(0, nested_sched, inplace=True)
-
-        target = transforms.inline_subroutines(main_sched)
-
-        # no call instruction
-        reference_nested = pulse.Schedule()
-        reference_nested.insert(0, subroutine, inplace=True)
-
-        reference = pulse.Schedule()
-        reference.insert(0, reference_nested, inplace=True)
-
-        self.assertEqual(target, reference)
-
-    def test_call_in_nested_block(self):
-        """Test that subroutines in nested schedule."""
-        d0 = pulse.DriveChannel(0)
-
-        subroutine = pulse.ScheduleBlock()
-        subroutine.append(pulse.Delay(10, d0), inplace=True)
-
-        nested_block = pulse.ScheduleBlock()
-        with self.assertWarns(DeprecationWarning):
-            nested_block.append(pulse.instructions.Call(subroutine), inplace=True)
-
-        main_block = pulse.ScheduleBlock()
-        main_block.append(nested_block, inplace=True)
-
-        target = transforms.inline_subroutines(main_block)
-
-        # no call instruction
-        reference_nested = pulse.ScheduleBlock()
-        reference_nested.append(subroutine, inplace=True)
-
-        reference = pulse.ScheduleBlock()
-        reference.append(reference_nested, inplace=True)
-
-        self.assertEqual(target, reference)
 
 
 if __name__ == "__main__":

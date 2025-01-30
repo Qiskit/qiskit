@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2020.
+# (C) Copyright IBM 2017, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -17,18 +17,19 @@ import unittest
 import math
 
 from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.circuit.library import EfficientSU2
+from qiskit.circuit.classical import expr, types
+from qiskit.circuit.library import efficient_su2, quantum_volume
 from qiskit.transpiler import CouplingMap, AnalysisPass, PassManager
-from qiskit.transpiler.passes import SabreLayout, DenseLayout
+from qiskit.transpiler.passes import SabreLayout, DenseLayout, StochasticSwap, Unroll3qOrMore
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.converters import circuit_to_dag
-from qiskit.test import QiskitTestCase
 from qiskit.compiler.transpiler import transpile
-from qiskit.providers.fake_provider import FakeAlmaden, FakeAlmadenV2
-from qiskit.providers.fake_provider import FakeKolkata
-from qiskit.providers.fake_provider import FakeMontreal
+from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.transpiler.passes.layout.sabre_pre_layout import SabrePreLayout
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
+from test import QiskitTestCase, slow_test  # pylint: disable=wrong-import-order
+
+from ..legacy_cmaps import ALMADEN_CMAP, MUMBAI_CMAP
 
 
 class TestSabreLayout(QiskitTestCase):
@@ -36,7 +37,7 @@ class TestSabreLayout(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        self.cmap20 = FakeAlmaden().configuration().coupling_map
+        self.cmap20 = ALMADEN_CMAP
 
     def test_5q_circuit_20q_coupling(self):
         """Test finds layout for 5q circuit on 20q device."""
@@ -160,7 +161,7 @@ class TestSabreLayout(QiskitTestCase):
         circuit.cx(qr1[1], qr0[0])
 
         dag = circuit_to_dag(circuit)
-        target = FakeAlmadenV2().target
+        target = GenericBackendV2(num_qubits=20, coupling_map=self.cmap20).target
         pass_ = SabreLayout(target, seed=0, swap_trials=32, layout_trials=32)
         pass_.run(dag)
 
@@ -194,11 +195,19 @@ measure q4835[0] -> c982[0];
 rz(0) q4835[1];
 """
         )
-        res = transpile(qc, FakeKolkata(), layout_method="sabre", seed_transpiler=1234)
+        backend = GenericBackendV2(
+            num_qubits=27,
+            basis_gates=["id", "rz", "sx", "x", "cx", "reset"],
+            coupling_map=MUMBAI_CMAP,
+            seed=42,
+        )
+        res = transpile(
+            qc, backend, layout_method="sabre", seed_transpiler=1234, optimization_level=1
+        )
         self.assertIsInstance(res, QuantumCircuit)
         layout = res._layout.initial_layout
         self.assertEqual(
-            [layout[q] for q in qc.qubits], [11, 19, 18, 16, 26, 8, 21, 1, 5, 15, 3, 12, 14, 13]
+            [layout[q] for q in qc.qubits], [2, 0, 5, 1, 7, 3, 14, 6, 9, 8, 10, 11, 4, 12]
         )
 
     # pylint: disable=line-too-long
@@ -244,18 +253,86 @@ barrier q18585[0],q18585[3],q18585[7],q18585[4],q18585[1],q18585[8],q18585[6],q1
 barrier q18585[5],q18585[2],q18585[8],q18585[3],q18585[6];
 """
         )
-        res = transpile(
-            qc,
-            FakeMontreal(),
-            layout_method="sabre",
-            routing_method="stochastic",
-            seed_transpiler=12345,
+        backend = GenericBackendV2(
+            num_qubits=27,
+            basis_gates=["id", "rz", "sx", "x", "cx", "reset"],
+            coupling_map=MUMBAI_CMAP,
+            seed=42,
         )
+        with self.assertWarns(DeprecationWarning):
+            res = transpile(
+                qc,
+                backend,
+                layout_method="sabre",
+                routing_method="stochastic",
+                seed_transpiler=12345,
+                optimization_level=1,
+            )
         self.assertIsInstance(res, QuantumCircuit)
         layout = res._layout.initial_layout
         self.assertEqual(
-            [layout[q] for q in qc.qubits], [22, 7, 2, 12, 1, 5, 14, 4, 11, 0, 16, 15, 3, 10]
+            [layout[q] for q in qc.qubits], [0, 12, 7, 3, 6, 11, 1, 10, 4, 9, 2, 5, 13, 8]
         )
+
+    def test_support_var_with_rust_fastpath(self):
+        """Test that the joint layout/embed/routing logic for the Rust-space fast-path works in the
+        presence of standalone `Var` nodes."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Uint(8))
+
+        qc = QuantumCircuit(5, inputs=[a])
+        qc.add_var(b, 12)
+        qc.cx(0, 1)
+        qc.cx(1, 2)
+        qc.cx(2, 3)
+        qc.cx(3, 4)
+        qc.cx(4, 0)
+
+        out = SabreLayout(CouplingMap.from_line(8), seed=0, swap_trials=2, layout_trials=2)(qc)
+
+        self.assertIsInstance(out, QuantumCircuit)
+        self.assertEqual(out.layout.initial_index_layout(), [4, 5, 6, 3, 2, 0, 1, 7])
+
+    def test_support_var_with_explicit_routing_pass(self):
+        """Test that the logic works if an explicit routing pass is given."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Uint(8))
+
+        qc = QuantumCircuit(5, inputs=[a])
+        qc.add_var(b, 12)
+        qc.cx(0, 1)
+        qc.cx(1, 2)
+        qc.cx(2, 3)
+        qc.cx(3, 4)
+        qc.cx(4, 0)
+
+        cm = CouplingMap.from_line(8)
+        with self.assertWarns(DeprecationWarning):
+            pass_ = SabreLayout(
+                cm, seed=0, routing_pass=StochasticSwap(cm, trials=1, seed=0, fake_run=True)
+            )
+            _ = pass_(qc)
+        layout = pass_.property_set["layout"]
+        self.assertEqual([layout[q] for q in qc.qubits], [2, 3, 4, 1, 5])
+
+    @slow_test
+    def test_release_valve_routes_multiple(self):
+        """Test Sabre works if the release valve routes more than 1 operation.
+
+        Regression test of #13081.
+        """
+        qv = quantum_volume(500, seed=42)
+        qv.measure_all()
+        qc = Unroll3qOrMore()(qv)
+
+        cmap = CouplingMap.from_heavy_hex(21)
+        pm = PassManager(
+            [
+                SabreLayout(cmap, swap_trials=20, layout_trials=20, max_iterations=4, seed=100),
+            ]
+        )
+        _ = pm.run(qc)
+        self.assertIsNotNone(pm.property_set.get("layout"))
 
 
 class DensePartialSabreTrial(AnalysisPass):
@@ -317,7 +394,7 @@ class TestDisjointDeviceSabreLayout(QiskitTestCase):
         self.assertEqual([layout[q] for q in qc.qubits], [3, 1, 2, 5, 4, 6, 7, 8])
 
     def test_dual_ghz_with_intermediate_barriers(self):
-        """Test dual ghz circuit with intermediate barriers local to each componennt."""
+        """Test dual ghz circuit with intermediate barriers local to each component."""
         qc = QuantumCircuit(8, name="double dhz")
         qc.h(0)
         qc.cz(0, 1)
@@ -399,7 +476,7 @@ class TestSabrePreLayout(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        circuit = EfficientSU2(16, entanglement="circular", reps=6, flatten=True)
+        circuit = efficient_su2(16, entanglement="circular", reps=6)
         circuit.assign_parameters([math.pi / 2] * len(circuit.parameters), inplace=True)
         circuit.measure_all()
         self.circuit = circuit
@@ -422,14 +499,16 @@ class TestSabrePreLayout(QiskitTestCase):
 
     def test_integration_with_pass_manager(self):
         """Tests SabrePreLayoutIntegration with the rest of PassManager pipeline."""
-        backend = FakeAlmadenV2()
-        pm = generate_preset_pass_manager(1, backend, seed_transpiler=0)
+        backend = GenericBackendV2(num_qubits=20, coupling_map=ALMADEN_CMAP, seed=42)
+        pm = generate_preset_pass_manager(
+            0, backend, layout_method="sabre", routing_method="sabre", seed_transpiler=0
+        )
         pm.pre_layout = PassManager([SabrePreLayout(backend.target)])
         qct = pm.run(self.circuit)
         qct_initial_layout = qct.layout.initial_layout
         self.assertEqual(
             [qct_initial_layout[q] for q in self.circuit.qubits],
-            [1, 6, 5, 10, 11, 12, 16, 17, 18, 13, 14, 9, 8, 3, 2, 0],
+            [3, 8, 7, 12, 13, 14, 18, 17, 16, 11, 10, 5, 6, 1, 2, 4],
         )
 
 

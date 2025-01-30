@@ -15,7 +15,7 @@
 import ddt
 
 import qiskit.qasm2
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt.ddt

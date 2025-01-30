@@ -30,7 +30,7 @@ impl<'a> Position<'a> {
     }
 }
 
-impl<'a> std::fmt::Display for &Position<'a> {
+impl std::fmt::Display for &Position<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
@@ -79,6 +79,4 @@ pub fn message_bad_eof(position: Option<&Position>, required: &str) -> String {
     )
 }
 
-// We define the exception in Python space so it can inherit from QiskitError; it's easier to do
-// that from Python and wrap rather than also needing to import QiskitError to Rust to wrap.
 import_exception!(qiskit.qasm2.exceptions, QASM2ParseError);

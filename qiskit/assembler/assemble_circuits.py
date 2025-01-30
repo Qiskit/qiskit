@@ -12,6 +12,7 @@
 
 """Assemble function for converting a list of circuits into a qobj."""
 import copy
+import warnings
 from collections import defaultdict
 from typing import Dict, List, Optional, Tuple
 
@@ -34,7 +35,8 @@ from qiskit.qobj import (
     converters,
     QobjHeader,
 )
-from qiskit.tools.parallel import parallel_map
+from qiskit.utils.parallel import parallel_map
+from qiskit.utils import deprecate_func
 
 
 PulseLibrary = Dict[str, List[complex]]
@@ -87,20 +89,26 @@ def _assemble_circuit(
     metadata = circuit.metadata
     if metadata is None:
         metadata = {}
-    header = QobjExperimentHeader(
-        qubit_labels=qubit_labels,
-        n_qubits=num_qubits,
-        qreg_sizes=qreg_sizes,
-        clbit_labels=clbit_labels,
-        memory_slots=memory_slots,
-        creg_sizes=creg_sizes,
-        name=circuit.name,
-        global_phase=float(circuit.global_phase),
-        metadata=metadata,
-    )
+    with warnings.catch_warnings():
+        # The class QobjExperimentHeader is deprecated
+        warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+        header = QobjExperimentHeader(
+            qubit_labels=qubit_labels,
+            n_qubits=num_qubits,
+            qreg_sizes=qreg_sizes,
+            clbit_labels=clbit_labels,
+            memory_slots=memory_slots,
+            creg_sizes=creg_sizes,
+            name=circuit.name,
+            global_phase=float(circuit.global_phase),
+            metadata=metadata,
+        )
 
     # TODO: why do we need n_qubits and memory_slots in both the header and the config
-    config = QasmQobjExperimentConfig(n_qubits=num_qubits, memory_slots=memory_slots)
+    with warnings.catch_warnings():
+        # The class QasmQobjExperimentConfig is deprecated
+        warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+        config = QasmQobjExperimentConfig(n_qubits=num_qubits, memory_slots=memory_slots)
     calibrations, pulse_library = _assemble_pulse_gates(circuit, run_config)
     if calibrations:
         config.calibrations = calibrations
@@ -118,7 +126,7 @@ def _assemble_circuit(
 
     instructions = []
     for op_context in circuit.data:
-        instruction = op_context.operation.assemble()
+        instruction = op_context.operation._assemble()
 
         # Add register attributes to the instruction
         qargs = op_context.qubits
@@ -151,13 +159,16 @@ def _assemble_circuit(
                         ]
 
             conditional_reg_idx = memory_slots + max_conditional_idx
-            conversion_bfunc = QasmQobjInstruction(
-                name="bfunc",
-                mask="0x%X" % mask,
-                relation="==",
-                val="0x%X" % val,
-                register=conditional_reg_idx,
-            )
+            with warnings.catch_warnings():
+                # The class QasmQobjInstruction is deprecated
+                warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+                conversion_bfunc = QasmQobjInstruction(
+                    name="bfunc",
+                    mask="0x%X" % mask,  # pylint: disable=consider-using-f-string
+                    relation="==",
+                    val="0x%X" % val,  # pylint: disable=consider-using-f-string
+                    register=conditional_reg_idx,
+                )
             instructions.append(conversion_bfunc)
             instruction.conditional = conditional_reg_idx
             max_conditional_idx += 1
@@ -166,10 +177,13 @@ def _assemble_circuit(
             del instruction._condition
 
         instructions.append(instruction)
-    return (
-        QasmQobjExperiment(instructions=instructions, header=header, config=config),
-        pulse_library,
-    )
+    with warnings.catch_warnings():
+        # The class QasmQobjExperiment is deprecated
+        warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+        return (
+            QasmQobjExperiment(instructions=instructions, header=header, config=config),
+            pulse_library,
+        )
 
 
 def _assemble_pulse_gates(
@@ -299,42 +313,14 @@ def _configure_experiment_los(
     return experiments
 
 
-def assemble_circuits(
+def _assemble_circuits(
     circuits: List[QuantumCircuit], run_config: RunConfig, qobj_id: int, qobj_header: QobjHeader
 ) -> QasmQobj:
-    """Assembles a list of circuits into a qobj that can be run on the backend.
-
-    Args:
-        circuits: circuit(s) to assemble
-        run_config: configuration of the runtime environment
-        qobj_id: identifier for the generated qobj
-        qobj_header: header to pass to the results
-
-    Returns:
-        The qobj to be run on the backends
-
-    Examples:
-
-        .. code-block:: python
-
-            from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
-            from qiskit.assembler import assemble_circuits
-            from qiskit.assembler.run_config import RunConfig
-            # Build a circuit to convert into a Qobj
-            q = QuantumRegister(2)
-            c = ClassicalRegister(2)
-            qc = QuantumCircuit(q, c)
-            qc.h(q[0])
-            qc.cx(q[0], q[1])
-            qc.measure(q, c)
-            # Assemble a Qobj from the input circuit
-            qobj = assemble_circuits(circuits=[qc],
-                                     qobj_id="custom-id",
-                                     qobj_header=[],
-                                     run_config=RunConfig(shots=2000, memory=True, init_qubits=True))
-    """
-    # assemble the circuit experiments
-    experiments_and_pulse_libs = parallel_map(_assemble_circuit, circuits, [run_config])
+    with warnings.catch_warnings():
+        # Still constructs Qobj, that is deprecated. The message is hard to trace to a module,
+        # because concurrency is hard.
+        warnings.filterwarnings("ignore", category=DeprecationWarning)
+        experiments_and_pulse_libs = parallel_map(_assemble_circuit, circuits, [run_config])
     experiments = []
     pulse_library = {}
     for exp, lib in experiments_and_pulse_libs:
@@ -346,10 +332,16 @@ def assemble_circuits(
     experiments, calibrations = _extract_common_calibrations(experiments)
 
     # configure LO freqs per circuit
-    lo_converter = converters.LoConfigConverter(QasmQobjExperimentConfig, **run_config.to_dict())
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+        lo_converter = converters.LoConfigConverter(
+            QasmQobjExperimentConfig, **run_config.to_dict()
+        )
     experiments = _configure_experiment_los(experiments, lo_converter, run_config)
 
-    qobj_config = QasmQobjConfig()
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+        qobj_config = QasmQobjConfig()
     if run_config:
         qobj_config_dict = run_config.to_dict()
 
@@ -379,7 +371,10 @@ def assemble_circuits(
             if m_los:
                 qobj_config_dict["meas_lo_freq"] = [freq / 1e9 for freq in m_los]
 
-        qobj_config = QasmQobjConfig(**qobj_config_dict)
+        with warnings.catch_warnings():
+            # The class QasmQobjConfig is deprecated
+            warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+            qobj_config = QasmQobjConfig(**qobj_config_dict)
 
     qubit_sizes = []
     memory_slot_sizes = []
@@ -402,7 +397,57 @@ def assemble_circuits(
 
     if calibrations and calibrations.gates:
         qobj_config.calibrations = calibrations
+    with warnings.catch_warnings():
+        # The class QasmQobj is deprecated
+        warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+        return QasmQobj(
+            qobj_id=qobj_id, config=qobj_config, experiments=experiments, header=qobj_header
+        )
 
-    return QasmQobj(
-        qobj_id=qobj_id, config=qobj_config, experiments=experiments, header=qobj_header
-    )
+
+@deprecate_func(
+    since="1.2",
+    removal_timeline="in the 2.0 release",
+    additional_msg="The `Qobj` class and related functionality are part of the deprecated `BackendV1` "
+    "workflow,  and no longer necessary for `BackendV2`. If a user workflow requires "
+    "`Qobj` it likely relies on deprecated functionality and should be updated to "
+    "use `BackendV2`.",
+)
+def assemble_circuits(
+    circuits: List[QuantumCircuit], run_config: RunConfig, qobj_id: int, qobj_header: QobjHeader
+) -> QasmQobj:
+    """Assembles a list of circuits into a qobj that can be run on the backend.
+
+    Args:
+        circuits: circuit(s) to assemble
+        run_config: configuration of the runtime environment
+        qobj_id: identifier for the generated qobj
+        qobj_header: header to pass to the results
+
+    Returns:
+        The qobj to be run on the backends
+
+    Examples:
+
+        .. plot::
+           :include-source:
+           :nofigs:
+
+            from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
+            from qiskit.assembler import assemble_circuits
+            from qiskit.assembler.run_config import RunConfig
+            # Build a circuit to convert into a Qobj
+            q = QuantumRegister(2)
+            c = ClassicalRegister(2)
+            qc = QuantumCircuit(q, c)
+            qc.h(q[0])
+            qc.cx(q[0], q[1])
+            qc.measure(q, c)
+            # Assemble a Qobj from the input circuit
+            qobj = assemble_circuits(circuits=[qc],
+                                     qobj_id="custom-id",
+                                     qobj_header=[],
+                                     run_config=RunConfig(shots=2000, memory=True, init_qubits=True))
+    """
+    # assemble the circuit experiments
+    return _assemble_circuits(circuits, run_config, qobj_id, qobj_header)

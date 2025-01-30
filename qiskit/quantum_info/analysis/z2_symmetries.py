@@ -17,6 +17,7 @@ from __future__ import annotations
 import itertools
 from collections.abc import Iterable
 from copy import deepcopy
+import math
 from typing import Union, cast
 
 import numpy as np
@@ -121,7 +122,7 @@ class Z2Symmetries:
             A list of unitaries used to diagonalize the Hamiltonian.
         """
         cliffords = [
-            (SparsePauliOp(pauli_symm) + SparsePauliOp(sq_pauli)) / np.sqrt(2)
+            (SparsePauliOp(pauli_symm) + SparsePauliOp(sq_pauli)) / math.sqrt(2)
             for pauli_symm, sq_pauli in zip(self._symmetries, self._sq_paulis)
         ]
         return cliffords

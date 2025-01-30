@@ -40,10 +40,10 @@ class OptimizeSwapBeforeMeasure(TransformationPass):
 
         swaps = dag.op_nodes(SwapGate)
         for swap in swaps[::-1]:
-            if getattr(swap.op, "condition", None) is not None:
+            if getattr(swap.op, "_condition", None) is not None:
                 continue
             final_successor = []
-            for successor in dag.successors(swap):
+            for successor in dag.descendants(swap):
                 final_successor.append(
                     isinstance(successor, DAGOutNode)
                     or (isinstance(successor, DAGOpNode) and isinstance(successor.op, Measure))
@@ -56,7 +56,7 @@ class OptimizeSwapBeforeMeasure(TransformationPass):
                     measure_layer.add_qreg(qreg)
                 for creg in dag.cregs.values():
                     measure_layer.add_creg(creg)
-                for successor in list(dag.successors(swap)):
+                for successor in list(dag.descendants(swap)):
                     if isinstance(successor, DAGOpNode) and isinstance(successor.op, Measure):
                         # replace measure node with a new one, where qargs is set with the "other"
                         # swap qarg.

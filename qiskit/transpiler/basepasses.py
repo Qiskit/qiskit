@@ -74,7 +74,6 @@ class BasePass(GenericPass, metaclass=MetaPass):
     def __init__(self):
         super().__init__()
         self.preserves: Iterable[GenericPass] = []
-        self.property_set = PropertySet()
         self._hash = hash(None)
 
     def __hash__(self):
@@ -88,7 +87,7 @@ class BasePass(GenericPass, metaclass=MetaPass):
         return hash(self) == hash(other)
 
     @abstractmethod
-    def run(self, dag: DAGCircuit):  # pylint: disable=arguments-differ
+    def run(self, dag: DAGCircuit):  # pylint:disable=arguments-renamed
         """Run a pass on the DAGCircuit. This is implemented by the pass developer.
 
         Args:
@@ -117,21 +116,6 @@ class BasePass(GenericPass, metaclass=MetaPass):
         by this kind of pass.
         """
         return isinstance(self, AnalysisPass)
-
-    def execute(
-        self,
-        passmanager_ir: PassManagerIR,
-        state: PassManagerState,
-        callback: Callable = None,
-    ) -> tuple[PassManagerIR, PassManagerState]:
-        # For backward compatibility.
-        # Circuit passes access self.property_set.
-        self.property_set = state.property_set
-        return super().execute(
-            passmanager_ir=passmanager_ir,
-            state=state,
-            callback=callback,
-        )
 
     def __call__(
         self,
@@ -217,7 +201,7 @@ class TransformationPass(BasePass):  # pylint: disable=abstract-method
         if state.workflow_status.previous_run == RunState.SUCCESS:
             if isinstance(new_dag, DAGCircuit):
                 # Copy calibration data from the original program
-                new_dag.calibrations = passmanager_ir.calibrations
+                new_dag._calibrations_prop = passmanager_ir._calibrations_prop
             else:
                 raise TranspilerError(
                     "Transformation passes should return a transformed dag."

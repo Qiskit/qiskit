@@ -21,9 +21,10 @@ from qiskit.converters import circuit_to_instruction
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Qubit, Clbit, Instruction
 from qiskit.circuit import Parameter
+from qiskit.circuit.classical import expr, types
 from qiskit.quantum_info import Operator
-from qiskit.test import QiskitTestCase
 from qiskit.exceptions import QiskitError
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestCircuitToInstruction(QiskitTestCase):
@@ -55,22 +56,28 @@ class TestCircuitToInstruction(QiskitTestCase):
         cr1 = ClassicalRegister(3, "cr1")
         cr2 = ClassicalRegister(3, "cr2")
         circ = QuantumCircuit(qr1, qr2, cr1, cr2)
-        circ.h(qr1[0]).c_if(cr1[1], True)
-        circ.h(qr2[1]).c_if(cr2[0], False)
-        circ.cx(qr1[1], qr2[2]).c_if(cr2[2], True)
+        with self.assertWarns(DeprecationWarning):
+            circ.h(qr1[0]).c_if(cr1[1], True)
+        with self.assertWarns(DeprecationWarning):
+            circ.h(qr2[1]).c_if(cr2[0], False)
+        with self.assertWarns(DeprecationWarning):
+            circ.cx(qr1[1], qr2[2]).c_if(cr2[2], True)
         circ.measure(qr2[2], cr2[0])
 
-        inst = circuit_to_instruction(circ)
+        with self.assertWarns(DeprecationWarning):
+            inst = circuit_to_instruction(circ)
         q = QuantumRegister(5, "q")
         c = ClassicalRegister(6, "c")
 
         self.assertEqual(inst.definition[0].qubits, (q[0],))
         self.assertEqual(inst.definition[1].qubits, (q[3],))
         self.assertEqual(inst.definition[2].qubits, (q[1], q[4]))
-
-        self.assertEqual(inst.definition[0].operation.condition, (c[1], True))
-        self.assertEqual(inst.definition[1].operation.condition, (c[3], False))
-        self.assertEqual(inst.definition[2].operation.condition, (c[5], True))
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(inst.definition[0].operation.condition, (c[1], True))
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(inst.definition[1].operation.condition, (c[3], False))
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(inst.definition[2].operation.condition, (c[5], True))
 
     def test_flatten_circuit_registerless(self):
         """Test that the conversion works when the given circuit has bits that are not contained in
@@ -195,8 +202,10 @@ class TestCircuitToInstruction(QiskitTestCase):
 
         Regression test of gh-7394."""
         expected = QuantumCircuit([Qubit(), Clbit()])
-        expected.h(0).c_if(expected.clbits[0], 0)
-        test = circuit_to_instruction(expected)
+        with self.assertWarns(DeprecationWarning):
+            expected.h(0).c_if(expected.clbits[0], 0)
+        with self.assertWarns(DeprecationWarning):
+            test = circuit_to_instruction(expected)
 
         self.assertIsInstance(test, Instruction)
         self.assertIsInstance(test.definition, QuantumCircuit)
@@ -205,7 +214,8 @@ class TestCircuitToInstruction(QiskitTestCase):
         test_instruction = test.definition.data[0]
         expected_instruction = expected.data[0]
         self.assertIs(type(test_instruction.operation), type(expected_instruction.operation))
-        self.assertEqual(test_instruction.operation.condition, (test.definition.clbits[0], 0))
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(test_instruction.operation.condition, (test.definition.clbits[0], 0))
 
     def test_zero_operands(self):
         """Test that an instruction can be created, even if it has zero operands."""
@@ -217,6 +227,38 @@ class TestCircuitToInstruction(QiskitTestCase):
         compound = QuantumCircuit(1)
         compound.append(instruction, [], [])
         np.testing.assert_allclose(-np.eye(2), Operator(compound), atol=1e-16)
+
+    def test_forbids_captured_vars(self):
+        """Instructions (here an analogue of functions) cannot close over outer scopes."""
+        qc = QuantumCircuit(captures=[expr.Var.new("a", types.Bool())])
+        with self.assertRaisesRegex(QiskitError, "Circuits that capture variables cannot"):
+            qc.to_instruction()
+
+    def test_forbids_input_vars(self):
+        """This test can be relaxed when we have proper support for the behavior.
+
+        This actually has a natural meaning; the input variables could become typed parameters.
+        We don't have a formal structure for managing that yet, though, so it's forbidden until the
+        library is ready for that."""
+        qc = QuantumCircuit(inputs=[expr.Var.new("a", types.Bool())])
+        with self.assertRaisesRegex(QiskitError, "Circuits with 'input' variables cannot"):
+            qc.to_instruction()
+
+    def test_forbids_declared_vars(self):
+        """This test can be relaxed when we have proper support for the behavior.
+
+        This has a very natural representation, which needs basically zero special handling, since
+        the variables are necessarily entirely internal to the subroutine.  The reason it is
+        starting off as forbidden is because we don't have a good way to support variable renaming
+        during unrolling in transpilation, and we want the error to indicate an alternative at the
+        point the conversion happens."""
+        qc = QuantumCircuit()
+        qc.add_var("a", False)
+        with self.assertRaisesRegex(
+            QiskitError,
+            "Circuits with internal variables.*You may be able to use `QuantumCircuit.compose`",
+        ):
+            qc.to_instruction()
 
 
 if __name__ == "__main__":

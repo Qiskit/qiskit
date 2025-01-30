@@ -1,0 +1,10 @@
+---
+upgrade_providers:
+  - |
+    Changed default value of two arguments (:code:`add_delay` and :code:`filter_faulty`) in
+    the :func:`.convert_to_target` function.
+    This conversion function now adds delay instructions and removes faulty instructions by default.
+fixes:
+  - |
+    Fixed the return of improper measurement schedules when only a subset of qubits was requested.
+    Previously, a measurement schedule for all qubits would be returned.

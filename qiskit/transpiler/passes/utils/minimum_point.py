@@ -44,7 +44,7 @@ class MinimumPoint(TransformationPass):
     Fields used by this pass in the property set are (all relative to the ``prefix``
     argument):
 
-    * ``{prefix}_minimum_point_state`` - Used to track the state of the minimpoint search
+    * ``{prefix}_minimum_point_state`` - Used to track the state of the minimum point search
     * ``{prefix}_minimum_point`` - This value gets set to ``True`` when either a fixed point
         is reached over the ``backtrack_depth`` executions, or ``backtrack_depth`` was exceeded
         and an earlier minimum is restored.

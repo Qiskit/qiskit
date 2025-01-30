@@ -14,16 +14,25 @@ Readout mitigation data handling utils
 """
 
 import logging
+import math
 from typing import Optional, List, Tuple, Dict
 import numpy as np
 
 from qiskit.exceptions import QiskitError
+from qiskit.utils.deprecation import deprecate_func
 from ..utils import marginal_counts
 from ..counts import Counts
 
 logger = logging.getLogger(__name__)
 
 
+@deprecate_func(
+    since="1.3",
+    package_name="Qiskit",
+    removal_timeline="in Qiskit 2.0",
+    additional_msg="The `qiskit.result.mitigation` module is deprecated in favor of "
+    "the https://github.com/Qiskit/qiskit-addon-mthree package.",
+)
 def z_diagonal(dim, dtype=float):
     r"""Return the diagonal for the operator :math:`Z^\otimes n`"""
     parity = np.zeros(dim, dtype=dtype)
@@ -32,6 +41,13 @@ def z_diagonal(dim, dtype=float):
     return (-1) ** np.mod(parity, 2)
 
 
+@deprecate_func(
+    since="1.3",
+    package_name="Qiskit",
+    removal_timeline="in Qiskit 2.0",
+    additional_msg="The `qiskit.result.mitigation` module is deprecated in favor of "
+    "the https://github.com/Qiskit/qiskit-addon-mthree package.",
+)
 def expval_with_stddev(coeffs: np.ndarray, probs: np.ndarray, shots: int) -> Tuple[float, float]:
     """Compute expectation value and standard deviation.
     Args:
@@ -55,19 +71,33 @@ def expval_with_stddev(coeffs: np.ndarray, probs: np.ndarray, shots: int) -> Tup
             "(%f). Setting standard deviation of result to 0.",
             variance,
         )
-    calc_stddev = np.sqrt(variance) if variance > 0 else 0.0
+    calc_stddev = math.sqrt(variance) if variance > 0 else 0.0
     return [expval, calc_stddev]
 
 
+@deprecate_func(
+    since="1.3",
+    package_name="Qiskit",
+    removal_timeline="in Qiskit 2.0",
+    additional_msg="The `qiskit.result.mitigation` module is deprecated in favor of "
+    "the https://github.com/Qiskit/qiskit-addon-mthree package.",
+)
 def stddev(probs, shots):
     """Calculate stddev dict"""
     ret = {}
     for key, prob in probs.items():
-        std_err = np.sqrt(prob * (1 - prob) / shots)
+        std_err = math.sqrt(prob * (1 - prob) / shots)
         ret[key] = std_err
     return ret
 
 
+@deprecate_func(
+    since="1.3",
+    package_name="Qiskit",
+    removal_timeline="in Qiskit 2.0",
+    additional_msg="The `qiskit.result.mitigation` module is deprecated in favor of "
+    "the https://github.com/Qiskit/qiskit-addon-mthree package.",
+)
 def str2diag(string):
     """Transform diagonal from a string to a numpy array"""
     chars = {
@@ -84,6 +114,13 @@ def str2diag(string):
     return ret
 
 
+@deprecate_func(
+    since="1.3",
+    package_name="Qiskit",
+    removal_timeline="in Qiskit 2.0",
+    additional_msg="The `qiskit.result.mitigation` module is deprecated in favor of "
+    "the https://github.com/Qiskit/qiskit-addon-mthree package.",
+)
 def counts_to_vector(counts: Counts, num_qubits: int) -> Tuple[np.ndarray, int]:
     """Transforms Counts to a probability vector"""
     vec = np.zeros(2**num_qubits, dtype=float)
@@ -95,6 +132,13 @@ def counts_to_vector(counts: Counts, num_qubits: int) -> Tuple[np.ndarray, int]:
     return vec, shots
 
 
+@deprecate_func(
+    since="1.3",
+    package_name="Qiskit",
+    removal_timeline="in Qiskit 2.0",
+    additional_msg="The `qiskit.result.mitigation` module is deprecated in favor of "
+    "the https://github.com/Qiskit/qiskit-addon-mthree package.",
+)
 def remap_qubits(
     vec: np.ndarray, num_qubits: int, qubits: Optional[List[int]] = None
 ) -> np.ndarray:
@@ -107,6 +151,13 @@ def remap_qubits(
     return vec
 
 
+@deprecate_func(
+    since="1.3",
+    package_name="Qiskit",
+    removal_timeline="in Qiskit 2.0",
+    additional_msg="The `qiskit.result.mitigation` module is deprecated in favor of "
+    "the https://github.com/Qiskit/qiskit-addon-mthree package.",
+)
 def marganalize_counts(
     counts: Counts,
     qubit_index: Dict[int, int],
@@ -119,9 +170,7 @@ def marganalize_counts(
         clbits_len = len(clbits) if not clbits is None else 0
         if clbits_len not in (0, qubits_len):
             raise QiskitError(
-                "Num qubits ({}) does not match number of clbits ({}).".format(
-                    qubits_len, clbits_len
-                )
+                f"Num qubits ({qubits_len}) does not match number of clbits ({clbits_len})."
             )
         counts = marginal_counts(counts, clbits)
     if clbits is None and qubits is not None:
@@ -130,6 +179,13 @@ def marganalize_counts(
     return counts
 
 
+@deprecate_func(
+    since="1.3",
+    package_name="Qiskit",
+    removal_timeline="in Qiskit 2.0",
+    additional_msg="The `qiskit.result.mitigation` module is deprecated in favor of "
+    "the https://github.com/Qiskit/qiskit-addon-mthree package.",
+)
 def counts_probability_vector(
     counts: Counts,
     qubit_index: Dict[int, int],

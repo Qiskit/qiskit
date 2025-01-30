@@ -12,15 +12,17 @@
 
 """The Lie-Trotter product formula."""
 
-from typing import Callable, Optional, Union, Dict, Any
-import numpy as np
+from __future__ import annotations
+
+from collections.abc import Callable
+from typing import Any
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.quantum_info.operators import SparsePauliOp, Pauli
 
-from .product_formula import ProductFormula
+from .suzuki_trotter import SuzukiTrotter
 
 
-class LieTrotter(ProductFormula):
+class LieTrotter(SuzukiTrotter):
     r"""The Lie-Trotter product formula.
 
     The Lie-Trotter formula approximates the exponential of two non-commuting operators
@@ -35,7 +37,7 @@ class LieTrotter(ProductFormula):
 
     .. math::
 
-        e^{-it(XX + ZZ)} = e^{-it XX}e^{-it ZZ} + \mathcal{O}(t^2).
+        e^{-it(XI + ZZ)} = e^{-it XI}e^{-it ZZ} + \mathcal{O}(t^2).
 
     References:
 
@@ -52,57 +54,48 @@ class LieTrotter(ProductFormula):
         reps: int = 1,
         insert_barriers: bool = False,
         cx_structure: str = "chain",
-        atomic_evolution: Optional[
-            Callable[[Union[Pauli, SparsePauliOp], float], QuantumCircuit]
-        ] = None,
+        atomic_evolution: (
+            Callable[[Pauli | SparsePauliOp, float], QuantumCircuit]
+            | Callable[[QuantumCircuit, Pauli | SparsePauliOp, float], None]
+            | None
+        ) = None,
+        wrap: bool = False,
+        preserve_order: bool = True,
     ) -> None:
         """
         Args:
             reps: The number of time steps.
             insert_barriers: Whether to insert barriers between the atomic evolutions.
             cx_structure: How to arrange the CX gates for the Pauli evolutions, can be
-                "chain", where next neighbor connections are used, or "fountain", where all
-                qubits are connected to one.
-            atomic_evolution: A function to construct the circuit for the evolution of single
-                Pauli string. Per default, a single Pauli evolution is decomposed in a CX chain
-                and a single qubit Z rotation.
+                ``"chain"``, where next neighbor connections are used, or ``"fountain"``,
+                where all qubits are connected to one. This only takes effect when
+                ``atomic_evolution is None``.
+            atomic_evolution: A function to apply the evolution of a single :class:`.Pauli`, or
+                :class:`.SparsePauliOp` of only commuting terms, to a circuit. The function takes in
+                three arguments: the circuit to append the evolution to, the Pauli operator to
+                evolve, and the evolution time. By default, a single Pauli evolution is decomposed
+                into a chain of ``CX`` gates and a single ``RZ`` gate.
+                Alternatively, the function can also take Pauli operator and evolution time as
+                inputs and returns the circuit that will be appended to the overall circuit being
+                built.
+            wrap: Whether to wrap the atomic evolutions into custom gate objects. This only takes
+                effect when ``atomic_evolution is None``.
+            preserve_order: If ``False``, allows reordering the terms of the operator to
+                potentially yield a shallower evolution circuit. Not relevant
+                when synthesizing operator with a single term.
         """
-        super().__init__(1, reps, insert_barriers, cx_structure, atomic_evolution)
-
-    def synthesize(self, evolution):
-        # get operators and time to evolve
-        operators = evolution.operator
-        time = evolution.time
-
-        # construct the evolution circuit
-        evolution_circuit = QuantumCircuit(operators[0].num_qubits)
-        first_barrier = False
-
-        if not isinstance(operators, list):
-            pauli_list = [(Pauli(op), np.real(coeff)) for op, coeff in operators.to_list()]
-        else:
-            pauli_list = [(op, 1) for op in operators]
-
-        # if we only evolve a single Pauli we don't need to additionally wrap it
-        wrap = not (len(pauli_list) == 1 and self.reps == 1)
-
-        for _ in range(self.reps):
-            for op, coeff in pauli_list:
-                # add barriers
-                if first_barrier:
-                    if self.insert_barriers:
-                        evolution_circuit.barrier()
-                else:
-                    first_barrier = True
-
-                evolution_circuit.compose(
-                    self.atomic_evolution(op, coeff * time / self.reps), wrap=wrap, inplace=True
-                )
-
-        return evolution_circuit
+        super().__init__(
+            1,
+            reps,
+            insert_barriers,
+            cx_structure,
+            atomic_evolution,
+            wrap,
+            preserve_order=preserve_order,
+        )
 
     @property
-    def settings(self) -> Dict[str, Any]:
+    def settings(self) -> dict[str, Any]:
         """Return the settings in a dictionary, which can be used to reconstruct the object.
 
         Returns:
@@ -120,4 +113,5 @@ class LieTrotter(ProductFormula):
             "reps": self.reps,
             "insert_barriers": self.insert_barriers,
             "cx_structure": self._cx_structure,
+            "wrap": self._wrap,
         }

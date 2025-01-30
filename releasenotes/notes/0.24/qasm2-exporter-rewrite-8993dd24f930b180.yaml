@@ -21,7 +21,7 @@ fixes:
     `#7769 <https://github.com/Qiskit/qiskit-terra/issues/7769>`__ and
     `#7773 <https://github.com/Qiskit/qiskit-terra/issues/7773>`__.
   - |
-    Standard gates defined by Qiskit, such as :class:`.RZXGate`, will now have properly parametrised
+    Standard gates defined by Qiskit, such as :class:`.RZXGate`, will now have properly parametrized
     definitions when exported using the OpenQASM 2 exporter (:meth:`.QuantumCircuit.qasm`). See
     `#7172 <https://github.com/Qiskit/qiskit-terra/issues/7172>`__.
   - |

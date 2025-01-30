@@ -19,7 +19,6 @@ import itertools
 
 from qiskit.circuit.exceptions import CircuitError
 
-from qiskit.utils.deprecation import deprecate_func
 from .register import Register
 from .bit import Bit
 
@@ -44,7 +43,7 @@ class Clbit(Bit):
             super().__init__(register, index)
         else:
             raise CircuitError(
-                "Clbit needs a ClassicalRegister and %s was provided" % type(register).__name__
+                f"Clbit needs a ClassicalRegister and {type(register).__name__} was provided"
             )
 
 
@@ -56,15 +55,3 @@ class ClassicalRegister(Register):
     # Prefix to use for auto naming.
     prefix = "c"
     bit_type = Clbit
-
-    @deprecate_func(
-        additional_msg=(
-            "Correct exporting to OpenQASM 2 is the responsibility of a larger exporter; it cannot "
-            "safely be done on an object-by-object basis without context. No replacement will be "
-            "provided, because the premise is wrong."
-        ),
-        since="0.23.0",
-    )
-    def qasm(self):
-        """Return OPENQASM string for this register."""
-        return "creg %s[%d];" % (self.name, self.size)

@@ -10,10 +10,12 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """Tests .utils.get_truthtable_from_function function"""
+
 import unittest
 
-from qiskit.test import QiskitTestCase
 from qiskit.utils.optionals import HAS_TWEEDLEDUM
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
+
 from .utils import get_truthtable_from_function
 from . import examples
 

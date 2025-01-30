@@ -2,6 +2,6 @@
 fixes:
   - |
     Fixes a case in :meth:`qiskit.result.Result.get_counts`, where the results
-    for an expirement could not be referenced if the experiment was initialized
+    for an experiment could not be referenced if the experiment was initialized
     as a Schedule without a name. Fixes
     `#2753 <https://github.com/Qiskit/qiskit-terra/issues/2753>`_

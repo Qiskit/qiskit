@@ -17,8 +17,9 @@ from collections import defaultdict
 from qiskit.circuit import Gate, QuantumCircuit, Qubit
 from qiskit.converters import circuit_to_dag
 from qiskit.dagcircuit import DAGCircuit, DAGOpNode
-from qiskit.transpiler import TransformationPass, Layout, TranspilerError
-
+from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.passes.routing.commuting_2q_gate_routing.swap_strategy import SwapStrategy
 from qiskit.transpiler.passes.routing.commuting_2q_gate_routing.commuting_2q_block import (
     Commuting2qBlock,
@@ -33,14 +34,14 @@ class Commuting2qGateRouter(TransformationPass):
     The mapping to the coupling map is done using swap strategies, see :class:`.SwapStrategy`.
     The swap strategy should suit the problem and the coupling map. This transpiler pass
     should ideally be executed before the quantum circuit is enlarged with any idle ancilla
-    qubits. Otherwise we may swap qubits outside of the portion of the chip we want to use.
+    qubits. Otherwise, we may swap qubits outside the portion of the chip we want to use.
     Therefore, the swap strategy and its associated coupling map do not represent physical
     qubits. Instead, they represent an intermediate mapping that corresponds to the physical
     qubits once the initial layout is applied. The example below shows how to map a four
     qubit :class:`.PauliEvolutionGate` to qubits 0, 1, 3, and 4 of the five qubit device with
     the coupling map
 
-    .. parsed-literal::
+    .. code-block:: text
 
         0 -- 1 -- 2
              |
@@ -51,11 +52,13 @@ class Commuting2qGateRouter(TransformationPass):
     To do this we use a line swap strategy for qubits 0, 1, 3, and 4 defined it in terms
     of virtual qubits 0, 1, 2, and 3.
 
-    .. code-block:: python
+    .. plot::
+       :include-source:
+       :nofigs:
 
         from qiskit import QuantumCircuit
-        from qiskit.opflow import PauliSumOp
         from qiskit.circuit.library import PauliEvolutionGate
+        from qiskit.quantum_info import SparsePauliOp
         from qiskit.transpiler import Layout, CouplingMap, PassManager
         from qiskit.transpiler.passes import FullAncillaAllocation
         from qiskit.transpiler.passes import EnlargeWithAncilla
@@ -69,7 +72,7 @@ class Commuting2qGateRouter(TransformationPass):
         )
 
         # Define the circuit on virtual qubits
-        op = PauliSumOp.from_list([("IZZI", 1), ("ZIIZ", 2), ("ZIZI", 3)])
+        op = SparsePauliOp.from_list([("IZZI", 1), ("ZIIZ", 2), ("ZIZI", 3)])
         circ = QuantumCircuit(4)
         circ.append(PauliEvolutionGate(op, 1), range(4))
 
@@ -111,7 +114,7 @@ class Commuting2qGateRouter(TransformationPass):
         Args:
             swap_strategy: An instance of a :class:`.SwapStrategy` that holds the swap layers
                 that are used, and the order in which to apply them, to map the instruction to
-                the hardware. If this field is not given if should be contained in the
+                the hardware. If this field is not given, it should be contained in the
                 property set of the pass. This allows other passes to determine the most
                 appropriate swap strategy at run-time.
             edge_coloring: An optional edge coloring of the coupling map (I.e. no two edges that
@@ -160,8 +163,13 @@ class Commuting2qGateRouter(TransformationPass):
         if len(dag.qubits) != next(iter(dag.qregs.values())).size:
             raise TranspilerError("Circuit has qubits not contained in the qubit register.")
 
-        new_dag = dag.copy_empty_like()
+        # Fix output permutation -- copied from ElidePermutations
+        input_qubit_mapping = {qubit: index for index, qubit in enumerate(dag.qubits)}
+        self.property_set["original_layout"] = Layout(input_qubit_mapping)
+        if self.property_set["original_qubit_indices"] is None:
+            self.property_set["original_qubit_indices"] = input_qubit_mapping
 
+        new_dag = dag.copy_empty_like()
         current_layout = Layout.generate_trivial_layout(*dag.qregs.values())
 
         # Used to keep track of nodes that do not decompose using swap strategies.
@@ -182,6 +190,8 @@ class Commuting2qGateRouter(TransformationPass):
                 accumulator.apply_operation_back(node.op, node.qargs, node.cargs)
 
         self._compose_non_swap_nodes(accumulator, current_layout, new_dag)
+
+        self.property_set["virtual_permutation_layout"] = current_layout
 
         return new_dag
 

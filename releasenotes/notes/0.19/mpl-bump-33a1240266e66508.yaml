@@ -10,5 +10,5 @@ upgrade:
     deprecated the use of APIs around 3D visualizations that were compatible
     with older releases and second installing older versions of Matplotlib
     was becoming increasingly difficult as matplotlib's upstream dependencies
-    have caused incompatiblities that made testing moving forward more
+    have caused incompatibilities that made testing moving forward more
     difficult.

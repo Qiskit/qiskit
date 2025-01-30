@@ -15,22 +15,26 @@
 """Test Qiskit's Instruction class."""
 
 import unittest.mock
-
 import numpy as np
 
-from qiskit.circuit import Gate
-from qiskit.circuit import Parameter
-from qiskit.circuit import Instruction, InstructionSet
-from qiskit.circuit import QuantumCircuit
-from qiskit.circuit import QuantumRegister, ClassicalRegister, Qubit, Clbit
-from qiskit.circuit.library.standard_gates.h import HGate
-from qiskit.circuit.library.standard_gates.rz import RZGate
-from qiskit.circuit.library.standard_gates.x import CXGate
-from qiskit.circuit.library.standard_gates.s import SGate
-from qiskit.circuit.library.standard_gates.t import TGate
-from qiskit.test import QiskitTestCase
+from qiskit.circuit import (
+    Gate,
+    Parameter,
+    Instruction,
+    InstructionSet,
+    QuantumCircuit,
+    QuantumRegister,
+    ClassicalRegister,
+    Qubit,
+    Clbit,
+    IfElseOp,
+)
+from qiskit.circuit.library import HGate, RZGate, CXGate, SGate, SdgGate, TGate
+from qiskit.circuit.annotated_operation import AnnotatedOperation
+from qiskit.circuit.classical import expr
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.random import random_circuit
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestInstructions(QiskitTestCase):
@@ -114,6 +118,12 @@ class TestInstructions(QiskitTestCase):
             Instruction("u", 1, 0, [0.4, phi]).soft_compare(Instruction("v", 1, 0, [theta, phi]))
         )
 
+        # Test that when names are the same but number of qubits differ we get False
+        self.assertFalse(Instruction("u", 1, 0, []).soft_compare(Instruction("u", 2, 0, [])))
+
+        # Test that when names are the same but number of clbits differ we get False
+        self.assertFalse(Instruction("u", 1, 0, []).soft_compare(Instruction("u", 1, 1, [])))
+
         # Test cutoff precision.
         self.assertFalse(
             Instruction("v", 1, 0, [0.401, phi]).soft_compare(Instruction("v", 1, 0, [0.4, phi]))
@@ -166,7 +176,8 @@ class TestInstructions(QiskitTestCase):
         circ1.u(0.1, 0.2, -0.2, q[0])
         circ1.barrier()
         circ1.measure(q, c)
-        circ1.rz(0.8, q[0]).c_if(c, 6)
+        with self.assertWarns(DeprecationWarning):
+            circ1.rz(0.8, q[0]).c_if(c, 6)
         inst = circ1.to_instruction()
 
         circ2 = QuantumCircuit(q, c, name="circ2")
@@ -228,16 +239,20 @@ class TestInstructions(QiskitTestCase):
         circ.u(0.1, 0.2, -0.2, q[0])
         circ.barrier()
         circ.measure(q[0], c[0])
-        circ.rz(0.8, q[0]).c_if(c, 6)
-        inst = circ.to_instruction()
+        with self.assertWarns(DeprecationWarning):
+            circ.rz(0.8, q[0]).c_if(c, 6)
+        with self.assertWarns(DeprecationWarning):
+            inst = circ.to_instruction()
 
         circ = QuantumCircuit(q, c, name="circ")
-        circ.rz(0.8, q[0]).c_if(c, 6)
+        with self.assertWarns(DeprecationWarning):
+            circ.rz(0.8, q[0]).c_if(c, 6)
         circ.measure(q[0], c[0])
         circ.barrier()
         circ.u(0.1, 0.2, -0.2, q[0])
         circ.t(q[1])
-        inst_reverse = circ.to_instruction()
+        with self.assertWarns(DeprecationWarning):
+            inst_reverse = circ.to_instruction()
 
         self.assertEqual(inst.reverse_ops().definition, inst_reverse.definition)
 
@@ -326,8 +341,10 @@ class TestInstructions(QiskitTestCase):
         circ.u(0.1, 0.2, -0.2, q[0])
         circ.barrier()
         circ.measure(q[0], c[0])
-        circ.rz(0.8, q[0]).c_if(c, 6)
-        inst = circ.to_instruction()
+        with self.assertWarns(DeprecationWarning):
+            circ.rz(0.8, q[0]).c_if(c, 6)
+        with self.assertWarns(DeprecationWarning):
+            inst = circ.to_instruction()
         self.assertRaises(CircuitError, inst.inverse)
 
     def test_inverse_opaque(self):
@@ -413,18 +430,41 @@ class TestInstructions(QiskitTestCase):
         ins1 = Instruction("test_instruction", 3, 5, [0, 1, 2, 3])
         self.assertEqual(
             repr(ins1),
-            "Instruction(name='{}', num_qubits={}, num_clbits={}, params={})".format(
-                ins1.name, ins1.num_qubits, ins1.num_clbits, ins1.params
-            ),
+            f"Instruction(name='{ins1.name}', num_qubits={ins1.num_qubits}, "
+            f"num_clbits={ins1.num_clbits}, params={ins1.params})",
         )
 
         ins2 = random_circuit(num_qubits=4, depth=4, measure=True).to_instruction()
         self.assertEqual(
             repr(ins2),
-            "Instruction(name='{}', num_qubits={}, num_clbits={}, params={})".format(
-                ins2.name, ins2.num_qubits, ins2.num_clbits, ins2.params
-            ),
+            f"Instruction(name='{ins2.name}', num_qubits={ins2.num_qubits}, "
+            f"num_clbits={ins2.num_clbits}, params={ins2.params})",
         )
+
+    def test_instruction_condition_bits(self):
+        """Test that the ``condition_bits`` property behaves correctly until it is deprecated and
+        removed."""
+        bits = [Clbit(), Clbit()]
+        cr1 = ClassicalRegister(2, "cr1")
+        cr2 = ClassicalRegister(2, "cr2")
+        body = QuantumCircuit(cr1, cr2, bits)
+
+        def key(bit):
+            return body.find_bit(bit).index
+
+        op = IfElseOp((bits[0], False), body)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(op.condition_bits, [bits[0]])
+
+        op = IfElseOp((cr1, 3), body)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(op.condition_bits, list(cr1))
+
+        op = IfElseOp(expr.logic_and(bits[1], expr.equal(cr2, 3)), body)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(
+                sorted(op.condition_bits, key=key), sorted([bits[1]] + list(cr2), key=key)
+            )
 
     def test_instructionset_c_if_direct_resource(self):
         """Test that using :meth:`.InstructionSet.c_if` with an exact classical resource always
@@ -439,8 +479,10 @@ class TestInstructions(QiskitTestCase):
 
         def case(resource):
             qc = QuantumCircuit(cr1, qubits, loose_clbits, cr2, cr3)
-            qc.x(0).c_if(resource, 0)
-            c_if_resource = qc.data[0].operation.condition[0]
+            with self.assertWarns(DeprecationWarning):
+                qc.x(0).c_if(resource, 0)
+            with self.assertWarns(DeprecationWarning):
+                c_if_resource = qc.data[0].operation.condition[0]
             self.assertIs(c_if_resource, resource)
 
         with self.subTest("classical register"):
@@ -472,9 +514,11 @@ class TestInstructions(QiskitTestCase):
         qc = QuantumCircuit(cr1, qubits, loose_clbits, cr2, cr3)
         for index, clbit in enumerate(qc.clbits):
             with self.subTest(index=index):
-                qc.x(0).c_if(index, 0)
+                with self.assertWarns(DeprecationWarning):
+                    qc.x(0).c_if(index, 0)
                 qc.measure(0, index)
-                from_c_if = qc.data[-2].operation.condition[0]
+                with self.assertWarns(DeprecationWarning):
+                    from_c_if = qc.data[-2].operation.condition[0]
                 from_measure = qc.data[-1].clbits[0]
                 self.assertIs(from_c_if, from_measure)
                 # Sanity check that the bit is also the one we expected.
@@ -488,14 +532,20 @@ class TestInstructions(QiskitTestCase):
         qc = QuantumCircuit(qr, cr)
 
         with self.subTest("classical register"):
-            qc.x(0).c_if(cr, 0)
-            self.assertIs(qc.data[-1].operation.condition[0], cr)
+            with self.assertWarns(DeprecationWarning):
+                qc.x(0).c_if(cr, 0)
+            with self.assertWarns(DeprecationWarning):
+                self.assertIs(qc.data[-1].operation.condition[0], cr)
         with self.subTest("classical bit by value"):
-            qc.x(0).c_if(cr[0], 0)
-            self.assertIs(qc.data[-1].operation.condition[0], cr[0])
+            with self.assertWarns(DeprecationWarning):
+                qc.x(0).c_if(cr[0], 0)
+            with self.assertWarns(DeprecationWarning):
+                self.assertIs(qc.data[-1].operation.condition[0], cr[0])
         with self.subTest("classical bit by index"):
-            qc.x(0).c_if(0, 0)
-            self.assertIs(qc.data[-1].operation.condition[0], cr[0])
+            with self.assertWarns(DeprecationWarning):
+                qc.x(0).c_if(0, 0)
+            with self.assertWarns(DeprecationWarning):
+                self.assertIs(qc.data[-1].operation.condition[0], cr[0])
 
     def test_instructionset_c_if_no_classical_registers(self):
         """Test that using :meth:`.InstructionSet.c_if` works if there are no classical registers
@@ -505,11 +555,15 @@ class TestInstructions(QiskitTestCase):
         bits = [Qubit(), Clbit()]
         qc = QuantumCircuit(bits)
         with self.subTest("by value"):
-            qc.x(0).c_if(bits[1], 0)
-            self.assertIs(qc.data[-1].operation.condition[0], bits[1])
+            with self.assertWarns(DeprecationWarning):
+                qc.x(0).c_if(bits[1], 0)
+            with self.assertWarns(DeprecationWarning):
+                self.assertIs(qc.data[-1].operation.condition[0], bits[1])
         with self.subTest("by index"):
-            qc.x(0).c_if(0, 0)
-            self.assertIs(qc.data[-1].operation.condition[0], bits[1])
+            with self.assertWarns(DeprecationWarning):
+                qc.x(0).c_if(0, 0)
+            with self.assertWarns(DeprecationWarning):
+                self.assertIs(qc.data[-1].operation.condition[0], bits[1])
 
     def test_instructionset_c_if_rejects_invalid_specifiers(self):
         """Test that calling the :meth:`.InstructionSet.c_if` method on instructions added to a
@@ -522,7 +576,8 @@ class TestInstructions(QiskitTestCase):
             qc = QuantumCircuit(qreg, creg)
             instruction = qc.x(0)
             with self.assertRaisesRegex(CircuitError, message):
-                instruction.c_if(specifier, 0)
+                with self.assertWarns(DeprecationWarning):
+                    instruction.c_if(specifier, 0)
 
         with self.subTest("absent bit"):
             case(Clbit(), r"Clbit .* is not present in this circuit\.")
@@ -538,7 +593,7 @@ class TestInstructions(QiskitTestCase):
             case(1.0, r"Unknown classical resource specifier: .*")
 
     def test_instructionset_c_if_with_no_requester(self):
-        """Test that using a raw :obj:`.InstructionSet` with no classical-resource resoluer accepts
+        """Test that using a raw :obj:`.InstructionSet` with no classical-resource resolver accepts
         arbitrary :obj:`.Clbit` and `:obj:`.ClassicalRegister` instances, but rejects integers."""
 
         with self.subTest("accepts arbitrary register"):
@@ -546,21 +601,26 @@ class TestInstructions(QiskitTestCase):
             instructions = InstructionSet()
             instructions.add(instruction, [Qubit()], [])
             register = ClassicalRegister(2)
-            instructions.c_if(register, 0)
-            self.assertIs(instruction.condition[0], register)
+            with self.assertWarns(DeprecationWarning):
+                instructions.c_if(register, 0)
+            with self.assertWarns(DeprecationWarning):
+                self.assertIs(instructions[0].operation.condition[0], register)
         with self.subTest("accepts arbitrary bit"):
             instruction = RZGate(0)
             instructions = InstructionSet()
             instructions.add(instruction, [Qubit()], [])
             bit = Clbit()
-            instructions.c_if(bit, 0)
-            self.assertIs(instruction.condition[0], bit)
+            with self.assertWarns(DeprecationWarning):
+                instructions.c_if(bit, 0)
+            with self.assertWarns(DeprecationWarning):
+                self.assertIs(instructions[0].operation.condition[0], bit)
         with self.subTest("rejects index"):
             instruction = RZGate(0)
             instructions = InstructionSet()
             instructions.add(instruction, [Qubit()], [])
             with self.assertRaisesRegex(CircuitError, r"Cannot pass an index as a condition .*"):
-                instructions.c_if(0, 0)
+                with self.assertWarns(DeprecationWarning):
+                    instructions.c_if(0, 0)
 
     def test_instructionset_c_if_calls_custom_requester(self):
         """Test that :meth:`.InstructionSet.c_if` calls a custom requester, and uses its output."""
@@ -585,27 +645,33 @@ class TestInstructions(QiskitTestCase):
             instructions = InstructionSet(resource_requester=dummy_requester)
             instructions.add(instruction, [Qubit()], [])
             bit = Clbit()
-            instructions.c_if(bit, 0)
+            with self.assertWarns(DeprecationWarning):
+                instructions.c_if(bit, 0)
             dummy_requester.assert_called_once_with(bit)
-            self.assertIs(instruction.condition[0], sentinel_bit)
+            with self.assertWarns(DeprecationWarning):
+                self.assertIs(instructions[0].operation.condition[0], sentinel_bit)
         with self.subTest("calls requester with index"):
             dummy_requester.reset_mock()
             instruction = RZGate(0)
             instructions = InstructionSet(resource_requester=dummy_requester)
             instructions.add(instruction, [Qubit()], [])
             index = 0
-            instructions.c_if(index, 0)
+            with self.assertWarns(DeprecationWarning):
+                instructions.c_if(index, 0)
             dummy_requester.assert_called_once_with(index)
-            self.assertIs(instruction.condition[0], sentinel_bit)
+            with self.assertWarns(DeprecationWarning):
+                self.assertIs(instructions[0].operation.condition[0], sentinel_bit)
         with self.subTest("calls requester with register"):
             dummy_requester.reset_mock()
             instruction = RZGate(0)
             instructions = InstructionSet(resource_requester=dummy_requester)
             instructions.add(instruction, [Qubit()], [])
             register = ClassicalRegister(2)
-            instructions.c_if(register, 0)
+            with self.assertWarns(DeprecationWarning):
+                instructions.c_if(register, 0)
             dummy_requester.assert_called_once_with(register)
-            self.assertIs(instruction.condition[0], sentinel_register)
+            with self.assertWarns(DeprecationWarning):
+                self.assertIs(instructions[0].operation.condition[0], sentinel_register)
         with self.subTest("calls requester only once when broadcast"):
             dummy_requester.reset_mock()
             instruction_list = [RZGate(0), RZGate(0), RZGate(0)]
@@ -613,10 +679,12 @@ class TestInstructions(QiskitTestCase):
             for instruction in instruction_list:
                 instructions.add(instruction, [Qubit()], [])
             register = ClassicalRegister(2)
-            instructions.c_if(register, 0)
+            with self.assertWarns(DeprecationWarning):
+                instructions.c_if(register, 0)
             dummy_requester.assert_called_once_with(register)
             for instruction in instruction_list:
-                self.assertIs(instruction.condition[0], sentinel_register)
+                with self.assertWarns(DeprecationWarning):
+                    self.assertIs(instructions[0].operation.condition[0], sentinel_register)
 
     def test_label_type_enforcement(self):
         """Test instruction label type enforcement."""
@@ -631,14 +699,35 @@ class TestInstructions(QiskitTestCase):
                 instruction = RZGate(0)
                 instruction.label = 0
 
-    def test_deprecation_warnings_qasm_methods(self):
-        """Test deprecation warnings for qasm methods."""
-        with self.subTest("built in gates"):
-            with self.assertWarnsRegex(DeprecationWarning, r"Correct exporting to OpenQASM 2"):
-                HGate().qasm()
-        with self.subTest("User constructed Instruction"):
-            with self.assertWarnsRegex(DeprecationWarning, r"Correct exporting to OpenQASM 2"):
-                Instruction("v", 1, 0, [0.4, 0.5, 0.5]).qasm()
+
+class TestInverseAnnotatedGate(QiskitTestCase):
+    """Tests for inverse gates and the AnnotatedOperation class."""
+
+    def test_inverse_cx(self):
+        """Test creation of inverse CX gate"""
+        gate = CXGate().inverse(annotated=False)
+        self.assertIsInstance(gate, CXGate)
+        gate = CXGate().inverse(annotated=True)
+        self.assertIsInstance(gate, CXGate)
+
+    def test_inverse_s(self):
+        """Test creation of inverse S gate"""
+        gate = SGate().inverse(annotated=False)
+        self.assertIsInstance(gate, SdgGate)
+        gate = SGate().inverse(annotated=True)
+        self.assertIsInstance(gate, SdgGate)
+
+    def test_inverse_custom(self):
+        """Test creation of inverse custom gate"""
+        circ = QuantumCircuit(2)
+        circ.cx(0, 1)
+        circ.h(0)
+        gate = circ.to_instruction()
+        self.assertIsInstance(gate, Instruction)
+        inverse_gate = gate.inverse(annotated=False)
+        self.assertIsInstance(inverse_gate, Instruction)
+        inverse_gate = gate.inverse(annotated=True)
+        self.assertIsInstance(inverse_gate, AnnotatedOperation)
 
 
 if __name__ == "__main__":

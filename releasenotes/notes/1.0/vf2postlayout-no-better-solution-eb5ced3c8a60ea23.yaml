@@ -1,0 +1,7 @@
+---
+features_transpiler:
+  - |
+    :class:`.VF2PostLayout` now distinguishes between 'no solution' and 'no better solution' when
+    determining a :class:`.Layout` for a given quantum circuit. 'no better solution' is set when the
+    initial layout of a quantum circuit is also the optimal one, i.e. incurs the least cost in terms of
+    error rates.

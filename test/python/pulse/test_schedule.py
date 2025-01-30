@@ -45,13 +45,16 @@ from qiskit.pulse.channels import (
 )
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.schedule import Schedule, _overlaps, _find_insertion_index
-from qiskit.test import QiskitTestCase
 from qiskit.providers.fake_provider import FakeOpenPulse2Q
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from qiskit.utils.deprecate_pulse import decorate_test_methods, ignore_pulse_deprecation_warnings
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class BaseTestSchedule(QiskitTestCase):
     """Schedule tests."""
 
+    @ignore_pulse_deprecation_warnings
     def setUp(self):
         super().setUp()
 
@@ -61,9 +64,11 @@ class BaseTestSchedule(QiskitTestCase):
             return slope * x + intercept
 
         self.linear = linear
-        self.config = FakeOpenPulse2Q().configuration()
+        with self.assertWarns(DeprecationWarning):
+            self.config = FakeOpenPulse2Q().configuration()
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestScheduleBuilding(BaseTestSchedule):
     """Test construction of schedules."""
 
@@ -117,8 +122,8 @@ class TestScheduleBuilding(BaseTestSchedule):
 
     def test_can_create_valid_schedule(self):
         """Test valid schedule creation without error."""
-        gp0 = library.gaussian(duration=20, amp=0.7, sigma=3)
-        gp1 = library.gaussian(duration=20, amp=0.7, sigma=3)
+        gp0 = library.Gaussian(duration=20, amp=0.7, sigma=3)
+        gp1 = library.Gaussian(duration=20, amp=0.7, sigma=3)
 
         sched = Schedule()
         sched = sched.append(Play(gp0, self.config.drive(0)))
@@ -147,8 +152,8 @@ class TestScheduleBuilding(BaseTestSchedule):
     def test_can_create_valid_schedule_with_syntax_sugar(self):
         """Test that in place operations on schedule are still immutable
         and return equivalent schedules."""
-        gp0 = library.gaussian(duration=20, amp=0.7, sigma=3)
-        gp1 = library.gaussian(duration=20, amp=0.5, sigma=3)
+        gp0 = library.Gaussian(duration=20, amp=0.7, sigma=3)
+        gp1 = library.Gaussian(duration=20, amp=0.5, sigma=3)
 
         sched = Schedule()
         sched += Play(gp0, self.config.drive(0))
@@ -162,8 +167,8 @@ class TestScheduleBuilding(BaseTestSchedule):
 
     def test_immutability(self):
         """Test that operations are immutable."""
-        gp0 = library.gaussian(duration=100, amp=0.7, sigma=3)
-        gp1 = library.gaussian(duration=20, amp=0.5, sigma=3)
+        gp0 = library.Gaussian(duration=100, amp=0.7, sigma=3)
+        gp1 = library.Gaussian(duration=20, amp=0.5, sigma=3)
 
         sched = Play(gp1, self.config.drive(0)) << 100
         # if schedule was mutable the next two sequences would overlap and an error
@@ -173,8 +178,8 @@ class TestScheduleBuilding(BaseTestSchedule):
 
     def test_inplace(self):
         """Test that in place operations on schedule are still immutable."""
-        gp0 = library.gaussian(duration=100, amp=0.7, sigma=3)
-        gp1 = library.gaussian(duration=20, amp=0.5, sigma=3)
+        gp0 = library.Gaussian(duration=100, amp=0.7, sigma=3)
+        gp1 = library.Gaussian(duration=20, amp=0.5, sigma=3)
 
         sched = Schedule()
         sched = sched + Play(gp1, self.config.drive(0))
@@ -300,7 +305,7 @@ class TestScheduleBuilding(BaseTestSchedule):
 
     def test_name_inherited(self):
         """Test that schedule keeps name if an instruction is added."""
-        gp0 = library.gaussian(duration=100, amp=0.7, sigma=3, name="pulse_name")
+        gp0 = library.Gaussian(duration=100, amp=0.7, sigma=3, name="pulse_name")
         snapshot = Snapshot("snapshot_label", "state")
 
         sched1 = Schedule(name="test_name")
@@ -468,6 +473,7 @@ class TestScheduleBuilding(BaseTestSchedule):
         self.assertDictEqual(new_sched.metadata, ref_metadata)
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestReplace(BaseTestSchedule):
     """Test schedule replacement."""
 
@@ -526,6 +532,7 @@ class TestReplace(BaseTestSchedule):
             sched.replace(old, new)
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestDelay(BaseTestSchedule):
     """Test Delay Instruction"""
 
@@ -600,6 +607,7 @@ class TestDelay(BaseTestSchedule):
             self.assertIsInstance(sched, Schedule)
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestScheduleFilter(BaseTestSchedule):
     """Test Schedule filtering methods"""
 
@@ -881,6 +889,7 @@ class TestScheduleFilter(BaseTestSchedule):
         return filtered, excluded
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestScheduleEquality(BaseTestSchedule):
     """Test equality of schedules."""
 
@@ -944,6 +953,7 @@ class TestScheduleEquality(BaseTestSchedule):
         )
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestTimingUtils(QiskitTestCase):
     """Test the Schedule helper functions."""
 

@@ -59,17 +59,17 @@ class PauliGate(Gate):
             qc._append(CircuitInstruction(gates[p](), (q[i],), ()))
         self.definition = qc
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         r"""Return inverted pauli gate (itself)."""
         return PauliGate(self.params[0])  # self-inverse
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         """Return a Numpy.array for the pauli gate.
         i.e. tensor product of the paulis"""
         # pylint: disable=cyclic-import
         from qiskit.quantum_info.operators import Pauli
 
-        return Pauli(self.params[0]).__array__(dtype=dtype)
+        return Pauli(self.params[0]).__array__(dtype=dtype, copy=copy)
 
     def validate_parameter(self, parameter):
         if isinstance(parameter, str):

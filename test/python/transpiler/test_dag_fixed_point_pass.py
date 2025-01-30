@@ -16,7 +16,7 @@ import unittest
 from qiskit.transpiler.passes import DAGFixedPoint
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.converters import circuit_to_dag
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestFixedPointPass(QiskitTestCase):

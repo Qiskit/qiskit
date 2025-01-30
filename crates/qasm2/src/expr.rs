@@ -104,7 +104,7 @@ impl From<TokenType> for Op {
     }
 }
 
-/// An atom of the operator-precendence expression parsing.  This is a stripped-down version of the
+/// An atom of the operator-precedence expression parsing.  This is a stripped-down version of the
 /// [Token] and [TokenType] used in the main parser.  We can use a data enum here because we do not
 /// need all the expressive flexibility in expecting and accepting many different token types as
 /// we do in the main parser; it does not significantly harm legibility to simply do
@@ -146,57 +146,76 @@ pub enum Expr {
     CustomFunction(PyObject, Vec<Expr>),
 }
 
-impl IntoPy<PyObject> for Expr {
-    fn into_py(self, py: Python<'_>) -> PyObject {
-        match self {
-            Expr::Constant(value) => bytecode::ExprConstant { value }.into_py(py),
-            Expr::Parameter(index) => bytecode::ExprArgument { index }.into_py(py),
+impl<'py> IntoPyObject<'py> for Expr {
+    type Target = PyAny; // the Python type
+    type Output = Bound<'py, Self::Target>; // in most cases this will be `Bound`
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        Ok(match self {
+            Expr::Constant(value) => bytecode::ExprConstant { value }
+                .into_pyobject(py)?
+                .into_any(),
+            Expr::Parameter(index) => bytecode::ExprArgument { index }
+                .into_pyobject(py)?
+                .into_any(),
             Expr::Negate(expr) => bytecode::ExprUnary {
                 opcode: bytecode::UnaryOpCode::Negate,
-                argument: expr.into_py(py),
+                argument: expr.into_pyobject(py)?.unbind(),
             }
-            .into_py(py),
+            .into_pyobject(py)?
+            .into_any(),
             Expr::Add(left, right) => bytecode::ExprBinary {
                 opcode: bytecode::BinaryOpCode::Add,
-                left: left.into_py(py),
-                right: right.into_py(py),
+                left: left.into_pyobject(py)?.unbind(),
+                right: right.into_pyobject(py)?.unbind(),
             }
-            .into_py(py),
+            .into_pyobject(py)?
+            .into_any(),
             Expr::Subtract(left, right) => bytecode::ExprBinary {
                 opcode: bytecode::BinaryOpCode::Subtract,
-                left: left.into_py(py),
-                right: right.into_py(py),
+                left: left.into_pyobject(py)?.unbind(),
+                right: right.into_pyobject(py)?.unbind(),
             }
-            .into_py(py),
+            .into_pyobject(py)?
+            .into_any(),
             Expr::Multiply(left, right) => bytecode::ExprBinary {
                 opcode: bytecode::BinaryOpCode::Multiply,
-                left: left.into_py(py),
-                right: right.into_py(py),
+                left: left.into_pyobject(py)?.unbind(),
+                right: right.into_pyobject(py)?.unbind(),
             }
-            .into_py(py),
+            .into_pyobject(py)?
+            .into_any(),
             Expr::Divide(left, right) => bytecode::ExprBinary {
                 opcode: bytecode::BinaryOpCode::Divide,
-                left: left.into_py(py),
-                right: right.into_py(py),
+                left: left.into_pyobject(py)?.unbind(),
+                right: right.into_pyobject(py)?.unbind(),
             }
-            .into_py(py),
+            .into_pyobject(py)?
+            .into_any(),
             Expr::Power(left, right) => bytecode::ExprBinary {
                 opcode: bytecode::BinaryOpCode::Power,
-                left: left.into_py(py),
-                right: right.into_py(py),
+                left: left.into_pyobject(py)?.unbind(),
+                right: right.into_pyobject(py)?.unbind(),
             }
-            .into_py(py),
+            .into_pyobject(py)?
+            .into_any(),
             Expr::Function(func, expr) => bytecode::ExprUnary {
                 opcode: func.into(),
-                argument: expr.into_py(py),
+                argument: expr.into_pyobject(py)?.unbind(),
             }
-            .into_py(py),
+            .into_pyobject(py)?
+            .into_any(),
             Expr::CustomFunction(func, exprs) => bytecode::ExprCustom {
                 callable: func,
-                arguments: exprs.into_iter().map(|expr| expr.into_py(py)).collect(),
+                arguments: exprs
+                    .into_iter()
+                    .map(|expr| expr.into_pyobject(py).unwrap().unbind())
+                    .collect(),
             }
-            .into_py(py),
-        }
+            .into_pyobject(py)?
+            .into_any(),
+        })
     }
 }
 
@@ -233,7 +252,7 @@ fn binary_power(op: Op) -> (u8, u8) {
 /// A subparser used to do the operator-precedence part of the parsing for individual parameter
 /// expressions.  The main parser creates a new instance of this struct for each expression it
 /// expects, and the instance lives only as long as is required to parse that expression, because
-/// it takes temporary resposibility for the [TokenStream] that backs the main parser.
+/// it takes temporary responsibility for the [TokenStream] that backs the main parser.
 pub struct ExprParser<'a> {
     pub tokens: &'a mut Vec<TokenStream>,
     pub context: &'a mut TokenContext,
@@ -242,7 +261,7 @@ pub struct ExprParser<'a> {
     pub strict: bool,
 }
 
-impl<'a> ExprParser<'a> {
+impl ExprParser<'_> {
     /// Get the next token available in the stack of token streams, popping and removing any
     /// complete streams, except the base case.  Will only return `None` once all streams are
     /// exhausted.
@@ -433,7 +452,7 @@ impl<'a> ExprParser<'a> {
                             unreachable!()
                         }
                     }),
-                );
+                )?;
                 match callable.call1(py, args) {
                     Ok(retval) => {
                         match retval.extract::<f64>(py) {
@@ -501,8 +520,13 @@ impl<'a> ExprParser<'a> {
             | TokenType::Sin
             | TokenType::Sqrt
             | TokenType::Tan => Ok(Some(Atom::Function(token.ttype.into()))),
-            TokenType::Real => Ok(Some(Atom::Const(token.real(self.context)))),
-            TokenType::Integer => Ok(Some(Atom::Const(token.int(self.context) as f64))),
+            // This deliberately parses an _integer_ token as a float, since all OpenQASM 2.0
+            // integers can be interpreted as floats, and doing that allows us to gracefully handle
+            // cases where a huge float would overflow a `usize`.  Never mind that in such a case,
+            // there's almost certainly precision loss from the floating-point representing
+            // having insufficient mantissa digits to faithfully represent the angle mod 2pi;
+            // that's not our fault in the parser.
+            TokenType::Real | TokenType::Integer => Ok(Some(Atom::Const(token.real(self.context)))),
             TokenType::Pi => Ok(Some(Atom::Const(f64::consts::PI))),
             TokenType::Id => {
                 let id = token.text(self.context);
@@ -698,6 +722,11 @@ impl<'a> ExprParser<'a> {
 
     /// Parse a single expression completely. This is the only public entry point to the
     /// operator-precedence parser.
+    ///
+    /// .. note::
+    ///
+    ///     This evaluates in a floating-point context, including evaluating integer tokens, since
+    ///     the only places that expressions are valid in OpenQASM 2 is during gate applications.
     pub fn parse_expression(&mut self, cause: &Token) -> PyResult<Expr> {
         self.eval_expression(0, cause)
     }

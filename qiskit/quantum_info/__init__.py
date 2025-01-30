@@ -28,6 +28,7 @@ Operators
    Pauli
    Clifford
    ScalarOp
+   SparseObservable
    SparsePauliOp
    CNOTDihedral
    PauliList
@@ -74,6 +75,11 @@ Measures
 Utility Functions
 =================
 
+.. autosummary::
+   :toctree: ../stubs/
+
+   Quaternion
+
 .. autofunction:: partial_trace
 .. autofunction:: schmidt_decomposition
 .. autofunction:: shannon_entropy
@@ -105,22 +111,12 @@ Analysis
 
    Z2Symmetries
 
-Synthesis
-=========
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   OneQubitEulerDecomposer
-   TwoQubitBasisDecomposer
-   Quaternion
-   XXDecomposer
-
-.. autofunction:: two_qubit_cnot_decompose
-.. autofunction:: decompose_clifford
 """
 
 from __future__ import annotations
+
+from qiskit._accelerate.sparse_observable import SparseObservable
+
 from .analysis import hellinger_distance, hellinger_fidelity, Z2Symmetries
 from .operators import (
     Clifford,
@@ -163,11 +159,4 @@ from .states import (
     state_fidelity,
     negativity,
 )
-from .synthesis import (
-    OneQubitEulerDecomposer,
-    Quaternion,
-    TwoQubitBasisDecomposer,
-    XXDecomposer,
-    decompose_clifford,
-    two_qubit_cnot_decompose,
-)
+from .quaternion import Quaternion

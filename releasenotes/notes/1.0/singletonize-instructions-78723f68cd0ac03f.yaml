@@ -1,0 +1,32 @@
+---
+features_circuits:
+  - |
+    The following standard library instructions are now instances of
+    :class:`~.SingletonInstruction`:
+
+     * :class:`~.Measure`
+     * :class:`~.Reset`
+
+    This means that if these classes are instantiated as (e.g.) ``Measure()`` using
+    all the constructor defaults, they will all share a single global
+    instance. This results in large reduction in the memory overhead for > 1
+    object of these types and significantly faster object construction time.
+upgrade_circuits:
+  - |
+    The following standard library instructions:
+
+     * :class:`~.Measure`
+     * :class:`~.Reset`
+     
+    are immutable, unless the attributes ``label``, ``duration`` and ``unit`` are given as keyword 
+    arguments during class construction. 
+
+    The attributes :attr:`~.Instruction.label`, :attr:`~.Instruction.duration`, :attr:`~.Instruction.unit`, 
+    and :attr:`~.Instruction.condition` attributes are all not publicly accessible and setting these attributes
+    directly is not allowed and it will raise an exception. If they are needed for a particular
+    instance you must ensure you have a mutable instance using :meth:`.Instruction.to_mutable`
+    and use :meth:`.Instruction.c_if` for :attr:`~.Instruction.condition`
+
+    For the singleton variant of these instructions, there is a special attribute 
+    :meth:`~.SingletonInstruction._singleton_lookup_key`, that when called generates a key based on the input
+    arguments, which can be used for identifying and indexing these instructions within the framework. 

@@ -12,13 +12,16 @@
 
 
 """Test Qiskit's QuantumCircuit class."""
+import copy
+import pickle
 
 import numpy as np
 from ddt import data, ddt
 
-from qiskit import BasicAer, ClassicalRegister, QuantumCircuit, QuantumRegister, execute
-from qiskit.circuit import Gate, Instruction, Measure, Parameter, Barrier
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
+from qiskit.circuit import Gate, Instruction, Measure, Parameter, Barrier, AnnotatedOperation
 from qiskit.circuit.bit import Bit
+from qiskit.circuit.classical import expr, types
 from qiskit.circuit.classicalregister import Clbit
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.controlflow import IfElseOp
@@ -27,9 +30,10 @@ from qiskit.circuit.library.standard_gates import SGate
 from qiskit.circuit.quantumcircuit import BitLocations
 from qiskit.circuit.quantumcircuitdata import CircuitInstruction
 from qiskit.circuit.quantumregister import AncillaQubit, AncillaRegister, Qubit
+from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.pulse import DriveChannel, Gaussian, Play, Schedule
 from qiskit.quantum_info import Operator
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt
@@ -186,9 +190,9 @@ class TestCircuitOperations(QiskitTestCase):
         qc2.measure(qr[1], cr[1])
 
         qc3 = qc1.compose(qc2)
-        backend = BasicAer.get_backend("qasm_simulator")
+        backend = BasicSimulator()
         shots = 1024
-        result = execute(qc3, backend=backend, shots=shots, seed_simulator=78).result()
+        result = backend.run(qc3, shots=shots, seed_simulator=78).result()
         counts = result.get_counts()
         target = {"00": shots / 2, "01": shots / 2}
         threshold = 0.04 * shots
@@ -208,9 +212,9 @@ class TestCircuitOperations(QiskitTestCase):
         qc2.measure(qr[1], cr[1])
 
         qc3 = qc1 & qc2
-        backend = BasicAer.get_backend("qasm_simulator")
+        backend = BasicSimulator()
         shots = 1024
-        result = execute(qc3, backend=backend, shots=shots, seed_simulator=78).result()
+        result = backend.run(qc3, shots=shots, seed_simulator=78).result()
         counts = result.get_counts()
         target = {"00": shots / 2, "01": shots / 2}
         threshold = 0.04 * shots
@@ -230,9 +234,9 @@ class TestCircuitOperations(QiskitTestCase):
         qc2.measure(qr[1], cr[1])
 
         qc1 &= qc2
-        backend = BasicAer.get_backend("qasm_simulator")
+        backend = BasicSimulator()
         shots = 1024
-        result = execute(qc1, backend=backend, shots=shots, seed_simulator=78).result()
+        result = backend.run(qc1, shots=shots, seed_simulator=78).result()
         counts = result.get_counts()
         target = {"00": shots / 2, "01": shots / 2}
         threshold = 0.04 * shots
@@ -280,9 +284,9 @@ class TestCircuitOperations(QiskitTestCase):
         qc1.measure(0, 0)
 
         qc3 = qc1.tensor(qc2)
-        backend = BasicAer.get_backend("qasm_simulator")
+        backend = BasicSimulator()
         shots = 1024
-        result = execute(qc3, backend=backend, shots=shots, seed_simulator=78).result()
+        result = backend.run(qc3, shots=shots, seed_simulator=78).result()
         counts = result.get_counts()
         target = {"00": shots / 2, "01": shots / 2}
         threshold = 0.04 * shots
@@ -301,9 +305,9 @@ class TestCircuitOperations(QiskitTestCase):
         qc1.measure(0, 0)
 
         qc3 = qc1 ^ qc2
-        backend = BasicAer.get_backend("qasm_simulator")
+        backend = BasicSimulator()
         shots = 1024
-        result = execute(qc3, backend=backend, shots=shots, seed_simulator=78).result()
+        result = backend.run(qc3, shots=shots, seed_simulator=78).result()
         counts = result.get_counts()
         target = {"00": shots / 2, "01": shots / 2}
         threshold = 0.04 * shots
@@ -322,9 +326,9 @@ class TestCircuitOperations(QiskitTestCase):
         qc1.measure(0, 0)
 
         qc1 ^= qc2
-        backend = BasicAer.get_backend("qasm_simulator")
+        backend = BasicSimulator()
         shots = 1024
-        result = execute(qc1, backend=backend, shots=shots, seed_simulator=78).result()
+        result = backend.run(qc1, shots=shots, seed_simulator=78).result()
         counts = result.get_counts()
         target = {"00": shots / 2, "01": shots / 2}
         threshold = 0.04 * shots
@@ -369,6 +373,25 @@ class TestCircuitOperations(QiskitTestCase):
         self.assertEqual(len(qc.cregs), 1)
         self.assertEqual(len(copied.cregs), 2)
 
+    def test_copy_handles_global_phase(self):
+        """Test that the global phase is included in the copy, including parameters."""
+        a, b = Parameter("a"), Parameter("b")
+
+        nonparametric = QuantumCircuit(global_phase=1.0).copy()
+        self.assertEqual(nonparametric.global_phase, 1.0)
+        self.assertEqual(set(nonparametric.parameters), set())
+
+        parameter_phase = QuantumCircuit(global_phase=a).copy()
+        self.assertEqual(parameter_phase.global_phase, a)
+        self.assertEqual(set(parameter_phase.parameters), {a})
+        # The `assign_parameters` is an indirect test that the `ParameterTable` is fully valid.
+        self.assertEqual(parameter_phase.assign_parameters({a: 1.0}).global_phase, 1.0)
+
+        expression_phase = QuantumCircuit(global_phase=a - b).copy()
+        self.assertEqual(expression_phase.global_phase, a - b)
+        self.assertEqual(set(expression_phase.parameters), {a, b})
+        self.assertEqual(expression_phase.assign_parameters({a: 3, b: 2}).global_phase, 1.0)
+
     def test_copy_empty_like_circuit(self):
         """Test copy_empty_like method makes a clear copy."""
         qr = QuantumRegister(2)
@@ -377,8 +400,10 @@ class TestCircuitOperations(QiskitTestCase):
         qc.h(qr[0])
         qc.measure(qr[0], cr[0])
         qc.measure(qr[1], cr[1])
-        sched = Schedule(Play(Gaussian(160, 0.1, 40), DriveChannel(0)))
-        qc.add_calibration("h", [0, 1], sched)
+
+        with self.assertWarns(DeprecationWarning):
+            sched = Schedule(Play(Gaussian(160, 0.1, 40), DriveChannel(0)))
+            qc.add_calibration("h", [0, 1], sched)
         copied = qc.copy_empty_like()
         qc.clear()
 
@@ -386,10 +411,163 @@ class TestCircuitOperations(QiskitTestCase):
         self.assertEqual(qc.global_phase, copied.global_phase)
         self.assertEqual(qc.name, copied.name)
         self.assertEqual(qc.metadata, copied.metadata)
-        self.assertEqual(qc.calibrations, copied.calibrations)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(qc.calibrations, copied.calibrations)
 
         copied = qc.copy_empty_like("copy")
         self.assertEqual(copied.name, "copy")
+
+    def test_copy_variables(self):
+        """Test that a full copy of circuits including variables copies them across."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Uint(8))
+        c = expr.Var.new("c", types.Bool())
+        d = expr.Var.new("d", types.Uint(8))
+
+        qc = QuantumCircuit(inputs=[a], declarations=[(c, expr.lift(False))])
+        copied = qc.copy()
+        self.assertEqual({a}, set(copied.iter_input_vars()))
+        self.assertEqual({c}, set(copied.iter_declared_vars()))
+        self.assertEqual(
+            [instruction.operation for instruction in qc],
+            [instruction.operation for instruction in copied.data],
+        )
+
+        # Check that the original circuit is not mutated.
+        copied.add_input(b)
+        copied.add_var(d, 0xFF)
+        self.assertEqual({a, b}, set(copied.iter_input_vars()))
+        self.assertEqual({c, d}, set(copied.iter_declared_vars()))
+        self.assertEqual({a}, set(qc.iter_input_vars()))
+        self.assertEqual({c}, set(qc.iter_declared_vars()))
+
+        qc = QuantumCircuit(captures=[b], declarations=[(a, expr.lift(False)), (c, a)])
+        copied = qc.copy()
+        self.assertEqual({b}, set(copied.iter_captured_vars()))
+        self.assertEqual({a, c}, set(copied.iter_declared_vars()))
+        self.assertEqual(
+            [instruction.operation for instruction in qc],
+            [instruction.operation for instruction in copied.data],
+        )
+
+        # Check that the original circuit is not mutated.
+        copied.add_capture(d)
+        self.assertEqual({b, d}, set(copied.iter_captured_vars()))
+        self.assertEqual({b}, set(qc.iter_captured_vars()))
+
+    def test_copy_empty_variables(self):
+        """Test that an empty copy of circuits including variables copies them across, but does not
+        initialise them."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Uint(8))
+        c = expr.Var.new("c", types.Bool())
+        d = expr.Var.new("d", types.Uint(8))
+
+        qc = QuantumCircuit(inputs=[a], declarations=[(c, expr.lift(False))])
+        copied = qc.copy_empty_like()
+        self.assertEqual({a}, set(copied.iter_input_vars()))
+        self.assertEqual({c}, set(copied.iter_declared_vars()))
+        self.assertEqual([], list(copied.data))
+
+        # Check that the original circuit is not mutated.
+        copied.add_input(b)
+        copied.add_var(d, 0xFF)
+        self.assertEqual({a, b}, set(copied.iter_input_vars()))
+        self.assertEqual({c, d}, set(copied.iter_declared_vars()))
+        self.assertEqual({a}, set(qc.iter_input_vars()))
+        self.assertEqual({c}, set(qc.iter_declared_vars()))
+
+        qc = QuantumCircuit(captures=[b], declarations=[(a, expr.lift(False)), (c, a)])
+        copied = qc.copy_empty_like()
+        self.assertEqual({b}, set(copied.iter_captured_vars()))
+        self.assertEqual({a, c}, set(copied.iter_declared_vars()))
+        self.assertEqual([], list(copied.data))
+
+        # Check that the original circuit is not mutated.
+        copied.add_capture(d)
+        self.assertEqual({b, d}, set(copied.iter_captured_vars()))
+        self.assertEqual({b}, set(qc.iter_captured_vars()))
+
+    def test_copy_empty_variables_alike(self):
+        """Test that an empty copy of circuits including variables copies them across, but does not
+        initialise them.  This is the same as the default, just spelled explicitly."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Uint(8))
+        c = expr.Var.new("c", types.Bool())
+        d = expr.Var.new("d", types.Uint(8))
+
+        qc = QuantumCircuit(inputs=[a], declarations=[(c, expr.lift(False))])
+        copied = qc.copy_empty_like(vars_mode="alike")
+        self.assertEqual({a}, set(copied.iter_input_vars()))
+        self.assertEqual({c}, set(copied.iter_declared_vars()))
+        self.assertEqual([], list(copied.data))
+
+        # Check that the original circuit is not mutated.
+        copied.add_input(b)
+        copied.add_var(d, 0xFF)
+        self.assertEqual({a, b}, set(copied.iter_input_vars()))
+        self.assertEqual({c, d}, set(copied.iter_declared_vars()))
+        self.assertEqual({a}, set(qc.iter_input_vars()))
+        self.assertEqual({c}, set(qc.iter_declared_vars()))
+
+        qc = QuantumCircuit(captures=[b], declarations=[(a, expr.lift(False)), (c, a)])
+        copied = qc.copy_empty_like(vars_mode="alike")
+        self.assertEqual({b}, set(copied.iter_captured_vars()))
+        self.assertEqual({a, c}, set(copied.iter_declared_vars()))
+        self.assertEqual([], list(copied.data))
+
+        # Check that the original circuit is not mutated.
+        copied.add_capture(d)
+        self.assertEqual({b, d}, set(copied.iter_captured_vars()))
+        self.assertEqual({b}, set(qc.iter_captured_vars()))
+
+    def test_copy_empty_variables_to_captures(self):
+        """``vars_mode="captures"`` should convert all variables to captures."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Uint(8))
+        c = expr.Var.new("c", types.Bool())
+        d = expr.Var.new("d", types.Uint(8))
+
+        qc = QuantumCircuit(inputs=[a, b], declarations=[(c, expr.lift(False))])
+        copied = qc.copy_empty_like(vars_mode="captures")
+        self.assertEqual({a, b, c}, set(copied.iter_captured_vars()))
+        self.assertEqual({a, b, c}, set(copied.iter_vars()))
+        self.assertEqual([], list(copied.data))
+
+        qc = QuantumCircuit(captures=[c, d])
+        copied = qc.copy_empty_like(vars_mode="captures")
+        self.assertEqual({c, d}, set(copied.iter_captured_vars()))
+        self.assertEqual({c, d}, set(copied.iter_vars()))
+        self.assertEqual([], list(copied.data))
+
+    def test_copy_empty_variables_drop(self):
+        """``vars_mode="drop"`` should not have variables in the output."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Uint(8))
+        c = expr.Var.new("c", types.Bool())
+
+        qc = QuantumCircuit(inputs=[a, b], declarations=[(c, expr.lift(False))])
+        copied = qc.copy_empty_like(vars_mode="drop")
+        self.assertEqual(set(), set(copied.iter_vars()))
+        self.assertEqual([], list(copied.data))
+
+    def test_copy_empty_like_parametric_phase(self):
+        """Test that the parameter table of an empty circuit remains valid after copying a circuit
+        with a parametric global phase."""
+        a, b = Parameter("a"), Parameter("b")
+
+        single = QuantumCircuit(global_phase=a).copy_empty_like()
+        self.assertEqual(single.global_phase, a)
+        self.assertEqual(set(single.parameters), {a})
+        # The `assign_parameters` is an indirect test that the `ParameterTable` is fully valid.
+        self.assertEqual(single.assign_parameters({a: 1.0}).global_phase, 1.0)
+
+        stripped_instructions = QuantumCircuit(1, global_phase=a - b)
+        stripped_instructions.rz(a, 0)
+        stripped_instructions = stripped_instructions.copy_empty_like()
+        self.assertEqual(stripped_instructions.global_phase, a - b)
+        self.assertEqual(set(stripped_instructions.parameters), {a, b})
+        self.assertEqual(stripped_instructions.assign_parameters({a: 3, b: 2}).global_phase, 1.0)
 
     def test_circuit_copy_rejects_invalid_types(self):
         """Test copy method rejects argument with type other than 'string' and 'None' type."""
@@ -418,7 +596,39 @@ class TestCircuitOperations(QiskitTestCase):
         qc.clear()
 
         self.assertEqual(len(qc.data), 0)
-        self.assertEqual(len(qc._parameter_table), 0)
+        self.assertEqual(qc._data.num_parameters(), 0)
+
+    def test_barrier(self):
+        """Test multiple argument forms of barrier."""
+        qr1, qr2 = QuantumRegister(3, "qr1"), QuantumRegister(4, "qr2")
+        qc = QuantumCircuit(qr1, qr2)
+        qc.barrier()  # All qubits.
+        qc.barrier(0, 1)
+        qc.barrier([4, 2])
+        qc.barrier(qr1)
+        qc.barrier(slice(3, 5))
+        qc.barrier({1, 4, 2}, range(5, 7))
+
+        expected = QuantumCircuit(qr1, qr2)
+        expected.append(Barrier(expected.num_qubits), expected.qubits.copy(), [])
+        expected.append(Barrier(2), [expected.qubits[0], expected.qubits[1]], [])
+        expected.append(Barrier(2), [expected.qubits[2], expected.qubits[4]], [])
+        expected.append(Barrier(3), expected.qubits[0:3], [])
+        expected.append(Barrier(2), [expected.qubits[3], expected.qubits[4]], [])
+        expected.append(Barrier(5), [expected.qubits[x] for x in [1, 2, 4, 5, 6]], [])
+
+        self.assertEqual(qc, expected)
+
+    def test_barrier_in_context(self):
+        """Test barrier statement in context, see gh-11345"""
+        qc = QuantumCircuit(2, 2)
+        qc.h(0)
+        with qc.if_test((qc.clbits[0], False)):
+            qc.h(0)
+            qc.barrier()
+
+        operation_names = [c.operation.name for c in qc]
+        self.assertNotIn("barrier", operation_names)
 
     def test_measure_active(self):
         """Test measure_active
@@ -496,6 +706,57 @@ class TestCircuitOperations(QiskitTestCase):
         expected.measure(qr, cr)
 
         self.assertEqual(expected, circuit)
+
+    def test_measure_all_after_copy(self):
+        """
+        Test measure_all on a circuit that has been copied.
+        """
+        qc = QuantumCircuit(2)
+        qc.h(1)
+
+        qc2 = qc.copy()
+
+        qc.measure_all()
+        qc2.measure_all()
+
+        expected_cregs = [ClassicalRegister(2, "meas")]
+        self.assertEqual(qc.cregs, expected_cregs)
+        self.assertEqual(qc2.cregs, expected_cregs)
+        self.assertEqual(qc, qc2)
+
+    def test_measure_all_after_deepcopy(self):
+        """
+        Test measure_all on a circuit that has been deep-copied.
+        """
+        qc = QuantumCircuit(2)
+        qc.h(1)
+
+        qc2 = copy.deepcopy(qc)
+
+        qc.measure_all()
+        qc2.measure_all()
+
+        expected_cregs = [ClassicalRegister(2, "meas")]
+        self.assertEqual(qc.cregs, expected_cregs)
+        self.assertEqual(qc2.cregs, expected_cregs)
+        self.assertEqual(qc, qc2)
+
+    def test_measure_all_after_pickle(self):
+        """
+        Test measure_all on a circuit that has been pickled.
+        """
+        qc = QuantumCircuit(2)
+        qc.h(1)
+
+        qc2 = pickle.loads(pickle.dumps(qc))
+
+        qc.measure_all()
+        qc2.measure_all()
+
+        expected_cregs = [ClassicalRegister(2, "meas")]
+        self.assertEqual(qc.cregs, expected_cregs)
+        self.assertEqual(qc2.cregs, expected_cregs)
+        self.assertEqual(qc, qc2)
 
     def test_measure_all_not_add_bits_equal(self):
         """Test measure_all applies measurements to all qubits.
@@ -614,9 +875,9 @@ class TestCircuitOperations(QiskitTestCase):
         circuit.rz(theta, qr)
         circuit.measure(qr, cr)
         circuit.remove_final_measurements()
-        copy = circuit.copy()
+        copied = circuit.copy()
 
-        self.assertEqual(copy, circuit)
+        self.assertEqual(copied, circuit)
 
     def test_remove_final_measurements_multiple_measures(self):
         """Test remove_final_measurements only removes measurements at the end of the circuit
@@ -670,7 +931,7 @@ class TestCircuitOperations(QiskitTestCase):
         self.assertEqual(circuit.clbits, [])
 
     def test_remove_final_measurements_bit_locations(self):
-        """Test remove_final_measurements properly recalculates clbit indicies
+        """Test remove_final_measurements properly recalculates clbit indices
         and preserves order of remaining cregs and clbits.
         """
         c0 = ClassicalRegister(1)
@@ -706,6 +967,24 @@ class TestCircuitOperations(QiskitTestCase):
         self.assertEqual(circuit.find_bit(c0[0]), BitLocations(0, [(c0, 0)]))
         self.assertEqual(circuit.find_bit(c3[0]), BitLocations(1, [(c3, 0)]))
 
+    def test_remove_final_measurements_parametric_global_phase(self):
+        """Test that a parametric global phase is respected in the table afterwards."""
+        a = Parameter("a")
+        qc = QuantumCircuit(2, 2, global_phase=a)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure([0, 1], [0, 1])
+
+        expected = QuantumCircuit(2, global_phase=1)
+        expected.h(0)
+        expected.cx(0, 1)
+
+        self.assertEqual(
+            qc.remove_final_measurements(inplace=False).assign_parameters({a: 1}), expected
+        )
+        qc.remove_final_measurements(inplace=True)
+        self.assertEqual(qc.assign_parameters({a: 1}), expected)
+
     def test_reverse(self):
         """Test reverse method reverses but does not invert."""
         qc = QuantumCircuit(2, 2)
@@ -726,6 +1005,31 @@ class TestCircuitOperations(QiskitTestCase):
 
         self.assertEqual(qc.reverse_ops(), expected)
 
+    def test_reverse_with_standlone_vars(self):
+        """Test that instruction-reversing works in the presence of stand-alone variables."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Uint(8))
+        c = expr.Var.new("c", types.Uint(8))
+
+        qc = QuantumCircuit(2, inputs=[a])
+        qc.add_var(b, 12)
+        qc.h(0)
+        qc.cx(0, 1)
+        with qc.if_test(a):
+            # We don't really comment on what should happen within control-flow operations in this
+            # method - it's not really defined in a non-linear CFG.  This deliberately uses a body
+            # of length 1 (a single `Store`), so there's only one possibility.
+            qc.add_var(c, 12)
+
+        expected = qc.copy_empty_like()
+        with expected.if_test(a):
+            expected.add_var(c, 12)
+        expected.cx(0, 1)
+        expected.h(0)
+        expected.store(b, 12)
+
+        self.assertEqual(qc.reverse_ops(), expected)
+
     def test_repeat(self):
         """Test repeating the circuit works."""
         qr = QuantumRegister(2)
@@ -734,18 +1038,21 @@ class TestCircuitOperations(QiskitTestCase):
         qc.h(0)
         qc.cx(0, 1)
         qc.barrier()
-        qc.h(0).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            qc.h(0).c_if(cr, 1)
 
         with self.subTest("repeat 0 times"):
             rep = qc.repeat(0)
             self.assertEqual(rep, QuantumCircuit(qr, cr))
 
         with self.subTest("repeat 3 times"):
-            inst = qc.to_instruction()
+            with self.assertWarns(DeprecationWarning):
+                inst = qc.to_instruction()
             ref = QuantumCircuit(qr, cr)
             for _ in range(3):
                 ref.append(inst, ref.qubits, ref.clbits)
-            rep = qc.repeat(3)
+            with self.assertWarns(DeprecationWarning):
+                rep = qc.repeat(3)
             self.assertEqual(rep, ref)
 
     @data(0, 1, 4)
@@ -799,6 +1106,21 @@ class TestCircuitOperations(QiskitTestCase):
 
         with self.subTest("negative power"):
             self.assertEqual(qc.power(-2).data[0].operation, gate.power(-2))
+
+        with self.subTest("integer circuit power via annotation"):
+            power_qc = qc.power(4, annotated=True)
+            self.assertIsInstance(power_qc[0].operation, AnnotatedOperation)
+            self.assertEqual(Operator(power_qc), Operator(qc).power(4))
+
+        with self.subTest("float circuit power via annotation"):
+            power_qc = qc.power(1.5, annotated=True)
+            self.assertIsInstance(power_qc[0].operation, AnnotatedOperation)
+            self.assertEqual(Operator(power_qc), Operator(qc).power(1.5))
+
+        with self.subTest("negative circuit power via annotation"):
+            power_qc = qc.power(-2, annotated=True)
+            self.assertIsInstance(power_qc[0].operation, AnnotatedOperation)
+            self.assertEqual(Operator(power_qc), Operator(qc).power(-2))
 
     def test_power_parameterized_circuit(self):
         """Test taking a parameterized circuit to a power."""
@@ -976,13 +1298,15 @@ class TestCircuitOperations(QiskitTestCase):
         qc = QuantumCircuit([q0, q1], [c0, c1])
         qc.h(0)
         qc.cx(0, 1)
-        qc.x(0).c_if(1, True)
+        with self.assertWarns(DeprecationWarning):
+            qc.x(0).c_if(1, True)
         qc.measure(0, 0)
 
         expected = QuantumCircuit([c1, c0], [q1, q0])
         expected.h(1)
         expected.cx(1, 0)
-        expected.x(1).c_if(0, True)
+        with self.assertWarns(DeprecationWarning):
+            expected.x(1).c_if(0, True)
         expected.measure(1, 1)
 
         self.assertEqual(qc.reverse_bits(), expected)
@@ -1073,29 +1397,41 @@ class TestCircuitOperations(QiskitTestCase):
         qreg = QuantumRegister(1, name="q")
         creg = ClassicalRegister(1, name="c")
         qc1 = QuantumCircuit(qreg, creg, [Clbit()])
-        qc1.x(0).c_if(qc1.cregs[0], 1)
-        qc1.x(0).c_if(qc1.clbits[-1], True)
+        with self.assertWarns(DeprecationWarning):
+            qc1.x(0).c_if(qc1.cregs[0], 1)
+        with self.assertWarns(DeprecationWarning):
+            qc1.x(0).c_if(qc1.clbits[-1], True)
         qc2 = QuantumCircuit(qreg, creg, [Clbit()])
-        qc2.x(0).c_if(qc2.cregs[0], 1)
-        qc2.x(0).c_if(qc2.clbits[-1], True)
+        with self.assertWarns(DeprecationWarning):
+            qc2.x(0).c_if(qc2.cregs[0], 1)
+        with self.assertWarns(DeprecationWarning):
+            qc2.x(0).c_if(qc2.clbits[-1], True)
         self.assertEqual(qc1, qc2)
 
         # Order of operations transposed.
         qc1 = QuantumCircuit(qreg, creg, [Clbit()])
-        qc1.x(0).c_if(qc1.cregs[0], 1)
-        qc1.x(0).c_if(qc1.clbits[-1], True)
+        with self.assertWarns(DeprecationWarning):
+            qc1.x(0).c_if(qc1.cregs[0], 1)
+        with self.assertWarns(DeprecationWarning):
+            qc1.x(0).c_if(qc1.clbits[-1], True)
         qc2 = QuantumCircuit(qreg, creg, [Clbit()])
-        qc2.x(0).c_if(qc2.clbits[-1], True)
-        qc2.x(0).c_if(qc2.cregs[0], 1)
+        with self.assertWarns(DeprecationWarning):
+            qc2.x(0).c_if(qc2.clbits[-1], True)
+        with self.assertWarns(DeprecationWarning):
+            qc2.x(0).c_if(qc2.cregs[0], 1)
         self.assertNotEqual(qc1, qc2)
 
         # Single-bit condition values not the same.
         qc1 = QuantumCircuit(qreg, creg, [Clbit()])
-        qc1.x(0).c_if(qc1.cregs[0], 1)
-        qc1.x(0).c_if(qc1.clbits[-1], True)
+        with self.assertWarns(DeprecationWarning):
+            qc1.x(0).c_if(qc1.cregs[0], 1)
+        with self.assertWarns(DeprecationWarning):
+            qc1.x(0).c_if(qc1.clbits[-1], True)
         qc2 = QuantumCircuit(qreg, creg, [Clbit()])
-        qc2.x(0).c_if(qc2.cregs[0], 1)
-        qc2.x(0).c_if(qc2.clbits[-1], False)
+        with self.assertWarns(DeprecationWarning):
+            qc2.x(0).c_if(qc2.cregs[0], 1)
+        with self.assertWarns(DeprecationWarning):
+            qc2.x(0).c_if(qc2.clbits[-1], False)
         self.assertNotEqual(qc1, qc2)
 
     def test_compare_a_circuit_with_none(self):
@@ -1238,28 +1574,6 @@ class TestCircuitOperations(QiskitTestCase):
         self.assertEqual(circuit, expected)
         self.assertEqual(circuit.name, "test")
 
-    def test_duplicated_methods_deprecation(self):
-        """Test the now deprecated, duplicated gate method emit a deprecation warning."""
-
-        # {duplicate: (use_this_instead, args)}
-        methods = {
-            "i": ("id", [0]),
-            "cnot": ("cx", [0, 1]),
-            "toffoli": ("ccx", [0, 1, 2]),
-            "mct": ("mcx", [[0, 1], 2]),
-            "fredkin": ("cswap", [0, 1, 2]),
-        }
-
-        for old, (new, args) in methods.items():
-            circuit = QuantumCircuit(3)
-
-            with self.subTest(method=old):
-
-                # check (1) the (pending) deprecation is raised
-                # and (2) the new method is documented there
-                with self.assertWarnsRegex(DeprecationWarning, new):
-                    getattr(circuit, old)(*args)
-
 
 class TestCircuitPrivateOperations(QiskitTestCase):
     """Direct tests of some of the private methods of QuantumCircuit.  These do not represent
@@ -1287,11 +1601,11 @@ class TestCircuitPrivateOperations(QiskitTestCase):
         x, y = Parameter("x"), Parameter("y")
         test = QuantumCircuit(1, 1)
         test.rx(y, 0)
-        last_instructions = test.u(x, y, 0, 0)
+        last_instructions = list(test.u(x, y, 0, 0))
         self.assertEqual({x, y}, set(test.parameters))
 
         instruction = test._pop_previous_instruction_in_scope()
-        self.assertEqual(list(last_instructions), [instruction])
+        self.assertEqual(last_instructions, [instruction])
         self.assertEqual({y}, set(test.parameters))
 
     def test_decompose_gate_type(self):

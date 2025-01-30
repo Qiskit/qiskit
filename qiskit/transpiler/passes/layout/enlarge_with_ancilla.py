@@ -34,7 +34,7 @@ class EnlargeWithAncilla(TransformationPass):
             DAGCircuit: An extended DAG.
 
         Raises:
-            TranspilerError: If there is not layout in the property set or not set at init time.
+            TranspilerError: If there is no layout in the property set or not set at init time.
         """
         layout = self.property_set["layout"]
 

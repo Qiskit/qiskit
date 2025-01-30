@@ -19,6 +19,7 @@ from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import _ctrl_state_to_int
+from qiskit._accelerate.circuit import StandardGate
 
 
 class U1Gate(Gate):
@@ -33,47 +34,47 @@ class U1Gate(Gate):
 
        .. math::
 
-           U1(\lambda) = P(\lambda)= U(0,0,\lambda)
+           U1(\theta) = P(\theta)= U(0,0,\theta)
 
        .. code-block:: python
 
           circuit = QuantumCircuit(1)
-          circuit.p(lambda, 0) # or circuit.u(0, 0, lambda)
+          circuit.p(lambda, 0) # or circuit.u(0, 0, lambda, 0)
 
 
 
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌───────┐
-        q_0: ┤ U1(λ) ├
+        q_0: ┤ U1(θ) ├
              └───────┘
 
     **Matrix Representation:**
 
     .. math::
 
-        U1(\lambda) =
+        U1(\theta) =
             \begin{pmatrix}
                 1 & 0 \\
-                0 & e^{i\lambda}
+                0 & e^{i\theta}
             \end{pmatrix}
 
     **Examples:**
 
         .. math::
 
-            U1(\lambda = \pi) = Z
+            U1(\theta = \pi) = Z
 
         .. math::
 
-            U1(\lambda = \pi/2) = S
+            U1(\theta = \pi/2) = S
 
         .. math::
 
-            U1(\lambda = \pi/4) = T
+            U1(\theta = \pi/4) = T
 
     .. seealso::
 
@@ -82,7 +83,7 @@ class U1Gate(Gate):
 
             .. math::
 
-                U1(\lambda) = e^{i{\lambda}/2} RZ(\lambda)
+                U1(\theta) = e^{i{\theta}/2} RZ(\theta)
 
         :class:`~qiskit.circuit.library.standard_gates.U3Gate`:
         U3 is a generalization of U2 that covers all single-qubit rotations,
@@ -91,6 +92,8 @@ class U1Gate(Gate):
         Reference for virtual Z gate implementation:
         `1612.00858 <https://arxiv.org/abs/1612.00858>`_
     """
+
+    _standard_gate = StandardGate.U1Gate
 
     def __init__(
         self, theta: ParameterValueType, label: str | None = None, *, duration=None, unit="dt"
@@ -116,37 +119,59 @@ class U1Gate(Gate):
         num_ctrl_qubits: int = 1,
         label: str | None = None,
         ctrl_state: str | int | None = None,
+        annotated: bool = False,
     ):
         """Return a (multi-)controlled-U1 gate.
 
         Args:
-            num_ctrl_qubits (int): number of control qubits.
-            label (str or None): An optional label for the gate [Default: None]
-            ctrl_state (int or str or None): control state expressed as integer,
-                string (e.g. '110'), or None. If None, use all 1s.
+            num_ctrl_qubits: number of control qubits.
+            label: An optional label for the gate [Default: ``None``]
+            ctrl_state: control state expressed as integer,
+                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
+            annotated: indicates whether the controlled gate should be implemented
+                as an annotated gate.
 
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if num_ctrl_qubits == 1:
+        if not annotated and num_ctrl_qubits == 1:
             gate = CU1Gate(self.params[0], label=label, ctrl_state=ctrl_state)
-        elif ctrl_state is None and num_ctrl_qubits > 1:
+            gate.base_gate.label = self.label
+        elif not annotated and ctrl_state is None and num_ctrl_qubits > 1:
             gate = MCU1Gate(self.params[0], num_ctrl_qubits, label=label)
+            gate.base_gate.label = self.label
         else:
-            return super().control(
-                num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state
+            gate = super().control(
+                num_ctrl_qubits=num_ctrl_qubits,
+                label=label,
+                ctrl_state=ctrl_state,
+                annotated=annotated,
             )
-        gate.base_gate.label = self.label
         return gate
 
-    def inverse(self):
-        r"""Return inverted U1 gate (:math:`U1(\lambda)^{\dagger} = U1(-\lambda)`)"""
+    def inverse(self, annotated: bool = False):
+        r"""Return inverted U1 gate (:math:`U1(\lambda)^{\dagger} = U1(-\lambda))`
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.U1Gate` with inverse parameter values.
+
+        Returns:
+            U1Gate: inverse gate.
+        """
         return U1Gate(-self.params[0])
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         """Return a numpy.array for the U1 gate."""
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
         lam = float(self.params[0])
         return numpy.array([[1, 0], [0, numpy.exp(1j * lam)]], dtype=dtype)
+
+    def __eq__(self, other):
+        return isinstance(other, U1Gate) and self._compare_parameters(other)
 
 
 class CU1Gate(ControlledGate):
@@ -155,13 +180,29 @@ class CU1Gate(ControlledGate):
     This is a diagonal and symmetric gate that induces a
     phase on the state of the target qubit, depending on the control state.
 
+    .. warning::
+
+       This gate is deprecated. Instead, the :class:`.CPhaseGate` should be used
+
+       .. math::
+
+           CU1(\lambda) = CP(\lambda)
+
+       .. code-block:: python
+
+          circuit = QuantumCircuit(2)
+          circuit.cp(lambda, 0, 1)
+
+
+
+
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
 
         q_0: ─■──
-              │λ
+              │θ
         q_1: ─■──
 
 
@@ -169,13 +210,13 @@ class CU1Gate(ControlledGate):
 
     .. math::
 
-        CU1(\lambda) =
+        CU1(\theta) =
             I \otimes |0\rangle\langle 0| + U1 \otimes |1\rangle\langle 1| =
             \begin{pmatrix}
                 1 & 0 & 0 & 0 \\
                 0 & 1 & 0 & 0 \\
                 0 & 0 & 1 & 0 \\
-                0 & 0 & 0 & e^{i\lambda}
+                0 & 0 & 0 & e^{i\theta}
             \end{pmatrix}
 
     .. seealso::
@@ -185,6 +226,8 @@ class CU1Gate(ControlledGate):
         of U1 and RZ, CU1 and CRZ are different gates with a relative
         phase difference.
     """
+
+    _standard_gate = StandardGate.CU1Gate
 
     def __init__(
         self,
@@ -245,30 +288,52 @@ class CU1Gate(ControlledGate):
         num_ctrl_qubits: int = 1,
         label: str | None = None,
         ctrl_state: str | int | None = None,
+        annotated: bool = False,
     ):
         """Controlled version of this gate.
 
         Args:
-            num_ctrl_qubits (int): number of control qubits.
-            label (str or None): An optional label for the gate [Default: None]
-            ctrl_state (int or str or None): control state expressed as integer,
-                string (e.g. '110'), or None. If None, use all 1s.
+            num_ctrl_qubits: number of control qubits.
+            label: An optional label for the gate [Default: ``None``]
+            ctrl_state: control state expressed as integer,
+                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
+            annotated: indicates whether the controlled gate should be implemented
+                as an annotated gate.
 
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if ctrl_state is None:
+        if not annotated and ctrl_state is None:
             gate = MCU1Gate(self.params[0], num_ctrl_qubits=num_ctrl_qubits + 1, label=label)
             gate.base_gate.label = self.label
-            return gate
-        return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
+        else:
+            gate = super().control(
+                num_ctrl_qubits=num_ctrl_qubits,
+                label=label,
+                ctrl_state=ctrl_state,
+                annotated=annotated,
+            )
+        return gate
 
-    def inverse(self):
-        r"""Return inverted CU1 gate (:math:`CU1(\lambda)^{\dagger} = CU1(-\lambda)`)"""
+    def inverse(self, annotated: bool = False):
+        r"""Return inverted CU1 gate (:math:`CU1(\lambda)^{\dagger} = CU1(-\lambda))`
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.CU1Gate` with inverse parameter
+                values.
+
+        Returns:
+            CU1Gate: inverse gate.
+        """
         return CU1Gate(-self.params[0], ctrl_state=self.ctrl_state)
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         """Return a numpy.array for the CU1 gate."""
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
         eith = exp(1j * float(self.params[0]))
         if self.ctrl_state:
             return numpy.array(
@@ -279,6 +344,13 @@ class CU1Gate(ControlledGate):
                 [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, eith, 0], [0, 0, 0, 1]], dtype=dtype
             )
 
+    def __eq__(self, other):
+        return (
+            isinstance(other, CU1Gate)
+            and self.ctrl_state == other.ctrl_state
+            and self._compare_parameters(other)
+        )
+
 
 class MCU1Gate(ControlledGate):
     r"""Multi-controlled-U1 gate.
@@ -286,9 +358,25 @@ class MCU1Gate(ControlledGate):
     This is a diagonal and symmetric gate that induces a
     phase on the state of the target qubit, depending on the state of the control qubits.
 
+    .. warning::
+
+       This gate is deprecated. Instead, the following replacements should be used
+
+       .. math::
+
+           MCU1(\lambda) = MCP(\lambda)
+
+       .. code-block:: python
+
+          circuit = QuantumCircuit(5)
+          circuit.mcp(lambda, list(range(4)), 4)
+
+
+
+
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
             q_0: ────■────
                      │
@@ -355,29 +443,59 @@ class MCU1Gate(ControlledGate):
         num_ctrl_qubits: int = 1,
         label: str | None = None,
         ctrl_state: str | int | None = None,
+        annotated: bool = False,
     ):
         """Controlled version of this gate.
 
         Args:
-            num_ctrl_qubits (int): number of control qubits.
-            label (str or None): An optional label for the gate [Default: None]
-            ctrl_state (int or str or None): control state expressed as integer,
-                string (e.g. '110'), or None. If None, use all 1s.
+            num_ctrl_qubits: number of control qubits.
+            label: An optional label for the gate [Default: ``None``]
+            ctrl_state: control state expressed as integer,
+                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
+            annotated: indicates whether the controlled gate should be implemented
+                as an annotated gate.
 
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
-        new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
-        gate = MCU1Gate(
-            self.params[0],
-            num_ctrl_qubits=num_ctrl_qubits + self.num_ctrl_qubits,
-            label=label,
-            ctrl_state=new_ctrl_state,
-        )
-        gate.base_gate.label = self.label
+        if not annotated:
+            ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
+            new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
+            gate = MCU1Gate(
+                self.params[0],
+                num_ctrl_qubits=num_ctrl_qubits + self.num_ctrl_qubits,
+                label=label,
+                ctrl_state=new_ctrl_state,
+            )
+            gate.base_gate.label = self.label
+        else:
+            gate = super().control(
+                num_ctrl_qubits=num_ctrl_qubits,
+                label=label,
+                ctrl_state=ctrl_state,
+                annotated=annotated,
+            )
         return gate
 
-    def inverse(self):
-        r"""Return inverted MCU1 gate (:math:`MCU1(\lambda)^{\dagger} = MCU1(-\lambda)`)"""
+    def inverse(self, annotated: bool = False):
+        r"""Return inverted MCU1 gate (:math:`MCU1(\lambda)^{\dagger} = MCU1(-\lambda))`
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.MCU1Gate` with inverse
+                parameter values.
+
+        Returns:
+            MCU1Gate: inverse gate.
+        """
         return MCU1Gate(-self.params[0], self.num_ctrl_qubits)
+
+    def __eq__(self, other):
+        return (
+            isinstance(other, MCU1Gate)
+            and self.num_ctrl_qubits == other.num_ctrl_qubits
+            and self.ctrl_state == other.ctrl_state
+            and self._compare_parameters(other)
+        )

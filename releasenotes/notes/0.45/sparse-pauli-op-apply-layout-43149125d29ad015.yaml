@@ -2,9 +2,9 @@
 features:
   - |
     Added a new method, :meth:`~.SparsePauliOp.apply_layout`,
-    to the :class:~.SparsePauliOp` class. This method is used to apply
+    to the :class:`~.SparsePauliOp` class. This method is used to apply
     a :class:`~.TranspileLayout` layout from the transpiler
-    to a :class:~.SparsePauliOp` observable that was built for an
+    to a :class:`~.SparsePauliOp` observable that was built for an
     input circuit to the transpiler. This enables working with
     :class:`~.BaseEstimator` implementations and local transpilation more
     easily. For example::

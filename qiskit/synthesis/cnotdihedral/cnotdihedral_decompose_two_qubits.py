@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019, 2021.
+# (C) Copyright IBM 2019, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -14,24 +14,26 @@ Circuit synthesis for the CNOTDihedral class.
 """
 
 import numpy as np
-from qiskit.exceptions import QiskitError
 from qiskit.circuit import QuantumCircuit
+from qiskit.exceptions import QiskitError
+from qiskit.quantum_info import CNOTDihedral
 
 
-def synth_cnotdihedral_two_qubits(elem):
-    """Decompose a CNOTDihedral element on a single qubit and two qubits into a QuantumCircuit.
-    This decomposition has an optimal number of CX gates.
+def synth_cnotdihedral_two_qubits(elem: CNOTDihedral) -> QuantumCircuit:
+    """Decompose a :class:`.CNOTDihedral` element on a single qubit and two
+    qubits into a :class:`.QuantumCircuit`.
+    This decomposition has an optimal number of :class:`.CXGate`\\ s.
 
     Args:
-        elem (CNOTDihedral): a CNOTDihedral element.
+        elem: A :class:`.CNOTDihedral` element.
 
-    Return:
-        QuantumCircuit: a circuit implementation of the CNOTDihedral element.
+    Returns:
+        A circuit implementation of the :class:`.CNOTDihedral` element.
 
     Raises:
-        QiskitError: if the element in not 1-qubit or 2-qubit CNOTDihedral.
+        QiskitError: if the element in not 1-qubit or 2-qubit :class:`.CNOTDihedral`.
 
-    Reference:
+    References:
         1. Shelly Garion and Andrew W. Cross, *On the structure of the CNOT-Dihedral group*,
            `arXiv:2006.12042 [quant-ph] <https://arxiv.org/abs/2006.12042>`_
     """

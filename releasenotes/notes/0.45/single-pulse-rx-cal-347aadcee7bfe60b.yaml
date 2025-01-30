@@ -4,7 +4,7 @@ features:
     Two new transpiler passes are added to generate single-pulse RX gate calibrations on the fly.
     These single-pulse RX calibrations will reduce the gate time in half, as described in 
     P.Gokhale et al, Optimized Quantum Compilation for Near-Term Algorithms with OpenPulse 
-    (2020), `arXiv:2004.11205 <https://arxiv.org/abs/2004.11205>`.
+    (2020), `arXiv:2004.11205 <https://arxiv.org/abs/2004.11205>`__.
 
     To reduce the amount of RX calibration data that needs to be generated,
     :class:`~qiskit.transpiler.passes.optimization.normalize_rx_angle.NormalizeRXAngle`

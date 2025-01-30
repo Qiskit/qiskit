@@ -14,14 +14,14 @@
 
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.target import Target
-from qiskit.circuit.controlflow import ControlFlowOp
-from qiskit.converters import circuit_to_dag
+
+from qiskit._accelerate import check_map
 
 
 class CheckMap(AnalysisPass):
     """Check if a DAG circuit is already mapped to a coupling map.
 
-    Check if a DAGCircuit is mapped to `coupling_map` by checking that all
+    Check if a DAGCircuit is mapped to ``coupling_map`` by checking that all
     2-qubit interactions are laid out to be on adjacent qubits in the global coupling
     map of the device, setting the property set field (either specified with ``property_set_field``
     or the default ``is_swap_mapped``) to ``True`` or ``False`` accordingly. Note this does not
@@ -68,27 +68,11 @@ class CheckMap(AnalysisPass):
         if not self.qargs:
             self.property_set[self.property_set_field] = True
             return
-        wire_map = {bit: index for index, bit in enumerate(dag.qubits)}
-        self.property_set[self.property_set_field] = self._recurse(dag, wire_map)
-
-    def _recurse(self, dag, wire_map) -> bool:
-        for node in dag.op_nodes(include_directives=False):
-            if isinstance(node.op, ControlFlowOp):
-                for block in node.op.blocks:
-                    inner_wire_map = {
-                        inner: wire_map[outer] for inner, outer in zip(block.qubits, node.qargs)
-                    }
-                    if not self._recurse(circuit_to_dag(block), inner_wire_map):
-                        return False
-            elif (
-                len(node.qargs) == 2
-                and not dag.has_calibration_for(node)
-                and (wire_map[node.qargs[0]], wire_map[node.qargs[1]]) not in self.qargs
-            ):
-                self.property_set["check_map_msg"] = "{}({}, {}) failed".format(
-                    node.name,
-                    wire_map[node.qargs[0]],
-                    wire_map[node.qargs[1]],
-                )
-                return False
-        return True
+        res = check_map.check_map(dag, self.qargs)
+        if res is None:
+            self.property_set[self.property_set_field] = True
+            return
+        self.property_set[self.property_set_field] = False
+        self.property_set["check_map_msg"] = (
+            f"{res[0]}({dag.qubits[res[1][0]]}, {dag.qubits[res[1][1]]}) failed"
+        )

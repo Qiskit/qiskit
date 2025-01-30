@@ -47,6 +47,7 @@ individual documentation for exact details.
 The following example demonstrates the common usage of these arguments:
 
 .. plot::
+   :alt: Output from the previous code.
    :include-source:
 
    from qiskit.visualization import plot_histogram
@@ -60,7 +61,9 @@ The following example demonstrates the common usage of these arguments:
 You can specify ``legend``, ``title``, ``figsize`` and ``color`` by passing to the kwargs.
 
 .. plot::
+   :alt: Output from the previous code.
    :include-source:
+   :context: reset
 
    from qiskit.visualization import plot_histogram
 
@@ -85,6 +88,7 @@ You can save the figure to file either by passing the file name to ``filename`` 
    hist = plot_histogram(data)
    hist.savefig('new_hist.png')
 
+
 Counts Visualizations
 =====================
 
@@ -101,6 +105,7 @@ Example Usage
 Here is an example of using :func:`plot_histogram` to visualize measurement outcome counts:
 
 .. plot::
+   :alt: Output from the previous code.
    :include-source:
 
    from qiskit.visualization import plot_histogram
@@ -142,6 +147,7 @@ Example Usage
 Here is an example of using :func:`plot_state_city` to visualize a quantum state:
 
 .. plot::
+   :alt: Output from the previous code.
    :include-source:
 
    from qiskit.visualization import plot_state_city
@@ -155,6 +161,7 @@ The state can be array-like list of lists, ``numpy.array``, or more commonly
 obtained from a :class:`~qiskit.circuit.QuantumCircuit`:
 
 .. plot::
+   :alt: Output from the previous code.
    :include-source:
 
    from qiskit import QuantumCircuit
@@ -170,6 +177,7 @@ obtained from a :class:`~qiskit.circuit.QuantumCircuit`:
    plot_state_city(state)
 
 .. plot::
+   :alt: Output from the previous code.
    :include-source:
 
    from qiskit import QuantumCircuit
@@ -204,7 +212,6 @@ Circuit Visualizations
    :toctree: ../stubs/
 
    circuit_drawer
-   ~qiskit.visualization.qcstyle.DefaultStyle
 
 DAG Visualizations
 ==================
@@ -221,17 +228,6 @@ Pass Manager Visualizations
    :toctree: ../stubs/
 
    pass_manager_drawer
-
-Pulse Visualizations
-====================
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   pulse_drawer
-   ~qiskit.visualization.pulse.IQXStandard
-   ~qiskit.visualization.pulse.IQXSimple
-   ~qiskit.visualization.pulse.IQXDebugging
 
 Timeline Visualizations
 =======================
@@ -285,8 +281,6 @@ from .gate_map import plot_gate_map, plot_circuit_layout, plot_error_map, plot_c
 from .pass_manager_visualization import pass_manager_drawer
 from .pass_manager_visualization import staged_pass_manager_drawer
 
-from .pulse.interpolation import step_wise, linear, cubic_spline
-from .pulse.qcstyle import PulseStyle, SchedStyle
 from .pulse_v2 import draw as pulse_drawer
 
 from .timeline import draw as timeline_drawer

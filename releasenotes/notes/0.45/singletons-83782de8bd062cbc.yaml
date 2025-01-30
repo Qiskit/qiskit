@@ -30,23 +30,23 @@ features:
     The following standard library gates are now instances of
     :class:`~.SingletonGate`:
 
-        * :class:`~.DCXGate`
-        * :class:`~.ECRGate`
-        * :class:`~.HGate`
-        * :class:`~.IGate`
-        * :class:`~.iSwapGate`
-        * :class:`~.SGate`
-        * :class:`~.SdgGate`
-        * :class:`~.SwapGate`
-        * :class:`~.SXGate`
-        * :class:`~.SXdgGate`
-        * :class:`~.TGate`
-        * :class:`~.TdgGate`
-        * :class:`~.XGate`
-        * :class:`~.RCCXGate`
-        * :class:`~.RC3XGate`
-        * :class:`~.YGate`
-        * :class:`~.ZGate`
+     * :class:`~.DCXGate`
+     * :class:`~.ECRGate`
+     * :class:`~.HGate`
+     * :class:`~.IGate`
+     * :class:`~.iSwapGate`
+     * :class:`~.SGate`
+     * :class:`~.SdgGate`
+     * :class:`~.SwapGate`
+     * :class:`~.SXGate`
+     * :class:`~.SXdgGate`
+     * :class:`~.TGate`
+     * :class:`~.TdgGate`
+     * :class:`~.XGate`
+     * :class:`~.RCCXGate`
+     * :class:`~.RC3XGate`
+     * :class:`~.YGate`
+     * :class:`~.ZGate`
 
     This means that if these classes are instantiated as (e.g.) ``XGate()`` using
     all the constructor defaults, they will all share a single global
@@ -81,29 +81,29 @@ features:
     The following standard library gates are now instances of
     :class:`~.SingletonControlledGate`:
 
-        * :class:`~.CHGate`
-        * :class:`~.CSGate`
-        * :class:`~.CSdgGate`
-        * :class:`~.CSwapGate`
-        * :class:`~.CSXGate`
-        * :class:`~.CXGate`
-        * :class:`~.CCXGate`
-        * :class:`~.C3SXGate`
-        * :class:`~.C3XGate`
-        * :class:`~.C4XGate`
-        * :class:`~.CYGate`
-        * :class:`~.CZGate`
+     * :class:`~.CHGate`
+     * :class:`~.CSGate`
+     * :class:`~.CSdgGate`
+     * :class:`~.CSwapGate`
+     * :class:`~.CSXGate`
+     * :class:`~.CXGate`
+     * :class:`~.CCXGate`
+     * :class:`~.C3SXGate`
+     * :class:`~.C3XGate`
+     * :class:`~.C4XGate`
+     * :class:`~.CYGate`
+     * :class:`~.CZGate`
 
     This means that unless a ``label``, ``condition``, ``duration``, ``unit``, or
     ``ctrl_state`` are set on the instance at creation time they will all share a
     single global instance whenever a new gate object is created. This results in large
     reduction in the memory overhead for > 1 object of these types.
   - |
-    Added a new method :meth`.Instruction.to_mutable` and attribute
+    Added a new method :meth:`.Instruction.to_mutable` and attribute
     :attr:`.Instruction.mutable` which is used to get a mutable copy and check whether
     an :class:`~.circuit.Instruction` object is mutable. With the introduction
     of :class:`~.SingletonGate` these methods can be used to have a unified interface
-    to deal with the mutablitiy of instruction objects.
+    to deal with the mutability of instruction objects.
   - |
     Added an attribute :attr:`.Instruction.base_class`, which gets the "base" type of an
     instruction.  Many instructions will satisfy ``type(obj) == obj.base_class``, however the
@@ -155,7 +155,7 @@ upgrade:
     instead of the original object.  ``label``, ``duration`` and ``unit`` can
     be given as keyword arguments to these gates at construction time, and a
     mutable instance will be returned automatically.
-    This change was necssary as part of converting
+    This change was necessary as part of converting
     these classes to be :class:`~.SingletonGate` and :class:`~.SingletonControlledGate`
     types which greatly reduces the memory footprint of repeated instances of these gates.
   - |
@@ -164,7 +164,7 @@ upgrade:
     :class:`~.QuantumCircuit` or :class:`~.DAGCircuit` classes it is important
     to note that the use of shared references for instances is much more common
     now. Previously, it was possible to reuse and share an instance of a
-    a circuit operation it wasn't very commonly used and a copy would generate
+    circuit operation it wasn't very commonly used and a copy would generate
     a unique instance. This has changed starting in this release because of
     :class:`~.SingletonInstruction` and :class:`.SingletonGate` being made available (and a large
     number of standard library gates now built off of it). If your usage of these objects is

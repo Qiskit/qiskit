@@ -1,0 +1,8 @@
+---
+
+fixes:
+  - |
+    Fixed an issue in the :class:`.InverseCancellation` transpiler pass where in some cases it
+    would incorrectly cancel a self-inverse parameterized gate even if the parameter value
+    didn't match.
+    Fixed  `#11815 <https://github.com/Qiskit/qiskit/issues/11815>`__

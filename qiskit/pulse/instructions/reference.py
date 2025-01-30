@@ -11,13 +11,13 @@
 # that they have been altered from the originals.
 
 """Reference instruction that is a placeholder for subroutine."""
-
-from typing import Union, Tuple, Set
+from __future__ import annotations
 
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError, UnassignedReferenceError
 from qiskit.pulse.instructions import instruction
+from qiskit.utils.deprecate_pulse import deprecate_pulse_func
 
 
 class Reference(instruction.Instruction):
@@ -41,6 +41,7 @@ class Reference(instruction.Instruction):
     # Delimiter for tuple keys.
     key_delimiter = ","
 
+    @deprecate_pulse_func
     def __init__(self, name: str, *extra_keys: str):
         """Create new reference.
 
@@ -76,22 +77,22 @@ class Reference(instruction.Instruction):
                 )
 
     @property
-    def ref_keys(self) -> Tuple[str, ...]:
+    def ref_keys(self) -> tuple[str, ...]:
         """Returns unique key of the subroutine."""
         return self.operands
 
     @property
-    def duration(self) -> Union[int, ParameterExpression]:
+    def duration(self) -> int | ParameterExpression:
         """Duration of this instruction."""
         raise UnassignedReferenceError(f"Subroutine is not assigned to {self.ref_keys}.")
 
     @property
-    def channels(self) -> Tuple[Channel, ...]:
+    def channels(self) -> tuple[Channel, ...]:
         """Returns the channels that this schedule uses."""
         raise UnassignedReferenceError(f"Subroutine is not assigned to {self.ref_keys}.")
 
     @property
-    def parameters(self) -> Set:
+    def parameters(self) -> set:
         """Parameters which determine the instruction behavior."""
         return set()
 

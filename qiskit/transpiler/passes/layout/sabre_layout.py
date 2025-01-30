@@ -35,15 +35,11 @@ from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit._accelerate.nlayout import NLayout
-from qiskit._accelerate.sabre_layout import sabre_layout_and_routing
-from qiskit._accelerate.sabre_swap import (
-    Heuristic,
-    NeighborTable,
-)
+from qiskit._accelerate.sabre import sabre_layout_and_routing, Heuristic, NeighborTable, SetScaling
 from qiskit.transpiler.passes.routing.sabre_swap import _build_sabre_dag, _apply_sabre_result
 from qiskit.transpiler.target import Target
 from qiskit.transpiler.coupling import CouplingMap
-from qiskit.tools.parallel import CPU_COUNT
+from qiskit.utils.parallel import CPU_COUNT
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +56,7 @@ class SabreLayout(TransformationPass):
     This method exploits the reversibility of quantum circuits, and tries to
     include global circuit information in the choice of initial_layout.
 
-    By default this pass will run both layout and routing and will transform the
+    By default, this pass will run both layout and routing and will transform the
     circuit so that the layout is applied to the input dag (meaning that the output
     circuit will have ancilla qubits allocated for unused qubits on the coupling map
     and the qubits will be reordered to match the mapped physical qubits) and then
@@ -105,7 +101,10 @@ class SabreLayout(TransformationPass):
 
     **References:**
 
-    [1] Li, Gushu, Yufei Ding, and Yuan Xie. "Tackling the qubit mapping problem
+    [1] Henry Zou and Matthew Treinish and Kevin Hartman and Alexander Ivrii and Jake Lishman.
+    "LightSABRE: A Lightweight and Enhanced SABRE Algorithm"
+    `arXiv:2409.08368 <https://doi.org/10.48550/arXiv.2409.08368>`__
+    [2] Li, Gushu, Yufei Ding, and Yuan Xie. "Tackling the qubit mapping problem
     for NISQ-era quantum devices." ASPLOS 2019.
     `arXiv:1809.02573 <https://arxiv.org/pdf/1809.02573.pdf>`_
     """
@@ -144,15 +143,17 @@ class SabreLayout(TransformationPass):
                 with the ``routing_pass`` argument and an error will be raised
                 if both are used.
             layout_trials (int): The number of random seed trials to run
-                layout with. When > 1 the trial that resuls in the output with
+                layout with. When > 1 the trial that results in the output with
                 the fewest swap gates will be selected. If this is not specified
                 (and ``routing_pass`` is not set) then the number of local
                 physical CPUs will be used as the default value. This option is
                 mutually exclusive with the ``routing_pass`` argument and an error
-                will be raised if both are used.
+                will be raised if both are used. An additional 3 or 4 trials
+                depending on the ``coupling_map`` value are run with common layouts
+                on top of the random trial count specified by this value.
             skip_routing (bool): If this is set ``True`` and ``routing_pass`` is not used
                 then routing will not be applied to the output circuit.  Only the layout
-                will be returned in the property set. This is a tradeoff to run custom
+                will be set in the property set. This is a tradeoff to run custom
                 routing with multiple layout trials, as using this option will cause
                 SabreLayout to run the routing stage internally but not use that result.
 
@@ -279,6 +280,10 @@ class SabreLayout(TransformationPass):
             }
         )
 
+        # Add the existing registers to the layout
+        for qreg in dag.qregs.values():
+            self.property_set["layout"].add_register(qreg)
+
         # If skip_routing is set then return the layout in the property set
         # and throwaway the extra work we did to compute the swap map.
         # We also skip routing here if there is more than one connected
@@ -304,11 +309,17 @@ class SabreLayout(TransformationPass):
         mapped_dag.add_clbits(dag.clbits)
         for creg in dag.cregs.values():
             mapped_dag.add_creg(creg)
-        mapped_dag._global_phase = dag._global_phase
+        for var in dag.iter_input_vars():
+            mapped_dag.add_input_var(var)
+        for var in dag.iter_captured_vars():
+            mapped_dag.add_captured_var(var)
+        for var in dag.iter_declared_vars():
+            mapped_dag.add_declared_var(var)
+        mapped_dag.global_phase = dag.global_phase
         self.property_set["original_qubit_indices"] = {
             bit: index for index, bit in enumerate(dag.qubits)
         }
-        self.property_set["final_layout"] = Layout(
+        final_layout = Layout(
             {
                 mapped_dag.qubits[
                     component.coupling_map.graph[initial]
@@ -317,6 +328,12 @@ class SabreLayout(TransformationPass):
                 for initial, final in enumerate(component.final_permutation)
             }
         )
+        if self.property_set["final_layout"] is None:
+            self.property_set["final_layout"] = final_layout
+        else:
+            self.property_set["final_layout"] = final_layout.compose(
+                self.property_set["final_layout"], dag.qubits
+            )
         for component in components:
             # Sabre routing still returns all its swaps as on virtual qubits, so we need to expand
             # each component DAG with the virtual ancillas that were allocated to it, so the layout
@@ -377,12 +394,18 @@ class SabreLayout(TransformationPass):
             coupling_map.size(),
             original_qubit_indices,
         )
+        heuristic = (
+            Heuristic(attempt_limit=10 * coupling_map.size())
+            .with_basic(1.0, SetScaling.Size)
+            .with_lookahead(0.5, 20, SetScaling.Size)
+            .with_decay(0.001, 5)
+        )
         sabre_start = time.perf_counter()
         (initial_layout, final_permutation, sabre_result) = sabre_layout_and_routing(
             sabre_dag,
             neighbor_table,
             dist_matrix,
-            Heuristic.Decay,
+            heuristic,
             self.max_iterations,
             self.swap_trials,
             self.layout_trials,
@@ -404,7 +427,7 @@ class SabreLayout(TransformationPass):
         )
 
     def _ancilla_allocation_no_pass_manager(self, dag):
-        """Run the ancilla-allocation and -enlargment passes on the DAG chained onto our
+        """Run the ancilla-allocation and -enlargement passes on the DAG chained onto our
         ``property_set``, skipping the DAG-to-circuit conversion cost of using a ``PassManager``."""
         ancilla_pass = FullAncillaAllocation(self.coupling_map)
         ancilla_pass.property_set = self.property_set
@@ -436,7 +459,7 @@ class SabreLayout(TransformationPass):
 
         The routing passes internally start with a trivial layout, as the
         layout gets applied to the circuit prior to running them. So the
-        "final_layout" they report must be amended to account for the actual
+        ``"final_layout"`` they report must be amended to account for the actual
         initial_layout that was selected.
         """
         trivial_layout = Layout.generate_trivial_layout(*qregs)

@@ -13,8 +13,9 @@
 """Transpiler PropertySet testing"""
 
 import unittest
+
 from qiskit.transpiler import PropertySet
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestPropertySet(QiskitTestCase):
