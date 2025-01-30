@@ -967,7 +967,7 @@ class SparsePauliOp(LinearOp):
                     category=RuntimeWarning,
                 )
 
-        as_sparse_list = obs.to_sparse_list()
+        as_sparse_list = obs.to_sparse_list(only_paulis=True)
         return SparsePauliOp.from_sparse_list(as_sparse_list, obs.num_qubits)
 
     def to_list(self, array: bool = False):

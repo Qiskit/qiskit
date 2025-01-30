@@ -2396,24 +2396,50 @@ impl PySparseObservable {
         Ok(inner.into())
     }
 
-    #[pyo3(signature = ())]
-    fn to_sparse_list(&self, py: Python) -> PyResult<Py<PyList>> {
+    /// Express the observable in terms of a sparse list format.
+    ///
+    /// This is the counter-operation of :meth:`.SparseObservable.from_sparse_list`.
+    ///
+    /// Args:
+    ///     only_pauli: If ``True``, express the observable only in terms of non-identity Paulis,
+    ///         :math:`X`, :math:`Y`, and :math:`Z`. Beware that this will use at least :math:`2^n`
+    ///         terms if there are :math:`n` single-qubit projectors present, which can lead
+    ///         to an exponentially expensive representation. Defaults to ``False``.
+    ///
+    /// Examples:
+    ///     
+    ///     >>> obs = SparseObservable.from_list([("IIXIZ", 2j), ("IIZIX", 2j)])
+    ///     >>> reconstructed = SparseObservable.from_sparse_list(obs.to_sparse_list(), obs.num_qubits)
+    ///     >>> assert obs == reconstructed
+    #[pyo3(signature = (only_paulis=false))]
+    fn to_sparse_list(&self, py: Python, only_paulis: bool) -> PyResult<Py<PyList>> {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
 
-        let sparse_list = inner
-            .to_paulis()
-            .map(move |(bits, indices, coeff)| {
-                let mut pauli_string = String::new();
-                for bit in bits {
-                    pauli_string.push_str(bit.py_label());
-                }
-                let py_string = PyString::new(py, &pauli_string).unbind();
-                let py_indices = PyList::new(py, indices)?.unbind();
-                let py_coeff = coeff.into_py_any(py)?;
+        // turn a 3-tuple of (bit terms, indices, coeff) into a Python tuple
+        let to_py_tuple = |bits: &[BitTerm], indices: &[u32], coeff: Complex64| {
+            let mut pauli_string = String::new();
+            for bit in bits {
+                pauli_string.push_str(bit.py_label());
+            }
+            let py_string = PyString::new(py, &pauli_string).unbind();
+            let py_indices = PyList::new(py, indices)?.unbind();
+            let py_coeff = coeff.into_py_any(py)?;
 
-                PyTuple::new(py, vec![py_string.as_any(), py_indices.as_any(), &py_coeff])
-            })
-            .collect::<PyResult<Vec<_>>>()?;
+            PyTuple::new(py, vec![py_string.as_any(), py_indices.as_any(), &py_coeff])
+        };
+
+        // to map onto a Pauli list, we first have to expand all projectors, otherwise
+        // we can just directly iterate over the view
+        let sparse_list = match only_paulis {
+            false => inner
+                .iter()
+                .map(|view| to_py_tuple(view.bit_terms, view.indices, view.coeff))
+                .collect::<PyResult<Vec<_>>>()?,
+            true => inner
+                .to_paulis()
+                .map(move |(bits, indices, coeff)| to_py_tuple(&bits, &indices, coeff))
+                .collect::<PyResult<Vec<_>>>()?,
+        };
 
         let out = PyList::new(py, sparse_list)?;
         Ok(out.unbind())

@@ -2028,8 +2028,22 @@ class TestSparseObservable(QiskitTestCase):
             self.assertEqual("ZYX", sparse_list[0][0])
             self.assertListEqual([0, 1, 2], sparse_list[0][1])
 
-        obs = SparseObservable("lrI0")
+        obs = SparseObservable.from_list([("lrI0", 0.5), ("YYIZ", -1j)])
         sparse_list = obs.to_sparse_list()
+        with self.subTest(msg="multiple"):
+            self.assertEqual(2, len(sparse_list))
+
+            self.assertEqual("0rl", sparse_list[0][0])
+            self.assertEqual([0, 2, 3], sparse_list[0][1])
+            self.assertAlmostEqual(0.5, sparse_list[0][2])
+
+            self.assertEqual("ZYY", sparse_list[1][0])
+            self.assertEqual([0, 2, 3], sparse_list[1][1])
+            self.assertAlmostEqual(-1j, sparse_list[1][2])
+
+    def test_to_sparse_pauli_list(self):
+        obs = SparseObservable("lrI0")
+        sparse_list = obs.to_sparse_list(only_paulis=True)
 
         as_spo = SparsePauliOp.from_sparse_list(sparse_list, 4)
         expect = SparsePauliOp.from_sparse_list(
@@ -2045,6 +2059,20 @@ class TestSparseObservable(QiskitTestCase):
             ],
             4,
         )
+        self.assertEqual(Operator(expect), Operator(as_spo))
 
-        with self.subTest(msg="lrI0"):
-            self.assertEqual(Operator(expect), Operator(as_spo))
+    def test_sparse_list_roundtrip(self):
+        """Test dumping into a sparse list and constructing from one."""
+        obs = SparseObservable.from_list(
+            [
+                ("IIXIZ", 2j),
+                ("IIZIX", 2j),
+                ("++III", -1.5),
+                ("--III", -1.5),
+                ("IrIlI", 0.5),
+                ("IIrIl", 0.5),
+            ]
+        )
+
+        reconstructed = SparseObservable.from_sparse_list(obs.to_sparse_list(), obs.num_qubits)
+        self.assertEqual(obs, reconstructed)
