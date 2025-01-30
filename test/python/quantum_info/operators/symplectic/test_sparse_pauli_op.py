@@ -369,16 +369,33 @@ class TestSparsePauliOpConversions(QiskitTestCase):
 
     def test_from_sparse_observable(self):
         """Test from a SparseObservable."""
+        obs = SparseObservable.zero(10)
+        expected = SparsePauliOp(["I" * 10], coeffs=[0])
+        self.assertEqual(expected, SparsePauliOp.from_sparse_observable(obs))
+
         obs = SparseObservable("XrZ")
         expected = SparsePauliOp(["XIZ", "XYZ"], coeffs=[0.5, -0.5])
         self.assertEqual(expected, SparsePauliOp.from_sparse_observable(obs))
 
     def test_sparse_observable_roundtrip(self):
         """Test SPO -> OBS -> SPO."""
-        op = SparsePauliOp(["ZZI", "IZZ", "IIX", "IXI", "YII"])
-        obs = SparseObservable.from_sparse_pauli_op(op)
-        roundtrip = SparsePauliOp.from_sparse_observable(obs)
-        self.assertEqual(op, roundtrip)
+        with self.subTest(msg="zero"):
+            op = SparsePauliOp(["I"], coeffs=[0])
+            obs = SparseObservable.from_sparse_pauli_op(op)
+            roundtrip = SparsePauliOp.from_sparse_observable(obs)
+            self.assertEqual(op, roundtrip)
+
+        with self.subTest(msg="identity"):
+            op = SparsePauliOp(["I" * 25])
+            obs = SparseObservable.from_sparse_pauli_op(op)
+            roundtrip = SparsePauliOp.from_sparse_observable(obs)
+            self.assertEqual(op, roundtrip)
+
+        with self.subTest(msg="ising like"):
+            op = SparsePauliOp(["ZZI", "IZZ", "IIX", "IXI", "YII"])
+            obs = SparseObservable.from_sparse_pauli_op(op)
+            roundtrip = SparsePauliOp.from_sparse_observable(obs)
+            self.assertEqual(op, roundtrip)
 
 
 class TestSparsePauliOpIteration(QiskitTestCase):

@@ -1,0 +1,19 @@
+---
+features_quantum_info:
+  - |
+    Added :meth:`.SparseObservable.to_sparse_list` to obtain a sparse Pauli list representation
+    of a :class:`.SparseObservable`. Note, that this format is inefficient in representing
+    projectors. For example::
+
+      from qiskit.quantum_info import SparseObservable
+
+      obs = SparseObservable("ZZXI")
+      print(obs.to_sparse_list())  # [("XZZ", [1, 2, 3], 1)]
+
+      obs = SparseObservable("+-")
+      print(obs.to_sparse_list())  # [("", [], 1/4), ("X", [1], 1/4), ("X", [0], -1/4), ("XX", [0, 1], -1/4)]
+  - |
+    Support construction of a :class:`.SparsePauliOp` from a :class:`.SparseObservable`
+    via the new method :class:`.SparsePauliOp.from_sparse_observable`. It is important
+    to remember that :class:`.SparseObservable`\ s can efficiently represent projectors,
+    which require an exponential number of terms in the :class:`.SparsePauliOp`.
