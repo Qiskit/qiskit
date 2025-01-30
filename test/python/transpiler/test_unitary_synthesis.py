@@ -17,9 +17,9 @@ Tests for the default UnitarySynthesis transpiler pass.
 """
 
 import unittest
+import math
 import numpy as np
 import scipy
-import math
 from ddt import ddt, data
 
 from qiskit import transpile, generate_preset_pass_manager
@@ -891,9 +891,8 @@ class TestUnitarySynthesisTarget(QiskitTestCase):
         qc.unitary(random_unitary(4, seed=1234), [0, 1])
         qc_transpiled = UnitarySynthesis(target=target)(qc)
         # TODO: fix this assertion
-        # opcount = qc_transpiled.count_ops()
-        # print(opcount)
-        # self.assertTrue(set(opcount).issubset({"rz", "rx", CustomXXGate.name}))
+        opcount = qc_transpiled.count_ops()
+        self.assertTrue(set(opcount).issubset({"rz", "rx", "MyCustomXXGate"}))
         # self.assertTrue(np.allclose(Operator(qc_transpiled), Operator(qc)))
 
     def test_custom_parameterized_gate_in_target_skips(self):
