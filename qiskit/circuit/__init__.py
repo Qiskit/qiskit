@@ -64,6 +64,7 @@ defined as:
 
 
 .. plot::
+   :alt: Circuit diagram output by the previous code.
    :include-source:
 
    from qiskit import QuantumCircuit
@@ -697,6 +698,11 @@ attributes of each of the control-flow operations.
 
     Set of the instruction names of Qiskit's known control-flow operations.
 
+The :func:`.get_control_flow_name_mapping` function allows to access the control-flow operation
+classes associated to each name.
+
+.. autofunction:: get_control_flow_name_mapping
+
 These control-flow operations (:class:`IfElseOp`, :class:`WhileLoopOp`,
 :class:`SwitchCaseOp` and :class:`ForLoopOp`) all have specific state that defines the branching
 conditions and strategies, but contain all the different subcircuit blocks that might be entered in
@@ -1144,6 +1150,7 @@ If we draw this circuit, we will see that Qiskit places the zeroth qubit on the 
 drawing:
 
 .. plot::
+    :alt: Circuit diagram output by the previous code.
     :include-source:
     :context:
     :show-source-link: False
@@ -1311,6 +1318,7 @@ from .controlflow import (
     BreakLoopOp,
     ContinueLoopOp,
     CONTROL_FLOW_OP_NAMES,
+    get_control_flow_name_mapping,
 )
 
 from .annotated_operation import AnnotatedOperation, InverseModifier, ControlModifier, PowerModifier

@@ -34,6 +34,7 @@ def dag_to_circuit(dag, copy_operations=True):
 
     Example:
         .. plot::
+           :alt: Circuit diagram output by the previous code.
            :include-source:
 
            from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
