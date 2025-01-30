@@ -38,7 +38,7 @@ features = ["rayon"]
 
 [dependencies.smallvec]
 workspace = true
-features = ["union"]
+features = ["union", "const_generics"]
 
 [features]
 cache_pygates = []
