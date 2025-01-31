@@ -18,7 +18,12 @@ from .parameter import Parameter
 
 
 class ParameterVectorElement(Parameter):
-    """An element of a ParameterVector."""
+    """An element of a :class:`ParameterVector`.
+
+    .. note::
+        There is very little reason to ever construct this class directly.  Objects of this type are
+        automatically constructed efficiently as part of creating a :class:`ParameterVector`.
+    """
 
     ___slots__ = ("_vector", "_index")
 
@@ -48,7 +53,18 @@ class ParameterVectorElement(Parameter):
 
 
 class ParameterVector:
-    """ParameterVector class to quickly generate lists of parameters."""
+    """A container of many related :class:`Parameter` objects.
+
+    This class is faster to construct than constructing many :class:`Parameter` objects
+    individually, and the individual names of the parameters will all share a common stem (the name
+    of the vector).  For a vector called ``v`` with length 3, the individual elements will have
+    names ``v[0]``, ``v[1]`` and ``v[2]``.
+
+    The elements of a vector are sorted by the name of the vector, then the numeric value of their
+    index.
+
+    This class fulfill the :class:`collections.abc.Sequence` interface.
+    """
 
     __slots__ = ("_name", "_params", "_root_uuid")
 
@@ -62,16 +78,20 @@ class ParameterVector:
 
     @property
     def name(self):
-        """Returns the name of the ParameterVector."""
+        """The name of the :class:`ParameterVector`."""
         return self._name
 
     @property
     def params(self):
-        """Returns the list of parameters in the ParameterVector."""
+        """A list of the contained :class:`ParameterVectorElement` instances.
+
+        It is not safe to mutate this list."""
         return self._params
 
     def index(self, value):
-        """Returns first index of value."""
+        """Find the index of a :class:`ParameterVectorElement` within the list.
+
+        It is typically much faster to use the :attr:`ParameterVectorElement.index` property."""
         return self._params.index(value)
 
     def __getitem__(self, key):
