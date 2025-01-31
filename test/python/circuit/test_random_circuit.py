@@ -199,6 +199,33 @@ test_cases = (
     # A graph with no edges, should yeild a circuit with no edges,
     # this means there would be no 2Q gates on that circuit.
     (digraph_with_no_edges(10), 0),
+    # A list of tuples of control qubit, target qubit, and edge probability
+    # is also acceptable.
+    (
+        [
+            (0, 13, 21),
+            (1, 13, 20),
+            (1, 14, 15),
+            (2, 14, 21),
+            (3, 15, 10),
+            (4, 15, 16),
+            (4, 16, 21),
+            (5, 16, 11),
+            (6, 17, 11),
+            (7, 17, 17),
+            (7, 18, 15),
+            (8, 18, 20),
+            (0, 9, 13),
+            (3, 9, 13),
+            (5, 12, 22),
+            (8, 12, 17),
+            (10, 14, 11),
+            (10, 16, 19),
+            (11, 15, 12),
+            (11, 17, 21),
+        ],
+        0,
+    ),
 )
 
 
@@ -211,8 +238,17 @@ class TestRandomCircuitFromGraph(QiskitTestCase):
     @ddt.unpack
     def test_simple_random(self, inter_graph, seed):
         """Test creating a simple random circuit."""
+        n_nodes = 0
+        if isinstance(inter_graph, list):
+            for ctrl, trgt, _ in inter_graph:
+                if ctrl > n_nodes:
+                    n_nodes = ctrl
+                if trgt > n_nodes:
+                    n_nodes = trgt
+            n_nodes += 1  # ctrl, trgt are qubit indices.
+        else:
+            n_nodes = inter_graph.num_nodes()
 
-        n_nodes = inter_graph.num_nodes()
         circ = random_circuit_from_graph(
             interaction_graph=inter_graph, min_2q_gate_per_edge=1, seed=seed
         )
@@ -303,7 +339,13 @@ class TestRandomCircuitFromGraph(QiskitTestCase):
         dag = circuit_to_dag(qc)
 
         cp_mp = set()
-        edge_list = set(inter_graph.edge_list())
+        edge_list = None
+        if isinstance(inter_graph, list):
+            edge_list = []
+            for ctrl, trgt, _ in inter_graph:
+                edge_list.append((ctrl, trgt))
+        else:
+            edge_list = inter_graph.edge_list()
 
         for wire in dag.wires:
             for dag_op_node in dag.nodes_on_wire(wire, only_ops=True):
@@ -533,6 +575,7 @@ class TestRandomCircuitFromGraph(QiskitTestCase):
         dag = circuit_to_dag(qc)
         edge_count = defaultdict(int)
 
+        count_2q_oper = 0  # Declaring variable so that lint doesn't complaint.
         for count_2q_oper, op_node in enumerate(dag.collect_2q_runs()):
             control, target = op_node[0].qargs
             control = control._index

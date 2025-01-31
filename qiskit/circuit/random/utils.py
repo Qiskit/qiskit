@@ -59,6 +59,9 @@ def random_circuit_from_graph(
     i.e each edge is drawn uniformly. If any weight of an edge is set as zero, that particular
     edge will be not be included in the output circuit.
 
+    Passing a list of tuples of control qubit, target qubit and associated probability is also
+    acceptable.
+
     If numerical values are present as probabilities but some/any are None, or negative, this will
     raise a ValueError.
 
@@ -86,11 +89,12 @@ def random_circuit_from_graph(
        pydi_graph.add_nodes_from(range(7))
        cp_map = [(0, 1, 0.18), (1, 2, 0.15), (2, 3, 0.15), (3, 4, 0.22), (4, 5, 0.13), (5, 6, 0.17)]
        pydi_graph.add_edges_from(cp_map)
+       # cp_map can be passed in directly as interaction_graph
        qc = random_circuit_from_graph(pydi_graph, min_2q_gate_per_edge=1, measure = True)
        qc.draw(output='mpl')
 
     Args:
-        interaction_graph (PyGraph | PyDiGraph): Interaction Graph
+        interaction_graph (PyGraph | PyDiGraph | List[Tuple[int, int, float]]): Interaction Graph
         min_2q_gate_per_edge (int): Minimum number of times every qubit-pair must be used
                                     in the random circuit.
         max_operands (int): maximum qubit operands of each gate(should be 1 or 2)
@@ -128,16 +132,37 @@ def random_circuit_from_graph(
             "`max_operands` of 1 means only 1Q gates are allowed, but `insert_1q_oper` is False"
         )
 
-    num_qubits = interaction_graph.num_nodes()
+    # Declaring variables so lint doesn't complaint.
+    num_qubits = 0
+    num_edges = None
+    edge_list = None
+    edges_probs = None
+
+    if isinstance(interaction_graph, list):
+        num_edges = len(interaction_graph)
+        edge_list = []
+        edges_probs = []
+        for ctrl, trgt, prob in interaction_graph:
+            edge_list.append((ctrl, trgt))
+            edges_probs.append(prob)
+
+            if ctrl > num_qubits:
+                num_qubits = ctrl
+
+            if trgt > num_qubits:
+                num_qubits = trgt
+
+        num_qubits += 1  # ctrl, trgt are qubit indices.
+    else:
+        num_qubits = interaction_graph.num_nodes()
+        num_edges = interaction_graph.num_edges()
+        edge_list = interaction_graph.edge_list()
+        edges_probs = interaction_graph.edges()
 
     if num_qubits == 0:
         return QuantumCircuit()
 
     max_operands = max_operands if num_qubits > max_operands else num_qubits
-
-    edges_probs = interaction_graph.edges()
-
-    num_edges = interaction_graph.num_edges()
 
     if num_edges == 0 and not insert_1q_oper:
         raise CircuitError(
@@ -158,8 +183,6 @@ def random_circuit_from_graph(
             reset=reset,
             seed=seed,
         )
-
-    edge_list = interaction_graph.edge_list()
 
     # If any edge weight is zero, just remove that edge from the edge_list
     if 0 in edges_probs:
