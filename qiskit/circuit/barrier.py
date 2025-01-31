@@ -19,8 +19,8 @@ with the :meth:`~qiskit.circuit.QuantumCircuit.barrier` method.
 from __future__ import annotations
 
 from qiskit.exceptions import QiskitError
+from qiskit.circuit.instruction import Instruction
 from qiskit.utils import deprecate_func
-from .instruction import Instruction
 from qiskit._accelerate.circuit import StandardInstructionType
 
 
