@@ -486,3 +486,76 @@ class TestRandomCircuitFromGraph(QiskitTestCase):
         # Check if conditionals are present on 1Q and 2Q gates.
         self.assertNotEqual(cond_counter_1q, 0)
         self.assertNotEqual(cond_counter_2q, 0)
+
+    def test_edges_prob(self):
+        """Test if the probabilities of edges selected from the coupling
+        map is indeed equal to the probabilities supplied with the coupling
+        map, also test if for a sufficiently large circuit all edges in the
+        coupling map is present in the circuit.
+        """
+
+        num_qubits = 5
+        seed = 32434
+        h_h_g = rx.generators.directed_heavy_hex_graph(d=num_qubits, bidirectional=False)
+        rng = np.random.default_rng(seed=seed)
+        cp_map_list = []
+        edge_list = h_h_g.edge_list()
+
+        # generating a non-normalized list.
+        list_choices = range(15, 25)  # keep the variance relatively low.
+        random_probs = rng.choice(list_choices, size=len(edge_list)).tolist()
+        sum_probs = sum(random_probs)
+
+        for idx, qubits in enumerate(edge_list):
+            ctrl, trgt = qubits
+            cp_map_list.append((ctrl, trgt, random_probs[idx]))
+
+        h_h_g.clear_edges()
+        h_h_g.add_edges_from(cp_map_list)
+
+        # The choices of probabilities are such that an edge might have a very low
+        # probability of getting selected, so we have to generate a fairly big
+        # circuit to include that edge in the circuit, and achieve the required
+        # probability.
+        with self.assertWarns(DeprecationWarning):
+            qc = random_circuit_from_graph(
+                h_h_g,
+                min_2q_gate_per_edge=150,
+                max_operands=2,
+                measure=False,
+                conditional=True,  # Just making it a bit more challenging.
+                reset=True,
+                seed=seed,
+                insert_1q_oper=False,
+                prob_conditional=0.91,
+                prob_reset=0.50,
+            )
+        dag = circuit_to_dag(qc)
+        edge_count = defaultdict(int)
+
+        for count_2q_oper, op_node in enumerate(dag.collect_2q_runs()):
+            control, target = op_node[0].qargs
+            control = control._index
+            target = target._index
+            edge_count[(control, target)] += 1
+
+        count_2q_oper += 1  # index starts from 0
+
+        # make sure every qubit-pair from the edge_list is present in the circuit.
+        for ctrl, trgt, _ in cp_map_list:
+            self.assertIn((ctrl, trgt), edge_count)
+
+        edges_norm_qc = {}
+        for edge, prob in edge_count.items():
+            edges_norm_qc[edge] = prob / count_2q_oper
+
+        edges_norm_orig = {}
+        for ctrl, trgt, prob in cp_map_list:
+            edges_norm_orig[(ctrl, trgt)] = prob / sum_probs
+
+        # Check if the probabilities of occurrences of edges in the circuit,
+        # is indeed equal to the probabilities supplied as the edge data in
+        # the interaction graph, upto a given tolerance.
+        tol = 0.02  # Setting 2% tolerance in probabilities.
+        for edge_orig, prob_orig in edges_norm_orig.items():
+            self.assertTrue(np.isclose(edges_norm_qc[edge_orig], prob_orig, atol=tol))
