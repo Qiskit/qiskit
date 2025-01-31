@@ -23,7 +23,7 @@ import ddt
 
 from qiskit import QiskitError
 from qiskit.circuit import Parameter, ParameterExpression, ParameterVector
-from qiskit.circuit.library import EfficientSU2
+from qiskit.circuit.library import efficient_su2
 from qiskit.circuit.parametertable import ParameterView
 from qiskit.compiler.transpiler import transpile
 from qiskit.primitives import BackendEstimator
@@ -139,6 +139,11 @@ class TestSparsePauliOpInit(QiskitTestCase):
             paulis.z[:] = False
             coeffs[:] = 0
             self.assertEqual(spp_op, ref_op)
+
+    def test_sparse_pauli_op_init_long_ys(self):
+        """Test heavy-weight SparsePauliOp initialization."""
+        y = SparsePauliOp("Y" * 1000)
+        self.assertEqual(1, y.coeffs[0])
 
 
 @ddt.ddt
@@ -1148,7 +1153,7 @@ class TestSparsePauliOpMethods(QiskitTestCase):
 
     def test_apply_layout_with_transpile(self):
         """Test the apply_layout method with a transpiler layout."""
-        psi = EfficientSU2(4, reps=4, entanglement="circular")
+        psi = efficient_su2(4, reps=4, entanglement="circular")
         op = SparsePauliOp.from_list([("IIII", 1), ("IZZZ", 2), ("XXXI", 3)])
         backend = GenericBackendV2(num_qubits=7)
         transpiled_psi = transpile(psi, backend, optimization_level=3, seed_transpiler=12345)
@@ -1163,7 +1168,7 @@ class TestSparsePauliOpMethods(QiskitTestCase):
 
     def test_permute_sparse_pauli_op_estimator_example(self):
         """Test using the apply_layout method with an estimator workflow."""
-        psi = EfficientSU2(4, reps=4, entanglement="circular")
+        psi = efficient_su2(4, reps=4, entanglement="circular")
         op = SparsePauliOp.from_list([("IIII", 1), ("IZZZ", 2), ("XXXI", 3)])
         backend = GenericBackendV2(num_qubits=7, seed=0)
         backend.set_options(seed_simulator=123)

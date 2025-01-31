@@ -1180,13 +1180,16 @@ class QASM3Builder:
 
         This will also push the gate into the symbol table (if required), including recursively
         defining the gate blocks."""
-        ident = self.symbols.get_gate(instruction.operation)
+        operation = instruction.operation
+        if hasattr(operation, "_qasm_decomposition"):
+            operation = operation._qasm_decomposition()
+        ident = self.symbols.get_gate(operation)
         if ident is None:
-            ident = self.define_gate(instruction.operation)
+            ident = self.define_gate(operation)
         qubits = [self._lookup_bit(qubit) for qubit in instruction.qubits]
         parameters = [
             ast.StringifyAndPray(self._rebind_scoped_parameters(param))
-            for param in instruction.operation.params
+            for param in operation.params
         ]
         if not self.disable_constants:
             for parameter in parameters:

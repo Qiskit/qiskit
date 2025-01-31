@@ -21,7 +21,7 @@ from qiskit.utils.deprecation import deprecate_func
 class Adder(QuantumCircuit):
     r"""Compute the sum of two equally sized qubit registers.
 
-    For two registers :math:`|a\rangle_n` and :math:|b\rangle_n` with :math:`n` qubits each, an
+    For two registers :math:`|a\rangle_n` and :math:`|b\rangle_n` with :math:`n` qubits each, an
     adder performs the following operation
 
     .. math::
@@ -74,7 +74,7 @@ class Adder(QuantumCircuit):
 class HalfAdderGate(Gate):
     r"""Compute the sum of two equally-sized qubit registers, including a carry-out bit.
 
-    For two registers :math:`|a\rangle_n` and :math:|b\rangle_n` with :math:`n` qubits each, an
+    For two registers :math:`|a\rangle_n` and :math:`|b\rangle_n` with :math:`n` qubits each, an
     adder performs the following operation
 
     .. math::
@@ -116,11 +116,20 @@ class HalfAdderGate(Gate):
         """
         return self._num_state_qubits
 
+    def _define(self):
+        """Populates self.definition with some decomposition of this gate."""
+        from qiskit.synthesis.arithmetic import adder_qft_d00
+
+        # This particular decomposition does not use any ancilla qubits.
+        # Note that the transpiler may choose a different decomposition
+        # based on the number of ancilla qubits available.
+        self.definition = adder_qft_d00(self.num_state_qubits, kind="half")
+
 
 class ModularAdderGate(Gate):
     r"""Compute the sum modulo :math:`2^n` of two :math:`n`-sized qubit registers.
 
-    For two registers :math:`|a\rangle_n` and :math:|b\rangle_n` with :math:`n` qubits each, an
+    For two registers :math:`|a\rangle_n` and :math:`|b\rangle_n` with :math:`n` qubits each, an
     adder performs the following operation
 
     .. math::
@@ -162,16 +171,25 @@ class ModularAdderGate(Gate):
         """
         return self._num_state_qubits
 
+    def _define(self):
+        """Populates self.definition with some decomposition of this gate."""
+        from qiskit.synthesis.arithmetic import adder_qft_d00
+
+        # This particular decomposition does not use any ancilla qubits.
+        # Note that the transpiler may choose a different decomposition
+        # based on the number of ancilla qubits available.
+        self.definition = adder_qft_d00(self.num_state_qubits, kind="fixed")
+
 
 class FullAdderGate(Gate):
     r"""Compute the sum of two :math:`n`-sized qubit registers, including carry-in and -out bits.
 
-    For two registers :math:`|a\rangle_n` and :math:|b\rangle_n` with :math:`n` qubits each, an
+    For two registers :math:`|a\rangle_n` and :math:`|b\rangle_n` with :math:`n` qubits each, an
     adder performs the following operation
 
     .. math::
 
-        |c_{\text{in}\rangle_1 |a\rangle_n |b\rangle_n
+        |c_{\text{in}}\rangle_1 |a\rangle_n |b\rangle_n
         \mapsto |a\rangle_n |c_{\text{in}} + a + b \rangle_{n + 1}.
 
     The quantum register :math:`|a\rangle_n` (and analogously :math:`|b\rangle_n`)
@@ -208,3 +226,10 @@ class FullAdderGate(Gate):
             The number of state qubits.
         """
         return self._num_state_qubits
+
+    def _define(self):
+        """Populates self.definition with a decomposition of this gate."""
+        from qiskit.synthesis.arithmetic import adder_ripple_c04
+
+        # In the case of a full adder, this method does not use any ancilla qubits
+        self.definition = adder_ripple_c04(self.num_state_qubits, kind="full")

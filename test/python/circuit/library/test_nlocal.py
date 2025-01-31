@@ -488,6 +488,21 @@ class TestNLocal(QiskitTestCase):
 
         self.assertCircuitEqual(ref, expected)
 
+    def test_inplace_assignment_with_cache(self):
+        """Test parameters are correctly re-bound in the cached gates.
+
+        This test requires building with the Rust feature "cache_pygates" enabled, otherwise
+        it does not test what it is supposed to.
+
+        Regression test of #13478.
+        """
+        qc = EfficientSU2(2, flatten=True)
+        binds = [1.25] * qc.num_parameters
+
+        qc.assign_parameters(binds, inplace=True)
+        bound_op = qc.data[0].operation
+        self.assertAlmostEqual(bound_op.params[0], binds[0])
+
 
 @ddt
 class TestNLocalFunction(QiskitTestCase):
@@ -769,10 +784,22 @@ class TestNLocalFamily(QiskitTestCase):
         expected = n_local(4, "ry", "cx", "reverse_linear", reps=3)
         self.assertEqual(expected.assign_parameters(circuit.parameters), circuit)
 
+    def test_real_amplitudes_numqubits_equal1(self):
+        """Test the real amplitudes circuit for a single qubit."""
+        circuit = real_amplitudes(1)
+        expected = n_local(1, "ry", [])
+        self.assertEqual(expected.assign_parameters(circuit.parameters), circuit)
+
     def test_efficient_su2(self):
         """Test the efficient SU(2) circuit."""
         circuit = efficient_su2(4)
         expected = n_local(4, ["ry", "rz"], "cx", "reverse_linear", reps=3)
+        self.assertEqual(expected.assign_parameters(circuit.parameters), circuit)
+
+    def test_efficient_su2_numqubits_equal1(self):
+        """Test the efficient SU(2) circuit for a single qubit."""
+        circuit = efficient_su2(1)
+        expected = n_local(1, ["ry", "rz"], [])
         self.assertEqual(expected.assign_parameters(circuit.parameters), circuit)
 
     @data("fsim", "iswap")
@@ -793,6 +820,15 @@ class TestNLocalFamily(QiskitTestCase):
             expected.assign_parameters(circuit.parameters).decompose(), circuit.decompose()
         )
 
+    @data("fsim", "iswap")
+    def test_excitation_preserving_numqubits_equal1(self, mode):
+        """Test the excitation preserving circuit for a single qubit."""
+        circuit = excitation_preserving(1, mode=mode)
+        expected = n_local(1, "rz", [])
+        self.assertEqual(
+            expected.assign_parameters(circuit.parameters).decompose(), circuit.decompose()
+        )
+
     def test_excitation_preserving_invalid_mode(self):
         """Test an error is raised for an invalid mode."""
         with self.assertRaises(ValueError):
@@ -805,6 +841,14 @@ class TestNLocalFamily(QiskitTestCase):
         """Test the Pauli 2-design circuit."""
         circuit = pauli_two_design(3)
         expected_ops = {"rx", "ry", "rz", "cz"}
+        circuit_ops = set(circuit.count_ops().keys())
+
+        self.assertTrue(circuit_ops.issubset(expected_ops))
+
+    def test_two_design_numqubits_equal1(self):
+        """Test the Pauli 2-design circuit for a single qubit."""
+        circuit = pauli_two_design(1)
+        expected_ops = {"rx", "ry", "rz", "id"}
         circuit_ops = set(circuit.count_ops().keys())
 
         self.assertTrue(circuit_ops.issubset(expected_ops))

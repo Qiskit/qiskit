@@ -263,11 +263,12 @@ Pauli Evolution Synthesis
       - Targeted connectivity
     * - ``"rustiq"``
       - :class:`~.PauliEvolutionSynthesisRustiq`
-      - use a diagonalizing Clifford per Pauli term
+      - use the synthesis method from `Rustiq circuit synthesis library 
+        <https://github.com/smartiel/rustiq-core>`_
       - all-to-all
     * - ``"default"``
       - :class:`~.PauliEvolutionSynthesisDefault`
-      - use ``rustiq_core`` synthesis library
+      - use a diagonalizing Clifford per Pauli term
       - all-to-all
 
 .. autosummary::
@@ -299,6 +300,10 @@ Modular Adder Synthesis
       - :class:`.ModularAdderSynthesisD00`
       - 0
       - a QFT-based adder
+    * - ``"default"``
+      - :class:`~.ModularAdderSynthesisDefault`
+      - any
+      - chooses the best algorithm based on the ancillas available
 
 .. autosummary::
    :toctree: ../stubs/
@@ -306,6 +311,7 @@ Modular Adder Synthesis
    ModularAdderSynthesisC04
    ModularAdderSynthesisD00
    ModularAdderSynthesisV95
+   ModularAdderSynthesisDefault
 
 Half Adder Synthesis
 ''''''''''''''''''''
@@ -329,6 +335,10 @@ Half Adder Synthesis
       - :class:`.HalfAdderSynthesisD00`
       - 0
       - a QFT-based adder
+    * - ``"default"``
+      - :class:`~.HalfAdderSynthesisDefault`
+      - any
+      - chooses the best algorithm based on the ancillas available
 
 .. autosummary::
    :toctree: ../stubs/
@@ -336,6 +346,7 @@ Half Adder Synthesis
    HalfAdderSynthesisC04
    HalfAdderSynthesisD00
    HalfAdderSynthesisV95
+   HalfAdderSynthesisDefault
 
 Full Adder Synthesis
 ''''''''''''''''''''
@@ -355,12 +366,17 @@ Full Adder Synthesis
       - :class:`.FullAdderSynthesisV95`
       - :math:`n-1`, for :math:`n`-bit numbers
       - a ripple-carry adder
+    * - ``"default"``
+      - :class:`~.FullAdderSynthesisDefault`
+      - any
+      - chooses the best algorithm based on the ancillas available
 
 .. autosummary::
    :toctree: ../stubs/
 
    FullAdderSynthesisC04
    FullAdderSynthesisV95
+   FullAdderSynthesisDefault
 
 
 Multiplier Synthesis
@@ -404,12 +420,13 @@ from qiskit.circuit.library import (
     C3XGate,
     C4XGate,
     PauliEvolutionGate,
+    PermutationGate,
+    MCMTGate,
     ModularAdderGate,
     HalfAdderGate,
     FullAdderGate,
     MultiplierGate,
 )
-from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.coupling import CouplingMap
 
 from qiskit.synthesis.clifford import (
@@ -451,6 +468,7 @@ from qiskit.synthesis.arithmetic import (
     multiplier_qft_r17,
     multiplier_cumulative_h18,
 )
+from qiskit.quantum_info.operators import Clifford
 from qiskit.transpiler.passes.routing.algorithms import ApproximateTokenSwapper
 from .plugin import HighLevelSynthesisPlugin
 
@@ -468,6 +486,9 @@ class DefaultSynthesisClifford(HighLevelSynthesisPlugin):
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given Clifford."""
+        if not isinstance(high_level_object, Clifford):
+            return None
+
         decomposition = synth_clifford_full(high_level_object)
         return decomposition
 
@@ -481,6 +502,9 @@ class AGSynthesisClifford(HighLevelSynthesisPlugin):
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given Clifford."""
+        if not isinstance(high_level_object, Clifford):
+            return None
+
         decomposition = synth_clifford_ag(high_level_object)
         return decomposition
 
@@ -497,10 +521,14 @@ class BMSynthesisClifford(HighLevelSynthesisPlugin):
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given Clifford."""
+        if not isinstance(high_level_object, Clifford):
+            return None
+
         if high_level_object.num_qubits <= 3:
             decomposition = synth_clifford_bm(high_level_object)
         else:
             decomposition = None
+
         return decomposition
 
 
@@ -514,6 +542,9 @@ class GreedySynthesisClifford(HighLevelSynthesisPlugin):
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given Clifford."""
+        if not isinstance(high_level_object, Clifford):
+            return None
+
         decomposition = synth_clifford_greedy(high_level_object)
         return decomposition
 
@@ -528,6 +559,9 @@ class LayerSynthesisClifford(HighLevelSynthesisPlugin):
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given Clifford."""
+        if not isinstance(high_level_object, Clifford):
+            return None
+
         decomposition = synth_clifford_layers(high_level_object)
         return decomposition
 
@@ -543,6 +577,9 @@ class LayerLnnSynthesisClifford(HighLevelSynthesisPlugin):
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given Clifford."""
+        if not isinstance(high_level_object, Clifford):
+            return None
+
         decomposition = synth_clifford_depth_lnn(high_level_object)
         return decomposition
 
@@ -556,6 +593,9 @@ class DefaultSynthesisLinearFunction(HighLevelSynthesisPlugin):
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given LinearFunction."""
+        if not isinstance(high_level_object, LinearFunction):
+            return None
+
         decomposition = synth_cnot_count_full_pmh(high_level_object.linear)
         return decomposition
 
@@ -579,11 +619,8 @@ class KMSSynthesisLinearFunction(HighLevelSynthesisPlugin):
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given LinearFunction."""
-
         if not isinstance(high_level_object, LinearFunction):
-            raise TranspilerError(
-                "PMHSynthesisLinearFunction only accepts objects of type LinearFunction"
-            )
+            return None
 
         use_inverted = options.get("use_inverted", False)
         use_transposed = options.get("use_transposed", False)
@@ -630,11 +667,8 @@ class PMHSynthesisLinearFunction(HighLevelSynthesisPlugin):
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given LinearFunction."""
-
         if not isinstance(high_level_object, LinearFunction):
-            raise TranspilerError(
-                "PMHSynthesisLinearFunction only accepts objects of type LinearFunction"
-            )
+            return None
 
         section_size = options.get("section_size", 2)
         use_inverted = options.get("use_inverted", False)
@@ -666,6 +700,9 @@ class KMSSynthesisPermutation(HighLevelSynthesisPlugin):
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given Permutation."""
+        if not isinstance(high_level_object, PermutationGate):
+            return None
+
         decomposition = synth_permutation_depth_lnn_kms(high_level_object.pattern)
         return decomposition
 
@@ -679,6 +716,9 @@ class BasicSynthesisPermutation(HighLevelSynthesisPlugin):
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given Permutation."""
+        if not isinstance(high_level_object, PermutationGate):
+            return None
+
         decomposition = synth_permutation_basic(high_level_object.pattern)
         return decomposition
 
@@ -692,6 +732,9 @@ class ACGSynthesisPermutation(HighLevelSynthesisPlugin):
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given Permutation."""
+        if not isinstance(high_level_object, PermutationGate):
+            return None
+
         decomposition = synth_permutation_acg(high_level_object.pattern)
         return decomposition
 
@@ -841,6 +884,9 @@ class TokenSwapperSynthesisPermutation(HighLevelSynthesisPlugin):
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given Permutation."""
+
+        if not isinstance(high_level_object, PermutationGate):
+            return None
 
         trials = options.get("trials", 5)
         seed = options.get("seed", 0)
@@ -1140,6 +1186,9 @@ class MCMTSynthesisDefault(HighLevelSynthesisPlugin):
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         # first try to use the V-chain synthesis if enough auxiliary qubits are available
+        if not isinstance(high_level_object, MCMTGate):
+            return None
+
         if (
             decomposition := MCMTSynthesisVChain().run(
                 high_level_object, coupling_map, target, qubits, **options
@@ -1154,6 +1203,9 @@ class MCMTSynthesisNoAux(HighLevelSynthesisPlugin):
     """A V-chain based synthesis for ``MCMTGate``."""
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        if not isinstance(high_level_object, MCMTGate):
+            return None
+
         base_gate = high_level_object.base_gate
         ctrl_state = options.get("ctrl_state", None)
 
@@ -1179,6 +1231,9 @@ class MCMTSynthesisVChain(HighLevelSynthesisPlugin):
     """A V-chain based synthesis for ``MCMTGate``."""
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        if not isinstance(high_level_object, MCMTGate):
+            return None
+
         if options.get("num_clean_ancillas", 0) < high_level_object.num_ctrl_qubits - 1:
             return None  # insufficient number of auxiliary qubits
 
@@ -1211,10 +1266,26 @@ class ModularAdderSynthesisDefault(HighLevelSynthesisPlugin):
         if not isinstance(high_level_object, ModularAdderGate):
             return None
 
-        if options.get("num_clean_ancillas", 0) >= 1:
-            return adder_ripple_c04(high_level_object.num_state_qubits, kind="fixed")
+        # For up to 5 qubits, the QFT-based adder is best
+        if high_level_object.num_state_qubits <= 5:
+            decomposition = ModularAdderSynthesisD00().run(
+                high_level_object, coupling_map, target, qubits, **options
+            )
+            if decomposition is not None:
+                return decomposition
 
-        return adder_qft_d00(high_level_object.num_state_qubits, kind="fixed")
+        # Otherwise, the following decomposition is best (if there are enough ancillas)
+        if (
+            decomposition := ModularAdderSynthesisC04().run(
+                high_level_object, coupling_map, target, qubits, **options
+            )
+        ) is not None:
+            return decomposition
+
+        # Otherwise, use the QFT-adder again
+        return ModularAdderSynthesisD00().run(
+            high_level_object, coupling_map, target, qubits, **options
+        )
 
 
 class ModularAdderSynthesisC04(HighLevelSynthesisPlugin):
@@ -1263,8 +1334,8 @@ class ModularAdderSynthesisV95(HighLevelSynthesisPlugin):
 
         num_state_qubits = high_level_object.num_state_qubits
 
-        # for more than 1 state qubit, we need an ancilla
-        if num_state_qubits > 1 > options.get("num_clean_ancillas", 1):
+        # The synthesis method needs n-1 clean ancilla qubits
+        if num_state_qubits - 1 > options.get("num_clean_ancillas", 0):
             return None
 
         return adder_ripple_v95(num_state_qubits, kind="fixed")
@@ -1308,10 +1379,26 @@ class HalfAdderSynthesisDefault(HighLevelSynthesisPlugin):
         if not isinstance(high_level_object, HalfAdderGate):
             return None
 
-        if options.get("num_clean_ancillas", 0) >= 1:
-            return adder_ripple_c04(high_level_object.num_state_qubits, kind="half")
+        # For up to 3 qubits, ripple_v95 is better (if there are enough ancilla qubits)
+        if high_level_object.num_state_qubits <= 3:
+            decomposition = HalfAdderSynthesisV95().run(
+                high_level_object, coupling_map, target, qubits, **options
+            )
+            if decomposition is not None:
+                return decomposition
 
-        return adder_qft_d00(high_level_object.num_state_qubits, kind="half")
+        # The next best option is to use ripple_c04 (if there are enough ancilla qubits)
+        if (
+            decomposition := HalfAdderSynthesisC04().run(
+                high_level_object, coupling_map, target, qubits, **options
+            )
+        ) is not None:
+            return decomposition
+
+        # The QFT-based adder does not require ancilla qubits and should always succeed
+        return HalfAdderSynthesisD00().run(
+            high_level_object, coupling_map, target, qubits, **options
+        )
 
 
 class HalfAdderSynthesisC04(HighLevelSynthesisPlugin):
@@ -1359,8 +1446,8 @@ class HalfAdderSynthesisV95(HighLevelSynthesisPlugin):
 
         num_state_qubits = high_level_object.num_state_qubits
 
-        # for more than 1 state qubit, we need an ancilla
-        if num_state_qubits > 1 > options.get("num_clean_ancillas", 1):
+        # The synthesis method needs n-1 clean ancilla qubits
+        if num_state_qubits - 1 > options.get("num_clean_ancillas", 0):
             return None
 
         return adder_ripple_v95(num_state_qubits, kind="half")
@@ -1380,18 +1467,38 @@ class HalfAdderSynthesisD00(HighLevelSynthesisPlugin):
         return adder_qft_d00(high_level_object.num_state_qubits, kind="half")
 
 
+class FullAdderSynthesisDefault(HighLevelSynthesisPlugin):
+    """A ripple-carry adder with a carry-in and a carry-out bit.
+
+    This plugin name is:``FullAdder.default`` which can be used as the key on
+    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+    """
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        if not isinstance(high_level_object, FullAdderGate):
+            return None
+
+        # FullAdderSynthesisC04 requires no ancilla qubits and returns better results
+        # than FullAdderSynthesisV95 in all cases except for n=1.
+        if high_level_object.num_state_qubits == 1:
+            decomposition = FullAdderSynthesisV95().run(
+                high_level_object, coupling_map, target, qubits, **options
+            )
+            if decomposition is not None:
+                return decomposition
+
+        return FullAdderSynthesisC04().run(
+            high_level_object, coupling_map, target, qubits, **options
+        )
+
+
 class FullAdderSynthesisC04(HighLevelSynthesisPlugin):
     """A ripple-carry adder with a carry-in and a carry-out bit.
 
     This plugin name is:``FullAdder.ripple_c04`` which can be used as the key on
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
 
-    This plugin requires at least one clean auxiliary qubit.
-
-    The plugin supports the following plugin-specific options:
-
-    * ``num_clean_ancillas``: The number of clean auxiliary qubits available.
-
+    This plugin requires no auxiliary qubits.
     """
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
@@ -1408,7 +1515,7 @@ class FullAdderSynthesisV95(HighLevelSynthesisPlugin):
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
 
     For an adder on 2 registers with :math:`n` qubits each, this plugin requires at
-    least :math:`n-1` clean auxiliary qubit.
+    least :math:`n-1` clean auxiliary qubits.
 
     The plugin supports the following plugin-specific options:
 
@@ -1421,8 +1528,8 @@ class FullAdderSynthesisV95(HighLevelSynthesisPlugin):
 
         num_state_qubits = high_level_object.num_state_qubits
 
-        # for more than 1 state qubit, we need an ancilla
-        if num_state_qubits > 1 > options.get("num_clean_ancillas", 1):
+        # The synthesis method needs n-1 clean ancilla qubits
+        if num_state_qubits - 1 > options.get("num_clean_ancillas", 0):
             return None
 
         return adder_ripple_v95(num_state_qubits, kind="full")

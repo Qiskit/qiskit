@@ -10,9 +10,9 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use std::ptr::NonNull;
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
-use std::ptr::NonNull;
 
 use pyo3::intern;
 use pyo3::prelude::*;

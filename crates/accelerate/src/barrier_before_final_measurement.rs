@@ -31,24 +31,22 @@ pub fn barrier_before_final_measurements(
     dag: &mut DAGCircuit,
     label: Option<String>,
 ) -> PyResult<()> {
-    let node_indices: Vec<NodeIndex> = dag.op_nodes(true).collect();
-    let final_ops: HashSet<NodeIndex> = node_indices.into_par_iter()
-        .filter(|node| {
-            let NodeType::Operation(ref inst) = dag.dag()[*node] else {
-                unreachable!();
-            };
-            if !FINAL_OP_NAMES.contains(&inst.op.name()) {
-                return false;
+    let is_exactly_final = |inst: &PackedInstruction| FINAL_OP_NAMES.contains(&inst.op.name());
+    let node_indices: Vec<_> = dag.op_nodes(true).collect();
+    let final_ops: HashSet<NodeIndex> = node_indices
+        .into_par_iter()
+        .filter_map(|(node, inst)| {
+            if !is_exactly_final(inst) {
+                return None;
             }
-            let is_final_op = dag.bfs_successors(*node).all(|(_, child_successors)| {
-                !child_successors.iter().any(|suc| match dag.dag()[*suc] {
-                    NodeType::Operation(ref suc_inst) => {
-                        !FINAL_OP_NAMES.contains(&suc_inst.op.name())
-                    }
-                    _ => false,
+            dag.bfs_successors(node)
+                .all(|(_, child_successors)| {
+                    child_successors.iter().all(|suc| match dag[*suc] {
+                        NodeType::Operation(ref suc_inst) => is_exactly_final(suc_inst),
+                        _ => true,
+                    })
                 })
-            });
-            is_final_op
+                .then_some(node)
         })
         .collect();
     if final_ops.is_empty() {
@@ -61,7 +59,7 @@ pub fn barrier_before_final_measurements(
     let final_packed_ops: Vec<PackedInstruction> = ordered_node_indices
         .into_iter()
         .map(|node| {
-            let NodeType::Operation(ref inst) = dag.dag()[node] else {
+            let NodeType::Operation(ref inst) = dag[node] else {
                 unreachable!()
             };
             let res = inst.clone();

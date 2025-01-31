@@ -382,7 +382,7 @@ class HighLevelSynthesis(TransformationPass):
 
             # If the synthesis changed the operation (i.e. it is not None), store the result.
             if synthesized is not None:
-                synthesized_nodes[node] = (synthesized, synthesized_context)
+                synthesized_nodes[node._node_id] = (synthesized, synthesized_context)
 
             # If the synthesis did not change anything, just update the qubit tracker.
             elif not processed:
@@ -407,8 +407,9 @@ class HighLevelSynthesis(TransformationPass):
         outer_to_local = context.to_local_mapping()
 
         for node in dag.topological_op_nodes():
-            if node in synthesized_nodes:
-                op, op_context = synthesized_nodes[node]
+
+            if op_tuple := synthesized_nodes.get(node._node_id, None):
+                op, op_context = op_tuple
 
                 if isinstance(op, Operation):
                     out.apply_operation_back(op, node.qargs, node.cargs)
@@ -813,6 +814,7 @@ class HighLevelSynthesis(TransformationPass):
             dag._has_calibration_for(node)
             or len(node.qargs) < self._min_qubits
             or node.is_directive()
+            or (self._instruction_supported(node.name, qubits) and not node.is_control_flow())
         ):
             return True
 
@@ -830,15 +832,12 @@ class HighLevelSynthesis(TransformationPass):
             # If all the above constraints hold, and it's already supported or the basis translator
             # can handle it, we'll leave it be.
             and (
-                self._instruction_supported(node.name, qubits)
                 # This uses unfortunately private details of `EquivalenceLibrary`, but so does the
                 # `BasisTranslator`, and this is supposed to just be temporary til this is moved
                 # into Rust space.
-                or (
-                    self._equiv_lib is not None
-                    and equivalence.Key(name=node.name, num_qubits=node.num_qubits)
-                    in self._equiv_lib.keys()
-                )
+                self._equiv_lib is not None
+                and equivalence.Key(name=node.name, num_qubits=node.num_qubits)
+                in self._equiv_lib.keys()
             )
         )
 
