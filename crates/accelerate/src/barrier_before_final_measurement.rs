@@ -32,21 +32,26 @@ pub fn barrier_before_final_measurements(
     label: Option<String>,
 ) -> PyResult<()> {
     let is_exactly_final = |inst: &PackedInstruction| FINAL_OP_NAMES.contains(&inst.op.name());
-    let node_indices: Vec<_> = dag.op_nodes(true).collect();
-    let final_ops: HashSet<NodeIndex> = node_indices
+    let final_ops: HashSet<NodeIndex> = (0..dag.dag().node_count())
         .into_par_iter()
-        .filter_map(|(node, inst)| {
+        .filter_map(|node| {
+            let node_index: NodeIndex = NodeIndex::new(node);
+            let node_weight = dag.dag().node_weight(node_index)?;
+            if !matches!(node_weight, NodeType::Operation(_)) {
+                return None;
+            }
+            let inst = node_weight.unwrap_operation();
             if !is_exactly_final(inst) {
                 return None;
             }
-            dag.bfs_successors(node)
+            dag.bfs_successors(node_index)
                 .all(|(_, child_successors)| {
                     child_successors.iter().all(|suc| match dag[*suc] {
                         NodeType::Operation(ref suc_inst) => is_exactly_final(suc_inst),
                         _ => true,
                     })
                 })
-                .then_some(node)
+                .then_some(NodeIndex::new(node))
         })
         .collect();
     if final_ops.is_empty() {
