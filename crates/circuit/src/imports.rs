@@ -15,16 +15,17 @@
 // python side casting
 
 use pyo3::prelude::*;
-use pyo3::sync::GILOnceCell;
+use pyo3::sync::OnceLockExt;
+use std::sync::OnceLock;
 
 use crate::operations::{StandardGate, STANDARD_GATE_SIZE};
 
-/// Helper wrapper around `GILOnceCell` instances that are just intended to store a Python object
+/// Helper wrapper around `OnceLock` instances that are just intended to store a Python object
 /// that is lazily imported.
 pub struct ImportOnceCell {
     module: &'static str,
     object: &'static str,
-    cell: GILOnceCell<Py<PyAny>>,
+    cell: OnceLock<Py<PyAny>>,
 }
 
 impl ImportOnceCell {
@@ -32,7 +33,7 @@ impl ImportOnceCell {
         Self {
             module,
             object,
-            cell: GILOnceCell::new(),
+            cell: OnceLock::new(),
         }
     }
 
@@ -40,7 +41,7 @@ impl ImportOnceCell {
     /// required.
     #[inline]
     pub fn get(&self, py: Python) -> &Py<PyAny> {
-        self.cell.get_or_init(py, || {
+        self.cell.get_or_init_py_attached(py, || {
             py.import(self.module)
                 .unwrap()
                 .getattr(self.object)
@@ -254,67 +255,71 @@ static STDGATE_IMPORT_PATHS: [[&str; 2]; STANDARD_GATE_SIZE] = [
 /// class that matches it. This is typically used when we need to convert from the internal rust
 /// representation to a Python object for a python user to interact with.
 ///
-/// NOTE: the order here is significant it must match the StandardGate variant's number must match
+/// NOTE: the order here is significant. The StandardGate variant's number must match the
 /// index of it's entry in this table. This is all done statically for performance
-static STDGATE_PYTHON_GATES: [GILOnceCell<PyObject>; STANDARD_GATE_SIZE] = [
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
+static STDGATE_PYTHON_GATES: [OnceLock<PyObject>; STANDARD_GATE_SIZE] = [
+    OnceLock::new(),
+    OnceLock::new(),
+    OnceLock::new(),
+    OnceLock::new(),
+    OnceLock::new(),
+    OnceLock::new(),
+    OnceLock::new(),
+    OnceLock::new(),
+    OnceLock::new(),
+    OnceLock::new(),
+    OnceLock::new(),
+    OnceLock::new(),
+    OnceLock::new(),
+    OnceLock::new(),
+    OnceLock::new(),
+    OnceLock::new(),
+    OnceLock::new(),
+    OnceLock::new(),
+    OnceLock::new(),
+    OnceLock::new(),
+    OnceLock::new(),
+    OnceLock::new(),
+    OnceLock::new(),
+    OnceLock::new(),
+    OnceLock::new(),
+    OnceLock::new(),
+    OnceLock::new(),
+    OnceLock::new(),
+    OnceLock::new(),
+    OnceLock::new(),
+    OnceLock::new(),
+    OnceLock::new(),
+    OnceLock::new(),
+    OnceLock::new(),
+    OnceLock::new(),
+    OnceLock::new(),
+    OnceLock::new(),
+    OnceLock::new(),
+    OnceLock::new(),
+    OnceLock::new(),
+    OnceLock::new(),
+    OnceLock::new(),
+    OnceLock::new(),
+    OnceLock::new(),
+    OnceLock::new(),
+    OnceLock::new(),
+    OnceLock::new(),
+    OnceLock::new(),
+    OnceLock::new(),
+    OnceLock::new(),
+    OnceLock::new(),
+    OnceLock::new(),
 ];
 
 #[inline]
-pub fn get_std_gate_class(py: Python, rs_gate: StandardGate) -> PyResult<&'static Py<PyAny>> {
-    STDGATE_PYTHON_GATES[rs_gate as usize].get_or_try_init(py, || {
+pub fn get_std_gate_class(py: Python, rs_gate: StandardGate) -> &'static Py<PyAny> {
+    STDGATE_PYTHON_GATES[rs_gate as usize].get_or_init_py_attached(py, || {
         let [py_mod, py_class] = STDGATE_IMPORT_PATHS[rs_gate as usize];
-        Ok(py.import(py_mod)?.getattr(py_class)?.unbind())
+        py.import(py_mod)
+            .unwrap()
+            .getattr(py_class)
+            .unwrap()
+            .unbind()
     })
 }

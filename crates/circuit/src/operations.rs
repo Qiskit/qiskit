@@ -419,7 +419,7 @@ impl StandardGate {
         params: Option<&[Param]>,
         extra_attrs: &ExtraInstructionAttributes,
     ) -> PyResult<Py<PyAny>> {
-        let gate_class = get_std_gate_class(py, *self)?;
+        let gate_class = get_std_gate_class(py, *self);
         let args = match params.unwrap_or(&[]) {
             &[] => PyTuple::empty(py),
             params => PyTuple::new(py, params.iter().map(|x| x.into_pyobject(py).unwrap()))?,
@@ -715,7 +715,7 @@ impl StandardGate {
     }
 
     #[getter]
-    pub fn get_gate_class(&self, py: Python) -> PyResult<&'static Py<PyAny>> {
+    pub fn get_gate_class(&self, py: Python) -> &'static Py<PyAny> {
         get_std_gate_class(py, *self)
     }
 
