@@ -24,14 +24,12 @@ type ExporterResult<T> = Result<T, QASM3ExporterError>;
 
 struct SymbolTable {
     symbols: HashMap<String, Identifier>,
-    scopes: Vec<HashSet<String>>,
 }
 
 impl SymbolTable {
     fn new() -> Self {
         Self {
             symbols: HashMap::new(),
-            scopes: vec![HashSet::new()],
         }
     }
 
@@ -199,7 +197,7 @@ pub struct Exporter {
     includes: Vec<&'static str>,
     basis_gates: Vec<&'static str>,
     disable_constants: bool,
-    alias_classical_registers: bool,
+    _alias_classical_registers: bool,
     allow_aliasing: bool,
     indent: &'static str,
 }
@@ -217,7 +215,7 @@ impl Exporter {
             includes,
             basis_gates,
             disable_constants,
-            alias_classical_registers,
+            _alias_classical_registers: alias_classical_registers,
             allow_aliasing,
             indent,
         }
