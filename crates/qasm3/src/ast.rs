@@ -1,5 +1,6 @@
 use std::fmt::{self, Debug, Display, Formatter};
 
+#[allow(dead_code)]
 pub enum Node<'a> {
     Program(&'a Program),
     Header(&'a Header),
@@ -48,6 +49,7 @@ pub struct QuantumBlock {
     pub statements: Vec<Statement>,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub enum ClassicalType {
     Float(Float),
@@ -137,6 +139,7 @@ impl Display for DurationUnit {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub enum IOModifier {
     Input,
@@ -167,6 +170,7 @@ pub struct QuantumDeclaration {
     pub designator: Option<Designator>,
 }
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub enum Designator {
     Literal(usize),
@@ -179,6 +183,7 @@ pub struct Delay {
     pub qubits: Vec<Identifier>,
 }
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub enum Statement {
     QuantumDeclaration(QuantumDeclaration),
@@ -276,6 +281,7 @@ pub struct Break {}
 #[derive(Debug)]
 pub struct Continue {}
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub enum Expression {
     Constant(Constant),
@@ -346,6 +352,7 @@ pub struct Unary {
     pub operand: Box<Expression>,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Hash, Eq, PartialEq)]
 pub enum UnaryOp {
     LogicNot,

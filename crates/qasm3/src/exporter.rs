@@ -22,7 +22,6 @@ use regex::Regex;
 
 type ExporterResult<T> = Result<T, QASM3ExporterError>;
 
-
 struct SymbolTable {
     symbols: HashMap<String, Identifier>,
     scopes: Vec<HashSet<String>>,
@@ -38,7 +37,7 @@ impl SymbolTable {
 
     fn bind(&mut self, name: &str) -> ExporterResult<()> {
         if self.symbols.contains_key(name) {
-            return Err(QASM3ExporterError::SymbolNotFound(name.to_string()))
+            return Err(QASM3ExporterError::SymbolNotFound(name.to_string()));
         }
         self.bind_no_check(name);
 
@@ -52,10 +51,6 @@ impl SymbolTable {
         self.symbols.insert(name.to_string(), id);
     }
 
-    fn lookup(&self, name: &str) -> ExporterResult<&Identifier> {
-        self.symbols.get(name).ok_or_else(|| QASM3ExporterError::SymbolNotFound(name.to_string()))
-    }
-
     fn contains_name(&self, name: &str) -> bool {
         self.symbols.contains_key(name)
     }
@@ -65,7 +60,6 @@ impl SymbolTable {
             let _ = self.bind(gate);
         }
     }
-
 }
 
 #[derive(Error, Debug)]
@@ -85,7 +79,6 @@ impl From<PyErr> for QASM3ExporterError {
         QASM3ExporterError::PyErr(err)
     }
 }
-
 
 lazy_static! {
     static ref GLOBAL_COUNTER: Mutex<usize> = Mutex::new(0);
@@ -316,11 +309,11 @@ impl Iterator for Counter {
 }
 
 pub struct QASM3Builder<'a> {
-    builtin_instr: HashSet<&'static str>,
+    _builtin_instr: HashSet<&'static str>,
     loose_bit_prefix: &'static str,
     loose_qubit_prefix: &'static str,
-    gate_param_prefix: &'static str,
-    gate_qubit_prefix: &'static str,
+    _gate_param_prefix: &'static str,
+    _gate_qubit_prefix: &'static str,
     circuit_scope: BuildScope<'a>,
     is_layout: bool,
     symbol_table: SymbolTable,
@@ -329,8 +322,8 @@ pub struct QASM3Builder<'a> {
     includes: Vec<&'static str>,
     basis_gates: Vec<&'static str>,
     disable_constants: bool,
-    allow_aliasing: bool,
-    counter: Counter,
+    _allow_aliasing: bool,
+    _counter: Counter,
 }
 
 impl<'a> QASM3Builder<'a> {
@@ -343,7 +336,7 @@ impl<'a> QASM3Builder<'a> {
         allow_aliasing: bool,
     ) -> Self {
         Self {
-            builtin_instr: [
+            _builtin_instr: [
                 "barrier",
                 "measure",
                 "reset",
@@ -356,8 +349,8 @@ impl<'a> QASM3Builder<'a> {
             .collect(),
             loose_bit_prefix: "_bit",
             loose_qubit_prefix: "_qubit",
-            gate_param_prefix: "_gate_p",
-            gate_qubit_prefix: "_gate_q",
+            _gate_param_prefix: "_gate_p",
+            _gate_qubit_prefix: "_gate_q",
             circuit_scope: BuildScope::new(circuit_data),
             is_layout,
             symbol_table: SymbolTable::new(),
@@ -366,8 +359,8 @@ impl<'a> QASM3Builder<'a> {
             includes,
             basis_gates,
             disable_constants,
-            allow_aliasing,
-            counter: Counter::new(),
+            _allow_aliasing: allow_aliasing,
+            _counter: Counter::new(),
         }
     }
 
@@ -425,15 +418,7 @@ impl<'a> QASM3Builder<'a> {
         }
     }
 
-    // fn assert_global_scope(&self) -> ExporterResult<()> {
-    //     if !self.symbol_table.in_global_scope() {
-    //         return Err(QASM3ExporterError::NotInGlobalScopeError);
-    //     }
-    //     Ok(())
-    // }
-
     fn hoist_global_params(&mut self) -> ExporterResult<()> {
-        // self.assert_global_scope()?;
         Python::with_gil(|py| {
             for param in self.circuit_scope.circuit_data.get_parameters(py) {
                 let raw_name: String = param.getattr("name")?.extract()?;
@@ -452,7 +437,6 @@ impl<'a> QASM3Builder<'a> {
     }
 
     fn hoist_classical_bits(&mut self) -> ExporterResult<()> {
-        // self.assert_global_scope()?;
         let num_clbits = self.circuit_scope.circuit_data.num_clbits();
         let mut decls = Vec::new();
 
@@ -472,7 +456,6 @@ impl<'a> QASM3Builder<'a> {
     }
 
     fn build_qubit_decls(&mut self) -> ExporterResult<Vec<QuantumDeclaration>> {
-        // self.assert_global_scope()?;
         let num_qubits = self.circuit_scope.circuit_data.num_qubits();
         let mut decls = Vec::new();
 
@@ -555,7 +538,7 @@ impl<'a> QASM3Builder<'a> {
         for q in qargs {
             let name = format!("{}{}", self.loose_qubit_prefix, q.0);
             if !self.symbol_table.contains_name(&name) {
-                return Err(QASM3ExporterError::SymbolNotFound(name))
+                return Err(QASM3ExporterError::SymbolNotFound(name));
             }
             qubit_ids.push(Identifier {
                 string: name.to_string(),
@@ -583,7 +566,7 @@ impl<'a> QASM3Builder<'a> {
         for q in qargs {
             let name = format!("{}{}", self.loose_qubit_prefix, q.0);
             if !self.symbol_table.contains_name(&name) {
-                return Err(QASM3ExporterError::SymbolNotFound(name))
+                return Err(QASM3ExporterError::SymbolNotFound(name));
             }
             qubits.push(Identifier {
                 string: name.to_string(),
@@ -600,13 +583,11 @@ impl<'a> QASM3Builder<'a> {
             .get(instr.clbits);
         let c_name = format!("{}{}", self.loose_bit_prefix, cargs[0].0);
         if !self.symbol_table.contains_name(&c_name) {
-            return Err(QASM3ExporterError::SymbolNotFound(c_name))
+            return Err(QASM3ExporterError::SymbolNotFound(c_name));
         }
         stmts.push(Statement::QuantumMeasurementAssignment(
             QuantumMeasurementAssignment {
-                identifier: Identifier {
-                    string: c_name,
-                },
+                identifier: Identifier { string: c_name },
                 quantum_measurement: measurement,
             },
         ));
@@ -626,7 +607,7 @@ impl<'a> QASM3Builder<'a> {
         for q in qargs {
             let name = format!("{}{}", self.loose_qubit_prefix, q.0);
             if !self.symbol_table.contains_name(&name) {
-                return Err(QASM3ExporterError::SymbolNotFound(name))
+                return Err(QASM3ExporterError::SymbolNotFound(name));
             }
             stmts.push(Statement::QuantumInstruction(QuantumInstruction::Reset(
                 Reset {
@@ -700,7 +681,7 @@ impl<'a> QASM3Builder<'a> {
         for q in qargs {
             let name = format!("{}{}", self.loose_qubit_prefix, q.0);
             if !self.symbol_table.contains_name(&name) {
-                return Err(QASM3ExporterError::SymbolNotFound(name))
+                return Err(QASM3ExporterError::SymbolNotFound(name));
             }
             qubits.push(Identifier {
                 string: name.to_string(),
@@ -714,11 +695,7 @@ impl<'a> QASM3Builder<'a> {
 
     fn build_gate_call(&mut self, instr: &PackedInstruction) -> ExporterResult<GateCall> {
         let op_name = instr.op.name();
-        if !self
-            .symbol_table
-            .contains_name(op_name)
-            && !self.symbol_table.contains_name(op_name)
-        {
+        if !self.symbol_table.contains_name(op_name) && !self.symbol_table.contains_name(op_name) {
             panic!("Non-standard gate calls are not yet supported: {}", op_name);
         }
         let params = if self.disable_constants {
@@ -748,7 +725,7 @@ impl<'a> QASM3Builder<'a> {
         for q in qargs {
             let name = format!("{}{}", self.loose_qubit_prefix, q.0);
             if !self.symbol_table.contains_name(&name) {
-                return Err(QASM3ExporterError::SymbolNotFound(name))
+                return Err(QASM3ExporterError::SymbolNotFound(name));
             }
             qubit_ids.push(Identifier {
                 string: name.to_string(),
