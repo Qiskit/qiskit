@@ -17,7 +17,6 @@ mod error;
 mod exporter;
 mod expr;
 mod printer;
-mod symbols;
 
 use std::ffi::OsString;
 use std::ops::Deref;
@@ -159,7 +158,6 @@ pub fn load(
 #[pyfunction]
 #[pyo3(signature = (circuit,/))]
 pub fn dumps(_py: Python, circuit: &Bound<PyAny>) -> PyResult<String> {
-    let mut result = String::new();
     let circuit_data = circuit
         .getattr("_data")?
         .downcast::<CircuitData>()?

@@ -3,8 +3,8 @@ use hashbrown::HashMap;
 use std::fmt::Write;
 
 use crate::ast::{
-    Assignment, Barrier, Binary, BinaryOp, BitArray, BitstringLiteral, BooleanLiteral, Cast,
-    ClassicalDeclaration, ClassicalType, Constant, Delay, DurationLiteral, Expression, Float,
+    Assignment, Barrier, Binary, BinaryOp, BitArray, BooleanLiteral, Cast,
+    ClassicalDeclaration, ClassicalType, Constant, DurationLiteral, Expression, Float,
     GateCall, Header, Identifier, Include, Index, IndexSet, Int, IntegerLiteral, Node, Parameter,
     Pragma, Program, ProgramBlock, QuantumBlock, QuantumDeclaration, QuantumGateDefinition,
     QuantumGateModifier, QuantumGateModifierName, QuantumGateSignature, QuantumInstruction,
@@ -218,7 +218,7 @@ impl<'a> BasicPrinter<'a> {
             // Statement::Switch(statement) => self.visit_switch_statement(statement),
             Statement::Break(_) => self.visit_break_statement(),
             Statement::Continue(_) => self.visit_continue_statement(),
-            Statement::IODeclaration(iodeclaration) => todo!(),
+            Statement::IODeclaration(_iodeclaration) => todo!(),
         }
     }
 
@@ -252,7 +252,7 @@ impl<'a> BasicPrinter<'a> {
             QuantumInstruction::GateCall(instruction) => self.visit_quantum_gate_call(instruction),
             QuantumInstruction::Reset(instruction) => self.visit_quantum_reset(instruction),
             QuantumInstruction::Barrier(instruction) => self.visit_quantum_barrier(instruction),
-            QuantumInstruction::Delay(instruction) => todo!(),
+            QuantumInstruction::Delay(_instruction) => todo!(),
         }
     }
 

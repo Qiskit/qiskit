@@ -2,7 +2,6 @@ use std::fmt::{self, Debug, Display, Formatter};
 
 pub enum Node<'a> {
     Program(&'a Program),
-    Pragma(&'a Pragma),
     Header(&'a Header),
     Include(&'a Include),
     Version(&'a Version),
@@ -23,10 +22,6 @@ pub struct Program {
     pub statements: Vec<Statement>,
 }
 
-#[derive(Debug)]
-pub struct Pragma {
-    pub content: String,
-}
 
 #[derive(Debug)]
 pub struct Include {
@@ -235,6 +230,7 @@ pub struct QuantumMeasurementAssignment {
     pub quantum_measurement: QuantumMeasurement,
 }
 
+#[derive(Debug)]
 pub struct QuantumGateSignature {
     pub name: Identifier,
     pub qarg_list: Vec<Identifier>,

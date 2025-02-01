@@ -7,10 +7,7 @@ use crate::ast::{
     Reset, Statement, Version,
 };
 use crate::printer::BasicPrinter;
-use crate::symbols::SymbolError;
-use crate::symbols::SymbolTable;
 use hashbrown::{HashMap, HashSet};
-use oq3_semantics::types::{IsConst, Type};
 use pyo3::prelude::*;
 use pyo3::Python;
 use qiskit_circuit::circuit_data::CircuitData;
@@ -24,6 +21,52 @@ use lazy_static::lazy_static;
 use regex::Regex;
 
 type ExporterResult<T> = Result<T, QASM3ExporterError>;
+
+
+struct SymbolTable {
+    symbols: HashMap<String, Identifier>,
+    scopes: Vec<HashSet<String>>,
+}
+
+impl SymbolTable {
+    fn new() -> Self {
+        Self {
+            symbols: HashMap::new(),
+            scopes: vec![HashSet::new()],
+        }
+    }
+
+    fn bind(&mut self, name: &str) -> ExporterResult<()> {
+        if self.symbols.contains_key(name) {
+            return Err(QASM3ExporterError::SymbolNotFound(name.to_string()))
+        }
+        self.bind_no_check(name);
+
+        Ok(())
+    }
+
+    fn bind_no_check(&mut self, name: &str) {
+        let id = Identifier {
+            string: name.to_string(),
+        };
+        self.symbols.insert(name.to_string(), id);
+    }
+
+    fn lookup(&self, name: &str) -> ExporterResult<&Identifier> {
+        self.symbols.get(name).ok_or_else(|| QASM3ExporterError::SymbolNotFound(name.to_string()))
+    }
+
+    fn contains_name(&self, name: &str) -> bool {
+        self.symbols.contains_key(name)
+    }
+
+    fn add_standard_library_gates(&mut self) {
+        for gate in STANDARD_LIBRARIES_GATES.iter() {
+            let _ = self.bind(gate);
+        }
+    }
+
+}
 
 #[derive(Error, Debug)]
 pub enum QASM3ExporterError {
@@ -43,11 +86,6 @@ impl From<PyErr> for QASM3ExporterError {
     }
 }
 
-impl From<SymbolError> for QASM3ExporterError {
-    fn from(err: SymbolError) -> Self {
-        QASM3ExporterError::Error("Symbol Table error: Missing binding or Already exists".to_string())
-    }
-}
 
 lazy_static! {
     static ref GLOBAL_COUNTER: Mutex<usize> = Mutex::new(0);
@@ -58,6 +96,16 @@ fn get_next_counter_value() -> usize {
     let val = *counter;
     *counter += 1;
     val
+}
+
+lazy_static! {
+    static ref STANDARD_LIBRARIES_GATES: HashSet<&'static str> = [
+        "p", "x", "y", "z", "h", "s", "sdg", "t", "tdg", "sx", "rx", "ry", "rz", "cx", "cy", "cz",
+        "rzz", "cp", "crx", "cry", "crz", "ch", "swap", "ccx", "cswap", "cu", "CX", "phase",
+        "cphase", "id", "u1", "u2", "u3",
+    ]
+    .into_iter()
+    .collect();
 }
 
 lazy_static! {
@@ -120,7 +168,7 @@ lazy_static! {
 
 fn name_allowed(symbol_table: &SymbolTable, name: &str, unique: bool) -> bool {
     if unique {
-        RESERVED_KEYWORDS.contains(name) || symbol_table.all_scopes_contains_name(name)
+        RESERVED_KEYWORDS.contains(name) || symbol_table.contains_name(name)
     } else {
         RESERVED_KEYWORDS.contains(name)
     }
@@ -352,7 +400,7 @@ impl<'a> QASM3Builder<'a> {
 
     fn register_basis_gates(&mut self) {
         for gate in &self.basis_gates {
-            let _ = self.symbol_table.new_binding(gate, &Type::Gate(0, 1));
+            let _ = self.symbol_table.bind(gate);
         }
     }
 
@@ -362,7 +410,7 @@ impl<'a> QASM3Builder<'a> {
             .iter()
             .map(|fname| {
                 if *fname == "stdgates.inc" {
-                    self.symbol_table.standard_library_gates();
+                    self.symbol_table.add_standard_library_gates();
                 }
                 Include {
                     filename: fname.to_string(),
@@ -377,37 +425,26 @@ impl<'a> QASM3Builder<'a> {
         }
     }
 
-    fn assert_global_scope(&self) -> ExporterResult<()> {
-        if !self.symbol_table.in_global_scope() {
-            return Err(QASM3ExporterError::NotInGlobalScopeError);
-        }
-        Ok(())
-    }
+    // fn assert_global_scope(&self) -> ExporterResult<()> {
+    //     if !self.symbol_table.in_global_scope() {
+    //         return Err(QASM3ExporterError::NotInGlobalScopeError);
+    //     }
+    //     Ok(())
+    // }
 
     fn hoist_global_params(&mut self) -> ExporterResult<()> {
-        self.assert_global_scope()?;
+        // self.assert_global_scope()?;
         Python::with_gil(|py| {
             for param in self.circuit_scope.circuit_data.get_parameters(py) {
                 let raw_name: String = param.getattr("name")?.extract()?;
-                let sym = match self
-                    .symbol_table
-                    .new_binding(&raw_name, &Type::Float(Some(64), IsConst::False))
-                {
-                    Ok(_) => self.symbol_table.lookup(&raw_name),
-                    Err(_) => {
-                        let rename =
-                            escape_invalid_identifier(&self.symbol_table, &raw_name, true, false);
-                        self.symbol_table
-                            .new_binding(&rename, &Type::Float(Some(64), IsConst::False))?;
-                        self.symbol_table.lookup(&rename)
-                    }
-                }?;
+                let identifier = Identifier {
+                    string: raw_name.clone(),
+                };
+                self.symbol_table.bind(&raw_name)?;
                 self.global_io_decls.push(IODeclaration {
                     modifier: IOModifier::Input,
                     type_: ClassicalType::Float(Float::Double),
-                    identifier: Identifier {
-                        string: sym.symbol().name().to_string(),
-                    },
+                    identifier,
                 });
             }
             Ok(())
@@ -415,30 +452,19 @@ impl<'a> QASM3Builder<'a> {
     }
 
     fn hoist_classical_bits(&mut self) -> ExporterResult<()> {
-        self.assert_global_scope()?;
+        // self.assert_global_scope()?;
         let num_clbits = self.circuit_scope.circuit_data.num_clbits();
         let mut decls = Vec::new();
 
         for i in 0..num_clbits {
             let raw_name = format!("{}{}", self.loose_bit_prefix, i);
-            let sym = match self
-                .symbol_table
-                .new_binding(&raw_name, &Type::Bit(IsConst::False))
-            {
-                Ok(_) => self.symbol_table.lookup(&raw_name),
-                Err(_) => {
-                    let rename =
-                        escape_invalid_identifier(&self.symbol_table, &raw_name, true, false);
-                    self.symbol_table
-                        .new_binding(&rename, &Type::Bit(IsConst::False))?;
-                    self.symbol_table.lookup(&rename)
-                }
-            }?;
+            let identifier = Identifier {
+                string: raw_name.clone(),
+            };
+            self.symbol_table.bind(&raw_name)?;
             decls.push(ClassicalDeclaration {
                 type_: ClassicalType::Bit,
-                identifier: Identifier {
-                    string: sym.symbol().name().to_string(),
-                },
+                identifier,
             });
         }
         self.global_classical_decls.extend(decls);
@@ -446,7 +472,7 @@ impl<'a> QASM3Builder<'a> {
     }
 
     fn build_qubit_decls(&mut self) -> ExporterResult<Vec<QuantumDeclaration>> {
-        self.assert_global_scope()?;
+        // self.assert_global_scope()?;
         let num_qubits = self.circuit_scope.circuit_data.num_qubits();
         let mut decls = Vec::new();
 
@@ -455,23 +481,12 @@ impl<'a> QASM3Builder<'a> {
         }
         for i in 0..num_qubits {
             let raw_name = format!("{}{}", self.loose_qubit_prefix, i);
-            let sym = match self.symbol_table.new_binding(&raw_name, &Type::Qubit) {
-                Ok(_) => self.symbol_table.lookup(&raw_name),
-                Err(_) => {
-                    if self.is_layout {
-                        // If layout, return error directly
-                        return Err(QASM3ExporterError::SymbolNotFound(raw_name));
-                    }
-                    let rename =
-                        escape_invalid_identifier(&self.symbol_table, &raw_name, true, false);
-                    self.symbol_table.new_binding(&rename, &Type::Qubit)?;
-                    self.symbol_table.lookup(&rename)
-                }
-            }?;
+            let identifier = Identifier {
+                string: raw_name.clone(),
+            };
+            self.symbol_table.bind(&raw_name)?;
             decls.push(QuantumDeclaration {
-                identifier: Identifier {
-                    string: sym.symbol().name().to_string(),
-                },
+                identifier,
                 designator: None,
             });
         }
@@ -539,9 +554,11 @@ impl<'a> QASM3Builder<'a> {
         let mut qubit_ids = Vec::new();
         for q in qargs {
             let name = format!("{}{}", self.loose_qubit_prefix, q.0);
-            let symbol = self.symbol_table.lookup(&name)?;
+            if !self.symbol_table.contains_name(&name) {
+                return Err(QASM3ExporterError::SymbolNotFound(name))
+            }
             qubit_ids.push(Identifier {
-                string: symbol.symbol().name().to_string(),
+                string: name.to_string(),
             });
         }
         stmts.push(Statement::QuantumInstruction(QuantumInstruction::Barrier(
@@ -565,9 +582,11 @@ impl<'a> QASM3Builder<'a> {
         let mut qubits = Vec::new();
         for q in qargs {
             let name = format!("{}{}", self.loose_qubit_prefix, q.0);
-            let symbol = self.symbol_table.lookup(&name)?;
+            if !self.symbol_table.contains_name(&name) {
+                return Err(QASM3ExporterError::SymbolNotFound(name))
+            }
             qubits.push(Identifier {
-                string: symbol.symbol().name().to_string(),
+                string: name.to_string(),
             });
         }
         let measurement = QuantumMeasurement {
@@ -580,11 +599,13 @@ impl<'a> QASM3Builder<'a> {
             .cargs_interner()
             .get(instr.clbits);
         let c_name = format!("{}{}", self.loose_bit_prefix, cargs[0].0);
-        let clbit_symbol = self.symbol_table.lookup(&c_name)?;
+        if !self.symbol_table.contains_name(&c_name) {
+            return Err(QASM3ExporterError::SymbolNotFound(c_name))
+        }
         stmts.push(Statement::QuantumMeasurementAssignment(
             QuantumMeasurementAssignment {
                 identifier: Identifier {
-                    string: clbit_symbol.symbol().name().to_string(),
+                    string: c_name,
                 },
                 quantum_measurement: measurement,
             },
@@ -604,11 +625,13 @@ impl<'a> QASM3Builder<'a> {
             .get(instr.qubits);
         for q in qargs {
             let name = format!("{}{}", self.loose_qubit_prefix, q.0);
-            let sym = self.symbol_table.lookup(&name)?;
+            if !self.symbol_table.contains_name(&name) {
+                return Err(QASM3ExporterError::SymbolNotFound(name))
+            }
             stmts.push(Statement::QuantumInstruction(QuantumInstruction::Reset(
                 Reset {
                     identifier: Identifier {
-                        string: sym.symbol().name().to_string(),
+                        string: name.to_string(),
                     },
                 },
             )));
@@ -676,9 +699,11 @@ impl<'a> QASM3Builder<'a> {
             .get(instr.qubits);
         for q in qargs {
             let name = format!("{}{}", self.loose_qubit_prefix, q.0);
-            let sym = self.symbol_table.lookup(&name)?;
+            if !self.symbol_table.contains_name(&name) {
+                return Err(QASM3ExporterError::SymbolNotFound(name))
+            }
             qubits.push(Identifier {
-                string: sym.symbol().name().to_string(),
+                string: name.to_string(),
             });
         }
         Ok(Delay {
@@ -689,8 +714,10 @@ impl<'a> QASM3Builder<'a> {
 
     fn build_gate_call(&mut self, instr: &PackedInstruction) -> ExporterResult<GateCall> {
         let op_name = instr.op.name();
-        if !self.symbol_table.standard_library_gates().contains(&op_name)
-            && !self.symbol_table.all_scopes_contains_name(op_name)
+        if !self
+            .symbol_table
+            .contains_name(op_name)
+            && !self.symbol_table.contains_name(op_name)
         {
             panic!("Non-standard gate calls are not yet supported: {}", op_name);
         }
@@ -720,9 +747,11 @@ impl<'a> QASM3Builder<'a> {
         let mut qubit_ids = Vec::new();
         for q in qargs {
             let name = format!("{}{}", self.loose_qubit_prefix, q.0);
-            let sym = self.symbol_table.lookup(&name)?;
+            if !self.symbol_table.contains_name(&name) {
+                return Err(QASM3ExporterError::SymbolNotFound(name))
+            }
             qubit_ids.push(Identifier {
-                string: sym.symbol().name().to_string(),
+                string: name.to_string(),
             });
         }
 
