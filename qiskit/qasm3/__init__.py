@@ -234,11 +234,10 @@ from qiskit.circuit import library
 from qiskit.exceptions import ExperimentalWarning
 from qiskit.utils import optionals as _optionals
 
+from .._accelerate.qasm3 import CustomGate
+from .exceptions import QASM3Error, QASM3ExporterError, QASM3ImporterError
 from .experimental import ExperimentalFeatures
 from .exporter import Exporter
-from .exceptions import QASM3Error, QASM3ImporterError, QASM3ExporterError
-from .._accelerate.qasm3 import CustomGate
-
 
 STDGATES_INC_GATES = (
     CustomGate(library.PhaseGate, "p", 1, 1),
@@ -370,3 +369,13 @@ def load_experimental(pathlike_or_filelike, /, *, custom_gates=None, include_pat
         category=ExperimentalWarning,
     )
     return _qasm3.load(pathlike_or_filelike, custom_gates=custom_gates, include_path=include_path)
+
+@functools.wraps(_qasm3.dumps)
+def dumps_experimental(circuit):
+    """<overridden by functools.wraps>"""
+    warnings.warn(
+        "This is an experimental version of serialization of a :class:`~qiskit.circuit.QuantumCircuit` object in an OpenQASM 3 string."
+        " Beware that its interface might change, and it might be missing features.",
+        category=ExperimentalWarning,
+    )
+    return _qasm3.dumps(circuit)

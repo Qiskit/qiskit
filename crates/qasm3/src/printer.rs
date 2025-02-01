@@ -3,13 +3,13 @@ use hashbrown::HashMap;
 use std::fmt::Write;
 
 use crate::ast::{
-    Assignment, Barrier, Binary, BinaryOp, BitArray, BooleanLiteral, Cast,
-    ClassicalDeclaration, ClassicalType, Constant, DurationLiteral, Expression, Float,
-    GateCall, Header, Identifier, Include, Index, IndexSet, Int, IntegerLiteral, Node, Parameter,
-    Pragma, Program, ProgramBlock, QuantumBlock, QuantumDeclaration, QuantumGateDefinition,
-    QuantumGateModifier, QuantumGateModifierName, QuantumGateSignature, QuantumInstruction,
-    QuantumMeasurement, QuantumMeasurementAssignment, Range, Reset, Statement,
-    SubscriptedIdentifier, Uint, Unary, UnaryOp, Version, OP,
+    Assignment, Barrier, Binary, BinaryOp, BitArray, BooleanLiteral, Cast, ClassicalDeclaration,
+    ClassicalType, Constant, DurationLiteral, Expression, Float, GateCall, Header, Identifier,
+    Include, Index, IndexSet, Int, IntegerLiteral, Node, Parameter, Program, ProgramBlock,
+    QuantumBlock, QuantumDeclaration, QuantumGateDefinition, QuantumGateModifier,
+    QuantumGateModifierName, QuantumGateSignature, QuantumInstruction, QuantumMeasurement,
+    QuantumMeasurementAssignment, Range, Reset, Statement, SubscriptedIdentifier, Uint, Unary,
+    UnaryOp, Version, OP,
 };
 
 #[derive(Debug)]
@@ -28,7 +28,7 @@ pub struct BasicPrinter<'a> {
     stream: &'a mut String,
     indent: String,
     current_indent: usize,
-    chain_else_if: bool,
+    _chain_else_if: bool,
     constant_lookup: HashMap<Constant, &'static str>,
     modifier_lookup: HashMap<QuantumGateModifierName, &'static str>,
     float_width_lookup: HashMap<Float, String>,
@@ -36,7 +36,7 @@ pub struct BasicPrinter<'a> {
 }
 
 impl<'a> BasicPrinter<'a> {
-    pub fn new(stream: &'a mut String, indent: String, chain_else_if: bool) -> Self {
+    pub fn new(stream: &'a mut String, indent: String, _chain_else_if: bool) -> Self {
         let mut constant_lookup = HashMap::new();
         constant_lookup.insert(Constant::PI, "pi");
         constant_lookup.insert(Constant::Euler, "euler");
@@ -83,7 +83,7 @@ impl<'a> BasicPrinter<'a> {
             stream,
             indent,
             current_indent: 0,
-            chain_else_if,
+            _chain_else_if,
             constant_lookup,
             modifier_lookup,
             float_width_lookup,
@@ -98,7 +98,6 @@ impl<'a> BasicPrinter<'a> {
             Node::Statement(node) => self.visit_statement(node),
             Node::Version(node) => self.visit_version(node),
             Node::Include(node) => self.visit_include(node),
-            Node::Pragma(node) => self.visit_pragma(node),
             Node::ClassicalType(node) => self.visit_classical_type(node),
             Node::Expression(node) => self.visit_expression(node),
             Node::QuantumGateModifier(node) => self.visit_quantum_gate_modifier(node),
@@ -194,9 +193,6 @@ impl<'a> BasicPrinter<'a> {
         self.write_statement(&format!("include \"{}\"", node.filename));
     }
 
-    fn visit_pragma(&mut self, node: &Pragma) {
-        self.write_statement(&format!("#pragma {}", node.content));
-    }
 
     fn visit_statement(&mut self, statement: &Statement) {
         match statement {
