@@ -6624,7 +6624,7 @@ impl DAGCircuit {
         clbit_order: Option<Vec<Bound<PyAny>>>,
     ) -> PyResult<DAGCircuit> {
         // Extract necessary attributes
-        let qc_data = qc.data;
+        let mut qc_data = qc.data;
         let num_qubits = qc_data.num_qubits();
         let num_clbits = qc_data.num_clbits();
         let num_ops = qc_data.__len__();
@@ -6668,7 +6668,7 @@ impl DAGCircuit {
                             &qubit
                         )));
                     }
-                    let qubit_index = qc_data.qubits().py_find_bit(&qubit).unwrap();
+                    let qubit_index = qc_data.qubits_mut().py_find_bit(&qubit)?.unwrap();
                     ordered_vec[qubit_index.index()] = new_dag.add_qubit_unchecked(py, &qubit)?;
                     Ok(())
                 })?;
@@ -6701,7 +6701,7 @@ impl DAGCircuit {
                             &clbit
                         )));
                     };
-                    let clbit_index = qc_data.clbits().py_find_bit(&clbit).unwrap();
+                    let clbit_index = qc_data.clbits_mut().py_find_bit(&clbit)?.unwrap();
                     ordered_vec[clbit_index.index()] = new_dag.add_clbit_unchecked(py, &clbit)?;
                     Ok(())
                 })?;

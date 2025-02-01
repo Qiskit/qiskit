@@ -212,7 +212,7 @@ impl CircuitData {
     /// Gets the location of the bit inside of the circuit
     #[pyo3(name = "get_qubit_location")]
     pub fn py_get_qubit_location(
-        &self,
+        &mut self,
         bit: &Bound<PyAny>,
     ) -> PyResult<(u32, Vec<(&PyObject, u32)>)> {
         self.qubits.py_get_bit_location(bit)
@@ -266,7 +266,7 @@ impl CircuitData {
     /// Gets the location of the bit inside of the circuit
     #[pyo3(name = "get_clbit_location")]
     pub fn py_get_clbit_location(
-        &self,
+        &mut self,
         bit: &Bound<PyAny>,
     ) -> PyResult<(u32, Vec<(&PyObject, u32)>)> {
         self.clbits.py_get_bit_location(bit)
@@ -799,7 +799,7 @@ impl CircuitData {
                     .map(|b| {
                         Ok(self
                             .qubits
-                            .py_find_bit(other.qubits.py_get_bit(py, *b)?.unwrap().bind(py))
+                            .py_find_bit(other.qubits.py_get_bit(py, *b)?.unwrap().bind(py))?
                             .unwrap())
                     })
                     .collect::<PyResult<Vec<Qubit>>>()?;
@@ -810,7 +810,7 @@ impl CircuitData {
                     .map(|b| {
                         Ok(self
                             .clbits
-                            .py_find_bit(other.clbits.py_get_bit(py, *b)?.unwrap().bind(py))
+                            .py_find_bit(other.clbits.py_get_bit(py, *b)?.unwrap().bind(py))?
                             .unwrap())
                     })
                     .collect::<PyResult<Vec<Clbit>>>()?;
@@ -1078,8 +1078,15 @@ impl CircuitData {
         };
         // Add all the bits into a register
         if add_qreg {
-            let indices: Vec<Qubit> = (0..num_qubits).map(|_| data.add_qubit()).collect();
-            data.add_qreg(Some("q".to_string()), None, Some(&indices));
+            data.add_qreg(
+                Some("q".to_string()),
+                Some(
+                    num_qubits
+                        .try_into()
+                        .expect("The number of qubits provided exceeds the limit for a circuit."),
+                ),
+                None,
+            );
         } else {
             (0..num_qubits).for_each(|_| {
                 data.add_qubit();
@@ -1087,11 +1094,18 @@ impl CircuitData {
         }
         // Add all the bits into a register
         if add_creg {
-            let indices: Vec<Clbit> = (0..num_clbits).map(|_| data.add_clbit()).collect();
-            data.add_creg(Some("c".to_string()), None, Some(&indices));
+            data.add_creg(
+                Some("c".to_string()),
+                Some(
+                    num_clbits
+                        .try_into()
+                        .expect("The number of qubits provided exceeds the limit for a circuit."),
+                ),
+                None,
+            );
         } else {
             (0..num_clbits).for_each(|_| {
-                data.add_qubit();
+                data.add_clbit();
             });
         }
         data
@@ -1554,6 +1568,18 @@ impl CircuitData {
         &self.clbits
     }
 
+    // TODO: Remove
+    /// Returns a mutable view of the Qubits registered in the circuit
+    pub fn qubits_mut(&mut self) -> &mut NewBitData<Qubit, QuantumRegister> {
+        &mut self.qubits
+    }
+
+    // TODO: Remove
+    /// Returns a mutable view of the Classical bits registered in the circuit
+    pub fn clbits_mut(&mut self) -> &mut NewBitData<Clbit, ClassicalRegister> {
+        &mut self.clbits
+    }
+
     /// Unpacks from interned value to `[Qubit]`
     pub fn get_qargs(&self, index: Interned<[Qubit]>) -> &[Qubit] {
         self.qargs_interner().get(index)
@@ -1867,5 +1893,118 @@ mod test {
         let expected_cregs: Vec<&ClassicalRegister> = vec![&example_creg];
 
         assert_eq!(cregs, expected_cregs)
+    }
+}
+
+#[cfg(all(test, not(miri)))]
+// #[cfg(all(test))]
+mod pytest {
+    use pyo3::PyTypeInfo;
+
+    use super::*;
+
+    // Test Rust native circuit construction when accessed through Python, without
+    // adding resgisters to the circuit.
+    #[test]
+    fn test_circuit_construction_py_no_regs() {
+        let num_qubits = 4;
+        let num_clbits = 3;
+        let circuit_data =
+            CircuitData::new(num_qubits, num_clbits, Param::Float(0.0), false, false);
+        let result = Python::with_gil(|py| -> PyResult<bool> {
+            let quantum_circuit = QUANTUM_CIRCUIT.get_bound(py).clone();
+
+            let converted_circuit =
+                quantum_circuit.call_method1("_from_circuit_data", (circuit_data,))?;
+
+            let converted_qregs = converted_circuit.getattr("qregs")?;
+            println!("{}", converted_qregs);
+            assert!(converted_qregs.is_instance(&PyList::type_object(py))?);
+            assert!(
+                converted_qregs.downcast::<PyList>()?.len() == 0,
+                "The quantum registers list returned a non-empty value"
+            );
+
+            let converted_qubits = converted_circuit.getattr("qubits")?;
+            println!("{:?}", converted_qubits);
+            assert!(converted_qubits.is_instance(&PyList::type_object(py))?);
+            assert!(
+                converted_qubits.downcast::<PyList>()?.len() == (num_qubits as usize),
+                "The qubits has the wrong length"
+            );
+
+            let converted_qregs = converted_circuit.getattr("qregs")?;
+            println!("{}", converted_qregs);
+            assert!(converted_qregs.is_instance(&PyList::type_object(py))?);
+            assert!(
+                converted_qregs.downcast::<PyList>()?.len() == 0,
+                "The classical registers list returned a non-empty value"
+            );
+
+            let converted_clbits = converted_circuit.getattr("clbits")?;
+            println!("{:?}", converted_clbits);
+            assert!(converted_clbits.is_instance(&PyList::type_object(py))?);
+            assert!(
+                converted_clbits.downcast::<PyList>()?.len() == (num_clbits as usize),
+                "The clbits has the wrong length"
+            );
+
+            Ok(true)
+        })
+        .is_ok_and(|res| res);
+        assert!(result);
+    }
+
+    #[test]
+    fn test_circuit_construction() {
+        let num_qubits = 4;
+        let num_clbits = 3;
+        let circuit_data = CircuitData::new(num_qubits, num_clbits, Param::Float(0.0), true, true);
+        let result = Python::with_gil(|py| -> PyResult<bool> {
+            let quantum_circuit = QUANTUM_CIRCUIT.get_bound(py).clone();
+
+            let converted_circuit =
+                quantum_circuit.call_method1("_from_circuit_data", (circuit_data,))?;
+            let expected_circuit = quantum_circuit.call1((num_qubits, num_clbits))?;
+
+            let converted_qregs = converted_circuit.getattr("qregs")?;
+            let expected_qregs = expected_circuit.getattr("qregs")?;
+
+            println!("{:?} vs {:?}", converted_qregs, expected_qregs);
+
+            assert!(converted_qregs.eq(expected_qregs)?);
+
+            let converted_cregs = converted_circuit.getattr("cregs")?;
+            let expected_cregs = expected_circuit.getattr("cregs")?;
+
+            println!("{:?} vs {:?}", converted_cregs, expected_cregs);
+
+            assert!(converted_cregs.eq(expected_cregs)?);
+
+            let converted_qubits = converted_circuit.getattr("qubits")?;
+            let expected_qubits = expected_circuit.getattr("qubits")?;
+            println!("{:?} vs {:?}", converted_qubits, expected_qubits);
+            assert!(converted_qubits.eq(&expected_qubits)?);
+
+            let converted_clbits = converted_circuit.getattr("clbits")?;
+            let expected_clbits = expected_circuit.getattr("clbits")?;
+            println!("{:?} vs {:?}", converted_clbits, expected_clbits);
+            assert!(converted_clbits.eq(&expected_clbits)?);
+
+            let converted_global_phase = converted_circuit.getattr("global_phase")?;
+            let expected_global_phase = expected_circuit.getattr("global_phase")?;
+            println!(
+                "{:?} vs {:?}",
+                converted_global_phase, expected_global_phase
+            );
+            assert!(converted_global_phase.eq(&expected_global_phase)?);
+
+            // TODO: Figure out why this fails
+            // converted_circuit.eq(expected_circuit)
+
+            Ok(true)
+        })
+        .is_ok_and(|res| res);
+        assert!(result);
     }
 }

@@ -453,8 +453,36 @@ where
 {
     /// Finds the native bit index of the given Python bit.
     #[inline]
-    pub fn py_find_bit(&self, bit: &Bound<PyAny>) -> Option<T> {
-        self.indices.get(&BitAsKey::new(bit)).copied()
+    pub fn py_find_bit(&mut self, bit: &Bound<PyAny>) -> PyResult<Option<T>> {
+        let key = &BitAsKey::new(bit);
+        if let Some(value) = self.indices.get(key).copied() {
+            Ok(Some(value))
+        } else if self.indices.len() != self.len() {
+            let py = bit.py();
+            // TODO: Make sure all bits have been mapped during addition.
+            // The only case in which bits may not be mapped is when a circuit
+            // is created entirely from Rust. For which case the Python representations
+            // of the bits still don't exist.
+            // Ideally, we'd want to initialize the mapping with a value representing the
+            // future bit, but it is hard to come up with a way to represent an object
+            // that doesn't exist yet.
+            // So for now, perform a check if the length of the mapped indices differs
+            // from the number of bits available.
+            for index in 0..self.len() {
+                let index = T::from(index.try_into().map_err(|_| {
+                    CircuitError::new_err(format!(
+                        "This circuit's {} has exceeded its length limit",
+                        self.description
+                    ))
+                })?);
+                let bit = self.py_get_bit(py, index)?.unwrap();
+                let bit_as_key = BitAsKey::new(bit.bind(py));
+                self.indices.entry(bit_as_key).or_insert(index);
+            }
+            Ok(self.indices.get(key).copied())
+        } else {
+            Ok(None)
+        }
     }
 
     /// Gets a reference to the cached Python list, with the bits maintained by
@@ -530,11 +558,11 @@ where
 
     /// Gets the location of a bit within the circuit
     pub fn py_get_bit_location(
-        &self,
+        &mut self,
         bit: &Bound<PyAny>,
     ) -> PyResult<(u32, Vec<(&PyObject, u32)>)> {
         let py = bit.py();
-        let index = self.py_find_bit(bit).ok_or(PyKeyError::new_err(format!(
+        let index = self.py_find_bit(bit)?.ok_or(PyKeyError::new_err(format!(
             "The provided {} is not part of this circuit",
             self.description
         )))?;
@@ -649,12 +677,19 @@ where
                 RegisterAsKey::Quantum(_) => QUANTUM_REGISTER.get_bound(py),
                 RegisterAsKey::Classical(_) => CLASSICAL_REGISTER.get_bound(py),
             };
-            // Check if any indices have been initialized, if such is the case
-            // Treat the rest of indices as new `Bits``
-            if register
-                .bits()
-                .any(|bit| self.bits[BitType::from(bit) as usize].get().is_some())
-            {
+            // Check if all indices have been initialized from this register, if such is the case
+            // Treat the rest of indices as old `Bits``
+            if register.bits().all(|bit| {
+                self.bit_info[BitType::from(bit) as usize]
+                    .orig_register_index()
+                    .is_some_and(|idx| idx.register_index() == index)
+            }) {
+                let reg = reg_type.call1((register.len(), register.name()))?;
+                self.registers[index_as_usize]
+                    .set(reg.into())
+                    .map_err(|_| PyRuntimeError::new_err("Could not set the OnceCell correctly"))?;
+                Ok(self.registers[index_as_usize].get())
+            } else {
                 let bits: Vec<PyObject> = register
                     .bits()
                     .map(|bit| -> PyResult<PyObject> {
@@ -673,12 +708,6 @@ where
 
                 // Create register and assign to OnceCell
                 let reg = reg_type.call((), Some(&kwargs))?;
-                self.registers[index_as_usize]
-                    .set(reg.into())
-                    .map_err(|_| PyRuntimeError::new_err("Could not set the OnceCell correctly"))?;
-                Ok(self.registers[index_as_usize].get())
-            } else {
-                let reg = reg_type.call1((register.len(), register.name()))?;
                 self.registers[index_as_usize]
                     .set(reg.into())
                     .map_err(|_| PyRuntimeError::new_err("Could not set the OnceCell correctly"))?;
