@@ -13,7 +13,6 @@ use pyo3::Python;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::operations::{Operation, Param};
 use qiskit_circuit::packed_instruction::PackedInstruction;
-use qiskit_circuit::{Clbit, Qubit};
 use std::sync::Mutex;
 use thiserror::Error;
 
@@ -68,8 +67,6 @@ pub enum QASM3ExporterError {
     SymbolNotFound(String),
     #[error("PyError: {0}")]
     PyErr(PyErr),
-    #[error("Not in global scope")]
-    NotInGlobalScopeError,
 }
 
 impl From<PyErr> for QASM3ExporterError {
@@ -80,13 +77,6 @@ impl From<PyErr> for QASM3ExporterError {
 
 lazy_static! {
     static ref GLOBAL_COUNTER: Mutex<usize> = Mutex::new(0);
-}
-
-fn get_next_counter_value() -> usize {
-    let mut counter = GLOBAL_COUNTER.lock().unwrap();
-    let val = *counter;
-    *counter += 1;
-    val
 }
 
 lazy_static! {
@@ -157,42 +147,6 @@ lazy_static! {
     static ref VALID_IDENTIFIER: Regex = Regex::new(r"(^[\w][\w\d]*$|^\$\d+$)").unwrap();
 }
 
-fn name_allowed(symbol_table: &SymbolTable, name: &str, unique: bool) -> bool {
-    if unique {
-        RESERVED_KEYWORDS.contains(name) || symbol_table.contains_name(name)
-    } else {
-        RESERVED_KEYWORDS.contains(name)
-    }
-}
-
-fn escape_invalid_identifier(
-    symbol_table: &SymbolTable,
-    name: &str,
-    allow_rename: bool,
-    unique: bool,
-) -> String {
-    let base = if allow_rename {
-        format!(
-            "_{}",
-            name.chars()
-                .map(|c| if c.is_alphanumeric() || c == '_' {
-                    c
-                } else {
-                    '_'
-                })
-                .collect::<String>()
-        )
-    } else {
-        name.to_string()
-    };
-
-    let mut new_name = base.clone();
-    while !name_allowed(symbol_table, &new_name, unique) {
-        new_name = format!("{}_{}", base, get_next_counter_value());
-    }
-    new_name
-}
-
 pub struct Exporter {
     includes: Vec<&'static str>,
     basis_gates: Vec<&'static str>,
@@ -245,43 +199,11 @@ impl Exporter {
 #[derive(Debug, Clone)]
 struct BuildScope<'a> {
     circuit_data: &'a CircuitData,
-    qubit_map: HashMap<Qubit, Qubit>,
-    clbit_map: HashMap<Clbit, Clbit>,
 }
 
 impl<'a> BuildScope<'a> {
     fn new(circuit_data: &'a CircuitData) -> Self {
-        let qubit_map = Python::with_gil(|py| {
-            let qubits = circuit_data.qubits();
-            qubits
-                .bits()
-                .iter()
-                .map(|bit| {
-                    let bound_bit = bit.bind(py);
-                    let found = qubits.find(bound_bit).expect("Qubit not found");
-                    (found, found)
-                })
-                .collect()
-        });
-
-        let clbit_map = Python::with_gil(|py| {
-            let clbits = circuit_data.clbits();
-            clbits
-                .bits()
-                .iter()
-                .map(|bit| {
-                    let bound_bit = bit.bind(py);
-                    let found = clbits.find(bound_bit).expect("Clbit not found");
-                    (found, found)
-                })
-                .collect()
-        });
-
-        Self {
-            circuit_data,
-            qubit_map,
-            clbit_map,
-        }
+        Self { circuit_data }
     }
 }
 

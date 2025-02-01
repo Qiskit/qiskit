@@ -193,7 +193,6 @@ impl<'a> BasicPrinter<'a> {
         self.write_statement(&format!("include \"{}\"", node.filename));
     }
 
-
     fn visit_statement(&mut self, statement: &Statement) {
         match statement {
             Statement::QuantumMeasurementAssignment(statement) => {
