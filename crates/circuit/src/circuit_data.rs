@@ -19,7 +19,7 @@ use crate::circuit_instruction::{
     CircuitInstruction, ExtraInstructionAttributes, OperationFromPython,
 };
 use crate::dag_circuit::add_global_phase;
-use crate::imports::{ANNOTATED_OPERATION, CLBIT, QUANTUM_CIRCUIT, QUBIT};
+use crate::imports::{ANNOTATED_OPERATION, QUANTUM_CIRCUIT};
 use crate::interner::{Interned, Interner};
 use crate::operations::{Operation, OperationRef, Param, StandardGate};
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
@@ -1074,8 +1074,11 @@ impl CircuitData {
                 if add_creg { 1 } else { 0 },
             ),
             param_table: ParameterTable::new(),
-            global_phase,
+            global_phase: Param::Float(0.),
         };
+
+        // Set the global phase using internal setter.
+        data._set_global_phase_float(global_phase);
         // Add all the bits into a register
         if add_qreg {
             data.add_qreg(
@@ -1136,7 +1139,7 @@ impl CircuitData {
         (0..self.qubits.len_regs()).flat_map(|index| self.qubits.get_register(index as u32))
     }
 
-    /// Adds a generic qubit to a circuit
+    /// Adds a generic clbit to a circuit
     pub fn add_clbit(&mut self) -> Clbit {
         self.clbits.add_bit()
     }
@@ -1159,6 +1162,23 @@ impl CircuitData {
     /// Get qubit location in the circuit
     pub fn get_clbit_location(&self, clbit: Clbit) -> &[BitLocation] {
         self.clbits.get_bit_info(clbit)
+    }
+
+    /// Set the global phase of the circuit using a float, without needing a
+    /// `py` token.
+    ///
+    /// _**Note:** for development purposes only. Should be removed after
+    /// [#13278](https://github.com/Qiskit/qiskit/pull/13278)._
+    fn _set_global_phase_float(&mut self, angle: Param) {
+        match angle {
+            Param::Float(angle) => {
+                self.global_phase = Param::Float(angle.rem_euclid(2. * std::f64::consts::PI));
+            }
+            _ => panic!(
+                "Could not set the parameter {:?}. Parameter was not a float.",
+                &angle
+            ),
+        }
     }
 
     /// An alternate constructor to build a new `CircuitData` from an iterator
@@ -1350,8 +1370,8 @@ impl CircuitData {
             data: Vec::with_capacity(instruction_capacity),
             qargs_interner: Interner::new(),
             cargs_interner: Interner::new(),
-            qubits: NewBitData::new("qubits".to_string()),
-            clbits: NewBitData::new("clbits".to_string()),
+            qubits: NewBitData::with_capacity("qubits".to_string(), num_qubits as usize, 0),
+            clbits: NewBitData::with_capacity("clbits".to_string(), num_clbits as usize, 0),
             param_table: ParameterTable::new(),
             global_phase: Param::Float(0.0),
         };
@@ -1361,17 +1381,13 @@ impl CircuitData {
         res.set_global_phase(py, global_phase)?;
 
         if num_qubits > 0 {
-            let qubit_cls = QUBIT.get_bound(py);
             for _i in 0..num_qubits {
-                let bit = qubit_cls.call0()?;
-                res.py_add_qubit(&bit, true)?;
+                res.add_qubit();
             }
         }
         if num_clbits > 0 {
-            let clbit_cls = CLBIT.get_bound(py);
             for _i in 0..num_clbits {
-                let bit = clbit_cls.call0()?;
-                res.py_add_clbit(&bit, true)?;
+                res.add_clbit();
             }
         }
         Ok(res)

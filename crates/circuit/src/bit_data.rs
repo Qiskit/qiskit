@@ -457,7 +457,7 @@ where
         let key = &BitAsKey::new(bit);
         if let Some(value) = self.indices.get(key).copied() {
             Ok(Some(value))
-        } else if self.indices.len() != self.len() {
+        } else if self.indices.len() < self.len() {
             let py = bit.py();
             // TODO: Make sure all bits have been mapped during addition.
             // The only case in which bits may not be mapped is when a circuit
@@ -500,7 +500,7 @@ where
 
         // If the length is different from the stored bits, rebuild cache
         let res_as_bound = res.bind(py);
-        if res_as_bound.len() != self.len() {
+        if res_as_bound.len() < self.len() {
             let current_length = res_as_bound.len();
             for index in 0..self.len() {
                 if index < current_length {
@@ -509,7 +509,7 @@ where
                     res_as_bound.append(self.py_get_bit(py, (index as u32).into())?)?
                 }
             }
-            Ok(res)
+            Ok(self.cached_py_bits.get().unwrap())
         } else {
             Ok(res)
         }
@@ -528,9 +528,9 @@ where
             .into()
         });
 
-        // If the length is different from the stored bits, rebuild cache
+        // If the length is different from the stored registers, rebuild cache
         let res_as_bound = res.bind(py);
-        if res_as_bound.len() != self.len_regs() {
+        if res_as_bound.len() < self.len_regs() {
             let current_length = res_as_bound.len();
             for index in 0..self.len_regs() {
                 if index < current_length {
@@ -539,7 +539,14 @@ where
                     res_as_bound.append(self.py_get_register(py, index as u32)?)?
                 }
             }
-            Ok(res)
+            let trimmed = res_as_bound.get_slice(0, self.len_regs()).unbind();
+            self.cached_py_regs.set(trimmed).map_err(|_| {
+                PyRuntimeError::new_err(format!(
+                    "Tried to initialized {} register cache while another thread was initializing",
+                    self.description
+                ))
+            })?;
+            Ok(self.cached_py_regs.get().unwrap())
         } else {
             Ok(res)
         }
@@ -591,21 +598,15 @@ where
     /// Map the provided Python bits to their native indices.
     /// An error is returned if any bit is not registered.
     pub fn py_map_bits<'py>(
-        &self,
+        &mut self,
         bits: impl IntoIterator<Item = Bound<'py, PyAny>>,
     ) -> PyResult<impl Iterator<Item = T>> {
         let v: Result<Vec<_>, _> = bits
             .into_iter()
             .map(|b| {
-                self.indices
-                    .get(&BitAsKey::new(&b))
-                    .copied()
-                    .ok_or_else(|| {
-                        PyKeyError::new_err(format!(
-                            "Bit {:?} has not been added to this circuit.",
-                            b
-                        ))
-                    })
+                self.py_find_bit(&b)?.ok_or_else(|| {
+                    PyKeyError::new_err(format!("Bit {:?} has not been added to this circuit.", b))
+                })
             })
             .collect();
         v.map(|x| x.into_iter())
@@ -646,12 +647,9 @@ where
                 self.bits[index_as_usize]
                     .set(res.into())
                     .map_err(|_| PyRuntimeError::new_err("Could not set the OnceCell correctly"))?;
-                return Ok(self.bits[index_as_usize].get());
             }
             // If it is initialized, just retrieve.
-            else {
-                return Ok(self.bits[index_as_usize].get());
-            }
+            Ok(self.bits[index_as_usize].get())
         } else if let Some(bit) = self.bits[index_as_usize].get() {
             Ok(Some(bit))
         } else {
@@ -746,13 +744,15 @@ where
             self.py_cached_bits(py)?.bind(py).append(bit)?;
             self.bit_info.push(BitInfo::new(None));
             self.bits.push(bit.clone().unbind().into());
+            Ok(idx.into())
         } else if strict {
             return Err(PyValueError::new_err(format!(
                 "Existing bit {:?} cannot be re-added in strict mode.",
                 bit
             )));
+        } else {
+            return self.py_find_bit(bit).map(|opt| opt.unwrap());
         }
-        Ok(idx.into())
     }
 
     /// Adds new register from Python.
@@ -791,10 +791,10 @@ where
                     ))
                 })?;
                 let bit = bit?;
-                let index = if let Some(index) = self.indices.get(&BitAsKey::new(&bit)) {
-                    let bit_info = &mut self.bit_info[BitType::from(*index) as usize];
+                let index = if let Some(index) = self.py_find_bit(&bit)? {
+                    let bit_info = &mut self.bit_info[BitType::from(index) as usize];
                     bit_info.add_register(idx, bit_index);
-                    *index
+                    index
                 } else {
                     let index = self.py_add_bit(&bit, true)?;
                     self.bit_info[BitType::from(index) as usize] =
@@ -809,7 +809,7 @@ where
         let name: String = key.name().to_string();
         let reg: R = (bits.as_slice(), name).into();
 
-        // Append to cache before bits to avoid rebuilding cache.
+        // Append to cache before registers to avoid rebuilding cache.
         self.py_cached_regs(py)?.bind(py).append(register)?;
         self.reg_keys.insert(reg.as_key().clone(), idx);
         self.registry.push(reg);
