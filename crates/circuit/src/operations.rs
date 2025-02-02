@@ -16,6 +16,7 @@ use std::vec;
 
 use crate::circuit_data::CircuitData;
 use crate::circuit_instruction::ExtraInstructionAttributes;
+use crate::converters::QuantumCircuitData;
 use crate::imports::get_std_gate_class;
 use crate::imports::{PARAMETER_EXPRESSION, QUANTUM_CIRCUIT};
 use crate::{gate_matrix, impl_intopyobject_for_copy_pyclass, Qubit};
@@ -2400,15 +2401,8 @@ impl Operation for PyInstruction {
         Python::with_gil(|py| -> Option<CircuitData> {
             match self.instruction.getattr(py, intern!(py, "definition")) {
                 Ok(definition) => {
-                    let res: Option<PyObject> = definition.call0(py).ok()?.extract(py).ok();
-                    match res {
-                        Some(x) => {
-                            let out: CircuitData =
-                                x.getattr(py, intern!(py, "data")).ok()?.extract(py).ok()?;
-                            Some(out)
-                        }
-                        None => None,
-                    }
+                    let quantum_circuit: QuantumCircuitData = definition.extract(py).ok()?;
+                    Some(quantum_circuit.data)
                 }
                 Err(_) => None,
             }
@@ -2483,15 +2477,8 @@ impl Operation for PyGate {
         Python::with_gil(|py| -> Option<CircuitData> {
             match self.gate.getattr(py, intern!(py, "definition")) {
                 Ok(definition) => {
-                    let res: Option<PyObject> = definition.call0(py).ok()?.extract(py).ok();
-                    match res {
-                        Some(x) => {
-                            let out: CircuitData =
-                                x.getattr(py, intern!(py, "data")).ok()?.extract(py).ok()?;
-                            Some(out)
-                        }
-                        None => None,
-                    }
+                    let quantum_circuit: QuantumCircuitData = definition.extract(py).ok()?;
+                    Some(quantum_circuit.data)
                 }
                 Err(_) => None,
             }
