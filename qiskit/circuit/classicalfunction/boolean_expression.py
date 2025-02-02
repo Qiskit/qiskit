@@ -17,13 +17,14 @@ import itertools
 import re
 from os.path import basename, isfile
 
+from qiskit.circuit import Gate
 from .boolean_expression_visitor import (
     BooleanExpressionEvalVisitor,
     BooleanExpressionArgsCollectorVisitor,
 )
 
 
-class BooleanExpression:
+class BooleanExpression(Gate):
     """The Boolean Expression gate."""
 
     def __init__(self, expression: str, name: str = None, var_order: list = None) -> None:
