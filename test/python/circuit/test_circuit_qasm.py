@@ -446,7 +446,7 @@ mcx_recursive q\[0\],q\[1\],q\[2\],q\[3\],q\[4\],q\[5\],q\[6\];
             re.MULTILINE,
         )
 
-        self.assertRegex(qasm2.dumps(qc), expected_qasm)
+        self.assertRegex(dumps(qc), expected_qasm)
 
     def test_circuit_qasm_with_registerless_bits(self):
         """Test that registerless bits do not have naming collisions in their registers."""
