@@ -294,6 +294,7 @@ main related classes are:
 * :class:`Parameter`, the atom of compile-time expressions
 * :class:`ParameterExpression`, a symbolic calculation on parameters
 * :class:`ParameterVector`, a convenience collection of many :class:`Parameter`\ s
+* :class:`ParameterVectorElement`, a subclass of :class:`Parameter` used by :class:`ParameterVector`
 
 The :mod:`qiskit.circuit` module also exposes some calculation classes that work with circuits to
 assist compilation workflows.  These include:
@@ -673,12 +674,14 @@ execution.  You can do this assignment using :meth:`QuantumCircuit.assign_parame
 
 You may want to use many parameters that are related to each other.  To make this easier (and to
 avoid you needing to come up with many names), you can use the convenience constructor
-:class:`ParameterVector`.  The elements of the vector are all valid :class:`Parameter` instances.
+:class:`ParameterVector`.  The elements of the vector are all valid :class:`Parameter` instances, of
+a special subclass :class:`ParameterVectorElement`.
 
 .. autosummary::
     :toctree: ../stubs/
 
     ParameterVector
+    ParameterVectorElement
 
 .. _circuit-control-flow-repr:
 
@@ -699,6 +702,11 @@ attributes of each of the control-flow operations.
 .. data:: CONTROL_FLOW_OP_NAMES
 
     Set of the instruction names of Qiskit's known control-flow operations.
+
+The :func:`.get_control_flow_name_mapping` function allows to access the control-flow operation
+classes associated to each name.
+
+.. autofunction:: get_control_flow_name_mapping
 
 These control-flow operations (:class:`IfElseOp`, :class:`WhileLoopOp`,
 :class:`SwitchCaseOp` and :class:`ForLoopOp`) all have specific state that defines the branching
@@ -1283,7 +1291,7 @@ from .measure import Measure
 from .reset import Reset
 from .store import Store
 from .parameter import Parameter
-from .parametervector import ParameterVector
+from .parametervector import ParameterVector, ParameterVectorElement
 from .parameterexpression import ParameterExpression
 from .quantumcircuitdata import CircuitInstruction
 from .equivalence import EquivalenceLibrary
@@ -1303,6 +1311,7 @@ from .controlflow import (
     BreakLoopOp,
     ContinueLoopOp,
     CONTROL_FLOW_OP_NAMES,
+    get_control_flow_name_mapping,
 )
 
 from .annotated_operation import AnnotatedOperation, InverseModifier, ControlModifier, PowerModifier
