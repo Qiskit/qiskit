@@ -2115,4 +2115,4 @@ def canonicalize_sparse_list(sparse_list):
     # sort a sparse list representation by canonicalizing the terms and then applying
     # Python's built-in sort
     canonicalized_terms = [canonicalize_term(*term) for term in sparse_list]
-    return list(sorted(canonicalized_terms))
+    return sorted(canonicalized_terms)
