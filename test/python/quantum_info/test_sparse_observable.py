@@ -24,7 +24,7 @@ import numpy as np
 from qiskit import transpile
 from qiskit.circuit import Measure, Parameter, library, QuantumCircuit
 from qiskit.exceptions import QiskitError
-from qiskit.quantum_info import SparseObservable, SparsePauliOp, Pauli, PauliList, Operator
+from qiskit.quantum_info import SparseObservable, SparsePauliOp, Pauli, PauliList
 from qiskit.transpiler import Target
 
 from test import QiskitTestCase, combine  # pylint: disable=wrong-import-order
@@ -2011,55 +2011,80 @@ class TestSparseObservable(QiskitTestCase):
 
     def test_to_sparse_list(self):
         """Test converting to a sparse list."""
-        obs = SparseObservable.zero(100)
         with self.subTest(msg="zero"):
-            self.assertEqual(0, len(obs.to_sparse_list()))
+            obs = SparseObservable.zero(100)
+            expected = []
+            self.assertEqual(expected, obs.to_sparse_list())
 
-        obs = SparseObservable.identity(100)
-        sparse_list = obs.to_sparse_list()
         with self.subTest(msg="identity"):
-            self.assertEqual(1, len(sparse_list))
-            self.assertEqual("", sparse_list[0][0])
+            obs = SparseObservable.identity(100)
+            expected = [("", [], 1)]
+            self.assertEqual(expected, obs.to_sparse_list())
 
-        obs = SparseObservable("IXYZ")
-        sparse_list = obs.to_sparse_list()
         with self.subTest(msg="IXYZ"):
-            self.assertEqual(1, len(sparse_list))
-            self.assertEqual("ZYX", sparse_list[0][0])
-            self.assertListEqual([0, 1, 2], sparse_list[0][1])
+            obs = SparseObservable("IXYZ")
+            expected = [("ZYX", [0, 1, 2], 1)]
+            self.assertEqual(
+                canonicalize_sparse_list(expected), canonicalize_sparse_list(obs.to_sparse_list())
+            )
 
-        obs = SparseObservable.from_list([("lrI0", 0.5), ("YYIZ", -1j)])
-        sparse_list = obs.to_sparse_list()
         with self.subTest(msg="multiple"):
-            self.assertEqual(2, len(sparse_list))
+            obs = SparseObservable.from_list([("lrI0", 0.5), ("YYIZ", -1j)])
+            # expected = [("ZYY", [0, 2, 3], -1j), ("lr0", [3, 2, 0], 0.5)]
+            expected = [("lr0", [3, 2, 0], 0.5), ("ZYY", [0, 2, 3], -1j)]
+            self.assertEqual(
+                canonicalize_sparse_list(expected), canonicalize_sparse_list(obs.to_sparse_list())
+            )
 
-            self.assertEqual("0rl", sparse_list[0][0])
-            self.assertEqual([0, 2, 3], sparse_list[0][1])
-            self.assertAlmostEqual(0.5, sparse_list[0][2])
+    def test_to_paulis(self):
+        """Test converting to Paulis."""
+        # test on zero operator
+        with self.subTest(msg="zero"):
+            obs = SparseObservable.zero(10)
+            obs_paulis = obs.to_paulis()
+            self.assertEqual(obs, obs_paulis)
 
-            self.assertEqual("ZYY", sparse_list[1][0])
-            self.assertEqual([0, 2, 3], sparse_list[1][1])
-            self.assertAlmostEqual(-1j, sparse_list[1][2])
+        # test on identity operator
+        with self.subTest(msg="identity"):
+            obs = SparseObservable.identity(10)
+            obs_paulis = obs.to_paulis()
+            self.assertEqual(obs, obs_paulis)
 
-    def test_to_sparse_pauli_list(self):
-        obs = SparseObservable("lrI0")
-        sparse_list = obs.to_sparse_list(only_paulis=True)
+        # test it does nothing on Paulis
+        with self.subTest(msg="paulis"):
+            obs = SparseObservable.from_list([("IIX", 1), ("ZZY", -1)])
+            obs_paulis = obs.to_paulis()
+            self.assertEqual(obs, obs_paulis)
 
-        as_spo = SparsePauliOp.from_sparse_list(sparse_list, 4)
-        expect = SparsePauliOp.from_sparse_list(
-            [
-                ("", [], 1 / 8),
-                ("Y", [2], -1 / 8),
-                ("YY", [3, 2], -1 / 8),
-                ("Z", [0], 1 / 8),
-                ("YZ", [2, 0], -1 / 8),
-                ("YYZ", [3, 2, 0], -1 / 8),
-                ("Y", [3], 1 / 8),
-                ("YZ", [3, 0], 1 / 8),
-            ],
-            4,
-        )
-        self.assertEqual(Operator(expect), Operator(as_spo))
+        # test explicitly on written-out projector
+        with self.subTest(msg="lrI0"):
+            obs = SparseObservable("lrI0")
+            obs_paulis = obs.to_paulis()
+            expected = SparseObservable.from_sparse_list(
+                [
+                    ("", [], 1 / 8),
+                    ("Y", [2], -1 / 8),
+                    ("YY", [3, 2], -1 / 8),
+                    ("Z", [0], 1 / 8),
+                    ("YZ", [2, 0], -1 / 8),
+                    ("YYZ", [3, 2, 0], -1 / 8),
+                    ("Y", [3], 1 / 8),
+                    ("YZ", [3, 0], 1 / 8),
+                ],
+                4,
+            )
+            self.assertEqual(expected.simplify(), obs_paulis.simplify())
+
+        # test multiple terms
+        with self.subTest(msg="+X + lY - ZI"):
+            obs = SparseObservable.from_list([("+X", 1), ("rY", 1), ("ZI", -1)])
+            obs_paulis = obs.to_paulis()
+
+            expected = SparseObservable.from_list(
+                [("IX", 0.5), ("XX", 0.5), ("IY", 0.5), ("YY", -0.5), ("ZI", -1)]
+            )
+
+            self.assertEqual(expected.simplify(), obs_paulis.simplify())
 
     def test_sparse_list_roundtrip(self):
         """Test dumping into a sparse list and constructing from one."""
@@ -2075,4 +2100,19 @@ class TestSparseObservable(QiskitTestCase):
         )
 
         reconstructed = SparseObservable.from_sparse_list(obs.to_sparse_list(), obs.num_qubits)
-        self.assertEqual(obs, reconstructed)
+        self.assertEqual(obs.simplify(), reconstructed.simplify())
+
+
+def canonicalize_term(pauli, indices, coeff):
+    # canonicalize a sparse list term by sorting by indices (which is unique as
+    # indices cannot be repeated)
+    idcs = np.argsort(indices)
+    sorted_paulis = "".join(pauli[i] for i in idcs)
+    return (sorted_paulis, np.asarray(indices)[idcs].tolist(), complex(coeff))
+
+
+def canonicalize_sparse_list(sparse_list):
+    # sort a sparse list representation by canonicalizing the terms and then applying
+    # Python's built-in sort
+    canonicalized_terms = [canonicalize_term(*term) for term in sparse_list]
+    return list(sorted(canonicalized_terms))

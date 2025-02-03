@@ -369,16 +369,44 @@ class TestSparsePauliOpConversions(QiskitTestCase):
 
     def test_from_sparse_observable(self):
         """Test from a SparseObservable."""
-        obs = SparseObservable.zero(10)
-        expected = SparsePauliOp(["I" * 10], coeffs=[0])
-        self.assertEqual(expected, SparsePauliOp.from_sparse_observable(obs))
+        with self.subTest("zero(0)"):
+            obs = SparseObservable.zero(0)
+            expected = SparsePauliOp([""], coeffs=[0])
+            self.assertEqual(expected, SparsePauliOp.from_sparse_observable(obs))
 
-        obs = SparseObservable("XrZ")
-        expected = SparsePauliOp(["XIZ", "XYZ"], coeffs=[0.5, -0.5])
-        self.assertEqual(expected, SparsePauliOp.from_sparse_observable(obs))
+        with self.subTest("identity(0)"):
+            obs = SparseObservable.identity(0)
+            expected = SparsePauliOp([""], coeffs=[1])
+            self.assertEqual(expected, SparsePauliOp.from_sparse_observable(obs))
+
+        with self.subTest("zero(10)"):
+            obs = SparseObservable.zero(10)
+            expected = SparsePauliOp(["I" * 10], coeffs=[0])
+            self.assertEqual(expected, SparsePauliOp.from_sparse_observable(obs))
+
+        with self.subTest("identity(10)"):
+            obs = SparseObservable.identity(10)
+            expected = SparsePauliOp(["I" * 10], coeffs=[1])
+            self.assertEqual(expected, SparsePauliOp.from_sparse_observable(obs))
+
+        with self.subTest("XrZ"):
+            obs = SparseObservable("XrZ")
+            spo = SparsePauliOp.from_sparse_observable(obs)
+            expected = SparsePauliOp(["XIZ", "XYZ"], coeffs=[0.5, -0.5])
+
+            # we don't guarantee the order of Paulis, so check equality by comparing
+            # the matrix representation and that all Pauli strings are present
+            self.assertEqual(Operator(expected), Operator(spo))
+            self.assertTrue(set(spo.paulis.to_labels()) == set(expected.paulis.to_labels()))
 
     def test_sparse_observable_roundtrip(self):
         """Test SPO -> OBS -> SPO."""
+        with self.subTest(msg="empty"):
+            op = SparsePauliOp([""], coeffs=[1])
+            obs = SparseObservable.from_sparse_pauli_op(op)
+            roundtrip = SparsePauliOp.from_sparse_observable(obs)
+            self.assertEqual(op, roundtrip)
+
         with self.subTest(msg="zero"):
             op = SparsePauliOp(["I"], coeffs=[0])
             obs = SparseObservable.from_sparse_pauli_op(op)
@@ -395,7 +423,9 @@ class TestSparsePauliOpConversions(QiskitTestCase):
             op = SparsePauliOp(["ZZI", "IZZ", "IIX", "IXI", "YII"])
             obs = SparseObservable.from_sparse_pauli_op(op)
             roundtrip = SparsePauliOp.from_sparse_observable(obs)
-            self.assertEqual(op, roundtrip)
+
+            self.assertEqual(Operator(op), Operator(roundtrip))
+            self.assertTrue(set(op.paulis.to_labels()) == set(roundtrip.paulis.to_labels()))
 
 
 class TestSparsePauliOpIteration(QiskitTestCase):
