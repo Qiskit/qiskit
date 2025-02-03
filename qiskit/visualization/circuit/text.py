@@ -1153,9 +1153,9 @@ class TextDrawing:
             if not self.plotbarriers:
                 return layer, current_cons, current_cons_cond, connection_label
 
-            for i, qubit in enumerate(node.qargs):
+            for qubit in node.qargs:
                 if qubit in self.qubits:
-                    label = op.label if i == 0 else ""
+                    label = op.label if self._wire_map[qubit] == 0 else ""
                     layer.set_qubit(qubit, Barrier(label))
 
         elif isinstance(op, SwapGate):
