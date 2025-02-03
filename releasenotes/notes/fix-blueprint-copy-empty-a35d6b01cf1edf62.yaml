@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed a bug with :meth:`.BlueprintCircuit.copy_empty_like`, where the supposedly empty copy
+    would rebuild the original circuit. The method now returns a plain :class:`.QuantumCircuit`
+    instead of a :meth:`.BlueprintCircuit`, which guarantees that the output circuit is indeed empty.
+    Fixed `#13535 <https://github.com/Qiskit/qiskit/issues/13535>`__.
