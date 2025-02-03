@@ -86,15 +86,29 @@ class BooleanExpression(Gate):
         }
 
     def synth(self, circuit_type: str = "bit"):
-        """Synthesis the logic network into a :class:`~qiskit.circuit.QuantumCircuit`.
-        There are two common types of circuits for a boolean function f(x):
-            1) bit-flip oracles which compute |x>|y> |-> |x>|f(x)+y>
-            2) phase-flip oracles which compute |x> |-> (-1)^f(x)|x>
-            By default the bit-flip oracle is generated
+        r"""Synthesize the logic network into a :class:`~qiskit.circuit.QuantumCircuit`.
+        There are two common types of circuits for a boolean function :math:`f(x)`:
+
+        1. **Bit-flip oracles** which compute:
+
+         .. math::
+
+            |x\rangle|y\rangle |-> |x\rangle|f(x)\oplusy\rangle
+
+        2. **Phase-flip** oracles which compute:
+
+         .. math::
+
+            |x\rangle |-> (-1)^{f(x)}|x\rangle
+
+        By default the bit-flip oracle is generated.
+
         Args:
             circuit_type: which type of oracle to create, 'bit' or 'phase' flip oracle.
         Returns:
             QuantumCircuit: A circuit implementing the logic network.
+        Raises:
+            ValueError: If ``circuit_type`` is not either 'bit' or 'phase'.
         """
         # pylint: disable=cyclic-import
         from .boolean_expression_synth import (

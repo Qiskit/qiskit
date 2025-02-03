@@ -1,0 +1,6 @@
+---
+upgrade_circuits:
+  - |
+    The :class:`.BooleanExpression` no longer relies on the `tweedledum` library
+    but might not be synthesize as effectively as before.
+    Passing custom synthesizers is no longer available.
