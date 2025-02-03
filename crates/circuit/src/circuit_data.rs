@@ -987,12 +987,13 @@ impl CircuitData {
         Ok(())
     }
 
-    fn __clear__(&mut self) {
+    fn __clear__(&mut self) -> PyResult<()> {
         // Clear anything that could have a reference cycle.
         self.data.clear();
-        self.qubits.dispose();
-        self.clbits.dispose();
+        self.qubits.dispose()?;
+        self.clbits.dispose()?;
         self.param_table.clear();
+        Ok(())
     }
 
     /// Set the global phase of the circuit.
@@ -1102,7 +1103,7 @@ impl CircuitData {
                 Some(
                     num_clbits
                         .try_into()
-                        .expect("The number of qubits provided exceeds the limit for a circuit."),
+                        .expect("The number of clbits provided exceeds the limit for a circuit."),
                 ),
                 None,
             );
@@ -1920,7 +1921,7 @@ mod pytest {
     use super::*;
 
     // Test Rust native circuit construction when accessed through Python, without
-    // adding resgisters to the circuit.
+    // adding registers to the circuit.
     #[test]
     fn test_circuit_construction_py_no_regs() {
         let num_qubits = 4;
@@ -1971,6 +1972,7 @@ mod pytest {
         assert!(result);
     }
 
+    // Test Rust native circuit construction when accessed through Python.
     #[test]
     fn test_circuit_construction() {
         let num_qubits = 4;
@@ -2016,7 +2018,7 @@ mod pytest {
             assert!(converted_global_phase.eq(&expected_global_phase)?);
 
             // TODO: Figure out why this fails
-            // converted_circuit.eq(expected_circuit)
+            // converted_circuit.eq(&expected_circuit)
 
             Ok(true)
         })
