@@ -34,7 +34,7 @@ use pyo3::Python;
 use qiskit_circuit::converters::{circuit_to_dag, QuantumCircuitData};
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::imports;
-use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardGate};
+use qiskit_circuit::operations::{Operation, OperationRef, Param, PyGate, StandardGate};
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::Qubit;
 
@@ -154,8 +154,39 @@ fn apply_synth_sequence(
                 }
             }
         };
+
+        let new_op: PackedOperation = match packed_op.py_copy(py)?.view() {
+            OperationRef::Gate(gate) => {
+                gate.gate.setattr(
+                    py,
+                    "params",
+                    new_params
+                        .as_deref()
+                        .map(SmallVec::as_slice)
+                        .unwrap_or(&[])
+                        .iter()
+                        .map(|param| param.clone_ref(py))
+                        .collect::<SmallVec<[Param; 3]>>(),
+                )?;
+                Box::new(PyGate {
+                    gate: gate.gate.clone(),
+                    qubits: gate.qubits,
+                    clbits: gate.clbits,
+                    params: gate.params,
+                    op_name: gate.op_name.clone(),
+                })
+                .into()
+            }
+            OperationRef::Standard(_) => packed_op.clone(),
+            _ => {
+                return Err(QiskitError::new_err(
+                    "Decomposed gate sequence contains unexpected operations.",
+                ))
+            }
+        };
+
         let instruction = PackedInstruction {
-            op: packed_op.clone(),
+            op: new_op,
             qubits: out_dag.qargs_interner.insert(&mapped_qargs),
             clbits: out_dag.cargs_interner.get_default(),
             params: new_params,

@@ -890,10 +890,10 @@ class TestUnitarySynthesisTarget(QiskitTestCase):
         qc = QuantumCircuit(2)
         qc.unitary(random_unitary(4, seed=1234), [0, 1])
         qc_transpiled = UnitarySynthesis(target=target)(qc)
-        # TODO: fix this assertion
         opcount = qc_transpiled.count_ops()
         self.assertTrue(set(opcount).issubset({"rz", "rx", "MyCustomXXGate"}))
-        # self.assertTrue(np.allclose(Operator(qc_transpiled), Operator(qc)))
+
+        self.assertTrue(np.allclose(Operator(qc_transpiled), Operator(qc)))
 
     def test_custom_parameterized_gate_in_target_skips(self):
         """Test that synthesis is skipped with custom parameterized
