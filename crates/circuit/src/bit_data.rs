@@ -495,6 +495,7 @@ where
     /// this instance.
     #[inline]
     pub fn py_cached_regs(&self, py: Python) -> PyResult<&Py<PyList>> {
+        // Initialize the list with all the currently available registers
         let res = self.cached_py_regs.get_or_init(|| {
             PyList::new(
                 py,
@@ -611,9 +612,13 @@ where
                     .try_write()
                     .map(|mut indices| indices.insert(BitAsKey::new(&res), index))
                     .map_err(|err| PyRuntimeError::new_err(format!("{:?}", err)))?;
-                self.bits[index_as_usize]
-                    .set(res.into())
-                    .map_err(|_| PyRuntimeError::new_err("Could not set the OnceCell correctly"))?;
+                self.bits[index_as_usize].set(res.into()).map_err(|_| {
+                    PyRuntimeError::new_err(format!(
+                        "Error while initializing Python bit at index {} in these circuit's {}",
+                        BitType::from(index),
+                        &self.description
+                    ))
+                })?;
             }
             // If it is initialized, just retrieve.
             Ok(self.bits[index_as_usize].get())
@@ -621,13 +626,18 @@ where
             Ok(Some(bit))
         } else {
             let new_bit = T::to_py_bit(py)?;
+            // Try and write the bit index into `BitData`.
             self.indices
                 .try_write()
                 .map(|mut indices| indices.insert(BitAsKey::new(new_bit.bind(py)), index))
                 .map_err(|err| PyRuntimeError::new_err(format!("{:?}", err)))?;
-            self.bits[index_as_usize]
-                .set(new_bit)
-                .map_err(|_| PyRuntimeError::new_err("Could not set the OnceCell correctly"))?;
+            self.bits[index_as_usize].set(new_bit).map_err(|_| {
+                PyRuntimeError::new_err(format!(
+                    "Error while initializing Python bit at index {} in these circuit's {}",
+                    BitType::from(index),
+                    &self.description
+                ))
+            })?;
             Ok(self.bits[index_as_usize].get())
         }
     }

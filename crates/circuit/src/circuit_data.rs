@@ -188,8 +188,7 @@ impl CircuitData {
         Ok(())
     }
 
-    /// Returns the current mapping of registered :class:`.QuantumRegisters` names and instances
-    /// as a dict.
+    /// Returns the a list of registered :class:`.QuantumRegisters` instances.
     ///
     /// .. warning::
     ///
@@ -242,8 +241,7 @@ impl CircuitData {
         self.qubits.len()
     }
 
-    /// Returns the current mapping of registered :class:`.QuantumRegisters` names and instances
-    /// as a dict.
+    /// Returns the a list of registered :class:`.ClassicalRegisters` instances.
     ///
     /// .. warning::
     ///
@@ -251,7 +249,7 @@ impl CircuitData {
     ///     structures.
     ///
     /// Returns:
-    ///     dict(:class:`.QuantumRegister`): The current sequence of registered qubits.
+    ///     dict(:class:`.ClassicalRegister`): The current sequence of registered qubits.
     #[getter("cregs")]
     pub fn py_cregs(&self, py: Python<'_>) -> PyResult<&Py<PyList>> {
         self.clbits.py_cached_regs(py)
@@ -272,8 +270,7 @@ impl CircuitData {
         self.clbits.py_get_bit_location(bit)
     }
 
-    /// Returns the current sequence of registered :class:`.Clbit`
-    /// instances as a list.
+    /// Returns the current sequence of registered :class:`.Clbit` instances as a list.
     ///
     /// .. warning::
     ///
