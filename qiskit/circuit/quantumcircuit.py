@@ -41,13 +41,14 @@ from math import pi
 import numpy as np
 from qiskit._accelerate.circuit import CircuitData
 from qiskit._accelerate.circuit import StandardGate
+from qiskit._accelerate.circuit_duration import compute_estimated_duration
 from qiskit.exceptions import QiskitError
 from qiskit.utils.multiprocessing import is_main_process
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.utils import deprecate_func
+from qiskit.utils import deprecate_func, apply_prefix
 from qiskit.utils.deprecate_pulse import deprecate_pulse_dependency
 from . import _classical_resource_map
 from .controlflow import ControlFlowOp, _builder_utils
@@ -157,6 +158,8 @@ class QuantumCircuit:
     :attr:`data`              List of individual :class:`CircuitInstruction`\\ s that make up the
                               circuit.
     :attr:`duration`          Total duration of the circuit, added by scheduling transpiler passes.
+                              This attribute is deprecated and :meth:`.estimate_duration` should
+                              be used instead.
 
     :attr:`layout`            Hardware layout and routing information added by the transpiler.
     :attr:`num_ancillas`      The number of ancilla qubits in the circuit.
@@ -904,8 +907,9 @@ class QuantumCircuit:
 
     If a :class:`QuantumCircuit` has been scheduled as part of a transpilation pipeline, the timing
     information for individual qubits can be accessed.  The whole-circuit timing information is
-    available through the :attr:`duration`, :attr:`unit` and :attr:`op_start_times` attributes.
+    available through the :meth:`estimate_duration` method and :attr:`op_start_times` attribute.
 
+    .. automethod:: estimate_duration
     .. automethod:: qubit_duration
     .. automethod:: qubit_start_time
     .. automethod:: qubit_stop_time
@@ -6876,6 +6880,46 @@ class QuantumCircuit:
                 return max(stop for stop in stops.values())
 
         return 0  # If there are no instructions over bits
+
+    def estimate_duration(self, target, unit: str = "s") -> int | float:
+        """Estimate the duration of a scheduled circuit
+
+        This method computes the estimate of the circuit duration by finding
+        the longest duration path in the circuit based on the durations
+        provided by a given target.
+
+        Args:
+            target (Target): The :class:`.Target` instance that contains durations for
+                the instructions if the target is missing duration data for any of the
+                instructions in the circuit an :class:`.QiskitError` will be raised. This
+                should be the same target object used as the target for transpilation.
+            unit: The unit to return the duration in. This defaults to "s" for seconds
+                but this can be a supported SI prefix for seconds returns. For example
+                setting this to "n" will return in unit of nanoseconds. Supported values
+                of this type are "f", "p", "n", "u", "µ", "m", "k", "M", "G", "T", and
+                "P". Additionally, a value of "dt" is also accepted to output an integer
+                in units of "dt". For this to function "dt" must be specified in the
+                ``target``.
+
+        Returns:
+            The estimated duration for the execution of a single shot of the circuit in
+            the specified unit.
+
+        Raises:
+            QiskitError: If the circuit is not scheduled or contains other
+                details that prevent computing an estimated duration from
+                (such as parameterized delay).
+        """
+        from qiskit.converters import circuit_to_dag
+
+        dur = compute_estimated_duration(circuit_to_dag(self), target)
+        if unit == "s":
+            return dur
+        if unit == "dt":
+            from qiskit.circuit.duration import duration_in_dt
+
+            duration_in_dt(dur, target.dt)
+        return apply_prefix(dur, unit)
 
 
 class _OuterCircuitScopeInterface(CircuitScopeInterface):
