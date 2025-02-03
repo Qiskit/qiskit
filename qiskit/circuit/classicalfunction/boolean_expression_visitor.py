@@ -63,12 +63,16 @@ class BooleanExpressionEvalVisitor(ast.NodeVisitor):
     def visit_Module(self, node):
         """Returns the value of the single expression comprising the boolean expression"""
         if len(node.body) != 1 or not isinstance(node.body[0], ast.Expr):
-            raise BooleanExpressionParseError("Incorrectly formateed boolean expression")
+            raise BooleanExpressionParseError("Incorrectly formatted boolean expression")
         return self.visit(node.body[0])
 
     def visit_Expr(self, node):
         """Returns the value of the expression"""
         return self.visit(node.value)
+
+    def generic_visit(self, node):
+        """Catch all for the unhandled nodes."""
+        raise BooleanExpressionParseError(f"Unknown node: {type(node)}")
 
 
 class BooleanExpressionArgsCollectorVisitor(ast.NodeVisitor):
