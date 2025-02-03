@@ -18,7 +18,7 @@ fn add_submodule<F>(m: &Bound<PyModule>, constructor: F, name: &str) -> PyResult
 where
     F: FnOnce(&Bound<PyModule>) -> PyResult<()>,
 {
-    let new_mod = PyModule::new_bound(m.py(), name)?;
+    let new_mod = PyModule::new(m.py(), name)?;
     constructor(&new_mod)?;
     m.add_submodule(&new_mod)
 }
@@ -66,7 +66,6 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, ::qiskit_accelerate::two_qubit_decompose::two_qubit_decompose, "two_qubit_decompose")?;
     add_submodule(m, ::qiskit_accelerate::unitary_synthesis::unitary_synthesis, "unitary_synthesis")?;
     add_submodule(m, ::qiskit_accelerate::uc_gate::uc_gate, "uc_gate")?;
-    add_submodule(m, ::qiskit_accelerate::utils::utils, "utils")?;
     add_submodule(m, ::qiskit_accelerate::vf2_layout::vf2_layout, "vf2_layout")?;
     add_submodule(m, ::qiskit_circuit::circuit, "circuit")?;
     add_submodule(m, ::qiskit_circuit::converters::converters, "converters")?;

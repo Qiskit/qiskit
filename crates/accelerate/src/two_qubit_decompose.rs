@@ -39,13 +39,13 @@ use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedStr;
 use pyo3::types::{PyList, PyTuple, PyType};
+use pyo3::IntoPyObjectExt;
 
 use crate::convert_2q_block_matrix::change_basis;
 use crate::euler_one_qubit_decomposer::{
     angles_from_unitary, det_one_qubit, unitary_to_gate_sequence_inner, EulerBasis, EulerBasisSet,
     OneQubitGateSequence, ANGLE_ZERO_EPSILON,
 };
-use crate::utils;
 use crate::QiskitError;
 
 use rand::prelude::*;
@@ -59,7 +59,7 @@ use qiskit_circuit::operations::{Operation, Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};
 use qiskit_circuit::util::{c64, GateArray1Q, GateArray2Q, C_M_ONE, C_ONE, C_ZERO, IM, M_IM};
-use qiskit_circuit::Qubit;
+use qiskit_circuit::{impl_intopyobject_for_copy_pyclass, Qubit};
 
 const PI2: f64 = PI / 2.;
 const PI4: f64 = PI / 4.;
@@ -164,6 +164,15 @@ fn py_trace_to_fid(trace: Complex64) -> PyResult<f64> {
     Ok(fid)
 }
 
+/// Return indices that sort partially ordered data.
+/// If `data` contains two elements that are incomparable,
+/// an error will be thrown.
+fn arg_sort<T: PartialOrd>(data: &[T]) -> Vec<usize> {
+    let mut indices = (0..data.len()).collect::<Vec<_>>();
+    indices.sort_by(|&a, &b| data[a].partial_cmp(&data[b]).unwrap());
+    indices
+}
+
 fn decompose_two_qubit_product_gate(
     special_unitary: ArrayView2<Complex64>,
 ) -> PyResult<(Array2<Complex64>, Array2<Complex64>, f64)> {
@@ -211,8 +220,8 @@ fn py_decompose_two_qubit_product_gate(
     let view = special_unitary.as_array();
     let (l, r, phase) = decompose_two_qubit_product_gate(view)?;
     Ok((
-        l.into_pyarray_bound(py).unbind().into(),
-        r.into_pyarray_bound(py).unbind().into(),
+        l.into_pyarray(py).into_any().unbind(),
+        r.into_pyarray(py).into_any().unbind(),
         phase,
     ))
 }
@@ -229,8 +238,9 @@ fn weyl_coordinates(py: Python, unitary: PyReadonlyArray2<Complex64>) -> PyObjec
     let array = unitary.as_array();
     __weyl_coordinates(array.into_faer_complex())
         .to_vec()
-        .into_pyarray_bound(py)
-        .into()
+        .into_pyarray(py)
+        .into_any()
+        .unbind()
 }
 
 fn __weyl_coordinates(unitary: MatRef<c64>) -> [f64; 3] {
@@ -250,7 +260,7 @@ fn __weyl_coordinates(unitary: MatRef<c64>) -> [f64; 3] {
         .map(|x| x.rem_euclid(PI2))
         .map(|x| x.min(PI2 - x))
         .collect();
-    let mut order = utils::arg_sort(&cstemp);
+    let mut order = arg_sort(&cstemp);
     (order[0], order[1], order[2]) = (order[1], order[2], order[0]);
     (cs[0], cs[1], cs[2]) = (cs[order[0]], cs[order[1]], cs[order[2]]);
 
@@ -383,7 +393,7 @@ fn ud(a: f64, b: f64, c: f64) -> Array2<Complex64> {
 #[pyo3(name = "Ud")]
 fn py_ud(py: Python, a: f64, b: f64, c: f64) -> Py<PyArray2<Complex64>> {
     let ud_mat = ud(a, b, c);
-    ud_mat.into_pyarray_bound(py).unbind()
+    ud_mat.into_pyarray(py).unbind()
 }
 
 fn compute_unitary(sequence: &TwoQubitSequenceVec, global_phase: f64) -> Array2<Complex64> {
@@ -443,6 +453,7 @@ pub enum Specialization {
     #[allow(non_camel_case_types)]
     fSimabmbEquiv,
 }
+impl_intopyobject_for_copy_pyclass!(Specialization);
 
 #[pymethods]
 impl Specialization {
@@ -461,7 +472,7 @@ impl Specialization {
             Self::fSimabbEquiv => 8,
             Self::fSimabmbEquiv => 9,
         };
-        Ok((py.get_type_bound::<Self>().getattr("_from_u8")?, (val,)).into_py(py))
+        (py.get_type::<Self>().getattr("_from_u8")?, (val,)).into_py_any(py)
     }
 
     #[staticmethod]
@@ -660,7 +671,7 @@ impl TwoQubitWeylDecomposition {
             .map(|x| x.rem_euclid(PI2))
             .map(|x| x.min(PI2 - x))
             .collect();
-        let mut order = utils::arg_sort(&cstemp);
+        let mut order = arg_sort(&cstemp);
         (order[0], order[1], order[2]) = (order[1], order[2], order[0]);
         (cs[0], cs[1], cs[2]) = (cs[order[0]], cs[order[1]], cs[order[2]]);
         (d[0], d[1], d[2]) = (d[order[0]], d[order[1]], d[order[2]]);
@@ -1084,16 +1095,16 @@ impl TwoQubitWeylDecomposition {
     }
 
     fn __reduce__(&self, py: Python) -> PyResult<Py<PyAny>> {
-        Ok((
-            py.get_type_bound::<Self>().getattr("_from_state")?,
+        (
+            py.get_type::<Self>().getattr("_from_state")?,
             (
                 [self.a, self.b, self.c, self.global_phase],
                 [
-                    self.K1l.to_pyarray_bound(py),
-                    self.K1r.to_pyarray_bound(py),
-                    self.K2l.to_pyarray_bound(py),
-                    self.K2r.to_pyarray_bound(py),
-                    self.unitary_matrix.to_pyarray_bound(py),
+                    self.K1l.to_pyarray(py),
+                    self.K1r.to_pyarray(py),
+                    self.K2l.to_pyarray(py),
+                    self.K2r.to_pyarray(py),
+                    self.unitary_matrix.to_pyarray(py),
                 ],
                 self.specialization,
                 self.default_euler_basis,
@@ -1101,7 +1112,7 @@ impl TwoQubitWeylDecomposition {
                 self.requested_fidelity,
             ),
         )
-            .into_py(py))
+            .into_py_any(py)
     }
 
     #[new]
@@ -1117,30 +1128,30 @@ impl TwoQubitWeylDecomposition {
     #[allow(non_snake_case)]
     #[getter]
     pub fn K1l(&self, py: Python) -> PyObject {
-        self.K1l.to_pyarray_bound(py).into()
+        self.K1l.to_pyarray(py).into_any().unbind()
     }
 
     #[allow(non_snake_case)]
     #[getter]
     pub fn K1r(&self, py: Python) -> PyObject {
-        self.K1r.to_pyarray_bound(py).into()
+        self.K1r.to_pyarray(py).into_any().unbind()
     }
 
     #[allow(non_snake_case)]
     #[getter]
     fn K2l(&self, py: Python) -> PyObject {
-        self.K2l.to_pyarray_bound(py).into()
+        self.K2l.to_pyarray(py).into_any().unbind()
     }
 
     #[allow(non_snake_case)]
     #[getter]
     fn K2r(&self, py: Python) -> PyObject {
-        self.K2r.to_pyarray_bound(py).into()
+        self.K2r.to_pyarray(py).into_any().unbind()
     }
 
     #[getter]
     fn unitary_matrix(&self, py: Python) -> PyObject {
-        self.unitary_matrix.to_pyarray_bound(py).into()
+        self.unitary_matrix.to_pyarray(py).into_any().unbind()
     }
 
     #[pyo3(signature = (euler_basis=None, simplify=false, atol=None))]
@@ -1295,11 +1306,16 @@ impl TwoQubitGateSequence {
 
     fn __getitem__(&self, py: Python, idx: PySequenceIndex) -> PyResult<PyObject> {
         match idx.with_len(self.gates.len())? {
-            SequenceIndex::Int(idx) => Ok(self.gates[idx].to_object(py)),
-            indices => Ok(PyList::new_bound(
+            SequenceIndex::Int(idx) => {
+                let item = &self.gates[idx];
+                (item.0, PyList::new(py, &item.1)?, PyList::new(py, &item.2)?).into_py_any(py)
+            }
+            indices => Ok(PyList::new(
                 py,
-                indices.iter().map(|pos| self.gates[pos].to_object(py)),
-            )
+                indices
+                    .iter()
+                    .map(|pos| self.gates[pos].clone().into_pyobject(py).unwrap()),
+            )?
             .into_any()
             .unbind()),
         }
@@ -1965,8 +1981,9 @@ impl TwoQubitBasisDecomposer {
             self.gate.clone(),
             self.basis_decomposer
                 .unitary_matrix
-                .to_pyarray_bound(py)
-                .into(),
+                .to_pyarray(py)
+                .into_any()
+                .unbind(),
             self.basis_fidelity,
             self.euler_basis.as_str(),
             self.pulse_optimize,
@@ -2023,7 +2040,7 @@ impl TwoQubitBasisDecomposer {
     fn decomp0(py: Python, target: &TwoQubitWeylDecomposition) -> SmallVec<[PyObject; 2]> {
         decomp0_inner(target)
             .into_iter()
-            .map(|x| x.into_pyarray_bound(py).into())
+            .map(|x| x.into_pyarray(py).into_any().unbind())
             .collect()
     }
 
@@ -2040,7 +2057,7 @@ impl TwoQubitBasisDecomposer {
     fn decomp1(&self, py: Python, target: &TwoQubitWeylDecomposition) -> SmallVec<[PyObject; 4]> {
         self.decomp1_inner(target)
             .into_iter()
-            .map(|x| x.into_pyarray_bound(py).into())
+            .map(|x| x.into_pyarray(py).into_any().unbind())
             .collect()
     }
 
@@ -2065,7 +2082,7 @@ impl TwoQubitBasisDecomposer {
     ) -> SmallVec<[PyObject; 6]> {
         self.decomp2_supercontrolled_inner(target)
             .into_iter()
-            .map(|x| x.into_pyarray_bound(py).into())
+            .map(|x| x.into_pyarray(py).into_any().unbind())
             .collect()
     }
 
@@ -2080,7 +2097,7 @@ impl TwoQubitBasisDecomposer {
     ) -> SmallVec<[PyObject; 8]> {
         self.decomp3_supercontrolled_inner(target)
             .into_iter()
-            .map(|x| x.into_pyarray_bound(py).into())
+            .map(|x| x.into_pyarray(py).into_any().unbind())
             .collect()
     }
 
@@ -2304,7 +2321,7 @@ fn two_qubit_decompose_up_to_diagonal(
         Param::Float(circ_seq.global_phase + phase),
     )?;
     real_map.mapv_inplace(|x| x.conj());
-    Ok((real_map.into_pyarray_bound(py).into(), circ))
+    Ok((real_map.into_pyarray(py).into_any().unbind(), circ))
 }
 
 static MAGIC: GateArray2Q = [
@@ -2500,7 +2517,7 @@ impl TwoQubitControlledUDecomposer {
                     Ok((Some(inv_gate.0), inv_gate_params, qubits))
                 }
                 RXXEquivalent::CustomPython(gate_cls) => {
-                    let gate_obj = gate_cls.bind(py).call1(PyTuple::new_bound(py, params))?;
+                    let gate_obj = gate_cls.bind(py).call1(PyTuple::new(py, params)?)?;
                     let raw_inverse = gate_obj.call_method0(intern!(py, "inverse"))?;
                     let inverse: OperationFromPython = raw_inverse.extract()?;
                     let params: SmallVec<[f64; 3]> = inverse
@@ -2867,7 +2884,7 @@ impl TwoQubitControlledUDecomposer {
                         )),
                         None => {
                             let raw_gate_obj =
-                                gate_cls.bind(py).call1(PyTuple::new_bound(py, params))?;
+                                gate_cls.bind(py).call1(PyTuple::new(py, params)?)?;
                             let op: OperationFromPython = raw_gate_obj.extract()?;
 
                             Ok((

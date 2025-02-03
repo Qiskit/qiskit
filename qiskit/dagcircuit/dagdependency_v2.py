@@ -13,6 +13,7 @@
 """_DAGDependencyV2 class for representing non-commutativity in a circuit.
 """
 
+import itertools
 import math
 from collections import OrderedDict, defaultdict, namedtuple
 from typing import Dict, List, Generator, Any
@@ -459,7 +460,9 @@ class _DAGDependencyV2:
         """
 
         def _key(x):
-            return x.sort_key
+            return ",".join(
+                f"{self.find_bit(q).index:04d}" for q in itertools.chain(x.qargs, x.cargs)
+            )
 
         if key is None:
             key = _key
