@@ -2087,7 +2087,7 @@ impl PySparseObservable {
     /// Examples:
     ///
     ///     .. code-block:: python
-    ///         
+    ///
     ///         >>> label = "IYXZI"
     ///         >>> pauli = Pauli(label)
     ///         >>> SparseObservable.from_pauli(pauli)
@@ -2152,7 +2152,7 @@ impl PySparseObservable {
     /// Examples:
     ///
     ///     .. code-block:: python
-    ///         
+    ///
     ///         >>> SparseObservable.from_label("IIII+ZI")
     ///         <SparseObservable with 1 term on 7 qubits: (1+0j)(+_2 Z_1)>
     ///         >>> label = "IYXZI"
@@ -2496,7 +2496,6 @@ impl PySparseObservable {
     ///         >>> boundaries = np.arange(num_qubits + 1, dtype=np.uintp)
     ///         >>> SparseObservable.from_raw_parts(num_qubits, coeffs, terms, indices, boundaries)
     ///         <SparseObservable with 100 terms on 100 qubits: (1+0j)(Z_0) + ... + (1+0j)(Z_99)>
-    #[deny(unsafe_op_in_unsafe_fn)]
     #[staticmethod]
     #[pyo3(
         signature = (/, num_qubits, coeffs, bit_terms, indices, boundaries, check=true),
@@ -2975,7 +2974,6 @@ impl PySparseObservable {
             )
             .into_bound_py_any(py);
         }
-
         let slf_inner = slf_.inner.read().map_err(|_| InnerReadError)?;
         let other_inner = other.inner.read().map_err(|_| InnerReadError)?;
         slf_inner.check_equal_qubits(&other_inner)?;
@@ -2996,7 +2994,7 @@ impl PySparseObservable {
         <&SparseObservable as ::std::ops::Add>::add(&other_inner, &inner).into_bound_py_any(py)
     }
 
-    fn __iadd__(slf_: Bound<Self>, other: &Bound<PyAny>) -> PyResult<()> {
+    fn __iadd__(slf_: Bound<PySparseObservable>, other: &Bound<PyAny>) -> PyResult<()> {
         let Some(other) = coerce_to_observable(other)? else {
             // This is not well behaved - we _should_ return `NotImplemented` to Python space
             // without an exception, but limitations in PyO3 prevent this at the moment.  See
@@ -3007,11 +3005,12 @@ impl PySparseObservable {
             )));
         };
 
-        // Check if slf_ and other point to the same SparseObservable object, in which case
-        // we just multiply it by 2
         let other = other.borrow();
         let slf_ = slf_.borrow();
         let mut slf_inner = slf_.inner.write().map_err(|_| InnerWriteError)?;
+
+        // Check if slf_ and other point to the same SparseObservable object, in which case
+        // we just multiply it by 2
         if Arc::ptr_eq(&slf_.inner, &other.inner) {
             *slf_inner *= Complex64::new(2.0, 0.0);
             return Ok(());
@@ -3032,8 +3031,8 @@ impl PySparseObservable {
             return Ok(py.NotImplemented().into_bound(py));
         };
 
-        let slf_ = slf_.borrow();
         let other = other.borrow();
+        let slf_ = slf_.borrow();
         if Arc::ptr_eq(&slf_.inner, &other.inner) {
             return PySparseObservable::zero(slf_.num_qubits()?).into_bound_py_any(py);
         }

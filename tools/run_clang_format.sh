@@ -1,6 +1,6 @@
 #! /bin/bash
 
-if [ -z "$1" ]; then 
+if [ -z "$1" ]; then
     args="--dry-run --Werror"  # do a dry run
 elif [ "$1" = "apply" ]; then
     args="-i"  # inplace change of the files
