@@ -490,11 +490,13 @@ class TestCommutationChecker(QiskitTestCase):
         x_equiv = UGate(np.pi, -np.pi / 2, np.pi / 2)
         self.assertTrue(scc.commute(x_equiv, [0], [], RXXGate(np.pi / 2), [0, 1], []))
         self.assertTrue(scc.commute(x_equiv, [1], [], RXXGate(np.pi / 2), [0, 1], []))
+        self.assertFalse(scc.commute(x_equiv, [0], [], RYYGate(np.pi), [1, 0], []))
+        self.assertFalse(scc.commute(x_equiv, [1], [], RYYGate(np.pi), [1, 0], []))
 
         something_else = RGate(1, 2)
-        self.assertTrue(scc.commute(x_equiv, [1], [], RXXGate(np.pi / 2), [0, 1], []))
-
-        self.assertFalse(scc.commute(something_else, [1], [], RYYGate(np.pi), [1, 0], []))
+        self.assertFalse(scc.commute(something_else, [0], [], RXXGate(np.pi / 2), [0, 1], []))
+        self.assertFalse(scc.commute(something_else, [1], [], RXXGate(np.pi / 2), [0, 1], []))
+        self.assertFalse(scc.commute(something_else, [0], [], RYYGate(np.pi), [1, 0], []))
         self.assertFalse(scc.commute(something_else, [1], [], RYYGate(np.pi), [1, 0], []))
 
 
