@@ -1083,46 +1083,6 @@ class TestParameters(QiskitTestCase):
         self.assertEqual(hash(x1), hash(x1_expr))
         self.assertEqual(hash(x2), hash(x2_expr))
 
-    def test_binding_parameterized_circuits_built_in_multiproc_(self):
-        """Verify subcircuits built in a subprocess can still be bound.
-        REMOVE this test once assemble is REMOVED"""
-        # ref: https://github.com/Qiskit/qiskit-terra/issues/2429
-
-        num_processes = 4
-
-        qr = QuantumRegister(3)
-        cr = ClassicalRegister(3)
-
-        circuit = QuantumCircuit(qr, cr)
-        parameters = [Parameter(f"x{i}") for i in range(num_processes)]
-
-        results = parallel_map(
-            _construct_circuit, parameters, task_args=(qr,), num_processes=num_processes
-        )
-
-        for qc in results:
-            circuit.compose(qc, inplace=True)
-
-        parameter_values = [{x: 1.0 for x in parameters}]
-
-        with self.assertWarns(DeprecationWarning):
-            qobj = assemble(
-                circuit,
-                backend=BasicSimulator(),
-                parameter_binds=parameter_values,
-            )
-
-        self.assertEqual(len(qobj.experiments), 1)
-        self.assertEqual(len(qobj.experiments[0].instructions), 4)
-        self.assertTrue(
-            all(
-                len(inst.params) == 1
-                and isinstance(inst.params[0], float)
-                and float(inst.params[0]) == 1
-                for inst in qobj.experiments[0].instructions
-            )
-        )
-
     def test_binding_parameterized_circuits_built_in_multiproc(self):
         """Verify subcircuits built in a subprocess can still be bound."""
         # ref: https://github.com/Qiskit/qiskit-terra/issues/2429
@@ -1169,10 +1129,13 @@ class TestParameters(QiskitTestCase):
         qc1.u(theta, 0, 0, qr[0])
         qc2.u(theta, 3.14, 0, qr[0])
 
+        qc1 = qc1.assign_parameters({theta: 1})
+        qc2 = qc2.assign_parameters({theta: 1})
+
         circuits = [qc1, qc2]
 
         backend = BasicSimulator()
-        job = backend.run(transpile(circuits, backend), shots=512, parameter_binds=[{theta: 1}])
+        job = backend.run(transpile(circuits, backend), shots=512)
 
         self.assertTrue(len(job.result().results), 2)
 
@@ -1433,20 +1396,6 @@ class TestParameters(QiskitTestCase):
             qc = QuantumCircuit(1)
             qc.x(0)
             self.assertEqual(qc.num_parameters, 0)
-
-    def test_execute_result_names(self):
-        """Test unique names for list of parameter binds."""
-        theta = Parameter("θ")
-        reps = 5
-        qc = QuantumCircuit(1, 1)
-        qc.rx(theta, 0)
-        qc.measure(0, 0)
-
-        plist = [{theta: i} for i in range(reps)]
-        simulator = BasicSimulator()
-        result = simulator.run(transpile(qc, simulator), parameter_binds=plist).result()
-        result_names = {res.name for res in result.results}
-        self.assertEqual(reps, len(result_names))
 
     def test_to_instruction_after_inverse(self):
         """Verify converting an inverse generates a valid ParameterTable"""
