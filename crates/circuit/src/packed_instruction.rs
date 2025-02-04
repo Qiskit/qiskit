@@ -259,10 +259,40 @@ mod pointer {
 
     const POINTER_MASK: u64 = !PackedOperation::DISCRIMINANT_MASK;
 
-    /// A private trait used to associate a [PackedOperationType] with
-    /// a supported pointer type.
-    trait PackablePointer {
+    /// Used to associate a supported pointer type (e.g. PyGate) with a [PackedOperationType] and
+    /// a drop implementation.
+    ///
+    /// Note: this is public only within this file for use by [PackedOperation]'s [Drop] impl.
+    pub trait PackablePointer: Sized {
         const OPERATION_TYPE: PackedOperationType;
+
+        /// Drops `op` as this pointer type.
+        fn drop_packed(op: &mut PackedOperation) {
+            // This should only ever be called from PackedOperation's Drop impl after the
+            // operation's type has already been validated, but this is defensive just
+            // to 100% ensure that our `Drop` implementation doesn't panic.
+            let Some(pointer) = try_pointer::<Self>(op) else {
+                return;
+            };
+
+            // SAFETY: `PackedOperation` asserts ownership over its contents, and the contained
+            // pointer can only be null if we were already dropped.  We set our discriminant to mark
+            // ourselves as plain old data immediately just as a defensive measure.
+            let boxed = unsafe { Box::from_raw(pointer.as_ptr()) };
+            op.0 = PackedOperationType::StandardGate as u64;
+            ::std::mem::drop(boxed);
+        }
+    }
+
+    fn try_pointer<T: PackablePointer>(value: &PackedOperation) -> Option<NonNull<T>> {
+        if value.discriminant() == T::OPERATION_TYPE {
+            let ptr = (value.0 & POINTER_MASK) as *mut ();
+            // SAFETY: `PackedOperation` can only be constructed from a pointer via `Box`, which
+            // is always non-null (except in the case that we're partway through a `Drop`).
+            Some(unsafe { NonNull::new_unchecked(ptr) }.cast::<T>())
+        } else {
+            None
+        }
     }
 
     macro_rules! impl_packable_pointer {
@@ -288,59 +318,22 @@ mod pointer {
                         .ok_or(concat!("not a(n) ", stringify!($type), " pointer!"))
                 }
             }
+
+            impl From<Box<$type>> for PackedOperation {
+                fn from(value: Box<$type>) -> Self {
+                    let discriminant = $operation_type as u64;
+                    let ptr = NonNull::from(Box::leak(value)).cast::<()>();
+                    let addr = ptr.as_ptr() as u64;
+                    assert!((addr & PackedOperation::DISCRIMINANT_MASK == 0));
+                    Self(discriminant | addr)
+                }
+            }
         };
     }
 
     impl_packable_pointer!(PyGate, PackedOperationType::PyGate);
     impl_packable_pointer!(PyInstruction, PackedOperationType::PyInstruction);
     impl_packable_pointer!(PyOperation, PackedOperationType::PyOperation);
-
-    impl<T: PackablePointer> From<Box<T>> for PackedOperation {
-        fn from(value: Box<T>) -> Self {
-            let discriminant = T::OPERATION_TYPE as u64;
-            let ptr = NonNull::from(Box::leak(value)).cast::<()>();
-            let addr = ptr.as_ptr() as u64;
-            assert!((addr & PackedOperation::DISCRIMINANT_MASK == 0));
-            Self(discriminant | addr)
-        }
-    }
-
-    fn try_pointer<T: PackablePointer>(value: &PackedOperation) -> Option<NonNull<T>> {
-        if value.discriminant() == T::OPERATION_TYPE {
-            let ptr = (value.0 & POINTER_MASK) as *mut ();
-            // SAFETY: `PackedOperation` can only be constructed from a pointer via `Box`, which
-            // is always non-null (except in the case that we're partway through a `Drop`).
-            Some(unsafe { NonNull::new_unchecked(ptr) }.cast::<T>())
-        } else {
-            None
-        }
-    }
-
-    impl Drop for PackedOperation {
-        fn drop(&mut self) {
-            fn drop_pointer_as<T: PackablePointer>(slf: &mut PackedOperation) {
-                // This should only ever be called when the pointer is valid, but this is defensive just
-                // to 100% ensure that our `Drop` implementation doesn't panic.
-                let Some(pointer) = try_pointer::<T>(slf) else {
-                    return;
-                };
-
-                // SAFETY: `PackedOperation` asserts ownership over its contents, and the contained
-                // pointer can only be null if we were already dropped.  We set our discriminant to mark
-                // ourselves as plain old data immediately just as a defensive measure.
-                let boxed = unsafe { Box::from_raw(pointer.as_ptr()) };
-                slf.0 = PackedOperationType::StandardGate as u64;
-                ::std::mem::drop(boxed);
-            }
-
-            match self.discriminant() {
-                PackedOperationType::StandardGate | PackedOperationType::StandardInstruction => (),
-                PackedOperationType::PyGate => drop_pointer_as::<PyGate>(self),
-                PackedOperationType::PyInstruction => drop_pointer_as::<PyInstruction>(self),
-                PackedOperationType::PyOperation => drop_pointer_as::<PyOperation>(self),
-            }
-        }
-    }
 }
 
 impl PackedOperation {
@@ -636,6 +629,18 @@ impl Clone for PackedOperation {
             OperationRef::Operation(operation) => {
                 Self::from_operation(Box::new(operation.to_owned()))
             }
+        }
+    }
+}
+
+impl Drop for PackedOperation {
+    fn drop(&mut self) {
+        use crate::packed_instruction::pointer::PackablePointer;
+        match self.discriminant() {
+            PackedOperationType::StandardGate | PackedOperationType::StandardInstruction => (),
+            PackedOperationType::PyGate => PyGate::drop_packed(self),
+            PackedOperationType::PyInstruction => PyInstruction::drop_packed(self),
+            PackedOperationType::PyOperation => PyOperation::drop_packed(self),
         }
     }
 }
