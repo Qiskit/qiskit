@@ -10,7 +10,6 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use hashbrown::HashSet;
 use pyo3::prelude::*;
 use rayon::prelude::*;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
@@ -22,7 +21,7 @@ use qiskit_circuit::operations::{Operation, PyInstruction};
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::Qubit;
 
-static FINAL_OP_NAMES: [&str; 2] = ["measure", "barrier"];
+const PARALLEL_THRESHOLD: usize = 150;
 
 #[pyfunction]
 #[pyo3(signature=(dag, label=None))]
@@ -31,45 +30,87 @@ pub fn barrier_before_final_measurements(
     dag: &mut DAGCircuit,
     label: Option<String>,
 ) -> PyResult<()> {
-    let is_exactly_final = |inst: &PackedInstruction| FINAL_OP_NAMES.contains(&inst.op.name());
-    let final_ops: HashSet<NodeIndex> = (0..dag.dag().node_count())
-        .into_par_iter()
-        .filter_map(|node| {
-            let node_index: NodeIndex = NodeIndex::new(node);
-            let node_weight = dag.dag().node_weight(node_index)?;
-            if !matches!(node_weight, NodeType::Operation(_)) {
-                return None;
-            }
-            let inst = node_weight.unwrap_operation();
-            if !is_exactly_final(inst) {
-                return None;
-            }
-            dag.bfs_successors(node_index)
-                .all(|(_, child_successors)| {
-                    child_successors.iter().all(|suc| match dag[*suc] {
-                        NodeType::Operation(ref suc_inst) => is_exactly_final(suc_inst),
+    let find_final_nodes = |[_in_index, out_index]: &[NodeIndex; 2]| -> Vec<NodeIndex> {
+        let mut next_nodes: Vec<NodeIndex> = dag
+            .quantum_predecessors(*out_index)
+            .filter(|index| {
+                let node = &dag[*index];
+                match node {
+                    NodeType::Operation(inst) => {
+                        if inst.op.name() == "measure" || inst.op.name() == "barrier" {
+                            dag.bfs_successors(*index).all(|(_, child_successors)| {
+                                child_successors.iter().all(|suc| match &dag[*suc] {
+                                    NodeType::Operation(suc_inst) => {
+                                        suc_inst.op.name() == "measure"
+                                            || suc_inst.op.name() == "barrier"
+                                    }
+                                    _ => true,
+                                })
+                            })
+                        } else {
+                            false
+                        }
+                    }
+                    _ => false,
+                }
+            })
+            .collect();
+        let mut nodes: Vec<NodeIndex> = Vec::new();
+        while let Some(node_index) = next_nodes.pop() {
+            if node_index != *out_index
+                && dag.bfs_successors(node_index).all(|(_, child_successors)| {
+                    child_successors.iter().all(|suc| match &dag[*suc] {
+                        NodeType::Operation(suc_inst) => {
+                            suc_inst.op.name() == "measure" || suc_inst.op.name() == "barrier"
+                        }
                         _ => true,
                     })
                 })
-                .then_some(NodeIndex::new(node))
-        })
-        .collect();
+            {
+                nodes.push(node_index);
+            }
+            for pred in dag.quantum_predecessors(node_index) {
+                match &dag[pred] {
+                    NodeType::Operation(inst) => {
+                        if inst.op.name() == "measure" || inst.op.name() == "barrier" {
+                            next_nodes.push(pred)
+                        }
+                    }
+                    _ => continue,
+                }
+            }
+        }
+        nodes.reverse();
+        nodes
+    };
+
+    let final_ops: Vec<NodeIndex> =
+        if dag.num_qubits() >= PARALLEL_THRESHOLD && crate::getenv_use_multiple_threads() {
+            dag.qubit_io_map()
+                .par_iter()
+                .flat_map(find_final_nodes)
+                .collect()
+        } else {
+            dag.qubit_io_map()
+                .iter()
+                .flat_map(find_final_nodes)
+                .collect()
+        };
+
     if final_ops.is_empty() {
         return Ok(());
     }
-    let ordered_node_indices: Vec<NodeIndex> = dag
-        .topological_op_nodes()?
-        .filter(|node| final_ops.contains(node))
-        .collect();
-    let final_packed_ops: Vec<PackedInstruction> = ordered_node_indices
+    let final_packed_ops: Vec<PackedInstruction> = final_ops
         .into_iter()
-        .map(|node| {
-            let NodeType::Operation(ref inst) = dag[node] else {
-                unreachable!()
-            };
-            let res = inst.clone();
-            dag.remove_op_node(node);
-            res
+        .filter_map(|node| match dag.dag().node_weight(node) {
+            Some(weight) => {
+                let NodeType::Operation(_) = weight else {
+                    return None;
+                };
+                let res = dag.remove_op_node(node);
+                Some(res)
+            }
+            None => None,
         })
         .collect();
     let new_barrier = BARRIER
