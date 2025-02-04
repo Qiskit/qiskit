@@ -20,6 +20,7 @@ from qiskit.circuit.library.generalized_gates.pauli import PauliGate
 from qiskit.dagcircuit import DAGCircuit, DAGOpNode
 from qiskit.quantum_info import Pauli
 from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.transpiler.passes.utils.remove_final_measurements import calc_final_ops
 
 commutator = CommutationChecker(standard_gates_commutations)
 
@@ -36,7 +37,7 @@ class LightCone(TransformationPass):
         """
         Args:
             observable: If None the lightcone will be computed for the set
-                of measurements in the circuit. If a Pauli operator is specified, 
+                of measurements in the circuit. If a Pauli operator is specified,
                 the lightcone will correspond to the reduced circuit with the
                 same expectation value for the observable.
         """
@@ -45,27 +46,10 @@ class LightCone(TransformationPass):
 
     @staticmethod
     def _find_measurement_qubits(dag: DAGCircuit):
-        """For now, this method considers only final circuit measurements:
-        mid-circuit measurements are discarded.
-        """
+        final_nodes = calc_final_ops(dag, {"measure"})
         qubits_measured = set()
-
-        # Iterate over the DAG nodes in topological order
-        for node in dag.topological_nodes():
-            # Check if the node is a measurement operation
-            if getattr(node, "name", False) == "measure":
-                qubits = set(node.qargs)
-
-                # Check if these qubits are used in any subsequent operations
-                is_final_measurement = True
-                for subsequent_node in dag.successors(node):
-                    if isinstance(subsequent_node, DAGOpNode):
-                        is_final_measurement = False
-                        break
-
-                qubits_measured |= qubits if is_final_measurement else set()
-        if not qubits_measured:
-            raise ValueError("No measurements found in the circuit.")
+        for node in final_nodes:
+            qubits_measured |= set(node.qargs)
         return qubits_measured
 
     def _get_initial_lightcone(
@@ -85,9 +69,6 @@ class LightCone(TransformationPass):
                 raise ValueError(
                     "Observable size does not match the number of qubits in the circuit."
                 )
-            # stripped_pauli = pauli_string.replace("I", "")
-            # if len(stripped_pauli_string) == 0:
-            #     raise ValueError("Observable is the identity operator.")
             non_trivial_indices = [i for i, p in enumerate(self.observable) if p != Pauli("I")]
             light_cone = [dag.qubits[i] for i in non_trivial_indices]
             stripped_pauli_label = "".join(
@@ -111,11 +92,6 @@ class LightCone(TransformationPass):
 
         #  Initialize a new, empty DAG
         new_dag = dag.copy_empty_like()
-
-        new_dag.add_qreg(*dag.qregs.values())
-
-        if dag.cregs:  # Add classical registers if they exist
-            new_dag.add_creg(*dag.cregs.values())
 
         # Iterate over the nodes in reverse topological order
         for node in reversed(list(dag.topological_op_nodes())):

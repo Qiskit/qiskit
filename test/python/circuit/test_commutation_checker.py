@@ -16,18 +16,44 @@ import unittest
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 import numpy as np
-from ddt import ddt, idata
+from ddt import idata, ddt
 
 from qiskit import ClassicalRegister
-from qiskit.circuit import (AnnotatedOperation, ControlModifier, Gate,
-                            InverseModifier, Parameter, QuantumRegister, Qubit)
+from qiskit.circuit import (
+    AnnotatedOperation,
+    ControlModifier,
+    Gate,
+    InverseModifier,
+    Parameter,
+    QuantumRegister,
+    Qubit,
+)
 from qiskit.circuit.commutation_library import SessionCommutationChecker as scc
-from qiskit.circuit.library import (Barrier, CCXGate, CPhaseGate, CRXGate,
-                                    CRYGate, CRZGate, CXGate, HGate,
-                                    LinearFunction, MCXGate, Measure,
-                                    PhaseGate, Reset, RXGate, RXXGate, RYGate,
-                                    RYYGate, RZGate, RZXGate, RZZGate, SGate,
-                                    XGate, ZGate)
+from qiskit.circuit.library import (
+    Barrier,
+    CCXGate,
+    CPhaseGate,
+    CRXGate,
+    CRYGate,
+    CRZGate,
+    CXGate,
+    HGate,
+    LinearFunction,
+    MCXGate,
+    Measure,
+    PhaseGate,
+    Reset,
+    RXGate,
+    RXXGate,
+    RYGate,
+    RYYGate,
+    RZGate,
+    RZXGate,
+    RZZGate,
+    SGate,
+    XGate,
+    ZGate,
+)
 from qiskit.circuit.library.generalized_gates.pauli import PauliGate
 from qiskit.dagcircuit import DAGOpNode
 
@@ -231,8 +257,8 @@ class TestCommutationChecker(QiskitTestCase):
 
         pauli_gate = PauliGate("XX")
         rx_gate_theta = RXGate(Parameter("Theta"))
-        self.assertTrue(scc.commute(pauli_gate,[0,1],[],rx_gate_theta,[0],[]))
-        self.assertTrue(scc.commute(rx_gate_theta,[0],[],pauli_gate,[0,1],[]))
+        self.assertTrue(scc.commute(pauli_gate, [0, 1], [], rx_gate_theta, [0], []))
+        self.assertTrue(scc.commute(rx_gate_theta, [0], [], pauli_gate, [0, 1], []))
 
     def test_measure(self):
         """Check commutativity involving measures."""
