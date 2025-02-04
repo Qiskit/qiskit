@@ -34,14 +34,11 @@ class LightCone(TransformationPass):
 
     def __init__(self, observable: Pauli | None = None):
         """
-        LightCone initializer.
-
         Args:
             observable: If None the lightcone will be computed for the set
-            of measurements in the circuit.
-            If a Pauli operator is specified, the lightcone will correspond to
-            the reduced circuit with the
-            same expectation value for the observable.
+                of measurements in the circuit. If a Pauli operator is specified, 
+                the lightcone will correspond to the reduced circuit with the
+                same expectation value for the observable.
         """
         super().__init__()
         self.observable = observable
@@ -105,10 +102,10 @@ class LightCone(TransformationPass):
         """Run the LightCone pass on `dag`.
 
         Args:
-            dag (DAGCircuit): the DAG to be optimized.
+            dag: The DAG to reduce.
 
         Returns:
-            DAGCircuit: the optimized DAG.
+            The DAG reduced to the light cone of the observable.
         """
         # Get the initial light cone and operations
         light_cone, light_cone_ops = self._get_initial_lightcone(dag)
