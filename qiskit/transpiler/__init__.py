@@ -103,7 +103,7 @@ below, with more in-depth information in the following subsections.
     job.  See :ref:`transpiler-preset-stage-routing` for more details.
 
 ``translation``
-    Convert all gates in the circuit to ones matching the :class:`Target`\\ s ISA.  See
+    Convert all gates in the circuit to ones matching the ISA of the :class:`Target`.  See
     :ref:`transpiler-preset-stage-translation` for more details.
 
 ``optimization``
@@ -305,8 +305,9 @@ The layout stage must set the properties ``layout`` and ``original_qubit_indices
 
 .. note::
 
-    All built-in plugins for the layout stage will defer to an explicit layout selected using the
-    ``initial_layout`` argument to :func:`.generate_preset_pass_manager` or :func:`.transpile`.
+    All built-in plugins for the layout stage will give priority to an explicit layout selected
+    using the ``initial_layout`` argument to :func:`.generate_preset_pass_manager` or
+    :func:`.transpile`.
 
 At any given point in a circuit, we can identify a mapping between currently active "virtual" qubits
 of the input circuit to hardware qubits of the backend.  A hardware qubit can only ever represent a
