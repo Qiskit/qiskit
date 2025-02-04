@@ -7024,7 +7024,7 @@ fn emit_pulse_dependency_deprecation(py: Python, msg: &str) {
 #[cfg(all(test, not(miri)))]
 mod test {
     use crate::circuit_instruction::OperationFromPython;
-    use crate::dag_circuit::{DAGCircuit, Wire};
+    use crate::dag::{DAGCircuit, Wire};
     use crate::imports::{CLASSICAL_REGISTER, MEASURE, QUANTUM_REGISTER};
     use crate::operations::StandardGate;
     use crate::packed_instruction::{PackedInstruction, PackedOperation};
