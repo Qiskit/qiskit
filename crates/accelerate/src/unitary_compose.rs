@@ -249,8 +249,8 @@ pub fn gate_fidelity(
 
     let left = left.t().mapv(|el| el.conj());
     let product = match dim {
-        // 2 => mm1q(&left.view(), right),
-        // 4 => mm2q(&left.view(), right, qargs.unwrap_or(&[Qubit(0), Qubit(1)])),
+        2 => mm1q(&left.view(), right),
+        4 => mm2q(&left.view(), right, qargs.unwrap_or(&[Qubit(0), Qubit(1)])),
         _ => left.dot(right),
     };
     let trace = product.diag().sum();
