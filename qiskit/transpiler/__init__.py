@@ -39,8 +39,8 @@ compilation flow follows the structure given below:
 Qiskit uses the graph-based :class:`.DAGCircuit` intermediate representation (IR) of a circuit
 throughout the transpiler stack, rather than the tree-based :class:`.QuantumCircuit`.  A transpiler
 pipeline is a :class:`.PassManager` object, whose :meth:`.PassManager.run` method takes in a
-:class:`.QuantumCircuit` and converts it to a :class:`.DAGCircuit`, then subjects the IR to a sequence
-of *passes*, finally returning a :class:`.QuantumCircuit` back.  A pass is either an
+:class:`.QuantumCircuit` and converts it to a :class:`.DAGCircuit`, then subjects the IR to a
+sequence of *passes*, finally returning a :class:`.QuantumCircuit` back.  A pass is either an
 :class:`.AnalysisPass`, which calculates and stores properties about the circuit in the
 stateful :class:`.PropertySet`, or a :class:`.TransformationPass`, which modifies the IR
 to achieve a particular singular goal.  You can think of a pipeline as being split into
@@ -79,9 +79,9 @@ Preset pass managers
 ====================
 
 The function :func:`.generate_preset_pass_manager` creates the "preset pass managers".
-These are all instances of :class:`.PassManager`, so are used by passing a :class:`.QuantumCircuit` to
-the :meth:`.PassManager.run` method.  More specifically, the preset pass managers are instances of
-:class:`.StagedPassManager`, which allows greater configuration of the individual stages of a
+These are all instances of :class:`.PassManager`, so are used by passing a :class:`.QuantumCircuit`
+to the :meth:`.PassManager.run` method.  More specifically, the preset pass managers are instances
+of :class:`.StagedPassManager`, which allows greater configuration of the individual stages of a
 transpilation, include pre- and post-stage hooks.
 
 A preset pass manager has up to six named stages.  These are summarized, in order of execution,
@@ -176,8 +176,8 @@ For example, to generate a preset pass manager at optimization level 1 that expl
     internal construction of the :class:`.PassManager` representing the stage is not, however; the
     order of passes might change between minor versions, or new passes might be introduced.
 
-    For any stage that has one, the method named ``"default"`` is the most subject to change.  Qiskit
-    typically only makes complete algorithmic changes in the default method across a
+    For any stage that has one, the method named ``"default"`` is the most subject to change.
+    Qiskit typically only makes complete algorithmic changes in the default method across a
     major-version boundary, but it might rebalance heuristics and add new passes to default
     methods between minor versions.
 
@@ -280,8 +280,8 @@ optimizations.  This includes:
 * "Virtual permutation elision" (see :class:`.ElidePermutations`), where explicit
   permutation-inducing operations are removed and instead effected as remapping of virtual qubits.
 * Analysis of the commutation structure of the IR to find pairs of gates that can be canceled out.
-* Numerical splitting of two-qubit operations that can be expressed as a series of separable one-qubit
-  operations.
+* Numerical splitting of two-qubit operations that can be expressed as a series of separable
+  one-qubit operations.
 * Removal of imperceivable operations, such as tiny-angle Pauli rotations and diagonal operations
   immediately preceding measurements.
 
@@ -382,16 +382,16 @@ At optimization level 0, the trivial layout is chosen.
 At optimization levels above 0, there is a two-step process:
 
 #. First, use :class:`.VF2Layout` to attempt to find a "perfect" layout.  The maximum number of
-   calls to the isomorphism evaluator increases with the optimization level.  For huge, complex targets,
-   we are not guaranteed to find perfect layouts even if they exist, but the chance increases with
-   the optimization level.
+   calls to the isomorphism evaluator increases with the optimization level.  For huge, complex
+   targets, we are not guaranteed to find perfect layouts even if they exist, but the chance
+   increases with the optimization level.
 
 #. If no perfect layout can be found, use :class:`.SabreLayout` to choose an initial layout, with
    the numbers of initial layout trials, swap-map trials, and forwards–backwards iterations
    increasing with the optimization level.
 
-In addition, optimization levels above 0 also try the trivial layout before the VF2-based version, for
-historical backwards compatibility.
+In addition, optimization levels above 0 also try the trivial layout before the VF2-based version,
+for historical backwards compatibility.
 
 
 .. _transpiler-preset-stage-layout-dense:
@@ -433,7 +433,7 @@ Uses the :class:`.SabreLayout` to choose an initial layout, using Qiskit's modif
 routing algorithm <transpiler-preset-stage-routing-sabre>` as the subroutine to swap-map the
 candidate circuit both forwards and backwards.
 
-Summarily, the layout component of `the original Sabre algorithm <sabre-original-paper_>`_ 
+Summarily, the layout component of `the original Sabre algorithm <sabre-original-paper_>`_
 chooses an initial layout arbitrarily, then tries to "improve" it by running routing on the circuit,
 reversing the circuit, and running routing on the reversed circuit with the previous "final"
 virtual-to-hardware assignment as the initial state.  The configured optimization level decides how
@@ -505,8 +505,8 @@ is ``qiskit.transpiler.routing``.  The built-in plugins are:
       - Summary
 
     * - :ref:`sabre <transpiler-preset-stage-routing-sabre>`
-      - Default.  Uses `Qiskit's modified Sabre routing algorithm <sabre-lightsabre-paper_>`_ to swap
-        map.
+      - Default.  Uses `Qiskit's modified Sabre routing algorithm <sabre-lightsabre-paper_>`_ to
+        swap map.
 
     * - :ref:`none <transpiler-preset-stage-routing-none>`
       - Disable routing.  Raises an error if routing is required.
@@ -730,9 +730,9 @@ are described below.
 
 At optimization level 0, the stage is empty.
 
-At optimization level 1, the stage does matrix-based resynthesis of runs of single-qubit gates, and very
-simple symbolic inverse cancellation of two-qubit gates, if they appear consecutively.  This runs
-in a loop until the size and depth of the circuit are fixed.
+At optimization level 1, the stage does matrix-based resynthesis of runs of single-qubit gates, and
+very simple symbolic inverse cancellation of two-qubit gates, if they appear consecutively.  This
+runs in a loop until the size and depth of the circuit are fixed.
 
 At optimization level 2, in addition the optimizations of level 1, the loop contains commutation
 analysis of sets of gates to widen the range of gates that can be considered for cancellation.
@@ -848,10 +848,10 @@ that has two stages, ``init`` and ``translation``.
 There is no limit on the number of stages you can put in a :class:`~.StagedPassManager`.  The stages
 do not need to correspond to the stages used by Qiskit's preset pipelines.
 
-The :ref:`stage_generators` may be useful for the construction of custom :class:`~.StagedPassManager`s.
-They generate pass managers which provide common functionality used in many stages.
-For example, :func:`~.generate_embed_passmanager` generates a :class:`~.PassManager`
-to "embed" a selected initial :class:`~.Layout` from a layout pass to the specified target device.
+The :ref:`stage_generators` may be useful for the construction of custom :class:`~.StagedPassManager`
+instances.  They generate pass managers which provide common functionality used in many stages.  For
+example, :func:`~.generate_embed_passmanager` generates a :class:`~.PassManager` to "embed" a
+selected initial :class:`~.Layout` from a layout pass to the specified target device.
 
 Representing Quantum Computers
 ==============================
