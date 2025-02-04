@@ -24,7 +24,7 @@ from qiskit.circuit import (
     Instruction,
     CircuitInstruction,
 )
-from qiskit.circuit.library import BlueprintCircuit, XGate
+from qiskit.circuit.library import BlueprintCircuit, XGate, EfficientSU2
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -208,6 +208,41 @@ class TestBlueprintCircuit(QiskitTestCase):
             parametric.copy().assign_parameters({a: math.pi / 2}).global_phase,
             math.pi / 2,
         )
+
+    def test_copy_empty_like(self):
+        """Test copying empty-like.
+
+        Regression test of #13535.
+        """
+        circuit = EfficientSU2(2)
+        circuit.global_phase = -2
+        circuit.metadata = {"my_legacy": "i was a blueprintcircuit once"}
+
+        cpy = circuit.copy_empty_like()
+        cpy.x(0)  # if it were a BlueprintCircuit, this would trigger the building
+
+        expected = QuantumCircuit(
+            circuit.num_qubits, global_phase=circuit.global_phase, metadata=circuit.metadata
+        )
+        expected.x(0)
+
+        self.assertEqual(cpy, expected)
+        self.assertNotIsInstance(cpy, BlueprintCircuit)
+
+    def test_copy_empty_like_post_build(self):
+        """Test copying empty-like after building the circuit."""
+        circuit = EfficientSU2(2)
+        num_params = circuit.num_parameters  # trigger building the circuit
+
+        cpy = circuit.copy_empty_like()
+        cpy_num_params = cpy.num_parameters  # if it were a BP circuit, this would trigger the build
+
+        circuit.num_qubits = 3  # change the original circuit
+
+        expected = QuantumCircuit(2)  # we still expect an empty 2-qubit circuit
+        self.assertEqual(cpy, expected)
+        self.assertEqual(cpy_num_params, 0)
+        self.assertEqual(num_params, 16)
 
 
 if __name__ == "__main__":
