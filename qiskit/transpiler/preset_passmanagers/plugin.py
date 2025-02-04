@@ -71,7 +71,7 @@ in the stages' names to the full documentation.
 
    * - :ref:`translation <transpiler-preset-stage-translation>`
      - ``qiskit.transpiler.translation``
-     - ``translator``, ``synthesis``, ``unroller``
+     - ``translator``, ``synthesis``
      - Rewrite all gates outside the target ISA to use only gates within the ISA.
 
    * - :ref:`optimization <transpiler-preset-stage-optimization>`
