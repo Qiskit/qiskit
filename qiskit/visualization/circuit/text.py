@@ -1153,7 +1153,7 @@ class TextDrawing:
             if not self.plotbarriers:
                 return layer, current_cons, current_cons_cond, connection_label
 
-            top_qubit = min(node.qargs, key=lambda q: self._wire_map.get(q, float('inf')))
+            top_qubit = min(node.qargs, key=lambda q: self._wire_map.get(q, float("inf")))
             for qubit in node.qargs:
                 if qubit in self.qubits:
                     label = op.label if qubit == top_qubit else ""

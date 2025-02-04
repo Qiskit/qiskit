@@ -1250,7 +1250,7 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
                 "q_1: |0>┤ Y ├─░─┤ Y ├────░────",
                 "        ├───┤ ░ └───┘    ░    ",
                 "q_0: |0>┤ X ├─░───────────────",
-                "        └───┘ ░               "
+                "        └───┘ ░               ",
             ]
         )
 
@@ -1262,7 +1262,10 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         circuit.y(1)
         circuit.x(2)
         circuit.barrier([1, 2], label="End Y/X")
-        self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True, reverse_bits=True)), expected)
+        self.assertEqual(
+            str(circuit_drawer(circuit, output="text", initial_state=True, reverse_bits=True)),
+            expected,
+        )
 
     def test_text_overlap_cx(self):
         """Overlapping CX gates are drawn not overlapping"""
