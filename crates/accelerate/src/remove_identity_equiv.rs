@@ -118,7 +118,11 @@ fn remove_identity_equiv(
                 let f_pro = (trace / dim).powi(2);
                 let gate_fidelity = (dim * f_pro + 1.) / (dim + 1.);
                 if (1. - gate_fidelity).abs() < error {
-                    remove_list.push(op_node)
+                    remove_list.push(op_node);
+                    if trace < 0. {
+                        // the matrix is close to -I instead of I
+                        extra_pi_rotations += 1;
+                    }
                 }
             }
             OperationRef::Gate(gate) => {
