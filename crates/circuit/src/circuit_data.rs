@@ -1932,7 +1932,6 @@ mod pytest {
                 quantum_circuit.call_method1("_from_circuit_data", (circuit_data,))?;
 
             let converted_qregs = converted_circuit.getattr("qregs")?;
-            println!("{}", converted_qregs);
             assert!(converted_qregs.is_instance(&PyList::type_object(py))?);
             assert!(
                 converted_qregs.downcast::<PyList>()?.len() == 0,
@@ -1940,7 +1939,6 @@ mod pytest {
             );
 
             let converted_qubits = converted_circuit.getattr("qubits")?;
-            println!("{:?}", converted_qubits);
             assert!(converted_qubits.is_instance(&PyList::type_object(py))?);
             assert!(
                 converted_qubits.downcast::<PyList>()?.len() == (num_qubits as usize),
@@ -1948,7 +1946,6 @@ mod pytest {
             );
 
             let converted_qregs = converted_circuit.getattr("qregs")?;
-            println!("{}", converted_qregs);
             assert!(converted_qregs.is_instance(&PyList::type_object(py))?);
             assert!(
                 converted_qregs.downcast::<PyList>()?.len() == 0,
@@ -1956,7 +1953,6 @@ mod pytest {
             );
 
             let converted_clbits = converted_circuit.getattr("clbits")?;
-            println!("{:?}", converted_clbits);
             assert!(converted_clbits.is_instance(&PyList::type_object(py))?);
             assert!(
                 converted_clbits.downcast::<PyList>()?.len() == (num_clbits as usize),
@@ -1978,48 +1974,42 @@ mod pytest {
         let result = Python::with_gil(|py| -> PyResult<bool> {
             let quantum_circuit = QUANTUM_CIRCUIT.get_bound(py).clone();
 
-            let converted_circuit =
-                quantum_circuit.call_method1("_from_circuit_data", (circuit_data,))?;
-            let expected_circuit = quantum_circuit.call1((num_qubits, num_clbits))?;
+            let converted_circuit = quantum_circuit.call_method1(
+                "_from_circuit_data",
+                (circuit_data.clone().into_pyobject(py)?,),
+            )?;
+            let expected_circuit = quantum_circuit.call((num_qubits, num_clbits), None)?;
 
             let converted_qregs = converted_circuit.getattr("qregs")?;
             let expected_qregs = expected_circuit.getattr("qregs")?;
-
-            println!("{:?} vs {:?}", converted_qregs, expected_qregs);
 
             assert!(converted_qregs.eq(expected_qregs)?);
 
             let converted_cregs = converted_circuit.getattr("cregs")?;
             let expected_cregs = expected_circuit.getattr("cregs")?;
 
-            println!("{:?} vs {:?}", converted_cregs, expected_cregs);
-
             assert!(converted_cregs.eq(expected_cregs)?);
 
             let converted_qubits = converted_circuit.getattr("qubits")?;
             let expected_qubits = expected_circuit.getattr("qubits")?;
-            println!("{:?} vs {:?}", converted_qubits, expected_qubits);
             assert!(converted_qubits.eq(&expected_qubits)?);
 
             let converted_clbits = converted_circuit.getattr("clbits")?;
             let expected_clbits = expected_circuit.getattr("clbits")?;
-            println!("{:?} vs {:?}", converted_clbits, expected_clbits);
             assert!(converted_clbits.eq(&expected_clbits)?);
 
             let converted_global_phase = converted_circuit.getattr("global_phase")?;
             let expected_global_phase = expected_circuit.getattr("global_phase")?;
-            println!(
-                "{:?} vs {:?}",
-                converted_global_phase, expected_global_phase
-            );
+
             assert!(converted_global_phase.eq(&expected_global_phase)?);
 
             // TODO: Figure out why this fails
-            // converted_circuit.eq(&expected_circuit)
+            println!("{:?}", expected_circuit.eq(&converted_circuit));
 
+            // Return true due to being unable to extract `CircuitData` from python
+            // due to conflics between cargo and python binaries.
             Ok(true)
-        })
-        .is_ok_and(|res| res);
-        assert!(result);
+        });
+        assert!(result.is_ok_and(|result| result))
     }
 }

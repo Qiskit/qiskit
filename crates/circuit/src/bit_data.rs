@@ -454,7 +454,7 @@ where
 {
     /// Finds the native bit index of the given Python bit.
     #[inline]
-    pub fn py_find_bit(&mut self, bit: &Bound<PyAny>) -> PyResult<Option<T>> {
+    pub fn py_find_bit(&self, bit: &Bound<PyAny>) -> PyResult<Option<T>> {
         self.indices
             .try_read()
             .map(|op| op.get(&BitAsKey::new(bit)).copied())
