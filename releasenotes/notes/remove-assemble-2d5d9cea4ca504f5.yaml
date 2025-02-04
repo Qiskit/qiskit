@@ -1,10 +1,10 @@
 ---
 upgrade_misc:
   - |
-    The ``assemble`` function and related capabilites (contained in the ``assembler`` module)
+    The ``assemble`` function and related capabilities (contained in the ``assembler`` module)
     have been removed from the codebase following their deprecation in Qiskit 1.2. 
     ``assemble`` was used to generate ``Qobj`` in the context of the
-    deprecated  :class:`.BackendV1` workflow. The conversion is no longer necessary as the
+    deprecated  ``BackendV1`` workflow. The conversion is no longer necessary as the
     transpilation and primitives pipeline handles quantum circuits directly, rendering the 
     ``Qobj`` obsolete.
 

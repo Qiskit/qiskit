@@ -1,0 +1,7 @@
+---
+upgrade_providers:
+  - |
+    The ``configuration`` method of :class:`.BasicSimulator` has been removed following its deprecation
+    in Qiskit 1.3.0. This method returned a ``BackendConfiguration`` instance, and this class was
+    part of the deprecated ``BackendV1`` workflow. The individual configuration elements 
+    can be retrieved directly from the backend or from the contained :class:`.Target` instance ``(backend.target)``.
