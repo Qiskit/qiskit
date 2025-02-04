@@ -266,7 +266,7 @@ mod pointer {
     }
 
     macro_rules! impl_packable_pointer {
-        ($type:ty, $operation_type:path) => {
+        ($type:ty, $operation_type:expr) => {
             impl PackablePointer for $type {
                 const OPERATION_TYPE: PackedOperationType = $operation_type;
             }
