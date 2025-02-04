@@ -518,32 +518,7 @@ class TestScheduledCircuit(QiskitTestCase):
         cxs = [inst.operation for inst in sc.data if inst.operation.name == "cx"]
         self.assertNotEqual(cxs[0].duration, cxs[1].duration)
 
-    def test_transpile_and_assemble_delay_circuit_for_simulator(self):
-        """See: https://github.com/Qiskit/qiskit-terra/issues/5962"""
-        qc = QuantumCircuit(1)
-        qc.delay(100, 0, "ns")
-        circ = transpile(qc, self.simulator_backend)
-        self.assertEqual(circ.duration, None)  # not scheduled
-        with self.assertWarns(DeprecationWarning):
-            qobj = assemble(circ, self.simulator_backend)
-        self.assertEqual(qobj.experiments[0].instructions[0].name, "delay")
-        self.assertEqual(qobj.experiments[0].instructions[0].params[0], 1e-7)
-
-    def test_transpile_and_assemble_t1_circuit_for_simulator(self):
-        """Check if no scheduling is done in transpiling for simulator backends"""
-        qc = QuantumCircuit(1, 1)
-        qc.x(0)
-        qc.delay(0.1, 0, "us")
-        qc.measure(0, 0)
-        circ = transpile(qc, self.simulator_backend)
-        self.assertEqual(circ.duration, None)  # not scheduled
-        with self.assertWarns(DeprecationWarning):
-            qobj = assemble(circ, self.simulator_backend)
-        self.assertEqual(qobj.experiments[0].instructions[1].name, "delay")
-        self.assertAlmostEqual(qobj.experiments[0].instructions[1].params[0], 1e-7)
-
     # Tests for circuits with parameterized delays
-
     def test_can_transpile_circuits_after_assigning_parameters(self):
         """Check if not scheduled but duration is converted in dt"""
         idle_dur = Parameter("t")
