@@ -715,7 +715,7 @@ class HighLevelSynthesisPluginManager:
         return self.plugins[plugin_name].obj
 
     def op_names(self):
-        """Returns the list of objects with specified methods."""
+        """Returns the names of high-level-objects with available synthesis methods."""
         return list(self.plugins_by_op.keys())
 
 

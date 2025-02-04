@@ -141,7 +141,7 @@ class HLSData:
     """
 
     hls_op_names: list[str]
-    """The high-level-objects with available high-level-synthesis methods."""
+    """The names of high-level-objects with available synthesis methods."""
 
     coupling_map: CouplingMap | None
     """Optional, directed graph represented as a coupling map."""

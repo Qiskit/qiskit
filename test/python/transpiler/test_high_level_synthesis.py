@@ -233,6 +233,7 @@ class MockPluginManager:
         return self.plugins[plugin_name]()
 
     def op_names(self):
+        """Returns the names of high-level-objects with available synthesis methods."""
         return list(self.plugins_by_op.keys())
 
 
