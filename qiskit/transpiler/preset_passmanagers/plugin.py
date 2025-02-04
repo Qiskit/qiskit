@@ -37,9 +37,9 @@ see :mod:`qiskit.transpiler.passes.synthesis.plugin`.
 Plugin Stages
 =============
 
-Currently, there are six stages in the preset pass managers, all of which actively
-load external plugins using corresponding entry points.  The following table gives a quick summary
-of each stage.  For more details on the description and expectations of each stage, follow the link
+There are six stages in the preset pass managers, all of which actively
+load external plugins using corresponding entry points.  The following table summarizes
+each stage.  For more details on the description and expectations of each stage, follow the link
 in the stages' names to the full documentation.
 
 .. list-table:: Stages

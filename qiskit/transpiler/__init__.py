@@ -41,13 +41,13 @@ throughout the transpiler stack, rather than the tree-based :class:`.QuantumCirc
 pipeline is a :class:`.PassManager` object, whose :meth:`.PassManager.run` method takes in a
 :class:`.QuantumCircuit` and converts it to a :class:`.DAGCircuit`, then subjects the IR to a sequence
 of *passes*, finally returning a :class:`.QuantumCircuit` back.  A pass is either an
-:class:`.AnalysisPass`, whose purpose is to calculate and store properties about the circuit in the
-stateful :class:`.PropertySet`, or a :class:`.TransformationPass`, whose purpose is to modify the IR
+:class:`.AnalysisPass`, which calculates and stores properties about the circuit in the
+stateful :class:`.PropertySet`, or a :class:`.TransformationPass`, which modifies the IR
 to achieve a particular singular goal.  You can think of a pipeline as being split into
 "stages", where each stage is responsible for one high-level transformation.
 
 Qiskit exposes a default transpilation pipeline builder using the function
-:func:`.generate_preset_pass_manager`.  This will return a properly configured pipeline for complete
+:func:`.generate_preset_pass_manager`.  This returns a properly configured pipeline for complete
 transpilation, at a chosen ``optimization_level`` (between 0 and 3, inclusive).  Unless you are
 looking for something highly specialized, this is almost certainly the entry point you want.  A
 sample transpilation looks like:
@@ -69,7 +69,7 @@ sample transpilation looks like:
     # ... and use it (as many times as you like).
     physical = pm.run(abstract)
 
-For most use cases, this is all you will need.
+For most use cases, this is all you need.
 All of Qiskit's transpiler infrastructure is highly extensible and configurable, however.
 The rest of this page details how to harness the low-level capabilities of the transpiler stack.
 
@@ -89,27 +89,27 @@ below, with more in-depth information in the following subsections.
 
 ``init``
     Abstract-circuit optimizations, and reduction of multi-qubit operations to one- and two-qubit
-    operations.  See :ref:`transpiler-preset-stage-init` for more detail.
+    operations.  See :ref:`transpiler-preset-stage-init` for more details.
 
 ``layout``
     Choose an initial mapping of virtual qubits to physical qubits, including expansion of the
     circuit to contain explicit ancillas.  This stage sometimes subsumes ``routing``.  See
-    :ref:`transpiler-preset-stage-layout` for more detail.
+    :ref:`transpiler-preset-stage-layout` for more details.
 
 ``routing``
-    Insert gates into the circuit to ensure it matches connectivity constraints of the
+    Insert gates into the circuit to ensure it matches the connectivity constraints of the
     :class:`.Target`.  The inserted gates need not match the target ISA yet, so are often just
     ``swap`` instructions.  This stage is sometimes omitted, when the ``layout`` stage handles its
-    job.  See :ref:`transpiler-preset-stage-routing` for more detail.
+    job.  See :ref:`transpiler-preset-stage-routing` for more details.
 
 ``translation``
     Convert all gates in the circuit to ones matching the :class:`Target`\\ s ISA.  See
-    :ref:`transpiler-preset-stage-translation` for more detail.
+    :ref:`transpiler-preset-stage-translation` for more details.
 
 ``optimization``
     Low-level, hardware-aware optimizations.  Unlike the abstract optimizations of the ``init``
     stage, this stage acts on a physical circuit.  See :ref:`transpiler-preset-stage-optimization`
-    for more detail.
+    for more details.
 
 ``scheduling``
     Insert :class:`~.circuit.Delay` instructions to make the wall-clock timing of a circuit
@@ -118,10 +118,10 @@ below, with more in-depth information in the following subsections.
     :ref:`transpiler-preset-stage-scheduling` for more details.
 
 The preset transpiler pipelines can also be configured at a high level by setting an
-``optimization_level``.  This is an integer from 0 to 3 inclusive, indicating the relative effort to
+``optimization_level``.  This is an integer from 0 to 3, inclusive, indicating the relative effort to
 exert in attempting to optimize the circuit for the hardware.  Level 0 disables all unnecessary
-optimizations; only transformations needed to make the circuit runnable at all will be present.  On
-the other end, level 3 enables a full barrage of optimization techniques, some of which can be very
+optimizations; only transformations needed to make the circuit runnable are used.  On
+the other end, level 3 enables a full range of optimization techniques, some of which can be very
 expensive in compilation time.  Similar to classical compilers, optimization level 3 is not always
 guaranteed to produce the best results.  Qiskit defaults to optimization level 2, as a trade-off
 between compilation time and the expected amount of optimization.
@@ -142,7 +142,7 @@ this can be overridden by passing explicit ``<stage>_method="<choice>"`` argumen
 Choosing preset stage implementations
 -------------------------------------
 
-Qiskit includes several implementations of several of the above stages, and more can be installed as
+Qiskit includes several implementations of the above stages, and more can be installed as
 separate "plugins".  To control which implementation of a stage is used, pass its name to the
 ``<stage>_method`` keyword argument of the two functions, such as
 ``translation_method="translator"``.  To read more about implementing such external plugins for a
@@ -176,16 +176,16 @@ For example, to generate a preset pass manager at optimization level 1 that expl
     internal construction of the :class:`.PassManager` representing the stage is not, however; the
     order of passes might change between minor versions, or new passes might be introduced.
 
-    For any stage that has one, the method named ``"default"`` is most subject to change.  Qiskit
-    will typically only make complete algorithmic changes in the default method across a
-    major-version boundary, but it may well rebalance heuristics and add new passes to default
+    For any stage that has one, the method named ``"default"`` is the most subject to change.  Qiskit
+    typically only makes complete algorithmic changes in the default method across a
+    major-version boundary, but it might rebalance heuristics and add new passes to default
     methods between minor versions.
 
 Since the output of :func:`.generate_preset_pass_manager` is a :class:`.StagedPassManager`, you can
 also modify the pass manager after its creation to provide an entirely custom stage implementation.
 For example, if you wanted to run a custom scheduling stage using dynamical decoupling (using the
 :class:`~.PadDynamicalDecoupling` pass) and also add initial logical optimization prior to routing,
-you would do something like (building off the previous example):
+you would do something like the following (building off the previous example):
 
 .. plot::
    :include-source:
@@ -277,12 +277,12 @@ inverse gates, such as two back-to-back ``cx`` gates.
 At optimization levels 2 and 3, the default plugin enables a much wider range of abstract
 optimizations.  This includes:
 
-* "virtual permutation elision" (see :class:`.ElidePermutations`), where explicit
+* "Virtual permutation elision" (see :class:`.ElidePermutations`), where explicit
   permutation-inducing operations are removed and instead effected as remapping of virtual qubits.
-* analysis of the commutation structure of the IR to find pairs of gates that can be canceled out.
-* numerical splitting of two-qubit operations that can be expressed as a series of separable one-qubit
+* Analysis of the commutation structure of the IR to find pairs of gates that can be canceled out.
+* Numerical splitting of two-qubit operations that can be expressed as a series of separable one-qubit
   operations.
-* removal of imperceivable operations, such as tiny-angle Pauli rotations and diagonal operations
+* Removal of imperceivable operations, such as tiny-angle Pauli rotations and diagonal operations
   immediately preceding measurements.
 
 .. _transpiler-preset-stage-layout:
@@ -311,7 +311,7 @@ The layout stage must set the properties ``layout`` and ``original_qubit_indices
 At any given point in a circuit, we can identify a mapping between currently active "virtual" qubits
 of the input circuit to hardware qubits of the backend.  A hardware qubit can only ever represent a
 single virtual qubit at a given point, but the mapping might vary over the course of the circuit.
-In principle, some virtual qubits may not necessarily be mapped at all points in the circuit
+In principle, some virtual qubits might not be mapped at all points in the circuit
 execution, if the lifetime of a virtual qubit state can be shortened, though Qiskit's built-in
 pipelines do not use this currently.
 
@@ -330,18 +330,18 @@ output circuit. The layout stage is often the most computationally expensive sta
 pipelines; the default plugin for layout even tries several different algorithms (described in more
 detail in :ref:`transpiler-preset-stage-layout-default`).
 
-The ideal situation for the layout stage is to find a "perfect" layout, which causes all operations
-to already respect the connectivity constraints of the :class:`.Target` such that the routing stage
+The ideal situation for the layout stage is to find a "perfect" layout, where all operations
+respect the connectivity constraints of the :class:`.Target` such that the routing stage
 is not required.  This is typically not possible for arbitrary input circuits, but when it is, the
-:class:`.VF2Layout` pass can be used to find an valid initial layout.  If multiple perfect layouts
-are found, a scoring heuristic based on estimated error rates is used to decide.
+:class:`.VF2Layout` pass can be used to find a valid initial layout.  If multiple perfect layouts
+are found, a scoring heuristic based on estimated error rates is used to decide which one to use.
 
 In all built-in plugins, passing the :func:`.generate_preset_pass_manager` argument
 ``initial_layout`` causes the given layout to be used verbatim, skipping the individual "choosing"
 logic.  All built-in plugins also handle embedding the circuit into the full width of the device,
 including assigning ancillas.
 
-If writing your own layout plugin, you might find :func:`.generate_embed_passmanager` useful for
+If you write your own layout plugin, you might find :func:`.generate_embed_passmanager` useful for
 automating the "embedding" stage of the layout application.
 
 When writing :ref:`stage plugins <transpiler-preset-stage-plugins>`, the entry point for ``layout``
@@ -362,13 +362,13 @@ is ``qiskit.transpiler.layout``.  The built-in plugins are:
         initial qubits.
 
     * - :ref:`trivial <transpiler-preset-stage-layout-trivial>`
-      - Maps virtual qubit 0 to physical qubit 0, etc.
+      - Maps virtual qubit 0 to physical qubit 0, and so on.
 
     * - :ref:`sabre <transpiler-preset-stage-layout-sabre>`
       - Uses `Qiskit's enhanced Sabre layout algorithm <sabre-lightsabre-paper_>`_.
 
 At all optimization levels, the default layout method is ``default``, though the structure of this
-stage itself changes dramatically based on the level.
+stage changes dramatically based on the level.
 
 .. _transpiler-preset-stage-layout-default:
 
@@ -382,7 +382,7 @@ At optimization level 0, the trivial layout is chosen.
 At optimization levels above 0, there is a two-step process:
 
 #. First, use :class:`.VF2Layout` to attempt to find a "perfect" layout.  The maximum number of
-   calls to the isomorphism evaluator increases with optimization level.  For huge, complex targets,
+   calls to the isomorphism evaluator increases with the optimization level.  For huge, complex targets,
    we are not guaranteed to find perfect layouts even if they exist, but the chance increases with
    the optimization level.
 
@@ -390,7 +390,7 @@ At optimization levels above 0, there is a two-step process:
    the numbers of initial layout trials, swap-map trials, and forwards–backwards iterations
    increasing with the optimization level.
 
-In addition, optimization level also attempts the trivial layout before the VF2-based version, for
+In addition, optimization levels above 0 also try the trivial layout before the VF2-based version, for
 historical backwards compatibility.
 
 
@@ -433,14 +433,14 @@ Uses the :class:`.SabreLayout` to choose an initial layout, using Qiskit's modif
 routing algorithm <transpiler-preset-stage-routing-sabre>` as the subroutine to swap-map the
 candidate circuit both forwards and backwards.
 
-Summarily, the layout component of `the original Sabre algorithm <sabre-original-paper_>`_ is to
-choose an initial layout arbitrarily, then to "improve" it by running routing on the circuit,
+Summarily, the layout component of `the original Sabre algorithm <sabre-original-paper_>`_ 
+chooses an initial layout arbitrarily, then tries to "improve" it by running routing on the circuit,
 reversing the circuit, and running routing on the reversed circuit with the previous "final"
 virtual-to-hardware assignment as the initial state.  The configured optimization level decides how
 many iterations of this to-and-fro to do, and how many different random initial layouts to try.
 
 The principal difference to the :ref:`default stage <transpiler-preset-stage-layout-default>` at
-optimization levels other than zero is that this plugin *only* runs the Sabre-based algorithm.  It
+optimization levels other than 0 is that this plugin *only* runs the Sabre-based algorithm.  It
 does not attempt to find a perfect layout, nor attempt the trivial layout.
 
 
@@ -456,7 +456,7 @@ Routing stage
 
 The routing stage ensures that the virtual connectivity graph of the circuit is compatible with the
 hardware connectivity graph of the target.  In simpler terms, the routing stage makes sure that all
-two-qubit gates in the circuit take place on hardware qubits that have a defined two-qubit operation
+two-qubit gates in the circuit are mapped to hardware qubits that have a defined two-qubit operation
 in the target ISA.  You may also see this problem referred to as the "mapping" or "swap-mapping"
 problem in other toolkits or literature.
 
@@ -473,7 +473,7 @@ The routing stage must set the properties ``final_layout`` and ``virtual_permuta
 the :class:`.PropertySet` if routing has taken place.
 
 All of Qiskit's built-in routing stages will additionally run the :class:`.VF2PostLayout` pass after
-routing.  This may choose to reassign the initial layout, if lower-error qubits can be found.  This
+routing.  This might reassign the initial layout, if lower-error qubits can be found.  This
 pass is very similar to the :class:`.VF2Layout` class that :ref:`the default layout plugin
 <transpiler-preset-stage-layout-default>` uses, except in :class:`.VF2PostLayout` we can guarantee
 that there is at least one isomorphic induced subgraph of the target topology that matches the
@@ -491,7 +491,7 @@ circuit topology.
 
     Finding the minimal number of swaps to insert is known to be a non-polynomial problem.  This
     means it is prohibitively expensive to attempt, so many of Qiskit's built-in algorithms are
-    stochastic, and you may see large variation between different compilations.  If you need
+    stochastic, and you may see large variations between different compilations.  If you need
     reproducibility, be sure to set the ``seed_transpiler`` argument of
     :func:`.generate_preset_pass_manager` or :func:`.transpile`.
 
@@ -568,7 +568,7 @@ Uses the :class:`.LookaheadSwap` algorithm to route.  Approximately, this is a b
 at producing a swap network, where the tree being explored is pruned down to a small number of
 candidate swaps at each depth.
 
-This algorithm is somewhat akin to the ``basic`` heuristic of :ref:`the "sabre" plugin
+This algorithm is similar to the ``basic`` heuristic of :ref:`the "sabre" plugin
 <transpiler-preset-stage-routing-sabre>`, except it considers the following effects of each swap to
 a small depth as well.
 
@@ -613,9 +613,9 @@ representing the ``cx`` gate using the ``cz`` and available one-qubit gates.
 
 .. note::
 
-    In the Qiskit 1.x series, translation plugins need not output gates with the correct
+    In Qiskit 1.x, translation plugins need not output gates with the correct
     directionality, provided the gate exists with opposite directionality on the given qubit pair.
-    For example, if ``cx(0, 1)`` is ISA-supported, the translation stage is permitted to output
+    For example, if ``cx(0, 1)`` is ISA-supported, the translation stage can output
     ``cx(1, 0)``.
 
     This is likely to change in later versions of Qiskit.
@@ -655,13 +655,13 @@ Collect runs of gates on the same qubits into matrix form, and then resynthesize
 :class:`.UnitarySynthesis` pass (with the configured ``unitary_synthesis_method``).  This is, in
 large part, similar to the optimization loop itself at high optimization levels.
 
-The collection to matrices is typically more expensive than matrix-free translations, but in
+The collection into matrices is typically more expensive than matrix-free translations, but in
 principle the quality of the translations can be better.  In practice, this requires a synthesis
 algorithm tailored to the target ISA, which makes this method less general than other methods. It
 can produce higher-quality results when targeting simple ISAs that match the synthesis routines
 already in Qiskit.
 
-If this method is used, you might not need the optimization loop at all.
+If this method is used, you might not need the optimization loop.
 
 The optimization level has no effect on this plugin.
 
@@ -698,7 +698,7 @@ ISA-compatible, so a low-level optimization plugin can be tailored for a particu
 
 There are very few requirements on an optimization plugin, other than it takes in ISA-supported
 circuits, and returns ISA-supported circuits.  An optimization plugin will often contain a loop,
-such as the :class:`.DoWhileController`, and may choose to include the configured translation stage
+such as the :class:`.DoWhileController`, and might include the configured translation stage
 as a fix-up pipeline.
 
 Qiskit's built-in optimization plugins are general, and apply well to most real-world ISAs for
@@ -730,8 +730,8 @@ are described below.
 
 At optimization level 0, the stage is empty.
 
-At optimization level 1, the stage does matrix-based resynthesis of runs of 1q gates, and very
-simply symbolic inverse cancellation of two-qubit gates, if they appear consecutively.  This runs
+At optimization level 1, the stage does matrix-based resynthesis of runs of single-qubit gates, and very
+simple symbolic inverse cancellation of two-qubit gates, if they appear consecutively.  This runs
 in a loop until the size and depth of the circuit are fixed.
 
 At optimization level 2, in addition the optimizations of level 1, the loop contains commutation
@@ -779,10 +779,10 @@ When writing :ref:`stage plugins <transpiler-preset-stage-plugins>`, the entry p
       - Attempt to satisfy timing alignment constraints without otherwise scheduling.
 
     * - :ref:`alap <transpiler-preset-stage-scheduling-alap>`
-      - Schedule the circuit preferring operations to be as late as possible.
+      - Schedule the circuit, preferring operations to be as late as possible.
 
     * - :ref:`asap <transpiler-preset-stage-scheduling-asap>`
-      - Schedule the circuit preferring operations to be as soon as possible.
+      - Schedule the circuit, preferring operations to be as soon as possible.
 
 .. _transpiler-preset-stage-scheduling-default:
 
@@ -791,7 +791,7 @@ Built-in ``default`` plugin
 
 Do nothing, unless the circuit already contains instructions with explicit timings.  If there are
 explicitly timed operations in the circuit, insert additional padding to ensure that these timings
-satisfy the alignment and other constraints of the hardware.
+satisfy the alignment and other hardware constraints.
 
 .. _transpiler-preset-stage-scheduling-alap:
 
