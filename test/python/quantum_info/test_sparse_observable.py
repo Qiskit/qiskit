@@ -2030,36 +2030,35 @@ class TestSparseObservable(QiskitTestCase):
 
         with self.subTest(msg="multiple"):
             obs = SparseObservable.from_list([("lrI0", 0.5), ("YYIZ", -1j)])
-            # expected = [("ZYY", [0, 2, 3], -1j), ("lr0", [3, 2, 0], 0.5)]
             expected = [("lr0", [3, 2, 0], 0.5), ("ZYY", [0, 2, 3], -1j)]
             self.assertEqual(
                 canonicalize_sparse_list(expected), canonicalize_sparse_list(obs.to_sparse_list())
             )
 
-    def test_to_paulis(self):
+    def test_as_paulis(self):
         """Test converting to Paulis."""
         # test on zero operator
         with self.subTest(msg="zero"):
             obs = SparseObservable.zero(10)
-            obs_paulis = obs.to_paulis()
+            obs_paulis = obs.as_paulis()
             self.assertEqual(obs, obs_paulis)
 
         # test on identity operator
         with self.subTest(msg="identity"):
             obs = SparseObservable.identity(10)
-            obs_paulis = obs.to_paulis()
+            obs_paulis = obs.as_paulis()
             self.assertEqual(obs, obs_paulis)
 
         # test it does nothing on Paulis
         with self.subTest(msg="paulis"):
             obs = SparseObservable.from_list([("IIX", 1), ("ZZY", -1)])
-            obs_paulis = obs.to_paulis()
+            obs_paulis = obs.as_paulis()
             self.assertEqual(obs, obs_paulis)
 
         # test explicitly on written-out projector
         with self.subTest(msg="lrI0"):
             obs = SparseObservable("lrI0")
-            obs_paulis = obs.to_paulis()
+            obs_paulis = obs.as_paulis()
             expected = SparseObservable.from_sparse_list(
                 [
                     ("", [], 1 / 8),
@@ -2078,7 +2077,7 @@ class TestSparseObservable(QiskitTestCase):
         # test multiple terms
         with self.subTest(msg="+X + lY - ZI"):
             obs = SparseObservable.from_list([("+X", 1), ("rY", 1), ("ZI", -1)])
-            obs_paulis = obs.to_paulis()
+            obs_paulis = obs.as_paulis()
 
             expected = SparseObservable.from_list(
                 [("IX", 0.5), ("XX", 0.5), ("IY", 0.5), ("YY", -0.5), ("ZI", -1)]

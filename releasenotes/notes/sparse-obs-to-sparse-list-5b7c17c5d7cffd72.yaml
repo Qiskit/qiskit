@@ -10,13 +10,13 @@ features_quantum_info:
       print(obs.to_sparse_list())  # [("+", [2], 1), ("-", [2], 1)]
 
   - | 
-    Added :meth:`.SparseObservable.to_paulis` to express a sparse observable in terms of Paulis
+    Added :meth:`.SparseObservable.as_paulis` to express a sparse observable in terms of Paulis
     only by expanding all projectors. For example::
 
       from qiskit.quantum_info import SparseObservable
 
       obs = SparseObservable("+-")
-      obs_paulis = obs.to_paulis()  # 1/4 ( II + XI - IX - XX )
+      obs_paulis = obs.as_paulis()  # 1/4 ( II + XI - IX - XX )
 
   - |
     Support construction of a :class:`.SparsePauliOp` from a :class:`.SparseObservable`
