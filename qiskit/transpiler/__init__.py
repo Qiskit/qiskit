@@ -50,7 +50,7 @@ Qiskit exposes a default transpilation pipeline builder using the function
 :func:`.generate_preset_pass_manager`.  This returns a properly configured pipeline for complete
 transpilation, at a chosen ``optimization_level`` (between 0 and 3, inclusive).  Unless you are
 looking for something highly specialized, this is almost certainly the entry point you want.  A
-sample transpilation looks like:
+sample transpilation looks like::
 
     from qiskit.circuit import QuantumCircuit
     from qiskit.transpiler import generate_preset_pass_manager
@@ -82,7 +82,7 @@ The function :func:`.generate_preset_pass_manager` creates the "preset pass mana
 These are all instances of :class:`.PassManager`, so are used by passing a :class:`.QuantumCircuit`
 to the :meth:`.PassManager.run` method.  More specifically, the preset pass managers are instances
 of :class:`.StagedPassManager`, which allows greater configuration of the individual stages of a
-transpilation, include pre- and post-stage hooks.
+transpilation, including pre- and post-stage hooks.
 
 A preset pass manager has up to six named stages.  These are summarized, in order of execution,
 below, with more in-depth information in the following subsections.
@@ -136,7 +136,7 @@ this can be overridden by passing explicit ``<stage>_method="<choice>"`` argumen
     to ensure reproducibility of a compilation, pass a known integer to the ``seed_transpiler``
     argument to the generator functions.
 
-    This stochasticity is because many of the problems the transpiler must solve are known to be
+    This stochasticity arises because many of the problems the transpiler must solve are known to be
     non-polynomial in complexity, but transpilation must complete in a workable amount of time.
 
 Choosing preset stage implementations
@@ -399,7 +399,7 @@ for historical backwards compatibility.
 Built-in ``dense`` plugin
 .........................
 
-Uses the class:`.DenseLayout` pass to choose the layout.  This pass finds the densest connected
+Uses the :class:`.DenseLayout` pass to choose the layout.  This pass finds the densest connected
 subgraph of the complete target connectivity graph, where "densest" means that hardware qubits with
 the greatest number of available connections are preferred.  The virtual-to-hardware mapping is
 completed by assigning the highest-degree virtual qubits to the highest-degree hardware qubits.
@@ -469,7 +469,7 @@ ISA.  For example, a routing plugin can leave literal ``swap`` gates in the circ
 gate defined in the :class:`.Target` for any pair of hardware qubits that has a gate applied in the
 circuit.
 
-The routing stage must set the properties ``final_layout`` and ``virtual_permutation_layout`` in
+The routing stage must set the ``final_layout`` and ``virtual_permutation_layout`` properties in
 the :class:`.PropertySet` if routing has taken place.
 
 All of Qiskit's built-in routing stages will additionally run the :class:`.VF2PostLayout` pass after
@@ -820,7 +820,9 @@ this. You can define arbitrary stage names and populate them with a :class:`~.Pa
 instance. For example, the following code creates a new :class:`~.StagedPassManager`
 that has two stages, ``init`` and ``translation``.
 
-.. code-block::
+.. plot::
+    :include-source:
+    :nofigs:
 
     from qiskit.transpiler.passes import (
         UnitarySynthesis,
