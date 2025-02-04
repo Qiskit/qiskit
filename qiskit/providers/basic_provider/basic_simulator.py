@@ -438,7 +438,7 @@ class BasicSimulator(BackendV2):
             * kwarg options specified in ``run_options`` will temporarily override
               any set options of the same name for the current run. These may include:
 
-                * "initial_statevector": vector_like. The "initial_statevector"
+                * "initial_statevector": vector-like. The "initial_statevector"
                   option specifies a custom initial statevector to be used instead
                   of the all-zero state. The size of this vector must correspond to
                   the number of qubits in the ``run_input`` argument.
@@ -446,7 +446,7 @@ class BasicSimulator(BackendV2):
                 * "seed_simulator": int. This is the internal seed for sample
                   generation.
 
-                * "shots": int. number of shots used in the simulation.
+                * "shots": int. Number of shots used in the simulation.
 
                 * "memory": bool. If True, the result will contain the results
                   of every individual shot simulation.
@@ -515,7 +515,7 @@ class BasicSimulator(BackendV2):
                 "name": name of this experiment
                 "seed": random seed used for simulation
                 "shots": number of shots used in the simulation
-                "header: {
+                "header": {
                     "name": "circuit-206",
                     "n_qubits": 3,
                     "qreg_sizes": [['qr', 3]],
@@ -662,7 +662,6 @@ class BasicSimulator(BackendV2):
             "global_phase": circuit.global_phase,
             "metadata": circuit.metadata if circuit.metadata is not None else {},
         }
-        print(header)
         # Return result dictionary
         return {
             "name": circuit.name,
