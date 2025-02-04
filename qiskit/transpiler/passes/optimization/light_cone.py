@@ -80,8 +80,7 @@ class LightCone(TransformationPass):
         the non-trivial Paulis define the lightcone.
         """
         if self.observable is None:
-            qubits_measured = self._find_measurement_qubits(dag)
-            light_cone = qubits_measured
+            light_cone = self._find_measurement_qubits(dag)
             light_cone_ops = [(PauliGate("Z"), [qubit_index]) for qubit_index in light_cone]
         else:
             # Check if the size of the observable matches the number of qubits in the circuit
@@ -114,7 +113,7 @@ class LightCone(TransformationPass):
         light_cone, light_cone_ops = self._get_initial_lightcone(dag)
 
         #  Initialize a new, empty DAG
-        new_dag = DAGCircuit()
+        new_dag = dag.copy_empty_like()
 
         new_dag.add_qreg(*dag.qregs.values())
 
