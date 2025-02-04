@@ -948,7 +948,7 @@ class SparsePauliOp(LinearOp):
         Returns:
             A :class:`.SparsePauliOp` version of the observable.
         """
-        as_sparse_list = obs.to_paulis().to_sparse_list()
+        as_sparse_list = obs.as_paulis().to_sparse_list()
         return SparsePauliOp.from_sparse_list(as_sparse_list, obs.num_qubits)
 
     def to_list(self, array: bool = False):

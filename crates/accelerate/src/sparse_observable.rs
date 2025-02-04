@@ -1800,7 +1800,7 @@ impl PySparseTerm {
 /// You can put a :class:`SparseObservable` in canonical form by using the :meth:`simplify` method.
 /// The precise ordering of terms in canonical ordering is not specified, and may change between
 /// versions of Qiskit.  Within the same version of Qiskit, however, you can compare two observables
-/// structurally by comparing their simplified forms.
+/// structurally by comparing their simplified forms.  
 ///
 /// .. note::
 ///
@@ -1812,10 +1812,11 @@ impl PySparseTerm {
 ///
 /// .. note::
 ///
-///     The canonical form produced by :meth:`simplify` will still not universally detect all
-///     observables that are equivalent due to the over-complete basis alphabet; it is not
-///     computationally feasible to do this at scale.  For example, on observable built from ``+``
-///     and ``-`` components will not canonicalize to a single ``X`` term.
+///     The canonical form produced by :meth:`simplify` alone will not universally detect all
+///     observables that are equivalent due to the over-complete basis alphabet. To obtain a
+///     unique expression, you can first represent the observable using Pauli terms only by
+///     calling :meth:`as_paulis`, followed by :meth:`simplify`. Note that the projector
+///     expansion (e.g. ``+`` into ``I`` and ``X``) is not computationally feasible at scale.
 ///
 /// Indexing
 /// --------
@@ -1895,6 +1896,21 @@ impl PySparseTerm {
 ///   :meth:`identity`              The identity operator on a given number of qubits.
 ///   ============================  ================================================================
 ///
+/// Conversions
+/// ===========
+///
+/// An existing :class:`SparseObservable` can be converted into other :mod:`~qiskit.quantum_info`
+/// operators or generic formats.
+///
+///   ============================================  ================================================
+///   Method                                        Summary
+///   ============================================  ================================================
+///   :meth:`SparsePauliOp.from_sparse_observable`  Construct a :class:`.SparsePauliOp` from a
+///                                                 :class:`SparseObservable`.
+///
+///   :meth:`to_sparse_list`                        Express the observable in a sparse list format
+///                                                 with elements ``(bit_terms, indices, coeff)``.
+///   ============================================  ================================================
 ///
 /// Mathematical manipulation
 /// =========================
