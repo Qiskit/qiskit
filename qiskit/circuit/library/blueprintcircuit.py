@@ -14,6 +14,7 @@
 
 from __future__ import annotations
 from abc import ABC, abstractmethod
+import copy as _copy
 
 from qiskit._accelerate.circuit import CircuitData
 from qiskit.circuit import QuantumRegister, ClassicalRegister
@@ -263,14 +264,45 @@ class BlueprintCircuit(QuantumCircuit, ABC):
             self._build()
         return super().num_connected_components(unitary_only=unitary_only)
 
-    def copy_empty_like(self, name=None, *, vars_mode="alike"):
+    def copy_empty_like(
+        self, name: str | None = None, *, vars_mode: str = "alike"
+    ) -> QuantumCircuit:
+        """Return an empty :class:`.QuantumCircuit` of same size and metadata.
+
+        See also :meth:`.QuantumCircuit.copy_empty_like` for more details on copied metadata.
+
+        Args:
+            name: Name for the copied circuit. If None, then the name stays the same.
+            vars_mode: The mode to handle realtime variables in.
+
+        Returns:
+            An empty circuit of same dimensions. Note that the result is no longer a
+            :class:`.BlueprintCircuit`.
+        """
+
         cpy = QuantumCircuit(*self.qregs, *self.cregs, name=name, global_phase=self.global_phase)
         _copy_metadata(self, cpy, vars_mode)
         return cpy
 
-    def copy(self, name=None):
+    def copy(self, name: str | None = None) -> BlueprintCircuit:
+        """Copy the blueprint circuit.
+
+        Args:
+            name: Name to be given to the copied circuit. If None, then the name stays the same.
+
+        Returns:
+            A deepcopy of the current blueprint circuit, with the specified name.
+        """
         if not self._is_built:
             self._build()
-        circuit_copy = super().copy(name=name)
-        circuit_copy._is_built = self._is_built
-        return circuit_copy
+
+        cpy = _copy.copy(self)
+        _copy_metadata(self, cpy, "alike")
+
+        cpy._is_built = self._is_built
+        cpy._data = self._data.copy()
+
+        if name is not None:
+            cpy.name = name
+
+        return cpy
