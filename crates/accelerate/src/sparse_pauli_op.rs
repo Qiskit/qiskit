@@ -1161,7 +1161,7 @@ macro_rules! impl_to_matrix_sparse {
             // to keep threads busy by subdivision with minimizing overhead; we're setting the
             // chunk size such that the iterator will have as many elements as there are threads.
             let num_threads = rayon::current_num_threads();
-            let chunk_size = (side + num_threads - 1) / num_threads;
+            let chunk_size = side.div_ceil(num_threads);
             let mut values_chunks = Vec::with_capacity(num_threads);
             let mut indices_chunks = Vec::with_capacity(num_threads);
             // SAFETY: the slice here is uninitialised data; it must not be read.

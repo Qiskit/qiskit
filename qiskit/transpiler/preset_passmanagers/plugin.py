@@ -79,7 +79,7 @@ load external plugins via corresponding entry points.
        ``second_final_layout.compose(first_final_layout, dag.qubits)``).
    * - ``translation``
      - ``qiskit.transpiler.translation``
-     - ``translator``, ``synthesis``, ``unroller``
+     - ``translator``, ``synthesis``
      - The output of this stage is expected to have every operation be a native
         instruction on the target backend.
    * - ``optimization``
