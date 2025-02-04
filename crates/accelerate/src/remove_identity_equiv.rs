@@ -9,6 +9,7 @@
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
+use std::f64::consts::PI;
 
 use num_complex::Complex64;
 use num_complex::ComplexFloat;
@@ -27,11 +28,13 @@ use qiskit_circuit::packed_instruction::PackedInstruction;
 #[pyfunction]
 #[pyo3(signature=(dag, approx_degree=Some(1.0), target=None))]
 fn remove_identity_equiv(
+    py: Python,
     dag: &mut DAGCircuit,
     approx_degree: Option<f64>,
     target: Option<&Target>,
 ) {
     let mut remove_list: Vec<NodeIndex> = Vec::new();
+    let mut extra_pi_rotations = 0;
 
     let get_error_cutoff = |inst: &PackedInstruction| -> f64 {
         match approx_degree {
@@ -130,7 +133,11 @@ fn remove_identity_equiv(
                     let f_pro = (trace / dim).abs().powi(2);
                     let gate_fidelity = (dim * f_pro + 1.) / (dim + 1.);
                     if (1. - gate_fidelity).abs() < error {
-                        remove_list.push(op_node)
+                        remove_list.push(op_node);
+                        if trace.re < 0. {
+                            // the matrix is close to -I instead of I
+                            extra_pi_rotations += 1;
+                        }
                     }
                 }
             }
@@ -139,6 +146,10 @@ fn remove_identity_equiv(
     }
     for node in remove_list {
         dag.remove_op_node(node);
+    }
+
+    if extra_pi_rotations % 2 == 1 {
+        dag.add_global_phase(py, &Param::Float(-PI)).unwrap();
     }
 }
 

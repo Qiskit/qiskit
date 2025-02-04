@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed a bug in :class:`.RemoveIdentityEquivalent` transpiler pass, where the
+    unitary gates close to ``-I`` were removed from the circuit, but the global
+    phase was not updated correctly.

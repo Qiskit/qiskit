@@ -26,6 +26,7 @@ from qiskit.circuit.library import (
     XXMinusYYGate,
     XXPlusYYGate,
     GlobalPhaseGate,
+    UnitaryGate,
 )
 from qiskit.quantum_info import Operator
 from qiskit.transpiler.passes import RemoveIdentityEquivalent
@@ -183,3 +184,24 @@ class TestDropNegligible(QiskitTestCase):
         expected = QuantumCircuit(1)
         expected.append(GlobalPhaseGate(0))
         self.assertEqual(transpiled, expected)
+
+    def test_odd_minus_id_gates(self):
+        """Test that -I gates are dropped and the phase is updated correctly."""
+        qc = QuantumCircuit(2)
+        unitary = np.array([[-1, 0], [0, -1]])
+        qc.append(UnitaryGate(unitary), [0])
+        qc.append(UnitaryGate(unitary), [1])
+        qc.append(UnitaryGate(unitary), [0])
+        transpiled = RemoveIdentityEquivalent()(qc)
+        self.assertEqual(transpiled.size(), 0)
+        self.assertAlmostEqual(transpiled.global_phase, np.pi)
+
+    def test_even_minus_id_gates(self):
+        """Test that -I gates are dropped and the phase is updated correctly."""
+        qc = QuantumCircuit(2)
+        unitary = np.array([[-1, 0], [0, -1]])
+        qc.append(UnitaryGate(unitary), [0])
+        qc.append(UnitaryGate(unitary), [1])
+        transpiled = RemoveIdentityEquivalent()(qc)
+        self.assertEqual(transpiled.size(), 0)
+        self.assertAlmostEqual(transpiled.global_phase, 0)
