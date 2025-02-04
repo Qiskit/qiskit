@@ -564,7 +564,7 @@ algorithm <transpiler-preset-stage-routing-sabre>`.
 Built-in ``lookahead`` plugin
 .............................
 
-Uses the :class:`.LookaheadSwap` algorithm to route.  Approximately, this is a breadth-first search
+Uses the :class:`.LookaheadSwap` algorithm to route.  This is essentially a breadth-first search
 at producing a swap network, where the tree being explored is pruned down to a small number of
 candidate swaps at each depth.
 
