@@ -84,7 +84,6 @@ Other:
 .. toctree::
    :maxdepth: 1
 
-   assembler
    compiler
    exceptions
    qobj

@@ -2956,10 +2956,15 @@ impl PySparseObservable {
         other: &Bound<'py, PyAny>,
     ) -> PyResult<Bound<'py, PyAny>> {
         let py = slf_.py();
-        if slf_.is(other) {
+        let Some(other) = coerce_to_observable(other)? else {
+            return Ok(py.NotImplemented().into_bound(py));
+        };
+
+        let other = other.borrow();
+        let slf_ = slf_.borrow();
+        if Arc::ptr_eq(&slf_.inner, &other.inner) {
             // This fast path is for consistency with the in-place `__iadd__`, which would otherwise
             // struggle to do the addition to itself.
-            let slf_ = slf_.borrow();
             let inner = slf_.inner.read().map_err(|_| InnerReadError)?;
             return <&SparseObservable as ::std::ops::Mul<_>>::mul(
                 &inner,
@@ -2967,12 +2972,7 @@ impl PySparseObservable {
             )
             .into_bound_py_any(py);
         }
-        let Some(other) = coerce_to_observable(other)? else {
-            return Ok(py.NotImplemented().into_bound(py));
-        };
-        let slf_ = slf_.borrow();
         let slf_inner = slf_.inner.read().map_err(|_| InnerReadError)?;
-        let other = other.borrow();
         let other_inner = other.inner.read().map_err(|_| InnerReadError)?;
         slf_inner.check_equal_qubits(&other_inner)?;
         <&SparseObservable as ::std::ops::Add>::add(&slf_inner, &other_inner).into_bound_py_any(py)
@@ -2992,13 +2992,7 @@ impl PySparseObservable {
         <&SparseObservable as ::std::ops::Add>::add(&other_inner, &inner).into_bound_py_any(py)
     }
 
-    fn __iadd__(slf_: Bound<Self>, other: &Bound<PyAny>) -> PyResult<()> {
-        if slf_.is(other) {
-            let slf_ = slf_.borrow();
-            let mut slf_inner = slf_.inner.write().map_err(|_| InnerWriteError)?;
-            *slf_inner *= Complex64::new(2.0, 0.0);
-            return Ok(());
-        }
+    fn __iadd__(slf_: Bound<PySparseObservable>, other: &Bound<PyAny>) -> PyResult<()> {
         let Some(other) = coerce_to_observable(other)? else {
             // This is not well behaved - we _should_ return `NotImplemented` to Python space
             // without an exception, but limitations in PyO3 prevent this at the moment.  See
@@ -3008,9 +3002,18 @@ impl PySparseObservable {
                 other.repr()?
             )));
         };
+
+        let other = other.borrow();
         let slf_ = slf_.borrow();
         let mut slf_inner = slf_.inner.write().map_err(|_| InnerWriteError)?;
-        let other = other.borrow();
+
+        // Check if slf_ and other point to the same SparseObservable object, in which case
+        // we just multiply it by 2
+        if Arc::ptr_eq(&slf_.inner, &other.inner) {
+            *slf_inner *= Complex64::new(2.0, 0.0);
+            return Ok(());
+        }
+
         let other_inner = other.inner.read().map_err(|_| InnerReadError)?;
         slf_inner.check_equal_qubits(&other_inner)?;
         slf_inner.add_assign(&other_inner);
@@ -3022,16 +3025,17 @@ impl PySparseObservable {
         other: &Bound<'py, PyAny>,
     ) -> PyResult<Bound<'py, PyAny>> {
         let py = slf_.py();
-        if slf_.is(other) {
-            return PySparseObservable::zero(slf_.borrow().num_qubits()?).into_bound_py_any(py);
-        }
         let Some(other) = coerce_to_observable(other)? else {
             return Ok(py.NotImplemented().into_bound(py));
         };
 
-        let slf_ = slf_.borrow();
-        let slf_inner = slf_.inner.read().map_err(|_| InnerReadError)?;
         let other = other.borrow();
+        let slf_ = slf_.borrow();
+        if Arc::ptr_eq(&slf_.inner, &other.inner) {
+            return PySparseObservable::zero(slf_.num_qubits()?).into_bound_py_any(py);
+        }
+
+        let slf_inner = slf_.inner.read().map_err(|_| InnerReadError)?;
         let other_inner = other.inner.read().map_err(|_| InnerReadError)?;
         slf_inner.check_equal_qubits(&other_inner)?;
         <&SparseObservable as ::std::ops::Sub>::sub(&slf_inner, &other_inner).into_bound_py_any(py)
@@ -3050,13 +3054,6 @@ impl PySparseObservable {
     }
 
     fn __isub__(slf_: Bound<PySparseObservable>, other: &Bound<PyAny>) -> PyResult<()> {
-        if slf_.is(other) {
-            // This is not strictly the same thing as `a - a` if `a` contains non-finite
-            // floating-point values (`inf - inf` is `NaN`, for example); we don't really have a
-            // clear view on what floating-point guarantees we're going to make right now.
-            slf_.borrow_mut().clear()?;
-            return Ok(());
-        }
         let Some(other) = coerce_to_observable(other)? else {
             // This is not well behaved - we _should_ return `NotImplemented` to Python space
             // without an exception, but limitations in PyO3 prevent this at the moment.  See
@@ -3066,9 +3063,18 @@ impl PySparseObservable {
                 other.repr()?
             )));
         };
+        let other = other.borrow();
         let slf_ = slf_.borrow();
         let mut slf_inner = slf_.inner.write().map_err(|_| InnerWriteError)?;
-        let other = other.borrow();
+
+        if Arc::ptr_eq(&slf_.inner, &other.inner) {
+            // This is not strictly the same thing as `a - a` if `a` contains non-finite
+            // floating-point values (`inf - inf` is `NaN`, for example); we don't really have a
+            // clear view on what floating-point guarantees we're going to make right now.
+            slf_inner.clear();
+            return Ok(());
+        }
+
         let other_inner = other.inner.read().map_err(|_| InnerReadError)?;
         slf_inner.check_equal_qubits(&other_inner)?;
         slf_inner.sub_assign(&other_inner);
