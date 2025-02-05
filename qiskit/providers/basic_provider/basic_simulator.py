@@ -573,7 +573,7 @@ class BasicSimulator(BackendV2):
             for operation in circuit.data:
                 if operation.name == "unitary":
                     qubits = [circuit.find_bit(bit).index for bit in operation.qubits]
-                    gate = operation.params[0]
+                    gate = operation.operation.params[0]
                     self._add_unitary(gate, qubits)
                 elif operation.name in ("id", "u0", "delay"):
                     pass
