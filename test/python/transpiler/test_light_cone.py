@@ -25,6 +25,7 @@ from qiskit.circuit import (
 )
 from qiskit.circuit.library import real_amplitudes
 from qiskit.circuit.library.n_local.efficient_su2 import efficient_su2
+from qiskit.converters import circuit_to_dag
 from qiskit.quantum_info import Pauli, SparsePauliOp
 from qiskit.transpiler.passes.optimization.light_cone import LightCone
 from qiskit.transpiler.passmanager import PassManager
@@ -58,7 +59,9 @@ class TestLightConePass(QiskitTestCase):
 
     def test_nonparameterized_commuting(self):
         """Test for a commuting, asymmetric, weight-one Pauli."""
-        light_cone = LightCone(bit_terms="X", indices=[1])
+        observable = Pauli("XI")
+        bit_terms, indices, _ = SparsePauliOp(observable).to_sparse_list()[0]
+        light_cone = LightCone(bit_terms=bit_terms, indices=indices)
         pm = PassManager([light_cone])
 
         q0 = QuantumRegister(2, "q0")
@@ -96,7 +99,9 @@ class TestLightConePass(QiskitTestCase):
 
     def test_parameterized_commuting(self):
         """Test for a commuting, asymmetric, weight-one Pauli on a parameterized circuit."""
-        light_cone = LightCone(bit_terms="X", indices=[1])
+        observable = Pauli("XI")
+        bit_terms, indices, _ = SparsePauliOp(observable).to_sparse_list()[0]
+        light_cone = LightCone(bit_terms=bit_terms, indices=indices)
         pm = PassManager([light_cone])
         theta = Parameter("θ")
 
@@ -115,7 +120,9 @@ class TestLightConePass(QiskitTestCase):
 
     def test_parameterized_symmetric(self):
         """Test for a double symmetric `Z` observable on a parameterized circuit."""
-        light_cone = LightCone(bit_terms="ZZ", indices=[0, 3])
+        observable = Pauli("ZIIZ")
+        bit_terms, indices, _ = SparsePauliOp(observable).to_sparse_list()[0]
+        light_cone = LightCone(bit_terms=bit_terms, indices=indices)
         pm = PassManager([light_cone])
 
         qc = real_amplitudes(4, entanglement="pairwise", reps=1)
@@ -138,7 +145,9 @@ class TestLightConePass(QiskitTestCase):
 
     def test_parameterized_asymmetric(self):
         """Test for a double asymmetric observable on a parameterized circuit."""
-        light_cone = LightCone(bit_terms="XZ", indices=[0, 2])
+        observable = Pauli("IZIX")
+        bit_terms, indices, _ = SparsePauliOp(observable).to_sparse_list()[0]
+        light_cone = LightCone(bit_terms=bit_terms, indices=indices)
         pm = PassManager([light_cone])
 
         qc = efficient_su2(4, entanglement="circular", reps=1)
@@ -168,7 +177,9 @@ class TestLightConePass(QiskitTestCase):
 
     def test_all_commuting(self):
         """Test for a circuit that fully commutes with an observable."""
-        light_cone = LightCone(bit_terms="Z", indices=[0])
+        observable = Pauli("IIIZ")
+        bit_terms, indices, _ = SparsePauliOp(observable).to_sparse_list()[0]
+        light_cone = LightCone(bit_terms=bit_terms, indices=indices)
         pm = PassManager([light_cone])
 
         q0 = QuantumRegister(4, "q0")
@@ -186,7 +197,9 @@ class TestLightConePass(QiskitTestCase):
     def test_commuting_block(self):
         """Test for a commuting block. Currently, gates are checked
         one by one and commuting blocks are thus ignored."""
-        light_cone = LightCone(bit_terms="X", indices=[2])
+        observable = Pauli("IIXII")
+        bit_terms, indices, _ = SparsePauliOp(observable).to_sparse_list()[0]
+        light_cone = LightCone(bit_terms=bit_terms, indices=indices)
         pm = PassManager([light_cone])
 
         q0 = QuantumRegister(5, "q0")
@@ -245,7 +258,9 @@ class TestLightConePass(QiskitTestCase):
 
     def test_parameter_expression(self):
         """Test for Parameter expressions."""
-        light_cone = LightCone(bit_terms="X", indices=[0])
+        observable = Pauli("IX")
+        bit_terms, indices, _ = SparsePauliOp(observable).to_sparse_list()[0]
+        light_cone = LightCone(bit_terms=bit_terms, indices=indices)
         pm = PassManager([light_cone])
         theta = Parameter("θ")
 
@@ -305,6 +320,44 @@ class TestLightConePass(QiskitTestCase):
         expected.rz(theta, num_qubits - 1)
 
         self.assertEqual(expected, new_circuit)
+
+    def test_raise_error_when_indices_is_empty(self):
+        """Test that `ValueError` is raised if bit_terms is given but indices is empty."""
+        with self.assertRaises(
+            ValueError, msg="`indices` must be non-empty when providing `bit_terms`."
+        ):
+            _ = LightCone(bit_terms="X", indices=[])
+
+    def test_raise_error_for_invalid_bit_terms_characters(self):
+        """Test that `ValueError` is raised if `bit_terms` has characters not in `valid_characters`."""
+        with self.assertRaises(
+            ValueError, msg="`bit_terms` should contain only characters in {...}."
+        ):
+            _ = LightCone(bit_terms="AX", indices=[0])  # 'A' is invalid
+
+    def test_raise_error_when_indices_out_of_range(self):
+        """Test that `ValueError` is raised if an index is outside the DAG qubit range."""
+        qc = QuantumCircuit(1)
+        dag = circuit_to_dag(qc)
+
+        light_cone = LightCone(bit_terms="X", indices=[1])  # index 1 doesn't exist
+        with self.assertRaises(
+            ValueError, msg="`indices` contains values outside the qubit range."
+        ):
+            light_cone.run(dag)
+
+    def test_raise_error_when_circuit_measurements_and_observable_present(self):
+        """Test that `ValueError` is raised if the circuit has measurements
+        and `bit_terms` is also given."""
+        qc = QuantumCircuit(1, 1)
+        qc.measure(0, 0)  # A measurement on qubit 0
+        dag = circuit_to_dag(qc)
+
+        light_cone = LightCone(bit_terms="X", indices=[0])
+        with self.assertRaises(
+            ValueError, msg="The circuit contains measurements and an observable has been given"
+        ):
+            light_cone.run(dag)
 
 
 if __name__ == "__main__":
