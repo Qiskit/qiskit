@@ -20,6 +20,10 @@ ClassicalFunction compiler (:mod:`qiskit.circuit.classicalfunction`)
 Overview
 ========
 
+.. warning::
+    
+    This module is deprecated as of qiskit 1.4.0 version. It will be removed in the Qiskit 2.0 release.
+
 The classical function compiler provides the necessary tools to map a classical
 potentially irreversible functions into quantum circuits.  Below is a simple example of
 how to synthesize a simple boolean function defined using Python into a
