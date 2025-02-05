@@ -12,11 +12,11 @@
 
 use approx::relative_eq;
 use std::f64::consts::PI;
-use std::vec;
+use std::{fmt, vec};
 
 use crate::circuit_data::CircuitData;
 use crate::circuit_instruction::ExtraInstructionAttributes;
-use crate::imports::get_std_gate_class;
+use crate::imports::{get_std_gate_class, BARRIER, DELAY, MEASURE, RESET};
 use crate::imports::{PARAMETER_EXPRESSION, QUANTUM_CIRCUIT};
 use crate::{gate_matrix, impl_intopyobject_for_copy_pyclass, Qubit};
 
@@ -27,9 +27,10 @@ use smallvec::{smallvec, SmallVec};
 use numpy::IntoPyArray;
 use numpy::PyArray2;
 use numpy::PyReadonlyArray2;
+use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyFloat, PyIterator, PyList, PyTuple};
-use pyo3::{intern, Python};
+use pyo3::{intern, IntoPyObjectExt, Python};
 
 #[derive(Clone, Debug, IntoPyObject, IntoPyObjectRef)]
 pub enum Param {
@@ -158,7 +159,8 @@ pub trait Operation {
 /// This is the main way that we interact immutably with general circuit operations from Rust space.
 #[derive(Debug)]
 pub enum OperationRef<'a> {
-    Standard(StandardGate),
+    StandardGate(StandardGate),
+    StandardInstruction(StandardInstruction),
     Gate(&'a PyGate),
     Instruction(&'a PyInstruction),
     Operation(&'a PyOperation),
@@ -168,7 +170,8 @@ impl Operation for OperationRef<'_> {
     #[inline]
     fn name(&self) -> &str {
         match self {
-            Self::Standard(standard) => standard.name(),
+            Self::StandardGate(standard) => standard.name(),
+            Self::StandardInstruction(instruction) => instruction.name(),
             Self::Gate(gate) => gate.name(),
             Self::Instruction(instruction) => instruction.name(),
             Self::Operation(operation) => operation.name(),
@@ -177,7 +180,8 @@ impl Operation for OperationRef<'_> {
     #[inline]
     fn num_qubits(&self) -> u32 {
         match self {
-            Self::Standard(standard) => standard.num_qubits(),
+            Self::StandardGate(standard) => standard.num_qubits(),
+            Self::StandardInstruction(instruction) => instruction.num_qubits(),
             Self::Gate(gate) => gate.num_qubits(),
             Self::Instruction(instruction) => instruction.num_qubits(),
             Self::Operation(operation) => operation.num_qubits(),
@@ -186,7 +190,8 @@ impl Operation for OperationRef<'_> {
     #[inline]
     fn num_clbits(&self) -> u32 {
         match self {
-            Self::Standard(standard) => standard.num_clbits(),
+            Self::StandardGate(standard) => standard.num_clbits(),
+            Self::StandardInstruction(instruction) => instruction.num_clbits(),
             Self::Gate(gate) => gate.num_clbits(),
             Self::Instruction(instruction) => instruction.num_clbits(),
             Self::Operation(operation) => operation.num_clbits(),
@@ -195,7 +200,8 @@ impl Operation for OperationRef<'_> {
     #[inline]
     fn num_params(&self) -> u32 {
         match self {
-            Self::Standard(standard) => standard.num_params(),
+            Self::StandardGate(standard) => standard.num_params(),
+            Self::StandardInstruction(instruction) => instruction.num_params(),
             Self::Gate(gate) => gate.num_params(),
             Self::Instruction(instruction) => instruction.num_params(),
             Self::Operation(operation) => operation.num_params(),
@@ -204,7 +210,8 @@ impl Operation for OperationRef<'_> {
     #[inline]
     fn control_flow(&self) -> bool {
         match self {
-            Self::Standard(standard) => standard.control_flow(),
+            Self::StandardGate(standard) => standard.control_flow(),
+            Self::StandardInstruction(instruction) => instruction.control_flow(),
             Self::Gate(gate) => gate.control_flow(),
             Self::Instruction(instruction) => instruction.control_flow(),
             Self::Operation(operation) => operation.control_flow(),
@@ -213,7 +220,8 @@ impl Operation for OperationRef<'_> {
     #[inline]
     fn blocks(&self) -> Vec<CircuitData> {
         match self {
-            OperationRef::Standard(standard) => standard.blocks(),
+            OperationRef::StandardGate(standard) => standard.blocks(),
+            OperationRef::StandardInstruction(instruction) => instruction.blocks(),
             OperationRef::Gate(gate) => gate.blocks(),
             OperationRef::Instruction(instruction) => instruction.blocks(),
             OperationRef::Operation(operation) => operation.blocks(),
@@ -222,7 +230,8 @@ impl Operation for OperationRef<'_> {
     #[inline]
     fn matrix(&self, params: &[Param]) -> Option<Array2<Complex64>> {
         match self {
-            Self::Standard(standard) => standard.matrix(params),
+            Self::StandardGate(standard) => standard.matrix(params),
+            Self::StandardInstruction(instruction) => instruction.matrix(params),
             Self::Gate(gate) => gate.matrix(params),
             Self::Instruction(instruction) => instruction.matrix(params),
             Self::Operation(operation) => operation.matrix(params),
@@ -231,7 +240,8 @@ impl Operation for OperationRef<'_> {
     #[inline]
     fn definition(&self, params: &[Param]) -> Option<CircuitData> {
         match self {
-            Self::Standard(standard) => standard.definition(params),
+            Self::StandardGate(standard) => standard.definition(params),
+            Self::StandardInstruction(instruction) => instruction.definition(params),
             Self::Gate(gate) => gate.definition(params),
             Self::Instruction(instruction) => instruction.definition(params),
             Self::Operation(operation) => operation.definition(params),
@@ -240,7 +250,8 @@ impl Operation for OperationRef<'_> {
     #[inline]
     fn standard_gate(&self) -> Option<StandardGate> {
         match self {
-            Self::Standard(standard) => standard.standard_gate(),
+            Self::StandardGate(standard) => standard.standard_gate(),
+            Self::StandardInstruction(instruction) => instruction.standard_gate(),
             Self::Gate(gate) => gate.standard_gate(),
             Self::Instruction(instruction) => instruction.standard_gate(),
             Self::Operation(operation) => operation.standard_gate(),
@@ -249,11 +260,227 @@ impl Operation for OperationRef<'_> {
     #[inline]
     fn directive(&self) -> bool {
         match self {
-            Self::Standard(standard) => standard.directive(),
+            Self::StandardGate(standard) => standard.directive(),
+            Self::StandardInstruction(instruction) => instruction.directive(),
             Self::Gate(gate) => gate.directive(),
             Self::Instruction(instruction) => instruction.directive(),
             Self::Operation(operation) => operation.directive(),
         }
+    }
+}
+
+#[derive(Clone, Debug, Copy, Eq, PartialEq, Hash)]
+#[repr(u8)]
+pub enum DelayUnit {
+    NS,
+    PS,
+    US,
+    MS,
+    S,
+    DT,
+}
+
+unsafe impl ::bytemuck::CheckedBitPattern for DelayUnit {
+    type Bits = u8;
+
+    fn is_valid_bit_pattern(bits: &Self::Bits) -> bool {
+        *bits < 6
+    }
+}
+unsafe impl ::bytemuck::NoUninit for DelayUnit {}
+
+impl fmt::Display for DelayUnit {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                DelayUnit::NS => "ns",
+                DelayUnit::PS => "ps",
+                DelayUnit::US => "us",
+                DelayUnit::MS => "ms",
+                DelayUnit::S => "s",
+                DelayUnit::DT => "dt",
+            }
+        )
+    }
+}
+
+impl<'py> FromPyObject<'py> for DelayUnit {
+    fn extract_bound(b: &Bound<'py, PyAny>) -> Result<Self, PyErr> {
+        let str: String = b.extract()?;
+        Ok(match str.as_str() {
+            "ns" => DelayUnit::NS,
+            "ps" => DelayUnit::PS,
+            "us" => DelayUnit::US,
+            "ms" => DelayUnit::MS,
+            "s" => DelayUnit::S,
+            "dt" => DelayUnit::DT,
+            unknown_unit => {
+                return Err(PyValueError::new_err(format!(
+                    "Unit '{}' is invalid.",
+                    unknown_unit
+                )));
+            }
+        })
+    }
+}
+
+/// An internal type used to further discriminate the payload of a `PackedOperation` when its
+/// discriminant is `PackedOperationType::StandardInstruction`.
+///
+/// This is also used to tag standard instructions via the `_standard_instruction_type` class
+/// attribute in the corresponding Python class.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[pyclass(module = "qiskit._accelerate.circuit", eq, eq_int)]
+#[repr(u8)]
+pub(crate) enum StandardInstructionType {
+    Barrier = 0,
+    Delay = 1,
+    Measure = 2,
+    Reset = 3,
+}
+
+unsafe impl ::bytemuck::CheckedBitPattern for StandardInstructionType {
+    type Bits = u8;
+
+    fn is_valid_bit_pattern(bits: &Self::Bits) -> bool {
+        *bits < 4
+    }
+}
+unsafe impl ::bytemuck::NoUninit for StandardInstructionType {}
+
+#[derive(Clone, Debug, Copy, Eq, PartialEq, Hash)]
+pub enum StandardInstruction {
+    Barrier(u32),
+    Delay(DelayUnit),
+    Measure,
+    Reset,
+}
+
+// This must be kept up-to-date with `StandardInstruction` when adding or removing
+// gates from the enum
+//
+// Remove this when std::mem::variant_count() is stabilized (see
+// https://github.com/rust-lang/rust/issues/73662 )
+pub const STANDARD_INSTRUCTION_SIZE: usize = 4;
+
+impl Operation for StandardInstruction {
+    fn name(&self) -> &str {
+        match self {
+            StandardInstruction::Barrier(_) => "barrier",
+            StandardInstruction::Delay(_) => "delay",
+            StandardInstruction::Measure => "measure",
+            StandardInstruction::Reset => "reset",
+        }
+    }
+
+    fn num_qubits(&self) -> u32 {
+        match self {
+            StandardInstruction::Barrier(num_qubits) => *num_qubits,
+            StandardInstruction::Delay(_) => 1,
+            StandardInstruction::Measure => 1,
+            StandardInstruction::Reset => 1,
+        }
+    }
+
+    fn num_clbits(&self) -> u32 {
+        match self {
+            StandardInstruction::Barrier(_) => 0,
+            StandardInstruction::Delay(_) => 0,
+            StandardInstruction::Measure => 1,
+            StandardInstruction::Reset => 0,
+        }
+    }
+
+    fn num_params(&self) -> u32 {
+        0
+    }
+
+    fn control_flow(&self) -> bool {
+        false
+    }
+
+    fn blocks(&self) -> Vec<CircuitData> {
+        vec![]
+    }
+
+    fn matrix(&self, _params: &[Param]) -> Option<Array2<Complex64>> {
+        None
+    }
+
+    fn definition(&self, _params: &[Param]) -> Option<CircuitData> {
+        None
+    }
+
+    fn standard_gate(&self) -> Option<StandardGate> {
+        None
+    }
+
+    fn directive(&self) -> bool {
+        match self {
+            StandardInstruction::Barrier(_) => true,
+            StandardInstruction::Delay(_) => false,
+            StandardInstruction::Measure => false,
+            StandardInstruction::Reset => false,
+        }
+    }
+}
+
+impl StandardInstruction {
+    pub fn create_py_op(
+        &self,
+        py: Python,
+        params: Option<&[Param]>,
+        extra_attrs: &ExtraInstructionAttributes,
+    ) -> PyResult<Py<PyAny>> {
+        let (label, unit, duration, condition) = (
+            extra_attrs.label(),
+            extra_attrs.unit(),
+            extra_attrs.duration(),
+            extra_attrs.condition(),
+        );
+        let kwargs = label
+            .map(|label| [("label", label.into_py_any(py)?)].into_py_dict(py))
+            .transpose()?;
+        let mut out = match self {
+            StandardInstruction::Barrier(num_qubits) => BARRIER
+                .get_bound(py)
+                .call1((num_qubits.into_py_any(py)?, label.into_py_any(py)?))?,
+            StandardInstruction::Delay(unit) => {
+                let duration = &params.unwrap()[0];
+                DELAY
+                    .get_bound(py)
+                    .call1((duration.into_py_any(py)?, unit.to_string()))?
+            }
+            StandardInstruction::Measure => MEASURE.get_bound(py).call((), kwargs.as_ref())?,
+            StandardInstruction::Reset => RESET.get_bound(py).call((), kwargs.as_ref())?,
+        };
+
+        if label.is_some() || unit.is_some() || duration.is_some() || condition.is_some() {
+            let mut mutable = false;
+            if let Some(condition) = condition {
+                if !mutable {
+                    out = out.call_method0("to_mutable")?;
+                    mutable = true;
+                }
+                out.setattr("condition", condition)?;
+            }
+            if let Some(duration) = duration {
+                if !mutable {
+                    out = out.call_method0("to_mutable")?;
+                    mutable = true;
+                }
+                out.setattr("_duration", duration)?;
+            }
+            if let Some(unit) = unit {
+                if !mutable {
+                    out = out.call_method0("to_mutable")?;
+                }
+                out.setattr("_unit", unit)?;
+            }
+        }
+        Ok(out.unbind())
     }
 }
 
@@ -313,6 +540,8 @@ pub enum StandardGate {
     C3XGate = 49,
     C3SXGate = 50,
     RC3XGate = 51,
+    // Remember to update StandardGate::is_valid_bit_pattern below
+    // if you add or remove this enum's variants!
 }
 impl_intopyobject_for_copy_pyclass!(StandardGate);
 
@@ -320,7 +549,7 @@ unsafe impl ::bytemuck::CheckedBitPattern for StandardGate {
     type Bits = u8;
 
     fn is_valid_bit_pattern(bits: &Self::Bits) -> bool {
-        *bits < 53
+        *bits < 52
     }
 }
 unsafe impl ::bytemuck::NoUninit for StandardGate {}

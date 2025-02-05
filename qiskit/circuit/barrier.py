@@ -19,8 +19,9 @@ with the :meth:`~qiskit.circuit.QuantumCircuit.barrier` method.
 from __future__ import annotations
 
 from qiskit.exceptions import QiskitError
+from qiskit.circuit.instruction import Instruction
 from qiskit.utils import deprecate_func
-from .instruction import Instruction
+from qiskit._accelerate.circuit import StandardInstructionType
 
 
 class Barrier(Instruction):
@@ -31,6 +32,7 @@ class Barrier(Instruction):
     """
 
     _directive = True
+    _standard_instruction_type = StandardInstructionType.Barrier
 
     def __init__(self, num_qubits: int, label: str | None = None):
         """
