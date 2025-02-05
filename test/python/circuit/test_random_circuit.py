@@ -80,20 +80,17 @@ class TestCircuitRandom(QiskitTestCase):
         """Test random circuit with mid-circuit measurements for conditionals."""
         num_qubits = depth = 2
         with self.assertWarns(DeprecationWarning):
-            circ = random_circuit(num_qubits, depth, conditional=True, seed=17)
+            circ = random_circuit(num_qubits, depth, conditional=True, seed=16)
         self.assertEqual(circ.width(), 2 * num_qubits)
         op_names = [instruction.operation.name for instruction in circ]
-        self.assertEqual(6, len(op_names))
+        self.assertEqual(4, len(op_names))
 
         # Before a condition, there needs to be measurement in all the qubits.
-        # The last operation `U` gate is a conditional operation. This is
-        # particular to the given seed, hence the circuit generated.
-        start_idx = len(op_names) - 3
-        self.assertEqual(["measure"] * num_qubits, op_names[start_idx : start_idx + num_qubits])
+        self.assertEqual(["measure"] * num_qubits, op_names[1 : 1 + num_qubits])
         conditions = [
             bool(getattr(instruction.operation, "_condition", None)) for instruction in circ
         ]
-        self.assertEqual([False, False, False, False, False, True], conditions)
+        self.assertEqual([False, False, False, True], conditions)
 
     def test_random_circuit_num_operand_distribution(self):
         """Test that num_operand_distribution argument generates gates in correct proportion"""

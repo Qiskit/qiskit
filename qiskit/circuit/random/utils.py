@@ -18,19 +18,61 @@ from qiskit.circuit import (
     QuantumCircuit,
     CircuitInstruction,
 )
-from qiskit.circuit import Reset, Delay
+from qiskit.circuit import Reset
 from qiskit.circuit.library import standard_gates
-from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.quantum_info.operators.symplectic.clifford_circuits import _BASIS_1Q, _BASIS_2Q
 
+# (Gate class, number of qubits, number of parameters)
+gates_1q_data = [
+    (standard_gates.IGate, 1, 0),
+    (standard_gates.SXGate, 1, 0),
+    (standard_gates.XGate, 1, 0),
+    (standard_gates.RZGate, 1, 1),
+    (standard_gates.RGate, 1, 2),
+    (standard_gates.HGate, 1, 0),
+    (standard_gates.PhaseGate, 1, 1),
+    (standard_gates.RXGate, 1, 1),
+    (standard_gates.RYGate, 1, 1),
+    (standard_gates.SGate, 1, 0),
+    (standard_gates.SdgGate, 1, 0),
+    (standard_gates.SXdgGate, 1, 0),
+    (standard_gates.TGate, 1, 0),
+    (standard_gates.TdgGate, 1, 0),
+    (standard_gates.UGate, 1, 3),
+    (standard_gates.U1Gate, 1, 1),
+    (standard_gates.U2Gate, 1, 2),
+    (standard_gates.U3Gate, 1, 3),
+    (standard_gates.YGate, 1, 0),
+    (standard_gates.ZGate, 1, 0),
+]
 
-def _get_gates(n_qubits):
-    return [
-        (gate, gate.num_qubits, len(gate.params))
-        for gate in get_standard_gate_name_mapping().values()
-        if gate.num_qubits == n_qubits
-    ]
+gates_2q_data = [
+    (standard_gates.CXGate, 2, 0),
+    (standard_gates.DCXGate, 2, 0),
+    (standard_gates.CHGate, 2, 0),
+    (standard_gates.CPhaseGate, 2, 1),
+    (standard_gates.CRXGate, 2, 1),
+    (standard_gates.CRYGate, 2, 1),
+    (standard_gates.CRZGate, 2, 1),
+    (standard_gates.CSXGate, 2, 0),
+    (standard_gates.CUGate, 2, 4),
+    (standard_gates.CU1Gate, 2, 1),
+    (standard_gates.CU3Gate, 2, 3),
+    (standard_gates.CYGate, 2, 0),
+    (standard_gates.CZGate, 2, 0),
+    (standard_gates.RXXGate, 2, 1),
+    (standard_gates.RYYGate, 2, 1),
+    (standard_gates.RZZGate, 2, 1),
+    (standard_gates.RZXGate, 2, 1),
+    (standard_gates.XXMinusYYGate, 2, 2),
+    (standard_gates.XXPlusYYGate, 2, 2),
+    (standard_gates.ECRGate, 2, 0),
+    (standard_gates.CSGate, 2, 0),
+    (standard_gates.CSdgGate, 2, 0),
+    (standard_gates.SwapGate, 2, 0),
+    (standard_gates.iSwapGate, 2, 0),
+]
 
 
 def random_circuit_from_graph(
@@ -213,24 +255,13 @@ def random_circuit_from_graph(
     elif None in edges_probs:
         edges_probs = [1.0 / num_edges for _ in range(num_edges)]
 
-    gates_1q = None
-    if insert_1q_oper:
-        gates_1q = _get_gates(n_qubits=1)
-
-        # Remove `measure` and `reset` from 1Q operations.
-        gates_1q = [
-            (instr, num_gates, num_params)
-            for instr, num_gates, num_params in gates_1q
-            if not instr.name in {"measure", "reset"}
-        ]
-        gates_1q = np.array(
-            gates_1q, dtype=[("class", object), ("num_qubits", np.int64), ("num_params", np.int64)]
-        )
-
     gates_2q = np.array(
-        _get_gates(n_qubits=2),
+        gates_2q_data,
         dtype=[("class", object), ("num_qubits", np.int64), ("num_params", np.int64)],
     )
+
+    if insert_1q_oper:
+        gates_1q = np.array(gates_1q_data, dtype=gates_2q.dtype)
 
     qc = QuantumCircuit(num_qubits)
 
@@ -293,7 +324,7 @@ def random_circuit_from_graph(
             cond_val_2q = rng.integers(0, 1 << min(num_qubits, 63), size=np.count_nonzero(cond_2q))
             clbit_2q_idx = 0
 
-        for current_instr, num_gate_params, edge, is_cond_2q, is_rst in zip(
+        for gate, num_gate_params, edge, is_cond_2q, is_rst in zip(
             gate_choices["class"],
             gate_choices["num_params"],
             edge_choices,
@@ -330,13 +361,9 @@ def random_circuit_from_graph(
                             )
                         )
 
-                if current_instr.params != []:
-                    # Check if the instruction is mutable, so that it could accept parameters.
-                    if not current_instr.mutable:
-                        current_instr = current_instr.to_mutable()
-                    params = parameters[:num_gate_params]
-                    parameters = parameters[num_gate_params:]
-                    current_instr.params = params
+                params = parameters[:num_gate_params]
+                parameters = parameters[num_gate_params:]
+                current_instr = gate(*params)
 
                 if is_cond_2q:
                     qc.measure(qc.qubits, cr)
@@ -375,25 +402,17 @@ def random_circuit_from_graph(
                 cumsum_params = np.cumsum(extra_1q_gates["num_params"], dtype=np.int64)
                 parameters_1q = rng.uniform(0, 2 * np.pi, size=cumsum_params[-1])
 
-                for current_instr, num_gate_params, qubit_idx, is_cond_1q in zip(
+                for gate_1q, num_gate_params, qubit_idx, is_cond_1q in zip(
                     extra_1q_gates["class"],
                     extra_1q_gates["num_params"],
                     qubit_idx_not_used,
                     cond_1q,
                 ):
-                    if current_instr.params != []:
-                        # Check if the instruction is mutable, so that it could accept parameters.
-                        if not current_instr.mutable:
-                            current_instr = current_instr.to_mutable()
-                        param = parameters_1q[:num_gate_params]
-                        parameters_1q = parameters_1q[num_gate_params:]
-                        if isinstance(current_instr, Delay):
-                            current_instr.params = [int(param[0])]
-                        else:
-                            current_instr.params = param
+                    params_1q = parameters_1q[:num_gate_params]
+                    parameters_1q = parameters_1q[num_gate_params:]
+                    current_instr = gate_1q(*params_1q)
 
-                    # Conditional `Delay` is yet to be implemented.
-                    if is_cond_1q and current_instr.name != "delay":
+                    if is_cond_1q:
                         qc.measure(qc.qubits, cr)
                         # The condition values are required to be bigints, not Numpy's fixed-width type.
                         current_instr = current_instr.c_if(cr, int(cond_val_1q[clbit_1q_idx]))
@@ -488,23 +507,26 @@ def random_circuit(
     if num_qubits == 0:
         return QuantumCircuit()
 
-    # Remove 'reset' and 'measure', this will be added later if required.
-    gates_1q = [
-        (oper, qargs, n_params)
-        for oper, qargs, n_params in _get_gates(n_qubits=1)
-        if not oper.name in {"measure", "reset"}
+    gates_3q = [
+        (standard_gates.CCXGate, 3, 0),
+        (standard_gates.CSwapGate, 3, 0),
+        (standard_gates.CCZGate, 3, 0),
+        (standard_gates.RCCXGate, 3, 0),
     ]
 
-    if reset:
-        gates_1q.append((Reset(), 1, 0))
+    gates_4q = [
+        (standard_gates.C3SXGate, 4, 0),
+        (standard_gates.RC3XGate, 4, 0),
+    ]
 
     gates_1q = np.array(
-        gates_1q,
+        gates_1q_data + [(Reset, 1, 0)] if reset else gates_1q_data,
         dtype=[("class", object), ("num_qubits", np.int64), ("num_params", np.int64)],
     )
-    gates_2q = np.array(_get_gates(n_qubits=2), dtype=gates_1q.dtype)
-    gates_3q = np.array(_get_gates(n_qubits=3), dtype=gates_1q.dtype)
-    gates_4q = np.array(_get_gates(n_qubits=4), dtype=gates_1q.dtype)
+
+    gates_2q = np.array(gates_2q_data, dtype=gates_1q.dtype)
+    gates_3q = np.array(gates_3q, dtype=gates_1q.dtype)
+    gates_4q = np.array(gates_4q, dtype=gates_1q.dtype)
 
     all_gate_lists = [gates_1q, gates_2q, gates_3q, gates_4q]
 
@@ -602,7 +624,7 @@ def random_circuit(
                 0, 1 << min(num_qubits, 63), size=np.count_nonzero(is_conditional)
             )
             c_ptr = 0
-            for current_instr, q_start, q_end, p_start, p_end, is_cond in zip(
+            for current_gate, q_start, q_end, p_start, p_end, is_cond in zip(
                 gate_specs["class"],
                 q_indices[:-1],
                 q_indices[1:],
@@ -610,19 +632,9 @@ def random_circuit(
                 p_indices[1:],
                 is_conditional,
             ):
-                if current_instr.params != []:
-                    # Instruction needs to be mutable to change the parameters.
-                    if not current_instr.mutable:
-                        current_instr.to_mutable()
+                current_instr = current_gate(*parameters[p_start:p_end])
 
-                    if current_instr.name == "delay":
-                        # Parameter of `Delay` instruction is integer multiple of `dt`.
-                        current_instr.params = [int(parameters[p_start:p_end][0])]
-                    else:
-                        current_instr.params = parameters[p_start:p_end]
-
-                # Conditional `Delay` is yet to be implemented.
-                if is_cond and current_instr.name != "delay":
+                if is_cond:
                     qc.measure(qc.qubits, cr)
                     # The condition values are required to be bigints, not Numpy's fixed-width type.
                     current_instr = current_instr.c_if(cr, int(condition_values[c_ptr]))
@@ -632,19 +644,10 @@ def random_circuit(
                     CircuitInstruction(operation=current_instr, qubits=qubits[q_start:q_end])
                 )
         else:
-            for current_instr, q_start, q_end, p_start, p_end in zip(
+            for current_gate, q_start, q_end, p_start, p_end in zip(
                 gate_specs["class"], q_indices[:-1], q_indices[1:], p_indices[:-1], p_indices[1:]
             ):
-                if current_instr.params != []:
-                    # Instruction needs to be mutable to change the parameters.
-                    if not current_instr.mutable:
-                        current_instr.to_mutable()
-                    if current_instr.name == "delay":
-                        # Parameter of `Delay` instruction is integer multiple of `dt`.
-                        current_instr.params = [int(parameters[p_start:p_end][0])]
-                    else:
-                        current_instr.params = parameters[p_start:p_end]
-
+                current_instr = current_gate(*parameters[p_start:p_end])
                 qc._append(
                     CircuitInstruction(operation=current_instr, qubits=qubits[q_start:q_end])
                 )
