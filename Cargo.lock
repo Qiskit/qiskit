@@ -274,6 +274,15 @@ dependencies = [
 
 [[package]]
 name = "dyn-stack"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bf6fa63092e3ca9f602f6500fddd05502412b748c4c4682938565b44eb9e0066"
+dependencies = [
+ "bytemuck",
+]
+
+[[package]]
+name = "dyn-stack"
 version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "490bd48eb68fffcfed519b4edbfd82c69cbe741d175b84f0e0cbe8c57cbe0bdd"
@@ -356,7 +365,7 @@ dependencies = [
  "dbgf",
  "dyn-stack 0.10.0",
  "equator 0.4.2",
- "faer-entity",
+ "faer-entity 0.19.2",
  "gemm",
  "libm",
  "matrixcompare",
@@ -371,6 +380,28 @@ dependencies = [
  "rayon",
  "reborrow",
  "serde",
+]
+
+[[package]]
+name = "faer"
+version = "0.20.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c2b19b8c3570ea226e507fe3dbae2aa9d7e0f16676abd35ea3adeeb9f90f7b5d"
+dependencies = [
+ "bytemuck",
+ "coe-rs",
+ "dbgf",
+ "dyn-stack 0.11.0",
+ "equator 0.4.2",
+ "faer-entity 0.20.1",
+ "gemm",
+ "generativity",
+ "libm",
+ "nano-gemm",
+ "num-complex",
+ "num-traits",
+ "paste",
+ "reborrow",
 ]
 
 [[package]]
@@ -389,13 +420,28 @@ dependencies = [
 ]
 
 [[package]]
-name = "faer-ext"
-version = "0.2.0"
+name = "faer-entity"
+version = "0.20.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4cf30f6ae73f372c0e0cf7556c44e50f1eee0a714d71396091613d68c43625c9"
+checksum = "072f96f1bc8b2b30dfc26c086baeadb63aae08019b1ed84721809b9fd2006685"
 dependencies = [
- "faer",
- "ndarray",
+ "bytemuck",
+ "coe-rs",
+ "libm",
+ "num-complex",
+ "num-traits",
+ "pulp 0.18.22",
+ "reborrow",
+]
+
+[[package]]
+name = "faer-ext"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9f92bf75258e2a62712ca6d058e8ce2e70c7837ea931612d31a96ec696736976"
+dependencies = [
+ "faer 0.20.2",
+ "ndarray 0.16.1",
  "num-complex",
 ]
 
@@ -404,6 +450,12 @@ name = "fixedbitset"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0ce7134b9999ecaf8bcd65542e436736ef32ddca1b3e06094cb6ec5755203b80"
+
+[[package]]
+name = "foldhash"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a0d2fde1f7b3d48b8395d5f2de76c18a528bd6a9cdde438df747bfcba3e05d6f"
 
 [[package]]
 name = "gemm"
@@ -525,6 +577,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "generativity"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5881e4c3c2433fe4905bb19cfd2b5d49d4248274862b68c27c33d9ba4e13f9ec"
+
+[[package]]
 name = "generic-array"
 version = "0.14.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -582,6 +640,11 @@ name = "hashbrown"
 version = "0.15.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bf151400ff0baff5465007dd2f3e717f3fe502074ca563069ce3a6629d07b289"
+dependencies = [
+ "allocator-api2",
+ "equivalent",
+ "foldhash",
+]
 
 [[package]]
 name = "heck"
@@ -796,13 +859,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "ndarray"
+version = "0.16.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "882ed72dce9365842bf196bdeedf5055305f11fc8c03dee7bb0194a6cad34841"
+dependencies = [
+ "matrixmultiply",
+ "num-complex",
+ "num-integer",
+ "num-traits",
+ "portable-atomic",
+ "portable-atomic-util",
+ "rawpointer",
+]
+
+[[package]]
 name = "ndarray_einsum_beta"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "668b3abeae3e0637740340e0e32a9bf9308380e146ea6797950f9ff16e88d88a"
 dependencies = [
  "lazy_static",
- "ndarray",
+ "ndarray 0.15.6",
  "num-traits",
  "regex",
 ]
@@ -865,7 +943,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b94caae805f998a07d33af06e6a3891e38556051b8045c615470a71590e13e78"
 dependencies = [
  "libc",
- "ndarray",
+ "ndarray 0.15.6",
  "num-complex",
  "num-integer",
  "num-traits",
@@ -1012,6 +1090,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "280dc24453071f1b63954171985a0b0d30058d287960968b9b2aca264c8d4ee6"
 
 [[package]]
+name = "portable-atomic-util"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d8a2f0d8d040d7848a709caf78912debcc3f33ee4b3cac47d73d1e1069e83507"
+dependencies = [
+ "portable-atomic",
+]
+
+[[package]]
 name = "ppv-lite86"
 version = "0.2.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1122,7 +1209,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "57fe09249128b3173d092de9523eaa75136bf7ba85e0d69eca241c7939c933cc"
 dependencies = [
  "cfg-if",
- "hashbrown 0.14.5",
+ "hashbrown 0.15.2",
  "indexmap",
  "indoc",
  "libc",
@@ -1190,12 +1277,12 @@ dependencies = [
  "ahash 0.8.11",
  "approx 0.5.1",
  "bytemuck",
- "faer",
+ "faer 0.19.4",
  "faer-ext",
  "hashbrown 0.14.5",
  "indexmap",
  "itertools 0.13.0",
- "ndarray",
+ "ndarray 0.15.6",
  "ndarray_einsum_beta",
  "num-bigint",
  "num-complex",
@@ -1226,7 +1313,7 @@ dependencies = [
  "hashbrown 0.14.5",
  "indexmap",
  "itertools 0.13.0",
- "ndarray",
+ "ndarray 0.15.6",
  "num-complex",
  "numpy",
  "pyo3",
@@ -1465,7 +1552,7 @@ dependencies = [
  "fixedbitset",
  "hashbrown 0.14.5",
  "indexmap",
- "ndarray",
+ "ndarray 0.15.6",
  "num-traits",
  "petgraph",
  "priority-queue",
