@@ -346,7 +346,7 @@ impl PackedOperation {
         let py = py_type.py();
         let py_op = match self.view() {
             OperationRef::Standard(standard) => {
-                return get_std_gate_class(py, standard)?
+                return get_std_gate_class(py, standard)
                     .bind(py)
                     .downcast::<PyType>()?
                     .is_subclass(py_type)

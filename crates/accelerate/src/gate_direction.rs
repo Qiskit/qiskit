@@ -219,11 +219,7 @@ fn py_fix_direction_target(
                             py,
                             None,
                             Some(qargs),
-                            Some(
-                                get_std_gate_class(py, std_gate)
-                                    .expect("These gates should have Python classes")
-                                    .bind(py),
-                            ),
+                            Some(get_std_gate_class(py, std_gate).bind(py)),
                             Some(inst.params_view().to_vec()),
                         )
                         .unwrap_or(false)
