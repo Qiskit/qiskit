@@ -615,15 +615,6 @@ supported by the target ISA.  For example, if a ``cx`` is requested on hardware 
 the ISA only contains a ``cz`` operation on those qubits, the translation stage must find a way of
 representing the ``cx`` gate using the ``cz`` and available one-qubit gates.
 
-.. note::
-
-    In Qiskit 1.x, translation plugins need not output gates with the correct
-    directionality, provided the gate exists with opposite directionality on the given qubit pair.
-    For example, if ``cx(0, 1)`` is ISA-supported, the translation stage can output
-    ``cx(1, 0)``.
-
-    This is likely to change in later versions of Qiskit.
-
 The translation stage is called before entering the optimization stage. Optimization plugins
 (including Qiskit's built-in plugins) may also use the translation stage as a "fixup" stage after
 the optimization loop, if the optimization loop returns a circuit that includes non-ISA gates.  This
