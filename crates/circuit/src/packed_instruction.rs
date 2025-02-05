@@ -144,11 +144,9 @@ mod standard_gate {
     struct StandardGateBits {
         #[bits(3)]
         discriminant: u8,
-        #[bits(5)]
-        _pad0: u8,
         #[bits(8)]
         standard_gate: u8,
-        #[bits(48)]
+        #[bits(53)]
         _pad1: u64,
     }
 
