@@ -391,7 +391,7 @@ At optimization levels above 0, there is a two-step process:
    the numbers of initial layout trials, swap-map trials, and forwards–backwards iterations
    increasing with the optimization level.
 
-In addition, optimization levels above 0 also try the trivial layout before the VF2-based version,
+In addition, optimization level 1 also tries the trivial layout before the VF2-based version,
 for historical backwards compatibility.
 
 
