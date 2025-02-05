@@ -15,6 +15,7 @@
 import ast
 from typing import Callable, Optional
 
+from qiskit.utils.deprecation import deprecate_func
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.exceptions import QiskitError
 from qiskit.utils.optionals import HAS_TWEEDLEDUM
@@ -23,10 +24,15 @@ from .classical_function_visitor import ClassicalFunctionVisitor
 from .utils import tweedledum2qiskit
 
 
-@HAS_TWEEDLEDUM.require_in_instance
 class ClassicalFunction(ClassicalElement):
     """Represent a classical function and its logic network."""
 
+    @HAS_TWEEDLEDUM.require_in_instance
+    @deprecate_func(
+        since="1.4",
+        removal_timeline="in Qiskit 2.0",
+        additional_msg="Use `BooleanExpression` instead",
+    )
     def __init__(self, source, name=None):
         """Creates a ``ClassicalFunction`` from Python source code in ``source``.
 

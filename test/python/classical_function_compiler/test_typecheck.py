@@ -30,19 +30,31 @@ class TestTypeCheck(QiskitTestCase):
 
     def test_id(self):
         """Tests examples.identity type checking"""
-        network = compile_classical_function(examples.identity)
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="ClassicalFunction`` is deprecated as of Qiskit 1.4",
+        ):
+            network = compile_classical_function(examples.identity)
         self.assertEqual(network.args, ["a"])
         self.assertEqual(network.types, [{"Int1": "type", "a": "Int1", "return": "Int1"}])
 
     def test_bool_not(self):
         """Tests examples.bool_not type checking"""
-        network = compile_classical_function(examples.bool_not)
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="ClassicalFunction`` is deprecated as of Qiskit 1.4",
+        ):
+            network = compile_classical_function(examples.bool_not)
         self.assertEqual(network.args, ["a"])
         self.assertEqual(network.types, [{"Int1": "type", "a": "Int1", "return": "Int1"}])
 
     def test_id_assign(self):
         """Tests examples.id_assing type checking"""
-        network = compile_classical_function(examples.id_assing)
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="ClassicalFunction`` is deprecated as of Qiskit 1.4",
+        ):
+            network = compile_classical_function(examples.id_assing)
         self.assertEqual(network.args, ["a"])
         self.assertEqual(
             network.types, [{"Int1": "type", "a": "Int1", "b": "Int1", "return": "Int1"}]
@@ -50,7 +62,11 @@ class TestTypeCheck(QiskitTestCase):
 
     def test_bit_and(self):
         """Tests examples.bit_and type checking"""
-        network = compile_classical_function(examples.bit_and)
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="ClassicalFunction`` is deprecated as of Qiskit 1.4",
+        ):
+            network = compile_classical_function(examples.bit_and)
         self.assertEqual(network.args, ["a", "b"])
         self.assertEqual(
             network.types, [{"Int1": "type", "a": "Int1", "b": "Int1", "return": "Int1"}]
@@ -58,7 +74,11 @@ class TestTypeCheck(QiskitTestCase):
 
     def test_bit_or(self):
         """Tests examples.bit_or type checking"""
-        network = compile_classical_function(examples.bit_or)
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="ClassicalFunction`` is deprecated as of Qiskit 1.4",
+        ):
+            network = compile_classical_function(examples.bit_or)
         self.assertEqual(network.args, ["a", "b"])
         self.assertEqual(
             network.types, [{"Int1": "type", "a": "Int1", "b": "Int1", "return": "Int1"}]
@@ -66,7 +86,11 @@ class TestTypeCheck(QiskitTestCase):
 
     def test_bool_or(self):
         """Tests examples.bool_or type checking"""
-        network = compile_classical_function(examples.bool_or)
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="ClassicalFunction`` is deprecated as of Qiskit 1.4",
+        ):
+            network = compile_classical_function(examples.bool_or)
         self.assertEqual(network.args, ["a", "b"])
         self.assertEqual(
             network.types, [{"Int1": "type", "a": "Int1", "b": "Int1", "return": "Int1"}]
@@ -88,5 +112,9 @@ class TestTypeCheckFail(QiskitTestCase):
         ~False  # -1
         """
         with self.assertRaises(ClassicalFunctionCompilerTypeError) as context:
-            compile_classical_function(bad_examples.bit_not)
+            with self.assertWarnsRegex(
+                DeprecationWarning,
+                expected_regex="ClassicalFunction`` is deprecated as of Qiskit 1.4",
+            ):
+                compile_classical_function(bad_examples.bit_not)
         self.assertExceptionMessage(context, "does not operate with Int1 type")

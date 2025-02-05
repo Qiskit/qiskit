@@ -35,23 +35,39 @@ class TestParseFail(QiskitTestCase):
     def test_id_bad_return(self):
         """Trying to parse examples.id_bad_return raises ClassicalFunctionParseError"""
         with self.assertRaises(ClassicalFunctionParseError) as context:
-            compile_classical_function(examples.id_bad_return)
+            with self.assertWarnsRegex(
+                DeprecationWarning,
+                expected_regex="ClassicalFunction`` is deprecated as of Qiskit 1.4",
+            ):
+                compile_classical_function(examples.id_bad_return)
         self.assertExceptionMessage(context, "return type error")
 
     def test_id_no_type_arg(self):
         """Trying to parse examples.id_no_type_arg raises ClassicalFunctionParseError"""
         with self.assertRaises(ClassicalFunctionParseError) as context:
-            compile_classical_function(examples.id_no_type_arg)
+            with self.assertWarnsRegex(
+                DeprecationWarning,
+                expected_regex="ClassicalFunction`` is deprecated as of Qiskit 1.4",
+            ):
+                compile_classical_function(examples.id_no_type_arg)
         self.assertExceptionMessage(context, "argument type is needed")
 
     def test_id_no_type_return(self):
         """Trying to parse examples.id_no_type_return raises ClassicalFunctionParseError"""
         with self.assertRaises(ClassicalFunctionParseError) as context:
-            compile_classical_function(examples.id_no_type_return)
+            with self.assertWarnsRegex(
+                DeprecationWarning,
+                expected_regex="ClassicalFunction`` is deprecated as of Qiskit 1.4",
+            ):
+                compile_classical_function(examples.id_no_type_return)
         self.assertExceptionMessage(context, "return type is needed")
 
     def test_out_of_scope(self):
         """Trying to parse examples.out_of_scope raises ClassicalFunctionParseError"""
         with self.assertRaises(ClassicalFunctionParseError) as context:
-            compile_classical_function(examples.out_of_scope)
+            with self.assertWarnsRegex(
+                DeprecationWarning,
+                expected_regex="ClassicalFunction`` is deprecated as of Qiskit 1.4",
+            ):
+                compile_classical_function(examples.out_of_scope)
         self.assertExceptionMessage(context, "out of scope: c")

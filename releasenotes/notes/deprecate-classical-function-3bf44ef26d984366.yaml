@@ -1,0 +1,5 @@
+---
+deprecations_circuits:
+  - |
+    The :class:`.ClassicalFunction` and its related :meth:`.classical_function`
+    have been deprecated as of Qiskit 1.4 and will be removed in Qiskit 2.0.

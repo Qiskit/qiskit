@@ -111,7 +111,7 @@ Exceptions
    ClassicalFunctionCompilerTypeError
 
 """
-
+from qiskit.utils.deprecation import deprecate_func
 from .classicalfunction import ClassicalFunction
 from .exceptions import (
     ClassicalFunctionParseError,
@@ -121,6 +121,11 @@ from .exceptions import (
 from .boolean_expression import BooleanExpression
 
 
+@deprecate_func(
+    since="1.4",
+    removal_timeline="in Qiskit 2.0",
+    additional_msg="Use `BooleanExpression` instead",
+)
 def classical_function(func):
     """
     Parses and type checks the callable ``func`` to compile it into an ``ClassicalFunction``
