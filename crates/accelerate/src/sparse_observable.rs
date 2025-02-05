@@ -1800,7 +1800,7 @@ impl PySparseTerm {
 /// You can put a :class:`SparseObservable` in canonical form by using the :meth:`simplify` method.
 /// The precise ordering of terms in canonical ordering is not specified, and may change between
 /// versions of Qiskit.  Within the same version of Qiskit, however, you can compare two observables
-/// structurally by comparing their simplified forms.  
+/// structurally by comparing their simplified forms.
 ///
 /// .. note::
 ///
@@ -1900,17 +1900,25 @@ impl PySparseTerm {
 /// ===========
 ///
 /// An existing :class:`SparseObservable` can be converted into other :mod:`~qiskit.quantum_info`
-/// operators or generic formats.
+/// operators or generic formats.  Beware that other objects may not be able to represent the same
+/// observable as efficiently as :class:`SparseObservable`, including potentially needed
+/// exponentially more memory.
 ///
-///   ============================================  ================================================
-///   Method                                        Summary
-///   ============================================  ================================================
-///   :meth:`SparsePauliOp.from_sparse_observable`  Construct a :class:`.SparsePauliOp` from a
-///                                                 :class:`SparseObservable`.
+/// .. table:: Conversion methods to other observable forms.
 ///
-///   :meth:`to_sparse_list`                        Express the observable in a sparse list format
-///                                                 with elements ``(bit_terms, indices, coeff)``.
-///   ============================================  ================================================
+///   ===========================  =================================================================
+///   Method                       Summary
+///   ===========================  =================================================================
+///   :meth:`as_paulis`            Create a new :class:`SparseObservable`, expanding in terms
+///                                of Pauli operators only.
+///
+///   :meth:`to_sparse_list`       Express the observable in a sparse list format with elements
+///                                ``(bit_terms, indices, coeff)``.
+///   ===========================  =================================================================
+///
+/// In addition, :meth:`.SparsePauliOp.from_sparse_observable` is available for conversion from this
+/// class to :class:`.SparsePauliOp`.  Beware that this method suffers from the same
+/// exponential-memory usage concerns as :meth:`as_paulis`.
 ///
 /// Mathematical manipulation
 /// =========================
@@ -2012,8 +2020,8 @@ impl PySparseObservable {
             let inner = borrowed.inner.read().map_err(|_| InnerReadError)?;
             return Ok(inner.clone().into());
         }
-        // The type of `vec` is inferred from the subsequent calls to `Self::py_from_list` or
-        // `Self::py_from_sparse_list` to be either the two-tuple or the three-tuple form during the
+        // The type of `vec` is inferred from the subsequent calls to `Self::from_list` or
+        // `Self::from_sparse_list` to be either the two-tuple or the three-tuple form during the
         // `extract`.  The empty list will pass either, but it means the same to both functions.
         if let Ok(vec) = data.extract() {
             return Self::from_list(vec, num_qubits);
@@ -2376,6 +2384,10 @@ impl PySparseObservable {
     ///         ...     for label, coeff in zip(labels, coeffs)
     ///         ... ])
     ///         >>> assert from_list == from_sparse_list
+    ///
+    /// See also:
+    ///     :meth:`to_sparse_list`
+    ///         The reverse of this method.
     #[staticmethod]
     #[pyo3(signature = (iter, /, num_qubits))]
     fn from_sparse_list(
@@ -2439,11 +2451,24 @@ impl PySparseObservable {
     ///
     /// Examples:
     ///
-    ///     >>> obs = SparseObservable("+")
-    ///     >>> obs.as_paulis()
-    ///     <SparseObservable with 2 terms on 1 qubit: (0.5+0j)() + (0.5+0j)(X_0)>
-    ///     >>> direct = SparseObservable.from_list([("I", 0.5), ("Z", 0.5)])
-    ///     >>> assert direct.simplify() == obs.as_paulis().simplify()
+    ///     Rewrite an observable in terms of projectors into Pauli operators::
+    ///
+    ///         >>> obs = SparseObservable("+")
+    ///         >>> obs.as_paulis()
+    ///         <SparseObservable with 2 terms on 1 qubit: (0.5+0j)() + (0.5+0j)(X_0)>
+    ///         >>> direct = SparseObservable.from_list([("I", 0.5), ("Z", 0.5)])
+    ///         >>> assert direct.simplify() == obs.as_paulis().simplify()
+    ///
+    ///     For small operators, this can be used with :meth:`simplify` as a unique canonical form::
+    ///
+    ///         >>> left = SparseObservable.from_list([("+", 0.5), ("-", 0.5)])
+    ///         >>> right = SparseObservable.from_list([("r", 0.5), ("l", 0.5)])
+    ///         >>> assert left.as_paulis().simplify() == right.as_paulis().simplify()
+    ///
+    /// See also:
+    ///     :meth:`.SparsePauliOp.from_sparse_observable`
+    ///         A constructor of :class:`.SparsePauliOp` that can convert a
+    ///         :class:`SparseObservable` in the :class:`.SparsePauliOp` dense Pauli representation.
     fn as_paulis(&self) -> PyResult<Self> {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
         Ok(inner.as_paulis().into())
@@ -2459,6 +2484,10 @@ impl PySparseObservable {
     ///     
     ///     >>> obs = SparseObservable.from_list([("IIXIZ", 2j), ("IIZIX", 2j)])
     ///     >>> reconstructed = SparseObservable.from_sparse_list(obs.to_sparse_list(), obs.num_qubits)
+    ///
+    /// See also:
+    ///     :meth:`from_sparse_list`
+    ///         The constructor that can interpret these lists.
     #[pyo3(signature = ())]
     fn to_sparse_list(&self, py: Python) -> PyResult<Py<PyList>> {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
