@@ -2813,9 +2813,9 @@ pub enum ArrayType {
     TwoQ(Matrix4<Complex64>),
 }
 
-/// This class is used to wrap a Python side Operation that is not in the standard library
+/// This class is a rust representation of a UnitaryGate in Python,
+/// a gate represented solely by it's unitary matrix.
 #[derive(Clone, Debug)]
-// We bit-pack pointers to this, so having a known alignment even on 32-bit systems is good.
 #[repr(align(8))]
 pub struct UnitaryGate {
     pub array: ArrayType,
