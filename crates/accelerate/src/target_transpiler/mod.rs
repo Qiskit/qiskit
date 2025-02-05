@@ -774,7 +774,10 @@ impl Target {
             };
             let out_inst = match inst {
                 TargetOperation::Normal(op) => match op.operation.view() {
-                    OperationRef::Standard(standard) => standard
+                    OperationRef::StandardGate(standard) => standard
+                        .create_py_op(py, Some(&op.params), &ExtraInstructionAttributes::default())?
+                        .into_any(),
+                    OperationRef::StandardInstruction(standard) => standard
                         .create_py_op(py, Some(&op.params), &ExtraInstructionAttributes::default())?
                         .into_any(),
                     OperationRef::Gate(gate) => gate.gate.clone_ref(py),

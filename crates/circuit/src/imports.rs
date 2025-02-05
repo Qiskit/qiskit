@@ -112,7 +112,9 @@ pub static FOR_LOOP_OP_CHECK: ImportOnceCell =
     ImportOnceCell::new("qiskit.dagcircuit.dagnode", "_for_loop_eq");
 pub static UUID: ImportOnceCell = ImportOnceCell::new("uuid", "UUID");
 pub static BARRIER: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "Barrier");
+pub static DELAY: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "Delay");
 pub static MEASURE: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "Measure");
+pub static RESET: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "Reset");
 pub static UNITARY_GATE: ImportOnceCell = ImportOnceCell::new(
     "qiskit.circuit.library.generalized_gates.unitary",
     "UnitaryGate",

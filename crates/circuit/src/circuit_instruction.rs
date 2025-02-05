@@ -29,6 +29,7 @@ use crate::imports::{
 };
 use crate::operations::{
     Operation, OperationRef, Param, PyGate, PyInstruction, PyOperation, StandardGate,
+    StandardInstruction, StandardInstructionType,
 };
 use crate::packed_instruction::PackedOperation;
 
@@ -331,7 +332,10 @@ impl CircuitInstruction {
         }
 
         let out = match self.operation.view() {
-            OperationRef::Standard(standard) => standard
+            OperationRef::StandardGate(standard) => standard
+                .create_py_op(py, Some(&self.params), &self.extra_attrs)?
+                .into_any(),
+            OperationRef::StandardInstruction(instruction) => instruction
                 .create_py_op(py, Some(&self.params), &self.extra_attrs)?
                 .into_any(),
             OperationRef::Gate(gate) => gate.gate.clone_ref(py),
@@ -395,7 +399,7 @@ impl CircuitInstruction {
     /// :class:`.ControlledGate`?
     pub fn is_controlled_gate(&self, py: Python) -> PyResult<bool> {
         match self.operation.view() {
-            OperationRef::Standard(standard) => Ok(standard.num_ctrl_qubits() != 0),
+            OperationRef::StandardGate(standard) => Ok(standard.num_ctrl_qubits() != 0),
             OperationRef::Gate(gate) => gate
                 .gate
                 .bind(py)
@@ -645,6 +649,18 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
                 .transpose()
                 .map(|params| params.unwrap_or_default())
         };
+        let extract_params_no_coerce = || {
+            ob.getattr(intern!(py, "params"))
+                .ok()
+                .map(|params| {
+                    params
+                        .try_iter()?
+                        .map(|p| Param::extract_no_coerce(&p?))
+                        .collect()
+                })
+                .transpose()
+                .map(|params| params.unwrap_or_default())
+        };
         let extract_extra = || -> PyResult<_> {
             let unit = {
                 // We accept Python-space `None` or `"dt"` as both meaning the default `"dt"`.
@@ -670,13 +686,15 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
             ))
         };
 
-        'standard: {
+        'standard_gate: {
+            // Our Python standard gates have a `_standard_gate` field at the class level so we can
+            // quickly identify them here without an `isinstance` check.
             let Some(standard) = ob_type
                 .getattr(intern!(py, "_standard_gate"))
                 .and_then(|standard| standard.extract::<StandardGate>())
                 .ok()
             else {
-                break 'standard;
+                break 'standard_gate;
             };
 
             // If the instruction is a controlled gate with a not-all-ones control state, it doesn't
@@ -697,14 +715,53 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
                         .getattr(intern!(py, "label"))?
                         .is_none())
             {
-                break 'standard;
+                break 'standard_gate;
             }
             return Ok(OperationFromPython {
-                operation: PackedOperation::from_standard(standard),
+                operation: PackedOperation::from_standard_gate(standard),
                 params: extract_params()?,
                 extra_attrs: extract_extra()?,
             });
         }
+        'standard_instr: {
+            // Our Python standard instructions have a `_standard_instruction_type` field at the
+            // class level so we can quickly identify them here without an `isinstance` check.
+            // Once we know the type, we query the object for any type-specific fields we need to
+            // read (e.g. a Barrier's number of qubits) to build the Rust representation.
+            let Some(standard_type) = ob_type
+                .getattr(intern!(py, "_standard_instruction_type"))
+                .and_then(|standard| standard.extract::<StandardInstructionType>())
+                .ok()
+            else {
+                break 'standard_instr;
+            };
+            let standard = match standard_type {
+                StandardInstructionType::Barrier => {
+                    let num_qubits = ob.getattr(intern!(py, "num_qubits"))?.extract()?;
+                    StandardInstruction::Barrier(num_qubits)
+                }
+                StandardInstructionType::Delay => {
+                    let unit = ob.getattr(intern!(py, "unit"))?.extract()?;
+                    return Ok(OperationFromPython {
+                        operation: PackedOperation::from_standard_instruction(
+                            StandardInstruction::Delay(unit),
+                        ),
+                        // If the delay's duration is a Python int, we preserve it rather than
+                        // coercing it to a float (e.g. when unit is 'dt').
+                        params: extract_params_no_coerce()?,
+                        extra_attrs: extract_extra()?,
+                    });
+                }
+                StandardInstructionType::Measure => StandardInstruction::Measure,
+                StandardInstructionType::Reset => StandardInstruction::Reset,
+            };
+            return Ok(OperationFromPython {
+                operation: PackedOperation::from_standard_instruction(standard),
+                params: extract_params()?,
+                extra_attrs: extract_extra()?,
+            });
+        }
+
         if ob_type.is_subclass(GATE.get_bound(py))? {
             let params = extract_params()?;
             let gate = Box::new(PyGate {

@@ -143,7 +143,7 @@ fn apply_synth_sequence(
             None => Some(Box::new(sequence.decomp_gate.params.clone())),
         };
         let instruction = PackedInstruction {
-            op: PackedOperation::from_standard(gate_node),
+            op: PackedOperation::from_standard_gate(gate_node),
             qubits: out_dag.qargs_interner.insert(&mapped_qargs),
             clbits: out_dag.cargs_interner.get_default(),
             params: new_params,
@@ -595,7 +595,7 @@ fn get_2q_decomposers_from_target(
                 Ok(op) => {
                     match op.operation.view() {
                         OperationRef::Gate(_) => (),
-                        OperationRef::Standard(_) => (),
+                        OperationRef::StandardGate(_) => (),
                         _ => continue,
                     }
                     // Filter out non-2q-gate candidates

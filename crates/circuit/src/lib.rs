@@ -190,6 +190,7 @@ pub fn circuit(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<dag::DAGOutNode>()?;
     m.add_class::<dag::DAGOpNode>()?;
     m.add_class::<operations::StandardGate>()?;
+    m.add_class::<operations::StandardInstructionType>()?;
     Ok(())
 }
 

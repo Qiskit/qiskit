@@ -16,7 +16,7 @@
 import unittest
 import numpy as np
 
-from qiskit import QuantumCircuit, assemble
+from qiskit import QuantumCircuit
 from qiskit import QiskitError
 from qiskit.compiler import transpile
 from qiskit.circuit.library.generalized_gates import DiagonalGate
@@ -74,14 +74,6 @@ class TestDiagonalGate(QiskitTestCase):
         self.assertTrue(
             all(isinstance(p, complex) and not isinstance(p, np.number) for p in params)
         )
-
-        with self.assertWarns(DeprecationWarning):
-            # REMOVE this assertion (not the full test) once ASSEMBLE is removed.
-            qobj = assemble(qc)
-            params = qobj.experiments[0].instructions[0].params
-            self.assertTrue(
-                all(isinstance(p, complex) and not isinstance(p, np.number) for p in params)
-            )
 
     def test_repeat(self):
         """Test the repeat() method."""

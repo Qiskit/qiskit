@@ -1240,6 +1240,33 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         circuit.barrier(label="End Y/X")
         self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
 
+    def test_text_barrier_label_reversed_bits(self):
+        """Show barrier label with reversed bits"""
+        expected = "\n".join(
+            [
+                "              ░ ┌───┐ End Y/X ",
+                "q_2: |0>──────░─┤ X ├────░────",
+                "        ┌───┐ ░ ├───┤    ░    ",
+                "q_1: |0>┤ Y ├─░─┤ Y ├────░────",
+                "        ├───┤ ░ └───┘    ░    ",
+                "q_0: |0>┤ X ├─░───────────────",
+                "        └───┘ ░               ",
+            ]
+        )
+
+        qr = QuantumRegister(3, "q")
+        circuit = QuantumCircuit(qr)
+        circuit.x(0)
+        circuit.y(1)
+        circuit.barrier()
+        circuit.y(1)
+        circuit.x(2)
+        circuit.barrier([1, 2], label="End Y/X")
+        self.assertEqual(
+            str(circuit_drawer(circuit, output="text", initial_state=True, reverse_bits=True)),
+            expected,
+        )
+
     def test_text_overlap_cx(self):
         """Overlapping CX gates are drawn not overlapping"""
         expected = "\n".join(
