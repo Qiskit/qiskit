@@ -77,7 +77,7 @@ from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit, transpile
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.qasm2 import dump
 from qiskit.transpiler import PassManager
-from qiskit.transpiler.passes import BasicSwap, LookaheadSwap, SabreSwap, StochasticSwap
+from qiskit.transpiler.passes import BasicSwap, LookaheadSwap, SabreSwap
 from qiskit.transpiler.passes import SetLayout
 from qiskit.transpiler import CouplingMap, Layout
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
@@ -106,12 +106,6 @@ class CommonUtilitiesMixin:
             passmanager.append(SetLayout(Layout(initial_layout)))
 
         with warnings.catch_warnings():
-            # TODO: remove this filter when StochasticSwap is removed
-            warnings.filterwarnings(
-                "ignore",
-                category=DeprecationWarning,
-                message=r".*StochasticSwap.*",
-            )
             # pylint: disable=not-callable
             passmanager.append(self.pass_class(CouplingMap(coupling_map), **self.additional_args))
         return passmanager
@@ -287,13 +281,6 @@ class TestsLookaheadSwap(SwapperCommonTestCases, QiskitTestCase):
     """Test SwapperCommonTestCases using LookaheadSwap."""
 
     pass_class = LookaheadSwap
-
-
-class TestsStochasticSwap(SwapperCommonTestCases, QiskitTestCase):
-    """Test SwapperCommonTestCases using StochasticSwap."""
-
-    pass_class = StochasticSwap
-    additional_args = {"seed": 0}
 
 
 class TestsSabreSwap(SwapperCommonTestCases, QiskitTestCase):

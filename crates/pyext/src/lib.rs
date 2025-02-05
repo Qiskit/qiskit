@@ -59,7 +59,6 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, ::qiskit_accelerate::sparse_pauli_op::sparse_pauli_op, "sparse_pauli_op")?;
     add_submodule(m, ::qiskit_accelerate::split_2q_unitaries::split_2q_unitaries_mod, "split_2q_unitaries")?;
     add_submodule(m, ::qiskit_accelerate::star_prerouting::star_prerouting, "star_prerouting")?;
-    add_submodule(m, ::qiskit_accelerate::stochastic_swap::stochastic_swap, "stochastic_swap")?;
     add_submodule(m, ::qiskit_accelerate::synthesis::synthesis, "synthesis")?;
     add_submodule(m, ::qiskit_accelerate::target_transpiler::target, "target")?;
     add_submodule(m, ::qiskit_accelerate::twirling::twirling, "twirling")?;
