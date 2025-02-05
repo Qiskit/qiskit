@@ -141,7 +141,6 @@ pub fn split_2q_unitaries(
     for node in dag.topological_op_nodes()? {
         if let NodeType::Operation(inst) = &dag.dag()[node] {
             let qubits = dag.get_qargs(inst.qubits).to_vec();
-            let mut is_swap = false;
             if qubits.len() == 2 && inst.op.name() == "unitary" {
                 let matrix = inst
                     .op
@@ -154,7 +153,6 @@ pub fn split_2q_unitaries(
                 )?;
                 if matches!(decomp.specialization, Specialization::SWAPEquiv) {
                     // perform the virtual swap
-                    is_swap = true;
                     let qargs = dag.get_qargs(inst.qubits);
                     let index0 = qargs[0].index();
                     let index1 = qargs[1].index();
@@ -176,28 +174,27 @@ pub fn split_2q_unitaries(
                         py,
                     )?;
                     new_dag.add_global_phase(py, &Param::Float(decomp.global_phase + PI4))?;
+                    continue; // skip the general instruction handling code
                 }
             }
-            if !is_swap {
-                // General instruction
-                let qargs = dag.get_qargs(inst.qubits);
-                let cargs = dag.get_cargs(inst.clbits);
-                let mapped_qargs: Vec<Qubit> = qargs
-                    .iter()
-                    .map(|q| Qubit::new(mapping[q.index()]))
-                    .collect();
+            // General instruction
+            let qargs = dag.get_qargs(inst.qubits);
+            let cargs = dag.get_cargs(inst.clbits);
+            let mapped_qargs: Vec<Qubit> = qargs
+                .iter()
+                .map(|q| Qubit::new(mapping[q.index()]))
+                .collect();
 
-                new_dag.apply_operation_back(
-                    py,
-                    inst.op.clone(),
-                    &mapped_qargs,
-                    cargs,
-                    inst.params.as_deref().cloned(),
-                    inst.extra_attrs.clone(),
-                    #[cfg(feature = "cache_pygates")]
-                    inst.py_op.get().map(|x| x.clone_ref(py)),
-                )?;
-            }
+            new_dag.apply_operation_back(
+                py,
+                inst.op.clone(),
+                &mapped_qargs,
+                cargs,
+                inst.params.as_deref().cloned(),
+                inst.extra_attrs.clone(),
+                #[cfg(feature = "cache_pygates")]
+                inst.py_op.get().map(|x| x.clone_ref(py)),
+            )?;
         }
     }
     Ok(Some((new_dag, mapping)))
