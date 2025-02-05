@@ -13,10 +13,9 @@
 use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
-use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 use qiskit_circuit::circuit_instruction::OperationFromPython;
-use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, Wire};
+use qiskit_circuit::dag::{DAGCircuit, NodeIndex, NodeType, Wire};
 use qiskit_circuit::imports::UNITARY_GATE;
 use qiskit_circuit::operations::{Operation, Param};
 

@@ -13,11 +13,10 @@
 use num_complex::Complex64;
 use num_complex::ComplexFloat;
 use pyo3::prelude::*;
-use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 use crate::nlayout::PhysicalQubit;
 use crate::target_transpiler::Target;
-use qiskit_circuit::dag_circuit::DAGCircuit;
+use qiskit_circuit::dag::{DAGCircuit, NodeIndex};
 use qiskit_circuit::operations::Operation;
 use qiskit_circuit::operations::OperationRef;
 use qiskit_circuit::operations::Param;

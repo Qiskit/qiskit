@@ -17,7 +17,7 @@ use smallvec::SmallVec;
 
 use crate::nlayout::PhysicalQubit;
 use crate::target_transpiler::Target;
-use qiskit_circuit::dag_circuit::DAGCircuit;
+use qiskit_circuit::dag::DAGCircuit;
 use qiskit_circuit::operations::Operation;
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::Qubit;

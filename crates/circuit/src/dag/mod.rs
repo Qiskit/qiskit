@@ -1,6 +1,6 @@
 // This code is part of Qiskit.
 //
-// (C) Copyright IBM 2024
+// (C) Copyright IBM 2025
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -10,7 +10,14 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use pyo3::import_exception;
+mod circuit;
+mod dot_utils;
+mod node;
+mod rustworkx_core_vnext;
 
-import_exception!(qiskit.dagcircuit.exceptions, DAGCircuitError);
-import_exception!(qiskit.dagcircuit.exceptions, DAGDependencyError);
+::pyo3::import_exception!(qiskit.dagcircuit.exceptions, DAGCircuitError);
+
+pub use self::{
+    circuit::{DAGCircuit, NodeIndex, NodeType, Wire},
+    node::{DAGInNode, DAGNode, DAGOpNode, DAGOutNode},
+};

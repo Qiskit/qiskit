@@ -14,10 +14,7 @@ pub mod bit_data;
 pub mod circuit_data;
 pub mod circuit_instruction;
 pub mod converters;
-pub mod dag_circuit;
-pub mod dag_node;
-mod dot_utils;
-pub mod error;
+pub mod dag;
 pub mod gate_matrix;
 pub mod imports;
 pub mod interner;
@@ -26,8 +23,6 @@ pub mod packed_instruction;
 pub mod parameter_table;
 pub mod slice;
 pub mod util;
-
-mod rustworkx_core_vnext;
 
 use pyo3::prelude::*;
 use pyo3::types::{PySequence, PyTuple};
@@ -79,6 +74,29 @@ impl Clbit {
     }
 }
 
+/// An opaque key type that identifies a variable, similar to bits.
+///
+/// These keys are [Eq], but this is semantically valid only for keys from the same owning object.
+#[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq)]
+pub struct Var(pub BitType);
+
+impl Var {
+    /// Construct a new [Var] object from a usize. if you have a u32 you can create a [Var] object
+    /// directly with `Var(0u32)`. This will panic if the `usize` index exceeds `u32::MAX`.
+    #[inline(always)]
+    fn new(index: usize) -> Self {
+        Var(index
+            .try_into()
+            .unwrap_or_else(|_| panic!("Index value '{}' exceeds the maximum bit width!", index)))
+    }
+
+    /// Get the index of the [Var]
+    #[inline(always)]
+    fn index(&self) -> usize {
+        self.0 as usize
+    }
+}
+
 pub struct TupleLikeArg<'py> {
     value: Bound<'py, PyTuple>,
 }
@@ -100,24 +118,31 @@ impl<'py> FromPyObject<'py> for TupleLikeArg<'py> {
 
 impl From<BitType> for Qubit {
     fn from(value: BitType) -> Self {
-        Qubit(value)
+        Self(value)
     }
 }
-
 impl From<Qubit> for BitType {
     fn from(value: Qubit) -> Self {
         value.0
     }
 }
-
 impl From<BitType> for Clbit {
     fn from(value: BitType) -> Self {
-        Clbit(value)
+        Self(value)
     }
 }
-
 impl From<Clbit> for BitType {
     fn from(value: Clbit) -> Self {
+        value.0
+    }
+}
+impl From<BitType> for Var {
+    fn from(value: BitType) -> Self {
+        Self(value)
+    }
+}
+impl From<Var> for BitType {
+    fn from(value: Var) -> Self {
         value.0
     }
 }
@@ -159,11 +184,11 @@ macro_rules! impl_intopyobject_for_copy_pyclass {
 pub fn circuit(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<circuit_data::CircuitData>()?;
     m.add_class::<circuit_instruction::CircuitInstruction>()?;
-    m.add_class::<dag_circuit::DAGCircuit>()?;
-    m.add_class::<dag_node::DAGNode>()?;
-    m.add_class::<dag_node::DAGInNode>()?;
-    m.add_class::<dag_node::DAGOutNode>()?;
-    m.add_class::<dag_node::DAGOpNode>()?;
+    m.add_class::<dag::DAGCircuit>()?;
+    m.add_class::<dag::DAGNode>()?;
+    m.add_class::<dag::DAGInNode>()?;
+    m.add_class::<dag::DAGOutNode>()?;
+    m.add_class::<dag::DAGOpNode>()?;
     m.add_class::<operations::StandardGate>()?;
     m.add_class::<operations::StandardInstructionType>()?;
     Ok(())

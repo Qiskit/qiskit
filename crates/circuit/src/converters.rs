@@ -21,7 +21,7 @@ use pyo3::{
 };
 
 use crate::circuit_data::CircuitData;
-use crate::dag_circuit::{DAGCircuit, NodeType};
+use crate::dag::{DAGCircuit, NodeType};
 use crate::packed_instruction::PackedInstruction;
 
 /// An extractable representation of a QuantumCircuit reserved only for

@@ -14,10 +14,9 @@ use ahash::RandomState;
 use hashbrown::HashSet;
 use indexmap::IndexMap;
 use pyo3::prelude::*;
-use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 use qiskit_circuit::circuit_instruction::OperationFromPython;
-use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
+use qiskit_circuit::dag::{DAGCircuit, NodeIndex, NodeType};
 use qiskit_circuit::operations::Operation;
 use qiskit_circuit::packed_instruction::PackedInstruction;
 

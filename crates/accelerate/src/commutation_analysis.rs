@@ -20,8 +20,7 @@ use hashbrown::HashMap;
 use pyo3::prelude::*;
 
 use pyo3::types::{PyDict, PyList};
-use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, Wire};
-use rustworkx_core::petgraph::stable_graph::NodeIndex;
+use qiskit_circuit::dag::{DAGCircuit, NodeIndex, NodeType, Wire};
 
 // Custom types to store the commutation sets and node indices,
 // see the docstring below for more information.
