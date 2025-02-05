@@ -24,3 +24,12 @@ upgrade_circuits:
 
     This also applies to :class:`.DAGCircuit` too, but you can use
     :meth:`.DAGCircuit.substitute_node` instead.
+  - |
+    The :attr:`.CircuitInstruction.params` attribute for a :class:`.CircuitInstruction`
+    that contains an :class:`.UnitaryGate` for its :attr:`~.CircuitInstruction.operation`
+    will no longer contain the underlying unitary matrix for the gate.
+    This is because the internal representation of the gate no longer
+    treats the matrix object as a parameter. If you need to access the
+    matrix of the gate you can do this either via the
+    :attr:`.CircuitInstruction.matrix` or the :attr:`.UnitaryGate.params`
+    field of the :attr:`.CircuitInstruction.operation`.
