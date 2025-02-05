@@ -17,6 +17,7 @@ rayon.workspace = true
 ahash.workspace = true
 rustworkx-core.workspace = true
 bytemuck.workspace = true
+bitfield-struct.workspace = true
 num-complex.workspace = true
 ndarray.workspace = true
 numpy.workspace = true
