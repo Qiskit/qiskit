@@ -54,6 +54,7 @@ pub(crate) fn analyze_commutations_inner(
     py: Python,
     dag: &mut DAGCircuit,
     commutation_checker: &mut CommutationChecker,
+    tol: Option<f64>,
 ) -> PyResult<(CommutationSet, NodeIndices)> {
     let mut commutation_set: CommutationSet = HashMap::new();
     let mut node_indices: NodeIndices = HashMap::new();
@@ -104,6 +105,7 @@ pub(crate) fn analyze_commutations_inner(
                             qargs2,
                             cargs2,
                             MAX_NUM_QUBITS,
+                            tol,
                         )?;
                         if !all_commute {
                             break;
@@ -134,17 +136,19 @@ pub(crate) fn analyze_commutations_inner(
 }
 
 #[pyfunction]
-#[pyo3(signature = (dag, commutation_checker))]
+#[pyo3(signature = (dag, commutation_checker, tol=None))]
 pub(crate) fn analyze_commutations(
     py: Python,
     dag: &mut DAGCircuit,
     commutation_checker: &mut CommutationChecker,
+    tol: Option<f64>,
 ) -> PyResult<Py<PyDict>> {
     // This returns two HashMaps:
     //   * The commuting nodes per wire: {wire: [commuting_nodes_1, commuting_nodes_2, ...]}
     //   * The index in which commutation set a given node is located on a wire: {(node, wire): index}
     // The Python dict will store both of these dictionaries in one.
-    let (commutation_set, node_indices) = analyze_commutations_inner(py, dag, commutation_checker)?;
+    let (commutation_set, node_indices) =
+        analyze_commutations_inner(py, dag, commutation_checker, tol)?;
 
     let out_dict = PyDict::new(py);
 

@@ -13,7 +13,7 @@
 use ndarray::{arr2, Array, Array2, ArrayView, ArrayView2, IxDyn};
 use ndarray_einsum_beta::*;
 use num_complex::{Complex, Complex64, ComplexFloat};
-use num_traits::Zero;
+use qiskit_circuit::util::C_ZERO;
 use qiskit_circuit::Qubit;
 
 static LOWERCASE: [u8; 26] = [
@@ -153,92 +153,6 @@ fn _einsum_matmul_index(qubits: &[u32], num_qubits: usize) -> String {
     )
 }
 
-pub fn commute_1q(
-    left: &ArrayView2<Complex64>,
-    right: &ArrayView2<Complex64>,
-    rtol: f64,
-    atol: f64,
-) -> bool {
-    // This could allow for explicit hardcoded formulas, using less FLOPS, if we only
-    // consider an absolute tolerance. But for backward compatibility we now implement the full
-    // formula including relative tolerance handling.
-    for i in 0..2usize {
-        for j in 0..2usize {
-            let mut ab = Complex64::zero();
-            let mut ba = Complex64::zero();
-            for k in 0..2usize {
-                ab += left[[i, k]] * right[[k, j]];
-                ba += right[[i, k]] * left[[k, j]];
-            }
-            let sum = ab - ba;
-            if sum.abs() > atol + ba.abs() * rtol {
-                return false;
-            }
-        }
-    }
-    true
-}
-
-pub fn commute_2q(
-    left: &ArrayView2<Complex64>,
-    right: &ArrayView2<Complex64>,
-    qargs: &[Qubit],
-    rtol: f64,
-    atol: f64,
-) -> bool {
-    let rev = qargs[0].0 == 1;
-    for i in 0..4usize {
-        for j in 0..4usize {
-            // We compute AB and BA separately, to enable checking the relative difference
-            // (AB - BA)_ij > atol + rtol * BA_ij. This is due to backward compatibility and could
-            // maybe be changed in the future to save one complex number allocation.
-            let mut ab = Complex64::zero();
-            let mut ba = Complex64::zero();
-            for k in 0..4usize {
-                ab += left[[_ind(i, rev), _ind(k, rev)]] * right[[k, j]];
-                ba += right[[i, k]] * left[[_ind(k, rev), _ind(j, rev)]];
-            }
-            let sum = ab - ba;
-            if sum.abs() > atol + ba.abs() * rtol {
-                return false;
-            }
-        }
-    }
-    true
-}
-
-#[inline]
-fn _ind(i: usize, reversed: bool) -> usize {
-    if reversed {
-        // reverse the first two bits
-        ((i & 1) << 1) + ((i & 2) >> 1)
-    } else {
-        i
-    }
-}
-
-/// For equally sized matrices, ``left`` and ``right``, check whether all entries are close
-/// by the criterion
-///
-///     |left_ij - right_ij| <= atol + rtol * right_ij
-///
-/// This is analogous to NumPy's ``allclose`` function.
-pub fn allclose(
-    left: &ArrayView2<Complex64>,
-    right: &ArrayView2<Complex64>,
-    rtol: f64,
-    atol: f64,
-) -> bool {
-    for i in 0..left.nrows() {
-        for j in 0..left.ncols() {
-            if (left[(i, j)] - right[(i, j)]).abs() > atol + rtol * right[(i, j)].abs() {
-                return false;
-            }
-        }
-    }
-    true
-}
-
 pub fn gate_fidelity(
     left: &ArrayView2<Complex64>,
     right: &ArrayView2<Complex64>,
@@ -262,8 +176,7 @@ pub fn gate_fidelity(
 }
 
 fn mm1q(left: &ArrayView2<Complex64>, right: &ArrayView2<Complex64>) -> Array2<Complex64> {
-    let zero = Complex64::zero();
-    let mut out = arr2(&[[zero, zero], [zero, zero]]);
+    let mut out = arr2(&[[C_ZERO, C_ZERO], [C_ZERO, C_ZERO]]);
     out[[0, 0]] = left[[0, 0]] * right[[0, 0]] + left[[0, 1]] * right[[1, 0]];
     out[[0, 1]] = left[[0, 0]] * right[[0, 1]] + left[[0, 1]] * right[[1, 1]];
     out[[1, 0]] = left[[1, 0]] * right[[0, 0]] + left[[1, 1]] * right[[1, 0]];
@@ -271,17 +184,26 @@ fn mm1q(left: &ArrayView2<Complex64>, right: &ArrayView2<Complex64>) -> Array2<C
     out
 }
 
+#[inline]
+fn _ind(i: usize, reversed: bool) -> usize {
+    if reversed {
+        // reverse the first two bits
+        ((i & 1) << 1) + ((i & 2) >> 1)
+    } else {
+        i
+    }
+}
+
 pub fn mm2q(
     left: &ArrayView2<Complex64>,
     right: &ArrayView2<Complex64>,
     qargs: &[Qubit],
 ) -> Array2<Complex64> {
-    let zero = Complex64::zero();
     let mut out = arr2(&[
-        [zero, zero, zero, zero],
-        [zero, zero, zero, zero],
-        [zero, zero, zero, zero],
-        [zero, zero, zero, zero],
+        [C_ZERO, C_ZERO, C_ZERO, C_ZERO],
+        [C_ZERO, C_ZERO, C_ZERO, C_ZERO],
+        [C_ZERO, C_ZERO, C_ZERO, C_ZERO],
+        [C_ZERO, C_ZERO, C_ZERO, C_ZERO],
     ]);
 
     let rev = qargs[0].0 == 1;

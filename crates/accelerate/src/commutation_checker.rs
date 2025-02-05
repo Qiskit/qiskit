@@ -130,13 +130,14 @@ impl CommutationChecker {
         }
     }
 
-    #[pyo3(signature=(op1, op2, max_num_qubits=3))]
+    #[pyo3(signature=(op1, op2, max_num_qubits=3, tol=None))]
     fn commute_nodes(
         &mut self,
         py: Python,
         op1: &DAGOpNode,
         op2: &DAGOpNode,
         max_num_qubits: u32,
+        tol: Option<f64>,
     ) -> PyResult<bool> {
         let (qargs1, qargs2) = get_bits::<Qubit>(
             py,
@@ -162,10 +163,11 @@ impl CommutationChecker {
             &qargs2,
             &cargs2,
             max_num_qubits,
+            tol,
         )
     }
 
-    #[pyo3(signature=(op1, qargs1, cargs1, op2, qargs2, cargs2, max_num_qubits=3))]
+    #[pyo3(signature=(op1, qargs1, cargs1, op2, qargs2, cargs2, max_num_qubits=3, tol=None))]
     #[allow(clippy::too_many_arguments)]
     fn commute(
         &mut self,
@@ -177,6 +179,7 @@ impl CommutationChecker {
         qargs2: Option<&Bound<PySequence>>,
         cargs2: Option<&Bound<PySequence>>,
         max_num_qubits: u32,
+        tol: Option<f64>,
     ) -> PyResult<bool> {
         let qargs1 = qargs1.map_or_else(|| Ok(PyTuple::empty(py)), PySequenceMethods::to_tuple)?;
         let cargs1 = cargs1.map_or_else(|| Ok(PyTuple::empty(py)), PySequenceMethods::to_tuple)?;
@@ -199,6 +202,7 @@ impl CommutationChecker {
             &qargs2,
             &cargs2,
             max_num_qubits,
+            tol,
         )
     }
 
@@ -269,21 +273,18 @@ impl CommutationChecker {
         qargs2: &[Qubit],
         cargs2: &[Clbit],
         max_num_qubits: u32,
+        tol: Option<f64>,
     ) -> PyResult<bool> {
-        // relative and absolute tolerance used to (1) check whether rotation gates commute
-        // trivially (i.e. the rotation angle is so small we assume it commutes) and (2) define
-        // comparison for the matrix-based commutation checks
-        // let rtol = 1e-5;
-        let rtol = f64::EPSILON;
-        let atol = 1e-8;
+        // if the average gate infidelity is below this tolerance, they commute
+        let tol = tol.unwrap_or(f64::EPSILON);
 
         // if we have rotation gates, we attempt to map them to their generators, for example
         // RX -> X or CPhase -> CZ
-        let (op1, params1, trivial1) = map_rotation(op1, params1, rtol);
+        let (op1, params1, trivial1) = map_rotation(op1, params1, tol);
         if trivial1 {
             return Ok(true);
         }
-        let (op2, params2, trivial2) = map_rotation(op2, params2, rtol);
+        let (op2, params2, trivial2) = map_rotation(op2, params2, tol);
         if trivial2 {
             return Ok(true);
         }
@@ -347,8 +348,7 @@ impl CommutationChecker {
                 second_op,
                 second_params,
                 second_qargs,
-                rtol,
-                atol,
+                tol,
             );
         }
 
@@ -383,8 +383,7 @@ impl CommutationChecker {
             second_op,
             second_params,
             second_qargs,
-            rtol,
-            atol,
+            tol,
         )?;
 
         // TODO: implement a LRU cache for this
@@ -419,8 +418,7 @@ impl CommutationChecker {
         second_op: &OperationRef,
         second_params: &[Param],
         second_qargs: &[Qubit],
-        rtol: f64,
-        atol: f64,
+        tol: f64,
     ) -> PyResult<bool> {
         // Compute relative positioning of qargs of the second gate to the first gate.
         // Since the qargs come out the same BitData, we already know there are no accidential
@@ -461,31 +459,6 @@ impl CommutationChecker {
             None => return Ok(false),
         };
 
-        // if first_qarg == second_qarg {
-        // match first_qarg.len() {
-        //     1 => Ok(unitary_compose::commute_1q(
-        //         &first_mat.view(),
-        //         &second_mat.view(),
-        //         rtol,
-        //         atol,
-        //     )),
-        //     2 => Ok(unitary_compose::commute_2q(
-        //         &first_mat.view(),
-        //         &second_mat.view(),
-        //         &[Qubit(0), Qubit(1)],
-        //         rtol,
-        //         atol,
-        //     )),
-        //     _ => Ok(unitary_compose::allclose(
-        //         &second_mat.dot(&first_mat).view(),
-        //         &first_mat.dot(&second_mat).view(),
-        //         rtol,
-        //         atol,
-        //     )),
-        // }
-        //     let fid = unitary_compose::gate_fidelity(&first_mat.view(), &second_mat.view());
-        //     Ok((1.0 - fid).abs() < rtol)
-        // } else {
         // TODO Optimize this bit to avoid unnecessary Kronecker products:
         //  1. We currently sort the operations for the cache by operation size, putting the
         //     *smaller* operation first: (smaller op, larger op)
@@ -522,7 +495,7 @@ impl CommutationChecker {
             Err(e) => return Err(PyRuntimeError::new_err(e)),
         };
         let fid = unitary_compose::gate_fidelity(&op12.view(), &op21.view(), None);
-        Ok((1.0 - fid).abs() <= rtol)
+        Ok((1.0 - fid).abs() <= tol)
     }
 
     fn clear_cache(&mut self) {
