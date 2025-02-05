@@ -282,6 +282,7 @@ mod pointer {
         }
     }
 
+    #[inline]
     fn try_pointer<T: PackablePointer>(value: &PackedOperation) -> Option<NonNull<T>> {
         if value.discriminant() == T::OPERATION_TYPE {
             let ptr = (value.0 & POINTER_MASK) as *mut ();
@@ -397,21 +398,25 @@ impl PackedOperation {
     }
 
     /// Create a `PackedOperation` from a `StandardInstruction`.
+    #[inline]
     pub fn from_standard_instruction(instruction: StandardInstruction) -> Self {
         instruction.into()
     }
 
     /// Construct a new `PackedOperation` from an owned heap-allocated `PyGate`.
+    #[inline]
     pub fn from_gate(gate: Box<PyGate>) -> Self {
         gate.into()
     }
 
     /// Construct a new `PackedOperation` from an owned heap-allocated `PyInstruction`.
+    #[inline]
     pub fn from_instruction(instruction: Box<PyInstruction>) -> Self {
         instruction.into()
     }
 
     /// Construct a new `PackedOperation` from an owned heap-allocated `PyOperation`.
+    #[inline]
     pub fn from_operation(operation: Box<PyOperation>) -> Self {
         operation.into()
     }
