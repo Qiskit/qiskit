@@ -10,8 +10,6 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use core::f64;
-
 use hashbrown::{HashMap, HashSet};
 use ndarray::linalg::kron;
 use ndarray::Array2;
@@ -130,14 +128,14 @@ impl CommutationChecker {
         }
     }
 
-    #[pyo3(signature=(op1, op2, max_num_qubits=3, tol=None))]
+    #[pyo3(signature=(op1, op2, max_num_qubits=3, approximation_degree=None))]
     fn commute_nodes(
         &mut self,
         py: Python,
         op1: &DAGOpNode,
         op2: &DAGOpNode,
         max_num_qubits: u32,
-        tol: Option<f64>,
+        approximation_degree: Option<f64>,
     ) -> PyResult<bool> {
         let (qargs1, qargs2) = get_bits::<Qubit>(
             py,
@@ -163,11 +161,11 @@ impl CommutationChecker {
             &qargs2,
             &cargs2,
             max_num_qubits,
-            tol,
+            approximation_degree,
         )
     }
 
-    #[pyo3(signature=(op1, qargs1, cargs1, op2, qargs2, cargs2, max_num_qubits=3, tol=None))]
+    #[pyo3(signature=(op1, qargs1, cargs1, op2, qargs2, cargs2, max_num_qubits=3, approximation_degree=None))]
     #[allow(clippy::too_many_arguments)]
     fn commute(
         &mut self,
@@ -179,7 +177,7 @@ impl CommutationChecker {
         qargs2: Option<&Bound<PySequence>>,
         cargs2: Option<&Bound<PySequence>>,
         max_num_qubits: u32,
-        tol: Option<f64>,
+        approximation_degree: Option<f64>,
     ) -> PyResult<bool> {
         let qargs1 = qargs1.map_or_else(|| Ok(PyTuple::empty(py)), PySequenceMethods::to_tuple)?;
         let cargs1 = cargs1.map_or_else(|| Ok(PyTuple::empty(py)), PySequenceMethods::to_tuple)?;
@@ -202,7 +200,7 @@ impl CommutationChecker {
             &qargs2,
             &cargs2,
             max_num_qubits,
-            tol,
+            approximation_degree,
         )
     }
 
@@ -273,10 +271,11 @@ impl CommutationChecker {
         qargs2: &[Qubit],
         cargs2: &[Clbit],
         max_num_qubits: u32,
-        tol: Option<f64>,
+        approximation_degree: Option<f64>,
     ) -> PyResult<bool> {
-        // if the average gate infidelity is below this tolerance, they commute
-        let tol = tol.unwrap_or(f64::EPSILON);
+        // If the average gate infidelity is below this tolerance, they commute. The tolerance
+        // is set to max(machine_eps, 1 - approximation_degree).
+        let tol = f64::EPSILON.max(1. - approximation_degree.unwrap_or(1.));
 
         // if we have rotation gates, we attempt to map them to their generators, for example
         // RX -> X or CPhase -> CZ
@@ -604,7 +603,7 @@ fn map_rotation<'a>(
         // it commutes trivially.
         if let Param::Float(angle) = params[0] {
             let gate_fidelity = rotation_fidelity(name, angle).unwrap_or(0.);
-            if (1. - gate_fidelity).abs() < tol {
+            if (1. - gate_fidelity).abs() <= tol {
                 return (op, params, true);
             };
         };
@@ -622,45 +621,18 @@ fn map_rotation<'a>(
     (op, params, false)
 }
 
-/// Compute the gate fidelity of a rotation gate.
-// fn rotation_fidelity(rotation: &OperationRef, angle: f64) -> Option<f64> {
-//     if let OperationRef::Standard(gate) = rotation {
-//         match gate {
-//             StandardGate::RXGate
-//             | StandardGate::RYGate
-//             | StandardGate::RZGate
-//             | StandardGate::PhaseGate => return Some(2. * (angle / 2.).cos()),
-//             StandardGate::RXXGate
-//             | StandardGate::RYYGate
-//             | StandardGate::RZXGate
-//             | StandardGate::RZZGate => return Some(4. * (angle / 2.).cos()),
-//             StandardGate::CRXGate
-//             | StandardGate::CRYGate
-//             | StandardGate::CRZGate
-//             | StandardGate::CPhaseGate => return Some(2. + 2. * (angle / 2.).cos()),
-//             _ => return None,
-//         };
-//     };
-//     None
-// }
-
 fn rotation_fidelity(rotation: &str, angle: f64) -> Option<f64> {
     let dim = match rotation {
         "rx" | "ry" | "rz" | "p" => 2.,
         _ => 4.,
     };
 
-    match rotation {
-        "rx" | "ry" | "rz" | "p" | "rxx" | "ryy" | "rzx" | "rzz" => {
-            let gate_fid = (angle / 2.).cos().powi(2);
-            Some((dim * gate_fid + 1.) / (dim + 1.))
-        }
-        "crx" | "cry" | "crz" | "cp" => {
-            let gate_fid = (0.5 + 0.5 * (angle / 2.).cos()).powi(2);
-            Some((dim * gate_fid + 1.) / (dim + 1.))
-        }
-        _ => None,
-    }
+    let gate_fid = match rotation {
+        "rx" | "ry" | "rz" | "p" | "rxx" | "ryy" | "rzx" | "rzz" => (angle / 2.).cos().powi(2),
+        "crx" | "cry" | "crz" | "cp" => (0.5 + 0.5 * (angle / 2.).cos()).powi(2),
+        _ => return None,
+    };
+    Some((dim * gate_fid + 1.) / (dim + 1.))
 }
 
 fn get_relative_placement(
