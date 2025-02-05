@@ -2637,45 +2637,8 @@ def _format(operand):
                                 [ArrayType::NDArray(a), ArrayType::NDArray(b)] => {
                                     Ok(relative_eq!(a, b, max_relative = 1e-5, epsilon = 1e-8))
                                 }
-                                [ArrayType::NDArray(a), ArrayType::OneQ(b)] => {
-                                    if a.shape()[0] == 2 {
-                                        for i in 0..2 {
-                                            for j in 0..2 {
-                                                if !relative_eq!(
-                                                    a[[i, j]],
-                                                    b[(i, j)],
-                                                    max_relative = 1e-5,
-                                                    epsilon = 1e-8
-                                                ) {
-                                                    return Ok(false);
-                                                }
-                                            }
-                                        }
-                                        Ok(true)
-                                    } else {
-                                        Ok(false)
-                                    }
-                                }
-                                [ArrayType::NDArray(a), ArrayType::TwoQ(b)] => {
-                                    if a.shape()[0] == 4 {
-                                        for i in 0..4 {
-                                            for j in 0..4 {
-                                                if !relative_eq!(
-                                                    a[[i, j]],
-                                                    b[(i, j)],
-                                                    max_relative = 1e-5,
-                                                    epsilon = 1e-8
-                                                ) {
-                                                    return Ok(false);
-                                                }
-                                            }
-                                        }
-                                        Ok(true)
-                                    } else {
-                                        Ok(false)
-                                    }
-                                }
-                                [ArrayType::OneQ(a), ArrayType::NDArray(b)] => {
+                                [ArrayType::OneQ(a), ArrayType::NDArray(b)]
+                                | [ArrayType::NDArray(b), ArrayType::OneQ(a)] => {
                                     if b.shape()[0] == 2 {
                                         for i in 0..2 {
                                             for j in 0..2 {
@@ -2694,7 +2657,8 @@ def _format(operand):
                                         Ok(false)
                                     }
                                 }
-                                [ArrayType::TwoQ(a), ArrayType::NDArray(b)] => {
+                                [ArrayType::TwoQ(a), ArrayType::NDArray(b)]
+                                | [ArrayType::NDArray(b), ArrayType::TwoQ(a)] => {
                                     if b.shape()[0] == 4 {
                                         for i in 0..4 {
                                             for j in 0..4 {
