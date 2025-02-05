@@ -769,6 +769,10 @@ class QuantumCircuit:
     ``with`` statement.  It is far simpler and less error-prone to build control flow
     programmatically this way.
 
+    When using the control-flow builder interface, you may sometimes want a qubit to be included in
+    a block, even though it has no operations defined.  In this case, you can use the :meth:`noop`
+    method.
+
     ..
         TODO: expand the examples of the builder interface.
 
@@ -779,6 +783,7 @@ class QuantumCircuit:
     .. automethod:: if_test
     .. automethod:: switch
     .. automethod:: while_loop
+    .. automethod:: noop
 
 
     Converting circuits to single objects
@@ -6202,6 +6207,42 @@ class QuantumCircuit:
 
         return self.append(gate, qubits, [], copy=False)
 
+    def noop(self, *qargs: QubitSpecifier):
+        """Mark the given qubit(s) as used within the current scope, without adding an operation.
+
+        This has no effect (other than raising an exception on invalid input) when called in the
+        top scope of a :class:`QuantumCircuit`.  Within a control-flow builder, this causes the
+        qubit to be "used" by the control-flow block, if it wouldn't already be used, without adding
+        any additional operations on it.
+
+        For example::
+
+            from qiskit.circuit import QuantumCircuit
+
+            qc = QuantumCircuit(3)
+            with qc.box():
+                # This control-flow block will only use qubits 0 and 1.
+                qc.cx(0, 1)
+            with qc.box():
+                # This control-flow block will contain only the same operation as the previous
+                # block, but it will also mark qubit 2 as "used" by the box.
+                qc.cx(0, 1)
+                qc.noop(2)
+
+        Args:
+            *qargs: variadic list of valid qubit specifiers.  Anything that can be passed as a qubit
+                or collection of qubits is valid for each argument here.
+
+        Raises:
+            CircuitError: if any requested qubit is not valid for the circuit.
+        """
+        scope = self._current_scope()
+        for qarg in qargs:
+            for qubit in self._qbit_argument_conversion(qarg):
+                # It doesn't matter if we pass duplicates along here, and the inner scope is going
+                # to have to hash them to check anyway, so no point de-duplicating.
+                scope.use_qubit(qubit)
+
     def _current_scope(self) -> CircuitScopeInterface:
         if self._control_flow_scopes:
             return self._control_flow_scopes[-1]
@@ -6967,6 +7008,10 @@ class _OuterCircuitScopeInterface(CircuitScopeInterface):
     def use_var(self, var):
         if self.get_var(var.name) != var:
             raise CircuitError(f"'{var}' is not present in this circuit")
+
+    def use_qubit(self, qubit):
+        # Since the qubit is guaranteed valid, there's nothing for us to do.
+        pass
 
 
 def _validate_expr(circuit_scope: CircuitScopeInterface, node: expr.Expr) -> expr.Expr:
