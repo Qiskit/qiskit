@@ -19,6 +19,7 @@ use hashbrown::HashMap;
 use pyo3::exceptions::{PyKeyError, PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList};
+use std::borrow::Cow;
 use std::fmt::Debug;
 use std::hash::{Hash, Hasher};
 use std::sync::{OnceLock, RwLock};
@@ -266,8 +267,8 @@ where
         + Hash
         + Eq
         + From<(usize, Option<String>)>
-        + for<'a> From<&'a [T]>
-        + for<'a> From<(&'a [T], String)>,
+        + for<'a> From<Cow<'a, [T]>>
+        + for<'a> From<(Cow<'a, [T]>, Option<String>)>,
     BitType: From<T>,
 {
     pub fn new(description: String) -> Self {
@@ -319,8 +320,8 @@ where
         &mut self,
         name: Option<String>,
         size: Option<usize>,
-        bits: Option<&[T]>,
-    ) -> u32 {
+        bits: Option<Cow<'_, [T]>>,
+    ) -> Option<u32> {
         let idx = self.registry.len().try_into().unwrap_or_else(|_| {
             panic!(
                 "The {} registry in this circuit has reached its maximum capacity.",
@@ -330,14 +331,16 @@ where
         match (size, bits) {
             (None, None) => panic!("You should at least provide either a size or the bit indices."),
             (None, Some(bits)) => {
-                let reg: R = if let Some(name) = name {
-                    (bits, name).into()
-                } else {
-                    bits.into()
-                };
+                if bits.is_empty() {
+                    return None;
+                }
+                let reg: R = bits.into();
+                if self.reg_keys.contains_key(reg.as_key()) {
+                    return Some(self.reg_keys[reg.as_key()]);
+                }
                 // Add register info cancel if any qubit is duplicated
-                for (bit_idx, bit) in bits.iter().enumerate() {
-                    let bit_info = &mut self.bit_info[BitType::from(*bit) as usize];
+                for (bit_idx, bit) in reg.bits().enumerate() {
+                    let bit_info = &mut self.bit_info[BitType::from(bit) as usize];
                     bit_info.add_register(
                         idx,
                         bit_idx.try_into().unwrap_or_else(|_| {
@@ -352,9 +355,17 @@ where
                 self.reg_keys.insert(reg.as_key().clone(), idx);
                 self.registry.push(reg);
                 self.registers.push(OnceLock::new());
-                idx
+                Some(idx)
             }
             (Some(size), None) => {
+                if size < 1 {
+                    return None;
+                }
+                // Check if the register already exists
+                let reg: R = (size, name).into();
+                if let Some(index) = self.reg_keys.get(reg.as_key()) {
+                    return Some(*index);
+                }
                 let bits: Vec<T> = (0..size)
                     .map(|bit| {
                         self.add_bit_inner(Some((
@@ -369,11 +380,7 @@ where
                         )))
                     })
                     .collect();
-                let reg: R = if let Some(name) = name {
-                    (bits.as_slice(), name).into()
-                } else {
-                    bits.as_slice().into()
-                };
+                let reg: R = (Cow::from(bits), Some(reg.name().to_string())).into();
                 let idx = self.registry.len().try_into().unwrap_or_else(|_| {
                     panic!(
                         "The {} registry in this circuit has reached its maximum capacity.",
@@ -383,7 +390,7 @@ where
                 self.reg_keys.insert(reg.as_key().clone(), idx);
                 self.registry.push(reg);
                 self.registers.push(OnceLock::new());
-                idx
+                Some(idx)
             }
             (Some(_), Some(_)) => {
                 panic!("You should only provide either a size or the bit indices, not both.")
@@ -421,6 +428,11 @@ where
         self.registry.get(index as usize)
     }
 
+    /// Returns a slice of the registers in the circuit
+    pub fn registers(&self) -> &[R] {
+        &self.registry
+    }
+
     #[inline]
     pub fn get_register_by_key(&self, key: &RegisterAsKey) -> Option<&R> {
         self.reg_keys
@@ -448,8 +460,8 @@ where
         + Hash
         + Eq
         + From<(usize, Option<String>)>
-        + for<'a> From<&'a [T]>
-        + for<'a> From<(&'a [T], String)>,
+        + for<'a> From<Cow<'a, [T]>>
+        + for<'a> From<(Cow<'a, [T]>, Option<String>)>,
     BitType: From<T>,
 {
     /// Finds the native bit index of the given Python bit.
@@ -790,7 +802,7 @@ where
 
         // Create the native register
         let name: String = key.name().to_string();
-        let reg: R = (bits.as_slice(), name).into();
+        let reg: R = (Cow::from(bits), Some(name)).into();
 
         // Append to cache before registers to avoid rebuilding cache.
         self.py_cached_regs(py)?.bind(py).append(register)?;

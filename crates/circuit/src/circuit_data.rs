@@ -10,6 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use std::borrow::Cow;
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
 
@@ -1127,14 +1128,14 @@ impl CircuitData {
         &mut self,
         name: Option<String>,
         num_qubits: Option<usize>,
-        bits: Option<&[Qubit]>,
-    ) -> u32 {
+        bits: Option<Cow<'_, [Qubit]>>,
+    ) -> Option<u32> {
         self.qubits.add_register(name, num_qubits, bits)
     }
 
     /// Returns an iterator with all the QuantumRegisters in the circuit
-    pub fn qregs(&self) -> impl Iterator<Item = &QuantumRegister> {
-        (0..self.qubits.len_regs()).flat_map(|index| self.qubits.get_register(index as u32))
+    pub fn qregs(&self) -> &[QuantumRegister] {
+        self.qubits.registers()
     }
 
     /// Adds a generic clbit to a circuit
@@ -1147,14 +1148,14 @@ impl CircuitData {
         &mut self,
         name: Option<String>,
         num_qubits: Option<usize>,
-        bits: Option<&[Clbit]>,
-    ) -> u32 {
+        bits: Option<Cow<'_, [Clbit]>>,
+    ) -> Option<u32> {
         self.clbits.add_register(name, num_qubits, bits)
     }
 
     /// Returns an iterator with all the QuantumRegisters in the circuit
-    pub fn cregs(&self) -> impl Iterator<Item = &ClassicalRegister> {
-        (0..self.clbits.len_regs()).flat_map(|index| self.clbits.get_register(index as u32))
+    pub fn cregs(&self) -> &[ClassicalRegister] {
+        self.clbits.registers()
     }
 
     /// Get qubit location in the circuit
@@ -1888,25 +1889,107 @@ impl<'py> FromPyObject<'py> for AssignParam {
 
 #[cfg(test)]
 mod test {
+    use crate::register::Register;
+
     use super::*;
 
     #[test]
     fn test_circuit_construction() {
-        let circuit_data = CircuitData::new(4, 3, Param::Float(0.0), true, true);
-        let qregs: Vec<&QuantumRegister> = circuit_data.qregs().collect();
-        let cregs: Vec<&ClassicalRegister> = circuit_data.cregs().collect();
+        let num_qubits = 4;
+        let num_clbits = 3;
+        let circuit_data = CircuitData::new(num_qubits, num_clbits, Param::Float(0.0), true, true);
 
         // Expected qregs
         let example_qreg = QuantumRegister::new(Some(4), Some("q".to_owned()), None);
-        let expected_qregs: Vec<&QuantumRegister> = vec![&example_qreg];
+        let expected_qregs: Vec<QuantumRegister> = vec![example_qreg];
 
-        assert_eq!(qregs, expected_qregs);
+        assert_eq!(circuit_data.qregs(), &expected_qregs);
 
         // Expected cregs
         let example_creg = ClassicalRegister::new(Some(3), Some("c".to_owned()), None);
-        let expected_cregs: Vec<&ClassicalRegister> = vec![&example_creg];
+        let expected_cregs: Vec<ClassicalRegister> = vec![example_creg];
+        assert_eq!(circuit_data.cregs(), &expected_cregs)
+    }
 
-        assert_eq!(cregs, expected_cregs)
+    #[test]
+    fn test_circuit_construction_no_regs() {
+        let num_qubits = 4;
+        let num_clbits = 3;
+        let circuit_data =
+            CircuitData::new(num_qubits, num_clbits, Param::Float(0.0), false, false);
+
+        // Register lists should be empty
+        assert!(
+            circuit_data.qregs().is_empty(),
+            "There are quantum registers in the circuit!"
+        );
+        assert!(
+            circuit_data.cregs().is_empty(),
+            "There are classical registers in the circuit!"
+        );
+
+        for qubit in 0..num_qubits {
+            assert!(
+                circuit_data.qubits().get_bit_info(qubit.into()).is_empty(),
+                "A qubit seems to have a register assigned, even when none exist yet!"
+            )
+        }
+
+        for clbit in 0..num_clbits {
+            assert!(circuit_data.clbits().get_bit_info(clbit.into()).is_empty())
+        }
+    }
+
+    #[test]
+    fn test_circuit_bit_multiple_registers() {
+        let mut circuit: CircuitData = CircuitData::new(0, 0, 0.0.into(), false, false);
+        assert_eq!(
+            circuit.num_qubits(),
+            0,
+            "The circuit says it contains bits, even when they don't exist!"
+        );
+
+        circuit.add_qreg(None, Some(3), None);
+        assert_eq!(
+            circuit.num_qubits(),
+            3,
+            "The qubits were not properly added!"
+        );
+        assert_eq!(
+            circuit.qregs().len(),
+            1,
+            "The qreg was either not added or mishandled!"
+        );
+
+        circuit.add_qreg(None, None, Some(vec![2.into()].into()));
+        assert_eq!(circuit.num_qubits(), 3, "The number of qubits changed!");
+        assert_eq!(
+            circuit.qregs().len(),
+            2,
+            "The qreg was either not added or mishandled!"
+        );
+
+        let locations: &[BitLocation] = circuit.get_qubit_location(2.into());
+        assert_eq!(
+            locations.len(),
+            2,
+            "The new register was not assigned to the bit"
+        );
+        assert_eq!(
+            locations.first(),
+            Some(&BitLocation::new(0, 2)),
+            "Incorrect register assigned as original."
+        );
+        assert_eq!(
+            locations.last(),
+            Some(&BitLocation::new(1, 0)),
+            "Incorrect register assigned as secondary."
+        );
+
+        // Check if the registers contain the index in question
+        for reg in circuit.qregs() {
+            assert!(reg.contains(2.into()))
+        }
     }
 }
 

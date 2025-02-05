@@ -13,6 +13,7 @@
 use indexmap::IndexSet;
 use pyo3::{exceptions::PyTypeError, intern, types::PyAnyMethods, FromPyObject};
 use std::{
+    borrow::Cow,
     hash::{Hash, Hasher},
     ops::Index,
     sync::Mutex,
@@ -122,11 +123,18 @@ macro_rules! create_register {
         }
 
         impl $name {
-            pub fn new(size: Option<usize>, name: Option<String>, bits: Option<&[$bit]>) -> Self {
+            pub fn new(
+                size: Option<usize>,
+                name: Option<String>,
+                bits: Option<Cow<'_, [$bit]>>,
+            ) -> Self {
                 let register: IndexSet<<$name as Register>::Bit> = if let Some(size) = size {
                     (0..size).map(|bit| <$bit>::new(bit)).collect()
                 } else if let Some(bits) = bits {
-                    bits.iter().copied().collect()
+                    match bits {
+                        Cow::Borrowed(borrowed) => borrowed.iter().copied().collect(),
+                        Cow::Owned(owned) => owned.into_iter().collect(),
+                    }
                 } else {
                     panic!("You should only provide either a size or the bit indices, not both.")
                 };
@@ -208,15 +216,15 @@ macro_rules! create_register {
             }
         }
 
-        impl From<&[$bit]> for $name {
-            fn from(value: &[$bit]) -> Self {
+        impl From<Cow<'_, [$bit]>> for $name {
+            fn from(value: Cow<'_, [$bit]>) -> Self {
                 Self::new(None, None, Some(value))
             }
         }
 
-        impl From<(&[$bit], String)> for $name {
-            fn from(value: (&[$bit], String)) -> Self {
-                Self::new(None, Some(value.1), Some(value.0))
+        impl From<(Cow<'_, [$bit]>, Option<String>)> for $name {
+            fn from(value: (Cow<'_, [$bit]>, Option<String>)) -> Self {
+                Self::new(None, value.1, Some(value.0))
             }
         }
     };
