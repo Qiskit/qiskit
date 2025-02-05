@@ -549,6 +549,9 @@ This method typically has poor output quality.
 Built-in ``stochastic`` plugin
 ..............................
 
+.. deprecated:: 1.3
+    Use :ref:`transpiler-preset-stage-routing-sabre` instead.
+
 Uses the :class:`.StochasticSwap` algorithm to route.  In short, this stratifies the circuit into
 layers, then uses a stochastic algorithm to find a permutation that will allow the layer to execute,
 and a series of swaps that will implement that permutation in a hardware-valid way.
