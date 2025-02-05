@@ -773,31 +773,31 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
                 let py_matrix: PyReadonlyArray2<Complex64> = data.extract(py)?;
                 let matrix: Option<MatrixView2<Complex64>> = py_matrix.try_as_matrix();
                 if let Some(x) = matrix {
-                    let unitary_gate = UnitaryGate {
+                    let unitary_gate = Box::new(UnitaryGate {
                         array: ArrayType::OneQ(x.into_owned()),
-                    };
+                    });
                     return Ok(OperationFromPython {
-                        operation: PackedOperation::from_unitary(Box::new(unitary_gate)),
+                        operation: PackedOperation::from_unitary(unitary_gate),
                         params: SmallVec::new(),
                         extra_attrs: extract_extra()?,
                     });
                 }
                 let matrix: Option<MatrixView4<Complex64>> = py_matrix.try_as_matrix();
                 if let Some(x) = matrix {
-                    let unitary_gate = UnitaryGate {
+                    let unitary_gate = Box::new(UnitaryGate {
                         array: ArrayType::TwoQ(x.into_owned()),
-                    };
+                    });
                     return Ok(OperationFromPython {
-                        operation: PackedOperation::from_unitary(Box::new(unitary_gate)),
+                        operation: PackedOperation::from_unitary(unitary_gate),
                         params: SmallVec::new(),
                         extra_attrs: extract_extra()?,
                     });
                 } else {
-                    let unitary_gate = UnitaryGate {
+                    let unitary_gate = Box::new(UnitaryGate {
                         array: ArrayType::NDArray(py_matrix.as_array().to_owned()),
-                    };
+                    });
                     return Ok(OperationFromPython {
-                        operation: PackedOperation::from_unitary(Box::new(unitary_gate)),
+                        operation: PackedOperation::from_unitary(unitary_gate),
                         params: SmallVec::new(),
                         extra_attrs: extract_extra()?,
                     });
