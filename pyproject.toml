@@ -122,6 +122,7 @@ sk = "qiskit.transpiler.passes.synthesis.solovay_kitaev_synthesis:SolovayKitaevS
 default = "qiskit.transpiler.preset_passmanagers.builtin_plugins:DefaultInitPassManager"
 
 [project.entry-points."qiskit.transpiler.translation"]
+default = "qiskit.transpiler.preset_passmanagers.builtin_plugins:DefaultTranslationPassManager"
 synthesis = "qiskit.transpiler.preset_passmanagers.builtin_plugins:UnitarySynthesisPassManager"
 translator = "qiskit.transpiler.preset_passmanagers.builtin_plugins:BasisTranslatorPassManager"
 
