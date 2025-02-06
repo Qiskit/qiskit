@@ -49,6 +49,10 @@ qiskit-qasm3 = { path = "crates/qasm3" }
 # which uses the `::std::cmp::Ordering` enum as a return.  Both styles are acceptable, and the `if`
 # chain can be more legible to people.
 comparison-chain = "allow"
+# Forbid `{,e}print{,ln}!` calls.  These can be allowed locally if absolutely required, but the
+# vast majority of these are debug statements that we forget about.
+print_stdout = "deny"
+print_stderr = "deny"
 
 [workspace.lints.rust]
 # In Rust 2021, the bodies of `unsafe fn` may use `unsafe` functions themselves without marking
