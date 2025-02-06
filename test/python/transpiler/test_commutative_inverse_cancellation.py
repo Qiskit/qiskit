@@ -19,7 +19,7 @@ import numpy as np
 from ddt import data, ddt
 
 from qiskit.circuit import Parameter, QuantumCircuit
-from qiskit.circuit.library import RZGate, UnitaryGate
+from qiskit.circuit.library import RZGate, UnitaryGate, U2Gate
 from qiskit.quantum_info import Operator
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import CommutativeInverseCancellation
@@ -862,6 +862,21 @@ class TestCommutativeInverseCancellation(QiskitTestCase):
         passmanager = PassManager(CommutativeInverseCancellation(matrix_based=True, max_qubits=2))
         new_circuit = passmanager.run(circuit)
         self.assertEqual(circuit, new_circuit)
+
+    def test_2q_pauli_rot_with_non_cached(self):
+        """Test a cached 2q-Pauli rotation with a non-cached gate.
+
+        Regression test of #13742.
+        """
+        circuit = QuantumCircuit(2)
+        circuit.rxx(np.pi / 2, 1, 0)
+        circuit.append(U2Gate(np.pi / 2, -np.pi), [1])
+
+        pm = PassManager(CommutativeInverseCancellation())
+        tqc = pm.run(circuit)
+
+        self.assertEqual(tqc.count_ops().get("u2", 0), 1)
+        self.assertEqual(tqc.count_ops().get("rxx", 0), 1)
 
 
 if __name__ == "__main__":

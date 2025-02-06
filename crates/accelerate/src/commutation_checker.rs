@@ -346,13 +346,17 @@ impl CommutationChecker {
 
         // For our cache to work correctly, we require the gate's definition to only depend on the
         // ``params`` attribute. This cannot be guaranteed for custom gates, so we only check
-        // the cache for our standard gates, which we know are defined by the ``params`` AND
-        // that the ``params`` are float-only at this point.
-        let whitelist = get_standard_gate_names();
-        let check_cache = whitelist.contains(&first_op.name())
-            && whitelist.contains(&second_op.name())
-            && first_params.iter().all(|p| matches!(p, Param::Float(_)))
-            && second_params.iter().all(|p| matches!(p, Param::Float(_)));
+        // the cache for
+        //  * gates we know are in the cache (SUPPORTED_OPS), or
+        //  * standard gates with float params (otherwise we cannot cache them)
+        let standard_gates = get_standard_gate_names();
+        let is_cachable = |name: &str, params: &[Param]| {
+            SUPPORTED_OP.contains(name)
+                || (standard_gates.contains(&name)
+                    && params.iter().all(|p| matches!(p, Param::Float(_))))
+        };
+        let check_cache = is_cachable(first_op.name(), first_params)
+            && is_cachable(second_op.name(), second_params);
 
         if !check_cache {
             return self.commute_matmul(
@@ -667,7 +671,6 @@ fn map_rotation<'a>(
         if let Some(gate) = generator {
             return (gate, &[], false);
         };
-        return (op, &[], false);
     }
     (op, params, false)
 }
