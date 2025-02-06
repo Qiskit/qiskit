@@ -1,0 +1,181 @@
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2025.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
+"""Tests the BooleanExpression related code"""
+
+import unittest
+import ast
+from os import path
+from ddt import ddt, unpack, data
+
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from qiskit import transpile
+from qiskit.providers.basic_provider import BasicSimulator
+
+from qiskit.synthesis.boolean.boolean_expression_visitor import (
+    BooleanExpressionEvalVisitor,
+    BooleanExpressionArgsCollectorVisitor,
+)
+from qiskit.synthesis.boolean.boolean_expression import BooleanExpression
+
+
+@ddt
+class TestBooleanExpression(QiskitTestCase):
+    # pylint: disable=possibly-used-before-assignment
+    """Test boolean expression."""
+
+    @data(
+        ("x | x", "1", True),
+        ("x & x", "0", False),
+        ("(x0 & x1 | ~x2) ^ x4", "0110", False),
+        ("xx & xxx | ( ~z ^ zz)", "0111", True),
+    )
+    @unpack
+    def test_evaluate(self, expression, input_bitstring, expected):
+        """Test simulate"""
+        expression = BooleanExpression(expression)
+        result = expression.simulate(input_bitstring)
+        self.assertEqual(result, expected)
+
+    @data(
+        ("x", False),
+        ("not x", True),
+        ("(x0 & x1 | ~x2) ^ x4", True),
+        ("xx & xxx | ( ~z ^ zz)", True),
+    )
+    @unpack
+    def test_synth(self, expression, expected):
+        """Test synth"""
+        expression = BooleanExpression(expression)
+        expr_circ = expression.synth()
+
+        new_creg = expr_circ._create_creg(1, "c")
+        expr_circ.add_register(new_creg)
+        expr_circ.measure(expression.num_qubits - 1, new_creg)
+
+        backend = BasicSimulator()
+        [result] = (
+            backend.run(
+                transpile(expr_circ, backend),
+                shots=1,
+                seed_simulator=14,
+            )
+            .result()
+            .get_counts()
+            .keys()
+        )
+
+        self.assertEqual(bool(int(result)), expected)
+
+    def test_errors(self):
+        """Tests correct identification of errors"""
+        exp = "x1 & x2 | x3"
+        with self.assertRaisesRegex(ValueError, "var_order missing.*x2"):
+            BooleanExpression(exp, var_order=["x1", "x3"])
+
+        bool_exp = BooleanExpression(exp)
+        with self.assertRaisesRegex(ValueError, "bitstring length differs.*2 != 3"):
+            bool_exp.simulate("01")
+        with self.assertRaisesRegex(ValueError, "bitstring must be composed of 0 and 1 only"):
+            bool_exp.simulate("012")
+        with self.assertRaisesRegex(ValueError, "'circuit_type' must be either 'bit' or 'phase'"):
+            bool_exp.synth(circuit_type="z_flip")
+
+
+class TestBooleanExpressionDIMACS(QiskitTestCase):
+    """Loading from a cnf file"""
+
+    def normalize_filenames(self, filename):
+        """Given a filename, returns the directory in terms of __file__."""
+        dirname = path.dirname(__file__)
+        return path.join(dirname, filename)
+
+    def test_simple(self):
+        """Loads simple_v3_c2.cnf and simulate"""
+        filename = self.normalize_filenames("dimacs/simple_v3_c2.cnf")
+        simple = BooleanExpression.from_dimacs_file(filename)
+        self.assertEqual(simple.name, "simple_v3_c2.cnf")
+        self.assertEqual(simple.num_qubits, 4)
+        self.assertTrue(simple.simulate("101"))
+        self.assertFalse(simple.simulate("001"))
+
+    def test_quinn(self):
+        """Loads quinn.cnf and simulate"""
+        filename = self.normalize_filenames("dimacs/quinn.cnf")
+        simple = BooleanExpression.from_dimacs_file(filename)
+        self.assertEqual(simple.name, "quinn.cnf")
+        self.assertEqual(simple.num_qubits, 17)
+        self.assertFalse(simple.simulate("1010101010101010"))
+
+    def test_bad_formatting(self):
+        """Tests DIMACS parsing on edge cases"""
+        # pylint: disable=trailing-whitespace
+        dimacs = """ 
+p cnf 10 5"""  # first line is not p cnf nor empty nor comment (it has whitespace)
+        with self.assertRaisesRegex(ValueError, "First line must start with 'p cnf'"):
+            exp = BooleanExpression.from_dimacs(dimacs)
+        dimacs = """p cnf 2 1
+         
+        1 2 0"""  # has empty line with whitespace - should ignore it
+        exp = BooleanExpression.from_dimacs(dimacs)
+        self.assertEqual(exp.name, "(x1 | x2)")
+
+        bad_filename = "bad_filename"
+        with self.assertRaisesRegex(FileNotFoundError, f"{bad_filename} does not exist"):
+            BooleanExpression.from_dimacs_file(bad_filename)
+
+
+class TestBooleanParse(QiskitTestCase):
+    """Tests the boolean experssion parsers"""
+
+    def test_args_collection(self):
+        """Tests that args are collected based of appearance in the string"""
+        exp = "x2 & x1"
+        args_collector = BooleanExpressionArgsCollectorVisitor()
+        args_collector.visit(ast.parse(exp))
+        res = args_collector.get_sorted_args()
+        expected_result = ["x2", "x1"]
+        self.assertEqual(res, expected_result)
+
+        exp = "(x3 | x1) ^ x2 & (x2 | x3)"  # some vars appear twice
+        args_collector = BooleanExpressionArgsCollectorVisitor()
+        args_collector.visit(ast.parse(exp))
+        res = args_collector.get_sorted_args()
+        expected_result = ["x3", "x1", "x2"]
+        self.assertEqual(res, expected_result)
+
+    def test_unrecognized_op(self):
+        """Boolean expression has an unknown op"""
+        exp = "x1 + x2"  # + should not be recognized as it is not a boolean op
+        parser = BooleanExpressionEvalVisitor()
+        parser.arg_values = {"x1": True, "x2": True}
+        with self.assertRaisesRegex(ValueError, "Unknown op.*Add"):
+            parser.visit(ast.parse(exp))
+
+    def test_undefined_var(self):
+        """Boolean expression has an variable with no known value"""
+        exp = "x1 & z2"  # value for z2 is unknown
+        parser = BooleanExpressionEvalVisitor()
+        parser.arg_values = {"x1": True, "x2": True}
+        with self.assertRaisesRegex(ValueError, "Undefined value.*z2"):
+            parser.visit(ast.parse(exp))
+
+    def test_incorrect_format(self):
+        """Parsed string is not a python expression"""
+        exp = "return x5"  # statement, not expression
+        parser = BooleanExpressionEvalVisitor()
+        with self.assertRaisesRegex(ValueError, "Incorrectly formatted boolean expression"):
+            parser.visit(ast.parse(exp))
+
+
+if __name__ == "__main__":
+    unittest.main()

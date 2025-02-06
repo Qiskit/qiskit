@@ -12,19 +12,16 @@
 
 """A quantum oracle constructed from a logical expression or a string in the DIMACS format."""
 
-import ast
-import itertools
-import re
 from os.path import basename, isfile
+from typing import Callable, Optional
 
-from qiskit.circuit import Gate
-from .boolean_expression_visitor import (
-    BooleanExpressionEvalVisitor,
-    BooleanExpressionArgsCollectorVisitor,
-)
+from qiskit.circuit import QuantumCircuit
+from qiskit.utils.optionals import HAS_TWEEDLEDUM
+from .classical_element import ClassicalElement
 
 
-class BooleanExpression(Gate):
+@HAS_TWEEDLEDUM.require_in_instance
+class BooleanExpression(ClassicalElement):
     """The Boolean Expression gate."""
 
     def __init__(self, expression: str, name: str = None, var_order: list = None) -> None:
@@ -36,20 +33,18 @@ class BooleanExpression(Gate):
             var_order(list): A list with the order in which variables will be created.
                (default: by appearance)
         """
-        self.expression = expression
-        self.expression_ast = ast.parse(expression)
-        short_expr_for_name = (expression[:10] + "...") if len(expression) > 13 else expression
-        args_collector = BooleanExpressionArgsCollectorVisitor()
-        args_collector.visit(self.expression_ast)
-        self.args = args_collector.get_sorted_args()
-        if var_order is not None:
-            missing_args = set(self.args) - set(var_order)
-            if len(missing_args) > 0:
-                raise ValueError(f"var_order missing the variable(s) {', '.join(missing_args)}")
-            self.args.sort(key=var_order.index)
 
-        num_qubits = len(self.args) + 1  # one for output qubit
-        self.definition = None
+        from tweedledum import BoolFunction  # pylint: disable=import-error
+
+        self._tweedledum_bool_expression = BoolFunction.from_expression(
+            expression, var_order=var_order
+        )
+
+        short_expr_for_name = (expression[:10] + "...") if len(expression) > 13 else expression
+        num_qubits = (
+            self._tweedledum_bool_expression.num_outputs()
+            + self._tweedledum_bool_expression.num_inputs()
+        )
         super().__init__(name or short_expr_for_name, num_qubits=num_qubits, params=[])
 
     def simulate(self, bitstring: str) -> bool:
@@ -63,112 +58,49 @@ class BooleanExpression(Gate):
         Returns:
             bool: result of the evaluation.
         """
-        eval_visitor = BooleanExpressionEvalVisitor()
-        if len(self.args) != len(bitstring):
-            raise ValueError(
-                f"bitstring length differs from the number of variables "
-                f"({len(bitstring)} != {len(self.args)})"
-            )
-        for arg, bit in zip(self.args, bitstring):
-            if not bit in ["0", "1"]:
-                raise ValueError("bitstring must be composed of 0 and 1 only")
-            eval_visitor.arg_values[arg] = bit == "1"
-        return eval_visitor.visit(self.expression_ast)
+        from tweedledum import BitVec  # pylint: disable=import-error
 
-    def truth_table(self) -> dict:
-        """Generates the full truth table for the expression
-        Returns:
-            dict: A dictionary mapping boolean assignments to the boolean result
-        """
-        return {
-            assignment: self.simulate("".join("1" if val else "0" for val in assignment))
-            for assignment in itertools.product([False, True], repeat=len(self.args))
-        }
+        bits = []
+        for bit in bitstring:
+            bits.append(BitVec(1, bit))
+        return bool(self._tweedledum_bool_expression.simulate(*bits))
 
-    def synth(self, circuit_type: str = "bit"):
-        r"""Synthesize the logic network into a :class:`~qiskit.circuit.QuantumCircuit`.
-        There are two common types of circuits for a boolean function :math:`f(x)`:
-
-        1. **Bit-flip oracles** which compute:
-
-         .. math::
-
-            |x\rangle|y\rangle |-> |x\rangle|f(x)\oplusy\rangle
-
-        2. **Phase-flip** oracles which compute:
-
-         .. math::
-
-            |x\rangle |-> (-1)^{f(x)}|x\rangle
-
-        By default the bit-flip oracle is generated.
+    def synth(
+        self,
+        registerless: bool = True,
+        synthesizer: Optional[Callable[["BooleanExpression"], QuantumCircuit]] = None,
+    ):
+        """Synthesis the logic network into a :class:`~qiskit.circuit.QuantumCircuit`.
 
         Args:
-            circuit_type: which type of oracle to create, 'bit' or 'phase' flip oracle.
+            registerless: Default ``True``. If ``False`` uses the parameter names
+                to create registers with those names. Otherwise, creates a circuit with a flat
+                quantum register.
+            synthesizer: A callable that takes self and returns a Tweedledum
+                circuit.
         Returns:
             QuantumCircuit: A circuit implementing the logic network.
-        Raises:
-            ValueError: If ``circuit_type`` is not either 'bit' or 'phase'.
         """
-        # pylint: disable=cyclic-import
-        from .boolean_expression_synth import (
-            synth_bit_oracle_from_esop,
-            synth_phase_oracle_from_esop,
-            EsopGenerator,
-        )  # import here to avoid cyclic import
+        if registerless:
+            qregs = None
+        else:
+            qregs = None  # TODO: Probably from self._tweedledum_bool_expression._signature
 
-        # generating the esop currntly requires generating the full truth table
-        # there are many optimizations that can be done to improve this step
-        esop = EsopGenerator(self.truth_table()).esop
-        if circuit_type == "bit":
-            return synth_bit_oracle_from_esop(esop)
-        if circuit_type == "phase":
-            return synth_phase_oracle_from_esop(esop)
-        raise ValueError("'circuit_type' must be either 'bit' or 'phase'")
+        if synthesizer is None:
+            from .utils import tweedledum2qiskit  # Avoid an import cycle
+            from tweedledum.synthesis import pkrm_synth  # pylint: disable=import-error
+
+            truth_table = self._tweedledum_bool_expression.truth_table(output_bit=0)
+            return tweedledum2qiskit(pkrm_synth(truth_table), name=self.name, qregs=qregs)
+        return synthesizer(self)
 
     def _define(self):
         """The definition of the boolean expression is its synthesis"""
         self.definition = self.synth()
 
-    @staticmethod
-    def from_dimacs(dimacs: str, name: str = None):
-        """Create a BooleanExpression from a string in the DIMACS format.
-        Args:
-            dimacs : A string in DIMACS format.
-            name: an optional name for the BooleanExpression
-
-        Returns:
-            BooleanExpression: A gate for the input string
-
-        Raises:
-            ValueError: If the string is not formatted according to DIMACS rules
-        """
-        header_regex = re.compile(r"p\s+cnf\s+(\d+)\s+(\d+)")
-        clause_regex = re.compile(r"(-?\d+)")
-        lines = [
-            line for line in dimacs.split("\n") if not line.startswith("c") and line != ""
-        ]  # DIMACS comment line start with c
-        header_match = header_regex.match(lines[0])
-        if not header_match:
-            raise ValueError("First line must start with 'p cnf'")
-        num_vars, _ = map(int, header_match.groups())
-        variables = [f"x{i+1}" for i in range(num_vars)]
-        clauses = []
-        for line in lines[1:]:
-            literals = clause_regex.findall(line)
-            if len(literals) == 0 or literals[-1] != "0":
-                continue
-            clauses.append([int(c) for c in literals[:-1]])
-        clause_strings = [
-            " | ".join([f'{"~" if lit < 0 else ""}{variables[abs(lit)-1]}' for lit in clause])
-            for clause in clauses
-        ]
-        expr = " & ".join([f"({c})" for c in clause_strings])
-        return BooleanExpression(expr, name=name, var_order=variables)
-
-    @staticmethod
-    def from_dimacs_file(filename: str):
-        """Create a BooleanExpression from a file in the DIMACS format.
+    @classmethod
+    def from_dimacs_file(cls, filename: str):
+        """Create a BooleanExpression from the string in the DIMACS format.
         Args:
             filename: A file in DIMACS format.
 
@@ -178,8 +110,20 @@ class BooleanExpression(Gate):
         Raises:
             FileNotFoundError: If filename is not found.
         """
+        HAS_TWEEDLEDUM.require_now("BooleanExpression")
+
+        from tweedledum import BoolFunction  # pylint: disable=import-error
+
+        expr_obj = cls.__new__(cls)
         if not isfile(filename):
             raise FileNotFoundError(f"The file {filename} does not exists.")
-        with open(filename, "r") as dimacs_file:
-            dimacs = dimacs_file.read()
-        return BooleanExpression.from_dimacs(dimacs, name=basename(filename))
+        expr_obj._tweedledum_bool_expression = BoolFunction.from_dimacs_file(filename)
+
+        num_qubits = (
+            expr_obj._tweedledum_bool_expression.num_inputs()
+            + expr_obj._tweedledum_bool_expression.num_outputs()
+        )
+        super(BooleanExpression, expr_obj).__init__(
+            name=basename(filename), num_qubits=num_qubits, params=[]
+        )
+        return expr_obj

@@ -17,8 +17,6 @@ This module is used internally by ``qiskit.transpiler.classicalfunction.BooleanE
 import ast
 import _ast
 
-from .exceptions import BooleanExpressionParseError
-
 
 class BooleanExpressionEvalVisitor(ast.NodeVisitor):
     """Node visitor to compute the value of the expression, given the boolean values of the args
@@ -43,7 +41,7 @@ class BooleanExpressionEvalVisitor(ast.NodeVisitor):
         """Performs the operation, if it is recognized"""
         op_type = type(op)
         if op_type not in self.bitops:
-            raise BooleanExpressionParseError(f"Unknown op: {op_type}")
+            raise ValueError(f"Unknown op: {op_type}")
         return self.bitops[op_type](values)
 
     def visit_BinOp(self, node):
@@ -57,13 +55,13 @@ class BooleanExpressionEvalVisitor(ast.NodeVisitor):
     def visit_Name(self, node):
         """Reduce variable names."""
         if node.id not in self.arg_values:
-            raise BooleanExpressionParseError(f"Undefined value for {node.id}")
+            raise ValueError(f"Undefined value for {node.id}")
         return self.arg_values[node.id]
 
     def visit_Module(self, node):
         """Returns the value of the single expression comprising the boolean expression"""
         if len(node.body) != 1 or not isinstance(node.body[0], ast.Expr):
-            raise BooleanExpressionParseError("Incorrectly formatted boolean expression")
+            raise ValueError("Incorrectly formatted boolean expression")
         return self.visit(node.body[0])
 
     def visit_Expr(self, node):
@@ -72,7 +70,7 @@ class BooleanExpressionEvalVisitor(ast.NodeVisitor):
 
     def generic_visit(self, node):
         """Catch all for the unhandled nodes."""
-        raise BooleanExpressionParseError(f"Unknown node: {type(node)}")
+        raise ValueError(f"Unknown node: {type(node)}")
 
 
 class BooleanExpressionArgsCollectorVisitor(ast.NodeVisitor):

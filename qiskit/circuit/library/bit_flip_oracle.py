@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021.
+# (C) Copyright IBM 2025.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -10,29 +10,29 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Phase Oracle object."""
+"""Bit-flip Oracle object."""
 
 from qiskit.circuit import QuantumCircuit
 
 from qiskit.synthesis.boolean.boolean_expression import BooleanExpression
 
 
-class PhaseOracle(QuantumCircuit):
-    r"""Phase Oracle.
+class BitFlipOracle(QuantumCircuit):
+    r"""Bit-flip Oracle.
 
-    The Phase Oracle object constructs circuits for any arbitrary
+    The Bit-flip Oracle object constructs circuits for any arbitrary
     input logical expressions. A logical expression is composed of logical operators
     `&` (`AND`), `|` (`OR`), `~` (`NOT`), and `^` (`XOR`).
     as well as symbols for literals (variables).
     For example, `'a & b'`, and `(v0 | ~v1) & (~v2 & v3)`
     are both valid string representation of boolean logical expressions.
 
-    A phase oracle for a boolean function `f(x)` performs the following
+    A bit-flip oracle for a boolean function `f(x)` performs the following
     quantum operation:
 
     .. math::
 
-            |x\rangle \mapsto (-1)^{f(x)}|x\rangle
+            |x\rangle|y\rangle \mapsto |x\rangle|f(x)\oplus y\rangle
 
     For convenience, this oracle, in addition to parsing arbitrary logical expressions,
     also supports input strings in the `DIMACS CNF format
@@ -40,7 +40,7 @@ class PhaseOracle(QuantumCircuit):
     which is the standard format for specifying SATisfiability (SAT) problem instances in
     `Conjunctive Normal Form (CNF) <https://en.wikipedia.org/wiki/Conjunctive_normal_form>`__,
     which is a conjunction of one or more clauses, where a clause is a disjunction of one
-    or more literals. See :meth:`qiskit.circuit.library.phase_oracle.PhaseOracle.from_dimacs_file`.
+    or more literals. See :meth:`qiskit.circuit.library.bit_flip_oracle.BitFlipOracle.from_dimacs_file`.
 
     From 16 variables on, possible performance issues should be expected when using the
     default synthesizer.
@@ -51,7 +51,7 @@ class PhaseOracle(QuantumCircuit):
         expression: str,
         var_order: list = None,
     ) -> None:
-        """Creates a PhaseOracle object
+        """Creates a BitFlipOracle object
 
         Args:
             expression: A Python-like boolean expression.
@@ -59,9 +59,9 @@ class PhaseOracle(QuantumCircuit):
                (default: by appearance)
         """
         self.boolean_expression = BooleanExpression(expression, var_order=var_order)
-        oracle = self.boolean_expression.synth(circuit_type="phase")
+        oracle = self.boolean_expression.synth(circuit_type="bit")
 
-        super().__init__(oracle.num_qubits, name="Phase Oracle")
+        super().__init__(oracle.num_qubits, name="Bit-flip Oracle")
 
         self.compose(oracle, inplace=True, copy=False)
 
@@ -80,9 +80,9 @@ class PhaseOracle(QuantumCircuit):
 
     @classmethod
     def from_dimacs_file(cls, filename: str):
-        r"""Create a PhaseOracle from the string in the DIMACS format.
+        r"""Create a BitFlipOracle from the string in the DIMACS format.
 
-        It is possible to build a PhaseOracle from a file in `DIMACS CNF format
+        It is possible to build a BitFlipOracle from a file in `DIMACS CNF format
         <http://www.satcompetition.org/2009/format-benchmarks2009.html>`__,
         which is the standard format for specifying SATisfiability (SAT) problem instances in
         `Conjunctive Normal Form (CNF) <https://en.wikipedia.org/wiki/Conjunctive_normal_form>`__,
@@ -121,7 +121,7 @@ class PhaseOracle(QuantumCircuit):
             filename: A file in DIMACS format.
 
         Returns:
-            PhaseOracle: A quantum circuit with a phase oracle.
+            BitFlipOracle: A quantum circuit with a bit-flip oracle.
         """
         expr = BooleanExpression.from_dimacs_file(filename)
         return cls(expr)
