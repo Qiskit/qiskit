@@ -53,7 +53,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     # based on whether the input circuit has control flow.
     layout_method = pass_manager_config.layout_method or "default"
     routing_method = pass_manager_config.routing_method or "sabre"
-    translation_method = pass_manager_config.translation_method or "translator"
+    translation_method = pass_manager_config.translation_method or "default"
     optimization_method = pass_manager_config.optimization_method or "default"
     scheduling_method = pass_manager_config.scheduling_method or "default"
     target = pass_manager_config.target
