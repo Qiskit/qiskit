@@ -1,0 +1,13 @@
+---
+features_circuits:
+  - |
+    Added rust representation of the :class:`.QuantumRegister` and :class:`.ClassicalRegister`
+    classes.
+upgrade_circuits:
+  - |
+    Reformulate :class:`.CircuitData` to use its native representations of :class:`.Bit`, and
+    :class:`.Register` as the source of truth. With this there is no longer a need to initialize
+    a circuit from rust with a `py` token.
+  - |
+    Refactor :class:`.CircuitData`'s ``BitData`` to store registers and enables users to use
+    stores bits before initializing them with python counterparts.

@@ -420,7 +420,7 @@ impl CircuitData {
     }
 
     /// Performs an empty-like shallow copy.
-    /// 
+    ///
     /// Returns:
     ///     CircuitData: The shallow copy.
     #[pyo3(signature = (reserve = None,))]
@@ -2005,13 +2005,20 @@ mod test {
     fn test_duplicate_q_register() {
         // The circuit will be initialized by default with qregs ['q'] and cregs ['c']
         // Should not add repeated instances of registers with the same hash value.
-        // 
+        //
         let mut circ = CircuitData::new(3, 0, 0.0.into(), true, false);
 
         // Should not panic
-        circ.add_qreg(Some("q".to_string()), None, Some((1..3).map(Qubit).collect::<Vec<_>>().into()));
-        
-        assert_eq!(circ.get_qubit_location(2.into()), &[BitLocation::new(0, 2), BitLocation::new(1,1)]);
+        circ.add_qreg(
+            Some("q".to_string()),
+            None,
+            Some((1..3).map(Qubit).collect::<Vec<_>>().into()),
+        );
+
+        assert_eq!(
+            circ.get_qubit_location(2.into()),
+            &[BitLocation::new(0, 2), BitLocation::new(1, 1)]
+        );
 
         // When trying to add a register with the same name and length, return the original instance.
         assert_eq!(circ.add_qreg(Some("q".to_string()), Some(3), None), Some(0));
@@ -2024,13 +2031,20 @@ mod test {
     fn test_duplicate_c_register() {
         // The circuit will be initialized by default with qregs ['q'] and cregs ['c']
         // Should not add repeated instances of registers with the same hash value.
-        // 
+        //
         let mut circ = CircuitData::new(0, 3, 0.0.into(), false, true);
 
         // Should not panic
-        circ.add_creg(Some("c".to_string()), None, Some((1..3).map(Clbit).collect::<Vec<_>>().into()));
-        
-        assert_eq!(circ.get_clbit_location(2.into()), &[BitLocation::new(0, 2), BitLocation::new(1,1)]);
+        circ.add_creg(
+            Some("c".to_string()),
+            None,
+            Some((1..3).map(Clbit).collect::<Vec<_>>().into()),
+        );
+
+        assert_eq!(
+            circ.get_clbit_location(2.into()),
+            &[BitLocation::new(0, 2), BitLocation::new(1, 1)]
+        );
 
         // When trying to add a register with the same name and length, return the original instance.
         assert_eq!(circ.add_creg(Some("c".to_string()), Some(3), None), Some(0));
