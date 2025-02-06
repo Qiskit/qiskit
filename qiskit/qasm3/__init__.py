@@ -370,11 +370,13 @@ def load_experimental(pathlike_or_filelike, /, *, custom_gates=None, include_pat
     )
     return _qasm3.load(pathlike_or_filelike, custom_gates=custom_gates, include_path=include_path)
 
+
 @functools.wraps(_qasm3.dumps)
 def dumps_experimental(circuit):
     """<overridden by functools.wraps>"""
     warnings.warn(
-        "This is an experimental version of serialization of a :class:`~qiskit.circuit.QuantumCircuit` object in an OpenQASM 3 string."
+        "This is an experimental version of serialization of a :class:`~qiskit.circuit.QuantumCircuit`"
+        " object in an OpenQASM 3 string."
         " Beware that its interface might change, and it might be missing features.",
         category=ExperimentalWarning,
     )

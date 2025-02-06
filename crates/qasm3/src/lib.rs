@@ -156,7 +156,7 @@ pub fn load(
 }
 
 #[pyfunction]
-#[pyo3(signature = (circuit,/))]
+#[pyo3(signature = (circuit, /))]
 pub fn dumps(_py: Python, circuit: &Bound<PyAny>) -> PyResult<String> {
     let circuit_data = circuit
         .getattr("_data")?
@@ -165,7 +165,12 @@ pub fn dumps(_py: Python, circuit: &Bound<PyAny>) -> PyResult<String> {
     let islayout = !circuit.getattr("layout")?.is_none();
     let exporter =
         exporter::Exporter::new(vec!["stdgates.inc"], vec!["U"], true, false, false, "  ");
-    let stream = exporter.dump(&circuit_data, islayout);
+    let stream = exporter.dumps(&circuit_data, islayout).map_err(|err| {
+        QASM3ImporterError::new_err(format!(
+            "failed to export circuit using qasm3.dumps_experimental: {:?}",
+            err
+        ))
+    })?;
     Ok(stream)
 }
 

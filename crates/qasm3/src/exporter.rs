@@ -1,3 +1,15 @@
+// This code is part of Qiskit.
+//
+// (C) Copyright IBM 2025
+//
+// This code is licensed under the Apache License, Version 2.0. You may
+// obtain a copy of this license in the LICENSE.txt file in the root directory
+// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+//
+// Any modifications or derivative works of this code must retain this
+// copyright notice, and modified files need to carry a notice indicating
+// that they have been altered from the originals.
+
 use crate::ast::{
     Barrier, Break, ClassicalDeclaration, ClassicalType, Constant, Continue, Delay,
     DurationLiteral, DurationUnit, Expression, Float, GateCall, Header, IODeclaration, IOModifier,
@@ -175,7 +187,7 @@ impl Exporter {
         }
     }
 
-    pub fn dump(&self, circuit_data: &CircuitData, islayout: bool) -> String {
+    pub fn dumps(&self, circuit_data: &CircuitData, islayout: bool) -> ExporterResult<String> {
         let mut builder = QASM3Builder::new(
             circuit_data,
             islayout,
@@ -189,9 +201,9 @@ impl Exporter {
                 let mut output = String::new();
                 BasicPrinter::new(&mut output, self.indent.to_string(), false)
                     .visit(&Node::Program(&program));
-                output
+                Ok(output)
             }
-            Err(e) => format!("Error: {:?}", e),
+            Err(e) => Err(QASM3ExporterError::Error(e.to_string())),
         }
     }
 }
@@ -615,7 +627,7 @@ impl<'a> QASM3Builder<'a> {
 
     fn build_gate_call(&mut self, instr: &PackedInstruction) -> ExporterResult<GateCall> {
         let op_name = instr.op.name();
-        if !self.symbol_table.contains_name(op_name) && !self.symbol_table.contains_name(op_name) {
+        if !self.symbol_table.contains_name(op_name) {
             panic!("Non-standard gate calls are not yet supported: {}", op_name);
         }
         let params = if self.disable_constants {

@@ -18,15 +18,25 @@
 from io import StringIO
 from math import pi
 import re
+import warnings
+
 
 from ddt import ddt, data
 
+from qiskit.exceptions import ExperimentalWarning
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, transpile
 from qiskit.circuit import Parameter, Qubit, Clbit, Gate, Delay, Barrier, ParameterVector
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.controlflow import CASE_DEFAULT
 from qiskit.circuit.library import PauliEvolutionGate
-from qiskit.qasm3 import Exporter, dumps, dump, QASM3ExporterError, ExperimentalFeatures
+from qiskit.qasm3 import (
+    Exporter,
+    dumps,
+    dump,
+    dumps_experimental,
+    QASM3ExporterError,
+    ExperimentalFeatures,
+)
 from qiskit.qasm3.exporter import QASM3Builder
 from qiskit.qasm3.printer import BasicPrinter
 from qiskit.quantum_info import Pauli
@@ -2754,3 +2764,128 @@ class TestQASM3ExporterFailurePaths(QiskitTestCase):
             dumps(qc, basis_gates=["U", "reset"])
         self.assertIsInstance(cm.exception.__cause__, QASM3ExporterError)
         self.assertRegex(cm.exception.__cause__.message, "cannot use the keyword 'reset'")
+
+
+class TestQASM3ExporterRust(QiskitTestCase):
+    """Tests of the Rust QASM3 exporter."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls._cm = warnings.catch_warnings()
+        cls._cm.__enter__()
+        # We're knowingly testing the experimental code.
+        warnings.filterwarnings("ignore", category=ExperimentalWarning, module="qiskit.qasm3")
+
+    @classmethod
+    def tearDownClass(cls):
+        cls._cm.__exit__(None, None, None)
+        super().tearDownClass()
+
+    def test_simple_circuit(self):
+        """Test of a simple circuit with a few gates."""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure_all()
+        expected = """\
+OPENQASM 3.0;
+include "stdgates.inc";
+bit _bit0;
+bit _bit1;
+qubit _qubit0;
+qubit _qubit1;
+h _qubit0;
+cx _qubit0, _qubit1;
+barrier _qubit0, _qubit1;
+_bit0 = measure _qubit0;
+_bit1 = measure _qubit1;
+"""
+        self.assertEqual(dumps_experimental(qc), expected)
+
+    def test_circuit_with_barrier(self):
+        """Test of a circuit with a barrier."""
+        qc = QuantumCircuit(2)
+        qc.barrier()
+        expected = """\
+OPENQASM 3.0;
+include "stdgates.inc";
+qubit _qubit0;
+qubit _qubit1;
+barrier _qubit0, _qubit1;
+"""
+        self.assertEqual(dumps_experimental(qc), expected)
+
+    def test_circuit_with_standard_gates(self):
+        """Test of a circuit with standard gates."""
+        qc = QuantumCircuit(4)
+
+        qc.p(0.5, 0)
+        qc.x(1)
+        qc.y(2)
+        qc.z(3)
+        qc.h(0)
+        qc.s(1)
+        qc.sdg(2)
+        qc.t(3)
+        qc.tdg(0)
+        qc.sx(1)
+        qc.rx(0.5, 2)
+        qc.ry(0.5, 3)
+        qc.rz(0.5, 0)
+        qc.id(1)
+
+        qc.cx(0, 1)
+        qc.cy(1, 2)
+        qc.cz(2, 3)
+        qc.rzz(0.5, 0, 3)
+        qc.cp(0.5, 1, 2)
+        qc.crx(0.5, 2, 3)
+        qc.cry(0.5, 3, 0)
+        qc.crz(0.5, 0, 1)
+        qc.ch(1, 2)
+        qc.swap(2, 3)
+        qc.cp(0.5, 1, 3)
+        qc.p(0.5, 0)
+
+        qc.ccx(0, 1, 2)
+        qc.cswap(0, 1, 3)
+        qc.cu(0.5, 0.5, 0.5, 0.5, 0, 1)
+        expected = """\
+OPENQASM 3.0;
+include "stdgates.inc";
+qubit _qubit0;
+qubit _qubit1;
+qubit _qubit2;
+qubit _qubit3;
+p(0.5) _qubit0;
+x _qubit1;
+y _qubit2;
+z _qubit3;
+h _qubit0;
+s _qubit1;
+sdg _qubit2;
+t _qubit3;
+tdg _qubit0;
+sx _qubit1;
+rx(0.5) _qubit2;
+ry(0.5) _qubit3;
+rz(0.5) _qubit0;
+id _qubit1;
+cx _qubit0, _qubit1;
+cy _qubit1, _qubit2;
+cz _qubit2, _qubit3;
+rzz(0.5) _qubit0, _qubit3;
+cp(0.5) _qubit1, _qubit2;
+crx(0.5) _qubit2, _qubit3;
+cry(0.5) _qubit3, _qubit0;
+crz(0.5) _qubit0, _qubit1;
+ch _qubit1, _qubit2;
+swap _qubit2, _qubit3;
+cp(0.5) _qubit1, _qubit3;
+p(0.5) _qubit0;
+ccx _qubit0, _qubit1, _qubit2;
+cswap _qubit0, _qubit1, _qubit3;
+cu(0.5, 0.5, 0.5, 0.5) _qubit0, _qubit1;
+"""
+        self.assertEqual(dumps_experimental(qc), expected)
