@@ -109,7 +109,7 @@ def control(
 
     global_phase = 0
 
-    basis = ["p", "u", "x", "z", "rx", "ry", "rz", "cx"]
+    basis = ["p", "u", "x", "z", "y", "h", "sx", "sxdg", "rx", "ry", "rz", "cx"]
 
     if operation.name in basis:
         apply_basic_controlled_gate(controlled_circ, operation, q_control, q_target[0])
@@ -187,7 +187,7 @@ def apply_basic_controlled_gate(circuit, gate, controls, target):
 
     This implements multi-control operations for the following basis gates:
 
-        ["p", "u", "x", "z", "rx", "ry", "rz", "cx"]
+        ["p", "u", "x", "z", "y", "h", "sx", "sxdg", "rx", "ry", "rz", "cx"]
 
     """
     num_ctrl_qubits = len(controls)
@@ -250,18 +250,38 @@ def apply_basic_controlled_gate(circuit, gate, controls, target):
             elif theta == 0 and phi == 0:
                 circuit.mcp(lamb, controls, target)
             else:
-                circuit.mcp(lamb, controls, target)
+                circuit.mcrz(lamb, controls, target, use_basis_gates=True)
                 circuit.mcry(
                     theta,
                     controls,
                     target,
                     use_basis_gates=True,
                 )
-                circuit.mcp(phi, controls, target)
+                circuit.mcrz(phi, controls, target, use_basis_gates=True)
+                circuit.mcp((phi + lamb) / 2, controls[1:], controls[0])
 
     elif gate.name == "z":
         circuit.h(target)
         circuit.mcx(controls, target)
+        circuit.h(target)
+
+    elif gate.name == "y":
+        circuit.sdg(target)
+        circuit.mcx(controls, target)
+        circuit.s(target)
+
+    elif gate.name == "h":
+        circuit.mcry(pi / 2, controls, target, use_basis_gates=True)
+        circuit.mcx(controls, target)
+
+    elif gate.name == "sx":
+        circuit.h(target)
+        circuit.mcp(pi / 2, controls, target)
+        circuit.h(target)
+
+    elif gate.name == "sxdg":
+        circuit.h(target)
+        circuit.mcp(3 * pi / 2, controls, target)
         circuit.h(target)
 
     else:
