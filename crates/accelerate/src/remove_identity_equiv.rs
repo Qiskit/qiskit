@@ -133,6 +133,19 @@ fn remove_identity_equiv(
                     }
                 }
             }
+            OperationRef::Unitary(gate) => {
+                if let Some(matrix) = gate.matrix(inst.params_view()) {
+                    let error = get_error_cutoff(inst);
+                    let dim = matrix.shape()[0] as f64;
+                    let trace: Complex64 = matrix.diag().iter().sum();
+                    let f_pro = (trace / dim).abs().powi(2);
+                    let gate_fidelity = (dim * f_pro + 1.) / (dim + 1.);
+                    if (1. - gate_fidelity).abs() < error {
+                        remove_list.push(op_node);
+                        global_phase_update += (trace / dim).arg();
+                    }
+                }
+            }
             _ => continue,
         }
     }
