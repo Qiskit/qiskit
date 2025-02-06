@@ -31,7 +31,7 @@ class ClassicalFunction(ClassicalElement):
     @deprecate_func(
         since="1.4",
         removal_timeline="in Qiskit 2.0",
-        additional_msg="Use `BooleanExpression` instead",
+        additional_msg="Use `PhaseOracle` or `BitFlipOracle` instead",
     )
     def __init__(self, source, name=None):
         """Creates a ``ClassicalFunction`` from Python source code in ``source``.

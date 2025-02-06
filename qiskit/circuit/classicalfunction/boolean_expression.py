@@ -15,15 +15,20 @@
 from os.path import basename, isfile
 from typing import Callable, Optional
 
+from qiskit.utils.deprecation import deprecate_func
 from qiskit.circuit import QuantumCircuit
 from qiskit.utils.optionals import HAS_TWEEDLEDUM
 from .classical_element import ClassicalElement
 
-
-@HAS_TWEEDLEDUM.require_in_instance
 class BooleanExpression(ClassicalElement):
     """The Boolean Expression gate."""
 
+    @HAS_TWEEDLEDUM.require_in_instance
+    @deprecate_func(
+        since="1.4",
+        removal_timeline="in Qiskit 2.0",
+        additional_msg="Use `PhaseOracle` or `BitFlipOracle` instead",
+    )
     def __init__(self, expression: str, name: str = None, var_order: list = None) -> None:
         """
         Args:
