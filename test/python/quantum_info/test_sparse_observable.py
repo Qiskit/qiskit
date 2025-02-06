@@ -2055,6 +2055,51 @@ class TestSparseObservable(QiskitTestCase):
             obs_paulis = obs.as_paulis()
             self.assertEqual(obs, obs_paulis)
 
+        # test multiple +1 projectors
+        with self.subTest(msg="00"):
+            obs = SparseObservable("00")
+            obs_paulis = obs.as_paulis()
+            expected = SparseObservable.from_sparse_list(
+                [
+                    ("", [], 1 / 4),
+                    ("Z", [0], 1 / 4),
+                    ("Z", [1], 1 / 4),
+                    ("ZZ", [0, 1], 1 / 4),
+                ],
+                2,
+            )
+            self.assertEqual(expected.simplify(), obs_paulis.simplify())
+
+        # test multiple -1 projectors
+        with self.subTest(msg="11"):
+            obs = SparseObservable("11")
+            obs_paulis = obs.as_paulis()
+            expected = SparseObservable.from_sparse_list(
+                [
+                    ("", [], 1 / 4),
+                    ("Z", [0], -1 / 4),
+                    ("Z", [1], -1 / 4),
+                    ("ZZ", [0, 1], 1 / 4),
+                ],
+                2,
+            )
+            self.assertEqual(expected.simplify(), obs_paulis.simplify())
+
+        # test +1 -1 projector
+        with self.subTest(msg="01"):
+            obs = SparseObservable("01")
+            obs_paulis = obs.as_paulis()
+            expected = SparseObservable.from_sparse_list(
+                [
+                    ("", [], 1 / 4),
+                    ("Z", [0], -1 / 4),
+                    ("Z", [1], 1 / 4),
+                    ("ZZ", [0, 1], -1 / 4),
+                ],
+                2,
+            )
+            self.assertEqual(expected.simplify(), obs_paulis.simplify())
+
         # test explicitly on written-out projector
         with self.subTest(msg="lrI0"):
             obs = SparseObservable("lrI0")
