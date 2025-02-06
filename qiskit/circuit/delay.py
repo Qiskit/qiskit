@@ -19,7 +19,6 @@ from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.gate import Gate
 from qiskit.circuit import _utils
 from qiskit.circuit.parameterexpression import ParameterExpression
-from qiskit.utils import deprecate_func
 from qiskit._accelerate.circuit import StandardInstructionType
 
 
