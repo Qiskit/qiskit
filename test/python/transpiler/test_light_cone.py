@@ -268,7 +268,9 @@ class TestLightConePass(QiskitTestCase):
         qc = QuantumCircuit(q0)
         qc.rz(theta + 2, 1)
         qc.ry(theta - 2, 0)
-        qc.cx(0, 1)
+        qc.h(1)
+        qc.cz(0, 1)
+        qc.h(1)
         qc.rz(theta * 2, 1)
         qc.rz(theta / 2, 1)
 
