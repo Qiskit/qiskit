@@ -1,20 +1,38 @@
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2019.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
+"""
+Generic style visualization library.
+"""
+
 import json
 import os
-from typing import Any
+from typing import Any, Union
 from warnings import warn
 from pathlib import Path
 
 from qiskit import user_config
+from qiskit.visualization.circuit.qcstyle import MPLDefaultStyle, MPLStyleDict
 
 
 class StyleDict(dict):
     """
     Attributes:
         VALID_FIELDS (set): Set of valid field inputs to a function that supports a style parameter
-        ABBREVIATIONS (dict): Mapping of abbreviation:field for abbreviated inputs to VALID_FIELDS 
+        ABBREVIATIONS (dict): Mapping of abbreviation:field for abbreviated inputs to VALID_FIELDS
             (must exist in VALID FIELDS)
         NESTED_ATTRS (set): Set of fields that are dictionaries, and need to be updated with .update
     """
+
     VALID_FIELDS = set()
     ABBREVIATIONS = {}
     NESTED_ATTRS = set()
@@ -55,13 +73,14 @@ class DefaultStyle:
     """
     Attributes:
         DEFAULT_STYLE_NAME (str): style name for the default style
-        STYLE_PATH (str): file path where DEFAULT_STYLE_NAME.json is located
+        STYLE_PATH: file path where DEFAULT_STYLE_NAME.json is located
     """
+
     DEFAULT_STYLE_NAME = "default"
-    DEFAULT_STYLE_PATH = None
+    DEFAULT_STYLE_PATH = Path(__file__).parent / "styles"
 
     def __init__(self):
-        path = self.DEFAULT_STYLE_PATH / Path(self.DEFAULT_STYLE_NAME).with_suffix('.json')
+        path = self.DEFAULT_STYLE_PATH / Path(self.DEFAULT_STYLE_NAME).with_suffix(".json")
 
         with open(path, "r") as infile:
             default_style = json.load(infile)
@@ -71,9 +90,9 @@ class DefaultStyle:
 
 
 def load_style(
-    style: dict | str | None,
-    style_dict: StyleDict,
-    default_style: DefaultStyle,
+    style: Union[dict, str, None],
+    style_dict: StyleDict = MPLStyleDict,
+    default_style: DefaultStyle = MPLDefaultStyle,
     user_config_opt: str = "circuit_mpl_style",
     user_config_path_opt: str = "circuit_mpl_style_path",
 ) -> tuple[StyleDict, float]:
@@ -94,8 +113,6 @@ def load_style(
               color scheme but set the edgecolor to red.
         style_dict: The class used to define the options for loading styles
         default_style: DefaultStyle dictionary definition and documentation
-        default_style_name: Name of the stylesheet loaded by default if no
-            configuration is given
         user_config_opt: User config field in the Qiskit User Configuration File
             used to define the style loaded
         user_config_path_opt: User config field in the Qiskit User Configuration File
