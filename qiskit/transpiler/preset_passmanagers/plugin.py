@@ -64,7 +64,7 @@ in the stages' names to the full documentation.
 
    * - :ref:`routing <transpiler-preset-stage-routing>`
      - ``qiskit.transpiler.routing``
-     - ``basic``, ``stochastic``, ``lookahead``, ``sabre``
+     - ``default``, ``basic``, ``stochastic``, ``lookahead``, ``sabre``
      - Insert gates into the circuit to ensure it matches the connectivity constraints of the
        :class:`.Target`.  The inserted gates do not need to be in the target ISA yet, so are often
        just output as ``swap`` instructions.  This stage is sometimes subsumed by ``layout``.
