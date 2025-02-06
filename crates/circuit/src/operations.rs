@@ -2642,7 +2642,7 @@ impl Operation for PyInstruction {
         Python::with_gil(|py| -> Option<CircuitData> {
             match self.instruction.getattr(py, intern!(py, "definition")) {
                 Ok(definition) => definition
-                    .getattr(py, intern!(py, "data"))
+                    .getattr(py, intern!(py, "_data"))
                     .ok()?
                     .extract::<CircuitData>(py)
                     .ok(),
@@ -2719,7 +2719,7 @@ impl Operation for PyGate {
         Python::with_gil(|py| -> Option<CircuitData> {
             match self.gate.getattr(py, intern!(py, "definition")) {
                 Ok(definition) => definition
-                    .getattr(py, intern!(py, "data"))
+                    .getattr(py, intern!(py, "_data"))
                     .ok()?
                     .extract::<CircuitData>(py)
                     .ok(),
