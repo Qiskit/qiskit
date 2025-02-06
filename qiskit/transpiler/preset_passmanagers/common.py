@@ -52,6 +52,7 @@ from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
 from qiskit.transpiler.passes.layout.vf2_post_layout import VF2PostLayoutStopReason
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
+from qiskit.utils import deprecate_func
 from qiskit.utils.deprecate_pulse import deprecate_pulse_arg
 
 
@@ -381,11 +382,19 @@ def generate_routing_passmanager(
     return routing
 
 
+@deprecate_func(
+    since="2.0",
+    additional_msg=(
+        "Translation plugins are now required to respect ISA directionality,"
+        " so typically no replacement is necessary."
+    ),
+    removal_timeline="in Qiskit 3.0",
+)
 def generate_pre_op_passmanager(target=None, coupling_map=None, remove_reset_in_zero=False):
     """Generate a pre-optimization loop :class:`~qiskit.transpiler.PassManager`
 
     This pass manager will check to ensure that directionality from the coupling
-    map is respected
+    map is respected.
 
     Args:
         target (Target): the :class:`~.Target` object representing the backend
@@ -460,6 +469,7 @@ def generate_translation_passmanager(
         TranspilerError: If the ``method`` kwarg is not a valid value
     """
     if method == "translator":
+        translator = BasisTranslator(sel, basis_gates, target)
         unroll = [
             # Use unitary synthesis for basis aware decomposition of
             # UnitaryGates before custom unrolling
@@ -481,8 +491,9 @@ def generate_translation_passmanager(
                 basis_gates=basis_gates,
                 qubits_initially_zero=qubits_initially_zero,
             ),
-            BasisTranslator(sel, basis_gates, target),
+            translator,
         ]
+        fix_1q = [translator]
     elif method == "synthesis":
         unroll = [
             # # Use unitary synthesis for basis aware decomposition of
@@ -530,8 +541,40 @@ def generate_translation_passmanager(
                 qubits_initially_zero=qubits_initially_zero,
             ),
         ]
+        fix_1q = [
+            Collect1qRuns(),
+            ConsolidateBlocks(
+                basis_gates=basis_gates, target=target, approximation_degree=approximation_degree
+            ),
+            UnitarySynthesis(
+                basis_gates=basis_gates,
+                approximation_degree=approximation_degree,
+                coupling_map=coupling_map,
+                backend_props=backend_props,
+                plugin_config=unitary_synthesis_plugin_config,
+                method=unitary_synthesis_method,
+                target=target,
+            ),
+        ]
     else:
         raise TranspilerError(f"Invalid translation method {method}.")
+    # Our built-ins don't 100% guarantee that 2q gate direction is respected, so we might need to
+    # run a little bit of fix up on them.  `GateDirection` doesn't guarantee that 1q gates are
+    # ISA safe after it runs, so we need another run too.
+    if (coupling_map and not coupling_map.is_symmetric) or (
+        target is not None and target.get_non_global_operation_names(strict_direction=True)
+    ):
+        unroll.append(CheckGateDirection(coupling_map, target=target))
+
+        def _direction_condition(property_set):
+            return not property_set["is_direction_mapped"]
+
+        unroll.append(
+            ConditionalController(
+                [GateDirection(coupling_map, target=target)] + fix_1q,
+                condition=_direction_condition,
+            )
+        )
     return PassManager(unroll)
 
 
