@@ -18,12 +18,11 @@ import struct
 from ddt import ddt, data
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister, Qubit, Parameter, Gate
-from qiskit.providers.fake_provider import Fake27QPulseV1, GenericBackendV2
+from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.exceptions import QiskitError
 from qiskit.qpy import dump, load, formats, QPY_COMPATIBILITY_VERSION
 from qiskit.qpy.common import QPY_VERSION
-from qiskit.transpiler import PassManager, TranspileLayout
-from qiskit.transpiler import passes
+from qiskit.transpiler import TranspileLayout
 from qiskit.compiler import transpile
 from qiskit.utils import optionals
 from qiskit.qpy.formats import FILE_HEADER_V10_PACK, FILE_HEADER_V10, FILE_HEADER_V10_SIZE

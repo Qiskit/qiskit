@@ -12,9 +12,8 @@
 
 """Testing legacy instruction alignment pass."""
 
-from qiskit import QuantumCircuit, pulse
+from qiskit import QuantumCircuit
 from qiskit.transpiler import InstructionDurations
-from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes import (
     AlignMeasures,
     ALAPSchedule,

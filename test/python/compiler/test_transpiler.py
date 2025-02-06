@@ -79,7 +79,7 @@ from qiskit.providers.backend_compat import BackendV2Converter
 from qiskit.providers.fake_provider import Fake20QV1, Fake27QPulseV1, GenericBackendV2
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.providers.options import Options
-from qiskit.pulse import InstructionScheduleMap, Schedule, Play, Gaussian, DriveChannel
+from qiskit.pulse import InstructionScheduleMap
 from qiskit.quantum_info import Operator, random_unitary
 from qiskit.utils import parallel
 from qiskit.transpiler import CouplingMap, Layout, PassManager, TransformationPass
@@ -91,14 +91,13 @@ from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager, 
 from qiskit.transpiler.target import (
     InstructionProperties,
     Target,
-    TimingConstraints,
     InstructionDurations,
     target_to_backend_properties,
 )
 
 from test import QiskitTestCase, combine, slow_test  # pylint: disable=wrong-import-order
 
-from ..legacy_cmaps import MELBOURNE_CMAP, RUESCHLIKON_CMAP, MUMBAI_CMAP, TOKYO_CMAP
+from ..legacy_cmaps import MELBOURNE_CMAP, RUESCHLIKON_CMAP, TOKYO_CMAP
 
 
 class CustomCX(Gate):
