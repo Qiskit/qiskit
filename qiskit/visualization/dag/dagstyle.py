@@ -22,7 +22,7 @@ from warnings import warn
 from qiskit.visualization import exceptions
 
 
-class StyleDict(dict):
+class DAGStyleDict(dict):
     """A dictionary for graphviz styles.
 
     Defines additional abbreviations for key accesses, such as allowing
@@ -84,7 +84,7 @@ class StyleDict(dict):
         super().update((key, value) for key, value in other.items())
 
 
-class DefaultStyle:
+class DAGDefaultStyle:
     """Creates a Default Style dictionary
 
     The style dict contains numerous options that define the style of the
@@ -124,88 +124,4 @@ class DefaultStyle:
             default_style = json.load(infile)
 
         # set shortcuts, such as "ec" for "edgecolor"
-        self.style = StyleDict(**default_style)
-
-
-def load_style(style: dict | str = "color") -> StyleDict:
-    """Utility function to load style from json files.
-
-    Args:
-        style: Depending on the type, this acts differently:
-
-            * If a string, it can specify a supported style name (such
-              as "iqp" or "clifford"). It can also specify the name of
-              a custom color scheme stored as JSON file. This JSON file
-              _must_ specify a complete set of colors.
-            * If a dictionary, it may specify the style name via a
-              ``{"name": "<desired style>"}`` entry. If this is not given,
-              the default style will be used. The remaining entries in the
-              dictionary can be used to override certain specs.
-              E.g. ``{"name": "iqp", "ec": "#FF0000"}`` will use the ``"iqp"``
-              color scheme but set the edgecolor to red.
-
-    Returns:
-        A tuple containing the style as dictionary and the default font ratio.
-    """
-
-    # determine the style name which could also be inside a dictionary, like
-    # style={"name": "clifford", <other settings...>}
-    if isinstance(style, dict):
-        style_name = style.get("name", "color")
-    elif isinstance(style, str):
-        if style.endswith(".json"):
-            style_name = style[:-5]
-        else:
-            style_name = style
-    else:
-        raise exceptions.VisualizationError(f"Invalid style {style}")
-
-    if style_name == "color":
-        current_style = DefaultStyle().style
-    else:
-        # Search for file in 'styles' dir, and then the current directory
-        style_name = style_name + ".json"
-        style_paths = []
-
-        default_path = Path(__file__).parent / "styles" / style_name
-        style_paths.append(default_path)
-
-        # check current directory
-        cwd_path = Path("") / style_name
-        style_paths.append(cwd_path)
-
-        for path in style_paths:
-            # expand ~ to the user directory and check if the file exists
-            exp_user = path.expanduser()
-            if os.path.isfile(exp_user):
-                try:
-                    with open(exp_user) as infile:
-                        json_style = json.load(infile)
-
-                    current_style = StyleDict(json_style)
-                    break
-                except json.JSONDecodeError as err:
-                    warn(
-                        f"Could not decode JSON in file '{path}': {str(err)}. "
-                        "Will use default style.",
-                        UserWarning,
-                        2,
-                    )
-                    break
-                except (OSError, FileNotFoundError):
-                    warn(
-                        f"Error loading JSON file '{path}'. Will use default style.",
-                        UserWarning,
-                        2,
-                    )
-                    break
-        else:
-            raise exceptions.VisualizationError(f"Invalid style {style}")
-
-    # if the style is a dictionary, update the defaults with the new values
-    # this _needs_ to happen after loading by name to cover cases like
-    #   style = {"name": "bw", "edgecolor": "#FF0000"}
-    if isinstance(style, dict):
-        current_style.update(style)
-
-    return current_style
+        self.style = DAGStyleDict(**default_style)
