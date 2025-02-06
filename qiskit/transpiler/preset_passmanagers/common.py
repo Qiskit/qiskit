@@ -41,11 +41,9 @@ from qiskit.transpiler.passes import EnlargeWithAncilla
 from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passes import RemoveResetInZeroState
 from qiskit.transpiler.passes import FilterOpNodes
-from qiskit.transpiler.passes import ValidatePulseGates
 from qiskit.transpiler.passes import PadDelay
 from qiskit.transpiler.passes import InstructionDurationCheck
 from qiskit.transpiler.passes import ConstrainedReschedule
-from qiskit.transpiler.passes import PulseGates
 from qiskit.transpiler.passes import ContainsInstruction
 from qiskit.transpiler.passes import VF2PostLayout
 from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
@@ -555,8 +553,6 @@ def generate_scheduling(
         TranspilerError: If the ``scheduling_method`` kwarg is not a valid value
     """
     scheduling = PassManager()
-    if inst_map and inst_map.has_custom_gate():
-        scheduling.append(PulseGates(inst_map=inst_map, target=target))
     if scheduling_method:
         # Do scheduling after unit conversion.
         scheduler = {
@@ -607,13 +603,6 @@ def generate_scheduling(
                     target=target,
                 ),
                 condition=_require_alignment,
-            )
-        )
-        scheduling.append(
-            ValidatePulseGates(
-                granularity=timing_constraints.granularity,
-                min_length=timing_constraints.min_length,
-                target=target,
             )
         )
     if scheduling_method:
