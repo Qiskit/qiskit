@@ -299,7 +299,8 @@ class TestMCMT(QiskitTestCase):
         """
         circuit = QuantumCircuit(2)
         gate = RYGate(0.1)
-        mcmt = MCMT(gate=gate, num_ctrl_qubits=1, num_target_qubits=1)
+        with self.assertWarns(DeprecationWarning):
+            mcmt = MCMT(gate=gate, num_ctrl_qubits=1, num_target_qubits=1)
         circuit.append(mcmt, circuit.qubits)  # append the MCMT circuit as gate called "MCMT"
 
         transpiled = transpile(circuit, basis_gates=["u", "cx"])
