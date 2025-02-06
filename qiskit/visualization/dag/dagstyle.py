@@ -64,8 +64,8 @@ class DAGDefaultStyle(DefaultStyle):
     """Creates a Default Style dictionary
 
     The style dict contains numerous options that define the style of the
-    output circuit visualization. The style dict is used by the `mpl` or
-    `latex` output. The options available in the style dict are defined below:
+    output circuit visualization. The style dict is used by the `graphviz`
+    output. The options available in the style dict are defined below:
 
     Attributes:
         name (str): The name of the style.
@@ -93,4 +93,4 @@ class DAGDefaultStyle(DefaultStyle):
     """
 
     DEFAULT_STYLE_NAME = "plain"
-    STYLE_PATH = Path(__file__).parent / "styles"
+    DEFAULT_STYLE_PATH = Path(__file__).parent / "styles"

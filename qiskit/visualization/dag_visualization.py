@@ -30,7 +30,7 @@ from qiskit.utils import optionals as _optionals
 from qiskit.exceptions import InvalidFileError
 from .exceptions import VisualizationError
 
-from .circuit.qcstyle import load_style
+from .style import load_style
 from .dag.dagstyle import DAGStyleDict, DAGDefaultStyle
 
 
