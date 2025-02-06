@@ -184,6 +184,15 @@ def load_style(
               dictionary can be used to override certain specs.
               E.g. ``{"name": "iqp", "ec": "#FF0000"}`` will use the ``"iqp"``
               color scheme but set the edgecolor to red.
+        style_dict: The class used to define the options for loading styles
+        default_style: DefaultStyle dictionary definition and documentation
+        default_style_name: Name of the stylesheet loaded by default if no
+            configuration is given
+        user_config_opt: User config field in the Qiskit User Configuration File
+            used to define the style loaded
+        user_config_path_opt: User config field in the Qiskit User Configuration File
+            used to define the path to the style loaded
+        
 
     Returns:
         A tuple containing the style as dictionary and the default font ratio.
