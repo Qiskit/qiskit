@@ -334,7 +334,7 @@ where
                 if bits.is_empty() {
                     return None;
                 }
-                let reg: R = bits.into();
+                let reg: R = (bits, name).into();
                 if self.reg_keys.contains_key(reg.as_key()) {
                     return Some(self.reg_keys[reg.as_key()]);
                 }
