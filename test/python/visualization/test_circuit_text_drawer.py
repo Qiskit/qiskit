@@ -1397,12 +1397,16 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
                 "           └───┘",
             ]
         )
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex=r"classical_function\(\)`` is deprecated as of Qiskit 1.4",
+        ):
 
-        @classical_function
-        def grover_oracle(a: Int1, b: Int1, c: Int1) -> Int1:
-            return a and b and not c
+            @classical_function
+            def grover_oracle(a: Int1, b: Int1, c: Int1) -> Int1:
+                return a and b and not c
 
-        circuit = grover_oracle.synth(registerless=False)
+            circuit = grover_oracle.synth(registerless=False)
         self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
 
 
