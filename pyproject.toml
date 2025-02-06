@@ -215,7 +215,7 @@ extension-pkg-allow-list = [
     "rustworkx",
     "tweedledum",
 ]
-load-plugins = ["pylint.extensions.docparams", "pylint.extensions.docstyle"]
+load-plugins = ["pylint.extensions.docparams", "pylint.extensions.docstyle", "pylint.extensions.bad_builtin"]
 py-version = "3.9"  # update it when bumping minimum supported python version
 
 [tool.pylint.basic]
@@ -267,3 +267,6 @@ exclude_also = [
     "if TYPE_CHECKING:",          # Code that only runs during type checks
     "@abstractmethod",            # Abstract methods are not testable
     ]
+
+[tool.pylint.deprecated_builtins]
+bad-functions = ["print"]
