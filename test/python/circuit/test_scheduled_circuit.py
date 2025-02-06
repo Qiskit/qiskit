@@ -516,7 +516,7 @@ class TestScheduledCircuit(QiskitTestCase):
         ):
             sc = transpile(qc, backend=self.backend_with_dt, scheduling_method=scheduling_method)
         cxs = [inst.operation for inst in sc.data if inst.operation.name == "cx"]
-        self.assertNotEqual(cxs[0].duration, cxs[1].duration)
+        self.assertEqual(cxs[0], cxs[1])
 
     # Tests for circuits with parameterized delays
     def test_can_transpile_circuits_after_assigning_parameters(self):

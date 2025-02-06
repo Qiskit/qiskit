@@ -84,6 +84,8 @@ class ConstrainedReschedule(AnalysisPass):
         self.acquire_align = acquire_alignment
         self.pulse_align = pulse_alignment
         if target is not None:
+            self.durations = target.durations()
+            self.target = target
             self.acquire_align = target.acquire_alignment
             self.pulse_align = target.pulse_alignment
 
@@ -141,7 +143,17 @@ class ConstrainedReschedule(AnalysisPass):
             node_start_time[node] = this_t0
 
         # Compute shifted t1 of this node separately for qreg and creg
-        new_t1q = this_t0 + node.op.duration
+        if self.target is not None:
+            try:
+                duration = self.durations.get(node.op, [dag.find_bit(x).index for x in node.qargs])
+            except TranspilerError:
+                duration = 0
+            new_t1q = this_t0 + duration
+
+        elif node.name == "delay":
+            new_t1q = this_t0 + node.op.duration
+        else:
+            new_t1q = this_t0
         this_qubits = set(node.qargs)
         if isinstance(node.op, (Measure, Reset)):
             # creg access ends at the end of instruction
