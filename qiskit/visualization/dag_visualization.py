@@ -167,7 +167,6 @@ def dag_drawer(
         style,
         style_dict=DAGStyleDict,
         default_style=DAGDefaultStyle,
-        default_style_name="color",
         user_config_opt="circuit_graphviz_style",
         user_config_path_opt="circuit_graphviz_style_path",
     )

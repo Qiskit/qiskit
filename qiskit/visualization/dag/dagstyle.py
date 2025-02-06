@@ -18,9 +18,10 @@ import json
 from typing import Any
 from pathlib import Path
 from warnings import warn
+from qiskit.visualization.circuit.qcstyle import StyleDict, DefaultStyle
 
 
-class DAGStyleDict(dict):
+class DAGStyleDict(StyleDict):
     """A dictionary for graphviz styles.
 
     Defines additional abbreviations for key accesses, such as allowing
@@ -58,31 +59,8 @@ class DAGStyleDict(dict):
         "clc": "clbitedgecolor",
     }
 
-    def __setitem__(self, key: Any, value: Any) -> None:
-        # allow using field abbreviations
-        if key in self.ABBREVIATIONS:
-            key = self.ABBREVIATIONS[key]
 
-        if key not in self.VALID_FIELDS:
-            warn(
-                f"style option ({key}) is not supported",
-                UserWarning,
-                2,
-            )
-        return super().__setitem__(key, value)
-
-    def __getitem__(self, key: Any) -> Any:
-        # allow using field abbreviations
-        if key in self.ABBREVIATIONS:
-            key = self.ABBREVIATIONS[key]
-
-        return super().__getitem__(key)
-
-    def update(self, other):
-        super().update((key, value) for key, value in other.items())
-
-
-class DAGDefaultStyle:
+class DAGDefaultStyle(DefaultStyle):
     """Creates a Default Style dictionary
 
     The style dict contains numerous options that define the style of the
@@ -114,12 +92,5 @@ class DAGDefaultStyle:
         clbitedgecolor (str): The edge color for clbits. Overrides edgecolor for these edges.
     """
 
-    def __init__(self):
-        default_style_dict = "color.json"
-        path = Path(__file__).parent / "styles" / default_style_dict
-
-        with open(path, "r") as infile:
-            default_style = json.load(infile)
-
-        # set shortcuts, such as "ec" for "edgecolor"
-        self.style = DAGStyleDict(**default_style)
+    DEFAULT_STYLE_NAME = "plain"
+    STYLE_PATH = Path(__file__).parent / "styles"

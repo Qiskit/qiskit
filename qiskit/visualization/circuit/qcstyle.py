@@ -23,7 +23,48 @@ from warnings import warn
 from qiskit import user_config
 
 
+
 class StyleDict(dict):
+
+    VALID_FIELDS = {}
+
+    ABBREVIATIONS = {}
+
+    NESTED_ATTRS = set()
+
+    def __setitem__(self, key: Any, value: Any) -> None:
+        # allow using field abbreviations
+        if key in self.ABBREVIATIONS:
+            key = self.ABBREVIATIONS[key]
+
+        if key not in self.VALID_FIELDS:
+            warn(
+                f"style option ({key}) is not supported",
+                UserWarning,
+                2,
+            )
+        return super().__setitem__(key, value)
+
+    def __getitem__(self, key: Any) -> Any:
+        # allow using field abbreviations
+        if key in self.ABBREVIATIONS:
+            key = self.ABBREVIATIONS[key]
+
+        return super().__getitem__(key)
+
+    def update(self, other):
+        # the attributes "displaycolor" and "displaytext" are dictionaries
+        # themselves, therefore we need to propagate the update down to them
+        for attr in self.NESTED_ATTRS.intersection(other.keys()):
+            if attr in self.keys():
+                self[attr].update(other[attr])
+            else:
+                self[attr] = other[attr]
+
+        super().update((key, value) for key, value in other.items() if key not in self.NESTED_ATTRS)
+
+
+class MPLStyleDict(StyleDict):
     """A dictionary for matplotlib styles.
 
     Defines additional abbreviations for key accesses, such as allowing
@@ -70,40 +111,25 @@ class StyleDict(dict):
         "dispcol": "displaycolor",
     }
 
-    def __setitem__(self, key: Any, value: Any) -> None:
-        # allow using field abbreviations
-        if key in self.ABBREVIATIONS:
-            key = self.ABBREVIATIONS[key]
-
-        if key not in self.VALID_FIELDS:
-            warn(
-                f"style option ({key}) is not supported",
-                UserWarning,
-                2,
-            )
-        return super().__setitem__(key, value)
-
-    def __getitem__(self, key: Any) -> Any:
-        # allow using field abbreviations
-        if key in self.ABBREVIATIONS:
-            key = self.ABBREVIATIONS[key]
-
-        return super().__getitem__(key)
-
-    def update(self, other):
-        # the attributes "displaycolor" and "displaytext" are dictionaries
-        # themselves, therefore we need to propagate the update down to them
-        nested_attrs = {"displaycolor", "displaytext"}
-        for attr in nested_attrs.intersection(other.keys()):
-            if attr in self.keys():
-                self[attr].update(other[attr])
-            else:
-                self[attr] = other[attr]
-
-        super().update((key, value) for key, value in other.items() if key not in nested_attrs)
+    NESTED_ATTRS = {"displaycolor", "displaytext"}
 
 
 class DefaultStyle:
+    
+    DEFAULT_STYLE_NAME = "default"
+    STYLE_PATH = Path(__file__).parent / "styles"
+
+    def __init__(self):
+        path = self.STYLE_PATH / Path(self.DEFAULT_STYLE_NAME).with_suffix('.json')
+
+        with open(path, "r") as infile:
+            default_style = json.load(infile)
+
+        # set shortcuts, such as "ec" for "edgecolor"
+        self.style = StyleDict(**default_style)
+
+
+class MPLDefaultStyle(DefaultStyle):
     """Creates a Default Style dictionary
 
     The style dict contains numerous options that define the style of the
@@ -150,24 +176,16 @@ class DefaultStyle:
             which allows for custom colors for user-created gates.
     """
 
-    def __init__(self):
-        default_style_dict = "iqp.json"
-        path = Path(__file__).parent / "styles" / default_style_dict
-
-        with open(path, "r") as infile:
-            default_style = json.load(infile)
-
-        # set shortcuts, such as "ec" for "edgecolor"
-        self.style = StyleDict(**default_style)
+    DEFAULT_STYLE_NAME = "iqp"
+    STYLE_PATH = Path(__file__).parent / "styles"
 
 
 def load_style(
     style: dict | str | None,
-    style_dict=StyleDict,
-    default_style=DefaultStyle,
-    default_style_name="default",
-    user_config_opt="circuit_mpl_style",
-    user_config_path_opt="circuit_mpl_style_path",
+    style_dict: StyleDict = MPLStyleDict,
+    default_style: DefaultStyle = MPLDefaultStyle,
+    user_config_opt: str = "circuit_mpl_style",
+    user_config_path_opt: str = "circuit_mpl_style_path",
 ) -> tuple[StyleDict, float]:
     """Utility function to load style from json files.
 
@@ -198,19 +216,21 @@ def load_style(
         A tuple containing the style as dictionary and the default font ratio.
     """
 
+    default = default_style().DEFAULT_STYLE_NAME
+
     # if the style is not given, try to load the configured default (if set),
     # or use the default style
     config = user_config.get_config()
     if style is None:
         if config:
-            style = config.get(user_config_opt, default_style_name)
+            style = config.get(user_config_opt, default)
         else:
-            style = default_style_name
+            style = default
 
     # determine the style name which could also be inside a dictionary, like
     # style={"name": "clifford", <other settings...>}
     if isinstance(style, dict):
-        style_name = style.get("name", default_style_name)
+        style_name = style.get("name", default)
     elif isinstance(style, str):
         if style.endswith(".json"):
             style_name = style[:-5]
@@ -223,16 +243,16 @@ def load_style(
             UserWarning,
             2,
         )
-        style_name = default_style_name
+        style_name = default
 
-    if style_name in ["iqp", default_style_name]:
+    if style_name in [default]:
         current_style = default_style().style
     else:
         # Search for file in 'styles' dir, then config_path, and finally the current directory
         style_name = style_name + ".json"
         style_paths = []
 
-        default_path = Path(__file__).parent / "styles" / style_name
+        default_path = default_style.STYLE_PATH / style_name
         style_paths.append(default_path)
 
         # check configured paths, if there are any
