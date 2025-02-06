@@ -16,7 +16,6 @@ use std::{fmt, vec};
 
 use crate::circuit_data::CircuitData;
 use crate::circuit_instruction::ExtraInstructionAttributes;
-use crate::converters::QuantumCircuitData;
 use crate::imports::{get_std_gate_class, BARRIER, DELAY, MEASURE, RESET};
 use crate::imports::{PARAMETER_EXPRESSION, QUANTUM_CIRCUIT, UNITARY_GATE};
 use crate::{gate_matrix, impl_intopyobject_for_copy_pyclass, Qubit};
@@ -2642,10 +2641,11 @@ impl Operation for PyInstruction {
     fn definition(&self, _params: &[Param]) -> Option<CircuitData> {
         Python::with_gil(|py| -> Option<CircuitData> {
             match self.instruction.getattr(py, intern!(py, "definition")) {
-                Ok(definition) => {
-                    let quantum_circuit: QuantumCircuitData = definition.extract(py).ok()?;
-                    Some(quantum_circuit.data)
-                }
+                Ok(definition) => definition
+                    .getattr(py, "_data")
+                    .ok()?
+                    .extract::<CircuitData>(py)
+                    .ok(),
                 Err(_) => None,
             }
         })
@@ -2718,10 +2718,11 @@ impl Operation for PyGate {
     fn definition(&self, _params: &[Param]) -> Option<CircuitData> {
         Python::with_gil(|py| -> Option<CircuitData> {
             match self.gate.getattr(py, intern!(py, "definition")) {
-                Ok(definition) => {
-                    let quantum_circuit: QuantumCircuitData = definition.extract(py).ok()?;
-                    Some(quantum_circuit.data)
-                }
+                Ok(definition) => definition
+                    .getattr(py, "_data")
+                    .ok()?
+                    .extract::<CircuitData>(py)
+                    .ok(),
                 Err(_) => None,
             }
         })
