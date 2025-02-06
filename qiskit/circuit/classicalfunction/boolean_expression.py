@@ -20,6 +20,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.utils.optionals import HAS_TWEEDLEDUM
 from .classical_element import ClassicalElement
 
+
 class BooleanExpression(ClassicalElement):
     """The Boolean Expression gate."""
 
