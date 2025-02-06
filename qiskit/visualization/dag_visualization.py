@@ -30,7 +30,8 @@ from qiskit.utils import optionals as _optionals
 from qiskit.exceptions import InvalidFileError
 from .exceptions import VisualizationError
 
-from .dag.dagstyle import load_style
+from .circuit.qcstyle import load_style
+from .dag.dagstyle import DAGStyleDict, DAGDefaultStyle
 
 
 IMAGE_TYPES = {
@@ -162,7 +163,14 @@ def dag_drawer(
             if attr in style:
                 graph_attrs[attr] = str(style[attr])
 
-    style = load_style(style)
+    style, _ = load_style(
+        style,
+        style_dict=DAGStyleDict,
+        default_style=DAGDefaultStyle,
+        default_style_name="color",
+        user_config_opt="circuit_graphviz_style",
+        user_config_path_opt="circuit_graphviz_style_path"
+    )
 
     if "DAGDependency" in type_str:
         # pylint: disable=cyclic-import
@@ -299,7 +307,7 @@ def dag_drawer(
 
                 return n
             else:
-                raise VisualizationError(f"Invalid style {style}")
+                raise VisualizationError(f"Invalid style {style}, {type(style)}")
 
         def edge_attr_func(edge):
             e = {}

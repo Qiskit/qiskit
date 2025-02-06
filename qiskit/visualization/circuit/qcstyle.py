@@ -161,7 +161,14 @@ class DefaultStyle:
         self.style = StyleDict(**default_style)
 
 
-def load_style(style: dict | str | None) -> tuple[StyleDict, float]:
+def load_style(
+    style: dict | str | None,
+    style_dict=StyleDict,
+    default_style=DefaultStyle,
+    default_style_name="default",
+    user_config_opt="circuit_mpl_style",
+    user_config_path_opt="circuit_mpl_style_path",
+) -> tuple[StyleDict, float]:
     """Utility function to load style from json files.
 
     Args:
@@ -187,14 +194,14 @@ def load_style(style: dict | str | None) -> tuple[StyleDict, float]:
     config = user_config.get_config()
     if style is None:
         if config:
-            style = config.get("circuit_mpl_style", "default")
+            style = config.get(user_config_opt, default_style_name)
         else:
-            style = "default"
+            style = default_style_name
 
     # determine the style name which could also be inside a dictionary, like
     # style={"name": "clifford", <other settings...>}
     if isinstance(style, dict):
-        style_name = style.get("name", "default")
+        style_name = style.get("name", default_style_name)
     elif isinstance(style, str):
         if style.endswith(".json"):
             style_name = style[:-5]
@@ -207,10 +214,10 @@ def load_style(style: dict | str | None) -> tuple[StyleDict, float]:
             UserWarning,
             2,
         )
-        style_name = "default"
+        style_name = default_style_name
 
-    if style_name in ["iqp", "default"]:
-        current_style = DefaultStyle().style
+    if style_name in ["iqp", default_style_name]:
+        current_style = default_style().style
     else:
         # Search for file in 'styles' dir, then config_path, and finally the current directory
         style_name = style_name + ".json"
@@ -221,7 +228,7 @@ def load_style(style: dict | str | None) -> tuple[StyleDict, float]:
 
         # check configured paths, if there are any
         if config:
-            config_path = config.get("circuit_mpl_style_path", "")
+            config_path = config.get(user_config_path_opt, "")
             if config_path:
                 for path in config_path:
                     style_paths.append(Path(path) / style_name)
@@ -238,7 +245,7 @@ def load_style(style: dict | str | None) -> tuple[StyleDict, float]:
                     with open(exp_user) as infile:
                         json_style = json.load(infile)
 
-                    current_style = StyleDict(json_style)
+                    current_style = style_dict(json_style)
                     break
                 except json.JSONDecodeError as err:
                     warn(
@@ -263,7 +270,7 @@ def load_style(style: dict | str | None) -> tuple[StyleDict, float]:
                 UserWarning,
                 2,
             )
-            current_style = DefaultStyle().style
+            current_style = default_style().style
 
     # if the style is a dictionary, update the defaults with the new values
     # this _needs_ to happen after loading by name to cover cases like
