@@ -41,6 +41,7 @@ class Parameter(ParameterExpression):
         Construct a variable-rotation X gate using circuit parameters.
 
         .. plot::
+           :alt: Circuit diagram output by the previous code.
            :include-source:
 
            from qiskit.circuit import QuantumCircuit, Parameter

@@ -197,6 +197,17 @@ class DefaultInitPassManager(PassManagerStagePlugin):
         return init
 
 
+class DefaultTranslationPassManager(PassManagerStagePlugin):
+    """Plugin class for the default-method translation stage."""
+
+    def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
+        # For now, this is just a wrapper around the `BasisTranslator`.  It might expand in the
+        # future if we want to change the default method to do more context-aware switching, or to
+        # start transitioning the default method without breaking the semantics of the default
+        # string referring to the `BasisTranslator`.
+        return BasisTranslatorPassManager().pass_manager(pass_manager_config, optimization_level)
+
+
 class BasisTranslatorPassManager(PassManagerStagePlugin):
     """Plugin class for translation stage with :class:`~.BasisTranslator`"""
 
@@ -238,7 +249,6 @@ class BasicSwapPassManager(PassManagerStagePlugin):
 
     def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
         """Build routing stage PassManager."""
-        seed_transpiler = pass_manager_config.seed_transpiler
         target = pass_manager_config.target
         coupling_map = pass_manager_config.coupling_map
         backend_properties = pass_manager_config.backend_properties
@@ -257,7 +267,7 @@ class BasicSwapPassManager(PassManagerStagePlugin):
                 routing_pass,
                 target,
                 coupling_map=coupling_map,
-                seed_transpiler=seed_transpiler,
+                seed_transpiler=-1,
                 use_barrier_before_measurement=True,
             )
         if optimization_level == 1:
@@ -268,7 +278,7 @@ class BasicSwapPassManager(PassManagerStagePlugin):
                 vf2_call_limit=vf2_call_limit,
                 vf2_max_trials=vf2_max_trials,
                 backend_properties=backend_properties,
-                seed_transpiler=seed_transpiler,
+                seed_transpiler=-1,
                 check_trivial=True,
                 use_barrier_before_measurement=True,
             )
@@ -280,7 +290,7 @@ class BasicSwapPassManager(PassManagerStagePlugin):
                 vf2_call_limit=vf2_call_limit,
                 vf2_max_trials=vf2_max_trials,
                 backend_properties=backend_properties,
-                seed_transpiler=seed_transpiler,
+                seed_transpiler=-1,
                 use_barrier_before_measurement=True,
             )
         if optimization_level == 3:
@@ -291,7 +301,7 @@ class BasicSwapPassManager(PassManagerStagePlugin):
                 vf2_call_limit=vf2_call_limit,
                 vf2_max_trials=vf2_max_trials,
                 backend_properties=backend_properties,
-                seed_transpiler=seed_transpiler,
+                seed_transpiler=-1,
                 use_barrier_before_measurement=True,
             )
         raise TranspilerError(f"Invalid optimization level specified: {optimization_level}")
@@ -324,7 +334,7 @@ class StochasticSwapPassManager(PassManagerStagePlugin):
                 routing_pass,
                 target,
                 coupling_map=coupling_map,
-                seed_transpiler=seed_transpiler,
+                seed_transpiler=-1,
                 use_barrier_before_measurement=True,
             )
         if optimization_level == 1:
@@ -335,7 +345,7 @@ class StochasticSwapPassManager(PassManagerStagePlugin):
                 vf2_call_limit=vf2_call_limit,
                 vf2_max_trials=vf2_max_trials,
                 backend_properties=backend_properties,
-                seed_transpiler=seed_transpiler,
+                seed_transpiler=-1,
                 check_trivial=True,
                 use_barrier_before_measurement=True,
             )
@@ -347,7 +357,7 @@ class StochasticSwapPassManager(PassManagerStagePlugin):
                 vf2_call_limit=vf2_call_limit,
                 vf2_max_trials=vf2_max_trials,
                 backend_properties=backend_properties,
-                seed_transpiler=seed_transpiler,
+                seed_transpiler=-1,
                 use_barrier_before_measurement=True,
             )
         raise TranspilerError(f"Invalid optimization level specified: {optimization_level}")
@@ -358,7 +368,6 @@ class LookaheadSwapPassManager(PassManagerStagePlugin):
 
     def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
         """Build routing stage PassManager."""
-        seed_transpiler = pass_manager_config.seed_transpiler
         target = pass_manager_config.target
         coupling_map = pass_manager_config.coupling_map
         coupling_map_routing = target
@@ -376,7 +385,7 @@ class LookaheadSwapPassManager(PassManagerStagePlugin):
                 routing_pass,
                 target,
                 coupling_map=coupling_map,
-                seed_transpiler=seed_transpiler,
+                seed_transpiler=-1,
                 use_barrier_before_measurement=True,
             )
         if optimization_level == 1:
@@ -388,7 +397,7 @@ class LookaheadSwapPassManager(PassManagerStagePlugin):
                 vf2_call_limit=vf2_call_limit,
                 vf2_max_trials=vf2_max_trials,
                 backend_properties=backend_properties,
-                seed_transpiler=seed_transpiler,
+                seed_transpiler=-1,
                 check_trivial=True,
                 use_barrier_before_measurement=True,
             )
@@ -401,7 +410,7 @@ class LookaheadSwapPassManager(PassManagerStagePlugin):
                 vf2_call_limit=vf2_call_limit,
                 vf2_max_trials=vf2_max_trials,
                 backend_properties=backend_properties,
-                seed_transpiler=seed_transpiler,
+                seed_transpiler=-1,
                 use_barrier_before_measurement=True,
             )
         if optimization_level == 3:
@@ -413,7 +422,7 @@ class LookaheadSwapPassManager(PassManagerStagePlugin):
                 vf2_call_limit=vf2_call_limit,
                 vf2_max_trials=vf2_max_trials,
                 backend_properties=backend_properties,
-                seed_transpiler=seed_transpiler,
+                seed_transpiler=-1,
                 use_barrier_before_measurement=True,
             )
         raise TranspilerError(f"Invalid optimization level specified: {optimization_level}")
@@ -448,7 +457,7 @@ class SabreSwapPassManager(PassManagerStagePlugin):
                 routing_pass,
                 target,
                 coupling_map=coupling_map,
-                seed_transpiler=seed_transpiler,
+                seed_transpiler=-1,
                 use_barrier_before_measurement=True,
             )
         if optimization_level == 1:
@@ -466,7 +475,7 @@ class SabreSwapPassManager(PassManagerStagePlugin):
                 vf2_call_limit=vf2_call_limit,
                 vf2_max_trials=vf2_max_trials,
                 backend_properties=backend_properties,
-                seed_transpiler=seed_transpiler,
+                seed_transpiler=-1,
                 check_trivial=True,
                 use_barrier_before_measurement=True,
             )
@@ -486,7 +495,7 @@ class SabreSwapPassManager(PassManagerStagePlugin):
                 vf2_call_limit=vf2_call_limit,
                 vf2_max_trials=vf2_max_trials,
                 backend_properties=backend_properties,
-                seed_transpiler=seed_transpiler,
+                seed_transpiler=-1,
                 use_barrier_before_measurement=True,
             )
         if optimization_level == 3:
@@ -504,7 +513,7 @@ class SabreSwapPassManager(PassManagerStagePlugin):
                 vf2_call_limit=vf2_call_limit,
                 vf2_max_trials=vf2_max_trials,
                 backend_properties=backend_properties,
-                seed_transpiler=seed_transpiler,
+                seed_transpiler=-1,
                 use_barrier_before_measurement=True,
             )
         raise TranspilerError(f"Invalid optimization level specified: {optimization_level}")
@@ -515,7 +524,6 @@ class NoneRoutingPassManager(PassManagerStagePlugin):
 
     def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
         """Build routing stage PassManager."""
-        seed_transpiler = pass_manager_config.seed_transpiler
         target = pass_manager_config.target
         coupling_map = pass_manager_config.coupling_map
         routing_pass = Error(
@@ -527,7 +535,7 @@ class NoneRoutingPassManager(PassManagerStagePlugin):
             routing_pass,
             target,
             coupling_map=coupling_map,
-            seed_transpiler=seed_transpiler,
+            seed_transpiler=-1,
             use_barrier_before_measurement=True,
         )
 
@@ -538,7 +546,7 @@ class OptimizationPassManager(PassManagerStagePlugin):
     def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
         """Build pass manager for optimization stage."""
         # Obtain the translation method required for this pass to work
-        translation_method = pass_manager_config.translation_method or "translator"
+        translation_method = pass_manager_config.translation_method or "default"
         optimization = PassManager()
         if optimization_level != 0:
             plugin_manager = PassManagerStagePluginManager()
@@ -793,7 +801,7 @@ class DefaultLayoutPassManager(PassManagerStagePlugin):
             )
             choose_layout_1 = VF2Layout(
                 coupling_map=pass_manager_config.coupling_map,
-                seed=pass_manager_config.seed_transpiler,
+                seed=-1,
                 call_limit=int(5e4),  # Set call limit to ~100ms with rustworkx 0.10.2
                 properties=pass_manager_config.backend_properties,
                 target=pass_manager_config.target,
@@ -826,7 +834,7 @@ class DefaultLayoutPassManager(PassManagerStagePlugin):
         elif optimization_level == 2:
             choose_layout_0 = VF2Layout(
                 coupling_map=pass_manager_config.coupling_map,
-                seed=pass_manager_config.seed_transpiler,
+                seed=-1,
                 call_limit=int(5e6),  # Set call limit to ~10s with rustworkx 0.10.2
                 properties=pass_manager_config.backend_properties,
                 target=pass_manager_config.target,
@@ -861,7 +869,7 @@ class DefaultLayoutPassManager(PassManagerStagePlugin):
         elif optimization_level == 3:
             choose_layout_0 = VF2Layout(
                 coupling_map=pass_manager_config.coupling_map,
-                seed=pass_manager_config.seed_transpiler,
+                seed=-1,
                 call_limit=int(3e7),  # Set call limit to ~60s with rustworkx 0.10.2
                 properties=pass_manager_config.backend_properties,
                 target=pass_manager_config.target,

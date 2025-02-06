@@ -330,6 +330,7 @@ class SymbolicPulse(Pulse):
     without knowing the envelope definition. Now you need to provide the envelope.
 
     .. plot::
+       :alt: Output from the previous code.
        :include-source:
 
         import sympy

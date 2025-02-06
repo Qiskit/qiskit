@@ -13,9 +13,10 @@
 use pyo3::prelude::*;
 use pyo3::types::{PyList, PyString, PyTuple};
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::operations::{multiply_param, radd_param, Param, PyInstruction, StandardGate};
+use qiskit_circuit::operations;
+use qiskit_circuit::operations::{multiply_param, radd_param, Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
-use qiskit_circuit::{imports, Clbit, Qubit};
+use qiskit_circuit::{Clbit, Qubit};
 use smallvec::{smallvec, SmallVec};
 
 // custom types for a more readable code
@@ -192,22 +193,22 @@ fn multi_qubit_evolution(
 /// followed by a CX-chain and then a single Pauli-Z rotation on the last qubit. Then the CX-chain
 /// is uncomputed and the inverse basis transformation applied. E.g. for the evolution under the
 /// Pauli string XIYZ we have the circuit
-///                 ┌───┐┌───────┐┌───┐
-/// 0: ─────────────┤ X ├┤ Rz(2) ├┤ X ├───────────
-///    ┌──────┐┌───┐└─┬─┘└───────┘└─┬─┘┌───┐┌────┐
-/// 1: ┤ √Xdg ├┤ X ├──■─────────────■──┤ X ├┤ √X ├
-///    └──────┘└─┬─┘                   └─┬─┘└────┘
-/// 2: ──────────┼───────────────────────┼────────
-///     ┌───┐    │                       │  ┌───┐
-/// 3: ─┤ H ├────■───────────────────────■──┤ H ├─
-///     └───┘                               └───┘
+///
+///        ┌───┐      ┌───┐┌───────┐┌───┐┌───┐
+///     0: ┤ H ├──────┤ X ├┤ Rz(2) ├┤ X ├┤ H ├────────
+///        └───┘      └─┬─┘└───────┘└─┬─┘└───┘
+///     1: ─────────────┼─────────────┼───────────────
+///        ┌────┐┌───┐  │             │  ┌───┐┌──────┐
+///     2: ┤ √X ├┤ X ├──■─────────────■──┤ X ├┤ √Xdg ├
+///        └────┘└─┬─┘                   └─┬─┘└──────┘
+///     3: ────────■───────────────────────■──────────
 ///
 /// Args:
 ///     num_qubits: The number of qubits in the Hamiltonian.
 ///     sparse_paulis: The Paulis to implement. Given in a sparse-list format with elements
-///         ``(pauli_string, qubit_indices, coefficient)``. An element of the form
-///         ``("IXYZ", [0,1,2,3], 0.2)``, for example, is interpreted in terms of qubit indices as
-///          I_q0 X_q1 Y_q2 Z_q3 and will use a RZ rotation angle of 0.4.
+///         ``(pauli_string, qubit_indices, rz_rotation_angle)``. An element of the form
+///         ``("XIYZ", [0,1,2,3], 2)``, for example, is interpreted in terms of qubit indices as
+///         X_q0 I_q1 Y_q2 Z_q3 and will use a RZ rotation angle of 2.
 ///     insert_barriers: If ``true``, insert a barrier in between the evolution of individual
 ///         Pauli terms.
 ///     do_fountain: If ``true``, implement the CX propagation as "fountain" shape, where each
@@ -244,11 +245,18 @@ pub fn py_pauli_evolution(
         }
 
         paulis.push(pauli);
-        times.push(time); // note we do not multiply by 2 here, this is done Python side!
+        times.push(time); // note we do not multiply by 2 here, this is already done Python side!
         indices.push(tuple.get_item(1)?.extract::<Vec<u32>>()?)
     }
 
-    let barrier = get_barrier(py, num_qubits as u32);
+    let barrier = (
+        PackedOperation::from_standard_instruction(operations::StandardInstruction::Barrier(
+            num_qubits as u32,
+        )),
+        smallvec![],
+        (0..num_qubits as u32).map(Qubit).collect(),
+        vec![],
+    );
 
     let evos = paulis.iter().enumerate().zip(indices).zip(times).flat_map(
         |(((i, pauli), qubits), time)| {
@@ -266,12 +274,12 @@ pub fn py_pauli_evolution(
         },
     );
 
-    // When handling all-identity Paulis above, we added the time as global phase.
-    // However, the all-identity Paulis should add a negative phase, as they implement
-    // exp(-i t I). We apply the negative sign here, to only do a single (-1) multiplication,
-    // instead of doing it every time we find an all-identity Pauli.
+    // When handling all-identity Paulis above, we added the RZ rotation angle as global phase,
+    // meaning that we have implemented of exp(i 2t I). However, what we want it to implement
+    // exp(-i t I). To only use a single multiplication, we apply a factor of -0.5 here.
+    // This is faster, in particular as long as the parameter expressions are in Python.
     if modified_phase {
-        global_phase = multiply_param(&global_phase, -1.0, py);
+        global_phase = multiply_param(&global_phase, -0.5, py);
     }
 
     CircuitData::from_packed_operations(py, num_qubits as u32, 0, evos, global_phase)
@@ -327,25 +335,4 @@ fn cx_fountain(
             smallvec![ctrl, first_qubit],
         )
     }))
-}
-
-fn get_barrier(py: Python, num_qubits: u32) -> Instruction {
-    let barrier_cls = imports::BARRIER.get_bound(py);
-    let barrier = barrier_cls
-        .call1((num_qubits,))
-        .expect("Could not create Barrier Python-side");
-    let barrier_inst = PyInstruction {
-        qubits: num_qubits,
-        clbits: 0,
-        params: 0,
-        op_name: "barrier".to_string(),
-        control_flow: false,
-        instruction: barrier.into(),
-    };
-    (
-        barrier_inst.into(),
-        smallvec![],
-        (0..num_qubits).map(Qubit).collect(),
-        vec![],
-    )
 }
