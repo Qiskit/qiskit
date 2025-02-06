@@ -386,25 +386,8 @@ impl CircuitData {
     ///     CircuitData: The shallow copy.
     #[pyo3(signature = (copy_instructions=true, deepcopy=false))]
     pub fn copy(&self, py: Python<'_>, copy_instructions: bool, deepcopy: bool) -> PyResult<Self> {
-        let mut res = CircuitData::py_new(
-            py,
-            Some(self.qubits.py_cached_bits(py)?.bind(py)),
-            Some(self.clbits.py_cached_bits(py)?.bind(py)),
-            None,
-            self.data.len(),
-            self.global_phase.clone(),
-        )?;
-        res.qargs_interner = self.qargs_interner.clone();
-        res.cargs_interner = self.cargs_interner.clone();
+        let mut res = self.copy_empty_like(py, Some(self.data().len()))?;
         res.param_table.clone_from(&self.param_table);
-
-        for qreg in self.py_qregs(py)?.bind(py).iter() {
-            res.py_add_qreg(&qreg)?;
-        }
-        for creg in self.py_cregs(py)?.bind(py).iter() {
-            res.py_add_creg(&creg)?;
-        }
-
         if deepcopy {
             let memo = PyDict::new(py);
             for inst in &self.data {
@@ -432,6 +415,32 @@ impl CircuitData {
             }
         } else {
             res.data.extend(self.data.iter().cloned());
+        }
+        Ok(res)
+    }
+
+    /// Performs an empty-like shallow copy.
+    /// 
+    /// Returns:
+    ///     CircuitData: The shallow copy.
+    #[pyo3(signature = (reserve = None,))]
+    pub fn copy_empty_like(&self, py: Python<'_>, reserve: Option<usize>) -> PyResult<Self> {
+        let mut res = CircuitData::py_new(
+            py,
+            Some(self.qubits.py_cached_bits(py)?.bind(py)),
+            Some(self.clbits.py_cached_bits(py)?.bind(py)),
+            None,
+            reserve.unwrap_or_default(),
+            self.global_phase.clone(),
+        )?;
+        res.qargs_interner = self.qargs_interner.clone();
+        res.cargs_interner = self.cargs_interner.clone();
+
+        for qreg in self.py_qregs(py)?.bind(py).iter() {
+            res.py_add_qreg(&qreg)?;
+        }
+        for creg in self.py_cregs(py)?.bind(py).iter() {
+            res.py_add_creg(&creg)?;
         }
         Ok(res)
     }
