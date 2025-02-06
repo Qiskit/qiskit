@@ -4,6 +4,8 @@ deprecations_circuits:
     The :mod:`qiskit.circuit.classicalfunction` and with it
     the :class:`.ClassicalFunction` and its related :func:`.classical_function`
     have been deprecated as of Qiskit 1.4 and will be removed in Qiskit 2.0.
-    This change is done to stop relying on the `tweedledum` external library.
+    This change is done to avoid a dependency on the external library `tweedledum`,
+    which is no longer compatible with all of Qiskit's supported platforms and 
+    Python versions.
     For a similar functionality please use the :class:`.BooleanExpression` which
     is going to have a `tweedledum` independent implementation..
