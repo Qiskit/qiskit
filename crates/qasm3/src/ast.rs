@@ -169,6 +169,7 @@ pub struct ClassicalDeclaration {
     pub identifier: Identifier,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct IODeclaration {
     pub modifier: IOModifier,
@@ -176,6 +177,7 @@ pub struct IODeclaration {
     pub identifier: Identifier,
 }
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub struct QuantumDeclaration {
     pub identifier: Identifier,
@@ -189,6 +191,7 @@ pub enum Designator {
     Expression(String),
 }
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub struct Delay {
     pub duration: DurationLiteral,
@@ -259,6 +262,7 @@ pub struct QuantumGateDefinition {
     pub quantum_block: QuantumBlock,
 }
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub struct QuantumGateCall {
     pub quantum_gate_name: Identifier,
@@ -346,6 +350,7 @@ pub struct BooleanLiteral {
     pub value: bool,
 }
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub struct BitstringLiteral {
     pub value: String,
