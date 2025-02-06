@@ -253,7 +253,10 @@ class TestStarPreRouting(QiskitTestCase):
         for i in range(num_qubits - 1):
             qc.measure(i, i)
         pm = generate_preset_pass_manager(
-            opt_level, basis_gates=["h", "cx", "x"], coupling_map=coupling_map
+            opt_level,
+            basis_gates=["h", "cx", "x"],
+            coupling_map=coupling_map,
+            translation_method="translator",
         )
         pm.init += StarPreRouting()
         result = pm.run(qc)
@@ -293,7 +296,10 @@ class TestStarPreRouting(QiskitTestCase):
         for i in range(num_qubits - 1):
             qc.measure(i, i)
         pm = generate_preset_pass_manager(
-            opt_level, basis_gates=["h", "cx", "x"], coupling_map=coupling_map
+            opt_level,
+            basis_gates=["h", "cx", "x"],
+            coupling_map=coupling_map,
+            translation_method="translator",
         )
         pm.init += StarPreRouting()
         result = pm.run(qc)
