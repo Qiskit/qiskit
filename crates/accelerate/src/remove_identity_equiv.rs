@@ -9,8 +9,6 @@
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
-use std::f64::consts::PI;
-
 use num_complex::Complex64;
 use num_complex::ComplexFloat;
 use pyo3::prelude::*;
@@ -34,7 +32,7 @@ fn remove_identity_equiv(
     target: Option<&Target>,
 ) {
     let mut remove_list: Vec<NodeIndex> = Vec::new();
-    let mut extra_pi_rotations = 0;
+    let mut global_phase_update: f64 = 0.;
 
     let get_error_cutoff = |inst: &PackedInstruction| -> f64 {
         match approx_degree {
@@ -78,12 +76,16 @@ fn remove_identity_equiv(
     };
 
     for (op_node, inst) in dag.op_nodes(false) {
+        if inst.is_parameterized() {
+            // Skip parameterized gates
+            continue;
+        }
         match inst.op.view() {
             OperationRef::Standard(gate) => {
                 let (dim, trace) = match gate {
                     StandardGate::RXGate | StandardGate::RYGate | StandardGate::RZGate => {
                         if let Param::Float(theta) = inst.params_view()[0] {
-                            let trace = (theta / 2.).cos() * 2.;
+                            let trace = Complex64::new((theta / 2.).cos() * 2., 0.);
                             (2., trace)
                         } else {
                             continue;
@@ -94,20 +96,16 @@ fn remove_identity_equiv(
                     | StandardGate::RZZGate
                     | StandardGate::RZXGate => {
                         if let Param::Float(theta) = inst.params_view()[0] {
-                            let trace = (theta / 2.).cos() * 4.;
+                            let trace = Complex64::new((theta / 2.).cos() * 4., 0.);
                             (4., trace)
                         } else {
                             continue;
                         }
                     }
                     _ => {
-                        // Skip global phase gate
-                        if gate.num_qubits() < 1 {
-                            continue;
-                        }
                         if let Some(matrix) = gate.matrix(inst.params_view()) {
                             let dim = matrix.shape()[0] as f64;
-                            let trace = matrix.diag().iter().sum::<Complex64>().abs();
+                            let trace = matrix.diag().iter().sum::<Complex64>();
                             (dim, trace)
                         } else {
                             continue;
@@ -115,21 +113,14 @@ fn remove_identity_equiv(
                     }
                 };
                 let error = get_error_cutoff(inst);
-                let f_pro = (trace / dim).powi(2);
+                let f_pro = (trace / dim).abs().powi(2);
                 let gate_fidelity = (dim * f_pro + 1.) / (dim + 1.);
                 if (1. - gate_fidelity).abs() < error {
                     remove_list.push(op_node);
-                    if trace < 0. {
-                        // the matrix is close to -I instead of I
-                        extra_pi_rotations += 1;
-                    }
+                    global_phase_update += (trace / dim).arg();
                 }
             }
             OperationRef::Gate(gate) => {
-                // Skip global phase like gate
-                if gate.num_qubits() < 1 {
-                    continue;
-                }
                 if let Some(matrix) = gate.matrix(inst.params_view()) {
                     let error = get_error_cutoff(inst);
                     let dim = matrix.shape()[0] as f64;
@@ -138,10 +129,7 @@ fn remove_identity_equiv(
                     let gate_fidelity = (dim * f_pro + 1.) / (dim + 1.);
                     if (1. - gate_fidelity).abs() < error {
                         remove_list.push(op_node);
-                        if trace.re < 0. {
-                            // the matrix is close to -I instead of I
-                            extra_pi_rotations += 1;
-                        }
+                        global_phase_update += (trace / dim).arg();
                     }
                 }
             }
@@ -152,8 +140,9 @@ fn remove_identity_equiv(
         dag.remove_op_node(node);
     }
 
-    if extra_pi_rotations % 2 == 1 {
-        dag.add_global_phase(py, &Param::Float(-PI)).unwrap();
+    if global_phase_update != 0. {
+        dag.add_global_phase(py, &Param::Float(global_phase_update))
+            .unwrap();
     }
 }
 
