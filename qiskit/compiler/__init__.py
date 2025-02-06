@@ -20,14 +20,12 @@ Compilation Routines (:mod:`qiskit.compiler`)
 Circuit and Pulse Compilation Functions
 =======================================
 
-.. autofunction:: assemble
 .. autofunction:: schedule
 .. autofunction:: transpile
 .. autofunction:: sequence
 
 """
 
-from .assembler import assemble
 from .transpiler import transpile
 from .scheduler import schedule
 from .sequencer import sequence

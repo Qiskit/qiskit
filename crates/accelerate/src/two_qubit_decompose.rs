@@ -46,7 +46,6 @@ use crate::euler_one_qubit_decomposer::{
     angles_from_unitary, det_one_qubit, unitary_to_gate_sequence_inner, EulerBasis, EulerBasisSet,
     OneQubitGateSequence, ANGLE_ZERO_EPSILON,
 };
-use crate::utils;
 use crate::QiskitError;
 
 use rand::prelude::*;
@@ -165,6 +164,15 @@ fn py_trace_to_fid(trace: Complex64) -> PyResult<f64> {
     Ok(fid)
 }
 
+/// Return indices that sort partially ordered data.
+/// If `data` contains two elements that are incomparable,
+/// an error will be thrown.
+fn arg_sort<T: PartialOrd>(data: &[T]) -> Vec<usize> {
+    let mut indices = (0..data.len()).collect::<Vec<_>>();
+    indices.sort_by(|&a, &b| data[a].partial_cmp(&data[b]).unwrap());
+    indices
+}
+
 fn decompose_two_qubit_product_gate(
     special_unitary: ArrayView2<Complex64>,
 ) -> PyResult<(Array2<Complex64>, Array2<Complex64>, f64)> {
@@ -252,7 +260,7 @@ fn __weyl_coordinates(unitary: MatRef<c64>) -> [f64; 3] {
         .map(|x| x.rem_euclid(PI2))
         .map(|x| x.min(PI2 - x))
         .collect();
-    let mut order = utils::arg_sort(&cstemp);
+    let mut order = arg_sort(&cstemp);
     (order[0], order[1], order[2]) = (order[1], order[2], order[0]);
     (cs[0], cs[1], cs[2]) = (cs[order[0]], cs[order[1]], cs[order[2]]);
 
@@ -663,7 +671,7 @@ impl TwoQubitWeylDecomposition {
             .map(|x| x.rem_euclid(PI2))
             .map(|x| x.min(PI2 - x))
             .collect();
-        let mut order = utils::arg_sort(&cstemp);
+        let mut order = arg_sort(&cstemp);
         (order[0], order[1], order[2]) = (order[1], order[2], order[0]);
         (cs[0], cs[1], cs[2]) = (cs[order[0]], cs[order[1]], cs[order[2]]);
         (d[0], d[1], d[2]) = (d[order[0]], d[order[1]], d[order[2]]);
@@ -2237,7 +2245,7 @@ impl TwoQubitBasisDecomposer {
                     .into_iter()
                     .map(|(gate, params, qubits)| match gate {
                         Some(gate) => Ok((
-                            PackedOperation::from_standard(gate),
+                            PackedOperation::from_standard_gate(gate),
                             params.into_iter().map(Param::Float).collect(),
                             qubits.into_iter().map(|x| Qubit(x.into())).collect(),
                             Vec::new(),
@@ -2869,7 +2877,7 @@ impl TwoQubitControlledUDecomposer {
                     .into_iter()
                     .map(|(gate, params, qubits)| match gate {
                         Some(gate) => Ok((
-                            PackedOperation::from_standard(gate),
+                            PackedOperation::from_standard_gate(gate),
                             params.into_iter().map(Param::Float).collect(),
                             qubits.into_iter().map(|x| Qubit(x.into())).collect(),
                             Vec::new(),
