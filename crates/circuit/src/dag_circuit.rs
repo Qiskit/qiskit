@@ -6902,7 +6902,6 @@ fn emit_pulse_dependency_deprecation(py: Python, msg: &str) {
 
 #[cfg(all(test, not(miri)))]
 mod test {
-    use crate::circuit_instruction::ExtraInstructionAttributes;
     use crate::dag_circuit::{DAGCircuit, Wire};
     use crate::imports::{CLASSICAL_REGISTER, QUANTUM_REGISTER};
     use crate::operations::{StandardGate, StandardInstruction};
@@ -6947,7 +6946,7 @@ mod test {
                 qubits,
                 clbits,
                 params: None,
-                label: None
+                label: None,
                 #[cfg(feature = "cache_pygates")]
                 py_op: Default::default(),
             }
