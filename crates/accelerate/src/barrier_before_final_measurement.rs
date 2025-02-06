@@ -15,8 +15,7 @@ use pyo3::prelude::*;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
-use qiskit_circuit::imports::BARRIER;
-use qiskit_circuit::operations::{Operation, PyInstruction};
+use qiskit_circuit::operations::{Operation, StandardInstruction};
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::Qubit;
 
@@ -64,45 +63,19 @@ pub fn barrier_before_final_measurements(
             res
         })
         .collect();
-    let new_barrier = BARRIER
-        .get_bound(py)
-        .call1((dag.num_qubits(), label.as_deref()))?;
-
-    let new_barrier_py_inst = PyInstruction {
-        qubits: dag.num_qubits() as u32,
-        clbits: 0,
-        params: 0,
-        op_name: "barrier".to_string(),
-        control_flow: false,
-        #[cfg(feature = "cache_pygates")]
-        instruction: new_barrier.clone().unbind(),
-        #[cfg(not(feature = "cache_pygates"))]
-        instruction: new_barrier.unbind(),
-    };
     let qargs: Vec<Qubit> = (0..dag.num_qubits() as u32).map(Qubit).collect();
-    #[cfg(feature = "cache_pygates")]
-    {
-        dag.apply_operation_back(
-            py,
-            PackedOperation::from_instruction(Box::new(new_barrier_py_inst)),
-            qargs.as_slice(),
-            &[],
-            None,
-            label,
-            Some(new_barrier.unbind()),
-        )?;
-    }
-    #[cfg(not(feature = "cache_pygates"))]
-    {
-        dag.apply_operation_back(
-            py,
-            PackedOperation::from_instruction(Box::new(new_barrier_py_inst)),
-            qargs.as_slice(),
-            &[],
-            None,
-            label,
-        )?;
-    }
+    dag.apply_operation_back(
+        py,
+        PackedOperation::from_standard_instruction(StandardInstruction::Barrier(
+            dag.num_qubits() as u32
+        )),
+        qargs.as_slice(),
+        &[],
+        None,
+        label,
+        #[cfg(feature = "cache_pygates")]
+        None,
+    )?;
     for inst in final_packed_ops {
         dag.push_back(py, inst)?;
     }

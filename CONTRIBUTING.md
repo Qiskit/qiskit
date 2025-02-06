@@ -619,25 +619,13 @@ Then, run the following commands:
 
 ```bash
 python setup.py build_rust --inplace
-PYTHONUSERBASE="$VIRTUAL_ENV" cargo test --no-default-features
+tools/run_cargo_test.py
 ```
-
-> [!IMPORTANT]
-> On Linux, you may need to first set your `LD_LIBRARY_PATH` env var to include the
-> path to your Python installation's shared lib, e.g.:
-> ```bash
-> export LD_LIBRARY_PATH="$(python -c 'import sysconfig; print(sysconfig.get_config_var("LIBDIR"))'):$LD_LIBRARY_PATH"
-> ```
 
 The first command builds Qiskit in editable mode,
 which ensures that Rust tests that interact with Qiskit's Python code actually
-use the latest Python code from your working directory.
-
-The second command actually invokes the tests via Cargo. The `PYTHONUSERBASE`
-environment variable tells the embedded Python interpreter to look for packages
-in your active virtual environment. The `--no-default-features`
-flag is used to compile an isolated test runner without building a linked CPython
-extension module (which would otherwise cause linker failures).
+use the latest Python code from your working directory. The second command invokes
+the tests via Cargo.
 
 #### Calling Python from Rust tests
 By default, our Cargo project configuration allows Rust tests to interact with the

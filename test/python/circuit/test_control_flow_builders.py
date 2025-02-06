@@ -3027,6 +3027,73 @@ class TestControlFlowBuilders(QiskitTestCase):
         ]
         self.assertEqual(expected, actual)
 
+    def test_noop_in_base_scope(self):
+        base = QuantumCircuit(3)
+        # Just to check no modifications.
+        initial_qubits = list(base.qubits)
+        # No-op on a qubit that's already a no-op.
+        base.noop(0)
+        base.cx(0, 1)
+        # No-op on a qubit that's got a defined operation.
+        base.noop(base.qubits[1])
+        # A collection of allowed inputs, where duplicates should be silently ignored.
+        base.noop(base.qubits, {2}, (1, 0))
+
+        expected = QuantumCircuit(3)
+        expected.cx(0, 1)
+
+        self.assertEqual(initial_qubits, base.qubits)
+        # There should be no impact on the circuit from the no-ops.
+        self.assertEqual(base, expected)
+
+    def test_noop_in_scope(self):
+        qc = QuantumCircuit([Qubit(), Qubit(), Qubit()], [Clbit()])
+        # Instruction 0.
+        with qc.if_test(expr.lift(True)):
+            qc.noop(0)
+        # Instruction 1.
+        with qc.while_loop(expr.lift(False)):
+            qc.cx(0, 1)
+            qc.noop(qc.qubits[1])
+        # Instruction 2.
+        with qc.for_loop(range(3)):
+            qc.noop({0}, [1, 0])
+            qc.x(0)
+        # Instruction 3.
+        with qc.switch(expr.lift(3, types.Uint(8))) as case:
+            with case(0):
+                qc.noop(0)
+            with case(1):
+                qc.noop(1)
+        # Instruction 4.
+        with qc.if_test(expr.lift(True)) as else_:
+            pass
+        with else_:
+            with qc.if_test(expr.lift(True)):
+                qc.noop(2)
+
+        expected = QuantumCircuit(qc.qubits, qc.clbits)
+        body_0 = QuantumCircuit([qc.qubits[0]])
+        expected.if_test(expr.lift(True), body_0, body_0.qubits, [])
+        body_1 = QuantumCircuit([qc.qubits[0], qc.qubits[1]])
+        body_1.cx(0, 1)
+        expected.while_loop(expr.lift(False), body_1, body_1.qubits, [])
+        body_2 = QuantumCircuit([qc.qubits[0], qc.qubits[1]])
+        body_2.x(0)
+        expected.for_loop(range(3), None, body_2, body_2.qubits, [])
+        body_3_0 = QuantumCircuit([qc.qubits[0], qc.qubits[1]])
+        body_3_1 = QuantumCircuit([qc.qubits[0], qc.qubits[1]])
+        expected.switch(
+            expr.lift(3, types.Uint(8)), [(0, body_3_0), (1, body_3_1)], body_3_0.qubits, []
+        )
+        body_4_true = QuantumCircuit([qc.qubits[2]])
+        body_4_false = QuantumCircuit([qc.qubits[2]])
+        body_4_false_0 = QuantumCircuit([qc.qubits[2]])
+        body_4_false.if_test(expr.lift(True), body_4_false_0, body_4_false_0.qubits, [])
+        expected.if_else(expr.lift(True), body_4_true, body_4_false, body_4_true.qubits, [])
+
+        self.assertEqual(qc, expected)
+
 
 @ddt.ddt
 class TestControlFlowBuildersFailurePaths(QiskitTestCase):
@@ -3559,3 +3626,17 @@ class TestControlFlowBuildersFailurePaths(QiskitTestCase):
         with base.for_loop(range(3)):
             with self.assertRaisesRegex(CircuitError, "cannot add an uninitialized variable"):
                 base.add_uninitialized_var(expr.Var.new("a", types.Bool()))
+
+    def test_cannot_noop_unknown_qubit(self):
+        base = QuantumCircuit(2)
+        # Base scope.
+        with self.assertRaises(CircuitError):
+            base.noop(3)
+        with self.assertRaises(CircuitError):
+            base.noop(Clbit())
+        # Control-flow scope.
+        with base.if_test(expr.lift(True)):
+            with self.assertRaises(CircuitError):
+                base.noop(3)
+            with self.assertRaises(CircuitError):
+                base.noop(Clbit())

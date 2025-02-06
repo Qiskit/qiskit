@@ -38,7 +38,6 @@ class TestBasicSimulator(QiskitTestCase, BasicProviderBackendTestMixin):
         self.circuit = bell
 
         self.seed = 88
-        self.backend = BasicSimulator()
         qasm_dir = os.path.join(
             os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "qasm"
         )
@@ -214,6 +213,80 @@ class TestBasicSimulator(QiskitTestCase, BasicProviderBackendTestMixin):
             result = job.result()
             counts = result.get_counts(0)
             self.assertEqual(counts, target_counts)
+
+    def test_options(self):
+        """Test setting custom backend options during init and run."""
+        init_statevector = np.zeros(2**2, dtype=complex)
+        init_statevector[2] = 1
+        in_options = {
+            "initial_statevector": init_statevector,
+            "seed_simulator": 42,
+            "shots": 100,
+            "memory": True,
+        }
+        backend = BasicSimulator()
+        backend_with_options = BasicSimulator(
+            initial_statevector=in_options["initial_statevector"],
+            seed_simulator=in_options["seed_simulator"],
+            shots=in_options["shots"],
+            memory=in_options["memory"],
+        )
+        bell = QuantumCircuit(2, 2)
+        bell.h(0)
+        bell.cx(0, 1)
+        bell.measure([0, 1], [0, 1])
+
+        with self.subTest(msg="Test init options"):
+            out_options = backend_with_options.options
+            for key in out_options:
+                if key != "initial_statevector":
+                    self.assertEqual(getattr(out_options, key), in_options.get(key))
+                else:
+                    np.testing.assert_array_equal(getattr(out_options, key), in_options.get(key))
+
+        with self.subTest(msg="Test run options"):
+            out_1 = backend_with_options.run(bell).result().get_counts()
+            out_2 = (
+                backend.run(
+                    bell,
+                    initial_statevector=in_options["initial_statevector"],
+                    seed_simulator=in_options["seed_simulator"],
+                    shots=in_options["shots"],
+                    memory=in_options["memory"],
+                )
+                .result()
+                .get_counts()
+            )
+            self.assertEqual(out_1, out_2)
+
+        with self.subTest(msg="Test run options don't overwrite init"):
+            init_statevector = np.zeros(2**2, dtype=complex)
+            init_statevector[3] = 1
+            other_options = {
+                "initial_statevector": init_statevector,
+                "seed_simulator": 0,
+                "shots": 1000,
+                "memory": True,
+            }
+            out_1 = backend_with_options.run(bell).result().get_counts()
+            out_2 = (
+                backend_with_options.run(
+                    bell,
+                    initial_statevector=other_options["initial_statevector"],
+                    seed_simulator=other_options["seed_simulator"],
+                    shots=other_options["shots"],
+                    memory=other_options["memory"],
+                )
+                .result()
+                .get_counts()
+            )
+            self.assertNotEqual(out_1, out_2)
+            out_options = backend_with_options.options
+            for key in out_options:
+                if key != "initial_statevector":
+                    self.assertEqual(getattr(out_options, key), in_options.get(key))
+                else:
+                    np.testing.assert_array_equal(getattr(out_options, key), in_options.get(key))
 
 
 if __name__ == "__main__":

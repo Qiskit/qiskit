@@ -774,12 +774,16 @@ impl Target {
             };
             let out_inst = match inst {
                 TargetOperation::Normal(op) => match op.operation.view() {
-                    OperationRef::Standard(standard) => standard
+                    OperationRef::StandardGate(standard) => standard
+                        .create_py_op(py, Some(&op.params), None)?
+                        .into_any(),
+                    OperationRef::StandardInstruction(standard) => standard
                         .create_py_op(py, Some(&op.params), None)?
                         .into_any(),
                     OperationRef::Gate(gate) => gate.gate.clone_ref(py),
                     OperationRef::Instruction(instruction) => instruction.instruction.clone_ref(py),
                     OperationRef::Operation(operation) => operation.operation.clone_ref(py),
+                    OperationRef::Unitary(unitary) => unitary.create_py_op(py, None)?.into_any(),
                 },
                 TargetOperation::Variadic(op_cls) => op_cls.clone_ref(py),
             };

@@ -13,6 +13,7 @@
 use std::hash::Hash;
 
 use ahash::RandomState;
+use approx::relative_eq;
 use smallvec::SmallVec;
 
 use crate::bit_data::BitData;
@@ -23,8 +24,8 @@ use crate::dag_node::{DAGInNode, DAGNode, DAGOpNode, DAGOutNode};
 use crate::dot_utils::build_dot;
 use crate::error::DAGCircuitError;
 use crate::imports;
-use crate::interner::{Interned, Interner};
-use crate::operations::{Operation, OperationRef, Param, PyInstruction, StandardGate};
+use crate::interner::{Interned, InternedMap, Interner};
+use crate::operations::{ArrayType, Operation, OperationRef, Param, PyInstruction, StandardGate};
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::rustworkx_core_vnext::isomorphism;
 use crate::{BitType, Clbit, Qubit, TupleLikeArg};
@@ -2557,7 +2558,8 @@ def _format(operand):
                         true
                     };
                     match [inst1.op.view(), inst2.op.view()] {
-                        [OperationRef::Standard(_op1), OperationRef::Standard(_op2)] => {
+                        [OperationRef::StandardGate(_), OperationRef::StandardGate(_)]
+                        | [OperationRef::StandardInstruction(_), OperationRef::StandardInstruction(_)] => {
                             Ok(inst1.py_op_eq(py, inst2)?
                                 && check_args()
                                 && inst1
@@ -2599,14 +2601,69 @@ def _format(operand):
                         [OperationRef::Operation(_op1), OperationRef::Operation(_op2)] => {
                             Ok(inst1.py_op_eq(py, inst2)? && check_args())
                         }
-                        // Handle the case we end up with a pygate for a standardgate
-                        // this typically only happens if it's a ControlledGate in python
+                        // Handle the edge case where we end up with a Python object and a standard
+                        // gate/instruction.
+                        // This typically only happens if we have a ControlledGate in Python
                         // and we have mutable state set.
-                        [OperationRef::Standard(_op1), OperationRef::Gate(_op2)] => {
+                        [OperationRef::StandardGate(_), OperationRef::Gate(_)]
+                        | [OperationRef::Gate(_), OperationRef::StandardGate(_)]
+                        | [OperationRef::StandardInstruction(_), OperationRef::Instruction(_)]
+                        | [OperationRef::Instruction(_), OperationRef::StandardInstruction(_)] => {
                             Ok(inst1.py_op_eq(py, inst2)? && check_args())
                         }
-                        [OperationRef::Gate(_op1), OperationRef::Standard(_op2)] => {
-                            Ok(inst1.py_op_eq(py, inst2)? && check_args())
+                        [OperationRef::Unitary(op_a), OperationRef::Unitary(op_b)] => {
+                            match [&op_a.array, &op_b.array] {
+                                [ArrayType::NDArray(a), ArrayType::NDArray(b)] => {
+                                    Ok(relative_eq!(a, b, max_relative = 1e-5, epsilon = 1e-8))
+                                }
+                                [ArrayType::OneQ(a), ArrayType::NDArray(b)]
+                                | [ArrayType::NDArray(b), ArrayType::OneQ(a)] => {
+                                    if b.shape()[0] == 2 {
+                                        for i in 0..2 {
+                                            for j in 0..2 {
+                                                if !relative_eq!(
+                                                    b[[i, j]],
+                                                    a[(i, j)],
+                                                    max_relative = 1e-5,
+                                                    epsilon = 1e-8
+                                                ) {
+                                                    return Ok(false);
+                                                }
+                                            }
+                                        }
+                                        Ok(true)
+                                    } else {
+                                        Ok(false)
+                                    }
+                                }
+                                [ArrayType::TwoQ(a), ArrayType::NDArray(b)]
+                                | [ArrayType::NDArray(b), ArrayType::TwoQ(a)] => {
+                                    if b.shape()[0] == 4 {
+                                        for i in 0..4 {
+                                            for j in 0..4 {
+                                                if !relative_eq!(
+                                                    b[[i, j]],
+                                                    a[(i, j)],
+                                                    max_relative = 1e-5,
+                                                    epsilon = 1e-8
+                                                ) {
+                                                    return Ok(false);
+                                                }
+                                            }
+                                        }
+                                        Ok(true)
+                                    } else {
+                                        Ok(false)
+                                    }
+                                }
+                                [ArrayType::OneQ(a), ArrayType::OneQ(b)] => {
+                                    Ok(relative_eq!(a, b, max_relative = 1e-5, epsilon = 1e-8))
+                                }
+                                [ArrayType::TwoQ(a), ArrayType::TwoQ(b)] => {
+                                    Ok(relative_eq!(a, b, max_relative = 1e-5, epsilon = 1e-8))
+                                }
+                                _ => Ok(false),
+                            }
                         }
                         _ => Ok(false),
                     }
@@ -3563,7 +3620,7 @@ def _format(operand):
             .node_references()
             .filter_map(|(node, weight)| match weight {
                 NodeType::Operation(ref packed) => match packed.op.view() {
-                    OperationRef::Gate(_) | OperationRef::Standard(_) => {
+                    OperationRef::Gate(_) | OperationRef::StandardGate(_) => {
                         Some(self.unpack_into(py, node, weight))
                     }
                     _ => None,
@@ -4632,6 +4689,76 @@ impl DAGCircuit {
         &self.vars
     }
 
+    /// Merge the `qargs` in a different [Interner] into this DAG, remapping the qubits.
+    ///
+    /// This is useful for simplifying the direct mapping of [PackedInstruction]s from one DAG to
+    /// another, like in substitution methods, or rebuilding a new DAG out of a lot of smaller ones.
+    /// See [Interner::merge_map_slice] for more information on the mapping function.
+    ///
+    /// The input [InternedMap] is cleared of its previous entries by this method, and then we
+    /// re-use the allocation.
+    pub fn merge_qargs_using(
+        &mut self,
+        other: &Interner<[Qubit]>,
+        map_fn: impl FnMut(&Qubit) -> Option<Qubit>,
+        map: &mut InternedMap<[Qubit]>,
+    ) {
+        // 4 is an arbitrary guess for the amount of stack space to allocate for mapping the
+        // `qargs`, but it doesn't matter if it's too short because it'll safely spill to the heap.
+        self.qargs_interner
+            .merge_map_slice_using::<4>(other, map_fn, map);
+    }
+
+    /// Merge the `qargs` in a different [Interner] into this DAG, remapping the qubits.
+    ///
+    /// This is useful for simplifying the direct mapping of [PackedInstruction]s from one DAG to
+    /// another, like in substitution methods, or rebuilding a new DAG out of a lot of smaller ones.
+    /// See [Interner::merge_map_slice] for more information on the mapping function.
+    pub fn merge_qargs(
+        &mut self,
+        other: &Interner<[Qubit]>,
+        map_fn: impl FnMut(&Qubit) -> Option<Qubit>,
+    ) -> InternedMap<[Qubit]> {
+        let mut out = InternedMap::new();
+        self.merge_qargs_using(other, map_fn, &mut out);
+        out
+    }
+
+    /// Merge the `cargs` in a different [Interner] into this DAG, remapping the clbits.
+    ///
+    /// This is useful for simplifying the direct mapping of [PackedInstruction]s from one DAG to
+    /// another, like in substitution methods, or rebuilding a new DAG out of a lot of smaller ones.
+    /// See [Interner::merge_map_slice] for more information on the mapping function.
+    ///
+    /// The input [InternedMap] is cleared of its previous entries by this method, and then we
+    /// re-use the allocation.
+    pub fn merge_cargs_using(
+        &mut self,
+        other: &Interner<[Clbit]>,
+        map_fn: impl FnMut(&Clbit) -> Option<Clbit>,
+        map: &mut InternedMap<[Clbit]>,
+    ) {
+        // 4 is an arbitrary guess for the amount of stack space to allocate for mapping the
+        // `cargs`, but it doesn't matter if it's too short because it'll safely spill to the heap.
+        self.cargs_interner
+            .merge_map_slice_using::<4>(other, map_fn, map);
+    }
+
+    /// Merge the `cargs` in a different [Interner] into this DAG, remapping the clbits.
+    ///
+    /// This is useful for simplifying the direct mapping of [PackedInstruction]s from one DAG to
+    /// another, like in substitution methods, or rebuilding a new DAG out of a lot of smaller ones.
+    /// See [Interner::merge_map_slice] for more information on the mapping function.
+    pub fn merge_cargs(
+        &mut self,
+        other: &Interner<[Clbit]>,
+        map_fn: impl FnMut(&Clbit) -> Option<Clbit>,
+    ) -> InternedMap<[Clbit]> {
+        let mut out = InternedMap::new();
+        self.merge_cargs_using(other, map_fn, &mut out);
+        out
+    }
+
     /// Return an iterator of gate runs with non-conditional op nodes of given names
     pub fn collect_runs(
         &self,
@@ -4674,12 +4801,13 @@ impl DAGCircuit {
             let node = &self.dag[node_index];
             match node {
                 NodeType::Operation(inst) => match inst.op.view() {
-                    OperationRef::Standard(gate) => {
+                    OperationRef::StandardGate(gate) => {
                         Ok(Some(gate.num_qubits() <= 2 && !inst.is_parameterized()))
                     }
                     OperationRef::Gate(gate) => {
                         Ok(Some(gate.num_qubits() <= 2 && !inst.is_parameterized()))
                     }
+                    OperationRef::Unitary(gate) => Ok(Some(gate.num_qubits() <= 2)),
                     _ => Ok(Some(false)),
                 },
                 _ => Ok(None),
@@ -6051,7 +6179,9 @@ impl DAGCircuit {
             };
             #[cfg(feature = "cache_pygates")]
             let py_op = match new_op.operation.view() {
-                OperationRef::Standard(_) => OnceLock::new(),
+                OperationRef::StandardGate(_)
+                | OperationRef::StandardInstruction(_)
+                | OperationRef::Unitary(_) => OnceLock::new(),
                 OperationRef::Gate(gate) => OnceLock::from(gate.gate.clone_ref(py)),
                 OperationRef::Instruction(instruction) => {
                     OnceLock::from(instruction.instruction.clone_ref(py))
@@ -6192,10 +6322,24 @@ impl DAGCircuit {
         &self.op_names
     }
 
-    /// Extends the DAG with valid instances of [PackedInstruction]
+    /// Extends the DAG with valid instances of [PackedInstruction].
     pub fn extend<I>(&mut self, py: Python, iter: I) -> PyResult<Vec<NodeIndex>>
     where
         I: IntoIterator<Item = PackedInstruction>,
+    {
+        self.try_extend(
+            py,
+            iter.into_iter()
+                .map(|inst| -> Result<PackedInstruction, Infallible> { Ok(inst) }),
+        )
+    }
+
+    /// Extends the DAG with valid instances of [PackedInstruction], where the iterator produces the
+    /// results in a fallible manner.
+    pub fn try_extend<I, E>(&mut self, py: Python, iter: I) -> PyResult<Vec<NodeIndex>>
+    where
+        I: IntoIterator<Item = Result<PackedInstruction, E>>,
+        PyErr: From<E>,
     {
         // Create HashSets to keep track of each bit/var's last node
         let mut qubit_last_nodes: HashMap<Qubit, NodeIndex> = HashMap::default();
@@ -6209,6 +6353,7 @@ impl DAGCircuit {
         // Store new nodes to return
         let mut new_nodes = Vec::with_capacity(iter.size_hint().1.unwrap_or_default());
         for instr in iter {
+            let instr = instr?;
             let op_name = instr.op.name();
             let (all_cbits, vars): (Vec<Clbit>, Option<Vec<PyObject>>) = {
                 if self.may_have_additional_wires(py, &instr) {
@@ -6380,8 +6525,8 @@ impl DAGCircuit {
 
         new_dag.metadata = qc.metadata.map(|meta| meta.unbind());
 
-        // Add the qubits depending on order.
-        let qubit_map: Option<Vec<Qubit>> = if let Some(qubit_ordering) = qubit_order {
+        // Add the qubits depending on order, and produce the qargs map.
+        let qarg_map = if let Some(qubit_ordering) = qubit_order {
             let mut ordered_vec = Vec::from_iter((0..num_qubits as u32).map(Qubit));
             qubit_ordering
                 .into_iter()
@@ -6396,7 +6541,11 @@ impl DAGCircuit {
                     ordered_vec[qubit_index.index()] = new_dag.add_qubit_unchecked(py, &qubit)?;
                     Ok(())
                 })?;
-            Some(ordered_vec)
+            // The `Vec::get` use is because an arbitrary interner might contain old references to
+            // bit instances beyond `num_qubits`, such as if it's from a DAG that had wires removed.
+            new_dag.merge_qargs(qc_data.qargs_interner(), |bit| {
+                ordered_vec.get(bit.index()).copied()
+            })
         } else {
             qc_data
                 .qubits()
@@ -6406,11 +6555,11 @@ impl DAGCircuit {
                     new_dag.add_qubit_unchecked(py, qubit.bind(py))?;
                     Ok(())
                 })?;
-            None
+            new_dag.merge_qargs(qc_data.qargs_interner(), |bit| Some(*bit))
         };
 
-        // Add the clbits depending on order.
-        let clbit_map: Option<Vec<Clbit>> = if let Some(clbit_ordering) = clbit_order {
+        // Add the clbits depending on order, and produce the cargs map.
+        let carg_map = if let Some(clbit_ordering) = clbit_order {
             let mut ordered_vec = Vec::from_iter((0..num_clbits as u32).map(Clbit));
             clbit_ordering
                 .into_iter()
@@ -6425,7 +6574,11 @@ impl DAGCircuit {
                     ordered_vec[clbit_index.index()] = new_dag.add_clbit_unchecked(py, &clbit)?;
                     Ok(())
                 })?;
-            Some(ordered_vec)
+            // The `Vec::get` use is because an arbitrary interner might contain old references to
+            // bit instances beyond `num_clbits`, such as if it's from a DAG that had wires removed.
+            new_dag.merge_cargs(qc_data.cargs_interner(), |bit| {
+                ordered_vec.get(bit.index()).copied()
+            })
         } else {
             qc_data
                 .clbits()
@@ -6435,7 +6588,7 @@ impl DAGCircuit {
                     new_dag.add_clbit_unchecked(py, clbit.bind(py))?;
                     Ok(())
                 })?;
-            None
+            new_dag.merge_cargs(qc_data.cargs_interner(), |bit| Some(*bit))
         };
 
         // Add all of the new vars.
@@ -6464,57 +6617,24 @@ impl DAGCircuit {
             }
         }
 
-        // Pre-process and re-intern all indices again.
-        let instructions: Vec<PackedInstruction> = qc_data
-            .iter()
-            .map(|instr| -> PyResult<PackedInstruction> {
-                // Re-map the qubits
-                let new_qargs = if let Some(qubit_mapping) = &qubit_map {
-                    let qargs = qc_data
-                        .get_qargs(instr.qubits)
-                        .iter()
-                        .map(|bit| qubit_mapping[bit.index()])
-                        .collect();
-                    new_dag.qargs_interner.insert_owned(qargs)
-                } else {
-                    new_dag
-                        .qargs_interner
-                        .insert(qc_data.get_qargs(instr.qubits))
-                };
-                // Remap the clbits
-                let new_cargs = if let Some(clbit_mapping) = &clbit_map {
-                    let qargs = qc_data
-                        .get_cargs(instr.clbits)
-                        .iter()
-                        .map(|bit| clbit_mapping[bit.index()])
-                        .collect();
-                    new_dag.cargs_interner.insert_owned(qargs)
-                } else {
-                    new_dag
-                        .cargs_interner
-                        .insert(qc_data.get_cargs(instr.clbits))
-                };
-                // Copy the operations
-
+        new_dag.try_extend(
+            py,
+            qc_data.iter().map(|instr| -> PyResult<PackedInstruction> {
                 Ok(PackedInstruction {
                     op: if copy_op {
                         instr.op.py_deepcopy(py, None)?
                     } else {
                         instr.op.clone()
                     },
-                    qubits: new_qargs,
-                    clbits: new_cargs,
+                    qubits: qarg_map[instr.qubits],
+                    clbits: carg_map[instr.clbits],
                     params: instr.params.clone(),
                     label: instr.label.clone(),
                     #[cfg(feature = "cache_pygates")]
                     py_op: OnceLock::new(),
                 })
-            })
-            .collect::<PyResult<Vec<_>>>()?;
-
-        // Finally add all the instructions back
-        new_dag.extend(py, instructions)?;
-
+            }),
+        )?;
         Ok(new_dag)
     }
 
@@ -6782,10 +6902,10 @@ fn emit_pulse_dependency_deprecation(py: Python, msg: &str) {
 
 #[cfg(all(test, not(miri)))]
 mod test {
-    use crate::circuit_instruction::OperationFromPython;
+    use crate::circuit_instruction::ExtraInstructionAttributes;
     use crate::dag_circuit::{DAGCircuit, Wire};
-    use crate::imports::{CLASSICAL_REGISTER, MEASURE, QUANTUM_REGISTER};
-    use crate::operations::StandardGate;
+    use crate::imports::{CLASSICAL_REGISTER, QUANTUM_REGISTER};
+    use crate::operations::{StandardGate, StandardInstruction};
     use crate::packed_instruction::{PackedInstruction, PackedOperation};
     use crate::{Clbit, Qubit};
     use ahash::HashSet;
@@ -6805,7 +6925,7 @@ mod test {
     macro_rules! cx_gate {
         ($dag:expr, $q0:expr, $q1:expr) => {
             PackedInstruction {
-                op: PackedOperation::from_standard(StandardGate::CXGate),
+                op: PackedOperation::from_standard_gate(StandardGate::CXGate),
                 qubits: $dag
                     .qargs_interner
                     .insert_owned(vec![Qubit($q0), Qubit($q1)]),
@@ -6820,21 +6940,17 @@ mod test {
 
     macro_rules! measure {
         ($dag:expr, $qarg:expr, $carg:expr) => {{
-            Python::with_gil(|py| {
-                let py_op = MEASURE.get_bound(py).call0().unwrap();
-                let op_from_py: OperationFromPython = py_op.extract().unwrap();
-                let qubits = $dag.qargs_interner.insert_owned(vec![Qubit($qarg)]);
-                let clbits = $dag.cargs_interner.insert_owned(vec![Clbit($qarg)]);
-                PackedInstruction {
-                    op: op_from_py.operation,
-                    qubits,
-                    clbits,
-                    params: Some(Box::new(op_from_py.params)),
-                    label: None,
-                    #[cfg(feature = "cache_pygates")]
-                    py_op: Default::default(),
-                }
-            })
+            let qubits = $dag.qargs_interner.insert_owned(vec![Qubit($qarg)]);
+            let clbits = $dag.cargs_interner.insert_owned(vec![Clbit($qarg)]);
+            PackedInstruction {
+                op: PackedOperation::from_standard_instruction(StandardInstruction::Measure),
+                qubits,
+                clbits,
+                params: None,
+                label: None
+                #[cfg(feature = "cache_pygates")]
+                py_op: Default::default(),
+            }
         }};
     }
 

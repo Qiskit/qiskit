@@ -166,6 +166,13 @@ class CircuitScopeInterface(abc.ABC):
             the variable if it is found, otherwise ``None``.
         """
 
+    @abc.abstractmethod
+    def use_qubit(self, qubit: Qubit):
+        """Called to mark that a :class:`~.circuit.Qubit` should be considered "used" by this scope,
+        without appending an explicit instruction.
+
+        The subclass may assume that the ``qubit`` is valid for the root scope."""
+
 
 class InstructionResources(typing.NamedTuple):
     """The quantum and classical resources used within a particular instruction.
@@ -291,9 +298,6 @@ class InstructionPlaceholder(Instruction, abc.ABC):
 
     # Provide some better error messages, just in case something goes wrong during development and
     # the placeholder type leaks out to somewhere visible.
-
-    def assemble(self):
-        raise CircuitError("Cannot assemble a placeholder instruction.")
 
     def repeat(self, n):
         raise CircuitError("Cannot repeat a placeholder instruction.")
@@ -498,6 +502,9 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
             raise CircuitError(f"cannot close over '{var}', which is not in scope")
         self._parent.use_var(var)
         self._vars_capture[var.name] = var
+
+    def use_qubit(self, qubit: Qubit):
+        self._instructions.add_qubit(qubit, strict=False)
 
     def iter_local_vars(self):
         """Iterator over the variables currently declared in this scope."""
