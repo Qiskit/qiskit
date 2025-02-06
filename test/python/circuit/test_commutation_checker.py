@@ -75,8 +75,6 @@ ROTATION_GATES = [
     CPhaseGate,
 ]
 
-CONTROLLED_ROTATION_GATES = [CRXGate, CRYGate, CRZGate, CPhaseGate]
-
 
 class NewGateCX(Gate):
     """A dummy class containing an cx gate unknown to the commutation checker's library."""
@@ -415,7 +413,7 @@ class TestCommutationChecker(QiskitTestCase):
         cc2.commute_nodes(dop1, dop2)
         self.assertEqual(cc2.num_cached_entries(), 1)
 
-    @idata(ROTATION_GATES + CONTROLLED_ROTATION_GATES)
+    @idata(ROTATION_GATES)
     def test_cutoff_angles(self, gate_cls):
         """Check rotations with a small enough angle are cut off."""
         max_power = 30
@@ -423,22 +421,25 @@ class TestCommutationChecker(QiskitTestCase):
 
         generic_gate = DCXGate()  # gate that does not commute with any rotation gate
 
-        # TODO this is no longer a cutoff but defined by the gate fidelity
-        cutoff_angle = 1e-5  # this is the cutoff we use in the CommutationChecker
+        # the cutoff angle depends on the average gate fidelity; i.e. it is the angle
+        # for which the average gate fidelity is smaller than machine epsilon
+        if gate_cls in [CPhaseGate, CRXGate, CRYGate, CRZGate]:
+            cutoff_angle = 4.71e-8
+        else:
+            cutoff_angle = 3.65e-8
 
         for i in range(1, max_power + 1):
             angle = 2 ** (-i)
             gate = gate_cls(angle)
             qargs = list(range(gate.num_qubits))
-            print(f"{angle:.2e}", scc.commute(generic_gate, [0, 1], [], gate, qargs, []))
-            # if angle < cutoff_angle:
-            #     self.assertTrue(scc.commute(generic_gate, [0, 1], [], gate, qargs, []))
-            # else:
-            #     self.assertFalse(scc.commute(generic_gate, [0, 1], [], gate, qargs, []))
+            if angle < cutoff_angle:
+                self.assertTrue(scc.commute(generic_gate, [0, 1], [], gate, qargs, []))
+            else:
+                self.assertFalse(scc.commute(generic_gate, [0, 1], [], gate, qargs, []))
 
     @idata(ROTATION_GATES)
-    def test_controlled_rotation_mod_4pi(self, gate_cls):
-        """Test the rotations modulo 2pi (4pi for controlled-rx/y/z) commute with any gate."""
+    def test_rotations_pi_multiples(self, gate_cls):
+        """Test the rotations modulo 2pi (crx/cry/crz modulo 4pi) commute with any gate."""
         generic_gate = HGate()  # does not commute with any rotation gate
         multiples = np.arange(-6, 7)
 
@@ -450,30 +451,17 @@ class TestCommutationChecker(QiskitTestCase):
                 # compute a numeric reference, that doesn't go through any special cases and
                 # uses a matrix-based commutation check
                 expected = scc.commute(
-                    generic_gate, [0], [], numeric, list(range(gate.num_qubits)), []
+                    generic_gate,
+                    [0],
+                    [],
+                    numeric,
+                    list(range(gate.num_qubits)),
+                    [],
+                    approximation_degree=1 - 1e-5,
                 )
 
                 result = scc.commute(generic_gate, [0], [], gate, list(range(gate.num_qubits)), [])
                 self.assertEqual(expected, result)
-
-    @idata(CONTROLLED_ROTATION_GATES)
-    def test_controlled_rotation_mod_4pi(self, gate_cls):
-        """Test the controlled rotations modulo 4pi commute with any gate.
-
-        For 2pi, the single-qubit rotations are the identity only up to a global phase,
-        which has a measurable effect if controlled.
-        """
-        generic_gate = HGate()  # does not commute with any rotation gate
-        multiples = np.arange(-6, 7)
-
-        for multiple in multiples:
-            with self.subTest(multiple=multiple):
-                gate = gate_cls(multiple * np.pi)
-                comm = scc.commute(generic_gate, [0], [], gate, list(range(gate.num_qubits)), [])
-                if multiple % 4 == 0:
-                    self.assertTrue(comm)
-                else:
-                    self.assertFalse(comm)
 
     def test_custom_gate(self):
         """Test a custom gate."""

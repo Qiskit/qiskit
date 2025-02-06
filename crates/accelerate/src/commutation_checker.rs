@@ -629,7 +629,8 @@ fn rotation_fidelity(rotation: &str, angle: f64) -> Option<f64> {
 
     let gate_fid = match rotation {
         "rx" | "ry" | "rz" | "p" | "rxx" | "ryy" | "rzx" | "rzz" => (angle / 2.).cos().powi(2),
-        "crx" | "cry" | "crz" | "cp" => (0.5 + 0.5 * (angle / 2.).cos()).powi(2),
+        "crx" | "cry" | "crz" => (0.5 + 0.5 * (angle / 2.).cos()).powi(2),
+        "cp" => (10. + 6. * angle.cos()) / 16.,
         _ => return None,
     };
     Some((dim * gate_fid + 1.) / (dim + 1.))
