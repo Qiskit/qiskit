@@ -81,7 +81,7 @@ fn remove_identity_equiv(
             continue;
         }
         match inst.op.view() {
-            OperationRef::Standard(gate) => {
+            OperationRef::StandardGate(gate) => {
                 let (dim, trace) = match gate {
                     StandardGate::RXGate | StandardGate::RYGate | StandardGate::RZGate => {
                         if let Param::Float(theta) = inst.params_view()[0] {
