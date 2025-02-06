@@ -34,7 +34,6 @@ The circuit itself keeps this context.
 from __future__ import annotations
 
 import copy
-import warnings
 from itertools import zip_longest
 import math
 from typing import Type
@@ -46,7 +45,6 @@ from qiskit.circuit.parameter import ParameterExpression
 from qiskit.circuit.operation import Operation
 
 from qiskit.circuit.annotated_operation import AnnotatedOperation, InverseModifier
-from qiskit.utils import deprecate_func
 
 _CUTOFF_PRECISION = 1e-10
 

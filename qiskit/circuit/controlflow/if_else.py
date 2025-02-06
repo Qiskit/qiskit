@@ -95,6 +95,7 @@ class IfElseOp(ControlFlowOp):
 
     @property
     def condition(self):
+        """The condition for the if else operation."""
         return self._condition
 
     @condition.setter
@@ -161,12 +162,6 @@ class IfElseOp(ControlFlowOp):
             ablock for ablock, _ in itertools.zip_longest(blocks, range(2), fillvalue=None)
         )
         return IfElseOp(self._condition, true_body, false_body=false_body, label=self.label)
-
-    def c_if(self, classical, val):
-        raise NotImplementedError(
-            "IfElseOp cannot be classically controlled through Instruction.c_if. "
-            "Please nest it in an IfElseOp instead."
-        )
 
 
 class IfElsePlaceholder(InstructionPlaceholder):
@@ -304,12 +299,6 @@ class IfElsePlaceholder(InstructionPlaceholder):
                 qregs=tuple(true_body.qregs),
                 cregs=tuple(true_body.cregs),
             ),
-        )
-
-    def c_if(self, classical, val):
-        raise NotImplementedError(
-            "IfElseOp cannot be classically controlled through Instruction.c_if. "
-            "Please nest it in another IfElseOp instead."
         )
 
 

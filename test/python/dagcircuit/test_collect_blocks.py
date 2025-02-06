@@ -547,7 +547,6 @@ class TestCollectBlocks(QiskitTestCase):
         # Collapse block with measures into a single "COLLAPSED" block
         dag = BlockCollapser(dag).collapse_to_operation(blocks, _collapse_fn)
         collapsed_qc = dag_to_circuit(dag)
-        print(collapsed_qc)
 
         self.assertEqual(len(collapsed_qc.data), 3)
         self.assertEqual(collapsed_qc.data[1].operation.name, "COLLAPSED")
@@ -628,7 +627,6 @@ class TestCollectBlocks(QiskitTestCase):
         # Collapse block with measures into a single "COLLAPSED" block
         dag = BlockCollapser(dag).collapse_to_operation(blocks, _collapse_fn)
         collapsed_qc = dag_to_circuit(dag)
-        print(collapsed_qc)
 
         self.assertEqual(len(collapsed_qc.data), 4)
         self.assertEqual(collapsed_qc.data[2].operation.name, "COLLAPSED")
