@@ -192,7 +192,7 @@ def load_style(
             used to define the style loaded
         user_config_path_opt: User config field in the Qiskit User Configuration File
             used to define the path to the style loaded
-        
+
 
     Returns:
         A tuple containing the style as dictionary and the default font ratio.
