@@ -56,6 +56,7 @@ from qiskit.circuit.tools.pi_check import pi_check
 from qiskit.utils import optionals as _optionals
 
 from qiskit.visualization.style import load_style
+from qiskit.visualization.circuit.qcstyle import MPLDefaultStyle, MPLStyleDict
 from ._utils import (
     get_gate_ctrl_text,
     get_param_str,
@@ -266,7 +267,7 @@ class MatplotlibDrawer:
         glob_data["patches_mod"] = patches
         plt_mod = plt
 
-        self._style, def_font_ratio = load_style(self._style)
+        self._style, def_font_ratio = load_style(self._style, style_dict=MPLStyleDict, default_style=MPLDefaultStyle)
 
         # If font/subfont ratio changes from default, have to scale width calculations for
         # subfont. Font change is auto scaled in the mpl_figure.set_size_inches call in draw()
