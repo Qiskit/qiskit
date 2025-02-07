@@ -197,6 +197,17 @@ class DefaultInitPassManager(PassManagerStagePlugin):
         return init
 
 
+class DefaultTranslationPassManager(PassManagerStagePlugin):
+    """Plugin class for the default-method translation stage."""
+
+    def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
+        # For now, this is just a wrapper around the `BasisTranslator`.  It might expand in the
+        # future if we want to change the default method to do more context-aware switching, or to
+        # start transitioning the default method without breaking the semantics of the default
+        # string referring to the `BasisTranslator`.
+        return BasisTranslatorPassManager().pass_manager(pass_manager_config, optimization_level)
+
+
 class BasisTranslatorPassManager(PassManagerStagePlugin):
     """Plugin class for translation stage with :class:`~.BasisTranslator`"""
 
@@ -533,7 +544,7 @@ class OptimizationPassManager(PassManagerStagePlugin):
     def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
         """Build pass manager for optimization stage."""
         # Obtain the translation method required for this pass to work
-        translation_method = pass_manager_config.translation_method or "translator"
+        translation_method = pass_manager_config.translation_method or "default"
         optimization = PassManager()
         if optimization_level != 0:
             plugin_manager = PassManagerStagePluginManager()
