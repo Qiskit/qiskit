@@ -204,7 +204,7 @@ fn twirl_gate(
     out_circ.push(
         py,
         PackedInstruction::new(
-            PackedOperation::from_standard(twirl[0]),
+            PackedOperation::from_standard_gate(twirl[0]),
             bit_zero,
             circ.cargs_interner().get_default(),
             None,
@@ -214,7 +214,7 @@ fn twirl_gate(
     out_circ.push(
         py,
         PackedInstruction::new(
-            PackedOperation::from_standard(twirl[1]),
+            PackedOperation::from_standard_gate(twirl[1]),
             bit_one,
             circ.cargs_interner().get_default(),
             None,
@@ -226,7 +226,7 @@ fn twirl_gate(
     out_circ.push(
         py,
         PackedInstruction::new(
-            PackedOperation::from_standard(twirl[2]),
+            PackedOperation::from_standard_gate(twirl[2]),
             bit_zero,
             circ.cargs_interner().get_default(),
             None,
@@ -236,7 +236,7 @@ fn twirl_gate(
     out_circ.push(
         py,
         PackedInstruction::new(
-            PackedOperation::from_standard(twirl[3]),
+            PackedOperation::from_standard_gate(twirl[3]),
             bit_one,
             circ.cargs_interner().get_default(),
             None,
@@ -270,7 +270,7 @@ fn generate_twirled_circuit(
             }
         }
         match inst.op().view() {
-            OperationRef::Standard(gate) => match gate {
+            OperationRef::StandardGate(gate) => match gate {
                 StandardGate::CXGate => {
                     if twirling_mask & CX_MASK != 0 {
                         twirl_gate(py, circ, rng, &mut out_circ, TWIRLING_SETS[0], inst)?;

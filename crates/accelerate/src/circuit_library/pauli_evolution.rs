@@ -13,9 +13,10 @@
 use pyo3::prelude::*;
 use pyo3::types::{PyList, PyString, PyTuple};
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::operations::{multiply_param, radd_param, Param, PyInstruction, StandardGate};
+use qiskit_circuit::operations;
+use qiskit_circuit::operations::{multiply_param, radd_param, Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
-use qiskit_circuit::{imports, Clbit, Qubit};
+use qiskit_circuit::{Clbit, Qubit};
 use smallvec::{smallvec, SmallVec};
 
 // custom types for a more readable code
@@ -248,7 +249,14 @@ pub fn py_pauli_evolution(
         indices.push(tuple.get_item(1)?.extract::<Vec<u32>>()?)
     }
 
-    let barrier = get_barrier(py, num_qubits as u32);
+    let barrier = (
+        PackedOperation::from_standard_instruction(operations::StandardInstruction::Barrier(
+            num_qubits as u32,
+        )),
+        smallvec![],
+        (0..num_qubits as u32).map(Qubit).collect(),
+        vec![],
+    );
 
     let evos = paulis.iter().enumerate().zip(indices).zip(times).flat_map(
         |(((i, pauli), qubits), time)| {
@@ -327,25 +335,4 @@ fn cx_fountain(
             smallvec![ctrl, first_qubit],
         )
     }))
-}
-
-fn get_barrier(py: Python, num_qubits: u32) -> Instruction {
-    let barrier_cls = imports::BARRIER.get_bound(py);
-    let barrier = barrier_cls
-        .call1((num_qubits,))
-        .expect("Could not create Barrier Python-side");
-    let barrier_inst = PyInstruction {
-        qubits: num_qubits,
-        clbits: 0,
-        params: 0,
-        op_name: "barrier".to_string(),
-        control_flow: false,
-        instruction: barrier.into(),
-    };
-    (
-        barrier_inst.into(),
-        smallvec![],
-        (0..num_qubits).map(Qubit).collect(),
-        vec![],
-    )
 }

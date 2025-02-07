@@ -11,6 +11,7 @@
 // that they have been altered from the originals.
 
 use hashbrown::HashSet;
+use itertools::Itertools;
 use ndarray::Array2;
 use num_complex::Complex64;
 use num_traits::Zero;
@@ -23,7 +24,7 @@ use pyo3::{
     intern,
     prelude::*,
     sync::GILOnceCell,
-    types::{IntoPyDict, PyList, PyTuple, PyType},
+    types::{IntoPyDict, PyList, PyString, PyTuple, PyType},
     IntoPyObjectExt, PyErr,
 };
 use std::{
@@ -183,6 +184,24 @@ impl BitTerm {
     /// This is true for the operators and eigenspace projectors associated with Y and Z.
     pub fn has_z_component(&self) -> bool {
         ((*self as u8) & (Self::Z as u8)) != 0
+    }
+
+    pub fn is_projector(&self) -> bool {
+        !matches!(self, BitTerm::X | BitTerm::Y | BitTerm::Z)
+    }
+}
+
+fn bit_term_as_pauli(bit: &BitTerm) -> &'static [(bool, Option<BitTerm>)] {
+    match bit {
+        BitTerm::X => &[(true, Some(BitTerm::X))],
+        BitTerm::Y => &[(true, Some(BitTerm::Y))],
+        BitTerm::Z => &[(true, Some(BitTerm::Z))],
+        BitTerm::Plus => &[(true, None), (true, Some(BitTerm::X))],
+        BitTerm::Minus => &[(true, None), (false, Some(BitTerm::X))],
+        BitTerm::Left => &[(true, None), (true, Some(BitTerm::Y))],
+        BitTerm::Right => &[(true, None), (false, Some(BitTerm::Y))],
+        BitTerm::Zero => &[(true, None), (true, Some(BitTerm::Z))],
+        BitTerm::One => &[(true, None), (false, Some(BitTerm::Z))],
     }
 }
 
@@ -638,6 +657,58 @@ impl SparseObservable {
             coeff: self.coeffs[index],
             bit_terms: &self.bit_terms[start..end],
             indices: &self.indices[start..end],
+        }
+    }
+
+    /// Expand all projectors into Pauli representation.
+    ///
+    /// # Warning
+    ///
+    /// This representation is highly inefficient for projectors. For example, a term with
+    /// :math:`n` projectors :math:`|+\rangle\langle +|` will use :math:`2^n` Pauli terms.
+    pub fn as_paulis(&self) -> Self {
+        let mut paulis: Vec<BitTerm> = Vec::new(); // maybe get capacity here
+        let mut indices: Vec<u32> = Vec::new();
+        let mut coeffs: Vec<Complex64> = Vec::new();
+        let mut boundaries: Vec<usize> = vec![0];
+
+        for view in self.iter() {
+            let num_projectors = view
+                .bit_terms
+                .iter()
+                .filter(|&bit| bit.is_projector())
+                .count();
+            let div = 2_f64.powi(num_projectors as i32);
+
+            let combinations = view
+                .bit_terms
+                .iter()
+                .map(bit_term_as_pauli)
+                .multi_cartesian_product();
+
+            for combination in combinations {
+                let mut positive = true; // keep track of the global sign
+
+                for (index, (sign, bit)) in combination.iter().enumerate() {
+                    positive ^= !sign; // accumulate the sign; global_sign *= local_sign
+                    if let Some(bit) = bit {
+                        paulis.push(*bit);
+                        indices.push(view.indices[index]);
+                    }
+                }
+                boundaries.push(paulis.len());
+
+                let coeff = if positive { view.coeff } else { -view.coeff };
+                coeffs.push(coeff / div)
+            }
+        }
+
+        Self {
+            num_qubits: self.num_qubits,
+            coeffs,
+            bit_terms: paulis,
+            indices,
+            boundaries,
         }
     }
 
@@ -1741,10 +1812,11 @@ impl PySparseTerm {
 ///
 /// .. note::
 ///
-///     The canonical form produced by :meth:`simplify` will still not universally detect all
-///     observables that are equivalent due to the over-complete basis alphabet; it is not
-///     computationally feasible to do this at scale.  For example, on observable built from ``+``
-///     and ``-`` components will not canonicalize to a single ``X`` term.
+///     The canonical form produced by :meth:`simplify` alone will not universally detect all
+///     observables that are equivalent due to the over-complete basis alphabet. To obtain a
+///     unique expression, you can first represent the observable using Pauli terms only by
+///     calling :meth:`as_paulis`, followed by :meth:`simplify`. Note that the projector
+///     expansion (e.g. ``+`` into ``I`` and ``X``) is not computationally feasible at scale.
 ///
 /// Indexing
 /// --------
@@ -1824,6 +1896,29 @@ impl PySparseTerm {
 ///   :meth:`identity`              The identity operator on a given number of qubits.
 ///   ============================  ================================================================
 ///
+/// Conversions
+/// ===========
+///
+/// An existing :class:`SparseObservable` can be converted into other :mod:`~qiskit.quantum_info`
+/// operators or generic formats.  Beware that other objects may not be able to represent the same
+/// observable as efficiently as :class:`SparseObservable`, including potentially needed
+/// exponentially more memory.
+///
+/// .. table:: Conversion methods to other observable forms.
+///
+///   ===========================  =================================================================
+///   Method                       Summary
+///   ===========================  =================================================================
+///   :meth:`as_paulis`            Create a new :class:`SparseObservable`, expanding in terms
+///                                of Pauli operators only.
+///
+///   :meth:`to_sparse_list`       Express the observable in a sparse list format with elements
+///                                ``(bit_terms, indices, coeff)``.
+///   ===========================  =================================================================
+///
+/// In addition, :meth:`.SparsePauliOp.from_sparse_observable` is available for conversion from this
+/// class to :class:`.SparsePauliOp`.  Beware that this method suffers from the same
+/// exponential-memory usage concerns as :meth:`as_paulis`.
 ///
 /// Mathematical manipulation
 /// =========================
@@ -1925,8 +2020,8 @@ impl PySparseObservable {
             let inner = borrowed.inner.read().map_err(|_| InnerReadError)?;
             return Ok(inner.clone().into());
         }
-        // The type of `vec` is inferred from the subsequent calls to `Self::py_from_list` or
-        // `Self::py_from_sparse_list` to be either the two-tuple or the three-tuple form during the
+        // The type of `vec` is inferred from the subsequent calls to `Self::from_list` or
+        // `Self::from_sparse_list` to be either the two-tuple or the three-tuple form during the
         // `extract`.  The empty list will pass either, but it means the same to both functions.
         if let Ok(vec) = data.extract() {
             return Self::from_list(vec, num_qubits);
@@ -2289,6 +2384,10 @@ impl PySparseObservable {
     ///         ...     for label, coeff in zip(labels, coeffs)
     ///         ... ])
     ///         >>> assert from_list == from_sparse_list
+    ///
+    /// See also:
+    ///     :meth:`to_sparse_list`
+    ///         The reverse of this method.
     #[staticmethod]
     #[pyo3(signature = (iter, /, num_qubits))]
     fn from_sparse_list(
@@ -2335,6 +2434,86 @@ impl PySparseObservable {
         }
         let inner = SparseObservable::new(num_qubits, coeffs, bit_terms, indices, boundaries)?;
         Ok(inner.into())
+    }
+
+    /// Express the observable in Pauli terms only, by writing each projector as sum of Pauli terms.
+    ///
+    /// Note that there is no guarantee of the order the resulting Pauli terms. Use
+    /// :meth:`SparseObservable.simplify` in addition to obtain a canonical representation.
+    ///
+    /// .. warning::
+    ///
+    ///     Beware that this will use at least :math:`2^n` terms if there are :math:`n`
+    ///     single-qubit projectors present, which can lead to an exponential number of terms.
+    ///
+    /// Returns:
+    ///     The same observable, but expressed in Pauli terms only.
+    ///
+    /// Examples:
+    ///
+    ///     Rewrite an observable in terms of projectors into Pauli operators::
+    ///
+    ///         >>> obs = SparseObservable("+")
+    ///         >>> obs.as_paulis()
+    ///         <SparseObservable with 2 terms on 1 qubit: (0.5+0j)() + (0.5+0j)(X_0)>
+    ///         >>> direct = SparseObservable.from_list([("I", 0.5), ("Z", 0.5)])
+    ///         >>> assert direct.simplify() == obs.as_paulis().simplify()
+    ///
+    ///     For small operators, this can be used with :meth:`simplify` as a unique canonical form::
+    ///
+    ///         >>> left = SparseObservable.from_list([("+", 0.5), ("-", 0.5)])
+    ///         >>> right = SparseObservable.from_list([("r", 0.5), ("l", 0.5)])
+    ///         >>> assert left.as_paulis().simplify() == right.as_paulis().simplify()
+    ///
+    /// See also:
+    ///     :meth:`.SparsePauliOp.from_sparse_observable`
+    ///         A constructor of :class:`.SparsePauliOp` that can convert a
+    ///         :class:`SparseObservable` in the :class:`.SparsePauliOp` dense Pauli representation.
+    fn as_paulis(&self) -> PyResult<Self> {
+        let inner = self.inner.read().map_err(|_| InnerReadError)?;
+        Ok(inner.as_paulis().into())
+    }
+
+    /// Express the observable in terms of a sparse list format.
+    ///
+    /// This can be seen as counter-operation of :meth:`.SparseObservable.from_sparse_list`, however
+    /// the order of terms is not guaranteed to be the same at after a roundtrip to a sparse
+    /// list and back.
+    ///
+    /// Examples:
+    ///
+    ///     >>> obs = SparseObservable.from_list([("IIXIZ", 2j), ("IIZIX", 2j)])
+    ///     >>> reconstructed = SparseObservable.from_sparse_list(obs.to_sparse_list(), obs.num_qubits)
+    ///
+    /// See also:
+    ///     :meth:`from_sparse_list`
+    ///         The constructor that can interpret these lists.
+    #[pyo3(signature = ())]
+    fn to_sparse_list(&self, py: Python) -> PyResult<Py<PyList>> {
+        let inner = self.inner.read().map_err(|_| InnerReadError)?;
+
+        // turn a SparseView into a Python tuple of (bit terms, indices, coeff)
+        let to_py_tuple = |view: SparseTermView| {
+            let mut pauli_string = String::with_capacity(view.bit_terms.len());
+
+            // we reverse the order of bits and indices so the Pauli string comes out in
+            // "reading order", consistent with how one would write the label in
+            // SparseObservable.from_list or .from_label
+            for bit in view.bit_terms.iter().rev() {
+                pauli_string.push_str(bit.py_label());
+            }
+            let py_string = PyString::new(py, &pauli_string).unbind();
+            let py_indices = PyList::new(py, view.indices.iter().rev())?.unbind();
+            let py_coeff = view.coeff.into_py_any(py)?;
+
+            PyTuple::new(py, vec![py_string.as_any(), py_indices.as_any(), &py_coeff])
+        };
+
+        let out = PyList::empty(py);
+        for view in inner.iter() {
+            out.append(to_py_tuple(view)?)?;
+        }
+        Ok(out.unbind())
     }
 
     /// Construct a :class:`.SparseObservable` from a :class:`.SparsePauliOp` instance.
@@ -2956,10 +3135,15 @@ impl PySparseObservable {
         other: &Bound<'py, PyAny>,
     ) -> PyResult<Bound<'py, PyAny>> {
         let py = slf_.py();
-        if slf_.is(other) {
+        let Some(other) = coerce_to_observable(other)? else {
+            return Ok(py.NotImplemented().into_bound(py));
+        };
+
+        let other = other.borrow();
+        let slf_ = slf_.borrow();
+        if Arc::ptr_eq(&slf_.inner, &other.inner) {
             // This fast path is for consistency with the in-place `__iadd__`, which would otherwise
             // struggle to do the addition to itself.
-            let slf_ = slf_.borrow();
             let inner = slf_.inner.read().map_err(|_| InnerReadError)?;
             return <&SparseObservable as ::std::ops::Mul<_>>::mul(
                 &inner,
@@ -2967,12 +3151,7 @@ impl PySparseObservable {
             )
             .into_bound_py_any(py);
         }
-        let Some(other) = coerce_to_observable(other)? else {
-            return Ok(py.NotImplemented().into_bound(py));
-        };
-        let slf_ = slf_.borrow();
         let slf_inner = slf_.inner.read().map_err(|_| InnerReadError)?;
-        let other = other.borrow();
         let other_inner = other.inner.read().map_err(|_| InnerReadError)?;
         slf_inner.check_equal_qubits(&other_inner)?;
         <&SparseObservable as ::std::ops::Add>::add(&slf_inner, &other_inner).into_bound_py_any(py)
@@ -2992,13 +3171,7 @@ impl PySparseObservable {
         <&SparseObservable as ::std::ops::Add>::add(&other_inner, &inner).into_bound_py_any(py)
     }
 
-    fn __iadd__(slf_: Bound<Self>, other: &Bound<PyAny>) -> PyResult<()> {
-        if slf_.is(other) {
-            let slf_ = slf_.borrow();
-            let mut slf_inner = slf_.inner.write().map_err(|_| InnerWriteError)?;
-            *slf_inner *= Complex64::new(2.0, 0.0);
-            return Ok(());
-        }
+    fn __iadd__(slf_: Bound<PySparseObservable>, other: &Bound<PyAny>) -> PyResult<()> {
         let Some(other) = coerce_to_observable(other)? else {
             // This is not well behaved - we _should_ return `NotImplemented` to Python space
             // without an exception, but limitations in PyO3 prevent this at the moment.  See
@@ -3008,9 +3181,18 @@ impl PySparseObservable {
                 other.repr()?
             )));
         };
+
+        let other = other.borrow();
         let slf_ = slf_.borrow();
         let mut slf_inner = slf_.inner.write().map_err(|_| InnerWriteError)?;
-        let other = other.borrow();
+
+        // Check if slf_ and other point to the same SparseObservable object, in which case
+        // we just multiply it by 2
+        if Arc::ptr_eq(&slf_.inner, &other.inner) {
+            *slf_inner *= Complex64::new(2.0, 0.0);
+            return Ok(());
+        }
+
         let other_inner = other.inner.read().map_err(|_| InnerReadError)?;
         slf_inner.check_equal_qubits(&other_inner)?;
         slf_inner.add_assign(&other_inner);
@@ -3022,16 +3204,17 @@ impl PySparseObservable {
         other: &Bound<'py, PyAny>,
     ) -> PyResult<Bound<'py, PyAny>> {
         let py = slf_.py();
-        if slf_.is(other) {
-            return PySparseObservable::zero(slf_.borrow().num_qubits()?).into_bound_py_any(py);
-        }
         let Some(other) = coerce_to_observable(other)? else {
             return Ok(py.NotImplemented().into_bound(py));
         };
 
-        let slf_ = slf_.borrow();
-        let slf_inner = slf_.inner.read().map_err(|_| InnerReadError)?;
         let other = other.borrow();
+        let slf_ = slf_.borrow();
+        if Arc::ptr_eq(&slf_.inner, &other.inner) {
+            return PySparseObservable::zero(slf_.num_qubits()?).into_bound_py_any(py);
+        }
+
+        let slf_inner = slf_.inner.read().map_err(|_| InnerReadError)?;
         let other_inner = other.inner.read().map_err(|_| InnerReadError)?;
         slf_inner.check_equal_qubits(&other_inner)?;
         <&SparseObservable as ::std::ops::Sub>::sub(&slf_inner, &other_inner).into_bound_py_any(py)
@@ -3050,13 +3233,6 @@ impl PySparseObservable {
     }
 
     fn __isub__(slf_: Bound<PySparseObservable>, other: &Bound<PyAny>) -> PyResult<()> {
-        if slf_.is(other) {
-            // This is not strictly the same thing as `a - a` if `a` contains non-finite
-            // floating-point values (`inf - inf` is `NaN`, for example); we don't really have a
-            // clear view on what floating-point guarantees we're going to make right now.
-            slf_.borrow_mut().clear()?;
-            return Ok(());
-        }
         let Some(other) = coerce_to_observable(other)? else {
             // This is not well behaved - we _should_ return `NotImplemented` to Python space
             // without an exception, but limitations in PyO3 prevent this at the moment.  See
@@ -3066,9 +3242,18 @@ impl PySparseObservable {
                 other.repr()?
             )));
         };
+        let other = other.borrow();
         let slf_ = slf_.borrow();
         let mut slf_inner = slf_.inner.write().map_err(|_| InnerWriteError)?;
-        let other = other.borrow();
+
+        if Arc::ptr_eq(&slf_.inner, &other.inner) {
+            // This is not strictly the same thing as `a - a` if `a` contains non-finite
+            // floating-point values (`inf - inf` is `NaN`, for example); we don't really have a
+            // clear view on what floating-point guarantees we're going to make right now.
+            slf_inner.clear();
+            return Ok(());
+        }
+
         let other_inner = other.inner.read().map_err(|_| InnerReadError)?;
         slf_inner.check_equal_qubits(&other_inner)?;
         slf_inner.sub_assign(&other_inner);
