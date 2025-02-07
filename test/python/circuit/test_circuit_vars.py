@@ -42,8 +42,8 @@ class TestCircuitVars(QiskitTestCase):
 
     def test_initialise_declarations_iterable(self):
         vars_ = [
-            (expr.Var.new("a", types.Bool()), expr.lift(True)),
-            (expr.Var.new("b", types.Uint(16)), expr.lift(0xFFFF)),
+            (expr.Var.new("a", types.Bool()), expr.lift(True, try_const=False)),
+            (expr.Var.new("b", types.Uint(16)), expr.lift(0xFFFF, try_const=False)),
         ]
         qc = QuantumCircuit(declarations=vars_)
 
@@ -61,8 +61,8 @@ class TestCircuitVars(QiskitTestCase):
     def test_initialise_declarations_mapping(self):
         # Dictionary iteration order is guaranteed to be insertion order.
         vars_ = {
-            expr.Var.new("a", types.Bool()): expr.lift(True),
-            expr.Var.new("b", types.Uint(16)): expr.lift(0xFFFF),
+            expr.Var.new("a", types.Bool()): expr.lift(True, try_const=False),
+            expr.Var.new("b", types.Uint(16)): expr.lift(0xFFFF, try_const=False),
         }
         qc = QuantumCircuit(declarations=vars_)
 
@@ -80,7 +80,7 @@ class TestCircuitVars(QiskitTestCase):
         them, provided they're specified in a suitable order."""
         a = expr.Var.new("a", types.Bool())
         vars_ = [
-            (a, expr.lift(True)),
+            (a, expr.lift(True, try_const=False)),
             (expr.Var.new("b", types.Bool()), a),
         ]
         qc = QuantumCircuit(declarations=vars_)
@@ -139,7 +139,7 @@ class TestCircuitVars(QiskitTestCase):
 
     def test_add_var_returns_good_var(self):
         qc = QuantumCircuit()
-        a = qc.add_var("a", expr.lift(True))
+        a = qc.add_var("a", expr.lift(True, try_const=False))
         self.assertEqual(a.name, "a")
         self.assertEqual(a.type, types.Bool())
 
@@ -223,9 +223,9 @@ class TestCircuitVars(QiskitTestCase):
 
     def test_initialise_declarations_equal_to_add_var(self):
         a = expr.Var.new("a", types.Bool())
-        a_init = expr.lift(False)
+        a_init = expr.lift(False, try_const=False)
         b = expr.Var.new("b", types.Uint(16))
-        b_init = expr.lift(0xFFFF)
+        b_init = expr.lift(0xFFFF, try_const=False)
 
         qc_init = QuantumCircuit(declarations=[(a, a_init), (b, b_init)])
         qc_manual = QuantumCircuit()
@@ -287,8 +287,8 @@ class TestCircuitVars(QiskitTestCase):
         a_bool1 = expr.Var.new("a", types.Bool())
         a_bool2 = expr.Var.new("a", types.Bool())
         a_uint = expr.Var.new("a", types.Uint(16))
-        a_bool_init = expr.lift(True)
-        a_uint_init = expr.lift(0xFFFF)
+        a_bool_init = expr.lift(True, try_const=False)
+        a_uint_init = expr.lift(0xFFFF, try_const=False)
 
         tests = [
             ((a_bool1, a_bool_init), (a_bool2, a_bool_init)),
@@ -325,11 +325,11 @@ class TestCircuitVars(QiskitTestCase):
                 qc.add_var(right, right_init)
 
         qc = QuantumCircuit()
-        qc.add_var("a", expr.lift(True))
+        qc.add_var("a", expr.lift(True, try_const=False))
         with self.assertRaisesRegex(CircuitError, "its name shadows"):
-            qc.add_var("a", expr.lift(True))
+            qc.add_var("a", expr.lift(True, try_const=False))
         with self.assertRaisesRegex(CircuitError, "its name shadows"):
-            qc.add_var("a", expr.lift(0xFF))
+            qc.add_var("a", expr.lift(0xFF, try_const=False))
 
     def test_cannot_add_vars_wrapping_clbits(self):
         a = expr.Var(Clbit(), types.Bool())

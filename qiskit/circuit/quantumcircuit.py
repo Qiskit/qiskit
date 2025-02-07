@@ -2911,7 +2911,7 @@ class QuantumCircuit:
             coerce_type = name_or_var.type
         else:
             coerce_type = None
-        initial = _validate_expr(circuit_scope, expr.lift(initial, coerce_type))
+        initial = _validate_expr(circuit_scope, expr.lift(initial, coerce_type, try_const=False))
         if isinstance(name_or_var, str):
             var = expr.Var.new(name_or_var, initial.type)
         elif not name_or_var.standalone:
@@ -3836,11 +3836,11 @@ class QuantumCircuit:
                 Create a new variable in the circuit that can be written to with this method.
         """
         # As a convenience, lift integer-literal rvalues to the matching width.
-        lvalue = expr.lift(lvalue)
+        lvalue = expr.lift(lvalue, try_const=False)
         rvalue_type = (
             lvalue.type if isinstance(rvalue, int) and not isinstance(rvalue, bool) else None
         )
-        rvalue = expr.lift(rvalue, rvalue_type)
+        rvalue = expr.lift(rvalue, rvalue_type, try_const=False)
         return self.append(Store(lvalue, rvalue), (), (), copy=False)
 
     def measure(self, qubit: QubitSpecifier, cbit: ClbitSpecifier) -> InstructionSet:

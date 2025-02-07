@@ -1802,7 +1802,7 @@ class TestLoadFromQPY(QiskitTestCase):
         a = expr.Var.new("a", types.Bool())
         b = expr.Var.new("b", types.Uint(8))
         all_vars = {
-            a: expr.lift(False),
+            a: expr.lift(False, try_const=False),
             b: expr.lift(3, type=b.type),
             expr.Var.new("θψφ", types.Bool()): expr.logic_not(a),
             expr.Var.new("🐍🐍🐍", types.Uint(8)): expr.bit_and(b, b),

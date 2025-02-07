@@ -996,7 +996,7 @@ class TestAddingControlFlowOperations(QiskitTestCase):
     def test_can_add_op_with_captures_of_locals(self):
         """Test circuit methods can capture declared variables."""
         outer = QuantumCircuit(1, 1)
-        a = outer.add_var("a", expr.lift(True))
+        a = outer.add_var("a", expr.lift(True, try_const=False))
 
         inner = QuantumCircuit(1, 1, captures=[a])
 
