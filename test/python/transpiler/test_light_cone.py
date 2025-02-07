@@ -26,7 +26,7 @@ from qiskit.circuit import (
 from qiskit.circuit.library import real_amplitudes
 from qiskit.circuit.library.n_local.efficient_su2 import efficient_su2
 from qiskit.converters import circuit_to_dag
-from qiskit.quantum_info import Pauli, SparsePauliOp
+from qiskit.quantum_info import Pauli, SparsePauliOp, SparseObservable
 from qiskit.transpiler.passes.optimization.light_cone import LightCone
 from qiskit.transpiler.passmanager import PassManager
 
@@ -256,10 +256,10 @@ class TestLightConePass(QiskitTestCase):
 
         self.assertEqual(expected, new_circuit)
 
-    def test_parameter_expression(self):
+    @ddt.data(SparsePauliOp("IX"))
+    def test_parameter_expression(self, sparse_object):
         """Test for Parameter expressions."""
-        observable = Pauli("IX")
-        bit_terms, indices, _ = SparsePauliOp(observable).to_sparse_list()[0]
+        bit_terms, indices, _ = sparse_object.to_sparse_list()[0]
         light_cone = LightCone(bit_terms=bit_terms, indices=indices)
         pm = PassManager([light_cone])
         theta = Parameter("θ")
@@ -280,7 +280,8 @@ class TestLightConePass(QiskitTestCase):
         expected = QuantumCircuit(q0)
         expected.rz(theta + 2, 1)
         expected.ry(theta - 2, 0)
-        expected.cx(0, 1)
+        expected.h(1)
+        expected.cz(0, 1)
 
         self.assertEqual(expected, new_circuit)
 
