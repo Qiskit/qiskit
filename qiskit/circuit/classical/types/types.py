@@ -19,13 +19,7 @@
 
 from __future__ import annotations
 
-__all__ = [
-    "Type",
-    "Bool",
-    "Uint",
-    "Duration",
-    "Stretch"
-]
+__all__ = ["Type", "Bool", "Uint", "Duration", "Stretch"]
 
 import typing
 
@@ -110,7 +104,10 @@ class Bool(Type):
 class Uint(Type):
     """An unsigned integer of fixed bit width."""
 
-    __slots__ = ("const", "width",)
+    __slots__ = (
+        "const",
+        "width",
+    )
 
     def __init__(self, width: int, *, const: bool = False):
         if isinstance(width, int) and width <= 0:

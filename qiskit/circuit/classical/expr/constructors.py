@@ -384,7 +384,12 @@ def _equal_like(op: Binary.Op, left: typing.Any, right: typing.Any) -> Expr:
     if left.type.kind is not right.type.kind:
         raise TypeError(f"invalid types for '{op}': '{left.type}' and '{right.type}'")
     type = types.greater(left.type, right.type)
-    return Binary(op, _coerce_lossless(left, type), _coerce_lossless(right, type), types.Bool(const=type.const))
+    return Binary(
+        op,
+        _coerce_lossless(left, type),
+        _coerce_lossless(right, type),
+        types.Bool(const=type.const),
+    )
 
 
 def equal(left: typing.Any, right: typing.Any, /) -> Expr:
@@ -428,7 +433,12 @@ def _binary_relation(op: Binary.Op, left: typing.Any, right: typing.Any) -> Expr
     if left.type.kind is not right.type.kind or left.type.kind is types.Bool:
         raise TypeError(f"invalid types for '{op}': '{left.type}' and '{right.type}'")
     type = types.greater(left.type, right.type)
-    return Binary(op, _coerce_lossless(left, type), _coerce_lossless(right, type), types.Bool(const=type.const))
+    return Binary(
+        op,
+        _coerce_lossless(left, type),
+        _coerce_lossless(right, type),
+        types.Bool(const=type.const),
+    )
 
 
 def less(left: typing.Any, right: typing.Any, /) -> Expr:
@@ -515,7 +525,12 @@ def _shift_like(
     right = lift(right)
     if left.type.kind != types.Uint or right.type.kind != types.Uint:
         raise TypeError(f"invalid types for '{op}': '{left.type}' and '{right.type}'")
-    return Binary(op, left, right, types.Uint(width=left.type.width, const=(left.type.const and right.type.const)))
+    return Binary(
+        op,
+        left,
+        right,
+        types.Uint(width=left.type.width, const=(left.type.const and right.type.const)),
+    )
 
 
 def shift_left(left: typing.Any, right: typing.Any, /, type: types.Type | None = None) -> Expr:

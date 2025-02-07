@@ -185,7 +185,7 @@ class TestExprConstructors(QiskitTestCase):
                 expr.Var(cr_3, types.Uint(width=3)),
                 expr.Var(cr_3, types.Uint(width=3)),
                 types.Bool(),
-            )
+            ),
         )
         self.assertEqual(
             function(cr_8, 255),
@@ -194,7 +194,7 @@ class TestExprConstructors(QiskitTestCase):
                 expr.Var(cr_8, types.Uint(width=8)),
                 expr.Value(255, types.Uint(width=8)),
                 types.Bool(),
-            )
+            ),
         )
         self.assertEqual(
             function(cr_3, 6),
@@ -203,7 +203,7 @@ class TestExprConstructors(QiskitTestCase):
                 expr.Var(cr_3, types.Uint(width=3)),
                 expr.Value(6, types.Uint(width=3)),
                 types.Bool(),
-            )
+            ),
         )
         self.assertEqual(
             function(255, 6),
@@ -212,7 +212,7 @@ class TestExprConstructors(QiskitTestCase):
                 expr.Value(255, types.Uint(width=8, const=True)),
                 expr.Value(6, types.Uint(width=8, const=True)),
                 types.Bool(const=True),
-            )
+            ),
         )
 
     @ddt.data(
@@ -231,7 +231,7 @@ class TestExprConstructors(QiskitTestCase):
                 expr.Cast(expr.Var(cr_3, types.Uint(width=3)), types.Bool(), implicit=True),
                 expr.Cast(expr.Var(cr_3, types.Uint(width=3)), types.Bool(), implicit=True),
                 types.Bool(),
-            )
+            ),
         )
         self.assertEqual(
             function(clbit, True),
@@ -240,7 +240,7 @@ class TestExprConstructors(QiskitTestCase):
                 expr.Var(clbit, types.Bool()),
                 expr.Value(True, types.Bool()),
                 types.Bool(),
-            )
+            ),
         )
         self.assertEqual(
             function(cr_3, True),
@@ -249,7 +249,7 @@ class TestExprConstructors(QiskitTestCase):
                 expr.Cast(expr.Var(cr_3, types.Uint(width=3)), types.Bool(), implicit=True),
                 expr.Value(True, types.Bool()),
                 types.Bool(),
-            )
+            ),
         )
 
     @ddt.data(
@@ -269,7 +269,7 @@ class TestExprConstructors(QiskitTestCase):
                 expr.Var(cr_3, types.Uint(width=3)),
                 expr.Var(cr_3, types.Uint(width=3)),
                 types.Uint(width=3),
-            )
+            ),
         )
         self.assertEqual(
             function(clbit, True),
@@ -278,7 +278,7 @@ class TestExprConstructors(QiskitTestCase):
                 expr.Var(clbit, types.Bool()),
                 expr.Value(True, types.Bool()),
                 types.Bool(),
-            )
+            ),
         )
         self.assertEqual(
             function(cr_8, 255),
@@ -287,7 +287,7 @@ class TestExprConstructors(QiskitTestCase):
                 expr.Var(cr_8, types.Uint(width=8)),
                 expr.Value(255, types.Uint(width=8)),
                 types.Uint(width=8),
-            )
+            ),
         )
         self.assertEqual(
             function(cr_3, 6),
@@ -296,7 +296,7 @@ class TestExprConstructors(QiskitTestCase):
                 expr.Var(cr_3, types.Uint(width=3)),
                 expr.Value(6, types.Uint(width=3)),
                 types.Uint(width=3),
-            )
+            ),
         )
 
     @ddt.data(
@@ -435,9 +435,11 @@ class TestExprConstructors(QiskitTestCase):
             expr.Binary(
                 opcode,
                 expr.Value(False, types.Bool(const=True)),
-                expr.Cast(expr.Value(3, types.Uint(2, const=True)), types.Bool(const=True), implicit=True),
-                types.Bool(const=True)
-            )
+                expr.Cast(
+                    expr.Value(3, types.Uint(2, const=True)), types.Bool(const=True), implicit=True
+                ),
+                types.Bool(const=True),
+            ),
         )
 
     @ddt.data(
@@ -527,7 +529,9 @@ class TestExprConstructors(QiskitTestCase):
 
         self.assertEqual(
             expr.index(cr, 3),
-            expr.Index(expr.Var(cr, types.Uint(4)), expr.Value(3, types.Uint(2, const=True)), types.Bool()),
+            expr.Index(
+                expr.Var(cr, types.Uint(4)), expr.Value(3, types.Uint(2, const=True)), types.Bool()
+            ),
         )
         self.assertEqual(
             expr.index(a, cr),
@@ -551,7 +555,10 @@ class TestExprConstructors(QiskitTestCase):
         self.assertEqual(
             function(cr, 5),
             expr.Binary(
-                opcode, expr.Var(cr, types.Uint(8)), expr.Value(5, types.Uint(3, const=True)), types.Uint(8)
+                opcode,
+                expr.Var(cr, types.Uint(8)),
+                expr.Value(5, types.Uint(3, const=True)),
+                types.Uint(8),
             ),
         )
         self.assertEqual(
@@ -564,13 +571,19 @@ class TestExprConstructors(QiskitTestCase):
         self.assertEqual(
             function(3, 5, types.Uint(8)),
             expr.Binary(
-                opcode, expr.Value(3, types.Uint(8)), expr.Value(5, types.Uint(3, const=True)), types.Uint(8)
+                opcode,
+                expr.Value(3, types.Uint(8)),
+                expr.Value(5, types.Uint(3, const=True)),
+                types.Uint(8),
             ),
         )
         self.assertEqual(
             function(3, 5, types.Uint(8, const=True)),
             expr.Binary(
-                opcode, expr.Value(3, types.Uint(8, const=True)), expr.Value(5, types.Uint(3, const=True)), types.Uint(8, const=True)
+                opcode,
+                expr.Value(3, types.Uint(8, const=True)),
+                expr.Value(5, types.Uint(3, const=True)),
+                types.Uint(8, const=True),
             ),
         )
 

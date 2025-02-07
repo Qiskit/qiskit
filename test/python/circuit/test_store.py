@@ -176,7 +176,9 @@ class TestStoreCircuit(QiskitTestCase):
         qc.store(a, expr.lift(False))
         self.assertEqual(
             qc.data[-1].operation,
-            Store(a, expr.Cast(expr.Value(False, types.Bool(const=True)), types.Bool(), implicit=True))
+            Store(
+                a, expr.Cast(expr.Value(False, types.Bool(const=True)), types.Bool(), implicit=True)
+            ),
         )
 
         b = expr.Var.new("b", types.Uint(16))
@@ -184,7 +186,14 @@ class TestStoreCircuit(QiskitTestCase):
         qc.store(b, expr.lift(0xFFFF))
         self.assertEqual(
             qc.data[-1].operation,
-            Store(b, expr.Cast(expr.Value(0xFFFF, types.Uint(width=16, const=True)), types.Uint(width=16), implicit=True))
+            Store(
+                b,
+                expr.Cast(
+                    expr.Value(0xFFFF, types.Uint(width=16, const=True)),
+                    types.Uint(width=16),
+                    implicit=True,
+                ),
+            ),
         )
 
     def test_lifts_integer_literals_to_full_width(self):
