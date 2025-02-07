@@ -31,11 +31,11 @@ import typing
 
 
 class _Singleton(type):
-    """Metaclass to make the child, which should take zero initialization arguments, a singleton
+    """Metaclass to make the child, which should take a single "const" argument, a singleton
     object."""
 
-    def _get_singleton_instance(cls):
-        return cls._INSTANCE
+    def _get_singleton_instance(cls, const=False):
+        return cls._CONST_INSTANCE if const else cls._INSTANCE
 
     @classmethod
     def __prepare__(mcs, name, bases):  # pylint: disable=unused-argument
@@ -45,6 +45,7 @@ class _Singleton(type):
     def __new__(cls, name, bases, namespace):
         out = super().__new__(cls, name, bases, namespace)
         out._INSTANCE = object.__new__(out)  # pylint: disable=invalid-name
+        out._CONST_INSTANCE = object.__new__(out)  # pylint: disable=invalid-name
         return out
 
 
@@ -88,13 +89,18 @@ class Type:
 
 
 @typing.final
-class Bool(Type):
+class Bool(Type, metaclass=_Singleton):
     """The Boolean type.  This has exactly two values: ``True`` and ``False``."""
 
-    __slots__ = ("const",)
+    __slots__ = ()
 
-    def __init__(self, *, const: bool = False):
-        super(Type, self).__setattr__("const", const)
+    def __new__(cls, *, const=False):
+        return cls._get_singleton_instance(const)
+
+    @property
+    def const(self):
+        # Check if this instance is the const singleton.
+        return self is self.__class__._CONST_INSTANCE
 
     def __repr__(self):
         return f"Bool(const={self.const})"
