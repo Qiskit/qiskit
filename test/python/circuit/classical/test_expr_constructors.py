@@ -83,15 +83,15 @@ class TestExprConstructors(QiskitTestCase):
         self.assertEqual(expr.lift(clbit), expr.Var(clbit, types.Bool()))
 
     def test_value_lifts_python_builtins(self):
-        self.assertEqual(expr.lift(True), expr.Value(True, types.Bool()))
-        self.assertEqual(expr.lift(False), expr.Value(False, types.Bool()))
-        self.assertEqual(expr.lift(7), expr.Value(7, types.Uint(3)))
+        self.assertEqual(expr.lift(True), expr.Value(True, types.Bool(const=True)))
+        self.assertEqual(expr.lift(False), expr.Value(False, types.Bool(const=True)))
+        self.assertEqual(expr.lift(7), expr.Value(7, types.Uint(3, const=True)))
 
     def test_value_ensures_nonzero_width(self):
-        self.assertEqual(expr.lift(0), expr.Value(0, types.Uint(1)))
+        self.assertEqual(expr.lift(0), expr.Value(0, types.Uint(1, const=True)))
 
     def test_value_type_representation(self):
-        self.assertEqual(expr.lift(5), expr.Value(5, types.Uint((5).bit_length())))
+        self.assertEqual(expr.lift(5), expr.Value(5, types.Uint((5).bit_length(), const=True)))
         self.assertEqual(expr.lift(5, types.Uint(8)), expr.Value(5, types.Uint(8)))
 
         cr = ClassicalRegister(3, "c")
@@ -165,24 +165,140 @@ class TestExprConstructors(QiskitTestCase):
             expr.Unary(expr.Unary.Op.LOGIC_NOT, expr.Var(clbit, types.Bool()), types.Bool()),
         )
 
+    # TODO: test equal like separately with bools
     @ddt.data(
-        (expr.bit_and, ClassicalRegister(3), ClassicalRegister(3)),
-        (expr.bit_or, ClassicalRegister(3), ClassicalRegister(3)),
-        (expr.bit_xor, ClassicalRegister(3), ClassicalRegister(3)),
-        (expr.logic_and, Clbit(), True),
-        (expr.logic_or, False, ClassicalRegister(3)),
-        (expr.equal, ClassicalRegister(8), 255),
-        (expr.not_equal, ClassicalRegister(8), 255),
-        (expr.less, ClassicalRegister(3), 6),
-        (expr.less_equal, ClassicalRegister(3), 5),
-        (expr.greater, 4, ClassicalRegister(3)),
-        (expr.greater_equal, ClassicalRegister(3), 5),
+        (expr.equal, expr.Binary.Op.EQUAL),
+        (expr.not_equal, expr.Binary.Op.NOT_EQUAL),
+        (expr.less, expr.Binary.Op.LESS),
+        (expr.less_equal, expr.Binary.Op.LESS_EQUAL),
+        (expr.greater, expr.Binary.Op.GREATER),
+        (expr.greater_equal, expr.Binary.Op.GREATER_EQUAL),
     )
     @ddt.unpack
-    def test_binary_functions_lift_scalars(self, function, left, right):
-        self.assertEqual(function(left, right), function(expr.lift(left), right))
-        self.assertEqual(function(left, right), function(left, expr.lift(right)))
-        self.assertEqual(function(left, right), function(expr.lift(left), expr.lift(right)))
+    def test_binary_relations_lift_scalars(self, function, op):
+        cr_3 = ClassicalRegister(3, "c")
+        cr_8 = ClassicalRegister(8, "c")
+        self.assertEqual(
+            function(cr_3, cr_3),
+            expr.Binary(
+                op,
+                expr.Var(cr_3, types.Uint(width=3)),
+                expr.Var(cr_3, types.Uint(width=3)),
+                types.Bool(),
+            )
+        )
+        self.assertEqual(
+            function(cr_8, 255),
+            expr.Binary(
+                op,
+                expr.Var(cr_8, types.Uint(width=8)),
+                expr.Value(255, types.Uint(width=8)),
+                types.Bool(),
+            )
+        )
+        self.assertEqual(
+            function(cr_3, 6),
+            expr.Binary(
+                op,
+                expr.Var(cr_3, types.Uint(width=3)),
+                expr.Value(6, types.Uint(width=3)),
+                types.Bool(),
+            )
+        )
+        self.assertEqual(
+            function(255, 6),
+            expr.Binary(
+                op,
+                expr.Value(255, types.Uint(width=8, const=True)),
+                expr.Value(6, types.Uint(width=8, const=True)),
+                types.Bool(const=True),
+            )
+        )
+
+    @ddt.data(
+        (expr.logic_and, expr.Binary.Op.LOGIC_AND),
+        (expr.logic_or, expr.Binary.Op.LOGIC_OR),
+    )
+    @ddt.unpack
+    def test_binary_logical_lift_scalars(self, function, op):
+        cr_3 = ClassicalRegister(3, "c")
+        clbit = Clbit()
+
+        self.assertEqual(
+            function(cr_3, cr_3),
+            expr.Binary(
+                op,
+                expr.Cast(expr.Var(cr_3, types.Uint(width=3)), types.Bool(), implicit=True),
+                expr.Cast(expr.Var(cr_3, types.Uint(width=3)), types.Bool(), implicit=True),
+                types.Bool(),
+            )
+        )
+        self.assertEqual(
+            function(clbit, True),
+            expr.Binary(
+                op,
+                expr.Var(clbit, types.Bool()),
+                expr.Value(True, types.Bool()),
+                types.Bool(),
+            )
+        )
+        print(f"HI: {function(cr_3, True)}")
+        self.assertEqual(
+            function(cr_3, True),
+            expr.Binary(
+                op,
+                expr.Cast(expr.Var(cr_3, types.Uint(width=3)), types.Bool(), implicit=True),
+                expr.Value(True, types.Bool()),
+                types.Bool(),
+            )
+        )
+
+    @ddt.data(
+        (expr.bit_and, expr.Binary.Op.BIT_AND),
+        (expr.bit_or, expr.Binary.Op.BIT_OR),
+        (expr.bit_xor, expr.Binary.Op.BIT_XOR),
+    )
+    @ddt.unpack
+    def test_binary_bitwise_lift_scalars(self, function, op):
+        cr_3 = ClassicalRegister(3, "c")
+        cr_8 = ClassicalRegister(8, "c")
+        clbit = Clbit()
+        self.assertEqual(
+            function(cr_3, cr_3),
+            expr.Binary(
+                op,
+                expr.Var(cr_3, types.Uint(width=3)),
+                expr.Var(cr_3, types.Uint(width=3)),
+                types.Uint(width=3),
+            )
+        )
+        self.assertEqual(
+            function(clbit, True),
+            expr.Binary(
+                op,
+                expr.Var(clbit, types.Bool()),
+                expr.Value(True, types.Bool()),
+                types.Bool(),
+            )
+        )
+        self.assertEqual(
+            function(cr_8, 255),
+            expr.Binary(
+                op,
+                expr.Var(cr_8, types.Uint(width=8)),
+                expr.Value(255, types.Uint(width=8)),
+                types.Uint(width=8),
+            )
+        )
+        self.assertEqual(
+            function(cr_3, 6),
+            expr.Binary(
+                op,
+                expr.Var(cr_3, types.Uint(width=3)),
+                expr.Value(6, types.Uint(width=3)),
+                types.Uint(width=3),
+            )
+        )
 
     @ddt.data(
         (expr.bit_and, expr.Binary.Op.BIT_AND),
@@ -261,9 +377,9 @@ class TestExprConstructors(QiskitTestCase):
             function(5, 255),
             expr.Binary(
                 opcode,
-                expr.Value(5, types.Uint(8)),
-                expr.Value(255, types.Uint(8)),
-                types.Uint(8),
+                expr.Value(5, types.Uint(8, const=True)),
+                expr.Value(255, types.Uint(8, const=True)),
+                types.Uint(8, const=True),
             ),
         )
 
@@ -300,7 +416,7 @@ class TestExprConstructors(QiskitTestCase):
             expr.Binary(
                 opcode,
                 expr.Cast(expr.Var(cr, types.Uint(cr.size)), types.Bool(), implicit=True),
-                expr.Cast(expr.Value(3, types.Uint(2)), types.Bool(), implicit=True),
+                expr.Cast(expr.Value(3, types.Uint(2, const=True)), types.Bool(const=True), implicit=True),
                 types.Bool(),
             ),
         )
@@ -309,7 +425,7 @@ class TestExprConstructors(QiskitTestCase):
             function(False, clbit),
             expr.Binary(
                 opcode,
-                expr.Value(False, types.Bool()),
+                expr.Value(False, types.Bool(const=True)),
                 expr.Var(clbit, types.Bool()),
                 types.Bool(),
             ),
@@ -402,7 +518,7 @@ class TestExprConstructors(QiskitTestCase):
 
         self.assertEqual(
             expr.index(cr, 3),
-            expr.Index(expr.Var(cr, types.Uint(4)), expr.Value(3, types.Uint(2)), types.Bool()),
+            expr.Index(expr.Var(cr, types.Uint(4)), expr.Value(3, types.Uint(2, const=True)), types.Bool()),
         )
         self.assertEqual(
             expr.index(a, cr),
@@ -423,21 +539,29 @@ class TestExprConstructors(QiskitTestCase):
     def test_shift_explicit(self, function, opcode):
         cr = ClassicalRegister(8, "c")
         a = expr.Var.new("a", types.Uint(4))
-
         self.assertEqual(
             function(cr, 5),
             expr.Binary(
-                opcode, expr.Var(cr, types.Uint(8)), expr.Value(5, types.Uint(3)), types.Uint(8)
+                opcode, expr.Var(cr, types.Uint(8)), expr.Value(5, types.Uint(3, const=True)), types.Uint(8)
             ),
         )
         self.assertEqual(
             function(a, cr),
             expr.Binary(opcode, a, expr.Var(cr, types.Uint(8)), types.Uint(4)),
         )
+        # TODO: as it is, the LHS of a shift expression always becomes exactly the explicit
+        #  type passed to `shift_*`. The RHS is inferred with lift, and stays const if it's
+        #  const. Is this the best behavior?
         self.assertEqual(
             function(3, 5, types.Uint(8)),
             expr.Binary(
-                opcode, expr.Value(3, types.Uint(8)), expr.Value(5, types.Uint(3)), types.Uint(8)
+                opcode, expr.Value(3, types.Uint(8)), expr.Value(5, types.Uint(3, const=True)), types.Uint(8)
+            ),
+        )
+        self.assertEqual(
+            function(3, 5, types.Uint(8, const=True)),
+            expr.Binary(
+                opcode, expr.Value(3, types.Uint(8, const=True)), expr.Value(5, types.Uint(3, const=True)), types.Uint(8, const=True)
             ),
         )
 

@@ -124,16 +124,19 @@ def lift(value: typing.Any, /, type: types.Type | None = None) -> Expr:
     from qiskit.circuit import Clbit, ClassicalRegister  # pylint: disable=cyclic-import
 
     inferred: types.Type
-    if value is True or value is False or isinstance(value, Clbit):
+    if value is True or value is False:
+        inferred = types.Bool(const=True)
+        constructor = Value
+    elif isinstance(value, Clbit):
         inferred = types.Bool()
-        constructor = Value if value is True or value is False else Var
+        constructor = Var
     elif isinstance(value, ClassicalRegister):
         inferred = types.Uint(width=value.size)
         constructor = Var
     elif isinstance(value, int):
         if value < 0:
             raise ValueError("cannot represent a negative value")
-        inferred = types.Uint(width=value.bit_length() or 1)
+        inferred = types.Uint(width=value.bit_length() or 1, const=True)
         constructor = Value
     else:
         raise TypeError(f"failed to infer a type for '{value}'")
@@ -198,41 +201,73 @@ Unary.Op.LOGIC_NOT, \
 Cast(Var(ClassicalRegister(3, 'c'), Uint(3)), Bool(), implicit=True), \
 Bool())
     """
-    operand = _coerce_lossless(lift(operand), types.Bool())
+    var_or_value = lift(operand)
+    operand = _coerce_lossless(var_or_value, types.Bool(const=var_or_value.type.const))
     return Unary(Unary.Op.LOGIC_NOT, operand, operand.type)
 
 
 def _lift_binary_operands(left: typing.Any, right: typing.Any) -> tuple[Expr, Expr]:
     """Lift two binary operands simultaneously, inferring the widths of integer literals in either
-    position to match the other operand."""
-    left_int = isinstance(left, int) and not isinstance(left, bool)
-    right_int = isinstance(right, int) and not isinstance(right, bool)
+    position to match the other operand.
+
+    Const-ness is handled as follows:
+      * If neither operand is an expression, both are lifted to share the same const-ness.
+        Both will be const, if possible. Else, neither will be.
+      * If only one operand is an expression, the other is lifted with the same const-ness, if possible.
+        Otherwise, the returned operands will have different const-ness, and thus require a cast node.
+      * If both operands are expressions, they are returned as-is and may require a cast node.
+    """
+    left_bool = isinstance(left, bool)
+    left_int = isinstance(left, int) and not left_bool
+    right_bool = isinstance(right, bool)
+    right_int = isinstance(right, int) and not right_bool
     if not (left_int or right_int):
-        left = lift(left)
-        right = lift(right)
+        if left_bool == right_bool:
+            # If they're both bool, lifting them will produce const Bool.
+            # If neither are bool, they're a mix of bits/registers (which are always
+            # non-const) and Expr, which we can't modify the const-ness of without
+            # a cast node.
+            left = lift(left)
+            right = lift(right)
+        elif not right_bool:
+            # Left is a bool
+            right = lift(right)
+            # TODO: if right.type isn't Bool, there's a type mismatch so we _should_
+            #  raise here. But, _binary_bitwise will error for us with a better msg.
+            left = lift(left, right.type if right.type.kind is types.Bool else None)
+        elif not left_bool:
+            # Right is a bool.
+            left = lift(left)
+            # TODO: if left.type isn't Bool, there's a type mismatch so we _should_
+            #  raise here. But, _binary_bitwise will error for us with a better msg.
+            right = lift(right, left.type if left.type.kind is types.Bool else None)
     elif not right_int:
+        # Left is an int.
         right = lift(right)
         if right.type.kind is types.Uint:
             if left.bit_length() > right.type.width:
                 raise TypeError(
                     f"integer literal '{left}' is wider than the other operand '{right}'"
                 )
+            # Left will share const-ness of right.
             left = Value(left, right.type)
         else:
             left = lift(left)
     elif not left_int:
+        # Right is an int.
         left = lift(left)
         if left.type.kind is types.Uint:
             if right.bit_length() > left.type.width:
                 raise TypeError(
                     f"integer literal '{right}' is wider than the other operand '{left}'"
                 )
+            # Right will share const-ness of left.
             right = Value(right, left.type)
         else:
             right = lift(right)
     else:
         # Both are `int`, so we take our best case to make things work.
-        uint = types.Uint(max(left.bit_length(), right.bit_length(), 1))
+        uint = types.Uint(max(left.bit_length(), right.bit_length(), 1), const=True)
         left = Value(left, uint)
         right = Value(right, uint)
     return left, right
@@ -242,14 +277,14 @@ def _binary_bitwise(op: Binary.Op, left: typing.Any, right: typing.Any) -> Expr:
     left, right = _lift_binary_operands(left, right)
     type: types.Type
     if left.type.kind is right.type.kind is types.Bool:
-        type = types.Bool()
+        type = types.Bool(const=(left.type.const and right.type.const))
     elif left.type.kind is types.Uint and right.type.kind is types.Uint:
         if left.type != right.type:
             raise TypeError(
                 "binary bitwise operations are defined between unsigned integers of the same width,"
                 f" but got {left.type.width} and {right.type.width}."
             )
-        type = left.type
+        type = types.Uint(width=left.type.width, const=(left.type.const and right.type.const))
     else:
         raise TypeError(f"invalid types for '{op}': '{left.type}' and '{right.type}'")
     return Binary(op, left, right, type)
@@ -313,10 +348,10 @@ Uint(3))
 
 
 def _binary_logical(op: Binary.Op, left: typing.Any, right: typing.Any) -> Expr:
-    bool_ = types.Bool()
-    left = _coerce_lossless(lift(left), bool_)
-    right = _coerce_lossless(lift(right), bool_)
-    return Binary(op, left, right, bool_)
+    left, right = _lift_binary_operands(left, right)
+    left = _coerce_lossless(left, types.Bool(const=left.type.const))
+    right = _coerce_lossless(right, types.Bool(const=right.type.const))
+    return Binary(op, left, right, types.Bool(const=(left.type.const and right.type.const)))
 
 
 def logic_and(left: typing.Any, right: typing.Any, /) -> Expr:
@@ -354,7 +389,7 @@ def _equal_like(op: Binary.Op, left: typing.Any, right: typing.Any) -> Expr:
     if left.type.kind is not right.type.kind:
         raise TypeError(f"invalid types for '{op}': '{left.type}' and '{right.type}'")
     type = types.greater(left.type, right.type)
-    return Binary(op, _coerce_lossless(left, type), _coerce_lossless(right, type), types.Bool())
+    return Binary(op, _coerce_lossless(left, type), _coerce_lossless(right, type), types.Bool(const=type.const))
 
 
 def equal(left: typing.Any, right: typing.Any, /) -> Expr:
@@ -398,7 +433,7 @@ def _binary_relation(op: Binary.Op, left: typing.Any, right: typing.Any) -> Expr
     if left.type.kind is not right.type.kind or left.type.kind is types.Bool:
         raise TypeError(f"invalid types for '{op}': '{left.type}' and '{right.type}'")
     type = types.greater(left.type, right.type)
-    return Binary(op, _coerce_lossless(left, type), _coerce_lossless(right, type), types.Bool())
+    return Binary(op, _coerce_lossless(left, type), _coerce_lossless(right, type), types.Bool(const=type.const))
 
 
 def less(left: typing.Any, right: typing.Any, /) -> Expr:
@@ -485,7 +520,7 @@ def _shift_like(
     right = lift(right)
     if left.type.kind != types.Uint or right.type.kind != types.Uint:
         raise TypeError(f"invalid types for '{op}': '{left.type}' and '{right.type}'")
-    return Binary(op, left, right, left.type)
+    return Binary(op, left, right, types.Uint(width=left.type.width, const=(left.type.const and right.type.const)))
 
 
 def shift_left(left: typing.Any, right: typing.Any, /, type: types.Type | None = None) -> Expr:
@@ -553,4 +588,4 @@ def index(target: typing.Any, index: typing.Any, /) -> Expr:
     target, index = lift(target), lift(index)
     if target.type.kind is not types.Uint or index.type.kind is not types.Uint:
         raise TypeError(f"invalid types for indexing: '{target.type}' and '{index.type}'")
-    return Index(target, index, types.Bool())
+    return Index(target, index, types.Bool(const=target.type.const))

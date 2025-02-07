@@ -23,6 +23,8 @@ __all__ = [
     "Type",
     "Bool",
     "Uint",
+    "Duration",
+    "Stretch"
 ]
 
 import typing
@@ -81,37 +83,79 @@ class Type:
 
 
 @typing.final
-class Bool(Type, metaclass=_Singleton):
+class Bool(Type):
     """The Boolean type.  This has exactly two values: ``True`` and ``False``."""
 
-    __slots__ = ()
+    __slots__ = ("const",)
+
+    def __init__(self, *, const: bool = False):
+        super(Type, self).__setattr__("const", const)
 
     def __repr__(self):
-        return "Bool()"
+        return f"Bool(const={self.const})"
 
     def __hash__(self):
-        return hash(self.__class__)
+        return hash((self.__class__, self.const))
 
     def __eq__(self, other):
-        return isinstance(other, Bool)
+        return isinstance(other, Bool) and self.const == other.const
 
 
 @typing.final
 class Uint(Type):
     """An unsigned integer of fixed bit width."""
 
-    __slots__ = ("width",)
+    __slots__ = ("const", "width",)
 
-    def __init__(self, width: int):
+    def __init__(self, width: int, *, const: bool = False):
         if isinstance(width, int) and width <= 0:
             raise ValueError("uint width must be greater than zero")
+        super(Type, self).__setattr__("const", const)
         super(Type, self).__setattr__("width", width)
 
     def __repr__(self):
-        return f"Uint({self.width})"
+        return f"Uint({self.width}, const={self.const})"
 
     def __hash__(self):
-        return hash((self.__class__, self.width))
+        return hash((self.__class__, self.const, self.width))
 
     def __eq__(self, other):
-        return isinstance(other, Uint) and self.width == other.width
+        return isinstance(other, Uint) and self.const == other.const and self.width == other.width
+
+
+@typing.final
+class Duration(Type):
+    """A length of time, possibly negative."""
+
+    __slots__ = ("const",)
+
+    def __init__(self, *, const: bool = False):
+        super(Type, self).__setattr__("const", const)
+
+    def __repr__(self):
+        return f"Duration(const={self.const})"
+
+    def __hash__(self):
+        return hash((self.__class__, self.const))
+
+    def __eq__(self, other):
+        return isinstance(other, Duration) and self.const == other.const
+
+
+@typing.final
+class Stretch(Type):
+    """A special type that denotes some not-yet-known non-negative duration."""
+
+    __slots__ = ("const",)
+
+    def __init__(self, *, const: bool = False):
+        super(Type, self).__setattr__("const", const)
+
+    def __repr__(self):
+        return f"Stretch(const={self.const})"
+
+    def __hash__(self):
+        return hash((self.__class__, self.const))
+
+    def __eq__(self, other):
+        return isinstance(other, Stretch) and self.const == other.const

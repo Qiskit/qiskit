@@ -26,7 +26,7 @@ __all__ = [
 
 import enum
 
-from .types import Type, Bool, Uint
+from .types import Type, Bool, Uint, Duration, Stretch
 
 
 # While the type system is simple, it's overkill to represent the complete partial ordering graph of
@@ -55,7 +55,7 @@ class Ordering(enum.Enum):
         return str(self)
 
 
-def _order_bool_bool(_a: Bool, _b: Bool, /) -> Ordering:
+def _order_identical(_a: Type, _b: Type, /) -> Ordering:
     return Ordering.EQUAL
 
 
@@ -68,8 +68,10 @@ def _order_uint_uint(left: Uint, right: Uint, /) -> Ordering:
 
 
 _ORDERERS = {
-    (Bool, Bool): _order_bool_bool,
+    (Bool, Bool): _order_identical,
     (Uint, Uint): _order_uint_uint,
+    (Duration, Duration): _order_identical,
+    (Stretch, Stretch): _order_identical,
 }
 
 
@@ -90,7 +92,13 @@ def order(left: Type, right: Type, /) -> Ordering:
     """
     if (orderer := _ORDERERS.get((left.kind, right.kind))) is None:
         return Ordering.NONE
-    return orderer(left, right)
+    order_ = orderer(left, right)
+    if order_ is Ordering.EQUAL:
+        if left.const is True and right.const is False:
+            return Ordering.LESS
+        if right.const is True and left.const is False:
+            return Ordering.GREATER
+    return order_
 
 
 def is_subtype(left: Type, right: Type, /, strict: bool = False) -> bool:
@@ -213,13 +221,20 @@ def cast_kind(from_: Type, to_: Type, /) -> CastKind:
             >>> from qiskit.circuit.classical import types
             >>> types.cast_kind(types.Bool(), types.Bool())
             <CastKind.EQUAL: 1>
-            >>> types.cast_kind(types.Uint(8), types.Bool())
+            >>> types.cast_kind(types.Uint(8, const=True), types.Bool())
             <CastKind.IMPLICIT: 2>
             >>> types.cast_kind(types.Bool(), types.Uint(8))
             <CastKind.LOSSLESS: 3>
             >>> types.cast_kind(types.Uint(16), types.Uint(8))
             <CastKind.DANGEROUS: 4>
     """
+    if to_.const is True and from_.const is False:
+        # we can't cast to a const type
+        return CastKind.NONE
     if (coercer := _ALLOWED_CASTS.get((from_.kind, to_.kind))) is None:
         return CastKind.NONE
-    return coercer(from_, to_)
+    cast_kind_ = coercer(from_, to_)
+    if cast_kind_ is CastKind.EQUAL and to_.const != from_.const:
+        # we need an implicit cast to drop const
+        return CastKind.IMPLICIT
+    return cast_kind_
