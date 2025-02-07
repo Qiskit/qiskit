@@ -21,7 +21,6 @@ from warnings import warn
 from pathlib import Path
 
 from qiskit import user_config
-from qiskit.visualization.circuit.qcstyle import MPLDefaultStyle, MPLStyleDict
 
 
 class StyleDict(dict):
@@ -91,8 +90,8 @@ class DefaultStyle:
 
 def load_style(
     style: Union[dict, str, None],
-    style_dict: StyleDict = MPLStyleDict,
-    default_style: DefaultStyle = MPLDefaultStyle,
+    style_dict: StyleDict,
+    default_style: DefaultStyle,
     user_config_opt: str = "circuit_mpl_style",
     user_config_path_opt: str = "circuit_mpl_style_path",
 ) -> tuple[StyleDict, float]:
