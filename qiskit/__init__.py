@@ -138,8 +138,6 @@ __all__ = [
     "QiskitError",
     "QuantumCircuit",
     "QuantumRegister",
-    "schedule",
-    "sequence",
     "transpile",
     "generate_preset_pass_manager",
 ]

@@ -36,7 +36,6 @@ from qiskit.pulse import (
 )
 
 from qiskit.pulse import builder
-from qiskit.pulse.transforms import target_qobj_transform
 from qiskit.dagcircuit import DAGOpNode
 from qiskit.transpiler import PassManager, Target, InstructionProperties
 from qiskit.transpiler.passes.calibration.builders import (
