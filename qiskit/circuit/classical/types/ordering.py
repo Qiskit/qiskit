@@ -26,7 +26,7 @@ __all__ = [
 
 import enum
 
-from .types import Type, Bool, Uint, Duration, Stretch
+from .types import Type, Bool, Uint
 
 
 # While the type system is simple, it's overkill to represent the complete partial ordering graph of
@@ -70,8 +70,6 @@ def _order_uint_uint(left: Uint, right: Uint, /) -> Ordering:
 _ORDERERS = {
     (Bool, Bool): _order_identical,
     (Uint, Uint): _order_uint_uint,
-    (Duration, Duration): _order_identical,
-    (Stretch, Stretch): _order_identical,
 }
 
 

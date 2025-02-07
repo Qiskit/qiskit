@@ -64,6 +64,11 @@ class Type:
         this a hashable enum-like discriminator you can rely on."""
         return self.__class__
 
+    @property
+    def const(self):
+        """Get the const-ness of this type."""
+        raise NotImplementedError("types must implement the 'const' attribute")
+
     # Enforcement of immutability.  The constructor methods need to manually skip this.
 
     def __setattr__(self, _key, _value):

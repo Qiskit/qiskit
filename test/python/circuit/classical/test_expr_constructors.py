@@ -242,7 +242,6 @@ class TestExprConstructors(QiskitTestCase):
                 types.Bool(),
             )
         )
-        print(f"HI: {function(cr_3, True)}")
         self.assertEqual(
             function(cr_3, True),
             expr.Binary(
@@ -416,7 +415,7 @@ class TestExprConstructors(QiskitTestCase):
             expr.Binary(
                 opcode,
                 expr.Cast(expr.Var(cr, types.Uint(cr.size)), types.Bool(), implicit=True),
-                expr.Cast(expr.Value(3, types.Uint(2, const=True)), types.Bool(const=True), implicit=True),
+                expr.Cast(expr.Value(3, types.Uint(cr.size)), types.Bool(), implicit=True),
                 types.Bool(),
             ),
         )
@@ -425,10 +424,20 @@ class TestExprConstructors(QiskitTestCase):
             function(False, clbit),
             expr.Binary(
                 opcode,
-                expr.Value(False, types.Bool(const=True)),
+                expr.Value(False, types.Bool()),
                 expr.Var(clbit, types.Bool()),
                 types.Bool(),
             ),
+        )
+
+        self.assertEqual(
+            function(False, 3),
+            expr.Binary(
+                opcode,
+                expr.Value(False, types.Bool(const=True)),
+                expr.Cast(expr.Value(3, types.Uint(2, const=True)), types.Bool(const=True), implicit=True),
+                types.Bool(const=True)
+            )
         )
 
     @ddt.data(

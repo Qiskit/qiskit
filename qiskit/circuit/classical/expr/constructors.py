@@ -91,7 +91,7 @@ def lift_legacy_condition(
     return Binary(Binary.Op.EQUAL, left, right, types.Bool())
 
 
-def lift(value: typing.Any, /, type: types.Type | None = None) -> Expr:
+def lift(value: typing.Any, /, type: types.Type | None = None, *, try_const: bool = True) -> Expr:
     """Lift the given Python ``value`` to a :class:`~.expr.Value` or :class:`~.expr.Var`.
 
     If an explicit ``type`` is given, the typing in the output will reflect that.
@@ -125,7 +125,7 @@ def lift(value: typing.Any, /, type: types.Type | None = None) -> Expr:
 
     inferred: types.Type
     if value is True or value is False:
-        inferred = types.Bool(const=True)
+        inferred = types.Bool(const=try_const)
         constructor = Value
     elif isinstance(value, Clbit):
         inferred = types.Bool()
@@ -136,7 +136,7 @@ def lift(value: typing.Any, /, type: types.Type | None = None) -> Expr:
     elif isinstance(value, int):
         if value < 0:
             raise ValueError("cannot represent a negative value")
-        inferred = types.Uint(width=value.bit_length() or 1, const=True)
+        inferred = types.Uint(width=value.bit_length() or 1, const=try_const)
         constructor = Value
     else:
         raise TypeError(f"failed to infer a type for '{value}'")
@@ -223,24 +223,19 @@ def _lift_binary_operands(left: typing.Any, right: typing.Any) -> tuple[Expr, Ex
     right_int = isinstance(right, int) and not right_bool
     if not (left_int or right_int):
         if left_bool == right_bool:
-            # If they're both bool, lifting them will produce const Bool.
-            # If neither are bool, they're a mix of bits/registers (which are always
-            # non-const) and Expr, which we can't modify the const-ness of without
-            # a cast node.
-            left = lift(left)
-            right = lift(right)
+            # If they're both bool, they'll lift as const here.
+            # If neither are, we've already checked for int, so they must be bits,
+            # registers, or expressions, none of which we can't lift to be const.
+            left = lift(left, try_const=True)
+            right = lift(right, try_const=True)
         elif not right_bool:
-            # Left is a bool
+            # Left is a bool, which should only be const if right is const.
             right = lift(right)
-            # TODO: if right.type isn't Bool, there's a type mismatch so we _should_
-            #  raise here. But, _binary_bitwise will error for us with a better msg.
-            left = lift(left, right.type if right.type.kind is types.Bool else None)
+            left = lift(left, try_const=right.type.const)
         elif not left_bool:
-            # Right is a bool.
+            # Right is a bool, which should only be const if left is const.
             left = lift(left)
-            # TODO: if left.type isn't Bool, there's a type mismatch so we _should_
-            #  raise here. But, _binary_bitwise will error for us with a better msg.
-            right = lift(right, left.type if left.type.kind is types.Bool else None)
+            right = lift(right, try_const=left.type.const)
     elif not right_int:
         # Left is an int.
         right = lift(right)
