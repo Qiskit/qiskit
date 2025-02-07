@@ -45,6 +45,7 @@ from qiskit.circuit.library import (
     PauliGate,
     PhaseGate,
     Reset,
+    RGate,
     RXGate,
     RXXGate,
     RYGate,
@@ -56,6 +57,8 @@ from qiskit.circuit.library import (
     XGate,
     ZGate,
     HGate,
+    UnitaryGate,
+    UGate,
 )
 from qiskit.dagcircuit import DAGOpNode
 
@@ -64,14 +67,14 @@ ROTATION_GATES = [
     RYGate,
     RZGate,
     PhaseGate,
-    CRXGate,
-    CRYGate,
-    CRZGate,
-    CPhaseGate,
     RXXGate,
     RYYGate,
     RZZGate,
     RZXGate,
+    CRXGate,
+    CRYGate,
+    CRZGate,
+    CPhaseGate,
 ]
 
 
@@ -433,25 +436,24 @@ class TestCommutationChecker(QiskitTestCase):
                 self.assertFalse(scc.commute(generic_gate, [0, 1], [], gate, qargs, []))
 
     @idata(ROTATION_GATES)
-    def test_rotation_mod_2pi(self, gate_cls):
-        """Test the rotations modulo 2pi commute with any gate."""
+    def test_controlled_rotation_mod_4pi(self, gate_cls):
+        """Test the rotations modulo 2pi (4pi for controlled-rx/y/z) commute with any gate."""
         generic_gate = HGate()  # does not commute with any rotation gate
-        even = np.arange(-6, 7, 2)
+        multiples = np.arange(-6, 7)
 
-        with self.subTest(msg="even multiples"):
-            for multiple in even:
+        for multiple in multiples:
+            with self.subTest(multiple=multiple):
                 gate = gate_cls(multiple * np.pi)
-                self.assertTrue(
-                    scc.commute(generic_gate, [0], [], gate, list(range(gate.num_qubits)), [])
+                numeric = UnitaryGate(gate.to_matrix())
+
+                # compute a numeric reference, that doesn't go through any special cases and
+                # uses a matrix-based commutation check
+                expected = scc.commute(
+                    generic_gate, [0], [], numeric, list(range(gate.num_qubits)), []
                 )
 
-        odd = np.arange(-5, 6, 2)
-        with self.subTest(msg="odd multiples"):
-            for multiple in odd:
-                gate = gate_cls(multiple * np.pi)
-                self.assertFalse(
-                    scc.commute(generic_gate, [0], [], gate, list(range(gate.num_qubits)), [])
-                )
+                result = scc.commute(generic_gate, [0], [], gate, list(range(gate.num_qubits)), [])
+                self.assertEqual(expected, result)
 
     def test_custom_gate(self):
         """Test a custom gate."""
@@ -482,6 +484,20 @@ class TestCommutationChecker(QiskitTestCase):
         rx_gate_theta = RXGate(Parameter("Theta"))
         self.assertTrue(scc.commute(pauli_gate, [0, 1], [], rx_gate_theta, [0], []))
         self.assertTrue(scc.commute(rx_gate_theta, [0], [], pauli_gate, [0, 1], []))
+
+    def test_2q_pauli_rot_with_non_cached(self):
+        """Test the 2q-Pauli rotations with a gate that is not cached."""
+        x_equiv = UGate(np.pi, -np.pi / 2, np.pi / 2)
+        self.assertTrue(scc.commute(x_equiv, [0], [], RXXGate(np.pi / 2), [0, 1], []))
+        self.assertTrue(scc.commute(x_equiv, [1], [], RXXGate(np.pi / 2), [0, 1], []))
+        self.assertFalse(scc.commute(x_equiv, [0], [], RYYGate(np.pi), [1, 0], []))
+        self.assertFalse(scc.commute(x_equiv, [1], [], RYYGate(np.pi), [1, 0], []))
+
+        something_else = RGate(1, 2)
+        self.assertFalse(scc.commute(something_else, [0], [], RXXGate(np.pi / 2), [0, 1], []))
+        self.assertFalse(scc.commute(something_else, [1], [], RXXGate(np.pi / 2), [0, 1], []))
+        self.assertFalse(scc.commute(something_else, [0], [], RYYGate(np.pi), [1, 0], []))
+        self.assertFalse(scc.commute(something_else, [1], [], RYYGate(np.pi), [1, 0], []))
 
 
 if __name__ == "__main__":

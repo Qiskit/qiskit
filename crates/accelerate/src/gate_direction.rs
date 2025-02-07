@@ -23,7 +23,7 @@ use qiskit_circuit::{
     circuit_instruction::CircuitInstruction,
     circuit_instruction::ExtraInstructionAttributes,
     converters::{circuit_to_dag, QuantumCircuitData},
-    dag_circuit::{DAGCircuit, NodeType},
+    dag_circuit::DAGCircuit,
     dag_node::{DAGNode, DAGOpNode},
     imports,
     imports::get_std_gate_class,
@@ -105,11 +105,7 @@ fn check_gate_direction<T>(
 where
     T: Fn(&PackedInstruction, &[Qubit]) -> bool,
 {
-    for node in dag.op_nodes(false) {
-        let NodeType::Operation(packed_inst) = &dag.dag()[node] else {
-            panic!("PackedInstruction is expected");
-        };
-
+    for (_, packed_inst) in dag.op_nodes(false) {
         let inst_qargs = dag.get_qargs(packed_inst.qubits);
 
         if let OperationRef::Instruction(py_inst) = packed_inst.op.view() {
@@ -117,7 +113,7 @@ where
                 let circuit_to_dag = imports::CIRCUIT_TO_DAG.get_bound(py);
                 let py_inst = py_inst.instruction.bind(py);
 
-                for block in py_inst.getattr("blocks")?.iter()? {
+                for block in py_inst.getattr("blocks")?.try_iter()? {
                     let inner_dag: DAGCircuit = circuit_to_dag.call1((block?,))?.extract()?;
 
                     let block_ok = if let Some(mapping) = qubit_mapping {
@@ -212,7 +208,7 @@ fn py_fix_direction_target(
         ];
 
         // Take this path so Target can check for exact match of the parameterized gate's angle
-        if let OperationRef::Standard(std_gate) = inst.op.view() {
+        if let OperationRef::StandardGate(std_gate) = inst.op.view() {
             match std_gate {
                 StandardGate::RXXGate
                 | StandardGate::RYYGate
@@ -254,9 +250,7 @@ where
     let mut nodes_to_replace: Vec<(NodeIndex, DAGCircuit)> = Vec::new();
     let mut ops_to_replace: Vec<(NodeIndex, Vec<Bound<PyAny>>)> = Vec::new();
 
-    for node in dag.op_nodes(false) {
-        let packed_inst = dag.dag()[node].unwrap_operation();
-
+    for (node, packed_inst) in dag.op_nodes(false) {
         let op_args = dag.get_qargs(packed_inst.qubits);
 
         if let OperationRef::Instruction(py_inst) = packed_inst.op.view() {
@@ -315,7 +309,7 @@ where
 
         // If the op has a pre-defined replacement - replace if the other direction is supported otherwise error
         // If no pre-defined replacement for the op - if the other direction is supported error saying no pre-defined rule otherwise error saying op is not supported
-        if let OperationRef::Standard(std_gate) = packed_inst.op.view() {
+        if let OperationRef::StandardGate(std_gate) = packed_inst.op.view() {
             match std_gate {
                 StandardGate::CXGate
                 | StandardGate::ECRGate
@@ -357,7 +351,7 @@ where
     }
 
     for (node, op_blocks) in ops_to_replace {
-        let packed_inst = dag.dag()[node].unwrap_operation();
+        let packed_inst = dag[node].unwrap_operation();
         let OperationRef::Instruction(py_inst) = packed_inst.op.view() else {
             panic!("PyInstruction is expected");
         };
@@ -389,7 +383,7 @@ fn has_calibration_for_op_node(
     packed_inst: &PackedInstruction,
     qargs: &[Qubit],
 ) -> PyResult<bool> {
-    let py_args = PyTuple::new_bound(py, dag.qubits().map_indices(qargs));
+    let py_args = PyTuple::new(py, dag.qubits().map_indices(qargs))?;
 
     let dag_op_node = Py::new(
         py,
@@ -398,13 +392,12 @@ fn has_calibration_for_op_node(
                 instruction: CircuitInstruction {
                     operation: packed_inst.op.clone(),
                     qubits: py_args.unbind(),
-                    clbits: PyTuple::empty_bound(py).unbind(),
+                    clbits: PyTuple::empty(py).unbind(),
                     params: packed_inst.params_view().iter().cloned().collect(),
                     extra_attrs: packed_inst.extra_attrs.clone(),
                     #[cfg(feature = "cache_pygates")]
                     py_op: packed_inst.py_op.clone(),
                 },
-                sort_key: "".into_py(py),
             },
             DAGNode { node: None },
         ),
@@ -470,7 +463,7 @@ fn apply_operation_back(
 ) -> PyResult<()> {
     dag.apply_operation_back(
         py,
-        PackedOperation::from_standard(gate),
+        PackedOperation::from_standard_gate(gate),
         qargs,
         &[],
         param,
