@@ -429,7 +429,6 @@ def generate_translation_passmanager(
     method="translator",
     approximation_degree=None,
     coupling_map=None,
-    backend_props=None,
     unitary_synthesis_method="default",
     unitary_synthesis_plugin_config=None,
     hls_config=None,
@@ -452,8 +451,6 @@ def generate_translation_passmanager(
         unitary_synthesis_plugin_config (dict): The optional dictionary plugin
             configuration, this is plugin specific refer to the specified plugin's
             documentation for how to use.
-        backend_props (BackendProperties): Properties of a backend to
-            synthesize for (e.g. gate fidelities).
         unitary_synthesis_method (str): The unitary synthesis method to use. You can
             see a list of installed plugins with :func:`.unitary_synthesis_plugin_names`.
         hls_config (HLSConfig): An optional configuration class to use for
@@ -477,7 +474,6 @@ def generate_translation_passmanager(
                 basis_gates,
                 approximation_degree=approximation_degree,
                 coupling_map=coupling_map,
-                backend_props=backend_props,
                 plugin_config=unitary_synthesis_plugin_config,
                 method=unitary_synthesis_method,
                 target=target,
@@ -502,7 +498,6 @@ def generate_translation_passmanager(
                 basis_gates,
                 approximation_degree=approximation_degree,
                 coupling_map=coupling_map,
-                backend_props=backend_props,
                 plugin_config=unitary_synthesis_plugin_config,
                 method=unitary_synthesis_method,
                 min_qubits=3,
@@ -527,7 +522,6 @@ def generate_translation_passmanager(
                 basis_gates=basis_gates,
                 approximation_degree=approximation_degree,
                 coupling_map=coupling_map,
-                backend_props=backend_props,
                 plugin_config=unitary_synthesis_plugin_config,
                 method=unitary_synthesis_method,
                 target=target,
@@ -550,7 +544,6 @@ def generate_translation_passmanager(
                 basis_gates=basis_gates,
                 approximation_degree=approximation_degree,
                 coupling_map=coupling_map,
-                backend_props=backend_props,
                 plugin_config=unitary_synthesis_plugin_config,
                 method=unitary_synthesis_method,
                 target=target,
