@@ -191,10 +191,10 @@ def transpile(  # pylint: disable=too-many-return-statements
             This can also be the external plugin name to use for the ``routing`` stage.
             You can see a list of installed plugins by using :func:`~.list_stage_plugins` with
             ``"routing"`` for the ``stage_name`` argument.
-        translation_method: Name of translation pass (``"translator"`` or ``"synthesis"``)
-            This can also be the external plugin name to use for the ``translation`` stage.
-            You can see a list of installed plugins by using :func:`~.list_stage_plugins` with
-            ``"translation"`` for the ``stage_name`` argument.
+        translation_method: Name of translation pass (``"default"``, ``"translator"`` or
+            ``"synthesis"``). This can also be the external plugin name to use for the
+            ``translation`` stage.  You can see a list of installed plugins by using
+            :func:`~.list_stage_plugins` with ``"translation"`` for the ``stage_name`` argument.
         scheduling_method: Name of scheduling pass.
             * ``'as_soon_as_possible'``: Schedule instructions greedily, as early as possible
             on a qubit resource. (alias: ``'asap'``)

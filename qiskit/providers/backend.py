@@ -361,9 +361,9 @@ class BackendV2(Backend, ABC):
         self._provider = provider
         if fields:
             for field in fields:
-                if field not in self._options.data:
+                if field not in self._options:
                     raise AttributeError(f"Options field {field} is not valid for this backend")
-            self._options.update_config(**fields)
+            self._options.update_options(**fields)
         self.name = name
         """Name of the backend."""
         self.description = description
