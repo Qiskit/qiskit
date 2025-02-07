@@ -128,7 +128,7 @@ def _find_matching_euler_bases(target, qubit):
 
 
 def _choose_bases(basis_gates, basis_dict=None):
-    """Find the matching basis string keys from the list of basis gates from the backend."""
+    """Find the matching basis string keys from the list of basis gates from the target."""
     if basis_gates is None:
         basis_set = set()
     else:
@@ -343,7 +343,7 @@ class UnitarySynthesis(TransformationPass):
                 (1.0=no approximation, 0.0=maximal approximation). Approximation can
                 make the synthesized circuit cheaper at the cost of straying from
                 the original unitary. If None, approximation is done based on gate fidelities.
-            coupling_map (CouplingMap): the coupling map of the backend
+            coupling_map (CouplingMap): the coupling map of the target
                 in case synthesis is done on a physical circuit. The
                 directionality of the coupling_map will be taken into
                 account if ``pulse_optimize`` is ``True``/``None`` and ``natural_direction``
