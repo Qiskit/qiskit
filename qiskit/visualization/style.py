@@ -73,10 +73,12 @@ class DefaultStyle:
     Attributes:
         DEFAULT_STYLE_NAME (str): style name for the default style
         STYLE_PATH: file path where DEFAULT_STYLE_NAME.json is located
+        STYLE_DICT_CLASS: style dict type for DefaultStyle to use
     """
 
     DEFAULT_STYLE_NAME = "default"
     DEFAULT_STYLE_PATH = Path(__file__).parent / "styles"
+    STYLE_DICT_CLASS = StyleDict
 
     def __init__(self):
         path = self.DEFAULT_STYLE_PATH / Path(self.DEFAULT_STYLE_NAME).with_suffix(".json")
@@ -85,7 +87,7 @@ class DefaultStyle:
             default_style = json.load(infile)
 
         # set shortcuts, such as "ec" for "edgecolor"
-        self.style = StyleDict(**default_style)
+        self.style = self.STYLE_DICT_CLASS(**default_style)
 
 
 def load_style(
@@ -122,7 +124,7 @@ def load_style(
         A tuple containing the style as dictionary and the default font ratio.
     """
 
-    default = default_style().DEFAULT_STYLE_NAME
+    default = default_style.DEFAULT_STYLE_NAME
 
     # if the style is not given, try to load the configured default (if set),
     # or use the default style
@@ -152,7 +154,7 @@ def load_style(
         style_name = default
 
     if style_name in [default]:
-        current_style = default_style().style
+        current_style = default_style.style
     else:
         # Search for file in 'styles' dir, then config_path, and finally the current directory
         style_name = style_name + ".json"
@@ -205,7 +207,7 @@ def load_style(
                 UserWarning,
                 2,
             )
-            current_style = default_style().style
+            current_style = default_style.style
 
     # if the style is a dictionary, update the defaults with the new values
     # this _needs_ to happen after loading by name to cover cases like
