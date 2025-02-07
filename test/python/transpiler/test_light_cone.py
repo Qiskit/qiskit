@@ -38,7 +38,7 @@ class TestLightConePass(QiskitTestCase):
     def __init__(self, methodName: str = "runTest") -> None:
         super().__init__(methodName)
 
-    @ddt.data("Y", "Z")
+    @ddt.data("X", "Z")
     def test_nonparameterized_noncommuting(self, pauli_label):
         """Test for a non-commuting, asymmetric, weight-one Pauli."""
         bit_terms = pauli_label
@@ -47,9 +47,9 @@ class TestLightConePass(QiskitTestCase):
 
         q0 = QuantumRegister(2, "q0")
         qc = QuantumCircuit(q0)
-        qc.h(0)
-        qc.h(1)
-        qc.cx(0, 1)
+        qc.x(0)
+        qc.s(1)
+        qc.cy(0, 1)
 
         new_circuit = pm.run(qc)
 
@@ -59,21 +59,19 @@ class TestLightConePass(QiskitTestCase):
 
     def test_nonparameterized_commuting(self):
         """Test for a commuting, asymmetric, weight-one Pauli."""
-        observable = Pauli("XI")
-        bit_terms, indices, _ = SparsePauliOp(observable).to_sparse_list()[0]
-        light_cone = LightCone(bit_terms=bit_terms, indices=indices)
+        light_cone = LightCone(bit_terms="Y", indices=[1])
         pm = PassManager([light_cone])
 
         q0 = QuantumRegister(2, "q0")
         qc = QuantumCircuit(q0)
-        qc.h(0)
-        qc.h(1)
-        qc.cx(0, 1)
+        qc.x(0)
+        qc.s(1)
+        qc.cy(0, 1)
 
         new_circuit = pm.run(qc)
 
         expected = QuantumCircuit(q0)
-        expected.h(1)
+        expected.s(1)
 
         self.assertEqual(expected, new_circuit)
 
@@ -99,8 +97,7 @@ class TestLightConePass(QiskitTestCase):
 
     def test_parameterized_commuting(self):
         """Test for a commuting, asymmetric, weight-one Pauli on a parameterized circuit."""
-        observable = Pauli("XI")
-        bit_terms, indices, _ = SparsePauliOp(observable).to_sparse_list()[0]
+        bit_terms, indices, _ = SparsePauliOp("XI").to_sparse_list()[0]
         light_cone = LightCone(bit_terms=bit_terms, indices=indices)
         pm = PassManager([light_cone])
         theta = Parameter("θ")
@@ -120,8 +117,7 @@ class TestLightConePass(QiskitTestCase):
 
     def test_parameterized_symmetric(self):
         """Test for a double symmetric `Z` observable on a parameterized circuit."""
-        observable = Pauli("ZIIZ")
-        bit_terms, indices, _ = SparsePauliOp(observable).to_sparse_list()[0]
+        bit_terms, indices, _ = SparsePauliOp("ZIIZ").to_sparse_list()[0]
         light_cone = LightCone(bit_terms=bit_terms, indices=indices)
         pm = PassManager([light_cone])
 
@@ -145,8 +141,7 @@ class TestLightConePass(QiskitTestCase):
 
     def test_parameterized_asymmetric(self):
         """Test for a double asymmetric observable on a parameterized circuit."""
-        observable = Pauli("IZIX")
-        bit_terms, indices, _ = SparsePauliOp(observable).to_sparse_list()[0]
+        bit_terms, indices, _ = SparsePauliOp("IZIX").to_sparse_list()[0]
         light_cone = LightCone(bit_terms=bit_terms, indices=indices)
         pm = PassManager([light_cone])
 
@@ -177,8 +172,7 @@ class TestLightConePass(QiskitTestCase):
 
     def test_all_commuting(self):
         """Test for a circuit that fully commutes with an observable."""
-        observable = Pauli("IIIZ")
-        bit_terms, indices, _ = SparsePauliOp(observable).to_sparse_list()[0]
+        bit_terms, indices, _ = SparsePauliOp("IIIZ").to_sparse_list()[0]
         light_cone = LightCone(bit_terms=bit_terms, indices=indices)
         pm = PassManager([light_cone])
 
@@ -197,8 +191,7 @@ class TestLightConePass(QiskitTestCase):
     def test_commuting_block(self):
         """Test for a commuting block. Currently, gates are checked
         one by one and commuting blocks are thus ignored."""
-        observable = Pauli("IIXII")
-        bit_terms, indices, _ = SparsePauliOp(observable).to_sparse_list()[0]
+        bit_terms, indices, _ = SparsePauliOp("IIXII").to_sparse_list()[0]
         light_cone = LightCone(bit_terms=bit_terms, indices=indices)
         pm = PassManager([light_cone])
 
@@ -256,8 +249,8 @@ class TestLightConePass(QiskitTestCase):
 
         self.assertEqual(expected, new_circuit)
 
-    @ddt.data(SparsePauliOp("IX"))
-    def test_parameter_expression(self, sparse_object):
+    @ddt.data(SparsePauliOp("IX"), SparseObservable("I+"))
+    def test_parameter_expression(self, sparse_object: SparsePauliOp | SparseObservable):
         """Test for Parameter expressions."""
         bit_terms, indices, _ = sparse_object.to_sparse_list()[0]
         light_cone = LightCone(bit_terms=bit_terms, indices=indices)
@@ -285,11 +278,14 @@ class TestLightConePass(QiskitTestCase):
 
         self.assertEqual(expected, new_circuit)
 
-    def test_big_circuit(self):
+    @ddt.data(
+        SparsePauliOp("X" + "I" * (116) + "YII"),
+        SparseObservable("-" + "I" * (116) + "lII"),
+    )
+    def test_big_circuit(self, sparse_object: SparsePauliOp | SparseObservable):
         """Test for large circuit and observable."""
         num_qubits = 120
-        observable = Pauli("X" + "I" * (num_qubits - 4) + "YII")
-        bit_terms, indices, _ = SparsePauliOp(observable).to_sparse_list()[0]
+        bit_terms, indices, _ = sparse_object.to_sparse_list()[0]
         light_cone = LightCone(bit_terms=bit_terms, indices=indices)
         pm = PassManager([light_cone])
         theta = Parameter("θ")
