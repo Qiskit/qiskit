@@ -66,7 +66,7 @@ class TestSabreLayout(QiskitTestCase):
         pass_.run(dag)
 
         layout = pass_.property_set["layout"]
-        self.assertEqual([layout[q] for q in circuit.qubits], [11, 10, 16, 5, 17])
+        self.assertEqual([layout[q] for q in circuit.qubits], [3, 6, 8, 7, 12])
 
     def test_6q_circuit_20q_coupling(self):
         """Test finds layout for 6q circuit on 20q device."""
@@ -98,7 +98,7 @@ class TestSabreLayout(QiskitTestCase):
         pass_.run(dag)
 
         layout = pass_.property_set["layout"]
-        self.assertEqual([layout[q] for q in circuit.qubits], [7, 8, 12, 6, 11, 13])
+        self.assertEqual([layout[q] for q in circuit.qubits], [7, 8, 11, 12, 13, 6])
 
     def test_6q_circuit_20q_coupling_with_partial(self):
         """Test finds layout for 6q circuit on 20q device."""
@@ -166,7 +166,7 @@ class TestSabreLayout(QiskitTestCase):
         pass_.run(dag)
 
         layout = pass_.property_set["layout"]
-        self.assertEqual([layout[q] for q in circuit.qubits], [7, 8, 12, 6, 11, 13])
+        self.assertEqual([layout[q] for q in circuit.qubits], [7, 8, 11, 12, 13, 6])
 
     def test_layout_with_classical_bits(self):
         """Test sabre layout with classical bits recreate from issue #8635."""
@@ -207,7 +207,7 @@ rz(0) q4835[1];
         self.assertIsInstance(res, QuantumCircuit)
         layout = res._layout.initial_layout
         self.assertEqual(
-            [layout[q] for q in qc.qubits], [2, 0, 5, 1, 7, 3, 14, 6, 9, 8, 10, 11, 4, 12]
+            [layout[q] for q in qc.qubits], [14, 12, 5, 13, 26, 11, 19, 25, 18, 8, 17, 16, 9, 4]
         )
 
     # pylint: disable=line-too-long
@@ -271,7 +271,7 @@ barrier q18585[5],q18585[2],q18585[8],q18585[3],q18585[6];
         self.assertIsInstance(res, QuantumCircuit)
         layout = res._layout.initial_layout
         self.assertEqual(
-            [layout[q] for q in qc.qubits], [0, 12, 7, 3, 6, 11, 1, 10, 4, 9, 2, 5, 13, 8]
+            [layout[q] for q in qc.qubits], [0, 12, 7, 8, 6, 3, 1, 10, 4, 9, 2, 11, 13, 5]
         )
 
     def test_support_var_with_rust_fastpath(self):
@@ -291,7 +291,7 @@ barrier q18585[5],q18585[2],q18585[8],q18585[3],q18585[6];
         out = SabreLayout(CouplingMap.from_line(8), seed=0, swap_trials=2, layout_trials=2)(qc)
 
         self.assertIsInstance(out, QuantumCircuit)
-        self.assertEqual(out.layout.initial_index_layout(), [4, 5, 6, 3, 2, 0, 1, 7])
+        self.assertEqual(out.layout.initial_index_layout(), [6, 5, 4, 2, 3, 0, 1, 7])
 
     def test_support_var_with_explicit_routing_pass(self):
         """Test that the logic works if an explicit routing pass is given."""
@@ -372,7 +372,7 @@ class TestDisjointDeviceSabreLayout(QiskitTestCase):
         )
         layout_routing_pass(qc)
         layout = layout_routing_pass.property_set["layout"]
-        self.assertEqual([layout[q] for q in qc.qubits], [3, 1, 2, 5, 4, 6, 7, 8])
+        self.assertEqual([layout[q] for q in qc.qubits], [3, 2, 1, 5, 4, 7, 6, 8])
 
     def test_dual_ghz_with_wide_barrier(self):
         """Test a basic example with 2 circuit components and 2 cmap components."""
@@ -391,7 +391,7 @@ class TestDisjointDeviceSabreLayout(QiskitTestCase):
         )
         layout_routing_pass(qc)
         layout = layout_routing_pass.property_set["layout"]
-        self.assertEqual([layout[q] for q in qc.qubits], [3, 1, 2, 5, 4, 6, 7, 8])
+        self.assertEqual([layout[q] for q in qc.qubits], [3, 2, 1, 5, 4, 7, 6, 8])
 
     def test_dual_ghz_with_intermediate_barriers(self):
         """Test dual ghz circuit with intermediate barriers local to each component."""
@@ -412,7 +412,7 @@ class TestDisjointDeviceSabreLayout(QiskitTestCase):
         )
         layout_routing_pass(qc)
         layout = layout_routing_pass.property_set["layout"]
-        self.assertEqual([layout[q] for q in qc.qubits], [3, 1, 2, 5, 4, 6, 7, 8])
+        self.assertEqual([layout[q] for q in qc.qubits], [3, 2, 1, 5, 4, 7, 6, 8])
 
     def test_dual_ghz_with_intermediate_spanning_barriers(self):
         """Test dual ghz circuit with barrier in the middle across components."""
@@ -432,7 +432,7 @@ class TestDisjointDeviceSabreLayout(QiskitTestCase):
         )
         layout_routing_pass(qc)
         layout = layout_routing_pass.property_set["layout"]
-        self.assertEqual([layout[q] for q in qc.qubits], [3, 1, 2, 5, 4, 6, 7, 8])
+        self.assertEqual([layout[q] for q in qc.qubits], [3, 2, 1, 5, 4, 7, 6, 8])
 
     def test_too_large_components(self):
         """Assert trying to run a circuit with too large a connected component raises."""
@@ -468,7 +468,7 @@ class TestDisjointDeviceSabreLayout(QiskitTestCase):
         )
         pm.run(qc)
         layout = pm.property_set["layout"]
-        self.assertEqual([layout[q] for q in qc.qubits], [3, 1, 2, 5, 4, 6, 7, 8])
+        self.assertEqual([layout[q] for q in qc.qubits], [3, 2, 1, 5, 4, 7, 6, 8])
 
 
 class TestSabrePreLayout(QiskitTestCase):
@@ -508,7 +508,7 @@ class TestSabrePreLayout(QiskitTestCase):
         qct_initial_layout = qct.layout.initial_layout
         self.assertEqual(
             [qct_initial_layout[q] for q in self.circuit.qubits],
-            [3, 8, 7, 12, 13, 14, 18, 17, 16, 11, 10, 5, 6, 1, 2, 4],
+            [17, 16, 11, 12, 7, 6, 5, 1, 2, 3, 8, 9, 14, 13, 19, 18],
         )
 
 

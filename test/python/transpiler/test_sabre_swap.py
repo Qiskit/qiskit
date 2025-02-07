@@ -758,8 +758,8 @@ class TestSabreSwapControlFlow(QiskitTestCase):
         efalse_body.swap(2, 3)
 
         expected.if_else((creg[0], 0), etrue_body, efalse_body, qreg[[1, 2, 3, 4]], creg[[0]])
-        expected.swap(1, 2)
         expected.h(3)
+        expected.swap(2, 3)
         expected.cx(3, 2)
         expected.barrier()
         expected.measure(qreg[[2, 0, 1, 3, 4]], creg)

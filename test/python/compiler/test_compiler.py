@@ -16,7 +16,7 @@ import os
 import unittest
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.transpiler import PassManager
+from qiskit.transpiler import PassManager, CouplingMap
 from qiskit.circuit.library import U1Gate, U2Gate
 from qiskit.compiler import transpile
 from qiskit.providers.basic_provider import BasicSimulator
@@ -430,7 +430,7 @@ class TestCompiler(QiskitTestCase):
         """Run a circuit with randomly generated parameters."""
         qasm_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "qasm")
         circ = QuantumCircuit.from_qasm_file(os.path.join(qasm_dir, "random_n5_d5.qasm"))
-        coupling_map = [[0, 1], [1, 2], [2, 3], [3, 4]]
+        coupling_map = CouplingMap([[0, 1], [1, 2], [2, 3], [3, 4]]).make_symmetric()
         shots = 1024
         qobj = self.backend.run(
             transpile(circ, backend=self.backend, coupling_map=coupling_map, seed_transpiler=42),
