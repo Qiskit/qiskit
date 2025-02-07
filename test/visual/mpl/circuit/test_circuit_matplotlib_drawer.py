@@ -33,8 +33,6 @@ from qiskit.circuit.library import (
     ZGate,
     SGate,
     SXGate,
-    U1Gate,
-    CPhaseGate,
     HamiltonianGate,
     Isometry,
     iqp,
