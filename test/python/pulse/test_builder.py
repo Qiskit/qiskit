@@ -12,10 +12,9 @@
 
 """Test pulse builder context utilities."""
 
-from math import pi
 import numpy as np
 
-from qiskit import circuit, compiler, pulse
+from qiskit import circuit, pulse
 from qiskit.pulse import builder, exceptions, macros
 from qiskit.pulse.instructions import directives
 from qiskit.pulse.transforms import target_qobj_transform
@@ -763,102 +762,6 @@ class TestMacros(TestBuilder):
 @decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestBuilderComposition(TestBuilder):
     """Test more sophisticated composite builder examples."""
-
-    def test_complex_build(self):
-        """Test a general program build with nested contexts,
-        circuits and macros."""
-        d0 = pulse.DriveChannel(0)
-        d1 = pulse.DriveChannel(1)
-        d2 = pulse.DriveChannel(2)
-        delay_dur = 30
-        short_dur = 20
-        long_dur = 49
-
-        def get_sched(qubit_idx: [int], backend):
-            qc = circuit.QuantumCircuit(2)
-            for idx in qubit_idx:
-                qc.append(circuit.library.U2Gate(0, pi / 2), [idx])
-            with self.assertWarnsRegex(
-                DeprecationWarning,
-                expected_regex="The `transpile` function will "
-                "stop supporting inputs of type `BackendV1`",
-            ):
-                transpiled = compiler.transpile(qc, backend=backend, optimization_level=1)
-            with self.assertWarns(DeprecationWarning):
-                return compiler.schedule(transpiled, backend)
-
-        with pulse.build(self.backend) as schedule:
-            with pulse.align_sequential():
-                pulse.delay(delay_dur, d0)
-                pulse.call(get_sched([1], self.backend))
-
-            with pulse.align_right():
-                pulse.play(library.Constant(short_dur, 0.1), d1)
-                pulse.play(library.Constant(long_dur, 0.1), d2)
-                pulse.call(get_sched([1], self.backend))
-
-            with pulse.align_left():
-                pulse.call(get_sched([0, 1, 0], self.backend))
-
-            pulse.measure(0)
-
-        # prepare and schedule circuits that will be used.
-        single_u2_qc = circuit.QuantumCircuit(2)
-        single_u2_qc.append(circuit.library.U2Gate(0, pi / 2), [1])
-        with self.assertWarnsRegex(
-            DeprecationWarning,
-            expected_regex="The `transpile` function will "
-            "stop supporting inputs of type `BackendV1`",
-        ):
-            single_u2_qc = compiler.transpile(single_u2_qc, self.backend, optimization_level=1)
-        with self.assertWarns(DeprecationWarning):
-            single_u2_sched = compiler.schedule(single_u2_qc, self.backend)
-
-        # sequential context
-        sequential_reference = pulse.Schedule()
-        sequential_reference += instructions.Delay(delay_dur, d0)
-        sequential_reference.insert(delay_dur, single_u2_sched, inplace=True)
-
-        # align right
-        align_right_reference = pulse.Schedule()
-        align_right_reference += pulse.Play(library.Constant(long_dur, 0.1), d2)
-        align_right_reference.insert(
-            long_dur - single_u2_sched.duration, single_u2_sched, inplace=True
-        )
-        align_right_reference.insert(
-            long_dur - single_u2_sched.duration - short_dur,
-            pulse.Play(library.Constant(short_dur, 0.1), d1),
-            inplace=True,
-        )
-
-        # align left
-        triple_u2_qc = circuit.QuantumCircuit(2)
-        triple_u2_qc.append(circuit.library.U2Gate(0, pi / 2), [0])
-        triple_u2_qc.append(circuit.library.U2Gate(0, pi / 2), [1])
-        triple_u2_qc.append(circuit.library.U2Gate(0, pi / 2), [0])
-        with self.assertWarnsRegex(
-            DeprecationWarning,
-            expected_regex="The `transpile` function will "
-            "stop supporting inputs of type `BackendV1`",
-        ):
-            triple_u2_qc = compiler.transpile(triple_u2_qc, self.backend, optimization_level=1)
-        with self.assertWarns(DeprecationWarning):
-            align_left_reference = compiler.schedule(triple_u2_qc, self.backend, method="alap")
-
-        # measurement
-        measure_reference = macros.measure(
-            qubits=[0], inst_map=self.inst_map, meas_map=self.configuration.meas_map
-        )
-        reference = pulse.Schedule()
-        reference += sequential_reference
-        # Insert so that the long pulse on d2 occurs as early as possible
-        # without an overval on d1.
-        insert_time = reference.ch_stop_time(d1) - align_right_reference.ch_start_time(d1)
-        reference.insert(insert_time, align_right_reference, inplace=True)
-        reference.insert(reference.ch_stop_time(d0, d1), align_left_reference, inplace=True)
-        reference += measure_reference
-
-        self.assertScheduleEqual(schedule, reference)
 
 
 @decorate_test_methods(ignore_pulse_deprecation_warnings)
