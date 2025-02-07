@@ -125,7 +125,7 @@ def generate_random_circuits(version):
             if version >= (2, 0, 0):
                 from qiskit.circuit.controlflow import IfElseOp
                 condition = (qc.cregs[0], i)
-                body = QuantumCircuit(qc.qubits[0])
+                body = QuantumCircuit([qc.qubits[0]])
                 body.x(0)
                 qc.append(IfElseOp((condition, body), [qc.qubits[0]]))
             else:
@@ -298,7 +298,7 @@ def generate_single_clbit_condition_teleportation(version):  # pylint: disable=i
     if version >= (2, 0, 0):
         from qiskit.circuit.controlflow import IfElseOp
         condition = (cr[0], 1)
-        body = QuantumCircuit(teleport_qc.qubits[0])
+        body = QuantumCircuit([teleport_qc.qubits[0]])
         body.x(0)
         teleport_qc.append(IfElseOp((condition, body), [teleport_qc.qubits[0]]))
     else:
