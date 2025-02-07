@@ -544,7 +544,6 @@ def generate_translation_passmanager(
                 basis_gates=basis_gates,
                 approximation_degree=approximation_degree,
                 coupling_map=coupling_map,
-                backend_props=backend_props,
                 plugin_config=unitary_synthesis_plugin_config,
                 method=unitary_synthesis_method,
                 target=target,
