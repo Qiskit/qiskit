@@ -18,7 +18,7 @@ import numpy as np
 from ddt import data, ddt
 
 from qiskit.converters import circuit_to_dag
-from qiskit import circuit, schedule, QiskitError, QuantumCircuit
+from qiskit import circuit, QiskitError, QuantumCircuit
 from qiskit.circuit import Parameter
 from qiskit.circuit.library.standard_gates import SXGate, RXGate
 from qiskit.providers.fake_provider import Fake7QPulseV1, Fake27QPulseV1, GenericBackendV2
@@ -168,105 +168,6 @@ class TestRZXCalibrationBuilder(TestCalibrationBuilder):
 
         return ref_sched
 
-    def build_reverse(
-        self,
-        backend,
-        theta,
-        u0p_play,
-        d1p_play,
-        u0m_play,
-        d1m_play,
-    ):
-        """A helper function to generate reference pulse schedule for backward direction."""
-        duration = self.compute_stretch_duration(u0p_play, theta)
-        width = self.compute_stretch_width(u0p_play, theta)
-        inst_sched_map = backend.defaults().instruction_schedule_map
-
-        rz_qc_q0 = QuantumCircuit(1)
-        rz_qc_q0.rz(pi / 2, 0)
-
-        rz_qc_q1 = QuantumCircuit(2)
-        rz_qc_q1.rz(pi / 2, 1)
-
-        with self.assertWarns(DeprecationWarning):
-            rz_sched_q0 = schedule(rz_qc_q0, backend)
-            rz_sched_q1 = schedule(rz_qc_q1, backend)
-
-        with builder.build(
-            backend,
-            default_alignment="sequential",
-        ) as ref_sched:
-
-            # Get Schedule from the backend for Gates equivalent to Hadamard gates.
-            with builder.align_left():
-                builder.call(rz_sched_q0)
-                builder.call(
-                    inst_sched_map._get_calibration_entry(SXGate(), qubits=(0,)).get_schedule()
-                )
-                builder.call(rz_sched_q0)
-
-                builder.call(rz_sched_q1)
-                builder.call(
-                    inst_sched_map._get_calibration_entry(SXGate(), qubits=(1,)).get_schedule()
-                )
-                builder.call(rz_sched_q1)
-
-            with builder.align_left():
-                # Positive CRs
-                u0p_params = u0p_play.pulse.parameters
-                u0p_params["duration"] = duration
-                u0p_params["width"] = width
-                builder.play(
-                    GaussianSquare(**u0p_params),
-                    ControlChannel(0),
-                )
-                d1p_params = d1p_play.pulse.parameters
-                d1p_params["duration"] = duration
-                d1p_params["width"] = width
-                builder.play(
-                    GaussianSquare(**d1p_params),
-                    DriveChannel(1),
-                )
-
-            # Get Schedule for 'x' gate from the backend.
-            builder.call(inst_sched_map._get_calibration_entry("x", (0,)).get_schedule())
-
-            with builder.align_left():
-                # Negative CRs
-                u0m_params = u0m_play.pulse.parameters
-                u0m_params["duration"] = duration
-                u0m_params["width"] = width
-                builder.play(
-                    GaussianSquare(**u0m_params),
-                    ControlChannel(0),
-                )
-                d1m_params = d1m_play.pulse.parameters
-                d1m_params["duration"] = duration
-                d1m_params["width"] = width
-                builder.play(
-                    GaussianSquare(**d1m_params),
-                    DriveChannel(1),
-                )
-
-            # Get Schedule for 'x' gate from the backend.
-            builder.call(inst_sched_map._get_calibration_entry("x", (0,)).get_schedule())
-
-            # Get Schedule from the backend for Gates equivalent to Hadamard gates.
-            with builder.align_left():
-                builder.call(rz_sched_q0)
-                builder.call(
-                    inst_sched_map._get_calibration_entry(SXGate(), qubits=(0,)).get_schedule()
-                )
-                builder.call(rz_sched_q0)
-
-                builder.call(rz_sched_q1)
-                builder.call(
-                    inst_sched_map._get_calibration_entry(SXGate(), qubits=(1,)).get_schedule()
-                )
-                builder.call(rz_sched_q1)
-
-        return ref_sched
-
     @data(-np.pi / 4, 0.1, np.pi / 4, np.pi / 2, np.pi)
     def test_rzx_calibration_cr_pulse_stretch(self, theta: float):
         """Test that cross resonance pulse durations are computed correctly."""
@@ -322,60 +223,6 @@ class TestRZXCalibrationBuilder(TestCalibrationBuilder):
             for node in dag.gate_nodes():
                 qubits = [qubit_map[q] for q in node.qargs]
                 _pass.get_calibration(node.op, qubits)
-
-    def test_ecr_cx_forward(self):
-        """Test that correct pulse sequence is generated for native CR pair."""
-        # Sufficiently large angle to avoid minimum duration, i.e. amplitude rescaling
-        theta = np.pi / 4
-
-        qc = circuit.QuantumCircuit(2)
-        qc.rzx(theta, 0, 1)
-
-        with self.assertWarns(DeprecationWarning):
-            backend = Fake27QPulseV1()
-            inst_map = backend.defaults().instruction_schedule_map
-            _pass = RZXCalibrationBuilder(inst_map)
-        test_qc = PassManager(_pass).run(qc)
-
-        cr_schedule = inst_map.get("cx", (0, 1))
-        ref_sched = self.build_forward(
-            backend,
-            theta,
-            self.u0p_play(cr_schedule),
-            self.d1p_play(cr_schedule),
-            self.u0m_play(cr_schedule),
-            self.d1m_play(cr_schedule),
-        )
-
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(schedule(test_qc, backend), target_qobj_transform(ref_sched))
-
-    def test_ecr_cx_reverse(self):
-        """Test that correct pulse sequence is generated for non-native CR pair."""
-        # Sufficiently large angle to avoid minimum duration, i.e. amplitude rescaling
-        theta = np.pi / 4
-
-        qc = circuit.QuantumCircuit(2)
-        qc.rzx(theta, 1, 0)
-
-        with self.assertWarns(DeprecationWarning):
-            backend = Fake27QPulseV1()
-            inst_map = backend.defaults().instruction_schedule_map
-            _pass = RZXCalibrationBuilder(inst_map)
-        test_qc = PassManager(_pass).run(qc)
-
-        cr_schedule = inst_map.get("cx", (0, 1))
-        ref_sched = self.build_reverse(
-            backend,
-            theta,
-            self.u0p_play(cr_schedule),
-            self.d1p_play(cr_schedule),
-            self.u0m_play(cr_schedule),
-            self.d1m_play(cr_schedule),
-        )
-
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(schedule(test_qc, backend), target_qobj_transform(ref_sched))
 
     def test_pass_alive_with_dcx_ish(self):
         """Test if the pass is not terminated by error with direct CX input."""
@@ -437,35 +284,6 @@ class TestRZXCalibrationBuilderNoEcho(TestCalibrationBuilder):
             builder.delay(duration, DriveChannel(0))
 
         return ref_sched
-
-    def test_ecr_cx_forward(self):
-        """Test that correct pulse sequence is generated for native CR pair.
-
-        .. notes::
-            No echo builder only supports native direction.
-        """
-        # Sufficiently large angle to avoid minimum duration, i.e. amplitude rescaling
-        theta = np.pi / 4
-
-        qc = circuit.QuantumCircuit(2)
-        qc.rzx(theta, 0, 1)
-
-        with self.assertWarns(DeprecationWarning):
-            backend = Fake27QPulseV1()
-            inst_map = backend.defaults().instruction_schedule_map
-
-            _pass = RZXCalibrationBuilderNoEcho(inst_map)
-        test_qc = PassManager(_pass).run(qc)
-
-        cr_schedule = inst_map.get("cx", (0, 1))
-        ref_sched = self.build_forward(
-            theta,
-            self.u0p_play(cr_schedule),
-            self.d1p_play(cr_schedule),
-        )
-
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(schedule(test_qc, backend), target_qobj_transform(ref_sched))
 
     # # TODO - write test for forward ECR native pulse
     # def test_ecr_forward(self):
