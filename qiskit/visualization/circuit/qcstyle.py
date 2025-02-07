@@ -118,3 +118,4 @@ class MPLDefaultStyle(DefaultStyle):
 
     DEFAULT_STYLE_NAME = "iqp"
     DEFAULT_STYLE_PATH = Path(__file__).parent / "styles"
+    STYLE_DICT_CLASS = MPLStyleDict

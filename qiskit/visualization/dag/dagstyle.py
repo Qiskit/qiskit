@@ -90,3 +90,4 @@ class DAGDefaultStyle(DefaultStyle):
     """
     DEFAULT_STYLE_NAME = "plain"
     DEFAULT_STYLE_PATH = Path(__file__).parent / "styles"
+    STYLE_DICT_CLASS = DAGStyleDict
