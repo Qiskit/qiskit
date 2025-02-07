@@ -381,7 +381,9 @@ def _read_instruction(
                 gate.num_ctrl_qubits = instruction.num_ctrl_qubits
                 gate.ctrl_state = instruction.ctrl_state
         if condition:
-            gate = gate.c_if(*condition)
+            body = QuantumCircuit(qargs, cargs)
+            body.append(gate, qargs, cargs)
+            gate = IfElseOp(condition, body)
     else:
         if gate_name in {"Initialize", "StatePreparation"}:
             if isinstance(params[0], str):

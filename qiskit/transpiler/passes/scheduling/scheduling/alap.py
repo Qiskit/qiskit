@@ -21,8 +21,7 @@ class ALAPScheduleAnalysis(BaseScheduler):
     """ALAP Scheduling pass, which schedules the **stop** time of instructions as late as possible.
 
     See the :ref:`transpiler-scheduling-description` section in the :mod:`qiskit.transpiler`
-    module documentation for the detailed behavior of the control flow
-    operation, i.e. ``c_if``.
+    module documentation for a more detailed explanation.
     """
 
     def run(self, dag):

@@ -205,10 +205,12 @@ class InstructionPlaceholder(Instruction, abc.ABC):
         with qc.for_loop(range(5)):
             qc.h(0)
             qc.measure(0, 0)
-            qc.break_loop().c_if(0, 0)
+            with qc.if_test((0, 0)):
+                qc.break_loop()
 
-    since ``qc.break_loop()`` needs to return a (mostly) functional
-    :obj:`~qiskit.circuit.Instruction` in order for :meth:`.InstructionSet.c_if` to work correctly.
+    ``qc.break_loop()`` needs to return a (mostly) functional
+    :obj:`~qiskit.circuit.Instruction` in order for the historical ``.InstructionSet.c_if``
+    to work correctly.
 
     When appending a placeholder instruction into a circuit scope, you should create the
     placeholder, and then ask it what resources it should be considered as using from the start by
@@ -241,9 +243,6 @@ class InstructionPlaceholder(Instruction, abc.ABC):
             The caller of this function is responsible for ensuring that the inputs to this function
             are non-strict supersets of the bits returned by :meth:`placeholder_resources`.
 
-        Any condition added in by a call to :obj:`.Instruction.c_if` will be propagated through, but
-        set properties like ``duration`` will not; it doesn't make sense for control-flow operations
-        to have pulse scheduling on them.
 
         Args:
             qubits: The qubits the created instruction should be defined across.

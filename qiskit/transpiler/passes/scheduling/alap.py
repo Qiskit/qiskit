@@ -23,7 +23,7 @@ class ALAPSchedule(BaseSchedulerTransform):
     """ALAP Scheduling pass, which schedules the **stop** time of instructions as late as possible.
 
     See :class:`~qiskit.transpiler.passes.scheduling.base_scheduler.BaseSchedulerTransform` for the
-    detailed behavior of the control flow operation, i.e. ``c_if``.
+    detailed behavior of this pass.
     """
 
     @deprecate_func(

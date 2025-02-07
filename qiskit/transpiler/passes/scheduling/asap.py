@@ -23,7 +23,7 @@ class ASAPSchedule(BaseSchedulerTransform):
     """ASAP Scheduling pass, which schedules the start time of instructions as early as possible..
 
     See :class:`~qiskit.transpiler.passes.scheduling.base_scheduler.BaseSchedulerTransform` for the
-    detailed behavior of the control flow operation, i.e. ``c_if``.
+    detailed behavior of this pass.
 
     .. note::
 

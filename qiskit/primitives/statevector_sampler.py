@@ -212,7 +212,7 @@ def _preprocess_circuit(circuit: QuantumCircuit):
     qargs_index = {v: k for k, v in enumerate(qargs)}
     circuit = circuit.remove_final_measurements(inplace=False)
     if _has_control_flow(circuit):
-        raise QiskitError("StatevectorSampler cannot handle ControlFlowOp and c_if")
+        raise QiskitError("StatevectorSampler cannot handle ControlFlowOp")
     if _has_measure(circuit):
         raise QiskitError("StatevectorSampler cannot handle mid-circuit measurements")
     # num_qubits is used as sentinel to fill 0 in _samples_to_packed_array
