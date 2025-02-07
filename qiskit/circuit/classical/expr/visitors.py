@@ -283,6 +283,8 @@ def is_lvalue(node: expr.Expr, /) -> bool:
             >>> from qiskit.circuit import Clbit
             >>> expr.is_lvalue(expr.Var.new("a", types.Bool()))
             True
+            >>> expr.is_lvalue(expr.Var.new("a", types.Bool(const=False)))
+            False
             >>> expr.is_lvalue(expr.lift(Clbit()))
             True
 

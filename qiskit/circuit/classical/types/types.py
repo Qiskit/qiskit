@@ -24,24 +24,6 @@ __all__ = ["Type", "Bool", "Uint"]
 import typing
 
 
-class _Singleton(type):
-    """Metaclass to make the child, which should take zero initialization arguments, a singleton
-    object."""
-
-    def _get_singleton_instance(cls):
-        return cls._INSTANCE
-
-    @classmethod
-    def __prepare__(mcs, name, bases):  # pylint: disable=unused-argument
-        return {"__new__": mcs._get_singleton_instance}
-
-    @staticmethod
-    def __new__(cls, name, bases, namespace):
-        out = super().__new__(cls, name, bases, namespace)
-        out._INSTANCE = object.__new__(out)  # pylint: disable=invalid-name
-        return out
-
-
 class Type:
     """Root base class of all nodes in the type tree.  The base case should never be instantiated
     directly.

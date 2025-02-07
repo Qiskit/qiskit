@@ -55,7 +55,7 @@ class Ordering(enum.Enum):
         return str(self)
 
 
-def _order_identical(_a: Type, _b: Type, /) -> Ordering:
+def _order_bool_bool(_a: Bool, _b: Bool, /) -> Ordering:
     return Ordering.EQUAL
 
 
@@ -68,7 +68,7 @@ def _order_uint_uint(left: Uint, right: Uint, /) -> Ordering:
 
 
 _ORDERERS = {
-    (Bool, Bool): _order_identical,
+    (Bool, Bool): _order_bool_bool,
     (Uint, Uint): _order_uint_uint,
 }
 
@@ -82,6 +82,12 @@ def order(left: Type, right: Type, /) -> Ordering:
             >>> from qiskit.circuit.classical import types
             >>> types.order(types.Uint(8), types.Uint(16))
             Ordering.LESS
+
+        Compare two :class:`Bool` types of differing const-ness::
+
+            >>> from qiskit.circuit.classical import types
+            >>> types.order(types.Bool(), types.Bool(const=True))
+            Ordering.GREATER
 
         Compare two types that have no ordering between them::
 
@@ -117,6 +123,8 @@ def is_subtype(left: Type, right: Type, /, strict: bool = False) -> bool:
             True
             >>> types.is_subtype(types.Bool(), types.Bool(), strict=True)
             False
+            >>> types.is_subtype(types.Bool(const=True), types.Bool(), strict=True)
+            True
     """
     order_ = order(left, right)
     return order_ is Ordering.LESS or (not strict and order_ is Ordering.EQUAL)
@@ -140,6 +148,8 @@ def is_supertype(left: Type, right: Type, /, strict: bool = False) -> bool:
             True
             >>> types.is_supertype(types.Bool(), types.Bool(), strict=True)
             False
+            >>> types.is_supertype(types.Bool(), types.Bool(const=True), strict=True)
+            True
     """
     order_ = order(left, right)
     return order_ is Ordering.GREATER or (not strict and order_ is Ordering.EQUAL)
@@ -219,7 +229,9 @@ def cast_kind(from_: Type, to_: Type, /) -> CastKind:
             >>> from qiskit.circuit.classical import types
             >>> types.cast_kind(types.Bool(), types.Bool())
             <CastKind.EQUAL: 1>
-            >>> types.cast_kind(types.Uint(8, const=True), types.Bool())
+            >>> types.cast_kind(types.Uint(8), types.Bool())
+            <CastKind.IMPLICIT: 2>
+            >>> types.cast_kind(types.Uint(8, const=True), types.Uint(8))
             <CastKind.IMPLICIT: 2>
             >>> types.cast_kind(types.Bool(), types.Uint(8))
             <CastKind.LOSSLESS: 3>
@@ -227,12 +239,12 @@ def cast_kind(from_: Type, to_: Type, /) -> CastKind:
             <CastKind.DANGEROUS: 4>
     """
     if to_.const is True and from_.const is False:
-        # we can't cast to a const type
+        # We can't cast to a const type.
         return CastKind.NONE
     if (coercer := _ALLOWED_CASTS.get((from_.kind, to_.kind))) is None:
         return CastKind.NONE
     cast_kind_ = coercer(from_, to_)
     if cast_kind_ is CastKind.EQUAL and to_.const != from_.const:
-        # we need an implicit cast to drop const
+        # We need an implicit cast to drop const.
         return CastKind.IMPLICIT
     return cast_kind_
