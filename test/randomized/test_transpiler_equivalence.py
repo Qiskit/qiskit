@@ -288,7 +288,7 @@ class QCircuitMachine(RuleBasedStateMachine):
             + ", ".join(f"{key:s}={value!r}" for key, value in kwargs.items() if value is not None)
             + ")"
         )
-        print(f"Evaluating {call} for:\n{qasm2.dumps(self.qc)}")
+        print(f"Evaluating {call} for:\n{qasm2.dumps(self.qc)}")  # pylint: disable=bad-builtin
 
         shots = 4096
 

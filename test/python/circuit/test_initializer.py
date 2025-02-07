@@ -24,7 +24,6 @@ from qiskit import (
     QuantumRegister,
     ClassicalRegister,
     transpile,
-    assemble,
 )
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.quantum_info import state_fidelity, Statevector, Operator
@@ -527,13 +526,6 @@ class TestInstructionParam(QiskitTestCase):
         qc.initialize(vec, 0)
 
         params = qc.data[0].operation.params
-        self.assertTrue(
-            all(isinstance(p, complex) and not isinstance(p, np.number) for p in params)
-        )
-
-        with self.assertWarns(DeprecationWarning):
-            qobj = assemble(qc)
-        params = qobj.experiments[0].instructions[0].params
         self.assertTrue(
             all(isinstance(p, complex) and not isinstance(p, np.number) for p in params)
         )

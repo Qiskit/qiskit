@@ -1,0 +1,39 @@
+---
+upgrade_transpiler:
+  - |
+    Plugins for the :ref:`translation stage of the preset compiler <transpiler-preset-stage-translation>`
+    are now required to respect gate directionality in the :class:`.Target` in their output.
+    Previously, :func:`.transpile` and :func:`.generate_preset_pass_manager` would generate a
+    :class:`.PassManager` that contained fix-up passes if needed.  You must now include these in
+    your own custom stage, if your stage does not guarantee that it respects directionality.
+
+    You can use the :class:`.GateDirection` pass to perform the same fix-ups that Qiskit used to do.
+    For example::
+
+      from qiskit.transpiler import PassManager
+      from qiskit.transpiler.passes import GateDirection
+      from qiskit.transpiler.preset_passmanagers.plugin import PassManagerStagePlugin
+
+      class YourTranslationPlugin(PassManagerStagePlugin):
+          def pass_manager(self, pass_manager_config, optimization_level):
+              pm = PassManager([
+                  # ... whatever your current setup is ...
+              ])
+              # Add the two-qubit directionality-fixing pass.
+              pm.append(GateDirection(
+                  pass_manager_config.coupling_map,
+                  pass_manager_config.target,
+              ))
+              return pm
+  - |
+    The :ref:`preset pass managers <transpiler-preset>` no longer populate the implicit ``pre_optimization``
+    stage of their output :class:`.StagedPassManager`.  You can now safely assign your own
+    :class:`.PassManager` to this field.  You could previously only append to the existing
+    :class:`.PassManager`.
+deprecations_transpiler:
+  - |
+    The function :func:`.generate_pre_op_passmanager` is deprecated.  It is no longer used in the
+    Qiskit preset pass managers, and its purpose is defunct; it originally generated a fix-up stage
+    for translation plugins that did not respect ISA directionality.  Translation stages are now
+    required to respect directionality, so the functionality is not needed, and most likely,
+    no replacement is required.
