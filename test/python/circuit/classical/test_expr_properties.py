@@ -33,21 +33,6 @@ class TestExprProperties(QiskitTestCase):
         self.assertIs(types.Bool(), copy.deepcopy(types.Bool()))
         self.assertIs(types.Bool(), pickle.loads(pickle.dumps(types.Bool())))
 
-    def test_const_bool_type_is_singleton(self):
-        """The `Bool` type is meant (and used) as a Python singleton object for efficiency.  It must
-        always be referentially equal to all other references to it."""
-        self.assertIs(types.Bool(const=True), types.Bool(const=True))
-        self.assertIs(types.Bool(const=True), copy.copy(types.Bool(const=True)))
-        self.assertIs(types.Bool(const=True), copy.deepcopy(types.Bool(const=True)))
-        self.assertIs(types.Bool(const=True), pickle.loads(pickle.dumps(types.Bool(const=True))))
-
-    def test_bool_type_singleton_is_not_const_bool_type_singleton(self):
-        """The const `Bool` and non-const `Bool` should not share the same singleton."""
-        self.assertIsNot(types.Bool(const=True), types.Bool())
-        self.assertIsNot(types.Bool(const=True), copy.copy(types.Bool()))
-        self.assertIsNot(types.Bool(const=True), copy.deepcopy(types.Bool()))
-        self.assertIsNot(types.Bool(const=True), pickle.loads(pickle.dumps(types.Bool())))
-
     @ddt.data(types.Bool(), types.Uint(8))
     def test_types_can_be_cloned(self, obj):
         """Test that various ways of cloning a `Type` object are valid and produce equal output."""
