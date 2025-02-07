@@ -26,7 +26,7 @@ from qiskit.circuit import (
 from qiskit.circuit.library import real_amplitudes
 from qiskit.circuit.library.n_local.efficient_su2 import efficient_su2
 from qiskit.converters import circuit_to_dag
-from qiskit.quantum_info import Pauli, SparsePauliOp, SparseObservable
+from qiskit.quantum_info import SparsePauliOp, SparseObservable
 from qiskit.transpiler.passes.optimization.light_cone import LightCone
 from qiskit.transpiler.passmanager import PassManager
 
@@ -250,7 +250,7 @@ class TestLightConePass(QiskitTestCase):
         self.assertEqual(expected, new_circuit)
 
     @ddt.data(SparsePauliOp("IX"), SparseObservable("I+"))
-    def test_parameter_expression(self, sparse_object: SparsePauliOp | SparseObservable):
+    def test_parameter_expression(self, sparse_object):
         """Test for Parameter expressions."""
         bit_terms, indices, _ = sparse_object.to_sparse_list()[0]
         light_cone = LightCone(bit_terms=bit_terms, indices=indices)
@@ -282,7 +282,7 @@ class TestLightConePass(QiskitTestCase):
         SparsePauliOp("X" + "I" * (116) + "YII"),
         SparseObservable("-" + "I" * (116) + "lII"),
     )
-    def test_big_circuit(self, sparse_object: SparsePauliOp | SparseObservable):
+    def test_big_circuit(self, sparse_object):
         """Test for large circuit and observable."""
         num_qubits = 120
         bit_terms, indices, _ = sparse_object.to_sparse_list()[0]
