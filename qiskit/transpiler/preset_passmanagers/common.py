@@ -41,11 +41,9 @@ from qiskit.transpiler.passes import EnlargeWithAncilla
 from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passes import RemoveResetInZeroState
 from qiskit.transpiler.passes import FilterOpNodes
-from qiskit.transpiler.passes import ValidatePulseGates
 from qiskit.transpiler.passes import PadDelay
 from qiskit.transpiler.passes import InstructionDurationCheck
 from qiskit.transpiler.passes import ConstrainedReschedule
-from qiskit.transpiler.passes import PulseGates
 from qiskit.transpiler.passes import ContainsInstruction
 from qiskit.transpiler.passes import VF2PostLayout
 from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
@@ -53,7 +51,6 @@ from qiskit.transpiler.passes.layout.vf2_post_layout import VF2PostLayoutStopRea
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
 from qiskit.utils import deprecate_func
-from qiskit.utils.deprecate_pulse import deprecate_pulse_arg
 
 
 _ControlFlowState = collections.namedtuple("_ControlFlowState", ("working", "not_working"))
@@ -571,9 +568,8 @@ def generate_translation_passmanager(
     return PassManager(unroll)
 
 
-@deprecate_pulse_arg("inst_map", predicate=lambda inst_map: inst_map is not None)
 def generate_scheduling(
-    instruction_durations, scheduling_method, timing_constraints, inst_map, target=None
+    instruction_durations, scheduling_method, timing_constraints, _, target=None
 ):
     """Generate a post optimization scheduling :class:`~qiskit.transpiler.PassManager`
 
@@ -583,7 +579,6 @@ def generate_scheduling(
             ``'asap'``/``'as_soon_as_possible'`` or
             ``'alap'``/``'as_late_as_possible'``
         timing_constraints (TimingConstraints): Hardware time alignment restrictions.
-        inst_map (InstructionScheduleMap): DEPRECATED. Mapping object that maps gate to schedule.
         target (Target): The :class:`~.Target` object representing the backend
 
     Returns:
@@ -593,8 +588,6 @@ def generate_scheduling(
         TranspilerError: If the ``scheduling_method`` kwarg is not a valid value
     """
     scheduling = PassManager()
-    if inst_map and inst_map.has_custom_gate():
-        scheduling.append(PulseGates(inst_map=inst_map, target=target))
     if scheduling_method:
         # Do scheduling after unit conversion.
         scheduler = {
@@ -645,13 +638,6 @@ def generate_scheduling(
                     target=target,
                 ),
                 condition=_require_alignment,
-            )
-        )
-        scheduling.append(
-            ValidatePulseGates(
-                granularity=timing_constraints.granularity,
-                min_length=timing_constraints.min_length,
-                target=target,
             )
         )
     if scheduling_method:

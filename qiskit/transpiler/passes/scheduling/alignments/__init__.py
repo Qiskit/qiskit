@@ -76,5 +76,4 @@ Minimum pulse length constraint
 """
 
 from .check_durations import InstructionDurationCheck
-from .pulse_gate_validation import ValidatePulseGates
 from .reschedule import ConstrainedReschedule
