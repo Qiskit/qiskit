@@ -300,7 +300,7 @@ impl CircuitData {
                     inst.op().py_deepcopy(py, Some(&memo))?,
                     inst.qubits(),
                     inst.clbits(),
-                    (!inst.params_view().is_empty()).then_some(inst.params_view().into()),
+                    inst.params_raw().cloned(),
                     inst.extra_attrs().clone(),
                 ));
             }
@@ -310,7 +310,7 @@ impl CircuitData {
                     inst.op().py_copy(py)?,
                     inst.qubits(),
                     inst.clbits(),
-                    (!inst.params_view().is_empty()).then_some(inst.params_view().into()),
+                    inst.params_raw().cloned(),
                     inst.extra_attrs().clone(),
                 ));
             }
@@ -398,7 +398,7 @@ impl CircuitData {
             let py_op = func.call1((inst.unpack_py_op(py)?,))?;
             let result = py_op.extract::<OperationFromPython>()?;
             *inst.op_mut() = result.operation;
-            *inst.params_mut() =
+            *inst.params_mut_raw() =
                 (!result.params.is_empty()).then_some(result.params.clone().into());
             *inst.extra_attrs_mut() = result.extra_attrs;
             #[cfg(feature = "cache_pygates")]
@@ -690,7 +690,7 @@ impl CircuitData {
                     inst.op().clone(),
                     qubits_id,
                     clbits_id,
-                    (!inst.params_view().is_empty()).then_some(inst.params_view().into()),
+                    inst.params_raw().cloned(),
                     inst.extra_attrs().clone(),
                 ));
                 self.track_instruction_parameters(py, new_index)?;
@@ -937,7 +937,7 @@ impl CircuitData {
             let (operation, params, qargs, cargs) = item?;
             let qubits = res.qargs_interner.insert_owned(qargs);
             let clbits = res.cargs_interner.insert_owned(cargs);
-            let params = (!params.is_empty()).then_some(params);
+            let params = (!params.is_empty()).then_some(params.into());
             res.data.push(PackedInstruction::new(
                 operation,
                 qubits,
@@ -1049,7 +1049,7 @@ impl CircuitData {
         let no_clbit_index = res.cargs_interner.get_default();
         for (operation, params, qargs) in instruction_iter {
             let qubits = res.qargs_interner.insert(&qargs);
-            let params = (!params.is_empty()).then_some(params);
+            let params = (!params.is_empty()).then_some(params.into());
             res.data.push(PackedInstruction::new(
                 operation.into(),
                 qubits,
@@ -1109,7 +1109,7 @@ impl CircuitData {
         qargs: &[Qubit],
     ) -> PyResult<()> {
         let no_clbit_index = self.cargs_interner.get_default();
-        let params = (!params.is_empty()).then(|| params.iter().cloned().collect());
+        let params = (!params.is_empty()).then(|| Box::new(params.iter().cloned().collect()));
         let qubits = self.qargs_interner.insert(qargs);
         self.data.push(PackedInstruction::new(
             operation.into(),
@@ -1209,7 +1209,7 @@ impl CircuitData {
             inst.operation.clone(),
             qubits,
             clbits,
-            (!inst.params.is_empty()).then_some(inst.params.clone()),
+            (!inst.params.is_empty()).then(|| Box::new(inst.params.clone())),
             inst.extra_attrs.clone(),
         ))
     }

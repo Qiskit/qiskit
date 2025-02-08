@@ -707,14 +707,14 @@ impl PackedInstruction {
         op: PackedOperation,
         qubits: Interned<[Qubit]>,
         clbits: Interned<[Clbit]>,
-        params: Option<SmallVec<[Param; 3]>>,
+        params: Option<Box<SmallVec<[Param; 3]>>>,
         extra_attrs: ExtraInstructionAttributes,
     ) -> Self {
         Self {
             op,
             qubits,
             clbits,
-            params: params.map(Box::new),
+            params,
             extra_attrs,
             #[cfg(feature = "cache_pygates")]
             py_op: OnceLock::new(),
@@ -813,9 +813,15 @@ impl PackedInstruction {
         params
     }
 
+    /// Get a reference of the contained parameters.
+    #[inline]
+    pub fn params_raw(&self) -> Option<&Box<SmallVec<[Param; 3]>>> {
+        self.params.as_ref()
+    }
+
     /// Get a mutable reference of the contained parameters.
     #[inline]
-    pub fn params_mut(&mut self) -> &mut Option<Box<SmallVec<[Param; 3]>>> {
+    pub fn params_mut_raw(&mut self) -> &mut Option<Box<SmallVec<[Param; 3]>>> {
         #[cfg(feature = "cache_pygates")]
         {
             // Delete the old cache to ensure changes to parameters regenerate the cached instruction.

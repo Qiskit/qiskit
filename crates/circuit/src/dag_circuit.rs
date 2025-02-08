@@ -1770,7 +1770,7 @@ def _format(operand):
                 py_op.operation,
                 qubits_id,
                 clbits_id,
-                (!py_op.params.is_empty()).then_some(py_op.params),
+                (!py_op.params.is_empty()).then_some(py_op.params.into()),
                 py_op.extra_attrs,
             );
 
@@ -1822,7 +1822,7 @@ def _format(operand):
                 py_op.operation,
                 qubits_id,
                 clbits_id,
-                (!py_op.params.is_empty()).then_some(py_op.params),
+                (!py_op.params.is_empty()).then_some(py_op.params.into()),
                 py_op.extra_attrs,
             );
 
@@ -5242,7 +5242,7 @@ impl DAGCircuit {
             op,
             self.qargs_interner.insert(qargs),
             self.cargs_interner.insert(cargs),
-            params,
+            params.map(|param| param.into()),
             extra_attrs,
         );
 
@@ -5686,7 +5686,7 @@ impl DAGCircuit {
                 op_node.instruction.operation.clone(),
                 qubits,
                 clbits,
-                params,
+                params.map(|param| param.into()),
                 op_node.instruction.extra_attrs.clone(),
             );
             NodeType::Operation(inst)
@@ -6245,7 +6245,7 @@ impl DAGCircuit {
                 old_node.qubits(),
                 old_node.clbits(),
                 (!new_gate.1.is_empty())
-                    .then_some(new_gate.1.iter().map(|x| Param::Float(*x)).collect()),
+                    .then(|| Box::new(new_gate.1.iter().map(|x| Param::Float(*x)).collect())),
                 ExtraInstructionAttributes::default(),
             )
         } else {
@@ -6342,7 +6342,7 @@ impl DAGCircuit {
                 new_op.operation,
                 self.qargs_interner.insert_owned(qubits),
                 self.cargs_interner.get_default(),
-                (!new_op.params.is_empty()).then_some(new_op.params),
+                (!new_op.params.is_empty()).then_some(new_op.params.into()),
                 new_op.extra_attrs,
             );
             let new_index = self.dag.add_node(NodeType::Operation(inst));
@@ -6775,8 +6775,7 @@ impl DAGCircuit {
                     },
                     qarg_map[instr.qubits()],
                     carg_map[instr.clbits()],
-                    (!instr.params_view().is_empty())
-                        .then(|| instr.params_view().iter().cloned().collect()),
+                    instr.params_raw().cloned(),
                     instr.extra_attrs().clone(),
                 ))
             }),
@@ -6904,7 +6903,7 @@ impl DAGCircuit {
             py_op.operation,
             qubits,
             clbits,
-            (!py_op.params.is_empty()).then_some(py_op.params),
+            (!py_op.params.is_empty()).then_some(py_op.params.into()),
             py_op.extra_attrs,
         ));
 
@@ -7024,7 +7023,7 @@ impl DAGCircuit {
             new_op.operation,
             old_packed.qubits(),
             old_packed.clbits(),
-            (!new_op.params.is_empty()).then_some(new_op.params),
+            (!new_op.params.is_empty()).then_some(new_op.params.into()),
             extra_attrs,
         ));
         if let Some(weight) = self.dag.node_weight_mut(node_index) {

@@ -481,18 +481,14 @@ fn apply_translation(
                     new_op.extra_attrs,
                 )?;
             } else {
+                let params = node_obj.params_view();
                 out_dag.apply_operation_back(
                     py,
                     node_obj.op().clone(),
                     node_qarg,
                     node_carg,
-                    (!node_obj.params_view().is_empty()).then_some(
-                        node_obj
-                            .params_view()
-                            .iter()
-                            .map(|param| param.clone_ref(py))
-                            .collect(),
-                    ),
+                    (!params.is_empty())
+                        .then_some(params.iter().map(|param| param.clone_ref(py)).collect()),
                     node_obj.extra_attrs().clone(),
                 )?;
             }
@@ -504,36 +500,28 @@ fn apply_translation(
             && qargs_with_non_global_operation[&node_qarg_as_physical]
                 .contains(node_obj.op().name())
         {
+            let params = node_obj.params_view();
             out_dag.apply_operation_back(
                 py,
                 node_obj.op().clone(),
                 node_qarg,
                 node_carg,
-                (!node_obj.params_view().is_empty()).then_some(
-                    node_obj
-                        .params_view()
-                        .iter()
-                        .map(|param| param.clone_ref(py))
-                        .collect(),
-                ),
+                (!params.is_empty())
+                    .then_some(params.iter().map(|param| param.clone_ref(py)).collect()),
                 node_obj.extra_attrs().clone(),
             )?;
             continue;
         }
 
         if dag.has_calibration_for_index(py, node)? {
+            let params = node_obj.params_view();
             out_dag.apply_operation_back(
                 py,
                 node_obj.op().clone(),
                 node_qarg,
                 node_carg,
-                (!node_obj.params_view().is_empty()).then_some(
-                    node_obj
-                        .params_view()
-                        .iter()
-                        .map(|param| param.clone_ref(py))
-                        .collect(),
-                ),
+                (!params.is_empty())
+                    .then_some(params.iter().map(|param| param.clone_ref(py)).collect()),
                 node_obj.extra_attrs().clone(),
             )?;
             continue;
@@ -574,7 +562,8 @@ fn replace_node(
 ) -> PyResult<()> {
     let (target_params, target_dag) =
         &instr_map[&(node.op().name().to_string(), node.op().num_qubits())];
-    if node.params_view().len() != target_params.len() {
+    let node_params = node.params_view();
+    if node_params.len() != target_params.len() {
         return Err(TranspilerError::new_err(format!(
             "Translation num_params not equal to op num_params. \
             Op: {:?} {} Translation: {:?}\n{:?}",
@@ -584,7 +573,7 @@ fn replace_node(
             &target_dag
         )));
     }
-    if node.params_view().is_empty() {
+    if node_params.is_empty() {
         for inner_index in target_dag.topological_op_nodes()? {
             let inner_node = &target_dag[inner_index].unwrap_operation();
             let old_qargs = dag.get_qargs(node.qubits());
@@ -664,13 +653,13 @@ fn replace_node(
                 .iter()
                 .map(|param| param.clone_ref(py))
                 .collect();
-            if inner_node
-                .params_view()
+            let inner_params = inner_node.params_view();
+            if inner_params
                 .iter()
                 .any(|param| matches!(param, Param::ParameterExpression(_)))
             {
                 new_params = SmallVec::new();
-                for param in inner_node.params_view() {
+                for param in inner_params {
                     if let Param::ParameterExpression(param_obj) = param {
                         let bound_param = param_obj.bind(py);
                         let exp_params = param.iter_parameters(py)?;

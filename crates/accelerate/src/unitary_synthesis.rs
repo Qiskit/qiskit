@@ -136,9 +136,9 @@ fn apply_synth_sequence(
             Some(gate) => *gate,
         };
         let mapped_qargs: Vec<Qubit> = qubit_ids.iter().map(|id| out_qargs[*id as usize]).collect();
-        let new_params: Option<SmallVec<[Param; 3]>> = match gate {
-            Some(_) => Some(params.iter().map(|p| Param::Float(*p)).collect()),
-            None => Some(sequence.decomp_gate.params.clone()),
+        let new_params: Option<Box<SmallVec<[Param; 3]>>> = match gate {
+            Some(_) => Some(Box::new(params.iter().map(|p| Param::Float(*p)).collect())),
+            None => Some(Box::new(sequence.decomp_gate.params.clone())),
         };
         let instruction = PackedInstruction::new(
             PackedOperation::from_standard_gate(gate_node),
@@ -279,7 +279,7 @@ fn py_run_main_loop(
                 new_node_op.operation,
                 packed_instr.qubits(),
                 packed_instr.clbits(),
-                (!new_node_op.params.is_empty()).then_some(new_node_op.params),
+                (!new_node_op.params.is_empty()).then_some(new_node_op.params.into()),
                 new_node_op.extra_attrs,
             );
         }
@@ -488,7 +488,7 @@ fn run_2q_unitary_synthesis(
                             .collect();
                         (
                             inst.op().name().to_string(),
-                            (!inst.params_view().is_empty()).then_some(inst.params_view().into()),
+                            inst.params_raw().cloned().map(|boxed| *boxed),
                             inst_qubits,
                         )
                     });

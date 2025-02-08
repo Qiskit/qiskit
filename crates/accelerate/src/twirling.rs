@@ -350,7 +350,8 @@ fn generate_twirled_circuit(
                             new_blocks
                                 .iter()
                                 .map(|x| Ok(Param::Obj(x.clone().into_py_any(py)?)))
-                                .collect::<PyResult<SmallVec<[Param; 3]>>>()?,
+                                .collect::<PyResult<SmallVec<[Param; 3]>>>()?
+                                .into(),
                         ),
                         inst.extra_attrs().clone(),
                     );
