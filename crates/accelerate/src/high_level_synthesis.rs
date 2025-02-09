@@ -728,12 +728,16 @@ fn synthesize_op_using_plugins(
     let mut output_circuit_and_qubits: Option<(CircuitData, Vec<usize>)> = None;
 
     let op_py = match op {
-        OperationRef::Standard(standard) => standard
+        OperationRef::StandardGate(standard) => standard
+            .create_py_op(py, Some(params), extra_attrs)?
+            .into_any(),
+        OperationRef::StandardInstruction(instruction) => instruction
             .create_py_op(py, Some(params), extra_attrs)?
             .into_any(),
         OperationRef::Gate(gate) => gate.gate.clone_ref(py),
         OperationRef::Instruction(instruction) => instruction.instruction.clone_ref(py),
         OperationRef::Operation(operation) => operation.operation.clone_ref(py),
+        OperationRef::Unitary(unitary) => unitary.create_py_op(py, extra_attrs)?.into_any(),
     };
 
     // ToDo: how can we avoid cloning data and tracker?
