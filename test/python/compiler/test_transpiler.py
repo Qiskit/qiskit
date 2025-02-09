@@ -79,7 +79,7 @@ from qiskit.providers.backend_compat import BackendV2Converter
 from qiskit.providers.fake_provider import Fake20QV1, Fake27QPulseV1, GenericBackendV2
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.providers.options import Options
-from qiskit.pulse import InstructionScheduleMap, Schedule, Play, Gaussian, DriveChannel
+from qiskit.pulse import InstructionScheduleMap
 from qiskit.quantum_info import Operator, random_unitary
 from qiskit.utils import parallel
 from qiskit.transpiler import CouplingMap, Layout, PassManager, TransformationPass
@@ -91,14 +91,13 @@ from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager, 
 from qiskit.transpiler.target import (
     InstructionProperties,
     Target,
-    TimingConstraints,
     InstructionDurations,
     target_to_backend_properties,
 )
 
 from test import QiskitTestCase, combine, slow_test  # pylint: disable=wrong-import-order
 
-from ..legacy_cmaps import MELBOURNE_CMAP, RUESCHLIKON_CMAP, MUMBAI_CMAP, TOKYO_CMAP
+from ..legacy_cmaps import MELBOURNE_CMAP, RUESCHLIKON_CMAP, TOKYO_CMAP
 
 
 class CustomCX(Gate):
@@ -1566,53 +1565,6 @@ class TestTranspile(QiskitTestCase):
         )
         self.assertIn("delay", out[0].count_ops())
         self.assertIn("delay", out[1].count_ops())
-
-    def test_scheduling_timing_constraints(self):
-        """Test that scheduling-related loose transpile constraints
-        work with both BackendV1 and BackendV2."""
-
-        with self.assertWarns(DeprecationWarning):
-            backend_v1 = Fake27QPulseV1()
-            backend_v2 = GenericBackendV2(
-                num_qubits=27,
-                calibrate_instructions=True,
-                control_flow=True,
-                coupling_map=MUMBAI_CMAP,
-                seed=42,
-            )
-        # the original timing constraints are granularity = min_length = 16
-        timing_constraints = TimingConstraints(granularity=32, min_length=64)
-        error_msgs = {
-            65: "Pulse duration is not multiple of 32",
-            32: "Pulse gate duration is less than 64",
-        }
-
-        for backend, duration in zip([backend_v1, backend_v2], [65, 32]):
-            with self.subTest(backend=backend, duration=duration):
-                qc = QuantumCircuit(2)
-                qc.h(0)
-                qc.cx(0, 1)
-                qc.measure_all()
-                with self.assertWarns(DeprecationWarning):
-                    qc.add_calibration(
-                        "h",
-                        [0],
-                        Schedule(Play(Gaussian(duration, 0.2, 4), DriveChannel(0))),
-                        [0, 0],
-                    )
-                    qc.add_calibration(
-                        "cx",
-                        [0, 1],
-                        Schedule(Play(Gaussian(duration, 0.2, 4), DriveChannel(1))),
-                        [0, 0],
-                    )
-                with self.assertRaisesRegex(TranspilerError, error_msgs[duration]):
-                    with self.assertWarns(DeprecationWarning):
-                        _ = transpile(
-                            qc,
-                            backend=backend,
-                            timing_constraints=timing_constraints,
-                        )
 
     def test_scheduling_instruction_constraints_backend(self):
         """Test that scheduling-related loose transpile constraints
