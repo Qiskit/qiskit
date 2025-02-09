@@ -92,6 +92,7 @@ Optimizations
    OptimizeAnnotated
    Split2QUnitaries
    RemoveIdentityEquivalent
+   TwoQubitPeepholeOptimization
 
 Calibration
 =============
@@ -240,6 +241,7 @@ from .optimization import NormalizeRXAngle
 from .optimization import OptimizeAnnotated
 from .optimization import RemoveIdentityEquivalent
 from .optimization import Split2QUnitaries
+from .optimization import TwoQubitPeepholeOptimization
 
 # circuit analysis
 from .analysis import ResourceEstimation
