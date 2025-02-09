@@ -93,15 +93,28 @@ def order(left: Type, right: Type, /) -> Ordering:
 
             >>> types.order(types.Uint(8), types.Bool())
             Ordering.NONE
+            >>> types.order(types.Uint(8), types.Uint(16, const=True))
+            Ordering.NONE
     """
     if (orderer := _ORDERERS.get((left.kind, right.kind))) is None:
         return Ordering.NONE
     order_ = orderer(left, right)
-    if order_ is Ordering.EQUAL:
-        if left.const is True and right.const is False:
+
+    # If the natural type ordering is equal (either one can represent both)
+    # but the types differ in const-ness, the non-const variant is greater.
+    # If one type is greater (and thus is the only type that can represent
+    # both) an ordering is only defined if that type is non-const or both
+    # types are const.
+    if left.const is True and right.const is False:
+        if order_ is Ordering.EQUAL:
             return Ordering.LESS
-        if right.const is True and left.const is False:
+        if order_ is Ordering.GREATER:
+            return Ordering.NONE
+    if right.const is True and left.const is False:
+        if order_ is Ordering.EQUAL:
             return Ordering.GREATER
+        if order_ is Ordering.LESS:
+            return Ordering.NONE
     return order_
 
 

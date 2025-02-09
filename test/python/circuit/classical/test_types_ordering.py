@@ -19,13 +19,37 @@ from test import QiskitTestCase  # pylint: disable=wrong-import-order
 class TestTypesOrdering(QiskitTestCase):
     def test_order(self):
         self.assertIs(types.order(types.Uint(8), types.Uint(16)), types.Ordering.LESS)
+        self.assertIs(types.order(types.Uint(8, const=True), types.Uint(16)), types.Ordering.LESS)
+        self.assertIs(
+            types.order(types.Uint(8, const=True), types.Uint(16, const=True)), types.Ordering.LESS
+        )
+
         self.assertIs(types.order(types.Uint(16), types.Uint(8)), types.Ordering.GREATER)
+        self.assertIs(
+            types.order(types.Uint(16), types.Uint(8, const=True)), types.Ordering.GREATER
+        )
+        self.assertIs(
+            types.order(types.Uint(16, const=True), types.Uint(8, const=True)),
+            types.Ordering.GREATER,
+        )
+
         self.assertIs(types.order(types.Uint(8), types.Uint(8)), types.Ordering.EQUAL)
+        self.assertIs(types.order(types.Uint(8, const=True), types.Uint(8)), types.Ordering.LESS)
+        self.assertIs(types.order(types.Uint(8), types.Uint(8, const=True)), types.Ordering.GREATER)
+        self.assertIs(
+            types.order(types.Uint(8, const=True), types.Uint(8, const=True)), types.Ordering.EQUAL
+        )
 
         self.assertIs(types.order(types.Bool(), types.Bool()), types.Ordering.EQUAL)
+        self.assertIs(types.order(types.Bool(const=True), types.Bool()), types.Ordering.LESS)
+        self.assertIs(types.order(types.Bool(), types.Bool(const=True)), types.Ordering.GREATER)
+        self.assertIs(
+            types.order(types.Bool(const=True), types.Bool(const=True)), types.Ordering.EQUAL
+        )
 
         self.assertIs(types.order(types.Bool(), types.Uint(8)), types.Ordering.NONE)
         self.assertIs(types.order(types.Uint(8), types.Bool()), types.Ordering.NONE)
+        self.assertIs(types.order(types.Uint(8), types.Uint(16, const=True)), types.Ordering.NONE)
 
     def test_is_subtype(self):
         self.assertTrue(types.is_subtype(types.Uint(8), types.Uint(16)))
