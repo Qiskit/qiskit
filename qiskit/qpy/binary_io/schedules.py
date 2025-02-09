@@ -16,7 +16,6 @@ This module is kep post pulse-removal to allow reading legacy
 payloads containing pulse gates without breaking the load flow.
 The purpose of the `_read` and `_load` methods below is just to advance
 the file handle while consuming pulse data."""
-from curses import meta
 import json
 import struct
 import zlib
