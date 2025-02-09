@@ -32,15 +32,13 @@ from qiskit.utils.deprecate_pulse import ignore_pulse_deprecation_warnings
 
 
 def _read_channel(file_obj, version):
-    type_key = common.read_type_key(file_obj)
-    index = value.read_value(file_obj, version, {})
-
-    channel_cls = type_keys.ScheduleChannel.retrieve(type_key)
-
-    return channel_cls(index)
+    # TODO: document purpose
+    common.read_type_key(file_obj) # read type_key
+    value.read_value(file_obj, version, {}) # read index
 
 
 def _read_waveform(file_obj, version):
+    # TODO: document purpose
     header = formats.WAVEFORM._make(
         struct.unpack(
             formats.WAVEFORM_PACK,
@@ -48,15 +46,8 @@ def _read_waveform(file_obj, version):
         )
     )
     samples_raw = file_obj.read(header.data_size)
-    samples = common.data_from_binary(samples_raw, np.load)
-    name = value.read_value(file_obj, version, {})
-
-    return library.Waveform(
-        samples=samples,
-        name=name,
-        epsilon=header.epsilon,
-        limit_amplitude=header.amp_limited,
-    )
+    common.data_from_binary(samples_raw, np.load) # read samples
+    value.read_value(file_obj, version, {}) # read name
 
 
 def _loads_obj(type_key, binary_data, version, vectors):
@@ -78,25 +69,26 @@ def _loads_obj(type_key, binary_data, version, vectors):
 
 
 def _read_kernel(file_obj, version):
+    # TODO: document
     params = common.read_mapping(
         file_obj=file_obj,
         deserializer=_loads_obj,
         version=version,
         vectors={},
     )
-    name = value.read_value(file_obj, version, {})
-    return Kernel(name=name, **params)
+    value.read_value(file_obj, version, {}) # read name
 
 
 def _read_discriminator(file_obj, version):
-    params = common.read_mapping(
+    # TODO: docucment
+    # read params
+    common.read_mapping(
         file_obj=file_obj,
         deserializer=_loads_obj,
         version=version,
         vectors={},
     )
-    name = value.read_value(file_obj, version, {})
-    return Discriminator(name=name, **params)
+    value.read_value(file_obj, version, {}) # read name
 
 
 def _loads_symbolic_expr(expr_bytes, use_symengine=False):
@@ -114,6 +106,7 @@ def _loads_symbolic_expr(expr_bytes, use_symengine=False):
 
 
 def _read_symbolic_pulse(file_obj, version):
+    # TODO: document purpose
     make = formats.SYMBOLIC_PULSE._make
     pack = formats.SYMBOLIC_PULSE_PACK
     size = formats.SYMBOLIC_PULSE_SIZE
@@ -125,10 +118,11 @@ def _read_symbolic_pulse(file_obj, version):
         )
     )
     pulse_type = file_obj.read(header.type_size).decode(common.ENCODE)
-    envelope = _loads_symbolic_expr(file_obj.read(header.envelope_size))
-    constraints = _loads_symbolic_expr(file_obj.read(header.constraints_size))
-    valid_amp_conditions = _loads_symbolic_expr(file_obj.read(header.valid_amp_conditions_size))
-    parameters = common.read_mapping(
+    _loads_symbolic_expr(file_obj.read(header.envelope_size)) # read envelope
+    _loads_symbolic_expr(file_obj.read(header.constraints_size)) # read constraints
+    _loads_symbolic_expr(file_obj.read(header.valid_amp_conditions_size)) # read valid amp conditions
+    # read parameters
+    common.read_mapping(
         file_obj,
         deserializer=value.loads_value,
         version=version,
@@ -146,50 +140,19 @@ def _read_symbolic_pulse(file_obj, version):
     class_name = "SymbolicPulse"  # Default class name, if not in the library
 
     if pulse_type in legacy_library_pulses:
-        parameters["angle"] = np.angle(parameters["amp"])
-        parameters["amp"] = np.abs(parameters["amp"])
-        _amp, _angle = sym.symbols("amp, angle")
-        envelope = envelope.subs(_amp, _amp * sym.exp(sym.I * _angle))
-
-        warnings.warn(
-            f"Library pulses with complex amp are no longer supported. "
-            f"{pulse_type} with complex amp was converted to (amp,angle) representation.",
-            UserWarning,
-        )
         class_name = "ScalableSymbolicPulse"
 
-    duration = value.read_value(file_obj, version, {})
-    name = value.read_value(file_obj, version, {})
+    value.read_value(file_obj, version, {}) # read duration
+    value.read_value(file_obj, version, {}) # read name
 
-    if class_name == "SymbolicPulse":
-        return library.SymbolicPulse(
-            pulse_type=pulse_type,
-            duration=duration,
-            parameters=parameters,
-            name=name,
-            limit_amplitude=header.amp_limited,
-            envelope=envelope,
-            constraints=constraints,
-            valid_amp_conditions=valid_amp_conditions,
-        )
-    elif class_name == "ScalableSymbolicPulse":
-        return library.ScalableSymbolicPulse(
-            pulse_type=pulse_type,
-            duration=duration,
-            amp=parameters["amp"],
-            angle=parameters["angle"],
-            parameters=parameters,
-            name=name,
-            limit_amplitude=header.amp_limited,
-            envelope=envelope,
-            constraints=constraints,
-            valid_amp_conditions=valid_amp_conditions,
-        )
+    if class_name == "SymbolicPulse" or class_name == "ScalableSymbolicPulse":
+        return None
     else:
         raise NotImplementedError(f"Unknown class '{class_name}'")
 
 
 def _read_symbolic_pulse_v6(file_obj, version, use_symengine):
+    # TODO: document purpose
     make = formats.SYMBOLIC_PULSE_V2._make
     pack = formats.SYMBOLIC_PULSE_PACK_V2
     size = formats.SYMBOLIC_PULSE_SIZE_V2
@@ -201,83 +164,43 @@ def _read_symbolic_pulse_v6(file_obj, version, use_symengine):
         )
     )
     class_name = file_obj.read(header.class_name_size).decode(common.ENCODE)
-    pulse_type = file_obj.read(header.type_size).decode(common.ENCODE)
-    envelope = _loads_symbolic_expr(file_obj.read(header.envelope_size), use_symengine)
-    constraints = _loads_symbolic_expr(file_obj.read(header.constraints_size), use_symengine)
-    valid_amp_conditions = _loads_symbolic_expr(
+    file_obj.read(header.type_size).decode(common.ENCODE) # read pulse type
+    _loads_symbolic_expr(file_obj.read(header.envelope_size), use_symengine) # read envelope
+    _loads_symbolic_expr(file_obj.read(header.constraints_size), use_symengine) # read constraints
+    _loads_symbolic_expr(
         file_obj.read(header.valid_amp_conditions_size), use_symengine
-    )
-    parameters = common.read_mapping(
+    ) # read valid_amp_conditions
+    # read parameters
+    common.read_mapping(
         file_obj,
         deserializer=value.loads_value,
         version=version,
         vectors={},
     )
 
-    duration = value.read_value(file_obj, version, {})
-    name = value.read_value(file_obj, version, {})
+    value.read_value(file_obj, version, {}) # read duration
+    value.read_value(file_obj, version, {}) # read name
 
-    if class_name == "SymbolicPulse":
-        return library.SymbolicPulse(
-            pulse_type=pulse_type,
-            duration=duration,
-            parameters=parameters,
-            name=name,
-            limit_amplitude=header.amp_limited,
-            envelope=envelope,
-            constraints=constraints,
-            valid_amp_conditions=valid_amp_conditions,
-        )
-    elif class_name == "ScalableSymbolicPulse":
-        # Between Qiskit 0.40 and 0.46, the (amp, angle) representation was present,
-        # but complex amp was still allowed. In Qiskit 1.0 and beyond complex amp
-        # is no longer supported and so the amp needs to be checked and converted.
-        # Once QPY version is bumped, a new reader function can be introduced without
-        # this check.
-        if isinstance(parameters["amp"], complex):
-            parameters["angle"] = np.angle(parameters["amp"])
-            parameters["amp"] = np.abs(parameters["amp"])
-            warnings.warn(
-                f"ScalableSymbolicPulse with complex amp are no longer supported. "
-                f"{pulse_type} with complex amp was converted to (amp,angle) representation.",
-                UserWarning,
-            )
-
-        return library.ScalableSymbolicPulse(
-            pulse_type=pulse_type,
-            duration=duration,
-            amp=parameters["amp"],
-            angle=parameters["angle"],
-            parameters=parameters,
-            name=name,
-            limit_amplitude=header.amp_limited,
-            envelope=envelope,
-            constraints=constraints,
-            valid_amp_conditions=valid_amp_conditions,
-        )
+    if class_name == "SymbolicPulse" or class_name == "ScalableSymbolicPulse":
+        return None
     else:
         raise NotImplementedError(f"Unknown class '{class_name}'")
 
 
 def _read_alignment_context(file_obj, version):
-    type_key = common.read_type_key(file_obj)
+    # TODO: document purpose
+    common.read_type_key(file_obj)
 
-    context_params = common.read_sequence(
+    common.read_sequence(
         file_obj,
         deserializer=value.loads_value,
         version=version,
         vectors={},
     )
-    context_cls = type_keys.ScheduleAlignment.retrieve(type_key)
-
-    instance = object.__new__(context_cls)
-    instance._context_params = tuple(context_params)
-
-    return instance
 
 
-# pylint: disable=too-many-return-statements
 def _loads_operand(type_key, data_bytes, version, use_symengine):
+    # TODO: document purpose ADD NONE TO ALL THE DUMMY READERS
     if type_key == type_keys.ScheduleOperand.WAVEFORM:
         return common.data_from_binary(data_bytes, _read_waveform, version=version)
     if type_key == type_keys.ScheduleOperand.SYMBOLIC_PULSE:
@@ -308,22 +231,18 @@ def _loads_operand(type_key, data_bytes, version, use_symengine):
 
 
 def _read_element(file_obj, version, metadata_deserializer, use_symengine):
+    # TODO: document purpose of the function
     type_key = common.read_type_key(file_obj)
 
     if type_key == type_keys.Program.SCHEDULE_BLOCK:
-        return read_schedule_block(file_obj, version, metadata_deserializer, use_symengine)
+        read_schedule_block(file_obj, version, metadata_deserializer, use_symengine)
 
-    operands = common.read_sequence(
+    # read operands
+    common.read_sequence(
         file_obj, deserializer=_loads_operand, version=version, use_symengine=use_symengine
     )
-    name = value.read_value(file_obj, version, {})
-
-    instance = object.__new__(type_keys.ScheduleInstruction.retrieve(type_key))
-    instance._operands = tuple(operands)
-    instance._name = name
-    instance._hash = None
-
-    return instance
+    # read name
+    value.read_value(file_obj, version, {})
 
 
 def _loads_reference_item(type_key, data_bytes, metadata_deserializer, version):
@@ -332,7 +251,7 @@ def _loads_reference_item(type_key, data_bytes, metadata_deserializer, version):
     if type_key == type_keys.Program.SCHEDULE_BLOCK:
         return common.data_from_binary(
             data_bytes,
-            deserializer=read_schedule_block,
+            deserializer=read_schedule_block,  # TODO: where is this function used?
             version=version,
             metadata_deserializer=metadata_deserializer,
         )
@@ -344,6 +263,7 @@ def _loads_reference_item(type_key, data_bytes, metadata_deserializer, version):
     )
 
 
+# TODO: all the _write and dump functions below should be removed
 def _write_channel(file_obj, data, version):
     type_key = type_keys.ScheduleChannel.assign(data)
     common.write_type_key(file_obj, type_key)
@@ -513,6 +433,7 @@ def _dumps_reference_item(schedule, metadata_serializer, version):
 
 @ignore_pulse_deprecation_warnings
 def read_schedule_block(file_obj, version, metadata_deserializer=None, use_symengine=False):
+    # TODO: document the purpose of this function
     """Read a single ScheduleBlock from the file like object.
 
     Args:
@@ -530,7 +451,7 @@ def read_schedule_block(file_obj, version, metadata_deserializer=None, use_symen
             platforms. Please check that your target platform is supported by the symengine library
             before setting this option, as it will be required by qpy to deserialize the payload.
     Returns:
-        ScheduleBlock: The schedule block object from the file.
+        ScheduleBlock: The schedule block object from the file. #TODO: NONE
 
     Raises:
         TypeError: If any of the instructions is invalid data format.
@@ -545,37 +466,22 @@ def read_schedule_block(file_obj, version, metadata_deserializer=None, use_symen
             file_obj.read(formats.SCHEDULE_BLOCK_HEADER_SIZE),
         )
     )
-    name = file_obj.read(data.name_size).decode(common.ENCODE)
+    file_obj.read(data.name_size).decode(common.ENCODE) # read name
     metadata_raw = file_obj.read(data.metadata_size)
-    metadata = json.loads(metadata_raw, cls=metadata_deserializer)
-    context = _read_alignment_context(file_obj, version)
+    json.loads(metadata_raw, cls=metadata_deserializer) # read metadata
+    _read_alignment_context(file_obj, version)
 
-    block = ScheduleBlock(
-        name=name,
-        metadata=metadata,
-        alignment_context=context,
-    )
     for _ in range(data.num_elements):
-        block_elm = _read_element(file_obj, version, metadata_deserializer, use_symengine)
-        block.append(block_elm, inplace=True)
+        _read_element(file_obj, version, metadata_deserializer, use_symengine)
 
     # Load references
     if version >= 7:
-        flat_key_refdict = common.read_mapping(
+        common.read_mapping(
             file_obj=file_obj,
             deserializer=_loads_reference_item,
             version=version,
             metadata_deserializer=metadata_deserializer,
         )
-        ref_dict = {}
-        for key_str, schedule in flat_key_refdict.items():
-            if schedule is not None:
-                composite_key = tuple(key_str.split(instructions.Reference.key_delimiter))
-                ref_dict[composite_key] = schedule
-        if ref_dict:
-            block.assign_references(ref_dict, inplace=True)
-
-    return block
 
 
 def write_schedule_block(

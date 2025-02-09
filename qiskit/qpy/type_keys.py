@@ -437,7 +437,7 @@ class Program(TypeKeyBase):
     def assign(cls, obj):
         if isinstance(obj, QuantumCircuit):
             return cls.CIRCUIT
-        if isinstance(obj, ScheduleBlock):
+        if isinstance(obj, ScheduleBlock): # TODO: remove this path
             return cls.SCHEDULE_BLOCK
 
         raise exceptions.QpyError(

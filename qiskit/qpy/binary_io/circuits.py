@@ -639,8 +639,7 @@ def _read_custom_operations(file_obj, version, vectors):
 
 
 def _read_calibrations(file_obj, version, vectors, metadata_deserializer):
-    calibrations = {}
-
+    # TODO: document the purpose of this function
     header = formats.CALIBRATION._make(
         struct.unpack(formats.CALIBRATION_PACK, file_obj.read(formats.CALIBRATION_SIZE))
     )
@@ -648,22 +647,21 @@ def _read_calibrations(file_obj, version, vectors, metadata_deserializer):
         defheader = formats.CALIBRATION_DEF._make(
             struct.unpack(formats.CALIBRATION_DEF_PACK, file_obj.read(formats.CALIBRATION_DEF_SIZE))
         )
-        name = file_obj.read(defheader.name_size).decode(common.ENCODE)
-        qubits = tuple(
+        name = file_obj.read(defheader.name_size).decode(common.ENCODE) # TODO: this is where the name of the gate comes from. Emit a warning here
+        warnings.warn(
+            category=exceptions.QPYLoadingDeprecatedFeatureWarning,
+            message="Support for loading dulse gates has been removed in Qiskit 2.0. "
+                    f"If `{name}` is in the circuit, it will be left as a custom instruction without definition."
+
+        )
+
+        for _ in range(defheader.num_qubits): # qubits info
             struct.unpack("!q", file_obj.read(struct.calcsize("!q")))[0]
-            for _ in range(defheader.num_qubits)
-        )
-        params = tuple(
-            value.read_value(file_obj, version, vectors) for _ in range(defheader.num_params)
-        )
-        schedule = schedules.read_schedule_block(file_obj, version, metadata_deserializer)
 
-        if name not in calibrations:
-            calibrations[name] = {(qubits, params): schedule}
-        else:
-            calibrations[name][(qubits, params)] = schedule
+        for _ in range(defheader.num_params): # read params info
+            value.read_value(file_obj, version, vectors)
 
-    return calibrations
+        schedules.read_schedule_block(file_obj, version, metadata_deserializer)
 
 
 def _dumps_register(register, index_map):
@@ -1451,9 +1449,9 @@ def read_circuit(file_obj, version, metadata_deserializer=None, use_symengine=Fa
             standalone_var_indices,
         )
 
-    # Read calibrations
+    # Read calibrations, but don't use them since pulse gates are not supported as of Qiskit 2.0
     if version >= 5:
-        circ._calibrations_prop = _read_calibrations(
+        _read_calibrations(
             file_obj, version, vectors, metadata_deserializer
         )
 

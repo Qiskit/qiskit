@@ -22,16 +22,14 @@ import warnings
 import re
 
 from qiskit.circuit import QuantumCircuit
-from qiskit.pulse import ScheduleBlock
 from qiskit.exceptions import QiskitError
 from qiskit.qpy import formats, common, binary_io, type_keys
 from qiskit.qpy.exceptions import QPYLoadingDeprecatedFeatureWarning, QpyError
 from qiskit.version import __version__
-from qiskit.utils.deprecate_pulse import deprecate_pulse_arg
 
 
 # pylint: disable=invalid-name
-QPY_SUPPORTED_TYPES = Union[QuantumCircuit, ScheduleBlock]
+QPY_SUPPORTED_TYPES = Union[QuantumCircuit]
 
 # This version pattern is taken from the pypa packaging project:
 # https://github.com/pypa/packaging/blob/21.3/packaging/version.py#L223-L254
@@ -74,11 +72,6 @@ VERSION_PATTERN = (
 VERSION_PATTERN_REGEX = re.compile(VERSION_PATTERN, re.VERBOSE | re.IGNORECASE)
 
 
-@deprecate_pulse_arg(
-    "programs",
-    deprecation_description="Passing `ScheduleBlock` to `programs`",
-    predicate=lambda p: isinstance(p, ScheduleBlock),
-)
 def dump(
     programs: Union[List[QPY_SUPPORTED_TYPES], QPY_SUPPORTED_TYPES],
     file_obj: BinaryIO,
@@ -350,15 +343,8 @@ def load(
     if type_key == type_keys.Program.CIRCUIT:
         loader = binary_io.read_circuit
     elif type_key == type_keys.Program.SCHEDULE_BLOCK:
-        loader = binary_io.read_schedule_block
-        warnings.warn(
-            category=QPYLoadingDeprecatedFeatureWarning,
-            message="Pulse gates deserialization is deprecated as of Qiskit 1.3 and "
-            "will be removed in Qiskit 2.0. This is part of the deprecation plan for "
-            "the entire Qiskit Pulse package. Once Pulse is removed, `ScheduleBlock` "
-            "sections will be ignored when loading QPY files with pulse data.",
-        )
-
+        raise QPYLoadingDeprecatedFeatureWarning("Payloads of type `ScheduleBlock` cannot be loaded as of Qiskit 2.0. "
+                                                 "Use an earlier version if Qiskit if needed.")
     else:
         raise TypeError(f"Invalid payload format data kind '{type_key}'.")
 
