@@ -35,6 +35,7 @@ from qiskit._accelerate.high_level_synthesis import (
     HighLevelSynthesisData,
     py_run_on_dag,
 )
+
 from .plugin import HighLevelSynthesisPluginManager
 
 if typing.TYPE_CHECKING:
