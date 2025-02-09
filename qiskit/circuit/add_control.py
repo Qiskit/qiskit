@@ -239,25 +239,20 @@ def apply_basic_controlled_gate(circuit, gate, controls, target):
                 circuit.cu(theta, phi, lamb, 0, controls[0], target)
         else:
             if phi == -pi / 2 and lamb == pi / 2:
-                circuit.mcrx(theta, controls, target, use_basis_gates=True)
+                circuit.mcrx(theta, controls, target, use_basis_gates=False)
             elif phi == 0 and lamb == 0:
                 circuit.mcry(
                     theta,
                     controls,
                     target,
-                    use_basis_gates=True,
+                    use_basis_gates=False,
                 )
             elif theta == 0 and phi == 0:
                 circuit.mcp(lamb, controls, target)
             else:
-                circuit.mcrz(lamb, controls, target, use_basis_gates=True)
-                circuit.mcry(
-                    theta,
-                    controls,
-                    target,
-                    use_basis_gates=True,
-                )
-                circuit.mcrz(phi, controls, target, use_basis_gates=True)
+                circuit.mcrz(lamb, controls, target, use_basis_gates=False)
+                circuit.mcry(theta, controls, target, use_basis_gates=False)
+                circuit.mcrz(phi, controls, target, use_basis_gates=False)
                 circuit.mcp((phi + lamb) / 2, controls[1:], controls[0])
 
     elif gate.name == "z":
@@ -271,7 +266,7 @@ def apply_basic_controlled_gate(circuit, gate, controls, target):
         circuit.s(target)
 
     elif gate.name == "h":
-        circuit.mcry(pi / 2, controls, target, use_basis_gates=True)
+        circuit.mcry(pi / 2, controls, target, use_basis_gates=False)
         circuit.mcx(controls, target)
 
     elif gate.name == "sx":
