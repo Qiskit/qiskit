@@ -480,6 +480,8 @@ from qiskit.synthesis.arithmetic import (
 from qiskit.quantum_info.operators import Clifford
 from qiskit.transpiler.passes.routing.algorithms import ApproximateTokenSwapper
 from qiskit.transpiler.exceptions import TranspilerError
+
+from qiskit._accelerate.high_level_synthesis import py_synthesize_operation
 from .plugin import HighLevelSynthesisPlugin
 
 
@@ -1683,9 +1685,6 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
     """
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
-        # pylint: disable=cyclic-import
-        from .high_level_synthesis import _synthesize_operation
-
         if not isinstance(high_level_object, AnnotatedOperation):
             return None
 
@@ -1727,16 +1726,19 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
             # to return these (and instead the upstream code greedily grabs some ancilla
             # qubits from the circuit). We should refactor the plugin "run" iterface to
             # return the actual ancilla qubits used.
-            synthesized_base_op, _ = _synthesize_operation(
+            synthesized_base_op_result = py_synthesize_operation(
                 operation.base_op, input_qubits[num_ctrl:], data, annotated_tracker
             )
 
             # The base operation does not need to be synthesized.
             # For simplicity, we wrap the instruction into a circuit. Note that
             # this should not deteriorate the quality of the result.
-            if synthesized_base_op is None:
+            if synthesized_base_op_result is None:
                 synthesized_base_op = _instruction_to_circuit(operation.base_op)
-
+            else:
+                synthesized_base_op = QuantumCircuit._from_circuit_data(
+                    synthesized_base_op_result[0]
+                )
             tracker.set_dirty(input_qubits[num_ctrl:])
 
             # This step currently does not introduce ancilla qubits. However it makes
