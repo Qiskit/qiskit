@@ -12,12 +12,10 @@
 
 """Testing legacy instruction alignment pass."""
 
-from qiskit import QuantumCircuit, pulse
+from qiskit import QuantumCircuit
 from qiskit.transpiler import InstructionDurations
-from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes import (
     AlignMeasures,
-    ValidatePulseGates,
     ALAPSchedule,
     TimeUnitConversion,
 )
@@ -327,101 +325,3 @@ class TestAlignMeasures(QiskitTestCase):
         ref_circuit.measure(2, 0)
 
         self.assertEqual(aligned_circuit, ref_circuit)
-
-
-class TestPulseGateValidation(QiskitTestCase):
-    """A test for pulse gate validation pass."""
-
-    def setUp(self):
-        super().setUp()
-        with self.assertWarns(DeprecationWarning):
-            self.pulse_gate_validation_pass = ValidatePulseGates(granularity=16, min_length=64)
-
-    def test_invalid_pulse_duration(self):
-        """Kill pass manager if invalid pulse gate is found."""
-
-        # this is invalid duration pulse
-        # this will cause backend error since this doesn't fit with waveform memory chunk.
-
-        with self.assertWarns(DeprecationWarning):
-            custom_gate = pulse.Schedule(name="custom_x_gate")
-            custom_gate.insert(
-                0, pulse.Play(pulse.Constant(100, 0.1), pulse.DriveChannel(0)), inplace=True
-            )
-
-        circuit = QuantumCircuit(1)
-        circuit.x(0)
-        with self.assertWarns(DeprecationWarning):
-            circuit.add_calibration("x", qubits=(0,), schedule=custom_gate)
-
-        with self.assertRaises(TranspilerError):
-            self.pulse_gate_validation_pass(circuit)
-
-    def test_short_pulse_duration(self):
-        """Kill pass manager if invalid pulse gate is found."""
-
-        # this is invalid duration pulse
-        # this will cause backend error since this doesn't fit with waveform memory chunk.
-        with self.assertWarns(DeprecationWarning):
-            custom_gate = pulse.Schedule(name="custom_x_gate")
-            custom_gate.insert(
-                0, pulse.Play(pulse.Constant(32, 0.1), pulse.DriveChannel(0)), inplace=True
-            )
-
-        circuit = QuantumCircuit(1)
-        circuit.x(0)
-        with self.assertWarns(DeprecationWarning):
-            circuit.add_calibration("x", qubits=(0,), schedule=custom_gate)
-
-        with self.assertRaises(TranspilerError):
-            self.pulse_gate_validation_pass(circuit)
-
-    def test_short_pulse_duration_multiple_pulse(self):
-        """Kill pass manager if invalid pulse gate is found."""
-
-        # this is invalid duration pulse
-        # however total gate schedule length is 64, which accidentally satisfies the constraints
-        # this should fail in the validation
-        with self.assertWarns(DeprecationWarning):
-            custom_gate = pulse.Schedule(name="custom_x_gate")
-            custom_gate.insert(
-                0, pulse.Play(pulse.Constant(32, 0.1), pulse.DriveChannel(0)), inplace=True
-            )
-            custom_gate.insert(
-                32, pulse.Play(pulse.Constant(32, 0.1), pulse.DriveChannel(0)), inplace=True
-            )
-
-        circuit = QuantumCircuit(1)
-        circuit.x(0)
-        with self.assertWarns(DeprecationWarning):
-            circuit.add_calibration("x", qubits=(0,), schedule=custom_gate)
-
-        with self.assertRaises(TranspilerError):
-            self.pulse_gate_validation_pass(circuit)
-
-    def test_valid_pulse_duration(self):
-        """No error raises if valid calibration is provided."""
-
-        # this is valid duration pulse
-        with self.assertWarns(DeprecationWarning):
-            custom_gate = pulse.Schedule(name="custom_x_gate")
-            custom_gate.insert(
-                0, pulse.Play(pulse.Constant(160, 0.1), pulse.DriveChannel(0)), inplace=True
-            )
-
-        circuit = QuantumCircuit(1)
-        circuit.x(0)
-        with self.assertWarns(DeprecationWarning):
-            circuit.add_calibration("x", qubits=(0,), schedule=custom_gate)
-
-        # just not raise an error
-        self.pulse_gate_validation_pass(circuit)
-
-    def test_no_calibration(self):
-        """No error raises if no calibration is added."""
-
-        circuit = QuantumCircuit(1)
-        circuit.x(0)
-
-        # just not raise an error
-        self.pulse_gate_validation_pass(circuit)

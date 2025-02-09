@@ -197,6 +197,17 @@ class DefaultInitPassManager(PassManagerStagePlugin):
         return init
 
 
+class DefaultTranslationPassManager(PassManagerStagePlugin):
+    """Plugin class for the default-method translation stage."""
+
+    def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
+        # For now, this is just a wrapper around the `BasisTranslator`.  It might expand in the
+        # future if we want to change the default method to do more context-aware switching, or to
+        # start transitioning the default method without breaking the semantics of the default
+        # string referring to the `BasisTranslator`.
+        return BasisTranslatorPassManager().pass_manager(pass_manager_config, optimization_level)
+
+
 class BasisTranslatorPassManager(PassManagerStagePlugin):
     """Plugin class for translation stage with :class:`~.BasisTranslator`"""
 
@@ -207,7 +218,6 @@ class BasisTranslatorPassManager(PassManagerStagePlugin):
             method="translator",
             approximation_degree=pass_manager_config.approximation_degree,
             coupling_map=pass_manager_config.coupling_map,
-            backend_props=pass_manager_config.backend_properties,
             unitary_synthesis_method=pass_manager_config.unitary_synthesis_method,
             unitary_synthesis_plugin_config=pass_manager_config.unitary_synthesis_plugin_config,
             hls_config=pass_manager_config.hls_config,
@@ -225,7 +235,6 @@ class UnitarySynthesisPassManager(PassManagerStagePlugin):
             method="synthesis",
             approximation_degree=pass_manager_config.approximation_degree,
             coupling_map=pass_manager_config.coupling_map,
-            backend_props=pass_manager_config.backend_properties,
             unitary_synthesis_method=pass_manager_config.unitary_synthesis_method,
             unitary_synthesis_plugin_config=pass_manager_config.unitary_synthesis_plugin_config,
             hls_config=pass_manager_config.hls_config,
@@ -535,7 +544,7 @@ class OptimizationPassManager(PassManagerStagePlugin):
     def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
         """Build pass manager for optimization stage."""
         # Obtain the translation method required for this pass to work
-        translation_method = pass_manager_config.translation_method or "translator"
+        translation_method = pass_manager_config.translation_method or "default"
         optimization = PassManager()
         if optimization_level != 0:
             plugin_manager = PassManagerStagePluginManager()
@@ -606,7 +615,6 @@ class OptimizationPassManager(PassManagerStagePlugin):
                         pass_manager_config.basis_gates,
                         approximation_degree=pass_manager_config.approximation_degree,
                         coupling_map=pass_manager_config.coupling_map,
-                        backend_props=pass_manager_config.backend_properties,
                         method=pass_manager_config.unitary_synthesis_method,
                         plugin_config=pass_manager_config.unitary_synthesis_plugin_config,
                         target=pass_manager_config.target,
@@ -653,7 +661,6 @@ class OptimizationPassManager(PassManagerStagePlugin):
                             pass_manager_config.basis_gates,
                             approximation_degree=pass_manager_config.approximation_degree,
                             coupling_map=pass_manager_config.coupling_map,
-                            backend_props=pass_manager_config.backend_properties,
                             method=pass_manager_config.unitary_synthesis_method,
                             plugin_config=pass_manager_config.unitary_synthesis_plugin_config,
                             target=pass_manager_config.target,
