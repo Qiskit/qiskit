@@ -293,7 +293,7 @@ fn extract_basis_target(
         // true for > 2q ops too (so for 4q operations we need to check for 3q, 2q,
         // and 1q operations in the same manner)
         let physical_qargs: SmallVec<[PhysicalQubit; 2]> =
-            qargs.iter().map(|x| PhysicalQubit(x.0)).collect();
+            qargs.iter().map(|x| PhysicalQubit(*x)).collect();
         let physical_qargs_as_set: HashSet<PhysicalQubit> =
             HashSet::from_iter(physical_qargs.iter().copied());
         if qargs_with_non_global_operation.contains_key(&Some(physical_qargs))
@@ -372,7 +372,7 @@ fn extract_basis_target_circ(
         // true for > 2q ops too (so for 4q operations we need to check for 3q, 2q,
         // and 1q operations in the same manner)
         let physical_qargs: SmallVec<[PhysicalQubit; 2]> =
-            qargs.iter().map(|x| PhysicalQubit(x.0)).collect();
+            qargs.iter().map(|x| PhysicalQubit(*x)).collect();
         let physical_qargs_as_set: HashSet<PhysicalQubit> =
             HashSet::from_iter(physical_qargs.iter().copied());
         if qargs_with_non_global_operation.contains_key(&Some(physical_qargs))
@@ -508,7 +508,7 @@ fn apply_translation(
             continue;
         }
         let node_qarg_as_physical: Option<Qargs> =
-            Some(node_qarg.iter().map(|x| PhysicalQubit(x.0)).collect());
+            Some(node_qarg.iter().map(|x| PhysicalQubit(*x)).collect());
         if qargs_with_non_global_operation.contains_key(&node_qarg_as_physical)
             && qargs_with_non_global_operation[&node_qarg_as_physical].contains(node_obj.op.name())
         {
@@ -561,7 +561,7 @@ fn apply_translation(
         let unique_qargs: Option<Qargs> = if qubit_set.is_empty() {
             None
         } else {
-            Some(qubit_set.iter().map(|x| PhysicalQubit(x.0)).collect())
+            Some(qubit_set.iter().map(|x| PhysicalQubit(*x)).collect())
         };
         if extra_inst_map.contains_key(&unique_qargs) {
             replace_node(

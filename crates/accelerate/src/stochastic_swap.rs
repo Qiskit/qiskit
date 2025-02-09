@@ -112,10 +112,10 @@ fn swap_trial(
     let mut new_cost: f64;
     let mut dist: f64;
 
-    let mut optimal_start = PhysicalQubit::new(u32::MAX);
-    let mut optimal_end = PhysicalQubit::new(u32::MAX);
-    let mut optimal_start_qubit = VirtualQubit::new(u32::MAX);
-    let mut optimal_end_qubit = VirtualQubit::new(u32::MAX);
+    let mut optimal_start = PhysicalQubit::new(u32::MAX as usize);
+    let mut optimal_end = PhysicalQubit::new(u32::MAX as usize);
+    let mut optimal_start_qubit = VirtualQubit::new(u32::MAX as usize);
+    let mut optimal_end_qubit = VirtualQubit::new(u32::MAX as usize);
 
     let mut scale = Array2::zeros((num_qubits, num_qubits));
 

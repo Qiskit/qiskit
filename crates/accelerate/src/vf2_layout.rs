@@ -65,7 +65,7 @@ pub fn score_layout(
         })
     };
     let bit_filter_map = |(v_bit_index, gate_counts): (usize, &i32)| -> Option<f64> {
-        let p_bit = VirtualQubit::new(v_bit_index.try_into().unwrap()).to_phys(layout);
+        let p_bit = VirtualQubit::new(v_bit_index).to_phys(layout);
         let error = error_map.error_map.get(&[p_bit, p_bit]);
 
         error.map(|error| {
