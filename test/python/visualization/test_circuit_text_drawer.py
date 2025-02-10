@@ -63,16 +63,10 @@ from qiskit.circuit.library import (
     UCGate,
 )
 from qiskit.transpiler.passes import ApplyLayout
-from qiskit.utils.optionals import HAS_TWEEDLEDUM
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 from .visualization import path_to_diagram_reference, QiskitVisualizationTestCase
 from ..legacy_cmaps import YORKTOWN_CMAP
-
-if HAS_TWEEDLEDUM:
-    from qiskit.circuit.classicalfunction import classical_function
-    from qiskit.circuit.classicalfunction.types import Int1
-
 
 class TestTextDrawerElement(QiskitTestCase):
     """Draw each element"""
@@ -1406,32 +1400,6 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         circuit.swap(qr[0], qr[1])
         circuit.rz(11111, qr[2])
         self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
-
-    @unittest.skipUnless(HAS_TWEEDLEDUM, "Tweedledum is required for these tests.")
-    def test_text_synth_no_registerless(self):
-        """Test synthesis's label when registerless=False.
-        See https://github.com/Qiskit/qiskit-terra/issues/9363"""
-        expected = "\n".join(
-            [
-                "                ",
-                "     a: |0>──■──",
-                "             │  ",
-                "     b: |0>──■──",
-                "             │  ",
-                "     c: |0>──o──",
-                "           ┌─┴─┐",
-                "return: |0>┤ X ├",
-                "           └───┘",
-            ]
-        )
-
-        @classical_function
-        def grover_oracle(a: Int1, b: Int1, c: Int1) -> Int1:
-            return a and b and not c
-
-        circuit = grover_oracle.synth(registerless=False)
-        self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
-
 
 class TestTextDrawerLabels(QiskitTestCase):
     """Gates with labels."""
