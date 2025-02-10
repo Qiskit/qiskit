@@ -615,15 +615,6 @@ supported by the target ISA.  For example, if a ``cx`` is requested on hardware 
 the ISA only contains a ``cz`` operation on those qubits, the translation stage must find a way of
 representing the ``cx`` gate using the ``cz`` and available one-qubit gates.
 
-.. note::
-
-    In Qiskit 1.x, translation plugins need not output gates with the correct
-    directionality, provided the gate exists with opposite directionality on the given qubit pair.
-    For example, if ``cx(0, 1)`` is ISA-supported, the translation stage can output
-    ``cx(1, 0)``.
-
-    This is likely to change in later versions of Qiskit.
-
 The translation stage is called before entering the optimization stage. Optimization plugins
 (including Qiskit's built-in plugins) may also use the translation stage as a "fixup" stage after
 the optimization loop, if the optimization loop returns a circuit that includes non-ISA gates.  This
@@ -643,12 +634,24 @@ When writing :ref:`stage plugins <transpiler-preset-stage-plugins>`, the entry p
     * - Method
       - Summary
 
+    * - :ref:`default <transpiler-preset-stage-translation-translator>`
+      - Use a Qiskit-chosen default translation method.
+
     * - :ref:`translator <transpiler-preset-stage-translation-translator>`
       - Symbolic translation of gates to the target basis using known equivalences.
 
     * - :ref:`synthesis <transpiler-preset-stage-translation-synthesis>`
       - Collect each run of one- and two-qubit gates into a matrix representation, and resynthesize
         from there.
+
+.. _transpiler-preset-stage-translation-default:
+
+Built-in ``default`` plugin
+...........................
+
+Use a Qiskit-chosen default method for translation.  As of Qiskit 2.0, this is the same as
+:ref:`transpiler-preset-stage-translation-translator`, but the chosen algorithm might change during
+the 2.x series, either for all targets, or only for certain classes of target.
 
 .. _transpiler-preset-stage-translation-synthesis:
 

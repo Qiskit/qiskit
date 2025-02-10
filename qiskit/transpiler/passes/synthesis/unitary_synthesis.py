@@ -38,6 +38,7 @@ from qiskit.circuit.library.standard_gates import (
     RXXGate,
     RZXGate,
     RZZGate,
+    RYYGate,
     ECRGate,
     RXGate,
     SXGate,
@@ -50,18 +51,22 @@ from qiskit.circuit.library.standard_gates import (
     U3Gate,
     RYGate,
     RGate,
+    CRXGate,
+    CRYGate,
+    CRZGate,
+    CPhaseGate,
 )
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.dagcircuit.dagnode import DAGOpNode
 from qiskit.exceptions import QiskitError
-from qiskit.providers.models.backendproperties import BackendProperties
 from qiskit.quantum_info import Operator
 from qiskit.synthesis.one_qubit import one_qubit_decompose
 from qiskit.synthesis.two_qubit.xx_decompose import XXDecomposer, XXEmbodiments
 from qiskit.synthesis.two_qubit.two_qubit_decompose import (
     TwoQubitBasisDecomposer,
     TwoQubitWeylDecomposition,
+    TwoQubitControlledUDecomposer,
 )
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.coupling import CouplingMap
@@ -88,16 +93,32 @@ GATE_NAME_MAP = {
     "u3": U3Gate._standard_gate,
     "ry": RYGate._standard_gate,
     "r": RGate._standard_gate,
+    "rzz": RZZGate._standard_gate,
+    "ryy": RYYGate._standard_gate,
+    "rxx": RXXGate._standard_gate,
+    "rzx": RXXGate._standard_gate,
+    "cp": CPhaseGate._standard_gate,
+    "crx": RXXGate._standard_gate,
+    "cry": RXXGate._standard_gate,
+    "crz": RXXGate._standard_gate,
 }
 
+KAK_GATE_PARAM_NAMES = {
+    "rxx": RXXGate,
+    "rzz": RZZGate,
+    "ryy": RYYGate,
+    "rzx": RZXGate,
+    "cphase": CPhaseGate,
+    "crx": CRXGate,
+    "cry": CRYGate,
+    "crz": CRZGate,
+}
 
 KAK_GATE_NAMES = {
     "cx": CXGate(),
     "cz": CZGate(),
     "iswap": iSwapGate(),
-    "rxx": RXXGate(pi / 2),
     "ecr": ECRGate(),
-    "rzx": RZXGate(pi / 4),  # typically pi/6 is also available
 }
 
 GateNameToGate = get_standard_gate_name_mapping()
@@ -106,9 +127,14 @@ GateNameToGate = get_standard_gate_name_mapping()
 def _choose_kak_gate(basis_gates):
     """Choose the first available 2q gate to use in the KAK decomposition."""
     kak_gate = None
-    kak_gates = set(basis_gates or []).intersection(KAK_GATE_NAMES.keys())
-    if kak_gates:
-        kak_gate = KAK_GATE_NAMES[kak_gates.pop()]
+    kak_gates = sorted(set(basis_gates or []).intersection(KAK_GATE_NAMES.keys()))
+    kak_gates_params = sorted(set(basis_gates or []).intersection(KAK_GATE_PARAM_NAMES.keys()))
+
+    if kak_gates_params:
+        kak_gate = KAK_GATE_PARAM_NAMES[kak_gates_params[0]]
+
+    elif kak_gates:
+        kak_gate = KAK_GATE_NAMES[kak_gates[0]]
 
     return kak_gate
 
@@ -129,7 +155,7 @@ def _find_matching_euler_bases(target, qubit):
 
 
 def _choose_bases(basis_gates, basis_dict=None):
-    """Find the matching basis string keys from the list of basis gates from the backend."""
+    """Find the matching basis string keys from the list of basis gates from the target."""
     if basis_gates is None:
         basis_set = set()
     else:
@@ -151,14 +177,9 @@ def _decomposer_2q_from_basis_gates(basis_gates, pulse_optimize=None, approximat
     kak_gate = _choose_kak_gate(basis_gates)
     euler_basis = _choose_euler_basis(basis_gates)
     basis_fidelity = approximation_degree or 1.0
-    if isinstance(kak_gate, RZXGate):
-        backup_optimizer = TwoQubitBasisDecomposer(
-            CXGate(),
-            basis_fidelity=basis_fidelity,
-            euler_basis=euler_basis,
-            pulse_optimize=pulse_optimize,
-        )
-        decomposer2q = XXDecomposer(euler_basis=euler_basis, backup_optimizer=backup_optimizer)
+
+    if kak_gate in KAK_GATE_PARAM_NAMES.values():
+        decomposer2q = TwoQubitControlledUDecomposer(kak_gate, euler_basis)
     elif kak_gate is not None:
         decomposer2q = TwoQubitBasisDecomposer(
             kak_gate,
@@ -320,7 +341,6 @@ class UnitarySynthesis(TransformationPass):
         basis_gates: list[str] = None,
         approximation_degree: float | None = 1.0,
         coupling_map: CouplingMap = None,
-        backend_props: BackendProperties = None,
         pulse_optimize: bool | None = None,
         natural_direction: bool | None = None,
         synth_gates: list[str] | None = None,
@@ -332,7 +352,7 @@ class UnitarySynthesis(TransformationPass):
         """Synthesize unitaries over some basis gates.
 
         This pass can approximate 2-qubit unitaries given some
-        gate fidelities (either via ``backend_props`` or ``target``).
+        gate fidelities (via ``target``).
         More approximation can be forced by setting a heuristic dial
         ``approximation_degree``.
 
@@ -345,13 +365,11 @@ class UnitarySynthesis(TransformationPass):
                 (1.0=no approximation, 0.0=maximal approximation). Approximation can
                 make the synthesized circuit cheaper at the cost of straying from
                 the original unitary. If None, approximation is done based on gate fidelities.
-            coupling_map (CouplingMap): the coupling map of the backend
+            coupling_map (CouplingMap): the coupling map of the target
                 in case synthesis is done on a physical circuit. The
                 directionality of the coupling_map will be taken into
                 account if ``pulse_optimize`` is ``True``/``None`` and ``natural_direction``
                 is ``True``/``None``.
-            backend_props (BackendProperties): Properties of a backend to
-                synthesize for (e.g. gate fidelities).
             pulse_optimize (bool): Whether to optimize pulses during
                 synthesis. A value of ``None`` will attempt it but fall
                 back if it does not succeed. A value of ``True`` will raise
@@ -363,7 +381,7 @@ class UnitarySynthesis(TransformationPass):
                 coupling map is unidirectional.  If there is no
                 coupling map or the coupling map is bidirectional,
                 the gate direction with the shorter
-                duration from the backend properties will be used. If
+                duration from the target properties will be used. If
                 set to True, and a natural direction can not be
                 determined, raises :class:`.TranspilerError`. If set to None, no
                 exception will be raised if a natural direction can
@@ -383,7 +401,7 @@ class UnitarySynthesis(TransformationPass):
                 your unitary synthesis plugin on how to use this.
             target: The optional :class:`~.Target` for the target device the pass
                 is compiling for. If specified this will supersede the values
-                set for ``basis_gates``, ``coupling_map``, and ``backend_props``.
+                set for ``basis_gates`` and ``coupling_map``.
 
         Raises:
             TranspilerError: if ``method`` was specified but is not found in the
@@ -399,7 +417,6 @@ class UnitarySynthesis(TransformationPass):
         if method != "default":
             self.plugins = plugin.UnitarySynthesisPluginManager()
         self._coupling_map = coupling_map
-        self._backend_props = backend_props
         self._pulse_optimize = pulse_optimize
         self._natural_direction = natural_direction
         self._plugin_config = plugin_config
@@ -496,23 +513,19 @@ class UnitarySynthesis(TransformationPass):
                 if method.supports_pulse_optimize:
                     kwargs["pulse_optimize"] = self._pulse_optimize
                 if method.supports_gate_lengths:
-                    _gate_lengths = _gate_lengths or _build_gate_lengths(
-                        self._backend_props, self._target
-                    )
+                    _gate_lengths = _gate_lengths or _build_gate_lengths(self._target)
                     kwargs["gate_lengths"] = _gate_lengths
                 if method.supports_gate_errors:
-                    _gate_errors = _gate_errors or _build_gate_errors(
-                        self._backend_props, self._target
-                    )
+                    _gate_errors = _gate_errors or _build_gate_errors(self._target)
                     kwargs["gate_errors"] = _gate_errors
                 if method.supports_gate_lengths_by_qubit:
                     _gate_lengths_by_qubit = _gate_lengths_by_qubit or _build_gate_lengths_by_qubit(
-                        self._backend_props, self._target
+                        self._target
                     )
                     kwargs["gate_lengths_by_qubit"] = _gate_lengths_by_qubit
                 if method.supports_gate_errors_by_qubit:
                     _gate_errors_by_qubit = _gate_errors_by_qubit or _build_gate_errors_by_qubit(
-                        self._backend_props, self._target
+                        self._target
                     )
                     kwargs["gate_errors_by_qubit"] = _gate_errors_by_qubit
                 supported_bases = method.supported_bases
@@ -610,9 +623,8 @@ class UnitarySynthesis(TransformationPass):
         return out_dag
 
 
-def _build_gate_lengths(props=None, target=None):
-    """Builds a ``gate_lengths`` dictionary from either ``props`` (BackendV1)
-    or ``target`` (BackendV2).
+def _build_gate_lengths(target=None):
+    """Builds a ``gate_lengths`` dictionary from ``target`` (BackendV2).
 
     The dictionary has the form:
     {gate_name: {(qubits,): duration}}
@@ -624,21 +636,11 @@ def _build_gate_lengths(props=None, target=None):
             for qubit, gate_props in prop_dict.items():
                 if gate_props is not None and gate_props.duration is not None:
                     gate_lengths[gate][qubit] = gate_props.duration
-    elif props is not None:
-        for gate in props._gates:
-            gate_lengths[gate] = {}
-            for k, v in props._gates[gate].items():
-                length = v.get("gate_length")
-                if length:
-                    gate_lengths[gate][k] = length[0]
-            if not gate_lengths[gate]:
-                del gate_lengths[gate]
     return gate_lengths
 
 
-def _build_gate_errors(props=None, target=None):
-    """Builds a ``gate_error`` dictionary from either ``props`` (BackendV1)
-    or ``target`` (BackendV2).
+def _build_gate_errors(target=None):
+    """Builds a ``gate_error`` dictionary from ``target`` (BackendV2).
 
     The dictionary has the form:
     {gate_name: {(qubits,): error_rate}}
@@ -650,22 +652,12 @@ def _build_gate_errors(props=None, target=None):
             for qubit, gate_props in prop_dict.items():
                 if gate_props is not None and gate_props.error is not None:
                     gate_errors[gate][qubit] = gate_props.error
-    if props is not None:
-        for gate in props._gates:
-            gate_errors[gate] = {}
-            for k, v in props._gates[gate].items():
-                error = v.get("gate_error")
-                if error:
-                    gate_errors[gate][k] = error[0]
-            if not gate_errors[gate]:
-                del gate_errors[gate]
     return gate_errors
 
 
-def _build_gate_lengths_by_qubit(props=None, target=None):
+def _build_gate_lengths_by_qubit(target=None):
     """
-    Builds a `gate_lengths` dictionary from either `props` (BackendV1)
-    or `target (BackendV2)`.
+    Builds a `gate_lengths` dictionary from `target (BackendV2)`.
 
     The dictionary has the form:
     {(qubits): [Gate, duration]}
@@ -682,23 +674,12 @@ def _build_gate_lengths_by_qubit(props=None, target=None):
                     operation_and_durations.append((operation, duration))
             if operation_and_durations:
                 gate_lengths[qubits] = operation_and_durations
-    elif props is not None:
-        for gate_name, gate_props in props._gates.items():
-            gate = GateNameToGate[gate_name]
-            for qubits, properties in gate_props.items():
-                duration = properties.get("gate_length", [0.0])[0]
-                operation_and_durations = (gate, duration)
-                if qubits in gate_lengths:
-                    gate_lengths[qubits].append(operation_and_durations)
-                else:
-                    gate_lengths[qubits] = [operation_and_durations]
     return gate_lengths
 
 
-def _build_gate_errors_by_qubit(props=None, target=None):
+def _build_gate_errors_by_qubit(target=None):
     """
-    Builds a `gate_error` dictionary from either `props` (BackendV1)
-    or `target (BackendV2)`.
+    Builds a `gate_error` dictionary from `target (BackendV2)`.
 
     The dictionary has the form:
     {(qubits): [Gate, error]}
@@ -715,16 +696,6 @@ def _build_gate_errors_by_qubit(props=None, target=None):
                     operation_and_errors.append((operation, error))
             if operation_and_errors:
                 gate_errors[qubits] = operation_and_errors
-    elif props is not None:
-        for gate_name, gate_props in props._gates.items():
-            gate = GateNameToGate[gate_name]
-            for qubits, properties in gate_props.items():
-                error = properties.get("gate_error", [0.0])[0]
-                operation_and_errors = (gate, error)
-                if qubits in gate_errors:
-                    gate_errors[qubits].append(operation_and_errors)
-                else:
-                    gate_errors[qubits] = [operation_and_errors]
     return gate_errors
 
 

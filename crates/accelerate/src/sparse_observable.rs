@@ -687,10 +687,10 @@ impl SparseObservable {
                 .multi_cartesian_product();
 
             for combination in combinations {
-                let mut positive = true;
+                let mut positive = true; // keep track of the global sign
 
                 for (index, (sign, bit)) in combination.iter().enumerate() {
-                    positive &= sign;
+                    positive ^= !sign; // accumulate the sign; global_sign *= local_sign
                     if let Some(bit) = bit {
                         paulis.push(*bit);
                         indices.push(view.indices[index]);
@@ -2481,7 +2481,7 @@ impl PySparseObservable {
     /// list and back.
     ///
     /// Examples:
-    ///     
+    ///
     ///     >>> obs = SparseObservable.from_list([("IIXIZ", 2j), ("IIZIX", 2j)])
     ///     >>> reconstructed = SparseObservable.from_sparse_list(obs.to_sparse_list(), obs.num_qubits)
     ///
