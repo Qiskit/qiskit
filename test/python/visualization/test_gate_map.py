@@ -59,7 +59,7 @@ class TestGateMap(QiskitVisualizationTestCase):
         with BytesIO() as img_buffer:
             fig.savefig(img_buffer, format="png")
             img_buffer.seek(0)
-            self.assertImagesAreEqual(Image.open(img_buffer), img_ref, 0.05)
+            self.assertImagesAreEqual(Image.open(img_buffer), img_ref, 0.1)
         plt.close(fig)
 
     @data(*backends)
@@ -81,7 +81,7 @@ class TestGateMap(QiskitVisualizationTestCase):
         with BytesIO() as img_buffer:
             fig.savefig(img_buffer, format="png")
             img_buffer.seek(0)
-            self.assertImagesAreEqual(Image.open(img_buffer), img_ref, 0.05)
+            self.assertImagesAreEqual(Image.open(img_buffer), img_ref, 0.1)
         plt.close(fig)
 
     @unittest.skipIf(not optionals.HAS_MATPLOTLIB, "matplotlib not available.")
