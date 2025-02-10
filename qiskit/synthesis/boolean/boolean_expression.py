@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""A class for parsingand  synthesizing boolean expressions"""
+"""A class for parsing and synthesizing boolean expressions"""
 
 import ast
 import itertools

@@ -36,7 +36,7 @@ class PhaseOracle(QuantumCircuit):
 
     For convenience, this oracle, in addition to parsing arbitrary logical expressions,
     also supports input strings in the `DIMACS CNF format
-    <http://www.satcompetition.org/2009/format-benchmarks2009.html>`__,
+    <https://web.archive.org/web/20190325181937/https://www.satcompetition.org/2009/format-benchmarks2009.html>`__,
     which is the standard format for specifying SATisfiability (SAT) problem instances in
     `Conjunctive Normal Form (CNF) <https://en.wikipedia.org/wiki/Conjunctive_normal_form>`__,
     which is a conjunction of one or more clauses, where a clause is a disjunction of one
@@ -83,7 +83,7 @@ class PhaseOracle(QuantumCircuit):
         r"""Create a PhaseOracle from the string in the DIMACS format.
 
         It is possible to build a PhaseOracle from a file in `DIMACS CNF format
-        <http://www.satcompetition.org/2009/format-benchmarks2009.html>`__,
+        <https://web.archive.org/web/20190325181937/https://www.satcompetition.org/2009/format-benchmarks2009.html>`__,
         which is the standard format for specifying SATisfiability (SAT) problem instances in
         `Conjunctive Normal Form (CNF) <https://en.wikipedia.org/wiki/Conjunctive_normal_form>`__,
         which is a conjunction of one or more clauses, where a clause is a disjunction of one

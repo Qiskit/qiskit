@@ -2,7 +2,7 @@
 upgrade_circuits:
   - |
     The :class:`.PhaseOracle` no longer relies on the `tweedledum` library
-    but might not be synthesize as effectively as before.
+    but might not be synthesized as effectively as before.
     :class:`.BitFlipOracle` was added as an alternative to
     directly synthesizing :class:`.BooleanExpression`, as this
-    class will be removed in Qiskit 2.0.
+    class is removed in Qiskit 2.0.
