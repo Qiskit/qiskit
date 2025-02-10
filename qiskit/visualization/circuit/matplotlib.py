@@ -54,8 +54,6 @@ from qiskit.qasm3.printer import BasicPrinter
 from qiskit.circuit.tools.pi_check import pi_check
 from qiskit.utils import optionals as _optionals
 
-from matplotlib import pyplot as plt
-
 
 from .qcstyle import load_style
 from ._utils import (
@@ -88,26 +86,35 @@ PORDER_TEXT = 13
 INFINITE_FOLD = 10000000
 
 
-def autodel(figure: plt.Figure = None) -> plt.Figure:
+@_optionals.HAS_MATPLOTLIB.require_in_call
+def autodel(figure=None):
     """Autodeleter for matplotlib figures.
     The mechanism is used to delete the previous figure when a new figure is created.
 
     Args:
-        figure: The figure to delete.
-        
+        figure (plt.Figure): The figure to delete.
+
     Yields:
         The figure to delete.
-    
+
     res : plt.Figure
         The figure to delete.
     """
+    from matplotlib import pyplot as plt
+
     while True:
         res = yield figure
         plt.close(figure)
         figure = res
-    
-autodeleter = autodel()
-next(autodeleter)
+
+
+# Use a function to initialize and access the global autodeleter
+def get_autodeleter():
+    """Ensures autodeleter is initialized once and returns it."""
+    if "_autodeleter" not in globals():
+        globals()["_autodeleter"] = autodel()
+        next(globals()["_autodeleter"])  # Initialize generator
+    return globals()["_autodeleter"]
 
 
 @_optionals.HAS_MATPLOTLIB.require_in_instance
@@ -134,6 +141,7 @@ class MatplotlibDrawer:
         with_layout=False,
         expr_len=30,
     ):
+        self.autodeleter = get_autodeleter()
         self._circuit = circuit
         self._qubits = qubits
         self._clbits = clbits
@@ -282,6 +290,7 @@ class MatplotlibDrawer:
 
         # Import matplotlib and load all the figure, window, and style info
         from matplotlib import patches
+        from matplotlib import pyplot as plt
 
         # glob_data contains global values used throughout, "n_lines", "x_offset", "next_x_index",
         # "patches_mod", "subfont_factor"
@@ -417,7 +426,7 @@ class MatplotlibDrawer:
             )
         if not is_user_ax:
             matplotlib_close_if_inline(mpl_figure)
-            return autodeleter.send(mpl_figure)
+            return self.autodeleter.send(mpl_figure)
 
     def _get_layer_widths(self, node_data, wire_map, outer_circuit, glob_data):
         """Compute the layer_widths for the layers"""
