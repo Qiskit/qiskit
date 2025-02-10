@@ -18,3 +18,7 @@ fixes:
     :class:`.TimeUnitConversion` runs before them.  Running the pass via a :class:`.PassManager`
     always respected this requirement, but until this note, it was not respected by calling the
     pass directly.
+  - |
+    When a :exc:`.TranspilerError` subclass is raised by a pass inside a call to
+    :meth:`.PassManger.run`, the exception will now be propagated through losslessly, rather than
+    becoming a chained exception with an erased type.

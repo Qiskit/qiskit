@@ -470,6 +470,9 @@ def _replace_error(meth):
     def wrapper(*meth_args, **meth_kwargs):
         try:
             return meth(*meth_args, **meth_kwargs)
+        except TranspilerError:
+            # If it's already a `TranspilerError` subclass, don't erase the extra information.
+            raise
         except PassManagerError as ex:
             raise TranspilerError(ex.message) from ex
 
