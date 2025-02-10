@@ -367,9 +367,10 @@ def _write_expr(
 
 
 def _write_expr_type(file_obj, type_: types.Type):
-    if type_.kind is types.Bool:
+    # Currently, QPY doesn't support const types
+    if type_.kind is types.Bool and not type_.const:
         file_obj.write(type_keys.ExprType.BOOL)
-    elif type_.kind is types.Uint:
+    elif type_.kind is types.Uint and not type_.const:
         file_obj.write(type_keys.ExprType.UINT)
         file_obj.write(
             struct.pack(formats.EXPR_TYPE_UINT_PACK, *formats.EXPR_TYPE_UINT(type_.width))

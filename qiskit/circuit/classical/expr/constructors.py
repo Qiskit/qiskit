@@ -543,7 +543,7 @@ def _shift_like(
         left = _coerce_lossless(left, type) if type is not None else left
     else:
         left = lift(left, type)
-    right = lift(right)
+    right = lift(right, try_const=left.type.const)
     if left.type.kind != types.Uint or right.type.kind != types.Uint:
         raise TypeError(f"invalid types for '{op}': '{left.type}' and '{right.type}'")
     return Binary(
@@ -616,7 +616,8 @@ def index(target: typing.Any, index: typing.Any, /) -> Expr:
             >>> expr.index(ClassicalRegister(8, "a"), 3)
             Index(Var(ClassicalRegister(8, "a"), Uint(8, const=False)), Value(3, Uint(2, const=True)), Bool(const=False))
     """
-    target, index = lift(target), lift(index)
+    target = lift(target)
+    index = lift(index, try_const=target.type.const)
     if target.type.kind is not types.Uint or index.type.kind is not types.Uint:
         raise TypeError(f"invalid types for indexing: '{target.type}' and '{index.type}'")
     return Index(target, index, types.Bool(const=target.type.const and index.type.const))

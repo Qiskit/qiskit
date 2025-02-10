@@ -529,9 +529,7 @@ class TestExprConstructors(QiskitTestCase):
 
         self.assertEqual(
             expr.index(cr, 3),
-            expr.Index(
-                expr.Var(cr, types.Uint(4)), expr.Value(3, types.Uint(2, const=True)), types.Bool()
-            ),
+            expr.Index(expr.Var(cr, types.Uint(4)), expr.Value(3, types.Uint(2)), types.Bool()),
         )
         self.assertEqual(
             expr.index(a, cr),
@@ -557,7 +555,7 @@ class TestExprConstructors(QiskitTestCase):
             expr.Binary(
                 opcode,
                 expr.Var(cr, types.Uint(8)),
-                expr.Value(5, types.Uint(3, const=True)),
+                expr.Value(5, types.Uint(3)),
                 types.Uint(8),
             ),
         )
@@ -565,15 +563,21 @@ class TestExprConstructors(QiskitTestCase):
             function(a, cr),
             expr.Binary(opcode, a, expr.Var(cr, types.Uint(8)), types.Uint(4)),
         )
-        # TODO: as it is, the LHS of a shift expression always becomes exactly the explicit
-        #  type passed to `shift_*`. The RHS is inferred with lift, and stays const if it's
-        #  const. Is this the best behavior?
+        self.assertEqual(
+            function(3, 5),
+            expr.Binary(
+                opcode,
+                expr.Value(3, types.Uint(2, const=True)),
+                expr.Value(5, types.Uint(3, const=True)),
+                types.Uint(2, const=True),
+            ),
+        )
         self.assertEqual(
             function(3, 5, types.Uint(8)),
             expr.Binary(
                 opcode,
                 expr.Value(3, types.Uint(8)),
-                expr.Value(5, types.Uint(3, const=True)),
+                expr.Value(5, types.Uint(3)),
                 types.Uint(8),
             ),
         )
