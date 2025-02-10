@@ -2393,6 +2393,60 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         )
         self.assertGreaterEqual(ratio, self.threshold)
 
+    def test_gate_map(self):
+        """Test switch with standalone Var."""
+        from io import BytesIO
+        from ddt import ddt, data
+        from qiskit.providers.fake_provider import GenericBackendV2
+        from qiskit.visualization import (
+            plot_gate_map,
+            plot_coupling_map,
+            plot_circuit_layout,
+            plot_error_map,
+        )
+        from qiskit.utils import optionals
+        from qiskit import QuantumRegister, QuantumCircuit
+        from qiskit.transpiler.layout import Layout, TranspileLayout
+        from ....python.legacy_cmaps import KYOTO_CMAP, MUMBAI_CMAP, YORKTOWN_CMAP, ALMADEN_CMAP, LAGOS_CMAP
+        
+        backends = [
+            GenericBackendV2(num_qubits=5, coupling_map=YORKTOWN_CMAP, seed=0),
+            GenericBackendV2(num_qubits=20, coupling_map=ALMADEN_CMAP, seed=0),
+            GenericBackendV2(num_qubits=7, coupling_map=LAGOS_CMAP, seed=0),
+        ]
+        for backend in backends:
+            n = backend.num_qubits
+            fig = plot_gate_map(backend)
+            fname = str(n)+"bit_quantum_computer"+".png"
+            fig.savefig(self._image_path(fname), format="png")
+
+            ratio = VisualTestUtilities._save_diff(
+                self._image_path(fname),
+                self._reference_path(fname),
+                fname,
+                FAILURE_DIFF_DIR,
+                FAILURE_PREFIX,
+            )
+        for backend in backends:
+            layout_length = int(backend.num_qubits / 2)
+            qr = QuantumRegister(layout_length, "qr")
+            circuit = QuantumCircuit(qr)
+            circuit._layout = TranspileLayout(
+                Layout({qr[i]: i * 2 for i in range(layout_length)}),
+                {qubit: index for index, qubit in enumerate(circuit.qubits)},
+            )
+            circuit._layout.initial_layout.add_register(qr)
+            n = backend.num_qubits
+            fig = plot_circuit_layout(circuit, backend)
+            fname = str(n)+"_plot_circuit_layout"+".png"
+            fig.savefig(self._image_path(fname), format="png")
+            ratio = VisualTestUtilities._save_diff(
+                self._image_path(fname),
+                self._reference_path(fname),
+                fname,
+                FAILURE_DIFF_DIR,
+                FAILURE_PREFIX,
+            )
 
 if __name__ == "__main__":
     unittest.main(verbosity=1)
