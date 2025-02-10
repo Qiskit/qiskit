@@ -3698,7 +3698,14 @@ class QuantumCircuit:
         Returns:
           QuantumCircuit: a deepcopy of the current circuit, with the specified name
         """
-        cpy = self.copy_empty_like(name)
+        if not (name is None or isinstance(name, str)):
+            raise TypeError(
+                f"invalid name for a circuit: '{name}'. The name must be a string or 'None'."
+            )
+        cpy = _copy.copy(self)
+
+        _copy_metadata(self, cpy, "alike")
+
         cpy._data = self._data.copy()
         return cpy
 
@@ -3755,9 +3762,7 @@ class QuantumCircuit:
 
         _copy_metadata(self, cpy, vars_mode)
 
-        cpy._data = CircuitData(
-            self._data.qubits, self._data.clbits, global_phase=self._data.global_phase
-        )
+        cpy._data = self._data.copy_empty_like()
 
         if name:
             cpy.name = name
