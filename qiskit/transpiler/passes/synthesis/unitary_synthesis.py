@@ -78,7 +78,7 @@ from qiskit.transpiler.passes.optimization.optimize_1q_decomposition import (
 from qiskit.transpiler.passes.synthesis import plugin
 from qiskit.transpiler.target import Target
 
-from qiskit._accelerate.unitary_synthesis import run_default_main_loop
+from qiskit._accelerate.unitary_synthesis import run_main_loop
 
 GATE_NAME_MAP = {
     "cx": CXGate._standard_gate,
@@ -489,19 +489,21 @@ class UnitarySynthesis(TransformationPass):
             else {}
         )
 
-        if self.method == "default" and self._target is not None:
+        if self.method == "default":
             _coupling_edges = (
                 set(self._coupling_map.get_edges()) if self._coupling_map is not None else set()
             )
 
-            out = run_default_main_loop(
+            out = run_main_loop(
                 dag,
                 list(qubit_indices.values()),
                 self._min_qubits,
                 self._target,
+                self._basis_gates,
                 _coupling_edges,
                 self._approximation_degree,
                 self._natural_direction,
+                self._pulse_optimize,
             )
             return out
         else:

@@ -126,7 +126,6 @@ class TestUnitarySynthesisBasisGates(QiskitTestCase):
         qc.unitary(op_1q.data, [0])
         qc.unitary(op_2q.data, [0, 1])
         qc.unitary(op_3q.data, [0, 1, 2])
-
         out = UnitarySynthesis(basis_gates=None, min_qubits=2)(qc)
         self.assertEqual(out.count_ops(), {"unitary": 3})
 
@@ -250,7 +249,7 @@ class TestUnitarySynthesisBasisGates(QiskitTestCase):
             natural_direction=True,
         )
         pm = PassManager([triv_layout_pass, unisynth_pass])
-        with self.assertRaises(TranspilerError):
+        with self.assertRaises(QiskitError):
             pm.run(qc)
 
     def test_two_qubit_pulse_optimal_none_optimal(self):
