@@ -2247,7 +2247,7 @@ impl TwoQubitBasisDecomposer {
                     .into_iter()
                     .map(|(gate, params, qubits)| match gate {
                         Some(gate) => Ok((
-                            PackedOperation::from_standard(gate),
+                            PackedOperation::from_standard_gate(gate),
                             params.into_iter().map(Param::Float).collect(),
                             qubits.into_iter().map(|x| Qubit(x.into())).collect(),
                             Vec::new(),
@@ -2946,7 +2946,7 @@ impl TwoQubitControlledUDecomposer {
                     .into_iter()
                     .map(|(gate, params, qubits)| match gate {
                         Some(gate) => Ok((
-                            PackedOperation::from_standard(gate),
+                            PackedOperation::from_standard_gate(gate),
                             params.into_iter().map(Param::Float).collect(),
                             qubits.into_iter().map(|x| Qubit(x.into())).collect(),
                             Vec::new(),

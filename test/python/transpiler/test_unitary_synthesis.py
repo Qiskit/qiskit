@@ -23,7 +23,7 @@ import scipy
 from ddt import ddt, data
 
 from qiskit import transpile, generate_preset_pass_manager
-from qiskit.providers.fake_provider import Fake5QV1, GenericBackendV2
+from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.circuit.library import quantum_volume
 from qiskit.circuit.parameterexpression import ParameterValueType
@@ -73,6 +73,7 @@ from test import QiskitTestCase  # pylint: disable=wrong-import-order
 from test.python.providers.fake_mumbai_v2 import (  # pylint: disable=wrong-import-order
     FakeMumbaiFractionalCX,
 )
+from ..legacy_cmaps import YORKTOWN_CMAP
 
 
 class FakeBackend2QV2(GenericBackendV2):
@@ -151,78 +152,18 @@ class TestUnitarySynthesisBasisGates(QiskitTestCase):
         out = UnitarySynthesis(basis_gates).run(dag)
         self.assertTrue(set(out.count_ops()).issubset(basis_gates))
 
-    @combine(gate=["unitary", "swap"], natural_direction=[True, False])
-    def test_two_qubit_synthesis_to_directional_cx(self, gate, natural_direction):
-        """Verify two qubit unitaries are synthesized to match basis gates."""
-        # TODO: should make check more explicit e.g. explicitly set gate
-        # direction in test instead of using specific fake backend
-        with self.assertWarns(DeprecationWarning):
-            backend = Fake5QV1()
-        conf = backend.configuration()
-        coupling_map = CouplingMap(conf.coupling_map)
-        triv_layout_pass = TrivialLayout(coupling_map)
-
-        qr = QuantumRegister(2)
-        qc = QuantumCircuit(qr)
-        if gate == "unitary":
-            qc.unitary(random_unitary(4, seed=12), [0, 1])
-        elif gate == "swap":
-            qc.swap(qr[0], qr[1])
-
-        unisynth_pass = UnitarySynthesis(
-            basis_gates=conf.basis_gates,
-            coupling_map=None,
-            backend_props=backend.properties(),
-            pulse_optimize=True,
-            natural_direction=natural_direction,
-        )
-        pm = PassManager([triv_layout_pass, unisynth_pass])
-        qc_out = pm.run(qc)
-        self.assertEqual(Operator(qc), Operator(qc_out))
-
-    @data(True, False)
-    def test_two_qubit_synthesis_to_directional_cx_multiple_registers(self, natural_direction):
-        """Verify two qubit unitaries are synthesized to match basis gates
-        across multiple registers."""
-        # TODO: should make check more explicit e.g. explicitly set gate
-        # direction in test instead of using specific fake backend
-        with self.assertWarns(DeprecationWarning):
-            backend = Fake5QV1()
-        conf = backend.configuration()
-        qr0 = QuantumRegister(1)
-        qr1 = QuantumRegister(1)
-        coupling_map = CouplingMap(conf.coupling_map)
-        triv_layout_pass = TrivialLayout(coupling_map)
-        qc = QuantumCircuit(qr0, qr1)
-        qc.unitary(random_unitary(4, seed=12), [qr0[0], qr1[0]])
-        unisynth_pass = UnitarySynthesis(
-            basis_gates=conf.basis_gates,
-            coupling_map=None,
-            backend_props=backend.properties(),
-            pulse_optimize=True,
-            natural_direction=natural_direction,
-        )
-        pm = PassManager([triv_layout_pass, unisynth_pass])
-        qc_out = pm.run(qc)
-        self.assertEqual(Operator(qc), Operator(qc_out))
-
     @data(True, False, None)
     def test_two_qubit_synthesis_to_directional_cx_from_coupling_map(self, natural_direction):
         """Verify natural cx direction is used when specified in coupling map."""
-        # TODO: should make check more explicit e.g. explicitly set gate
-        # direction in test instead of using specific fake backend
-        with self.assertWarns(DeprecationWarning):
-            backend = Fake5QV1()
-        conf = backend.configuration()
+
         qr = QuantumRegister(2)
         coupling_map = CouplingMap([[0, 1], [1, 2], [1, 3], [3, 4]])
         triv_layout_pass = TrivialLayout(coupling_map)
         qc = QuantumCircuit(qr)
         qc.unitary(random_unitary(4, seed=12), [0, 1])
         unisynth_pass = UnitarySynthesis(
-            basis_gates=conf.basis_gates,
+            basis_gates=["id", "rz", "sx", "x", "cx", "reset"],
             coupling_map=coupling_map,
-            backend_props=backend.properties(),
             pulse_optimize=True,
             natural_direction=natural_direction,
         )
@@ -243,9 +184,7 @@ class TestUnitarySynthesisBasisGates(QiskitTestCase):
 
     def test_two_qubit_synthesis_not_pulse_optimal(self):
         """Verify not attempting pulse optimal decomposition when pulse_optimize==False."""
-        with self.assertWarns(DeprecationWarning):
-            backend = Fake5QV1()
-        conf = backend.configuration()
+
         qr = QuantumRegister(2)
         qc = QuantumCircuit(qr)
         qc.unitary(random_unitary(4, seed=12), [0, 1])
@@ -254,9 +193,8 @@ class TestUnitarySynthesisBasisGates(QiskitTestCase):
             [
                 TrivialLayout(coupling_map),
                 UnitarySynthesis(
-                    basis_gates=conf.basis_gates,
+                    basis_gates=["id", "rz", "sx", "x", "cx", "reset"],
                     coupling_map=coupling_map,
-                    backend_props=backend.properties(),
                     pulse_optimize=False,
                     natural_direction=True,
                 ),
@@ -266,9 +204,8 @@ class TestUnitarySynthesisBasisGates(QiskitTestCase):
             [
                 TrivialLayout(coupling_map),
                 UnitarySynthesis(
-                    basis_gates=conf.basis_gates,
+                    basis_gates=["id", "rz", "sx", "x", "cx", "reset"],
                     coupling_map=coupling_map,
-                    backend_props=backend.properties(),
                     pulse_optimize=True,
                     natural_direction=True,
                 ),
@@ -279,21 +216,18 @@ class TestUnitarySynthesisBasisGates(QiskitTestCase):
         self.assertGreater(qc_nonoptimal.count_ops()["sx"], qc_optimal.count_ops()["sx"])
 
     def test_two_qubit_pulse_optimal_true_raises(self):
-        """Verify raises if pulse optimal==True but cx is not in the backend basis."""
-        with self.assertWarns(DeprecationWarning):
-            backend = Fake5QV1()
-        conf = backend.configuration()
+        """Verify raises if pulse optimal==True but cx is not in the basis."""
+        basis_gates = ["id", "rz", "sx", "x", "cx", "reset"]
         # this assumes iswap pulse optimal decomposition doesn't exist
-        conf.basis_gates = [gate if gate != "cx" else "iswap" for gate in conf.basis_gates]
+        basis_gates = [gate if gate != "cx" else "iswap" for gate in basis_gates]
         qr = QuantumRegister(2)
         coupling_map = CouplingMap([[0, 1], [1, 2], [1, 3], [3, 4]])
         triv_layout_pass = TrivialLayout(coupling_map)
         qc = QuantumCircuit(qr)
         qc.unitary(random_unitary(4, seed=12), [0, 1])
         unisynth_pass = UnitarySynthesis(
-            basis_gates=conf.basis_gates,
+            basis_gates=basis_gates,
             coupling_map=coupling_map,
-            backend_props=backend.properties(),
             pulse_optimize=True,
             natural_direction=True,
         )
@@ -301,47 +235,17 @@ class TestUnitarySynthesisBasisGates(QiskitTestCase):
         with self.assertRaises(QiskitError):
             pm.run(qc)
 
-    def test_two_qubit_natural_direction_true_duration_fallback(self):
-        """Verify fallback path when pulse_optimize==True."""
-        with self.assertWarns(DeprecationWarning):
-            backend = Fake5QV1()
-        conf = backend.configuration()
-        qr = QuantumRegister(2)
-        coupling_map = CouplingMap([[0, 1], [1, 0], [1, 2], [1, 3], [3, 4]])
-        triv_layout_pass = TrivialLayout(coupling_map)
-        qc = QuantumCircuit(qr)
-        qc.unitary(random_unitary(4, seed=12), [0, 1])
-        unisynth_pass = UnitarySynthesis(
-            basis_gates=conf.basis_gates,
-            coupling_map=coupling_map,
-            backend_props=backend.properties(),
-            pulse_optimize=True,
-            natural_direction=True,
-        )
-        pm = PassManager([triv_layout_pass, unisynth_pass])
-        qc_out = pm.run(qc)
-        self.assertTrue(
-            all(((qr[0], qr[1]) == instr.qubits for instr in qc_out.get_instructions("cx")))
-        )
-
     def test_two_qubit_natural_direction_true_gate_length_raises(self):
         """Verify that error is raised if preferred direction cannot be inferred
         from gate lenghts/errors.
         """
-        with self.assertWarns(DeprecationWarning):
-            backend = Fake5QV1()
-        conf = backend.configuration()
-        for _, nduv in backend.properties()._gates["cx"].items():
-            nduv["gate_length"] = (4e-7, nduv["gate_length"][1])
-            nduv["gate_error"] = (7e-3, nduv["gate_error"][1])
         qr = QuantumRegister(2)
         coupling_map = CouplingMap([[0, 1], [1, 0], [1, 2], [1, 3], [3, 4]])
         triv_layout_pass = TrivialLayout(coupling_map)
         qc = QuantumCircuit(qr)
         qc.unitary(random_unitary(4, seed=12), [0, 1])
         unisynth_pass = UnitarySynthesis(
-            basis_gates=conf.basis_gates,
-            backend_props=backend.properties(),
+            basis_gates=["id", "rz", "sx", "x", "cx", "reset"],
             pulse_optimize=True,
             natural_direction=True,
         )
@@ -351,18 +255,14 @@ class TestUnitarySynthesisBasisGates(QiskitTestCase):
 
     def test_two_qubit_pulse_optimal_none_optimal(self):
         """Verify pulse optimal decomposition when pulse_optimize==None."""
-        with self.assertWarns(DeprecationWarning):
-            backend = Fake5QV1()
-        conf = backend.configuration()
         qr = QuantumRegister(2)
         coupling_map = CouplingMap([[0, 1], [1, 2], [1, 3], [3, 4]])
         triv_layout_pass = TrivialLayout(coupling_map)
         qc = QuantumCircuit(qr)
         qc.unitary(random_unitary(4, seed=12), [0, 1])
         unisynth_pass = UnitarySynthesis(
-            basis_gates=conf.basis_gates,
+            basis_gates=["id", "rz", "sx", "x", "cx", "reset"],
             coupling_map=coupling_map,
-            backend_props=backend.properties(),
             pulse_optimize=None,
             natural_direction=True,
         )
@@ -378,20 +278,17 @@ class TestUnitarySynthesisBasisGates(QiskitTestCase):
     def test_two_qubit_pulse_optimal_none_no_raise(self):
         """Verify pulse optimal decomposition when pulse_optimize==None doesn't
         raise when pulse optimal decomposition unknown."""
-        # this assumes iswawp pulse optimal decomposition doesn't exist
-        with self.assertWarns(DeprecationWarning):
-            backend = Fake5QV1()
-        conf = backend.configuration()
-        conf.basis_gates = [gate if gate != "cx" else "iswap" for gate in conf.basis_gates]
+        basis_gates = ["id", "rz", "sx", "x", "cx", "reset"]
+        # this assumes iswap pulse optimal decomposition doesn't exist
+        basis_gates = [gate if gate != "cx" else "iswap" for gate in basis_gates]
         qr = QuantumRegister(2)
         coupling_map = CouplingMap([[0, 1], [1, 2], [1, 3], [3, 4]])
         triv_layout_pass = TrivialLayout(coupling_map)
         qc = QuantumCircuit(qr)
         qc.unitary(random_unitary(4, seed=12), [0, 1])
         unisynth_pass = UnitarySynthesis(
-            basis_gates=conf.basis_gates,
+            basis_gates=basis_gates,
             coupling_map=coupling_map,
-            backend_props=backend.properties(),
             pulse_optimize=None,
             natural_direction=True,
         )
@@ -979,7 +876,7 @@ class TestUnitarySynthesisTarget(QiskitTestCase):
 
     def test_3q_series(self):
         """Test a series of 3-qubit blocks."""
-        backend = GenericBackendV2(5, basis_gates=["u", "cx"])
+        backend = GenericBackendV2(5, basis_gates=["u", "cx"], seed=1)
 
         x = QuantumCircuit(3)
         x.x(2)
@@ -1006,7 +903,7 @@ class TestUnitarySynthesisTarget(QiskitTestCase):
         qc.append(op.power(8), [0, 1, 2])
         qc.measure_all()
 
-        backend = GenericBackendV2(5, basis_gates=["u", "cx"])
+        backend = GenericBackendV2(5, basis_gates=["u", "cx"], seed=1)
         tqc = transpile(qc, backend)
 
         ops = tqc.count_ops()
@@ -1046,6 +943,88 @@ class TestUnitarySynthesisTarget(QiskitTestCase):
             self.assertTrue(set(out.count_ops()).issubset(basis_gates))
             for basis_gate in basis_gates:
                 self.assertLessEqual(out.count_ops()[basis_gate], gate_counts[basis_gate])
+
+    @combine(gate=["unitary", "swap"], natural_direction=[True, False])
+    def test_two_qubit_synthesis_to_directional_cx_target(self, gate, natural_direction):
+        """Verify two qubit unitaries are synthesized to match basis gates."""
+        # TODO: should make check more explicit e.g. explicitly set gate
+        # direction in test instead of using specific fake backend
+        backend = GenericBackendV2(
+            num_qubits=5,
+            basis_gates=["id", "rz", "sx", "x", "cx", "reset"],
+            coupling_map=YORKTOWN_CMAP,
+            seed=1,
+        )
+        coupling_map = CouplingMap(backend.coupling_map)
+        triv_layout_pass = TrivialLayout(coupling_map)
+
+        qr = QuantumRegister(2)
+        qc = QuantumCircuit(qr)
+        if gate == "unitary":
+            qc.unitary(random_unitary(4, seed=12), [0, 1])
+        elif gate == "swap":
+            qc.swap(qr[0], qr[1])
+
+        unisynth_pass = UnitarySynthesis(
+            target=backend.target,
+            pulse_optimize=True,
+            natural_direction=natural_direction,
+        )
+        pm = PassManager([triv_layout_pass, unisynth_pass])
+        qc_out = pm.run(qc)
+        self.assertEqual(Operator(qc), Operator(qc_out))
+
+    @data(True, False)
+    def test_two_qubit_synthesis_to_directional_cx_multiple_registers_target(
+        self, natural_direction
+    ):
+        """Verify two qubit unitaries are synthesized to match basis gates
+        across multiple registers."""
+        # TODO: should make check more explicit e.g. explicitly set gate
+        # direction in test instead of using specific fake backend
+        backend = GenericBackendV2(
+            num_qubits=5,
+            basis_gates=["id", "rz", "sx", "x", "cx", "reset"],
+            coupling_map=YORKTOWN_CMAP,
+            seed=1,
+        )
+        qr0 = QuantumRegister(1)
+        qr1 = QuantumRegister(1)
+        coupling_map = CouplingMap(backend.coupling_map)
+        triv_layout_pass = TrivialLayout(coupling_map)
+        qc = QuantumCircuit(qr0, qr1)
+        qc.unitary(random_unitary(4, seed=12), [qr0[0], qr1[0]])
+        unisynth_pass = UnitarySynthesis(
+            target=backend.target,
+            pulse_optimize=True,
+            natural_direction=natural_direction,
+        )
+        pm = PassManager([triv_layout_pass, unisynth_pass])
+        qc_out = pm.run(qc)
+        self.assertEqual(Operator(qc), Operator(qc_out))
+
+    def test_two_qubit_natural_direction_true_duration_fallback_target(self):
+        """Verify fallback path when pulse_optimize==True."""
+        basis_gates = ["id", "rz", "sx", "x", "cx", "reset"]
+        qr = QuantumRegister(2)
+        coupling_map = CouplingMap([[0, 1], [1, 0], [1, 2], [1, 3], [3, 4]])
+        backend = GenericBackendV2(
+            num_qubits=5, basis_gates=basis_gates, coupling_map=coupling_map, seed=1
+        )
+
+        triv_layout_pass = TrivialLayout(coupling_map)
+        qc = QuantumCircuit(qr)
+        qc.unitary(random_unitary(4, seed=12), [0, 1])
+        unisynth_pass = UnitarySynthesis(
+            target=backend.target,
+            pulse_optimize=True,
+            natural_direction=True,
+        )
+        pm = PassManager([triv_layout_pass, unisynth_pass])
+        qc_out = pm.run(qc)
+        self.assertTrue(
+            all(((qr[0], qr[1]) == instr.qubits for instr in qc_out.get_instructions("cx")))
+        )
 
 
 if __name__ == "__main__":

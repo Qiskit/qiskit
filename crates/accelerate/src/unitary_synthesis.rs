@@ -139,7 +139,7 @@ fn apply_synth_sequence(
     for (gate, params, qubit_ids) in sequence.gate_sequence.gates() {
         let packed_op = match gate {
             None => &sequence.decomp_gate.operation,
-            Some(gate) => &PackedOperation::from_standard(*gate),
+            Some(gate) => &PackedOperation::from_standard_gate(*gate),
         };
         let mapped_qargs: Vec<Qubit> = qubit_ids.iter().map(|id| out_qargs[*id as usize]).collect();
         let new_params: Option<Box<SmallVec<[Param; 3]>>> = match gate {
@@ -177,7 +177,7 @@ fn apply_synth_sequence(
                 })
                 .into()
             }
-            OperationRef::Standard(_) => packed_op.clone(),
+            OperationRef::StandardGate(_) => packed_op.clone(),
             _ => {
                 return Err(QiskitError::new_err(
                     "Decomposed gate sequence contains unexpected operations.",
@@ -654,7 +654,7 @@ fn get_2q_decomposers_from_target(
                 Ok(op) => {
                     match op.operation.view() {
                         OperationRef::Gate(_) => (),
-                        OperationRef::Standard(_) => (),
+                        OperationRef::StandardGate(_) => (),
                         _ => continue,
                     }
                     // Filter out non-2q-gate candidates
