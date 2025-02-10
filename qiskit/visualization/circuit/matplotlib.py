@@ -54,6 +54,9 @@ from qiskit.qasm3.printer import BasicPrinter
 from qiskit.circuit.tools.pi_check import pi_check
 from qiskit.utils import optionals as _optionals
 
+from matplotlib import pyplot as plt
+
+
 from .qcstyle import load_style
 from ._utils import (
     get_gate_ctrl_text,
@@ -83,6 +86,28 @@ PORDER_GATE_PLUS = 11
 PORDER_TEXT = 13
 
 INFINITE_FOLD = 10000000
+
+
+def autodel(figure: plt.Figure = None) -> plt.Figure:
+    """Autodeleter for matplotlib figures.
+    The mechanism is used to delete the previous figure when a new figure is created.
+
+    Args:
+        figure: The figure to delete.
+        
+    Yields:
+        The figure to delete.
+    
+    res : plt.Figure
+        The figure to delete.
+    """
+    while True:
+        res = yield figure
+        plt.close(figure)
+        figure = res
+    
+autodeleter = autodel()
+next(autodeleter)
 
 
 @_optionals.HAS_MATPLOTLIB.require_in_instance
@@ -257,7 +282,6 @@ class MatplotlibDrawer:
 
         # Import matplotlib and load all the figure, window, and style info
         from matplotlib import patches
-        from matplotlib import pyplot as plt
 
         # glob_data contains global values used throughout, "n_lines", "x_offset", "next_x_index",
         # "patches_mod", "subfont_factor"
@@ -393,7 +417,7 @@ class MatplotlibDrawer:
             )
         if not is_user_ax:
             matplotlib_close_if_inline(mpl_figure)
-            return mpl_figure
+            return autodeleter.send(mpl_figure)
 
     def _get_layer_widths(self, node_data, wire_map, outer_circuit, glob_data):
         """Compute the layer_widths for the layers"""
