@@ -45,11 +45,7 @@ from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler import Target
 from qiskit.transpiler import InstructionProperties
-from qiskit.providers.fake_provider import (
-    GenericBackendV2,
-    Fake5QV1,
-    Fake7QPulseV1,
-)
+from qiskit.providers.fake_provider import GenericBackendV2
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 from qiskit.providers.backend import QubitProperties
 from test.python.providers.fake_mumbai_v2 import (  # pylint: disable=wrong-import-order
@@ -2007,69 +2003,6 @@ class TestTargetFromConfiguration(QiskitTestCase):
         self.assertEqual(target.operation_names, {"u", "cx"})
         self.assertEqual({(0,), (1,), (2,)}, target["u"].keys())
         self.assertEqual({(0, 1), (1, 2), (2, 0)}, target["cx"].keys())
-
-    def test_properties(self):
-        with self.assertWarns(DeprecationWarning):
-            fake_backend = Fake5QV1()
-        config = fake_backend.configuration()
-        properties = fake_backend.properties()
-        target = Target.from_configuration(
-            basis_gates=config.basis_gates,
-            num_qubits=config.num_qubits,
-            coupling_map=CouplingMap(config.coupling_map),
-            backend_properties=properties,
-        )
-        self.assertEqual(0, target["rz"][(0,)].error)
-        self.assertEqual(0, target["rz"][(0,)].duration)
-
-    def test_properties_with_durations(self):
-        with self.assertWarns(DeprecationWarning):
-            fake_backend = Fake5QV1()
-        config = fake_backend.configuration()
-        properties = fake_backend.properties()
-        durations = InstructionDurations([("rz", 0, 0.5)], dt=1.0)
-        target = Target.from_configuration(
-            basis_gates=config.basis_gates,
-            num_qubits=config.num_qubits,
-            coupling_map=CouplingMap(config.coupling_map),
-            backend_properties=properties,
-            instruction_durations=durations,
-            dt=config.dt,
-        )
-        self.assertEqual(0.5, target["rz"][(0,)].duration)
-
-    def test_inst_map(self):
-        with self.assertWarns(DeprecationWarning):
-            fake_backend = Fake7QPulseV1()
-        config = fake_backend.configuration()
-        properties = fake_backend.properties()
-        defaults = fake_backend.defaults()
-        constraints = TimingConstraints(**config.timing_constraints)
-        with self.assertWarns(DeprecationWarning):
-            target = Target.from_configuration(
-                basis_gates=config.basis_gates,
-                num_qubits=config.num_qubits,
-                coupling_map=CouplingMap(config.coupling_map),
-                backend_properties=properties,
-                dt=config.dt,
-                inst_map=defaults.instruction_schedule_map,
-                timing_constraints=constraints,
-            )
-            self.assertIsNotNone(target["sx"][(0,)].calibration)
-        self.assertEqual(target.granularity, constraints.granularity)
-        self.assertEqual(target.min_length, constraints.min_length)
-        self.assertEqual(target.pulse_alignment, constraints.pulse_alignment)
-        self.assertEqual(target.acquire_alignment, constraints.acquire_alignment)
-
-    def test_concurrent_measurements(self):
-        with self.assertWarns(DeprecationWarning):
-            fake_backend = Fake5QV1()
-        config = fake_backend.configuration()
-        target = Target.from_configuration(
-            basis_gates=config.basis_gates,
-            concurrent_measurements=config.meas_map,
-        )
-        self.assertEqual(target.concurrent_measurements, config.meas_map)
 
     def test_custom_basis_gates(self):
         basis_gates = ["my_x", "cx"]

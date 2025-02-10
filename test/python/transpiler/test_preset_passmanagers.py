@@ -37,7 +37,7 @@ from qiskit.transpiler.passes import (
     PadDynamicalDecoupling,
     RemoveResetInZeroState,
 )
-from qiskit.providers.fake_provider import Fake5QV1, Fake20QV1, GenericBackendV2
+from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.converters import circuit_to_dag
 from qiskit.circuit.library import GraphStateGate
 from qiskit.quantum_info import random_unitary
@@ -326,28 +326,6 @@ class TestTranspileLevels(QiskitTestCase):
     def test(self, circuit, level, backend):
         """All the levels with all the backends"""
         result = transpile(circuit(), backend=backend, optimization_level=level, seed_transpiler=42)
-        self.assertIsInstance(result, QuantumCircuit)
-
-    @combine(
-        circuit=[emptycircuit, circuit_2532],
-        level=[0, 1, 2, 3],
-        backend=[
-            Fake5QV1(),
-            Fake20QV1(),
-        ],
-        dsc="Transpiler {circuit.__name__} on {backend} backend V1 at level {level}",
-        name="{circuit.__name__}_{backend}_level{level}",
-    )
-    def test_v1(self, circuit, level, backend):
-        """All the levels with all the backends"""
-        with self.assertWarnsRegex(
-            DeprecationWarning,
-            expected_regex="The `transpile` function will "
-            "stop supporting inputs of type `BackendV1`",
-        ):
-            result = transpile(
-                circuit(), backend=backend, optimization_level=level, seed_transpiler=42
-            )
         self.assertIsInstance(result, QuantumCircuit)
 
     @data(0, 1, 2, 3)
@@ -1319,17 +1297,8 @@ class TestGeneratePresetPassManagers(QiskitTestCase):
     @data(0, 1, 2, 3)
     def test_with_backend(self, optimization_level):
         """Test a passmanager is constructed when only a backend and optimization level."""
-        with self.assertWarnsRegex(
-            DeprecationWarning,
-            expected_regex=r"qiskit\.providers\.models\.backendconfiguration\.GateConfig`",
-        ):
-            backend = Fake20QV1()
-        with self.assertWarnsRegex(
-            DeprecationWarning,
-            expected_regex="The `generate_preset_pass_manager` function will "
-            "stop supporting inputs of type `BackendV1`",
-        ):
-            pm = generate_preset_pass_manager(optimization_level, backend)
+        backend = GenericBackendV2(num_qubits=2)
+        pm = generate_preset_pass_manager(optimization_level, backend)
         self.assertIsInstance(pm, PassManager)
 
     def test_default_optimization_level(self):

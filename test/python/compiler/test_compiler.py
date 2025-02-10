@@ -19,9 +19,12 @@ from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.transpiler import PassManager
 from qiskit.circuit.library import U1Gate, U2Gate
 from qiskit.compiler import transpile
+from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.qasm2 import dumps
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
+
+from ..legacy_cmaps import TOKYO_CMAP
 
 
 class TestCompiler(QiskitTestCase):
@@ -183,6 +186,20 @@ class TestCompiler(QiskitTestCase):
             seed_simulator=14,
         ).result()
         self.assertEqual(result.get_counts(qc), {"010000": 1024})
+
+    def test_parallel_compile(self):
+        """Trigger parallel routines in compile."""
+        qr = QuantumRegister(16)
+        cr = ClassicalRegister(2)
+        qc = QuantumCircuit(qr, cr)
+        qc.h(qr[0])
+        for k in range(1, 15):
+            qc.cx(qr[0], qr[k])
+        qc.measure(qr[5], cr[0])
+        qlist = [qc for k in range(10)]
+        backend = GenericBackendV2(num_qubits=20, coupling_map=TOKYO_CMAP, seed=0)
+        out = transpile(qlist, backend=backend)
+        self.assertEqual(len(out), 10)
 
     def test_no_conflict_backend_passmanager(self):
         """See: https://github.com/Qiskit/qiskit-terra/issues/5037"""

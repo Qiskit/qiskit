@@ -75,8 +75,7 @@ from qiskit.converters import circuit_to_dag
 from qiskit.dagcircuit import DAGOpNode, DAGOutNode
 from qiskit.exceptions import QiskitError
 from qiskit.providers.backend import BackendV2
-from qiskit.providers.backend_compat import BackendV2Converter
-from qiskit.providers.fake_provider import Fake20QV1, Fake27QPulseV1, GenericBackendV2
+from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.providers.options import Options
 from qiskit.pulse import InstructionScheduleMap
@@ -92,7 +91,6 @@ from qiskit.transpiler.target import (
     InstructionProperties,
     Target,
     InstructionDurations,
-    target_to_backend_properties,
 )
 
 from test import QiskitTestCase, combine, slow_test  # pylint: disable=wrong-import-order
@@ -1568,31 +1566,26 @@ class TestTranspile(QiskitTestCase):
 
     def test_scheduling_instruction_constraints_backend(self):
         """Test that scheduling-related loose transpile constraints
-        work with both BackendV1 and BackendV2."""
+        work with BackendV2."""
 
-        with self.assertWarns(DeprecationWarning):
-            backend_v1 = Fake27QPulseV1()
-            backend_v2 = BackendV2Converter(backend_v1)
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="argument ``calibrate_instructions`` is deprecated",
+        ):
+            backend_v2 = GenericBackendV2(
+                2,
+                calibrate_instructions=True,
+                coupling_map=[[0, 1]],
+                basis_gates=["cx", "h"],
+                seed=0,
+            )
         qc = QuantumCircuit(2)
         qc.h(0)
         qc.delay(500, 1, "dt")
         qc.cx(0, 1)
         # update durations
-        durations = InstructionDurations.from_backend(backend_v1)
+        durations = InstructionDurations.from_backend(backend_v2)
         durations.update([("cx", [0, 1], 1000, "dt")])
-
-        with self.assertWarnsRegex(
-            DeprecationWarning,
-            expected_regex="The `transpile` function will stop supporting inputs of type `BackendV1` ",
-        ):
-            scheduled = transpile(
-                qc,
-                backend=backend_v1,
-                scheduling_method="alap",
-                instruction_durations=durations,
-                layout_method="trivial",
-            )
-        self.assertEqual(scheduled.duration, 1500)
 
         with self.assertWarnsRegex(
             DeprecationWarning,
@@ -1640,100 +1633,16 @@ class TestTranspile(QiskitTestCase):
         """Test that scheduling-related loose transpile constraints
         work with both BackendV1 and BackendV2."""
 
-        with self.assertWarns(DeprecationWarning):
-            backend_v1 = Fake27QPulseV1()
-            backend_v2 = BackendV2Converter(backend_v1)
+        backend_v2 = GenericBackendV2(num_qubits=2, seed=1)
         qc = QuantumCircuit(1, 1)
         qc.x(0)
         qc.measure(0, 0)
         original_dt = 2.2222222222222221e-10
-        original_duration = 3504
-
-        with self.assertWarnsRegex(
-            DeprecationWarning,
-            expected_regex="The `transpile` function will stop supporting inputs of type `BackendV1` ",
-        ):
-            # halve dt in sec = double duration in dt
-            scheduled = transpile(
-                qc, backend=backend_v1, scheduling_method="asap", dt=original_dt / 2
-            )
-        self.assertEqual(scheduled.duration, original_duration * 2)
+        original_duration = 5059
 
         # halve dt in sec = double duration in dt
         scheduled = transpile(qc, backend=backend_v2, scheduling_method="asap", dt=original_dt / 2)
         self.assertEqual(scheduled.duration, original_duration * 2)
-
-    def test_backend_props_constraints(self):
-        """Test that loose transpile constraints work with both BackendV1 and BackendV2."""
-
-        with self.assertWarns(DeprecationWarning):
-            backend_v1 = Fake20QV1()
-            backend_v2 = BackendV2Converter(backend_v1)
-        qr1 = QuantumRegister(3, "qr1")
-        qr2 = QuantumRegister(2, "qr2")
-        qc = QuantumCircuit(qr1, qr2)
-        qc.cx(qr1[0], qr1[1])
-        qc.cx(qr1[1], qr1[2])
-        qc.cx(qr1[2], qr2[0])
-        qc.cx(qr2[0], qr2[1])
-
-        # generate a fake backend with same number of qubits
-        # but different backend properties
-        fake_backend = GenericBackendV2(num_qubits=20, seed=42)
-        with self.assertWarns(DeprecationWarning):
-            custom_backend_properties = target_to_backend_properties(fake_backend.target)
-
-        # expected layout for custom_backend_properties
-        # (different from expected layout for Fake20QV1)
-        vf2_layout = {
-            18: Qubit(QuantumRegister(3, "qr1"), 1),
-            13: Qubit(QuantumRegister(3, "qr1"), 2),
-            19: Qubit(QuantumRegister(3, "qr1"), 0),
-            14: Qubit(QuantumRegister(2, "qr2"), 0),
-            9: Qubit(QuantumRegister(2, "qr2"), 1),
-            0: Qubit(QuantumRegister(15, "ancilla"), 0),
-            1: Qubit(QuantumRegister(15, "ancilla"), 1),
-            2: Qubit(QuantumRegister(15, "ancilla"), 2),
-            3: Qubit(QuantumRegister(15, "ancilla"), 3),
-            4: Qubit(QuantumRegister(15, "ancilla"), 4),
-            5: Qubit(QuantumRegister(15, "ancilla"), 5),
-            6: Qubit(QuantumRegister(15, "ancilla"), 6),
-            7: Qubit(QuantumRegister(15, "ancilla"), 7),
-            8: Qubit(QuantumRegister(15, "ancilla"), 8),
-            10: Qubit(QuantumRegister(15, "ancilla"), 9),
-            11: Qubit(QuantumRegister(15, "ancilla"), 10),
-            12: Qubit(QuantumRegister(15, "ancilla"), 11),
-            15: Qubit(QuantumRegister(15, "ancilla"), 12),
-            16: Qubit(QuantumRegister(15, "ancilla"), 13),
-            17: Qubit(QuantumRegister(15, "ancilla"), 14),
-        }
-
-        with self.assertWarnsRegex(
-            DeprecationWarning,
-            expected_regex="The `transpile` function will stop supporting inputs of type `BackendV1` ",
-        ):
-            result = transpile(
-                qc,
-                backend=backend_v1,
-                backend_properties=custom_backend_properties,
-                optimization_level=2,
-                seed_transpiler=42,
-            )
-
-        self.assertEqual(result._layout.initial_layout._p2v, vf2_layout)
-        with self.assertWarnsRegex(
-            DeprecationWarning,
-            expected_regex="The `target` parameter should be used instead",
-        ):
-            result = transpile(
-                qc,
-                backend=backend_v2,
-                backend_properties=custom_backend_properties,
-                optimization_level=2,
-                seed_transpiler=42,
-            )
-
-        self.assertEqual(result._layout.initial_layout._p2v, vf2_layout)
 
     @data(1, 2, 3)
     def test_no_infinite_loop(self, optimization_level):
@@ -2171,21 +2080,6 @@ class TestTranspile(QiskitTestCase):
         self.assertEqual(Operator(qc), Operator(expected))
 
     @combine(opt_level=[0, 1, 2, 3])
-    def test_transpile_annotated_ops_with_backend_v1(self, opt_level):
-        """Test transpilation of circuits with annotated operations given a backend.
-        Remove once Fake20QV1 is removed."""
-        qc = QuantumCircuit(3)
-        qc.append(AnnotatedOperation(SGate(), InverseModifier()), [0])
-        qc.append(AnnotatedOperation(XGate(), ControlModifier(1)), [1, 2])
-        qc.append(AnnotatedOperation(HGate(), PowerModifier(3)), [2])
-        with self.assertWarns(DeprecationWarning):
-            backend = Fake20QV1()
-            transpiled = transpile(
-                qc, optimization_level=opt_level, backend=backend, seed_transpiler=42
-            )
-        self.assertLessEqual(set(transpiled.count_ops().keys()), {"u1", "u2", "u3", "cx"})
-
-    @combine(opt_level=[0, 1, 2, 3])
     def test_transpile_annotated_ops_with_backend(self, opt_level):
         """Test transpilation of circuits with annotated operations given a backend."""
         qc = QuantumCircuit(3)
@@ -2524,23 +2418,6 @@ class TestPostTranspileIntegration(QiskitTestCase):
         self.assertIsInstance(qasm3.dumps(transpiled).strip(), str)
 
     @data(0, 1, 2, 3)
-    def test_qasm3_output_v1(self, optimization_level):
-        """Test that the output of a transpiled circuit can be dumped into OpenQASM 3 (backend V1)."""
-        with self.assertWarns(DeprecationWarning):
-            backend = Fake20QV1()
-
-            transpiled = transpile(
-                self._regular_circuit(),
-                backend=backend,
-                optimization_level=optimization_level,
-                seed_transpiler=2022_10_17,
-            )
-        # TODO: There's not a huge amount we can sensibly test for the output here until we can
-        # round-trip the OpenQASM 3 back into a Terra circuit.  Mostly we're concerned that the dump
-        # itself doesn't throw an error, though.
-        self.assertIsInstance(qasm3.dumps(transpiled).strip(), str)
-
-    @data(0, 1, 2, 3)
     def test_qasm3_output_control_flow(self, optimization_level):
         """Test that the output of a transpiled circuit with control flow can be dumped into
         OpenQASM 3."""
@@ -2699,7 +2576,6 @@ class TestTranspileCustomPM(QiskitTestCase):
             initial_layout=None,
             basis_gates=["u1", "u2", "u3", "cx"],
             coupling_map=CouplingMap([[0, 1]]),
-            backend_properties=None,
             seed_transpiler=1,
         )
         passmanager = level_0_pass_manager(pm_conf)
