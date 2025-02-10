@@ -563,7 +563,7 @@ fn run_2q_unitary_synthesis(
                             .collect();
                         (
                             inst.op().name().to_string(),
-                            inst.params_raw().cloned().map(|boxed| *boxed),
+                            inst.params_raw().cloned(),
                             inst_qubits,
                         )
                     });

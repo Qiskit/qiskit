@@ -6775,7 +6775,7 @@ impl DAGCircuit {
                     },
                     qarg_map[instr.qubits()],
                     carg_map[instr.clbits()],
-                    instr.params_raw().cloned(),
+                    instr.params_raw().cloned().map(|params| params.into()),
                     instr.extra_attrs().clone(),
                 ))
             }),

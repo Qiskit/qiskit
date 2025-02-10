@@ -300,7 +300,7 @@ impl CircuitData {
                     inst.op().py_deepcopy(py, Some(&memo))?,
                     inst.qubits(),
                     inst.clbits(),
-                    inst.params_raw().cloned(),
+                    inst.params_raw().cloned().map(|params| params.into()),
                     inst.extra_attrs().clone(),
                 ));
             }
@@ -310,7 +310,7 @@ impl CircuitData {
                     inst.op().py_copy(py)?,
                     inst.qubits(),
                     inst.clbits(),
-                    inst.params_raw().cloned(),
+                    inst.params_raw().cloned().map(|params| params.into()),
                     inst.extra_attrs().clone(),
                 ));
             }
@@ -690,7 +690,7 @@ impl CircuitData {
                     inst.op().clone(),
                     qubits_id,
                     clbits_id,
-                    inst.params_raw().cloned(),
+                    inst.params_raw().cloned().map(|params| params.into()),
                     inst.extra_attrs().clone(),
                 ));
                 self.track_instruction_parameters(py, new_index)?;

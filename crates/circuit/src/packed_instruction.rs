@@ -815,8 +815,8 @@ impl PackedInstruction {
 
     /// Get a reference of the contained parameters.
     #[inline]
-    pub fn params_raw(&self) -> Option<&Box<SmallVec<[Param; 3]>>> {
-        self.params.as_ref()
+    pub fn params_raw(&self) -> Option<&SmallVec<[Param; 3]>> {
+        self.params.as_deref()
     }
 
     /// Get a mutable reference of the contained parameters.

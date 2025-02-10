@@ -114,7 +114,7 @@ pub fn dag_to_circuit(
                     op,
                     instr.qubits(),
                     instr.clbits(),
-                    instr.params_raw().cloned(),
+                    instr.params_raw().cloned().map(|params| params.into()),
                     instr.extra_attrs().clone(),
                 ))
             } else {
