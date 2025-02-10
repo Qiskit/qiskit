@@ -2848,7 +2848,19 @@ impl Operation for UnitaryGate {
         }
     }
     fn definition(&self, _params: &[Param]) -> Option<CircuitData> {
-        None
+        Python::with_gil(|py| -> Option<CircuitData> {
+            let py_op = self
+                .create_py_op(py, &ExtraInstructionAttributes::default())
+                .unwrap();
+            match py_op.getattr(py, intern!(py, "definition")) {
+                Ok(definition) => definition
+                    .getattr(py, intern!(py, "_data"))
+                    .ok()?
+                    .extract::<CircuitData>(py)
+                    .ok(),
+                Err(_) => None,
+            }
+        })
     }
     fn standard_gate(&self) -> Option<StandardGate> {
         None
