@@ -9,6 +9,6 @@ features_visualization:
 
 fixes:
   - |
-    Fixes sparsity problem wit the histograms ``foo()``. Refer to
+    Fixes sparsity problem with the histograms ``foo()``. Refer to
     `#13066 <https://github.com/Qiskit/qiskit/issues/13066>` for more
     details.
