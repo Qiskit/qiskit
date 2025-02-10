@@ -1739,6 +1739,7 @@ def barrier(*channels_or_qubits: chans.Channel | int, name: str | None = None):
     This directive prevents the compiler from moving instructions across
     the barrier. The barrier allows the pulse compiler to take care of more advanced
     scheduling alignment operations across channels.
+
     .. note:: Requires the active builder context to have a backend set if
         qubits are barriered on.
 
