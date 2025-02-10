@@ -25,14 +25,14 @@ use smallvec::{smallvec, SmallVec};
 
 use pyo3::intern;
 use pyo3::prelude::*;
-use pyo3::types::{IntoPyDict, PyDict, PyString};
+use pyo3::types::{IntoPyDict, PyDict, PyString, PyType};
 use pyo3::wrap_pyfunction;
 use pyo3::Python;
 
 use qiskit_circuit::converters::{circuit_to_dag, QuantumCircuitData};
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::imports;
-use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardGate};
+use qiskit_circuit::operations::{Operation, OperationRef, Param, PyGate, StandardGate};
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::Qubit;
 
@@ -42,7 +42,8 @@ use crate::euler_one_qubit_decomposer::{
 use crate::nlayout::PhysicalQubit;
 use crate::target_transpiler::{NormalOperation, Target};
 use crate::two_qubit_decompose::{
-    TwoQubitBasisDecomposer, TwoQubitGateSequence, TwoQubitWeylDecomposition,
+    RXXEquivalent, TwoQubitBasisDecomposer, TwoQubitControlledUDecomposer, TwoQubitGateSequence,
+    TwoQubitWeylDecomposition,
 };
 use crate::QiskitError;
 
@@ -51,10 +52,12 @@ const PI4: f64 = PI / 4.;
 
 #[derive(Clone, Debug)]
 enum DecomposerType {
-    TwoQubitBasisDecomposer(Box<TwoQubitBasisDecomposer>),
-    XXDecomposer(PyObject),
+    TwoQubitBasis(Box<TwoQubitBasisDecomposer>),
+    TwoQubitControlledU(Box<TwoQubitControlledUDecomposer>),
+    XX(PyObject),
 }
 
+#[derive(Clone, Debug)]
 struct DecomposerElement {
     decomposer: DecomposerType,
     gate: NormalOperation,
@@ -70,6 +73,7 @@ struct TwoQubitUnitarySequence {
 // then we know TwoQubitBasisDecomposer is an ideal decomposition and there is
 // no need to bother trying the XXDecomposer.
 static GOODBYE_SET: [&str; 3] = ["cx", "cz", "ecr"];
+static PARAM_SET: [&str; 8] = ["rzz", "rxx", "ryy", "rzx", "crx", "cry", "crz", "cphase"];
 
 fn get_target_basis_set(target: &Target, qubit: PhysicalQubit) -> EulerBasisSet {
     let mut target_basis_set: EulerBasisSet = EulerBasisSet::new();
@@ -131,17 +135,56 @@ fn apply_synth_sequence(
 ) -> PyResult<()> {
     let mut instructions = Vec::with_capacity(sequence.gate_sequence.gates().len());
     for (gate, params, qubit_ids) in sequence.gate_sequence.gates() {
-        let gate_node = match gate {
-            None => sequence.decomp_gate.operation.standard_gate(),
-            Some(gate) => *gate,
+        let packed_op = match gate {
+            None => &sequence.decomp_gate.operation,
+            Some(gate) => &PackedOperation::from_standard_gate(*gate),
         };
         let mapped_qargs: Vec<Qubit> = qubit_ids.iter().map(|id| out_qargs[*id as usize]).collect();
         let new_params: Option<Box<SmallVec<[Param; 3]>>> = match gate {
             Some(_) => Some(Box::new(params.iter().map(|p| Param::Float(*p)).collect())),
-            None => Some(Box::new(sequence.decomp_gate.params.clone())),
+            None => {
+                if !sequence.decomp_gate.params.is_empty()
+                    && matches!(sequence.decomp_gate.params[0], Param::Float(_))
+                {
+                    Some(Box::new(sequence.decomp_gate.params.clone()))
+                } else {
+                    Some(Box::new(params.iter().map(|p| Param::Float(*p)).collect()))
+                }
+            }
         };
+
+        let new_op: PackedOperation = match packed_op.py_copy(py)?.view() {
+            OperationRef::Gate(gate) => {
+                gate.gate.setattr(
+                    py,
+                    "params",
+                    new_params
+                        .as_deref()
+                        .map(SmallVec::as_slice)
+                        .unwrap_or(&[])
+                        .iter()
+                        .map(|param| param.clone_ref(py))
+                        .collect::<SmallVec<[Param; 3]>>(),
+                )?;
+                Box::new(PyGate {
+                    gate: gate.gate.clone(),
+                    qubits: gate.qubits,
+                    clbits: gate.clbits,
+                    params: gate.params,
+                    op_name: gate.op_name.clone(),
+                })
+                .into()
+            }
+            OperationRef::StandardGate(_) => packed_op.clone(),
+            _ => {
+                return Err(QiskitError::new_err(
+                    "Decomposed gate sequence contains unexpected operations.",
+                ))
+            }
+        };
+
         let instruction = PackedInstruction::new(
-            PackedOperation::from_standard_gate(gate_node),
+            new_op,
             out_dag.qargs_interner.insert(&mapped_qargs),
             out_dag.cargs_interner.get_default(),
             new_params,
@@ -399,8 +442,9 @@ fn run_2q_unitary_synthesis(
             coupling_edges,
             target,
         )?;
+
         match decomposer_item.decomposer {
-            DecomposerType::TwoQubitBasisDecomposer(_) => {
+            DecomposerType::TwoQubitBasis(_) => {
                 let synth = synth_su4_sequence(
                     &unitary,
                     decomposer_item,
@@ -409,7 +453,16 @@ fn run_2q_unitary_synthesis(
                 )?;
                 apply_synth_sequence(py, out_dag, out_qargs, &synth)?;
             }
-            DecomposerType::XXDecomposer(_) => {
+            DecomposerType::TwoQubitControlledU(_) => {
+                let synth = synth_su4_sequence(
+                    &unitary,
+                    decomposer_item,
+                    preferred_dir,
+                    approximation_degree,
+                )?;
+                apply_synth_sequence(py, out_dag, out_qargs, &synth)?;
+            }
+            DecomposerType::XX(_) => {
                 let synth = synth_su4_dag(
                     py,
                     &unitary,
@@ -434,7 +487,7 @@ fn run_2q_unitary_synthesis(
             target,
         )?;
         match &decomposer.decomposer {
-            DecomposerType::TwoQubitBasisDecomposer(_) => {
+            DecomposerType::TwoQubitBasis(_) => {
                 let sequence =
                     synth_su4_sequence(&unitary, decomposer, preferred_dir, approximation_degree)?;
                 let scoring_info =
@@ -452,12 +505,7 @@ fn run_2q_unitary_synthesis(
                                     inst_qubits,
                                 ),
                                 None => (
-                                    sequence
-                                        .decomp_gate
-                                        .operation
-                                        .standard_gate()
-                                        .name()
-                                        .to_string(),
+                                    sequence.decomp_gate.operation.name().to_string(),
                                     Some(params.iter().map(|p| Param::Float(*p)).collect()),
                                     inst_qubits,
                                 ),
@@ -466,7 +514,34 @@ fn run_2q_unitary_synthesis(
                 let synth_error_from_target = synth_error(py, scoring_info, target);
                 synth_errors_sequence.push((sequence, synth_error_from_target));
             }
-            DecomposerType::XXDecomposer(_) => {
+            DecomposerType::TwoQubitControlledU(_) => {
+                let sequence =
+                    synth_su4_sequence(&unitary, decomposer, preferred_dir, approximation_degree)?;
+                let scoring_info =
+                    sequence
+                        .gate_sequence
+                        .gates()
+                        .iter()
+                        .map(|(gate, params, qubit_ids)| {
+                            let inst_qubits =
+                                qubit_ids.iter().map(|q| ref_qubits[*q as usize]).collect();
+                            match gate {
+                                Some(gate) => (
+                                    gate.name().to_string(),
+                                    Some(params.iter().map(|p| Param::Float(*p)).collect()),
+                                    inst_qubits,
+                                ),
+                                None => (
+                                    sequence.decomp_gate.operation.name().to_string(),
+                                    Some(params.iter().map(|p| Param::Float(*p)).collect()),
+                                    inst_qubits,
+                                ),
+                            }
+                        });
+                let synth_error_from_target = synth_error(py, scoring_info, target);
+                synth_errors_sequence.push((sequence, synth_error_from_target));
+            }
+            DecomposerType::XX(_) => {
                 let synth_dag = synth_su4_dag(
                     py,
                     &unitary,
@@ -535,6 +610,8 @@ fn get_2q_decomposers_from_target(
     let reverse_qubits: SmallVec<[PhysicalQubit; 2]> = qubits.iter().rev().copied().collect();
     let mut available_2q_basis: IndexMap<&str, NormalOperation> = IndexMap::new();
     let mut available_2q_props: IndexMap<&str, (Option<f64>, Option<f64>)> = IndexMap::new();
+    let mut available_2q_param_basis: IndexMap<&str, NormalOperation> = IndexMap::new();
+    let mut available_2q_param_props: IndexMap<&str, (Option<f64>, Option<f64>)> = IndexMap::new();
 
     let mut qubit_gate_map = IndexMap::new();
 
@@ -557,28 +634,10 @@ fn get_2q_decomposers_from_target(
     }
 
     #[inline]
-    fn replace_parametrized_gate(mut op: NormalOperation) -> NormalOperation {
-        if let Some(std_gate) = op.operation.try_standard_gate() {
-            match std_gate.name() {
-                "rxx" => {
-                    if let Param::ParameterExpression(_) = op.params[0] {
-                        op.params[0] = Param::Float(PI2)
-                    }
-                }
-                "rzx" => {
-                    if let Param::ParameterExpression(_) = op.params[0] {
-                        op.params[0] = Param::Float(PI4)
-                    }
-                }
-                "rzz" => {
-                    if let Param::ParameterExpression(_) = op.params[0] {
-                        op.params[0] = Param::Float(PI2)
-                    }
-                }
-                _ => (),
-            }
-        }
-        op
+    fn check_parametrized_gate(op: &NormalOperation) -> bool {
+        // The gate counts as parametrized if there is any
+        // non-float parameter
+        !op.params.iter().all(|p| matches!(p, Param::Float(_)))
     }
 
     for (q_pair, gates) in qubit_gate_map {
@@ -594,8 +653,21 @@ fn get_2q_decomposers_from_target(
                     if op.operation.num_qubits() != 2 {
                         continue;
                     }
-                    available_2q_basis.insert(key, replace_parametrized_gate(op.clone()));
-
+                    if check_parametrized_gate(op) {
+                        available_2q_param_basis.insert(key, op.clone());
+                        if target.contains_key(key) {
+                            available_2q_param_props.insert(
+                                key,
+                                match &target[key].get(Some(q_pair)) {
+                                    Some(Some(props)) => (props.duration, props.error),
+                                    _ => (None, None),
+                                },
+                            );
+                        } else {
+                            continue;
+                        }
+                    }
+                    available_2q_basis.insert(key, op.clone());
                     if target.contains_key(key) {
                         available_2q_props.insert(
                             key,
@@ -612,7 +684,8 @@ fn get_2q_decomposers_from_target(
             }
         }
     }
-    if available_2q_basis.is_empty() {
+
+    if available_2q_basis.is_empty() && available_2q_param_basis.is_empty() {
         return Err(QiskitError::new_err(
             "Target has no gates available on qubits to synthesize over.",
         ));
@@ -647,7 +720,6 @@ fn get_2q_decomposers_from_target(
         }
     }
 
-    // Iterate over 1q and 2q supercontrolled basis, append TwoQubitBasisDecomposers
     let supercontrolled_basis: IndexMap<&str, NormalOperation> = available_2q_basis
         .iter()
         .filter(|(_, v)| is_supercontrolled(v))
@@ -672,23 +744,64 @@ fn get_2q_decomposers_from_target(
             )?;
 
             decomposers.push(DecomposerElement {
-                decomposer: DecomposerType::TwoQubitBasisDecomposer(Box::new(decomposer)),
+                decomposer: DecomposerType::TwoQubitBasis(Box::new(decomposer)),
                 gate: gate.clone(),
             });
         }
     }
 
     // If our 2q basis gates are a subset of cx, ecr, or cz then we know TwoQubitBasisDecomposer
-    // is an ideal decomposition and there is no need to bother calculating the XX embodiments
-    // or try the XX decomposer
+    // is an ideal decomposition and there is no need to try other decomposers
     let available_basis_set: IndexSet<&str> = available_2q_basis.keys().copied().collect();
 
     #[inline]
     fn check_goodbye(basis_set: &IndexSet<&str>) -> bool {
-        basis_set.iter().all(|gate| GOODBYE_SET.contains(gate))
+        !basis_set.is_empty() && basis_set.iter().all(|gate| GOODBYE_SET.contains(gate))
     }
 
     if check_goodbye(&available_basis_set) {
+        return Ok(Some(decomposers));
+    }
+
+    for basis_1q in &available_1q_basis {
+        for (_basis_2q, gate) in available_2q_param_basis.iter() {
+            let rxx_equivalent_gate = if let Some(std_gate) = gate.operation.try_standard_gate() {
+                RXXEquivalent::Standard(std_gate)
+            } else {
+                let module = PyModule::import(py, "builtins")?;
+                let py_type = module.getattr("type")?;
+                let gate_type = py_type
+                    .call1((gate.clone().into_pyobject(py)?,))?
+                    .downcast_into::<PyType>()?
+                    .unbind();
+
+                RXXEquivalent::CustomPython(gate_type)
+            };
+
+            match TwoQubitControlledUDecomposer::new_inner(rxx_equivalent_gate, basis_1q) {
+                Ok(decomposer) => {
+                    decomposers.push(DecomposerElement {
+                        decomposer: DecomposerType::TwoQubitControlledU(Box::new(decomposer)),
+                        gate: gate.clone(),
+                    });
+                }
+                Err(_) => continue,
+            };
+        }
+    }
+
+    // If our 2q basis gates are a subset of PARAM_SET, then we will use the TwoQubitControlledUDecomposer
+    // and there is no need to try other decomposers
+
+    let available_basis_param_set: IndexSet<&str> =
+        available_2q_param_basis.keys().copied().collect();
+
+    #[inline]
+    fn check_parametrized_goodbye(basis_set: &IndexSet<&str>) -> bool {
+        !basis_set.is_empty() && basis_set.iter().all(|gate| PARAM_SET.contains(gate))
+    }
+
+    if check_parametrized_goodbye(&available_basis_param_set) {
         return Ok(Some(decomposers));
     }
 
@@ -779,7 +892,7 @@ fn get_2q_decomposers_from_target(
                 .extract::<NormalOperation>()?;
 
             decomposers.push(DecomposerElement {
-                decomposer: DecomposerType::XXDecomposer(decomposer.into()),
+                decomposer: DecomposerType::XX(decomposer.into()),
                 gate: decomposer_gate,
             });
         }
@@ -879,8 +992,10 @@ fn synth_su4_sequence(
     approximation_degree: Option<f64>,
 ) -> PyResult<TwoQubitUnitarySequence> {
     let is_approximate = approximation_degree.is_none() || approximation_degree.unwrap() != 1.0;
-    let synth = if let DecomposerType::TwoQubitBasisDecomposer(decomp) = &decomposer_2q.decomposer {
+    let synth = if let DecomposerType::TwoQubitBasis(decomp) = &decomposer_2q.decomposer {
         decomp.call_inner(su4_mat.view(), None, is_approximate, None)?
+    } else if let DecomposerType::TwoQubitControlledU(decomp) = &decomposer_2q.decomposer {
+        decomp.call_inner(su4_mat.view(), None)?
     } else {
         unreachable!("synth_su4_sequence should only be called for TwoQubitBasisDecomposer.")
     };
@@ -939,8 +1054,10 @@ fn reversed_synth_su4_sequence(
     let (mut col_1, mut col_2) = su4_mat.multi_slice_mut((s![.., 1], s![.., 2]));
     azip!((x in &mut col_1, y in &mut col_2) (*x, *y) = (*y, *x));
 
-    let synth = if let DecomposerType::TwoQubitBasisDecomposer(decomp) = &decomposer_2q.decomposer {
+    let synth = if let DecomposerType::TwoQubitBasis(decomp) = &decomposer_2q.decomposer {
         decomp.call_inner(su4_mat.view(), None, is_approximate, None)?
+    } else if let DecomposerType::TwoQubitControlledU(decomp) = &decomposer_2q.decomposer {
+        decomp.call_inner(su4_mat.view(), None)?
     } else {
         unreachable!(
             "reversed_synth_su4_sequence should only be called for TwoQubitBasisDecomposer."
@@ -974,7 +1091,7 @@ fn synth_su4_dag(
     approximation_degree: Option<f64>,
 ) -> PyResult<DAGCircuit> {
     let is_approximate = approximation_degree.is_none() || approximation_degree.unwrap() != 1.0;
-    let synth_dag = if let DecomposerType::XXDecomposer(decomposer) = &decomposer_2q.decomposer {
+    let synth_dag = if let DecomposerType::XX(decomposer) = &decomposer_2q.decomposer {
         let kwargs: HashMap<&str, bool> = [("approximate", is_approximate), ("use_dag", true)]
             .into_iter()
             .collect();
@@ -1040,7 +1157,7 @@ fn reversed_synth_su4_dag(
     let (mut col_1, mut col_2) = su4_mat.multi_slice_mut((s![.., 1], s![.., 2]));
     azip!((x in &mut col_1, y in &mut col_2) (*x, *y) = (*y, *x));
 
-    let synth_dag = if let DecomposerType::XXDecomposer(decomposer) = &decomposer_2q.decomposer {
+    let synth_dag = if let DecomposerType::XX(decomposer) = &decomposer_2q.decomposer {
         let kwargs: HashMap<&str, bool> = [("approximate", is_approximate), ("use_dag", true)]
             .into_iter()
             .collect();
