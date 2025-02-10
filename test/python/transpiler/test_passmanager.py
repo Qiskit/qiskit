@@ -196,7 +196,6 @@ class TestPassManager(QiskitTestCase):
         """Test that the ``property_set`` argument allows seeding the base analysis."""
         input_name = "my_property"
         output_name = "output_property"
-        assert_equal = self.assertEqual
 
         class Analyse(AnalysisPass):
             def run(self, dag):

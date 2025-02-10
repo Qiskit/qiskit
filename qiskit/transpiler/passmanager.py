@@ -444,6 +444,8 @@ class StagedPassManager(PassManager):
         output_name: str | None = None,
         callback: Callable | None = None,
         num_processes: int = None,
+        *,
+        property_set: dict[str, object] | None = None,
     ) -> _CircuitsT:
         self._update_passmanager()
         return super().run(circuits, output_name, callback, num_processes=num_processes)
