@@ -155,7 +155,7 @@ fn remove_identity_equiv(
 
     if global_phase_update != 0. {
         dag.add_global_phase(py, &Param::Float(global_phase_update))
-            .unwrap();
+            .expect("The global phase is guaranteed to be a float");
     }
 }
 
