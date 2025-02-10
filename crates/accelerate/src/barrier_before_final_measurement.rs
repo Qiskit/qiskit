@@ -29,7 +29,7 @@ pub fn barrier_before_final_measurements(
     dag: &mut DAGCircuit,
     label: Option<String>,
 ) -> PyResult<()> {
-    let is_exactly_final = |inst: &PackedInstruction| FINAL_OP_NAMES.contains(&inst.op.name());
+    let is_exactly_final = |inst: &PackedInstruction| FINAL_OP_NAMES.contains(&inst.op().name());
     let final_ops: HashSet<NodeIndex> = dag
         .op_nodes(true)
         .filter_map(|(node, inst)| {
@@ -74,8 +74,6 @@ pub fn barrier_before_final_measurements(
         &[],
         None,
         ExtraInstructionAttributes::new(label, None, None, None),
-        #[cfg(feature = "cache_pygates")]
-        None,
     )?;
     for inst in final_packed_ops {
         dag.push_back(py, inst)?;

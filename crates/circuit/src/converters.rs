@@ -10,9 +10,6 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-#[cfg(feature = "cache_pygates")]
-use std::sync::OnceLock;
-
 use hashbrown::HashMap;
 use pyo3::prelude::*;
 use pyo3::{
@@ -112,22 +109,14 @@ pub fn dag_to_circuit(
                 )
             };
             if copy_operations {
-                let op = instr.op.py_deepcopy(py, None)?;
-                Ok(PackedInstruction {
+                let op = instr.op().py_deepcopy(py, None)?;
+                Ok(PackedInstruction::new(
                     op,
-                    qubits: instr.qubits,
-                    clbits: instr.clbits,
-                    params: Some(Box::new(
-                        instr
-                            .params_view()
-                            .iter()
-                            .map(|param| param.clone_ref(py))
-                            .collect(),
-                    )),
-                    extra_attrs: instr.extra_attrs.clone(),
-                    #[cfg(feature = "cache_pygates")]
-                    py_op: OnceLock::new(),
-                })
+                    instr.qubits(),
+                    instr.clbits(),
+                    instr.params_raw().cloned().map(|params| params.into()),
+                    instr.extra_attrs().clone(),
+                ))
             } else {
                 Ok(instr.clone())
             }
