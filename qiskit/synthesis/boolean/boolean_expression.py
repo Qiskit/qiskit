@@ -10,22 +10,21 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""A quantum oracle constructed from a logical expression or a string in the DIMACS format."""
+"""A class for parsingand  synthesizing boolean expressions"""
 
 import ast
 import itertools
 import re
 from os.path import basename, isfile
 
-from qiskit.circuit import Gate
 from .boolean_expression_visitor import (
     BooleanExpressionEvalVisitor,
     BooleanExpressionArgsCollectorVisitor,
 )
 
 
-class BooleanExpression(Gate):
-    """The Boolean Expression gate."""
+class BooleanExpression:
+    """A Boolean Expression"""
 
     def __init__(self, expression: str, name: str = None, var_order: list = None) -> None:
         """
@@ -38,7 +37,6 @@ class BooleanExpression(Gate):
         """
         self.expression = expression
         self.expression_ast = ast.parse(expression)
-        short_expr_for_name = (expression[:10] + "...") if len(expression) > 13 else expression
         args_collector = BooleanExpressionArgsCollectorVisitor()
         args_collector.visit(self.expression_ast)
         self.args = args_collector.get_sorted_args()
@@ -47,10 +45,6 @@ class BooleanExpression(Gate):
             if len(missing_args) > 0:
                 raise ValueError(f"var_order missing the variable(s) {', '.join(missing_args)}")
             self.args.sort(key=var_order.index)
-
-        num_qubits = len(self.args) + 1  # one for output qubit
-        self.definition = None
-        super().__init__(name or short_expr_for_name, num_qubits=num_qubits, params=[])
 
     def simulate(self, bitstring: str) -> bool:
         """Evaluate the expression on a bitstring.
@@ -121,9 +115,9 @@ class BooleanExpression(Gate):
         # there are many optimizations that can be done to improve this step
         esop = EsopGenerator(self.truth_table()).esop
         if circuit_type == "bit":
-            return synth_bit_oracle_from_esop(esop)
+            return synth_bit_oracle_from_esop(esop, len(self.args) + 1)
         if circuit_type == "phase":
-            return synth_phase_oracle_from_esop(esop)
+            return synth_phase_oracle_from_esop(esop, len(self.args))
         raise ValueError("'circuit_type' must be either 'bit' or 'phase'")
 
     def _define(self):

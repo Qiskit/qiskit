@@ -14,7 +14,6 @@
 import itertools
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import ZGate, XGate
-from qiskit.exceptions import QiskitError
 
 
 class EsopGenerator:
@@ -78,16 +77,12 @@ class EsopGenerator:
         return self.cofactor_table[assignment]
 
 
-def synth_phase_oracle_from_esop(esop):
+def synth_phase_oracle_from_esop(esop, num_qubits):
     """
     Generates a phase oracle for the boolean function f given in ESOP (Exlusive sum of products) form
     esop is of the form ('01-1', '11-0', ...) etc
     where 1 is the variable, 0 is negated variable and - is don't care
     """
-    sizes = {len(clause) for clause in esop}
-    if len(sizes) > 1:
-        raise QiskitError("In the given ESOP, all clauses must be of equal size")
-    num_qubits = next(iter(sizes))
     qc = QuantumCircuit(num_qubits)
     clause_data = [
         (zip(*[qubit_data for qubit_data in enumerate(clause) if qubit_data[1] != "-"]))
@@ -112,16 +107,12 @@ def synth_phase_oracle_from_esop(esop):
     return qc
 
 
-def synth_bit_oracle_from_esop(esop):
+def synth_bit_oracle_from_esop(esop, num_qubits):
     """
     Generates a bit-flip oracle for the boolean function f given in ESOP (Exlusive sum of products) form
     esop is of the form ('01-1', '11-0', ...) etc
     where 1 is the variable, 0 is negated variable and - is don't care
     """
-    sizes = {len(clause) for clause in esop}
-    if len(sizes) > 1:
-        raise QiskitError("In the given ESOP, all clauses must be of equal size")
-    num_qubits = next(iter(sizes)) + 1  # one additional qubit for the output
     output_index = num_qubits - 1
     qc = QuantumCircuit(num_qubits)
     clause_data = [
@@ -131,6 +122,6 @@ def synth_bit_oracle_from_esop(esop):
     for qubit_indices, control_data in clause_data:
         control_state = "".join(control_data)
         # use custom controlled-X gate
-        gate = XGate().control(len(qubit_indices), ctrl_state=control_state)
+        gate = XGate().control(len(qubit_indices), ctrl_state=control_state[::-1])
         qc.append(gate, qubit_indices + (output_index,))
     return qc

@@ -49,6 +49,7 @@ class TestBooleanExpression(QiskitTestCase):
     @data(
         ("x", False),
         ("not x", True),
+        ("x & ~x", False),
         ("(x0 & x1 | ~x2) ^ x4", True),
         ("xx & xxx | ( ~z ^ zz)", True),
     )
@@ -57,10 +58,10 @@ class TestBooleanExpression(QiskitTestCase):
         """Test synth"""
         expression = BooleanExpression(expression)
         expr_circ = expression.synth()
-
+        num_qubits = len(expression.args)
         new_creg = expr_circ._create_creg(1, "c")
         expr_circ.add_register(new_creg)
-        expr_circ.measure(expression.num_qubits - 1, new_creg)
+        expr_circ.measure(num_qubits, new_creg)
 
         backend = BasicSimulator()
         [result] = (
