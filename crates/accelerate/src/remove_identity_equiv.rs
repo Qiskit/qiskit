@@ -75,21 +75,15 @@ fn remove_identity_equiv(
         }
     };
 
-<<<<<<< HEAD
     for op_node in dag.op_nodes(false) {
         let inst = dag.dag()[op_node].unwrap_operation();
-        match inst.op.view() {
-            OperationRef::Standard(gate) => {
-=======
-    for (op_node, inst) in dag.op_nodes(false) {
         if inst.is_parameterized() {
             // Skip parameterized gates
             continue;
         }
         let view = inst.op.view();
         match view {
-            OperationRef::StandardGate(gate) => {
->>>>>>> 7995cabbd (Correctly updating global phase when removing gates that are identity up to a global phase (#13785))
+            OperationRef::Standard(gate) => {
                 let (dim, trace) = match gate {
                     StandardGate::RXGate | StandardGate::RYGate | StandardGate::RZGate => {
                         if let Param::Float(theta) = inst.params_view()[0] {
