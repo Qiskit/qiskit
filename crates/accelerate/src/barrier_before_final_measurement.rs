@@ -16,7 +16,7 @@ use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 use qiskit_circuit::circuit_instruction::ExtraInstructionAttributes;
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
-use qiskit_circuit::operations::{StandardInstruction, OperationRef};
+use qiskit_circuit::operations::{OperationRef, StandardInstruction};
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::Qubit;
 
@@ -29,7 +29,11 @@ pub fn barrier_before_final_measurements(
     dag: &mut DAGCircuit,
     label: Option<String>,
 ) -> PyResult<()> {
+    // Get a list of the node indices which are final measurement or barriers that are ancestors
+    // of a given qubit's output node.
     let find_final_nodes = |[_in_index, out_index]: &[NodeIndex; 2]| -> Vec<NodeIndex> {
+        // Next nodes is the stack of parent nodes to investigate. It starts with any predecessors
+        // of a qubit's output node that are Barrier or Measure
         let mut next_nodes: Vec<NodeIndex> = dag
             .quantum_predecessors(*out_index)
             .filter(|index| {
@@ -37,23 +41,27 @@ pub fn barrier_before_final_measurements(
                 match node {
                     NodeType::Operation(inst) => {
                         if let OperationRef::StandardInstruction(op) = inst.op.view() {
-                            if matches!(op, StandardInstruction::Measure | StandardInstruction::Barrier(_)) {
+                            if matches!(
+                                op,
+                                StandardInstruction::Measure | StandardInstruction::Barrier(_)
+                            ) {
                                 dag.bfs_successors(*index).all(|(_, child_successors)| {
                                     child_successors.iter().all(|suc| match &dag[*suc] {
-                                        NodeType::Operation(suc_inst) => {
-                                            match suc_inst.op.view() {
-                                                OperationRef::StandardInstruction(suc_op) => {
-                                                    matches!(suc_op, StandardInstruction::Measure | StandardInstruction::Barrier(_))
-                                                },
-                                                _ => false
-
+                                        NodeType::Operation(suc_inst) => match suc_inst.op.view() {
+                                            OperationRef::StandardInstruction(suc_op) => {
+                                                matches!(
+                                                    suc_op,
+                                                    StandardInstruction::Measure
+                                                        | StandardInstruction::Barrier(_)
+                                                )
                                             }
-                                        }
+                                            _ => false,
+                                        },
                                         _ => true,
                                     })
                                 })
                             } else {
-                              false
+                                false
                             }
                         } else {
                             false
@@ -64,15 +72,18 @@ pub fn barrier_before_final_measurements(
             })
             .collect();
         let mut nodes: Vec<NodeIndex> = Vec::new();
+        // Reverse traverse the dag from next nodes until we encounter no more barriers or measures
         while let Some(node_index) = next_nodes.pop() {
+            // If node on the stack is a barrier or measure we can add it to the output list
             if node_index != *out_index
                 && dag.bfs_successors(node_index).all(|(_, child_successors)| {
                     child_successors.iter().all(|suc| match &dag[*suc] {
-                        NodeType::Operation(suc_inst) => {
-                            match suc_inst.op.view() {
-                                OperationRef::StandardInstruction(suc_op) => matches!(suc_op, StandardInstruction::Measure | StandardInstruction::Barrier(_)),
-                                _ => false,
-                            }
+                        NodeType::Operation(suc_inst) => match suc_inst.op.view() {
+                            OperationRef::StandardInstruction(suc_op) => matches!(
+                                suc_op,
+                                StandardInstruction::Measure | StandardInstruction::Barrier(_)
+                            ),
+                            _ => false,
                         },
                         _ => true,
                     })
@@ -80,11 +91,15 @@ pub fn barrier_before_final_measurements(
             {
                 nodes.push(node_index);
             }
+            // For this node if any parent nodes are barrier or measure add those to the stack
             for pred in dag.quantum_predecessors(node_index) {
                 match &dag[pred] {
                     NodeType::Operation(inst) => {
                         if let OperationRef::StandardInstruction(op) = inst.op.view() {
-                            if matches!(op, StandardInstruction::Measure | StandardInstruction::Barrier(_)) {
+                            if matches!(
+                                op,
+                                StandardInstruction::Measure | StandardInstruction::Barrier(_)
+                            ) {
                                 next_nodes.push(pred)
                             }
                         }
