@@ -15,7 +15,9 @@
 import ast
 import itertools
 import re
-from os.path import basename, isfile
+from os.path import isfile
+from typing import Union
+import numpy as np
 
 from .boolean_expression_visitor import (
     BooleanExpressionEvalVisitor,
@@ -23,10 +25,51 @@ from .boolean_expression_visitor import (
 )
 
 
+class TruthTable:
+    """A simple implementation of a truth table for a boolean function"""
+
+    EXPLICIT_REP_THRESHOLD = (
+        12  # above this number of bits, do not explicitly save the values in a list
+    )
+
+    def __init__(self, func, num_bits):
+        self.func = func
+        self.num_bits = num_bits
+        self.explicit_storage = self.num_bits <= self.EXPLICIT_REP_THRESHOLD
+        if self.explicit_storage:
+            self.values = np.array(
+                [
+                    self.func(assignment)
+                    for assignment in itertools.product([False, True], repeat=self.num_bits)
+                ],
+                dtype=bool,
+            )
+        else:
+            self.implicit_values = {}
+
+    def __getitem__(self, key):
+        if isinstance(key, str):
+            key = (bit != "0" for bit in key)
+        if self.explicit_storage:
+            key = sum(2**n for n, bit in enumerate(key) if bit)
+            return self.values[key]
+        else:
+            return self.implicit_values.setdefault(key, self.func(key))
+
+    def __str__(self):
+        if self.explicit_storage:
+            return "".join(
+                "1" if self[assignemnt] else "0"
+                for assignemnt in itertools.product([False, True], repeat=self.num_bits)
+            )
+        else:
+            return f"Truth table on {self.num_bits} bits (implicit representation)"
+
+
 class BooleanExpression:
     """A Boolean Expression"""
 
-    def __init__(self, expression: str, name: str = None, var_order: list = None) -> None:
+    def __init__(self, expression: str, var_order: list = None) -> None:
         """
         Args:
             expression (str): The logical expression string.
@@ -40,44 +83,46 @@ class BooleanExpression:
         args_collector = BooleanExpressionArgsCollectorVisitor()
         args_collector.visit(self.expression_ast)
         self.args = args_collector.get_sorted_args()
+        self.num_bits = len(self.args)
         if var_order is not None:
             missing_args = set(self.args) - set(var_order)
             if len(missing_args) > 0:
                 raise ValueError(f"var_order missing the variable(s) {', '.join(missing_args)}")
             self.args.sort(key=var_order.index)
+        self.truth_table_ = None
 
-    def simulate(self, bitstring: str) -> bool:
+    def simulate(self, bitstring: Union[str, tuple]) -> bool:
         """Evaluate the expression on a bitstring.
 
         This evaluation is done classically.
 
         Args:
-            bitstring: The bitstring for which to evaluate.
+            bitstring: The bitstring for which to evaluate,
+            either as a string of 0 and 1 or a tuple of booleans.
 
         Returns:
             bool: result of the evaluation.
         """
-        eval_visitor = BooleanExpressionEvalVisitor()
-        if len(self.args) != len(bitstring):
+        if self.num_bits != len(bitstring):
             raise ValueError(
                 f"bitstring length differs from the number of variables "
-                f"({len(bitstring)} != {len(self.args)})"
+                f"({len(bitstring)} != {self.num_bits}"
             )
-        for arg, bit in zip(self.args, bitstring):
-            if not bit in ["0", "1"]:
-                raise ValueError("bitstring must be composed of 0 and 1 only")
-            eval_visitor.arg_values[arg] = bit == "1"
+        if isinstance(bitstring, str):
+            bitstring = (bit != "0" for bit in bitstring)
+        eval_visitor = BooleanExpressionEvalVisitor()
+        eval_visitor.arg_values = dict(zip(self.args, bitstring))
         return eval_visitor.visit(self.expression_ast)
 
+    @property
     def truth_table(self) -> dict:
         """Generates the full truth table for the expression
         Returns:
             dict: A dictionary mapping boolean assignments to the boolean result
         """
-        return {
-            assignment: self.simulate("".join("1" if val else "0" for val in assignment))
-            for assignment in itertools.product([False, True], repeat=len(self.args))
-        }
+        if self.truth_table_ is None:
+            self.truth_table_ = TruthTable(self.simulate, self.num_bits)
+        return self.truth_table_
 
     def synth(self, circuit_type: str = "bit"):
         r"""Synthesize the logic network into a :class:`~qiskit.circuit.QuantumCircuit`.
@@ -113,23 +158,18 @@ class BooleanExpression:
 
         # generating the esop currntly requires generating the full truth table
         # there are many optimizations that can be done to improve this step
-        esop = EsopGenerator(self.truth_table()).esop
+        esop = EsopGenerator(self.truth_table).esop
         if circuit_type == "bit":
-            return synth_bit_oracle_from_esop(esop, len(self.args) + 1)
+            return synth_bit_oracle_from_esop(esop, self.num_bits + 1)
         if circuit_type == "phase":
-            return synth_phase_oracle_from_esop(esop, len(self.args))
+            return synth_phase_oracle_from_esop(esop, self.num_bits)
         raise ValueError("'circuit_type' must be either 'bit' or 'phase'")
 
-    def _define(self):
-        """The definition of the boolean expression is its synthesis"""
-        self.definition = self.synth()
-
     @staticmethod
-    def from_dimacs(dimacs: str, name: str = None):
+    def from_dimacs(dimacs: str):
         """Create a BooleanExpression from a string in the DIMACS format.
         Args:
             dimacs : A string in DIMACS format.
-            name: an optional name for the BooleanExpression
 
         Returns:
             BooleanExpression: A gate for the input string
@@ -158,7 +198,7 @@ class BooleanExpression:
             for clause in clauses
         ]
         expr = " & ".join([f"({c})" for c in clause_strings])
-        return BooleanExpression(expr, name=name, var_order=variables)
+        return BooleanExpression(expr, var_order=variables)
 
     @staticmethod
     def from_dimacs_file(filename: str):
@@ -176,4 +216,4 @@ class BooleanExpression:
             raise FileNotFoundError(f"The file {filename} does not exists.")
         with open(filename, "r") as dimacs_file:
             dimacs = dimacs_file.read()
-        return BooleanExpression.from_dimacs(dimacs, name=basename(filename))
+        return BooleanExpression.from_dimacs(dimacs)

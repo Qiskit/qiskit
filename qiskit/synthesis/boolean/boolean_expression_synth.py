@@ -22,7 +22,6 @@ class EsopGenerator:
 
     def __init__(self, truth_table):
         self.truth_table = truth_table
-        self.n = len(next(iter(truth_table)))
         self.cofactor_table = {}
         self.esop = self.generate_esop(assignment=())
 
@@ -54,9 +53,9 @@ class EsopGenerator:
         """
         # this base case is non-optimized;
         # we may be able to terminate even before having a full assignment
-        if len(assignment) == self.n:
+        if len(assignment) == self.truth_table.num_bits:
             if self.truth_table[assignment]:
-                return ["-" * self.n]  # True; a don't care clause
+                return ["-" * self.truth_table.num_bits]  # True; a don't care clause
             else:
                 return []  # False
         if assignment in self.cofactor_table:

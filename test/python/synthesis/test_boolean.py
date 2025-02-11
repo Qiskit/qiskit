@@ -25,7 +25,46 @@ from qiskit.synthesis.boolean.boolean_expression_visitor import (
     BooleanExpressionEvalVisitor,
     BooleanExpressionArgsCollectorVisitor,
 )
-from qiskit.synthesis.boolean.boolean_expression import BooleanExpression
+from qiskit.synthesis.boolean.boolean_expression import BooleanExpression, TruthTable
+
+
+class TestTruthTable(QiskitTestCase):
+    """Test the truth table class"""
+
+    def test_explicit_representation(self):
+        """Test truth table on small number of variables"""
+
+        def func(vals):
+            x0, x1, x2, x3 = vals
+            return (x0 and x1 or not x2) ^ x3
+
+        table = TruthTable(func, 4)
+        self.assertEqual(str(table), "1111000100001110")
+        for assignment, assignment_string in [
+            ((False, True, True, False), "0110"),
+            ((True, True, True, True), "1111"),
+            ((True, False, True, False), "1010"),
+        ]:
+            self.assertEqual(table[assignment], func(assignment))
+            self.assertEqual(table[assignment_string], func(assignment))
+
+    def test_implicit_representation(self):
+        """Test truth table on a large number of variables"""
+
+        def func(vals):
+            return sum(1 for val in vals if val) % 3 == 0
+
+        table = TruthTable(func, 30)
+        for assignment_string, expected_result in [
+            ("110101111010100110110111111110", True),
+            ("010011111100001011001101110011", False),
+            ("011001001111011000011001011001", True),
+            ("100001100100100010001111101110", False),
+            ("010110010010001110110101000100", False),
+        ]:
+            self.assertEqual(table[assignment_string], expected_result)
+            assignment = tuple(val == "1" for val in assignment_string)
+            self.assertEqual(table[assignment], expected_result)
 
 
 @ddt
@@ -45,6 +84,20 @@ class TestBooleanExpression(QiskitTestCase):
         expression = BooleanExpression(expression)
         result = expression.simulate(input_bitstring)
         self.assertEqual(result, expected)
+
+    @data(
+        ("x | x", "01"),
+        ("~x", "10"),
+        ("x & y", "0001"),
+        ("x & ~y", "0100"),
+        ("(x0 & x1 | ~x2) ^ x4", "1111000100001110"),
+        ("x & y ^ ( ~z1 | z2)", "1110000111101110"),
+    )
+    @unpack
+    def test_truth_table(self, expression_string, truth_table_string):
+        """Test the boolean expression's truth table is correctly generated"""
+        expression = BooleanExpression(expression_string)
+        self.assertEqual(truth_table_string, str(expression.truth_table))
 
     @data(
         ("x", False),
@@ -86,8 +139,6 @@ class TestBooleanExpression(QiskitTestCase):
         bool_exp = BooleanExpression(exp)
         with self.assertRaisesRegex(ValueError, "bitstring length differs.*2 != 3"):
             bool_exp.simulate("01")
-        with self.assertRaisesRegex(ValueError, "bitstring must be composed of 0 and 1 only"):
-            bool_exp.simulate("012")
         with self.assertRaisesRegex(ValueError, "'circuit_type' must be either 'bit' or 'phase'"):
             bool_exp.synth(circuit_type="z_flip")
 
@@ -104,8 +155,7 @@ class TestBooleanExpressionDIMACS(QiskitTestCase):
         """Loads simple_v3_c2.cnf and simulate"""
         filename = self.normalize_filenames("dimacs/simple_v3_c2.cnf")
         simple = BooleanExpression.from_dimacs_file(filename)
-        self.assertEqual(simple.name, "simple_v3_c2.cnf")
-        self.assertEqual(simple.num_qubits, 4)
+        self.assertEqual(simple.num_bits, 3)
         self.assertTrue(simple.simulate("101"))
         self.assertFalse(simple.simulate("001"))
 
@@ -113,8 +163,7 @@ class TestBooleanExpressionDIMACS(QiskitTestCase):
         """Loads quinn.cnf and simulate"""
         filename = self.normalize_filenames("dimacs/quinn.cnf")
         simple = BooleanExpression.from_dimacs_file(filename)
-        self.assertEqual(simple.name, "quinn.cnf")
-        self.assertEqual(simple.num_qubits, 17)
+        self.assertEqual(simple.num_bits, 16)
         self.assertFalse(simple.simulate("1010101010101010"))
 
     def test_bad_formatting(self):
@@ -128,7 +177,7 @@ p cnf 10 5"""  # first line is not p cnf nor empty nor comment (it has whitespac
          
         1 2 0"""  # has empty line with whitespace - should ignore it
         exp = BooleanExpression.from_dimacs(dimacs)
-        self.assertEqual(exp.name, "(x1 | x2)")
+        self.assertEqual(str(exp.truth_table), "0111")
 
         bad_filename = "bad_filename"
         with self.assertRaisesRegex(FileNotFoundError, f"{bad_filename} does not exist"):
