@@ -5645,7 +5645,7 @@ impl DAGCircuit {
     ///
     /// # Returns
     ///
-    /// The removed PackedInstruction is returned
+    /// The removed [PackedInstruction] is returned
     pub fn remove_op_node(&mut self, index: NodeIndex) -> PackedInstruction {
         let mut edge_list: Vec<(NodeIndex, NodeIndex, Wire)> = Vec::new();
         for (source, in_weight) in self
