@@ -38,14 +38,19 @@ class TruthTable:
         self.explicit_storage = self.num_bits <= self.EXPLICIT_REP_THRESHOLD
         if self.explicit_storage:
             self.values = np.array(
-                [
-                    self.func(assignment)
-                    for assignment in itertools.product([False, True], repeat=self.num_bits)
-                ],
+                [self.func(assignment) for assignment in self.all_assignments()],
                 dtype=bool,
             )
         else:
             self.implicit_values = {}
+
+    def all_assignments(self):
+        """Return an ordered list of all assignments, ordered from left to right
+        i.e. 000, 100, 010, 110, 001, 101, 011, 111"""
+        return [
+            tuple(reversed(assignment))
+            for assignment in itertools.product([False, True], repeat=self.num_bits)
+        ]
 
     def __getitem__(self, key):
         if isinstance(key, str):
@@ -59,8 +64,7 @@ class TruthTable:
     def __str__(self):
         if self.explicit_storage:
             return "".join(
-                "1" if self[assignemnt] else "0"
-                for assignemnt in itertools.product([False, True], repeat=self.num_bits)
+                "1" if self[assignemnt] else "0" for assignemnt in self.all_assignments()
             )
         else:
             return f"Truth table on {self.num_bits} bits (implicit representation)"
