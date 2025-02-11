@@ -99,6 +99,43 @@ class TestDelayClass(QiskitTestCase):
         expected = np.array([[1, 0], [0, 1]], dtype=complex)
         self.assertTrue(np.array_equal(actual, expected))
 
+    def test_equality(self):
+        # At the time `__eq__` was specialised for `Delay`, the class was undergoing changes and
+        # moving to Rust, so we didn't also modify the Python-space semantics to declare equality
+        # between (say) 1000ms and 1s.  We could revisit that decision once the data model settles.
+        #
+        # This test then deliberately doesn't assert about mixed-scale comparisons, only comparisons
+        # between the same units, and 'dt' to absolute times.
+        def circuit_from(delay):
+            out = QuantumCircuit(1)
+            out.append(delay, [0], [])
+            return out
+
+        a = Parameter("a")
+        left_instructions, right_instructions = [], []
+        left_circuits, right_circuits = [], []
+        for unit in ("s", "ms", "us", "ns", "ps", "dt"):
+            for base in (left_instructions, right_instructions):
+                base.append(Delay(1, unit))
+                base.append(Delay(5.0, unit))
+                base.append(Delay(a, unit))
+            for base in (left_circuits, right_circuits):
+                base.append(circuit_from(Delay(1, unit)))
+                base.append(circuit_from(Delay(5.0, unit)))
+                base.append(circuit_from(Delay(a, unit)))
+        self.assertEqual(left_instructions, right_instructions)
+        self.assertEqual(left_circuits, right_circuits)
+
+        # We can't do all the non-equal tests in a single list comparison, since any single list
+        # failure would mask any spurious successes.
+        for unit in ("s", "ms", "us", "ns", "ps"):
+            self.assertNotEqual(Delay(2, unit), Delay(2, "dt"))
+            self.assertNotEqual(circuit_from(Delay(2, unit)), circuit_from(Delay(2, "dt")))
+            self.assertNotEqual(Delay(2, "dt"), Delay(2, unit))
+            self.assertNotEqual(circuit_from(Delay(2, "dt")), circuit_from(Delay(2, unit)))
+            self.assertNotEqual(Delay(a, unit), Delay(a, "dt"))
+            self.assertNotEqual(circuit_from(Delay(a, unit)), circuit_from(Delay(a, "dt")))
+
 
 class TestParameterizedDelay(QiskitTestCase):
     """Test delay instruction with parameterized duration."""
