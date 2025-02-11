@@ -4715,7 +4715,7 @@ class TestTextControlledGate(QiskitTestCase):
                 "q_0: |0>┤0     ├",
                 "        │      │",
                 "q_1: |0>■      ├",
-                "        │  ghz │",
+                "        │  Ghz │",
                 "q_2: |0>┤1     ├",
                 "        │      │",
                 "q_3: |0>┤2     ├",
@@ -4742,7 +4742,7 @@ class TestTextControlledGate(QiskitTestCase):
                 "        ┌──┴───┐",
                 "q_1: |0>┤0     ├",
                 "        │      │",
-                "q_2: |0>┤2 ghz ├",
+                "q_2: |0>┤2 Ghz ├",
                 "        │      │",
                 "q_3: |0>┤1     ├",
                 "        └──────┘",
@@ -4766,7 +4766,7 @@ class TestTextControlledGate(QiskitTestCase):
                 "        ┌──────┐",
                 "q_0: |0>┤1     ├",
                 "        │      │",
-                "q_1: |0>┤0 ghz ├",
+                "q_1: |0>┤0 Ghz ├",
                 "        │      │",
                 "q_2: |0>┤2     ├",
                 "        └──┬───┘",
@@ -4794,7 +4794,7 @@ class TestTextControlledGate(QiskitTestCase):
                 "        ┌──┴───┐",
                 "q_1: |0>┤0     ├",
                 "        │      │",
-                "q_2: |0>┤1 ghz ├",
+                "q_2: |0>┤1 Ghz ├",
                 "        │      │",
                 "q_3: |0>┤2     ├",
                 "        └──┬───┘",
@@ -4823,7 +4823,7 @@ class TestTextControlledGate(QiskitTestCase):
                 "q_1: |0>┤0     ├",
                 "        │      │",
                 "q_2: |0>■      ├",
-                "        │  ghz │",
+                "        │  Ghz │",
                 "q_3: |0>┤1     ├",
                 "        │      │",
                 "q_4: |0>┤2     ├",
@@ -4852,7 +4852,7 @@ class TestTextControlledGate(QiskitTestCase):
                 "        ┌───┴───┐",
                 "q_1: |0>┤0      ├",
                 "        │       │",
-                "q_2: |0>┤1 cghz ├",
+                "q_2: |0>┤1 Cghz ├",
                 "        │       │",
                 "q_3: |0>┤2      ├",
                 "        └───┬───┘",
@@ -5074,7 +5074,7 @@ class TestTextOpenControlledGate(QiskitTestCase):
                 "q_0: |0>┤0     ├",
                 "        │      │",
                 "q_1: |0>o      ├",
-                "        │  ghz │",
+                "        │  Ghz │",
                 "q_2: |0>┤1     ├",
                 "        │      │",
                 "q_3: |0>┤2     ├",
@@ -5101,7 +5101,7 @@ class TestTextOpenControlledGate(QiskitTestCase):
                 "        ┌──┴───┐",
                 "q_1: |0>┤0     ├",
                 "        │      │",
-                "q_2: |0>┤2 ghz ├",
+                "q_2: |0>┤2 Ghz ├",
                 "        │      │",
                 "q_3: |0>┤1     ├",
                 "        └──────┘",
@@ -5125,7 +5125,7 @@ class TestTextOpenControlledGate(QiskitTestCase):
                 "        ┌──────┐",
                 "q_0: |0>┤1     ├",
                 "        │      │",
-                "q_1: |0>┤0 ghz ├",
+                "q_1: |0>┤0 Ghz ├",
                 "        │      │",
                 "q_2: |0>┤2     ├",
                 "        └──┬───┘",
@@ -5182,7 +5182,7 @@ class TestTextOpenControlledGate(QiskitTestCase):
                 "q_1: |0>┤0     ├",
                 "        │      │",
                 "q_2: |0>o      ├",
-                "        │  ghz │",
+                "        │  Ghz │",
                 "q_3: |0>┤1     ├",
                 "        │      │",
                 "q_4: |0>┤2     ├",
@@ -5335,18 +5335,18 @@ class TestTextOpenControlledGate(QiskitTestCase):
     def test_open_controlled_swap(self):
         """Controlled SWAP gates."""
         expected = "\n".join(
-            [
-                "                     ",
-                "qr_0: |0>─o──o──o──o─",
-                "          │  │  │  │ ",
-                "qr_1: |0>─X──o──■──■─",
-                "          │  │  │  │ ",
-                "qr_2: |0>─X──X──X──o─",
-                "             │  │  │ ",
-                "qr_3: |0>────X──X──X─",
-                "                   │ ",
-                "qr_4: |0>──────────X─",
-                "                     ",
+            [   
+                "                                       ",
+                "qr_0: |0>─o─────o────────o────────o────",
+                "          │     │        │        │    ",
+                "qr_1: |0>─X─────o────────■────────■────",
+                "          │ ┌───┴───┐┌───┴───┐    │    ",
+                "qr_2: |0>─X─┤0      ├┤0      ├────o────",
+                "            │  Swap ││  Swap │┌───┴───┐",
+                "qr_3: |0>───┤1      ├┤1      ├┤0      ├",
+                "            └───────┘└───────┘│  Swap │",
+                "qr_4: |0>─────────────────────┤1      ├",
+                "                              └───────┘",
             ]
         )
         qreg = QuantumRegister(5, "qr")
@@ -5359,7 +5359,6 @@ class TestTextOpenControlledGate(QiskitTestCase):
         circuit.append(control2_2, [0, 1, 2, 3])
         control3 = SwapGate().control(3, ctrl_state="010")
         circuit.append(control3, [0, 1, 2, 3, 4])
-
         self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
 
     def test_open_controlled_rzz(self):
