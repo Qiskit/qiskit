@@ -17,7 +17,6 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import Type
 from fnmatch import fnmatch
-import warnings
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.passes.utils import control_flow
