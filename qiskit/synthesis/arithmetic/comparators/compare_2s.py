@@ -13,8 +13,8 @@
 """Integer comparator based on 2s complement."""
 
 import math
-from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.library import OR
+from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.library.boolean_logic.quantum_or import OrGate
 
 
 def synth_integer_comparator_2s(
@@ -40,18 +40,14 @@ def synth_integer_comparator_2s(
                         circuit.cx(qr_state[i], qr_ancilla[i])
                 elif i < num_state_qubits - 1:
                     if twos[i] == 1:
-                        circuit.compose(
-                            OR(2), [qr_state[i], qr_ancilla[i - 1], qr_ancilla[i]], inplace=True
-                        )
+                        circuit.append(OrGate(2), [qr_state[i], qr_ancilla[i - 1], qr_ancilla[i]])
                     else:
                         circuit.ccx(qr_state[i], qr_ancilla[i - 1], qr_ancilla[i])
                 else:
                     if twos[i] == 1:
                         # OR needs the result argument as qubit not register, thus
                         # access the index [0]
-                        circuit.compose(
-                            OR(2), [qr_state[i], qr_ancilla[i - 1], q_compare], inplace=True
-                        )
+                        circuit.append(OrGate(2), [qr_state[i], qr_ancilla[i - 1], q_compare])
                     else:
                         circuit.ccx(qr_state[i], qr_ancilla[i - 1], q_compare)
 
@@ -66,9 +62,7 @@ def synth_integer_comparator_2s(
                         circuit.cx(qr_state[i], qr_ancilla[i])
                 else:
                     if twos[i] == 1:
-                        circuit.compose(
-                            OR(2), [qr_state[i], qr_ancilla[i - 1], qr_ancilla[i]], inplace=True
-                        )
+                        circuit.append(OrGate(2), [qr_state[i], qr_ancilla[i - 1], qr_ancilla[i]])
                     else:
                         circuit.ccx(qr_state[i], qr_ancilla[i - 1], qr_ancilla[i])
         else:

@@ -13,7 +13,7 @@
 """Integer comparator based on 2s complement."""
 
 import numpy as np
-from qiskit.circuit import QuantumCircuit
+from qiskit.circuit.quantumcircuit import QuantumCircuit
 
 
 def synth_integer_comparator_greedy(

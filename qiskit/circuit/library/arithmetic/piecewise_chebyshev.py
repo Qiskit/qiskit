@@ -419,6 +419,15 @@ class PiecewiseChebyshevGate(Gate):
 
     @property
     def polynomials(self):
+        """The polynomials for the piecewise approximation.
+
+        Returns:
+            The polynomials for the piecewise approximation.
+
+        Raises:
+            TypeError: If the input function is not in the correct format.
+        """
+
         # note this must be the private attribute since we handle missing breakpoints at
         # 0 and 2 ^ num_qubits here (e.g. if the function we approximate is not defined at 0
         # and the user takes that into account we just add an identity)
