@@ -83,15 +83,15 @@ class TestExprConstructors(QiskitTestCase):
         self.assertEqual(expr.lift(clbit), expr.Var(clbit, types.Bool()))
 
     def test_value_lifts_python_builtins(self):
-        self.assertEqual(expr.lift(True), expr.Value(True, types.Bool(const=True)))
-        self.assertEqual(expr.lift(False), expr.Value(False, types.Bool(const=True)))
-        self.assertEqual(expr.lift(7), expr.Value(7, types.Uint(3, const=True)))
+        self.assertEqual(expr.lift(True), expr.Value(True, types.Bool()))
+        self.assertEqual(expr.lift(False), expr.Value(False, types.Bool()))
+        self.assertEqual(expr.lift(7), expr.Value(7, types.Uint(3)))
 
     def test_value_ensures_nonzero_width(self):
-        self.assertEqual(expr.lift(0), expr.Value(0, types.Uint(1, const=True)))
+        self.assertEqual(expr.lift(0), expr.Value(0, types.Uint(1)))
 
     def test_value_type_representation(self):
-        self.assertEqual(expr.lift(5), expr.Value(5, types.Uint((5).bit_length(), const=True)))
+        self.assertEqual(expr.lift(5), expr.Value(5, types.Uint((5).bit_length())))
         self.assertEqual(expr.lift(5, types.Uint(8)), expr.Value(5, types.Uint(8)))
 
         cr = ClassicalRegister(3, "c")
@@ -209,9 +209,9 @@ class TestExprConstructors(QiskitTestCase):
             function(255, 6),
             expr.Binary(
                 op,
-                expr.Value(255, types.Uint(width=8, const=True)),
-                expr.Value(6, types.Uint(width=8, const=True)),
-                types.Bool(const=True),
+                expr.Value(255, types.Uint(width=8)),
+                expr.Value(6, types.Uint(width=8)),
+                types.Bool(),
             ),
         )
 
@@ -376,9 +376,9 @@ class TestExprConstructors(QiskitTestCase):
             function(5, 255),
             expr.Binary(
                 opcode,
-                expr.Value(5, types.Uint(8, const=True)),
-                expr.Value(255, types.Uint(8, const=True)),
-                types.Uint(8, const=True),
+                expr.Value(5, types.Uint(8)),
+                expr.Value(255, types.Uint(8)),
+                types.Uint(8),
             ),
         )
 
@@ -434,11 +434,9 @@ class TestExprConstructors(QiskitTestCase):
             function(False, 3),
             expr.Binary(
                 opcode,
-                expr.Value(False, types.Bool(const=True)),
-                expr.Cast(
-                    expr.Value(3, types.Uint(2, const=True)), types.Bool(const=True), implicit=True
-                ),
-                types.Bool(const=True),
+                expr.Value(False, types.Bool()),
+                expr.Cast(expr.Value(3, types.Uint(2)), types.Bool(), implicit=True),
+                types.Bool(),
             ),
         )
 
@@ -567,9 +565,9 @@ class TestExprConstructors(QiskitTestCase):
             function(3, 5),
             expr.Binary(
                 opcode,
-                expr.Value(3, types.Uint(2, const=True)),
-                expr.Value(5, types.Uint(3, const=True)),
-                types.Uint(2, const=True),
+                expr.Value(3, types.Uint(2)),
+                expr.Value(5, types.Uint(3)),
+                types.Uint(2),
             ),
         )
         self.assertEqual(
@@ -582,12 +580,12 @@ class TestExprConstructors(QiskitTestCase):
             ),
         )
         self.assertEqual(
-            function(3, 5, types.Uint(8, const=True)),
+            function(3, 5, types.Uint(8)),
             expr.Binary(
                 opcode,
-                expr.Value(3, types.Uint(8, const=True)),
-                expr.Value(5, types.Uint(3, const=True)),
-                types.Uint(8, const=True),
+                expr.Value(3, types.Uint(8)),
+                expr.Value(5, types.Uint(3)),
+                types.Uint(8),
             ),
         )
 

@@ -91,13 +91,15 @@ def lift_legacy_condition(
     return Binary(Binary.Op.EQUAL, left, right, types.Bool())
 
 
-def lift(value: typing.Any, /, type: types.Type | None = None, *, try_const: bool = True) -> Expr:
+def lift(value: typing.Any, /, type: types.Type | None = None, *, try_const: bool = False) -> Expr:
     """Lift the given Python ``value`` to a :class:`~.expr.Value` or :class:`~.expr.Var`.
 
-    If an explicit ``type`` is given, the typing in the output will reflect that.
+    By default, lifted scalars are not const.  To lift supported scalars to const-typed
+    expressions, specify `try_const=True`.
 
-    By default, lifted scalars will be const if they aren't backed by a classical resource.
-    To lift scalars to a non-const-typed expression, specify `try_const` as `False`.
+    If an explicit ``type`` is given, the typing in the output will reflect that.
+    The ``type`` must be const if ``try_const`` is specified and ``value`` can lift to
+    a const expression.
 
     Examples:
         Lifting simple circuit objects to be :class:`~.expr.Var` instances::
@@ -118,15 +120,15 @@ def lift(value: typing.Any, /, type: types.Type | None = None, *, try_const: boo
             >>> expr.lift(ClassicalRegister(3, "c"), types.Uint(5))
             Var(ClassicalRegister(3, "c"), Uint(5, const=False))
             >>> expr.lift(5, types.Uint(4))
-            Value(5, Uint(4, const=True))
+            Value(5, Uint(4))
 
-        Lifting non-classical resource scalars to non-const values::
+        Lifting non-classical resource scalars to const values::
 
             >>> from qiskit.circuit.classical import expr, types
             >>> expr.lift(7)
-            Value(7, Uint(3, const=True))
-            >>> expr.lift(7, try_const=False)
             Value(7, Uint(3, const=False))
+            >>> expr.lift(7, try_const=True)
+            Value(7, Uint(3, const=True))
     """
     if isinstance(value, Expr):
         if type is not None:
@@ -239,16 +241,15 @@ def _lift_binary_operands(left: typing.Any, right: typing.Any) -> tuple[Expr, Ex
       * If both operands are expressions, they are returned as-is, and may require a cast node.
     """
     left_bool = isinstance(left, bool)
-    left_int = isinstance(left, int) and not left_bool
+    left_int = isinstance(left, int) and not isinstance(left, bool)
     right_bool = isinstance(right, bool)
     right_int = isinstance(right, int) and not right_bool
     if not (left_int or right_int):
         if left_bool == right_bool:
-            # If they're both bool, they'll lift as const here.
-            # If neither are, we've already checked for int, so they must be bits,
-            # registers, or expressions, none of which will lift to be const.
-            left = lift(left, try_const=True)
-            right = lift(right, try_const=True)
+            # They're either both bool, or neither are, so we lift them
+            # independently.
+            left = lift(left)
+            right = lift(right)
         elif not right_bool:
             # Left is a bool, which should only be const if right is const.
             right = lift(right)
@@ -268,7 +269,7 @@ def _lift_binary_operands(left: typing.Any, right: typing.Any) -> tuple[Expr, Ex
             # Left will share const-ness of right.
             left = Value(left, right.type)
         else:
-            left = lift(left)
+            left = lift(left, try_const=right.type.const)
     elif not left_int:
         # Right is an int.
         left = lift(left)
@@ -280,10 +281,12 @@ def _lift_binary_operands(left: typing.Any, right: typing.Any) -> tuple[Expr, Ex
             # Right will share const-ness of left.
             right = Value(right, left.type)
         else:
-            right = lift(right)
+            right = lift(right, try_const=left.type.const)
     else:
         # Both are `int`, so we take our best case to make things work.
-        uint = types.Uint(max(left.bit_length(), right.bit_length(), 1), const=True)
+        # If the caller needs a const type, they should lift one side to
+        # a const type explicitly before calling this function.
+        uint = types.Uint(max(left.bit_length(), right.bit_length(), 1))
         left = Value(left, uint)
         right = Value(right, uint)
     return left, right
@@ -295,7 +298,7 @@ def _binary_bitwise(op: Binary.Op, left: typing.Any, right: typing.Any) -> Expr:
     if left.type.kind is right.type.kind is types.Bool:
         type = types.Bool(const=(left.type.const and right.type.const))
     elif left.type.kind is types.Uint and right.type.kind is types.Uint:
-        if left.type != right.type:
+        if left.type.width != right.type.width:
             raise TypeError(
                 "binary bitwise operations are defined between unsigned integers of the same width,"
                 f" but got {left.type.width} and {right.type.width}."
@@ -303,7 +306,7 @@ def _binary_bitwise(op: Binary.Op, left: typing.Any, right: typing.Any) -> Expr:
         type = types.Uint(width=left.type.width, const=(left.type.const and right.type.const))
     else:
         raise TypeError(f"invalid types for '{op}': '{left.type}' and '{right.type}'")
-    return Binary(op, left, right, type)
+    return Binary(op, _coerce_lossless(left, type), _coerce_lossless(right, type), type)
 
 
 def bit_and(left: typing.Any, right: typing.Any, /) -> Expr:
@@ -568,14 +571,14 @@ def shift_left(left: typing.Any, right: typing.Any, /, type: types.Type | None =
             >>> expr.shift_left(a, 4)
             Binary(Binary.Op.SHIFT_LEFT, \
 Var(<UUID>, Uint(8, const=False), name='a'), \
-Value(4, Uint(3, const=True)), \
+Value(4, Uint(3, const=False)), \
 Uint(8, const=False))
 
         Shift an integer literal by a variable amount, coercing the type of the literal::
 
             >>> expr.shift_left(3, a, types.Uint(16))
             Binary(Binary.Op.SHIFT_LEFT, \
-Value(3, Uint(16, const=True)), \
+Value(3, Uint(16, const=False)), \
 Var(<UUID>, Uint(8, const=False), name='a'), \
 Uint(16, const=False))
     """
@@ -596,7 +599,7 @@ def shift_right(left: typing.Any, right: typing.Any, /, type: types.Type | None 
             >>> expr.shift_right(ClassicalRegister(8, "a"), 4)
             Binary(Binary.Op.SHIFT_RIGHT, \
 Var(ClassicalRegister(8, "a"), Uint(8, const=False)), \
-Value(4, Uint(3, const=True)), \
+Value(4, Uint(3, const=False)), \
 Uint(8, const=False))
     """
     return _shift_like(Binary.Op.SHIFT_RIGHT, left, right, type)
@@ -614,7 +617,7 @@ def index(target: typing.Any, index: typing.Any, /) -> Expr:
             >>> from qiskit.circuit import ClassicalRegister
             >>> from qiskit.circuit.classical import expr
             >>> expr.index(ClassicalRegister(8, "a"), 3)
-            Index(Var(ClassicalRegister(8, "a"), Uint(8, const=False)), Value(3, Uint(2, const=True)), Bool(const=False))
+            Index(Var(ClassicalRegister(8, "a"), Uint(8, const=False)), Value(3, Uint(2, const=False)), Bool(const=False))
     """
     target = lift(target)
     index = lift(index, try_const=target.type.const)

@@ -2911,7 +2911,7 @@ class QuantumCircuit:
             coerce_type = name_or_var.type
         else:
             coerce_type = None
-        initial = _validate_expr(circuit_scope, expr.lift(initial, coerce_type, try_const=False))
+        initial = _validate_expr(circuit_scope, expr.lift(initial, coerce_type))
         if isinstance(name_or_var, str):
             var = expr.Var.new(name_or_var, initial.type)
         elif not name_or_var.standalone:

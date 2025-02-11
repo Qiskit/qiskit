@@ -170,32 +170,6 @@ class TestStoreCircuit(QiskitTestCase):
         qc.store(b, 0xFFFF)
         self.assertEqual(qc.data[-1].operation, Store(b, expr.lift(0xFFFF, try_const=False)))
 
-    def test_implicit_const_cast(self):
-        a = expr.Var.new("a", types.Bool())
-        qc = QuantumCircuit(captures=[a])
-        qc.store(a, expr.lift(False))
-        self.assertEqual(
-            qc.data[-1].operation,
-            Store(
-                a, expr.Cast(expr.Value(False, types.Bool(const=True)), types.Bool(), implicit=True)
-            ),
-        )
-
-        b = expr.Var.new("b", types.Uint(16))
-        qc.add_capture(b)
-        qc.store(b, expr.lift(0xFFFF))
-        self.assertEqual(
-            qc.data[-1].operation,
-            Store(
-                b,
-                expr.Cast(
-                    expr.Value(0xFFFF, types.Uint(width=16, const=True)),
-                    types.Uint(width=16),
-                    implicit=True,
-                ),
-            ),
-        )
-
     def test_lifts_integer_literals_to_full_width(self):
         a = expr.Var.new("a", types.Uint(8))
         qc = QuantumCircuit(inputs=[a])
