@@ -1760,7 +1760,7 @@ class QuantumCircuit:
         num_ctrl_qubits: int = 1,
         label: str | None = None,
         ctrl_state: str | int | None = None,
-        annotated: bool = False,
+        annotated: bool = None,
     ) -> "QuantumCircuit":
         """Control this circuit on ``num_ctrl_qubits`` qubits.
 
