@@ -5634,7 +5634,7 @@ impl DAGCircuit {
     }
 
     /// Returns an iterator of tuples of (DAGNode, [DAGNodes]) where the DAGNode is the current node
-    /// and [DAGNode] is its successors in  BFS order.
+    /// and [DAGNode] is its predecessors in BFS order.
     pub fn bfs_predecessors(
         &self,
         node: NodeIndex,
