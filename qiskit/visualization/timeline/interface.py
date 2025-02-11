@@ -308,8 +308,10 @@ def draw(
             qc.h(0)
             qc.cx(0,1)
 
-            qc = transpile(qc, GenericBackendV2(5), scheduling_method='alap', layout_method='trivial')
-            draw(qc)
+            backend = GenericBackendV2(5)
+
+            qc = transpile(qc, backend, scheduling_method='alap', layout_method='trivial')
+            draw(qc, target=backend.target)
 
         Drawing with the simple stylesheet.
 
@@ -325,8 +327,10 @@ def draw(
             qc.h(0)
             qc.cx(0,1)
 
-            qc = transpile(qc, GenericBackendV2(5), scheduling_method='alap', layout_method='trivial')
-            draw(qc, style=IQXSimple())
+            backend = GenericBackendV2(5)
+
+            qc = transpile(qc, backend, scheduling_method='alap', layout_method='trivial')
+            draw(qc, style=IQXSimple(), target=backend.target)
 
         Drawing with the stylesheet suited for program debugging.
 
@@ -342,8 +346,9 @@ def draw(
             qc.h(0)
             qc.cx(0,1)
 
-            qc = transpile(qc, GenericBackendV2(5), scheduling_method='alap', layout_method='trivial')
-            draw(qc, style=IQXDebugging())
+            backend = GenericBackendV2(5)
+            qc = transpile(qc, backend, scheduling_method='alap', layout_method='trivial')
+            draw(qc, style=IQXDebugging(), target=backend.target)
 
         You can partially customize a preset stylesheet when call it::
 
@@ -387,7 +392,7 @@ def draw(
 
     # create empty canvas and load program
     canvas = core.DrawerCanvas(stylesheet=temp_style)
-    canvas.load_program(program=program)
+    canvas.load_program(program=program, target=target)
 
     #
     # update configuration

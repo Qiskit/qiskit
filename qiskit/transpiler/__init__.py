@@ -1244,7 +1244,7 @@ also look at it with the :func:`.timeline.draw` function:
 
    circ = transpile(ghz, backend, scheduling_method="asap")
 
-   timeline_draw(circ)
+   timeline_draw(circ, target=backend.target)
 
 The scheduling of a circuit involves two parts: analysis and constraint mapping, followed by a
 padding pass. The first part requires running a scheduling analysis pass such as

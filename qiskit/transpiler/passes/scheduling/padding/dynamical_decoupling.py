@@ -59,9 +59,10 @@ class PadDynamicalDecoupling(BasePadding):
         import numpy as np
         from qiskit.circuit import QuantumCircuit
         from qiskit.circuit.library import XGate
-        from qiskit.transpiler import PassManager, InstructionDurations
+        from qiskit.transpiler import PassManager, InstructionDurations, Target, CouplingMap
         from qiskit.transpiler.passes import ALAPScheduleAnalysis, PadDynamicalDecoupling
         from qiskit.visualization import timeline_drawer
+
         circ = QuantumCircuit(4)
         circ.h(0)
         circ.cx(0, 1)
@@ -71,7 +72,15 @@ class PadDynamicalDecoupling(BasePadding):
         durations = InstructionDurations(
             [("h", 0, 50), ("cx", [0, 1], 700), ("reset", None, 10),
              ("cx", [1, 2], 200), ("cx", [2, 3], 300),
-             ("x", None, 50), ("measure", None, 1000)]
+             ("x", None, 50), ("measure", None, 1000)],
+            dt=1e-7
+        )
+        target = Target.from_configuration(
+            ["h", "cx", "reset", "x", "measure"],
+            num_qubits=4,
+            coupling_map=CouplingMap.from_line(4, bidirectional=False),
+            instruction_durations=durations,
+            dt=1e-7,
         )
 
         # balanced X-X sequence on all qubits
@@ -79,7 +88,7 @@ class PadDynamicalDecoupling(BasePadding):
         pm = PassManager([ALAPScheduleAnalysis(durations),
                           PadDynamicalDecoupling(durations, dd_sequence)])
         circ_dd = pm.run(circ)
-        timeline_drawer(circ_dd)
+        timeline_drawer(circ_dd, target=target)
 
         # Uhrig sequence on qubit 0
         n = 8
@@ -97,7 +106,7 @@ class PadDynamicalDecoupling(BasePadding):
             ]
         )
         circ_dd = pm.run(circ)
-        timeline_drawer(circ_dd)
+        timeline_drawer(circ_dd, target=target)
 
     .. note::
 
