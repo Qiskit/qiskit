@@ -143,12 +143,11 @@ def _read_symbolic_pulse(file_obj, version) -> None:
     value.read_value(file_obj, version, {})  # read duration
     value.read_value(file_obj, version, {})  # read name
 
-    if class_name not in ("SymbolicPulse", "ScalableSymbolicPulse"):
+    if class_name not in {"SymbolicPulse", "ScalableSymbolicPulse"}:
         raise NotImplementedError(f"Unknown class '{class_name}'")
 
 
 def _read_symbolic_pulse_v6(file_obj, version, use_symengine) -> None:
-    # TODO: document purpose
     make = formats.SYMBOLIC_PULSE_V2._make
     pack = formats.SYMBOLIC_PULSE_PACK_V2
     size = formats.SYMBOLIC_PULSE_SIZE_V2
@@ -177,7 +176,7 @@ def _read_symbolic_pulse_v6(file_obj, version, use_symengine) -> None:
     value.read_value(file_obj, version, {})  # read duration
     value.read_value(file_obj, version, {})  # read name
 
-    if class_name not in ("SymbolicPulse", "ScalableSymbolicPulse"):
+    if class_name not in {"SymbolicPulse", "ScalableSymbolicPulse"}:
         raise NotImplementedError(f"Unknown class '{class_name}'")
 
 
@@ -194,7 +193,6 @@ def _read_alignment_context(file_obj, version) -> None:
 
 # pylint: disable=too-many-return-statements
 def _loads_operand(type_key, data_bytes, version, use_symengine):
-    # TODO: document purpose ADD NONE TO ALL THE DUMMY READERS
     if type_key == type_keys.ScheduleOperand.WAVEFORM:
         return common.data_from_binary(data_bytes, _read_waveform, version=version)
     if type_key == type_keys.ScheduleOperand.SYMBOLIC_PULSE:
@@ -228,7 +226,7 @@ def _read_element(file_obj, version, metadata_deserializer, use_symengine) -> No
     type_key = common.read_type_key(file_obj)
 
     if type_key == type_keys.Program.SCHEDULE_BLOCK:
-        read_schedule_block(file_obj, version, metadata_deserializer, use_symengine)
+        return read_schedule_block(file_obj, version, metadata_deserializer, use_symengine)
 
     # read operands
     common.read_sequence(
@@ -236,6 +234,8 @@ def _read_element(file_obj, version, metadata_deserializer, use_symengine) -> No
     )
     # read name
     value.read_value(file_obj, version, {})
+
+    return None
 
 
 def _loads_reference_item(type_key, data_bytes, metadata_deserializer, version) -> None:

@@ -639,7 +639,7 @@ def _read_custom_operations(file_obj, version, vectors):
 
 
 def _read_calibrations(file_obj, version, vectors, metadata_deserializer):
-    # TODO: document the purpose of this function
+    """Consume calibrations data, make the file handle point to the next section"""
     header = formats.CALIBRATION._make(
         struct.unpack(formats.CALIBRATION_PACK, file_obj.read(formats.CALIBRATION_SIZE))
     )
