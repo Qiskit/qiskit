@@ -187,7 +187,6 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
         Returns:
             The mapped coefficients.
         """
-        print("valled")
         return _map_coeffs(self._hom_coeffs)
 
     @property

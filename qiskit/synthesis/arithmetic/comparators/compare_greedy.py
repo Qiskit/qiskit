@@ -12,6 +12,7 @@
 
 """Integer comparator based on 2s complement."""
 
+import numpy as np
 from qiskit.circuit import QuantumCircuit
 
 
@@ -29,6 +30,7 @@ def synth_integer_comparator_greedy(
 
     # make sure to always choose the comparison where we have to place less than
     # (2 ** n)/2 MCX gates
+    value = int(np.ceil(value))
     if (value < 2 ** (num_state_qubits - 1) and geq) or (
         value > 2 ** (num_state_qubits - 1) and not geq
     ):
