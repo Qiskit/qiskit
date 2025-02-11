@@ -1276,7 +1276,7 @@ class TestTranspile(QiskitTestCase):
         basis_gates=[
             ["u3", "cx"],
             ["rx", "rz", "iswap"],
-            ["rx", "ry", "rxx"],
+            ["ry", "rz", "rxx"],
         ],
     )
     def test_translation_method_synthesis(self, optimization_level, basis_gates):

@@ -129,6 +129,13 @@ impl AsRef<Param> for Param {
     }
 }
 
+// Conveniently converts an f64 into a `Param`.
+impl From<f64> for Param {
+    fn from(value: f64) -> Self {
+        Param::Float(value)
+    }
+}
+
 /// Struct to provide iteration over Python-space `Parameter` instances within a `Param`.
 pub struct ParamParameterIter<'py>(Option<Bound<'py, PyIterator>>);
 impl<'py> Iterator for ParamParameterIter<'py> {

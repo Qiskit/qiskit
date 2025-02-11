@@ -414,6 +414,12 @@ def _apply_sabre_result(
                 block_root_logical_map = {
                     inner: root_logical_map[outer] for inner, outer in zip(block.qubits, node.qargs)
                 }
+                # The virtual qubits originally incident to the block should be retained even if not
+                # actually used; the user might be marking them out specially (like in `box`).
+                # There are other transpiler passes to remove those dependencies if desired.
+                incident_qubits = {
+                    layout.virtual_to_physical(block_root_logical_map[bit]) for bit in block.qubits
+                }
                 block_dag, block_layout = recurse(
                     empty_dag(block),
                     circuit_to_dag_dict[id(block)],
@@ -427,7 +433,11 @@ def _apply_sabre_result(
                 )
                 apply_swaps(block_dag, block_result.swap_epilogue, block_layout)
                 mapped_block_dags.append(block_dag)
-                idle_qubits.intersection_update(block_dag.idle_wires())
+                idle_qubits.intersection_update(
+                    bit
+                    for bit in block_dag.idle_wires()
+                    if block_dag.find_bit(bit).index not in incident_qubits
+                )
 
             mapped_blocks = []
             for mapped_block_dag in mapped_block_dags:
