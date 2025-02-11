@@ -367,10 +367,12 @@ Uint(3, const=False))
 
 
 def _binary_logical(op: Binary.Op, left: typing.Any, right: typing.Any) -> Expr:
-    left, right = _lift_binary_operands(left, right)
-    left = _coerce_lossless(left, types.Bool(const=left.type.const))
-    right = _coerce_lossless(right, types.Bool(const=right.type.const))
-    return Binary(op, left, right, types.Bool(const=(left.type.const and right.type.const)))
+    left = lift(left)
+    right = lift(right)
+    type = types.Bool(const=(left.type.const and right.type.const))
+    left = _coerce_lossless(left, type)
+    right = _coerce_lossless(right, type)
+    return Binary(op, left, right, type)
 
 
 def logic_and(left: typing.Any, right: typing.Any, /) -> Expr:
