@@ -262,7 +262,7 @@ class ControlledGate(Gate):
             and self.base_gate == other.base_gate
             and self.num_qubits == other.num_qubits
             and self.num_clbits == other.num_clbits
-            and self.definition == other.definition
+            # and self.definition == other.definition
         )
 
     def inverse(self, annotated: bool = False) -> "ControlledGate" | "AnnotatedOperation":

@@ -135,7 +135,7 @@ class Gate(Instruction):
         Raises:
             QiskitError: unrecognized mode or invalid ctrl_state
         """
-        if not annotated:  # captures both None and False
+        if annotated == False:  # captures both None and False
             # pylint: disable=cyclic-import
             from .add_control import add_control
 
