@@ -32,7 +32,6 @@ from qiskit.transpiler.passes import UnitarySynthesis
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.random import random_unitary
 from qiskit.transpiler import PassManager, CouplingMap, Target, InstructionProperties
-from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.exceptions import QiskitError
 from qiskit.transpiler.passes import (
     Collect2qBlocks,
