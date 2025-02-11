@@ -64,6 +64,7 @@ defined as:
 
 
 .. plot::
+   :alt: Circuit diagram output by the previous code.
    :include-source:
 
    from qiskit import QuantumCircuit
@@ -293,6 +294,7 @@ main related classes are:
 * :class:`Parameter`, the atom of compile-time expressions
 * :class:`ParameterExpression`, a symbolic calculation on parameters
 * :class:`ParameterVector`, a convenience collection of many :class:`Parameter`\ s
+* :class:`ParameterVectorElement`, a subclass of :class:`Parameter` used by :class:`ParameterVector`
 
 The :mod:`qiskit.circuit` module also exposes some calculation classes that work with circuits to
 assist compilation workflows.  These include:
@@ -559,7 +561,11 @@ Hardware can be instructed to apply a real-time idle period on a given qubit.  A
 
 The :class:`Barrier` instruction can span an arbitrary number of qubits and clbits, and is a no-op
 in hardware.  During transpilation and optimization, however, it blocks any optimizations from
-"crossing" the barrier; that is, in::
+"crossing" the barrier; that is, in:
+
+.. plot::
+    :include-source:
+    :nofigs:
 
     from qiskit.circuit import QuantumCircuit
 
@@ -666,12 +672,14 @@ execution.  You can do this assignment using :meth:`QuantumCircuit.assign_parame
 
 You may want to use many parameters that are related to each other.  To make this easier (and to
 avoid you needing to come up with many names), you can use the convenience constructor
-:class:`ParameterVector`.  The elements of the vector are all valid :class:`Parameter` instances.
+:class:`ParameterVector`.  The elements of the vector are all valid :class:`Parameter` instances, of
+a special subclass :class:`ParameterVectorElement`.
 
 .. autosummary::
     :toctree: ../stubs/
 
     ParameterVector
+    ParameterVectorElement
 
 .. _circuit-control-flow-repr:
 
@@ -692,6 +700,11 @@ attributes of each of the control-flow operations.
 .. data:: CONTROL_FLOW_OP_NAMES
 
     Set of the instruction names of Qiskit's known control-flow operations.
+
+The :func:`.get_control_flow_name_mapping` function allows to access the control-flow operation
+classes associated to each name.
+
+.. autofunction:: get_control_flow_name_mapping
 
 These control-flow operations (:class:`IfElseOp`, :class:`WhileLoopOp`,
 :class:`SwitchCaseOp` and :class:`ForLoopOp`) all have specific state that defines the branching
@@ -788,10 +801,10 @@ or cancel gates:
 .. code-block:: text
 
          ┌─────────┐     ┌─────────┐               ┌─────────┐
-    q_0: ┤ Rz(0.5) ├──■──┤ Rz(1.2) ├──■──     q_0: ┤ Rz(1.7) ├  
-         └─────────┘┌─┴─┐└──┬───┬──┘┌─┴─┐  =       └──┬───┬──┘ 
-    q_1: ───────────┤ X ├───┤ X ├───┤ X ├     q_1: ───┤ X ├─── 
-                    └───┘   └───┘   └───┘             └───┘     
+    q_0: ┤ Rz(0.5) ├──■──┤ Rz(1.2) ├──■──     q_0: ┤ Rz(1.7) ├
+         └─────────┘┌─┴─┐└──┬───┬──┘┌─┴─┐  =       └──┬───┬──┘
+    q_1: ───────────┤ X ├───┤ X ├───┤ X ├     q_1: ───┤ X ├───
+                    └───┘   └───┘   └───┘             └───┘
 
 Performing these optimizations are part of the transpiler, but the tools to investigate commutations
 are available in the :class:`CommutationChecker`.
@@ -801,7 +814,7 @@ are available in the :class:`CommutationChecker`.
 
    CommutationChecker
 
-   
+
 .. _circuit-custom-gates:
 
 Creating custom instructions
@@ -1047,6 +1060,24 @@ Generating random circuits
 .. autofunction:: random_circuit
 .. currentmodule:: qiskit.circuit
 
+Apply Pauli twirling to a circuit
+---------------------------------
+
+There are two primary types of noise when executing quantum circuits. The first is stochastic,
+or incoherent, noise that is mainly due to the unwanted interaction between the quantum processor
+and the external environment in which it resides. The second is known as coherent error, and these
+errors arise due to imperfect control of a quantum system. This can be unwanted terms in a system
+Hamiltonian, i.e. incorrect unitary evolution, or errors from incorrect temporal control of the
+quantum system, which includes things like incorrect pulse-shapes for gates.
+
+Pauli twirling is a quantum error suppression technique that uses randomization to shape coherent
+error into stochastic errors by combining the results from many random, but logically equivalent
+circuits, together. Qiskit provides a function to apply Pauli twirling to a given circuit for
+standard two qubit gates. For more details you can refer to the documentation of the function
+below:
+
+.. autofunction:: qiskit.circuit.pauli_twirl_2q_gates
+
 
 Exceptions
 ==========
@@ -1122,6 +1153,7 @@ If we draw this circuit, we will see that Qiskit places the zeroth qubit on the 
 drawing:
 
 .. plot::
+    :alt: Circuit diagram output by the previous code.
     :include-source:
     :context:
     :show-source-link: False
@@ -1269,7 +1301,7 @@ from .measure import Measure
 from .reset import Reset
 from .store import Store
 from .parameter import Parameter
-from .parametervector import ParameterVector
+from .parametervector import ParameterVector, ParameterVectorElement
 from .parameterexpression import ParameterExpression
 from .quantumcircuitdata import CircuitInstruction
 from .equivalence import EquivalenceLibrary
@@ -1289,6 +1321,8 @@ from .controlflow import (
     BreakLoopOp,
     ContinueLoopOp,
     CONTROL_FLOW_OP_NAMES,
+    get_control_flow_name_mapping,
 )
 
 from .annotated_operation import AnnotatedOperation, InverseModifier, ControlModifier, PowerModifier
+from .twirling import pauli_twirl_2q_gates

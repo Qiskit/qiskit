@@ -27,7 +27,14 @@ from .polynomial_pauli_rotations import PolynomialPauliRotations, PolynomialPaul
 from .weighted_adder import WeightedAdder
 from .quadratic_form import QuadraticForm, QuadraticFormGate
 from .linear_amplitude_function import LinearAmplitudeFunction, LinearAmplitudeFunctionGate
-from .adders import VBERippleCarryAdder, CDKMRippleCarryAdder, DraperQFTAdder
 from .piecewise_chebyshev import PiecewiseChebyshev, PiecewiseChebyshevGate
-from .multipliers import HRSCumulativeMultiplier, RGQFTMultiplier
 from .exact_reciprocal import ExactReciprocal, ExactReciprocalGate
+from .adders import (
+    VBERippleCarryAdder,
+    CDKMRippleCarryAdder,
+    DraperQFTAdder,
+    ModularAdderGate,
+    HalfAdderGate,
+    FullAdderGate,
+)
+from .multipliers import HRSCumulativeMultiplier, RGQFTMultiplier, MultiplierGate

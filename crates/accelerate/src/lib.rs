@@ -21,6 +21,7 @@ pub mod circuit_library;
 pub mod commutation_analysis;
 pub mod commutation_cancellation;
 pub mod commutation_checker;
+pub mod consolidate_blocks;
 pub mod convert_2q_block_matrix;
 pub mod dense_layout;
 pub mod edge_collections;
@@ -31,24 +32,28 @@ pub mod euler_one_qubit_decomposer;
 pub mod filter_op_nodes;
 pub mod gate_direction;
 pub mod gates_in_basis;
+pub mod high_level_synthesis;
 pub mod inverse_cancellation;
 pub mod isometry;
 pub mod nlayout;
 pub mod optimize_1q_gates;
 pub mod pauli_exp_val;
 pub mod remove_diagonal_gates_before_measure;
+pub mod remove_identity_equiv;
 pub mod results;
 pub mod sabre;
 pub mod sampled_exp_val;
+pub mod sparse_observable;
 pub mod sparse_pauli_op;
 pub mod split_2q_unitaries;
 pub mod star_prerouting;
 pub mod stochastic_swap;
 pub mod synthesis;
 pub mod target_transpiler;
+pub mod twirling;
 pub mod two_qubit_decompose;
 pub mod uc_gate;
-pub mod utils;
+pub mod unitary_synthesis;
 pub mod vf2_layout;
 
 mod rayon_ext;
@@ -70,3 +75,4 @@ pub fn getenv_use_multiple_threads() -> bool {
 }
 
 import_exception!(qiskit.exceptions, QiskitError);
+import_exception!(qiskit.circuit.exceptions, CircuitError);

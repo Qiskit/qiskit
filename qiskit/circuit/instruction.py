@@ -43,7 +43,6 @@ import numpy
 
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
-from qiskit.qobj.qasm_qobj import QasmQobjInstruction
 from qiskit.circuit.parameter import ParameterExpression
 from qiskit.circuit.operation import Operation
 
@@ -176,6 +175,7 @@ class Instruction(Operation):
         return self.copy()
 
     @property
+    @deprecate_func(since="1.3.0", removal_timeline="in 2.0.0", is_property=True)
     def condition(self):
         """The classical condition on the instruction."""
         return self._condition
@@ -378,42 +378,6 @@ class Instruction(Operation):
         """Set the time unit of duration."""
         self._unit = value
 
-    @deprecate_func(
-        since="1.2",
-        removal_timeline="in the 2.0 release",
-        additional_msg="The `Qobj` class and related functionality are part of the deprecated "
-        "`BackendV1` workflow,  and no longer necessary for `BackendV2`. If a user "
-        "workflow requires `Qobj` it likely relies on deprecated functionality and "
-        "should be updated to use `BackendV2`.",
-    )
-    def assemble(self):
-        """Assemble a QasmQobjInstruction"""
-        return self._assemble()
-
-    def _assemble(self):
-        with warnings.catch_warnings():
-            # The class QasmQobjInstruction is deprecated
-            warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
-            instruction = QasmQobjInstruction(name=self.name)
-        # Evaluate parameters
-        if self.params:
-            params = [x.evalf(x) if hasattr(x, "evalf") else x for x in self.params]
-            instruction.params = params
-        # Add placeholder for qarg and carg params
-        if self.num_qubits:
-            instruction.qubits = list(range(self.num_qubits))
-        if self.num_clbits:
-            instruction.memory = list(range(self.num_clbits))
-        # Add label if defined
-        if self.label:
-            instruction.label = self.label
-        # Add condition parameters for assembler. This is needed to convert
-        # to a qobj conditional instruction at assemble time and after
-        # conversion will be deleted by the assembler.
-        if self.condition:
-            instruction._condition = self.condition
-        return instruction
-
     @property
     def label(self) -> str:
         """Return instruction label"""
@@ -517,6 +481,7 @@ class Instruction(Operation):
         inverse_gate.definition = inverse_definition
         return inverse_gate
 
+    @deprecate_func(since="1.3.0", removal_timeline="in 2.0.0")
     def c_if(self, classical, val):
         """Set a classical equality condition on this instruction between the register or cbit
         ``classical`` and value ``val``.
@@ -632,7 +597,7 @@ class Instruction(Operation):
             qargs = tuple(qc.qubits)
             cargs = tuple(qc.clbits)
             base = self.copy()
-            if self.condition:
+            if self._condition:
                 # Condition is handled on the outer instruction.
                 base = base.to_mutable()
                 base.condition = None
@@ -640,18 +605,19 @@ class Instruction(Operation):
                 qc._append(CircuitInstruction(base, qargs, cargs))
 
             instruction.definition = qc
-        if self.condition:
-            instruction = instruction.c_if(*self.condition)
+        if self._condition:
+            instruction = instruction.c_if(*self._condition)
         return instruction
 
     @property
+    @deprecate_func(since="1.3.0", removal_timeline="in 2.0.0", is_property=True)
     def condition_bits(self) -> List[Clbit]:
         """Get Clbits in condition."""
         from qiskit.circuit.controlflow import condition_resources  # pylint: disable=cyclic-import
 
-        if self.condition is None:
+        if self._condition is None:
             return []
-        return list(condition_resources(self.condition).clbits)
+        return list(condition_resources(self._condition).clbits)
 
     @property
     def name(self):

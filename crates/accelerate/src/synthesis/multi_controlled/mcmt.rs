@@ -20,6 +20,13 @@ use smallvec::{smallvec, SmallVec};
 
 use crate::QiskitError;
 
+type CCXChainItem = PyResult<(
+    PackedOperation,
+    SmallVec<[Param; 3]>,
+    Vec<Qubit>,
+    Vec<Clbit>,
+)>;
+
 /// A Toffoli chain, implementing a multi-control condition on all controls using
 /// ``controls.len() - 1`` auxiliary qubits.
 ///
@@ -42,14 +49,7 @@ use crate::QiskitError;
 fn ccx_chain<'a>(
     controls: &'a [usize],
     auxiliaries: &'a [usize],
-) -> impl DoubleEndedIterator<
-    Item = PyResult<(
-        PackedOperation,
-        SmallVec<[Param; 3]>,
-        Vec<Qubit>,
-        Vec<Clbit>,
-    )>,
-> + 'a {
+) -> impl DoubleEndedIterator<Item = CCXChainItem> + 'a {
     let n = controls.len() - 1; // number of chain elements
     std::iter::once((controls[0], controls[1], auxiliaries[0]))
         .chain((0..n - 1).map(|i| (controls[i + 2], auxiliaries[i], auxiliaries[i + 1])))
@@ -118,7 +118,7 @@ pub fn mcmt_v_chain(
         .filter(|index| control_state & (1 << index) == 0)
         .map(|index| {
             Ok((
-                PackedOperation::from_standard(StandardGate::XGate),
+                PackedOperation::from_standard_gate(StandardGate::XGate),
                 smallvec![] as SmallVec<[Param; 3]>,
                 vec![Qubit::new(index)],
                 vec![] as Vec<Clbit>,

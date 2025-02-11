@@ -9,6 +9,9 @@ license.workspace = true
 name = "qiskit_accelerate"
 doctest = false
 
+[lints]
+workspace = true
+
 [dependencies]
 rayon.workspace = true
 numpy.workspace = true
@@ -26,6 +29,8 @@ qiskit-circuit.workspace = true
 thiserror.workspace = true
 ndarray_einsum_beta = "0.7"
 once_cell = "1.20.2"
+rustiq-core = "0.0.10"
+bytemuck.workspace = true
 
 [dependencies.smallvec]
 workspace = true
@@ -56,8 +61,11 @@ version = "0.2.0"
 features = ["ndarray"]
 
 [dependencies.pulp]
-version = "0.18.22"
+version = "0.21.4"
 features = ["macro"]
+
+[dev-dependencies]
+pyo3 = { workspace = true, features = ["auto-initialize"] }
 
 [features]
 cache_pygates = ["qiskit-circuit/cache_pygates"]

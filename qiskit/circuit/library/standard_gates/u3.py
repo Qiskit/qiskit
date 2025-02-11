@@ -43,7 +43,7 @@ class U3Gate(Gate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌───────────┐
         q_0: ┤ U3(ϴ,φ,λ) ├
@@ -208,7 +208,7 @@ class CU3Gate(ControlledGate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
         q_0: ──────■──────
              ┌─────┴─────┐
@@ -239,7 +239,8 @@ class CU3Gate(ControlledGate):
         which in our case would be q_1. Thus a textbook matrix for this
         gate will be:
 
-        .. parsed-literal::
+        .. code-block:: text
+
                  ┌───────────┐
             q_0: ┤ U3(ϴ,φ,λ) ├
                  └─────┬─────┘

@@ -11,9 +11,9 @@
 // that they have been altered from the originals.
 
 mod bm_synthesis;
-mod greedy_synthesis;
+pub(crate) mod greedy_synthesis;
 mod random_clifford;
-mod utils;
+pub(crate) mod utils;
 
 use crate::synthesis::clifford::bm_synthesis::synth_clifford_bm_inner;
 use crate::synthesis::clifford::greedy_synthesis::GreedyCliffordSynthesis;
@@ -63,7 +63,7 @@ fn random_clifford_tableau(
     seed: Option<u64>,
 ) -> PyResult<Py<PyArray2<bool>>> {
     let tableau = random_clifford::random_clifford_tableau_inner(num_qubits, seed);
-    Ok(tableau.into_pyarray_bound(py).unbind())
+    Ok(tableau.into_pyarray(py).unbind())
 }
 
 /// Create a circuit that optimally synthesizes a given Clifford operator represented as

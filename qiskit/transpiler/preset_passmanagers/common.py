@@ -24,9 +24,9 @@ from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.passes import Error
 from qiskit.transpiler.passes import BasisTranslator
 from qiskit.transpiler.passes import Unroll3qOrMore
-from qiskit.transpiler.passes import Collect2qBlocks
-from qiskit.transpiler.passes import Collect1qRuns
 from qiskit.transpiler.passes import ConsolidateBlocks
+from qiskit.transpiler.passes import Collect1qRuns
+from qiskit.transpiler.passes import Collect2qBlocks
 from qiskit.transpiler.passes import UnitarySynthesis
 from qiskit.transpiler.passes import HighLevelSynthesis
 from qiskit.transpiler.passes import CheckMap
@@ -52,6 +52,8 @@ from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
 from qiskit.transpiler.passes.layout.vf2_post_layout import VF2PostLayoutStopReason
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
+from qiskit.utils import deprecate_func
+from qiskit.utils.deprecate_pulse import deprecate_pulse_arg
 
 
 _ControlFlowState = collections.namedtuple("_ControlFlowState", ("working", "not_working"))
@@ -59,15 +61,17 @@ _ControlFlowState = collections.namedtuple("_ControlFlowState", ("working", "not
 # Any method neither known good nor known bad (i.e. not a Terra-internal pass) is passed through
 # without error, since it is being supplied by a plugin and we don't have any knowledge of these.
 _CONTROL_FLOW_STATES = {
-    "layout_method": _ControlFlowState(working={"trivial", "dense", "sabre"}, not_working=set()),
+    "layout_method": _ControlFlowState(
+        working={"default", "trivial", "dense", "sabre"}, not_working=set()
+    ),
     "routing_method": _ControlFlowState(
         working={"none", "stochastic", "sabre"}, not_working={"lookahead", "basic"}
     ),
     "translation_method": _ControlFlowState(
-        working={"translator", "synthesis"},
+        working={"default", "translator", "synthesis"},
         not_working=set(),
     ),
-    "optimization_method": _ControlFlowState(working=set(), not_working=set()),
+    "optimization_method": _ControlFlowState(working={"default"}, not_working=set()),
     "scheduling_method": _ControlFlowState(working=set(), not_working={"alap", "asap"}),
 }
 
@@ -280,7 +284,7 @@ def generate_routing_passmanager(
     coupling_map=None,
     vf2_call_limit=None,
     backend_properties=None,
-    seed_transpiler=None,
+    seed_transpiler=-1,
     check_trivial=False,
     use_barrier_before_measurement=True,
     vf2_max_trials=None,
@@ -299,7 +303,10 @@ def generate_routing_passmanager(
         backend_properties (BackendProperties): Properties of a backend to
             synthesize for (e.g. gate fidelities).
         seed_transpiler (int): Sets random seed for the stochastic parts of
-            the transpiler.
+            the transpiler. This is currently only used for :class:`.VF2PostLayout` and the
+            default value of ``-1`` is strongly recommended (which is no randomization).
+            If a value of ``None`` is provided this will seed from system
+            entropy.
         check_trivial (bool): If set to true this will condition running the
             :class:`~.VF2PostLayout` pass after routing on whether a trivial
             layout was tried and was found to not be perfect. This is only
@@ -357,7 +364,7 @@ def generate_routing_passmanager(
                     target,
                     coupling_map,
                     backend_properties,
-                    seed_transpiler,
+                    seed=seed_transpiler,
                     call_limit=vf2_call_limit,
                     max_trials=vf2_max_trials,
                     strict_direction=False,
@@ -375,11 +382,19 @@ def generate_routing_passmanager(
     return routing
 
 
+@deprecate_func(
+    since="2.0",
+    additional_msg=(
+        "Translation plugins are now required to respect ISA directionality,"
+        " so typically no replacement is necessary."
+    ),
+    removal_timeline="in Qiskit 3.0",
+)
 def generate_pre_op_passmanager(target=None, coupling_map=None, remove_reset_in_zero=False):
     """Generate a pre-optimization loop :class:`~qiskit.transpiler.PassManager`
 
     This pass manager will check to ensure that directionality from the coupling
-    map is respected
+    map is respected.
 
     Args:
         target (Target): the :class:`~.Target` object representing the backend
@@ -454,6 +469,7 @@ def generate_translation_passmanager(
         TranspilerError: If the ``method`` kwarg is not a valid value
     """
     if method == "translator":
+        translator = BasisTranslator(sel, basis_gates, target)
         unroll = [
             # Use unitary synthesis for basis aware decomposition of
             # UnitaryGates before custom unrolling
@@ -475,8 +491,9 @@ def generate_translation_passmanager(
                 basis_gates=basis_gates,
                 qubits_initially_zero=qubits_initially_zero,
             ),
-            BasisTranslator(sel, basis_gates, target),
+            translator,
         ]
+        fix_1q = [translator]
     elif method == "synthesis":
         unroll = [
             # # Use unitary synthesis for basis aware decomposition of
@@ -524,11 +541,44 @@ def generate_translation_passmanager(
                 qubits_initially_zero=qubits_initially_zero,
             ),
         ]
+        fix_1q = [
+            Collect1qRuns(),
+            ConsolidateBlocks(
+                basis_gates=basis_gates, target=target, approximation_degree=approximation_degree
+            ),
+            UnitarySynthesis(
+                basis_gates=basis_gates,
+                approximation_degree=approximation_degree,
+                coupling_map=coupling_map,
+                backend_props=backend_props,
+                plugin_config=unitary_synthesis_plugin_config,
+                method=unitary_synthesis_method,
+                target=target,
+            ),
+        ]
     else:
         raise TranspilerError(f"Invalid translation method {method}.")
+    # Our built-ins don't 100% guarantee that 2q gate direction is respected, so we might need to
+    # run a little bit of fix up on them.  `GateDirection` doesn't guarantee that 1q gates are
+    # ISA safe after it runs, so we need another run too.
+    if (coupling_map and not coupling_map.is_symmetric) or (
+        target is not None and target.get_non_global_operation_names(strict_direction=True)
+    ):
+        unroll.append(CheckGateDirection(coupling_map, target=target))
+
+        def _direction_condition(property_set):
+            return not property_set["is_direction_mapped"]
+
+        unroll.append(
+            ConditionalController(
+                [GateDirection(coupling_map, target=target)] + fix_1q,
+                condition=_direction_condition,
+            )
+        )
     return PassManager(unroll)
 
 
+@deprecate_pulse_arg("inst_map", predicate=lambda inst_map: inst_map is not None)
 def generate_scheduling(
     instruction_durations, scheduling_method, timing_constraints, inst_map, target=None
 ):
@@ -540,7 +590,7 @@ def generate_scheduling(
             ``'asap'``/``'as_soon_as_possible'`` or
             ``'alap'``/``'as_late_as_possible'``
         timing_constraints (TimingConstraints): Hardware time alignment restrictions.
-        inst_map (InstructionScheduleMap): Mapping object that maps gate to schedule.
+        inst_map (InstructionScheduleMap): DEPRECATED. Mapping object that maps gate to schedule.
         target (Target): The :class:`~.Target` object representing the backend
 
     Returns:

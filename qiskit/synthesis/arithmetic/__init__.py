@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2024.
+# (C) Copyright IBM 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,3 +13,5 @@
 """Synthesis for arithmetic circuits."""
 
 from .comparators import synth_integer_comparator_2s, synth_integer_comparator_greedy
+from .adders import adder_qft_d00, adder_ripple_c04, adder_ripple_v95
+from .multipliers import multiplier_cumulative_h18, multiplier_qft_r17
