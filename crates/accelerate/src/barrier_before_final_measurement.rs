@@ -16,7 +16,7 @@ use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 use qiskit_circuit::circuit_instruction::ExtraInstructionAttributes;
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
-use qiskit_circuit::operations::{Operation, StandardInstruction};
+use qiskit_circuit::operations::{StandardInstruction, OperationRef};
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::Qubit;
 
@@ -36,16 +36,25 @@ pub fn barrier_before_final_measurements(
                 let node = &dag[*index];
                 match node {
                     NodeType::Operation(inst) => {
-                        if inst.op.name() == "measure" || inst.op.name() == "barrier" {
-                            dag.bfs_successors(*index).all(|(_, child_successors)| {
-                                child_successors.iter().all(|suc| match &dag[*suc] {
-                                    NodeType::Operation(suc_inst) => {
-                                        suc_inst.op.name() == "measure"
-                                            || suc_inst.op.name() == "barrier"
-                                    }
-                                    _ => true,
+                        if let OperationRef::StandardInstruction(op) = inst.op.view() {
+                            if matches!(op, StandardInstruction::Measure | StandardInstruction::Barrier(_)) {
+                                dag.bfs_successors(*index).all(|(_, child_successors)| {
+                                    child_successors.iter().all(|suc| match &dag[*suc] {
+                                        NodeType::Operation(suc_inst) => {
+                                            match suc_inst.op.view() {
+                                                OperationRef::StandardInstruction(suc_op) => {
+                                                    matches!(suc_op, StandardInstruction::Measure | StandardInstruction::Barrier(_))
+                                                },
+                                                _ => false
+
+                                            }
+                                        }
+                                        _ => true,
+                                    })
                                 })
-                            })
+                            } else {
+                              false
+                            }
                         } else {
                             false
                         }
@@ -60,8 +69,11 @@ pub fn barrier_before_final_measurements(
                 && dag.bfs_successors(node_index).all(|(_, child_successors)| {
                     child_successors.iter().all(|suc| match &dag[*suc] {
                         NodeType::Operation(suc_inst) => {
-                            suc_inst.op.name() == "measure" || suc_inst.op.name() == "barrier"
-                        }
+                            match suc_inst.op.view() {
+                                OperationRef::StandardInstruction(suc_op) => matches!(suc_op, StandardInstruction::Measure | StandardInstruction::Barrier(_)),
+                                _ => false,
+                            }
+                        },
                         _ => true,
                     })
                 })
@@ -71,8 +83,10 @@ pub fn barrier_before_final_measurements(
             for pred in dag.quantum_predecessors(node_index) {
                 match &dag[pred] {
                     NodeType::Operation(inst) => {
-                        if inst.op.name() == "measure" || inst.op.name() == "barrier" {
-                            next_nodes.push(pred)
+                        if let OperationRef::StandardInstruction(op) = inst.op.view() {
+                            if matches!(op, StandardInstruction::Measure | StandardInstruction::Barrier(_)) {
+                                next_nodes.push(pred)
+                            }
                         }
                     }
                     _ => continue,
