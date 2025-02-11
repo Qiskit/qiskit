@@ -32,7 +32,7 @@ class TestTypeCheck(QiskitTestCase):
         """Tests examples.identity type checking"""
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="ClassicalFunction`` is deprecated as of Qiskit 1.4",
+            expected_regex="ClassicalFunction`` is deprecated as of qiskit 1.4",
         ):
             network = compile_classical_function(examples.identity)
         self.assertEqual(network.args, ["a"])
@@ -42,7 +42,7 @@ class TestTypeCheck(QiskitTestCase):
         """Tests examples.bool_not type checking"""
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="ClassicalFunction`` is deprecated as of Qiskit 1.4",
+            expected_regex="ClassicalFunction`` is deprecated as of qiskit 1.4",
         ):
             network = compile_classical_function(examples.bool_not)
         self.assertEqual(network.args, ["a"])
@@ -52,7 +52,7 @@ class TestTypeCheck(QiskitTestCase):
         """Tests examples.id_assing type checking"""
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="ClassicalFunction`` is deprecated as of Qiskit 1.4",
+            expected_regex="ClassicalFunction`` is deprecated as of qiskit 1.4",
         ):
             network = compile_classical_function(examples.id_assing)
         self.assertEqual(network.args, ["a"])
@@ -64,7 +64,7 @@ class TestTypeCheck(QiskitTestCase):
         """Tests examples.bit_and type checking"""
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="ClassicalFunction`` is deprecated as of Qiskit 1.4",
+            expected_regex="ClassicalFunction`` is deprecated as of qiskit 1.4",
         ):
             network = compile_classical_function(examples.bit_and)
         self.assertEqual(network.args, ["a", "b"])
@@ -76,7 +76,7 @@ class TestTypeCheck(QiskitTestCase):
         """Tests examples.bit_or type checking"""
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="ClassicalFunction`` is deprecated as of Qiskit 1.4",
+            expected_regex="ClassicalFunction`` is deprecated as of qiskit 1.4",
         ):
             network = compile_classical_function(examples.bit_or)
         self.assertEqual(network.args, ["a", "b"])
@@ -88,7 +88,7 @@ class TestTypeCheck(QiskitTestCase):
         """Tests examples.bool_or type checking"""
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="ClassicalFunction`` is deprecated as of Qiskit 1.4",
+            expected_regex="ClassicalFunction`` is deprecated as of qiskit 1.4",
         ):
             network = compile_classical_function(examples.bool_or)
         self.assertEqual(network.args, ["a", "b"])
@@ -114,7 +114,7 @@ class TestTypeCheckFail(QiskitTestCase):
         with self.assertRaises(ClassicalFunctionCompilerTypeError) as context:
             with self.assertWarnsRegex(
                 DeprecationWarning,
-                expected_regex="ClassicalFunction`` is deprecated as of Qiskit 1.4",
+                expected_regex="ClassicalFunction`` is deprecated as of qiskit 1.4",
             ):
                 compile_classical_function(bad_examples.bit_not)
         self.assertExceptionMessage(context, "does not operate with Int1 type")

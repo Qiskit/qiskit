@@ -39,7 +39,7 @@ class TestPhaseOracle(QiskitTestCase):
         """PhaseOracle(...).evaluate_bitstring"""
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="BooleanExpression`` is deprecated as of Qiskit 1.4",
+            expected_regex="BooleanExpression`` is deprecated as of qiskit 1.4",
         ):
             oracle = PhaseOracle(expression)
         result = oracle.evaluate_bitstring(input_bitstring)
@@ -56,7 +56,7 @@ class TestPhaseOracle(QiskitTestCase):
         """Circuit generation"""
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="BooleanExpression`` is deprecated as of Qiskit 1.4",
+            expected_regex="BooleanExpression`` is deprecated as of qiskit 1.4",
         ):
             oracle = PhaseOracle(expression)
         num_qubits = oracle.num_qubits
@@ -86,7 +86,7 @@ class TestPhaseOracle(QiskitTestCase):
         """Circuit generation"""
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="BooleanExpression`` is deprecated as of Qiskit 1.4",
+            expected_regex="BooleanExpression`` is deprecated as of qiskit 1.4",
         ):
             oracle = PhaseOracle(expression, var_order=var_order)
         num_qubits = oracle.num_qubits

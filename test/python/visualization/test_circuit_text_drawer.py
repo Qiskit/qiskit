@@ -1399,7 +1399,7 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         )
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex=r"classical_function\(\)`` is deprecated as of Qiskit 1.4",
+            expected_regex=r"classical_function\(\)`` is deprecated as of qiskit 1.4",
         ):
 
             @classical_function

@@ -34,7 +34,7 @@ class TestSimulate(QiskitTestCase):
         """Tests LogicSimulate.simulate() on all the examples"""
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="ClassicalFunction`` is deprecated as of Qiskit 1.4",
+            expected_regex="ClassicalFunction`` is deprecated as of qiskit 1.4",
         ):
             network = compile_classical_function(a_callable)
         truth_table = network.simulate_all()

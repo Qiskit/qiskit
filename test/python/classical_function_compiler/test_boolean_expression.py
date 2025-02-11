@@ -42,7 +42,7 @@ class TestBooleanExpression(QiskitTestCase):
         """Test simulate"""
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="BooleanExpression`` is deprecated as of Qiskit 1.4",
+            expected_regex="BooleanExpression`` is deprecated as of qiskit 1.4",
         ):
             expression = BooleanExpression(expression)
         result = expression.simulate(input_bitstring)
@@ -59,7 +59,7 @@ class TestBooleanExpression(QiskitTestCase):
         """Test synth"""
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="BooleanExpression`` is deprecated as of Qiskit 1.4",
+            expected_regex="BooleanExpression`` is deprecated as of qiskit 1.4",
         ):
             expression = BooleanExpression(expression)
         expr_circ = expression.synth()

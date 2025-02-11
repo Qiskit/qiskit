@@ -33,7 +33,7 @@ class TestSynthesis(QiskitTestCase):
         """Synthesis of grover_oracle example"""
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="ClassicalFunction`` is deprecated as of Qiskit 1.4",
+            expected_regex="ClassicalFunction`` is deprecated as of qiskit 1.4",
         ):
             oracle = compile_classical_function(examples.grover_oracle)
         quantum_circuit = oracle.synth()
@@ -48,7 +48,7 @@ class TestSynthesis(QiskitTestCase):
         """Synthesis of grover_oracle example with arg_regs"""
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="ClassicalFunction`` is deprecated as of Qiskit 1.4",
+            expected_regex="ClassicalFunction`` is deprecated as of qiskit 1.4",
         ):
             oracle = compile_classical_function(examples.grover_oracle)
         quantum_circuit = oracle.synth(registerless=False)
