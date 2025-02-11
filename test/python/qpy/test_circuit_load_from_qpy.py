@@ -18,12 +18,11 @@ import struct
 from ddt import ddt, data
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister, Qubit, Parameter, Gate
-from qiskit.providers.fake_provider import Fake27QPulseV1, GenericBackendV2
+from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.exceptions import QiskitError
 from qiskit.qpy import dump, load, formats, QPY_COMPATIBILITY_VERSION
 from qiskit.qpy.common import QPY_VERSION
-from qiskit.transpiler import PassManager, TranspileLayout
-from qiskit.transpiler import passes
+from qiskit.transpiler import TranspileLayout
 from qiskit.compiler import transpile
 from qiskit.utils import optionals
 from qiskit.qpy.formats import FILE_HEADER_V10_PACK, FILE_HEADER_V10, FILE_HEADER_V10_SIZE
@@ -53,42 +52,6 @@ class QpyCircuitTestCase(QiskitTestCase):
                 file_version,
                 f"Generated QPY file version {file_version} does not match request version {version}",
             )
-
-
-@ddt
-class TestCalibrationPasses(QpyCircuitTestCase):
-    """QPY round-trip test case of transpiled circuits with pulse level optimization."""
-
-    def setUp(self):
-        super().setUp()
-        # TODO remove context once https://github.com/Qiskit/qiskit/issues/12759 is fixed
-        with self.assertWarns(DeprecationWarning):
-            # This backend provides CX(0,1) with native ECR direction.
-            self.inst_map = Fake27QPulseV1().defaults().instruction_schedule_map
-
-    @data(0.1, 0.7, 1.5)
-    def test_rzx_calibration(self, angle):
-        """RZX builder calibration pass with echo."""
-        with self.assertWarns(DeprecationWarning):
-            pass_ = passes.RZXCalibrationBuilder(self.inst_map)
-        pass_manager = PassManager(pass_)
-        test_qc = QuantumCircuit(2)
-        test_qc.rzx(angle, 0, 1)
-        rzx_qc = pass_manager.run(test_qc)
-        with self.assertWarns(DeprecationWarning):
-            self.assert_roundtrip_equal(rzx_qc)
-
-    @data(0.1, 0.7, 1.5)
-    def test_rzx_calibration_echo(self, angle):
-        """RZX builder calibration pass without echo."""
-        with self.assertWarns(DeprecationWarning):
-            pass_ = passes.RZXCalibrationBuilderNoEcho(self.inst_map)
-        pass_manager = PassManager(pass_)
-        test_qc = QuantumCircuit(2)
-        test_qc.rzx(angle, 0, 1)
-        rzx_qc = pass_manager.run(test_qc)
-        with self.assertWarns(DeprecationWarning):
-            self.assert_roundtrip_equal(rzx_qc)
 
 
 class TestVersions(QpyCircuitTestCase):

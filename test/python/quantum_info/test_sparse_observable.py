@@ -2008,3 +2008,174 @@ class TestSparseObservable(QiskitTestCase):
             Pauli("YYYII"),
         ]
         self.assertEqual([term.pauli_base() for term in obs], expected)
+
+    def test_to_sparse_list(self):
+        """Test converting to a sparse list."""
+        with self.subTest(msg="zero"):
+            obs = SparseObservable.zero(100)
+            expected = []
+            self.assertEqual(expected, obs.to_sparse_list())
+
+        with self.subTest(msg="identity"):
+            obs = SparseObservable.identity(100)
+            expected = [("", [], 1)]
+            self.assertEqual(expected, obs.to_sparse_list())
+
+        with self.subTest(msg="IXYZ"):
+            obs = SparseObservable("IXYZ")
+            expected = [("ZYX", [0, 1, 2], 1)]
+            self.assertEqual(
+                canonicalize_sparse_list(expected), canonicalize_sparse_list(obs.to_sparse_list())
+            )
+
+        with self.subTest(msg="multiple"):
+            obs = SparseObservable.from_list([("lrI0", 0.5), ("YYIZ", -1j)])
+            expected = [("lr0", [3, 2, 0], 0.5), ("ZYY", [0, 2, 3], -1j)]
+            self.assertEqual(
+                canonicalize_sparse_list(expected), canonicalize_sparse_list(obs.to_sparse_list())
+            )
+
+    def test_as_paulis(self):
+        """Test converting to Paulis."""
+        # test on zero operator
+        with self.subTest(msg="zero"):
+            obs = SparseObservable.zero(10)
+            obs_paulis = obs.as_paulis()
+            self.assertEqual(obs, obs_paulis)
+
+        # test on identity operator
+        with self.subTest(msg="identity"):
+            obs = SparseObservable.identity(10)
+            obs_paulis = obs.as_paulis()
+            self.assertEqual(obs, obs_paulis)
+
+        # test it does nothing on Paulis
+        with self.subTest(msg="paulis"):
+            obs = SparseObservable.from_list([("IIX", 1), ("ZZY", -1)])
+            obs_paulis = obs.as_paulis()
+            self.assertEqual(obs, obs_paulis)
+
+        # test multiple +1 projectors
+        with self.subTest(msg="00"):
+            obs = SparseObservable("00")
+            obs_paulis = obs.as_paulis()
+            expected = SparseObservable.from_sparse_list(
+                [
+                    ("", [], 1 / 4),
+                    ("Z", [0], 1 / 4),
+                    ("Z", [1], 1 / 4),
+                    ("ZZ", [0, 1], 1 / 4),
+                ],
+                2,
+            )
+            self.assertEqual(expected.simplify(), obs_paulis.simplify())
+
+        # test multiple -1 projectors
+        with self.subTest(msg="11"):
+            obs = SparseObservable("11")
+            obs_paulis = obs.as_paulis()
+            expected = SparseObservable.from_sparse_list(
+                [
+                    ("", [], 1 / 4),
+                    ("Z", [0], -1 / 4),
+                    ("Z", [1], -1 / 4),
+                    ("ZZ", [0, 1], 1 / 4),
+                ],
+                2,
+            )
+            self.assertEqual(expected.simplify(), obs_paulis.simplify())
+
+        # test +1 -1 projector
+        with self.subTest(msg="01"):
+            obs = SparseObservable("01")
+            obs_paulis = obs.as_paulis()
+            expected = SparseObservable.from_sparse_list(
+                [
+                    ("", [], 1 / 4),
+                    ("Z", [0], -1 / 4),
+                    ("Z", [1], 1 / 4),
+                    ("ZZ", [0, 1], -1 / 4),
+                ],
+                2,
+            )
+            self.assertEqual(expected.simplify(), obs_paulis.simplify())
+
+        # test multiple negative projectors with a positive
+        with self.subTest(msg="011"):
+            obs = SparseObservable("011")
+            obs_paulis = obs.as_paulis()
+            expected = SparseObservable.from_sparse_list(
+                [
+                    ("", [], 1 / 8),
+                    ("Z", [0], -1 / 8),
+                    ("Z", [1], -1 / 8),
+                    ("Z", [2], 1 / 8),
+                    ("ZZ", [0, 1], 1 / 8),
+                    ("ZZ", [0, 2], -1 / 8),
+                    ("ZZ", [1, 2], -1 / 8),
+                    ("ZZZ", [0, 1, 2], 1 / 8),
+                ],
+                3,
+            )
+            self.assertEqual(expected.simplify(), obs_paulis.simplify())
+
+        # test explicitly on written-out projector
+        with self.subTest(msg="lrI0"):
+            obs = SparseObservable("lrI0")
+            obs_paulis = obs.as_paulis()
+            expected = SparseObservable.from_sparse_list(
+                [
+                    ("", [], 1 / 8),
+                    ("Y", [2], -1 / 8),
+                    ("YY", [3, 2], -1 / 8),
+                    ("Z", [0], 1 / 8),
+                    ("YZ", [2, 0], -1 / 8),
+                    ("YYZ", [3, 2, 0], -1 / 8),
+                    ("Y", [3], 1 / 8),
+                    ("YZ", [3, 0], 1 / 8),
+                ],
+                4,
+            )
+            self.assertEqual(expected.simplify(), obs_paulis.simplify())
+
+        # test multiple terms
+        with self.subTest(msg="+X + lY - ZI"):
+            obs = SparseObservable.from_list([("+X", 1), ("rY", 1), ("ZI", -1)])
+            obs_paulis = obs.as_paulis()
+
+            expected = SparseObservable.from_list(
+                [("IX", 0.5), ("XX", 0.5), ("IY", 0.5), ("YY", -0.5), ("ZI", -1)]
+            )
+
+            self.assertEqual(expected.simplify(), obs_paulis.simplify())
+
+    def test_sparse_list_roundtrip(self):
+        """Test dumping into a sparse list and constructing from one."""
+        obs = SparseObservable.from_list(
+            [
+                ("IIXIZ", 2j),
+                ("IIZIX", 2j),
+                ("++III", -1.5),
+                ("--III", -1.5),
+                ("IrIlI", 0.5),
+                ("IIrIl", 0.5),
+            ]
+        )
+
+        reconstructed = SparseObservable.from_sparse_list(obs.to_sparse_list(), obs.num_qubits)
+        self.assertEqual(obs.simplify(), reconstructed.simplify())
+
+
+def canonicalize_term(pauli, indices, coeff):
+    # canonicalize a sparse list term by sorting by indices (which is unique as
+    # indices cannot be repeated)
+    idcs = np.argsort(indices)
+    sorted_paulis = "".join(pauli[i] for i in idcs)
+    return (sorted_paulis, np.asarray(indices)[idcs].tolist(), complex(coeff))
+
+
+def canonicalize_sparse_list(sparse_list):
+    # sort a sparse list representation by canonicalizing the terms and then applying
+    # Python's built-in sort
+    canonicalized_terms = [canonicalize_term(*term) for term in sparse_list]
+    return sorted(canonicalized_terms)
