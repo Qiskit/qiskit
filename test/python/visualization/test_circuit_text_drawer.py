@@ -5153,7 +5153,7 @@ class TestTextOpenControlledGate(QiskitTestCase):
                 "        ┌──┴───┐",
                 "q_1: |0>┤0     ├",
                 "        │      │",
-                "q_2: |0>┤1 ghz ├",
+                "q_2: |0>┤1 Ghz ├",
                 "        │      │",
                 "q_3: |0>┤2     ├",
                 "        └──┬───┘",
