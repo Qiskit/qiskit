@@ -269,7 +269,7 @@ class ControlledGate(Gate):
         """Invert this gate by calling inverse on the base gate."""
         if not annotated:
             inverse_gate = self.base_gate.inverse().control(
-                self.num_ctrl_qubits, ctrl_state=self.ctrl_state
+                self.num_ctrl_qubits, ctrl_state=self.ctrl_state, annotated=False
             )
         else:
             inverse_gate = super().inverse(annotated=annotated)
