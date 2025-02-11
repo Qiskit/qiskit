@@ -9,7 +9,6 @@
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
-
 use num_complex::Complex64;
 use num_complex::ComplexFloat;
 use pyo3::prelude::*;
@@ -27,11 +26,13 @@ use qiskit_circuit::packed_instruction::PackedInstruction;
 #[pyfunction]
 #[pyo3(signature=(dag, approx_degree=Some(1.0), target=None))]
 fn remove_identity_equiv(
+    py: Python,
     dag: &mut DAGCircuit,
     approx_degree: Option<f64>,
     target: Option<&Target>,
 ) {
     let mut remove_list: Vec<NodeIndex> = Vec::new();
+    let mut global_phase_update: f64 = 0.;
 
     let get_error_cutoff = |inst: &PackedInstruction| -> f64 {
         match approx_degree {
@@ -75,12 +76,17 @@ fn remove_identity_equiv(
     };
 
     for (op_node, inst) in dag.op_nodes(false) {
-        match inst.op.view() {
+        if inst.is_parameterized() {
+            // Skip parameterized gates
+            continue;
+        }
+        let view = inst.op.view();
+        match view {
             OperationRef::StandardGate(gate) => {
                 let (dim, trace) = match gate {
                     StandardGate::RXGate | StandardGate::RYGate | StandardGate::RZGate => {
                         if let Param::Float(theta) = inst.params_view()[0] {
-                            let trace = (theta / 2.).cos() * 2.;
+                            let trace = Complex64::new((theta / 2.).cos() * 2., 0.);
                             (2., trace)
                         } else {
                             continue;
@@ -91,20 +97,16 @@ fn remove_identity_equiv(
                     | StandardGate::RZZGate
                     | StandardGate::RZXGate => {
                         if let Param::Float(theta) = inst.params_view()[0] {
-                            let trace = (theta / 2.).cos() * 4.;
+                            let trace = Complex64::new((theta / 2.).cos() * 4., 0.);
                             (4., trace)
                         } else {
                             continue;
                         }
                     }
                     _ => {
-                        // Skip global phase gate
-                        if gate.num_qubits() < 1 {
-                            continue;
-                        }
                         if let Some(matrix) = gate.matrix(inst.params_view()) {
                             let dim = matrix.shape()[0] as f64;
-                            let trace = matrix.diag().iter().sum::<Complex64>().abs();
+                            let trace = matrix.diag().iter().sum::<Complex64>();
                             (dim, trace)
                         } else {
                             continue;
@@ -112,33 +114,37 @@ fn remove_identity_equiv(
                     }
                 };
                 let error = get_error_cutoff(inst);
-                let f_pro = (trace / dim).powi(2);
+                let f_pro = (trace / dim).abs().powi(2);
                 let gate_fidelity = (dim * f_pro + 1.) / (dim + 1.);
                 if (1. - gate_fidelity).abs() < error {
-                    remove_list.push(op_node)
+                    remove_list.push(op_node);
+                    global_phase_update += (trace / dim).arg();
                 }
             }
-            OperationRef::Gate(gate) => {
-                // Skip global phase like gate
-                if gate.num_qubits() < 1 {
-                    continue;
-                }
-                if let Some(matrix) = gate.matrix(inst.params_view()) {
+            _ => {
+                let matrix = view.matrix(inst.params_view());
+                // If view.matrix() returns None, then there is no matrix and we skip the operation.
+                if let Some(matrix) = matrix {
                     let error = get_error_cutoff(inst);
                     let dim = matrix.shape()[0] as f64;
                     let trace: Complex64 = matrix.diag().iter().sum();
                     let f_pro = (trace / dim).abs().powi(2);
                     let gate_fidelity = (dim * f_pro + 1.) / (dim + 1.);
                     if (1. - gate_fidelity).abs() < error {
-                        remove_list.push(op_node)
+                        remove_list.push(op_node);
+                        global_phase_update += (trace / dim).arg();
                     }
                 }
             }
-            _ => continue,
         }
     }
     for node in remove_list {
         dag.remove_op_node(node);
+    }
+
+    if global_phase_update != 0. {
+        dag.add_global_phase(py, &Param::Float(global_phase_update))
+            .expect("The global phase is guaranteed to be a float");
     }
 }
 
