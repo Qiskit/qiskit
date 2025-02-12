@@ -16,6 +16,7 @@ use pyo3::prelude::*;
 use pyo3::types::PyAny;
 use pyo3::types::PyTuple;
 use pyo3::Bound;
+use pyo3::IntoPyObjectExt;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::circuit_instruction::ExtraInstructionAttributes;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
@@ -36,6 +37,9 @@ use crate::equivalence::EquivalenceLibrary;
 use crate::nlayout::PhysicalQubit;
 use crate::target_transpiler::exceptions::TranspilerError;
 use crate::target_transpiler::Target;
+
+#[cfg(feature = "cache_pygates")]
+use std::sync::OnceLock;
 
 /// Track global qubits by their state.
 /// The global qubits are numbered by consecutive integers starting at `0`,
@@ -469,21 +473,13 @@ fn run_on_circuitdata(
                         data,
                         &mut block_tracker,
                     )?;
-                    let new_block =
-                        quantum_circuit_cls.call_method1("_from_circuit_data", (new_block,))?;
+                    let new_block = new_block.into_bound_py_any(py)?;
+                    // ToDo: check global phase!
+                    let new_block_circuit =
+                        quantum_circuit_cls.call_method1("copy_empty_like", (block,))?;
 
-                    // Fix the register names
-                    if let Some(regs) = old_block.qregs {
-                        for reg in regs {
-                            new_block.call_method1("add_register", (reg,))?;
-                        }
-                    }
-                    if let Some(regs) = old_block.cregs {
-                        for reg in regs {
-                            new_block.call_method1("add_register", (reg,))?;
-                        }
-                    }
-                    new_blocks.push(new_block);
+                    new_block_circuit.setattr("_data", new_block.as_ref())?;
+                    new_blocks.push(new_block_circuit);
                 }
                 let replaced_blocks =
                     old_blocks_as_bound_obj.call_method1("replace_blocks", (new_blocks,))?;
@@ -820,17 +816,44 @@ pub fn py_run_on_dag(
         let (output_circuit, _) =
             run_on_circuitdata(py, &circuit, &input_qubits, data, &mut tracker)?;
 
-        let mut new_dag = DAGCircuit::from_circuit_data(py, output_circuit, true)?;
+        let new_dag = convert_circuit_to_dag_with_data(py, dag, &output_circuit)?;
 
-        // Fix qregs / cregs for the new dag
-        for reg in dag.py_qregs(py).bind(py).values() {
-            new_dag.add_qreg(py, &reg)?;
-        }
-        for reg in dag.py_cregs(py).bind(py).values() {
-            new_dag.add_creg(py, &reg)?;
-        }
         Ok(Some(new_dag))
     }
+}
+
+/// Converts circuit to DAGCircuit, while taking the missing DAGCircuit data from dag.
+fn convert_circuit_to_dag_with_data(
+    py: Python,
+    dag: &DAGCircuit,
+    circuit: &CircuitData,
+) -> PyResult<DAGCircuit> {
+    println!("==> IN B");
+
+    let mut new_dag = dag.copy_empty_like(py, "alike")?;
+    new_dag.set_global_phase(circuit.global_phase().clone())?;
+    let qarg_map = new_dag.merge_qargs(circuit.qargs_interner(), |bit| Some(*bit));
+    let carg_map = new_dag.merge_cargs(circuit.cargs_interner(), |bit: &Clbit| Some(*bit));
+
+    new_dag.try_extend(
+        py,
+        circuit.iter().map(|instr| -> PyResult<PackedInstruction> {
+            Ok(PackedInstruction {
+                // op: instr.op.clone(),
+                op: instr.op.py_deepcopy(py, None)?,
+                qubits: qarg_map[instr.qubits],
+                clbits: carg_map[instr.clbits],
+                params: instr.params.clone(),
+                extra_attrs: instr.extra_attrs.clone(),
+                #[cfg(feature = "cache_pygates")]
+                py_op: OnceLock::new(),
+            })
+        }),
+    )?;
+
+    println!("==> IN X");
+
+    Ok(new_dag)
 }
 
 pub fn high_level_synthesis_mod(m: &Bound<PyModule>) -> PyResult<()> {
