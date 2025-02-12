@@ -178,6 +178,15 @@ class TestStoreCircuit(QiskitTestCase):
         qc.store(a, 255)
         self.assertEqual(qc.data[-1].operation, Store(a, expr.Value(255, a.type)))
 
+    def test_implicitly_casts_const_scalars(self):
+        a = expr.Var.new("a", types.Uint(8))
+        qc = QuantumCircuit(inputs=[a])
+        qc.store(a, expr.lift(1, types.Uint(8, const=True)))
+        self.assertEqual(
+            qc.data[-1].operation,
+            Store(a, expr.Cast(expr.Value(1, types.Uint(8, const=True)), a.type, implicit=True)),
+        )
+
     def test_does_not_widen_bool_literal(self):
         # `bool` is a subclass of `int` in Python (except some arithmetic operations have different
         # semantics...).  It's not in Qiskit's value type system, though.
@@ -226,10 +235,13 @@ class TestStoreCircuit(QiskitTestCase):
     def test_rejects_non_lvalue(self):
         a = expr.Var.new("a", types.Bool())
         b = expr.Var.new("b", types.Bool())
-        qc = QuantumCircuit(inputs=[a, b])
+        c = expr.Var.new("c", types.Bool(const=True))
+        qc = QuantumCircuit(inputs=[a, b, c])
         not_an_lvalue = expr.logic_and(a, b)
         with self.assertRaisesRegex(CircuitError, "not an l-value"):
             qc.store(not_an_lvalue, expr.lift(False))
+        with self.assertRaisesRegex(CircuitError, "not an l-value"):
+            qc.store(c, expr.lift(False))
 
     def test_rejects_explicit_cast(self):
         lvalue = expr.Var.new("a", types.Uint(16))
