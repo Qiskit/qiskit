@@ -233,7 +233,7 @@ pub struct HighLevelSynthesisData {
 
     // The equivalence library used (instructions in this library will not
     // be unrolled by this pass)
-    equivalence_library: Option<EquivalenceLibrary>,
+    equivalence_library: Option<Py<EquivalenceLibrary>>,
 
     // Supported instructions in case that target is not specified.
     device_insts: HashSet<String>,
@@ -260,7 +260,7 @@ impl HighLevelSynthesisData {
         hls_op_names: Vec<String>,
         coupling_map: Py<PyAny>,
         target: Option<Py<Target>>,
-        equivalence_library: Option<EquivalenceLibrary>,
+        equivalence_library: Option<Py<EquivalenceLibrary>>,
         device_insts: HashSet<String>,
         use_qubit_indices: bool,
         min_qubits: usize,
@@ -371,7 +371,7 @@ pub fn definitely_skip_op(
     }
 
     if let Some(equiv_lib) = &data.equivalence_library {
-        if equiv_lib.has_entry(op) {
+        if equiv_lib.borrow(py).has_entry(op) {
             return true;
         }
     }
@@ -664,7 +664,7 @@ fn synthesize_operation(
     // Check if present in the equivalent library.
     if output_circuit_and_qubits.is_none() {
         if let Some(equiv_lib) = &data.equivalence_library {
-            if equiv_lib.has_entry(op) {
+            if equiv_lib.borrow(py).has_entry(op) {
                 return Ok(None);
             }
         }
