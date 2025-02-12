@@ -239,8 +239,11 @@ Bool(const=False), implicit=True), \
 Bool(const=False))
     """
     operand = lift(operand)
-    operand = _coerce_lossless(operand, types.Bool(const=operand.type.const))
-    return Unary(Unary.Op.LOGIC_NOT, operand, operand.type)
+    try:
+        operand = _coerce_lossless(operand, types.Bool(const=operand.type.const))
+        return Unary(Unary.Op.LOGIC_NOT, operand, operand.type)
+    except TypeError:
+        raise TypeError(f"cannot apply '{Unary.Op.BIT_NOT}' to type '{operand.type}'")
 
 
 def _lift_binary_operands(left: typing.Any, right: typing.Any) -> tuple[Expr, Expr]:
@@ -384,9 +387,12 @@ def _binary_logical(op: Binary.Op, left: typing.Any, right: typing.Any) -> Expr:
     left = lift(left)
     right = lift(right)
     type = types.Bool(const=(left.type.const and right.type.const))
-    left = _coerce_lossless(left, type)
-    right = _coerce_lossless(right, type)
-    return Binary(op, left, right, type)
+    try:
+        left = _coerce_lossless(left, type)
+        right = _coerce_lossless(right, type)
+        return Binary(op, left, right, type)
+    except TypeError:
+        raise TypeError(f"invalid types for '{op}': '{left.type}' and '{right.type}'")
 
 
 def logic_and(left: typing.Any, right: typing.Any, /) -> Expr:
