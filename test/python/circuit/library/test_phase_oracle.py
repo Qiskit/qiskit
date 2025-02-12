@@ -37,11 +37,7 @@ class TestPhaseOracle(QiskitTestCase):
     @unpack
     def test_evaluate_bitstring(self, expression, input_bitstring, expected):
         """PhaseOracle(...).evaluate_bitstring"""
-        with self.assertWarnsRegex(
-            DeprecationWarning,
-            expected_regex="BooleanExpression`` is deprecated as of qiskit 1.4",
-        ):
-            oracle = PhaseOracle(expression)
+        oracle = PhaseOracle(expression)
         result = oracle.evaluate_bitstring(input_bitstring)
         self.assertEqual(result, expected)
 
@@ -54,11 +50,7 @@ class TestPhaseOracle(QiskitTestCase):
     @unpack
     def test_statevector(self, expression, good_states):
         """Circuit generation"""
-        with self.assertWarnsRegex(
-            DeprecationWarning,
-            expected_regex="BooleanExpression`` is deprecated as of qiskit 1.4",
-        ):
-            oracle = PhaseOracle(expression)
+        oracle = PhaseOracle(expression)
         num_qubits = oracle.num_qubits
         circuit = QuantumCircuit(num_qubits)
         circuit.h(range(num_qubits))
@@ -84,11 +76,7 @@ class TestPhaseOracle(QiskitTestCase):
     @unpack
     def test_variable_order(self, expression, var_order, good_states):
         """Circuit generation"""
-        with self.assertWarnsRegex(
-            DeprecationWarning,
-            expected_regex="BooleanExpression`` is deprecated as of qiskit 1.4",
-        ):
-            oracle = PhaseOracle(expression, var_order=var_order)
+        oracle = PhaseOracle(expression, var_order=var_order)
         num_qubits = oracle.num_qubits
         circuit = QuantumCircuit(num_qubits)
         circuit.h(range(num_qubits))

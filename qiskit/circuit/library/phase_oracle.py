@@ -63,6 +63,11 @@ class PhaseOracle(QuantumCircuit):
             var_order(list): A list with the order in which variables will be created.
                (default: by appearance)
         """
+        # ignore deprecation warning for BooleanExpression; implementation is changing in 2.0
+        import warnings
+
+        warnings.simplefilter("ignore", DeprecationWarning)
+
         from qiskit.circuit.classicalfunction.boolean_expression import BooleanExpression
         from qiskit.circuit.classicalfunction.classical_element import ClassicalElement
 

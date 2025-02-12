@@ -31,7 +31,9 @@ class ClassicalFunction(ClassicalElement):
     @deprecate_func(
         since="1.4",
         removal_timeline="in Qiskit 2.0",
-        additional_msg="Use `PhaseOracle` or `BitFlipOracle` instead",
+        additional_msg="Use `PhaseOracle` instead, which can be turned into a "
+        "bit-flip oracle by applying Hadamard gates on the target "
+        "qubit before and after the instruction.",
     )
     def __init__(self, source, name=None):
         """Creates a ``ClassicalFunction`` from Python source code in ``source``.
