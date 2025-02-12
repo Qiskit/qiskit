@@ -204,7 +204,7 @@ impl QubitTracker {
 }
 
 /// Internal class that encapsulates immutable data required by the HighLevelSynthesis transpiler pass.
-#[pyclass(module="qiskit._accelerate.high_level_synthesis")]
+#[pyclass(module = "qiskit._accelerate.high_level_synthesis")]
 #[derive(Clone, Debug)]
 pub struct HighLevelSynthesisData {
     // The high-level-synthesis config that specifies the synthesis methods
@@ -344,15 +344,15 @@ impl HighLevelSynthesisData {
 /// Check whether an operation is natively supported.
 pub fn instruction_supported(
     py: Python,
-    data: &HighLevelSynthesisData,
+    data: &Bound<HighLevelSynthesisData>,
     name: &str,
     qubits: &[Qubit],
 ) -> bool {
-    match &data.target {
+    match &data.borrow().target {
         Some(target) => {
             let target = target.borrow(py);
             if target.num_qubits.is_some() {
-                if data.use_qubit_indices {
+                if data.borrow().use_qubit_indices {
                     let physical_qubits = qubits
                         .iter()
                         .map(|q| PhysicalQubit(q.index() as u32))
@@ -362,21 +362,21 @@ pub fn instruction_supported(
                     target.instruction_supported(name, None)
                 }
             } else {
-                data.device_insts.contains(name)
+                data.borrow().device_insts.contains(name)
             }
         }
-        None => data.device_insts.contains(name),
+        None => data.borrow().device_insts.contains(name),
     }
 }
 
 /// Check whether an operation does not need to be synthesized.
 pub fn definitely_skip_op(
     py: Python,
-    data: &HighLevelSynthesisData,
+    data: &Bound<HighLevelSynthesisData>,
     op: &PackedOperation,
     qubits: &[Qubit],
 ) -> bool {
-    if qubits.len() < data.min_qubits {
+    if qubits.len() < data.borrow().min_qubits {
         return true;
     }
 
@@ -395,11 +395,11 @@ pub fn definitely_skip_op(
 
     // If there are avilable plugins for this operation, we should try them
     // before checking the equivalence library.
-    if data.hls_op_names.iter().any(|s| s == op.name()) {
+    if data.borrow().hls_op_names.iter().any(|s| s == op.name()) {
         return false;
     }
 
-    if let Some(equiv_lib) = &data.equivalence_library {
+    if let Some(equiv_lib) = &data.borrow().equivalence_library {
         if equiv_lib.borrow(py).has_entry(op) {
             return true;
         }
@@ -424,7 +424,7 @@ fn run_on_circuitdata(
     py: Python,
     input_circuit: &CircuitData,
     input_qubits: &[usize],
-    data: &HighLevelSynthesisData,
+    data: &Bound<HighLevelSynthesisData>,
     tracker: &mut QubitTracker,
 ) -> PyResult<(CircuitData, Vec<usize>)> {
     if input_circuit.num_qubits() != input_qubits.len() {
@@ -651,7 +651,7 @@ fn run_on_circuitdata(
 /// each global qubit (whether it's clean, dirty, or cannot be used).
 fn synthesize_operation(
     py: Python,
-    data: &HighLevelSynthesisData,
+    data: &Bound<HighLevelSynthesisData>,
     tracker: &mut QubitTracker,
     input_qubits: &[usize],
     op: &PackedOperation,
@@ -678,7 +678,7 @@ fn synthesize_operation(
     // change, we return None.
 
     // Try to synthesize using plugins.
-    if data.hls_op_names.iter().any(|s| s == op.name()) {
+    if data.borrow().hls_op_names.iter().any(|s| s == op.name()) {
         output_circuit_and_qubits = synthesize_op_using_plugins(
             py,
             data,
@@ -692,7 +692,7 @@ fn synthesize_operation(
 
     // Check if present in the equivalent library.
     if output_circuit_and_qubits.is_none() {
-        if let Some(equiv_lib) = &data.equivalence_library {
+        if let Some(equiv_lib) = &data.borrow().equivalence_library {
             if equiv_lib.borrow(py).has_entry(op) {
                 return Ok(None);
             }
@@ -700,7 +700,7 @@ fn synthesize_operation(
     }
 
     // Extract definition.
-    if output_circuit_and_qubits.is_none() && data.unroll_definitions {
+    if output_circuit_and_qubits.is_none() && data.borrow().unroll_definitions {
         let definition_circuit = op.definition(params);
         match definition_circuit {
             Some(definition_circuit) => {
@@ -753,7 +753,7 @@ fn synthesize_operation(
 /// Currently, this function does not update the qubit tracker, which is handled upstream.
 fn synthesize_op_using_plugins(
     py: Python,
-    data: &HighLevelSynthesisData,
+    data: &Bound<HighLevelSynthesisData>,
     tracker: &QubitTracker,
     input_qubits: &[usize],
     op: &OperationRef,
@@ -778,7 +778,7 @@ fn synthesize_op_using_plugins(
     // ToDo: how can we avoid cloning data and tracker?
     let res = HLS_SYNTHESIZE_OP_USING_PLUGINS
         .get_bound(py)
-        .call1((op_py, input_qubits, data.clone(), tracker.clone()))?
+        .call1((op_py, input_qubits, data, tracker.clone()))?
         .extract::<Option<(QuantumCircuitData, Vec<usize>)>>()?;
 
     if let Some((quantum_circuit_data, qubits)) = res {
@@ -798,7 +798,7 @@ pub fn py_synthesize_operation(
     py: Python,
     py_op: Bound<PyAny>,
     input_qubits: Vec<usize>,
-    data: &HighLevelSynthesisData,
+    data: &Bound<HighLevelSynthesisData>,
     tracker: &mut QubitTracker,
 ) -> PyResult<Option<(CircuitData, Vec<usize>)>> {
     let op: OperationFromPython = py_op.extract()?;
@@ -823,7 +823,7 @@ pub fn py_synthesize_operation(
 pub fn py_run_on_dag(
     py: Python,
     dag: &DAGCircuit,
-    data: &HighLevelSynthesisData,
+    data: &Bound<HighLevelSynthesisData>,
     qubits_initially_zero: bool,
 ) -> PyResult<Option<DAGCircuit>> {
     // Fast-path: check if HighLevelSynthesis can be skipped altogether. This is only
