@@ -236,8 +236,7 @@ def _lift_binary_operands(left: typing.Any, right: typing.Any) -> tuple[Expr, Ex
     position to match the other operand.
 
     Const-ness is handled as follows:
-      * If neither operand is an expression, both are lifted to share the same const-ness.
-        Both will be const, if possible. Else, neither will be.
+      * If neither operand is an expression, both are lifted as non-const.
       * If only one operand is an expression, the other is lifted with the same const-ness, if possible.
         Otherwise, the returned operands will have different const-ness, and thus may require a cast node
         to be interoperable.
