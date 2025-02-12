@@ -366,18 +366,20 @@ class PiecewiseChebyshevGate(Gate):
     Examples:
 
         .. plot::
+           :alt: Example of generating a circuit with the piecewise Chebychev gate.
            :include-source:
 
             import numpy as np
             from qiskit import QuantumCircuit
-            from qiskit.circuit.library.arithmetic.piecewise_chebyshev import PiecewiseChebyshev
-            f_x, degree, breakpoints, num_state_qubits = lambda x: np.arcsin(1 / x), 2, [2, 4], 2
-            pw_approximation = PiecewiseChebyshev(f_x, degree, breakpoints, num_state_qubits)
-            pw_approximation._build()
+            from qiskit.circuit.library.arithmetic import PiecewiseChebyshevGate
+
+            f_x, num_state_qubits, degree, breakpoints = lambda x: np.arcsin(1 / x), 2, 2, [2, 4]
+            pw_approximation = PiecewiseChebyshevGate(f_x, num_state_qubits, degree, breakpoints)
+
             qc = QuantumCircuit(pw_approximation.num_qubits)
             qc.h(list(range(num_state_qubits)))
-            qc.append(pw_approximation.to_instruction(), qc.qubits)
-            qc.draw(output='mpl')
+            qc.append(pw_approximation, qc.qubits)
+            qc.draw(output="mpl")
 
     References:
 
@@ -401,11 +403,11 @@ class PiecewiseChebyshevGate(Gate):
         Args:
             f_x: the function to be approximated. Constant functions should be specified
              as f_x = constant.
+            num_state_qubits: number of qubits representing the state.
             degree: the degree of the polynomials.
                 Defaults to ``1``.
             breakpoints: the breakpoints to define the piecewise-linear function.
                 Defaults to the full interval.
-            num_state_qubits: number of qubits representing the state.
             label: A label for the gate.
         """
         # Store parameters
@@ -413,7 +415,6 @@ class PiecewiseChebyshevGate(Gate):
         self.degree = degree if degree is not None else 1
         self.breakpoints = breakpoints if breakpoints is not None else [0]
 
-        # TODO need an additional comparison qubit like Pw Pauli Rot
         num_compare = 0 if breakpoints is None else int(len(breakpoints) > 1)
         super().__init__("PiecewiseChebychev", num_state_qubits + num_compare + 1, [], label)
 
