@@ -4192,15 +4192,15 @@ class TestControlFlowBuildersFailurePaths(QiskitTestCase):
         with self.assertRaises(CircuitError):
             Store(uint_var, bool_expr)
         base = QuantumCircuit()
-        with base.while_loop(expr.lift(False, try_const=False)):
+        with base.while_loop(expr.lift(False)):
             # Should succeed.
-            b = base.add_var("b", expr.lift(False, try_const=False))
+            b = base.add_var("b", expr.lift(False))
             try:
                 base.add_var(uint_var, bool_expr)
             except CircuitError:
                 pass
             # Should succeed.
-            c = base.add_var("c", expr.lift(False, try_const=False))
+            c = base.add_var("c", expr.lift(False))
             local_vars = set(base.iter_vars())
         self.assertEqual(local_vars, {b, c})
 

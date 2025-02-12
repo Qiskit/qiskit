@@ -3836,11 +3836,11 @@ class QuantumCircuit:
                 Create a new variable in the circuit that can be written to with this method.
         """
         # As a convenience, lift integer-literal rvalues to the matching width.
-        lvalue = expr.lift(lvalue, try_const=False)
+        lvalue = expr.lift(lvalue)
         rvalue_type = (
             lvalue.type if isinstance(rvalue, int) and not isinstance(rvalue, bool) else None
         )
-        rvalue = expr.lift(rvalue, rvalue_type, try_const=False)
+        rvalue = expr.lift(rvalue, rvalue_type)
         return self.append(Store(lvalue, rvalue), (), (), copy=False)
 
     def measure(self, qubit: QubitSpecifier, cbit: ClbitSpecifier) -> InstructionSet:

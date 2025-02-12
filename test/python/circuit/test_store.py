@@ -31,7 +31,7 @@ class TestStoreInstruction(QiskitTestCase):
 
     def test_store_to_index(self):
         lvalue = expr.index(expr.Var.new("a", types.Uint(8)), 3)
-        rvalue = expr.lift(False, try_const=False)
+        rvalue = expr.lift(False)
         constructed = Store(lvalue, rvalue)
         self.assertIsInstance(constructed, Store)
         self.assertEqual(constructed.lvalue, lvalue)
@@ -115,7 +115,7 @@ class TestStoreCircuit(QiskitTestCase):
         qc.store(a, expr.lift(clbits[1]))
 
         expected = [
-            Store(expr.lift(clbits[0]), expr.lift(True, try_const=False)),
+            Store(expr.lift(clbits[0]), expr.lift(True)),
             Store(expr.lift(clbits[1]), a),
             Store(expr.lift(clbits[0]), expr.lift(clbits[1])),
             Store(expr.lift(clbits[0]), expr.lift(clbits[1])),
@@ -135,7 +135,7 @@ class TestStoreCircuit(QiskitTestCase):
         qc.store(a, cregs[1])
 
         expected = [
-            Store(expr.lift(cregs[0]), expr.lift(0xFF, try_const=False)),
+            Store(expr.lift(cregs[0]), expr.lift(0xFF)),
             Store(expr.lift(cregs[1]), a),
             Store(expr.lift(cregs[0]), expr.lift(cregs[1])),
             Store(expr.lift(cregs[0]), expr.lift(cregs[1])),
@@ -152,8 +152,8 @@ class TestStoreCircuit(QiskitTestCase):
         qc.store(expr.index(a, 3), True)
         qc.store(expr.index(cr, a), expr.index(cr, 0))
         expected = [
-            Store(expr.index(cr, 0), expr.lift(False, try_const=False)),
-            Store(expr.index(a, 3), expr.lift(True, try_const=False)),
+            Store(expr.index(cr, 0), expr.lift(False)),
+            Store(expr.index(a, 3), expr.lift(True)),
             Store(expr.index(cr, a), expr.index(cr, 0)),
         ]
         actual = [instruction.operation for instruction in qc.data]
@@ -163,12 +163,12 @@ class TestStoreCircuit(QiskitTestCase):
         a = expr.Var.new("a", types.Bool())
         qc = QuantumCircuit(captures=[a])
         qc.store(a, True)
-        self.assertEqual(qc.data[-1].operation, Store(a, expr.lift(True, try_const=False)))
+        self.assertEqual(qc.data[-1].operation, Store(a, expr.lift(True)))
 
         b = expr.Var.new("b", types.Uint(16))
         qc.add_capture(b)
         qc.store(b, 0xFFFF)
-        self.assertEqual(qc.data[-1].operation, Store(b, expr.lift(0xFFFF, try_const=False)))
+        self.assertEqual(qc.data[-1].operation, Store(b, expr.lift(0xFFFF)))
 
     def test_lifts_integer_literals_to_full_width(self):
         a = expr.Var.new("a", types.Uint(8))
