@@ -60,8 +60,8 @@ use rustworkx_core::petgraph::visit::{
 };
 use rustworkx_core::petgraph::Incoming;
 use rustworkx_core::traversal::{
-    ancestors as core_ancestors, bfs_successors as core_bfs_successors,
-    descendants as core_descendants,
+    ancestors as core_ancestors, bfs_predecessors as core_bfs_predecessors,
+    bfs_successors as core_bfs_successors, descendants as core_descendants,
 };
 
 use std::cmp::Ordering;
@@ -4830,6 +4830,12 @@ def _format(operand):
 }
 
 impl DAGCircuit {
+    /// Returns an immutable view of the qubit io map
+    #[inline(always)]
+    pub fn qubit_io_map(&self) -> &[[NodeIndex; 2]] {
+        &self.qubit_io_map
+    }
+
     /// Returns an immutable view of the inner StableGraph managed by the circuit.
     #[inline(always)]
     pub fn dag(&self) -> &StableDiGraph<NodeType, Wire> {
@@ -5639,7 +5645,11 @@ impl DAGCircuit {
     /// Remove an operation node n.
     ///
     /// Add edges from predecessors to successors.
-    pub fn remove_op_node(&mut self, index: NodeIndex) {
+    ///
+    /// # Returns
+    ///
+    /// The removed [PackedInstruction] is returned
+    pub fn remove_op_node(&mut self, index: NodeIndex) -> PackedInstruction {
         let mut edge_list: Vec<(NodeIndex, NodeIndex, Wire)> = Vec::new();
         for (source, in_weight) in self
             .dag
@@ -5664,6 +5674,7 @@ impl DAGCircuit {
             Some(NodeType::Operation(packed)) => {
                 let op_name = packed.op.name();
                 self.decrement_op(op_name);
+                packed
             }
             _ => panic!("Must be called with valid operation node!"),
         }
@@ -5686,6 +5697,15 @@ impl DAGCircuit {
         node: NodeIndex,
     ) -> impl Iterator<Item = (NodeIndex, Vec<NodeIndex>)> + '_ {
         core_bfs_successors(&self.dag, node).filter(move |(_, others)| !others.is_empty())
+    }
+
+    /// Returns an iterator of tuples of (DAGNode, [DAGNodes]) where the DAGNode is the current node
+    /// and [DAGNode] is its predecessors in BFS order.
+    pub fn bfs_predecessors(
+        &self,
+        node: NodeIndex,
+    ) -> impl Iterator<Item = (NodeIndex, Vec<NodeIndex>)> + '_ {
+        core_bfs_predecessors(&self.dag, node).filter(move |(_, others)| !others.is_empty())
     }
 
     fn pack_into(&mut self, py: Python, b: &Bound<PyAny>) -> Result<NodeType, PyErr> {
