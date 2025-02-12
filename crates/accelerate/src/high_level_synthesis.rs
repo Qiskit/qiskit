@@ -204,7 +204,7 @@ impl QubitTracker {
 }
 
 /// Internal class that encapsulates immutable data required by the HighLevelSynthesis transpiler pass.
-#[pyclass]
+#[pyclass(module="qiskit._accelerate.high_level_synthesis")]
 #[derive(Clone, Debug)]
 pub struct HighLevelSynthesisData {
     // The high-level-synthesis config that specifies the synthesis methods
@@ -278,6 +278,35 @@ impl HighLevelSynthesisData {
             min_qubits,
             unroll_definitions,
         }
+    }
+
+    pub fn __getnewargs__(
+        &self,
+        py: Python,
+    ) -> (
+        Py<PyAny>,
+        Py<PyAny>,
+        Vec<String>,
+        Py<PyAny>,
+        Option<Py<Target>>,
+        Option<Py<EquivalenceLibrary>>,
+        HashSet<String>,
+        bool,
+        usize,
+        bool,
+    ) {
+        (
+            self.hls_config.clone_ref(py),
+            self.hls_plugin_manager.clone_ref(py),
+            self.hls_op_names.clone(),
+            self.coupling_map.clone_ref(py),
+            self.target.clone(),
+            self.equivalence_library.clone(),
+            self.device_insts.clone(),
+            self.use_qubit_indices,
+            self.min_qubits,
+            self.unroll_definitions,
+        )
     }
 
     pub fn get_hls_config(&self) -> &Py<PyAny> {
