@@ -19,6 +19,7 @@ from __future__ import annotations
 
 __all__ = [
     "lift",
+    "cast",
     "bit_not",
     "logic_not",
     "bit_and",
@@ -32,6 +33,9 @@ __all__ = [
     "less_equal",
     "greater",
     "greater_equal",
+    "shift_left",
+    "shift_right",
+    "index",
     "lift_legacy_condition",
 ]
 
@@ -157,6 +161,9 @@ def lift(value: typing.Any, /, type: types.Type | None = None, *, try_const: boo
             raise ValueError("cannot represent a negative value")
         inferred = types.Uint(width=value.bit_length() or 1, const=try_const)
         constructor = Value
+    elif isinstance(value, float):
+        inferred = types.Float(const=try_const)
+        constructor = Value
     else:
         raise TypeError(f"failed to infer a type for '{value}'")
     if type is None:
@@ -247,22 +254,22 @@ def _lift_binary_operands(left: typing.Any, right: typing.Any) -> tuple[Expr, Ex
         to be interoperable.
       * If both operands are expressions, they are returned as-is, and may require a cast node.
     """
-    left_bool = isinstance(left, bool)
+    left_other_literal = isinstance(left, (bool, float))
     left_int = isinstance(left, int) and not isinstance(left, bool)
-    right_bool = isinstance(right, bool)
-    right_int = isinstance(right, int) and not right_bool
+    right_other_literal = isinstance(right, (bool, float))
+    right_int = isinstance(right, int) and not right_other_literal
     if not (left_int or right_int):
-        if left_bool == right_bool:
-            # They're either both bool, or neither are, so we lift them
+        if left_other_literal == right_other_literal:
+            # They're either both literals or neither are, so we lift them
             # independently.
             left = lift(left)
             right = lift(right)
-        elif not right_bool:
-            # Left is a bool, which should only be const if right is const.
+        elif not right_other_literal:
+            # Left is a literal, which should only be const if right is const.
             right = lift(right)
             left = lift(left, try_const=right.type.const)
-        elif not left_bool:
-            # Right is a bool, which should only be const if left is const.
+        elif not left_other_literal:
+            # Right is a literal, which should only be const if left is const.
             left = lift(left)
             right = lift(right, try_const=left.type.const)
     elif not right_int:

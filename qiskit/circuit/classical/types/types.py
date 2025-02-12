@@ -19,7 +19,7 @@
 
 from __future__ import annotations
 
-__all__ = ["Type", "Bool", "Uint"]
+__all__ = ["Type", "Bool", "Float", "Uint"]
 
 import typing
 
@@ -102,3 +102,24 @@ class Uint(Type):
 
     def __eq__(self, other):
         return isinstance(other, Uint) and self.const == other.const and self.width == other.width
+
+
+@typing.final
+class Float(Type):
+    """A floating point number of unspecified width.
+    In the future, this may also be used to represent a fixed-width float.
+    """
+
+    __slots__ = ("const",)
+
+    def __init__(self, *, const: bool = False):
+        super(Type, self).__setattr__("const", const)
+
+    def __repr__(self):
+        return f"Float(const={self.const})"
+
+    def __hash__(self):
+        return hash((self.__class__, self.const))
+
+    def __eq__(self, other):
+        return isinstance(other, Float) and self.const == other.const
