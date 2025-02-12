@@ -229,7 +229,7 @@ pub struct HighLevelSynthesisData {
     // Optional, the backend target to use for this pass. If it is specified,
     // it will be used instead of the coupling map.
     // ToDo: currently this is a problematic member of the class.
-    target: Option<Target>,
+    target: Option<Py<Target>>,
 
     // The equivalence library used (instructions in this library will not
     // be unrolled by this pass)
@@ -259,7 +259,7 @@ impl HighLevelSynthesisData {
         hls_plugin_manager: Py<PyAny>,
         hls_op_names: Vec<String>,
         coupling_map: Py<PyAny>,
-        target: Option<Target>,
+        target: Option<Py<Target>>,
         equivalence_library: Option<EquivalenceLibrary>,
         device_insts: HashSet<String>,
         use_qubit_indices: bool,
@@ -292,10 +292,13 @@ impl HighLevelSynthesisData {
         &self.coupling_map
     }
 
-    // ToDo: this is a problematic line that involves both cloning the target and
     // triggers a compiler warning about the visibility of target.
-    pub fn get_target(&self) -> Option<Target> {
-        self.target.clone()
+    pub fn get_target(&self, py: Python) -> Option<Py<Target>> {
+        match &self.target {
+            Some(target) => Some(target.clone_ref(py)),
+            None => None,
+        }
+        // self.target.clone()
     }
 
     pub fn get_use_qubit_indices(&self) -> bool {
@@ -310,9 +313,15 @@ impl HighLevelSynthesisData {
 }
 
 /// Check whether an operation is natively supported.
-pub fn instruction_supported(data: &HighLevelSynthesisData, name: &str, qubits: &[Qubit]) -> bool {
+pub fn instruction_supported(
+    py: Python,
+    data: &HighLevelSynthesisData,
+    name: &str,
+    qubits: &[Qubit],
+) -> bool {
     match &data.target {
         Some(target) => {
+            let target = target.borrow(py);
             if target.num_qubits.is_some() {
                 if data.use_qubit_indices {
                     let physical_qubits = qubits
@@ -333,6 +342,7 @@ pub fn instruction_supported(data: &HighLevelSynthesisData, name: &str, qubits: 
 
 /// Check whether an operation does not need to be synthesized.
 pub fn definitely_skip_op(
+    py: Python,
     data: &HighLevelSynthesisData,
     op: &PackedOperation,
     qubits: &[Qubit],
@@ -350,7 +360,7 @@ pub fn definitely_skip_op(
     }
 
     // If the operation is natively supported, we can skip it.
-    if instruction_supported(data, op.name(), qubits) {
+    if instruction_supported(py, data, op.name(), qubits) {
         return true;
     }
 
@@ -438,7 +448,7 @@ fn run_on_circuitdata(
 
         // Check if synthesis for this operation can be skipped
         let op_qargs: Vec<Qubit> = op_qubits.iter().map(|q| Qubit(*q as u32)).collect();
-        if definitely_skip_op(data, &inst.op, &op_qargs) {
+        if definitely_skip_op(py, data, &inst.op, &op_qargs) {
             output_circuit.push(py, inst.clone())?;
             tracker.set_dirty(op_qubits);
             continue;
@@ -794,7 +804,7 @@ pub fn py_run_on_dag(
     for (node_index, inst) in dag.op_nodes(false) {
         let qubits = dag.get_qargs(inst.qubits);
         if !dag.has_calibration_for_index(py, node_index)?
-            && !definitely_skip_op(data, &inst.op, qubits)
+            && !definitely_skip_op(py, data, &inst.op, qubits)
         {
             fast_path = false;
             break;
