@@ -227,6 +227,7 @@ _ALLOWED_CASTS = {
     (Uint, Float): lambda _a, _b, /: CastKind.DANGEROUS,
     (Float, Float): lambda _a, _b, /: CastKind.EQUAL,
     (Float, Uint): lambda _a, _b, /: CastKind.DANGEROUS,
+    (Float, Bool): lambda _a, _b, /: CastKind.DANGEROUS,
 }
 
 
