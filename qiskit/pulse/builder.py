@@ -104,14 +104,12 @@ Channels
 
 Methods to return the correct channels for the respective qubit indices.
 
-.. plot::
-   :include-source:
-   :nofigs:
+.. code-block:: python
 
     from qiskit import pulse
     from qiskit.providers.fake_provider import GenericBackendV2
 
-    backend = GenericBackendV2(num_qubits=2, calibrate_instructions=True)
+    backend = GenericBackendV2(num_qubits=2)
 
     with pulse.build(backend) as drive_sched:
         d0 = pulse.drive_channel(0)
@@ -132,14 +130,12 @@ Instructions
 
 Pulse instructions are available within the builder interface. Here's an example:
 
-.. plot::
-   :alt: Output from the previous code.
-   :include-source:
+.. code-block:: python
 
     from qiskit import pulse
     from qiskit.providers.fake_provider import GenericBackendV2
 
-    backend = GenericBackendV2(num_qubits=2, calibrate_instructions=True)
+    backend = GenericBackendV2(num_qubits=2)
 
     with pulse.build(backend) as drive_sched:
         d0 = pulse.drive_channel(0)
@@ -181,9 +177,7 @@ Builder aware contexts that modify the construction of a pulse program. For
 example an alignment context like :func:`align_right` may
 be used to align all pulses as late as possible in a pulse program.
 
-.. plot::
-   :alt: Output from the previous code.
-   :include-source:
+.. code-block:: python
 
    from qiskit import pulse
 
@@ -213,14 +207,12 @@ Macros
 
 Macros help you add more complex functionality to your pulse program.
 
-.. plot::
-   :include-source:
-   :nofigs:
+.. code-block:: python
 
     from qiskit import pulse
     from qiskit.providers.fake_provider import GenericBackendV2
 
-    backend = GenericBackendV2(num_qubits=2, calibrate_instructions=True)
+    backend = GenericBackendV2(num_qubits=2)
 
     with pulse.build(backend) as measure_sched:
         mem_slot = pulse.measure(0)
@@ -241,15 +233,13 @@ Utilities
 The utility functions can be used to gather attributes about the backend and modify
 how the program is built.
 
-.. plot::
-   :include-source:
-   :nofigs:
+.. code-block:: python
 
     from qiskit import pulse
 
     from qiskit.providers.fake_provider import GenericBackendV2
 
-    backend = GenericBackendV2(num_qubits=2, calibrate_instructions=True)
+    backend = GenericBackendV2(num_qubits=2)
 
     with pulse.build(backend) as u3_sched:
         print('Number of qubits in backend: {}'.format(pulse.num_qubits()))
@@ -651,10 +641,7 @@ def build(
 
     To enter a building context and starting building a pulse program:
 
-    .. plot::
-       :include-source:
-       :nofigs:
-       :context: reset
+    .. code-block:: python
 
         from qiskit import transpile, pulse
         from qiskit.providers.fake_provider import FakeOpenPulse2Q
@@ -750,9 +737,7 @@ def append_instruction(instruction: instructions.Instruction):
 
     Examples:
 
-    .. plot::
-       :include-source:
-       :nofigs:
+    .. code-block:: python
 
         from qiskit import pulse
 
@@ -1663,15 +1648,12 @@ def call(
 
         1. Calling a schedule block (recommended)
 
-        .. plot::
-           :include-source:
-           :nofigs:
-           :context: reset
+        .. code-block:: python
 
             from qiskit import circuit, pulse
             from qiskit.providers.fake_provider import GenericBackendV2
 
-            backend = GenericBackendV2(num_qubits=5, calibrate_instructions=True)
+            backend = GenericBackendV2(num_qubits=5)
 
             with pulse.build() as x_sched:
                 pulse.play(pulse.Gaussian(160, 0.1, 40), pulse.DriveChannel(0))
@@ -1698,10 +1680,7 @@ def call(
 
         The actual program is stored in the reference table attached to the schedule.
 
-        .. plot::
-           :include-source:
-           :nofigs:
-           :context:
+        .. code-block:: python
 
             print(pulse_prog.references)
 
@@ -1712,10 +1691,7 @@ def call(
 
         In addition, you can call a parameterized target program with parameter assignment.
 
-        .. plot::
-           :include-source:
-           :nofigs:
-           :context:
+        .. code-block:: python
 
             amp = circuit.Parameter("amp")
 
@@ -1754,10 +1730,7 @@ def call(
         If there is a name collision between parameters, you can distinguish them by specifying
         each parameter object in a python dictionary. For example,
 
-        .. plot::
-           :include-source:
-           :nofigs:
-           :context:
+        .. code-block:: python
 
             amp1 = circuit.Parameter('amp')
             amp2 = circuit.Parameter('amp')
@@ -1786,10 +1759,7 @@ def call(
 
         2. Calling a schedule
 
-        .. plot::
-           :include-source:
-           :nofigs:
-           :context:
+        .. code-block:: python
 
             x_sched = backend.instruction_schedule_map.get("x", (0,))
 
@@ -1927,9 +1897,7 @@ def barrier(*channels_or_qubits: chans.Channel | int, name: str | None = None):
     in the case where we are calling an outside circuit or schedule and
     want to align a pulse at the end of one call:
 
-    .. plot::
-       :include-source:
-       :nofigs:
+    .. code-block:: python
 
         import math
         from qiskit import pulse
@@ -2040,10 +2008,7 @@ def measure(
     To use the measurement it is as simple as specifying the qubit you wish to
     measure:
 
-    .. plot::
-       :include-source:
-       :nofigs:
-       :context: reset
+    .. code-block:: python
 
         from qiskit import pulse
         from qiskit.providers.fake_provider import FakeOpenPulse2Q
@@ -2063,10 +2028,7 @@ def measure(
     future we will support using this handle to a result register to build
     up ones program. It is also possible to supply this register:
 
-    .. plot::
-       :include-source:
-       :nofigs:
-       :context:
+    .. code-block:: python
 
         with pulse.build(backend) as pulse_prog:
             pulse.play(pulse.Constant(100, 1.0), qubit_drive_chan)
