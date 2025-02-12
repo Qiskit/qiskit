@@ -10,15 +10,15 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use pyo3::intern;
+use nalgebra::Matrix2;
+use num_complex::Complex64;
 use pyo3::prelude::*;
-use pyo3::types::PyDict;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
+use smallvec::{smallvec, SmallVec};
 
-use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, Wire};
-use qiskit_circuit::imports::UNITARY_GATE;
-use qiskit_circuit::operations::{Operation, Param};
+use qiskit_circuit::operations::{ArrayType, Operation, OperationRef, Param, UnitaryGate};
+use qiskit_circuit::packed_instruction::PackedOperation;
 
 use crate::two_qubit_decompose::{Specialization, TwoQubitWeylDecomposition};
 
@@ -39,7 +39,7 @@ pub fn split_2q_unitaries(
             // We only attempt to split UnitaryGate objects, but this could be extended in future
             // -- however we need to ensure that we can compile the resulting single-qubit unitaries
             // to the supported basis gate set.
-            if qubits.len() != 2 || inst.op.name() != "unitary" {
+            if qubits.len() != 2 || !matches!(inst.op.view(), OperationRef::Unitary(_)) {
                 continue;
             }
             let matrix = inst
@@ -52,22 +52,33 @@ pub fn split_2q_unitaries(
                 None,
             )?;
             if matches!(decomp.specialization, Specialization::IdEquiv) {
-                let k1r_arr = decomp.K1r(py);
-                let k1l_arr = decomp.K1l(py);
-                let kwargs = PyDict::new(py);
-                kwargs.set_item(intern!(py, "num_qubits"), 1)?;
-                let k1r_gate = UNITARY_GATE
-                    .get_bound(py)
-                    .call((k1r_arr, py.None(), false), Some(&kwargs))?;
-                let k1l_gate = UNITARY_GATE
-                    .get_bound(py)
-                    .call((k1l_arr, py.None(), false), Some(&kwargs))?;
-                let insert_fn = |edge: &Wire| -> PyResult<OperationFromPython> {
+                let k1r_arr = decomp.k1r_view();
+                let k1l_arr = decomp.k1l_view();
+
+                let insert_fn = |edge: &Wire| -> (PackedOperation, SmallVec<[Param; 3]>) {
                     if let Wire::Qubit(qubit) = edge {
                         if *qubit == qubits[0] {
-                            k1r_gate.extract()
+                            let mat: Matrix2<Complex64> = [
+                                [k1r_arr[[0, 0]], k1r_arr[[0, 1]]],
+                                [k1r_arr[[1, 0]], k1r_arr[[1, 1]]],
+                            ]
+                            .into();
+                            let k1r_gate = Box::new(UnitaryGate {
+                                array: ArrayType::OneQ(mat),
+                            });
+                            (PackedOperation::from_unitary(k1r_gate), smallvec![])
                         } else {
-                            k1l_gate.extract()
+                            let mat: Matrix2<Complex64> = [
+                                [k1l_arr[[0, 0]], k1l_arr[[0, 1]]],
+                                [k1l_arr[[1, 0]], k1l_arr[[1, 1]]],
+                            ]
+                            .into();
+
+                            let k1l_gate = Box::new(UnitaryGate {
+                                array: ArrayType::OneQ(mat),
+                            });
+
+                            (PackedOperation::from_unitary(k1l_gate), smallvec![])
                         }
                     } else {
                         unreachable!("This will only be called on ops with no classical wires.");
