@@ -47,7 +47,7 @@ use std::sync::OnceLock;
 /// and dirty (unknown).
 #[pyclass]
 #[derive(Clone, Debug)]
-pub struct QubitTracker {
+struct QubitTracker {
     /// The total number of global qubits
     num_qubits: usize,
     /// Stores the state for each qubit: `true` means clean, `false` means dirty
@@ -61,7 +61,7 @@ pub struct QubitTracker {
 #[pymethods]
 impl QubitTracker {
     #[new]
-    pub fn new(num_qubits: usize, qubits_initially_zero: bool) -> Self {
+    fn new(num_qubits: usize, qubits_initially_zero: bool) -> Self {
         QubitTracker {
             num_qubits,
             state: vec![qubits_initially_zero; num_qubits],
@@ -179,7 +179,7 @@ impl QubitTracker {
     }
 
     /// Pretty-prints
-    pub fn __str__(&self) -> String {
+    fn __str__(&self) -> String {
         let mut out = String::from("QubitTracker(");
         for q in 0..self.num_qubits {
             out.push_str(&q.to_string());
@@ -206,7 +206,7 @@ impl QubitTracker {
 /// Internal class that encapsulates immutable data required by the HighLevelSynthesis transpiler pass.
 #[pyclass(module = "qiskit._accelerate.high_level_synthesis")]
 #[derive(Clone, Debug)]
-pub struct HighLevelSynthesisData {
+struct HighLevelSynthesisData {
     // The high-level-synthesis config that specifies the synthesis methods
     // to use for high-level-objects in the circuit.
     // This is only accessedfrom the Python space.
@@ -280,7 +280,7 @@ impl HighLevelSynthesisData {
         }
     }
 
-    pub fn __getnewargs__(
+    fn __getnewargs__(
         &self,
         py: Python,
     ) -> (
@@ -309,20 +309,20 @@ impl HighLevelSynthesisData {
         )
     }
 
-    pub fn get_hls_config(&self) -> &Py<PyAny> {
+    fn get_hls_config(&self) -> &Py<PyAny> {
         &self.hls_config
     }
 
-    pub fn get_hls_plugin_manager(&self) -> &Py<PyAny> {
+    fn get_hls_plugin_manager(&self) -> &Py<PyAny> {
         &self.hls_plugin_manager
     }
 
-    pub fn get_coupling_map(&self) -> &Py<PyAny> {
+    fn get_coupling_map(&self) -> &Py<PyAny> {
         &self.coupling_map
     }
 
     // triggers a compiler warning about the visibility of target.
-    pub fn get_target(&self, py: Python) -> Option<Py<Target>> {
+    fn get_target(&self, py: Python) -> Option<Py<Target>> {
         match &self.target {
             Some(target) => Some(target.clone_ref(py)),
             None => None,
@@ -330,11 +330,11 @@ impl HighLevelSynthesisData {
         // self.target.clone()
     }
 
-    pub fn get_use_qubit_indices(&self) -> bool {
+    fn get_use_qubit_indices(&self) -> bool {
         self.use_qubit_indices
     }
 
-    pub fn __str__(&self) -> String {
+    fn __str__(&self) -> String {
         let mut out = String::from("HighLevelSynthesisData: ");
         out.push_str(&self.min_qubits.to_string());
         out
@@ -342,7 +342,7 @@ impl HighLevelSynthesisData {
 }
 
 /// Check whether an operation is natively supported.
-pub fn instruction_supported(
+fn instruction_supported(
     py: Python,
     data: &Bound<HighLevelSynthesisData>,
     name: &str,
@@ -370,7 +370,7 @@ pub fn instruction_supported(
 }
 
 /// Check whether an operation does not need to be synthesized.
-pub fn definitely_skip_op(
+fn definitely_skip_op(
     py: Python,
     data: &Bound<HighLevelSynthesisData>,
     op: &PackedOperation,
@@ -796,7 +796,7 @@ fn synthesize_op_using_plugins(
 /// synthesize the base operation.
 #[pyfunction]
 #[pyo3(signature = (py_op, input_qubits, data, tracker))]
-pub fn py_synthesize_operation(
+fn py_synthesize_operation(
     py: Python,
     py_op: Bound<PyAny>,
     input_qubits: Vec<usize>,
@@ -822,7 +822,7 @@ pub fn py_synthesize_operation(
 /// Otherwise, the new DAG is returned.
 #[pyfunction]
 #[pyo3(signature = (dag, data, qubits_initially_zero))]
-pub fn py_run_on_dag(
+fn py_run_on_dag(
     py: Python,
     dag: &DAGCircuit,
     data: &Bound<HighLevelSynthesisData>,
