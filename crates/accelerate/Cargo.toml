@@ -15,7 +15,7 @@ workspace = true
 [dependencies]
 rayon.workspace = true
 numpy.workspace = true
-rand = "0.8"
+rand = "0.9"
 rand_pcg = "0.3"
 rand_distr = "0.4.3"
 ahash.workspace = true
