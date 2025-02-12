@@ -97,9 +97,8 @@ def lift(value: typing.Any, /, type: types.Type | None = None, *, try_const: boo
     By default, lifted scalars are not const.  To lift supported scalars to const-typed
     expressions, specify `try_const=True`.
 
-    If an explicit ``type`` is given, the typing in the output will reflect that.
-    The ``type`` must be const if ``try_const`` is specified and ``value`` can lift to
-    a const expression.
+    If an explicit ``type`` is given, the typing in the output will reflect that,
+    including its const-ness. The ``try_const`` parameter is ignored when this is specified.
 
     Examples:
         Lifting simple circuit objects to be :class:`~.expr.Var` instances::
@@ -136,6 +135,10 @@ def lift(value: typing.Any, /, type: types.Type | None = None, *, try_const: boo
         return value
     from qiskit.circuit import Clbit, ClassicalRegister  # pylint: disable=cyclic-import
 
+    if type is not None:
+        # If a type was specified, the inferred type must be the same
+        # const-ness.
+        try_const = type.const
     inferred: types.Type
     if value is True or value is False:
         inferred = types.Bool(const=try_const)
@@ -407,7 +410,10 @@ def logic_or(left: typing.Any, right: typing.Any, /) -> Expr:
 
 def _equal_like(op: Binary.Op, left: typing.Any, right: typing.Any) -> Expr:
     left, right = _lift_binary_operands(left, right)
-    if left.type.kind is not right.type.kind:
+    if (
+        left.type.kind is not right.type.kind
+        or types.order(left.type, right.type) is types.Ordering.NONE
+    ):
         raise TypeError(f"invalid types for '{op}': '{left.type}' and '{right.type}'")
     type = types.greater(left.type, right.type)
     return Binary(
@@ -456,7 +462,11 @@ Uint(3, const=False))
 
 def _binary_relation(op: Binary.Op, left: typing.Any, right: typing.Any) -> Expr:
     left, right = _lift_binary_operands(left, right)
-    if left.type.kind is not right.type.kind or left.type.kind is types.Bool:
+    if (
+        left.type.kind is not right.type.kind
+        or left.type.kind is types.Bool
+        or types.order(left.type, right.type) is types.Ordering.NONE
+    ):
         raise TypeError(f"invalid types for '{op}': '{left.type}' and '{right.type}'")
     type = types.greater(left.type, right.type)
     return Binary(

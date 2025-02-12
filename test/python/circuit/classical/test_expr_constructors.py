@@ -84,15 +84,27 @@ class TestExprConstructors(QiskitTestCase):
 
     def test_value_lifts_python_builtins(self):
         self.assertEqual(expr.lift(True), expr.Value(True, types.Bool()))
+        self.assertEqual(expr.lift(True, try_const=True), expr.Value(True, types.Bool(const=True)))
         self.assertEqual(expr.lift(False), expr.Value(False, types.Bool()))
+        self.assertEqual(
+            expr.lift(False, try_const=True), expr.Value(False, types.Bool(const=True))
+        )
         self.assertEqual(expr.lift(7), expr.Value(7, types.Uint(3)))
+        self.assertEqual(expr.lift(7, try_const=True), expr.Value(7, types.Uint(3, const=True)))
 
     def test_value_ensures_nonzero_width(self):
         self.assertEqual(expr.lift(0), expr.Value(0, types.Uint(1)))
+        self.assertEqual(expr.lift(0, try_const=True), expr.Value(0, types.Uint(1, const=True)))
 
     def test_value_type_representation(self):
         self.assertEqual(expr.lift(5), expr.Value(5, types.Uint((5).bit_length())))
+        self.assertEqual(
+            expr.lift(5, try_const=True), expr.Value(5, types.Uint((5).bit_length(), const=True))
+        )
         self.assertEqual(expr.lift(5, types.Uint(8)), expr.Value(5, types.Uint(8)))
+        self.assertEqual(
+            expr.lift(5, types.Uint(8, const=True)), expr.Value(5, types.Uint(8, const=True))
+        )
 
         cr = ClassicalRegister(3, "c")
         self.assertEqual(expr.lift(cr, types.Uint(8)), expr.Var(cr, types.Uint(8)))
@@ -111,6 +123,12 @@ class TestExprConstructors(QiskitTestCase):
         """A specific request to add a cast in means that we should respect that in the type tree,
         even if the cast is a no-op."""
         base = expr.Value(5, types.Uint(8))
+        self.assertEqual(
+            expr.cast(base, types.Uint(8)), expr.Cast(base, types.Uint(8), implicit=False)
+        )
+
+    def test_cast_adds_node_when_shedding_const(self):
+        base = expr.Value(5, types.Uint(8, const=True))
         self.assertEqual(
             expr.cast(base, types.Uint(8)), expr.Cast(base, types.Uint(8), implicit=False)
         )
@@ -148,6 +166,14 @@ class TestExprConstructors(QiskitTestCase):
             expr.bit_not(clbit),
             expr.Unary(expr.Unary.Op.BIT_NOT, expr.Var(clbit, types.Bool()), types.Bool()),
         )
+        self.assertEqual(
+            expr.bit_not(expr.Value(3, types.Uint(2, const=True))),
+            expr.Unary(
+                expr.Unary.Op.BIT_NOT,
+                expr.Value(3, types.Uint(2, const=True)),
+                types.Uint(2, const=True),
+            ),
+        )
 
     def test_logic_not_explicit(self):
         cr = ClassicalRegister(3)
@@ -163,6 +189,16 @@ class TestExprConstructors(QiskitTestCase):
         self.assertEqual(
             expr.logic_not(clbit),
             expr.Unary(expr.Unary.Op.LOGIC_NOT, expr.Var(clbit, types.Bool()), types.Bool()),
+        )
+        self.assertEqual(
+            expr.logic_not(expr.Value(3, types.Uint(2, const=True))),
+            expr.Unary(
+                expr.Unary.Op.LOGIC_NOT,
+                expr.Cast(
+                    expr.Value(3, types.Uint(2, const=True)), types.Bool(const=True), implicit=True
+                ),
+                types.Bool(const=True),
+            ),
         )
 
     @ddt.data(
@@ -185,6 +221,31 @@ class TestExprConstructors(QiskitTestCase):
         self.assertEqual(function(left, right), function(expr.lift(left), expr.lift(right)))
 
     @ddt.data(
+        (expr.bit_and, 6, 7),
+        (expr.bit_or, 5, 6),
+        (expr.bit_xor, 255, 254),
+        (expr.equal, 254, 255),
+        (expr.not_equal, 255, 255),
+        (expr.less, 5, 4),
+        (expr.less_equal, 3, 3),
+        (expr.greater, 254, 255),
+        (expr.greater_equal, 4, 5),
+    )
+    @ddt.unpack
+    def test_binary_functions_lift_scalars_const(self, function, left, right):
+        """If one operand is an expr with a const type, the other scalar should be lifted as const.
+        Note that logical operators (e.g. logic_and, logic_or) are excluded since these lift operands
+        independently."""
+        self.assertEqual(
+            function(expr.lift(left, try_const=True), right),
+            function(expr.lift(left, try_const=True), expr.lift(right, try_const=True)),
+        )
+        self.assertEqual(
+            function(left, expr.lift(right, try_const=True)),
+            function(expr.lift(left, try_const=True), expr.lift(right, try_const=True)),
+        )
+
+    @ddt.data(
         (expr.bit_and, expr.Binary.Op.BIT_AND),
         (expr.bit_or, expr.Binary.Op.BIT_OR),
         (expr.bit_xor, expr.Binary.Op.BIT_XOR),
@@ -204,7 +265,15 @@ class TestExprConstructors(QiskitTestCase):
                 opcode, expr.Value(255, types.Uint(8)), expr.Var(cr, types.Uint(8)), types.Uint(8)
             ),
         )
-
+        self.assertEqual(
+            function(expr.lift(255, try_const=True), cr),
+            expr.Binary(
+                opcode,
+                expr.Cast(expr.Value(255, types.Uint(8, const=True)), types.Uint(8), implicit=True),
+                expr.Var(cr, types.Uint(8)),
+                types.Uint(8),
+            ),
+        )
         clbit = Clbit()
         self.assertEqual(
             function(True, clbit),
@@ -222,6 +291,24 @@ class TestExprConstructors(QiskitTestCase):
                 expr.Var(clbit, types.Bool()),
                 expr.Value(False, types.Bool()),
                 types.Bool(),
+            ),
+        )
+        self.assertEqual(
+            function(255, 255),
+            expr.Binary(
+                opcode,
+                expr.Value(255, types.Uint(8)),
+                expr.Value(255, types.Uint(8)),
+                types.Uint(8),
+            ),
+        )
+        self.assertEqual(
+            function(expr.lift(255, try_const=True), 255),
+            expr.Binary(
+                opcode,
+                expr.Value(255, types.Uint(8, const=True)),
+                expr.Value(255, types.Uint(8, const=True)),
+                types.Uint(8, const=True),
             ),
         )
 
@@ -306,11 +393,32 @@ class TestExprConstructors(QiskitTestCase):
         )
 
         self.assertEqual(
+            function(cr, expr.lift(3, try_const=True)),
+            expr.Binary(
+                opcode,
+                expr.Cast(expr.Var(cr, types.Uint(cr.size)), types.Bool(), implicit=True),
+                expr.Cast(expr.Value(3, types.Uint(2, const=True)), types.Bool(), implicit=True),
+                types.Bool(),
+            ),
+        )
+
+        self.assertEqual(
             function(False, clbit),
             expr.Binary(
                 opcode,
                 expr.Value(False, types.Bool()),
                 expr.Var(clbit, types.Bool()),
+                types.Bool(),
+            ),
+        )
+
+        # Logical operations lift their operands independently.
+        self.assertEqual(
+            function(expr.lift(False, try_const=True), 1),
+            expr.Binary(
+                opcode,
+                expr.Cast(expr.Value(False, types.Bool(const=True)), types.Bool(), implicit=True),
+                expr.Cast(expr.Value(1, types.Uint(1)), types.Bool(), implicit=True),
                 types.Bool(),
             ),
         )
@@ -342,12 +450,33 @@ class TestExprConstructors(QiskitTestCase):
         )
 
         self.assertEqual(
+            function(expr.lift(7, try_const=True), cr),
+            expr.Binary(
+                opcode,
+                # Explicit cast required to get from Uint(3) to Uint(8)
+                expr.Cast(expr.Value(7, types.Uint(3, const=True)), types.Uint(8), implicit=False),
+                expr.Var(cr, types.Uint(8)),
+                types.Bool(),
+            ),
+        )
+
+        self.assertEqual(
             function(clbit, True),
             expr.Binary(
                 opcode,
                 expr.Var(clbit, types.Bool()),
                 expr.Value(True, types.Bool()),
                 types.Bool(),
+            ),
+        )
+
+        self.assertEqual(
+            function(expr.lift(False, try_const=True), True),
+            expr.Binary(
+                opcode,
+                expr.Value(False, types.Bool(const=True)),
+                expr.Value(True, types.Bool(const=True)),
+                types.Bool(const=True),
             ),
         )
 
@@ -359,6 +488,9 @@ class TestExprConstructors(QiskitTestCase):
             function(ClassicalRegister(3, "c"), False)
         with self.assertRaisesRegex(TypeError, "invalid types"):
             function(5, True)
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            # No order between a smaller non-const int and larger const.
+            function(expr.lift(0xFF, types.Uint(8)), expr.lift(0xFFFF, types.Uint(16, const=True)))
 
     @ddt.data(
         (expr.less, expr.Binary.Op.LESS),
@@ -387,6 +519,31 @@ class TestExprConstructors(QiskitTestCase):
             ),
         )
 
+        self.assertEqual(
+            function(expr.lift(12, try_const=True), cr),
+            expr.Binary(
+                opcode,
+                # Explicit cast required to get from Uint(4) to Uint(8)
+                expr.Cast(expr.Value(12, types.Uint(4, const=True)), types.Uint(8), implicit=False),
+                expr.Var(cr, types.Uint(8)),
+                types.Bool(),
+            ),
+        )
+
+        self.assertEqual(
+            function(expr.lift(12, types.Uint(8, const=True)), expr.lift(12, try_const=True)),
+            expr.Binary(
+                opcode,
+                expr.Value(12, types.Uint(8, const=True)),
+                expr.Cast(
+                    expr.Value(12, types.Uint(4, const=True)),
+                    types.Uint(8, const=True),
+                    implicit=False,
+                ),
+                types.Bool(const=True),
+            ),
+        )
+
     @ddt.data(expr.less, expr.less_equal, expr.greater, expr.greater_equal)
     def test_binary_relation_forbidden(self, function):
         with self.assertRaisesRegex(TypeError, "invalid types"):
@@ -395,6 +552,9 @@ class TestExprConstructors(QiskitTestCase):
             function(ClassicalRegister(3, "c"), False)
         with self.assertRaisesRegex(TypeError, "invalid types"):
             function(Clbit(), Clbit())
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            # No order between a smaller non-const int and larger const.
+            function(expr.lift(0xFF, types.Uint(8)), expr.lift(0xFFFF, types.Uint(16, const=True)))
 
     def test_index_explicit(self):
         cr = ClassicalRegister(4, "c")
@@ -407,6 +567,24 @@ class TestExprConstructors(QiskitTestCase):
         self.assertEqual(
             expr.index(a, cr),
             expr.Index(a, expr.Var(cr, types.Uint(4)), types.Bool()),
+        )
+        # The index arg gets lifted to match the const-ness of the target.
+        self.assertEqual(
+            expr.index(expr.lift(0xFF, try_const=True), 2),
+            expr.Index(
+                expr.Value(0xFF, types.Uint(8, const=True)),
+                expr.Value(2, types.Uint(2, const=True)),
+                types.Bool(const=True),
+            ),
+        )
+        # ...but not the other way around.
+        self.assertEqual(
+            expr.index(expr.lift(0xFF), expr.lift(2, try_const=True)),
+            expr.Index(
+                expr.Value(0xFF, types.Uint(8)),
+                expr.Value(2, types.Uint(2, const=True)),
+                types.Bool(),
+            ),
         )
 
     def test_index_forbidden(self):
