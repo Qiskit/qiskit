@@ -609,6 +609,15 @@ class TestExprConstructors(QiskitTestCase):
             ),
         )
         self.assertEqual(
+            function(cr, expr.lift(5, try_const=True)),
+            expr.Binary(
+                opcode,
+                expr.Var(cr, types.Uint(8)),
+                expr.Value(5, types.Uint(3, const=True)),
+                types.Uint(8),
+            ),
+        )
+        self.assertEqual(
             function(a, cr),
             expr.Binary(opcode, a, expr.Var(cr, types.Uint(8)), types.Uint(4)),
         )
@@ -616,6 +625,38 @@ class TestExprConstructors(QiskitTestCase):
             function(3, 5, types.Uint(8)),
             expr.Binary(
                 opcode, expr.Value(3, types.Uint(8)), expr.Value(5, types.Uint(3)), types.Uint(8)
+            ),
+        )
+        self.assertEqual(
+            function(3, 5, types.Uint(8, const=True)),
+            expr.Binary(
+                opcode,
+                expr.Value(3, types.Uint(8, const=True)),
+                expr.Value(5, types.Uint(3, const=True)),
+                types.Uint(8, const=True),
+            ),
+        )
+        self.assertEqual(
+            function(expr.lift(3, try_const=True), 5, types.Uint(8, const=True)),
+            expr.Binary(
+                opcode,
+                expr.Cast(
+                    expr.Value(3, types.Uint(2, const=True)),
+                    types.Uint(8, const=True),
+                    implicit=False,
+                ),
+                expr.Value(5, types.Uint(3, const=True)),
+                types.Uint(8, const=True),
+            ),
+        )
+        self.assertEqual(
+            function(expr.lift(3, try_const=True), 5, types.Uint(8)),
+            expr.Binary(
+                opcode,
+                expr.Cast(expr.Value(3, types.Uint(2, const=True)), types.Uint(8), implicit=False),
+                # Lifts as non-const because target type types.Uint(8) is non-const.
+                expr.Value(5, types.Uint(3)),
+                types.Uint(8),
             ),
         )
 
