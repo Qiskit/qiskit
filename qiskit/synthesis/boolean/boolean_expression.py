@@ -16,7 +16,7 @@ import ast
 import itertools
 import re
 from os.path import isfile
-from typing import Union
+from typing import Union, Callable
 import numpy as np
 
 from .boolean_expression_visitor import (
@@ -32,7 +32,7 @@ class TruthTable:
         12  # above this number of bits, do not explicitly save the values in a list
     )
 
-    def __init__(self, func, num_bits):
+    def __init__(self, func: Callable, num_bits: int):
         self.func = func
         self.num_bits = num_bits
         self.explicit_storage = self.num_bits <= self.EXPLICIT_REP_THRESHOLD
@@ -44,15 +44,15 @@ class TruthTable:
         else:
             self.implicit_values = {}
 
-    def all_assignments(self):
-        """Return an ordered list of all assignments, ordered from left to right
+    def all_assignments(self) -> list[tuple[bool]]:
+        """Return an ordered list of all assignments, ordered from right to left
         i.e. 000, 100, 010, 110, 001, 101, 011, 111"""
         return [
             tuple(reversed(assignment))
             for assignment in itertools.product([False, True], repeat=self.num_bits)
         ]
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: Union[str, tuple[bool]]) -> bool:
         if isinstance(key, str):
             key = (bit != "0" for bit in key)
         if self.explicit_storage:
@@ -61,7 +61,7 @@ class TruthTable:
         else:
             return self.implicit_values.setdefault(key, self.func(key))
 
-    def __str__(self):
+    def __str__(self) -> str:
         if self.explicit_storage:
             return "".join(
                 "1" if self[assignemnt] else "0" for assignemnt in self.all_assignments()

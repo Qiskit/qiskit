@@ -58,8 +58,6 @@ class EsopGenerator:
                 return ["-" * self.truth_table.num_bits]  # True; a don't care clause
             else:
                 return []  # False
-        if assignment in self.cofactor_table:
-            return self.cofactor_table[assignment]
         i = len(assignment)  # current variable
         negative_esop = self.generate_esop(assignment + (False,))
         positive_esop = self.generate_esop(assignment + (True,))
