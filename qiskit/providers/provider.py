@@ -30,7 +30,7 @@ class Provider:
     version = 0
 
     @deprecate_func(
-        since=1.1,
+        since="1.1",
         additional_msg="The abstract Provider and ProviderV1 classes are deprecated and will be "
         "removed in 2.0. You can just remove it as the parent class and a `get_backend` "
         "method that returns the backends from `self.backend`.",
@@ -45,7 +45,7 @@ class ProviderV1(Provider, ABC):
     version = 1
 
     @deprecate_func(
-        since=1.1,
+        since="1.1",
         additional_msg="The abstract Provider and ProviderV1 classes are deprecated and will  be "
         "removed in 2.0. You can just remove it as the parent class and a `get_backend` "
         "method that returns the backends from `self.backend`.",
