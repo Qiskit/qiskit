@@ -12,6 +12,9 @@
 
 use hashbrown::HashMap;
 use hashbrown::HashSet;
+use ndarray::prelude::*;
+use num_complex::Complex;
+use numpy::IntoPyArray;
 use pyo3::prelude::*;
 use pyo3::types::PyAny;
 use pyo3::types::PyTuple;
@@ -23,20 +26,27 @@ use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::converters::QuantumCircuitData;
 use qiskit_circuit::dag_circuit::DAGCircuit;
-use qiskit_circuit::imports::HLS_SYNTHESIZE_OP_USING_PLUGINS;
-use qiskit_circuit::imports::{QUANTUM_CIRCUIT, QUBIT};
+use qiskit_circuit::gate_matrix::CX_GATE;
+use qiskit_circuit::imports::{
+    HLS_SYNTHESIZE_OP_USING_PLUGINS, QS_DECOMPOSITION, QUANTUM_CIRCUIT, QUBIT,
+};
 use qiskit_circuit::operations::Operation;
 use qiskit_circuit::operations::OperationRef;
+use qiskit_circuit::operations::StandardGate;
 use qiskit_circuit::operations::{radd_param, Param};
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::Clbit;
 use qiskit_circuit::Qubit;
+use smallvec::SmallVec;
 
 use crate::equivalence::EquivalenceLibrary;
+use crate::euler_one_qubit_decomposer::angles_from_unitary;
+use crate::euler_one_qubit_decomposer::EulerBasis;
 use crate::nlayout::PhysicalQubit;
 use crate::target_transpiler::exceptions::TranspilerError;
 use crate::target_transpiler::Target;
+use crate::two_qubit_decompose::TwoQubitBasisDecomposer;
 
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
@@ -636,6 +646,84 @@ fn run_on_circuitdata(
     Ok((output_circuit, output_qubits))
 }
 
+/// Produces a definition circuit for an operation.
+///
+/// Essentially this function constructs a default definition for a unitary gate, in which case
+/// ``op.definition`` purposefully returns ``None``.
+/// For all other operation types, it simply calls ``op.definition``.
+fn extract_definition(
+    py: Python,
+    op: &PackedOperation,
+    params: &[Param],
+) -> PyResult<Option<CircuitData>> {
+    match op.view() {
+        OperationRef::Unitary(unitary) => {
+            let unitary: Array<Complex<f64>, Dim<[usize; 2]>> = match unitary.matrix(&[]) {
+                Some(unitary) => unitary,
+                None => return Err(TranspilerError::new_err("Unitary not found")),
+            };
+            match unitary.shape() {
+                // Run 1q synthesis
+                [2, 2] => {
+                    let [theta, phi, lam, phase] =
+                        angles_from_unitary(unitary.view(), EulerBasis::U);
+                    let mut circuit_data: CircuitData =
+                        CircuitData::with_capacity(py, 1, 0, 1, Param::Float(phase))?;
+                    circuit_data.push_standard_gate(
+                        StandardGate::UGate,
+                        &[Param::Float(theta), Param::Float(phi), Param::Float(lam)],
+                        &[Qubit(0)],
+                    )?;
+                    Ok(Some(circuit_data))
+                }
+                // Run 2q synthesis
+                [4, 4] => {
+                    let decomposer = TwoQubitBasisDecomposer::new_inner(
+                        "cx".to_string(),
+                        aview2(&CX_GATE),
+                        1.0,
+                        "U",
+                        None,
+                    )?;
+                    let two_qubit_sequence =
+                        decomposer.call_inner(unitary.view(), None, false, None)?;
+                    let standard_gates: Vec<(
+                        StandardGate,
+                        SmallVec<[Param; 3]>,
+                        SmallVec<[Qubit; 2]>,
+                    )> = two_qubit_sequence
+                        .gates()
+                        .into_iter()
+                        .map(|(gate, params_floats, qubit_indices)| {
+                            let unwrapped_gate = gate.unwrap_or(StandardGate::CXGate);
+                            let params: SmallVec<[Param; 3]> =
+                                params_floats.iter().map(|p| Param::Float(*p)).collect();
+                            let qubits = qubit_indices.iter().map(|q| Qubit(*q as u32)).collect();
+                            (unwrapped_gate, params, qubits)
+                        })
+                        .collect();
+                    let circuit_data = CircuitData::from_standard_gates(
+                        py,
+                        2,
+                        standard_gates,
+                        Param::Float(two_qubit_sequence.global_phase()),
+                    )?;
+                    Ok(Some(circuit_data))
+                }
+                // Run 3q+ synthesis
+                _ => {
+                    let qs_decomposition: &Bound<'_, PyAny> = QS_DECOMPOSITION.get_bound(py);
+                    let synthesized_circuit_py =
+                        qs_decomposition.call1((unitary.into_pyarray(py),))?;
+                    let circuit_data: QuantumCircuitData = synthesized_circuit_py.extract()?;
+                    Ok(Some(circuit_data.data))
+                }
+            }
+        }
+        _ => Ok(op.definition(params)),
+    }
+}
+
 /// Recursively synthesizes a single operation.
 ///
 /// The input to this function is the operation to be synthesized (consisting of a
@@ -701,7 +789,7 @@ fn synthesize_operation(
 
     // Extract definition.
     if output_circuit_and_qubits.is_none() && data.borrow().unroll_definitions {
-        let definition_circuit = op.definition(params);
+        let definition_circuit = extract_definition(py, op, params)?;
         match definition_circuit {
             Some(definition_circuit) => {
                 output_circuit_and_qubits = Some((definition_circuit, input_qubits.to_vec()));
@@ -869,8 +957,6 @@ fn convert_circuit_to_dag_with_data(
     dag: &DAGCircuit,
     circuit: &CircuitData,
 ) -> PyResult<DAGCircuit> {
-    println!("==> IN B");
-
     let mut new_dag = dag.copy_empty_like(py, "alike")?;
     new_dag.set_global_phase(circuit.global_phase().clone())?;
     let qarg_map = new_dag.merge_qargs(circuit.qargs_interner(), |bit| Some(*bit));
@@ -891,9 +977,6 @@ fn convert_circuit_to_dag_with_data(
             })
         }),
     )?;
-
-    println!("==> IN X");
-
     Ok(new_dag)
 }
 
