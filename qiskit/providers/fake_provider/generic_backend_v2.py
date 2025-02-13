@@ -90,6 +90,7 @@ class GenericBackendV2(BackendV2):
         coupling_map: list[list[int]] | CouplingMap | None = None,
         control_flow: bool = False,
         dtm: float | None = None,
+        dt: float | None = None,
         seed: int | None = None,
         noise_info: bool = True,
     ):
@@ -125,6 +126,9 @@ class GenericBackendV2(BackendV2):
             dtm: System time resolution of output signals in nanoseconds.
                 None by default.
 
+            dt: System time resolution of input signals in nanoseconds.
+                None by default.
+
             seed: Optional seed for generation of default values.
 
             noise_info: If true, associates gates and qubits with default noise information.
@@ -140,6 +144,7 @@ class GenericBackendV2(BackendV2):
         self._sim = None
         self._rng = np.random.default_rng(seed=seed)
         self._dtm = dtm
+        self._dt = dt
         self._num_qubits = num_qubits
         self._control_flow = control_flow
         self._supported_gates = get_standard_gate_name_mapping()
@@ -209,7 +214,7 @@ class GenericBackendV2(BackendV2):
             self._target = Target(
                 description=f"Generic Target with {self._num_qubits} qubits",
                 num_qubits=self._num_qubits,
-                dt=properties["dt"],
+                dt=properties["dt"] if self._dt is None else self._dt,
                 qubit_properties=None,
                 concurrent_measurements=[list(range(self._num_qubits))],
             )
@@ -217,7 +222,7 @@ class GenericBackendV2(BackendV2):
             self._target = Target(
                 description=f"Generic Target with {self._num_qubits} qubits",
                 num_qubits=self._num_qubits,
-                dt=properties["dt"],
+                dt=properties["dt"] if self._dt is None else self._dt,
                 qubit_properties=[
                     QubitProperties(
                         t1=self._rng.uniform(properties["t1"][0], properties["t1"][1]),
