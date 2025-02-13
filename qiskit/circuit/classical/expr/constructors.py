@@ -140,7 +140,7 @@ def lift(value: typing.Any, /, type: types.Type | None = None, *, try_const: boo
         if type is not None:
             raise ValueError("use 'cast' to cast existing expressions, not 'lift'")
         return value
-    from qiskit.circuit import Clbit, ClassicalRegister, Duration # pylint: disable=cyclic-import
+    from qiskit.circuit import Clbit, ClassicalRegister, Duration  # pylint: disable=cyclic-import
 
     if type is not None:
         # If a type was specified, the inferred type must be the same
@@ -438,6 +438,7 @@ def _equal_like(op: Binary.Op, left: typing.Any, right: typing.Any) -> Expr:
     left, right = _lift_binary_operands(left, right)
     if (
         left.type.kind is not right.type.kind
+        or left.type.kind is types.Stretch
         or types.order(left.type, right.type) is types.Ordering.NONE
     ):
         raise TypeError(f"invalid types for '{op}': '{left.type}' and '{right.type}'")
@@ -490,7 +491,7 @@ def _binary_relation(op: Binary.Op, left: typing.Any, right: typing.Any) -> Expr
     left, right = _lift_binary_operands(left, right)
     if (
         left.type.kind is not right.type.kind
-        or left.type.kind is types.Bool
+        or left.type.kind in (types.Bool, types.Stretch)
         or types.order(left.type, right.type) is types.Ordering.NONE
     ):
         raise TypeError(f"invalid types for '{op}': '{left.type}' and '{right.type}'")
