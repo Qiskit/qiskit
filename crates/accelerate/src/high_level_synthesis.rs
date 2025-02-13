@@ -15,6 +15,7 @@ use hashbrown::HashSet;
 use ndarray::prelude::*;
 use num_complex::Complex;
 use numpy::IntoPyArray;
+use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::types::PyAny;
 use pyo3::types::PyTuple;
@@ -219,16 +220,17 @@ impl QubitTracker {
 struct HighLevelSynthesisData {
     // The high-level-synthesis config that specifies the synthesis methods
     // to use for high-level-objects in the circuit.
-    // This is only accessedfrom the Python space.
+    // This is only accessed from the Python space.
     hls_config: Py<PyAny>,
 
     // The high-level-synthesis plugin manager that specifies the synthesis methods
     // available for various high-level-objects.
-    // This is only accessedfrom the Python space.
+    // This is only accessed from the Python space.
     hls_plugin_manager: Py<PyAny>,
 
-    // The names of high-level objects with available synthesis methods.
-    // This is an optimization to avoid calling Python code.
+    // The names of high-level objects with available synthesis plugins.
+    // This is an optimization to avoid calling python when an object has no
+    // synthesis plugins.
     hls_op_names: Vec<String>,
 
     // Optional, directed graph represented as a coupling map.
@@ -238,18 +240,19 @@ struct HighLevelSynthesisData {
 
     // Optional, the backend target to use for this pass. If it is specified,
     // it will be used instead of the coupling map.
-    // ToDo: currently this is a problematic member of the class.
+    // It needs to be used both from python and rust, and hence is represented
+    // as Py<Target> to avoid cloning.
     target: Option<Py<Target>>,
 
     // The equivalence library used (instructions in this library will not
-    // be unrolled by this pass)
+    // be unrolled by this pass).
     equivalence_library: Option<Py<EquivalenceLibrary>>,
 
     // Supported instructions in case that target is not specified.
     device_insts: HashSet<String>,
 
     // A flag indicating whether the qubit indices of high-level-objects in the
-    // circuit correspond to qubit indices on the target backend
+    // circuit correspond to qubit indices on the target backend.
     use_qubit_indices: bool,
 
     // The minimum number of qubits for operations in the input dag to translate.
@@ -318,7 +321,6 @@ impl HighLevelSynthesisData {
         &self.coupling_map
     }
 
-    // triggers a compiler warning about the visibility of target.
     fn get_target(&self, py: Python) -> Option<Py<Target>> {
         self.target.as_ref().map(|target| target.clone_ref(py))
     }
@@ -486,32 +488,46 @@ fn run_on_circuitdata(
             let quantum_circuit_cls = QUANTUM_CIRCUIT.get_bound(py);
             if let OperationRef::Instruction(py_inst) = inst.op.view() {
                 let old_blocks_as_bound_obj = py_inst.instruction.bind(py);
-                let old_blocks = old_blocks_as_bound_obj.getattr("blocks")?;
-                let old_blocks = old_blocks.downcast::<PyTuple>()?;
 
-                let mut new_blocks: Vec<Bound<PyAny>> = Vec::with_capacity(old_blocks.len());
+                // old_blocks_py keeps the orignal QuantumCircuit's appearing within control-flow ops
+                // new_blocks_py keeps the recursively synthesized circuits
+                let old_blocks_py = old_blocks_as_bound_obj.getattr(intern!(py, "blocks"))?;
+                let old_blocks_py = old_blocks_py.downcast::<PyTuple>()?;
+                let mut new_blocks_py: Vec<Bound<PyAny>> = Vec::with_capacity(old_blocks_py.len());
+
+                // We do not allow using any additional qubits outside of the block.
                 let block_tracker = tracker.clone();
                 let to_disable: Vec<usize> = (0..tracker.borrow().num_qubits())
                     .filter(|q| !op_qubits.contains(q))
                     .collect();
                 block_tracker.borrow_mut().disable(to_disable);
                 block_tracker.borrow_mut().set_dirty(op_qubits.clone());
-                for block in old_blocks {
-                    let old_block: QuantumCircuitData = block.extract()?;
-                    let (new_block, _) =
-                        run_on_circuitdata(py, &old_block.data, &op_qubits, data, &block_tracker)?;
+
+                for block_py in old_blocks_py {
+                    let old_block_py: QuantumCircuitData = block_py.extract()?;
+                    let (new_block, _) = run_on_circuitdata(
+                        py,
+                        &old_block_py.data,
+                        &op_qubits,
+                        data,
+                        &block_tracker,
+                    )?;
                     let new_block = new_block.into_bound_py_any(py)?;
-                    // ToDo: check global phase!
-                    let new_block_circuit =
-                        quantum_circuit_cls.call_method1("copy_empty_like", (block,))?;
 
-                    new_block_circuit.setattr("_data", new_block.as_ref())?;
-                    new_blocks.push(new_block_circuit);
+                    // We create the new quantum circuit by calling copy_empty_like on the old quantum circuit
+                    // and manually set the circuit data to the (recursively synthesized) data.
+                    // This makes sure that all the python-space information (qregs, cregs, input variables)
+                    // get copied correctly.
+                    let new_block_py: Bound<'_, PyAny> = quantum_circuit_cls
+                        .call_method1(intern!(py, "copy_empty_like"), (block_py,))?;
+                    new_block_py.setattr(intern!(py, "_data"), new_block.as_ref())?;
+                    new_blocks_py.push(new_block_py);
                 }
-                let replaced_blocks =
-                    old_blocks_as_bound_obj.call_method1("replace_blocks", (new_blocks,))?;
-                let synthesized_op: OperationFromPython = replaced_blocks.extract()?;
 
+                let replaced_blocks = old_blocks_as_bound_obj
+                    .call_method1(intern!(py, "replace_blocks"), (new_blocks_py,))?;
+
+                let synthesized_op: OperationFromPython = replaced_blocks.extract()?;
                 let packed_instruction = PackedInstruction {
                     op: synthesized_op.operation,
                     qubits: inst.qubits,
@@ -837,7 +853,6 @@ fn synthesize_op_using_plugins(
         OperationRef::Unitary(unitary) => unitary.create_py_op(py, extra_attrs)?.into_any(),
     };
 
-    // ToDo: how can we avoid cloning data and tracker?
     let res = HLS_SYNTHESIZE_OP_USING_PLUGINS
         .get_bound(py)
         .call1((op_py, input_qubits, data, tracker))?
@@ -923,12 +938,14 @@ fn py_run_on_dag(
     }
 }
 
-/// Converts circuit to DAGCircuit, while taking the missing DAGCircuit data from dag.
+/// Converts circuit to DAGCircuit, while taking the missing python data from dag.
 fn convert_circuit_to_dag_with_data(
     py: Python,
     dag: &DAGCircuit,
     circuit: &CircuitData,
 ) -> PyResult<DAGCircuit> {
+    // Calling copy_empty_like makes sure that all the python-space information (qregs, cregs, input variables)
+    // get copied correctly.
     let mut new_dag = dag.copy_empty_like(py, "alike")?;
     new_dag.set_global_phase(circuit.global_phase().clone())?;
     let qarg_map = new_dag.merge_qargs(circuit.qargs_interner(), |bit| Some(*bit));
@@ -938,8 +955,8 @@ fn convert_circuit_to_dag_with_data(
         py,
         circuit.iter().map(|instr| -> PyResult<PackedInstruction> {
             Ok(PackedInstruction {
-                // op: instr.op.clone(),
-                op: instr.op.py_deepcopy(py, None)?,
+                // SHould this be: op: instr.op.py_deepcopy(py, None)?,
+                op: instr.op.clone(),
                 qubits: qarg_map[instr.qubits],
                 clbits: carg_map[instr.clbits],
                 params: instr.params.clone(),
