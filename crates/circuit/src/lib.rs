@@ -10,6 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+pub mod bit;
 pub mod bit_data;
 pub mod circuit_data;
 pub mod circuit_instruction;
@@ -24,6 +25,7 @@ pub mod interner;
 pub mod operations;
 pub mod packed_instruction;
 pub mod parameter_table;
+pub mod register;
 pub mod slice;
 pub mod util;
 
