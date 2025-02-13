@@ -290,21 +290,7 @@ impl HighLevelSynthesisData {
         }
     }
 
-    fn __getnewargs__(
-        &self,
-        py: Python,
-    ) -> (
-        Py<PyAny>,
-        Py<PyAny>,
-        Vec<String>,
-        Py<PyAny>,
-        Option<Py<Target>>,
-        Option<Py<EquivalenceLibrary>>,
-        HashSet<String>,
-        bool,
-        usize,
-        bool,
-    ) {
+    fn __getnewargs__(&self, py: Python) -> PyResult<Py<PyAny>> {
         (
             self.hls_config.clone_ref(py),
             self.hls_plugin_manager.clone_ref(py),
@@ -317,6 +303,7 @@ impl HighLevelSynthesisData {
             self.min_qubits,
             self.unroll_definitions,
         )
+            .into_py_any(py)
     }
 
     fn get_hls_config(&self) -> &Py<PyAny> {
@@ -333,11 +320,7 @@ impl HighLevelSynthesisData {
 
     // triggers a compiler warning about the visibility of target.
     fn get_target(&self, py: Python) -> Option<Py<Target>> {
-        match &self.target {
-            Some(target) => Some(target.clone_ref(py)),
-            None => None,
-        }
-        // self.target.clone()
+        self.target.as_ref().map(|target| target.clone_ref(py))
     }
 
     fn get_use_qubit_indices(&self) -> bool {
@@ -507,7 +490,7 @@ fn run_on_circuitdata(
                 let old_blocks = old_blocks.downcast::<PyTuple>()?;
 
                 let mut new_blocks: Vec<Bound<PyAny>> = Vec::with_capacity(old_blocks.len());
-                let mut block_tracker = tracker.clone();
+                let block_tracker = tracker.clone();
                 let to_disable: Vec<usize> = (0..tracker.borrow().num_qubits())
                     .filter(|q| !op_qubits.contains(q))
                     .collect();
@@ -515,13 +498,8 @@ fn run_on_circuitdata(
                 block_tracker.borrow_mut().set_dirty(op_qubits.clone());
                 for block in old_blocks {
                     let old_block: QuantumCircuitData = block.extract()?;
-                    let (new_block, _) = run_on_circuitdata(
-                        py,
-                        &old_block.data,
-                        &op_qubits,
-                        data,
-                        &mut block_tracker,
-                    )?;
+                    let (new_block, _) =
+                        run_on_circuitdata(py, &old_block.data, &op_qubits, data, &block_tracker)?;
                     let new_block = new_block.into_bound_py_any(py)?;
                     // ToDo: check global phase!
                     let new_block_circuit =
@@ -687,25 +665,19 @@ fn extract_definition(
                     )?;
                     let two_qubit_sequence =
                         decomposer.call_inner(unitary.view(), None, false, None)?;
-                    let standard_gates: Vec<(
-                        StandardGate,
-                        SmallVec<[Param; 3]>,
-                        SmallVec<[Qubit; 2]>,
-                    )> = two_qubit_sequence
-                        .gates()
-                        .into_iter()
-                        .map(|(gate, params_floats, qubit_indices)| {
-                            let unwrapped_gate = gate.unwrap_or(StandardGate::CXGate);
-                            let params: SmallVec<[Param; 3]> =
-                                params_floats.iter().map(|p| Param::Float(*p)).collect();
-                            let qubits = qubit_indices.iter().map(|q| Qubit(*q as u32)).collect();
-                            (unwrapped_gate, params, qubits)
-                        })
-                        .collect();
                     let circuit_data = CircuitData::from_standard_gates(
                         py,
                         2,
-                        standard_gates,
+                        two_qubit_sequence.gates().iter().map(
+                            |(gate, params_floats, qubit_indices)| {
+                                let unwrapped_gate = gate.unwrap_or(StandardGate::CXGate);
+                                let params: SmallVec<[Param; 3]> =
+                                    params_floats.iter().map(|p| Param::Float(*p)).collect();
+                                let qubits =
+                                    qubit_indices.iter().map(|q| Qubit(*q as u32)).collect();
+                                (unwrapped_gate, params, qubits)
+                            },
+                        ),
                         Param::Float(two_qubit_sequence.global_phase()),
                     )?;
                     Ok(Some(circuit_data))
