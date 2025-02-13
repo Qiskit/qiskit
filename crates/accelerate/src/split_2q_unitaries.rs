@@ -12,73 +12,19 @@
 use std::f64::consts::PI;
 const PI4: f64 = PI / 4.;
 
-use pyo3::intern;
+use nalgebra::Matrix2;
+use num_complex::Complex64;
 use pyo3::prelude::*;
-use pyo3::types::PyDict;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
+use smallvec::{smallvec, SmallVec};
 
-use qiskit_circuit::circuit_instruction::OperationFromPython;
+use qiskit_circuit::circuit_instruction::ExtraInstructionAttributes;
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, Wire};
-use qiskit_circuit::imports::UNITARY_GATE;
-use qiskit_circuit::operations::{Operation, Param};
-use qiskit_circuit::packed_instruction::PackedInstruction;
+use qiskit_circuit::operations::{ArrayType, Operation, OperationRef, Param, UnitaryGate};
+use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::Qubit;
 
 use crate::two_qubit_decompose::{Specialization, TwoQubitWeylDecomposition};
-
-/// Extracts the K1r and K1l gates from the decomposition
-/// and creates them as new 1-qubit unitary gates.
-fn create_k1_gates<'a>(
-    decomp: &'a TwoQubitWeylDecomposition,
-    py: Python<'a>,
-) -> PyResult<(Bound<'a, PyAny>, Bound<'a, PyAny>)> {
-    let k1r_arr = decomp.K1r(py);
-    let k1l_arr = decomp.K1l(py);
-    let kwargs = PyDict::new(py);
-    kwargs.set_item(intern!(py, "num_qubits"), 1)?;
-    let k1r_gate = UNITARY_GATE
-        .get_bound(py)
-        .call((k1r_arr, py.None(), false), Some(&kwargs))?;
-    let k1l_gate = UNITARY_GATE
-        .get_bound(py)
-        .call((k1l_arr, py.None(), false), Some(&kwargs))?;
-    Ok((k1r_gate, k1l_gate))
-}
-
-/// Creates a new instruction and adds it to the DAG.
-fn add_new_op(
-    new_dag: &mut DAGCircuit,
-    new_op: OperationFromPython,
-    qargs: Vec<Qubit>,
-    mapping: &[usize],
-    py: Python,
-) -> PyResult<()> {
-    let inst = PackedInstruction {
-        op: new_op.operation,
-        qubits: new_dag.qargs_interner.insert_owned(qargs),
-        clbits: new_dag.cargs_interner.get_default(),
-        params: (!new_op.params.is_empty()).then(|| Box::new(new_op.params)),
-        extra_attrs: new_op.extra_attrs,
-        #[cfg(feature = "cache_pygates")]
-        py_op: std::sync::OnceLock::new(),
-    };
-    let qargs = new_dag.get_qargs(inst.qubits);
-    let mapped_qargs: Vec<Qubit> = qargs
-        .iter()
-        .map(|q| Qubit::new(mapping[q.index()]))
-        .collect();
-    new_dag.apply_operation_back(
-        py,
-        inst.op.clone(),
-        &mapped_qargs,
-        &[],
-        inst.params.as_deref().cloned(),
-        inst.extra_attrs,
-        #[cfg(feature = "cache_pygates")]
-        None,
-    )?;
-    Ok(())
-}
 
 #[pyfunction]
 pub fn split_2q_unitaries(
@@ -98,7 +44,7 @@ pub fn split_2q_unitaries(
             // We only attempt to split UnitaryGate objects, but this could be extended in future
             // -- however we need to ensure that we can compile the resulting single-qubit unitaries
             // to the supported basis gate set.
-            if qubits.len() != 2 || inst.op.name() != "unitary" {
+            if qubits.len() != 2 || !matches!(inst.op.view(), OperationRef::Unitary(_)) {
                 continue;
             }
             let matrix = inst
@@ -114,13 +60,33 @@ pub fn split_2q_unitaries(
                 has_swaps = true;
             }
             if matches!(decomp.specialization, Specialization::IdEquiv) {
-                let (k1r_gate, k1l_gate) = create_k1_gates(&decomp, py)?;
-                let insert_fn = |edge: &Wire| -> PyResult<OperationFromPython> {
+                let k1r_arr = decomp.k1r_view();
+                let k1l_arr = decomp.k1l_view();
+
+                let insert_fn = |edge: &Wire| -> (PackedOperation, SmallVec<[Param; 3]>) {
                     if let Wire::Qubit(qubit) = edge {
                         if *qubit == qubits[0] {
-                            k1r_gate.extract()
+                            let mat: Matrix2<Complex64> = [
+                                [k1r_arr[[0, 0]], k1r_arr[[0, 1]]],
+                                [k1r_arr[[1, 0]], k1r_arr[[1, 1]]],
+                            ]
+                            .into();
+                            let k1r_gate = Box::new(UnitaryGate {
+                                array: ArrayType::OneQ(mat),
+                            });
+                            (PackedOperation::from_unitary(k1r_gate), smallvec![])
                         } else {
-                            k1l_gate.extract()
+                            let mat: Matrix2<Complex64> = [
+                                [k1l_arr[[0, 0]], k1l_arr[[0, 1]]],
+                                [k1l_arr[[1, 0]], k1l_arr[[1, 1]]],
+                            ]
+                            .into();
+
+                            let k1l_gate = Box::new(UnitaryGate {
+                                array: ArrayType::OneQ(mat),
+                            });
+
+                            (PackedOperation::from_unitary(k1l_gate), smallvec![])
                         }
                     } else {
                         unreachable!("This will only be called on ops with no classical wires.");
@@ -152,26 +118,49 @@ pub fn split_2q_unitaries(
                     None,
                 )?;
                 if matches!(decomp.specialization, Specialization::SWAPEquiv) {
+                    let k1r_arr = decomp.k1r_view();
+                    let mat: Matrix2<Complex64> = [
+                        [k1r_arr[[0, 0]], k1r_arr[[0, 1]]],
+                        [k1r_arr[[1, 0]], k1r_arr[[1, 1]]],
+                    ]
+                    .into();
+                    let k1r_gate = Box::new(UnitaryGate {
+                        array: ArrayType::OneQ(mat),
+                    });
+                    let k1l_arr = decomp.k1l_view();
+                    let mat: Matrix2<Complex64> = [
+                        [k1l_arr[[0, 0]], k1l_arr[[0, 1]]],
+                        [k1l_arr[[1, 0]], k1l_arr[[1, 1]]],
+                    ]
+                    .into();
+                    let k1l_gate = Box::new(UnitaryGate {
+                        array: ArrayType::OneQ(mat),
+                    });
                     // perform the virtual swap
                     let qargs = dag.get_qargs(inst.qubits);
                     let index0 = qargs[0].index();
                     let index1 = qargs[1].index();
                     mapping.swap(index0, index1);
                     // now add the two 1-qubit gates
-                    let (k1r_gate, k1l_gate) = create_k1_gates(&decomp, py)?;
-                    add_new_op(
-                        &mut new_dag,
-                        k1r_gate.extract()?,
-                        vec![qubits[0]],
-                        &mapping,
+                    new_dag.apply_operation_back(
                         py,
+                        PackedOperation::from_unitary(k1r_gate),
+                        &[Qubit::new(mapping[index0])],
+                        &[],
+                        None,
+                        ExtraInstructionAttributes::default(),
+                        #[cfg(feature = "cache_pygates")]
+                        None,
                     )?;
-                    add_new_op(
-                        &mut new_dag,
-                        k1l_gate.extract()?,
-                        vec![qubits[1]],
-                        &mapping,
+                    new_dag.apply_operation_back(
                         py,
+                        PackedOperation::from_unitary(k1l_gate),
+                        &[Qubit::new(mapping[index1])],
+                        &[],
+                        None,
+                        ExtraInstructionAttributes::default(),
+                        #[cfg(feature = "cache_pygates")]
+                        None,
                     )?;
                     new_dag.add_global_phase(py, &Param::Float(decomp.global_phase + PI4))?;
                     continue; // skip the general instruction handling code
