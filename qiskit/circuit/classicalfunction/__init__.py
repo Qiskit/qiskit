@@ -130,7 +130,8 @@ from .boolean_expression import BooleanExpression
     removal_timeline="in Qiskit 2.0",
     additional_msg="Use `PhaseOracle` instead, which can be turned into a "
     "bit-flip oracle by applying Hadamard gates on the target "
-    "qubit before and after the instruction.",
+    "qubit before and after the instruction, and conditioning."
+    "the instruction on the target qubit.",
 )
 def classical_function(func):
     """

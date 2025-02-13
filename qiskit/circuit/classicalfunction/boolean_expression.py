@@ -30,7 +30,8 @@ class BooleanExpression(ClassicalElement):
         removal_timeline="in Qiskit 2.0",
         additional_msg="Use `PhaseOracle` instead, which can be turned into a "
         "bit-flip oracle by applying Hadamard gates on the target "
-        "qubit before and after the instruction.",
+        "qubit before and after the instruction, and conditioning."
+        "the instruction on the target qubit.",
     )
     def __init__(self, expression: str, name: str = None, var_order: list = None) -> None:
         """

@@ -10,3 +10,16 @@ deprecations_circuits:
     For a similar functionality please use the :class:`.PhaseOracle` which
     is going to have a `tweedledum` independent implementation, and
     the :class:`.BitFlipOracle` which will be added in Qiskit 2.0.
+
+    Until :class:`.BitFlipOracle` is added, a phase flip oracle can be converted
+    to a bit flip oracle by conditioning it on the result qubit, and applying 
+    Hadamard gate before and after the application of the oracle, as in the
+    following example (where the oracle is on `qr_x` and the result is on `qr_y`):
+
+    .. code-block:: python
+    
+        phase_flip_oracle = PhaseOracle(bool_expr)
+        controlled_phase_flip_oracle = phase_flip_oracle.control(1)
+        qc.h(qr_y)
+        qc.compose(controlled_phase_flip_oracle, qubits=[*qr_y, *qr_x], inplace=True)
+        qc.h(qr_y)
