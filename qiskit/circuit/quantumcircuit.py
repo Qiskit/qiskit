@@ -6876,7 +6876,7 @@ class QuantumCircuit:
                 return max(stop for stop in stops.values())
 
         if len(stops) > 0:  # not all but some qubits has instructions
-            return max(stop for stop in stops.values())
+            return max(stops.values())
         else:
             return 0  # If there are no instructions over bits
 
