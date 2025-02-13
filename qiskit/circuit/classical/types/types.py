@@ -110,7 +110,7 @@ class Float(Type):
     In the future, this may also be used to represent a fixed-width float.
     """
 
-    __slots__ = ("const",)
+    __slots__ = ()
 
     def __init__(self, *, const: bool = False):
         super(Type, self).__setattr__("const", const)
@@ -136,7 +136,7 @@ class Duration(Type):
         super(Type, self).__setattr__("const", True)
 
     def __repr__(self):
-        return f"Duration()"
+        return "Duration()"
 
     def __hash__(self):
         return hash(self.__class__)
@@ -156,7 +156,7 @@ class Stretch(Type):
         super(Type, self).__setattr__("const", True)
 
     def __repr__(self):
-        return f"Stretch()"
+        return "Stretch()"
 
     def __hash__(self):
         return hash(self.__class__)
