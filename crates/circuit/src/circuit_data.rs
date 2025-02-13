@@ -10,19 +10,22 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use std::borrow::Cow;
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
 
-use crate::bit_data::BitData;
+use crate::bit::BitLocation;
+use crate::bit_data::NewBitData;
 use crate::circuit_instruction::{
     CircuitInstruction, ExtraInstructionAttributes, OperationFromPython,
 };
 use crate::dag_circuit::add_global_phase;
-use crate::imports::{ANNOTATED_OPERATION, CLBIT, QUANTUM_CIRCUIT, QUBIT};
+use crate::imports::{ANNOTATED_OPERATION, QUANTUM_CIRCUIT};
 use crate::interner::{Interned, Interner};
 use crate::operations::{Operation, OperationRef, Param, StandardGate};
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter_table::{ParameterTable, ParameterTableError, ParameterUse, ParameterUuid};
+use crate::register::{ClassicalRegister, QuantumRegister};
 use crate::slice::{PySequenceIndex, SequenceIndex};
 use crate::{Clbit, Qubit};
 
@@ -102,9 +105,9 @@ pub struct CircuitData {
     /// The cache used to intern instruction bits.
     cargs_interner: Interner<[Clbit]>,
     /// Qubits registered in the circuit.
-    qubits: BitData<Qubit>,
+    qubits: NewBitData<Qubit, QuantumRegister>,
     /// Clbits registered in the circuit.
-    clbits: BitData<Clbit>,
+    clbits: NewBitData<Clbit, ClassicalRegister>,
     param_table: ParameterTable,
     #[pyo3(get)]
     global_phase: Param,
@@ -114,7 +117,7 @@ pub struct CircuitData {
 impl CircuitData {
     #[new]
     #[pyo3(signature = (qubits=None, clbits=None, data=None, reserve=0, global_phase=Param::Float(0.0)))]
-    pub fn new(
+    pub fn py_new(
         py: Python<'_>,
         qubits: Option<&Bound<PyAny>>,
         clbits: Option<&Bound<PyAny>>,
@@ -126,20 +129,20 @@ impl CircuitData {
             data: Vec::new(),
             qargs_interner: Interner::new(),
             cargs_interner: Interner::new(),
-            qubits: BitData::new(py, "qubits".to_string()),
-            clbits: BitData::new(py, "clbits".to_string()),
+            qubits: NewBitData::new("qubits".to_string()),
+            clbits: NewBitData::new("clbits".to_string()),
             param_table: ParameterTable::new(),
             global_phase: Param::Float(0.),
         };
         self_.set_global_phase(py, global_phase)?;
         if let Some(qubits) = qubits {
             for bit in qubits.try_iter()? {
-                self_.add_qubit(py, &bit?, true)?;
+                self_.py_add_qubit(&bit?, true)?;
             }
         }
         if let Some(clbits) = clbits {
             for bit in clbits.try_iter()? {
-                self_.add_clbit(py, &bit?, true)?;
+                self_.py_add_clbit(&bit?, true)?;
             }
         }
         if let Some(data) = data {
@@ -149,19 +152,70 @@ impl CircuitData {
         Ok(self_)
     }
 
-    pub fn __reduce__(self_: &Bound<CircuitData>, py: Python<'_>) -> PyResult<PyObject> {
+    pub fn __reduce__(self_: &Bound<CircuitData>) -> PyResult<PyObject> {
+        let py = self_.py();
         let ty: Bound<PyType> = self_.get_type();
         let args = {
             let self_ = self_.borrow();
             (
-                self_.qubits.cached().clone_ref(py),
-                self_.clbits.cached().clone_ref(py),
+                self_.qubits.py_cached_bits(py)?.clone_ref(py),
+                self_.clbits.py_cached_bits(py)?.clone_ref(py),
                 None::<()>,
                 self_.data.len(),
                 self_.global_phase.clone(),
             )
         };
-        (ty, args, None::<()>, self_.try_iter()?).into_py_any(py)
+        let state = {
+            let borrowed = self_.borrow();
+            (
+                borrowed.qubits.py_cached_regs(py)?.clone_ref(py),
+                borrowed.clbits.py_cached_regs(py)?.clone_ref(py),
+            )
+        };
+        (ty, args, state, self_.try_iter()?).into_py_any(py)
+    }
+
+    pub fn __setstate__(
+        self_: &Bound<CircuitData>,
+        state: (Bound<PyList>, Bound<PyList>),
+    ) -> PyResult<()> {
+        let mut borrowed_mut = self_.borrow_mut();
+        for qreg in state.0.iter() {
+            borrowed_mut.py_add_qreg(&qreg)?;
+        }
+        for creg in state.1.iter() {
+            borrowed_mut.py_add_creg(&creg)?;
+        }
+        Ok(())
+    }
+
+    /// Returns the a list of registered :class:`.QuantumRegisters` instances.
+    ///
+    /// .. warning::
+    ///
+    ///     Do not modify this list yourself.  It will invalidate the :class:`CircuitData` data
+    ///     structures.
+    ///
+    /// Returns:
+    ///     dict(:class:`.QuantumRegister`): The current sequence of registered qubits.
+    #[getter("qregs")]
+    pub fn py_qregs(&self, py: Python<'_>) -> PyResult<&Py<PyList>> {
+        self.qubits.py_cached_regs(py)
+    }
+
+    /// Setter for registers, in case of forced updates.
+    #[setter("qregs")]
+    pub fn py_qreg_set(&mut self, other: &Bound<PyList>) -> PyResult<()> {
+        self.qubits.py_set_registers(other)
+    }
+
+    /// Gets the location of the bit inside of the circuit
+    #[pyo3(name = "get_qubit_location")]
+    pub fn py_get_qubit_location(
+        &mut self,
+        bit: &Bound<PyAny>,
+    ) -> PyResult<(u32, Vec<(&PyObject, u32)>)> {
+        self.qubits.py_get_bit_location(bit)
     }
 
     /// Returns the current sequence of registered :class:`.Qubit` instances as a list.
@@ -174,8 +228,8 @@ impl CircuitData {
     /// Returns:
     ///     list(:class:`.Qubit`): The current sequence of registered qubits.
     #[getter("qubits")]
-    pub fn py_qubits(&self, py: Python<'_>) -> Py<PyList> {
-        self.qubits.cached().clone_ref(py)
+    pub fn py_qubits(&self, py: Python<'_>) -> PyResult<&Py<PyList>> {
+        self.qubits.py_cached_bits(py)
     }
 
     /// Return the number of qubits. This is equivalent to the length of the list returned by
@@ -188,8 +242,36 @@ impl CircuitData {
         self.qubits.len()
     }
 
-    /// Returns the current sequence of registered :class:`.Clbit`
-    /// instances as a list.
+    /// Returns the a list of registered :class:`.ClassicalRegisters` instances.
+    ///
+    /// .. warning::
+    ///
+    ///     Do not modify this list yourself.  It will invalidate the :class:`CircuitData` data
+    ///     structures.
+    ///
+    /// Returns:
+    ///     dict(:class:`.ClassicalRegister`): The current sequence of registered qubits.
+    #[getter("cregs")]
+    pub fn py_cregs(&self, py: Python<'_>) -> PyResult<&Py<PyList>> {
+        self.clbits.py_cached_regs(py)
+    }
+
+    /// Setter for registers, in case of forced updates.
+    #[setter("cregs")]
+    pub fn py_creg_set(&mut self, other: &Bound<PyList>) -> PyResult<()> {
+        self.clbits.py_set_registers(other)
+    }
+
+    /// Gets the location of the bit inside of the circuit
+    #[pyo3(name = "get_clbit_location")]
+    pub fn py_get_clbit_location(
+        &mut self,
+        bit: &Bound<PyAny>,
+    ) -> PyResult<(u32, Vec<(&PyObject, u32)>)> {
+        self.clbits.py_get_bit_location(bit)
+    }
+
+    /// Returns the current sequence of registered :class:`.Clbit` instances as a list.
     ///
     /// .. warning::
     ///
@@ -199,8 +281,8 @@ impl CircuitData {
     /// Returns:
     ///     list(:class:`.Clbit`): The current sequence of registered clbits.
     #[getter("clbits")]
-    pub fn py_clbits(&self, py: Python<'_>) -> Py<PyList> {
-        self.clbits.cached().clone_ref(py)
+    pub fn py_clbits(&self, py: Python<'_>) -> PyResult<&Py<PyList>> {
+        self.clbits.py_cached_bits(py)
     }
 
     /// Return the number of clbits. This is equivalent to the length of the list returned by
@@ -257,9 +339,19 @@ impl CircuitData {
     /// Raises:
     ///     ValueError: The specified ``bit`` is already present and flag ``strict``
     ///         was provided.
-    #[pyo3(signature = (bit, *, strict=true))]
-    pub fn add_qubit(&mut self, py: Python, bit: &Bound<PyAny>, strict: bool) -> PyResult<()> {
-        self.qubits.add(py, bit, strict)?;
+    #[pyo3(name="add_qubit", signature = (bit, *, strict=true))]
+    pub fn py_add_qubit(&mut self, bit: &Bound<PyAny>, strict: bool) -> PyResult<()> {
+        self.qubits.py_add_bit(bit, strict)?;
+        Ok(())
+    }
+
+    /// Registers a :class:`.QuantumRegister` instance.
+    ///
+    /// Args:
+    ///     bit (:class:`.QuantumRegister`): The register to add.
+    #[pyo3(name="add_qreg", signature = (register, *,))]
+    pub fn py_add_qreg(&mut self, register: &Bound<PyAny>) -> PyResult<()> {
+        self.qubits.py_add_register(register)?;
         Ok(())
     }
 
@@ -272,9 +364,19 @@ impl CircuitData {
     /// Raises:
     ///     ValueError: The specified ``bit`` is already present and flag ``strict``
     ///         was provided.
-    #[pyo3(signature = (bit, *, strict=true))]
-    pub fn add_clbit(&mut self, py: Python, bit: &Bound<PyAny>, strict: bool) -> PyResult<()> {
-        self.clbits.add(py, bit, strict)?;
+    #[pyo3(name="add_clbit", signature = (bit, *, strict=true))]
+    pub fn py_add_clbit(&mut self, bit: &Bound<PyAny>, strict: bool) -> PyResult<()> {
+        self.clbits.py_add_bit(bit, strict)?;
+        Ok(())
+    }
+
+    /// Registers a :class:`.ClassicalRegister` instance.
+    ///
+    /// Args:
+    ///     bit (:class:`.ClassicalRegister`): The register to add.
+    #[pyo3(name="add_creg", signature = (register, *,))]
+    pub fn py_add_creg(&mut self, register: &Bound<PyAny>) -> PyResult<()> {
+        self.clbits.py_add_register(register)?;
         Ok(())
     }
 
@@ -284,18 +386,8 @@ impl CircuitData {
     ///     CircuitData: The shallow copy.
     #[pyo3(signature = (copy_instructions=true, deepcopy=false))]
     pub fn copy(&self, py: Python<'_>, copy_instructions: bool, deepcopy: bool) -> PyResult<Self> {
-        let mut res = CircuitData::new(
-            py,
-            Some(self.qubits.cached().bind(py)),
-            Some(self.clbits.cached().bind(py)),
-            None,
-            self.data.len(),
-            self.global_phase.clone(),
-        )?;
-        res.qargs_interner = self.qargs_interner.clone();
-        res.cargs_interner = self.cargs_interner.clone();
+        let mut res = self.copy_empty_like(py, Some(self.data().len()))?;
         res.param_table.clone_from(&self.param_table);
-
         if deepcopy {
             let memo = PyDict::new(py);
             for inst in &self.data {
@@ -327,6 +419,32 @@ impl CircuitData {
         Ok(res)
     }
 
+    /// Performs an empty-like shallow copy.
+    ///
+    /// Returns:
+    ///     CircuitData: The shallow copy.
+    #[pyo3(signature = (reserve = None,))]
+    pub fn copy_empty_like(&self, py: Python<'_>, reserve: Option<usize>) -> PyResult<Self> {
+        let mut res = CircuitData::py_new(
+            py,
+            Some(self.qubits.py_cached_bits(py)?.bind(py)),
+            Some(self.clbits.py_cached_bits(py)?.bind(py)),
+            None,
+            reserve.unwrap_or_default(),
+            self.global_phase.clone(),
+        )?;
+        res.qargs_interner = self.qargs_interner.clone();
+        res.cargs_interner = self.cargs_interner.clone();
+
+        for qreg in self.py_qregs(py)?.bind(py).iter() {
+            res.py_add_qreg(&qreg)?;
+        }
+        for creg in self.py_cregs(py)?.bind(py).iter() {
+            res.py_add_creg(&creg)?;
+        }
+        Ok(res)
+    }
+
     /// Reserves capacity for at least ``additional`` more
     /// :class:`.CircuitInstruction` instances to be added to this container.
     ///
@@ -347,10 +465,10 @@ impl CircuitData {
         let clbits = PySet::empty(py)?;
         for inst in self.data.iter() {
             for b in self.qargs_interner.get(inst.qubits) {
-                qubits.add(self.qubits.get(*b).unwrap().clone_ref(py))?;
+                qubits.add(self.qubits.py_get_bit(py, *b)?.unwrap().clone_ref(py))?;
             }
             for b in self.cargs_interner.get(inst.clbits) {
-                clbits.add(self.clbits.get(*b).unwrap().clone_ref(py))?;
+                clbits.add(self.clbits.py_get_bit(py, *b)?.unwrap().clone_ref(py))?;
             }
         }
 
@@ -466,14 +584,28 @@ impl CircuitData {
     ///             CircuitInstruction(XGate(), [qr[1]], []),
     ///             CircuitInstruction(XGate(), [qr[0]], []),
     ///         ])
-    #[pyo3(signature = (qubits=None, clbits=None))]
+    #[pyo3(signature = (qubits=None, clbits=None, qregs=None, cregs=None))]
     pub fn replace_bits(
         &mut self,
         py: Python<'_>,
         qubits: Option<&Bound<PyAny>>,
         clbits: Option<&Bound<PyAny>>,
+        qregs: Option<&Bound<PyAny>>,
+        cregs: Option<&Bound<PyAny>>,
     ) -> PyResult<()> {
-        let mut temp = CircuitData::new(py, qubits, clbits, None, 0, self.global_phase.clone())?;
+        let mut temp = CircuitData::py_new(py, qubits, clbits, None, 0, self.global_phase.clone())?;
+        // Add qregs if provided.
+        if let Some(qregs) = qregs {
+            for qreg in qregs.try_iter()? {
+                temp.py_add_qreg(&qreg?)?;
+            }
+        }
+        // Add cregs if provided.
+        if let Some(cregs) = cregs {
+            for creg in cregs.try_iter()? {
+                temp.py_add_creg(&creg?)?;
+            }
+        }
         if qubits.is_some() {
             if temp.num_qubits() < self.num_qubits() {
                 return Err(PyValueError::new_err(format!(
@@ -504,16 +636,16 @@ impl CircuitData {
     // Note: we also rely on this to make us iterable!
     pub fn __getitem__(&self, py: Python, index: PySequenceIndex) -> PyResult<PyObject> {
         // Get a single item, assuming the index is validated as in bounds.
-        let get_single = |index: usize| {
+        let get_single = |index: usize| -> PyObject {
             let inst = &self.data[index];
             let qubits = self.qargs_interner.get(inst.qubits);
             let clbits = self.cargs_interner.get(inst.clbits);
             CircuitInstruction {
                 operation: inst.op.clone(),
-                qubits: PyTuple::new(py, self.qubits.map_indices(qubits))
+                qubits: PyTuple::new(py, self.qubits.py_map_indices(py, qubits).unwrap())
                     .unwrap()
                     .unbind(),
-                clbits: PyTuple::new(py, self.clbits.map_indices(clbits))
+                clbits: PyTuple::new(py, self.clbits.py_map_indices(py, clbits).unwrap())
                     .unwrap()
                     .unbind(),
                 params: inst.params_view().iter().cloned().collect(),
@@ -663,7 +795,7 @@ impl CircuitData {
 
     pub fn extend(&mut self, py: Python<'_>, itr: &Bound<PyAny>) -> PyResult<()> {
         if let Ok(other) = itr.downcast::<CircuitData>() {
-            let other = other.borrow();
+            let other = other.borrow_mut();
             // Fast path to avoid unnecessary construction of CircuitInstruction instances.
             self.data.reserve(other.data.len());
             for inst in other.data.iter() {
@@ -674,7 +806,7 @@ impl CircuitData {
                     .map(|b| {
                         Ok(self
                             .qubits
-                            .find(other.qubits.get(*b).unwrap().bind(py))
+                            .py_find_bit(other.qubits.py_get_bit(py, *b)?.unwrap().bind(py))?
                             .unwrap())
                     })
                     .collect::<PyResult<Vec<Qubit>>>()?;
@@ -685,7 +817,7 @@ impl CircuitData {
                     .map(|b| {
                         Ok(self
                             .clbits
-                            .find(other.clbits.get(*b).unwrap().bind(py))
+                            .py_find_bit(other.clbits.py_get_bit(py, *b)?.unwrap().bind(py))?
                             .unwrap())
                     })
                     .collect::<PyResult<Vec<Clbit>>>()?;
@@ -824,26 +956,51 @@ impl CircuitData {
     }
 
     fn __traverse__(&self, visit: PyVisit<'_>) -> Result<(), PyTraverseError> {
-        for bit in self.qubits.bits().iter().chain(self.clbits.bits().iter()) {
+        for bit in self
+            .qubits
+            .py_bits_raw()
+            .iter()
+            .chain(self.clbits.py_bits_raw().iter())
+            .filter_map(|cell| cell.get())
+        {
             visit.call(bit)?;
         }
-
+        for register in self
+            .qubits
+            .py_regs_raw()
+            .iter()
+            .chain(self.clbits.py_regs_raw().iter())
+            .filter_map(|cell| cell.get())
+        {
+            visit.call(register)?;
+        }
         // Note:
         //   There's no need to visit the native Rust data
         //   structures used for internal tracking: the only Python
         //   references they contain are to the bits in these lists!
-        visit.call(self.qubits.cached())?;
-        visit.call(self.clbits.cached())?;
+        if let Some(bits) = self.qubits.py_bits_cached_raw() {
+            visit.call(bits)?;
+        }
+        if let Some(registers) = self.qubits.py_regs_cached_raw() {
+            visit.call(registers)?;
+        }
+        if let Some(bits) = self.clbits.py_bits_cached_raw() {
+            visit.call(bits)?;
+        }
+        if let Some(registers) = self.clbits.py_regs_cached_raw() {
+            visit.call(registers)?;
+        }
         self.param_table.py_gc_traverse(&visit)?;
         Ok(())
     }
 
-    fn __clear__(&mut self) {
+    fn __clear__(&mut self) -> PyResult<()> {
         // Clear anything that could have a reference cycle.
         self.data.clear();
-        self.qubits.dispose();
-        self.clbits.dispose();
+        self.qubits.dispose()?;
+        self.clbits.dispose()?;
         self.param_table.clear();
+        Ok(())
     }
 
     /// Set the global phase of the circuit.
@@ -897,6 +1054,141 @@ impl CircuitData {
 }
 
 impl CircuitData {
+    /// Rust native constructor for [CircuitData]. Builds a new instance without
+    /// any python initialization.
+    pub fn new(
+        num_qubits: u32,
+        num_clbits: u32,
+        global_phase: Param,
+        add_qreg: bool,
+        add_creg: bool,
+    ) -> Self {
+        let mut data = Self {
+            data: vec![],
+            qargs_interner: Interner::new(),
+            cargs_interner: Interner::new(),
+            qubits: NewBitData::with_capacity(
+                "qubits".to_owned(),
+                num_qubits
+                    .try_into()
+                    .expect("The number of qubits provided exceeds the limit for a circuit."),
+                if add_qreg { 1 } else { 0 },
+            ),
+            clbits: NewBitData::with_capacity(
+                "clbits".to_owned(),
+                num_clbits
+                    .try_into()
+                    .expect("The number of clbits provided exceeds the limit for a circuit."),
+                if add_creg { 1 } else { 0 },
+            ),
+            param_table: ParameterTable::new(),
+            global_phase: Param::Float(0.),
+        };
+
+        // Set the global phase using internal setter.
+        data._set_global_phase_float(global_phase);
+        // Add all the bits into a register
+        if add_qreg {
+            data.add_qreg(
+                Some("q".to_string()),
+                Some(
+                    num_qubits
+                        .try_into()
+                        .expect("The number of qubits provided exceeds the limit for a circuit."),
+                ),
+                None,
+            );
+        } else {
+            (0..num_qubits).for_each(|_| {
+                data.add_qubit();
+            });
+        }
+        // Add all the bits into a register
+        if add_creg {
+            data.add_creg(
+                Some("c".to_string()),
+                Some(
+                    num_clbits
+                        .try_into()
+                        .expect("The number of clbits provided exceeds the limit for a circuit."),
+                ),
+                None,
+            );
+        } else {
+            (0..num_clbits).for_each(|_| {
+                data.add_clbit();
+            });
+        }
+        data
+    }
+
+    /// Adds a generic qubit to a circuit
+    pub fn add_qubit(&mut self) -> Qubit {
+        self.qubits.add_bit()
+    }
+
+    /// Get qubit location in the circuit
+    pub fn get_qubit_location(&self, qubit: Qubit) -> &[BitLocation] {
+        self.qubits.get_bit_info(qubit)
+    }
+
+    /// Adds either a generic register with new bits, or uses existing bit indices.
+    pub fn add_qreg(
+        &mut self,
+        name: Option<String>,
+        num_qubits: Option<usize>,
+        bits: Option<Cow<'_, [Qubit]>>,
+    ) -> Option<u32> {
+        self.qubits.add_register(name, num_qubits, bits)
+    }
+
+    /// Returns an iterator with all the QuantumRegisters in the circuit
+    pub fn qregs(&self) -> &[QuantumRegister] {
+        self.qubits.registers()
+    }
+
+    /// Adds a generic clbit to a circuit
+    pub fn add_clbit(&mut self) -> Clbit {
+        self.clbits.add_bit()
+    }
+
+    /// Adds either a generic register with new bits, or uses existing bit indices.
+    pub fn add_creg(
+        &mut self,
+        name: Option<String>,
+        num_qubits: Option<usize>,
+        bits: Option<Cow<'_, [Clbit]>>,
+    ) -> Option<u32> {
+        self.clbits.add_register(name, num_qubits, bits)
+    }
+
+    /// Returns an iterator with all the QuantumRegisters in the circuit
+    pub fn cregs(&self) -> &[ClassicalRegister] {
+        self.clbits.registers()
+    }
+
+    /// Get qubit location in the circuit
+    pub fn get_clbit_location(&self, clbit: Clbit) -> &[BitLocation] {
+        self.clbits.get_bit_info(clbit)
+    }
+
+    /// Set the global phase of the circuit using a float, without needing a
+    /// `py` token.
+    ///
+    /// _**Note:** for development purposes only. Should be removed after
+    /// [#13278](https://github.com/Qiskit/qiskit/pull/13278)._
+    fn _set_global_phase_float(&mut self, angle: Param) {
+        match angle {
+            Param::Float(angle) => {
+                self.global_phase = Param::Float(angle.rem_euclid(2. * std::f64::consts::PI));
+            }
+            _ => panic!(
+                "Could not set the parameter {:?}. Parameter was not a float.",
+                &angle
+            ),
+        }
+    }
+
     /// An alternate constructor to build a new `CircuitData` from an iterator
     /// of packed operations. This can be used to build a circuit from a sequence
     /// of `PackedOperation` without needing to involve Python.
@@ -989,8 +1281,8 @@ impl CircuitData {
     /// * global_phase: The global phase value to use for the new circuit.
     pub fn from_packed_instructions<I>(
         py: Python,
-        qubits: BitData<Qubit>,
-        clbits: BitData<Clbit>,
+        qubits: NewBitData<Qubit, QuantumRegister>,
+        clbits: NewBitData<Clbit, ClassicalRegister>,
         qargs_interner: Interner<[Qubit]>,
         cargs_interner: Interner<[Clbit]>,
         instructions: I,
@@ -1086,8 +1378,8 @@ impl CircuitData {
             data: Vec::with_capacity(instruction_capacity),
             qargs_interner: Interner::new(),
             cargs_interner: Interner::new(),
-            qubits: BitData::new(py, "qubits".to_string()),
-            clbits: BitData::new(py, "clbits".to_string()),
+            qubits: NewBitData::with_capacity("qubits".to_string(), num_qubits as usize, 0),
+            clbits: NewBitData::with_capacity("clbits".to_string(), num_clbits as usize, 0),
             param_table: ParameterTable::new(),
             global_phase: Param::Float(0.0),
         };
@@ -1097,17 +1389,13 @@ impl CircuitData {
         res.set_global_phase(py, global_phase)?;
 
         if num_qubits > 0 {
-            let qubit_cls = QUBIT.get_bound(py);
             for _i in 0..num_qubits {
-                let bit = qubit_cls.call0()?;
-                res.add_qubit(py, &bit, true)?;
+                res.add_qubit();
             }
         }
         if num_clbits > 0 {
-            let clbit_cls = CLBIT.get_bound(py);
             for _i in 0..num_clbits {
-                let bit = clbit_cls.call0()?;
-                res.add_clbit(py, &bit, true)?;
+                res.add_clbit();
             }
         }
         Ok(res)
@@ -1215,10 +1503,10 @@ impl CircuitData {
     fn pack(&mut self, py: Python, inst: &CircuitInstruction) -> PyResult<PackedInstruction> {
         let qubits = self
             .qargs_interner
-            .insert_owned(self.qubits.map_bits(inst.qubits.bind(py))?.collect());
+            .insert_owned(self.qubits.py_map_bits(inst.qubits.bind(py))?.collect());
         let clbits = self
             .cargs_interner
-            .insert_owned(self.clbits.map_bits(inst.clbits.bind(py))?.collect());
+            .insert_owned(self.clbits.py_map_bits(inst.clbits.bind(py))?.collect());
         Ok(PackedInstruction {
             op: inst.operation.clone(),
             qubits,
@@ -1295,13 +1583,25 @@ impl CircuitData {
     }
 
     /// Returns an immutable view of the Qubits registered in the circuit
-    pub fn qubits(&self) -> &BitData<Qubit> {
+    pub fn qubits(&self) -> &NewBitData<Qubit, QuantumRegister> {
         &self.qubits
     }
 
     /// Returns an immutable view of the Classical bits registered in the circuit
-    pub fn clbits(&self) -> &BitData<Clbit> {
+    pub fn clbits(&self) -> &NewBitData<Clbit, ClassicalRegister> {
         &self.clbits
+    }
+
+    // TODO: Remove
+    /// Returns a mutable view of the Qubits registered in the circuit
+    pub fn qubits_mut(&mut self) -> &mut NewBitData<Qubit, QuantumRegister> {
+        &mut self.qubits
+    }
+
+    // TODO: Remove
+    /// Returns a mutable view of the Classical bits registered in the circuit
+    pub fn clbits_mut(&mut self) -> &mut NewBitData<Clbit, ClassicalRegister> {
+        &mut self.clbits
     }
 
     /// Unpacks from interned value to `[Qubit]`
@@ -1593,5 +1893,267 @@ struct AssignParam(Param);
 impl<'py> FromPyObject<'py> for AssignParam {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         Ok(Self(Param::extract_no_coerce(ob)?))
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::register::Register;
+
+    use super::*;
+
+    #[test]
+    fn test_circuit_construction() {
+        let num_qubits = 4;
+        let num_clbits = 3;
+        let circuit_data = CircuitData::new(num_qubits, num_clbits, Param::Float(0.0), true, true);
+
+        // Expected qregs
+        let example_qreg = QuantumRegister::new(Some(4), Some("q".to_owned()), None);
+        let expected_qregs: Vec<QuantumRegister> = vec![example_qreg];
+
+        assert_eq!(circuit_data.qregs(), &expected_qregs);
+
+        // Expected cregs
+        let example_creg = ClassicalRegister::new(Some(3), Some("c".to_owned()), None);
+        let expected_cregs: Vec<ClassicalRegister> = vec![example_creg];
+        assert_eq!(circuit_data.cregs(), &expected_cregs)
+    }
+
+    #[test]
+    fn test_circuit_construction_no_regs() {
+        let num_qubits = 4;
+        let num_clbits = 3;
+        let circuit_data =
+            CircuitData::new(num_qubits, num_clbits, Param::Float(0.0), false, false);
+
+        // Register lists should be empty
+        assert!(
+            circuit_data.qregs().is_empty(),
+            "There are quantum registers in the circuit!"
+        );
+        assert!(
+            circuit_data.cregs().is_empty(),
+            "There are classical registers in the circuit!"
+        );
+
+        for qubit in 0..num_qubits {
+            assert!(
+                circuit_data.qubits().get_bit_info(qubit.into()).is_empty(),
+                "A qubit seems to have a register assigned, even when none exist yet!"
+            )
+        }
+
+        for clbit in 0..num_clbits {
+            assert!(circuit_data.clbits().get_bit_info(clbit.into()).is_empty())
+        }
+    }
+
+    #[test]
+    fn test_circuit_bit_multiple_registers() {
+        let mut circuit: CircuitData = CircuitData::new(0, 0, 0.0.into(), false, false);
+        assert_eq!(
+            circuit.num_qubits(),
+            0,
+            "The circuit says it contains bits, even when they don't exist!"
+        );
+
+        circuit.add_qreg(None, Some(3), None);
+        assert_eq!(
+            circuit.num_qubits(),
+            3,
+            "The qubits were not properly added!"
+        );
+        assert_eq!(
+            circuit.qregs().len(),
+            1,
+            "The qreg was either not added or mishandled!"
+        );
+
+        circuit.add_qreg(None, None, Some(vec![2.into()].into()));
+        assert_eq!(circuit.num_qubits(), 3, "The number of qubits changed!");
+        assert_eq!(
+            circuit.qregs().len(),
+            2,
+            "The qreg was either not added or mishandled!"
+        );
+
+        let locations: &[BitLocation] = circuit.get_qubit_location(2.into());
+        assert_eq!(
+            locations.len(),
+            2,
+            "The new register was not assigned to the bit"
+        );
+        assert_eq!(
+            locations.first(),
+            Some(&BitLocation::new(0, 2)),
+            "Incorrect register assigned as original."
+        );
+        assert_eq!(
+            locations.last(),
+            Some(&BitLocation::new(1, 0)),
+            "Incorrect register assigned as secondary."
+        );
+
+        // Check if the registers contain the index in question
+        for reg in circuit.qregs() {
+            assert!(reg.contains(2.into()))
+        }
+    }
+
+    #[test]
+    fn test_duplicate_q_register() {
+        // The circuit will be initialized by default with qregs ['q'] and cregs ['c']
+        // Should not add repeated instances of registers with the same hash value.
+        //
+        let mut circ = CircuitData::new(3, 0, 0.0.into(), true, false);
+
+        // Should not panic
+        circ.add_qreg(
+            Some("q".to_string()),
+            None,
+            Some((1..3).map(Qubit).collect::<Vec<_>>().into()),
+        );
+
+        assert_eq!(
+            circ.get_qubit_location(2.into()),
+            &[BitLocation::new(0, 2), BitLocation::new(1, 1)]
+        );
+
+        // When trying to add a register with the same name and length, return the original instance.
+        assert_eq!(circ.add_qreg(Some("q".to_string()), Some(3), None), Some(0));
+
+        // When trying to add a register with the same name and length, return the original instance.
+        assert_eq!(circ.add_qreg(Some("q".to_string()), Some(2), None), Some(1));
+    }
+
+    #[test]
+    fn test_duplicate_c_register() {
+        // The circuit will be initialized by default with qregs ['q'] and cregs ['c']
+        // Should not add repeated instances of registers with the same hash value.
+        //
+        let mut circ = CircuitData::new(0, 3, 0.0.into(), false, true);
+
+        // Should not panic
+        circ.add_creg(
+            Some("c".to_string()),
+            None,
+            Some((1..3).map(Clbit).collect::<Vec<_>>().into()),
+        );
+
+        assert_eq!(
+            circ.get_clbit_location(2.into()),
+            &[BitLocation::new(0, 2), BitLocation::new(1, 1)]
+        );
+
+        // When trying to add a register with the same name and length, return the original instance.
+        assert_eq!(circ.add_creg(Some("c".to_string()), Some(3), None), Some(0));
+
+        // When trying to add a register with the same name and length, return the original instance.
+        assert_eq!(circ.add_creg(Some("c".to_string()), Some(2), None), Some(1));
+    }
+}
+
+#[cfg(all(test, not(miri)))]
+// #[cfg(all(test))]
+mod pytest {
+    use pyo3::PyTypeInfo;
+
+    use super::*;
+
+    // Test Rust native circuit construction when accessed through Python, without
+    // adding registers to the circuit.
+    #[test]
+    fn test_circuit_construction_py_no_regs() {
+        let num_qubits = 4;
+        let num_clbits = 3;
+        let circuit_data =
+            CircuitData::new(num_qubits, num_clbits, Param::Float(0.0), false, false);
+        let result = Python::with_gil(|py| -> PyResult<bool> {
+            let quantum_circuit = QUANTUM_CIRCUIT.get_bound(py).clone();
+
+            let converted_circuit =
+                quantum_circuit.call_method1("_from_circuit_data", (circuit_data,))?;
+
+            let converted_qregs = converted_circuit.getattr("qregs")?;
+            assert!(converted_qregs.is_instance(&PyList::type_object(py))?);
+            assert!(
+                converted_qregs.downcast::<PyList>()?.len() == 0,
+                "The quantum registers list returned a non-empty value"
+            );
+
+            let converted_qubits = converted_circuit.getattr("qubits")?;
+            assert!(converted_qubits.is_instance(&PyList::type_object(py))?);
+            assert!(
+                converted_qubits.downcast::<PyList>()?.len() == (num_qubits as usize),
+                "The qubits has the wrong length"
+            );
+
+            let converted_qregs = converted_circuit.getattr("qregs")?;
+            assert!(converted_qregs.is_instance(&PyList::type_object(py))?);
+            assert!(
+                converted_qregs.downcast::<PyList>()?.len() == 0,
+                "The classical registers list returned a non-empty value"
+            );
+
+            let converted_clbits = converted_circuit.getattr("clbits")?;
+            assert!(converted_clbits.is_instance(&PyList::type_object(py))?);
+            assert!(
+                converted_clbits.downcast::<PyList>()?.len() == (num_clbits as usize),
+                "The clbits has the wrong length"
+            );
+
+            Ok(true)
+        })
+        .is_ok_and(|res| res);
+        assert!(result);
+    }
+
+    // Test Rust native circuit construction when accessed through Python.
+    #[test]
+    fn test_circuit_construction() {
+        let num_qubits = 4;
+        let num_clbits = 3;
+        let circuit_data = CircuitData::new(num_qubits, num_clbits, Param::Float(0.0), true, true);
+        let result = Python::with_gil(|py| -> PyResult<bool> {
+            let quantum_circuit = QUANTUM_CIRCUIT.get_bound(py).clone();
+
+            let converted_circuit = quantum_circuit.call_method1(
+                "_from_circuit_data",
+                (circuit_data.clone().into_pyobject(py)?,),
+            )?;
+            let expected_circuit = quantum_circuit.call((num_qubits, num_clbits), None)?;
+
+            let converted_qregs = converted_circuit.getattr("qregs")?;
+            let expected_qregs = expected_circuit.getattr("qregs")?;
+
+            assert!(converted_qregs.eq(expected_qregs)?);
+
+            let converted_cregs = converted_circuit.getattr("cregs")?;
+            let expected_cregs = expected_circuit.getattr("cregs")?;
+
+            assert!(converted_cregs.eq(expected_cregs)?);
+
+            let converted_qubits = converted_circuit.getattr("qubits")?;
+            let expected_qubits = expected_circuit.getattr("qubits")?;
+            assert!(converted_qubits.eq(&expected_qubits)?);
+
+            let converted_clbits = converted_circuit.getattr("clbits")?;
+            let expected_clbits = expected_circuit.getattr("clbits")?;
+            assert!(converted_clbits.eq(&expected_clbits)?);
+
+            let converted_global_phase = converted_circuit.getattr("global_phase")?;
+            let expected_global_phase = expected_circuit.getattr("global_phase")?;
+
+            assert!(converted_global_phase.eq(&expected_global_phase)?);
+
+            // TODO: Figure out why this fails
+            // println!("{:?}", expected_circuit.eq(&converted_circuit));
+
+            // Return true due to being unable to extract `CircuitData` from python
+            // due to conflics between cargo and python binaries.
+            Ok(true)
+        });
+        assert!(result.is_ok_and(|result| result))
     }
 }

@@ -1096,13 +1096,6 @@ class QuantumCircuit:
             "qiskit.circuit.controlflow.builder.ControlFlowBuilderBlock"
         ] = []
 
-        self.qregs: list[QuantumRegister] = []
-        """A list of the :class:`QuantumRegister`\\ s in this circuit.  You should not mutate
-        this."""
-        self.cregs: list[ClassicalRegister] = []
-        """A list of the :class:`ClassicalRegister`\\ s in this circuit.  You should not mutate
-        this."""
-
         # Dict mapping Qubit or Clbit instances to tuple comprised of 0) the
         # corresponding index in circuit.{qubits,clbits} and 1) a list of
         # Register-int pairs for each Register containing the Bit and its index
@@ -1174,26 +1167,18 @@ class QuantumCircuit:
         if data.num_qubits > 0:
             if add_regs:
                 qr = QuantumRegister(name="q", bits=data.qubits)
-                out.qregs = [qr]
-                out._qubit_indices = {
-                    bit: BitLocations(index, [(qr, index)]) for index, bit in enumerate(data.qubits)
-                }
-            else:
-                out._qubit_indices = {
-                    bit: BitLocations(index, []) for index, bit in enumerate(data.qubits)
-                }
+                data.qregs = [qr]
 
+            out._qubit_indices = {
+                bit: BitLocations(*data.get_qubit_location(bit)) for bit in data.qubits
+            }
         if data.num_clbits > 0:
             if add_regs:
                 cr = ClassicalRegister(name="c", bits=data.clbits)
-                out.cregs = [cr]
-                out._clbit_indices = {
-                    bit: BitLocations(index, [(cr, index)]) for index, bit in enumerate(data.clbits)
-                }
-            else:
-                out._clbit_indices = {
-                    bit: BitLocations(index, []) for index, bit in enumerate(data.clbits)
-                }
+                data.cregs = [cr]
+            out._clbit_indices = {
+                bit: BitLocations(*data.get_clbit_location(bit)) for bit in data.clbits
+            }
 
         out._data = data
 
@@ -1445,6 +1430,8 @@ class QuantumCircuit:
         result._data.replace_bits(
             qubits=_copy.deepcopy(self._data.qubits, memo),
             clbits=_copy.deepcopy(self._data.clbits, memo),
+            qregs=_copy.deepcopy(self._data.qregs, memo),
+            cregs=_copy.deepcopy(self._data.cregs, memo),
         )
         return result
 
@@ -2236,6 +2223,30 @@ class QuantumCircuit:
         """A list of :class:`Clbit`\\ s in the order that they were added.  You should not mutate
         this."""
         return self._data.clbits
+
+    @property
+    def qregs(self) -> list[QuantumRegister]:
+        """A list of :class:`Qubit`\\ s in the order that they were added.  You should not mutate
+        this."""
+        return self._data.qregs
+
+    @qregs.setter
+    def qregs(self, other: list[QuantumRegister]):
+        self._data.qregs = other
+        for qubit in self.qubits:
+            self._qubit_indices[qubit] = BitLocations(*self._data.get_qubit_location(qubit))
+
+    @property
+    def cregs(self) -> list[ClassicalRegister]:
+        """A list of :class:`Clbit`\\ s in the order that they were added.  You should not mutate
+        this."""
+        return self._data.cregs
+
+    @cregs.setter
+    def cregs(self, other: list[ClassicalRegister]):
+        self._data.cregs = other
+        for clbit in self.clbits:
+            self._clbit_indices[clbit] = BitLocations(*self._data.get_clbit_location(clbit))
 
     @property
     def ancillas(self) -> list[AncillaQubit]:
@@ -3075,16 +3086,10 @@ class QuantumCircuit:
                 self._add_qreg(register)
 
             elif isinstance(register, ClassicalRegister):
-                self.cregs.append(register)
+                self._data.add_creg(register)
 
-                for idx, bit in enumerate(register):
-                    if bit in self._clbit_indices:
-                        self._clbit_indices[bit].registers.append((register, idx))
-                    else:
-                        self._data.add_clbit(bit)
-                        self._clbit_indices[bit] = BitLocations(
-                            self._data.num_clbits - 1, [(register, idx)]
-                        )
+                for bit in register:
+                    self._clbit_indices[bit] = BitLocations(*self._data.get_clbit_location(bit))
 
             elif isinstance(register, list):
                 self.add_bits(register)
@@ -3092,14 +3097,10 @@ class QuantumCircuit:
                 raise CircuitError("expected a register")
 
     def _add_qreg(self, qreg: QuantumRegister) -> None:
-        self.qregs.append(qreg)
+        self._data.add_qreg(qreg)
 
-        for idx, bit in enumerate(qreg):
-            if bit in self._qubit_indices:
-                self._qubit_indices[bit].registers.append((qreg, idx))
-            else:
-                self._data.add_qubit(bit)
-                self._qubit_indices[bit] = BitLocations(self._data.num_qubits - 1, [(qreg, idx)])
+        for bit in qreg:
+            self._qubit_indices[bit] = BitLocations(*self._data.get_qubit_location(bit))
 
     def add_bits(self, bits: Iterable[Bit]) -> None:
         """Add Bits to the circuit."""
@@ -3114,10 +3115,10 @@ class QuantumCircuit:
                 self._ancillas.append(bit)
             if isinstance(bit, Qubit):
                 self._data.add_qubit(bit)
-                self._qubit_indices[bit] = BitLocations(self._data.num_qubits - 1, [])
+                self._qubit_indices[bit] = BitLocations(*self._data.get_qubit_location(bit))
             elif isinstance(bit, Clbit):
                 self._data.add_clbit(bit)
-                self._clbit_indices[bit] = BitLocations(self._data.num_clbits - 1, [])
+                self._clbit_indices[bit] = BitLocations(*self._data.get_clbit_location(bit))
             else:
                 raise CircuitError(
                     "Expected an instance of Qubit, Clbit, or "
@@ -3177,8 +3178,12 @@ class QuantumCircuit:
 
         try:
             if isinstance(bit, Qubit):
+                if bit not in self._qubit_indices:
+                    self._qubit_indices[bit] = BitLocations(*self._data.get_qubit_location(bit))
                 return self._qubit_indices[bit]
             elif isinstance(bit, Clbit):
+                if bit not in self._clbit_indices:
+                    self._clbit_indices[bit] = BitLocations(*self._data.get_clbit_location(bit))
                 return self._clbit_indices[bit]
             else:
                 raise CircuitError(f"Could not locate bit of unknown type: {type(bit)}")
@@ -3698,8 +3703,16 @@ class QuantumCircuit:
         Returns:
           QuantumCircuit: a deepcopy of the current circuit, with the specified name
         """
-        cpy = self.copy_empty_like(name)
+        if not (name is None or isinstance(name, str)):
+            raise TypeError(
+                f"invalid name for a circuit: '{name}'. The name must be a string or 'None'."
+            )
+
+        cpy = _copy.copy(self)
+        _copy_metadata(self, cpy, "alike")
         cpy._data = self._data.copy()
+        if name is not None:
+            cpy.name = name
         return cpy
 
     def copy_empty_like(
@@ -3755,9 +3768,7 @@ class QuantumCircuit:
 
         _copy_metadata(self, cpy, vars_mode)
 
-        cpy._data = CircuitData(
-            self._data.qubits, self._data.clbits, global_phase=self._data.global_phase
-        )
+        cpy._data = self._data.copy_empty_like()
 
         if name:
             cpy.name = name
@@ -4071,10 +4082,17 @@ class QuantumCircuit:
         circ.cregs = []
         circ._clbit_indices = {}
 
+        # Save the old qregs
+        old_qregs = circ.qregs
+
         # Clear instruction info
         circ._data = CircuitData(
             qubits=circ._data.qubits, reserve=len(circ._data), global_phase=circ.global_phase
         )
+
+        # Re-add old registers
+        for qreg in old_qregs:
+            circ.add_register(qreg)
 
         # We must add the clbits first to preserve the original circuit
         # order. This way, add_register never adds clbits and just

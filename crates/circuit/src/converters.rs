@@ -15,14 +15,11 @@ use std::sync::OnceLock;
 
 use hashbrown::HashMap;
 use pyo3::prelude::*;
-use pyo3::{
-    intern,
-    types::{PyDict, PyList},
-};
+use pyo3::{intern, types::PyDict};
 
-use crate::circuit_data::CircuitData;
 use crate::dag_circuit::{DAGCircuit, NodeType};
 use crate::packed_instruction::PackedInstruction;
+use crate::{bit_data::NewBitData, circuit_data::CircuitData};
 
 /// An extractable representation of a QuantumCircuit reserved only for
 /// conversion purposes.
@@ -32,8 +29,6 @@ pub struct QuantumCircuitData<'py> {
     pub name: Option<Bound<'py, PyAny>>,
     pub calibrations: Option<HashMap<String, Py<PyDict>>>,
     pub metadata: Option<Bound<'py, PyAny>>,
-    pub qregs: Option<Bound<'py, PyList>>,
-    pub cregs: Option<Bound<'py, PyList>>,
     pub input_vars: Vec<Bound<'py, PyAny>>,
     pub captured_vars: Vec<Bound<'py, PyAny>>,
     pub declared_vars: Vec<Bound<'py, PyAny>>,
@@ -52,14 +47,6 @@ impl<'py> FromPyObject<'py> for QuantumCircuitData<'py> {
                 .extract()
                 .ok(),
             metadata: ob.getattr(intern!(py, "metadata")).ok(),
-            qregs: ob
-                .getattr(intern!(py, "qregs"))
-                .map(|ob| ob.downcast_into())?
-                .ok(),
-            cregs: ob
-                .getattr(intern!(py, "cregs"))
-                .map(|ob| ob.downcast_into())?
-                .ok(),
             input_vars: ob
                 .call_method0(intern!(py, "iter_input_vars"))?
                 .try_iter()?
@@ -99,10 +86,10 @@ pub fn dag_to_circuit(
     dag: &DAGCircuit,
     copy_operations: bool,
 ) -> PyResult<CircuitData> {
-    CircuitData::from_packed_instructions(
+    let mut circuit = CircuitData::from_packed_instructions(
         py,
-        dag.qubits().clone(),
-        dag.clbits().clone(),
+        NewBitData::from_bit_data(py, dag.qubits()),
+        NewBitData::from_bit_data(py, dag.clbits()),
         dag.qargs_interner().clone(),
         dag.cargs_interner().clone(),
         dag.topological_op_nodes()?.map(|node_index| {
@@ -133,7 +120,15 @@ pub fn dag_to_circuit(
             }
         }),
         dag.get_global_phase(),
-    )
+    )?;
+    // Manually add qregs and cregs
+    for reg in dag.qregs.bind(py).values() {
+        circuit.py_add_qreg(&reg)?;
+    }
+    for reg in dag.cregs.bind(py).values() {
+        circuit.py_add_creg(&reg)?;
+    }
+    Ok(circuit)
 }
 
 pub fn converters(m: &Bound<PyModule>) -> PyResult<()> {

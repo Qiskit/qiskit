@@ -193,9 +193,9 @@ pub struct DAGCircuit {
     dag: StableDiGraph<NodeType, Wire>,
 
     #[pyo3(get)]
-    qregs: Py<PyDict>,
+    pub qregs: Py<PyDict>,
     #[pyo3(get)]
-    cregs: Py<PyDict>,
+    pub cregs: Py<PyDict>,
 
     /// The cache used to intern instruction qargs.
     pub qargs_interner: Interner<[Qubit]>,
@@ -6752,7 +6752,7 @@ impl DAGCircuit {
                             &qubit
                         )));
                     }
-                    let qubit_index = qc_data.qubits().find(&qubit).unwrap();
+                    let qubit_index = qc_data.qubits().py_find_bit(&qubit)?.unwrap();
                     ordered_vec[qubit_index.index()] = new_dag.add_qubit_unchecked(py, &qubit)?;
                     Ok(())
                 })?;
@@ -6764,7 +6764,7 @@ impl DAGCircuit {
         } else {
             qc_data
                 .qubits()
-                .bits()
+                .py_bits(py)?
                 .iter()
                 .try_for_each(|qubit| -> PyResult<_> {
                     new_dag.add_qubit_unchecked(py, qubit.bind(py))?;
@@ -6785,7 +6785,7 @@ impl DAGCircuit {
                             &clbit
                         )));
                     };
-                    let clbit_index = qc_data.clbits().find(&clbit).unwrap();
+                    let clbit_index = qc_data.clbits().py_find_bit(&clbit)?.unwrap();
                     ordered_vec[clbit_index.index()] = new_dag.add_clbit_unchecked(py, &clbit)?;
                     Ok(())
                 })?;
@@ -6797,7 +6797,7 @@ impl DAGCircuit {
         } else {
             qc_data
                 .clbits()
-                .bits()
+                .py_bits(py)?
                 .iter()
                 .try_for_each(|clbit| -> PyResult<()> {
                     new_dag.add_clbit_unchecked(py, clbit.bind(py))?;
@@ -6820,16 +6820,12 @@ impl DAGCircuit {
         }
 
         // Add all the registers
-        if let Some(qregs) = qc.qregs {
-            for qreg in qregs.iter() {
-                new_dag.add_qreg(py, &qreg)?;
-            }
+        for qreg in qc_data.py_qregs(py)?.bind(py).iter() {
+            new_dag.add_qreg(py, &qreg)?;
         }
 
-        if let Some(cregs) = qc.cregs {
-            for creg in cregs.iter() {
-                new_dag.add_creg(py, &creg)?;
-            }
+        for creg in qc_data.py_cregs(py)?.bind(py).iter() {
+            new_dag.add_creg(py, &creg)?;
         }
 
         new_dag.try_extend(
@@ -6864,8 +6860,6 @@ impl DAGCircuit {
             name: None,
             calibrations: None,
             metadata: None,
-            qregs: None,
-            cregs: None,
             input_vars: Vec::new(),
             captured_vars: Vec::new(),
             declared_vars: Vec::new(),
