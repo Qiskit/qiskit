@@ -1,0 +1,10 @@
+---
+deprecations_transpiler:
+  - |
+    The ``backend_props`` argument of the
+    :func:`.generate_translation_pass_manager` function is deprecated and
+    will be removed in Qiskit 2.0. This argument is optional and is superseded
+    if the required ``target`` argument is populated. As the
+    :class:`.BackendProperties` is deprecated and will be removed in Qiskit
+    2.0 specifying this option will also no longer work. Usage of the argument
+    can safely be removed in 1.x as long as you were passing in a target.

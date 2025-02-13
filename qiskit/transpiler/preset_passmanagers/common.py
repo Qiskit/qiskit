@@ -15,6 +15,7 @@
 
 import collections
 from typing import Optional
+import warnings
 
 from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
 from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
@@ -454,6 +455,18 @@ def generate_translation_passmanager(
     Raises:
         TranspilerError: If the ``method`` kwarg is not a valid value
     """
+    if backend_props is not None:
+        warnings.warn(
+            "The backend_props argument for this function has been deprecated. "
+            "The BackendProperties data structure has been deprecated and will be "
+            "removed in Qiskit 2.0, instead you should use a Target object with the "
+            "required target argument. You can use Target.from_configuration() "
+            "to build the target from the properties object, but in 2.0 you will need "
+            "to generate a target directly.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+
     if method == "translator":
         unroll = [
             # Use unitary synthesis for basis aware decomposition of
