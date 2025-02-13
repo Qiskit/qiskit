@@ -19,7 +19,7 @@
 
 from __future__ import annotations
 
-__all__ = ["Type", "Bool", "Float", "Uint"]
+__all__ = ["Type", "Bool", "Duration", "Float", "Stretch", "Uint"]
 
 import typing
 
@@ -123,3 +123,43 @@ class Float(Type):
 
     def __eq__(self, other):
         return isinstance(other, Float) and self.const == other.const
+
+
+@typing.final
+class Duration(Type):
+    """A length of time, possibly negative."""
+
+    __slots__ = ()
+
+    def __init__(self):
+        # A duration is always const.
+        super(Type, self).__setattr__("const", True)
+
+    def __repr__(self):
+        return f"Duration()"
+
+    def __hash__(self):
+        return hash(self.__class__)
+
+    def __eq__(self, other):
+        return isinstance(other, Duration)
+
+
+@typing.final
+class Stretch(Type):
+    """A special type that denotes some not-yet-known non-negative duration."""
+
+    __slots__ = ()
+
+    def __init__(self):
+        # A stretch is always const.
+        super(Type, self).__setattr__("const", True)
+
+    def __repr__(self):
+        return f"Stretch()"
+
+    def __hash__(self):
+        return hash(self.__class__)
+
+    def __eq__(self, other):
+        return isinstance(other, Stretch)

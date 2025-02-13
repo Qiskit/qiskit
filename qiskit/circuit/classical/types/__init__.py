@@ -95,7 +95,9 @@ allowed from the left type to the right type.
 __all__ = [
     "Type",
     "Bool",
+    "Duration",
     "Float",
+    "Stretch",
     "Uint",
     "Ordering",
     "order",
@@ -106,5 +108,5 @@ __all__ = [
     "cast_kind",
 ]
 
-from .types import Type, Bool, Float, Uint
+from .types import Type, Bool, Duration, Float, Stretch, Uint
 from .ordering import Ordering, order, is_subtype, is_supertype, greater, CastKind, cast_kind
