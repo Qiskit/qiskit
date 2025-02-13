@@ -227,3 +227,12 @@ class TestGenericBackendV2(QiskitTestCase):
                     if inst not in ["delay", "reset"]:
                         self.assertGreaterEqual(duration, expected_durations[inst][0])
                         self.assertLessEqual(duration, expected_durations[inst][1])
+
+    def test_custom_dt(self):
+        """Test that the custom dt is respected."""
+
+        ref_backend = GenericBackendV2(num_qubits=2, basis_gates=["cx", "id"], seed=42)
+        double_dt_backend = GenericBackendV2(
+            num_qubits=2, basis_gates=["cx", "id"], dt=ref_backend.dt * 2, seed=42
+        )
+        self.assertEqual(ref_backend.dt * 2, double_dt_backend.dt)

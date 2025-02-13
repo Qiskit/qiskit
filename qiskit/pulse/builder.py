@@ -39,6 +39,7 @@ execution. For example, to play a series of pulses on channels is as simple as:
 
 
 .. plot::
+   :alt: Output from the previous code.
    :include-source:
 
    from qiskit import pulse
@@ -61,6 +62,7 @@ statements. For example, below we write a simple program that :func:`play`\s
 a pulse:
 
 .. plot::
+   :alt: Output from the previous code.
    :include-source:
 
    from qiskit import pulse
@@ -87,158 +89,12 @@ by automatically compiling the required pulses from their gate-level
 representations, while simultaneously applying a long decoupling pulse to a
 neighboring qubit. We terminate the experiment with a measurement to observe the
 state we prepared. This program which mixes circuits and pulses will be
-automatically lowered to be run as a pulse program:
-
-.. plot::
-   :include-source:
-
-   from math import pi
-   from qiskit.compiler import schedule
-   from qiskit.circuit import QuantumCircuit
-
-   from qiskit import pulse
-   from qiskit.providers.fake_provider import GenericBackendV2
-
-   backend = GenericBackendV2(num_qubits=5, calibrate_instructions=True)
-
-   d2 = pulse.DriveChannel(2)
-
-   qc = QuantumCircuit(2)
-   # Hadamard
-   qc.rz(pi/2, 0)
-   qc.sx(0)
-   qc.rz(pi/2, 0)
-
-   qc.cx(0, 1)
-
-   bell_sched = schedule(qc, backend)
-
-   with pulse.build(backend) as decoupled_bell_prep_and_measure:
-       # We call our bell state preparation schedule constructed above.
-       with pulse.align_right():
-           pulse.call(bell_sched)
-           pulse.play(pulse.Constant(bell_sched.duration, 0.02), d2)
-           pulse.barrier(0, 1, 2)
-           registers = pulse.measure_all()
-
-   decoupled_bell_prep_and_measure.draw()
-
+automatically lowered to be run as a pulse program.
 
 With the pulse builder we are able to blend programming on qubits and channels.
 While the pulse schedule is based on instructions that operate on
 channels, the pulse builder automatically handles the mapping from qubits to
 channels for you.
-
-In the example below we demonstrate some more features of the pulse builder:
-
-.. plot::
-   :include-source:
-   :nofigs:
-
-   import math
-   from qiskit.compiler import schedule
-
-   from qiskit import pulse, QuantumCircuit
-   from qiskit.providers.fake_provider import FakeOpenPulse2Q
-
-   backend = FakeOpenPulse2Q()
-
-   qc = QuantumCircuit(2, 2)
-   qc.cx(0, 1)
-
-   with pulse.build(backend) as pulse_prog:
-       # Create a pulse.
-       gaussian_pulse = pulse.Gaussian(10, 1.0, 2)
-       # Get the qubit's corresponding drive channel from the backend.
-       d0 = pulse.drive_channel(0)
-       d1 = pulse.drive_channel(1)
-       # Play a pulse at t=0.
-       pulse.play(gaussian_pulse, d0)
-       # Play another pulse directly after the previous pulse at t=10.
-       pulse.play(gaussian_pulse, d0)
-       # The default scheduling behavior is to schedule pulses in parallel
-       # across channels. For example, the statement below
-       # plays the same pulse on a different channel at t=0.
-       pulse.play(gaussian_pulse, d1)
-
-       # We also provide pulse scheduling alignment contexts.
-       # The default alignment context is align_left.
-
-       # The sequential context schedules pulse instructions sequentially in time.
-       # This context starts at t=10 due to earlier pulses above.
-       with pulse.align_sequential():
-           pulse.play(gaussian_pulse, d0)
-           # Play another pulse after at t=20.
-           pulse.play(gaussian_pulse, d1)
-
-           # We can also nest contexts as each instruction is
-           # contained in its local scheduling context.
-           # The output of a child context is a context-schedule
-           # with the internal instructions timing fixed relative to
-           # one another. This is schedule is then called in the parent context.
-
-           # Context starts at t=30.
-           with pulse.align_left():
-               # Start at t=30.
-               pulse.play(gaussian_pulse, d0)
-               # Start at t=30.
-               pulse.play(gaussian_pulse, d1)
-           # Context ends at t=40.
-
-           # Alignment context where all pulse instructions are
-           # aligned to the right, ie., as late as possible.
-           with pulse.align_right():
-               # Shift the phase of a pulse channel.
-               pulse.shift_phase(math.pi, d1)
-               # Starts at t=40.
-               pulse.delay(100, d0)
-               # Ends at t=140.
-
-               # Starts at t=130.
-               pulse.play(gaussian_pulse, d1)
-               # Ends at t=140.
-
-           # Acquire data for a qubit and store in a memory slot.
-           pulse.acquire(100, 0, pulse.MemorySlot(0))
-
-           # We also support a variety of macros for common operations.
-
-           # Measure all qubits.
-           pulse.measure_all()
-
-           # Delay on some qubits.
-           # This requires knowledge of which channels belong to which qubits.
-           # delay for 100 cycles on qubits 0 and 1.
-           pulse.delay_qubits(100, 0, 1)
-
-           # Call a schedule for a quantum circuit thereby inserting into
-           # the pulse schedule.
-           qc = QuantumCircuit(2, 2)
-           qc.cx(0, 1)
-           qc_sched = schedule(qc, backend)
-           pulse.call(qc_sched)
-
-
-           # It is also be possible to call a preexisting schedule
-           tmp_sched = pulse.Schedule()
-           tmp_sched += pulse.Play(gaussian_pulse, d0)
-           pulse.call(tmp_sched)
-
-           # We also support:
-
-           # frequency instructions
-           pulse.set_frequency(5.0e9, d0)
-
-           # phase instructions
-           pulse.shift_phase(0.1, d0)
-
-           # offset contexts
-           with pulse.phase_offset(math.pi, d0):
-               pulse.play(gaussian_pulse, d0)
-
-
-The above is just a small taste of what is possible with the builder. See the rest of the module
-documentation for more information on its capabilities.
 
 .. autofunction:: build
 
@@ -277,6 +133,7 @@ Instructions
 Pulse instructions are available within the builder interface. Here's an example:
 
 .. plot::
+   :alt: Output from the previous code.
    :include-source:
 
     from qiskit import pulse
@@ -325,6 +182,7 @@ example an alignment context like :func:`align_right` may
 be used to align all pulses as late as possible in a pulse program.
 
 .. plot::
+   :alt: Output from the previous code.
    :include-source:
 
    from qiskit import pulse
@@ -1188,6 +1046,7 @@ def align_equispaced(duration: int | ParameterExpression) -> Generator[None, Non
     Examples:
 
     .. plot::
+       :alt: Output from the previous code.
        :include-source:
 
         from qiskit import pulse
@@ -1242,6 +1101,7 @@ def align_func(
     Examples:
 
     .. plot::
+       :alt: Output from the previous code.
        :include-source:
 
         import numpy as np
@@ -2116,6 +1976,7 @@ def macro(func: Callable):
     Examples:
 
     .. plot::
+       :alt: Output from the previous code.
        :include-source:
 
         from qiskit import pulse

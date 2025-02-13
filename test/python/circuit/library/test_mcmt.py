@@ -51,7 +51,8 @@ class TestMCMT(QiskitTestCase):
     def test_mcmt_as_normal_control(self, mcmt_class):
         """Test that the MCMT can act as normal control gate."""
         qc = QuantumCircuit(2)
-        mcmt = mcmt_class(gate=CHGate(), num_ctrl_qubits=1, num_target_qubits=1)
+        with self.assertWarns(DeprecationWarning):
+            mcmt = mcmt_class(gate=CHGate(), num_ctrl_qubits=1, num_target_qubits=1)
         qc = qc.compose(mcmt, [0, 1])
 
         ref = QuantumCircuit(2)
@@ -65,12 +66,14 @@ class TestMCMT(QiskitTestCase):
     def test_missing_qubits(self):
         """Test that an error is raised if qubits are missing."""
         with self.subTest(msg="no control qubits"):
-            with self.assertRaises(AttributeError):
-                _ = MCMT(XGate(), num_ctrl_qubits=0, num_target_qubits=1)
+            with self.assertWarns(DeprecationWarning):
+                with self.assertRaises(AttributeError):
+                    _ = MCMT(XGate(), num_ctrl_qubits=0, num_target_qubits=1)
 
         with self.subTest(msg="no target qubits"):
-            with self.assertRaises(AttributeError):
-                _ = MCMT(ZGate(), num_ctrl_qubits=4, num_target_qubits=0)
+            with self.assertWarns(DeprecationWarning):
+                with self.assertRaises(AttributeError):
+                    _ = MCMT(ZGate(), num_ctrl_qubits=4, num_target_qubits=0)
 
     def test_different_gate_types(self):
         """Test the different supported input types for the target gate."""
@@ -78,7 +81,8 @@ class TestMCMT(QiskitTestCase):
         x_circ.x(0)
         for input_gate in [x_circ, QuantumCircuit.cx, QuantumCircuit.x, "cx", "x", CXGate()]:
             with self.subTest(input_gate=input_gate):
-                mcmt = MCMT(input_gate, 2, 2)
+                with self.assertWarns(DeprecationWarning):
+                    mcmt = MCMT(input_gate, 2, 2)
                 if isinstance(input_gate, QuantumCircuit):
                     self.assertEqual(mcmt.gate.definition[0].operation, XGate())
                     self.assertEqual(len(mcmt.gate.definition), 1)
@@ -89,13 +93,15 @@ class TestMCMT(QiskitTestCase):
         """Test too few and too many ancillas for the MCMT V-chain mode."""
         with self.subTest(msg="insufficient number of auxiliary qubits on gate"):
             qc = QuantumCircuit(5)
-            mcmt = MCMTVChain(ZGate(), 3, 1)
+            with self.assertWarns(DeprecationWarning):
+                mcmt = MCMTVChain(ZGate(), 3, 1)
             with self.assertRaises(QiskitError):
                 qc.append(mcmt, range(5))
 
         with self.subTest(msg="too many auxiliary qubits on gate"):
             qc = QuantumCircuit(9)
-            mcmt = MCMTVChain(ZGate(), 3, 1)
+            with self.assertWarns(DeprecationWarning):
+                mcmt = MCMTVChain(ZGate(), 3, 1)
             with self.assertRaises(QiskitError):
                 qc.append(mcmt, range(9))
 
@@ -135,7 +141,8 @@ class TestMCMT(QiskitTestCase):
             for i in subset:
                 qc.x(controls[i])
 
-            mcmt = MCMTVChain(cgate, num_controls, num_targets)
+            with self.assertWarns(DeprecationWarning):
+                mcmt = MCMTVChain(cgate, num_controls, num_targets)
             qc.compose(mcmt, qubits, inplace=True)
 
             for i in subset:
@@ -284,6 +291,20 @@ class TestMCMT(QiskitTestCase):
         self.assertEqual(circuit.count_ops().get("cry", 0), num_target)
         self.assertEqual(circuit.num_parameters, 1)
         self.assertIs(circuit.parameters[0], theta)
+
+    def test_mcmt_circuit_as_gate(self):
+        """Test the MCMT plugin is only triggered for the gate, not the same-named circuit.
+
+        Regression test of #13563.
+        """
+        circuit = QuantumCircuit(2)
+        gate = RYGate(0.1)
+        with self.assertWarns(DeprecationWarning):
+            mcmt = MCMT(gate=gate, num_ctrl_qubits=1, num_target_qubits=1)
+        circuit.append(mcmt, circuit.qubits)  # append the MCMT circuit as gate called "MCMT"
+
+        transpiled = transpile(circuit, basis_gates=["u", "cx"])
+        self.assertEqual(Operator(transpiled), Operator(gate.control(1)))
 
 
 if __name__ == "__main__":

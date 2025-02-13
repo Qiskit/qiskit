@@ -20,11 +20,14 @@ from qiskit.circuit.gate import Gate
 from qiskit.circuit import _utils
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.utils import deprecate_func
+from qiskit._accelerate.circuit import StandardInstructionType
 
 
 @_utils.with_gate_array(np.eye(2, dtype=complex))
 class Delay(Instruction):
     """Do nothing and just delay/wait/idle for a specified duration."""
+
+    _standard_instruction_type = StandardInstructionType.Delay
 
     def __init__(self, duration, unit="dt"):
         """
@@ -80,6 +83,11 @@ class Delay(Instruction):
             np.ndarray: matrix representation.
         """
         return self.__array__(dtype=complex)
+
+    def __eq__(self, other):
+        return (
+            isinstance(other, Delay) and self.unit == other.unit and self._compare_parameters(other)
+        )
 
     def __repr__(self):
         """Return the official string representing the delay."""

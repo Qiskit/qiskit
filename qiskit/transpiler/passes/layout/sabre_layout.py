@@ -328,6 +328,19 @@ class SabreLayout(TransformationPass):
                 for initial, final in enumerate(component.final_permutation)
             }
         )
+
+        # The coupling map may have been split into more components than the DAG.  In this case,
+        # there will be some physical qubits unaccounted for in our `final_layout`.  Strictly the
+        # `if` check is unnecessary, but we can avoid the loop for most circuits and backends.
+        if len(final_layout) != len(physical_qubits):
+            used_qubits = {
+                qubit for component in components for qubit in component.coupling_map.graph.nodes()
+            }
+            for index, qubit in enumerate(physical_qubits):
+                if index in used_qubits:
+                    continue
+                final_layout[qubit] = index
+
         if self.property_set["final_layout"] is None:
             self.property_set["final_layout"] = final_layout
         else:
