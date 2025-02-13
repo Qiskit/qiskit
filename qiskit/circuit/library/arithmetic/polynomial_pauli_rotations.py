@@ -305,7 +305,7 @@ class PolynomialPauliRotationsGate(Gate):
             coeffs: The coefficients of the polynomial. ``coeffs[i]`` is the coefficient of the
                 i-th power of x. Defaults to linear: [0, 1].
             basis: The type of Pauli rotation ('X', 'Y', 'Z').
-            label: A label for the circuit.
+            label: A label for the gate.
         """
         self.coeffs = coeffs or [0, 1]
         self.basis = basis.lower()
