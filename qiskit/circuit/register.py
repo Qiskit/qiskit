@@ -17,7 +17,9 @@ Base register reference object.
 """
 
 from __future__ import annotations
+
 import itertools
+import warnings
 import numpy as np
 
 from qiskit.circuit.exceptions import CircuitError
@@ -124,6 +126,17 @@ class Register:
             # first on deep-copying or on pickling, so defer populating _bit_indices
             # until first access.
             self._bit_indices = None
+
+    def __init_subclass__(cls):
+        # In Qiskit 2.0, `Bit` and `Register` will move to Rust space, and the allowable types of
+        # them will be fixed, similar to if the classes had been marked as `final`.
+        if cls.__module__.split(".", 2)[0] != __name__.split(".", 2)[0]:
+            warnings.warn(
+                "subclassing 'Register' is not supported, and may not be possible in Qiskit 2.0",
+                category=DeprecationWarning,
+                stacklevel=2,
+            )
+        return cls
 
     @property
     def name(self):

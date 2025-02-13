@@ -16,7 +16,7 @@
 import copy
 from unittest import mock
 
-from qiskit.circuit import bit
+from qiskit.circuit import bit, Qubit
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -75,6 +75,18 @@ class TestBitClass(QiskitTestCase):
         bit2 = copy.copy(bit1)
 
         self.assertIs(bit1, bit2)
+
+    def test_deprecation_of_subclass(self):
+        """It's not permitted to subclass the objects."""
+        with self.assertWarnsRegex(DeprecationWarning, "subclassing 'Bit' is not supported"):
+
+            class _MyBit(bit.Bit):
+                """Direct subclass."""
+
+        with self.assertWarnsRegex(DeprecationWarning, "subclassing 'Bit' is not supported"):
+
+            class _MyQubit(Qubit):
+                """Indirect subclass."""
 
 
 class TestNewStyleBit(QiskitTestCase):
