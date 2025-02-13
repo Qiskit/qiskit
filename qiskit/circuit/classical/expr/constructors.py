@@ -128,6 +128,9 @@ def lift(value: typing.Any, /, type: types.Type | None = None, *, try_const: boo
             Value(7, Uint(3, const=False))
             >>> expr.lift(7, try_const=True)
             Value(7, Uint(3, const=True))
+            >>> expr.lift(7, types.Uint(8, const=True))
+            Value(7, Uint(8, const=True))
+
     """
     if isinstance(value, Expr):
         if type is not None:
@@ -203,7 +206,8 @@ def bit_not(operand: typing.Any, /) -> Expr:
             >>> from qiskit.circuit import ClassicalRegister
             >>> from qiskit.circuit.classical import expr
             >>> expr.bit_not(ClassicalRegister(3, "c"))
-            Unary(Unary.Op.BIT_NOT, Var(ClassicalRegister(3, 'c'), Uint(3, const=False)), Uint(3, const=False))
+            Unary(Unary.Op.BIT_NOT, \
+Var(ClassicalRegister(3, 'c'), Uint(3, const=False)), Uint(3, const=False))
     """
     operand = lift(operand)
     if operand.type.kind not in (types.Bool, types.Uint):
@@ -223,11 +227,12 @@ def logic_not(operand: typing.Any, /) -> Expr:
             >>> expr.logic_not(ClassicalRegister(3, "c"))
             Unary(\
 Unary.Op.LOGIC_NOT, \
-Cast(Var(ClassicalRegister(3, 'c'), Uint(3, const=False)), Bool(const=False), implicit=True), \
+Cast(Var(ClassicalRegister(3, 'c'), Uint(3, const=False)), \
+Bool(const=False), implicit=True), \
 Bool(const=False))
     """
-    var_or_value = lift(operand)
-    operand = _coerce_lossless(var_or_value, types.Bool(const=var_or_value.type.const))
+    operand = lift(operand)
+    operand = _coerce_lossless(operand, types.Bool(const=operand.type.const))
     return Unary(Unary.Op.LOGIC_NOT, operand, operand.type)
 
 
@@ -387,7 +392,10 @@ def logic_and(left: typing.Any, right: typing.Any, /) -> Expr:
             >>> from qiskit.circuit import Clbit
             >>> from qiskit.circuit.classical import expr
             >>> expr.logic_and(Clbit(), Clbit())
-            Binary(Binary.Op.LOGIC_AND, Var(<clbit 0>, Bool(const=False)), Var(<clbit 1>, Bool(const=False)), Bool(const=False))
+            Binary(Binary.Op.LOGIC_AND, \
+Var(<clbit 0>, Bool(const=False)), \
+Var(<clbit 1>, Bool(const=False)), \
+Bool(const=False))
     """
     return _binary_logical(Binary.Op.LOGIC_AND, left, right)
 
@@ -402,7 +410,10 @@ def logic_or(left: typing.Any, right: typing.Any, /) -> Expr:
             >>> from qiskit.circuit import Clbit
             >>> from qiskit.circuit.classical import expr
             >>> expr.logical_and(Clbit(), Clbit())
-            Binary(Binary.Op.LOGIC_OR, Var(<clbit 0>, Bool(const=False)), Var(<clbit 1>, Bool(const=False)), Bool(const=False))
+            Binary(Binary.Op.LOGIC_OR, \
+Var(<clbit 0>, Bool(const=False)), \
+Var(<clbit 1>, Bool(const=False)), \
+Bool(const=False))
     """
     return _binary_logical(Binary.Op.LOGIC_OR, left, right)
 
@@ -628,7 +639,10 @@ def index(target: typing.Any, index: typing.Any, /) -> Expr:
             >>> from qiskit.circuit import ClassicalRegister
             >>> from qiskit.circuit.classical import expr
             >>> expr.index(ClassicalRegister(8, "a"), 3)
-            Index(Var(ClassicalRegister(8, "a"), Uint(8, const=False)), Value(3, Uint(2, const=False)), Bool(const=False))
+            Index(\
+Var(ClassicalRegister(8, "a"), Uint(8, const=False)), \
+Value(3, Uint(2, const=False)), \
+Bool(const=False))
     """
     target = lift(target)
     index = lift(index, try_const=target.type.const)

@@ -151,8 +151,9 @@ class Var(Expr):
 
     @property
     def standalone(self) -> bool:
-        """Whether this :class:`Var` is a standalone variable that owns its storage location, if applicable.
-        If false, this is a wrapper :class:`Var` around a pre-existing circuit object."""
+        """Whether this :class:`Var` is a standalone variable that owns its storage
+        location, if applicable. If false, this is a wrapper :class:`Var` around a
+        pre-existing circuit object."""
         return isinstance(self.var, uuid.UUID)
 
     def accept(self, visitor, /):

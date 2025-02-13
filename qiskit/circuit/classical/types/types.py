@@ -29,9 +29,14 @@ class Type:
     directly.
 
     This must not be subclassed by users; subclasses form the internal data of the representation of
-    expressions, and it does not make sense to add more outside of Qiskit library code."""
+    expressions, and it does not make sense to add more outside of Qiskit library code.
 
-    __slots__ = ()
+    All subclasses are responsible for setting the ``const`` attribute in their ``__init__``.
+    """
+
+    __slots__ = ("const",)
+
+    const: bool
 
     @property
     def kind(self):
@@ -39,11 +44,6 @@ class Type:
         this type, that is ``t.kind is type(t)``, but is exposed like this to make it clear that
         this a hashable enum-like discriminator you can rely on."""
         return self.__class__
-
-    @property
-    def const(self):
-        """Get the const-ness of this type."""
-        raise NotImplementedError("types must implement the 'const' attribute")
 
     # Enforcement of immutability.  The constructor methods need to manually skip this.
 
@@ -67,7 +67,7 @@ class Type:
 class Bool(Type):
     """The Boolean type.  This has exactly two values: ``True`` and ``False``."""
 
-    __slots__ = ("const",)
+    __slots__ = ()
 
     def __init__(self, *, const: bool = False):
         super(Type, self).__setattr__("const", const)
@@ -86,10 +86,7 @@ class Bool(Type):
 class Uint(Type):
     """An unsigned integer of fixed bit width."""
 
-    __slots__ = (
-        "const",
-        "width",
-    )
+    __slots__ = ("width",)
 
     def __init__(self, width: int, *, const: bool = False):
         if isinstance(width, int) and width <= 0:
