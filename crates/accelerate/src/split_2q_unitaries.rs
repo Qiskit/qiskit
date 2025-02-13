@@ -67,8 +67,8 @@ pub fn split_2q_unitaries(
                     if let Wire::Qubit(qubit) = edge {
                         if *qubit == qubits[0] {
                             let mat: Matrix2<Complex64> = [
-                                [k1r_arr[[0, 0]], k1r_arr[[0, 1]]],
-                                [k1r_arr[[1, 0]], k1r_arr[[1, 1]]],
+                                [k1r_arr[[0, 0]], k1r_arr[[1, 0]]],
+                                [k1r_arr[[0, 1]], k1r_arr[[1, 1]]],
                             ]
                             .into();
                             let k1r_gate = Box::new(UnitaryGate {
@@ -77,8 +77,8 @@ pub fn split_2q_unitaries(
                             (PackedOperation::from_unitary(k1r_gate), smallvec![])
                         } else {
                             let mat: Matrix2<Complex64> = [
-                                [k1l_arr[[0, 0]], k1l_arr[[0, 1]]],
-                                [k1l_arr[[1, 0]], k1l_arr[[1, 1]]],
+                                [k1l_arr[[0, 0]], k1l_arr[[1, 0]]],
+                                [k1l_arr[[0, 1]], k1l_arr[[1, 1]]],
                             ]
                             .into();
 
@@ -119,22 +119,22 @@ pub fn split_2q_unitaries(
                 )?;
                 if matches!(decomp.specialization, Specialization::SWAPEquiv) {
                     let k1r_arr = decomp.k1r_view();
-                    let mat: Matrix2<Complex64> = [
-                        [k1r_arr[[0, 0]], k1r_arr[[0, 1]]],
-                        [k1r_arr[[1, 0]], k1r_arr[[1, 1]]],
+                    let k1r_mat: Matrix2<Complex64> = [
+                        [k1r_arr[[0, 0]], k1r_arr[[1, 0]]],
+                        [k1r_arr[[0, 1]], k1r_arr[[1, 1]]],
                     ]
                     .into();
                     let k1r_gate = Box::new(UnitaryGate {
-                        array: ArrayType::OneQ(mat),
+                        array: ArrayType::OneQ(k1r_mat),
                     });
                     let k1l_arr = decomp.k1l_view();
-                    let mat: Matrix2<Complex64> = [
-                        [k1l_arr[[0, 0]], k1l_arr[[0, 1]]],
-                        [k1l_arr[[1, 0]], k1l_arr[[1, 1]]],
+                    let k1l_mat: Matrix2<Complex64> = [
+                        [k1l_arr[[0, 0]], k1l_arr[[1, 0]]],
+                        [k1l_arr[[0, 1]], k1l_arr[[1, 1]]],
                     ]
                     .into();
                     let k1l_gate = Box::new(UnitaryGate {
-                        array: ArrayType::OneQ(mat),
+                        array: ArrayType::OneQ(k1l_mat),
                     });
                     // perform the virtual swap
                     let qargs = dag.get_qargs(inst.qubits);
