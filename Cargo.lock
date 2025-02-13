@@ -78,6 +78,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ace50bade8e6234aa140d9a2f552bbee1db4d353f69b8217bc503490fc1a9f26"
 
 [[package]]
+name = "bitfield-struct"
+version = "0.9.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b2869c63ccf4f8bf0d485070b880e60e097fb7aeea80ee82a0a94a957e372a0b"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.96",
+]
+
+[[package]]
 name = "bitflags"
 version = "1.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -892,6 +903,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b94caae805f998a07d33af06e6a3891e38556051b8045c615470a71590e13e78"
 dependencies = [
  "libc",
+ "nalgebra",
  "ndarray",
  "num-complex",
  "num-integer",
@@ -1100,7 +1112,6 @@ dependencies = [
  "bytemuck",
  "libm",
  "num-complex",
- "pulp-macro",
  "reborrow",
 ]
 
@@ -1114,6 +1125,7 @@ dependencies = [
  "cfg-if",
  "libm",
  "num-complex",
+ "pulp-macro",
  "reborrow",
  "version_check",
 ]
@@ -1230,7 +1242,7 @@ dependencies = [
  "num-traits",
  "numpy",
  "once_cell",
- "pulp 0.18.22",
+ "pulp 0.21.4",
  "pyo3",
  "qiskit-circuit",
  "rand",
@@ -1249,10 +1261,12 @@ version = "2.0.0"
 dependencies = [
  "ahash 0.8.11",
  "approx 0.5.1",
+ "bitfield-struct",
  "bytemuck",
  "hashbrown 0.14.5",
  "indexmap",
  "itertools 0.13.0",
+ "nalgebra",
  "ndarray",
  "num-complex",
  "numpy",
