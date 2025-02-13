@@ -140,7 +140,7 @@ def lift(value: typing.Any, /, type: types.Type | None = None, *, try_const: boo
         if type is not None:
             raise ValueError("use 'cast' to cast existing expressions, not 'lift'")
         return value
-    from qiskit.circuit import Clbit, ClassicalRegister  # pylint: disable=cyclic-import
+    from qiskit.circuit import Clbit, ClassicalRegister, Duration # pylint: disable=cyclic-import
 
     if type is not None:
         # If a type was specified, the inferred type must be the same
@@ -163,6 +163,9 @@ def lift(value: typing.Any, /, type: types.Type | None = None, *, try_const: boo
         constructor = Value
     elif isinstance(value, float):
         inferred = types.Float(const=try_const)
+        constructor = Value
+    elif isinstance(value, Duration):
+        inferred = types.Duration()
         constructor = Value
     else:
         raise TypeError(f"failed to infer a type for '{value}'")
