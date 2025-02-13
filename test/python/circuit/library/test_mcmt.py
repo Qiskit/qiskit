@@ -292,23 +292,6 @@ class TestMCMT(QiskitTestCase):
         self.assertEqual(circuit.num_parameters, 1)
         self.assertIs(circuit.parameters[0], theta)
 
-<<<<<<< HEAD
-=======
-    def test_mcmt_circuit_as_gate(self):
-        """Test the MCMT plugin is only triggered for the gate, not the same-named circuit.
-
-        Regression test of #13563.
-        """
-        circuit = QuantumCircuit(2)
-        gate = RYGate(0.1)
-        with self.assertWarns(DeprecationWarning):
-            mcmt = MCMT(gate=gate, num_ctrl_qubits=1, num_target_qubits=1)
-        circuit.append(mcmt, circuit.qubits)  # append the MCMT circuit as gate called "MCMT"
-
-        transpiled = transpile(circuit, basis_gates=["u", "cx"])
-        self.assertEqual(Operator(transpiled), Operator(gate.control(1)))
-
->>>>>>> 28a33d76 (Deprecation of MCMT in favor of MCMTGate (#13584))
 
 if __name__ == "__main__":
     unittest.main()
