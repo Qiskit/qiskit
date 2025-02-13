@@ -53,22 +53,9 @@ class DynamicalDecoupling(TransformationPass):
         import numpy as np
         from qiskit.circuit import QuantumCircuit
         from qiskit.circuit.library import XGate
-        from qiskit.transpiler import PassManager, InstructionDurations
+        from qiskit.transpiler import PassManager, InstructionDurations, Target, CouplingMap
         from qiskit.transpiler.passes import ALAPSchedule, DynamicalDecoupling
         from qiskit.visualization import timeline_drawer
-
-        # Because the legacy passes do not propagate the scheduling information correctly, it is
-        # necessary to run a no-op "re-schedule" before the output circuits can be drawn.
-        def draw(circuit):
-            from qiskit import transpile
-
-            scheduled = transpile(
-                circuit,
-                optimization_level=0,
-                instruction_durations=InstructionDurations(),
-                scheduling_method="alap",
-            )
-            return timeline_drawer(scheduled)
 
         circ = QuantumCircuit(4)
         circ.h(0)
@@ -76,17 +63,27 @@ class DynamicalDecoupling(TransformationPass):
         circ.cx(1, 2)
         circ.cx(2, 3)
         circ.measure_all()
+
         durations = InstructionDurations(
             [("h", 0, 50), ("cx", [0, 1], 700), ("reset", None, 10),
              ("cx", [1, 2], 200), ("cx", [2, 3], 300),
-             ("x", None, 50), ("measure", None, 1000)]
+             ("x", None, 50), ("measure", None, 1000)],
+            dt=1e-7,
         )
+        target = Target.from_configuration(
+            ["h", "cx", "reset", "x", "measure"],
+            num_qubits=4,
+            coupling_map=CouplingMap.from_line(4, bidirectional=False),
+            instruction_durations=durations,
+            dt=1e-7,
+        )
+
         # balanced X-X sequence on all qubits
         dd_sequence = [XGate(), XGate()]
         pm = PassManager([ALAPSchedule(durations),
                           DynamicalDecoupling(durations, dd_sequence)])
         circ_dd = pm.run(circ)
-        draw(circ_dd)
+        timeline_draw(circ_dd, target=target)
 
         # Uhrig sequence on qubit 0
         n = 8
@@ -104,7 +101,7 @@ class DynamicalDecoupling(TransformationPass):
             ]
         )
         circ_dd = pm.run(circ)
-        draw(circ_dd)
+        timeline_draw(circ_dd, target=target)
     """
 
     @deprecate_func(
