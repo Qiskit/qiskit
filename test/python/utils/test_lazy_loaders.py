@@ -19,12 +19,11 @@ import importlib.util
 import sys
 import warnings
 from unittest import mock
-
 import ddt
 
 from qiskit.exceptions import MissingOptionalLibraryError, OptionalDependencyImportWarning
-from qiskit.test import QiskitTestCase
 from qiskit.utils import LazyImportTester, LazySubprocessTester
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 def available_importer(**kwargs):
@@ -424,7 +423,7 @@ class TestLazyDependencyTester(QiskitTestCase):
 
     def test_import_allows_attributes_failure(self):
         """Check that the import tester can accept a dictionary mapping module names to attributes,
-        and that these are recognised when they are missing."""
+        and that these are recognized when they are missing."""
         # We can just use existing modules for this.
         name_map = {
             "sys": ("executable", "path"),

@@ -1,0 +1,6 @@
+---
+features_quantum_info:
+  - |
+    The function :meth:`~.SparsePauliOp.apply_layout` from :class:`.SparsePauliOp` now allows for the
+    layout argument to also be ``None``. That is, the method can now also be used for circuits where no transpilation/routing
+    took place (for example when transpiling for a simulator).

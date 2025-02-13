@@ -13,7 +13,7 @@ fontname=helvetica;
 label="[1] ConditionalController";
 labeljust=l;
 4 [color=red, fontname=helvetica, label=TrivialLayout, shape=rectangle];
-5 [color=black, fontname=helvetica, fontsize=10, label=coupling_map, shape=ellipse, style=solid];
+5 [color=black, fontname=helvetica, fontsize=10, label="coupling_map", shape=ellipse, style=solid];
 5 -> 4;
 1 -> 4;
 }
@@ -23,7 +23,7 @@ fontname=helvetica;
 label="[2] ";
 labeljust=l;
 7 [color=red, fontname=helvetica, label=FullAncillaAllocation, shape=rectangle];
-8 [color=black, fontname=helvetica, fontsize=10, label=coupling_map, shape=ellipse, style=solid];
+8 [color=black, fontname=helvetica, fontsize=10, label="coupling_map", shape=ellipse, style=solid];
 8 -> 7;
 4 -> 7;
 }
@@ -40,50 +40,58 @@ subgraph cluster_11 {
 fontname=helvetica;
 label="[4] ";
 labeljust=l;
-12 [color=blue, fontname=helvetica, label=Unroller, shape=rectangle];
+12 [color=blue, fontname=helvetica, label=BasisTranslator, shape=rectangle];
+13 [color=black, fontname=helvetica, fontsize=10, label="equivalence_library", shape=ellipse, style=solid];
+13 -> 12;
+14 [color=black, fontname=helvetica, fontsize=10, label="target_basis", shape=ellipse, style=solid];
+14 -> 12;
+15 [color=black, fontname=helvetica, fontsize=10, label=target, shape=ellipse, style=dashed];
+15 -> 12;
+16 [color=black, fontname=helvetica, fontsize=10, label="min_qubits", shape=ellipse, style=dashed];
+16 -> 12;
 10 -> 12;
-}
-
-subgraph cluster_13 {
-fontname=helvetica;
-label="[5] ";
-labeljust=l;
-14 [color=green, fontname=helvetica, label=CheckMap, shape=rectangle];
-15 [color=black, fontname=helvetica, fontsize=10, label=coupling_map, shape=ellipse, style=solid];
-15 -> 14;
-16 [color=black, fontname=helvetica, fontsize=10, label=property_set_field, shape=ellipse, style=dashed];
-16 -> 14;
-12 -> 14;
 }
 
 subgraph cluster_17 {
 fontname=helvetica;
-label="[6] DoWhileController";
+label="[5] ";
 labeljust=l;
-18 [color=blue, fontname=helvetica, label=BarrierBeforeFinalMeasurements, shape=rectangle];
-19 [color=black, fontname=helvetica, fontsize=10, label=label, shape=ellipse, style=dashed];
+18 [color=green, fontname=helvetica, label=CheckMap, shape=rectangle];
+19 [color=black, fontname=helvetica, fontsize=10, label="coupling_map", shape=ellipse, style=solid];
 19 -> 18;
-14 -> 18;
+20 [color=black, fontname=helvetica, fontsize=10, label="property_set_field", shape=ellipse, style=dashed];
+20 -> 18;
+12 -> 18;
 }
 
-subgraph cluster_20 {
+subgraph cluster_21 {
 fontname=helvetica;
-label="[7] ";
+label="[6] DoWhileController";
 labeljust=l;
-21 [color=blue, fontname=helvetica, label=GateDirection, shape=rectangle];
-22 [color=black, fontname=helvetica, fontsize=10, label=coupling_map, shape=ellipse, style=solid];
-22 -> 21;
-23 [color=black, fontname=helvetica, fontsize=10, label=target, shape=ellipse, style=dashed];
-23 -> 21;
-18 -> 21;
+22 [color=blue, fontname=helvetica, label=BarrierBeforeFinalMeasurements, shape=rectangle];
+23 [color=black, fontname=helvetica, fontsize=10, label=label, shape=ellipse, style=dashed];
+23 -> 22;
+18 -> 22;
 }
 
 subgraph cluster_24 {
 fontname=helvetica;
+label="[7] ";
+labeljust=l;
+25 [color=blue, fontname=helvetica, label=GateDirection, shape=rectangle];
+26 [color=black, fontname=helvetica, fontsize=10, label="coupling_map", shape=ellipse, style=solid];
+26 -> 25;
+27 [color=black, fontname=helvetica, fontsize=10, label=target, shape=ellipse, style=dashed];
+27 -> 25;
+22 -> 25;
+}
+
+subgraph cluster_28 {
+fontname=helvetica;
 label="[8] ";
 labeljust=l;
-25 [color=grey, fontname=helvetica, label=RemoveResetInZeroState, shape=rectangle];
-21 -> 25;
+29 [color=grey, fontname=helvetica, label=RemoveResetInZeroState, shape=rectangle];
+25 -> 29;
 }
 
 }

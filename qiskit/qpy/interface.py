@@ -12,6 +12,8 @@
 
 """User interface of qpy serializer."""
 
+from __future__ import annotations
+
 from json import JSONEncoder, JSONDecoder
 from typing import Union, List, BinaryIO, Type, Optional
 from collections.abc import Iterable
@@ -23,8 +25,9 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.pulse import ScheduleBlock
 from qiskit.exceptions import QiskitError
 from qiskit.qpy import formats, common, binary_io, type_keys
-from qiskit.qpy.exceptions import QpyError
+from qiskit.qpy.exceptions import QPYLoadingDeprecatedFeatureWarning, QpyError
 from qiskit.version import __version__
+from qiskit.utils.deprecate_pulse import deprecate_pulse_arg
 
 
 # pylint: disable=invalid-name
@@ -71,11 +74,17 @@ VERSION_PATTERN = (
 VERSION_PATTERN_REGEX = re.compile(VERSION_PATTERN, re.VERBOSE | re.IGNORECASE)
 
 
+@deprecate_pulse_arg(
+    "programs",
+    deprecation_description="Passing `ScheduleBlock` to `programs`",
+    predicate=lambda p: isinstance(p, ScheduleBlock),
+)
 def dump(
     programs: Union[List[QPY_SUPPORTED_TYPES], QPY_SUPPORTED_TYPES],
     file_obj: BinaryIO,
     metadata_serializer: Optional[Type[JSONEncoder]] = None,
     use_symengine: bool = True,
+    version: int = common.QPY_VERSION,
 ):
     """Write QPY binary data to a file
 
@@ -85,7 +94,10 @@ def dump(
 
     For example:
 
-    .. code-block:: python
+    .. plot::
+       :include-source:
+       :nofigs:
+       :context: reset
 
         from qiskit.circuit import QuantumCircuit
         from qiskit import qpy
@@ -117,18 +129,46 @@ def dump(
         programs: QPY supported object(s) to store in the specified file like object.
             QPY supports :class:`.QuantumCircuit` and :class:`.ScheduleBlock`.
             Different data types must be separately serialized.
+            Support for :class:`.ScheduleBlock` is deprecated since Qiskit 1.3.0.
         file_obj: The file like object to write the QPY data too
         metadata_serializer: An optional JSONEncoder class that
             will be passed the ``.metadata`` attribute for each program in ``programs`` and will be
             used as the ``cls`` kwarg on the `json.dump()`` call to JSON serialize that dictionary.
         use_symengine: If True, all objects containing symbolic expressions will be serialized
             using symengine's native mechanism. This is a faster serialization alternative,
-            but not supported in all platforms. Please check that your target platform is supported
-            by the symengine library before setting this option, as it will be required by qpy to
-            deserialize the payload. For this reason, the option defaults to False.
+            but not supported in all platforms. This flag only has an effect if the emitted QPY format
+            version is 10, 11, or 12. For QPY format version >= 13 (which is the default starting in
+            Qiskit 1.3.0) this flag is no longer used.
+        version: The QPY format version to emit. By default this defaults to
+            the latest supported format of :attr:`~.qpy.QPY_VERSION`, however for
+            compatibility reasons if you need to load the generated QPY payload with an older
+            version of Qiskit you can also select an older QPY format version down to the minimum
+            supported export version, which only can change during a Qiskit major version release,
+            to generate an older QPY format version.  You can access the current QPY version and
+            minimum compatible version with :attr:`.qpy.QPY_VERSION` and
+            :attr:`.qpy.QPY_COMPATIBILITY_VERSION` respectively.
+
+            .. note::
+
+                If specified with an older version of QPY the limitations and potential bugs stemming
+                from the QPY format at that version will persist. This should only be used if
+                compatibility with loading the payload with an older version of Qiskit is necessary.
+
+            .. note::
+
+                If serializing a :class:`.QuantumCircuit` or :class:`.ScheduleBlock` that contain
+                :class:`.ParameterExpression` objects with ``version`` set low with the intent to
+                load the payload using a historical release of Qiskit, it is safest to set the
+                ``use_symengine`` flag to ``False``.  Versions of Qiskit prior to 1.2.4 cannot load
+                QPY files containing ``symengine``-serialized :class:`.ParameterExpression` objects
+                unless the version of ``symengine`` used between the loading and generating
+                environments matches.
+
+
     Raises:
         QpyError: When multiple data format is mixed in the output.
         TypeError: When invalid data type is input.
+        ValueError: When an unsupported version number is passed in for the ``version`` argument
     """
     if not isinstance(programs, Iterable):
         programs = [programs]
@@ -153,13 +193,22 @@ def dump(
     else:
         raise TypeError(f"'{program_type}' is not supported data type.")
 
+    if version is None:
+        version = common.QPY_VERSION
+    elif common.QPY_COMPATIBILITY_VERSION > version or version > common.QPY_VERSION:
+        raise ValueError(
+            f"The specified QPY version {version} is not support for dumping with this version, "
+            f"of Qiskit. The only supported versions between {common.QPY_COMPATIBILITY_VERSION} and "
+            f"{common.QPY_VERSION}"
+        )
+
     version_match = VERSION_PATTERN_REGEX.search(__version__)
     version_parts = [int(x) for x in version_match.group("release").split(".")]
     encoding = type_keys.SymExprEncoding.assign(use_symengine)
     header = struct.pack(
         formats.FILE_HEADER_V10_PACK,
         b"QISKIT",
-        common.QPY_VERSION,
+        version,
         version_parts[0],
         version_parts[1],
         version_parts[2],
@@ -169,9 +218,23 @@ def dump(
     file_obj.write(header)
     common.write_type_key(file_obj, type_key)
 
+    pulse_gates = False
     for program in programs:
+        if type_key == type_keys.Program.CIRCUIT and program._calibrations_prop:
+            pulse_gates = True
         writer(
-            file_obj, program, metadata_serializer=metadata_serializer, use_symengine=use_symengine
+            file_obj,
+            program,
+            metadata_serializer=metadata_serializer,
+            use_symengine=use_symengine,
+            version=version,
+        )
+
+    if pulse_gates:
+        warnings.warn(
+            category=DeprecationWarning,
+            message="Pulse gates serialization is deprecated as of Qiskit 1.3. "
+            "It will be removed in Qiskit 2.0.",
         )
 
 
@@ -272,10 +335,11 @@ def load(
     ):
         warnings.warn(
             "The qiskit version used to generate the provided QPY "
-            "file, %s, is newer than the current qiskit version %s. "
+            f"file, {'.'.join([str(x) for x in qiskit_version])}, "
+            f"is newer than the current qiskit version {__version__}. "
             "This may result in an error if the QPY file uses "
             "instructions not present in this current qiskit "
-            "version" % (".".join([str(x) for x in qiskit_version]), __version__)
+            "version"
         )
 
     if data.qpy_version < 5:
@@ -287,6 +351,14 @@ def load(
         loader = binary_io.read_circuit
     elif type_key == type_keys.Program.SCHEDULE_BLOCK:
         loader = binary_io.read_schedule_block
+        warnings.warn(
+            category=QPYLoadingDeprecatedFeatureWarning,
+            message="Pulse gates deserialization is deprecated as of Qiskit 1.3 and "
+            "will be removed in Qiskit 2.0. This is part of the deprecation plan for "
+            "the entire Qiskit Pulse package. Once Pulse is removed, `ScheduleBlock` "
+            "sections will be ignored when loading QPY files with pulse data.",
+        )
+
     else:
         raise TypeError(f"Invalid payload format data kind '{type_key}'.")
 

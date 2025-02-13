@@ -61,6 +61,29 @@ but fail to import for some other reason.  In this case, Qiskit will continue as
 is not present, but will raise :exc:`OptionalDependencyImportWarning` to let you know about it.
 
 .. autoexception:: OptionalDependencyImportWarning
+
+When experimental features are being used, Qiskit will raise :exc:`ExperimentalWarning`.
+
+.. warning::
+
+    Qiskit experimental features can break at any minor release and their API might change without
+    previous notification. Their use is not recommended in production.
+
+.. autoexception:: ExperimentalWarning
+
+Filtering warnings
+------------------
+
+Python has built-in mechanisms to filter warnings, described in the documentation of the
+:mod:`warnings` module.  You can use these subclasses in your warning filters from within Python to
+silence warnings you are not interested in.  For example, if you are knowingly using experimental
+features and are comfortable that they make break in later versions, you can silence
+:exc:`ExperimentalWarning` like this::
+
+    import warnings
+    from qiskit.exceptions import ExperimentalWarning
+
+    warnings.filterwarnings("ignore", category=ExperimentalWarning)
 """
 
 from typing import Optional
@@ -124,3 +147,7 @@ class OptionalDependencyImportWarning(QiskitWarning):
     """Raised when an optional library raises errors during its import."""
 
     # Not a subclass of `ImportWarning` because those are hidden by default.
+
+
+class ExperimentalWarning(QiskitWarning):
+    """Raised when an experimental feature is being used."""

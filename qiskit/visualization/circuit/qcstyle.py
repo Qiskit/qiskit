@@ -72,7 +72,7 @@ class StyleDict(dict):
 
     def __setitem__(self, key: Any, value: Any) -> None:
         # allow using field abbreviations
-        if key in self.ABBREVIATIONS.keys():
+        if key in self.ABBREVIATIONS:
             key = self.ABBREVIATIONS[key]
 
         if key not in self.VALID_FIELDS:
@@ -85,7 +85,7 @@ class StyleDict(dict):
 
     def __getitem__(self, key: Any) -> Any:
         # allow using field abbreviations
-        if key in self.ABBREVIATIONS.keys():
+        if key in self.ABBREVIATIONS:
             key = self.ABBREVIATIONS[key]
 
         return super().__getitem__(key)
@@ -96,11 +96,11 @@ class StyleDict(dict):
         nested_attrs = {"displaycolor", "displaytext"}
         for attr in nested_attrs.intersection(other.keys()):
             if attr in self.keys():
-                self[attr].update(other.pop(attr))
+                self[attr].update(other[attr])
             else:
-                self[attr] = other.pop(attr)
+                self[attr] = other[attr]
 
-        super().update(other)
+        super().update((key, value) for key, value in other.items() if key not in nested_attrs)
 
 
 class DefaultStyle:
@@ -224,8 +224,7 @@ def load_style(style: dict | str | None) -> tuple[StyleDict, float]:
             config_path = config.get("circuit_mpl_style_path", "")
             if config_path:
                 for path in config_path:
-                    path_ = Path(config_path) / style_name
-                    style_paths.append(path_)
+                    style_paths.append(Path(path) / style_name)
 
         # check current directory
         cwd_path = Path("") / style_name

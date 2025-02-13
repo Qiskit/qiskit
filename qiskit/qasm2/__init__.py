@@ -20,7 +20,7 @@ formats <qasm2-parse>` and :ref:`exporting back to OpenQASM 2 <qasm2-export>`.
 
 .. note::
 
-    OpenQASM 2 is a simple language, and not suitable for general serialisation of Qiskit objects.
+    OpenQASM 2 is a simple language, and not suitable for general serialization of Qiskit objects.
     See :ref:`some discussion of alternatives below <qasm2-alternatives>`, if that is what you are
     looking for.
 
@@ -95,7 +95,7 @@ letter-of-the-spec mode with ``strict=True``.
 Exporting API
 =============
 
-Similar to other serialisation modules in Python, this module offers two public functions:
+Similar to other serialization modules in Python, this module offers two public functions:
 :func:`dump` and :func:`dumps`, which take a :class:`.QuantumCircuit` and write out a representative
 OpenQASM 2 program to a file-like object or return a string, respectively.
 
@@ -133,7 +133,10 @@ Exporting examples
 
 Export a simple :class:`.QuantumCircuit` to an OpenQASM 2 string:
 
-.. code-block:: python
+.. plot::
+   :include-source:
+   :nofigs:
+   :context: reset
 
     import qiskit.qasm2
     from qiskit.circuit import QuantumCircuit
@@ -183,7 +186,9 @@ Parsing examples
 
 Use :func:`loads` to import an OpenQASM 2 program in a string into a :class:`.QuantumCircuit`:
 
-.. code-block:: python
+.. plot::
+   :include-source:
+   :nofigs:
 
     import qiskit.qasm2
     program = """
@@ -259,7 +264,9 @@ Sometimes you may want to influence the :class:`.Gate` objects that the importer
 named instructions.  Gates that are defined by the statement ``include "qelib1.inc";`` will
 automatically be associated with a suitable Qiskit circuit-library gate, but you can extend this:
 
-.. code-block:: python
+.. plot::
+   :include-source:
+   :nofigs:
 
     from qiskit.circuit import Gate
     from qiskit.qasm2 import loads, CustomInstruction
@@ -292,7 +299,9 @@ defined gates (which are computed on demand).  Here we provide a Python version 
 which mathematically is :math:`\arctan(y/x)` but correctly handling angle quadrants and infinities,
 and a custom ``add_one`` function:
 
-.. code-block:: python
+.. plot::
+   :include-source:
+   :nofigs:
 
     import math
     from qiskit.qasm2 import loads, CustomClassical
@@ -356,7 +365,10 @@ the header file, you can use :class:`CustomInstruction` to override how Qiskit b
 For the standard ``qelib1.inc`` include there is only one point of difference, and so the override
 needed to switch its phase convention is:
 
-.. code-block:: python
+.. plot::
+   :include-source:
+   :nofigs:
+   :context: reset
 
     from qiskit import qasm2
     from qiskit.circuit.library import PhaseGate
@@ -376,7 +388,10 @@ needed to switch its phase convention is:
 This will use Qiskit's :class:`.PhaseGate` class to represent the ``rz`` instruction, which is
 equal (including the phase) to :class:`.U1Gate`:
 
-.. code-block:: python
+.. plot::
+   :include-source:
+   :nofigs:
+   :context:
 
     Operator(qasm2.loads(program, custom_instructions=custom))
 
@@ -394,7 +409,7 @@ Legacy Compatibility
 
 :meth:`.QuantumCircuit.from_qasm_str` and :meth:`~.QuantumCircuit.from_qasm_file` used to make a few
 additions on top of the raw specification. Qiskit originally tried to use OpenQASM 2 as a sort of
-serialisation format, and expanded its behaviour as Qiskit expanded.  The new parser under all its
+serialization format, and expanded its behavior as Qiskit expanded.  The new parser under all its
 defaults implements the specification more strictly.
 
 In particular, in the legacy importers:
@@ -445,11 +460,11 @@ In particular, in the legacy importers:
 * the parsed grammar is effectively the same as :ref:`the strict mode of the new importers
   <qasm2-strict-mode>`.
 
-You can emulate this behaviour in :func:`load` and :func:`loads` by setting `include_path`
+You can emulate this behavior in :func:`load` and :func:`loads` by setting `include_path`
 appropriately (try inspecting the variable ``qiskit.__file__`` to find the installed location), and
 by passing a list of :class:`CustomInstruction` instances for each of the custom gates you care
 about.  To make things easier we make three tuples available, which each contain one component of
-a configuration that is equivalent to Qiskit's legacy converter behaviour.
+a configuration that is equivalent to Qiskit's legacy converter behavior.
 
 .. py:data:: LEGACY_CUSTOM_INSTRUCTIONS
 
@@ -473,7 +488,7 @@ On *all* the gates defined in Qiskit's legacy version of ``qelib1.inc`` and the 
 instruction, it does not matter how the gates are actually defined and used, the legacy importer
 will always attempt to output its custom objects for them.  This can result in errors during the
 circuit construction, even after a successful parse.  There is no way to emulate this buggy
-behaviour with :mod:`qiskit.qasm2`; only an ``include "qelib1.inc";`` statement or the
+behavior with :mod:`qiskit.qasm2`; only an ``include "qelib1.inc";`` statement or the
 `custom_instructions` argument can cause built-in Qiskit instructions to be used, and the signatures
 of these match each other.
 
@@ -526,12 +541,8 @@ import os
 from pathlib import Path
 from typing import Iterable, Union, Optional, Literal
 
-# Pylint can't handle the C-extension introspection of `_qasm2` because there's a re-import through
-# to `qiskit.qasm2.exceptions`, and pylint ends up trying to import `_qasm2` twice, which PyO3
-# hates.  If that gets fixed, this disable can be removed and `qiskit._qasm2` added to the allowed C
-# extensions for loadings in the `pyproject.toml`.
 # pylint: disable=c-extension-no-member
-from qiskit import _qasm2
+from qiskit._accelerate import qasm2 as _qasm2
 from qiskit.circuit import QuantumCircuit
 from . import parse as _parse
 from .exceptions import QASM2Error, QASM2ParseError, QASM2ExportError
@@ -553,7 +564,7 @@ LEGACY_INCLUDE_PATH = (
 
 
 def _normalize_path(path: Union[str, os.PathLike]) -> str:
-    """Normalise a given path into a path-like object that can be passed to Rust.
+    """Normalize a given path into a path-like object that can be passed to Rust.
 
     Ideally this would be something that we can convert to Rust's `OSString`, but in practice,
     Python uses `os.fsencode` to produce a `bytes` object, but this doesn't map especially well.

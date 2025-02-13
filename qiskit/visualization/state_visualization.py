@@ -17,6 +17,7 @@
 Visualization functions for quantum states.
 """
 
+import math
 from typing import List, Union
 from functools import reduce
 import colorsys
@@ -69,10 +70,11 @@ def plot_state_hinton(state, title="", figsize=None, ax_real=None, ax_imag=None,
 
     Raises:
         MissingOptionalLibraryError: Requires matplotlib.
-        VisualizationError: if input is not a valid N-qubit state.
+        VisualizationError: Input is not a valid N-qubit state.
 
     Examples:
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
             import numpy as np
@@ -97,7 +99,7 @@ def plot_state_hinton(state, title="", figsize=None, ax_real=None, ax_imag=None,
     num = rho.num_qubits
     if num is None:
         raise VisualizationError("Input is not a multi-qubit quantum state.")
-    max_weight = 2 ** np.ceil(np.log(np.abs(rho.data).max()) / np.log(2))
+    max_weight = 2 ** math.ceil(math.log2(np.abs(rho.data).max()))
     datareal = np.real(rho.data)
     dataimag = np.imag(rho.data)
 
@@ -213,6 +215,7 @@ def plot_bloch_vector(
 
     Examples:
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
            from qiskit.visualization import plot_bloch_vector
@@ -220,6 +223,7 @@ def plot_bloch_vector(
            plot_bloch_vector([0,1,0], title="New Bloch Sphere")
 
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
            import numpy as np
@@ -289,6 +293,7 @@ def plot_bloch_multivector(
 
     Examples:
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
             from qiskit import QuantumCircuit
@@ -303,6 +308,7 @@ def plot_bloch_multivector(
             plot_bloch_multivector(state)
 
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
            from qiskit import QuantumCircuit
@@ -405,6 +411,7 @@ def plot_state_city(
 
     Examples:
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
            # You can choose different colors for the real and imaginary parts of the density matrix.
@@ -421,6 +428,7 @@ def plot_state_city(
            plot_state_city(state, color=['midnightblue', 'crimson'], title="New State City")
 
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
            # You can make the bars more transparent to better see the ones that are behind
@@ -513,7 +521,7 @@ def plot_state_city(
     max_font_size = int(3 * max_plot_size)
     max_zoom = 10 / (10 + np.sqrt(max_plot_size))
 
-    for (ax, dz, col, zlabel) in (
+    for ax, dz, col, zlabel in (
         (ax1, dzr, real_color, "Real"),
         (ax2, dzi, imag_color, "Imaginary"),
     ):
@@ -642,6 +650,7 @@ def plot_state_paulivec(state, title="", figsize=None, color=None, ax=None, *, f
 
     Examples:
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
            # You can set a color for all the bars.
@@ -658,6 +667,7 @@ def plot_state_paulivec(state, title="", figsize=None, color=None, ax=None, *, f
            plot_state_paulivec(state, color='midnightblue', title="New PauliVec plot")
 
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
            # If you introduce a list with less colors than bars, the color of the bars will
@@ -815,12 +825,13 @@ def plot_state_qsphere(
 
     Raises:
         MissingOptionalLibraryError: Requires matplotlib.
-        VisualizationError: if input is not a valid N-qubit state.
+        VisualizationError: Input is not a valid N-qubit state.
 
         QiskitError: Input statevector does not have valid dimensions.
 
     Examples:
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
            from qiskit import QuantumCircuit
@@ -835,6 +846,7 @@ def plot_state_qsphere(
            plot_state_qsphere(state)
 
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
            # You can show the phase of each state and use
@@ -970,10 +982,10 @@ def plot_state_qsphere(
                     if show_state_phases:
                         element_angle = (np.angle(state[i]) + (np.pi * 4)) % (np.pi * 2)
                         if use_degrees:
-                            element_text += "\n$%.1f^\\circ$" % (element_angle * 180 / np.pi)
+                            element_text += f"\n${element_angle * 180 / np.pi:.1f}^\\circ$"
                         else:
                             element_angle = pi_check(element_angle, ndigits=3).replace("pi", "\\pi")
-                            element_text += "\n$%s$" % (element_angle)
+                            element_text += f"\n${element_angle}$"
                     ax.text(
                         xvalue_text,
                         yvalue_text,
@@ -1314,7 +1326,7 @@ def _state_to_latex_ket(
     Returns:
         String with LaTeX representation of the state vector
     """
-    num = int(np.log2(len(data)))
+    num = int(math.log2(len(data)))
 
     def ket_name(i):
         return bin(i)[2:].zfill(num)
@@ -1462,11 +1474,10 @@ def state_drawer(state, output=None, **drawer_args):
         return draw_func(state, **drawer_args)
     except KeyError as err:
         raise ValueError(
-            """'{}' is not a valid option for drawing {} objects. Please choose from:
+            f"""'{output}' is not a valid option for drawing {type(state).__name__}
+             objects. Please choose from:
             'text', 'latex', 'latex_source', 'qsphere', 'hinton',
-            'bloch', 'city' or 'paulivec'.""".format(
-                output, type(state).__name__
-            )
+            'bloch', 'city' or 'paulivec'."""
         ) from err
 
 

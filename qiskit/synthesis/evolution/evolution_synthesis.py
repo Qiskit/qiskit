@@ -12,8 +12,10 @@
 
 """Evolution synthesis."""
 
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
-from typing import Any, Dict
+from typing import Any
 
 
 class EvolutionSynthesis(ABC):
@@ -32,7 +34,7 @@ class EvolutionSynthesis(ABC):
         raise NotImplementedError
 
     @property
-    def settings(self) -> Dict[str, Any]:
+    def settings(self) -> dict[str, Any]:
         """Return the settings in a dictionary, which can be used to reconstruct the object.
 
         Returns:

@@ -16,7 +16,6 @@ import math
 
 from ddt import ddt, data, unpack, idata
 
-from qiskit.test import QiskitTestCase
 from qiskit.circuit import Clbit, ClassicalRegister, Instruction, Parameter, QuantumCircuit, Qubit
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.controlflow import CASE_DEFAULT, condition_resources, node_resources
@@ -32,6 +31,7 @@ from qiskit.circuit.controlflow import (
     BreakLoopOp,
     SwitchCaseOp,
 )
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 CONDITION_PARAMETRISATION = (
@@ -587,7 +587,8 @@ class TestAddingControlFlowOperations(QiskitTestCase):
 
         self.assertEqual(qc.data[0].operation.name, "switch_case")
         self.assertEqual(qc.data[0].operation.params, bodies[: len(labels)])
-        self.assertEqual(qc.data[0].operation.condition, None)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(qc.data[0].operation.condition, None)
         self.assertEqual(qc.data[0].qubits, tuple(qc.qubits[1:4]))
         self.assertEqual(qc.data[0].clbits, (qc.clbits[1],))
 
@@ -618,7 +619,7 @@ class TestAddingControlFlowOperations(QiskitTestCase):
 
         self.assertEqual(qc.data[0].operation.name, "switch_case")
         self.assertEqual(qc.data[0].operation.params, bodies[: len(labels)])
-        self.assertEqual(qc.data[0].operation.condition, None)
+        self.assertEqual(qc.data[0].operation._condition, None)
         self.assertEqual(qc.data[0].qubits, tuple(qc.qubits[1:4]))
         self.assertEqual(qc.data[0].clbits, (qc.clbits[1],))
 
@@ -808,15 +809,20 @@ class TestAddingControlFlowOperations(QiskitTestCase):
         body = QuantumCircuit(1)
 
         with self.assertRaisesRegex(NotImplementedError, r"cannot be classically controlled"):
-            qc.while_loop((qc.clbits[0], False), body, [qc.qubits[0]], []).c_if(qc.clbits[0], True)
+            with self.assertWarns(DeprecationWarning):
+                qc.while_loop((qc.clbits[0], False), body, [qc.qubits[0]], []).c_if(
+                    qc.clbits[0], True
+                )
 
         with self.assertRaisesRegex(NotImplementedError, r"cannot be classically controlled"):
-            qc.if_test((qc.clbits[0], False), body, [qc.qubits[0]], []).c_if(qc.clbits[0], True)
+            with self.assertWarns(DeprecationWarning):
+                qc.if_test((qc.clbits[0], False), body, [qc.qubits[0]], []).c_if(qc.clbits[0], True)
 
         with self.assertRaisesRegex(NotImplementedError, r"cannot be classically controlled"):
-            qc.if_else((qc.clbits[0], False), body, body, [qc.qubits[0]], []).c_if(
-                qc.clbits[0], True
-            )
+            with self.assertWarns(DeprecationWarning):
+                qc.if_else((qc.clbits[0], False), body, body, [qc.qubits[0]], []).c_if(
+                    qc.clbits[0], True
+                )
 
     def test_nested_parameters_are_recognised(self):
         """Verify that parameters added inside a control-flow operator get added to the outer

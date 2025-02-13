@@ -26,6 +26,7 @@ method and so the circuit library allows users to program at higher levels of ab
 For example, to append a multi-controlled CNOT:
 
 .. plot::
+   :alt: Circuit diagram output by the previous code.
    :include-source:
 
    from qiskit.circuit.library import MCXGate
@@ -36,7 +37,11 @@ For example, to append a multi-controlled CNOT:
    circuit.append(gate, [0, 1, 4, 2, 3])
    circuit.draw('mpl')
 
-The library is organized in several sections.
+The library is organized in several sections. The function
+:func:`.get_standard_gate_name_mapping` allows you to see the available standard gates and operations.
+
+.. autofunction:: get_standard_gate_name_mapping
+
 
 Standard gates
 ==============
@@ -48,7 +53,9 @@ and :meth:`~qiskit.circuit.Gate.control`, which we can generally only apply to u
 
 For example:
 
-.. code-block::
+.. plot::
+   :include-source:
+   :nofigs:
 
     from qiskit.circuit.library import XGate
     gate = XGate()
@@ -56,7 +63,7 @@ For example:
     print(gate.power(1/2).to_matrix())  # √X gate
     print(gate.control(1).to_matrix())  # CX (controlled X) gate
 
-.. parsed-literal::
+.. code-block:: text
 
     [[0.+0.j 1.+0.j]
      [1.+0.j 0.+0.j]]
@@ -126,32 +133,23 @@ For example:
    ZGate
    GlobalPhaseGate
 
+
 Standard Directives
 ===================
-
-..
-    This summary table deliberately does not generate toctree entries; these directives are "owned"
-    by ``qiskit.circuit``.
 
 Directives are operations to the quantum stack that are meant to be interpreted by the backend or
 the transpiler. In general, the transpiler or backend might optionally ignore them if there is no
 implementation for them.
 
-.. autosummary::
-   :toctree: ../stubs/
-
-   Barrier
+* :class:`qiskit.circuit.Barrier`
 
 Standard Operations
 ===================
 
 Operations are non-reversible changes in the quantum state of the circuit.
 
-.. autosummary::
-   :toctree: ../stubs/
-
-   Measure
-   Reset
+* :class:`qiskit.circuit.Measure`
+* :class:`qiskit.circuit.Reset`
 
 Generalized Gates
 =================
@@ -160,17 +158,19 @@ These "gates" (many are :class:`~qiskit.circuit.QuantumCircuit` subclasses) allo
 set the amount of qubits involved at instantiation time.
 
 
-.. code-block::
+.. plot::
+   :include-source:
+   :nofigs:
 
-    from qiskit.circuit.library import Diagonal
+    from qiskit.circuit.library import DiagonalGate
 
-    diagonal = Diagonal([1, 1])
+    diagonal = DiagonalGate([1, 1j])
     print(diagonal.num_qubits)
 
-    diagonal = Diagonal([1, 1, 1, 1])
+    diagonal = DiagonalGate([1, 1, 1, -1])
     print(diagonal.num_qubits)
 
-.. parsed-literal::
+.. code-block:: text
 
     1
     2
@@ -191,6 +191,7 @@ set the amount of qubits involved at instantiation time.
    GRX
    GRY
    GRZ
+   MCMTGate
    MCPhaseGate
    MCXGate
    MCXGrayCode
@@ -220,9 +221,15 @@ or of a set of qubit states.
    :template: autosummary/class_no_inherited_members.rst
 
    AND
+   AndGate
    OR
+   OrGate
    XOR
+   BitwiseXorGate
+   random_bitwise_xor
    InnerProduct
+   InnerProductGate
+
 
 Basis Change Circuits
 =====================
@@ -236,6 +243,7 @@ the computational basis and the Fourier basis.
    :template: autosummary/class_no_inherited_members.rst
 
    QFT
+   QFTGate
 
 Arithmetic Circuits
 ===================
@@ -277,6 +285,9 @@ Adders
    CDKMRippleCarryAdder
    VBERippleCarryAdder
    WeightedAdder
+   ModularAdderGate
+   HalfAdderGate
+   FullAdderGate
 
 Multipliers
 -----------
@@ -287,6 +298,7 @@ Multipliers
 
    HRSCumulativeMultiplier
    RGQFTMultiplier
+   MultiplierGate
 
 Comparators
 -----------
@@ -318,12 +330,16 @@ Other arithmetic functions
 Particular Quantum Circuits
 ===========================
 
+The following gates and quantum circuits define specific
+quantum circuits of interest:
+
 .. autosummary::
    :toctree: ../stubs/
    :template: autosummary/class_no_inherited_members.rst
 
    FourierChecking
    GraphState
+   GraphStateGate
    HiddenLinearFunction
    IQP
    QuantumVolume
@@ -334,9 +350,41 @@ Particular Quantum Circuits
    HamiltonianGate
    UnitaryOverlap
 
+For circuits that have a well-defined structure it is preferrable
+to use the following functions to construct them:
+
+.. autosummary::
+   :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
+
+   fourier_checking
+   hidden_linear_function
+   iqp
+   random_iqp
+   quantum_volume
+   phase_estimation
+   grover_operator
+   unitary_overlap
+
 
 N-local circuits
 ================
+
+The following functions return a parameterized :class:`.QuantumCircuit` to use as ansatz in
+a broad set of variational quantum algorithms:
+
+.. autosummary::
+   :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
+
+   n_local
+   efficient_su2
+   real_amplitudes
+   pauli_two_design
+   excitation_preserving
+   qaoa_ansatz
+   hamiltonian_variational_ansatz
+   evolved_operator_ansatz
 
 These :class:`~qiskit.circuit.library.BlueprintCircuit` subclasses are used
 as parameterized models (a.k.a. ansatzes or variational forms) in variational algorithms.
@@ -359,6 +407,17 @@ They are heavily used in near-term algorithms in e.g. Chemistry, Physics or Opti
 Data encoding circuits
 ======================
 
+The following functions return a parameterized :class:`.QuantumCircuit` to use as data
+encoding circuits in a series of variational quantum algorithms:
+
+.. autosummary::
+   :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
+
+   pauli_feature_map
+   z_feature_map
+   zz_feature_map
+
 These :class:`~qiskit.circuit.library.BlueprintCircuit` encode classical
 data in quantum states and are used as feature maps for classification.
 
@@ -369,6 +428,17 @@ data in quantum states and are used as feature maps for classification.
    PauliFeatureMap
    ZFeatureMap
    ZZFeatureMap
+
+
+Data preparation circuits
+=========================
+
+The following operations are used for state preparation:
+
+.. autosummary::
+   :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
+
    StatePreparation
    Initialize
 
@@ -381,7 +451,9 @@ to replace the match with the inverse of the remainder from the template.
 
 In this example, the identity constant in a template is checked:
 
-.. code-block::
+.. plot::
+   :include-source:
+   :nofigs:
 
     from qiskit.circuit.library.templates import template_nct_4b_1
     from qiskit.quantum_info import Operator
@@ -509,6 +581,7 @@ from .generalized_gates import (
     Permutation,
     PermutationGate,
     GMS,
+    MCMTGate,
     MSGate,
     GR,
     GRX,
@@ -529,12 +602,21 @@ from .pauli_evolution import PauliEvolutionGate
 from .hamiltonian_gate import HamiltonianGate
 from .boolean_logic import (
     AND,
+    AndGate,
     OR,
+    OrGate,
     XOR,
+    BitwiseXorGate,
+    random_bitwise_xor,
     InnerProduct,
+    InnerProductGate,
 )
-from .basis_change import QFT
+from .basis_change import QFT, QFTGate
 from .arithmetic import (
+    ModularAdderGate,
+    HalfAdderGate,
+    FullAdderGate,
+    MultiplierGate,
     FunctionalPauliRotations,
     LinearPauliRotations,
     PiecewiseLinearPauliRotations,
@@ -554,28 +636,40 @@ from .arithmetic import (
 )
 
 from .n_local import (
+    n_local,
     NLocal,
     TwoLocal,
+    pauli_two_design,
     PauliTwoDesign,
+    real_amplitudes,
     RealAmplitudes,
+    efficient_su2,
     EfficientSU2,
+    hamiltonian_variational_ansatz,
+    evolved_operator_ansatz,
     EvolvedOperatorAnsatz,
+    excitation_preserving,
     ExcitationPreserving,
+    qaoa_ansatz,
     QAOAAnsatz,
 )
 from .data_preparation import (
+    z_feature_map,
+    zz_feature_map,
+    pauli_feature_map,
     PauliFeatureMap,
     ZFeatureMap,
     ZZFeatureMap,
     StatePreparation,
     Initialize,
 )
-from .quantum_volume import QuantumVolume
-from .fourier_checking import FourierChecking
-from .graph_state import GraphState
-from .hidden_linear_function import HiddenLinearFunction
-from .iqp import IQP
-from .phase_estimation import PhaseEstimation
-from .grover_operator import GroverOperator
+from .quantum_volume import QuantumVolume, quantum_volume
+from .fourier_checking import FourierChecking, fourier_checking
+from .graph_state import GraphState, GraphStateGate
+from .hidden_linear_function import HiddenLinearFunction, hidden_linear_function
+from .iqp import IQP, iqp, random_iqp
+from .phase_estimation import PhaseEstimation, phase_estimation
+from .grover_operator import GroverOperator, grover_operator
 from .phase_oracle import PhaseOracle
-from .overlap import UnitaryOverlap
+from .overlap import UnitaryOverlap, unitary_overlap
+from .standard_gates import get_standard_gate_name_mapping

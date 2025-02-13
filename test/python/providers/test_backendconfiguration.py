@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019.
+# (C) Copyright IBM 2019, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,14 +12,16 @@
 """
 Test that the PulseBackendConfiguration methods work as expected with a mocked Pulse backend.
 """
+# TODO the full file can be removed once BackendV1 is removed, since it is the
+#  only one with backend.configuration()
+
 import collections
 import copy
 
-from qiskit.test import QiskitTestCase
-from qiskit.providers.fake_provider import FakeProvider
-
+from qiskit.providers.fake_provider import FakeOpenPulse2Q, FakeOpenPulse3Q, Fake27QPulseV1
 from qiskit.pulse.channels import DriveChannel, MeasureChannel, ControlChannel, AcquireChannel
 from qiskit.providers import BackendConfigurationError
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestBackendConfiguration(QiskitTestCase):
@@ -27,22 +29,15 @@ class TestBackendConfiguration(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        self.provider = FakeProvider()
-        self.config = self.provider.get_backend("fake_openpulse_2q").configuration()
+        with self.assertWarns(DeprecationWarning):
+            backend = FakeOpenPulse2Q()
+        self.config = backend.configuration()
 
     def test_simple_config(self):
         """Test the most basic getters."""
         self.assertEqual(self.config.dt, 1.3333 * 1.0e-9)
         self.assertEqual(self.config.dtm, 10.5 * 1.0e-9)
         self.assertEqual(self.config.basis_gates, ["u1", "u2", "u3", "cx", "id"])
-
-    def test_simple_config_qasm(self):
-        """Test the most basic getters for qasm."""
-        qasm_conf = self.provider.get_backend("fake_qasm_simulator").configuration()
-        self.assertEqual(qasm_conf.dt, 1.3333 * 1.0e-9)
-        self.assertEqual(qasm_conf.dtm, 10.5 * 1.0e-9)
-        self.assertEqual(qasm_conf.qubit_lo_range, [[4.95e9, 5.05e9] for _ in range(5)])
-        self.assertEqual(qasm_conf.meas_lo_range, [[6.65e9, 6.75e9] for _ in range(5)])
 
     def test_sample_rate(self):
         """Test that sample rate is 1/dt."""
@@ -69,67 +64,82 @@ class TestBackendConfiguration(QiskitTestCase):
             {k: var * 1e-9 for k, var in ref_vars.items()},
         )
         # 3Q doesn't offer a hamiltonian -- test that we get a reasonable response
-        backend_3q = self.provider.get_backend("fake_openpulse_3q")
+        with self.assertWarns(DeprecationWarning):
+            backend_3q = FakeOpenPulse3Q()
         self.assertEqual(backend_3q.configuration().hamiltonian, None)
 
     def test_get_channels(self):
         """Test requesting channels from the system."""
-        self.assertEqual(self.config.drive(0), DriveChannel(0))
-        self.assertEqual(self.config.measure(1), MeasureChannel(1))
-        self.assertEqual(self.config.acquire(0), AcquireChannel(0))
+
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(self.config.drive(0), DriveChannel(0))
+            self.assertEqual(self.config.measure(1), MeasureChannel(1))
+            self.assertEqual(self.config.acquire(0), AcquireChannel(0))
         with self.assertRaises(BackendConfigurationError):
             # Check that an error is raised if the system doesn't have that many qubits
             self.assertEqual(self.config.acquire(10), AcquireChannel(10))
-        self.assertEqual(self.config.control(qubits=[0, 1]), [ControlChannel(0)])
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(self.config.control(qubits=[0, 1]), [ControlChannel(0)])
         with self.assertRaises(BackendConfigurationError):
             # Check that an error is raised if key not found in self._qubit_channel_map
             self.config.control(qubits=(10, 1))
 
     def test_get_channel_qubits(self):
         """Test to get all qubits operated on a given channel."""
-        self.assertEqual(self.config.get_channel_qubits(channel=DriveChannel(0)), [0])
-        self.assertEqual(self.config.get_channel_qubits(channel=ControlChannel(0)), [0, 1])
-        backend_3q = self.provider.get_backend("fake_openpulse_3q")
-        self.assertEqual(backend_3q.configuration().get_channel_qubits(ControlChannel(2)), [2, 1])
-        self.assertEqual(backend_3q.configuration().get_channel_qubits(ControlChannel(1)), [1, 0])
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(self.config.get_channel_qubits(channel=DriveChannel(0)), [0])
+            self.assertEqual(self.config.get_channel_qubits(channel=ControlChannel(0)), [0, 1])
+        with self.assertWarns(DeprecationWarning):
+            backend_3q = FakeOpenPulse3Q()
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(
+                backend_3q.configuration().get_channel_qubits(ControlChannel(2)), [2, 1]
+            )
+            self.assertEqual(
+                backend_3q.configuration().get_channel_qubits(ControlChannel(1)), [1, 0]
+            )
         with self.assertRaises(BackendConfigurationError):
-            # Check that an error is raised if key not found in self._channel_qubit_map
-            self.config.get_channel_qubits(MeasureChannel(10))
+            with self.assertWarns(DeprecationWarning):
+                # Check that an error is raised if key not found in self._channel_qubit_map
+                self.config.get_channel_qubits(MeasureChannel(10))
 
     def test_get_qubit_channels(self):
         """Test to get all channels operated on a given qubit."""
-        self.assertTrue(
-            self._test_lists_equal(
-                actual=self.config.get_qubit_channels(qubit=(1,)),
-                expected=[DriveChannel(1), MeasureChannel(1), AcquireChannel(1)],
+        with self.assertWarns(DeprecationWarning):
+            self.assertTrue(
+                self._test_lists_equal(
+                    actual=self.config.get_qubit_channels(qubit=(1,)),
+                    expected=[DriveChannel(1), MeasureChannel(1), AcquireChannel(1)],
+                )
             )
-        )
-        self.assertTrue(
-            self._test_lists_equal(
-                actual=self.config.get_qubit_channels(qubit=1),
-                expected=[
-                    ControlChannel(0),
-                    ControlChannel(1),
-                    AcquireChannel(1),
-                    DriveChannel(1),
-                    MeasureChannel(1),
-                ],
+        with self.assertWarns(DeprecationWarning):
+            self.assertTrue(
+                self._test_lists_equal(
+                    actual=self.config.get_qubit_channels(qubit=1),
+                    expected=[
+                        ControlChannel(0),
+                        ControlChannel(1),
+                        AcquireChannel(1),
+                        DriveChannel(1),
+                        MeasureChannel(1),
+                    ],
+                )
             )
-        )
-        backend_3q = self.provider.get_backend("fake_openpulse_3q")
-        self.assertTrue(
-            self._test_lists_equal(
-                actual=backend_3q.configuration().get_qubit_channels(1),
-                expected=[
-                    MeasureChannel(1),
-                    ControlChannel(0),
-                    ControlChannel(2),
-                    AcquireChannel(1),
-                    DriveChannel(1),
-                    ControlChannel(1),
-                ],
+        with self.assertWarns(DeprecationWarning):
+            backend_3q = FakeOpenPulse3Q()
+            self.assertTrue(
+                self._test_lists_equal(
+                    actual=backend_3q.configuration().get_qubit_channels(1),
+                    expected=[
+                        MeasureChannel(1),
+                        ControlChannel(0),
+                        ControlChannel(2),
+                        AcquireChannel(1),
+                        DriveChannel(1),
+                        ControlChannel(1),
+                    ],
+                )
             )
-        )
         with self.assertRaises(BackendConfigurationError):
             # Check that an error is raised if key not found in self._channel_qubit_map
             self.config.get_qubit_channels(10)
@@ -187,7 +197,8 @@ class TestBackendConfiguration(QiskitTestCase):
 
     def test_u_channel_lo_scale(self):
         """Ensure that u_channel_lo scale is a complex number"""
-        valencia_conf = self.provider.get_backend("fake_valencia").configuration()
+        with self.assertWarns(DeprecationWarning):
+            valencia_conf = Fake27QPulseV1().configuration()
         self.assertTrue(isinstance(valencia_conf.u_channel_lo[0][0].scale, complex))
 
     def test_processor_type(self):

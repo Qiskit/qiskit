@@ -1,6 +1,0 @@
----
-fixes:
-  - |
-    The :class:`.UnitarySynthesis` transpiler pass will now generate an error on initialization when
-    a nonexistent sythesis plugin is specified, rather than waiting until runtime to raise.  Fixed
-    `#11355 <https://github.com/Qiskit/qiskit/issues/11355>`__.

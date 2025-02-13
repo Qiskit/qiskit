@@ -22,10 +22,16 @@ from qiskit.circuit.exceptions import CircuitError
 
 if typing.TYPE_CHECKING:
     from qiskit.circuit import QuantumCircuit
+    from qiskit.circuit.classical import expr
 
 
 class ControlFlowOp(Instruction, ABC):
-    """Abstract class to encapsulate all control flow operations."""
+    """Abstract class to encapsulate all control flow operations.
+
+    All subclasses of :class:`ControlFlowOp` have an internal attribute,
+    :attr:`~ControlFlowOp.blocks`, which exposes the inner subcircuits used in the different blocks
+    of the control flow.
+    """
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -36,17 +42,43 @@ class ControlFlowOp(Instruction, ABC):
     @property
     @abstractmethod
     def blocks(self) -> tuple[QuantumCircuit, ...]:
-        """Tuple of QuantumCircuits which may be executed as part of the
-        execution of this ControlFlowOp. May be parameterized by a loop
-        parameter to be resolved at run time.
-        """
+        """Tuple of :class:`.QuantumCircuit`\\ s which may be executed as part of the
+        execution of this :class:`ControlFlowOp`."""
 
     @abstractmethod
     def replace_blocks(self, blocks: typing.Iterable[QuantumCircuit]) -> ControlFlowOp:
-        """Replace blocks and return new instruction.
+        """Return a new version of this control-flow operations with the :attr:`blocks` mapped to
+        the given new ones.
+
+        Typically this is used in a workflow such as::
+
+            existing_op = ...
+
+            def map_block(block: QuantumCircuit) -> QuantumCircuit:
+                new_block = block.copy_empty_like()
+                # ... do something to `new_block` ...
+                return new_block
+
+            new_op = existing_op.replace_blocks(
+                map_block(block) for block in existing_op.blocks
+            )
+
+        It is the caller's responsibility to ensure that the mapped blocks are defined over a
+        unified set of circuit resources, much like constructing a :class:`ControlFlowOp` using its
+        default constructor.
+
         Args:
-            blocks: Tuple of QuantumCircuits to replace in instruction.
+            blocks: the new subcircuit blocks to use.
 
         Returns:
-            New ControlFlowOp with replaced blocks.
+            New :class:`ControlFlowOp` with replaced blocks.
         """
+
+    def iter_captured_vars(self) -> typing.Iterable[expr.Var]:
+        """Get an iterator over the unique captured variables in all blocks of this construct."""
+        seen = set()
+        for block in self.blocks:
+            for var in block.iter_captured_vars():
+                if var not in seen:
+                    seen.add(var)
+                    yield var

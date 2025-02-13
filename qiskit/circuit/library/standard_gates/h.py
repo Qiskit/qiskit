@@ -11,12 +11,16 @@
 # that they have been altered from the originals.
 
 """Hadamard gate."""
+
+from __future__ import annotations
+
 from math import sqrt, pi
 from typing import Optional, Union
 import numpy
 from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, stdlib_singleton_key
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
+from qiskit._accelerate.circuit import StandardGate
 
 _H_ARRAY = 1 / sqrt(2) * numpy.array([[1, 1], [1, -1]], dtype=numpy.complex128)
 
@@ -34,7 +38,7 @@ class HGate(SingletonGate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌───┐
         q_0: ┤ H ├
@@ -50,6 +54,8 @@ class HGate(SingletonGate):
                 1 & -1
             \end{pmatrix}
     """
+
+    _standard_gate = StandardGate.HGate
 
     def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create new H gate."""
@@ -76,30 +82,52 @@ class HGate(SingletonGate):
     def control(
         self,
         num_ctrl_qubits: int = 1,
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[int, str]] = None,
+        label: str | None = None,
+        ctrl_state: int | str | None = None,
+        annotated: bool | None = None,
     ):
         """Return a (multi-)controlled-H gate.
 
         One control qubit returns a CH gate.
 
         Args:
-            num_ctrl_qubits (int): number of control qubits.
-            label (str or None): An optional label for the gate [Default: None]
-            ctrl_state (int or str or None): control state expressed as integer,
-                string (e.g. '110'), or None. If None, use all 1s.
+            num_ctrl_qubits: number of control qubits.
+            label: An optional label for the gate [Default: ``None``]
+            ctrl_state: control state expressed as integer,
+                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
+            annotated: indicates whether the controlled gate should be implemented
+                as an annotated gate. If ``None``, this is handled as ``False``.
 
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if num_ctrl_qubits == 1:
+        if not annotated and num_ctrl_qubits == 1:
             gate = CHGate(label=label, ctrl_state=ctrl_state, _base_label=self.label)
-            return gate
-        return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
+        else:
+            gate = super().control(
+                num_ctrl_qubits=num_ctrl_qubits,
+                label=label,
+                ctrl_state=ctrl_state,
+                annotated=annotated,
+            )
+        return gate
 
-    def inverse(self):
-        r"""Return inverted H gate (itself)."""
+    def inverse(self, annotated: bool = False):
+        r"""Return inverted H gate (itself).
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as this gate
+                is self-inverse.
+
+        Returns:
+            HGate: inverse gate (self-inverse).
+        """
         return HGate()  # self-inverse
+
+    def __eq__(self, other):
+        return isinstance(other, HGate)
 
 
 @with_controlled_gate_array(_H_ARRAY, num_ctrl_qubits=1)
@@ -114,7 +142,7 @@ class CHGate(SingletonControlledGate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
         q_0: ──■──
              ┌─┴─┐
@@ -142,7 +170,8 @@ class CHGate(SingletonControlledGate):
         which in our case would be q_1. Thus a textbook matrix for this
         gate will be:
 
-        .. parsed-literal::
+        .. code-block:: text
+
                  ┌───┐
             q_0: ┤ H ├
                  └─┬─┘
@@ -159,6 +188,8 @@ class CHGate(SingletonControlledGate):
                     0 & 0 & \frac{1}{\sqrt{2}} & -\frac{1}{\sqrt{2}}
                 \end{pmatrix}
     """
+
+    _standard_gate = StandardGate.CHGate
 
     def __init__(
         self,
@@ -219,6 +250,9 @@ class CHGate(SingletonControlledGate):
 
         self.definition = qc
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Return inverted CH gate (itself)."""
         return CHGate(ctrl_state=self.ctrl_state)  # self-inverse
+
+    def __eq__(self, other):
+        return isinstance(other, CHGate) and self.ctrl_state == other.ctrl_state

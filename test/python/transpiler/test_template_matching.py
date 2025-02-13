@@ -14,8 +14,9 @@
 """Test the TemplateOptimization pass."""
 
 import unittest
-from test.python.quantum_info.operators.symplectic.test_clifford import random_clifford_circuit
+
 import numpy as np
+from qiskit.circuit.commutation_library import SessionCommutationChecker as scc
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.circuit import Parameter
 from qiskit.quantum_info import Operator
@@ -34,12 +35,15 @@ from qiskit.converters.circuit_to_dagdependency import circuit_to_dagdependency
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import TemplateOptimization
 from qiskit.transpiler.passes.calibration.rzx_templates import rzx_templates
-from qiskit.test import QiskitTestCase
 from qiskit.transpiler.exceptions import TranspilerError
+from test.python.quantum_info.operators.symplectic.test_clifford import (  # pylint: disable=wrong-import-order
+    random_clifford_circuit,
+)
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 def _ry_to_rz_template_pass(parameter: Parameter = None, extra_costs=None):
-    """Create a simple pass manager that runs a template optimisation with a single transformation.
+    """Create a simple pass manager that runs a template optimization with a single transformation.
     It turns ``RX(pi/2).RY(parameter).RX(-pi/2)`` into the equivalent virtual ``RZ`` rotation, where
     if ``parameter`` is given, it will be the instance used in the template."""
     if parameter is None:
@@ -405,7 +409,7 @@ class TestTemplateMatching(QiskitTestCase):
 
         circuit_out = PassManager(pass_).run(circuit_in)
 
-        # The template optimisation should not have replaced anything, because
+        # The template optimization should not have replaced anything, because
         # that would require it to leave dummy parameters in place without
         # binding them.
         self.assertEqual(circuit_in, circuit_out)
@@ -776,6 +780,7 @@ class TestTemplateMatching(QiskitTestCase):
             clifford_3_1(),
         ]
         pm = PassManager(TemplateOptimization(template_list=template_list))
+        scc.clear_cached_commutations()
         for seed in range(10):
             qc = random_clifford_circuit(
                 num_qubits=5,
@@ -785,6 +790,8 @@ class TestTemplateMatching(QiskitTestCase):
             )
             qc_opt = pm.run(qc)
             self.assertTrue(Operator(qc) == Operator(qc_opt))
+        # All of these gates are in the commutation library, i.e. the cache should not be used
+        self.assertEqual(scc.num_cached_entries(), 0)
 
 
 if __name__ == "__main__":

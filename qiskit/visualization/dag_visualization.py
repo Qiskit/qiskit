@@ -15,9 +15,14 @@
 """
 Visualization function for DAG circuit representation.
 """
+
+import io
+import subprocess
+
 from rustworkx.visualization import graphviz_draw
 
 from qiskit.dagcircuit.dagnode import DAGOpNode, DAGInNode, DAGOutNode
+from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.circuit import Qubit, Clbit, ClassicalRegister
 from qiskit.circuit.classical import expr
 from qiskit.converters import dagdependency_to_circuit
@@ -26,7 +31,48 @@ from qiskit.exceptions import InvalidFileError
 from .exceptions import VisualizationError
 
 
+IMAGE_TYPES = {
+    "canon",
+    "cmap",
+    "cmapx",
+    "cmapx_np",
+    "dia",
+    "dot",
+    "fig",
+    "gd",
+    "gd2",
+    "gif",
+    "hpgl",
+    "imap",
+    "imap_np",
+    "ismap",
+    "jpe",
+    "jpeg",
+    "jpg",
+    "mif",
+    "mp",
+    "pcl",
+    "pdf",
+    "pic",
+    "plain",
+    "plain-ext",
+    "png",
+    "ps",
+    "ps2",
+    "svg",
+    "svgz",
+    "vml",
+    "vmlz",
+    "vrml",
+    "vtx",
+    "wbmp",
+    "xdor",
+    "xlib",
+}
+
+
 @_optionals.HAS_GRAPHVIZ.require_in_call
+@_optionals.HAS_PIL.require_in_call
 def dag_drawer(dag, scale=0.7, filename=None, style="color"):
     """Plot the directed acyclic graph (dag) to represent operation dependencies
     in a quantum circuit.
@@ -35,7 +81,7 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
     ``rustworkx`` package to draw the DAG.
 
     Args:
-        dag (DAGCircuit): The dag to draw.
+        dag (DAGCircuit or DAGDependency): The dag to draw.
         scale (float): scaling factor
         filename (str): file path to save image to (format inferred from name)
         style (str): 'plain': B&W graph
@@ -48,10 +94,13 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
     Raises:
         VisualizationError: when style is not recognized.
         InvalidFileError: when filename provided is not valid
+        ValueError: If the file extension for ``filename`` is not an image
+            type supported by Graphviz.
 
     Example:
         .. plot::
            :include-source:
+           :nofigs:
 
             from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
             from qiskit.dagcircuit import DAGCircuit
@@ -69,6 +118,7 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
             dag = circuit_to_dag(circ)
             dag_drawer(dag)
     """
+    from PIL import Image
 
     # NOTE: use type str checking to avoid potential cyclical import
     # the two tradeoffs ere that it will not handle subclasses and it is
@@ -89,6 +139,10 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
         dag_dep_circ = dagdependency_to_circuit(dag)
 
         def node_attr_func(node):
+            if "DAGDependencyV2" in type_str:
+                nid_str = str(node._node_id)
+            else:
+                nid_str = str(node.node_id)
             if style == "plain":
                 return {}
             if style == "color":
@@ -109,12 +163,7 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
 
                 n["color"] = "black"
                 n["label"] = (
-                    str(node.node_id)
-                    + ": "
-                    + str(node.name)
-                    + " ("
-                    + str(args)[1:-1].replace("'", "")
-                    + ")"
+                    nid_str + ": " + str(node.name) + " (" + str(args)[1:-1].replace("'", "") + ")"
                 )
                 if node.name == "barrier":
                     n["style"] = "filled"
@@ -141,7 +190,7 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
                     n["style"] = "filled"
                     n["fillcolor"] = "green"
                     n["label"] = (
-                        str(node.node_id)
+                        nid_str
                         + ": "
                         + str(node.name)
                         + cond_txt
@@ -153,7 +202,7 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
                     n["fillcolor"] = "lightblue"
                 return n
             else:
-                raise VisualizationError("Unrecognized style %s for the dag_drawer." % style)
+                raise VisualizationError(f"Unrecognized style {style} for the dag_drawer.")
 
         edge_attr_func = None
 
@@ -175,10 +224,13 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
                         label = register_bit_labels.get(
                             node.wire, f"q_{dag.find_bit(node.wire).index}"
                         )
-                    else:
+                    elif isinstance(node.wire, Clbit):
                         label = register_bit_labels.get(
                             node.wire, f"c_{dag.find_bit(node.wire).index}"
                         )
+                    else:
+                        label = str(node.wire.name)
+
                     n["label"] = label
                     n["color"] = "black"
                     n["style"] = "filled"
@@ -188,37 +240,78 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
                         label = register_bit_labels.get(
                             node.wire, f"q[{dag.find_bit(node.wire).index}]"
                         )
-                    else:
+                    elif isinstance(node.wire, Clbit):
                         label = register_bit_labels.get(
                             node.wire, f"c[{dag.find_bit(node.wire).index}]"
                         )
+                    else:
+                        label = str(node.wire.name)
                     n["label"] = label
                     n["color"] = "black"
                     n["style"] = "filled"
                     n["fillcolor"] = "red"
                 return n
             else:
-                raise VisualizationError("Invalid style %s" % style)
+                raise VisualizationError(f"Invalid style {style}")
 
         def edge_attr_func(edge):
             e = {}
             if isinstance(edge, Qubit):
                 label = register_bit_labels.get(edge, f"q_{dag.find_bit(edge).index}")
-            else:
+            elif isinstance(edge, Clbit):
                 label = register_bit_labels.get(edge, f"c_{dag.find_bit(edge).index}")
+            else:
+                label = str(edge.name)
             e["label"] = label
             return e
 
-    image_type = None
+    image_type = "png"
     if filename:
         if "." not in filename:
             raise InvalidFileError("Parameter 'filename' must be in format 'name.extension'")
         image_type = filename.split(".")[-1]
-    return graphviz_draw(
-        dag._multi_graph,
-        node_attr_func,
-        edge_attr_func,
-        graph_attrs,
-        filename,
-        image_type,
-    )
+        if image_type not in IMAGE_TYPES:
+            raise ValueError(
+                "The specified value for the image_type argument, "
+                f"'{image_type}' is not a valid choice. It must be one of: "
+                f"{IMAGE_TYPES}"
+            )
+
+    if isinstance(dag, DAGCircuit):
+        dot_str = dag._to_dot(
+            graph_attrs,
+            node_attr_func,
+            edge_attr_func,
+        )
+
+        prog = "dot"
+        if not filename:
+            dot_result = subprocess.run(
+                [prog, "-T", image_type],
+                input=dot_str.encode("utf-8"),
+                capture_output=True,
+                encoding=None,
+                check=True,
+                text=False,
+            )
+            dot_bytes_image = io.BytesIO(dot_result.stdout)
+            image = Image.open(dot_bytes_image)
+            return image
+        else:
+            subprocess.run(
+                [prog, "-T", image_type, "-o", filename],
+                input=dot_str,
+                check=True,
+                encoding="utf8",
+                text=True,
+            )
+            return None
+    else:
+        return graphviz_draw(
+            dag._multi_graph,
+            node_attr_func,
+            edge_attr_func,
+            graph_attrs,
+            filename,
+            image_type,
+        )

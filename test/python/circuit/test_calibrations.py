@@ -17,7 +17,7 @@ import unittest
 from qiskit.pulse import Schedule
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import RZXGate
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestCalibrations(QiskitTestCase):
@@ -27,29 +27,34 @@ class TestCalibrations(QiskitTestCase):
         """Test that __iadd__ keeps the calibrations."""
         qc_cal = QuantumCircuit(2)
         qc_cal.rzx(0.5, 0, 1)
-        qc_cal.add_calibration(RZXGate, (0, 1), params=[0.5], schedule=Schedule())
+        with self.assertWarns(DeprecationWarning):
+            qc_cal.add_calibration(RZXGate, (0, 1), params=[0.5], schedule=Schedule())
 
         qc = QuantumCircuit(2)
         qc &= qc_cal
 
-        self.assertEqual(qc.calibrations[RZXGate], {((0, 1), (0.5,)): Schedule(name="test")})
-        self.assertEqual(qc_cal.calibrations, qc.calibrations)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(qc.calibrations[RZXGate], {((0, 1), (0.5,)): Schedule(name="test")})
+            self.assertEqual(qc_cal.calibrations, qc.calibrations)
 
     def test_add(self):
         """Test that __add__ keeps the calibrations."""
         qc_cal = QuantumCircuit(2)
         qc_cal.rzx(0.5, 0, 1)
-        qc_cal.add_calibration(RZXGate, (0, 1), params=[0.5], schedule=Schedule())
+        with self.assertWarns(DeprecationWarning):
+            qc_cal.add_calibration(RZXGate, (0, 1), params=[0.5], schedule=Schedule())
 
         qc = QuantumCircuit(2) & qc_cal
 
-        self.assertEqual(qc.calibrations[RZXGate], {((0, 1), (0.5,)): Schedule(name="test")})
-        self.assertEqual(qc_cal.calibrations, qc.calibrations)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(qc.calibrations[RZXGate], {((0, 1), (0.5,)): Schedule(name="test")})
+            self.assertEqual(qc_cal.calibrations, qc.calibrations)
 
         qc = qc_cal & QuantumCircuit(2)
 
-        self.assertEqual(qc.calibrations[RZXGate], {((0, 1), (0.5,)): Schedule(name="test")})
-        self.assertEqual(qc_cal.calibrations, qc.calibrations)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(qc.calibrations[RZXGate], {((0, 1), (0.5,)): Schedule(name="test")})
+            self.assertEqual(qc_cal.calibrations, qc.calibrations)
 
 
 if __name__ == "__main__":

@@ -11,6 +11,9 @@
 # that they have been altered from the originals.
 
 """Two-qubit XX-YY gate."""
+
+from __future__ import annotations
+
 import math
 from cmath import exp
 from math import pi
@@ -24,9 +27,10 @@ from qiskit.circuit.library.standard_gates.rz import RZGate
 from qiskit.circuit.library.standard_gates.s import SdgGate, SGate
 from qiskit.circuit.library.standard_gates.sx import SXdgGate, SXGate
 from qiskit.circuit.library.standard_gates.x import CXGate
-from qiskit.circuit.parameterexpression import ParameterValueType
+from qiskit.circuit.parameterexpression import ParameterValueType, ParameterExpression
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit._accelerate.circuit import StandardGate
 
 
 class XXMinusYYGate(Gate):
@@ -37,7 +41,7 @@ class XXMinusYYGate(Gate):
 
     **Circuit Symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌───────────────┐
         q_0: ┤0              ├
@@ -69,7 +73,7 @@ class XXMinusYYGate(Gate):
         phase is added on q_0. If :math:`\beta` is set to its default value
         of :math:`0`, the gate is equivalent in big and little endian.
 
-        .. parsed-literal::
+        .. code-block:: text
 
                  ┌───────────────┐
             q_0: ┤1              ├
@@ -90,6 +94,8 @@ class XXMinusYYGate(Gate):
                 -i\sin\left(\rotationangle\right)e^{-i\beta} & 0 & 0 & \cos\left(\rotationangle\right)
             \end{pmatrix}
     """
+
+    _standard_gate = StandardGate.XXMinusYYGate
 
     def __init__(
         self,
@@ -153,13 +159,59 @@ class XXMinusYYGate(Gate):
 
         self.definition = circuit
 
-    def inverse(self):
-        """Inverse gate."""
+    def control(
+        self,
+        num_ctrl_qubits: int = 1,
+        label: str | None = None,
+        ctrl_state: str | int | None = None,
+        annotated: bool | None = None,
+    ):
+        """Return a (multi-)controlled-(XX-YY) gate.
+
+        Args:
+            num_ctrl_qubits: number of control qubits.
+            label: An optional label for the gate [Default: ``None``]
+            ctrl_state: control state expressed as integer,
+                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
+            annotated: indicates whether the controlled gate should be implemented
+                as an annotated gate. If ``None``, this is set to ``True`` if
+                the gate contains free parameters, in which case it cannot
+                yet be synthesized.
+
+        Returns:
+            ControlledGate: controlled version of this gate.
+        """
+        if annotated is None:
+            annotated = any(isinstance(p, ParameterExpression) for p in self.params)
+
+        gate = super().control(
+            num_ctrl_qubits=num_ctrl_qubits,
+            label=label,
+            ctrl_state=ctrl_state,
+            annotated=annotated,
+        )
+        return gate
+
+    def inverse(self, annotated: bool = False):
+        """Inverse gate.
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.XXMinusYYGate` with inverse
+                parameter values.
+
+        Returns:
+            XXMinusYYGate: inverse gate.
+        """
         theta, beta = self.params
         return XXMinusYYGate(-theta, beta)
 
-    def __array__(self, dtype=complex):
+    def __array__(self, dtype=None, copy=None):
         """Gate matrix."""
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
         theta, beta = self.params
         cos = math.cos(theta / 2)
         sin = math.sin(theta / 2)
@@ -173,7 +225,11 @@ class XXMinusYYGate(Gate):
             dtype=dtype,
         )
 
-    def power(self, exponent: float):
-        """Raise gate to a power."""
+    def power(self, exponent: float, annotated: bool = False):
         theta, beta = self.params
         return XXMinusYYGate(exponent * theta, beta)
+
+    def __eq__(self, other):
+        if isinstance(other, XXMinusYYGate):
+            return self._compare_parameters(other)
+        return False

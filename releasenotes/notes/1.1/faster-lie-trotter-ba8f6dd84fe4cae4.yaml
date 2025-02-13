@@ -1,0 +1,6 @@
+---
+features_synthesis:
+  - |
+    :meth:`.LieTrotter.synthesize` now uses :meth:`.QuantumCircuit.repeat` to generate additional reps
+    after the first. This reduces the number of :meth:`.QuantumCircuit.compose` calls by a factor of
+    ``reps`` and significantly reduces the runtime for larger operators.

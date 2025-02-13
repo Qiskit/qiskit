@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Estimator result class
+Estimator V1 result class
 """
 
 from __future__ import annotations
@@ -18,15 +18,15 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-from .base_result import BasePrimitiveResult
+from .base_result import _BasePrimitiveResult
 
 if TYPE_CHECKING:
     import numpy as np
 
 
 @dataclass(frozen=True)
-class EstimatorResult(BasePrimitiveResult):
-    """Result of Estimator.
+class EstimatorResult(_BasePrimitiveResult):
+    """Result of Estimator V1.
 
     .. code-block:: python
 

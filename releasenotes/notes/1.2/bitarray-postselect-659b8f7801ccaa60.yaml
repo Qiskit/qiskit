@@ -1,0 +1,11 @@
+---
+features_primitives:
+  - |
+    Added a new method :meth:`.BitArray.postselect` that returns all shots containing specified bit values.
+    Example usage::
+
+      from qiskit.primitives.containers import BitArray
+
+      ba = BitArray.from_counts({'110': 2, '100': 4, '000': 3})
+      print(ba.postselect([0,2], [0,1]).get_counts())
+      # {'110': 2, '100': 4}

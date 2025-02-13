@@ -27,9 +27,11 @@ from qiskit.passmanager.flow_controllers import (
     DoWhileController,
 )
 from qiskit.transpiler import PassManager, PropertySet, TransformationPass
-from qiskit.transpiler.passes import CommutativeCancellation
-from qiskit.transpiler.passes import Optimize1qGates, Unroller
-from qiskit.test import QiskitTestCase
+from qiskit.transpiler.passes import Optimize1qGates, BasisTranslator, ResourceEstimation
+from qiskit.circuit.library.standard_gates.equivalence_library import (
+    StandardEquivalenceLibrary as std_eqlib,
+)
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestPassManager(QiskitTestCase):
@@ -60,14 +62,13 @@ class TestPassManager(QiskitTestCase):
             calls.append(out_dict)
 
         passmanager = PassManager()
-        with self.assertWarns(DeprecationWarning):
-            passmanager.append(Unroller(["u2"]))
+        passmanager.append(BasisTranslator(std_eqlib, ["u2"]))
         passmanager.append(Optimize1qGates())
         passmanager.run(circuit, callback=callback)
         self.assertEqual(len(calls), 2)
         self.assertEqual(len(calls[0]), 5)
         self.assertEqual(calls[0]["count"], 0)
-        self.assertEqual(calls[0]["pass_"].name(), "Unroller")
+        self.assertEqual(calls[0]["pass_"].name(), "BasisTranslator")
         self.assertEqual(expected_start_dag, calls[0]["dag"])
         self.assertIsInstance(calls[0]["time"], float)
         self.assertEqual(calls[0]["property_set"], PropertySet())
@@ -81,7 +82,7 @@ class TestPassManager(QiskitTestCase):
         self.assertEqual("MyCircuit", calls[1]["dag"].name)
 
     def test_callback_with_pass_requires(self):
-        """Test the callback with a pass with another pass requirement."""
+        """Test the callback with a pass with pass requirements."""
         qr = QuantumRegister(3, "qr")
         circuit = QuantumCircuit(qr, name="MyCircuit")
         circuit.z(qr[0])
@@ -95,7 +96,6 @@ class TestPassManager(QiskitTestCase):
 
         expected_end = QuantumCircuit(qr)
         expected_end.cx(qr[0], qr[2])
-        expected_end_dag = circuit_to_dag(expected_end)
 
         calls = []
 
@@ -105,23 +105,29 @@ class TestPassManager(QiskitTestCase):
             calls.append(out_dict)
 
         passmanager = PassManager()
-        passmanager.append(CommutativeCancellation(basis_gates=["u1", "u2", "u3", "cx"]))
+        passmanager.append(ResourceEstimation())
         passmanager.run(circuit, callback=callback)
-        self.assertEqual(len(calls), 2)
-        self.assertEqual(len(calls[0]), 5)
-        self.assertEqual(calls[0]["count"], 0)
-        self.assertEqual(calls[0]["pass_"].name(), "CommutationAnalysis")
-        self.assertEqual(expected_start_dag, calls[0]["dag"])
-        self.assertIsInstance(calls[0]["time"], float)
-        self.assertIsInstance(calls[0]["property_set"], PropertySet)
-        self.assertEqual("MyCircuit", calls[0]["dag"].name)
-        self.assertEqual(len(calls[1]), 5)
-        self.assertEqual(calls[1]["count"], 1)
-        self.assertEqual(calls[1]["pass_"].name(), "CommutativeCancellation")
-        self.assertEqual(expected_end_dag, calls[1]["dag"])
-        self.assertIsInstance(calls[0]["time"], float)
-        self.assertIsInstance(calls[0]["property_set"], PropertySet)
-        self.assertEqual("MyCircuit", calls[1]["dag"].name)
+
+        self.assertEqual(len(calls), 7)
+
+        required_passes = [
+            "Depth",
+            "Width",
+            "Size",
+            "CountOps",
+            "NumTensorFactors",
+            "NumQubits",
+            "ResourceEstimation",
+        ]
+
+        for call_entry in range(7):
+            self.assertEqual(len(calls[call_entry]), 5)
+            self.assertEqual(calls[call_entry]["count"], call_entry)
+            self.assertEqual(calls[call_entry]["pass_"].name(), required_passes[call_entry])
+            self.assertEqual(expected_start_dag, calls[call_entry]["dag"])
+            self.assertIsInstance(calls[call_entry]["time"], float)
+            self.assertIsInstance(calls[call_entry]["property_set"], PropertySet)
+            self.assertEqual("MyCircuit", calls[call_entry]["dag"].name)
 
     def test_to_flow_controller(self):
         """Test that conversion to a `FlowController` works, and the result can be added to a

@@ -13,22 +13,17 @@
 """Test transpiler passes that deal with linear functions."""
 
 import unittest
-from test import combine
-
 from ddt import ddt
 
 from qiskit.circuit import QuantumCircuit, Qubit, Clbit
 from qiskit.transpiler.passes.optimization import CollectLinearFunctions
-from qiskit.transpiler.passes.synthesis import (
-    LinearFunctionsSynthesis,
-    HighLevelSynthesis,
-    LinearFunctionsToPermutations,
-)
-from qiskit.test import QiskitTestCase
+from qiskit.transpiler.passes.synthesis import HighLevelSynthesis, LinearFunctionsToPermutations
 from qiskit.circuit.library.generalized_gates import LinearFunction
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.transpiler import PassManager
 from qiskit.quantum_info import Operator
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import combine  # pylint: disable=wrong-import-order
 
 
 @ddt
@@ -38,45 +33,6 @@ class TestLinearFunctionsPasses(QiskitTestCase):
     the pass that synthesizes LinearFunctions into CX and SWAP gates,
     and the pass that promotes LinearFunctions to Permutations whenever possible.
     """
-
-    def test_deprecated_synthesis_method(self):
-        """Test that when all gates in a circuit are either CX or SWAP,
-        we end up with a single LinearFunction."""
-
-        # original circuit
-        circuit = QuantumCircuit(4)
-        circuit.cx(0, 1)
-        circuit.cx(0, 2)
-        circuit.cx(0, 3)
-        circuit.swap(2, 3)
-        circuit.cx(0, 1)
-        circuit.cx(0, 3)
-
-        # new circuit with linear functions extracted using transpiler pass
-        optimized_circuit = PassManager(CollectLinearFunctions()).run(circuit)
-
-        # check that this circuit consists of a single LinearFunction
-        self.assertIn("linear_function", optimized_circuit.count_ops().keys())
-        self.assertEqual(len(optimized_circuit.data), 1)
-        inst1 = optimized_circuit.data[0]
-        self.assertIsInstance(inst1.operation, LinearFunction)
-
-        # construct a circuit with linear function directly, without the transpiler pass
-        expected_circuit = QuantumCircuit(4)
-        expected_circuit.append(LinearFunction(circuit), [0, 1, 2, 3])
-
-        # check that we have an equivalent circuit
-        self.assertEqual(Operator(optimized_circuit), Operator(expected_circuit))
-
-        # now a circuit with linear functions synthesized
-        with self.assertWarns(DeprecationWarning):
-            synthesized_circuit = PassManager(LinearFunctionsSynthesis()).run(optimized_circuit)
-
-        # check that there are no LinearFunctions present in synthesized_circuit
-        self.assertNotIn("linear_function", synthesized_circuit.count_ops().keys())
-
-        # check that we have an equivalent circuit
-        self.assertEqual(Operator(optimized_circuit), Operator(synthesized_circuit))
 
     # Most of CollectLinearFunctions tests should work correctly both without and with
     # commutativity analysis.
@@ -576,6 +532,29 @@ class TestLinearFunctionsPasses(QiskitTestCase):
         self.assertNotIn("linear_function", circuit4.count_ops().keys())
         self.assertEqual(circuit4.count_ops()["cx"], 6)
 
+    def test_max_block_width(self):
+        """Test that the option max_block_width for collecting linear functions works correctly."""
+        circuit = QuantumCircuit(6)
+        circuit.cx(0, 1)
+        circuit.cx(1, 2)
+        circuit.cx(2, 3)
+        circuit.cx(3, 4)
+        circuit.cx(4, 5)
+
+        # When max_block_width = 3, we should obtain 3 linear blocks
+        circuit1 = PassManager(CollectLinearFunctions(min_block_size=1, max_block_width=3)).run(
+            circuit
+        )
+        self.assertEqual(circuit1.count_ops()["linear_function"], 3)
+        self.assertNotIn("cx", circuit1.count_ops().keys())
+
+        # When max_block_width = 4, we should obtain 2 linear blocks
+        circuit1 = PassManager(CollectLinearFunctions(min_block_size=1, max_block_width=4)).run(
+            circuit
+        )
+        self.assertEqual(circuit1.count_ops()["linear_function"], 2)
+        self.assertNotIn("cx", circuit1.count_ops().keys())
+
     @combine(do_commutative_analysis=[False, True])
     def test_collect_from_back_correctness(self, do_commutative_analysis):
         """Test that collecting from the back of the circuit works correctly."""
@@ -659,7 +638,8 @@ class TestLinearFunctionsPasses(QiskitTestCase):
         qc = QuantumCircuit(2, 1)
         qc.cx(1, 0)
         qc.swap(1, 0)
-        qc.cx(0, 1).c_if(0, 1)
+        with self.assertWarns(DeprecationWarning):
+            qc.cx(0, 1).c_if(0, 1)
         qc.cx(0, 1)
         qc.cx(1, 0)
 
@@ -669,7 +649,8 @@ class TestLinearFunctionsPasses(QiskitTestCase):
         self.assertEqual(qct.count_ops()["linear_function"], 2)
 
         # Make sure that the condition on the middle gate is not lost
-        self.assertIsNotNone(qct.data[1].operation.condition)
+        with self.assertWarns(DeprecationWarning):
+            self.assertIsNotNone(qct.data[1].operation.condition)
 
     @combine(do_commutative_analysis=[False, True])
     def test_split_layers(self, do_commutative_analysis):

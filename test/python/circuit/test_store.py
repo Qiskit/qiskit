@@ -12,7 +12,8 @@
 
 # pylint: disable=missing-module-docstring,missing-class-docstring,missing-function-docstring
 
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase
+
 from qiskit.circuit import Store, Clbit, CircuitError, QuantumCircuit, ClassicalRegister
 from qiskit.circuit.classical import expr, types
 
@@ -23,6 +24,14 @@ class TestStoreInstruction(QiskitTestCase):
     def test_happy_path_construction(self):
         lvalue = expr.Var.new("a", types.Bool())
         rvalue = expr.lift(Clbit())
+        constructed = Store(lvalue, rvalue)
+        self.assertIsInstance(constructed, Store)
+        self.assertEqual(constructed.lvalue, lvalue)
+        self.assertEqual(constructed.rvalue, rvalue)
+
+    def test_store_to_index(self):
+        lvalue = expr.index(expr.Var.new("a", types.Uint(8)), 3)
+        rvalue = expr.lift(False)
         constructed = Store(lvalue, rvalue)
         self.assertIsInstance(constructed, Store)
         self.assertEqual(constructed.lvalue, lvalue)
@@ -44,6 +53,11 @@ class TestStoreInstruction(QiskitTestCase):
         with self.assertRaisesRegex(CircuitError, "not an l-value"):
             Store(not_an_lvalue, rvalue)
 
+        not_an_lvalue = expr.index(expr.shift_right(expr.Var.new("a", types.Uint(8)), 1), 2)
+        rvalue = expr.lift(True)
+        with self.assertRaisesRegex(CircuitError, "not an l-value"):
+            Store(not_an_lvalue, rvalue)
+
     def test_rejects_explicit_cast(self):
         lvalue = expr.Var.new("a", types.Uint(16))
         rvalue = expr.Var.new("b", types.Uint(8))
@@ -59,7 +73,8 @@ class TestStoreInstruction(QiskitTestCase):
     def test_rejects_c_if(self):
         instruction = Store(expr.Var.new("a", types.Bool()), expr.Var.new("b", types.Bool()))
         with self.assertRaises(NotImplementedError):
-            instruction.c_if(Clbit(), False)
+            with self.assertWarns(DeprecationWarning):
+                instruction.c_if(Clbit(), False)
 
 
 class TestStoreCircuit(QiskitTestCase):
@@ -121,6 +136,21 @@ class TestStoreCircuit(QiskitTestCase):
         actual = [instruction.operation for instruction in qc.data]
         self.assertEqual(actual, expected)
 
+    def test_allows_stores_with_index(self):
+        cr = ClassicalRegister(8, "cr")
+        a = expr.Var.new("a", types.Uint(3))
+        qc = QuantumCircuit(cr, inputs=[a])
+        qc.store(expr.index(cr, 0), False)
+        qc.store(expr.index(a, 3), True)
+        qc.store(expr.index(cr, a), expr.index(cr, 0))
+        expected = [
+            Store(expr.index(cr, 0), expr.lift(False)),
+            Store(expr.index(a, 3), expr.lift(True)),
+            Store(expr.index(cr, a), expr.index(cr, 0)),
+        ]
+        actual = [instruction.operation for instruction in qc.data]
+        self.assertEqual(actual, expected)
+
     def test_lifts_values(self):
         a = expr.Var.new("a", types.Bool())
         qc = QuantumCircuit(captures=[a])
@@ -131,6 +161,22 @@ class TestStoreCircuit(QiskitTestCase):
         qc.add_capture(b)
         qc.store(b, 0xFFFF)
         self.assertEqual(qc.data[-1].operation, Store(b, expr.lift(0xFFFF)))
+
+    def test_lifts_integer_literals_to_full_width(self):
+        a = expr.Var.new("a", types.Uint(8))
+        qc = QuantumCircuit(inputs=[a])
+        qc.store(a, 1)
+        self.assertEqual(qc.data[-1].operation, Store(a, expr.Value(1, a.type)))
+        qc.store(a, 255)
+        self.assertEqual(qc.data[-1].operation, Store(a, expr.Value(255, a.type)))
+
+    def test_does_not_widen_bool_literal(self):
+        # `bool` is a subclass of `int` in Python (except some arithmetic operations have different
+        # semantics...).  It's not in Qiskit's value type system, though.
+        a = expr.Var.new("a", types.Uint(8))
+        qc = QuantumCircuit(captures=[a])
+        with self.assertRaisesRegex(CircuitError, "explicit cast is required"):
+            qc.store(a, True)
 
     def test_rejects_vars_not_in_circuit(self):
         a = expr.Var.new("a", types.Bool())
@@ -196,4 +242,5 @@ class TestStoreCircuit(QiskitTestCase):
         qc = QuantumCircuit([Clbit()], inputs=[a])
         instruction_set = qc.store(a, True)
         with self.assertRaises(NotImplementedError):
-            instruction_set.c_if(qc.clbits[0], False)
+            with self.assertWarns(DeprecationWarning):
+                instruction_set.c_if(qc.clbits[0], False)

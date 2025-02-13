@@ -17,13 +17,17 @@ import numpy as np
 
 from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
 from qiskit.transpiler import PassManager
-from qiskit.transpiler.passes import Optimize1qGates, Unroller
+from qiskit.transpiler.passes import Optimize1qGates, BasisTranslator
 from qiskit.converters import circuit_to_dag
-from qiskit.test import QiskitTestCase
-from qiskit.circuit import Parameter
+from qiskit.circuit import Parameter, Gate
 from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, UGate, PhaseGate
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.target import Target
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
+
+from qiskit.circuit.library.standard_gates.equivalence_library import (
+    StandardEquivalenceLibrary as std_eqlib,
+)
 
 
 class TestOptimize1qGates(QiskitTestCase):
@@ -58,8 +62,7 @@ class TestOptimize1qGates(QiskitTestCase):
         expected.append(U2Gate(0, np.pi), [qr[0]])
 
         passmanager = PassManager()
-        with self.assertWarns(DeprecationWarning):
-            passmanager.append(Unroller(["u2"]))
+        passmanager.append(BasisTranslator(std_eqlib, ["u2"]))
         passmanager.append(Optimize1qGates())
         result = passmanager.run(circuit)
 
@@ -159,15 +162,19 @@ class TestOptimize1qGates(QiskitTestCase):
         qr = QuantumRegister(1, "qr")
         cr = ClassicalRegister(2, "cr")
         circuit = QuantumCircuit(qr, cr)
-        circuit.append(U1Gate(0.1), [qr]).c_if(cr, 1)
-        circuit.append(U1Gate(0.2), [qr]).c_if(cr, 3)
+        with self.assertWarns(DeprecationWarning):
+            circuit.append(U1Gate(0.1), [qr]).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.append(U1Gate(0.2), [qr]).c_if(cr, 3)
         circuit.append(U1Gate(0.3), [qr])
         circuit.append(U1Gate(0.4), [qr])
         dag = circuit_to_dag(circuit)
 
         expected = QuantumCircuit(qr, cr)
-        expected.append(U1Gate(0.1), [qr]).c_if(cr, 1)
-        expected.append(U1Gate(0.2), [qr]).c_if(cr, 3)
+        with self.assertWarns(DeprecationWarning):
+            expected.append(U1Gate(0.1), [qr]).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            expected.append(U1Gate(0.2), [qr]).c_if(cr, 3)
         expected.append(U1Gate(0.7), [qr])
 
         pass_ = Optimize1qGates()
@@ -187,15 +194,19 @@ class TestOptimize1qGates(QiskitTestCase):
         qr = QuantumRegister(1, "qr")
         cr = ClassicalRegister(2, "cr")
         circuit = QuantumCircuit(qr, cr)
-        circuit.append(PhaseGate(0.1), [qr]).c_if(cr, 1)
-        circuit.append(PhaseGate(0.2), [qr]).c_if(cr, 3)
+        with self.assertWarns(DeprecationWarning):
+            circuit.append(PhaseGate(0.1), [qr]).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.append(PhaseGate(0.2), [qr]).c_if(cr, 3)
         circuit.append(PhaseGate(0.3), [qr])
         circuit.append(PhaseGate(0.4), [qr])
         dag = circuit_to_dag(circuit)
 
         expected = QuantumCircuit(qr, cr)
-        expected.append(PhaseGate(0.1), [qr]).c_if(cr, 1)
-        expected.append(PhaseGate(0.2), [qr]).c_if(cr, 3)
+        with self.assertWarns(DeprecationWarning):
+            expected.append(PhaseGate(0.1), [qr]).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            expected.append(PhaseGate(0.2), [qr]).c_if(cr, 3)
         expected.append(PhaseGate(0.7), [qr])
 
         pass_ = Optimize1qGates(["p", "u2", "u", "cx", "id"])
@@ -320,9 +331,24 @@ class TestOptimize1qGates(QiskitTestCase):
 
     def test_global_phase_u3_on_left(self):
         """Check proper phase accumulation with instruction with no definition."""
+
+        class CustomGate(Gate):
+            """Custom u1 gate definition."""
+
+            def __init__(self, lam):
+                super().__init__("u1", 1, [lam])
+
+            def _define(self):
+                qc = QuantumCircuit(1)
+                qc.p(*self.params, 0)
+                self.definition = qc
+
+            def _matrix(self):
+                return U1Gate(*self.params).to_matrix()
+
         qr = QuantumRegister(1)
         qc = QuantumCircuit(qr)
-        u1 = U1Gate(0.1)
+        u1 = CustomGate(0.1)
         u1.definition.global_phase = np.pi / 2
         qc.append(u1, [0])
         qc.global_phase = np.pi / 3
@@ -334,9 +360,24 @@ class TestOptimize1qGates(QiskitTestCase):
 
     def test_global_phase_u_on_left(self):
         """Check proper phase accumulation with instruction with no definition."""
+
+        class CustomGate(Gate):
+            """Custom u1 gate."""
+
+            def __init__(self, lam):
+                super().__init__("u1", 1, [lam])
+
+            def _define(self):
+                qc = QuantumCircuit(1)
+                qc.p(*self.params, 0)
+                self.definition = qc
+
+            def _matrix(self):
+                return U1Gate(*self.params).to_matrix()
+
         qr = QuantumRegister(1)
         qc = QuantumCircuit(qr)
-        u1 = U1Gate(0.1)
+        u1 = CustomGate(0.1)
         u1.definition.global_phase = np.pi / 2
         qc.append(u1, [0])
         qc.global_phase = np.pi / 3
@@ -695,8 +736,7 @@ class TestOptimize1qGatesBasis(QiskitTestCase):
         qc.ry(alpha, qr[0])
         qc.ry(0.1, qr[0])
         qc.ry(0.2, qr[0])
-        with self.assertWarns(DeprecationWarning):
-            passmanager = PassManager([Unroller(["u3"]), Optimize1qGates()])
+        passmanager = PassManager([BasisTranslator(std_eqlib, ["u3"]), Optimize1qGates()])
         result = passmanager.run(qc)
 
         expected = QuantumCircuit(qr)

@@ -1,0 +1,47 @@
+---
+upgrade:
+  - |
+    Removed logic for injecting :class:`.QuantumCircuit` and :class:`.Gate` operations into the
+    pulse context (such as in :func:`.pulse.builder.call`), which was legacy behavior deprecated in
+    Qiskit 0.46. Pulse schedules should be built up as a full schedule context; circuits and gates
+    are a higher level of abstraction.
+
+    This includes the removal of the related functions:
+
+    * ``pulse.builder.call_gate``
+    * ``pulse.builder.cx``
+    * ``pulse.builder.u1``
+    * ``pulse.builder.u2``
+    * ``pulse.builder.u3``
+    * ``pulse.builder.x``
+    * ``pulse.builder.active_transpiler_settings``
+    * ``pulse.builder.active_circuit_scheduler_settings``
+    * ``pulse.builder.transpiler_settings``
+    * ``pulse.builder.circuit_scheduler_settings``
+
+    The ``default_transpiler_settings`` and ``default_circuit_scheduler_settings`` arguments
+    to :func:`.pulse.builder.build` are similarly removed.
+
+    .. code-block:: python
+
+      from qiskit import transpile, schedule, QuantumCircuit, pulse
+      from qiskit.providers.fake_provider import Fake7QPulseV1
+
+      backend = Fake7QPulseV1()
+
+      # Create a schedule from a hardware-based circuit.
+      qc = QuantumCircuit(2)
+      qc.cx(0, 1)
+      qc = transpile(qc, backend)
+      sched = schedule(qc, backend)
+
+      # These pulse schedules can still be called in builder contexts.
+      with pulse.build(backend) as qc_sched:
+        pulse.call(sched)
+
+      # Schedules for certain operations can also be directly retrieved
+      # from BackendV1 instances:
+      sched = backend.defaults().instruction_schedule_map.get('x', (0,))
+
+      # ... and from BackendV2 instances:
+      sched = backend.target['x'][(0,)].calibration

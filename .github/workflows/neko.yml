@@ -18,4 +18,4 @@ jobs:
           test_selection: terra
           # We have to forcibly uninstall any old version of qiskit or qiskit-terra during the
           # changeover, because it's not possible to safely upgrade an existing installation to 1.0.
-          repo_install_command: "pip uninstall qiskit qiskit-terra && pip install -c constraints.txt ."
+          repo_install_command: "pip uninstall -y qiskit qiskit-terra && pip install -c constraints.txt ."

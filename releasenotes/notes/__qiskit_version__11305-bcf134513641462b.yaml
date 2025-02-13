@@ -1,8 +1,0 @@
----
-upgrade:
-  - |
-    The variable ``qiskit.__qiskit_version__`` is removed as it was deprecated since 
-    Qiskit 0.44 (released on July 2023).
-    Instead, you should use ``qiskit.__version__``. The other packages listed in the
-    former ``qiskit.__qiskit_version__`` have their own ``__version__`` module level dunder,
-    as standard in PEP 8.

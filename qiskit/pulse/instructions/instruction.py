@@ -28,6 +28,7 @@ from collections.abc import Iterable
 from qiskit.circuit import Parameter, ParameterExpression
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError
+from qiskit.utils.deprecate_pulse import deprecate_pulse_func
 
 
 # pylint: disable=bad-docstring-quotes
@@ -38,6 +39,7 @@ class Instruction(ABC):
     channels.
     """
 
+    @deprecate_pulse_func
     def __init__(
         self,
         operands: tuple,
@@ -264,6 +266,5 @@ class Instruction(ABC):
 
     def __repr__(self) -> str:
         operands = ", ".join(str(op) for op in self.operands)
-        return "{}({}{})".format(
-            self.__class__.__name__, operands, f", name='{self.name}'" if self.name else ""
-        )
+        name_repr = f", name='{self.name}'" if self.name else ""
+        return f"{self.__class__.__name__}({operands}{name_repr})"

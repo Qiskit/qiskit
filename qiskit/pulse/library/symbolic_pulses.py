@@ -31,6 +31,7 @@ from qiskit.circuit.parameterexpression import ParameterExpression, ParameterVal
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.library.pulse import Pulse
 from qiskit.pulse.library.waveform import Waveform
+from qiskit.utils.deprecate_pulse import deprecate_pulse_func
 
 
 def _lifted_gaussian(
@@ -313,7 +314,7 @@ class SymbolicPulse(Pulse):
     This is how a user can instantiate a symbolic pulse instance.
     In this example, we instantiate a custom `Sawtooth` envelope.
 
-    .. code-block::
+    .. code-block:: python
 
         from qiskit.pulse.library import SymbolicPulse
 
@@ -329,6 +330,7 @@ class SymbolicPulse(Pulse):
     without knowing the envelope definition. Now you need to provide the envelope.
 
     .. plot::
+       :alt: Output from the previous code.
        :include-source:
 
         import sympy
@@ -352,7 +354,9 @@ class SymbolicPulse(Pulse):
     Note that it would be convenient to define a factory function that automatically
     accomplishes this procedure.
 
-    .. code-block:: python
+    .. plot::
+       :include-source:
+       :nofigs:
 
         def Sawtooth(duration, amp, freq, name):
             t, amp, freq = sympy.symbols("t, amp, freq")
@@ -403,6 +407,7 @@ class SymbolicPulse(Pulse):
     _constraints_lam = LambdifiedExpression("_constraints")
     _valid_amp_conditions_lam = LambdifiedExpression("_valid_amp_conditions")
 
+    @deprecate_pulse_func
     def __init__(
         self,
         pulse_type: str,
@@ -554,7 +559,6 @@ class SymbolicPulse(Pulse):
         return params
 
     def __eq__(self, other: object) -> bool:
-
         if not isinstance(other, SymbolicPulse):
             return NotImplemented
 
@@ -571,11 +575,8 @@ class SymbolicPulse(Pulse):
 
     def __repr__(self) -> str:
         param_repr = ", ".join(f"{p}={v}" for p, v in self.parameters.items())
-        return "{}({}{})".format(
-            self._pulse_type,
-            param_repr,
-            f", name='{self.name}'" if self.name is not None else "",
-        )
+        name_repr = f", name='{self.name}'" if self.name is not None else ""
+        return f"{self._pulse_type}({param_repr}{name_repr})"
 
     __hash__ = None
 
@@ -678,8 +679,8 @@ class ScalableSymbolicPulse(SymbolicPulse):
             if not np.isclose(complex_amp1, complex_amp2):
                 return False
 
-        for key in self.parameters:
-            if key not in ["amp", "angle"] and self.parameters[key] != other.parameters[key]:
+        for key, value in self.parameters.items():
+            if key not in ["amp", "angle"] and value != other.parameters[key]:
                 return False
 
         return True
@@ -723,8 +724,10 @@ class Gaussian(metaclass=_PulseType):
 
     .. math::
 
+        \begin{aligned}
         f'(x) &= \exp\Bigl( -\frac12 \frac{{(x - \text{duration}/2)}^2}{\text{sigma}^2} \Bigr)\\
         f(x) &= \text{A} \times  \frac{f'(x) - f'(-1)}{1-f'(-1)}, \quad 0 \le x < \text{duration}
+        \end{aligned}
 
     where :math:`f'(x)` is the gaussian waveform without lifting or amplitude scaling, and
     :math:`\text{A} = \text{amp} \times \exp\left(i\times\text{angle}\right)`.
@@ -782,6 +785,10 @@ class Gaussian(metaclass=_PulseType):
             valid_amp_conditions=valid_amp_conditions_expr,
         )
 
+    @deprecate_pulse_func
+    def __init__(self):
+        pass
+
 
 class GaussianSquare(metaclass=_PulseType):
     """A square pulse with a Gaussian shaped risefall on both sides lifted such that
@@ -793,8 +800,10 @@ class GaussianSquare(metaclass=_PulseType):
 
     .. math::
 
-        \\text{risefall} &= \\text{risefall_sigma_ratio} \\times \\text{sigma}\\\\
+        \\begin{aligned}
+        \\text{risefall} &= \\text{risefall\\_sigma\\_ratio} \\times \\text{sigma}\\\\
         \\text{width} &= \\text{duration} - 2 \\times \\text{risefall}
+        \\end{aligned}
 
     If ``width`` is not None and ``risefall_sigma_ratio`` is None:
 
@@ -804,6 +813,7 @@ class GaussianSquare(metaclass=_PulseType):
 
     .. math::
 
+        \\begin{aligned}
         f'(x) &= \\begin{cases}\
             \\exp\\biggl(-\\frac12 \\frac{(x - \\text{risefall})^2}{\\text{sigma}^2}\\biggr)\
                 & x < \\text{risefall}\\\\
@@ -817,6 +827,7 @@ class GaussianSquare(metaclass=_PulseType):
         \\end{cases}\\\\
         f(x) &= \\text{A} \\times \\frac{f'(x) - f'(-1)}{1-f'(-1)},\
             \\quad 0 \\le x < \\text{duration}
+        \\end{aligned}
 
     where :math:`f'(x)` is the gaussian square waveform without lifting or amplitude scaling, and
     :math:`\\text{A} = \\text{amp} \\times \\exp\\left(i\\times\\text{angle}\\right)`.
@@ -906,7 +917,12 @@ class GaussianSquare(metaclass=_PulseType):
             valid_amp_conditions=valid_amp_conditions_expr,
         )
 
+    @deprecate_pulse_func
+    def __init__(self):
+        pass
 
+
+@deprecate_pulse_func
 def GaussianSquareDrag(
     duration: int | ParameterExpression,
     amp: float | ParameterExpression,
@@ -935,8 +951,10 @@ def GaussianSquareDrag(
 
     .. math::
 
-        \\text{risefall} &= \\text{risefall_sigma_ratio} \\times \\text{sigma}\\\\
+        \\begin{aligned}
+        \\text{risefall} &= \\text{risefall\\_sigma\\_ratio} \\times \\text{sigma}\\\\
         \\text{width} &= \\text{duration} - 2 \\times \\text{risefall}
+        \\end{aligned}
 
     If ``width`` is not None and ``risefall_sigma_ratio`` is None:
 
@@ -947,8 +965,10 @@ def GaussianSquareDrag(
 
     .. math::
 
+        \\begin{aligned}
         g(x, c, σ) &= \\exp\\Bigl(-\\frac12 \\frac{(x - c)^2}{σ^2}\\Bigr)\\\\
         g'(x, c, σ) &= \\frac{g(x, c, σ)-g(-1, c, σ)}{1-g(-1, c, σ)}
+        \\end{aligned}
 
     From these, the lifted DRAG curve :math:`d'(x, c, σ, β)` can be written as
 
@@ -961,6 +981,7 @@ def GaussianSquareDrag(
 
     .. math::
 
+        \\begin{aligned}
         f'(x) &= \\begin{cases}\
             \\text{A} \\times d'(x, \\text{risefall}, \\text{sigma}, \\text{beta})\
                 & x < \\text{risefall}\\\\
@@ -974,6 +995,7 @@ def GaussianSquareDrag(
                 )\
                 & \\text{risefall} + \\text{width} \\le x\
         \\end{cases}\\\\
+        \\end{aligned}
 
     where :math:`\\text{A} = \\text{amp} \\times
     \\exp\\left(i\\times\\text{angle}\\right)`.
@@ -1053,6 +1075,7 @@ def GaussianSquareDrag(
     )
 
 
+@deprecate_pulse_func
 def gaussian_square_echo(
     duration: int | ParameterValueType,
     amp: float | ParameterExpression,
@@ -1077,12 +1100,14 @@ def gaussian_square_echo(
 
     .. math::
 
+        \\begin{aligned}
         g_e(x) &= \\begin{cases}\
             f_{\\text{active}} + f_{\\text{echo}}(x)\
                 & x < \\frac{\\text{duration}}{2}\\\\
             f_{\\text{active}} - f_{\\text{echo}}(x)\
                 & \\frac{\\text{duration}}{2} < x\
         \\end{cases}\\\\
+        \\end{aligned}
 
     One case where this pulse can be used is when implementing a direct CNOT gate with
     a cross-resonance superconducting qubit architecture. When applying this pulse to
@@ -1095,8 +1120,10 @@ def gaussian_square_echo(
 
     .. math::
 
-        \\text{risefall} &= \\text{risefall_sigma_ratio} \\times \\text{sigma}\\\\
+        \\begin{aligned}
+        \\text{risefall} &= \\text{risefall\\_sigma\\_ratio} \\times \\text{sigma}\\\\
         \\text{width} &= \\text{duration} - 2 \\times \\text{risefall}
+        \\end{aligned}
 
     If ``width`` is not None and ``risefall_sigma_ratio`` is None:
 
@@ -1252,6 +1279,7 @@ def gaussian_square_echo(
     )
 
 
+@deprecate_pulse_func
 def GaussianDeriv(
     duration: int | ParameterValueType,
     amp: float | ParameterExpression,
@@ -1326,11 +1354,13 @@ class Drag(metaclass=_PulseType):
 
     .. math::
 
+        \\begin{aligned}
         g(x) &= \\exp\\Bigl(-\\frac12 \\frac{(x - \\text{duration}/2)^2}{\\text{sigma}^2}\\Bigr)\\\\
         g'(x) &= \\text{A}\\times\\frac{g(x)-g(-1)}{1-g(-1)}\\\\
         f(x) &=  g'(x) \\times \\Bigl(1 + 1j \\times \\text{beta} \\times\
             \\Bigl(-\\frac{x - \\text{duration}/2}{\\text{sigma}^2}\\Bigr)  \\Bigr),
             \\quad 0 \\le x < \\text{duration}
+        \\end{aligned}
 
     where :math:`g(x)` is a standard unlifted Gaussian waveform, :math:`g'(x)` is the lifted
     :class:`~qiskit.pulse.library.Gaussian` waveform, and
@@ -1410,6 +1440,10 @@ class Drag(metaclass=_PulseType):
             valid_amp_conditions=valid_amp_conditions_expr,
         )
 
+    @deprecate_pulse_func
+    def __init__(self):
+        pass
+
 
 class Constant(metaclass=_PulseType):
     """A simple constant pulse, with an amplitude value and a duration:
@@ -1471,7 +1505,12 @@ class Constant(metaclass=_PulseType):
             valid_amp_conditions=valid_amp_conditions_expr,
         )
 
+    @deprecate_pulse_func
+    def __init__(self):
+        pass
 
+
+@deprecate_pulse_func
 def Sin(
     duration: int | ParameterExpression,
     amp: float | ParameterExpression,
@@ -1536,6 +1575,7 @@ def Sin(
     )
 
 
+@deprecate_pulse_func
 def Cos(
     duration: int | ParameterExpression,
     amp: float | ParameterExpression,
@@ -1600,6 +1640,7 @@ def Cos(
     )
 
 
+@deprecate_pulse_func
 def Sawtooth(
     duration: int | ParameterExpression,
     amp: float | ParameterExpression,
@@ -1668,6 +1709,7 @@ def Sawtooth(
     )
 
 
+@deprecate_pulse_func
 def Triangle(
     duration: int | ParameterExpression,
     amp: float | ParameterExpression,
@@ -1736,6 +1778,7 @@ def Triangle(
     )
 
 
+@deprecate_pulse_func
 def Square(
     duration: int | ParameterValueType,
     amp: float | ParameterExpression,
@@ -1759,12 +1802,13 @@ def Square(
     is the sign function with the convention :math:`\\text{sign}\\left(0\\right)=1`.
 
     Args:
-        duration: Pulse length in terms of the sampling period `dt`.
-        amp: The magnitude of the amplitude of the square wave. Wave range is [-`amp`,`amp`].
+        duration: Pulse length in terms of the sampling period ``dt``.
+        amp: The magnitude of the amplitude of the square wave. Wave range is
+            :math:`\\left[-\\texttt{amp},\\texttt{amp}\\right]`.
         phase: The phase of the square wave (note that this is not equivalent to the angle of
             the complex amplitude).
         freq: The frequency of the square wave, in terms of 1 over sampling period.
-            If not provided defaults to a single cycle (i.e :math:'\\frac{1}{\\text{duration}}').
+            If not provided defaults to a single cycle (i.e :math:`\\frac{1}{\\text{duration}}`).
             The frequency is limited to the range :math:`\\left(0,0.5\\right]` (the Nyquist frequency).
         angle: The angle in radians of the complex phase factor uniformly
             scaling the pulse. Default value 0.
@@ -1806,6 +1850,7 @@ def Square(
     )
 
 
+@deprecate_pulse_func
 def Sech(
     duration: int | ParameterValueType,
     amp: float | ParameterExpression,
@@ -1882,6 +1927,7 @@ def Sech(
     )
 
 
+@deprecate_pulse_func
 def SechDeriv(
     duration: int | ParameterValueType,
     amp: float | ParameterExpression,

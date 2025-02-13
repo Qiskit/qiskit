@@ -40,20 +40,21 @@ literals ``True`` and ``False``), and unsigned integers (corresponding to
 .. autoclass:: Bool
 .. autoclass:: Uint
 
-Note that :class:`Uint` defines a family of types parametrised by their width; it is not one single
+Note that :class:`Uint` defines a family of types parametrized by their width; it is not one single
 type, which may be slightly different to the 'classical' programming languages you are used to.
 
 
 Working with types
 ==================
 
-There are some functions on these types exposed here as well.  These are mostly expected to be used
-only in manipulations of the expression tree; users who are building expressions using the
+There are some additional functions on these types documented in the subsequent sections. 
+These are mostly expected to be used only in manipulations of the expression tree;
+users who are building expressions using the
 :ref:`user-facing construction interface <circuit-classical-expressions-expr-construction>` should
 not need to use these.
 
 Partial ordering of types
--------------------------
+=========================
 
 The type system is equipped with a partial ordering, where :math:`a < b` is interpreted as
 ":math:`a` is a strict subtype of :math:`b`".  Note that the partial ordering is a subset of the
@@ -78,7 +79,7 @@ Some helper methods are then defined in terms of this low-level :func:`order` pr
 
 
 Casting between types
----------------------
+=====================
 
 It is common to need to cast values of one type to another type.  The casting rules for this are
 embedded into the :mod:`types` module.  You can query the casting kinds using :func:`cast_kind`:

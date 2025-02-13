@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -15,9 +15,9 @@ import math
 import unittest
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, transpile
-from qiskit.test import QiskitTestCase
-from qiskit.providers.fake_provider import FakeAthens, FakePerth
+from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.utils import optionals
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 def get_test_circuit():
@@ -36,9 +36,9 @@ class FakeBackendsTest(QiskitTestCase):
     """fake backends test."""
 
     @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required to run this test")
-    def test_fake_backends_get_kwargs(self):
+    def test_fake_backends_get_kwargs_v1(self):
         """Fake backends honor kwargs passed."""
-        backend = FakeAthens()
+        backend = GenericBackendV2(num_qubits=5, seed=42)
 
         qc = QuantumCircuit(2)
         qc.x(range(0, 2))
@@ -52,10 +52,12 @@ class FakeBackendsTest(QiskitTestCase):
     @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required to run this test")
     def test_fake_backend_v2_noise_model_always_present(self):
         """Test that FakeBackendV2 instances always run with noise."""
-        backend = FakePerth()
+        backend = GenericBackendV2(num_qubits=5, seed=42)
+        backend.set_options(seed_simulator=42)
         qc = QuantumCircuit(1)
         qc.x(0)
         qc.measure_all()
+
         res = backend.run(qc, shots=1000).result().get_counts()
         # Assert noise was present and result wasn't ideal
         self.assertNotEqual(res, {"1": 1000})

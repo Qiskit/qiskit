@@ -20,7 +20,7 @@ Args:
     mat_x: n*n invertable binary matrix representing a -CX- transformation
 
 Output:
-    QuantumCircuit: QuantumCircuit object containing a depth-5n circuit to implement -CZ-CX-
+    QuantumCircuit: :class:`.QuantumCircuit` object containing a depth-5n circuit to implement -CZ-CX-
 
 References:
     [1] S. A. Kutin, D. P. Moulton, and L. M. Smithline, "Computation at a distance," 2007.
@@ -33,13 +33,13 @@ import numpy as np
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.synthesis.linear.linear_matrix_utils import calc_inverse_matrix
-from qiskit.synthesis.linear.linear_depth_lnn import _optimize_cx_circ_depth_5n_line
+from qiskit._accelerate.synthesis.linear import py_synth_cnot_lnn_instructions
 
 
 def _initialize_phase_schedule(mat_z):
     """
     Given a CZ layer (represented as an n*n CZ matrix Mz)
-    Return a scheudle of phase gates implementing Mz in a SWAP-only netwrok
+    Return a schedule of phase gates implementing Mz in a SWAP-only netwrok
     (c.f. Alg 1, [2])
     """
     n = len(mat_z)
@@ -173,7 +173,7 @@ def _apply_phase_to_nw_circuit(n, phase_schedule, seq, swap_plus):
                 of exactly n layers of boxes, each being either a SWAP or a SWAP+. That is,
                 each northwest diagonalization circuit can be uniquely represented by which
                 of its n(n-1)/2 boxes are SWAP+ and which are SWAP.
-    Return a QuantumCircuit that computes the phase scheudle S inside CX
+    Return a QuantumCircuit that computes the phase schedule S inside CX
     """
     cir = QuantumCircuit(n)
 
@@ -215,23 +215,23 @@ def _apply_phase_to_nw_circuit(n, phase_schedule, seq, swap_plus):
     return cir
 
 
-def synth_cx_cz_depth_line_my(mat_x: np.ndarray, mat_z: np.ndarray):
+def synth_cx_cz_depth_line_my(mat_x: np.ndarray, mat_z: np.ndarray) -> QuantumCircuit:
     """
-    Joint synthesis of a -CZ-CX- circuit for linear nearest neighbour (LNN) connectivity,
+    Joint synthesis of a -CZ-CX- circuit for linear nearest neighbor (LNN) connectivity,
     with 2-qubit depth at most 5n, based on Maslov and Yang.
     This method computes the CZ circuit inside the CX circuit via phase gate insertions.
 
     Args:
         mat_z : a boolean symmetric matrix representing a CZ circuit.
-            Mz[i][j]=1 represents a CZ(i,j) gate
+            ``mat_z[i][j]=1`` represents a ``cz(i,j)`` gate
 
         mat_x : a boolean invertible matrix representing a CX circuit.
 
-    Return:
-        QuantumCircuit : a circuit implementation of a CX circuit following a CZ circuit,
-        denoted as a -CZ-CX- circuit,in two-qubit depth at most 5n, for LNN connectivity.
+    Returns:
+        A circuit implementation of a CX circuit following a CZ circuit,
+        denoted as a -CZ-CX- circuit,in two-qubit depth at most ``5n``, for LNN connectivity.
 
-    Reference:
+    References:
         1. Kutin, S., Moulton, D. P., Smithline, L.,
            *Computation at a distance*, Chicago J. Theor. Comput. Sci., vol. 2007, (2007),
            `arXiv:quant-ph/0701194 <https://arxiv.org/abs/quant-ph/0701194>`_
@@ -245,7 +245,7 @@ def synth_cx_cz_depth_line_my(mat_x: np.ndarray, mat_z: np.ndarray):
     n = len(mat_x)
     mat_x = calc_inverse_matrix(mat_x)
 
-    cx_instructions_rows_m2nw, cx_instructions_rows_nw2id = _optimize_cx_circ_depth_5n_line(mat_x)
+    cx_instructions_rows_m2nw, cx_instructions_rows_nw2id = py_synth_cnot_lnn_instructions(mat_x)
 
     # Meanwhile, also build the -CZ- circuit via Phase gate insertions as per Algorithm 2 [2]
     phase_schedule = _initialize_phase_schedule(mat_z)

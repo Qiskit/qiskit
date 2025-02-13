@@ -1,5 +1,0 @@
----
-features:
-  - |
-    The AQC unitary synthesis plugin method now uses a faster objective function
-    evaluation by default, which results in substantial improvement in synthesis time.

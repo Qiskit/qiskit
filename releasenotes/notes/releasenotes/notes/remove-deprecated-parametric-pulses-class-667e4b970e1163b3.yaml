@@ -1,6 +1,0 @@
----
-upgrade:
-  - |
-    The module ``ParametricPulse`` is removed.
-    All classes in it were deprecated since Qiskit 0.39 (with qiskit-terra 0.22), released on Oct 2022.
-    Instead, use :class:`.SymbolicPulse` and check its documentation for details.

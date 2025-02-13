@@ -15,7 +15,7 @@
 
 from qiskit import QuantumCircuit
 from qiskit.transpiler.passes import FilterOpNodes
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestFilterOpNodes(QiskitTestCase):

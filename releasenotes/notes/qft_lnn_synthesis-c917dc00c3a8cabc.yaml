@@ -1,6 +1,0 @@
----
-features:
-  - |
-    Add a new synthesis method :func:`.synth_qft_line` of a QFT circuit
-    for linear nearest neighbor connectivity, which significantly reduces
-    the number of SWAPs for large numbers of qubits compared to SABRE.

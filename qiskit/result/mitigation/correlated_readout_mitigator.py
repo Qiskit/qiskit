@@ -13,10 +13,12 @@
 Readout mitigator class based on the A-matrix inversion method
 """
 
+import math
 from typing import Optional, List, Tuple, Iterable, Callable, Union, Dict
 import numpy as np
 
 from qiskit.exceptions import QiskitError
+from qiskit.utils.deprecation import deprecate_func
 from ..distributions.quasi import QuasiDistribution
 from ..counts import Counts
 from .base_readout_mitigator import BaseReadoutMitigator
@@ -24,7 +26,7 @@ from .utils import counts_probability_vector, z_diagonal, str2diag
 
 
 class CorrelatedReadoutMitigator(BaseReadoutMitigator):
-    """N-qubit readout error mitigator.
+    """This class is DEPRECATED. N-qubit readout error mitigator.
 
     Mitigates :meth:`expectation_value` and :meth:`quasi_probabilities`.
     The mitigation_matrix should be calibrated using qiskit experiments.
@@ -33,6 +35,13 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
     :math:`2^N x 2^N` so the mitigation complexity is :math:`O(4^N)`.
     """
 
+    @deprecate_func(
+        since="1.3",
+        package_name="Qiskit",
+        removal_timeline="in Qiskit 2.0",
+        additional_msg="The `qiskit.result.mitigation` module is deprecated in favor of "
+        "the https://github.com/Qiskit/qiskit-addon-mthree package.",
+    )
     def __init__(self, assignment_matrix: np.ndarray, qubits: Optional[Iterable[int]] = None):
         """Initialize a CorrelatedReadoutMitigator
 
@@ -46,15 +55,15 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
         if np.any(assignment_matrix < 0) or not np.allclose(np.sum(assignment_matrix, axis=0), 1):
             raise QiskitError("Assignment matrix columns must be valid probability distributions")
         assignment_matrix = np.asarray(assignment_matrix, dtype=float)
-        matrix_qubits_num = int(np.log2(assignment_matrix.shape[0]))
+        matrix_qubits_num = int(math.log2(assignment_matrix.shape[0]))
         if qubits is None:
             self._num_qubits = matrix_qubits_num
             self._qubits = range(self._num_qubits)
         else:
             if len(qubits) != matrix_qubits_num:
                 raise QiskitError(
-                    "The number of given qubits ({}) is different than the number of "
-                    "qubits inferred from the matrices ({})".format(len(qubits), matrix_qubits_num)
+                    f"The number of given qubits ({len(qubits)}) is different than the number of "
+                    f"qubits inferred from the matrices ({matrix_qubits_num})"
                 )
             self._qubits = qubits
             self._num_qubits = len(self._qubits)
@@ -260,7 +269,7 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
             float: the standard deviation upper bound.
         """
         gamma = self._compute_gamma()
-        return gamma / np.sqrt(shots)
+        return gamma / math.sqrt(shots)
 
     @property
     def qubits(self) -> Tuple[int]:

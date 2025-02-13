@@ -18,7 +18,12 @@ from .parameter import Parameter
 
 
 class ParameterVectorElement(Parameter):
-    """An element of a ParameterVector."""
+    """An element of a :class:`ParameterVector`.
+
+    .. note::
+        There is very little reason to ever construct this class directly.  Objects of this type are
+        automatically constructed efficiently as part of creating a :class:`ParameterVector`.
+    """
 
     ___slots__ = ("_vector", "_index")
 
@@ -48,13 +53,23 @@ class ParameterVectorElement(Parameter):
 
 
 class ParameterVector:
-    """ParameterVector class to quickly generate lists of parameters."""
+    """A container of many related :class:`Parameter` objects.
 
-    __slots__ = ("_name", "_params", "_size", "_root_uuid")
+    This class is faster to construct than constructing many :class:`Parameter` objects
+    individually, and the individual names of the parameters will all share a common stem (the name
+    of the vector).  For a vector called ``v`` with length 3, the individual elements will have
+    names ``v[0]``, ``v[1]`` and ``v[2]``.
+
+    The elements of a vector are sorted by the name of the vector, then the numeric value of their
+    index.
+
+    This class fulfill the :class:`collections.abc.Sequence` interface.
+    """
+
+    __slots__ = ("_name", "_params", "_root_uuid")
 
     def __init__(self, name, length=0):
         self._name = name
-        self._size = length
         self._root_uuid = uuid4()
         root_uuid_int = self._root_uuid.int
         self._params = [
@@ -63,45 +78,55 @@ class ParameterVector:
 
     @property
     def name(self):
-        """Returns the name of the ParameterVector."""
+        """The name of the :class:`ParameterVector`."""
         return self._name
 
     @property
     def params(self):
-        """Returns the list of parameters in the ParameterVector."""
+        """A list of the contained :class:`ParameterVectorElement` instances.
+
+        It is not safe to mutate this list."""
         return self._params
 
     def index(self, value):
-        """Returns first index of value."""
+        """Find the index of a :class:`ParameterVectorElement` within the list.
+
+        It is typically much faster to use the :attr:`ParameterVectorElement.index` property."""
         return self._params.index(value)
 
     def __getitem__(self, key):
-        if isinstance(key, slice):
-            start, stop, step = key.indices(self._size)
-            return self.params[start:stop:step]
-
-        if key > self._size:
-            raise IndexError(f"Index out of range: {key} > {self._size}")
         return self.params[key]
 
     def __iter__(self):
-        return iter(self.params[: self._size])
+        return iter(self.params)
 
     def __len__(self):
-        return self._size
+        return len(self._params)
 
     def __str__(self):
-        return f"{self.name}, {[str(item) for item in self.params[: self._size]]}"
+        return f"{self.name}, {[str(item) for item in self.params]}"
 
     def __repr__(self):
-        return f"{self.__class__.__name__}(name={self.name}, length={len(self)})"
+        return f"{self.__class__.__name__}(name={repr(self.name)}, length={len(self)})"
 
     def resize(self, length):
-        """Resize the parameter vector.
+        """Resize the parameter vector.  If necessary, new elements are generated.
 
-        If necessary, new elements are generated. If length is smaller than before, the
-        previous elements are cached and not re-generated if the vector is enlarged again.
+        Note that the UUID of each :class:`.Parameter` element will be generated
+        deterministically given the root UUID of the ``ParameterVector`` and the index
+        of the element.  In particular, if a ``ParameterVector`` is resized to
+        be smaller and then later resized to be larger, the UUID of the later
+        generated element at a given index will be the same as the UUID of the
+        previous element at that index.
         This is to ensure that the parameter instances do not change.
+
+        >>> from qiskit.circuit import ParameterVector
+        >>> pv = ParameterVector("theta", 20)
+        >>> elt_19 = pv[19]
+        >>> rv.resize(10)
+        >>> rv.resize(20)
+        >>> pv[19] == elt_19
+        True
         """
         if length > len(self._params):
             root_uuid_int = self._root_uuid.int
@@ -111,4 +136,5 @@ class ParameterVector:
                     for i in range(len(self._params), length)
                 ]
             )
-        self._size = length
+        else:
+            del self._params[length:]

@@ -53,7 +53,7 @@ class AlignmentKind(abc.ABC):
         When the context has two pulses in different channels,
         a sequential context subtype intends to return following scheduling outcome.
 
-        .. parsed-literal::
+        .. code-block:: text
 
                 ┌────────┐
             D0: ┤ pulse1 ├────────────
@@ -63,7 +63,7 @@ class AlignmentKind(abc.ABC):
 
         On the other hand, parallel context with ``is_sequential=False`` returns
 
-        .. parsed-literal::
+        .. code-block:: text
 
                 ┌────────┐
             D0: ┤ pulse1 ├
@@ -336,10 +336,14 @@ class AlignFunc(AlignmentKind):
 
     For example, UDD sequence with 10 pulses can be specified with following function.
 
-    .. code-block:: python
+    .. plot::
+       :include-source:
+       :nofigs:
+
+        import numpy as np
 
         def udd10_pos(j):
-        return np.sin(np.pi*j/(2*10 + 2))**2
+            return np.sin(np.pi*j/(2*10 + 2))**2
 
     .. note::
 
@@ -398,9 +402,7 @@ class AlignFunc(AlignmentKind):
             _t_center = self.duration * self.func(ind + 1)
             _t0 = int(_t_center - 0.5 * child.duration)
             if _t0 < 0 or _t0 > self.duration:
-                raise PulseError(
-                    "Invalid schedule position t=%d is specified at index=%d" % (_t0, ind)
-                )
+                raise PulseError(f"Invalid schedule position t={_t0} is specified at index={ind}")
             aligned.insert(_t0, child, inplace=True)
 
         return aligned

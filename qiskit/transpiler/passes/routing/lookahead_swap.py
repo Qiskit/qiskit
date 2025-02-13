@@ -169,7 +169,13 @@ class LookaheadSwap(TransformationPass):
 
             mapped_gates.extend(gates_mapped)
 
-        self.property_set["final_layout"] = current_state.layout
+        if self.property_set["final_layout"] is None:
+            self.property_set["final_layout"] = current_state.layout
+        else:
+            self.property_set["final_layout"] = current_state.layout.compose(
+                self.property_set["final_layout"], dag.qubits
+            )
+
         if self.fake_run:
             return dag
 

@@ -37,6 +37,7 @@ class PiecewiseChebyshev(BlueprintCircuit):
     Examples:
 
         .. plot::
+           :alt: Circuit diagram output by the previous code.
            :include-source:
 
             import numpy as np
@@ -122,7 +123,7 @@ class PiecewiseChebyshev(BlueprintCircuit):
             if raise_on_failure:
                 raise CircuitError(
                     "Not enough qubits in the circuit, need at least "
-                    "{}.".format(self.num_state_qubits + 1)
+                    f"{self.num_state_qubits + 1}."
                 )
 
         return valid

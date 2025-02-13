@@ -13,8 +13,8 @@
 
 """Unit tests for PubResult."""
 
-from qiskit.primitives.containers import PubResult, make_data_bin
-from qiskit.test import QiskitTestCase
+from qiskit.primitives.containers import DataBin, PubResult
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class PubResultCase(QiskitTestCase):
@@ -22,13 +22,12 @@ class PubResultCase(QiskitTestCase):
 
     def test_construction(self):
         """Test that the constructor works."""
-        data_bin = make_data_bin((("a", float), ("b", int)))
-        pub_result = PubResult(data_bin(a=1.0, b=2))
+        pub_result = PubResult(DataBin(a=1.0, b=2))
         self.assertEqual(pub_result.data.a, 1.0)
         self.assertEqual(pub_result.data.b, 2)
         self.assertEqual(pub_result.metadata, {})
 
-        pub_result = PubResult(data_bin(a=1.0, b=2), {"x": 1})
+        pub_result = PubResult(DataBin(a=1.0, b=2), {"x": 1})
         self.assertEqual(pub_result.data.a, 1.0)
         self.assertEqual(pub_result.data.b, 2)
         self.assertEqual(pub_result.metadata, {"x": 1})
@@ -38,6 +37,5 @@ class PubResultCase(QiskitTestCase):
         # we are primarily interested in making sure some future change doesn't cause the repr to
         # raise an error. it is more sensible for humans to detect a deficiency in the formatting
         # itself, should one be uncovered
-        data_bin = make_data_bin((("a", float), ("b", int)))
-        self.assertTrue(repr(PubResult(data_bin(a=1.0, b=2))).startswith("PubResult"))
-        self.assertTrue(repr(PubResult(data_bin(a=1.0, b=2), {"x": 1})).startswith("PubResult"))
+        self.assertTrue(repr(PubResult(DataBin(a=1.0, b=2))).startswith("PubResult"))
+        self.assertTrue(repr(PubResult(DataBin(a=1.0, b=2), {"x": 1})).startswith("PubResult"))

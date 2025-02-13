@@ -15,11 +15,13 @@ Gate described by the time evolution of a Hermitian Hamiltonian operator.
 """
 
 from __future__ import annotations
+import math
 import typing
 
 from numbers import Number
 import numpy as np
 
+from qiskit import _numpy_compat
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
@@ -52,7 +54,7 @@ class HamiltonianGate(Gate):
         Args:
             data: A hermitian operator.
             time: Time evolution parameter.
-            label: Unitary name for backend [Default: None].
+            label: Unitary name for backend [Default: ``None``].
 
         Raises:
             ValueError: if input data is not an N-qubit unitary operator.
@@ -67,7 +69,7 @@ class HamiltonianGate(Gate):
             # numpy matrix from `Operator.data`.
             data = data.to_operator().data
         # Convert to np array in case not already an array
-        data = np.array(data, dtype=complex)
+        data = np.asarray(data, dtype=complex)
         # Check input is unitary
         if not is_hermitian_matrix(data):
             raise ValueError("Input matrix is not Hermitian.")
@@ -75,7 +77,7 @@ class HamiltonianGate(Gate):
             raise ValueError("Evolution time is not real.")
         # Check input is N-qubit matrix
         input_dim, output_dim = data.shape
-        num_qubits = int(np.log2(input_dim))
+        num_qubits = int(math.log2(input_dim))
         if input_dim != output_dim or 2**num_qubits != input_dim:
             raise ValueError("Input matrix is not an N-qubit operator.")
 
@@ -91,20 +93,23 @@ class HamiltonianGate(Gate):
         times_eq = self.params[1] == other.params[1]
         return operators_eq and times_eq
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         """Return matrix for the unitary."""
-        # pylint: disable=unused-argument
         import scipy.linalg
 
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
         try:
-            return scipy.linalg.expm(-1j * self.params[0] * float(self.params[1]))
+            time = float(self.params[1])
         except TypeError as ex:
             raise TypeError(
-                "Unable to generate Unitary matrix for "
-                "unbound t parameter {}".format(self.params[1])
+                f"Unable to generate Unitary matrix for unbound t parameter {self.params[1]}"
             ) from ex
+        arr = scipy.linalg.expm(-1j * self.params[0] * time)
+        dtype = complex if dtype is None else dtype
+        return np.array(arr, dtype=dtype, copy=_numpy_compat.COPY_ONLY_IF_NEEDED)
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Return the adjoint of the unitary."""
         return self.adjoint()
 

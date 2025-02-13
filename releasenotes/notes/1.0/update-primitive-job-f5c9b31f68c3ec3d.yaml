@@ -1,0 +1,11 @@
+---
+upgrade_primitives:
+  - |
+    Added the :class:`.BasePrimitiveJob` class as an abstract job class for primitives
+    and made :class:`.PrimitiveJob` inherit :class:`.BasePrimitiveJob`
+    instead of :class:`.JobV1`.
+deprecations_primitives:
+  - |
+    The methods :meth:`.PrimitiveJob.submit` and :meth:`.PrimitiveJob.wait_for_final_state`
+    have been removed following their deprecation in Qiskit 0.46.  These were not intended to be
+    public methods, but were a legacy of an incorrect inheritance structure.

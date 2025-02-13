@@ -13,13 +13,14 @@
 """Tests for qiskit/tools/parallel"""
 import os
 import time
+import warnings
 
 from unittest.mock import patch
 
 from qiskit.utils.parallel import get_platform_parallel_default, parallel_map
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.pulse import Schedule
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 def _parfunc(x):
@@ -36,7 +37,10 @@ def _build_simple_circuit(_):
 
 
 def _build_simple_schedule(_):
-    return Schedule()
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=DeprecationWarning)
+        # `Schedule` is deprecated in Qiskit 1.3
+        return Schedule()
 
 
 class TestGetPlatformParallelDefault(QiskitTestCase):

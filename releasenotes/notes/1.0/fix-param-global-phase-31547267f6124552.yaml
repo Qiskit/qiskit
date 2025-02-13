@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed compatibility of :class:`.DynamicalDecoupling` and
+    :class:`.PadDynamicalDecoupling` with circuits that have a parameterized
+    global phase.
+    Fixed `#10569 <https://github.com/Qiskit/qiskit/issues/10569>`__.

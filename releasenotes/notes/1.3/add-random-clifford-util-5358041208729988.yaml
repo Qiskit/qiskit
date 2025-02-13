@@ -1,0 +1,14 @@
+---
+features_circuits:
+  - |
+    Added a new function to ``qiskit.circuit.random`` that allows to generate a pseudo-random
+    Clifford circuit with gates from the standard library: :func:`.random_clifford_circuit`.
+    Example usage:
+    
+    .. plot::
+       :include-source:
+
+       from qiskit.circuit.random import random_clifford_circuit
+
+       circ = random_clifford_circuit(num_qubits=2, num_gates=6)
+       circ.draw(output='mpl')

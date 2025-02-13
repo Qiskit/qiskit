@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,25 +12,28 @@
 
 """Test pulse builder context utilities."""
 
-from math import pi
-
 import numpy as np
 
-from qiskit import circuit, compiler, pulse
+from qiskit import circuit, pulse
 from qiskit.pulse import builder, exceptions, macros
 from qiskit.pulse.instructions import directives
 from qiskit.pulse.transforms import target_qobj_transform
-from qiskit.test import QiskitTestCase
-from qiskit.providers.fake_provider import FakeOpenPulse2Q, FakeWashington
+from qiskit.providers.fake_provider import FakeOpenPulse2Q, Fake127QPulseV1
 from qiskit.pulse import library, instructions
+from qiskit.pulse.exceptions import PulseError
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from qiskit.utils.deprecate_pulse import decorate_test_methods, ignore_pulse_deprecation_warnings
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestBuilder(QiskitTestCase):
     """Test the pulse builder context."""
 
+    @ignore_pulse_deprecation_warnings
     def setUp(self):
         super().setUp()
-        self.backend = FakeOpenPulse2Q()
+        with self.assertWarns(DeprecationWarning):
+            self.backend = FakeOpenPulse2Q()
         self.configuration = self.backend.configuration()
         self.defaults = self.backend.defaults()
         self.inst_map = self.defaults.instruction_schedule_map
@@ -43,6 +46,7 @@ class TestBuilder(QiskitTestCase):
         self.assertEqual(target_qobj_transform(program), target_qobj_transform(target))
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestBuilderBase(TestBuilder):
     """Test builder base."""
 
@@ -107,7 +111,31 @@ class TestBuilderBase(TestBuilder):
 
         self.assertScheduleEqual(schedule, reference)
 
+    def test_default_alignment_alignmentkind_instance(self):
+        """Test default AlignmentKind instance"""
+        d0 = pulse.DriveChannel(0)
+        d1 = pulse.DriveChannel(0)
 
+        with pulse.build(default_alignment=pulse.transforms.AlignEquispaced(100)) as schedule:
+            pulse.delay(10, d0)
+            pulse.delay(20, d1)
+
+        with pulse.build() as reference:
+            with pulse.align_equispaced(100):
+                pulse.delay(10, d0)
+                pulse.delay(20, d1)
+
+        self.assertScheduleEqual(schedule, reference)
+
+    def test_unknown_string_identifier(self):
+        """Test that unknown string identifier raises an error"""
+
+        with self.assertRaises(PulseError):
+            with pulse.build(default_alignment="unknown") as _:
+                pass
+
+
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestContexts(TestBuilder):
     """Test builder contexts."""
 
@@ -231,6 +259,7 @@ class TestContexts(TestBuilder):
         self.assertScheduleEqual(schedule, reference)
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestChannels(TestBuilder):
     """Test builder channels."""
 
@@ -255,6 +284,7 @@ class TestChannels(TestBuilder):
             self.assertEqual(pulse.control_channels(0, 1)[0], pulse.ControlChannel(0))
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestInstructions(TestBuilder):
     """Test builder instructions."""
 
@@ -433,6 +463,7 @@ class TestInstructions(TestBuilder):
         self.assertScheduleEqual(schedule, reference)
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestDirectives(TestBuilder):
     """Test builder directives."""
 
@@ -514,6 +545,7 @@ class TestDirectives(TestBuilder):
         self.assertEqual(schedule, pulse.ScheduleBlock())
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestUtilities(TestBuilder):
     """Test builder utilities."""
 
@@ -603,6 +635,7 @@ class TestUtilities(TestBuilder):
             np.testing.assert_allclose(pulse.seconds_to_samples(times), np.array([100, 200, 300]))
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestMacros(TestBuilder):
     """Test builder macros."""
 
@@ -666,10 +699,12 @@ class TestMacros(TestBuilder):
 
         self.assertScheduleEqual(schedule, reference)
 
-        backend = FakeWashington()
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake127QPulseV1()
         num_qubits = backend.configuration().num_qubits
         with pulse.build(backend) as schedule:
-            regs = pulse.measure_all()
+            with self.assertWarns(DeprecationWarning):
+                regs = pulse.measure_all()
 
         reference = backend.defaults().instruction_schedule_map.get(
             "measure", list(range(num_qubits))
@@ -724,87 +759,12 @@ class TestMacros(TestBuilder):
         self.assertScheduleEqual(schedule, reference)
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestBuilderComposition(TestBuilder):
     """Test more sophisticated composite builder examples."""
 
-    def test_complex_build(self):
-        """Test a general program build with nested contexts,
-        circuits and macros."""
-        d0 = pulse.DriveChannel(0)
-        d1 = pulse.DriveChannel(1)
-        d2 = pulse.DriveChannel(2)
-        delay_dur = 30
-        short_dur = 20
-        long_dur = 49
 
-        def get_sched(qubit_idx: [int], backend):
-            qc = circuit.QuantumCircuit(2)
-            for idx in qubit_idx:
-                qc.append(circuit.library.U2Gate(0, pi / 2), [idx])
-            return compiler.schedule(compiler.transpile(qc, backend=backend), backend)
-
-        with pulse.build(self.backend) as schedule:
-            with pulse.align_sequential():
-                pulse.delay(delay_dur, d0)
-                pulse.call(get_sched([1], self.backend))
-
-            with pulse.align_right():
-                pulse.play(library.Constant(short_dur, 0.1), d1)
-                pulse.play(library.Constant(long_dur, 0.1), d2)
-                pulse.call(get_sched([1], self.backend))
-
-            with pulse.align_left():
-                pulse.call(get_sched([0, 1, 0], self.backend))
-
-            pulse.measure(0)
-
-        # prepare and schedule circuits that will be used.
-        single_u2_qc = circuit.QuantumCircuit(2)
-        single_u2_qc.append(circuit.library.U2Gate(0, pi / 2), [1])
-        single_u2_qc = compiler.transpile(single_u2_qc, self.backend)
-        single_u2_sched = compiler.schedule(single_u2_qc, self.backend)
-
-        # sequential context
-        sequential_reference = pulse.Schedule()
-        sequential_reference += instructions.Delay(delay_dur, d0)
-        sequential_reference.insert(delay_dur, single_u2_sched, inplace=True)
-
-        # align right
-        align_right_reference = pulse.Schedule()
-        align_right_reference += pulse.Play(library.Constant(long_dur, 0.1), d2)
-        align_right_reference.insert(
-            long_dur - single_u2_sched.duration, single_u2_sched, inplace=True
-        )
-        align_right_reference.insert(
-            long_dur - single_u2_sched.duration - short_dur,
-            pulse.Play(library.Constant(short_dur, 0.1), d1),
-            inplace=True,
-        )
-
-        # align left
-        triple_u2_qc = circuit.QuantumCircuit(2)
-        triple_u2_qc.append(circuit.library.U2Gate(0, pi / 2), [0])
-        triple_u2_qc.append(circuit.library.U2Gate(0, pi / 2), [1])
-        triple_u2_qc.append(circuit.library.U2Gate(0, pi / 2), [0])
-        triple_u2_qc = compiler.transpile(triple_u2_qc, self.backend)
-        align_left_reference = compiler.schedule(triple_u2_qc, self.backend, method="alap")
-
-        # measurement
-        measure_reference = macros.measure(
-            qubits=[0], inst_map=self.inst_map, meas_map=self.configuration.meas_map
-        )
-        reference = pulse.Schedule()
-        reference += sequential_reference
-        # Insert so that the long pulse on d2 occurs as early as possible
-        # without an overval on d1.
-        insert_time = reference.ch_stop_time(d1) - align_right_reference.ch_start_time(d1)
-        reference.insert(insert_time, align_right_reference, inplace=True)
-        reference.insert(reference.ch_stop_time(d0, d1), align_left_reference, inplace=True)
-        reference += measure_reference
-
-        self.assertScheduleEqual(schedule, reference)
-
-
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestSubroutineCall(TestBuilder):
     """Test for calling subroutine."""
 

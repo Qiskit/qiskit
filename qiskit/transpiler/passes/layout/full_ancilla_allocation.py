@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2019.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -81,7 +81,7 @@ class FullAncillaAllocation(AnalysisPass):
 
         idle_physical_qubits = [q for q in layout_physical_qubits if q not in physical_bits]
 
-        if self.target:
+        if self.target is not None and self.target.num_qubits is not None:
             idle_physical_qubits = [
                 q for q in range(self.target.num_qubits) if q not in physical_bits
             ]
