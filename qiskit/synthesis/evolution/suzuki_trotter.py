@@ -22,7 +22,9 @@ import numpy as np
 
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.quantum_info.operators import SparsePauliOp, Pauli
+from qiskit.quantum_info import SparsePauliOp, Pauli, SparseObservable
+
+# from qiskit.quantum_info.operators import SparsePauliOp, Pauli
 from qiskit.utils.deprecation import deprecate_arg
 
 from .product_formula import ProductFormula, reorder_paulis
@@ -88,8 +90,10 @@ class SuzukiTrotter(ProductFormula):
         ) = None,
         wrap: bool = False,
         preserve_order: bool = True,
+        *,
+        atomic_evolution_sparse_observable: bool = False,
     ) -> None:
-        """
+        r"""
         Args:
             order: The order of the product formula.
             reps: The number of time steps.
@@ -110,15 +114,21 @@ class SuzukiTrotter(ProductFormula):
             preserve_order: If ``False``, allows reordering the terms of the operator to
                 potentially yield a shallower evolution circuit. Not relevant
                 when synthesizing operator with a single term.
+            atomic_evolution_sparse_observable: If a custom ``atomic_evolution`` is passed,
+                which does not yet support :class:`.SparseObservable`\ s as input, set this
+                argument to ``False`` to automatically apply a conversion to :class:`.SparsePauliOp`.
+                This argument is supported until Qiskit 2.2, at which point all atomic evolutions
+                are required to support :class:`.SparseObservable`\ s as input.
+
         Raises:
             ValueError: If order is not even
         """
-
         if order > 1 and order % 2 == 1:
             raise ValueError(
                 "Suzuki product formulae are symmetric and therefore only defined "
                 f"for when the order is 1 or even, not {order}."
             )
+
         super().__init__(
             order,
             reps,
@@ -127,6 +137,7 @@ class SuzukiTrotter(ProductFormula):
             atomic_evolution,
             wrap,
             preserve_order=preserve_order,
+            atomic_evolution_sparse_observable=atomic_evolution_sparse_observable,
         )
 
     def expand(
@@ -155,13 +166,18 @@ class SuzukiTrotter(ProductFormula):
         Returns:
             The Pauli network implementing the Trotter expansion.
         """
-        operators = evolution.operator  # type: SparsePauliOp | list[SparsePauliOp]
+        operators = evolution.operator  # type: SparsePauliOp | SparseObservable | list
         time = evolution.time
 
         def to_sparse_list(operator):
+            sparse_list = (
+                operator.to_sparse_list()
+                if isinstance(operator, SparsePauliOp)
+                else operator.to_sparse_list()
+            )
             paulis = [
                 (pauli, indices, real_or_fail(coeff) * time * 2 / self.reps)
-                for pauli, indices, coeff in operator.to_sparse_list()
+                for pauli, indices, coeff in sparse_list
             ]
             if not self.preserve_order:
                 return reorder_paulis(paulis)
@@ -230,3 +246,22 @@ def real_or_fail(value, tol=100):
         return np.real(value)
 
     raise ValueError(f"Encountered complex value {value}, but expected real.")
+
+
+def wrap_custom_atomic_evolution(atomic_evolution):
+    """Convert potential SparseObservables into SparsePauliOps."""
+    if len(inspect.signature(atomic_evolution).parameters) == 2:
+
+        def wrapped(operator, time):
+            if isinstance(operator, SparseObservable):
+                operator = SparsePauliOp.from_sparse_observable(operator)
+            return atomic_evolution(operator, time)
+
+    else:
+
+        def wrapped(circuit, operator, time):
+            if isinstance(operator, SparseObservable):
+                operator = SparsePauliOp.from_sparse_observable(operator)
+            atomic_evolution(circuit, operator, time)
+
+    return wrapped

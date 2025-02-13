@@ -198,8 +198,8 @@ fn bit_term_as_pauli(bit: &BitTerm) -> &'static [(bool, Option<BitTerm>)] {
         BitTerm::Z => &[(true, Some(BitTerm::Z))],
         BitTerm::Plus => &[(true, None), (true, Some(BitTerm::X))],
         BitTerm::Minus => &[(true, None), (false, Some(BitTerm::X))],
-        BitTerm::Left => &[(true, None), (true, Some(BitTerm::Y))],
-        BitTerm::Right => &[(true, None), (false, Some(BitTerm::Y))],
+        BitTerm::Right => &[(true, None), (true, Some(BitTerm::Y))],
+        BitTerm::Left => &[(true, None), (false, Some(BitTerm::Y))],
         BitTerm::Zero => &[(true, None), (true, Some(BitTerm::Z))],
         BitTerm::One => &[(true, None), (false, Some(BitTerm::Z))],
     }
@@ -1428,6 +1428,10 @@ impl PySparseTerm {
             vec![0, self.inner.bit_terms().len()],
         )?;
         Ok(obs.into())
+    }
+
+    fn to_label(&self) -> PyResult<String> {
+        Ok(self.inner.view().to_sparse_str())
     }
 
     fn __eq__(slf: Bound<Self>, other: Bound<PyAny>) -> PyResult<bool> {
