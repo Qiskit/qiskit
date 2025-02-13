@@ -3,5 +3,5 @@ upgrade_misc:
   - |
     The decorators :func:`deprecate_func` and :func:`deprecate_arg` changed their default behaivor to adapt to the
     Qiskit SemVer versioning (`RFC0020` <https://github.com/Qiskit/qiskit/issues/8729>`__). As a consequence,
-    the parameter `removal_timeline` default changed: from "no earlier than 3 months after the release date" to "in the next major
-    release {`since` major + 1}".
+    the parameter ``removal_timeline`` default changed: from "no earlier than 3 months after the release date" to "in the next major
+    release {``since`` major + 1}". If you would like to preserve the previous messaging, you should set ``removal_timeline`` explicitly.
