@@ -779,16 +779,6 @@ impl DAGCircuit {
         self.clbits.cached().clone_ref(py)
     }
 
-    /// Returns the quantum registers
-    pub fn py_qregs(&self, py: Python<'_>) -> Py<PyDict> {
-        self.qregs.clone_ref(py)
-    }
-
-    /// Returns the classical registers
-    pub fn py_cregs(&self, py: Python<'_>) -> Py<PyDict> {
-        self.cregs.clone_ref(py)
-    }
-
     /// Return a list of the wires in order.
     #[getter]
     fn get_wires(&self, py: Python<'_>) -> PyResult<Py<PyList>> {
@@ -1102,7 +1092,7 @@ def _format(operand):
     }
 
     /// Add all wires in a classical register.
-    pub fn add_creg(&mut self, py: Python, creg: &Bound<PyAny>) -> PyResult<()> {
+    fn add_creg(&mut self, py: Python, creg: &Bound<PyAny>) -> PyResult<()> {
         if !creg.is_instance(imports::CLASSICAL_REGISTER.get_bound(py))? {
             return Err(DAGCircuitError::new_err(
                 "not a ClassicalRegister instance.",
