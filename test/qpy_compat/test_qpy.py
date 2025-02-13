@@ -848,18 +848,19 @@ def generate_circuits(version_parts):
         ]
     if version_parts >= (0, 19, 2):
         output_circuits["control_flow.qpy"] = generate_control_flow_circuits()
-    if version_parts >= (0, 21, 0):
+    if version_parts >= (0, 21, 0) and version_parts < (2, 0):
         output_circuits["schedule_blocks.qpy"] = generate_schedule_blocks()
         output_circuits["pulse_gates.qpy"] = generate_calibrated_circuits()
-    if version_parts >= (0, 24, 0):
+    if version_parts >= (0, 24, 0) and version_parts < (2, 0):
         output_circuits["referenced_schedule_blocks.qpy"] = generate_referenced_schedule()
+    if version_parts >= (0, 24, 0):
         output_circuits["control_flow_switch.qpy"] = generate_control_flow_switch_circuits()
     if version_parts >= (0, 24, 1):
         output_circuits["open_controlled_gates.qpy"] = generate_open_controlled_gates()
         output_circuits["controlled_gates.qpy"] = generate_controlled_gates()
     if version_parts >= (0, 24, 2):
         output_circuits["layout.qpy"] = generate_layout_circuits()
-    if version_parts >= (0, 25, 0):
+    if version_parts >= (0, 25, 0) and version_parts < (2, 0):
         output_circuits["acquire_inst_with_kernel_and_disc.qpy"] = (
             generate_acquire_instruction_with_kernel_and_discriminator()
         )
@@ -950,11 +951,23 @@ def generate_qpy(qpy_files):
 
 def load_qpy(qpy_files, version_parts):
     """Load qpy circuits from files and compare to reference circuits."""
+    pulse_files = {
+        "schedule_blocks.qpy",
+        "pulse_gates.qpy",
+        "referenced_schedule_blocks.qpy",
+        "acquire_inst_with_kernel_and_disc.qpy",
+    }
     for path, circuits in qpy_files.items():
         print(f"Loading qpy file: {path}")
         with open(path, "rb") as fd:
             qpy_circuits = load(fd)
         equivalent = path in {"open_controlled_gates.qpy", "controlled_gates.qpy"}
+        if path in pulse_files:
+            # Qiskit Pulse was removed in version 2.0. We want to be able to load
+            # pulse-based payloads, however these will be partially specified hence
+            # we should not compare them to the cached circuits.
+            # See https://github.com/Qiskit/qiskit/pull/13814
+            continue
         for i, circuit in enumerate(circuits):
             bind = None
             if path == "parameterized.qpy":
