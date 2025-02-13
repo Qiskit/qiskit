@@ -47,6 +47,7 @@ from qiskit.circuit.library import (
     MCXGate,
     SGate,
     QAOAAnsatz,
+    GlobalPhaseGate,
 )
 from qiskit.circuit.library import LinearFunction, PauliEvolutionGate
 from qiskit.quantum_info import Clifford, Operator, Statevector, SparsePauliOp
@@ -267,6 +268,16 @@ class EmptyPlugin(HighLevelSynthesisPlugin):
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Elaborate code to return None :)"""
         return None
+
+
+class GlobalPhaseGatePlugin(HighLevelSynthesisPlugin):
+    """Plugin that replaces a global phase gate by a global phase."""
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        """Returns a quantum circuit with global phase."""
+        decomposition = QuantumCircuit(1)
+        decomposition.global_phase = high_level_object.params[0]
+        return decomposition
 
 
 @ddt
@@ -680,6 +691,46 @@ class TestHighLevelSynthesisInterface(QiskitTestCase):
         pm = PassManager([HighLevelSynthesis(basis_gates=["PauliEvolution"])])
         qct = pm.run(qc)
         self.assertEqual(qct.count_ops()["PauliEvolution"], 2)
+
+    def test_track_global_phase(self):
+        """Test that high-level-synthesis keeps track of the global phases."""
+
+        # Custom plugin that replaces GlobalPhaseGate by global phase.
+        hls_config = HLSConfig(global_phase=[GlobalPhaseGatePlugin()])
+        hls_pass = HighLevelSynthesis(hls_config=hls_config, basis_gates=["cx", "u"])
+
+        # A circuit that has both a GlobalPhaseGate and a global phase
+        qc = QuantumCircuit(2, global_phase=0.2)
+        qc.append(GlobalPhaseGate(0.1))
+        qc.cx(0, 1)
+        qc.append(GlobalPhaseGate(0.5))
+
+        with self.subTest("global phase at top level"):
+            transpiled = hls_pass(qc)
+            expected = QuantumCircuit(2, global_phase=0.8)
+            expected.cx(0, 1)
+            self.assertEqual(transpiled, expected)
+
+        with self.subTest("global phase in custom gate"):
+            # A circuit with qc as custom gate
+            qc2 = QuantumCircuit(4, global_phase=0.1)
+            qc2.append(qc.to_gate(), [1, 3])
+            qc2.cx(0, 1)
+            transpiled = hls_pass(qc2)
+            expected = QuantumCircuit(4, global_phase=0.9)
+            expected.cx(1, 3)
+            expected.cx(0, 1)
+            self.assertEqual(transpiled, expected)
+
+        with self.subTest("global phase in control flow op"):
+            # A circuit with qc inside control flow blocks
+            qc3 = QuantumCircuit(4, 1)
+            qc3.if_else((0, True), qc, qc, [0, 1], [])
+            transpiled = hls_pass(qc3)
+            transpiled_block = transpiled[0].operation.blocks[0]
+            expected_block = QuantumCircuit(2, global_phase=0.8)
+            expected_block.cx(0, 1)
+            self.assertEqual(transpiled_block, expected_block)
 
 
 class TestPMHSynthesisLinearFunctionPlugin(QiskitTestCase):
