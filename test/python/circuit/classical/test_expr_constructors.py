@@ -14,7 +14,7 @@
 
 import ddt
 
-from qiskit.circuit import Clbit, ClassicalRegister, Instruction
+from qiskit.circuit import Clbit, ClassicalRegister, Duration, Instruction
 from qiskit.circuit.classical import expr, types
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -81,6 +81,15 @@ class TestExprConstructors(QiskitTestCase):
 
         clbit = Clbit()
         self.assertEqual(expr.lift(clbit), expr.Var(clbit, types.Bool()))
+
+        duration = Duration.dt(1000)
+        self.assertEqual(expr.lift(duration), expr.Value(duration, types.Duration()))
+        self.assertEqual(
+            expr.lift(duration, try_const=True), expr.Value(duration, types.Duration())
+        )
+        self.assertEqual(
+            expr.lift(duration, types.Stretch()), expr.Value(duration, types.Stretch())
+        )
 
     def test_value_lifts_python_builtins(self):
         self.assertEqual(expr.lift(True), expr.Value(True, types.Bool()))
@@ -186,6 +195,10 @@ class TestExprConstructors(QiskitTestCase):
     def test_urnary_bitwise_forbidden(self, function):
         with self.assertRaisesRegex(TypeError, "cannot apply"):
             function(7.0)
+        with self.assertRaisesRegex(TypeError, "cannot apply"):
+            function(Duration.dt(1000))
+        with self.assertRaisesRegex(TypeError, "cannot apply"):
+            function(expr.Var.new("a", types.Stretch()))
 
     def test_logic_not_explicit(self):
         cr = ClassicalRegister(3)
@@ -217,6 +230,10 @@ class TestExprConstructors(QiskitTestCase):
     def test_urnary_logical_forbidden(self, function):
         with self.assertRaisesRegex(TypeError, "cannot apply"):
             function(7.0)
+        with self.assertRaisesRegex(TypeError, "cannot apply"):
+            function(Duration.dt(1000))
+        with self.assertRaisesRegex(TypeError, "cannot apply"):
+            function(expr.Var.new("a", types.Stretch()))
 
     @ddt.data(
         (expr.bit_and, ClassicalRegister(3), ClassicalRegister(3)),
@@ -236,6 +253,12 @@ class TestExprConstructors(QiskitTestCase):
         (expr.less_equal, 3.0, 5.0),
         (expr.greater, 4.0, 3.0),
         (expr.greater_equal, 3.0, 5.0),
+        (expr.equal, Duration.dt(1000), Duration.dt(1000)),
+        (expr.not_equal, Duration.dt(1000), Duration.dt(1000)),
+        (expr.less, Duration.dt(1000), Duration.dt(1000)),
+        (expr.less_equal, Duration.dt(1000), Duration.dt(1000)),
+        (expr.greater, Duration.dt(1000), Duration.dt(1000)),
+        (expr.greater_equal, Duration.dt(1000), Duration.dt(1000)),
     )
     @ddt.unpack
     def test_binary_functions_lift_scalars(self, function, left, right):
@@ -393,6 +416,14 @@ class TestExprConstructors(QiskitTestCase):
             function(3, 3.0)
         with self.assertRaisesRegex(TypeError, "invalid types"):
             function(3.0, 3)
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(Duration.dt(1000), Duration.dt(1000))
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(expr.Var.new("a", types.Stretch()), Duration.dt(1000))
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(Duration.dt(1000), expr.Var.new("a", types.Stretch()))
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(expr.Var.new("a", types.Stretch()), expr.Var.new("b", types.Stretch()))
         # Unlike most other functions, the bitwise functions should error if the two bit-like types
         # aren't of the same width, except for the special inference for integer literals.
         with self.assertRaisesRegex(TypeError, "binary bitwise operations .* same width"):
@@ -466,6 +497,14 @@ class TestExprConstructors(QiskitTestCase):
             function(3, 3.0)
         with self.assertRaisesRegex(TypeError, "invalid types"):
             function(3.0, 3)
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(Duration.dt(1000), Duration.dt(1000))
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(expr.Var.new("a", types.Stretch()), Duration.dt(1000))
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(Duration.dt(1000), expr.Var.new("a", types.Stretch()))
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(expr.Var.new("a", types.Stretch()), expr.Var.new("b", types.Stretch()))
 
     @ddt.data(
         (expr.equal, expr.Binary.Op.EQUAL),
@@ -534,6 +573,16 @@ class TestExprConstructors(QiskitTestCase):
             ),
         )
 
+        self.assertEqual(
+            function(expr.lift(Duration.ms(1000)), Duration.s(1)),
+            expr.Binary(
+                opcode,
+                expr.Value(Duration.ms(1000), types.Duration()),
+                expr.Value(Duration.s(1), types.Duration()),
+                types.Bool(const=True),
+            ),
+        )
+
     @ddt.data(expr.equal, expr.not_equal)
     def test_binary_equal_forbidden(self, function):
         with self.assertRaisesRegex(TypeError, "invalid types"):
@@ -551,6 +600,12 @@ class TestExprConstructors(QiskitTestCase):
         with self.assertRaisesRegex(TypeError, "invalid types"):
             # No order between a smaller non-const int and larger const.
             function(expr.lift(0xFF, types.Uint(8)), expr.lift(0xFFFF, types.Uint(16, const=True)))
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(expr.Var.new("a", types.Stretch()), Duration.dt(1000))
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(Duration.dt(1000), expr.Var.new("a", types.Stretch()))
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(expr.Var.new("a", types.Stretch()), expr.Var.new("b", types.Stretch()))
 
     @ddt.data(
         (expr.less, expr.Binary.Op.LESS),
@@ -614,6 +669,19 @@ class TestExprConstructors(QiskitTestCase):
             ),
         )
 
+        self.assertEqual(
+            function(
+                expr.lift(Duration.ms(1000), types.Duration()),
+                expr.lift(Duration.s(1), try_const=True),
+            ),
+            expr.Binary(
+                opcode,
+                expr.Value(Duration.ms(1000), types.Duration()),
+                expr.Value(Duration.s(1), types.Duration()),
+                types.Bool(const=True),
+            ),
+        )
+
     @ddt.data(expr.less, expr.less_equal, expr.greater, expr.greater_equal)
     def test_binary_relation_forbidden(self, function):
         with self.assertRaisesRegex(TypeError, "invalid types"):
@@ -631,6 +699,12 @@ class TestExprConstructors(QiskitTestCase):
         with self.assertRaisesRegex(TypeError, "invalid types"):
             # No order between a smaller non-const int and larger const.
             function(expr.lift(0xFF, types.Uint(8)), expr.lift(0xFFFF, types.Uint(16, const=True)))
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(expr.Var.new("a", types.Stretch()), Duration.dt(1000))
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(Duration.dt(1000), expr.Var.new("a", types.Stretch()))
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(expr.Var.new("a", types.Stretch()), expr.Var.new("b", types.Stretch()))
 
     def test_index_explicit(self):
         cr = ClassicalRegister(4, "c")
@@ -672,6 +746,16 @@ class TestExprConstructors(QiskitTestCase):
             expr.index(ClassicalRegister(3, "a"), 1.0)
         with self.assertRaisesRegex(TypeError, "invalid types"):
             expr.index(0xFFFF, 1.0)
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            expr.index(Duration.dt(1000), 1)
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            expr.index(Duration.dt(1000), Duration.dt(1000))
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            expr.index(expr.Var.new("a", types.Stretch()), Duration.dt(1000))
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            expr.index(Duration.dt(1000), expr.Var.new("a", types.Stretch()))
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            expr.index(expr.Var.new("a", types.Stretch()), expr.Var.new("b", types.Stretch()))
 
     @ddt.data(
         (expr.shift_left, expr.Binary.Op.SHIFT_LEFT),
@@ -752,3 +836,13 @@ class TestExprConstructors(QiskitTestCase):
             function(0xFFFF, 2.0)
         with self.assertRaisesRegex(TypeError, "invalid types"):
             function(255.0, 1)
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(Duration.dt(1000), 1)
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(Duration.dt(1000), Duration.dt(1000))
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(expr.Var.new("a", types.Stretch()), Duration.dt(1000))
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(Duration.dt(1000), expr.Var.new("a", types.Stretch()))
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(expr.Var.new("a", types.Stretch()), expr.Var.new("b", types.Stretch()))
