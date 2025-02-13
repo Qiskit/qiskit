@@ -389,7 +389,7 @@ class PiecewisePolynomialPauliRotationsGate(Gate):
                 for the j-th polynomial.
                 Defaults to linear: ``[[1]]``.
             basis: The type of Pauli rotation (``'X'``, ``'Y'``, ``'Z'``).
-            name: The name of the circuit.
+            label: An optional label for the gate.
         """
 
         if coeffs is None:

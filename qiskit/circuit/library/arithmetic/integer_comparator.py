@@ -17,7 +17,10 @@ from __future__ import annotations
 
 from qiskit.circuit import QuantumRegister, AncillaRegister, Gate
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.synthesis.arithmetic.comparators import synth_integer_comparator_2s
+from qiskit.synthesis.arithmetic.comparators import (
+    synth_integer_comparator_2s,
+    synth_integer_comparator_greedy,
+)
 from ..blueprintcircuit import BlueprintCircuit
 
 
@@ -185,8 +188,13 @@ class IntegerComparatorGate(Gate):
         r"""
         Args:
             num_state_qubits: The number of qubits in the registers.
+            value: The value :math:`L` to compre to.
             geq: If ``True`` compute :math:`i \geq L`, otherwise compute :math:`i < L`.
+            label: An optional label for the gate.
         """
         super().__init__("IntComp", num_state_qubits + 1, [], label=label)
         self.value = value
         self.geq = geq
+
+    def _define(self):
+        self.definition = synth_integer_comparator_greedy(self.num_qubits - 1, self.value, self.geq)

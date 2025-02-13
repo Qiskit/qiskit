@@ -20,7 +20,24 @@ from qiskit.circuit.library.boolean_logic.quantum_or import OrGate
 def synth_integer_comparator_2s(
     num_state_qubits: int, value: int, geq: bool = True
 ) -> QuantumCircuit:
-    """Implement an integer comparison based on 2s complement."""
+    r"""Implement an integer comparison based on 2s complement.
+
+    This is based on Appendix B of [1].
+
+    Args:
+        num_state_qubits: The number of qubits encoding the value to compare tp.
+        value: The value to compare to.
+        geq: If ``True`` flip the target bit if the qubit state is :math:`\geq` than the value,
+            otherwise implement :math:`<`.
+
+    Returns:
+        A circuit implementing the integer comparator.
+
+    References:
+
+        [1] J. Gacon et al. "Quantum-enhanced simulation-based optimization"
+            `arXiv:2005.10780 <https://arxiv.org/abs/2005.10780>`__.
+    """
     circuit = QuantumCircuit(2 * num_state_qubits)
     qr_state = circuit.qubits[:num_state_qubits]
     q_compare = circuit.qubits[num_state_qubits]

@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Integer comparator based on 2s complement."""
+"""Integer comparator based on an exponential number of multi-controlled gates."""
 
 import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -19,7 +19,25 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 def synth_integer_comparator_greedy(
     num_state_qubits: int, value: int, geq: bool = True
 ) -> QuantumCircuit:
-    """Implement an integer comparison based on value-by-value comparison."""
+    r"""Implement an integer comparison based on value-by-value comparison.
+
+    For ``value`` smaller than ``2 ** (num_state_qubits - 1)`` this circuit implements
+    ``value`` multi-controlled gates with control states 0, 1, ..., ``value - 1``, such that
+    the target qubit is flipped if the qubit state represents any of the allowed values.
+    For ``value`` larger than that, ``geq`` is flipped. This implementation can
+    require an exponential number of gates. If auxiliary qubits are available, the implementation
+    provided by :func:`.synth_integer_comparator_2s` is more efficient.
+
+    Args:
+        num_state_qubits: The number of qubits encoding the value to compare tp.
+        value: The value to compare to.
+        geq: If ``True`` flip the target bit if the qubit state is :math:`\geq` than the value,
+            otherwise implement :math:`<`.
+
+    Returns:
+        A circuit implementing the integer comparator.
+
+    """
     circuit = QuantumCircuit(num_state_qubits + 1)
 
     if value <= 0:  # condition always satisfied for non-positive values
