@@ -21,6 +21,44 @@ from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 @ddt.ddt
 class TestExprConstructors(QiskitTestCase):
+    def test_lift_legacy_condition(self):
+        cr = ClassicalRegister(3, "c")
+        clbit = Clbit()
+        cond = (cr, 7)
+        self.assertEqual(
+            expr.lift_legacy_condition(cond),
+            expr.Binary(
+                expr.Binary.Op.EQUAL,
+                expr.Var(cr, types.Uint(cr.size)),
+                expr.Value(7, types.Uint(cr.size)),
+                types.Bool(),
+            ),
+        )
+        cond = (cr, 255)
+        self.assertEqual(
+            expr.lift_legacy_condition(cond),
+            expr.Binary(
+                expr.Binary.Op.EQUAL,
+                expr.Cast(expr.Var(cr, types.Uint(cr.size)), types.Uint(8), implicit=True),
+                expr.Value(255, types.Uint(8)),
+                types.Bool(),
+            ),
+        )
+        cond = (clbit, False)
+        self.assertEqual(
+            expr.lift_legacy_condition(cond),
+            expr.Unary(
+                expr.Unary.Op.LOGIC_NOT,
+                expr.Var(clbit, types.Bool()),
+                types.Bool(),
+            ),
+        )
+        cond = (clbit, True)
+        self.assertEqual(
+            expr.lift_legacy_condition(cond),
+            expr.Var(clbit, types.Bool()),
+        )
+
     def test_value_lifts_qiskit_scalars(self):
         cr = ClassicalRegister(3, "c")
         self.assertEqual(expr.lift(cr), expr.Var(cr, types.Uint(cr.size)))
