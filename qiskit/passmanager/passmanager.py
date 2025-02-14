@@ -30,7 +30,7 @@ from .compilation_status import PropertySet, WorkflowStatus, PassManagerState
 
 logger = logging.getLogger(__name__)
 
-_NOT_PRESENT = object()
+_MISSING = object()
 
 
 class BasePassManager(ABC):
@@ -178,7 +178,7 @@ class BasePassManager(ABC):
         callback: Callable = None,
         num_processes: int = None,
         *,
-        property_set: object = _NOT_PRESENT,
+        property_set: object = _MISSING,
         **kwargs,
     ) -> Any:
         """Run all the passes on the specified ``in_programs``.
@@ -224,7 +224,7 @@ class BasePassManager(ABC):
         Returns:
             The transformed program(s).
         """
-        if property_set is not _NOT_PRESENT:
+        if property_set is not _MISSING:
             warnings.warn(
                 "From Qiskit 2.0, 'property_set' will be a reserved keyword argument of"
                 " 'BasePassManager.run', and not passed on to the conversion functions."
