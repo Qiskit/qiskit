@@ -3755,9 +3755,7 @@ class QuantumCircuit:
 
         _copy_metadata(self, cpy, vars_mode)
 
-        cpy._data = CircuitData(
-            self._data.qubits, self._data.clbits, global_phase=self._data.global_phase
-        )
+        cpy._data = self._data.copy_empty_like()
 
         if name:
             cpy.name = name
