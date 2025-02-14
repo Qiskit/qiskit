@@ -1645,6 +1645,24 @@ impl From<ArithmeticError> for PyErr {
     }
 }
 
+/// The single-character string label used to represent this term in the :class:`SparseObservable`
+/// alphabet.
+#[pyfunction]
+#[pyo3(name = "label")]
+fn bit_term_label(py: Python, slf: BitTerm) -> &Bound<PyString> {
+    // This doesn't use `py_label` so we can use `intern!`.
+    match slf {
+        BitTerm::X => intern!(py, "X"),
+        BitTerm::Plus => intern!(py, "+"),
+        BitTerm::Minus => intern!(py, "-"),
+        BitTerm::Y => intern!(py, "Y"),
+        BitTerm::Right => intern!(py, "r"),
+        BitTerm::Left => intern!(py, "l"),
+        BitTerm::Z => intern!(py, "Z"),
+        BitTerm::Zero => intern!(py, "0"),
+        BitTerm::One => intern!(py, "1"),
+    }
+}
 /// Construct the Python-space `IntEnum` that represents the same values as the Rust-spce `BitTerm`.
 ///
 /// We don't make `BitTerm` a direct `pyclass` because we want the behaviour of `IntEnum`, which
@@ -1688,6 +1706,11 @@ fn make_py_bit_term(py: Python) -> PyResult<Py<PyType>> {
             .into_py_dict(py)?,
         ),
     )?;
+    let label_property = py
+        .import("builtins")?
+        .getattr("property")?
+        .call1((wrap_pyfunction!(bit_term_label, py)?,))?;
+    obj.setattr("label", label_property)?;
     Ok(obj.downcast_into::<PyType>()?.unbind())
 }
 
@@ -2101,6 +2124,9 @@ impl PySparseTerm {
 ///     contribution by :math:`X`, while the upper two bits are ``00`` for a Pauli operator, ``01``
 ///     for the negative-eigenstate projector, and ``10`` for the positive-eigenstate projector.
 ///
+///     Values
+///     ------
+///
 ///     .. autoattribute:: qiskit.quantum_info::SparseObservable.BitTerm.X
 ///
 ///         The Pauli :math:`X` operator.  Uses the single-letter label ``"X"``.
@@ -2142,6 +2168,11 @@ impl PySparseTerm {
 ///
 ///         The projector to the negative eigenstate of the :math:`Z` operator:
 ///         :math:`\lvert1\rangle\langle1\rvert`.  Uses the single-letter label ``"1"``.
+///
+///     Attributes
+///     ----------
+///
+///     .. autoproperty:: qiskit.quantum_info::SparseObservable.BitTerm.label
 ///
 /// Each of the array-like attributes behaves like a Python sequence.  You can index and slice these
 /// with standard :class:`list`-like semantics.  Slicing an attribute returns a Numpy
