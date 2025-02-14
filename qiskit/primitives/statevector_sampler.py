@@ -23,7 +23,6 @@ import numpy as np
 from numpy.typing import NDArray
 
 from qiskit import ClassicalRegister, QiskitError, QuantumCircuit
-from qiskit.circuit import ControlFlowOp
 from qiskit.quantum_info import Statevector
 
 from .base import BaseSamplerV2
