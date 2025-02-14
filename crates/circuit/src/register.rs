@@ -1,18 +1,18 @@
-use std::sync::Arc;
-
-use crate::bit::{BitInfo, SharableBit};
+use crate::bit::{BitInfo, ShareableBit, ShareableClbit, ShareableQubit};
+use pyo3::prelude::*;
+use std::{fmt::Display, sync::Arc};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Hash)]
-pub(crate) enum RegisterInfo<T: SharableBit> {
+pub(crate) enum RegisterInfo<T: ShareableBit> {
     Owning(Arc<OwningRegisterInfo<T>>),
     Alias {
         name: String,
         bits: Box<[BitInfo<T>]>,
-        extra: <T as SharableBit>::ExtraAttributes,
+        extra: <T as ShareableBit>::ExtraAttributes,
     },
 }
 
-impl<T: SharableBit + Clone> RegisterInfo<T> {
+impl<T: ShareableBit + Clone> RegisterInfo<T> {
     /// Creates a Register whose bits are owned by its instance
     pub fn new_owning(name: String, size: u32, extra: T::ExtraAttributes) -> Self {
         // When creating `Owning` register, we don't need to create the `BitInfo`
@@ -33,7 +33,7 @@ impl<T: SharableBit + Clone> RegisterInfo<T> {
         }
     }
 
-    /// Returns the size of said register.
+    /// Returns the size of the register.
     pub fn len(&self) -> usize {
         match self {
             RegisterInfo::Owning(owning_register_info) => owning_register_info.size as usize,
@@ -54,19 +54,50 @@ impl<T: SharableBit + Clone> RegisterInfo<T> {
                     index: bit,
                 }))
             }
-            RegisterInfo::Alias {
-                name: _,
-                bits,
-                extra: _,
-            } => Box::new(bits.iter().cloned()),
+            RegisterInfo::Alias { bits, .. } => Box::new(bits.iter().cloned()),
         }
     }
 }
 
 /// Contains the informaion for a register that owns the bits it contains.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Hash)]
-pub(crate) struct OwningRegisterInfo<T: SharableBit> {
+pub struct OwningRegisterInfo<T: ShareableBit> {
     name: String,
     size: u32,
-    extra: <T as SharableBit>::ExtraAttributes,
+    extra: <T as ShareableBit>::ExtraAttributes,
+}
+
+impl<T: ShareableBit> OwningRegisterInfo<T> {
+    /// A reference to the register's name
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// Returns the size of the register.
+    pub fn len(&self) -> usize {
+        self.size as usize
+    }
+}
+
+impl OwningRegisterInfo<ShareableQubit> {
+    /// Checks if the register contains ancilla qubits.
+    pub fn is_ancilla(&self) -> bool {
+        self.extra.is_ancilla()
+    }
+}
+
+impl Display for OwningRegisterInfo<ShareableQubit> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let identifier = match self.is_ancilla() {
+            true => "AncillaRegister",
+            false => "QuantumRegister",
+        };
+        write!(f, "{}({}, {})", identifier, self.name(), self.len())
+    }
+}
+
+impl Display for OwningRegisterInfo<ShareableClbit> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "ClassicalRegister({}, {})", self.name(), self.len())
+    }
 }

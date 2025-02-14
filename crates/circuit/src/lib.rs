@@ -159,6 +159,9 @@ macro_rules! impl_intopyobject_for_copy_pyclass {
 }
 
 pub fn circuit(m: &Bound<PyModule>) -> PyResult<()> {
+    m.add_class::<bit::PyClbit>()?;
+    m.add_class::<bit::PyQubit>()?;
+    m.add_class::<bit::PyAncillaQubit>()?;
     m.add_class::<circuit_data::CircuitData>()?;
     m.add_class::<circuit_instruction::CircuitInstruction>()?;
     m.add_class::<dag_circuit::DAGCircuit>()?;
