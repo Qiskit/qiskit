@@ -145,3 +145,34 @@ class TestPassManager(PassManagerTestCase):
         self.assertIs(pm.property_set["check_property"], sentinel)
         pm.run(1)
         self.assertIs(pm.property_set["check_property"], sentinel)
+
+    def test_run_warns_on_use_of_property_set(self):
+        """Test that a future warning is emitted for a parameter that will change meaning."""
+
+        class LeakConversionKwargs(BasePassManager):
+            """Leak the 'kwargs' given to the conversion functions all the way through."""
+
+            def _passmanager_frontend(self, input_program, **kwargs):
+                return input_program, kwargs
+
+            def _passmanager_backend(self, passmanager_ir, in_program, **kwargs):
+                input_program, initial_kwargs = passmanager_ir
+                return input_program, initial_kwargs, kwargs
+
+        pm = LeakConversionKwargs()
+
+        with self.assertWarnsRegex(FutureWarning, "'property_set' will be a reserved keyword"):
+            _, initial_kwargs, final_kwargs = pm.run(5, property_set=None)
+        # `BasePassManager.run` also passes along `callback`, despite peeling it off for special
+        # handling.
+        expected = {"property_set": None, "callback": None}
+        self.assertEqual(initial_kwargs, expected)
+        self.assertEqual(final_kwargs, expected)
+
+        with self.assertWarnsRegex(FutureWarning, "'property_set' will be a reserved keyword"):
+            _, initial_kwargs, final_kwargs = pm.run(
+                5, property_set={"hello": "world"}, other="data"
+            )
+        expected = {"property_set": {"hello": "world"}, "other": "data", "callback": None}
+        self.assertEqual(initial_kwargs, expected)
+        self.assertEqual(final_kwargs, expected)
