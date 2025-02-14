@@ -3,7 +3,7 @@ upgrade_transpiler:
   - |
     Passing ``property_set`` as an arbitrary keyword argument to the :meth:`~.BasePassManager.run`
     method of a subclass of :class:`.BasePassManager` will change behavior in Qiskit 2.0.  It is
-    currently forwarded to the internal representation converting functions of the pass maanger, as
+    currently forwarded to the internal representation converting functions of the pass manager, as
     is any arbitrary keyword argument to that method.  Starting from Qiskit 2.0, the option will
     instead be used to set the seed of the :class:`.PropertySet` for the pipeline run, and the
     argument will not be passed to the conversion functions.
