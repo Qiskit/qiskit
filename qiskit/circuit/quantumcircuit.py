@@ -2089,8 +2089,7 @@ class QuantumCircuit:
 
             def map_vars(op):
                 n_op = op
-                is_control_flow = isinstance(n_op, ControlFlowOp)
-                if is_control_flow:
+                if isinstance(n_op, ControlFlowOp):
                     n_op = n_op.replace_blocks(recurse_block(block) for block in n_op.blocks)
                     if isinstance(n_op, (IfElseOp, WhileLoopOp)):
                         n_op.condition = variable_mapper.map_condition(n_op._condition)

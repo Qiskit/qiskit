@@ -288,4 +288,4 @@ def _final_measurement_mapping(circuit: QuantumCircuit) -> dict[tuple[ClassicalR
 
 
 def _has_control_flow(circuit: QuantumCircuit) -> bool:
-    return any(isinstance(instruction.operation, ControlFlowOp) for instruction in circuit)
+    return any(instruction.is_control_flow() for instruction in circuit)

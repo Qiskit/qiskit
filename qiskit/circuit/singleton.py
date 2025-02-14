@@ -583,7 +583,7 @@ def stdlib_singleton_key(*, num_ctrl_qubits: int = 0):
 
     if num_ctrl_qubits:
 
-        def key(label=None, ctrl_state=None, _base_label=None):
+        def key(label=None, ctrl_state=None, *, _base_label=None):
             if label is None and _base_label is None:
                 # Normalisation; we want all types for the control state to key the same.
                 ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)

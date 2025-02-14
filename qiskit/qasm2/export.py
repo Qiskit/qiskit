@@ -246,13 +246,6 @@ def _instruction_call_site(operation):
     if operation.params:
         params = ",".join([pi_check(i, output="qasm", eps=1e-12) for i in operation.params])
         qasm2_call = f"{qasm2_call}({params})"
-    cond = getattr(operation, "_condition", None)
-    if cond is not None:
-        if not isinstance(cond[0], ClassicalRegister):
-            raise QASM2ExportError(
-                "OpenQASM 2 can only condition on registers, but got '{operation.condition[0]}'"
-            )
-        qasm2_call = f"if({cond[0].name}=={cond[1]:d}) " + qasm2_call
     return qasm2_call
 
 
