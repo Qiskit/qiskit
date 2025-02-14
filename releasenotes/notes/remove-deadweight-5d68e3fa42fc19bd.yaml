@@ -95,3 +95,12 @@ upgrade_visualization:
     longer contain duration attributes this extra argument is required to
     specify the durations for all the supported instructions. Without the
     argument the timeline drawer does not have access to this information.
+
+deprecations_transpiler:
+  - |
+    The ``propagate_condition`` argument of :meth:`.DAGCircuit.substitute_node`
+    and :meth:`.DAGCircuit.substitute_node_with_dag` has been deprecated. With the removal
+    of ``Instruction.condition`` from the Qiskit data model this option no longer serves a
+    purpose. If it is set it no longer has any effect. It is not removed from the signature
+    to maintain compatibility during the migration from Qiskit 1.x -> 2.0. This option will
+    be removed in Qiskit 3.0.

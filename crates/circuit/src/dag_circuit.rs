@@ -2867,20 +2867,38 @@ def _format(operand):
     ///         and the order gets matched to the node wires by qargs first, then cargs, then
     ///         conditions.  If a dictionary, then a mapping of bits in the ``input_dag`` to those
     ///         that the ``node`` acts on.
+    ///     propagate_condition (bool): DEPRECATED a legacy option that used
+    ///         to control the behavior of handling control flow. It has no
+    ///         effect anymore, left it for backwards compatibility. Will be
+    ///         removed in Qiskit 3.0.
     ///
     /// Returns:
     ///     dict: maps node IDs from `input_dag` to their new node incarnations in `self`.
     ///
     /// Raises:
     ///     DAGCircuitError: if met with unexpected predecessor/successors
-    #[pyo3(name = "substitute_node_with_dag", signature = (node, input_dag, wires=None))]
+    #[pyo3(name = "substitute_node_with_dag", signature = (node, input_dag, wires=None, propagate_condition=None))]
     pub fn py_substitute_node_with_dag(
         &mut self,
         py: Python,
         node: &Bound<PyAny>,
         input_dag: &DAGCircuit,
         wires: Option<Bound<PyAny>>,
+        propagate_condition: Option<bool>,
     ) -> PyResult<Py<PyDict>> {
+        if propagate_condition.is_some() {
+            imports::WARNINGS_WARN.get_bound(py).call1((
+                intern!(
+                    py,
+                    concat!(
+                        "The propagate_condition argument is deprecated as of Qiskit 2.0.0.",
+                        "It will be removed in Qiskit 3.0.0.",
+                    )
+                ),
+                py.get_type::<PyDeprecationWarning>(),
+                2,
+            ))?;
+        }
         let (node_index, bound_node) = match node.downcast::<DAGOpNode>() {
             Ok(bound_node) => (bound_node.borrow().as_ref().node.unwrap(), bound_node),
             Err(_) => return Err(DAGCircuitError::new_err("expected node DAGOpNode")),
@@ -3205,6 +3223,11 @@ def _format(operand):
     ///     inplace (bool): Optional, default False. If True, existing DAG node
     ///         will be modified to include op. Otherwise, a new DAG node will
     ///         be used.
+    ///     propagate_condition (bool): DEPRECATED a legacy option that used
+    ///         to control the behavior of handling control flow. It has no
+    ///         effect anymore, left it for backwards compatibility. Will be
+    ///         removed in Qiskit 3.0.
+
     ///
     /// Returns:
     ///     DAGOpNode: the new node containing the added operation.
@@ -3212,13 +3235,28 @@ def _format(operand):
     /// Raises:
     ///     DAGCircuitError: If replacement operation was incompatible with
     ///     location of target node.
-    #[pyo3(name = "substitute_node", signature = (node, op, inplace=false))]
+    #[pyo3(name = "substitute_node", signature = (node, op, inplace=false, propagate_condition=None))]
     pub fn py_substitute_node(
         &mut self,
+        py: Python,
         node: &Bound<PyAny>,
         op: &Bound<PyAny>,
         inplace: bool,
+        propagate_condition: Option<bool>,
     ) -> PyResult<Py<PyAny>> {
+        if propagate_condition.is_some() {
+            imports::WARNINGS_WARN.get_bound(py).call1((
+                intern!(
+                    py,
+                    concat!(
+                        "The propagate_condition argument is deprecated as of Qiskit 2.0.0.",
+                        "It will be removed in Qiskit 3.0.0.",
+                    )
+                ),
+                py.get_type::<PyDeprecationWarning>(),
+                2,
+            ))?;
+        }
         let mut node: PyRefMut<DAGOpNode> = match node.downcast() {
             Ok(node) => node.borrow_mut(),
             Err(_) => return Err(DAGCircuitError::new_err("Only DAGOpNodes can be replaced.")),
@@ -6886,7 +6924,6 @@ impl DAGCircuit {
         let py_op_cache = Some(op.clone().unbind());
 
         let label = new_op.label.clone();
-        // If either operation is a control-flow operation, propagate_condition is ignored
         if new_wires != current_wires {
             // The new wires must be a non-strict subset of the current wires; if they add new
             // wires, we'd not know where to cut the existing wire to insert the new dependency.

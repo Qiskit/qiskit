@@ -359,7 +359,7 @@ where
             .bind(py)
             .call_method1("replace_blocks", (op_blocks,))?;
 
-        dag.py_substitute_node(dag.get_node(py, node)?.bind(py), &new_op, false)?;
+        dag.py_substitute_node(py, dag.get_node(py, node)?.bind(py), &new_op, false, None)?;
     }
 
     for (node, replacemanet_dag) in nodes_to_replace {
@@ -367,6 +367,7 @@ where
             py,
             dag.get_node(py, node)?.bind(py),
             &replacemanet_dag,
+            None,
             None,
         )?;
     }
