@@ -271,30 +271,6 @@ class InstructionPlaceholder(Instruction, abc.ABC):
         """
         raise NotImplementedError
 
-    def _copy_mutable_properties(self, instruction: Instruction) -> Instruction:
-        """Copy mutable properties from ourselves onto a non-placeholder instruction.
-
-        The mutable properties are expected to be things like ``condition``, added onto a
-        placeholder by the :meth:`c_if` method.  This mutates ``instruction``, and returns the same
-        instance that was passed.  This is mostly intended to make writing concrete versions of
-        :meth:`.concrete_instruction` easy.
-
-        The complete list of mutations is:
-
-        * ``condition``, added by :meth:`c_if`.
-
-        Args:
-            instruction: the concrete instruction instance to be mutated.
-
-        Returns:
-            The same instruction instance that was passed, but mutated to propagate the tracked
-            changes to this class.
-        """
-        cond = getattr(self, "_condition", None)
-        if cond is not None:
-            instruction._condition = cond
-        return instruction
-
     # Provide some better error messages, just in case something goes wrong during development and
     # the placeholder type leaks out to somewhere visible.
 

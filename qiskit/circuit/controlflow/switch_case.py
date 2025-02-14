@@ -263,7 +263,7 @@ class SwitchCasePlaceholder(InstructionPlaceholder):
         else:
             resources = self.__resources
         return (
-            self._copy_mutable_properties(SwitchCaseOp(self.__target, cases, label=self.label)),
+            SwitchCaseOp(self.__target, cases, label=self.label),
             resources,
         )
 

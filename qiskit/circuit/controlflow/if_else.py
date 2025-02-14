@@ -290,9 +290,7 @@ class IfElsePlaceholder(InstructionPlaceholder):
                 (true_body, self.__false_block.build(qubits, clbits))
             )
         return (
-            self._copy_mutable_properties(
-                IfElseOp(self._condition, true_body, false_body, label=self.label)
-            ),
+            IfElseOp(self._condition, true_body, false_body, label=self.label),
             InstructionResources(
                 qubits=tuple(true_body.qubits),
                 clbits=tuple(true_body.clbits),
