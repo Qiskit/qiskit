@@ -470,6 +470,21 @@ class TestDisjointDeviceSabreLayout(QiskitTestCase):
         layout = pm.property_set["layout"]
         self.assertEqual([layout[q] for q in qc.qubits], [3, 2, 1, 5, 4, 7, 6, 8])
 
+    def test_dag_fits_in_one_component(self):
+        """Test that the output is valid if the DAG all fits in a single component of a disjoint
+        coupling map.."""
+        qc = QuantumCircuit(3)
+        qc.cx(0, 1)
+        qc.cx(1, 2)
+        qc.cx(2, 0)
+
+        disjoint = CouplingMap([(0, 1), (1, 2), (3, 4), (4, 5)])
+        layout_routing_pass = SabreLayout(disjoint, seed=2025_02_12, swap_trials=1, layout_trials=1)
+        out = layout_routing_pass(qc)
+        self.assertEqual(len(out.layout.initial_layout), len(out.layout.final_layout))
+        self.assertEqual(out.layout.initial_index_layout(filter_ancillas=False), [1, 0, 2, 3, 4, 5])
+        self.assertEqual(out.layout.final_index_layout(filter_ancillas=False), [2, 0, 1, 3, 4, 5])
+
 
 class TestSabrePreLayout(QiskitTestCase):
     """Tests the SabreLayout pass with starting layout created by SabrePreLayout."""

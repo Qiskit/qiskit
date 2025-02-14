@@ -188,10 +188,17 @@ class DefaultInitPassManager(PassManagerStagePlugin):
             # error rates in the target. However, in the init stage we don't yet know the target
             # qubits being used to figure out the fidelity so just use the default fidelity parameter
             # in this case.
+            split_2q_unitaries_swap = False
+            if pass_manager_config.routing_method != "none":
+                split_2q_unitaries_swap = True
             if pass_manager_config.approximation_degree is not None:
-                init.append(Split2QUnitaries(pass_manager_config.approximation_degree))
+                init.append(
+                    Split2QUnitaries(
+                        pass_manager_config.approximation_degree, split_swap=split_2q_unitaries_swap
+                    )
+                )
             else:
-                init.append(Split2QUnitaries())
+                init.append(Split2QUnitaries(split_swap=split_2q_unitaries_swap))
         else:
             raise TranspilerError(f"Invalid optimization level {optimization_level}")
         return init
@@ -218,7 +225,6 @@ class BasisTranslatorPassManager(PassManagerStagePlugin):
             method="translator",
             approximation_degree=pass_manager_config.approximation_degree,
             coupling_map=pass_manager_config.coupling_map,
-            backend_props=pass_manager_config.backend_properties,
             unitary_synthesis_method=pass_manager_config.unitary_synthesis_method,
             unitary_synthesis_plugin_config=pass_manager_config.unitary_synthesis_plugin_config,
             hls_config=pass_manager_config.hls_config,
@@ -236,7 +242,6 @@ class UnitarySynthesisPassManager(PassManagerStagePlugin):
             method="synthesis",
             approximation_degree=pass_manager_config.approximation_degree,
             coupling_map=pass_manager_config.coupling_map,
-            backend_props=pass_manager_config.backend_properties,
             unitary_synthesis_method=pass_manager_config.unitary_synthesis_method,
             unitary_synthesis_plugin_config=pass_manager_config.unitary_synthesis_plugin_config,
             hls_config=pass_manager_config.hls_config,
@@ -617,7 +622,6 @@ class OptimizationPassManager(PassManagerStagePlugin):
                         pass_manager_config.basis_gates,
                         approximation_degree=pass_manager_config.approximation_degree,
                         coupling_map=pass_manager_config.coupling_map,
-                        backend_props=pass_manager_config.backend_properties,
                         method=pass_manager_config.unitary_synthesis_method,
                         plugin_config=pass_manager_config.unitary_synthesis_plugin_config,
                         target=pass_manager_config.target,
@@ -664,7 +668,6 @@ class OptimizationPassManager(PassManagerStagePlugin):
                             pass_manager_config.basis_gates,
                             approximation_degree=pass_manager_config.approximation_degree,
                             coupling_map=pass_manager_config.coupling_map,
-                            backend_props=pass_manager_config.backend_properties,
                             method=pass_manager_config.unitary_synthesis_method,
                             plugin_config=pass_manager_config.unitary_synthesis_plugin_config,
                             target=pass_manager_config.target,

@@ -1246,6 +1246,7 @@ dependencies = [
  "hashbrown 0.14.5",
  "indexmap",
  "itertools 0.13.0",
+ "nalgebra",
  "ndarray",
  "ndarray_einsum_beta",
  "num-bigint",
