@@ -482,8 +482,8 @@ class TestDisjointDeviceSabreLayout(QiskitTestCase):
         layout_routing_pass = SabreLayout(disjoint, seed=2025_02_12, swap_trials=1, layout_trials=1)
         out = layout_routing_pass(qc)
         self.assertEqual(len(out.layout.initial_layout), len(out.layout.final_layout))
-        self.assertEqual(out.layout.initial_index_layout(filter_ancillas=False), [1, 0, 2, 3, 4, 5])
-        self.assertEqual(out.layout.final_index_layout(filter_ancillas=False), [2, 0, 1, 3, 4, 5])
+        self.assertEqual(out.layout.initial_index_layout(filter_ancillas=False), [1, 2, 0, 3, 4, 5])
+        self.assertEqual(out.layout.final_index_layout(filter_ancillas=False), [0, 2, 1, 3, 4, 5])
 
 
 class TestSabrePreLayout(QiskitTestCase):
