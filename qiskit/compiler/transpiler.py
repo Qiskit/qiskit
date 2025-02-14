@@ -66,12 +66,10 @@ _CircuitT = TypeVar("_CircuitT", bound=Union[QuantumCircuit, List[QuantumCircuit
     additional_msg="The `target` parameter should be used instead. You can build a `Target` instance "
     "with defined properties with Target.from_configuration(..., backend_properties=...)",
 )
-@deprecate_pulse_arg("inst_map", predicate=lambda inst_map: inst_map is not None)
 def transpile(  # pylint: disable=too-many-return-statements
     circuits: _CircuitT,
     backend: Optional[Backend] = None,
     basis_gates: Optional[List[str]] = None,
-    inst_map: Optional[List[InstructionScheduleMap]] = None,
     coupling_map: Optional[Union[CouplingMap, List[List[int]]]] = None,
     backend_properties: Optional[BackendProperties] = None,
     initial_layout: Optional[Union[Layout, Dict, List]] = None,
@@ -133,12 +131,6 @@ def transpile(  # pylint: disable=too-many-return-statements
             will override the backend's.
         basis_gates: List of basis gate names to unroll to
             (e.g: ``['u1', 'u2', 'u3', 'cx']``). If ``None``, do not unroll.
-        inst_map: DEPRECATED. Mapping of unrolled gates to pulse schedules. If this is not provided,
-            transpiler tries to get from the backend. If any user defined calibration
-            is found in the map and this is used in a circuit, transpiler attaches
-            the custom gate definition to the circuit. This enables one to flexibly
-            override the low-level instruction implementation. This feature is available
-            iff the backend supports the pulse gate experiment.
         coupling_map: Directed coupling map (perhaps custom) to target in mapping. If
             the coupling map is symmetric, both directions need to be specified.
 
@@ -429,7 +421,6 @@ def transpile(  # pylint: disable=too-many-return-statements
             instruction_durations=instruction_durations,
             backend_properties=backend_properties,
             timing_constraints=timing_constraints,
-            inst_map=inst_map,
             initial_layout=initial_layout,
             layout_method=layout_method,
             routing_method=routing_method,

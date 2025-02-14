@@ -213,8 +213,7 @@ fn extract_basis(
         min_qubits: usize,
     ) -> PyResult<()> {
         for (node, operation) in circuit.op_nodes(true) {
-            if !circuit.has_calibration_for_index(py, node)?
-                && circuit.get_qargs(operation.qubits).len() >= min_qubits
+            if circuit.get_qargs(operation.qubits).len() >= min_qubits
             {
                 basis.insert((operation.op.name().to_string(), operation.op.num_qubits()));
             }
@@ -244,10 +243,7 @@ fn extract_basis(
             .borrow();
         for (index, inst) in circuit_data.iter().enumerate() {
             let instruction_object = circuit.get_item(index)?;
-            let has_calibration = circuit
-                .call_method1(intern!(py, "_has_calibration_for"), (&instruction_object,))?;
-            if !has_calibration.is_truthy()?
-                && circuit_data.get_qargs(inst.qubits).len() >= min_qubits
+            if circuit_data.get_qargs(inst.qubits).len() >= min_qubits
             {
                 basis.insert((inst.op.name().to_string(), inst.op.num_qubits()));
             }
@@ -280,7 +276,7 @@ fn extract_basis_target(
 ) -> PyResult<()> {
     for (node, node_obj) in dag.op_nodes(true) {
         let qargs: &[Qubit] = dag.get_qargs(node_obj.qubits);
-        if dag.has_calibration_for_index(py, node)? || qargs.len() < min_qubits {
+        if qargs.len() < min_qubits {
             continue;
         }
         // Treat the instruction as on an incomplete basis if the qargs are in the
@@ -343,6 +339,7 @@ fn extract_basis_target(
 /// This needs to use a Python instance of `QuantumCircuit` due to it needing
 /// to access `has_calibration_for()` which is unavailable through rust. However,
 /// this API will be removed with the deprecation of `Pulse`.
+// TODO: remove this
 fn extract_basis_target_circ(
     circuit: &Bound<PyAny>,
     source_basis: &mut HashSet<GateIdentifier>,
@@ -355,10 +352,7 @@ fn extract_basis_target_circ(
     let circ_data = circ_data_bound.borrow();
     for (index, node_obj) in circ_data.iter().enumerate() {
         let qargs = circ_data.get_qargs(node_obj.qubits);
-        if circuit
-            .call_method1("_has_calibration_for", (circuit.get_item(index)?,))?
-            .is_truthy()?
-            || qargs.len() < min_qubits
+        if qargs.len() < min_qubits
         {
             continue;
         }
@@ -535,29 +529,6 @@ fn apply_translation(
             continue;
         }
 
-        if dag.has_calibration_for_index(py, node)? {
-            out_dag.apply_operation_back(
-                py,
-                node_obj.op.clone(),
-                node_qarg,
-                node_carg,
-                if node_obj.params_view().is_empty() {
-                    None
-                } else {
-                    Some(
-                        node_obj
-                            .params_view()
-                            .iter()
-                            .map(|param| param.clone_ref(py))
-                            .collect(),
-                    )
-                },
-                node_obj.extra_attrs.clone(),
-                #[cfg(feature = "cache_pygates")]
-                None,
-            )?;
-            continue;
-        }
         let unique_qargs: Option<Qargs> = if qubit_set.is_empty() {
             None
         } else {

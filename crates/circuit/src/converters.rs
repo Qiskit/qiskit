@@ -30,7 +30,6 @@ use crate::packed_instruction::PackedInstruction;
 pub struct QuantumCircuitData<'py> {
     pub data: CircuitData,
     pub name: Option<Bound<'py, PyAny>>,
-    pub calibrations: Option<HashMap<String, Py<PyDict>>>,
     pub metadata: Option<Bound<'py, PyAny>>,
     pub qregs: Option<Bound<'py, PyList>>,
     pub cregs: Option<Bound<'py, PyList>>,
@@ -47,10 +46,6 @@ impl<'py> FromPyObject<'py> for QuantumCircuitData<'py> {
         Ok(QuantumCircuitData {
             data: data_borrowed,
             name: ob.getattr(intern!(py, "name")).ok(),
-            calibrations: ob
-                .getattr(intern!(py, "_calibrations_prop"))?
-                .extract()
-                .ok(),
             metadata: ob.getattr(intern!(py, "metadata")).ok(),
             qregs: ob
                 .getattr(intern!(py, "qregs"))

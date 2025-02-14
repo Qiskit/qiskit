@@ -690,16 +690,11 @@ class AlapSchedulingPassManager(PassManagerStagePlugin):
         instruction_durations = pass_manager_config.instruction_durations
         scheduling_method = pass_manager_config.scheduling_method
         timing_constraints = pass_manager_config.timing_constraints
-        inst_map = pass_manager_config.inst_map
         target = pass_manager_config.target
 
-        with warnings.catch_warnings():
-            warnings.simplefilter(action="ignore", category=DeprecationWarning)
-            # Passing `inst_map` to `generate_scheduling` is deprecated in Qiskit 1.3
-            # so filtering these warning when building pass managers
-            return common.generate_scheduling(
-                instruction_durations, scheduling_method, timing_constraints, inst_map, target
-            )
+        return common.generate_scheduling(
+            instruction_durations, scheduling_method, timing_constraints, target
+        )
 
 
 class AsapSchedulingPassManager(PassManagerStagePlugin):
@@ -711,16 +706,11 @@ class AsapSchedulingPassManager(PassManagerStagePlugin):
         instruction_durations = pass_manager_config.instruction_durations
         scheduling_method = pass_manager_config.scheduling_method
         timing_constraints = pass_manager_config.timing_constraints
-        inst_map = pass_manager_config.inst_map
         target = pass_manager_config.target
 
-        with warnings.catch_warnings():
-            warnings.simplefilter(action="ignore", category=DeprecationWarning)
-            # Passing `inst_map` to `generate_scheduling` is deprecated in Qiskit 1.3
-            # so filtering these warning when building pass managers
-            return common.generate_scheduling(
-                instruction_durations, scheduling_method, timing_constraints, inst_map, target
-            )
+        return common.generate_scheduling(
+            instruction_durations, scheduling_method, timing_constraints, target
+        )
 
 
 class DefaultSchedulingPassManager(PassManagerStagePlugin):
@@ -732,16 +722,12 @@ class DefaultSchedulingPassManager(PassManagerStagePlugin):
         instruction_durations = pass_manager_config.instruction_durations
         scheduling_method = None
         timing_constraints = pass_manager_config.timing_constraints or TimingConstraints()
-        inst_map = pass_manager_config.inst_map
         target = pass_manager_config.target
 
-        with warnings.catch_warnings():
-            warnings.simplefilter(action="ignore", category=DeprecationWarning)
-            # Passing `inst_map` to `generate_scheduling` is deprecated in Qiskit 1.3
-            # so filtering these warning when building pass managers
-            return common.generate_scheduling(
-                instruction_durations, scheduling_method, timing_constraints, inst_map, target
-            )
+
+        return common.generate_scheduling(
+            instruction_durations, scheduling_method, timing_constraints, target
+        )
 
 
 class DefaultLayoutPassManager(PassManagerStagePlugin):

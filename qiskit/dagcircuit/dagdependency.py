@@ -115,7 +115,6 @@ class DAGDependency:
         self.clbits = []
 
         self._global_phase: float | ParameterExpression = 0.0
-        self._calibrations: dict[str, dict[tuple, Schedule]] = defaultdict(dict)
 
         self.duration = None
         self.unit = "dt"
@@ -145,37 +144,6 @@ class DAGDependency:
                 self._global_phase = 0
             else:
                 self._global_phase = angle % (2 * math.pi)
-
-    @property
-    @deprecate_pulse_dependency(is_property=True)
-    def calibrations(self) -> dict[str, dict[tuple, Schedule]]:
-        """Return calibration dictionary.
-
-        The custom pulse definition of a given gate is of the form
-        ``{'gate_name': {(qubits, params): schedule}}``.
-        """
-        return self._calibrations_prop
-
-    @calibrations.setter
-    @deprecate_pulse_dependency(is_property=True)
-    def calibrations(self, calibrations: dict[str, dict[tuple, Schedule]]):
-        """Set the circuit calibration data from a dictionary of calibration definition.
-
-        Args:
-            calibrations (dict): A dictionary of input in the format
-                {'gate_name': {(qubits, gate_params): schedule}}
-        """
-        self._calibrations_prop = calibrations
-
-    @property
-    def _calibrations_prop(self) -> dict[str, dict[tuple, Schedule]]:
-        """An alternative path to be used internally to avoid deprecation warnings"""
-        return dict(self._calibrations)
-
-    @_calibrations_prop.setter
-    def _calibrations_prop(self, calibrations: dict[str, dict[tuple, Schedule]]):
-        """An alternative path to be used internally to avoid deprecation warnings"""
-        self._calibrations = defaultdict(dict, calibrations)
 
     def to_retworkx(self):
         """Returns the DAGDependency in retworkx format."""
@@ -544,7 +512,7 @@ class DAGDependency:
         Graphviz <https://www.graphviz.org/>` to be installed.
 
         Args:
-            scale (float): scaling factor
+            scale (float): sng factor
             filename (str): file path to save image to (format inferred from name)
             style (str): 'plain': B&W graph
                          'color' (default): color input/output/op nodes

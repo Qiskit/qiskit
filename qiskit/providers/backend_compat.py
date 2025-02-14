@@ -22,20 +22,16 @@ from qiskit.providers.backend import QubitProperties
 from qiskit.providers.models.backendconfiguration import BackendConfiguration
 from qiskit.providers.models.backendproperties import BackendProperties
 from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES, get_control_flow_name_mapping
-from qiskit.providers.models.pulsedefaults import PulseDefaults
 from qiskit.providers.options import Options
 from qiskit.providers.exceptions import BackendPropertyError
-from qiskit.utils.deprecate_pulse import deprecate_pulse_arg, deprecate_pulse_dependency
 
 
 logger = logging.getLogger(__name__)
 
 
-@deprecate_pulse_arg("defaults")
 def convert_to_target(
     configuration: BackendConfiguration,
     properties: BackendProperties = None,
-    defaults: PulseDefaults = None,
     custom_name_mapping: Optional[Dict[str, Any]] = None,
     add_delay: bool = True,
     filter_faulty: bool = True,
@@ -43,36 +39,18 @@ def convert_to_target(
     """Decode transpiler target from backend data set.
 
     This function generates :class:`.Target`` instance from intermediate
-    legacy objects such as :class:`.BackendProperties` and :class:`.PulseDefaults`.
+    legacy objects such as :class:`.BackendProperties`.
     These objects are usually components of the legacy :class:`.BackendV1` model.
 
     Args:
         configuration: Backend configuration as ``BackendConfiguration``
         properties: Backend property dictionary or ``BackendProperties``
-        defaults: DEPRECATED. Backend pulse defaults dictionary or ``PulseDefaults``
-        custom_name_mapping: A name mapping must be supplied for the operation
-            not included in Qiskit Standard Gate name mapping, otherwise the operation
-            will be dropped in the resulting ``Target`` object.
         add_delay: If True, adds delay to the instruction set.
         filter_faulty: If True, this filters the non-operational qubits.
 
     Returns:
         A ``Target`` instance.
     """
-    return _convert_to_target(
-        configuration, properties, defaults, custom_name_mapping, add_delay, filter_faulty
-    )
-
-
-def _convert_to_target(
-    configuration: BackendConfiguration,
-    properties: BackendProperties = None,
-    defaults: PulseDefaults = None,
-    custom_name_mapping: Optional[Dict[str, Any]] = None,
-    add_delay: bool = True,
-    filter_faulty: bool = True,
-):
-    """An alternative private path to avoid pulse deprecations"""
     # importing packages where they are needed, to avoid cyclic-import.
     # pylint: disable=cyclic-import
     from qiskit.transpiler.target import (
@@ -248,44 +226,6 @@ def _convert_to_target(
                 if not filter_faulty or (q not in faulty_qubits)
             }
 
-    if defaults:
-        inst_sched_map = defaults.instruction_schedule_map
-
-        for name in inst_sched_map.instructions:
-            for qubits in inst_sched_map.qubits_with_instruction(name):
-                if not isinstance(qubits, tuple):
-                    qubits = (qubits,)
-                if (
-                    name not in all_instructions
-                    or name not in prop_name_map
-                    or prop_name_map[name] is None
-                    or qubits not in prop_name_map[name]
-                ):
-                    logger.info(
-                        "Gate calibration for instruction %s on qubits %s is found "
-                        "in the PulseDefaults payload. However, this entry is not defined in "
-                        "the gate mapping of Target. This calibration is ignored.",
-                        name,
-                        qubits,
-                    )
-                    continue
-
-                if (name, qubits) in faulty_ops:
-                    continue
-
-                entry = inst_sched_map._get_calibration_entry(name, qubits)
-                try:
-                    prop_name_map[name][qubits]._calibration_prop = entry
-                except AttributeError:
-                    # if instruction properties are "None", add entry
-                    prop_name_map[name].update({qubits: InstructionProperties(None, None, entry)})
-                    logger.info(
-                        "The PulseDefaults payload received contains an instruction %s on "
-                        "qubits %s which is not present in the configuration or properties payload."
-                        "A new properties entry will be added to include the new calibration data.",
-                        name,
-                        qubits,
-                    )
     # Add parsed properties to target
     target = Target(**in_data)
     for inst_name in all_instructions:
@@ -345,21 +285,6 @@ class BackendV2Converter(BackendV2):
     common access patterns between :class:`~.BackendV1` and :class:`~.BackendV2`. This
     class should only be used if you need a :class:`~.BackendV2` and still need
     compatibility with :class:`~.BackendV1`.
-
-    When using custom calibrations (or other custom workflows) it is **not** recommended
-    to mutate the ``BackendV1`` object before applying this converter. For example, in order to
-    convert a ``BackendV1`` object with a customized ``defaults().instruction_schedule_map``,
-    which has a custom calibration for an operation, the operation name must be in
-    ``configuration().basis_gates`` and ``name_mapping`` must be supplied for the operation.
-    Otherwise, the operation will be dropped in the resulting ``BackendV2`` object.
-
-    Instead it is typically better to add custom calibrations **after** applying this converter
-    instead of updating ``BackendV1.defaults()`` in advance. For example::
-
-        backend_v2 = BackendV2Converter(backend_v1)
-        backend_v2.target.add_instruction(
-            custom_gate, {(0, 1): InstructionProperties(calibration=custom_sched)}
-        )
     """
 
     def __init__(
@@ -420,7 +345,7 @@ class BackendV2Converter(BackendV2):
         :rtype: Target
         """
         if self._target is None:
-            self._target = _convert_to_target(
+            self._target = convert_to_target(
                 configuration=self._config,
                 properties=self._properties,
                 defaults=self._defaults,
@@ -445,22 +370,6 @@ class BackendV2Converter(BackendV2):
     @property
     def meas_map(self) -> List[List[int]]:
         return self._config.meas_map
-
-    @deprecate_pulse_dependency
-    def drive_channel(self, qubit: int):
-        return self._config.drive(qubit)
-
-    @deprecate_pulse_dependency
-    def measure_channel(self, qubit: int):
-        return self._config.measure(qubit)
-
-    @deprecate_pulse_dependency
-    def acquire_channel(self, qubit: int):
-        return self._config.acquire(qubit)
-
-    @deprecate_pulse_dependency
-    def control_channel(self, qubits: Iterable[int]):
-        return self._config.control(qubits)
 
     def run(self, run_input, **options):
         return self._backend.run(run_input, **options)

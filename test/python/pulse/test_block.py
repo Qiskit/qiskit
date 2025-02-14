@@ -760,24 +760,7 @@ class TestBlockFilter(BaseTestBlock):
             self.assertTrue(ch in filtered_blk.channels)
         self.assertEqual(filtered_blk, blk)
 
-    def test_filter_channels_nested_block(self):
-        """Test filtering over channels in a nested block."""
-        with pulse.build() as blk:
-            with pulse.align_sequential():
-                pulse.play(self.test_waveform0, self.d0)
-                pulse.delay(5, self.d0)
-                pulse.call(
-                    self.backend.defaults()
-                    .instruction_schedule_map._get_calibration_entry("cx", (0, 1))
-                    .get_schedule()
-                )
-
-        for ch in [self.d0, self.d1, pulse.ControlChannel(0)]:
-            filtered_blk = self._filter_and_test_consistency(blk, channels=[ch])
-            self.assertEqual(len(filtered_blk.channels), 1)
-            self.assertTrue(ch in filtered_blk.channels)
-
-    def test_filter_inst_types(self):
+      def test_filter_inst_types(self):
         """Test filtering on instruction types."""
         with pulse.build() as blk:
             pulse.acquire(5, pulse.AcquireChannel(0), pulse.MemorySlot(0))

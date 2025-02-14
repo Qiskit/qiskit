@@ -45,10 +45,5 @@ def dagdependency_to_dag(dagdependency):
 
     # copy metadata
     dagcircuit.global_phase = dagdependency.global_phase
-    if isinstance(dagdependency, DAGDependency):
-        dagcircuit._calibrations_prop = dagdependency._calibrations_prop
-    else:
-        # This can be _DAGDependencyV2
-        dagcircuit._calibrations_prop = dagdependency.calibrations
 
     return dagcircuit

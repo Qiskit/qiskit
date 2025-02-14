@@ -569,7 +569,7 @@ def generate_translation_passmanager(
 
 
 def generate_scheduling(
-    instruction_durations, scheduling_method, timing_constraints, _, target=None
+    instruction_durations, scheduling_method, timing_constraints, target=None
 ):
     """Generate a post optimization scheduling :class:`~qiskit.transpiler.PassManager`
 

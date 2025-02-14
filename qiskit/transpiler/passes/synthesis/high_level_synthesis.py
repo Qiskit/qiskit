@@ -811,8 +811,7 @@ class HighLevelSynthesis(TransformationPass):
         node (which is _most_ nodes)."""
 
         if (
-            dag._has_calibration_for(node)
-            or len(node.qargs) < self._min_qubits
+            len(node.qargs) < self._min_qubits
             or node.is_directive()
             or (self._instruction_supported(node.name, qubits) and not node.is_control_flow())
         ):

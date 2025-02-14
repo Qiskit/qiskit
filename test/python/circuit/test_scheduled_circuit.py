@@ -21,7 +21,6 @@ from qiskit.circuit import Parameter
 from qiskit.circuit.duration import convert_durations_to_dt
 from qiskit.providers.fake_provider import Fake27QPulseV1, GenericBackendV2
 from qiskit.providers.basic_provider import BasicSimulator
-from qiskit.scheduler import ScheduleConfig
 from qiskit.transpiler import InstructionProperties
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations
