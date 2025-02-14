@@ -125,9 +125,9 @@ pub fn quantum_volume(
     }
     let mut outer_rng = match seed {
         Some(seed) => Pcg64Mcg::seed_from_u64(seed),
-        None => Pcg64Mcg::from_entropy(),
+        None => Pcg64Mcg::from_os_rng(),
     };
-    let seed_vec: Vec<u64> = rand::distributions::Standard
+    let seed_vec: Vec<u64> = rand::distr::StandardUniform
         .sample_iter(&mut outer_rng)
         .take(num_unitaries)
         .collect();
