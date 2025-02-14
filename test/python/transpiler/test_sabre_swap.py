@@ -13,7 +13,6 @@
 """Test the Sabre Swap pass"""
 
 import unittest
-import warnings
 import itertools
 
 import ddt
@@ -1293,17 +1292,12 @@ class TestSabreSwapRandomCircuitValidOutput(QiskitTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        with warnings.catch_warnings():
-            # Catch warnings since self.assertWarns cannot be used here.
-            # The `calibrate_instructions` argument is deprecated in Qiksit 1.3
-            warnings.simplefilter("ignore", category=DeprecationWarning)
-            cls.backend = GenericBackendV2(
-                num_qubits=27,
-                calibrate_instructions=True,
-                control_flow=True,
-                coupling_map=MUMBAI_CMAP,
-                seed=42,
-            )
+        cls.backend = GenericBackendV2(
+            num_qubits=27,
+            control_flow=True,
+            coupling_map=MUMBAI_CMAP,
+            seed=42,
+        )
         cls.coupling_edge_set = {tuple(x) for x in cls.backend.coupling_map}
         cls.basis_gates = set(cls.backend.operation_names)
 

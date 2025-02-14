@@ -368,10 +368,7 @@ class TestBackendSampler(QiskitTestCase):
 
     def test_primitive_job_size_limit_backend_v1(self):
         """Test primitive respects backend's job size limit."""
-        with self.assertWarns(DeprecationWarning):
-            backend = GenericBackendV2(
-                7, calibrate_instructions=True, basis_gates=["cx", "u1", "u2", "u3"], seed=42
-            )
+        backend = GenericBackendV2(7, basis_gates=["cx", "u1", "u2", "u3"], seed=42)
         qc = QuantumCircuit(1)
         qc.measure_all()
         qc2 = QuantumCircuit(1)
@@ -410,10 +407,7 @@ class TestBackendSampler(QiskitTestCase):
 
     def test_sequential_run(self):
         """Test sequential run."""
-        with self.assertWarns(DeprecationWarning):
-            backend = GenericBackendV2(
-                7, calibrate_instructions=True, basis_gates=["cx", "u1", "u2", "u3"], seed=42
-            )
+        backend = GenericBackendV2(7, basis_gates=["cx", "u1", "u2", "u3"], seed=42)
         qc = QuantumCircuit(1)
         qc.measure_all()
         qc2 = QuantumCircuit(1)
@@ -461,10 +455,8 @@ class TestBackendSampler(QiskitTestCase):
 
             bound_counter = CallbackPass("bound_pass_manager", callback)
             bound_pass = PassManager(bound_counter)
+            backend = GenericBackendV2(7, basis_gates=["cx", "u1", "u2", "u3"], seed=42)
             with self.assertWarns(DeprecationWarning):
-                backend = GenericBackendV2(
-                    7, calibrate_instructions=True, basis_gates=["cx", "u1", "u2", "u3"], seed=42
-                )
                 sampler = BackendSampler(backend=backend, bound_pass_manager=bound_pass)
             _ = sampler.run([self._circuit[0]]).result()
             expected = [
@@ -485,13 +477,11 @@ class TestBackendSampler(QiskitTestCase):
 
                 bound_counter = CallbackPass("bound_pass_manager", callback)
                 bound_pass = PassManager(bound_counter)
-                with self.assertWarns(DeprecationWarning):
-                    backend = GenericBackendV2(
-                        7,
-                        calibrate_instructions=True,
-                        basis_gates=["cx", "u1", "u2", "u3"],
-                        seed=42,
-                    )
+                backend = GenericBackendV2(
+                    7,
+                    basis_gates=["cx", "u1", "u2", "u3"],
+                    seed=42,
+                )
                 with self.assertWarns(DeprecationWarning):
                     sampler = BackendSampler(backend=backend, bound_pass_manager=bound_pass)
                 _ = sampler.run([self._circuit[0], self._circuit[0]]).result()

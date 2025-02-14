@@ -57,8 +57,7 @@ class TestScheduledCircuit(QiskitTestCase):
         qc.h(0)  # 195[dt]
         qc.h(1)  # 210[dt]
 
-        with self.assertWarns(DeprecationWarning):
-            backend = GenericBackendV2(2, calibrate_instructions=True, seed=42)
+        backend = GenericBackendV2(2, seed=42)
 
         sc = transpile(qc, backend, scheduling_method="alap", layout_method="trivial")
         self.assertEqual(sc.duration, 451095)
@@ -354,6 +353,7 @@ class TestScheduledCircuit(QiskitTestCase):
         self.assertEqual(sc.qubit_stop_time(2), 0)
         self.assertEqual(sc.qubit_start_time(0, 1), 300)
         self.assertEqual(sc.qubit_stop_time(0, 1), 1400)
+        self.assertEqual(sc.qubit_stop_time(0, 1, 2), 1400)
 
         qc.measure_all()
 
@@ -384,17 +384,12 @@ class TestScheduledCircuit(QiskitTestCase):
 
     def test_per_qubit_durations(self):
         """Test target with custom instruction_durations"""
-        with self.assertWarnsRegex(
-            DeprecationWarning,
-            expected_regex="argument ``calibrate_instructions`` is deprecated",
-        ):
-            target = GenericBackendV2(
-                3,
-                calibrate_instructions=True,
-                coupling_map=[[0, 1], [1, 2]],
-                basis_gates=["cx", "h"],
-                seed=42,
-            ).target
+        target = GenericBackendV2(
+            3,
+            coupling_map=[[0, 1], [1, 2]],
+            basis_gates=["cx", "h"],
+            seed=42,
+        ).target
         target.update_instruction_properties("cx", (0, 1), InstructionProperties(0.00001))
         target.update_instruction_properties("cx", (1, 2), InstructionProperties(0.00001))
         target.update_instruction_properties("h", (0,), InstructionProperties(0.000002))
@@ -437,8 +432,8 @@ class TestScheduledCircuit(QiskitTestCase):
         """Test that circuit duration unit conversion is applied only when necessary.
         Tests fix for bug reported in PR #11782."""
 
+        backend = GenericBackendV2(num_qubits=3, seed=42)
         with self.assertWarns(DeprecationWarning):
-            backend = GenericBackendV2(num_qubits=3, calibrate_instructions=True, seed=42)
             schedule_config = ScheduleConfig(
                 inst_map=backend.target.instruction_schedule_map(),
                 meas_map=backend.meas_map,
