@@ -22,7 +22,7 @@ import re
 from ddt import ddt, data
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, transpile
-from qiskit.circuit import Parameter, Qubit, Clbit, Gate, Delay, Barrier, ParameterVector
+from qiskit.circuit import Parameter, Qubit, Clbit, Gate, ParameterVector
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.controlflow import CASE_DEFAULT
 from qiskit.circuit.library import PauliEvolutionGate
@@ -94,45 +94,6 @@ class TestCircuitQASM3(QiskitTestCase):
             re.U | re.M,
         )
         super().setUpClass()
-
-    def test_regs_conds_qasm(self):
-        """Test with registers and conditionals."""
-        qr1 = QuantumRegister(1, "qr1")
-        qr2 = QuantumRegister(2, "qr2")
-        cr = ClassicalRegister(3, "cr")
-        qc = QuantumCircuit(qr1, qr2, cr)
-        qc.measure(qr1[0], cr[0])
-        qc.measure(qr2[0], cr[1])
-        qc.measure(qr2[1], cr[2])
-        with self.assertWarns(DeprecationWarning):
-            qc.x(qr2[1]).c_if(cr, 0)
-        with self.assertWarns(DeprecationWarning):
-            qc.y(qr1[0]).c_if(cr, 1)
-        with self.assertWarns(DeprecationWarning):
-            qc.z(qr1[0]).c_if(cr, 2)
-        expected_qasm = "\n".join(
-            [
-                "OPENQASM 3.0;",
-                'include "stdgates.inc";',
-                "bit[3] cr;",
-                "qubit[1] qr1;",
-                "qubit[2] qr2;",
-                "cr[0] = measure qr1[0];",
-                "cr[1] = measure qr2[0];",
-                "cr[2] = measure qr2[1];",
-                "if (cr == 0) {",
-                "  x qr2[1];",
-                "}",
-                "if (cr == 1) {",
-                "  y qr1[0];",
-                "}",
-                "if (cr == 2) {",
-                "  z qr1[0];",
-                "}",
-                "",
-            ]
-        )
-        self.assertEqual(Exporter().dumps(qc), expected_qasm)
 
     def test_registers_as_aliases(self):
         """Test that different types of alias creation and concatenation work."""
@@ -714,118 +675,6 @@ c[0] = measure q[0];
 c[1] = measure q[1];
 """
         self.assertEqual(dumps(qc, includes=["mygates.inc"], basis_gates=["h", "cx"]), expected)
-
-    def test_teleportation(self):
-        """Teleportation with physical qubits"""
-        qc = QuantumCircuit(3, 2)
-        qc.h(1)
-        qc.cx(1, 2)
-        qc.barrier()
-        qc.cx(0, 1)
-        qc.h(0)
-        qc.barrier()
-        qc.measure([0, 1], [0, 1])
-        qc.barrier()
-        with self.assertWarns(DeprecationWarning):
-            qc.x(2).c_if(qc.clbits[1], 1)
-        with self.assertWarns(DeprecationWarning):
-            qc.z(2).c_if(qc.clbits[0], 1)
-
-        transpiled = transpile(qc, initial_layout=[0, 1, 2])
-        expected_qasm = """\
-OPENQASM 3.0;
-gate u3(p0, p1, p2) _gate_q_0 {
-  U(p0, p1, p2) _gate_q_0;
-}
-gate u2(p0, p1) _gate_q_0 {
-  u3(pi/2, p0, p1) _gate_q_0;
-}
-gate h _gate_q_0 {
-  u2(0, pi) _gate_q_0;
-}
-gate cx c, t {
-  ctrl @ U(pi, 0, pi) c, t;
-}
-gate x _gate_q_0 {
-  u3(pi, 0, pi) _gate_q_0;
-}
-gate u1(p0) _gate_q_0 {
-  u3(0, 0, p0) _gate_q_0;
-}
-gate z _gate_q_0 {
-  u1(pi) _gate_q_0;
-}
-bit[2] c;
-h $1;
-cx $1, $2;
-barrier $0, $1, $2;
-cx $0, $1;
-h $0;
-barrier $0, $1, $2;
-c[0] = measure $0;
-c[1] = measure $1;
-barrier $0, $1, $2;
-if (c[1]) {
-  x $2;
-}
-if (c[0]) {
-  z $2;
-}
-"""
-        self.assertEqual(Exporter(includes=[]).dumps(transpiled), expected_qasm)
-
-    def test_basis_gates(self):
-        """Teleportation with physical qubits"""
-        qc = QuantumCircuit(3, 2)
-        qc.h(1)
-        qc.cx(1, 2)
-        qc.barrier()
-        qc.cx(0, 1)
-        qc.h(0)
-        qc.barrier()
-        qc.measure([0, 1], [0, 1])
-        qc.barrier()
-        with self.assertWarns(DeprecationWarning):
-            qc.x(2).c_if(qc.clbits[1], 1)
-        with self.assertWarns(DeprecationWarning):
-            qc.z(2).c_if(qc.clbits[0], 1)
-
-        transpiled = transpile(qc, initial_layout=[0, 1, 2])
-        expected_qasm = """\
-OPENQASM 3.0;
-gate u3(p0, p1, p2) _gate_q_0 {
-  U(p0, p1, p2) _gate_q_0;
-}
-gate u2(p0, p1) _gate_q_0 {
-  u3(pi/2, p0, p1) _gate_q_0;
-}
-gate h _gate_q_0 {
-  u2(0, pi) _gate_q_0;
-}
-gate x _gate_q_0 {
-  u3(pi, 0, pi) _gate_q_0;
-}
-bit[2] c;
-h $1;
-cx $1, $2;
-barrier $0, $1, $2;
-cx $0, $1;
-h $0;
-barrier $0, $1, $2;
-c[0] = measure $0;
-c[1] = measure $1;
-barrier $0, $1, $2;
-if (c[1]) {
-  x $2;
-}
-if (c[0]) {
-  z $2;
-}
-"""
-        self.assertEqual(
-            Exporter(includes=[], basis_gates=["cx", "z", "U"]).dumps(transpiled),
-            expected_qasm,
-        )
 
     def test_opaque_instruction_in_basis_gates(self):
         """Test that an instruction that is set in the basis gates is output verbatim with no
@@ -2046,63 +1895,6 @@ cx q[0], q[1];
 U(0.5, 0.125, 0.25) q[0];
 """
         self.assertEqual(dumps(qc), expected)
-
-    def test_unusual_conditions(self):
-        """Test that special QASM constructs such as ``measure`` are correctly handled when the
-        Terra instructions have old-style conditions."""
-        qc = QuantumCircuit(3, 2)
-        qc.h(0)
-        qc.measure(0, 0)
-        with self.assertWarns(DeprecationWarning):
-            qc.measure(1, 1).c_if(0, True)
-        with self.assertWarns(DeprecationWarning):
-            qc.reset([0, 1]).c_if(0, True)
-        with qc.while_loop((qc.clbits[0], True)):
-            with self.assertWarns(DeprecationWarning):
-                qc.break_loop().c_if(0, True)
-            with self.assertWarns(DeprecationWarning):
-                qc.continue_loop().c_if(0, True)
-        # Terra forbids delay and barrier from being conditioned through `c_if`, but in theory they
-        # should work fine in a dynamic-circuits sense (although what a conditional barrier _means_
-        # is a whole other kettle of fish).
-        delay = Delay(16, "dt")
-        delay.condition = (qc.clbits[0], True)
-        qc.append(delay, [0], [])
-        barrier = Barrier(2)
-        barrier.condition = (qc.clbits[0], True)
-        qc.append(barrier, [0, 1], [])
-
-        expected = """
-OPENQASM 3.0;
-include "stdgates.inc";
-bit[2] c;
-qubit[3] q;
-h q[0];
-c[0] = measure q[0];
-if (c[0]) {
-  c[1] = measure q[1];
-}
-if (c[0]) {
-  reset q[0];
-}
-if (c[0]) {
-  reset q[1];
-}
-while (c[0]) {
-  if (c[0]) {
-    break;
-  }
-  if (c[0]) {
-    continue;
-  }
-}
-if (c[0]) {
-  delay[16dt] q[0];
-}
-if (c[0]) {
-  barrier q[0], q[1];
-}"""
-        self.assertEqual(dumps(qc).strip(), expected.strip())
 
     def test_switch_clbit(self):
         """Test that a switch statement can be constructed with a bit as a condition."""

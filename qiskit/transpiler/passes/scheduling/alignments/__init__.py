@@ -77,4 +77,3 @@ Minimum pulse length constraint
 
 from .check_durations import InstructionDurationCheck
 from .reschedule import ConstrainedReschedule
-from .align_measures import AlignMeasures

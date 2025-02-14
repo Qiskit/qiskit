@@ -22,6 +22,3 @@ from .alignments import InstructionDurationCheck, ConstrainedReschedule
 
 # For backward compatibility
 from . import alignments as instruction_alignments
-
-# TODO Deprecated pass. Will be removed after deprecation period.
-from .alignments import AlignMeasures

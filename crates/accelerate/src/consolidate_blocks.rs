@@ -21,7 +21,6 @@ use rustworkx_core::petgraph::stable_graph::NodeIndex;
 use smallvec::smallvec;
 
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::circuit_instruction::ExtraInstructionAttributes;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::gate_matrix::{ONE_QUBIT_IDENTITY, TWO_QUBIT_IDENTITY};
 use qiskit_circuit::imports::{QI_OPERATOR, QUANTUM_CIRCUIT};
@@ -125,7 +124,7 @@ pub(crate) fn consolidate_blocks(
                     inst_node,
                     PackedOperation::from_unitary(Box::new(unitary_gate)),
                     smallvec![],
-                    ExtraInstructionAttributes::default(),
+                    None,
                 )?;
                 continue;
             }
@@ -199,7 +198,7 @@ pub(crate) fn consolidate_blocks(
                     &block,
                     PackedOperation::from_unitary(Box::new(unitary_gate)),
                     smallvec![],
-                    ExtraInstructionAttributes::default(),
+                    None,
                     false,
                     &block_index_map,
                     &clbit_pos_map,
@@ -238,7 +237,7 @@ pub(crate) fn consolidate_blocks(
                             &block,
                             PackedOperation::from_unitary(Box::new(unitary_gate)),
                             smallvec![],
-                            ExtraInstructionAttributes::default(),
+                            None,
                             false,
                             &qubit_pos_map,
                             &clbit_pos_map,
@@ -276,7 +275,7 @@ pub(crate) fn consolidate_blocks(
                     first_inst_node,
                     PackedOperation::from_unitary(Box::new(unitary_gate)),
                     smallvec![],
-                    ExtraInstructionAttributes::default(),
+                    None,
                 )?;
                 continue;
             }
@@ -320,7 +319,7 @@ pub(crate) fn consolidate_blocks(
                     &run,
                     PackedOperation::from_unitary(Box::new(unitary_gate)),
                     smallvec![],
-                    ExtraInstructionAttributes::default(),
+                    None,
                     false,
                     &block_index_map,
                     &clbit_pos_map,

@@ -397,33 +397,6 @@ class TestCommutativeInverseCancellation(QiskitTestCase):
 
         self.assertEqual(expected, new_circuit)
 
-    @data(False, True)
-    def test_conditional_gates_dont_commute(self, matrix_based):
-        """Conditional gates do not commute and do not cancel"""
-
-        #      ┌───┐┌─┐
-        # q_0: ┤ H ├┤M├─────────────
-        #      └───┘└╥┘       ┌─┐
-        # q_1: ──■───╫────■───┤M├───
-        #      ┌─┴─┐ ║  ┌─┴─┐ └╥┘┌─┐
-        # q_2: ┤ X ├─╫──┤ X ├──╫─┤M├
-        #      └───┘ ║  └─╥─┘  ║ └╥┘
-        #            ║ ┌──╨──┐ ║  ║
-        # c: 2/══════╩═╡ 0x0 ╞═╩══╩═
-        #            0 └─────┘ 0  1
-        circuit = QuantumCircuit(3, 2)
-        circuit.h(0)
-        circuit.measure(0, 0)
-        circuit.cx(1, 2)
-        with self.assertWarns(DeprecationWarning):
-            circuit.cx(1, 2).c_if(circuit.cregs[0], 0)
-        circuit.measure([1, 2], [0, 1])
-
-        passmanager = PassManager(CommutativeInverseCancellation(matrix_based=matrix_based))
-        new_circuit = passmanager.run(circuit)
-
-        self.assertEqual(circuit, new_circuit)
-
     # The second suite of tests is adapted from InverseCancellation,
     # modifying tests where more nonconsecutive gates cancel.
 

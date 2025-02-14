@@ -48,7 +48,7 @@ class BreakLoopPlaceholder(InstructionPlaceholder):
 
     def concrete_instruction(self, qubits, clbits):
         return (
-            self._copy_mutable_properties(BreakLoopOp(len(qubits), len(clbits), label=self.label)),
+            BreakLoopOp(len(qubits), len(clbits), label=self.label),
             InstructionResources(qubits=tuple(qubits), clbits=tuple(clbits)),
         )
 

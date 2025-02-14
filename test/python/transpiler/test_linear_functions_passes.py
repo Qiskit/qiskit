@@ -631,27 +631,6 @@ class TestLinearFunctionsPasses(QiskitTestCase):
         self.assertEqual(Operator(resulting_subcircuit1), Operator(expected_subcircuit1))
         self.assertEqual(Operator(resulting_subcircuit2), Operator(expected_subcircuit2))
 
-    def test_do_not_merge_conditional_gates(self):
-        """Test that collecting Cliffords works properly when there the circuit
-        contains conditional gates."""
-
-        qc = QuantumCircuit(2, 1)
-        qc.cx(1, 0)
-        qc.swap(1, 0)
-        with self.assertWarns(DeprecationWarning):
-            qc.cx(0, 1).c_if(0, 1)
-        qc.cx(0, 1)
-        qc.cx(1, 0)
-
-        qct = PassManager(CollectLinearFunctions()).run(qc)
-
-        # The conditional gate prevents from combining all gates into a single clifford
-        self.assertEqual(qct.count_ops()["linear_function"], 2)
-
-        # Make sure that the condition on the middle gate is not lost
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsNotNone(qct.data[1].operation.condition)
-
     @combine(do_commutative_analysis=[False, True])
     def test_split_layers(self, do_commutative_analysis):
         """Test that splitting blocks of nodes into layers works correctly."""
