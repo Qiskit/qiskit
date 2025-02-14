@@ -210,6 +210,10 @@ __all__ = [
     "greater",
     "greater_equal",
     "index",
+    "add",
+    "sub",
+    "mul",
+    "div",
     "lift_legacy_condition",
 ]
 
@@ -234,5 +238,9 @@ from .constructors import (
     shift_left,
     shift_right,
     index,
+    add,
+    sub,
+    mul,
+    div,
     lift_legacy_condition,
 )

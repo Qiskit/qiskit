@@ -36,6 +36,10 @@ __all__ = [
     "shift_left",
     "shift_right",
     "index",
+    "add",
+    "sub",
+    "mul",
+    "div",
     "lift_legacy_condition",
 ]
 
@@ -666,3 +670,237 @@ Bool(const=False))
     if target.type.kind is not types.Uint or index.type.kind is not types.Uint:
         raise TypeError(f"invalid types for indexing: '{target.type}' and '{index.type}'")
     return Index(target, index, types.Bool(const=target.type.const and index.type.const))
+
+
+def _binary_sum(op: Binary.Op, left: typing.Any, right: typing.Any) -> Expr:
+    left, right = _lift_binary_operands(left, right)
+    if (
+        left.type.kind is types.Bool
+        or right.type.kind is types.Bool
+        or left.type.kind is not right.type.kind
+        and types.order(left.type, right.type) is types.Ordering.NONE
+    ):
+        raise TypeError(f"invalid types for '{op}': '{left.type}' and '{right.type}'")
+    type = types.greater(left.type, right.type)
+    return Binary(
+        op,
+        _coerce_lossless(left, type),
+        _coerce_lossless(right, type),
+        type,
+    )
+
+
+def add(left: typing.Any, right: typing.Any, /) -> Expr:
+    """Create an addition expression node from the given values, resolving any implicit casts and
+    lifting the values into :class:`Value` nodes if required.
+
+    Examples:
+        Addition of two const floating point numbers::
+
+            >>> from qiskit.circuit.classical import expr
+            >>> expr.add(expr.lift(5.0, try_const=True), 2.0)
+            Binary(\
+Binary.Op.ADD, \
+Value(5.0, Float(const=True)), \
+Value(2.0, Float(const=True)), \
+Float(const=True))
+
+        Addition of two durations::
+
+            >>> from qiskit.circuit import Duration
+            >>> from qiskit.circuit.classical import expr
+            >>> expr.add(Duration.dt(1000), Duration.dt(1000))
+            Binary(\
+Binary.Op.ADD, \
+Value(Duration.dt(1000), Duration()), \
+Value(Duration.dt(1000), Duration()), \
+Duration())
+
+        Addition of stretch and duration::
+
+            >>> from qiskit.circuit import Duration
+            >>> from qiskit.circuit.classical import expr, types
+            >>> expr.add(expr.Var.new("a", types.Stretch()), Duration.dt(1000))
+            Binary(\
+Binary.Op.ADD, \
+Var(<UUID>, Stretch(), name='a'), \
+Cast(Value(Duration.dt(1000), Duration()), Stretch(), implicit=True), \
+Stretch())
+        """
+    return _binary_sum(Binary.Op.ADD, left, right)
+
+
+def sub(left: typing.Any, right: typing.Any, /) -> Expr:
+    """Create a subtraction expression node from the given values, resolving any implicit casts and
+    lifting the values into :class:`Value` nodes if required.
+
+    Examples:
+        Subtration of two const floating point numbers::
+
+            >>> from qiskit.circuit.classical import expr
+            >>> expr.sub(expr.lift(5.0, try_const=True), 2.0)
+            Binary(\
+Binary.Op.SUB, \
+Value(5.0, Float(const=True)), \
+Value(2.0, Float(const=True)), \
+Float(const=True))
+
+    Subtraction of two durations::
+
+            >>> from qiskit.circuit import Duration
+            >>> from qiskit.circuit.classical import expr
+            >>> expr.add(Duration.dt(1000), Duration.dt(1000))
+            Binary(\
+Binary.Op.SUB, \
+Value(Duration.dt(1000), Duration()), \
+Value(Duration.dt(1000), Duration()), \
+Duration())
+
+        Subtraction of duration from stretch::
+
+            >>> from qiskit.circuit import Duration
+            >>> from qiskit.circuit.classical import expr, types
+            >>> expr.add(expr.Var.new("a", types.Stretch()), Duration.dt(1000))
+            Binary(\
+Binary.Op.SUB, \
+Var(<UUID>, Stretch(), name='a'), \
+Cast(Value(Duration.dt(1000), Duration()), Stretch(), implicit=True), \
+Stretch())
+        """
+    return _binary_sum(Binary.Op.SUB, left, right)
+
+
+def mul(left: typing.Any, right: typing.Any) -> Expr:
+    """Create a multiplication expression node from the given values, resolving any implicit casts and
+    lifting the values into :class:`Value` nodes if required.
+
+    This can be used to multiply numeric operands of the same type kind, or to multiply a timing
+    operand by a const :class:`~.types.Float`.
+
+    Examples:
+        Multiplication of two const floating point numbers::
+
+            >>> from qiskit.circuit.classical import expr
+            >>> expr.mul(expr.lift(5.0, try_const=True), 2.0)
+            Binary(\
+Binary.Op.MUL, \
+Value(5.0, Float(const=True)), \
+Value(2.0, Float(const=True)), \
+Float(const=True))
+
+        Multiplication of a duration by a const float::
+
+            >>> from qiskit.circuit import Duration
+            >>> from qiskit.circuit.classical import expr
+            >>> expr.mul(Duration.dt(1000), 0.5)
+            Binary(\
+Binary.Op.MUL, \
+Value(Duration.dt(1000), Duration()), \
+Value(0.5, Float(const=True)), \
+Duration())
+
+        Multiplication of a stretch by a const float::
+
+            >>> from qiskit.circuit.classical import expr
+            >>> expr.mul(expr.Var.new("a", types.Stretch()), 0.5)
+            Binary(\
+Binary.Op.MUL, \
+Var(<UUID>, Stretch(), name='a'), \
+Value(0.5, Float(const=True)), \
+Stretch())
+    """
+    left, right = _lift_binary_operands(left, right)
+    left_timing = left.type.kind in (types.Stretch, types.Duration)
+    right_timing = right.type.kind in (types.Stretch, types.Duration)
+    type: types.Type
+    if left_timing and right_timing:
+        raise TypeError(f"cannot multiply two timing operands: '{left.type}' and '{right.type}'")
+    if left_timing and right.type.kind is types.Float and right.type.const is True:
+        type = left.type
+    elif right_timing and left.type.kind is types.Float and left.type.const is True:
+        type = right.type
+    elif (
+        left.type.kind is right.type.kind
+        and left.type.kind is not types.Bool
+        and types.order(left.type, right.type) is not types.Ordering.NONE
+    ):
+        type = types.greater(left.type, right.type)
+        left = _coerce_lossless(left, type)
+        right = _coerce_lossless(right, type)
+    else:
+        raise TypeError(f"invalid types for '{Binary.Op.MUL}': '{left.type}' and '{right.type}'")
+    return Binary(
+        Binary.Op.MUL,
+        left,
+        right,
+        type,
+    )
+
+
+def div(left: typing.Any, right: typing.Any) -> Expr:
+    """Create a division expression node from the given values, resolving any implicit casts and
+    lifting the values into :class:`Value` nodes if required.
+
+    This can be used to divide numeric operands of the same type kind, to divide a timing
+    operand by a :class:`~.types.Float`, or to divide two :class`~.types.Duration` operands
+    which yields an expression of type const :class:`~.types.Float`.
+
+    Examples:
+        Division of two const floating point numbers::
+
+            >>> from qiskit.circuit.classical import expr
+            >>> expr.div(expr.lift(5.0, try_const=True), 2.0)
+            Binary(\
+Binary.Op.DIV, \
+Value(5.0, Float(const=True)), \
+Value(2.0, Float(const=True)), \
+Float(const=True))
+
+        Division of two durations::
+
+            >>> from qiskit.circuit import Duration
+            >>> from qiskit.circuit.classical import expr
+            >>> expr.div(Duration.dt(10000), Duration.dt(1000))
+            Binary(\
+Binary.Op.DIV, \
+Value(Duration.dt(10000), Duration()), \
+Value(Duration.dt(1000), Duration()), \
+Float(const=True))
+
+
+        Division of a duration by a float::
+
+            >>> from qiskit.circuit import Duration
+            >>> from qiskit.circuit.classical import expr
+            >>> expr.div(Duration.dt(10000), 12.0)
+            Binary(\
+Binary.Op.DIV, \
+Value(Duration.dt(10000), Duration()), \
+Value(12.0, types.Float(const=True)), \
+Float(const=True))
+    """
+    left, right = _lift_binary_operands(left, right)
+    type: types.Type
+    if left.type.kind is right.type.kind is not types.Bool:
+        if left.type.kind is types.Stretch:
+            raise TypeError("cannot divide two stretch operands")
+        if left.type.kind is types.Duration:
+            type = types.Float(const=True)
+        elif types.order(left.type, right.type) is not types.Ordering.NONE:
+            type = types.greater(left.type, right.type)
+            left = _coerce_lossless(left, type)
+            right = _coerce_lossless(right, type)
+    elif (
+        left.type.kind in (types.Stretch, types.Duration)
+        and right.type.kind is types.Float
+        and right.type.const is True
+    ):
+        type = left.type
+    else:
+        raise TypeError(f"invalid types for '{Binary.Op.DIV}': '{left.type}' and '{right.type}'")
+    return Binary(
+        Binary.Op.DIV,
+        left,
+        right,
+        type,
+    )
