@@ -13,9 +13,9 @@ features:
     .. code:: c
 
       #include <stdio.h>
-      #include "qiskit.h"
+      #include <qiskit.h>
 
-      int main() {
+      int main(int argc, char* argv[]) {
         // build a 100-qubit empty observable
         u_int32_t num_qubits = 100;
         QkSparseObservable *obs = qk_obs_zero(num_qubits);  
@@ -32,7 +32,7 @@ features:
         printf("num_terms: %i\n", qk_obs_num_terms(obs));
 
         // free the memory allocated for the observable
-        obs_free(obs);
+        qk_obs_free(obs);
       
         return 0;
       }

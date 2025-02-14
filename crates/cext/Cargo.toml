@@ -10,6 +10,9 @@ name = "qiskit_cext"
 doctest = false
 crate-type = ["cdylib", "rlib"]
 
+[lints]
+workspace = true
+
 [dependencies]
 thiserror.workspace = true
 num-complex.workspace = true

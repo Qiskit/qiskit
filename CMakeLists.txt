@@ -10,5 +10,8 @@ enable_testing ()
 # a Release-build for cbindgen to work properly.
 find_library (qiskit qiskit_cext PATHS target/release REQUIRED)
 
+# Generally include the directory for the ``qiskit.h`` file.
+include_directories (dist/c/include)
+
 # The remaining CMake configuration is done inside of the C API test suite.
 add_subdirectory (test/c)

@@ -19,9 +19,6 @@ __pycache__/
 # C extensions
 *.so
 
-# The C API header is generated automatically, therefore we do not upload it.
-qiskit.h
-
 # Distribution / packaging
 .Python
 env/

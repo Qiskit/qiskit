@@ -84,14 +84,18 @@ coverage_erase:
 
 clean: coverage_erase ;
 
-# Run clang-format
+# Run clang-format (does not apply any changes)
 cformat:
-	sh tools/run_clang_format.sh
+	bash tools/run_clang_format.sh
+
+# Apply clang-format changes
+fix_cformat:
+	bash tools/run_clang_format.sh apply
 
 # Build C API crate and header
-cheader:
+cheader: 
 	cargo build --release --no-default-features --features cbinding
-	cbindgen --crate qiskit-cext --output qiskit.h --lang C
+	cbindgen --crate qiskit-cext --output dist/c/include/qiskit.h --lang C
 
 # Use ctest to run C API tests
 ctest: cheader
@@ -101,3 +105,6 @@ ctest: cheader
 	cmake --build test/c/build
 	# -V ensures we always produce a logging output to indicate the subtests
 	ctest -V --test-dir test/c/build
+
+cclean:
+	rm -r dist/c
