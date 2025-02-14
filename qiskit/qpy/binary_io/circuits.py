@@ -319,6 +319,14 @@ def _read_instruction(
             standalone_vars,
         )
         if condition is not None:
+            warnings.warn(
+                f"The .condition attribute on {gate_name} can not be "
+                "represented in this version of Qiskit. It will be "
+                "represented as an IfElseOp instead.",
+                UserWarning,
+                stacklevel=3,
+            )
+
             body = QuantumCircuit(qargs, cargs)
             body.append(inst_obj, qargs, cargs)
             inst_obj = IfElseOp(condition, body)
@@ -419,6 +427,13 @@ def _read_instruction(
                 gate = gate_class(*params)
         if condition:
             if not isinstance(gate, ControlFlowOp):
+                warnings.warn(
+                    f"The .condition attribute on {gate_name} can not be "
+                    "represented in this version of Qiskit. It will be "
+                    "represented as an IfElseOp instead.",
+                    UserWarning,
+                    stacklevel=3,
+                )
                 body = QuantumCircuit(qargs, cargs)
                 body.append(gate, qargs, cargs)
                 gate = IfElseOp(condition, body)
