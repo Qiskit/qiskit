@@ -29,7 +29,10 @@ class PassManagerConfig:
         since="1.4",
         package_name="Qiskit",
         removal_timeline="in Qiskit 2.0",
-        additional_msg="The `target` parameter should be used instead.",
+        additional_msg="The BackendProperties data structure has been deprecated and will be "
+        "removed in Qiskit 2.0. The `target` input argument should be used instead. "
+        "You can use Target.from_configuration() to build the target from the properties "
+        "object, but in 2.0 you will need to generate a target directly.",
     )
     @deprecate_pulse_arg("inst_map", predicate=lambda inst_map: inst_map is not None)
     def __init__(
