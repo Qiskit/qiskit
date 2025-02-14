@@ -282,16 +282,10 @@ impl CircuitData {
     ///     CircuitData: The shallow copy.
     #[pyo3(signature = (copy_instructions=true, deepcopy=false))]
     pub fn copy(&self, py: Python<'_>, copy_instructions: bool, deepcopy: bool) -> PyResult<Self> {
-        let mut res = CircuitData::new(
-            py,
-            Some(self.qubits.cached().bind(py)),
-            Some(self.clbits.cached().bind(py)),
-            None,
-            self.data.len(),
-            self.global_phase.clone(),
-        )?;
+        let mut res = self.copy_empty_like(py)?;
         res.qargs_interner = self.qargs_interner.clone();
         res.cargs_interner = self.cargs_interner.clone();
+        res.reserve(py, self.data().len());
         res.param_table.clone_from(&self.param_table);
 
         if deepcopy {
@@ -325,6 +319,22 @@ impl CircuitData {
         Ok(res)
     }
 
+    /// Performs a copy with no instruction.
+    ///
+    /// Returns:
+    ///     CircuitData: The shallow copy.
+    pub fn copy_empty_like(&self, py: Python<'_>) -> PyResult<Self> {
+        let res = CircuitData::new(
+            py,
+            Some(self.qubits.cached().bind(py)),
+            Some(self.clbits.cached().bind(py)),
+            None,
+            0,
+            self.global_phase.clone(),
+        )?;
+
+        Ok(res)
+    }
     /// Reserves capacity for at least ``additional`` more
     /// :class:`.CircuitInstruction` instances to be added to this container.
     ///

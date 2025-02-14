@@ -670,11 +670,11 @@ class TestSabreSwapControlFlow(QiskitTestCase):
         efalse_body.swap(3, 4)
 
         expected.if_else((creg[0], 0), etrue_body, efalse_body, qreg, creg[[0]])
-        expected.swap(1, 2)
         expected.h(3)
-        expected.cx(3, 2)
+        expected.swap(2, 3)
+        expected.cx(2, 1)
         expected.barrier()
-        expected.measure(qreg[[2, 0, 1, 3, 4]], creg)
+        expected.measure(qreg[[1, 0, 3, 2, 4]], creg)
         self.assertEqual(dag_to_circuit(cdag), expected)
 
     def test_if_expr(self):
