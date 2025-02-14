@@ -71,7 +71,7 @@ class DynamicalDecoupling(TransformationPass):
             dt=1e-7,
         )
         target = Target.from_configuration(
-            ["h", "cx", "reset", "x", "measure"],
+            ["h", "cx", "reset", "x", "measure", "delay"],
             num_qubits=4,
             coupling_map=CouplingMap.from_line(4, bidirectional=False),
             instruction_durations=durations,
@@ -83,7 +83,7 @@ class DynamicalDecoupling(TransformationPass):
         pm = PassManager([ALAPSchedule(durations),
                           DynamicalDecoupling(durations, dd_sequence)])
         circ_dd = pm.run(circ)
-        timeline_draw(circ_dd, target=target)
+        timeline_drawer(circ_dd, target=target)
 
         # Uhrig sequence on qubit 0
         n = 8
@@ -101,7 +101,7 @@ class DynamicalDecoupling(TransformationPass):
             ]
         )
         circ_dd = pm.run(circ)
-        timeline_draw(circ_dd, target=target)
+        timeline_drawer(circ_dd, target=target)
     """
 
     @deprecate_func(

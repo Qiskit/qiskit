@@ -970,7 +970,7 @@ class Target(BaseTarget):
         self._instruction_schedule_map = state["instruction_schedule_map"]
         super().__setstate__(state["base"])
 
-    def convert_to_dt(self, duration: float) -> int:
+    def seconds_to_dt(self, duration: float) -> int:
         """Convert a given duration in seconds to units of dt
 
         Args:

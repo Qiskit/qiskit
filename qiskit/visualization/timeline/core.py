@@ -191,7 +191,10 @@ class DrawerCanvas:
                                 tuple(program.find_bit(x).index for x in instruction.qubits)
                             )
                             if inst_props is not None:
-                                duration = target.convert_to_dt(getattr(inst_props, "duration"))
+                                duration = getattr(inst_props, "duration")
+                                if duration is not None:
+                                    duration = target.seconds_to_dt(duration)
+
                         if instruction.name == "delay":
                             duration = instruction.operation.duration
                         if duration is None:
