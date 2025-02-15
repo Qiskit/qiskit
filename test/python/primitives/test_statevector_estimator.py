@@ -49,8 +49,8 @@ class TestStatevectorEstimator(QiskitTestCase):
         ra_2_reps.append(real_amplitudes(num_qubits=2, reps=2), [0, 1])
         ra_3_reps = QuantumCircuit(2)
         ra_3_reps.append(real_amplitudes(num_qubits=2, reps=3), [0, 1])
-
         self.psi = (ra_2_reps, ra_3_reps)
+
         self.params = tuple(psi.parameters for psi in self.psi)
         self.hamiltonian = (
             SparsePauliOp.from_list([("II", 1), ("IZ", 2), ("XI", 3)]),
