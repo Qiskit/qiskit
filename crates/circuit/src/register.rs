@@ -12,7 +12,8 @@
 
 use crate::{
     bit::{
-        BitInfo, PyClbit, PyQubit, QubitExtraInfo, ShareableBit, ShareableClbit, ShareableQubit,
+        BitInfo, PyAncillaQubit, PyClbit, PyQubit, QubitExtraInfo, ShareableBit, ShareableClbit,
+        ShareableQubit,
     },
     circuit_data::CircuitError,
     slice::PySequenceIndex,
@@ -138,6 +139,16 @@ impl OwningRegisterInfo<ShareableQubit> {
     }
 }
 
+impl RegisterInfo<ShareableQubit> {
+    /// Checks if the register contains ancilla qubits.
+    pub fn is_ancilla(&self) -> bool {
+        match self {
+            RegisterInfo::Owning(owning_register_info) => owning_register_info.is_ancilla(),
+            RegisterInfo::Alias { extra, .. } => extra.is_ancilla(),
+        }
+    }
+}
+
 impl Display for OwningRegisterInfo<ShareableQubit> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let identifier = match self.is_ancilla() {
@@ -162,8 +173,15 @@ impl<'py> IntoPyObject<'py> for RegisterInfo<ShareableQubit> {
     type Error = PyErr;
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        // TODO: Implement conversion to ancilla qubit
-        PyQuantumRegister(self).into_pyobject(py)
+        match self.is_ancilla() {
+            true => {
+                let inner = PyQuantumRegister(self.into());
+                Ok(Py::new(py, (PyAncillaRegister(inner.clone()), inner))?
+                    .into_bound(py)
+                    .into_super())
+            }
+            false => PyQuantumRegister(self.into()).into_pyobject(py),
+        }
     }
 }
 
@@ -175,8 +193,7 @@ impl<'py> IntoPyObject<'py> for RegisterInfo<ShareableClbit> {
     type Error = PyErr;
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        // TODO: Implement conversion to ancilla qubit
-        PyClassicalRegister(self).into_pyobject(py)
+        PyClassicalRegister(self.into()).into_pyobject(py)
     }
 }
 
@@ -226,7 +243,7 @@ macro_rules! create_py_register {
             subclass
         )]
         #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-        pub struct $name(RegisterInfo<$nativebit>);
+        pub struct $name(Arc<RegisterInfo<$nativebit>>);
 
         #[pymethods]
         impl $name {
@@ -276,7 +293,7 @@ macro_rules! create_py_register {
                     RegisterInfo::new_owning(name_parse(name), size, $extra)
                 };
 
-                Ok(Self(register))
+                Ok(Self(register.into()))
             }
 
             /// Get the register name
@@ -310,7 +327,7 @@ macro_rules! create_py_register {
                     SliceOrInt::Slice(py_sequence_index) => {
                         let sequence = py_sequence_index.with_len(slf.size().try_into().unwrap())?;
                         match sequence {
-                            crate::slice::SequenceIndex::Int(idx) => match &slf.0 {
+                            crate::slice::SequenceIndex::Int(idx) => match slf.0.as_ref() {
                                 RegisterInfo::Owning(owning_register_info) => {
                                     if slf.size() < idx {
                                         return Err(CircuitError::new_err("register index out of range"));
@@ -324,7 +341,7 @@ macro_rules! create_py_register {
                                     .ok_or(CircuitError::new_err("register index out of range"))?
                                     .into_py_any(py),
                             },
-                            _ => match &slf.0 {
+                            _ => match slf.0.as_ref() {
                                 RegisterInfo::Owning(owning_register_info) => {
                                     let result: Vec<$pybit> = sequence
                                         .iter()
@@ -355,7 +372,7 @@ macro_rules! create_py_register {
                             },
                         }
                     }
-                    SliceOrInt::List(vec) => match &slf.0 {
+                    SliceOrInt::List(vec) => match slf.0.as_ref() {
                         RegisterInfo::Owning(owning_register_info) => {
                             let result: Vec<$pybit> = vec
                                 .iter()
@@ -411,7 +428,7 @@ macro_rules! create_py_register {
                             Err(err())
                         }
                     }
-                    BitInfo::Anonymous { .. } => match &slf.0 {
+                    BitInfo::Anonymous { .. } => match slf.0.as_ref() {
                         RegisterInfo::Owning(..) => Err(err()),
                         RegisterInfo::Alias { bits, .. } => bits.get_index_of(bit_inner).ok_or(err()),
                     },
@@ -421,7 +438,7 @@ macro_rules! create_py_register {
             fn __getnewargs__<'py>(
                 slf: PyRef<'py, Self>,
             ) -> PyResult<(Option<usize>, String, Option<Bound<'py, PyList>>)> {
-                match &slf.0 {
+                match slf.0.as_ref() {
                     RegisterInfo::Owning(..) => Ok((Some(slf.0.len()), slf.name().to_string(), None)),
                     RegisterInfo::Alias { bits, .. } => Ok((
                         None,
@@ -432,7 +449,7 @@ macro_rules! create_py_register {
             }
 
             fn __iter__<'py>(slf: PyRef<'py, Self>) -> PyResult<Bound<'py, pyo3::types::PyIterator>> {
-                match &slf.0 {
+                match slf.0.as_ref() {
                     RegisterInfo::Owning(owning_register_info) => {
                         return PyList::new(
                             slf.py(),
@@ -451,7 +468,7 @@ macro_rules! create_py_register {
         }
         impl From<RegisterInfo<$nativebit>> for $name {
             fn from(value: RegisterInfo<$nativebit>) -> Self {
-                Self(value)
+                Self(value.into())
             }
         }
     };
@@ -477,4 +494,68 @@ create_py_register! {
     CREG_COUNTER,
     (),
     "c"
+}
+
+static AREG_COUNTER: AtomicU32 = AtomicU32::new(0);
+
+#[pyclass(
+    name = "AncillaRegister",
+    module = "qiskit.circuit.quantumregister",
+    frozen,
+    eq,
+    hash,
+    extends=PyQuantumRegister
+)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct PyAncillaRegister(PyQuantumRegister);
+
+#[pymethods]
+impl PyAncillaRegister {
+    #[new]
+    #[pyo3(signature = (size = None, name = None, bits = None))]
+    pub fn new(
+        size: Option<u32>,
+        name: Option<String>,
+        bits: Option<Vec<PyAncillaQubit>>,
+    ) -> PyResult<(Self, PyQuantumRegister)> {
+        let name_parse = |name: Option<String>| -> String {
+            if let Some(name) = name {
+                name
+            } else {
+                format!(
+                    "{}{}",
+                    'a',
+                    AREG_COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+                )
+            }
+        };
+
+        if (size.is_none() && bits.is_none()) || (size.is_some() && bits.is_some()) {
+            return Err(CircuitError::new_err(format!("Exactly one of the size or bits arguments can be provided. Provided size={:?} bits={:?}.", size, bits)));
+        }
+
+        let size: u32 = if let Some(bits) = bits.as_ref() {
+            bits.len().try_into().map_err(|_| CircuitError::new_err(format!("The amount of bits provided exceeds the capacity of the register. Current size {}", bits.len())))?
+        } else {
+            size.unwrap_or_default()
+        };
+
+        let register: Arc<RegisterInfo<ShareableQubit>> = if let Some(bits) = bits {
+            let bits_set: IndexSet<BitInfo<ShareableQubit>> =
+                bits.into_iter().map(|bit| bit.0 .0).collect();
+            if bits_set.len() != size as usize {
+                return Err(CircuitError::new_err(
+                    "Register bits must not be duplicated.",
+                ));
+            }
+            RegisterInfo::new_alias(name_parse(name), bits_set.into(), QubitExtraInfo::new(true))
+                .into()
+        } else {
+            RegisterInfo::new_owning(name_parse(name), size, QubitExtraInfo::new(true)).into()
+        };
+
+        let qreg = PyQuantumRegister(register);
+
+        Ok((Self(qreg.clone()), qreg))
+    }
 }

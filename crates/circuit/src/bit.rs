@@ -151,13 +151,13 @@ macro_rules! create_py_bit {
     ($name:ident, $natbit:ty, $pyname:literal, $pymodule:literal, $extra:expr, ) => {
         /// Implements a quantum bit
         #[pyclass(
-                                                                    subclass,
-                                                                    name = $pyname,
-                                                                    module = $pymodule,
-                                                                    eq,
-                                                                    frozen,
-                                                                    hash
-                                                                )]
+            subclass,
+            name = $pyname,
+            module = $pymodule,
+            eq,
+            frozen,
+            hash
+        )]
         #[derive(Debug, Clone, PartialEq, Eq, Hash)]
         pub struct $name(pub(crate) BitInfo<$natbit>);
 
@@ -262,7 +262,7 @@ create_py_bit!(
     hash
 )]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct PyAncillaQubit(PyQubit);
+pub struct PyAncillaQubit(pub(crate) PyQubit);
 
 #[pymethods]
 impl PyAncillaQubit {

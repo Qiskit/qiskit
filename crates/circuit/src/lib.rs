@@ -164,6 +164,7 @@ pub fn circuit(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<bit::PyAncillaQubit>()?;
     m.add_class::<register::PyQuantumRegister>()?;
     m.add_class::<register::PyClassicalRegister>()?;
+    m.add_class::<register::PyAncillaRegister>()?;
     m.add_class::<circuit_data::CircuitData>()?;
     m.add_class::<circuit_instruction::CircuitInstruction>()?;
     m.add_class::<dag_circuit::DAGCircuit>()?;
