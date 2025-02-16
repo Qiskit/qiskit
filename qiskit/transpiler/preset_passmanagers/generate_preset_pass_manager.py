@@ -3,7 +3,6 @@
 # (C) Copyright IBM 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
-# obtain a copy of this license in the LICENSE.txt file in the root directory
 # of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
@@ -14,7 +13,6 @@
 Preset pass manager generation function
 """
 
-import copy
 import warnings
 
 from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES, get_control_flow_name_mapping
@@ -312,9 +310,7 @@ def generate_preset_pass_manager(
     timing_constraints = _parse_timing_constraints(backend, timing_constraints)
     # The basis gates parser will set _skip_target to True if a custom basis gate is found
     # (known edge case).
-    basis_gates, name_mapping, _skip_target = _parse_basis_gates(
-        basis_gates, backend, _skip_target
-    )
+    basis_gates, name_mapping, _skip_target = _parse_basis_gates(basis_gates, backend, _skip_target)
     coupling_map = _parse_coupling_map(coupling_map, backend)
 
     if target is None:

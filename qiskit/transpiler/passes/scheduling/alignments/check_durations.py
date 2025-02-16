@@ -68,4 +68,3 @@ class InstructionDurationCheck(AnalysisPass):
             if not (dur % self.acquire_align == 0 and dur % self.pulse_align == 0):
                 self.property_set["reschedule_required"] = True
                 return
-

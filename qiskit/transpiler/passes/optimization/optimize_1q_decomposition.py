@@ -160,9 +160,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
             out_dag.apply_operation_back(op.operation, qubits, check=False)
         return out_dag
 
-    def _substitution_checks(
-        self, dag, old_run, new_circ, basis, qubit, old_error=None, new_error=None
-    ):
+    def _substitution_checks(self, old_run, new_circ, basis, qubit, old_error=None, new_error=None):
         """
         Returns `True` when it is recommended to replace `old_run` with `new_circ` over `basis`.
         """
@@ -171,10 +169,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
 
         # does this run have gates not in the image of ._decomposers?
         if basis is not None:
-            not_basis_p = any(
-                g.name not in basis
-                for g in old_run
-            )
+            not_basis_p = any(g.name not in basis for g in old_run)
         else:
             # If no basis is specified then we're always in the basis
             not_basis_p = False

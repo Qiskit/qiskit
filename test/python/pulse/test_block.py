@@ -760,7 +760,7 @@ class TestBlockFilter(BaseTestBlock):
             self.assertTrue(ch in filtered_blk.channels)
         self.assertEqual(filtered_blk, blk)
 
-      def test_filter_inst_types(self):
+    def test_filter_inst_types(self):
         """Test filtering on instruction types."""
         with pulse.build() as blk:
             pulse.acquire(5, pulse.AcquireChannel(0), pulse.MemorySlot(0))

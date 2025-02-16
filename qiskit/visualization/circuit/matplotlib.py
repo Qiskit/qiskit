@@ -1454,7 +1454,7 @@ class MatplotlibDrawer:
 
         # Swap gate
         if isinstance(op, SwapGate):
-            self._swap(xy, node, node_data, node_data[node].lc)
+            self._swap(xy, node_data[node].lc)
             return
 
         # RZZ Gate
@@ -1746,7 +1746,7 @@ class MatplotlibDrawer:
             self._gate(node, node_data, glob_data, xy[num_ctrl_qubits:][0])
 
         elif isinstance(base_type, SwapGate):
-            self._swap(xy[num_ctrl_qubits:], node, node_data, node_data[node].lc)
+            self._swap(xy[num_ctrl_qubits:], node_data[node].lc)
 
         else:
             self._multiqubit_gate(node, node_data, glob_data, xy[num_ctrl_qubits:])
@@ -1881,7 +1881,7 @@ class MatplotlibDrawer:
             )
             self._line(qubit_b, qubit_t, lc=lc)
 
-    def _swap(self, xy, node, node_data, color=None):
+    def _swap(self, xy, color=None):
         """Draw a Swap gate"""
         self._swap_cross(xy[0], color=color)
         self._swap_cross(xy[1], color=color)

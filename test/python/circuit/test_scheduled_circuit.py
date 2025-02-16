@@ -430,12 +430,6 @@ class TestScheduledCircuit(QiskitTestCase):
         Tests fix for bug reported in PR #11782."""
 
         backend = GenericBackendV2(num_qubits=3, seed=42)
-        with self.assertWarns(DeprecationWarning):
-            schedule_config = ScheduleConfig(
-                inst_map=backend.target.instruction_schedule_map(),
-                meas_map=backend.meas_map,
-                dt=backend.dt,
-            )
 
         circ = QuantumCircuit(2)
         circ.cx(0, 1)
@@ -457,7 +451,7 @@ class TestScheduledCircuit(QiskitTestCase):
         for circuit in [circuit_dt, circuit_s, circuit_ms]:
             with self.subTest(circuit=circuit):
                 converted_circ = convert_durations_to_dt(
-                    circuit, dt_in_sec=schedule_config.dt, inplace=False
+                    circuit, dt_in_sec=2.22e-10, inplace=False
                 )
                 self.assertEqual(
                     converted_circ.duration,

@@ -17,7 +17,7 @@ from math import pi
 
 import ddt
 
-from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit, pulse
+from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit.circuit import Parameter, Gate
 from qiskit.circuit.library import (
     CXGate,
@@ -494,7 +494,6 @@ class TestGateDirection(QiskitTestCase):
         pass_ = GateDirection(None, target)
         with self.assertRaisesRegex(TranspilerError, "my_2q_gate would be supported.*"):
             pass_(circuit)
-
 
     def test_target_unknown_gate_message(self):
         """A suitable error message should be emitted if the gate isn't valid in either direction on

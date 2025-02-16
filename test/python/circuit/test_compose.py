@@ -18,8 +18,6 @@ import unittest
 
 import numpy as np
 
-from qiskit import transpile
-from qiskit.pulse import Schedule
 from qiskit.circuit import (
     QuantumRegister,
     ClassicalRegister,

@@ -12,7 +12,6 @@
 
 """Unify time unit in circuit for scheduling and following passes."""
 from typing import Set
-import warnings
 
 from qiskit.circuit import Delay
 from qiskit.dagcircuit import DAGCircuit

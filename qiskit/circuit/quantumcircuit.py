@@ -21,7 +21,7 @@ import copy as _copy
 import itertools
 import multiprocessing as mp
 import typing
-from collections import OrderedDict, defaultdict, namedtuple
+from collections import OrderedDict, namedtuple
 from typing import (
     Union,
     Optional,
@@ -33,7 +33,6 @@ from typing import (
     Mapping,
     Iterable,
     Any,
-    DefaultDict,
     Literal,
     overload,
 )
@@ -48,7 +47,6 @@ from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.utils import deprecate_func
-from qiskit.utils.deprecate_pulse import deprecate_pulse_dependency
 from . import _classical_resource_map
 from .controlflow import ControlFlowOp, _builder_utils
 from .controlflow.builder import CircuitScopeInterface, ControlFlowBuilderBlock

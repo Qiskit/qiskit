@@ -15,7 +15,6 @@
 import unittest
 import cmath
 import math
-import copy
 import pickle
 from operator import add, mul, sub, truediv
 import numpy
@@ -29,7 +28,6 @@ from qiskit.circuit import Gate, Instruction, Parameter, ParameterExpression, Pa
 from qiskit.circuit.parametertable import ParameterView
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.compiler import transpile
-from qiskit import pulse
 from qiskit.quantum_info import Operator
 from qiskit.providers.fake_provider import Fake5QV1, GenericBackendV2
 from qiskit.providers.basic_provider import BasicSimulator

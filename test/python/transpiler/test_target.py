@@ -1757,7 +1757,6 @@ class TestTargetFromConfiguration(QiskitTestCase):
             fake_backend = Fake7QPulseV1()
         config = fake_backend.configuration()
         properties = fake_backend.properties()
-        defaults = fake_backend.defaults()
         constraints = TimingConstraints(**config.timing_constraints)
         target = Target.from_configuration(
             basis_gates=config.basis_gates,

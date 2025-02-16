@@ -15,10 +15,9 @@
 import unittest
 import numpy as np
 from numpy import pi
-from ddt import ddt, data
+from ddt import ddt
 
-from qiskit import pulse
-from qiskit.circuit import Gate, QuantumCircuit, Delay, Measure, Reset, Parameter
+from qiskit.circuit import QuantumCircuit, Delay, Measure, Reset, Parameter
 from qiskit.circuit.library import XGate, YGate, RXGate, UGate, CXGate, HGate
 from qiskit.quantum_info import Operator
 from qiskit.transpiler.instruction_durations import InstructionDurations

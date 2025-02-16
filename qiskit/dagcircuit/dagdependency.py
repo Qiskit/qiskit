@@ -17,7 +17,7 @@ from __future__ import annotations
 import math
 import heapq
 import typing
-from collections import OrderedDict, defaultdict
+from collections import OrderedDict
 from collections.abc import Iterator
 
 import rustworkx as rx
@@ -28,8 +28,6 @@ from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.dagcircuit.exceptions import DAGDependencyError
 from qiskit.dagcircuit.dagdepnode import DAGDepNode
-from qiskit.pulse import Schedule
-from qiskit.utils.deprecate_pulse import deprecate_pulse_dependency
 
 if typing.TYPE_CHECKING:
     from qiskit.circuit.parameterexpression import ParameterExpression

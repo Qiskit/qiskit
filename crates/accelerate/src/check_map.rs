@@ -65,8 +65,7 @@ fn recurse<'py>(
                     }
                 }
             }
-        } else if qubits.len() == 2 && !check_qubits(qubits)
-        {
+        } else if qubits.len() == 2 && !check_qubits(qubits) {
             return Ok(Some((
                 inst.op.name().to_string(),
                 [qubits[0].0, qubits[1].0],

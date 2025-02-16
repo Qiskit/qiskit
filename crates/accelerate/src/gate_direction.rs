@@ -20,11 +20,9 @@ use pyo3::types::PyTuple;
 use qiskit_circuit::operations::OperationRef;
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{
-    circuit_instruction::CircuitInstruction,
     circuit_instruction::ExtraInstructionAttributes,
     converters::{circuit_to_dag, QuantumCircuitData},
     dag_circuit::DAGCircuit,
-    dag_node::{DAGNode, DAGOpNode},
     imports,
     imports::get_std_gate_class,
     operations::Operation,
@@ -335,8 +333,7 @@ where
             }
         }
         // No matching replacement found
-        if gate_complies(packed_inst, &[op_args1, op_args0])
-        {
+        if gate_complies(packed_inst, &[op_args1, op_args0]) {
             return Err(TranspilerError::new_err(format!("{} would be supported on {:?} if the direction was swapped, but no rules are known to do that. {:?} can be automatically flipped.", packed_inst.op.name(), op_args, vec!["cx", "cz", "ecr", "swap", "rzx", "rxx", "ryy", "rzz"])));
             // NOTE: Make sure to update the list of the supported gates if adding more replacements
         } else {

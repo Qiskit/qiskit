@@ -27,7 +27,6 @@ from qiskit import (
     ClassicalRegister,
     QuantumCircuit,
     QuantumRegister,
-    pulse,
     qasm3,
     qpy,
 )
@@ -78,7 +77,6 @@ from qiskit.providers.backend_compat import BackendV2Converter
 from qiskit.providers.fake_provider import Fake20QV1, Fake27QPulseV1, GenericBackendV2
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.providers.options import Options
-from qiskit.pulse import InstructionScheduleMap
 from qiskit.quantum_info import Operator, random_unitary
 from qiskit.utils import parallel
 from qiskit.transpiler import CouplingMap, Layout, PassManager
@@ -1294,23 +1292,6 @@ class TestTranspile(QiskitTestCase):
 
         self.assertTrue(Operator(out).equiv(qc))
         self.assertTrue(set(out.count_ops()).issubset(basis_gates))
-
-
-    def test_inst_durations_from_calibrations(self):
-        """Test that circuit calibrations can be used instead of explicitly
-        supplying inst_durations.
-        """
-        qc = QuantumCircuit(2)
-        qc.append(Gate("custom", 1, []), [0])
-
-        with self.assertWarns(DeprecationWarning):
-            with pulse.build() as cal:
-                pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), pulse.DriveChannel(0))
-            qc.add_calibration("custom", [0], cal)
-
-        out = transpile(qc, scheduling_method="alap", seed_transpiler=42)
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(out.duration, cal.duration)
 
     @data(0, 1, 2, 3)
     def test_circuit_with_delay(self, optimization_level):
@@ -2676,35 +2657,6 @@ class TestTranspileParallel(QiskitTestCase):
                 initial_layout=(0, 1, 2),
                 seed_transpiler=42,
             )
-
-    @data(0, 1, 2, 3)
-    def test_backend_and_custom_gate(self, opt_level):
-        """Test transpile() with BackendV2, custom basis pulse gate."""
-        backend = GenericBackendV2(
-            num_qubits=5,
-            coupling_map=[[0, 1], [1, 0], [1, 2], [1, 3], [2, 1], [3, 1], [3, 4], [4, 3]],
-            seed=42,
-        )
-        with self.assertWarns(DeprecationWarning):
-            inst_map = InstructionScheduleMap()
-            inst_map.add("newgate", [0, 1], pulse.ScheduleBlock())
-        newgate = Gate("newgate", 2, [])
-        circ = QuantumCircuit(2)
-        circ.append(newgate, [0, 1])
-
-        with self.assertWarns(DeprecationWarning):
-            tqc = transpile(
-                circ,
-                backend,
-                inst_map=inst_map,
-                basis_gates=["newgate"],
-                optimization_level=opt_level,
-                seed_transpiler=42,
-            )
-        self.assertEqual(len(tqc.data), 1)
-        self.assertEqual(tqc.data[0].operation, newgate)
-        for x in tqc.data[0].qubits:
-            self.assertIn((tqc.find_bit(x).index,), backend.target.qargs)
 
 
 @ddt

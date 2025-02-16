@@ -24,7 +24,7 @@ from qiskit.dagcircuit import DAGCircuit
 from qiskit.providers.backend import Backend
 from qiskit.providers.backend_compat import BackendV2Converter
 from qiskit.providers.models.backendproperties import BackendProperties
-from qiskit.pulse import Schedule, InstructionScheduleMap
+from qiskit.pulse import Schedule
 from qiskit.transpiler import Layout, CouplingMap, PropertySet
 from qiskit.transpiler.basepasses import BasePass
 from qiskit.transpiler.exceptions import TranspilerError, CircuitTooWideForTarget
@@ -33,7 +33,6 @@ from qiskit.transpiler.passes.synthesis.high_level_synthesis import HLSConfig
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.transpiler.target import Target
 from qiskit.utils import deprecate_arg
-from qiskit.utils.deprecate_pulse import deprecate_pulse_arg
 
 logger = logging.getLogger(__name__)
 

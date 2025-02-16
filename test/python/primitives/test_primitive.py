@@ -17,11 +17,10 @@ import json
 from ddt import data, ddt, unpack
 from numpy import array, float32, float64, int32, int64
 
-from qiskit import QuantumCircuit, pulse, transpile
+from qiskit import QuantumCircuit
 from qiskit.circuit.random import random_circuit
 from qiskit.primitives.base import validation
 from qiskit.primitives.utils import _circuit_key
-from qiskit.providers.fake_provider import GenericBackendV2
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 

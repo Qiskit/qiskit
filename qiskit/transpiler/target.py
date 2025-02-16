@@ -90,15 +90,7 @@ class InstructionProperties(BaseInstructionProperties):
         super().__init__()
 
     def __repr__(self):
-        return (
-            f"InstructionProperties(duration={self.duration}, error={self.error})"
-        )
-
-    def __getstate__(self) -> tuple:
-        return (super().__getstate__())
-
-    def __setstate__(self, state: tuple):
-        super().__setstate__(state[0])
+        return f"InstructionProperties(duration={self.duration}, error={self.error})"
 
 
 class Target(BaseTarget):

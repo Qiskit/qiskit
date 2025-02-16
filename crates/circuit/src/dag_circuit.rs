@@ -44,7 +44,7 @@ use pyo3::prelude::*;
 use pyo3::IntoPyObjectExt;
 
 use pyo3::types::{
-    IntoPyDict, PyDict, PyInt, PyIterator, PyList, PySequence, PySet, PyString, PyTuple, PyType,
+    IntoPyDict, PyDict, PyInt, PyIterator, PyList, PySet, PyString, PyTuple, PyType,
 };
 
 use rustworkx_core::dag_algo::layers;
@@ -6941,23 +6941,6 @@ pub(crate) fn add_global_phase(py: Python, phase: &Param, other: &Param) -> PyRe
 }
 
 type SortKeyType<'a> = (&'a [Qubit], &'a [Clbit]);
-
-/// Emit a Python `DeprecationWarning` for pulse-related dependencies.
-fn emit_pulse_dependency_deprecation(py: Python, msg: &str) {
-    let _ = imports::WARNINGS_WARN.get_bound(py).call1((
-        PyString::new(
-            py,
-            &format!(
-                "The {} is deprecated as of Qiskit 1.3.0. It will be removed in Qiskit 2.0.0. \
-                The entire Qiskit Pulse package is being deprecated \
-                and this is a dependency on the package.",
-                msg
-            ),
-        ),
-        py.get_type::<PyDeprecationWarning>(),
-        1,
-    ));
-}
 
 #[cfg(all(test, not(miri)))]
 mod test {

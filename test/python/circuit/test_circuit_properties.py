@@ -15,10 +15,10 @@
 import unittest
 import numpy as np
 
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, pulse
+from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Clbit
 from qiskit.circuit.classical import expr, types
-from qiskit.circuit.library import RXGate, RYGate, GlobalPhaseGate
+from qiskit.circuit.library import GlobalPhaseGate
 from qiskit.circuit.exceptions import CircuitError
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 

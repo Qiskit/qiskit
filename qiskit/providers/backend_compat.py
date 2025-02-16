@@ -15,7 +15,7 @@
 from __future__ import annotations
 import logging
 import warnings
-from typing import List, Iterable, Any, Dict, Optional
+from typing import List, Any, Dict, Optional
 
 from qiskit.providers.backend import BackendV1, BackendV2
 from qiskit.providers.backend import QubitProperties
@@ -323,15 +323,12 @@ class BackendV2Converter(BackendV2):
         )
         self._options = self._backend._options
         self._properties = None
-        self._defaults = None
 
         with warnings.catch_warnings():
             # The class QobjExperimentHeader is deprecated
             warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
             if hasattr(self._backend, "properties"):
                 self._properties = self._backend.properties()
-            if hasattr(self._backend, "defaults"):
-                self._defaults = self._backend.defaults()
 
         self._target = None
         self._name_mapping = name_mapping
@@ -348,7 +345,6 @@ class BackendV2Converter(BackendV2):
             self._target = convert_to_target(
                 configuration=self._config,
                 properties=self._properties,
-                defaults=self._defaults,
                 custom_name_mapping=self._name_mapping,
                 add_delay=self._add_delay,
                 filter_faulty=self._filter_faulty,

@@ -13,7 +13,6 @@
 """Built-in transpiler stage plugins for preset pass managers."""
 
 import os
-import warnings
 
 from qiskit.transpiler.passes.optimization.split_2q_unitaries import Split2QUnitaries
 from qiskit.transpiler.passmanager import PassManager
@@ -730,7 +729,6 @@ class DefaultSchedulingPassManager(PassManagerStagePlugin):
         scheduling_method = None
         timing_constraints = pass_manager_config.timing_constraints or TimingConstraints()
         target = pass_manager_config.target
-
 
         return common.generate_scheduling(
             instruction_durations, scheduling_method, timing_constraints, target

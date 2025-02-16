@@ -18,7 +18,6 @@ from ddt import ddt, data, unpack
 from qiskit import QuantumCircuit
 from qiskit.circuit import Measure
 from qiskit.circuit.library import CXGate, HGate
-from qiskit.pulse import Schedule, Play, Constant, DriveChannel
 from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.passes import (
     ASAPScheduleAnalysis,

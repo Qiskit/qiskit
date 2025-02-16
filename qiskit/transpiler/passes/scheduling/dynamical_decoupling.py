@@ -13,7 +13,6 @@
 """Dynamical Decoupling insertion pass."""
 
 import itertools
-import warnings
 
 import numpy as np
 from qiskit.circuit import Gate, Delay, Reset
