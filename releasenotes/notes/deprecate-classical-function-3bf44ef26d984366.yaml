@@ -37,6 +37,7 @@ deprecations_circuits:
     Which results in
 
     .. code-block:: text
+    
                 ┌───────────────┐     
       x_0: ─────┤0              ├─────
                 │               │     
