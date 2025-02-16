@@ -127,6 +127,7 @@ synthesis = "qiskit.transpiler.preset_passmanagers.builtin_plugins:UnitarySynthe
 translator = "qiskit.transpiler.preset_passmanagers.builtin_plugins:BasisTranslatorPassManager"
 
 [project.entry-points."qiskit.transpiler.routing"]
+default = "qiskit.transpiler.preset_passmanagers.builtin_plugins:DefaultRoutingPassManager"
 basic = "qiskit.transpiler.preset_passmanagers.builtin_plugins:BasicSwapPassManager"
 lookahead = "qiskit.transpiler.preset_passmanagers.builtin_plugins:LookaheadSwapPassManager"
 none = "qiskit.transpiler.preset_passmanagers.builtin_plugins:NoneRoutingPassManager"

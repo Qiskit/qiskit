@@ -249,6 +249,17 @@ class UnitarySynthesisPassManager(PassManagerStagePlugin):
         )
 
 
+class DefaultRoutingPassManager(PassManagerStagePlugin):
+    """Plugin class for the "default" routing stage implementation."""
+
+    def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
+        # The Sabre-based PM is the default implementation currently, but semantically the "default"
+        # plugin has more scope to change its logic than one called "sabre".  In practice, we don't
+        # run the actually `SabreSwap` logic from this pass most of the time, because we do that
+        # during default layout; we're looking for the VF2PostLayout stuff mostly.
+        return SabreSwapPassManager().pass_manager(pass_manager_config, optimization_level)
+
+
 class BasicSwapPassManager(PassManagerStagePlugin):
     """Plugin class for routing stage with :class:`~.BasicSwap`"""
 
@@ -820,8 +831,7 @@ class DefaultLayoutPassManager(PassManagerStagePlugin):
                 seed=pass_manager_config.seed_transpiler,
                 swap_trials=trial_count,
                 layout_trials=trial_count,
-                skip_routing=pass_manager_config.routing_method is not None
-                and pass_manager_config.routing_method != "sabre",
+                skip_routing=pass_manager_config.routing_method not in (None, "default", "sabre"),
             )
             layout.append(
                 ConditionalController(
@@ -855,8 +865,7 @@ class DefaultLayoutPassManager(PassManagerStagePlugin):
                 seed=pass_manager_config.seed_transpiler,
                 swap_trials=trial_count,
                 layout_trials=trial_count,
-                skip_routing=pass_manager_config.routing_method is not None
-                and pass_manager_config.routing_method != "sabre",
+                skip_routing=pass_manager_config.routing_method not in (None, "default", "sabre"),
             )
             layout.append(
                 ConditionalController(
@@ -890,8 +899,7 @@ class DefaultLayoutPassManager(PassManagerStagePlugin):
                 seed=pass_manager_config.seed_transpiler,
                 swap_trials=trial_count,
                 layout_trials=trial_count,
-                skip_routing=pass_manager_config.routing_method is not None
-                and pass_manager_config.routing_method != "sabre",
+                skip_routing=pass_manager_config.routing_method not in (None, "default", "sabre"),
             )
             layout.append(
                 ConditionalController(
@@ -993,8 +1001,7 @@ class SabreLayoutPassManager(PassManagerStagePlugin):
                 seed=pass_manager_config.seed_transpiler,
                 swap_trials=trial_count,
                 layout_trials=trial_count,
-                skip_routing=pass_manager_config.routing_method is not None
-                and pass_manager_config.routing_method != "sabre",
+                skip_routing=pass_manager_config.routing_method not in (None, "default", "sabre"),
             )
         elif optimization_level == 1:
             trial_count = _get_trial_count(5)
@@ -1005,8 +1012,7 @@ class SabreLayoutPassManager(PassManagerStagePlugin):
                 seed=pass_manager_config.seed_transpiler,
                 swap_trials=trial_count,
                 layout_trials=trial_count,
-                skip_routing=pass_manager_config.routing_method is not None
-                and pass_manager_config.routing_method != "sabre",
+                skip_routing=pass_manager_config.routing_method not in (None, "default", "sabre"),
             )
         elif optimization_level == 2:
             trial_count = _get_trial_count(20)
@@ -1017,8 +1023,7 @@ class SabreLayoutPassManager(PassManagerStagePlugin):
                 seed=pass_manager_config.seed_transpiler,
                 swap_trials=trial_count,
                 layout_trials=trial_count,
-                skip_routing=pass_manager_config.routing_method is not None
-                and pass_manager_config.routing_method != "sabre",
+                skip_routing=pass_manager_config.routing_method not in (None, "default", "sabre"),
             )
         elif optimization_level == 3:
             trial_count = _get_trial_count(20)
@@ -1029,8 +1034,7 @@ class SabreLayoutPassManager(PassManagerStagePlugin):
                 seed=pass_manager_config.seed_transpiler,
                 swap_trials=trial_count,
                 layout_trials=trial_count,
-                skip_routing=pass_manager_config.routing_method is not None
-                and pass_manager_config.routing_method != "sabre",
+                skip_routing=pass_manager_config.routing_method not in (None, "default", "sabre"),
             )
         else:
             raise TranspilerError(f"Invalid optimization level: {optimization_level}")
