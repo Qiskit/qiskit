@@ -2648,17 +2648,11 @@ impl Operation for PyInstruction {
     fn definition(&self, _params: &[Param]) -> Option<CircuitData> {
         Python::with_gil(|py| -> Option<CircuitData> {
             match self.instruction.getattr(py, intern!(py, "definition")) {
-                Ok(definition) => {
-                    let res: Option<PyObject> = definition.call0(py).ok()?.extract(py).ok();
-                    match res {
-                        Some(x) => {
-                            let out: CircuitData =
-                                x.getattr(py, intern!(py, "data")).ok()?.extract(py).ok()?;
-                            Some(out)
-                        }
-                        None => None,
-                    }
-                }
+                Ok(definition) => definition
+                    .getattr(py, intern!(py, "_data"))
+                    .ok()?
+                    .extract::<CircuitData>(py)
+                    .ok(),
                 Err(_) => None,
             }
         })
@@ -2731,17 +2725,11 @@ impl Operation for PyGate {
     fn definition(&self, _params: &[Param]) -> Option<CircuitData> {
         Python::with_gil(|py| -> Option<CircuitData> {
             match self.gate.getattr(py, intern!(py, "definition")) {
-                Ok(definition) => {
-                    let res: Option<PyObject> = definition.call0(py).ok()?.extract(py).ok();
-                    match res {
-                        Some(x) => {
-                            let out: CircuitData =
-                                x.getattr(py, intern!(py, "data")).ok()?.extract(py).ok()?;
-                            Some(out)
-                        }
-                        None => None,
-                    }
-                }
+                Ok(definition) => definition
+                    .getattr(py, intern!(py, "_data"))
+                    .ok()?
+                    .extract::<CircuitData>(py)
+                    .ok(),
                 Err(_) => None,
             }
         })
