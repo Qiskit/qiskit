@@ -12,6 +12,8 @@
 
 """Phase Oracle object."""
 
+from __future__ import annotations
+
 from qiskit.circuit import QuantumCircuit
 
 from qiskit.synthesis.boolean.boolean_expression import BooleanExpression
@@ -22,7 +24,8 @@ class PhaseOracle(QuantumCircuit):
 
     The Phase Oracle object constructs circuits for any arbitrary
     input logical expressions. A logical expression is composed of logical operators
-    `&` (`AND`), `|` (`OR`), `~` (`NOT`), and `^` (`XOR`).
+    `&` (logical `AND`), `|` (logical  `OR`),
+    `~` (logical  `NOT`), and `^` (logical  `XOR`).
     as well as symbols for literals (variables).
     For example, `'a & b'`, and `(v0 | ~v1) & (~v2 & v3)`
     are both valid string representation of boolean logical expressions.
@@ -49,13 +52,12 @@ class PhaseOracle(QuantumCircuit):
     def __init__(
         self,
         expression: str,
-        var_order: list = None,
+        var_order: list[str] | None = None,
     ) -> None:
-        """Creates a PhaseOracle object
-
+        """
         Args:
             expression: A Python-like boolean expression.
-            var_order(list): A list with the order in which variables will be created.
+            var_order: A list with the order in which variables will be created.
                (default: by appearance)
         """
         self.boolean_expression = BooleanExpression(expression, var_order=var_order)

@@ -61,7 +61,7 @@ class EsopGenerator:
         i = len(assignment)  # current variable
         negative_esop = self.generate_esop(assignment + (False,))
         positive_esop = self.generate_esop(assignment + (True,))
-        # Boole's expansion
+        # Shannon's expansion
         negative_esop_bool_expanded = [
             clause[:i] + "0" + clause[i + 1 :] for clause in negative_esop
         ]
