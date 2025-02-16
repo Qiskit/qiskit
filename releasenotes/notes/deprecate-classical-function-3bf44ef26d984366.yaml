@@ -18,8 +18,33 @@ deprecations_circuits:
 
     .. code-block:: python
     
-        phase_flip_oracle = PhaseOracle(bool_expr)
-        controlled_phase_flip_oracle = phase_flip_oracle.control(1)
-        qc.h(qr_y)
-        qc.compose(controlled_phase_flip_oracle, qubits=[*qr_y, *qr_x], inplace=True)
-        qc.h(qr_y)
+      from qiskit import QuantumRegister, QuantumCircuit
+      from qiskit.circuit.library.phase_oracle import PhaseOracle
+
+      bool_expr = "(x0 & x1 | ~x2) & x4"
+      qr_x = QuantumRegister(4, "x")
+      qr_y = QuantumRegister(1, "y")
+
+      bit_flip_oracle = QuantumCircuit(qr_x, qr_y)
+      phase_flip_oracle = PhaseOracle(bool_expr)
+      controlled_phase_flip_oracle = phase_flip_oracle.control(1)
+      bit_flip_oracle.h(qr_y)
+      bit_flip_oracle.compose(controlled_phase_flip_oracle, qubits=[*qr_y, *qr_x], inplace=True)
+      bit_flip_oracle.h(qr_y)
+
+      print(bit_flip_oracle)
+    
+    Which results in
+
+    .. code-block:: text
+                ┌───────────────┐     
+      x_0: ─────┤0              ├─────
+                │               │     
+      x_1: ─────┤1              ├─────
+                │  Phase Oracle │     
+      x_2: ─────┤2              ├─────
+                │               │     
+      x_3: ─────┤3              ├─────
+          ┌───┐└───────┬───────┘┌───┐
+       y: ┤ H ├────────■────────┤ H ├
+          └───┘                 └───┘
