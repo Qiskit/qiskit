@@ -426,6 +426,7 @@ def generate_control_flow_switch_circuits():
 
 def generate_schedule_blocks():
     """Standard QPY testcase for schedule blocks."""
+    # pylint: disable=no-name-in-module
     from qiskit.pulse import builder, channels, library
 
     current_version = current_version_str.split(".")
@@ -493,6 +494,7 @@ def generate_schedule_blocks():
 
 def generate_referenced_schedule():
     """Test for QPY serialization of unassigned reference schedules."""
+    # pylint: disable=no-name-in-module
     from qiskit.pulse import builder, channels, library
 
     schedule_blocks = []
@@ -518,6 +520,7 @@ def generate_referenced_schedule():
 
 def generate_calibrated_circuits():
     """Test for QPY serialization with calibrations."""
+    # pylint: disable=no-name-in-module
     from qiskit.pulse import builder, Constant, DriveChannel
 
     circuits = []
@@ -588,6 +591,7 @@ def generate_open_controlled_gates():
 
 def generate_acquire_instruction_with_kernel_and_discriminator():
     """Test QPY serialization with Acquire instruction with kernel and discriminator."""
+    # pylint: disable=no-name-in-module
     from qiskit.pulse import builder, AcquireChannel, MemorySlot, Discriminator, Kernel
 
     schedule_blocks = []
@@ -820,8 +824,13 @@ def generate_v12_expr():
     return [index, shift]
 
 
-def generate_circuits(version_parts):
-    """Generate reference circuits."""
+def generate_circuits(version_parts, load_context=False):
+    """Generate reference circuits.
+
+    If load_context is True, avoid generating Pulse-based reference
+    circuits. For those circuits, load_qpy only checks that the cached
+    circuits can be loaded without erroring."""
+
     output_circuits = {
         "full.qpy": [generate_full_circuit()],
         "unitary.qpy": [generate_unitary_gate_circuit()],
@@ -848,20 +857,27 @@ def generate_circuits(version_parts):
         ]
     if version_parts >= (0, 19, 2):
         output_circuits["control_flow.qpy"] = generate_control_flow_circuits()
-    if version_parts >= (0, 21, 0):
-        output_circuits["schedule_blocks.qpy"] = generate_schedule_blocks()
-        output_circuits["pulse_gates.qpy"] = generate_calibrated_circuits()
+    if version_parts >= (0, 21, 0) and version_parts < (2, 0):
+        output_circuits["schedule_blocks.qpy"] = (
+            None if load_context else generate_schedule_blocks()
+        )
+        output_circuits["pulse_gates.qpy"] = (
+            None if load_context else generate_calibrated_circuits()
+        )
+    if version_parts >= (0, 24, 0) and version_parts < (2, 0):
+        output_circuits["referenced_schedule_blocks.qpy"] = (
+            None if load_context else generate_referenced_schedule()
+        )
     if version_parts >= (0, 24, 0):
-        output_circuits["referenced_schedule_blocks.qpy"] = generate_referenced_schedule()
         output_circuits["control_flow_switch.qpy"] = generate_control_flow_switch_circuits()
     if version_parts >= (0, 24, 1):
         output_circuits["open_controlled_gates.qpy"] = generate_open_controlled_gates()
         output_circuits["controlled_gates.qpy"] = generate_controlled_gates()
     if version_parts >= (0, 24, 2):
         output_circuits["layout.qpy"] = generate_layout_circuits()
-    if version_parts >= (0, 25, 0):
+    if version_parts >= (0, 25, 0) and version_parts < (2, 0):
         output_circuits["acquire_inst_with_kernel_and_disc.qpy"] = (
-            generate_acquire_instruction_with_kernel_and_discriminator()
+            None if load_context else generate_acquire_instruction_with_kernel_and_discriminator()
         )
         output_circuits["control_flow_expr.qpy"] = generate_control_flow_expr()
     if version_parts >= (0, 45, 2):
@@ -950,11 +966,23 @@ def generate_qpy(qpy_files):
 
 def load_qpy(qpy_files, version_parts):
     """Load qpy circuits from files and compare to reference circuits."""
+    pulse_files = {
+        "schedule_blocks.qpy",
+        "pulse_gates.qpy",
+        "referenced_schedule_blocks.qpy",
+        "acquire_inst_with_kernel_and_disc.qpy",
+    }
     for path, circuits in qpy_files.items():
         print(f"Loading qpy file: {path}")
         with open(path, "rb") as fd:
             qpy_circuits = load(fd)
         equivalent = path in {"open_controlled_gates.qpy", "controlled_gates.qpy"}
+        if path in pulse_files:
+            # Qiskit Pulse was removed in version 2.0. We want to be able to load
+            # pulse-based payloads, however these will be partially specified hence
+            # we should not compare them to the cached circuits.
+            # See https://github.com/Qiskit/qiskit/pull/13814
+            continue
         for i, circuit in enumerate(circuits):
             bind = None
             if path == "parameterized.qpy":
@@ -994,10 +1022,11 @@ def _main():
         version_match = re.search(VERSION_PATTERN, args.version, re.VERBOSE | re.IGNORECASE)
         version_parts = tuple(int(x) for x in version_match.group("release").split("."))
 
-    qpy_files = generate_circuits(version_parts)
     if args.command == "generate":
+        qpy_files = generate_circuits(version_parts)
         generate_qpy(qpy_files)
     else:
+        qpy_files = generate_circuits(version_parts, load_context=True)
         load_qpy(qpy_files, version_parts)
 
 
