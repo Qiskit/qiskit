@@ -52,7 +52,7 @@ class TestCircuitVars(QiskitTestCase):
         vars_ = [
             (expr.Var.new("a", types.Bool()), expr.lift(True)),
             (expr.Var.new("b", types.Uint(16)), expr.lift(0xFFFF)),
-            (expr.Var.new("c", types.Uint(16, const=True)), expr.lift(0xFFFF)),
+            (expr.Var.new("c", types.Uint(16, const=True)), expr.lift(0xFFFF, try_const=True)),
         ]
         qc = QuantumCircuit(declarations=vars_)
 
@@ -67,7 +67,7 @@ class TestCircuitVars(QiskitTestCase):
         ]
         self.assertEqual(
             operations,
-            [("store", lvalue, rvalue) for lvalue, rvalue in vars_ if not lvalue.type.const],
+            [("store", lvalue, rvalue) for lvalue, rvalue in vars_],
         )
 
     def test_initialise_declarations_mapping(self):

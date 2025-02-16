@@ -22,7 +22,7 @@ import re
 from ddt import ddt, data
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, transpile
-from qiskit.circuit import Parameter, Qubit, Clbit, Gate, Delay, Barrier, ParameterVector
+from qiskit.circuit import Parameter, Qubit, Clbit, Gate, Delay, Barrier, ParameterVector, Duration
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.controlflow import CASE_DEFAULT
 from qiskit.circuit.library import PauliEvolutionGate
@@ -1918,6 +1918,9 @@ if (cr == 1) {
         qc.add_var("c", expr.bit_not(b))
         # All inputs should come first, regardless of declaration order.
         qc.add_input("d", types.Bool())
+        e = qc.add_var("e", Duration.dt(1000))
+        f = qc.add_stretch("f")
+        qc.add_var("g", expr.add(expr.mul(f, 2.0), e))
 
         expected = """\
 OPENQASM 3.0;
@@ -1926,9 +1929,14 @@ input bool a;
 input uint[8] b;
 input bool d;
 uint[8] c;
+duration e;
+stretch f;
+stretch g;
 a = !a;
 b = b & 8;
 c = ~b;
+e = 1000dt;
+g = f * 2.0 + e;
 """
         self.assertEqual(dumps(qc), expected)
 

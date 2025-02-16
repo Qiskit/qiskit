@@ -2867,8 +2867,6 @@ class QuantumCircuit:
         only becomes initialized at the point of the circuit that you call this method, so it can
         depend on variables defined before it.
 
-        If the type of the variable being added is const, a store instruction is not emitted.
-
         Args:
             name_or_var: either a string of the variable name, or an existing instance of
                 :class:`~.expr.Var` to re-use.  Variables cannot shadow names that are already in
@@ -2957,15 +2955,13 @@ class QuantumCircuit:
         else:
             var = name_or_var
         circuit_scope.add_uninitialized_var(var)
-        # We only need to emit a Store instruction for a non-const Var.
-        if not var.type.const:
-            try:
-                # Store is responsible for ensuring the type safety of the initialization.
-                store = Store(var, initial)
-            except CircuitError:
-                circuit_scope.remove_var(var)
-                raise
-            circuit_scope.append(CircuitInstruction(store, (), ()))
+        try:
+            # Store is responsible for ensuring the type safety of the initialization.
+            store = Store(var, initial)
+        except CircuitError:
+            circuit_scope.remove_var(var)
+            raise
+        circuit_scope.append(CircuitInstruction(store, (), ()))
         return var
 
     def add_uninitialized_var(self, var: expr.Var, /):
