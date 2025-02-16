@@ -17,6 +17,7 @@ Tests for the default UnitarySynthesis transpiler pass.
 """
 
 import unittest
+import math
 import numpy as np
 import scipy
 from ddt import ddt, data
@@ -25,6 +26,7 @@ from qiskit import transpile, generate_preset_pass_manager
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.circuit.library import quantum_volume
+from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.transpiler.passes import UnitarySynthesis
 from qiskit.quantum_info.operators import Operator
@@ -58,6 +60,7 @@ from qiskit.circuit.library import (
     RZZGate,
     RXXGate,
     PauliEvolutionGate,
+    CPhaseGate,
 )
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.circuit import Measure
@@ -130,7 +133,8 @@ class TestUnitarySynthesisBasisGates(QiskitTestCase):
     @data(
         ["u3", "cx"],
         ["u1", "u2", "u3", "cx"],
-        ["rx", "ry", "rxx"],
+        ["ry", "rz", "rxx"],
+        ["rx", "rz", "rzz"],
         ["rx", "rz", "iswap"],
         ["u3", "rx", "rz", "cz", "iswap"],
     )
@@ -740,19 +744,110 @@ class TestUnitarySynthesisTarget(QiskitTestCase):
         result_qc = dag_to_circuit(result_dag)
         self.assertTrue(np.allclose(Operator(result_qc.to_gate()).to_matrix(), cxmat))
 
-    def test_parameterized_basis_gate_in_target(self):
-        """Test synthesis with parameterized RXX gate."""
+    @combine(is_random=[True, False], param_gate=[RXXGate, RZZGate, CPhaseGate])
+    def test_parameterized_basis_gate_in_target(self, is_random, param_gate):
+        """Test synthesis with parameterized RZZ/RXX gate."""
         theta = Parameter("θ")
         lam = Parameter("λ")
+        phi = Parameter("ϕ")
         target = Target(num_qubits=2)
         target.add_instruction(RZGate(lam))
-        target.add_instruction(RXGate(theta))
-        target.add_instruction(RXXGate(theta))
+        target.add_instruction(RXGate(phi))
+        target.add_instruction(param_gate(theta))
         qc = QuantumCircuit(2)
+        if is_random:
+            qc.unitary(random_unitary(4, seed=1234), [0, 1])
         qc.cp(np.pi / 2, 0, 1)
         qc_transpiled = transpile(qc, target=target, optimization_level=3, seed_transpiler=42)
         opcount = qc_transpiled.count_ops()
-        self.assertTrue(set(opcount).issubset({"rz", "rx", "rxx"}))
+        self.assertTrue(set(opcount).issubset({"rz", "rx", param_gate(theta).name}))
+        self.assertTrue(np.allclose(Operator(qc_transpiled), Operator(qc)))
+
+    def test_custom_parameterized_gate_in_target(self):
+        """Test synthesis with custom parameterized gate in target."""
+
+        class CustomXXGate(RXXGate):
+            """Custom RXXGate subclass that's not a standard gate"""
+
+            _standard_gate = None
+
+            def __init__(self, theta, label=None):
+                super().__init__(theta, label)
+                self.name = "MyCustomXXGate"
+
+        theta = Parameter("θ")
+        lam = Parameter("λ")
+        phi = Parameter("ϕ")
+
+        target = Target(num_qubits=2)
+        target.add_instruction(RZGate(lam))
+        target.add_instruction(RXGate(phi))
+        target.add_instruction(CustomXXGate(theta))
+
+        qc = QuantumCircuit(2)
+        qc.unitary(random_unitary(4, seed=1234), [0, 1])
+        qc_transpiled = UnitarySynthesis(target=target)(qc)
+        opcount = qc_transpiled.count_ops()
+        self.assertTrue(set(opcount).issubset({"rz", "rx", "MyCustomXXGate"}))
+
+        self.assertTrue(np.allclose(Operator(qc_transpiled), Operator(qc)))
+
+    def test_custom_parameterized_gate_in_target_skips(self):
+        """Test that synthesis is skipped with custom parameterized
+        gate in target that is not RXX equivalent."""
+
+        class CustomXYGate(Gate):
+            """Custom Gate subclass that's not a standard gate and not RXX equivalent"""
+
+            _standard_gate = None
+
+            def __init__(self, theta: ParameterValueType, label=None):
+                """Create new custom rotstion XY gate."""
+                super().__init__("MyCustomXYGate", 2, [theta])
+
+            def __array__(self, dtype=None):
+                """Return a Numpy.array for the custom gate."""
+                theta = self.params[0]
+                cos = math.cos(theta)
+                isin = 1j * math.sin(theta)
+                return np.array(
+                    [[1, 0, 0, 0], [0, cos, -isin, 0], [0, -isin, cos, 0], [0, 0, 0, 1]],
+                    dtype=dtype,
+                )
+
+            def inverse(self, annotated: bool = False):
+                return CustomXYGate(-self.params[0])
+
+        theta = Parameter("θ")
+        lam = Parameter("λ")
+        phi = Parameter("ϕ")
+
+        target = Target(num_qubits=2)
+        target.add_instruction(RZGate(lam))
+        target.add_instruction(RXGate(phi))
+        target.add_instruction(CustomXYGate(theta))
+
+        qc = QuantumCircuit(2)
+        qc.unitary(random_unitary(4, seed=1234), [0, 1])
+        qc_transpiled = UnitarySynthesis(target=target)(qc)
+        opcount = qc_transpiled.count_ops()
+        self.assertTrue(set(opcount).issubset({"unitary"}))
+        self.assertTrue(np.allclose(Operator(qc_transpiled), Operator(qc)))
+
+    @data(
+        ["rx", "ry", "rxx"],
+        ["rx", "rz", "rzz"],
+    )
+    def test_parameterized_backend(self, basis_gates):
+        """Test synthesis with parameterized backend."""
+        backend = GenericBackendV2(3, basis_gates=basis_gates, seed=0)
+        qc = QuantumCircuit(3)
+        qc.unitary(random_unitary(4, seed=1234), [0, 1])
+        qc.unitary(random_unitary(4, seed=4321), [0, 2])
+        qc.cp(np.pi / 2, 0, 1)
+        qc_transpiled = transpile(qc, backend, optimization_level=3, seed_transpiler=42)
+        opcount = qc_transpiled.count_ops()
+        self.assertTrue(set(opcount).issubset(basis_gates))
         self.assertTrue(np.allclose(Operator(qc_transpiled), Operator(qc)))
 
     @data(1, 2, 3)

@@ -198,8 +198,8 @@ fn bit_term_as_pauli(bit: &BitTerm) -> &'static [(bool, Option<BitTerm>)] {
         BitTerm::Z => &[(true, Some(BitTerm::Z))],
         BitTerm::Plus => &[(true, None), (true, Some(BitTerm::X))],
         BitTerm::Minus => &[(true, None), (false, Some(BitTerm::X))],
-        BitTerm::Left => &[(true, None), (true, Some(BitTerm::Y))],
-        BitTerm::Right => &[(true, None), (false, Some(BitTerm::Y))],
+        BitTerm::Right => &[(true, None), (true, Some(BitTerm::Y))],
+        BitTerm::Left => &[(true, None), (false, Some(BitTerm::Y))],
         BitTerm::Zero => &[(true, None), (true, Some(BitTerm::Z))],
         BitTerm::One => &[(true, None), (false, Some(BitTerm::Z))],
     }
