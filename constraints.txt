@@ -17,4 +17,4 @@ z3-solver==4.12.2.0; platform_system=="Darwin"
 pydot>=3.0.0
 
 # Fix numpy version in aarch64 to prevent numpy.linalg.LinAlgError in CI checks
-numpy==1.26.3; architecture == 'aarch64' and python_version < '3.10'
+numpy==1.26.3; platform_machine == 'aarch64' and python_version < '3.10'
