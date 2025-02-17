@@ -351,23 +351,34 @@ def generate_preset_pass_manager(
                     message=".*``inst_map`` is deprecated as of Qiskit 1.3.*",
                     module="qiskit",
                 )
-                # Build target from constraints.
-                target = Target.from_configuration(
-                    basis_gates=basis_gates,
-                    num_qubits=backend.num_qubits if backend is not None else None,
-                    coupling_map=coupling_map,
-                    # If the instruction map has custom gates, do not give as config, the information
-                    # will be added to the target with update_from_instruction_schedule_map
-                    inst_map=inst_map if inst_map and not inst_map.has_custom_gate() else None,
-                    backend_properties=backend_properties,
-                    instruction_durations=instruction_durations,
-                    concurrent_measurements=(
-                        backend.target.concurrent_measurements if backend is not None else None
-                    ),
-                    dt=dt,
-                    timing_constraints=timing_constraints,
-                    custom_name_mapping=name_mapping,
-                )
+                with warnings.catch_warnings():
+                    # TODO This is a temporary usage of deprecated backend_properties in
+                    #   Target.from_configuration. Probably the logic needs to be restructured
+                    #   in a more target-centric transpiler
+                    #   https://github.com/Qiskit/qiskit/issues/9256
+                    warnings.filterwarnings(
+                        "ignore",
+                        category=DeprecationWarning,
+                        message=r".+qiskit\.transpiler\.target\.Target\.from_configuration.+",
+                        module="qiskit",
+                    )
+                    # Build target from constraints.
+                    target = Target.from_configuration(
+                        basis_gates=basis_gates,
+                        num_qubits=backend.num_qubits if backend is not None else None,
+                        coupling_map=coupling_map,
+                        # If the instruction map has custom gates, do not give as config, the information
+                        # will be added to the target with update_from_instruction_schedule_map
+                        inst_map=inst_map if inst_map and not inst_map.has_custom_gate() else None,
+                        backend_properties=backend_properties,
+                        instruction_durations=instruction_durations,
+                        concurrent_measurements=(
+                            backend.target.concurrent_measurements if backend is not None else None
+                        ),
+                        dt=dt,
+                        timing_constraints=timing_constraints,
+                        custom_name_mapping=name_mapping,
+                    )
 
     # Update target with custom gate information. Note that this is an exception to the priority
     # order (target > loose constraints), added to handle custom gates for scheduling passes.
