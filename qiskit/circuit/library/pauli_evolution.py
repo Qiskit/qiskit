@@ -20,10 +20,22 @@ import numpy as np
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumcircuit import ParameterValueType
 from qiskit.circuit.parameterexpression import ParameterExpression
-from qiskit.quantum_info import Pauli, SparsePauliOp
+from qiskit.quantum_info import Pauli, SparsePauliOp, SparseObservable
 
 if TYPE_CHECKING:
     from qiskit.synthesis.evolution import EvolutionSynthesis
+
+BIT_LABELS = {
+    0b0001: "Z",
+    0b1001: "0",
+    0b0101: "1",
+    0b0010: "X",
+    0b1010: "+",
+    0b0110: "-",
+    0b0011: "Y",
+    0b1011: "r",
+    0b0111: "l",
+}
 
 
 class PauliEvolutionGate(Gate):
@@ -90,15 +102,19 @@ class PauliEvolutionGate(Gate):
 
     def __init__(
         self,
-        operator: Pauli | SparsePauliOp | list[Pauli | SparsePauliOp],
+        operator: (
+            Pauli
+            | SparsePauliOp
+            | SparseObservable
+            | list[Pauli | SparsePauliOp | SparseObservable]
+        ),
         time: ParameterValueType = 1.0,
         label: str | None = None,
         synthesis: EvolutionSynthesis | None = None,
     ) -> None:
         """
         Args:
-            operator (Pauli | SparsePauliOp | list):
-                The operator to evolve. Can also be provided as list of non-commuting
+            operator: The operator to evolve. Can also be provided as list of non-commuting
                 operators where the elements are sums of commuting operators.
                 For example: ``[XY + YX, ZZ + ZI + IZ, YY]``.
             time: The evolution time.
@@ -110,9 +126,9 @@ class PauliEvolutionGate(Gate):
                 product formula with a single repetition.
         """
         if isinstance(operator, list):
-            operator = [_to_sparse_pauli_op(op) for op in operator]
+            operator = [_to_sparse_op(op) for op in operator]
         else:
-            operator = _to_sparse_pauli_op(operator)
+            operator = _to_sparse_op(operator)
 
         if label is None:
             label = _get_default_label(operator)
@@ -159,32 +175,43 @@ class PauliEvolutionGate(Gate):
         return super().validate_parameter(parameter)
 
 
-def _to_sparse_pauli_op(operator):
+def _to_sparse_op(
+    operator: Pauli | SparsePauliOp | SparseObservable,
+) -> SparsePauliOp | SparseObservable:
     """Cast the operator to a SparsePauliOp."""
 
     if isinstance(operator, Pauli):
-        sparse_pauli = SparsePauliOp(operator)
-    elif isinstance(operator, SparsePauliOp):
-        sparse_pauli = operator
+        sparse = SparsePauliOp(operator)
+    elif isinstance(operator, (SparseObservable, SparsePauliOp)):
+        sparse = operator
     else:
         raise ValueError(f"Unsupported operator type for evolution: {type(operator)}.")
 
-    if any(np.iscomplex(sparse_pauli.coeffs)):
+    if any(np.iscomplex(sparse.coeffs)):
         raise ValueError("Operator contains complex coefficients, which are not supported.")
-    if any(isinstance(coeff, ParameterExpression) for coeff in sparse_pauli.coeffs):
+    if any(isinstance(coeff, ParameterExpression) for coeff in sparse.coeffs):
         raise ValueError("Operator contains ParameterExpression, which are not supported.")
 
-    return sparse_pauli
+    return sparse
+
+
+def _operator_label(operator):
+    if isinstance(operator, SparseObservable):
+        if len(operator) == 1:
+            return _sparse_term_label(operator[0])
+        return "(" + " + ".join(_sparse_term_label(term) for term in operator) + ")"
+
+    # else: is a SparsePauliOp
+    if len(operator.paulis) == 1:
+        return operator.paulis.to_labels()[0]
+    return "(" + " + ".join(operator.paulis.to_labels()) + ")"
 
 
 def _get_default_label(operator):
     if isinstance(operator, list):
-        label = f"exp(-it ({[' + '.join(op.paulis.to_labels()) for op in operator]}))"
-    else:
-        if len(operator.paulis) == 1:
-            label = f"exp(-it {operator.paulis.to_labels()[0]})"
-        # for just a single Pauli don't add brackets around the sum
-        else:
-            label = f"exp(-it ({' + '.join(operator.paulis.to_labels())}))"
+        return f"exp(-it ({[_operator_label(op) for op in operator]}))"
+    return f"exp(-it {_operator_label(operator)})"
 
-    return label
+
+def _sparse_term_label(term):
+    return "".join(BIT_LABELS[bit] for bit in reversed(term.bit_terms))
