@@ -39,7 +39,7 @@ pub(crate) fn basis_search(
     // Build the visitor attributes:
     let mut num_gates_remaining_for_rule: IndexMap<usize, usize, ahash::RandomState> =
         IndexMap::default();
-    let predecessors: RefCell<IndexMap<GateIdentifier, Equivalence>> =
+    let predecessors: RefCell<IndexMap<GateIdentifier, Equivalence, ahash::RandomState>> =
         RefCell::new(IndexMap::default());
     let opt_cost_map: RefCell<IndexMap<GateIdentifier, u32, ahash::RandomState>> =
         RefCell::new(IndexMap::default());
