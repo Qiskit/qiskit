@@ -638,7 +638,11 @@ class TestMultipleTrials(QiskitTestCase):
         qc.measure_all()
         cmap = CouplingMap(backend.configuration().coupling_map)
         properties = backend.properties()
-        vf2_pass = VF2Layout(cmap, properties=properties)
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex=".*``properties`` is deprecated as of Qiskit 1.4",
+        ):
+            vf2_pass = VF2Layout(cmap, properties=properties)
         property_set = {}
         vf2_pass(qc, property_set)
         self.assertEqual(set(property_set["layout"].get_physical_bits()), {1, 3})
@@ -654,7 +658,11 @@ class TestMultipleTrials(QiskitTestCase):
         qc.measure_all()
         cmap = CouplingMap(backend.configuration().coupling_map)
         properties = backend.properties()
-        vf2_pass = VF2Layout(cmap, properties=properties, seed=-1, max_trials=1)
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex=".*``properties`` is deprecated as of Qiskit 1.4",
+        ):
+            vf2_pass = VF2Layout(cmap, properties=properties, seed=-1, max_trials=1)
         property_set = {}
         with self.assertLogs("qiskit.transpiler.passes.layout.vf2_layout", level="DEBUG") as cm:
             vf2_pass(qc, property_set)
@@ -675,7 +683,11 @@ class TestMultipleTrials(QiskitTestCase):
         qc.measure_all()
         cmap = CouplingMap(backend.configuration().coupling_map)
         properties = backend.properties()
-        vf2_pass = VF2Layout(cmap, properties=properties, seed=-1, time_limit=0.0)
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex=".*``properties`` is deprecated as of Qiskit 1.4",
+        ):
+            vf2_pass = VF2Layout(cmap, properties=properties, seed=-1, time_limit=0.0)
         property_set = {}
         with self.assertLogs("qiskit.transpiler.passes.layout.vf2_layout", level="DEBUG") as cm:
             vf2_pass(qc, property_set)
@@ -700,7 +712,11 @@ class TestMultipleTrials(QiskitTestCase):
         cmap = CouplingMap(backend.configuration().coupling_map)
         properties = backend.properties()
         # Run without any limits set
-        vf2_pass = VF2Layout(cmap, properties=properties, seed=42)
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex=".*``properties`` is deprecated as of Qiskit 1.4",
+        ):
+            vf2_pass = VF2Layout(cmap, properties=properties, seed=42)
         property_set = {}
         with self.assertLogs("qiskit.transpiler.passes.layout.vf2_layout", level="DEBUG") as cm:
             vf2_pass(qc, property_set)
@@ -738,12 +754,16 @@ class TestMultipleTrials(QiskitTestCase):
         cmap = CouplingMap(backend.configuration().coupling_map)
         properties = backend.properties()
         # Run without any limits set
-        vf2_pass = VF2Layout(
-            cmap,
-            properties=properties,
-            seed=42,
-            max_trials=0,
-        )
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex=".*``properties`` is deprecated as of Qiskit 1.4",
+        ):
+            vf2_pass = VF2Layout(
+                cmap,
+                properties=properties,
+                seed=42,
+                max_trials=0,
+            )
         property_set = {}
         with self.assertLogs("qiskit.transpiler.passes.layout.vf2_layout", level="DEBUG") as cm:
             vf2_pass(qc, property_set)

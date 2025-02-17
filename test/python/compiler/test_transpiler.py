@@ -2743,14 +2743,17 @@ class TestTranspileCustomPM(QiskitTestCase):
         qc = QuantumCircuit(2)
         qc.h(0)
         qc.cx(0, 1)
-
-        pm_conf = PassManagerConfig(
-            initial_layout=None,
-            basis_gates=["u1", "u2", "u3", "cx"],
-            coupling_map=CouplingMap([[0, 1]]),
-            backend_properties=None,
-            seed_transpiler=1,
-        )
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex=".*``backend_properties`` is deprecated as of Qiskit 1.4",
+        ):
+            pm_conf = PassManagerConfig(
+                initial_layout=None,
+                basis_gates=["u1", "u2", "u3", "cx"],
+                coupling_map=CouplingMap([[0, 1]]),
+                backend_properties=None,
+                seed_transpiler=1,
+            )
         passmanager = level_0_pass_manager(pm_conf)
 
         transpiled = passmanager.run([qc, qc])
