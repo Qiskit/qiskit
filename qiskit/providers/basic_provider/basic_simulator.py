@@ -576,8 +576,14 @@ class BasicSimulator(BackendV2):
         self._memory = getattr(qobj.config, "memory", False)
         self._qobj_config = qobj.config
         start = time.time()
-        for experiment in qobj.experiments:
-            result_list.append(self.run_experiment(experiment))
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                category=DeprecationWarning,
+                message=r".+qiskit\.providers\.basic_provider\.basic_simulator\..+",
+            )
+            for experiment in qobj.experiments:
+                result_list.append(self.run_experiment(experiment))
         end = time.time()
         result = {
             "backend_name": self.name,
@@ -593,6 +599,13 @@ class BasicSimulator(BackendV2):
 
         return Result.from_dict(result)
 
+    @deprecate_func(
+        since="1.4.0",
+        removal_timeline="in Qiskit 2.0.0",
+        additional_msg="This method takes a `QasmQobjExperiment` as input argument. "
+        "The `Qobj` class and related functionality are part of the deprecated "
+        "`BackendV1` workflow,  and no longer necessary for `BackendV2`. Use `run` instead.",
+    )
     def run_experiment(self, experiment: QasmQobjExperiment) -> dict[str, ...]:
         """Run an experiment (circuit) and return a single experiment result.
 

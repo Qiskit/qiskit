@@ -14,6 +14,7 @@
 Quantum bit and Classical bit objects.
 """
 import copy
+import warnings
 
 from qiskit.circuit.exceptions import CircuitError
 
@@ -56,6 +57,17 @@ class Bit:
             self._index = index
             self._hash = hash((self._register, self._index))
             self._repr = f"{self.__class__.__name__}({self._register}, {self._index})"
+
+    def __init_subclass__(cls):
+        # In Qiskit 2.0, `Bit` and `Register` will move to Rust space, and the allowable types of
+        # them will be fixed, similar to if the classes had been marked as `final`.
+        if cls.__module__.split(".", 2)[0] != __name__.split(".", 2)[0]:
+            warnings.warn(
+                "subclassing 'Bit' is not supported, and may not be possible in Qiskit 2.0",
+                category=DeprecationWarning,
+                stacklevel=2,
+            )
+        return cls
 
     def __repr__(self):
         """Return the official string representing the bit."""
