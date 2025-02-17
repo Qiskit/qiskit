@@ -24,6 +24,8 @@ thiserror.workspace = true
 approx.workspace = true
 itertools.workspace = true
 nalgebra.workspace = true
+nom.workspace = true
+nom-unicode.workspace = true
 
 [dependencies.pyo3]
 workspace = true
