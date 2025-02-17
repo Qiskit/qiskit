@@ -28,7 +28,7 @@ from qiskit.pulse.channels import AcquireChannel, MemorySlot, DriveChannel
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.macros import measure
 from qiskit.scheduler.config import ScheduleConfig
-from qiskit.providers import BackendV1, BackendV2
+from qiskit.providers import BackendV2
 
 CircuitPulseDef = namedtuple(
     "CircuitPulseDef",
@@ -39,7 +39,7 @@ CircuitPulseDef = namedtuple(
 def lower_gates(
     circuit: QuantumCircuit,
     schedule_config: ScheduleConfig,
-    backend: Optional[Union[BackendV1, BackendV2]] = None,
+    backend: Optional[Union[BackendV2]] = None,
 ) -> List[CircuitPulseDef]:
     """
     Return a list of Schedules and the qubits they operate on, for each element encountered in the
@@ -53,8 +53,7 @@ def lower_gates(
     Args:
         circuit: The quantum circuit to translate.
         schedule_config: Backend specific parameters used for building the Schedule.
-        backend: Pass in the backend used to build the Schedule, the backend could be BackendV1
-                 or BackendV2
+        backend: Pass in the BackendV2 used to build the Schedule
 
     Returns:
         A list of CircuitPulseDefs: the pulse definition for each circuit element.

@@ -33,7 +33,7 @@ from qiskit.providers import JobStatus
 from qiskit.providers.basic_provider import BasicProviderJob, BasicSimulator
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.result import Result
-from qiskit.qobj.utils import MeasReturnType, MeasLevel
+from qiskit.result.models import MeasReturnType, MeasLevel
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from ..legacy_cmaps import LAGOS_CMAP
 
