@@ -6928,7 +6928,8 @@ class QuantumCircuit:
 
         This method computes the estimate of the circuit duration by finding
         the longest duration path in the circuit based on the durations
-        provided by a given target.
+        provided by a given target. This method only works for simple circuits
+        that have no control flow or other classical feed-forward operations.
 
         Args:
             target (Target): The :class:`.Target` instance that contains durations for
