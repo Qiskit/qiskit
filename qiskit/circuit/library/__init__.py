@@ -259,6 +259,7 @@ Amplitude Functions
    :template: autosummary/class_no_inherited_members.rst
 
    LinearAmplitudeFunction
+   LinearAmplitudeFunctionGate
 
 Functional Pauli Rotations
 --------------------------
@@ -269,10 +270,15 @@ Functional Pauli Rotations
 
    FunctionalPauliRotations
    LinearPauliRotations
+   LinearPauliRotationsGate
    PolynomialPauliRotations
+   PolynomialPauliRotationsGate
    PiecewiseLinearPauliRotations
+   PiecewiseLinearPauliRotationsGate
    PiecewisePolynomialPauliRotations
+   PiecewisePolynomialPauliRotationsGate
    PiecewiseChebyshev
+   PiecewiseChebyshevGate
 
 Adders
 ------
@@ -308,6 +314,7 @@ Comparators
    :template: autosummary/class_no_inherited_members.rst
 
    IntegerComparator
+   IntegerComparatorGate
 
 Functions on binary variables
 -----------------------------
@@ -317,6 +324,7 @@ Functions on binary variables
    :template: autosummary/class_no_inherited_members.rst
 
    QuadraticForm
+   QuadraticFormGate
 
 Other arithmetic functions
 --------------------------
@@ -326,6 +334,7 @@ Other arithmetic functions
    :template: autosummary/class_no_inherited_members.rst
 
    ExactReciprocal
+   ExactReciprocalGate
 
 Particular Quantum Circuits
 ===========================
@@ -619,20 +628,29 @@ from .arithmetic import (
     MultiplierGate,
     FunctionalPauliRotations,
     LinearPauliRotations,
+    LinearPauliRotationsGate,
     PiecewiseLinearPauliRotations,
+    PiecewiseLinearPauliRotationsGate,
     PiecewisePolynomialPauliRotations,
+    PiecewisePolynomialPauliRotationsGate,
     PolynomialPauliRotations,
+    PolynomialPauliRotationsGate,
     IntegerComparator,
+    IntegerComparatorGate,
     WeightedAdder,
     QuadraticForm,
+    QuadraticFormGate,
     LinearAmplitudeFunction,
+    LinearAmplitudeFunctionGate,
     VBERippleCarryAdder,
     CDKMRippleCarryAdder,
     DraperQFTAdder,
     PiecewiseChebyshev,
+    PiecewiseChebyshevGate,
     HRSCumulativeMultiplier,
     RGQFTMultiplier,
     ExactReciprocal,
+    ExactReciprocalGate,
 )
 
 from .n_local import (
