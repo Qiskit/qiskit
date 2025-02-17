@@ -1,7 +1,7 @@
 ---
 fixes:
   - |
-    Fixed a bug in the :class:`.CommutationChecker` which could fail upon checking the commutation
+    Fixed a bug in the :class:`.CommutationChecker` which could fail when checking the commutation
     relation of a two-qubit Pauli rotation with a gate that is not in the commutation cache.
     For example::
 

@@ -6,3 +6,4 @@ fixes:
     but the global phase of the circuit was not updated. In particular,
     :class:`.RemoveIdentityEquivalent` now removes non-parameterized :class:`.GlobalPhaseGate`
     gates.
+    Fixes `#13778 <https://github.com/Qiskit/qiskit/issues/13778>`__.

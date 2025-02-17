@@ -13,3 +13,4 @@ fixes:
     succeed, such as calls to :meth:`.TranspileLayout.final_index_layout` raising :exc:`KeyError`.
 
     This bug did not affect backends that were fully connected, as most are.
+    Fixes `#13732 <https://github.com/Qiskit/qiskit/issues/13732>`__.
