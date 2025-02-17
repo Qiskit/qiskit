@@ -3367,9 +3367,9 @@ class QuantumCircuit:
                 will take less vertical room.  Default is ``medium``. Only used by
                 the ``text`` output, will be silently ignored otherwise.
             idle_wires: Include idle wires (wires with no circuit elements)
-                in output visualization. Default is ``True`` unless the
+                in output visualization. Default is ``False`` unless the
                 user config file (usually ``~/.qiskit/settings.conf``) has an
-                alternative value set. For example, ``circuit_idle_wires = False``.
+                alternative value set. For example, ``circuit_idle_wires = True``.
             with_layout: Include layout information, with labels on the
                 physical layout. Default is ``True``.
             fold: Sets pagination. It can be disabled using -1. In ``text``,
