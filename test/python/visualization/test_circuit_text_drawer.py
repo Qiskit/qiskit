@@ -5781,7 +5781,7 @@ class TestTextPhase(QiskitTestCase):
         circuit = QuantumCircuit(qr)
         circuit.global_phase = 3
 
-        self.assertEqual(circuit.draw(output="text").single_string(), expected)
+        self.assertEqual(circuit.draw(output="text", idle_wires=True).single_string(), expected)
 
     def test_empty_noregs(self):
         """Text empty circuit (no registers) with phase."""
