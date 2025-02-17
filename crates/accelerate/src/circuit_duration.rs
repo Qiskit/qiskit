@@ -31,7 +31,7 @@ pub(crate) fn compute_estimated_duration(dag: &DAGCircuit, target: &Target) -> P
 
     let get_duration =
         |edge: <&StableDiGraph<NodeType, Wire> as IntoEdgeReferences>::EdgeRef| -> PyResult<f64> {
-            let node_weight = &dag.dag()[edge.target()];
+            let node_weight = &dag[edge.target()];
             match node_weight {
                 NodeType::Operation(inst) => {
                     let name = inst.op.name();
