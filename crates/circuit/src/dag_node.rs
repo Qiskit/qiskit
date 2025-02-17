@@ -15,7 +15,7 @@ use std::cell::OnceCell;
 use std::hash::Hasher;
 
 use crate::circuit_instruction::{CircuitInstruction, OperationFromPython};
-use crate::imports::QUANTUM_CIRCUIT;
+use crate::imports::{QUANTUM_CIRCUIT, WARNINGS_WARN};
 use crate::operations::{Operation, Param};
 use crate::TupleLikeArg;
 
@@ -24,7 +24,7 @@ use approx::relative_eq;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 use numpy::IntoPyArray;
-use pyo3::exceptions::PyValueError;
+use pyo3::exceptions::{PyDeprecationWarning, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{PyString, PyTuple};
 use pyo3::{intern, IntoPy, PyObject, PyResult, ToPyObject};
@@ -85,6 +85,7 @@ impl DAGNode {
         self.node.map(|node| node.index())
     }
 
+    #[pyo3(signature=(index=None))]
     fn __setstate__(&mut self, index: Option<usize>) {
         self.node = index.map(NodeIndex::new);
     }
@@ -110,7 +111,6 @@ impl DAGNode {
 #[pyclass(module = "qiskit._accelerate.circuit", extends=DAGNode)]
 pub struct DAGOpNode {
     pub instruction: CircuitInstruction,
-    #[pyo3(get)]
     pub sort_key: PyObject,
 }
 
@@ -149,6 +149,25 @@ impl DAGOpNode {
                 DAGNode { node: None },
             ),
         )
+    }
+
+    #[getter]
+    fn sort_key(&self, py: Python) -> PyResult<PyObject> {
+        WARNINGS_WARN.get_bound(py).call1((
+            intern!(
+                py,
+                concat!(
+                    "The sort_key attribute of DAGOpNode has been deprecated ",
+                    "and will be removed in the Qiskit 2.0.0 release. ",
+                    "Instead you can create this by looking at the `qargs` and ",
+                    "`cargs` attributes to create an equivalent string for a ",
+                    "given DAGOpNode instance.",
+                )
+            ),
+            py.get_type_bound::<PyDeprecationWarning>(),
+            1,
+        ))?;
+        Ok(self.sort_key.clone_ref(py))
     }
 
     fn __hash__(slf: PyRef<'_, Self>) -> PyResult<u64> {
@@ -368,34 +387,28 @@ impl DAGOpNode {
 
     #[getter]
     fn label(&self) -> Option<&str> {
-        self.instruction
-            .extra_attrs
-            .as_ref()
-            .and_then(|attrs| attrs.label.as_deref())
+        self.instruction.extra_attrs.label()
     }
 
     #[getter]
     fn condition(&self, py: Python) -> Option<PyObject> {
         self.instruction
             .extra_attrs
-            .as_ref()
-            .and_then(|attrs| attrs.condition.as_ref().map(|x| x.clone_ref(py)))
+            .condition()
+            .map(|x| x.clone_ref(py))
     }
 
     #[getter]
     fn duration(&self, py: Python) -> Option<PyObject> {
         self.instruction
             .extra_attrs
-            .as_ref()
-            .and_then(|attrs| attrs.duration.as_ref().map(|x| x.clone_ref(py)))
+            .duration()
+            .map(|x| x.clone_ref(py))
     }
 
     #[getter]
     fn unit(&self) -> Option<&str> {
-        self.instruction
-            .extra_attrs
-            .as_ref()
-            .and_then(|attrs| attrs.unit.as_deref())
+        self.instruction.extra_attrs.unit()
     }
 
     /// Is the :class:`.Operation` contained in this node a Qiskit standard gate?
@@ -426,30 +439,7 @@ impl DAGOpNode {
 
     #[setter]
     fn set_label(&mut self, val: Option<String>) {
-        match self.instruction.extra_attrs.as_mut() {
-            Some(attrs) => attrs.label = val,
-            None => {
-                if val.is_some() {
-                    self.instruction.extra_attrs = Some(Box::new(
-                        crate::circuit_instruction::ExtraInstructionAttributes {
-                            label: val,
-                            duration: None,
-                            unit: None,
-                            condition: None,
-                        },
-                    ))
-                }
-            }
-        };
-        if let Some(attrs) = &self.instruction.extra_attrs {
-            if attrs.label.is_none()
-                && attrs.duration.is_none()
-                && attrs.unit.is_none()
-                && attrs.condition.is_none()
-            {
-                self.instruction.extra_attrs = None;
-            }
-        }
+        self.instruction.extra_attrs.set_label(val);
     }
 
     #[getter]
@@ -490,7 +480,6 @@ impl DAGOpNode {
 pub struct DAGInNode {
     #[pyo3(get)]
     pub wire: PyObject,
-    #[pyo3(get)]
     sort_key: PyObject,
 }
 
@@ -517,6 +506,25 @@ impl DAGInNode {
             },
             DAGNode { node: None },
         ))
+    }
+
+    #[getter]
+    fn sort_key(&self, py: Python) -> PyResult<PyObject> {
+        WARNINGS_WARN.get_bound(py).call1((
+            intern!(
+                py,
+                concat!(
+                    "The sort_key attribute of DAGInNode has been deprecated ",
+                    "and will be removed in the Qiskit 2.0.0 release. ",
+                    "Instead you can create this by looking at the `wire` ",
+                    "attribute to create an equivalent string for a given ",
+                    "DAGInNode instance."
+                )
+            ),
+            py.get_type_bound::<PyDeprecationWarning>(),
+            1,
+        ))?;
+        Ok(self.sort_key.clone_ref(py))
     }
 
     fn __reduce__(slf: PyRef<Self>, py: Python) -> PyObject {
@@ -563,7 +571,6 @@ impl DAGInNode {
 pub struct DAGOutNode {
     #[pyo3(get)]
     pub wire: PyObject,
-    #[pyo3(get)]
     sort_key: PyObject,
 }
 
@@ -590,6 +597,25 @@ impl DAGOutNode {
             },
             DAGNode { node: None },
         ))
+    }
+
+    #[getter]
+    fn sort_key(&self, py: Python) -> PyResult<PyObject> {
+        WARNINGS_WARN.get_bound(py).call1((
+            intern!(
+                py,
+                concat!(
+                    "The sort_key attribute of DAGOutNode has been deprecated ",
+                    "and will be removed in the Qiskit 2.0.0 release. ",
+                    "Instead you can create this by looking at the `wire` ",
+                    "attribute to create an equivalent string for a given ",
+                    "DAGInNode instance."
+                )
+            ),
+            py.get_type_bound::<PyDeprecationWarning>(),
+            1,
+        ))?;
+        Ok(self.sort_key.clone_ref(py))
     }
 
     fn __reduce__(slf: PyRef<Self>, py: Python) -> PyObject {

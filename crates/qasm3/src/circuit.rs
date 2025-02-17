@@ -21,7 +21,7 @@ pub trait PyRegister {
     // or at a minimum
     //      fn iter<'a>(&'a self, py: Python<'a>) -> ::pyo3::types::iter::PyListIterator<'a>;
     // but we can't use the former before Rust 1.75 and the latter before PyO3 0.21.
-    fn bit_list<'a>(&'a self, py: Python<'a>) -> &Bound<'a, PyList>;
+    fn bit_list<'a>(&'a self, py: Python<'a>) -> &'a Bound<'a, PyList>;
 }
 
 macro_rules! register_type {
@@ -38,7 +38,7 @@ macro_rules! register_type {
         }
 
         impl PyRegister for $name {
-            fn bit_list<'a>(&'a self, py: Python<'a>) -> &Bound<'a, PyList> {
+            fn bit_list<'a>(&'a self, py: Python<'a>) -> &'a Bound<'a, PyList> {
                 self.items.bind(py)
             }
         }
@@ -65,12 +65,23 @@ register_type!(PyClassicalRegister);
 
 /// Information received from Python space about how to construct a Python-space object to
 /// represent a given gate that might be declared.
-#[pyclass(module = "qiskit._accelerate.qasm3", frozen, name = "CustomGate")]
+#[pyclass(
+    module = "qiskit._accelerate.qasm3",
+    frozen,
+    name = "CustomGate",
+    get_all
+)]
 #[derive(Clone, Debug)]
 pub struct PyGate {
+    /// A callable Python object that takes ``num_params`` angles as positional arguments, and
+    /// returns a :class:`~.circuit.Gate` object representing the gate.
     constructor: Py<PyAny>,
+    /// The name of the gate as it appears in the OpenQASM 3 program.  This is not necessarily
+    /// identical to the name that Qiskit gives the gate.
     name: String,
+    /// The number of angle-like parameters the gate requires.
     num_params: usize,
+    /// The number of qubits the gate acts on.
     num_qubits: usize,
 }
 
@@ -286,7 +297,7 @@ pub struct PyCircuit(Py<PyAny>);
 
 impl PyCircuit {
     /// Untyped access to the inner Python object.
-    pub fn inner<'a>(&'a self, py: Python<'a>) -> &Bound<'a, PyAny> {
+    pub fn inner<'a>(&'a self, py: Python<'a>) -> &'a Bound<'a, PyAny> {
         self.0.bind(py)
     }
 

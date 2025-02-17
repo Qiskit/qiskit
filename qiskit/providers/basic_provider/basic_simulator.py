@@ -48,6 +48,7 @@ from qiskit.providers.options import Options
 from qiskit.qobj import QasmQobj, QasmQobjConfig, QasmQobjExperiment
 from qiskit.result import Result
 from qiskit.transpiler import Target
+from qiskit.utils.deprecation import deprecate_func
 
 from .basic_provider_job import BasicProviderJob
 from .basic_provider_tools import single_gate_matrix
@@ -214,10 +215,12 @@ class BasicSimulator(BackendV2):
         return target
 
     @deprecate_func(
-        since="1.3",
-        removal_timeline="in the 2.0 release",
-        additional_msg="Because `qiskit.providers.models.BackendConfiguration` is deprecated, this "
-        "method wont be accepted anymore as a parameter.",
+        since="1.3.0",
+        removal_timeline="in Qiskit 2.0.0",
+        additional_msg="The `BackendConfiguration` class is part of the deprecated `BackendV1` "
+        "workflow, and no longer necessary for `BackendV2`. The individual configuration elements "
+        "can be retrieved directly from the backend or from the contained `Target` instance "
+        "(`backend.target)`).",
     )
     def configuration(self) -> BackendConfiguration:
         """Return the simulator backend configuration.
@@ -255,7 +258,7 @@ class BasicSimulator(BackendV2):
                 backend_name=self.name,
                 backend_version=self.backend_version,
                 n_qubits=self.num_qubits,
-                basis_gates=self.target.operation_names,
+                basis_gates=list(self.target.operation_names),
                 gates=gates,
                 local=True,
                 simulator=True,
@@ -539,7 +542,8 @@ class BasicSimulator(BackendV2):
                     "initial_statevector": np.array([1, 0, 0, 1j]) / math.sqrt(2),
                 }
         """
-        # TODO: replace assemble with new run flow
+        # TODO: replace assemble with new run flow. If this is not achieved before 2.0,
+        # see removal note on `def _assemble`, L192 of qiskit/compiler/assembler.py
         from qiskit.compiler.assembler import _assemble
 
         out_options = {}
@@ -573,8 +577,14 @@ class BasicSimulator(BackendV2):
         self._memory = getattr(qobj.config, "memory", False)
         self._qobj_config = qobj.config
         start = time.time()
-        for experiment in qobj.experiments:
-            result_list.append(self.run_experiment(experiment))
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                category=DeprecationWarning,
+                message=r".+qiskit\.providers\.basic_provider\.basic_simulator\..+",
+            )
+            for experiment in qobj.experiments:
+                result_list.append(self.run_experiment(experiment))
         end = time.time()
         result = {
             "backend_name": self.name,
@@ -590,6 +600,13 @@ class BasicSimulator(BackendV2):
 
         return Result.from_dict(result)
 
+    @deprecate_func(
+        since="1.4.0",
+        removal_timeline="in Qiskit 2.0.0",
+        additional_msg="This method takes a `QasmQobjExperiment` as input argument. "
+        "The `Qobj` class and related functionality are part of the deprecated "
+        "`BackendV1` workflow,  and no longer necessary for `BackendV2`. Use `run` instead.",
+    )
     def run_experiment(self, experiment: QasmQobjExperiment) -> dict[str, ...]:
         """Run an experiment (circuit) and return a single experiment result.
 

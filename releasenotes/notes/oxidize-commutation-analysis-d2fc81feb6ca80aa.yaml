@@ -1,4 +1,0 @@
----
-features_transpiler:
-  - |
-    Added a Rust implementation of :class:`.CommutationAnalysis` in :func:`.analyze_commutations`.

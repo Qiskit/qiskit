@@ -26,16 +26,19 @@ from qiskit.providers.models.pulsedefaults import PulseDefaults
 from qiskit.providers.options import Options
 from qiskit.providers.exceptions import BackendPropertyError
 from qiskit.utils import deprecate_func
+from qiskit.utils.deprecate_pulse import deprecate_pulse_arg, deprecate_pulse_dependency
+
 
 logger = logging.getLogger(__name__)
 
 
 @deprecate_func(
-    since="1.3",
+    since="1.4",
     removal_timeline="in the 2.0 release",
     additional_msg="With the deprecation of `qiskit.providers.models` this utility function "
     "is not needed.",
 )
+@deprecate_pulse_arg("defaults")
 def convert_to_target(
     configuration: BackendConfiguration,
     properties: BackendProperties = None,
@@ -53,7 +56,7 @@ def convert_to_target(
     Args:
         configuration: Backend configuration as ``BackendConfiguration``
         properties: Backend property dictionary or ``BackendProperties``
-        defaults: Backend pulse defaults dictionary or ``PulseDefaults``
+        defaults: DEPRECATED. Backend pulse defaults dictionary or ``PulseDefaults``
         custom_name_mapping: A name mapping must be supplied for the operation
             not included in Qiskit Standard Gate name mapping, otherwise the operation
             will be dropped in the resulting ``Target`` object.
@@ -63,7 +66,20 @@ def convert_to_target(
     Returns:
         A ``Target`` instance.
     """
+    return _convert_to_target(
+        configuration, properties, defaults, custom_name_mapping, add_delay, filter_faulty
+    )
 
+
+def _convert_to_target(
+    configuration: BackendConfiguration,
+    properties: BackendProperties = None,
+    defaults: PulseDefaults = None,
+    custom_name_mapping: Optional[Dict[str, Any]] = None,
+    add_delay: bool = True,
+    filter_faulty: bool = True,
+):
+    """An alternative private path to avoid pulse deprecations"""
     # importing packages where they are needed, to avoid cyclic-import.
     # pylint: disable=cyclic-import
     from qiskit.transpiler.target import (
@@ -272,7 +288,7 @@ def convert_to_target(
 
                 entry = inst_sched_map._get_calibration_entry(name, qubits)
                 try:
-                    prop_name_map[name][qubits].calibration = entry
+                    prop_name_map[name][qubits]._calibration_prop = entry
                 except AttributeError:
                     # if instruction properties are "None", add entry
                     prop_name_map[name].update({qubits: InstructionProperties(None, None, entry)})
@@ -360,6 +376,12 @@ class BackendV2Converter(BackendV2):
         )
     """
 
+    @deprecate_func(
+        since="1.4",
+        removal_timeline="in the 2.0 release",
+        additional_msg="Since ``BackendV1`` is deprecated, this conversion tool from BackendV1 to "
+        "BackendV2 is going to be removed with BackendV1.",
+    )
     def __init__(
         self,
         backend: BackendV1,
@@ -453,15 +475,19 @@ class BackendV2Converter(BackendV2):
     def meas_map(self) -> List[List[int]]:
         return self._config.meas_map
 
+    @deprecate_pulse_dependency
     def drive_channel(self, qubit: int):
         return self._config.drive(qubit)
 
+    @deprecate_pulse_dependency
     def measure_channel(self, qubit: int):
         return self._config.measure(qubit)
 
+    @deprecate_pulse_dependency
     def acquire_channel(self, qubit: int):
         return self._config.acquire(qubit)
 
+    @deprecate_pulse_dependency
     def control_channel(self, qubits: Iterable[int]):
         return self._config.control(qubits)
 

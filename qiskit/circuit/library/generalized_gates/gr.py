@@ -21,7 +21,7 @@ class GR(QuantumCircuit):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌──────────┐
         q_0: ┤0         ├
@@ -75,7 +75,7 @@ class GRX(GR):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌──────────┐
         q_0: ┤0         ├
@@ -123,7 +123,7 @@ class GRY(GR):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌──────────┐
         q_0: ┤0         ├
@@ -171,7 +171,7 @@ class GRZ(QuantumCircuit):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌──────────┐
         q_0: ┤0         ├

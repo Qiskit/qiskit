@@ -35,7 +35,7 @@ class RZXGate(Gate):
 
     **Circuit Symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌─────────┐
         q_0: ┤0        ├
@@ -65,7 +65,7 @@ class RZXGate(Gate):
         Instead, if we apply it on (q_1, q_0), the matrix will
         be :math:`Z \otimes X`:
 
-        .. parsed-literal::
+        .. code-block:: text
 
                  ┌─────────┐
             q_0: ┤1        ├
@@ -100,19 +100,19 @@ class RZXGate(Gate):
 
         .. math::
 
-            R_{ZX}(\theta = 0) = I
+            R_{ZX}(\theta = 0)\ q_0, q_1 = I
 
         .. math::
 
-            R_{ZX}(\theta = 2\pi) = -I
+            R_{ZX}(\theta = 2\pi)\ q_0, q_1 = -I
 
         .. math::
 
-            R_{ZX}(\theta = \pi) = -i Z \otimes X
+            R_{ZX}(\theta = \pi)\ q_0, q_1 = -i X \otimes Z
 
         .. math::
 
-            RZX(\theta = \frac{\pi}{2}) = \frac{1}{\sqrt{2}}
+            R_{ZX}(\theta = \frac{\pi}{2})\ q_0, q_1 = \frac{1}{\sqrt{2}}
                                     \begin{pmatrix}
                                         1  & 0 & -i & 0 \\
                                         0  & 1 & 0  & i \\

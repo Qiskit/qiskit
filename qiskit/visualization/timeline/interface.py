@@ -20,16 +20,18 @@ the configured canvas is passed to one of the plotter APIs to generate a visuali
 """
 
 from typing import Optional, Dict, Any, List, Tuple
+import warnings
 
 from qiskit import circuit
+from qiskit.transpiler.target import Target
 from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.timeline import types, core, stylesheet
 from qiskit.utils import deprecate_arg
 
 
-@deprecate_arg("show_idle", new_alias="idle_wires", since="1.1.0", pending=True)
-@deprecate_arg("show_barriers", new_alias="plot_barriers", since="1.1.0", pending=True)
+@deprecate_arg("show_idle", new_alias="idle_wires", since="1.4")
+@deprecate_arg("show_barriers", new_alias="plot_barriers", since="1.4")
 def draw(
     program: circuit.QuantumCircuit,
     style: Optional[Dict[str, Any]] = None,
@@ -43,6 +45,7 @@ def draw(
     plotter: Optional[str] = types.Plotter.MPL.value,
     axis: Optional[Any] = None,
     filename: Optional[str] = None,
+    target: Optional[Target] = None,
     *,
     show_idle: Optional[bool] = None,
     show_barriers: Optional[bool] = None,
@@ -81,6 +84,7 @@ def draw(
             the plotters uses given `axis` instead of internally initializing a figure object.
             This object format depends on the plotter. See plotters section for details.
         filename: If provided the output image is dumped into a file under the filename.
+        target: The target for the backend the timeline is being generated for.
         show_idle: DEPRECATED.
         show_barriers: DEPRECATED.
 
@@ -360,6 +364,14 @@ def draw(
     # update stylesheet
     temp_style = stylesheet.QiskitTimelineStyle()
     temp_style.update(style or stylesheet.IQXStandard())
+
+    if target is None:
+        warnings.warn(
+            "Target is not specified. In Qiskit 2.0.0 this will be required to get the duration of "
+            "instructions.",
+            PendingDeprecationWarning,
+            stacklevel=2,
+        )
 
     # update control properties
     if idle_wires is not None:

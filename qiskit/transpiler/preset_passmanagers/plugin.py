@@ -145,7 +145,7 @@ subclass as a setuptools entry point in the package metadata. This can be done
 an ``entry-points`` table in ``pyproject.toml`` for the plugin package with the necessary entry
 points under the appropriate namespace for the stage your plugin is for. You can see the list of
 stages, entry points, and expectations from the stage in :ref:`stage_table`.  For example,
-continuing from the example plugin above::
+continuing from the example plugin above:
 
 .. code-block:: toml
 

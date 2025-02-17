@@ -1,0 +1,34 @@
+---
+features_transpiler:
+  - |
+    The majority of the transpiler passes used in the preset pass managers
+    returned by :func:`.generate_preset_pass_manager` and used internally
+    by :func:`.transpile` were ported into Rust. This has significantly
+    improved the runtime performance of each pass which has led to a
+    significant improvement in the overall operational efficiency of the
+    transpiler. The list of passes ported to Rust in this release are:
+
+    * :class:`.ConsolidateBlocks`
+    * :class:`.BasisTranslator`
+    * :class:`.CommutationAnalysis`
+    * :class:`.CommutativeCancellation`
+    * :class:`.ElidePermutations`
+    * :class:`.Optimize1qGatesDecomposition`
+    * :class:`.UnitarySynthesis`
+    * :class:`.GateDirection`
+    * :class:`.CheckGateDirection`
+    * :class:`.RemoveDiagonalGatesBeforeMeasure`
+    * :class:`.CheckMap`
+    * :class:`.Split2QUnitaries`
+    * :class:`.FilterOpNodes`
+    * :class:`.Depth`
+    * :class:`.Size`
+    * :class:`.GatesInBasis`
+    * :class:`.InverseCancellation`
+    * :class:`.BarrierBeforeFinalMeasurements`
+
+features_circuits:
+  - |
+    The :class:`.CommutationChecker` class has been rewritten in Rust.
+    This class retains the same functionality and public API as before
+    but is now significantly faster in most cases.

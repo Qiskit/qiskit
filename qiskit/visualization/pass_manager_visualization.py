@@ -58,23 +58,12 @@ def pass_manager_drawer(pass_manager, filename=None, style=None, raw=False):
     Example:
         .. code-block::
 
-             %matplotlib inline
             from qiskit import QuantumCircuit
-            from qiskit.compiler import transpile
-            from qiskit.transpiler import PassManager
+            from qiskit.transpiler import generate_preset_pass_manager
             from qiskit.visualization import pass_manager_drawer
-            from qiskit.transpiler.passes import Unroller
 
-            circ = QuantumCircuit(3)
-            circ.ccx(0, 1, 2)
-            circ.draw()
-
-            pass_ = Unroller(['u1', 'u2', 'u3', 'cx'])
-            pm = PassManager(pass_)
-            new_circ = pm.run(circ)
-            new_circ.draw(output='mpl')
-
-            pass_manager_drawer(pm, "passmanager.jpg")
+            pm = generate_preset_pass_manager(optimization_level=0)
+            pass_manager_drawer(pm)
     """
     import pydot
 

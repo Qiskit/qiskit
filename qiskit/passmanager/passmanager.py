@@ -14,6 +14,7 @@
 from __future__ import annotations
 
 import logging
+import warnings
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Iterable
 from itertools import chain
@@ -28,6 +29,8 @@ from .flow_controllers import FlowControllerLinear
 from .compilation_status import PropertySet, WorkflowStatus, PassManagerState
 
 logger = logging.getLogger(__name__)
+
+_MISSING = object()
 
 
 class BasePassManager(ABC):
@@ -174,6 +177,8 @@ class BasePassManager(ABC):
         in_programs: Any | list[Any],
         callback: Callable = None,
         num_processes: int = None,
+        *,
+        property_set: object = _MISSING,
         **kwargs,
     ) -> Any:
         """Run all the passes on the specified ``in_programs``.
@@ -211,12 +216,25 @@ class BasePassManager(ABC):
                 execution is enabled. This argument overrides ``num_processes`` in the user
                 configuration file, and the ``QISKIT_NUM_PROCS`` environment variable. If set
                 to ``None`` the system default or local user configuration will be used.
-
+            property_set: Currently a key that will be interpreted as all other arbitrary
+                ``kwargs``.  In Qiskit 2.0, this will instead seed the :class:`.PropertySet` of the
+                compilation (but does not do so in this version).
             kwargs: Arbitrary arguments passed to the compiler frontend and backend.
 
         Returns:
             The transformed program(s).
         """
+        if property_set is not _MISSING:
+            warnings.warn(
+                "From Qiskit 2.0, 'property_set' will be a reserved keyword argument of"
+                " 'BasePassManager.run', and not passed on to the conversion functions."
+                " This subclass of 'BasePassManager' needs to use a different keyword argument"
+                " for passing on this data.",
+                FutureWarning,
+                stacklevel=2,
+            )
+            kwargs["property_set"] = property_set
+
         if not self._tasks and not kwargs and callback is None:
             return in_programs
 

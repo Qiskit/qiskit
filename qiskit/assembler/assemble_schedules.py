@@ -22,8 +22,10 @@ from qiskit.exceptions import QiskitError
 from qiskit.pulse import instructions, transforms, library, schedule, channels
 from qiskit.qobj import utils as qobj_utils, converters
 from qiskit.qobj.converters.pulse_instruction import ParametricPulseShapes
+from qiskit.utils.deprecate_pulse import deprecate_pulse_dependency
 
 
+@deprecate_pulse_dependency
 def assemble_schedules(
     schedules: List[
         Union[

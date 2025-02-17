@@ -144,6 +144,8 @@ class Pauli(BasePauli):
 
     .. code-block:: python
 
+        from qiskit.quantum_info import Pauli
+
         P = Pauli('-iXYZ')
 
         print('P[0] =', repr(P[0]))

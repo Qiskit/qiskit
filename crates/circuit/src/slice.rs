@@ -51,7 +51,7 @@ impl<'py> PySequenceIndex<'py> {
             }
             PySequenceIndex::Slice(slice) => {
                 let indices = slice
-                    .indices(len as ::std::os::raw::c_long)
+                    .indices(len as isize)
                     .map_err(PySequenceIndexError::from)?;
                 if indices.step > 0 {
                     Ok(SequenceIndex::PosRange {

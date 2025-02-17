@@ -16,10 +16,7 @@
 
 from ddt import data, ddt
 
-from qiskit.circuit import bit
-from qiskit.circuit import QuantumRegister
-from qiskit.circuit import AncillaRegister
-from qiskit.circuit import ClassicalRegister
+from qiskit.circuit import bit, QuantumRegister, Register, AncillaRegister, ClassicalRegister
 from qiskit.circuit.exceptions import CircuitError
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -119,3 +116,15 @@ class TestRegisterClass(QiskitTestCase):
         bits_difftype = [difftype.bit_type() for _ in range(3)]
         reg_difftype = difftype(name="foo", bits=bits_difftype)
         self.assertNotEqual(reg_difftype, test_reg)
+
+    def test_deprecation_of_subclass(self):
+        """It's not permitted to subclass the objects."""
+        with self.assertWarnsRegex(DeprecationWarning, "subclassing 'Register' is not supported"):
+
+            class _MyRegister(Register):
+                """Direct subclass."""
+
+        with self.assertWarnsRegex(DeprecationWarning, "subclassing 'Register' is not supported"):
+
+            class _MyQuantumRegister(QuantumRegister):
+                """Indirect subclass."""

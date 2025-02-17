@@ -30,9 +30,9 @@ project_copyright = f"2017-{datetime.date.today().year}, Qiskit Development Team
 author = "Qiskit Development Team"
 
 # The short X.Y version
-version = "1.3"
+version = "1.4"
 # The full version, including alpha/beta/rc tags
-release = "1.3.0b1"
+release = "1.4.0"
 
 language = "en"
 
@@ -120,6 +120,14 @@ autosummary_generate_overwrite = False
 napoleon_google_docstring = True
 napoleon_numpy_docstring = False
 
+# Autosummary generates stub filenames based on the import name.
+# Sometimes, two distinct interfaces only differ in capitalization; this
+# creates a problem on case-insensitive OS/filesystems like macOS. So,
+# we manually avoid the clash by renaming one of the files.
+autosummary_filename_map = {
+    "qiskit.circuit.library.iqp": "qiskit.circuit.library.iqp_function",
+}
+
 
 # ----------------------------------------------------------------------------------
 # Doctest
@@ -173,6 +181,10 @@ def linkcode_resolve(domain, info):
         except AttributeError:
             return None
 
+    # Unwrap decorators. This requires they used `functools.wrap()`.
+    while hasattr(obj, "__wrapped__"):
+        obj = getattr(obj, "__wrapped__")
+
     try:
         full_file_name = inspect.getsourcefile(obj)
     except TypeError:
@@ -181,7 +193,7 @@ def linkcode_resolve(domain, info):
         return None
     try:
         relative_file_name = Path(full_file_name).resolve().relative_to(REPO_ROOT)
-        file_name = re.sub(r"\.tox\/.+\/site-packages\/", "", str(relative_file_name))
+        file_name = re.sub(r"\.tox\/.+\/site-packages\/", "", relative_file_name.as_posix())
     except ValueError:
         return None
 

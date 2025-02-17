@@ -576,9 +576,12 @@ class TestUnrollerCompatability(QiskitTestCase):
         circuit.rz(0.3, qr)
         circuit.rx(0.1, qr)
         circuit.measure(qr, cr)
-        circuit.x(qr).c_if(cr, 1)
-        circuit.y(qr).c_if(cr, 1)
-        circuit.z(qr).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.x(qr).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.y(qr).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.z(qr).c_if(cr, 1)
         dag = circuit_to_dag(circuit)
         pass_ = UnrollCustomDefinitions(std_eqlib, ["u1", "u2", "u3"])
         dag = pass_.run(dag)
@@ -609,9 +612,12 @@ class TestUnrollerCompatability(QiskitTestCase):
         ref_circuit.append(U1Gate(0.3), [qr[0]])
         ref_circuit.append(U3Gate(0.1, -pi / 2, pi / 2), [qr[0]])
         ref_circuit.measure(qr[0], cr[0])
-        ref_circuit.append(U3Gate(pi, 0, pi), [qr[0]]).c_if(cr, 1)
-        ref_circuit.append(U3Gate(pi, pi / 2, pi / 2), [qr[0]]).c_if(cr, 1)
-        ref_circuit.append(U1Gate(pi), [qr[0]]).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            ref_circuit.append(U3Gate(pi, 0, pi), [qr[0]]).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            ref_circuit.append(U3Gate(pi, pi / 2, pi / 2), [qr[0]]).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            ref_circuit.append(U1Gate(pi), [qr[0]]).c_if(cr, 1)
         ref_dag = circuit_to_dag(ref_circuit)
 
         self.assertEqual(unrolled_dag, ref_dag)
@@ -1073,7 +1079,8 @@ class TestBasisExamples(QiskitTestCase):
         circ.h(0)
         circ.cx(0, 1)
         circ.measure(1, 1)
-        circ.h(0).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            circ.h(0).c_if(cr, 1)
         circ_transpiled = transpile(circ, optimization_level=3, basis_gates=["cx", "id", "u"])
 
         #      ┌────────────┐        ┌────────────┐
@@ -1089,7 +1096,8 @@ class TestBasisExamples(QiskitTestCase):
         expected.u(pi / 2, 0, pi, 0)
         expected.cx(0, 1)
         expected.measure(1, 1)
-        expected.u(pi / 2, 0, pi, 0).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            expected.u(pi / 2, 0, pi, 0).c_if(cr, 1)
 
         self.assertEqual(circ_transpiled, expected)
 

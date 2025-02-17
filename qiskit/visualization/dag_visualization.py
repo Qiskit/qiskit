@@ -81,7 +81,7 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
     ``rustworkx`` package to draw the DAG.
 
     Args:
-        dag (DAGCircuit): The dag to draw.
+        dag (DAGCircuit or DAGDependency): The dag to draw.
         scale (float): scaling factor
         filename (str): file path to save image to (format inferred from name)
         style (str): 'plain': B&W graph

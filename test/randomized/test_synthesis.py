@@ -23,8 +23,8 @@ from qiskit.quantum_info.random import random_unitary
 from qiskit.synthesis.two_qubit.two_qubit_decompose import (
     two_qubit_cnot_decompose,
     TwoQubitBasisDecomposer,
-    Ud,
 )
+from qiskit._accelerate.two_qubit_decompose import Ud
 
 
 class TestSynthesis(CheckDecompositions):

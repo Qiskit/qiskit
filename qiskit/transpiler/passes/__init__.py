@@ -93,6 +93,7 @@ Optimizations
    NormalizeRXAngle
    OptimizeAnnotated
    Split2QUnitaries
+   RemoveIdentityEquivalent
 
 Calibration
 =============
@@ -247,6 +248,7 @@ from .optimization import OptimizeCliffords
 from .optimization import ElidePermutations
 from .optimization import NormalizeRXAngle
 from .optimization import OptimizeAnnotated
+from .optimization import RemoveIdentityEquivalent
 from .optimization import Split2QUnitaries
 
 # circuit analysis

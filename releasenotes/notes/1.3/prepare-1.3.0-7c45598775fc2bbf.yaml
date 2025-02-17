@@ -1,0 +1,44 @@
+---
+prelude: >
+    Qiskit version 1.3.0 brings in major performance and quality improvements
+    for the transpiler.
+
+    There have been many new features, fixes and improvements introduced in this
+    new version of Qiskit, the highlights are:
+
+      * The core data structures for transpilation in Qiskit have been ported
+        to Rust internally. This includes components such as the
+        :class:`.DAGCircuit`, :class:`.Target`, :class:`.EquivalenceLibrary`,
+        and others. The public APIs for all of these data structures remains
+        unchanged but the performance after the rewrites has improved.
+
+      * The majority of the transpiler passes used by the preset pass 
+        manager have been ported into Rust, resulting in an average 6x overall runtime 
+        improvement compared to Qiskit 1.2.4 when running the
+        `benchpress benchmarks <https://github.com/Qiskit/benchpress/>`__.
+        Some of the particularly impactful passes that greatly benefited from
+        the rewrites were the :class:`.BasisTranslator`,
+        :class:`.CommutationAnalysis`, :class:`.ConsolidateBlocks`, and :class:`.UnitarySynthesis`.
+        You can refer to the feature release notes for a full list of the ported passes.
+
+      * Improvements to the circuit library that increase compilation quality and circuit
+        construction speed. Operations are now distinguished into:
+
+        * Structural operations, that have a unique decomposition, and are represented as
+          functions that return a :class:`.QuantumCircuit` (for example:
+          :func:`~qiskit.circuit.library.real_amplitudes`).
+          Most of these functions are built in Rust, resulting in significantly faster circuit
+          construction runtime.
+
+        * Abstract operations, that can be implemented using different decompositions, are
+          represented as :class:`.Gate` or :class:`~qiskit.circuit.Instruction` (for example:
+          :class:`.PauliEvolutionGate`). This allows building an abstract quantum circuit
+          and letting the compiler choose the optimal decomposition.
+
+        Using an abstract circuit description is especially powerful in combination with 
+        improvements to the :class:`.HighLevelSynthesis` transpiler pass, which can now take
+        into account idle auxiliary qubits to find the best available decomposition for a given gate.
+
+      * The minimum supported Python version is now 3.9 as Python 3.8 went end of life in 2024-10.
+        Official support for Python 3.13 support was also added in this release.
+

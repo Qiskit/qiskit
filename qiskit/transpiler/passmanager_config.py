@@ -13,10 +13,12 @@
 """Pass Manager Configuration class."""
 
 import pprint
+import warnings
 
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.utils import deprecate_arg
+from qiskit.utils.deprecate_pulse import deprecate_pulse_arg
 
 
 class PassManagerConfig:
@@ -30,6 +32,7 @@ class PassManagerConfig:
         "accepted anymore as a parameter.",
         predicate=lambda x: x is not None,
     )
+    @deprecate_pulse_arg("inst_map", predicate=lambda inst_map: inst_map is not None)
     def __init__(
         self,
         initial_layout=None,
@@ -125,6 +128,12 @@ class PassManagerConfig:
         This method automatically generates a PassManagerConfig object based on the backend's
         features. User options can be used to overwrite the configuration.
 
+        .. deprecated:: 1.3
+            The method ``PassManagerConfig.from_backend`` will stop supporting inputs of type
+            :class:`.BackendV1` in the `backend` parameter in a future release no
+            earlier than 2.0. :class:`.BackendV1` is deprecated and implementations should move
+            to :class:`.BackendV2`.
+
         Args:
             backend (BackendV1 or BackendV2): The backend that provides the configuration.
             pass_manager_options: User-defined option-value pairs.
@@ -136,6 +145,15 @@ class PassManagerConfig:
             AttributeError: If the backend does not support a `configuration()` method.
         """
         backend_version = getattr(backend, "version", 0)
+        if backend_version == 1:
+            warnings.warn(
+                "The method PassManagerConfig.from_backend will stop supporting inputs of "
+                f"type `BackendV1` ( {backend} ) in the `backend` parameter in a future "
+                "release no earlier than 2.0. `BackendV1` is deprecated and implementations "
+                "should move to `BackendV2`.",
+                category=DeprecationWarning,
+                stacklevel=2,
+            )
         if not isinstance(backend_version, int):
             backend_version = 0
         if backend_version < 2:
@@ -153,7 +171,7 @@ class PassManagerConfig:
                     if defaults is not None:
                         res.inst_map = defaults.instruction_schedule_map
             else:
-                res.inst_map = backend.instruction_schedule_map
+                res.inst_map = backend._instruction_schedule_map
         if res.coupling_map is None:
             if backend_version < 2:
                 cmap_edge_list = getattr(config, "coupling_map", None)
