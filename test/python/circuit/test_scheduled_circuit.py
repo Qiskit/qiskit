@@ -450,9 +450,7 @@ class TestScheduledCircuit(QiskitTestCase):
 
         for circuit in [circuit_dt, circuit_s, circuit_ms]:
             with self.subTest(circuit=circuit):
-                converted_circ = convert_durations_to_dt(
-                    circuit, dt_in_sec=2.22e-10, inplace=False
-                )
+                converted_circ = convert_durations_to_dt(circuit, dt_in_sec=2.22e-10, inplace=False)
                 self.assertEqual(
                     converted_circ.duration,
                     ref_duration,

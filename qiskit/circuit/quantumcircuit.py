@@ -805,7 +805,7 @@ class QuantumCircuit:
     .. automethod:: remove_final_measurements
 
 
-        Circuit properties
+    Circuit properties
     ==================
 
     Simple circuit metrics

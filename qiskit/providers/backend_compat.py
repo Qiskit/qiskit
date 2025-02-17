@@ -45,6 +45,9 @@ def convert_to_target(
     Args:
         configuration: Backend configuration as ``BackendConfiguration``
         properties: Backend property dictionary or ``BackendProperties``
+        custom_name_mapping: A name mapping must be supplied for the operation
+            not included in Qiskit Standard Gate name mapping, otherwise the operation
+            will be dropped in the resulting ``Target`` object.
         add_delay: If True, adds delay to the instruction set.
         filter_faulty: If True, this filters the non-operational qubits.
 

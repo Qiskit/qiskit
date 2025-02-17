@@ -26,7 +26,6 @@ from qiskit.circuit.library.standard_gates import SXGate
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
-# Should we move this test entirely? (after we remove the pass???)
 @ddt
 class TestNormalizeRXAngle(QiskitTestCase):
     """Tests the NormalizeRXAngle pass."""
