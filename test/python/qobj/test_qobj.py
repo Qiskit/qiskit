@@ -15,8 +15,6 @@
 
 import copy
 
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.compiler import assemble
 from qiskit.qobj import (
     QasmQobj,
     PulseQobj,
@@ -196,27 +194,6 @@ class TestQASMQobj(QiskitTestCase):
         with self.assertWarns(DeprecationWarning):
             qobj = QasmQobj.from_dict(qobj_dict)
         self.assertEqual(expected_qobj, qobj)
-
-    def test_change_qobj_after_compile(self):
-        """Test modifying Qobj parameters after compile."""
-        qr = QuantumRegister(3)
-        cr = ClassicalRegister(3)
-        qc1 = QuantumCircuit(qr, cr)
-        qc2 = QuantumCircuit(qr, cr)
-        qc1.h(qr[0])
-        qc1.cx(qr[0], qr[1])
-        qc1.cx(qr[0], qr[2])
-        qc2.h(qr)
-        qc1.measure(qr, cr)
-        qc2.measure(qr, cr)
-        circuits = [qc1, qc2]
-        with self.assertWarns(DeprecationWarning):
-            qobj1 = assemble(circuits, shots=1024, seed=88)
-        qobj1.experiments[0].config.shots = 50
-        qobj1.experiments[1].config.shots = 1
-        self.assertTrue(qobj1.experiments[0].config.shots == 50)
-        self.assertTrue(qobj1.experiments[1].config.shots == 1)
-        self.assertTrue(qobj1.config.shots == 1024)
 
     def test_gate_calibrations_to_dict(self):
         """Test gate calibrations to dict."""
