@@ -2834,6 +2834,32 @@ class QuantumCircuit:
             raise CircuitError(f"cannot add '{var}' as its name shadows the existing '{previous}'")
         return var
 
+    def add_stretch(self, name_or_var: str | expr.Var) -> expr.Var:
+        """Declares a new stretch variable scoped to this circuit.
+        To create a new stretch variable with an initial value, use :meth:`add_var`.
+
+        Args:
+            name_or_var: either a string of the stretch variable name, or an existing instance of
+                :class:`~.expr.Var` to re-use.  Variables cannot shadow names that are already in
+                use within the circuit. The type of the variable must be
+                :class:`~.types.Stretch`.
+        Returns:
+            The created variable.  If a :class:`~.expr.Var` instance was given, the exact same
+            object will be returned.
+        Raises:
+            CircuitError: if the stretch variable cannot be created due to shadowing an existing
+                variable, or the provided :class:`~.expr.Var` is not typed as a
+                :class:`~.types.Stretch`.
+        """
+        if isinstance(name_or_var, str):
+            var = expr.Var.new(name_or_var, types.Stretch())
+        elif name_or_var.type.kind is not types.Stretch:
+            raise CircuitError(f"cannot add stretch variable of type {name_or_var.type}")
+        else:
+            var = name_or_var
+        self._current_scope().add_uninitialized_var(var)
+        return var
+
     def add_var(self, name_or_var: str | expr.Var, /, initial: typing.Any) -> expr.Var:
         """Add a classical variable with automatic storage and scope to this circuit.
 
@@ -2900,18 +2926,26 @@ class QuantumCircuit:
         # Validate the initializer first to catch cases where the variable to be declared is being
         # used in the initializer.
         circuit_scope = self._current_scope()
-        # Convenience method to widen Python integer literals to the right width during the initial
-        # lift, if the type is already known via the variable.
-        if (
-            isinstance(name_or_var, expr.Var)
-            and name_or_var.type.kind is types.Uint
-            and isinstance(initial, int)
-            and not isinstance(initial, bool)
-        ):
-            coerce_type = name_or_var.type
+        if isinstance(name_or_var, expr.Var):
+            # Lift initial with const-ness of variable.
+            try_const = name_or_var.type.const
+            # Convenience method to widen Python integer literals to the right width during the initial
+            # lift, if the type is already known via the variable.
+            if (
+                name_or_var.type.kind is types.Uint
+                and isinstance(initial, int)
+                and not isinstance(initial, bool)
+            ):
+                coerce_type = name_or_var.type
+            else:
+                coerce_type = None
         else:
+            # By default, assume the user wants a variable with circuit memory.
+            try_const = False
             coerce_type = None
-        initial = _validate_expr(circuit_scope, expr.lift(initial, coerce_type))
+        initial = _validate_expr(
+            circuit_scope, expr.lift(initial, coerce_type, try_const=try_const)
+        )
         if isinstance(name_or_var, str):
             var = expr.Var.new(name_or_var, initial.type)
         elif not name_or_var.standalone:

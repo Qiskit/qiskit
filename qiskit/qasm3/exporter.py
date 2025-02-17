@@ -30,6 +30,7 @@ from qiskit.circuit import (
     Barrier,
     CircuitInstruction,
     Clbit,
+    Duration,
     Gate,
     Measure,
     Parameter,
@@ -955,6 +956,9 @@ class QASM3Builder:
             ast.ClassicalDeclaration(
                 _build_ast_type(var.type),
                 self.symbols.register_variable(var.name, var, allow_rename=True),
+                # TODO: we might need to use the `initializer` kwarg here if QASM doesn't
+                #   support declaring a const without an initializer and then assigning it
+                #   later!
             )
             for var in self.scope.circuit.iter_declared_vars()
         ]
@@ -1262,6 +1266,12 @@ def _build_ast_type(type_: types.Type) -> ast.ClassicalType:
         return ast.BoolType()
     if type_.kind is types.Uint:
         return ast.UintType(type_.width)
+    if type_.kind is types.Float:
+        return ast.FloatType.UNSPECIFIED
+    if type_.kind is types.Duration:
+        return ast.DurationType()
+    if type_.kind is types.Stretch:
+        return ast.StretchType()
     raise RuntimeError(f"unhandled expr type '{type_}'")
 
 
@@ -1283,6 +1293,20 @@ class _ExprBuilder(expr.ExprVisitor[ast.Expression]):
             return ast.BooleanLiteral(node.value)
         if node.type.kind is types.Uint:
             return ast.IntegerLiteral(node.value)
+        if node.type.kind is types.Float:
+            return ast.FloatLiteral(node.value)
+        if node.type.kind is types.Duration:
+            match node.value:
+                case Duration.ns(ns):
+                    return ast.DurationLiteral(float(ns), ast.DurationUnit.NANOSECOND)
+                case Duration.us(us):
+                    return ast.DurationLiteral(float(us), ast.DurationUnit.MICROSECOND)
+                case Duration.ms(ms):
+                    return ast.DurationLiteral(float(ms), ast.DurationUnit.MILLISECOND)
+                case Duration.s(s):
+                    return ast.DurationLiteral(float(s), ast.DurationUnit.SECOND)
+                case Duration.dt(dt):
+                    return ast.DurationLiteral(dt, ast.DurationUnit.SAMPLE)
         raise RuntimeError(f"unhandled Value type '{node}'")
 
     def visit_cast(self, node, /):
