@@ -39,15 +39,6 @@ from qiskit.utils import optionals as _optionals
 
 from ..exceptions import VisualizationError
 
-
-def _is_boolean_expression(gate_text, op):
-    if not _optionals.HAS_TWEEDLEDUM:
-        return False
-    from qiskit.circuit.classicalfunction import BooleanExpression
-
-    return isinstance(op, BooleanExpression) and gate_text == op.name
-
-
 def get_gate_ctrl_text(op, drawer, style=None, calibrations=None):
     """Load the gate_text and ctrl_text strings based on names and labels"""
     anno_list = []
