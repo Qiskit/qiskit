@@ -92,7 +92,6 @@ from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager, 
 from qiskit.transpiler.target import (
     InstructionProperties,
     Target,
-    InstructionDurations,
 )
 
 from test import QiskitTestCase, combine, slow_test  # pylint: disable=wrong-import-order
@@ -1580,7 +1579,7 @@ class TestTranspile(QiskitTestCase):
 
     def test_scheduling_dt_constraints(self):
         """Test that scheduling-related loose transpile constraints
-        work with both BackendV1 and BackendV2."""
+        work with BackendV2."""
 
         with self.assertWarns(DeprecationWarning):
             backend_v1 = Fake27QPulseV1()

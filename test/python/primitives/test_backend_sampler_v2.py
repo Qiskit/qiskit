@@ -34,7 +34,7 @@ from qiskit.providers.backend_compat import BackendV2Converter
 from qiskit.providers.basic_provider import BasicProviderJob, BasicSimulator
 from qiskit.providers.fake_provider import Fake7QPulseV1, GenericBackendV2
 from qiskit.result import Result
-from qiskit.qobj.utils import MeasReturnType, MeasLevel
+from qiskit.result.models import MeasReturnType, MeasLevel
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.utils import optionals
 from ..legacy_cmaps import LAGOS_CMAP
