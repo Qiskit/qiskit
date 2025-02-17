@@ -14,7 +14,11 @@ use std::ffi::{c_char, CString};
 
 use crate::exit_codes::{CInputError, ExitCode};
 use num_complex::Complex64;
-use qiskit_accelerate::sparse_observable::{BitTerm, SparseObservable, SparseTermView};
+use pyo3::ffi::PyObject;
+use pyo3::{Py, Python};
+use qiskit_accelerate::sparse_observable::{
+    BitTerm, PySparseObservable, SparseObservable, SparseTermView,
+};
 
 /// @ingroup QkObsTerm
 /// A term in a [SparseObservable].
@@ -833,4 +837,23 @@ pub extern "C" fn qk_bitterm_label(bit_term: BitTerm) -> u8 {
         .chars()
         .next()
         .expect("Label has exactly one character") as u8
+}
+
+/// @ingroup SparseObservable
+/// Convert to a Python-space [PySparseObservable].
+///
+/// @param obs The C-space [SparseObservable] pointer.
+///
+/// @return A Python object representing the [PySparseObservable].
+#[no_mangle]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_obs_to_python(obs: *const SparseObservable) -> *mut PyObject {
+    let obs = unsafe { const_ptr_as_ref(obs) };
+    let py_obs: PySparseObservable = obs.clone().into();
+
+    Python::with_gil(|py| {
+        Py::new(py, py_obs)
+            .expect("Unable to create a Python object")
+            .into_ptr()
+    })
 }
