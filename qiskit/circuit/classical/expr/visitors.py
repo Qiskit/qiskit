@@ -299,8 +299,4 @@ def is_lvalue(node: expr.Expr, /) -> bool:
             >>> expr.is_lvalue(expr.bit_and(a, b))
             False
     """
-    if node.type.const:
-        # If the expression's resolution type is const, then this can never be
-        # an l-value (even if the expression is a Var).
-        return False
     return node.accept(_IS_LVALUE)
