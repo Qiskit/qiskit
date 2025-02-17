@@ -119,13 +119,12 @@ pub struct DAGOpNode {
 #[pymethods]
 impl DAGOpNode {
     #[new]
-    #[pyo3(signature = (op, qargs=None, cargs=None, *, dag=None))]
+    #[pyo3(signature = (op, qargs=None, cargs=None))]
     pub fn py_new(
         py: Python,
         op: Bound<PyAny>,
         qargs: Option<TupleLikeArg>,
         cargs: Option<TupleLikeArg>,
-        #[allow(unused_variables)] dag: Option<Bound<PyAny>>,
     ) -> PyResult<Py<Self>> {
         let py_op = op.extract::<OperationFromPython>()?;
         let qargs = qargs.map_or_else(|| PyTuple::empty(py), |q| q.value);

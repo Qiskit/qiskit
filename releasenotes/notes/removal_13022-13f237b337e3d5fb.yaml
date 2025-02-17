@@ -1,0 +1,4 @@
+---
+upgrade_circuits:
+  - |
+    The ``DAGNode`` subclasses take a ``dag`` optional parameter when constructed that it was unused and ignored. The parameter was deprecated in 1.4 and now it is removed.
