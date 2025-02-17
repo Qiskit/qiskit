@@ -22,7 +22,7 @@ import re
 from ddt import ddt, data
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, transpile
-from qiskit.circuit import Parameter, Qubit, Clbit, Gate, Delay, Barrier, ParameterVector
+from qiskit.circuit import Parameter, Qubit, Clbit, Gate, Delay, Barrier, ParameterVector, Duration
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.controlflow import CASE_DEFAULT
 from qiskit.circuit.library import PauliEvolutionGate
@@ -872,15 +872,19 @@ if (c[0]) {
         """Test that delay operations get output into valid OpenQASM 3."""
         qreg = QuantumRegister(2, "qr")
         qc = QuantumCircuit(qreg)
+        s = qc.add_stretch("s")
         qc.delay(100, qreg[0], unit="ms")
         qc.delay(2, qreg[1], unit="ps")  # "ps" is not a valid unit in OQ3, so we need to convert.
+        qc.delay(expr.div(s, 2.0), qreg[1])
 
         expected_qasm = "\n".join(
             [
                 "OPENQASM 3.0;",
                 "qubit[2] qr;",
+                "stretch s;",
                 "delay[100ms] qr[0];",
                 "delay[2000ns] qr[1];",
+                "delay[s / 2.0] qr[1];",
                 "",
             ]
         )
@@ -1918,6 +1922,9 @@ if (cr == 1) {
         qc.add_var("c", expr.bit_not(b))
         # All inputs should come first, regardless of declaration order.
         qc.add_input("d", types.Bool())
+        e = qc.add_var("e", Duration.dt(1000))
+        f = qc.add_stretch("f")
+        qc.add_var("g", expr.add(expr.mul(f, 2.0), e))
 
         expected = """\
 OPENQASM 3.0;
@@ -1926,9 +1933,14 @@ input bool a;
 input uint[8] b;
 input bool d;
 uint[8] c;
+duration e;
+stretch f;
+stretch g;
 a = !a;
 b = b & 8;
 c = ~b;
+e = 1000dt;
+g = f * 2.0 + e;
 """
         self.assertEqual(dumps(qc), expected)
 
