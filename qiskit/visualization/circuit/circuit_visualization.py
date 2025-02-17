@@ -142,9 +142,9 @@ def circuit_drawer(
             will take less vertical room.  Default is ``medium``. Only used by
             the ``text`` output, will be silently ignored otherwise.
         idle_wires: Include idle wires (wires with no circuit elements)
-            in output visualization. Default is ``True`` unless the
+            in output visualization. Default is ``False`` unless the
             user config file (usually ``~/.qiskit/settings.conf``) has an
-            alternative value set. For example, ``circuit_idle_wires = False``.
+            alternative value set. For example, ``circuit_idle_wires = True``.
         with_layout: Include layout information, with labels on the
             physical layout. Default is ``True``.
         fold: Sets pagination. It can be disabled using -1. In ``text``,
@@ -205,7 +205,7 @@ def circuit_drawer(
     # Get default from config file else use text
     default_output = "text"
     default_reverse_bits = False
-    default_idle_wires = config.get("circuit_idle_wires", True)
+    default_idle_wires = config.get("circuit_idle_wires", False)
     if config:
         default_output = config.get("circuit_drawer", "text")
         if default_output == "auto":
@@ -368,7 +368,7 @@ def _text_circuit_drawer(
     plot_barriers=True,
     justify=None,
     vertical_compression="high",
-    idle_wires=True,
+    idle_wires=False,
     with_layout=True,
     fold=None,
     initial_state=True,
@@ -388,7 +388,7 @@ def _text_circuit_drawer(
             the circuit should be justified.
         vertical_compression (string): `high`, `medium`, or `low`. It merges the
             lines so the drawing will take less vertical room. Default is `high`.
-        idle_wires (bool): Include idle wires. Default is True.
+        idle_wires (bool): Include idle wires. Default is False.
         with_layout (bool): Include layout information with labels on the physical
             layout. Default: True
         fold (int): Optional. Breaks the circuit drawing to this length. This
@@ -459,7 +459,7 @@ def _latex_circuit_drawer(
     plot_barriers=True,
     reverse_bits=False,
     justify=None,
-    idle_wires=True,
+    idle_wires=False,
     with_layout=True,
     initial_state=False,
     cregbundle=None,
@@ -480,7 +480,7 @@ def _latex_circuit_drawer(
             circuit. Defaults to True.
         justify (str) : `left`, `right` or `none`. Defaults to `left`. Says how
             the circuit should be justified.
-        idle_wires (bool): Include idle wires. Default is True.
+        idle_wires (bool): Include idle wires. Default is False.
         with_layout (bool): Include layout information, with labels on the physical
             layout. Default: True
         initial_state (bool): Optional. Adds |0> in the beginning of the line.
@@ -578,7 +578,7 @@ def _generate_latex_source(
     reverse_bits=False,
     plot_barriers=True,
     justify=None,
-    idle_wires=True,
+    idle_wires=False,
     with_layout=True,
     initial_state=False,
     cregbundle=None,
@@ -597,7 +597,7 @@ def _generate_latex_source(
             circuit. Defaults to True.
         justify (str) : `left`, `right` or `none`. Defaults to `left`. Says how
             the circuit should be justified.
-        idle_wires (bool): Include idle wires. Default is True.
+        idle_wires (bool): Include idle wires. Default is False.
         with_layout (bool): Include layout information, with labels on the physical
             layout. Default: True
         initial_state (bool): Optional. Adds |0> in the beginning of the line.
@@ -651,7 +651,7 @@ def _matplotlib_circuit_drawer(
     plot_barriers=True,
     reverse_bits=False,
     justify=None,
-    idle_wires=True,
+    idle_wires=False,
     with_layout=True,
     fold=None,
     ax=None,
@@ -675,7 +675,7 @@ def _matplotlib_circuit_drawer(
             circuit. Defaults to True.
         justify (str): `left`, `right` or `none`. Defaults to `left`. Says how
             the circuit should be justified.
-        idle_wires (bool): Include idle wires. Default is True.
+        idle_wires (bool): Include idle wires. Default is False.
         with_layout (bool): Include layout information, with labels on the physical
             layout. Default: True.
         fold (int): Number of vertical layers allowed before folding. Default is 25.
