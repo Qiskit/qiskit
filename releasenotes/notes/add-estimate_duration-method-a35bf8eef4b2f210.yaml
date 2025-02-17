@@ -1,0 +1,7 @@
+---
+features_circuits:
+  - |
+    Added a new method, :meth:`.QuantumCircuit.estimate_duration`, to compute
+    the estimated duration of a scheduled circuit output from the :mod:`.transpiler`.
+    This should be used if you need an estimate of the full circuit duration instead
+    of the deprecated :attr:`.QuantumCircuit.duration` attribute.
