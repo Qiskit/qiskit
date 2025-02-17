@@ -119,7 +119,7 @@ pub struct DAGOpNode {
 #[pymethods]
 impl DAGOpNode {
     #[new]
-    #[pyo3(signature = (op, qargs=None, cargs=None, *))]
+    #[pyo3(signature = (op, qargs=None, cargs=None))]
     pub fn py_new(
         py: Python,
         op: Bound<PyAny>,
