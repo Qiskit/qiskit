@@ -276,13 +276,15 @@ def is_lvalue(node: expr.Expr, /) -> bool:
             >>> expr.is_lvalue(expr.lift(2))
             False
 
-        :class:`~.expr.Var` nodes are always l-values, because they always have some associated
-        memory location::
+        :class:`~.expr.Var` nodes are l-values (unless their resolution type is `const`!), because
+        they have some associated memory location::
 
             >>> from qiskit.circuit.classical import types
             >>> from qiskit.circuit import Clbit
             >>> expr.is_lvalue(expr.Var.new("a", types.Bool()))
             True
+            >>> expr.is_lvalue(expr.Var.new("a", types.Bool(const=True)))
+            False
             >>> expr.is_lvalue(expr.lift(Clbit()))
             True
 
@@ -297,4 +299,8 @@ def is_lvalue(node: expr.Expr, /) -> bool:
             >>> expr.is_lvalue(expr.bit_and(a, b))
             False
     """
+    if node.type.const:
+        # If the expression's resolution type is const, then this can never be
+        # an l-value (even if the expression is a Var).
+        return False
     return node.accept(_IS_LVALUE)
