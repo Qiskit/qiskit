@@ -161,23 +161,25 @@ class TestUnitarySynthesis(QiskitTestCase):
         triv_layout_pass = TrivialLayout(coupling_map)
         qc = QuantumCircuit(qr)
         qc.unitary(random_unitary(4, seed=12), [0, 1])
-        unisynth_pass = UnitarySynthesis(
-            basis_gates=conf.basis_gates,
-            coupling_map=None,
-            backend_props=backend.properties(),
-            pulse_optimize=True,
-            natural_direction=False,
-        )
+        with self.assertWarns(DeprecationWarning):
+            unisynth_pass = UnitarySynthesis(
+                basis_gates=conf.basis_gates,
+                coupling_map=None,
+                backend_props=backend.properties(),
+                pulse_optimize=True,
+                natural_direction=False,
+            )
         pm = PassManager([triv_layout_pass, unisynth_pass])
         qc_out = pm.run(qc)
 
-        unisynth_pass_nat = UnitarySynthesis(
-            basis_gates=conf.basis_gates,
-            coupling_map=None,
-            backend_props=backend.properties(),
-            pulse_optimize=True,
-            natural_direction=True,
-        )
+        with self.assertWarns(DeprecationWarning):
+            unisynth_pass_nat = UnitarySynthesis(
+                basis_gates=conf.basis_gates,
+                coupling_map=None,
+                backend_props=backend.properties(),
+                pulse_optimize=True,
+                natural_direction=True,
+            )
 
         pm_nat = PassManager([triv_layout_pass, unisynth_pass_nat])
         qc_out_nat = pm_nat.run(qc)
@@ -196,23 +198,25 @@ class TestUnitarySynthesis(QiskitTestCase):
         triv_layout_pass = TrivialLayout(coupling_map)
         qc = QuantumCircuit(qr)
         qc.swap(qr[0], qr[1])
-        unisynth_pass = UnitarySynthesis(
-            basis_gates=conf.basis_gates,
-            coupling_map=None,
-            backend_props=backend.properties(),
-            pulse_optimize=True,
-            natural_direction=False,
-        )
+        with self.assertWarns(DeprecationWarning):
+            unisynth_pass = UnitarySynthesis(
+                basis_gates=conf.basis_gates,
+                coupling_map=None,
+                backend_props=backend.properties(),
+                pulse_optimize=True,
+                natural_direction=False,
+            )
         pm = PassManager([triv_layout_pass, unisynth_pass])
         qc_out = pm.run(qc)
 
-        unisynth_pass_nat = UnitarySynthesis(
-            basis_gates=conf.basis_gates,
-            coupling_map=None,
-            backend_props=backend.properties(),
-            pulse_optimize=True,
-            natural_direction=True,
-        )
+        with self.assertWarns(DeprecationWarning):
+            unisynth_pass_nat = UnitarySynthesis(
+                basis_gates=conf.basis_gates,
+                coupling_map=None,
+                backend_props=backend.properties(),
+                pulse_optimize=True,
+                natural_direction=True,
+            )
 
         pm_nat = PassManager([triv_layout_pass, unisynth_pass_nat])
         qc_out_nat = pm_nat.run(qc)
@@ -234,23 +238,25 @@ class TestUnitarySynthesis(QiskitTestCase):
         triv_layout_pass = TrivialLayout(coupling_map)
         qc = QuantumCircuit(qr0, qr1)
         qc.unitary(random_unitary(4, seed=12), [qr0[0], qr1[0]])
-        unisynth_pass = UnitarySynthesis(
-            basis_gates=conf.basis_gates,
-            coupling_map=None,
-            backend_props=backend.properties(),
-            pulse_optimize=True,
-            natural_direction=False,
-        )
+        with self.assertWarns(DeprecationWarning):
+            unisynth_pass = UnitarySynthesis(
+                basis_gates=conf.basis_gates,
+                coupling_map=None,
+                backend_props=backend.properties(),
+                pulse_optimize=True,
+                natural_direction=False,
+            )
         pm = PassManager([triv_layout_pass, unisynth_pass])
         qc_out = pm.run(qc)
 
-        unisynth_pass_nat = UnitarySynthesis(
-            basis_gates=conf.basis_gates,
-            coupling_map=None,
-            backend_props=backend.properties(),
-            pulse_optimize=True,
-            natural_direction=True,
-        )
+        with self.assertWarns(DeprecationWarning):
+            unisynth_pass_nat = UnitarySynthesis(
+                basis_gates=conf.basis_gates,
+                coupling_map=None,
+                backend_props=backend.properties(),
+                pulse_optimize=True,
+                natural_direction=True,
+            )
 
         pm_nat = PassManager([triv_layout_pass, unisynth_pass_nat])
         qc_out_nat = pm_nat.run(qc)
@@ -269,23 +275,25 @@ class TestUnitarySynthesis(QiskitTestCase):
         triv_layout_pass = TrivialLayout(coupling_map)
         qc = QuantumCircuit(qr)
         qc.unitary(random_unitary(4, seed=12), [0, 1])
-        unisynth_pass = UnitarySynthesis(
-            basis_gates=conf.basis_gates,
-            coupling_map=coupling_map,
-            backend_props=backend.properties(),
-            pulse_optimize=True,
-            natural_direction=False,
-        )
+        with self.assertWarns(DeprecationWarning):
+            unisynth_pass = UnitarySynthesis(
+                basis_gates=conf.basis_gates,
+                coupling_map=coupling_map,
+                backend_props=backend.properties(),
+                pulse_optimize=True,
+                natural_direction=False,
+            )
         pm = PassManager([triv_layout_pass, unisynth_pass])
         qc_out = pm.run(qc)
 
-        unisynth_pass_nat = UnitarySynthesis(
-            basis_gates=conf.basis_gates,
-            coupling_map=coupling_map,
-            backend_props=backend.properties(),
-            pulse_optimize=True,
-            natural_direction=True,
-        )
+        with self.assertWarns(DeprecationWarning):
+            unisynth_pass_nat = UnitarySynthesis(
+                basis_gates=conf.basis_gates,
+                coupling_map=coupling_map,
+                backend_props=backend.properties(),
+                pulse_optimize=True,
+                natural_direction=True,
+            )
 
         pm_nat = PassManager([triv_layout_pass, unisynth_pass_nat])
         qc_out_nat = pm_nat.run(qc)
@@ -313,23 +321,25 @@ class TestUnitarySynthesis(QiskitTestCase):
         triv_layout_pass = TrivialLayout(coupling_map)
         qc = QuantumCircuit(qr)
         qc.unitary(random_unitary(4, seed=12), [0, 1])
-        unisynth_pass = UnitarySynthesis(
-            basis_gates=conf.basis_gates,
-            coupling_map=coupling_map,
-            backend_props=backend.properties(),
-            pulse_optimize=True,
-            natural_direction=False,
-        )
+        with self.assertWarns(DeprecationWarning):
+            unisynth_pass = UnitarySynthesis(
+                basis_gates=conf.basis_gates,
+                coupling_map=coupling_map,
+                backend_props=backend.properties(),
+                pulse_optimize=True,
+                natural_direction=False,
+            )
         pm = PassManager([triv_layout_pass, unisynth_pass])
         qc_out = pm.run(qc)
 
-        unisynth_pass_nat = UnitarySynthesis(
-            basis_gates=conf.basis_gates,
-            coupling_map=coupling_map,
-            backend_props=backend.properties(),
-            pulse_optimize=True,
-            natural_direction=None,
-        )
+        with self.assertWarns(DeprecationWarning):
+            unisynth_pass_nat = UnitarySynthesis(
+                basis_gates=conf.basis_gates,
+                coupling_map=coupling_map,
+                backend_props=backend.properties(),
+                pulse_optimize=True,
+                natural_direction=None,
+            )
 
         pm_nat = PassManager([triv_layout_pass, unisynth_pass_nat])
         qc_out_nat = pm_nat.run(qc)
@@ -357,23 +367,25 @@ class TestUnitarySynthesis(QiskitTestCase):
         triv_layout_pass = TrivialLayout(coupling_map)
         qc = QuantumCircuit(qr)
         qc.unitary(random_unitary(4, seed=12), [0, 1])
-        unisynth_pass = UnitarySynthesis(
-            basis_gates=conf.basis_gates,
-            coupling_map=coupling_map,
-            backend_props=backend.properties(),
-            pulse_optimize=True,
-            natural_direction=False,
-        )
+        with self.assertWarns(DeprecationWarning):
+            unisynth_pass = UnitarySynthesis(
+                basis_gates=conf.basis_gates,
+                coupling_map=coupling_map,
+                backend_props=backend.properties(),
+                pulse_optimize=True,
+                natural_direction=False,
+            )
         pm = PassManager([triv_layout_pass, unisynth_pass])
         qc_out = pm.run(qc)
 
-        unisynth_pass_nat = UnitarySynthesis(
-            basis_gates=conf.basis_gates,
-            coupling_map=coupling_map,
-            backend_props=backend.properties(),
-            pulse_optimize=True,
-            natural_direction=False,
-        )
+        with self.assertWarns(DeprecationWarning):
+            unisynth_pass_nat = UnitarySynthesis(
+                basis_gates=conf.basis_gates,
+                coupling_map=coupling_map,
+                backend_props=backend.properties(),
+                pulse_optimize=True,
+                natural_direction=False,
+            )
 
         pm_nat = PassManager([triv_layout_pass, unisynth_pass_nat])
         qc_out_nat = pm_nat.run(qc)
@@ -397,30 +409,25 @@ class TestUnitarySynthesis(QiskitTestCase):
         qc = QuantumCircuit(qr)
         qc.unitary(random_unitary(4, seed=12), [0, 1])
         coupling_map = CouplingMap([[0, 1]])
-        pm_nonoptimal = PassManager(
-            [
-                TrivialLayout(coupling_map),
-                UnitarySynthesis(
-                    basis_gates=conf.basis_gates,
-                    coupling_map=coupling_map,
-                    backend_props=backend.properties(),
-                    pulse_optimize=False,
-                    natural_direction=True,
-                ),
-            ]
-        )
-        pm_optimal = PassManager(
-            [
-                TrivialLayout(coupling_map),
-                UnitarySynthesis(
-                    basis_gates=conf.basis_gates,
-                    coupling_map=coupling_map,
-                    backend_props=backend.properties(),
-                    pulse_optimize=True,
-                    natural_direction=True,
-                ),
-            ]
-        )
+        with self.assertWarns(DeprecationWarning):
+            unitarysynthesis_nonoptimal = UnitarySynthesis(
+                basis_gates=conf.basis_gates,
+                coupling_map=coupling_map,
+                backend_props=backend.properties(),
+                pulse_optimize=False,
+                natural_direction=True,
+            )
+
+        pm_nonoptimal = PassManager([TrivialLayout(coupling_map), unitarysynthesis_nonoptimal])
+        with self.assertWarns(DeprecationWarning):
+            unitarysynthesis_optimal = UnitarySynthesis(
+                basis_gates=conf.basis_gates,
+                coupling_map=coupling_map,
+                backend_props=backend.properties(),
+                pulse_optimize=True,
+                natural_direction=True,
+            )
+        pm_optimal = PassManager([TrivialLayout(coupling_map), unitarysynthesis_optimal])
         qc_nonoptimal = pm_nonoptimal.run(qc)
         qc_optimal = pm_optimal.run(qc)
         self.assertGreater(qc_nonoptimal.count_ops()["sx"], qc_optimal.count_ops()["sx"])
@@ -437,13 +444,14 @@ class TestUnitarySynthesis(QiskitTestCase):
         triv_layout_pass = TrivialLayout(coupling_map)
         qc = QuantumCircuit(qr)
         qc.unitary(random_unitary(4, seed=12), [0, 1])
-        unisynth_pass = UnitarySynthesis(
-            basis_gates=conf.basis_gates,
-            coupling_map=coupling_map,
-            backend_props=backend.properties(),
-            pulse_optimize=True,
-            natural_direction=True,
-        )
+        with self.assertWarns(DeprecationWarning):
+            unisynth_pass = UnitarySynthesis(
+                basis_gates=conf.basis_gates,
+                coupling_map=coupling_map,
+                backend_props=backend.properties(),
+                pulse_optimize=True,
+                natural_direction=True,
+            )
         pm = PassManager([triv_layout_pass, unisynth_pass])
         with self.assertRaises(QiskitError):
             pm.run(qc)
@@ -460,13 +468,14 @@ class TestUnitarySynthesis(QiskitTestCase):
         triv_layout_pass = TrivialLayout(coupling_map)
         qc = QuantumCircuit(qr)
         qc.unitary(random_unitary(4, seed=12), [0, 1])
-        unisynth_pass = UnitarySynthesis(
-            basis_gates=conf.basis_gates,
-            coupling_map=coupling_map,
-            backend_props=backend.properties(),
-            pulse_optimize=True,
-            natural_direction=True,
-        )
+        with self.assertWarns(DeprecationWarning):
+            unisynth_pass = UnitarySynthesis(
+                basis_gates=conf.basis_gates,
+                coupling_map=coupling_map,
+                backend_props=backend.properties(),
+                pulse_optimize=True,
+                natural_direction=True,
+            )
         pm = PassManager([triv_layout_pass, unisynth_pass])
         qc_out = pm.run(qc)
         self.assertTrue(
@@ -487,12 +496,13 @@ class TestUnitarySynthesis(QiskitTestCase):
         triv_layout_pass = TrivialLayout(coupling_map)
         qc = QuantumCircuit(qr)
         qc.unitary(random_unitary(4, seed=12), [0, 1])
-        unisynth_pass = UnitarySynthesis(
-            basis_gates=conf.basis_gates,
-            backend_props=backend.properties(),
-            pulse_optimize=True,
-            natural_direction=True,
-        )
+        with self.assertWarns(DeprecationWarning):
+            unisynth_pass = UnitarySynthesis(
+                basis_gates=conf.basis_gates,
+                backend_props=backend.properties(),
+                pulse_optimize=True,
+                natural_direction=True,
+            )
         pm = PassManager([triv_layout_pass, unisynth_pass])
         with self.assertRaises(TranspilerError):
             pm.run(qc)
@@ -508,13 +518,14 @@ class TestUnitarySynthesis(QiskitTestCase):
         triv_layout_pass = TrivialLayout(coupling_map)
         qc = QuantumCircuit(qr)
         qc.unitary(random_unitary(4, seed=12), [0, 1])
-        unisynth_pass = UnitarySynthesis(
-            basis_gates=conf.basis_gates,
-            coupling_map=coupling_map,
-            backend_props=backend.properties(),
-            pulse_optimize=None,
-            natural_direction=True,
-        )
+        with self.assertWarns(DeprecationWarning):
+            unisynth_pass = UnitarySynthesis(
+                basis_gates=conf.basis_gates,
+                coupling_map=coupling_map,
+                backend_props=backend.properties(),
+                pulse_optimize=None,
+                natural_direction=True,
+            )
         pm = PassManager([triv_layout_pass, unisynth_pass])
         qc_out = pm.run(qc)
         if isinstance(qc_out, QuantumCircuit):
@@ -537,13 +548,14 @@ class TestUnitarySynthesis(QiskitTestCase):
         triv_layout_pass = TrivialLayout(coupling_map)
         qc = QuantumCircuit(qr)
         qc.unitary(random_unitary(4, seed=12), [0, 1])
-        unisynth_pass = UnitarySynthesis(
-            basis_gates=conf.basis_gates,
-            coupling_map=coupling_map,
-            backend_props=backend.properties(),
-            pulse_optimize=None,
-            natural_direction=True,
-        )
+        with self.assertWarns(DeprecationWarning):
+            unisynth_pass = UnitarySynthesis(
+                basis_gates=conf.basis_gates,
+                coupling_map=coupling_map,
+                backend_props=backend.properties(),
+                pulse_optimize=None,
+                natural_direction=True,
+            )
         pm = PassManager([triv_layout_pass, unisynth_pass])
         try:
             qc_out = pm.run(qc)
