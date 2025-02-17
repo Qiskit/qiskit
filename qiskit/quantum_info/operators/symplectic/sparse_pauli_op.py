@@ -303,7 +303,7 @@ class SparsePauliOp(LinearOp):
     # ---------------------------------------------------------------------
 
     def conjugate(self):
-        """Return the complex conjugate with respect to the representation 
+        """Return the complex conjugate with respect to the representation
         returned by :meth:`~SparsePauliOp.to_matrix`."""
         # Conjugation conjugates phases and also Y.conj() = -Y
         # Hence we need to multiply conjugated coeffs by -1

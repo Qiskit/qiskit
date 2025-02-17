@@ -212,7 +212,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
         return Operator(self.data, input_dims=dims, output_dims=dims)
 
     def conjugate(self):
-        """Return the complex conjugate of the density matrix with respect to the basis 
+        """Return the complex conjugate of the density matrix with respect to the basis
         of the vector components returned by :meth:`~DensityMatrix.data`."""
         return DensityMatrix(np.conj(self.data), dims=self.dims())
 
