@@ -23,9 +23,7 @@ from test import combine
 from ddt import ddt, data
 
 from qiskit.circuit import QuantumCircuit
-from qiskit.compiler import assemble
 from qiskit.compiler import transpile
-from qiskit.exceptions import QiskitError
 from qiskit.providers.fake_provider import (
     Fake5QV1,
     Fake20QV1,
@@ -143,14 +141,6 @@ class TestFakeBackends(QiskitTestCase):
         counts = result.get_counts()
         max_count = max(counts.items(), key=operator.itemgetter(1))[0]
         self.assertEqual(max_count, "11")
-
-    def test_qobj_failure(self):
-        backend = BACKENDS[-1]
-        with self.assertWarns(DeprecationWarning):
-            tqc = transpile(self.circuit, backend)
-            qobj = assemble(tqc, backend)
-        with self.assertRaises(QiskitError):
-            backend.run(qobj)
 
     @data(*BACKENDS)
     def test_to_dict_properties(self, backend):
