@@ -48,7 +48,7 @@ from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.utils import deprecate_func, apply_prefix
+from qiskit.utils import deprecate_func
 from qiskit.utils.deprecate_pulse import deprecate_pulse_dependency
 from . import _classical_resource_map
 from .controlflow import ControlFlowOp, _builder_utils
@@ -6962,7 +6962,25 @@ class QuantumCircuit:
             from qiskit.circuit.duration import duration_in_dt
 
             return duration_in_dt(dur, target.dt)
-        return apply_prefix(dur, unit)
+
+        prefix_dict = {
+            "f": 1e-15,
+            "p": 1e-12,
+            "n": 1e-9,
+            "u": 1e-6,
+            "µ": 1e-6,
+            "m": 1e-3,
+            "k": 1e3,
+            "M": 1e6,
+            "G": 1e9,
+            "T": 1e12,
+            "P": 1e15,
+        }
+        if unit not in prefix_dict:
+            raise QiskitError(
+                f"Specified unit: {unit} is not a valid/supported SI prefix, 's', or 'dt'"
+            )
+        return dur / prefix_dict[unit]
 
 
 class _OuterCircuitScopeInterface(CircuitScopeInterface):
