@@ -155,13 +155,13 @@ impl Display for OwningRegisterInfo<ShareableQubit> {
             true => "AncillaRegister",
             false => "QuantumRegister",
         };
-        write!(f, "{}({}, {})", identifier, self.name(), self.len())
+        write!(f, "{}({}, '{}')", identifier, self.len(), self.name())
     }
 }
 
 impl Display for OwningRegisterInfo<ShareableClbit> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "ClassicalRegister({}, {})", self.name(), self.len())
+        write!(f, "ClassicalRegister({}, '{}')", self.len(), self.name())
     }
 }
 
@@ -206,7 +206,7 @@ impl Display for RegisterInfo<ShareableQubit> {
                     true => "AncillaRegister",
                     false => "QuantumRegister",
                 };
-                write!(f, "{}({}, {})", identifier, name, bits.len())
+                write!(f, "{}({}, '{}')", identifier, bits.len(), name)
             }
         }
     }
@@ -217,7 +217,7 @@ impl Display for RegisterInfo<ShareableClbit> {
         match self {
             RegisterInfo::Owning(owning_register_info) => write!(f, "{}", owning_register_info),
             RegisterInfo::Alias { .. } => {
-                write!(f, "ClassicalRegister({}, {})", self.name(), self.len())
+                write!(f, "ClassicalRegister({}, '{}')", self.len(), self.name())
             }
         }
     }
@@ -332,7 +332,7 @@ macro_rules! create_py_register {
                                     if slf.size() < idx {
                                         return Err(CircuitError::new_err("register index out of range"));
                                     }
-                                    Ok(<$pybit>::new_owned(owning_register_info.clone(), idx as u32)
+                                    Ok(BitInfo::new_owned(owning_register_info.clone(), idx as u32)
                                         .into_py_any(py)?)
                                 }
                                 RegisterInfo::Alias { bits, .. } => bits
@@ -343,11 +343,11 @@ macro_rules! create_py_register {
                             },
                             _ => match slf.0.as_ref() {
                                 RegisterInfo::Owning(owning_register_info) => {
-                                    let result: Vec<$pybit> = sequence
+                                    let result: Vec<BitInfo<$nativebit>> = sequence
                                         .iter()
-                                        .map(|idx| -> PyResult<$pybit> {
+                                        .map(|idx| -> PyResult<BitInfo<$nativebit>> {
                                             if idx < slf.size() {
-                                                Ok(<$pybit>::new_owned(
+                                                Ok(BitInfo::new_owned(
                                                     owning_register_info.clone(),
                                                     idx as u32,
                                                 ))
@@ -374,11 +374,11 @@ macro_rules! create_py_register {
                     }
                     SliceOrInt::List(vec) => match slf.0.as_ref() {
                         RegisterInfo::Owning(owning_register_info) => {
-                            let result: Vec<$pybit> = vec
+                            let result: Vec<BitInfo<$nativebit>> = vec
                                 .iter()
-                                .map(|idx| -> PyResult<$pybit> {
+                                .map(|idx| -> PyResult<BitInfo<$nativebit>> {
                                     if idx < &slf.size() {
-                                        Ok(<$pybit>::new_owned(
+                                        Ok(BitInfo::new_owned(
                                             owning_register_info.clone(),
                                             *idx as u32,
                                         ))
@@ -454,7 +454,7 @@ macro_rules! create_py_register {
                         return PyList::new(
                             slf.py(),
                             (0..slf.size() as u32)
-                                .map(|bit| <$pybit>::new_owned(owning_register_info.clone(), bit)),
+                                .map(|bit| BitInfo::new_owned(owning_register_info.clone(), bit)),
                         )?
                         .try_iter()
                     }
@@ -464,7 +464,9 @@ macro_rules! create_py_register {
                 }
             }
 
-
+            fn __len__<'py>(slf: PyRef<'py, Self>) -> usize {
+                slf.size()
+            }
         }
         impl From<RegisterInfo<$nativebit>> for $name {
             fn from(value: RegisterInfo<$nativebit>) -> Self {

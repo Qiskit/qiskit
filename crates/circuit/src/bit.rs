@@ -104,6 +104,11 @@ impl<T: ShareableBit> BitInfo<T> {
             extra,
         }
     }
+
+    /// Creates an instance of anonymous [BitInfo].
+    pub fn new_owned(register: Arc<OwningRegisterInfo<T>>, index: u32) -> Self {
+        Self::Owned { register, index }
+    }
 }
 
 impl BitInfo<ShareableQubit> {
@@ -151,13 +156,13 @@ macro_rules! create_py_bit {
     ($name:ident, $natbit:ty, $pyname:literal, $pymodule:literal, $extra:expr, ) => {
         /// Implements a quantum bit
         #[pyclass(
-            subclass,
-            name = $pyname,
-            module = $pymodule,
-            eq,
-            frozen,
-            hash
-        )]
+                                                                            subclass,
+                                                                            name = $pyname,
+                                                                            module = $pymodule,
+                                                                            eq,
+                                                                            frozen,
+                                                                            hash
+                                                                        )]
         #[derive(Debug, Clone, PartialEq, Eq, Hash)]
         pub struct $name(pub(crate) BitInfo<$natbit>);
 
