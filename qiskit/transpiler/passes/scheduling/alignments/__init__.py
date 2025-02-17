@@ -33,6 +33,7 @@ In Qiskit SDK, the duration of :class:`qiskit.circuit.Delay` can take arbitrary
 value in units of dt, thus circuits involving delays may violate the constraints,
 which may result in failure in the circuit execution on the backend.
 
+TODO: mentions pulse gates below. Do we want to keep these passes?
 There are two alignment constraint values reported by your quantum backend.
 In addition, if you want to define a custom instruction as a pulse gate, i.e. calibration,
 the underlying pulse instruction should satisfy other two waveform constraints.
@@ -63,7 +64,7 @@ Granularity constraint
     configuration in units of dt. This is the constraint for a single pulse :class:`Play`
     instruction that may constitute your pulse gate.
     The length of waveform samples should be multiple of this constraint value.
-    Violation of this constraint may result in failue in backend execution.
+    Violation of this constraint may result in failure in backend execution.
 
 Minimum pulse length constraint
 
@@ -71,7 +72,7 @@ Minimum pulse length constraint
     configuration in units of dt. This is the constraint for a single pulse :class:`Play`
     instruction that may constitute your pulse gate.
     The length of waveform samples should be greater than this constraint value.
-    Violation of this constraint may result in failue in backend execution.
+    Violation of this constraint may result in failure in backend execution.
 
 """
 

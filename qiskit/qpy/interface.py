@@ -22,16 +22,14 @@ import warnings
 import re
 
 from qiskit.circuit import QuantumCircuit
-from qiskit.pulse import ScheduleBlock
 from qiskit.exceptions import QiskitError
 from qiskit.qpy import formats, common, binary_io, type_keys
 from qiskit.qpy.exceptions import QPYLoadingDeprecatedFeatureWarning, QpyError
 from qiskit.version import __version__
-from qiskit.utils.deprecate_pulse import deprecate_pulse_arg
 
 
 # pylint: disable=invalid-name
-QPY_SUPPORTED_TYPES = Union[QuantumCircuit, ScheduleBlock]
+QPY_SUPPORTED_TYPES = Union[QuantumCircuit]
 
 # This version pattern is taken from the pypa packaging project:
 # https://github.com/pypa/packaging/blob/21.3/packaging/version.py#L223-L254
@@ -74,11 +72,6 @@ VERSION_PATTERN = (
 VERSION_PATTERN_REGEX = re.compile(VERSION_PATTERN, re.VERBOSE | re.IGNORECASE)
 
 
-@deprecate_pulse_arg(
-    "programs",
-    deprecation_description="Passing `ScheduleBlock` to `programs`",
-    predicate=lambda p: isinstance(p, ScheduleBlock),
-)
 def dump(
     programs: Union[List[QPY_SUPPORTED_TYPES], QPY_SUPPORTED_TYPES],
     file_obj: BinaryIO,
@@ -127,9 +120,7 @@ def dump(
 
     Args:
         programs: QPY supported object(s) to store in the specified file like object.
-            QPY supports :class:`.QuantumCircuit` and :class:`.ScheduleBlock`.
-            Different data types must be separately serialized.
-            Support for :class:`.ScheduleBlock` is deprecated since Qiskit 1.3.0.
+            QPY supports :class:`.QuantumCircuit`.
         file_obj: The file like object to write the QPY data too
         metadata_serializer: An optional JSONEncoder class that
             will be passed the ``.metadata`` attribute for each program in ``programs`` and will be
@@ -156,7 +147,7 @@ def dump(
 
             .. note::
 
-                If serializing a :class:`.QuantumCircuit` or :class:`.ScheduleBlock` that contain
+                If serializing a :class:`.QuantumCircuit` that contains
                 :class:`.ParameterExpression` objects with ``version`` set low with the intent to
                 load the payload using a historical release of Qiskit, it is safest to set the
                 ``use_symengine`` flag to ``False``.  Versions of Qiskit prior to 1.2.4 cannot load
@@ -187,9 +178,6 @@ def dump(
     if issubclass(program_type, QuantumCircuit):
         type_key = type_keys.Program.CIRCUIT
         writer = binary_io.write_circuit
-    elif program_type is ScheduleBlock:
-        type_key = type_keys.Program.SCHEDULE_BLOCK
-        writer = binary_io.write_schedule_block
     else:
         raise TypeError(f"'{program_type}' is not supported data type.")
 
@@ -218,23 +206,13 @@ def dump(
     file_obj.write(header)
     common.write_type_key(file_obj, type_key)
 
-    pulse_gates = False
     for program in programs:
-        if type_key == type_keys.Program.CIRCUIT and program._calibrations_prop:
-            pulse_gates = True
         writer(
             file_obj,
             program,
             metadata_serializer=metadata_serializer,
             use_symengine=use_symengine,
             version=version,
-        )
-
-    if pulse_gates:
-        warnings.warn(
-            category=DeprecationWarning,
-            message="Pulse gates serialization is deprecated as of Qiskit 1.3. "
-            "It will be removed in Qiskit 2.0.",
         )
 
 
@@ -245,8 +223,7 @@ def load(
     """Load a QPY binary file
 
     This function is used to load a serialized QPY Qiskit program file and create
-    :class:`~qiskit.circuit.QuantumCircuit` objects or
-    :class:`~qiskit.pulse.schedule.ScheduleBlock` objects from its contents.
+    :class:`~qiskit.circuit.QuantumCircuit` objects from its contents.
     For example:
 
     .. code-block:: python
@@ -267,12 +244,11 @@ def load(
             circuits = qpy.load(fd)
 
     which will read the contents of the qpy and return a list of
-    :class:`~qiskit.circuit.QuantumCircuit` objects or
-    :class:`~qiskit.pulse.schedule.ScheduleBlock` objects from the file.
+    :class:`~qiskit.circuit.QuantumCircuit` objects from the file.
 
     Args:
         file_obj: A file like object that contains the QPY binary
-            data for a circuit or pulse schedule.
+            data for a circuit.
         metadata_deserializer: An optional JSONDecoder class
             that will be used for the ``cls`` kwarg on the internal
             ``json.load`` call used to deserialize the JSON payload used for
@@ -353,12 +329,11 @@ def load(
         loader = binary_io.read_schedule_block
         warnings.warn(
             category=QPYLoadingDeprecatedFeatureWarning,
-            message="Pulse gates deserialization is deprecated as of Qiskit 1.3 and "
-            "will be removed in Qiskit 2.0. This is part of the deprecation plan for "
-            "the entire Qiskit Pulse package. Once Pulse is removed, `ScheduleBlock` "
-            "sections will be ignored when loading QPY files with pulse data.",
+            message="Payloads of type `ScheduleBlock` cannot be loaded as of Qiskit 2.0. "
+            "An empty circuit (possibly with serialized metadata) will be loaded. "
+            "Use an earlier version of Qiskit if you want to load a `ScheduleBlock`"
+            " payload.",
         )
-
     else:
         raise TypeError(f"Invalid payload format data kind '{type_key}'.")
 

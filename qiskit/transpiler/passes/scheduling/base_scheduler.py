@@ -263,15 +263,10 @@ class BaseSchedulerTransform(TransformationPass):
         node: DAGOpNode,
         dag: DAGCircuit,
     ) -> int:
-        """A helper method to get duration from node or calibration."""
+        """A helper method to get duration from node."""
         indices = [dag.find_bit(qarg).index for qarg in node.qargs]
 
-        if dag._has_calibration_for(node):
-            # If node has calibration, this value should be the highest priority
-            cal_key = tuple(indices), tuple(float(p) for p in node.op.params)
-            duration = dag._calibrations_prop[node.op.name][cal_key].duration
-        else:
-            duration = node.op.duration
+        duration = node.op.duration
 
         if isinstance(node.op, Reset):
             warnings.warn(

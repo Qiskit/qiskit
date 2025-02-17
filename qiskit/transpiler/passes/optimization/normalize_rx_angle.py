@@ -25,6 +25,7 @@ from qiskit.dagcircuit import DAGCircuit
 from qiskit.circuit.library.standard_gates import RXGate, RZGate, SXGate, XGate
 
 
+# TODO: do we still need this pass??
 class NormalizeRXAngle(TransformationPass):
     """Normalize theta parameter of RXGate instruction.
 
