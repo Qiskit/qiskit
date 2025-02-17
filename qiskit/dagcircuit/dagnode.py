@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import typing
 import uuid
+import warnings
 
 import qiskit._accelerate.circuit
 from qiskit.circuit import (
@@ -34,10 +35,25 @@ if typing.TYPE_CHECKING:
     from qiskit.dagcircuit import DAGCircuit
 
 
-DAGNode = qiskit._accelerate.circuit.DAGNode
-DAGOpNode = qiskit._accelerate.circuit.DAGOpNode
-DAGInNode = qiskit._accelerate.circuit.DAGInNode
-DAGOutNode = qiskit._accelerate.circuit.DAGOutNode
+def __init__wrapper__(func):
+    def wrapper(*args, **kwargs):
+        if "dag" in kwargs:
+            warnings.warn(
+                f"The 'dag' parameter in {func.__module__}.{func.__qualname__} "
+                "constructor is unused and it will be removed in Qiskit 2.0.",
+                category=DeprecationWarning,
+                stacklevel=2,
+            )
+        res = func(*args, **kwargs)
+        return res
+
+    return wrapper
+
+
+DAGNode = __init__wrapper__(qiskit._accelerate.circuit.DAGNode)
+DAGOpNode = __init__wrapper__(qiskit._accelerate.circuit.DAGOpNode)
+DAGInNode = __init__wrapper__(qiskit._accelerate.circuit.DAGInNode)
+DAGOutNode = __init__wrapper__(qiskit._accelerate.circuit.DAGOutNode)
 
 
 def _legacy_condition_eq(cond1, cond2, bit_indices1, bit_indices2) -> bool:
