@@ -188,10 +188,17 @@ class DefaultInitPassManager(PassManagerStagePlugin):
             # error rates in the target. However, in the init stage we don't yet know the target
             # qubits being used to figure out the fidelity so just use the default fidelity parameter
             # in this case.
+            split_2q_unitaries_swap = False
+            if pass_manager_config.routing_method != "none":
+                split_2q_unitaries_swap = True
             if pass_manager_config.approximation_degree is not None:
-                init.append(Split2QUnitaries(pass_manager_config.approximation_degree))
+                init.append(
+                    Split2QUnitaries(
+                        pass_manager_config.approximation_degree, split_swap=split_2q_unitaries_swap
+                    )
+                )
             else:
-                init.append(Split2QUnitaries())
+                init.append(Split2QUnitaries(split_swap=split_2q_unitaries_swap))
         else:
             raise TranspilerError(f"Invalid optimization level {optimization_level}")
         return init

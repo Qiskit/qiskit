@@ -954,69 +954,17 @@ class TestFinalLayouts(QiskitTestCase):
             for qubit_control in qr:
                 if qubit_control != qubit_target:
                     qc.cx(qubit_control, qubit_target)
-
-        ancilla = QuantumRegister(15, "ancilla")
-
-        trivial_layout = {
-            0: qr[0],
-            1: qr[1],
-            2: qr[2],
-            3: qr[3],
-            4: qr[4],
-            5: ancilla[0],
-            6: ancilla[1],
-            7: ancilla[2],
-            8: ancilla[3],
-            9: ancilla[4],
-            10: ancilla[5],
-            11: ancilla[6],
-            12: ancilla[7],
-            13: ancilla[8],
-            14: ancilla[9],
-            15: ancilla[10],
-            16: ancilla[11],
-            17: ancilla[12],
-            18: ancilla[13],
-            19: ancilla[14],
-        }
-
-        sabre_layout = {
-            0: ancilla[0],
-            1: ancilla[1],
-            2: ancilla[2],
-            3: ancilla[3],
-            4: ancilla[4],
-            5: qr[1],
-            6: qr[0],
-            7: qr[4],
-            8: ancilla[6],
-            9: ancilla[7],
-            10: qr[2],
-            11: qr[3],
-            12: ancilla[5],
-            13: ancilla[8],
-            14: ancilla[9],
-            15: ancilla[10],
-            16: ancilla[11],
-            17: ancilla[12],
-            18: ancilla[13],
-            19: ancilla[14],
-        }
-
-        expected_layout_level0 = trivial_layout
-        expected_layout_level1 = sabre_layout
-        expected_layout_level2 = sabre_layout
-        expected_layout_level3 = sabre_layout
-
         expected_layouts = [
-            expected_layout_level0,
-            expected_layout_level1,
-            expected_layout_level2,
-            expected_layout_level3,
+            [0, 1, 2, 3, 4],
+            [6, 5, 11, 10, 2],
+            [6, 5, 2, 11, 10],
+            [6, 5, 2, 11, 10],
         ]
         backend = GenericBackendV2(num_qubits=20, coupling_map=TOKYO_CMAP, seed=42)
         result = transpile(qc, backend, optimization_level=level, seed_transpiler=42)
-        self.assertEqual(result._layout.initial_layout._p2v, expected_layouts[level])
+        self.assertEqual(
+            result.layout.initial_index_layout(filter_ancillas=True), expected_layouts[level]
+        )
 
     @data(0, 1, 2, 3)
     def test_all_levels_use_trivial_if_perfect(self, level):

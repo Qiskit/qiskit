@@ -2126,13 +2126,13 @@ class TestSparseObservable(QiskitTestCase):
             expected = SparseObservable.from_sparse_list(
                 [
                     ("", [], 1 / 8),
-                    ("Y", [2], -1 / 8),
+                    ("Y", [2], 1 / 8),
                     ("YY", [3, 2], -1 / 8),
                     ("Z", [0], 1 / 8),
-                    ("YZ", [2, 0], -1 / 8),
+                    ("YZ", [2, 0], 1 / 8),
                     ("YYZ", [3, 2, 0], -1 / 8),
-                    ("Y", [3], 1 / 8),
-                    ("YZ", [3, 0], 1 / 8),
+                    ("Y", [3], -1 / 8),
+                    ("YZ", [3, 0], -1 / 8),
                 ],
                 4,
             )
@@ -2140,7 +2140,7 @@ class TestSparseObservable(QiskitTestCase):
 
         # test multiple terms
         with self.subTest(msg="+X + lY - ZI"):
-            obs = SparseObservable.from_list([("+X", 1), ("rY", 1), ("ZI", -1)])
+            obs = SparseObservable.from_list([("+X", 1), ("lY", 1), ("ZI", -1)])
             obs_paulis = obs.as_paulis()
 
             expected = SparseObservable.from_list(
