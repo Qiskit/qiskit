@@ -21,8 +21,7 @@ from ddt import ddt
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.primitives import BackendEstimator, EstimatorResult
-from qiskit.providers.fake_provider import Fake7QPulseV1, GenericBackendV2
-from qiskit.providers.backend_compat import BackendV2Converter
+from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.transpiler import PassManager
 from qiskit.utils import optionals
@@ -32,8 +31,6 @@ from test.python.transpiler._dummy_passes import DummyAP  # pylint: disable=wron
 
 
 BACKENDS = [
-    Fake7QPulseV1(),
-    BackendV2Converter(Fake7QPulseV1()),
     GenericBackendV2(num_qubits=5, seed=42),
 ]
 
@@ -324,57 +321,6 @@ class TestBackendEstimator(QiskitTestCase):
             with self.assertWarns(DeprecationWarning):
                 estimator.run([qc] * k, [op] * k, params_list).result()
         self.assertEqual(run_mock.call_count, 10)
-
-    def test_job_size_limit_v1(self):
-        """Test BackendEstimator respects job size limit
-        REMOVE ONCE Fake7QPulseV1 GETS REMOVED"""
-        with self.assertWarns(DeprecationWarning):
-            backend = Fake7QPulseV1()
-        config = backend.configuration()
-        config.max_experiments = 1
-        backend._configuration = config
-        qc = RealAmplitudes(num_qubits=2, reps=2)
-        op = SparsePauliOp.from_list([("IZ", 1), ("XI", 2), ("ZY", -1)])
-        k = 5
-        params_array = self._rng.random((k, qc.num_parameters))
-        params_list = params_array.tolist()
-        with self.assertWarns(DeprecationWarning):
-            estimator = BackendEstimator(backend=backend)
-        estimator.set_options(seed_simulator=123)
-        with patch.object(backend, "run") as run_mock:
-            with self.assertWarns(DeprecationWarning):
-                estimator.run([qc] * k, [op] * k, params_list).result()
-        self.assertEqual(run_mock.call_count, 10)
-
-    def test_no_max_circuits(self):
-        """Test BackendEstimator works with BackendV1 and no max_experiments set.
-        REMOVE ONCE Fake7QPulseV1 GETS REMOVED"""
-        with self.assertWarns(DeprecationWarning):
-            backend = Fake7QPulseV1()
-        config = backend.configuration()
-        del config.max_experiments
-        backend._configuration = config
-        qc = RealAmplitudes(num_qubits=2, reps=2)
-        op = SparsePauliOp.from_list([("IZ", 1), ("XI", 2), ("ZY", -1)])
-        k = 5
-        params_array = self._rng.random((k, qc.num_parameters))
-        params_list = params_array.tolist()
-        params_list_array = list(params_array)
-        with self.assertWarns(DeprecationWarning):
-            estimator = BackendEstimator(backend=backend)
-            estimator.set_options(seed_simulator=123)
-            target = estimator.run([qc] * k, [op] * k, params_list).result()
-        with self.subTest("ndarrary"):
-            with self.assertWarns(DeprecationWarning):
-                result = estimator.run([qc] * k, [op] * k, params_array).result()
-            self.assertEqual(len(result.metadata), k)
-            np.testing.assert_allclose(result.values, target.values, rtol=0.2, atol=0.2)
-
-        with self.subTest("list of ndarray"):
-            with self.assertWarns(DeprecationWarning):
-                result = estimator.run([qc] * k, [op] * k, params_list_array).result()
-            self.assertEqual(len(result.metadata), k)
-            np.testing.assert_allclose(result.values, target.values, rtol=0.2, atol=0.2)
 
     def test_bound_pass_manager(self):
         """Test bound pass manager."""

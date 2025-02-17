@@ -18,7 +18,6 @@ from typing import List, Any
 from qiskit import pulse, circuit
 from qiskit.pulse import transforms
 from qiskit.pulse.exceptions import PulseError
-from qiskit.providers.fake_provider import FakeOpenPulse2Q
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 from qiskit.utils.deprecate_pulse import decorate_test_methods, ignore_pulse_deprecation_warnings
 
@@ -30,9 +29,6 @@ class BaseTestBlock(QiskitTestCase):
     @ignore_pulse_deprecation_warnings
     def setUp(self):
         super().setUp()
-
-        with self.assertWarns(DeprecationWarning):
-            self.backend = FakeOpenPulse2Q()
 
         self.test_waveform0 = pulse.Constant(100, 0.1)
         self.test_waveform1 = pulse.Constant(200, 0.1)
@@ -759,23 +755,6 @@ class TestBlockFilter(BaseTestBlock):
         for ch in [self.d0, self.d1]:
             self.assertTrue(ch in filtered_blk.channels)
         self.assertEqual(filtered_blk, blk)
-
-    def test_filter_channels_nested_block(self):
-        """Test filtering over channels in a nested block."""
-        with pulse.build() as blk:
-            with pulse.align_sequential():
-                pulse.play(self.test_waveform0, self.d0)
-                pulse.delay(5, self.d0)
-                pulse.call(
-                    self.backend.defaults()
-                    .instruction_schedule_map._get_calibration_entry("cx", (0, 1))
-                    .get_schedule()
-                )
-
-        for ch in [self.d0, self.d1, pulse.ControlChannel(0)]:
-            filtered_blk = self._filter_and_test_consistency(blk, channels=[ch])
-            self.assertEqual(len(filtered_blk.channels), 1)
-            self.assertTrue(ch in filtered_blk.channels)
 
     def test_filter_inst_types(self):
         """Test filtering on instruction types."""
