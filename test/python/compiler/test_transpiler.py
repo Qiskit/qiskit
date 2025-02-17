@@ -89,7 +89,6 @@ from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager, 
 from qiskit.transpiler.target import (
     InstructionProperties,
     Target,
-    InstructionDurations,
 )
 
 from test import QiskitTestCase, combine, slow_test  # pylint: disable=wrong-import-order
