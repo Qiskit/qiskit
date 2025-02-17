@@ -6961,7 +6961,7 @@ class QuantumCircuit:
         if unit == "dt":
             from qiskit.circuit.duration import duration_in_dt
 
-            duration_in_dt(dur, target.dt)
+            return duration_in_dt(dur, target.dt)
         return apply_prefix(dur, unit)
 
 

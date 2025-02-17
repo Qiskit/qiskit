@@ -469,6 +469,18 @@ class TestScheduledCircuit(QiskitTestCase):
                     ref_unit,
                 )
 
+    def test_estimate_duration(self):
+        """Test the circuit duration is computed correctly."""
+        backend = GenericBackendV2(num_qubits=3, seed=42)
+
+        circ = QuantumCircuit(2)
+        circ.cx(0, 1)
+        circ.measure_all()
+
+        circuit_dt = transpile(circ, backend, scheduling_method="asap")
+        duration = circuit_dt.estimate_duration(backend.target)
+        self.assertEqual(duration, 1.815516e-06)
+
     def test_change_dt_in_transpile(self):
         qc = QuantumCircuit(1, 1)
         qc.x(0)
