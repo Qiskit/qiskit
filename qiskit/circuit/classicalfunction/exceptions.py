@@ -10,7 +10,13 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Exceptions for ClassicalFunction compiler"""
+"""Exceptions for ClassicalFunction compiler
+
+.. warning::
+    
+    This module is deprecated as of qiskit 1.4.0 version. It will be removed in the Qiskit 2.0 release.
+
+"""
 
 from qiskit.exceptions import QiskitError
 

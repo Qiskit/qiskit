@@ -31,7 +31,11 @@ class TestOracleDecomposition(QiskitTestCase):
 
     def test_grover_oracle(self):
         """grover_oracle.decomposition"""
-        oracle = compile_classical_function(examples.grover_oracle)
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="ClassicalFunction`` is deprecated as of qiskit 1.4",
+        ):
+            oracle = compile_classical_function(examples.grover_oracle)
         quantum_circuit = QuantumCircuit(5)
         quantum_circuit.append(oracle, [2, 1, 0, 3, 4])
 

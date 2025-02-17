@@ -32,6 +32,10 @@ class TestSimulate(QiskitTestCase):
     @data(*utils.example_list())
     def test_(self, a_callable):
         """Tests LogicSimulate.simulate() on all the examples"""
-        network = compile_classical_function(a_callable)
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="ClassicalFunction`` is deprecated as of qiskit 1.4",
+        ):
+            network = compile_classical_function(a_callable)
         truth_table = network.simulate_all()
         self.assertEqual(truth_table, utils.get_truthtable_from_function(a_callable))
