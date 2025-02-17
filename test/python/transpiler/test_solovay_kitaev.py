@@ -23,7 +23,7 @@ from ddt import ddt, data
 
 from qiskit import transpile
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.library import TGate, TdgGate, HGate, SGate, SdgGate, IGate, QFT
+from qiskit.circuit.library import TGate, TdgGate, HGate, SGate, SdgGate, IGate, QFTGate
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.quantum_info import Operator
 from qiskit.synthesis.discrete_basis.generate_basis_approximations import (
@@ -189,7 +189,8 @@ class TestSolovayKitaev(QiskitTestCase):
 
     def test_approximation_on_qft(self):
         """Test the Solovay-Kitaev decomposition on the QFT circuit."""
-        qft = QFT(3)
+        qft = QuantumCircuit(3)
+        qft.append(QFTGate(3), [0, 1, 2], [])
         transpiled = transpile(qft, basis_gates=["u", "cx"], optimization_level=1)
 
         skd = SolovayKitaev(1)

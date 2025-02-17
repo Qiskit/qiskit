@@ -17,7 +17,7 @@ import numpy as np
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter
-from qiskit.circuit.library import RealAmplitudes, UnitaryGate
+from qiskit.circuit.library import real_amplitudes, UnitaryGate
 from qiskit.primitives import Sampler, SamplerResult
 from qiskit.providers import JobStatus
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
@@ -40,9 +40,12 @@ class TestSampler(QiskitTestCase):
             {0: 0.5, 1: 0.5},
             {0: 0.5, 3: 0.5, 1: 0, 2: 0},
         ]
-        self._pqc = RealAmplitudes(num_qubits=2, reps=2)
+        self._pqc = QuantumCircuit(2)
+        self._pqc.append(real_amplitudes(num_qubits=2, reps=2), [0, 1])
         self._pqc.measure_all()
-        self._pqc2 = RealAmplitudes(num_qubits=2, reps=3)
+
+        self._pqc2 = QuantumCircuit(2)
+        self._pqc2.append(real_amplitudes(num_qubits=2, reps=3), [0, 1])
         self._pqc2.measure_all()
         self._pqc_params = [[0.0] * 6, [1.0] * 6]
         self._pqc_target = [{0: 1}, {0: 0.0148, 1: 0.3449, 2: 0.0531, 3: 0.5872}]
@@ -279,7 +282,9 @@ class TestSampler(QiskitTestCase):
         """Test for errors with run method"""
         qc1 = QuantumCircuit(1)
         qc1.measure_all()
-        qc2 = RealAmplitudes(num_qubits=1, reps=1)
+
+        qc2 = QuantumCircuit(1)
+        qc2.append(real_amplitudes(num_qubits=1, reps=1), [0])
         qc2.measure_all()
         qc3 = QuantumCircuit(1)
         qc4 = QuantumCircuit(1, 1)
@@ -337,7 +342,8 @@ class TestSampler(QiskitTestCase):
 
     def test_run_numpy_params(self):
         """Test for numpy array as parameter values"""
-        qc = RealAmplitudes(num_qubits=2, reps=2)
+        qc = QuantumCircuit(2)
+        qc.append(real_amplitudes(num_qubits=2, reps=2), [0, 1])
         qc.measure_all()
         k = 5
         rng = np.random.default_rng(12)
