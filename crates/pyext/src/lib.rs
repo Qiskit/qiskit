@@ -11,6 +11,8 @@
 // that they have been altered from the originals.
 
 use pyo3::prelude::*;
+pub use qiskit_cext::sparse_observable::*;
+pub use qiskit_cext::*;
 
 #[inline(always)]
 #[doc(hidden)]
