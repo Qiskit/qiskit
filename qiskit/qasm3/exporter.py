@@ -1139,7 +1139,9 @@ class QASM3Builder:
                 f"Found a delay instruction acting on classical bits: {instruction}"
             )
         duration_value, unit = instruction.operation.duration, instruction.operation.unit
-        if unit == "ps":
+        if unit == "expr":
+            duration = self.build_expression(duration_value)
+        elif unit == "ps":
             duration = ast.DurationLiteral(1000 * duration_value, ast.DurationUnit.NANOSECOND)
         else:
             unit_map = {
