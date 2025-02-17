@@ -15,3 +15,6 @@ z3-solver==4.12.2.0; platform_system=="Darwin"
 # usage, but our test suite uses an exact reference file that uses the
 # pydot 3 output, so we need to enforce that during tests.
 pydot>=3.0.0
+
+# Fix numpy version in aarch64 to prevent numpy.linalg.LinAlgError in CI checks
+numpy==2.2.2; platform_machine == 'aarch64'
