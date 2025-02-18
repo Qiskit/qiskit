@@ -101,7 +101,6 @@ class VF2PostLayout(AnalysisPass):
     def __init__(
         self,
         target=None,
-        coupling_map=None,
         seed=None,
         call_limit=None,
         time_limit=None,
@@ -112,8 +111,6 @@ class VF2PostLayout(AnalysisPass):
 
         Args:
             target (Target): A target representing the backend device to run ``VF2PostLayout`` on.
-                If specified it will supersede a set value for ``coupling_map``.
-            coupling_map (CouplingMap): Directed graph representing a coupling map.
             seed (int): Sets the seed of the PRNG. -1 Means no node shuffling.
             call_limit (int): The number of state visits to attempt in each execution of
                 VF2.
@@ -132,11 +129,10 @@ class VF2PostLayout(AnalysisPass):
                 a layout. A value of ``0`` (the default) means 'unlimited'.
 
         Raises:
-            TypeError: At runtime, if neither ``coupling_map`` or ``target`` are provided.
+            TypeError: At runtime, if ``target`` isn't provided.
         """
         super().__init__()
         self.target = target
-        self.coupling_map = coupling_map
         self.call_limit = call_limit
         self.time_limit = time_limit
         self.max_trials = max_trials
@@ -146,14 +142,12 @@ class VF2PostLayout(AnalysisPass):
 
     def run(self, dag):
         """run the layout method"""
-        if self.target is None and self.coupling_map is None:
+        if self.target is None:
             raise TranspilerError("A target must be specified or a coupling map must be provided")
         if not self.strict_direction:
             self.avg_error_map = self.property_set["vf2_avg_error_map"]
             if self.avg_error_map is None:
-                self.avg_error_map = vf2_utils.build_average_error_map(
-                    self.target, self.coupling_map
-                )
+                self.avg_error_map = vf2_utils.build_average_error_map(self.target, None)
 
         result = vf2_utils.build_interaction_graph(dag, self.strict_direction)
         if result is None:
@@ -163,67 +157,62 @@ class VF2PostLayout(AnalysisPass):
         scoring_bit_list = vf2_utils.build_bit_list(im_graph, im_graph_node_map)
         scoring_edge_list = vf2_utils.build_edge_list(im_graph)
 
-        if self.target is not None:
-            # If qargs is None then target is global and ideal so no
-            # scoring is needed
-            if self.target.qargs is None:
-                return
-            if self.strict_direction:
-                cm_graph = PyDiGraph(multigraph=False)
-            else:
-                cm_graph = PyGraph(multigraph=False)
-            # If None is present in qargs there are globally defined ideal operations
-            # we should add these to all entries based on the number of qubits, so we
-            # treat that as a valid operation even if there is no scoring for the
-            # strict direction case
-            global_ops = None
-            if None in self.target.qargs:
-                global_ops = {1: [], 2: []}
-                for op in self.target.operation_names_for_qargs(None):
-                    operation = self.target.operation_for_name(op)
-                    # If operation is a class this is a variable width ideal instruction
-                    # so we treat it as available on both 1 and 2 qubits
-                    if inspect.isclass(operation):
-                        global_ops[1].append(op)
-                        global_ops[2].append(op)
-                    else:
-                        num_qubits = operation.num_qubits
-                        if num_qubits in global_ops:
-                            global_ops[num_qubits].append(op)
-            op_names = []
-            for i in range(self.target.num_qubits):
-                try:
-                    entry = set(self.target.operation_names_for_qargs((i,)))
-                except KeyError:
-                    entry = set()
-                if global_ops is not None:
-                    entry.update(global_ops[1])
-                op_names.append(entry)
-            cm_graph.add_nodes_from(op_names)
-            for qargs in self.target.qargs:
-                len_args = len(qargs)
-                # If qargs == 1 we already populated it and if qargs > 2 there are no instructions
-                # using those in the circuit because we'd have already returned by this point
-                if len_args == 2:
-                    ops = set(self.target.operation_names_for_qargs(qargs))
-                    if global_ops is not None:
-                        ops.update(global_ops[2])
-                    cm_graph.add_edge(qargs[0], qargs[1], ops)
-            cm_nodes = list(cm_graph.node_indexes())
-            # Filter qubits without any supported operations. If they
-            # don't support any operations, they're not valid for layout selection.
-            # This is only needed in the undirected case because in strict direction
-            # mode the node matcher will not match since none of the circuit ops
-            # will match the cmap ops.
-            if not self.strict_direction:
-                has_operations = set(itertools.chain.from_iterable(self.target.qargs))
-                to_remove = set(cm_graph.node_indices()).difference(has_operations)
-                if to_remove:
-                    cm_graph.remove_nodes_from(list(to_remove))
+        # If qargs is None then target is global and ideal so no
+        # scoring is needed
+        if self.target.qargs is None:
+            return
+        if self.strict_direction:
+            cm_graph = PyDiGraph(multigraph=False)
         else:
-            cm_graph, cm_nodes = vf2_utils.shuffle_coupling_graph(
-                self.coupling_map, self.seed, self.strict_direction
-            )
+            cm_graph = PyGraph(multigraph=False)
+        # If None is present in qargs there are globally defined ideal operations
+        # we should add these to all entries based on the number of qubits, so we
+        # treat that as a valid operation even if there is no scoring for the
+        # strict direction case
+        global_ops = None
+        if None in self.target.qargs:
+            global_ops = {1: [], 2: []}
+            for op in self.target.operation_names_for_qargs(None):
+                operation = self.target.operation_for_name(op)
+                # If operation is a class this is a variable width ideal instruction
+                # so we treat it as available on both 1 and 2 qubits
+                if inspect.isclass(operation):
+                    global_ops[1].append(op)
+                    global_ops[2].append(op)
+                else:
+                    num_qubits = operation.num_qubits
+                    if num_qubits in global_ops:
+                        global_ops[num_qubits].append(op)
+        op_names = []
+        for i in range(self.target.num_qubits):
+            try:
+                entry = set(self.target.operation_names_for_qargs((i,)))
+            except KeyError:
+                entry = set()
+            if global_ops is not None:
+                entry.update(global_ops[1])
+            op_names.append(entry)
+        cm_graph.add_nodes_from(op_names)
+        for qargs in self.target.qargs:
+            len_args = len(qargs)
+            # If qargs == 1 we already populated it and if qargs > 2 there are no instructions
+            # using those in the circuit because we'd have already returned by this point
+            if len_args == 2:
+                ops = set(self.target.operation_names_for_qargs(qargs))
+                if global_ops is not None:
+                    ops.update(global_ops[2])
+                cm_graph.add_edge(qargs[0], qargs[1], ops)
+        cm_nodes = list(cm_graph.node_indexes())
+        # Filter qubits without any supported operations. If they
+        # don't support any operations, they're not valid for layout selection.
+        # This is only needed in the undirected case because in strict direction
+        # mode the node matcher will not match since none of the circuit ops
+        # will match the cmap ops.
+        if not self.strict_direction:
+            has_operations = set(itertools.chain.from_iterable(self.target.qargs))
+            to_remove = set(cm_graph.node_indices()).difference(has_operations)
+            if to_remove:
+                cm_graph.remove_nodes_from(list(to_remove))
 
         logger.debug("Running VF2 to find post transpile mappings")
         if self.target and self.strict_direction:

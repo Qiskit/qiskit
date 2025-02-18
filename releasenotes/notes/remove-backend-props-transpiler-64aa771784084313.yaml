@@ -11,11 +11,11 @@ upgrade_transpiler:
     * ``backend_properties`` input argument in :func:`.generate_translation_passmanager`
     * ``backend_properties`` input argument  :meth:`.Target.from_configuration`
 
-    The following passes have also been updated and no longer expose the following:
-
+    The following passes have also been updated to only accept a ``target`` instead of:
+  
     * ``backend_prop`` input argument in :class:`.DenseLayout`
     * ``properties`` input argument in :class:`.VF2Layout`
-    * ``properties`` input argument in :class:`.VF2PostLayout`
+    * ``properties`` and ``coupling_map`` input arguments in :class:`.VF2PostLayout`
     * ``backend_props`` input argument in :class:`.UnitarySynthesis`
 
     The ``BackendProperties`` class has been deprecated since Qiskit 1.2, as it was part

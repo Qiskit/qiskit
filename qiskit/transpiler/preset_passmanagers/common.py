@@ -356,7 +356,6 @@ def generate_routing_passmanager(
             ConditionalController(
                 VF2PostLayout(
                     target,
-                    coupling_map,
                     seed=seed_transpiler,
                     call_limit=vf2_call_limit,
                     max_trials=vf2_max_trials,
