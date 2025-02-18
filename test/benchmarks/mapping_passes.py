@@ -17,7 +17,6 @@
 from qiskit.transpiler import CouplingMap
 from qiskit.transpiler.passes import *
 from qiskit.converters import circuit_to_dag
-from qiskit.providers.fake_provider import Fake20QV1
 
 from .utils import random_circuit
 
@@ -98,7 +97,6 @@ class PassBenchmarks:
         apply_pass = ApplyLayout()
         apply_pass.property_set["layout"] = self.layout
         self.dag = apply_pass.run(self.enlarge_dag)
-        self.backend_props = Fake20QV1().properties()
 
     def time_stochastic_swap(self, _, __):
         swap = StochasticSwap(self.coupling_map, seed=42)
@@ -229,7 +227,6 @@ class RoutedPassBenchmarks:
         apply_pass = ApplyLayout()
         apply_pass.property_set["layout"] = self.layout
         self.dag = apply_pass.run(self.enlarge_dag)
-        self.backend_props = Fake20QV1().properties()
         self.routed_dag = StochasticSwap(self.coupling_map, seed=42).run(self.dag)
 
     def time_gate_direction(self, _, __):

@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """QuantumCircuit to Pulse scheduler."""
-from typing import Optional, Union
+from typing import Optional
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
@@ -19,7 +19,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.pulse.schedule import Schedule
 from qiskit.scheduler.config import ScheduleConfig
 from qiskit.scheduler.methods import as_soon_as_possible, as_late_as_possible
-from qiskit.providers import BackendV1, BackendV2
+from qiskit.providers import BackendV2
 from qiskit.utils.deprecate_pulse import deprecate_pulse_dependency
 
 
@@ -28,7 +28,7 @@ def schedule_circuit(
     circuit: QuantumCircuit,
     schedule_config: ScheduleConfig,
     method: Optional[str] = None,
-    backend: Optional[Union[BackendV1, BackendV2]] = None,
+    backend: Optional[BackendV2] = None,
 ) -> Schedule:
     """
     Basic scheduling pass from a circuit to a pulse Schedule, using the backend. If no method is
@@ -46,8 +46,7 @@ def schedule_circuit(
         circuit: The quantum circuit to translate.
         schedule_config: Backend specific parameters used for building the Schedule.
         method: The scheduling pass method to use.
-        backend: A backend used to build the Schedule, the backend could be BackendV1
-                 or BackendV2.
+        backend: A BackendV2 used to build the Schedule.
 
     Returns:
         Schedule corresponding to the input circuit.

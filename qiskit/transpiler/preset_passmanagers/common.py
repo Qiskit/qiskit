@@ -280,7 +280,6 @@ def generate_routing_passmanager(
     target,
     coupling_map=None,
     vf2_call_limit=None,
-    backend_properties=None,
     seed_transpiler=-1,
     check_trivial=False,
     use_barrier_before_measurement=True,
@@ -297,8 +296,6 @@ def generate_routing_passmanager(
         vf2_call_limit (int): The internal call limit for the vf2 post layout
             pass. If this is ``None`` or ``0`` the vf2 post layout will not be
             run.
-        backend_properties (BackendProperties): Properties of a backend to
-            synthesize for (e.g. gate fidelities).
         seed_transpiler (int): Sets random seed for the stochastic parts of
             the transpiler. This is currently only used for :class:`.VF2PostLayout` and the
             default value of ``-1`` is strongly recommended (which is no randomization).
@@ -354,13 +351,12 @@ def generate_routing_passmanager(
         routing.append(ConditionalController(routing_pass, condition=_swap_condition))
 
     is_vf2_fully_bounded = vf2_call_limit and vf2_max_trials
-    if (target is not None or backend_properties is not None) and is_vf2_fully_bounded:
+    if target is not None and is_vf2_fully_bounded:
         routing.append(
             ConditionalController(
                 VF2PostLayout(
                     target,
                     coupling_map,
-                    backend_properties,
                     seed=seed_transpiler,
                     call_limit=vf2_call_limit,
                     max_trials=vf2_max_trials,

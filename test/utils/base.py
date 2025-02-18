@@ -168,14 +168,6 @@ class QiskitTestCase(BaseTestCase):
             message=r".*The property.*qiskit.*unit.*",
         )
 
-        # Safe to remove once `FakeBackend` is removed (2.0)
-        warnings.filterwarnings(
-            "ignore",  # If "default", it floods the CI output
-            category=DeprecationWarning,
-            message=r".*from_backend using V1 based backend is deprecated as of Aer 0.15*",
-            module="qiskit.providers.fake_provider.fake_backend",
-        )
-
         warnings.filterwarnings(
             "default",
             category=DeprecationWarning,

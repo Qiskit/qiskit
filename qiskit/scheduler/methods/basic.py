@@ -22,7 +22,7 @@ from qiskit.pulse.schedule import Schedule
 
 from qiskit.scheduler.config import ScheduleConfig
 from qiskit.scheduler.lowering import lower_gates
-from qiskit.providers import BackendV1, BackendV2
+from qiskit.providers import BackendV2
 from qiskit.utils.deprecate_pulse import deprecate_pulse_dependency
 
 
@@ -30,7 +30,7 @@ from qiskit.utils.deprecate_pulse import deprecate_pulse_dependency
 def as_soon_as_possible(
     circuit: QuantumCircuit,
     schedule_config: ScheduleConfig,
-    backend: Optional[Union[BackendV1, BackendV2]] = None,
+    backend: Optional[Union[BackendV2]] = None,
 ) -> Schedule:
     """
     Return the pulse Schedule which implements the input circuit using an "as soon as possible"
@@ -44,8 +44,7 @@ def as_soon_as_possible(
     Args:
         circuit: The quantum circuit to translate.
         schedule_config: Backend specific parameters used for building the Schedule.
-        backend: A backend used to build the Schedule, the backend could be BackendV1
-                 or BackendV2.
+        backend: A BackendV2 used to build the Schedule.
 
     Returns:
         A schedule corresponding to the input ``circuit`` with pulses occurring as early as
@@ -84,7 +83,7 @@ def as_soon_as_possible(
 def as_late_as_possible(
     circuit: QuantumCircuit,
     schedule_config: ScheduleConfig,
-    backend: Optional[Union[BackendV1, BackendV2]] = None,
+    backend: Optional[Union[BackendV2]] = None,
 ) -> Schedule:
     """
     Return the pulse Schedule which implements the input circuit using an "as late as possible"
@@ -101,8 +100,7 @@ def as_late_as_possible(
     Args:
         circuit: The quantum circuit to translate.
         schedule_config: Backend specific parameters used for building the Schedule.
-        backend: A backend used to build the Schedule, the backend could be BackendV1
-                 or BackendV2.
+        backend: A BackendV2 used to build the Schedule.
 
     Returns:
         A schedule corresponding to the input ``circuit`` with pulses occurring as late as
