@@ -437,8 +437,6 @@ Estimator V1
 
    BaseEstimator
    BaseEstimatorV1
-   Estimator
-   BackendEstimator
    EstimatorResult
 
 
@@ -450,14 +448,10 @@ Sampler V1
 
    BaseSampler
    BaseSamplerV1
-   Sampler
-   BackendSampler
    SamplerResult
 
 """
 
-from .backend_estimator import BackendEstimator
-from .backend_sampler import BackendSampler
 from .base import (
     BaseEstimator,
     BaseEstimatorV1,
@@ -480,9 +474,7 @@ from .containers import (
     ObservableLike,
     ObservablesArrayLike,
 )
-from .estimator import Estimator
 from .primitive_job import BasePrimitiveJob, PrimitiveJob
-from .sampler import Sampler
 from .statevector_estimator import StatevectorEstimator
 from .statevector_sampler import StatevectorSampler
 from .backend_estimator_v2 import BackendEstimatorV2

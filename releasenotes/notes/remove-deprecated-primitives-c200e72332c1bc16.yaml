@@ -1,0 +1,16 @@
+---
+upgrade_primitives:
+  - |
+    The deprecated primitive V1 implementations and V1-exclusive non-versioned
+    type aliases are now removed in favor of their V2 counterparts. The
+    following classes have been removed:
+
+      * ``Estimator``, replaced with :class:`.StatevectorEstimator`
+      * ``Sampler``, replaced with :class:`.StatevectorSampler`
+      * ``BackendEstimator``, replaced with :class:`.BackendEstimatorV2`
+      * ``BackendSampler``, replaced with :class:`.BackendSamplerV2`
+
+    The follwoing type aliases were removed as well:
+
+      * ``BaseEstimator``
+      * ``BaseSampler``
