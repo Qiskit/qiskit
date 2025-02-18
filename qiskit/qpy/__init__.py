@@ -370,6 +370,13 @@ There is a circuit payload for each circuit (where the total number is dictated
 by ``num_circuits`` in the file header). There is no padding between the
 circuits in the data.
 
+.. _qpy_version_14:
+
+Version 14
+----------
+
+Version 14 added support for constant types to classical expressions.
+
 .. _qpy_version_13:
 
 Version 13
