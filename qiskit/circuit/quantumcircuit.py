@@ -2911,8 +2911,8 @@ class QuantumCircuit:
                 and isinstance(initial, int)
                 and not isinstance(initial, bool)
             ):
-                # Convenience method to widen Python integer literals to the right width during the initial
-                # lift, if the type is already known via the variable.
+                # Convenience method to widen Python integer literals to the right width during
+                # the initial lift, if the type is already known via the variable.
                 coerce_type = name_or_var.type
         initial = _validate_expr(circuit_scope, expr.lift(initial, coerce_type))
         if isinstance(name_or_var, str):

@@ -262,6 +262,7 @@ class _ExprWriter(expr.ExprVisitor[None]):
         self.version = version
 
     def write_expr_type(self, type_: types.Type):
+        """Write the expression's type using the appropriate QPY version."""
         if self.version < 14:
             _write_expr_type(self.file_obj, type_, self.version)
         else:
