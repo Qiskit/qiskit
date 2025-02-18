@@ -821,13 +821,12 @@ def generate_v12_expr():
 
 
 def generate_v14_expr():
-    """Circuits that contain const-typed expressions, new in QPY v14."""
+    """Circuits that contain expressions new in QPY v14, including constant types
+    and floats."""
     from qiskit.circuit.classical import expr, types
 
-    cr = ClassicalRegister(4, "cr")
-
-    qc = QuantumCircuit(cr, name="const_expr")
-    with qc.if_test(
+    const_expr = QuantumCircuit(name="const_expr")
+    with const_expr.if_test(
         expr.not_equal(
             expr.equal(expr.lift(1, types.Uint(1, const=True)), 1),
             expr.lift(False, types.Bool(const=True)),
@@ -835,7 +834,11 @@ def generate_v14_expr():
     ):
         pass
 
-    return [qc]
+    float_expr = QuantumCircuit(name="float_expr")
+    with float_expr.if_test(expr.less(1.0, 2.0)):
+        pass
+
+    return [const_expr, float_expr]
 
 
 def generate_circuits(version_parts):

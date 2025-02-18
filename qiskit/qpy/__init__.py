@@ -376,23 +376,38 @@ Version 14
 ----------
 
 Version 14 adds support for additional :class:`~.types.Type` classes, and adds support for
-const-ness to existing types :class:`~.types.Bool` and :class:`~.types.Uint`.
+const-ness to existing types :class:`~.types.Bool` and :class:`~.types.Uint` in classical
+expressions.
+
+Changes to EXPR_TYPE
+~~~~~~~~~~~~~~~~~~~~
+
 The ``EXPR_TYPE_BOOL`` and ``EXPR_TYPE_UNIT`` structs are now replaced by ``EXPR_TYPE_BOOL_V14``
-and ``EXPR_TYPE_UINT_V14``, respectively. See the updated expression type table below.
+and ``EXPR_TYPE_UINT_V14``, respectively.
 
-EXPR_TYPE
-~~~~~~~~~
-
-A :class:`~.types.Type` is encoded by a single-byte ASCII ``char`` that encodes the kind of type,
-followed by a payload that varies depending on the type.  The defined codes are:
+The updated expression type encodings are shown below:
 
 ======================  =========  =================================================================
 Qiskit class            Type code  Payload
 ======================  =========  =================================================================
-:class:`~.types.Bool`   ``b``      One `_Bool const`.
+:class:`~.types.Bool`   ``b``      One ``_Bool const``.
 
 :class:`~.types.Uint`   ``u``      One ``uint32_t width``, followed by one ``_Bool const``.
+:class:`~.types.Float`  ``f``      One ``_Bool const``.
 ======================  =========  =================================================================
+
+Changes to EXPR_VALUE
+~~~~~~~~~~~~~~~~~~~~~
+
+The classical expression's type system now supports new encoding types for value literals, in
+addition to the existing encodings for int and bool. The new value type encodings are below:
+
+===========  =========  ============================================================================
+Python type  Type code  Payload
+===========  =========  ============================================================================
+``float``    ``f``      One ``double value``.
+
+===========  =========  ============================================================================
 
 .. _qpy_version_13:
 

@@ -2005,6 +2005,20 @@ class TestLoadFromQPY(QiskitTestCase):
         ):
             dump(qc, fptr, version=version)
 
+    @ddt.idata(range(QPY_COMPATIBILITY_VERSION, 14))
+    def test_pre_v14_rejects_float_typed_expr(self, version):
+        """Test that dumping to older QPY versions rejects float-typed expressions."""
+        qc = QuantumCircuit()
+        with qc.if_test(expr.less(1.0, 2.0)):
+            pass
+        with (
+            io.BytesIO() as fptr,
+            self.assertRaisesRegex(
+                UnsupportedFeatureForVersion, "version 14 is required.*float-typed expressions"
+            ),
+        ):
+            dump(qc, fptr, version=version)
+
 
 class TestSymengineLoadFromQPY(QiskitTestCase):
     """Test use of symengine in qpy set of methods."""

@@ -324,6 +324,11 @@ class _ExprWriter(expr.ExprVisitor[None]):
                 struct.pack(formats.EXPR_VALUE_INT_PACK, *formats.EXPR_VALUE_INT(num_bytes))
             )
             self.file_obj.write(buffer)
+        elif isinstance(node.value, float):
+            self.file_obj.write(type_keys.ExprValue.FLOAT)
+            self.file_obj.write(
+                struct.pack(formats.EXPR_VALUE_FLOAT_PACK, *formats.EXPR_VALUE_FLOAT(node.value))
+            )
         else:
             raise exceptions.QpyError(f"unhandled Value object '{node.value}'")
 
@@ -378,6 +383,10 @@ def _write_expr_type(file_obj, type_: types.Type, version):
         raise exceptions.UnsupportedFeatureForVersion(
             "const-typed expressions", required=14, target=version
         )
+    if type_.kind is types.Float:
+        raise exceptions.UnsupportedFeatureForVersion(
+            "float-typed expressions", required=14, target=version
+        )
     if type_.kind is types.Bool:
         file_obj.write(type_keys.ExprType.BOOL)
     elif type_.kind is types.Uint:
@@ -403,6 +412,11 @@ def _write_expr_type_v14(file_obj, type_: types.Type):
                 formats.EXPR_TYPE_UINT_PACK_V14,
                 *formats.EXPR_TYPE_UINT_V14(type_.width, type_.const),
             )
+        )
+    elif type_.kind is types.Float:
+        file_obj.write(type_keys.ExprType.FLOAT)
+        file_obj.write(
+            struct.pack(formats.EXPR_TYPE_FLOAT_PACK, *formats.EXPR_TYPE_FLOAT(type_.const))
         )
     else:
         raise exceptions.QpyError(f"unhandled Type object '{type_};")
@@ -714,6 +728,13 @@ def _read_expr(
             return expr.Value(
                 int.from_bytes(file_obj.read(payload.num_bytes), "big", signed=True), type_
             )
+        if value_type_key == type_keys.ExprValue.FLOAT:
+            payload = formats.EXPR_VALUE_FLOAT._make(
+                struct.unpack(
+                    formats.EXPR_VALUE_FLOAT_PACK, file_obj.read(formats.EXPR_VALUE_FLOAT_SIZE)
+                )
+            )
+            return expr.Value(payload.value, type_)
         raise exceptions.QpyError("Invalid classical-expression Value key '{value_type_key}'")
     if type_key == type_keys.Expression.CAST:
         payload = formats.EXPRESSION_CAST._make(
@@ -784,6 +805,11 @@ def _read_expr_type_v14(file_obj) -> types.Type:
             )
         )
         return types.Uint(elem.width, const=elem.const)
+    if type_key == type_keys.ExprType.FLOAT:
+        elem = formats.EXPR_TYPE_FLOAT._make(
+            struct.unpack(formats.EXPR_TYPE_FLOAT_PACK, file_obj.read(formats.EXPR_TYPE_FLOAT_SIZE))
+        )
+        return types.Float(const=elem.const)
     raise exceptions.QpyError(f"Invalid classical-expression Type key '{type_key}'")
 
 
