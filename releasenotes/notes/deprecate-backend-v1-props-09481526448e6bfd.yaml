@@ -8,7 +8,7 @@ deprecations_transpiler:
     * ``properties`` input argument in :class:`.VF2Layout`
     * ``properties`` and ``coupling_map`` input arguments in :class:`.VF2PostLayout`. Note that ``coupling_map`` was only used in the presence of ``properties``.
     * ``backend_props`` input argument in :class:`.UnitarySynthesis`
-    * ``backend_properties`` in :class:`.PassManagerConfig`
+    * ``backend_properties`` input argument in :class:`.PassManagerConfig`
     * ``backend_properties`` in  :meth:`.Target.from_configuration`
     * ``backend_properties`` in :func:`.generate_routing_passmanager`
     * ``backend_properties`` in :func:`.generate_translation_passmanager`
@@ -17,7 +17,7 @@ deprecations_transpiler:
     of the :class:`.BackendV1` workflow, and will be removed in Qiskit 2.0. Specific instruction 
     properties such as gate errors or durations can be added to a :class:`.Target` upon 
     construction through the :meth:`.Target.add_instruction` method, and communicated to 
-    the relevant transpiler passes through the `target` input argument.
+    the relevant transpiler passes through the ``target`` input argument.
 
     In the case of :func:`.generate_routing_passmanager` and :func:`.generate_translation_passmanager`,
     the ``backend_properties`` argument is optional and is superseded when the required ``target`` 
