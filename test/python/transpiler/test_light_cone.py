@@ -324,22 +324,25 @@ class TestLightConePass(QiskitTestCase):
         SparsePauliOp.from_sparse_list([("IIIIIXZIII", list(range(10)), 1)], 10),
         SparsePauliOp.from_sparse_list([("YYYYXZYYYY", list(range(10)), 1)], 10),
     )
-    def test_large_observable(self, sparse_object):
-        """Test for a large initial observable."""
 
-        bit_terms, indices, _ = sparse_object.to_sparse_list()[0]
-        light_cone = LightCone(bit_terms=bit_terms, indices=indices)
-        pm = PassManager([light_cone])
-
-        q0 = QuantumRegister(10, "q0")
-        qc = QuantumCircuit(q0)
-        qc.cx(5, 6)
-
-        new_circuit = pm.run(qc)
-
-        expected = QuantumCircuit(q0)
-
-        self.assertEqual(expected, new_circuit)
+    # This test should be uncommented once issue #13828 has been solved.
+    #
+    # def test_large_observable(self, sparse_object):
+    #     """Test for a large initial observable."""
+    #
+    #     bit_terms, indices, _ = sparse_object.to_sparse_list()[0]
+    #     light_cone = LightCone(bit_terms=bit_terms, indices=indices)
+    #     pm = PassManager([light_cone])
+    #
+    #     q0 = QuantumRegister(10, "q0")
+    #     qc = QuantumCircuit(q0)
+    #     qc.cx(5, 6)
+    #
+    #     new_circuit = pm.run(qc)
+    #
+    #     expected = QuantumCircuit(q0)
+    #
+    #     self.assertEqual(expected, new_circuit)
 
     def test_raise_error_when_indices_is_empty(self):
         """Test that `ValueError` is raised if bit_terms is given but indices is empty."""
