@@ -1430,6 +1430,10 @@ impl PySparseTerm {
         Ok(obs.into())
     }
 
+    fn to_label(&self) -> PyResult<String> {
+        Ok(self.inner.view().to_sparse_str())
+    }
+
     fn __eq__(slf: Bound<Self>, other: Bound<PyAny>) -> PyResult<bool> {
         if slf.is(&other) {
             return Ok(true);
