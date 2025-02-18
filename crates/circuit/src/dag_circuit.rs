@@ -2892,7 +2892,7 @@ def _format(operand):
                     py,
                     concat!(
                         "The propagate_condition argument is deprecated as of Qiskit 2.0.0.",
-                        "It will be removed in Qiskit 3.0.0.",
+                        "It has no effect anymore and will be removed in Qiskit 3.0.0.",
                     )
                 ),
                 py.get_type::<PyDeprecationWarning>(),
@@ -3250,7 +3250,7 @@ def _format(operand):
                     py,
                     concat!(
                         "The propagate_condition argument is deprecated as of Qiskit 2.0.0.",
-                        "It will be removed in Qiskit 3.0.0.",
+                        "It has no effect anymore and will be removed in Qiskit 3.0.0.",
                     )
                 ),
                 py.get_type::<PyDeprecationWarning>(),
