@@ -759,24 +759,6 @@ def append_instruction(instruction: instructions.Instruction):
 def num_qubits() -> int:
     """Return number of qubits in the currently active backend.
 
-    Examples:
-
-    .. plot::
-       :include-source:
-       :nofigs:
-
-        from qiskit import pulse
-        from qiskit.providers.fake_provider import FakeOpenPulse2Q
-
-        backend = FakeOpenPulse2Q()
-
-        with pulse.build(backend):
-            print(pulse.num_qubits())
-
-    .. code-block:: text
-
-       2
-
     .. note:: Requires the active builder context to have a backend set.
     """
     if isinstance(active_backend(), BackendV2):
@@ -820,24 +802,6 @@ def samples_to_seconds(samples: int | np.ndarray) -> float | np.ndarray:
 @deprecate_pulse_func
 def qubit_channels(qubit: int) -> set[chans.Channel]:
     """Returns the set of channels associated with a qubit.
-
-    Examples:
-
-    .. plot::
-       :include-source:
-       :nofigs:
-
-        from qiskit import pulse
-        from qiskit.providers.fake_provider import FakeOpenPulse2Q
-
-        backend = FakeOpenPulse2Q()
-
-        with pulse.build(backend):
-            print(pulse.qubit_channels(0))
-
-    .. code-block:: text
-
-       {MeasureChannel(0), ControlChannel(0), DriveChannel(0), AcquireChannel(0), ControlChannel(1)}
 
     .. note:: Requires the active builder context to have a backend set.
 
@@ -1204,34 +1168,6 @@ def frequency_offset(
 ) -> Generator[None, None, None]:
     """Shift the frequency of inputs channels on entry into context and undo on exit.
 
-    Examples:
-
-    .. plot::
-        :include-source:
-        :nofigs:
-
-        from qiskit import pulse
-        from qiskit.providers.fake_provider import FakeOpenPulse2Q
-
-        backend = FakeOpenPulse2Q()
-        d0 = pulse.DriveChannel(0)
-
-        with pulse.build(backend) as pulse_prog:
-            # shift frequency by 1GHz
-            with pulse.frequency_offset(1e9, d0):
-                pulse.play(pulse.Constant(10, 1.0), d0)
-
-        assert len(pulse_prog.instructions) == 3
-
-        with pulse.build(backend) as pulse_prog:
-            # Shift frequency by 1GHz.
-            # Undo accumulated phase in the shifted frequency frame
-            # when exiting the context.
-            with pulse.frequency_offset(1e9, d0, compensate_phase=True):
-                pulse.play(pulse.Constant(10, 1.0), d0)
-
-        assert len(pulse_prog.instructions) == 4
-
     Args:
         frequency: Amount of frequency offset in Hz.
         channels: Channels to offset frequency of.
@@ -1269,20 +1205,6 @@ def frequency_offset(
 def drive_channel(qubit: int) -> chans.DriveChannel:
     """Return ``DriveChannel`` for ``qubit`` on the active builder backend.
 
-    Examples:
-
-    .. plot::
-       :include-source:
-       :nofigs:
-
-        from qiskit import pulse
-        from qiskit.providers.fake_provider import FakeOpenPulse2Q
-
-        backend = FakeOpenPulse2Q()
-
-        with pulse.build(backend):
-            assert pulse.drive_channel(0) == pulse.DriveChannel(0)
-
     .. note:: Requires the active builder context to have a backend set.
     """
     # backendV2
@@ -1295,20 +1217,6 @@ def drive_channel(qubit: int) -> chans.DriveChannel:
 def measure_channel(qubit: int) -> chans.MeasureChannel:
     """Return ``MeasureChannel`` for ``qubit`` on the active builder backend.
 
-    Examples:
-
-    .. plot::
-       :include-source:
-       :nofigs:
-
-        from qiskit import pulse
-        from qiskit.providers.fake_provider import FakeOpenPulse2Q
-
-        backend = FakeOpenPulse2Q()
-
-        with pulse.build(backend):
-            assert pulse.measure_channel(0) == pulse.MeasureChannel(0)
-
     .. note:: Requires the active builder context to have a backend set.
     """
     # backendV2
@@ -1320,20 +1228,6 @@ def measure_channel(qubit: int) -> chans.MeasureChannel:
 @deprecate_pulse_func
 def acquire_channel(qubit: int) -> chans.AcquireChannel:
     """Return ``AcquireChannel`` for ``qubit`` on the active builder backend.
-
-    Examples:
-
-    .. plot::
-       :include-source:
-       :nofigs:
-
-        from qiskit import pulse
-        from qiskit.providers.fake_provider import FakeOpenPulse2Q
-
-        backend = FakeOpenPulse2Q()
-
-        with pulse.build(backend):
-            assert pulse.acquire_channel(0) == pulse.AcquireChannel(0)
 
     .. note:: Requires the active builder context to have a backend set.
     """
@@ -1349,19 +1243,6 @@ def control_channels(*qubits: Iterable[int]) -> list[chans.ControlChannel]:
 
     Return the secondary drive channel for the given qubit -- typically
     utilized for controlling multi-qubit interactions.
-
-    Examples:
-
-    .. plot::
-       :include-source:
-       :nofigs:
-
-        from qiskit import pulse
-        from qiskit.providers.fake_provider import FakeOpenPulse2Q
-
-        backend = FakeOpenPulse2Q()
-        with pulse.build(backend):
-            assert pulse.control_channels(0, 1) == [pulse.ControlChannel(0)]
 
     .. note:: Requires the active builder context to have a backend set.
 
@@ -1940,34 +1821,6 @@ def macro(func: Callable):
     behave as if the function code was embedded inline in the parent builder context
     after parameter substitution.
 
-
-    Examples:
-
-    .. plot::
-       :alt: Output from the previous code.
-       :include-source:
-
-        from qiskit import pulse
-        from qiskit.providers.fake_provider import FakeOpenPulse2Q
-
-        @pulse.macro
-        def measure(qubit: int):
-            pulse.play(pulse.GaussianSquare(16384, 256, 15872), pulse.measure_channel(qubit))
-            mem_slot = pulse.MemorySlot(qubit)
-            pulse.acquire(16384, pulse.acquire_channel(qubit), mem_slot)
-
-            return mem_slot
-
-
-        backend = FakeOpenPulse2Q()
-
-        with pulse.build(backend=backend) as sched:
-            mem_slot = measure(0)
-            print(f"Qubit measured into {mem_slot}")
-
-        sched.draw()
-
-
     Args:
         func: The Python function to enable as a builder macro. There are no
             requirements on the signature of the function, any calls to pulse
@@ -2089,21 +1942,6 @@ def measure_all() -> list[chans.MemorySlot]:
     same time. This is useful for handling device ``meas_map`` and single
     measurement constraints.
 
-    Examples:
-
-    .. plot::
-       :include-source:
-       :nofigs:
-
-        from qiskit import pulse
-        from qiskit.providers.fake_provider import FakeOpenPulse2Q
-
-        backend = FakeOpenPulse2Q()
-
-        with pulse.build(backend) as pulse_prog:
-            # Measure all qubits and return associated registers.
-            regs = pulse.measure_all()
-
     .. note::
         Requires the active builder context to have a backend set.
 
@@ -2131,21 +1969,6 @@ def measure_all() -> list[chans.MemorySlot]:
 def delay_qubits(duration: int, *qubits: int):
     r"""Insert delays on all the :class:`channels.Channel`\s that correspond
     to the input ``qubits`` at the same time.
-
-    Examples:
-
-    .. plot::
-       :include-source:
-       :nofigs:
-
-        from qiskit import pulse
-        from qiskit.providers.fake_provider import FakeOpenPulse3Q
-
-        backend = FakeOpenPulse3Q()
-
-        with pulse.build(backend) as pulse_prog:
-            # Delay for 100 cycles on qubits 0, 1 and 2.
-            regs = pulse.delay_qubits(100, 0, 1, 2)
 
     .. note:: Requires the active builder context to have a backend set.
 
