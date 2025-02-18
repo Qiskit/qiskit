@@ -1,0 +1,9 @@
+---
+upgrade_transpiler:
+  - |
+    The deprecated transpiler passes ``ASAPSchedule``, ``ALAPSchedule``,
+    ``DynamicalDecoupling``, and ``AlignMeasures`` have been removed. These
+    passes were marked as deprecated. They have been replaced by the
+    :class:`.ALAPScheduleAnalysis`, :class:`.ASAPScheduleAnalysis`,
+    :class:`.PadDynamicalDecoupling`, and :class:`.ConstrainedReschedule`
+    passes respectively which can be used instead.
