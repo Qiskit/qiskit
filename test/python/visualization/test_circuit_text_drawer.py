@@ -5335,7 +5335,7 @@ class TestTextOpenControlledGate(QiskitTestCase):
     def test_open_controlled_swap(self):
         """Controlled SWAP gates."""
         expected = "\n".join(
-            [   
+            [
                 "                                       ",
                 "qr_0: |0>─o─────o────────o────────o────",
                 "          │     │        │        │    ",
