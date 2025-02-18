@@ -17,6 +17,7 @@ Circuit construction:
    circuit_classical
    classicalfunction
    circuit_library
+   circuit_random
    circuit_singleton
 
 Quantum information:
