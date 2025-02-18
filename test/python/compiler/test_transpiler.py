@@ -91,7 +91,6 @@ from qiskit.transpiler.target import (
     InstructionProperties,
     Target,
     InstructionDurations,
-    target_to_backend_properties,
 )
 
 from test import QiskitTestCase, combine, slow_test  # pylint: disable=wrong-import-order
@@ -1606,78 +1605,6 @@ class TestTranspile(QiskitTestCase):
         scheduled = transpile(qc, backend=backend_v2, scheduling_method="asap", dt=original_dt / 2)
         self.assertEqual(scheduled.duration, original_duration * 2)
 
-    def test_backend_props_constraints(self):
-        """Test that loose transpile constraints work with both BackendV1 and BackendV2."""
-
-        with self.assertWarns(DeprecationWarning):
-            backend_v1 = Fake20QV1()
-            backend_v2 = BackendV2Converter(backend_v1)
-        qr1 = QuantumRegister(3, "qr1")
-        qr2 = QuantumRegister(2, "qr2")
-        qc = QuantumCircuit(qr1, qr2)
-        qc.cx(qr1[0], qr1[1])
-        qc.cx(qr1[1], qr1[2])
-        qc.cx(qr1[2], qr2[0])
-        qc.cx(qr2[0], qr2[1])
-
-        # generate a fake backend with same number of qubits
-        # but different backend properties
-        fake_backend = GenericBackendV2(num_qubits=20, seed=42)
-        with self.assertWarns(DeprecationWarning):
-            custom_backend_properties = target_to_backend_properties(fake_backend.target)
-
-        # expected layout for custom_backend_properties
-        # (different from expected layout for Fake20QV1)
-        vf2_layout = {
-            18: Qubit(QuantumRegister(3, "qr1"), 1),
-            13: Qubit(QuantumRegister(3, "qr1"), 2),
-            19: Qubit(QuantumRegister(3, "qr1"), 0),
-            14: Qubit(QuantumRegister(2, "qr2"), 0),
-            9: Qubit(QuantumRegister(2, "qr2"), 1),
-            0: Qubit(QuantumRegister(15, "ancilla"), 0),
-            1: Qubit(QuantumRegister(15, "ancilla"), 1),
-            2: Qubit(QuantumRegister(15, "ancilla"), 2),
-            3: Qubit(QuantumRegister(15, "ancilla"), 3),
-            4: Qubit(QuantumRegister(15, "ancilla"), 4),
-            5: Qubit(QuantumRegister(15, "ancilla"), 5),
-            6: Qubit(QuantumRegister(15, "ancilla"), 6),
-            7: Qubit(QuantumRegister(15, "ancilla"), 7),
-            8: Qubit(QuantumRegister(15, "ancilla"), 8),
-            10: Qubit(QuantumRegister(15, "ancilla"), 9),
-            11: Qubit(QuantumRegister(15, "ancilla"), 10),
-            12: Qubit(QuantumRegister(15, "ancilla"), 11),
-            15: Qubit(QuantumRegister(15, "ancilla"), 12),
-            16: Qubit(QuantumRegister(15, "ancilla"), 13),
-            17: Qubit(QuantumRegister(15, "ancilla"), 14),
-        }
-
-        with self.assertWarnsRegex(
-            DeprecationWarning,
-            expected_regex="The `transpile` function will stop supporting inputs of type `BackendV1` ",
-        ):
-            result = transpile(
-                qc,
-                backend=backend_v1,
-                backend_properties=custom_backend_properties,
-                optimization_level=2,
-                seed_transpiler=42,
-            )
-
-        self.assertEqual(result._layout.initial_layout._p2v, vf2_layout)
-        with self.assertWarnsRegex(
-            DeprecationWarning,
-            expected_regex="The `target` parameter should be used instead",
-        ):
-            result = transpile(
-                qc,
-                backend=backend_v2,
-                backend_properties=custom_backend_properties,
-                optimization_level=2,
-                seed_transpiler=42,
-            )
-
-        self.assertEqual(result._layout.initial_layout._p2v, vf2_layout)
-
     @data(1, 2, 3)
     def test_no_infinite_loop(self, optimization_level):
         """Verify circuit cost always descends and optimization does not flip flop indefinitely."""
@@ -2643,7 +2570,6 @@ class TestTranspileCustomPM(QiskitTestCase):
             initial_layout=None,
             basis_gates=["u1", "u2", "u3", "cx"],
             coupling_map=CouplingMap([[0, 1]]),
-            backend_properties=None,
             seed_transpiler=1,
         )
         passmanager = level_0_pass_manager(pm_conf)
