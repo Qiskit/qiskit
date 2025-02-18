@@ -1923,9 +1923,13 @@ if (cr == 1) {
             expr.equal(creg, expr.lift(1, types.Uint(2, const=True))), body, [0], body.clbits
         )
         circuit.if_test(
-            expr.equal(
-                expr.lift(1, types.Uint(2, const=True)), expr.lift(2, types.Uint(2, const=True))
-            ),
+            expr.equal(expr.lift(1, types.Uint(2)), expr.lift(2, types.Uint(2, const=True))),
+            body,
+            [0],
+            body.clbits,
+        )
+        circuit.if_test(
+            expr.less(expr.lift(1.0, types.Float(const=True)), expr.lift(2.0, types.Float())),
             body,
             [0],
             body.clbits,
@@ -1945,6 +1949,10 @@ if (c == 1) {
   y _qubit0;
 }
 if (1 == 2) {
+  x _qubit0;
+  y _qubit0;
+}
+if (1.0 < 2.0) {
   x _qubit0;
   y _qubit0;
 }
