@@ -16,30 +16,21 @@ use std::{
     sync::{atomic::AtomicU64, Arc},
 };
 
-use crate::register::{OwningRegisterInfo, RegisterInfo};
-use pyo3::{prelude::*, types::PyDict, IntoPyObjectExt};
-
-pub trait ShareableBit
-where
-    <Self as ShareableBit>::ExtraAttributes: Debug + Clone + PartialEq + Eq + PartialOrd + Hash,
-{
-    /// Struct defining any specific extra attributes for the bit.
-    type ExtraAttributes;
-    /// Literal description of the bit type.
-    const DESCRIPTION: &'static str;
-
-    /// Returns reference to the instance counter for the bit.
-    fn anonymous_instances() -> &'static AtomicU64;
-}
+use crate::{
+    circuit_data::CircuitError,
+    register::{
+        ClassicalRegister, OwningRegisterInfo, PyAncillaRegister, PyClassicalRegister,
+        PyQuantumRegister, PyRegister, QuantumRegister, RegisterInfo,
+    },
+};
+use pyo3::{prelude::*, types::PyDict};
 
 /// Counter for all existing anonymous Qubit instances.
-static QUBIT_COUNTER: AtomicU64 = AtomicU64::new(0);
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Hash)]
+static BIT_COUNTER: AtomicU64 = AtomicU64::new(0);
 
-/// Alias for shareable version of a Qubit, implements [ShareableBit] trait.
-pub(crate) struct ShareableQubit;
+/// Alias for extra properties stored in a Qubit
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Hash)]
-pub(crate) struct QubitExtraInfo {
+pub struct QubitExtraInfo {
     is_ancilla: bool,
 }
 
@@ -61,66 +52,95 @@ impl From<bool> for QubitExtraInfo {
     }
 }
 
-impl ShareableBit for ShareableQubit {
-    type ExtraAttributes = QubitExtraInfo;
-    const DESCRIPTION: &'static str = "qubit";
-    fn anonymous_instances() -> &'static AtomicU64 {
-        &QUBIT_COUNTER
-    }
-}
-
-/// Alias for shareable version of a Clbit, implements [ShareableBit] trait.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Hash)]
-pub(crate) struct ShareableClbit;
-
-impl ShareableBit for ShareableClbit {
-    type ExtraAttributes = ();
-    const DESCRIPTION: &'static str = "clbit";
-    fn anonymous_instances() -> &'static AtomicU64 {
-        &QUBIT_COUNTER
-    }
-}
-
+/// Main representation of the inner properties of a shareable `Bit` object.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Hash)]
-pub enum BitInfo<T: ShareableBit> {
+pub enum BitInfo {
     Owned {
-        register: Arc<OwningRegisterInfo<T>>,
+        register: Arc<OwningRegisterInfo>,
         index: u32,
     },
     Anonymous {
         /// Unique id for bit, derives from [ShareableBit::anonymous_instances]
         unique_id: u64,
-        /// Data about the
-        extra: T::ExtraAttributes,
     },
 }
 
-impl<T: ShareableBit> BitInfo<T> {
+impl BitInfo {
     /// Creates an instance of anonymous [BitInfo].
-    pub fn new_anonymous(extra: <T as ShareableBit>::ExtraAttributes) -> Self {
+    pub fn new_anonymous() -> Self {
         Self::Anonymous {
-            unique_id: <T as ShareableBit>::anonymous_instances()
-                .fetch_add(1, std::sync::atomic::Ordering::Relaxed),
-            extra,
+            unique_id: BIT_COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed),
         }
     }
 
     /// Creates an instance of anonymous [BitInfo].
-    pub fn new_owned(register: Arc<OwningRegisterInfo<T>>, index: u32) -> Self {
+    pub fn new_owned(register: Arc<OwningRegisterInfo>, index: u32) -> Self {
         Self::Owned { register, index }
     }
 }
 
-impl BitInfo<ShareableQubit> {
-    pub fn is_ancilla(&self) -> bool {
-        match self {
-            BitInfo::Owned { register, .. } => register.is_ancilla(),
-            BitInfo::Anonymous { extra, .. } => extra.is_ancilla,
+macro_rules! create_bit_object {
+    ($name:ident, $extra:ty, $extra_exp:expr, $reg:tt) => {
+        #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Hash)]
+        pub struct $name {
+            pub(crate) info: BitInfo,
+            pub(crate) extra: $extra,
         }
-    }
+
+        impl $name {
+            /// Creates an instance of owned [QubitObject].
+            pub fn new_anonymous(extra: $extra) -> Self {
+                Self {
+                    extra,
+                    info: BitInfo::new_anonymous(),
+                }
+            }
+
+            /// Creates an instance of owned [QubitObject].
+            pub(crate) fn new_owned(
+                register: Arc<OwningRegisterInfo>,
+                index: u32,
+                extra: $extra,
+            ) -> Self {
+                Self {
+                    info: BitInfo::new_owned(register, index),
+                    extra,
+                }
+            }
+
+            /// Returns a reference to the owning register of the [QubitObject] if any exists.
+            pub fn register(&self) -> Option<$reg> {
+                match &self.info {
+                    BitInfo::Owned { register, .. } => Some($reg {
+                        data: RegisterInfo::Owning(register.clone()).into(),
+                        extra: self.extra,
+                    }),
+                    BitInfo::Anonymous { .. } => None,
+                }
+            }
+
+            /// Returns the index of the [QubitObject] within the owning register if any exists.
+            pub fn index(&self) -> Option<u32> {
+                match &self.info {
+                    BitInfo::Owned { index, .. } => Some(*index),
+                    _ => None,
+                }
+            }
+        }
+    };
 }
 
-impl<'py> IntoPyObject<'py> for BitInfo<ShareableQubit> {
+create_bit_object! {ShareableQubit, QubitExtraInfo, QubitExtraInfo::new(false), QuantumRegister}
+
+impl ShareableQubit {
+    /// Check if the Qubit instance is ancillary.
+    pub fn is_ancilla(&self) -> bool {
+        self.extra.is_ancilla()
+    }
+}
+create_bit_object! {ShareableClbit, (), (), ClassicalRegister}
+
+impl<'py> IntoPyObject<'py> for ShareableQubit {
     type Target = PyQubit;
 
     type Output = Bound<'py, PyQubit>;
@@ -129,17 +149,22 @@ impl<'py> IntoPyObject<'py> for BitInfo<ShareableQubit> {
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
         let ancilla = self.is_ancilla();
-        let base = PyQubit(self);
+        let bit = PyBit(self.info.clone());
+        let base = PyQubit(PyBit(self.info));
         match ancilla {
-            true => Ok(Py::new(py, (PyAncillaQubit(base.clone()), base))?
-                .into_bound(py)
-                .into_super()),
-            false => base.into_pyobject(py),
+            true => Ok(Bound::new(
+                py,
+                PyClassInitializer::from(bit)
+                    .add_subclass(base.clone())
+                    .add_subclass(PyAncillaQubit(base.clone())),
+            )?
+            .into_super()),
+            false => Bound::new(py, (base, bit)),
         }
     }
 }
 
-impl<'py> IntoPyObject<'py> for BitInfo<ShareableClbit> {
+impl<'py> IntoPyObject<'py> for ShareableClbit {
     type Target = PyClbit;
 
     type Output = Bound<'py, PyClbit>;
@@ -147,52 +172,121 @@ impl<'py> IntoPyObject<'py> for BitInfo<ShareableClbit> {
     type Error = PyErr;
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        let bit: PyClbit = self.into();
-        bit.into_pyobject(py)
+        let bit: PyBit = PyBit(self.info);
+        Bound::new(py, (PyClbit(bit.clone()), bit))
+    }
+}
+
+#[pyclass(
+    subclass,
+    name = "Bit",
+    module = "qiskit.circuit.bit",
+    eq,
+    frozen,
+    hash
+)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Hash)]
+pub struct PyBit(pub(crate) BitInfo);
+
+#[pymethods]
+impl PyBit {
+    #[new]
+    #[pyo3(signature = (register = None, index = None))]
+    fn new(register: Option<PyRegister>, index: Option<u32>) -> PyResult<Self> {
+        match (register, index) {
+            (Some(register), Some(index)) => {
+                let RegisterInfo::Owning(owned) = register.0.as_ref() else {
+                    return Err(CircuitError::new_err(
+                        "The provided register for this bit was invalid.",
+                    ));
+                };
+                if index as usize >= owned.len() {
+                    return Err(CircuitError::new_err(format!(
+                        "index must be under the size of the register: {index} was provided"
+                    )));
+                }
+                Ok(Self(BitInfo::new_owned(owned.clone(), index)))
+            }
+            (None, None) => Ok(Self(BitInfo::new_anonymous())),
+            _ => Err(CircuitError::new_err(
+                "You should provide both a valid register and an index, not either or.".to_string(),
+            )),
+        }
+    }
+
+    pub fn __repr__(slf: Bound<Self>) -> PyResult<String> {
+        let borrowed = slf.borrow();
+        let reg = slf.getattr("_register")?;
+        match &borrowed.0 {
+            BitInfo::Owned { index, .. } => Ok(format!(
+                "{}({}, {})",
+                slf.get_type().qualname()?,
+                reg.repr()?,
+                index
+            )),
+            BitInfo::Anonymous { .. } => Ok(format!(
+                "<{} object at {:p}>",
+                slf.get_type().fully_qualified_name()?,
+                &slf
+            )),
+        }
+    }
+
+    fn __copy__(slf: Bound<Self>) -> Bound<Self> {
+        slf
+    }
+
+    fn __deepcopy__<'a>(
+        slf: Bound<'a, Self>,
+        _cache: Bound<'a, PyDict>,
+    ) -> PyResult<Bound<'a, Self>> {
+        let borrowed = slf.borrow();
+        let py = slf.py();
+        borrowed.clone().into_pyobject(py)
+    }
+
+    #[getter]
+    fn _register(&self) -> Option<PyRegister> {
+        match &self.0 {
+            BitInfo::Owned { register, .. } => {
+                Some(PyRegister(RegisterInfo::Owning(register.clone()).into()))
+            }
+            BitInfo::Anonymous { .. } => None,
+        }
+    }
+
+    #[getter]
+    fn _index(&self) -> Option<u32> {
+        match &self.0 {
+            BitInfo::Owned { index, .. } => Some(*index),
+            BitInfo::Anonymous { .. } => None,
+        }
     }
 }
 
 macro_rules! create_py_bit {
-    ($name:ident, $natbit:ty, $pyname:literal, $pymodule:literal, $extra:expr, ) => {
+    ($name:ident, $natbit:ty, $pyname:literal, $pymodule:literal, $extra:expr, $pyreg:tt) => {
         /// Implements a quantum bit
         #[pyclass(
-                                                                            subclass,
-                                                                            name = $pyname,
-                                                                            module = $pymodule,
-                                                                            eq,
-                                                                            frozen,
-                                                                            hash
-                                                                        )]
+                                                            subclass,
+                                                            name = $pyname,
+                                                            module = $pymodule,
+                                                            eq,
+                                                            frozen,
+                                                            hash,
+                                                            extends=PyBit,
+                                                        )]
         #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-        pub struct $name(pub(crate) BitInfo<$natbit>);
+        pub struct $name(pub(crate) PyBit);
 
         #[pymethods]
         impl $name {
             /// Creates a new bit.
             #[new]
-            pub fn new() -> Self {
-                Self(BitInfo::new_anonymous($extra))
-            }
-
-            pub fn __repr__(slf: Bound<Self>) -> PyResult<String> {
-                let borrowed = slf.borrow();
-                match &borrowed.0 {
-                    BitInfo::Owned { register, index } => Ok(format!(
-                        "{}({}, {})",
-                        slf.get_type().qualname()?,
-                        register,
-                        index
-                    )),
-                    BitInfo::Anonymous { .. } => Ok(format!(
-                        "<{} object at {:p}>",
-                        slf.get_type().fully_qualified_name()?,
-                        &slf
-                    )),
-                }
-            }
-
-            fn __copy__(slf: Bound<Self>) -> Bound<Self> {
-                slf
+            #[pyo3(signature = (register = None, index = None))]
+            fn new(register: Option<$pyreg>, index: Option<u32>) -> PyResult<(Self, PyBit)> {
+                let inner = PyBit::new(register.map(|reg| reg.0), index)?;
+                Ok((Self(inner.clone()), inner))
             }
 
             fn __deepcopy__<'a>(
@@ -201,41 +295,15 @@ macro_rules! create_py_bit {
             ) -> PyResult<Bound<'a, Self>> {
                 let borrowed = slf.borrow();
                 let py = slf.py();
-                borrowed.clone().into_pyobject(py)
+                Bound::new(py, (borrowed.clone(), borrowed.0.clone()))
             }
 
             #[getter]
-            fn _register(slf: PyRef<Self>) -> PyResult<Option<PyObject>> {
-                match &slf.0 {
-                    BitInfo::Owned { register, .. } => Ok(Some(
-                        RegisterInfo::Owning(register.clone()).into_py_any(slf.py())?,
-                    )),
-                    BitInfo::Anonymous { .. } => Ok(None),
-                }
-            }
-
-            #[getter]
-            fn _index(slf: PyRef<Self>) -> Option<u32> {
-                match &slf.0 {
-                    BitInfo::Owned { index, .. } => Some(*index),
-                    BitInfo::Anonymous { .. } => None,
-                }
-            }
-        }
-
-        impl $name {
-            /// Creates a qubit that is owned by a register
-            pub(crate) fn new_owned(
-                register: Arc<OwningRegisterInfo<$natbit>>,
-                index: u32,
-            ) -> Self {
-                Self(BitInfo::Owned { register, index })
-            }
-        }
-
-        impl From<BitInfo<$natbit>> for $name {
-            fn from(value: BitInfo<$natbit>) -> Self {
-                $name(value)
+            fn _register(slf: PyRef<Self>) -> PyResult<Option<Bound<$pyreg>>> {
+                slf.as_super()
+                    ._register()
+                    .map(|reg| Bound::new(slf.py(), ($pyreg(reg.clone()), reg)))
+                    .transpose()
             }
         }
     };
@@ -247,6 +315,7 @@ create_py_bit!(
     "Qubit",
     "qiskit.circuit.quantumcircuit",
     QubitExtraInfo { is_ancilla: false },
+    PyQuantumRegister
 );
 
 create_py_bit!(
@@ -255,6 +324,7 @@ create_py_bit!(
     "Clbit",
     "qiskit.circuit.classicalcircuit",
     (),
+    PyClassicalRegister
 );
 
 /// A qubit used as ancillary qubit.
@@ -273,8 +343,14 @@ pub struct PyAncillaQubit(pub(crate) PyQubit);
 impl PyAncillaQubit {
     /// Creates a new anonymous `AncillaQubit`.
     #[new]
-    pub fn new() -> (Self, PyQubit) {
-        let base = PyQubit(BitInfo::new_anonymous(QubitExtraInfo { is_ancilla: true }));
-        (Self(base.clone()), base)
+    #[pyo3(signature = (register = None, index = None))]
+    fn new(
+        register: Option<PyAncillaRegister>,
+        index: Option<u32>,
+    ) -> PyResult<PyClassInitializer<Self>> {
+        let (qubit, base) = PyQubit::new(register.map(|reg| reg.0), index)?;
+        Ok(PyClassInitializer::from(base)
+            .add_subclass(qubit.clone())
+            .add_subclass(Self(qubit)))
     }
 }
