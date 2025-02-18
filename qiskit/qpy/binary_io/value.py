@@ -261,12 +261,19 @@ class _ExprWriter(expr.ExprVisitor[None]):
         self.standalone_var_indices = standalone_var_indices
         self.version = version
 
+    def write_expr_type(self, type_: types.Type):
+        """Write the expression's type using the appropriate QPY version."""
+        if self.version < 14:
+            _write_expr_type(self.file_obj, type_, self.version)
+        else:
+            _write_expr_type_v14(self.file_obj, type_)
+
     def visit_generic(self, node, /):
         raise exceptions.QpyError(f"unhandled Expr object '{node}'")
 
     def visit_var(self, node, /):
         self.file_obj.write(type_keys.Expression.VAR)
-        _write_expr_type(self.file_obj, node.type)
+        self.write_expr_type(node.type)
         if node.standalone:
             self.file_obj.write(type_keys.ExprVar.UUID)
             self.file_obj.write(
@@ -296,7 +303,7 @@ class _ExprWriter(expr.ExprVisitor[None]):
 
     def visit_value(self, node, /):
         self.file_obj.write(type_keys.Expression.VALUE)
-        _write_expr_type(self.file_obj, node.type)
+        self.write_expr_type(node.type)
         if node.value is True or node.value is False:
             self.file_obj.write(type_keys.ExprValue.BOOL)
             self.file_obj.write(
@@ -317,12 +324,17 @@ class _ExprWriter(expr.ExprVisitor[None]):
                 struct.pack(formats.EXPR_VALUE_INT_PACK, *formats.EXPR_VALUE_INT(num_bytes))
             )
             self.file_obj.write(buffer)
+        elif isinstance(node.value, float):
+            self.file_obj.write(type_keys.ExprValue.FLOAT)
+            self.file_obj.write(
+                struct.pack(formats.EXPR_VALUE_FLOAT_PACK, *formats.EXPR_VALUE_FLOAT(node.value))
+            )
         else:
             raise exceptions.QpyError(f"unhandled Value object '{node.value}'")
 
     def visit_cast(self, node, /):
         self.file_obj.write(type_keys.Expression.CAST)
-        _write_expr_type(self.file_obj, node.type)
+        self.write_expr_type(node.type)
         self.file_obj.write(
             struct.pack(formats.EXPRESSION_CAST_PACK, *formats.EXPRESSION_CAST(node.implicit))
         )
@@ -330,7 +342,7 @@ class _ExprWriter(expr.ExprVisitor[None]):
 
     def visit_unary(self, node, /):
         self.file_obj.write(type_keys.Expression.UNARY)
-        _write_expr_type(self.file_obj, node.type)
+        self.write_expr_type(node.type)
         self.file_obj.write(
             struct.pack(formats.EXPRESSION_UNARY_PACK, *formats.EXPRESSION_UNARY(node.op.value))
         )
@@ -338,7 +350,7 @@ class _ExprWriter(expr.ExprVisitor[None]):
 
     def visit_binary(self, node, /):
         self.file_obj.write(type_keys.Expression.BINARY)
-        _write_expr_type(self.file_obj, node.type)
+        self.write_expr_type(node.type)
         self.file_obj.write(
             struct.pack(formats.EXPRESSION_BINARY_PACK, *formats.EXPRESSION_BINARY(node.op.value))
         )
@@ -351,7 +363,7 @@ class _ExprWriter(expr.ExprVisitor[None]):
                 "the 'Index' expression", required=12, target=self.version
             )
         self.file_obj.write(type_keys.Expression.INDEX)
-        _write_expr_type(self.file_obj, node.type)
+        self.write_expr_type(node.type)
         node.target.accept(self)
         node.index.accept(self)
 
@@ -366,14 +378,45 @@ def _write_expr(
     node.accept(_ExprWriter(file_obj, clbit_indices, standalone_var_indices, version))
 
 
-def _write_expr_type(file_obj, type_: types.Type):
-    # Currently, QPY doesn't support const types
-    if type_.kind is types.Bool and not type_.const:
+def _write_expr_type(file_obj, type_: types.Type, version):
+    if type_.const:
+        raise exceptions.UnsupportedFeatureForVersion(
+            "const-typed expressions", required=14, target=version
+        )
+    if type_.kind is types.Float:
+        raise exceptions.UnsupportedFeatureForVersion(
+            "float-typed expressions", required=14, target=version
+        )
+    if type_.kind is types.Bool:
         file_obj.write(type_keys.ExprType.BOOL)
-    elif type_.kind is types.Uint and not type_.const:
+    elif type_.kind is types.Uint:
         file_obj.write(type_keys.ExprType.UINT)
         file_obj.write(
             struct.pack(formats.EXPR_TYPE_UINT_PACK, *formats.EXPR_TYPE_UINT(type_.width))
+        )
+    else:
+        raise exceptions.QpyError(f"unhandled Type object '{type_};")
+
+
+def _write_expr_type_v14(file_obj, type_: types.Type):
+    if type_.kind is types.Bool:
+        file_obj.write(type_keys.ExprType.BOOL)
+        file_obj.write(
+            struct.pack(formats.EXPR_TYPE_BOOL_PACK_V14, *formats.EXPR_TYPE_BOOL_V14(type_.const))
+        )
+    elif type_.kind is types.Uint:
+        file_obj.write(type_keys.ExprType.UINT)
+        file_obj.write(
+            # TODO: make sure you're calling this correctly
+            struct.pack(
+                formats.EXPR_TYPE_UINT_PACK_V14,
+                *formats.EXPR_TYPE_UINT_V14(type_.width, type_.const),
+            )
+        )
+    elif type_.kind is types.Float:
+        file_obj.write(type_keys.ExprType.FLOAT)
+        file_obj.write(
+            struct.pack(formats.EXPR_TYPE_FLOAT_PACK, *formats.EXPR_TYPE_FLOAT(type_.const))
         )
     else:
         raise exceptions.QpyError(f"unhandled Type object '{type_};")
@@ -636,10 +679,14 @@ def _read_expr(
     clbits: collections.abc.Sequence[Clbit],
     cregs: collections.abc.Mapping[str, ClassicalRegister],
     standalone_vars: collections.abc.Sequence[expr.Var],
+    version: int,
 ) -> expr.Expr:
     # pylint: disable=too-many-return-statements
     type_key = file_obj.read(formats.EXPRESSION_DISCRIMINATOR_SIZE)
-    type_ = _read_expr_type(file_obj)
+    if version < 14:
+        type_ = _read_expr_type(file_obj)
+    else:
+        type_ = _read_expr_type_v14(file_obj)
     if type_key == type_keys.Expression.VAR:
         var_type_key = file_obj.read(formats.EXPR_VAR_DISCRIMINATOR_SIZE)
         if var_type_key == type_keys.ExprVar.UUID:
@@ -681,13 +728,22 @@ def _read_expr(
             return expr.Value(
                 int.from_bytes(file_obj.read(payload.num_bytes), "big", signed=True), type_
             )
+        if value_type_key == type_keys.ExprValue.FLOAT:
+            payload = formats.EXPR_VALUE_FLOAT._make(
+                struct.unpack(
+                    formats.EXPR_VALUE_FLOAT_PACK, file_obj.read(formats.EXPR_VALUE_FLOAT_SIZE)
+                )
+            )
+            return expr.Value(payload.value, type_)
         raise exceptions.QpyError("Invalid classical-expression Value key '{value_type_key}'")
     if type_key == type_keys.Expression.CAST:
         payload = formats.EXPRESSION_CAST._make(
             struct.unpack(formats.EXPRESSION_CAST_PACK, file_obj.read(formats.EXPRESSION_CAST_SIZE))
         )
         return expr.Cast(
-            _read_expr(file_obj, clbits, cregs, standalone_vars), type_, implicit=payload.implicit
+            _read_expr(file_obj, clbits, cregs, standalone_vars, version),
+            type_,
+            implicit=payload.implicit,
         )
     if type_key == type_keys.Expression.UNARY:
         payload = formats.EXPRESSION_UNARY._make(
@@ -697,7 +753,7 @@ def _read_expr(
         )
         return expr.Unary(
             expr.Unary.Op(payload.opcode),
-            _read_expr(file_obj, clbits, cregs, standalone_vars),
+            _read_expr(file_obj, clbits, cregs, standalone_vars, version),
             type_,
         )
     if type_key == type_keys.Expression.BINARY:
@@ -708,14 +764,14 @@ def _read_expr(
         )
         return expr.Binary(
             expr.Binary.Op(payload.opcode),
-            _read_expr(file_obj, clbits, cregs, standalone_vars),
-            _read_expr(file_obj, clbits, cregs, standalone_vars),
+            _read_expr(file_obj, clbits, cregs, standalone_vars, version),
+            _read_expr(file_obj, clbits, cregs, standalone_vars, version),
             type_,
         )
     if type_key == type_keys.Expression.INDEX:
         return expr.Index(
-            _read_expr(file_obj, clbits, cregs, standalone_vars),
-            _read_expr(file_obj, clbits, cregs, standalone_vars),
+            _read_expr(file_obj, clbits, cregs, standalone_vars, version),
+            _read_expr(file_obj, clbits, cregs, standalone_vars, version),
             type_,
         )
     raise exceptions.QpyError(f"Invalid classical-expression Expr key '{type_key}'")
@@ -733,12 +789,37 @@ def _read_expr_type(file_obj) -> types.Type:
     raise exceptions.QpyError(f"Invalid classical-expression Type key '{type_key}'")
 
 
-def read_standalone_vars(file_obj, num_vars):
+def _read_expr_type_v14(file_obj) -> types.Type:
+    type_key = file_obj.read(formats.EXPR_TYPE_DISCRIMINATOR_SIZE)
+    if type_key == type_keys.ExprType.BOOL:
+        elem = formats.EXPR_TYPE_BOOL_V14._make(
+            struct.unpack(
+                formats.EXPR_TYPE_BOOL_PACK_V14, file_obj.read(formats.EXPR_TYPE_BOOL_SIZE_V14)
+            )
+        )
+        return types.Bool(const=elem.const)
+    if type_key == type_keys.ExprType.UINT:
+        elem = formats.EXPR_TYPE_UINT_V14._make(
+            struct.unpack(
+                formats.EXPR_TYPE_UINT_PACK_V14, file_obj.read(formats.EXPR_TYPE_UINT_SIZE_V14)
+            )
+        )
+        return types.Uint(elem.width, const=elem.const)
+    if type_key == type_keys.ExprType.FLOAT:
+        elem = formats.EXPR_TYPE_FLOAT._make(
+            struct.unpack(formats.EXPR_TYPE_FLOAT_PACK, file_obj.read(formats.EXPR_TYPE_FLOAT_SIZE))
+        )
+        return types.Float(const=elem.const)
+    raise exceptions.QpyError(f"Invalid classical-expression Type key '{type_key}'")
+
+
+def read_standalone_vars(file_obj, num_vars, version):
     """Read the ``num_vars`` standalone variable declarations from the file.
 
     Args:
         file_obj (File): a file-like object to read from.
         num_vars (int): the number of variables to read.
+        version (int): the target QPY version.
 
     Returns:
         tuple[dict, list]: the first item is a mapping of the ``ExprVarDeclaration`` type keys to
@@ -758,7 +839,10 @@ def read_standalone_vars(file_obj, num_vars):
                 file_obj.read(formats.EXPR_VAR_DECLARATION_SIZE),
             )
         )
-        type_ = _read_expr_type(file_obj)
+        if version < 14:
+            type_ = _read_expr_type(file_obj)
+        else:
+            type_ = _read_expr_type_v14(file_obj)
         name = file_obj.read(data.name_size).decode(common.ENCODE)
         var = expr.Var(uuid.UUID(bytes=data.uuid_bytes), type_, name=name)
         read_vars[data.usage].append(var)
@@ -766,7 +850,7 @@ def read_standalone_vars(file_obj, num_vars):
     return read_vars, var_order
 
 
-def _write_standalone_var(file_obj, var, type_key):
+def _write_standalone_var(file_obj, var, type_key, version):
     name = var.name.encode(common.ENCODE)
     file_obj.write(
         struct.pack(
@@ -774,16 +858,20 @@ def _write_standalone_var(file_obj, var, type_key):
             *formats.EXPR_VAR_DECLARATION(var.var.bytes, type_key, len(name)),
         )
     )
-    _write_expr_type(file_obj, var.type)
+    if version < 14:
+        _write_expr_type(file_obj, var.type, version)
+    else:
+        _write_expr_type_v14(file_obj, var.type)
     file_obj.write(name)
 
 
-def write_standalone_vars(file_obj, circuit):
+def write_standalone_vars(file_obj, circuit, version):
     """Write the standalone variables out from a circuit.
 
     Args:
         file_obj (File): the file-like object to write to.
         circuit (QuantumCircuit): the circuit to take the variables from.
+        version (int): the target QPY version.
 
     Returns:
         dict[expr.Var, int]: a mapping of the variables written to the index that they were written
@@ -792,15 +880,15 @@ def write_standalone_vars(file_obj, circuit):
     index = 0
     out = {}
     for var in circuit.iter_input_vars():
-        _write_standalone_var(file_obj, var, type_keys.ExprVarDeclaration.INPUT)
+        _write_standalone_var(file_obj, var, type_keys.ExprVarDeclaration.INPUT, version)
         out[var] = index
         index += 1
     for var in circuit.iter_captured_vars():
-        _write_standalone_var(file_obj, var, type_keys.ExprVarDeclaration.CAPTURE)
+        _write_standalone_var(file_obj, var, type_keys.ExprVarDeclaration.CAPTURE, version)
         out[var] = index
         index += 1
     for var in circuit.iter_declared_vars():
-        _write_standalone_var(file_obj, var, type_keys.ExprVarDeclaration.LOCAL)
+        _write_standalone_var(file_obj, var, type_keys.ExprVarDeclaration.LOCAL, version)
         out[var] = index
         index += 1
     return out
@@ -979,6 +1067,7 @@ def loads_value(
             clbits=clbits,
             cregs=cregs or {},
             standalone_vars=standalone_vars,
+            version=version,
         )
 
     raise exceptions.QpyError(f"Serialization for {type_key} is not implemented in value I/O.")

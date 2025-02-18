@@ -84,6 +84,11 @@ class Delay(Instruction):
         """
         return self.__array__(dtype=complex)
 
+    def __eq__(self, other):
+        return (
+            isinstance(other, Delay) and self.unit == other.unit and self._compare_parameters(other)
+        )
+
     def __repr__(self):
         """Return the official string representing the delay."""
         return f"{self.__class__.__name__}(duration={self.params[0]}[unit={self.unit}])"

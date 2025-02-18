@@ -235,13 +235,10 @@ class TestStoreCircuit(QiskitTestCase):
     def test_rejects_non_lvalue(self):
         a = expr.Var.new("a", types.Bool())
         b = expr.Var.new("b", types.Bool())
-        c = expr.Var.new("c", types.Bool(const=True))
-        qc = QuantumCircuit(inputs=[a, b, c])
+        qc = QuantumCircuit(inputs=[a, b])
         not_an_lvalue = expr.logic_and(a, b)
         with self.assertRaisesRegex(CircuitError, "not an l-value"):
             qc.store(not_an_lvalue, expr.lift(False))
-        with self.assertRaisesRegex(CircuitError, "not an l-value"):
-            qc.store(c, expr.lift(False))
 
     def test_rejects_explicit_cast(self):
         lvalue = expr.Var.new("a", types.Uint(16))
