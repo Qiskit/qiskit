@@ -1325,6 +1325,34 @@ c[1] = measure q[1];
         BasicPrinter(stream, indent="  ", chain_else_if=True).visit(builder.build_program())
         self.assertEqual(stream.getvalue(), expected_qasm)
 
+    def test_box(self):
+        """Test that 'box' statements can be exported'"""
+        qc = QuantumCircuit(2)
+        with qc.box():
+            qc.x(0)
+        with qc.box(duration=50.0, unit="ms"):
+            qc.h(1)
+        with qc.box(duration=200, unit="dt"):
+            with qc.box(duration=10, unit="dt"):
+                pass
+
+        expected = """\
+OPENQASM 3.0;
+include "stdgates.inc";
+qubit[2] q;
+box {
+  x q[0];
+}
+box[50.0ms] {
+  h q[1];
+}
+box[200dt] {
+  box[10dt] {
+  }
+}
+"""
+        self.assertEqual(dumps(qc), expected)
+
     def test_custom_gate_used_in_loop_scope(self):
         """Test that a custom gate only used within a loop scope still gets a definition at the top
         level."""

@@ -1313,6 +1313,7 @@ from .commutation_checker import CommutationChecker
 
 from .controlflow import (
     ControlFlowOp,
+    BoxOp,
     WhileLoopOp,
     ForLoopOp,
     IfElseOp,
