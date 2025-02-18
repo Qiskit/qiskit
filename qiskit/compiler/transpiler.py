@@ -90,7 +90,7 @@ def transpile(  # pylint: disable=too-many-return-statements
 
     The prioritization of transpilation target constraints works as follows: if a ``target``
     input is provided, it will take priority over any ``backend`` input or loose constraints
-    (``basis_gates``, ``inst_map``, ``coupling_map``, ``instruction_durations``,
+    (``basis_gates``, ``coupling_map``, ``instruction_durations``,
     ``dt`` or ``timing_constraints``). If a ``backend`` is provided together with any loose constraint
     from the list above, the loose constraint will take priority over the corresponding backend
     constraint. This behavior is summarized in the table below. The first column
@@ -104,10 +104,9 @@ def transpile(  # pylint: disable=too-many-return-statements
     **basis_gates**              target    basis_gates
     **coupling_map**             target    coupling_map
     **instruction_durations**    target    instruction_durations
-    **inst_map**                 target    inst_map
     **dt**                       target    dt
     **timing_constraints**       target    timing_constraints
-    ============================ ========= =======================
+    ============================ ========= ========================
 
     Args:
         circuits: Circuit(s) to transpile
@@ -334,14 +333,8 @@ def transpile(  # pylint: disable=too-many-return-statements
     # Edge cases require using the old model (loose constraints) instead of building a target,
     # but we don't populate the passmanager config with loose constraints unless it's one of
     # the known edge cases to control the execution path.
-    # Filter instruction_durations, timing_constraints and inst_map deprecation
+    # Filter instruction_durations, timing_constraints deprecation
     with warnings.catch_warnings():
-        warnings.filterwarnings(
-            "ignore",
-            category=DeprecationWarning,
-            message=".*``inst_map`` is deprecated as of Qiskit 1.3.*",
-            module="qiskit",
-        )
         warnings.filterwarnings(
             "ignore",
             category=DeprecationWarning,
