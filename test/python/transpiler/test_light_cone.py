@@ -279,12 +279,12 @@ class TestLightConePass(QiskitTestCase):
         self.assertEqual(expected, new_circuit)
 
     @ddt.data(
-        SparsePauliOp("X" + "I" * (116) + "YII"),
-        SparseObservable("-" + "I" * (116) + "lII"),
+        SparsePauliOp.from_sparse_list([("XY", [119, 2], 1)], 120),
+        SparseObservable.from_sparse_list([("-l", [119, 2], 1)], 120),
     )
     def test_big_circuit(self, sparse_object):
         """Test for large circuit and observable."""
-        num_qubits = 120
+        num_qubits = sparse_object.num_qubits
         bit_terms, indices, _ = sparse_object.to_sparse_list()[0]
         light_cone = LightCone(bit_terms=bit_terms, indices=indices)
         pm = PassManager([light_cone])
@@ -317,6 +317,27 @@ class TestLightConePass(QiskitTestCase):
         expected.rz(theta, 2)
         expected.cx(num_qubits - 2, num_qubits - 1)
         expected.rz(theta, num_qubits - 1)
+
+        self.assertEqual(expected, new_circuit)
+
+    @ddt.data(
+        SparsePauliOp.from_sparse_list([("IIIIIXZIII", list(range(10)), 1)], 10),
+        SparsePauliOp.from_sparse_list([("YYYYXZYYYY", list(range(10)), 1)], 10),
+    )
+    def test_large_observable(self, sparse_object):
+        """Test for a large initial observable."""
+
+        bit_terms, indices, _ = sparse_object.to_sparse_list()[0]
+        light_cone = LightCone(bit_terms=bit_terms, indices=indices)
+        pm = PassManager([light_cone])
+
+        q0 = QuantumRegister(10, "q0")
+        qc = QuantumCircuit(q0)
+        qc.cx(5, 6)
+
+        new_circuit = pm.run(qc)
+
+        expected = QuantumCircuit(q0)
 
         self.assertEqual(expected, new_circuit)
 

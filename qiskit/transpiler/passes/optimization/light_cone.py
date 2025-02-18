@@ -50,6 +50,8 @@ class LightCone(TransformationPass):
                 raise ValueError(
                     f"`bit_terms` should contain only characters in {valid_characters}."
                 )
+            if len(bit_terms) != len(indices):
+                raise ValueError(f"`bit_terms` must be the same length as `indices`.")
             self.bit_terms = bit_terms.translate(translation_table)
         self.indices = indices
 
@@ -110,7 +112,14 @@ class LightCone(TransformationPass):
                 # Check commutation with all previous operations
                 commutes_bool = True
                 for op in lightcone_operations:
-                    commute_bool = commutator.commute(op[0], op[1], [], node.op, node.qargs, [])
+                    max_num_qubits = max(len(op[1]), len(node.qargs))
+                    if max_num_qubits > 10:
+                        raise Warning(
+                            f"LightCone pass is checking commutation of operators of size {max_num_qubits}. This operation can be slow."
+                        )
+                    commute_bool = commutator.commute(
+                        op[0], op[1], [], node.op, node.qargs, [], max_num_qubits=max_num_qubits
+                    )
                     if not commute_bool:
                         # If the current node does not commute, update the light-cone
                         lightcone_qubits.update(node.qargs)
