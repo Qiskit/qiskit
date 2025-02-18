@@ -1074,7 +1074,7 @@ class MatplotlibDrawer:
                 self._get_colors(node, node_data)
 
                 if verbose:
-                    print(op)
+                    print(op)  # pylint: disable=bad-builtin
 
                 # add conditional
                 if getattr(op, "condition", None) or isinstance(op, SwitchCaseOp):

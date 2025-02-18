@@ -118,7 +118,7 @@ pub fn mcmt_v_chain(
         .filter(|index| control_state & (1 << index) == 0)
         .map(|index| {
             Ok((
-                PackedOperation::from_standard(StandardGate::XGate),
+                PackedOperation::from_standard_gate(StandardGate::XGate),
                 smallvec![] as SmallVec<[Param; 3]>,
                 vec![Qubit::new(index)],
                 vec![] as Vec<Clbit>,
