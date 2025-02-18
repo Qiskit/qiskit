@@ -493,8 +493,11 @@ impl CommutationChecker {
             Ok(matrix) => matrix,
             Err(e) => return Err(PyRuntimeError::new_err(e)),
         };
-        let fid = unitary_compose::gate_fidelity(&op12.view(), &op21.view(), None);
-        Ok((1.0 - fid).abs() <= tol)
+        let (fid, phase) = unitary_compose::gate_fidelity(&op12.view(), &op21.view(), None);
+
+        // we consider the gates as commuting if the process fidelity of
+        // AB (BA)^\dagger is approximately the identity and there is no global phase difference
+        Ok(phase.abs() <= tol && (1.0 - fid).abs() <= tol)
     }
 
     fn clear_cache(&mut self) {

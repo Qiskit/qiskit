@@ -157,7 +157,7 @@ pub fn gate_fidelity(
     left: &ArrayView2<Complex64>,
     right: &ArrayView2<Complex64>,
     qargs: Option<&[Qubit]>,
-) -> f64 {
+) -> (f64, f64) {
     let dim = left.nrows(); // == left.ncols() == right.nrows() == right.ncols()
                             // let trace = left.t().mapv(|el| el.conj()).dot(right).diag().sum();
 
@@ -170,9 +170,12 @@ pub fn gate_fidelity(
     let trace = product.diag().sum();
 
     let dim = dim as f64;
-    let process_fidelity = (trace / dim).abs().powi(2);
+    let normalized_trace = trace / dim;
+    let phase = normalized_trace.arg(); // compute phase difference
+
+    let process_fidelity = normalized_trace.abs().powi(2);
     let gate_fidelity = (dim * process_fidelity + 1.) / (dim + 1.);
-    gate_fidelity
+    (gate_fidelity, phase)
 }
 
 fn mm1q(left: &ArrayView2<Complex64>, right: &ArrayView2<Complex64>) -> Array2<Complex64> {
