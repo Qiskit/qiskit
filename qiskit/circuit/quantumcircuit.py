@@ -6959,7 +6959,7 @@ class QuantumCircuit:
         if unit == "s":
             return dur
         if unit == "dt":
-            from qiskit.circuit.duration import duration_in_dt
+            from qiskit.circuit.duration import duration_in_dt  # pylint: disable=cyclic-import
 
             return duration_in_dt(dur, target.dt)
 
