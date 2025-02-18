@@ -19,39 +19,42 @@ import itertools
 
 from qiskit.circuit.exceptions import CircuitError
 
-from .register import Register
-from .bit import Bit
+# from .register import Register
+# from .bit import Bit
+from qiskit._accelerate import circuit
+
+Clbit = circuit.Clbit
+ClassicalRegister = circuit.ClassicalRegister
+
+# class Clbit(Bit):
+#     """Implement a classical bit."""
+
+#     __slots__ = ()
+
+#     def __init__(self, register=None, index=None):
+#         """Creates a classical bit.
+
+#         Args:
+#             register (ClassicalRegister): Optional. A classical register containing the bit.
+#             index (int): Optional. The index of the bit in its containing register.
+
+#         Raises:
+#             CircuitError: if the provided register is not a valid :class:`ClassicalRegister`
+#         """
+
+#         if register is None or isinstance(register, ClassicalRegister):
+#             super().__init__(register, index)
+#         else:
+#             raise CircuitError(
+#                 f"Clbit needs a ClassicalRegister and {type(register).__name__} was provided"
+#             )
 
 
-class Clbit(Bit):
-    """Implement a classical bit."""
+# class ClassicalRegister(Register):
+#     """Implement a classical register."""
 
-    __slots__ = ()
-
-    def __init__(self, register=None, index=None):
-        """Creates a classical bit.
-
-        Args:
-            register (ClassicalRegister): Optional. A classical register containing the bit.
-            index (int): Optional. The index of the bit in its containing register.
-
-        Raises:
-            CircuitError: if the provided register is not a valid :class:`ClassicalRegister`
-        """
-
-        if register is None or isinstance(register, ClassicalRegister):
-            super().__init__(register, index)
-        else:
-            raise CircuitError(
-                f"Clbit needs a ClassicalRegister and {type(register).__name__} was provided"
-            )
-
-
-class ClassicalRegister(Register):
-    """Implement a classical register."""
-
-    # Counter for the number of instances in this class.
-    instances_counter = itertools.count()
-    # Prefix to use for auto naming.
-    prefix = "c"
-    bit_type = Clbit
+#     # Counter for the number of instances in this class.
+#     instances_counter = itertools.count()
+#     # Prefix to use for auto naming.
+#     prefix = "c"
+#     bit_type = Clbit

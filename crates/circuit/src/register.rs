@@ -102,6 +102,14 @@ impl RegisterInfo {
             RegisterInfo::Alias { bits, .. } => bits.contains(bit),
         }
     }
+
+    /// Owning register if any
+    pub fn register(&self) -> Option<&Arc<OwningRegisterInfo>> {
+        match self {
+            RegisterInfo::Owning(reg) => Some(reg),
+            RegisterInfo::Alias { .. } => None,
+        }
+    }
 }
 
 /// Contains the informaion for a register that owns the bits it contains.
@@ -356,7 +364,7 @@ impl PyRegister {
             SliceOrInt::Slice(py_sequence_index) => {
                 let sequence = py_sequence_index.with_len(slf.size().try_into().unwrap())?;
                 match sequence {
-                    crate::slice::SequenceIndex::Int(idx) => {
+                    crate::slice::SequenceIndex::Int(_) => {
                         slf.getitem_inner(key)?.next().map(PyBit).into_py_any(py)
                     }
                     _ => Ok(PyList::new(py, slf.getitem_inner(key)?.map(PyBit))?
@@ -380,7 +388,7 @@ impl PyRegister {
             )))
         };
         let slf_borrowed = slf.get();
-        let bit_borrowed = bit.get();
+        let bit_borrowed = bit.borrow();
         let bit_inner = &bit_borrowed.0;
         match bit_inner {
             BitInfo::Owned { index, .. } => {
@@ -418,6 +426,11 @@ impl PyRegister {
 
     fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Bound<'_, pyo3::types::PyIterator>> {
         return PyList::new(slf.py(), slf.iter().map(PyBit))?.try_iter();
+    }
+
+    #[classattr]
+    fn prefix<'py>() -> &'py str {
+        "reg"
     }
 }
 
@@ -550,14 +563,14 @@ macro_rules! create_py_register {
         static $counter: AtomicU32 = AtomicU32::new(0);
 
         #[pyclass(
-                                    name = $pyname,
-                                    module = $pymodule,
-                                    frozen,
-                                    eq,
-                                    hash,
-                                    subclass,
-                                    extends = PyRegister,
-                                )]
+                                                                            name = $pyname,
+                                                                            module = $pymodule,
+                                                                            frozen,
+                                                                            eq,
+                                                                            hash,
+                                                                            subclass,
+                                                                            extends = PyRegister,
+                                                                        )]
         #[derive(Debug, Clone, PartialEq, Eq, Hash)]
         pub struct $name(pub(crate) PyRegister);
 
@@ -669,6 +682,11 @@ macro_rules! create_py_register {
 
             fn __len__(slf: PyRef<'_, Self>) -> usize {
                 slf.as_super().size()
+            }
+
+            #[classattr]
+            fn prefix<'py>() -> &'py str {
+                $prefix
             }
         }
     };
@@ -818,5 +836,10 @@ impl PyAncillaRegister {
             None
         };
         Ok((size, name, list))
+    }
+
+    #[classattr]
+    fn prefix<'py>() -> &'py str {
+        "a"
     }
 }

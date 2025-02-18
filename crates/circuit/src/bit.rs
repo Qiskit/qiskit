@@ -12,7 +12,7 @@
 
 use std::{
     fmt::Debug,
-    hash::Hash,
+    hash::{DefaultHasher, Hash, Hasher},
     sync::{atomic::AtomicU64, Arc},
 };
 
@@ -23,7 +23,7 @@ use crate::{
         PyQuantumRegister, PyRegister, QuantumRegister, RegisterInfo,
     },
 };
-use pyo3::{prelude::*, types::PyDict};
+use pyo3::{exceptions::PyRuntimeError, prelude::*, types::PyDict, IntoPyObjectExt};
 
 /// Counter for all existing anonymous Qubit instances.
 static BIT_COUNTER: AtomicU64 = AtomicU64::new(0);
@@ -177,14 +177,7 @@ impl<'py> IntoPyObject<'py> for ShareableClbit {
     }
 }
 
-#[pyclass(
-    subclass,
-    name = "Bit",
-    module = "qiskit.circuit.bit",
-    eq,
-    frozen,
-    hash
-)]
+#[pyclass(subclass, name = "Bit", module = "qiskit.circuit.bit", eq)]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Hash)]
 pub struct PyBit(pub(crate) BitInfo);
 
@@ -262,20 +255,55 @@ impl PyBit {
             BitInfo::Anonymous { .. } => None,
         }
     }
+
+    fn __hash__(slf: Bound<'_, Self>) -> PyResult<u64> {
+        let mut hasher = DefaultHasher::new();
+        let borrowed = slf.borrow();
+        (slf.get_type().name()?.to_string(), &borrowed.0).hash(&mut hasher);
+        Ok(hasher.finish())
+    }
+
+    fn __getstate__(&self, py: Python) -> PyResult<PyObject> {
+        match &self.0 {
+            BitInfo::Owned { register, index } => (
+                PyRegister(RegisterInfo::Owning(register.clone()).into()),
+                *index,
+            )
+                .into_py_any(py),
+            BitInfo::Anonymous { unique_id } => unique_id.into_py_any(py),
+        }
+    }
+
+    fn __setstate__(&mut self, state: &Bound<PyAny>) -> PyResult<()> {
+        if let Ok((register, index)) = state.extract::<(PyRegister, u32)>() {
+            self.0 = BitInfo::Owned {
+                register: register.0.register().cloned().unwrap(),
+                index,
+            }
+        } else if let Ok(unique) = state.extract::<u64>() {
+            self.0 = BitInfo::Anonymous { unique_id: unique }
+        } else {
+            return Err(PyRuntimeError::new_err(format!(
+                "Error during serialization of 'Bit', provided state: {}",
+                state.repr()?
+            )));
+        }
+        Ok(())
+    }
 }
 
 macro_rules! create_py_bit {
     ($name:ident, $natbit:ty, $pyname:literal, $pymodule:literal, $extra:expr, $pyreg:tt) => {
         /// Implements a quantum bit
         #[pyclass(
-                                                            subclass,
-                                                            name = $pyname,
-                                                            module = $pymodule,
-                                                            eq,
-                                                            frozen,
-                                                            hash,
-                                                            extends=PyBit,
-                                                        )]
+                                                                            subclass,
+                                                                            name = $pyname,
+                                                                            module = $pymodule,
+                                                                            eq,
+                                                                            frozen,
+                                                                            hash,
+                                                                            extends=PyBit,
+                                                                        )]
         #[derive(Debug, Clone, PartialEq, Eq, Hash)]
         pub struct $name(pub(crate) PyBit);
 

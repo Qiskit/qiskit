@@ -39,9 +39,9 @@ use itertools::Itertools;
 use pyo3::exceptions::{
     PyDeprecationWarning, PyIndexError, PyRuntimeError, PyTypeError, PyValueError,
 };
-use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::IntoPyObjectExt;
+use pyo3::{intern, PyTypeInfo};
 
 use pyo3::types::{
     IntoPyDict, PyDict, PyInt, PyIterator, PyList, PySequence, PySet, PyString, PyTuple, PyType,
@@ -2488,11 +2488,13 @@ def _format(operand):
             return Ok(false);
         }
         for (regname, self_bits) in self_qregs {
-            let self_bits = self_bits
-                .getattr("_bits")?
+            let self_bits = PyList::type_object(py)
+                .call1((self_bits,))?
                 .downcast_into_exact::<PyList>()?;
             let other_bits = match other_qregs.get_item(regname)? {
-                Some(bits) => bits.getattr("_bits")?.downcast_into_exact::<PyList>()?,
+                Some(bits) => PyList::type_object(py)
+                    .call1((bits,))?
+                    .downcast_into_exact::<PyList>()?,
                 None => return Ok(false),
             };
             if !self
@@ -2512,11 +2514,13 @@ def _format(operand):
         }
 
         for (regname, self_bits) in self_cregs {
-            let self_bits = self_bits
-                .getattr("_bits")?
+            let self_bits = PyList::type_object(py)
+                .call1((self_bits,))?
                 .downcast_into_exact::<PyList>()?;
             let other_bits = match other_cregs.get_item(regname)? {
-                Some(bits) => bits.getattr("_bits")?.downcast_into_exact::<PyList>()?,
+                Some(bits) => PyList::type_object(py)
+                    .call1((bits,))?
+                    .downcast_into_exact::<PyList>()?,
                 None => return Ok(false),
             };
             if !self
