@@ -1,0 +1,4 @@
+---
+features_transpiler:
+  - |
+    The :meth:`.synth_cx_cz_depth_line_my` pass was ported into rust.
