@@ -370,6 +370,12 @@ def generate_routing_passmanager(
                 message=".*argument ``properties`` is deprecated as of Qiskit 1.4",
                 module="qiskit",
             )
+            warnings.filterwarnings(
+                "ignore",
+                category=DeprecationWarning,
+                message=".*argument ``coupling_map`` is deprecated as of Qiskit 1.4",
+                module="qiskit",
+            )
             routing.append(
                 ConditionalController(
                     VF2PostLayout(

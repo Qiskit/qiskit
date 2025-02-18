@@ -110,6 +110,17 @@ class VF2PostLayout(AnalysisPass):
         "You can use Target.from_configuration() to build the target from the properties "
         "object, but in 2.0 you will need to generate a target directly.",
     )
+    @deprecate_arg(
+        name="coupling_map",
+        since="1.4",
+        package_name="Qiskit",
+        removal_timeline="in Qiskit 2.0",
+        additional_msg="This argument was only used with `properties`, which relied on "
+        "the deprecated BackendProperties data structure. The `target` input argument "
+        "should be used instead. "
+        "You can use Target.from_configuration() to build the target from coupling "
+        "map + properties, but in 2.0 you will need to generate a target directly.",
+    )
     def __init__(
         self,
         target=None,

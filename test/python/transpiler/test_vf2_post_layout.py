@@ -98,7 +98,11 @@ class TestVF2PostLayout(QiskitTestCase):
     def test_no_backend_properties(self):
         """Test we raise at runtime if no properties are provided with a coupling graph."""
         qc = QuantumCircuit(2)
-        empty_pass = VF2PostLayout(coupling_map=CouplingMap([(0, 1), (1, 2)]))
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex=".*``coupling_map`` is deprecated as of Qiskit 1.4",
+        ):
+            empty_pass = VF2PostLayout(coupling_map=CouplingMap([(0, 1), (1, 2)]))
         with self.assertRaises(TranspilerError):
             empty_pass.run(circuit_to_dag(qc))
 
@@ -612,9 +616,13 @@ class TestVF2PostLayoutUndirected(QiskitTestCase):
     def test_no_backend_properties(self):
         """Test we raise at runtime if no properties are provided with a coupling graph."""
         qc = QuantumCircuit(2)
-        empty_pass = VF2PostLayout(
-            coupling_map=CouplingMap([(0, 1), (1, 2)]), strict_direction=False
-        )
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex=".*``coupling_map`` is deprecated as of Qiskit 1.4",
+        ):
+            empty_pass = VF2PostLayout(
+                coupling_map=CouplingMap([(0, 1), (1, 2)]), strict_direction=False
+            )
         with self.assertRaises(TranspilerError):
             empty_pass.run(circuit_to_dag(qc))
 
