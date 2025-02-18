@@ -121,6 +121,8 @@ class BaseSchedulerTransform(TransformationPass):
             # If node has calibration, this value should be the highest priority
             cal_key = tuple(indices), tuple(float(p) for p in node.op.params)
             duration = dag._calibrations_prop[node.op.name][cal_key].duration
+        elif node.name == "delay":
+            duration = node.op.duration
         else:
             try:
                 duration = self.durations.get(node.op, indices)
