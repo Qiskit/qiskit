@@ -235,7 +235,7 @@ class BaseSchedulerTransform(TransformationPass):
                 and discriminated into quantum state.
                 The interval ``[t0, t0 + clbit_write_latency]`` is regarded as idle time
                 for clbits associated with the measure instruction.
-                This defaults to 0 dt which is identical to Qiskit Pulse scheduler.
+                This defaults to 0 dt.
             conditional_latency: A control flow constraints. This value represents
                 a latency of reading a classical register for the conditional operation.
                 The gate operation occurs after this latency. This appears as a delay

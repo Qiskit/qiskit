@@ -13,13 +13,11 @@
 """Tests for qiskit/tools/parallel"""
 import os
 import time
-import warnings
 
 from unittest.mock import patch
 
 from qiskit.utils.parallel import get_platform_parallel_default, parallel_map
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.pulse import Schedule
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -34,13 +32,6 @@ def _build_simple_circuit(_):
     creg = ClassicalRegister(2)
     qc = QuantumCircuit(qreg, creg)
     return qc
-
-
-def _build_simple_schedule(_):
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", category=DeprecationWarning)
-        # `Schedule` is deprecated in Qiskit 1.3
-        return Schedule()
 
 
 class TestGetPlatformParallelDefault(QiskitTestCase):
@@ -82,10 +73,4 @@ class TestParallel(QiskitTestCase):
         """Verify unique circuit names in parallel"""
         out_circs = parallel_map(_build_simple_circuit, list(range(10)))
         names = [circ.name for circ in out_circs]
-        self.assertEqual(len(names), len(set(names)))
-
-    def test_parallel_schedule_names(self):
-        """Verify unique schedule names in parallel"""
-        out_schedules = parallel_map(_build_simple_schedule, list(range(10)))
-        names = [schedule.name for schedule in out_schedules]
         self.assertEqual(len(names), len(set(names)))

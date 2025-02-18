@@ -302,16 +302,7 @@ def transpile(  # pylint: disable=too-many-return-statements
     if not circuits:
         return []
 
-    # transpiling schedules is not supported yet.
     start_time = time()
-    if all(isinstance(c, Schedule) for c in circuits):
-        warnings.warn("Transpiling schedules is not supported yet.", UserWarning)
-        end_time = time()
-        _log_transpile_time(start_time, end_time)
-        if arg_circuits_list:
-            return circuits
-        else:
-            return circuits[0]
 
     if optimization_level is None:
         # Take optimization level from the configuration or 1 as default.

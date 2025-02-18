@@ -31,7 +31,6 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     This pass manager applies the user-given initial layout. If none is given, a search
     for a perfect layout (i.e. one that satisfies all 2-qubit interactions) is conducted.
     If no such layout is found, and device calibration information is available, the
-    # TODO: what does device calibration mean in this context?
     circuit is mapped to the qubits with best readouts and to CX gates with highest fidelity.
 
     The pass manager then transforms the circuit to match the coupling constraints.

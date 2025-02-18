@@ -20,7 +20,6 @@ from a backend
 from __future__ import annotations
 
 import itertools
-import warnings
 
 from typing import Optional, List, Any
 from collections.abc import Mapping
