@@ -262,7 +262,7 @@ from .synthesis import SolovayKitaevSynthesis
 from .synthesis import AQCSynthesisPlugin
 
 # calibration
-from .calibration.rzx_templates import rzx_templates
+from .calibration.rzx_templates import rzx_templates  # TODO: remove this
 
 # circuit scheduling
 from .scheduling import TimeUnitConversion

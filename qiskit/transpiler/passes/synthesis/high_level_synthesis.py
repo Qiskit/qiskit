@@ -313,7 +313,7 @@ class HighLevelSynthesis(TransformationPass):
         if top_level:
             for node in dag.op_nodes():
                 qubits = tuple(dag.find_bit(q).index for q in node.qargs)
-                if not self._definitely_skip_node(node, qubits, dag):
+                if not self._definitely_skip_node(node, qubits):
                     break
             else:
                 # The for-loop terminates without reaching the break statement
@@ -353,7 +353,7 @@ class HighLevelSynthesis(TransformationPass):
                 processed = True
 
             # check if synthesis for the operation can be skipped
-            elif self._definitely_skip_node(node, qubits, dag):
+            elif self._definitely_skip_node(node, qubits):
                 tracker.set_dirty(context.to_globals(qubits))
 
             # next check control flow
@@ -800,9 +800,7 @@ class HighLevelSynthesis(TransformationPass):
 
         return synthesized
 
-    def _definitely_skip_node(
-        self, node: DAGOpNode, qubits: tuple[int] | None, dag: DAGCircuit
-    ) -> bool:
+    def _definitely_skip_node(self, node: DAGOpNode, qubits: tuple[int] | None) -> bool:
         """Fast-path determination of whether a node can certainly be skipped (i.e. nothing will
         attempt to synthesise it) without accessing its Python-space `Operation`.
 
@@ -811,8 +809,7 @@ class HighLevelSynthesis(TransformationPass):
         node (which is _most_ nodes)."""
 
         if (
-            dag._has_calibration_for(node)
-            or len(node.qargs) < self._min_qubits
+            len(node.qargs) < self._min_qubits
             or node.is_directive()
             or (self._instruction_supported(node.name, qubits) and not node.is_control_flow())
         ):

@@ -76,7 +76,6 @@ Pulse-level programming:
    :maxdepth: 1
 
    pulse
-   scheduler
 
 Other:
 

@@ -44,7 +44,7 @@ use pyo3::prelude::*;
 use pyo3::IntoPyObjectExt;
 
 use pyo3::types::{
-    IntoPyDict, PyDict, PyInt, PyIterator, PyList, PySequence, PySet, PyString, PyTuple, PyType,
+    IntoPyDict, PyDict, PyInt, PyIterator, PyList, PySet, PyString, PyTuple, PyType,
 };
 
 use rustworkx_core::dag_algo::layers;
@@ -187,8 +187,6 @@ pub struct DAGCircuit {
     /// Circuit metadata
     #[pyo3(get, set)]
     metadata: Option<PyObject>,
-
-    calibrations: HashMap<String, Py<PyDict>>,
 
     dag: StableDiGraph<NodeType, Wire>,
 
@@ -371,7 +369,6 @@ impl DAGCircuit {
         Ok(DAGCircuit {
             name: None,
             metadata: Some(PyDict::new(py).unbind().into()),
-            calibrations: HashMap::new(),
             dag: StableDiGraph::default(),
             qregs: PyDict::new(py).unbind(),
             cregs: PyDict::new(py).unbind(),
@@ -520,7 +517,6 @@ impl DAGCircuit {
         let out_dict = PyDict::new(py);
         out_dict.set_item("name", self.name.as_ref().map(|x| x.clone_ref(py)))?;
         out_dict.set_item("metadata", self.metadata.as_ref().map(|x| x.clone_ref(py)))?;
-        out_dict.set_item("_calibrations_prop", self.calibrations.clone())?;
         out_dict.set_item("qregs", self.qregs.clone_ref(py))?;
         out_dict.set_item("cregs", self.cregs.clone_ref(py))?;
         out_dict.set_item("global_phase", self.global_phase.clone())?;
@@ -606,10 +602,6 @@ impl DAGCircuit {
         let dict_state = state.downcast_bound::<PyDict>(py)?;
         self.name = dict_state.get_item("name")?.unwrap().extract()?;
         self.metadata = dict_state.get_item("metadata")?.unwrap().extract()?;
-        self.calibrations = dict_state
-            .get_item("_calibrations_prop")?
-            .unwrap()
-            .extract()?;
         self.qregs = dict_state.get_item("qregs")?.unwrap().extract()?;
         self.cregs = dict_state.get_item("cregs")?.unwrap().extract()?;
         self.global_phase = dict_state.get_item("global_phase")?.unwrap().extract()?;
@@ -825,182 +817,6 @@ impl DAGCircuit {
             Param::Obj(_) => return Err(PyTypeError::new_err("Invalid type for global phase")),
         }
         Ok(())
-    }
-
-    /// Return calibration dictionary.
-    ///
-    /// The custom pulse definition of a given gate is of the form
-    ///    {'gate_name': {(qubits, params): schedule}}
-    ///
-    /// DEPRECATED since Qiskit 1.3.0 and will be removed in Qiskit 2.0.0
-    #[getter]
-    fn get_calibrations(&self, py: Python) -> HashMap<String, Py<PyDict>> {
-        emit_pulse_dependency_deprecation(
-            py,
-            "property ``qiskit.dagcircuit.dagcircuit.DAGCircuit.calibrations``",
-        );
-
-        self.calibrations.clone()
-    }
-
-    /// Set the circuit calibration data from a dictionary of calibration definition.
-    ///
-    ///  Args:
-    ///      calibrations (dict): A dictionary of input in the format
-    ///          {'gate_name': {(qubits, gate_params): schedule}}
-    ///
-    /// DEPRECATED since Qiskit 1.3.0 and will be removed in Qiskit 2.0.0
-    #[setter]
-    fn set_calibrations(&mut self, py: Python, calibrations: HashMap<String, Py<PyDict>>) {
-        emit_pulse_dependency_deprecation(
-            py,
-            "property ``qiskit.dagcircuit.dagcircuit.DAGCircuit.calibrations``",
-        );
-
-        self.calibrations = calibrations;
-    }
-
-    // This is an alternative and Python-private path to 'get_calibration' to avoid
-    // deprecation warnings
-    #[getter(_calibrations_prop)]
-    fn get_calibrations_prop(&self) -> HashMap<String, Py<PyDict>> {
-        self.calibrations.clone()
-    }
-
-    // This is an alternative and Python-private path to 'set_calibration' to avoid
-    // deprecation warnings
-    #[setter(_calibrations_prop)]
-    fn set_calibrations_prop(&mut self, calibrations: HashMap<String, Py<PyDict>>) {
-        self.calibrations = calibrations;
-    }
-
-    /// Register a low-level, custom pulse definition for the given gate.
-    ///
-    /// Args:
-    ///     gate (Union[Gate, str]): Gate information.
-    ///     qubits (Union[int, Tuple[int]]): List of qubits to be measured.
-    ///     schedule (Schedule): Schedule information.
-    ///     params (Optional[List[Union[float, Parameter]]]): A list of parameters.
-    ///
-    /// Raises:
-    ///     Exception: if the gate is of type string and params is None.
-    ///
-    /// DEPRECATED since Qiskit 1.3.0 and will be removed in Qiskit 2.0.0
-    #[pyo3(signature=(gate, qubits, schedule, params=None))]
-    fn add_calibration<'py>(
-        &mut self,
-        py: Python<'py>,
-        mut gate: Bound<'py, PyAny>,
-        qubits: Bound<'py, PyAny>,
-        schedule: Py<PyAny>,
-        mut params: Option<Bound<'py, PyAny>>,
-    ) -> PyResult<()> {
-        emit_pulse_dependency_deprecation(
-            py,
-            "method ``qiskit.dagcircuit.dagcircuit.DAGCircuit.add_calibration``",
-        );
-
-        if gate.is_instance(imports::GATE.get_bound(py))? {
-            params = Some(gate.getattr(intern!(py, "params"))?);
-            gate = gate.getattr(intern!(py, "name"))?;
-        }
-
-        let params_tuple = if let Some(operands) = params {
-            let add_calibration = PyModule::from_code(
-                py,
-                std::ffi::CString::new(
-                    r#"
-import numpy as np
-
-def _format(operand):
-    try:
-        # Using float/complex value as a dict key is not good idea.
-        # This makes the mapping quite sensitive to the rounding error.
-        # However, the mechanism is already tied to the execution model (i.e. pulse gate)
-        # and we cannot easily update this rule.
-        # The same logic exists in QuantumCircuit.add_calibration.
-        evaluated = complex(operand)
-        if np.isreal(evaluated):
-            evaluated = float(evaluated.real)
-            if evaluated.is_integer():
-                evaluated = int(evaluated)
-        return evaluated
-    except TypeError:
-        # Unassigned parameter
-        return operand
-    "#,
-                )?
-                .as_c_str(),
-                std::ffi::CString::new("add_calibration.py")?.as_c_str(),
-                std::ffi::CString::new("add_calibration")?.as_c_str(),
-            )?;
-
-            let format = add_calibration.getattr("_format")?;
-            let mapped: PyResult<Vec<_>> =
-                operands.try_iter()?.map(|p| format.call1((p?,))).collect();
-            PyTuple::new(py, mapped?)?.into_any()
-        } else {
-            PyTuple::empty(py).into_any()
-        };
-
-        let calibrations = self
-            .calibrations
-            .entry(gate.extract()?)
-            .or_insert_with(|| PyDict::new(py).unbind())
-            .bind(py);
-
-        let qubits = if let Ok(qubits) = qubits.downcast::<PySequence>() {
-            qubits.to_tuple()?.into_any()
-        } else {
-            PyTuple::new(py, [qubits])?.into_any()
-        };
-        let key = PyTuple::new(py, &[qubits.unbind(), params_tuple.into_any().unbind()])?;
-        calibrations.set_item(key, schedule)?;
-        Ok(())
-    }
-
-    /// Return True if the dag has a calibration defined for the node operation. In this
-    /// case, the operation does not need to be translated to the device basis.
-    ///
-    /// DEPRECATED since Qiskit 1.3.0 and will be removed in Qiskit 2.0.0
-    pub fn has_calibration_for(&self, py: Python, node: PyRef<DAGOpNode>) -> PyResult<bool> {
-        emit_pulse_dependency_deprecation(
-            py,
-            "method ``qiskit.dagcircuit.dagcircuit.DAGCircuit.has_calibration_for``",
-        );
-
-        self._has_calibration_for(py, node)
-    }
-
-    fn _has_calibration_for(&self, py: Python, node: PyRef<DAGOpNode>) -> PyResult<bool> {
-        if !self
-            .calibrations
-            .contains_key(node.instruction.operation.name())
-        {
-            return Ok(false);
-        }
-        let mut params = Vec::new();
-        for p in &node.instruction.params {
-            if let Param::ParameterExpression(exp) = p {
-                let exp = exp.bind(py);
-                if !exp.getattr(intern!(py, "parameters"))?.is_truthy()? {
-                    let as_py_float = exp.call_method0(intern!(py, "__float__"))?;
-                    params.push(as_py_float.unbind());
-                    continue;
-                }
-            }
-            params.push(p.into_py_any(py)?);
-        }
-        let qubits: Vec<BitType> = self
-            .qubits
-            .map_bits(node.instruction.qubits.bind(py).iter())?
-            .map(|bit| bit.0)
-            .collect();
-        let qubits = PyTuple::new(py, qubits)?;
-        let params = PyTuple::new(py, params)?;
-        self.calibrations[node.instruction.operation.name()]
-            .bind(py)
-            .contains((qubits, params))
     }
 
     /// Remove all operation nodes with the given name.
@@ -1987,18 +1803,6 @@ def _format(operand):
 
         dag.global_phase = add_global_phase(py, &dag.global_phase, &other.global_phase)?;
 
-        for (gate, cals) in other.calibrations.iter() {
-            let calibrations = match dag.calibrations.get(gate) {
-                Some(calibrations) => calibrations,
-                None => {
-                    dag.calibrations
-                        .insert(gate.clone(), PyDict::new(py).unbind());
-                    &dag.calibrations[gate]
-                }
-            };
-            calibrations.bind(py).update(cals.bind(py).as_mapping())?;
-        }
-
         // This is all the handling we need for realtime variables, if there's no remapping. They:
         //
         // * get added to the DAG and then operations involving them get appended on normally.
@@ -2433,22 +2237,6 @@ def _format(operand):
         }?;
         if !phase_eq {
             return Ok(false);
-        }
-        if self.calibrations.len() != other.calibrations.len() {
-            return Ok(false);
-        }
-
-        for (k, v1) in &self.calibrations {
-            match other.calibrations.get(k) {
-                Some(v2) => {
-                    if !v1.bind(py).eq(v2.bind(py))? {
-                        return Ok(false);
-                    }
-                }
-                None => {
-                    return Ok(false);
-                }
-            }
         }
 
         // We don't do any semantic equivalence between Var nodes, as things stand; DAGs can only be
@@ -6256,7 +6044,6 @@ impl DAGCircuit {
         Ok(Self {
             name: None,
             metadata: Some(PyDict::new(py).unbind().into()),
-            calibrations: HashMap::default(),
             dag: StableDiGraph::with_capacity(num_nodes, num_edges),
             qregs: PyDict::new(py).unbind(),
             cregs: PyDict::new(py).unbind(),
@@ -6437,44 +6224,6 @@ impl DAGCircuit {
             _ => self.set_global_phase(add_global_phase(py, &self.global_phase, value)?)?,
         }
         Ok(())
-    }
-
-    pub fn calibrations_empty(&self) -> bool {
-        self.calibrations.is_empty()
-    }
-
-    pub fn has_calibration_for_index(&self, py: Python, node_index: NodeIndex) -> PyResult<bool> {
-        let node = &self.dag[node_index];
-        if let NodeType::Operation(instruction) = node {
-            if !self.calibrations.contains_key(instruction.op.name()) {
-                return Ok(false);
-            }
-            let params = match &instruction.params {
-                Some(params) => {
-                    let mut out_params = Vec::new();
-                    for p in params.iter() {
-                        if let Param::ParameterExpression(exp) = p {
-                            let exp = exp.bind(py);
-                            if !exp.getattr(intern!(py, "parameters"))?.is_truthy()? {
-                                let as_py_float = exp.call_method0(intern!(py, "__float__"))?;
-                                out_params.push(as_py_float.unbind());
-                                continue;
-                            }
-                        }
-                        out_params.push(p.into_pyobject(py)?.into_any().unbind());
-                    }
-                    PyTuple::new(py, out_params)
-                }
-                None => Ok(PyTuple::empty(py)),
-            }?;
-            let qargs = self.qargs_interner.get(instruction.qubits);
-            let qubits = PyTuple::new(py, qargs.iter().map(|x| x.0))?;
-            self.calibrations[instruction.op.name()]
-                .bind(py)
-                .contains((qubits, params).into_py_any(py)?)
-        } else {
-            Err(DAGCircuitError::new_err("Specified node is not an op node"))
-        }
     }
 
     /// Return the op name counts in the circuit
@@ -6734,10 +6483,6 @@ impl DAGCircuit {
             _ => unreachable!("Incorrect parameter assigned for global phase"),
         };
 
-        if let Some(calibrations) = qc.calibrations {
-            new_dag.calibrations = calibrations;
-        }
-
         new_dag.metadata = qc.metadata.map(|meta| meta.unbind());
 
         // Add the qubits depending on order, and produce the qargs map.
@@ -6862,7 +6607,6 @@ impl DAGCircuit {
         let circ = QuantumCircuitData {
             data: circuit_data,
             name: None,
-            calibrations: None,
             metadata: None,
             qregs: None,
             cregs: None,
@@ -7197,23 +6941,6 @@ pub(crate) fn add_global_phase(py: Python, phase: &Param, other: &Param) -> PyRe
 }
 
 type SortKeyType<'a> = (&'a [Qubit], &'a [Clbit]);
-
-/// Emit a Python `DeprecationWarning` for pulse-related dependencies.
-fn emit_pulse_dependency_deprecation(py: Python, msg: &str) {
-    let _ = imports::WARNINGS_WARN.get_bound(py).call1((
-        PyString::new(
-            py,
-            &format!(
-                "The {} is deprecated as of Qiskit 1.3.0. It will be removed in Qiskit 2.0.0. \
-                The entire Qiskit Pulse package is being deprecated \
-                and this is a dependency on the package.",
-                msg
-            ),
-        ),
-        py.get_type::<PyDeprecationWarning>(),
-        1,
-    ));
-}
 
 #[cfg(all(test, not(miri)))]
 mod test {
