@@ -135,7 +135,6 @@ class TestPassManagerConfig(QiskitTestCase):
 \ttranslation_method: None
 \tscheduling_method: None
 \tinstruction_durations:\u0020
-\tbackend_properties: None
 \tapproximation_degree: None
 \tseed_transpiler: None
 \ttiming_constraints: None
