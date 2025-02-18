@@ -687,8 +687,7 @@ class TestMultipleTrials(QiskitTestCase):
 
     def test_reasonable_limits_for_simple_layouts(self):
         """Test that the default trials is set to a reasonable number."""
-        with self.assertWarns(DeprecationWarning):
-            backend = GenericBackendV2(27, calibrate_instructions=True, seed=42)
+        backend = GenericBackendV2(27, seed=42)
         qc = QuantumCircuit(5)
         qc.cx(2, 3)
         qc.cx(0, 1)

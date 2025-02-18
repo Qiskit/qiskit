@@ -3755,9 +3755,7 @@ class QuantumCircuit:
 
         _copy_metadata(self, cpy, vars_mode)
 
-        cpy._data = CircuitData(
-            self._data.qubits, self._data.clbits, global_phase=self._data.global_phase
-        )
+        cpy._data = self._data.copy_empty_like()
 
         if name:
             cpy.name = name
@@ -6916,7 +6914,10 @@ class QuantumCircuit:
             if len(qubits) == len([done for done in dones.values() if done]):  # all done
                 return max(stop for stop in stops.values())
 
-        return 0  # If there are no instructions over bits
+        if len(stops) > 0:  # not all but some qubits has instructions
+            return max(stops.values())
+        else:
+            return 0  # If there are no instructions over bits
 
 
 class _OuterCircuitScopeInterface(CircuitScopeInterface):
