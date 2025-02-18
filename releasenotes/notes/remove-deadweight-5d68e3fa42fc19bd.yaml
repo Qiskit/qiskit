@@ -94,7 +94,12 @@ upgrade_transpiler:
     When calling :func:`.generate_preset_pass_manager` or :func:`.transpile` and specifying the ``instruction_durations`` argument
     with a list instead of an :class:`.InstructionDurations` object and the list specifies durations in units of ``dt`` a ``dt`` parameter
     is required if scheduling the circuit.
-
+upgrade_providers:
+  - |
+    The :class:`.BasicSimulator` backend no longer can simulate classical
+    control flow. It only supported using ``.c_if()``/``.condition`` for
+    modeling control flow, as this has now been removed from Qiskit's
+    data model it no longer can support control flow.
 upgrade_visualization:
   - |
     The timeline drawer now requires the target argument is specified when called. As instructions no
