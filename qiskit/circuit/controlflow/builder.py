@@ -208,7 +208,7 @@ class InstructionPlaceholder(Instruction, abc.ABC):
             with qc.if_test((0, 0)):
                 qc.break_loop()
 
-    ``qc.break_loop()`` needs to return a (mostly) functional
+    ``qc.break_loop()`` needed to return a (mostly) functional
     :obj:`~qiskit.circuit.Instruction` in order for the historical ``.InstructionSet.c_if``
     to work correctly.
 

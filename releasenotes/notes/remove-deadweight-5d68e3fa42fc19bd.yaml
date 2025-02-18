@@ -13,9 +13,10 @@ features_transpiler:
     to units of ``dt``.
 upgrade_circuits:
   - |
-    The deprecated attributes for :class:`~qiskit.circuit.Instruction` and :class:`.Gate`: ``duration`` and ``unit``. This includes
+    The deprecated attributes for :class:`~qiskit.circuit.Instruction` and :class:`.Gate`: ``duration`` and ``unit`` have been removed. This includes
     setting the ``unit`` or ``duration`` arguments for any :class:`qiskit.circuit.Instruction`
-    or subclass. These attributes were deprecated in Qiskit 1.3.0. These attributes were used to attach a custom execution
+    or subclass. These attributes were deprecated in Qiskit 1.3.0 and 
+    were used to attach a custom execution
     duration and unit for that duration to an individual instruction. However,
     the source of truth of the duration of a gate is the :class:`.BackendV2`
     :class:`.Target` which contains the duration for each instruction supported
@@ -59,7 +60,7 @@ upgrade_circuits:
         qc.measure(1, 1)
 
   - |
-    The deprecated methods ``InstructionSet.c_if`` has been removed. This method
+    The deprecated method ``InstructionSet.c_if`` has been removed. This method
     was deprecated in the 1.3.0 release. This functionality has been superseded
     by the :class:`.IfElseOp` class which can be used to describe a classical
     condition in a circuit.
