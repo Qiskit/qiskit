@@ -24,6 +24,7 @@ from qiskit.result import postprocess
 from qiskit.result.counts import Counts
 from qiskit.qobj.utils import MeasLevel
 from qiskit.qobj import QobjHeader
+from qiskit.utils.deprecation import deprecate_arg
 
 
 class Result:
@@ -42,6 +43,14 @@ class Result:
 
     _metadata = {}
 
+    @deprecate_arg(
+        name="backend",
+        since="1.4",
+        package_name="Qiskit",
+        removal_timeline="in Qiskit 2.0",
+        additional_msg="The Qobj class has been deprecated and will be "
+        "removed in Qiskit 2.0. This input argument cannot exist without Qobj",
+    )
     def __init__(
         self,
         backend_name,

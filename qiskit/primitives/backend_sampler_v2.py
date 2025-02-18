@@ -38,6 +38,7 @@ from qiskit.primitives.containers.sampler_pub import SamplerPub
 from qiskit.primitives.primitive_job import PrimitiveJob
 from qiskit.providers.backend import BackendV1, BackendV2
 from qiskit.result import Result
+from qiskit.utils.deprecation import deprecate_arg
 
 
 @dataclass
@@ -116,6 +117,15 @@ class BackendSamplerV2(BaseSamplerV2):
 
     """
 
+    @deprecate_arg(
+        name="backend",
+        since="1.4",
+        package_name="Qiskit",
+        removal_timeline="in Qiskit 2.0",
+        predicate=lambda backend: not isinstance(backend, BackendV2),
+        additional_msg="Inputs of type BackendV1 have been deprecated and will be "
+        "removed in Qiskit 2.0. You can input an instance of BackendV2 to `backend` instead.",
+    )
     def __init__(
         self,
         *,

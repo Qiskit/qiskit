@@ -60,9 +60,17 @@ def convert_to_target(
     Returns:
         A ``Target`` instance.
     """
-    return _convert_to_target(
-        configuration, properties, defaults, custom_name_mapping, add_delay, filter_faulty
-    )
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore",
+            category=DeprecationWarning,
+            message=".*``qiskit.providers.exceptions.BackendPropertyError``",
+            module="qiskit",
+        )
+        target = _convert_to_target(
+            configuration, properties, defaults, custom_name_mapping, add_delay, filter_faulty
+        )
+    return target
 
 
 def _convert_to_target(
@@ -433,14 +441,22 @@ class BackendV2Converter(BackendV2):
         :rtype: Target
         """
         if self._target is None:
-            self._target = _convert_to_target(
-                configuration=self._config,
-                properties=self._properties,
-                defaults=self._defaults,
-                custom_name_mapping=self._name_mapping,
-                add_delay=self._add_delay,
-                filter_faulty=self._filter_faulty,
-            )
+            # BackendPropertyError is deprecated but it's not an actionable for users
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore",
+                    category=DeprecationWarning,
+                    message=".*``qiskit.providers.exceptions.BackendPropertyError``",
+                    module="qiskit",
+                )
+                self._target = _convert_to_target(
+                    configuration=self._config,
+                    properties=self._properties,
+                    defaults=self._defaults,
+                    custom_name_mapping=self._name_mapping,
+                    add_delay=self._add_delay,
+                    filter_faulty=self._filter_faulty,
+                )
         return self._target
 
     @property

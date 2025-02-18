@@ -28,6 +28,7 @@ from qiskit.quantum_info import Pauli, PauliList
 from qiskit.result import Counts
 from qiskit.transpiler import PassManager, PassManagerConfig
 from qiskit.transpiler.passes import Optimize1qGatesDecomposition
+from qiskit.utils.deprecation import deprecate_arg
 
 from .backend_estimator import _pauli_expval_with_variance, _prepare_counts, _run_circuits
 from .base import BaseEstimatorV2
@@ -124,6 +125,15 @@ class BackendEstimatorV2(BaseEstimatorV2):
     `Quantum 5, 385 <https://doi.org/10.22331/q-2021-01-20-385>`_
     """
 
+    @deprecate_arg(
+        name="backend",
+        since="1.4",
+        package_name="Qiskit",
+        removal_timeline="in Qiskit 2.0",
+        predicate=lambda backend: not isinstance(backend, BackendV2),
+        additional_msg="Inputs of type BackendV1 have been deprecated and will be "
+        "removed in Qiskit 2.0. You can still use ``backend`` with an instance of BackendV2.",
+    )
     def __init__(
         self,
         *,

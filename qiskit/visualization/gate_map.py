@@ -21,8 +21,10 @@ from rustworkx.visualization import graphviz_draw
 
 from qiskit.exceptions import QiskitError
 from qiskit.utils import optionals as _optionals
+from qiskit.providers import BackendV2
 from qiskit.providers.exceptions import BackendPropertyError
 from qiskit.transpiler.coupling import CouplingMap
+from qiskit.utils.deprecation import deprecate_arg
 from .exceptions import VisualizationError
 
 
@@ -31,6 +33,15 @@ def _get_backend_interface_version(backend):
     return backend_interface_version
 
 
+@deprecate_arg(
+    name="backend",
+    since="1.4",
+    package_name="Qiskit",
+    removal_timeline="in Qiskit 2.0",
+    predicate=lambda backend: not isinstance(backend, BackendV2),
+    additional_msg="The BackendV1 class has been deprecated and will be "
+    "removed in Qiskit 2.0. Use an instance of BackendV2 instead.",
+)
 @_optionals.HAS_MATPLOTLIB.require_in_call
 def plot_gate_map(
     backend,
@@ -1139,6 +1150,15 @@ def plot_coupling_map(
         return fig
 
 
+@deprecate_arg(
+    name="backend",
+    since="1.4",
+    package_name="Qiskit",
+    removal_timeline="in Qiskit 2.0",
+    predicate=lambda backend: not isinstance(backend, BackendV2),
+    additional_msg="The BackendV1 class has been deprecated and will be "
+    "removed in Qiskit 2.0. Use an instance of BackendV2 instead.",
+)
 def plot_circuit_layout(circuit, backend, view="virtual", qubit_coordinates=None):
     """Plot the layout of a circuit transpiled for a given
     target backend.
@@ -1246,6 +1266,15 @@ def plot_circuit_layout(circuit, backend, view="virtual", qubit_coordinates=None
     return fig
 
 
+@deprecate_arg(
+    name="backend",
+    since="1.4",
+    package_name="Qiskit",
+    removal_timeline="in Qiskit 2.0",
+    predicate=lambda backend: not isinstance(backend, BackendV2),
+    additional_msg="The BackendV1 class has been deprecated and will be "
+    "removed in Qiskit 2.0. Use an instance of BackendV2 instead.",
+)
 @_optionals.HAS_MATPLOTLIB.require_in_call
 @_optionals.HAS_SEABORN.require_in_call
 def plot_error_map(backend, figsize=(15, 12), show_title=True, qubit_coordinates=None):

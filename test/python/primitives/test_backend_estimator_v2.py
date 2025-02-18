@@ -147,7 +147,7 @@ class TestBackendEstimatorV2(QiskitTestCase):
         psi1, psi2 = pm.run([psi1, psi2])
         with self.assertWarns(DeprecationWarning):
             # When BackendEstimatorV2 is called with a backend V1, it raises a
-            # DeprecationWarning from PassManagerConfig.from_backend
+            # DeprecationWarning from PassManagerConfig.from_backend and its own init
             estimator = BackendEstimatorV2(backend=backend, options=self._options)
         estimator.options.abelian_grouping = abelian_grouping
         # Specify the circuit and observable by indices.
@@ -240,7 +240,7 @@ class TestBackendEstimatorV2(QiskitTestCase):
 
         with self.assertWarns(DeprecationWarning):
             # When BackendEstimatorV2 is called with a backend V1, it raises a
-            # DeprecationWarning from PassManagerConfig.from_backend
+            # DeprecationWarning from PassManagerConfig.from_backend and its own init
             estimator = BackendEstimatorV2(backend=backend, options=self._options)
         estimator.options.abelian_grouping = abelian_grouping
         result4 = estimator.run([pub1, pub2]).result()
@@ -272,7 +272,7 @@ class TestBackendEstimatorV2(QiskitTestCase):
         circuit = pm.run(circuit)
         with self.assertWarns(DeprecationWarning):
             # When BackendEstimatorV2 is called with a backend V1, it raises a
-            # DeprecationWarning from PassManagerConfig.from_backend
+            # DeprecationWarning from PassManagerConfig.from_backend and its own init
             est = BackendEstimatorV2(backend=backend, options=self._options)
         est.options.abelian_grouping = abelian_grouping
         observable = self.observable.apply_layout(circuit.layout)
@@ -455,7 +455,7 @@ class TestBackendEstimatorV2(QiskitTestCase):
 
         with self.assertWarns(DeprecationWarning):
             # When BackendEstimatorV2 is called with a backend V1, it raises a
-            # DeprecationWarning from PassManagerConfig.from_backend
+            # DeprecationWarning from PassManagerConfig.from_backend and its own init
             est = BackendEstimatorV2(backend=backend, options=self._options)
 
         est.options.abelian_grouping = abelian_grouping
@@ -534,7 +534,7 @@ class TestBackendEstimatorV2(QiskitTestCase):
 
         with self.assertWarns(DeprecationWarning):
             # When BackendEstimatorV2 is called with a backend V1, it raises a
-            # DeprecationWarning from PassManagerConfig.from_backend
+            # DeprecationWarning from PassManagerConfig.from_backend and its own init
             est = BackendEstimatorV2(backend=backend, options=self._options)
         est.options.abelian_grouping = abelian_grouping
         op_1 = op.apply_layout(qc.layout)
@@ -572,7 +572,7 @@ class TestBackendEstimatorV2(QiskitTestCase):
         op2 = SparsePauliOp.from_list([("II", 1)])
         with self.assertWarns(DeprecationWarning):
             # When BackendEstimatorV2 is called with a backend V1, it raises a
-            # DeprecationWarning from PassManagerConfig.from_backend
+            # DeprecationWarning from PassManagerConfig.from_backend and its own init
             est = BackendEstimatorV2(backend=backend, options=self._options)
         est.options.abelian_grouping = abelian_grouping
         with self.assertRaises(ValueError):
@@ -732,7 +732,7 @@ class TestBackendEstimatorV2(QiskitTestCase):
         """Test for precision"""
         with self.assertWarns(DeprecationWarning):
             # When BackendEstimatorV2 is called with a backend V1, it raises a
-            # DeprecationWarning from PassManagerConfig.from_backend
+            # DeprecationWarning from PassManagerConfig.from_backend and its own init
             estimator = BackendEstimatorV2(backend=backend, options=self._options)
         estimator.options.abelian_grouping = abelian_grouping
         with self.assertWarnsRegex(
@@ -778,7 +778,7 @@ class TestBackendEstimatorV2(QiskitTestCase):
         """Test for running different precisions at once"""
         with self.assertWarns(DeprecationWarning):
             # When BackendEstimatorV2 is called with a backend V1, it raises a
-            # DeprecationWarning from PassManagerConfig.from_backend
+            # DeprecationWarning from PassManagerConfig.from_backend and its own init
             estimator = BackendEstimatorV2(backend=backend, options=self._options)
         estimator.options.abelian_grouping = abelian_grouping
         with self.assertWarnsRegex(
@@ -868,7 +868,7 @@ class TestBackendEstimatorV2(QiskitTestCase):
         param_list = self._rng.random(qc.num_parameters).tolist()
         with self.assertWarns(DeprecationWarning):
             # When BackendEstimatorV2 is called with a backend V1, it raises a
-            # DeprecationWarning from PassManagerConfig.from_backend
+            # DeprecationWarning from PassManagerConfig.from_backend and its own init
             estimator = BackendEstimatorV2(backend=backend)
         with patch.object(backend, "run") as run_mock:
             estimator.run([(qc, op, param_list)] * k).result()

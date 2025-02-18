@@ -34,6 +34,15 @@ class Nduv:
         value: value.
     """
 
+    @deprecate_func(
+        since="1.4",
+        removal_timeline="in the 2.0 release",
+        additional_msg="The models in ``qiskit.providers.models`` and related objects are part "
+        "of the deprecated `BackendV1` workflow,  and no longer necessary for `BackendV2`. If a user "
+        "workflow requires these representations it likely relies on deprecated functionality and "
+        "should be updated to use `BackendV2`.",
+        stacklevel=3,
+    )
     def __init__(self, date, name, unit, value):
         """Initialize a new name-date-unit-value object
 
@@ -97,6 +106,15 @@ class GateProperties:
 
     _data = {}
 
+    @deprecate_func(
+        since="1.4",
+        removal_timeline="in the 2.0 release",
+        additional_msg="The models in ``qiskit.providers.models`` and related objects are part "
+        "of the deprecated `BackendV1` workflow,  and no longer necessary for `BackendV2`. If a user "
+        "workflow requires these representations it likely relies on deprecated functionality and "
+        "should be updated to use `BackendV2`.",
+        stacklevel=3,
+    )
     def __init__(self, qubits, gate, parameters, **kwargs):
         """Initialize a new :class:`GateProperties` object
 

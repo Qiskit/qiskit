@@ -12,6 +12,8 @@
 
 """Class for job status."""
 
+from qiskit.utils import deprecate_func
+
 
 class JobStatus:
     """Model for JobStatus.
@@ -24,6 +26,15 @@ class JobStatus:
 
     _data = {}
 
+    @deprecate_func(
+        since="1.4",
+        removal_timeline="in the 2.0 release",
+        additional_msg="The models in ``qiskit.providers.models`` and related objects are part "
+        "of the deprecated `BackendV1` workflow,  and no longer necessary for `BackendV2`. If a user "
+        "workflow requires these representations it likely relies on deprecated functionality and "
+        "should be updated to use `BackendV2`.",
+        stacklevel=3,
+    )
     def __init__(self, job_id, status, status_msg, **kwargs):
         self._data = {}
         self.job_id = job_id
