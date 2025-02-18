@@ -3936,7 +3936,7 @@ class QuantumCircuit:
             circ = self.copy()
         dag = circuit_to_dag(circ)
         qubits_to_measure = [qubit for qubit in circ.qubits if qubit not in dag.idle_wires()]
-        new_creg = circ._create_creg(len(qubits_to_measure), "measure")
+        new_creg = circ._create_creg(len(qubits_to_measure), "meas")
         circ.add_register(new_creg)
         circ.barrier()
         circ.measure(qubits_to_measure, new_creg)
