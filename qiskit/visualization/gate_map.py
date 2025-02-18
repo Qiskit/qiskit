@@ -13,6 +13,7 @@
 """A module for visualizing device coupling maps"""
 
 import math
+import warnings
 from typing import List
 
 import numpy as np
@@ -33,15 +34,6 @@ def _get_backend_interface_version(backend):
     return backend_interface_version
 
 
-@deprecate_arg(
-    name="backend",
-    since="1.4",
-    package_name="Qiskit",
-    removal_timeline="in Qiskit 2.0",
-    predicate=lambda backend: not isinstance(backend, BackendV2),
-    additional_msg="The BackendV1 class has been deprecated and will be "
-    "removed in Qiskit 2.0. Use an instance of BackendV2 instead.",
-)
 @_optionals.HAS_MATPLOTLIB.require_in_call
 def plot_gate_map(
     backend,
@@ -60,6 +52,12 @@ def plot_gate_map(
     qubit_coordinates=None,
 ):
     """Plots the gate map of a device.
+
+    .. deprecated:: 1.4
+        The function ``plot_gate_map`` will stop supporting inputs of type
+        :class:`.BackendV1` in the `backend` parameter in a future release no
+        earlier than 2.0. :class:`.BackendV1` is deprecated and implementations should
+        move to :class:`.BackendV2`.
 
     Args:
         backend (Backend): The backend instance that will be used to plot the device
@@ -102,6 +100,15 @@ def plot_gate_map(
 
            plot_gate_map(backend)
     """
+    if not isinstance(backend, BackendV2):
+        warnings.warn(
+            "The function `plot_gate_map` will stop supporting inputs of "
+            f"type `BackendV1` ( {backend} ) in the `backend` parameter in a future "
+            "release no earlier than 2.0. `BackendV1` is deprecated and implementations "
+            "should move to `BackendV2`.",
+            category=DeprecationWarning,
+            stacklevel=2,
+        )
     qubit_coordinates_map = {}
 
     qubit_coordinates_map[5] = [[1, 0], [0, 1], [1, 1], [1, 2], [2, 1]]
@@ -1150,18 +1157,15 @@ def plot_coupling_map(
         return fig
 
 
-@deprecate_arg(
-    name="backend",
-    since="1.4",
-    package_name="Qiskit",
-    removal_timeline="in Qiskit 2.0",
-    predicate=lambda backend: not isinstance(backend, BackendV2),
-    additional_msg="The BackendV1 class has been deprecated and will be "
-    "removed in Qiskit 2.0. Use an instance of BackendV2 instead.",
-)
 def plot_circuit_layout(circuit, backend, view="virtual", qubit_coordinates=None):
     """Plot the layout of a circuit transpiled for a given
     target backend.
+
+    .. deprecated:: 1.4
+        The function ``plot_circuit_layout`` will stop supporting inputs of type
+        :class:`.BackendV1` in the `backend` parameter in a future release no
+        earlier than 2.0. :class:`.BackendV1` is deprecated and implementations should
+        move to :class:`.BackendV2`.
 
     Args:
         circuit (QuantumCircuit): Input quantum circuit.
@@ -1204,6 +1208,17 @@ def plot_circuit_layout(circuit, backend, view="virtual", qubit_coordinates=None
             new_circ_lv3 = transpile(ghz, backend=backend, optimization_level=3)
             plot_circuit_layout(new_circ_lv3, backend)
     """
+
+    if not isinstance(backend, BackendV2):
+        warnings.warn(
+            "The function `plot_circuit_layout` will stop supporting inputs of "
+            f"type `BackendV1` ( {backend} ) in the `backend` parameter in a future "
+            "release no earlier than 2.0. `BackendV1` is deprecated and implementations "
+            "should move to `BackendV2`.",
+            category=DeprecationWarning,
+            stacklevel=2,
+        )
+
     if circuit._layout is None:
         raise QiskitError("Circuit has no layout. Perhaps it has not been transpiled.")
 
@@ -1266,19 +1281,16 @@ def plot_circuit_layout(circuit, backend, view="virtual", qubit_coordinates=None
     return fig
 
 
-@deprecate_arg(
-    name="backend",
-    since="1.4",
-    package_name="Qiskit",
-    removal_timeline="in Qiskit 2.0",
-    predicate=lambda backend: not isinstance(backend, BackendV2),
-    additional_msg="The BackendV1 class has been deprecated and will be "
-    "removed in Qiskit 2.0. Use an instance of BackendV2 instead.",
-)
 @_optionals.HAS_MATPLOTLIB.require_in_call
 @_optionals.HAS_SEABORN.require_in_call
 def plot_error_map(backend, figsize=(15, 12), show_title=True, qubit_coordinates=None):
     """Plots the error map of a given backend.
+
+    .. deprecated:: 1.4
+        The function ``plot_error_map`` will stop supporting inputs of type
+        :class:`.BackendV1` in the `backend` parameter in a future release no
+        earlier than 2.0. :class:`.BackendV1` is deprecated and implementations should
+        move to :class:`.BackendV2`.
 
     Args:
         backend (Backend): Given backend.
@@ -1307,6 +1319,16 @@ def plot_error_map(backend, figsize=(15, 12), show_title=True, qubit_coordinates
             backend = GenericBackendV2(num_qubits=5)
             plot_error_map(backend)
     """
+    if not isinstance(backend, BackendV2):
+        warnings.warn(
+            "The function `plot_error_map` will stop supporting inputs of "
+            f"type `BackendV1` ( {backend} ) in the `backend` parameter in a future "
+            "release no earlier than 2.0. `BackendV1` is deprecated and implementations "
+            "should move to `BackendV2`.",
+            category=DeprecationWarning,
+            stacklevel=2,
+        )
+
     import matplotlib
     import matplotlib.pyplot as plt
     from matplotlib import gridspec, ticker

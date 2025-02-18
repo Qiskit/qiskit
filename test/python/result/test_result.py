@@ -47,8 +47,10 @@ class TestResultOperations(QiskitTestCase):
         exp_result_1 = models.ExperimentResult(
             shots=8, success=True, data=data_1, header=exp_result_header_1
         )
-
-        result = Result(results=[exp_result_1], **self.base_result_args)
+        with self.assertWarnsRegex(
+            DeprecationWarning, expected_regex="``qobj_id`` is deprecated as of Qiskit 1.4"
+        ):
+            result = Result(results=[exp_result_1], **self.base_result_args)
         return result
 
     def test_counts_no_header(self):
@@ -59,7 +61,10 @@ class TestResultOperations(QiskitTestCase):
         }
         data = models.ExperimentResultData(counts=raw_counts)
         exp_result = models.ExperimentResult(shots=14, success=True, meas_level=2, data=data)
-        result = Result(results=[exp_result], **self.base_result_args)
+        with self.assertWarnsRegex(
+            DeprecationWarning, expected_regex="``qobj_id`` is deprecated as of Qiskit 1.4"
+        ):
+            result = Result(results=[exp_result], **self.base_result_args)
 
         self.assertEqual(result.get_counts(0), no_header_processed_counts)
 
@@ -75,7 +80,10 @@ class TestResultOperations(QiskitTestCase):
         exp_result = models.ExperimentResult(
             shots=14, success=True, meas_level=2, data=data, header=exp_result_header
         )
-        result = Result(results=[exp_result], **self.base_result_args)
+        with self.assertWarnsRegex(
+            DeprecationWarning, expected_regex="``qobj_id`` is deprecated as of Qiskit 1.4"
+        ):
+            result = Result(results=[exp_result], **self.base_result_args)
 
         self.assertEqual(result.get_counts(0), processed_counts)
 
@@ -91,7 +99,10 @@ class TestResultOperations(QiskitTestCase):
         exp_result = models.ExperimentResult(
             shots=14, success=True, meas_level=2, data=data, header=exp_result_header
         )
-        result = Result(results=[exp_result], **self.base_result_args)
+        with self.assertWarnsRegex(
+            DeprecationWarning, expected_regex="``qobj_id`` is deprecated as of Qiskit 1.4"
+        ):
+            result = Result(results=[exp_result], **self.base_result_args)
 
         self.assertEqual(result.get_counts("a_name"), processed_counts)
 
@@ -103,7 +114,10 @@ class TestResultOperations(QiskitTestCase):
         exp_result = models.ExperimentResult(
             shots=14, success=True, data=data, header=exp_result_header
         )
-        result = Result(results=[exp_result] * 2, **self.base_result_args)
+        with self.assertWarnsRegex(
+            DeprecationWarning, expected_regex="``qobj_id`` is deprecated as of Qiskit 1.4"
+        ):
+            result = Result(results=[exp_result] * 2, **self.base_result_args)
 
         with self.assertWarnsRegex(UserWarning, r"multiple.*foo"):
             result.get_counts("foo")
@@ -119,7 +133,10 @@ class TestResultOperations(QiskitTestCase):
         exp_result = models.ExperimentResult(
             shots=14, success=True, meas_level=2, data=data, header=exp_result_header
         )
-        result = Result(results=[exp_result], **self.base_result_args)
+        with self.assertWarnsRegex(
+            DeprecationWarning, expected_regex="``qobj_id`` is deprecated as of Qiskit 1.4"
+        ):
+            result = Result(results=[exp_result], **self.base_result_args)
         expected = (
             "Result(backend_name='test_backend', backend_version='1.0.0', "
             "qobj_id='id-123', job_id='job-123', success=True, "
@@ -166,10 +183,13 @@ class TestResultOperations(QiskitTestCase):
             shots=14, success=True, meas_level=2, data=data_3, header=exp_result_header_3
         )
 
-        mult_result = Result(
-            results=[exp_result_1, exp_result_2, exp_result_3], **self.base_result_args
-        )
-        sing_result = Result(results=[exp_result_1], **self.base_result_args)
+        with self.assertWarnsRegex(
+            DeprecationWarning, expected_regex="``qobj_id`` is deprecated as of Qiskit 1.4"
+        ):
+            mult_result = Result(
+                results=[exp_result_1, exp_result_2, exp_result_3], **self.base_result_args
+            )
+            sing_result = Result(results=[exp_result_1], **self.base_result_args)
 
         self.assertEqual(
             mult_result.get_counts(), [processed_counts_1, processed_counts_2, processed_counts_3]
@@ -185,7 +205,10 @@ class TestResultOperations(QiskitTestCase):
         exp_result = models.ExperimentResult(
             shots=54, success=True, data=data, header=exp_result_header
         )
-        result = Result(results=[exp_result], **self.base_result_args)
+        with self.assertWarnsRegex(
+            DeprecationWarning, expected_regex="``qobj_id`` is deprecated as of Qiskit 1.4"
+        ):
+            result = Result(results=[exp_result], **self.base_result_args)
         expected_marginal_counts = {"00": 4, "01": 27, "10": 23}
 
         self.assertEqual(marginal_counts(result.get_counts(), [0, 1]), expected_marginal_counts)
@@ -200,7 +223,10 @@ class TestResultOperations(QiskitTestCase):
         exp_result = models.ExperimentResult(
             shots=54, success=True, data=data, header=exp_result_header
         )
-        result = Result(results=[exp_result], **self.base_result_args)
+        with self.assertWarnsRegex(
+            DeprecationWarning, expected_regex="``qobj_id`` is deprecated as of Qiskit 1.4"
+        ):
+            result = Result(results=[exp_result], **self.base_result_args)
         expected_marginal_counts = {"00": 4, "01": 27, "10": 23}
         expected_reverse = {"00": 4, "10": 27, "01": 23}
 
@@ -217,7 +243,10 @@ class TestResultOperations(QiskitTestCase):
         exp_result = models.ExperimentResult(
             shots=54, success=True, data=data, header=exp_result_header
         )
-        result = Result(results=[exp_result], **self.base_result_args)
+        with self.assertWarnsRegex(
+            DeprecationWarning, expected_regex="``qobj_id`` is deprecated as of Qiskit 1.4"
+        ):
+            result = Result(results=[exp_result], **self.base_result_args)
         self.assertEqual(
             marginal_distribution(result.get_counts(), [0, 1]), expected_marginal_counts
         )
@@ -240,8 +269,10 @@ class TestResultOperations(QiskitTestCase):
         exp_result_2 = models.ExperimentResult(
             shots=13, success=True, data=data_2, header=exp_result_header_2
         )
-
-        result = Result(results=[exp_result_1, exp_result_2], **self.base_result_args)
+        with self.assertWarnsRegex(
+            DeprecationWarning, expected_regex="``qobj_id`` is deprecated as of Qiskit 1.4"
+        ):
+            result = Result(results=[exp_result_1, exp_result_2], **self.base_result_args)
 
         expected_marginal_counts_1 = {"00": 4, "01": 27, "10": 23}
         expected_marginal_counts_2 = {"0": 5, "1": 8}
@@ -356,8 +387,10 @@ class TestResultOperations(QiskitTestCase):
         exp_result = models.ExperimentResult(
             shots=54, success=True, data=data, header=exp_result_header
         )
-
-        result = Result(results=[exp_result], **self.base_result_args)
+        with self.assertWarnsRegex(
+            DeprecationWarning, expected_regex="``qobj_id`` is deprecated as of Qiskit 1.4"
+        ):
+            result = Result(results=[exp_result], **self.base_result_args)
 
         expected_marginal_counts = {"0 0": 14, "0 1": 18, "1 0": 13, "1 1": 9}
         expected_creg_sizes = [["c0", 1], ["c1", 1]]
@@ -381,8 +414,10 @@ class TestResultOperations(QiskitTestCase):
         exp_result_1 = models.ExperimentResult(
             shots=54, success=True, data=data_1, header=exp_result_header_1
         )
-
-        result = Result(results=[exp_result_1], **self.base_result_args)
+        with self.assertWarnsRegex(
+            DeprecationWarning, expected_regex="``qobj_id`` is deprecated as of Qiskit 1.4"
+        ):
+            result = Result(results=[exp_result_1], **self.base_result_args)
 
         expected_marginal_counts_1 = {
             "0_0 _0": 14,
@@ -413,8 +448,10 @@ class TestResultOperations(QiskitTestCase):
         exp_result_2 = models.ExperimentResult(
             shots=13, success=True, data=data_2, header=exp_result_header_2
         )
-
-        result = Result(results=[exp_result_1, exp_result_2], **self.base_result_args)
+        with self.assertWarnsRegex(
+            DeprecationWarning, expected_regex="``qobj_id`` is deprecated as of Qiskit 1.4"
+        ):
+            result = Result(results=[exp_result_1, exp_result_2], **self.base_result_args)
 
         expected_marginal_counts = {"0": 27, "1": 27}
 
@@ -440,8 +477,10 @@ class TestResultOperations(QiskitTestCase):
         exp_result_2 = models.ExperimentResult(
             shots=13, success=True, data=data_2, header=exp_result_header_2
         )
-
-        result = Result(results=[exp_result_1, exp_result_2], **self.base_result_args)
+        with self.assertWarnsRegex(
+            DeprecationWarning, expected_regex="``qobj_id`` is deprecated as of Qiskit 1.4"
+        ):
+            result = Result(results=[exp_result_1, exp_result_2], **self.base_result_args)
 
         expected_marginal_counts = {"0": 27, "1": 27}
 
@@ -484,7 +523,10 @@ class TestResultOperations(QiskitTestCase):
         exp_result = models.ExperimentResult(
             shots=14, success=True, meas_level=2, memory=True, data=data
         )
-        result = Result(results=[exp_result], **self.base_result_args)
+        with self.assertWarnsRegex(
+            DeprecationWarning, expected_regex="``qobj_id`` is deprecated as of Qiskit 1.4"
+        ):
+            result = Result(results=[exp_result], **self.base_result_args)
 
         self.assertEqual(result.get_memory(0), no_header_processed_memory)
 
@@ -508,7 +550,10 @@ class TestResultOperations(QiskitTestCase):
         exp_result = models.ExperimentResult(
             shots=14, success=True, meas_level=2, memory=True, data=data, header=exp_result_header
         )
-        result = Result(results=[exp_result], **self.base_result_args)
+        with self.assertWarnsRegex(
+            DeprecationWarning, expected_regex="``qobj_id`` is deprecated as of Qiskit 1.4"
+        ):
+            result = Result(results=[exp_result], **self.base_result_args)
 
         self.assertEqual(result.get_memory(0), no_header_processed_memory)
 
@@ -521,7 +566,10 @@ class TestResultOperations(QiskitTestCase):
         exp_result = models.ExperimentResult(
             shots=2, success=True, meas_level=1, meas_return="avg", data=data
         )
-        result = Result(results=[exp_result], **self.base_result_args)
+        with self.assertWarnsRegex(
+            DeprecationWarning, expected_regex="``qobj_id`` is deprecated as of Qiskit 1.4"
+        ):
+            result = Result(results=[exp_result], **self.base_result_args)
         memory = result.get_memory(0)
 
         self.assertEqual(memory.shape, (3,))
@@ -539,7 +587,10 @@ class TestResultOperations(QiskitTestCase):
         exp_result = models.ExperimentResult(
             shots=2, success=True, meas_level=1, meas_return="single", data=data
         )
-        result = Result(results=[exp_result], **self.base_result_args)
+        with self.assertWarnsRegex(
+            DeprecationWarning, expected_regex="``qobj_id`` is deprecated as of Qiskit 1.4"
+        ):
+            result = Result(results=[exp_result], **self.base_result_args)
         memory = result.get_memory(0)
 
         self.assertEqual(memory.shape, (2, 3))
@@ -555,7 +606,10 @@ class TestResultOperations(QiskitTestCase):
         exp_result = models.ExperimentResult(
             shots=2, success=True, meas_level=0, meas_return="avg", data=data
         )
-        result = Result(results=[exp_result], **self.base_result_args)
+        with self.assertWarnsRegex(
+            DeprecationWarning, expected_regex="``qobj_id`` is deprecated as of Qiskit 1.4"
+        ):
+            result = Result(results=[exp_result], **self.base_result_args)
         memory = result.get_memory(0)
 
         self.assertEqual(memory.shape, (2, 3))
@@ -577,7 +631,10 @@ class TestResultOperations(QiskitTestCase):
         exp_result = models.ExperimentResult(
             shots=2, success=True, meas_level=0, meas_return="single", data=data
         )
-        result = Result(results=[exp_result], **self.base_result_args)
+        with self.assertWarnsRegex(
+            DeprecationWarning, expected_regex="``qobj_id`` is deprecated as of Qiskit 1.4"
+        ):
+            result = Result(results=[exp_result], **self.base_result_args)
         memory = result.get_memory(0)
 
         self.assertEqual(memory.shape, (2, 2, 3))
@@ -614,7 +671,10 @@ class TestResultOperations(QiskitTestCase):
         )
         data = models.ExperimentResultData(statevector=raw_statevector)
         exp_result = models.ExperimentResult(shots=1, success=True, data=data)
-        result = Result(results=[exp_result], **self.base_result_args)
+        with self.assertWarnsRegex(
+            DeprecationWarning, expected_regex="``qobj_id`` is deprecated as of Qiskit 1.4"
+        ):
+            result = Result(results=[exp_result], **self.base_result_args)
         statevector = result.get_statevector()
         self.assertEqual(statevector.shape, (8,))
         self.assertEqual(statevector.dtype, np.complex128)
@@ -650,7 +710,10 @@ class TestResultOperations(QiskitTestCase):
         )
         data = models.ExperimentResultData(statevector=raw_statevector)
         exp_result = models.ExperimentResult(shots=1, success=True, data=data)
-        result = Result(results=[exp_result], **self.base_result_args)
+        with self.assertWarnsRegex(
+            DeprecationWarning, expected_regex="``qobj_id`` is deprecated as of Qiskit 1.4"
+        ):
+            result = Result(results=[exp_result], **self.base_result_args)
         statevector = result.get_statevector(decimals=3)
         self.assertEqual(statevector.shape, (8,))
         self.assertEqual(statevector.dtype, np.complex128)
@@ -674,7 +737,10 @@ class TestResultOperations(QiskitTestCase):
         )
         data = models.ExperimentResultData(unitary=raw_unitary)
         exp_result = models.ExperimentResult(shots=1, success=True, data=data)
-        result = Result(results=[exp_result], **self.base_result_args)
+        with self.assertWarnsRegex(
+            DeprecationWarning, expected_regex="``qobj_id`` is deprecated as of Qiskit 1.4"
+        ):
+            result = Result(results=[exp_result], **self.base_result_args)
         unitary = result.get_unitary()
         self.assertEqual(unitary.shape, (2, 2))
         self.assertEqual(unitary.dtype, np.complex128)
@@ -694,7 +760,10 @@ class TestResultOperations(QiskitTestCase):
         )
         data = models.ExperimentResultData(unitary=raw_unitary)
         exp_result = models.ExperimentResult(shots=1, success=True, data=data)
-        result = Result(results=[exp_result], **self.base_result_args)
+        with self.assertWarnsRegex(
+            DeprecationWarning, expected_regex="``qobj_id`` is deprecated as of Qiskit 1.4"
+        ):
+            result = Result(results=[exp_result], **self.base_result_args)
         unitary = result.get_unitary(decimals=3)
         self.assertEqual(unitary.shape, (2, 2))
         self.assertEqual(unitary.dtype, np.complex128)
@@ -705,7 +774,10 @@ class TestResultOperations(QiskitTestCase):
         target_probs = {"0x0": 0.5, "0x1": 0.5}
         data = models.ExperimentResultData(probabilities=target_probs)
         exp_result = models.ExperimentResult(shots=1, success=True, data=data)
-        result = Result(results=[exp_result], **self.base_result_args)
+        with self.assertWarnsRegex(
+            DeprecationWarning, expected_regex="``qobj_id`` is deprecated as of Qiskit 1.4"
+        ):
+            result = Result(results=[exp_result], **self.base_result_args)
         result_probs = result.data(0)["probabilities"]
         self.assertEqual(result_probs, target_probs)
 
@@ -728,7 +800,10 @@ class TestResultOperationsFailed(QiskitTestCase):
         raw_counts = {"0x0": 4, "0x2": 10}
         data = models.ExperimentResultData(counts=raw_counts)
         exp_result = models.ExperimentResult(shots=14, success=True, meas_level=2, data=data)
-        result = Result(results=[exp_result], **self.base_result_args)
+        with self.assertWarnsRegex(
+            DeprecationWarning, expected_regex="``qobj_id`` is deprecated as of Qiskit 1.4"
+        ):
+            result = Result(results=[exp_result], **self.base_result_args)
 
         with self.assertRaises(Exception) as context:
             result.get_counts(99)
@@ -747,7 +822,10 @@ class TestResultOperationsFailed(QiskitTestCase):
         exp_result = models.ExperimentResult(
             shots=14, success=True, meas_level=2, data=data, header=exp_result_header
         )
-        result = Result(results=[exp_result], **self.base_result_args)
+        with self.assertWarnsRegex(
+            DeprecationWarning, expected_regex="``qobj_id`` is deprecated as of Qiskit 1.4"
+        ):
+            result = Result(results=[exp_result], **self.base_result_args)
 
         with self.assertRaises(Exception) as context:
             result.get_counts("another_name")
@@ -762,7 +840,10 @@ class TestResultOperationsFailed(QiskitTestCase):
         exp_result = models.ExperimentResult(
             shots=14, success=True, meas_level=2, memory=True, data=data
         )
-        result = Result(results=[exp_result], **self.base_result_args)
+        with self.assertWarnsRegex(
+            DeprecationWarning, expected_regex="``qobj_id`` is deprecated as of Qiskit 1.4"
+        ):
+            result = Result(results=[exp_result], **self.base_result_args)
 
         with self.assertRaises(Exception) as context:
             result.get_memory(99)
@@ -779,8 +860,10 @@ class TestResultOperationsFailed(QiskitTestCase):
         exp_result_1 = models.ExperimentResult(
             shots=54, success=True, data=data_1, header=exp_result_header_1
         )
-
-        result = Result(results=[exp_result_1], **self.base_result_args)
+        with self.assertWarnsRegex(
+            DeprecationWarning, expected_regex="``qobj_id`` is deprecated as of Qiskit 1.4"
+        ):
+            result = Result(results=[exp_result_1], **self.base_result_args)
 
         with self.assertWarns(DeprecationWarning):
             _ = marginal_counts(result, indices=[0])

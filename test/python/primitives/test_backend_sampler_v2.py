@@ -172,7 +172,7 @@ class TestBackendSamplerV2(QiskitTestCase):
             bell = pm.run(bell)
             with self.assertWarnsRegex(
                 DeprecationWarning,
-                expected_regex="``backend`` is deprecated as of Qiskit 1.4",
+                expected_regex="will stop supporting inputs of type `BackendV1`",
             ):
                 sampler = BackendSamplerV2(backend=backend, options=self._options)
             job = sampler.run([bell], shots=self._shots)
@@ -189,7 +189,7 @@ class TestBackendSamplerV2(QiskitTestCase):
             pqc, param_vals, target = self._cases[2]
             with self.assertWarnsRegex(
                 DeprecationWarning,
-                expected_regex="``backend`` is deprecated as of Qiskit 1.4",
+                expected_regex="will stop supporting inputs of type `BackendV1`",
             ):
                 sampler = BackendSamplerV2(backend=backend, options=self._options)
             pqc = pm.run(pqc)
@@ -208,7 +208,7 @@ class TestBackendSamplerV2(QiskitTestCase):
             pqc, param_vals, target = self._cases[2]
             with self.assertWarnsRegex(
                 DeprecationWarning,
-                expected_regex="``backend`` is deprecated as of Qiskit 1.4",
+                expected_regex="will stop supporting inputs of type `BackendV1`",
             ):
                 sampler = BackendSamplerV2(backend=backend, options=self._options)
             pqc = pm.run(pqc)
@@ -282,7 +282,7 @@ class TestBackendSamplerV2(QiskitTestCase):
         bell, _, _ = self._cases[1]
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="``backend`` is deprecated as of Qiskit 1.4",
+            expected_regex="will stop supporting inputs of type `BackendV1`",
         ):
             sampler = BackendSamplerV2(backend=backend, options=self._options)
         with self.assertWarnsRegex(
@@ -317,7 +317,7 @@ class TestBackendSamplerV2(QiskitTestCase):
         bell, _, target = self._cases[1]
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="``backend`` is deprecated as of Qiskit 1.4",
+            expected_regex="will stop supporting inputs of type `BackendV1`",
         ):
             sampler = BackendSamplerV2(backend=backend, options=self._options)
         with self.assertWarnsRegex(
@@ -357,7 +357,7 @@ class TestBackendSamplerV2(QiskitTestCase):
         pqc1, pqc2, pqc3 = pm.run([pqc1, pqc2, pqc3])
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="``backend`` is deprecated as of Qiskit 1.4",
+            expected_regex="will stop supporting inputs of type `BackendV1`",
         ):
             sampler = BackendSamplerV2(backend=backend, options=self._options)
         result = sampler.run(
@@ -403,7 +403,7 @@ class TestBackendSamplerV2(QiskitTestCase):
 
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="``backend`` is deprecated as of Qiskit 1.4",
+            expected_regex="will stop supporting inputs of type `BackendV1`",
         ):
             sampler = BackendSamplerV2(backend=backend, options=self._options)
         result = sampler.run([qc, qc2], shots=self._shots).result()
@@ -458,7 +458,7 @@ class TestBackendSamplerV2(QiskitTestCase):
 
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="``backend`` is deprecated as of Qiskit 1.4",
+            expected_regex="will stop supporting inputs of type `BackendV1`",
         ):
             sampler = BackendSamplerV2(backend=backend, options=self._options)
         result = sampler.run([qc0, qc1, qc2, qc3], shots=self._shots).result()
@@ -529,7 +529,7 @@ class TestBackendSamplerV2(QiskitTestCase):
         """Test for single circuit case."""
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="``backend`` is deprecated as of Qiskit 1.4",
+            expected_regex="will stop supporting inputs of type `BackendV1`",
         ):
             sampler = BackendSamplerV2(backend=backend, options=self._options)
         with self.assertWarnsRegex(
@@ -640,7 +640,7 @@ class TestBackendSamplerV2(QiskitTestCase):
         qc = pm.run(qc)
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="``backend`` is deprecated as of Qiskit 1.4",
+            expected_regex="will stop supporting inputs of type `BackendV1`",
         ):
             sampler = BackendSamplerV2(backend=backend)
         sampler.options.seed_simulator = self._seed
@@ -722,7 +722,7 @@ class TestBackendSamplerV2(QiskitTestCase):
 
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="``backend`` is deprecated as of Qiskit 1.4",
+            expected_regex="will stop supporting inputs of type `BackendV1`",
         ):
             sampler = BackendSamplerV2(backend=backend)
         with self.subTest("set parameter values to a non-parameterized circuit"):
@@ -801,7 +801,7 @@ class TestBackendSamplerV2(QiskitTestCase):
         qc = pm.run(qc)
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="``backend`` is deprecated as of Qiskit 1.4",
+            expected_regex="will stop supporting inputs of type `BackendV1`",
         ):
             sampler = BackendSamplerV2(backend=backend, options=self._options)
         with self.subTest("one circuit"):
@@ -866,7 +866,7 @@ class TestBackendSamplerV2(QiskitTestCase):
         with self.subTest("ndarray"):
             with self.assertWarnsRegex(
                 DeprecationWarning,
-                expected_regex="``backend`` is deprecated as of Qiskit 1.4",
+                expected_regex="will stop supporting inputs of type `BackendV1`",
             ):
                 sampler = BackendSamplerV2(backend=backend, options=self._options)
             result = sampler.run([(qc, params_array)], shots=self._shots).result()
@@ -876,7 +876,7 @@ class TestBackendSamplerV2(QiskitTestCase):
         with self.subTest("split a list"):
             with self.assertWarnsRegex(
                 DeprecationWarning,
-                expected_regex="``backend`` is deprecated as of Qiskit 1.4",
+                expected_regex="will stop supporting inputs of type `BackendV1`",
             ):
                 sampler = BackendSamplerV2(backend=backend, options=self._options)
             result = sampler.run(
@@ -968,7 +968,7 @@ class TestBackendSamplerV2(QiskitTestCase):
         with self.subTest("run arg"):
             with self.assertWarnsRegex(
                 DeprecationWarning,
-                expected_regex="``backend`` is deprecated as of Qiskit 1.4",
+                expected_regex="will stop supporting inputs of type `BackendV1`",
             ):
                 sampler = BackendSamplerV2(backend=backend, options=self._options)
             result = sampler.run([bell], shots=shots).result()
@@ -979,7 +979,7 @@ class TestBackendSamplerV2(QiskitTestCase):
         with self.subTest("default shots"):
             with self.assertWarnsRegex(
                 DeprecationWarning,
-                expected_regex="``backend`` is deprecated as of Qiskit 1.4",
+                expected_regex="will stop supporting inputs of type `BackendV1`",
             ):
                 sampler = BackendSamplerV2(backend=backend, options=self._options)
             default_shots = sampler.options.default_shots
@@ -992,7 +992,7 @@ class TestBackendSamplerV2(QiskitTestCase):
             default_shots = 100
             with self.assertWarnsRegex(
                 DeprecationWarning,
-                expected_regex="``backend`` is deprecated as of Qiskit 1.4",
+                expected_regex="will stop supporting inputs of type `BackendV1`",
             ):
                 sampler = BackendSamplerV2(backend=backend, options=self._options)
             sampler.options.default_shots = default_shots
@@ -1005,7 +1005,7 @@ class TestBackendSamplerV2(QiskitTestCase):
         with self.subTest("pub-like"):
             with self.assertWarnsRegex(
                 DeprecationWarning,
-                expected_regex="``backend`` is deprecated as of Qiskit 1.4",
+                expected_regex="will stop supporting inputs of type `BackendV1`",
             ):
                 sampler = BackendSamplerV2(backend=backend, options=self._options)
             result = sampler.run([(bell, None, shots)]).result()
@@ -1016,7 +1016,7 @@ class TestBackendSamplerV2(QiskitTestCase):
         with self.subTest("pub"):
             with self.assertWarnsRegex(
                 DeprecationWarning,
-                expected_regex="``backend`` is deprecated as of Qiskit 1.4",
+                expected_regex="will stop supporting inputs of type `BackendV1`",
             ):
                 sampler = BackendSamplerV2(backend=backend, options=self._options)
             result = sampler.run([SamplerPub(bell, shots=shots)]).result()
@@ -1027,7 +1027,7 @@ class TestBackendSamplerV2(QiskitTestCase):
         with self.subTest("multiple pubs"):
             with self.assertWarnsRegex(
                 DeprecationWarning,
-                expected_regex="``backend`` is deprecated as of Qiskit 1.4",
+                expected_regex="will stop supporting inputs of type `BackendV1`",
             ):
                 sampler = BackendSamplerV2(backend=backend, options=self._options)
             shots1 = 100
@@ -1076,7 +1076,7 @@ class TestBackendSamplerV2(QiskitTestCase):
         qc = pm.run(qc)
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="``backend`` is deprecated as of Qiskit 1.4",
+            expected_regex="will stop supporting inputs of type `BackendV1`",
         ):
             sampler = BackendSamplerV2(backend=backend, options=self._options)
         result = sampler.run([qc], shots=self._shots).result()
@@ -1104,7 +1104,12 @@ class TestBackendSamplerV2(QiskitTestCase):
             },
         }
         sampler = BackendSamplerV2(backend=backend, options=options)
-        result_single = sampler.run([qc]).result()
+        # sampler.run will call the custom backend.run implementation
+        # that returns a deprecation warning
+        with self.assertWarnsRegex(
+            DeprecationWarning, expected_regex="``qobj_id`` is deprecated as of Qiskit 1.4"
+        ):
+            result_single = sampler.run([qc]).result()
 
         options = {
             "default_shots": shots,
@@ -1115,7 +1120,12 @@ class TestBackendSamplerV2(QiskitTestCase):
             },
         }
         sampler = BackendSamplerV2(backend=backend, options=options)
-        result_avg = sampler.run([qc]).result()
+        # sampler.run will call the custom backend.run implementation
+        # that returns a deprecation warning
+        with self.assertWarnsRegex(
+            DeprecationWarning, expected_regex="``qobj_id`` is deprecated as of Qiskit 1.4"
+        ):
+            result_avg = sampler.run([qc]).result()
 
         # Check that averaging the meas_return="single" data matches the
         # meas_return="avg" data.
@@ -1157,7 +1167,7 @@ class TestBackendSamplerV2(QiskitTestCase):
         bell = pm.run(bell)
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="``backend`` is deprecated as of Qiskit 1.4",
+            expected_regex="will stop supporting inputs of type `BackendV1`",
         ):
             sampler = BackendSamplerV2(backend=backend, options=self._options)
         job = sampler.run([bell], shots=self._shots)
@@ -1214,7 +1224,7 @@ class TestBackendSamplerV2(QiskitTestCase):
             circuit = pm.run(circuit)
             with self.assertWarnsRegex(
                 DeprecationWarning,
-                expected_regex="``backend`` is deprecated as of Qiskit 1.4",
+                expected_regex="will stop supporting inputs of type `BackendV1`",
             ):
                 sampler = BackendSamplerV2(backend=backend, options=self._options)
             result = sampler.run([circuit], shots=self._shots).result()
@@ -1230,7 +1240,7 @@ class TestBackendSamplerV2(QiskitTestCase):
             circuit = pm.run(circuit)
             with self.assertWarnsRegex(
                 DeprecationWarning,
-                expected_regex="``backend`` is deprecated as of Qiskit 1.4",
+                expected_regex="will stop supporting inputs of type `BackendV1`",
             ):
                 sampler = BackendSamplerV2(backend=backend, options=self._options)
             result = sampler.run([circuit], shots=self._shots).result()
@@ -1395,7 +1405,7 @@ class TestBackendSamplerV2(QiskitTestCase):
             with self.subTest(title):
                 with self.assertWarnsRegex(
                     DeprecationWarning,
-                    expected_regex="``backend`` is deprecated as of Qiskit 1.4",
+                    expected_regex="will stop supporting inputs of type `BackendV1`",
                 ):
                     sampler = BackendSamplerV2(backend=backend, options=self._options)
                 result = sampler.run([qc], shots=self._shots).result()
@@ -1472,7 +1482,7 @@ class TestBackendSamplerV2(QiskitTestCase):
         }
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="``backend`` is deprecated as of Qiskit 1.4",
+            expected_regex="will stop supporting inputs of type `BackendV1`",
         ):
             sampler = BackendSamplerV2(backend=backend, options=self._options)
         with self.assertWarnsRegex(
@@ -1497,7 +1507,7 @@ class TestBackendSamplerV2(QiskitTestCase):
         if backend.version == 1:
             with self.assertWarnsRegex(
                 DeprecationWarning,
-                expected_regex="You can input an instance of BackendV2 to `backend` instead.",
+                expected_regex="will stop supporting inputs of type `BackendV1`",
             ):
                 sampler = BackendSamplerV2(backend=backend, options=self._options)
         else:
@@ -1523,7 +1533,7 @@ class TestBackendSamplerV2(QiskitTestCase):
         if backend.version == 1:
             with self.assertWarnsRegex(
                 DeprecationWarning,
-                expected_regex="You can input an instance of BackendV2 to `backend` instead.",
+                expected_regex="will stop supporting inputs of type `BackendV1`",
             ):
                 sampler = BackendSamplerV2(backend=backend, options=self._options)
         else:
@@ -1563,7 +1573,7 @@ class TestBackendSamplerV2(QiskitTestCase):
         bell = pm.run(bell)
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="``backend`` is deprecated as of Qiskit 1.4",
+            expected_regex="will stop supporting inputs of type `BackendV1`",
         ):
             sampler = BackendSamplerV2(backend=backend, options=self._options)
         shots2 = self._shots + 2

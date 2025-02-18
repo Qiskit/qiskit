@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import math
+import warnings
 from collections import defaultdict
 from collections.abc import Iterable
 from dataclasses import dataclass
@@ -28,7 +29,6 @@ from qiskit.quantum_info import Pauli, PauliList
 from qiskit.result import Counts
 from qiskit.transpiler import PassManager, PassManagerConfig
 from qiskit.transpiler.passes import Optimize1qGatesDecomposition
-from qiskit.utils.deprecation import deprecate_arg
 
 from .backend_estimator import _pauli_expval_with_variance, _prepare_counts, _run_circuits
 from .base import BaseEstimatorV2
@@ -125,15 +125,6 @@ class BackendEstimatorV2(BaseEstimatorV2):
     `Quantum 5, 385 <https://doi.org/10.22331/q-2021-01-20-385>`_
     """
 
-    @deprecate_arg(
-        name="backend",
-        since="1.4",
-        package_name="Qiskit",
-        removal_timeline="in Qiskit 2.0",
-        predicate=lambda backend: not isinstance(backend, BackendV2),
-        additional_msg="Inputs of type BackendV1 have been deprecated and will be "
-        "removed in Qiskit 2.0. You can still use ``backend`` with an instance of BackendV2.",
-    )
     def __init__(
         self,
         *,
@@ -141,12 +132,28 @@ class BackendEstimatorV2(BaseEstimatorV2):
         options: dict | None = None,
     ):
         """
+        .. deprecated:: 1.4
+            The method ``BackendEstimatorV2.__init__`` will stop supporting inputs of type
+            :class:`.BackendV1` in the `backend` parameter in a future release no
+            earlier than 2.0. :class:`.BackendV1` is deprecated and implementations should
+            move to :class:`.BackendV2`.
+
         Args:
             backend: The backend to run the primitive on.
             options: The options to control the default precision (``default_precision``),
                 the operator grouping (``abelian_grouping``), and
                 the random seed for the simulator (``seed_simulator``).
         """
+
+        if not isinstance(backend, BackendV2):
+            warnings.warn(
+                "The method `BackendEstimatorV2.__init__` will stop supporting inputs of "
+                f"type `BackendV1` ( {backend} ) in the `backend` parameter in a future "
+                "release no earlier than 2.0. `BackendV1` is deprecated and implementations "
+                "should move to `BackendV2`.",
+                category=DeprecationWarning,
+                stacklevel=2,
+            )
         self._backend = backend
         self._options = Options(**options) if options else Options()
 

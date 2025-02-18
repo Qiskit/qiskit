@@ -41,7 +41,7 @@ class Nduv:
         "of the deprecated `BackendV1` workflow,  and no longer necessary for `BackendV2`. If a user "
         "workflow requires these representations it likely relies on deprecated functionality and "
         "should be updated to use `BackendV2`.",
-        stacklevel=3,
+        stacklevel=2,
     )
     def __init__(self, date, name, unit, value):
         """Initialize a new name-date-unit-value object
@@ -113,7 +113,7 @@ class GateProperties:
         "of the deprecated `BackendV1` workflow,  and no longer necessary for `BackendV2`. If a user "
         "workflow requires these representations it likely relies on deprecated functionality and "
         "should be updated to use `BackendV2`.",
-        stacklevel=3,
+        stacklevel=2,
     )
     def __init__(self, qubits, gate, parameters, **kwargs):
         """Initialize a new :class:`GateProperties` object
@@ -198,7 +198,7 @@ class BackendProperties:
         "of the deprecated `BackendV1` workflow,  and no longer necessary for `BackendV2`. If a user "
         "workflow requires these representations it likely relies on deprecated functionality and "
         "should be updated to use `BackendV2`.",
-        stacklevel=3,
+        stacklevel=2,
     )
     def __init__(
         self, backend_name, backend_version, last_update_date, qubits, gates, general, **kwargs

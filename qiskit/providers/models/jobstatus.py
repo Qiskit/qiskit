@@ -33,7 +33,7 @@ class JobStatus:
         "of the deprecated `BackendV1` workflow,  and no longer necessary for `BackendV2`. If a user "
         "workflow requires these representations it likely relies on deprecated functionality and "
         "should be updated to use `BackendV2`.",
-        stacklevel=3,
+        stacklevel=2,
     )
     def __init__(self, job_id, status, status_msg, **kwargs):
         self._data = {}

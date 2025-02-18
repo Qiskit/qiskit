@@ -44,12 +44,13 @@ class Result:
     _metadata = {}
 
     @deprecate_arg(
-        name="backend",
+        name="qobj_id",
         since="1.4",
         package_name="Qiskit",
         removal_timeline="in Qiskit 2.0",
         additional_msg="The Qobj class has been deprecated and will be "
-        "removed in Qiskit 2.0. This input argument cannot exist without Qobj",
+        "removed in Qiskit 2.0. This input argument cannot exist without Qobj.",
+        stacklevel=2,
     )
     def __init__(
         self,

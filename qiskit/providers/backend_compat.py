@@ -60,6 +60,8 @@ def convert_to_target(
     Returns:
         A ``Target`` instance.
     """
+    # If a deprecated error is raised during the conversion, we should not return the
+    # deprecation warning to the user,as it is not actionable for them.
     with warnings.catch_warnings():
         warnings.filterwarnings(
             "ignore",
@@ -441,7 +443,9 @@ class BackendV2Converter(BackendV2):
         :rtype: Target
         """
         if self._target is None:
-            # BackendPropertyError is deprecated but it's not an actionable for users
+            # If a deprecated error is raised during the conversion,
+            # we should not return the deprecation warning to the user,
+            # as it is not actionable for them.
             with warnings.catch_warnings():
                 warnings.filterwarnings(
                     "ignore",
