@@ -124,7 +124,7 @@ class BackendSamplerV2(BaseSamplerV2):
     ):
         """
         .. deprecated:: 1.4
-            The method ``BackendEstimatorV2.__init__`` will stop supporting inputs of type
+            The method ``BackendSamplerV2.__init__`` will stop supporting inputs of type
             :class:`.BackendV1` in the `backend` parameter in a future release no
             earlier than 2.0. :class:`.BackendV1` is deprecated and implementations should
             move to :class:`.BackendV2`.
