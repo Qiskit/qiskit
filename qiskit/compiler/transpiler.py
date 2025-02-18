@@ -22,7 +22,6 @@ from qiskit import user_config
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.providers.backend import Backend
-from qiskit.providers.backend_compat import BackendV2Converter
 from qiskit.transpiler import Layout, CouplingMap, PropertySet
 from qiskit.transpiler.basepasses import BasePass
 from qiskit.transpiler.exceptions import TranspilerError, CircuitTooWideForTarget
@@ -94,22 +93,21 @@ def transpile(  # pylint: disable=too-many-return-statements
     (``basis_gates``, ``inst_map``, ``coupling_map``, ``instruction_durations``,
     ``dt`` or ``timing_constraints``). If a ``backend`` is provided together with any loose constraint
     from the list above, the loose constraint will take priority over the corresponding backend
-    constraint. This behavior is independent of whether the ``backend`` instance is of type
-    :class:`.BackendV1` or :class:`.BackendV2`, as summarized in the table below. The first column
+    constraint. This behavior is summarized in the table below. The first column
     in the table summarizes the potential user-provided constraints, and each cell shows whether
     the priority is assigned to that specific constraint input or another input
-    (`target`/`backend(V1)`/`backend(V2)`).
+    (`target`/`backend(V2)`).
 
-    ============================ ========= ======================== =======================
-    User Provided                target    backend(V1)              backend(V2)
-    ============================ ========= ======================== =======================
-    **basis_gates**              target    basis_gates              basis_gates
-    **coupling_map**             target    coupling_map             coupling_map
-    **instruction_durations**    target    instruction_durations    instruction_durations
-    **inst_map**                 target    inst_map                 inst_map
-    **dt**                       target    dt                       dt
-    **timing_constraints**       target    timing_constraints       timing_constraints
-    ============================ ========= ======================== =======================
+    ============================ ========= ========================
+    User Provided                target    backend(V2)
+    ============================ ========= ========================
+    **basis_gates**              target    basis_gates
+    **coupling_map**             target    coupling_map
+    **instruction_durations**    target    instruction_durations
+    **inst_map**                 target    inst_map
+    **dt**                       target    dt
+    **timing_constraints**       target    timing_constraints
+    ============================ ========= =======================
 
     Args:
         circuits: Circuit(s) to transpile
@@ -319,30 +317,6 @@ def transpile(  # pylint: disable=too-many-return-statements
         # Take optimization level from the configuration or 1 as default.
         config = user_config.get_config()
         optimization_level = config.get("transpile_optimization_level", 2)
-
-    if backend is not None and getattr(backend, "version", 0) <= 1:
-        warnings.warn(
-            "The `transpile` function will stop supporting inputs of "
-            f"type `BackendV1` ( {backend} ) in the `backend` parameter in a future "
-            "release no earlier than 2.0. `BackendV1` is deprecated and implementations "
-            "should move to `BackendV2`.",
-            category=DeprecationWarning,
-            stacklevel=2,
-        )
-        with warnings.catch_warnings():
-            # This is a temporary conversion step to allow for a smoother transition
-            # to a fully target-based transpiler pipeline while maintaining the behavior
-            # of `transpile` with BackendV1 inputs.
-            # TODO BackendV1 is deprecated and this path can be
-            #   removed once it gets removed:
-            #   https://github.com/Qiskit/qiskit/pull/12850
-            warnings.filterwarnings(
-                "ignore",
-                category=DeprecationWarning,
-                message=r".+qiskit\.providers\.backend_compat\.BackendV2Converter.+",
-                module="qiskit",
-            )
-            backend = BackendV2Converter(backend)
 
     if (
         scheduling_method is not None

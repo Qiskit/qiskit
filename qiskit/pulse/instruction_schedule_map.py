@@ -40,9 +40,6 @@ from qiskit.pulse.calibration_entries import (
     CalibrationEntry,
     ScheduleDef,
     CallableDef,
-    # for backward compatibility
-    PulseQobjDef,
-    CalibrationPublisher,
 )
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.schedule import Schedule, ScheduleBlock

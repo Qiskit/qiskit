@@ -19,11 +19,9 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.pulse.schedule import Schedule
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.states import statevector
-from qiskit.result.models import ExperimentResult
+from qiskit.result.models import ExperimentResult, MeasLevel
 from qiskit.result import postprocess
 from qiskit.result.counts import Counts
-from qiskit.qobj.utils import MeasLevel
-from qiskit.qobj import QobjHeader
 
 
 class Result:
@@ -32,7 +30,6 @@ class Result:
     Attributes:
         backend_name (str): backend name.
         backend_version (str): backend version, in the form X.Y.Z.
-        qobj_id (str): user-generated Qobj id.
         job_id (str): unique execution id from the backend.
         success (bool): True if complete input qobj executed correctly. (Implies
             each experiment success)
@@ -46,7 +43,6 @@ class Result:
         self,
         backend_name,
         backend_version,
-        qobj_id,
         job_id,
         success,
         results,
@@ -58,7 +54,6 @@ class Result:
         self._metadata = {}
         self.backend_name = backend_name
         self.backend_version = backend_version
-        self.qobj_id = qobj_id
         self.job_id = job_id
         self.success = success
         self.results = results
@@ -70,7 +65,7 @@ class Result:
     def __repr__(self):
         out = (
             f"Result(backend_name='{self.backend_name}', backend_version='{self.backend_version}',"
-            f" qobj_id='{self.qobj_id}', job_id='{self.job_id}', success={self.success},"
+            f" job_id='{self.job_id}', success={self.success},"
             f" results={self.results}"
         )
         out += f", date={self.date}, status={self.status}, header={self.header}"
@@ -94,7 +89,6 @@ class Result:
             "backend_version": self.backend_version,
             "date": self.date,
             "header": None if self.header is None else self.header.to_dict(),
-            "qobj_id": self.qobj_id,
             "job_id": self.job_id,
             "status": self.status,
             "success": self.success,
@@ -124,10 +118,6 @@ class Result:
 
         in_data = copy.copy(data)
         in_data["results"] = [ExperimentResult.from_dict(x) for x in in_data.pop("results")]
-        if in_data.get("header") is not None:
-            with warnings.catch_warnings():
-                warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
-                in_data["header"] = QobjHeader.from_dict(in_data.pop("header"))
         return cls(**in_data)
 
     def data(self, experiment=None):
@@ -212,7 +202,7 @@ class Result:
         exp_result = self._get_experiment(experiment)
         try:
             try:  # header is not available
-                header = exp_result.header.to_dict()
+                header = exp_result.header
             except (AttributeError, QiskitError):
                 header = None
 
@@ -263,7 +253,7 @@ class Result:
         for key in exp_keys:
             exp = self._get_experiment(key)
             try:
-                header = exp.header.to_dict()
+                header = exp.header
             except (AttributeError, QiskitError):  # header is not available
                 header = None
 
@@ -364,11 +354,12 @@ class Result:
             except IndexError as ex:
                 raise QiskitError(f'Result for experiment "{key}" could not be found.') from ex
         else:
-            # Look into `result[x].header.name` for the names.
+            # Look into `result[x].header["name"]` for the names.
             exp = [
                 result
                 for result in self.results
-                if getattr(getattr(result, "header", None), "name", "") == key
+                if getattr(result, "header", None) is not None
+                and getattr(result, "header").get("name", "") == key
             ]
 
             if len(exp) == 0:

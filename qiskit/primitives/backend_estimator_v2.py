@@ -23,7 +23,7 @@ import numpy as np
 
 from qiskit.circuit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.exceptions import QiskitError
-from qiskit.providers import BackendV1, BackendV2
+from qiskit.providers import BackendV2
 from qiskit.quantum_info import Pauli, PauliList
 from qiskit.result import Counts
 from qiskit.transpiler import PassManager, PassManagerConfig
@@ -76,7 +76,7 @@ class BackendEstimatorV2(BaseEstimatorV2):
 
     The :class:`~.BackendEstimatorV2` class is a generic implementation of the
     :class:`~.BaseEstimatorV2` interface that is used to wrap a :class:`~.BackendV2`
-    (or :class:`~.BackendV1`) object in the :class:`~.BaseEstimatorV2` API. It
+    object in the :class:`~.BaseEstimatorV2` API. It
     facilitates using backends that do not provide a native
     :class:`~.BaseEstimatorV2` implementation in places that work with
     :class:`~.BaseEstimatorV2`. However,
@@ -127,7 +127,7 @@ class BackendEstimatorV2(BaseEstimatorV2):
     def __init__(
         self,
         *,
-        backend: BackendV1 | BackendV2,
+        backend: BackendV2,
         options: dict | None = None,
     ):
         """
@@ -153,7 +153,7 @@ class BackendEstimatorV2(BaseEstimatorV2):
         return self._options
 
     @property
-    def backend(self) -> BackendV1 | BackendV2:
+    def backend(self) -> BackendV2:
         """Returns the backend which this sampler object based on."""
         return self._backend
 

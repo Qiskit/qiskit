@@ -39,8 +39,6 @@ def measure(
 
     .. note::
         This function internally dispatches schedule generation logic depending on input backend model.
-        For the :class:`.BackendV1`, it considers conventional :class:`.InstructionScheduleMap`
-        and utilizes the backend calibration defined for a group of qubits in the `meas_map`.
         For the :class:`.BackendV2`, it assembles calibrations of single qubit measurement
         defined in the backend target to build a composite measurement schedule for `qubits`.
 
