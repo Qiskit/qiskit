@@ -110,7 +110,7 @@ class Float(Type):
     In the future, this may also be used to represent a fixed-width float.
     """
 
-    __slots__ = ("const",)
+    __slots__ = ()
 
     def __init__(self, *, const: bool = False):
         super(Type, self).__setattr__("const", const)
