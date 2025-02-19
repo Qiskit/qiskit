@@ -169,11 +169,10 @@ and how the feature will be internally handled.
     it to QPY setting ``use_symengine=False``.  The resulting file can then be loaded by any later
     version of Qiskit.
 
-    With the removal of Pulse in Qiskit 2.0, QPY does not support loading ``ScheduleBlock`` programs
-    or pulse gates. If such payloads are being loaded, QPY will issue a warning and
-    return partial circuits. In the case of a ``ScheduleBlock`` payload, a circuit with only a name
-    and metadata will be loaded. It the case of pulse gates, the circuit will contain custom
-    instructions without calibration data attached, hence leaving them undefined.
+    With the removal of Pulse in Qiskit 2.0, QPY provides limited support for loading
+    payloads with pulse data. Loading a ``ScheduleBlock`` payload, a :class:`.QpyError` exception
+    will be raised. Loading a circuit with pulse gates, the circuit will contain custom
+    instructions without calibration data attached, leaving them undefined.
 
 QPY format version history
 --------------------------
