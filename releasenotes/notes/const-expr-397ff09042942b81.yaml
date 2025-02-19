@@ -1,0 +1,21 @@
+---
+features_circuits:
+  - |
+    The classical realtime-expressions module :mod:`qiskit.circuit.classical` can now represent
+    constant types and operations on them. All :class:`~.types.Type` classes now have a bool
+    :attr:`~.types.Type.const` property which is used to mark const-ness and enforce const
+    invariants across the types system.
+
+    To create a const value expression use :func:`~.expr.lift`, setting ``try_const=True``::
+
+      from qiskit.circuit.classical import expr
+
+      expr.lift(5, try_const=True)
+      # >>> Value(5, Uint(3, const=True))
+
+    The result type of an operation applied to const types is also const::
+
+      from qiskit.circuit.classical import expr
+
+      expr.bit_and(expr.lift(5, try_const=True), expr.lift(6, try_const=True)).type.const
+      # >>> True

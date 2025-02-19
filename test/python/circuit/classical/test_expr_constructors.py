@@ -14,7 +14,7 @@
 
 import ddt
 
-from qiskit.circuit import Clbit, ClassicalRegister, Instruction
+from qiskit.circuit import Clbit, ClassicalRegister, Duration, Instruction
 from qiskit.circuit.classical import expr, types
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -82,17 +82,40 @@ class TestExprConstructors(QiskitTestCase):
         clbit = Clbit()
         self.assertEqual(expr.lift(clbit), expr.Var(clbit, types.Bool()))
 
+        duration = Duration.dt(1000)
+        self.assertEqual(expr.lift(duration), expr.Value(duration, types.Duration()))
+        self.assertEqual(
+            expr.lift(duration, try_const=True), expr.Value(duration, types.Duration())
+        )
+        self.assertEqual(
+            expr.lift(duration, types.Stretch()), expr.Value(duration, types.Stretch())
+        )
+
     def test_value_lifts_python_builtins(self):
         self.assertEqual(expr.lift(True), expr.Value(True, types.Bool()))
+        self.assertEqual(expr.lift(True, try_const=True), expr.Value(True, types.Bool(const=True)))
         self.assertEqual(expr.lift(False), expr.Value(False, types.Bool()))
+        self.assertEqual(
+            expr.lift(False, try_const=True), expr.Value(False, types.Bool(const=True))
+        )
         self.assertEqual(expr.lift(7), expr.Value(7, types.Uint(3)))
+        self.assertEqual(expr.lift(7, try_const=True), expr.Value(7, types.Uint(3, const=True)))
+        self.assertEqual(expr.lift(7.0), expr.Value(7.0, types.Float()))
+        self.assertEqual(expr.lift(7.0, try_const=True), expr.Value(7.0, types.Float(const=True)))
 
     def test_value_ensures_nonzero_width(self):
         self.assertEqual(expr.lift(0), expr.Value(0, types.Uint(1)))
+        self.assertEqual(expr.lift(0, try_const=True), expr.Value(0, types.Uint(1, const=True)))
 
     def test_value_type_representation(self):
         self.assertEqual(expr.lift(5), expr.Value(5, types.Uint((5).bit_length())))
+        self.assertEqual(
+            expr.lift(5, try_const=True), expr.Value(5, types.Uint((5).bit_length(), const=True))
+        )
         self.assertEqual(expr.lift(5, types.Uint(8)), expr.Value(5, types.Uint(8)))
+        self.assertEqual(
+            expr.lift(5, types.Uint(8, const=True)), expr.Value(5, types.Uint(8, const=True))
+        )
 
         cr = ClassicalRegister(3, "c")
         self.assertEqual(expr.lift(cr, types.Uint(8)), expr.Var(cr, types.Uint(8)))
@@ -100,6 +123,8 @@ class TestExprConstructors(QiskitTestCase):
     def test_value_does_not_allow_downcast(self):
         with self.assertRaisesRegex(TypeError, "the explicit type .* is not suitable"):
             expr.lift(0xFF, types.Uint(2))
+        with self.assertRaisesRegex(TypeError, "the explicit type .* is not suitable"):
+            expr.lift(1.1, types.Uint(2))
 
     def test_value_rejects_bad_values(self):
         with self.assertRaisesRegex(TypeError, "failed to infer a type"):
@@ -115,6 +140,12 @@ class TestExprConstructors(QiskitTestCase):
             expr.cast(base, types.Uint(8)), expr.Cast(base, types.Uint(8), implicit=False)
         )
 
+    def test_cast_adds_node_when_shedding_const(self):
+        base = expr.Value(5, types.Uint(8, const=True))
+        self.assertEqual(
+            expr.cast(base, types.Uint(8)), expr.Cast(base, types.Uint(8), implicit=False)
+        )
+
     def test_cast_allows_lossy_downcasting(self):
         """An explicit 'cast' call should allow lossy casts to be performed."""
         base = expr.Value(5, types.Uint(16))
@@ -123,6 +154,9 @@ class TestExprConstructors(QiskitTestCase):
         )
         self.assertEqual(
             expr.cast(base, types.Bool()), expr.Cast(base, types.Bool(), implicit=False)
+        )
+        self.assertEqual(
+            expr.cast(base, types.Float()), expr.Cast(base, types.Float(), implicit=False)
         )
 
     @ddt.data(
@@ -148,6 +182,23 @@ class TestExprConstructors(QiskitTestCase):
             expr.bit_not(clbit),
             expr.Unary(expr.Unary.Op.BIT_NOT, expr.Var(clbit, types.Bool()), types.Bool()),
         )
+        self.assertEqual(
+            expr.bit_not(expr.Value(3, types.Uint(2, const=True))),
+            expr.Unary(
+                expr.Unary.Op.BIT_NOT,
+                expr.Value(3, types.Uint(2, const=True)),
+                types.Uint(2, const=True),
+            ),
+        )
+
+    @ddt.data(expr.bit_not)
+    def test_urnary_bitwise_forbidden(self, function):
+        with self.assertRaisesRegex(TypeError, "cannot apply"):
+            function(7.0)
+        with self.assertRaisesRegex(TypeError, "cannot apply"):
+            function(Duration.dt(1000))
+        with self.assertRaisesRegex(TypeError, "cannot apply"):
+            function(expr.Var.new("a", types.Stretch()))
 
     def test_logic_not_explicit(self):
         cr = ClassicalRegister(3)
@@ -164,6 +215,25 @@ class TestExprConstructors(QiskitTestCase):
             expr.logic_not(clbit),
             expr.Unary(expr.Unary.Op.LOGIC_NOT, expr.Var(clbit, types.Bool()), types.Bool()),
         )
+        self.assertEqual(
+            expr.logic_not(expr.Value(3, types.Uint(2, const=True))),
+            expr.Unary(
+                expr.Unary.Op.LOGIC_NOT,
+                expr.Cast(
+                    expr.Value(3, types.Uint(2, const=True)), types.Bool(const=True), implicit=True
+                ),
+                types.Bool(const=True),
+            ),
+        )
+
+    @ddt.data(expr.logic_not)
+    def test_urnary_logical_forbidden(self, function):
+        with self.assertRaisesRegex(TypeError, "cannot apply"):
+            function(7.0)
+        with self.assertRaisesRegex(TypeError, "cannot apply"):
+            function(Duration.dt(1000))
+        with self.assertRaisesRegex(TypeError, "cannot apply"):
+            function(expr.Var.new("a", types.Stretch()))
 
     @ddt.data(
         (expr.bit_and, ClassicalRegister(3), ClassicalRegister(3)),
@@ -177,12 +247,80 @@ class TestExprConstructors(QiskitTestCase):
         (expr.less_equal, ClassicalRegister(3), 5),
         (expr.greater, 4, ClassicalRegister(3)),
         (expr.greater_equal, ClassicalRegister(3), 5),
+        (expr.add, ClassicalRegister(3), 6),
+        (expr.sub, ClassicalRegister(3), 5),
+        (expr.mul, 4, ClassicalRegister(3)),
+        (expr.div, ClassicalRegister(3), 5),
+        (expr.equal, 8.0, 255.0),
+        (expr.not_equal, 8.0, 255.0),
+        (expr.less, 3.0, 6.0),
+        (expr.less_equal, 3.0, 5.0),
+        (expr.greater, 4.0, 3.0),
+        (expr.greater_equal, 3.0, 5.0),
+        (expr.add, 3.0, 6.0),
+        (expr.sub, 3.0, 5.0),
+        (expr.mul, 4.0, 3.0),
+        (expr.div, 3.0, 5.0),
+        (expr.equal, Duration.dt(1000), Duration.dt(1000)),
+        (expr.not_equal, Duration.dt(1000), Duration.dt(1000)),
+        (expr.less, Duration.dt(1000), Duration.dt(1000)),
+        (expr.less_equal, Duration.dt(1000), Duration.dt(1000)),
+        (expr.greater, Duration.dt(1000), Duration.dt(1000)),
+        (expr.greater_equal, Duration.dt(1000), Duration.dt(1000)),
+        (expr.add, Duration.dt(1000), Duration.dt(1000)),
+        (expr.sub, Duration.dt(1000), Duration.dt(1000)),
+        (expr.div, Duration.dt(1000), Duration.dt(1000)),
     )
     @ddt.unpack
     def test_binary_functions_lift_scalars(self, function, left, right):
         self.assertEqual(function(left, right), function(expr.lift(left), right))
         self.assertEqual(function(left, right), function(left, expr.lift(right)))
         self.assertEqual(function(left, right), function(expr.lift(left), expr.lift(right)))
+
+    @ddt.data(
+        (expr.bit_and, 6, 7),
+        (expr.bit_or, 5, 6),
+        (expr.bit_xor, 255, 254),
+        (expr.equal, 254, 255),
+        (expr.not_equal, 255, 255),
+        (expr.less, 5, 4),
+        (expr.less_equal, 3, 3),
+        (expr.greater, 254, 255),
+        (expr.greater_equal, 4, 5),
+        (expr.add, 5, 4),
+        (expr.sub, 3, 3),
+        (expr.mul, 254, 255),
+        (expr.div, 4, 5),
+        (expr.equal, 254.0, 255.0),
+        (expr.not_equal, 255.0, 255.0),
+        (expr.less, 5.0, 4.0),
+        (expr.less_equal, 3.0, 3.0),
+        (expr.greater, 254.0, 255.0),
+        (expr.greater_equal, 4.0, 5.0),
+        (expr.add, 5.0, 4.0),
+        (expr.sub, 3.0, 3.0),
+        (expr.mul, 254.0, 255.0),
+        (expr.div, 4.0, 5.0),
+        (expr.mul, 254.0, Duration.dt(1000)),
+        (expr.mul, Duration.dt(1000), 5.0),
+        (expr.div, Duration.dt(1000), 5.0),
+        (expr.mul, 254.0, expr.Var.new("a", types.Stretch())),
+        (expr.mul, expr.Var.new("a", types.Stretch()), 5.0),
+        (expr.div, expr.Var.new("a", types.Stretch()), 5.0),
+    )
+    @ddt.unpack
+    def test_binary_functions_lift_scalars_const(self, function, left, right):
+        """If one operand is an expr with a const type, the other scalar should be lifted as const.
+        Note that logical operators (e.g. logic_and, logic_or) are excluded since these lift operands
+        independently."""
+        self.assertEqual(
+            function(expr.lift(left, try_const=True), right),
+            function(expr.lift(left, try_const=True), expr.lift(right, try_const=True)),
+        )
+        self.assertEqual(
+            function(left, expr.lift(right, try_const=True)),
+            function(expr.lift(left, try_const=True), expr.lift(right, try_const=True)),
+        )
 
     @ddt.data(
         (expr.bit_and, expr.Binary.Op.BIT_AND),
@@ -204,7 +342,15 @@ class TestExprConstructors(QiskitTestCase):
                 opcode, expr.Value(255, types.Uint(8)), expr.Var(cr, types.Uint(8)), types.Uint(8)
             ),
         )
-
+        self.assertEqual(
+            function(expr.lift(255, try_const=True), cr),
+            expr.Binary(
+                opcode,
+                expr.Cast(expr.Value(255, types.Uint(8, const=True)), types.Uint(8), implicit=True),
+                expr.Var(cr, types.Uint(8)),
+                types.Uint(8),
+            ),
+        )
         clbit = Clbit()
         self.assertEqual(
             function(True, clbit),
@@ -222,6 +368,24 @@ class TestExprConstructors(QiskitTestCase):
                 expr.Var(clbit, types.Bool()),
                 expr.Value(False, types.Bool()),
                 types.Bool(),
+            ),
+        )
+        self.assertEqual(
+            function(255, 255),
+            expr.Binary(
+                opcode,
+                expr.Value(255, types.Uint(8)),
+                expr.Value(255, types.Uint(8)),
+                types.Uint(8),
+            ),
+        )
+        self.assertEqual(
+            function(expr.lift(255, try_const=True), 255),
+            expr.Binary(
+                opcode,
+                expr.Value(255, types.Uint(8, const=True)),
+                expr.Value(255, types.Uint(8, const=True)),
+                types.Uint(8, const=True),
             ),
         )
 
@@ -271,6 +435,20 @@ class TestExprConstructors(QiskitTestCase):
     def test_binary_bitwise_forbidden(self, function):
         with self.assertRaisesRegex(TypeError, "invalid types"):
             function(ClassicalRegister(3, "c"), Clbit())
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(3.0, 3.0)
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(3, 3.0)
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(3.0, 3)
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(Duration.dt(1000), Duration.dt(1000))
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(expr.Var.new("a", types.Stretch()), Duration.dt(1000))
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(Duration.dt(1000), expr.Var.new("a", types.Stretch()))
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(expr.Var.new("a", types.Stretch()), expr.Var.new("b", types.Stretch()))
         # Unlike most other functions, the bitwise functions should error if the two bit-like types
         # aren't of the same width, except for the special inference for integer literals.
         with self.assertRaisesRegex(TypeError, "binary bitwise operations .* same width"):
@@ -306,6 +484,16 @@ class TestExprConstructors(QiskitTestCase):
         )
 
         self.assertEqual(
+            function(cr, expr.lift(3, try_const=True)),
+            expr.Binary(
+                opcode,
+                expr.Cast(expr.Var(cr, types.Uint(cr.size)), types.Bool(), implicit=True),
+                expr.Cast(expr.Value(3, types.Uint(2, const=True)), types.Bool(), implicit=True),
+                types.Bool(),
+            ),
+        )
+
+        self.assertEqual(
             function(False, clbit),
             expr.Binary(
                 opcode,
@@ -314,6 +502,34 @@ class TestExprConstructors(QiskitTestCase):
                 types.Bool(),
             ),
         )
+
+        # Logical operations lift their operands independently.
+        self.assertEqual(
+            function(expr.lift(False, try_const=True), 1),
+            expr.Binary(
+                opcode,
+                expr.Cast(expr.Value(False, types.Bool(const=True)), types.Bool(), implicit=True),
+                expr.Cast(expr.Value(1, types.Uint(1)), types.Bool(), implicit=True),
+                types.Bool(),
+            ),
+        )
+
+    @ddt.data(expr.logic_and, expr.logic_or)
+    def test_binary_logic_forbidden(self, function):
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(3.0, 3.0)
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(3, 3.0)
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(3.0, 3)
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(Duration.dt(1000), Duration.dt(1000))
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(expr.Var.new("a", types.Stretch()), Duration.dt(1000))
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(Duration.dt(1000), expr.Var.new("a", types.Stretch()))
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(expr.Var.new("a", types.Stretch()), expr.Var.new("b", types.Stretch()))
 
     @ddt.data(
         (expr.equal, expr.Binary.Op.EQUAL),
@@ -342,12 +558,53 @@ class TestExprConstructors(QiskitTestCase):
         )
 
         self.assertEqual(
+            function(expr.lift(7, try_const=True), cr),
+            expr.Binary(
+                opcode,
+                # Explicit cast required to get from Uint(3) to Uint(8)
+                expr.Cast(expr.Value(7, types.Uint(3, const=True)), types.Uint(8), implicit=False),
+                expr.Var(cr, types.Uint(8)),
+                types.Bool(),
+            ),
+        )
+
+        self.assertEqual(
             function(clbit, True),
             expr.Binary(
                 opcode,
                 expr.Var(clbit, types.Bool()),
                 expr.Value(True, types.Bool()),
                 types.Bool(),
+            ),
+        )
+
+        self.assertEqual(
+            function(expr.lift(False, try_const=True), True),
+            expr.Binary(
+                opcode,
+                expr.Value(False, types.Bool(const=True)),
+                expr.Value(True, types.Bool(const=True)),
+                types.Bool(const=True),
+            ),
+        )
+
+        self.assertEqual(
+            function(expr.lift(7.0, try_const=True), 7.0),
+            expr.Binary(
+                opcode,
+                expr.Value(7.0, types.Float(const=True)),
+                expr.Value(7.0, types.Float(const=True)),
+                types.Bool(const=True),
+            ),
+        )
+
+        self.assertEqual(
+            function(expr.lift(Duration.ms(1000)), Duration.s(1)),
+            expr.Binary(
+                opcode,
+                expr.Value(Duration.ms(1000), types.Duration()),
+                expr.Value(Duration.s(1), types.Duration()),
+                types.Bool(const=True),
             ),
         )
 
@@ -359,6 +616,21 @@ class TestExprConstructors(QiskitTestCase):
             function(ClassicalRegister(3, "c"), False)
         with self.assertRaisesRegex(TypeError, "invalid types"):
             function(5, True)
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(True, 5.0)
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(5, 5.0)
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(ClassicalRegister(3, "c"), 5.0)
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            # No order between a smaller non-const int and larger const.
+            function(expr.lift(0xFF, types.Uint(8)), expr.lift(0xFFFF, types.Uint(16, const=True)))
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(expr.Var.new("a", types.Stretch()), Duration.dt(1000))
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(Duration.dt(1000), expr.Var.new("a", types.Stretch()))
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(expr.Var.new("a", types.Stretch()), expr.Var.new("b", types.Stretch()))
 
     @ddt.data(
         (expr.less, expr.Binary.Op.LESS),
@@ -387,6 +659,54 @@ class TestExprConstructors(QiskitTestCase):
             ),
         )
 
+        self.assertEqual(
+            function(expr.lift(12, try_const=True), cr),
+            expr.Binary(
+                opcode,
+                # Explicit cast required to get from Uint(4) to Uint(8)
+                expr.Cast(expr.Value(12, types.Uint(4, const=True)), types.Uint(8), implicit=False),
+                expr.Var(cr, types.Uint(8)),
+                types.Bool(),
+            ),
+        )
+
+        self.assertEqual(
+            function(expr.lift(12, types.Uint(8, const=True)), expr.lift(12, try_const=True)),
+            expr.Binary(
+                opcode,
+                expr.Value(12, types.Uint(8, const=True)),
+                expr.Cast(
+                    expr.Value(12, types.Uint(4, const=True)),
+                    types.Uint(8, const=True),
+                    implicit=False,
+                ),
+                types.Bool(const=True),
+            ),
+        )
+
+        self.assertEqual(
+            function(expr.lift(12.0, types.Float(const=True)), expr.lift(12.0, try_const=True)),
+            expr.Binary(
+                opcode,
+                expr.Value(12.0, types.Float(const=True)),
+                expr.Value(12.0, types.Float(const=True)),
+                types.Bool(const=True),
+            ),
+        )
+
+        self.assertEqual(
+            function(
+                expr.lift(Duration.ms(1000), types.Duration()),
+                expr.lift(Duration.s(1), try_const=True),
+            ),
+            expr.Binary(
+                opcode,
+                expr.Value(Duration.ms(1000), types.Duration()),
+                expr.Value(Duration.s(1), types.Duration()),
+                types.Bool(const=True),
+            ),
+        )
+
     @ddt.data(expr.less, expr.less_equal, expr.greater, expr.greater_equal)
     def test_binary_relation_forbidden(self, function):
         with self.assertRaisesRegex(TypeError, "invalid types"):
@@ -395,6 +715,21 @@ class TestExprConstructors(QiskitTestCase):
             function(ClassicalRegister(3, "c"), False)
         with self.assertRaisesRegex(TypeError, "invalid types"):
             function(Clbit(), Clbit())
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(True, 5.0)
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(5, 5.0)
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(ClassicalRegister(3, "c"), 5.0)
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            # No order between a smaller non-const int and larger const.
+            function(expr.lift(0xFF, types.Uint(8)), expr.lift(0xFFFF, types.Uint(16, const=True)))
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(expr.Var.new("a", types.Stretch()), Duration.dt(1000))
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(Duration.dt(1000), expr.Var.new("a", types.Stretch()))
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(expr.Var.new("a", types.Stretch()), expr.Var.new("b", types.Stretch()))
 
     def test_index_explicit(self):
         cr = ClassicalRegister(4, "c")
@@ -408,12 +743,44 @@ class TestExprConstructors(QiskitTestCase):
             expr.index(a, cr),
             expr.Index(a, expr.Var(cr, types.Uint(4)), types.Bool()),
         )
+        # The index arg gets lifted to match the const-ness of the target.
+        self.assertEqual(
+            expr.index(expr.lift(0xFF, try_const=True), 2),
+            expr.Index(
+                expr.Value(0xFF, types.Uint(8, const=True)),
+                expr.Value(2, types.Uint(2, const=True)),
+                types.Bool(const=True),
+            ),
+        )
+        # ...but not the other way around.
+        self.assertEqual(
+            expr.index(expr.lift(0xFF), expr.lift(2, try_const=True)),
+            expr.Index(
+                expr.Value(0xFF, types.Uint(8)),
+                expr.Value(2, types.Uint(2, const=True)),
+                types.Bool(),
+            ),
+        )
 
     def test_index_forbidden(self):
         with self.assertRaisesRegex(TypeError, "invalid types"):
             expr.index(Clbit(), 3)
         with self.assertRaisesRegex(TypeError, "invalid types"):
             expr.index(ClassicalRegister(3, "a"), False)
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            expr.index(ClassicalRegister(3, "a"), 1.0)
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            expr.index(0xFFFF, 1.0)
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            expr.index(Duration.dt(1000), 1)
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            expr.index(Duration.dt(1000), Duration.dt(1000))
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            expr.index(expr.Var.new("a", types.Stretch()), Duration.dt(1000))
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            expr.index(Duration.dt(1000), expr.Var.new("a", types.Stretch()))
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            expr.index(expr.Var.new("a", types.Stretch()), expr.Var.new("b", types.Stretch()))
 
     @ddt.data(
         (expr.shift_left, expr.Binary.Op.SHIFT_LEFT),
@@ -431,6 +798,15 @@ class TestExprConstructors(QiskitTestCase):
             ),
         )
         self.assertEqual(
+            function(cr, expr.lift(5, try_const=True)),
+            expr.Binary(
+                opcode,
+                expr.Var(cr, types.Uint(8)),
+                expr.Value(5, types.Uint(3, const=True)),
+                types.Uint(8),
+            ),
+        )
+        self.assertEqual(
             function(a, cr),
             expr.Binary(opcode, a, expr.Var(cr, types.Uint(8)), types.Uint(4)),
         )
@@ -438,6 +814,38 @@ class TestExprConstructors(QiskitTestCase):
             function(3, 5, types.Uint(8)),
             expr.Binary(
                 opcode, expr.Value(3, types.Uint(8)), expr.Value(5, types.Uint(3)), types.Uint(8)
+            ),
+        )
+        self.assertEqual(
+            function(3, 5, types.Uint(8, const=True)),
+            expr.Binary(
+                opcode,
+                expr.Value(3, types.Uint(8, const=True)),
+                expr.Value(5, types.Uint(3, const=True)),
+                types.Uint(8, const=True),
+            ),
+        )
+        self.assertEqual(
+            function(expr.lift(3, try_const=True), 5, types.Uint(8, const=True)),
+            expr.Binary(
+                opcode,
+                expr.Cast(
+                    expr.Value(3, types.Uint(2, const=True)),
+                    types.Uint(8, const=True),
+                    implicit=False,
+                ),
+                expr.Value(5, types.Uint(3, const=True)),
+                types.Uint(8, const=True),
+            ),
+        )
+        self.assertEqual(
+            function(expr.lift(3, try_const=True), 5, types.Uint(8)),
+            expr.Binary(
+                opcode,
+                expr.Cast(expr.Value(3, types.Uint(2, const=True)), types.Uint(8), implicit=False),
+                # Lifts as non-const because target type types.Uint(8) is non-const.
+                expr.Value(5, types.Uint(3)),
+                types.Uint(8),
             ),
         )
 
@@ -449,3 +857,392 @@ class TestExprConstructors(QiskitTestCase):
             function(ClassicalRegister(3, "c"), False)
         with self.assertRaisesRegex(TypeError, "invalid types"):
             function(Clbit(), Clbit())
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(0xFFFF, 2.0)
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(255.0, 1)
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(Duration.dt(1000), 1)
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(Duration.dt(1000), Duration.dt(1000))
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(expr.Var.new("a", types.Stretch()), Duration.dt(1000))
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(Duration.dt(1000), expr.Var.new("a", types.Stretch()))
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(expr.Var.new("a", types.Stretch()), expr.Var.new("b", types.Stretch()))
+
+    @ddt.data(
+        (expr.add, expr.Binary.Op.ADD),
+        (expr.sub, expr.Binary.Op.SUB),
+    )
+    @ddt.unpack
+    def test_binary_sum_explicit(self, function, opcode):
+        cr = ClassicalRegister(8, "c")
+        a = expr.Var.new("a", types.Stretch())
+        b = expr.Var.new("b", types.Stretch())
+
+        self.assertEqual(
+            function(cr, 200),
+            expr.Binary(
+                opcode, expr.Var(cr, types.Uint(8)), expr.Value(200, types.Uint(8)), types.Uint(8)
+            ),
+        )
+
+        self.assertEqual(
+            function(12, cr),
+            expr.Binary(
+                opcode,
+                expr.Value(12, types.Uint(8)),
+                expr.Var(cr, types.Uint(8)),
+                types.Uint(8),
+            ),
+        )
+
+        self.assertEqual(
+            function(expr.lift(12, try_const=True), cr),
+            expr.Binary(
+                opcode,
+                # Explicit cast required to get from Uint(4) to Uint(8)
+                expr.Cast(expr.Value(12, types.Uint(4, const=True)), types.Uint(8), implicit=False),
+                expr.Var(cr, types.Uint(8)),
+                types.Uint(8),
+            ),
+        )
+
+        self.assertEqual(
+            function(expr.lift(12, types.Uint(8, const=True)), expr.lift(12, try_const=True)),
+            expr.Binary(
+                opcode,
+                expr.Value(12, types.Uint(8, const=True)),
+                expr.Cast(
+                    expr.Value(12, types.Uint(4, const=True)),
+                    types.Uint(8, const=True),
+                    implicit=False,
+                ),
+                types.Uint(8, const=True),
+            ),
+        )
+
+        self.assertEqual(
+            function(expr.lift(12.0, types.Float(const=True)), expr.lift(12.0, try_const=True)),
+            expr.Binary(
+                opcode,
+                expr.Value(12.0, types.Float(const=True)),
+                expr.Value(12.0, types.Float(const=True)),
+                types.Float(const=True),
+            ),
+        )
+
+        self.assertEqual(
+            function(
+                expr.lift(Duration.ms(1000), types.Duration()),
+                expr.lift(Duration.s(1), try_const=True),
+            ),
+            expr.Binary(
+                opcode,
+                expr.Value(Duration.ms(1000), types.Duration()),
+                expr.Value(Duration.s(1), types.Duration()),
+                types.Duration(),
+            ),
+        )
+
+        self.assertEqual(
+            function(a, Duration.s(1)),
+            expr.Binary(
+                opcode,
+                a,
+                expr.Cast(
+                    expr.Value(Duration.s(1), types.Duration()), types.Stretch(), implicit=True
+                ),
+                types.Stretch(),
+            ),
+        )
+
+        self.assertEqual(
+            function(Duration.s(1), a),
+            expr.Binary(
+                opcode,
+                expr.Cast(
+                    expr.Value(Duration.s(1), types.Duration()), types.Stretch(), implicit=True
+                ),
+                a,
+                types.Stretch(),
+            ),
+        )
+
+        self.assertEqual(
+            function(a, b),
+            expr.Binary(opcode, a, b, types.Stretch()),
+        )
+
+    @ddt.data(expr.add, expr.sub)
+    def test_binary_sum_forbidden(self, function):
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(Clbit(), ClassicalRegister(3, "c"))
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(ClassicalRegister(3, "c"), False)
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(Clbit(), Clbit())
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(0xFFFF, 2.0)
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(255.0, 1)
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(Duration.dt(1000), 1)
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(Duration.dt(1000), 1.0)
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(Duration.dt(1000), expr.lift(1.0))
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(expr.Var.new("a", types.Stretch()), 1)
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(expr.Var.new("a", types.Stretch()), 1.0)
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(expr.Var.new("a", types.Stretch()), expr.lift(1.0))
+
+    def test_mul_explicit(self):
+        cr = ClassicalRegister(8, "c")
+        a = expr.Var.new("a", types.Stretch())
+
+        self.assertEqual(
+            expr.mul(cr, 200),
+            expr.Binary(
+                expr.Binary.Op.MUL,
+                expr.Var(cr, types.Uint(8)),
+                expr.Value(200, types.Uint(8)),
+                types.Uint(8),
+            ),
+        )
+
+        self.assertEqual(
+            expr.mul(12, cr),
+            expr.Binary(
+                expr.Binary.Op.MUL,
+                expr.Value(12, types.Uint(8)),
+                expr.Var(cr, types.Uint(8)),
+                types.Uint(8),
+            ),
+        )
+
+        self.assertEqual(
+            expr.mul(expr.lift(12, try_const=True), cr),
+            expr.Binary(
+                expr.Binary.Op.MUL,
+                # Explicit cast required to get from Uint(4) to Uint(8)
+                expr.Cast(expr.Value(12, types.Uint(4, const=True)), types.Uint(8), implicit=False),
+                expr.Var(cr, types.Uint(8)),
+                types.Uint(8),
+            ),
+        )
+
+        self.assertEqual(
+            expr.mul(expr.lift(12, types.Uint(8, const=True)), expr.lift(12, try_const=True)),
+            expr.Binary(
+                expr.Binary.Op.MUL,
+                expr.Value(12, types.Uint(8, const=True)),
+                expr.Cast(
+                    expr.Value(12, types.Uint(4, const=True)),
+                    types.Uint(8, const=True),
+                    implicit=False,
+                ),
+                types.Uint(8, const=True),
+            ),
+        )
+
+        self.assertEqual(
+            expr.mul(expr.lift(12.0, types.Float(const=True)), expr.lift(12.0, try_const=True)),
+            expr.Binary(
+                expr.Binary.Op.MUL,
+                expr.Value(12.0, types.Float(const=True)),
+                expr.Value(12.0, types.Float(const=True)),
+                types.Float(const=True),
+            ),
+        )
+
+        self.assertEqual(
+            expr.mul(Duration.ms(1000), 2.0),
+            expr.Binary(
+                expr.Binary.Op.MUL,
+                expr.Value(Duration.ms(1000), types.Duration()),
+                expr.Value(2.0, types.Float(const=True)),
+                types.Duration(),
+            ),
+        )
+
+        self.assertEqual(
+            expr.mul(2.0, Duration.ms(1000)),
+            expr.Binary(
+                expr.Binary.Op.MUL,
+                expr.Value(2.0, types.Float(const=True)),
+                expr.Value(Duration.ms(1000), types.Duration()),
+                types.Duration(),
+            ),
+        )
+
+        self.assertEqual(
+            expr.mul(a, 12.0),
+            expr.Binary(
+                expr.Binary.Op.MUL,
+                a,
+                expr.Value(12.0, types.Float(const=True)),
+                types.Stretch(),
+            ),
+        )
+
+        self.assertEqual(
+            expr.mul(12.0, a),
+            expr.Binary(
+                expr.Binary.Op.MUL,
+                expr.Value(12.0, types.Float(const=True)),
+                a,
+                types.Stretch(),
+            ),
+        )
+
+    def test_mul_forbidden(self):
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            expr.mul(Clbit(), ClassicalRegister(3, "c"))
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            expr.mul(ClassicalRegister(3, "c"), False)
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            expr.mul(Clbit(), Clbit())
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            expr.mul(0xFFFF, 2.0)
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            expr.mul(255.0, 1)
+        with self.assertRaisesRegex(TypeError, "cannot multiply two timing operands"):
+            expr.mul(Duration.dt(1000), Duration.dt(1000))
+        with self.assertRaisesRegex(TypeError, "cannot multiply two timing operands"):
+            expr.mul(Duration.dt(1000), expr.Var.new("a", types.Stretch()))
+        with self.assertRaisesRegex(TypeError, "cannot multiply two timing operands"):
+            expr.mul(expr.Var.new("a", types.Stretch()), Duration.dt(1000))
+        with self.assertRaisesRegex(TypeError, "cannot multiply two timing operands"):
+            expr.mul(expr.Var.new("a", types.Stretch()), expr.Var.new("b", types.Stretch()))
+
+        # Multiply timing expressions by non-const floats:
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            expr.mul(Duration.dt(1000), expr.lift(1.0, try_const=False))
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            expr.mul(expr.lift(1.0, try_const=False), Duration.dt(1000))
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            expr.mul(expr.Var.new("a", types.Stretch()), expr.lift(1.0, try_const=False))
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            expr.mul(expr.lift(1.0, try_const=False), expr.Var.new("a", types.Stretch()))
+
+    def test_div_explicit(self):
+        cr = ClassicalRegister(8, "c")
+        a = expr.Var.new("a", types.Stretch())
+
+        self.assertEqual(
+            expr.div(cr, 200),
+            expr.Binary(
+                expr.Binary.Op.DIV,
+                expr.Var(cr, types.Uint(8)),
+                expr.Value(200, types.Uint(8)),
+                types.Uint(8),
+            ),
+        )
+
+        self.assertEqual(
+            expr.div(12, cr),
+            expr.Binary(
+                expr.Binary.Op.DIV,
+                expr.Value(12, types.Uint(8)),
+                expr.Var(cr, types.Uint(8)),
+                types.Uint(8),
+            ),
+        )
+
+        self.assertEqual(
+            expr.div(expr.lift(12, try_const=True), cr),
+            expr.Binary(
+                expr.Binary.Op.DIV,
+                # Explicit cast required to get from Uint(4) to Uint(8)
+                expr.Cast(expr.Value(12, types.Uint(4, const=True)), types.Uint(8), implicit=False),
+                expr.Var(cr, types.Uint(8)),
+                types.Uint(8),
+            ),
+        )
+
+        self.assertEqual(
+            expr.div(expr.lift(12, types.Uint(8, const=True)), expr.lift(12, try_const=True)),
+            expr.Binary(
+                expr.Binary.Op.DIV,
+                expr.Value(12, types.Uint(8, const=True)),
+                expr.Cast(
+                    expr.Value(12, types.Uint(4, const=True)),
+                    types.Uint(8, const=True),
+                    implicit=False,
+                ),
+                types.Uint(8, const=True),
+            ),
+        )
+
+        self.assertEqual(
+            expr.div(expr.lift(12.0, types.Float(const=True)), expr.lift(12.0, try_const=True)),
+            expr.Binary(
+                expr.Binary.Op.DIV,
+                expr.Value(12.0, types.Float(const=True)),
+                expr.Value(12.0, types.Float(const=True)),
+                types.Float(const=True),
+            ),
+        )
+
+        self.assertEqual(
+            expr.div(Duration.ms(1000), 2.0),
+            expr.Binary(
+                expr.Binary.Op.DIV,
+                expr.Value(Duration.ms(1000), types.Duration()),
+                expr.Value(2.0, types.Float(const=True)),
+                types.Duration(),
+            ),
+        )
+
+        self.assertEqual(
+            expr.div(a, 12.0),
+            expr.Binary(
+                expr.Binary.Op.DIV,
+                a,
+                expr.Value(12.0, types.Float(const=True)),
+                types.Stretch(),
+            ),
+        )
+
+        self.assertEqual(
+            expr.div(Duration.ms(1000), Duration.ms(1000)),
+            expr.Binary(
+                expr.Binary.Op.DIV,
+                expr.Value(Duration.ms(1000), types.Duration()),
+                expr.Value(Duration.ms(1000), types.Duration()),
+                types.Float(const=True),
+            ),
+        )
+
+    def test_div_forbidden(self):
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            expr.div(Clbit(), ClassicalRegister(3, "c"))
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            expr.div(ClassicalRegister(3, "c"), False)
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            expr.div(Clbit(), Clbit())
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            expr.div(0xFFFF, 2.0)
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            expr.div(255.0, 1)
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            expr.div(255.0, Duration.dt(1000))
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            expr.div(255.0, expr.Var.new("a", types.Stretch()))
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            expr.div(Duration.dt(1000), expr.Var.new("a", types.Stretch()))
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            expr.div(expr.Var.new("a", types.Stretch()), Duration.dt(1000))
+        with self.assertRaisesRegex(TypeError, "cannot divide two stretch operands"):
+            expr.div(expr.Var.new("a", types.Stretch()), expr.Var.new("b", types.Stretch()))
+
+        # Divide timing expressions by non-const floats:
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            expr.div(Duration.dt(1000), expr.lift(1.0, try_const=False))
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            expr.div(expr.Var.new("a", types.Stretch()), expr.lift(1.0, try_const=False))
