@@ -644,8 +644,8 @@ class TestSingletonControlledGate(QiskitTestCase):
         singleton_gate = CHGate()
         gate = CHGate(label="special")
         ch = gate.control(label="my_ch")
-        self.assertEqual(ch.base_gate.label, "special")
-        self.assertIsNot(ch.base_gate, singleton_gate)
+        self.assertEqual(ch.base_op.label, "special")
+        self.assertIsNot(ch.base_op, singleton_gate)
 
     def test_round_trip_dag_conversion(self):
         qc = QuantumCircuit(2)

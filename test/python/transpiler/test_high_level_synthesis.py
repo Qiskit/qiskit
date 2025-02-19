@@ -1106,9 +1106,9 @@ class TestHighLevelSynthesisModifiers(QiskitTestCase):
         circuit.append(lazy_gate2, [0, 1, 2])
         circuit.append(lazy_gate3, [2, 3])
         transpiled_circuit = HighLevelSynthesis()(circuit)
-        controlled_gate1 = SwapGate().control(2)
-        controlled_gate2 = CXGate().control(1)
-        controlled_gate3 = RZGate(np.pi / 4).control(1)
+        controlled_gate1 = SwapGate().control(2, annotated=False)
+        controlled_gate2 = CXGate().control(1, annotated=False)
+        controlled_gate3 = RZGate(np.pi / 4).control(1, annotated=False)
         expected_circuit = QuantumCircuit(4)
         expected_circuit.append(controlled_gate1, [0, 1, 2, 3])
         expected_circuit.append(controlled_gate2, [0, 1, 2])
@@ -1128,7 +1128,7 @@ class TestHighLevelSynthesisModifiers(QiskitTestCase):
         circuit.append(AnnotatedOperation(gate, ControlModifier(2)), [0, 1, 2, 3])
         transpiled_circuit = HighLevelSynthesis()(circuit)
         expected_circuit = QuantumCircuit(4)
-        expected_circuit.append(gate.control(2), [0, 1, 2, 3])
+        expected_circuit.append(gate.control(2, annotated=False), [0, 1, 2, 3])
         self.assertEqual(transpiled_circuit, expected_circuit)
 
     def test_control_clifford(self):
@@ -1141,7 +1141,7 @@ class TestHighLevelSynthesisModifiers(QiskitTestCase):
         circuit.append(AnnotatedOperation(cliff, ControlModifier(2)), [0, 1, 2, 3])
         transpiled_circuit = HighLevelSynthesis()(circuit)
         expected_circuit = QuantumCircuit(4)
-        expected_circuit.append(cliff.to_instruction().control(2), [0, 1, 2, 3])
+        expected_circuit.append(cliff.to_instruction().control(2, annotated=False), [0, 1, 2, 3])
         self.assertEqual(transpiled_circuit, expected_circuit)
 
     def test_multiple_controls(self):
@@ -1151,7 +1151,9 @@ class TestHighLevelSynthesisModifiers(QiskitTestCase):
         circuit.append(lazy_gate1, [0, 1, 2, 3, 4])
         transpiled_circuit = HighLevelSynthesis()(circuit)
         expected_circuit = QuantumCircuit(5)
-        expected_circuit.append(SwapGate().control(2).control(1), [0, 1, 2, 3, 4])
+        expected_circuit.append(
+            SwapGate().control(2, annotated=False).control(1, annotated=False), [0, 1, 2, 3, 4]
+        )
         self.assertEqual(transpiled_circuit, expected_circuit)
 
     def test_nested_controls(self):
@@ -1162,7 +1164,9 @@ class TestHighLevelSynthesisModifiers(QiskitTestCase):
         circuit.append(lazy_gate2, [0, 1, 2, 3, 4])
         transpiled_circuit = HighLevelSynthesis()(circuit)
         expected_circuit = QuantumCircuit(5)
-        expected_circuit.append(SwapGate().control(2).control(1), [0, 1, 2, 3, 4])
+        expected_circuit.append(
+            SwapGate().control(2, annotated=False).control(1, annotated=False), [0, 1, 2, 3, 4]
+        )
         self.assertEqual(transpiled_circuit, expected_circuit)
 
     def test_nested_controls_permutation(self):
