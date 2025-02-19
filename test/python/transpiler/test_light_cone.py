@@ -320,13 +320,12 @@ class TestLightConePass(QiskitTestCase):
 
         self.assertEqual(expected, new_circuit)
 
-    @ddt.data(
-        SparsePauliOp.from_sparse_list([("IIIIIXZIII", list(range(10)), 1)], 10),
-        SparsePauliOp.from_sparse_list([("YYYYXZYYYY", list(range(10)), 1)], 10),
-    )
-
     # This test should be uncommented once issue #13828 has been solved.
     #
+    # @ddt.data(
+    #     SparsePauliOp.from_sparse_list([("IIIIIXZIII", list(range(10)), 1)], 10),
+    #     SparsePauliOp.from_sparse_list([("YYYYXZYYYY", list(range(10)), 1)], 10),
+    # )
     # def test_large_observable(self, sparse_object):
     #     """Test for a large initial observable."""
     #
