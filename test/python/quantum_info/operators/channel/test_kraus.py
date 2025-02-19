@@ -63,8 +63,7 @@ class TestKraus(ChannelTestCase):
         # Wrong input or output dims should raise exception
         self.assertRaises(QiskitError, Kraus, kraus, input_dims=4, output_dims=4)
 
-    # Remove test since it fails build of Linux AArch64 wheel in qiskit 1.3.3
-    def _test_circuit_init(self):
+    def test_circuit_init(self):
         """Test initialization from a circuit."""
         circuit, target = self.simple_circuit_no_measure()
         op = Kraus(circuit)
