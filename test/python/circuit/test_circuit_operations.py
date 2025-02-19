@@ -657,7 +657,7 @@ class TestCircuitOperations(QiskitTestCase):
         the amount of non-idle qubits to store the measured values.
         """
         qr = QuantumRegister(4)
-        cr = ClassicalRegister(2, "measure")
+        cr = ClassicalRegister(2, "meas")
 
         circuit = QuantumCircuit(qr)
         circuit.h(qr[0])
@@ -679,7 +679,7 @@ class TestCircuitOperations(QiskitTestCase):
         the amount of non-idle qubits to store the measured values.
         """
         qr = QuantumRegister(4)
-        cr = ClassicalRegister(2, "measure")
+        cr = ClassicalRegister(2, "meas")
 
         circuit = QuantumCircuit(qr)
         circuit.h(qr[0])
