@@ -33,7 +33,6 @@ In Qiskit SDK, the duration of :class:`qiskit.circuit.Delay` can take arbitrary
 value in units of dt, thus circuits involving delays may violate the constraints,
 which may result in failure in the circuit execution on the backend.
 
-TODO: mentions pulse gates below. Do we want to keep these passes?
 There are two alignment constraint values reported by your quantum backend.
 In addition, if you want to define a custom instruction as a pulse gate, i.e. calibration,
 the underlying pulse instruction should satisfy other two waveform constraints.
