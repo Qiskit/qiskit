@@ -31,6 +31,7 @@ from qiskit.circuit import (
     CircuitInstruction,
     Clbit,
     Gate,
+    Duration,
     Measure,
     Parameter,
     ParameterExpression,
@@ -1264,6 +1265,10 @@ def _build_ast_type(type_: types.Type) -> ast.ClassicalType:
         return ast.UintType(type_.width)
     if type_.kind is types.Float:
         return ast.FloatType.UNSPECIFIED
+    if type_.kind is types.Duration:
+        return ast.DurationType()
+    if type_.kind is types.Stretch:
+        return ast.StretchType()
     raise RuntimeError(f"unhandled expr type '{type_}'")
 
 
@@ -1287,6 +1292,18 @@ class _ExprBuilder(expr.ExprVisitor[ast.Expression]):
             return ast.IntegerLiteral(node.value)
         if node.type.kind is types.Float:
             return ast.FloatLiteral(node.value)
+        if node.type.kind is types.Duration:
+            match node.value:
+                case Duration.dt(dt):
+                    return ast.DurationLiteral(dt, ast.DurationUnit.SAMPLE)
+                case Duration.ns(ns):
+                    return ast.DurationLiteral(ns, ast.DurationUnit.NANOSECOND)
+                case Duration.us(us):
+                    return ast.DurationLiteral(us, ast.DurationUnit.MICROSECOND)
+                case Duration.ms(ms):
+                    return ast.DurationLiteral(ms, ast.DurationUnit.MILLISECOND)
+                case Duration.s(s):
+                    return ast.DurationLiteral(s, ast.DurationUnit.SECOND)
         raise RuntimeError(f"unhandled Value type '{node}'")
 
     def visit_cast(self, node, /):

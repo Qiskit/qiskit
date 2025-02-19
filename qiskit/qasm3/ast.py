@@ -174,6 +174,18 @@ class BitType(ClassicalType):
     __slots__ = ()
 
 
+class DurationType(ClassicalType):
+    """Type information for a duration."""
+
+    __slots__ = ()
+
+
+class StretchType(ClassicalType):
+    """Type information for a stretch."""
+
+    __slots__ = ()
+
+
 class BitArrayType(ClassicalType):
     """Type information for a sized number of classical bits."""
 
