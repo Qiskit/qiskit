@@ -962,19 +962,6 @@ class QuantumCircuit:
 
     .. automethod:: decompose
     .. automethod:: reverse_bits
-
-    Internal utilities
-    ==================
-
-    These functions are not intended for public use, but were accidentally left documented in the
-    public API during the 1.0 release.  They will be removed in Qiskit 2.0, but will be supported
-    until then.
-
-    .. automethod:: cast
-    .. automethod:: cbit_argument_conversion
-    .. automethod:: cls_instances
-    .. automethod:: cls_prefix
-    .. automethod:: qbit_argument_conversion
     """
 
     instances = 0
@@ -1457,33 +1444,10 @@ class QuantumCircuit:
         cls.instances += 1
 
     @classmethod
-    @deprecate_func(
-        since=1.2,
-        removal_timeline="in the 2.0 release",
-        additional_msg="This method is only used as an internal helper "
-        "and will be removed with no replacement.",
-    )
-    def cls_instances(cls) -> int:
-        """Return the current number of instances of this class,
-        useful for auto naming."""
-        return cls.instances
-
-    @classmethod
     def _cls_instances(cls) -> int:
         """Return the current number of instances of this class,
         useful for auto naming."""
         return cls.instances
-
-    @classmethod
-    @deprecate_func(
-        since=1.2,
-        removal_timeline="in the 2.0 release",
-        additional_msg="This method is only used as an internal helper "
-        "and will be removed with no replacement.",
-    )
-    def cls_prefix(cls) -> str:
-        """Return the prefix to use for auto naming."""
-        return cls.prefix
 
     @classmethod
     def _cls_prefix(cls) -> str:
@@ -2348,46 +2312,12 @@ class QuantumCircuit:
         return self._data[item]
 
     @staticmethod
-    @deprecate_func(
-        since=1.2,
-        removal_timeline="in the 2.0 release",
-        additional_msg="This method is only used as an internal helper "
-        "and will be removed with no replacement.",
-    )
-    def cast(value: S, type_: Callable[..., T]) -> Union[S, T]:
-        """Best effort to cast value to type. Otherwise, returns the value."""
-        try:
-            return type_(value)
-        except (ValueError, TypeError):
-            return value
-
-    @staticmethod
     def _cast(value: S, type_: Callable[..., T]) -> Union[S, T]:
         """Best effort to cast value to type. Otherwise, returns the value."""
         try:
             return type_(value)
         except (ValueError, TypeError):
             return value
-
-    @deprecate_func(
-        since=1.2,
-        removal_timeline="in the 2.0 release",
-        additional_msg="This method is only used as an internal helper "
-        "and will be removed with no replacement.",
-    )
-    def qbit_argument_conversion(self, qubit_representation: QubitSpecifier) -> list[Qubit]:
-        """
-        Converts several qubit representations (such as indexes, range, etc.)
-        into a list of qubits.
-
-        Args:
-            qubit_representation: Representation to expand.
-
-        Returns:
-            The resolved instances of the qubits.
-        """
-
-        return self._qbit_argument_conversion(qubit_representation)
 
     def _qbit_argument_conversion(self, qubit_representation: QubitSpecifier) -> list[Qubit]:
         """
@@ -2403,25 +2333,6 @@ class QuantumCircuit:
         return _bit_argument_conversion(
             qubit_representation, self.qubits, self._qubit_indices, Qubit
         )
-
-    @deprecate_func(
-        since=1.2,
-        removal_timeline="in the 2.0 release",
-        additional_msg="This method is only used as an internal helper "
-        "and will be removed with no replacement.",
-    )
-    def cbit_argument_conversion(self, clbit_representation: ClbitSpecifier) -> list[Clbit]:
-        """
-        Converts several classical bit representations (such as indexes, range, etc.)
-        into a list of classical bits.
-
-        Args:
-            clbit_representation : Representation to expand.
-
-        Returns:
-            A list of tuples where each tuple is a classical bit.
-        """
-        return self._cbit_argument_conversion(clbit_representation)
 
     def _cbit_argument_conversion(self, clbit_representation: ClbitSpecifier) -> list[Clbit]:
         """
