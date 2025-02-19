@@ -63,21 +63,7 @@ def _coerce_lossless(expr: Expr, type: types.Type) -> Expr:
 def lift_legacy_condition(
     condition: tuple[qiskit.circuit.Clbit | qiskit.circuit.ClassicalRegister, int], /
 ) -> Expr:
-    """Lift a legacy two-tuple equality condition into a new-style :class:`Expr`.
-
-    Examples:
-        Taking an old-style conditional instruction and getting an :class:`Expr` from its
-        condition::
-
-            from qiskit.circuit import ClassicalRegister
-            from qiskit.circuit.library import HGate
-            from qiskit.circuit.classical import expr
-
-            cr = ClassicalRegister(2)
-            instr = HGate().c_if(cr, 3)
-
-            lifted = expr.lift_legacy_condition(instr.condition)
-    """
+    """Lift a legacy two-tuple equality condition into a new-style :class:`Expr`."""
     from qiskit.circuit import Clbit  # pylint: disable=cyclic-import
 
     target, value = condition

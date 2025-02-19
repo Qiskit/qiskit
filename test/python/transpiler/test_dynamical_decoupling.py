@@ -88,7 +88,8 @@ class TestPadDynamicalDecoupling(QiskitTestCase):
                 ("rx", None, 100),
                 ("measure", None, 1000),
                 ("reset", None, 1500),
-            ]
+            ],
+            dt=1e-9,
         )
 
     def test_insert_dd_ghz(self):
@@ -872,7 +873,7 @@ class TestPadDynamicalDecoupling(QiskitTestCase):
         with self.assertWarns(DeprecationWarning):
             circ.add_calibration("rx", (1,), rx, params=[param_value])
 
-        durations = InstructionDurations([("x", None, 100), ("cx", None, 300)])
+        durations = InstructionDurations([("x", None, 100), ("cx", None, 300)], dt=1e-8)
 
         dd_sequence = [XGate(), XGate()]
         pm = PassManager(

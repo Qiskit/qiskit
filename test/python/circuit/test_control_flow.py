@@ -587,8 +587,6 @@ class TestAddingControlFlowOperations(QiskitTestCase):
 
         self.assertEqual(qc.data[0].operation.name, "switch_case")
         self.assertEqual(qc.data[0].operation.params, bodies[: len(labels)])
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(qc.data[0].operation.condition, None)
         self.assertEqual(qc.data[0].qubits, tuple(qc.qubits[1:4]))
         self.assertEqual(qc.data[0].clbits, (qc.clbits[1],))
 
@@ -619,7 +617,6 @@ class TestAddingControlFlowOperations(QiskitTestCase):
 
         self.assertEqual(qc.data[0].operation.name, "switch_case")
         self.assertEqual(qc.data[0].operation.params, bodies[: len(labels)])
-        self.assertEqual(qc.data[0].operation._condition, None)
         self.assertEqual(qc.data[0].qubits, tuple(qc.qubits[1:4]))
         self.assertEqual(qc.data[0].clbits, (qc.clbits[1],))
 
@@ -802,27 +799,6 @@ class TestAddingControlFlowOperations(QiskitTestCase):
         self.assertEqual(qc.data[0].operation.name, "break_loop")
         self.assertEqual(qc.data[0].qubits, tuple(qc.qubits))
         self.assertEqual(qc.data[0].clbits, tuple(qc.clbits))
-
-    def test_no_c_if_for_while_loop_if_else(self):
-        """Verify we raise if a user attempts to use c_if on an op which sets .condition."""
-        qc = QuantumCircuit(3, 1)
-        body = QuantumCircuit(1)
-
-        with self.assertRaisesRegex(NotImplementedError, r"cannot be classically controlled"):
-            with self.assertWarns(DeprecationWarning):
-                qc.while_loop((qc.clbits[0], False), body, [qc.qubits[0]], []).c_if(
-                    qc.clbits[0], True
-                )
-
-        with self.assertRaisesRegex(NotImplementedError, r"cannot be classically controlled"):
-            with self.assertWarns(DeprecationWarning):
-                qc.if_test((qc.clbits[0], False), body, [qc.qubits[0]], []).c_if(qc.clbits[0], True)
-
-        with self.assertRaisesRegex(NotImplementedError, r"cannot be classically controlled"):
-            with self.assertWarns(DeprecationWarning):
-                qc.if_else((qc.clbits[0], False), body, body, [qc.qubits[0]], []).c_if(
-                    qc.clbits[0], True
-                )
 
     def test_nested_parameters_are_recognised(self):
         """Verify that parameters added inside a control-flow operator get added to the outer
