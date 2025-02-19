@@ -5,4 +5,4 @@ scipy===1.10.1
 # because the logic that selects the versions for the tests is distributed 
 # between this file and `test/qpy_compat/run_tests.sh` and we don't want to
 # interfere with that.
-symengine>=0.11,<0.14
+symengine<0.14
