@@ -2990,7 +2990,7 @@ class QuantumCircuit:
             raise CircuitError("cannot add an uninitialized variable in a control-flow scope")
         if not var.standalone:
             raise CircuitError("cannot add a variable wrapping a bit or register to a circuit")
-        if var.type.const:
+        if var.type.const and var.type.kind is not types.Stretch:
             raise CircuitError("const variables are not supported.")
         self._builder_api.add_uninitialized_var(var)
 
