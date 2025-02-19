@@ -824,6 +824,7 @@ def generate_v14_expr():
     """Circuits that contain expressions new in QPY v14, including constant types
     and floats."""
     from qiskit.circuit.classical import expr, types
+    from qiskit.circuit import Duration
 
     const_expr = QuantumCircuit(name="const_expr")
     with const_expr.if_test(
@@ -838,7 +839,19 @@ def generate_v14_expr():
     with float_expr.if_test(expr.less(1.0, 2.0)):
         pass
 
-    return [const_expr, float_expr]
+    duration_expr = QuantumCircuit(name="duration_expr")
+    with duration_expr.if_test(
+        expr.logic_and(
+            expr.logic_and(
+                expr.equal(Duration.dt(1), Duration.ns(2)),
+                expr.equal(Duration.us(3), Duration.ms(4)),
+            ),
+            expr.equal(Duration.s(5), Duration.dt(6)),
+        )
+    ):
+        pass
+
+    return [const_expr, float_expr, duration_expr]
 
 
 def generate_circuits(version_parts):

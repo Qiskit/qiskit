@@ -382,17 +382,9 @@ def _write_expr(
 
 
 def _write_expr_type(file_obj, type_: types.Type, version):
-    if type_.const:
+    if type_.const or type_.kind not in (types.Bool, types.Uint):
         raise exceptions.UnsupportedFeatureForVersion(
-            "const-typed expressions", required=14, target=version
-        )
-    if type_.kind is types.Float:
-        raise exceptions.UnsupportedFeatureForVersion(
-            "float-typed expressions", required=14, target=version
-        )
-    if type_.kind in (types.Duration, types.Stretch):
-        raise exceptions.UnsupportedFeatureForVersion(
-            "duration-typed expressions", required=14, target=version
+            "Qiskit 2.0 classical expressions", required=14, target=version
         )
     if type_.kind is types.Bool:
         file_obj.write(type_keys.ExprType.BOOL)

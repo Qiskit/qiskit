@@ -22,7 +22,7 @@ import ddt
 import numpy as np
 
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, pulse
-from qiskit.circuit import CASE_DEFAULT, IfElseOp, WhileLoopOp, SwitchCaseOp
+from qiskit.circuit import CASE_DEFAULT, IfElseOp, WhileLoopOp, SwitchCaseOp, Duration
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.classicalregister import Clbit
 from qiskit.circuit.quantumregister import Qubit
@@ -1986,7 +1986,7 @@ class TestLoadFromQPY(QiskitTestCase):
             dump(qc, fptr, version=version)
 
     @ddt.idata(range(QPY_COMPATIBILITY_VERSION, 14))
-    def test_pre_v14_rejects_const_typed_expr(self, version):
+    def test_pre_v14_rejects_qiskit_2_0_expr(self, version):
         """Test that dumping to older QPY versions rejects const-typed expressions."""
         qc = QuantumCircuit()
         with qc.if_test(
@@ -2000,21 +2000,18 @@ class TestLoadFromQPY(QiskitTestCase):
         with (
             io.BytesIO() as fptr,
             self.assertRaisesRegex(
-                UnsupportedFeatureForVersion, "version 14 is required.*const-typed expressions"
+                UnsupportedFeatureForVersion, "version 14 is required.*Qiskit 2"
             ),
         ):
             dump(qc, fptr, version=version)
 
-    @ddt.idata(range(QPY_COMPATIBILITY_VERSION, 14))
-    def test_pre_v14_rejects_float_typed_expr(self, version):
-        """Test that dumping to older QPY versions rejects float-typed expressions."""
         qc = QuantumCircuit()
         with qc.if_test(expr.less(1.0, 2.0)):
             pass
         with (
             io.BytesIO() as fptr,
             self.assertRaisesRegex(
-                UnsupportedFeatureForVersion, "version 14 is required.*float-typed expressions"
+                UnsupportedFeatureForVersion, "version 14 is required.*Qiskit 2"
             ),
         ):
             dump(qc, fptr, version=version)
