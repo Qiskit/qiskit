@@ -329,8 +329,8 @@ class GenericBackendV2(BackendV2):
             Job: The job object for the run
 
         Raises:
-            QiskitError: If input is not :class:`~qiskit.circuit.QuantumCircuit or a list of
-            :class:`~qiskit.circuit.QuantumCircuit objects.
+            QiskitError: If input is not :class:`~qiskit.circuit.QuantumCircuit` or a list of
+            :class:`~qiskit.circuit.QuantumCircuit` objects.
         """
         circuits = run_input
         if not isinstance(circuits, QuantumCircuit) and (

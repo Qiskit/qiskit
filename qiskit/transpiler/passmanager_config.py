@@ -12,6 +12,7 @@
 
 """Pass Manager Configuration class."""
 
+
 class PassManagerConfig:
     """Pass Manager Configuration."""
 

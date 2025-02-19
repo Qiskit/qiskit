@@ -298,6 +298,12 @@ def generate_preset_pass_manager(
                 instruction_durations=instruction_durations,
                 concurrent_measurements=(
                     backend.target.concurrent_measurements if backend is not None else None
+                ),
+                dt=dt,
+                timing_constraints=timing_constraints,
+                custom_name_mapping=name_mapping,
+            )
+
     if target is not None:
         if coupling_map is None:
             coupling_map = target.build_coupling_map()
