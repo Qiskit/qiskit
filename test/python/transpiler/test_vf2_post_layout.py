@@ -17,7 +17,7 @@ import rustworkx
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.circuit import ControlFlowOp
 from qiskit.circuit.library import CXGate, XGate
-from qiskit.transpiler import CouplingMap, Layout, TranspilerError
+from qiskit.transpiler import Layout, TranspilerError
 from qiskit.transpiler.passes.layout.vf2_post_layout import VF2PostLayout, VF2PostLayoutStopReason
 from qiskit.converters import circuit_to_dag
 from qiskit.providers.fake_provider import GenericBackendV2
@@ -34,35 +34,9 @@ class TestVF2PostLayout(QiskitTestCase):
 
     seed = 42
 
-    def assertLayout(self, dag, coupling_map, property_set):
-        """Checks if the circuit in dag was a perfect layout in property_set for the given
-        coupling_map"""
-        self.assertEqual(
-            property_set["VF2PostLayout_stop_reason"], VF2PostLayoutStopReason.SOLUTION_FOUND
-        )
-
-        layout = property_set["post_layout"]
-        edges = coupling_map.graph.edge_list()
-
-        def run(dag, wire_map):
-            for gate in dag.two_qubit_ops():
-                if isinstance(gate.op, ControlFlowOp):
-                    continue
-                physical_q0 = wire_map[gate.qargs[0]]
-                physical_q1 = wire_map[gate.qargs[1]]
-                self.assertTrue((physical_q0, physical_q1) in edges)
-            for node in dag.op_nodes(ControlFlowOp):
-                for block in node.op.blocks:
-                    inner_wire_map = {
-                        inner: wire_map[outer] for outer, inner in zip(node.qargs, block.qubits)
-                    }
-                    run(circuit_to_dag(block), inner_wire_map)
-
-        run(dag, {bit: layout[bit] for bit in dag.qubits if bit in layout})
-
     def assertLayoutV2(self, dag, target, property_set):
         """Checks if the circuit in dag was a perfect layout in property_set for the given
-        coupling_map"""
+        target"""
         self.assertEqual(
             property_set["VF2PostLayout_stop_reason"], VF2PostLayoutStopReason.SOLUTION_FOUND
         )
@@ -152,7 +126,6 @@ class TestVF2PostLayout(QiskitTestCase):
         tqc = transpile(circuit, backend, layout_method="dense")
         initial_layout = tqc._layout
         dag = circuit_to_dag(tqc)
-        cmap = CouplingMap(backend.coupling_map)
         pass_ = VF2PostLayout(target=backend.target, seed=self.seed, max_trials=max_trials)
         with self.assertLogs(
             "qiskit.transpiler.passes.layout.vf2_post_layout", level="DEBUG"
@@ -166,7 +139,7 @@ class TestVF2PostLayout(QiskitTestCase):
         self.assertEqual(
             pass_.property_set["VF2PostLayout_stop_reason"], VF2PostLayoutStopReason.SOLUTION_FOUND
         )
-        self.assertLayout(dag, cmap, pass_.property_set)
+        self.assertLayoutV2(dag, backend.target, pass_.property_set)
         self.assertNotEqual(pass_.property_set["post_layout"], initial_layout)
 
     def test_best_mapping_ghz_state_full_device_multiple_qregs(self):
@@ -349,7 +322,7 @@ class TestVF2PostLayout(QiskitTestCase):
         )
         dag = circuit_to_dag(circuit)
         vf2_pass.run(dag)
-        self.assertLayout(dag, target_last_qubits_best.build_coupling_map(), vf2_pass.property_set)
+        self.assertLayoutV2(dag, target_last_qubits_best, vf2_pass.property_set)
 
 
 class TestVF2PostLayoutScoring(QiskitTestCase):
@@ -491,10 +464,9 @@ class TestVF2PostLayoutUndirected(QiskitTestCase):
         tqc = transpile(qc, seed_transpiler=self.seed, layout_method="trivial")
         initial_layout = tqc._layout
         dag = circuit_to_dag(tqc)
-        cmap = CouplingMap(backend.coupling_map)
         pass_ = VF2PostLayout(target=backend.target, seed=self.seed, strict_direction=False)
         pass_.run(dag)
-        self.assertLayout(dag, cmap, pass_.property_set)
+        self.assertLayoutV2(dag, backend.target, pass_.property_set)
         self.assertNotEqual(pass_.property_set["post_layout"], initial_layout)
 
     def test_2q_circuit_5q_backend(self):
@@ -514,10 +486,9 @@ class TestVF2PostLayoutUndirected(QiskitTestCase):
         tqc = transpile(circuit, backend, layout_method="dense")
         initial_layout = tqc._layout
         dag = circuit_to_dag(tqc)
-        cmap = CouplingMap(backend.coupling_map)
         pass_ = VF2PostLayout(target=backend.target, seed=self.seed, strict_direction=False)
         pass_.run(dag)
-        self.assertLayout(dag, cmap, pass_.property_set)
+        self.assertLayoutV2(dag, backend.target, pass_.property_set)
         self.assertNotEqual(pass_.property_set["post_layout"], initial_layout)
 
     def test_best_mapping_ghz_state_full_device_multiple_qregs_v2(self):

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2021.
@@ -26,6 +27,7 @@ from qiskit.circuit.classicalregister import Clbit
 from qiskit.circuit.quantumregister import Qubit
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parametervector import ParameterVector
+from qiskit.qpy.exceptions import QpyError
 from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info import Operator
 from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, QFT, DCXGate, PauliGate
@@ -967,22 +969,22 @@ def generate_qpy(qpy_files):
 def load_qpy(qpy_files, version_parts):
     """Load qpy circuits from files and compare to reference circuits."""
     pulse_files = {
-        "schedule_blocks.qpy",
-        "pulse_gates.qpy",
-        "referenced_schedule_blocks.qpy",
-        "acquire_inst_with_kernel_and_disc.qpy",
+        "schedule_blocks.qpy": (0, 21, 0),
+        "pulse_gates.qpy": (0, 21, 0),
+        "referenced_schedule_blocks.qpy": (0, 24, 0),
+        "acquire_inst_with_kernel_and_disc.qpy": (0, 25, 0),
     }
     for path, circuits in qpy_files.items():
+        if path in pulse_files.keys():
+            # Qiskit Pulse was removed in version 2.0. Loading ScheduleBlock payloads
+            # raises an exception and loading pulse gates results with undefined instructions
+            # so not loading and comparing these payloads.
+            # See https://github.com/Qiskit/qiskit/pull/13814
+            continue
         print(f"Loading qpy file: {path}")
         with open(path, "rb") as fd:
             qpy_circuits = load(fd)
         equivalent = path in {"open_controlled_gates.qpy", "controlled_gates.qpy"}
-        if path in pulse_files:
-            # Qiskit Pulse was removed in version 2.0. We want to be able to load
-            # pulse-based payloads, however these will be partially specified hence
-            # we should not compare them to the cached circuits.
-            # See https://github.com/Qiskit/qiskit/pull/13814
-            continue
         for i, circuit in enumerate(circuits):
             bind = None
             if path == "parameterized.qpy":
@@ -1000,6 +1002,30 @@ def load_qpy(qpy_files, version_parts):
             assert_equal(
                 circuit, qpy_circuits[i], i, version_parts, bind=bind, equivalent=equivalent
             )
+
+    while pulse_files:
+        path, version = pulse_files.popitem()
+
+        if version_parts < version or version_parts >= (2, 0):
+            continue
+
+        if path == "pulse_gates.qpy":
+            try:
+                load(open(path, "rb"))
+            except:
+                msg = f"Loading circuit with pulse gates should not raise"
+                sys.stderr.write(msg)
+                sys.exit(1)
+        else:
+            try:
+                # A ScheduleBlock payload, should raise QpyError
+                load(open(path, "rb"))
+            except QpyError:
+                continue
+
+            msg = f"Loading payload {path} didn't raise QpyError"
+            sys.stderr.write(msg)
+            sys.exit(1)
 
 
 def _main():

@@ -288,9 +288,6 @@ def generate_preset_pass_manager(
             # If a backend is specified without loose constraints, use its target directly.
             target = backend.target
         elif not _skip_target:
-            # Only parse backend properties when the target isn't skipped to
-            # preserve the former behavior of transpile.
-
             # Build target from constraints.
             target = Target.from_configuration(
                 basis_gates=basis_gates,
@@ -301,12 +298,6 @@ def generate_preset_pass_manager(
                 instruction_durations=instruction_durations,
                 concurrent_measurements=(
                     backend.target.concurrent_measurements if backend is not None else None
-                ),
-                dt=dt,
-                timing_constraints=timing_constraints,
-                custom_name_mapping=name_mapping,
-            )
-
     if target is not None:
         if coupling_map is None:
             coupling_map = target.build_coupling_map()

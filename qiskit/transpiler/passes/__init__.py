@@ -115,10 +115,6 @@ Scheduling
    ConstrainedReschedule
    InstructionDurationCheck
    SetIOLatency
-   ALAPSchedule
-   ASAPSchedule
-   DynamicalDecoupling
-   AlignMeasures
 
 Circuit Analysis
 ================
@@ -262,7 +258,7 @@ from .synthesis import SolovayKitaevSynthesis
 from .synthesis import AQCSynthesisPlugin
 
 # calibration
-from .calibration.rzx_templates import rzx_templates  # TODO: remove this
+from .calibration.rzx_templates import rzx_templates
 
 # circuit scheduling
 from .scheduling import TimeUnitConversion
@@ -273,10 +269,6 @@ from .scheduling import PadDelay
 from .scheduling import ConstrainedReschedule
 from .scheduling import InstructionDurationCheck
 from .scheduling import SetIOLatency
-from .scheduling import ALAPSchedule
-from .scheduling import ASAPSchedule
-from .scheduling import DynamicalDecoupling
-from .scheduling import AlignMeasures
 
 # additional utility passes
 from .utils import CheckMap
