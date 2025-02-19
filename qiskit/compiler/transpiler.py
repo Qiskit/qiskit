@@ -23,7 +23,6 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.providers.backend import Backend
 from qiskit.providers.backend_compat import BackendV2Converter
-from qiskit.providers.models.backendproperties import BackendProperties
 from qiskit.pulse import Schedule
 from qiskit.transpiler import Layout, CouplingMap, PropertySet
 from qiskit.transpiler.basepasses import BasePass
@@ -57,20 +56,11 @@ _CircuitT = TypeVar("_CircuitT", bound=Union[QuantumCircuit, List[QuantumCircuit
     "with defined timing constraints with "
     "`Target.from_configuration(..., timing_constraints=...)`",
 )
-@deprecate_arg(
-    name="backend_properties",
-    since="1.3",
-    package_name="Qiskit",
-    removal_timeline="in Qiskit 2.0",
-    additional_msg="The `target` parameter should be used instead. You can build a `Target` instance "
-    "with defined properties with Target.from_configuration(..., backend_properties=...)",
-)
 def transpile(  # pylint: disable=too-many-return-statements
     circuits: _CircuitT,
     backend: Optional[Backend] = None,
     basis_gates: Optional[List[str]] = None,
     coupling_map: Optional[Union[CouplingMap, List[List[int]]]] = None,
-    backend_properties: Optional[BackendProperties] = None,
     initial_layout: Optional[Union[Layout, Dict, List]] = None,
     layout_method: Optional[str] = None,
     routing_method: Optional[str] = None,
@@ -102,7 +92,7 @@ def transpile(  # pylint: disable=too-many-return-statements
 
     The prioritization of transpilation target constraints works as follows: if a ``target``
     input is provided, it will take priority over any ``backend`` input or loose constraints
-    (``basis_gates``, ``inst_map``, ``coupling_map``, ``backend_properties``, ``instruction_durations``,
+    (``basis_gates``, ``inst_map``, ``coupling_map``, ``instruction_durations``,
     ``dt`` or ``timing_constraints``). If a ``backend`` is provided together with any loose constraint
     from the list above, the loose constraint will take priority over the corresponding backend
     constraint. This behavior is independent of whether the ``backend`` instance is of type
@@ -120,7 +110,6 @@ def transpile(  # pylint: disable=too-many-return-statements
     **inst_map**                 target    inst_map                 inst_map
     **dt**                       target    dt                       dt
     **timing_constraints**       target    timing_constraints       timing_constraints
-    **backend_properties**       target    backend_properties       backend_properties
     ============================ ========= ======================== =======================
 
     Args:
@@ -139,10 +128,6 @@ def transpile(  # pylint: disable=too-many-return-statements
             #. List, must be given as an adjacency matrix, where each entry
                specifies all directed two-qubit interactions supported by backend,
                e.g: ``[[0, 1], [0, 3], [1, 2], [1, 5], [2, 5], [4, 1], [5, 3]]``
-
-        backend_properties: properties returned by a backend, including information on gate
-            errors, readout errors, qubit coherence times, etc. Find a backend
-            that provides this information with: ``backend.properties()``
         initial_layout: Initial position of virtual qubits on physical qubits.
             If this layout makes the circuit compatible with the coupling_map
             constraints, it will be used. The final layout is not guaranteed to be the same,
@@ -385,7 +370,7 @@ def transpile(  # pylint: disable=too-many-return-statements
     # Edge cases require using the old model (loose constraints) instead of building a target,
     # but we don't populate the passmanager config with loose constraints unless it's one of
     # the known edge cases to control the execution path.
-    # Filter instruction_durations, timing_constraints, backend_properties and inst_map deprecation
+    # Filter instruction_durations, timing_constraints and inst_map deprecation
     with warnings.catch_warnings():
         warnings.filterwarnings(
             "ignore",
@@ -405,12 +390,6 @@ def transpile(  # pylint: disable=too-many-return-statements
             message=".*``instruction_durations`` is deprecated as of Qiskit 1.3.*",
             module="qiskit",
         )
-        warnings.filterwarnings(
-            "ignore",
-            category=DeprecationWarning,
-            message=".*``backend_properties`` is deprecated as of Qiskit 1.3.*",
-            module="qiskit",
-        )
         pm = generate_preset_pass_manager(
             optimization_level,
             target=target,
@@ -418,7 +397,6 @@ def transpile(  # pylint: disable=too-many-return-statements
             basis_gates=basis_gates,
             coupling_map=coupling_map,
             instruction_durations=instruction_durations,
-            backend_properties=backend_properties,
             timing_constraints=timing_constraints,
             initial_layout=initial_layout,
             layout_method=layout_method,

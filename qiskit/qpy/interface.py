@@ -24,12 +24,12 @@ import re
 from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.qpy import formats, common, binary_io, type_keys
-from qiskit.qpy.exceptions import QPYLoadingDeprecatedFeatureWarning, QpyError
+from qiskit.qpy.exceptions import QpyError
 from qiskit.version import __version__
 
 
 # pylint: disable=invalid-name
-QPY_SUPPORTED_TYPES = Union[QuantumCircuit]
+QPY_SUPPORTED_TYPES = QuantumCircuit
 
 # This version pattern is taken from the pypa packaging project:
 # https://github.com/pypa/packaging/blob/21.3/packaging/version.py#L223-L254
@@ -157,29 +157,19 @@ def dump(
 
 
     Raises:
-        QpyError: When multiple data format is mixed in the output.
         TypeError: When invalid data type is input.
-        ValueError: When an unsupported version number is passed in for the ``version`` argument
+        ValueError: When an unsupported version number is passed in for the ``version`` argument.
     """
     if not isinstance(programs, Iterable):
         programs = [programs]
 
-    program_types = set()
+    # dump accepts only QuantumCircuit typed objects
     for program in programs:
-        program_types.add(type(program))
+        if not issubclass(type(program), QuantumCircuit):
+            raise TypeError(f"'{type(program)}' is not a supported data type.")
 
-    if len(program_types) > 1:
-        raise QpyError(
-            "Input programs contain multiple data types. "
-            "Different data type must be serialized separately."
-        )
-    program_type = next(iter(program_types))
-
-    if issubclass(program_type, QuantumCircuit):
-        type_key = type_keys.Program.CIRCUIT
-        writer = binary_io.write_circuit
-    else:
-        raise TypeError(f"'{program_type}' is not supported data type.")
+    type_key = type_keys.Program.CIRCUIT
+    writer = binary_io.write_circuit
 
     if version is None:
         version = common.QPY_VERSION
@@ -262,8 +252,9 @@ def load(
         A list is always returned, even if there is only 1 program in the QPY data.
 
     Raises:
-        QiskitError: if ``file_obj`` is not a valid QPY file
-        TypeError: When invalid data type is loaded.
+        QiskitError: if ``file_obj`` is not a valid QPY file.
+        QpyError: if known but unsupported data type is loaded.
+        TypeError: if invalid data type is loaded.
     """
 
     # identify file header version
@@ -326,13 +317,9 @@ def load(
     if type_key == type_keys.Program.CIRCUIT:
         loader = binary_io.read_circuit
     elif type_key == type_keys.Program.SCHEDULE_BLOCK:
-        loader = binary_io.read_schedule_block
-        warnings.warn(
-            category=QPYLoadingDeprecatedFeatureWarning,
-            message="Payloads of type `ScheduleBlock` cannot be loaded as of Qiskit 2.0. "
-            "An empty circuit (possibly with serialized metadata) will be loaded. "
-            "Use an earlier version of Qiskit if you want to load a `ScheduleBlock`"
-            " payload.",
+        raise QpyError(
+            "Payloads of type `ScheduleBlock` cannot be loaded as of Qiskit 2.0. "
+            "Use an earlier version of Qiskit if you want to load `ScheduleBlock` payloads."
         )
     else:
         raise TypeError(f"Invalid payload format data kind '{type_key}'.")
