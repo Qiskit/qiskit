@@ -336,8 +336,6 @@ class TestGateEquivalenceEqual(QiskitTestCase):
         "MCXGate",
         "MCMTGate",
         "VariadicZeroParamGate",
-        "ClassicalFunction",
-        "ClassicalElement",
         "StatePreparation",
         "UniformSuperpositionGate",
         "LinearFunction",
