@@ -122,6 +122,18 @@ impl From<Clbit> for BitType {
     }
 }
 
+#[pyclass(eq, hash, module = "qiskit._accelerate.circuit")]
+#[derive(Hash, Eq, PartialEq, Clone, Copy, Debug)]
+#[allow(non_camel_case_types)]
+pub enum Duration {
+    fs(u64),
+    ns(u64),
+    us(u64),
+    ms(u64),
+    s(u64),
+    dt(u64),
+}
+
 /// Implement `IntoPyObject` for the reference to a struct or enum declared as `#[pyclass]` that is
 /// also `Copy`.
 ///
@@ -157,6 +169,7 @@ macro_rules! impl_intopyobject_for_copy_pyclass {
 }
 
 pub fn circuit(m: &Bound<PyModule>) -> PyResult<()> {
+    m.add_class::<crate::Duration>()?;
     m.add_class::<circuit_data::CircuitData>()?;
     m.add_class::<circuit_instruction::CircuitInstruction>()?;
     m.add_class::<dag_circuit::DAGCircuit>()?;

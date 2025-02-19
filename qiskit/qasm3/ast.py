@@ -136,6 +136,7 @@ class ClassicalType(ASTNode):
 class FloatType(ClassicalType, enum.Enum):
     """Allowed values for the width of floating-point types."""
 
+    UNSPECIFIED = 0
     HALF = 16
     SINGLE = 32
     DOUBLE = 64
@@ -169,6 +170,18 @@ class UintType(ClassicalType):
 
 class BitType(ClassicalType):
     """Type information for a single bit."""
+
+    __slots__ = ()
+
+
+class DurationType(ClassicalType):
+    """Type information for a duration."""
+
+    __slots__ = ()
+
+
+class StretchType(ClassicalType):
+    """Type information for a stretch."""
 
     __slots__ = ()
 
@@ -242,6 +255,13 @@ class IntegerLiteral(Expression):
         self.value = value
 
 
+class FloatLiteral(Expression):
+    __slots__ = ("value",)
+
+    def __init__(self, value):
+        self.value = value
+
+
 class BooleanLiteral(Expression):
     __slots__ = ("value",)
 
@@ -304,6 +324,10 @@ class Binary(Expression):
         NOT_EQUAL = "!="
         SHIFT_LEFT = "<<"
         SHIFT_RIGHT = ">>"
+        ADD = "+"
+        SUB = "-"
+        MUL = "*"
+        DIV = "/"
 
     def __init__(self, op: Op, left: Expression, right: Expression):
         self.op = op
