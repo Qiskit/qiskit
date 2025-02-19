@@ -72,7 +72,7 @@ fn get_decomposers_from_target(
         .iter()
         .filter_map(|(name, rev)| match target.operation_from_name(name) {
             Ok(raw_op) => match raw_op.operation.view() {
-                OperationRef::Standard(_) | OperationRef::Gate(_) => {
+                OperationRef::StandardGate(_) | OperationRef::Gate(_) => {
                     Some((*name, &raw_op.operation, raw_op.params.as_slice(), *rev))
                 }
                 _ => None,
@@ -144,12 +144,15 @@ fn get_decomposers_from_target(
                 .iter()
                 .all(|x| matches!(x, Param::ParameterExpression(_)))
             {
-                decomposers.push((
-                    TwoQubitDecomposer::ControlledU(TwoQubitControlledUDecomposer::new(
-                        RXXEquivalent::Standard(gate),
-                    )?),
-                    false,
-                ));
+                for euler_basis in target_basis_set.get_bases() {
+                    decomposers.push((
+                        TwoQubitDecomposer::ControlledU(TwoQubitControlledUDecomposer::new(
+                            RXXEquivalent::Standard(gate),
+                            euler_basis.as_str(),
+                        )?),
+                        false,
+                    ));
+                }
             }
         }
     }
@@ -337,7 +340,7 @@ pub(crate) fn two_qubit_unitary_peephole_optimize(
                                     decomposer.gate_name().to_string(),
                                 ),
                                 TwoQubitDecomposer::ControlledU(decomposer) => (
-                                    decomposer.call_inner(matrix.view(), 1e-12).unwrap(),
+                                    decomposer.call_inner(matrix.view(), Some(1e-12)).unwrap(),
                                     match decomposer.rxx_equivalent_gate {
                                         RXXEquivalent::Standard(gate) => gate.name().to_string(),
                                         RXXEquivalent::CustomPython(_) => {
@@ -470,7 +473,7 @@ pub(crate) fn two_qubit_unitary_peephole_optimize(
                             {
                                 out_dag.apply_operation_back(
                                     py,
-                                    PackedOperation::from_standard(*gate),
+                                    PackedOperation::from_standard_gate(*gate),
                                     qubits.as_slice(),
                                     &[],
                                     out_params,

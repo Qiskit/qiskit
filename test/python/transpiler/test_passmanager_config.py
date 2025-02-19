@@ -87,14 +87,12 @@ class TestPassManagerConfig(QiskitTestCase):
         qr = QuantumRegister(4, "qr")
         initial_layout = [None, qr[0], qr[1], qr[2], None, qr[3]]
 
-        with self.assertWarns(DeprecationWarning):
-            backend = GenericBackendV2(
-                num_qubits=20,
-                coupling_map=ALMADEN_CMAP,
-                basis_gates=["id", "u1", "u2", "u3", "cx"],
-                calibrate_instructions=None,
-                seed=42,
-            )
+        backend = GenericBackendV2(
+            num_qubits=20,
+            coupling_map=ALMADEN_CMAP,
+            basis_gates=["id", "u1", "u2", "u3", "cx"],
+            seed=42,
+        )
         config = PassManagerConfig.from_backend(
             backend, basis_gates=["user_gate"], initial_layout=initial_layout
         )
@@ -137,7 +135,6 @@ class TestPassManagerConfig(QiskitTestCase):
 \ttranslation_method: None
 \tscheduling_method: None
 \tinstruction_durations:\u0020
-\tbackend_properties: None
 \tapproximation_degree: None
 \tseed_transpiler: None
 \ttiming_constraints: None
