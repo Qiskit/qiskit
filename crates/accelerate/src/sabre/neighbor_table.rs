@@ -67,7 +67,7 @@ impl std::ops::Index<PhysicalQubit> for NeighborTable {
 #[pymethods]
 impl NeighborTable {
     #[new]
-    #[pyo3(text_signature = "(/, adjacency_matrix=None)")]
+    #[pyo3(signature = (adjacency_matrix=None))]
     pub fn new(adjacency_matrix: Option<PyReadonlyArray2<f64>>) -> PyResult<Self> {
         let run_in_parallel = getenv_use_multiple_threads();
         let neighbors = match adjacency_matrix {
@@ -107,14 +107,17 @@ impl NeighborTable {
         Ok(NeighborTable { neighbors })
     }
 
-    fn __getstate__(&self, py: Python<'_>) -> Py<PyList> {
-        PyList::new_bound(
+    fn __getstate__(&self, py: Python<'_>) -> PyResult<Py<PyList>> {
+        PyList::new(
             py,
-            self.neighbors
-                .iter()
-                .map(|v| PyList::new_bound(py, v.iter()).to_object(py)),
+            self.neighbors.iter().map(|v| {
+                PyList::new(py, v.iter())
+                    .unwrap()
+                    .into_pyobject(py)
+                    .unwrap()
+            }),
         )
-        .into()
+        .map(|x| x.unbind())
     }
 
     fn __setstate__(&mut self, state: &Bound<PyList>) -> PyResult<()> {

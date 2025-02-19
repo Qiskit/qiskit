@@ -166,6 +166,13 @@ class CircuitScopeInterface(abc.ABC):
             the variable if it is found, otherwise ``None``.
         """
 
+    @abc.abstractmethod
+    def use_qubit(self, qubit: Qubit):
+        """Called to mark that a :class:`~.circuit.Qubit` should be considered "used" by this scope,
+        without appending an explicit instruction.
+
+        The subclass may assume that the ``qubit`` is valid for the root scope."""
+
 
 class InstructionResources(typing.NamedTuple):
     """The quantum and classical resources used within a particular instruction.
@@ -284,14 +291,11 @@ class InstructionPlaceholder(Instruction, abc.ABC):
             The same instruction instance that was passed, but mutated to propagate the tracked
             changes to this class.
         """
-        instruction.condition = self.condition
+        instruction._condition = self._condition
         return instruction
 
     # Provide some better error messages, just in case something goes wrong during development and
     # the placeholder type leaks out to somewhere visible.
-
-    def assemble(self):
-        raise CircuitError("Cannot assemble a placeholder instruction.")
 
     def repeat(self, n):
         raise CircuitError("Cannot repeat a placeholder instruction.")
@@ -497,6 +501,9 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
         self._parent.use_var(var)
         self._vars_capture[var.name] = var
 
+    def use_qubit(self, qubit: Qubit):
+        self._instructions.add_qubit(qubit, strict=False)
+
     def iter_local_vars(self):
         """Iterator over the variables currently declared in this scope."""
         return self._vars_local.values()
@@ -639,8 +646,8 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
                         # a register is already present, so we use our own tracking.
                         self.add_register(register)
                         out.add_register(register)
-            if getattr(op, "condition", None) is not None:
-                for register in condition_resources(op.condition).cregs:
+            if getattr(op, "_condition", None) is not None:
+                for register in condition_resources(op._condition).cregs:
                     if register not in self.registers:
                         self.add_register(register)
                         out.add_register(register)

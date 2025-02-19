@@ -13,7 +13,6 @@
 """Test the Sabre Swap pass"""
 
 import unittest
-
 import itertools
 
 import ddt
@@ -42,7 +41,7 @@ def looping_circuit(uphill_swaps=1, additional_local_minimum_gates=0):
     This looks like (using cz gates to show the symmetry, though we actually output cx for testing
     purposes):
 
-    .. parsed-literal::
+    .. code-block:: text
 
          q_0: ─■────────────────
                │
@@ -293,7 +292,8 @@ class TestSabreSwap(QiskitTestCase):
         with self.subTest("1 bit in register"):
             qc = QuantumCircuit(2, 1)
             qc.z(0)
-            qc.z(0).c_if(qc.cregs[0], 0)
+            with self.assertWarns(DeprecationWarning):
+                qc.z(0).c_if(qc.cregs[0], 0)
             cm = CouplingMap([(0, 1), (1, 0)])
             expected = PassManager([TrivialLayout(cm)]).run(qc)
             actual = PassManager([TrivialLayout(cm), SabreSwap(cm)]).run(qc)
@@ -302,8 +302,10 @@ class TestSabreSwap(QiskitTestCase):
             cregs = [ClassicalRegister(3), ClassicalRegister(4)]
             qc = QuantumCircuit(QuantumRegister(2, name="q"), *cregs)
             qc.z(0)
-            qc.z(0).c_if(cregs[0], 0)
-            qc.z(0).c_if(cregs[1], 0)
+            with self.assertWarns(DeprecationWarning):
+                qc.z(0).c_if(cregs[0], 0)
+            with self.assertWarns(DeprecationWarning):
+                qc.z(0).c_if(cregs[1], 0)
             cm = CouplingMap([(0, 1), (1, 0)])
             expected = PassManager([TrivialLayout(cm)]).run(qc)
             actual = PassManager([TrivialLayout(cm), SabreSwap(cm)]).run(qc)
@@ -316,40 +318,54 @@ class TestSabreSwap(QiskitTestCase):
         """
         with self.subTest("missing measurement"):
             qc = QuantumCircuit(3, 1)
-            qc.cx(0, 2).c_if(0, 0)
+            with self.assertWarns(DeprecationWarning):
+                qc.cx(0, 2).c_if(0, 0)
             qc.measure(1, 0)
-            qc.h(2).c_if(0, 0)
+            with self.assertWarns(DeprecationWarning):
+                qc.h(2).c_if(0, 0)
             expected = QuantumCircuit(3, 1)
             expected.swap(1, 2)
-            expected.cx(0, 1).c_if(0, 0)
+            with self.assertWarns(DeprecationWarning):
+                expected.cx(0, 1).c_if(0, 0)
             expected.measure(2, 0)
-            expected.h(1).c_if(0, 0)
+            with self.assertWarns(DeprecationWarning):
+                expected.h(1).c_if(0, 0)
             result = SabreSwap(CouplingMap.from_line(3), seed=12345)(qc)
             self.assertEqual(result, expected)
         with self.subTest("reordered measurement"):
             qc = QuantumCircuit(3, 1)
-            qc.cx(0, 1).c_if(0, 0)
+            with self.assertWarns(DeprecationWarning):
+                qc.cx(0, 1).c_if(0, 0)
             qc.measure(1, 0)
-            qc.h(0).c_if(0, 0)
+            with self.assertWarns(DeprecationWarning):
+                qc.h(0).c_if(0, 0)
             expected = QuantumCircuit(3, 1)
-            expected.cx(0, 1).c_if(0, 0)
+            with self.assertWarns(DeprecationWarning):
+                expected.cx(0, 1).c_if(0, 0)
             expected.measure(1, 0)
-            expected.h(0).c_if(0, 0)
+            with self.assertWarns(DeprecationWarning):
+                expected.h(0).c_if(0, 0)
             result = SabreSwap(CouplingMap.from_line(3), seed=12345)(qc)
             self.assertEqual(result, expected)
 
     def test_conditional_measurement(self):
         """Test that instructions with cargs and conditions are handled correctly."""
         qc = QuantumCircuit(3, 2)
-        qc.cx(0, 2).c_if(0, 0)
-        qc.measure(2, 0).c_if(1, 0)
-        qc.h(2).c_if(0, 0)
+        with self.assertWarns(DeprecationWarning):
+            qc.cx(0, 2).c_if(0, 0)
+        with self.assertWarns(DeprecationWarning):
+            qc.measure(2, 0).c_if(1, 0)
+        with self.assertWarns(DeprecationWarning):
+            qc.h(2).c_if(0, 0)
         qc.measure(1, 1)
         expected = QuantumCircuit(3, 2)
         expected.swap(1, 2)
-        expected.cx(0, 1).c_if(0, 0)
-        expected.measure(1, 0).c_if(1, 0)
-        expected.h(1).c_if(0, 0)
+        with self.assertWarns(DeprecationWarning):
+            expected.cx(0, 1).c_if(0, 0)
+        with self.assertWarns(DeprecationWarning):
+            expected.measure(1, 0).c_if(1, 0)
+        with self.assertWarns(DeprecationWarning):
+            expected.h(1).c_if(0, 0)
         expected.measure(2, 1)
         result = SabreSwap(CouplingMap.from_line(3), seed=12345)(qc)
         self.assertEqual(result, expected)
@@ -475,12 +491,12 @@ class TestSabreSwapControlFlow(QiskitTestCase):
         expected.swap(1, 2)
         expected.cx(0, 1)
         expected.measure(1, 2)
-        etrue_body = QuantumCircuit(qreg[[3, 4]], creg[[2]])
-        etrue_body.x(0)
-        efalse_body = QuantumCircuit(qreg[[3, 4]], creg[[2]])
-        efalse_body.x(1)
+        etrue_body = QuantumCircuit(qreg, creg[[2]])
+        etrue_body.x(3)
+        efalse_body = QuantumCircuit(qreg, creg[[2]])
+        efalse_body.x(4)
         new_order = [0, 2, 1, 3, 4]
-        expected.if_else((creg[2], 0), etrue_body, efalse_body, qreg[[3, 4]], creg[[2]])
+        expected.if_else((creg[2], 0), etrue_body, efalse_body, qreg, creg[[2]])
         expected.barrier(qreg)
         expected.measure(qreg, creg[new_order])
         self.assertEqual(dag_to_circuit(cdag), expected)
@@ -516,11 +532,11 @@ class TestSabreSwapControlFlow(QiskitTestCase):
         expected.cx(0, 1)
         expected.measure(1, 2)
         new_order = [0, 2, 1, 3, 4]
-        etrue_body = QuantumCircuit(qreg[[3, 4]], creg[[0]])
-        etrue_body.x(0)
-        efalse_body = QuantumCircuit(qreg[[3, 4]], creg[[0]])
-        efalse_body.x(1)
-        expected.if_else((creg[2], 0), etrue_body, efalse_body, qreg[[3, 4]], creg[[0]])
+        etrue_body = QuantumCircuit(qreg, creg[[0]])
+        etrue_body.x(3)
+        efalse_body = QuantumCircuit(qreg, creg[[0]])
+        efalse_body.x(4)
+        expected.if_else((creg[2], 0), etrue_body, efalse_body, qreg, creg[[0]])
         expected.x(2)
         expected.barrier(qreg)
         expected.measure(qreg, creg[new_order])
@@ -535,12 +551,12 @@ class TestSabreSwapControlFlow(QiskitTestCase):
         qc = QuantumCircuit(qreg, creg)
         qc.h(0)
         qc.measure(0, 0)
-        true_body = QuantumCircuit(qreg, creg[[0]])
-        true_body.x(3)
-        false_body = QuantumCircuit(qreg, creg[[0]])
-        false_body.x(4)
+        true_body = QuantumCircuit(qreg[[3, 4]], creg[[0]])
+        true_body.x(0)
+        false_body = QuantumCircuit(qreg[[3, 4]], creg[[0]])
+        false_body.x(1)
         qc.barrier(qreg)
-        qc.if_else((creg[0], 0), true_body, false_body, qreg, creg[[0]])
+        qc.if_else((creg[0], 0), true_body, false_body, qreg[[3, 4]], creg[[0]])
         qc.barrier(qreg)
         qc.cx(0, 2)
         qc.barrier(qreg)
@@ -579,10 +595,10 @@ class TestSabreSwapControlFlow(QiskitTestCase):
         qc.cx(0, 2)
         qc.x(1)
         qc.measure(0, 0)
-        true_body = QuantumCircuit(qreg, creg[[0]])
+        true_body = QuantumCircuit(qreg[[0]], creg[[0]])
         true_body.x(0)
-        false_body = QuantumCircuit(qreg, creg[[0]])
-        qc.if_else((creg[0], 0), true_body, false_body, qreg, creg[[0]])
+        false_body = QuantumCircuit(qreg[[0]], creg[[0]])
+        qc.if_else((creg[0], 0), true_body, false_body, qreg[[0]], creg[[0]])
         qc.barrier(qreg)
         qc.measure(qreg, creg)
 
@@ -731,21 +747,21 @@ class TestSabreSwapControlFlow(QiskitTestCase):
         expected.swap(0, 1)
         expected.cx(1, 2)
         expected.measure(1, 0)
-        etrue_body = QuantumCircuit(qreg[[1, 2, 3, 4]], creg[[0]])
-        etrue_body.cx(0, 1)
-        efalse_body = QuantumCircuit(qreg[[1, 2, 3, 4]], creg[[0]])
-        efalse_body.swap(0, 1)
-        efalse_body.swap(2, 3)
-        efalse_body.cx(1, 2)
-        efalse_body.swap(0, 1)
-        efalse_body.swap(2, 3)
+        etrue_body = QuantumCircuit(qreg, creg[[0]])
+        etrue_body.cx(1, 2)
+        efalse_body = QuantumCircuit(qreg, creg[[0]])
+        efalse_body.swap(1, 2)
+        efalse_body.swap(3, 4)
+        efalse_body.cx(2, 3)
+        efalse_body.swap(1, 2)
+        efalse_body.swap(3, 4)
 
-        expected.if_else((creg[0], 0), etrue_body, efalse_body, qreg[[1, 2, 3, 4]], creg[[0]])
-        expected.swap(1, 2)
+        expected.if_else((creg[0], 0), etrue_body, efalse_body, qreg, creg[[0]])
         expected.h(3)
-        expected.cx(3, 2)
+        expected.swap(2, 3)
+        expected.cx(2, 1)
         expected.barrier()
-        expected.measure(qreg[[2, 0, 1, 3, 4]], creg)
+        expected.measure(qreg[[1, 0, 3, 2, 4]], creg)
         self.assertEqual(dag_to_circuit(cdag), expected)
 
     def test_if_expr(self):
@@ -817,11 +833,11 @@ class TestSabreSwapControlFlow(QiskitTestCase):
         expected.swap(1, 2)
         expected.cx(0, 1)
         expected.measure(0, 0)
-        etrue_body = QuantumCircuit(qreg[[1, 4]], creg[[0]])
-        etrue_body.x(0)
-        efalse_body = QuantumCircuit(qreg[[1, 4]], creg[[0]])
-        efalse_body.x(1)
-        expected.if_else((creg[0], 0), etrue_body, efalse_body, qreg[[1, 4]], creg[[0]])
+        etrue_body = QuantumCircuit(qreg, creg[[0]])
+        etrue_body.x(1)
+        efalse_body = QuantumCircuit(qreg, creg[[0]])
+        efalse_body.x(4)
+        expected.if_else((creg[0], 0), etrue_body, efalse_body, qreg, creg[[0]])
         expected.barrier(qreg)
         expected.measure(qreg, creg[[0, 2, 1, 3, 4]])
         self.assertEqual(dag_to_circuit(cdag), expected)
@@ -1319,6 +1335,42 @@ class TestSabreSwapControlFlow(QiskitTestCase):
                 running_layout.swap(*instruction.qubits)
         self.assertEqual(initial_layout, running_layout)
 
+    def test_idle_qubit_contraction(self):
+        """Incident virtual qubits to a control-flow block should be maintained, even if idle, but
+        the blocks shouldn't contain further unnecessary qubits."""
+        qc = QuantumCircuit(8)
+        with qc.if_test(expr.lift(True)):
+            qc.cx(0, 3)
+            qc.noop(4)
+            # Both of these qubits will have been moved around by the prior necessary layout
+            # changes, so this is testing the recursion works for modified layouts.
+            with qc.if_test(expr.lift(True)) as else_:
+                qc.noop(0)
+            with else_:
+                qc.noop(3)
+
+        coupling = CouplingMap.from_line(8)
+
+        # With the `decay` heuristic set to penalise re-use of the same qubit swap, this expected
+        # circuit should be the only valid output (except for symmetries in the swap operation,
+        # which the equality check should handle).
+        expected = QuantumCircuit(8)
+        with expected.if_test(expr.lift(True)):
+            expected.noop(4)
+            expected.swap(0, 1)
+            expected.swap(2, 3)
+            expected.cx(1, 2)
+            with expected.if_test(expr.lift(True)) as else_:
+                expected.noop(1)
+            with else_:
+                expected.noop(2)
+            # We have to restore the output layout.
+            expected.swap(0, 1)
+            expected.swap(2, 3)
+
+        pass_ = SabreSwap(coupling, "decay", seed=2025_02_05, trials=1)
+        self.assertEqual(pass_(qc), expected)
+
 
 @ddt.ddt
 class TestSabreSwapRandomCircuitValidOutput(QiskitTestCase):
@@ -1329,7 +1381,6 @@ class TestSabreSwapRandomCircuitValidOutput(QiskitTestCase):
         super().setUpClass()
         cls.backend = GenericBackendV2(
             num_qubits=27,
-            calibrate_instructions=True,
             control_flow=True,
             coupling_map=MUMBAI_CMAP,
             seed=42,

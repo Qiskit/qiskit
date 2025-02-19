@@ -236,7 +236,7 @@ fn swap_trial(
 ///         will be ``(None, None, max int)``.
 #[pyfunction]
 #[pyo3(
-    text_signature = "(num_trials, num_qubits, int_layout, int_qubit_subset, int_gates, cdist, cdist2, edges, /, seed=None)"
+    signature = (num_trials, num_qubits, int_layout, int_qubit_subset, int_gates, cdist, cdist2, edges, seed=None)
 )]
 pub fn swap_trials(
     num_trials: u64,
@@ -260,10 +260,10 @@ pub fn swap_trials(
         RwLock::new(&mut best_possible);
     let outer_rng: Pcg64Mcg = match seed {
         Some(seed) => Pcg64Mcg::seed_from_u64(seed),
-        None => Pcg64Mcg::from_entropy(),
+        None => Pcg64Mcg::from_os_rng(),
     };
     let seed_vec: Vec<u64> = outer_rng
-        .sample_iter(&rand::distributions::Standard)
+        .sample_iter(&rand::distr::StandardUniform)
         .take(num_trials as usize)
         .collect();
     // Run in parallel only if we're not already in a multiprocessing context

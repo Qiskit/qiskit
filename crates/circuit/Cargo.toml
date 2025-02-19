@@ -9,21 +9,44 @@ license.workspace = true
 name = "qiskit_circuit"
 doctest = false
 
+[lints]
+workspace = true
+
 [dependencies]
+rayon.workspace = true
+ahash.workspace = true
+rustworkx-core.workspace = true
 bytemuck.workspace = true
-hashbrown.workspace = true
+bitfield-struct.workspace = true
 num-complex.workspace = true
 ndarray.workspace = true
-numpy.workspace = true
 thiserror.workspace = true
+approx.workspace = true
+itertools.workspace = true
+nalgebra.workspace = true
 
 [dependencies.pyo3]
 workspace = true
-features = ["hashbrown", "indexmap", "num-complex", "num-bigint", "smallvec"]
+features = ["hashbrown", "indexmap", "num-complex", "num-bigint", "smallvec", "py-clone"]
+
+[dependencies.hashbrown]
+workspace = true
+features = ["rayon"]
+
+[dependencies.indexmap]
+workspace = true
+features = ["rayon"]
 
 [dependencies.smallvec]
 workspace = true
-features = ["union"]
+features = ["union", "const_generics"]
+
+[dependencies.numpy]
+workspace = true
+features = ["nalgebra"]
 
 [features]
 cache_pygates = []
+
+[dev-dependencies]
+pyo3 = { workspace = true, features = ["auto-initialize"] }

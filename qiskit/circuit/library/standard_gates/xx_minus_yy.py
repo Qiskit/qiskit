@@ -41,7 +41,7 @@ class XXMinusYYGate(Gate):
 
     **Circuit Symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌───────────────┐
         q_0: ┤0              ├
@@ -62,36 +62,6 @@ class XXMinusYYGate(Gate):
                 0 & 1 & 0 & 0 \\
                 0 & 0 & 1 & 0 \\
                 -i\sin\left(\rotationangle\right)e^{i\beta} & 0 & 0 & \cos\left(\rotationangle\right)
-            \end{pmatrix}
-
-    .. note::
-
-        In Qiskit's convention, higher qubit indices are more significant
-        (little endian convention). In the above example we apply the gate
-        on (q_0, q_1) which results in adding the (optional) phase defined
-        by :math:`\beta` on q_1. Instead, if we apply it on (q_1, q_0), the
-        phase is added on q_0. If :math:`\beta` is set to its default value
-        of :math:`0`, the gate is equivalent in big and little endian.
-
-        .. parsed-literal::
-
-                 ┌───────────────┐
-            q_0: ┤1              ├
-                 │  (XX-YY)(θ,β) │
-            q_1: ┤0              ├
-                 └───────────────┘
-
-        .. math::
-
-            \newcommand{\rotationangle}{\frac{\theta}{2}}
-
-            R_{XX-YY}(\theta, \beta) q_1, q_0 =
-            RZ_0(\beta) \cdot \exp\left(-i \frac{\theta}{2} \frac{XX-YY}{2}\right) \cdot RZ_0(-\beta) =
-            \begin{pmatrix}
-                \cos\left(\rotationangle\right) & 0 & 0 & -i\sin\left(\rotationangle\right)e^{i\beta} \\
-                0 & 1 & 0 & 0 \\
-                0 & 0 & 1 & 0 \\
-                -i\sin\left(\rotationangle\right)e^{-i\beta} & 0 & 0 & \cos\left(\rotationangle\right)
             \end{pmatrix}
     """
 

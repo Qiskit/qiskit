@@ -387,7 +387,8 @@ class TestCliffordGates(QiskitTestCase):
     def test_from_circuit_with_conditional_gate(self):
         """Test initialization from circuit with conditional gate."""
         qc = QuantumCircuit(2, 1)
-        qc.h(0).c_if(0, 0)
+        with self.assertWarns(DeprecationWarning):
+            qc.h(0).c_if(0, 0)
         qc.cx(0, 1)
 
         with self.assertRaises(QiskitError):
@@ -472,7 +473,12 @@ class TestCliffordGates(QiskitTestCase):
         # and even circuits with other clifford objects.
         linear_function = LinearFunction([[0, 1], [1, 1]])
         pauli_gate = PauliGate("YZ")
-        cliff = random_clifford(2, seed=777)
+
+        qc_cliff = QuantumCircuit(2)
+        qc_cliff.h(0)
+        qc_cliff.cx(0, 1)
+        cliff = Clifford(qc_cliff)
+
         qc = QuantumCircuit(2)
         qc.cx(0, 1)
         qc.append(random_clifford(1, seed=999), [1])
@@ -492,8 +498,8 @@ class TestCliffordGates(QiskitTestCase):
 
         # Additionally, make sure that it produces the correct clifford.
         expected_clifford_dict = {
-            "stabilizer": ["-IZX", "+ZYZ", "+ZII"],
-            "destabilizer": ["+ZIZ", "+ZXZ", "-XIX"],
+            "stabilizer": ["-IZX", "+ZYZ", "+XZI"],
+            "destabilizer": ["+XZZ", "-XII", "+IXY"],
         }
         expected_clifford = Clifford.from_dict(expected_clifford_dict)
         self.assertEqual(combined_clifford, expected_clifford)
@@ -597,6 +603,23 @@ class TestCliffordDecomposition(QiskitTestCase):
             self.assertEqual(decomp.num_qubits, circ.num_qubits)
             # Convert back to clifford and check it is the same
             self.assertEqual(Clifford(decomp), target)
+
+    def test_to_circuit_manual(self):
+        """Test a manual comparison to a known circuit.
+
+        This also tests whether the resulting Clifford circuit has quantum registers, thereby
+        regression testing #13041.
+        """
+        # this is set to a circuit that remains the same under Clifford reconstruction
+        circuit = QuantumCircuit(2)
+        circuit.z(0)
+        circuit.h(0)
+        circuit.cx(0, 1)
+
+        cliff = Clifford(circuit)
+        reconstructed = cliff.to_circuit()
+
+        self.assertEqual(circuit, reconstructed)
 
     @combine(num_qubits=[1, 2, 3, 4, 5])
     def test_to_instruction(self, num_qubits):

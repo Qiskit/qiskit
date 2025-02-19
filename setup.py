@@ -51,5 +51,5 @@ setup(
             features=features,
         )
     ],
-    options={"bdist_wheel": {"py_limited_api": "cp38"}},
+    options={"bdist_wheel": {"py_limited_api": "cp39"}},
 )

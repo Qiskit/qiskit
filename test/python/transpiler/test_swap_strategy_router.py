@@ -62,7 +62,8 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
 
         The expected circuit is:
 
-        ..parsed-literal::
+        ..code-block:: text
+
                                                            ┌────────────────┐
             q_0: ───────────────────X──────────────────────┤0               ├
                  ┌────────────────┐ │ ┌────────────────┐   │  exp(-i ZZ)(3) │
@@ -98,7 +99,7 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
 
         The expected circuit is:
 
-        ..parsed-literal::
+        ..code-block:: text
 
                   ┌────────────────┐
             q_0: ─┤0               ├─X─────────────────────────────────────────
@@ -136,7 +137,7 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
 
         The expected circuit is:
 
-        ..parsed-literal::
+        ..code-block:: text
 
                  ┌─────────────────┐
             q_0: ┤0                ├─X────────────────────
@@ -175,7 +176,7 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
 
         The expected circuit is:
 
-        ..parsed-literal::
+        ..code-block:: text
 
                      ┌────────────────┐                                            ░    ┌─┐
                q_0: ─┤0               ├─X──────────────────────────────────────────░────┤M├──────
@@ -343,7 +344,7 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
 
         Here, we test that the circuit
 
-        .. parsed-literal::
+        .. code-block:: text
 
                  ┌──────────────────────────┐
             q_0: ┤0                         ├──■──
@@ -356,7 +357,7 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
 
         becomes
 
-        .. parsed-literal::
+        .. code-block:: text
 
                  ┌─────────────────┐                      ┌───┐
             q_0: ┤0                ├─X────────────────────┤ X ├
@@ -399,7 +400,7 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
 
         The coupling map in this test corresponds to
 
-        .. parsed-literal::
+        .. code-block:: text
 
             0 -- 1 -- 2
                  |
@@ -576,9 +577,6 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
         op = SparsePauliOp.from_list([("IZZI", 1), ("ZIIZ", 2), ("ZIZI", 3)])
         circ = QAOAAnsatz(op, reps=2, mixer_operator=mixer)
 
-        expected_swap_permutation = [3, 1, 2, 0]
-        expected_full_permutation = [1, 3, 2, 0]
-
         cmap = CouplingMap(couplinglist=[(0, 1), (1, 2), (2, 3)])
         swap_strat = SwapStrategy(cmap, swap_layers=[[(0, 1), (2, 3)], [(1, 2)]])
 
@@ -599,8 +597,8 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
         pm.pre_routing = swap_pm
         full = pm.run(circ.decompose())
 
-        self.assertEqual(swapped.layout.routing_permutation(), expected_swap_permutation)
-        self.assertEqual(full.layout.routing_permutation(), expected_full_permutation)
+        self.assertEqual(swapped.layout.routing_permutation(), [3, 1, 2, 0])
+        self.assertEqual(full.layout.routing_permutation(), [0, 1, 2, 3])
 
 
 class TestSwapRouterExceptions(QiskitTestCase):

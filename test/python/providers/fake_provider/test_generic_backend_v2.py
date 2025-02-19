@@ -47,17 +47,6 @@ class TestGenericBackendV2(QiskitTestCase):
         with self.assertRaises(QiskitError):
             GenericBackendV2(num_qubits=2, basis_gates=["ccx", "id"], seed=42)
 
-    def test_calibration_no_noise_info(self):
-        """Test failing with a backend with calibration and no noise info"""
-        with self.assertRaises(QiskitError):
-            GenericBackendV2(
-                num_qubits=2,
-                basis_gates=["ccx", "id"],
-                calibrate_instructions=True,
-                noise_info=False,
-                seed=42,
-            )
-
     def test_no_noise(self):
         """Test no noise info when parameter is false"""
         backend = GenericBackendV2(
@@ -94,7 +83,6 @@ class TestGenericBackendV2(QiskitTestCase):
             num_qubits=5,
             coupling_map=CouplingMap.from_line(5),
             noise_info=False,
-            pulse_channels=False,
             seed=42,
         )
         qc = QuantumCircuit(5)
@@ -107,22 +95,6 @@ class TestGenericBackendV2(QiskitTestCase):
         qc_res = generate_preset_pass_manager(optimization_level=2, backend=backend).run(qc)
         self.assertTrue(Operator.from_circuit(qc_res).equiv(qc))
         self.assertEqual(backend.target.qubit_properties, None)
-
-    def test_no_pulse_channels(self):
-        """Test no/empty pulse channels when parameter is false"""
-        backend = GenericBackendV2(
-            num_qubits=5, coupling_map=CouplingMap.from_line(5), pulse_channels=False, seed=42
-        )
-        qc = QuantumCircuit(5)
-        qc.h(0)
-        qc.cx(0, 1)
-        qc.cx(0, 2)
-        qc.cx(1, 4)
-        qc.cx(3, 0)
-        qc.cx(2, 4)
-        qc_res = generate_preset_pass_manager(optimization_level=2, backend=backend).run(qc)
-        self.assertTrue(Operator.from_circuit(qc_res).equiv(qc))
-        self.assertTrue(len(backend.channels_map) == 0)
 
     def test_operation_names(self):
         """Test that target basis gates include "delay", "measure" and "reset" even
@@ -224,3 +196,12 @@ class TestGenericBackendV2(QiskitTestCase):
                     if inst not in ["delay", "reset"]:
                         self.assertGreaterEqual(duration, expected_durations[inst][0])
                         self.assertLessEqual(duration, expected_durations[inst][1])
+
+    def test_custom_dt(self):
+        """Test that the custom dt is respected."""
+
+        ref_backend = GenericBackendV2(num_qubits=2, basis_gates=["cx", "id"], seed=42)
+        double_dt_backend = GenericBackendV2(
+            num_qubits=2, basis_gates=["cx", "id"], dt=ref_backend.dt * 2, seed=42
+        )
+        self.assertEqual(ref_backend.dt * 2, double_dt_backend.dt)

@@ -12,15 +12,17 @@
 
 """Pass Manager Configuration class."""
 
-import pprint
+import warnings
 
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.instruction_durations import InstructionDurations
+from qiskit.utils.deprecate_pulse import deprecate_pulse_arg
 
 
 class PassManagerConfig:
     """Pass Manager Configuration."""
 
+    @deprecate_pulse_arg("inst_map", predicate=lambda inst_map: inst_map is not None)
     def __init__(
         self,
         initial_layout=None,
@@ -32,7 +34,6 @@ class PassManagerConfig:
         translation_method=None,
         scheduling_method=None,
         instruction_durations=None,
-        backend_properties=None,
         approximation_degree=None,
         seed_transpiler=None,
         timing_constraints=None,
@@ -42,6 +43,7 @@ class PassManagerConfig:
         hls_config=None,
         init_method=None,
         optimization_method=None,
+        qubits_initially_zero=True,
     ):
         """Initialize a PassManagerConfig object
 
@@ -65,9 +67,6 @@ class PassManagerConfig:
                 be a plugin name if an external scheduling stage plugin is being used.
             instruction_durations (InstructionDurations): Dictionary of duration
                 (in dt) for each instruction.
-            backend_properties (BackendProperties): Properties returned by a
-                backend, including information on gate errors, readout errors,
-                qubit coherence times, etc.
             approximation_degree (float): heuristic dial used for circuit approximation
                 (1.0=no approximation, 0.0=maximal approximation)
             seed_transpiler (int): Sets random seed for the stochastic parts of
@@ -84,6 +83,8 @@ class PassManagerConfig:
             init_method (str): The plugin name for the init stage plugin to use
             optimization_method (str): The plugin name for the optimization stage plugin
                 to use.
+            qubits_initially_zero (bool): Indicates whether the input circuit is
+                zero-initialized.
         """
         self.initial_layout = initial_layout
         self.basis_gates = basis_gates
@@ -96,7 +97,6 @@ class PassManagerConfig:
         self.optimization_method = optimization_method
         self.scheduling_method = scheduling_method
         self.instruction_durations = instruction_durations
-        self.backend_properties = backend_properties
         self.approximation_degree = approximation_degree
         self.seed_transpiler = seed_transpiler
         self.timing_constraints = timing_constraints
@@ -104,16 +104,23 @@ class PassManagerConfig:
         self.unitary_synthesis_plugin_config = unitary_synthesis_plugin_config
         self.target = target
         self.hls_config = hls_config
+        self.qubits_initially_zero = qubits_initially_zero
 
     @classmethod
     def from_backend(cls, backend, _skip_target=False, **pass_manager_options):
         """Construct a configuration based on a backend and user input.
 
-        This method automatically gererates a PassManagerConfig object based on the backend's
+        This method automatically generates a PassManagerConfig object based on the backend's
         features. User options can be used to overwrite the configuration.
 
+        .. deprecated:: 1.3
+            The method ``PassManagerConfig.from_backend`` will stop supporting inputs of type
+            :class:`.BackendV1` in the `backend` parameter in a future release no
+            earlier than 2.0. :class:`.BackendV1` is deprecated and implementations should move
+            to :class:`.BackendV2`.
+
         Args:
-            backend (BackendV1): The backend that provides the configuration.
+            backend (BackendV1 or BackendV2): The backend that provides the configuration.
             pass_manager_options: User-defined option-value pairs.
 
         Returns:
@@ -122,12 +129,21 @@ class PassManagerConfig:
         Raises:
             AttributeError: If the backend does not support a `configuration()` method.
         """
-        res = cls(**pass_manager_options)
         backend_version = getattr(backend, "version", 0)
+        if backend_version == 1:
+            warnings.warn(
+                "The method PassManagerConfig.from_backend will stop supporting inputs of "
+                f"type `BackendV1` ( {backend} ) in the `backend` parameter in a future "
+                "release no earlier than 2.0. `BackendV1` is deprecated and implementations "
+                "should move to `BackendV2`.",
+                category=DeprecationWarning,
+                stacklevel=2,
+            )
         if not isinstance(backend_version, int):
             backend_version = 0
         if backend_version < 2:
             config = backend.configuration()
+        res = cls(**pass_manager_options)
         if res.basis_gates is None:
             if backend_version < 2:
                 res.basis_gates = getattr(config, "basis_gates", None)
@@ -140,7 +156,7 @@ class PassManagerConfig:
                     if defaults is not None:
                         res.inst_map = defaults.instruction_schedule_map
             else:
-                res.inst_map = backend.instruction_schedule_map
+                res.inst_map = backend._instruction_schedule_map
         if res.coupling_map is None:
             if backend_version < 2:
                 cmap_edge_list = getattr(config, "coupling_map", None)
@@ -153,8 +169,6 @@ class PassManagerConfig:
                 res.instruction_durations = InstructionDurations.from_backend(backend)
             else:
                 res.instruction_durations = backend.instruction_durations
-        if res.backend_properties is None and backend_version < 2:
-            res.backend_properties = backend.properties()
         if res.target is None and not _skip_target:
             if backend_version >= 2:
                 res.target = backend.target
@@ -167,11 +181,6 @@ class PassManagerConfig:
     def __str__(self):
         newline = "\n"
         newline_tab = "\n\t"
-        if self.backend_properties is not None:
-            backend_props = pprint.pformat(self.backend_properties.to_dict())
-            backend_props = backend_props.replace(newline, newline_tab)
-        else:
-            backend_props = str(None)
         return (
             "Pass Manager Config:\n"
             f"\tinitial_layout: {self.initial_layout}\n"
@@ -183,11 +192,11 @@ class PassManagerConfig:
             f"\ttranslation_method: {self.translation_method}\n"
             f"\tscheduling_method: {self.scheduling_method}\n"
             f"\tinstruction_durations: {str(self.instruction_durations).replace(newline, newline_tab)}\n"
-            f"\tbackend_properties: {backend_props}\n"
             f"\tapproximation_degree: {self.approximation_degree}\n"
             f"\tseed_transpiler: {self.seed_transpiler}\n"
             f"\ttiming_constraints: {self.timing_constraints}\n"
             f"\tunitary_synthesis_method: {self.unitary_synthesis_method}\n"
             f"\tunitary_synthesis_plugin_config: {self.unitary_synthesis_plugin_config}\n"
+            f"\tqubits_initially_zero: {self.qubits_initially_zero}\n"
             f"\ttarget: {str(self.target).replace(newline, newline_tab)}\n"
         )

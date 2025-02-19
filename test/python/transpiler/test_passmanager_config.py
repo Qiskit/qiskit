@@ -33,7 +33,7 @@ class TestPassManagerConfig(QiskitTestCase):
         """
         with self.assertWarns(DeprecationWarning):
             backend = Fake27QPulseV1()
-        config = PassManagerConfig.from_backend(backend)
+            config = PassManagerConfig.from_backend(backend)
         self.assertEqual(config.basis_gates, backend.configuration().basis_gates)
         self.assertEqual(config.inst_map, backend.defaults().instruction_schedule_map)
         self.assertEqual(
@@ -45,7 +45,8 @@ class TestPassManagerConfig(QiskitTestCase):
         backend = GenericBackendV2(num_qubits=27, seed=42)
         config = PassManagerConfig.from_backend(backend)
         self.assertEqual(config.basis_gates, backend.operation_names)
-        self.assertEqual(config.inst_map, backend.instruction_schedule_map)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(config.inst_map, backend.instruction_schedule_map)
         self.assertEqual(config.coupling_map.get_edges(), backend.coupling_map.get_edges())
 
     def test_invalid_backend(self):
@@ -66,9 +67,9 @@ class TestPassManagerConfig(QiskitTestCase):
 
         with self.assertWarns(DeprecationWarning):
             backend = Fake20QV1()
-        config = PassManagerConfig.from_backend(
-            backend, basis_gates=["user_gate"], initial_layout=initial_layout
-        )
+            config = PassManagerConfig.from_backend(
+                backend, basis_gates=["user_gate"], initial_layout=initial_layout
+            )
         self.assertEqual(config.basis_gates, ["user_gate"])
         self.assertNotEqual(config.basis_gates, backend.configuration().basis_gates)
         self.assertIsNone(config.inst_map)
@@ -90,7 +91,6 @@ class TestPassManagerConfig(QiskitTestCase):
             num_qubits=20,
             coupling_map=ALMADEN_CMAP,
             basis_gates=["id", "u1", "u2", "u3", "cx"],
-            calibrate_instructions=None,
             seed=42,
         )
         config = PassManagerConfig.from_backend(
@@ -107,7 +107,8 @@ class TestPassManagerConfig(QiskitTestCase):
         with self.assertWarns(DeprecationWarning):
             backend = Fake27QPulseV1()
         backend.defaults = lambda: None
-        config = PassManagerConfig.from_backend(backend)
+        with self.assertWarns(DeprecationWarning):
+            config = PassManagerConfig.from_backend(backend)
         self.assertIsInstance(config, PassManagerConfig)
         self.assertIsNone(config.inst_map)
 
@@ -134,12 +135,12 @@ class TestPassManagerConfig(QiskitTestCase):
 \ttranslation_method: None
 \tscheduling_method: None
 \tinstruction_durations:\u0020
-\tbackend_properties: None
 \tapproximation_degree: None
 \tseed_transpiler: None
 \ttiming_constraints: None
 \tunitary_synthesis_method: default
 \tunitary_synthesis_plugin_config: None
+\tqubits_initially_zero: True
 \ttarget: Target: Basic Target
 \tNumber of qubits: None
 \tInstructions:

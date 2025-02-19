@@ -16,7 +16,6 @@
 import numpy as np
 from numpy.testing import assert_allclose
 
-import qiskit
 from qiskit.circuit.library import HamiltonianGate
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Parameter
@@ -61,6 +60,12 @@ class TestHamiltonianGate(QiskitTestCase):
         np.testing.assert_array_almost_equal(
             ham.adjoint().to_matrix(), np.transpose(np.conj(ham.to_matrix()))
         )
+
+    def test_repeat(self):
+        """test repeat operation"""
+        ham = HamiltonianGate(np.array([[1, 0.5 + 4j], [0.5 - 4j, -0.2]]), np.pi * 0.143)
+        operator = Operator(ham)
+        self.assertTrue(np.allclose(Operator(ham.repeat(2)), operator @ operator))
 
 
 class TestHamiltonianCircuit(QiskitTestCase):
@@ -142,9 +147,7 @@ class TestHamiltonianCircuit(QiskitTestCase):
         qc.append(uni, [qr[0], qr[1], qr[3]])
         qc.cx(qr[3], qr[2])
         qc = qc.assign_parameters({theta: np.pi / 2})
-        with self.assertWarns(DeprecationWarning):
-            qobj = qiskit.compiler.assemble(qc)
-        instr = qobj.experiments[0].instructions[1]
+        instr = qc.data[1]
         self.assertEqual(instr.name, "hamiltonian")
         # Also test label
         self.assertEqual(instr.label, "XIZ")

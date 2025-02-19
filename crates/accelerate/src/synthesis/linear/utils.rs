@@ -10,9 +10,19 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use ndarray::{concatenate, s, Array2, ArrayView2, ArrayViewMut2, Axis};
+use ndarray::{
+    azip, concatenate, s, Array1, Array2, ArrayView1, ArrayView2, ArrayViewMut2, Axis, Zip,
+};
 use rand::{Rng, SeedableRng};
 use rand_pcg::Pcg64Mcg;
+use rayon::iter::{IndexedParallelIterator, ParallelIterator};
+use rayon::prelude::IntoParallelIterator;
+
+use crate::getenv_use_multiple_threads;
+
+/// Specifies the minimum number of qubits in order to parallelize computations
+/// (this number is chosen based on several local experiments).
+const PARALLEL_THRESHOLD: usize = 10;
 
 /// Binary matrix multiplication
 pub fn binary_matmul_inner(
@@ -30,11 +40,29 @@ pub fn binary_matmul_inner(
         ));
     }
 
-    Ok(Array2::from_shape_fn((n1_rows, n2_cols), |(i, j)| {
-        (0..n2_rows)
-            .map(|k| mat1[[i, k]] & mat2[[k, j]])
-            .fold(false, |acc, v| acc ^ v)
-    }))
+    let run_in_parallel = getenv_use_multiple_threads();
+
+    if n1_rows < PARALLEL_THRESHOLD || !run_in_parallel {
+        Ok(Array2::from_shape_fn((n1_rows, n2_cols), |(i, j)| {
+            (0..n2_rows)
+                .map(|k| mat1[[i, k]] & mat2[[k, j]])
+                .fold(false, |acc, v| acc ^ v)
+        }))
+    } else {
+        let mut result = Array2::from_elem((n1_rows, n2_cols), false);
+        result
+            .axis_iter_mut(Axis(0))
+            .into_par_iter()
+            .enumerate()
+            .for_each(|(i, mut row)| {
+                for j in 0..n2_cols {
+                    row[j] = (0..n2_rows)
+                        .map(|k| mat1[[i, k]] & mat2[[k, j]])
+                        .fold(false, |acc, v| acc ^ v)
+                }
+            });
+        Ok(result)
+    }
 }
 
 /// Gauss elimination of a matrix mat with m rows and n columns.
@@ -168,18 +196,41 @@ pub fn _add_row_or_col(mut mat: ArrayViewMut2<bool>, add_cols: &bool, ctrl: usiz
     row1.zip_mut_with(&row0, |x, &y| *x ^= y);
 }
 
+/// Perform ROW operation on a matrix mat
+pub fn _row_op(mat: ArrayViewMut2<bool>, ctrl: usize, trgt: usize) {
+    _add_row_or_col(mat, &false, ctrl, trgt);
+}
+
+/// Perform COL operation on a matrix mat
+pub fn _col_op(mat: ArrayViewMut2<bool>, ctrl: usize, trgt: usize) {
+    _add_row_or_col(mat, &true, ctrl, trgt);
+}
+
+/// Returns the element-wise sum of two boolean rows (i.e. addition modulo 2)
+pub fn _row_sum(row_1: ArrayView1<bool>, row_2: ArrayView1<bool>) -> Result<Array1<bool>, String> {
+    if row_1.len() != row_2.len() {
+        Err(format!(
+            "row sum performed on rows with different lengths ({} and {})",
+            row_1.len(),
+            row_2.len()
+        ))
+    } else {
+        Ok((0..row_1.len()).map(|i| row_1[i] ^ row_2[i]).collect())
+    }
+}
+
 /// Generate a random invertible n x n binary matrix.
 pub fn random_invertible_binary_matrix_inner(num_qubits: usize, seed: Option<u64>) -> Array2<bool> {
     let mut rng = match seed {
         Some(seed) => Pcg64Mcg::seed_from_u64(seed),
-        None => Pcg64Mcg::from_entropy(),
+        None => Pcg64Mcg::from_os_rng(),
     };
 
     let mut matrix = Array2::from_elem((num_qubits, num_qubits), false);
 
     loop {
         for value in matrix.iter_mut() {
-            *value = rng.gen_bool(0.5);
+            *value = rng.random_bool(0.5);
         }
 
         let rank = compute_rank_inner(matrix.view());
@@ -197,4 +248,17 @@ pub fn check_invertible_binary_matrix_inner(mat: ArrayView2<bool>) -> bool {
     }
     let rank = compute_rank_inner(mat);
     rank == mat.nrows()
+}
+
+/// Mutate matrix ``mat`` in-place by swapping the contents of rows ``i`` and ``j``.
+pub fn swap_rows_inner(mut mat: ArrayViewMut2<bool>, i: usize, j: usize) {
+    let (mut x, mut y) = mat.multi_slice_mut((s![i, ..], s![j, ..]));
+    azip!((x in &mut x, y in &mut y) (*x, *y) = (*y, *x));
+}
+
+/// Mutate matrix ``mat`` in-place by replacing the contents of row ``i`` by ``row``.
+pub fn replace_row_inner(mut mat: ArrayViewMut2<bool>, i: usize, row: ArrayView1<bool>) {
+    let mut x = mat.slice_mut(s![i, ..]);
+    let y = row.slice(s![..]);
+    Zip::from(&mut x).and(&y).for_each(|x, &y| *x = y);
 }
