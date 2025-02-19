@@ -969,10 +969,10 @@ def generate_qpy(qpy_files):
 def load_qpy(qpy_files, version_parts):
     """Load qpy circuits from files and compare to reference circuits."""
     pulse_files = {
-        "schedule_blocks.qpy": (0,21,0),
-        "pulse_gates.qpy": (0,21,0),
-        "referenced_schedule_blocks.qpy": (0,24,0),
-        "acquire_inst_with_kernel_and_disc.qpy": (0,25,0),
+        "schedule_blocks.qpy": (0, 21, 0),
+        "pulse_gates.qpy": (0, 21, 0),
+        "referenced_schedule_blocks.qpy": (0, 24, 0),
+        "acquire_inst_with_kernel_and_disc.qpy": (0, 25, 0),
     }
     for path, circuits in qpy_files.items():
         if path in pulse_files.keys():
@@ -1003,11 +1003,10 @@ def load_qpy(qpy_files, version_parts):
                 circuit, qpy_circuits[i], i, version_parts, bind=bind, equivalent=equivalent
             )
 
-
     while pulse_files:
         path, version = pulse_files.popitem()
 
-        if version_parts < version or version_parts >= (2,0):
+        if version_parts < version or version_parts >= (2, 0):
             continue
 
         if path == "pulse_gates.qpy":
@@ -1027,7 +1026,6 @@ def load_qpy(qpy_files, version_parts):
             msg = f"Loading payload {path} didn't raise QpyError"
             sys.stderr.write(msg)
             sys.exit(1)
-
 
 
 def _main():
