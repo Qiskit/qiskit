@@ -417,15 +417,18 @@ class TestCircuitOperations(QiskitTestCase):
         copied = qc.copy_empty_like("copy")
         self.assertEqual(copied.name, "copy")
 
+    # pylint: disable=invalid-name
     def test_copy_variables(self):
         """Test that a full copy of circuits including variables copies them across."""
         a = expr.Var.new("a", types.Bool())
         b = expr.Var.new("b", types.Uint(8))
         c = expr.Var.new("c", types.Bool())
         d = expr.Var.new("d", types.Uint(8))
+        e = expr.Var.new("e", types.Stretch())
+        f = expr.Var.new("f", types.Stretch())
 
         qc = QuantumCircuit(inputs=[a], declarations=[(c, expr.lift(False))])
-        e = qc.add_stretch("e")
+        qc.add_stretch(e)
         copied = qc.copy()
         self.assertEqual({a}, set(copied.iter_input_vars()))
         self.assertEqual({c, e}, set(copied.iter_declared_vars()))
@@ -453,12 +456,13 @@ class TestCircuitOperations(QiskitTestCase):
 
         # Check that the original circuit is not mutated.
         copied.add_capture(d)
-        s = copied.add_stretch("s")
+        copied.add_stretch(f)
         self.assertEqual({b, d}, set(copied.iter_captured_vars()))
-        self.assertEqual({a, c, s}, set(copied.iter_declared_vars()))
+        self.assertEqual({a, c, f}, set(copied.iter_declared_vars()))
         self.assertEqual({b}, set(qc.iter_captured_vars()))
         self.assertEqual({a, c}, set(qc.iter_declared_vars()))
 
+    # pylint: disable=invalid-name
     def test_copy_empty_variables(self):
         """Test that an empty copy of circuits including variables copies them across, but does not
         initialise them."""
@@ -494,6 +498,7 @@ class TestCircuitOperations(QiskitTestCase):
         self.assertEqual({b, d, e}, set(copied.iter_captured_vars()))
         self.assertEqual({b}, set(qc.iter_captured_vars()))
 
+    # pylint: disable=invalid-name
     def test_copy_empty_variables_alike(self):
         """Test that an empty copy of circuits including variables copies them across, but does not
         initialise them.  This is the same as the default, just spelled explicitly."""
@@ -530,6 +535,7 @@ class TestCircuitOperations(QiskitTestCase):
         self.assertEqual({b, d, e}, set(copied.iter_captured_vars()))
         self.assertEqual({b}, set(qc.iter_captured_vars()))
 
+    # pylint: disable=invalid-name
     def test_copy_empty_variables_to_captures(self):
         """``vars_mode="captures"`` should convert all variables to captures."""
         a = expr.Var.new("a", types.Bool())

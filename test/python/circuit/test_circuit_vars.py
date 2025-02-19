@@ -482,11 +482,11 @@ class TestCircuitVars(QiskitTestCase):
 
         missing = "default"
         a = expr.Var.new("a", types.Bool())
-        s = expr.Var.new("s", types.Stretch())
+        b = expr.Var.new("b", types.Stretch())
         qc.add_input(a)
-        self.assertIs(qc.get_var("b", missing), missing)
-        self.assertIs(qc.get_var("b", a), a)
-        self.assertIs(qc.get_var("b", s), s)
+        self.assertIs(qc.get_var("c", missing), missing)
+        self.assertIs(qc.get_var("c", a), a)
+        self.assertIs(qc.get_var("c", b), b)
 
     def test_has_var(self):
         a = expr.Var.new("a", types.Bool())
