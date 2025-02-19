@@ -1106,10 +1106,7 @@ class TestBackendSamplerV2(QiskitTestCase):
         sampler = BackendSamplerV2(backend=backend, options=options)
         # sampler.run will call the custom backend.run implementation
         # that returns a deprecation warning
-        with self.assertWarnsRegex(
-            DeprecationWarning, expected_regex="``qobj_id`` is deprecated as of Qiskit 1.4"
-        ):
-            result_single = sampler.run([qc]).result()
+        result_single = sampler.run([qc]).result()
 
         options = {
             "default_shots": shots,
@@ -1122,10 +1119,7 @@ class TestBackendSamplerV2(QiskitTestCase):
         sampler = BackendSamplerV2(backend=backend, options=options)
         # sampler.run will call the custom backend.run implementation
         # that returns a deprecation warning
-        with self.assertWarnsRegex(
-            DeprecationWarning, expected_regex="``qobj_id`` is deprecated as of Qiskit 1.4"
-        ):
-            result_avg = sampler.run([qc]).result()
+        result_avg = sampler.run([qc]).result()
 
         # Check that averaging the meas_return="single" data matches the
         # meas_return="avg" data.

@@ -113,7 +113,6 @@ def deprecate_arg(
     new_alias: str | None = None,
     predicate: Callable[[Any], bool] | None = None,
     removal_timeline: str = "no earlier than 3 months after the release date",
-    stacklevel: int = 2,
 ):
     """Decorator to indicate an argument has been deprecated in some way.
 
@@ -141,7 +140,6 @@ def deprecate_arg(
             runtime warning will only log when the user specifies the argument.
         removal_timeline: How soon can this deprecation be removed? Expects a value
             like "no sooner than 6 months after the latest release" or "in release 9.99".
-        stacklevel: Stack level passed to :func:`warnings.warn`.
 
     Returns:
         Callable: The decorated callable.
@@ -182,7 +180,6 @@ def deprecate_arg(
                 warning_msg=msg,
                 category=category,
                 predicate=predicate,
-                stacklevel=stacklevel,
             )
             return func(*args, **kwargs)
 
@@ -252,7 +249,6 @@ def deprecate_arguments(
                     warning_msg=old_kwarg_to_msg[old],
                     category=category,
                     predicate=None,
-                    stacklevel=3,
                 )
             return func(*args, **kwargs)
 
@@ -328,7 +324,6 @@ def _maybe_warn_and_rename_kwarg(
     warning_msg: str,
     category: Type[Warning],
     predicate: Callable[[Any], bool] | None,
-    stacklevel: int = 2,
 ) -> None:
     # In Python 3.10+, we should set `zip(strict=False)` (the default). That is, we want to
     # stop iterating once `args` is done, since some args may have not been explicitly passed as
@@ -344,7 +339,7 @@ def _maybe_warn_and_rename_kwarg(
     val = arg_names_to_values[old_arg_name]
     if predicate and not predicate(val):
         return
-    warnings.warn(warning_msg, category=category, stacklevel=stacklevel)
+    warnings.warn(warning_msg, category=category, stacklevel=3)
 
     # Finally, if there's a new_alias, add its value dynamically to kwargs so that the code author
     # only has to deal with the new_alias in their logic.

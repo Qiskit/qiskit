@@ -138,6 +138,15 @@ class QiskitTestCase(BaseTestCase):
             module=r"qiskit_aer(\.[a-zA-Z0-9_]+)*",
         )
 
+        # Safe to remove once https://github.com/Qiskit/qiskit-aer/issues/2197 is in a release version
+        # of Aer.
+        warnings.filterwarnings(
+            "ignore",  # If "default", it floods the CI output
+            category=DeprecationWarning,
+            message=r".*kwarg that will land in the metadata field*",
+            module="qiskit",
+        )
+
         # Safe to remove once https://github.com/Qiskit/qiskit-aer/issues/2065 is in a release version
         # of Aer.
         warnings.filterwarnings(

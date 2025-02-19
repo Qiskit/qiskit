@@ -596,16 +596,7 @@ class BasicSimulator(BackendV2):
             "time_taken": (end - start),
             "header": qobj.header.to_dict(),
         }
-        # We should not return the deprecation warning to the user,
-        # as it is not actionable for them.
-        with warnings.catch_warnings():
-            warnings.filterwarnings(
-                "ignore",
-                category=DeprecationWarning,
-                message=".*``qobj_id`` is deprecated as of Qiskit 1.4",
-                module="qiskit",
-            )
-            return Result.from_dict(result)
+        return Result.from_dict(result)
 
     @deprecate_func(
         since="1.4.0",

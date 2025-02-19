@@ -24,7 +24,8 @@ from qiskit.result import postprocess
 from qiskit.result.counts import Counts
 from qiskit.qobj.utils import MeasLevel
 from qiskit.qobj import QobjHeader
-from qiskit.utils.deprecation import deprecate_arg
+
+_MISSING = object()
 
 
 class Result:
@@ -43,39 +44,91 @@ class Result:
 
     _metadata = {}
 
-    @deprecate_arg(
-        name="qobj_id",
-        since="1.4",
-        package_name="Qiskit",
-        removal_timeline="in Qiskit 2.0",
-        additional_msg="The Qobj class has been deprecated and will be "
-        "removed in Qiskit 2.0. This input argument cannot exist without Qobj.",
-        stacklevel=2,
-    )
     def __init__(
         self,
-        backend_name,
-        backend_version,
-        qobj_id,
-        job_id,
-        success,
-        results,
+        *args,
         date=None,
         status=None,
         header=None,
         **kwargs,
     ):
+        # The following arguments are required.
+        required_args = {
+            "backend_name": _MISSING,
+            "backend_version": _MISSING,
+            "qobj_id": _MISSING,
+            "job_id": _MISSING,
+            "success": _MISSING,
+            "results": _MISSING,
+        }
+        # Step 1: iterate over kwargs.
+        # An item from required_args might be set as a kwarg, so we must separate
+        # true kwargs from "required_args" kwargs.
+        true_kwargs = {}
+        for key, value in kwargs.items():
+            if key in required_args:
+                required_args[key] = value
+            else:
+                true_kwargs[key] = value
+        # Step 2: iterate over args, which are expected in the order of the index_map below.
+        index_map = ["backend_name", "backend_version", "qobj_id", "job_id", "success", "results"]
+        for i in range(4):
+            try:
+                value = args[i]
+                required_args[index_map[i]] = value
+                # The use of args is deprecated in 1.4 and will be removed in 2.0.
+                # Furthermore, qobj_id will be ignored if set as a kwarg in 2.0.
+                if index_map[i] == "qobj_id":
+                    warnings.warn(
+                        "The use of positional arguments in `qiskit.result.result.Result.__init__()` "
+                        "is deprecated as of Qiskit 1.4, and will be disabled in Qiskit 2.0. "
+                        f"Please set this value using kwarg syntax, i.e: `Result(...,{index_map[i]}={index_map[i]}_value)`. "
+                        "The `qobj_id` argument will no longer be used in Qiskit 2.0, but it will still be possible to "
+                        "set as a kwarg that will land in the metadata field.",
+                        category=DeprecationWarning,
+                        stacklevel=2,
+                    )
+                else:
+                    warnings.warn(
+                        "The use of positional arguments in `qiskit.result.result.Result.__init__()` "
+                        "is deprecated as of Qiskit 1.4, and will be disabled in Qiskit 2.0. "
+                        f"Please set this value using kwarg syntax, i.e: `Result(...,{index_map[i]}={index_map[i]}_value)`. ",
+                        category=DeprecationWarning,
+                        stacklevel=2,
+                    )
+            except IndexError:
+                if required_args[index_map[i]] is _MISSING:
+                    missing_args = [
+                        key for key in required_args.keys() if required_args[key] is _MISSING
+                    ]
+                    if len(missing_args) > 1:
+                        raise TypeError(
+                            f"Result.__init__() missing {len(missing_args)} required arguments: {missing_args}"
+                        )
+                    else:
+                        raise TypeError(
+                            f"Result.__init__() missing a required argument: {missing_args[0]}"
+                        )
+                elif index_map[i] == "qobj_id":
+                    # qobj_id will be ignored if set as a kwarg in 2.0.
+                    warnings.warn(
+                        "The `qobj_id` argument will no longer be used in Qiskit 2.0, but it will still be possible to "
+                        "set as a kwarg that will land in the metadata field.",
+                        category=DeprecationWarning,
+                        stacklevel=2,
+                    )
+
         self._metadata = {}
-        self.backend_name = backend_name
-        self.backend_version = backend_version
-        self.qobj_id = qobj_id
-        self.job_id = job_id
-        self.success = success
-        self.results = results
+        self.backend_name = required_args["backend_name"]
+        self.backend_version = required_args["backend_version"]
+        self.qobj_id = required_args["qobj_id"]
+        self.job_id = required_args["job_id"]
+        self.success = required_args["success"]
+        self.results = required_args["results"]
         self.date = date
         self.status = status
         self.header = header
-        self._metadata.update(kwargs)
+        self._metadata.update(true_kwargs)
 
     def __repr__(self):
         out = (
