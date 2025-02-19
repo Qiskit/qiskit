@@ -2168,7 +2168,6 @@ class TestPostTranspileIntegration(QiskitTestCase):
             base.append(CustomCX(), [2, 4])
             base.ry(a, 4)
             base.measure(4, 2)
-        # Use a const Uint RHS to make sure we QPY can serialize it.
         with base.switch(expr.bit_and(base.cregs[0], expr.lift(2, try_const=True))) as case_:
             with case_(0, 1):
                 base.cz(3, 5)
@@ -2185,6 +2184,24 @@ class TestPostTranspileIntegration(QiskitTestCase):
                     expr.equal(Duration.us(3), Duration.ms(4)),
                 ),
                 expr.equal(Duration.s(5), Duration.dt(6)),
+            )
+        ):
+            base.cx(0, 1)
+        with base.if_test(
+            expr.logic_and(
+                expr.logic_and(
+                    expr.equal(expr.mul(Duration.dt(1), 2.0), expr.div(Duration.ns(2), 2.0)),
+                    expr.equal(
+                        expr.add(Duration.us(3), Duration.us(4)),
+                        expr.sub(Duration.ms(5), Duration.ms(6)),
+                    ),
+                ),
+                expr.logic_and(
+                    expr.equal(expr.mul(expr.lift(1.0, try_const=True), 2.0), expr.div(4.0, 2.0)),
+                    expr.equal(
+                        expr.add(3.0, 4.0), expr.sub(10.5, expr.lift(4.3, types.Float(const=True)))
+                    ),
+                ),
             )
         ):
             base.cx(0, 1)
