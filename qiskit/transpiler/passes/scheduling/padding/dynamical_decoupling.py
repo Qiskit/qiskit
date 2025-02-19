@@ -180,15 +180,20 @@ class PadDynamicalDecoupling(BasePadding):
         self._no_dd_qubits: set[int] = set()
         self._dd_sequence_lengths: dict[Qubit, list[int]] = {}
         self._sequence_phase = 0
+        self._unit = "s"
         if target is not None:
             # The priority order for instruction durations is: target > standalone.
             self._durations = target.durations()
             self._alignment = target.pulse_alignment
+            if target.dt is not None:
+                self._unit = "dt"
             for gate in dd_sequence:
                 if gate.name not in target.operation_names:
                     raise TranspilerError(
                         f"{gate.name} in dd_sequence is not supported in the target"
                     )
+        if self._unit == "s" and durations is not None and durations.dt is not None:
+            self._unit = "dt"
 
     def _pre_runhook(self, dag: DAGCircuit):
         super()._pre_runhook(dag)
@@ -310,14 +315,14 @@ class PadDynamicalDecoupling(BasePadding):
 
         if not self.__is_dd_qubit(dag.qubits.index(qubit)):
             # Target physical qubit is not the target of this DD sequence.
-            self._apply_scheduled_op(dag, t_start, Delay(time_interval, dag.unit), qubit)
+            self._apply_scheduled_op(dag, t_start, Delay(time_interval, self._unit), qubit)
             return
 
         if self._skip_reset_qubits and (
             isinstance(prev_node, DAGInNode) or isinstance(prev_node.op, Reset)
         ):
             # Previous node is the start edge or reset, i.e. qubit is ground state.
-            self._apply_scheduled_op(dag, t_start, Delay(time_interval, dag.unit), qubit)
+            self._apply_scheduled_op(dag, t_start, Delay(time_interval, self._unit), qubit)
             return
 
         slack = time_interval - np.sum(self._dd_sequence_lengths[qubit])
@@ -325,7 +330,7 @@ class PadDynamicalDecoupling(BasePadding):
 
         if slack <= 0:
             # Interval too short.
-            self._apply_scheduled_op(dag, t_start, Delay(time_interval, dag.unit), qubit)
+            self._apply_scheduled_op(dag, t_start, Delay(time_interval, self._unit), qubit)
             return
 
         if len(self._dd_sequence) == 1:
@@ -351,7 +356,7 @@ class PadDynamicalDecoupling(BasePadding):
                 sequence_gphase += phase
             else:
                 # Don't do anything if there's no single-qubit gate to absorb the inverse
-                self._apply_scheduled_op(dag, t_start, Delay(time_interval, dag.unit), qubit)
+                self._apply_scheduled_op(dag, t_start, Delay(time_interval, self._unit), qubit)
                 return
 
         def _constrained_length(values):
@@ -387,7 +392,7 @@ class PadDynamicalDecoupling(BasePadding):
             if dd_ind < len(taus):
                 tau = taus[dd_ind]
                 if tau > 0:
-                    self._apply_scheduled_op(dag, idle_after, Delay(tau, dag.unit), qubit)
+                    self._apply_scheduled_op(dag, idle_after, Delay(tau, self._unit), qubit)
                     idle_after += tau
             if dd_ind < len(self._dd_sequence):
                 gate = self._dd_sequence[dd_ind]

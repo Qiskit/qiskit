@@ -81,7 +81,7 @@ from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.providers.options import Options
 from qiskit.quantum_info import Operator, random_unitary
 from qiskit.utils import should_run_in_parallel
-from qiskit.transpiler import CouplingMap, Layout, PassManager
+from qiskit.transpiler import CouplingMap, Layout, PassManager, InstructionDurations
 from qiskit.transpiler.exceptions import TranspilerError, CircuitTooWideForTarget
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements, GateDirection, VF2PostLayout
 
@@ -1313,7 +1313,15 @@ class TestTranspile(QiskitTestCase):
                 seed_transpiler=42,
             )
 
-        self.assertEqual(out.duration, 1200)
+        target = Target.from_configuration(
+            basis_gates=["h", "cx"],
+            coupling_map=CouplingMap.from_line(2, bidirectional=False),
+            instruction_durations=InstructionDurations(
+                [("h", 0, 200), ("cx", [0, 1], 700)], dt=1e-9
+            ),
+            dt=1e-9,
+        )
+        self.assertEqual(out.estimate_duration(target, "dt"), 1200)
 
     def test_delay_converts_to_dt(self):
         """Test that a delay instruction is converted to units of dt given a backend."""
@@ -1369,7 +1377,7 @@ class TestTranspile(QiskitTestCase):
             scheduling_method="alap",
             layout_method="trivial",
         )
-        self.assertEqual(scheduled.duration, 9010)
+        self.assertEqual(scheduled.estimate_duration(backend.target, unit="dt"), 9010)
 
     def test_scheduling_instruction_constraints(self):
         """Test that scheduling-related loose transpile constraints work with target."""
@@ -1393,7 +1401,7 @@ class TestTranspile(QiskitTestCase):
             scheduling_method="alap",
             layout_method="trivial",
         )
-        self.assertEqual(scheduled.duration, 9010)
+        self.assertEqual(scheduled.estimate_duration(target, "dt"), 9010)
 
     def test_scheduling_dt_constraints(self):
         """Test that scheduling-related loose transpile constraints
@@ -1408,7 +1416,9 @@ class TestTranspile(QiskitTestCase):
 
         # halve dt in sec = double duration in dt
         scheduled = transpile(qc, backend=backend_v2, scheduling_method="asap", dt=original_dt / 2)
-        self.assertEqual(scheduled.duration, original_duration * 2)
+        self.assertEqual(
+            scheduled.estimate_duration(backend_v2.target, "dt"), original_duration * 2
+        )
 
     @data(1, 2, 3)
     def test_no_infinite_loop(self, optimization_level):

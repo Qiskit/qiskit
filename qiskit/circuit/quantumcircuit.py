@@ -1112,27 +1112,6 @@ class QuantumCircuit:
         Qiskit will not examine the content of this mapping, but it will pass it through the
         transpiler and reattach it to the output, so you can track your own metadata."""
 
-    @property
-    @deprecate_func(since="1.3.0", removal_timeline="in Qiskit 2.0.0", is_property=True)
-    def duration(self):
-        """The total duration of the circuit, set by a scheduling transpiler pass.  Its unit is
-        specified by :attr:`unit`."""
-        return self._duration
-
-    @duration.setter
-    def duration(self, value: int | float | None):
-        self._duration = value
-
-    @property
-    @deprecate_func(since="1.3.0", removal_timeline="in Qiskit 2.0.0", is_property=True)
-    def unit(self):
-        """The unit that :attr:`duration` is specified in."""
-        return self._unit
-
-    @unit.setter
-    def unit(self, value):
-        self._unit = value
-
     @classmethod
     def _from_circuit_data(
         cls, data: CircuitData, add_regs: bool = False, name: str | None = None
@@ -1437,8 +1416,6 @@ class QuantumCircuit:
         for instruction in reversed(self.data):
             reverse_circ._append(instruction.replace(operation=instruction.operation.reverse_ops()))
 
-        reverse_circ.duration = self.duration
-        reverse_circ.unit = self.unit
         return reverse_circ
 
     def reverse_bits(self) -> "QuantumCircuit":
@@ -1919,8 +1896,6 @@ class QuantumCircuit:
                 )
             edge_map.update(zip(other.clbits, dest._cbit_argument_conversion(clbits)))
 
-        dest.duration = None
-        dest.unit = "dt"
         dest.global_phase += other.global_phase
 
         # This is required to trigger data builds if the `other` is an unbuilt `BlueprintCircuit`,
@@ -2448,8 +2423,6 @@ class QuantumCircuit:
         """
         if _standard_gate:
             self._data.append(instruction)
-            self.duration = None
-            self.unit = "dt"
             return instruction
 
         old_style = not isinstance(instruction, CircuitInstruction)
@@ -2471,8 +2444,6 @@ class QuantumCircuit:
             self._data.append_manual_params(instruction, params)
 
         # Invalidate whole circuit duration if an instruction is added
-        self.duration = None
-        self.unit = "dt"
         return instruction.operation if old_style else instruction
 
     @typing.overload
@@ -6528,7 +6499,7 @@ class QuantumCircuit:
     # Functions only for scheduled circuits
     def qubit_duration(self, *qubits: Union[Qubit, int]) -> float:
         """Return the duration between the start and stop time of the first and last instructions,
-        excluding delays, over the supplied qubits. Its time unit is ``self.unit``.
+        excluding delays, over the supplied qubits.
 
         Args:
             *qubits: Qubits within ``self`` to include.
@@ -6540,7 +6511,7 @@ class QuantumCircuit:
 
     def qubit_start_time(self, *qubits: Union[Qubit, int]) -> float:
         """Return the start time of the first instruction, excluding delays,
-        over the supplied qubits. Its time unit is ``self.unit``.
+        over the supplied qubits.
 
         Return 0 if there are no instructions over qubits
 
@@ -6554,15 +6525,6 @@ class QuantumCircuit:
         Raises:
             CircuitError: if ``self`` is a not-yet scheduled circuit.
         """
-        if self.duration is None:
-            # circuit has only delays, this is kind of scheduled
-            for instruction in self._data:
-                if not isinstance(instruction.operation, Delay):
-                    raise CircuitError(
-                        "qubit_start_time undefined. Circuit must be scheduled first."
-                    )
-            return 0
-
         qubits = [self.qubits[q] if isinstance(q, int) else q for q in qubits]
 
         starts = {q: 0 for q in qubits}
@@ -6582,7 +6544,6 @@ class QuantumCircuit:
 
     def qubit_stop_time(self, *qubits: Union[Qubit, int]) -> float:
         """Return the stop time of the last instruction, excluding delays, over the supplied qubits.
-        Its time unit is ``self.unit``.
 
         Return 0 if there are no instructions over qubits
 
@@ -6596,18 +6557,9 @@ class QuantumCircuit:
         Raises:
             CircuitError: if ``self`` is a not-yet scheduled circuit.
         """
-        if self.duration is None:
-            # circuit has only delays, this is kind of scheduled
-            for instruction in self._data:
-                if not isinstance(instruction.operation, Delay):
-                    raise CircuitError(
-                        "qubit_stop_time undefined. Circuit must be scheduled first."
-                    )
-            return 0
-
         qubits = [self.qubits[q] if isinstance(q, int) else q for q in qubits]
 
-        stops = {q: self.duration for q in qubits}
+        stops = {q: 0.0 for q in qubits}
         dones = {q: False for q in qubits}
         for instruction in reversed(self._data):
             for q in qubits:
