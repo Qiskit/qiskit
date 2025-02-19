@@ -417,6 +417,7 @@ class TestCircuitOperations(QiskitTestCase):
         copied = qc.copy_empty_like("copy")
         self.assertEqual(copied.name, "copy")
 
+    # pylint: disable=invalid-name
     def test_copy_variables(self):
         """Test that a full copy of circuits including variables copies them across."""
         a = expr.Var.new("a", types.Bool())
@@ -424,13 +425,12 @@ class TestCircuitOperations(QiskitTestCase):
         c = expr.Var.new("c", types.Bool())
         d = expr.Var.new("d", types.Uint(8))
         e = expr.Var.new("e", types.Stretch())
-        s = expr.Var.new("s", types.Stretch())
+        f = expr.Var.new("f", types.Stretch())
 
-        qc = QuantumCircuit(
-            inputs=[a, s], declarations=[(c, expr.lift(False)), (e, expr.mul(s, 2.0))]
-        )
+        qc = QuantumCircuit(inputs=[a], declarations=[(c, expr.lift(False))])
+        qc.add_stretch(e)
         copied = qc.copy()
-        self.assertEqual({a, s}, set(copied.iter_input_vars()))
+        self.assertEqual({a}, set(copied.iter_input_vars()))
         self.assertEqual({c, e}, set(copied.iter_declared_vars()))
         self.assertEqual(
             [instruction.operation for instruction in qc],
@@ -440,14 +440,14 @@ class TestCircuitOperations(QiskitTestCase):
         # Check that the original circuit is not mutated.
         copied.add_input(b)
         copied.add_var(d, 0xFF)
-        self.assertEqual({a, s, b}, set(copied.iter_input_vars()))
+        self.assertEqual({a, b}, set(copied.iter_input_vars()))
         self.assertEqual({c, e, d}, set(copied.iter_declared_vars()))
-        self.assertEqual({a, s}, set(qc.iter_input_vars()))
+        self.assertEqual({a}, set(qc.iter_input_vars()))
         self.assertEqual({c, e}, set(qc.iter_declared_vars()))
 
-        qc = QuantumCircuit(captures=[b, s], declarations=[(a, expr.lift(False)), (c, a)])
+        qc = QuantumCircuit(captures=[b], declarations=[(a, expr.lift(False)), (c, a)])
         copied = qc.copy()
-        self.assertEqual({b, s}, set(copied.iter_captured_vars()))
+        self.assertEqual({b}, set(copied.iter_captured_vars()))
         self.assertEqual({a, c}, set(copied.iter_declared_vars()))
         self.assertEqual(
             [instruction.operation for instruction in qc],
@@ -456,12 +456,13 @@ class TestCircuitOperations(QiskitTestCase):
 
         # Check that the original circuit is not mutated.
         copied.add_capture(d)
-        copied.add_stretch(e)
-        self.assertEqual({b, s, d}, set(copied.iter_captured_vars()))
-        self.assertEqual({a, c, e}, set(copied.iter_declared_vars()))
-        self.assertEqual({b, s}, set(qc.iter_captured_vars()))
+        copied.add_stretch(f)
+        self.assertEqual({b, d}, set(copied.iter_captured_vars()))
+        self.assertEqual({a, c, f}, set(copied.iter_declared_vars()))
+        self.assertEqual({b}, set(qc.iter_captured_vars()))
         self.assertEqual({a, c}, set(qc.iter_declared_vars()))
 
+    # pylint: disable=invalid-name
     def test_copy_empty_variables(self):
         """Test that an empty copy of circuits including variables copies them across, but does not
         initialise them."""
@@ -469,7 +470,6 @@ class TestCircuitOperations(QiskitTestCase):
         b = expr.Var.new("b", types.Uint(8))
         c = expr.Var.new("c", types.Bool())
         d = expr.Var.new("d", types.Uint(8))
-        e = expr.Var.new("e", types.Stretch())
 
         qc = QuantumCircuit(inputs=[a], declarations=[(c, expr.lift(False))])
         copied = qc.copy_empty_like()
@@ -480,7 +480,7 @@ class TestCircuitOperations(QiskitTestCase):
         # Check that the original circuit is not mutated.
         copied.add_input(b)
         copied.add_var(d, 0xFF)
-        copied.add_stretch(e)
+        e = copied.add_stretch("e")
         self.assertEqual({a, b}, set(copied.iter_input_vars()))
         self.assertEqual({c, d, e}, set(copied.iter_declared_vars()))
         self.assertEqual({a}, set(qc.iter_input_vars()))
@@ -498,6 +498,7 @@ class TestCircuitOperations(QiskitTestCase):
         self.assertEqual({b, d, e}, set(copied.iter_captured_vars()))
         self.assertEqual({b}, set(qc.iter_captured_vars()))
 
+    # pylint: disable=invalid-name
     def test_copy_empty_variables_alike(self):
         """Test that an empty copy of circuits including variables copies them across, but does not
         initialise them.  This is the same as the default, just spelled explicitly."""
@@ -534,27 +535,25 @@ class TestCircuitOperations(QiskitTestCase):
         self.assertEqual({b, d, e}, set(copied.iter_captured_vars()))
         self.assertEqual({b}, set(qc.iter_captured_vars()))
 
+    # pylint: disable=invalid-name
     def test_copy_empty_variables_to_captures(self):
         """``vars_mode="captures"`` should convert all variables to captures."""
         a = expr.Var.new("a", types.Bool())
         b = expr.Var.new("b", types.Uint(8))
         c = expr.Var.new("c", types.Bool())
         d = expr.Var.new("d", types.Uint(8))
-        e = expr.Var.new("e", types.Stretch())
-        s = expr.Var.new("s", types.Stretch())
 
-        qc = QuantumCircuit(
-            inputs=[a, b, s], declarations=[(c, expr.lift(False)), (e, expr.mul(s, 2.0))]
-        )
+        qc = QuantumCircuit(inputs=[a, b], declarations=[(c, expr.lift(False))])
+        e = qc.add_stretch("e")
         copied = qc.copy_empty_like(vars_mode="captures")
-        self.assertEqual({a, b, c, s, e}, set(copied.iter_captured_vars()))
-        self.assertEqual({a, b, c, s, e}, set(copied.iter_vars()))
+        self.assertEqual({a, b, c, e}, set(copied.iter_captured_vars()))
+        self.assertEqual({a, b, c, e}, set(copied.iter_vars()))
         self.assertEqual([], list(copied.data))
 
-        qc = QuantumCircuit(captures=[c, d, s, e])
+        qc = QuantumCircuit(captures=[c, d, e])
         copied = qc.copy_empty_like(vars_mode="captures")
-        self.assertEqual({c, d, s, e}, set(copied.iter_captured_vars()))
-        self.assertEqual({c, d, s, e}, set(copied.iter_vars()))
+        self.assertEqual({c, d, e}, set(copied.iter_captured_vars()))
+        self.assertEqual({c, d, e}, set(copied.iter_vars()))
         self.assertEqual([], list(copied.data))
 
     def test_copy_empty_variables_drop(self):
@@ -562,12 +561,9 @@ class TestCircuitOperations(QiskitTestCase):
         a = expr.Var.new("a", types.Bool())
         b = expr.Var.new("b", types.Uint(8))
         c = expr.Var.new("c", types.Bool())
-        d = expr.Var.new("d", types.Stretch())
-        s = expr.Var.new("s", types.Stretch())
+        d = expr.Var.new("s", types.Stretch())
 
-        qc = QuantumCircuit(
-            inputs=[a, b, s], declarations=[(c, expr.lift(False)), (d, expr.mul(s, 2.0))]
-        )
+        qc = QuantumCircuit(captures=[a, b, d], declarations=[(c, expr.lift(False))])
         copied = qc.copy_empty_like(vars_mode="drop")
         self.assertEqual(set(), set(copied.iter_vars()))
         self.assertEqual([], list(copied.data))
@@ -657,7 +653,7 @@ class TestCircuitOperations(QiskitTestCase):
         the amount of non-idle qubits to store the measured values.
         """
         qr = QuantumRegister(4)
-        cr = ClassicalRegister(2, "measure")
+        cr = ClassicalRegister(2, "meas")
 
         circuit = QuantumCircuit(qr)
         circuit.h(qr[0])
@@ -679,7 +675,7 @@ class TestCircuitOperations(QiskitTestCase):
         the amount of non-idle qubits to store the measured values.
         """
         qr = QuantumRegister(4)
-        cr = ClassicalRegister(2, "measure")
+        cr = ClassicalRegister(2, "meas")
 
         circuit = QuantumCircuit(qr)
         circuit.h(qr[0])

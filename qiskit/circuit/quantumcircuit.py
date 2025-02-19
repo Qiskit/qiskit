@@ -1031,7 +1031,7 @@ class QuantumCircuit:
                 :meth:`QuantumCircuit.add_input`.  The variables given in this argument will be
                 passed directly to :meth:`add_input`.  A circuit cannot have both ``inputs`` and
                 ``captures``.
-            captures: any variables that that this circuit scope should capture from a containing
+            captures: any variables that this circuit scope should capture from a containing
                 scope.  The variables given here will be passed directly to :meth:`add_capture`.  A
                 circuit cannot have both ``inputs`` and ``captures``.
             declarations: any variables that this circuit should declare and initialize immediately.
@@ -2836,7 +2836,6 @@ class QuantumCircuit:
 
     def add_stretch(self, name_or_var: str | expr.Var) -> expr.Var:
         """Declares a new stretch variable scoped to this circuit.
-        To create a new stretch variable with an initial value, use :meth:`add_var`.
 
         Args:
             name_or_var: either a string of the stretch variable name, or an existing instance of
@@ -2869,13 +2868,14 @@ class QuantumCircuit:
 
         Args:
             name_or_var: either a string of the variable name, or an existing instance of
-                :class:`~.expr.Var` to re-use.  Variables cannot shadow names that are already in
-                use within the circuit.
+                a non-const-typed :class:`~.expr.Var` to re-use.  Variables cannot shadow names
+                that are already in use within the circuit.
             initial: the value to initialize this variable with.  If the first argument was given
                 as a string name, the type of the resulting variable is inferred from the initial
                 expression; to control this more manually, either use :meth:`.Var.new` to manually
                 construct a new variable with the desired type, or use :func:`.expr.cast` to cast
-                the initializer to the desired type.
+                the initializer to the desired type. If a const-typed expression is provided, it
+                will be automatically cast to its non-const counterpart.
 
                 This must be either a :class:`~.expr.Expr` node, or a value that can be lifted to
                 one using :class:`.expr.lift`.
@@ -2885,7 +2885,8 @@ class QuantumCircuit:
             object will be returned.
 
         Raises:
-            CircuitError: if the variable cannot be created due to shadowing an existing variable.
+            CircuitError: if the variable cannot be created due to shadowing an existing variable
+                or a const variable was specified for ``name_or_var``.
 
         Examples:
             Define a new variable given just a name and an initializer expression::
@@ -2926,26 +2927,19 @@ class QuantumCircuit:
         # Validate the initializer first to catch cases where the variable to be declared is being
         # used in the initializer.
         circuit_scope = self._current_scope()
+        coerce_type = None
         if isinstance(name_or_var, expr.Var):
-            # Lift initial with const-ness of variable.
-            try_const = name_or_var.type.const
-            # Convenience method to widen Python integer literals to the right width during the initial
-            # lift, if the type is already known via the variable.
+            if name_or_var.type.const:
+                raise CircuitError("const variables are not supported.")
             if (
                 name_or_var.type.kind is types.Uint
                 and isinstance(initial, int)
                 and not isinstance(initial, bool)
             ):
+                # Convenience method to widen Python integer literals to the right width during
+                # the initial lift, if the type is already known via the variable.
                 coerce_type = name_or_var.type
-            else:
-                coerce_type = None
-        else:
-            # By default, assume the user wants a variable with circuit memory.
-            try_const = False
-            coerce_type = None
-        initial = _validate_expr(
-            circuit_scope, expr.lift(initial, coerce_type, try_const=try_const)
-        )
+        initial = _validate_expr(circuit_scope, expr.lift(initial, coerce_type))
         if isinstance(name_or_var, str):
             var = expr.Var.new(name_or_var, initial.type)
         elif not name_or_var.standalone:
@@ -2995,6 +2989,8 @@ class QuantumCircuit:
             raise CircuitError("cannot add an uninitialized variable in a control-flow scope")
         if not var.standalone:
             raise CircuitError("cannot add a variable wrapping a bit or register to a circuit")
+        if var.type.const and var.type.kind is not types.Stretch:
+            raise CircuitError("const variables are not supported.")
         self._builder_api.add_uninitialized_var(var)
 
     def add_capture(self, var: expr.Var):
@@ -3057,8 +3053,14 @@ class QuantumCircuit:
             raise CircuitError("cannot add an input variable in a control-flow scope")
         if self._vars_capture:
             raise CircuitError("circuits to be enclosed with captures cannot have input variables")
-        if isinstance(name_or_var, expr.Var) and type_ is not None:
-            raise ValueError("cannot give an explicit type with an existing Var")
+        if isinstance(name_or_var, expr.Var):
+            if type_ is not None:
+                raise ValueError("cannot give an explicit type with an existing Var")
+            if name_or_var.type.const:
+                raise CircuitError("const variables are not supported")
+        elif type_ is not None and type_.const:
+            raise CircuitError("const variables are not supported")
+
         var = self._prepare_new_var(name_or_var, type_)
         self._vars_input[var.name] = var
         return var
@@ -3789,9 +3791,7 @@ class QuantumCircuit:
 
         _copy_metadata(self, cpy, vars_mode)
 
-        cpy._data = CircuitData(
-            self._data.qubits, self._data.clbits, global_phase=self._data.global_phase
-        )
+        cpy._data = self._data.copy_empty_like()
 
         if name:
             cpy.name = name
@@ -3989,7 +3989,7 @@ class QuantumCircuit:
             circ = self.copy()
         dag = circuit_to_dag(circ)
         qubits_to_measure = [qubit for qubit in circ.qubits if qubit not in dag.idle_wires()]
-        new_creg = circ._create_creg(len(qubits_to_measure), "measure")
+        new_creg = circ._create_creg(len(qubits_to_measure), "meas")
         circ.add_register(new_creg)
         circ.barrier()
         circ.measure(qubits_to_measure, new_creg)
@@ -6953,7 +6953,10 @@ class QuantumCircuit:
             if len(qubits) == len([done for done in dones.values() if done]):  # all done
                 return max(stop for stop in stops.values())
 
-        return 0  # If there are no instructions over bits
+        if len(stops) > 0:  # not all but some qubits has instructions
+            return max(stops.values())
+        else:
+            return 0  # If there are no instructions over bits
 
 
 class _OuterCircuitScopeInterface(CircuitScopeInterface):

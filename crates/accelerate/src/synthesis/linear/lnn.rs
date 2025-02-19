@@ -255,10 +255,10 @@ fn _north_west_to_identity(n: usize, mut mat: ArrayViewMut2<bool>) -> Instructio
 /// [1, 1, 1, 0]
 /// [0, 1, 0, 0]
 /// [1, 0, 0, 0]]
-
+///
 /// According to [1] the synthesis is done on the inverse matrix
 /// so the matrix mat is inverted at this step
-
+///
 /// References:
 /// [1]: Kutin, S., Moulton, D. P., Smithline, L. (2007).
 /// Computation at a Distance.

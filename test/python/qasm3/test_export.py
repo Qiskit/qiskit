@@ -22,7 +22,7 @@ import re
 from ddt import ddt, data
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, transpile
-from qiskit.circuit import Parameter, Qubit, Clbit, Gate, Delay, Barrier, ParameterVector, Duration
+from qiskit.circuit import Parameter, Qubit, Clbit, Gate, Delay, Barrier, ParameterVector
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.controlflow import CASE_DEFAULT
 from qiskit.circuit.library import PauliEvolutionGate
@@ -1715,6 +1715,10 @@ while (cr == 3) {
         )
         qc.if_test(expr.logic_and(expr.logic_and(cr1[0], cr1[1]), cr1[2]), body.copy(), [], [])
         qc.if_test(expr.logic_or(expr.logic_or(cr1[0], cr1[1]), cr1[2]), body.copy(), [], [])
+        qc.if_test(expr.equal(expr.add(expr.add(cr1, cr2), cr3), 7), body.copy(), [], [])
+        qc.if_test(expr.equal(expr.sub(expr.sub(cr1, cr2), cr3), 7), body.copy(), [], [])
+        qc.if_test(expr.equal(expr.mul(expr.mul(cr1, cr2), cr3), 7), body.copy(), [], [])
+        qc.if_test(expr.equal(expr.div(expr.div(cr1, cr2), cr3), 7), body.copy(), [], [])
 
         # Note that bitwise operations except shift have lower priority than `==` so there's extra
         # parentheses.  All these operators are left-associative in OQ3.
@@ -1739,6 +1743,14 @@ if (cr1 >> cr2 << cr3 == 7) {
 if (cr1[0] && cr1[1] && cr1[2]) {
 }
 if (cr1[0] || cr1[1] || cr1[2]) {
+}
+if (cr1 + cr2 + cr3 == 7) {
+}
+if (cr1 - cr2 - cr3 == 7) {
+}
+if (cr1 * cr2 * cr3 == 7) {
+}
+if (cr1 / cr2 / cr3 == 7) {
 }
 """
         self.assertEqual(dumps(qc), expected)
@@ -1766,6 +1778,10 @@ if (cr1[0] || cr1[1] || cr1[2]) {
         )
         qc.if_test(expr.logic_and(cr1[0], expr.logic_and(cr1[1], cr1[2])), body.copy(), [], [])
         qc.if_test(expr.logic_or(cr1[0], expr.logic_or(cr1[1], cr1[2])), body.copy(), [], [])
+        qc.if_test(expr.equal(expr.add(cr1, expr.add(cr2, cr3)), 7), body.copy(), [], [])
+        qc.if_test(expr.equal(expr.sub(cr1, expr.sub(cr2, cr3)), 7), body.copy(), [], [])
+        qc.if_test(expr.equal(expr.mul(cr1, expr.mul(cr2, cr3)), 7), body.copy(), [], [])
+        qc.if_test(expr.equal(expr.div(cr1, expr.div(cr2, cr3)), 7), body.copy(), [], [])
 
         # Note that bitwise operations have lower priority than `==` so there's extra parentheses.
         # All these operators are left-associative in OQ3, so we need parentheses for them to be
@@ -1792,6 +1808,14 @@ if (cr1 << (cr2 >> cr3) == 7) {
 if (cr1[0] && (cr1[1] && cr1[2])) {
 }
 if (cr1[0] || (cr1[1] || cr1[2])) {
+}
+if (cr1 + (cr2 + cr3) == 7) {
+}
+if (cr1 - (cr2 - cr3) == 7) {
+}
+if (cr1 * (cr2 * cr3) == 7) {
+}
+if (cr1 / (cr2 / cr3) == 7) {
 }
 """
         self.assertEqual(dumps(qc), expected)
@@ -1868,11 +1892,17 @@ if (!!cr[0]) {
             ),
         )
 
+        arithmetic = expr.equal(
+            expr.add(expr.mul(cr, expr.sub(cr, cr)), expr.div(expr.add(cr, cr), cr)),
+            expr.sub(expr.div(expr.mul(cr, cr), expr.add(cr, cr)), expr.mul(cr, expr.add(cr, cr))),
+        )
+
         qc = QuantumCircuit(cr)
         qc.if_test(inside_out, body.copy(), [], [])
         qc.if_test(outside_in, body.copy(), [], [])
         qc.if_test(logics, body.copy(), [], [])
         qc.if_test(bitshifts, body.copy(), [], [])
+        qc.if_test(arithmetic, body.copy(), [], [])
 
         expected = """\
 OPENQASM 3.0;
@@ -1887,6 +1917,8 @@ if ((cr | cr) == (cr & cr) && (cr & cr) == (cr | cr)\
 if ((!cr[0] || !cr[0]) && !(cr[0] && cr[0]) || !(cr[0] && cr[0]) && (!cr[0] || !cr[0])) {
 }
 if (((cr ^ cr) & cr) << (cr | cr) == (cr >> 3 ^ cr << 4 | cr << 1)) {
+}
+if (cr * (cr - cr) + (cr + cr) / cr == cr * cr / (cr + cr) - cr * (cr + cr)) {
 }
 """
         self.assertEqual(dumps(qc), expected)
@@ -1912,6 +1944,57 @@ if (cr == 1) {
 """
         self.assertEqual(dumps(qc), expected)
 
+    def test_const_expr(self):
+        """Test that const-typed expressions are implicitly converted without a cast."""
+        qubit = Qubit()
+        creg = ClassicalRegister(2, "c")
+        circuit = QuantumCircuit([qubit], creg)
+
+        body = QuantumCircuit([qubit], creg)
+        body.x(0)
+        body.y(0)
+
+        circuit.if_test(expr.lift(True, types.Bool(const=True)), body, [0], body.clbits)
+        circuit.if_test(
+            expr.equal(creg, expr.lift(1, types.Uint(2, const=True))), body, [0], body.clbits
+        )
+        circuit.if_test(
+            expr.equal(expr.lift(1, types.Uint(2)), expr.lift(2, types.Uint(2, const=True))),
+            body,
+            [0],
+            body.clbits,
+        )
+        circuit.if_test(
+            expr.less(expr.lift(1.0, types.Float(const=True)), expr.lift(2.0, types.Float())),
+            body,
+            [0],
+            body.clbits,
+        )
+        test = dumps(circuit)
+        expected = """\
+OPENQASM 3.0;
+include "stdgates.inc";
+bit[2] c;
+qubit _qubit0;
+if (true) {
+  x _qubit0;
+  y _qubit0;
+}
+if (c == 1) {
+  x _qubit0;
+  y _qubit0;
+}
+if (1 == 2) {
+  x _qubit0;
+  y _qubit0;
+}
+if (1.0 < 2.0) {
+  x _qubit0;
+  y _qubit0;
+}
+"""
+        self.assertEqual(test, expected)
+
     def test_var_use(self):
         """Test that input and declared vars work in simple local scopes and can be set."""
         qc = QuantumCircuit()
@@ -1922,9 +2005,7 @@ if (cr == 1) {
         qc.add_var("c", expr.bit_not(b))
         # All inputs should come first, regardless of declaration order.
         qc.add_input("d", types.Bool())
-        e = qc.add_var("e", Duration.dt(1000))
-        f = qc.add_stretch("f")
-        qc.add_var("g", expr.add(expr.mul(f, 2.0), e))
+        qc.add_stretch("f")
 
         expected = """\
 OPENQASM 3.0;
@@ -1933,14 +2014,10 @@ input bool a;
 input uint[8] b;
 input bool d;
 uint[8] c;
-duration e;
 stretch f;
-stretch g;
 a = !a;
 b = b & 8;
 c = ~b;
-e = 1000dt;
-g = f * 2.0 + e;
 """
         self.assertEqual(dumps(qc), expected)
 
