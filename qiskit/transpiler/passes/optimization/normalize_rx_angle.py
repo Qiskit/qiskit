@@ -20,6 +20,8 @@ that differ within a resolution provided by the user.
 
 import numpy as np
 
+from qiskit.utils import deprecate_func
+
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.circuit.library.standard_gates import RXGate, RZGate, SXGate, XGate
@@ -48,6 +50,12 @@ class NormalizeRXAngle(TransformationPass):
     Note that pulse calibration might be attached per each rotation angle.
     """
 
+    @deprecate_func(
+        since="1.4",
+        removal_timeline="in Qiskit 2.0",
+        additional_msg="This pass was used as pre-processing step of ``RXCalibrationBuilder``."
+        " With the removal of Pulse in Qiskit 2.0, this pass is no longer needed.",
+    )
     def __init__(self, target=None, resolution_in_radian=0):
         """NormalizeRXAngle initializer.
 

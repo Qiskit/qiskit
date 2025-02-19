@@ -428,7 +428,8 @@ class TestTemplateMatching(QiskitTestCase):
         circuit_in.p(2 * theta, 1)
         circuit_in.cx(0, 1)
 
-        pass_ = TemplateOptimization(**rzx_templates(["zz2"]))
+        with self.assertWarns(DeprecationWarning):
+            pass_ = TemplateOptimization(**rzx_templates(["zz2"]))
         circuit_out = PassManager(pass_).run(circuit_in)
 
         # these are NOT equal if template optimization works
