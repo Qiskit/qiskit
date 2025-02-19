@@ -156,14 +156,6 @@ class QiskitTestCase(BaseTestCase):
             module="qiskit_aer",
         )
 
-        # Safe to remove once https://github.com/Qiskit/qiskit-aer/pull is in a release version
-        # of Aer.
-        warnings.filterwarnings(
-            "ignore",
-            category=DeprecationWarning,
-            message=r".*argument ``qobj_id`` is deprecated as of Qiskit 1.4.*",
-        )
-
         # Remove these two filters in Qiskit 2.0.0 when we remove unit and duration
         warnings.filterwarnings(
             "ignore",
