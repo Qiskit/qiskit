@@ -21,10 +21,6 @@ from test import QiskitTestCase  # pylint: disable=wrong-import-order
 class TestBackendConfiguration(QiskitTestCase):
     """Test the BackendStatus class."""
 
-    def setUp(self):
-        """Test backend status for one of the fake backends"""
-        super().setUp()
-
     def test_repr(self):
         """Test representation methods of BackendStatus"""
         with self.assertWarnsRegex(

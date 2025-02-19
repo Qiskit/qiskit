@@ -25,7 +25,6 @@ from qiskit.utils import optionals as _optionals
 from qiskit.providers import BackendV2
 from qiskit.providers.exceptions import BackendPropertyError
 from qiskit.transpiler.coupling import CouplingMap
-from qiskit.utils.deprecation import deprecate_arg
 from .exceptions import VisualizationError
 
 
