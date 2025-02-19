@@ -174,6 +174,8 @@ class PassManager(BasePassManager):
         output_name: str | None = None,
         callback: Callable = None,
         num_processes: int = None,
+        *,
+        property_set: dict[str, object] | None = None,
     ) -> _CircuitsT:
         """Run all the passes on the specified ``circuits``.
 
@@ -216,6 +218,11 @@ class PassManager(BasePassManager):
                 execution is enabled. This argument overrides ``num_processes`` in the user
                 configuration file, and the ``QISKIT_NUM_PROCS`` environment variable. If set
                 to ``None`` the system default or local user configuration will be used.
+            property_set: If given, the initial value to use as the :class:`.PropertySet` for the
+                pass manager pipeline.  This can be used to persist analysis from one run to
+                another, in cases where you know the analysis is safe to share.  Beware that some
+                analysis will be specific to the input circuit and the particular :class:`.Target`,
+                so you should take a lot of care when using this argument.
 
         Returns:
             The transformed circuit(s).
@@ -228,6 +235,7 @@ class PassManager(BasePassManager):
             callback=callback,
             output_name=output_name,
             num_processes=num_processes,
+            property_set=property_set,
         )
 
     def draw(self, filename=None, style=None, raw=False):
@@ -436,6 +444,8 @@ class StagedPassManager(PassManager):
         output_name: str | None = None,
         callback: Callable | None = None,
         num_processes: int = None,
+        *,
+        property_set: dict[str, object] | None = None,
     ) -> _CircuitsT:
         self._update_passmanager()
         return super().run(circuits, output_name, callback, num_processes=num_processes)
@@ -462,6 +472,9 @@ def _replace_error(meth):
     def wrapper(*meth_args, **meth_kwargs):
         try:
             return meth(*meth_args, **meth_kwargs)
+        except TranspilerError:
+            # If it's already a `TranspilerError` subclass, don't erase the extra information.
+            raise
         except PassManagerError as ex:
             raise TranspilerError(ex.message) from ex
 
