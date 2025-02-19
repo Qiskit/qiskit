@@ -234,6 +234,11 @@ def _choi_to_kraus(data, input_dim, output_dim, atol=ATOL_DEFAULT):
         #
         # So the eigenvalues are on the diagonal, therefore the basis-transformation matrix must be
         # a spanning set of the eigenspace.
+
+        if np.linalg.cond(data) >= 1e10:
+            # Regularization: applying a small perturbation for ill-conditioned matrices.
+            data += 1e-10 * np.eye(data.shape[0])
+
         triangular, vecs = scipy.linalg.schur(data)
         values = triangular.diagonal().real
         # If we're not a CP map, fall-through back to the generalization handling.  Since we needed
