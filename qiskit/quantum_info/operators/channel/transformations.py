@@ -249,7 +249,7 @@ def _choi_to_kraus(data, input_dim, output_dim, atol=ATOL_DEFAULT):
         values = triangular.diagonal().real
 
         if apply_perturbation:
-            values = [v - 1e-10 for v in values]
+            values = values - 1e-10
 
         # If we're not a CP map, fall-through back to the generalization handling.  Since we needed
         # to get the eigenvalues anyway, we can do the CP check manually rather than deferring to a
