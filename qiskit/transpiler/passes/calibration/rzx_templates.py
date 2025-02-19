@@ -16,10 +16,17 @@ Convenience function to load RZXGate based templates.
 
 from enum import Enum
 from typing import List, Dict
+from qiskit.utils import deprecate_func
 
 from qiskit.circuit.library.templates import rzx
 
 
+@deprecate_func(
+    since="1.4",
+    removal_timeline="in Qiskit 2.0",
+    additional_msg="Use the functions in "
+    "qiskit.circuit.library.templates.rzx instead to generate rzx templates",
+)
 def rzx_templates(template_list: List[str] = None) -> Dict:
     """Convenience function to get the cost_dict and templates for template matching.
 

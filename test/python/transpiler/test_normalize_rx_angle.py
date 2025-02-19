@@ -34,7 +34,8 @@ class TestNormalizeRXAngle(QiskitTestCase):
         """Check that RX(pi) is NOT converted to X,
         if X calibration is not present in the target"""
         empty_target = Target()
-        tp = NormalizeRXAngle(target=empty_target)
+        with self.assertWarns(DeprecationWarning):
+            tp = NormalizeRXAngle(target=empty_target)
 
         qc = QuantumCircuit(1)
         qc.rx(90, 0)
@@ -47,7 +48,8 @@ class TestNormalizeRXAngle(QiskitTestCase):
         if SX calibration is present in the target"""
         target = Target()
         target.add_instruction(SXGate(), properties={(0,): None})
-        tp = NormalizeRXAngle(target=target)
+        with self.assertWarns(DeprecationWarning):
+            tp = NormalizeRXAngle(target=target)
 
         qc = QuantumCircuit(1)
         qc.rx(np.pi / 2, 0)
@@ -60,7 +62,8 @@ class TestNormalizeRXAngle(QiskitTestCase):
         if RX rotation angle is negative"""
 
         backend = GenericBackendV2(num_qubits=5)
-        tp = NormalizeRXAngle(target=backend.target)
+        with self.assertWarns(DeprecationWarning):
+            tp = NormalizeRXAngle(target=backend.target)
 
         # circuit to transpile and test
         qc = QuantumCircuit(1)
@@ -83,7 +86,8 @@ class TestNormalizeRXAngle(QiskitTestCase):
     def test_angle_wrapping_works(self, raw_theta, correct_wrapped_theta):
         """Check that RX rotation angles are correctly wrapped to [0, pi]"""
         backend = GenericBackendV2(num_qubits=5)
-        tp = NormalizeRXAngle(target=backend.target)
+        with self.assertWarns(DeprecationWarning):
+            tp = NormalizeRXAngle(target=backend.target)
 
         # circuit to transpile and test
         qc = QuantumCircuit(1)
@@ -118,7 +122,8 @@ class TestNormalizeRXAngle(QiskitTestCase):
         the requested angle is not in the vicinity of the already generated angles.
         """
         backend = GenericBackendV2(num_qubits=5)
-        tp = NormalizeRXAngle(backend.target, resolution_in_radian=resolution)
+        with self.assertWarns(DeprecationWarning):
+            tp = NormalizeRXAngle(backend.target, resolution_in_radian=resolution)
 
         qc = QuantumCircuit(1)
         for rx_angle in rx_angles:
