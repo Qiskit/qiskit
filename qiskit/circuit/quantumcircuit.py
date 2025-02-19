@@ -2836,7 +2836,6 @@ class QuantumCircuit:
 
     def add_stretch(self, name_or_var: str | expr.Var) -> expr.Var:
         """Declares a new stretch variable scoped to this circuit.
-        To create a new stretch variable with an initial value, use :meth:`add_var`.
 
         Args:
             name_or_var: either a string of the stretch variable name, or an existing instance of
