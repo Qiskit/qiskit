@@ -197,7 +197,9 @@ impl ParameterTable {
                 self.by_name.insert(name.clone(), uuid);
                 let mut uses = HashSet::new();
                 if let Some(usage) = usage {
-                    uses.insert_unique_unchecked(usage);
+                    unsafe {
+                        uses.insert_unique_unchecked(usage);
+                    }
                 };
                 entry.insert(ParameterInfo {
                     name,
