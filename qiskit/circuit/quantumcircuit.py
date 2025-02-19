@@ -1031,7 +1031,7 @@ class QuantumCircuit:
                 :meth:`QuantumCircuit.add_input`.  The variables given in this argument will be
                 passed directly to :meth:`add_input`.  A circuit cannot have both ``inputs`` and
                 ``captures``.
-            captures: any variables that that this circuit scope should capture from a containing
+            captures: any variables that this circuit scope should capture from a containing
                 scope.  The variables given here will be passed directly to :meth:`add_capture`.  A
                 circuit cannot have both ``inputs`` and ``captures``.
             declarations: any variables that this circuit should declare and initialize immediately.
