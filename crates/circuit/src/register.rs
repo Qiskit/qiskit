@@ -12,7 +12,7 @@
 
 use crate::{
     bit::{
-        BitInfo, PyAncillaQubit, PyBit, PyClbit, PyQubit, QubitExtraInfo, ShareableClbit,
+        BitExtraInfo, BitInfo, PyAncillaQubit, PyBit, PyClbit, PyQubit, ShareableClbit,
         ShareableQubit,
     },
     circuit_data::CircuitError,
@@ -33,6 +33,7 @@ pub(crate) enum RegisterInfo {
     Alias {
         name: String,
         bits: Box<IndexSet<BitInfo>>,
+        extra: Option<BitExtraInfo>,
     },
 }
 
@@ -41,8 +42,8 @@ impl Hash for RegisterInfo {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         match self {
             RegisterInfo::Owning(owning_register_info) => owning_register_info.hash(state),
-            RegisterInfo::Alias { name, bits } => {
-                (core::mem::discriminant(self), name, bits.len()).hash(state)
+            RegisterInfo::Alias { name, bits, extra } => {
+                (core::mem::discriminant(self), name, bits.len(), extra).hash(state)
             }
         }
     }
@@ -50,15 +51,19 @@ impl Hash for RegisterInfo {
 
 impl RegisterInfo {
     /// Creates a Register whose bits are owned by its instance
-    pub(crate) fn new_owning(name: String, size: u32) -> Self {
+    pub(crate) fn new_owning(name: String, size: u32, extra: Option<BitExtraInfo>) -> Self {
         // When creating `Owning` register, we don't need to create the `BitInfo`
         // instances, they can be entirely derived from `self`.
-        Self::Owning(Arc::new(OwningRegisterInfo { name, size }))
+        Self::Owning(Arc::new(OwningRegisterInfo { name, size, extra }))
     }
 
     /// Creates a Register whose bits already exist.
-    pub(crate) fn new_alias(name: String, bits: Box<IndexSet<BitInfo>>) -> Self {
-        Self::Alias { name, bits }
+    pub(crate) fn new_alias(
+        name: String,
+        bits: Box<IndexSet<BitInfo>>,
+        extra: Option<BitExtraInfo>,
+    ) -> Self {
+        Self::Alias { name, bits, extra }
     }
 
     /// A reference to the register's name
@@ -73,7 +78,7 @@ impl RegisterInfo {
     pub(crate) fn len(&self) -> usize {
         match self {
             RegisterInfo::Owning(owning_register_info) => owning_register_info.size as usize,
-            RegisterInfo::Alias { name: _, bits } => bits.len(),
+            RegisterInfo::Alias { bits, .. } => bits.len(),
         }
     }
 
@@ -84,6 +89,7 @@ impl RegisterInfo {
                 Box::new((0..owning_register_info.size).map(|bit| BitInfo::Owned {
                     register: owning_register_info.clone(),
                     index: bit,
+                    extra: owning_register_info.extra,
                 }))
             }
             RegisterInfo::Alias { bits, .. } => Box::new(bits.iter().cloned()),
@@ -94,21 +100,45 @@ impl RegisterInfo {
     pub(crate) fn contains(&self, bit: &BitInfo) -> bool {
         match self {
             RegisterInfo::Owning(owning_register_info) => match bit {
-                BitInfo::Owned { register, index } => {
-                    register == owning_register_info && *index < owning_register_info.size
-                }
+                BitInfo::Owned {
+                    register, index, ..
+                } => register == owning_register_info && *index < owning_register_info.size,
                 BitInfo::Anonymous { .. } => false,
             },
             RegisterInfo::Alias { bits, .. } => bits.contains(bit),
         }
     }
 
-    /// Owning register if any
-    pub fn register(&self) -> Option<&Arc<OwningRegisterInfo>> {
+    pub(crate) fn get(&self, index: usize) -> Option<BitInfo> {
         match self {
-            RegisterInfo::Owning(reg) => Some(reg),
-            RegisterInfo::Alias { .. } => None,
+            RegisterInfo::Owning(owning_register_info) => {
+                if index < owning_register_info.size as usize {
+                    Some(BitInfo::new_owned(
+                        owning_register_info.clone(),
+                        index.try_into().expect(
+                            "The register you tried to index from has exceeded its size limit",
+                        ),
+                        owning_register_info.extra,
+                    ))
+                } else {
+                    None
+                }
+            }
+            RegisterInfo::Alias { bits, .. } => bits.get_index(index).cloned(),
         }
+    }
+
+    // /// Returns a counted reference to the data of an owned register, if the
+    // /// current register matches that criteria.
+    // pub(crate) fn owning_register_info(&self) -> Option<Arc<OwningRegisterInfo>> {
+    //     match self {
+    //         RegisterInfo::Owning(owning_register_info) => Some(owning_register_info.clone()),
+    //         RegisterInfo::Alias { .. } => None,
+    //     }
+    // }
+
+    pub(crate) fn is_owning(&self) -> bool {
+        matches!(self, Self::Owning(_))
     }
 }
 
@@ -117,6 +147,7 @@ impl RegisterInfo {
 pub struct OwningRegisterInfo {
     name: String,
     size: u32,
+    extra: Option<BitExtraInfo>,
 }
 
 impl OwningRegisterInfo {
@@ -131,80 +162,97 @@ impl OwningRegisterInfo {
     }
 }
 
+// Create rust native Register types.
 macro_rules! create_register_object {
-    ($name:ident, $bit:tt, $extra:ty, $extra_exp:expr) => {
+    ($name:ident, $bit:tt, $extra_exp:expr, $counter:ident, $prefix:literal) => {
+        static $counter: AtomicU32 = AtomicU32::new(0);
+
         #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-        pub struct $name {
-            pub(crate) data: Arc<RegisterInfo>,
-            pub(crate) extra: $extra,
-        }
+        pub struct $name(Arc<RegisterInfo>);
 
         impl $name {
+            fn name_parse(name: Option<String>) -> String {
+                if let Some(name) = name {
+                    name
+                } else {
+                    format!(
+                        "{}{}",
+                        $prefix,
+                        $counter.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+                    )
+                }
+            }
+
             /// Creates a Register whose bits are owned by its instance
-            pub(crate) fn new_owning(name: String, size: u32, extra: $extra) -> Self {
+            pub fn new_owning(
+                name: Option<String>,
+                size: u32,
+                extra: Option<BitExtraInfo>,
+            ) -> Self {
                 // When creating `Owning` register, we don't need to create the `BitInfo`
                 // instances, they can be entirely derived from `self`.
-                Self {
-                    data: RegisterInfo::new_owning(name, size).into(),
-                    extra,
-                }
+                Self(RegisterInfo::new_owning(Self::name_parse(name), size, extra).into())
             }
 
             /// Creates a Register whose bits already exist.
-            pub(crate) fn new_alias(
-                name: String,
+            pub fn new_alias(
+                name: Option<String>,
                 bits: Box<IndexSet<BitInfo>>,
-                extra: $extra,
+                extra: Option<BitExtraInfo>,
             ) -> Self {
-                Self {
-                    data: RegisterInfo::new_alias(name, bits).into(),
-                    extra,
-                }
+                Self(RegisterInfo::new_alias(Self::name_parse(name), bits, extra).into())
             }
 
             /// A reference to the register's name
-            pub(crate) fn name(&self) -> &str {
-                self.data.name()
+            pub fn name(&self) -> &str {
+                self.0.name()
             }
 
             /// Returns the size of the register.
-            pub(crate) fn len(&self) -> usize {
-                self.data.len()
+            pub fn len(&self) -> usize {
+                self.0.len()
             }
 
             /// Returns an iterator over the bits within the circuit
-            pub(crate) fn bits(&self) -> Box<dyn ExactSizeIterator<Item = $bit> + '_> {
-                match self.data.as_ref() {
-                    RegisterInfo::Owning(owning_register_info) => {
-                        Box::new((0..owning_register_info.size).map(|bit| {
-                            $bit::new_owned(owning_register_info.clone(), bit, self.extra)
-                        }))
-                    }
-                    RegisterInfo::Alias { bits, .. } => {
-                        Box::new(bits.iter().cloned().map(|bit| $bit {
-                            info: bit,
-                            extra: self.extra,
-                        }))
-                    }
-                }
+            pub fn bits(&self) -> Box<dyn ExactSizeIterator<Item = $bit> + '_> {
+                Box::new(self.0.bits().map(|bit| $bit {
+                    info: bit,
+                    reg: self.0.is_owning().then_some(self.clone()),
+                }))
             }
 
             /// Checks if a bit is contained within the register
-            pub(crate) fn contains(&self, bit: &$bit) -> bool {
-                self.data.contains(&bit.info)
+            pub fn contains(&self, bit: &$bit) -> bool {
+                self.0.contains(&bit.info)
+            }
+        }
+
+        impl $name {
+            /// Provide a counted reference to the inner data of the register
+            pub(crate) fn data(&self) -> &Arc<RegisterInfo> {
+                &self.0
             }
         }
     };
 }
 
-create_register_object! {QuantumRegister, ShareableQubit, QubitExtraInfo, QubitExtraInfo::new(false)}
+create_register_object! {QuantumRegister, ShareableQubit, BitExtraInfo::Qubit{is_ancilla: false}, QREG_COUNTER, "q"}
 impl QuantumRegister {
     /// Check if the [QuantumRegister] instance is ancillary.
     pub fn is_ancilla(&self) -> bool {
-        self.extra.is_ancilla()
+        match self.0.as_ref() {
+            RegisterInfo::Owning(owning_register_info) => match owning_register_info.extra {
+                Some(BitExtraInfo::Qubit { is_ancilla }) => is_ancilla,
+                _ => false,
+            },
+            RegisterInfo::Alias { extra, .. } => match extra {
+                Some(BitExtraInfo::Qubit { is_ancilla }) => *is_ancilla,
+                _ => false,
+            },
+        }
     }
 }
-create_register_object! {ClassicalRegister, ShareableClbit, (), ()}
+create_register_object! {ClassicalRegister, ShareableClbit, BitExtraInfo::Clbit(), CREG_COUNTER, "c"}
 
 impl Display for QuantumRegister {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -231,16 +279,16 @@ impl<'py> IntoPyObject<'py> for QuantumRegister {
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
         let is_ancilla = self.is_ancilla();
-        let reg = PyRegister(self.data);
-        let inner = PyQuantumRegister(reg.clone());
+        let q_reg = PyQuantumRegister(self.clone());
         match is_ancilla {
             true => {
-                let initializer = PyClassInitializer::from(reg)
-                    .add_subclass(inner.clone())
-                    .add_subclass(PyAncillaRegister(inner));
+                let ancilla = PyAncillaRegister(q_reg.clone());
+                let initializer = PyClassInitializer::from(PyRegister(self.data().clone()))
+                    .add_subclass(q_reg)
+                    .add_subclass(ancilla);
                 Ok(Bound::new(py, initializer)?.into_super())
             }
-            false => Bound::new(py, (inner, reg)),
+            false => Bound::new(py, (q_reg, PyRegister(self.data().clone()))),
         }
     }
 }
@@ -253,8 +301,13 @@ impl<'py> IntoPyObject<'py> for ClassicalRegister {
     type Error = PyErr;
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        let base = PyRegister(self.data);
-        Bound::new(py, (PyClassicalRegister(base.clone()), base))
+        Bound::new(
+            py,
+            (
+                PyClassicalRegister(self.clone()),
+                PyRegister(self.data().clone()),
+            ),
+        )
     }
 }
 
@@ -307,14 +360,15 @@ impl PyRegister {
                     "Register bits must not be duplicated.",
                 ));
             }
-            RegisterInfo::new_alias(name_parse(name), bits_set.into())
+            RegisterInfo::new_alias(name_parse(name), bits_set.into(), None)
         } else {
-            RegisterInfo::new_owning(name_parse(name), size)
+            RegisterInfo::new_owning(name_parse(name), size, None)
         };
 
         Ok(Self(register.into()))
     }
 
+    /// Visual representation of a Register
     pub fn __repr__(slf: Bound<Self>) -> PyResult<String> {
         let borrowed = slf.borrow();
         match borrowed.0.as_ref() {
@@ -324,7 +378,7 @@ impl PyRegister {
                 owning_register_info.len(),
                 owning_register_info.name()
             )),
-            RegisterInfo::Alias { name, bits } => Ok(format!(
+            RegisterInfo::Alias { name, bits, .. } => Ok(format!(
                 "{}({}, {})",
                 slf.get_type().qualname()?,
                 bits.len(),
@@ -343,6 +397,7 @@ impl PyRegister {
         self.0.name()
     }
 
+    /// Get the register size
     #[getter]
     pub fn size(&self) -> usize {
         self.0.len()
@@ -411,7 +466,6 @@ impl PyRegister {
             },
         }
     }
-
     fn __getnewargs__(
         slf: PyRef<'_, Self>,
     ) -> PyResult<(Option<usize>, String, Option<Bound<'_, PyList>>)> {
@@ -435,6 +489,8 @@ impl PyRegister {
 }
 
 impl PyRegister {
+    /// Inner function for [PyRegister::__getnewargs__] to ensure serialization can be
+    /// preserved between register types.
     fn getitem_inner(
         &self,
         key: SliceOrInt<'_>,
@@ -444,14 +500,11 @@ impl PyRegister {
                 let sequence = py_sequence_index.with_len(self.size())?;
                 match sequence {
                     crate::slice::SequenceIndex::Int(idx) => match self.0.as_ref() {
-                        RegisterInfo::Owning(owning_register_info) => {
+                        RegisterInfo::Owning(..) => {
                             if self.size() < idx {
                                 return Err(CircuitError::new_err("register index out of range"));
                             }
-                            Ok(Box::new(std::iter::once(BitInfo::new_owned(
-                                owning_register_info.clone(),
-                                idx as u32,
-                            ))))
+                            Ok(Box::new(std::iter::once(self.0.get(idx).unwrap())))
                         }
                         RegisterInfo::Alias { bits, .. } => Ok(Box::new(std::iter::once(
                             bits.get_index(idx)
@@ -460,15 +513,12 @@ impl PyRegister {
                         ))),
                     },
                     _ => match self.0.as_ref() {
-                        RegisterInfo::Owning(owning_register_info) => {
+                        RegisterInfo::Owning(..) => {
                             let result: Vec<BitInfo> = sequence
                                 .iter()
                                 .map(|idx| -> PyResult<BitInfo> {
                                     if idx < self.size() {
-                                        Ok(BitInfo::new_owned(
-                                            owning_register_info.clone(),
-                                            idx as u32,
-                                        ))
+                                        Ok(self.0.get(idx).unwrap())
                                     } else {
                                         Err(CircuitError::new_err("register index out of range"))
                                     }
@@ -491,15 +541,12 @@ impl PyRegister {
                 }
             }
             SliceOrInt::List(vec) => match self.0.as_ref() {
-                RegisterInfo::Owning(owning_register_info) => {
+                RegisterInfo::Owning(..) => {
                     let result: Vec<BitInfo> = vec
                         .iter()
                         .map(|idx| -> PyResult<BitInfo> {
                             if idx < &self.size() {
-                                Ok(BitInfo::new_owned(
-                                    owning_register_info.clone(),
-                                    *idx as u32,
-                                ))
+                                Ok(self.0.get(*idx).unwrap())
                             } else {
                                 Err(CircuitError::new_err("register index out of range"))
                             }
@@ -542,10 +589,9 @@ impl PyRegister {
 
     fn iter<'py>(&'py self) -> Box<dyn ExactSizeIterator<Item = BitInfo> + 'py> {
         match self.0.as_ref() {
-            RegisterInfo::Owning(owning_register_info) => Box::new(
-                (0..self.size() as u32)
-                    .map(|bit| BitInfo::new_owned(owning_register_info.clone(), bit)),
-            ),
+            RegisterInfo::Owning(..) => {
+                Box::new((0..self.size() as u32).map(|bit| self.0.get(bit as usize).unwrap()))
+            }
             RegisterInfo::Alias { bits, .. } => Box::new(bits.iter().cloned()),
         }
     }
@@ -559,20 +605,19 @@ enum SliceOrInt<'py> {
 }
 
 macro_rules! create_py_register {
-    ($name:ident, $pybit:tt, $nativebit:tt, $pyname:literal, $pymodule:literal, $counter:ident, $extra:expr, $prefix:literal) => {
-        static $counter: AtomicU32 = AtomicU32::new(0);
+    ($name:ident, $nativereg:tt, $pybit:tt, $nativebit:tt, $pyname:literal, $pymodule:literal, $extra:expr, $prefix:literal) => {
 
         #[pyclass(
-                                                                            name = $pyname,
-                                                                            module = $pymodule,
-                                                                            frozen,
-                                                                            eq,
-                                                                            hash,
-                                                                            subclass,
-                                                                            extends = PyRegister,
-                                                                        )]
+            name = $pyname,
+            module = $pymodule,
+            frozen,
+            eq,
+            hash,
+            subclass,
+            extends = PyRegister,
+        )]
         #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-        pub struct $name(pub(crate) PyRegister);
+        pub struct $name(pub(crate) $nativereg);
 
         #[pymethods]
         impl $name {
@@ -583,24 +628,29 @@ macro_rules! create_py_register {
                 name: Option<String>,
                 bits: Option<Vec<$pybit>>,
             ) -> PyResult<(Self, PyRegister)> {
-                let name_parse = |name: Option<String>| -> String {
-                    if let Some(name) = name {
-                        name
-                    } else {
-                        format!(
-                            "{}{}",
-                            $prefix,
-                            $counter.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
-                        )
-                    }
+                if (size.is_none() && bits.is_none()) || (size.is_some() && bits.is_some()) {
+                    return Err(CircuitError::new_err(format!("Exactly one of the size or bits arguments can be provided. Provided size={:?} bits={:?}.", size, bits)));
+                }
+
+                let size: u32 = if let Some(bits) = bits.as_ref() {
+                    bits.len().try_into().map_err(|_| CircuitError::new_err(format!("The amount of bits provided exceeds the capacity of the register. Current size {}", bits.len())))?
+                } else {
+                    size.unwrap_or_default()
                 };
 
-                let reg = PyRegister::new(
-                    size,
-                    Some(name_parse(name)),
-                    bits.map(|bits| bits.into_iter().map(|bit| bit.0).collect()),
-                )?;
-                Ok((Self(reg.clone()), reg))
+                let register = if let Some(bits) = bits {
+                    let bits_set: IndexSet<BitInfo> = bits.into_iter().map(|bit| bit.inner_bit_info().clone()).collect();
+                    if bits_set.len() != size as usize {
+                        return Err(CircuitError::new_err(
+                            "Register bits must not be duplicated.",
+                        ));
+                    }
+                    $nativereg::new_alias(name, bits_set.into(), Some($extra))
+                } else {
+                    $nativereg::new_owning(name, size, Some($extra))
+                };
+                let inner_reg = register.data().clone();
+                Ok((Self(register), PyRegister(inner_reg)))
             }
 
             fn __getitem__<'py>(slf: PyRef<'py, Self>, key: SliceOrInt<'py>) -> PyResult<PyObject> {
@@ -616,14 +666,14 @@ macro_rules! create_py_register {
                                 .next()
                                 .map(|bit| $nativebit {
                                     info: bit,
-                                    extra: $extra,
+                                    reg: slf.0.data().is_owning().then_some(slf.0.clone())
                                 })
                                 .into_py_any(py),
                             _ => Ok(PyList::new(
                                 py,
                                 slf.as_super().getitem_inner(key)?.map(|bit| $nativebit {
                                     info: bit,
-                                    extra: $extra,
+                                    reg: slf.0.data().is_owning().then_some(slf.0.clone())
                                 }),
                             )?
                             .into_any()
@@ -634,7 +684,7 @@ macro_rules! create_py_register {
                         py,
                         slf.as_super().getitem_inner(key)?.map(|bit| $nativebit {
                             info: bit,
-                            extra: $extra,
+                            reg: slf.0.data().is_owning().then_some(slf.0.clone())
                         }),
                     )?
                     .into_any()
@@ -642,8 +692,8 @@ macro_rules! create_py_register {
                 }
             }
 
-            fn __contains__(&self, bit: &$pybit) -> bool {
-                self.0.__contains__(&bit.0)
+            fn __contains__(&self, bit: $pybit) -> bool {
+                self.0.contains(bit.inner_bit())
             }
 
             fn __getnewargs__(
@@ -656,7 +706,7 @@ macro_rules! create_py_register {
                     for bit in bits {
                         let bound_bit = $nativebit {
                             info: bit.0,
-                            extra: $extra,
+                            reg: slf.0.data().is_owning().then_some(slf.0.clone())
                         }
                         .into_pyobject(slf.py())?;
                         list.append(bound_bit)?;
@@ -670,12 +720,8 @@ macro_rules! create_py_register {
 
             fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Bound<'_, pyo3::types::PyIterator>> {
                 let list: Vec<$nativebit> = slf
-                    .as_super()
-                    .iter()
-                    .map(|bit| $nativebit {
-                        info: bit,
-                        extra: $extra,
-                    })
+                    .0
+                    .bits()
                     .collect();
                 list.into_pyobject(slf.py())?.try_iter()
             }
@@ -689,28 +735,74 @@ macro_rules! create_py_register {
                 $prefix
             }
         }
+
+        impl $name {
+            /// Provide a reference to the inner data of the register
+            pub(crate) fn data(&self) -> &Arc<RegisterInfo> {
+                self.0.data()
+            }
+        }
     };
 }
 
 create_py_register! {
     PyQuantumRegister,
+    QuantumRegister,
     PyQubit,
     ShareableQubit,
     "QuantumRegister",
     "qiskit.circuit.quantumregister",
-    QREG_COUNTER,
-    QubitExtraInfo::new(false),
+    BitExtraInfo::Qubit { is_ancilla: false },
     "q"
+}
+
+impl PyQuantumRegister {
+    fn new_ancilla(
+        size: Option<u32>,
+        name: Option<String>,
+        bits: Option<Vec<PyQubit>>,
+    ) -> PyResult<(Self, PyRegister)> {
+        if (size.is_none() && bits.is_none()) || (size.is_some() && bits.is_some()) {
+            return Err(CircuitError::new_err(format!("Exactly one of the size or bits arguments can be provided. Provided size={:?} bits={:?}.", size, bits)));
+        }
+
+        let size: u32 = if let Some(bits) = bits.as_ref() {
+            bits.len().try_into().map_err(|_| CircuitError::new_err(format!("The amount of bits provided exceeds the capacity of the register. Current size {}", bits.len())))?
+        } else {
+            size.unwrap_or_default()
+        };
+
+        let register = if let Some(bits) = bits {
+            let bits_set: IndexSet<BitInfo> = bits
+                .into_iter()
+                .map(|bit| bit.inner_bit_info().clone())
+                .collect();
+            if bits_set.len() != size as usize {
+                return Err(CircuitError::new_err(
+                    "Register bits must not be duplicated.",
+                ));
+            }
+            QuantumRegister::new_alias(
+                name,
+                bits_set.into(),
+                Some(BitExtraInfo::Qubit { is_ancilla: true }),
+            )
+        } else {
+            QuantumRegister::new_owning(name, size, Some(BitExtraInfo::Qubit { is_ancilla: true }))
+        };
+        let inner_reg = register.data().clone();
+        Ok((Self(register), PyRegister(inner_reg)))
+    }
 }
 
 create_py_register! {
     PyClassicalRegister,
+    ClassicalRegister,
     PyClbit,
     ShareableClbit,
     "ClassicalRegister",
     "qiskit.circuit.classicalregister",
-    CREG_COUNTER,
-    (),
+    BitExtraInfo::Clbit(),
     "c"
 }
 
@@ -747,7 +839,7 @@ impl PyAncillaRegister {
                 )
             }
         };
-        let (reg, base) = PyQuantumRegister::new(
+        let (reg, base) = PyQuantumRegister::new_ancilla(
             size,
             Some(name_parse(name)),
             bits.map(|bits| bits.into_iter().map(|bit| bit.0).collect()),
@@ -755,65 +847,6 @@ impl PyAncillaRegister {
         Ok(PyClassInitializer::from(base)
             .add_subclass(reg.clone())
             .add_subclass(Self(reg)))
-    }
-
-    fn __getitem__<'py>(slf: PyRef<'py, Self>, key: SliceOrInt<'py>) -> PyResult<PyObject> {
-        let py = slf.py();
-        match &key {
-            SliceOrInt::Slice(py_sequence_index) => {
-                let sequence = py_sequence_index
-                    .with_len(slf.as_super().as_super().size().try_into().unwrap())?;
-                match sequence {
-                    crate::slice::SequenceIndex::Int(_) => slf
-                        .as_super()
-                        .as_super()
-                        .getitem_inner(key)?
-                        .next()
-                        .map(|bit| ShareableQubit {
-                            info: bit,
-                            extra: QubitExtraInfo::new(true),
-                        })
-                        .into_py_any(py),
-                    _ => Ok(PyList::new(
-                        py,
-                        slf.as_super()
-                            .as_super()
-                            .getitem_inner(key)?
-                            .map(|bit| ShareableQubit {
-                                info: bit,
-                                extra: QubitExtraInfo::new(true),
-                            }),
-                    )?
-                    .into_any()
-                    .unbind()),
-                }
-            }
-            _ => Ok(PyList::new(
-                py,
-                slf.as_super()
-                    .as_super()
-                    .getitem_inner(key)?
-                    .map(|bit| ShareableQubit {
-                        info: bit,
-                        extra: QubitExtraInfo::new(true),
-                    }),
-            )?
-            .into_any()
-            .unbind()),
-        }
-    }
-
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Bound<'_, pyo3::types::PyIterator>> {
-        let list: Vec<ShareableQubit> = slf
-            .as_super()
-            .as_super()
-            .iter()
-            .map(|bit| ShareableQubit {
-                info: bit,
-                extra: QubitExtraInfo::new(true),
-            })
-            .collect();
-        list.into_pyobject(slf.py())?.try_iter()
     }
 
     fn __getnewargs__(
@@ -826,7 +859,7 @@ impl PyAncillaRegister {
             for bit in bits {
                 let bound_bit = ShareableQubit {
                     info: bit.0,
-                    extra: QubitExtraInfo::new(true),
+                    reg: Some(slf.0 .0.clone()),
                 }
                 .into_pyobject(slf.py())?;
                 list.append(bound_bit)?;
@@ -843,3 +876,10 @@ impl PyAncillaRegister {
         "a"
     }
 }
+
+// impl PyAncillaRegister {
+//     /// Provide a counted reference to the inner data of the register
+//     pub(crate) fn data(&self) -> &Arc<RegisterInfo> {
+//         self.0.data()
+//     }
+// }
