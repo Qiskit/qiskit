@@ -21,23 +21,28 @@ from test import QiskitTestCase  # pylint: disable=wrong-import-order
 class TestBackendConfiguration(QiskitTestCase):
     """Test the BackendStatus class."""
 
-    def setUp(self):
-        """Test backend status for one of the fake backends"""
-        super().setUp()
-        self.backend_status = BackendStatus("my_backend", "1.0", True, 2, "online")
-
     def test_repr(self):
         """Test representation methods of BackendStatus"""
-        self.assertIsInstance(self.backend_status.__repr__(), str)
-        repr_html = self.backend_status._repr_html_()
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="``qiskit.providers.models.backendstatus.BackendStatus`` is deprecated ",
+        ):
+            backend_status = BackendStatus("my_backend", "1.0", True, 2, "online")
+
+        self.assertIsInstance(backend_status.__repr__(), str)
+        repr_html = backend_status._repr_html_()
         self.assertIsInstance(repr_html, str)
-        self.assertIn(self.backend_status.backend_name, repr_html)
+        self.assertIn(backend_status.backend_name, repr_html)
 
     def test_fake_backend_status(self):
         """Test backend status for one of the fake backends"""
         with self.assertWarns(DeprecationWarning):
             fake_backend = Fake5QV1()
-        backend_status = fake_backend.status()
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="``qiskit.providers.models.backendstatus.BackendStatus`` is deprecated ",
+        ):
+            backend_status = fake_backend.status()
         self.assertIsInstance(backend_status, BackendStatus)
 
 

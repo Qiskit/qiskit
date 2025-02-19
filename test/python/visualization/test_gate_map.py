@@ -56,7 +56,11 @@ class TestGateMap(QiskitVisualizationTestCase):
         """tests plotting of gate map of a device (20 qubit, 7 qubit, and 5 qubit)"""
         n = backend.configuration().n_qubits
         img_ref = path_to_diagram_reference(str(n) + "bit_quantum_computer.png")
-        fig = plot_gate_map(backend)
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="`plot_gate_map` will stop supporting inputs of type `BackendV1`",
+        ):
+            fig = plot_gate_map(backend)
         with BytesIO() as img_buffer:
             fig.savefig(img_buffer, format="png")
             img_buffer.seek(0)
@@ -78,7 +82,11 @@ class TestGateMap(QiskitVisualizationTestCase):
         circuit._layout.initial_layout.add_register(qr)
         n = backend.configuration().n_qubits
         img_ref = path_to_diagram_reference(str(n) + "_plot_circuit_layout.png")
-        fig = plot_circuit_layout(circuit, backend)
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="`plot_circuit_layout` will stop supporting inputs of type `BackendV1`",
+        ):
+            fig = plot_circuit_layout(circuit, backend)
         with BytesIO() as img_buffer:
             fig.savefig(img_buffer, format="png")
             img_buffer.seek(0)

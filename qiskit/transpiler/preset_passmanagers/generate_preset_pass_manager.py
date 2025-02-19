@@ -351,6 +351,12 @@ def generate_preset_pass_manager(
                     message=".*``inst_map`` is deprecated as of Qiskit 1.3.*",
                     module="qiskit",
                 )
+                warnings.filterwarnings(
+                    "ignore",
+                    category=DeprecationWarning,
+                    message=".*``qiskit.providers.exceptions.BackendPropertyError``",
+                    module="qiskit",
+                )
                 # Build target from constraints.
                 target = Target.from_configuration(
                     basis_gates=basis_gates,

@@ -42,8 +42,12 @@ class BackendpropertiesTestCase(QiskitTestCase):
         )
         self.assertEqual(self.properties.gate_property("cx"), self.properties._gates["cx"])
 
-        with self.assertRaises(BackendPropertyError):
-            self.properties.gate_property(self.ref_gate, None, "gate_error")
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="``qiskit.providers.exceptions.BackendPropertyError`` is deprecated ",
+        ):
+            with self.assertRaises(BackendPropertyError):
+                self.properties.gate_property(self.ref_gate, None, "gate_error")
 
     def test_gate_error(self):
         """Test for getting the gate errors."""
@@ -64,9 +68,12 @@ class BackendpropertiesTestCase(QiskitTestCase):
             self.properties.gate_error("cx", [0, 1]),
             self.properties._gates["cx"][(0, 1)]["gate_error"][0],
         )
-
-        with self.assertRaises(BackendPropertyError):
-            self.properties.gate_error("cx", 0)
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="``qiskit.providers.exceptions.BackendPropertyError`` is deprecated ",
+        ):
+            with self.assertRaises(BackendPropertyError):
+                self.properties.gate_error("cx", 0)
 
     def test_gate_length(self):
         """Test for getting the gate duration."""
@@ -87,8 +94,12 @@ class BackendpropertiesTestCase(QiskitTestCase):
         )
         self.assertEqual(self.properties.qubit_property(0), self.properties._qubits[0])
 
-        with self.assertRaises(BackendPropertyError):
-            self.properties.qubit_property("T1")
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="``qiskit.providers.exceptions.BackendPropertyError`` is deprecated ",
+        ):
+            with self.assertRaises(BackendPropertyError):
+                self.properties.qubit_property("T1")
 
     def test_t1(self):
         """Test for getting the t1 of given qubit."""
@@ -121,8 +132,12 @@ class BackendpropertiesTestCase(QiskitTestCase):
         )
         self.assertEqual(self.properties._apply_prefix(71.9500421005539, "ms"), 0.0719500421005539)
 
-        with self.assertRaises(BackendPropertyError):
-            self.properties._apply_prefix(71.9500421005539, "ws")
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="``qiskit.providers.exceptions.BackendPropertyError`` is deprecated ",
+        ):
+            with self.assertRaises(BackendPropertyError):
+                self.properties._apply_prefix(71.9500421005539, "ws")
 
     def test_operational(self):
         """Test operation status of a given qubit."""

@@ -123,11 +123,26 @@ class BackendSamplerV2(BaseSamplerV2):
         options: dict | None = None,
     ):
         """
+        .. deprecated:: 1.4
+            The method ``BackendSamplerV2.__init__`` will stop supporting inputs of type
+            :class:`.BackendV1` in the `backend` parameter in a future release no
+            earlier than 2.0. :class:`.BackendV1` is deprecated and implementations should
+            move to :class:`.BackendV2`.
+
         Args:
             backend: The backend to run the primitive on.
             options: The options to control the default shots (``default_shots``) and
                 the random seed for the simulator (``seed_simulator``).
         """
+        if not isinstance(backend, BackendV2):
+            warnings.warn(
+                "The method `BackendSamplerV2.__init__` will stop supporting inputs of "
+                f"type `BackendV1` ( {backend} ) in the `backend` parameter in a future "
+                "release no earlier than 2.0. `BackendV1` is deprecated and implementations "
+                "should move to `BackendV2`.",
+                category=DeprecationWarning,
+                stacklevel=2,
+            )
         self._backend = backend
         self._options = Options(**options) if options else Options()
 
