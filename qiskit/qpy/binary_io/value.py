@@ -439,9 +439,9 @@ def _write_duration(file_obj, duration: Duration):
         case Duration.ms(ms):
             file_obj.write(type_keys.CircuitDuration.MS)
             file_obj.write(struct.pack(formats.DURATION_MS_PACK, *formats.DURATION_MS(ms)))
-        case Duration.s(s):
+        case Duration.s(sec):
             file_obj.write(type_keys.CircuitDuration.S)
-            file_obj.write(struct.pack(formats.DURATION_S_PACK, *formats.DURATION_S(s)))
+            file_obj.write(struct.pack(formats.DURATION_S_PACK, *formats.DURATION_S(sec)))
         case _:
             raise exceptions.QpyError(f"unhandled Duration object '{duration};")
 

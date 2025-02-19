@@ -1285,6 +1285,7 @@ class _ExprBuilder(expr.ExprVisitor[ast.Expression]):
     def visit_var(self, node, /):
         return self.lookup(node) if node.standalone else self.lookup(node.var)
 
+    # pylint: disable=R0911
     def visit_value(self, node, /):
         if node.type.kind is types.Bool:
             return ast.BooleanLiteral(node.value)
@@ -1302,8 +1303,8 @@ class _ExprBuilder(expr.ExprVisitor[ast.Expression]):
                     return ast.DurationLiteral(us, ast.DurationUnit.MICROSECOND)
                 case Duration.ms(ms):
                     return ast.DurationLiteral(ms, ast.DurationUnit.MILLISECOND)
-                case Duration.s(s):
-                    return ast.DurationLiteral(s, ast.DurationUnit.SECOND)
+                case Duration.s(sec):
+                    return ast.DurationLiteral(sec, ast.DurationUnit.SECOND)
         raise RuntimeError(f"unhandled Value type '{node}'")
 
     def visit_cast(self, node, /):

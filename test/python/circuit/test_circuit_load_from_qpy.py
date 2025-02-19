@@ -22,7 +22,7 @@ import ddt
 import numpy as np
 
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, pulse
-from qiskit.circuit import CASE_DEFAULT, IfElseOp, WhileLoopOp, SwitchCaseOp, Duration
+from qiskit.circuit import CASE_DEFAULT, IfElseOp, WhileLoopOp, SwitchCaseOp
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.classicalregister import Clbit
 from qiskit.circuit.quantumregister import Qubit
