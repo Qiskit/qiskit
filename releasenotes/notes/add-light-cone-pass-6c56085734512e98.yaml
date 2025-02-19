@@ -23,7 +23,6 @@ features_transpiler:
           qc.h(2)
           qc.measure(0,0)
           qc.measure(0,0)
-          new_circuit = pm.run(qc)
 
           qc.draw("mpl")
 
@@ -48,6 +47,7 @@ features_transpiler:
             qc.h(2)
             qc.measure(0,0)
             qc.measure(0,0)
-            new_circuit = pm.run(qc)
 
+            pm = PassManager([LightCone()])
+            new_circuit = pm.run(qc)
             new_circuit.draw("mpl")
