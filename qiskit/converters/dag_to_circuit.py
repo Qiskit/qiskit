@@ -75,6 +75,4 @@ def dag_to_circuit(dag, copy_operations=True):
 
     circuit._data = circuit_data
 
-    circuit._duration = dag.duration
-    circuit._unit = dag.unit
     return circuit

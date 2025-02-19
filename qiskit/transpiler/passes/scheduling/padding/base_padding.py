@@ -133,7 +133,6 @@ class BasePadding(TransformationPass):
 
         new_dag.name = dag.name
         new_dag.metadata = dag.metadata
-        new_dag.unit = self.property_set["time_unit"]
         new_dag._calibrations_prop = dag._calibrations_prop
         new_dag.global_phase = dag.global_phase
 
@@ -195,8 +194,6 @@ class BasePadding(TransformationPass):
                     next_node=node,
                     prev_node=prev_node,
                 )
-
-        new_dag.duration = circuit_duration
 
         return new_dag
 

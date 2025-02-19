@@ -1443,22 +1443,6 @@ class TestTranspile(QiskitTestCase):
         )
         self.assertEqual(set(transpiled_circ.count_ops().keys()), {"rxt"})
 
-    def test_inst_durations_from_calibrations(self):
-        """Test that circuit calibrations can be used instead of explicitly
-        supplying inst_durations.
-        """
-        qc = QuantumCircuit(2)
-        qc.append(Gate("custom", 1, []), [0])
-
-        with self.assertWarns(DeprecationWarning):
-            with pulse.build() as cal:
-                pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), pulse.DriveChannel(0))
-            qc.add_calibration("custom", [0], cal)
-
-        out = transpile(qc, scheduling_method="alap", seed_transpiler=42)
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(out.duration, cal.duration)
-
     @data(0, 1, 2, 3)
     def test_circuit_with_delay(self, optimization_level):
         """Verify a circuit with delay can transpile to a scheduled circuit."""
@@ -1482,7 +1466,15 @@ class TestTranspile(QiskitTestCase):
                 seed_transpiler=42,
             )
 
-        self.assertEqual(out.duration, 1200)
+        target = Target.from_configuration(
+            basis_gates=["h", "cx"],
+            coupling_map=CouplingMap.from_line(2, bidirectional=False),
+            instruction_durations=InstructionDurations(
+                [("h", 0, 200), ("cx", [0, 1], 700)], dt=1e-9
+            ),
+            dt=1e-9,
+        )
+        self.assertEqual(out.estimate_duration(target, "dt"), 1200)
 
     def test_delay_converts_to_dt(self):
         """Test that a delay instruction is converted to units of dt given a backend."""
@@ -1540,7 +1532,9 @@ class TestTranspile(QiskitTestCase):
                 instruction_durations=durations,
                 layout_method="trivial",
             )
-        self.assertEqual(scheduled.duration, 1500)
+        result_target = copy.deepcopy(backend_v2.target)
+        result_target["cx"][(0, 1)].duration = 1000 * durations.dt
+        self.assertEqual(scheduled.estimate_duration(result_target, "dt"), 1500)
 
         with self.assertWarnsRegex(
             DeprecationWarning,
@@ -1553,7 +1547,7 @@ class TestTranspile(QiskitTestCase):
                 instruction_durations=durations,
                 layout_method="trivial",
             )
-        self.assertEqual(scheduled.duration, 1500)
+        self.assertEqual(scheduled.estimate_duration(result_target, "dt"), 1500)
 
     def test_scheduling_instruction_constraints(self):
         """Test that scheduling-related loose transpile constraints work with target."""
@@ -1577,7 +1571,7 @@ class TestTranspile(QiskitTestCase):
             scheduling_method="alap",
             layout_method="trivial",
         )
-        self.assertEqual(scheduled.duration, 9010)
+        self.assertEqual(scheduled.estimate_duration(target, "dt"), 9010)
 
     def test_scheduling_dt_constraints(self):
         """Test that scheduling-related loose transpile constraints
@@ -1600,11 +1594,15 @@ class TestTranspile(QiskitTestCase):
             scheduled = transpile(
                 qc, backend=backend_v1, scheduling_method="asap", dt=original_dt / 2
             )
-        self.assertEqual(scheduled.duration, original_duration * 2)
+        self.assertEqual(
+            scheduled.estimate_duration(backend_v2.target, "dt"), original_duration * 2
+        )
 
         # halve dt in sec = double duration in dt
         scheduled = transpile(qc, backend=backend_v2, scheduling_method="asap", dt=original_dt / 2)
-        self.assertEqual(scheduled.duration, original_duration * 2)
+        self.assertEqual(
+            scheduled.estimate_duration(backend_v2.target, "dt"), original_duration * 2
+        )
 
     @data(1, 2, 3)
     def test_no_infinite_loop(self, optimization_level):
