@@ -52,10 +52,10 @@ pub(crate) fn compute_estimated_duration(dag: &DAGCircuit, target: &Target) -> P
                             if unit == "dt" {
                                 if let Some(dt) = dt {
                                     match dur {
-                                    Param::Float(val) => Ok(val / dt),
+                                    Param::Float(val) => Ok(val * dt),
                                     Param::Obj(val) => {
                                         let dur_float: f64 = val.extract(py)?;
-                                        Ok(dur_float / dt)
+                                        Ok(dur_float * dt)
                                     },
                                     Param::ParameterExpression(_) => Err(QiskitError::new_err(
                                         "Circuit contains parameterized delays, can't compute a duration estimate with this circuit"
