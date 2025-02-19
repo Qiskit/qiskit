@@ -956,9 +956,6 @@ class QASM3Builder:
             ast.ClassicalDeclaration(
                 _build_ast_type(var.type),
                 self.symbols.register_variable(var.name, var, allow_rename=True),
-                # TODO: we might need to use the `initializer` kwarg here if QASM doesn't
-                #   support declaring a const without an initializer and then assigning it
-                #   later!
             )
             for var in self.scope.circuit.iter_declared_vars()
         ]
