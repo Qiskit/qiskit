@@ -1257,7 +1257,7 @@ def write_circuit(
         file_obj.write(metadata_raw)
         # Write header payload
         file_obj.write(registers_raw)
-        standalone_var_indices = value.write_standalone_vars(file_obj, circuit)
+        standalone_var_indices = value.write_standalone_vars(file_obj, circuit, version)
     else:
         if circuit.num_vars:
             raise exceptions.UnsupportedFeatureForVersion(
@@ -1425,7 +1425,7 @@ def read_circuit(file_obj, version, metadata_deserializer=None, use_symengine=Fa
             "q": [Qubit() for _ in out_bits["q"]],
             "c": [Clbit() for _ in out_bits["c"]],
         }
-    var_segments, standalone_var_indices = value.read_standalone_vars(file_obj, num_vars)
+    var_segments, standalone_var_indices = value.read_standalone_vars(file_obj, num_vars, version)
     circ = QuantumCircuit(
         out_bits["q"],
         out_bits["c"],
