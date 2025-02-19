@@ -115,9 +115,6 @@ Scheduling
    ConstrainedReschedule
    InstructionDurationCheck
    SetIOLatency
-   ALAPSchedule
-   ASAPSchedule
-   DynamicalDecoupling
 
 Circuit Analysis
 ================
@@ -271,9 +268,6 @@ from .scheduling import PadDelay
 from .scheduling import ConstrainedReschedule
 from .scheduling import InstructionDurationCheck
 from .scheduling import SetIOLatency
-from .scheduling import ALAPSchedule
-from .scheduling import ASAPSchedule
-from .scheduling import DynamicalDecoupling
 
 # additional utility passes
 from .utils import CheckMap
