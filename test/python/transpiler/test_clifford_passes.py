@@ -668,29 +668,6 @@ class TestCliffordPasses(QiskitTestCase):
         self.assertEqual(Operator(qc), Operator(qct))
         self.assertEqual(qct.size(), 3)
 
-    def test_do_not_merge_conditional_gates(self):
-        """Test that collecting Cliffords works properly when there the circuit
-        contains conditional gates."""
-
-        qc = QuantumCircuit(2, 1)
-        qc.cx(1, 0)
-        qc.x(0)
-        qc.x(1)
-        with self.assertWarns(DeprecationWarning):
-            qc.x(1).c_if(0, 1)
-        qc.x(0)
-        qc.x(1)
-        qc.cx(0, 1)
-
-        qct = PassManager(CollectCliffords()).run(qc)
-
-        # The conditional gate prevents from combining all gates into a single clifford
-        self.assertEqual(qct.count_ops()["clifford"], 2)
-
-        # Make sure that the condition on the middle gate is not lost
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsNotNone(qct.data[1].operation.condition)
-
     def test_collect_with_cliffords(self):
         """Make sure that collecting Clifford gates and replacing them by Clifford
         works correctly when the gates include other cliffords."""

@@ -59,9 +59,10 @@ class PadDynamicalDecoupling(BasePadding):
         import numpy as np
         from qiskit.circuit import QuantumCircuit
         from qiskit.circuit.library import XGate
-        from qiskit.transpiler import PassManager, InstructionDurations
+        from qiskit.transpiler import PassManager, InstructionDurations, Target, CouplingMap
         from qiskit.transpiler.passes import ALAPScheduleAnalysis, PadDynamicalDecoupling
         from qiskit.visualization import timeline_drawer
+
         circ = QuantumCircuit(4)
         circ.h(0)
         circ.cx(0, 1)
@@ -71,7 +72,15 @@ class PadDynamicalDecoupling(BasePadding):
         durations = InstructionDurations(
             [("h", 0, 50), ("cx", [0, 1], 700), ("reset", None, 10),
              ("cx", [1, 2], 200), ("cx", [2, 3], 300),
-             ("x", None, 50), ("measure", None, 1000)]
+             ("x", None, 50), ("measure", None, 1000)],
+            dt=1e-7
+        )
+        target = Target.from_configuration(
+            ["h", "cx", "reset", "x", "measure"],
+            num_qubits=4,
+            coupling_map=CouplingMap.from_line(4, bidirectional=False),
+            instruction_durations=durations,
+            dt=1e-7,
         )
 
         # balanced X-X sequence on all qubits
@@ -79,7 +88,7 @@ class PadDynamicalDecoupling(BasePadding):
         pm = PassManager([ALAPScheduleAnalysis(durations),
                           PadDynamicalDecoupling(durations, dd_sequence)])
         circ_dd = pm.run(circ)
-        timeline_drawer(circ_dd)
+        timeline_drawer(circ_dd, target=target)
 
         # Uhrig sequence on qubit 0
         n = 8
@@ -97,7 +106,7 @@ class PadDynamicalDecoupling(BasePadding):
             ]
         )
         circ_dd = pm.run(circ)
-        timeline_drawer(circ_dd)
+        timeline_drawer(circ_dd, target=target)
 
     .. note::
 
@@ -158,7 +167,7 @@ class PadDynamicalDecoupling(BasePadding):
                 non-multiple of the alignment constraint value is found.
             TypeError: If ``dd_sequence`` is not specified
         """
-        super().__init__(target=target)
+        super().__init__(target=target, durations=durations)
         self._durations = durations
         if dd_sequence is None:
             raise TypeError("required argument 'dd_sequence' is not specified")
@@ -172,14 +181,19 @@ class PadDynamicalDecoupling(BasePadding):
         self._no_dd_qubits: set[int] = set()
         self._dd_sequence_lengths: dict[Qubit, list[int]] = {}
         self._sequence_phase = 0
+        self._unit = "s"
         if target is not None:
             self._durations = target.durations()
             self._alignment = target.pulse_alignment
+            if target.dt is not None:
+                self._unit = "dt"
             for gate in dd_sequence:
                 if gate.name not in target.operation_names:
                     raise TranspilerError(
                         f"{gate.name} in dd_sequence is not supported in the target"
                     )
+        if self._unit == "s" and durations is not None and durations.dt is not None:
+            self._unit = "dt"
 
     def _update_inst_durations(self, dag):
         """Update instruction durations with circuit information. If the dag contains gate
@@ -348,14 +362,14 @@ class PadDynamicalDecoupling(BasePadding):
 
         if not self.__is_dd_qubit(dag.qubits.index(qubit)):
             # Target physical qubit is not the target of this DD sequence.
-            self._apply_scheduled_op(dag, t_start, Delay(time_interval, dag.unit), qubit)
+            self._apply_scheduled_op(dag, t_start, Delay(time_interval, self._unit), qubit)
             return
 
         if self._skip_reset_qubits and (
             isinstance(prev_node, DAGInNode) or isinstance(prev_node.op, Reset)
         ):
             # Previous node is the start edge or reset, i.e. qubit is ground state.
-            self._apply_scheduled_op(dag, t_start, Delay(time_interval, dag.unit), qubit)
+            self._apply_scheduled_op(dag, t_start, Delay(time_interval, self._unit), qubit)
             return
 
         slack = time_interval - np.sum(self._dd_sequence_lengths[qubit])
@@ -363,7 +377,7 @@ class PadDynamicalDecoupling(BasePadding):
 
         if slack <= 0:
             # Interval too short.
-            self._apply_scheduled_op(dag, t_start, Delay(time_interval, dag.unit), qubit)
+            self._apply_scheduled_op(dag, t_start, Delay(time_interval, self._unit), qubit)
             return
 
         if len(self._dd_sequence) == 1:
@@ -382,14 +396,14 @@ class PadDynamicalDecoupling(BasePadding):
                 op = prev_node.op
                 theta_l, phi_l, lam_l = op.params
                 op.params = Optimize1qGates.compose_u3(theta, phi, lam, theta_l, phi_l, lam_l)
-                new_prev_node = dag.substitute_node(prev_node, op, propagate_condition=False)
+                new_prev_node = dag.substitute_node(prev_node, op)
                 start_time = self.property_set["node_start_time"].pop(prev_node)
                 if start_time is not None:
                     self.property_set["node_start_time"][new_prev_node] = start_time
                 sequence_gphase += phase
             else:
                 # Don't do anything if there's no single-qubit gate to absorb the inverse
-                self._apply_scheduled_op(dag, t_start, Delay(time_interval, dag.unit), qubit)
+                self._apply_scheduled_op(dag, t_start, Delay(time_interval, self._unit), qubit)
                 return
 
         def _constrained_length(values):
@@ -425,7 +439,7 @@ class PadDynamicalDecoupling(BasePadding):
             if dd_ind < len(taus):
                 tau = taus[dd_ind]
                 if tau > 0:
-                    self._apply_scheduled_op(dag, idle_after, Delay(tau, dag.unit), qubit)
+                    self._apply_scheduled_op(dag, idle_after, Delay(tau, self._unit), qubit)
                     idle_after += tau
             if dd_ind < len(self._dd_sequence):
                 gate = self._dd_sequence[dd_ind]

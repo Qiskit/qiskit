@@ -32,7 +32,7 @@ use pyo3::{
     IntoPyObjectExt,
 };
 
-use qiskit_circuit::circuit_instruction::{ExtraInstructionAttributes, OperationFromPython};
+use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::operations::{Operation, OperationRef, Param};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use smallvec::SmallVec;
@@ -775,17 +775,15 @@ impl Target {
             let out_inst = match inst {
                 TargetOperation::Normal(op) => match op.operation.view() {
                     OperationRef::StandardGate(standard) => standard
-                        .create_py_op(py, Some(&op.params), &ExtraInstructionAttributes::default())?
+                        .create_py_op(py, Some(&op.params), None)?
                         .into_any(),
                     OperationRef::StandardInstruction(standard) => standard
-                        .create_py_op(py, Some(&op.params), &ExtraInstructionAttributes::default())?
+                        .create_py_op(py, Some(&op.params), None)?
                         .into_any(),
                     OperationRef::Gate(gate) => gate.gate.clone_ref(py),
                     OperationRef::Instruction(instruction) => instruction.instruction.clone_ref(py),
                     OperationRef::Operation(operation) => operation.operation.clone_ref(py),
-                    OperationRef::Unitary(unitary) => unitary
-                        .create_py_op(py, &ExtraInstructionAttributes::default())?
-                        .into_any(),
+                    OperationRef::Unitary(unitary) => unitary.create_py_op(py, None)?.into_any(),
                 },
                 TargetOperation::Variadic(op_cls) => op_cls.clone_ref(py),
             };

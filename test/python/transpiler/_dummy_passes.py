@@ -122,10 +122,11 @@ class PassF_reduce_dag_property(DummyTP):
 
     def run(self, dag):
         super().run(dag)
-        if dag.duration is None:
-            dag.duration = 8
-        dag.duration = round(dag.duration * 0.8)
-        logging.getLogger(logger).info("dag property = %i", dag.duration)
+        if not dag.global_phase:
+            dag.global_phase = 8
+        else:
+            dag.global_phase = round(dag.global_phase * 0.8)
+        logging.getLogger(logger).info("dag property = %i", dag.global_phase)
         return dag
 
 
@@ -138,10 +139,10 @@ class PassG_calculates_dag_property(DummyAP):
 
     def run(self, dag):
         super().run(dag)
-        if dag.duration is not None:
-            self.property_set["property"] = dag.duration
-        else:
+        if not dag.global_phase:
             self.property_set["property"] = 8
+        else:
+            self.property_set["property"] = dag.global_phase
         logging.getLogger(logger).info(
             "set property as %s (from dag.property)", self.property_set["property"]
         )

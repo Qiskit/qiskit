@@ -384,16 +384,6 @@ class TestCliffordGates(QiskitTestCase):
         value = Clifford(circ)
         self.assertEqual(value, target)
 
-    def test_from_circuit_with_conditional_gate(self):
-        """Test initialization from circuit with conditional gate."""
-        qc = QuantumCircuit(2, 1)
-        with self.assertWarns(DeprecationWarning):
-            qc.h(0).c_if(0, 0)
-        qc.cx(0, 1)
-
-        with self.assertRaises(QiskitError):
-            Clifford(qc)
-
     def test_from_circuit_with_other_clifford(self):
         """Test initialization from circuit containing another clifford."""
         cliff = random_clifford(1, seed=777)

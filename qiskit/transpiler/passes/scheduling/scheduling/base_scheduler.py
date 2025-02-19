@@ -56,15 +56,20 @@ class BaseScheduler(AnalysisPass):
             )
         self.property_set["node_start_time"] = {}
 
-    @staticmethod
     def _get_node_duration(
+        self,
         node: DAGOpNode,
         dag: DAGCircuit,
     ) -> int:
         """A helper method to get duration from node or calibration."""
         indices = [dag.find_bit(qarg).index for qarg in node.qargs]
 
-        if dag._has_calibration_for(node):
+        if node.name == "delay":
+            if self.durations.dt is None:
+                duration = self.durations._convert_unit(node.op.duration, node.op.unit, "s")
+            else:
+                duration = self.durations._convert_unit(node.op.duration, node.op.unit, "dt")
+        elif dag._has_calibration_for(node):
             # If node has calibration, this value should be the highest priority
             cal_key = tuple(indices), tuple(float(p) for p in node.op.params)
             with warnings.catch_warnings():
@@ -72,13 +77,14 @@ class BaseScheduler(AnalysisPass):
                 # `schedule.duration` emits pulse deprecation warnings which we don't want
                 # to see here
                 duration = dag._calibrations_prop[node.op.name][cal_key].duration
-
-            # Note that node duration is updated (but this is analysis pass)
-            op = node.op.to_mutable()
-            op.duration = duration
-            dag.substitute_node(node, op, propagate_condition=False)
         else:
-            duration = node.duration
+            try:
+                if self.durations.dt is None:
+                    duration = self.durations.get(node.name, indices, unit="s")
+                else:
+                    duration = self.durations.get(node.name, indices)
+            except TranspilerError:
+                duration = None
 
         if isinstance(duration, ParameterExpression):
             raise TranspilerError(

@@ -205,10 +205,12 @@ class InstructionPlaceholder(Instruction, abc.ABC):
         with qc.for_loop(range(5)):
             qc.h(0)
             qc.measure(0, 0)
-            qc.break_loop().c_if(0, 0)
+            with qc.if_test((0, 0)):
+                qc.break_loop()
 
-    since ``qc.break_loop()`` needs to return a (mostly) functional
-    :obj:`~qiskit.circuit.Instruction` in order for :meth:`.InstructionSet.c_if` to work correctly.
+    ``qc.break_loop()`` needed to return a (mostly) functional
+    :obj:`~qiskit.circuit.Instruction` in order for the historical ``.InstructionSet.c_if``
+    to work correctly.
 
     When appending a placeholder instruction into a circuit scope, you should create the
     placeholder, and then ask it what resources it should be considered as using from the start by
@@ -241,9 +243,6 @@ class InstructionPlaceholder(Instruction, abc.ABC):
             The caller of this function is responsible for ensuring that the inputs to this function
             are non-strict supersets of the bits returned by :meth:`placeholder_resources`.
 
-        Any condition added in by a call to :obj:`.Instruction.c_if` will be propagated through, but
-        set properties like ``duration`` will not; it doesn't make sense for control-flow operations
-        to have pulse scheduling on them.
 
         Args:
             qubits: The qubits the created instruction should be defined across.
@@ -271,28 +270,6 @@ class InstructionPlaceholder(Instruction, abc.ABC):
             certainly use.
         """
         raise NotImplementedError
-
-    def _copy_mutable_properties(self, instruction: Instruction) -> Instruction:
-        """Copy mutable properties from ourselves onto a non-placeholder instruction.
-
-        The mutable properties are expected to be things like ``condition``, added onto a
-        placeholder by the :meth:`c_if` method.  This mutates ``instruction``, and returns the same
-        instance that was passed.  This is mostly intended to make writing concrete versions of
-        :meth:`.concrete_instruction` easy.
-
-        The complete list of mutations is:
-
-        * ``condition``, added by :meth:`c_if`.
-
-        Args:
-            instruction: the concrete instruction instance to be mutated.
-
-        Returns:
-            The same instruction instance that was passed, but mutated to propagate the tracked
-            changes to this class.
-        """
-        instruction._condition = self._condition
-        return instruction
 
     # Provide some better error messages, just in case something goes wrong during development and
     # the placeholder type leaks out to somewhere visible.
