@@ -60,6 +60,7 @@ from .basic_provider_tools import (
 )
 from .basic_provider_tools import einsum_vecmul_index
 from .exceptions import BasicProviderError
+from ...utils import deprecate_func
 
 logger = logging.getLogger(__name__)
 

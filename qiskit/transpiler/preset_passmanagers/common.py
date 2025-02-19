@@ -52,6 +52,7 @@ from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
 from qiskit.transpiler.passes.layout.vf2_post_layout import VF2PostLayoutStopReason
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
+from qiskit.utils import deprecate_arg
 from qiskit.utils.deprecate_pulse import deprecate_pulse_arg
 
 
@@ -409,6 +410,14 @@ def generate_pre_op_passmanager(target=None, coupling_map=None, remove_reset_in_
     return pre_opt
 
 
+@deprecate_arg(
+    "backend_props",
+    since="1.3",
+    removal_timeline="in the 2.0 release",
+    additional_msg="Because `qiskit.providers.models.BackendProperties` is deprecated, it wont be"
+    "accepted anymore as a parameter.",
+    predicate=lambda x: x is not None,
+)
 def generate_translation_passmanager(
     target,
     basis_gates=None,
