@@ -53,9 +53,8 @@ class LayoutTestCase(QiskitTestCase):
 
         def run(dag, wire_map):
             for gate in dag.two_qubit_ops():
-                with self.assertWarns(DeprecationWarning):
-                    if dag.has_calibration_for(gate) or isinstance(gate.op, ControlFlowOp):
-                        continue
+                if isinstance(gate.op, ControlFlowOp):
+                    continue
                 physical_q0 = wire_map[gate.qargs[0]]
                 physical_q1 = wire_map[gate.qargs[1]]
 

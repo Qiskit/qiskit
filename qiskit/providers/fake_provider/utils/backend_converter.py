@@ -44,7 +44,7 @@ def convert_to_target(conf_dict: dict, props_dict: dict = None, defs_dict: dict 
     if props_dict:
         qubit_props = qubit_props_from_props(props_dict)
     target = Target(qubit_properties=qubit_props, concurrent_measurements=conf_dict.get("meas_map"))
-    # Parse from properties if it exsits
+    # Parse from properties if it exists
     if props_dict is not None:
         # Parse instructions
         gates = {}

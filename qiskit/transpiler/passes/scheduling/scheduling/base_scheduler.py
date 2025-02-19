@@ -61,24 +61,10 @@ class BaseScheduler(AnalysisPass):
         node: DAGOpNode,
         dag: DAGCircuit,
     ) -> int:
-        """A helper method to get duration from node or calibration."""
+        """A helper method to get duration from node"""
         indices = [dag.find_bit(qarg).index for qarg in node.qargs]
 
-        if dag._has_calibration_for(node):
-            # If node has calibration, this value should be the highest priority
-            cal_key = tuple(indices), tuple(float(p) for p in node.op.params)
-            with warnings.catch_warnings():
-                warnings.simplefilter(action="ignore", category=DeprecationWarning)
-                # `schedule.duration` emits pulse deprecation warnings which we don't want
-                # to see here
-                duration = dag._calibrations_prop[node.op.name][cal_key].duration
-
-            # Note that node duration is updated (but this is analysis pass)
-            op = node.op.to_mutable()
-            op.duration = duration
-            dag.substitute_node(node, op, propagate_condition=False)
-        else:
-            duration = node.duration
+        duration = node.duration
 
         if isinstance(duration, ParameterExpression):
             raise TranspilerError(

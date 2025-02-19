@@ -198,7 +198,7 @@ fn run(
     Ok(out_dag)
 }
 
-/// Method that extracts all non-calibrated gate instances identifiers from a DAGCircuit.
+/// Method that extracts all gate instances identifiers from a DAGCircuit.
 fn extract_basis(
     py: Python,
     circuit: &DAGCircuit,
@@ -212,10 +212,8 @@ fn extract_basis(
         basis: &mut HashSet<GateIdentifier>,
         min_qubits: usize,
     ) -> PyResult<()> {
-        for (node, operation) in circuit.op_nodes(true) {
-            if !circuit.has_calibration_for_index(py, node)?
-                && circuit.get_qargs(operation.qubits).len() >= min_qubits
-            {
+        for (_node, operation) in circuit.op_nodes(true) {
+            if circuit.get_qargs(operation.qubits).len() >= min_qubits {
                 basis.insert((operation.op.name().to_string(), operation.op.num_qubits()));
             }
             if operation.op.control_flow() {
@@ -244,11 +242,7 @@ fn extract_basis(
             .borrow();
         for (index, inst) in circuit_data.iter().enumerate() {
             let instruction_object = circuit.get_item(index)?;
-            let has_calibration = circuit
-                .call_method1(intern!(py, "_has_calibration_for"), (&instruction_object,))?;
-            if !has_calibration.is_truthy()?
-                && circuit_data.get_qargs(inst.qubits).len() >= min_qubits
-            {
+            if circuit_data.get_qargs(inst.qubits).len() >= min_qubits {
                 basis.insert((inst.op.name().to_string(), inst.op.num_qubits()));
             }
             if inst.op.control_flow() {
@@ -267,7 +261,7 @@ fn extract_basis(
 }
 
 /// Method that extracts a mapping of all the qargs in the local_source basis
-/// obtained from the [Target], to all non-calibrated gate instances identifiers from a DAGCircuit.
+/// obtained from the [Target], to all gate instances identifiers from a DAGCircuit.
 /// When dealing with `ControlFlowOp` instances the function will perform a recursion call
 /// to a variant design to handle instances of `QuantumCircuit`.
 fn extract_basis_target(
@@ -278,9 +272,9 @@ fn extract_basis_target(
     min_qubits: usize,
     qargs_with_non_global_operation: &HashMap<Option<Qargs>, HashSet<String>>,
 ) -> PyResult<()> {
-    for (node, node_obj) in dag.op_nodes(true) {
+    for (_node, node_obj) in dag.op_nodes(true) {
         let qargs: &[Qubit] = dag.get_qargs(node_obj.qubits);
-        if dag.has_calibration_for_index(py, node)? || qargs.len() < min_qubits {
+        if qargs.len() < min_qubits {
             continue;
         }
         // Treat the instruction as on an incomplete basis if the qargs are in the
@@ -322,8 +316,8 @@ fn extract_basis_target(
                 unreachable!("Control flow op is not a control flow op. But control_flow is `true`")
             };
             let bound_inst = op.instruction.bind(py);
-            // Use python side extraction instead of the Rust method `op.blocks` due to
-            // required usage of a python-space method `QuantumCircuit.has_calibration_for`.
+            // TODO: Use Rust method `op.blocks` instead of Python side extraction now that
+            // the usage of a python-space method `QuantumCircuit.has_calibration_for` is not needed anymore
             let blocks = bound_inst.getattr("blocks")?.try_iter()?;
             for block in blocks {
                 extract_basis_target_circ(
@@ -353,13 +347,9 @@ fn extract_basis_target_circ(
     let py = circuit.py();
     let circ_data_bound = circuit.getattr("_data")?.downcast_into::<CircuitData>()?;
     let circ_data = circ_data_bound.borrow();
-    for (index, node_obj) in circ_data.iter().enumerate() {
+    for node_obj in circ_data.iter() {
         let qargs = circ_data.get_qargs(node_obj.qubits);
-        if circuit
-            .call_method1("_has_calibration_for", (circuit.get_item(index)?,))?
-            .is_truthy()?
-            || qargs.len() < min_qubits
-        {
+        if qargs.len() < min_qubits {
             continue;
         }
         // Treat the instruction as on an incomplete basis if the qargs are in the
@@ -535,29 +525,6 @@ fn apply_translation(
             continue;
         }
 
-        if dag.has_calibration_for_index(py, node)? {
-            out_dag.apply_operation_back(
-                py,
-                node_obj.op.clone(),
-                node_qarg,
-                node_carg,
-                if node_obj.params_view().is_empty() {
-                    None
-                } else {
-                    Some(
-                        node_obj
-                            .params_view()
-                            .iter()
-                            .map(|param| param.clone_ref(py))
-                            .collect(),
-                    )
-                },
-                node_obj.extra_attrs.clone(),
-                #[cfg(feature = "cache_pygates")]
-                None,
-            )?;
-            continue;
-        }
         let unique_qargs: Option<Qargs> = if qubit_set.is_empty() {
             None
         } else {
