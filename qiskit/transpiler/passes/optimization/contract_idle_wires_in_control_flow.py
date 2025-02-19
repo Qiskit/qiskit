@@ -22,7 +22,7 @@ class ContractIdleWiresInControlFlow(TransformationPass):
 
     def run(self, dag):
         # `control_flow_op_nodes` is eager and doesn't borrow; we're mutating the DAG in the loop.
-        for node in dag.control_flow_op_nodes():
+        for node in dag.control_flow_op_nodes() or []:
             inst = node._to_circuit_instruction()
             new_inst = _contract_control_flow(inst)
             if new_inst is inst:
