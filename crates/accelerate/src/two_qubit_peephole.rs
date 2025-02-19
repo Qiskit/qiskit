@@ -176,10 +176,10 @@ fn score_sequence<'a>(
     target: &'a Target,
     kak_gate_name: &str,
     sequence: impl Iterator<Item = (Option<StandardGate>, SmallVec<[Qubit; 2]>)> + 'a,
-) -> (f64, usize) {
+) -> (usize, f64) {
     let mut gate_count = 0;
-    (
-        1. - sequence
+    let error = 1.
+        - sequence
             .filter_map(|(gate, local_qubits)| {
                 let qubits = local_qubits
                     .iter()
@@ -196,9 +196,8 @@ fn score_sequence<'a>(
                     .get_error(name, qubits.as_slice())
                     .map(|error| 1. - error)
             })
-            .product::<f64>(),
-        gate_count,
-    )
+            .product::<f64>();
+    (gate_count, error)
 }
 
 type MappingIterItem = Option<((TwoQubitGateSequence, String), [Qubit; 2])>;
@@ -242,7 +241,7 @@ pub(crate) fn two_qubit_unitary_peephole_optimize(
                     .unwrap();
                 let matrix = blocks_to_matrix(dag, node_indices, block_qubit_map)?;
                 let decomposers = get_decomposers_from_target(target, &block_qubit_map, fidelity)?;
-                let mut decomposer_scores: Vec<Option<(f64, usize)>> =
+                let mut decomposer_scores: Vec<Option<(usize, f64)>> =
                     vec![None; decomposers.len()];
 
                 let order_sequence = |(index_a, sequence_a): &(
@@ -253,11 +252,11 @@ pub(crate) fn two_qubit_unitary_peephole_optimize(
                     usize,
                     (TwoQubitGateSequence, String),
                 )| {
-                    let score_a = match decomposer_scores[*index_a] {
-                        Some(score) => score,
-                        None => {
-                            let score: (f64, usize) =
-                                score_sequence(
+                    let score_a = (
+                        match decomposer_scores[*index_a] {
+                            Some(score) => score,
+                            None => {
+                                let score: (usize, f64) = score_sequence(
                                     target,
                                     sequence_a.1.as_str(),
                                     sequence_a.0.gates.iter().map(
@@ -270,16 +269,18 @@ pub(crate) fn two_qubit_unitary_peephole_optimize(
                                         },
                                     ),
                                 );
-                            decomposer_scores[*index_a] = Some(score);
-                            score
-                        }
-                    };
+                                decomposer_scores[*index_a] = Some(score);
+                                score
+                            }
+                        },
+                        index_a,
+                    );
 
-                    let score_b = match decomposer_scores[*index_b] {
-                        Some(score) => score,
-                        None => {
-                            let score: (f64, usize) =
-                                score_sequence(
+                    let score_b = (
+                        match decomposer_scores[*index_b] {
+                            Some(score) => score,
+                            None => {
+                                let score: (usize, f64) = score_sequence(
                                     target,
                                     sequence_b.1.as_str(),
                                     sequence_b.0.gates.iter().map(
@@ -292,10 +293,12 @@ pub(crate) fn two_qubit_unitary_peephole_optimize(
                                         },
                                     ),
                                 );
-                            decomposer_scores[*index_b] = Some(score);
-                            score
-                        }
-                    };
+                                decomposer_scores[*index_b] = Some(score);
+                                score
+                            }
+                        },
+                        index_b,
+                    );
                     score_a.partial_cmp(&score_b).unwrap_or(Ordering::Equal)
                 };
 
@@ -391,8 +394,8 @@ pub(crate) fn two_qubit_unitary_peephole_optimize(
                     };
                     original_err *= gate_err;
                 }
-                let original_score = (1. - original_err, original_count);
-                let new_score: (f64, usize) = match decomposer_scores[sequence.0] {
+                let original_score = (original_count, 1. - original_err);
+                let new_score: (usize, f64) = match decomposer_scores[sequence.0] {
                     Some(score) => score,
                     None => score_sequence(
                         target,
