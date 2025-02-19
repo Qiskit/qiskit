@@ -201,18 +201,25 @@ class BasisTranslatorPassManager(PassManagerStagePlugin):
     """Plugin class for translation stage with :class:`~.BasisTranslator`"""
 
     def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
-        return common.generate_translation_passmanager(
-            pass_manager_config.target,
-            basis_gates=pass_manager_config.basis_gates,
-            method="translator",
-            approximation_degree=pass_manager_config.approximation_degree,
-            coupling_map=pass_manager_config.coupling_map,
-            backend_props=pass_manager_config.backend_properties,
-            unitary_synthesis_method=pass_manager_config.unitary_synthesis_method,
-            unitary_synthesis_plugin_config=pass_manager_config.unitary_synthesis_plugin_config,
-            hls_config=pass_manager_config.hls_config,
-            qubits_initially_zero=pass_manager_config.qubits_initially_zero,
-        )
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                category=DeprecationWarning,
+                message=".*argument ``backend_properties`` is deprecated as of Qiskit 1.4",
+                module="qiskit",
+            )
+            return common.generate_translation_passmanager(
+                pass_manager_config.target,
+                basis_gates=pass_manager_config.basis_gates,
+                method="translator",
+                approximation_degree=pass_manager_config.approximation_degree,
+                coupling_map=pass_manager_config.coupling_map,
+                backend_props=pass_manager_config.backend_properties,
+                unitary_synthesis_method=pass_manager_config.unitary_synthesis_method,
+                unitary_synthesis_plugin_config=pass_manager_config.unitary_synthesis_plugin_config,
+                hls_config=pass_manager_config.hls_config,
+                qubits_initially_zero=pass_manager_config.qubits_initially_zero,
+            )
 
 
 class UnitarySynthesisPassManager(PassManagerStagePlugin):
@@ -459,17 +466,24 @@ class SabreSwapPassManager(PassManagerStagePlugin):
                 seed=seed_transpiler,
                 trials=trial_count,
             )
-            return common.generate_routing_passmanager(
-                routing_pass,
-                target,
-                coupling_map,
-                vf2_call_limit=vf2_call_limit,
-                vf2_max_trials=vf2_max_trials,
-                backend_properties=backend_properties,
-                seed_transpiler=seed_transpiler,
-                check_trivial=True,
-                use_barrier_before_measurement=True,
-            )
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore",
+                    category=DeprecationWarning,
+                    message=".*argument ``backend_properties`` is deprecated as of Qiskit 1.4",
+                    module="qiskit",
+                )
+                return common.generate_routing_passmanager(
+                    routing_pass,
+                    target,
+                    coupling_map,
+                    vf2_call_limit=vf2_call_limit,
+                    vf2_max_trials=vf2_max_trials,
+                    backend_properties=backend_properties,
+                    seed_transpiler=seed_transpiler,
+                    check_trivial=True,
+                    use_barrier_before_measurement=True,
+                )
         if optimization_level == 2:
             trial_count = _get_trial_count(20)
 
@@ -479,16 +493,23 @@ class SabreSwapPassManager(PassManagerStagePlugin):
                 seed=seed_transpiler,
                 trials=trial_count,
             )
-            return common.generate_routing_passmanager(
-                routing_pass,
-                target,
-                coupling_map=coupling_map,
-                vf2_call_limit=vf2_call_limit,
-                vf2_max_trials=vf2_max_trials,
-                backend_properties=backend_properties,
-                seed_transpiler=seed_transpiler,
-                use_barrier_before_measurement=True,
-            )
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore",
+                    category=DeprecationWarning,
+                    message=".*argument ``backend_properties`` is deprecated as of Qiskit 1.4",
+                    module="qiskit",
+                )
+                return common.generate_routing_passmanager(
+                    routing_pass,
+                    target,
+                    coupling_map=coupling_map,
+                    vf2_call_limit=vf2_call_limit,
+                    vf2_max_trials=vf2_max_trials,
+                    backend_properties=backend_properties,
+                    seed_transpiler=seed_transpiler,
+                    use_barrier_before_measurement=True,
+                )
         if optimization_level == 3:
             trial_count = _get_trial_count(20)
             routing_pass = SabreSwap(
@@ -497,16 +518,23 @@ class SabreSwapPassManager(PassManagerStagePlugin):
                 seed=seed_transpiler,
                 trials=trial_count,
             )
-            return common.generate_routing_passmanager(
-                routing_pass,
-                target,
-                coupling_map=coupling_map,
-                vf2_call_limit=vf2_call_limit,
-                vf2_max_trials=vf2_max_trials,
-                backend_properties=backend_properties,
-                seed_transpiler=seed_transpiler,
-                use_barrier_before_measurement=True,
-            )
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore",
+                    category=DeprecationWarning,
+                    message=".*argument ``backend_properties`` is deprecated as of Qiskit 1.4",
+                    module="qiskit",
+                )
+                return common.generate_routing_passmanager(
+                    routing_pass,
+                    target,
+                    coupling_map=coupling_map,
+                    vf2_call_limit=vf2_call_limit,
+                    vf2_max_trials=vf2_max_trials,
+                    backend_properties=backend_properties,
+                    seed_transpiler=seed_transpiler,
+                    use_barrier_before_measurement=True,
+                )
         raise TranspilerError(f"Invalid optimization level specified: {optimization_level}")
 
 
@@ -599,30 +627,37 @@ class OptimizationPassManager(PassManagerStagePlugin):
                 ]
             elif optimization_level == 3:
                 # Steps for optimization level 3
-                _opt = [
-                    ConsolidateBlocks(
-                        basis_gates=pass_manager_config.basis_gates,
-                        target=pass_manager_config.target,
-                        approximation_degree=pass_manager_config.approximation_degree,
-                    ),
-                    UnitarySynthesis(
-                        pass_manager_config.basis_gates,
-                        approximation_degree=pass_manager_config.approximation_degree,
-                        coupling_map=pass_manager_config.coupling_map,
-                        backend_props=pass_manager_config.backend_properties,
-                        method=pass_manager_config.unitary_synthesis_method,
-                        plugin_config=pass_manager_config.unitary_synthesis_plugin_config,
-                        target=pass_manager_config.target,
-                    ),
-                    RemoveIdentityEquivalent(
-                        approximation_degree=pass_manager_config.approximation_degree,
-                        target=pass_manager_config.target,
-                    ),
-                    Optimize1qGatesDecomposition(
-                        basis=pass_manager_config.basis_gates, target=pass_manager_config.target
-                    ),
-                    CommutativeCancellation(target=pass_manager_config.target),
-                ]
+                with warnings.catch_warnings():
+                    warnings.filterwarnings(
+                        "ignore",
+                        category=DeprecationWarning,
+                        message=".*argument ``backend_props`` is deprecated as of Qiskit 1.4",
+                        module="qiskit",
+                    )
+                    _opt = [
+                        ConsolidateBlocks(
+                            basis_gates=pass_manager_config.basis_gates,
+                            target=pass_manager_config.target,
+                            approximation_degree=pass_manager_config.approximation_degree,
+                        ),
+                        UnitarySynthesis(
+                            pass_manager_config.basis_gates,
+                            approximation_degree=pass_manager_config.approximation_degree,
+                            coupling_map=pass_manager_config.coupling_map,
+                            backend_props=pass_manager_config.backend_properties,
+                            method=pass_manager_config.unitary_synthesis_method,
+                            plugin_config=pass_manager_config.unitary_synthesis_plugin_config,
+                            target=pass_manager_config.target,
+                        ),
+                        RemoveIdentityEquivalent(
+                            approximation_degree=pass_manager_config.approximation_degree,
+                            target=pass_manager_config.target,
+                        ),
+                        Optimize1qGatesDecomposition(
+                            basis=pass_manager_config.basis_gates, target=pass_manager_config.target
+                        ),
+                        CommutativeCancellation(target=pass_manager_config.target),
+                    ]
 
                 def _opt_control(property_set):
                     return not property_set["optimization_loop_minimum_point"]
@@ -645,24 +680,31 @@ class OptimizationPassManager(PassManagerStagePlugin):
             if optimization_level == 3:
                 optimization.append(_minimum_point_check)
             elif optimization_level == 2:
-                optimization.append(
-                    [
-                        ConsolidateBlocks(
-                            basis_gates=pass_manager_config.basis_gates,
-                            target=pass_manager_config.target,
-                            approximation_degree=pass_manager_config.approximation_degree,
-                        ),
-                        UnitarySynthesis(
-                            pass_manager_config.basis_gates,
-                            approximation_degree=pass_manager_config.approximation_degree,
-                            coupling_map=pass_manager_config.coupling_map,
-                            backend_props=pass_manager_config.backend_properties,
-                            method=pass_manager_config.unitary_synthesis_method,
-                            plugin_config=pass_manager_config.unitary_synthesis_plugin_config,
-                            target=pass_manager_config.target,
-                        ),
-                    ]
-                )
+                with warnings.catch_warnings():
+                    warnings.filterwarnings(
+                        "ignore",
+                        category=DeprecationWarning,
+                        message=".*argument ``backend_props`` is deprecated as of Qiskit 1.4",
+                        module="qiskit",
+                    )
+                    optimization.append(
+                        [
+                            ConsolidateBlocks(
+                                basis_gates=pass_manager_config.basis_gates,
+                                target=pass_manager_config.target,
+                                approximation_degree=pass_manager_config.approximation_degree,
+                            ),
+                            UnitarySynthesis(
+                                pass_manager_config.basis_gates,
+                                approximation_degree=pass_manager_config.approximation_degree,
+                                coupling_map=pass_manager_config.coupling_map,
+                                backend_props=pass_manager_config.backend_properties,
+                                method=pass_manager_config.unitary_synthesis_method,
+                                plugin_config=pass_manager_config.unitary_synthesis_plugin_config,
+                                target=pass_manager_config.target,
+                            ),
+                        ]
+                    )
                 optimization.append(_depth_check + _size_check)
             else:
                 optimization.append(_depth_check + _size_check)
@@ -791,14 +833,21 @@ class DefaultLayoutPassManager(PassManagerStagePlugin):
                     condition=_choose_layout_condition,
                 )
             )
-            choose_layout_1 = VF2Layout(
-                coupling_map=pass_manager_config.coupling_map,
-                seed=pass_manager_config.seed_transpiler,
-                call_limit=int(5e4),  # Set call limit to ~100ms with rustworkx 0.10.2
-                properties=pass_manager_config.backend_properties,
-                target=pass_manager_config.target,
-                max_trials=2500,  # Limits layout scoring to < 600ms on ~400 qubit devices
-            )
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore",
+                    category=DeprecationWarning,
+                    message=".*argument ``properties`` is deprecated as of Qiskit 1.4",
+                    module="qiskit",
+                )
+                choose_layout_1 = VF2Layout(
+                    coupling_map=pass_manager_config.coupling_map,
+                    seed=pass_manager_config.seed_transpiler,
+                    call_limit=int(5e4),  # Set call limit to ~100ms with rustworkx 0.10.2
+                    properties=pass_manager_config.backend_properties,
+                    target=pass_manager_config.target,
+                    max_trials=2500,  # Limits layout scoring to < 600ms on ~400 qubit devices
+                )
             layout.append(ConditionalController(choose_layout_1, condition=_layout_not_perfect))
 
             trial_count = _get_trial_count(5)
@@ -824,14 +873,21 @@ class DefaultLayoutPassManager(PassManagerStagePlugin):
                 )
             )
         elif optimization_level == 2:
-            choose_layout_0 = VF2Layout(
-                coupling_map=pass_manager_config.coupling_map,
-                seed=pass_manager_config.seed_transpiler,
-                call_limit=int(5e6),  # Set call limit to ~10s with rustworkx 0.10.2
-                properties=pass_manager_config.backend_properties,
-                target=pass_manager_config.target,
-                max_trials=2500,  # Limits layout scoring to < 600ms on ~400 qubit devices
-            )
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore",
+                    category=DeprecationWarning,
+                    message=".*argument ``properties`` is deprecated as of Qiskit 1.4",
+                    module="qiskit",
+                )
+                choose_layout_0 = VF2Layout(
+                    coupling_map=pass_manager_config.coupling_map,
+                    seed=pass_manager_config.seed_transpiler,
+                    call_limit=int(5e6),  # Set call limit to ~10s with rustworkx 0.10.2
+                    properties=pass_manager_config.backend_properties,
+                    target=pass_manager_config.target,
+                    max_trials=2500,  # Limits layout scoring to < 600ms on ~400 qubit devices
+                )
             layout.append(
                 ConditionalController(choose_layout_0, condition=_choose_layout_condition)
             )
@@ -859,14 +915,21 @@ class DefaultLayoutPassManager(PassManagerStagePlugin):
                 )
             )
         elif optimization_level == 3:
-            choose_layout_0 = VF2Layout(
-                coupling_map=pass_manager_config.coupling_map,
-                seed=pass_manager_config.seed_transpiler,
-                call_limit=int(3e7),  # Set call limit to ~60s with rustworkx 0.10.2
-                properties=pass_manager_config.backend_properties,
-                target=pass_manager_config.target,
-                max_trials=250000,  # Limits layout scoring to < 60s on ~400 qubit devices
-            )
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore",
+                    category=DeprecationWarning,
+                    message=".*argument ``properties`` is deprecated as of Qiskit 1.4",
+                    module="qiskit",
+                )
+                choose_layout_0 = VF2Layout(
+                    coupling_map=pass_manager_config.coupling_map,
+                    seed=pass_manager_config.seed_transpiler,
+                    call_limit=int(3e7),  # Set call limit to ~60s with rustworkx 0.10.2
+                    properties=pass_manager_config.backend_properties,
+                    target=pass_manager_config.target,
+                    max_trials=250000,  # Limits layout scoring to < 60s on ~400 qubit devices
+                )
             layout.append(
                 ConditionalController(choose_layout_0, condition=_choose_layout_condition)
             )
@@ -940,16 +1003,23 @@ class DenseLayoutPassManager(PassManagerStagePlugin):
 
         layout = PassManager()
         layout.append(_given_layout)
-        layout.append(
-            ConditionalController(
-                DenseLayout(
-                    coupling_map=pass_manager_config.coupling_map,
-                    backend_prop=pass_manager_config.backend_properties,
-                    target=pass_manager_config.target,
-                ),
-                condition=_choose_layout_condition,
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                category=DeprecationWarning,
+                message=".*argument ``backend_prop`` is deprecated as of Qiskit 1.4",
+                module="qiskit",
             )
-        )
+            layout.append(
+                ConditionalController(
+                    DenseLayout(
+                        coupling_map=pass_manager_config.coupling_map,
+                        backend_prop=pass_manager_config.backend_properties,
+                        target=pass_manager_config.target,
+                    ),
+                    condition=_choose_layout_condition,
+                )
+            )
         layout += common.generate_embed_passmanager(coupling_map)
         return layout
 

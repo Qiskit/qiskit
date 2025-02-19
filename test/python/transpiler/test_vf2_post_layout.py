@@ -98,7 +98,11 @@ class TestVF2PostLayout(QiskitTestCase):
     def test_no_backend_properties(self):
         """Test we raise at runtime if no properties are provided with a coupling graph."""
         qc = QuantumCircuit(2)
-        empty_pass = VF2PostLayout(coupling_map=CouplingMap([(0, 1), (1, 2)]))
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex=".*``coupling_map`` is deprecated as of Qiskit 1.4",
+        ):
+            empty_pass = VF2PostLayout(coupling_map=CouplingMap([(0, 1), (1, 2)]))
         with self.assertRaises(TranspilerError):
             empty_pass.run(circuit_to_dag(qc))
 
@@ -109,7 +113,11 @@ class TestVF2PostLayout(QiskitTestCase):
         qc = QuantumCircuit(2, 2)
         cmap = CouplingMap(backend.configuration().coupling_map)
         props = backend.properties()
-        vf2_pass = VF2PostLayout(coupling_map=cmap, properties=props)
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex=".*``properties`` is deprecated as of Qiskit 1.4",
+        ):
+            vf2_pass = VF2PostLayout(coupling_map=cmap, properties=props)
         vf2_pass.run(circuit_to_dag(qc))
         self.assertEqual(
             vf2_pass.property_set["VF2PostLayout_stop_reason"],
@@ -137,7 +145,11 @@ class TestVF2PostLayout(QiskitTestCase):
         qc.ccx(0, 1, 2)
         cmap = CouplingMap(backend.configuration().coupling_map)
         props = backend.properties()
-        vf2_pass = VF2PostLayout(coupling_map=cmap, properties=props)
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex=".*``properties`` is deprecated as of Qiskit 1.4",
+        ):
+            vf2_pass = VF2PostLayout(coupling_map=cmap, properties=props)
         vf2_pass.run(circuit_to_dag(qc))
         self.assertEqual(
             vf2_pass.property_set["VF2PostLayout_stop_reason"], VF2PostLayoutStopReason.MORE_THAN_2Q
@@ -152,7 +164,11 @@ class TestVF2PostLayout(QiskitTestCase):
             qc.ccx(0, 1, 2)
         cmap = CouplingMap(backend.configuration().coupling_map)
         props = backend.properties()
-        vf2_pass = VF2PostLayout(coupling_map=cmap, properties=props)
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex=".*``properties`` is deprecated as of Qiskit 1.4",
+        ):
+            vf2_pass = VF2PostLayout(coupling_map=cmap, properties=props)
         vf2_pass.run(circuit_to_dag(qc))
         self.assertEqual(
             vf2_pass.property_set["VF2PostLayout_stop_reason"], VF2PostLayoutStopReason.MORE_THAN_2Q
@@ -206,7 +222,11 @@ class TestVF2PostLayout(QiskitTestCase):
         dag = circuit_to_dag(tqc)
         cmap = CouplingMap(backend.configuration().coupling_map)
         props = backend.properties()
-        pass_ = VF2PostLayout(coupling_map=cmap, properties=props, seed=self.seed)
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex=".*``properties`` is deprecated as of Qiskit 1.4",
+        ):
+            pass_ = VF2PostLayout(coupling_map=cmap, properties=props, seed=self.seed)
         pass_.run(dag)
         self.assertLayout(dag, cmap, pass_.property_set)
         self.assertNotEqual(pass_.property_set["post_layout"], initial_layout)
@@ -232,7 +252,11 @@ class TestVF2PostLayout(QiskitTestCase):
         dag = circuit_to_dag(circuit)
         cmap = CouplingMap(backend.configuration().coupling_map)
         props = backend.properties()
-        pass_ = VF2PostLayout(coupling_map=cmap, properties=props, seed=self.seed)
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex=".*``properties`` is deprecated as of Qiskit 1.4",
+        ):
+            pass_ = VF2PostLayout(coupling_map=cmap, properties=props, seed=self.seed)
         pass_.run(dag)
         self.assertLayout(dag, cmap, pass_.property_set)
         self.assertNotEqual(pass_.property_set["post_layout"], initial_layout)
@@ -293,9 +317,13 @@ class TestVF2PostLayout(QiskitTestCase):
         dag = circuit_to_dag(tqc)
         cmap = CouplingMap(backend.configuration().coupling_map)
         props = backend.properties()
-        pass_ = VF2PostLayout(
-            coupling_map=cmap, properties=props, seed=self.seed, max_trials=max_trials
-        )
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex=".*``properties`` is deprecated as of Qiskit 1.4",
+        ):
+            pass_ = VF2PostLayout(
+                coupling_map=cmap, properties=props, seed=self.seed, max_trials=max_trials
+            )
 
         with self.assertLogs(
             "qiskit.transpiler.passes.layout.vf2_post_layout", level="DEBUG"
@@ -588,9 +616,13 @@ class TestVF2PostLayoutUndirected(QiskitTestCase):
     def test_no_backend_properties(self):
         """Test we raise at runtime if no properties are provided with a coupling graph."""
         qc = QuantumCircuit(2)
-        empty_pass = VF2PostLayout(
-            coupling_map=CouplingMap([(0, 1), (1, 2)]), strict_direction=False
-        )
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex=".*``coupling_map`` is deprecated as of Qiskit 1.4",
+        ):
+            empty_pass = VF2PostLayout(
+                coupling_map=CouplingMap([(0, 1), (1, 2)]), strict_direction=False
+            )
         with self.assertRaises(TranspilerError):
             empty_pass.run(circuit_to_dag(qc))
 
@@ -602,7 +634,11 @@ class TestVF2PostLayoutUndirected(QiskitTestCase):
         qc = QuantumCircuit(2, 2)
         cmap = CouplingMap(backend.configuration().coupling_map)
         props = backend.properties()
-        vf2_pass = VF2PostLayout(coupling_map=cmap, properties=props, strict_direction=False)
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex=".*``properties`` is deprecated as of Qiskit 1.4",
+        ):
+            vf2_pass = VF2PostLayout(coupling_map=cmap, properties=props, strict_direction=False)
         vf2_pass.run(circuit_to_dag(qc))
         self.assertEqual(
             vf2_pass.property_set["VF2PostLayout_stop_reason"],
@@ -634,7 +670,11 @@ class TestVF2PostLayoutUndirected(QiskitTestCase):
         qc.ccx(0, 1, 2)
         cmap = CouplingMap(backend.configuration().coupling_map)
         props = backend.properties()
-        vf2_pass = VF2PostLayout(coupling_map=cmap, properties=props, strict_direction=False)
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex=".*``properties`` is deprecated as of Qiskit 1.4",
+        ):
+            vf2_pass = VF2PostLayout(coupling_map=cmap, properties=props, strict_direction=False)
         vf2_pass.run(circuit_to_dag(qc))
         self.assertEqual(
             vf2_pass.property_set["VF2PostLayout_stop_reason"],
@@ -707,9 +747,13 @@ class TestVF2PostLayoutUndirected(QiskitTestCase):
         dag = circuit_to_dag(tqc)
         cmap = CouplingMap(backend.configuration().coupling_map)
         props = backend.properties()
-        pass_ = VF2PostLayout(
-            coupling_map=cmap, properties=props, seed=self.seed, strict_direction=False
-        )
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex=".*``properties`` is deprecated as of Qiskit 1.4",
+        ):
+            pass_ = VF2PostLayout(
+                coupling_map=cmap, properties=props, seed=self.seed, strict_direction=False
+            )
         pass_.run(dag)
         self.assertLayout(dag, cmap, pass_.property_set)
         self.assertNotEqual(pass_.property_set["post_layout"], initial_layout)
@@ -758,9 +802,13 @@ class TestVF2PostLayoutUndirected(QiskitTestCase):
         dag = circuit_to_dag(tqc)
         cmap = CouplingMap(backend.configuration().coupling_map)
         props = backend.properties()
-        pass_ = VF2PostLayout(
-            coupling_map=cmap, properties=props, seed=self.seed, strict_direction=False
-        )
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex=".*``properties`` is deprecated as of Qiskit 1.4",
+        ):
+            pass_ = VF2PostLayout(
+                coupling_map=cmap, properties=props, seed=self.seed, strict_direction=False
+            )
         pass_.run(dag)
         self.assertLayout(dag, cmap, pass_.property_set)
         self.assertNotEqual(pass_.property_set["post_layout"], initial_layout)
