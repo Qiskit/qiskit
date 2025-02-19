@@ -493,7 +493,7 @@ fn get_2q_decomposer_from_basis(
             std_gate.name().to_string(),
             std_gate.matrix(&[]).unwrap().view(),
             approximation_degree.unwrap_or(1.0),
-            euler_basis,
+            EulerBasis::__new__(euler_basis)?,
             pulse_optimize,
         )?;
         return Ok(Some(DecomposerElement {
@@ -628,7 +628,7 @@ fn get_2q_decomposers_from_target(
                 gate.operation.name().to_string(),
                 gate.operation.matrix(&gate.params).unwrap().view(),
                 basis_2q_fidelity,
-                basis_1q,
+                EulerBasis::__new__(basis_1q)?,
                 pulse_optimize,
             )?;
 
@@ -758,7 +758,7 @@ fn get_2q_decomposers_from_target(
                         pi_2_basis.to_string(),
                         StandardGate::CXGate.matrix(&[]).unwrap().view(),
                         fidelity,
-                        basis_1q,
+                        EulerBasis::__new__(basis_1q)?,
                         Some(true),
                     )?)
                 } else {
