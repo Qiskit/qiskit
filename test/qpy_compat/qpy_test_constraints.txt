@@ -1,8 +1,7 @@
 numpy===1.24.4
 scipy===1.10.1
 
-# Note that these are looses constraints in the range of symengine versions 
-# because the logic that selects the versions for the tests is distributed 
-# between this file and `test/qpy_compat/run_tests.sh` and we don't want to
-# interfere with that.
+# This is a loose constraint because we want to test different versions,
+# as defined in 'test/qpy_compat/run_tests.sh', but any symengine version 
+# above (and including) 0.14 will be incompatible with qpy.
 symengine<0.14
