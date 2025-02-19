@@ -138,14 +138,13 @@ def _encode_replay_subs(subs, file_obj, version):
     )
     file_obj.write(entry)
     file_obj.write(data)
-    return subs.binds
-
 
 def _write_parameter_expression_v13(file_obj, obj, version):
     symbol_map = {}
     for inst in obj._qpy_replay:
         if isinstance(inst, _SUBS):
-            symbol_map.update(_encode_replay_subs(inst, file_obj, version))
+            _encode_replay_subs(inst, file_obj, version)
+            symbol_map.update(inst.binds)
             continue
         lhs_type, lhs = _encode_replay_entry(inst.lhs, file_obj, version)
         rhs_type, rhs = _encode_replay_entry(inst.rhs, file_obj, version, True)
@@ -213,6 +212,8 @@ def _write_parameter_expression(file_obj, obj, use_symengine, *, version):
             # serialize key
             if symbol_key == type_keys.Value.PARAMETER_VECTOR:
                 symbol_data = common.data_to_binary(symbol, _write_parameter_vec)
+            elif symbol_key == type_keys.Value.PARAMETER_EXPRESSION:
+                symbol_data = common.data_to_binary(symbol, _write_parameter_expression)
             else:
                 symbol_data = common.data_to_binary(symbol, _write_parameter)
             # serialize value
@@ -234,6 +235,9 @@ def _write_parameter_expression(file_obj, obj, use_symengine, *, version):
             # serialize key
             if symbol_key == type_keys.Value.PARAMETER_VECTOR:
                 symbol_data = common.data_to_binary(symbol, _write_parameter_vec)
+            elif symbol_key == type_keys.Value.PARAMETER_EXPRESSION:
+                symbol_data = common.data_to_binary(symbol, _write_parameter_expression,
+                                                    use_symengine=use_symengine, version=version)
             else:
                 symbol_data = common.data_to_binary(symbol, _write_parameter)
             # serialize value
