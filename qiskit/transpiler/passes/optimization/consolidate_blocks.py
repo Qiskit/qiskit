@@ -12,10 +12,22 @@
 
 """Replace each block of consecutive gates by a single Unitary node."""
 from __future__ import annotations
-from math import pi
 
-from qiskit.synthesis.two_qubit import TwoQubitBasisDecomposer
-from qiskit.circuit.library.standard_gates import CXGate, CZGate, iSwapGate, ECRGate, RXXGate
+from qiskit.synthesis.two_qubit import TwoQubitBasisDecomposer, TwoQubitControlledUDecomposer
+from qiskit.circuit.library.standard_gates import (
+    CXGate,
+    CZGate,
+    iSwapGate,
+    ECRGate,
+    RXXGate,
+    RYYGate,
+    RZZGate,
+    RZXGate,
+    CRXGate,
+    CRYGate,
+    CRZGate,
+    CPhaseGate,
+)
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.passmanager import PassManager
@@ -29,7 +41,18 @@ KAK_GATE_NAMES = {
     "cz": CZGate(),
     "iswap": iSwapGate(),
     "ecr": ECRGate(),
-    "rxx": RXXGate(pi / 2),
+    # "rxx": RXXGate(pi / 2),
+}
+
+KAK_GATE_PARAM_NAMES = {
+    "rxx": RXXGate,
+    "rzz": RZZGate,
+    "ryy": RYYGate,
+    "rzx": RZXGate,
+    "cphase": CPhaseGate,
+    "crx": CRXGate,
+    "cry": CRYGate,
+    "crz": CRZGate,
 }
 
 
@@ -81,10 +104,10 @@ class ConsolidateBlocks(TransformationPass):
                 self.decomposer = TwoQubitBasisDecomposer(
                     KAK_GATE_NAMES[kak_gates.pop()], basis_fidelity=approximation_degree or 1.0
                 )
-            elif "rzx" in basis_gates:
-                self.decomposer = TwoQubitBasisDecomposer(
-                    CXGate(), basis_fidelity=approximation_degree or 1.0
-                )
+            # elif "rzx" in basis_gates:
+            #    self.decomposer = TwoQubitBasisDecomposer(
+            #        CXGate(), basis_fidelity=approximation_degree or 1.0
+            #    )
             else:
                 self.decomposer = None
         else:
