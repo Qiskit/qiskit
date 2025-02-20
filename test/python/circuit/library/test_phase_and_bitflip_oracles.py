@@ -17,7 +17,7 @@ from ddt import ddt, data, unpack
 from numpy import sqrt, isclose
 
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.library import PhaseOracle, BitFlipOracleGate
+from qiskit.circuit.library import PhaseOracle, PhaseOracleGate, BitFlipOracleGate
 from qiskit.quantum_info import Statevector
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -78,6 +78,68 @@ class TestPhaseOracle(QiskitTestCase):
     def test_variable_order(self, expression, var_order, good_states):
         """Circuit generation"""
         oracle = PhaseOracle(expression, var_order=var_order)
+        num_qubits = oracle.num_qubits
+        circuit = QuantumCircuit(num_qubits)
+        circuit.h(range(num_qubits))
+        circuit.compose(oracle, inplace=True)
+        statevector = Statevector.from_instruction(circuit)
+
+        valid_state = -1 / sqrt(2**num_qubits)
+        invalid_state = 1 / sqrt(2**num_qubits)
+
+        states = list(range(2**num_qubits))
+        expected_valid = [state in good_states for state in states]
+        result_valid = [isclose(statevector.data[state], valid_state) for state in states]
+
+        expected_invalid = [state not in good_states for state in states]
+        result_invalid = [isclose(statevector.data[state], invalid_state) for state in states]
+        self.assertListEqual(expected_valid, result_valid)
+        self.assertListEqual(expected_invalid, result_invalid)
+
+
+@ddt
+class TestPhaseOracleGate(QiskitTestCase):
+    """Test phase oracle object."""
+
+    @data(
+        ("x | x", "01"),
+        ("~x", "10"),
+        ("x & y", "0001"),
+        ("x & ~y", "0100"),
+        ("(x0 & x1 | ~x2) ^ x4", "1111000100001110"),
+        ("x & y ^ ( ~z1 | z2)", "1110000111101110"),
+    )
+    @unpack
+    def test_statevector(self, expression, truth_table):
+        """Circuit generation"""
+        oracle = PhaseOracleGate(expression)
+        num_qubits = oracle.num_qubits
+        circuit = QuantumCircuit(num_qubits)
+        circuit.h(range(num_qubits))
+        circuit.compose(oracle, inplace=True)
+        statevector = Statevector.from_instruction(circuit)
+
+        valid_state = -1 / sqrt(2**num_qubits)
+        invalid_state = 1 / sqrt(2**num_qubits)
+
+        states = list(range(2**num_qubits))
+        good_states = [i for i in range(len(states)) if truth_table[i] == "1"]
+        expected_valid = [state in good_states for state in states]
+        result_valid = [isclose(statevector.data[state], valid_state) for state in states]
+
+        expected_invalid = [state not in good_states for state in states]
+        result_invalid = [isclose(statevector.data[state], invalid_state) for state in states]
+        self.assertListEqual(expected_valid, result_valid)
+        self.assertListEqual(expected_invalid, result_invalid)
+
+    @data(
+        ("((A & C) | (B & D)) & ~(C & D)", None, [3, 7, 12, 13]),
+        ("((A & C) | (B & D)) & ~(C & D)", ["A", "B", "C", "D"], [5, 7, 10, 11]),
+    )
+    @unpack
+    def test_variable_order(self, expression, var_order, good_states):
+        """Circuit generation"""
+        oracle = PhaseOracleGate(expression, var_order=var_order)
         num_qubits = oracle.num_qubits
         circuit = QuantumCircuit(num_qubits)
         circuit.h(range(num_qubits))

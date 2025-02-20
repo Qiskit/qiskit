@@ -346,6 +346,7 @@ quantum circuits of interest:
    PhaseEstimation
    GroverOperator
    BitFlipOracleGate
+   PhaseOracleGate
    PhaseOracle
    PauliEvolutionGate
    HamiltonianGate
@@ -671,7 +672,7 @@ from .hidden_linear_function import HiddenLinearFunction, hidden_linear_function
 from .iqp import IQP, iqp, random_iqp
 from .phase_estimation import PhaseEstimation, phase_estimation
 from .grover_operator import GroverOperator, grover_operator
-from .phase_oracle import PhaseOracle
+from .phase_oracle import PhaseOracle, PhaseOracleGate
 from .bit_flip_oracle import BitFlipOracleGate
 from .overlap import UnitaryOverlap, unitary_overlap
 from .standard_gates import get_standard_gate_name_mapping

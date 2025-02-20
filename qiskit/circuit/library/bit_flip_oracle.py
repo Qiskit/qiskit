@@ -20,9 +20,9 @@ from qiskit.synthesis.boolean.boolean_expression import BooleanExpression
 
 
 class BitFlipOracleGate(Gate):
-    r"""Bit-flip Oracle.
+    r"""Bit-flip Oracle Gate.
 
-    The Bit-flip Oracle object constructs circuits for any arbitrary
+    The Bit-flip Oracle Gate object constructs circuits for any arbitrary
     input logical expressions. A logical expression is composed of logical operators
     `&` (logical `AND`), `|` (logical  `OR`),
     `~` (logical  `NOT`), and `^` (logical  `XOR`).
@@ -63,8 +63,14 @@ class BitFlipOracleGate(Gate):
         """
         self.boolean_expression = BooleanExpression(expression, var_order=var_order)
         self.oracle = self.boolean_expression.synth(circuit_type="bit")
+        short_expr_for_name = (expression[:15] + "...") if len(expression) > 15 else expression
 
-        super().__init__(name="Bit-flip Oracle", num_qubits=self.oracle.num_qubits, params=[])
+        super().__init__(
+            name="Bit-flip Oracle",
+            num_qubits=self.oracle.num_qubits,
+            params=[],
+            label=short_expr_for_name,
+        )
 
     def _define(self):
         """
