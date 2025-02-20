@@ -139,15 +139,14 @@ impl DAGOpNode {
             py_op: op.unbind().into(),
         };
         if dag.is_some() {
-            imports::WARNINGS_WARN.get_bound(py).call1((
+            WARNINGS_WARN.get_bound(py).call1((
                 intern!(
-             py,
-             concat!(
-                 "The ``dag`` parameter in DAGNode subclass constructors "
-                 "is unused and it will be removed in Qiskit 2.0.",
-             )
-         ),
-                py.get_type::<PyDeprecationWarning>(),
+                    py,
+                    concat!("The ``dag`` parameter in DAGNode subclass constructors ",
+                        "is unused and it will be removed in Qiskit 2.0.",
+                    )
+                ),
+                py.get_type_bound::<PyDeprecationWarning>(),
                 2,
             ))?;
         }
