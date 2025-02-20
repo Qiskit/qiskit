@@ -142,7 +142,8 @@ impl DAGOpNode {
             WARNINGS_WARN.get_bound(py).call1((
                 intern!(
                     py,
-                    concat!("The ``dag`` parameter in DAGNode subclass constructors ",
+                    concat!(
+                        "The ``dag`` parameter in DAGNode subclass constructors ",
                         "is unused and it will be removed in Qiskit 2.0.",
                     )
                 ),
