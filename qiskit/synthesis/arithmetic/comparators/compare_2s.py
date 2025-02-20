@@ -25,7 +25,7 @@ def synth_integer_comparator_2s(
     This is based on Appendix B of [1].
 
     Args:
-        num_state_qubits: The number of qubits encoding the value to compare tp.
+        num_state_qubits: The number of qubits encoding the value to compare to.
         value: The value to compare to.
         geq: If ``True`` flip the target bit if the qubit state is :math:`\geq` than the value,
             otherwise implement :math:`<`.

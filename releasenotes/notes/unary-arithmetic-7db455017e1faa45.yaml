@@ -1,0 +1,17 @@
+---
+features_circuits:
+  - |
+    Added :class:`.Gate` versions of the single-register arithmetic gates,
+    which allow the compiler to perform high-level optimizations compared to
+    their :class:`.QuantumCircuit` variants. These are:
+
+      * :class:`.ExactReciprocalGate` (replacing :class:`.ExactReciprocal`)
+      * :class:`.IntegerComparatorGate` (replacing :class:`.IntegerComparator`)
+      * :class:`.LinearPauliRotationsGate` (replacing :class:`.LinearPauliRotations`)
+      * :class:`.PiecewiseLinearPauliRotationsGate` (replacing :class:`.PiecewiseLinearPauliRotations`)
+      * :class:`.PiecewiseChebychevGate` (replacing :class:`.PiecewiseChebychev`)
+      * :class:`.PiecewisePolynomialPauliRotationsGate` (replacing :class:`.PiecewisePolynomialPauliRotations`)
+      * :class:`.PolynomialPauliRotationsGate` (replacing :class:`.PolynomialPauliRotations`)
+      * :class:`.LinearAmplitudeFunctionGate` (replacing :class:`.LinearAmplitudeFunction`)
+      * :class:`.QuadraticFormGate` (replacing :class:`.QuadraticForm`)
+      * :class:`.WeightedAdderGate` (replacing :class:`.WeightedAdder`)

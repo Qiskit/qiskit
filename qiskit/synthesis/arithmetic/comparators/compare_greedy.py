@@ -29,7 +29,7 @@ def synth_integer_comparator_greedy(
     provided by :func:`.synth_integer_comparator_2s` is more efficient.
 
     Args:
-        num_state_qubits: The number of qubits encoding the value to compare tp.
+        num_state_qubits: The number of qubits encoding the value to compare to.
         value: The value to compare to.
         geq: If ``True`` flip the target bit if the qubit state is :math:`\geq` than the value,
             otherwise implement :math:`<`.
