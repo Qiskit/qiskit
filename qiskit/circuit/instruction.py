@@ -43,7 +43,6 @@ import numpy
 
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
-from qiskit.qobj.qasm_qobj import QasmQobjInstruction
 from qiskit.circuit.parameter import ParameterExpression
 from qiskit.circuit.operation import Operation
 
@@ -384,42 +383,6 @@ class Instruction(Operation):
     def unit(self, value):
         """Set the time unit of duration."""
         self._unit = value
-
-    @deprecate_func(
-        since="1.2",
-        removal_timeline="in the 2.0 release",
-        additional_msg="The `Qobj` class and related functionality are part of the deprecated "
-        "`BackendV1` workflow,  and no longer necessary for `BackendV2`. If a user "
-        "workflow requires `Qobj` it likely relies on deprecated functionality and "
-        "should be updated to use `BackendV2`.",
-    )
-    def assemble(self):
-        """Assemble a QasmQobjInstruction"""
-        return self._assemble()
-
-    def _assemble(self):
-        with warnings.catch_warnings():
-            # The class QasmQobjInstruction is deprecated
-            warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
-            instruction = QasmQobjInstruction(name=self.name)
-        # Evaluate parameters
-        if self.params:
-            params = [x.evalf(x) if hasattr(x, "evalf") else x for x in self.params]
-            instruction.params = params
-        # Add placeholder for qarg and carg params
-        if self.num_qubits:
-            instruction.qubits = list(range(self.num_qubits))
-        if self.num_clbits:
-            instruction.memory = list(range(self.num_clbits))
-        # Add label if defined
-        if self.label:
-            instruction.label = self.label
-        # Add condition parameters for assembler. This is needed to convert
-        # to a qobj conditional instruction at assemble time and after
-        # conversion will be deleted by the assembler.
-        if self._condition:
-            instruction._condition = self._condition
-        return instruction
 
     @property
     def label(self) -> str:

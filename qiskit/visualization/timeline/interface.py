@@ -305,7 +305,7 @@ def draw(
            :alt: Output from the previous code.
            :include-source:
 
-            from qiskit import QuantumCircuit, transpile, schedule
+            from qiskit import QuantumCircuit, transpile
             from qiskit.visualization.timeline import draw
             from qiskit.providers.fake_provider import GenericBackendV2
 
@@ -322,7 +322,7 @@ def draw(
            :alt: Output from the previous code.
            :include-source:
 
-            from qiskit import QuantumCircuit, transpile, schedule
+            from qiskit import QuantumCircuit, transpile
             from qiskit.visualization.timeline import draw, IQXSimple
             from qiskit.providers.fake_provider import GenericBackendV2
 
@@ -339,7 +339,7 @@ def draw(
            :alt: Output from the previous code.
            :include-source:
 
-            from qiskit import QuantumCircuit, transpile, schedule
+            from qiskit import QuantumCircuit, transpile
             from qiskit.visualization.timeline import draw, IQXDebugging
             from qiskit.providers.fake_provider import GenericBackendV2
 
