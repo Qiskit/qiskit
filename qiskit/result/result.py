@@ -41,17 +41,17 @@ class Result:
         generic kwarg, which will land in the metadata field with the other generic kwargs.
 
     Attributes:
-        backend_name (str): backend name.
-        backend_version (str): backend version, in the form X.Y.Z.
-        qobj_id (str): user-generated Qobj id.
-        job_id (str): unique execution id from the backend.
-        success (bool): True if complete input qobj executed correctly. (Implies
+        backend_name (str): (REQUIRED) backend name.
+        backend_version (str): (REQUIRED) backend version, in the form X.Y.Z.
+        qobj_id (str): (REQUIRED) user-generated Qobj id.
+        job_id (str): (REQUIRED) unique execution id from the backend.
+        success (bool): (REQUIRED) True if complete input qobj executed correctly. (Implies
             each experiment success)
-        results (list[ExperimentResult]): corresponding results for array of
+        results (list[ExperimentResult]): (REQUIRED) corresponding results for array of
             experiments of the input qobj
-        date (str): date of the experiment
-        header(dict): experiment header
-        kwargs: generic keyword arguments. These will be stored in the metadata field.
+        date (str): (OPTIONAL) date of the experiment
+        header(dict): (OPTIONAL)experiment header
+        kwargs: generic keyword arguments. (OPTIONAL) These will be stored in the metadata field.
     """
 
     _metadata = {}
