@@ -3786,6 +3786,8 @@ class QuantumCircuit:
         """
         # As a convenience, lift integer-literal rvalues to the matching width.
         lvalue = expr.lift(lvalue)
+        if lvalue.type.const:
+            raise CircuitError("const variables are not supported.")
         rvalue_type = (
             lvalue.type if isinstance(rvalue, int) and not isinstance(rvalue, bool) else None
         )

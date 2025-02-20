@@ -187,6 +187,13 @@ class TestStoreCircuit(QiskitTestCase):
             Store(a, expr.Cast(expr.Value(1, types.Uint(8, const=True)), a.type, implicit=True)),
         )
 
+    def test_rejects_const_target(self):
+        qc = QuantumCircuit()
+        with self.assertRaisesRegex(CircuitError, "const.*not supported"):
+            qc.store(expr.Var.new("a", types.Bool(const=True)), True)
+        with self.assertRaisesRegex(CircuitError, "const.*not supported"):
+            qc.store(expr.Var.new("a", types.Bool(const=True)), 1)
+
     def test_does_not_widen_bool_literal(self):
         # `bool` is a subclass of `int` in Python (except some arithmetic operations have different
         # semantics...).  It's not in Qiskit's value type system, though.
