@@ -26,7 +26,7 @@ schedules:
   - cron: "20 6 * * *"
     displayName: "Complete matrix test"
     branches:
-      include: [ "main", "stable/*" ]
+      include: [ "main" ]
     always: false  # Only run if the code changed since the last cron sync.
 
 
