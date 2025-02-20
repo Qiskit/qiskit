@@ -72,6 +72,8 @@ class Result:
                 true_kwargs[key] = value
         # Step 2: iterate over args, which are expected in the order of the index_map below.
         index_map = ["backend_name", "backend_version", "qobj_id", "job_id", "success", "results"]
+        raise_qobj = False
+        missing_args = []
         for i in range(len(index_map)):
             try:
                 value = args[i]
@@ -101,22 +103,26 @@ class Result:
                     missing_args = [
                         key for key in required_args.keys() if required_args[key] is _MISSING
                     ]
-                    if len(missing_args) > 1:
-                        raise TypeError(
-                            f"Result.__init__() missing {len(missing_args)} required arguments: {missing_args}"
-                        )
-                    else:
-                        raise TypeError(
-                            f"Result.__init__() missing a required argument: {missing_args[0]}"
-                        )
                 elif index_map[i] == "qobj_id":
-                    # qobj_id will be ignored if set as a kwarg in 2.0.
-                    warnings.warn(
-                        "The `qobj_id` argument will no longer be used in Qiskit 2.0, but it will still be possible to "
-                        "set as a kwarg that will land in the metadata field.",
-                        category=DeprecationWarning,
-                        stacklevel=2,
-                    )
+                    raise_qobj = True
+                break
+
+        # The deprecation warning should be raised outside of the try-except,
+        # not to show a confusing trace that points to the IndexError
+        if len(missing_args) > 1:
+            raise TypeError(
+                f"Result.__init__() missing {len(missing_args)} required arguments: {missing_args}"
+            )
+        elif len(missing_args) == 1:
+            raise TypeError(f"Result.__init__() missing a required argument: {missing_args[0]}")
+        elif raise_qobj:
+            # qobj_id will be ignored if set as a kwarg in 2.0.
+            warnings.warn(
+                "The `qobj_id` argument will no longer be used in Qiskit 2.0, but it will still be possible to "
+                "set as a kwarg that will land in the metadata field.",
+                category=DeprecationWarning,
+                stacklevel=2,
+            )
 
         self._metadata = {}
         self.backend_name = required_args["backend_name"]
