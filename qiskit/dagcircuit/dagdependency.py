@@ -17,7 +17,7 @@ from __future__ import annotations
 import math
 import heapq
 import typing
-from collections import OrderedDict, defaultdict
+from collections import OrderedDict
 from collections.abc import Iterator
 
 import rustworkx as rx
@@ -28,8 +28,6 @@ from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.dagcircuit.exceptions import DAGDependencyError
 from qiskit.dagcircuit.dagdepnode import DAGDepNode
-from qiskit.pulse import Schedule
-from qiskit.utils.deprecate_pulse import deprecate_pulse_dependency
 
 if typing.TYPE_CHECKING:
     from qiskit.circuit.parameterexpression import ParameterExpression
@@ -115,7 +113,6 @@ class DAGDependency:
         self.clbits = []
 
         self._global_phase: float | ParameterExpression = 0.0
-        self._calibrations: dict[str, dict[tuple, Schedule]] = defaultdict(dict)
 
         self.duration = None
         self.unit = "dt"
@@ -145,37 +142,6 @@ class DAGDependency:
                 self._global_phase = 0
             else:
                 self._global_phase = angle % (2 * math.pi)
-
-    @property
-    @deprecate_pulse_dependency(is_property=True)
-    def calibrations(self) -> dict[str, dict[tuple, Schedule]]:
-        """Return calibration dictionary.
-
-        The custom pulse definition of a given gate is of the form
-        ``{'gate_name': {(qubits, params): schedule}}``.
-        """
-        return self._calibrations_prop
-
-    @calibrations.setter
-    @deprecate_pulse_dependency(is_property=True)
-    def calibrations(self, calibrations: dict[str, dict[tuple, Schedule]]):
-        """Set the circuit calibration data from a dictionary of calibration definition.
-
-        Args:
-            calibrations (dict): A dictionary of input in the format
-                {'gate_name': {(qubits, gate_params): schedule}}
-        """
-        self._calibrations_prop = calibrations
-
-    @property
-    def _calibrations_prop(self) -> dict[str, dict[tuple, Schedule]]:
-        """An alternative path to be used internally to avoid deprecation warnings"""
-        return dict(self._calibrations)
-
-    @_calibrations_prop.setter
-    def _calibrations_prop(self, calibrations: dict[str, dict[tuple, Schedule]]):
-        """An alternative path to be used internally to avoid deprecation warnings"""
-        self._calibrations = defaultdict(dict, calibrations)
 
     def to_retworkx(self):
         """Returns the DAGDependency in retworkx format."""

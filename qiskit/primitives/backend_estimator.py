@@ -22,7 +22,7 @@ import numpy as np
 from qiskit.circuit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.compiler import transpile
 from qiskit.exceptions import QiskitError
-from qiskit.providers import BackendV1, BackendV2, Options
+from qiskit.providers import BackendV2, Options
 from qiskit.quantum_info import Pauli, PauliList
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.result import Counts, Result
@@ -43,7 +43,7 @@ from .utils import _circuit_key, _observable_key, init_observable
 
 def _run_circuits(
     circuits: QuantumCircuit | list[QuantumCircuit],
-    backend: BackendV1 | BackendV2,
+    backend: BackendV2,
     clear_metadata: bool = True,
     **run_options,
 ) -> tuple[list[Result], list[dict]]:
@@ -64,9 +64,7 @@ def _run_circuits(
         metadata.append(circ.metadata)
         if clear_metadata:
             circ.metadata = {}
-    if isinstance(backend, BackendV1):
-        max_circuits = getattr(backend.configuration(), "max_experiments", None)
-    elif isinstance(backend, BackendV2):
+    if isinstance(backend, BackendV2):
         max_circuits = backend.max_circuits
     else:
         raise RuntimeError("Backend version not supported")
@@ -96,7 +94,7 @@ class BackendEstimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
 
     The :class:`~.BackendEstimator` class is a generic implementation of the
     :class:`~.BaseEstimator` (V1) interface that is used to wrap a :class:`~.BackendV2`
-    (or :class:`~.BackendV1`) object in the :class:`~.BaseEstimator` V1 API. It
+    object in the :class:`~.BaseEstimator` V1 API. It
     facilitates using backends that do not provide a native
     :class:`~.BaseEstimator` V1 implementation in places that work with
     :class:`~.BaseEstimator` V1.
@@ -117,7 +115,7 @@ class BackendEstimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
     )
     def __init__(
         self,
-        backend: BackendV1 | BackendV2,
+        backend: BackendV2,
         options: dict | None = None,
         abelian_grouping: bool = True,
         bound_pass_manager: PassManager | None = None,
@@ -195,7 +193,7 @@ class BackendEstimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
         return self._transpiled_circuits
 
     @property
-    def backend(self) -> BackendV1 | BackendV2:
+    def backend(self) -> BackendV2:
         """
         Returns:
             The backend which this estimator object based on
@@ -476,10 +474,6 @@ def _passmanager_for_measurement_circuits(layout, backend) -> PassManager:
     passmanager.append(opt1q)
     if isinstance(backend, BackendV2) and isinstance(backend.coupling_map, CouplingMap):
         coupling_map = backend.coupling_map
-        passmanager.append(FullAncillaAllocation(coupling_map))
-        passmanager.append(EnlargeWithAncilla())
-    elif isinstance(backend, BackendV1) and backend.configuration().coupling_map is not None:
-        coupling_map = CouplingMap(backend.configuration().coupling_map)
         passmanager.append(FullAncillaAllocation(coupling_map))
         passmanager.append(EnlargeWithAncilla())
     passmanager.append(ApplyLayout())
