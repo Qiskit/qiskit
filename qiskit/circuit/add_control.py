@@ -266,8 +266,13 @@ def apply_basic_controlled_gate(circuit, gate, controls, target):
         circuit.s(target)
 
     elif gate.name == "h":
-        circuit.mcry(pi / 2, controls, target, use_basis_gates=False)
+        circuit.s(target)
+        circuit.h(target)
+        circuit.t(target)
         circuit.mcx(controls, target)
+        circuit.tdg(target)
+        circuit.h(target)
+        circuit.sdg(target)
 
     elif gate.name == "sx":
         circuit.h(target)

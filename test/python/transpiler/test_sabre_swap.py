@@ -13,7 +13,6 @@
 """Test the Sabre Swap pass"""
 
 import unittest
-import warnings
 import itertools
 
 import ddt
@@ -758,11 +757,11 @@ class TestSabreSwapControlFlow(QiskitTestCase):
         efalse_body.swap(3, 4)
 
         expected.if_else((creg[0], 0), etrue_body, efalse_body, qreg, creg[[0]])
-        expected.swap(1, 2)
         expected.h(3)
-        expected.cx(3, 2)
+        expected.swap(2, 3)
+        expected.cx(2, 1)
         expected.barrier()
-        expected.measure(qreg[[2, 0, 1, 3, 4]], creg)
+        expected.measure(qreg[[1, 0, 3, 2, 4]], creg)
         self.assertEqual(dag_to_circuit(cdag), expected)
 
     def test_if_expr(self):
@@ -1380,17 +1379,12 @@ class TestSabreSwapRandomCircuitValidOutput(QiskitTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        with warnings.catch_warnings():
-            # Catch warnings since self.assertWarns cannot be used here.
-            # The `calibrate_instructions` argument is deprecated in Qiksit 1.3
-            warnings.simplefilter("ignore", category=DeprecationWarning)
-            cls.backend = GenericBackendV2(
-                num_qubits=27,
-                calibrate_instructions=True,
-                control_flow=True,
-                coupling_map=MUMBAI_CMAP,
-                seed=42,
-            )
+        cls.backend = GenericBackendV2(
+            num_qubits=27,
+            control_flow=True,
+            coupling_map=MUMBAI_CMAP,
+            seed=42,
+        )
         cls.coupling_edge_set = {tuple(x) for x in cls.backend.coupling_map}
         cls.basis_gates = set(cls.backend.operation_names)
 
