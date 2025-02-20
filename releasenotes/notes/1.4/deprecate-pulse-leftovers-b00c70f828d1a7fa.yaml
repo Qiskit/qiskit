@@ -1,7 +1,0 @@
-deprecations_transpiler:
-  - |
-    The Pulse deprecation in Qiskit v1.3.0, included calibration builder passes
-    such as :class:`.RXCalibrationBuilder`. The
-    :class:`.NormalizeRXAngle` pass is a requirement of :class:`.RXCalibrationBuilder`;
-    hence, it is being deprecated in Qiskit v1.4.0. The :func:`.rzx_templates`
-    function in the calibration module is also being deprecated as it is not used in our codebase.

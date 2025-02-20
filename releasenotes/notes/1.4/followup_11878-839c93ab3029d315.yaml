@@ -1,8 +1,0 @@
----
-deprecations_visualization:
-  - |
-    The parameters ``show_idle`` and ``show_barrier`` in the timeline drawers are 
-    deprecated as of Qiskit v1.4.0. The alternatives are, respectively, the 
-    ``idle_wires`` and ``plot_barriers`` parameters, introduced in Qiskit v1.1.0,
-    which are fully equivalent.
-    The legacy parameter names will be removed in Qiskit v2.0.0.

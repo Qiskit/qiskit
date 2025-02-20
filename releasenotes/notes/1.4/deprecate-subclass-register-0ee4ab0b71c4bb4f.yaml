@@ -1,9 +1,0 @@
----
-deprecations_circuits:
-  - |
-    Subclassing :class:`.Register` or :class:`.Bit`, or any subclass of them
-    (for example, :class:`.QuantumRegister` or :class:`~.circuit.Qubit`) is deprecated as of Qiskit v1.4.0.  
-    Subclassing these types was never explicitly supported by Qiskit, and its meaning was never defined.
-    In Qiskit v2.0.0, the subclassing may become impossible due to technical limitations, 
-    and will certainly not be stored in a circuit.  This is due to the move of the data model 
-    to the Rust space to improve performance.
