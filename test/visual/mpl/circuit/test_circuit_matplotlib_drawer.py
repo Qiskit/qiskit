@@ -674,7 +674,12 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
 
         fname = "creg_initial_true.png"
         self.circuit_drawer(
-            circuit, output="mpl", filename=fname, cregbundle=True, initial_state=True
+            circuit,
+            output="mpl",
+            filename=fname,
+            cregbundle=True,
+            initial_state=True,
+            idle_wires=True,
         )
 
         ratio = VisualTestUtilities._save_diff(
