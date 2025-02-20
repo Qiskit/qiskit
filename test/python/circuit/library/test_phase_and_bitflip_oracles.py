@@ -17,7 +17,7 @@ from ddt import ddt, data, unpack
 from numpy import sqrt, isclose
 
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.library import PhaseOracle, BitFlipOracle
+from qiskit.circuit.library import PhaseOracle, BitFlipOracleGate
 from qiskit.quantum_info import Statevector
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -98,21 +98,8 @@ class TestPhaseOracle(QiskitTestCase):
 
 
 @ddt
-class TestBitFlipOracle(QiskitTestCase):
+class TestBitFlipOracleGate(QiskitTestCase):
     """Test bit-flip oracle object."""
-
-    @data(
-        ("x | x", "1", True),
-        ("x & x", "0", False),
-        ("(x0 & x1 | ~x2) ^ x4", "0110", False),
-        ("xx & xxx | ( ~z ^ zz)", "0111", True),
-    )
-    @unpack
-    def test_evaluate_bitstring(self, expression, input_bitstring, expected):
-        """BitFlipOracle(...).evaluate_bitstring"""
-        oracle = BitFlipOracle(expression)
-        result = oracle.evaluate_bitstring(input_bitstring)
-        self.assertEqual(result, expected)
 
     @data(
         ("x | x", "01"),
@@ -125,7 +112,7 @@ class TestBitFlipOracle(QiskitTestCase):
     @unpack
     def test_statevector(self, expression, truth_table):
         """Circuit generation"""
-        oracle = BitFlipOracle(expression)
+        oracle = BitFlipOracleGate(expression)
         num_qubits = oracle.num_qubits
         circuit = QuantumCircuit(num_qubits)
         circuit.h(
@@ -155,7 +142,7 @@ class TestBitFlipOracle(QiskitTestCase):
     @unpack
     def test_variable_order(self, expression, var_order, truth_table):
         """Circuit generation"""
-        oracle = BitFlipOracle(expression, var_order=var_order)
+        oracle = BitFlipOracleGate(expression, var_order=var_order)
         num_qubits = oracle.num_qubits
         circuit = QuantumCircuit(num_qubits)
         circuit.h(

@@ -3,7 +3,7 @@ upgrade_circuits:
   - |
     The :class:`.PhaseOracle` no longer relies on the `tweedledum` library
     but might not be synthesized as effectively as before.
-    :class:`.BitFlipOracle` was added as an alternative to
+    :class:`.BitFlipOracleGate` was added as an alternative to
     directly synthesizing :class:`.BooleanExpression`, as this
     class is removed in Qiskit 2.0.
 
@@ -31,17 +31,18 @@ upgrade_circuits:
                       
 features_circuits:
   - |
-   The new :class:`.PhaseBitFlipOracle` has the same interface as
-    :class:`.PhaseOracle`, but synthesizes a bit flip oracle instead
+   The new :class:`.BitFlipOracleGate` has the same interface as
+    :class:`.PhaseOracle` (except the `evaluate_bitstring` method),
+    but synthesizes a bit flip oracle instead
     of a phase flip oracle, meaning it acts on one additional qubit
     and can be seen a applying a controlled X operation, where the
     control is the value of the expression encoded by the oracle.
 
     .. code-block:: python
     
-      from qiskit.circuit.library.bit_flip_oracle import BitFlipOracle
+      from qiskit.circuit.library.bit_flip_oracle import BitFlipOracleGate
       bool_expr = "(x0 & x1 | ~x2) & x4"
-      oracle = BitFlipOracle(bool_expr)
+      oracle = BitFlipOracleGate(bool_expr)
       print(oracle)
 
     .. code-block:: text
@@ -56,11 +57,3 @@ features_circuits:
            ┌─┴─┐┌─┴─┐┌─┴─┐
       q_4: ┤ X ├┤ X ├┤ X ├
            └───┘└───┘└───┘
-
-    .. code-block:: python
-
-      print(oracle.evaluate_bitstring("1010"))
-
-    .. code-block:: text
-
-      True

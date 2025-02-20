@@ -14,12 +14,12 @@
 
 from __future__ import annotations
 
-from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import Gate
 
 from qiskit.synthesis.boolean.boolean_expression import BooleanExpression
 
 
-class BitFlipOracle(QuantumCircuit):
+class BitFlipOracleGate(Gate):
     r"""Bit-flip Oracle.
 
     The Bit-flip Oracle object constructs circuits for any arbitrary
@@ -43,7 +43,8 @@ class BitFlipOracle(QuantumCircuit):
     which is the standard format for specifying SATisfiability (SAT) problem instances in
     `Conjunctive Normal Form (CNF) <https://en.wikipedia.org/wiki/Conjunctive_normal_form>`__,
     which is a conjunction of one or more clauses, where a clause is a disjunction of one
-    or more literals. See :meth:`qiskit.circuit.library.bit_flip_oracle.BitFlipOracle.from_dimacs_file`.
+    or more literals.
+    See :meth:`qiskit.circuit.library.bit_flip_oracle.BitFlipOracleGate.from_dimacs_file`.
 
     From 16 variables on, possible performance issues should be expected when using the
     default synthesizer.
@@ -61,30 +62,21 @@ class BitFlipOracle(QuantumCircuit):
                (default: by appearance)
         """
         self.boolean_expression = BooleanExpression(expression, var_order=var_order)
-        oracle = self.boolean_expression.synth(circuit_type="bit")
+        self.oracle = self.boolean_expression.synth(circuit_type="bit")
 
-        super().__init__(oracle.num_qubits, name="Bit-flip Oracle")
+        super().__init__(name="Bit-flip Oracle", num_qubits=self.oracle.num_qubits, params=[])
 
-        self.compose(oracle, inplace=True, copy=False)
-
-    def evaluate_bitstring(self, bitstring: str) -> bool:
-        """Evaluate the oracle on a bitstring.
-        This evaluation is done classically without any quantum circuit.
-
-        Args:
-            bitstring: The bitstring for which to evaluate. The input bitstring is expected to be
-                in little-endian order.
-
-        Returns:
-            True if the bitstring is a good state, False otherwise.
+    def _define(self):
         """
-        return self.boolean_expression.simulate(bitstring[::-1])
+        Defined by the synthesized bit-flip oracle
+        """
+        self.definition = self.oracle
 
     @classmethod
     def from_dimacs_file(cls, filename: str):
-        r"""Create a BitFlipOracle from the string in the DIMACS format.
+        r"""Create a BitFlipOracleGate from the string in the DIMACS format.
 
-        It is possible to build a BitFlipOracle from a file in `DIMACS CNF format
+        It is possible to build a BitFlipOracleGate from a file in `DIMACS CNF format
         <https://web.archive.org/web/20190325181937/https://www.satcompetition.org/2009/format-benchmarks2009.html>`__,
         which is the standard format for specifying SATisfiability (SAT) problem instances in
         `Conjunctive Normal Form (CNF) <https://en.wikipedia.org/wiki/Conjunctive_normal_form>`__,
@@ -123,7 +115,7 @@ class BitFlipOracle(QuantumCircuit):
             filename: A file in DIMACS format.
 
         Returns:
-            BitFlipOracle: A quantum circuit with a bit-flip oracle.
+            BitFlipOracleGate: A quantum gate with a bit-flip oracle.
         """
         expr = BooleanExpression.from_dimacs_file(filename)
         return cls(expr)
