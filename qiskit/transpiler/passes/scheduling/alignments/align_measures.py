@@ -121,6 +121,8 @@ class AlignMeasures(TransformationPass):
             TranspilerError: If circuit is not scheduled.
         """
         time_unit = self.property_set["time_unit"]
+        if time_unit == "stretch":
+            raise TranspilerError("Scheduling cannot run on circuits with stretch durations.")
 
         if not _check_alignment_required(dag, self.alignment, Measure):
             # return input as-is to avoid unnecessary scheduling.

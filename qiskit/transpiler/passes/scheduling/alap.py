@@ -53,6 +53,9 @@ class ALAPSchedule(BaseSchedulerTransform):
             raise TranspilerError("ALAP schedule runs on physical circuits only")
 
         time_unit = self.property_set["time_unit"]
+        if time_unit == "stretch":
+            raise TranspilerError("Scheduling cannot run on circuits with stretch durations.")
+
         new_dag = DAGCircuit()
         for qreg in dag.qregs.values():
             new_dag.add_qreg(qreg)

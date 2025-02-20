@@ -14,6 +14,7 @@
 
 import copy
 import io
+import itertools
 import math
 import os
 import sys
@@ -21,7 +22,7 @@ from logging import StreamHandler, getLogger
 from unittest.mock import patch
 import numpy as np
 import rustworkx as rx
-from ddt import data, ddt, unpack
+from ddt import data, idata, ddt, unpack
 
 from qiskit import (
     ClassicalRegister,
@@ -1484,6 +1485,37 @@ class TestTranspile(QiskitTestCase):
 
         self.assertEqual(out.duration, 1200)
 
+    @data(0, 1, 2, 3)
+    def test_circuit_with_delay_expr_duration(self, optimization_level):
+        """Verify a circuit with delay with a duration of type types.Duration
+        can transpile to a scheduled circuit."""
+
+        # This resolves to 500dt
+        delay_expr = expr.add(
+            expr.mul(expr.mul(Duration.dt(400), 2.0), expr.div(Duration.dt(200), Duration.dt(400))),
+            Duration.dt(100),
+        )
+
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.delay(delay_expr, 1)
+        qc.cx(0, 1)
+
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The `target` parameter should be used instead",
+        ):
+            out = transpile(
+                qc,
+                scheduling_method="alap",
+                basis_gates=["h", "cx"],
+                instruction_durations=[("h", 0, 200), ("cx", [0, 1], 700)],
+                optimization_level=optimization_level,
+                seed_transpiler=42,
+            )
+
+        self.assertEqual(out.duration, 1200)
+
     def test_delay_converts_to_dt(self):
         """Test that a delay instruction is converted to units of dt given a backend."""
         qc = QuantumCircuit(2)
@@ -1512,6 +1544,47 @@ class TestTranspile(QiskitTestCase):
 
         out = transpile(qc, dt=1e-9, seed_transpiler=42)
         self.assertEqual(out.data[0].operation.unit, "dt")
+
+    @data(0, 1, 2, 3)
+    def test_circuit_with_delay_expr_stretch(self, optimization_level):
+        """Verify a circuit with delay with a duration of type types.Duration
+        can transpile to a scheduled circuit."""
+
+        qc = QuantumCircuit(2)
+        a = qc.add_stretch("a")
+        qc.h(0)
+        qc.delay(a, 1)
+        qc.cx(0, 1)
+
+        out = transpile(
+            qc,
+            backend=GenericBackendV2(num_qubits=2, basis_gates=["cx", "h"]),
+            optimization_level=optimization_level,
+            seed_transpiler=42,
+        )
+
+        self.assertEqual(qc, out)
+
+    @idata(itertools.product([0, 1, 2, 3], ["alap", "asap"]))
+    @unpack
+    def test_scheduling_with_delay_stretch_fails(self, optimization_level, scheduling_method):
+        """Scheduling should fail with an appropriate error message if it is attempted
+        on a circuit containing delays with stretch expressions.
+        """
+        qc = QuantumCircuit(2)
+        a = qc.add_stretch("a")
+        qc.h(0)
+        qc.delay(a, 1)
+        qc.cx(0, 1)
+
+        with self.assertRaisesRegex(TranspilerError, "Scheduling cannot run.*stretch"):
+            transpile(
+                qc,
+                backend=GenericBackendV2(num_qubits=2),
+                optimization_level=optimization_level,
+                scheduling_method=scheduling_method,
+                seed_transpiler=42,
+            )
 
     def test_scheduling_backend_v2(self):
         """Test that scheduling method works with Backendv2."""
