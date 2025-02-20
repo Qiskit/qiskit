@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Comparisons of :class:`~.circuit.Delay` instructions, including those within circuits,
+    now require both the units and the duration value to be equal.
+    Fixes `#13812 <https://github.com/Qiskit/qiskit/issues/13812>`__.

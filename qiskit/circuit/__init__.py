@@ -64,6 +64,7 @@ defined as:
 
 
 .. plot::
+   :alt: Circuit diagram output by the previous code.
    :include-source:
 
    from qiskit import QuantumCircuit
@@ -293,6 +294,7 @@ main related classes are:
 * :class:`Parameter`, the atom of compile-time expressions
 * :class:`ParameterExpression`, a symbolic calculation on parameters
 * :class:`ParameterVector`, a convenience collection of many :class:`Parameter`\ s
+* :class:`ParameterVectorElement`, a subclass of :class:`Parameter` used by :class:`ParameterVector`
 
 The :mod:`qiskit.circuit` module also exposes some calculation classes that work with circuits to
 assist compilation workflows.  These include:
@@ -666,12 +668,14 @@ execution.  You can do this assignment using :meth:`QuantumCircuit.assign_parame
 
 You may want to use many parameters that are related to each other.  To make this easier (and to
 avoid you needing to come up with many names), you can use the convenience constructor
-:class:`ParameterVector`.  The elements of the vector are all valid :class:`Parameter` instances.
+:class:`ParameterVector`.  The elements of the vector are all valid :class:`Parameter` instances, of
+a special subclass :class:`ParameterVectorElement`.
 
 .. autosummary::
     :toctree: ../stubs/
 
     ParameterVector
+    ParameterVectorElement
 
 .. _circuit-control-flow-repr:
 
@@ -1140,6 +1144,7 @@ If we draw this circuit, we will see that Qiskit places the zeroth qubit on the 
 drawing:
 
 .. plot::
+    :alt: Circuit diagram output by the previous code.
     :include-source:
     :context:
     :show-source-link: False
@@ -1287,7 +1292,7 @@ from .measure import Measure
 from .reset import Reset
 from .store import Store
 from .parameter import Parameter
-from .parametervector import ParameterVector
+from .parametervector import ParameterVector, ParameterVectorElement
 from .parameterexpression import ParameterExpression
 from .quantumcircuitdata import CircuitInstruction
 from .equivalence import EquivalenceLibrary

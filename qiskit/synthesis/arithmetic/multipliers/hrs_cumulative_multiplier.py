@@ -27,6 +27,7 @@ def multiplier_cumulative_h18(
     performs a non-modular multiplication on two 3-qubit sized registers is:
 
     .. plot::
+        :alt: Circuit diagram output by the previous code.
         :include-source:
 
         from qiskit.synthesis.arithmetic import multiplier_cumulative_h18

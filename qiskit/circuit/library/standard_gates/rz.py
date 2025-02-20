@@ -37,17 +37,17 @@ class RZGate(Gate):
     .. code-block:: text
 
              ┌───────┐
-        q_0: ┤ Rz(λ) ├
+        q_0: ┤ Rz(φ) ├
              └───────┘
 
     **Matrix Representation:**
 
     .. math::
 
-        RZ(\lambda) = \exp\left(-i\frac{\lambda}{2}Z\right) =
+        RZ(\phi) = \exp\left(-i\frac{\phi}{2}Z\right) =
             \begin{pmatrix}
-                e^{-i\frac{\lambda}{2}} & 0 \\
-                0 & e^{i\frac{\lambda}{2}}
+                e^{-i\frac{\phi}{2}} & 0 \\
+                0 & e^{i\frac{\phi}{2}}
             \end{pmatrix}
 
     .. seealso::
@@ -57,7 +57,7 @@ class RZGate(Gate):
 
             .. math::
 
-                U1(\lambda) = e^{i{\lambda}/2}RZ(\lambda)
+                U1(\theta=\phi) = e^{i{\phi}/2}RZ(\phi)
 
         Reference for virtual Z gate implementation:
         `1612.00858 <https://arxiv.org/abs/1612.00858>`_
@@ -186,10 +186,10 @@ class CRZGate(ControlledGate):
     .. math::
 
         CRZ(\theta)\ q_0, q_1 =
-            I \otimes |0\rangle\langle 0| + RZ(\theta) \otimes |1\rangle\langle 1| =
+            I \otimes |0\rangle\langle 0| + RZ(\phi=\theta) \otimes |1\rangle\langle 1| =
             \begin{pmatrix}
                 1 & 0 & 0 & 0 \\
-                0 & e^{-i\frac{\lambda}{2}} & 0 & 0 \\
+                0 & e^{-i\frac{\theta}{2}} & 0 & 0 \\
                 0 & 0 & 1 & 0 \\
                 0 & 0 & 0 & e^{i\frac{\theta}{2}}
             \end{pmatrix}
