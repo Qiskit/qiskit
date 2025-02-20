@@ -534,7 +534,38 @@ class TestScheduledCircuit(QiskitTestCase):
             "P": expected_in_sec / 1e15,
         }
         self.assertEqual(duration, expected_val[unit])
+    @data("s", "dt", "f", "p", "n", "u", "µ", "m", "k", "M", "G", "T", "P")
+    def test_estimate_duration_with_dt_float(self, unit):
+        # This is not a valid use case, but it is still expressible currently
+        # since we don't disallow fractional dt values. This should not be assumed
+        # to be a part of an api contract. If there is a refactor and this test
+        # breaks remove the test it is not valid. This was only added to provide
+        # explicit test coverage for a rust code path.
+        backend = GenericBackendV2(num_qubits=3, seed=42)
 
+        circ = QuantumCircuit(3)
+        circ.cx(0, 1)
+        circ.measure_all()
+        circ.delay(1.23e15, 2, unit="dt")
+        circuit_dt = transpile(circ, backend, scheduling_method="asap")
+        duration = circuit_dt.estimate_duration(backend.target, unit=unit)
+        expected_in_sec = 273060.0000013993
+        expected_val = {
+            "s": expected_in_sec,
+            "dt": int(expected_in_sec / backend.target.dt),
+            "f": expected_in_sec / 1e-15,
+            "p": expected_in_sec / 1e-12,
+            "n": expected_in_sec / 1e-9,
+            "u": expected_in_sec / 1e-6,
+            "µ": expected_in_sec / 1e-6,
+            "m": expected_in_sec / 1e-3,
+            "k": expected_in_sec / 1e3,
+            "M": expected_in_sec / 1e6,
+            "G": expected_in_sec / 1e9,
+            "T": expected_in_sec / 1e12,
+            "P": expected_in_sec / 1e15,
+        }
+        self.assertEqual(duration, expected_val[unit])
     def test_estimate_duration_invalid_unit(self):
         backend = GenericBackendV2(num_qubits=3, seed=42)
 
