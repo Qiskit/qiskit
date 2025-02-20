@@ -109,7 +109,7 @@ def control(
 
     global_phase = 0
 
-    basis = ["p", "u", "x", "z", "rx", "ry", "rz", "cx"]
+    basis = ["p", "u", "x", "z", "y", "h", "sx", "sxdg", "rx", "ry", "rz", "cx"]
 
     if operation.name in basis:
         apply_basic_controlled_gate(controlled_circ, operation, q_control, q_target[0])
@@ -187,7 +187,7 @@ def apply_basic_controlled_gate(circuit, gate, controls, target):
 
     This implements multi-control operations for the following basis gates:
 
-        ["p", "u", "x", "z", "rx", "ry", "rz", "cx"]
+        ["p", "u", "x", "z", "y", "h", "sx", "sxdg", "rx", "ry", "rz", "cx"]
 
     """
     num_ctrl_qubits = len(controls)
@@ -239,29 +239,49 @@ def apply_basic_controlled_gate(circuit, gate, controls, target):
                 circuit.cu(theta, phi, lamb, 0, controls[0], target)
         else:
             if phi == -pi / 2 and lamb == pi / 2:
-                circuit.mcrx(theta, controls, target, use_basis_gates=True)
+                circuit.mcrx(theta, controls, target, use_basis_gates=False)
             elif phi == 0 and lamb == 0:
                 circuit.mcry(
                     theta,
                     controls,
                     target,
-                    use_basis_gates=True,
+                    use_basis_gates=False,
                 )
             elif theta == 0 and phi == 0:
                 circuit.mcp(lamb, controls, target)
             else:
-                circuit.mcp(lamb, controls, target)
-                circuit.mcry(
-                    theta,
-                    controls,
-                    target,
-                    use_basis_gates=True,
-                )
-                circuit.mcp(phi, controls, target)
+                circuit.mcrz(lamb, controls, target, use_basis_gates=False)
+                circuit.mcry(theta, controls, target, use_basis_gates=False)
+                circuit.mcrz(phi, controls, target, use_basis_gates=False)
+                circuit.mcp((phi + lamb) / 2, controls[1:], controls[0])
 
     elif gate.name == "z":
         circuit.h(target)
         circuit.mcx(controls, target)
+        circuit.h(target)
+
+    elif gate.name == "y":
+        circuit.sdg(target)
+        circuit.mcx(controls, target)
+        circuit.s(target)
+
+    elif gate.name == "h":
+        circuit.s(target)
+        circuit.h(target)
+        circuit.t(target)
+        circuit.mcx(controls, target)
+        circuit.tdg(target)
+        circuit.h(target)
+        circuit.sdg(target)
+
+    elif gate.name == "sx":
+        circuit.h(target)
+        circuit.mcp(pi / 2, controls, target)
+        circuit.h(target)
+
+    elif gate.name == "sxdg":
+        circuit.h(target)
+        circuit.mcp(3 * pi / 2, controls, target)
         circuit.h(target)
 
     else:

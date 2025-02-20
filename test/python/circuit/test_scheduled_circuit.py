@@ -57,8 +57,7 @@ class TestScheduledCircuit(QiskitTestCase):
         qc.h(0)  # 195[dt]
         qc.h(1)  # 210[dt]
 
-        with self.assertWarns(DeprecationWarning):
-            backend = GenericBackendV2(2, calibrate_instructions=True, seed=42)
+        backend = GenericBackendV2(2, seed=42)
 
         sc = transpile(qc, backend, scheduling_method="alap", layout_method="trivial")
         self.assertEqual(sc.duration, 451095)
@@ -353,6 +352,7 @@ class TestScheduledCircuit(QiskitTestCase):
         self.assertEqual(sc.qubit_stop_time(2), 0)
         self.assertEqual(sc.qubit_start_time(0, 1), 300)
         self.assertEqual(sc.qubit_stop_time(0, 1), 1400)
+        self.assertEqual(sc.qubit_stop_time(0, 1, 2), 1400)
 
         qc.measure_all()
 
@@ -382,17 +382,12 @@ class TestScheduledCircuit(QiskitTestCase):
 
     def test_per_qubit_durations(self):
         """Test target with custom instruction_durations"""
-        with self.assertWarnsRegex(
-            DeprecationWarning,
-            expected_regex="argument ``calibrate_instructions`` is deprecated",
-        ):
-            target = GenericBackendV2(
-                3,
-                calibrate_instructions=True,
-                coupling_map=[[0, 1], [1, 2]],
-                basis_gates=["cx", "h"],
-                seed=42,
-            ).target
+        target = GenericBackendV2(
+            3,
+            coupling_map=[[0, 1], [1, 2]],
+            basis_gates=["cx", "h"],
+            seed=42,
+        ).target
         target.update_instruction_properties("cx", (0, 1), InstructionProperties(0.00001))
         target.update_instruction_properties("cx", (1, 2), InstructionProperties(0.00001))
         target.update_instruction_properties("h", (0,), InstructionProperties(0.000002))
@@ -435,8 +430,8 @@ class TestScheduledCircuit(QiskitTestCase):
         """Test that circuit duration unit conversion is applied only when necessary.
         Tests fix for bug reported in PR #11782."""
 
+        backend = GenericBackendV2(num_qubits=3, seed=42)
         with self.assertWarns(DeprecationWarning):
-            backend = GenericBackendV2(num_qubits=3, calibrate_instructions=True, seed=42)
             schedule_config = ScheduleConfig(
                 inst_map=backend.target.instruction_schedule_map(),
                 meas_map=backend.meas_map,
@@ -473,6 +468,126 @@ class TestScheduledCircuit(QiskitTestCase):
                     converted_circ.unit,
                     ref_unit,
                 )
+
+    @data("s", "dt", "f", "p", "n", "u", "µ", "m", "k", "M", "G", "T", "P")
+    def test_estimate_duration(self, unit):
+        """Test the circuit duration is computed correctly."""
+        backend = GenericBackendV2(num_qubits=3, seed=42)
+
+        circ = QuantumCircuit(2)
+        circ.cx(0, 1)
+        circ.measure_all()
+
+        circuit_dt = transpile(circ, backend, scheduling_method="asap")
+        duration = circuit_dt.estimate_duration(backend.target, unit=unit)
+        expected_in_sec = 1.815516e-06
+        expected_val = {
+            "s": expected_in_sec,
+            "dt": int(expected_in_sec / backend.target.dt),
+            "f": expected_in_sec / 1e-15,
+            "p": expected_in_sec / 1e-12,
+            "n": expected_in_sec / 1e-9,
+            "u": expected_in_sec / 1e-6,
+            "µ": expected_in_sec / 1e-6,
+            "m": expected_in_sec / 1e-3,
+            "k": expected_in_sec / 1e3,
+            "M": expected_in_sec / 1e6,
+            "G": expected_in_sec / 1e9,
+            "T": expected_in_sec / 1e12,
+            "P": expected_in_sec / 1e15,
+        }
+        self.assertEqual(duration, expected_val[unit])
+
+    @data("s", "dt", "f", "p", "n", "u", "µ", "m", "k", "M", "G", "T", "P")
+    def test_estimate_duration_with_long_delay(self, unit):
+        """Test the circuit duration is computed correctly."""
+        backend = GenericBackendV2(num_qubits=3, seed=42)
+
+        circ = QuantumCircuit(3)
+        circ.cx(0, 1)
+        circ.measure_all()
+        circ.delay(1e15, 2)
+
+        circuit_dt = transpile(circ, backend, scheduling_method="asap")
+        duration = circuit_dt.estimate_duration(backend.target, unit=unit)
+        expected_in_sec = 222000.00000139928
+        expected_val = {
+            "s": expected_in_sec,
+            "dt": int(expected_in_sec / backend.target.dt),
+            "f": expected_in_sec / 1e-15,
+            "p": expected_in_sec / 1e-12,
+            "n": expected_in_sec / 1e-9,
+            "u": expected_in_sec / 1e-6,
+            "µ": expected_in_sec / 1e-6,
+            "m": expected_in_sec / 1e-3,
+            "k": expected_in_sec / 1e3,
+            "M": expected_in_sec / 1e6,
+            "G": expected_in_sec / 1e9,
+            "T": expected_in_sec / 1e12,
+            "P": expected_in_sec / 1e15,
+        }
+        self.assertEqual(duration, expected_val[unit])
+
+    def test_estimate_duration_invalid_unit(self):
+        backend = GenericBackendV2(num_qubits=3, seed=42)
+
+        circ = QuantumCircuit(2)
+        circ.cx(0, 1)
+        circ.measure_all()
+
+        circuit_dt = transpile(circ, backend, scheduling_method="asap")
+        with self.assertRaises(QiskitError):
+            circuit_dt.estimate_duration(backend.target, unit="jiffy")
+
+    def test_delay_circ(self):
+        backend = GenericBackendV2(num_qubits=3, seed=42)
+
+        circ = QuantumCircuit(2)
+        circ.delay(100, 0, unit="dt")
+
+        circuit_dt = transpile(circ, backend, scheduling_method="asap")
+        res = circuit_dt.estimate_duration(backend.target, unit="dt")
+        self.assertIsInstance(res, int)
+        self.assertEqual(res, 100)
+
+    def test_estimate_duration_control_flow(self):
+        backend = GenericBackendV2(num_qubits=3, seed=42, control_flow=True)
+
+        circ = QuantumCircuit(2)
+        circ.cx(0, 1)
+        circ.measure_all()
+        with circ.if_test((0, True)):
+            circ.x(0)
+        with self.assertRaises(QiskitError):
+            circ.estimate_duration(backend.target)
+
+    def test_estimate_duration_with_var(self):
+        backend = GenericBackendV2(num_qubits=3, seed=42, control_flow=True)
+
+        circ = QuantumCircuit(2)
+        circ.cx(0, 1)
+        circ.measure_all()
+        circ.add_var("a", False)
+        with self.assertRaises(QiskitError):
+            circ.estimate_duration(backend.target)
+
+    def test_estimate_duration_parameterized_delay(self):
+        backend = GenericBackendV2(num_qubits=3, seed=42, control_flow=True)
+
+        circ = QuantumCircuit(2)
+        circ.cx(0, 1)
+        circ.measure_all()
+        circ.delay(Parameter("t"), 0)
+        with self.assertRaises(QiskitError):
+            circ.estimate_duration(backend.target)
+
+    def test_estimate_duration_dt_delay_no_dt(self):
+        backend = GenericBackendV2(num_qubits=3, seed=42)
+        circ = QuantumCircuit(1)
+        circ.delay(100, 0)
+        backend.target.dt = None
+        with self.assertRaises(QiskitError):
+            circ.estimate_duration(backend.target)
 
     def test_change_dt_in_transpile(self):
         qc = QuantumCircuit(1, 1)
