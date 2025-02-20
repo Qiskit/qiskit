@@ -8,7 +8,7 @@ prelude: |
     v1.3.x to v1.4.0 so that you're able to see the warnings about which
     interfaces will change with Qiskit 2.0.0.
     The v1.4.x release series will continue to be supported and receive
-    bugfix fixes for 6 months and security for 1 year after this
+    bugfixes  for 6 months and security fixes for 1 year after this
     release. The fixes will take place via patch releases.
     For more details on the release schedule and support cycle
     see: https://docs.quantum.ibm.com/start/install#qiskit-versioning
@@ -58,7 +58,7 @@ deprecations_circuits:
     dependency on the external library ``tweedledum``, which is no longer 
     compatible with all of Qiskit's supported platforms and Python versions.
     For a similar functionality please use the :class:`.PhaseOracle` which
-    is going to have a ``tweedledum``-independent implementation, and
+    is going to have an implementation that doesn't use ``tweedledum``, and
     the ``BitFlipOracle`` which will be added in Qiskit v2.0.0.
 
     Until ``BitFlipOracle`` is added, a phase-flip oracle can be converted
@@ -137,7 +137,7 @@ deprecations_transpiler:
     removed in the Qiskit v2.0.0 release. These attributes were originally used
     as a lexicographical key for topological sorting nodes in a 
     :class:`.DAGCircuit`. However, the key is no longer used for this
-    as the sorting is done internally in ``Rust`` code now. If you're using this
+    as the sorting is done internally in Rust code now. If you're using this
     attribute, you can recreate the key from the other attributes
     of a node. For example, you can use a function like::
 
