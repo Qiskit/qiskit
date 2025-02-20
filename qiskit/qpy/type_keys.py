@@ -583,7 +583,7 @@ class CircuitDuration(TypeKeyBase):
             return cls.US
         elif isinstance(obj, Duration.ms):
             return cls.MS
-        elif isinstance(obj, Duration.sec):
+        elif isinstance(obj, Duration.s):
             return cls.S
         else:
             raise exceptions.QpyError(
