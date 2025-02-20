@@ -72,7 +72,7 @@ class Result:
                 true_kwargs[key] = value
         # Step 2: iterate over args, which are expected in the order of the index_map below.
         index_map = ["backend_name", "backend_version", "qobj_id", "job_id", "success", "results"]
-        for i in range(4):
+        for i in range(len(index_map):
             try:
                 value = args[i]
                 required_args[index_map[i]] = value
