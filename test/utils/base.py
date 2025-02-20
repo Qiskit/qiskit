@@ -212,7 +212,9 @@ class QiskitTestCase(BaseTestCase):
         warnings.filterwarnings(
             "ignore",
             category=DeprecationWarning,
-            message=r"The `qobj_id` argument will no longer be used in Qiskit 2\.0, but it will still be possible to set as a kwarg that will land in the metadata field\.",
+            message=r"The `qobj_id` argument will no longer be used in Qiskit 2.*0, "
+            "but it will still be possible to set as a kwarg that will land in "
+            "the metadata field.",
             module="qiskit",
         )
 

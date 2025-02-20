@@ -12,6 +12,7 @@
 
 """Model for schema-conformant Results."""
 
+from collections.abc import Iterable
 import copy
 import warnings
 
@@ -85,18 +86,20 @@ class Result:
         index_map = ["backend_name", "backend_version", "qobj_id", "job_id", "success", "results"]
         raise_qobj = False
         missing_args = []
-        for i in range(len(index_map)):
+        for index, name in enumerate(index_map):
             try:
-                value = args[i]
-                required_args[index_map[i]] = value
+                value = args[index]
+                required_args[name] = value
                 # The use of args is deprecated in 1.4 and will be removed in 2.0.
                 # Furthermore, qobj_id will be ignored if set as a kwarg in 2.0.
-                if index_map[i] == "qobj_id":
+                if name == "qobj_id":
                     warnings.warn(
                         "The use of positional arguments in `qiskit.result.result.Result.__init__()` "
                         "is deprecated as of Qiskit 1.4, and will be disabled in Qiskit 2.0. "
-                        f"Please set this value using kwarg syntax, i.e: `Result(...,{index_map[i]}={index_map[i]}_value)`. "
-                        "The `qobj_id` argument will no longer be used in Qiskit 2.0, but it will still be possible to "
+                        "Please set this value using kwarg syntax, "
+                        f"i.e: `Result(...,{name}={name}_value)`. "
+                        "The `qobj_id` argument will no longer be used in Qiskit 2.0, "
+                        "but it will still be possible to "
                         "set as a kwarg that will land in the metadata field.",
                         category=DeprecationWarning,
                         stacklevel=2,
@@ -105,16 +108,17 @@ class Result:
                     warnings.warn(
                         "The use of positional arguments in `qiskit.result.result.Result.__init__()` "
                         "is deprecated as of Qiskit 1.4, and will be disabled in Qiskit 2.0. "
-                        f"Please set this value using kwarg syntax, i.e: `Result(...,{index_map[i]}={index_map[i]}_value)`. ",
+                        "Please set this value using kwarg syntax, "
+                        f"i.e: `Result(...,{name}={name}_value)`. ",
                         category=DeprecationWarning,
                         stacklevel=2,
                     )
             except IndexError:
-                if required_args[index_map[i]] is _MISSING:
+                if required_args[name] is _MISSING:
                     missing_args = [
-                        key for key in required_args.keys() if required_args[key] is _MISSING
+                        key for (key, value) in required_args.items() if value is _MISSING
                     ]
-                elif index_map[i] == "qobj_id":
+                elif name == "qobj_id":
                     raise_qobj = True
                 break
 
@@ -124,12 +128,13 @@ class Result:
             raise TypeError(
                 f"Result.__init__() missing {len(missing_args)} required arguments: {missing_args}"
             )
-        elif len(missing_args) == 1:
+        if len(missing_args) == 1:
             raise TypeError(f"Result.__init__() missing a required argument: {missing_args[0]}")
-        elif raise_qobj:
+        if raise_qobj:
             # qobj_id will be ignored if set as a kwarg in 2.0.
             warnings.warn(
-                "The `qobj_id` argument will no longer be used in Qiskit 2.0, but it will still be possible to "
+                "The `qobj_id` argument will no longer be used in Qiskit 2.0, "
+                "but it will still be possible to "
                 "set as a kwarg that will land in the metadata field.",
                 category=DeprecationWarning,
                 stacklevel=2,
@@ -141,7 +146,11 @@ class Result:
         self.qobj_id = required_args["qobj_id"]
         self.job_id = required_args["job_id"]
         self.success = required_args["success"]
-        self.results = required_args["results"]
+        self.results = (
+            [required_args["results"]]
+            if not isinstance(required_args["results"], Iterable)
+            else required_args["results"]
+        )
         self.date = date
         self.status = status
         self.header = header

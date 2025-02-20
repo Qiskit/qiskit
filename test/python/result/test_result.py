@@ -793,7 +793,7 @@ class TestResultOperationsFailed(QiskitTestCase):
             with self.assertWarnsRegex(
                 DeprecationWarning,
                 expected_regex=r"The use of positional arguments in "
-                "`qiskit\.result\.result\.Result\.__init__\(\)` is deprecated as of Qiskit 1\.4",
+                r"`qiskit.result.result.Result.__init__\(\)` is deprecated as of Qiskit 1.4",
             ):
                 _ = Result("test_backend", "1.0.0", "id-123", "job-123", True, [exp_result_1])
 
@@ -809,6 +809,6 @@ class TestResultOperationsFailed(QiskitTestCase):
             with self.assertWarnsRegex(
                 DeprecationWarning,
                 expected_regex=r"The use of positional arguments in "
-                "`qiskit\.result\.result\.Result\.__init__\(\)` is deprecated as of Qiskit 1\.4",
+                r"`qiskit.result.result.Result.__init__\(\)` is deprecated as of Qiskit 1.4",
             ):
                 _ = Result("test_backend", **result_args)
