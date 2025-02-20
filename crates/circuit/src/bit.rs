@@ -23,7 +23,7 @@ use crate::{
         QuantumRegister, RegisterInfo,
     },
 };
-use pyo3::{exceptions::PyRuntimeError, prelude::*, types::PyDict, IntoPyObjectExt};
+use pyo3::{prelude::*, types::PyDict};
 
 /// Counter for all existing anonymous Qubit instances.
 static BIT_COUNTER: AtomicU64 = AtomicU64::new(0);
@@ -261,41 +261,10 @@ impl PyBit {
         Ok(hasher.finish())
     }
 
-    fn __getstate__(slf: Bound<Self>, py: Python) -> PyResult<PyObject> {
-        let borrowed = slf.borrow();
-        match &borrowed.0 {
-            BitInfo::Owned { index, .. } => (slf.getattr("_register")?, *index).into_py_any(py),
-            BitInfo::Anonymous { unique_id, .. } => unique_id.into_py_any(py),
-        }
-    }
-
-    fn __setstate__(&mut self, state: &Bound<PyAny>) -> PyResult<()> {
-        if let Ok((register, index)) = state.extract::<(PyRegister, u32)>() {
-            let RegisterInfo::Owning(_reg) = register.0.as_ref() else {
-                return Err(PyRuntimeError::new_err(format!(
-                    "Error during deserialization of 'Bit'. Provided state: {}",
-                    state.repr()?
-                )));
-            };
-            self.0 = register
-                .0
-                .get(index as usize)
-                .ok_or(PyRuntimeError::new_err(format!(
-                    "Error during deserialization of 'Bit': index out of range. Provided state: {}",
-                    state.repr()?
-                )))?;
-        } else if let Ok(unique) = state.extract::<u64>() {
-            self.0 = BitInfo::Anonymous {
-                unique_id: unique,
-                extra: None,
-            };
-        } else {
-            return Err(PyRuntimeError::new_err(format!(
-                "Error during serialization of 'Bit', provided state: {}",
-                state.repr()?
-            )));
-        }
-        Ok(())
+    fn __getnewargs__(
+        slf: Bound<'_, Self>,
+    ) -> PyResult<(Bound<'_, PyAny>, Bound<'_, PyAny>)> {
+        Ok((slf.getattr("_register")?, slf.getattr("_index")?))
     }
 }
 
