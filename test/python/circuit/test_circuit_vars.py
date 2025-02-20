@@ -23,7 +23,10 @@ class TestCircuitVars(QiskitTestCase):
     tested in the suites of the specific methods."""
 
     def test_initialise_inputs(self):
-        vars_ = [expr.Var.new("a", types.Bool()), expr.Var.new("b", types.Uint(16))]
+        vars_ = [
+            expr.Var.new("a", types.Bool()),
+            expr.Var.new("b", types.Uint(16)),
+        ]
         qc = QuantumCircuit(inputs=vars_)
         self.assertEqual(set(vars_), set(qc.iter_vars()))
         self.assertEqual(qc.num_vars, len(vars_))
@@ -32,7 +35,11 @@ class TestCircuitVars(QiskitTestCase):
         self.assertEqual(qc.num_declared_vars, 0)
 
     def test_initialise_captures(self):
-        vars_ = [expr.Var.new("a", types.Bool()), expr.Var.new("b", types.Uint(16))]
+        vars_ = [
+            expr.Var.new("a", types.Bool()),
+            expr.Var.new("b", types.Uint(16)),
+            expr.Var.new("c", types.Stretch()),
+        ]
         qc = QuantumCircuit(captures=vars_)
         self.assertEqual(set(vars_), set(qc.iter_vars()))
         self.assertEqual(qc.num_vars, len(vars_))
@@ -56,7 +63,10 @@ class TestCircuitVars(QiskitTestCase):
             (instruction.operation.name, instruction.operation.lvalue, instruction.operation.rvalue)
             for instruction in qc.data
         ]
-        self.assertEqual(operations, [("store", lvalue, rvalue) for lvalue, rvalue in vars_])
+        self.assertEqual(
+            operations,
+            [("store", lvalue, rvalue) for lvalue, rvalue in vars_],
+        )
 
     def test_initialise_declarations_mapping(self):
         # Dictionary iteration order is guaranteed to be insertion order.
@@ -92,6 +102,12 @@ class TestCircuitVars(QiskitTestCase):
         ]
         self.assertEqual(operations, [("store", lvalue, rvalue) for lvalue, rvalue in vars_])
 
+    def test_initialise_declarations_rejects_const_vars(self):
+        a = expr.Var.new("a", types.Uint(16, const=True))
+        a_init = expr.lift(12, try_const=True)
+        with self.assertRaisesRegex(CircuitError, "const variables.*not supported"):
+            QuantumCircuit(declarations=[(a, a_init)])
+
     def test_initialise_inputs_declarations(self):
         a = expr.Var.new("a", types.Uint(16))
         b = expr.Var.new("b", types.Uint(16))
@@ -110,6 +126,11 @@ class TestCircuitVars(QiskitTestCase):
             for instruction in qc.data
         ]
         self.assertEqual(operations, [("store", b, b_init)])
+
+    def test_initialise_inputs_declarations_rejects_const_vars(self):
+        a = expr.Var.new("a", types.Uint(16, const=True))
+        with self.assertRaisesRegex(CircuitError, "const variables.*not supported"):
+            QuantumCircuit(inputs=[a])
 
     def test_initialise_captures_declarations(self):
         a = expr.Var.new("a", types.Uint(16))
@@ -137,6 +158,12 @@ class TestCircuitVars(QiskitTestCase):
         self.assertEqual({a}, set(qc.iter_vars()))
         self.assertEqual([], list(qc.data))
 
+    def test_add_uninitialized_var_rejects_const_lvalue(self):
+        a = expr.Var.new("a", types.Bool(const=True))
+        qc = QuantumCircuit()
+        with self.assertRaisesRegex(CircuitError, "const variables.*not supported"):
+            qc.add_uninitialized_var(a)
+
     def test_add_var_returns_good_var(self):
         qc = QuantumCircuit()
         a = qc.add_var("a", expr.lift(True))
@@ -147,12 +174,52 @@ class TestCircuitVars(QiskitTestCase):
         self.assertEqual(b.name, "b")
         self.assertEqual(b.type, types.Uint(8))
 
+    def test_add_stretch_returns_good_var(self):
+        qc = QuantumCircuit()
+        a = qc.add_stretch("a")
+        self.assertEqual(a.name, "a")
+        self.assertEqual(a.type, types.Stretch())
+
     def test_add_var_returns_input(self):
         """Test that the `Var` returned by `add_var` is the same as the input if `Var`."""
         a = expr.Var.new("a", types.Bool())
         qc = QuantumCircuit()
         a_other = qc.add_var(a, expr.lift(True))
         self.assertIs(a, a_other)
+
+    def test_add_stretch_returns_input(self):
+        a = expr.Var.new("a", types.Stretch())
+        qc = QuantumCircuit()
+        a_other = qc.add_stretch(a)
+        self.assertIs(a, a_other)
+
+    def test_add_var_rejects_const_lvalue(self):
+        a = expr.Var.new("a", types.Bool(const=True))
+        qc = QuantumCircuit()
+        with self.assertRaisesRegex(CircuitError, "const variables.*not supported"):
+            qc.add_var(a, True)
+
+    def test_add_var_implicitly_casts_const_rvalue(self):
+        a = expr.Var.new("a", types.Bool())
+        qc = QuantumCircuit()
+        qc.add_var(a, expr.lift(True, try_const=True))
+        self.assertEqual(qc.num_vars, 1)
+        operations = [
+            (instruction.operation.name, instruction.operation.lvalue, instruction.operation.rvalue)
+            for instruction in qc.data
+        ]
+        self.assertEqual(
+            operations,
+            [
+                (
+                    "store",
+                    a,
+                    expr.Cast(
+                        expr.Value(True, types.Bool(const=True)), types.Bool(), implicit=True
+                    ),
+                )
+            ],
+        )
 
     def test_add_input_returns_good_var(self):
         qc = QuantumCircuit()
@@ -170,6 +237,14 @@ class TestCircuitVars(QiskitTestCase):
         qc = QuantumCircuit()
         a_other = qc.add_input(a)
         self.assertIs(a, a_other)
+
+    def test_add_input_rejects_const_var(self):
+        a = expr.Var.new("a", types.Bool(const=True))
+        qc = QuantumCircuit()
+        with self.assertRaisesRegex(CircuitError, "const variables.*not supported"):
+            qc.add_input(a)
+        with self.assertRaisesRegex(CircuitError, "const variables.*not supported"):
+            qc.add_input("a", types.Bool(const=True))
 
     def test_cannot_have_both_inputs_and_captures(self):
         a = expr.Var.new("a", types.Bool())
@@ -214,11 +289,13 @@ class TestCircuitVars(QiskitTestCase):
     def test_initialise_captures_equal_to_add_capture(self):
         a = expr.Var.new("a", types.Bool())
         b = expr.Var.new("b", types.Uint(16))
+        c = expr.Var.new("c", types.Stretch())
 
-        qc_init = QuantumCircuit(captures=[a, b])
+        qc_init = QuantumCircuit(captures=[a, b, c])
         qc_manual = QuantumCircuit()
         qc_manual.add_capture(a)
         qc_manual.add_capture(b)
+        qc_manual.add_capture(c)
         self.assertEqual(list(qc_init.iter_vars()), list(qc_manual.iter_vars()))
 
     def test_initialise_declarations_equal_to_add_var(self):
@@ -379,7 +456,13 @@ class TestCircuitVars(QiskitTestCase):
         self.assertIs(qc.get_var("a"), a)
         self.assertIs(qc.get_var("b"), b)
 
-        qc = QuantumCircuit(declarations={a: expr.lift(True), b: expr.Value(0xFF, types.Uint(8))})
+        qc = QuantumCircuit(
+            inputs=[],
+            declarations={
+                a: expr.lift(True),
+                b: expr.Value(0xFF, types.Uint(8)),
+            },
+        )
         self.assertIs(qc.get_var("a"), a)
         self.assertIs(qc.get_var("b"), b)
 
@@ -399,9 +482,11 @@ class TestCircuitVars(QiskitTestCase):
 
         missing = "default"
         a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Stretch())
         qc.add_input(a)
-        self.assertIs(qc.get_var("b", missing), missing)
-        self.assertIs(qc.get_var("b", a), a)
+        self.assertIs(qc.get_var("c", missing), missing)
+        self.assertIs(qc.get_var("c", a), a)
+        self.assertIs(qc.get_var("c", b), b)
 
     def test_has_var(self):
         a = expr.Var.new("a", types.Bool())
@@ -416,3 +501,5 @@ class TestCircuitVars(QiskitTestCase):
         # When giving an `Var`, the match must be exact, not just the name.
         self.assertFalse(QuantumCircuit(inputs=[a]).has_var(expr.Var.new("a", types.Uint(8))))
         self.assertFalse(QuantumCircuit(inputs=[a]).has_var(expr.Var.new("a", types.Bool())))
+        self.assertFalse(QuantumCircuit(inputs=[a]).has_var(expr.Var.new("a", types.Float())))
+        self.assertFalse(QuantumCircuit(inputs=[a]).has_var(expr.Var.new("a", types.Stretch())))

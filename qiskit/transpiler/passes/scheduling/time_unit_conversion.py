@@ -14,12 +14,14 @@
 from typing import Set
 import warnings
 
-from qiskit.circuit import Delay
+from qiskit.circuit import Delay, Duration
+from qiskit.circuit.classical import expr, types
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.target import Target
+from qiskit.utils import apply_prefix
 
 
 class TimeUnitConversion(TransformationPass):
@@ -69,43 +71,73 @@ class TimeUnitConversion(TransformationPass):
 
         inst_durations = self._update_inst_durations(dag)
 
+        # The float-value converted units for delay expressions, either all in 'dt'
+        # or all in seconds.
+        expression_durations = {}
+
         # Choose unit
-        if inst_durations.dt is not None:
-            time_unit = "dt"
-        else:
-            # Check what units are used in delays and other instructions: dt or SI or mixed
-            units_delay = self._units_used_in_delays(dag)
-            if self._unified(units_delay) == "mixed":
+        has_dt = False
+        has_si = False
+
+        # We _always_ need to traverse duration expressions to convert them to
+        # a float. But we also use the opportunity to note if they intermix cycles
+        # and wall-time, in case we don't have a `dt` to use to unify all instruction
+        # durations.
+        for node in dag.op_nodes(op=Delay):
+            if isinstance(node.op.duration, expr.Expr):
+                if node.op.duration.type.kind is types.Stretch:
+                    # If any of the delays use a stretch expression, we can't run scheduling
+                    # passes anyway, so we bail out. In theory, we _could_ still traverse
+                    # through the stretch expression and replace any Duration value nodes it may
+                    # contain with ones of the same units, but it'd be complex and probably unuseful.
+                    self.property_set["time_unit"] = "stretch"
+                    return dag
+
+                visitor = _EvalDurationImpl(inst_durations.dt)
+                duration = node.op.duration.accept(visitor)
+                expression_durations[node._node_id] = duration
+                if visitor.in_cycles():
+                    has_dt = True
+                else:
+                    has_si = True
+            else:
+                if node.op.unit == "dt":
+                    has_dt = True
+                else:
+                    has_si = True
+            if inst_durations.dt is None and has_dt and has_si:
                 raise TranspilerError(
                     "Fail to unify time units in delays. SI units "
                     "and dt unit must not be mixed when dt is not supplied."
                 )
-            units_other = inst_durations.units_used()
-            if self._unified(units_other) == "mixed":
-                raise TranspilerError(
-                    "Fail to unify time units in instruction_durations. SI units "
-                    "and dt unit must not be mixed when dt is not supplied."
-                )
 
-            unified_unit = self._unified(units_delay | units_other)
-            if unified_unit == "SI":
+        if inst_durations.dt is None:
+            # Check what units are used in other instructions: dt or SI or mixed
+            units_other = inst_durations.units_used()
+            unified_unit = self._unified(units_other)
+            if unified_unit == "SI" and not has_dt:
                 time_unit = "s"
-            elif unified_unit == "dt":
+            elif unified_unit == "dt" and not has_si:
                 time_unit = "dt"
             else:
                 raise TranspilerError(
                     "Fail to unify time units. SI units "
                     "and dt unit must not be mixed when dt is not supplied."
                 )
+        else:
+            time_unit = "dt"
 
         # Make units consistent
         for node in dag.op_nodes():
-            try:
-                duration = inst_durations.get(
-                    node.op, [dag.find_bit(qarg).index for qarg in node.qargs], unit=time_unit
-                )
-            except TranspilerError:
-                continue
+            if node._node_id in expression_durations:
+                duration = expression_durations[node._node_id]
+            else:
+                try:
+                    duration = inst_durations.get(
+                        node.op, [dag.find_bit(qarg).index for qarg in node.qargs], unit=time_unit
+                    )
+                except TranspilerError:
+                    continue
             op = node.op.to_mutable()
             op.duration = duration
             op.unit = time_unit
@@ -142,6 +174,12 @@ class TimeUnitConversion(TransformationPass):
     def _units_used_in_delays(dag: DAGCircuit) -> Set[str]:
         units_used = set()
         for node in dag.op_nodes(op=Delay):
+            if (
+                isinstance(node.op.duration, expr.Expr)
+                and node.op.duration.type.kind is types.Stretch
+            ):
+                units_used.add("stretch")
+                continue
             units_used.add(node.op.unit)
         return units_used
 
@@ -163,3 +201,73 @@ class TimeUnitConversion(TransformationPass):
             return "SI"
 
         return "mixed"
+
+
+_DURATION_KIND_NAME = {
+    Duration.dt: "dt",
+    Duration.ns: "ns",
+    Duration.us: "us",
+    Duration.ms: "ms",
+    Duration.s: "s",
+}
+
+
+class _EvalDurationImpl(expr.ExprVisitor[float]):
+    """Evaluates the expression to a single float result.
+
+    If `dt` is provided or all durations are already in `dt`, the result is in `dt`.
+    Otherwise, the result will be in seconds, and all durations MUST be in wall-time (SI).
+    """
+
+    __slots__ = ("dt", "has_dt", "has_si")
+
+    def __init__(self, dt: float | None = None):
+        self.dt = dt if dt is not None else 1
+        self.has_dt = False
+        self.has_si = False
+
+    def in_cycles(self):
+        return self.has_dt or self.dt != 1
+
+    def visit_value(self, node, /) -> float:
+        if isinstance(node.value, float):
+            return node.value
+        if isinstance(node.value, Duration.dt):
+            if self.has_si and self.dt == 1:
+                raise TranspilerError(
+                    "Fail to unify time units in delays. SI units "
+                    "and dt unit must not be mixed when dt is not supplied."
+                )
+            self.has_dt = True
+            return node.value[0]
+        if isinstance(node.value, Duration):
+            if self.has_dt and self.dt == 1:
+                raise TranspilerError(
+                    "Fail to unify time units in delays. SI units "
+                    "and dt unit must not be mixed when dt is not supplied."
+                )
+            self.has_si = True
+            if isinstance(node.value, Duration.s):
+                return node.value[0] / self.dt
+            from_unit = _DURATION_KIND_NAME.get(type(node.value))
+            return apply_prefix(node.value[0], from_unit) / self.dt
+        raise TranspilerError(f"invalid duration expression: {node}")
+
+    def visit_binary(self, node, /) -> float:
+        left = node.left.accept(self)
+        right = node.right.accept(self)
+        if node.op == expr.Binary.Op.ADD:
+            return left + right
+        if node.op == expr.Binary.Op.SUB:
+            return left - right
+        if node.op == expr.Binary.Op.MUL:
+            return left * right
+        if node.op == expr.Binary.Op.DIV:
+            return left / right
+        raise TranspilerError(f"invalid duration expression: {node}")
+
+    def visit_cast(self, node, /) -> float:
+        return node.operand.accept(self)
+
+    def visit_index(self, node, /) -> float:
+        return node.target.accept(self)

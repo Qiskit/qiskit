@@ -1034,7 +1034,7 @@ class QuantumCircuit:
                 :meth:`QuantumCircuit.add_input`.  The variables given in this argument will be
                 passed directly to :meth:`add_input`.  A circuit cannot have both ``inputs`` and
                 ``captures``.
-            captures: any variables that that this circuit scope should capture from a containing
+            captures: any variables that this circuit scope should capture from a containing
                 scope.  The variables given here will be passed directly to :meth:`add_capture`.  A
                 circuit cannot have both ``inputs`` and ``captures``.
             declarations: any variables that this circuit should declare and initialize immediately.
@@ -2837,6 +2837,31 @@ class QuantumCircuit:
             raise CircuitError(f"cannot add '{var}' as its name shadows the existing '{previous}'")
         return var
 
+    def add_stretch(self, name_or_var: str | expr.Var) -> expr.Var:
+        """Declares a new stretch variable scoped to this circuit.
+
+        Args:
+            name_or_var: either a string of the stretch variable name, or an existing instance of
+                :class:`~.expr.Var` to re-use.  Variables cannot shadow names that are already in
+                use within the circuit. The type of the variable must be
+                :class:`~.types.Stretch`.
+        Returns:
+            The created variable.  If a :class:`~.expr.Var` instance was given, the exact same
+            object will be returned.
+        Raises:
+            CircuitError: if the stretch variable cannot be created due to shadowing an existing
+                variable, or the provided :class:`~.expr.Var` is not typed as a
+                :class:`~.types.Stretch`.
+        """
+        if isinstance(name_or_var, str):
+            var = expr.Var.new(name_or_var, types.Stretch())
+        elif name_or_var.type.kind is not types.Stretch:
+            raise CircuitError(f"cannot add stretch variable of type {name_or_var.type}")
+        else:
+            var = name_or_var
+        self._current_scope().add_uninitialized_var(var)
+        return var
+
     def add_var(self, name_or_var: str | expr.Var, /, initial: typing.Any) -> expr.Var:
         """Add a classical variable with automatic storage and scope to this circuit.
 
@@ -2846,13 +2871,14 @@ class QuantumCircuit:
 
         Args:
             name_or_var: either a string of the variable name, or an existing instance of
-                :class:`~.expr.Var` to re-use.  Variables cannot shadow names that are already in
-                use within the circuit.
+                a non-const-typed :class:`~.expr.Var` to re-use.  Variables cannot shadow names
+                that are already in use within the circuit.
             initial: the value to initialize this variable with.  If the first argument was given
                 as a string name, the type of the resulting variable is inferred from the initial
                 expression; to control this more manually, either use :meth:`.Var.new` to manually
                 construct a new variable with the desired type, or use :func:`.expr.cast` to cast
-                the initializer to the desired type.
+                the initializer to the desired type. If a const-typed expression is provided, it
+                will be automatically cast to its non-const counterpart.
 
                 This must be either a :class:`~.expr.Expr` node, or a value that can be lifted to
                 one using :class:`.expr.lift`.
@@ -2862,7 +2888,8 @@ class QuantumCircuit:
             object will be returned.
 
         Raises:
-            CircuitError: if the variable cannot be created due to shadowing an existing variable.
+            CircuitError: if the variable cannot be created due to shadowing an existing variable
+                or a const variable was specified for ``name_or_var``.
 
         Examples:
             Define a new variable given just a name and an initializer expression::
@@ -2903,17 +2930,18 @@ class QuantumCircuit:
         # Validate the initializer first to catch cases where the variable to be declared is being
         # used in the initializer.
         circuit_scope = self._current_scope()
-        # Convenience method to widen Python integer literals to the right width during the initial
-        # lift, if the type is already known via the variable.
-        if (
-            isinstance(name_or_var, expr.Var)
-            and name_or_var.type.kind is types.Uint
-            and isinstance(initial, int)
-            and not isinstance(initial, bool)
-        ):
-            coerce_type = name_or_var.type
-        else:
-            coerce_type = None
+        coerce_type = None
+        if isinstance(name_or_var, expr.Var):
+            if name_or_var.type.const:
+                raise CircuitError("const variables are not supported.")
+            if (
+                name_or_var.type.kind is types.Uint
+                and isinstance(initial, int)
+                and not isinstance(initial, bool)
+            ):
+                # Convenience method to widen Python integer literals to the right width during
+                # the initial lift, if the type is already known via the variable.
+                coerce_type = name_or_var.type
         initial = _validate_expr(circuit_scope, expr.lift(initial, coerce_type))
         if isinstance(name_or_var, str):
             var = expr.Var.new(name_or_var, initial.type)
@@ -2964,6 +2992,8 @@ class QuantumCircuit:
             raise CircuitError("cannot add an uninitialized variable in a control-flow scope")
         if not var.standalone:
             raise CircuitError("cannot add a variable wrapping a bit or register to a circuit")
+        if var.type.const and var.type.kind is not types.Stretch:
+            raise CircuitError("const variables are not supported.")
         self._builder_api.add_uninitialized_var(var)
 
     def add_capture(self, var: expr.Var):
@@ -3026,8 +3056,14 @@ class QuantumCircuit:
             raise CircuitError("cannot add an input variable in a control-flow scope")
         if self._vars_capture:
             raise CircuitError("circuits to be enclosed with captures cannot have input variables")
-        if isinstance(name_or_var, expr.Var) and type_ is not None:
-            raise ValueError("cannot give an explicit type with an existing Var")
+        if isinstance(name_or_var, expr.Var):
+            if type_ is not None:
+                raise ValueError("cannot give an explicit type with an existing Var")
+            if name_or_var.type.const:
+                raise CircuitError("const variables are not supported")
+        elif type_ is not None and type_.const:
+            raise CircuitError("const variables are not supported")
+
         var = self._prepare_new_var(name_or_var, type_)
         self._vars_input[var.name] = var
         return var
@@ -3956,7 +3992,7 @@ class QuantumCircuit:
             circ = self.copy()
         dag = circuit_to_dag(circ)
         qubits_to_measure = [qubit for qubit in circ.qubits if qubit not in dag.idle_wires()]
-        new_creg = circ._create_creg(len(qubits_to_measure), "measure")
+        new_creg = circ._create_creg(len(qubits_to_measure), "meas")
         circ.add_register(new_creg)
         circ.barrier()
         circ.measure(qubits_to_measure, new_creg)
@@ -4495,17 +4531,20 @@ class QuantumCircuit:
 
     def delay(
         self,
-        duration: ParameterValueType,
+        duration: ParameterValueType | expr.Expr,
         qarg: QubitSpecifier | None = None,
-        unit: str = "dt",
+        unit: str | None = None,
     ) -> InstructionSet:
         """Apply :class:`~.circuit.Delay`. If qarg is ``None``, applies to all qubits.
         When applying to multiple qubits, delays with the same duration will be created.
 
         Args:
-            duration (int or float or ParameterExpression): duration of the delay.
+            duration (int or float or ParameterExpression or :class:`~.expr.Expr`):
+                duration of the delay. If this is an :class:`~.expr.Expr`, it must be
+                of type :class:`~.types.Duration` or :class:`~.types.Stretch`.
             qarg (Object): qubit argument to apply this delay.
-            unit (str): unit of the duration. Supported units: ``'s'``, ``'ms'``, ``'us'``,
+            unit (str | None): unit of the duration, unless ``duration`` is an :class:`~.expr.Expr`
+                in which case it must not be specified. Supported units: ``'s'``, ``'ms'``, ``'us'``,
                 ``'ns'``, ``'ps'``, and ``'dt'``. Default is ``'dt'``, i.e. integer time unit
                 depending on the target backend.
 

@@ -27,7 +27,7 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.passmanager_config import PassManagerConfig
-from qiskit.transpiler.target import Target, target_to_backend_properties
+from qiskit.transpiler.target import Target
 from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.utils import deprecate_arg
 from qiskit.utils.deprecate_pulse import deprecate_pulse_arg
@@ -56,14 +56,6 @@ from .level3 import level_3_pass_manager
     "with defined timing constraints with "
     "`Target.from_configuration(..., timing_constraints=...)`",
 )
-@deprecate_arg(
-    name="backend_properties",
-    since="1.3",
-    package_name="Qiskit",
-    removal_timeline="in Qiskit 2.0",
-    additional_msg="The `target` parameter should be used instead. You can build a `Target` instance "
-    "with defined properties with Target.from_configuration(..., backend_properties=...)",
-)
 @deprecate_pulse_arg("inst_map", predicate=lambda inst_map: inst_map is not None)
 def generate_preset_pass_manager(
     optimization_level=2,
@@ -73,7 +65,6 @@ def generate_preset_pass_manager(
     inst_map=None,
     coupling_map=None,
     instruction_durations=None,
-    backend_properties=None,
     timing_constraints=None,
     initial_layout=None,
     layout_method=None,
@@ -102,7 +93,7 @@ def generate_preset_pass_manager(
 
     The target constraints for the pass manager construction can be specified through a :class:`.Target`
     instance, a :class:`.BackendV1` or :class:`.BackendV2` instance, or via loose constraints
-    (``basis_gates``, ``inst_map``, ``coupling_map``, ``backend_properties``, ``instruction_durations``,
+    (``basis_gates``, ``inst_map``, ``coupling_map``, ``instruction_durations``,
     ``dt`` or ``timing_constraints``).
     The order of priorities for target constraints works as follows: if a ``target``
     input is provided, it will take priority over any ``backend`` input or loose constraints.
@@ -123,7 +114,6 @@ def generate_preset_pass_manager(
     **inst_map**                 target    inst_map                 inst_map
     **dt**                       target    dt                       dt
     **timing_constraints**       target    timing_constraints       timing_constraints
-    **backend_properties**       target    backend_properties       backend_properties
     ============================ ========= ======================== =======================
 
     Args:
@@ -140,15 +130,14 @@ def generate_preset_pass_manager(
 
         backend (Backend): An optional backend object which can be used as the
             source of the default values for the ``basis_gates``, ``inst_map``,
-            ``coupling_map``, ``backend_properties``, ``instruction_durations``,
+            ``coupling_map``, ``instruction_durations``,
             ``timing_constraints``, and ``target``. If any of those other arguments
             are specified in addition to ``backend`` they will take precedence
             over the value contained in the backend.
         target (Target): The :class:`~.Target` representing a backend compilation
             target. The following attributes will be inferred from this
             argument if they are not set: ``coupling_map``, ``basis_gates``,
-            ``instruction_durations``, ``inst_map``, ``timing_constraints``
-            and ``backend_properties``.
+            ``instruction_durations``, ``inst_map`` and ``timing_constraints``.
         basis_gates (list): List of basis gate names to unroll to
             (e.g: ``['u1', 'u2', 'u3', 'cx']``).
         inst_map (InstructionScheduleMap): DEPRECATED. Mapping object that maps gates to schedules.
@@ -230,9 +219,6 @@ def generate_preset_pass_manager(
             for the ``scheduling`` stage of the output :class:`~.StagedPassManager`. You can
             see a list of installed plugins by using :func:`~.list_stage_plugins` with
             ``"scheduling"`` for the ``stage_name`` argument.
-        backend_properties (BackendProperties): Properties returned by a
-            backend, including information on gate errors, readout errors,
-            qubit coherence times, etc.
         approximation_degree (float): Heuristic dial used for circuit approximation
             (1.0=no approximation, 0.0=maximal approximation).
         seed_transpiler (int): Sets random seed for the stochastic parts of
@@ -305,7 +291,6 @@ def generate_preset_pass_manager(
         and coupling_map is None
         and dt is None
         and instruction_durations is None
-        and backend_properties is None
         and timing_constraints is None
     )
     # If it's an edge case => do not build target
@@ -336,7 +321,6 @@ def generate_preset_pass_manager(
         elif not _skip_target:
             # Only parse backend properties when the target isn't skipped to
             # preserve the former behavior of transpile.
-            backend_properties = _parse_backend_properties(backend_properties, backend)
             with warnings.catch_warnings():
                 # TODO: inst_map will be removed in 2.0
                 warnings.filterwarnings(
@@ -353,7 +337,6 @@ def generate_preset_pass_manager(
                     # If the instruction map has custom gates, do not give as config, the information
                     # will be added to the target with update_from_instruction_schedule_map
                     inst_map=inst_map if inst_map and not inst_map.has_custom_gate() else None,
-                    backend_properties=backend_properties,
                     instruction_durations=instruction_durations,
                     concurrent_measurements=(
                         backend.target.concurrent_measurements if backend is not None else None
@@ -380,18 +363,6 @@ def generate_preset_pass_manager(
             inst_map = target._get_instruction_schedule_map()
         if timing_constraints is None:
             timing_constraints = target.timing_constraints()
-        if backend_properties is None:
-            with warnings.catch_warnings():
-                # TODO this approach (target-to-properties) is going to be removed soon (1.3) in favor
-                #   of backend-to-target approach
-                #   https://github.com/Qiskit/qiskit/pull/12850
-                warnings.filterwarnings(
-                    "ignore",
-                    category=DeprecationWarning,
-                    message=r".+qiskit\.transpiler\.target\.target_to_backend_properties.+",
-                    module="qiskit",
-                )
-                backend_properties = target_to_backend_properties(target)
 
     # Parse non-target dependent pm options
     initial_layout = _parse_initial_layout(initial_layout)
@@ -404,7 +375,6 @@ def generate_preset_pass_manager(
         "inst_map": inst_map,
         "coupling_map": coupling_map,
         "instruction_durations": instruction_durations,
-        "backend_properties": backend_properties,
         "timing_constraints": timing_constraints,
         "layout_method": layout_method,
         "routing_method": routing_method,
@@ -518,21 +488,6 @@ def _parse_inst_map(inst_map, backend):
     if inst_map is None and backend is not None:
         inst_map = backend.target._get_instruction_schedule_map()
     return inst_map
-
-
-def _parse_backend_properties(backend_properties, backend):
-    # try getting backend_props from user, else backend
-    if backend_properties is None and backend is not None:
-        with warnings.catch_warnings():
-            # filter target_to_backend_properties warning
-            warnings.filterwarnings(
-                "ignore",
-                category=DeprecationWarning,
-                message=".*``qiskit.transpiler.target.target_to_backend_properties\\(\\)``.*",
-                module="qiskit",
-            )
-            backend_properties = target_to_backend_properties(backend.target)
-    return backend_properties
 
 
 def _parse_dt(dt, backend):
