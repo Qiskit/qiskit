@@ -2724,6 +2724,8 @@ class QuantumCircuit:
             if copy and is_parameter:
                 operation = _copy.deepcopy(operation)
         if isinstance(operation, ControlFlowOp):
+            if operation.name == "box" and operation.unit == "expr":
+                _validate_expr(circuit_scope, operation.duration)
             # Verify that any variable bindings are valid.  Control-flow ops are already enforced
             # by the class not to contain 'input' variables.
             if bad_captures := {
@@ -6721,7 +6723,7 @@ class QuantumCircuit:
         *,
         label: str | None = None,
         duration: None = None,
-        unit: Literal["dt", "s", "ms", "us", "ns", "ps"] = "dt",
+        unit: Literal["dt", "s", "ms", "us", "ns", "ps", "expr"] | None = None,
         annotations: typing.Iterable[Annotation] = ...,
     ):
         """Create a ``box`` of operations on this circuit that are treated atomically in the greater

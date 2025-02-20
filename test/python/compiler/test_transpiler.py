@@ -1546,10 +1546,14 @@ class TestTranspile(QiskitTestCase):
         qc.h(0)
         qc.delay(a, 1)
         qc.cx(0, 1)
+        with qc.box(duration=a):
+            pass
 
         out = transpile(
             qc,
-            backend=GenericBackendV2(num_qubits=2, basis_gates=["cx", "h"], seed=0),
+            backend=GenericBackendV2(
+                num_qubits=2, basis_gates=["cx", "h"], control_flow=True, seed=0
+            ),
             optimization_level=optimization_level,
             seed_transpiler=42,
         )
