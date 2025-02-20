@@ -17,12 +17,13 @@ rayon.workspace = true
 ahash.workspace = true
 rustworkx-core.workspace = true
 bytemuck.workspace = true
+bitfield-struct.workspace = true
 num-complex.workspace = true
 ndarray.workspace = true
-numpy.workspace = true
 thiserror.workspace = true
 approx.workspace = true
 itertools.workspace = true
+nalgebra.workspace = true
 
 [dependencies.pyo3]
 workspace = true
@@ -38,7 +39,11 @@ features = ["rayon"]
 
 [dependencies.smallvec]
 workspace = true
-features = ["union"]
+features = ["union", "const_generics"]
+
+[dependencies.numpy]
+workspace = true
+features = ["nalgebra"]
 
 [features]
 cache_pygates = []
