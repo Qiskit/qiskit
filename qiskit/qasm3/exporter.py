@@ -1304,7 +1304,7 @@ class _ExprBuilder(expr.ExprVisitor[ast.Expression]):
                 return ast.DurationLiteral(node.value[0], ast.DurationUnit.MICROSECOND)
             if isinstance(node.value, Duration.ms):
                 return ast.DurationLiteral(node.value[0], ast.DurationUnit.MILLISECOND)
-            if isinstance(node.value, Duration.sec):
+            if isinstance(node.value, Duration.s):
                 return ast.DurationLiteral(node.value[0], ast.DurationUnit.SECOND)
         raise RuntimeError(f"unhandled Value type '{node}'")
 
