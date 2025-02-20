@@ -13,7 +13,7 @@
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
 
-use crate::bit::{PyClbit, PyQubit, ShareableClbit, ShareableQubit};
+use crate::bit::{ShareableClbit, ShareableQubit};
 use crate::bit_data::BitData;
 use crate::circuit_instruction::{
     CircuitInstruction, ExtraInstructionAttributes, OperationFromPython,
@@ -117,8 +117,8 @@ impl CircuitData {
     #[pyo3(signature = (qubits=None, clbits=None, data=None, reserve=0, global_phase=Param::Float(0.0)))]
     pub fn new(
         py: Python<'_>,
-        qubits: Option<Vec<PyQubit>>,
-        clbits: Option<Vec<PyClbit>>,
+        qubits: Option<Vec<ShareableQubit>>,
+        clbits: Option<Vec<ShareableClbit>>,
         data: Option<&Bound<PyAny>>,
         reserve: usize,
         global_phase: Param,
@@ -259,8 +259,8 @@ impl CircuitData {
     ///     ValueError: The specified ``bit`` is already present and flag ``strict``
     ///         was provided.
     #[pyo3(signature = (bit, *, strict=true))]
-    pub fn add_qubit(&mut self, bit: PyQubit, strict: bool) -> PyResult<()> {
-        self.qubits.add(bit.0, strict)?;
+    pub fn add_qubit(&mut self, bit: ShareableQubit, strict: bool) -> PyResult<()> {
+        self.qubits.add(bit, strict)?;
         Ok(())
     }
 
@@ -274,8 +274,8 @@ impl CircuitData {
     ///     ValueError: The specified ``bit`` is already present and flag ``strict``
     ///         was provided.
     #[pyo3(signature = (bit, *, strict=true))]
-    pub fn add_clbit(&mut self, bit: PyClbit, strict: bool) -> PyResult<()> {
-        self.clbits.add(bit.0, strict)?;
+    pub fn add_clbit(&mut self, bit: ShareableClbit, strict: bool) -> PyResult<()> {
+        self.clbits.add(bit, strict)?;
         Ok(())
     }
 
@@ -329,20 +329,8 @@ impl CircuitData {
     pub fn copy_empty_like(&self, py: Python<'_>) -> PyResult<Self> {
         let res = CircuitData::new(
             py,
-            Some(
-                self.qubits
-                    .bits()
-                    .iter()
-                    .map(|bit| PyQubit(bit.clone()))
-                    .collect(),
-            ),
-            Some(
-                self.clbits
-                    .bits()
-                    .iter()
-                    .map(|bit| PyClbit(bit.clone()))
-                    .collect(),
-            ),
+            Some(self.qubits.bits().clone()),
+            Some(self.clbits.bits().clone()),
             None,
             self.data.len(),
             self.global_phase.clone(),
@@ -493,8 +481,8 @@ impl CircuitData {
     pub fn replace_bits(
         &mut self,
         py: Python<'_>,
-        qubits: Option<Vec<PyQubit>>,
-        clbits: Option<Vec<PyClbit>>,
+        qubits: Option<Vec<ShareableQubit>>,
+        clbits: Option<Vec<ShareableClbit>>,
     ) -> PyResult<()> {
         let qubits_is_some = qubits.is_some();
         let clbits_is_some = clbits.is_some();
@@ -1118,13 +1106,13 @@ impl CircuitData {
         if num_qubits > 0 {
             for _i in 0..num_qubits {
                 let bit = ShareableQubit::new_anonymous();
-                res.add_qubit(PyQubit(bit), true)?;
+                res.add_qubit(bit, true)?;
             }
         }
         if num_clbits > 0 {
             for _i in 0..num_clbits {
                 let bit = ShareableClbit::new_anonymous();
-                res.add_clbit(PyClbit(bit), true)?;
+                res.add_clbit(bit, true)?;
             }
         }
         Ok(res)
@@ -1232,22 +1220,12 @@ impl CircuitData {
     fn pack(&mut self, py: Python, inst: &CircuitInstruction) -> PyResult<PackedInstruction> {
         let qubits = self.qargs_interner.insert_owned(
             self.qubits
-                .map_bits(
-                    inst.qubits
-                        .extract::<Vec<PyQubit>>(py)?
-                        .into_iter()
-                        .map(|bit| bit.0),
-                )?
+                .map_bits(inst.qubits.extract::<Vec<ShareableQubit>>(py)?.into_iter())?
                 .collect(),
         );
         let clbits = self.cargs_interner.insert_owned(
             self.clbits
-                .map_bits(
-                    inst.clbits
-                        .extract::<Vec<PyClbit>>(py)?
-                        .into_iter()
-                        .map(|bit| bit.0),
-                )?
+                .map_bits(inst.clbits.extract::<Vec<ShareableClbit>>(py)?.into_iter())?
                 .collect(),
         );
         Ok(PackedInstruction {

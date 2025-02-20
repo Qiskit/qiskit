@@ -640,14 +640,14 @@ impl DAGCircuit {
         }
 
         let binding = dict_state.get_item("qubits")?.unwrap();
-        let qubits_raw = binding.extract::<Vec<PyQubit>>().unwrap();
+        let qubits_raw = binding.extract::<Vec<ShareableQubit>>().unwrap();
         for bit in qubits_raw.into_iter() {
-            self.qubits.add(bit.0, false)?;
+            self.qubits.add(bit, false)?;
         }
         let binding = dict_state.get_item("clbits")?.unwrap();
-        let clbits_raw = binding.extract::<Vec<PyClbit>>().unwrap();
+        let clbits_raw = binding.extract::<Vec<ShareableClbit>>().unwrap();
         for bit in clbits_raw.into_iter() {
-            self.clbits.add(bit.0, false)?;
+            self.clbits.add(bit, false)?;
         }
         let binding = dict_state.get_item("vars")?.unwrap();
         let vars_raw = binding.downcast::<PyList>().unwrap();
@@ -998,13 +998,7 @@ def _format(operand):
         }
         let qubits: Vec<BitType> = self
             .qubits
-            .map_bits(
-                node.instruction
-                    .qubits
-                    .extract::<Vec<PyQubit>>(py)?
-                    .into_iter()
-                    .map(|bit| bit.0),
-            )?
+            .map_bits(node.instruction.qubits.extract::<Vec<ShareableQubit>>(py)?)?
             .map(|bit| bit.0)
             .collect();
         let qubits = PyTuple::new(py, qubits)?;
@@ -1030,13 +1024,9 @@ def _format(operand):
     }
 
     /// Add individual qubit wires.
-    fn add_qubits(&mut self, py: Python, qubits: Vec<PyQubit>) -> PyResult<()> {
+    fn add_qubits(&mut self, py: Python, qubits: Vec<ShareableQubit>) -> PyResult<()> {
         for bit in qubits.iter() {
-            // if !bit.is_instance(imports::QUBIT.get_bound(py))? {
-            //     return Err(DAGCircuitError::new_err("not a Qubit instance."));
-            // }
-
-            if self.qubits.find(&bit.0).is_some() {
+            if self.qubits.find(bit).is_some() {
                 return Err(DAGCircuitError::new_err(format!(
                     "duplicate qubits {:?}",
                     bit
@@ -1051,13 +1041,9 @@ def _format(operand):
     }
 
     /// Add individual qubit wires.
-    fn add_clbits(&mut self, py: Python, clbits: Vec<PyClbit>) -> PyResult<()> {
+    fn add_clbits(&mut self, py: Python, clbits: Vec<ShareableClbit>) -> PyResult<()> {
         for bit in clbits.iter() {
-            // if !bit.is_instance(imports::CLBIT.get_bound(py))? {
-            //     return Err(DAGCircuitError::new_err("not a Clbit instance."));
-            // }
-
-            if self.clbits.find(&bit.0).is_some() {
+            if self.clbits.find(bit).is_some() {
                 return Err(DAGCircuitError::new_err(format!(
                     "duplicate clbits {:?}",
                     bit
@@ -1087,14 +1073,14 @@ def _format(operand):
         self.qregs.bind(py).set_item(&register_name, qreg)?;
 
         for (index, bit) in qreg.try_iter()?.enumerate() {
-            let bit = bit?.extract::<PyQubit>()?;
-            if self.qubits.find(&bit.0).is_none() {
+            let bit = bit?.extract::<ShareableQubit>()?;
+            if self.qubits.find(&bit).is_none() {
                 self.add_qubit_unchecked(py, bit.clone())?;
             }
             let locations: PyRef<BitLocations> = self
                 .qubit_locations
                 .bind(py)
-                .get_item(bit.0)?
+                .get_item(bit)?
                 .unwrap()
                 .extract()?;
             locations.registers.bind(py).append((qreg, index))?;
@@ -1120,14 +1106,14 @@ def _format(operand):
         self.cregs.bind(py).set_item(register_name, creg)?;
 
         for (index, bit) in creg.try_iter()?.enumerate() {
-            let bit = bit?.extract::<PyClbit>()?;
-            if self.clbits.find(&bit.0).is_none() {
+            let bit = bit?.extract::<ShareableClbit>()?;
+            if self.clbits.find(&bit).is_none() {
                 self.add_clbit_unchecked(py, bit.clone())?;
             }
             let locations: PyRef<BitLocations> = self
                 .clbit_locations
                 .bind(py)
-                .get_item(bit.0)?
+                .get_item(bit)?
                 .unwrap()
                 .extract()?;
             locations.registers.bind(py).append((creg, index))?;
@@ -1157,7 +1143,7 @@ def _format(operand):
         py: Python<'py>,
         bit: &Bound<'py, PyAny>,
     ) -> PyResult<Bound<'py, PyAny>> {
-        if bit.is_instance(imports::QUBIT.get_bound(py))? {
+        if bit.downcast::<PyQubit>().is_ok() {
             return self.qubit_locations.bind(py).get_item(bit)?.ok_or_else(|| {
                 DAGCircuitError::new_err(format!(
                     "Could not locate provided bit: {}. Has it been added to the DAGCircuit?",
@@ -1166,7 +1152,7 @@ def _format(operand):
             });
         }
 
-        if bit.is_instance(imports::CLBIT.get_bound(py))? {
+        if bit.downcast::<PyClbit>().is_ok() {
             return self.clbit_locations.bind(py).get_item(bit)?.ok_or_else(|| {
                 DAGCircuitError::new_err(format!(
                     "Could not locate provided bit: {}. Has it been added to the DAGCircuit?",
@@ -1196,21 +1182,8 @@ def _format(operand):
     ///     DAGCircuitError: a clbit is not a :obj:`.Clbit`, is not in the circuit,
     ///         or is not idle.
     #[pyo3(signature = (*clbits))]
-    fn remove_clbits(&mut self, py: Python, clbits: Vec<PyClbit>) -> PyResult<()> {
-        // let mut non_bits = Vec::new();
-        // for bit in clbits.iter() {
-        //     if !bit.is_instance(imports::CLBIT.get_bound(py))? {
-        //         non_bits.push(bit);
-        //     }
-        // }
-        // if !non_bits.is_empty() {
-        //     return Err(DAGCircuitError::new_err(format!(
-        //         "clbits not of type Clbit: {:?}",
-        //         non_bits
-        //     )));
-        // }
-
-        let bit_iter = match self.clbits.map_bits(clbits.iter().map(|bit| bit.0.clone())) {
+    fn remove_clbits(&mut self, py: Python, clbits: Vec<ShareableClbit>) -> PyResult<()> {
+        let bit_iter = match self.clbits.map_bits(clbits.iter().cloned()) {
             Ok(bit_iter) => bit_iter,
             Err(_) => {
                 return Err(DAGCircuitError::new_err(format!(
@@ -1238,8 +1211,8 @@ def _format(operand):
         let mut cregs_to_remove = Vec::new();
         for creg in self.cregs.bind(py).values() {
             for bit in creg.try_iter()? {
-                let bit: PyClbit = bit?.extract()?;
-                if clbits.contains(&self.clbits.find(&bit.0).unwrap()) {
+                let bit: ShareableClbit = bit?.extract()?;
+                if clbits.contains(&self.clbits.find(&bit).unwrap()) {
                     cregs_to_remove.push(creg);
                     break;
                 }
@@ -1397,21 +1370,8 @@ def _format(operand):
     ///     DAGCircuitError: a qubit is not a :obj:`~.circuit.Qubit`, is not in the circuit,
     ///         or is not idle.
     #[pyo3(signature = (*qubits))]
-    fn remove_qubits(&mut self, py: Python, qubits: Vec<PyQubit>) -> PyResult<()> {
-        // let mut non_qbits = Vec::new();
-        // for bit in qubits.iter() {
-        //     if !bit.is_instance(imports::QUBIT.get_bound(py))? {
-        //         non_qbits.push(bit);
-        //     }
-        // }
-        // if !non_qbits.is_empty() {
-        //     return Err(DAGCircuitError::new_err(format!(
-        //         "qubits not of type Qubit: {:?}",
-        //         non_qbits
-        //     )));
-        // }
-
-        let bit_iter = match self.qubits.map_bits(qubits.iter().map(|bit| bit.0.clone())) {
+    fn remove_qubits(&mut self, py: Python, qubits: Vec<ShareableQubit>) -> PyResult<()> {
+        let bit_iter = match self.qubits.map_bits(qubits.iter().cloned()) {
             Ok(bit_iter) => bit_iter,
             Err(_) => {
                 return Err(DAGCircuitError::new_err(format!(
@@ -1440,8 +1400,8 @@ def _format(operand):
         let mut qregs_to_remove = Vec::new();
         for qreg in self.qregs.bind(py).values() {
             for bit in qreg.try_iter()? {
-                let bit: PyQubit = bit?.extract()?;
-                if qubits.contains(&self.qubits.find(&bit.0).unwrap()) {
+                let bit: ShareableQubit = bit?.extract()?;
+                if qubits.contains(&self.qubits.find(&bit).unwrap()) {
                     qregs_to_remove.push(qreg);
                     break;
                 }
@@ -1607,8 +1567,8 @@ def _format(operand):
         }
 
         for bit in resources.clbits.bind(py) {
-            let bit: PyClbit = bit.extract()?;
-            if self.clbits.find(&bit.0).is_none() {
+            let bit: ShareableClbit = bit.extract()?;
+            if self.clbits.find(&bit).is_none() {
                 return Err(DAGCircuitError::new_err(format!(
                     "invalid clbits in condition for {}",
                     name
@@ -1648,10 +1608,10 @@ def _format(operand):
         target_dag.cargs_interner = self.cargs_interner.clone();
 
         for bit in self.qubits.bits() {
-            target_dag.add_qubit_unchecked(py, PyQubit(bit.clone()))?;
+            target_dag.add_qubit_unchecked(py, bit.clone())?;
         }
         for bit in self.clbits.bits() {
-            target_dag.add_clbit_unchecked(py, PyClbit(bit.clone()))?;
+            target_dag.add_clbit_unchecked(py, bit.clone())?;
         }
         for reg in self.qregs.bind(py).values() {
             target_dag.add_qreg(py, &reg)?;
@@ -1753,20 +1713,20 @@ def _format(operand):
     ) -> PyResult<Py<PyAny>> {
         let py_op = op.extract::<OperationFromPython>()?;
         let qargs = qargs
-            .map(|q| q.value.extract::<Vec<PyQubit>>())
+            .map(|q| q.value.extract::<Vec<ShareableQubit>>())
             .transpose()?;
         let cargs = cargs
-            .map(|c| c.value.extract::<Vec<PyClbit>>())
+            .map(|c| c.value.extract::<Vec<ShareableClbit>>())
             .transpose()?;
         let node = {
             let qubits_id = self.qargs_interner.insert_owned(
                 self.qubits
-                    .map_bits(qargs.iter().flatten().map(|bit| bit.0.clone()))?
+                    .map_bits(qargs.iter().flatten().cloned())?
                     .collect(),
             );
             let clbits_id = self.cargs_interner.insert_owned(
                 self.clbits
-                    .map_bits(cargs.iter().flatten().map(|bit| bit.0.clone()))?
+                    .map_bits(cargs.iter().flatten().cloned())?
                     .collect(),
             );
             let instr = PackedInstruction {
@@ -1815,20 +1775,20 @@ def _format(operand):
     ) -> PyResult<Py<PyAny>> {
         let py_op = op.extract::<OperationFromPython>()?;
         let qargs = qargs
-            .map(|q| q.value.extract::<Vec<PyQubit>>())
+            .map(|q| q.value.extract::<Vec<ShareableQubit>>())
             .transpose()?;
         let cargs = cargs
-            .map(|c| c.value.extract::<Vec<PyClbit>>())
+            .map(|c| c.value.extract::<Vec<ShareableClbit>>())
             .transpose()?;
         let node = {
             let qubits_id = self.qargs_interner.insert_owned(
                 self.qubits
-                    .map_bits(qargs.iter().flatten().map(|bit| bit.0.clone()))?
+                    .map_bits(qargs.iter().flatten().cloned())?
                     .collect(),
             );
             let clbits_id = self.cargs_interner.insert_owned(
                 self.clbits
-                    .map_bits(cargs.iter().flatten().map(|bit| bit.0.clone()))?
+                    .map_bits(cargs.iter().flatten().cloned())?
                     .collect(),
             );
             let instr = PackedInstruction {
@@ -2053,10 +2013,10 @@ def _format(operand):
                     let bit = other.qubits.get(*q).unwrap();
                     let m_wire = edge_map
                         .get_item(bit.clone())?
-                        .map(|py_bit| py_bit.extract::<PyQubit>())
+                        .map(|py_bit| py_bit.extract::<ShareableQubit>())
                         .transpose()?
-                        .unwrap_or_else(|| PyQubit(bit.clone()));
-                    let wire_in_dag = dag.qubits.find(&m_wire.0);
+                        .unwrap_or_else(|| bit.clone());
+                    let wire_in_dag = dag.qubits.find(&m_wire);
 
                     if wire_in_dag.is_none()
                         || (dag.qubit_io_map.len() - 1 < wire_in_dag.unwrap().index())
@@ -2072,10 +2032,10 @@ def _format(operand):
                     let bit = other.clbits.get(*c).unwrap();
                     let m_wire = edge_map
                         .get_item(bit.clone())?
-                        .map(|py_bit| py_bit.extract::<PyClbit>())
+                        .map(|py_bit| py_bit.extract::<ShareableClbit>())
                         .transpose()?
-                        .unwrap_or_else(|| PyClbit(bit.clone()));
-                    let wire_in_dag = dag.clbits.find(&m_wire.0);
+                        .unwrap_or_else(|| bit.clone());
+                    let wire_in_dag = dag.clbits.find(&m_wire);
                     if wire_in_dag.is_none()
                         || dag.clbit_io_map.len() - 1 < wire_in_dag.unwrap().index()
                     {
@@ -2096,7 +2056,7 @@ def _format(operand):
                             mapped.push(
                                 edge_map
                                     .get_item(bit.clone())?
-                                    .map(|bit| bit.extract().map(|q: PyQubit| q.0))
+                                    .map(|bit| bit.extract())
                                     .transpose()?
                                     .unwrap_or_else(|| bit.clone()),
                             );
@@ -2112,7 +2072,7 @@ def _format(operand):
                             mapped.push(
                                 edge_map
                                     .get_item(bit.clone())?
-                                    .map(|bit| bit.extract().map(|q: PyClbit| q.0))
+                                    .map(|bit| bit.extract())
                                     .transpose()?
                                     .unwrap_or_else(|| bit.clone()),
                             );
@@ -2500,10 +2460,9 @@ def _format(operand):
             let indices = self
                 .qubits
                 .bits()
-                .clone()
                 .into_pyobject(py)?
                 .try_iter()?
-                .chain(self.clbits.bits().clone().into_pyobject(py)?.try_iter()?)
+                .chain(self.clbits.bits().into_pyobject(py)?.try_iter()?)
                 .enumerate()
                 .map(|(idx, bit)| -> PyResult<_> { Ok((bit?, idx)) });
             indices.collect::<PyResult<Vec<_>>>()?.into_py_dict(py)?
@@ -2532,13 +2491,13 @@ def _format(operand):
             let self_bits = PyList::type_object(py)
                 .call1((self_bits,))?
                 .try_iter()?
-                .map(|bit| -> PyResult<_> { bit?.extract::<PyQubit>().map(|q| q.0) })
+                .map(|bit| -> PyResult<_> { bit?.extract::<ShareableQubit>() })
                 .collect::<PyResult<Vec<ShareableQubit>>>()?;
             let other_bits = match other_qregs.get_item(regname)? {
                 Some(bits) => PyList::type_object(py)
                     .call1((bits,))?
                     .try_iter()?
-                    .map(|bit| -> PyResult<_> { bit?.extract::<PyQubit>().map(|q| q.0) })
+                    .map(|bit| -> PyResult<_> { bit?.extract::<ShareableQubit>() })
                     .collect::<PyResult<Vec<ShareableQubit>>>()?,
                 None => return Ok(false),
             };
@@ -2562,13 +2521,13 @@ def _format(operand):
             let self_bits = PyList::type_object(py)
                 .call1((self_bits,))?
                 .try_iter()?
-                .map(|bit| -> PyResult<_> { bit?.extract::<PyClbit>().map(|q| q.0) })
+                .map(|bit| -> PyResult<_> { bit?.extract::<ShareableClbit>() })
                 .collect::<PyResult<Vec<ShareableClbit>>>()?;
             let other_bits = match other_cregs.get_item(regname)? {
                 Some(bits) => PyList::type_object(py)
                     .call1((bits,))?
                     .try_iter()?
-                    .map(|bit| -> PyResult<_> { bit?.extract::<PyClbit>().map(|q| q.0) })
+                    .map(|bit| -> PyResult<_> { bit?.extract::<ShareableClbit>() })
                     .collect::<PyResult<Vec<ShareableClbit>>>()?,
                 None => return Ok(false),
             };
@@ -2749,22 +2708,16 @@ def _format(operand):
                 [NodeType::VarIn(var1), NodeType::VarIn(var2)] => self
                     .vars
                     .get(*var1)
-                    .map(|var| var.clone_ref(py))
-                    .unwrap()
                     .into_pyobject(py)?
                     .eq(other.vars.get(*var2).unwrap().into_pyobject(py)?),
-                [NodeType::VarOut(var1), NodeType::VarOut(var2)] => self
-                    .vars
-                    .get(*var1)
-                    .map(|var| var.clone_ref(py))
-                    .unwrap()
-                    .into_pyobject(py)?
-                    .eq(other
+                [NodeType::VarOut(var1), NodeType::VarOut(var2)] => {
+                    self.vars.get(*var1).into_pyobject(py)?.eq(other
                         .vars
                         .get(*var2)
                         .unwrap()
                         .clone_ref(py)
-                        .into_pyobject(py)?),
+                        .into_pyobject(py)?)
+                }
                 _ => Ok(false),
             }
         };
@@ -2912,14 +2865,14 @@ def _format(operand):
         let mut qubit_pos_map: HashMap<Qubit, usize> = HashMap::new();
         let mut clbit_pos_map: HashMap<Clbit, usize> = HashMap::new();
         for (bit, index) in wire_pos_map.iter() {
-            if bit.is_instance(imports::QUBIT.get_bound(py))? {
+            if bit.downcast::<PyQubit>().is_ok() {
                 qubit_pos_map.insert(
-                    self.qubits.find(&bit.extract::<PyQubit>()?.0).unwrap(),
+                    self.qubits.find(&bit.extract::<ShareableQubit>()?).unwrap(),
                     index.extract()?,
                 );
-            } else if bit.is_instance(imports::CLBIT.get_bound(py))? {
+            } else if bit.downcast::<PyClbit>().is_ok() {
                 clbit_pos_map.insert(
-                    self.clbits.find(&bit.extract::<PyClbit>()?.0).unwrap(),
+                    self.clbits.find(&bit.extract::<ShareableClbit>()?).unwrap(),
                     index.extract()?,
                 );
             } else {
@@ -3022,34 +2975,33 @@ def _format(operand):
             let mut clbit_wire_map = HashMap::new();
             let var_map = PyDict::new(py);
             for (index, wire) in wires.iter().enumerate() {
-                if wire.is_instance(imports::QUBIT.get_bound(py))? {
+                if wire.downcast::<PyQubit>().is_ok() {
                     if index >= qargs_len {
                         unreachable!()
                     }
                     let input_qubit: Qubit = input_dag
                         .qubits
-                        .find(&wire.extract::<PyQubit>()?.0)
+                        .find(&wire.extract::<ShareableQubit>()?)
                         .unwrap();
                     let self_qubit: Qubit = self
                         .qubits
-                        .find(&qargs_list.get_item(index)?.extract::<PyQubit>()?.0)
+                        .find(&qargs_list.get_item(index)?.extract::<ShareableQubit>()?)
                         .unwrap();
                     qubit_wire_map.insert(input_qubit, self_qubit);
-                } else if wire.is_instance(imports::CLBIT.get_bound(py))? {
+                } else if wire.downcast::<PyClbit>().is_ok() {
                     if index < qargs_len {
                         unreachable!()
                     }
                     clbit_wire_map.insert(
                         input_dag
                             .clbits
-                            .find(&wire.extract::<PyClbit>()?.0)
+                            .find(&wire.extract::<ShareableClbit>()?)
                             .unwrap(),
                         self.clbits
                             .find(
                                 &cargs_list
                                     .get_item(index - qargs_len)?
-                                    .extract::<PyClbit>()?
-                                    .0,
+                                    .extract::<ShareableClbit>()?,
                             )
                             .unwrap(),
                     );
@@ -3073,24 +3025,24 @@ def _format(operand):
                     let mut clbit_wire_map = HashMap::new();
                     let var_map = PyDict::new(py);
                     for (source_wire, target_wire) in bound_wires.iter() {
-                        if source_wire.is_instance(imports::QUBIT.get_bound(py))? {
+                        if source_wire.downcast::<PyQubit>().is_ok() {
                             qubit_wire_map.insert(
                                 input_dag
                                     .qubits
-                                    .find(&source_wire.extract::<PyQubit>()?.0)
+                                    .find(&source_wire.extract::<ShareableQubit>()?)
                                     .unwrap(),
                                 self.qubits
-                                    .find(&target_wire.extract::<PyQubit>()?.0)
+                                    .find(&target_wire.extract::<ShareableQubit>()?)
                                     .unwrap(),
                             );
-                        } else if source_wire.is_instance(imports::CLBIT.get_bound(py))? {
+                        } else if source_wire.downcast::<PyClbit>().is_ok() {
                             clbit_wire_map.insert(
                                 input_dag
                                     .clbits
-                                    .find(&source_wire.extract::<PyClbit>()?.0)
+                                    .find(&source_wire.extract::<ShareableClbit>()?)
                                     .unwrap(),
                                 self.clbits
-                                    .find(&target_wire.extract::<PyClbit>()?.0)
+                                    .find(&target_wire.extract::<ShareableClbit>()?)
                                     .unwrap(),
                             );
                         } else {
@@ -3156,9 +3108,7 @@ def _format(operand):
                 .edges_directed(node_index, Incoming)
                 .find(|edge| {
                     if let Wire::Var(var) = edge.weight() {
-                        contracted_var
-                            .eq(self.vars.get(*var).map(|inner| inner.clone_ref(py)))
-                            .unwrap()
+                        contracted_var.eq(self.vars.get(*var)).unwrap()
                     } else {
                         false
                     }
@@ -3169,9 +3119,7 @@ def _format(operand):
                 .edges_directed(node_index, Outgoing)
                 .find(|edge| {
                     if let Wire::Var(var) = edge.weight() {
-                        contracted_var
-                            .eq(self.vars.get(*var).map(|inner| inner.clone_ref(py)))
-                            .unwrap()
+                        contracted_var.eq(self.vars.get(*var)).unwrap()
                     } else {
                         false
                     }
@@ -3217,74 +3165,83 @@ def _format(operand):
                 let reverse_wire_map = wire_map.iter().map(|(k, v)| (v, k)).into_py_dict(py)?;
                 let (py_target, py_value): (Bound<PyAny>, Bound<PyAny>) =
                     condition.bind(py).extract()?;
-                let (py_new_target, target_cargs) =
-                    if py_target.is_instance(imports::CLBIT.get_bound(py))? {
-                        let new_target = reverse_wire_map
-                            .get_item(&py_target)?
-                            .map(|item| item.extract::<PyClbit>())
-                            .transpose()?
-                            .map(Ok::<_, PyErr>)
-                            .unwrap_or_else(|| {
-                                // Target was not in node's wires, so we need a dummy.
-                                let new_target = PyClbit(ShareableClbit::new_anonymous());
-                                in_dag.add_clbit_unchecked(py, new_target.clone())?;
-                                wire_map.set_item(new_target.0.clone(), &py_target)?;
-                                reverse_wire_map.set_item(&py_target, new_target.0.clone())?;
-                                Ok(new_target)
-                            })?;
-                        (
-                            new_target.0.clone().into_bound_py_any(py)?,
-                            PySet::new(py, [new_target.0])?,
-                        )
-                    } else {
-                        // ClassicalRegister
-                        let target_bits: Vec<Bound<PyAny>> =
-                            py_target.try_iter()?.collect::<PyResult<_>>()?;
-                        let mapped_bits: Vec<Option<Bound<PyAny>>> = target_bits
-                            .iter()
-                            .map(|b| reverse_wire_map.get_item(b))
-                            .collect::<PyResult<_>>()?;
+                let (py_new_target, target_cargs) = if py_target.downcast::<PyClbit>().is_ok() {
+                    let new_target = reverse_wire_map
+                        .get_item(&py_target)?
+                        .map(|item| item.extract::<ShareableClbit>())
+                        .transpose()?
+                        .map(Ok::<_, PyErr>)
+                        .unwrap_or_else(|| {
+                            // Target was not in node's wires, so we need a dummy.
+                            let new_target = ShareableClbit::new_anonymous();
+                            in_dag.add_clbit_unchecked(py, new_target.clone())?;
+                            wire_map.set_item(&new_target, &py_target)?;
+                            reverse_wire_map.set_item(&py_target, &new_target)?;
+                            Ok(new_target)
+                        })?;
+                    (
+                        new_target.clone().into_bound_py_any(py)?,
+                        PySet::new(py, [new_target])?,
+                    )
+                } else {
+                    // ClassicalRegister
+                    let target_bits: Vec<Bound<PyAny>> =
+                        py_target.try_iter()?.collect::<PyResult<_>>()?;
+                    let mapped_bits: Vec<Option<Bound<PyAny>>> = target_bits
+                        .iter()
+                        .map(|b| reverse_wire_map.get_item(b))
+                        .collect::<PyResult<_>>()?;
 
-                        let mut new_target = Vec::with_capacity(target_bits.len());
-                        let target_cargs = PySet::empty(py)?;
-                        for (ours, theirs) in target_bits.into_iter().zip(mapped_bits) {
-                            if let Some(theirs) = theirs {
-                                // Target bit was in node's wires.
-                                let theirs: PyClbit = theirs.extract()?;
-                                new_target.push(theirs.0.clone());
-                                target_cargs.add(theirs.0)?;
-                            } else {
-                                // Target bit was not in node's wires, so we need a dummy.
-                                let theirs = PyClbit(ShareableClbit::new_anonymous());
-                                in_dag.add_clbit_unchecked(py, theirs.clone())?;
-                                wire_map.set_item(theirs.0.clone(), &ours)?;
-                                reverse_wire_map.set_item(&ours, theirs.0.clone())?;
-                                new_target.push(theirs.0.clone());
-                                target_cargs.add(theirs.0)?;
-                            }
+                    let mut new_target = Vec::with_capacity(target_bits.len());
+                    let target_cargs = PySet::empty(py)?;
+                    for (ours, theirs) in target_bits.into_iter().zip(mapped_bits) {
+                        if let Some(theirs) = theirs {
+                            // Target bit was in node's wires.
+                            let theirs: ShareableClbit = theirs.extract()?;
+                            new_target.push(theirs.clone());
+                            target_cargs.add(theirs)?;
+                        } else {
+                            // Target bit was not in node's wires, so we need a dummy.
+                            let theirs = ShareableClbit::new_anonymous();
+                            in_dag.add_clbit_unchecked(py, theirs.clone())?;
+                            wire_map.set_item(theirs.clone(), &ours)?;
+                            reverse_wire_map.set_item(&ours, theirs.clone())?;
+                            new_target.push(theirs.clone());
+                            target_cargs.add(theirs)?;
                         }
-                        let kwargs = [("bits", new_target.into_pyobject(py)?)].into_py_dict(py)?;
-                        let new_target_register = imports::CLASSICAL_REGISTER
-                            .get_bound(py)
-                            .call((), Some(&kwargs))?;
-                        in_dag.add_creg(py, &new_target_register)?;
-                        (new_target_register, target_cargs)
-                    };
+                    }
+                    let kwargs = [("bits", new_target.into_pyobject(py)?)].into_py_dict(py)?;
+                    let new_target_register = imports::CLASSICAL_REGISTER
+                        .get_bound(py)
+                        .call((), Some(&kwargs))?;
+                    in_dag.add_creg(py, &new_target_register)?;
+                    (new_target_register, target_cargs)
+                };
                 let new_condition = PyTuple::new(py, [py_new_target, py_value])?;
 
                 qubit_wire_map.clear();
                 clbit_wire_map.clear();
                 for item in wire_map.items().iter() {
                     let (in_bit, self_bit): (Bound<PyAny>, Bound<PyAny>) = item.extract()?;
-                    if in_bit.is_instance(imports::QUBIT.get_bound(py))? {
-                        let in_index = in_dag.qubits.find(&in_bit.extract::<PyQubit>()?.0).unwrap();
-                        let self_index =
-                            self.qubits.find(&self_bit.extract::<PyQubit>()?.0).unwrap();
+                    if in_bit.downcast::<PyQubit>().is_ok() {
+                        let in_index = in_dag
+                            .qubits
+                            .find(&in_bit.extract::<ShareableQubit>()?)
+                            .unwrap();
+                        let self_index = self
+                            .qubits
+                            .find(&self_bit.extract::<ShareableQubit>()?)
+                            .unwrap();
                         qubit_wire_map.insert(in_index, self_index);
                     } else {
-                        let in_index = in_dag.clbits.find(&in_bit.extract::<PyClbit>()?.0).unwrap();
-                        let self_index =
-                            self.clbits.find(&self_bit.extract::<PyClbit>()?.0).unwrap();
+                        let in_index = in_dag
+                            .clbits
+                            .find(&in_bit.extract::<ShareableClbit>()?)
+                            .unwrap();
+                        let self_index = self
+                            .clbits
+                            .find(&self_bit.extract::<ShareableClbit>()?)
+                            .unwrap();
                         clbit_wire_map.insert(in_index, self_index);
                     }
                 }
@@ -3647,7 +3604,7 @@ def _format(operand):
                     .idle_wires(py, None)?
                     .into_bound(py)
                     .map(|q| q.unwrap())
-                    .filter(|e| e.is_instance(imports::QUBIT.get_bound(py)).unwrap())
+                    .filter(|e| e.downcast::<PyQubit>().is_ok())
                     .collect();
 
                 let qubits = PyTuple::new(py, idle_wires)?;
@@ -3807,24 +3764,13 @@ def _format(operand):
                     self.get_node(py, edge.source())?,
                     self.get_node(py, edge.target())?,
                     match edge.weight() {
-                        Wire::Qubit(qubit) => self
-                            .qubits
-                            .get(*qubit)
-                            .cloned()
-                            .unwrap()
-                            .into_bound_py_any(py)?,
-                        Wire::Clbit(clbit) => self
-                            .clbits
-                            .get(*clbit)
-                            .cloned()
-                            .unwrap()
-                            .into_bound_py_any(py)?,
-                        Wire::Var(var) => self
-                            .vars
-                            .get(*var)
-                            .map(|var| var.clone_ref(py))
-                            .unwrap()
-                            .into_bound_py_any(py)?,
+                        Wire::Qubit(qubit) => {
+                            self.qubits.get(*qubit).unwrap().into_bound_py_any(py)?
+                        }
+                        Wire::Clbit(clbit) => {
+                            self.clbits.get(*clbit).unwrap().into_bound_py_any(py)?
+                        }
+                        Wire::Var(var) => self.vars.get(*var).unwrap().into_bound_py_any(py)?,
                     },
                 ))
             }
@@ -4355,7 +4301,7 @@ def _format(operand):
                 self.qargs_interner
                     .get(retrieved_node.qubits)
                     .iter()
-                    .map(|qubit| self.qubits.get(*qubit).cloned()),
+                    .map(|qubit| self.qubits.get(*qubit)),
             )?
             .unbind();
             new_layer.push_back(py, retrieved_node.clone())?;
@@ -4490,12 +4436,12 @@ def _format(operand):
         wire: &Bound<PyAny>,
         only_ops: bool,
     ) -> PyResult<Py<PyIterator>> {
-        let wire = if wire.is_instance(imports::QUBIT.get_bound(py))? {
-            let wire = wire.extract::<PyQubit>()?;
-            self.qubits.find(&wire.0).map(Wire::Qubit)
-        } else if wire.is_instance(imports::CLBIT.get_bound(py))? {
-            let wire = wire.extract::<PyClbit>()?;
-            self.clbits.find(&wire.0).map(Wire::Clbit)
+        let wire = if wire.downcast::<PyQubit>().is_ok() {
+            let wire = wire.extract::<ShareableQubit>()?;
+            self.qubits.find(&wire).map(Wire::Qubit)
+        } else if wire.downcast::<PyClbit>().is_ok() {
+            let wire = wire.extract::<ShareableClbit>()?;
+            self.clbits.find(&wire).map(Wire::Clbit)
         } else {
             let wire = VarAsKey::new(wire);
             self.vars.find(&wire).map(Wire::Var)
@@ -4574,8 +4520,8 @@ def _format(operand):
     ///     Set[~qiskit.circuit.Qubit]: The set of qubits whose interactions affect ``qubit``.
     fn quantum_causal_cone(&self, py: Python, qubit: &Bound<PyAny>) -> PyResult<Py<PySet>> {
         // Retrieve the output node from the qubit
-        let qubit_nat: PyQubit = qubit.extract()?;
-        let output_qubit = self.qubits.find(&qubit_nat.0).ok_or_else(|| {
+        let qubit_nat: ShareableQubit = qubit.extract()?;
+        let output_qubit = self.qubits.find(&qubit_nat).ok_or_else(|| {
             DAGCircuitError::new_err(format!(
                 "The given qubit {:?} is not present in the circuit",
                 qubit
@@ -4855,27 +4801,13 @@ def _format(operand):
                     wire.source().index(),
                     wire.target().index(),
                     match wire.weight() {
-                        Wire::Qubit(qubit) => self
-                            .qubits
-                            .get(*qubit)
-                            .cloned()
-                            .unwrap()
-                            .into_bound_py_any(py)
-                            .unwrap(),
-                        Wire::Clbit(clbit) => self
-                            .clbits
-                            .get(*clbit)
-                            .cloned()
-                            .unwrap()
-                            .into_bound_py_any(py)
-                            .unwrap(),
-                        Wire::Var(var) => self
-                            .vars
-                            .get(*var)
-                            .unwrap()
-                            .clone_ref(py)
-                            .into_bound_py_any(py)
-                            .unwrap(),
+                        Wire::Qubit(qubit) => {
+                            self.qubits.get(*qubit).into_bound_py_any(py).unwrap()
+                        }
+                        Wire::Clbit(clbit) => {
+                            self.clbits.get(*clbit).into_bound_py_any(py).unwrap()
+                        }
+                        Wire::Var(var) => self.vars.get(*var).into_bound_py_any(py).unwrap(),
                     },
                 )
                     .into_pyobject(py)
@@ -4893,24 +4825,13 @@ def _format(operand):
                     wire.source().index(),
                     wire.target().index(),
                     match wire.weight() {
-                        Wire::Qubit(qubit) => self
-                            .qubits
-                            .get(*qubit)
-                            .cloned()
-                            .into_bound_py_any(py)
-                            .unwrap(),
-                        Wire::Clbit(clbit) => self
-                            .clbits
-                            .get(*clbit)
-                            .cloned()
-                            .into_bound_py_any(py)
-                            .unwrap(),
-                        Wire::Var(var) => self
-                            .vars
-                            .get(*var)
-                            .map(|res| res.clone_ref(py))
-                            .into_bound_py_any(py)
-                            .unwrap(),
+                        Wire::Qubit(qubit) => {
+                            self.qubits.get(*qubit).into_bound_py_any(py).unwrap()
+                        }
+                        Wire::Clbit(clbit) => {
+                            self.clbits.get(*clbit).into_bound_py_any(py).unwrap()
+                        }
+                        Wire::Var(var) => self.vars.get(*var).into_bound_py_any(py).unwrap(),
                     },
                 )
                     .into_pyobject(py)
@@ -4924,9 +4845,9 @@ def _format(operand):
         self.dag
             .edges_directed(NodeIndex::new(node_index), Incoming)
             .map(|wire| match wire.weight() {
-                Wire::Qubit(qubit) => self.qubits.get(*qubit).cloned().into_py_any(py).unwrap(),
-                Wire::Clbit(clbit) => self.clbits.get(*clbit).cloned().into_py_any(py).unwrap(),
-                Wire::Var(var) => self.vars.get(*var).cloned().into_py_any(py).unwrap(),
+                Wire::Qubit(qubit) => self.qubits.get(*qubit).into_py_any(py).unwrap(),
+                Wire::Clbit(clbit) => self.clbits.get(*clbit).into_py_any(py).unwrap(),
+                Wire::Var(var) => self.vars.get(*var).into_py_any(py).unwrap(),
             })
             .collect()
     }
@@ -4935,9 +4856,9 @@ def _format(operand):
         self.dag
             .edges_directed(NodeIndex::new(node_index), Outgoing)
             .map(|wire| match wire.weight() {
-                Wire::Qubit(qubit) => self.qubits.get(*qubit).cloned().into_py_any(py).unwrap(),
-                Wire::Clbit(clbit) => self.clbits.get(*clbit).cloned().into_py_any(py).unwrap(),
-                Wire::Var(var) => self.vars.get(*var).cloned().into_py_any(py).unwrap(),
+                Wire::Qubit(qubit) => self.qubits.get(*qubit).into_py_any(py).unwrap(),
+                Wire::Clbit(clbit) => self.clbits.get(*clbit).into_py_any(py).unwrap(),
+                Wire::Var(var) => self.vars.get(*var).into_py_any(py).unwrap(),
             })
             .collect()
     }
@@ -4955,9 +4876,9 @@ def _format(operand):
             .unique_by(|e| e.id())
         {
             let weight = match e.weight() {
-                Wire::Qubit(qubit) => self.qubits.get(*qubit).cloned().into_py_any(py)?,
-                Wire::Clbit(clbit) => self.clbits.get(*clbit).cloned().into_py_any(py)?,
-                Wire::Var(var) => self.vars.get(*var).cloned().into_py_any(py)?,
+                Wire::Qubit(qubit) => self.qubits.get(*qubit).into_py_any(py)?,
+                Wire::Clbit(clbit) => self.clbits.get(*clbit).into_py_any(py)?,
+                Wire::Var(var) => self.vars.get(*var).into_py_any(py)?,
             };
             if edge_checker.call1((weight,))?.extract::<bool>()? {
                 result.push(self.get_node(py, e.target())?);
@@ -4972,9 +4893,9 @@ def _format(operand):
             .map(|index| {
                 let wire = self.dag.edge_weight(index).unwrap();
                 match wire {
-                    Wire::Qubit(qubit) => self.qubits.get(*qubit).cloned().into_py_any(py),
-                    Wire::Clbit(clbit) => self.clbits.get(*clbit).cloned().into_py_any(py),
-                    Wire::Var(var) => self.vars.get(*var).cloned().into_py_any(py),
+                    Wire::Qubit(qubit) => self.qubits.get(*qubit).into_py_any(py),
+                    Wire::Clbit(clbit) => self.clbits.get(*clbit).into_py_any(py),
+                    Wire::Var(var) => self.vars.get(*var).into_py_any(py),
                 }
             })
             .collect()
@@ -5260,7 +5181,7 @@ impl DAGCircuit {
             )
             .chain(vars.iter().flatten().map(|v| {
                 self.var_io_map
-                    .get(self.vars.find(&VarAsKey::new(v.bind(py))).unwrap().index())
+                    .get(self.vars.find(&v.bind(py).into()).unwrap().index())
                     .map(|x| x[1])
                     .unwrap()
             }))
@@ -5587,13 +5508,13 @@ impl DAGCircuit {
             {
                 let var = var?;
                 let var_var = var.getattr("var")?;
-                if var_var.is_instance(imports::CLBIT.get_bound(py))? {
-                    let var_clbit: PyClbit = var_var.extract()?;
-                    clbits.push(self.clbits.find(&var_clbit.0).unwrap());
+                if var_var.downcast::<PyClbit>().is_ok() {
+                    let var_clbit: ShareableClbit = var_var.extract()?;
+                    clbits.push(self.clbits.find(&var_clbit).unwrap());
                 } else if var_var.is_instance(imports::CLASSICAL_REGISTER.get_bound(py))? {
                     for bit in var_var.try_iter().unwrap() {
-                        let clbit: PyClbit = bit?.extract()?;
-                        clbits.push(self.clbits.find(&clbit.0).unwrap());
+                        let clbit: ShareableClbit = bit?.extract()?;
+                        clbits.push(self.clbits.find(&clbit).unwrap());
                     }
                 } else {
                     vars.push(var.unbind());
@@ -5622,8 +5543,8 @@ impl DAGCircuit {
                         .clbits
                         .bind(py)
                     {
-                        let clbit: PyClbit = bit.extract()?;
-                        clbits.push(self.clbits.find(&clbit.0).unwrap());
+                        let clbit: ShareableClbit = bit.extract()?;
+                        clbits.push(self.clbits.find(&clbit).unwrap());
                     }
                 }
             }
@@ -5637,13 +5558,13 @@ impl DAGCircuit {
                 }
                 if op.is_instance(imports::SWITCH_CASE_OP.get_bound(py))? {
                     let target = op.getattr(intern!(py, "target"))?;
-                    if target.is_instance(imports::CLBIT.get_bound(py))? {
-                        let target_clbit: PyClbit = target.extract()?;
-                        clbits.push(self.clbits.find(&target_clbit.0).unwrap());
+                    if target.downcast::<PyClbit>().is_ok() {
+                        let target_clbit: ShareableClbit = target.extract()?;
+                        clbits.push(self.clbits.find(&target_clbit).unwrap());
                     } else if target.is_instance(imports::CLASSICAL_REGISTER.get_bound(py))? {
                         for bit in target.try_iter()? {
-                            let clbit: PyClbit = bit?.extract()?;
-                            clbits.push(self.clbits.find(&clbit.0).unwrap());
+                            let clbit: ShareableClbit = bit?.extract()?;
+                            clbits.push(self.clbits.find(&clbit).unwrap());
                         }
                     } else {
                         let (expr_clbits, expr_vars) = wires_from_expr(&target)?;
@@ -5769,10 +5690,10 @@ impl DAGCircuit {
         Ok(())
     }
 
-    fn add_qubit_unchecked(&mut self, py: Python, bit: PyQubit) -> PyResult<Qubit> {
-        let qubit = self.qubits.add(bit.0.clone(), false)?;
+    fn add_qubit_unchecked(&mut self, py: Python, bit: ShareableQubit) -> PyResult<Qubit> {
+        let qubit = self.qubits.add(bit.clone(), false)?;
         self.qubit_locations.bind(py).set_item(
-            bit.0,
+            bit,
             Py::new(
                 py,
                 BitLocations {
@@ -5785,10 +5706,10 @@ impl DAGCircuit {
         Ok(qubit)
     }
 
-    fn add_clbit_unchecked(&mut self, py: Python, bit: PyClbit) -> PyResult<Clbit> {
-        let clbit = self.clbits.add(bit.0.clone(), false)?;
+    fn add_clbit_unchecked(&mut self, py: Python, bit: ShareableClbit) -> PyResult<Clbit> {
+        let clbit = self.clbits.add(bit.clone(), false)?;
         self.clbit_locations.bind(py).set_item(
-            bit.0,
+            bit,
             Py::new(
                 py,
                 BitLocations {
@@ -5875,12 +5796,12 @@ impl DAGCircuit {
         Ok(if let Ok(in_node) = b.downcast::<DAGInNode>() {
             let in_node = in_node.borrow();
             let wire = in_node.wire.bind(py);
-            if wire.is_instance(imports::QUBIT.get_bound(py))? {
-                let qubit: PyQubit = wire.extract()?;
-                NodeType::QubitIn(self.qubits.find(&qubit.0).unwrap())
-            } else if wire.is_instance(imports::CLBIT.get_bound(py))? {
-                let clbit: PyClbit = wire.extract()?;
-                NodeType::ClbitIn(self.clbits.find(&clbit.0).unwrap())
+            if wire.downcast::<PyQubit>().is_ok() {
+                let qubit: ShareableQubit = wire.extract()?;
+                NodeType::QubitIn(self.qubits.find(&qubit).unwrap())
+            } else if wire.downcast::<PyClbit>().is_ok() {
+                let clbit: ShareableClbit = wire.extract()?;
+                NodeType::ClbitIn(self.clbits.find(&clbit).unwrap())
             } else {
                 let var = VarAsKey::new(wire);
                 NodeType::VarIn(self.vars.find(&var).unwrap())
@@ -5888,12 +5809,12 @@ impl DAGCircuit {
         } else if let Ok(out_node) = b.downcast::<DAGOutNode>() {
             let out_node = out_node.borrow();
             let wire = out_node.wire.bind(py);
-            if wire.is_instance(imports::QUBIT.get_bound(py))? {
-                let qubit: PyQubit = wire.extract()?;
-                NodeType::QubitOut(self.qubits.find(&qubit.0).unwrap())
-            } else if wire.is_instance(imports::CLBIT.get_bound(py))? {
-                let clbit: PyClbit = wire.extract()?;
-                NodeType::ClbitOut(self.clbits.find(&clbit.0).unwrap())
+            if wire.downcast::<PyQubit>().is_ok() {
+                let qubit: ShareableQubit = wire.extract()?;
+                NodeType::QubitOut(self.qubits.find(&qubit).unwrap())
+            } else if wire.downcast::<PyClbit>().is_ok() {
+                let clbit: ShareableClbit = wire.extract()?;
+                NodeType::ClbitOut(self.clbits.find(&clbit).unwrap())
             } else {
                 let var = VarAsKey::new(wire);
                 NodeType::VarIn(self.vars.find(&var).unwrap())
@@ -5906,9 +5827,8 @@ impl DAGCircuit {
                         op_node
                             .instruction
                             .qubits
-                            .extract::<Vec<PyQubit>>(py)?
-                            .into_iter()
-                            .map(|bit| bit.0),
+                            .extract::<Vec<ShareableQubit>>(py)?
+                            .into_iter(),
                     )?
                     .collect(),
             );
@@ -5918,9 +5838,8 @@ impl DAGCircuit {
                         op_node
                             .instruction
                             .clbits
-                            .extract::<Vec<PyClbit>>(py)?
-                            .into_iter()
-                            .map(|bit| bit.0),
+                            .extract::<Vec<ShareableClbit>>(py)?
+                            .into_iter(),
                     )?
                     .collect(),
             );
@@ -6245,7 +6164,7 @@ impl DAGCircuit {
                         self.vars
                             .find(
                                 &bound_var_map
-                                    .get_item(other.vars.get(*var).map(|item| item.clone_ref(py)))?
+                                    .get_item(other.vars.get(*var))?
                                     .unwrap()
                                     .into(),
                             )
@@ -6275,7 +6194,7 @@ impl DAGCircuit {
                         .vars
                         .find(
                             &reverse_var_map
-                                .get_item(self.vars.get(var).map(|item| item.clone_ref(py)))?
+                                .get_item(self.vars.get(var))?
                                 .unwrap()
                                 .into(),
                         )
@@ -6320,7 +6239,7 @@ impl DAGCircuit {
                         .vars
                         .find(
                             &reverse_var_map
-                                .get_item(self.vars.get(var).map(|item| item.clone_ref(py)))?
+                                .get_item(self.vars.get(var))?
                                 .unwrap()
                                 .into(),
                         )
@@ -6357,9 +6276,7 @@ impl DAGCircuit {
     ///
     /// The provided [Var] must be from this [DAGCircuit].
     pub fn get_var<'py>(&self, py: Python<'py>, var: Var) -> Option<Bound<'py, PyAny>> {
-        self.vars
-            .get(var)
-            .map(|v| v.clone_ref(py).into_bound_py_any(py).ok())?
+        self.vars.get(var).map(|v| v.into_bound_py_any(py).ok())?
     }
 
     fn add_var(&mut self, py: Python, var: &Bound<PyAny>, type_: DAGVarType) -> PyResult<Var> {
@@ -6968,14 +6885,14 @@ impl DAGCircuit {
             qubit_ordering
                 .into_iter()
                 .try_for_each(|qubit| -> PyResult<()> {
-                    let qubit_nat: PyQubit = qubit.extract()?;
-                    if new_dag.qubits.find(&qubit_nat.0).is_some() {
+                    let qubit_nat: ShareableQubit = qubit.extract()?;
+                    if new_dag.qubits.find(&qubit_nat).is_some() {
                         return Err(DAGCircuitError::new_err(format!(
                             "duplicate qubits {}",
                             &qubit
                         )));
                     }
-                    let qubit_index = qc_data.qubits().find(&qubit_nat.0).unwrap();
+                    let qubit_index = qc_data.qubits().find(&qubit_nat).unwrap();
                     ordered_vec[qubit_index.index()] =
                         new_dag.add_qubit_unchecked(py, qubit_nat)?;
                     Ok(())
@@ -6991,7 +6908,7 @@ impl DAGCircuit {
                 .bits()
                 .iter()
                 .try_for_each(|qubit| -> PyResult<_> {
-                    new_dag.add_qubit_unchecked(py, PyQubit(qubit.clone()))?;
+                    new_dag.add_qubit_unchecked(py, qubit.clone())?;
                     Ok(())
                 })?;
             new_dag.merge_qargs(qc_data.qargs_interner(), |bit| Some(*bit))
@@ -7003,14 +6920,14 @@ impl DAGCircuit {
             clbit_ordering
                 .into_iter()
                 .try_for_each(|clbit| -> PyResult<()> {
-                    let clbit_nat: PyClbit = clbit.extract()?;
-                    if new_dag.clbits.find(&clbit_nat.0).is_some() {
+                    let clbit_nat: ShareableClbit = clbit.extract()?;
+                    if new_dag.clbits.find(&clbit_nat).is_some() {
                         return Err(DAGCircuitError::new_err(format!(
                             "duplicate clbits {}",
                             &clbit
                         )));
                     };
-                    let clbit_index = qc_data.clbits().find(&clbit_nat.0).unwrap();
+                    let clbit_index = qc_data.clbits().find(&clbit_nat).unwrap();
                     ordered_vec[clbit_index.index()] =
                         new_dag.add_clbit_unchecked(py, clbit_nat)?;
                     Ok(())
@@ -7026,7 +6943,7 @@ impl DAGCircuit {
                 .bits()
                 .iter()
                 .try_for_each(|clbit| -> PyResult<()> {
-                    new_dag.add_clbit_unchecked(py, PyClbit(clbit.clone()))?;
+                    new_dag.add_clbit_unchecked(py, clbit.clone())?;
                     Ok(())
                 })?;
             new_dag.merge_cargs(qc_data.cargs_interner(), |bit| Some(*bit))
@@ -7129,9 +7046,8 @@ impl DAGCircuit {
                                     self.control_flow_module
                                         .condition_resources(condition.bind(py))?
                                         .clbits
-                                        .extract::<Vec<PyClbit>>(py)?
-                                        .into_iter()
-                                        .map(|clbit| clbit.0),
+                                        .extract::<Vec<ShareableClbit>>(py)?
+                                        .into_iter(),
                                 )?,
                             );
                             Ok(())
@@ -7145,29 +7061,23 @@ impl DAGCircuit {
                             Python::with_gil(|py| -> PyResult<()> {
                                 let op_bound = op.instruction.bind(py);
                                 let target = op_bound.getattr(intern!(py, "target"))?;
-                                if target.is_instance(imports::CLBIT.get_bound(py))? {
-                                    let target_clbit: PyClbit = target.extract()?;
-                                    block_cargs.insert(self.clbits.find(&target_clbit.0).unwrap());
+                                if target.downcast::<PyClbit>().is_ok() {
+                                    let target_clbit: ShareableClbit = target.extract()?;
+                                    block_cargs.insert(self.clbits.find(&target_clbit).unwrap());
                                 } else if target
                                     .is_instance(imports::CLASSICAL_REGISTER.get_bound(py))?
                                 {
-                                    block_cargs.extend(
-                                        self.clbits.map_bits(
-                                            target
-                                                .extract::<Vec<PyClbit>>()?
-                                                .into_iter()
-                                                .map(|clbit| clbit.0),
-                                        )?,
-                                    );
+                                    block_cargs.extend(self.clbits.map_bits(
+                                        target.extract::<Vec<ShareableClbit>>()?.into_iter(),
+                                    )?);
                                 } else {
                                     block_cargs.extend(
                                         self.clbits.map_bits(
                                             self.control_flow_module
                                                 .node_resources(&target)?
                                                 .clbits
-                                                .extract::<Vec<PyClbit>>(py)?
-                                                .into_iter()
-                                                .map(|clbit| clbit.0),
+                                                .extract::<Vec<ShareableClbit>>(py)?
+                                                .into_iter(),
                                         )?,
                                     );
                                 }
@@ -7352,8 +7262,8 @@ impl DAGCircuit {
                     .condition_resources(old_condition.bind(py))?;
                 let condition_clbits = binding.clbits.bind(py);
                 for bit in condition_clbits {
-                    let target_clbit: PyClbit = bit.extract()?;
-                    new_wires.insert(Wire::Clbit(self.clbits.find(&target_clbit.0).unwrap()));
+                    let target_clbit: ShareableClbit = bit.extract()?;
+                    new_wires.insert(Wire::Clbit(self.clbits.find(&target_clbit).unwrap()));
                 }
                 let op_ref = new_op.operation.view();
                 if let OperationRef::Instruction(inst) = op_ref {

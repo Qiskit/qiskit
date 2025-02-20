@@ -15,8 +15,6 @@ use ndarray::linalg::kron;
 use ndarray::Array2;
 use num_complex::Complex64;
 use once_cell::sync::Lazy;
-use qiskit_circuit::bit::PyClbit;
-use qiskit_circuit::bit::PyQubit;
 use qiskit_circuit::bit::ShareableClbit;
 use qiskit_circuit::bit::ShareableQubit;
 use smallvec::SmallVec;
@@ -171,28 +169,28 @@ impl CommutationChecker {
             .qubits
             .bind(py)
             .iter()
-            .map(|bit| bit.extract::<PyQubit>().map(|bit| bit.0))
+            .map(|bit| bit.extract::<ShareableQubit>())
             .collect::<PyResult<_>>()?;
         let op2_qubits: Vec<ShareableQubit> = op2
             .instruction
             .qubits
             .bind(py)
             .iter()
-            .map(|bit| bit.extract::<PyQubit>().map(|bit| bit.0))
+            .map(|bit| bit.extract::<ShareableQubit>())
             .collect::<PyResult<_>>()?;
         let op1_clbits: Vec<ShareableClbit> = op2
             .instruction
             .clbits
             .bind(py)
             .iter()
-            .map(|bit| bit.extract::<PyClbit>().map(|bit| bit.0))
+            .map(|bit| bit.extract::<ShareableClbit>())
             .collect::<PyResult<_>>()?;
         let op2_clbits: Vec<ShareableClbit> = op2
             .instruction
             .clbits
             .bind(py)
             .iter()
-            .map(|bit| bit.extract::<PyClbit>().map(|bit| bit.0))
+            .map(|bit| bit.extract::<ShareableClbit>())
             .collect::<PyResult<_>>()?;
         let (qargs1, qargs2) = get_bits::<Qubit, ShareableQubit>(&op1_qubits, &op2_qubits)?;
         let (cargs1, cargs2) = get_bits::<Clbit, ShareableClbit>(&op1_clbits, &op2_clbits)?;
@@ -219,33 +217,17 @@ impl CommutationChecker {
         &mut self,
         py: Python,
         op1: OperationFromPython,
-        qargs1: Option<Vec<PyQubit>>,
-        cargs1: Option<Vec<PyClbit>>,
+        qargs1: Option<Vec<ShareableQubit>>,
+        cargs1: Option<Vec<ShareableClbit>>,
         op2: OperationFromPython,
-        qargs2: Option<Vec<PyQubit>>,
-        cargs2: Option<Vec<PyClbit>>,
+        qargs2: Option<Vec<ShareableQubit>>,
+        cargs2: Option<Vec<ShareableClbit>>,
         max_num_qubits: u32,
     ) -> PyResult<bool> {
-        let qargs1 = qargs1
-            .unwrap_or_default()
-            .into_iter()
-            .map(|bit| bit.0)
-            .collect();
-        let cargs1 = cargs1
-            .unwrap_or_default()
-            .into_iter()
-            .map(|bit| bit.0)
-            .collect();
-        let qargs2 = qargs2
-            .unwrap_or_default()
-            .into_iter()
-            .map(|bit| bit.0)
-            .collect();
-        let cargs2 = cargs2
-            .unwrap_or_default()
-            .into_iter()
-            .map(|bit| bit.0)
-            .collect();
+        let qargs1 = qargs1.unwrap_or_default().into_iter().collect();
+        let cargs1 = cargs1.unwrap_or_default().into_iter().collect();
+        let qargs2 = qargs2.unwrap_or_default().into_iter().collect();
+        let cargs2 = cargs2.unwrap_or_default().into_iter().collect();
 
         let (qargs1, qargs2) = get_bits::<Qubit, ShareableQubit>(&qargs1, &qargs2)?;
         let (cargs1, cargs2) = get_bits::<Clbit, ShareableClbit>(&cargs1, &cargs2)?;

@@ -12,7 +12,7 @@
 
 use std::{
     fmt::Debug,
-    hash::{DefaultHasher, Hash, Hasher},
+    hash::Hash,
     sync::{atomic::AtomicU64, Arc},
 };
 
@@ -174,6 +174,12 @@ impl<'py> IntoPyObject<'py> for &'py ShareableQubit {
     }
 }
 
+impl<'py> FromPyObject<'py> for ShareableQubit {
+    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+        Ok(ob.downcast::<PyQubit>()?.get().0.clone())
+    }
+}
+
 impl<'py> IntoPyObject<'py> for ShareableClbit {
     type Target = PyClbit;
 
@@ -199,7 +205,20 @@ impl<'py> IntoPyObject<'py> for &'py ShareableClbit {
     }
 }
 
-#[pyclass(subclass, name = "Bit", module = "qiskit.circuit.bit", eq)]
+impl<'py> FromPyObject<'py> for ShareableClbit {
+    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+        Ok(ob.downcast::<PyClbit>()?.get().0.clone())
+    }
+}
+
+#[pyclass(
+    subclass,
+    name = "Bit",
+    module = "qiskit.circuit.bit",
+    eq,
+    hash,
+    frozen
+)]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Hash)]
 pub struct PyBit(pub(crate) BitInfo);
 
@@ -278,13 +297,6 @@ impl PyBit {
         }
     }
 
-    fn __hash__(slf: Bound<'_, Self>) -> PyResult<u64> {
-        let mut hasher = DefaultHasher::new();
-        let borrowed = slf.borrow();
-        (slf.get_type().name()?.to_string(), &borrowed.0).hash(&mut hasher);
-        Ok(hasher.finish())
-    }
-
     fn __getnewargs__(slf: Bound<'_, Self>) -> PyResult<(Bound<'_, PyAny>, Bound<'_, PyAny>)> {
         Ok((slf.getattr("_register")?, slf.getattr("_index")?))
     }
@@ -310,7 +322,7 @@ macro_rules! create_py_bit {
             extends=PyBit,
         )]
         #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-        pub struct $name(pub $natbit);
+        pub struct $name(pub(crate) $natbit);
 
         #[pymethods]
         impl $name {

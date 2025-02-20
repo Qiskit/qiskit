@@ -16,7 +16,7 @@ use crate::target_transpiler::Target;
 use hashbrown::HashSet;
 use pyo3::prelude::*;
 use pyo3::types::PyTuple;
-use qiskit_circuit::bit::PyQubit;
+use qiskit_circuit::bit::ShareableQubit;
 use qiskit_circuit::operations::OperationRef;
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{
@@ -442,10 +442,10 @@ fn add_qreg(py: Python, dag: &mut DAGCircuit, num_qubits: u32) -> PyResult<Vec<Q
     let mut qargs = Vec::new();
 
     for i in 0..num_qubits {
-        let qubit: PyQubit = qreg.get_item(i)?.extract()?;
+        let qubit: ShareableQubit = qreg.get_item(i)?.extract()?;
         qargs.push(
             dag.qubits()
-                .find(&qubit.0)
+                .find(&qubit)
                 .expect("Qubit should have been stored in the DAGCircuit"),
         );
     }

@@ -29,7 +29,7 @@ use std::sync::OnceLock;
 /// to determine equality. If these are not equal, only then does
 /// it call `repr()` on both sides, which has a significant
 /// performance advantage.
-#[derive(Clone, Debug, IntoPyObjectRef)]
+#[derive(Clone, Debug)]
 pub(crate) struct VarAsKey {
     /// Python's `hash()` of the wrapped instance.
     hash: isize,
@@ -47,7 +47,7 @@ impl VarAsKey {
         }
     }
 
-    /// Safely clones the underlying reference inside if an instance
+    /// Safely clones the underlying python object reference
     pub fn clone_ref(&self, py: Python) -> Self {
         Self {
             hash: self.hash,
@@ -75,6 +75,18 @@ impl<'py> From<Bound<'py, PyAny>> for VarAsKey {
 }
 
 impl<'py> IntoPyObject<'py> for VarAsKey {
+    type Target = PyAny;
+
+    type Output = Bound<'py, PyAny>;
+
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        Ok(self.bit.bind(py).clone())
+    }
+}
+
+impl<'py> IntoPyObject<'py> for &VarAsKey {
     type Target = PyAny;
 
     type Output = Bound<'py, PyAny>;
