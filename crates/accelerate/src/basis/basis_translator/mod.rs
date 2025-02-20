@@ -479,7 +479,7 @@ fn apply_translation(
                     } else {
                         Some(new_op.params)
                     },
-                    new_op.extra_attrs,
+                    new_op.label.map(|x| *x),
                     #[cfg(feature = "cache_pygates")]
                     None,
                 )?;
@@ -500,7 +500,7 @@ fn apply_translation(
                                 .collect(),
                         )
                     },
-                    node_obj.extra_attrs.clone(),
+                    node_obj.label.as_ref().map(|x| x.as_ref().clone()),
                     #[cfg(feature = "cache_pygates")]
                     None,
                 )?;
@@ -528,7 +528,7 @@ fn apply_translation(
                             .collect(),
                     )
                 },
-                node_obj.extra_attrs.clone(),
+                node_obj.label.as_ref().map(|x| x.as_ref().clone()),
                 #[cfg(feature = "cache_pygates")]
                 None,
             )?;
@@ -552,7 +552,7 @@ fn apply_translation(
                             .collect(),
                     )
                 },
-                node_obj.extra_attrs.clone(),
+                node_obj.label.as_ref().map(|x| x.as_ref().clone()),
                 #[cfg(feature = "cache_pygates")]
                 None,
             )?;
@@ -624,27 +624,12 @@ fn replace_node(
             } else {
                 inner_node.op.clone()
             };
-            if node.condition().is_some() {
-                match new_op.view() {
-                    OperationRef::Gate(gate) => {
-                        gate.gate.setattr(py, "condition", node.condition())?
-                    }
-                    OperationRef::Instruction(inst) => {
-                        inst.instruction
-                            .setattr(py, "condition", node.condition())?
-                    }
-                    OperationRef::Operation(oper) => {
-                        oper.operation.setattr(py, "condition", node.condition())?
-                    }
-                    _ => (),
-                }
-            }
             let new_params: SmallVec<[Param; 3]> = inner_node
                 .params_view()
                 .iter()
                 .map(|param| param.clone_ref(py))
                 .collect();
-            let new_extra_props = node.extra_attrs.clone();
+            let new_extra_props = node.label.as_ref().map(|x| x.as_ref().clone());
             dag.apply_operation_back(
                 py,
                 new_op,
@@ -759,7 +744,7 @@ fn replace_node(
                 } else {
                     Some(new_params)
                 },
-                inner_node.extra_attrs.clone(),
+                inner_node.label.as_ref().map(|x| x.as_ref().clone()),
                 #[cfg(feature = "cache_pygates")]
                 None,
             )?;

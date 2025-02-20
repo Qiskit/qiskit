@@ -1443,22 +1443,6 @@ class TestTranspile(QiskitTestCase):
         )
         self.assertEqual(set(transpiled_circ.count_ops().keys()), {"rxt"})
 
-    def test_inst_durations_from_calibrations(self):
-        """Test that circuit calibrations can be used instead of explicitly
-        supplying inst_durations.
-        """
-        qc = QuantumCircuit(2)
-        qc.append(Gate("custom", 1, []), [0])
-
-        with self.assertWarns(DeprecationWarning):
-            with pulse.build() as cal:
-                pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), pulse.DriveChannel(0))
-            qc.add_calibration("custom", [0], cal)
-
-        out = transpile(qc, scheduling_method="alap", seed_transpiler=42)
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(out.duration, cal.duration)
-
     @data(0, 1, 2, 3)
     def test_circuit_with_delay(self, optimization_level):
         """Verify a circuit with delay can transpile to a scheduled circuit."""
@@ -1477,11 +1461,20 @@ class TestTranspile(QiskitTestCase):
                 scheduling_method="alap",
                 basis_gates=["h", "cx"],
                 instruction_durations=[("h", 0, 200), ("cx", [0, 1], 700)],
+                dt=1e-9,
                 optimization_level=optimization_level,
                 seed_transpiler=42,
             )
 
-        self.assertEqual(out.duration, 1200)
+        target = Target.from_configuration(
+            basis_gates=["h", "cx"],
+            coupling_map=CouplingMap.from_line(2, bidirectional=False),
+            instruction_durations=InstructionDurations(
+                [("h", 0, 200), ("cx", [0, 1], 700)], dt=1e-9
+            ),
+            dt=1e-9,
+        )
+        self.assertEqual(out.estimate_duration(target, "dt"), 1200)
 
     def test_delay_converts_to_dt(self):
         """Test that a delay instruction is converted to units of dt given a backend."""
@@ -1539,7 +1532,9 @@ class TestTranspile(QiskitTestCase):
                 instruction_durations=durations,
                 layout_method="trivial",
             )
-        self.assertEqual(scheduled.duration, 1500)
+        result_target = copy.deepcopy(backend_v2.target)
+        result_target["cx"][(0, 1)].duration = 1000 * durations.dt
+        self.assertEqual(scheduled.estimate_duration(result_target, "dt"), 1500)
 
         with self.assertWarnsRegex(
             DeprecationWarning,
@@ -1552,7 +1547,7 @@ class TestTranspile(QiskitTestCase):
                 instruction_durations=durations,
                 layout_method="trivial",
             )
-        self.assertEqual(scheduled.duration, 1500)
+        self.assertEqual(scheduled.estimate_duration(result_target, "dt"), 1500)
 
     def test_scheduling_instruction_constraints(self):
         """Test that scheduling-related loose transpile constraints work with target."""
@@ -1576,7 +1571,7 @@ class TestTranspile(QiskitTestCase):
             scheduling_method="alap",
             layout_method="trivial",
         )
-        self.assertEqual(scheduled.duration, 9010)
+        self.assertEqual(scheduled.estimate_duration(target, "dt"), 9010)
 
     def test_scheduling_dt_constraints(self):
         """Test that scheduling-related loose transpile constraints
@@ -1599,11 +1594,15 @@ class TestTranspile(QiskitTestCase):
             scheduled = transpile(
                 qc, backend=backend_v1, scheduling_method="asap", dt=original_dt / 2
             )
-        self.assertEqual(scheduled.duration, original_duration * 2)
+        self.assertEqual(
+            scheduled.estimate_duration(backend_v2.target, "dt"), original_duration * 2
+        )
 
         # halve dt in sec = double duration in dt
         scheduled = transpile(qc, backend=backend_v2, scheduling_method="asap", dt=original_dt / 2)
-        self.assertEqual(scheduled.duration, original_duration * 2)
+        self.assertEqual(
+            scheduled.estimate_duration(backend_v2.target, "dt"), original_duration * 2
+        )
 
     @data(1, 2, 3)
     def test_no_infinite_loop(self, optimization_level):
@@ -2098,8 +2097,8 @@ class TestPostTranspileIntegration(QiskitTestCase):
         base.append(CustomCX(), [3, 6])
         base.append(CustomCX(), [5, 4])
         base.append(CustomCX(), [5, 3])
-        with self.assertWarns(DeprecationWarning):
-            base.append(CustomCX(), [2, 4]).c_if(base.cregs[0], 3)
+        with base.if_test((base.cregs[0], 3)):
+            base.append(CustomCX(), [2, 4])
         base.ry(a, 4)
         base.measure(4, 2)
         return base
@@ -2213,7 +2212,7 @@ class TestPostTranspileIntegration(QiskitTestCase):
         """Test that the output of a transpiled circuit can be round-tripped through QPY."""
         transpiled = transpile(
             self._regular_circuit(),
-            backend=GenericBackendV2(num_qubits=8),
+            backend=GenericBackendV2(num_qubits=8, control_flow=True),
             optimization_level=optimization_level,
             seed_transpiler=2022_10_17,
         )
@@ -2230,7 +2229,7 @@ class TestPostTranspileIntegration(QiskitTestCase):
         """Test that the output of a transpiled circuit can be round-tripped through QPY."""
         transpiled = transpile(
             self._regular_circuit(),
-            backend=GenericBackendV2(num_qubits=8),
+            backend=GenericBackendV2(num_qubits=8, control_flow=True),
             optimization_level=optimization_level,
             seed_transpiler=2022_10_17,
         )
@@ -2380,6 +2379,7 @@ class TestPostTranspileIntegration(QiskitTestCase):
             num_qubits=20,
             coupling_map=TOKYO_CMAP,
             basis_gates=["id", "u1", "u2", "u3", "cx"],
+            control_flow=True,
         )
 
         transpiled = transpile(
@@ -2388,23 +2388,6 @@ class TestPostTranspileIntegration(QiskitTestCase):
             optimization_level=optimization_level,
             seed_transpiler=2022_10_17,
         )
-        # TODO: There's not a huge amount we can sensibly test for the output here until we can
-        # round-trip the OpenQASM 3 back into a Terra circuit.  Mostly we're concerned that the dump
-        # itself doesn't throw an error, though.
-        self.assertIsInstance(qasm3.dumps(transpiled).strip(), str)
-
-    @data(0, 1, 2, 3)
-    def test_qasm3_output_v1(self, optimization_level):
-        """Test that the output of a transpiled circuit can be dumped into OpenQASM 3 (backend V1)."""
-        with self.assertWarns(DeprecationWarning):
-            backend = Fake20QV1()
-
-            transpiled = transpile(
-                self._regular_circuit(),
-                backend=backend,
-                optimization_level=optimization_level,
-                seed_transpiler=2022_10_17,
-            )
         # TODO: There's not a huge amount we can sensibly test for the output here until we can
         # round-trip the OpenQASM 3 back into a Terra circuit.  Mostly we're concerned that the dump
         # itself doesn't throw an error, though.
@@ -2658,22 +2641,6 @@ class TestTranspileParallel(QiskitTestCase):
         for count in counts:
             self.assertTrue(math.isclose(count["00000"], 500, rel_tol=0.1))
             self.assertTrue(math.isclose(count["01111"], 500, rel_tol=0.1))
-
-    @data(0, 1, 2, 3)
-    def test_parallel_singleton_conditional_gate(self, opt_level):
-        """Test that singleton mutable instance doesn't lose state in parallel."""
-        backend = GenericBackendV2(num_qubits=27)
-        circ = QuantumCircuit(2, 1)
-        circ.h(0)
-        circ.measure(0, circ.clbits[0])
-        with self.assertWarns(DeprecationWarning):
-            circ.z(1).c_if(circ.clbits[0], 1)
-        res = transpile(
-            [circ, circ], backend, optimization_level=opt_level, seed_transpiler=123456769
-        )
-        self.assertTrue(res[0].data[-1].operation.mutable)
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(res[0].data[-1].operation.condition, (res[0].clbits[0], 1))
 
     @data(0, 1, 2, 3)
     def test_backendv2_and_basis_gates(self, opt_level):
@@ -3118,8 +3085,9 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
         for i in range(18):
             qc.measure(i, creg[i])
 
-        with self.assertWarns(DeprecationWarning):
-            qc.ecr(20, 21).c_if(creg, 0)
+        with qc.if_test((creg, 0)):
+            qc.ecr(20, 21)
+        self.backend.target.add_instruction(IfElseOp, name="if_else")
         tqc = transpile(qc, self.backend, optimization_level=opt_level, seed_transpiler=42)
 
         def _visit_block(circuit, qubit_mapping=None):
@@ -3155,11 +3123,12 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
         qc.measure(24, creg[0])
         qc.measure(23, creg[1])
         # Component 1
-        with self.assertWarns(DeprecationWarning):
-            qc.h(0).c_if(creg, 0)
+        with qc.if_test((creg, 0)):
+            qc.h(0)
         for i in range(18):
-            with self.assertWarns(DeprecationWarning):
-                qc.ecr(0, i + 1).c_if(creg, 0)
+            with qc.if_test((creg, 0)):
+                qc.ecr(0, i + 1)
+        self.backend.target.add_instruction(IfElseOp, name="if_else")
         tqc = transpile(qc, self.backend, optimization_level=opt_level, seed_transpiler=123456789)
 
         def _visit_block(circuit, qubit_mapping=None):
@@ -3231,11 +3200,12 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
         qc.measure(0, creg[0])
         qc.measure(1, creg[1])
         # Component 1
-        with self.assertWarns(DeprecationWarning):
-            qc.h(24).c_if(creg, 0)
+        with qc.if_test((creg, 0)):
+            qc.h(24)
         for i in range(23, 5, -1):
-            with self.assertWarns(DeprecationWarning):
-                qc.ecr(24, i).c_if(creg, 0)
+            with qc.if_test((creg, 0)):
+                qc.ecr(24, i)
+        self.backend.target.add_instruction(IfElseOp, name="if_else")
         tqc = transpile(qc, self.backend, optimization_level=opt_level, seed_transpiler=2023)
 
         def _visit_block(circuit, qubit_mapping=None):
@@ -3306,21 +3276,22 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
         measure_op = Measure()
         qc.append(measure_op, [9], [creg[0]])
         # Component 1
-        with self.assertWarns(DeprecationWarning):
-            qc.h(10).c_if(creg, 0)
+        with qc.if_test((creg, 0)):
+            qc.h(10)
         for i in range(11, 20):
-            with self.assertWarns(DeprecationWarning):
-                qc.ecr(10, i).c_if(creg, 0)
+            with qc.if_test((creg, 0)):
+                qc.ecr(10, i)
         measure_op = Measure()
         qc.append(measure_op, [19], [creg[0]])
         # Component 2
-        with self.assertWarns(DeprecationWarning):
-            qc.h(20).c_if(creg, 0)
+        with qc.if_test((creg, 0)):
+            qc.h(20)
         for i in range(21, 30):
-            with self.assertWarns(DeprecationWarning):
-                qc.cz(20, i).c_if(creg, 0)
+            with qc.if_test((creg, 0)):
+                qc.cz(20, i)
         measure_op = Measure()
         qc.append(measure_op, [29], [creg[0]])
+        self.backend.target.add_instruction(IfElseOp, name="if_else")
         tqc = transpile(qc, self.backend, optimization_level=opt_level, seed_transpiler=2023)
 
         def _visit_block(circuit, qubit_mapping=None):

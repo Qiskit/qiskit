@@ -182,12 +182,6 @@ class SwitchCaseOp(ControlFlowOp):
             raise CircuitError(f"needed {len(self._case_map)} blocks but received {len(blocks)}")
         return SwitchCaseOp(self.target, zip(self._label_spec, blocks))
 
-    def c_if(self, classical, val):
-        raise NotImplementedError(
-            "SwitchCaseOp cannot be classically controlled through Instruction.c_if. "
-            "Please nest it in an IfElseOp instead."
-        )
-
 
 class SwitchCasePlaceholder(InstructionPlaceholder):
     """A placeholder instruction to use in control-flow context managers, when calculating the
@@ -269,7 +263,7 @@ class SwitchCasePlaceholder(InstructionPlaceholder):
         else:
             resources = self.__resources
         return (
-            self._copy_mutable_properties(SwitchCaseOp(self.__target, cases, label=self.label)),
+            SwitchCaseOp(self.__target, cases, label=self.label),
             resources,
         )
 

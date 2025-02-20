@@ -14,7 +14,6 @@ use pyo3::prelude::*;
 use rayon::prelude::*;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
-use qiskit_circuit::circuit_instruction::ExtraInstructionAttributes;
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::operations::{OperationRef, StandardInstruction};
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
@@ -150,7 +149,7 @@ pub fn barrier_before_final_measurements(
         qargs.as_slice(),
         &[],
         None,
-        ExtraInstructionAttributes::new(label, None, None, None),
+        label,
         #[cfg(feature = "cache_pygates")]
         None,
     )?;

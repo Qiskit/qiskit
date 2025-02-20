@@ -144,6 +144,5 @@ class ConsolidateBlocks(TransformationPass):
                 dag.substitute_node(
                     node,
                     node.op.replace_blocks(pass_manager.run(block) for block in node.op.blocks),
-                    propagate_condition=False,
                 )
         return dag
