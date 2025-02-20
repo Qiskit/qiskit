@@ -110,6 +110,7 @@ sys.modules["qiskit._accelerate.filter_op_nodes"] = _accelerate.filter_op_nodes
 sys.modules["qiskit._accelerate.twirling"] = _accelerate.twirling
 sys.modules["qiskit._accelerate.high_level_synthesis"] = _accelerate.high_level_synthesis
 sys.modules["qiskit._accelerate.remove_identity_equiv"] = _accelerate.remove_identity_equiv
+sys.modules["qiskit._accelerate.circuit_duration"] = _accelerate.circuit_duration
 
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
 
