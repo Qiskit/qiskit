@@ -1,15 +1,16 @@
 ---
 prelude: |
-    The Qiskit v1.4.0 release is the final minor version release for the 1.x series.
+    The Qiskit v1.4.0 release is the final minor version release for the v1.x series.
     This release contains minimal features, and primarily adds new 
     deprecation warnings for API changes coming
-    in the future major version release 2.0.0. It is fully compatible with the
-    Qiskit 1.3.x releases. It is strongly recommended that you upgrade from
-    1.3.x to 1.4.0 so that you're able to see the warnings about which
+    in the future major version release v2.0.0. It is fully compatible with the
+    Qiskit v1.3.x releases. It is strongly recommended that you upgrade from
+    v1.3.x to v1.4.0 so that you're able to see the warnings about which
     interfaces will change with Qiskit 2.0.0.
-    The 1.4.x release series will continue to be supported and recieve
-    bugfix and security fixes via patch releases for 6 months after this
-    release. For more details on the release schedule and support cycle
+    The v1.4.x release series will continue to be supported and receive
+    bugfix fixes for 6 months and security for 1 year after this
+    release. The fixes will take place via patch releases.
+    For more details on the release schedule and support cycle
     see: https://docs.quantum.ibm.com/start/install#qiskit-versioning
     which documents the release schedule in more detail.
 
@@ -192,7 +193,7 @@ deprecations_visualization:
     will issue a deprecation warning if a ``target`` is not specified to get the duration
     of instructions. From Qiskit v2.0.0 on, ``target`` will be required and 
     :func:`~qiskit.visualization.timeline.interface.draw` will fail if it is not specified.
-    
+
 upgrade_transpiler:
   - |
     Passing ``property_set`` as an arbitrary keyword argument to the :meth:`~.BasePassManager.run`
