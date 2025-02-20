@@ -123,7 +123,7 @@ impl DAGOpNode {
         op: Bound<PyAny>,
         qargs: Option<TupleLikeArg>,
         cargs: Option<TupleLikeArg>,
-        #[allow(unused_variables)] dag: Option<Bound<PyAny>>,
+        dag: Option<Bound<PyAny>>,
     ) -> PyResult<Py<Self>> {
         let py_op = op.extract::<OperationFromPython>()?;
         let qargs = qargs.map_or_else(|| PyTuple::empty_bound(py), |q| q.value);
@@ -138,7 +138,19 @@ impl DAGOpNode {
             #[cfg(feature = "cache_pygates")]
             py_op: op.unbind().into(),
         };
-
+        if dag.is_some() {
+            imports::WARNINGS_WARN.get_bound(py).call1((
+                intern!(
+             py,
+             concat!(
+                 "The ``dag`` parameter in DAGNode subclass constructors "
+                 "is unused and it will be removed in Qiskit 2.0.",
+             )
+         ),
+                py.get_type::<PyDeprecationWarning>(),
+                2,
+            ))?;
+        }
         Py::new(
             py,
             (
