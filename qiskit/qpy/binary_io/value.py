@@ -438,7 +438,7 @@ def _write_duration(file_obj, duration: Duration):
     elif isinstance(duration, Duration.ms):
         file_obj.write(type_keys.CircuitDuration.MS)
         file_obj.write(struct.pack(formats.DURATION_MS_PACK, *formats.DURATION_MS(duration[0])))
-    elif isinstance(duration, Duration.sec):
+    elif isinstance(duration, Duration.s):
         file_obj.write(type_keys.CircuitDuration.S)
         file_obj.write(struct.pack(formats.DURATION_S_PACK, *formats.DURATION_S(duration[0])))
     else:
