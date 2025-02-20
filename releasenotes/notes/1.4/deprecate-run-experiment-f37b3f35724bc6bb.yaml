@@ -1,7 +1,16 @@
 ---
 deprecations_providers:
   - |
+<<<<<<< HEAD
     The :meth:`.BasicSimulator.run_experiment` method has been deprecated and will be removed in Qiskit 2.0.0.
     The method takes :class:`.QasmQobjExperiment` as input argument, which has been deprecated together
     with the :class:`.Qobj` class and other related functionality. You can call :meth:`.BasicSimulator.run` 
+=======
+    The :meth:`.BasicSimulator.run_experiment` method has been deprecated 
+    and will be removed in Qiskit v2.0.0.
+    The method takes :class:`.QasmQobjExperiment` as an input argument, 
+    which has been deprecated together
+    with the :class:`.Qobj` class and other related functionality. 
+    You can call :meth:`.BasicSimulator.run` 
+>>>>>>> 7eb307049 (Apply suggestions from Abby's code review)
     with a :class:`.QuantumCircuit` input instead.

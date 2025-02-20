@@ -1,7 +1,13 @@
 deprecations_transpiler:
   - |
     As part of Pulse deprecation in version 1.3, the calibration builder passes
+<<<<<<< HEAD
     were also deprecated and in particular :class:`.RXCalibrationBuilder`. The
     :class:`.NormalizeRXAngle` pass is a requirement of :class:`.RXCalibrationBuilder`
     hence it should also be deprecated. In addition, the :func:`.rzx_templates`
+=======
+    were also deprecated - in particular, :class:`.RXCalibrationBuilder`. The
+    :class:`.NormalizeRXAngle` pass is a requirement of :class:`.RXCalibrationBuilder`;
+    hence, it should also be deprecated. In addition, the :func:`.rzx_templates`
+>>>>>>> 7eb307049 (Apply suggestions from Abby's code review)
     function in the calibration module is being deprecated as it is not used.

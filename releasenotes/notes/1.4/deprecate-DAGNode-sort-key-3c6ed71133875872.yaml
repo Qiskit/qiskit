@@ -3,11 +3,17 @@ deprecations_transpiler:
   - |
     The :attr:`.DAGOpNode.sort_key`, :attr:`.DAGOutNode.sort_key`, and
     :attr:`.DAGInNode.sort_key` attributes have been deprecated and will be
+<<<<<<< HEAD
     removed in the Qiskit 2.0.0 release. This attribute was originally used
     as a lexicographical key for topological sorting nodes in
     a :class:`.DAGCircuit`. However, the key is no longer used for this
+=======
+    removed in the Qiskit v2.0.0 release. This attribute was originally used
+    as a lexicographical key for topological sorting nodes in a 
+    :class:`.DAGCircuit`. However, the key is no longer used for this
+>>>>>>> 7eb307049 (Apply suggestions from Abby's code review)
     as the sorting is done internally in Rust code now. If you're using this
-    attribute for anything you can recreate the key from the other attributes
+    attribute, you can recreate the key from the other attributes
     of a node. For example, you can use a function like::
 
         def get_sort_key(node: DAGNode):

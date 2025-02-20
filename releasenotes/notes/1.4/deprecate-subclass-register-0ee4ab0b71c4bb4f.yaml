@@ -4,6 +4,12 @@ deprecations_circuits:
     It is now deprecated to subclass :class:`.Register` or :class:`.Bit`, or any subclass of them
     (for example, :class:`.QuantumRegister` or :class:`~.circuit.Qubit`).  Subclassing these types
     was never explicitly supported by Qiskit, and it is not clear precisely what the meaning would
+<<<<<<< HEAD
     be.  In Qiskit 2.0, the subclassing may become impossible due to technical limitations, and will
     certainly not be stored in a circuit.  This is because of the move of the data model to Rust
     space to improve performance.
+=======
+    be.  In Qiskit v2.0.0, the subclassing may become impossible due to technical limitations, and 
+    will certainly not be stored in a circuit.  This is due to the move of the data model 
+    to the Rust space to improve performance.
+>>>>>>> 7eb307049 (Apply suggestions from Abby's code review)
