@@ -357,6 +357,16 @@ def generate_preset_pass_manager(
                     message=".* ``backend_properties`` is deprecated as of Qiskit 1.4",
                     module="qiskit",
                 )
+                # TODO: This is a temporary usage of deprecated backend_properties in
+                #   Target.from_configuration. Probably the logic needs to be restructured
+                #   in a more target-centric transpiler
+                #   https://github.com/Qiskit/qiskit/issues/9256
+                warnings.filterwarnings(
+                    "ignore",
+                    category=DeprecationWarning,
+                    message=r".+qiskit\.transpiler\.target\.Target\.from_configuration.+",
+                    module="qiskit",
+                )
                 # Build target from constraints.
                 target = Target.from_configuration(
                     basis_gates=basis_gates,
@@ -409,7 +419,6 @@ def generate_preset_pass_manager(
     initial_layout = _parse_initial_layout(initial_layout)
     approximation_degree = _parse_approximation_degree(approximation_degree)
     seed_transpiler = _parse_seed_transpiler(seed_transpiler)
-
     pm_options = {
         "target": target,
         "basis_gates": basis_gates,

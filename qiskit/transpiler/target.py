@@ -59,6 +59,7 @@ from qiskit.providers.models.backendproperties import BackendProperties
 from qiskit.utils import deprecate_func, deprecate_arg
 from qiskit.utils.deprecate_pulse import deprecate_pulse_dependency, deprecate_pulse_arg
 
+
 logger = logging.getLogger(__name__)
 
 

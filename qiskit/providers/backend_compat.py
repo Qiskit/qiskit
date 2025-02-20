@@ -32,6 +32,12 @@ from qiskit.utils.deprecate_pulse import deprecate_pulse_arg, deprecate_pulse_de
 logger = logging.getLogger(__name__)
 
 
+@deprecate_func(
+    since="1.4",
+    removal_timeline="in the 2.0 release",
+    additional_msg="With the deprecation of `qiskit.providers.models` this utility function "
+    "is not needed.",
+)
 @deprecate_pulse_arg("defaults")
 def convert_to_target(
     configuration: BackendConfiguration,
@@ -317,6 +323,7 @@ def _convert_to_target(
 def qubit_props_list_from_props(
     properties: BackendProperties,
 ) -> List[QubitProperties]:
+    # TODO Remove this function with BackendProperties
     """Uses BackendProperties to construct
     and return a list of QubitProperties.
     """
@@ -433,14 +440,23 @@ class BackendV2Converter(BackendV2):
         :rtype: Target
         """
         if self._target is None:
-            self._target = _convert_to_target(
-                configuration=self._config,
-                properties=self._properties,
-                defaults=self._defaults,
-                custom_name_mapping=self._name_mapping,
-                add_delay=self._add_delay,
-                filter_faulty=self._filter_faulty,
-            )
+            with warnings.catch_warnings():
+                # convert_to_target is deprecated along BackendV2Converter
+                # They both need to be removed at the same time
+                warnings.filterwarnings(
+                    "ignore",
+                    category=DeprecationWarning,
+                    message=r".+qiskit\.providers\.backend_compat\.convert_to_target.+",
+                    module="qiskit",
+                )
+                self._target = convert_to_target(
+                    configuration=self._config,
+                    properties=self._properties,
+                    defaults=self._defaults,
+                    custom_name_mapping=self._name_mapping,
+                    add_delay=self._add_delay,
+                    filter_faulty=self._filter_faulty,
+                )
         return self._target
 
     @property
