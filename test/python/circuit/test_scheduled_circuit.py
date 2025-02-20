@@ -534,6 +534,7 @@ class TestScheduledCircuit(QiskitTestCase):
             "P": expected_in_sec / 1e15,
         }
         self.assertEqual(duration, expected_val[unit])
+
     @data("s", "dt", "f", "p", "n", "u", "µ", "m", "k", "M", "G", "T", "P")
     def test_estimate_duration_with_dt_float(self, unit):
         # This is not a valid use case, but it is still expressible currently
@@ -566,6 +567,7 @@ class TestScheduledCircuit(QiskitTestCase):
             "P": expected_in_sec / 1e15,
         }
         self.assertEqual(duration, expected_val[unit])
+
     def test_estimate_duration_invalid_unit(self):
         backend = GenericBackendV2(num_qubits=3, seed=42)
 
