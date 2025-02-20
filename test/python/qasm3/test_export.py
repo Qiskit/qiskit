@@ -22,7 +22,7 @@ import re
 from ddt import ddt, data
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, transpile
-from qiskit.circuit import Parameter, Qubit, Clbit, Gate, Delay, Barrier, ParameterVector
+from qiskit.circuit import Parameter, Qubit, Clbit, Gate, Delay, Duration, Barrier, ParameterVector
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.controlflow import CASE_DEFAULT
 from qiskit.circuit.library import PauliEvolutionGate
@@ -873,18 +873,24 @@ if (c[0]) {
         qreg = QuantumRegister(2, "qr")
         qc = QuantumCircuit(qreg)
         s = qc.add_stretch("s")
+        t = qc.add_stretch("t")
         qc.delay(100, qreg[0], unit="ms")
+        qc.delay(expr.lift(Duration.ms(100)), qreg[0])
         qc.delay(2, qreg[1], unit="ps")  # "ps" is not a valid unit in OQ3, so we need to convert.
         qc.delay(expr.div(s, 2.0), qreg[1])
+        qc.delay(expr.add(expr.mul(s, expr.div(Duration.dt(1000), Duration.ns(200))), t), qreg[0])
 
         expected_qasm = "\n".join(
             [
                 "OPENQASM 3.0;",
                 "qubit[2] qr;",
                 "stretch s;",
+                "stretch t;",
                 "delay[100ms] qr[0];",
+                "delay[100.0ms] qr[0];",
                 "delay[2000ns] qr[1];",
                 "delay[s / 2.0] qr[1];",
+                "delay[s * (1000dt / 200.0ns) + t] qr[0];",
                 "",
             ]
         )
