@@ -59,6 +59,7 @@ from qiskit.providers.models.backendproperties import BackendProperties
 from qiskit.utils import deprecate_func, deprecate_arg
 from qiskit.utils.deprecate_pulse import deprecate_pulse_dependency, deprecate_pulse_arg
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -748,7 +749,7 @@ class Target(BaseTarget):
 
     @property
     def instructions(self):
-        """Get the list of tuples ``(:class:`~qiskit.circuit.Instruction`, (qargs))``
+        """Get the list of tuples (:class:`~qiskit.circuit.Instruction`, (qargs))
         for the target
 
         For globally defined variable width operations the tuple will be of the form

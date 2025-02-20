@@ -453,6 +453,14 @@ class BackendV2Converter(BackendV2):
                     message=".*``qiskit.providers.exceptions.BackendPropertyError``",
                     module="qiskit",
                 )
+                # convert_to_target is deprecated along BackendV2Converter
+                # They both need to be removed at the same time
+                warnings.filterwarnings(
+                    "ignore",
+                    category=DeprecationWarning,
+                    message=r".+qiskit\.providers\.backend_compat\.convert_to_target.+",
+                    module="qiskit",
+                )
                 self._target = _convert_to_target(
                     configuration=self._config,
                     properties=self._properties,

@@ -291,7 +291,9 @@ class TestVF2PostLayout(QiskitTestCase):
             f"is >= configured max trials {max_trials}",
             cm.output,
         )
-        print(pass_.property_set["VF2PostLayout_stop_reason"])
+        self.assertEqual(
+            pass_.property_set["VF2PostLayout_stop_reason"], VF2PostLayoutStopReason.SOLUTION_FOUND
+        )
         self.assertLayout(dag, cmap, pass_.property_set)
         self.assertNotEqual(pass_.property_set["post_layout"], initial_layout)
 

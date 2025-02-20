@@ -57,7 +57,9 @@ from qiskit.circuit.library import (
     RYYGate,
     RZZGate,
     RXXGate,
+    PauliEvolutionGate,
 )
+from qiskit.quantum_info import SparsePauliOp
 from qiskit.circuit import Measure
 from qiskit.circuit.controlflow import IfElseOp
 from qiskit.circuit import Parameter, Gate
@@ -1122,6 +1124,70 @@ class TestUnitarySynthesis(QiskitTestCase):
         qc = qs_decomposition(mat, opt_a1=True, opt_a2=False)
         qc_transpiled = transpile(qc, target=target, optimization_level=opt)
         self.assertTrue(np.allclose(mat, Operator(qc_transpiled).data))
+
+    def test_3q_with_measure(self):
+        """Test 3-qubit synthesis with measurements."""
+        backend = FakeBackend5QV2()
+
+        qc = QuantumCircuit(3, 1)
+        qc.unitary(np.eye(2**3), range(3))
+        qc.measure(0, 0)
+
+        qc_transpiled = transpile(qc, backend)
+        self.assertTrue(qc_transpiled.size, 1)
+        self.assertTrue(qc_transpiled.count_ops().get("measure", 0), 1)
+
+    def test_3q_series(self):
+        """Test a series of 3-qubit blocks."""
+        backend = GenericBackendV2(5, basis_gates=["u", "cx"])
+
+        x = QuantumCircuit(3)
+        x.x(2)
+        x_mat = Operator(x)
+
+        qc = QuantumCircuit(3)
+        qc.unitary(x_mat, range(3))
+        qc.unitary(np.eye(2**3), range(3))
+
+        tqc = transpile(qc, backend, optimization_level=0, initial_layout=[0, 1, 2])
+
+        expected = np.kron(np.eye(2**2), x_mat)
+        self.assertEqual(Operator(tqc), Operator(expected))
+
+    def test_3q_measure_all(self):
+        """Regression test of #13586."""
+        hamiltonian = SparsePauliOp.from_list(
+            [("IXX", 1), ("IYY", 1), ("IZZ", 1), ("XXI", 1), ("YYI", 1), ("ZZI", 1)]
+        )
+
+        qc = QuantumCircuit(3)
+        qc.x([1, 2])
+        op = PauliEvolutionGate(hamiltonian, time=1)
+        qc.append(op.power(8), [0, 1, 2])
+        qc.measure_all()
+
+        backend = GenericBackendV2(5, basis_gates=["u", "cx"])
+        tqc = transpile(qc, backend)
+
+        ops = tqc.count_ops()
+        self.assertIn("u", ops)
+        self.assertIn("cx", ops)
+        self.assertIn("measure", ops)
+
+    def test_target_with_global_gates(self):
+        """Test that 2q decomposition can handle a target with global gates."""
+
+        basis_gates = ["h", "p", "cp", "rz", "cx", "ccx", "swap"]
+        target = Target.from_configuration(basis_gates=basis_gates)
+
+        bell = QuantumCircuit(2)
+        bell.h(0)
+        bell.cx(0, 1)
+        bell_op = Operator(bell)
+        qc = QuantumCircuit(2)
+        qc.unitary(bell_op, [0, 1])
+        tqc = transpile(qc, target=target)
+        self.assertTrue(set(tqc.count_ops()).issubset(basis_gates))
 
 
 if __name__ == "__main__":

@@ -431,6 +431,11 @@ static STANDARD_GATE_NAME: [&str; STANDARD_GATE_SIZE] = [
     "rcccx",        // 51 ("rc3x")
 ];
 
+/// Get a slice of all standard gate names.
+pub fn get_standard_gate_names() -> &'static [&'static str] {
+    &STANDARD_GATE_NAME
+}
+
 impl StandardGate {
     pub fn create_py_op(
         &self,
@@ -731,7 +736,7 @@ impl StandardGate {
     }
 
     #[getter]
-    pub fn get_gate_class(&self, py: Python) -> PyResult<Py<PyAny>> {
+    pub fn get_gate_class(&self, py: Python) -> PyResult<&'static Py<PyAny>> {
         get_std_gate_class(py, *self)
     }
 
@@ -2340,8 +2345,14 @@ pub fn add_param(param: &Param, summand: f64, py: Python) -> Param {
 }
 
 pub fn radd_param(param1: Param, param2: Param, py: Python) -> Param {
-    match [param1, param2] {
+    match [&param1, &param2] {
         [Param::Float(theta), Param::Float(lambda)] => Param::Float(theta + lambda),
+        [Param::Float(theta), Param::ParameterExpression(_lambda)] => {
+            add_param(&param2, *theta, py)
+        }
+        [Param::ParameterExpression(_theta), Param::Float(lambda)] => {
+            add_param(&param1, *lambda, py)
+        }
         [Param::ParameterExpression(theta), Param::ParameterExpression(lambda)] => {
             Param::ParameterExpression(
                 theta

@@ -951,6 +951,17 @@ impl Target {
         })
     }
 
+    /// Get the duration of a given instruction in the target
+    pub fn get_duration(&self, name: &str, qargs: &[PhysicalQubit]) -> Option<f64> {
+        self.gate_map.get(name).and_then(|gate_props| {
+            let qargs_key: Qargs = qargs.iter().cloned().collect();
+            match gate_props.get(Some(&qargs_key)) {
+                Some(props) => props.as_ref().and_then(|inst_props| inst_props.duration),
+                None => None,
+            }
+        })
+    }
+
     /// Get an iterator over the indices of all physical qubits of the target
     pub fn physical_qubits(&self) -> impl ExactSizeIterator<Item = usize> {
         0..self.num_qubits.unwrap_or_default()
@@ -1151,6 +1162,12 @@ impl Target {
 
     /// Checks whether an instruction is supported by the Target based on instruction name and qargs.
     pub fn instruction_supported(&self, operation_name: &str, qargs: Option<&Qargs>) -> bool {
+        // Handle case where num_qubits is None by checking globally supported operations
+        let qargs: Option<&Qargs> = if self.num_qubits.is_none() {
+            None
+        } else {
+            qargs
+        };
         if self.gate_map.contains_key(operation_name) {
             if let Some(_qargs) = qargs {
                 let qarg_set: HashSet<&PhysicalQubit> = _qargs.iter().collect();

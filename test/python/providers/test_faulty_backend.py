@@ -51,14 +51,13 @@ class FaultyQubitBackendTestCase(QiskitTestCase):
         """
         with self.assertWarns(DeprecationWarning):
             properties = self.backend.properties()
-
-        # Filter out faulty Q1
-        target = convert_to_target(
-            configuration=self.backend.configuration(),
-            properties=properties,
-            add_delay=True,
-            filter_faulty=True,
-        )
+            # Filter out faulty Q1
+            target = convert_to_target(
+                configuration=self.backend.configuration(),
+                properties=properties,
+                add_delay=True,
+                filter_faulty=True,
+            )
         self.assertFalse(target.instruction_supported(operation_name="measure", qargs=(1,)))
         self.assertFalse(target.instruction_supported(operation_name="delay", qargs=(1,)))
 
@@ -67,14 +66,13 @@ class FaultyQubitBackendTestCase(QiskitTestCase):
 
         with self.assertWarns(DeprecationWarning):
             properties = self.backend.properties()
-
-        # Include faulty Q1 even though data could be incomplete
-        target = convert_to_target(
-            configuration=self.backend.configuration(),
-            properties=properties,
-            add_delay=True,
-            filter_faulty=False,
-        )
+            # Include faulty Q1 even though data could be incomplete
+            target = convert_to_target(
+                configuration=self.backend.configuration(),
+                properties=properties,
+                add_delay=True,
+                filter_faulty=False,
+            )
         self.assertTrue(target.instruction_supported(operation_name="measure", qargs=(1,)))
         self.assertTrue(target.instruction_supported(operation_name="delay", qargs=(1,)))
 
@@ -153,13 +151,12 @@ class MissingPropertyQubitBackendTestCase(QiskitTestCase):
 
         with self.assertWarns(DeprecationWarning):
             properties = self.backend.properties()
-
-        target = convert_to_target(
-            configuration=self.backend.configuration(),
-            properties=properties,
-            add_delay=True,
-            filter_faulty=True,
-        )
+            target = convert_to_target(
+                configuration=self.backend.configuration(),
+                properties=properties,
+                add_delay=True,
+                filter_faulty=True,
+            )
 
         self.assertIsNone(target.qubit_properties[1].t1)
         self.assertEqual(

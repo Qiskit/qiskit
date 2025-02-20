@@ -83,13 +83,14 @@ def plot_gate_map(
         Figure: A Matplotlib figure instance.
 
     Raises:
-        QiskitError: if tried to pass a simulator, or if the backend is None,
+        QiskitError: If you tried to pass a simulator or the backend is None,
             but one of num_qubits, mpl_data, or cmap is None.
-        MissingOptionalLibraryError: if matplotlib not installed.
+        MissingOptionalLibraryError: If matplotlib not installed.
 
     Example:
 
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
            from qiskit.providers.fake_provider import GenericBackendV2
@@ -1014,11 +1015,12 @@ def plot_coupling_map(
 
     Raises:
         MissingOptionalLibraryError: If matplotlib or graphviz is not installed.
-        QiskitError: If length of qubit labels does not match number of qubits.
+        QiskitError: If the length of qubit labels does not match the number of qubits.
 
     Example:
 
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
             from qiskit.visualization import plot_coupling_map
@@ -1191,6 +1193,7 @@ def plot_circuit_layout(circuit, backend, view="virtual", qubit_coordinates=None
 
     Example:
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
             from qiskit import QuantumCircuit, transpile
@@ -1310,6 +1313,7 @@ def plot_error_map(backend, figsize=(15, 12), show_title=True, qubit_coordinates
 
     Example:
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
             from qiskit.visualization import plot_error_map

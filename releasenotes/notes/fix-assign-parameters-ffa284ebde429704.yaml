@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed an incorrect caching behavior during parameter assignment that
+    could result in definitions within the :class:`~.EquivalenceLibrary`
+    becoming corrupted. This resolves unexpected issues when running
+    basis translation in parallel. Fixed `#13504 <https://github.com/Qiskit/qiskit/issues/13504>`__.

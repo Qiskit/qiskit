@@ -40,6 +40,7 @@ from typing import (
 import numpy as np
 from qiskit._accelerate.circuit import CircuitData
 from qiskit._accelerate.circuit import StandardGate
+from qiskit._accelerate.circuit_duration import compute_estimated_duration
 from qiskit.exceptions import QiskitError
 from qiskit.utils.multiprocessing import is_main_process
 from qiskit.circuit.instruction import Instruction
@@ -156,6 +157,8 @@ class QuantumCircuit:
     :attr:`data`              List of individual :class:`CircuitInstruction`\\ s that make up the
                               circuit.
     :attr:`duration`          Total duration of the circuit, added by scheduling transpiler passes.
+                              This attribute is deprecated and :meth:`.estimate_duration` should
+                              be used instead.
 
     :attr:`layout`            Hardware layout and routing information added by the transpiler.
     :attr:`num_ancillas`      The number of ancilla qubits in the circuit.
@@ -835,6 +838,7 @@ class QuantumCircuit:
     Consider the following circuit:
 
     .. plot::
+       :alt: Circuit diagram output by the previous code.
        :include-source:
 
        from qiskit import QuantumCircuit
@@ -887,25 +891,6 @@ class QuantumCircuit:
 
        assert qc.size() == 19
 
-    A particularly important circuit property is known as the circuit :meth:`depth`.  The depth
-    of a quantum circuit is a measure of how many "layers" of quantum gates, executed in
-    parallel, it takes to complete the computation defined by the circuit.  Because quantum
-    gates take time to implement, the depth of a circuit roughly corresponds to the amount of
-    time it takes the quantum computer to execute the circuit.  Thus, the depth of a circuit
-    is one important quantity used to measure if a quantum circuit can be run on a device.
-
-    The depth of a quantum circuit has a mathematical definition as the longest path in a
-    directed acyclic graph (DAG).  However, such a definition is a bit hard to grasp, even for
-    experts.  Fortunately, the depth of a circuit can be easily understood by anyone familiar
-    with playing `Tetris <https://en.wikipedia.org/wiki/Tetris>`_.  Lets see how to compute this
-    graphically:
-
-    .. image:: /source_images/depth.gif
-
-    We can verify our graphical result using :meth:`QuantumCircuit.depth`::
-
-       assert qc.depth() == 9
-
     .. automethod:: count_ops
     .. automethod:: depth
     .. automethod:: get_instructions
@@ -921,8 +906,9 @@ class QuantumCircuit:
 
     If a :class:`QuantumCircuit` has been scheduled as part of a transpilation pipeline, the timing
     information for individual qubits can be accessed.  The whole-circuit timing information is
-    available through the :attr:`duration`, :attr:`unit` and :attr:`op_start_times` attributes.
+    available through the :meth:`estimate_duration` method and :attr:`op_start_times` attribute.
 
+    .. automethod:: estimate_duration
     .. automethod:: qubit_duration
     .. automethod:: qubit_start_time
     .. automethod:: qubit_stop_time
@@ -2169,6 +2155,7 @@ class QuantumCircuit:
         Examples:
 
             .. plot::
+               :alt: Circuit diagram output by the previous code.
                :include-source:
 
                from qiskit import QuantumCircuit
@@ -3425,6 +3412,7 @@ class QuantumCircuit:
 
         Example:
             .. plot::
+               :alt: Circuit diagram output by the previous code.
                :include-source:
 
                from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
@@ -3483,6 +3471,14 @@ class QuantumCircuit:
         ),
     ) -> int:
         """Return circuit depth (i.e., length of critical path).
+
+        The depth of a quantum circuit is a measure of how many
+        "layers" of quantum gates, executed in parallel, it takes to
+        complete the computation defined by the circuit.  Because
+        quantum gates take time to implement, the depth of a circuit
+        roughly corresponds to the amount of time it takes the quantum
+        computer to execute the circuit.
+
 
         .. warning::
             This operation is not well defined if the circuit contains control-flow operations.
@@ -4306,6 +4302,7 @@ class QuantumCircuit:
             Create a parameterized circuit and assign the parameters in-place.
 
             .. plot::
+               :alt: Circuit diagram output by the previous code.
                :include-source:
 
                from qiskit.circuit import QuantumCircuit, Parameter
@@ -4321,6 +4318,7 @@ class QuantumCircuit:
             Bind the values out-of-place by list and get a copy of the original circuit.
 
             .. plot::
+               :alt: Circuit diagram output by the previous code.
                :include-source:
 
                from qiskit.circuit import QuantumCircuit, ParameterVector
@@ -6652,7 +6650,69 @@ class QuantumCircuit:
             if len(qubits) == len([done for done in dones.values() if done]):  # all done
                 return max(stop for stop in stops.values())
 
-        return 0  # If there are no instructions over bits
+        if len(stops) > 0:  # not all but some qubits has instructions
+            return max(stops.values())
+        else:
+            return 0  # If there are no instructions over bits
+
+    def estimate_duration(self, target, unit: str = "s") -> int | float:
+        """Estimate the duration of a scheduled circuit
+
+        This method computes the estimate of the circuit duration by finding
+        the longest duration path in the circuit based on the durations
+        provided by a given target. This method only works for simple circuits
+        that have no control flow or other classical feed-forward operations.
+
+        Args:
+            target (Target): The :class:`.Target` instance that contains durations for
+                the instructions if the target is missing duration data for any of the
+                instructions in the circuit an :class:`.QiskitError` will be raised. This
+                should be the same target object used as the target for transpilation.
+            unit: The unit to return the duration in. This defaults to "s" for seconds
+                but this can be a supported SI prefix for seconds returns. For example
+                setting this to "n" will return in unit of nanoseconds. Supported values
+                of this type are "f", "p", "n", "u", "µ", "m", "k", "M", "G", "T", and
+                "P". Additionally, a value of "dt" is also accepted to output an integer
+                in units of "dt". For this to function "dt" must be specified in the
+                ``target``.
+
+        Returns:
+            The estimated duration for the execution of a single shot of the circuit in
+            the specified unit.
+
+        Raises:
+            QiskitError: If the circuit is not scheduled or contains other
+                details that prevent computing an estimated duration from
+                (such as parameterized delay).
+        """
+        from qiskit.converters import circuit_to_dag
+
+        dur = compute_estimated_duration(circuit_to_dag(self), target)
+        if unit == "s":
+            return dur
+        if unit == "dt":
+            from qiskit.circuit.duration import duration_in_dt  # pylint: disable=cyclic-import
+
+            return duration_in_dt(dur, target.dt)
+
+        prefix_dict = {
+            "f": 1e-15,
+            "p": 1e-12,
+            "n": 1e-9,
+            "u": 1e-6,
+            "µ": 1e-6,
+            "m": 1e-3,
+            "k": 1e3,
+            "M": 1e6,
+            "G": 1e9,
+            "T": 1e12,
+            "P": 1e15,
+        }
+        if unit not in prefix_dict:
+            raise QiskitError(
+                f"Specified unit: {unit} is not a valid/supported SI prefix, 's', or 'dt'"
+            )
+        return dur / prefix_dict[unit]
 
 
 class _OuterCircuitScopeInterface(CircuitScopeInterface):
