@@ -426,24 +426,23 @@ def _write_expr_type_v14(file_obj, type_: types.Type):
 
 
 def _write_duration(file_obj, duration: Duration):
-    match duration:
-        case Duration.dt(dt):
-            file_obj.write(type_keys.CircuitDuration.DT)
-            file_obj.write(struct.pack(formats.DURATION_DT_PACK, *formats.DURATION_DT(dt)))
-        case Duration.ns(ns):
-            file_obj.write(type_keys.CircuitDuration.NS)
-            file_obj.write(struct.pack(formats.DURATION_NS_PACK, *formats.DURATION_NS(ns)))
-        case Duration.us(us):
-            file_obj.write(type_keys.CircuitDuration.US)
-            file_obj.write(struct.pack(formats.DURATION_US_PACK, *formats.DURATION_US(us)))
-        case Duration.ms(ms):
-            file_obj.write(type_keys.CircuitDuration.MS)
-            file_obj.write(struct.pack(formats.DURATION_MS_PACK, *formats.DURATION_MS(ms)))
-        case Duration.s(sec):
-            file_obj.write(type_keys.CircuitDuration.S)
-            file_obj.write(struct.pack(formats.DURATION_S_PACK, *formats.DURATION_S(sec)))
-        case _:
-            raise exceptions.QpyError(f"unhandled Duration object '{duration};")
+    if isinstance(duration, Duration.dt):
+        file_obj.write(type_keys.CircuitDuration.DT)
+        file_obj.write(struct.pack(formats.DURATION_DT_PACK, *formats.DURATION_DT(duration[0])))
+    elif isinstance(duration, Duration.ns):
+        file_obj.write(type_keys.CircuitDuration.NS)
+        file_obj.write(struct.pack(formats.DURATION_NS_PACK, *formats.DURATION_NS(duration[0])))
+    elif isinstance(duration, Duration.us):
+        file_obj.write(type_keys.CircuitDuration.US)
+        file_obj.write(struct.pack(formats.DURATION_US_PACK, *formats.DURATION_US(duration[0])))
+    elif isinstance(duration, Duration.ms):
+        file_obj.write(type_keys.CircuitDuration.MS)
+        file_obj.write(struct.pack(formats.DURATION_MS_PACK, *formats.DURATION_MS(duration[0])))
+    elif isinstance(duration, Duration.sec):
+        file_obj.write(type_keys.CircuitDuration.S)
+        file_obj.write(struct.pack(formats.DURATION_S_PACK, *formats.DURATION_S(duration[0])))
+    else:
+        raise exceptions.QpyError(f"unhandled Duration object '{duration};")
 
 
 def _read_parameter(file_obj):
