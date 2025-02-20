@@ -56,7 +56,7 @@ from qiskit.exceptions import QiskitError
 # full target
 from qiskit.providers.backend import QubitProperties  # pylint: disable=unused-import
 from qiskit.providers.models.backendproperties import BackendProperties
-from qiskit.utils import deprecate_func
+from qiskit.utils import deprecate_func, deprecate_arg
 from qiskit.utils.deprecate_pulse import deprecate_pulse_dependency, deprecate_pulse_arg
 
 logger = logging.getLogger(__name__)
@@ -994,6 +994,14 @@ class Target(BaseTarget):
 
     @classmethod
     @deprecate_pulse_arg("inst_map")
+    @deprecate_arg(
+        name="backend_properties",
+        since="1.4",
+        package_name="Qiskit",
+        removal_timeline="in Qiskit 2.0",
+        additional_msg="To add instructions with specific properties "
+        "use Target.add_instruction(instruction, properties, name).",
+    )
     def from_configuration(
         cls,
         basis_gates: list[str],

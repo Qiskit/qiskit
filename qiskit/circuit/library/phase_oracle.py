@@ -63,31 +63,38 @@ class PhaseOracle(QuantumCircuit):
             var_order(list): A list with the order in which variables will be created.
                (default: by appearance)
         """
-        from qiskit.circuit.classicalfunction.boolean_expression import BooleanExpression
-        from qiskit.circuit.classicalfunction.classical_element import ClassicalElement
+        # ignore deprecation warning for BooleanExpression; implementation is changing in 2.0
+        import warnings
 
-        if not isinstance(expression, ClassicalElement):
-            expression = BooleanExpression(expression, var_order=var_order)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            from qiskit.circuit.classicalfunction.boolean_expression import BooleanExpression
+            from qiskit.circuit.classicalfunction.classical_element import ClassicalElement
 
-        self.boolean_expression = expression
+            if not isinstance(expression, ClassicalElement):
+                expression = BooleanExpression(expression, var_order=var_order)
 
-        if synthesizer is None:
+            self.boolean_expression = expression
 
-            def synthesizer(boolean_expression):
-                from tweedledum.synthesis import pkrm_synth  # pylint: disable=import-error
-                from qiskit.circuit.classicalfunction.utils import tweedledum2qiskit
+            if synthesizer is None:
 
-                truth_table = boolean_expression._tweedledum_bool_expression.truth_table(
-                    output_bit=0
-                )
-                tweedledum_circuit = pkrm_synth(truth_table, {"pkrm_synth": {"phase_esop": True}})
-                return tweedledum2qiskit(tweedledum_circuit)
+                def synthesizer(boolean_expression):
+                    from tweedledum.synthesis import pkrm_synth  # pylint: disable=import-error
+                    from qiskit.circuit.classicalfunction.utils import tweedledum2qiskit
 
-        oracle = expression.synth(synthesizer=synthesizer)
+                    truth_table = boolean_expression._tweedledum_bool_expression.truth_table(
+                        output_bit=0
+                    )
+                    tweedledum_circuit = pkrm_synth(
+                        truth_table, {"pkrm_synth": {"phase_esop": True}}
+                    )
+                    return tweedledum2qiskit(tweedledum_circuit)
 
-        super().__init__(oracle.num_qubits, name="Phase Oracle")
+            oracle = expression.synth(synthesizer=synthesizer)
 
-        self.compose(oracle, inplace=True, copy=False)
+            super().__init__(oracle.num_qubits, name="Phase Oracle")
+
+            self.compose(oracle, inplace=True, copy=False)
 
     def evaluate_bitstring(self, bitstring: str) -> bool:
         """Evaluate the oracle on a bitstring.

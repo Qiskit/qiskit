@@ -20,6 +20,10 @@ ClassicalFunction compiler (:mod:`qiskit.circuit.classicalfunction`)
 Overview
 ========
 
+.. warning::
+    
+    This module is deprecated as of Qiskit 1.4.0. It will be removed in the Qiskit 2.0 release.
+
 The classical function compiler provides the necessary tools to map a classical
 potentially irreversible functions into quantum circuits.  Below is a simple example of
 how to synthesize a simple boolean function defined using Python into a
@@ -111,7 +115,7 @@ Exceptions
    ClassicalFunctionCompilerTypeError
 
 """
-
+from qiskit.utils.deprecation import deprecate_func
 from .classicalfunction import ClassicalFunction
 from .exceptions import (
     ClassicalFunctionParseError,
@@ -121,6 +125,14 @@ from .exceptions import (
 from .boolean_expression import BooleanExpression
 
 
+@deprecate_func(
+    since="1.4",
+    removal_timeline="in Qiskit 2.0",
+    additional_msg="Use `PhaseOracle` instead, which can be turned into a "
+    "bit-flip oracle by applying Hadamard gates on the target "
+    "qubit before and after the instruction, and conditioning."
+    "the instruction on the target qubit.",
+)
 def classical_function(func):
     """
     Parses and type checks the callable ``func`` to compile it into an ``ClassicalFunction``

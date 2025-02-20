@@ -21,6 +21,8 @@ from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes.layout import disjoint_utils
 
+from qiskit.utils import deprecate_arg
+
 from qiskit._accelerate.dense_layout import best_subset
 
 
@@ -36,6 +38,16 @@ class DenseLayout(AnalysisPass):
         by being set in ``property_set``.
     """
 
+    @deprecate_arg(
+        name="backend_prop",
+        since="1.4",
+        package_name="Qiskit",
+        removal_timeline="in Qiskit 2.0",
+        additional_msg="The BackendProperties data structure has been deprecated and will be "
+        "removed in Qiskit 2.0. The `target` input argument should be used instead. "
+        "You can use Target.from_configuration() to build the target from the properties "
+        "object, but in 2.0 you will need to generate a target directly.",
+    )
     def __init__(self, coupling_map=None, backend_prop=None, target=None):
         """DenseLayout initializer.
 

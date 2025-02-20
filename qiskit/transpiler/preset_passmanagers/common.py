@@ -14,6 +14,7 @@
 """Common preset passmanager generators."""
 
 import collections
+import warnings
 from typing import Optional
 
 from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
@@ -53,7 +54,7 @@ from qiskit.transpiler.passes.layout.vf2_post_layout import VF2PostLayoutStopRea
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
 from qiskit.utils.deprecate_pulse import deprecate_pulse_arg
-
+from qiskit.utils.deprecation import deprecate_arg
 
 _ControlFlowState = collections.namedtuple("_ControlFlowState", ("working", "not_working"))
 
@@ -275,6 +276,16 @@ def _apply_post_layout_condition(property_set):
     )
 
 
+@deprecate_arg(
+    name="backend_properties",
+    since="1.4",
+    package_name="Qiskit",
+    removal_timeline="in Qiskit 2.0",
+    additional_msg="The BackendProperties data structure has been deprecated and will be "
+    "removed in Qiskit 2.0. The required `target` input argument should be used "
+    "instead. You can use Target.from_configuration() to build the target from the properties "
+    "object, but in 2.0 you will need to generate a target directly.",
+)
 def generate_routing_passmanager(
     routing_pass,
     target,
@@ -352,20 +363,33 @@ def generate_routing_passmanager(
 
     is_vf2_fully_bounded = vf2_call_limit and vf2_max_trials
     if (target is not None or backend_properties is not None) and is_vf2_fully_bounded:
-        routing.append(
-            ConditionalController(
-                VF2PostLayout(
-                    target,
-                    coupling_map,
-                    backend_properties,
-                    seed_transpiler,
-                    call_limit=vf2_call_limit,
-                    max_trials=vf2_max_trials,
-                    strict_direction=False,
-                ),
-                condition=_run_post_layout_condition,
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                category=DeprecationWarning,
+                message=".*argument ``properties`` is deprecated as of Qiskit 1.4",
+                module="qiskit",
             )
-        )
+            warnings.filterwarnings(
+                "ignore",
+                category=DeprecationWarning,
+                message=".*argument ``coupling_map`` is deprecated as of Qiskit 1.4",
+                module="qiskit",
+            )
+            routing.append(
+                ConditionalController(
+                    VF2PostLayout(
+                        target,
+                        coupling_map,
+                        backend_properties,
+                        seed_transpiler,
+                        call_limit=vf2_call_limit,
+                        max_trials=vf2_max_trials,
+                        strict_direction=False,
+                    ),
+                    condition=_run_post_layout_condition,
+                )
+            )
         routing.append(ConditionalController(ApplyLayout(), condition=_apply_post_layout_condition))
 
     def filter_fn(node):
@@ -409,6 +433,16 @@ def generate_pre_op_passmanager(target=None, coupling_map=None, remove_reset_in_
     return pre_opt
 
 
+@deprecate_arg(
+    name="backend_properties",
+    since="1.4",
+    package_name="Qiskit",
+    removal_timeline="in Qiskit 2.0",
+    additional_msg="The BackendProperties data structure has been deprecated and will be "
+    "removed in Qiskit 2.0. The required `target` input argument should be used "
+    "instead. You can use Target.from_configuration() to build the target from the properties "
+    "object, but in 2.0 you will need to generate a target directly.",
+)
 def generate_translation_passmanager(
     target,
     basis_gates=None,
@@ -455,76 +489,92 @@ def generate_translation_passmanager(
         TranspilerError: If the ``method`` kwarg is not a valid value
     """
     if method == "translator":
-        unroll = [
-            # Use unitary synthesis for basis aware decomposition of
-            # UnitaryGates before custom unrolling
-            UnitarySynthesis(
-                basis_gates,
-                approximation_degree=approximation_degree,
-                coupling_map=coupling_map,
-                backend_props=backend_props,
-                plugin_config=unitary_synthesis_plugin_config,
-                method=unitary_synthesis_method,
-                target=target,
-            ),
-            HighLevelSynthesis(
-                hls_config=hls_config,
-                coupling_map=coupling_map,
-                target=target,
-                use_qubit_indices=True,
-                equivalence_library=sel,
-                basis_gates=basis_gates,
-                qubits_initially_zero=qubits_initially_zero,
-            ),
-            BasisTranslator(sel, basis_gates, target),
-        ]
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                category=DeprecationWarning,
+                message=".*argument ``backend_props`` is deprecated as of Qiskit 1.4",
+                module="qiskit",
+            )
+            unroll = [
+                # Use unitary synthesis for basis aware decomposition of
+                # UnitaryGates before custom unrolling
+                UnitarySynthesis(
+                    basis_gates,
+                    approximation_degree=approximation_degree,
+                    coupling_map=coupling_map,
+                    backend_props=backend_props,
+                    plugin_config=unitary_synthesis_plugin_config,
+                    method=unitary_synthesis_method,
+                    target=target,
+                ),
+                HighLevelSynthesis(
+                    hls_config=hls_config,
+                    coupling_map=coupling_map,
+                    target=target,
+                    use_qubit_indices=True,
+                    equivalence_library=sel,
+                    basis_gates=basis_gates,
+                    qubits_initially_zero=qubits_initially_zero,
+                ),
+                BasisTranslator(sel, basis_gates, target),
+            ]
     elif method == "synthesis":
-        unroll = [
-            # # Use unitary synthesis for basis aware decomposition of
-            # UnitaryGates > 2q before collection
-            UnitarySynthesis(
-                basis_gates,
-                approximation_degree=approximation_degree,
-                coupling_map=coupling_map,
-                backend_props=backend_props,
-                plugin_config=unitary_synthesis_plugin_config,
-                method=unitary_synthesis_method,
-                min_qubits=3,
-                target=target,
-            ),
-            HighLevelSynthesis(
-                hls_config=hls_config,
-                coupling_map=coupling_map,
-                target=target,
-                use_qubit_indices=True,
-                basis_gates=basis_gates,
-                min_qubits=3,
-                qubits_initially_zero=qubits_initially_zero,
-            ),
-            Unroll3qOrMore(target=target, basis_gates=basis_gates),
-            Collect2qBlocks(),
-            Collect1qRuns(),
-            ConsolidateBlocks(
-                basis_gates=basis_gates, target=target, approximation_degree=approximation_degree
-            ),
-            UnitarySynthesis(
-                basis_gates=basis_gates,
-                approximation_degree=approximation_degree,
-                coupling_map=coupling_map,
-                backend_props=backend_props,
-                plugin_config=unitary_synthesis_plugin_config,
-                method=unitary_synthesis_method,
-                target=target,
-            ),
-            HighLevelSynthesis(
-                hls_config=hls_config,
-                coupling_map=coupling_map,
-                target=target,
-                use_qubit_indices=True,
-                basis_gates=basis_gates,
-                qubits_initially_zero=qubits_initially_zero,
-            ),
-        ]
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                category=DeprecationWarning,
+                message=".*argument ``backend_props`` is deprecated as of Qiskit 1.4",
+                module="qiskit",
+            )
+            unroll = [
+                # Use unitary synthesis for basis aware decomposition of
+                # UnitaryGates > 2q before collection
+                UnitarySynthesis(
+                    basis_gates,
+                    approximation_degree=approximation_degree,
+                    coupling_map=coupling_map,
+                    backend_props=backend_props,
+                    plugin_config=unitary_synthesis_plugin_config,
+                    method=unitary_synthesis_method,
+                    min_qubits=3,
+                    target=target,
+                ),
+                HighLevelSynthesis(
+                    hls_config=hls_config,
+                    coupling_map=coupling_map,
+                    target=target,
+                    use_qubit_indices=True,
+                    basis_gates=basis_gates,
+                    min_qubits=3,
+                    qubits_initially_zero=qubits_initially_zero,
+                ),
+                Unroll3qOrMore(target=target, basis_gates=basis_gates),
+                Collect2qBlocks(),
+                Collect1qRuns(),
+                ConsolidateBlocks(
+                    basis_gates=basis_gates,
+                    target=target,
+                    approximation_degree=approximation_degree,
+                ),
+                UnitarySynthesis(
+                    basis_gates=basis_gates,
+                    approximation_degree=approximation_degree,
+                    coupling_map=coupling_map,
+                    backend_props=backend_props,
+                    plugin_config=unitary_synthesis_plugin_config,
+                    method=unitary_synthesis_method,
+                    target=target,
+                ),
+                HighLevelSynthesis(
+                    hls_config=hls_config,
+                    coupling_map=coupling_map,
+                    target=target,
+                    use_qubit_indices=True,
+                    basis_gates=basis_gates,
+                    qubits_initially_zero=qubits_initially_zero,
+                ),
+            ]
     else:
         raise TranspilerError(f"Invalid translation method {method}.")
     return PassManager(unroll)

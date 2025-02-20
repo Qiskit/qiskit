@@ -24,6 +24,7 @@ from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes.layout import vf2_utils
 
+from qiskit.utils import deprecate_arg
 
 logger = logging.getLogger(__name__)
 
@@ -73,6 +74,16 @@ class VF2Layout(AnalysisPass):
     ``vf2_avg_error_map`` key in the property set when :class:`~.VF2Layout` is run.
     """
 
+    @deprecate_arg(
+        name="properties",
+        since="1.4",
+        package_name="Qiskit",
+        removal_timeline="in Qiskit 2.0",
+        additional_msg="The BackendProperties data structure has been deprecated and will be "
+        "removed in Qiskit 2.0. The `target` input argument should be used instead. "
+        "You can use Target.from_configuration() to build the target from the properties "
+        "object, but in 2.0 you will need to generate a target directly.",
+    )
     def __init__(
         self,
         coupling_map=None,
