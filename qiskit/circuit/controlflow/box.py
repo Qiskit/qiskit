@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import typing
 
+from qiskit.circuit.delay import Delay
 from qiskit.circuit.exceptions import CircuitError
 from .control_flow import ControlFlowOp
 
@@ -39,7 +40,7 @@ class BoxOp(ControlFlowOp):
         body: QuantumCircuit,
         *,
         duration: None = None,
-        unit: typing.Literal["dt", "s", "ms", "us", "ns", "ps"] = "dt",
+        unit: typing.Literal["dt", "s", "ms", "us", "ns", "ps", "expr"] | None = None,
         label: str | None = None,
     ):
         """
@@ -55,6 +56,7 @@ class BoxOp(ControlFlowOp):
             label: an optional string label for the instruction.
         """
         super().__init__("box", body.num_qubits, body.num_clbits, [body], label=label)
+        self._duration, self._unit = Delay._validate_arguments(duration, unit)
         self._duration = duration
         self._unit = unit
 
@@ -72,7 +74,7 @@ class BoxOp(ControlFlowOp):
         return self._unit
 
     @unit.setter
-    def unit(self, value: typing.Literal["dt", "s", "ms", "us", "ns", "ps"]):
+    def unit(self, value: typing.Literal["dt", "s", "ms", "us", "ns", "ps", "expr"]):
         self._unit = value
 
     @property
