@@ -194,7 +194,7 @@ deprecations_visualization:
     of instructions. From Qiskit v2.0.0 on, ``target`` will be required and 
     :func:`~qiskit.visualization.timeline.interface.draw` will fail if it is not specified.
 
-upgrade_transpiler:
+other:
   - |
     Passing ``property_set`` as an arbitrary keyword argument to the :meth:`~.BasePassManager.run`
     method of a subclass of :class:`.BasePassManager` will change behavior in Qiskit v2.0.0.  It is
