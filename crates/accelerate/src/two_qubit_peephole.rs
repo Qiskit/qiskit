@@ -465,7 +465,7 @@ pub(crate) fn two_qubit_unitary_peephole_optimize(
                             {
                                 out_dag.apply_operation_back(
                                     py,
-                                    PackedOperation::from_standard(*gate),
+                                    PackedOperation::from_standard_gate(*gate),
                                     qubits.as_slice(),
                                     &[],
                                     out_params,
