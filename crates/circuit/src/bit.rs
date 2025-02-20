@@ -162,6 +162,18 @@ impl<'py> IntoPyObject<'py> for ShareableQubit {
     }
 }
 
+impl<'py> IntoPyObject<'py> for &'py ShareableQubit {
+    type Target = PyQubit;
+
+    type Output = Bound<'py, PyQubit>;
+
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        self.clone().into_pyobject(py)
+    }
+}
+
 impl<'py> IntoPyObject<'py> for ShareableClbit {
     type Target = PyClbit;
 
@@ -172,6 +184,18 @@ impl<'py> IntoPyObject<'py> for ShareableClbit {
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
         let bit: PyBit = PyBit(self.info.clone());
         Bound::new(py, (PyClbit(self), bit))
+    }
+}
+
+impl<'py> IntoPyObject<'py> for &'py ShareableClbit {
+    type Target = PyClbit;
+
+    type Output = Bound<'py, PyClbit>;
+
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        self.clone().into_pyobject(py)
     }
 }
 
@@ -261,9 +285,7 @@ impl PyBit {
         Ok(hasher.finish())
     }
 
-    fn __getnewargs__(
-        slf: Bound<'_, Self>,
-    ) -> PyResult<(Bound<'_, PyAny>, Bound<'_, PyAny>)> {
+    fn __getnewargs__(slf: Bound<'_, Self>) -> PyResult<(Bound<'_, PyAny>, Bound<'_, PyAny>)> {
         Ok((slf.getattr("_register")?, slf.getattr("_index")?))
     }
 }
@@ -288,7 +310,7 @@ macro_rules! create_py_bit {
             extends=PyBit,
         )]
         #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-        pub struct $name(pub(crate) $natbit);
+        pub struct $name(pub $natbit);
 
         #[pymethods]
         impl $name {
