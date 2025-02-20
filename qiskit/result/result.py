@@ -40,7 +40,7 @@ class Result:
         be used in Qiskit 2.0. It will, however, still be possible to set ``qobj_id`` as a
         generic kwarg, which will land in the metadata field with the other generic kwargs.
 
-    Attributes:
+    Args:
         backend_name (str): (REQUIRED) backend name.
         backend_version (str): (REQUIRED) backend version, in the form X.Y.Z.
         qobj_id (str): (REQUIRED) user-generated Qobj id.
