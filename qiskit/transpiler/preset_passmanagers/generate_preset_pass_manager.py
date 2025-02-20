@@ -357,6 +357,11 @@ def generate_preset_pass_manager(
                     message=".* ``backend_properties`` is deprecated as of Qiskit 1.4",
                     module="qiskit",
                 )
+                warnings.filterwarnings(
+                    "ignore",
+                    category=DeprecationWarning,
+                    message=".*``qiskit.providers.exceptions.BackendPropertyError``",
+                )
                 # TODO: This is a temporary usage of deprecated backend_properties in
                 #   Target.from_configuration. Probably the logic needs to be restructured
                 #   in a more target-centric transpiler

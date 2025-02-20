@@ -75,14 +75,22 @@ class TestBackendConfiguration(QiskitTestCase):
             self.assertEqual(self.config.drive(0), DriveChannel(0))
             self.assertEqual(self.config.measure(1), MeasureChannel(1))
             self.assertEqual(self.config.acquire(0), AcquireChannel(0))
-        with self.assertRaises(BackendConfigurationError):
-            # Check that an error is raised if the system doesn't have that many qubits
-            self.assertEqual(self.config.acquire(10), AcquireChannel(10))
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="``qiskit.providers.exceptions.BackendConfigurationError`` is deprecated ",
+        ):
+            with self.assertRaises(BackendConfigurationError):
+                # Check that an error is raised if the system doesn't have that many qubits
+                self.assertEqual(self.config.acquire(10), AcquireChannel(10))
         with self.assertWarns(DeprecationWarning):
             self.assertEqual(self.config.control(qubits=[0, 1]), [ControlChannel(0)])
-        with self.assertRaises(BackendConfigurationError):
-            # Check that an error is raised if key not found in self._qubit_channel_map
-            self.config.control(qubits=(10, 1))
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="``qiskit.providers.exceptions.BackendConfigurationError`` is deprecated ",
+        ):
+            with self.assertRaises(BackendConfigurationError):
+                # Check that an error is raised if key not found in self._qubit_channel_map
+                self.config.control(qubits=(10, 1))
 
     def test_get_channel_qubits(self):
         """Test to get all qubits operated on a given channel."""
@@ -140,9 +148,13 @@ class TestBackendConfiguration(QiskitTestCase):
                     ],
                 )
             )
-        with self.assertRaises(BackendConfigurationError):
-            # Check that an error is raised if key not found in self._channel_qubit_map
-            self.config.get_qubit_channels(10)
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="``qiskit.providers.exceptions.BackendConfigurationError`` is deprecated ",
+        ):
+            with self.assertRaises(BackendConfigurationError):
+                # Check that an error is raised if key not found in self._channel_qubit_map
+                self.config.get_qubit_channels(10)
 
     def test_supported_instructions(self):
         """Test that supported instructions get entered into config dict properly."""
@@ -183,8 +195,12 @@ class TestBackendConfiguration(QiskitTestCase):
     def test_get_channel_prefix_index(self):
         """Test private method to get channel and index."""
         self.assertEqual(self.config._get_channel_prefix_index("acquire0"), ("acquire", 0))
-        with self.assertRaises(BackendConfigurationError):
-            self.config._get_channel_prefix_index("acquire")
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="``qiskit.providers.exceptions.BackendConfigurationError`` is deprecated ",
+        ):
+            with self.assertRaises(BackendConfigurationError):
+                self.config._get_channel_prefix_index("acquire")
 
     def _test_lists_equal(self, actual, expected):
         """Test if 2 lists are equal. It returns ``True`` is lists are equal."""

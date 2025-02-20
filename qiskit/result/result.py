@@ -12,6 +12,7 @@
 
 """Model for schema-conformant Results."""
 
+from collections.abc import Iterable
 import copy
 import warnings
 
@@ -25,47 +26,135 @@ from qiskit.result.counts import Counts
 from qiskit.qobj.utils import MeasLevel
 from qiskit.qobj import QobjHeader
 
+_MISSING = object()
+
 
 class Result:
     """Model for Results.
 
-    Attributes:
-        backend_name (str): backend name.
-        backend_version (str): backend version, in the form X.Y.Z.
-        qobj_id (str): user-generated Qobj id.
-        job_id (str): unique execution id from the backend.
-        success (bool): True if complete input qobj executed correctly. (Implies
+    .. deprecated:: 1.4
+        The use of positional arguments in the constructor of :class:`.Result`
+        is deprecated as of Qiskit 1.4, and will be disabled in Qiskit 2.0.
+        Please set all arguments using kwarg syntax, i.e: ``Result(backend_name="name", ....)``.
+        In addition to this, the ``qobj_id`` argument is deprecated and will no longer
+        be used in Qiskit 2.0. It will, however, still be possible to set ``qobj_id`` as a
+        generic kwarg, which will land in the metadata field with the other generic kwargs.
+
+    Args:
+        backend_name (str): (REQUIRED) backend name.
+        backend_version (str): (REQUIRED) backend version, in the form X.Y.Z.
+        qobj_id (str): (REQUIRED) user-generated Qobj id.
+        job_id (str): (REQUIRED) unique execution id from the backend.
+        success (bool): (REQUIRED) True if complete input qobj executed correctly. (Implies
             each experiment success)
-        results (list[ExperimentResult]): corresponding results for array of
+        results (list[ExperimentResult]): (REQUIRED) corresponding results for array of
             experiments of the input qobj
+        date (str): (OPTIONAL) date of the experiment
+        header(dict): (OPTIONAL)experiment header
+        kwargs: generic keyword arguments. (OPTIONAL) These will be stored in the metadata field.
     """
 
     _metadata = {}
 
     def __init__(
         self,
-        backend_name,
-        backend_version,
-        qobj_id,
-        job_id,
-        success,
-        results,
+        *args,
         date=None,
         status=None,
         header=None,
         **kwargs,
     ):
+        # The following arguments are required.
+        required_args = {
+            "backend_name": _MISSING,
+            "backend_version": _MISSING,
+            "qobj_id": _MISSING,
+            "job_id": _MISSING,
+            "success": _MISSING,
+            "results": _MISSING,
+        }
+        # Step 1: iterate over kwargs.
+        # An item from required_args might be set as a kwarg, so we must separate
+        # true kwargs from "required_args" kwargs.
+        true_kwargs = {}
+        for key, value in kwargs.items():
+            if key in required_args:
+                required_args[key] = value
+            else:
+                true_kwargs[key] = value
+        # Step 2: iterate over args, which are expected in the order of the index_map below.
+        index_map = ["backend_name", "backend_version", "qobj_id", "job_id", "success", "results"]
+        raise_qobj = False
+        missing_args = []
+        for index, name in enumerate(index_map):
+            try:
+                value = args[index]
+                required_args[name] = value
+                # The use of args is deprecated in 1.4 and will be removed in 2.0.
+                # Furthermore, qobj_id will be ignored if set as a kwarg in 2.0.
+                if name == "qobj_id":
+                    warnings.warn(
+                        "The use of positional arguments in `qiskit.result.result.Result.__init__()` "
+                        "is deprecated as of Qiskit 1.4, and will be disabled in Qiskit 2.0. "
+                        "Please set this value using kwarg syntax, "
+                        f"i.e: `Result(...,{name}={name}_value)`. "
+                        "The `qobj_id` argument will no longer be used in Qiskit 2.0, "
+                        "but it will still be possible to "
+                        "set as a kwarg that will land in the metadata field.",
+                        category=DeprecationWarning,
+                        stacklevel=2,
+                    )
+                else:
+                    warnings.warn(
+                        "The use of positional arguments in `qiskit.result.result.Result.__init__()` "
+                        "is deprecated as of Qiskit 1.4, and will be disabled in Qiskit 2.0. "
+                        "Please set this value using kwarg syntax, "
+                        f"i.e: `Result(...,{name}={name}_value)`. ",
+                        category=DeprecationWarning,
+                        stacklevel=2,
+                    )
+            except IndexError:
+                if required_args[name] is _MISSING:
+                    missing_args = [
+                        key for (key, value) in required_args.items() if value is _MISSING
+                    ]
+                elif name == "qobj_id":
+                    raise_qobj = True
+                break
+
+        # The deprecation warning should be raised outside of the try-except,
+        # not to show a confusing trace that points to the IndexError
+        if len(missing_args) > 1:
+            raise TypeError(
+                f"Result.__init__() missing {len(missing_args)} required arguments: {missing_args}"
+            )
+        if len(missing_args) == 1:
+            raise TypeError(f"Result.__init__() missing a required argument: {missing_args[0]}")
+        if raise_qobj:
+            # qobj_id will be ignored if set as a kwarg in 2.0.
+            warnings.warn(
+                "The `qobj_id` argument will no longer be used in Qiskit 2.0, "
+                "but it will still be possible to "
+                "set as a kwarg that will land in the metadata field.",
+                category=DeprecationWarning,
+                stacklevel=2,
+            )
+
         self._metadata = {}
-        self.backend_name = backend_name
-        self.backend_version = backend_version
-        self.qobj_id = qobj_id
-        self.job_id = job_id
-        self.success = success
-        self.results = results
+        self.backend_name = required_args["backend_name"]
+        self.backend_version = required_args["backend_version"]
+        self.qobj_id = required_args["qobj_id"]
+        self.job_id = required_args["job_id"]
+        self.success = required_args["success"]
+        self.results = (
+            [required_args["results"]]
+            if not isinstance(required_args["results"], Iterable)
+            else required_args["results"]
+        )
         self.date = date
         self.status = status
         self.header = header
-        self._metadata.update(kwargs)
+        self._metadata.update(true_kwargs)
 
     def __repr__(self):
         out = (

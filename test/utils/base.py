@@ -138,6 +138,15 @@ class QiskitTestCase(BaseTestCase):
             module=r"qiskit_aer(\.[a-zA-Z0-9_]+)*",
         )
 
+        # Safe to remove once https://github.com/Qiskit/qiskit-aer/issues/2197 is in a release version
+        # of Aer.
+        warnings.filterwarnings(
+            "ignore",  # If "default", it floods the CI output
+            category=DeprecationWarning,
+            message=r".*kwarg that will land in the metadata field*",
+            module="qiskit",
+        )
+
         # Safe to remove once https://github.com/Qiskit/qiskit-aer/issues/2065 is in a release version
         # of Aer.
         warnings.filterwarnings(
@@ -195,6 +204,18 @@ class QiskitTestCase(BaseTestCase):
             category=DeprecationWarning,
             message=r".*The property.*condition_bits.*is deprecated.*",
             module="qiskit.transpiler.passes.scheduling",
+        )
+
+        # The deprecation warning of qobj_id in Result is raised every
+        # time Aer is used to run a simulation. Remove this filter once
+        # Aer has transitioned to 2.0.
+        warnings.filterwarnings(
+            "ignore",
+            category=DeprecationWarning,
+            message=r"The `qobj_id` argument will no longer be used in Qiskit 2.*0, "
+            "but it will still be possible to set as a kwarg that will land in "
+            "the metadata field.",
+            module="qiskit",
         )
 
         allow_DeprecationWarning_message = [

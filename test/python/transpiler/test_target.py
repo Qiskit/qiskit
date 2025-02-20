@@ -2120,7 +2120,7 @@ class TestTargetFromConfiguration(QiskitTestCase):
                 instruction_durations=durations,
                 dt=config.dt,
             )
-            self.assertEqual(0.5, target["rz"][(0,)].duration)
+        self.assertEqual(0.5, target["rz"][(0,)].duration)
 
     def test_inst_map(self):
         with self.assertWarns(DeprecationWarning):

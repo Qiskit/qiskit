@@ -13,6 +13,7 @@
 """A module for visualizing device coupling maps"""
 
 import math
+import warnings
 from typing import List
 
 import numpy as np
@@ -21,6 +22,7 @@ from rustworkx.visualization import graphviz_draw
 
 from qiskit.exceptions import QiskitError
 from qiskit.utils import optionals as _optionals
+from qiskit.providers import BackendV2
 from qiskit.providers.exceptions import BackendPropertyError
 from qiskit.transpiler.coupling import CouplingMap
 from .exceptions import VisualizationError
@@ -49,6 +51,12 @@ def plot_gate_map(
     qubit_coordinates=None,
 ):
     """Plots the gate map of a device.
+
+    .. deprecated:: 1.4
+        The function ``plot_gate_map`` will stop supporting inputs of type
+        :class:`.BackendV1` in the `backend` parameter in a future release no
+        earlier than 2.0. :class:`.BackendV1` is deprecated and implementations should
+        move to :class:`.BackendV2`.
 
     Args:
         backend (Backend): The backend instance that will be used to plot the device
@@ -92,6 +100,15 @@ def plot_gate_map(
 
            plot_gate_map(backend)
     """
+    if not isinstance(backend, BackendV2):
+        warnings.warn(
+            "The function `plot_gate_map` will stop supporting inputs of "
+            f"type `BackendV1` ( {backend} ) in the `backend` parameter in a future "
+            "release no earlier than 2.0. `BackendV1` is deprecated and implementations "
+            "should move to `BackendV2`.",
+            category=DeprecationWarning,
+            stacklevel=2,
+        )
     qubit_coordinates_map = {}
 
     qubit_coordinates_map[5] = [[1, 0], [0, 1], [1, 1], [1, 2], [2, 1]]
@@ -1145,6 +1162,12 @@ def plot_circuit_layout(circuit, backend, view="virtual", qubit_coordinates=None
     """Plot the layout of a circuit transpiled for a given
     target backend.
 
+    .. deprecated:: 1.4
+        The function ``plot_circuit_layout`` will stop supporting inputs of type
+        :class:`.BackendV1` in the `backend` parameter in a future release no
+        earlier than 2.0. :class:`.BackendV1` is deprecated and implementations should
+        move to :class:`.BackendV2`.
+
     Args:
         circuit (QuantumCircuit): Input quantum circuit.
         backend (Backend): Target backend.
@@ -1187,6 +1210,17 @@ def plot_circuit_layout(circuit, backend, view="virtual", qubit_coordinates=None
             new_circ_lv3 = transpile(ghz, backend=backend, optimization_level=3)
             plot_circuit_layout(new_circ_lv3, backend)
     """
+
+    if not isinstance(backend, BackendV2):
+        warnings.warn(
+            "The function `plot_circuit_layout` will stop supporting inputs of "
+            f"type `BackendV1` ( {backend} ) in the `backend` parameter in a future "
+            "release no earlier than 2.0. `BackendV1` is deprecated and implementations "
+            "should move to `BackendV2`.",
+            category=DeprecationWarning,
+            stacklevel=2,
+        )
+
     if circuit._layout is None:
         raise QiskitError("Circuit has no layout. Perhaps it has not been transpiled.")
 
@@ -1254,6 +1288,12 @@ def plot_circuit_layout(circuit, backend, view="virtual", qubit_coordinates=None
 def plot_error_map(backend, figsize=(15, 12), show_title=True, qubit_coordinates=None):
     """Plots the error map of a given backend.
 
+    .. deprecated:: 1.4
+        The function ``plot_error_map`` will stop supporting inputs of type
+        :class:`.BackendV1` in the `backend` parameter in a future release no
+        earlier than 2.0. :class:`.BackendV1` is deprecated and implementations should
+        move to :class:`.BackendV2`.
+
     Args:
         backend (Backend): Given backend.
         figsize (tuple): Figure size in inches.
@@ -1282,6 +1322,16 @@ def plot_error_map(backend, figsize=(15, 12), show_title=True, qubit_coordinates
             backend = GenericBackendV2(num_qubits=5)
             plot_error_map(backend)
     """
+    if not isinstance(backend, BackendV2):
+        warnings.warn(
+            "The function `plot_error_map` will stop supporting inputs of "
+            f"type `BackendV1` ( {backend} ) in the `backend` parameter in a future "
+            "release no earlier than 2.0. `BackendV1` is deprecated and implementations "
+            "should move to `BackendV2`.",
+            category=DeprecationWarning,
+            stacklevel=2,
+        )
+
     import matplotlib
     import matplotlib.pyplot as plt
     from matplotlib import gridspec, ticker

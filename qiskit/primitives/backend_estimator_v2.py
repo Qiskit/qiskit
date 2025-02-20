@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import math
+import warnings
 from collections import defaultdict
 from collections.abc import Iterable
 from dataclasses import dataclass
@@ -131,12 +132,28 @@ class BackendEstimatorV2(BaseEstimatorV2):
         options: dict | None = None,
     ):
         """
+        .. deprecated:: 1.4
+            The method ``BackendEstimatorV2.__init__`` will stop supporting inputs of type
+            :class:`.BackendV1` in the `backend` parameter in a future release no
+            earlier than 2.0. :class:`.BackendV1` is deprecated and implementations should
+            move to :class:`.BackendV2`.
+
         Args:
             backend: The backend to run the primitive on.
             options: The options to control the default precision (``default_precision``),
                 the operator grouping (``abelian_grouping``), and
                 the random seed for the simulator (``seed_simulator``).
         """
+
+        if not isinstance(backend, BackendV2):
+            warnings.warn(
+                "The method `BackendEstimatorV2.__init__` will stop supporting inputs of "
+                f"type `BackendV1` ( {backend} ) in the `backend` parameter in a future "
+                "release no earlier than 2.0. `BackendV1` is deprecated and implementations "
+                "should move to `BackendV2`.",
+                category=DeprecationWarning,
+                stacklevel=2,
+            )
         self._backend = backend
         self._options = Options(**options) if options else Options()
 

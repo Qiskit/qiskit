@@ -14,11 +14,21 @@
 
 import html
 from qiskit.exceptions import QiskitError
+from qiskit.utils import deprecate_func
 
 
 class BackendStatus:
     """Class representing Backend Status."""
 
+    @deprecate_func(
+        since="1.4",
+        removal_timeline="in the 2.0 release",
+        additional_msg="The models in ``qiskit.providers.models`` and related objects are part "
+        "of the deprecated `BackendV1` workflow,  and no longer necessary for `BackendV2`. If a user "
+        "workflow requires these representations it likely relies on deprecated functionality and "
+        "should be updated to use `BackendV2`.",
+        stacklevel=2,
+    )
     def __init__(
         self,
         backend_name: str,

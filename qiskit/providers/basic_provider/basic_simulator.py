@@ -596,7 +596,6 @@ class BasicSimulator(BackendV2):
             "time_taken": (end - start),
             "header": qobj.header.to_dict(),
         }
-
         return Result.from_dict(result)
 
     @deprecate_func(

@@ -47,7 +47,6 @@ class TestResultOperations(QiskitTestCase):
         exp_result_1 = models.ExperimentResult(
             shots=8, success=True, data=data_1, header=exp_result_header_1
         )
-
         result = Result(results=[exp_result_1], **self.base_result_args)
         return result
 
@@ -92,7 +91,6 @@ class TestResultOperations(QiskitTestCase):
             shots=14, success=True, meas_level=2, data=data, header=exp_result_header
         )
         result = Result(results=[exp_result], **self.base_result_args)
-
         self.assertEqual(result.get_counts("a_name"), processed_counts)
 
     def test_counts_duplicate_name(self):
@@ -240,7 +238,6 @@ class TestResultOperations(QiskitTestCase):
         exp_result_2 = models.ExperimentResult(
             shots=13, success=True, data=data_2, header=exp_result_header_2
         )
-
         result = Result(results=[exp_result_1, exp_result_2], **self.base_result_args)
 
         expected_marginal_counts_1 = {"00": 4, "01": 27, "10": 23}
@@ -356,7 +353,6 @@ class TestResultOperations(QiskitTestCase):
         exp_result = models.ExperimentResult(
             shots=54, success=True, data=data, header=exp_result_header
         )
-
         result = Result(results=[exp_result], **self.base_result_args)
 
         expected_marginal_counts = {"0 0": 14, "0 1": 18, "1 0": 13, "1 1": 9}
@@ -381,7 +377,6 @@ class TestResultOperations(QiskitTestCase):
         exp_result_1 = models.ExperimentResult(
             shots=54, success=True, data=data_1, header=exp_result_header_1
         )
-
         result = Result(results=[exp_result_1], **self.base_result_args)
 
         expected_marginal_counts_1 = {
@@ -413,7 +408,6 @@ class TestResultOperations(QiskitTestCase):
         exp_result_2 = models.ExperimentResult(
             shots=13, success=True, data=data_2, header=exp_result_header_2
         )
-
         result = Result(results=[exp_result_1, exp_result_2], **self.base_result_args)
 
         expected_marginal_counts = {"0": 27, "1": 27}
@@ -440,7 +434,6 @@ class TestResultOperations(QiskitTestCase):
         exp_result_2 = models.ExperimentResult(
             shots=13, success=True, data=data_2, header=exp_result_header_2
         )
-
         result = Result(results=[exp_result_1, exp_result_2], **self.base_result_args)
 
         expected_marginal_counts = {"0": 27, "1": 27}
@@ -779,10 +772,43 @@ class TestResultOperationsFailed(QiskitTestCase):
         exp_result_1 = models.ExperimentResult(
             shots=54, success=True, data=data_1, header=exp_result_header_1
         )
-
         result = Result(results=[exp_result_1], **self.base_result_args)
-
         with self.assertWarns(DeprecationWarning):
             _ = marginal_counts(result, indices=[0])
             marginal_counts_result = marginal_counts(result, indices=[0])
         self.assertEqual(marginal_counts_result.get_counts(), {"0": 27, "1": 27})
+
+    def test_deprecation(self):
+        """Test that positional arguments are deprecated."""
+        memory = [hex(ii) for ii in range(8)]
+        counts = {m: 1 for m in memory}
+        data_1 = models.ExperimentResultData(counts=counts, memory=memory)
+        with self.assertWarns(DeprecationWarning):
+            exp_result_header_1 = QobjExperimentHeader(creg_sizes=[["c0", 4]], memory_slots=4)
+        exp_result_1 = models.ExperimentResult(
+            shots=8, success=True, data=data_1, header=exp_result_header_1
+        )
+        with self.subTest("all positional args"):
+            # order is: backend_name, backend_version, qobj_id, job_id, success, results
+            with self.assertWarnsRegex(
+                DeprecationWarning,
+                expected_regex=r"The use of positional arguments in "
+                r"`qiskit.result.result.Result.__init__\(\)` is deprecated as of Qiskit 1.4",
+            ):
+                _ = Result("test_backend", "1.0.0", "id-123", "job-123", True, [exp_result_1])
+
+        with self.subTest("one positional arg"):
+            result_args = {
+                "backend_version": "1.0.0",
+                "qobj_id": "id-123",
+                "job_id": "job-123",
+                "success": True,
+                "results": exp_result_1,
+            }
+            # check that even one positional argument raises the deprecation warning
+            with self.assertWarnsRegex(
+                DeprecationWarning,
+                expected_regex=r"The use of positional arguments in "
+                r"`qiskit.result.result.Result.__init__\(\)` is deprecated as of Qiskit 1.4",
+            ):
+                _ = Result("test_backend", **result_args)

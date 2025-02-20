@@ -32,12 +32,6 @@ from qiskit.utils.deprecate_pulse import deprecate_pulse_arg, deprecate_pulse_de
 logger = logging.getLogger(__name__)
 
 
-@deprecate_func(
-    since="1.4",
-    removal_timeline="in the 2.0 release",
-    additional_msg="With the deprecation of `qiskit.providers.models` this utility function "
-    "is not needed.",
-)
 @deprecate_pulse_arg("defaults")
 def convert_to_target(
     configuration: BackendConfiguration,
@@ -66,9 +60,19 @@ def convert_to_target(
     Returns:
         A ``Target`` instance.
     """
-    return _convert_to_target(
-        configuration, properties, defaults, custom_name_mapping, add_delay, filter_faulty
-    )
+    # If a deprecated error is raised during the conversion, we should not return the
+    # deprecation warning to the user,as it is not actionable for them.
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore",
+            category=DeprecationWarning,
+            message=".*``qiskit.providers.exceptions.BackendPropertyError``",
+            module="qiskit",
+        )
+        target = _convert_to_target(
+            configuration, properties, defaults, custom_name_mapping, add_delay, filter_faulty
+        )
+    return target
 
 
 def _convert_to_target(
@@ -323,7 +327,6 @@ def _convert_to_target(
 def qubit_props_list_from_props(
     properties: BackendProperties,
 ) -> List[QubitProperties]:
-    # TODO Remove this function with BackendProperties
     """Uses BackendProperties to construct
     and return a list of QubitProperties.
     """
@@ -440,7 +443,16 @@ class BackendV2Converter(BackendV2):
         :rtype: Target
         """
         if self._target is None:
+            # If a deprecated error is raised during the conversion,
+            # we should not return the deprecation warning to the user,
+            # as it is not actionable for them.
             with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore",
+                    category=DeprecationWarning,
+                    message=".*``qiskit.providers.exceptions.BackendPropertyError``",
+                    module="qiskit",
+                )
                 # convert_to_target is deprecated along BackendV2Converter
                 # They both need to be removed at the same time
                 warnings.filterwarnings(
@@ -449,7 +461,7 @@ class BackendV2Converter(BackendV2):
                     message=r".+qiskit\.providers\.backend_compat\.convert_to_target.+",
                     module="qiskit",
                 )
-                self._target = convert_to_target(
+                self._target = _convert_to_target(
                     configuration=self._config,
                     properties=self._properties,
                     defaults=self._defaults,
