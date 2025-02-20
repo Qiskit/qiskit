@@ -31,6 +31,14 @@ _MISSING = object()
 class Result:
     """Model for Results.
 
+    .. deprecated:: 1.4
+        The use of positional arguments in the constructor of :class:`.Result`
+        is deprecated as of Qiskit 1.4, and will be disabled in Qiskit 2.0.
+        Please set all arguments using kwarg syntax, i.e: ``Result(backend_name="name", ....)``.
+        In addition to this, the ``qobj_id`` argument is deprecated and will no longer
+        be used in Qiskit 2.0. It will, however, still be possible to set ``qobj_id`` as a
+        generic kwarg, which will land in the metadata field with the other generic kwargs.
+
     Attributes:
         backend_name (str): backend name.
         backend_version (str): backend version, in the form X.Y.Z.
@@ -40,6 +48,9 @@ class Result:
             each experiment success)
         results (list[ExperimentResult]): corresponding results for array of
             experiments of the input qobj
+        date (str): date of the experiment
+        header(dict): experiment header
+        kwargs: generic keyword arguments. These will be stored in the metadata field.
     """
 
     _metadata = {}

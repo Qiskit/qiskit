@@ -1,0 +1,31 @@
+---
+deprecations_primitives:
+  - |
+    Providing inputs of type :class:`.BackendV1` to the ``backend`` argument of 
+    :class:`.BackendSamplerV2` and :class:`.BackendEstimatorV2` is deprecated as of
+    Qiskit 1.4 and will be removed in Qiskit 2.0. Use an instance of :class:`.BackendV2`
+    instead.
+deprecations_providers:
+  - |
+    The error types :class:`.BackendPropertyError` and :class:`.BackendConfigurationError`
+    have been deprecated in Qiskit 1.4 and will be removed in Qiskit 2.0. These errors are
+    only used when retrieving items from the deprecated :class:`.BackendProperties` and
+    :class:`.BackendConfiguration` objects. 
+  - |
+    The classes :class:`.GateProperties`, :class:`.BackendStatus`, and :class:`.JobStatus`,
+    which are part of the legacy :class:`.BackendV1` workflow, are now deprecated. 
+    These should have been deprecated in Qiskit 1.2 together with the related elements in :mod:`qiskit.providers.models`.
+deprecations_visualization:
+  - |
+    Providing inputs of type :class:`.BackendV1` to the ``backend`` argument of 
+    :func:`.plot_gate_map`, :func:`.plot_circuit_layout`, and :func:`.plot_error_map`
+    are deprecated as of  Qiskit 1.4 and will be removed in Qiskit 2.0. 
+    Use an instance of :class:`.BackendV2` instead.
+deprecations_misc:
+  - |
+    The use of positional arguments in the constructor of :class:`.Result`
+    is deprecated as of Qiskit 1.4, and will be disabled in Qiskit 2.0.
+    Please set all arguments using kwarg syntax, i.e: ``Result(backend_name="name", ....)``.
+    In addition to this, the ``qobj_id`` argument is deprecated and will no longer
+    be used in Qiskit 2.0. It will, however, still be possible to set ``qobj_id`` as a
+    generic kwarg, which will land in the metadata field with the other generic kwargs.
