@@ -46,10 +46,14 @@ class Delay(Instruction):
                 type that is not timing-based, or the ``unit`` was improperly specified.
         """
         if isinstance(duration, expr.Expr):
-            if unit is not None:
-                raise CircuitError("Argument 'unit' must not be specified for a duration expression.")
+            if unit is not None and unit != "expr":
+                raise CircuitError(
+                    "Argument 'unit' must not be specified for a duration expression."
+                )
             if duration.type.kind not in (types.Duration, types.Stretch):
-                raise CircuitError(f"Expression of type '{duration.type}' is not valid for 'duration'.")
+                raise CircuitError(
+                    f"Expression of type '{duration.type}' is not valid for 'duration'."
+                )
             unit = "expr"
         elif unit is None:
             unit = "dt"

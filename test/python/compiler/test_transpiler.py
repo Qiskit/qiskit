@@ -1498,6 +1498,21 @@ class TestTranspile(QiskitTestCase):
         out = transpile(qc, dt=1e-9, seed_transpiler=42)
         self.assertEqual(out.data[0].operation.unit, "dt")
 
+    def test_delay_converts_to_dt_expr(self):
+        """Test that a delay instruction with a duration expression of type Duration
+        is converted to units of dt given a backend."""
+        qc = QuantumCircuit(2)
+        qc.delay(expr.lift(Duration.us(1000)), [0])
+
+        backend = GenericBackendV2(num_qubits=4)
+        backend.target.dt = 0.5e-6
+        out = transpile([qc, qc], backend, seed_transpiler=42)
+        self.assertEqual(out[0].data[0].operation.unit, "dt")
+        self.assertEqual(out[1].data[0].operation.unit, "dt")
+
+        out = transpile(qc, dt=1e-9, seed_transpiler=42)
+        self.assertEqual(out.data[0].operation.unit, "dt")
+
     def test_scheduling_backend_v2(self):
         """Test that scheduling method works with Backendv2."""
         qc = QuantumCircuit(2)
