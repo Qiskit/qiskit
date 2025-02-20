@@ -510,7 +510,7 @@ class DAGDependency:
         Graphviz <https://www.graphviz.org/>` to be installed.
 
         Args:
-            scale (float): sng factor
+            scale (float): scaling factor
             filename (str): file path to save image to (format inferred from name)
             style (str): 'plain': B&W graph
                          'color' (default): color input/output/op nodes
