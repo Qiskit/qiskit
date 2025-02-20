@@ -773,7 +773,6 @@ class TestResultOperationsFailed(QiskitTestCase):
             shots=54, success=True, data=data_1, header=exp_result_header_1
         )
         result = Result(results=[exp_result_1], **self.base_result_args)
-
         with self.assertWarns(DeprecationWarning):
             _ = marginal_counts(result, indices=[0])
             marginal_counts_result = marginal_counts(result, indices=[0])
@@ -781,9 +780,6 @@ class TestResultOperationsFailed(QiskitTestCase):
 
     def test_deprecation(self):
         """Test that positional arguments are deprecated."""
-        
-
-
         memory = [hex(ii) for ii in range(8)]
         counts = {m: 1 for m in memory}
         data_1 = models.ExperimentResultData(counts=counts, memory=memory)
@@ -792,7 +788,27 @@ class TestResultOperationsFailed(QiskitTestCase):
         exp_result_1 = models.ExperimentResult(
             shots=8, success=True, data=data_1, header=exp_result_header_1
         )
+        with self.subTest("all positional args"):
+            # order is: backend_name, backend_version, qobj_id, job_id, success, results
+            with self.assertWarnsRegex(
+                DeprecationWarning,
+                expected_regex=r"The use of positional arguments in "
+                "`qiskit\.result\.result\.Result\.__init__\(\)` is deprecated as of Qiskit 1\.4",
+            ):
+                _ = Result("test_backend", "1.0.0", "id-123", "job-123", True, [exp_result_1])
 
-        # backend_name, backend_version, qobj_id, job_id, success, results
-        positional_args = ["test_backend", "1.0.0","id-123","job-123",True, [exp_result_1]]
-        result = Result(positional_args)
+        with self.subTest("one positional arg"):
+            result_args = {
+                "backend_version": "1.0.0",
+                "qobj_id": "id-123",
+                "job_id": "job-123",
+                "success": True,
+                "results": exp_result_1,
+            }
+            # check that even one positional argument raises the deprecation warning
+            with self.assertWarnsRegex(
+                DeprecationWarning,
+                expected_regex=r"The use of positional arguments in "
+                "`qiskit\.result\.result\.Result\.__init__\(\)` is deprecated as of Qiskit 1\.4",
+            ):
+                _ = Result("test_backend", **result_args)
