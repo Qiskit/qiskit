@@ -575,20 +575,20 @@ class CircuitDuration(TypeKeyBase):
 
     @classmethod
     def assign(cls, obj):
-        match obj:
-            case Duration.dt(_):
-                return cls.DT
-            case Duration.ns(_):
-                return cls.NS
-            case Duration.us(_):
-                return cls.US
-            case Duration.ms(_):
-                return cls.MS
-            case Duration.s(_):
-                return cls.S
-        raise exceptions.QpyError(
-            f"Object type '{type(obj)}' is not supported in {cls.__name__} namespace."
-        )
+        if isinstance(obj, Duration.dt):
+            return cls.DT
+        elif isinstance(obj, Duration.ns):
+            return cls.NS
+        elif isinstance(obj, Duration.us):
+            return cls.US
+        elif isinstance(obj, Duration.ms):
+            return cls.MS
+        elif isinstance(obj, Duration.sec):
+            return cls.S
+        else:
+            raise exceptions.QpyError(
+                f"Object type '{type(obj)}' is not supported in {cls.__name__} namespace."
+            )
 
     @classmethod
     def retrieve(cls, type_key):
