@@ -1,7 +1,0 @@
----
-upgrade_transpiler:
-  - |
-    As part of Pulse removal in Qiksit 2.0, the ``PulseGates``, ``ValidatePulseGates``,
-    ``RXCalibrationBuilder``, ``RZXCalibrationBuilder``, ``RZXCalibrationBuilderNoEcho``,
-    ``NormlizeRXAngle`` and ``EchoRZXWeylDecomposition`` passes, and the ``rzx_templates``
-    function have been removed.
