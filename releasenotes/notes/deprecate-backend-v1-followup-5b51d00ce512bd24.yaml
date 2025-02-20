@@ -12,7 +12,7 @@ deprecations_providers:
     only used when retrieving items from the deprecated :class:`.BackendProperties` and
     :class:`.BackendConfiguration` objects. 
   - |
-    The classes :class:`.GateProperties`, :class:`.BackendStatus`, and :class:`.JobStatus`,
+    The classes :class:`.GateProperties`, :class:`.BackendStatus`, and :class:`qiskit.providers.models.JobStatus`,
     which are part of the legacy :class:`.BackendV1` workflow, are now deprecated. 
     These should have been deprecated in Qiskit 1.2 together with the related elements in :mod:`qiskit.providers.models`.
 deprecations_visualization:
