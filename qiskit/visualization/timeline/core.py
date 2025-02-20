@@ -144,7 +144,7 @@ class DrawerCanvas:
 
         .. deprecated:: 1.3
            Visualization of unscheduled circuits with the timeline drawer has been deprecated in Qiskit 1.3.
-           This circuit should be transpiled with a scheduler, despite having instructions 
+           This circuit should be transpiled with a scheduler, despite having instructions
            with explicit durations.
 
         .. deprecated:: 1.3

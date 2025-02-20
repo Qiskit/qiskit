@@ -53,7 +53,7 @@ def draw(
     r"""Generate visualization data for scheduled circuit programs.
 
     .. deprecated:: 1.3
-       The ``target`` parameter needs to be specified in Qiskit 2.0 in order to get the 
+       The ``target`` parameter needs to be specified in Qiskit 2.0 in order to get the
        instruction durations.
 
     Args:
