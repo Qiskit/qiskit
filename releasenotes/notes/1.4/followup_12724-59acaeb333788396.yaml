@@ -1,8 +1,12 @@
 ---
 deprecations_synthesis:
   - |
-    The argument ``atomic_evolution`` in the constructor for the classes
-    :class:`.LieTrotter`, :class:`.ProductFormula`, and :class:`.SuzukiTrotter`
-    is a callable with a different signature now: from
+    The signature of the argument ``atomic_evolution`` in the constructor of the classes
+    :class:`.LieTrotter`, :class:`.ProductFormula`, and 
+    :class:`.SuzukiTrotter` was modified in Qiskit v1.2.0 to improve the visualization
+    of the output circuit. The older signature has now been deprecated in favor of the 
+    new alternative. From Qiskit 2.0.0, only the new alternative will be valid.
+
+    To migrate, please modify the callable from
     ``Callable[[Pauli | SparsePauliOp, float], QuantumCircuit]`` to
     ``Callable[[QuantumCircuit, Pauli | SparsePauliOp, float], None]``.

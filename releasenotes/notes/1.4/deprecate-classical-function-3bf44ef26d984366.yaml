@@ -1,20 +1,22 @@
 ---
 deprecations_circuits:
   - |
-    The :mod:`qiskit.circuit.classicalfunction` and with it
-    the :class:`.ClassicalFunction`, its related :func:`.classical_function`
-    and :class:`.BooleanExpression` have been deprecated as of Qiskit 1.4 
-    and will be removed in Qiskit 2.0. This change is done to avoid a 
-    dependency on the external library `tweedledum`, which is no longer 
+    The :mod:`qiskit.circuit.classicalfunction` module, and with it the
+    :class:`.ClassicalFunction` class and its related :func:`.classical_function`
+    and :class:`.BooleanExpression` utilities, have been deprecated as of 
+    Qiskit v1.4.0 and will be removed in Qiskit v2.0.0. 
+    
+    This change is performed to avoid a 
+    dependency on the external library ``tweedledum``, which is no longer 
     compatible with all of Qiskit's supported platforms and Python versions.
     For a similar functionality please use the :class:`.PhaseOracle` which
-    is going to have a `tweedledum` independent implementation, and
-    the :class:`.BitFlipOracle` which will be added in Qiskit 2.0.
+    is going to have a ``tweedledum``-independent implementation, and
+    the ``BitFlipOracle`` which will be added in Qiskit v2.0.0.
 
-    Until :class:`.BitFlipOracle` is added, a phase flip oracle can be converted
-    to a bit flip oracle by conditioning it on the result qubit, and applying 
-    Hadamard gate before and after the application of the oracle, as in the
-    following example (where the oracle is on `qr_x` and the result is on `qr_y`):
+    Until ``BitFlipOracle`` is added, a phase-flip oracle can be converted
+    to a bit-flip oracle by conditioning it on the result qubit, and applying
+    Hadamard gates before and after the application of the oracle, as in the
+    following example (where the oracle is on ``qr_x`` and the result is on ``qr_y``):
 
     .. code-block:: python
     

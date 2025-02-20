@@ -1,4 +1,7 @@
 ---
 deprecations_providers:
   - |
-    With the deprecation of ``BackendV1``, the tool for converting ``BackendV1`` to ``BackendV2`` is now deprecated.
+    The :class:`.BackendV2Converter` function has been deprecated in Qiskit v1.4.0,
+    as a consequence of the deprecation of :class:`.BackendV1`. This tool 
+    is used for converting :class:`.BackendV1` to :class:`.BackendV2`, and cannot 
+    be maintained once :class:`.BackendV1` is removed.

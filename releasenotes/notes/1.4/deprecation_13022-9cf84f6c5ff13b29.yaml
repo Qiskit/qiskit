@@ -1,4 +1,7 @@
 ---
 deprecations_circuits:
   - |
-    The ``DAGNode`` subclasses take a ``dag`` optional parameter when constructed that is currently unused and ignored. Now it is deprecated and will be removed in Qiskit 2.0
+    The ``dag`` optional parameter in the constructor of :class:`DAGNode`
+    subclasses (namely :class:`DAGOpNode`), 
+    which has been unused and ignored since Qiskit v1.2.0, is now deprecated as of 
+    Qiskit v1.4.0 and will be removed in Qiskit v2.0.0.
