@@ -4453,7 +4453,7 @@ class QuantumCircuit:
         When applying to multiple qubits, delays with the same duration will be created.
 
         Args:
-            duration (int or float or ParameterExpression or :class:`~.expr.Expr`):
+            duration (Object):
                 duration of the delay. If this is an :class:`~.expr.Expr`, it must be
                 of type :class:`~.types.Duration` or :class:`~.types.Stretch`.
             qarg (Object): qubit argument to apply this delay.

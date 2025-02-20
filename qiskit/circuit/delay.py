@@ -115,6 +115,7 @@ class Delay(Instruction):
         """Return the official string representing the delay."""
         return f"{self.__class__.__name__}(duration={self.params[0]}[unit={self.unit}])"
 
+    # pylint: disable=too-many-return-statements
     def validate_parameter(self, parameter):
         """Delay parameter (i.e. duration) must be Expr, int, float or ParameterExpression."""
         if isinstance(parameter, int):

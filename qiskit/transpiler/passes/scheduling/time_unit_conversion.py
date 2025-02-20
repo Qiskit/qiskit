@@ -215,18 +215,19 @@ _DURATION_KIND_NAME = {
 class _EvalDurationImpl(expr.ExprVisitor[float]):
     """Evaluates the expression to a single float result.
 
-    If `dt` is provided or all durations are already in `dt`, the result is in `dt`.
+    If ``dt`` is provided or all durations are already in ``dt``, the result is in ``dt``.
     Otherwise, the result will be in seconds, and all durations MUST be in wall-time (SI).
     """
 
     __slots__ = ("dt", "has_dt", "has_si")
 
-    def __init__(self, dt: float | None = None):
+    def __init__(self, dt=None):
         self.dt = dt if dt is not None else 1
         self.has_dt = False
         self.has_si = False
 
     def in_cycles(self):
+        """Returns ``True`` if units are 'dt' after visit."""
         return self.has_dt or self.dt != 1
 
     def visit_value(self, node, /) -> float:

@@ -13,7 +13,7 @@
 """Test QASM3 exporter."""
 
 # We can't really help how long the lines output by the exporter are in some cases.
-# pylint: disable=line-too-long
+# pylint: disable=line-too-long,invalid-name
 
 from io import StringIO
 from math import pi
