@@ -65,7 +65,7 @@ class Instruction(Operation):
 
         .. deprecated:: 1.3
            The parameters ``duration`` and ``unit`` are deprecated since
-           Qiskit 1.3, and they will be removed in 2.0 or more later.
+           Qiskit 1.3, and they will be removed in 2.0 or later.
            An instruction's duration is defined in a backend's Target object.
 
         Args:
