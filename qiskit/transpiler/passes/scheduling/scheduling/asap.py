@@ -40,6 +40,8 @@ class ASAPScheduleAnalysis(BaseScheduler):
         """
         if len(dag.qregs) != 1 or dag.qregs.get("q", None) is None:
             raise TranspilerError("ASAP schedule runs on physical circuits only")
+        if self.property_set["time_unit"] == "stretch":
+            raise TranspilerError("Scheduling cannot run on circuits with stretch durations.")
 
         conditional_latency = self.property_set.get("conditional_latency", 0)
         clbit_write_latency = self.property_set.get("clbit_write_latency", 0)
