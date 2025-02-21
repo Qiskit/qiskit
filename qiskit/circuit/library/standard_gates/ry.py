@@ -54,11 +54,7 @@ class RYGate(Gate):
 
     _standard_gate = StandardGate.RYGate
 
-    def __init__(
-        self,
-        theta: ParameterValueType,
-        label: Optional[str] = None,
-    ):
+    def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
         """Create new RY gate."""
         super().__init__("ry", 1, [theta], label=label)
 
