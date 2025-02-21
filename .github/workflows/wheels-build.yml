@@ -43,14 +43,6 @@ on:
         default: "default"
         required: false
 
-      wheels-linux-aarch64:
-        description: >-
-          The action to take for Linux AArch64 wheels.
-          Choose from 'default', 'build' or 'skip'.
-        type: string
-        default: "default"
-        required: false
-
       artifact-prefix:
         description: "A prefix to give all artifacts uploaded with 'actions/upload-artifact'."
         type: string
@@ -123,6 +115,52 @@ jobs:
         with:
           path: ./wheelhouse/*.whl
           name: ${{ inputs.artifact-prefix }}wheels-tier-1-${{ matrix.os }}
+  wheels-tier-1-aarch64:
+    name: "Wheels / Tier 1"
+    if: (inputs.wheels-tier-1 == 'default' && inputs.default-action || inputs.wheels-tier-1) == 'build'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python-version }}
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: llvm-tools-preview
+      - name: Configure PGO
+        shell: bash
+        if: inputs.pgo
+        # The `$GITHUB_ENV` magic file uses some sort of custom parsing, so the variables shouldn't
+        # be quoted like they would be if bash were interpreting them.  You still need to use quotes
+        # to avoid word splitting where appropriate in compound environment variables.
+        #
+        # Beware that the heredoc is configured to expand bash variables, but cibuildwheel has
+        # special handling for certain variables (`$PATH`, in particular), so you may need to escape
+        # some dollar signs to pass those through to cibuildwheel as variables, or use single quotes
+        # to prevent shell expansion.
+        run: |
+          set -e
+          mkdir -p "$PGO_WORK_DIR"
+
+          cat >>"$GITHUB_ENV" <<EOF
+          CIBW_BEFORE_ALL=yum install -y wget && {package}/tools/install_rust_msrv.sh
+          CIBW_BEFORE_BUILD=bash ./tools/build_pgo.sh $PGO_WORK_DIR $PGO_OUT_PATH
+          CIBW_ENVIRONMENT_LINUX=RUSTFLAGS='-Cprofile-use=$PGO_OUT_PATH -Cllvm-args=-pgo-warn-missing-function' PATH="\$PATH:\$HOME/.cargo/bin" CARGO_NET_GIT_FETCH_WITH_CLI="true"
+          EOF
+        env:
+          PGO_WORK_DIR: ${{ github.workspace }}/pgo-data
+          PGO_OUT_PATH: ${{ github.workspace }}/merged.profdata
+      - uses: pypa/cibuildwheel@v2.22.0
+      - uses: actions/upload-artifact@v4
+        with:
+          path: ./wheelhouse/*.whl
+          name: ${{ inputs.artifact-prefix }}wheels-tier-1-${{ matrix.os }}
+
 
   wheels-linux-s390x:
     name: "Wheels / Linux s390x"
