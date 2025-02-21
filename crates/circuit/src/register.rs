@@ -22,7 +22,7 @@ use indexmap::IndexSet;
 use pyo3::{
     exceptions::PyValueError,
     prelude::*,
-    types::{PyList, PyType},
+    types::{PyList, PyString, PyType},
     IntoPyObjectExt, PyTypeInfo,
 };
 use std::{
@@ -353,7 +353,7 @@ impl PyRegister {
     pub fn new(
         size: Option<Bound<PyAny>>,
         name: Option<Bound<PyAny>>,
-        bits: Option<Bound<PyList>>,
+        bits: Option<Bound<PyAny>>,
     ) -> PyResult<Self> {
         let name_parse = |name: Option<String>| -> String {
             if let Some(name) = name {
@@ -366,42 +366,7 @@ impl PyRegister {
             }
         };
 
-        if (size.is_none() && bits.is_none()) || (size.is_some() && bits.is_some()) {
-            return Err(CircuitError::new_err(format!("Exactly one of the size or bits arguments can be provided. Provided size={:?} bits={:?}.", size, bits)));
-        }
-
-        let size: u32 = if let Some(bits) = bits.as_ref() {
-            bits.len().try_into().map_err(|_| CircuitError::new_err(format!("The amount of bits provided exceeds the capacity of the register. Current size {}", bits.len())))?
-        } else {
-            let Ok(valid_size): PyResult<isize> = size.as_ref().unwrap().extract() else {
-                return Err(CircuitError::new_err(format!(
-                    "Register size must be an integer. {} '{}' was provided",
-                    size.as_ref().unwrap().get_type().name()?,
-                    size.as_ref().unwrap().repr()?
-                )));
-            };
-            if valid_size < 0 {
-                return Err(CircuitError::new_err(format!(
-                    "Register size must be non-negative. {} '{}' was provided",
-                    size.as_ref().unwrap().get_type().name()?,
-                    size.as_ref().unwrap().repr()?
-                )));
-            }
-
-            let Ok(valid_size) = valid_size.abs().try_into() else {
-                return Err(CircuitError::new_err(format!(
-                    "Register size exceeds possible allocated capacity. {} '{}' was provided",
-                    size.as_ref().unwrap().get_type().name()?,
-                    size.as_ref().unwrap().repr()?
-                )));
-            };
-
-            valid_size
-        };
-
-        let Ok(name) = name.as_ref().map(|name| name.extract()).transpose() else {
-            return Err(CircuitError::new_err("The circuit name should be castable to a string (or None for autogenerate a name)."));
-        };
+        let (size, name) = Self::inner_parse_new(&size, &name, &bits)?;
 
         let register = if let Some(bits) = bits {
             let Ok(bits_set): PyResult<IndexSet<BitInfo>> = bits
@@ -432,13 +397,13 @@ impl PyRegister {
         let borrowed = slf.borrow();
         match borrowed.0.as_ref() {
             RegisterInfo::Owning(owning_register_info) => Ok(format!(
-                "{}({}, {})",
+                "{}({}, '{}')",
                 slf.get_type().qualname()?,
                 owning_register_info.len(),
                 owning_register_info.name()
             )),
             RegisterInfo::Alias { name, bits, .. } => Ok(format!(
-                "{}({}, {})",
+                "{}({}, '{}')",
                 slf.get_type().qualname()?,
                 bits.len(),
                 name,
@@ -582,6 +547,60 @@ impl PyRegister {
 }
 
 impl PyRegister {
+    /// Correctly performs extraction of size and name during creation of a register
+    pub fn inner_parse_new(
+        size: &Option<Bound<PyAny>>,
+        name: &Option<Bound<PyAny>>,
+        bits: &Option<Bound<PyAny>>,
+    ) -> PyResult<(u32, Option<String>)> {
+        if (size.is_none() && bits.is_none()) || (size.is_some() && bits.is_some()) {
+            return Err(CircuitError::new_err(format!("Exactly one of the size or bits arguments can be provided. Provided size={:?} bits={:?}.", size, bits)));
+        }
+
+        let size: u32 = if let Some(bits) = bits.as_ref() {
+            bits.len()?.try_into().map_err(|_| CircuitError::new_err(format!("The amount of bits provided exceeds the capacity of the register. Current size {}", bits.len().unwrap_or_default())))?
+        } else {
+            let Ok(valid_size): PyResult<isize> = size.as_ref().unwrap().extract() else {
+                return Err(CircuitError::new_err(format!(
+                    "Register size must be an integer. {} '{}' was provided",
+                    size.as_ref().unwrap().get_type().name()?,
+                    size.as_ref().unwrap().repr()?
+                )));
+            };
+            if valid_size < 0 {
+                return Err(CircuitError::new_err(format!(
+                    "Register size must be non-negative. {} '{}' was provided",
+                    size.as_ref().unwrap().get_type().name()?,
+                    size.as_ref().unwrap().repr()?
+                )));
+            }
+
+            let Ok(valid_size) = valid_size.abs().try_into() else {
+                return Err(CircuitError::new_err(format!(
+                    "Register size exceeds possible allocated capacity. {} '{}' was provided",
+                    size.as_ref().unwrap().get_type().name()?,
+                    size.as_ref().unwrap().repr()?
+                )));
+            };
+
+            valid_size
+        };
+
+        let Ok(name) = name
+            .as_ref()
+            .map(|name| -> PyResult<String> {
+                PyString::type_object(name.py())
+                    .call1((name,))?
+                    .extract::<String>()
+            })
+            .transpose()
+        else {
+            return Err(CircuitError::new_err("The circuit name should be castable to a string (or None for autogenerate a name)."));
+        };
+
+        Ok((size, name))
+    }
+
     /// Inner function for [PyRegister::__getnewargs__] to ensure serialization can be
     /// preserved between register types.
     fn getitem_inner(
@@ -639,7 +658,6 @@ enum SliceOrInt<'py> {
 
 macro_rules! create_py_register {
     ($name:ident, $nativereg:tt, $pybit:tt, $nativebit:tt, $pyname:literal, $pymodule:literal, $extra:expr, $prefix:literal) => {
-
         #[pyclass(
             name = $pyname,
             module = $pymodule,
@@ -658,38 +676,22 @@ macro_rules! create_py_register {
             pub fn new(
                 size: Option<Bound<PyAny>>,
                 name: Option<Bound<PyAny>>,
-                bits: Option<Bound<PyList>>,
+                bits: Option<Bound<PyAny>>,
             ) -> PyResult<(Self, PyRegister)> {
-                if (size.is_none() && bits.is_none()) || (size.is_some() && bits.is_some()) {
-                    return Err(CircuitError::new_err(format!("Exactly one of the size or bits arguments can be provided. Provided size={:?} bits={:?}.", size, bits)));
-                }
-
-                let size: u32 = if let Some(bits) = bits.as_ref() {
-                    bits.len().try_into().map_err(|_| CircuitError::new_err(format!("The amount of bits provided exceeds the capacity of the register. Current size {}", bits.len())))?
-                } else {
-                    let Ok(valid_size) : PyResult<isize> = size.as_ref().unwrap().extract() else {
-                        return Err(CircuitError::new_err(format!("Register size must be an integer. {} '{}' was provided", size.as_ref().unwrap().get_type().name()?, size.as_ref().unwrap().repr()?)))
-                    };
-                    if valid_size < 0 {
-                        return Err(CircuitError::new_err(format!("Register size must be non-negative. {} '{}' was provided", size.as_ref().unwrap().get_type().name()?, size.as_ref().unwrap().repr()?)))
-                    }
-
-                    let Ok(valid_size) = valid_size.abs().try_into() else {
-                        return Err(CircuitError::new_err(format!("Register size exceeds possible allocated capacity. {} '{}' was provided", size.as_ref().unwrap().get_type().name()?, size.as_ref().unwrap().repr()?)))
-                    };
-
-                    valid_size
-                };
-
-                let Ok(name) = name.as_ref().map(|name| name.extract()).transpose() else {
-                    return Err(CircuitError::new_err("The circuit name should be castable to a string (or None for autogenerate a name)."))
-                };
+                let (size, name) = PyRegister::inner_parse_new(&size, &name, &bits)?;
 
                 let register = if let Some(bits) = bits {
-                    let Ok(bits_set) : PyResult<IndexSet<BitInfo>> = bits.try_iter()?.map(|bit| -> PyResult<BitInfo> {
-                        bit?.extract::<$pybit>().map(|b| b.0.0)
-                    }).collect() else {
-                        return Err(CircuitError::new_err(format!("Provided bits did not all match register type. bits={}", bits.repr()?)))
+                    let Ok(bits_set): PyResult<IndexSet<BitInfo>> = bits
+                        .try_iter()?
+                        .map(|bit| -> PyResult<BitInfo> {
+                            bit?.extract::<$pybit>().map(|b| b.0 .0)
+                        })
+                        .collect()
+                    else {
+                        return Err(CircuitError::new_err(format!(
+                            "Provided bits did not all match register type. bits={}",
+                            bits.repr()?
+                        )));
                     };
                     if bits_set.len() != size as usize {
                         return Err(CircuitError::new_err(
@@ -711,24 +713,17 @@ macro_rules! create_py_register {
                         let sequence = py_sequence_index
                             .with_len(slf.as_super().size().try_into().unwrap())?;
                         match sequence {
-                            crate::slice::SequenceIndex::Int(_) => slf
-                                .getitem_inner(key)?
-                                .next()
-                                .into_py_any(py),
-                            _ => Ok(PyList::new(
-                                py,
-                                slf.getitem_inner(key)?,
-                            )?
-                            .into_any()
-                            .unbind()),
+                            crate::slice::SequenceIndex::Int(_) => {
+                                slf.getitem_inner(key)?.next().into_py_any(py)
+                            }
+                            _ => Ok(PyList::new(py, slf.getitem_inner(key)?)?
+                                .into_any()
+                                .unbind()),
                         }
                     }
-                    _ => Ok(PyList::new(
-                        py,
-                        slf.getitem_inner(key)?,
-                    )?
-                    .into_any()
-                    .unbind()),
+                    _ => Ok(PyList::new(py, slf.getitem_inner(key)?)?
+                        .into_any()
+                        .unbind()),
                 }
             }
 
@@ -737,10 +732,7 @@ macro_rules! create_py_register {
             }
 
             fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Bound<'_, pyo3::types::PyIterator>> {
-                let list: Vec<$nativebit> = slf
-                    .0
-                    .bits()
-                    .collect();
+                let list: Vec<$nativebit> = slf.0.bits().collect();
                 list.into_pyobject(slf.py())?.try_iter()
             }
 
@@ -773,28 +765,36 @@ macro_rules! create_py_register {
                         match sequence {
                             crate::slice::SequenceIndex::Int(idx) => {
                                 let Some(bit) = self.0.get(idx) else {
-                                    return Err(CircuitError::new_err("register index out of range"));
+                                    return Err(CircuitError::new_err(
+                                        "register index out of range",
+                                    ));
                                 };
                                 Ok(Box::new(std::iter::once(bit)))
-                            },
+                            }
                             _ => {
-                                let result: Vec<$nativebit> = sequence.iter().map(
-                                    |idx| -> PyResult<$nativebit> {
-                                        self.0.get(idx).ok_or(CircuitError::new_err("register index out of range"))
-                                    }
-                                ).collect::<PyResult<_>>()?;
+                                let result: Vec<$nativebit> = sequence
+                                    .iter()
+                                    .map(|idx| -> PyResult<$nativebit> {
+                                        self.0.get(idx).ok_or(CircuitError::new_err(
+                                            "register index out of range",
+                                        ))
+                                    })
+                                    .collect::<PyResult<_>>()?;
                                 Ok(Box::new(result.into_iter()))
                             }
                         }
                     }
                     SliceOrInt::List(vec) => {
-                        let result: Vec<$nativebit> = vec.iter().map(
-                            |idx| -> PyResult<$nativebit> {
-                                self.0.get(*idx).ok_or(CircuitError::new_err("register index out of range"))
-                            }
-                        ).collect::<PyResult<_>>()?;
+                        let result: Vec<$nativebit> = vec
+                            .iter()
+                            .map(|idx| -> PyResult<$nativebit> {
+                                self.0
+                                    .get(*idx)
+                                    .ok_or(CircuitError::new_err("register index out of range"))
+                            })
+                            .collect::<PyResult<_>>()?;
                         Ok(Box::new(result.into_iter()))
-                    },
+                    }
                 }
             }
         }

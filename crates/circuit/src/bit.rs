@@ -225,25 +225,7 @@ impl PyBit {
     #[new]
     #[pyo3(signature = (register = None, index = None))]
     fn new(register: Option<PyRegister>, index: Option<u32>) -> PyResult<Self> {
-        match (register, index) {
-            (Some(register), Some(index)) => {
-                let RegisterInfo::Owning(owned) = register.0.as_ref() else {
-                    return Err(CircuitError::new_err(
-                        "The provided register for this bit was invalid.",
-                    ));
-                };
-                if index as usize >= owned.len() {
-                    return Err(CircuitError::new_err(format!(
-                        "index must be under the size of the register: {index} was provided"
-                    )));
-                }
-                Ok(Self(BitInfo::new_owned(owned.clone(), index, None)))
-            }
-            (None, None) => Ok(Self(BitInfo::new_anonymous(None))),
-            _ => Err(CircuitError::new_err(
-                "You should provide both a valid register and an index, not either or.".to_string(),
-            )),
-        }
+        Self::inner_new(register, index, None)
     }
 
     pub fn __repr__(slf: Bound<Self>) -> PyResult<String> {
@@ -338,23 +320,45 @@ impl PyBit {
     }
 }
 
-// impl PyBit {
-//     /// Quickly retrieves the inner `BitData` living in the `Bit`
-//     pub(crate) fn inner_bit_info(&self) -> &BitInfo {
-//         &self.0
-//     }
-// }
+impl PyBit {
+    /// Quickly retrieves the inner `BitData` living in the `Bit`
+    pub(crate) fn inner_new(
+        register: Option<PyRegister>,
+        index: Option<u32>,
+        extra: Option<BitExtraInfo>,
+    ) -> PyResult<Self> {
+        match (register, index) {
+            (Some(register), Some(index)) => {
+                let RegisterInfo::Owning(owned) = register.0.as_ref() else {
+                    return Err(CircuitError::new_err(
+                        "The provided register for this bit was invalid.",
+                    ));
+                };
+                if index as usize >= owned.len() {
+                    return Err(CircuitError::new_err(format!(
+                        "index must be under the size of the register: {index} was provided"
+                    )));
+                }
+                Ok(Self(BitInfo::new_owned(owned.clone(), index, extra)))
+            }
+            (None, None) => Ok(Self(BitInfo::new_anonymous(extra))),
+            _ => Err(CircuitError::new_err(
+                "You should provide both a valid register and an index, not either or.".to_string(),
+            )),
+        }
+    }
+}
 
 macro_rules! create_py_bit {
     ($name:ident, $natbit:tt, $pyname:literal, $pymodule:literal, $extra:expr, $pyreg:tt) => {
         /// Implements a quantum bit
         #[pyclass(
-            subclass,
-            name = $pyname,
-            module = $pymodule,
-            frozen,
-            extends=PyBit,
-        )]
+                                            subclass,
+                                            name = $pyname,
+                                            module = $pymodule,
+                                            frozen,
+                                            extends=PyBit,
+                                        )]
         #[derive(Debug, Clone, PartialEq, Eq, Hash)]
         pub struct $name(pub(crate) $natbit);
 
@@ -364,9 +368,10 @@ macro_rules! create_py_bit {
             #[new]
             #[pyo3(signature = (register = None, index = None))]
             fn new(register: Option<$pyreg>, index: Option<u32>) -> PyResult<(Self, PyBit)> {
-                let inner = PyBit::new(
+                let inner = PyBit::inner_new(
                     register.clone().map(|reg| PyRegister(reg.data().clone())),
                     index,
+                    Some($extra),
                 )?;
                 Ok((Self($natbit(inner.0.clone())), inner))
             }
@@ -401,7 +406,7 @@ create_py_bit!(
     ShareableQubit,
     "Qubit",
     "qiskit.circuit.quantumcircuit",
-    QubitExtraInfo { is_ancilla: false },
+    BitExtraInfo::Qubit { is_ancilla: false },
     PyQuantumRegister
 );
 
@@ -431,7 +436,7 @@ create_py_bit!(
     ShareableClbit,
     "Clbit",
     "qiskit.circuit.classicalregister",
-    (),
+    BitExtraInfo::Clbit(),
     PyClassicalRegister
 );
 
