@@ -11,7 +11,7 @@ prelude: |
     bugfixes  for 6 months and security fixes for 1 year after this
     release. The fixes will take place via patch releases.
     For more details on the release schedule and support cycle
-    see: https://docs.quantum.ibm.com/start/install#qiskit-versioning
+    see: https://docs.quantum.ibm.com/open-source/qiskit-sdk-version-strategy#qiskit-sdk-version-strategy
     which documents the release schedule in more detail.
 
 features_circuits:
