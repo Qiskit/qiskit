@@ -274,6 +274,15 @@ dependencies = [
 
 [[package]]
 name = "dyn-stack"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bf6fa63092e3ca9f602f6500fddd05502412b748c4c4682938565b44eb9e0066"
+dependencies = [
+ "bytemuck",
+]
+
+[[package]]
+name = "dyn-stack"
 version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "490bd48eb68fffcfed519b4edbfd82c69cbe741d175b84f0e0cbe8c57cbe0bdd"
@@ -356,7 +365,7 @@ dependencies = [
  "dbgf",
  "dyn-stack 0.10.0",
  "equator 0.4.2",
- "faer-entity",
+ "faer-entity 0.19.2",
  "gemm",
  "libm",
  "matrixcompare",
@@ -371,6 +380,28 @@ dependencies = [
  "rayon",
  "reborrow",
  "serde",
+]
+
+[[package]]
+name = "faer"
+version = "0.20.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c2b19b8c3570ea226e507fe3dbae2aa9d7e0f16676abd35ea3adeeb9f90f7b5d"
+dependencies = [
+ "bytemuck",
+ "coe-rs",
+ "dbgf",
+ "dyn-stack 0.11.0",
+ "equator 0.4.2",
+ "faer-entity 0.20.1",
+ "gemm",
+ "generativity",
+ "libm",
+ "nano-gemm",
+ "num-complex",
+ "num-traits",
+ "paste",
+ "reborrow",
 ]
 
 [[package]]
@@ -389,13 +420,28 @@ dependencies = [
 ]
 
 [[package]]
-name = "faer-ext"
-version = "0.2.0"
+name = "faer-entity"
+version = "0.20.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4cf30f6ae73f372c0e0cf7556c44e50f1eee0a714d71396091613d68c43625c9"
+checksum = "072f96f1bc8b2b30dfc26c086baeadb63aae08019b1ed84721809b9fd2006685"
 dependencies = [
- "faer",
- "ndarray 0.15.6",
+ "bytemuck",
+ "coe-rs",
+ "libm",
+ "num-complex",
+ "num-traits",
+ "pulp 0.18.22",
+ "reborrow",
+]
+
+[[package]]
+name = "faer-ext"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9f92bf75258e2a62712ca6d058e8ce2e70c7837ea931612d31a96ec696736976"
+dependencies = [
+ "faer 0.20.2",
+ "ndarray 0.16.1",
  "num-complex",
 ]
 
@@ -535,6 +581,12 @@ dependencies = [
  "raw-cpuid",
  "seq-macro",
 ]
+
+[[package]]
+name = "generativity"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5881e4c3c2433fe4905bb19cfd2b5d49d4248274862b68c27c33d9ba4e13f9ec"
 
 [[package]]
 name = "generic-array"
@@ -945,7 +997,7 @@ checksum = "b94caae805f998a07d33af06e6a3891e38556051b8045c615470a71590e13e78"
 dependencies = [
  "libc",
  "nalgebra",
- "ndarray 0.15.6",
+ "ndarray 0.16.1",
  "num-complex",
  "num-integer",
  "num-traits",
@@ -1289,7 +1341,7 @@ dependencies = [
  "ahash 0.8.11",
  "approx 0.5.1",
  "bytemuck",
- "faer",
+ "faer 0.19.4",
  "faer-ext",
  "hashbrown 0.15.2",
  "indexmap",
