@@ -1,5 +1,0 @@
----
-deprecations_providers:
-  - |
-    The function :func:`.convert_to_target` is deprecated from Qiskit 1.4, since it takes deprecated classes such as
-    :class:`.BackendConfiguration` and :class:`.BackendProperties` and :class:`.PulseDefaults`.
