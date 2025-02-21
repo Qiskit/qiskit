@@ -110,6 +110,7 @@ sys.modules["qiskit._accelerate.filter_op_nodes"] = _accelerate.filter_op_nodes
 sys.modules["qiskit._accelerate.twirling"] = _accelerate.twirling
 sys.modules["qiskit._accelerate.high_level_synthesis"] = _accelerate.high_level_synthesis
 sys.modules["qiskit._accelerate.remove_identity_equiv"] = _accelerate.remove_identity_equiv
+sys.modules["qiskit._accelerate.circuit_duration"] = _accelerate.circuit_duration
 
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
 
@@ -127,7 +128,7 @@ import qiskit.circuit.reset
 
 _config = _user_config.get_config()
 
-from qiskit.compiler import transpile, assemble, schedule, sequence
+from qiskit.compiler import transpile
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from .version import __version__
 
@@ -138,9 +139,6 @@ __all__ = [
     "QiskitError",
     "QuantumCircuit",
     "QuantumRegister",
-    "assemble",
-    "schedule",
-    "sequence",
     "transpile",
     "generate_preset_pass_manager",
 ]

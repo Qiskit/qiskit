@@ -10,10 +10,6 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-// This stylistic lint suppression should be in `Cargo.toml`, but we can't do that until we're at an
-// MSRV of 1.74 or greater.
-#![allow(clippy::comparison_chain)]
-
 use std::env;
 
 use pyo3::import_exception;
@@ -21,6 +17,7 @@ use pyo3::import_exception;
 pub mod barrier_before_final_measurement;
 pub mod basis;
 pub mod check_map;
+pub mod circuit_duration;
 pub mod circuit_library;
 pub mod commutation_analysis;
 pub mod commutation_cancellation;
