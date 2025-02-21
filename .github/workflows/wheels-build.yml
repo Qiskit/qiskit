@@ -77,7 +77,6 @@ jobs:
           # Used for the ARM builds.
           - macos-14
           - windows-latest
-          - ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
