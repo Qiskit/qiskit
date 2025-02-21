@@ -57,6 +57,8 @@ from qiskit.circuit.library import (
     CZGate,
     ECRGate,
     HGate,
+    IGate,
+    PhaseGate,
     RXGate,
     RYGate,
     RZGate,
@@ -1646,7 +1648,10 @@ class TestTranspile(QiskitTestCase):
     @data(0, 1, 2, 3)
     def test_transpile_preserves_circuit_metadata(self, optimization_level):
         """Verify that transpile preserves circuit metadata in the output."""
-        circuit = QuantumCircuit(2, metadata={"experiment_id": "1234", "execution_number": 4})
+        metadata = {"experiment_id": "1234", "execution_number": 4}
+        name = "my circuit"
+        circuit = QuantumCircuit(2, metadata=metadata.copy(), name=name)
+        circuit.name = "my circuit"
         circuit.h(0)
         circuit.cx(0, 1)
 
@@ -1678,7 +1683,22 @@ class TestTranspile(QiskitTestCase):
             optimization_level=optimization_level,
             seed_transpiler=42,
         )
-        self.assertEqual(circuit.metadata, res.metadata)
+        self.assertEqual(res.metadata, metadata)
+        self.assertEqual(res.name, name)
+
+        target = Target(14)
+        for inst in (IGate(), PhaseGate(Parameter("t")), SXGate()):
+            target.add_instruction(inst, {(i,): None for i in range(14)})
+        target.add_instruction(CXGate(), {tuple(pair): None for pair in cmap})
+
+        res = transpile(
+            circuit,
+            target=target,
+            optimization_level=optimization_level,
+            seed_transpiler=42,
+        )
+        self.assertEqual(res.metadata, metadata)
+        self.assertEqual(res.name, name)
 
     @data(0, 1, 2, 3)
     def test_transpile_optional_registers(self, optimization_level):
