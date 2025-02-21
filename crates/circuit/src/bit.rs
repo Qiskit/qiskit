@@ -78,23 +78,28 @@ impl BitInfo {
             BitInfo::Anonymous { extra, .. } => extra.as_ref(),
         }
     }
+
+    pub fn is_owned(&self) -> bool {
+        matches!(self, BitInfo::Owned { .. })
+    }
+
+    pub(crate) fn register(&self) -> Option<RegisterInfo> {
+        match self {
+            BitInfo::Owned { register, .. } => Some(RegisterInfo::Owning(register.clone())),
+            BitInfo::Anonymous { .. } => None,
+        }
+    }
 }
 
 macro_rules! create_bit_object {
     ($name:ident, $extra:ty, $extra_exp:expr, $reg:tt) => {
         #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-        pub struct $name {
-            pub(crate) info: BitInfo,
-            pub(crate) reg: Option<$reg>,
-        }
+        pub struct $name(pub(crate) BitInfo);
 
         impl $name {
             /// Creates an instance of owned [QubitObject].
             pub fn new_anonymous() -> Self {
-                Self {
-                    info: BitInfo::new_anonymous(Some($extra_exp)),
-                    reg: None,
-                }
+                Self(BitInfo::new_anonymous(Some($extra_exp)))
             }
 
             // /// Creates an instance of owned [QubitObject].
@@ -109,13 +114,13 @@ macro_rules! create_bit_object {
             // }
 
             /// Returns a reference to the owning register of the [QubitObject] if any exists.
-            pub fn register(&self) -> Option<&$reg> {
-                self.reg.as_ref()
+            pub fn register(&self) -> Option<$reg> {
+                self.0.register().map(|reg| $reg(reg.into()))
             }
 
             /// Returns the index of the [QubitObject] within the owning register if any exists.
             pub fn index(&self) -> Option<u32> {
-                match &self.info {
+                match &self.0 {
                     BitInfo::Owned { index, .. } => Some(*index),
                     _ => None,
                 }
@@ -129,7 +134,7 @@ create_bit_object! {ShareableQubit, BitExtraInfo, BitExtraInfo::Qubit{is_ancilla
 impl ShareableQubit {
     /// Check if the Qubit instance is ancillary.
     pub fn is_ancilla(&self) -> bool {
-        match self.info.extra_info() {
+        match self.0.extra_info() {
             Some(BitExtraInfo::Qubit { is_ancilla }) => *is_ancilla,
             _ => false,
         }
@@ -147,7 +152,7 @@ impl<'py> IntoPyObject<'py> for ShareableQubit {
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
         let ancilla = self.is_ancilla();
-        let bit = PyBit(self.info.clone());
+        let bit = PyBit(self.0.clone());
         let base = PyQubit(self);
         match ancilla {
             true => Ok(Bound::new(
@@ -188,7 +193,7 @@ impl<'py> IntoPyObject<'py> for ShareableClbit {
     type Error = PyErr;
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        let bit: PyBit = PyBit(self.info.clone());
+        let bit: PyBit = PyBit(self.0.clone());
         Bound::new(py, (PyClbit(self), bit))
     }
 }
@@ -344,12 +349,12 @@ macro_rules! create_py_bit {
     ($name:ident, $natbit:tt, $pyname:literal, $pymodule:literal, $extra:expr, $pyreg:tt) => {
         /// Implements a quantum bit
         #[pyclass(
-                    subclass,
-                    name = $pyname,
-                    module = $pymodule,
-                    frozen,
-                    extends=PyBit,
-                )]
+            subclass,
+            name = $pyname,
+            module = $pymodule,
+            frozen,
+            extends=PyBit,
+        )]
         #[derive(Debug, Clone, PartialEq, Eq, Hash)]
         pub struct $name(pub(crate) $natbit);
 
@@ -363,13 +368,7 @@ macro_rules! create_py_bit {
                     register.clone().map(|reg| PyRegister(reg.data().clone())),
                     index,
                 )?;
-                Ok((
-                    Self($natbit {
-                        info: inner.0.clone(),
-                        reg: register.map(|reg| reg.0),
-                    }),
-                    inner,
-                ))
+                Ok((Self($natbit(inner.0.clone())), inner))
             }
 
             #[getter]
@@ -385,20 +384,13 @@ macro_rules! create_py_bit {
                 _cache: Bound<'a, PyDict>,
             ) -> PyResult<Bound<'a, Self>> {
                 let borrowed = slf.borrow();
-                match borrowed.0.info {
+                match borrowed.0 .0 {
                     BitInfo::Owned { .. } => {
                         let py = slf.py();
                         borrowed.0.clone().into_pyobject(py)
                     }
                     BitInfo::Anonymous { .. } => Ok(slf),
                 }
-            }
-        }
-
-        impl $name {
-            /// Safely return an immutable view into the inner rust native `Bit`.
-            pub(crate) fn inner_bit(&self) -> &$natbit {
-                &self.0
             }
         }
     };
@@ -430,13 +422,7 @@ impl PyQubit {
             }
         }
 
-        Ok((
-            Self(ShareableQubit {
-                info: inner.0.clone(),
-                reg: register.map(|reg| reg.0),
-            }),
-            inner,
-        ))
+        Ok((Self(ShareableQubit(inner.0.clone())), inner))
     }
 }
 
