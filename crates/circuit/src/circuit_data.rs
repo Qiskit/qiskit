@@ -155,8 +155,8 @@ impl CircuitData {
         let args = {
             let self_ = self_.borrow();
             (
-                self_.qubits.cached(py)?.clone_ref(py),
-                self_.clbits.cached(py)?.clone_ref(py),
+                (!self_.qubits.is_empty()).then_some(self_.qubits.bits().clone()),
+                (!self_.clbits.is_empty()).then_some(self_.clbits.bits().clone()),
                 None::<()>,
                 self_.data.len(),
                 self_.global_phase.clone(),
@@ -175,8 +175,8 @@ impl CircuitData {
     /// Returns:
     ///     list(:class:`.Qubit`): The current sequence of registered qubits.
     #[getter("qubits")]
-    pub fn py_qubits(&self, py: Python<'_>) -> PyResult<Py<PyList>> {
-        self.qubits.cached(py).map(|list| list.clone_ref(py))
+    pub fn py_qubits(&self, py: Python<'_>) -> Py<PyList> {
+        self.qubits.cached(py).clone_ref(py)
     }
 
     /// Return the number of qubits. This is equivalent to the length of the list returned by
@@ -200,8 +200,8 @@ impl CircuitData {
     /// Returns:
     ///     list(:class:`.Clbit`): The current sequence of registered clbits.
     #[getter("clbits")]
-    pub fn py_clbits(&self, py: Python<'_>) -> PyResult<Py<PyList>> {
-        self.clbits.cached(py).map(|list| list.clone_ref(py))
+    pub fn py_clbits(&self, py: Python<'_>) -> Py<PyList> {
+        self.clbits.cached(py).clone_ref(py)
     }
 
     /// Return the number of clbits. This is equivalent to the length of the list returned by
@@ -481,12 +481,31 @@ impl CircuitData {
     pub fn replace_bits(
         &mut self,
         py: Python<'_>,
-        qubits: Option<Vec<ShareableQubit>>,
-        clbits: Option<Vec<ShareableClbit>>,
+        qubits: Option<Bound<PyAny>>,
+        clbits: Option<Bound<PyAny>>,
     ) -> PyResult<()> {
         let qubits_is_some = qubits.is_some();
         let clbits_is_some = clbits.is_some();
-        let mut temp = CircuitData::new(py, qubits, clbits, None, 0, self.global_phase.clone())?;
+        let mut temp = CircuitData::new(
+            py,
+            qubits
+                .map(|bits| -> PyResult<_> {
+                    bits.try_iter()?
+                        .map(|bit| -> PyResult<_> { bit?.extract() })
+                        .collect::<PyResult<_>>()
+                })
+                .transpose()?,
+            clbits
+                .map(|bits| -> PyResult<_> {
+                    bits.try_iter()?
+                        .map(|bit| -> PyResult<_> { bit?.extract() })
+                        .collect::<PyResult<_>>()
+                })
+                .transpose()?,
+            None,
+            0,
+            self.global_phase.clone(),
+        )?;
         if qubits_is_some {
             if temp.num_qubits() < self.num_qubits() {
                 return Err(PyValueError::new_err(format!(
@@ -827,10 +846,6 @@ impl CircuitData {
     }
 
     fn __traverse__(&self, visit: PyVisit<'_>) -> Result<(), PyTraverseError> {
-        // for bit in self.qubits.bits().iter().chain(self.clbits.bits().iter()) {
-        //     visit.call(bit)?;
-        // }
-
         // Note:
         //   There's no need to visit the native Rust data
         //   structures used for internal tracking: the only Python

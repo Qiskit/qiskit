@@ -211,14 +211,7 @@ impl<'py> FromPyObject<'py> for ShareableClbit {
     }
 }
 
-#[pyclass(
-    subclass,
-    name = "Bit",
-    module = "qiskit.circuit.bit",
-    eq,
-    hash,
-    frozen
-)]
+#[pyclass(subclass, name = "Bit", module = "qiskit.circuit.bit", frozen)]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Hash)]
 pub struct PyBit(pub(crate) BitInfo);
 
@@ -266,6 +259,39 @@ impl PyBit {
         }
     }
 
+    fn __hash__(slf: Bound<Self>) -> PyResult<isize> {
+        let borrow_slf = slf.borrow();
+        match &borrow_slf.0 {
+            BitInfo::Owned { index, .. } => {
+                (slf.get_type().name()?, slf.getattr("_register")?, *index)
+                    .into_pyobject(slf.py())?
+                    .hash()
+            }
+            BitInfo::Anonymous { unique_id, .. } => {
+                (slf.get_type(), unique_id).into_pyobject(slf.py())?.hash()
+            }
+        }
+    }
+
+    fn __eq__(slf: Bound<Self>, other: Bound<Self>) -> PyResult<bool> {
+        let borrow_slf = slf.borrow();
+        let borrow_other = other.borrow();
+        match (&borrow_slf.0, &borrow_other.0) {
+            (BitInfo::Owned { .. }, BitInfo::Owned { .. }) => {
+                Ok(slf.repr()?.to_string() == other.repr()?.to_string())
+            }
+            (
+                BitInfo::Anonymous {
+                    unique_id: uid0, ..
+                },
+                BitInfo::Anonymous {
+                    unique_id: uid1, ..
+                },
+            ) => Ok(slf.is(&other) || (slf.get_type().eq(other.get_type())? && uid0 == uid1)),
+            _ => Ok(false),
+        }
+    }
+
     fn __copy__(slf: Bound<Self>) -> Bound<Self> {
         slf
     }
@@ -275,8 +301,13 @@ impl PyBit {
         _cache: Bound<'a, PyDict>,
     ) -> PyResult<Bound<'a, Self>> {
         let borrowed = slf.borrow();
-        let py = slf.py();
-        borrowed.clone().into_pyobject(py)
+        match borrowed.0 {
+            BitInfo::Owned { .. } => {
+                let py = slf.py();
+                borrowed.clone().into_pyobject(py)
+            }
+            BitInfo::Anonymous { .. } => Ok(slf),
+        }
     }
 
     #[getter]
@@ -313,14 +344,12 @@ macro_rules! create_py_bit {
     ($name:ident, $natbit:tt, $pyname:literal, $pymodule:literal, $extra:expr, $pyreg:tt) => {
         /// Implements a quantum bit
         #[pyclass(
-            subclass,
-            name = $pyname,
-            module = $pymodule,
-            eq,
-            frozen,
-            hash,
-            extends=PyBit,
-        )]
+                    subclass,
+                    name = $pyname,
+                    module = $pymodule,
+                    frozen,
+                    extends=PyBit,
+                )]
         #[derive(Debug, Clone, PartialEq, Eq, Hash)]
         pub struct $name(pub(crate) $natbit);
 
@@ -343,14 +372,6 @@ macro_rules! create_py_bit {
                 ))
             }
 
-            fn __deepcopy__<'a>(
-                slf: Bound<'a, Self>,
-                _cache: Bound<'a, PyDict>,
-            ) -> PyResult<Bound<'a, Self>> {
-                let borrowed = slf.borrow();
-                borrowed.0.clone().into_pyobject(slf.py())
-            }
-
             #[getter]
             fn _register(slf: PyRef<Self>) -> PyResult<Option<Bound<$pyreg>>> {
                 slf.0
@@ -358,14 +379,23 @@ macro_rules! create_py_bit {
                     .map(|reg| reg.clone().into_pyobject(slf.py()))
                     .transpose()
             }
+
+            fn __deepcopy__<'a>(
+                slf: Bound<'a, Self>,
+                _cache: Bound<'a, PyDict>,
+            ) -> PyResult<Bound<'a, Self>> {
+                let borrowed = slf.borrow();
+                match borrowed.0.info {
+                    BitInfo::Owned { .. } => {
+                        let py = slf.py();
+                        borrowed.0.clone().into_pyobject(py)
+                    }
+                    BitInfo::Anonymous { .. } => Ok(slf),
+                }
+            }
         }
 
         impl $name {
-            /// Quickly retrieves the inner `BitData` living in the `Bit`
-            pub(crate) fn inner_bit_info(&self) -> &BitInfo {
-                &self.0.info
-            }
-
             /// Safely return an immutable view into the inner rust native `Bit`.
             pub(crate) fn inner_bit(&self) -> &$natbit {
                 &self.0
@@ -414,7 +444,7 @@ create_py_bit!(
     PyClbit,
     ShareableClbit,
     "Clbit",
-    "qiskit.circuit.classicalcircuit",
+    "qiskit.circuit.classicalregister",
     (),
     PyClassicalRegister
 );
@@ -424,9 +454,7 @@ create_py_bit!(
     extends=PyQubit,
     name = "AncillaQubit",
     module = "qiskit.circuit.quantumregister",
-    eq,
     frozen,
-    hash
 )]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct PyAncillaQubit(pub(crate) PyQubit);

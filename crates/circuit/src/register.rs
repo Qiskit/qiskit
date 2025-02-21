@@ -19,7 +19,12 @@ use crate::{
     slice::PySequenceIndex,
 };
 use indexmap::IndexSet;
-use pyo3::{exceptions::PyValueError, prelude::*, types::PyList, IntoPyObjectExt};
+use pyo3::{
+    exceptions::PyValueError,
+    prelude::*,
+    types::{PyList, PyType},
+    IntoPyObjectExt, PyTypeInfo,
+};
 use std::{
     cmp::Eq,
     fmt::Display,
@@ -51,14 +56,14 @@ impl Hash for RegisterInfo {
 
 impl RegisterInfo {
     /// Creates a Register whose bits are owned by its instance
-    pub(crate) fn new_owning(name: String, size: u32, extra: Option<BitExtraInfo>) -> Self {
+    pub fn new_owning(name: String, size: u32, extra: Option<BitExtraInfo>) -> Self {
         // When creating `Owning` register, we don't need to create the `BitInfo`
         // instances, they can be entirely derived from `self`.
         Self::Owning(Arc::new(OwningRegisterInfo { name, size, extra }))
     }
 
     /// Creates a Register whose bits already exist.
-    pub(crate) fn new_alias(
+    pub fn new_alias(
         name: String,
         bits: Box<IndexSet<BitInfo>>,
         extra: Option<BitExtraInfo>,
@@ -67,7 +72,7 @@ impl RegisterInfo {
     }
 
     /// A reference to the register's name
-    pub(crate) fn name(&self) -> &str {
+    pub fn name(&self) -> &str {
         match self {
             RegisterInfo::Owning(owning_register_info) => owning_register_info.name.as_str(),
             RegisterInfo::Alias { name, .. } => name.as_str(),
@@ -75,10 +80,18 @@ impl RegisterInfo {
     }
 
     /// Returns the size of the register.
-    pub(crate) fn len(&self) -> usize {
+    pub fn len(&self) -> usize {
         match self {
             RegisterInfo::Owning(owning_register_info) => owning_register_info.size as usize,
             RegisterInfo::Alias { bits, .. } => bits.len(),
+        }
+    }
+
+    /// Returns whether the register is empty or not.
+    pub fn is_empty(&self) -> bool {
+        match self {
+            RegisterInfo::Owning(owning_register_info) => owning_register_info.is_empty(),
+            RegisterInfo::Alias { bits, .. } => bits.is_empty(),
         }
     }
 
@@ -160,6 +173,11 @@ impl OwningRegisterInfo {
     pub fn len(&self) -> usize {
         self.size as usize
     }
+
+    /// Returns whether the register is empty or not.
+    pub fn is_empty(&self) -> bool {
+        self.size == 0
+    }
 }
 
 // Create rust native Register types.
@@ -211,6 +229,11 @@ macro_rules! create_register_object {
             /// Returns the size of the register.
             pub fn len(&self) -> usize {
                 self.0.len()
+            }
+
+            /// Returns whether the register is empty.
+            pub fn is_empty(&self) -> bool {
+                self.0.is_empty()
             }
 
             /// Returns an iterator over the bits within the circuit
@@ -293,6 +316,12 @@ impl<'py> IntoPyObject<'py> for QuantumRegister {
     }
 }
 
+impl<'py> FromPyObject<'py> for QuantumRegister {
+    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+        Ok(ob.downcast::<PyQuantumRegister>()?.borrow().0.clone())
+    }
+}
+
 impl<'py> IntoPyObject<'py> for ClassicalRegister {
     type Target = PyClassicalRegister;
 
@@ -311,14 +340,18 @@ impl<'py> IntoPyObject<'py> for ClassicalRegister {
     }
 }
 
+impl<'py> FromPyObject<'py> for ClassicalRegister {
+    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+        Ok(ob.downcast::<PyClassicalRegister>()?.borrow().0.clone())
+    }
+}
+
 static REG_COUNTER: AtomicU32 = AtomicU32::new(0);
 #[pyclass(
     name = "Register",
     module = "qiskit.circuit.register",
-    frozen,
-    eq,
-    hash,
-    subclass
+    subclass,
+    sequence
 )]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct PyRegister(pub(crate) Arc<RegisterInfo>);
@@ -328,9 +361,9 @@ impl PyRegister {
     #[new]
     #[pyo3(signature = (size = None, name = None, bits = None))]
     pub fn new(
-        size: Option<u32>,
-        name: Option<String>,
-        bits: Option<Vec<PyBit>>,
+        size: Option<Bound<PyAny>>,
+        name: Option<Bound<PyAny>>,
+        bits: Option<Bound<PyList>>,
     ) -> PyResult<Self> {
         let name_parse = |name: Option<String>| -> String {
             if let Some(name) = name {
@@ -350,11 +383,47 @@ impl PyRegister {
         let size: u32 = if let Some(bits) = bits.as_ref() {
             bits.len().try_into().map_err(|_| CircuitError::new_err(format!("The amount of bits provided exceeds the capacity of the register. Current size {}", bits.len())))?
         } else {
-            size.unwrap_or_default()
+            let Ok(valid_size): PyResult<isize> = size.as_ref().unwrap().extract() else {
+                return Err(CircuitError::new_err(format!(
+                    "Register size must be an integer. {} '{}' was provided",
+                    size.as_ref().unwrap().get_type().name()?,
+                    size.as_ref().unwrap().repr()?
+                )));
+            };
+            if valid_size < 0 {
+                return Err(CircuitError::new_err(format!(
+                    "Register size must be non-negative. {} '{}' was provided",
+                    size.as_ref().unwrap().get_type().name()?,
+                    size.as_ref().unwrap().repr()?
+                )));
+            }
+
+            let Ok(valid_size) = valid_size.abs().try_into() else {
+                return Err(CircuitError::new_err(format!(
+                    "Register size exceeds possible allocated capacity. {} '{}' was provided",
+                    size.as_ref().unwrap().get_type().name()?,
+                    size.as_ref().unwrap().repr()?
+                )));
+            };
+
+            valid_size
+        };
+
+        let Ok(name) = name.as_ref().map(|name| name.extract()).transpose() else {
+            return Err(CircuitError::new_err("The circuit name should be castable to a string (or None for autogenerate a name)."));
         };
 
         let register = if let Some(bits) = bits {
-            let bits_set: IndexSet<BitInfo> = bits.into_iter().map(|bit| bit.0).collect();
+            let Ok(bits_set): PyResult<IndexSet<BitInfo>> = bits
+                .try_iter()?
+                .map(|bit| -> PyResult<BitInfo> { bit?.extract::<PyBit>().map(|b| b.0) })
+                .collect()
+            else {
+                return Err(CircuitError::new_err(format!(
+                    "Provided bits did not all match register type. bits={}",
+                    bits.repr()?
+                )));
+            };
             if bits_set.len() != size as usize {
                 return Err(CircuitError::new_err(
                     "Register bits must not be duplicated.",
@@ -387,7 +456,7 @@ impl PyRegister {
         }
     }
 
-    fn __contains__<'py>(&self, bit: &PyBit) -> bool {
+    fn __contains__(&self, bit: &PyBit) -> bool {
         self.0.contains(&bit.0)
     }
 
@@ -410,14 +479,14 @@ impl PyRegister {
     /// Returns:
     ///     Qubit or Clbit or list(Qubit) or list(Clbit): a Qubit or Clbit instance if
     ///     key is int. If key is a slice, returns a list of these instances.
-
+    ///
     /// Raises:
     ///     CircuitError: if the `key` is not an integer or not in the range `(0, self.size)`.
     fn __getitem__<'py>(slf: PyRef<'py, Self>, key: SliceOrInt<'py>) -> PyResult<PyObject> {
         let py = slf.py();
         match &key {
             SliceOrInt::Slice(py_sequence_index) => {
-                let sequence = py_sequence_index.with_len(slf.size().try_into().unwrap())?;
+                let sequence = py_sequence_index.with_len(slf.size())?;
                 match sequence {
                     crate::slice::SequenceIndex::Int(_) => {
                         slf.getitem_inner(key)?.next().map(PyBit).into_py_any(py)
@@ -442,7 +511,7 @@ impl PyRegister {
                 slf.as_super().repr()?,
             )))
         };
-        let slf_borrowed = slf.get();
+        let slf_borrowed = slf.borrow();
         let bit_borrowed = bit.borrow();
         let bit_inner = &bit_borrowed.0;
         match bit_inner {
@@ -466,25 +535,55 @@ impl PyRegister {
             },
         }
     }
+
+    fn __hash__(slf: Bound<'_, Self>) -> PyResult<isize> {
+        let borrowed = slf.borrow();
+        (slf.get_type(), borrowed.name(), borrowed.size())
+            .into_bound_py_any(slf.py())?
+            .hash()
+    }
+
+    fn __eq__(slf: Bound<'_, Self>, other: Bound<'_, Self>) -> PyResult<bool> {
+        if slf.is(&other) {
+            return Ok(true);
+        }
+        let slf_borrow = slf.borrow();
+        let other_borrow = other.borrow();
+        Ok(slf.get_type().eq(other.get_type())?
+            && slf.repr()?.to_string().eq(&other.repr()?.to_string())
+            && slf_borrow.eq(&other_borrow))
+    }
+
     fn __getnewargs__(
-        slf: PyRef<'_, Self>,
-    ) -> PyResult<(Option<usize>, String, Option<Bound<'_, PyList>>)> {
-        let (size, name, bits) = slf.reduce();
-        Ok((
-            size,
-            name,
-            bits.map(|elements| PyList::new(slf.py(), elements))
-                .transpose()?,
-        ))
+        slf: Bound<'_, Self>,
+    ) -> PyResult<(Option<u32>, Option<String>, Option<Bound<'_, PyAny>>)> {
+        let borrowed = slf.borrow();
+        match borrowed.0.as_ref() {
+            RegisterInfo::Owning(reg) => Ok((Some(reg.size), Some(reg.name.clone()), None)),
+            RegisterInfo::Alias { name, .. } => Ok((
+                None,
+                Some(name.to_string()),
+                Some(PyList::type_object(slf.py()).call1((slf,))?),
+            )),
+        }
     }
 
     fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Bound<'_, pyo3::types::PyIterator>> {
         return PyList::new(slf.py(), slf.iter().map(PyBit))?.try_iter();
     }
 
+    fn __len__(slf: PyRef<'_, Self>) -> usize {
+        slf.size()
+    }
+
     #[classattr]
     fn prefix<'py>() -> &'py str {
         "reg"
+    }
+
+    #[classattr]
+    fn bit_type(py: Python) -> Bound<PyType> {
+        PyBit::type_object(py)
     }
 }
 
@@ -570,23 +669,6 @@ impl PyRegister {
         }
     }
 
-    fn reduce(
-        &self,
-    ) -> (
-        Option<usize>,
-        String,
-        Option<impl ExactSizeIterator<Item = PyBit> + '_>,
-    ) {
-        match self.0.as_ref() {
-            RegisterInfo::Owning(..) => (Some(self.0.len()), self.name().to_string(), None),
-            RegisterInfo::Alias { bits, .. } => (
-                None,
-                self.name().to_string(),
-                Some(bits.iter().cloned().map(PyBit)),
-            ),
-        }
-    }
-
     fn iter<'py>(&'py self) -> Box<dyn ExactSizeIterator<Item = BitInfo> + 'py> {
         match self.0.as_ref() {
             RegisterInfo::Owning(..) => {
@@ -610,11 +692,9 @@ macro_rules! create_py_register {
         #[pyclass(
             name = $pyname,
             module = $pymodule,
-            frozen,
-            eq,
-            hash,
             subclass,
             extends = PyRegister,
+            sequence,
         )]
         #[derive(Debug, Clone, PartialEq, Eq, Hash)]
         pub struct $name(pub(crate) $nativereg);
@@ -624,9 +704,9 @@ macro_rules! create_py_register {
             #[new]
             #[pyo3(signature = (size = None, name = None, bits = None))]
             pub fn new(
-                size: Option<u32>,
-                name: Option<String>,
-                bits: Option<Vec<$pybit>>,
+                size: Option<Bound<PyAny>>,
+                name: Option<Bound<PyAny>>,
+                bits: Option<Bound<PyList>>,
             ) -> PyResult<(Self, PyRegister)> {
                 if (size.is_none() && bits.is_none()) || (size.is_some() && bits.is_some()) {
                     return Err(CircuitError::new_err(format!("Exactly one of the size or bits arguments can be provided. Provided size={:?} bits={:?}.", size, bits)));
@@ -635,11 +715,30 @@ macro_rules! create_py_register {
                 let size: u32 = if let Some(bits) = bits.as_ref() {
                     bits.len().try_into().map_err(|_| CircuitError::new_err(format!("The amount of bits provided exceeds the capacity of the register. Current size {}", bits.len())))?
                 } else {
-                    size.unwrap_or_default()
+                    let Ok(valid_size) : PyResult<isize> = size.as_ref().unwrap().extract() else {
+                        return Err(CircuitError::new_err(format!("Register size must be an integer. {} '{}' was provided", size.as_ref().unwrap().get_type().name()?, size.as_ref().unwrap().repr()?)))
+                    };
+                    if valid_size < 0 {
+                        return Err(CircuitError::new_err(format!("Register size must be non-negative. {} '{}' was provided", size.as_ref().unwrap().get_type().name()?, size.as_ref().unwrap().repr()?)))
+                    }
+
+                    let Ok(valid_size) = valid_size.abs().try_into() else {
+                        return Err(CircuitError::new_err(format!("Register size exceeds possible allocated capacity. {} '{}' was provided", size.as_ref().unwrap().get_type().name()?, size.as_ref().unwrap().repr()?)))
+                    };
+
+                    valid_size
+                };
+
+                let Ok(name) = name.as_ref().map(|name| name.extract()).transpose() else {
+                    return Err(CircuitError::new_err("The circuit name should be castable to a string (or None for autogenerate a name)."))
                 };
 
                 let register = if let Some(bits) = bits {
-                    let bits_set: IndexSet<BitInfo> = bits.into_iter().map(|bit| bit.inner_bit_info().clone()).collect();
+                    let Ok(bits_set) : PyResult<IndexSet<BitInfo>> = bits.try_iter()?.map(|bit| -> PyResult<BitInfo> {
+                        bit?.extract::<$pybit>().map(|b| b.0.info)
+                    }).collect() else {
+                        return Err(CircuitError::new_err(format!("Provided bits did not all match register type. bits={}", bits.repr()?)))
+                    };
                     if bits_set.len() != size as usize {
                         return Err(CircuitError::new_err(
                             "Register bits must not be duplicated.",
@@ -696,28 +795,6 @@ macro_rules! create_py_register {
                 self.0.contains(bit.inner_bit())
             }
 
-            fn __getnewargs__(
-                slf: PyRef<'_, Self>,
-            ) -> PyResult<(Option<usize>, String, Option<Bound<'_, PyList>>)> {
-                let py = slf.py();
-                let (size, name, bits) = slf.as_super().reduce();
-                let list = if let Some(bits) = bits {
-                    let list = PyList::empty(py);
-                    for bit in bits {
-                        let bound_bit = $nativebit {
-                            info: bit.0,
-                            reg: slf.0.data().is_owning().then_some(slf.0.clone())
-                        }
-                        .into_pyobject(slf.py())?;
-                        list.append(bound_bit)?;
-                    }
-                    Some(list)
-                } else {
-                    None
-                };
-                Ok((size, name, list))
-            }
-
             fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Bound<'_, pyo3::types::PyIterator>> {
                 let list: Vec<$nativebit> = slf
                     .0
@@ -726,13 +803,14 @@ macro_rules! create_py_register {
                 list.into_pyobject(slf.py())?.try_iter()
             }
 
-            fn __len__(slf: PyRef<'_, Self>) -> usize {
-                slf.as_super().size()
-            }
-
             #[classattr]
             fn prefix<'py>() -> &'py str {
                 $prefix
+            }
+
+            #[classattr]
+            fn bit_type(py: Python) -> Bound<PyType> {
+                $pybit::type_object(py)
             }
         }
 
@@ -758,10 +836,21 @@ create_py_register! {
 
 impl PyQuantumRegister {
     fn new_ancilla(
-        size: Option<u32>,
-        name: Option<String>,
-        bits: Option<Vec<PyQubit>>,
+        size: Option<Bound<PyAny>>,
+        name: Option<Bound<PyAny>>,
+        bits: Option<Bound<PyList>>,
     ) -> PyResult<(Self, PyRegister)> {
+        let name_parse = |name: Option<String>| -> String {
+            if let Some(name) = name {
+                name
+            } else {
+                format!(
+                    "{}{}",
+                    'a',
+                    AREG_COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+                )
+            }
+        };
         if (size.is_none() && bits.is_none()) || (size.is_some() && bits.is_some()) {
             return Err(CircuitError::new_err(format!("Exactly one of the size or bits arguments can be provided. Provided size={:?} bits={:?}.", size, bits)));
         }
@@ -769,21 +858,57 @@ impl PyQuantumRegister {
         let size: u32 = if let Some(bits) = bits.as_ref() {
             bits.len().try_into().map_err(|_| CircuitError::new_err(format!("The amount of bits provided exceeds the capacity of the register. Current size {}", bits.len())))?
         } else {
-            size.unwrap_or_default()
+            let Ok(valid_size): PyResult<isize> = size.as_ref().unwrap().extract() else {
+                return Err(CircuitError::new_err(format!(
+                    "Register size must be an integer. {} '{}' was provided",
+                    size.as_ref().unwrap().get_type().name()?,
+                    size.as_ref().unwrap().repr()?
+                )));
+            };
+            if valid_size < 0 {
+                return Err(CircuitError::new_err(format!(
+                    "Register size must be non-negative. {} '{}' was provided",
+                    size.as_ref().unwrap().get_type().name()?,
+                    size.as_ref().unwrap().repr()?
+                )));
+            }
+
+            let Ok(valid_size) = valid_size.abs().try_into() else {
+                return Err(CircuitError::new_err(format!(
+                    "Register size exceeds possible allocated capacity. {} '{}' was provided",
+                    size.as_ref().unwrap().get_type().name()?,
+                    size.as_ref().unwrap().repr()?
+                )));
+            };
+
+            valid_size
         };
 
+        let Ok(name): PyResult<Option<String>> =
+            name.as_ref().map(|name| name.extract()).transpose()
+        else {
+            return Err(CircuitError::new_err("The circuit name should be castable to a string (or None for autogenerate a name)."));
+        };
         let register = if let Some(bits) = bits {
-            let bits_set: IndexSet<BitInfo> = bits
-                .into_iter()
-                .map(|bit| bit.inner_bit_info().clone())
-                .collect();
+            let Ok(bits_set): PyResult<IndexSet<BitInfo>> = bits
+                .try_iter()?
+                .map(|bit| -> PyResult<BitInfo> {
+                    bit?.extract::<ShareableQubit>().map(|b| b.info)
+                })
+                .collect()
+            else {
+                return Err(CircuitError::new_err(format!(
+                    "Provided bits did not all match register type. bits={}",
+                    bits.repr()?
+                )));
+            };
             if bits_set.len() != size as usize {
                 return Err(CircuitError::new_err(
                     "Register bits must not be duplicated.",
                 ));
             }
             QuantumRegister::new_alias(
-                name,
+                Some(name_parse(name)),
                 bits_set.into(),
                 Some(BitExtraInfo::Qubit { is_ancilla: true }),
             )
@@ -811,9 +936,7 @@ static AREG_COUNTER: AtomicU32 = AtomicU32::new(0);
 #[pyclass(
     name = "AncillaRegister",
     module = "qiskit.circuit.quantumregister",
-    frozen,
     eq,
-    hash,
     extends=PyQuantumRegister
 )]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -824,56 +947,24 @@ impl PyAncillaRegister {
     #[new]
     #[pyo3(signature = (size = None, name = None, bits = None))]
     pub fn new(
-        size: Option<u32>,
-        name: Option<String>,
-        bits: Option<Vec<PyAncillaQubit>>,
+        size: Option<Bound<PyAny>>,
+        name: Option<Bound<PyAny>>,
+        bits: Option<Bound<PyList>>,
     ) -> PyResult<PyClassInitializer<Self>> {
-        let name_parse = |name: Option<String>| -> String {
-            if let Some(name) = name {
-                name
-            } else {
-                format!(
-                    "{}{}",
-                    'a',
-                    AREG_COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
-                )
-            }
-        };
-        let (reg, base) = PyQuantumRegister::new_ancilla(
-            size,
-            Some(name_parse(name)),
-            bits.map(|bits| bits.into_iter().map(|bit| bit.0).collect()),
-        )?;
+        let (reg, base) = PyQuantumRegister::new_ancilla(size, name, bits)?;
         Ok(PyClassInitializer::from(base)
             .add_subclass(reg.clone())
             .add_subclass(Self(reg)))
     }
 
-    fn __getnewargs__(
-        slf: PyRef<'_, Self>,
-    ) -> PyResult<(Option<usize>, String, Option<Bound<'_, PyList>>)> {
-        let py = slf.py();
-        let (size, name, bits) = slf.as_super().as_super().reduce();
-        let list = if let Some(bits) = bits {
-            let list = PyList::empty(py);
-            for bit in bits {
-                let bound_bit = ShareableQubit {
-                    info: bit.0,
-                    reg: Some(slf.0 .0.clone()),
-                }
-                .into_pyobject(slf.py())?;
-                list.append(bound_bit)?;
-            }
-            Some(list)
-        } else {
-            None
-        };
-        Ok((size, name, list))
-    }
-
     #[classattr]
     fn prefix<'py>() -> &'py str {
         "a"
+    }
+
+    #[classattr]
+    fn bit_type(py: Python) -> Bound<PyType> {
+        PyAncillaQubit::type_object(py)
     }
 }
 

@@ -103,7 +103,7 @@ static SUPPORTED_ROTATIONS: Lazy<HashMap<&str, (u8, Option<OperationRef>)>> = La
     ])
 });
 
-fn get_bits<T, B>(bits1: &Vec<B>, bits2: &Vec<B>) -> PyResult<(Vec<T>, Vec<T>)>
+fn get_bits<T, B>(bits1: &[B], bits2: &[B]) -> PyResult<(Vec<T>, Vec<T>)>
 where
     T: From<BitType> + Copy,
     BitType: From<T>,
@@ -164,34 +164,10 @@ impl CommutationChecker {
         op2: &DAGOpNode,
         max_num_qubits: u32,
     ) -> PyResult<bool> {
-        let op1_qubits: Vec<ShareableQubit> = op1
-            .instruction
-            .qubits
-            .bind(py)
-            .iter()
-            .map(|bit| bit.extract::<ShareableQubit>())
-            .collect::<PyResult<_>>()?;
-        let op2_qubits: Vec<ShareableQubit> = op2
-            .instruction
-            .qubits
-            .bind(py)
-            .iter()
-            .map(|bit| bit.extract::<ShareableQubit>())
-            .collect::<PyResult<_>>()?;
-        let op1_clbits: Vec<ShareableClbit> = op2
-            .instruction
-            .clbits
-            .bind(py)
-            .iter()
-            .map(|bit| bit.extract::<ShareableClbit>())
-            .collect::<PyResult<_>>()?;
-        let op2_clbits: Vec<ShareableClbit> = op2
-            .instruction
-            .clbits
-            .bind(py)
-            .iter()
-            .map(|bit| bit.extract::<ShareableClbit>())
-            .collect::<PyResult<_>>()?;
+        let op1_qubits: Vec<ShareableQubit> = op1.instruction.qubits.extract(py)?;
+        let op2_qubits: Vec<ShareableQubit> = op2.instruction.qubits.extract(py)?;
+        let op1_clbits: Vec<ShareableClbit> = op2.instruction.clbits.extract(py)?;
+        let op2_clbits: Vec<ShareableClbit> = op2.instruction.clbits.extract(py)?;
         let (qargs1, qargs2) = get_bits::<Qubit, ShareableQubit>(&op1_qubits, &op2_qubits)?;
         let (cargs1, cargs2) = get_bits::<Clbit, ShareableClbit>(&op1_clbits, &op2_clbits)?;
 
@@ -224,10 +200,10 @@ impl CommutationChecker {
         cargs2: Option<Vec<ShareableClbit>>,
         max_num_qubits: u32,
     ) -> PyResult<bool> {
-        let qargs1 = qargs1.unwrap_or_default().into_iter().collect();
-        let cargs1 = cargs1.unwrap_or_default().into_iter().collect();
-        let qargs2 = qargs2.unwrap_or_default().into_iter().collect();
-        let cargs2 = cargs2.unwrap_or_default().into_iter().collect();
+        let qargs1 = qargs1.unwrap_or_default();
+        let cargs1 = cargs1.unwrap_or_default();
+        let qargs2 = qargs2.unwrap_or_default();
+        let cargs2 = cargs2.unwrap_or_default();
 
         let (qargs1, qargs2) = get_bits::<Qubit, ShareableQubit>(&qargs1, &qargs2)?;
         let (cargs1, cargs2) = get_bits::<Clbit, ShareableClbit>(&cargs1, &cargs2)?;

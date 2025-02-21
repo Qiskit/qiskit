@@ -765,8 +765,8 @@ impl DAGCircuit {
     /// Returns:
     ///     list(:class:`.Qubit`): The current sequence of registered qubits.
     #[getter(qubits)]
-    pub fn py_qubits(&self, py: Python<'_>) -> PyResult<Py<PyList>> {
-        Ok(self.qubits.cached(py)?.clone_ref(py))
+    pub fn py_qubits(&self, py: Python<'_>) -> Py<PyList> {
+        self.qubits.cached(py).clone_ref(py)
     }
 
     /// Returns the current sequence of registered :class:`.Clbit`
@@ -780,8 +780,8 @@ impl DAGCircuit {
     /// Returns:
     ///     list(:class:`.Clbit`): The current sequence of registered clbits.
     #[getter(clbits)]
-    pub fn py_clbits(&self, py: Python<'_>) -> PyResult<Py<PyList>> {
-        Ok(self.clbits.cached(py)?.clone_ref(py))
+    pub fn py_clbits(&self, py: Python<'_>) -> Py<PyList> {
+        self.clbits.cached(py).clone_ref(py)
     }
 
     /// Return a list of the wires in order.
@@ -1231,7 +1231,7 @@ def _format(operand):
 
         // Remove the clbit indices, which will invalidate our mapping of Clbit to
         // Python bits throughout the entire DAG.
-        self.clbits.remove_indices(py, clbits.clone())?;
+        self.clbits.remove_indices(clbits.clone())?;
 
         // Update input/output maps to use new Clbits.
         let io_mapping: HashMap<Clbit, [NodeIndex; 2]> = self
@@ -1420,7 +1420,7 @@ def _format(operand):
 
         // Remove the qubit indices, which will invalidate our mapping of Qubit to
         // Python bits throughout the entire DAG.
-        self.qubits.remove_indices(py, qubits.clone())?;
+        self.qubits.remove_indices(qubits.clone())?;
 
         // Update input/output maps to use new Qubits.
         let io_mapping: HashMap<Qubit, [NodeIndex; 2]> = self
@@ -1891,8 +1891,8 @@ def _format(operand):
                     )));
                 }
 
-                let self_qubits = slf.qubits.cached(py)?.bind(py);
-                let other_qubits = other.qubits.cached(py)?.bind(py);
+                let self_qubits = slf.qubits.cached(py).bind(py);
+                let other_qubits = other.qubits.cached(py).bind(py);
                 let dict = PyDict::new(py);
                 for (i, q) in qubits.iter().enumerate() {
                     let q = if q.is_instance_of::<PyInt>() {
@@ -1917,8 +1917,8 @@ def _format(operand):
                     )));
                 }
 
-                let self_clbits = slf.clbits.cached(py)?.bind(py);
-                let other_clbits = other.clbits.cached(py)?.bind(py);
+                let self_clbits = slf.clbits.cached(py).bind(py);
+                let other_clbits = other.clbits.cached(py).bind(py);
                 let dict = PyDict::new(py);
                 for (i, q) in clbits.iter().enumerate() {
                     let q = if q.is_instance_of::<PyInt>() {
@@ -7369,7 +7369,7 @@ mod test {
     use crate::operations::{StandardGate, StandardInstruction};
     use crate::packed_instruction::{PackedInstruction, PackedOperation};
     use crate::{Clbit, Qubit};
-    use ahash::HashSet;
+    use hashbrown::HashSet;
     use pyo3::prelude::*;
     use rustworkx_core::petgraph::prelude::*;
     use rustworkx_core::petgraph::visit::IntoEdgeReferences;

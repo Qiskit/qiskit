@@ -30,7 +30,7 @@ use std::sync::OnceLock;
 /// it call `repr()` on both sides, which has a significant
 /// performance advantage.
 #[derive(Clone, Debug)]
-pub(crate) struct VarAsKey {
+pub struct VarAsKey {
     /// Python's `hash()` of the wrapped instance.
     hash: isize,
     /// The wrapped instance.
@@ -169,21 +169,9 @@ where
     /// Gets a reference to the cached Python list, maintained by
     /// this instance.
     #[inline]
-    pub fn cached(&self, py: Python) -> PyResult<&Py<PyList>> {
-        let res = &self
-            .cached
-            .get_or_init(|| PyList::new(py, self.bits.clone()).unwrap().into());
-
-        // If the length is different from the stored bits, append to cache
-        // Indices are guaranteed to follow
-        let res_as_bound = res.bind(py);
-        if res_as_bound.len() < self.len() {
-            let current_length = res_as_bound.len();
-            for index in current_length.checked_sub(1).unwrap_or_default()..self.len() {
-                res_as_bound.append(self.get((index as u32).into()).cloned())?
-            }
-        }
-        Ok(res)
+    pub fn cached(&self, py: Python) -> &Py<PyList> {
+        self.cached
+            .get_or_init(|| PyList::new(py, self.bits.clone()).unwrap().into())
     }
 
     /// Gets a reference to the cached Python list, even if not initialized.
@@ -242,7 +230,7 @@ where
         })?;
         if self.indices.try_insert(bit.clone(), idx.into()).is_ok() {
             self.bits.push(bit);
-            // self.cached.bind(py).append(bit)?;
+            self.cached.take();
         } else if strict {
             return Err(PyValueError::new_err(format!(
                 "Existing bit {:?} cannot be re-added in strict mode.",
@@ -252,7 +240,7 @@ where
         Ok(idx.into())
     }
 
-    pub fn remove_indices<I>(&mut self, py: Python, indices: I) -> PyResult<()>
+    pub fn remove_indices<I>(&mut self, indices: I) -> PyResult<()>
     where
         I: IntoIterator<Item = T>,
     {
@@ -263,7 +251,7 @@ where
         indices_sorted.sort();
 
         for index in indices_sorted.into_iter().rev() {
-            self.cached(py)?.bind(py).del_item(index)?;
+            self.cached.take();
             let bit = self.bits.remove(index);
             self.indices.remove(&bit);
         }

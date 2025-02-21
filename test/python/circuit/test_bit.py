@@ -16,7 +16,7 @@
 import copy
 from unittest import mock
 
-from qiskit.circuit import bit
+from qiskit.circuit import bit, register
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -24,43 +24,36 @@ class TestBitClass(QiskitTestCase):
     """Test library of boolean logic quantum circuits."""
 
     def test_bit_eq_invalid_type_comparison(self):
-        orig_reg = mock.MagicMock()
-        orig_reg.size = 3
+        orig_reg = register.Register(3)
         test_bit = bit.Bit(orig_reg, 0)
         self.assertNotEqual(test_bit, 3.14)
 
     def test_old_style_bit_equality(self):
-        test_reg = mock.MagicMock(size=3, name="foo")
-        test_reg.__str__.return_value = "Register(3, 'foo')"
+        test_reg = register.Register(size=3, name="foo")
 
         self.assertEqual(bit.Bit(test_reg, 0), bit.Bit(test_reg, 0))
         self.assertNotEqual(bit.Bit(test_reg, 0), bit.Bit(test_reg, 2))
 
-        reg_copy = mock.MagicMock(size=3, name="foo")
-        reg_copy.__str__.return_value = "Register(3, 'foo')"
+        reg_copy = copy.copy(test_reg)
 
         self.assertEqual(bit.Bit(test_reg, 0), bit.Bit(reg_copy, 0))
         self.assertNotEqual(bit.Bit(test_reg, 0), bit.Bit(reg_copy, 1))
 
-        reg_larger = mock.MagicMock(size=4, name="foo")
-        reg_larger.__str__.return_value = "Register(4, 'foo')"
+        reg_larger = register.Register(size=4, name="foo")
 
         self.assertNotEqual(bit.Bit(test_reg, 0), bit.Bit(reg_larger, 0))
 
-        reg_renamed = mock.MagicMock(size=3, name="bar")
-        reg_renamed.__str__.return_value = "Register(3, 'bar')"
+        reg_renamed = register.Register(size=3, name="bar")
 
         self.assertNotEqual(bit.Bit(test_reg, 0), bit.Bit(reg_renamed, 0))
 
-        reg_difftype = mock.MagicMock(size=3, name="bar")
-        reg_difftype.__str__.return_value = "QuantumRegister(3, 'bar')"
+        reg_difftype = register.Register(size=3, name="bar")
 
         self.assertNotEqual(bit.Bit(test_reg, 0), bit.Bit(reg_difftype, 0))
 
     def test_old_style_bit_deepcopy(self):
         """Verify deep-copies of bits are equal but not the same instance."""
-        test_reg = mock.MagicMock(size=3, name="foo")
-        test_reg.__str__.return_value = "Register(3, 'foo')"
+        test_reg = register.Register(size=3, name="foo")
 
         bit1 = bit.Bit(test_reg, 0)
         bit2 = copy.deepcopy(bit1)
