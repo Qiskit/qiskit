@@ -95,6 +95,10 @@ class TimeUnitConversion(TransformationPass):
 
                 visitor = _EvalDurationImpl(inst_durations.dt)
                 duration = node.op.duration.accept(visitor)
+                if duration < 0:
+                    raise TranspilerError(
+                        f"Expression '{node.op.duration}' resolves to a negative duration!"
+                    )
                 expression_durations[node._node_id] = duration
                 if visitor.in_cycles():
                     has_dt = True

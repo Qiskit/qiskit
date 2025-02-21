@@ -1545,10 +1545,138 @@ class TestTranspile(QiskitTestCase):
         out = transpile(qc, dt=1e-9, seed_transpiler=42)
         self.assertEqual(out.data[0].operation.unit, "dt")
 
+    def test_delay_expr_evaluation_dt(self):
+        """Test that a delay instruction with a complex duration expression
+        of type Duration is evaluated to 'dt' properly."""
+        # 500dt - 200dt = 300dt
+        delay_expr = expr.sub(
+            # 400dt + 100dt = 500dt
+            expr.add(
+                # 800dt * 0.5 = 400dt
+                expr.mul(
+                    # 400dt * 2 = 800dt
+                    expr.mul(Duration.s(0.0002), 2.0),
+                    # 200dt / 400dt = 0.5
+                    expr.div(Duration.ms(0.1), Duration.us(200)),
+                ),
+                Duration.dt(100),
+            ),
+            Duration.ns(100_000),
+        )
+
+        qc = QuantumCircuit(2)
+        qc.delay(delay_expr, 1)
+
+        backend = GenericBackendV2(num_qubits=2)
+        backend.target.dt = 5e-7
+        out = transpile(
+            qc,
+            backend=backend,
+            seed_transpiler=42,
+        )
+
+        self.assertEqual(out.data[0].operation.unit, "dt")
+        self.assertTrue(math.isclose(out.data[0].operation.duration, 300, rel_tol=1e-07))
+
+    def test_delay_expr_evaluation_seconds(self):
+        """Test that a delay instruction with a complex duration expression
+        of type Duration is evaluated to seconds properly when the target 'dt'
+        is absent."""
+        # .00025s - .0001s = .00015s
+        delay_expr = expr.sub(
+            # .0002s + .00005s = .00025s
+            expr.add(
+                # .0004s * 0.5 = .0002s
+                expr.mul(
+                    # .0002s * 2 = .0004s
+                    expr.mul(Duration.s(0.0002), 2.0),
+                    # .0001s / .0002s = 0.5
+                    expr.div(Duration.ms(0.1), Duration.us(200)),
+                ),
+                Duration.s(0.00005),
+            ),
+            Duration.ns(100_000),
+        )
+
+        qc = QuantumCircuit(2)
+        qc.delay(delay_expr, 1)
+
+        backend = GenericBackendV2(num_qubits=2)
+        backend.target.dt = None
+        out = transpile(
+            qc,
+            backend=backend,
+            seed_transpiler=42,
+        )
+
+        self.assertEqual(out.data[0].operation.unit, "s")
+        self.assertTrue(math.isclose(out.data[0].operation.duration, 0.00015, rel_tol=1e-07))
+
+    def test_delay_expr_evaluation_dt_without_target_dt(self):
+        """Test that a delay expression with only 'dt' is evaluated properly
+        even when the target doesn't specify a 'dt'."""
+        delay_expr = expr.sub(
+            expr.add(
+                expr.mul(
+                    expr.mul(Duration.dt(400), 2.0),
+                    expr.div(Duration.dt(200), Duration.dt(400)),
+                ),
+                Duration.dt(100),
+            ),
+            Duration.dt(200),
+        )
+
+        qc = QuantumCircuit(2)
+        qc.delay(delay_expr, 1)
+
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The `target` parameter should be used instead",
+        ):
+            out = transpile(
+                qc,
+                basis_gates=[],
+                instruction_durations=[],
+                seed_transpiler=42,
+            )
+
+        self.assertEqual(out.data[0].operation.unit, "dt")
+        self.assertTrue(math.isclose(out.data[0].operation.duration, 300, rel_tol=1e-07))
+
+    def test_rejects_negative_delay_expr(self):
+        """Test that a delay instruction with an expression duration is rejected
+        when the duration resolves to a negative number."""
+        negative_delay = expr.sub(Duration.dt(100), Duration.dt(200))
+        qc = QuantumCircuit(2)
+        qc.delay(negative_delay, 1)
+
+        with self.assertRaisesRegex(TranspilerError, ".*negative duration"):
+            transpile(
+                qc,
+                backend=GenericBackendV2(num_qubits=2),
+                seed_transpiler=42,
+            )
+
+    def test_rejects_mixed_units_delay_expr_without_target_dt(self):
+        """Test that a delay instruction with an expression duration is rejected
+        when the duration resolves to a negative number."""
+        negative_delay = expr.sub(Duration.dt(100), Duration.s(200))
+        qc = QuantumCircuit(2)
+        qc.delay(negative_delay, 1)
+
+        backend = GenericBackendV2(num_qubits=2)
+        backend.target.dt = None
+        with self.assertRaisesRegex(TranspilerError, ".*SI units and dt unit must not be mixed"):
+            transpile(
+                qc,
+                backend=backend,
+                seed_transpiler=42,
+            )
+
     @data(0, 1, 2, 3)
     def test_circuit_with_delay_expr_stretch(self, optimization_level):
         """Verify a circuit with delay with a duration of type types.Duration
-        can transpile to a scheduled circuit."""
+        can pass through the transpiler without generating an error."""
 
         qc = QuantumCircuit(2)
         a = qc.add_stretch("a")
