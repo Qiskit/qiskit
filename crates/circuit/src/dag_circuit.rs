@@ -5296,9 +5296,9 @@ impl DAGCircuit {
         if let OperationRef::Instruction(inst) = op {
             let op = inst.instruction.bind(py);
             if inst.control_flow() {
-                let condition: Option<Bound<'_, PyAny>> = op.getattr(intern!(py, "condition")).ok();
-                if condition.is_some() {
-                    let condition = condition.unwrap();
+                // The `condition` field might not exist, for example if this a `for` loop, and
+                // that's not an exceptional state for us.
+                if let Ok(condition) = op.getattr(intern!(py, "condition")) {
                     if !condition.is_none() {
                         if condition.is_instance(imports::EXPR.get_bound(py)).unwrap() {
                             let (expr_clbits, expr_vars) = wires_from_expr(&condition)?;
