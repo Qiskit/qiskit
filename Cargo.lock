@@ -945,7 +945,7 @@ checksum = "b94caae805f998a07d33af06e6a3891e38556051b8045c615470a71590e13e78"
 dependencies = [
  "libc",
  "nalgebra",
- "ndarray 0.15.6",
+ "ndarray 0.16.1",
  "num-complex",
  "num-integer",
  "num-traits",
@@ -1306,7 +1306,7 @@ dependencies = [
  "pyo3",
  "qiskit-circuit",
  "rand 0.9.0",
- "rand_distr 0.5.0",
+ "rand_distr 0.5.1",
  "rand_pcg 0.9.0",
  "rayon",
  "rustiq-core",
@@ -1457,9 +1457,9 @@ dependencies = [
 
 [[package]]
 name = "rand_distr"
-version = "0.5.0"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ddc3b5afe4c995c44540865b8ca5c52e6a59fa362da96c5d30886930ddc8da1c"
+checksum = "6a8615d50dcf34fa31f7ab52692afec947c4dd0ab803cc87cb3b0b4570ff7463"
 dependencies = [
  "num-traits",
  "rand 0.9.0",
