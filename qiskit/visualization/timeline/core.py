@@ -142,6 +142,15 @@ class DrawerCanvas:
     def load_program(self, program: circuit.QuantumCircuit, target: Target | None = None):
         """Load quantum circuit and create drawing..
 
+        .. deprecated:: 1.3
+           Visualization of unscheduled circuits with the timeline drawer has been
+           deprecated in Qiskit 1.3.
+           This circuit should be transpiled with a scheduler, despite having instructions
+           with explicit durations.
+
+        .. deprecated:: 1.3
+           Targets with duration-less operations are going to error in Qiskit 2.0.
+
         Args:
             program: Scheduled circuit object to draw.
             target: The target the circuit is scheduled for. This contains backend information
