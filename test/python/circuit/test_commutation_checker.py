@@ -423,21 +423,25 @@ class TestCommutationChecker(QiskitTestCase):
 
         generic_gate = DCXGate()  # gate that does not commute with any rotation gate
 
-        cutoff_angle = 1e-5  # this is the cutoff we use in the CommutationChecker
+        # the cutoff angle depends on the average gate fidelity; i.e. it is the angle
+        # for which the average gate fidelity is smaller than machine epsilon
+        if gate_cls in [CPhaseGate, CRXGate, CRYGate, CRZGate]:
+            cutoff_angle = 4.71e-8
+        else:
+            cutoff_angle = 3.65e-8
 
         for i in range(1, max_power + 1):
             angle = 2 ** (-i)
             gate = gate_cls(angle)
             qargs = list(range(gate.num_qubits))
-
             if angle < cutoff_angle:
                 self.assertTrue(scc.commute(generic_gate, [0, 1], [], gate, qargs, []))
             else:
                 self.assertFalse(scc.commute(generic_gate, [0, 1], [], gate, qargs, []))
 
     @idata(ROTATION_GATES)
-    def test_controlled_rotation_mod_4pi(self, gate_cls):
-        """Test the rotations modulo 2pi (4pi for controlled-rx/y/z) commute with any gate."""
+    def test_rotations_pi_multiples(self, gate_cls):
+        """Test the rotations modulo 2pi (crx/cry/crz modulo 4pi) commute with any gate."""
         generic_gate = HGate()  # does not commute with any rotation gate
         multiples = np.arange(-6, 7)
 
@@ -449,7 +453,13 @@ class TestCommutationChecker(QiskitTestCase):
                 # compute a numeric reference, that doesn't go through any special cases and
                 # uses a matrix-based commutation check
                 expected = scc.commute(
-                    generic_gate, [0], [], numeric, list(range(gate.num_qubits)), []
+                    generic_gate,
+                    [0],
+                    [],
+                    numeric,
+                    list(range(gate.num_qubits)),
+                    [],
+                    approximation_degree=1 - 1e-5,
                 )
 
                 result = scc.commute(generic_gate, [0], [], gate, list(range(gate.num_qubits)), [])

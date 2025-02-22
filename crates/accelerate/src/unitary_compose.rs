@@ -10,10 +10,10 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use ndarray::{Array, Array2, ArrayView, ArrayView2, IxDyn};
+use ndarray::{arr2, Array, Array2, ArrayView, ArrayView2, IxDyn};
 use ndarray_einsum_beta::*;
 use num_complex::{Complex, Complex64, ComplexFloat};
-use num_traits::Zero;
+use qiskit_circuit::util::C_ZERO;
 use qiskit_circuit::Qubit;
 
 static LOWERCASE: [u8; 26] = [
@@ -153,58 +153,38 @@ fn _einsum_matmul_index(qubits: &[u32], num_qubits: usize) -> String {
     )
 }
 
-pub fn commute_1q(
+pub fn gate_fidelity(
     left: &ArrayView2<Complex64>,
     right: &ArrayView2<Complex64>,
-    rtol: f64,
-    atol: f64,
-) -> bool {
-    // This could allow for explicit hardcoded formulas, using less FLOPS, if we only
-    // consider an absolute tolerance. But for backward compatibility we now implement the full
-    // formula including relative tolerance handling.
-    for i in 0..2usize {
-        for j in 0..2usize {
-            let mut ab = Complex64::zero();
-            let mut ba = Complex64::zero();
-            for k in 0..2usize {
-                ab += left[[i, k]] * right[[k, j]];
-                ba += right[[i, k]] * left[[k, j]];
-            }
-            let sum = ab - ba;
-            if sum.abs() > atol + ba.abs() * rtol {
-                return false;
-            }
-        }
-    }
-    true
+    qargs: Option<&[Qubit]>,
+) -> (f64, f64) {
+    let dim = left.nrows(); // == left.ncols() == right.nrows() == right.ncols()
+                            // let trace = left.t().mapv(|el| el.conj()).dot(right).diag().sum();
+
+    let left = left.t().mapv(|el| el.conj());
+    let product = match dim {
+        2 => mm1q(&left.view(), right),
+        4 => mm2q(&left.view(), right, qargs.unwrap_or(&[Qubit(0), Qubit(1)])),
+        _ => left.dot(right),
+    };
+    let trace = product.diag().sum();
+
+    let dim = dim as f64;
+    let normalized_trace = trace / dim;
+    let phase = normalized_trace.arg(); // compute phase difference
+
+    let process_fidelity = normalized_trace.abs().powi(2);
+    let gate_fidelity = (dim * process_fidelity + 1.) / (dim + 1.);
+    (gate_fidelity, phase)
 }
 
-pub fn commute_2q(
-    left: &ArrayView2<Complex64>,
-    right: &ArrayView2<Complex64>,
-    qargs: &[Qubit],
-    rtol: f64,
-    atol: f64,
-) -> bool {
-    let rev = qargs[0].0 == 1;
-    for i in 0..4usize {
-        for j in 0..4usize {
-            // We compute AB and BA separately, to enable checking the relative difference
-            // (AB - BA)_ij > atol + rtol * BA_ij. This is due to backward compatibility and could
-            // maybe be changed in the future to save one complex number allocation.
-            let mut ab = Complex64::zero();
-            let mut ba = Complex64::zero();
-            for k in 0..4usize {
-                ab += left[[_ind(i, rev), _ind(k, rev)]] * right[[k, j]];
-                ba += right[[i, k]] * left[[_ind(k, rev), _ind(j, rev)]];
-            }
-            let sum = ab - ba;
-            if sum.abs() > atol + ba.abs() * rtol {
-                return false;
-            }
-        }
-    }
-    true
+fn mm1q(left: &ArrayView2<Complex64>, right: &ArrayView2<Complex64>) -> Array2<Complex64> {
+    let mut out = arr2(&[[C_ZERO, C_ZERO], [C_ZERO, C_ZERO]]);
+    out[[0, 0]] = left[[0, 0]] * right[[0, 0]] + left[[0, 1]] * right[[1, 0]];
+    out[[0, 1]] = left[[0, 0]] * right[[0, 1]] + left[[0, 1]] * right[[1, 1]];
+    out[[1, 0]] = left[[1, 0]] * right[[0, 0]] + left[[1, 1]] * right[[1, 0]];
+    out[[1, 1]] = left[[1, 0]] * right[[0, 1]] + left[[1, 1]] * right[[1, 1]];
+    out
 }
 
 #[inline]
@@ -217,24 +197,25 @@ fn _ind(i: usize, reversed: bool) -> usize {
     }
 }
 
-/// For equally sized matrices, ``left`` and ``right``, check whether all entries are close
-/// by the criterion
-///
-///     |left_ij - right_ij| <= atol + rtol * right_ij
-///
-/// This is analogous to NumPy's ``allclose`` function.
-pub fn allclose(
+pub fn mm2q(
     left: &ArrayView2<Complex64>,
     right: &ArrayView2<Complex64>,
-    rtol: f64,
-    atol: f64,
-) -> bool {
-    for i in 0..left.nrows() {
-        for j in 0..left.ncols() {
-            if (left[(i, j)] - right[(i, j)]).abs() > atol + rtol * right[(i, j)].abs() {
-                return false;
+    qargs: &[Qubit],
+) -> Array2<Complex64> {
+    let mut out = arr2(&[
+        [C_ZERO, C_ZERO, C_ZERO, C_ZERO],
+        [C_ZERO, C_ZERO, C_ZERO, C_ZERO],
+        [C_ZERO, C_ZERO, C_ZERO, C_ZERO],
+        [C_ZERO, C_ZERO, C_ZERO, C_ZERO],
+    ]);
+
+    let rev = qargs[0].0 == 1;
+    for i in 0..4usize {
+        for j in 0..4usize {
+            for k in 0..4usize {
+                out[[i, j]] += left[[_ind(i, rev), _ind(k, rev)]] * right[[k, j]];
             }
         }
     }
-    true
+    out
 }
