@@ -18,8 +18,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Normally we test min and max version but we can't run python
-        # 3.9 on arm64 until actions/setup-python#808 is resolved
         python-version: ["3.9", "3.13"]
         os: ["macOS-14", "ubuntu-24.04-arm"]
     steps:
