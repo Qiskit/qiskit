@@ -353,12 +353,12 @@ macro_rules! create_py_bit {
     ($name:ident, $natbit:tt, $pyname:literal, $pymodule:literal, $extra:expr, $pyreg:tt) => {
         /// Implements a quantum bit
         #[pyclass(
-                                            subclass,
-                                            name = $pyname,
-                                            module = $pymodule,
-                                            frozen,
-                                            extends=PyBit,
-                                        )]
+            subclass,
+            name = $pyname,
+            module = $pymodule,
+            frozen,
+            extends=PyBit,
+        )]
         #[derive(Debug, Clone, PartialEq, Eq, Hash)]
         pub struct $name(pub(crate) $natbit);
 

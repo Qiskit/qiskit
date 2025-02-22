@@ -1032,7 +1032,7 @@ def _write_registers(file_obj, in_circ_regs, full_bits):
 
     for regs, is_in_circuit in [(in_circ_regs, True), (out_circ_regs, False)]:
         for reg in regs:
-            standalone = all(bit._register is reg for bit in reg)
+            standalone = all(bit._register == reg and bit._index == index for index, bit in enumerate(reg))
             reg_name = reg.name.encode(common.ENCODE)
             reg_type = reg.prefix.encode(common.ENCODE)
             file_obj.write(

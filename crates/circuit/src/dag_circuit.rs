@@ -1024,34 +1024,34 @@ def _format(operand):
     }
 
     /// Add individual qubit wires.
-    fn add_qubits(&mut self, py: Python, qubits: Vec<ShareableQubit>) -> PyResult<()> {
-        for bit in qubits.iter() {
-            if self.qubits.find(bit).is_some() {
+    fn add_qubits(&mut self, py: Python, qubits: Vec<Bound<PyAny>>) -> PyResult<()> {
+        for bit in qubits.into_iter() {
+            let Ok(bit) = bit.extract::<ShareableQubit>() else {
+                return Err(DAGCircuitError::new_err("not a Qubit instance."));
+            };
+            if self.qubits.find(&bit).is_some() {
                 return Err(DAGCircuitError::new_err(format!(
                     "duplicate qubits {:?}",
                     bit
                 )));
             }
-        }
-
-        for bit in qubits.into_iter() {
             self.add_qubit_unchecked(py, bit)?;
         }
         Ok(())
     }
 
     /// Add individual qubit wires.
-    fn add_clbits(&mut self, py: Python, clbits: Vec<ShareableClbit>) -> PyResult<()> {
-        for bit in clbits.iter() {
-            if self.clbits.find(bit).is_some() {
+    fn add_clbits(&mut self, py: Python, clbits: Vec<Bound<'_, PyAny>>) -> PyResult<()> {
+        for bit in clbits.into_iter() {
+            let Ok(bit) = bit.extract::<ShareableClbit>() else {
+                return Err(DAGCircuitError::new_err("not a Clbit instance."));
+            };
+            if self.clbits.find(&bit).is_some() {
                 return Err(DAGCircuitError::new_err(format!(
                     "duplicate clbits {:?}",
                     bit
                 )));
             }
-        }
-
-        for bit in clbits.into_iter() {
             self.add_clbit_unchecked(py, bit)?;
         }
         Ok(())

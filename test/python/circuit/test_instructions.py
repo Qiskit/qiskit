@@ -520,9 +520,9 @@ class TestInstructions(QiskitTestCase):
                 with self.assertWarns(DeprecationWarning):
                     from_c_if = qc.data[-2].operation.condition[0]
                 from_measure = qc.data[-1].clbits[0]
-                self.assertIs(from_c_if, from_measure)
+                self.assertEqual(from_c_if, from_measure)
                 # Sanity check that the bit is also the one we expected.
-                self.assertIs(from_c_if, clbit)
+                self.assertEqual(from_c_if, clbit)
 
     def test_instructionset_c_if_size_1_classical_register(self):
         """Test that there is a distinction between conditioning on a single bit and a classical
@@ -535,17 +535,17 @@ class TestInstructions(QiskitTestCase):
             with self.assertWarns(DeprecationWarning):
                 qc.x(0).c_if(cr, 0)
             with self.assertWarns(DeprecationWarning):
-                self.assertIs(qc.data[-1].operation.condition[0], cr)
+                self.assertEqual(qc.data[-1].operation.condition[0], cr)
         with self.subTest("classical bit by value"):
             with self.assertWarns(DeprecationWarning):
                 qc.x(0).c_if(cr[0], 0)
             with self.assertWarns(DeprecationWarning):
-                self.assertIs(qc.data[-1].operation.condition[0], cr[0])
+                self.assertEqual(qc.data[-1].operation.condition[0], cr[0])
         with self.subTest("classical bit by index"):
             with self.assertWarns(DeprecationWarning):
                 qc.x(0).c_if(0, 0)
             with self.assertWarns(DeprecationWarning):
-                self.assertIs(qc.data[-1].operation.condition[0], cr[0])
+                self.assertEqual(qc.data[-1].operation.condition[0], cr[0])
 
     def test_instructionset_c_if_no_classical_registers(self):
         """Test that using :meth:`.InstructionSet.c_if` works if there are no classical registers
@@ -563,7 +563,7 @@ class TestInstructions(QiskitTestCase):
             with self.assertWarns(DeprecationWarning):
                 qc.x(0).c_if(0, 0)
             with self.assertWarns(DeprecationWarning):
-                self.assertIs(qc.data[-1].operation.condition[0], bits[1])
+                self.assertEqual(qc.data[-1].operation.condition[0], bits[1])
 
     def test_instructionset_c_if_rejects_invalid_specifiers(self):
         """Test that calling the :meth:`.InstructionSet.c_if` method on instructions added to a
