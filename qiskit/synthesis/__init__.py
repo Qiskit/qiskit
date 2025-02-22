@@ -151,6 +151,12 @@ Multipliers
 .. autofunction:: multiplier_cumulative_h18
 .. autofunction:: multiplier_qft_r17
 
+Sums
+----
+
+.. autofunction:: synth_weighted_sum_carry
+
+
 Unary Arithmetic Synthesis
 ==========================
 
@@ -230,4 +236,5 @@ from .arithmetic import (
     multiplier_qft_r17,
     synth_integer_comparator_greedy,
     synth_integer_comparator_2s,
+    synth_weighted_sum_carry,
 )

@@ -14,4 +14,4 @@ features_circuits:
       * :class:`.PolynomialPauliRotationsGate` (replacing :class:`.PolynomialPauliRotations`)
       * :class:`.LinearAmplitudeFunctionGate` (replacing :class:`.LinearAmplitudeFunction`)
       * :class:`.QuadraticFormGate` (replacing :class:`.QuadraticForm`)
-      * :class:`.WeightedAdderGate` (replacing :class:`.WeightedAdder`)
+      * :class:`.WeightedSumGate` (replacing :class:`.WeightedAdder`)

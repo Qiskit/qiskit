@@ -281,6 +281,21 @@ Integer comparators
    IntComparatorSynthesisNoAux
    IntComparatorSynthesisDefault
 
+   
+Sums
+''''
+
+.. list-table:: Plugins for :class:`.WeightedSumGate` (key = ``"WeightedSum"``)
+    :header-rows: 1
+
+    * - Plugin name
+      - Plugin class
+      - Description
+      - Auxiliary qubits
+    * - ``"default"``
+      - :class:`~.WeightedSumSynthesisDefault`
+      - use a V-chain based synthesis
+      - given ``s`` sum qubits, used ``s - 1 + int(s > 2)`` clean auxiliary qubits
 
 Pauli Evolution Synthesis
 '''''''''''''''''''''''''
@@ -457,10 +472,15 @@ from qiskit.circuit.library import (
     HalfAdderGate,
     FullAdderGate,
     MultiplierGate,
+    WeightedSumGate,
 )
 from qiskit.transpiler.coupling import CouplingMap
 
-from qiskit.synthesis.arithmetic import synth_integer_comparator_2s, synth_integer_comparator_greedy
+from qiskit.synthesis.arithmetic import (
+    synth_integer_comparator_2s,
+    synth_integer_comparator_greedy,
+    synth_weighted_sum_carry,
+)
 from qiskit.synthesis.clifford import (
     synth_clifford_full,
     synth_clifford_layers,
@@ -1736,3 +1756,34 @@ class PauliEvolutionSynthesisRustiq(HighLevelSynthesisPlugin):
             upto_phase=upto_phase,
             resynth_clifford_method=resynth_clifford_method,
         )
+
+
+class WeightedSumSynthesisDefault(HighLevelSynthesisPlugin):
+    """Synthesize a :class:`.WeightedSumGate` using the default synthesis algorithm.
+
+    This plugin name is:``WeightedSum.default`` which can be used as the key on
+    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+
+    .. note::
+
+        This default plugin requires auxiliary qubits. There is currently no implementation
+        available without auxiliary qubits.
+
+    """
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        if not isinstance(high_level_object, WeightedSumGate):
+            return None
+
+        required_auxiliaries = (
+            high_level_object.num_sum_qubits - 1 + int(high_level_object.num_sum_qubits > 2)
+        )
+        if (num_clean := options.get("num_clean_ancillas", 0)) < required_auxiliaries:
+            warnings.warn(
+                f"Cannot synthesize a WeightedSumGate on {high_level_object.num_state_qubits} state "
+                f"qubits with less than {required_auxiliaries} clean auxiliary qubits. Only "
+                f"{num_clean} are available. This will likely lead to a error in HighLevelSynthesis."
+            )
+            return None
+
+        return synth_weighted_sum_carry(high_level_object)

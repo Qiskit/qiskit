@@ -104,6 +104,7 @@ sk = "qiskit.transpiler.passes.synthesis.solovay_kitaev_synthesis:SolovayKitaevS
 "IntComp.default" = "qiskit.transpiler.passes.synthesis.hls_plugins:IntComparatorSynthesisDefault"
 "IntComp.noaux" = "qiskit.transpiler.passes.synthesis.hls_plugins:IntComparatorSynthesisNoAux"
 "IntComp.twos" = "qiskit.transpiler.passes.synthesis.hls_plugins:IntComparatorSynthesis2s"
+"WeightedSum.default" = "qiskit.transpiler.passes.synthesis.hls_plugins:WeightedSumSynthesisDefault"
 "ModularAdder.default" = "qiskit.transpiler.passes.synthesis.hls_plugins:ModularAdderSynthesisDefault"
 "ModularAdder.ripple_c04" = "qiskit.transpiler.passes.synthesis.hls_plugins:ModularAdderSynthesisC04"
 "ModularAdder.ripple_v95" = "qiskit.transpiler.passes.synthesis.hls_plugins:ModularAdderSynthesisV95"

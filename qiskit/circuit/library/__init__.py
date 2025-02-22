@@ -290,7 +290,6 @@ Adders
    DraperQFTAdder
    CDKMRippleCarryAdder
    VBERippleCarryAdder
-   WeightedAdder
    ModularAdderGate
    HalfAdderGate
    FullAdderGate
@@ -335,6 +334,8 @@ Other arithmetic functions
 
    ExactReciprocal
    ExactReciprocalGate
+   WeightedAdder
+   WeightedSumGate
 
 Particular Quantum Circuits
 ===========================
@@ -638,6 +639,7 @@ from .arithmetic import (
     IntegerComparator,
     IntegerComparatorGate,
     WeightedAdder,
+    WeightedSumGate,
     QuadraticForm,
     QuadraticFormGate,
     LinearAmplitudeFunction,

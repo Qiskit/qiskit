@@ -15,3 +15,4 @@
 from .comparators import synth_integer_comparator_2s, synth_integer_comparator_greedy
 from .adders import adder_qft_d00, adder_ripple_c04, adder_ripple_v95
 from .multipliers import multiplier_cumulative_h18, multiplier_qft_r17
+from .weighted_sum import synth_weighted_sum_carry

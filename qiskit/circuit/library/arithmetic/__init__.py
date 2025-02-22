@@ -24,7 +24,7 @@ from .piecewise_polynomial_pauli_rotations import (
     PiecewisePolynomialPauliRotationsGate,
 )
 from .polynomial_pauli_rotations import PolynomialPauliRotations, PolynomialPauliRotationsGate
-from .weighted_adder import WeightedAdder
+from .weighted_adder import WeightedAdder, WeightedSumGate
 from .quadratic_form import QuadraticForm, QuadraticFormGate
 from .linear_amplitude_function import LinearAmplitudeFunction, LinearAmplitudeFunctionGate
 from .piecewise_chebyshev import PiecewiseChebyshev, PiecewiseChebyshevGate
