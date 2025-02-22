@@ -5,5 +5,6 @@ if [ ! -d rust-installer ]; then
     sh rust-installer/rustup.sh -y -c llvm-tools
     rustup default 1.79
     rustup component add llvm-tools
+    rustup uninstall stable
 fi
 . "$HOME/.cargo/env"

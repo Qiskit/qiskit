@@ -34,8 +34,4 @@ python tools/pgo_scripts/test_utility_scale.py
 
 deactivate
 
-if [[ `uname -m` == "aarch64" ]]; then
-    ${HOME}/.rustup/toolchains/1.79-aarch64-unknown-linux-gnu/lib/rustlib/$arch*/bin/llvm-profdata merge -o "$out_path" "$work_dir"
-else
-    ${HOME}/.rustup/toolchains/*$arch*/lib/rustlib/$arch*/bin/llvm-profdata merge -o "$out_path" "$work_dir"
-fi
+${HOME}/.rustup/toolchains/*$arch*/lib/rustlib/$arch*/bin/llvm-profdata merge -o "$out_path" "$work_dir"
