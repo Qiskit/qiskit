@@ -1030,6 +1030,30 @@ class TestCircuitOperations(QiskitTestCase):
 
         self.assertEqual(qc.reverse_ops(), expected)
 
+    def test_repeat(self):
+        """Test repeating the circuit works."""
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(2)
+        qc = QuantumCircuit(qr, cr)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.barrier()
+        qc.h(0)
+        qc.measure(0, 0)
+        qc.measure(1, 1)
+
+        with self.subTest("repeat 0 times"):
+            rep = qc.repeat(0)
+            self.assertEqual(rep, QuantumCircuit(qr, cr))
+
+        with self.subTest("repeat 3 times"):
+            inst = qc.to_instruction()
+            ref = QuantumCircuit(qr, cr)
+            for _ in range(3):
+                ref.append(inst, ref.qubits, ref.clbits)
+            rep = qc.repeat(3)
+            self.assertEqual(rep, ref)
+
     @data(0, 1, 4)
     def test_repeat_global_phase(self, num):
         """Test the global phase is properly handled upon repeat."""
@@ -1261,6 +1285,26 @@ class TestCircuitOperations(QiskitTestCase):
         expected.h(qr1[1])
         expected.cx(qr1[1], qr1[0])
         expected.cx(qr1[0], qr2[0])
+
+        self.assertEqual(qc.reverse_bits(), expected)
+
+    def test_reverse_bits_with_registerless_bits(self):
+        """Test reversing order of registerless bits."""
+        q0 = Qubit()
+        q1 = Qubit()
+        c0 = Clbit()
+        c1 = Clbit()
+        qc = QuantumCircuit([q0, q1], [c0, c1])
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.x(0)
+        qc.measure(0, 0)
+
+        expected = QuantumCircuit([c1, c0], [q1, q0])
+        expected.h(1)
+        expected.cx(1, 0)
+        expected.x(1)
+        expected.measure(1, 1)
 
         self.assertEqual(qc.reverse_bits(), expected)
 
