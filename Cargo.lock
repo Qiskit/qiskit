@@ -43,15 +43,6 @@ checksum = "683d7910e743518b0e34f1186f92494becacb047c7b6bf616c96772180fef923"
 
 [[package]]
 name = "approx"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3f2a05fd1bd10b2527e20a2cd32d8873d115b8b39fe219ee25f42a8aca6ba278"
-dependencies = [
- "num-traits",
-]
-
-[[package]]
-name = "approx"
 version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cab112f0a86d568ea0e627cc1d6be74a1e9cd55214684db5561995f6dad897c6"
@@ -390,12 +381,12 @@ dependencies = [
 
 [[package]]
 name = "faer-ext"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4cf30f6ae73f372c0e0cf7556c44e50f1eee0a714d71396091613d68c43625c9"
+checksum = "fa0b66079aff3caae4e41177b37487914cbcb377651e86a838d6a2088fb4b666"
 dependencies = [
  "faer",
- "ndarray 0.15.6",
+ "ndarray",
  "num-complex",
 ]
 
@@ -740,7 +731,7 @@ version = "0.33.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "26aecdf64b707efd1310e3544d709c5c0ac61c13756046aaaba41be5c4f66a3b"
 dependencies = [
- "approx 0.5.1",
+ "approx",
  "matrixmultiply",
  "nalgebra-macros",
  "num-complex",
@@ -833,26 +824,11 @@ dependencies = [
 
 [[package]]
 name = "ndarray"
-version = "0.15.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "adb12d4e967ec485a5f71c6311fe28158e9d6f4bc4a447b474184d0f91a8fa32"
-dependencies = [
- "approx 0.4.0",
- "approx 0.5.1",
- "matrixmultiply",
- "num-complex",
- "num-integer",
- "num-traits",
- "rawpointer",
- "rayon",
-]
-
-[[package]]
-name = "ndarray"
 version = "0.16.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "882ed72dce9365842bf196bdeedf5055305f11fc8c03dee7bb0194a6cad34841"
 dependencies = [
+ "approx",
  "matrixmultiply",
  "num-complex",
  "num-integer",
@@ -864,13 +840,14 @@ dependencies = [
 ]
 
 [[package]]
-name = "ndarray_einsum_beta"
-version = "0.7.0"
+name = "ndarray-einsum"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "668b3abeae3e0637740340e0e32a9bf9308380e146ea6797950f9ff16e88d88a"
+checksum = "f4b2d52dfff9b24d072b6080eab1587cbd54ae24da7b8370072c3a84db221e05"
 dependencies = [
+ "hashbrown 0.15.2",
  "lazy_static",
- "ndarray 0.15.6",
+ "ndarray",
  "num-traits",
  "regex",
 ]
@@ -945,7 +922,7 @@ checksum = "b94caae805f998a07d33af06e6a3891e38556051b8045c615470a71590e13e78"
 dependencies = [
  "libc",
  "nalgebra",
- "ndarray 0.15.6",
+ "ndarray",
  "num-complex",
  "num-integer",
  "num-traits",
@@ -955,9 +932,9 @@ dependencies = [
 
 [[package]]
 name = "once_cell"
-version = "1.20.2"
+version = "1.20.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1261fe7e33c73b354eab43b1273a57c8f967d0391e80353e51f764ac02cf6775"
+checksum = "945462a4b81e43c4e3ba96bd7b49d834c6f61198356aa858733bc4acf3cbe62e"
 
 [[package]]
 name = "oq3_lexer"
@@ -1287,7 +1264,7 @@ name = "qiskit-accelerate"
 version = "2.0.0"
 dependencies = [
  "ahash 0.8.11",
- "approx 0.5.1",
+ "approx",
  "bytemuck",
  "faer",
  "faer-ext",
@@ -1295,8 +1272,8 @@ dependencies = [
  "indexmap",
  "itertools 0.13.0",
  "nalgebra",
- "ndarray 0.15.6",
- "ndarray_einsum_beta",
+ "ndarray",
+ "ndarray-einsum",
  "num-bigint",
  "num-complex",
  "num-traits",
@@ -1306,7 +1283,7 @@ dependencies = [
  "pyo3",
  "qiskit-circuit",
  "rand 0.9.0",
- "rand_distr 0.5.0",
+ "rand_distr 0.5.1",
  "rand_pcg 0.9.0",
  "rayon",
  "rustiq-core",
@@ -1320,14 +1297,14 @@ name = "qiskit-circuit"
 version = "2.0.0"
 dependencies = [
  "ahash 0.8.11",
- "approx 0.5.1",
+ "approx",
  "bitfield-struct",
  "bytemuck",
  "hashbrown 0.15.2",
  "indexmap",
  "itertools 0.13.0",
  "nalgebra",
- "ndarray 0.15.6",
+ "ndarray",
  "num-complex",
  "numpy",
  "pyo3",
@@ -1457,9 +1434,9 @@ dependencies = [
 
 [[package]]
 name = "rand_distr"
-version = "0.5.0"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ddc3b5afe4c995c44540865b8ca5c52e6a59fa362da96c5d30886930ddc8da1c"
+checksum = "6a8615d50dcf34fa31f7ab52692afec947c4dd0ab803cc87cb3b0b4570ff7463"
 dependencies = [
  "num-traits",
  "rand 0.9.0",
@@ -1616,7 +1593,7 @@ dependencies = [
  "fixedbitset 0.5.7",
  "hashbrown 0.15.2",
  "indexmap",
- "ndarray 0.16.1",
+ "ndarray",
  "num-traits",
  "petgraph 0.7.1",
  "priority-queue",
@@ -1687,7 +1664,7 @@ version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b3a386a501cd104797982c15ae17aafe8b9261315b5d07e3ec803f2ea26be0fa"
 dependencies = [
- "approx 0.5.1",
+ "approx",
  "num-complex",
  "num-traits",
  "paste",
@@ -1696,9 +1673,9 @@ dependencies = [
 
 [[package]]
 name = "smallvec"
-version = "1.13.2"
+version = "1.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3c5e1a9a646d36c3599cd173a41282daf47c44583ad367b8e6837255952e5c67"
+checksum = "7fcf8323ef1faaee30a44a340193b1ac6814fd9b7b4e88e9d4519a3e4abe1cfd"
 
 [[package]]
 name = "smol_str"
