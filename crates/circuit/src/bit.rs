@@ -23,7 +23,10 @@ use crate::{
         QuantumRegister, RegisterInfo,
     },
 };
-use pyo3::{prelude::*, types::PyDict};
+use pyo3::{
+    prelude::*,
+    types::{PyDict, PyTuple},
+};
 
 /// Counter for all existing anonymous Qubit instances.
 static BIT_COUNTER: AtomicU64 = AtomicU64::new(0);
@@ -181,7 +184,7 @@ impl<'py> IntoPyObject<'py> for &'py ShareableQubit {
 
 impl<'py> FromPyObject<'py> for ShareableQubit {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        Ok(ob.downcast::<PyQubit>()?.get().0.clone())
+        Ok(ob.downcast::<PyQubit>()?.borrow().0.clone())
     }
 }
 
@@ -212,11 +215,11 @@ impl<'py> IntoPyObject<'py> for &'py ShareableClbit {
 
 impl<'py> FromPyObject<'py> for ShareableClbit {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        Ok(ob.downcast::<PyClbit>()?.get().0.clone())
+        Ok(ob.downcast::<PyClbit>()?.borrow().0.clone())
     }
 }
 
-#[pyclass(subclass, name = "Bit", module = "qiskit.circuit.bit", frozen)]
+#[pyclass(subclass, name = "Bit", module = "qiskit.circuit.bit")]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Hash)]
 pub struct PyBit(pub(crate) BitInfo);
 
@@ -315,8 +318,37 @@ impl PyBit {
         }
     }
 
-    fn __getnewargs__(slf: Bound<'_, Self>) -> PyResult<(Bound<'_, PyAny>, Bound<'_, PyAny>)> {
-        Ok((slf.getattr("_register")?, slf.getattr("_index")?))
+    fn __reduce__(slf: Bound<'_, Self>) -> PyResult<Bound<PyTuple>> {
+        let borrowed = slf.borrow();
+        match borrowed.0 {
+            BitInfo::Owned { index, .. } => (
+                slf.get_type(),
+                (slf.getattr("_register")?.unbind(), Some(index)),
+                None,
+            ),
+            BitInfo::Anonymous { unique_id, .. } => {
+                (slf.get_type(), (slf.py().None(), None), Some(unique_id))
+            }
+        }
+        .into_pyobject(slf.py())
+    }
+
+    #[pyo3(signature = (state = None))]
+    fn __setstate__(slf: Bound<'_, Self>, state: Option<u64>) -> PyResult<()> {
+        let mut borrowed_mut = slf.borrow_mut();
+        let result = if let Some(state) = state {
+            match &mut borrowed_mut.0 {
+                BitInfo::Owned { .. } => Ok(()),
+                BitInfo::Anonymous { unique_id, .. } => {
+                    *unique_id = state;
+                    Ok(())
+                }
+            }
+        } else {
+            Ok(())
+        };
+        drop(borrowed_mut);
+        result
     }
 }
 
@@ -353,12 +385,11 @@ macro_rules! create_py_bit {
     ($name:ident, $natbit:tt, $pyname:literal, $pymodule:literal, $extra:expr, $pyreg:tt) => {
         /// Implements a quantum bit
         #[pyclass(
-            subclass,
-            name = $pyname,
-            module = $pymodule,
-            frozen,
-            extends=PyBit,
-        )]
+                                                                            subclass,
+                                                                            name = $pyname,
+                                                                            module = $pymodule,
+                                                                            extends=PyBit,
+                                                                        )]
         #[derive(Debug, Clone, PartialEq, Eq, Hash)]
         pub struct $name(pub(crate) $natbit);
 
@@ -396,6 +427,21 @@ macro_rules! create_py_bit {
                     }
                     BitInfo::Anonymous { .. } => Ok(slf),
                 }
+            }
+
+            #[pyo3(signature = (state = None))]
+            fn __setstate__(slf: Bound<'_, Self>, state: Option<u64>) -> PyResult<()> {
+                let mut borrowed_mut = slf.borrow_mut();
+                if let Some(state) = state {
+                    match &mut borrowed_mut.0 .0 {
+                        BitInfo::Owned { .. } => (),
+                        BitInfo::Anonymous { unique_id, .. } => {
+                            *unique_id = state;
+                        }
+                    }
+                }
+                drop(borrowed_mut);
+                PyBit::__setstate__(slf.into_super(), state)
             }
         }
     };

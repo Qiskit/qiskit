@@ -979,9 +979,9 @@ class TestDagNodeSelection(QiskitTestCase):
 
     def test_apply_operation_reject_invalid_qarg_carg(self):
         """Test that we can't add a carg to qargs and vice versa on apply methods"""
-        with self.assertRaises(KeyError):
+        with self.assertRaises((KeyError, TypeError)):
             self.dag.apply_operation_back(Measure(), [self.clbit1], [self.qubit1])
-        with self.assertRaises(KeyError):
+        with self.assertRaises((KeyError, TypeError)):
             self.dag.apply_operation_front(Measure(), [self.clbit1], [self.qubit1])
 
     def test_classical_successors(self):

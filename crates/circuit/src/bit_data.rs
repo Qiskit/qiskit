@@ -228,9 +228,10 @@ where
                 self.description
             ))
         })?;
+        // Dump the cache
+        self.cached.take();
         if self.indices.try_insert(bit.clone(), idx.into()).is_ok() {
             self.bits.push(bit);
-            self.cached.take();
         } else if strict {
             return Err(PyValueError::new_err(format!(
                 "Existing bit {:?} cannot be re-added in strict mode.",

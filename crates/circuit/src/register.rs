@@ -16,13 +16,13 @@ use crate::{
         ShareableQubit,
     },
     circuit_data::CircuitError,
-    slice::PySequenceIndex,
+    slice::{PySequenceIndex, PySequenceIndexError},
 };
 use indexmap::IndexSet;
 use pyo3::{
     exceptions::PyValueError,
     prelude::*,
-    types::{PyList, PyString, PyType},
+    types::{PyList, PyString, PyTuple, PyType},
     IntoPyObjectExt, PyTypeInfo,
 };
 use std::{
@@ -243,6 +243,10 @@ macro_rules! create_register_object {
             /// Provide a counted reference to the inner data of the register
             pub(crate) fn data(&self) -> &Arc<RegisterInfo> {
                 &self.0
+            }
+
+            pub(crate) fn get_instance_count() -> u32 {
+                $counter.load(std::sync::atomic::Ordering::Relaxed)
             }
         }
     };
@@ -509,22 +513,18 @@ impl PyRegister {
             && slf_borrow.eq(&other_borrow))
     }
 
-    fn __getnewargs__(slf: Bound<'_, Self>) -> PyResult<PyObject> {
+    fn __reduce__(slf: Bound<'_, Self>) -> PyResult<Bound<PyTuple>> {
         let borrowed = slf.borrow();
-        match borrowed.0.as_ref() {
-            RegisterInfo::Owning(reg) => Ok((
-                Some(reg.size),
-                Some(reg.name.clone()),
-                None::<Bound<PyList>>,
-            )
-                .into_py_any(slf.py())?),
-            RegisterInfo::Alias { name, .. } => Ok((
-                None::<usize>,
+        let ty = slf.get_type();
+        let args = match borrowed.0.as_ref() {
+            RegisterInfo::Owning(reg) => (Some(reg.size), Some(reg.name.clone()), None),
+            RegisterInfo::Alias { name, .. } => (
+                None,
                 Some(name.to_string()),
                 Some(PyList::type_object(slf.py()).call1((&slf,))?),
-            )
-                .into_py_any(slf.py())?),
-        }
+            ),
+        };
+        (ty, args).into_pyobject(slf.py())
     }
 
     fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Bound<'_, pyo3::types::PyIterator>> {
@@ -544,6 +544,11 @@ impl PyRegister {
     fn bit_type(py: Python) -> Bound<PyType> {
         PyBit::type_object(py)
     }
+
+    #[classattr]
+    fn instances_count() -> u32 {
+        REG_COUNTER.load(std::sync::atomic::Ordering::Relaxed)
+    }
 }
 
 impl PyRegister {
@@ -560,26 +565,36 @@ impl PyRegister {
         let size: u32 = if let Some(bits) = bits.as_ref() {
             bits.len()?.try_into().map_err(|_| CircuitError::new_err(format!("The amount of bits provided exceeds the capacity of the register. Current size {}", bits.len().unwrap_or_default())))?
         } else {
-            let Ok(valid_size): PyResult<isize> = size.as_ref().unwrap().extract() else {
+            let size = size.as_ref().unwrap();
+            let valid_size: isize = if let Ok(valid) = size.extract() {
+                valid
+            } else if let Ok(almost_valid) = size.extract::<f64>() {
+                let valid: isize = (almost_valid - almost_valid.floor() == 0.0).then_some(almost_valid as isize).ok_or( CircuitError::new_err(format!(
+                    "Register size must be an integer or castable to an integer. {} '{}' was provided",
+                    size.get_type().name()?,
+                    size.repr()?
+                )))?;
+                valid
+            } else {
                 return Err(CircuitError::new_err(format!(
-                    "Register size must be an integer. {} '{}' was provided",
-                    size.as_ref().unwrap().get_type().name()?,
-                    size.as_ref().unwrap().repr()?
+                    "Register size must be an integer or castable to an integer. {} '{}' was provided",
+                    size.get_type().name()?,
+                    size.repr()?
                 )));
             };
             if valid_size < 0 {
                 return Err(CircuitError::new_err(format!(
                     "Register size must be non-negative. {} '{}' was provided",
-                    size.as_ref().unwrap().get_type().name()?,
-                    size.as_ref().unwrap().repr()?
+                    size.get_type().name()?,
+                    size.repr()?
                 )));
             }
 
-            let Ok(valid_size) = valid_size.abs().try_into() else {
+            let Ok(valid_size) = valid_size.try_into() else {
                 return Err(CircuitError::new_err(format!(
                     "Register size exceeds possible allocated capacity. {} '{}' was provided",
-                    size.as_ref().unwrap().get_type().name()?,
-                    size.as_ref().unwrap().repr()?
+                    size.get_type().name()?,
+                    size.repr()?
                 )));
             };
 
@@ -607,7 +622,7 @@ impl PyRegister {
         &self,
         key: SliceOrInt<'_>,
     ) -> PyResult<Box<dyn ExactSizeIterator<Item = BitInfo>>> {
-        match key {
+        match &key {
             SliceOrInt::Slice(py_sequence_index) => {
                 let sequence = py_sequence_index.with_len(self.size())?;
                 match sequence {
@@ -618,8 +633,8 @@ impl PyRegister {
                         Ok(Box::new(std::iter::once(bit)))
                     }
                     _ => {
-                        let result: Vec<BitInfo> = sequence
-                            .iter()
+                        let result: Vec<BitInfo> = key
+                            .iter_with_size(self.size())?
                             .map(|idx| -> PyResult<BitInfo> {
                                 self.0
                                     .get(idx)
@@ -630,12 +645,12 @@ impl PyRegister {
                     }
                 }
             }
-            SliceOrInt::List(vec) => {
-                let result: Vec<BitInfo> = vec
-                    .iter()
+            SliceOrInt::List(_) => {
+                let result: Vec<BitInfo> = key
+                    .iter_with_size(self.size())?
                     .map(|idx| -> PyResult<BitInfo> {
                         self.0
-                            .get(*idx)
+                            .get(idx)
                             .ok_or(CircuitError::new_err("register index out of range"))
                     })
                     .collect::<PyResult<_>>()?;
@@ -649,11 +664,40 @@ impl PyRegister {
     }
 }
 
-/// Correctly extracts a slice or a vec from python.
+/// Correctly extracts a Slice or a Vec from Python.
 #[derive(FromPyObject)]
 enum SliceOrInt<'py> {
     Slice(PySequenceIndex<'py>),
-    List(Vec<usize>),
+    List(Vec<isize>),
+}
+
+impl SliceOrInt<'_> {
+    pub fn iter_with_size(&self, size: usize) -> PyResult<Box<dyn Iterator<Item = usize>>> {
+        match self {
+            SliceOrInt::Slice(py_sequence_index) => {
+                let sequence = py_sequence_index.with_len(size);
+                match sequence {
+                    Ok(sequence) => Ok(Box::new(sequence.iter())),
+                    Err(e) => Err(e.into()),
+                }
+            }
+            SliceOrInt::List(items) => {
+                let items: Vec<usize> = items
+                    .iter()
+                    .copied()
+                    .map(|idx| {
+                        if idx.is_negative() {
+                            size.checked_sub(idx.unsigned_abs())
+                                .ok_or(PySequenceIndexError::OutOfRange.into())
+                        } else {
+                            Ok(idx as usize)
+                        }
+                    })
+                    .collect::<PyResult<_>>()?;
+                Ok(Box::new(items.into_iter()))
+            }
+        }
+    }
 }
 
 macro_rules! create_py_register {
@@ -745,6 +789,11 @@ macro_rules! create_py_register {
             fn bit_type(py: Python) -> Bound<PyType> {
                 $pybit::type_object(py)
             }
+
+            #[classattr]
+            fn instances_count() -> u32 {
+                $nativereg::get_instance_count()
+            }
         }
 
         impl $name {
@@ -759,7 +808,7 @@ macro_rules! create_py_register {
                 &self,
                 key: SliceOrInt<'_>,
             ) -> PyResult<Box<dyn ExactSizeIterator<Item = $nativebit>>> {
-                match key {
+                match &key {
                     SliceOrInt::Slice(py_sequence_index) => {
                         let sequence = py_sequence_index.with_len(self.0.len())?;
                         match sequence {
@@ -772,8 +821,8 @@ macro_rules! create_py_register {
                                 Ok(Box::new(std::iter::once(bit)))
                             }
                             _ => {
-                                let result: Vec<$nativebit> = sequence
-                                    .iter()
+                                let result: Vec<$nativebit> = key
+                                    .iter_with_size(self.0.len())?
                                     .map(|idx| -> PyResult<$nativebit> {
                                         self.0.get(idx).ok_or(CircuitError::new_err(
                                             "register index out of range",
@@ -784,12 +833,12 @@ macro_rules! create_py_register {
                             }
                         }
                     }
-                    SliceOrInt::List(vec) => {
-                        let result: Vec<$nativebit> = vec
-                            .iter()
+                    SliceOrInt::List(_) => {
+                        let result: Vec<$nativebit> = key
+                            .iter_with_size(self.0.len())?
                             .map(|idx| -> PyResult<$nativebit> {
                                 self.0
-                                    .get(*idx)
+                                    .get(idx)
                                     .ok_or(CircuitError::new_err("register index out of range"))
                             })
                             .collect::<PyResult<_>>()?;
@@ -941,5 +990,10 @@ impl PyAncillaRegister {
     #[classattr]
     fn bit_type(py: Python) -> Bound<PyType> {
         PyAncillaQubit::type_object(py)
+    }
+
+    #[classattr]
+    fn instances_count() -> u32 {
+        AREG_COUNTER.load(std::sync::atomic::Ordering::Relaxed)
     }
 }

@@ -512,7 +512,7 @@ class TestCircuitCompose(QiskitTestCase):
         with self.assertWarns(DeprecationWarning):
             self.assertEqual(len(z.condition[0]), len(right.cregs[0]))
         with self.assertWarns(DeprecationWarning):
-            self.assertIs(z.condition[0][0], test.clbits[0])
+            self.assertEqual(z.condition[0][0], test.clbits[0])
         with self.assertWarns(DeprecationWarning):
             self.assertEqual(z.condition[1], 1)
         with self.assertWarns(DeprecationWarning):
@@ -524,7 +524,7 @@ class TestCircuitCompose(QiskitTestCase):
         with self.assertWarns(DeprecationWarning):
             self.assertEqual(z.condition[1], 1)
         with self.assertWarns(DeprecationWarning):
-            self.assertIs(x.condition[0][0], test.clbits[1])
+            self.assertEqual(x.condition[0][0], test.clbits[1])
 
     def test_compose_switch_match(self):
         """Test that composition containing a `switch` with a register that matches proceeds
@@ -774,7 +774,7 @@ class TestCircuitCompose(QiskitTestCase):
 
         bit_instruction = test.data[0].operation
         reg_instruction = test.data[1].operation
-        self.assertIs(bit_instruction.condition[0], test_loose)
+        self.assertEqual(bit_instruction.condition[0], test_loose)
         self.assertEqual(bit_instruction.condition, (test_loose, True))
         self.assertIs(reg_instruction.condition[0], test_creg)
         self.assertEqual(reg_instruction.condition, (test_creg, 3))
@@ -798,7 +798,7 @@ class TestCircuitCompose(QiskitTestCase):
 
         bit_instruction = test.data[0].operation
         reg_instruction = test.data[1].operation
-        self.assertIs(bit_instruction.condition[0], test_loose)
+        self.assertEqual(bit_instruction.condition[0], test_loose)
         self.assertEqual(bit_instruction.condition, (test_loose, True))
         self.assertIs(reg_instruction.condition[0], test_creg)
         self.assertEqual(reg_instruction.condition, (test_creg, 3))
