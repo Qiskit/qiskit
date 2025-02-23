@@ -21,7 +21,7 @@ import unittest
 import warnings
 from unittest.mock import patch
 
-from qiskit import QuantumCircuit, visualization
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, visualization
 from qiskit.utils import optionals
 from qiskit.visualization.circuit import styles, text
 from qiskit.visualization.exceptions import VisualizationError
@@ -140,6 +140,74 @@ class TestCircuitDrawer(QiskitTestCase):
                 else:
                     self.assertIn(im.format.lower(), filename.rsplit(".", maxsplit=1)[-1])
             os.remove(filename)
+
+    def test_wire_order(self):
+        """Test wire_order
+        See: https://github.com/Qiskit/qiskit-terra/pull/9893"""
+        qr = QuantumRegister(4, "q")
+        cr = ClassicalRegister(4, "c")
+        cr2 = ClassicalRegister(2, "ca")
+        circuit = QuantumCircuit(qr, cr, cr2)
+        circuit.h(0)
+        circuit.h(3)
+        circuit.x(1)
+        with circuit.if_test((cr, 10)):
+            circuit.x(3)
+
+        expected = "\n".join(
+            [
+                "                                  ",
+                " q_2: ────────────────────────────",
+                "      ┌───┐┌────── ┌───┐ ───────┐ ",
+                " q_3: ┤ H ├┤ If-0  ┤ X ├  End-0 ├─",
+                "      ├───┤└──╥─── └───┘ ───────┘ ",
+                " q_0: ┤ H ├───╫───────────────────",
+                "      ├───┤   ║                   ",
+                " q_1: ┤ X ├───╫───────────────────",
+                "      └───┘┌──╨──┐                ",
+                " c: 4/═════╡ 0xa ╞════════════════",
+                "           └─────┘                ",
+                "ca: 2/════════════════════════════",
+                "                                  ",
+            ]
+        )
+        result = visualization.circuit_drawer(circuit, output="text", wire_order=[2, 3, 0, 1])
+        self.assertEqual(result.__str__(), expected)
+
+    def test_wire_order_cregbundle(self):
+        """Test wire_order with cregbundle=True
+        See: https://github.com/Qiskit/qiskit-terra/pull/9893"""
+        qr = QuantumRegister(4, "q")
+        cr = ClassicalRegister(4, "c")
+        cr2 = ClassicalRegister(2, "ca")
+        circuit = QuantumCircuit(qr, cr, cr2)
+        circuit.h(0)
+        circuit.h(3)
+        circuit.x(1)
+        with circuit.if_test((cr, 10)):
+            circuit.x(3)
+
+        expected = "\n".join(
+            [
+                "                                  ",
+                " q_2: ────────────────────────────",
+                "      ┌───┐┌────── ┌───┐ ───────┐ ",
+                " q_3: ┤ H ├┤ If-0  ┤ X ├  End-0 ├─",
+                "      ├───┤└──╥─── └───┘ ───────┘ ",
+                " q_0: ┤ H ├───╫───────────────────",
+                "      ├───┤   ║                   ",
+                " q_1: ┤ X ├───╫───────────────────",
+                "      └───┘┌──╨──┐                ",
+                " c: 4/═════╡ 0xa ╞════════════════",
+                "           └─────┘                ",
+                "ca: 2/════════════════════════════",
+                "                                  ",
+            ]
+        )
+        result = visualization.circuit_drawer(
+            circuit, output="text", wire_order=[2, 3, 0, 1], cregbundle=True
+        )
+        self.assertEqual(result.__str__(), expected)
 
     def test_wire_order_raises(self):
         """Verify we raise if using wire order incorrectly."""
