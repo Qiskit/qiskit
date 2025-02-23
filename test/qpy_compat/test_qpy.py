@@ -820,6 +820,40 @@ def generate_v12_expr():
     return [index, shift]
 
 
+def generate_v14_expr():
+    """Circuits that contain expressions new in QPY v14, including constant types
+    and floats."""
+    from qiskit.circuit.classical import expr, types
+    from qiskit.circuit import Duration
+
+    const_expr = QuantumCircuit(name="const_expr")
+    with const_expr.if_test(
+        expr.not_equal(
+            expr.equal(expr.lift(1, types.Uint(1, const=True)), 1),
+            expr.lift(False, types.Bool(const=True)),
+        )
+    ):
+        pass
+
+    float_expr = QuantumCircuit(name="float_expr")
+    with float_expr.if_test(expr.less(1.0, 2.0)):
+        pass
+
+    duration_expr = QuantumCircuit(name="duration_expr")
+    with duration_expr.if_test(
+        expr.logic_and(
+            expr.logic_and(
+                expr.equal(Duration.dt(1), Duration.ns(2)),
+                expr.equal(Duration.us(3), Duration.ms(4)),
+            ),
+            expr.equal(Duration.s(5), Duration.dt(6)),
+        )
+    ):
+        pass
+
+    return [const_expr, float_expr, duration_expr]
+
+
 def generate_circuits(version_parts):
     """Generate reference circuits."""
     output_circuits = {
@@ -871,6 +905,8 @@ def generate_circuits(version_parts):
     if version_parts >= (1, 1, 0):
         output_circuits["standalone_vars.qpy"] = generate_standalone_var()
         output_circuits["v12_expr.qpy"] = generate_v12_expr()
+    if version_parts >= (2, 0, 0):
+        output_circuits["v14_expr.qpy"] = generate_v14_expr()
     return output_circuits
 
 

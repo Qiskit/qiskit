@@ -78,7 +78,9 @@ class BasicPrinter:
         ast.QuantumGateModifierName.POW: "pow",
     }
 
-    _FLOAT_WIDTH_LOOKUP = {type: str(type.value) for type in ast.FloatType}
+    _FLOAT_TYPE_LOOKUP = {ast.FloatType.UNSPECIFIED: "float"} | {
+        type: f"float[{type.value}]" for type in ast.FloatType if type.value > 0
+    }
 
     # The visitor names include the class names, so they mix snake_case with PascalCase.
     # pylint: disable=invalid-name
@@ -205,10 +207,16 @@ class BasicPrinter:
         self._write_statement(f'defcalgrammar "{node.name}"')
 
     def _visit_FloatType(self, node: ast.FloatType) -> None:
-        self.stream.write(f"float[{self._FLOAT_WIDTH_LOOKUP[node]}]")
+        self.stream.write(self._FLOAT_TYPE_LOOKUP[node])
 
     def _visit_BoolType(self, _node: ast.BoolType) -> None:
         self.stream.write("bool")
+
+    def _visit_DurationType(self, _node: ast.DurationType) -> None:
+        self.stream.write("duration")
+
+    def _visit_StretchType(self, _node: ast.StretchType) -> None:
+        self.stream.write("stretch")
 
     def _visit_IntType(self, node: ast.IntType) -> None:
         self.stream.write("int")
@@ -280,6 +288,9 @@ class BasicPrinter:
         self._end_statement()
 
     def _visit_IntegerLiteral(self, node: ast.IntegerLiteral) -> None:
+        self.stream.write(str(node.value))
+
+    def _visit_FloatLiteral(self, node: ast.FloatLiteral) -> None:
         self.stream.write(str(node.value))
 
     def _visit_BooleanLiteral(self, node: ast.BooleanLiteral):

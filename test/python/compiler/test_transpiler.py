@@ -41,6 +41,7 @@ from qiskit.circuit import (
     Qubit,
     SwitchCaseOp,
     WhileLoopOp,
+    Duration,
 )
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.annotated_operation import (
@@ -2167,13 +2168,26 @@ class TestPostTranspileIntegration(QiskitTestCase):
             base.append(CustomCX(), [2, 4])
             base.ry(a, 4)
             base.measure(4, 2)
-        with base.switch(expr.bit_and(base.cregs[0], 2)) as case_:
+        # Use a const Uint RHS to make sure we QPY can serialize it.
+        with base.switch(expr.bit_and(base.cregs[0], expr.lift(2, try_const=True))) as case_:
             with case_(0, 1):
                 base.cz(3, 5)
             with case_(case_.DEFAULT):
                 base.cz(1, 4)
                 base.append(CustomCX(), [2, 4])
                 base.append(CustomCX(), [3, 4])
+        with base.if_test(expr.less(1.0, 2.0)):
+            base.cx(0, 1)
+        with base.if_test(
+            expr.logic_and(
+                expr.logic_and(
+                    expr.equal(Duration.dt(1), Duration.ns(2)),
+                    expr.equal(Duration.us(3), Duration.ms(4)),
+                ),
+                expr.equal(Duration.s(5), Duration.dt(6)),
+            )
+        ):
+            base.cx(0, 1)
         return base
 
     def _standalone_var_circuit(self):
