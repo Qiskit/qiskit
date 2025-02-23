@@ -45,6 +45,14 @@ class TestStoreInstruction(QiskitTestCase):
         self.assertEqual(constructed.lvalue, lvalue)
         self.assertEqual(constructed.rvalue, expr.Cast(rvalue, types.Bool(), implicit=True))
 
+    def test_implicit_const_cast(self):
+        lvalue = expr.Var.new("a", types.Bool())
+        rvalue = expr.Value("b", types.Bool(const=True))
+        constructed = Store(lvalue, rvalue)
+        self.assertIsInstance(constructed, Store)
+        self.assertEqual(constructed.lvalue, lvalue)
+        self.assertEqual(constructed.rvalue, expr.Cast(rvalue, types.Bool(), implicit=True))
+
     def test_rejects_non_lvalue(self):
         not_an_lvalue = expr.logic_and(
             expr.Var.new("a", types.Bool()), expr.Var.new("b", types.Bool())
@@ -169,6 +177,22 @@ class TestStoreCircuit(QiskitTestCase):
         self.assertEqual(qc.data[-1].operation, Store(a, expr.Value(1, a.type)))
         qc.store(a, 255)
         self.assertEqual(qc.data[-1].operation, Store(a, expr.Value(255, a.type)))
+
+    def test_implicitly_casts_const_scalars(self):
+        a = expr.Var.new("a", types.Uint(8))
+        qc = QuantumCircuit(inputs=[a])
+        qc.store(a, expr.lift(1, types.Uint(8, const=True)))
+        self.assertEqual(
+            qc.data[-1].operation,
+            Store(a, expr.Cast(expr.Value(1, types.Uint(8, const=True)), a.type, implicit=True)),
+        )
+
+    def test_rejects_const_target(self):
+        qc = QuantumCircuit()
+        with self.assertRaisesRegex(CircuitError, "const.*not supported"):
+            qc.store(expr.Var.new("a", types.Bool(const=True)), True)
+        with self.assertRaisesRegex(CircuitError, "const.*not supported"):
+            qc.store(expr.Var.new("a", types.Bool(const=True)), 1)
 
     def test_does_not_widen_bool_literal(self):
         # `bool` is a subclass of `int` in Python (except some arithmetic operations have different

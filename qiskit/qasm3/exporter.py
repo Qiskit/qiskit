@@ -30,6 +30,7 @@ from qiskit.circuit import (
     Barrier,
     CircuitInstruction,
     Clbit,
+    Duration,
     Gate,
     Measure,
     Parameter,
@@ -1262,6 +1263,12 @@ def _build_ast_type(type_: types.Type) -> ast.ClassicalType:
         return ast.BoolType()
     if type_.kind is types.Uint:
         return ast.UintType(type_.width)
+    if type_.kind is types.Float:
+        return ast.FloatType.UNSPECIFIED
+    if type_.kind is types.Duration:
+        return ast.DurationType()
+    if type_.kind is types.Stretch:
+        return ast.StretchType()
     raise RuntimeError(f"unhandled expr type '{type_}'")
 
 
@@ -1278,11 +1285,25 @@ class _ExprBuilder(expr.ExprVisitor[ast.Expression]):
     def visit_var(self, node, /):
         return self.lookup(node) if node.standalone else self.lookup(node.var)
 
+    # pylint: disable=too-many-return-statements
     def visit_value(self, node, /):
         if node.type.kind is types.Bool:
             return ast.BooleanLiteral(node.value)
         if node.type.kind is types.Uint:
             return ast.IntegerLiteral(node.value)
+        if node.type.kind is types.Float:
+            return ast.FloatLiteral(node.value)
+        if node.type.kind is types.Duration:
+            if isinstance(node.value, Duration.dt):
+                return ast.DurationLiteral(node.value[0], ast.DurationUnit.SAMPLE)
+            if isinstance(node.value, Duration.ns):
+                return ast.DurationLiteral(node.value[0], ast.DurationUnit.NANOSECOND)
+            if isinstance(node.value, Duration.us):
+                return ast.DurationLiteral(node.value[0], ast.DurationUnit.MICROSECOND)
+            if isinstance(node.value, Duration.ms):
+                return ast.DurationLiteral(node.value[0], ast.DurationUnit.MILLISECOND)
+            if isinstance(node.value, Duration.s):
+                return ast.DurationLiteral(node.value[0], ast.DurationUnit.SECOND)
         raise RuntimeError(f"unhandled Value type '{node}'")
 
     def visit_cast(self, node, /):
