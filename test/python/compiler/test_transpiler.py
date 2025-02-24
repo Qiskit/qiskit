@@ -1651,7 +1651,6 @@ class TestTranspile(QiskitTestCase):
         metadata = {"experiment_id": "1234", "execution_number": 4}
         name = "my circuit"
         circuit = QuantumCircuit(2, metadata=metadata.copy(), name=name)
-        circuit.name = "my circuit"
         circuit.h(0)
         circuit.cx(0, 1)
 
