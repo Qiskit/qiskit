@@ -317,6 +317,10 @@ impl HighLevelSynthesisData {
         &self.hls_plugin_manager
     }
 
+    fn get_hls_op_names(&self) -> Vec<String> {
+        self.hls_op_names.clone()
+    }
+
     fn get_coupling_map(&self) -> &Py<PyAny> {
         &self.coupling_map
     }
@@ -325,14 +329,37 @@ impl HighLevelSynthesisData {
         self.target.as_ref().map(|target| target.clone_ref(py))
     }
 
+    fn get_equivalence_library(&self, py: Python) -> Option<Py<EquivalenceLibrary>> {
+        self.equivalence_library
+            .as_ref()
+            .map(|eqlib| eqlib.clone_ref(py))
+    }
+
+    fn get_device_insts(&self) -> HashSet<String> {
+        self.device_insts.clone()
+    }
+
     fn get_use_qubit_indices(&self) -> bool {
         self.use_qubit_indices
     }
 
+    fn get_min_qubits(&self) -> usize {
+        self.min_qubits
+    }
+
+    fn get_unroll_definitions(&self) -> bool {
+        self.unroll_definitions
+    }
+
+    fn set_device_insts(&mut self, device_insts: HashSet<String>) {
+        self.device_insts = device_insts;
+    }
+
     fn __str__(&self) -> String {
-        let mut out = String::from("HighLevelSynthesisData: ");
-        out.push_str(&self.min_qubits.to_string());
-        out
+        format!(
+            "HighLevelSynthesisData(hls_config: {:?}, hls_plugin_manager: {:?}, hls_op_names: {:?}, coupling_map: {:?}, target: {:?},  equivalence_library: {:?}, device_insts: {:?}, use_qubit_indices: {:?}, min_qubits: {:?}, unroll_definitions: {:?})",
+            self.hls_config, self.hls_plugin_manager, self.hls_op_names, self.coupling_map, self.target, self.equivalence_library, self.device_insts,  self.use_qubit_indices, self.min_qubits, self.unroll_definitions
+        )
     }
 }
 
@@ -867,7 +894,7 @@ fn synthesize_op_using_plugins(
 
 /// Synthesizes an operation.
 ///
-/// This function is called by the default plugin for annotated operations to
+/// This function is currently called by the default plugin for annotated operations to
 /// synthesize the base operation.
 #[pyfunction]
 #[pyo3(signature = (py_op, input_qubits, data, tracker))]
@@ -879,6 +906,20 @@ fn py_synthesize_operation(
     tracker: &Bound<QubitTracker>,
 ) -> PyResult<Option<(CircuitData, Vec<usize>)>> {
     let op: OperationFromPython = py_op.extract()?;
+
+    // Check if the operation can be skipped.
+    if definitely_skip_op(
+        py,
+        &data,
+        &op.operation,
+        &input_qubits
+            .iter()
+            .map(|q| Qubit(*q as u32))
+            .collect::<Vec<Qubit>>(),
+    ) {
+        return Ok(None);
+    }
+
     synthesize_operation(
         py,
         data,
