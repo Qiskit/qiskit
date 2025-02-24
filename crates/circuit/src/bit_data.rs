@@ -252,9 +252,8 @@ where
             .map(|i| <BitType as From<T>>::from(i) as usize)
             .collect();
         indices_sorted.sort();
-
+        self.cached.take();
         for index in indices_sorted.into_iter().rev() {
-            self.cached.take();
             let bit = self.bits.remove(index);
             self.indices.remove(&bit);
         }

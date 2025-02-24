@@ -1376,14 +1376,21 @@ def _format(operand):
             }
         }
 
-        for creg in valid_regs {
-            self.cregs.remove(creg.name());
-
-            for (index, bit) in creg.bits().enumerate() {
+        // Use an iterator that will remove the registers from the circuit as it iterates.
+        let valid_names = valid_regs.iter().map(|reg| {
+            for (index, bit) in reg.bits().enumerate() {
                 let bit_position = self.clbit_locations.get_mut(&bit).unwrap();
-                bit_position.remove_register(&creg, index);
+                bit_position.remove_register(reg, index);
             }
-        }
+            reg.name().to_string()
+        });
+        self.cregs.remove_registers(valid_names);
+        // for creg in valid_regs {
+        //     for (index, bit) in creg.bits().enumerate() {
+        //         let bit_position = self.clbit_locations.get_mut(&bit).unwrap();
+        //         bit_position.remove_register(&creg, index);
+        //     }
+        // }
         Ok(())
     }
 
@@ -1541,14 +1548,15 @@ def _format(operand):
             }
         }
 
-        for qreg in valid_regs {
-            self.qregs.remove(qreg.name());
-
-            for (index, bit) in qreg.bits().enumerate() {
+        // Use an iterator that will remove the registers from the circuit as it iterates.
+        let valid_names = valid_regs.iter().map(|reg| {
+            for (index, bit) in reg.bits().enumerate() {
                 let bit_position = self.qubit_locations.get_mut(&bit).unwrap();
-                bit_position.remove_register(&qreg, index);
+                bit_position.remove_register(reg, index);
             }
-        }
+            reg.name().to_string()
+        });
+        self.qregs.remove_registers(valid_names);
         Ok(())
     }
 
@@ -2013,11 +2021,7 @@ def _format(operand):
 
         let variable_mapper = PyVariableMapper::new(
             py,
-            dag.cregs
-                .registers()
-                .cloned()
-                .collect::<Vec<_>>()
-                .into_bound_py_any(py)?,
+            dag.cregs.registers().to_vec().into_bound_py_any(py)?,
             Some(edge_map.clone()),
             None,
             Some(wrap_pyfunction!(reject_new_register, py)?.into_py_any(py)?),
@@ -2503,7 +2507,7 @@ def _format(operand):
         if self_qregs.len() != other_qregs.len() {
             return Ok(false);
         }
-        for (regname, self_bits) in self_qregs.map(|reg| (reg.name(), reg)) {
+        for (regname, self_bits) in self_qregs.iter().map(|reg| (reg.name(), reg)) {
             let self_bits: Vec<ShareableQubit> = self_bits.bits().collect();
             let other_bits: Vec<ShareableQubit> = match other_qregs.get(regname) {
                 Some(bits) => bits.bits().collect(),
@@ -2525,7 +2529,7 @@ def _format(operand):
             return Ok(false);
         }
 
-        for (regname, self_bits) in self_cregs.map(|reg| (reg.name(), reg)) {
+        for (regname, self_bits) in self_cregs.iter().map(|reg| (reg.name(), reg)) {
             let self_bits: Vec<ShareableClbit> = self_bits.bits().collect();
             let other_bits: Vec<ShareableClbit> = match other_cregs.get(regname) {
                 Some(bits) => bits.bits().collect(),
@@ -3336,11 +3340,7 @@ def _format(operand):
 
         let variable_mapper = PyVariableMapper::new(
             py,
-            self.cregs
-                .registers()
-                .cloned()
-                .collect::<Vec<_>>()
-                .into_bound_py_any(py)?,
+            self.cregs.registers().to_vec().into_bound_py_any(py)?,
             Some(wire_map_dict),
             Some(bound_var_map.clone()),
             Some(add_new_register),
@@ -4910,13 +4910,13 @@ def _format(operand):
 impl DAGCircuit {
     /// Returns an immutable view of the [QuantumRegister] instances in the circuit.
     #[inline(always)]
-    pub fn qregs(&self) -> impl ExactSizeIterator<Item = &QuantumRegister> {
+    pub fn qregs(&self) -> &[QuantumRegister] {
         self.qregs.registers()
     }
 
     /// Returns an immutable view of the [ClassicalRegister] instances in the circuit.
     #[inline(always)]
-    pub fn cregs(&self) -> impl ExactSizeIterator<Item = &ClassicalRegister> {
+    pub fn cregs(&self) -> &[ClassicalRegister] {
         self.cregs.registers()
     }
 

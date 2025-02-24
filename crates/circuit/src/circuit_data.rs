@@ -191,8 +191,8 @@ impl CircuitData {
         let state = {
             let borrowed = self_.borrow();
             (
-                borrowed.qregs.registers().cloned().collect::<Vec<_>>(),
-                borrowed.cregs.registers().cloned().collect::<Vec<_>>(),
+                borrowed.qregs.registers().to_vec(),
+                borrowed.cregs.registers().to_vec(),
                 borrowed.qubit_indices.clone(),
                 borrowed.clbit_indices.clone(),
             )
@@ -1588,12 +1588,12 @@ impl CircuitData {
     }
 
     /// Returns an immutable view of the [QuantumRegister] instances in the circuit.
-    pub fn qregs(&self) -> impl ExactSizeIterator<Item = &QuantumRegister> {
+    pub fn qregs(&self) -> &[QuantumRegister] {
         self.qregs.registers()
     }
 
     /// Returns an immutable view of the [ClassicalRegister] instances in the circuit.
-    pub fn cregs(&self) -> impl ExactSizeIterator<Item = &ClassicalRegister> {
+    pub fn cregs(&self) -> &[ClassicalRegister] {
         self.cregs.registers()
     }
 
