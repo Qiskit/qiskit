@@ -30,6 +30,7 @@ from qiskit.circuit import (
     Barrier,
     CircuitInstruction,
     Clbit,
+    Duration,
     Gate,
     Measure,
     Parameter,
@@ -43,6 +44,7 @@ from qiskit.circuit import (
 from qiskit.circuit.bit import Bit
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.controlflow import (
+    BoxOp,
     IfElseOp,
     ForLoopOp,
     WhileLoopOp,
@@ -968,6 +970,8 @@ class QASM3Builder:
                     statements.append(self.build_if_statement(instruction))
                 elif isinstance(instruction.operation, SwitchCaseOp):
                     statements.extend(self.build_switch_statement(instruction))
+                elif isinstance(instruction.operation, BoxOp):
+                    statements.append(self.build_box(instruction))
                 else:
                     raise RuntimeError(f"unhandled control-flow construct: {instruction.operation}")
                 continue
@@ -1085,6 +1089,15 @@ class QASM3Builder:
             ast.SwitchStatement(target, cases, default=default),
         ]
 
+    def build_box(self, instruction: CircuitInstruction) -> ast.BoxStatement:
+        """Build a :class:`.BoxOp` into a :class:`.ast.BoxStatement`."""
+        duration = self.build_duration(instruction.operation.duration, instruction.operation.unit)
+        body_circuit = instruction.operation.blocks[0]
+        with self.new_scope(body_circuit, instruction.qubits, instruction.clbits):
+            # TODO: handle no-op qubits (see https://github.com/openqasm/openqasm/issues/584).
+            body = ast.ProgramBlock(self.build_current_scope())
+        return ast.BoxStatement(body, duration)
+
     def build_while_loop(self, instruction: CircuitInstruction) -> ast.WhileLoopStatement:
         """Build a :obj:`.WhileLoopOp` into a :obj:`.ast.WhileLoopStatement`."""
         condition = self.build_expression(_lift_condition(instruction.operation.condition))
@@ -1134,19 +1147,25 @@ class QASM3Builder:
             raise QASM3ExporterError(
                 f"Found a delay instruction acting on classical bits: {instruction}"
             )
-        duration_value, unit = instruction.operation.duration, instruction.operation.unit
-        if unit == "ps":
-            duration = ast.DurationLiteral(1000 * duration_value, ast.DurationUnit.NANOSECOND)
-        else:
-            unit_map = {
-                "ns": ast.DurationUnit.NANOSECOND,
-                "us": ast.DurationUnit.MICROSECOND,
-                "ms": ast.DurationUnit.MILLISECOND,
-                "s": ast.DurationUnit.SECOND,
-                "dt": ast.DurationUnit.SAMPLE,
-            }
-            duration = ast.DurationLiteral(duration_value, unit_map[unit])
+        duration = self.build_duration(instruction.operation.duration, instruction.operation.unit)
         return ast.QuantumDelay(duration, [self._lookup_bit(qubit) for qubit in instruction.qubits])
+
+    def build_duration(self, duration, unit) -> ast.Expression | None:
+        """Build the expression of a given duration (if not ``None``)."""
+        if duration is None:
+            return None
+        if unit == "expr":
+            return self.build_expression(duration)
+        if unit == "ps":
+            return ast.DurationLiteral(1000 * duration, ast.DurationUnit.NANOSECOND)
+        unit_map = {
+            "ns": ast.DurationUnit.NANOSECOND,
+            "us": ast.DurationUnit.MICROSECOND,
+            "ms": ast.DurationUnit.MILLISECOND,
+            "s": ast.DurationUnit.SECOND,
+            "dt": ast.DurationUnit.SAMPLE,
+        }
+        return ast.DurationLiteral(duration, unit_map[unit])
 
     def build_integer(self, value) -> ast.IntegerLiteral:
         """Build an integer literal, raising a :obj:`.QASM3ExporterError` if the input is not
@@ -1262,6 +1281,12 @@ def _build_ast_type(type_: types.Type) -> ast.ClassicalType:
         return ast.BoolType()
     if type_.kind is types.Uint:
         return ast.UintType(type_.width)
+    if type_.kind is types.Float:
+        return ast.FloatType.UNSPECIFIED
+    if type_.kind is types.Duration:
+        return ast.DurationType()
+    if type_.kind is types.Stretch:
+        return ast.StretchType()
     raise RuntimeError(f"unhandled expr type '{type_}'")
 
 
@@ -1278,11 +1303,26 @@ class _ExprBuilder(expr.ExprVisitor[ast.Expression]):
     def visit_var(self, node, /):
         return self.lookup(node) if node.standalone else self.lookup(node.var)
 
+    # pylint: disable=R0911
     def visit_value(self, node, /):
         if node.type.kind is types.Bool:
             return ast.BooleanLiteral(node.value)
         if node.type.kind is types.Uint:
             return ast.IntegerLiteral(node.value)
+        if node.type.kind is types.Float:
+            return ast.FloatLiteral(node.value)
+        if node.type.kind is types.Duration:
+            match node.value:
+                case Duration.dt(dt):
+                    return ast.DurationLiteral(dt, ast.DurationUnit.SAMPLE)
+                case Duration.ns(ns):
+                    return ast.DurationLiteral(ns, ast.DurationUnit.NANOSECOND)
+                case Duration.us(us):
+                    return ast.DurationLiteral(us, ast.DurationUnit.MICROSECOND)
+                case Duration.ms(ms):
+                    return ast.DurationLiteral(ms, ast.DurationUnit.MILLISECOND)
+                case Duration.s(sec):
+                    return ast.DurationLiteral(sec, ast.DurationUnit.SECOND)
         raise RuntimeError(f"unhandled Value type '{node}'")
 
     def visit_cast(self, node, /):

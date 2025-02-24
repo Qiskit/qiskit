@@ -298,13 +298,14 @@ pub enum DelayUnit {
     MS,
     S,
     DT,
+    EXPR,
 }
 
 unsafe impl ::bytemuck::CheckedBitPattern for DelayUnit {
     type Bits = u8;
 
     fn is_valid_bit_pattern(bits: &Self::Bits) -> bool {
-        *bits < 6
+        *bits < 7
     }
 }
 unsafe impl ::bytemuck::NoUninit for DelayUnit {}
@@ -321,6 +322,7 @@ impl fmt::Display for DelayUnit {
                 DelayUnit::MS => "ms",
                 DelayUnit::S => "s",
                 DelayUnit::DT => "dt",
+                DelayUnit::EXPR => "expr",
             }
         )
     }
@@ -336,6 +338,7 @@ impl<'py> FromPyObject<'py> for DelayUnit {
             "ms" => DelayUnit::MS,
             "s" => DelayUnit::S,
             "dt" => DelayUnit::DT,
+            "expr" => DelayUnit::EXPR,
             unknown_unit => {
                 return Err(PyValueError::new_err(format!(
                     "Unit '{}' is invalid.",

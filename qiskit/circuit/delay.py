@@ -14,6 +14,8 @@
 Delay instruction (for circuit module).
 """
 import numpy as np
+
+from qiskit.circuit.classical import expr, types
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.gate import Gate
@@ -29,20 +31,46 @@ class Delay(Instruction):
 
     _standard_instruction_type = StandardInstructionType.Delay
 
-    def __init__(self, duration, unit="dt"):
+    def __init__(self, duration, unit=None):
         """
         Args:
-            duration: the length of time of the duration.  Given in units of ``unit``.
-            unit: the unit of the duration.  Must be ``"dt"`` or an SI-prefixed seconds unit.
+            duration: the length of time of the duration. If this is an
+                :class:`~.expr.Expr`, it must be of type :class:`~.types.Duration`
+                or :class:`~.types.Stretch` and the ``unit`` parameter must
+                not be specified.
+            unit: the unit of the duration, if ``duration`` is a numeric
+                value. Must be ``"dt"`` or an SI-prefixed seconds unit.
+
+        Raises:
+            CircuitError: A ``duration`` expression was specified with a resolved
+                type that is not timing-based, or the ``unit`` was improperly specified.
         """
-        if unit not in {"s", "ms", "us", "ns", "ps", "dt"}:
-            raise CircuitError(f"Unknown unit {unit} is specified.")
         # Double underscore to differentiate from the private attribute in
         # `Instruction`. This can be changed to `_unit` in 2.0 after we
         # remove `unit` and `duration` from the standard instruction model
         # as it only will exist in `Delay` after that point.
-        self.__unit = unit
+        duration, self.__unit = self._validate_arguments(duration, unit)
         super().__init__("delay", 1, 0, params=[duration])
+
+    @staticmethod
+    def _validate_arguments(duration, unit):
+        # This method is a centralization of the unit-handling logic, so used elsewhere in Qiskit
+        # (e.g. in `BoxOp`).
+        if isinstance(duration, expr.Expr):
+            if unit is not None and unit != "expr":
+                raise CircuitError(
+                    "Argument 'unit' must not be specified for a duration expression."
+                )
+            if duration.type.kind not in (types.Duration, types.Stretch):
+                raise CircuitError(
+                    f"Expression of type '{duration.type}' is not valid for 'duration'."
+                )
+            unit = "expr"
+        elif unit is None:
+            unit = "dt"
+        elif unit not in {"s", "ms", "us", "ns", "ps", "dt"}:
+            raise CircuitError(f"Unknown unit {unit} is specified.")
+        return duration, unit
 
     broadcast_arguments = Gate.broadcast_arguments
 
@@ -94,7 +122,7 @@ class Delay(Instruction):
         return f"{self.__class__.__name__}(duration={self.params[0]}[unit={self.unit}])"
 
     def validate_parameter(self, parameter):
-        """Delay parameter (i.e. duration) must be int, float or ParameterExpression."""
+        """Delay parameter (i.e. duration) must be Expr, int, float or ParameterExpression."""
         if isinstance(parameter, int):
             if parameter < 0:
                 raise CircuitError(
@@ -111,6 +139,10 @@ class Delay(Instruction):
                 if parameter != parameter_int:
                     raise CircuitError("Integer duration is expected for 'dt' unit.")
                 return parameter_int
+            return parameter
+        elif isinstance(parameter, expr.Expr):
+            if parameter.type.kind not in (types.Duration, types.Stretch):
+                raise CircuitError(f"Expression duration of type '{parameter.type}' is not valid.")
             return parameter
         elif isinstance(parameter, ParameterExpression):
             if len(parameter.parameters) > 0:

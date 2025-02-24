@@ -363,8 +363,11 @@ def _read_instruction(
 
     if instruction.label_size <= 0:
         label = None
-    if gate_name in {"IfElseOp", "WhileLoopOp"}:
+    if gate_name in ("IfElseOp", "WhileLoopOp"):
         gate = gate_class(condition, *params, label=label)
+    elif gate_name == "BoxOp":
+        *params, duration = params
+        gate = gate_class(*params, label=label, duration=duration)
     elif version >= 5 and issubclass(gate_class, ControlledGate):
         if gate_name in {
             "MCPhaseGate",
@@ -795,6 +798,11 @@ def _write_instruction(
         instruction_params = [
             instruction.operation.target,
             tuple(instruction.operation.cases_specifier()),
+        ]
+    elif isinstance(instruction.operation, controlflow.BoxOp):
+        instruction_params = [
+            instruction.operation.blocks[0],
+            instruction.operation.duration,
         ]
     elif isinstance(instruction.operation, Clifford):
         instruction_params = [instruction.operation.tableau]
@@ -1257,7 +1265,7 @@ def write_circuit(
         file_obj.write(metadata_raw)
         # Write header payload
         file_obj.write(registers_raw)
-        standalone_var_indices = value.write_standalone_vars(file_obj, circuit)
+        standalone_var_indices = value.write_standalone_vars(file_obj, circuit, version)
     else:
         if circuit.num_vars:
             raise exceptions.UnsupportedFeatureForVersion(
@@ -1425,7 +1433,7 @@ def read_circuit(file_obj, version, metadata_deserializer=None, use_symengine=Fa
             "q": [Qubit() for _ in out_bits["q"]],
             "c": [Clbit() for _ in out_bits["c"]],
         }
-    var_segments, standalone_var_indices = value.read_standalone_vars(file_obj, num_vars)
+    var_segments, standalone_var_indices = value.read_standalone_vars(file_obj, num_vars, version)
     circ = QuantumCircuit(
         out_bits["q"],
         out_bits["c"],

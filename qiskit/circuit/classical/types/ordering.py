@@ -26,7 +26,7 @@ __all__ = [
 
 import enum
 
-from .types import Type, Bool, Uint
+from .types import Type, Bool, Duration, Float, Stretch, Uint
 
 
 # While the type system is simple, it's overkill to represent the complete partial ordering graph of
@@ -55,10 +55,6 @@ class Ordering(enum.Enum):
         return str(self)
 
 
-def _order_bool_bool(_a: Bool, _b: Bool, /) -> Ordering:
-    return Ordering.EQUAL
-
-
 def _order_uint_uint(left: Uint, right: Uint, /) -> Ordering:
     if left.width < right.width:
         return Ordering.LESS
@@ -68,8 +64,13 @@ def _order_uint_uint(left: Uint, right: Uint, /) -> Ordering:
 
 
 _ORDERERS = {
-    (Bool, Bool): _order_bool_bool,
+    (Bool, Bool): lambda _a, _b, /: Ordering.EQUAL,
     (Uint, Uint): _order_uint_uint,
+    (Float, Float): lambda _a, _b, /: Ordering.EQUAL,
+    (Duration, Duration): lambda _a, _b, /: Ordering.EQUAL,
+    (Duration, Stretch): lambda _a, _b, /: Ordering.LESS,
+    (Stretch, Stretch): lambda _a, _b, /: Ordering.EQUAL,
+    (Stretch, Duration): lambda _a, _b, /: Ordering.GREATER,
 }
 
 
@@ -83,14 +84,39 @@ def order(left: Type, right: Type, /) -> Ordering:
             >>> types.order(types.Uint(8), types.Uint(16))
             Ordering.LESS
 
+        Compare two :class:`Bool` types of differing const-ness::
+
+            >>> from qiskit.circuit.classical import types
+            >>> types.order(types.Bool(), types.Bool(const=True))
+            Ordering.GREATER
+
         Compare two types that have no ordering between them::
 
             >>> types.order(types.Uint(8), types.Bool())
             Ordering.NONE
+            >>> types.order(types.Uint(8), types.Uint(16, const=True))
+            Ordering.NONE
     """
     if (orderer := _ORDERERS.get((left.kind, right.kind))) is None:
         return Ordering.NONE
-    return orderer(left, right)
+    order_ = orderer(left, right)
+
+    # If the natural type ordering is equal (either one can represent both)
+    # but the types differ in const-ness, the non-const variant is greater.
+    # If one type is greater (and thus is the only type that can represent
+    # both) an ordering is only defined if that type is non-const or both
+    # types are const.
+    if left.const is True and right.const is False:
+        if order_ is Ordering.EQUAL:
+            return Ordering.LESS
+        if order_ is Ordering.GREATER:
+            return Ordering.NONE
+    if right.const is True and left.const is False:
+        if order_ is Ordering.EQUAL:
+            return Ordering.GREATER
+        if order_ is Ordering.LESS:
+            return Ordering.NONE
+    return order_
 
 
 def is_subtype(left: Type, right: Type, /, strict: bool = False) -> bool:
@@ -111,6 +137,8 @@ def is_subtype(left: Type, right: Type, /, strict: bool = False) -> bool:
             True
             >>> types.is_subtype(types.Bool(), types.Bool(), strict=True)
             False
+            >>> types.is_subtype(types.Bool(const=True), types.Bool(), strict=True)
+            True
     """
     order_ = order(left, right)
     return order_ is Ordering.LESS or (not strict and order_ is Ordering.EQUAL)
@@ -134,6 +162,8 @@ def is_supertype(left: Type, right: Type, /, strict: bool = False) -> bool:
             True
             >>> types.is_supertype(types.Bool(), types.Bool(), strict=True)
             False
+            >>> types.is_supertype(types.Bool(), types.Bool(const=True), strict=True)
+            True
     """
     order_ = order(left, right)
     return order_ is Ordering.GREATER or (not strict and order_ is Ordering.EQUAL)
@@ -195,8 +225,16 @@ def _uint_cast(from_: Uint, to_: Uint, /) -> CastKind:
 _ALLOWED_CASTS = {
     (Bool, Bool): lambda _a, _b, /: CastKind.EQUAL,
     (Bool, Uint): lambda _a, _b, /: CastKind.LOSSLESS,
+    (Bool, Float): lambda _a, _b, /: CastKind.LOSSLESS,
     (Uint, Bool): lambda _a, _b, /: CastKind.IMPLICIT,
     (Uint, Uint): _uint_cast,
+    (Uint, Float): lambda _a, _b, /: CastKind.DANGEROUS,
+    (Float, Float): lambda _a, _b, /: CastKind.EQUAL,
+    (Float, Uint): lambda _a, _b, /: CastKind.DANGEROUS,
+    (Float, Bool): lambda _a, _b, /: CastKind.DANGEROUS,
+    (Duration, Duration): lambda _a, _b, /: CastKind.EQUAL,
+    (Duration, Stretch): lambda _a, _b, /: CastKind.IMPLICIT,
+    (Stretch, Stretch): lambda _a, _b, /: CastKind.EQUAL,
 }
 
 
@@ -215,11 +253,20 @@ def cast_kind(from_: Type, to_: Type, /) -> CastKind:
             <CastKind.EQUAL: 1>
             >>> types.cast_kind(types.Uint(8), types.Bool())
             <CastKind.IMPLICIT: 2>
+            >>> types.cast_kind(types.Uint(8, const=True), types.Uint(8))
+            <CastKind.IMPLICIT: 2>
             >>> types.cast_kind(types.Bool(), types.Uint(8))
             <CastKind.LOSSLESS: 3>
             >>> types.cast_kind(types.Uint(16), types.Uint(8))
             <CastKind.DANGEROUS: 4>
     """
+    if to_.const is True and from_.const is False:
+        # We can't cast to a const type.
+        return CastKind.NONE
     if (coercer := _ALLOWED_CASTS.get((from_.kind, to_.kind))) is None:
         return CastKind.NONE
-    return coercer(from_, to_)
+    cast_kind_ = coercer(from_, to_)
+    if cast_kind_ is CastKind.EQUAL and to_.const != from_.const:
+        # We need an implicit cast to drop const.
+        return CastKind.IMPLICIT
+    return cast_kind_

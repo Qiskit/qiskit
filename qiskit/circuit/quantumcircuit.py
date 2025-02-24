@@ -54,6 +54,7 @@ from . import _classical_resource_map
 from .controlflow import ControlFlowOp, _builder_utils
 from .controlflow.builder import CircuitScopeInterface, ControlFlowBuilderBlock
 from .controlflow.break_loop import BreakLoopOp, BreakLoopPlaceholder
+from .controlflow.box import BoxOp, BoxContext
 from .controlflow.continue_loop import ContinueLoopOp, ContinueLoopPlaceholder
 from .controlflow.for_loop import ForLoopOp, ForLoopContext
 from .controlflow.if_else import IfElseOp, IfContext
@@ -747,13 +748,14 @@ class QuantumCircuit:
     ==============================  ================================================================
     :class:`QuantumCircuit` method  Control-flow instruction
     ==============================  ================================================================
-    :meth:`if_test`                 :class:`.IfElseOp` with only a ``True`` body.
-    :meth:`if_else`                 :class:`.IfElseOp` with both ``True`` and ``False`` bodies.
-    :meth:`while_loop`              :class:`.WhileLoopOp`.
-    :meth:`switch`                  :class:`.SwitchCaseOp`.
-    :meth:`for_loop`                :class:`.ForLoopOp`.
-    :meth:`break_loop`              :class:`.BreakLoopOp`.
-    :meth:`continue_loop`           :class:`.ContinueLoopOp`.
+    :meth:`if_test`                 :class:`.IfElseOp` with only a ``True`` body
+    :meth:`if_else`                 :class:`.IfElseOp` with both ``True`` and ``False`` bodies
+    :meth:`while_loop`              :class:`.WhileLoopOp`
+    :meth:`switch`                  :class:`.SwitchCaseOp`
+    :meth:`for_loop`                :class:`.ForLoopOp`
+    :meth:`box`                     :class:`.BoxOp`
+    :meth:`break_loop`              :class:`.BreakLoopOp`
+    :meth:`continue_loop`           :class:`.ContinueLoopOp`
     ==============================  ================================================================
 
     :class:`QuantumCircuit` has corresponding methods for all of the control-flow operations that
@@ -779,6 +781,7 @@ class QuantumCircuit:
     ..
         TODO: expand the examples of the builder interface.
 
+    .. automethod:: box
     .. automethod:: break_loop
     .. automethod:: continue_loop
     .. automethod:: for_loop
@@ -1022,7 +1025,7 @@ class QuantumCircuit:
                 :meth:`QuantumCircuit.add_input`.  The variables given in this argument will be
                 passed directly to :meth:`add_input`.  A circuit cannot have both ``inputs`` and
                 ``captures``.
-            captures: any variables that that this circuit scope should capture from a containing
+            captures: any variables that this circuit scope should capture from a containing
                 scope.  The variables given here will be passed directly to :meth:`add_capture`.  A
                 circuit cannot have both ``inputs`` and ``captures``.
             declarations: any variables that this circuit should declare and initialize immediately.
@@ -2749,6 +2752,31 @@ class QuantumCircuit:
             raise CircuitError(f"cannot add '{var}' as its name shadows the existing '{previous}'")
         return var
 
+    def add_stretch(self, name_or_var: str | expr.Var) -> expr.Var:
+        """Declares a new stretch variable scoped to this circuit.
+
+        Args:
+            name_or_var: either a string of the stretch variable name, or an existing instance of
+                :class:`~.expr.Var` to re-use.  Variables cannot shadow names that are already in
+                use within the circuit. The type of the variable must be
+                :class:`~.types.Stretch`.
+        Returns:
+            The created variable.  If a :class:`~.expr.Var` instance was given, the exact same
+            object will be returned.
+        Raises:
+            CircuitError: if the stretch variable cannot be created due to shadowing an existing
+                variable, or the provided :class:`~.expr.Var` is not typed as a
+                :class:`~.types.Stretch`.
+        """
+        if isinstance(name_or_var, str):
+            var = expr.Var.new(name_or_var, types.Stretch())
+        elif name_or_var.type.kind is not types.Stretch:
+            raise CircuitError(f"cannot add stretch variable of type {name_or_var.type}")
+        else:
+            var = name_or_var
+        self._current_scope().add_uninitialized_var(var)
+        return var
+
     def add_var(self, name_or_var: str | expr.Var, /, initial: typing.Any) -> expr.Var:
         """Add a classical variable with automatic storage and scope to this circuit.
 
@@ -2758,13 +2786,14 @@ class QuantumCircuit:
 
         Args:
             name_or_var: either a string of the variable name, or an existing instance of
-                :class:`~.expr.Var` to re-use.  Variables cannot shadow names that are already in
-                use within the circuit.
+                a non-const-typed :class:`~.expr.Var` to re-use.  Variables cannot shadow names
+                that are already in use within the circuit.
             initial: the value to initialize this variable with.  If the first argument was given
                 as a string name, the type of the resulting variable is inferred from the initial
                 expression; to control this more manually, either use :meth:`.Var.new` to manually
                 construct a new variable with the desired type, or use :func:`.expr.cast` to cast
-                the initializer to the desired type.
+                the initializer to the desired type. If a const-typed expression is provided, it
+                will be automatically cast to its non-const counterpart.
 
                 This must be either a :class:`~.expr.Expr` node, or a value that can be lifted to
                 one using :class:`.expr.lift`.
@@ -2774,7 +2803,8 @@ class QuantumCircuit:
             object will be returned.
 
         Raises:
-            CircuitError: if the variable cannot be created due to shadowing an existing variable.
+            CircuitError: if the variable cannot be created due to shadowing an existing variable
+                or a const variable was specified for ``name_or_var``.
 
         Examples:
             Define a new variable given just a name and an initializer expression::
@@ -2815,17 +2845,18 @@ class QuantumCircuit:
         # Validate the initializer first to catch cases where the variable to be declared is being
         # used in the initializer.
         circuit_scope = self._current_scope()
-        # Convenience method to widen Python integer literals to the right width during the initial
-        # lift, if the type is already known via the variable.
-        if (
-            isinstance(name_or_var, expr.Var)
-            and name_or_var.type.kind is types.Uint
-            and isinstance(initial, int)
-            and not isinstance(initial, bool)
-        ):
-            coerce_type = name_or_var.type
-        else:
-            coerce_type = None
+        coerce_type = None
+        if isinstance(name_or_var, expr.Var):
+            if name_or_var.type.const:
+                raise CircuitError("const variables are not supported.")
+            if (
+                name_or_var.type.kind is types.Uint
+                and isinstance(initial, int)
+                and not isinstance(initial, bool)
+            ):
+                # Convenience method to widen Python integer literals to the right width during
+                # the initial lift, if the type is already known via the variable.
+                coerce_type = name_or_var.type
         initial = _validate_expr(circuit_scope, expr.lift(initial, coerce_type))
         if isinstance(name_or_var, str):
             var = expr.Var.new(name_or_var, initial.type)
@@ -2876,6 +2907,8 @@ class QuantumCircuit:
             raise CircuitError("cannot add an uninitialized variable in a control-flow scope")
         if not var.standalone:
             raise CircuitError("cannot add a variable wrapping a bit or register to a circuit")
+        if var.type.const and var.type.kind is not types.Stretch:
+            raise CircuitError("const variables are not supported.")
         self._builder_api.add_uninitialized_var(var)
 
     def add_capture(self, var: expr.Var):
@@ -2938,8 +2971,14 @@ class QuantumCircuit:
             raise CircuitError("cannot add an input variable in a control-flow scope")
         if self._vars_capture:
             raise CircuitError("circuits to be enclosed with captures cannot have input variables")
-        if isinstance(name_or_var, expr.Var) and type_ is not None:
-            raise ValueError("cannot give an explicit type with an existing Var")
+        if isinstance(name_or_var, expr.Var):
+            if type_ is not None:
+                raise ValueError("cannot give an explicit type with an existing Var")
+            if name_or_var.type.const:
+                raise CircuitError("const variables are not supported")
+        elif type_ is not None and type_.const:
+            raise CircuitError("const variables are not supported")
+
         var = self._prepare_new_var(name_or_var, type_)
         self._vars_input[var.name] = var
         return var
@@ -4407,17 +4446,20 @@ class QuantumCircuit:
 
     def delay(
         self,
-        duration: ParameterValueType,
+        duration: ParameterValueType | expr.Expr,
         qarg: QubitSpecifier | None = None,
-        unit: str = "dt",
+        unit: str | None = None,
     ) -> InstructionSet:
         """Apply :class:`~.circuit.Delay`. If qarg is ``None``, applies to all qubits.
         When applying to multiple qubits, delays with the same duration will be created.
 
         Args:
-            duration (int or float or ParameterExpression): duration of the delay.
+            duration (int or float or ParameterExpression or :class:`~.expr.Expr`):
+                duration of the delay. If this is an :class:`~.expr.Expr`, it must be
+                of type :class:`~.types.Duration` or :class:`~.types.Stretch`.
             qarg (Object): qubit argument to apply this delay.
-            unit (str): unit of the duration. Supported units: ``'s'``, ``'ms'``, ``'us'``,
+            unit (str | None): unit of the duration, unless ``duration`` is an :class:`~.expr.Expr`
+                in which case it must not be specified. Supported units: ``'s'``, ``'ms'``, ``'us'``,
                 ``'ns'``, ``'ps'``, and ``'dt'``. Default is ``'dt'``, i.e. integer time unit
                 depending on the target backend.
 
@@ -6198,6 +6240,107 @@ class QuantumCircuit:
             raise CircuitError("This circuit contains no instructions.")
         instruction = self._data.pop()
         return instruction
+
+    def box(
+        self,
+        # Forbidding passing `body` by keyword is in anticipation of the constructor expanding to
+        # allow `annotations` to be passed as the positional argument in the context-manager form.
+        body: QuantumCircuit | None = None,
+        /,
+        qubits: Sequence[QubitSpecifier] | None = None,
+        clbits: Sequence[ClbitSpecifier] | None = None,
+        *,
+        label: str | None = None,
+        duration: None,
+        unit: Literal["dt", "s", "ms", "us", "ns", "ps"] = "dt",
+    ):
+        """Create a ``box`` of operations on this circuit that are treated atomically in the greater
+        context.
+
+        A "box" is a control-flow construct that is entered unconditionally.  The contents of the
+        box behave somewhat as if the start and end of the box were barriers (see :meth:`barrier`),
+        except it is permissible to commute operations "all the way" through the box.  The box is
+        also an explicit scope for the purposes of variables, stretches and compiler passes.
+
+        There are two forms for calling this function:
+
+        * Pass a :class:`QuantumCircuit` positionally, and the ``qubits`` and ``clbits`` it acts
+          on.  In this form, a :class:`.BoxOp` is immediately created and appended using the circuit
+          as the body.
+
+        * Use in a ``with`` statement with no ``body``, ``qubits`` or ``clbits``.  This is the
+          "builder-interface form", where you then use other :class:`QuantumCircuit` methods within
+          the Python ``with`` scope to add instructions to the ``box``.  This is the preferred form,
+          and much less error prone.
+
+        Examples:
+
+            Using the builder interface to add two boxes in sequence.  The two boxes in this circuit
+            can execute concurrently, and the second explicitly inserts a data-flow dependency on
+            qubit 8 for the duration of the box, even though the qubit is idle.
+
+            .. code-block:: python
+
+                from qiskit.circuit import QuantumCircuit
+
+                qc = QuantumCircuit(9)
+                with qc.box():
+                    qc.cz(0, 1)
+                    qc.cz(2, 3)
+                with qc.box():
+                    qc.cz(4, 5)
+                    qc.cz(6, 7)
+                    qc.noop(8)
+
+            Using the explicit construction of box.  This creates the same circuit as above, and
+            should give an indication why the previous form is preferred for interactive use.
+
+            .. code-block:: python
+
+                from qiskit.circuit import QuantumCircuit, BoxOp
+
+                body_0 = QuantumCircuit(4)
+                body_0.cz(0, 1)
+                body_0.cz(2, 3)
+
+                # Note that the qubit indices inside a body related only to the body.  The
+                # association with qubits in the containing circuit is made by the ``qubits``
+                # argument to `QuantumCircuit.box`.
+                body_1 = QuantumCircuit(5)
+                body_1.cz(0, 1)
+                body_1.cz(2, 3)
+
+                qc = QuantumCircuit(9)
+                qc.box(body_0, [0, 1, 2, 3], [])
+                qc.box(body_1, [4, 5, 6, 7, 8], [])
+
+        Args:
+            body: if given, the :class:`QuantumCircuit` to use as the box's body in the explicit
+                construction.  Not given in the context-manager form.
+            qubits: the qubits to apply the :class:`.BoxOp` to, in the explicit form.
+            clbits: the qubits to apply the :class:`.BoxOp` to, in the explicit form.
+            label: an optional string label for the instruction.
+            duration: an optional explicit duration for the :class:`.BoxOp`.  Scheduling passes are
+                constrained to schedule the contained scope to match a given duration, including
+                delay insertion if required.
+            unit: the unit of the ``duration``.
+        """
+        if isinstance(body, QuantumCircuit):
+            # Explicit-body form.
+            if qubits is None or clbits is None:
+                raise CircuitError("When using 'box' with a body, you must pass qubits and clbits.")
+            return self.append(
+                BoxOp(body, duration=duration, unit=unit, label=label),
+                qubits,
+                clbits,
+                copy=False,
+            )
+        # Context-manager form.
+        if qubits is not None or clbits is not None:
+            raise CircuitError(
+                "When using 'box' as a context manager, you cannot pass qubits or clbits."
+            )
+        return BoxContext(self, duration=duration, unit=unit, label=label)
 
     @typing.overload
     def while_loop(

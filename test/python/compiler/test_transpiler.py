@@ -41,6 +41,7 @@ from qiskit.circuit import (
     Qubit,
     SwitchCaseOp,
     WhileLoopOp,
+    Duration,
 )
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.annotated_operation import (
@@ -1497,6 +1498,21 @@ class TestTranspile(QiskitTestCase):
         out = transpile(qc, dt=1e-9, seed_transpiler=42)
         self.assertEqual(out.data[0].operation.unit, "dt")
 
+    def test_delay_converts_to_dt_expr(self):
+        """Test that a delay instruction with a duration expression of type Duration
+        is converted to units of dt given a backend."""
+        qc = QuantumCircuit(2)
+        qc.delay(expr.lift(Duration.us(1000)), [0])
+
+        backend = GenericBackendV2(num_qubits=4)
+        backend.target.dt = 0.5e-6
+        out = transpile([qc, qc], backend, seed_transpiler=42)
+        self.assertEqual(out[0].data[0].operation.unit, "dt")
+        self.assertEqual(out[1].data[0].operation.unit, "dt")
+
+        out = transpile(qc, dt=1e-9, seed_transpiler=42)
+        self.assertEqual(out.data[0].operation.unit, "dt")
+
     def test_scheduling_backend_v2(self):
         """Test that scheduling method works with Backendv2."""
         qc = QuantumCircuit(2)
@@ -2167,13 +2183,43 @@ class TestPostTranspileIntegration(QiskitTestCase):
             base.append(CustomCX(), [2, 4])
             base.ry(a, 4)
             base.measure(4, 2)
-        with base.switch(expr.bit_and(base.cregs[0], 2)) as case_:
+        with base.switch(expr.bit_and(base.cregs[0], expr.lift(2, try_const=True))) as case_:
             with case_(0, 1):
                 base.cz(3, 5)
             with case_(case_.DEFAULT):
                 base.cz(1, 4)
                 base.append(CustomCX(), [2, 4])
                 base.append(CustomCX(), [3, 4])
+        with base.if_test(expr.less(1.0, 2.0)):
+            base.cx(0, 1)
+        with base.if_test(
+            expr.logic_and(
+                expr.logic_and(
+                    expr.equal(Duration.dt(1), Duration.ns(2)),
+                    expr.equal(Duration.us(3), Duration.ms(4)),
+                ),
+                expr.equal(Duration.s(5), Duration.dt(6)),
+            )
+        ):
+            base.cx(0, 1)
+        with base.if_test(
+            expr.logic_and(
+                expr.logic_and(
+                    expr.equal(expr.mul(Duration.dt(1), 2.0), expr.div(Duration.ns(2), 2.0)),
+                    expr.equal(
+                        expr.add(Duration.us(3), Duration.us(4)),
+                        expr.sub(Duration.ms(5), Duration.ms(6)),
+                    ),
+                ),
+                expr.logic_and(
+                    expr.equal(expr.mul(expr.lift(1.0, try_const=True), 2.0), expr.div(4.0, 2.0)),
+                    expr.equal(
+                        expr.add(3.0, 4.0), expr.sub(10.5, expr.lift(4.3, types.Float(const=True)))
+                    ),
+                ),
+            )
+        ):
+            base.cx(0, 1)
         return base
 
     def _standalone_var_circuit(self):
@@ -2183,6 +2229,7 @@ class TestPostTranspileIntegration(QiskitTestCase):
 
         qc = QuantumCircuit(5, 5, inputs=[a])
         qc.add_var(b, 12)
+        qc.add_stretch("d")
         qc.h(0)
         qc.cx(0, 1)
         qc.measure([0, 1], [0, 1])
