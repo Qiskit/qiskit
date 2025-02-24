@@ -16,9 +16,9 @@ use ahash::RandomState;
 use approx::relative_eq;
 use smallvec::SmallVec;
 
-use crate::bit::{PyClbit, PyQubit, ShareableClbit, ShareableQubit};
+use crate::bit::{BitLocations, PyClbit, PyQubit, ShareableClbit, ShareableQubit};
 use crate::bit_data::{BitData, VarAsKey};
-use crate::circuit_data::CircuitData;
+use crate::circuit_data::{BitIndexType, CircuitData};
 use crate::circuit_instruction::{
     CircuitInstruction, ExtraInstructionAttributes, OperationFromPython,
 };
@@ -30,19 +30,21 @@ use crate::imports;
 use crate::interner::{Interned, InternedMap, Interner};
 use crate::operations::{ArrayType, Operation, OperationRef, Param, PyInstruction, StandardGate};
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
+use crate::register::{ClassicalRegister, QuantumRegister, Register};
+use crate::register_data::RegisterData;
 use crate::rustworkx_core_vnext::isomorphism;
 use crate::{BitType, Clbit, Qubit, TupleLikeArg};
 
 use hashbrown::{HashMap, HashSet};
-use indexmap::IndexMap;
+use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 
 use pyo3::exceptions::{
     PyDeprecationWarning, PyIndexError, PyRuntimeError, PyTypeError, PyValueError,
 };
+use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::IntoPyObjectExt;
-use pyo3::{intern, PyTypeInfo};
 
 use pyo3::types::{
     IntoPyDict, PyDict, PyInt, PyIterator, PyList, PySequence, PySet, PyString, PyTuple, PyType,
@@ -193,10 +195,8 @@ pub struct DAGCircuit {
 
     dag: StableDiGraph<NodeType, Wire>,
 
-    #[pyo3(get)]
-    pub qregs: Py<PyDict>,
-    #[pyo3(get)]
-    pub cregs: Py<PyDict>,
+    qregs: RegisterData<QuantumRegister>,
+    cregs: RegisterData<ClassicalRegister>,
 
     /// The cache used to intern instruction qargs.
     pub qargs_interner: Interner<[Qubit]>,
@@ -223,8 +223,8 @@ pub struct DAGCircuit {
     // index that users see in the Python API.
     /// The index locations of bits, and their positions within
     /// registers.
-    qubit_locations: Py<PyDict>,
-    clbit_locations: Py<PyDict>,
+    qubit_locations: BitIndexType<ShareableQubit, QuantumRegister>,
+    clbit_locations: BitIndexType<ShareableClbit, ClassicalRegister>,
 
     /// Map from qubit to input and output nodes of the graph.
     qubit_io_map: Vec<[NodeIndex; 2]>,
@@ -416,8 +416,8 @@ impl DAGCircuit {
             metadata: Some(PyDict::new(py).unbind().into()),
             calibrations: HashMap::new(),
             dag: StableDiGraph::default(),
-            qregs: PyDict::new(py).unbind(),
-            cregs: PyDict::new(py).unbind(),
+            qregs: RegisterData::new(),
+            cregs: RegisterData::new(),
             qargs_interner: Interner::new(),
             cargs_interner: Interner::new(),
             qubits: BitData::new("qubits".to_string()),
@@ -426,8 +426,8 @@ impl DAGCircuit {
             global_phase: Param::Float(0.),
             duration: None,
             unit: "dt".to_string(),
-            qubit_locations: PyDict::new(py).unbind(),
-            clbit_locations: PyDict::new(py).unbind(),
+            qubit_locations: BitIndexType::new(),
+            clbit_locations: BitIndexType::new(),
             qubit_io_map: Vec::new(),
             clbit_io_map: Vec::new(),
             var_io_map: Vec::new(),
@@ -440,6 +440,18 @@ impl DAGCircuit {
                 PySet::empty(py)?.unbind(),
             ],
         })
+    }
+
+    /// Returns the dict containing the QuantumRegisters in the circuit
+    #[getter]
+    fn get_qregs(&self, py: Python) -> &Py<PyDict> {
+        self.qregs.cached(py)
+    }
+
+    /// Returns the dict containing the QuantumRegisters in the circuit
+    #[getter]
+    fn get_cregs(&self, py: Python) -> &Py<PyDict> {
+        self.cregs.cached(py)
     }
 
     /// The total duration of the circuit, set by a scheduling transpiler pass. Its unit is
@@ -568,8 +580,8 @@ impl DAGCircuit {
         out_dict.set_item("name", self.name.as_ref().map(|x| x.clone_ref(py)))?;
         out_dict.set_item("metadata", self.metadata.as_ref().map(|x| x.clone_ref(py)))?;
         out_dict.set_item("_calibrations_prop", self.calibrations.clone())?;
-        out_dict.set_item("qregs", self.qregs.clone_ref(py))?;
-        out_dict.set_item("cregs", self.cregs.clone_ref(py))?;
+        out_dict.set_item("qregs", self.qregs.cached(py))?;
+        out_dict.set_item("cregs", self.cregs.cached(py))?;
         out_dict.set_item("global_phase", self.global_phase.clone())?;
         out_dict.set_item(
             "qubit_io_map",
@@ -657,8 +669,18 @@ impl DAGCircuit {
             .get_item("_calibrations_prop")?
             .unwrap()
             .extract()?;
-        self.qregs = dict_state.get_item("qregs")?.unwrap().extract()?;
-        self.cregs = dict_state.get_item("cregs")?.unwrap().extract()?;
+        self.qregs = RegisterData::from_mapping(
+            dict_state
+                .get_item("qregs")?
+                .unwrap()
+                .extract::<IndexMap<String, QuantumRegister>>()?,
+        );
+        self.cregs = RegisterData::from_mapping(
+            dict_state
+                .get_item("cregs")?
+                .unwrap()
+                .extract::<IndexMap<String, ClassicalRegister>>()?,
+        );
         self.global_phase = dict_state.get_item("global_phase")?.unwrap().extract()?;
         self.op_names = dict_state.get_item("op_name")?.unwrap().extract()?;
         self.vars_by_type = dict_state.get_item("vars_by_type")?.unwrap().extract()?;
@@ -1100,65 +1122,44 @@ def _format(operand):
     }
 
     /// Add all wires in a quantum register.
-    pub fn add_qreg(&mut self, py: Python, qreg: &Bound<PyAny>) -> PyResult<()> {
-        if !qreg.is_instance(imports::QUANTUM_REGISTER.get_bound(py))? {
-            return Err(DAGCircuitError::new_err("not a QuantumRegister instance."));
-        }
+    pub fn add_qreg(&mut self, py: Python, qreg: QuantumRegister) -> PyResult<()> {
+        // if !qreg.is_instance(imports::QUANTUM_REGISTER.get_bound(py))? {
+        //     return Err(DAGCircuitError::new_err("not a QuantumRegister instance."));
+        // }
+        self.qregs
+            .add_register(qreg.clone(), true)
+            .map_err(|_| DAGCircuitError::new_err(format!("duplicate register {}", qreg.name())))?;
 
-        let register_name = qreg.getattr(intern!(py, "name"))?;
-        if self.qregs.bind(py).contains(&register_name)? {
-            return Err(DAGCircuitError::new_err(format!(
-                "duplicate register {}",
-                register_name
-            )));
-        }
-        self.qregs.bind(py).set_item(&register_name, qreg)?;
-
-        for (index, bit) in qreg.try_iter()?.enumerate() {
-            let bit = bit?.extract::<ShareableQubit>()?;
+        for (index, bit) in qreg.bits().enumerate() {
             if self.qubits.find(&bit).is_none() {
                 self.add_qubit_unchecked(py, bit.clone())?;
             }
-            let locations: PyRef<PyBitLocations> = self
-                .qubit_locations
-                .bind(py)
-                .get_item(bit)?
-                .unwrap()
-                .extract()?;
-            locations.registers.bind(py).append((qreg, index))?;
+            let locations: &mut BitLocations<QuantumRegister> =
+                self.qubit_locations.get_mut(&bit).unwrap();
+            locations.add_register(qreg.clone(), index);
         }
         Ok(())
     }
 
     /// Add all wires in a classical register.
-    fn add_creg(&mut self, py: Python, creg: &Bound<PyAny>) -> PyResult<()> {
-        if !creg.is_instance(imports::CLASSICAL_REGISTER.get_bound(py))? {
-            return Err(DAGCircuitError::new_err(
-                "not a ClassicalRegister instance.",
-            ));
-        }
+    fn add_creg(&mut self, py: Python, creg: ClassicalRegister) -> PyResult<()> {
+        // if !creg.is_instance(imports::CLASSICAL_REGISTER.get_bound(py))? {
+        //     return Err(DAGCircuitError::new_err(
+        //         "not a ClassicalRegister instance.",
+        //     ));
+        // }
 
-        let register_name = creg.getattr(intern!(py, "name"))?;
-        if self.cregs.bind(py).contains(&register_name)? {
-            return Err(DAGCircuitError::new_err(format!(
-                "duplicate register {}",
-                register_name
-            )));
-        }
-        self.cregs.bind(py).set_item(register_name, creg)?;
+        self.cregs
+            .add_register(creg.clone(), true)
+            .map_err(|_| DAGCircuitError::new_err(format!("duplicate register {}", creg.name())))?;
 
-        for (index, bit) in creg.try_iter()?.enumerate() {
-            let bit = bit?.extract::<ShareableClbit>()?;
+        for (index, bit) in creg.bits().enumerate() {
             if self.clbits.find(&bit).is_none() {
                 self.add_clbit_unchecked(py, bit.clone())?;
             }
-            let locations: PyRef<PyBitLocations> = self
-                .clbit_locations
-                .bind(py)
-                .get_item(bit)?
-                .unwrap()
-                .extract()?;
-            locations.registers.bind(py).append((creg, index))?;
+            let locations: &mut BitLocations<ClassicalRegister> =
+                self.clbit_locations.get_mut(&bit).unwrap();
+            locations.add_register(creg.clone(), index);
         }
         Ok(())
     }
@@ -1184,29 +1185,37 @@ def _format(operand):
         &self,
         py: Python<'py>,
         bit: &Bound<'py, PyAny>,
-    ) -> PyResult<Bound<'py, PyAny>> {
-        if bit.downcast::<PyQubit>().is_ok() {
-            return self.qubit_locations.bind(py).get_item(bit)?.ok_or_else(|| {
-                DAGCircuitError::new_err(format!(
-                    "Could not locate provided bit: {}. Has it been added to the DAGCircuit?",
-                    bit
-                ))
-            });
+    ) -> PyResult<Bound<'py, PyBitLocations>> {
+        if let Ok(qubit) = bit.extract::<ShareableQubit>() {
+            return self
+                .qubit_locations
+                .get(&qubit)
+                .map(|location| location.clone().into_pyobject(py))
+                .transpose()?
+                .ok_or_else(|| {
+                    DAGCircuitError::new_err(format!(
+                        "Could not locate provided bit: {}. Has it been added to the DAGCircuit?",
+                        bit
+                    ))
+                });
+        } else if let Ok(clbit) = bit.extract::<ShareableClbit>() {
+            return self
+                .clbit_locations
+                .get(&clbit)
+                .map(|location| location.clone().into_pyobject(py))
+                .transpose()?
+                .ok_or_else(|| {
+                    DAGCircuitError::new_err(format!(
+                        "Could not locate provided bit: {}. Has it been added to the DAGCircuit?",
+                        bit
+                    ))
+                });
+        } else {
+            Err(DAGCircuitError::new_err(format!(
+                "Could not locate bit of unknown type: {}",
+                bit.get_type()
+            )))
         }
-
-        if bit.downcast::<PyClbit>().is_ok() {
-            return self.clbit_locations.bind(py).get_item(bit)?.ok_or_else(|| {
-                DAGCircuitError::new_err(format!(
-                    "Could not locate provided bit: {}. Has it been added to the DAGCircuit?",
-                    bit
-                ))
-            });
-        }
-
-        Err(DAGCircuitError::new_err(format!(
-            "Could not locate bit of unknown type: {}",
-            bit.get_type()
-        )))
     }
 
     /// Remove classical bits from the circuit. All bits MUST be idle.
@@ -1251,11 +1260,10 @@ def _format(operand):
 
         // Remove any references to bits.
         let mut cregs_to_remove = Vec::new();
-        for creg in self.cregs.bind(py).values() {
-            for bit in creg.try_iter()? {
-                let bit: ShareableClbit = bit?.extract()?;
+        for creg in self.cregs.registers() {
+            for bit in creg.bits() {
                 if clbits.contains(&self.clbits.find(&bit).unwrap()) {
-                    cregs_to_remove.push(creg);
+                    cregs_to_remove.push(creg.clone());
                     break;
                 }
             }
@@ -1327,12 +1335,9 @@ def _format(operand):
         }
 
         // Update bit locations.
-        let bit_locations = self.clbit_locations.bind(py);
         for (i, bit) in self.clbits.bits().iter().enumerate() {
-            let raw_loc = bit_locations.get_item(bit.clone())?.unwrap();
-            let loc = raw_loc.downcast::<PyBitLocations>().unwrap();
-            loc.borrow_mut().index = i;
-            bit_locations.set_item(bit.clone(), loc)?;
+            let raw_loc = self.clbit_locations.get_mut(bit).unwrap();
+            raw_loc.index = i as u32;
         }
         Ok(())
     }
@@ -1345,53 +1350,38 @@ def _format(operand):
     ///     the circuit.
     #[pyo3(signature = (*cregs))]
     fn remove_cregs(&mut self, py: Python, cregs: &Bound<PyTuple>) -> PyResult<()> {
-        let mut non_regs = Vec::new();
-        let mut unknown_regs = Vec::new();
-        let self_bound_cregs = self.cregs.bind(py);
+        // let self_bound_cregs = self.cregs.bind(py);
+        let mut valid_regs: Vec<ClassicalRegister> = Vec::new();
         for reg in cregs.iter() {
-            if !reg.is_instance(imports::CLASSICAL_REGISTER.get_bound(py))? {
-                non_regs.push(reg);
-            } else if let Some(existing_creg) =
-                self_bound_cregs.get_item(&reg.getattr(intern!(py, "name"))?)?
-            {
-                if !existing_creg.eq(&reg)? {
-                    unknown_regs.push(reg);
+            if let Ok(creg) = reg.extract::<ClassicalRegister>() {
+                if let Some(reg) = self.cregs.get(creg.name()) {
+                    if reg != &creg {
+                        return Err(DAGCircuitError::new_err(format!(
+                            "creg not in circuit: {:?}",
+                            reg
+                        )));
+                    }
+                    valid_regs.push(creg);
+                } else {
+                    return Err(DAGCircuitError::new_err(format!(
+                        "creg not in circuit: {:?}",
+                        reg
+                    )));
                 }
             } else {
-                unknown_regs.push(reg);
+                return Err(DAGCircuitError::new_err(format!(
+                    "creg not of type ClassicalRegister: {:?}",
+                    reg
+                )));
             }
         }
-        if !non_regs.is_empty() {
-            return Err(DAGCircuitError::new_err(format!(
-                "cregs not of type ClassicalRegister: {:?}",
-                non_regs
-            )));
-        }
-        if !unknown_regs.is_empty() {
-            return Err(DAGCircuitError::new_err(format!(
-                "cregs not in circuit: {:?}",
-                unknown_regs
-            )));
-        }
 
-        for creg in cregs {
-            self.cregs
-                .bind(py)
-                .del_item(creg.getattr(intern!(py, "name"))?)?;
-            for (i, bit) in creg.try_iter()?.enumerate() {
-                let bit = bit?;
-                let bit_position = self
-                    .clbit_locations
-                    .bind(py)
-                    .get_item(bit)?
-                    .unwrap()
-                    .downcast_into_exact::<PyBitLocations>()?;
-                bit_position
-                    .borrow()
-                    .registers
-                    .bind(py)
-                    .as_any()
-                    .call_method1(intern!(py, "remove"), ((&creg, i),))?;
+        for creg in valid_regs {
+            self.cregs.remove(creg.name());
+
+            for (index, bit) in creg.bits().enumerate() {
+                let bit_position = self.clbit_locations.get_mut(&bit).unwrap();
+                bit_position.remove_register(&creg, index);
             }
         }
         Ok(())
@@ -1440,11 +1430,10 @@ def _format(operand):
 
         // Remove any references to bits.
         let mut qregs_to_remove = Vec::new();
-        for qreg in self.qregs.bind(py).values() {
-            for bit in qreg.try_iter()? {
-                let bit: ShareableQubit = bit?.extract()?;
+        for qreg in self.qregs.registers() {
+            for bit in qreg.bits() {
                 if qubits.contains(&self.qubits.find(&bit).unwrap()) {
-                    qregs_to_remove.push(qreg);
+                    qregs_to_remove.push(qreg.clone());
                     break;
                 }
             }
@@ -1511,12 +1500,9 @@ def _format(operand):
         }
 
         // Update bit locations.
-        let bit_locations = self.qubit_locations.bind(py);
         for (i, bit) in self.qubits.bits().iter().enumerate() {
-            let raw_loc = bit_locations.get_item(bit.clone())?.unwrap();
-            let loc = raw_loc.downcast::<PyBitLocations>().unwrap();
-            loc.borrow_mut().index = i;
-            bit_locations.set_item(bit.clone(), loc)?;
+            let raw_loc = self.qubit_locations.get_mut(bit).unwrap();
+            raw_loc.index = i as u32;
         }
         Ok(())
     }
@@ -1529,53 +1515,38 @@ def _format(operand):
     ///     the circuit.
     #[pyo3(signature = (*qregs))]
     fn remove_qregs(&mut self, py: Python, qregs: &Bound<PyTuple>) -> PyResult<()> {
-        let mut non_regs = Vec::new();
-        let mut unknown_regs = Vec::new();
-        let self_bound_qregs = self.qregs.bind(py);
+        // let self_bound_cregs = self.cregs.bind(py);
+        let mut valid_regs: Vec<QuantumRegister> = Vec::new();
         for reg in qregs.iter() {
-            if !reg.is_instance(imports::QUANTUM_REGISTER.get_bound(py))? {
-                non_regs.push(reg);
-            } else if let Some(existing_qreg) =
-                self_bound_qregs.get_item(&reg.getattr(intern!(py, "name"))?)?
-            {
-                if !existing_qreg.eq(&reg)? {
-                    unknown_regs.push(reg);
+            if let Ok(qregs) = reg.extract::<QuantumRegister>() {
+                if let Some(reg) = self.qregs.get(qregs.name()) {
+                    if reg != &qregs {
+                        return Err(DAGCircuitError::new_err(format!(
+                            "creg not in circuit: {:?}",
+                            reg
+                        )));
+                    }
+                    valid_regs.push(qregs);
+                } else {
+                    return Err(DAGCircuitError::new_err(format!(
+                        "creg not in circuit: {:?}",
+                        reg
+                    )));
                 }
             } else {
-                unknown_regs.push(reg);
+                return Err(DAGCircuitError::new_err(format!(
+                    "creg not of type ClassicalRegister: {:?}",
+                    reg
+                )));
             }
         }
-        if !non_regs.is_empty() {
-            return Err(DAGCircuitError::new_err(format!(
-                "qregs not of type QuantumRegister: {:?}",
-                non_regs
-            )));
-        }
-        if !unknown_regs.is_empty() {
-            return Err(DAGCircuitError::new_err(format!(
-                "qregs not in circuit: {:?}",
-                unknown_regs
-            )));
-        }
 
-        for qreg in qregs {
-            self.qregs
-                .bind(py)
-                .del_item(qreg.getattr(intern!(py, "name"))?)?;
-            for (i, bit) in qreg.try_iter()?.enumerate() {
-                let bit = bit?;
-                let bit_position = self
-                    .qubit_locations
-                    .bind(py)
-                    .get_item(bit)?
-                    .unwrap()
-                    .downcast_into_exact::<PyBitLocations>()?;
-                bit_position
-                    .borrow()
-                    .registers
-                    .bind(py)
-                    .as_any()
-                    .call_method1(intern!(py, "remove"), ((&qreg, i),))?;
+        for qreg in valid_regs {
+            self.qregs.remove(qreg.name());
+
+            for (index, bit) in qreg.bits().enumerate() {
+                let bit_position = self.qubit_locations.get_mut(&bit).unwrap();
+                bit_position.remove_register(&qreg, index);
             }
         }
         Ok(())
@@ -1598,8 +1569,7 @@ def _format(operand):
         for reg in resources.cregs.bind(py) {
             if !self
                 .cregs
-                .bind(py)
-                .contains(reg.getattr(intern!(py, "name"))?)?
+                .contains_key(reg.getattr(intern!(py, "name"))?.to_string().as_str())
             {
                 return Err(DAGCircuitError::new_err(format!(
                     "invalid creg in condition for {}",
@@ -1655,11 +1625,11 @@ def _format(operand):
         for bit in self.clbits.bits() {
             target_dag.add_clbit_unchecked(py, bit.clone())?;
         }
-        for reg in self.qregs.bind(py).values() {
-            target_dag.add_qreg(py, &reg)?;
+        for reg in self.qregs.registers() {
+            target_dag.add_qreg(py, reg.clone())?;
         }
-        for reg in self.cregs.bind(py).values() {
-            target_dag.add_creg(py, &reg)?;
+        for reg in self.cregs.registers() {
+            target_dag.add_creg(py, reg.clone())?;
         }
         if vars_mode == "alike" {
             for var in self.vars_by_type[DAGVarType::Input as usize]
@@ -2043,7 +2013,11 @@ def _format(operand):
 
         let variable_mapper = PyVariableMapper::new(
             py,
-            dag.cregs.bind(py).values().into_any(),
+            dag.cregs
+                .registers()
+                .cloned()
+                .collect::<Vec<_>>()
+                .into_bound_py_any(py)?,
             Some(edge_map.clone()),
             None,
             Some(wrap_pyfunction!(reject_new_register, py)?.into_py_any(py)?),
@@ -2524,23 +2498,15 @@ def _format(operand):
         };
 
         // Check if qregs are the same.
-        let self_qregs = self.qregs.bind(py);
-        let other_qregs = other.qregs.bind(py);
+        let self_qregs = self.qregs.registers();
+        let other_qregs = &other.qregs;
         if self_qregs.len() != other_qregs.len() {
             return Ok(false);
         }
-        for (regname, self_bits) in self_qregs {
-            let self_bits = PyList::type_object(py)
-                .call1((self_bits,))?
-                .try_iter()?
-                .map(|bit| -> PyResult<_> { bit?.extract::<ShareableQubit>() })
-                .collect::<PyResult<Vec<ShareableQubit>>>()?;
-            let other_bits = match other_qregs.get_item(regname)? {
-                Some(bits) => PyList::type_object(py)
-                    .call1((bits,))?
-                    .try_iter()?
-                    .map(|bit| -> PyResult<_> { bit?.extract::<ShareableQubit>() })
-                    .collect::<PyResult<Vec<ShareableQubit>>>()?,
+        for (regname, self_bits) in self_qregs.map(|reg| (reg.name(), reg)) {
+            let self_bits: Vec<ShareableQubit> = self_bits.bits().collect();
+            let other_bits: Vec<ShareableQubit> = match other_qregs.get(regname) {
+                Some(bits) => bits.bits().collect(),
                 None => return Ok(false),
             };
             if !self
@@ -2553,24 +2519,16 @@ def _format(operand):
         }
 
         // Check if cregs are the same.
-        let self_cregs = self.cregs.bind(py);
-        let other_cregs = other.cregs.bind(py);
+        let self_cregs = self.cregs.registers();
+        let other_cregs = &other.cregs;
         if self_cregs.len() != other_cregs.len() {
             return Ok(false);
         }
 
-        for (regname, self_bits) in self_cregs {
-            let self_bits = PyList::type_object(py)
-                .call1((self_bits,))?
-                .try_iter()?
-                .map(|bit| -> PyResult<_> { bit?.extract::<ShareableClbit>() })
-                .collect::<PyResult<Vec<ShareableClbit>>>()?;
-            let other_bits = match other_cregs.get_item(regname)? {
-                Some(bits) => PyList::type_object(py)
-                    .call1((bits,))?
-                    .try_iter()?
-                    .map(|bit| -> PyResult<_> { bit?.extract::<ShareableClbit>() })
-                    .collect::<PyResult<Vec<ShareableClbit>>>()?,
+        for (regname, self_bits) in self_cregs.map(|reg| (reg.name(), reg)) {
+            let self_bits: Vec<ShareableClbit> = self_bits.bits().collect();
+            let other_bits: Vec<ShareableClbit> = match other_cregs.get(regname) {
+                Some(bits) => bits.bits().collect(),
                 None => return Ok(false),
             };
             if !self
@@ -3234,13 +3192,13 @@ def _format(operand):
                         .map(|b| reverse_wire_map.get_item(b))
                         .collect::<PyResult<_>>()?;
 
-                    let mut new_target = Vec::with_capacity(target_bits.len());
+                    let mut new_target = IndexSet::with_capacity(target_bits.len());
                     let target_cargs = PySet::empty(py)?;
                     for (ours, theirs) in target_bits.into_iter().zip(mapped_bits) {
                         if let Some(theirs) = theirs {
                             // Target bit was in node's wires.
                             let theirs: ShareableClbit = theirs.extract()?;
-                            new_target.push(theirs.clone());
+                            new_target.insert(theirs.clone());
                             target_cargs.add(theirs)?;
                         } else {
                             // Target bit was not in node's wires, so we need a dummy.
@@ -3248,16 +3206,17 @@ def _format(operand):
                             in_dag.add_clbit_unchecked(py, theirs.clone())?;
                             wire_map.set_item(theirs.clone(), &ours)?;
                             reverse_wire_map.set_item(&ours, theirs.clone())?;
-                            new_target.push(theirs.clone());
+                            new_target.insert(theirs.clone());
                             target_cargs.add(theirs)?;
                         }
                     }
-                    let kwargs = [("bits", new_target.into_pyobject(py)?)].into_py_dict(py)?;
-                    let new_target_register = imports::CLASSICAL_REGISTER
-                        .get_bound(py)
-                        .call((), Some(&kwargs))?;
-                    in_dag.add_creg(py, &new_target_register)?;
-                    (new_target_register, target_cargs)
+                    // let kwargs = [("bits", new_target.into_pyobject(py)?)].into_py_dict(py)?;
+                    let new_target_register = ClassicalRegister::new_alias(None, new_target);
+                    // let new_target_register = imports::CLASSICAL_REGISTER
+                    //     .get_bound(py)
+                    //     .call((), Some(&kwargs))?;
+                    in_dag.add_creg(py, new_target_register.clone())?;
+                    (new_target_register.into_bound_py_any(py)?, target_cargs)
                 };
                 let new_condition = PyTuple::new(py, [py_new_target, py_value])?;
 
@@ -3369,7 +3328,7 @@ def _format(operand):
         let add_new_register = new_registers.getattr("append")?.unbind();
         let flush_new_registers = |dag: &mut DAGCircuit| -> PyResult<()> {
             for reg in &new_registers {
-                dag.add_creg(py, &reg)?;
+                dag.add_creg(py, reg.extract()?)?;
             }
             new_registers.del_slice(0, new_registers.len())?;
             Ok(())
@@ -3377,7 +3336,11 @@ def _format(operand):
 
         let variable_mapper = PyVariableMapper::new(
             py,
-            self.cregs.bind(py).values().into_any(),
+            self.cregs
+                .registers()
+                .cloned()
+                .collect::<Vec<_>>()
+                .into_bound_py_any(py)?,
             Some(wire_map_dict),
             Some(bound_var_map.clone()),
             Some(add_new_register),
@@ -4945,6 +4908,42 @@ def _format(operand):
 }
 
 impl DAGCircuit {
+    /// Returns an immutable view of the [QuantumRegister] instances in the circuit.
+    #[inline(always)]
+    pub fn qregs(&self) -> impl ExactSizeIterator<Item = &QuantumRegister> {
+        self.qregs.registers()
+    }
+
+    /// Returns an immutable view of the [ClassicalRegister] instances in the circuit.
+    #[inline(always)]
+    pub fn cregs(&self) -> impl ExactSizeIterator<Item = &ClassicalRegister> {
+        self.cregs.registers()
+    }
+
+    /// Returns an immutable view of the [QuantumRegister] data struct in the circuit.
+    #[inline(always)]
+    pub fn qregs_data(&self) -> &RegisterData<QuantumRegister> {
+        &self.qregs
+    }
+
+    /// Returns an immutable view of the [ClassicalRegister] data struct in the circuit.
+    #[inline(always)]
+    pub fn cregs_data(&self) -> &RegisterData<ClassicalRegister> {
+        &self.cregs
+    }
+
+    /// Returns an immutable view of the qubit locations of the [DAGCircuit]
+    #[inline(always)]
+    pub fn qubit_locations(&self) -> &BitIndexType<ShareableQubit, QuantumRegister> {
+        &self.qubit_locations
+    }
+
+    /// Returns an immutable view of the clbit locations of the [DAGCircuit]
+    #[inline(always)]
+    pub fn clbit_locations(&self) -> &BitIndexType<ShareableClbit, ClassicalRegister> {
+        &self.clbit_locations
+    }
+
     /// Returns an immutable view of the qubit io map
     #[inline(always)]
     pub fn qubit_io_map(&self) -> &[[NodeIndex; 2]] {
@@ -5734,32 +5733,16 @@ impl DAGCircuit {
 
     fn add_qubit_unchecked(&mut self, py: Python, bit: ShareableQubit) -> PyResult<Qubit> {
         let qubit = self.qubits.add(bit.clone(), false)?;
-        self.qubit_locations.bind(py).set_item(
-            bit,
-            Py::new(
-                py,
-                PyBitLocations {
-                    index: (self.qubits.len() - 1),
-                    registers: PyList::empty(py).unbind(),
-                },
-            )?,
-        )?;
+        self.qubit_locations
+            .insert(bit, BitLocations::new((self.qubits.len() - 1) as u32, []));
         self.add_wire(Wire::Qubit(qubit))?;
         Ok(qubit)
     }
 
     fn add_clbit_unchecked(&mut self, py: Python, bit: ShareableClbit) -> PyResult<Clbit> {
         let clbit = self.clbits.add(bit.clone(), false)?;
-        self.clbit_locations.bind(py).set_item(
-            bit,
-            Py::new(
-                py,
-                PyBitLocations {
-                    index: (self.clbits.len() - 1),
-                    registers: PyList::empty(py).unbind(),
-                },
-            )?,
-        )?;
+        self.clbit_locations
+            .insert(bit, BitLocations::new((self.clbits.len() - 1) as u32, []));
         self.add_wire(Wire::Clbit(clbit))?;
         Ok(clbit)
     }
@@ -6439,8 +6422,8 @@ impl DAGCircuit {
             metadata: Some(PyDict::new(py).unbind().into()),
             calibrations: HashMap::default(),
             dag: StableDiGraph::with_capacity(num_nodes, num_edges),
-            qregs: PyDict::new(py).unbind(),
-            cregs: PyDict::new(py).unbind(),
+            qregs: RegisterData::new(),
+            cregs: RegisterData::new(),
             qargs_interner: Interner::with_capacity(num_qubits),
             cargs_interner: Interner::with_capacity(num_clbits),
             qubits: BitData::with_capacity("qubits".to_string(), num_qubits),
@@ -6449,8 +6432,8 @@ impl DAGCircuit {
             global_phase: Param::Float(0.),
             duration: None,
             unit: "dt".to_string(),
-            qubit_locations: PyDict::new(py).unbind(),
-            clbit_locations: PyDict::new(py).unbind(),
+            qubit_locations: BitIndexType::with_capacity(num_qubits),
+            clbit_locations: BitIndexType::with_capacity(num_clbits),
             qubit_io_map: Vec::with_capacity(num_qubits),
             clbit_io_map: Vec::with_capacity(num_clbits),
             var_io_map: Vec::with_capacity(num_vars),
@@ -7005,13 +6988,17 @@ impl DAGCircuit {
         }
 
         // Add all the registers
-        for qreg in qc_data.py_qregs(py).iter() {
-            new_dag.add_qreg(py, &qreg)?;
+        for qreg in qc_data.qregs() {
+            new_dag.add_qreg(py, qreg.clone())?;
         }
 
-        for creg in qc_data.py_cregs(py).iter() {
-            new_dag.add_creg(py, &creg)?;
+        for creg in qc_data.cregs() {
+            new_dag.add_creg(py, creg.clone())?;
         }
+
+        // After bits and registers are added, copy bitlocations
+        new_dag.qubit_locations = qc_data.qubit_indices().clone();
+        new_dag.clbit_locations = qc_data.clbit_indices().clone();
 
         new_dag.try_extend(
             py,
@@ -7401,9 +7388,9 @@ fn emit_pulse_dependency_deprecation(py: Python, msg: &str) {
 mod test {
     use crate::circuit_instruction::ExtraInstructionAttributes;
     use crate::dag_circuit::{DAGCircuit, Wire};
-    use crate::imports::{CLASSICAL_REGISTER, QUANTUM_REGISTER};
     use crate::operations::{StandardGate, StandardInstruction};
     use crate::packed_instruction::{PackedInstruction, PackedOperation};
+    use crate::register::{ClassicalRegister, QuantumRegister};
     use crate::{Clbit, Qubit};
     use hashbrown::HashSet;
     use pyo3::prelude::*;
@@ -7411,11 +7398,11 @@ mod test {
     use rustworkx_core::petgraph::visit::IntoEdgeReferences;
 
     fn new_dag(py: Python, qubits: u32, clbits: u32) -> DAGCircuit {
-        let qreg = QUANTUM_REGISTER.get_bound(py).call1((qubits,)).unwrap();
-        let creg = CLASSICAL_REGISTER.get_bound(py).call1((clbits,)).unwrap();
+        let qreg = QuantumRegister::new_owning(None, qubits);
+        let creg = ClassicalRegister::new_owning(None, clbits);
         let mut dag = DAGCircuit::new(py).unwrap();
-        dag.add_qreg(py, &qreg).unwrap();
-        dag.add_creg(py, &creg).unwrap();
+        dag.add_qreg(py, qreg).unwrap();
+        dag.add_creg(py, creg).unwrap();
         dag
     }
 

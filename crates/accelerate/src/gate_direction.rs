@@ -16,9 +16,9 @@ use crate::target_transpiler::Target;
 use hashbrown::HashSet;
 use pyo3::prelude::*;
 use pyo3::types::PyTuple;
-use qiskit_circuit::bit::ShareableQubit;
 use qiskit_circuit::operations::OperationRef;
 use qiskit_circuit::packed_instruction::PackedOperation;
+use qiskit_circuit::register::{QuantumRegister, Register};
 use qiskit_circuit::{
     circuit_instruction::CircuitInstruction,
     circuit_instruction::ExtraInstructionAttributes,
@@ -435,14 +435,11 @@ fn replace_dag(
 // TODO: replace this once we have a Rust version of QuantumRegister
 #[inline]
 fn add_qreg(py: Python, dag: &mut DAGCircuit, num_qubits: u32) -> PyResult<Vec<Qubit>> {
-    let qreg = imports::QUANTUM_REGISTER
-        .get_bound(py)
-        .call1((num_qubits,))?;
-    dag.add_qreg(py, &qreg)?;
+    let qreg = QuantumRegister::new_owning(None, num_qubits);
+    dag.add_qreg(py, qreg.clone())?;
     let mut qargs = Vec::new();
 
-    for i in 0..num_qubits {
-        let qubit: ShareableQubit = qreg.get_item(i)?.extract()?;
+    for qubit in qreg.bits() {
         qargs.push(
             dag.qubits()
                 .find(&qubit)

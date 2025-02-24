@@ -86,12 +86,16 @@ pub fn dag_to_circuit(
     dag: &DAGCircuit,
     copy_operations: bool,
 ) -> PyResult<CircuitData> {
-    let mut circuit = CircuitData::from_packed_instructions(
+    let circuit = CircuitData::from_packed_instructions(
         py,
         dag.qubits().clone(),
         dag.clbits().clone(),
         dag.qargs_interner().clone(),
         dag.cargs_interner().clone(),
+        dag.qregs_data().clone(),
+        dag.cregs_data().clone(),
+        dag.qubit_locations().clone(),
+        dag.clbit_locations().clone(),
         dag.topological_op_nodes()?.map(|node_index| {
             let NodeType::Operation(ref instr) = dag[node_index] else {
                 unreachable!(
@@ -121,13 +125,6 @@ pub fn dag_to_circuit(
         }),
         dag.get_global_phase(),
     )?;
-    // Manually add qregs and cregs
-    for reg in dag.qregs.bind(py).values() {
-        circuit.add_qreg(reg.extract()?, true)?;
-    }
-    for reg in dag.cregs.bind(py).values() {
-        circuit.add_creg(reg.extract()?, true)?;
-    }
     Ok(circuit)
 }
 

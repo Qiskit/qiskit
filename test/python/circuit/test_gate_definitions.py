@@ -453,8 +453,8 @@ class TestStandardEquivalenceLibrary(QiskitTestCase):
         self.assertGreaterEqual(len(param_entry), 1)
         self.assertGreaterEqual(len(float_entry), 1)
 
-        param_qc = QuantumCircuit([Qubit() for _ in range(param_gate.num_qubits)])
-        float_qc = QuantumCircuit([Qubit() for _ in range(float_gate.num_qubits)])
+        param_qc = QuantumCircuit(param_gate.num_qubits)
+        float_qc = QuantumCircuit(float_gate.num_qubits)
 
         param_qc.append(param_gate, param_qc.qubits)
         float_qc.append(float_gate, float_qc.qubits)

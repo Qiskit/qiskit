@@ -13,8 +13,9 @@
 use hashbrown::{HashMap, HashSet};
 use pyo3::prelude::*;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
-use qiskit_circuit::imports::{GATE, PARAMETER_VECTOR, QUANTUM_REGISTER};
+use qiskit_circuit::imports::{GATE, PARAMETER_VECTOR};
 use qiskit_circuit::parameter_table::ParameterUuid;
+use qiskit_circuit::register::QuantumRegister;
 use qiskit_circuit::Qubit;
 use qiskit_circuit::{
     circuit_data::CircuitData,
@@ -50,8 +51,8 @@ pub(super) fn compose_transforms<'a>(
 
         let mut dag = DAGCircuit::new(py)?;
         // Create the mock gate and add to the circuit, use Python for this.
-        let qubits = QUANTUM_REGISTER.get_bound(py).call1((gate_num_qubits,))?;
-        dag.add_qreg(py, &qubits)?;
+        let qubits = QuantumRegister::new_owning(None, gate_num_qubits);
+        dag.add_qreg(py, qubits)?;
 
         let gate = GATE.get_bound(py).call1((
             &gate_name,

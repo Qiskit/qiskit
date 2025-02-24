@@ -207,23 +207,24 @@ macro_rules! create_register_object {
             }
 
             /// Creates a Register whose bits are owned by its instance
-            pub fn new_owning(
-                name: Option<String>,
-                size: u32,
-                extra: Option<BitExtraInfo>,
-            ) -> Self {
+            pub fn new_owning(name: Option<String>, size: u32) -> Self {
                 // When creating `Owning` register, we don't need to create the `BitInfo`
                 // instances, they can be entirely derived from `self`.
-                Self(RegisterInfo::new_owning(Self::name_parse(name), size, extra).into())
+                Self(
+                    RegisterInfo::new_owning(Self::name_parse(name), size, Some($extra_exp)).into(),
+                )
             }
 
             /// Creates a Register whose bits already exist.
-            pub fn new_alias(
-                name: Option<String>,
-                bits: Box<IndexSet<BitInfo>>,
-                extra: Option<BitExtraInfo>,
-            ) -> Self {
-                Self(RegisterInfo::new_alias(Self::name_parse(name), bits, extra).into())
+            pub fn new_alias(name: Option<String>, bits: IndexSet<$bit>) -> Self {
+                Self(
+                    RegisterInfo::new_alias(
+                        Self::name_parse(name),
+                        Box::new(bits.into_iter().map(|bit| bit.0).collect()),
+                        Some($extra_exp),
+                    )
+                    .into(),
+                )
             }
         }
 
@@ -287,6 +288,32 @@ impl QuantumRegister {
                 _ => false,
             },
         }
+    }
+
+    /// Creates a Register whose bits are owned by its instance
+    pub fn new_ancilla_owning(name: Option<String>, size: u32) -> Self {
+        // When creating `Owning` register, we don't need to create the `BitInfo`
+        // instances, they can be entirely derived from `self`.
+        Self(
+            RegisterInfo::new_owning(
+                Self::name_parse(name),
+                size,
+                Some(BitExtraInfo::Qubit { is_ancilla: true }),
+            )
+            .into(),
+        )
+    }
+
+    /// Creates a Register whose bits already exist.
+    pub fn new_ancilla_alias(name: Option<String>, bits: IndexSet<ShareableQubit>) -> Self {
+        Self(
+            RegisterInfo::new_alias(
+                Self::name_parse(name),
+                Box::new(bits.into_iter().map(|bit| bit.0).collect()),
+                Some(BitExtraInfo::Qubit { is_ancilla: true }),
+            )
+            .into(),
+        )
     }
 }
 create_register_object! {ClassicalRegister, ShareableClbit, BitExtraInfo::Clbit(), CREG_COUNTER, "c"}
@@ -724,13 +751,13 @@ impl SliceOrInt<'_> {
 macro_rules! create_py_register {
     ($name:ident, $nativereg:tt, $pybit:tt, $nativebit:tt, $pyname:literal, $pymodule:literal, $extra:expr, $prefix:literal) => {
         #[pyclass(
-                                                                            name = $pyname,
-                                                                            module = $pymodule,
-                                                                            subclass,
-                                                                            extends = PyRegister,
-                                                                            frozen,
-                                                                            sequence,
-                                                                        )]
+            name = $pyname,
+            module = $pymodule,
+            subclass,
+            extends = PyRegister,
+            frozen,
+            sequence,
+        )]
         #[derive(Debug, Clone, PartialEq, Eq, Hash)]
         pub struct $name(pub(crate) $nativereg);
 
@@ -746,11 +773,9 @@ macro_rules! create_py_register {
                 let (size, name) = PyRegister::inner_parse_new(&size, &name, &bits)?;
 
                 let register = if let Some(bits) = bits {
-                    let Ok(bits_set): PyResult<IndexSet<BitInfo>> = bits
+                    let Ok(bits_set): PyResult<IndexSet<$nativebit>> = bits
                         .try_iter()?
-                        .map(|bit| -> PyResult<BitInfo> {
-                            bit?.extract::<$pybit>().map(|b| b.0 .0)
-                        })
+                        .map(|bit| -> PyResult<$nativebit> { bit?.extract::<$nativebit>() })
                         .collect()
                     else {
                         return Err(CircuitError::new_err(format!(
@@ -763,9 +788,9 @@ macro_rules! create_py_register {
                             "Register bits must not be duplicated.",
                         ));
                     }
-                    $nativereg::new_alias(name, bits_set.into(), Some($extra))
+                    $nativereg::new_alias(name, bits_set)
                 } else {
-                    $nativereg::new_owning(name, size, Some($extra))
+                    $nativereg::new_owning(name, size)
                 };
                 let inner_reg = register.data().clone();
                 Ok((Self(register), PyRegister(inner_reg)))
@@ -886,7 +911,7 @@ impl PyQuantumRegister {
     fn new_ancilla(
         size: Option<Bound<PyAny>>,
         name: Option<Bound<PyAny>>,
-        bits: Option<Bound<PyList>>,
+        bits: Option<Bound<PyAny>>,
     ) -> PyResult<(Self, PyRegister)> {
         let name_parse = |name: Option<String>| -> String {
             if let Some(name) = name {
@@ -899,48 +924,11 @@ impl PyQuantumRegister {
                 )
             }
         };
-        if (size.is_none() && bits.is_none()) || (size.is_some() && bits.is_some()) {
-            return Err(CircuitError::new_err(format!("Exactly one of the size or bits arguments can be provided. Provided size={:?} bits={:?}.", size, bits)));
-        }
-
-        let size: u32 = if let Some(bits) = bits.as_ref() {
-            bits.len().try_into().map_err(|_| CircuitError::new_err(format!("The amount of bits provided exceeds the capacity of the register. Current size {}", bits.len())))?
-        } else {
-            let Ok(valid_size): PyResult<isize> = size.as_ref().unwrap().extract() else {
-                return Err(CircuitError::new_err(format!(
-                    "Register size must be an integer. {} '{}' was provided",
-                    size.as_ref().unwrap().get_type().name()?,
-                    size.as_ref().unwrap().repr()?
-                )));
-            };
-            if valid_size < 0 {
-                return Err(CircuitError::new_err(format!(
-                    "Register size must be non-negative. {} '{}' was provided",
-                    size.as_ref().unwrap().get_type().name()?,
-                    size.as_ref().unwrap().repr()?
-                )));
-            }
-
-            let Ok(valid_size) = valid_size.abs().try_into() else {
-                return Err(CircuitError::new_err(format!(
-                    "Register size exceeds possible allocated capacity. {} '{}' was provided",
-                    size.as_ref().unwrap().get_type().name()?,
-                    size.as_ref().unwrap().repr()?
-                )));
-            };
-
-            valid_size
-        };
-
-        let Ok(name): PyResult<Option<String>> =
-            name.as_ref().map(|name| name.extract()).transpose()
-        else {
-            return Err(CircuitError::new_err("The circuit name should be castable to a string (or None for autogenerate a name)."));
-        };
+        let (size, name) = PyRegister::inner_parse_new(&size, &name, &bits)?;
         let register = if let Some(bits) = bits {
-            let Ok(bits_set): PyResult<IndexSet<BitInfo>> = bits
+            let Ok(bits_set): PyResult<IndexSet<ShareableQubit>> = bits
                 .try_iter()?
-                .map(|bit| -> PyResult<BitInfo> { bit?.extract::<ShareableQubit>().map(|b| b.0) })
+                .map(|bit| -> PyResult<ShareableQubit> { bit?.extract::<ShareableQubit>() })
                 .collect()
             else {
                 return Err(CircuitError::new_err(format!(
@@ -953,13 +941,9 @@ impl PyQuantumRegister {
                     "Register bits must not be duplicated.",
                 ));
             }
-            QuantumRegister::new_alias(
-                Some(name_parse(name)),
-                bits_set.into(),
-                Some(BitExtraInfo::Qubit { is_ancilla: true }),
-            )
+            QuantumRegister::new_ancilla_alias(Some(name_parse(name)), bits_set)
         } else {
-            QuantumRegister::new_owning(name, size, Some(BitExtraInfo::Qubit { is_ancilla: true }))
+            QuantumRegister::new_ancilla_owning(name, size)
         };
         let inner_reg = register.data().clone();
         Ok((Self(register), PyRegister(inner_reg)))
@@ -995,7 +979,7 @@ impl PyAncillaRegister {
     pub fn new(
         size: Option<Bound<PyAny>>,
         name: Option<Bound<PyAny>>,
-        bits: Option<Bound<PyList>>,
+        bits: Option<Bound<PyAny>>,
     ) -> PyResult<PyClassInitializer<Self>> {
         let (reg, base) = PyQuantumRegister::new_ancilla(size, name, bits)?;
         Ok(PyClassInitializer::from(base)

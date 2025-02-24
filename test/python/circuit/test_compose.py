@@ -776,7 +776,7 @@ class TestCircuitCompose(QiskitTestCase):
         reg_instruction = test.data[1].operation
         self.assertEqual(bit_instruction.condition[0], test_loose)
         self.assertEqual(bit_instruction.condition, (test_loose, True))
-        self.assertIs(reg_instruction.condition[0], test_creg)
+        self.assertEqual(reg_instruction.condition[0], test_creg)
         self.assertEqual(reg_instruction.condition, (test_creg, 3))
 
     def test_condition_mapping_whileloopop(self):
@@ -800,7 +800,7 @@ class TestCircuitCompose(QiskitTestCase):
         reg_instruction = test.data[1].operation
         self.assertEqual(bit_instruction.condition[0], test_loose)
         self.assertEqual(bit_instruction.condition, (test_loose, True))
-        self.assertIs(reg_instruction.condition[0], test_creg)
+        self.assertEqual(reg_instruction.condition[0], test_creg)
         self.assertEqual(reg_instruction.condition, (test_creg, 3))
 
     def test_compose_no_clbits_in_one(self):

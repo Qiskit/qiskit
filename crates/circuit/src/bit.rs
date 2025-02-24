@@ -32,11 +32,11 @@ use pyo3::{
 /// Describes a relationship between a bit and all the registers it belongs to
 #[derive(Debug, Clone)]
 pub struct BitLocations<R: Register> {
-    index: u32,
+    pub(crate) index: u32,
     registers: Vec<(R, usize)>,
 }
 
-impl<R: Register> BitLocations<R> {
+impl<R: Register + PartialEq> BitLocations<R> {
     /// Creates new instance of [BitLocations]
     pub fn new<T: IntoIterator<Item = (R, usize)>>(index: u32, registers: T) -> Self {
         Self {
@@ -48,6 +48,18 @@ impl<R: Register> BitLocations<R> {
     /// Adds a register entry
     pub fn add_register(&mut self, register: R, index: usize) {
         self.registers.push((register, index))
+    }
+
+    /// Removes a register location on `O(n)`` time, where N is the number of
+    /// registers in this entry.
+    pub fn remove_register(&mut self, register: &R, index: usize) -> Option<(R, usize)> {
+        for (idx, reg) in self.registers.iter().enumerate() {
+            if (&reg.0, &reg.1) == (register, &index) {
+                let res = self.registers.remove(idx);
+                return Some(res);
+            }
+        }
+        None
     }
 }
 
@@ -441,11 +453,11 @@ macro_rules! create_py_bit {
     ($name:ident, $natbit:tt, $pyname:literal, $pymodule:literal, $extra:expr, $pyreg:tt) => {
         /// Implements a quantum bit
         #[pyclass(
-                                                                            subclass,
-                                                                            name = $pyname,
-                                                                            module = $pymodule,
-                                                                            extends=PyBit,
-                                                                        )]
+            subclass,
+            name = $pyname,
+            module = $pymodule,
+            extends=PyBit,
+        )]
         #[derive(Debug, Clone, PartialEq, Eq, Hash)]
         pub struct $name(pub(crate) $natbit);
 

@@ -43,7 +43,7 @@ use smallvec::SmallVec;
 
 import_exception!(qiskit.circuit.exceptions, CircuitError);
 
-type BitIndexType<B, R> = IndexMap<B, BitLocations<R>>;
+pub type BitIndexType<B, R> = IndexMap<B, BitLocations<R>>;
 type CircuitDataState = (
     Vec<QuantumRegister>,
     Vec<ClassicalRegister>,
@@ -191,8 +191,8 @@ impl CircuitData {
         let state = {
             let borrowed = self_.borrow();
             (
-                borrowed.qregs.registers().clone(),
-                borrowed.cregs.registers().clone(),
+                borrowed.qregs.registers().cloned().collect::<Vec<_>>(),
+                borrowed.cregs.registers().cloned().collect::<Vec<_>>(),
                 borrowed.qubit_indices.clone(),
                 borrowed.clbit_indices.clone(),
             )
@@ -202,9 +202,6 @@ impl CircuitData {
 
     pub fn __setstate__(slf: &Bound<CircuitData>, state: CircuitDataState) -> PyResult<()> {
         let mut borrowed_mut = slf.borrow_mut();
-        borrowed_mut.qubit_indices = state.2;
-        borrowed_mut.clbit_indices = state.3;
-
         // Add the registers directly to the `RegisterData` struct
         // to not modify the bit indices.
         for qreg in state.0.into_iter() {
@@ -213,6 +210,11 @@ impl CircuitData {
         for creg in state.1.into_iter() {
             borrowed_mut.cregs.add_register(creg, false)?;
         }
+
+        // After the registers are added, reset bit locations.
+        borrowed_mut.qubit_indices = state.2;
+        borrowed_mut.clbit_indices = state.3;
+
         Ok(())
     }
 
@@ -531,19 +533,21 @@ impl CircuitData {
         // for creg in self.cregs.registers().clone() {
         //     res.add_creg(creg, false)?;
         // }
-        let res = CircuitData {
-            cargs_interner: self.cargs_interner.clone(),
-            clbit_indices: self.clbit_indices.clone(),
-            clbits: self.clbits.clone(),
-            cregs: self.cregs.clone(),
-            data: Vec::new(),
-            global_phase: self.global_phase.clone_ref(py),
-            param_table: ParameterTable::new(),
-            qargs_interner: self.qargs_interner.clone(),
-            qregs: self.qregs.clone(),
-            qubit_indices: self.qubit_indices.clone(),
-            qubits: self.qubits.clone(),
-        };
+        let mut res = CircuitData::new(
+            py,
+            Some(self.qubits.bits().clone()),
+            Some(self.clbits.bits().clone()),
+            None,
+            0,
+            self.global_phase.clone(),
+        )?;
+
+        // After initialization, copy register info.
+        res.qregs = self.qregs.clone();
+        res.cregs = self.cregs.clone();
+        res.qubit_indices = self.qubit_indices.clone();
+        res.clbit_indices = self.clbit_indices.clone();
+
         Ok(res)
     }
 
@@ -1239,6 +1243,12 @@ impl CircuitData {
     /// * cargs_interner: The interner for Clbit objects in the circuit. This must
     ///     contain all the Interned<Clbit> indices stored in the
     ///     PackedInstructions from `instructions`
+    /// * qregs: The internal QuantumRegister data stored within the circuit.
+    /// * cregs: The internal ClassicalRegister data stored within the circuit.
+    /// * qubit_indices: The Mapping between qubit instances and their locations within
+    ///     registers in the circuit.
+    /// * clbit_indices: The Mapping between clbit instances and their locations within
+    ///     registers in the circuit.
     /// * Instructions: An iterator with items of type: `PyResult<PackedInstruction>`
     ///     that contais the instructions to insert in iterator order to the new
     ///     CircuitData. This returns a `PyResult` to facilitate the case where
@@ -1252,6 +1262,10 @@ impl CircuitData {
         clbits: BitData<Clbit, ShareableClbit>,
         qargs_interner: Interner<[Qubit]>,
         cargs_interner: Interner<[Clbit]>,
+        qregs: RegisterData<QuantumRegister>,
+        cregs: RegisterData<ClassicalRegister>,
+        qubit_indices: BitIndexType<ShareableQubit, QuantumRegister>,
+        clbit_indices: BitIndexType<ShareableClbit, ClassicalRegister>,
         instructions: I,
         global_phase: Param,
     ) -> PyResult<Self>
@@ -1267,10 +1281,10 @@ impl CircuitData {
             clbits,
             param_table: ParameterTable::new(),
             global_phase: Param::Float(0.0),
-            qregs: RegisterData::new(),
-            cregs: RegisterData::new(),
-            qubit_indices: IndexMap::new(),
-            clbit_indices: IndexMap::new(),
+            qregs,
+            cregs,
+            qubit_indices,
+            clbit_indices,
         };
 
         // use the global phase setter to ensure parameters are registered
@@ -1573,6 +1587,40 @@ impl CircuitData {
         &self.clbits
     }
 
+    /// Returns an immutable view of the [QuantumRegister] instances in the circuit.
+    pub fn qregs(&self) -> impl ExactSizeIterator<Item = &QuantumRegister> {
+        self.qregs.registers()
+    }
+
+    /// Returns an immutable view of the [ClassicalRegister] instances in the circuit.
+    pub fn cregs(&self) -> impl ExactSizeIterator<Item = &ClassicalRegister> {
+        self.cregs.registers()
+    }
+
+    /// Returns an immutable view of the [QuantumRegister] data struct in the circuit.
+    #[inline(always)]
+    pub fn qregs_data(&self) -> &RegisterData<QuantumRegister> {
+        &self.qregs
+    }
+
+    /// Returns an immutable view of the [ClassicalRegister] data struct in the circuit.
+    #[inline(always)]
+    pub fn cregs_data(&self) -> &RegisterData<ClassicalRegister> {
+        &self.cregs
+    }
+
+    /// Returns an immutable view of the qubit locations of the [DAGCircuit]
+    #[inline(always)]
+    pub fn qubit_indices(&self) -> &BitIndexType<ShareableQubit, QuantumRegister> {
+        &self.qubit_indices
+    }
+
+    /// Returns an immutable view of the clbit locations of the [DAGCircuit]
+    #[inline(always)]
+    pub fn clbit_indices(&self) -> &BitIndexType<ShareableClbit, ClassicalRegister> {
+        &self.clbit_indices
+    }
+
     /// Unpacks from interned value to `[Qubit]`
     pub fn get_qargs(&self, index: Interned<[Qubit]>) -> &[Qubit] {
         self.qargs_interner().get(index)
@@ -1826,10 +1874,10 @@ impl CircuitData {
             clbits: other.clbits.clone(),
             param_table: ParameterTable::new(),
             global_phase: Param::Float(0.0),
-            qregs: RegisterData::new(),
-            cregs: RegisterData::new(),
-            qubit_indices: IndexMap::new(),
-            clbit_indices: IndexMap::new(),
+            qregs: other.qregs.clone(),
+            cregs: other.cregs.clone(),
+            qubit_indices: other.qubit_indices.clone(),
+            clbit_indices: other.clbit_indices.clone(),
         };
         empty.set_global_phase(py, other.global_phase.clone())?;
         Ok(empty)
