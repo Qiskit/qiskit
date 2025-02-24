@@ -95,15 +95,24 @@ class TimeUnitConversion(TransformationPass):
 
                 visitor = _EvalDurationImpl(inst_durations.dt)
                 duration = node.op.duration.accept(visitor)
+                if visitor.in_cycles():
+                    has_dt = True
+                    # We need to round in case the expression evaluated to a non-integral 'dt'.
+                    rounded_duration = round(duration)
+                    rounding_error = abs(duration - rounded_duration)
+                    if rounding_error > 1e-15:
+                        warnings.warn(
+                            f"Duration is rounded to {rounded_duration:d} [dt] from {duration:f}",
+                            UserWarning,
+                        )
+                    duration = rounded_duration
+                else:
+                    has_si = True
                 if duration < 0:
                     raise TranspilerError(
                         f"Expression '{node.op.duration}' resolves to a negative duration!"
                     )
                 expression_durations[node._node_id] = duration
-                if visitor.in_cycles():
-                    has_dt = True
-                else:
-                    has_si = True
             else:
                 if node.op.unit == "dt":
                     has_dt = True

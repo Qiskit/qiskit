@@ -1530,7 +1530,7 @@ class TestTranspile(QiskitTestCase):
         out = transpile(qc, dt=1e-9, seed_transpiler=42)
         self.assertEqual(out.data[0].operation.unit, "dt")
 
-    def test_delay_converts_to_dt_expr(self):
+    def test_delay_converts_expr_to_dt(self):
         """Test that a delay instruction with a duration expression of type Duration
         is converted to units of dt given a backend."""
         qc = QuantumCircuit(2)
@@ -1544,6 +1544,22 @@ class TestTranspile(QiskitTestCase):
 
         out = transpile(qc, dt=1e-9, seed_transpiler=42)
         self.assertEqual(out.data[0].operation.unit, "dt")
+
+    def test_delay_converts_expr_to_dt_with_rounding(self):
+        """Test that converting to 'dt' from wall-time correctly rounds to nearest
+        integer."""
+        qc = QuantumCircuit(2)
+        qc.delay(expr.lift(Duration.ns(1234560)), [0])
+
+        backend = GenericBackendV2(num_qubits=4)
+        backend.target.dt = 5e-7
+
+        with self.assertWarnsRegex(UserWarning, "Duration is rounded"):
+            out = transpile(qc, backend, seed_transpiler=42)
+
+        self.assertEqual(out.data[0].operation.unit, "dt")
+        self.assertEqual(type(out.data[0].duration), int)
+        self.assertEqual(out.data[0].duration, round(float(1234560) / 1e9 / 5e-7))
 
     def test_delay_expr_evaluation_dt(self):
         """Test that a delay instruction with a complex duration expression
