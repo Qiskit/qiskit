@@ -32,8 +32,11 @@ from qiskit.circuit import (
 )
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.library import (
+    XGate,
+    ZGate,
     SwapGate,
     CXGate,
+    CZGate,
     RZGate,
     PermutationGate,
     U3Gate,
@@ -731,6 +734,58 @@ class TestHighLevelSynthesisInterface(QiskitTestCase):
             expected_block = QuantumCircuit(2, global_phase=0.8)
             expected_block.cx(0, 1)
             self.assertEqual(transpiled_block, expected_block)
+
+
+class TestHighLevelSynthesisQuality(QiskitTestCase):
+    """Test the "quality" of circuits produced by HighLevelSynthesis."""
+
+    def test_controlled_x(self):
+        """Test default synthesis of controlled-X gate."""
+        qc = QuantumCircuit(15)
+        qc.append(XGate().control(6), [0, 1, 2, 3, 4, 5, 6])
+        qct = HighLevelSynthesis(basis_gates=["cx", "u"])(qc)
+        self.assertEqual(qct.count_ops()["cx"], 30)
+
+    def test_controlled_cx(self):
+        """Test default synthesis of controlled-CX gate."""
+        qc = QuantumCircuit(15)
+        qc.append(CXGate().control(5), [0, 1, 2, 3, 4, 5, 6])
+        qct = HighLevelSynthesis(basis_gates=["cx", "u"])(qc)
+        self.assertEqual(qct.count_ops()["cx"], 30)
+
+    def test_recursively_controlled_cx(self):
+        """Test default synthesis of recursively controlled CX-gate."""
+        inner = QuantumCircuit(5)
+        inner.append(CXGate().control(3, annotated=True), [0, 1, 2, 3, 4])
+        controlled_inner_gate2 = inner.to_gate().control(2, annotated=True)
+        qc = QuantumCircuit(15)
+        qc.append(controlled_inner_gate2, [0, 1, 2, 3, 4, 5, 6])
+        qct = HighLevelSynthesis(basis_gates=["cx", "u"])(qc)
+        self.assertEqual(qct.count_ops()["cx"], 30)
+
+    def test_controlled_z(self):
+        """Test default synthesis of controlled-X gate."""
+        qc = QuantumCircuit(15)
+        qc.append(ZGate().control(6), [0, 1, 2, 3, 4, 5, 6])
+        qct = HighLevelSynthesis(basis_gates=["cx", "u"])(qc)
+        self.assertEqual(qct.count_ops()["cx"], 30)
+
+    def test_controlled_cz(self):
+        """Test default synthesis of controlled-CZ gate."""
+        qc = QuantumCircuit(15)
+        qc.append(CZGate().control(5), [0, 1, 2, 3, 4, 5, 6])
+        qct = HighLevelSynthesis(basis_gates=["cx", "u"])(qc)
+        self.assertEqual(qct.count_ops()["cx"], 30)
+
+    def test_recursively_controlled_cz(self):
+        """Test default synthesis of recursively controlled CZ-gate."""
+        inner = QuantumCircuit(5)
+        inner.append(CZGate().control(3, annotated=True), [0, 1, 2, 3, 4])
+        controlled_inner_gate2 = inner.to_gate().control(2, annotated=True)
+        qc = QuantumCircuit(15)
+        qc.append(controlled_inner_gate2, [0, 1, 2, 3, 4, 5, 6])
+        qct = HighLevelSynthesis(basis_gates=["cx", "u"])(qc)
+        self.assertEqual(qct.count_ops()["cx"], 30)
 
 
 class TestPMHSynthesisLinearFunctionPlugin(QiskitTestCase):
