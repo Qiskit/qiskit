@@ -62,7 +62,7 @@ _CONTROL_FLOW_STATES = {
         working={"default", "trivial", "dense", "sabre"}, not_working=set()
     ),
     "routing_method": _ControlFlowState(
-        working={"none", "stochastic", "sabre"}, not_working={"lookahead", "basic"}
+        working={"default", "none", "stochastic", "sabre"}, not_working={"lookahead", "basic"}
     ),
     "translation_method": _ControlFlowState(
         working={"default", "translator", "synthesis"},
@@ -637,7 +637,7 @@ def generate_scheduling(
         )
     if scheduling_method:
         # Call padding pass if circuit is scheduled
-        scheduling.append(PadDelay(target=target))
+        scheduling.append(PadDelay(target=target, durations=instruction_durations))
 
     return scheduling
 
