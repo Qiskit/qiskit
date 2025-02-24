@@ -1,4 +1,7 @@
 ---
 upgrade_circuits:
   - |
-    The ``DAGNode`` subclasses take a ``dag`` optional parameter when constructed that it was unused and ignored. The parameter was deprecated in 1.4 and now it is removed.
+    The deprecated argument ``.dag`` for :class:`.DAGNode` and its subclasses :class:`.DAGOpNode`,
+    :class:`.DAGOutNode`, and :class:`.DAGInNode`.  ``dag`` was optional parameter when constructing
+    these objects that was unused and ignored since the 1.3.0 release. The parameter was deprecated
+    in 1.4 and has now been is removed.
