@@ -19,7 +19,6 @@ from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.gate import Gate
 from qiskit.circuit import _utils
 from qiskit.circuit.parameterexpression import ParameterExpression
-from qiskit.utils import deprecate_func
 from qiskit._accelerate.circuit import StandardInstructionType
 
 
@@ -50,13 +49,9 @@ class Delay(Instruction):
         """Special case. Return self."""
         return self
 
-    @deprecate_func(since="1.3.0", removal_timeline="in 2.0.0")
-    def c_if(self, classical, val):
-        raise CircuitError("Conditional Delay is not yet implemented.")
-
     @property
     def unit(self):
-
+        """The unit for the duration of the delay in :attr`.params`"""
         return self.__unit
 
     @unit.setter
