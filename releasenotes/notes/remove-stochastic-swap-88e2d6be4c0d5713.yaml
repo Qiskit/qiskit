@@ -30,7 +30,7 @@ upgrade_transpiler:
           target=backend.target
       )
 
-      this should be replaced with::
+    this should be replaced with::
 
 
       tqc = transpile(
