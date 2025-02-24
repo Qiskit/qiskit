@@ -23,10 +23,12 @@ from symengine.lib.symengine_wrapper import (  # pylint: disable = no-name-in-mo
     load_basic,
 )
 
+from qiskit.utils.optionals import HAS_SYMENGINE
+
 from qiskit.qpy import formats, exceptions
 
 QPY_VERSION = 13
-QPY_COMPATIBILITY_VERSION = 10
+QPY_COMPATIBILITY_VERSION = 13
 ENCODE = "utf8"
 
 
@@ -311,6 +313,7 @@ def mapping_from_binary(binary_data, deserializer, **kwargs):
     return mapping
 
 
+@HAS_SYMENGINE.require_in_call
 def load_symengine_payload(payload: bytes) -> symengine.Expr:
     """Load a symengine expression from it's serialized cereal payload."""
     # This is a horrible hack to workaround the symengine version checking

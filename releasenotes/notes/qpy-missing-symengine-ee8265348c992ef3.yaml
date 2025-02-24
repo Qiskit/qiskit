@@ -11,3 +11,16 @@ upgrade_qpy:
     requires symengine (0.11.0 or 0.13.0) as it's usage is baked into the
     format specification for QPY v10, v11, and v12 so if the payload requires
     it there is no option but to install a compatible version of symengine.
+  - |
+    The minimum QPY compatibility version, :attr:`.QPY_COMPATIBILITY_VERSION`,
+    has been raised to 13 from 10 in the 1.x release. This version controls
+    the minimum version of QPY that can be emitted by the :func:`.qpy.dump`
+    function. This means :func:`.qpy.dump` can only emit QPY v13 and v14
+    in this release. QPY v13 is still compatible with Qiskit 1.3.x and 1.4.x
+    which means payloads can be generated in Qiskit 2.x that can be loaded
+    with the Qiskit 1.x release series still.
+
+    This change was necessary as QPY versions 10 through 12 requires either
+    the sympy and symengine libraries to generate a serialization for
+    :class:`.ParameterExpression` objects, but in Qiskit 2.x neither library
+    is required for the :class:`.ParameterExpression` object.

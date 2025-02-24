@@ -83,7 +83,7 @@ def dump(
     programs: Union[List[QPY_SUPPORTED_TYPES], QPY_SUPPORTED_TYPES],
     file_obj: BinaryIO,
     metadata_serializer: Optional[Type[JSONEncoder]] = None,
-    use_symengine: bool = True,
+    use_symengine: bool = False,
     version: int = common.QPY_VERSION,
 ):
     """Write QPY binary data to a file
@@ -134,11 +134,9 @@ def dump(
         metadata_serializer: An optional JSONEncoder class that
             will be passed the ``.metadata`` attribute for each program in ``programs`` and will be
             used as the ``cls`` kwarg on the `json.dump()`` call to JSON serialize that dictionary.
-        use_symengine: If True, all objects containing symbolic expressions will be serialized
-            using symengine's native mechanism. This is a faster serialization alternative,
-            but not supported in all platforms. This flag only has an effect if the emitted QPY format
-            version is 10, 11, or 12. For QPY format version >= 13 (which is the default starting in
-            Qiskit 1.3.0) this flag is no longer used.
+        use_symengine: This flag is no longer used by QPY versions supported by this function and
+            will have no impact on the generated QPY payload except to set a field in a QPY v13 file
+            header which is unused.
         version: The QPY format version to emit. By default this defaults to
             the latest supported format of :attr:`~.qpy.QPY_VERSION`, however for
             compatibility reasons if you need to load the generated QPY payload with an older
@@ -153,16 +151,6 @@ def dump(
                 If specified with an older version of QPY the limitations and potential bugs stemming
                 from the QPY format at that version will persist. This should only be used if
                 compatibility with loading the payload with an older version of Qiskit is necessary.
-
-            .. note::
-
-                If serializing a :class:`.QuantumCircuit` or :class:`.ScheduleBlock` that contain
-                :class:`.ParameterExpression` objects with ``version`` set low with the intent to
-                load the payload using a historical release of Qiskit, it is safest to set the
-                ``use_symengine`` flag to ``False``.  Versions of Qiskit prior to 1.2.4 cannot load
-                QPY files containing ``symengine``-serialized :class:`.ParameterExpression` objects
-                unless the version of ``symengine`` used between the loading and generating
-                environments matches.
 
 
     Raises:
