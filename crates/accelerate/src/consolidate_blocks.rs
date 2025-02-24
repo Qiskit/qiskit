@@ -17,9 +17,6 @@ use num_complex::Complex64;
 use numpy::PyReadonlyArray2;
 use pyo3::intern;
 use pyo3::prelude::*;
-use rustworkx_core::petgraph::stable_graph::NodeIndex;
-use smallvec::smallvec;
-
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::circuit_instruction::ExtraInstructionAttributes;
 use qiskit_circuit::dag_circuit::DAGCircuit;
@@ -28,12 +25,21 @@ use qiskit_circuit::imports::{QI_OPERATOR, QUANTUM_CIRCUIT};
 use qiskit_circuit::operations::{ArrayType, Operation, Param, UnitaryGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::Qubit;
+use rustworkx_core::petgraph::stable_graph::NodeIndex;
+use smallvec::smallvec;
 
 use crate::convert_2q_block_matrix::{blocks_to_matrix, get_matrix_from_inst};
 use crate::euler_one_qubit_decomposer::matmul_1q;
 use crate::nlayout::PhysicalQubit;
 use crate::target_transpiler::Target;
-use crate::two_qubit_decompose::TwoQubitBasisDecomposer;
+use crate::two_qubit_decompose::{TwoQubitBasisDecomposer, TwoQubitControlledUDecomposer};
+
+#[derive(Clone, Debug)]
+#[pyclass]
+pub enum DecomposerType {
+    TwoQubitBasis(TwoQubitBasisDecomposer),
+    TwoQubitControlledU(TwoQubitControlledUDecomposer),
+}
 
 fn is_supported(
     target: Option<&Target>,
@@ -62,7 +68,7 @@ const MAX_2Q_DEPTH: usize = 20;
 pub(crate) fn consolidate_blocks(
     py: Python,
     dag: &mut DAGCircuit,
-    decomposer: &TwoQubitBasisDecomposer,
+    decomposer: &DecomposerType,
     basis_gate_name: &str,
     force_consolidate: bool,
     target: Option<&Target>,
@@ -212,8 +218,17 @@ pub(crate) fn consolidate_blocks(
             ];
             let matrix = blocks_to_matrix(py, dag, &block, block_index_map).ok();
             if let Some(matrix) = matrix {
+                let num_basis_gates = match decomposer {
+                    DecomposerType::TwoQubitBasis(decomp) => {
+                        decomp.num_basis_gates_inner(matrix.view())
+                    }
+                    DecomposerType::TwoQubitControlledU(decomp) => {
+                        decomp.num_basis_gates_inner(matrix.view())?
+                    }
+                };
+
                 if force_consolidate
-                    || decomposer.num_basis_gates_inner(matrix.view()) < basis_count
+                    || num_basis_gates < basis_count
                     || block.len() > MAX_2Q_DEPTH
                     || (basis_gates.is_some() && outside_basis)
                     || (target.is_some() && outside_basis)
