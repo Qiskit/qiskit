@@ -35,7 +35,6 @@ class TestPassManagerConfig(QiskitTestCase):
             backend = Fake27QPulseV1()
             config = PassManagerConfig.from_backend(backend)
         self.assertEqual(config.basis_gates, backend.configuration().basis_gates)
-        self.assertEqual(config.inst_map, backend.defaults().instruction_schedule_map)
         self.assertEqual(
             str(config.coupling_map), str(CouplingMap(backend.configuration().coupling_map))
         )
@@ -45,8 +44,6 @@ class TestPassManagerConfig(QiskitTestCase):
         backend = GenericBackendV2(num_qubits=27, seed=42)
         config = PassManagerConfig.from_backend(backend)
         self.assertEqual(config.basis_gates, backend.operation_names)
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(config.inst_map, backend.instruction_schedule_map)
         self.assertEqual(config.coupling_map.get_edges(), backend.coupling_map.get_edges())
 
     def test_invalid_backend(self):
@@ -72,7 +69,6 @@ class TestPassManagerConfig(QiskitTestCase):
             )
         self.assertEqual(config.basis_gates, ["user_gate"])
         self.assertNotEqual(config.basis_gates, backend.configuration().basis_gates)
-        self.assertIsNone(config.inst_map)
         self.assertEqual(
             str(config.coupling_map), str(CouplingMap(backend.configuration().coupling_map))
         )
@@ -98,19 +94,8 @@ class TestPassManagerConfig(QiskitTestCase):
         )
         self.assertEqual(config.basis_gates, ["user_gate"])
         self.assertNotEqual(config.basis_gates, backend.operation_names)
-        self.assertEqual(config.inst_map.instructions, [])
         self.assertEqual(str(config.coupling_map), str(CouplingMap(backend.coupling_map)))
         self.assertEqual(config.initial_layout, initial_layout)
-
-    def test_from_backendv1_inst_map_is_none(self):
-        """Test that from_backend() works with backend that has defaults defined as None."""
-        with self.assertWarns(DeprecationWarning):
-            backend = Fake27QPulseV1()
-        backend.defaults = lambda: None
-        with self.assertWarns(DeprecationWarning):
-            config = PassManagerConfig.from_backend(backend)
-        self.assertIsInstance(config, PassManagerConfig)
-        self.assertIsNone(config.inst_map)
 
     def test_invalid_user_option(self):
         """Test from_backend() with an invalid user option."""
@@ -123,12 +108,10 @@ class TestPassManagerConfig(QiskitTestCase):
         pm_config = PassManagerConfig.from_backend(BasicSimulator())
         # For testing remove instruction schedule map, its str output is non-deterministic
         # based on hash seed
-        pm_config.inst_map = None
         str_out = str(pm_config)
         expected = """Pass Manager Config:
 \tinitial_layout: None
 \tbasis_gates: ['ccx', 'ccz', 'ch', 'cp', 'crx', 'cry', 'crz', 'cs', 'csdg', 'cswap', 'csx', 'cu', 'cu1', 'cu3', 'cx', 'cy', 'cz', 'dcx', 'delay', 'ecr', 'global_phase', 'h', 'id', 'iswap', 'measure', 'p', 'r', 'rccx', 'reset', 'rx', 'rxx', 'ry', 'ryy', 'rz', 'rzx', 'rzz', 's', 'sdg', 'swap', 'sx', 'sxdg', 't', 'tdg', 'u', 'u1', 'u2', 'u3', 'unitary', 'x', 'xx_minus_yy', 'xx_plus_yy', 'y', 'z']
-\tinst_map: None
 \tcoupling_map: None
 \tlayout_method: None
 \trouting_method: None

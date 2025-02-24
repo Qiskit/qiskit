@@ -1019,11 +1019,10 @@ Instructions:
                 self,
                 duration=None,
                 error=None,
-                calibration=None,
                 tuned=None,
                 diamond_norm_error=None,
             ):
-                super().__init__(duration=duration, error=error, calibration=calibration)
+                super().__init__(duration=duration, error=error)
                 self.tuned = tuned
                 self.diamond_norm_error = diamond_norm_error
 
@@ -1698,7 +1697,7 @@ class TestInstructionProperties(QiskitTestCase):
         properties = InstructionProperties()
         self.assertEqual(
             repr(properties),
-            "InstructionProperties(duration=None, error=None, calibration=None)",
+            "InstructionProperties(duration=None, error=None)",
         )
 
 
@@ -1727,18 +1726,14 @@ class TestTargetFromConfiguration(QiskitTestCase):
         with self.assertWarns(DeprecationWarning):
             fake_backend = Fake7QPulseV1()
         config = fake_backend.configuration()
-        defaults = fake_backend.defaults()
         constraints = TimingConstraints(**config.timing_constraints)
-        with self.assertWarns(DeprecationWarning):
-            target = Target.from_configuration(
-                basis_gates=config.basis_gates,
-                num_qubits=config.num_qubits,
-                coupling_map=CouplingMap(config.coupling_map),
-                dt=config.dt,
-                inst_map=defaults.instruction_schedule_map,
-                timing_constraints=constraints,
-            )
-            self.assertIsNotNone(target["sx"][(0,)].calibration)
+        target = Target.from_configuration(
+            basis_gates=config.basis_gates,
+            num_qubits=config.num_qubits,
+            coupling_map=CouplingMap(config.coupling_map),
+            dt=config.dt,
+            timing_constraints=constraints,
+        )
         self.assertEqual(target.granularity, constraints.granularity)
         self.assertEqual(target.min_length, constraints.min_length)
         self.assertEqual(target.pulse_alignment, constraints.pulse_alignment)
