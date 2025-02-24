@@ -25,10 +25,11 @@ from qiskit.circuit.annotated_operation import (
     ControlModifier,
     InverseModifier,
     PowerModifier,
+    _canonicalize_modifiers,
 )
 from qiskit.transpiler.exceptions import TranspilerError
 
-from qiskit._accelerate.high_level_synthesis import py_synthesize_operation
+from qiskit._accelerate.high_level_synthesis import py_synthesize_operation, HighLevelSynthesisData
 from .plugin import HighLevelSynthesisPlugin
 
 
@@ -40,15 +41,19 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
     """
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        # The plugin is triggered based on the name (i.e. for operations called "annotated").
+        # However, we should only do something when the operation is truthfully an AnnotatedOperation.
         if not isinstance(high_level_object, AnnotatedOperation):
             return None
 
+        # Combine the modifiers. If the were no modifiers, or the modifiers magically canceled out,
+        # return the quantum circuit containing the base operation.
+        high_level_object = _canonicalize_op(high_level_object)
+        if not isinstance(high_level_object, AnnotatedOperation):
+            return _instruction_to_circuit(high_level_object)
+
         operation = high_level_object
         modifiers = high_level_object.modifiers
-
-        # If there are no modifiers, return the quantum circuit containing the base operation.
-        if not modifiers:
-            return _instruction_to_circuit(operation.base_op)
 
         # The plugin needs additional information that is not yet passed via the run's method
         # arguments: namely high-level-synthesis data and options, the global qubits over which
@@ -61,6 +66,36 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
             raise TranspilerError(
                 "HighLevelSynthesis: problem with the default plugin for annotated operations."
             )
+
+        # The synthesis consists of two steps:
+        #   - First, we synthesize the base operation.
+        #   - Second, we apply modifiers to this circuit.
+        #
+        # An important optimization (similar to the code in ``add_control.py``) is to synthesize
+        # the base operation with respect to a larger set of "basis" gates, to which the control
+        # logic can be added more efficiently. In particular, we add annotated operations to be
+        # in this larger set, exploting the fact that adding control to annotated operations
+        # returns a new annotated operation with an extended list of modifiers.
+        #
+        # Note that it is fine for this function to return a circuit with high-level objects
+        # (including annotated operations) as the HighLevelSynthesis transpiler pass will
+        # recursively re-synthesize this circuit, However, we should always guarantee that some
+        # progress is made.
+        device_ops = data.get_device_insts().copy()
+        additional_ops = {"annotated", "mcx", "cz", "qft"}
+        device_ops = device_ops.union(additional_ops)
+        base_synthesis_data = HighLevelSynthesisData(
+            hls_config=data.get_hls_config(),
+            hls_plugin_manager=data.get_hls_plugin_manager(),
+            coupling_map=None,
+            target=None,
+            equivalence_library=data.get_equivalence_library(),
+            hls_op_names=data.get_hls_op_names(),
+            device_insts=device_ops,
+            use_qubit_indices=data.get_use_qubit_indices(),
+            min_qubits=0,
+            unroll_definitions=data.get_unroll_definitions(),
+        )
 
         num_ctrl = sum(mod.num_ctrl_qubits for mod in modifiers if isinstance(mod, ControlModifier))
         total_power = sum(mod.power for mod in modifiers if isinstance(mod, PowerModifier))
@@ -83,7 +118,7 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
         # qubits from the circuit). We should refactor the plugin "run" iterface to
         # return the actual ancilla qubits used.
         synthesized_base_op_result = py_synthesize_operation(
-            operation.base_op, input_qubits[num_ctrl:], data, annotated_tracker
+            operation.base_op, input_qubits[num_ctrl:], base_synthesis_data, annotated_tracker
         )
 
         # The base operation does not need to be synthesized.
@@ -174,3 +209,26 @@ def _instruction_to_circuit(op: Operation) -> QuantumCircuit:
     circuit = QuantumCircuit(op.num_qubits, op.num_clbits)
     circuit.append(op, circuit.qubits, circuit.clbits)
     return circuit
+
+
+def _canonicalize_op(op: Operation) -> Operation:
+    """
+    Combines recursive annotated operations and canonicalizes modifiers.
+    """
+    cur = op
+    all_modifiers = []
+
+    while isinstance(cur, AnnotatedOperation):
+        all_modifiers.append(cur.modifiers)
+        cur = cur.base_op
+
+    new_modifiers = []
+    for modifiers in all_modifiers[::-1]:
+        new_modifiers.extend(modifiers)
+
+    canonical_modifiers = _canonicalize_modifiers(new_modifiers)
+
+    if not canonical_modifiers:
+        return cur
+
+    return AnnotatedOperation(cur, canonical_modifiers)
