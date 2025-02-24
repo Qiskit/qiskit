@@ -4,7 +4,7 @@ features_transpiler:
     A new :ref:`translation plugin stage <transpiler-preset-stage-translation>` is added, called
     ``"default"``.  In Qiskit 2.0, this is simply an alias for the previous default ``"translator"``.
     The underlying default algorithm may change over the course of the Qiskit 2.x series for some or
-    all targets, but you can always set ``translation_method=="translator"`` explicitly to maintain
+    all targets, but you can always set ``translation_method="translator"`` explicitly to maintain
     the current behavior.
 upgrade_transpiler:
   - |
@@ -14,5 +14,5 @@ upgrade_transpiler:
     The default :ref:`translation plugin stage <transpiler-preset-stage-translation>` is now
     ``"default"``.  In Qiskit 2.0, this is simply an alias for the previous default ``"translator"``.
     The underlying default algorithm may change over the course of the Qiskit 2.x series for some or
-    all targets, but you can always set ``translation_method=="translator"`` explicitly to maintain
+    all targets, but you can always set ``translation_method="translator"`` explicitly to maintain
     the current behavior.

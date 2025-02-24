@@ -70,7 +70,7 @@ Issues = "https://github.com/Qiskit/qiskit/issues"
 Changelog = "https://docs.quantum.ibm.com/api/qiskit/release-notes"
 
 [project.entry-points."qiskit.unitary_synthesis"]
-default = "qiskit.transpiler.passes.synthesis.unitary_synthesis:DefaultUnitarySynthesis"
+default = "qiskit.transpiler.passes.synthesis.default_unitary_synth_plugin:DefaultUnitarySynthesis"
 aqc = "qiskit.transpiler.passes.synthesis.aqc_plugin:AQCSynthesisPlugin"
 sk = "qiskit.transpiler.passes.synthesis.solovay_kitaev_synthesis:SolovayKitaevSynthesis"
 
@@ -128,6 +128,7 @@ synthesis = "qiskit.transpiler.preset_passmanagers.builtin_plugins:UnitarySynthe
 translator = "qiskit.transpiler.preset_passmanagers.builtin_plugins:BasisTranslatorPassManager"
 
 [project.entry-points."qiskit.transpiler.routing"]
+default = "qiskit.transpiler.preset_passmanagers.builtin_plugins:DefaultRoutingPassManager"
 basic = "qiskit.transpiler.preset_passmanagers.builtin_plugins:BasicSwapPassManager"
 lookahead = "qiskit.transpiler.preset_passmanagers.builtin_plugins:LookaheadSwapPassManager"
 none = "qiskit.transpiler.preset_passmanagers.builtin_plugins:NoneRoutingPassManager"

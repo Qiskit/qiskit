@@ -392,7 +392,7 @@ class TestSparsePauliOpConversions(QiskitTestCase):
         with self.subTest("XrZ"):
             obs = SparseObservable("XrZ")
             spo = SparsePauliOp.from_sparse_observable(obs)
-            expected = SparsePauliOp(["XIZ", "XYZ"], coeffs=[0.5, -0.5])
+            expected = SparsePauliOp(["XIZ", "XYZ"], coeffs=[0.5, 0.5])
 
             # we don't guarantee the order of Paulis, so check equality by comparing
             # the matrix representation and that all Pauli strings are present

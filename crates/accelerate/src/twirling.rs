@@ -398,7 +398,7 @@ pub(crate) fn twirl_circuit(
 ) -> PyResult<Vec<CircuitData>> {
     let mut rng = match seed {
         Some(seed) => Pcg64Mcg::seed_from_u64(seed),
-        None => Pcg64Mcg::from_entropy(),
+        None => Pcg64Mcg::from_os_rng(),
     };
     let twirling_mask: u8 = match twirled_gate {
         Some(gates) => {
