@@ -8,10 +8,11 @@ upgrade_providers:
     code by simply removing ``ProviderV1`` as the parent class of your
     implementation. As part of this you probably would want to add an
     implementation of ``get_backend`` for backwards compatibility. For example::
-        def get_backend(self, name=None, **kwargs):
-          backend = self.backends(name, **kwargs)
-          if len(backends) > 1:
-              raise QiskitBackendNotFoundError("More than one backend matches the criteria")
-          if not backends:
-              raise QiskitBackendNotFoundError("No backend matches the criteria")
-          return backends[0]
+
+      def get_backend(self, name=None, **kwargs):
+        backend = self.backends(name, **kwargs)
+        if len(backends) > 1:
+          raise QiskitBackendNotFoundError("More than one backend matches the criteria")
+        if not backends:
+          raise QiskitBackendNotFoundError("No backend matches the criteria")
+        return backends[0]
