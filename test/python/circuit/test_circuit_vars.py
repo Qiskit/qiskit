@@ -119,7 +119,7 @@ class TestCircuitVars(QiskitTestCase):
 
     def test_initialise_inputs_declarations_rejects_const_vars(self):
         a = expr.Var.new("a", types.Uint(16, const=True))
-        with self.assertRaisesRegex(CircuitError, "const variables.*not supported"):
+        with self.assertRaisesRegex(CircuitError, "const variables cannot be input variables"):
             QuantumCircuit(inputs=[a])
 
     def test_initialise_captures_declarations(self):
@@ -219,9 +219,9 @@ class TestCircuitVars(QiskitTestCase):
     def test_add_input_rejects_const_var(self):
         a = expr.Var.new("a", types.Bool(const=True))
         qc = QuantumCircuit()
-        with self.assertRaisesRegex(CircuitError, "const variables.*not supported"):
+        with self.assertRaisesRegex(CircuitError, "const variables cannot be input variables"):
             qc.add_input(a)
-        with self.assertRaisesRegex(CircuitError, "const variables.*not supported"):
+        with self.assertRaisesRegex(CircuitError, "const variables cannot be input variables"):
             qc.add_input("a", types.Bool(const=True))
 
     def test_cannot_have_both_inputs_and_captures(self):

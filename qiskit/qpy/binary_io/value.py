@@ -398,7 +398,6 @@ def _write_expr_type_v14(file_obj, type_: types.Type):
     elif type_.kind is types.Uint:
         file_obj.write(type_keys.ExprType.UINT)
         file_obj.write(
-            # TODO: make sure you're calling this correctly
             struct.pack(
                 formats.EXPR_TYPE_UINT_PACK_V14,
                 *formats.EXPR_TYPE_UINT_V14(type_.width, type_.const),

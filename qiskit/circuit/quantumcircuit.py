@@ -2940,9 +2940,9 @@ class QuantumCircuit:
             if type_ is not None:
                 raise ValueError("cannot give an explicit type with an existing Var")
             if name_or_var.type.const:
-                raise CircuitError("const variables are not supported")
+                raise CircuitError("const variables cannot be input variables")
         elif type_ is not None and type_.const:
-            raise CircuitError("const variables are not supported")
+            raise CircuitError("const variables cannot be input variables")
 
         var = self._prepare_new_var(name_or_var, type_)
         self._vars_input[var.name] = var

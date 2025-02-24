@@ -40,6 +40,10 @@ literals ``True`` and ``False``), and unsigned integers (corresponding to
 .. autoclass:: Bool
 .. autoclass:: Uint
 
+All types have a :attr:`~Type.const` field to indicate their const-ness. When the result type of
+an expression is constant, the expression is considered a constant expression. Constant
+expressions can be used in certain contexts that aren't valid for runtime-initialized variables.
+
 Note that :class:`Uint` defines a family of types parametrized by their width; it is not one single
 type, which may be slightly different to the 'classical' programming languages you are used to.
 
@@ -59,7 +63,10 @@ Partial ordering of types
 The type system is equipped with a partial ordering, where :math:`a < b` is interpreted as
 ":math:`a` is a strict subtype of :math:`b`".  Note that the partial ordering is a subset of the
 directed graph that describes the allowed explicit casting operations between types.  The partial
-ordering defines when one type may be lossless directly interpreted as another.
+ordering defines when one type may be losslessly directly interpreted as another.
+
+When two types differ only in const-ness, the non-const version is considered to be the
+"greater" of the two.
 
 The low-level interface to querying the subtyping relationship is the :func:`order` function.
 

@@ -11,11 +11,11 @@ features_circuits:
       from qiskit.circuit.classical import expr
 
       expr.lift(5, try_const=True)
-      # >>> Value(5, Uint(3, const=True))
+      # Value(5, Uint(3, const=True))
 
     The result type of an operation applied to const types is also const::
 
       from qiskit.circuit.classical import expr
 
       expr.bit_and(expr.lift(5, try_const=True), expr.lift(6, try_const=True)).type.const
-      # >>> True
+      # True
