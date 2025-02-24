@@ -66,8 +66,6 @@ class TestScheduledCircuit(QiskitTestCase):
         self.assertEqual(sc.data[0].operation.duration, 450900)
         self.assertEqual(sc.data[0].operation.unit, "dt")
         self.assertEqual(sc.data[1].operation.name, "rz")
-        self.assertEqual(sc.data[1].operation.duration, 0)
-        self.assertEqual(sc.data[1].operation.unit, "dt")
         self.assertEqual(sc.data[4].operation.name, "delay")
         self.assertEqual(sc.data[4].operation.duration, 450885)
         self.assertEqual(sc.data[4].operation.unit, "dt")
@@ -97,8 +95,6 @@ class TestScheduledCircuit(QiskitTestCase):
         self.assertEqual(sc.data[0].operation.duration, 450450)
         self.assertEqual(sc.data[0].operation.unit, "dt")
         self.assertEqual(sc.data[1].operation.name, "rz")
-        self.assertEqual(sc.data[1].operation.duration, 0)
-        self.assertEqual(sc.data[1].operation.unit, "dt")
         self.assertEqual(sc.data[4].operation.name, "delay")
         self.assertEqual(sc.data[4].operation.duration, 450450)
         self.assertEqual(sc.data[4].operation.unit, "dt")
@@ -124,8 +120,6 @@ class TestScheduledCircuit(QiskitTestCase):
         self.assertAlmostEqual(sc.data[0].operation.duration, 1.0e-4 + 1.0e-7)
         self.assertEqual(sc.data[0].operation.unit, "s")
         self.assertEqual(sc.data[1].operation.name, "rz")
-        self.assertAlmostEqual(sc.data[1].operation.duration, 160 * self.dt)
-        self.assertEqual(sc.data[1].operation.unit, "s")
         self.assertEqual(sc.data[4].operation.name, "delay")
         self.assertAlmostEqual(sc.data[4].operation.duration, 1.0e-4 + 1.0e-7)
         self.assertEqual(sc.data[4].operation.unit, "s")
@@ -201,6 +195,7 @@ class TestScheduledCircuit(QiskitTestCase):
                 scheduling_method="alap",
                 basis_gates=["h", "cx"],
                 instruction_durations=[("h", 0, 200), ("cx", [0, 1], 700)],
+                dt=1e-7,
             )
         self.assertEqual(scheduled.duration, 1200)
 
@@ -217,7 +212,10 @@ class TestScheduledCircuit(QiskitTestCase):
             expected_regex="The `target` parameter should be used instead",
         ):
             scheduled = transpile(
-                qc, scheduling_method="alap", instruction_durations=[("bell", [0, 1], 1000)]
+                qc,
+                scheduling_method="alap",
+                instruction_durations=[("bell", [0, 1], 1000)],
+                dt=1e-2,
             )
         self.assertEqual(scheduled.duration, 1500)
 
@@ -279,6 +277,7 @@ class TestScheduledCircuit(QiskitTestCase):
                 basis_gates=["h", "cx", "delay"],
                 scheduling_method="alap",
                 instruction_durations=[("h", 0, 200), ("cx", None, 900)],
+                dt=1e-6,
             )
         self.assertEqual(scheduled.duration, 1400)
         with self.assertWarnsRegex(
@@ -291,6 +290,7 @@ class TestScheduledCircuit(QiskitTestCase):
                 basis_gates=["h", "cx", "delay"],
                 scheduling_method="alap",
                 instruction_durations=[("h", 0, 200), ("cx", None, 900), ("cx", [0, 1], 800)],
+                dt=1e-7,
             )
         self.assertEqual(scheduled.duration, 1300)
 
@@ -343,6 +343,7 @@ class TestScheduledCircuit(QiskitTestCase):
                 scheduling_method="alap",
                 basis_gates=["h", "cx"],
                 instruction_durations=[("h", None, 200), ("cx", [0, 1], 700)],
+                dt=1e-7,
             )
         self.assertEqual(sc.qubit_start_time(0), 300)
         self.assertEqual(sc.qubit_stop_time(0), 1200)
@@ -369,6 +370,7 @@ class TestScheduledCircuit(QiskitTestCase):
                     ("cx", [0, 1], 700),
                     ("measure", None, 1000),
                 ],
+                dt=1e-8,
             )
         q = sc.qubits
         self.assertEqual(sc.qubit_start_time(q[0]), 300)
@@ -662,7 +664,7 @@ class TestScheduledCircuit(QiskitTestCase):
         ):
             sc = transpile(qc, backend=self.backend_with_dt, scheduling_method=scheduling_method)
         cxs = [inst.operation for inst in sc.data if inst.operation.name == "cx"]
-        self.assertNotEqual(cxs[0].duration, cxs[1].duration)
+        self.assertEqual(cxs[0], cxs[1])
 
     # Tests for circuits with parameterized delays
     def test_can_transpile_circuits_after_assigning_parameters(self):
