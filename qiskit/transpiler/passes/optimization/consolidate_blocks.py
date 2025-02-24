@@ -100,9 +100,14 @@ class ConsolidateBlocks(TransformationPass):
             self.decomposer = TwoQubitBasisDecomposer(kak_basis_gate)
         elif basis_gates is not None:
             kak_gates = KAK_GATE_NAMES.keys() & (basis_gates or [])
+            kak_param_gates = KAK_GATE_PARAM_NAMES.keys() & (basis_gates or [])
             if kak_gates:
                 self.decomposer = TwoQubitBasisDecomposer(
                     KAK_GATE_NAMES[kak_gates.pop()], basis_fidelity=approximation_degree or 1.0
+                )
+            elif kak_param_gates:
+                self.decomposer = TwoQubitControlledUDecomposer(
+                    KAK_GATE_PARAM_NAMES[kak_param_gates.pop()]
                 )
             # elif "rzx" in basis_gates:
             #    self.decomposer = TwoQubitBasisDecomposer(
