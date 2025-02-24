@@ -71,7 +71,6 @@ For example::
 import unittest
 import os
 import sys
-import warnings
 
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit, transpile
 from qiskit.providers.basic_provider import BasicSimulator
