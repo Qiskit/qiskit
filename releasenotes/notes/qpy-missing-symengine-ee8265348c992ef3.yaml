@@ -1,0 +1,13 @@
+---
+upgrade_qpy:
+  - |
+    The :func:`.qpy.load` function can now emit a
+    :class:`.MissingOptionalLibrary` exception if a QPY v10, v11, or v12
+    payload is passed in that is using symengine symbolic expressions
+    and symengine is not installed. In the Qiskit 1.x releases symengine was
+    always guaranteed to be installed, but starting in 2.x this is no longer
+    a hard requirement and may only be needed if you're deserializing a QPY
+    file that was generated using symengine. Parsing these QPY payloads
+    requires symengine (0.11.0 or 0.13.0) as it's usage is baked into the
+    format specification for QPY v10, v11, and v12 so if the payload requires
+    it there is no option but to install a compatible version of symengine.

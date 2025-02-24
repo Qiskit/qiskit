@@ -288,6 +288,10 @@ def load(
     Raises:
         QiskitError: if ``file_obj`` is not a valid QPY file
         TypeError: When invalid data type is loaded.
+        MissingOptionalLibraryError: If the ``symengine`` engine library is
+            not installed when loading a QPY version 10, 11, or 12 payload
+            that is using symengine symbolic encoding and contains
+            :class:`.ParameterExpression` instances.
     """
 
     # identify file header version
