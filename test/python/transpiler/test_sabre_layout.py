@@ -306,9 +306,8 @@ barrier q18585[5],q18585[2],q18585[8],q18585[3],q18585[6];
         qc.cx(4, 0)
 
         cm = CouplingMap.from_line(8)
-        with self.assertWarns(DeprecationWarning):
-            pass_ = SabreLayout(cm, seed=0, routing_pass=BasicSwap(cm, fake_run=True))
-            _ = pass_(qc)
+        pass_ = SabreLayout(cm, seed=0, routing_pass=BasicSwap(cm, fake_run=True))
+        _ = pass_(qc)
         layout = pass_.property_set["layout"]
         self.assertEqual([layout[q] for q in qc.qubits], [3, 4, 2, 5, 1])
 

@@ -105,9 +105,8 @@ class CommonUtilitiesMixin:
         if initial_layout:
             passmanager.append(SetLayout(Layout(initial_layout)))
 
-        with warnings.catch_warnings():
-            # pylint: disable=not-callable
-            passmanager.append(self.pass_class(CouplingMap(coupling_map), **self.additional_args))
+        # pylint: disable=not-callable
+        passmanager.append(self.pass_class(CouplingMap(coupling_map), **self.additional_args))
         return passmanager
 
     def create_backend(self):

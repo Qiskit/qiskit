@@ -21,7 +21,7 @@ from qiskit.providers.fake_provider import Fake27QPulseV1
 
 
 class TranspilerQualitativeBench:
-    params = ([0, 1, 2, 3])
+    params = [0, 1, 2, 3]
     param_names = ["optimization level"]
     timeout = 600
 
