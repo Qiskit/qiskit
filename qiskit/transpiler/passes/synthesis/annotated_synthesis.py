@@ -130,9 +130,28 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
             synthesized_base_op = QuantumCircuit._from_circuit_data(synthesized_base_op_result[0])
         tracker.set_dirty(input_qubits[num_ctrl:])
 
-        # This step currently does not introduce ancilla qubits. However it makes
-        # a lot of sense to allow this in the future.
-        synthesized = _apply_annotations(synthesized_base_op, operation.modifiers)
+        # As one simple optimization, we apply conjugate decomposition to the circuit obtained
+        # while synthesizing the base operator.
+        conjugate_decomp = _conjugate_decomposition(synthesized_base_op)
+
+        if conjugate_decomp is None:
+            # Apply annotations to the whole circuit.
+            # This step currently does not introduce ancilla qubits. However it makes
+            # a lot of sense to allow this in the future.
+            synthesized = _apply_annotations(synthesized_base_op, operation.modifiers)
+        else:
+            # Apply annotations only to the middle part of the circuit.
+            (front, middle, back) = conjugate_decomp
+            synthesized = QuantumCircuit(operation.num_qubits)
+            synthesized.compose(
+                front, synthesized.qubits[num_ctrl : operation.num_qubits], inplace=True
+            )
+            synthesized.compose(
+                _apply_annotations(middle, operation.modifiers), synthesized.qubits, inplace=True
+            )
+            synthesized.compose(
+                back, synthesized.qubits[num_ctrl : operation.num_qubits], inplace=True
+            )
 
         if not isinstance(synthesized, QuantumCircuit):
             raise TranspilerError(
@@ -232,3 +251,72 @@ def _canonicalize_op(op: Operation) -> Operation:
         return cur
 
     return AnnotatedOperation(cur, canonical_modifiers)
+
+
+def _are_inverse_ops(inst1: "CircuitInstruction", inst2: "CircuitInstruction"):
+    """A very naive function that checks whether two circuit instructions are inverse of
+    each other. The main use-case covered is a ``QFTGate`` and its inverse, represented as
+    an ``AnnotatedOperation`` with a single ``InverseModifier``.
+    """
+    res = False
+
+    if inst1.qubits != inst2.qubits or inst1.clbits != inst2.clbits or inst1.params != inst2.params:
+        return False
+
+    op1 = inst1.operation
+    op2 = inst2.operation
+
+    ann1 = isinstance(op1, AnnotatedOperation)
+    ann2 = isinstance(op2, AnnotatedOperation)
+
+    if not ann1 and not ann2:
+        res = op1 == op2.inverse()
+    elif not ann1 and ann2 and op2.modifiers == [InverseModifier()]:
+        res = op1 == op2.base_op
+    elif not ann2 and ann1 and op1.modifiers == [InverseModifier()]:
+        res = op1.base_op == op2
+
+    return res
+
+
+def _conjugate_decomposition(
+    circuit: QuantumCircuit,
+) -> tuple[QuantumCircuit, QuantumCircuit, QuantumCircuit] | None:
+    """
+    Decomposes a circuit ``A`` into 3 sub-circuits ``P``, ``Q``, ``R`` such that
+    ``A = P -- Q -- R`` and ``R = P^{-1}``.
+
+    This is accomplished by iteratively finding inverse nodes at the front and at the back of the
+    circuit.
+
+    The function returns ``None`` when ``P`` and ``R`` are empty.
+    """
+    num_gates = circuit.size()
+
+    idx = 0
+    ridx = num_gates - 1
+
+    while True:
+        if idx >= ridx:
+            break
+        if _are_inverse_ops(circuit[idx], circuit[ridx]):
+            idx += 1
+            ridx -= 1
+        else:
+            break
+
+    if idx == 0:
+        return None
+
+    front_circuit = circuit.copy_empty_like()
+    front_circuit.global_phase = 0
+    for i in range(0, idx):
+        front_circuit.append(circuit[i])
+    middle_circuit = circuit.copy_empty_like()  # inherits the global phase
+    for i in range(idx, ridx + 1):
+        middle_circuit.append(circuit[i])
+    back_circuit = circuit.copy_empty_like()
+    back_circuit.global_phase = 0
+    for i in range(ridx + 1, num_gates):
+        back_circuit.append(circuit[i])
+    return (front_circuit, middle_circuit, back_circuit)
