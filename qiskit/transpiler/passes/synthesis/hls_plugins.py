@@ -1353,7 +1353,7 @@ class ModularAdderSynthesisD00(HighLevelSynthesisPlugin):
         if not isinstance(high_level_object, ModularAdderGate):
             return None
 
-        return adder_qft_d00(high_level_object.num_state_qubits, kind="fixed")
+        return adder_qft_d00(high_level_object.num_state_qubits, kind="fixed", annotated=True)
 
 
 class HalfAdderSynthesisDefault(HighLevelSynthesisPlugin):
@@ -1465,7 +1465,7 @@ class HalfAdderSynthesisD00(HighLevelSynthesisPlugin):
         if not isinstance(high_level_object, HalfAdderGate):
             return None
 
-        return adder_qft_d00(high_level_object.num_state_qubits, kind="half")
+        return adder_qft_d00(high_level_object.num_state_qubits, kind="half", annotated=True)
 
 
 class FullAdderSynthesisDefault(HighLevelSynthesisPlugin):
