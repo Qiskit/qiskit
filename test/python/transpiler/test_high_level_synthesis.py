@@ -1740,6 +1740,20 @@ class TestHighLevelSynthesisModifiers(QiskitTestCase):
         qct = pass_(qc)
         self.assertEqual(Statevector(qc), Statevector(qct))
 
+    def test_annotated_with_empty_modifiers(self):
+        """Test synthesis of an annotated gate with an empty list of modifiers."""
+        annotated_gate = AnnotatedOperation(SwapGate(), [])
+        circuit = QuantumCircuit(2)
+        circuit.h(0)
+        circuit.append(annotated_gate, [0, 1])
+
+        transpiled_circuit = HighLevelSynthesis()(circuit)
+        expected_circuit = QuantumCircuit(2)
+        expected_circuit.h(0)
+        expected_circuit.swap(0, 1)
+
+        self.assertEqual(transpiled_circuit, expected_circuit)
+
 
 class TestUnrollerCompatability(QiskitTestCase):
     """Tests backward compatibility with the UnrollCustomDefinitions pass.
