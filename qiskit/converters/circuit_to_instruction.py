@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 """Helper function for converting a circuit to an instruction."""
+from qiskit.circuit import ControlFlowOp
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.quantumregister import QuantumRegister
@@ -123,6 +124,10 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
     operation_map = {}
 
     def fix_condition(op):
+        if isinstance(op, ControlFlowOp):
+            raise QiskitError(
+                f"Circuits with control flow operation {type(op)} cannot be converted to an instruction"
+            )
         original_id = id(op)
         if (out := operation_map.get(original_id)) is not None:
             return out
@@ -136,8 +141,8 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
                 op = op.c_if(creg, val)
             else:
                 raise QiskitError(
-                    "Cannot convert condition in circuit with "
-                    "multiple classical registers to instruction"
+                    "Cannot convert to instruction a circuit with condition on "
+                    "multiple classical registers "
                 )
         operation_map[original_id] = op
         return op
