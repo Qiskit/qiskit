@@ -26,7 +26,6 @@ from qiskit.providers.backend_compat import BackendV2Converter
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.providers.fake_provider import Fake7QPulseV1, GenericBackendV2
 from qiskit.transpiler import PassManager
-from qiskit.utils import optionals
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 from test import combine  # pylint: disable=wrong-import-order
 from test.python.transpiler._dummy_passes import DummyAP  # pylint: disable=wrong-import-order
@@ -368,10 +367,7 @@ class TestBackendSampler(QiskitTestCase):
 
     def test_primitive_job_size_limit_backend_v1(self):
         """Test primitive respects backend's job size limit."""
-        with self.assertWarns(DeprecationWarning):
-            backend = GenericBackendV2(
-                7, calibrate_instructions=True, basis_gates=["cx", "u1", "u2", "u3"], seed=42
-            )
+        backend = GenericBackendV2(7, basis_gates=["cx", "u1", "u2", "u3"], seed=42)
         qc = QuantumCircuit(1)
         qc.measure_all()
         qc2 = QuantumCircuit(1)
@@ -386,34 +382,9 @@ class TestBackendSampler(QiskitTestCase):
         self.assertDictAlmostEqual(result.quasi_dists[0], {0: 1}, 0.1)
         self.assertDictAlmostEqual(result.quasi_dists[1], {1: 1}, 0.1)
 
-    @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required to run this test")
-    def test_circuit_with_dynamic_circuit(self):
-        """Test BackendSampler with QuantumCircuit with a dynamic circuit"""
-        from qiskit_aer import Aer
-
-        qc = QuantumCircuit(2, 1)
-
-        with qc.for_loop(range(5)):
-            qc.h(0)
-            qc.cx(0, 1)
-            qc.measure(0, 0)
-            with self.assertWarns(DeprecationWarning):
-                qc.break_loop().c_if(0, True)
-
-        with self.assertWarns(DeprecationWarning):
-            backend = Aer.get_backend("aer_simulator")
-            sampler = BackendSampler(backend, skip_transpilation=True)
-            sampler.set_options(seed_simulator=15)
-            sampler.set_transpile_options(seed_transpiler=15)
-            result = sampler.run(qc).result()
-        self.assertDictAlmostEqual(result.quasi_dists[0], {0: 0.5029296875, 1: 0.4970703125})
-
     def test_sequential_run(self):
         """Test sequential run."""
-        with self.assertWarns(DeprecationWarning):
-            backend = GenericBackendV2(
-                7, calibrate_instructions=True, basis_gates=["cx", "u1", "u2", "u3"], seed=42
-            )
+        backend = GenericBackendV2(7, basis_gates=["cx", "u1", "u2", "u3"], seed=42)
         qc = QuantumCircuit(1)
         qc.measure_all()
         qc2 = QuantumCircuit(1)
@@ -461,10 +432,8 @@ class TestBackendSampler(QiskitTestCase):
 
             bound_counter = CallbackPass("bound_pass_manager", callback)
             bound_pass = PassManager(bound_counter)
+            backend = GenericBackendV2(7, basis_gates=["cx", "u1", "u2", "u3"], seed=42)
             with self.assertWarns(DeprecationWarning):
-                backend = GenericBackendV2(
-                    7, calibrate_instructions=True, basis_gates=["cx", "u1", "u2", "u3"], seed=42
-                )
                 sampler = BackendSampler(backend=backend, bound_pass_manager=bound_pass)
             _ = sampler.run([self._circuit[0]]).result()
             expected = [
@@ -485,13 +454,11 @@ class TestBackendSampler(QiskitTestCase):
 
                 bound_counter = CallbackPass("bound_pass_manager", callback)
                 bound_pass = PassManager(bound_counter)
-                with self.assertWarns(DeprecationWarning):
-                    backend = GenericBackendV2(
-                        7,
-                        calibrate_instructions=True,
-                        basis_gates=["cx", "u1", "u2", "u3"],
-                        seed=42,
-                    )
+                backend = GenericBackendV2(
+                    7,
+                    basis_gates=["cx", "u1", "u2", "u3"],
+                    seed=42,
+                )
                 with self.assertWarns(DeprecationWarning):
                     sampler = BackendSampler(backend=backend, bound_pass_manager=bound_pass)
                 _ = sampler.run([self._circuit[0], self._circuit[0]]).result()

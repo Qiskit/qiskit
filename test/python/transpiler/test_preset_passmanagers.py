@@ -976,69 +976,17 @@ class TestFinalLayouts(QiskitTestCase):
             for qubit_control in qr:
                 if qubit_control != qubit_target:
                     qc.cx(qubit_control, qubit_target)
-
-        ancilla = QuantumRegister(15, "ancilla")
-
-        trivial_layout = {
-            0: qr[0],
-            1: qr[1],
-            2: qr[2],
-            3: qr[3],
-            4: qr[4],
-            5: ancilla[0],
-            6: ancilla[1],
-            7: ancilla[2],
-            8: ancilla[3],
-            9: ancilla[4],
-            10: ancilla[5],
-            11: ancilla[6],
-            12: ancilla[7],
-            13: ancilla[8],
-            14: ancilla[9],
-            15: ancilla[10],
-            16: ancilla[11],
-            17: ancilla[12],
-            18: ancilla[13],
-            19: ancilla[14],
-        }
-
-        sabre_layout = {
-            0: ancilla[0],
-            1: ancilla[1],
-            2: ancilla[2],
-            3: ancilla[3],
-            4: ancilla[4],
-            5: qr[1],
-            6: qr[0],
-            7: qr[4],
-            8: ancilla[6],
-            9: ancilla[7],
-            10: qr[2],
-            11: qr[3],
-            12: ancilla[5],
-            13: ancilla[8],
-            14: ancilla[9],
-            15: ancilla[10],
-            16: ancilla[11],
-            17: ancilla[12],
-            18: ancilla[13],
-            19: ancilla[14],
-        }
-
-        expected_layout_level0 = trivial_layout
-        expected_layout_level1 = sabre_layout
-        expected_layout_level2 = sabre_layout
-        expected_layout_level3 = sabre_layout
-
         expected_layouts = [
-            expected_layout_level0,
-            expected_layout_level1,
-            expected_layout_level2,
-            expected_layout_level3,
+            [0, 1, 2, 3, 4],
+            [6, 5, 11, 10, 2],
+            [6, 5, 2, 11, 10],
+            [6, 5, 2, 11, 10],
         ]
         backend = GenericBackendV2(num_qubits=20, coupling_map=TOKYO_CMAP, seed=42)
         result = transpile(qc, backend, optimization_level=level, seed_transpiler=42)
-        self.assertEqual(result._layout.initial_layout._p2v, expected_layouts[level])
+        self.assertEqual(
+            result.layout.initial_index_layout(filter_ancillas=True), expected_layouts[level]
+        )
 
     @data(0, 1, 2, 3)
     def test_all_levels_use_trivial_if_perfect(self, level):
@@ -1235,37 +1183,6 @@ class TestTranspileLevelsSwap(QiskitTestCase):
         self.assertIsInstance(result, QuantumCircuit)
         resulting_basis = {node.name for node in circuit_to_dag(result).op_nodes()}
         self.assertIn("swap", resulting_basis)
-
-
-@ddt
-class TestOptimizationWithCondition(QiskitTestCase):
-    """Test optimization levels with condition in the circuit"""
-
-    @data(0, 1, 2, 3)
-    def test_optimization_condition(self, level):
-        """Test optimization levels with condition in the circuit"""
-        qr = QuantumRegister(2)
-        cr = ClassicalRegister(1)
-        qc = QuantumCircuit(qr, cr)
-        with self.assertWarns(DeprecationWarning):
-            qc.cx(0, 1).c_if(cr, 1)
-        backend = GenericBackendV2(
-            num_qubits=20,
-            coupling_map=TOKYO_CMAP,
-            basis_gates=["id", "u1", "u2", "u3", "cx"],
-            seed=42,
-        )
-        circ = transpile(qc, backend, optimization_level=level)
-        self.assertIsInstance(circ, QuantumCircuit)
-
-    def test_input_dag_copy(self):
-        """Test substitute_node_with_dag input_dag copy on condition"""
-        qc = QuantumCircuit(2, 1)
-        with self.assertWarns(DeprecationWarning):
-            qc.cx(0, 1).c_if(qc.cregs[0], 1)
-        qc.cx(1, 0)
-        circ = transpile(qc, basis_gates=["u3", "cz"])
-        self.assertIsInstance(circ, QuantumCircuit)
 
 
 @ddt

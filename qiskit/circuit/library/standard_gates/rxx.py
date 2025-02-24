@@ -78,11 +78,9 @@ class RXXGate(Gate):
 
     _standard_gate = StandardGate.RXXGate
 
-    def __init__(
-        self, theta: ParameterValueType, label: Optional[str] = None, *, duration=None, unit="dt"
-    ):
+    def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
         """Create new RXX gate."""
-        super().__init__("rxx", 2, [theta], label=label, duration=duration, unit=unit)
+        super().__init__("rxx", 2, [theta], label=label)
 
     def _define(self):
         """Calculate a subcircuit that implements this unitary."""

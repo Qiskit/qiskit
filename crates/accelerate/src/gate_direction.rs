@@ -21,7 +21,6 @@ use qiskit_circuit::operations::OperationRef;
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{
     circuit_instruction::CircuitInstruction,
-    circuit_instruction::ExtraInstructionAttributes,
     converters::{circuit_to_dag, QuantumCircuitData},
     dag_circuit::DAGCircuit,
     dag_node::{DAGNode, DAGOpNode},
@@ -208,7 +207,7 @@ fn py_fix_direction_target(
         ];
 
         // Take this path so Target can check for exact match of the parameterized gate's angle
-        if let OperationRef::Standard(std_gate) = inst.op.view() {
+        if let OperationRef::StandardGate(std_gate) = inst.op.view() {
             match std_gate {
                 StandardGate::RXXGate
                 | StandardGate::RYYGate
@@ -309,7 +308,7 @@ where
 
         // If the op has a pre-defined replacement - replace if the other direction is supported otherwise error
         // If no pre-defined replacement for the op - if the other direction is supported error saying no pre-defined rule otherwise error saying op is not supported
-        if let OperationRef::Standard(std_gate) = packed_inst.op.view() {
+        if let OperationRef::StandardGate(std_gate) = packed_inst.op.view() {
             match std_gate {
                 StandardGate::CXGate
                 | StandardGate::ECRGate
@@ -360,7 +359,7 @@ where
             .bind(py)
             .call_method1("replace_blocks", (op_blocks,))?;
 
-        dag.py_substitute_node(dag.get_node(py, node)?.bind(py), &new_op, false, false)?;
+        dag.py_substitute_node(py, dag.get_node(py, node)?.bind(py), &new_op, false, None)?;
     }
 
     for (node, replacemanet_dag) in nodes_to_replace {
@@ -369,7 +368,7 @@ where
             dag.get_node(py, node)?.bind(py),
             &replacemanet_dag,
             None,
-            true,
+            None,
         )?;
     }
 
@@ -394,7 +393,7 @@ fn has_calibration_for_op_node(
                     qubits: py_args.unbind(),
                     clbits: PyTuple::empty(py).unbind(),
                     params: packed_inst.params_view().iter().cloned().collect(),
-                    extra_attrs: packed_inst.extra_attrs.clone(),
+                    label: packed_inst.label.clone(),
                     #[cfg(feature = "cache_pygates")]
                     py_op: packed_inst.py_op.clone(),
                 },
@@ -463,11 +462,11 @@ fn apply_operation_back(
 ) -> PyResult<()> {
     dag.apply_operation_back(
         py,
-        PackedOperation::from_standard(gate),
+        PackedOperation::from_standard_gate(gate),
         qargs,
         &[],
         param,
-        ExtraInstructionAttributes::default(),
+        None,
         #[cfg(feature = "cache_pygates")]
         None,
     )?;
