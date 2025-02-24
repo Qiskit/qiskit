@@ -18,11 +18,6 @@ Common functions across several serialization and deserialization modules.
 import io
 import struct
 
-import symengine
-from symengine.lib.symengine_wrapper import (  # pylint: disable = no-name-in-module
-    load_basic,
-)
-
 from qiskit.utils.optionals import HAS_SYMENGINE
 
 from qiskit.qpy import formats, exceptions
@@ -314,13 +309,18 @@ def mapping_from_binary(binary_data, deserializer, **kwargs):
 
 
 @HAS_SYMENGINE.require_in_call
-def load_symengine_payload(payload: bytes) -> symengine.Expr:
+def load_symengine_payload(payload: bytes):
     """Load a symengine expression from it's serialized cereal payload."""
     # This is a horrible hack to workaround the symengine version checking
     # it's deserialization does. There were no changes to the serialization
     # format between 0.11 and 0.13 but the deserializer checks that it can't
     # load across a major or minor version boundary. This works around it
     # by just lying about the generating version.
+    import symengine
+    from symengine.lib.symengine_wrapper import (  # pylint: disable = no-name-in-module
+        load_basic,
+    )
+
     symengine_version = symengine.__version__.split(".")
     major = payload[2]
     minor = payload[3]
