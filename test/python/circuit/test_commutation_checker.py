@@ -142,6 +142,18 @@ class TestCommutationChecker(QiskitTestCase):
         self.assertTrue(scc.commute(XGate(), [2], [], CCXGate(), [0, 1, 2], []))
         self.assertFalse(scc.commute(CCXGate(), [0, 1, 2], [], CCXGate(), [0, 2, 1], []))
 
+        self.assertTrue(scc.commute(HGate(), [0], [], HGate(), [0], []))
+
+    def test_simple_matrices(self):
+        """Test simple gates but matrix-based."""
+        had = UnitaryGate(HGate())
+        cx = UnitaryGate(CXGate())
+        x = UnitaryGate(XGate())
+        self.assertTrue(scc.commute(x, [0], [], x, [0], []))
+        self.assertTrue(scc.commute(had, [0], [], had, [0], []))
+        self.assertTrue(scc.commute(cx, [0, 1], [], cx, [0, 1], []))
+        self.assertTrue(scc.commute(x, [1], [], cx, [0, 1], []))
+
     def test_passing_quantum_registers(self):
         """Check that passing QuantumRegisters works correctly."""
         qr = QuantumRegister(4)
