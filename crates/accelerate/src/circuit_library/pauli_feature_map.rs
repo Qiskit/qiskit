@@ -185,10 +185,6 @@ fn _get_evolution_layer<'a>(
                 true,
                 false,
             );
-            // .map(|(gate, params, qargs)| {
-            //     (gate.into(), params, qargs.to_vec(), vec![] as Vec<Clbit>)
-            // })
-            // .collect::<Vec<Instruction>>();
             insts.extend(evo);
         }
     }
