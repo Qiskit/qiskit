@@ -185,6 +185,9 @@ class BasePadding(TransformationPass):
                 f"The input circuit {dag.name} is not scheduled. Call one of scheduling passes "
                 f"before running the {self.__class__.__name__} pass."
             )
+        if self.property_set["time_unit"] == "stretch":
+            # This should have already been raised during scheduling, but just in case.
+            raise TranspilerError("Scheduling cannot run on circuits with stretch durations.")
         for qarg, _ in enumerate(dag.qubits):
             if not self.__delay_supported(qarg):
                 logger.debug(
