@@ -1754,6 +1754,26 @@ class TestHighLevelSynthesisModifiers(QiskitTestCase):
 
         self.assertEqual(transpiled_circuit, expected_circuit)
 
+    def test_annotated_rec_with_control_states(self):
+        """Test that control states are combined correctly."""
+        # qc1 contains h.control('10').control('111')
+        inner2 = QuantumCircuit(1)
+        inner2.h(0)
+        inner1 = QuantumCircuit(3)
+        inner1.append(inner2.to_gate().control(2, ctrl_state=2, annotated=True), [0, 1, 2])
+        qc1 = QuantumCircuit(6)
+        qc1.append(inner1.to_gate().control(3, annotated=True, ctrl_state=7), [0, 1, 2, 3, 4, 5])
+
+        # qc2 contains h.control('10111')
+        qc2 = QuantumCircuit(6)
+        qc2.append(inner2.to_gate().control(5, annotated=True, ctrl_state=23), [0, 1, 2, 3, 4, 5])
+
+        pass_ = HighLevelSynthesis(basis_gates=["h", "z", "cx", "u"], qubits_initially_zero=False)
+        qct1 = pass_(qc1)
+        qct2 = pass_(qc2)
+
+        self.assertEqual(Operator(qct1), Operator(qct2))
+
 
 class TestUnrollerCompatability(QiskitTestCase):
     """Tests backward compatibility with the UnrollCustomDefinitions pass.
