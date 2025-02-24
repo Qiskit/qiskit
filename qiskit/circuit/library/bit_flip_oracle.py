@@ -20,7 +20,7 @@ from qiskit.synthesis.boolean.boolean_expression import BooleanExpression
 
 
 class BitFlipOracleGate(Gate):
-    r"""Bit-flip Oracle Gate.
+    r"""Implements a bit-flip oracle
 
     The Bit-flip Oracle Gate object constructs circuits for any arbitrary
     input logical expressions. A logical expression is composed of logical operators
@@ -54,32 +54,35 @@ class BitFlipOracleGate(Gate):
         self,
         expression: str,
         var_order: list[str] | None = None,
+        label: str | None = None,
     ) -> None:
         """
         Args:
             expression: A Python-like boolean expression.
             var_order: A list with the order in which variables will be created.
                (default: by appearance)
+            label: A label for the gate to display in visualizations. Per default, the label is
+                set to display the textual represntation of the boolean expression (truncated if needed)
         """
         self.boolean_expression = BooleanExpression(expression, var_order=var_order)
-        self.oracle = self.boolean_expression.synth(circuit_type="bit")
-        short_expr_for_name = (expression[:15] + "...") if len(expression) > 15 else expression
+
+        if label is None:
+            short_expr_for_name = (expression[:15] + "...") if len(expression) > 15 else expression
+            label = short_expr_for_name
 
         super().__init__(
             name="Bit-flip Oracle",
-            num_qubits=self.oracle.num_qubits,
+            num_qubits=self.boolean_expression.num_bits + 1,
             params=[],
-            label=short_expr_for_name,
+            label=label,
         )
 
     def _define(self):
-        """
-        Defined by the synthesized bit-flip oracle
-        """
-        self.definition = self.oracle
+        """Defined by the synthesized bit-flip oracle"""
+        self.definition = self.boolean_expression.synth(circuit_type="bit")
 
     @classmethod
-    def from_dimacs_file(cls, filename: str):
+    def from_dimacs_file(cls, filename: str) -> BitFlipOracleGate:
         r"""Create a BitFlipOracleGate from the string in the DIMACS format.
 
         It is possible to build a BitFlipOracleGate from a file in `DIMACS CNF format
@@ -105,9 +108,9 @@ class BitFlipOracleGate(Gate):
         the CNF is over three boolean variables --- let us call them  :math:`x_1, x_2, x_3`, and
         contains five clauses.  The five clauses, listed afterwards, are implicitly joined by the
         logical `AND` operator, :math:`\land`, while the variables in each clause, represented by
-        their indices, are implicitly disjoined by the logical `OR` operator, :math:`lor`. The
+        their indices, are implicitly disjoined by the logical `OR` operator, :math:`\lor`. The
         :math:`-` symbol preceding a boolean variable index corresponds to the logical `NOT`
-        operator, :math:`lnot`. Character `0` (zero) marks the end of each clause.  Essentially,
+        operator, :math:`\lnot`. Character `0` (zero) marks the end of each clause.  Essentially,
         the code above corresponds to the following CNF:
 
         :math:`(\lnot x_1 \lor \lnot x_2 \lor \lnot x_3)

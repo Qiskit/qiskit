@@ -26,7 +26,15 @@ from .boolean_expression_visitor import (
 
 
 class TruthTable:
-    """A simple implementation of a truth table for a boolean function"""
+    """A simple implementation of a truth table for a boolean function
+
+    The truth table is built from a callable which takes an assignment, which
+    is a tuple of boolean values of a fixed given length (the number of bits
+    of the truth table) and returns a boolean value.
+
+    For a number of bits at most `EXPLICIT_REP_THRESHOLD` the values of the table
+    are explicitly computed and stored. Otherwise, the values are computed on the fly
+    and stored in a dictionary."""
 
     EXPLICIT_REP_THRESHOLD = (
         12  # above this number of bits, do not explicitly save the values in a list
