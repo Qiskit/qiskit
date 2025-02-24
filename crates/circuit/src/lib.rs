@@ -26,6 +26,7 @@ pub mod operations;
 pub mod packed_instruction;
 pub mod parameter_table;
 pub mod register;
+pub mod register_data;
 pub mod slice;
 pub mod util;
 
@@ -174,6 +175,7 @@ pub fn circuit(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<dag_node::DAGInNode>()?;
     m.add_class::<dag_node::DAGOutNode>()?;
     m.add_class::<dag_node::DAGOpNode>()?;
+    m.add_class::<dag_circuit::PyBitLocations>()?;
     m.add_class::<operations::StandardGate>()?;
     m.add_class::<operations::StandardInstructionType>()?;
     Ok(())

@@ -32,6 +32,24 @@ use std::{
     sync::{atomic::AtomicU32, Arc},
 };
 
+pub trait Register {
+    /// The type of bit stored by the [Register]
+    type Bit;
+
+    /// Returns the size of the [Register].
+    fn len(&self) -> usize;
+    /// Checks if the [Register] is empty.
+    fn is_empty(&self) -> bool;
+    /// Returns the name of the [Register].
+    fn name(&self) -> &str;
+    /// Checks if a bit exists within the [Register].
+    fn contains(&self, bit: &Self::Bit) -> bool;
+    /// Return an iterator over all the bits in the register
+    fn bits(&self) -> impl ExactSizeIterator<Item = Self::Bit>;
+    /// Gets a bit by index
+    fn get(&self, index: usize) -> Option<Self::Bit>;
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum RegisterInfo {
     Owning(Arc<OwningRegisterInfo>),
@@ -207,36 +225,6 @@ macro_rules! create_register_object {
             ) -> Self {
                 Self(RegisterInfo::new_alias(Self::name_parse(name), bits, extra).into())
             }
-
-            /// A reference to the register's name
-            pub fn name(&self) -> &str {
-                self.0.name()
-            }
-
-            /// Returns the size of the register.
-            pub fn len(&self) -> usize {
-                self.0.len()
-            }
-
-            /// Returns whether the register is empty.
-            pub fn is_empty(&self) -> bool {
-                self.0.is_empty()
-            }
-
-            /// Returns an iterator over the bits within the circuit
-            pub fn bits(&self) -> impl ExactSizeIterator<Item = $bit> + '_ {
-                self.0.bits().map(|bit| $bit(bit))
-            }
-
-            /// Checks if a bit is contained within the register
-            pub fn contains(&self, bit: &$bit) -> bool {
-                self.0.contains(&bit.0)
-            }
-
-            /// Gets a bit via index, return None if not present
-            pub fn get(&self, index: usize) -> Option<$bit> {
-                self.0.get(index).map(|bit| $bit(bit))
-            }
         }
 
         impl $name {
@@ -247,6 +235,39 @@ macro_rules! create_register_object {
 
             pub(crate) fn get_instance_count() -> u32 {
                 $counter.load(std::sync::atomic::Ordering::Relaxed)
+            }
+        }
+
+        impl Register for $name {
+            type Bit = $bit;
+            /// A reference to the register's name
+            fn name(&self) -> &str {
+                self.0.name()
+            }
+
+            /// Returns the size of the register.
+            fn len(&self) -> usize {
+                self.0.len()
+            }
+
+            /// Returns whether the register is empty.
+            fn is_empty(&self) -> bool {
+                self.0.is_empty()
+            }
+
+            /// Returns an iterator over the bits within the circuit
+            fn bits(&self) -> impl ExactSizeIterator<Item = <Self as Register>::Bit> {
+                self.0.bits().map(|bit| $bit(bit))
+            }
+
+            /// Checks if a bit is contained within the register
+            fn contains(&self, bit: &<$name as Register>::Bit) -> bool {
+                self.0.contains(&bit.0)
+            }
+
+            /// Gets a bit via index, return None if not present
+            fn get(&self, index: usize) -> Option<$bit> {
+                self.0.get(index).map(|bit| $bit(bit))
             }
         }
     };
@@ -703,13 +724,13 @@ impl SliceOrInt<'_> {
 macro_rules! create_py_register {
     ($name:ident, $nativereg:tt, $pybit:tt, $nativebit:tt, $pyname:literal, $pymodule:literal, $extra:expr, $prefix:literal) => {
         #[pyclass(
-            name = $pyname,
-            module = $pymodule,
-            subclass,
-            extends = PyRegister,
-            frozen,
-            sequence,
-        )]
+                                                                            name = $pyname,
+                                                                            module = $pymodule,
+                                                                            subclass,
+                                                                            extends = PyRegister,
+                                                                            frozen,
+                                                                            sequence,
+                                                                        )]
         #[derive(Debug, Clone, PartialEq, Eq, Hash)]
         pub struct $name(pub(crate) $nativereg);
 

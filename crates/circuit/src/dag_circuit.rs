@@ -194,9 +194,9 @@ pub struct DAGCircuit {
     dag: StableDiGraph<NodeType, Wire>,
 
     #[pyo3(get)]
-    qregs: Py<PyDict>,
+    pub qregs: Py<PyDict>,
     #[pyo3(get)]
-    cregs: Py<PyDict>,
+    pub cregs: Py<PyDict>,
 
     /// The cache used to intern instruction qargs.
     pub qargs_interner: Interner<[Qubit]>,
@@ -341,13 +341,55 @@ fn reject_new_register(reg: &Bound<PyAny>) -> PyResult<()> {
     )))
 }
 
-#[pyclass(module = "qiskit._accelerate.circuit")]
+#[pyclass(name = "BitLocations", module = "qiskit._accelerate.circuit")]
 #[derive(Clone, Debug)]
-struct BitLocations {
+pub struct PyBitLocations {
     #[pyo3(get)]
-    index: usize,
+    pub index: usize,
     #[pyo3(get)]
-    registers: Py<PyList>,
+    pub registers: Py<PyList>,
+}
+
+#[pymethods]
+impl PyBitLocations {
+    #[new]
+    /// Creates a new instance of [PyBitLocations]
+    pub fn new(index: usize, registers: Py<PyList>) -> Self {
+        Self { index, registers }
+    }
+
+    fn __eq__(slf: Bound<Self>, other: Bound<PyAny>) -> PyResult<bool> {
+        let borrowed = slf.borrow();
+        if let Ok(other) = other.downcast::<Self>() {
+            let other_borrowed = other.borrow();
+            Ok(borrowed.index == other_borrowed.index
+                && slf.getattr("registers")?.eq(other.getattr("registers")?)?)
+        } else if let Ok(other) = other.downcast::<PyTuple>() {
+            Ok(slf.getattr("index")?.eq(other.get_item(0)?)?
+                && slf.getattr("registers")?.eq(other.get_item(1)?)?)
+        } else {
+            Ok(false)
+        }
+    }
+
+    fn __iter__(slf: Bound<Self>) -> PyResult<Bound<PyIterator>> {
+        (slf.getattr("index")?, slf.getattr("registers")?)
+            .into_bound_py_any(slf.py())?
+            .try_iter()
+    }
+
+    fn __repr__(slf: Bound<Self>) -> PyResult<String> {
+        Ok(format!(
+            "{}(index={} registers={})",
+            slf.get_type().name()?,
+            slf.getattr("index")?.repr()?,
+            slf.getattr("registers")?.repr()?
+        ))
+    }
+
+    fn __getnewargs__(slf: Bound<Self>) -> PyResult<(Bound<PyAny>, Bound<PyAny>)> {
+        Ok((slf.getattr("index")?, slf.getattr("registers")?))
+    }
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -1077,7 +1119,7 @@ def _format(operand):
             if self.qubits.find(&bit).is_none() {
                 self.add_qubit_unchecked(py, bit.clone())?;
             }
-            let locations: PyRef<BitLocations> = self
+            let locations: PyRef<PyBitLocations> = self
                 .qubit_locations
                 .bind(py)
                 .get_item(bit)?
@@ -1110,7 +1152,7 @@ def _format(operand):
             if self.clbits.find(&bit).is_none() {
                 self.add_clbit_unchecked(py, bit.clone())?;
             }
-            let locations: PyRef<BitLocations> = self
+            let locations: PyRef<PyBitLocations> = self
                 .clbit_locations
                 .bind(py)
                 .get_item(bit)?
@@ -1288,7 +1330,7 @@ def _format(operand):
         let bit_locations = self.clbit_locations.bind(py);
         for (i, bit) in self.clbits.bits().iter().enumerate() {
             let raw_loc = bit_locations.get_item(bit.clone())?.unwrap();
-            let loc = raw_loc.downcast::<BitLocations>().unwrap();
+            let loc = raw_loc.downcast::<PyBitLocations>().unwrap();
             loc.borrow_mut().index = i;
             bit_locations.set_item(bit.clone(), loc)?;
         }
@@ -1343,7 +1385,7 @@ def _format(operand):
                     .bind(py)
                     .get_item(bit)?
                     .unwrap()
-                    .downcast_into_exact::<BitLocations>()?;
+                    .downcast_into_exact::<PyBitLocations>()?;
                 bit_position
                     .borrow()
                     .registers
@@ -1472,7 +1514,7 @@ def _format(operand):
         let bit_locations = self.qubit_locations.bind(py);
         for (i, bit) in self.qubits.bits().iter().enumerate() {
             let raw_loc = bit_locations.get_item(bit.clone())?.unwrap();
-            let loc = raw_loc.downcast::<BitLocations>().unwrap();
+            let loc = raw_loc.downcast::<PyBitLocations>().unwrap();
             loc.borrow_mut().index = i;
             bit_locations.set_item(bit.clone(), loc)?;
         }
@@ -1527,7 +1569,7 @@ def _format(operand):
                     .bind(py)
                     .get_item(bit)?
                     .unwrap()
-                    .downcast_into_exact::<BitLocations>()?;
+                    .downcast_into_exact::<PyBitLocations>()?;
                 bit_position
                     .borrow()
                     .registers
@@ -5696,7 +5738,7 @@ impl DAGCircuit {
             bit,
             Py::new(
                 py,
-                BitLocations {
+                PyBitLocations {
                     index: (self.qubits.len() - 1),
                     registers: PyList::empty(py).unbind(),
                 },
@@ -5712,7 +5754,7 @@ impl DAGCircuit {
             bit,
             Py::new(
                 py,
-                BitLocations {
+                PyBitLocations {
                     index: (self.clbits.len() - 1),
                     registers: PyList::empty(py).unbind(),
                 },
@@ -6963,16 +7005,12 @@ impl DAGCircuit {
         }
 
         // Add all the registers
-        if let Some(qregs) = qc.qregs {
-            for qreg in qregs.iter() {
-                new_dag.add_qreg(py, &qreg)?;
-            }
+        for qreg in qc_data.py_qregs(py).iter() {
+            new_dag.add_qreg(py, &qreg)?;
         }
 
-        if let Some(cregs) = qc.cregs {
-            for creg in cregs.iter() {
-                new_dag.add_creg(py, &creg)?;
-            }
+        for creg in qc_data.py_cregs(py).iter() {
+            new_dag.add_creg(py, &creg)?;
         }
 
         new_dag.try_extend(
@@ -7007,8 +7045,6 @@ impl DAGCircuit {
             name: None,
             calibrations: None,
             metadata: None,
-            qregs: None,
-            cregs: None,
             input_vars: Vec::new(),
             captured_vars: Vec::new(),
             declared_vars: Vec::new(),

@@ -208,20 +208,22 @@ where
         v.into_iter()
     }
 
-    /// Gets the Python bit corresponding to the given native
+    /// Gets the `SharableBit` corresponding to the given native
     /// bit index.
     #[inline]
     pub fn get(&self, index: T) -> Option<&B> {
         self.bits.get(<BitType as From<T>>::from(index) as usize)
     }
 
+    ///Checks if the `SharableBit`` bit corresponding to the given native
+    /// bit index.
+    #[inline]
+    pub fn contains(&self, key: &B) -> bool {
+        self.indices.contains_key(key)
+    }
+
     /// Adds a new Python bit.
     pub fn add(&mut self, bit: B, strict: bool) -> PyResult<T> {
-        // if self.bits.len() != self.cached.bind(bit.py()).len() {
-        //     return Err(PyRuntimeError::new_err(
-        //     format!("This circuit's {} list has become out of sync with the circuit data. Did something modify it?", self.description)
-        //     ));
-        // }
         let idx: BitType = self.bits.len().try_into().map_err(|_| {
             PyRuntimeError::new_err(format!(
                 "The number of {} in the circuit has exceeded the maximum capacity",

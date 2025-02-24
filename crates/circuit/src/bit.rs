@@ -18,15 +18,71 @@ use std::{
 
 use crate::{
     circuit_data::CircuitError,
+    dag_circuit::PyBitLocations,
     register::{
         ClassicalRegister, OwningRegisterInfo, PyClassicalRegister, PyQuantumRegister, PyRegister,
-        QuantumRegister, RegisterInfo,
+        QuantumRegister, Register, RegisterInfo,
     },
 };
 use pyo3::{
     prelude::*,
-    types::{PyDict, PyTuple},
+    types::{PyDict, PyList, PyTuple},
 };
+
+/// Describes a relationship between a bit and all the registers it belongs to
+#[derive(Debug, Clone)]
+pub struct BitLocations<R: Register> {
+    index: u32,
+    registers: Vec<(R, usize)>,
+}
+
+impl<R: Register> BitLocations<R> {
+    /// Creates new instance of [BitLocations]
+    pub fn new<T: IntoIterator<Item = (R, usize)>>(index: u32, registers: T) -> Self {
+        Self {
+            index,
+            registers: registers.into_iter().collect(),
+        }
+    }
+
+    /// Adds a register entry
+    pub fn add_register(&mut self, register: R, index: usize) {
+        self.registers.push((register, index))
+    }
+}
+
+impl<'py, R> IntoPyObject<'py> for BitLocations<R>
+where
+    R: Debug + Clone + Register + for<'a> IntoPyObject<'a>,
+{
+    type Target = PyBitLocations;
+    type Output = Bound<'py, PyBitLocations>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        PyBitLocations::new(
+            self.index as usize,
+            self.registers
+                .into_pyobject(py)?
+                .downcast_into::<PyList>()?
+                .unbind(),
+        )
+        .into_pyobject(py)
+    }
+}
+
+impl<'py, R> FromPyObject<'py> for BitLocations<R>
+where
+    R: Debug + Clone + Register + for<'a> IntoPyObject<'a> + for<'a> FromPyObject<'a>,
+{
+    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+        let ob_down = ob.downcast::<PyBitLocations>()?.borrow();
+        Ok(Self {
+            index: ob_down.index as u32,
+            registers: ob_down.registers.extract(ob.py())?,
+        })
+    }
+}
 
 /// Counter for all existing anonymous Qubit instances.
 static BIT_COUNTER: AtomicU64 = AtomicU64::new(0);
