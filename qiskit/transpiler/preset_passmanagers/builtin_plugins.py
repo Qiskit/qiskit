@@ -249,6 +249,17 @@ class UnitarySynthesisPassManager(PassManagerStagePlugin):
         )
 
 
+class DefaultRoutingPassManager(PassManagerStagePlugin):
+    """Plugin class for the "default" routing stage implementation."""
+
+    def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
+        # The Sabre-based PM is the default implementation currently, but semantically the "default"
+        # plugin has more scope to change its logic than one called "sabre".  In practice, we don't
+        # run the actually `SabreSwap` logic from this pass most of the time, because we do that
+        # during default layout; we're looking for the VF2PostLayout stuff mostly.
+        return SabreSwapPassManager().pass_manager(pass_manager_config, optimization_level)
+
+
 class BasicSwapPassManager(PassManagerStagePlugin):
     """Plugin class for routing stage with :class:`~.BasicSwap`"""
 
@@ -256,7 +267,6 @@ class BasicSwapPassManager(PassManagerStagePlugin):
         """Build routing stage PassManager."""
         target = pass_manager_config.target
         coupling_map = pass_manager_config.coupling_map
-        backend_properties = pass_manager_config.backend_properties
         if target is None:
             routing_pass = BasicSwap(coupling_map)
         else:
@@ -282,7 +292,6 @@ class BasicSwapPassManager(PassManagerStagePlugin):
                 coupling_map,
                 vf2_call_limit=vf2_call_limit,
                 vf2_max_trials=vf2_max_trials,
-                backend_properties=backend_properties,
                 seed_transpiler=-1,
                 check_trivial=True,
                 use_barrier_before_measurement=True,
@@ -294,7 +303,6 @@ class BasicSwapPassManager(PassManagerStagePlugin):
                 coupling_map=coupling_map,
                 vf2_call_limit=vf2_call_limit,
                 vf2_max_trials=vf2_max_trials,
-                backend_properties=backend_properties,
                 seed_transpiler=-1,
                 use_barrier_before_measurement=True,
             )
@@ -305,7 +313,6 @@ class BasicSwapPassManager(PassManagerStagePlugin):
                 coupling_map=coupling_map,
                 vf2_call_limit=vf2_call_limit,
                 vf2_max_trials=vf2_max_trials,
-                backend_properties=backend_properties,
                 seed_transpiler=-1,
                 use_barrier_before_measurement=True,
             )
@@ -323,7 +330,6 @@ class StochasticSwapPassManager(PassManagerStagePlugin):
         coupling_map_routing = target
         if coupling_map_routing is None:
             coupling_map_routing = coupling_map
-        backend_properties = pass_manager_config.backend_properties
         vf2_call_limit, vf2_max_trials = common.get_vf2_limits(
             optimization_level,
             pass_manager_config.layout_method,
@@ -349,7 +355,6 @@ class StochasticSwapPassManager(PassManagerStagePlugin):
                 coupling_map,
                 vf2_call_limit=vf2_call_limit,
                 vf2_max_trials=vf2_max_trials,
-                backend_properties=backend_properties,
                 seed_transpiler=-1,
                 check_trivial=True,
                 use_barrier_before_measurement=True,
@@ -361,7 +366,6 @@ class StochasticSwapPassManager(PassManagerStagePlugin):
                 coupling_map=coupling_map,
                 vf2_call_limit=vf2_call_limit,
                 vf2_max_trials=vf2_max_trials,
-                backend_properties=backend_properties,
                 seed_transpiler=-1,
                 use_barrier_before_measurement=True,
             )
@@ -378,7 +382,6 @@ class LookaheadSwapPassManager(PassManagerStagePlugin):
         coupling_map_routing = target
         if coupling_map_routing is None:
             coupling_map_routing = coupling_map
-        backend_properties = pass_manager_config.backend_properties
         vf2_call_limit, vf2_max_trials = common.get_vf2_limits(
             optimization_level,
             pass_manager_config.layout_method,
@@ -401,7 +404,6 @@ class LookaheadSwapPassManager(PassManagerStagePlugin):
                 coupling_map,
                 vf2_call_limit=vf2_call_limit,
                 vf2_max_trials=vf2_max_trials,
-                backend_properties=backend_properties,
                 seed_transpiler=-1,
                 check_trivial=True,
                 use_barrier_before_measurement=True,
@@ -414,7 +416,6 @@ class LookaheadSwapPassManager(PassManagerStagePlugin):
                 coupling_map=coupling_map,
                 vf2_call_limit=vf2_call_limit,
                 vf2_max_trials=vf2_max_trials,
-                backend_properties=backend_properties,
                 seed_transpiler=-1,
                 use_barrier_before_measurement=True,
             )
@@ -426,7 +427,6 @@ class LookaheadSwapPassManager(PassManagerStagePlugin):
                 coupling_map=coupling_map,
                 vf2_call_limit=vf2_call_limit,
                 vf2_max_trials=vf2_max_trials,
-                backend_properties=backend_properties,
                 seed_transpiler=-1,
                 use_barrier_before_measurement=True,
             )
@@ -444,7 +444,6 @@ class SabreSwapPassManager(PassManagerStagePlugin):
         coupling_map_routing = target
         if coupling_map_routing is None:
             coupling_map_routing = coupling_map
-        backend_properties = pass_manager_config.backend_properties
         vf2_call_limit, vf2_max_trials = common.get_vf2_limits(
             optimization_level,
             pass_manager_config.layout_method,
@@ -479,7 +478,6 @@ class SabreSwapPassManager(PassManagerStagePlugin):
                 coupling_map,
                 vf2_call_limit=vf2_call_limit,
                 vf2_max_trials=vf2_max_trials,
-                backend_properties=backend_properties,
                 seed_transpiler=-1,
                 check_trivial=True,
                 use_barrier_before_measurement=True,
@@ -499,7 +497,6 @@ class SabreSwapPassManager(PassManagerStagePlugin):
                 coupling_map=coupling_map,
                 vf2_call_limit=vf2_call_limit,
                 vf2_max_trials=vf2_max_trials,
-                backend_properties=backend_properties,
                 seed_transpiler=-1,
                 use_barrier_before_measurement=True,
             )
@@ -517,7 +514,6 @@ class SabreSwapPassManager(PassManagerStagePlugin):
                 coupling_map=coupling_map,
                 vf2_call_limit=vf2_call_limit,
                 vf2_max_trials=vf2_max_trials,
-                backend_properties=backend_properties,
                 seed_transpiler=-1,
                 use_barrier_before_measurement=True,
             )
@@ -806,7 +802,6 @@ class DefaultLayoutPassManager(PassManagerStagePlugin):
                 coupling_map=pass_manager_config.coupling_map,
                 seed=-1,
                 call_limit=int(5e4),  # Set call limit to ~100ms with rustworkx 0.10.2
-                properties=pass_manager_config.backend_properties,
                 target=pass_manager_config.target,
                 max_trials=2500,  # Limits layout scoring to < 600ms on ~400 qubit devices
             )
@@ -820,8 +815,7 @@ class DefaultLayoutPassManager(PassManagerStagePlugin):
                 seed=pass_manager_config.seed_transpiler,
                 swap_trials=trial_count,
                 layout_trials=trial_count,
-                skip_routing=pass_manager_config.routing_method is not None
-                and pass_manager_config.routing_method != "sabre",
+                skip_routing=pass_manager_config.routing_method not in (None, "default", "sabre"),
             )
             layout.append(
                 ConditionalController(
@@ -839,7 +833,6 @@ class DefaultLayoutPassManager(PassManagerStagePlugin):
                 coupling_map=pass_manager_config.coupling_map,
                 seed=-1,
                 call_limit=int(5e6),  # Set call limit to ~10s with rustworkx 0.10.2
-                properties=pass_manager_config.backend_properties,
                 target=pass_manager_config.target,
                 max_trials=2500,  # Limits layout scoring to < 600ms on ~400 qubit devices
             )
@@ -855,8 +848,7 @@ class DefaultLayoutPassManager(PassManagerStagePlugin):
                 seed=pass_manager_config.seed_transpiler,
                 swap_trials=trial_count,
                 layout_trials=trial_count,
-                skip_routing=pass_manager_config.routing_method is not None
-                and pass_manager_config.routing_method != "sabre",
+                skip_routing=pass_manager_config.routing_method not in (None, "default", "sabre"),
             )
             layout.append(
                 ConditionalController(
@@ -874,7 +866,6 @@ class DefaultLayoutPassManager(PassManagerStagePlugin):
                 coupling_map=pass_manager_config.coupling_map,
                 seed=-1,
                 call_limit=int(3e7),  # Set call limit to ~60s with rustworkx 0.10.2
-                properties=pass_manager_config.backend_properties,
                 target=pass_manager_config.target,
                 max_trials=250000,  # Limits layout scoring to < 60s on ~400 qubit devices
             )
@@ -890,8 +881,7 @@ class DefaultLayoutPassManager(PassManagerStagePlugin):
                 seed=pass_manager_config.seed_transpiler,
                 swap_trials=trial_count,
                 layout_trials=trial_count,
-                skip_routing=pass_manager_config.routing_method is not None
-                and pass_manager_config.routing_method != "sabre",
+                skip_routing=pass_manager_config.routing_method not in (None, "default", "sabre"),
             )
             layout.append(
                 ConditionalController(
@@ -955,7 +945,6 @@ class DenseLayoutPassManager(PassManagerStagePlugin):
             ConditionalController(
                 DenseLayout(
                     coupling_map=pass_manager_config.coupling_map,
-                    backend_prop=pass_manager_config.backend_properties,
                     target=pass_manager_config.target,
                 ),
                 condition=_choose_layout_condition,
@@ -993,8 +982,7 @@ class SabreLayoutPassManager(PassManagerStagePlugin):
                 seed=pass_manager_config.seed_transpiler,
                 swap_trials=trial_count,
                 layout_trials=trial_count,
-                skip_routing=pass_manager_config.routing_method is not None
-                and pass_manager_config.routing_method != "sabre",
+                skip_routing=pass_manager_config.routing_method not in (None, "default", "sabre"),
             )
         elif optimization_level == 1:
             trial_count = _get_trial_count(5)
@@ -1005,8 +993,7 @@ class SabreLayoutPassManager(PassManagerStagePlugin):
                 seed=pass_manager_config.seed_transpiler,
                 swap_trials=trial_count,
                 layout_trials=trial_count,
-                skip_routing=pass_manager_config.routing_method is not None
-                and pass_manager_config.routing_method != "sabre",
+                skip_routing=pass_manager_config.routing_method not in (None, "default", "sabre"),
             )
         elif optimization_level == 2:
             trial_count = _get_trial_count(20)
@@ -1017,8 +1004,7 @@ class SabreLayoutPassManager(PassManagerStagePlugin):
                 seed=pass_manager_config.seed_transpiler,
                 swap_trials=trial_count,
                 layout_trials=trial_count,
-                skip_routing=pass_manager_config.routing_method is not None
-                and pass_manager_config.routing_method != "sabre",
+                skip_routing=pass_manager_config.routing_method not in (None, "default", "sabre"),
             )
         elif optimization_level == 3:
             trial_count = _get_trial_count(20)
@@ -1029,8 +1015,7 @@ class SabreLayoutPassManager(PassManagerStagePlugin):
                 seed=pass_manager_config.seed_transpiler,
                 swap_trials=trial_count,
                 layout_trials=trial_count,
-                skip_routing=pass_manager_config.routing_method is not None
-                and pass_manager_config.routing_method != "sabre",
+                skip_routing=pass_manager_config.routing_method not in (None, "default", "sabre"),
             )
         else:
             raise TranspilerError(f"Invalid optimization level: {optimization_level}")
