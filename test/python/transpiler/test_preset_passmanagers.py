@@ -21,7 +21,7 @@ from ddt import ddt, data
 import numpy as np
 
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
-from qiskit.circuit import Qubit, Gate, ControlFlowOp, ForLoopOp
+from qiskit.circuit import Qubit, Gate, ControlFlowOp, ForLoopOp, library as lib, Parameter
 from qiskit.circuit.library import quantum_volume
 from qiskit.compiler import transpile
 from qiskit.transpiler import CouplingMap, Layout, PassManager, TranspilerError, Target
@@ -1575,6 +1575,28 @@ class TestGeneratePresetPassManagers(QiskitTestCase):
             ValueError, "Expected non-negative integer as seed for transpiler."
         ):
             generate_preset_pass_manager(seed_transpiler=0.1)
+
+    @data(0, 1, 2, 3)
+    def test_preserves_circuit_metadata(self, optimization_level):
+        """Test that basic metadata is preserved."""
+        metadata = {"experiment_id": "1234", "execution_number": 4}
+        name = "my circuit"
+        circuit = QuantumCircuit(4, metadata=metadata.copy(), name=name)
+        circuit.h(0)
+        circuit.cx(0, 3)
+
+        num_qubits = 10
+        target = Target(num_qubits)
+        for inst in (lib.IGate(), lib.PhaseGate(Parameter("t")), lib.SXGate()):
+            target.add_instruction(inst, {(i,): None for i in range(num_qubits)})
+        target.add_instruction(CXGate(), {pair: None for pair in CouplingMap.from_line(num_qubits)})
+
+        pm = generate_preset_pass_manager(
+            optimization_level=optimization_level, target=target, seed_transpiler=42
+        )
+        res = pm.run(circuit)
+        self.assertEqual(res.metadata, metadata)
+        self.assertEqual(res.name, name)
 
 
 @ddt
