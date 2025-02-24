@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use hashbrown::{HashMap, HashSet};
+use indexmap::{IndexMap, IndexSet};
 use pyo3::prelude::*;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::imports::{GATE, PARAMETER_VECTOR};
@@ -34,12 +34,14 @@ pub type BasisTransformOut = (SmallVec<[Param; 3]>, DAGCircuit);
 pub(super) fn compose_transforms<'a>(
     py: Python,
     basis_transforms: &'a [(GateIdentifier, BasisTransformIn)],
-    source_basis: &'a HashSet<GateIdentifier>,
+    source_basis: &'a IndexSet<GateIdentifier, ahash::RandomState>,
     source_dag: &'a DAGCircuit,
-) -> PyResult<HashMap<GateIdentifier, BasisTransformOut>> {
-    let mut gate_param_counts: HashMap<GateIdentifier, usize> = HashMap::default();
+) -> PyResult<IndexMap<GateIdentifier, BasisTransformOut, ahash::RandomState>> {
+    let mut gate_param_counts: IndexMap<GateIdentifier, usize, ahash::RandomState> =
+        IndexMap::default();
     get_gates_num_params(source_dag, &mut gate_param_counts)?;
-    let mut mapped_instructions: HashMap<GateIdentifier, BasisTransformOut> = HashMap::new();
+    let mut mapped_instructions: IndexMap<GateIdentifier, BasisTransformOut, ahash::RandomState> =
+        IndexMap::with_hasher(ahash::RandomState::default());
 
     for (gate_name, gate_num_qubits) in source_basis.iter().cloned() {
         let num_params = gate_param_counts[&(gate_name.clone(), gate_num_qubits)];
@@ -99,14 +101,15 @@ pub(super) fn compose_transforms<'a>(
                     })
                     .collect::<Vec<_>>();
                 for (node, params) in nodes_to_replace {
-                    let param_mapping: HashMap<ParameterUuid, Param> = equiv_params
-                        .iter()
-                        .map(|x| ParameterUuid::from_parameter(&x.into_pyobject(py).unwrap()))
-                        .zip(params)
-                        .map(|(uuid, param)| -> PyResult<(ParameterUuid, Param)> {
-                            Ok((uuid?, param.clone_ref(py)))
-                        })
-                        .collect::<PyResult<_>>()?;
+                    let param_mapping: IndexMap<ParameterUuid, Param, ahash::RandomState> =
+                        equiv_params
+                            .iter()
+                            .map(|x| ParameterUuid::from_parameter(&x.into_pyobject(py).unwrap()))
+                            .zip(params)
+                            .map(|(uuid, param)| -> PyResult<(ParameterUuid, Param)> {
+                                Ok((uuid?, param.clone_ref(py)))
+                            })
+                            .collect::<PyResult<_>>()?;
                     let mut replacement = equiv.clone();
                     replacement
                         .0
@@ -134,7 +137,7 @@ pub(super) fn compose_transforms<'a>(
 /// number of parameters it contains currently.
 fn get_gates_num_params(
     dag: &DAGCircuit,
-    example_gates: &mut HashMap<GateIdentifier, usize>,
+    example_gates: &mut IndexMap<GateIdentifier, usize, ahash::RandomState>,
 ) -> PyResult<()> {
     for (_, inst) in dag.op_nodes(true) {
         example_gates.insert(
@@ -157,7 +160,7 @@ fn get_gates_num_params(
 /// number of parameters it contains currently.
 fn get_gates_num_params_circuit(
     circuit: &CircuitData,
-    example_gates: &mut HashMap<GateIdentifier, usize>,
+    example_gates: &mut IndexMap<GateIdentifier, usize, ahash::RandomState>,
 ) -> PyResult<()> {
     for inst in circuit.iter() {
         example_gates.insert(

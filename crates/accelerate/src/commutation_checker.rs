@@ -696,9 +696,12 @@ fn get_relative_placement(
     second_qargs: &[Qubit],
 ) -> SmallVec<[Option<Qubit>; 2]> {
     let mut qubits_g2: HashMap<&Qubit, Qubit> = HashMap::with_capacity(second_qargs.len());
-    second_qargs.iter().enumerate().for_each(|(i_g1, q_g1)| {
-        qubits_g2.insert_unique_unchecked(q_g1, Qubit::new(i_g1));
-    });
+    second_qargs
+        .iter()
+        .enumerate()
+        .for_each(|(i_g1, q_g1)| unsafe {
+            qubits_g2.insert_unique_unchecked(q_g1, Qubit::new(i_g1));
+        });
 
     first_qargs
         .iter()

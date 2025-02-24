@@ -505,6 +505,9 @@ is ``qiskit.transpiler.routing``.  The built-in plugins are:
     * - Method
       - Summary
 
+    * - :ref:`default <transpiler-preset-stage-routing-default>`
+      - Use a Qiskit-chosen default routing method.
+
     * - :ref:`sabre <transpiler-preset-stage-routing-sabre>`
       - Default.  Uses `Qiskit's modified Sabre routing algorithm <sabre-lightsabre-paper_>`_ to
         swap map.
@@ -521,6 +524,16 @@ is ``qiskit.transpiler.routing``.  The built-in plugins are:
 
     * - :ref:`lookahead <transpiler-preset-stage-routing-lookahead>`
       - Breadth-first search with heuristic pruning to find swaps that make gates executable.
+
+.. _transpiler-preset-stage-routing-default:
+
+Built-in ``default`` plugin
+...........................
+
+Use a Qiskit-chosen default method for routing.  As of Qiskit 2.0, the chosen algorithm is the same
+as :ref:`transpiler-preset-stage-routing-sabre`, though in practice, usually the :ref:`built-in
+default layout-stage plugin <transpiler-preset-stage-layout-default>` will run the Sabre-based
+routing algorithm, and the routing stage will only be used to run :class:`.VF2PostLayout`.
 
 .. _transpiler-preset-stage-routing-none:
 
