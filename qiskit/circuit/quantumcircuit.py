@@ -2184,7 +2184,7 @@ class QuantumCircuit:
         corresponding index in circuit. and `.registers` a list of
         Register-int pairs for each Register containing the Bit and its index
         within that register."""
-        return self._data.clbit_indices
+        return self._data._clbit_indices
 
     @property
     def _qubit_indices(self) -> dict[Qubit, BitLocations]:
@@ -2192,7 +2192,7 @@ class QuantumCircuit:
         corresponding index in circuit. and `.registers` a list of
         Register-int pairs for each Register containing the Bit and its index
         within that register."""
-        return self._data.qubit_indices
+        return self._data._qubit_indices
 
     @property
     def qubits(self) -> list[Qubit]:
@@ -3092,9 +3092,9 @@ class QuantumCircuit:
 
         try:
             if isinstance(bit, Qubit):
-                return self._data.qubit_indices[bit]
+                return self._data._qubit_indices[bit]
             elif isinstance(bit, Clbit):
-                return self._data.clbit_indices[bit]
+                return self._data._clbit_indices[bit]
             else:
                 raise CircuitError(f"Could not locate bit of unknown type: {type(bit)}")
         except KeyError as err:

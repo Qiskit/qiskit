@@ -15,6 +15,7 @@ use std::sync::OnceLock;
 
 use crate::bit::{BitLocations, ShareableClbit, ShareableQubit};
 use crate::bit_data::BitData;
+use crate::bit_locator::BitLocator;
 use crate::circuit_instruction::{
     CircuitInstruction, ExtraInstructionAttributes, OperationFromPython,
 };
@@ -43,12 +44,11 @@ use smallvec::SmallVec;
 
 import_exception!(qiskit.circuit.exceptions, CircuitError);
 
-pub type BitIndexType<B, R> = IndexMap<B, BitLocations<R>>;
-type CircuitDataState = (
+type CircuitDataState<'py> = (
     Vec<QuantumRegister>,
     Vec<ClassicalRegister>,
-    BitIndexType<ShareableQubit, QuantumRegister>,
-    BitIndexType<ShareableClbit, ClassicalRegister>,
+    Bound<'py, PyDict>,
+    Bound<'py, PyDict>,
 );
 
 /// A container for :class:`.QuantumCircuit` instruction listings that stores
@@ -120,14 +120,12 @@ pub struct CircuitData {
     qregs: RegisterData<QuantumRegister>,
     /// ClassicalRegisters stored in the circuit
     cregs: RegisterData<ClassicalRegister>,
-    /// Dict mapping Qubit or Clbit instances to tuple comprised of 0) the
-    /// corresponding index in circuit.{qubits,clbits} and 1) a list of
-    /// Register-int pairs for each Register containing the Bit and its index
-    /// within that register.
-    #[pyo3(get)]
-    qubit_indices: BitIndexType<ShareableQubit, QuantumRegister>,
-    #[pyo3(get)]
-    clbit_indices: BitIndexType<ShareableClbit, ClassicalRegister>,
+    /// Mapping between [ShareableQubit] and its locations in
+    /// the circuit
+    qubit_indices: BitLocator<ShareableQubit, QuantumRegister>,
+    /// Mapping between [ShareableClbit] and its locations in
+    /// the circuit
+    clbit_indices: BitLocator<ShareableClbit, ClassicalRegister>,
     param_table: ParameterTable,
     #[pyo3(get)]
     global_phase: Param,
@@ -155,8 +153,8 @@ impl CircuitData {
             global_phase: Param::Float(0.),
             qregs: RegisterData::new(),
             cregs: RegisterData::new(),
-            qubit_indices: IndexMap::new(),
-            clbit_indices: IndexMap::new(),
+            qubit_indices: BitLocator::new(),
+            clbit_indices: BitLocator::new(),
         };
         self_.set_global_phase(py, global_phase)?;
         if let Some(qubits) = qubits {
@@ -193,8 +191,8 @@ impl CircuitData {
             (
                 borrowed.qregs.registers().to_vec(),
                 borrowed.cregs.registers().to_vec(),
-                borrowed.qubit_indices.clone(),
-                borrowed.clbit_indices.clone(),
+                borrowed.qubit_indices.cached(py).clone_ref(py),
+                borrowed.clbit_indices.cached(py).clone_ref(py),
             )
         };
         (ty, args, state, self_.try_iter()?).into_py_any(py)
@@ -212,8 +210,8 @@ impl CircuitData {
         }
 
         // After the registers are added, reset bit locations.
-        borrowed_mut.qubit_indices = state.2;
-        borrowed_mut.clbit_indices = state.3;
+        borrowed_mut.qubit_indices = BitLocator::from_py_dict(&state.2)?;
+        borrowed_mut.clbit_indices = BitLocator::from_py_dict(&state.3)?;
 
         Ok(())
     }
@@ -230,6 +228,15 @@ impl CircuitData {
     #[getter("qregs")]
     pub fn py_qregs<'py>(&'py self, py: Python<'py>) -> Bound<'py, PyList> {
         self.qregs.cached_list(py)
+    }
+
+    /// Returns a dict mapping Qubit instances to tuple comprised of 0) the
+    /// corresponding index in circuit.qubits and 1) a list of
+    /// Register-int pairs for each Register containing the Bit and its index
+    /// within that register.
+    #[getter("_qubit_indices")]
+    pub fn get_qubit_indices(&self, py: Python) -> &Py<PyDict> {
+        self.qubit_indices.cached(py)
     }
 
     #[setter("qregs")]
@@ -285,6 +292,15 @@ impl CircuitData {
     #[getter("cregs")]
     pub fn py_cregs<'py>(&'py self, py: Python<'py>) -> Bound<'py, PyList> {
         self.cregs.cached_list(py)
+    }
+
+    /// Returns a dict mapping Clbit instances to tuple comprised of 0) the
+    /// corresponding index in circuit.clbits and 1) a list of
+    /// Register-int pairs for each Register containing the Bit and its index
+    /// within that register.
+    #[getter("_clbit_indices")]
+    pub fn get_clbit_indices(&self, py: Python) -> &Py<PyDict> {
+        self.clbit_indices.cached(py)
     }
 
     #[setter("cregs")]
@@ -1264,8 +1280,8 @@ impl CircuitData {
         cargs_interner: Interner<[Clbit]>,
         qregs: RegisterData<QuantumRegister>,
         cregs: RegisterData<ClassicalRegister>,
-        qubit_indices: BitIndexType<ShareableQubit, QuantumRegister>,
-        clbit_indices: BitIndexType<ShareableClbit, ClassicalRegister>,
+        qubit_indices: BitLocator<ShareableQubit, QuantumRegister>,
+        clbit_indices: BitLocator<ShareableClbit, ClassicalRegister>,
         instructions: I,
         global_phase: Param,
     ) -> PyResult<Self>
@@ -1363,14 +1379,14 @@ impl CircuitData {
             data: Vec::with_capacity(instruction_capacity),
             qargs_interner: Interner::new(),
             cargs_interner: Interner::new(),
-            qubits: BitData::new("qubits".to_string()),
-            clbits: BitData::new("clbits".to_string()),
+            qubits: BitData::with_capacity("qubits".to_string(), num_qubits as usize),
+            clbits: BitData::with_capacity("clbits".to_string(), num_clbits as usize),
             param_table: ParameterTable::new(),
             global_phase: Param::Float(0.0),
             qregs: RegisterData::new(),
             cregs: RegisterData::new(),
-            qubit_indices: IndexMap::new(),
-            clbit_indices: IndexMap::new(),
+            qubit_indices: BitLocator::with_capacity(num_qubits as usize),
+            clbit_indices: BitLocator::with_capacity(num_clbits as usize),
         };
 
         // use the global phase setter to ensure parameters are registered
@@ -1611,13 +1627,13 @@ impl CircuitData {
 
     /// Returns an immutable view of the qubit locations of the [DAGCircuit]
     #[inline(always)]
-    pub fn qubit_indices(&self) -> &BitIndexType<ShareableQubit, QuantumRegister> {
+    pub fn qubit_indices(&self) -> &BitLocator<ShareableQubit, QuantumRegister> {
         &self.qubit_indices
     }
 
     /// Returns an immutable view of the clbit locations of the [DAGCircuit]
     #[inline(always)]
-    pub fn clbit_indices(&self) -> &BitIndexType<ShareableClbit, ClassicalRegister> {
+    pub fn clbit_indices(&self) -> &BitLocator<ShareableClbit, ClassicalRegister> {
         &self.clbit_indices
     }
 

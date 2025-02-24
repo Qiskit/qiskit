@@ -18,7 +18,8 @@ use smallvec::SmallVec;
 
 use crate::bit::{BitLocations, PyClbit, PyQubit, ShareableClbit, ShareableQubit};
 use crate::bit_data::{BitData, VarAsKey};
-use crate::circuit_data::{BitIndexType, CircuitData};
+use crate::bit_locator::BitLocator;
+use crate::circuit_data::CircuitData;
 use crate::circuit_instruction::{
     CircuitInstruction, ExtraInstructionAttributes, OperationFromPython,
 };
@@ -223,8 +224,8 @@ pub struct DAGCircuit {
     // index that users see in the Python API.
     /// The index locations of bits, and their positions within
     /// registers.
-    qubit_locations: BitIndexType<ShareableQubit, QuantumRegister>,
-    clbit_locations: BitIndexType<ShareableClbit, ClassicalRegister>,
+    qubit_locations: BitLocator<ShareableQubit, QuantumRegister>,
+    clbit_locations: BitLocator<ShareableClbit, ClassicalRegister>,
 
     /// Map from qubit to input and output nodes of the graph.
     qubit_io_map: Vec<[NodeIndex; 2]>,
@@ -426,8 +427,8 @@ impl DAGCircuit {
             global_phase: Param::Float(0.),
             duration: None,
             unit: "dt".to_string(),
-            qubit_locations: BitIndexType::new(),
-            clbit_locations: BitIndexType::new(),
+            qubit_locations: BitLocator::new(),
+            clbit_locations: BitLocator::new(),
             qubit_io_map: Vec::new(),
             clbit_io_map: Vec::new(),
             var_io_map: Vec::new(),
@@ -448,10 +449,28 @@ impl DAGCircuit {
         self.qregs.cached(py)
     }
 
+    /// Returns a dict mapping Clbit instances to tuple comprised of 0) the
+    /// corresponding index in circuit.clbits and 1) a list of
+    /// Register-int pairs for each Register containing the Bit and its index
+    /// within that register.
+    #[getter("_qubit_indices")]
+    pub fn get_qubit_locations(&self, py: Python) -> &Py<PyDict> {
+        self.qubit_locations.cached(py)
+    }
+
     /// Returns the dict containing the QuantumRegisters in the circuit
     #[getter]
     fn get_cregs(&self, py: Python) -> &Py<PyDict> {
         self.cregs.cached(py)
+    }
+
+    /// Returns a dict mapping Clbit instances to tuple comprised of 0) the
+    /// corresponding index in circuit.clbits and 1) a list of
+    /// Register-int pairs for each Register containing the Bit and its index
+    /// within that register.
+    #[getter("_clbit_indices")]
+    pub fn get_clbit_locations(&self, py: Python) -> &Py<PyDict> {
+        self.clbit_locations.cached(py)
     }
 
     /// The total duration of the circuit, set by a scheduling transpiler pass. Its unit is
@@ -4934,13 +4953,13 @@ impl DAGCircuit {
 
     /// Returns an immutable view of the qubit locations of the [DAGCircuit]
     #[inline(always)]
-    pub fn qubit_locations(&self) -> &BitIndexType<ShareableQubit, QuantumRegister> {
+    pub fn qubit_locations(&self) -> &BitLocator<ShareableQubit, QuantumRegister> {
         &self.qubit_locations
     }
 
     /// Returns an immutable view of the clbit locations of the [DAGCircuit]
     #[inline(always)]
-    pub fn clbit_locations(&self) -> &BitIndexType<ShareableClbit, ClassicalRegister> {
+    pub fn clbit_locations(&self) -> &BitLocator<ShareableClbit, ClassicalRegister> {
         &self.clbit_locations
     }
 
@@ -6432,8 +6451,8 @@ impl DAGCircuit {
             global_phase: Param::Float(0.),
             duration: None,
             unit: "dt".to_string(),
-            qubit_locations: BitIndexType::with_capacity(num_qubits),
-            clbit_locations: BitIndexType::with_capacity(num_clbits),
+            qubit_locations: BitLocator::with_capacity(num_qubits),
+            clbit_locations: BitLocator::with_capacity(num_clbits),
             qubit_io_map: Vec::with_capacity(num_qubits),
             clbit_io_map: Vec::with_capacity(num_clbits),
             var_io_map: Vec::with_capacity(num_vars),
