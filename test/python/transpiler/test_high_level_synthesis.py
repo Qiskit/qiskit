@@ -792,8 +792,16 @@ class TestHighLevelSynthesisQuality(QiskitTestCase):
         gate = HalfAdderGate(3).control(2, annotated=True)
         qc = QuantumCircuit(gate.num_qubits)
         qc.append(gate, qc.qubits)
-        qct = HighLevelSynthesis(basis_gates=["cx", "u"], qubits_initially_zero=True)(qc)
+        qct = HighLevelSynthesis(basis_gates=["cx", "u"], qubits_initially_zero=False)(qc)
         self.assertLessEqual(qct.count_ops()["cx"], 450)
+
+    def test_controlled_qft(self):
+        """Test controlled QFT-gate."""
+        gate = QFTGate(3).control(2, annotated=True)
+        qc = QuantumCircuit(gate.num_qubits)
+        qc.append(gate, qc.qubits)
+        qct = HighLevelSynthesis(basis_gates=["cx", "u"], qubits_initially_zero=False)(qc)
+        self.assertLessEqual(qct.count_ops()["cx"], 198)
 
 
 class TestPMHSynthesisLinearFunctionPlugin(QiskitTestCase):
@@ -1267,7 +1275,7 @@ class TestHighLevelSynthesisModifiers(QiskitTestCase):
         circuit.append(lazy_gate1, [0, 1, 2, 3, 4])
         transpiled_circuit = HighLevelSynthesis()(circuit)
         expected_circuit = QuantumCircuit(5)
-        expected_circuit.append(SwapGate().control(2).control(1), [0, 1, 2, 3, 4])
+        expected_circuit.append(SwapGate().control(3), [0, 1, 2, 3, 4])
         self.assertEqual(transpiled_circuit, expected_circuit)
 
     def test_nested_controls(self):
@@ -1278,7 +1286,7 @@ class TestHighLevelSynthesisModifiers(QiskitTestCase):
         circuit.append(lazy_gate2, [0, 1, 2, 3, 4])
         transpiled_circuit = HighLevelSynthesis()(circuit)
         expected_circuit = QuantumCircuit(5)
-        expected_circuit.append(SwapGate().control(2).control(1), [0, 1, 2, 3, 4])
+        expected_circuit.append(SwapGate().control(3), [0, 1, 2, 3, 4])
         self.assertEqual(transpiled_circuit, expected_circuit)
 
     def test_nested_controls_permutation(self):

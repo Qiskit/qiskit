@@ -81,9 +81,24 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
         # (including annotated operations) as the HighLevelSynthesis transpiler pass will
         # recursively re-synthesize this circuit, However, we should always guarantee that some
         # progress is made.
-        device_ops = data.get_device_insts().copy()
-        additional_ops = {"annotated", "mcx", "cz", "qft"}
-        device_ops = device_ops.union(additional_ops)
+        basis = {
+            "p",
+            "u",
+            "x",
+            "z",
+            "y",
+            "h",
+            "sx",
+            "sxdg",
+            "rx",
+            "ry",
+            "rz",
+            "cx",
+            "cz",
+            "annotated",
+            "mcx",
+            "qft",
+        }
         base_synthesis_data = HighLevelSynthesisData(
             hls_config=data.get_hls_config(),
             hls_plugin_manager=data.get_hls_plugin_manager(),
@@ -91,7 +106,7 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
             target=None,
             equivalence_library=data.get_equivalence_library(),
             hls_op_names=data.get_hls_op_names(),
-            device_insts=device_ops,
+            device_insts=basis,
             use_qubit_indices=data.get_use_qubit_indices(),
             min_qubits=0,
             unroll_definitions=data.get_unroll_definitions(),
