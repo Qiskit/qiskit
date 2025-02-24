@@ -17,7 +17,7 @@ Tests for the Collect2qBlocks transpiler pass.
 import math
 import unittest
 
-from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
+from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import CollectMultiQBlocks
@@ -127,8 +127,7 @@ class TestCollect2qBlocks(QiskitTestCase):
         if(c0==0) u1(0.25*pi) q[1];
         if(c0==0) u2(0.25*pi, 0.25*pi) q[0];
         """
-        with self.assertWarns(DeprecationWarning):
-            qc = QuantumCircuit.from_qasm_str(qasmstr)
+        qc = QuantumCircuit.from_qasm_str(qasmstr)
 
         pass_manager = PassManager()
         pass_manager.append(CollectMultiQBlocks())
@@ -138,51 +137,6 @@ class TestCollect2qBlocks(QiskitTestCase):
         self.assertEqual(
             [["cx"]], [[n.name for n in block] for block in pass_manager.property_set["block_list"]]
         )
-
-    def test_do_not_merge_conditioned_gates(self):
-        """Validate that classically conditioned gates are never considered for
-        inclusion in a block. Note that there are cases where gates conditioned
-        on the same (register, value) pair could be correctly merged, but this is
-        not yet implemented.
-
-                 ┌─────────┐┌─────────┐┌─────────┐      ┌───┐
-        qr_0: |0>┤ U1(0.1) ├┤ U1(0.2) ├┤ U1(0.3) ├──■───┤ X ├────■───
-                 └─────────┘└────┬────┘└────┬────┘┌─┴─┐ └─┬─┘  ┌─┴─┐
-        qr_1: |0>────────────────┼──────────┼─────┤ X ├───■────┤ X ├─
-                                 │          │     └───┘   │    └─┬─┘
-        qr_2: |0>────────────────┼──────────┼─────────────┼──────┼───
-                              ┌──┴──┐    ┌──┴──┐       ┌──┴──┐┌──┴──┐
-         cr_0: 0 ═════════════╡     ╞════╡     ╞═══════╡     ╞╡     ╞
-                              │ = 0 │    │ = 0 │       │ = 0 ││ = 1 │
-         cr_1: 0 ═════════════╡     ╞════╡     ╞═══════╡     ╞╡     ╞
-                              └─────┘    └─────┘       └─────┘└─────┘
-
-        Previously the blocks collected were : [['u1', 'u1', 'u1', 'cx', 'cx', 'cx']]
-        This is now corrected to : [['cx']]
-        """
-        # ref: https://github.com/Qiskit/qiskit-terra/issues/3215
-
-        qr = QuantumRegister(3, "qr")
-        cr = ClassicalRegister(2, "cr")
-
-        qc = QuantumCircuit(qr, cr)
-        qc.p(0.1, 0)
-        with self.assertWarns(DeprecationWarning):
-            qc.p(0.2, 0).c_if(cr, 0)
-        with self.assertWarns(DeprecationWarning):
-            qc.p(0.3, 0).c_if(cr, 0)
-        qc.cx(0, 1)
-        with self.assertWarns(DeprecationWarning):
-            qc.cx(1, 0).c_if(cr, 0)
-        with self.assertWarns(DeprecationWarning):
-            qc.cx(0, 1).c_if(cr, 1)
-
-        pass_manager = PassManager()
-        pass_manager.append(CollectMultiQBlocks())
-
-        pass_manager.run(qc)
-        for block in pass_manager.property_set["block_list"]:
-            self.assertTrue(len(block) <= 1)
 
     def test_do_not_go_across_barrier(self):
         """Validate that blocks are not collected across barriers
