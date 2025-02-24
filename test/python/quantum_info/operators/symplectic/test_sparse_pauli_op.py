@@ -1243,7 +1243,7 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         transpiled_psi = transpile(psi, backend, optimization_level=3)
         permuted_op = op.apply_layout(transpiled_psi.layout)
         job = estimator.run([(transpiled_psi, permuted_op, thetas)])
-        res = job.result().values
+        res = job.result()[0].data.evs
         if optionals.HAS_AER:
             np.testing.assert_allclose(res, [1.419922], rtol=0.5, atol=0.2)
         else:

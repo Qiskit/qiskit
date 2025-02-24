@@ -25,7 +25,7 @@ from qiskit.circuit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.exceptions import QiskitError
 from qiskit.providers import BackendV1, BackendV2
 from qiskit.quantum_info import Pauli, PauliList
-from qiskit.result import Counts
+from qiskit.result import Counts, Result
 from qiskit.transpiler import PassManager, PassManagerConfig
 from qiskit.transpiler.passes import Optimize1qGatesDecomposition
 
