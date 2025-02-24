@@ -910,7 +910,7 @@ fn py_synthesize_operation(
     // Check if the operation can be skipped.
     if definitely_skip_op(
         py,
-        &data,
+        data,
         &op.operation,
         &input_qubits
             .iter()
