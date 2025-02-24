@@ -293,9 +293,15 @@ Sums
       - Description
       - Auxiliary qubits
     * - ``"default"``
-      - :class:`~.WeightedSumSynthesisDefault`
+      - :class:`.WeightedSumSynthesisDefault`
       - use a V-chain based synthesis
       - given ``s`` sum qubits, used ``s - 1 + int(s > 2)`` clean auxiliary qubits
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   WeightedSumSynthesisDefault
+
 
 Pauli Evolution Synthesis
 '''''''''''''''''''''''''
@@ -1762,7 +1768,7 @@ class WeightedSumSynthesisDefault(HighLevelSynthesisPlugin):
     """Synthesize a :class:`.WeightedSumGate` using the default synthesis algorithm.
 
     This plugin name is:``WeightedSum.default`` which can be used as the key on
-    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+    an :class:`.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
 
     .. note::
 

@@ -366,7 +366,7 @@ class PiecewiseChebyshevGate(Gate):
     Examples:
 
         .. plot::
-           :alt: Example of generating a circuit with the piecewise Chebychev gate.
+           :alt: Example of generating a circuit with the piecewise Chebyshev gate.
            :include-source:
 
             import numpy as np
@@ -416,7 +416,7 @@ class PiecewiseChebyshevGate(Gate):
         self.breakpoints = breakpoints if breakpoints is not None else [0]
 
         num_compare = 0 if breakpoints is None else int(len(breakpoints) > 1)
-        super().__init__("PiecewiseChebychev", num_state_qubits + num_compare + 1, [], label)
+        super().__init__("PiecewiseChebyshev", num_state_qubits + num_compare + 1, [], label)
 
     @property
     def polynomials(self):
