@@ -1013,6 +1013,7 @@ def load_qpy(qpy_files, version_parts):
             )
 
     from qiskit.qpy.exceptions import QpyError
+
     while pulse_files:
         path, version = pulse_files.popitem()
 
