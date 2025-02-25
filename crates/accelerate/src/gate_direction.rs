@@ -21,7 +21,6 @@ use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::register::{QuantumRegister, Register};
 use qiskit_circuit::{
     circuit_instruction::CircuitInstruction,
-    circuit_instruction::ExtraInstructionAttributes,
     converters::{circuit_to_dag, QuantumCircuitData},
     dag_circuit::DAGCircuit,
     dag_node::{DAGNode, DAGOpNode},
@@ -360,7 +359,7 @@ where
             .bind(py)
             .call_method1("replace_blocks", (op_blocks,))?;
 
-        dag.py_substitute_node(dag.get_node(py, node)?.bind(py), &new_op, false, false)?;
+        dag.py_substitute_node(py, dag.get_node(py, node)?.bind(py), &new_op, false, None)?;
     }
 
     for (node, replacemanet_dag) in nodes_to_replace {
@@ -369,7 +368,7 @@ where
             dag.get_node(py, node)?.bind(py),
             &replacemanet_dag,
             None,
-            true,
+            None,
         )?;
     }
 
@@ -394,7 +393,7 @@ fn has_calibration_for_op_node(
                     qubits: py_args.unbind(),
                     clbits: PyTuple::empty(py).unbind(),
                     params: packed_inst.params_view().iter().cloned().collect(),
-                    extra_attrs: packed_inst.extra_attrs.clone(),
+                    label: packed_inst.label.clone(),
                     #[cfg(feature = "cache_pygates")]
                     py_op: packed_inst.py_op.clone(),
                 },
@@ -464,7 +463,7 @@ fn apply_operation_back(
         qargs,
         &[],
         param,
-        ExtraInstructionAttributes::default(),
+        None,
         #[cfg(feature = "cache_pygates")]
         None,
     )?;

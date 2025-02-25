@@ -14,7 +14,7 @@
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
+from qiskit.circuit.classicalregister import ClassicalRegister
 
 
 def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None, label=None):
@@ -56,7 +56,7 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
             circ.h(q[0])
             circ.cx(q[0], q[1])
             circ.measure(q[0], c[0])
-            circ.rz(0.5, q[1]).c_if(c, 2)
+            circ.rz(0.5, q[1])
             circuit_to_instruction(circ)
     """
     # pylint: disable=cyclic-import
@@ -119,32 +119,8 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
         creg = ClassicalRegister(out_instruction.num_clbits, "c")
         regs.append(creg)
 
-    clbit_map = {bit: creg[idx] for idx, bit in enumerate(circuit.clbits)}
-    operation_map = {}
-
-    def fix_condition(op):
-        original_id = id(op)
-        if (out := operation_map.get(original_id)) is not None:
-            return out
-
-        condition = getattr(op, "_condition", None)
-        if condition:
-            reg, val = condition
-            if isinstance(reg, Clbit):
-                op = op.c_if(clbit_map[reg], val)
-            elif reg.size == creg.size:
-                op = op.c_if(creg, val)
-            else:
-                raise QiskitError(
-                    "Cannot convert condition in circuit with "
-                    "multiple classical registers to instruction"
-                )
-        operation_map[original_id] = op
-        return op
-
     data = target._data.copy()
     data.replace_bits(qubits=qreg, clbits=creg)
-    data.map_nonstandard_ops(fix_condition)
 
     qc = QuantumCircuit(name=out_instruction.name)
     qc._data = data
