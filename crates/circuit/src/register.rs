@@ -334,13 +334,11 @@ impl Display for ClassicalRegister {
     }
 }
 
+// Fast path conversion to avoid using python types.
 impl<'py> IntoPyObject<'py> for QuantumRegister {
     type Target = PyQuantumRegister;
-
     type Output = Bound<'py, PyQuantumRegister>;
-
     type Error = PyErr;
-
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
         let is_ancilla = self.is_ancilla();
         let q_reg = PyQuantumRegister(self.clone());
@@ -357,19 +355,18 @@ impl<'py> IntoPyObject<'py> for QuantumRegister {
     }
 }
 
+// Fast path conversion to avoid using extracting into python types.
 impl<'py> FromPyObject<'py> for QuantumRegister {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         Ok(ob.downcast::<PyQuantumRegister>()?.borrow().0.clone())
     }
 }
 
+// Fast path conversion to avoid using python types.
 impl<'py> IntoPyObject<'py> for ClassicalRegister {
     type Target = PyClassicalRegister;
-
     type Output = Bound<'py, PyClassicalRegister>;
-
     type Error = PyErr;
-
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
         Bound::new(
             py,
@@ -381,13 +378,20 @@ impl<'py> IntoPyObject<'py> for ClassicalRegister {
     }
 }
 
+// Fast path conversion to avoid using extracting into python types.
 impl<'py> FromPyObject<'py> for ClassicalRegister {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         Ok(ob.downcast::<PyClassicalRegister>()?.borrow().0.clone())
     }
 }
 
+/// Counter for base register types.
 static REG_COUNTER: AtomicU32 = AtomicU32::new(0);
+/// Implement a generic register.
+///
+/// .. note::
+///     This class should not be instantiated directly. This is just a superclass
+///     for :class:`~.ClassicalRegister` and :class:`~.QuantumRegister`.
 #[pyclass(
     name = "Register",
     module = "qiskit.circuit.register",
@@ -400,6 +404,28 @@ pub struct PyRegister(pub(crate) Arc<RegisterInfo>);
 
 #[pymethods]
 impl PyRegister {
+    /// Create a new generic register.
+    ///
+    /// Either the ``size`` or the ``bits`` argument must be provided. If
+    /// ``size`` is not None, the register will be pre-populated with bits of the
+    /// correct type.
+    ///
+    /// Args:
+    ///     size (int): Optional. The number of bits to include in the register.
+    ///     name (str): Optional. The name of the register. If not provided, a
+    ///         unique name will be auto-generated from the register type.
+    ///     bits (list[Bit]): Optional. A list of Bit() instances to be used to
+    ///         populate the register.
+    ///
+    /// Raises:
+    ///     CircuitError: if both the ``size`` and ``bits`` arguments are
+    ///         provided, or if neither are.
+    ///     CircuitError: if ``size`` is not valid.
+    ///     CircuitError: if ``name`` is not a valid name according to the
+    ///         OpenQASM spec.
+    ///     CircuitError: if ``bits`` contained duplicated bits.
+    ///     CircuitError: if ``bits`` contained bits of an incorrect type.
+    ///     CircuitError: if ``bits`` exceeds the possible capacity for a register.
     #[new]
     #[pyo3(signature = (size = None, name = None, bits = None))]
     pub fn new(
@@ -444,7 +470,7 @@ impl PyRegister {
         Ok(Self(register.into()))
     }
 
-    /// Visual representation of a Register
+    /// Return the official string representing the register.
     pub fn __repr__(slf: Bound<Self>) -> PyResult<String> {
         let borrowed = slf.borrow();
         match borrowed.0.as_ref() {
@@ -543,6 +569,7 @@ impl PyRegister {
         }
     }
 
+    /// Make object hashable, based on the name and size to hash.
     fn __hash__(slf: Bound<'_, Self>) -> PyResult<isize> {
         let borrowed = slf.borrow();
         (slf.get_type(), borrowed.name(), borrowed.size())
@@ -550,6 +577,17 @@ impl PyRegister {
             .hash()
     }
 
+    /// Two Registers are the same if they are of the same type
+    /// (i.e. quantum/classical), and have the same name and size. Additionally,
+    /// if either Register contains new-style bits, the bits in both registers
+    /// will be checked for pairwise equality. If two registers are equal,
+    /// they will have behave identically when specified as circuit args.
+    ///
+    /// Args:
+    ///     other (Register): other Register
+    ///
+    /// Returns:
+    ///     bool: `self` and `other` are equal.
     fn __eq__(slf: Bound<'_, Self>, other: Bound<'_, Self>) -> PyResult<bool> {
         if slf.is(&other) {
             return Ok(true);
@@ -579,20 +617,24 @@ impl PyRegister {
         return PyList::new(slf.py(), slf.iter().map(PyBit))?.try_iter();
     }
 
+    /// Return register size.
     fn __len__(slf: PyRef<'_, Self>) -> usize {
         slf.size()
     }
 
+    /// Prefix to use for auto naming.
     #[classattr]
     fn prefix<'py>() -> &'py str {
         "reg"
     }
 
+    /// Bit type stored in the register.
     #[classattr]
     fn bit_type(py: Python) -> Bound<PyType> {
         PyBit::type_object(py)
     }
 
+    /// Counter for the number of instances in this class.
     #[classattr]
     fn instances_count() -> u32 {
         REG_COUNTER.load(std::sync::atomic::Ordering::Relaxed)
@@ -664,8 +706,8 @@ impl PyRegister {
         Ok((size, name))
     }
 
-    /// Inner function for [PyRegister::__getnewargs__] to ensure serialization can be
-    /// preserved between register types.
+    /// Inner function for [PyRegister::__getitem__] to process indexing more efficiently and
+    /// allow reuse in subclasses.
     fn getitem_inner(
         &self,
         key: SliceOrList<'_>,
@@ -749,8 +791,9 @@ impl SliceOrList<'_> {
 }
 
 macro_rules! create_py_register {
-    ($name:ident, $nativereg:tt, $pybit:tt, $nativebit:tt, $pyname:literal, $pymodule:literal, $extra:expr, $prefix:literal) => {
+    ($name:ident, $nativereg:tt, $pybit:tt, $nativebit:tt, $pyname:literal, $pymodule:literal, $extra:expr, $prefix:literal, $specifier: literal) => {
 #[rustfmt::skip] // Due to a bug in rustfmt, formatting is skipped in this line
+        #[doc = concat!("Implement a ", $specifier, " register.")]
         #[pyclass(
             name = $pyname,
             module = $pymodule,
@@ -908,7 +951,8 @@ create_py_register! {
     "QuantumRegister",
     "qiskit.circuit.quantumregister",
     BitExtraInfo::Qubit { is_ancilla: false },
-    "q"
+    "q",
+    "quantum"
 }
 
 impl PyQuantumRegister {
@@ -962,11 +1006,13 @@ create_py_register! {
     "ClassicalRegister",
     "qiskit.circuit.classicalregister",
     BitExtraInfo::Clbit(),
-    "c"
+    "c",
+    "classical"
 }
 
 static AREG_COUNTER: AtomicU32 = AtomicU32::new(0);
 
+/// Implement an ancilla register.
 #[pyclass(
     name = "AncillaRegister",
     module = "qiskit.circuit.quantumregister",

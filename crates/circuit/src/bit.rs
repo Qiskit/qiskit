@@ -276,18 +276,25 @@ impl<'py> FromPyObject<'py> for ShareableClbit {
     }
 }
 
+/// Implement a generic bit.
+///
+/// .. note::
+///     This class should not be instantiated directly. This is just a superclass
+///     for :class:`~.Clbit` and :class:`~.circuit.Qubit`.
 #[pyclass(subclass, name = "Bit", module = "qiskit.circuit.bit")]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Hash)]
 pub struct PyBit(pub(crate) BitInfo);
 
 #[pymethods]
 impl PyBit {
+    /// Create a new generic bit.
     #[new]
     #[pyo3(signature = (register = None, index = None))]
     fn new(register: Option<PyRegister>, index: Option<u32>) -> PyResult<Self> {
         Self::inner_new(register, index, None)
     }
 
+    /// Return the official string representing the bit.
     pub fn __repr__(slf: Bound<Self>) -> PyResult<String> {
         let borrowed = slf.borrow();
         let reg = slf.getattr("_register")?;
@@ -340,6 +347,7 @@ impl PyBit {
     }
 
     fn __copy__(slf: Bound<Self>) -> Bound<Self> {
+        // Bits are immutable.
         slf
     }
 
@@ -350,6 +358,7 @@ impl PyBit {
         let borrowed = slf.borrow();
         match borrowed.0 {
             BitInfo::Owned { .. } => {
+                // Only perform a clone of an owned bit because it needs special handling.
                 let py = slf.py();
                 borrowed.clone().into_pyobject(py)
             }
@@ -439,8 +448,8 @@ impl PyBit {
 }
 
 macro_rules! create_py_bit {
-    ($name:ident, $natbit:tt, $pyname:literal, $pymodule:literal, $extra:expr, $pyreg:tt) => {
-/// Implements a quantum bit
+    ($name:ident, $natbit:tt, $pyname:literal, $pymodule:literal, $extra:expr, $pyreg:tt, $specifier:literal, $natreg:ty) => {
+        #[doc = concat!("Implements a ", $specifier, " bit.")]
         #[rustfmt::skip] // Due to a bug in rustfmt, formatting is skipped in this line
         #[pyclass(
             subclass,
@@ -453,7 +462,15 @@ macro_rules! create_py_bit {
 
         #[pymethods]
         impl $name {
-            /// Creates a new bit.
+            #[doc = concat!("Creates a", stringify!($name), " .\n
+            Args:\n
+                register (", stringify!($natreg), "): Optional. A quantum register containing the bit.\n
+                index (int): Optional. The index of the bit in its containing register.\n
+            \n
+            \n
+            Raises:\n
+                CircuitError: if the provided register is not a valid :class:`", stringify!($natreg), "`
+            ")]
             #[new]
             #[pyo3(signature = (register = None, index = None))]
             fn new(register: Option<$pyreg>, index: Option<u32>) -> PyResult<(Self, PyBit)> {
@@ -511,7 +528,9 @@ create_py_bit!(
     "Qubit",
     "qiskit.circuit.quantumcircuit",
     BitExtraInfo::Qubit { is_ancilla: false },
-    PyQuantumRegister
+    PyQuantumRegister,
+    "quantum",
+    QuantumRegister
 );
 
 impl PyQubit {
@@ -541,7 +560,9 @@ create_py_bit!(
     "Clbit",
     "qiskit.circuit.classicalregister",
     BitExtraInfo::Clbit(),
-    PyClassicalRegister
+    PyClassicalRegister,
+    "classical",
+    ClassicalRegister
 );
 
 /// A qubit used as ancillary qubit.

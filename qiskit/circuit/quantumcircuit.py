@@ -1086,20 +1086,6 @@ class QuantumCircuit:
             "qiskit.circuit.controlflow.builder.ControlFlowBuilderBlock"
         ] = []
 
-        # self.qregs: list[QuantumRegister] = []
-        # """A list of the :class:`QuantumRegister`\\ s in this circuit.  You should not mutate
-        # this."""
-        # self.cregs: list[ClassicalRegister] = []
-        # """A list of the :class:`ClassicalRegister`\\ s in this circuit.  You should not mutate
-        # this."""
-
-        # # Dict mapping Qubit or Clbit instances to tuple comprised of 0) the
-        # # corresponding index in circuit.{qubits,clbits} and 1) a list of
-        # # Register-int pairs for each Register containing the Bit and its index
-        # # within that register.
-        # self._qubit_indices: dict[Qubit, BitLocations] = {}
-        # self._clbit_indices: dict[Clbit, BitLocations] = {}
-
         # Data contains a list of instructions and their contexts,
         # in the order they were applied.
         self._data: CircuitData = CircuitData()
