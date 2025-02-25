@@ -46,9 +46,7 @@ class ContractIdleWiresInControlFlow(TransformationPass):
             replacement._apply_op_node_back(DAGOpNode.from_instruction(new_inst))
             # The replacement DAG is defined over all the same qubits, but with the correct
             # qubits now explicitly marked as idle, so everything gets linked up correctly.
-            dag.substitute_node_with_dag(
-                node, replacement, wires=qubits | clbits | vars_, propagate_condition=False
-            )
+            dag.substitute_node_with_dag(node, replacement, wires=qubits | clbits | vars_)
         return dag
 
 
