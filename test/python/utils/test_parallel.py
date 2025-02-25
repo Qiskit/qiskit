@@ -128,9 +128,14 @@ class TestUtilities(QiskitTestCase):
         # use a context manager with `delete_on_close=False` so we close the file, launch our
         # subprocess and let the CM clean up on exit, but that argument only arrived in Python 3.12.
         # pylint: disable=consider-using-with
+        # We're deliberately writing out to a temporary file.
         settings_file = tempfile.NamedTemporaryFile(mode="w", encoding="utf8", delete=False)
-        print("[DEFAULT]", file=settings_file)
-        print("parallel = true", file=settings_file)
+        settings_file.write(
+            """\
+[DEFAULT]
+parallel = true
+"""
+        )
         settings_file.close()
         self.addCleanup(os.remove, settings_file.name)
 
