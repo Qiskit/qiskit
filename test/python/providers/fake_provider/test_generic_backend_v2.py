@@ -13,7 +13,6 @@
 """ Test of GenericBackendV2 backend"""
 
 import math
-import warnings
 
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, transpile
 from qiskit.providers.fake_provider import GenericBackendV2
@@ -169,11 +168,7 @@ class TestGenericBackendV2(QiskitTestCase):
 
         backend = GenericBackendV2(num_qubits=5, basis_gates=["cx", "id", "rz", "sx", "x"], seed=42)
         tqc = transpile(qc, backend=backend, optimization_level=3, seed_transpiler=42)
-
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", category=RuntimeWarning)
-            result = backend.run(tqc, seed_simulator=42, shots=1000).result()
-
+        result = backend.run(tqc, seed_simulator=42, shots=1000).result()
         counts = result.get_counts()
 
         self.assertTrue(math.isclose(counts["00000"], 500, rel_tol=0.1))
