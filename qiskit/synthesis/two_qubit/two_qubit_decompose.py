@@ -291,6 +291,7 @@ class TwoQubitControlledUDecomposer:
             self._inner_decomposer = two_qubit_decompose.TwoQubitControlledUDecomposer(
                 rxx_equivalent_gate._standard_gate, euler_basis
             )
+            self.gate_name = rxx_equivalent_gate._standard_gate.name
         else:
             self._inner_decomposer = two_qubit_decompose.TwoQubitControlledUDecomposer(
                 rxx_equivalent_gate, euler_basis
@@ -353,6 +354,7 @@ class TwoQubitBasisDecomposer:
             gate_name = "cx"
         else:
             gate_name = "USER_GATE"
+        self.gate_name = gate_name
 
         self._inner_decomposer = two_qubit_decompose.TwoQubitBasisDecomposer(
             gate_name,

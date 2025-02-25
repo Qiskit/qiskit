@@ -109,10 +109,6 @@ class ConsolidateBlocks(TransformationPass):
                 self.decomposer = TwoQubitControlledUDecomposer(
                     KAK_GATE_PARAM_NAMES[kak_param_gates.pop()]
                 )
-            # elif "rzx" in basis_gates:
-            #    self.decomposer = TwoQubitBasisDecomposer(
-            #        CXGate(), basis_fidelity=approximation_degree or 1.0
-            #    )
             else:
                 self.decomposer = None
         else:
@@ -137,7 +133,7 @@ class ConsolidateBlocks(TransformationPass):
         consolidate_blocks(
             dag,
             self.decomposer._inner_decomposer,
-            self.decomposer.gate.name,
+            self.decomposer.gate_name,
             self.force_consolidate,
             target=self.target,
             basis_gates=self.basis_gates,
