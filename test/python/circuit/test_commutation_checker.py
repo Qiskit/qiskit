@@ -18,7 +18,6 @@ from test import QiskitTestCase  # pylint: disable=wrong-import-order
 import numpy as np
 from ddt import idata, ddt
 
-from qiskit import ClassicalRegister
 from qiskit.circuit import (
     AnnotatedOperation,
     ControlModifier,
@@ -45,6 +44,7 @@ from qiskit.circuit.library import (
     PauliGate,
     PhaseGate,
     Reset,
+    RGate,
     RXGate,
     RXXGate,
     RYGate,
@@ -57,6 +57,7 @@ from qiskit.circuit.library import (
     ZGate,
     HGate,
     UnitaryGate,
+    UGate,
 )
 from qiskit.dagcircuit import DAGOpNode
 
@@ -295,41 +296,6 @@ class TestCommutationChecker(QiskitTestCase):
         # A gate should commute with reset when the qubits are disjoint.
         self.assertTrue(scc.commute(Reset(), [0], [], CXGate(), [1, 2], []))
 
-    def test_conditional_gates(self):
-        """Check commutativity involving conditional gates."""
-        qr = QuantumRegister(3)
-        cr = ClassicalRegister(2)
-
-        # Currently, in all cases commutativity checker should returns False.
-        # This is definitely suboptimal.
-        with self.assertWarns(DeprecationWarning):
-            self.assertFalse(
-                scc.commute(CXGate().c_if(cr[0], 0), [qr[0], qr[1]], [], XGate(), [qr[2]], [])
-            )
-        with self.assertWarns(DeprecationWarning):
-            self.assertFalse(
-                scc.commute(CXGate().c_if(cr[0], 0), [qr[0], qr[1]], [], XGate(), [qr[1]], [])
-            )
-        with self.assertWarns(DeprecationWarning):
-            self.assertFalse(
-                scc.commute(
-                    CXGate().c_if(cr[0], 0),
-                    [qr[0], qr[1]],
-                    [],
-                    CXGate().c_if(cr[0], 0),
-                    [qr[0], qr[1]],
-                    [],
-                )
-            )
-        with self.assertWarns(DeprecationWarning):
-            self.assertFalse(
-                scc.commute(
-                    XGate().c_if(cr[0], 0), [qr[0]], [], XGate().c_if(cr[0], 1), [qr[0]], []
-                )
-            )
-        with self.assertWarns(DeprecationWarning):
-            self.assertFalse(scc.commute(XGate().c_if(cr[0], 0), [qr[0]], [], XGate(), [qr[0]], []))
-
     def test_complex_gates(self):
         """Check commutativity involving more complex gates."""
         lf1 = LinearFunction([[0, 1, 0], [1, 0, 0], [0, 0, 1]])
@@ -482,6 +448,20 @@ class TestCommutationChecker(QiskitTestCase):
         rx_gate_theta = RXGate(Parameter("Theta"))
         self.assertTrue(scc.commute(pauli_gate, [0, 1], [], rx_gate_theta, [0], []))
         self.assertTrue(scc.commute(rx_gate_theta, [0], [], pauli_gate, [0, 1], []))
+
+    def test_2q_pauli_rot_with_non_cached(self):
+        """Test the 2q-Pauli rotations with a gate that is not cached."""
+        x_equiv = UGate(np.pi, -np.pi / 2, np.pi / 2)
+        self.assertTrue(scc.commute(x_equiv, [0], [], RXXGate(np.pi / 2), [0, 1], []))
+        self.assertTrue(scc.commute(x_equiv, [1], [], RXXGate(np.pi / 2), [0, 1], []))
+        self.assertFalse(scc.commute(x_equiv, [0], [], RYYGate(np.pi), [1, 0], []))
+        self.assertFalse(scc.commute(x_equiv, [1], [], RYYGate(np.pi), [1, 0], []))
+
+        something_else = RGate(1, 2)
+        self.assertFalse(scc.commute(something_else, [0], [], RXXGate(np.pi / 2), [0, 1], []))
+        self.assertFalse(scc.commute(something_else, [1], [], RXXGate(np.pi / 2), [0, 1], []))
+        self.assertFalse(scc.commute(something_else, [0], [], RYYGate(np.pi), [1, 0], []))
+        self.assertFalse(scc.commute(something_else, [1], [], RYYGate(np.pi), [1, 0], []))
 
 
 if __name__ == "__main__":
