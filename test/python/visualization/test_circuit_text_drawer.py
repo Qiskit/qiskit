@@ -1919,6 +1919,7 @@ class TestTextDrawerVerticalCompressionMedium(QiskitTestCase):
                     initial_state=True,
                     vertical_compression="medium",
                     cregbundle=False,
+                    idle_wires=True,
                 )
             ),
             expected,
@@ -1955,7 +1956,7 @@ class TestTextDrawerVerticalCompressionMedium(QiskitTestCase):
                     initial_state=True,
                     vertical_compression="medium",
                     cregbundle=False,
-                    idle_wires=True
+                    idle_wires=True,
                 )
             ),
             expected,
@@ -3938,7 +3939,12 @@ class TestCircuitControlFlowOps(QiskitVisualizationTestCase):
         self.assertEqual(
             str(
                 circuit_drawer(
-                    circuit, output="text", initial_state=False, cregbundle=False, fold=90, idle_wires=True
+                    circuit,
+                    output="text",
+                    initial_state=False,
+                    cregbundle=False,
+                    fold=90,
+                    idle_wires=True,
                 )
             ),
             expected,
@@ -4237,7 +4243,6 @@ class TestCircuitControlFlowOps(QiskitVisualizationTestCase):
             expected,
         )
 
-        
     def test_if_with_expr(self):
         """Test an IfElseOp with an expression"""
         expected = "\n".join(
