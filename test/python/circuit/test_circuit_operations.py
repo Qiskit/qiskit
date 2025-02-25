@@ -99,6 +99,7 @@ class TestCircuitOperations(QiskitTestCase):
     @data([3], [-3], [0, 1, 3])
     def test_append_rejects_out_of_range_input(self, specifier):
         """Test that append rejects an integer that's out of range."""
+        print(specifier)
         test = QuantumCircuit(2, 2)
         with self.subTest("qubit"), self.assertRaisesRegex(CircuitError, "out of range"):
             opaque = Instruction("opaque", len(specifier), 1, [])

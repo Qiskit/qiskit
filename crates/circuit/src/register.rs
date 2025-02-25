@@ -489,10 +489,10 @@ impl PyRegister {
     ///
     /// Raises:
     ///     CircuitError: if the `key` is not an integer or not in the range `(0, self.size)`.
-    fn __getitem__<'py>(slf: PyRef<'py, Self>, key: SliceOrInt<'py>) -> PyResult<PyObject> {
+    fn __getitem__<'py>(slf: PyRef<'py, Self>, key: SliceOrList<'py>) -> PyResult<PyObject> {
         let py = slf.py();
         match &key {
-            SliceOrInt::Slice(py_sequence_index) => {
+            SliceOrList::Slice(py_sequence_index) => {
                 let sequence = py_sequence_index.with_len(slf.size())?;
                 match sequence {
                     crate::slice::SequenceIndex::Int(_) => {
@@ -668,10 +668,10 @@ impl PyRegister {
     /// preserved between register types.
     fn getitem_inner(
         &self,
-        key: SliceOrInt<'_>,
+        key: SliceOrList<'_>,
     ) -> PyResult<Box<dyn ExactSizeIterator<Item = BitInfo>>> {
         match &key {
-            SliceOrInt::Slice(py_sequence_index) => {
+            SliceOrList::Slice(py_sequence_index) => {
                 let sequence = py_sequence_index.with_len(self.size())?;
                 match sequence {
                     crate::slice::SequenceIndex::Int(idx) => {
@@ -693,7 +693,7 @@ impl PyRegister {
                     }
                 }
             }
-            SliceOrInt::List(_) => {
+            SliceOrList::List(_) => {
                 let result: Vec<BitInfo> = key
                     .iter_with_size(self.size())?
                     .map(|idx| -> PyResult<BitInfo> {
@@ -714,22 +714,22 @@ impl PyRegister {
 
 /// Correctly extracts a Slice or a Vec from Python.
 #[derive(FromPyObject)]
-enum SliceOrInt<'py> {
+enum SliceOrList<'py> {
     Slice(PySequenceIndex<'py>),
     List(Vec<isize>),
 }
 
-impl SliceOrInt<'_> {
+impl SliceOrList<'_> {
     pub fn iter_with_size(&self, size: usize) -> PyResult<Box<dyn Iterator<Item = usize>>> {
         match self {
-            SliceOrInt::Slice(py_sequence_index) => {
+            SliceOrList::Slice(py_sequence_index) => {
                 let sequence = py_sequence_index.with_len(size);
                 match sequence {
                     Ok(sequence) => Ok(Box::new(sequence.iter())),
                     Err(e) => Err(e.into()),
                 }
             }
-            SliceOrInt::List(items) => {
+            SliceOrList::List(items) => {
                 let items: Vec<usize> = items
                     .iter()
                     .copied()
@@ -796,10 +796,13 @@ macro_rules! create_py_register {
                 Ok((Self(register), PyRegister(inner_reg)))
             }
 
-            fn __getitem__<'py>(slf: PyRef<'py, Self>, key: SliceOrInt<'py>) -> PyResult<PyObject> {
+            fn __getitem__<'py>(
+                slf: PyRef<'py, Self>,
+                key: SliceOrList<'py>,
+            ) -> PyResult<PyObject> {
                 let py = slf.py();
                 match &key {
-                    SliceOrInt::Slice(py_sequence_index) => {
+                    SliceOrList::Slice(py_sequence_index) => {
                         let sequence = py_sequence_index
                             .with_len(slf.as_super().size().try_into().unwrap())?;
                         match sequence {
@@ -852,10 +855,10 @@ macro_rules! create_py_register {
             /// preserved between register types.
             fn getitem_inner(
                 &self,
-                key: SliceOrInt<'_>,
+                key: SliceOrList<'_>,
             ) -> PyResult<Box<dyn ExactSizeIterator<Item = $nativebit>>> {
                 match &key {
-                    SliceOrInt::Slice(py_sequence_index) => {
+                    SliceOrList::Slice(py_sequence_index) => {
                         let sequence = py_sequence_index.with_len(self.0.len())?;
                         match sequence {
                             crate::slice::SequenceIndex::Int(idx) => {
@@ -879,7 +882,7 @@ macro_rules! create_py_register {
                             }
                         }
                     }
-                    SliceOrInt::List(_) => {
+                    SliceOrList::List(_) => {
                         let result: Vec<$nativebit> = key
                             .iter_with_size(self.0.len())?
                             .map(|idx| -> PyResult<$nativebit> {

@@ -336,7 +336,7 @@ impl PyBit {
         let borrow_other = other.borrow();
         match (&borrow_slf.0, &borrow_other.0) {
             (BitInfo::Owned { .. }, BitInfo::Owned { .. }) => {
-                Ok(slf.repr()?.to_string() == other.repr()?.to_string())
+                slf.repr()?.as_any().eq(other.repr()?)
             }
             (
                 BitInfo::Anonymous {

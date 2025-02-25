@@ -23,10 +23,24 @@ pub type BitIndexType<B, R> = IndexMap<B, BitLocations<R>>;
 
 /// Structure that keeps a mapping of bits and their locations within
 /// the circuit.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct BitLocator<B, R: Register> {
     bit_locations: BitIndexType<B, R>,
     cached: OnceLock<Py<PyDict>>,
+}
+
+/// Custom implementation of BitLocator to skip copying the cache.
+impl<B, R> Clone for BitLocator<B, R>
+where
+    B: Debug + Clone + Hash + Eq,
+    R: Register + Debug + Clone,
+{
+    fn clone(&self) -> Self {
+        Self {
+            bit_locations: self.bit_locations.clone(),
+            cached: OnceLock::new(),
+        }
+    }
 }
 
 impl<B, R> Default for BitLocator<B, R>

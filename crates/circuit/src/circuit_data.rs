@@ -10,10 +10,12 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use std::fmt::Debug;
+use std::hash::Hash;
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
 
-use crate::bit::{BitLocations, ShareableClbit, ShareableQubit};
+use crate::bit::{BitLocations, PyBit, ShareableClbit, ShareableQubit};
 use crate::bit_data::BitData;
 use crate::bit_locator::BitLocator;
 use crate::circuit_instruction::{
@@ -1173,6 +1175,44 @@ impl CircuitData {
             .filter(|inst| inst.op.num_qubits() > 1 && !inst.op.directive())
             .count()
     }
+
+    /// Converts several qubit representations (such as indexes, range, etc.)
+    /// into a list of qubits.
+    ///
+    /// Args:
+    ///     qubit_representation: Representation to expand.
+    ///
+    /// Returns:
+    ///     The resolved instances of the qubits.
+    fn _qbit_argument_conversion(
+        &self,
+        qubit_representation: Bound<PyAny>,
+    ) -> PyResult<Vec<ShareableQubit>> {
+        bit_argument_conversion(
+            &qubit_representation,
+            &self.qubits.bits(),
+            &self.qubit_indices,
+        )
+    }
+
+    /// Converts several clbit representations (such as indexes, range, etc.)
+    /// into a list of qubits.
+    ///
+    /// Args:
+    ///     clbit_representation: Representation to expand.
+    ///
+    /// Returns:
+    ///     The resolved instances of the qubits.
+    fn _cbit_argument_conversion(
+        &self,
+        clbit_representation: Bound<PyAny>,
+    ) -> PyResult<Vec<ShareableClbit>> {
+        bit_argument_conversion(
+            &clbit_representation,
+            &self.clbits.bits(),
+            &self.clbit_indices,
+        )
+    }
 }
 
 impl CircuitData {
@@ -1930,5 +1970,135 @@ struct AssignParam(Param);
 impl<'py> FromPyObject<'py> for AssignParam {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         Ok(Self(Param::extract_no_coerce(ob)?))
+    }
+}
+
+/// Get the list of bits referred to by the specifier ``specifier``.
+/// 
+/// Valid types for ``specifier`` are integers, bits of the correct type (as given in ``type_``), or
+/// iterables of one of those two scalar types.  Integers are interpreted as indices into the
+/// sequence ``bit_sequence``.  All allowed bits must be in ``bit_set`` (which should implement
+/// fast lookup), which is assumed to contain the same bits as ``bit_sequence``.
+///
+/// Returns:
+///     List[Bit]: a list of the specified bits from ``bits``.
+///
+/// Raises:
+///     CircuitError: if an incorrect type or index is encountered, if the same bit is specified
+///         more than once, or if the specifier is to a bit not in the ``bit_set``.
+fn bit_argument_conversion<B, R: Register>(
+    specifier: &Bound<PyAny>,
+    bit_sequence: &Vec<B>,
+    bit_set: &BitLocator<B, R>,
+) -> PyResult<Vec<B>>
+where
+    B: Debug + Clone + Hash + Eq + for<'py> FromPyObject<'py>,
+    R: Debug + Clone + Hash + for<'py> FromPyObject<'py>,
+{
+    // The duplication between this function and `_bit_argument_conversion_scalar` is so that fast
+    // paths return as quickly as possible, and all valid specifiers will resolve without needing to
+    // try/catch exceptions (which is too slow for inner-loop code).
+    if let Ok(bit) = specifier.extract() {
+        if bit_set.contains_key(&bit) {
+            return Ok(vec![bit]);
+        }
+        return Err(CircuitError::new_err(format!(
+            "Bit '{specifier}' is not in the circuit."
+        )));
+    } else if let Ok(sequence) = specifier.extract::<PySequenceIndex>() {
+        match sequence {
+            PySequenceIndex::Int(index) => {
+                if let Ok(index) = PySequenceIndex::convert_idx(index, bit_sequence.len()) {
+                    if let Some(bit) = bit_sequence.get(index).cloned() {
+                        return Ok(vec![bit]);
+                    }
+                }
+                return Err(CircuitError::new_err(format!(
+                    "Index {specifier} out of range for size {}.",
+                    bit_sequence.len()
+                )));
+            }
+            _ => {
+                let Ok(sequence) = sequence.with_len(bit_sequence.len()) else {
+                    return Ok(vec![]);
+                };
+                return Ok(sequence
+                    .iter()
+                    .map(|index| &bit_sequence[index])
+                    .cloned()
+                    .collect());
+            }
+        }
+    } else {
+        if let Ok(iter) = specifier.try_iter() {
+            return iter
+                .map(|spec| -> PyResult<B> {
+                    bit_argument_conversion_scalar(&spec?, bit_sequence, bit_set)
+                })
+                .collect::<PyResult<_>>();
+        }
+        let err_message = if let Ok(bit) = specifier.downcast::<PyBit>() {
+            format!(
+                "Incorrect bit type: expected '{}' but got '{}'",
+                stringify!(B),
+                bit.get_type().name()?
+            )
+        } else {
+            format!(
+                "Invalid bit index: '{specifier}' of type '{}'",
+                specifier.get_type().name()?
+            )
+        };
+        return Err(CircuitError::new_err(err_message));
+    }
+}
+
+fn bit_argument_conversion_scalar<B, R: Register>(
+    specifier: &Bound<PyAny>,
+    bit_sequence: &Vec<B>,
+    bit_set: &BitLocator<B, R>,
+) -> PyResult<B>
+where
+    B: Debug + Clone + Hash + Eq + for<'py> FromPyObject<'py>,
+    R: Debug + Clone + Hash + for<'py> FromPyObject<'py>,
+{
+    if let Ok(bit) = specifier.extract() {
+        if bit_set.contains_key(&bit) {
+            return Ok(bit);
+        }
+        return Err(CircuitError::new_err(format!(
+            "Bit '{specifier}' is not in the circuit."
+        )));
+    } else if let Ok(index) = specifier.extract::<isize>() {
+        if let Some(bit) = PySequenceIndex::convert_idx(index, bit_sequence.len())
+            .map(|index| bit_sequence.get(index).cloned())
+            .map_err(|_| {
+                CircuitError::new_err(format!(
+                    "Index {specifier} out of range for size {}.",
+                    bit_sequence.len()
+                ))
+            })?
+        {
+            return Ok(bit);
+        } else {
+            return Err(CircuitError::new_err(format!(
+                "Index {specifier} out of range for size {}.",
+                bit_sequence.len()
+            )));
+        }
+    } else {
+        let err_message = if let Ok(bit) = specifier.downcast::<PyBit>() {
+            format!(
+                "Incorrect bit type: expected '{}' but got '{}'",
+                stringify!(B),
+                bit.get_type().name()?
+            )
+        } else {
+            format!(
+                "Invalid bit index: '{specifier}' of type '{}'",
+                specifier.get_type().name()?
+            )
+        };
+        return Err(CircuitError::new_err(err_message));
     }
 }

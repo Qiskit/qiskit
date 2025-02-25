@@ -2351,9 +2351,7 @@ class QuantumCircuit:
         Returns:
             The resolved instances of the qubits.
         """
-        return _bit_argument_conversion(
-            qubit_representation, self.qubits, self._qubit_indices, Qubit
-        )
+        return self._data._qbit_argument_conversion(qubit_representation)
 
     def _cbit_argument_conversion(self, clbit_representation: ClbitSpecifier) -> list[Clbit]:
         """
@@ -2366,9 +2364,7 @@ class QuantumCircuit:
         Returns:
             A list of tuples where each tuple is a classical bit.
         """
-        return _bit_argument_conversion(
-            clbit_representation, self.clbits, self._clbit_indices, Clbit
-        )
+        return self._data._cbit_argument_conversion(clbit_representation)
 
     def _append_standard_gate(
         self,
@@ -6970,73 +6966,6 @@ def _validate_expr(circuit_scope: CircuitScopeInterface, node: expr.Expr) -> exp
         else:
             circuit_scope.resolve_classical_resource(var.var)
     return node
-
-
-def _bit_argument_conversion(specifier, bit_sequence, bit_set, type_) -> list[Bit]:
-    """Get the list of bits referred to by the specifier ``specifier``.
-
-    Valid types for ``specifier`` are integers, bits of the correct type (as given in ``type_``), or
-    iterables of one of those two scalar types.  Integers are interpreted as indices into the
-    sequence ``bit_sequence``.  All allowed bits must be in ``bit_set`` (which should implement
-    fast lookup), which is assumed to contain the same bits as ``bit_sequence``.
-
-    Returns:
-        List[Bit]: a list of the specified bits from ``bits``.
-
-    Raises:
-        CircuitError: if an incorrect type or index is encountered, if the same bit is specified
-            more than once, or if the specifier is to a bit not in the ``bit_set``.
-    """
-    # The duplication between this function and `_bit_argument_conversion_scalar` is so that fast
-    # paths return as quickly as possible, and all valid specifiers will resolve without needing to
-    # try/catch exceptions (which is too slow for inner-loop code).
-    if isinstance(specifier, type_):
-        if specifier in bit_set:
-            return [specifier]
-        raise CircuitError(f"Bit '{specifier}' is not in the circuit.")
-    if isinstance(specifier, (int, np.integer)):
-        try:
-            return [bit_sequence[specifier]]
-        except IndexError as ex:
-            raise CircuitError(
-                f"Index {specifier} out of range for size {len(bit_sequence)}."
-            ) from ex
-    # Slices can't raise IndexError - they just return an empty list.
-    if isinstance(specifier, slice):
-        return bit_sequence[specifier]
-    try:
-        return [
-            _bit_argument_conversion_scalar(index, bit_sequence, bit_set, type_)
-            for index in specifier
-        ]
-    except TypeError as ex:
-        message = (
-            f"Incorrect bit type: expected '{type_.__name__}' but got '{type(specifier).__name__}'"
-            if isinstance(specifier, Bit)
-            else f"Invalid bit index: '{specifier}' of type '{type(specifier)}'"
-        )
-        raise CircuitError(message) from ex
-
-
-def _bit_argument_conversion_scalar(specifier, bit_sequence, bit_set, type_):
-    if isinstance(specifier, type_):
-        if specifier in bit_set:
-            return specifier
-        raise CircuitError(f"Bit '{specifier}' is not in the circuit.")
-    if isinstance(specifier, (int, np.integer)):
-        try:
-            return bit_sequence[specifier]
-        except IndexError as ex:
-            raise CircuitError(
-                f"Index {specifier} out of range for size {len(bit_sequence)}."
-            ) from ex
-    message = (
-        f"Incorrect bit type: expected '{type_.__name__}' but got '{type(specifier).__name__}'"
-        if isinstance(specifier, Bit)
-        else f"Invalid bit index: '{specifier}' of type '{type(specifier)}'"
-    )
-    raise CircuitError(message)
-
 
 def _copy_metadata(original, cpy, vars_mode):
     # copy registers correctly, in copy.copy they are only copied via reference
