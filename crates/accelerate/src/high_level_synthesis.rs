@@ -22,7 +22,6 @@ use pyo3::types::PyTuple;
 use pyo3::Bound;
 use pyo3::IntoPyObjectExt;
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::circuit_instruction::ExtraInstructionAttributes;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::converters::QuantumCircuitData;
@@ -560,7 +559,7 @@ fn run_on_circuitdata(
                     qubits: inst.qubits,
                     clbits: inst.clbits,
                     params: inst.params.clone(),
-                    extra_attrs: inst.extra_attrs.clone(),
+                    label: inst.label.clone(),
                     #[cfg(feature = "cache_pygates")]
                     py_op: std::sync::OnceLock::new(),
                 };
@@ -582,7 +581,7 @@ fn run_on_circuitdata(
             &op_qubits,
             &inst.op,
             inst.params_view(),
-            &inst.extra_attrs,
+            inst.label.as_ref().map(|x| x.as_str()),
         )?;
 
         match synthesize_operation_result {
@@ -759,7 +758,7 @@ fn synthesize_operation(
     input_qubits: &[usize],
     op: &PackedOperation,
     params: &[Param],
-    extra_attrs: &ExtraInstructionAttributes,
+    label: Option<&str>,
 ) -> PyResult<Option<(CircuitData, Vec<usize>)>> {
     if op.num_qubits() != input_qubits.len() as u32 {
         return Err(TranspilerError::new_err(
@@ -789,7 +788,7 @@ fn synthesize_operation(
             input_qubits,
             &op.view(),
             params,
-            extra_attrs,
+            label,
         )?;
     }
 
@@ -863,21 +862,21 @@ fn synthesize_op_using_plugins(
     input_qubits: &[usize],
     op: &OperationRef,
     params: &[Param],
-    extra_attrs: &ExtraInstructionAttributes,
+    label: Option<&str>,
 ) -> PyResult<Option<(CircuitData, Vec<usize>)>> {
     let mut output_circuit_and_qubits: Option<(CircuitData, Vec<usize>)> = None;
 
     let op_py = match op {
-        OperationRef::StandardGate(standard) => standard
-            .create_py_op(py, Some(params), extra_attrs)?
-            .into_any(),
+        OperationRef::StandardGate(standard) => {
+            standard.create_py_op(py, Some(params), label)?.into_any()
+        }
         OperationRef::StandardInstruction(instruction) => instruction
-            .create_py_op(py, Some(params), extra_attrs)?
+            .create_py_op(py, Some(params), label)?
             .into_any(),
         OperationRef::Gate(gate) => gate.gate.clone_ref(py),
         OperationRef::Instruction(instruction) => instruction.instruction.clone_ref(py),
         OperationRef::Operation(operation) => operation.operation.clone_ref(py),
-        OperationRef::Unitary(unitary) => unitary.create_py_op(py, extra_attrs)?.into_any(),
+        OperationRef::Unitary(unitary) => unitary.create_py_op(py, label)?.into_any(),
     };
 
     let res = HLS_SYNTHESIZE_OP_USING_PLUGINS
@@ -927,7 +926,7 @@ fn py_synthesize_operation(
         &input_qubits,
         &op.operation,
         &op.params,
-        &op.extra_attrs,
+        op.label.as_ref().map(|x| x.as_str()),
     )
 }
 
@@ -1001,7 +1000,7 @@ fn convert_circuit_to_dag_with_data(
                 qubits: qarg_map[instr.qubits],
                 clbits: carg_map[instr.clbits],
                 params: instr.params.clone(),
-                extra_attrs: instr.extra_attrs.clone(),
+                label: instr.label.clone(),
                 #[cfg(feature = "cache_pygates")]
                 py_op: OnceLock::new(),
             })

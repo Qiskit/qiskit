@@ -1159,7 +1159,7 @@ impl CircuitData {
             qubits,
             clbits,
             params,
-            extra_attrs: ExtraInstructionAttributes::default(),
+            label: None,
             #[cfg(feature = "cache_pygates")]
             py_op: OnceLock::new(),
         });
