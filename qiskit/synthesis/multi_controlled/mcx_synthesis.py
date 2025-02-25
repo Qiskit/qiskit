@@ -320,7 +320,9 @@ def linear_depth_ladder_ops(qreg: list[int]) -> tuple[QuantumCircuit, list[int]]
     """
 
     n = len(qreg)
-    assert n > 3, "n = n_ctrls + 1 => n_ctrls >= 3 to use MCX ladder. Otherwise, use CCX"
+    if n <= 3:
+        raise ValueError("n = n_ctrls + 1 => n_ctrls >= 3 to use MCX ladder. Otherwise, use CCX")
+
     qc = QuantumCircuit(n)
 
     # up-ladder
