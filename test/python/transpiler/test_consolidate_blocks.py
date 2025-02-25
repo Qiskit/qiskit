@@ -671,10 +671,10 @@ class TestConsolidateBlocks(QiskitTestCase):
         qc = QuantumCircuit(2)
         qc.rzz(0.1, 0, 1)
         qc.rzz(0.2, 0, 1)
-        qc.rzz(0.3, 0, 1)
-        qc.rzz(0.4, 0, 1)
         consolidate_pass = ConsolidateBlocks(basis_gates=["rzz", "rx", "rz"])
-        qc2 = consolidate_pass(qc)
+        res = consolidate_pass(qc)
+        self.assertEqual({"unitary": 1}, res.count_ops())
+        self.assertEqual(Operator.from_circuit(qc), Operator(res.data[0].operation.params[0]))
 
 
 if __name__ == "__main__":
