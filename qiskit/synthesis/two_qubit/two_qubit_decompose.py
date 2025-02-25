@@ -288,15 +288,15 @@ class TwoQubitControlledUDecomposer:
             QiskitError: If the gate is not locally equivalent to an :class:`.RXXGate`.
         """
         if rxx_equivalent_gate._standard_gate is not None:
-            self._inner_decomposition = two_qubit_decompose.TwoQubitControlledUDecomposer(
+            self._inner_decomposer = two_qubit_decompose.TwoQubitControlledUDecomposer(
                 rxx_equivalent_gate._standard_gate, euler_basis
             )
         else:
-            self._inner_decomposition = two_qubit_decompose.TwoQubitControlledUDecomposer(
+            self._inner_decomposer = two_qubit_decompose.TwoQubitControlledUDecomposer(
                 rxx_equivalent_gate, euler_basis
             )
         self.rxx_equivalent_gate = rxx_equivalent_gate
-        self.scale = self._inner_decomposition.scale
+        self.scale = self._inner_decomposer.scale
         self.euler_basis = euler_basis
 
     def __call__(
@@ -312,7 +312,7 @@ class TwoQubitControlledUDecomposer:
 
         Note: atol is passed to OneQubitEulerDecomposer.
         """
-        circ_data = self._inner_decomposition(np.asarray(unitary, dtype=complex), atol)
+        circ_data = self._inner_decomposer(np.asarray(unitary, dtype=complex), atol)
         return QuantumCircuit._from_circuit_data(circ_data, add_regs=True)
 
 
