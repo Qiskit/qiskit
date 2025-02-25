@@ -3561,7 +3561,7 @@ class TestTextPhase(QiskitTestCase):
         """Text Bell state with phase."""
         expected = "\n".join(
             [
-                "global phase: \u03C0/2",
+                "global phase: \u03c0/2",
                 "     ┌───┐     ",
                 "q_0: ┤ H ├──■──",
                 "     └───┘┌─┴─┐",

@@ -316,7 +316,7 @@ class TestWaveformGenerators(QiskitTestCase):
 
         # data check, real part, positive max
         self.assertListEqual(objs[0].channels, [pulse.DriveChannel(0)])
-        self.assertEqual(objs[0].text, "0.30\n\u25BE")
+        self.assertEqual(objs[0].text, "0.30\n\u25be")
 
         # style check
         ref_style = {
@@ -330,7 +330,7 @@ class TestWaveformGenerators(QiskitTestCase):
 
         # data check, imaginary part, negative max
         self.assertListEqual(objs[1].channels, [pulse.DriveChannel(0)])
-        self.assertEqual(objs[1].text, "\u25B4\n-0.20")
+        self.assertEqual(objs[1].text, "\u25b4\n-0.20")
 
         # style check
         ref_style = {
