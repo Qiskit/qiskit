@@ -67,7 +67,7 @@ const MAX_2Q_DEPTH: usize = 20;
 pub(crate) fn consolidate_blocks(
     py: Python,
     dag: &mut DAGCircuit,
-    decomposer: &DecomposerType,
+    decomposer: DecomposerType,
     basis_gate_name: &str,
     force_consolidate: bool,
     target: Option<&Target>,
@@ -218,10 +218,10 @@ pub(crate) fn consolidate_blocks(
             let matrix = blocks_to_matrix(py, dag, &block, block_index_map).ok();
             if let Some(matrix) = matrix {
                 let num_basis_gates = match decomposer {
-                    DecomposerType::TwoQubitBasis(decomp) => {
+                    DecomposerType::TwoQubitBasis(ref decomp) => {
                         decomp.num_basis_gates_inner(matrix.view())
                     }
-                    DecomposerType::TwoQubitControlledU(decomp) => {
+                    DecomposerType::TwoQubitControlledU(ref decomp) => {
                         decomp.num_basis_gates_inner(matrix.view())?
                     }
                 };
