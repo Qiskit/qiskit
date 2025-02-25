@@ -345,7 +345,6 @@ class _DAGDependencyV2:
             op=operation,
             qargs=qargs,
             cargs=cargs,
-            dag=self,
         )
         new_node._node_id = self._multi_graph.add_node(new_node)
         self._update_edges()
