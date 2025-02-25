@@ -112,7 +112,7 @@ def generate_unitary_gate_circuit():
     return unitary_circuit
 
 
-def generate_random_circuits():
+def generate_random_circuits(version):
     """Generate multiple random circuits."""
     random_circuits = []
     for i in range(1, 15):
@@ -124,7 +124,13 @@ def generate_random_circuits():
         qc.measure_all()
         for j in range(i):
             qc.reset(j)
-        qc.x(0).c_if(qc.cregs[0], i)
+            if version >= (2, 0, 0):
+                condition = (qc.cregs[0], i)
+                body = QuantumCircuit([qc.qubits[0]])
+                body.x(0)
+                qc.if_else(condition, body, None, [qc.qubits[0]], [])
+            else:
+                qc.x(0).c_if(qc.cregs[0], i)
         for j in range(i):
             qc.measure(j, j)
         random_circuits.append(qc)
@@ -283,14 +289,20 @@ def generate_param_phase():
     return output_circuits
 
 
-def generate_single_clbit_condition_teleportation():  # pylint: disable=invalid-name
+def generate_single_clbit_condition_teleportation(version):  # pylint: disable=invalid-name
     """Generate single clbit condition teleportation circuit."""
     qr = QuantumRegister(1)
     cr = ClassicalRegister(2, name="name")
     teleport_qc = QuantumCircuit(qr, cr, name="Reset Test")
     teleport_qc.x(0)
     teleport_qc.measure(0, cr[0])
-    teleport_qc.x(0).c_if(cr[0], 1)
+    if version >= (2, 0, 0):
+        condition = (cr[0], 1)
+        body = QuantumCircuit([teleport_qc.qubits[0]])
+        body.x(0)
+        teleport_qc.if_else(condition, body, None, [teleport_qc.qubits[0]], [])
+    else:
+        teleport_qc.x(0).c_if(cr[0], 1)
     teleport_qc.measure(0, cr[1])
     return teleport_qc
 
@@ -382,7 +394,9 @@ def generate_control_flow_circuits():
     body.h(0)
     body.cx(0, 1)
     body.measure(0, 0)
-    body.break_loop().c_if(0, True)
+    if_body = QuantumCircuit(qc.qubits, qc.clbits)
+    if_body.break_loop()
+    body.if_else((0, True), if_body, None, qc.qubits, qc.clbits)
     for_loop_op = ForLoopOp(range(5), None, body=body)
     qc.append(for_loop_op, [0, 1], [0])
     circuits.append(qc)
@@ -426,17 +440,11 @@ def generate_control_flow_switch_circuits():
     return circuits
 
 
-def generate_schedule_blocks():
+def generate_schedule_blocks(current_version):
     """Standard QPY testcase for schedule blocks."""
     # pylint: disable=no-name-in-module
     from qiskit.pulse import builder, channels, library
 
-    current_version = current_version_str.split(".")
-    for i in range(len(current_version[2])):
-        if current_version[2][i].isalpha():
-            current_version[2] = current_version[2][:i]
-            break
-    current_version = tuple(int(x) for x in current_version)
     # Parameterized schedule test is avoided.
     # Generated reference and loaded QPY object may induce parameter uuid mismatch.
     # As workaround, we need test with bounded parameters, however, schedule.parameters
@@ -826,7 +834,7 @@ def generate_v12_expr():
     return [index, shift]
 
 
-def generate_circuits(version_parts, load_context=False):
+def generate_circuits(version_parts, current_version, load_context=False):
     """Generate reference circuits.
 
     If load_context is True, avoid generating Pulse-based reference
@@ -836,7 +844,7 @@ def generate_circuits(version_parts, load_context=False):
     output_circuits = {
         "full.qpy": [generate_full_circuit()],
         "unitary.qpy": [generate_unitary_gate_circuit()],
-        "multiple.qpy": generate_random_circuits(),
+        "multiple.qpy": generate_random_circuits(current_version),
         "string_parameters.qpy": [generate_string_parameters()],
         "register_edge_cases.qpy": generate_register_edge_cases(),
         "parameterized.qpy": [generate_parameterized_circuit()],
@@ -846,7 +854,9 @@ def generate_circuits(version_parts, load_context=False):
 
     if version_parts >= (0, 18, 1):
         output_circuits["qft_circuit.qpy"] = [generate_qft_circuit()]
-        output_circuits["teleport.qpy"] = [generate_single_clbit_condition_teleportation()]
+        output_circuits["teleport.qpy"] = [
+            generate_single_clbit_condition_teleportation(current_version)
+        ]
 
     if version_parts >= (0, 19, 0):
         output_circuits["param_phase.qpy"] = generate_param_phase()
@@ -861,7 +871,7 @@ def generate_circuits(version_parts, load_context=False):
         output_circuits["control_flow.qpy"] = generate_control_flow_circuits()
     if version_parts >= (0, 21, 0) and version_parts < (2, 0):
         output_circuits["schedule_blocks.qpy"] = (
-            None if load_context else generate_schedule_blocks()
+            None if load_context else generate_schedule_blocks(current_version)
         )
         output_circuits["pulse_gates.qpy"] = (
             None if load_context else generate_calibrated_circuits()
@@ -1042,6 +1052,13 @@ def _main():
     )
     args = parser.parse_args()
 
+    current_version = current_version_str.split(".")
+    for i in range(len(current_version[2])):
+        if current_version[2][i].isalpha():
+            current_version[2] = current_version[2][:i]
+            break
+    current_version = tuple(int(x) for x in current_version)
+
     # Terra 0.18.0 was the first release with QPY, so that's the default.
     version_parts = (0, 18, 0)
     if args.version:
@@ -1049,10 +1066,10 @@ def _main():
         version_parts = tuple(int(x) for x in version_match.group("release").split("."))
 
     if args.command == "generate":
-        qpy_files = generate_circuits(version_parts)
+        qpy_files = generate_circuits(version_parts, current_version)
         generate_qpy(qpy_files)
     else:
-        qpy_files = generate_circuits(version_parts, load_context=True)
+        qpy_files = generate_circuits(version_parts, current_version, load_context=True)
         load_qpy(qpy_files, version_parts)
 
 
