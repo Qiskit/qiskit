@@ -300,6 +300,18 @@ def synth_mcx_noaux_v24(num_ctrl_qubits: int) -> QuantumCircuit:
     return qc
 
 
+def synth_mcx_1_clean_kg24() -> QuantumCircuit:
+    pass
+
+def synth_mcx_1_dirty_kg24() -> QuantumCircuit:
+    pass
+
+def synth_mcx_2_clean_kg24() -> QuantumCircuit:
+    pass
+
+def synth_mcx_2_dirty_kg24() -> QuantumCircuit:
+    pass
+
 def synth_c3x() -> QuantumCircuit:
     """Efficient synthesis of 3-controlled X-gate."""
 
