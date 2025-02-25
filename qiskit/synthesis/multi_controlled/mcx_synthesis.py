@@ -347,7 +347,7 @@ def linear_depth_ladder_ops(qreg: List[int]) -> Tuple[QuantumCircuit, List[int]]
     return qc, final_ctrl
 
 
-def synth_mcx_1_kg24(num_ctrl_qubits: int, clean: bool=True) -> QuantumCircuit:
+def synth_mcx_1_kg24(num_ctrl_qubits: int, clean=True) -> QuantumCircuit:
     r"""
     Synthesise a multi-controlled X gate with :math:`k` controls using :math:`1` ancillary qubit as
     described in Sec. 5 of [1].
@@ -364,12 +364,10 @@ def synth_mcx_1_kg24(num_ctrl_qubits: int, clean: bool=True) -> QuantumCircuit:
         `arxiv:2407.17966 https://arxiv.org/abs/2407.17966`_
     """
 
-    n_qubits = num_ctrl_qubits + 2
-    q = QuantumRegister(n_qubits, name="q")
-    q_controls = q[:num_ctrl_qubits]
-    q_target = q[num_ctrl_qubits]
-    q_ancilla = q[num_ctrl_qubits + 1]
-    qc = QuantumCircuit(q, name="mcx_linear_depth")
+    q_controls = QuantumRegister(num_ctrl_qubits, name="ctrl")
+    q_target = QuantumRegister(1, name="targ")
+    q_ancilla = QuantumRegister(1, name="anc")
+    qc = QuantumCircuit(q_controls, q_target, q_ancilla, name="mcx_linear_depth")
 
     ladder_ops, final_ctrl = linear_depth_ladder_ops(list(range(num_ctrl_qubits + 1)))
     qc.ccx(q_controls[0], q_controls[1], q_ancilla)                               # create conditionally clean ancilla
@@ -509,7 +507,7 @@ def build_logn_depth_ccx_ladder(
     return qc, final_ctrls[:-1]                              # exclude ancilla
 
 
-def synth_mcx_2_kg24(num_ctrl_qubits: int, clean: bool=True) -> QuantumCircuit:
+def synth_mcx_2_kg24(num_ctrl_qubits: int, clean=True) -> QuantumCircuit:
     r"""
     Synthesise a multi-controlled X gate with :math:`k` controls using :math:`2` ancillary qubits.
 
@@ -521,21 +519,19 @@ def synth_mcx_2_kg24(num_ctrl_qubits: int, clean: bool=True) -> QuantumCircuit:
         The synthesized quantum circuit.
     """
 
-    n_qubits = num_ctrl_qubits + 3
-    q = QuantumRegister(n_qubits, name="q")
-    q_control = q[:num_ctrl_qubits]
-    q_target = q[num_ctrl_qubits]
-    q_ancilla = q[num_ctrl_qubits + 1:]
-    qc = QuantumCircuit(q, name="mcx_logn_depth")
+    q_control = QuantumRegister(num_ctrl_qubits, name="ctrl")
+    q_target = QuantumRegister(1, name="targ")
+    q_ancilla = QuantumRegister(2, name="anc")
+    qc = QuantumCircuit(q_control, q_target, q_ancilla, name="mcx_logn_depth")
 
     ladder_ops, final_ctrls = build_logn_depth_ccx_ladder(num_ctrl_qubits, list(range(num_ctrl_qubits)))
     qc.compose(ladder_ops, q_control[:] + [q_ancilla[0]], inplace=True)
     if len(final_ctrls) == 1:                                                       # Already a toffoli
         qc.ccx(q_ancilla[0], q_control[final_ctrls[0]], q_target)
     else:
-        mid_mcx = synth_mcx_1_clean_kg24(len(final_ctrls) + 1, clean=True)
+        mid_mcx = synth_mcx_1_clean_kg24(len(final_ctrls) + 1)
         qc.compose(
-            mid_mcx.definition,
+            mid_mcx,
             [q_ancilla[0]] + q_control[final_ctrls] + q_target[:] + [q_ancilla[1]], # ctrls, targ, anc
             inplace=True,
         )
@@ -551,7 +547,7 @@ def synth_mcx_2_kg24(num_ctrl_qubits: int, clean: bool=True) -> QuantumCircuit:
             qc.ccx(q_ancilla[0], q_control[final_ctrls[0]], q_target)
         else:
             qc.compose(
-                mid_mcx.definition,
+                mid_mcx,
                 [q_ancilla[0]] + q_control[final_ctrls] + q_target[:] + [q_ancilla[1]],
                 inplace=True,
             )
