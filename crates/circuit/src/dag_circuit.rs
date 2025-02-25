@@ -1204,8 +1204,7 @@ def _format(operand):
         bit: &Bound<'py, PyAny>,
     ) -> PyResult<Bound<'py, PyBitLocations>> {
         if let Ok(qubit) = bit.extract::<ShareableQubit>() {
-            return self
-                .qubit_locations
+            self.qubit_locations
                 .get(&qubit)
                 .map(|location| location.clone().into_pyobject(py))
                 .transpose()?
@@ -1214,10 +1213,9 @@ def _format(operand):
                         "Could not locate provided bit: {}. Has it been added to the DAGCircuit?",
                         bit
                     ))
-                });
+                })
         } else if let Ok(clbit) = bit.extract::<ShareableClbit>() {
-            return self
-                .clbit_locations
+            self.clbit_locations
                 .get(&clbit)
                 .map(|location| location.clone().into_pyobject(py))
                 .transpose()?
@@ -1226,7 +1224,7 @@ def _format(operand):
                         "Could not locate provided bit: {}. Has it been added to the DAGCircuit?",
                         bit
                     ))
-                });
+                })
         } else {
             Err(DAGCircuitError::new_err(format!(
                 "Could not locate bit of unknown type: {}",

@@ -21,7 +21,7 @@ import copy as _copy
 import itertools
 import multiprocessing as mp
 import typing
-from collections import OrderedDict, defaultdict, namedtuple
+from collections import OrderedDict, defaultdict
 from typing import (
     Union,
     Optional,

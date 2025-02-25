@@ -14,7 +14,6 @@
 
 """Test library of quantum circuits."""
 import copy
-from unittest import mock
 
 from qiskit.circuit import bit, register
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
