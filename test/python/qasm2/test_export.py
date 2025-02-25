@@ -44,12 +44,6 @@ class TestQASM2Export(QiskitTestCase):
         qc.barrier(qr2)
         qc.cx(qr2[1], qr1[0])
         qc.h(qr2[1])
-        with self.assertWarns(DeprecationWarning):
-            qc.x(qr2[1]).c_if(cr, 0)
-        with self.assertWarns(DeprecationWarning):
-            qc.y(qr1[0]).c_if(cr, 1)
-        with self.assertWarns(DeprecationWarning):
-            qc.z(qr1[0]).c_if(cr, 2)
         qc.barrier(qr1, qr2)
         qc.measure(qr1[0], cr[0])
         qc.measure(qr2[0], cr[1])
@@ -68,9 +62,6 @@ cx qr1[0],qr2[1];
 barrier qr2[0],qr2[1];
 cx qr2[1],qr1[0];
 h qr2[1];
-if(cr==0) x qr2[1];
-if(cr==1) y qr1[0];
-if(cr==2) z qr1[0];
 barrier qr1[0],qr2[0],qr2[1];
 measure qr1[0] -> cr[0];
 measure qr2[0] -> cr[1];
@@ -616,16 +607,6 @@ qreg q[1];
 p(3.141592653599793) q[0];
 p(pi) q[0];"""
         self.assertEqual(qasm2.dumps(qc), expected_qasm)
-
-    def test_raises_on_single_bit_condition(self):
-        qc = QuantumCircuit(1, 1)
-        with self.assertWarns(DeprecationWarning):
-            qc.x(0).c_if(0, True)
-
-        with self.assertRaisesRegex(
-            qasm2.QASM2ExportError, "OpenQASM 2 can only condition on registers"
-        ):
-            qasm2.dumps(qc)
 
     def test_raises_invalid_custom_gate_no_qubits(self):
         legit_circuit = QuantumCircuit(5, name="legit_circuit")
