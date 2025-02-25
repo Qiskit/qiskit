@@ -57,6 +57,8 @@ from qiskit.circuit.library import (
     CZGate,
     ECRGate,
     HGate,
+    IGate,
+    PhaseGate,
     RXGate,
     RYGate,
     RZGate,
@@ -953,10 +955,7 @@ class TestTranspile(QiskitTestCase):
         circ = QuantumCircuit.from_qasm_file(os.path.join(qasm_dir, "move_measurements.qasm"))
 
         lay = [0, 1, 15, 2, 14, 3, 13, 4, 12, 5, 11, 6]
-        with self.assertWarns(DeprecationWarning):
-            out = transpile(
-                circ, initial_layout=lay, coupling_map=cmap, routing_method="stochastic"
-            )
+        out = transpile(circ, initial_layout=lay, coupling_map=cmap, routing_method="sabre")
         out_dag = circuit_to_dag(out)
         meas_nodes = out_dag.named_nodes("measure")
         for meas_node in meas_nodes:
@@ -1647,7 +1646,9 @@ class TestTranspile(QiskitTestCase):
     @data(0, 1, 2, 3)
     def test_transpile_preserves_circuit_metadata(self, optimization_level):
         """Verify that transpile preserves circuit metadata in the output."""
-        circuit = QuantumCircuit(2, metadata={"experiment_id": "1234", "execution_number": 4})
+        metadata = {"experiment_id": "1234", "execution_number": 4}
+        name = "my circuit"
+        circuit = QuantumCircuit(2, metadata=metadata.copy(), name=name)
         circuit.h(0)
         circuit.cx(0, 1)
 
@@ -1679,7 +1680,22 @@ class TestTranspile(QiskitTestCase):
             optimization_level=optimization_level,
             seed_transpiler=42,
         )
-        self.assertEqual(circuit.metadata, res.metadata)
+        self.assertEqual(res.metadata, metadata)
+        self.assertEqual(res.name, name)
+
+        target = Target(14)
+        for inst in (IGate(), PhaseGate(Parameter("t")), SXGate()):
+            target.add_instruction(inst, {(i,): None for i in range(14)})
+        target.add_instruction(CXGate(), {tuple(pair): None for pair in cmap})
+
+        res = transpile(
+            circuit,
+            target=target,
+            optimization_level=optimization_level,
+            seed_transpiler=42,
+        )
+        self.assertEqual(res.metadata, metadata)
+        self.assertEqual(res.name, name)
 
     @data(0, 1, 2, 3)
     def test_transpile_optional_registers(self, optimization_level):
@@ -3381,32 +3397,6 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
                 continue
             self.assertIn(qubits, self.backend.target[op_name])
 
-    @data("stochastic")
-    def test_basic_connected_circuit_dense_layout_stochastic(self, routing_method):
-        """Test basic connected circuit on disjoint backend for deprecated stochastic swap"""
-        # TODO: Remove when StochasticSwap is removed
-        qc = QuantumCircuit(5)
-        qc.h(0)
-        qc.cx(0, 1)
-        qc.cx(0, 2)
-        qc.cx(0, 3)
-        qc.cx(0, 4)
-        qc.measure_all()
-        with self.assertWarns(DeprecationWarning):
-            tqc = transpile(
-                qc,
-                self.backend,
-                layout_method="dense",
-                routing_method=routing_method,
-                seed_transpiler=42,
-            )
-        for inst in tqc.data:
-            qubits = tuple(tqc.find_bit(x).index for x in inst.qubits)
-            op_name = inst.operation.name
-            if op_name == "barrier":
-                continue
-            self.assertIn(qubits, self.backend.target[op_name])
-
     # Lookahead swap skipped for performance
     @data("sabre", "basic")
     def test_triple_circuit_dense_layout(self, routing_method):
@@ -3450,57 +3440,6 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
             routing_method=routing_method,
             seed_transpiler=42,
         )
-        for inst in tqc.data:
-            qubits = tuple(tqc.find_bit(x).index for x in inst.qubits)
-            op_name = inst.operation.name
-            if op_name == "barrier":
-                continue
-            self.assertIn(qubits, self.backend.target[op_name])
-
-    @data("stochastic")
-    def test_triple_circuit_dense_layout_stochastic(self, routing_method):
-        """Test a split circuit with one circuit component per chip for deprecated StochasticSwap."""
-        # TODO: Remove when StochasticSwap is removed
-        qc = QuantumCircuit(30)
-        qc.h(0)
-        qc.h(10)
-        qc.h(20)
-        qc.cx(0, 1)
-        qc.cx(0, 2)
-        qc.cx(0, 3)
-        qc.cx(0, 4)
-        qc.cx(0, 5)
-        qc.cx(0, 6)
-        qc.cx(0, 7)
-        qc.cx(0, 8)
-        qc.cx(0, 9)
-        qc.ecr(10, 11)
-        qc.ecr(10, 12)
-        qc.ecr(10, 13)
-        qc.ecr(10, 14)
-        qc.ecr(10, 15)
-        qc.ecr(10, 16)
-        qc.ecr(10, 17)
-        qc.ecr(10, 18)
-        qc.ecr(10, 19)
-        qc.cy(20, 21)
-        qc.cy(20, 22)
-        qc.cy(20, 23)
-        qc.cy(20, 24)
-        qc.cy(20, 25)
-        qc.cy(20, 26)
-        qc.cy(20, 27)
-        qc.cy(20, 28)
-        qc.cy(20, 29)
-        qc.measure_all()
-        with self.assertWarns(DeprecationWarning):
-            tqc = transpile(
-                qc,
-                self.backend,
-                layout_method="dense",
-                routing_method=routing_method,
-                seed_transpiler=42,
-            )
         for inst in tqc.data:
             qubits = tuple(tqc.find_bit(x).index for x in inst.qubits)
             op_name = inst.operation.name
@@ -3570,64 +3509,6 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
                         seed_transpiler=42,
                     )
 
-    @data("stochastic")
-    def test_triple_circuit_invalid_layout_stochastic(self, routing_method):
-        """Test a split circuit with one circuit component per chip for deprecated ``StochasticSwap``"""
-        # TODO: Remove when StochasticSwap is removed
-        qc = QuantumCircuit(30)
-        qc.h(0)
-        qc.h(10)
-        qc.h(20)
-        qc.cx(0, 1)
-        qc.cx(0, 2)
-        qc.cx(0, 3)
-        qc.cx(0, 4)
-        qc.cx(0, 5)
-        qc.cx(0, 6)
-        qc.cx(0, 7)
-        qc.cx(0, 8)
-        qc.cx(0, 9)
-        qc.ecr(10, 11)
-        qc.ecr(10, 12)
-        qc.ecr(10, 13)
-        qc.ecr(10, 14)
-        qc.ecr(10, 15)
-        qc.ecr(10, 16)
-        qc.ecr(10, 17)
-        qc.ecr(10, 18)
-        qc.ecr(10, 19)
-        qc.cy(20, 21)
-        qc.cy(20, 22)
-        qc.cy(20, 23)
-        qc.cy(20, 24)
-        qc.cy(20, 25)
-        qc.cy(20, 26)
-        qc.cy(20, 27)
-        qc.cy(20, 28)
-        qc.cy(20, 29)
-        qc.measure_all()
-        with self.assertRaises(TranspilerError):
-            if routing_method == "stochastic":
-                with self.assertWarnsRegex(
-                    DeprecationWarning,
-                    expected_regex="The StochasticSwap transpilation pass is a suboptimal",
-                ):
-                    transpile(
-                        qc,
-                        self.backend,
-                        layout_method="trivial",
-                        routing_method=routing_method,
-                        seed_transpiler=42,
-                    )
-            else:
-                transpile(
-                    qc,
-                    self.backend,
-                    layout_method="trivial",
-                    routing_method=routing_method,
-                    seed_transpiler=42,
-                )
-
     # Lookahead swap skipped for performance reasons, stochastic moved to new test due to deprecation
     @data("sabre", "basic")
     def test_six_component_circuit_dense_layout(self, routing_method):
@@ -3683,71 +3564,6 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
             routing_method=routing_method,
             seed_transpiler=42,
         )
-        for inst in tqc.data:
-            qubits = tuple(tqc.find_bit(x).index for x in inst.qubits)
-            op_name = inst.operation.name
-            if op_name == "barrier":
-                continue
-            self.assertIn(qubits, self.backend.target[op_name])
-
-    # Lookahead swap skipped for performance reasons
-    @data("stochastic")
-    def test_six_component_circuit_dense_layout_stochastic(self, routing_method):
-        """Test input circuit with more than 1 component per backend component
-        for deprecated ``StochasticSwap``."""
-        # TODO: Remove when StochasticSwap is removed
-        qc = QuantumCircuit(42)
-        qc.h(0)
-        qc.h(10)
-        qc.h(20)
-        qc.cx(0, 1)
-        qc.cx(0, 2)
-        qc.cx(0, 3)
-        qc.cx(0, 4)
-        qc.cx(0, 5)
-        qc.cx(0, 6)
-        qc.cx(0, 7)
-        qc.cx(0, 8)
-        qc.cx(0, 9)
-        qc.ecr(10, 11)
-        qc.ecr(10, 12)
-        qc.ecr(10, 13)
-        qc.ecr(10, 14)
-        qc.ecr(10, 15)
-        qc.ecr(10, 16)
-        qc.ecr(10, 17)
-        qc.ecr(10, 18)
-        qc.ecr(10, 19)
-        qc.cy(20, 21)
-        qc.cy(20, 22)
-        qc.cy(20, 23)
-        qc.cy(20, 24)
-        qc.cy(20, 25)
-        qc.cy(20, 26)
-        qc.cy(20, 27)
-        qc.cy(20, 28)
-        qc.cy(20, 29)
-        qc.h(30)
-        qc.cx(30, 31)
-        qc.cx(30, 32)
-        qc.cx(30, 33)
-        qc.h(34)
-        qc.cx(34, 35)
-        qc.cx(34, 36)
-        qc.cx(34, 37)
-        qc.h(38)
-        qc.cx(38, 39)
-        qc.cx(39, 40)
-        qc.cx(39, 41)
-        qc.measure_all()
-        with self.assertWarns(DeprecationWarning):
-            tqc = transpile(
-                qc,
-                self.backend,
-                layout_method="dense",
-                routing_method=routing_method,
-                seed_transpiler=42,
-            )
         for inst in tqc.data:
             qubits = tuple(tqc.find_bit(x).index for x in inst.qubits)
             op_name = inst.operation.name
