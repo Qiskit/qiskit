@@ -750,6 +750,7 @@ impl SliceOrList<'_> {
 
 macro_rules! create_py_register {
     ($name:ident, $nativereg:tt, $pybit:tt, $nativebit:tt, $pyname:literal, $pymodule:literal, $extra:expr, $prefix:literal) => {
+#[rustfmt::skip] // Due to a bug in rustfmt, formatting is skipped in this line
         #[pyclass(
             name = $pyname,
             module = $pymodule,

@@ -173,17 +173,6 @@ macro_rules! create_bit_object {
                 Self(BitInfo::new_anonymous(Some($extra_exp)))
             }
 
-            // /// Creates an instance of owned [QubitObject].
-            // pub(crate) fn new_owned(register: $reg, index: u32) -> Self {
-            //     let RegisterInfo::Owning(owning) = register.data().as_ref() else {
-            //         panic!("The provided register does not own its bits.")
-            //     };
-            //     Self {
-            //         info: BitInfo::new_owned(owning.clone(), index, Some($extra_exp)),
-            //         reg: Some(register),
-            //     }
-            // }
-
             /// Returns a reference to the owning register of the [QubitObject] if any exists.
             pub fn register(&self) -> Option<$reg> {
                 self.0.register().map(|reg| $reg(reg.into()))
@@ -451,7 +440,8 @@ impl PyBit {
 
 macro_rules! create_py_bit {
     ($name:ident, $natbit:tt, $pyname:literal, $pymodule:literal, $extra:expr, $pyreg:tt) => {
-        /// Implements a quantum bit
+/// Implements a quantum bit
+        #[rustfmt::skip] // Due to a bug in rustfmt, formatting is skipped in this line
         #[pyclass(
             subclass,
             name = $pyname,

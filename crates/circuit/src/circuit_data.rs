@@ -1190,7 +1190,7 @@ impl CircuitData {
     ) -> PyResult<Vec<ShareableQubit>> {
         bit_argument_conversion(
             &qubit_representation,
-            &self.qubits.bits(),
+            self.qubits.bits(),
             &self.qubit_indices,
         )
     }
@@ -1209,7 +1209,7 @@ impl CircuitData {
     ) -> PyResult<Vec<ShareableClbit>> {
         bit_argument_conversion(
             &clbit_representation,
-            &self.clbits.bits(),
+            self.clbits.bits(),
             &self.clbit_indices,
         )
     }
@@ -1312,6 +1312,7 @@ impl CircuitData {
     ///     of the operation while iterating for constructing the new `CircuitData`. An
     ///     example of this use case is in `qiskit_circuit::converters::dag_to_circuit`.
     /// * global_phase: The global phase value to use for the new circuit.
+    #[allow(clippy::too_many_arguments)]
     pub fn from_packed_instructions<I>(
         py: Python,
         qubits: BitData<Qubit, ShareableQubit>,
@@ -1974,7 +1975,7 @@ impl<'py> FromPyObject<'py> for AssignParam {
 }
 
 /// Get the list of bits referred to by the specifier ``specifier``.
-/// 
+///
 /// Valid types for ``specifier`` are integers, bits of the correct type (as given in ``type_``), or
 /// iterables of one of those two scalar types.  Integers are interpreted as indices into the
 /// sequence ``bit_sequence``.  All allowed bits must be in ``bit_set`` (which should implement
@@ -1986,14 +1987,14 @@ impl<'py> FromPyObject<'py> for AssignParam {
 /// Raises:
 ///     CircuitError: if an incorrect type or index is encountered, if the same bit is specified
 ///         more than once, or if the specifier is to a bit not in the ``bit_set``.
-fn bit_argument_conversion<B, R: Register>(
+fn bit_argument_conversion<B, R>(
     specifier: &Bound<PyAny>,
-    bit_sequence: &Vec<B>,
+    bit_sequence: &[B],
     bit_set: &BitLocator<B, R>,
 ) -> PyResult<Vec<B>>
 where
     B: Debug + Clone + Hash + Eq + for<'py> FromPyObject<'py>,
-    R: Debug + Clone + Hash + for<'py> FromPyObject<'py>,
+    R: Register + Debug + Clone + Hash + for<'py> FromPyObject<'py>,
 {
     // The duplication between this function and `_bit_argument_conversion_scalar` is so that fast
     // paths return as quickly as possible, and all valid specifiers will resolve without needing to
@@ -2002,9 +2003,9 @@ where
         if bit_set.contains_key(&bit) {
             return Ok(vec![bit]);
         }
-        return Err(CircuitError::new_err(format!(
+        Err(CircuitError::new_err(format!(
             "Bit '{specifier}' is not in the circuit."
-        )));
+        )))
     } else if let Ok(sequence) = specifier.extract::<PySequenceIndex>() {
         match sequence {
             PySequenceIndex::Int(index) => {
@@ -2053,22 +2054,22 @@ where
     }
 }
 
-fn bit_argument_conversion_scalar<B, R: Register>(
+fn bit_argument_conversion_scalar<B, R>(
     specifier: &Bound<PyAny>,
-    bit_sequence: &Vec<B>,
+    bit_sequence: &[B],
     bit_set: &BitLocator<B, R>,
 ) -> PyResult<B>
 where
     B: Debug + Clone + Hash + Eq + for<'py> FromPyObject<'py>,
-    R: Debug + Clone + Hash + for<'py> FromPyObject<'py>,
+    R: Register + Debug + Clone + Hash + for<'py> FromPyObject<'py>,
 {
     if let Ok(bit) = specifier.extract() {
         if bit_set.contains_key(&bit) {
             return Ok(bit);
         }
-        return Err(CircuitError::new_err(format!(
+        Err(CircuitError::new_err(format!(
             "Bit '{specifier}' is not in the circuit."
-        )));
+        )))
     } else if let Ok(index) = specifier.extract::<isize>() {
         if let Some(bit) = PySequenceIndex::convert_idx(index, bit_sequence.len())
             .map(|index| bit_sequence.get(index).cloned())

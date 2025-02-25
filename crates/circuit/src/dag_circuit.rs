@@ -1107,7 +1107,7 @@ def _format(operand):
     }
 
     /// Add individual qubit wires.
-    fn add_qubits(&mut self, py: Python, qubits: Vec<Bound<PyAny>>) -> PyResult<()> {
+    fn add_qubits(&mut self, qubits: Vec<Bound<PyAny>>) -> PyResult<()> {
         for bit in qubits.into_iter() {
             let Ok(bit) = bit.extract::<ShareableQubit>() else {
                 return Err(DAGCircuitError::new_err("not a Qubit instance."));
@@ -1118,13 +1118,13 @@ def _format(operand):
                     bit
                 )));
             }
-            self.add_qubit_unchecked(py, bit)?;
+            self.add_qubit_unchecked(bit)?;
         }
         Ok(())
     }
 
     /// Add individual qubit wires.
-    fn add_clbits(&mut self, py: Python, clbits: Vec<Bound<'_, PyAny>>) -> PyResult<()> {
+    fn add_clbits(&mut self, clbits: Vec<Bound<'_, PyAny>>) -> PyResult<()> {
         for bit in clbits.into_iter() {
             let Ok(bit) = bit.extract::<ShareableClbit>() else {
                 return Err(DAGCircuitError::new_err("not a Clbit instance."));
@@ -1135,13 +1135,13 @@ def _format(operand):
                     bit
                 )));
             }
-            self.add_clbit_unchecked(py, bit)?;
+            self.add_clbit_unchecked(bit)?;
         }
         Ok(())
     }
 
     /// Add all wires in a quantum register.
-    pub fn add_qreg(&mut self, py: Python, qreg: QuantumRegister) -> PyResult<()> {
+    pub fn add_qreg(&mut self, qreg: QuantumRegister) -> PyResult<()> {
         // if !qreg.is_instance(imports::QUANTUM_REGISTER.get_bound(py))? {
         //     return Err(DAGCircuitError::new_err("not a QuantumRegister instance."));
         // }
@@ -1151,7 +1151,7 @@ def _format(operand):
 
         for (index, bit) in qreg.bits().enumerate() {
             if self.qubits.find(&bit).is_none() {
-                self.add_qubit_unchecked(py, bit.clone())?;
+                self.add_qubit_unchecked(bit.clone())?;
             }
             let locations: &mut BitLocations<QuantumRegister> =
                 self.qubit_locations.get_mut(&bit).unwrap();
@@ -1161,7 +1161,7 @@ def _format(operand):
     }
 
     /// Add all wires in a classical register.
-    fn add_creg(&mut self, py: Python, creg: ClassicalRegister) -> PyResult<()> {
+    fn add_creg(&mut self, creg: ClassicalRegister) -> PyResult<()> {
         // if !creg.is_instance(imports::CLASSICAL_REGISTER.get_bound(py))? {
         //     return Err(DAGCircuitError::new_err(
         //         "not a ClassicalRegister instance.",
@@ -1174,7 +1174,7 @@ def _format(operand):
 
         for (index, bit) in creg.bits().enumerate() {
             if self.clbits.find(&bit).is_none() {
-                self.add_clbit_unchecked(py, bit.clone())?;
+                self.add_clbit_unchecked(bit.clone())?;
             }
             let locations: &mut BitLocations<ClassicalRegister> =
                 self.clbit_locations.get_mut(&bit).unwrap();
@@ -1287,7 +1287,7 @@ def _format(operand):
                 }
             }
         }
-        self.remove_cregs(py, &PyTuple::new(py, cregs_to_remove)?)?;
+        self.remove_cregs(&PyTuple::new(py, cregs_to_remove)?)?;
 
         // Remove DAG in/out nodes etc.
         for bit in clbits.iter() {
@@ -1368,7 +1368,7 @@ def _format(operand):
     ///     DAGCircuitError: a creg is not a ClassicalRegister, or is not in
     ///     the circuit.
     #[pyo3(signature = (*cregs))]
-    fn remove_cregs(&mut self, py: Python, cregs: &Bound<PyTuple>) -> PyResult<()> {
+    fn remove_cregs(&mut self, cregs: &Bound<PyTuple>) -> PyResult<()> {
         // let self_bound_cregs = self.cregs.bind(py);
         let mut valid_regs: Vec<ClassicalRegister> = Vec::new();
         for reg in cregs.iter() {
@@ -1464,7 +1464,7 @@ def _format(operand):
                 }
             }
         }
-        self.remove_qregs(py, &PyTuple::new(py, qregs_to_remove)?)?;
+        self.remove_qregs(&PyTuple::new(py, qregs_to_remove)?)?;
 
         // Remove DAG in/out nodes etc.
         for bit in qubits.iter() {
@@ -1540,7 +1540,7 @@ def _format(operand):
     ///     DAGCircuitError: a qreg is not a QuantumRegister, or is not in
     ///     the circuit.
     #[pyo3(signature = (*qregs))]
-    fn remove_qregs(&mut self, py: Python, qregs: &Bound<PyTuple>) -> PyResult<()> {
+    fn remove_qregs(&mut self, qregs: &Bound<PyTuple>) -> PyResult<()> {
         // let self_bound_cregs = self.cregs.bind(py);
         let mut valid_regs: Vec<QuantumRegister> = Vec::new();
         for reg in qregs.iter() {
@@ -1647,16 +1647,16 @@ def _format(operand):
         target_dag.cargs_interner = self.cargs_interner.clone();
 
         for bit in self.qubits.bits() {
-            target_dag.add_qubit_unchecked(py, bit.clone())?;
+            target_dag.add_qubit_unchecked(bit.clone())?;
         }
         for bit in self.clbits.bits() {
-            target_dag.add_clbit_unchecked(py, bit.clone())?;
+            target_dag.add_clbit_unchecked(bit.clone())?;
         }
         for reg in self.qregs.registers() {
-            target_dag.add_qreg(py, reg.clone())?;
+            target_dag.add_qreg(reg.clone())?;
         }
         for reg in self.cregs.registers() {
-            target_dag.add_creg(py, reg.clone())?;
+            target_dag.add_creg(reg.clone())?;
         }
         if vars_mode == "alike" {
             for var in self.vars_by_type[DAGVarType::Input as usize]
@@ -3197,7 +3197,7 @@ def _format(operand):
                         .unwrap_or_else(|| {
                             // Target was not in node's wires, so we need a dummy.
                             let new_target = ShareableClbit::new_anonymous();
-                            in_dag.add_clbit_unchecked(py, new_target.clone())?;
+                            in_dag.add_clbit_unchecked(new_target.clone())?;
                             wire_map.set_item(&new_target, &py_target)?;
                             reverse_wire_map.set_item(&py_target, &new_target)?;
                             Ok(new_target)
@@ -3226,7 +3226,7 @@ def _format(operand):
                         } else {
                             // Target bit was not in node's wires, so we need a dummy.
                             let theirs = ShareableClbit::new_anonymous();
-                            in_dag.add_clbit_unchecked(py, theirs.clone())?;
+                            in_dag.add_clbit_unchecked(theirs.clone())?;
                             wire_map.set_item(theirs.clone(), &ours)?;
                             reverse_wire_map.set_item(&ours, theirs.clone())?;
                             new_target.insert(theirs.clone());
@@ -3238,7 +3238,7 @@ def _format(operand):
                     // let new_target_register = imports::CLASSICAL_REGISTER
                     //     .get_bound(py)
                     //     .call((), Some(&kwargs))?;
-                    in_dag.add_creg(py, new_target_register.clone())?;
+                    in_dag.add_creg(new_target_register.clone())?;
                     (new_target_register.into_bound_py_any(py)?, target_cargs)
                 };
                 let new_condition = PyTuple::new(py, [py_new_target, py_value])?;
@@ -3351,7 +3351,7 @@ def _format(operand):
         let add_new_register = new_registers.getattr("append")?.unbind();
         let flush_new_registers = |dag: &mut DAGCircuit| -> PyResult<()> {
             for reg in &new_registers {
-                dag.add_creg(py, reg.extract()?)?;
+                dag.add_creg(reg.extract()?)?;
             }
             new_registers.del_slice(0, new_registers.len())?;
             Ok(())
@@ -5750,7 +5750,7 @@ impl DAGCircuit {
         Ok(())
     }
 
-    fn add_qubit_unchecked(&mut self, py: Python, bit: ShareableQubit) -> PyResult<Qubit> {
+    fn add_qubit_unchecked(&mut self, bit: ShareableQubit) -> PyResult<Qubit> {
         let qubit = self.qubits.add(bit.clone(), false)?;
         self.qubit_locations
             .insert(bit, BitLocations::new((self.qubits.len() - 1) as u32, []));
@@ -5758,7 +5758,7 @@ impl DAGCircuit {
         Ok(qubit)
     }
 
-    fn add_clbit_unchecked(&mut self, py: Python, bit: ShareableClbit) -> PyResult<Clbit> {
+    fn add_clbit_unchecked(&mut self, bit: ShareableClbit) -> PyResult<Clbit> {
         let clbit = self.clbits.add(bit.clone(), false)?;
         self.clbit_locations
             .insert(bit, BitLocations::new((self.clbits.len() - 1) as u32, []));
@@ -6937,8 +6937,7 @@ impl DAGCircuit {
                         )));
                     }
                     let qubit_index = qc_data.qubits().find(&qubit_nat).unwrap();
-                    ordered_vec[qubit_index.index()] =
-                        new_dag.add_qubit_unchecked(py, qubit_nat)?;
+                    ordered_vec[qubit_index.index()] = new_dag.add_qubit_unchecked(qubit_nat)?;
                     Ok(())
                 })?;
             // The `Vec::get` use is because an arbitrary interner might contain old references to
@@ -6952,7 +6951,7 @@ impl DAGCircuit {
                 .bits()
                 .iter()
                 .try_for_each(|qubit| -> PyResult<_> {
-                    new_dag.add_qubit_unchecked(py, qubit.clone())?;
+                    new_dag.add_qubit_unchecked(qubit.clone())?;
                     Ok(())
                 })?;
             new_dag.merge_qargs(qc_data.qargs_interner(), |bit| Some(*bit))
@@ -6972,8 +6971,7 @@ impl DAGCircuit {
                         )));
                     };
                     let clbit_index = qc_data.clbits().find(&clbit_nat).unwrap();
-                    ordered_vec[clbit_index.index()] =
-                        new_dag.add_clbit_unchecked(py, clbit_nat)?;
+                    ordered_vec[clbit_index.index()] = new_dag.add_clbit_unchecked(clbit_nat)?;
                     Ok(())
                 })?;
             // The `Vec::get` use is because an arbitrary interner might contain old references to
@@ -6987,7 +6985,7 @@ impl DAGCircuit {
                 .bits()
                 .iter()
                 .try_for_each(|clbit| -> PyResult<()> {
-                    new_dag.add_clbit_unchecked(py, clbit.clone())?;
+                    new_dag.add_clbit_unchecked(clbit.clone())?;
                     Ok(())
                 })?;
             new_dag.merge_cargs(qc_data.cargs_interner(), |bit| Some(*bit))
@@ -7008,11 +7006,11 @@ impl DAGCircuit {
 
         // Add all the registers
         for qreg in qc_data.qregs() {
-            new_dag.add_qreg(py, qreg.clone())?;
+            new_dag.add_qreg(qreg.clone())?;
         }
 
         for creg in qc_data.cregs() {
-            new_dag.add_creg(py, creg.clone())?;
+            new_dag.add_creg(creg.clone())?;
         }
 
         // After bits and registers are added, copy bitlocations
@@ -7420,8 +7418,8 @@ mod test {
         let qreg = QuantumRegister::new_owning(None, qubits);
         let creg = ClassicalRegister::new_owning(None, clbits);
         let mut dag = DAGCircuit::new(py).unwrap();
-        dag.add_qreg(py, qreg).unwrap();
-        dag.add_creg(py, creg).unwrap();
+        dag.add_qreg(qreg).unwrap();
+        dag.add_creg(creg).unwrap();
         dag
     }
 

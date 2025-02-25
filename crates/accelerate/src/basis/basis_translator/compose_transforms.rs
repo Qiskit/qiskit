@@ -54,7 +54,7 @@ pub(super) fn compose_transforms<'a>(
         let mut dag = DAGCircuit::new(py)?;
         // Create the mock gate and add to the circuit, use Python for this.
         let qubits = QuantumRegister::new_owning(None, gate_num_qubits);
-        dag.add_qreg(py, qubits)?;
+        dag.add_qreg(qubits)?;
 
         let gate = GATE.get_bound(py).call1((
             &gate_name,
