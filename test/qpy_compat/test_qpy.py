@@ -27,7 +27,6 @@ from qiskit.circuit.classicalregister import Clbit
 from qiskit.circuit.quantumregister import Qubit
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parametervector import ParameterVector
-from qiskit.qpy.exceptions import QpyError
 from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info import Operator
 from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, QFT, DCXGate, PauliGate
@@ -1013,6 +1012,7 @@ def load_qpy(qpy_files, version_parts):
                 circuit, qpy_circuits[i], i, version_parts, bind=bind, equivalent=equivalent
             )
 
+    from qiskit.qpy.exceptions import QpyError
     while pulse_files:
         path, version = pulse_files.popitem()
 
