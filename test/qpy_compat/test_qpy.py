@@ -1021,7 +1021,8 @@ def load_qpy(qpy_files, version_parts):
 
         if path == "pulse_gates.qpy":
             try:
-                load(open(path, "rb"))
+                with open(path, "rb") as fd:
+                    load(fd)
             except:
                 msg = f"Loading circuit with pulse gates should not raise"
                 sys.stderr.write(msg)
@@ -1029,7 +1030,8 @@ def load_qpy(qpy_files, version_parts):
         else:
             try:
                 # A ScheduleBlock payload, should raise QpyError
-                load(open(path, "rb"))
+                with open(path, "rb") as fd:
+                    load(fd)
             except QpyError:
                 continue
 

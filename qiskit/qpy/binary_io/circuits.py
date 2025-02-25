@@ -659,10 +659,9 @@ def _read_calibrations(file_obj, version, vectors, metadata_deserializer):
         name = file_obj.read(defheader.name_size).decode(common.ENCODE)
         if name:
             warnings.warn(
-                category=exceptions.QPYLoadingDeprecatedFeatureWarning,
+                category=UserWarning,
                 message="Support for loading pulse gates has been removed in Qiskit 2.0. "
-                f"If `{name}` is in the circuit, it will be left as a custom instruction"
-                " without definition.",
+                f"If `{name}` is in the circuit it will be left as an opaque instruction.",
             )
 
         for _ in range(defheader.num_qubits):  # read qubits info
