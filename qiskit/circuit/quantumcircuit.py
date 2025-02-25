@@ -2359,7 +2359,7 @@ class QuantumCircuit:
         for param in params:
             Gate.validate_parameter(op, param)
 
-        instructions = InstructionSet(resource_requester=circuit_scope.resolve_classical_resource)
+        instructions = InstructionSet()
         for qarg, _ in Gate.broadcast_arguments(op, expanded_qargs, []):
             self._check_dups(qarg)
             instruction = CircuitInstruction.from_standard(op, qarg, params, label=label)
@@ -2457,7 +2457,7 @@ class QuantumCircuit:
         expanded_qargs = [self._qbit_argument_conversion(qarg) for qarg in qargs or []]
         expanded_cargs = [self._cbit_argument_conversion(carg) for carg in cargs or []]
 
-        instructions = InstructionSet(resource_requester=circuit_scope.resolve_classical_resource)
+        instructions = InstructionSet()
         # For Operations that are non-Instructions, we use the Instruction's default method
         broadcast_iter = (
             operation.broadcast_arguments(expanded_qargs, expanded_cargs)
