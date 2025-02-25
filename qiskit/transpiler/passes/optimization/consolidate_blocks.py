@@ -138,12 +138,9 @@ class ConsolidateBlocks(TransformationPass):
             pass_manager.append(Collect2qBlocks())
 
         pass_manager.append(self)
-        control_flow_nodes = dag.control_flow_op_nodes()
-        if control_flow_nodes is not None:
-            for node in control_flow_nodes:
-                dag.substitute_node(
-                    node,
-                    node.op.replace_blocks(pass_manager.run(block) for block in node.op.blocks),
-                    propagate_condition=False,
-                )
+        for node in dag.control_flow_op_nodes():
+            dag.substitute_node(
+                node,
+                node.op.replace_blocks(pass_manager.run(block) for block in node.op.blocks),
+            )
         return dag

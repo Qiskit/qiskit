@@ -43,7 +43,6 @@ Routing
 
    BasicSwap
    LookaheadSwap
-   StochasticSwap
    SabreSwap
    Commuting2qGateRouter
    StarPreRouting
@@ -115,10 +114,6 @@ Scheduling
    ConstrainedReschedule
    InstructionDurationCheck
    SetIOLatency
-   ALAPSchedule
-   ASAPSchedule
-   DynamicalDecoupling
-   AlignMeasures
 
 Circuit Analysis
 ================
@@ -177,7 +172,6 @@ Additional Passes
    MinimumPoint
    ContainsInstruction
    GatesInBasis
-   ConvertConditionsToIfOps
    UnrollForLoops
    FilterOpNodes
 """
@@ -200,7 +194,6 @@ from .layout import SabrePreLayout
 from .routing import BasicSwap
 from .routing import LayoutTransformation
 from .routing import LookaheadSwap
-from .routing import StochasticSwap
 from .routing import SabreSwap
 from .routing import Commuting2qGateRouter
 from .routing import StarPreRouting
@@ -273,10 +266,6 @@ from .scheduling import PadDelay
 from .scheduling import ConstrainedReschedule
 from .scheduling import InstructionDurationCheck
 from .scheduling import SetIOLatency
-from .scheduling import ALAPSchedule
-from .scheduling import ASAPSchedule
-from .scheduling import DynamicalDecoupling
-from .scheduling import AlignMeasures
 
 # additional utility passes
 from .utils import CheckMap
@@ -292,6 +281,5 @@ from .utils import Error
 from .utils import RemoveBarriers
 from .utils import ContainsInstruction
 from .utils import GatesInBasis
-from .utils import ConvertConditionsToIfOps
 from .utils import UnrollForLoops
 from .utils import FilterOpNodes

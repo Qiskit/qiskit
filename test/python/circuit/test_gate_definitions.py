@@ -377,7 +377,7 @@ class TestGateEquivalenceEqual(QiskitTestCase):
             params[0] = 2
         if gate_class.__name__ in ["PauliGate"]:
             params = ["IXYZ"]
-        if gate_class.__name__ in ["BooleanExpression"]:
+        if gate_class.__name__ in ["BooleanExpression", "BitFlipOracleGate", "PhaseOracleGate"]:
             params = ["x | y"]
 
         gate = gate_class(*params)
