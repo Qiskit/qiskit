@@ -2301,7 +2301,7 @@ impl SparseObservable {
     /// Get a :class:`.PauliList` object that represents the measurement basis needed for each term
     /// (in order) in this observable.
     ///
-    /// For example, the projector ``0l+`` will return a Pauli ``ZXY``.  The resulting
+    /// For example, the projector ``0l+`` will return a Pauli ``ZYX``.  The resulting
     /// :class:`.Pauli` is dense, in the sense that explicit identities are stored.  An identity in
     /// the Pauli output does not require a concrete measurement.
     ///
