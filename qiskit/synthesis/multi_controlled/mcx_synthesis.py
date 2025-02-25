@@ -12,9 +12,9 @@
 
 """Module containing multi-controlled circuits synthesis with and without ancillary qubits."""
 
-from typing import List, Tuple
 from math import ceil
 import numpy as np
+from __future__ import annotations
 
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -301,22 +301,22 @@ def synth_mcx_noaux_v24(num_ctrl_qubits: int) -> QuantumCircuit:
     return qc
 
 
-def linear_depth_ladder_ops(qreg: List[int]) -> Tuple[QuantumCircuit, List[int]]:
+def linear_depth_ladder_ops(qreg: list[int]) -> tuple[QuantumCircuit, list[int]]:
     r"""
     Helper function to create linear-depth ladder operations used in Khattar and Gidney's MCX synthesis.
     In particular, this implements Step-1 and Step-2 on Fig. 3 of [1] except for the first and last
     CCX gates.
 
     Args:
-        qreg: List of qubit indices to apply the ladder operations on. qreg[0] is assumed to be ancilla.
+        List of qubit indices to apply the ladder operations on. qreg[0] is assumed to be ancilla.
 
     Returns:
-        QuantumCircuit: Linear-depth ladder circuit.
-        int: Index of control qubit to apply the final CCX gate.
+        A tuple consisting of the linear-depth ladder circuit and the index of 
+        control qubit to apply the final CCX gate.
 
     References:
         1. Khattar and Gidney, Rise of conditionally clean ancillae for optimizing quantum circuits
-        `arxiv:2407.17966 https://arxiv.org/abs/2407.17966`_
+        `arXiv:2407.17966 <https://arxiv.org/abs/2407.17966>`__
     """
 
     n = len(qreg)
@@ -361,7 +361,7 @@ def synth_mcx_1_kg24(num_ctrl_qubits: int, clean=True) -> QuantumCircuit:
 
     References:
         1. Khattar and Gidney, Rise of conditionally clean ancillae for optimizing quantum circuits
-        `arxiv:2407.17966 https://arxiv.org/abs/2407.17966`_
+        `arXiv:2407.17966 <https://arxiv.org/abs/2407.17966>`__
     """
 
     q_controls = QuantumRegister(num_ctrl_qubits, name="ctrl")
@@ -402,7 +402,7 @@ def synth_mcx_1_clean_kg24(num_ctrl_qubits: int) -> QuantumCircuit:
 
     References:
         1. Khattar and Gidney, Rise of conditionally clean ancillae for optimizing quantum circuits
-        `arxiv:2407.17966 https://arxiv.org/abs/2407.17966`_
+        `arXiv:2407.17966 <https://arxiv.org/abs/2407.17966>`__
     """
 
     return synth_mcx_1_kg24(num_ctrl_qubits, clean=True)
@@ -421,13 +421,13 @@ def synth_mcx_1_dirty_kg24(num_ctrl_qubits: int) -> QuantumCircuit:
 
     References:
         1. Khattar and Gidney, Rise of conditionally clean ancillae for optimizing quantum circuits
-        `arxiv:2407.17966 https://arxiv.org/abs/2407.17966`_
+        `arXiv:2407.17966 <https://arxiv.org/abs/2407.17966>`__
     """
 
     return synth_mcx_1_kg24(num_ctrl_qubits, clean=False)
 
 
-def CCXN(n):
+def ccxn(n):
     r"""
     Construct a quantum circuit for creating n-condionally clean ancillae using 3n qubits. This
     implements Fig. 4a of [1]. The order of returned qubits is x, y, target.
@@ -440,7 +440,7 @@ def CCXN(n):
 
     References:
         1. Khattar and Gidney, Rise of conditionally clean ancillae for optimizing quantum circuits
-        `arxiv:2407.17966 https://arxiv.org/abs/2407.17966`_
+        `arXiv:2407.17966 <https://arxiv.org/abs/2407.17966>`__
     """
 
     n_qubits = 3 * n
@@ -455,8 +455,8 @@ def CCXN(n):
 
 
 def build_logn_depth_ccx_ladder(
-    ancilla_idx: int, ctrls: List[int], skip_cond_clean=False
-) -> Tuple[QuantumCircuit, List[int]]:
+    ancilla_idx: int, ctrls: list[int], skip_cond_clean=False
+) -> tuple[QuantumCircuit, list[int]]:
     r"""
     Helper function to build a log-depth ladder compose of CCX and X gates as shown in Fig. 4b of [1].
 
@@ -464,7 +464,7 @@ def build_logn_depth_ccx_ladder(
         alloc_anc: Index of the ancillary qubit.
         ctrls: List of control qubits.
         skip_cond_clean: If True, do not include the conditionally clean ancilla (step 1 and 5 in
-        Fig. 4b of [1]).
+            Fig. 4b of [1]).
 
     Returns:
         QuantumCircuit: The log-depth ladder circuit.
@@ -472,7 +472,7 @@ def build_logn_depth_ccx_ladder(
 
     References:
         1. Khattar and Gidney, Rise of conditionally clean ancillae for optimizing quantum circuits
-        `arxiv:2407.17966 https://arxiv.org/abs/2407.17966`_
+        `arXiv:2407.17966 <https://arxiv.org/abs/2407.17966>`__
     """
 
     qc = QuantumCircuit(len(ctrls) + 1)
@@ -493,7 +493,7 @@ def build_logn_depth_ccx_ladder(
             )
             assert len(ccx_x) == len(ccx_y) == len(ccx_t) == ccx_n >= 1
             if ccx_t != [ancilla_idx]:
-                qc.compose(CCXN(ccx_n), ccx_x + ccx_y + ccx_t, inplace=True)
+                qc.compose(ccxn(ccx_n), ccx_x + ccx_y + ccx_t, inplace=True)
             else:
                 if not skip_cond_clean:
                     qc.ccx(ccx_x[0], ccx_y[0], ccx_t[0])  #  # create conditionally clean ancilla
@@ -577,7 +577,7 @@ def synth_mcx_2_clean_kg24(num_ctrl_qubits: int) -> QuantumCircuit:
 
     References:
         1. Khattar and Gidney, Rise of conditionally clean ancillae for optimizing quantum circuits
-        `arxiv:2407.17966 https://arxiv.org/abs/2407.17966`_
+        `arXiv:2407.17966 <https://arxiv.org/abs/2407.17966>`__
     """
 
     return synth_mcx_2_kg24(num_ctrl_qubits, clean=True)
@@ -597,7 +597,7 @@ def synth_mcx_2_dirty_kg24(num_ctrl_qubits: int) -> QuantumCircuit:
 
     References:
         1. Khattar and Gidney, Rise of conditionally clean ancillae for optimizing quantum circuits
-        `arxiv:2407.17966 https://arxiv.org/abs/2407.17966`_
+        `arXiv:2407.17966 <https://arxiv.org/abs/2407.17966>`__
     """
 
     return synth_mcx_2_kg24(num_ctrl_qubits, clean=False)
