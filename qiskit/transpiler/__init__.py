@@ -518,10 +518,6 @@ is ``qiskit.transpiler.routing``.  The built-in plugins are:
     * - :ref:`basic <transpiler-preset-stage-routing-basic>`
       - Greedy swap insertion to route a single operation at a time.
 
-    * - :ref:`stochastic <transpiler-preset-stage-routing-stochastic>`
-      - Consider operations layer-by-layer, using a stochastic algorithm to find swap networks that
-        implement a suitable permutation to make the layer executable.
-
     * - :ref:`lookahead <transpiler-preset-stage-routing-lookahead>`
       - Breadth-first search with heuristic pruning to find swaps that make gates executable.
 
@@ -556,25 +552,6 @@ The optimization level only affects the amount of work the :class:`.VF2PostLayou
 attempt to improve the initial layout after routing.
 
 This method typically has poor output quality.
-
-.. _transpiler-preset-stage-routing-stochastic:
-
-Built-in ``stochastic`` plugin
-..............................
-
-.. deprecated:: 1.3
-    Use :ref:`transpiler-preset-stage-routing-sabre` instead.
-
-Uses the :class:`.StochasticSwap` algorithm to route.  In short, this stratifies the circuit into
-layers, then uses a stochastic algorithm to find a permutation that will allow the layer to execute,
-and a series of swaps that will implement that permutation in a hardware-valid way.
-
-The optimization level affects the number of stochastic trials used for each layer, and the amount
-of work spent in :class:`.VF2PostLayout` to optimize the initial layout.
-
-This was Qiskit's primary routing algorithm for several years, until approximately 2021.  Now, it
-is reliably beaten in runtime and output quality by :ref:`Qiskit's custom Sabre-based routing
-algorithm <transpiler-preset-stage-routing-sabre>`.
 
 .. _transpiler-preset-stage-routing-lookahead:
 
