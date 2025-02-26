@@ -43,6 +43,9 @@ literals ``True`` and ``False``), and unsigned integers (corresponding to
 All types have a :attr:`~Type.const` field to indicate their const-ness. When the result type of
 an expression is constant, the expression is considered a constant expression. Constant
 expressions can be used in certain contexts that aren't valid for runtime-initialized variables.
+This is not to be confused with the concept of a ``const`` variable in languages like C, where
+the variable has a well-defined but immutable storage location. Qiskit's definition of const-ness
+is more similar to C++'s ``constexpr``.
 
 Note that :class:`Uint` defines a family of types parametrized by their width; it is not one single
 type, which may be slightly different to the 'classical' programming languages you are used to.
