@@ -28,7 +28,7 @@ from qiskit.quantum_info.operators.predicates import matrix_equal, is_unitary_ma
 from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info.states import Statevector
 import qiskit.circuit.add_control as ac
-from qiskit.transpiler.passes import UnrollCustomDefinitions, BasisTranslator
+from qiskit.transpiler.passes import UnrollCustomDefinitions, BasisTranslator, HLSConfig
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.converters.dag_to_circuit import dag_to_circuit
@@ -821,14 +821,13 @@ class TestControlledGate(QiskitTestCase):
 
     @data(7, 10, 15)
     def test_mcxrecursive_clean_ancilla_cx_count(self, num_ctrl_qubits):
-        """Test if cx count of the mcx with one clean ancilla
-        is less than upper bound."""
-        mcx_recursive = MCXRecursive(num_ctrl_qubits)
-        qc = QuantumCircuit(mcx_recursive.num_qubits)
+        """Test if cx count of the mcx with one clean ancilla is less than upper bound."""
+        qc = QuantumCircuit(num_ctrl_qubits + 2)  # 1 target qubit, 1 auxiliary
+        qc.mcx(range(num_ctrl_qubits), num_ctrl_qubits)
 
-        qc.append(mcx_recursive, list(range(mcx_recursive.num_qubits)))
+        hls_config = HLSConfig(mcx=["1_clean_b95"])
 
-        tr_mcx_rec = transpile(qc, basis_gates=["u", "cx"])
+        tr_mcx_rec = transpile(qc, basis_gates=["u", "cx"], hls_config=hls_config)
         cx_count = tr_mcx_rec.count_ops()["cx"]
 
         self.assertLessEqual(cx_count, 16 * num_ctrl_qubits - 8)

@@ -37,7 +37,7 @@ class BlueprintCircuit(QuantumCircuit, ABC):
     @deprecate_func(
         since="2.0",
         additional_msg="There is no direct replacement other than the QuantumCircuit class.",
-        removal_timeline="in Qiskit 3.0.",
+        removal_timeline="in Qiskit 3.0",
     )
     def __init__(self, *regs, name: str | None = None) -> None:
         """Create a new blueprint circuit."""

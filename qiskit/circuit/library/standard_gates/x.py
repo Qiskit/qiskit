@@ -1187,7 +1187,7 @@ class MCXGate(ControlledGate):
     @property
     def num_ancilla_qubits(self):
         """The number of ancilla qubits."""
-        return self.__class__.get_num_ancilla_qubits(self.num_ctrl_qubits)
+        return self.get_num_ancilla_qubits(self.num_ctrl_qubits)
 
     def control(
         self,
