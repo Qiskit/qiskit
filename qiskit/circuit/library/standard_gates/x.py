@@ -1117,7 +1117,7 @@ class MCXGate(ControlledGate):
         _base_label=None,
     ):
         """Create new MCX gate."""
-        num_ancilla_qubits = self.get_num_ancilla_qubits(num_ctrl_qubits)
+        num_ancilla_qubits = self.__class__.get_num_ancilla_qubits(num_ctrl_qubits)
         super().__init__(
             _name,
             num_ctrl_qubits + 1 + num_ancilla_qubits,
