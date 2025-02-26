@@ -169,32 +169,6 @@ class TestExprConstructors(QiskitTestCase):
         self.assertEqual(function(left, right), function(expr.lift(left), expr.lift(right)))
 
     @ddt.data(
-        (expr.bit_and, 6, 7),
-        (expr.bit_or, 5, 6),
-        (expr.bit_xor, 255, 254),
-        (expr.equal, 254, 255),
-        (expr.not_equal, 255, 255),
-        (expr.less, 5, 4),
-        (expr.less_equal, 3, 3),
-        (expr.greater, 254, 255),
-        (expr.greater_equal, 4, 5),
-    )
-    @ddt.unpack
-    def test_binary_functions_lift_scalars_const(self, function, left, right):
-        """If one operand is an expr with a const type, the other scalar should be lifted as const.
-        Note that logical operators (e.g. logic_and, logic_or) are excluded since these lift operands
-        independently."""
-        a = expr.Var.new("a", types.Uint(8))
-        self.assertEqual(
-            function(expr.lift(left, try_const=True), right),
-            function(expr.lift(left, try_const=True), expr.lift(right, try_const=True)),
-        )
-        self.assertEqual(
-            function(left, expr.lift(right, try_const=True)),
-            function(expr.lift(left, try_const=True), expr.lift(right, try_const=True)),
-        )
-
-    @ddt.data(
         (expr.bit_and, expr.Binary.Op.BIT_AND),
         (expr.bit_or, expr.Binary.Op.BIT_OR),
         (expr.bit_xor, expr.Binary.Op.BIT_XOR),
@@ -208,12 +182,16 @@ class TestExprConstructors(QiskitTestCase):
                 opcode, expr.Var(cr, types.Uint(8)), expr.Value(255, types.Uint(8)), types.Uint(8)
             ),
         )
+        self.assertFalse(function(cr, 255).const)
+
         self.assertEqual(
             function(255, cr),
             expr.Binary(
                 opcode, expr.Value(255, types.Uint(8)), expr.Var(cr, types.Uint(8)), types.Uint(8)
             ),
         )
+        self.assertFalse(function(255, cr).const)
+
         clbit = Clbit()
         self.assertEqual(
             function(True, clbit),
@@ -224,6 +202,8 @@ class TestExprConstructors(QiskitTestCase):
                 types.Bool(),
             ),
         )
+        self.assertFalse(function(True, clbit).const)
+
         self.assertEqual(
             function(clbit, False),
             expr.Binary(
@@ -233,6 +213,8 @@ class TestExprConstructors(QiskitTestCase):
                 types.Bool(),
             ),
         )
+        self.assertFalse(function(clbit, True).const)
+
         self.assertEqual(
             function(255, 255),
             expr.Binary(
@@ -242,6 +224,7 @@ class TestExprConstructors(QiskitTestCase):
                 types.Uint(8),
             ),
         )
+        self.assertTrue(function(255, 255).const)
 
     @ddt.data(
         (expr.bit_and, expr.Binary.Op.BIT_AND),
@@ -312,6 +295,7 @@ class TestExprConstructors(QiskitTestCase):
                 types.Bool(),
             ),
         )
+        self.assertFalse(function(cr, clbit).const)
 
         self.assertEqual(
             function(cr, 3),
@@ -322,6 +306,7 @@ class TestExprConstructors(QiskitTestCase):
                 types.Bool(),
             ),
         )
+        self.assertFalse(function(cr, 3).const)
 
         self.assertEqual(
             function(False, clbit),
@@ -332,6 +317,7 @@ class TestExprConstructors(QiskitTestCase):
                 types.Bool(),
             ),
         )
+        self.assertFalse(function(False, clbit).const)
 
     @ddt.data(
         (expr.equal, expr.Binary.Op.EQUAL),
@@ -348,6 +334,7 @@ class TestExprConstructors(QiskitTestCase):
                 opcode, expr.Var(cr, types.Uint(8)), expr.Value(255, types.Uint(8)), types.Bool()
             ),
         )
+        self.assertFalse(function(cr, 255).const)
 
         self.assertEqual(
             function(7, cr),
@@ -358,6 +345,7 @@ class TestExprConstructors(QiskitTestCase):
                 types.Bool(),
             ),
         )
+        self.assertFalse(function(7, cr).const)
 
         self.assertEqual(
             function(clbit, True),
@@ -368,6 +356,7 @@ class TestExprConstructors(QiskitTestCase):
                 types.Bool(),
             ),
         )
+        self.assertFalse(function(clbit, True).const)
 
     @ddt.data(expr.equal, expr.not_equal)
     def test_binary_equal_forbidden(self, function):
@@ -394,6 +383,7 @@ class TestExprConstructors(QiskitTestCase):
                 opcode, expr.Var(cr, types.Uint(8)), expr.Value(200, types.Uint(8)), types.Bool()
             ),
         )
+        self.assertFalse(function(cr, 200).const)
 
         self.assertEqual(
             function(12, cr),
@@ -404,6 +394,7 @@ class TestExprConstructors(QiskitTestCase):
                 types.Bool(),
             ),
         )
+        self.assertFalse(function(12, cr).const)
 
     @ddt.data(expr.less, expr.less_equal, expr.greater, expr.greater_equal)
     def test_binary_relation_forbidden(self, function):
@@ -422,10 +413,19 @@ class TestExprConstructors(QiskitTestCase):
             expr.index(cr, 3),
             expr.Index(expr.Var(cr, types.Uint(4)), expr.Value(3, types.Uint(2)), types.Bool()),
         )
+        self.assertFalse(expr.index(cr, 3).const)
+
         self.assertEqual(
             expr.index(a, cr),
             expr.Index(a, expr.Var(cr, types.Uint(4)), types.Bool()),
         )
+        self.assertFalse(expr.index(a, cr).const)
+
+        self.assertEqual(
+            expr.index(255, 1),
+            expr.Index(expr.Value(255, types.Uint(8)), expr.Value(1, types.Uint(1)), types.Bool()),
+        )
+        self.assertTrue(expr.index(255, 1).const)
 
     def test_index_forbidden(self):
         with self.assertRaisesRegex(TypeError, "invalid types"):
