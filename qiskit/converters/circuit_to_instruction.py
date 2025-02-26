@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """Helper function for converting a circuit to an instruction."""
-from qiskit.circuit import ControlFlowOp
+from qiskit.circuit.controlflow.control_flow import ControlFlowOp
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.quantumregister import QuantumRegister
