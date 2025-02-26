@@ -23,9 +23,8 @@ from qiskit._accelerate.remove_identity_equiv import remove_identity_equiv
 class RemoveIdentityEquivalent(TransformationPass):
     r"""Remove gates with negligible effects.
 
-    Removes gates whose effect is close to an identity operation, up to the specified
-    tolerance. Zero qubit gates such as :class:`.GlobalPhaseGate` are not considered
-    by this pass.
+    Removes gates whose effect is close to an identity operation up to a global phase
+    and up to the specified tolerance. Parameterized gates are not considered by this pass.
 
     For a cutoff fidelity :math:`f`, this pass removes gates whose average
     gate fidelity with respect to the identity is below :math:`f`. Concretely,
