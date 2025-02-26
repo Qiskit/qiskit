@@ -60,6 +60,7 @@ import multiprocessing
 import os
 import platform
 import sys
+import warnings
 from concurrent.futures import ProcessPoolExecutor
 
 from qiskit import user_config
@@ -109,11 +110,23 @@ def default_num_processes() -> int:
        empirically, multiprocessing performance of Qiskit seems to be worse when attempting to use
        SMT cores.
     4. 1, if all else fails.
+
+    If a user-configured value is set to a number less than 1, it is treated as if it were 1.
     """
-    if (env_num_processes := os.getenv("QISKIT_NUM_PROCS")) is not None:
-        return int(env_num_processes) or 1
+    # Ignore both `None` (unset) and explicit set to empty string.
+    if env_num_processes := os.getenv("QISKIT_NUM_PROCS"):
+        try:
+            env_num_processes = int(env_num_processes)
+        except ValueError:
+            # Invalid: fall back to other methods.
+            warnings.warn(
+                "failed to interpret environment 'QISKIT_NUM_PROCS' as a number:"
+                f" '{env_num_processes}'"
+            )
+        else:
+            return env_num_processes if env_num_processes > 0 else 1
     if (user_num_processes := CONFIG.get("num_processes", None)) is not None:
-        return user_num_processes
+        return user_num_processes if user_num_processes > 0 else 1
     return _physical_cpus_assuming_twofold_smt()
 
 
