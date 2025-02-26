@@ -242,7 +242,6 @@ impl CircuitData {
     #[setter("qregs")]
     fn set_qregs(&mut self, other: Vec<QuantumRegister>) -> PyResult<()> {
         self.qregs.dispose();
-        // self.qubit_indices.clear();
         for register in other {
             self.add_qreg(register, true)?;
         }
@@ -306,7 +305,6 @@ impl CircuitData {
     #[setter("cregs")]
     fn set_cregs(&mut self, other: Vec<ClassicalRegister>) -> PyResult<()> {
         self.cregs.dispose();
-        // self.clbit_indices.clear();
         for register in other {
             self.add_creg(register, true)?;
         }
@@ -534,21 +532,6 @@ impl CircuitData {
     /// Returns:
     ///     CircuitData: The shallow copy.
     pub fn copy_empty_like(&self, py: Python<'_>) -> PyResult<Self> {
-        // let mut res = CircuitData::new(
-        //     py,
-        //     Some(self.qubits.bits().clone()),
-        //     Some(self.clbits.bits().clone()),
-        //     None,
-        //     self.data.len(),
-        //     self.global_phase.clone(),
-        // )?;
-
-        // for qreg in self.qregs.registers().clone() {
-        //     res.add_qreg(qreg, false)?;
-        // }
-        // for creg in self.cregs.registers().clone() {
-        //     res.add_creg(creg, false)?;
-        // }
         let mut res = CircuitData::new(
             py,
             Some(self.qubits.bits().clone()),
@@ -1111,6 +1094,12 @@ impl CircuitData {
         if let Some(regs) = self.cregs.cached_raw() {
             visit.call(regs)?;
         }
+        if let Some(locations) = self.qubit_indices.cached_raw() {
+            visit.call(locations)?;
+        }
+        if let Some(locations) = self.clbit_indices.cached_raw() {
+            visit.call(locations)?;
+        }
         self.param_table.py_gc_traverse(&visit)?;
         Ok(())
     }
@@ -1122,6 +1111,8 @@ impl CircuitData {
         self.clbits.dispose();
         self.qregs.dispose();
         self.cregs.dispose();
+        self.clbit_indices.dispose();
+        self.qubit_indices.dispose();
         self.param_table.clear();
     }
 

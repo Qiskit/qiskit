@@ -108,7 +108,7 @@ pub enum BitExtraInfo {
 
 /// Main representation of the inner properties of a shareable `Bit` object.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Hash)]
-pub enum BitInfo {
+pub(crate) enum BitInfo {
     Owned {
         register: Arc<OwningRegisterInfo>,
         index: u32,
@@ -150,10 +150,6 @@ impl BitInfo {
         }
     }
 
-    pub fn is_owned(&self) -> bool {
-        matches!(self, BitInfo::Owned { .. })
-    }
-
     pub(crate) fn register(&self) -> Option<RegisterInfo> {
         match self {
             BitInfo::Owned { register, .. } => Some(RegisterInfo::Owning(register.clone())),
@@ -165,20 +161,21 @@ impl BitInfo {
 macro_rules! create_bit_object {
     ($name:ident, $extra:ty, $extra_exp:expr, $reg:tt) => {
         #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+        #[doc = concat!("Creates an instance of [", stringify!($name), "].")]
         pub struct $name(pub(crate) BitInfo);
 
         impl $name {
-            /// Creates an instance of owned [QubitObject].
+            #[doc = concat!("Creates an anonymous instance of [", stringify!($name), "].")]
             pub fn new_anonymous() -> Self {
                 Self(BitInfo::new_anonymous(Some($extra_exp)))
             }
 
-            /// Returns a reference to the owning register of the [QubitObject] if any exists.
+            #[doc = concat!("Returns a reference to the owning register of the [", stringify!($name), "] if any exists.")]
             pub fn register(&self) -> Option<$reg> {
                 self.0.register().map(|reg| $reg(reg.into()))
             }
 
-            /// Returns the index of the [QubitObject] within the owning register if any exists.
+            #[doc = concat!("Returns the index of the [", stringify!($name), "] within the owning register if any exists.")]
             pub fn index(&self) -> Option<u32> {
                 match &self.0 {
                     BitInfo::Owned { index, .. } => Some(*index),
@@ -199,15 +196,20 @@ impl ShareableQubit {
             _ => false,
         }
     }
+
+    /// Creates an instance of ancilla qubit.
+    pub fn new_anonymous_ancilla() -> Self {
+        Self(BitInfo::new_anonymous(Some(BitExtraInfo::Qubit {
+            is_ancilla: true,
+        })))
+    }
 }
 
 create_bit_object! {ShareableClbit, (), BitExtraInfo::Clbit(), ClassicalRegister}
 
 impl<'py> IntoPyObject<'py> for ShareableQubit {
     type Target = PyQubit;
-
     type Output = Bound<'py, PyQubit>;
-
     type Error = PyErr;
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
@@ -229,9 +231,7 @@ impl<'py> IntoPyObject<'py> for ShareableQubit {
 
 impl<'py> IntoPyObject<'py> for &'py ShareableQubit {
     type Target = PyQubit;
-
     type Output = Bound<'py, PyQubit>;
-
     type Error = PyErr;
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
@@ -247,9 +247,7 @@ impl<'py> FromPyObject<'py> for ShareableQubit {
 
 impl<'py> IntoPyObject<'py> for ShareableClbit {
     type Target = PyClbit;
-
     type Output = Bound<'py, PyClbit>;
-
     type Error = PyErr;
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
@@ -260,9 +258,7 @@ impl<'py> IntoPyObject<'py> for ShareableClbit {
 
 impl<'py> IntoPyObject<'py> for &'py ShareableClbit {
     type Target = PyClbit;
-
     type Output = Bound<'py, PyClbit>;
-
     type Error = PyErr;
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {

@@ -89,6 +89,11 @@ where
     pub fn contains_key(&self, bit: &B) -> bool {
         self.bit_locations.contains_key(bit)
     }
+
+    pub fn dispose(&mut self) {
+        self.bit_locations.clear();
+        self.cached.take();
+    }
 }
 
 impl<B, R> BitLocator<B, R>
@@ -113,5 +118,9 @@ where
             locator.insert(key.extract()?, value.extract()?);
         }
         Ok(locator)
+    }
+
+    pub fn cached_raw(&self) -> Option<&Py<PyDict>> {
+        self.cached.get()
     }
 }

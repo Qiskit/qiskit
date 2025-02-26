@@ -201,6 +201,7 @@ where
     /// Note: INVALIDATES THIS INSTANCE.
     pub fn dispose(&mut self) {
         self.reg_index.clear();
+        self.registers.clear();
         self.cached_registers.take();
     }
 
