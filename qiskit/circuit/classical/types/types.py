@@ -19,9 +19,31 @@
 
 from __future__ import annotations
 
-__all__ = ["Type", "Bool", "Uint"]
+__all__ = [
+    "Type",
+    "Bool",
+    "Uint",
+]
 
 import typing
+
+
+class _Singleton(type):
+    """Metaclass to make the child, which should take zero initialization arguments, a singleton
+    object."""
+
+    def _get_singleton_instance(cls):
+        return cls._INSTANCE
+
+    @classmethod
+    def __prepare__(mcs, name, bases):  # pylint: disable=unused-argument
+        return {"__new__": mcs._get_singleton_instance}
+
+    @staticmethod
+    def __new__(cls, name, bases, namespace):
+        out = super().__new__(cls, name, bases, namespace)
+        out._INSTANCE = object.__new__(out)  # pylint: disable=invalid-name
+        return out
 
 
 class Type:
@@ -29,11 +51,9 @@ class Type:
     directly.
 
     This must not be subclassed by users; subclasses form the internal data of the representation of
-    expressions, and it does not make sense to add more outside of Qiskit library code.
-    """
+    expressions, and it does not make sense to add more outside of Qiskit library code."""
 
     __slots__ = ()
-
 
     @property
     def kind(self):
@@ -61,13 +81,13 @@ class Type:
 
 
 @typing.final
-class Bool(Type):
+class Bool(Type, metaclass=_Singleton):
     """The Boolean type.  This has exactly two values: ``True`` and ``False``."""
 
     __slots__ = ()
 
     def __repr__(self):
-        return f"Bool()"
+        return "Bool()"
 
     def __hash__(self):
         return hash(self.__class__)
@@ -91,7 +111,7 @@ class Uint(Type):
         return f"Uint({self.width})"
 
     def __hash__(self):
-        return hash(self.__class__)
+        return hash((self.__class__, self.width))
 
     def __eq__(self, other):
         return isinstance(other, Uint) and self.width == other.width

@@ -2223,8 +2223,7 @@ class TestPostTranspileIntegration(QiskitTestCase):
             base.append(CustomCX(), [2, 4])
             base.ry(a, 4)
             base.measure(4, 2)
-        # Use a const Uint RHS to make sure we QPY can serialize it.
-        with base.switch(expr.bit_and(base.cregs[0], expr.lift(2))) as case_:
+        with base.switch(expr.bit_and(base.cregs[0], 2)) as case_:
             with case_(0, 1):
                 base.cz(3, 5)
             with case_(case_.DEFAULT):
