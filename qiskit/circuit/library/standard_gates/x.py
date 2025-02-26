@@ -1119,7 +1119,19 @@ class MCXGate(ControlledGate):
     ):
         """Create new MCX gate."""
         if self.__class__ in [MCXGate, MCXGrayCode, MCXRecursive, MCXVChain]:
-            with warnings.catch_warnings(action="ignore", category=DeprecationWarning):
+            # DeprecationWarning for internal subclasses (that are deprecated) is fine. We should
+            # still raise warnings for other subclasses out of our control
+            # TODO MCXGate, MCXGrayCode, MCXRecursive, MCXVChain are deprecated and this path can be
+            #   removed once they get removed:
+            #   https://github.com/Qiskit/qiskit/pull/12961
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore",
+                    category=DeprecationWarning,
+                    message=r".+qiskit\.circuit\.library\.standard_gates\.x\.MCXGate\."
+                    r"get_num_ancilla_qubits.+",
+                    module="qiskit",
+                )
                 num_ancilla_qubits = self.__class__.get_num_ancilla_qubits(num_ctrl_qubits)
         else:
             num_ancilla_qubits = self.__class__.get_num_ancilla_qubits(num_ctrl_qubits)
