@@ -134,7 +134,7 @@ class OrGate(Gate):
     .. plot::
        :alt: Diagram illustrating the previously described circuit.
 
-       from qiskit.circuit import QuantumCircuit
+       from qiskit import QuantumCircuit
        from qiskit.circuit.library import OrGate
        from qiskit.visualization.library import _generate_circuit_library_visualization
        circuit = QuantumCircuit(6)
@@ -150,7 +150,7 @@ class OrGate(Gate):
     ) -> None:
         """
         Args:
-            num_variable_qubits: The qubits of which the AND is computed. The result will be written
+            num_variable_qubits: The qubits of which the OR is computed. The result will be written
                 into an additional result qubit.
             flags: A list of +1/0/-1 marking negations or omissions of qubits.
         """

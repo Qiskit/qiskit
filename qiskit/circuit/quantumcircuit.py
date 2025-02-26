@@ -5552,7 +5552,7 @@ class QuantumCircuit:
         since="2.0",
         additional_msg=(
             "Instead, add a generic MCXGate to the circuit and specify the synthesis method "
-            "via the hls_config in the transpilation. Alternatively, specific decompositions "
+            "via the ``hls_config`` in the transpilation. Alternatively, specific decompositions "
             "are available at https://qisk.it/mcx."
         ),
     )
