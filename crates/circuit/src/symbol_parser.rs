@@ -11,7 +11,6 @@
 // that they have been altered from the originals.
 
 /// Parser for equation strings to generate symbolic expression
-
 use nom::branch::{alt, permutation};
 use nom::bytes::complete::tag;
 use nom::character::complete::{char, digit1, multispace0};
