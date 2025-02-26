@@ -14,6 +14,7 @@
 #include <complex.h>
 #include <qiskit.h>
 #include <stdio.h>
+#include <string.h>
 
 /**
  * Test the zero constructor.
@@ -575,6 +576,50 @@ int test_direct_fail() {
     return NullptrError;
 }
 
+/**
+ * Test string generator for observable
+ */
+int test_obs_str() {
+    QkSparseObservable *obs = qk_obs_identity(100);
+    char *string = qk_obs_str(obs);
+    char *expected = "SparseObservable { num_qubits: 100, coeffs: [Complex { re: 1.0, im: 0.0 }], "
+                     "bit_terms: [], indices: [], boundaries: [0, 0] }";
+    int result = strcmp(string, expected);
+    qk_free_obs_str(string);
+    qk_obs_free(obs);
+
+    return result;
+}
+
+/**
+ * Test string generator for observable term
+ */
+int test_obsterm_str() {
+    // Initialize observable and add a term
+    uint32_t num_qubits = 100;
+    QkSparseObservable *obs = qk_obs_identity(num_qubits);
+    QkBitTerm bit_terms[3] = {QkBitTerm_X, QkBitTerm_Y, QkBitTerm_Z};
+    uint32_t qubits[3] = {0, 1, 2};
+    complex double coeff = 1 + I;
+    QkSparseTerm term = {coeff, 3, bit_terms, qubits, num_qubits};
+    int err = qk_obs_add_term(obs, &term);
+
+    if (err != 0) {
+        return RuntimeError;
+    }
+    // Get string for term:
+    QkSparseTerm out_term;
+    qk_obs_term(obs, 1, &out_term);
+    char *string = qk_obsterm_str(&out_term);
+    char *expected = "SparseTermView { num_qubits: 100, coeff: Complex { re: 1.0, im: 1.0 }, "
+                     "bit_terms: [X, Y, Z], indices: [0, 1, 2] }";
+    int result = strcmp(string, expected);
+    qk_free_obsterm_str(string);
+    qk_obs_free(obs);
+
+    return result;
+}
+
 int test_sparse_observable() {
     int num_failed = 0;
     num_failed += RUN_TEST(test_zero);
@@ -595,6 +640,8 @@ int test_sparse_observable() {
     num_failed += RUN_TEST(test_boundaries);
     num_failed += RUN_TEST(test_direct_build);
     num_failed += RUN_TEST(test_direct_fail);
+    num_failed += RUN_TEST(test_obs_str);
+    num_failed += RUN_TEST(test_obsterm_str);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);
