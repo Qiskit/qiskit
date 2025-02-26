@@ -30,13 +30,10 @@ class Type:
 
     This must not be subclassed by users; subclasses form the internal data of the representation of
     expressions, and it does not make sense to add more outside of Qiskit library code.
-
-    All subclasses are responsible for setting the ``const`` attribute in their ``__init__``.
     """
 
-    __slots__ = ("const",)
+    __slots__ = ()
 
-    const: bool
 
     @property
     def kind(self):
@@ -69,17 +66,14 @@ class Bool(Type):
 
     __slots__ = ()
 
-    def __init__(self, *, const: bool = False):
-        super(Type, self).__setattr__("const", const)
-
     def __repr__(self):
-        return f"Bool(const={self.const})"
+        return f"Bool()"
 
     def __hash__(self):
-        return hash((self.__class__, self.const))
+        return hash(self.__class__)
 
     def __eq__(self, other):
-        return isinstance(other, Bool) and self.const == other.const
+        return isinstance(other, Bool)
 
 
 @typing.final
@@ -88,17 +82,16 @@ class Uint(Type):
 
     __slots__ = ("width",)
 
-    def __init__(self, width: int, *, const: bool = False):
+    def __init__(self, width: int):
         if isinstance(width, int) and width <= 0:
             raise ValueError("uint width must be greater than zero")
-        super(Type, self).__setattr__("const", const)
         super(Type, self).__setattr__("width", width)
 
     def __repr__(self):
-        return f"Uint({self.width}, const={self.const})"
+        return f"Uint({self.width})"
 
     def __hash__(self):
-        return hash((self.__class__, self.const, self.width))
+        return hash(self.__class__)
 
     def __eq__(self, other):
-        return isinstance(other, Uint) and self.const == other.const and self.width == other.width
+        return isinstance(other, Uint) and self.width == other.width

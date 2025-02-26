@@ -2812,8 +2812,6 @@ class QuantumCircuit:
         circuit_scope = self._current_scope()
         coerce_type = None
         if isinstance(name_or_var, expr.Var):
-            if name_or_var.type.const:
-                raise CircuitError("const variables are not supported.")
             if (
                 name_or_var.type.kind is types.Uint
                 and isinstance(initial, int)
@@ -2872,8 +2870,6 @@ class QuantumCircuit:
             raise CircuitError("cannot add an uninitialized variable in a control-flow scope")
         if not var.standalone:
             raise CircuitError("cannot add a variable wrapping a bit or register to a circuit")
-        if var.type.const:
-            raise CircuitError("const variables are not supported.")
         self._builder_api.add_uninitialized_var(var)
 
     def add_capture(self, var: expr.Var):
@@ -2939,10 +2935,6 @@ class QuantumCircuit:
         if isinstance(name_or_var, expr.Var):
             if type_ is not None:
                 raise ValueError("cannot give an explicit type with an existing Var")
-            if name_or_var.type.const:
-                raise CircuitError("const variables cannot be input variables")
-        elif type_ is not None and type_.const:
-            raise CircuitError("const variables cannot be input variables")
 
         var = self._prepare_new_var(name_or_var, type_)
         self._vars_input[var.name] = var

@@ -55,9 +55,10 @@ class Expr(abc.ABC):
     All subclasses are responsible for setting their ``type`` attribute in their ``__init__``, and
     should not call the parent initializer."""
 
-    __slots__ = ("type",)
+    __slots__ = ("type", "const")
 
     type: types.Type
+    const: bool
 
     # Sentinel to prevent instantiation of the base class.
     @abc.abstractmethod
@@ -89,6 +90,7 @@ class Cast(Expr):
 
     def __init__(self, operand: Expr, type: types.Type, implicit: bool = False):
         self.type = type
+        self.const = operand.const
         self.operand = operand
         self.implicit = implicit
 
@@ -99,6 +101,7 @@ class Cast(Expr):
         return (
             isinstance(other, Cast)
             and self.type == other.type
+            and self.const == other.const
             and self.operand == other.operand
             and self.implicit == other.implicit
         )
@@ -141,6 +144,7 @@ class Var(Expr):
         name: str | None = None,
     ):
         super().__setattr__("type", type)
+        super().__setattr__("const", False)
         super().__setattr__("var", var)
         super().__setattr__("name", name)
 
@@ -207,6 +211,7 @@ class Value(Expr):
     def __init__(self, value: typing.Any, type: types.Type):
         self.type = type
         self.value = value
+        self.const = True
 
     def accept(self, visitor, /):
         return visitor.visit_value(self)
@@ -258,6 +263,7 @@ class Unary(Expr):
         self.op = op
         self.operand = operand
         self.type = type
+        self.const = operand.const
 
     def accept(self, visitor, /):
         return visitor.visit_unary(self)
@@ -266,6 +272,7 @@ class Unary(Expr):
         return (
             isinstance(other, Unary)
             and self.type == other.type
+            and self.const == other.const
             and self.op is other.op
             and self.operand == other.operand
         )
@@ -349,6 +356,7 @@ class Binary(Expr):
         self.left = left
         self.right = right
         self.type = type
+        self.const = left.const and right.const
 
     def accept(self, visitor, /):
         return visitor.visit_binary(self)
@@ -382,6 +390,7 @@ class Index(Expr):
         self.target = target
         self.index = index
         self.type = type
+        self.const = target.const and index.const
 
     def accept(self, visitor, /):
         return visitor.visit_index(self)

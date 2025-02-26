@@ -98,24 +98,7 @@ def order(left: Type, right: Type, /) -> Ordering:
     """
     if (orderer := _ORDERERS.get((left.kind, right.kind))) is None:
         return Ordering.NONE
-    order_ = orderer(left, right)
-
-    # If the natural type ordering is equal (either one can represent both)
-    # but the types differ in const-ness, the non-const variant is greater.
-    # If one type is greater (and thus is the only type that can represent
-    # both) an ordering is only defined if that type is non-const or both
-    # types are const.
-    if left.const and not right.const:
-        if order_ is Ordering.EQUAL:
-            return Ordering.LESS
-        if order_ is Ordering.GREATER:
-            return Ordering.NONE
-    if right.const and not left.const:
-        if order_ is Ordering.EQUAL:
-            return Ordering.GREATER
-        if order_ is Ordering.LESS:
-            return Ordering.NONE
-    return order_
+    return orderer(left, right)
 
 
 def is_subtype(left: Type, right: Type, /, strict: bool = False) -> bool:
@@ -251,13 +234,7 @@ def cast_kind(from_: Type, to_: Type, /) -> CastKind:
             >>> types.cast_kind(types.Uint(16), types.Uint(8))
             <CastKind.DANGEROUS: 4>
     """
-    if to_.const and not from_.const:
-        # We can't cast to a const type.
-        return CastKind.NONE
     if (coercer := _ALLOWED_CASTS.get((from_.kind, to_.kind))) is None:
         return CastKind.NONE
     cast_kind_ = coercer(from_, to_)
-    if cast_kind_ is CastKind.EQUAL and to_.const != from_.const:
-        # We need an implicit cast to drop const.
-        return CastKind.IMPLICIT
     return cast_kind_

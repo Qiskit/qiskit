@@ -92,12 +92,6 @@ class TestCircuitVars(QiskitTestCase):
         ]
         self.assertEqual(operations, [("store", lvalue, rvalue) for lvalue, rvalue in vars_])
 
-    def test_initialise_declarations_rejects_const_vars(self):
-        a = expr.Var.new("a", types.Uint(16, const=True))
-        a_init = expr.lift(12, try_const=True)
-        with self.assertRaisesRegex(CircuitError, "const variables.*not supported"):
-            QuantumCircuit(declarations=[(a, a_init)])
-
     def test_initialise_inputs_declarations(self):
         a = expr.Var.new("a", types.Uint(16))
         b = expr.Var.new("b", types.Uint(16))
@@ -116,11 +110,6 @@ class TestCircuitVars(QiskitTestCase):
             for instruction in qc.data
         ]
         self.assertEqual(operations, [("store", b, b_init)])
-
-    def test_initialise_inputs_declarations_rejects_const_vars(self):
-        a = expr.Var.new("a", types.Uint(16, const=True))
-        with self.assertRaisesRegex(CircuitError, "const variables cannot be input variables"):
-            QuantumCircuit(inputs=[a])
 
     def test_initialise_captures_declarations(self):
         a = expr.Var.new("a", types.Uint(16))
@@ -148,12 +137,6 @@ class TestCircuitVars(QiskitTestCase):
         self.assertEqual({a}, set(qc.iter_vars()))
         self.assertEqual([], list(qc.data))
 
-    def test_add_uninitialized_var_rejects_const_lvalue(self):
-        a = expr.Var.new("a", types.Bool(const=True))
-        qc = QuantumCircuit()
-        with self.assertRaisesRegex(CircuitError, "const variables.*not supported"):
-            qc.add_uninitialized_var(a)
-
     def test_add_var_returns_good_var(self):
         qc = QuantumCircuit()
         a = qc.add_var("a", expr.lift(True))
@@ -171,34 +154,6 @@ class TestCircuitVars(QiskitTestCase):
         a_other = qc.add_var(a, expr.lift(True))
         self.assertIs(a, a_other)
 
-    def test_add_var_rejects_const_lvalue(self):
-        a = expr.Var.new("a", types.Bool(const=True))
-        qc = QuantumCircuit()
-        with self.assertRaisesRegex(CircuitError, "const variables.*not supported"):
-            qc.add_var(a, True)
-
-    def test_add_var_implicitly_casts_const_rvalue(self):
-        a = expr.Var.new("a", types.Bool())
-        qc = QuantumCircuit()
-        qc.add_var(a, expr.lift(True, try_const=True))
-        self.assertEqual(qc.num_vars, 1)
-        operations = [
-            (instruction.operation.name, instruction.operation.lvalue, instruction.operation.rvalue)
-            for instruction in qc.data
-        ]
-        self.assertEqual(
-            operations,
-            [
-                (
-                    "store",
-                    a,
-                    expr.Cast(
-                        expr.Value(True, types.Bool(const=True)), types.Bool(), implicit=True
-                    ),
-                )
-            ],
-        )
-
     def test_add_input_returns_good_var(self):
         qc = QuantumCircuit()
         a = qc.add_input("a", types.Bool())
@@ -215,14 +170,6 @@ class TestCircuitVars(QiskitTestCase):
         qc = QuantumCircuit()
         a_other = qc.add_input(a)
         self.assertIs(a, a_other)
-
-    def test_add_input_rejects_const_var(self):
-        a = expr.Var.new("a", types.Bool(const=True))
-        qc = QuantumCircuit()
-        with self.assertRaisesRegex(CircuitError, "const variables cannot be input variables"):
-            qc.add_input(a)
-        with self.assertRaisesRegex(CircuitError, "const variables cannot be input variables"):
-            qc.add_input("a", types.Bool(const=True))
 
     def test_cannot_have_both_inputs_and_captures(self):
         a = expr.Var.new("a", types.Bool())

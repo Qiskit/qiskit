@@ -1757,49 +1757,6 @@ if (cr == 1) {
 """
         self.assertEqual(dumps(qc), expected)
 
-    def test_const_expr(self):
-        """Test that const-typed expressions are implicitly converted without a cast."""
-        qubit = Qubit()
-        creg = ClassicalRegister(2, "c")
-        circuit = QuantumCircuit([qubit], creg)
-
-        body = QuantumCircuit([qubit], creg)
-        body.x(0)
-        body.y(0)
-
-        circuit.if_test(expr.lift(True, types.Bool(const=True)), body, [0], body.clbits)
-        circuit.if_test(
-            expr.equal(creg, expr.lift(1, types.Uint(2, const=True))), body, [0], body.clbits
-        )
-        circuit.if_test(
-            expr.equal(
-                expr.lift(1, types.Uint(2, const=True)), expr.lift(2, types.Uint(2, const=True))
-            ),
-            body,
-            [0],
-            body.clbits,
-        )
-        test = dumps(circuit)
-        expected = """\
-OPENQASM 3.0;
-include "stdgates.inc";
-bit[2] c;
-qubit _qubit0;
-if (true) {
-  x _qubit0;
-  y _qubit0;
-}
-if (c == 1) {
-  x _qubit0;
-  y _qubit0;
-}
-if (1 == 2) {
-  x _qubit0;
-  y _qubit0;
-}
-"""
-        self.assertEqual(test, expected)
-
     def test_var_use(self):
         """Test that input and declared vars work in simple local scopes and can be set."""
         qc = QuantumCircuit()
