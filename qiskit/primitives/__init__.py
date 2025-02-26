@@ -264,7 +264,7 @@ interface in Qiskit.
 
 .. code-block:: python
 
-    from qiskit.primitives import Sampler
+    from fictional_location import SamplerV1
     from qiskit import QuantumCircuit
     from qiskit.circuit.library import RealAmplitudes
 
@@ -284,7 +284,7 @@ interface in Qiskit.
     theta2 = [0, 1, 2, 3, 4, 5, 6, 7]
 
     # initialization of the sampler
-    sampler = Sampler()
+    sampler = SamplerV1()
 
     # Sampler runs a job on the Bell circuit
     job = sampler.run(
