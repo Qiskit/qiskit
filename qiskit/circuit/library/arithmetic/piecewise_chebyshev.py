@@ -413,13 +413,30 @@ class PiecewiseChebyshevGate(Gate):
         # Store parameters
         self.f_x = f_x
         self.degree = degree if degree is not None else 1
-        self.breakpoints = breakpoints if breakpoints is not None else [0]
+        self.num_state_qubits = num_state_qubits
 
-        num_compare = 0 if breakpoints is None else int(len(breakpoints) > 1)
+        # validate the breakpoints
+        if breakpoints is None:
+            breakpoints = [0]
+
+        # If the last breakpoint is < num_states, add the identity polynomial
+        num_states = 2**num_state_qubits
+        if breakpoints[-1] < num_states:
+            breakpoints = breakpoints + [num_states]
+
+        # If the first breakpoint is > 0, add the identity polynomial
+        if breakpoints[0] > 0:
+            breakpoints = [0] + breakpoints
+
+        self.breakpoints = breakpoints
+
+        num_compare = int(len(breakpoints) > 2)
         super().__init__("PiecewiseChebyshev", num_state_qubits + num_compare + 1, [], label)
 
-    @property
-    def polynomials(self):
+        # after initialization, build the polynomials
+        self.polynomials = self._build_polynomials()
+
+    def _build_polynomials(self):
         """The polynomials for the piecewise approximation.
 
         Returns:
@@ -478,7 +495,7 @@ class PiecewiseChebyshevGate(Gate):
 
     def _define(self):
         poly_r = PiecewisePolynomialPauliRotationsGate(
-            self.num_qubits - 1, self.breakpoints, self.polynomials
+            self.num_state_qubits, self.breakpoints, self.polynomials
         )
 
         self.definition = QuantumCircuit(poly_r.num_qubits)

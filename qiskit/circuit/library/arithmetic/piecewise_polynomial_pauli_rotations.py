@@ -401,6 +401,7 @@ class PiecewisePolynomialPauliRotationsGate(Gate):
             coeffs = [poly + [0] * (degree + 1 - len(poly)) for poly in coeffs]
 
         # ensure the breakpoint contains 2 ** num_state_qubits
+        breakpoints = breakpoints.copy()
         if breakpoints is None:
             breakpoints = [0, 2**num_state_qubits]
         elif breakpoints[-1] < 2**num_state_qubits:
@@ -410,8 +411,10 @@ class PiecewisePolynomialPauliRotationsGate(Gate):
         self.breakpoints = breakpoints
         self.basis = basis
 
-        num_compare = int(len(self.breakpoints) > 2)
-        super().__init__("PiecewisePolyPauli", num_state_qubits + num_compare + 1, [], label=label)
+        self.num_compare = int(len(self.breakpoints) > 2)
+        super().__init__(
+            "PiecewisePolyPauli", num_state_qubits + self.num_compare + 1, [], label=label
+        )
 
     def evaluate(self, x: float) -> float:
         """Classically evaluate the piecewise polynomial rotation.
@@ -431,7 +434,7 @@ class PiecewisePolynomialPauliRotationsGate(Gate):
         return y
 
     def _define(self):
-        num_state_qubits = self.num_qubits - 1
+        num_state_qubits = self.num_qubits - self.num_compare - 1
         circuit = QuantumCircuit(self.num_qubits, name=self.name)
         qr_state = circuit.qubits[:num_state_qubits]
 
@@ -454,7 +457,7 @@ class PiecewisePolynomialPauliRotationsGate(Gate):
                     coeffs=mapped_coeffs[i],
                     basis=self.basis,
                 )
-                circuit.append(poly_r.to_gate(), qr_state[:] + qr_target)
+                circuit.append(poly_r, qr_state[:] + qr_target)
 
             else:
                 # apply Comparator
@@ -473,6 +476,8 @@ class PiecewisePolynomialPauliRotationsGate(Gate):
 
                 # uncompute comparator
                 circuit.append(comp, qr_state_full[:])
+
+        self.definition = circuit
 
 
 def _map_coeffs(coeffs):

@@ -53,11 +53,18 @@ class ExactReciprocal(QuantumCircuit):
 
 
 class ExactReciprocalGate(Gate):
-    r"""Exact reciprocal
+    r"""Implements an exact reciprocal function.
+
+    For a state :math:`|x\rangle` and a scaling factor :math:`s`, this gate implements the operation
 
     .. math::
 
-        |x\rangle |0\rangle \mapsto \cos(1/x)|x\rangle|0\rangle + \sin(1/x)|x\rangle |1\rangle
+        |x\rangle |0\rangle \mapsto
+            \cos\left(\arcsin\left(s\frac{2^n}{x}\right)\right)|x\rangle|0\rangle +
+            \left(s\frac{2^n}{x}\right)|x\rangle|1\rangle.
+
+    States representing :math:`x = 0` or :math:`s 2^n / x \geq 1` are left unchanged, since
+    this function would not be defined.
     """
 
     def __init__(
@@ -73,7 +80,7 @@ class ExactReciprocalGate(Gate):
                 positive.  For the negative case it is assumed that the remaining string represents
                 :math:`1 - x`. This is because :math:`e^{-2 \pi i x} = e^{2 \pi i (1 - x)}` for
                 :math:`x \in [0,1)`.
-            name: The name of the object.
+            label: The label of the object.
 
         .. note::
 

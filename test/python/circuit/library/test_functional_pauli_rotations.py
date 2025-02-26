@@ -21,9 +21,15 @@ from qiskit import transpile
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import (
     LinearPauliRotations,
+    LinearPauliRotationsGate,
     PolynomialPauliRotations,
+    PolynomialPauliRotationsGate,
     PiecewiseLinearPauliRotations,
     PiecewiseLinearPauliRotationsGate,
+    PiecewisePolynomialPauliRotations,
+    PiecewisePolynomialPauliRotationsGate,
+    ExactReciprocalGate,
+    PiecewiseChebyshevGate,
 )
 from qiskit.quantum_info import Statevector
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
@@ -78,8 +84,13 @@ class TestFunctionalPauliRotations(QiskitTestCase):
             res = sum(coeff * x**i for i, coeff in enumerate(coeffs))
             return res
 
-        polynome = PolynomialPauliRotations(num_state_qubits, [2 * coeff for coeff in coeffs])
-        self.assertFunctionIsCorrect(polynome, poly)
+        for use_gate in [True, False]:
+            constructor = PolynomialPauliRotationsGate if use_gate else PolynomialPauliRotations
+            polynome = constructor(num_state_qubits, [2 * coeff for coeff in coeffs])
+            num_ancillas = 0 if use_gate else None
+
+            with self.subTest(use_gate=use_gate):
+                self.assertFunctionIsCorrect(polynome, poly, num_ancillas)
 
     def test_polynomial_rotations_mutability(self):
         """Test the mutability of the linear rotations circuit."""
@@ -115,8 +126,13 @@ class TestFunctionalPauliRotations(QiskitTestCase):
         def linear(x):
             return offset + slope * x
 
-        linear_rotation = LinearPauliRotations(num_state_qubits, slope * 2, offset * 2)
-        self.assertFunctionIsCorrect(linear_rotation, linear)
+        for use_gate in [True, False]:
+            constructor = LinearPauliRotationsGate if use_gate else LinearPauliRotations
+            linear_rotation = constructor(num_state_qubits, slope * 2, offset * 2)
+            num_ancillas = 0 if use_gate else None
+
+            with self.subTest(use_gate=use_gate):
+                self.assertFunctionIsCorrect(linear_rotation, linear, num_ancillas)
 
     def test_linear_rotations_mutability(self):
         """Test the mutability of the linear rotations circuit."""
@@ -165,9 +181,8 @@ class TestFunctionalPauliRotations(QiskitTestCase):
             )
 
             if use_gate:
-                # ancilla for the comparator bit and the integer comparator itself
-                num_ancillas = int(len(breakpoints) > 1)  # + num_state_qubits - 1
-                # num_ancillas = 0
+                # ancilla for the comparator bit
+                num_ancillas = int(len(breakpoints) > 1)
             else:
                 num_ancillas = None  # automatically deducted
 
@@ -218,6 +233,116 @@ class TestFunctionalPauliRotations(QiskitTestCase):
                 return 0
 
             self.assertFunctionIsCorrect(pw_linear_rotations, pw_linear)
+
+    @data(
+        (1, [0], [[1]]),
+        (2, [0, 1], [[1, 2], [0, 1]]),
+        (3, [0, 5], [[1, 0, -1], [0, 2, 2]]),
+    )
+    @unpack
+    def test_piecewise_polynomial_function(self, num_state_qubits, breakpoints, coeffs):
+        """Test the piecewise linear rotations."""
+
+        def pw_poly(x):
+            for i, point in enumerate(reversed(breakpoints)):
+                if x >= point:
+                    return sum(coeff / 2 * x**d for d, coeff in enumerate(coeffs[~i]))
+            return 0
+
+        for use_gate in [False, True]:
+            constructor = (
+                PiecewisePolynomialPauliRotationsGate
+                if use_gate
+                else PiecewisePolynomialPauliRotations
+            )
+
+            if use_gate:
+                # ancilla for the comparator bit
+                num_ancillas = int(len(breakpoints) > 1)
+            else:
+                num_ancillas = None  # automatically deducted
+
+            with self.subTest(use_gate=use_gate):
+                pw_poly_rotations = constructor(
+                    num_state_qubits,
+                    breakpoints,
+                    coeffs,
+                )
+
+                self.assertFunctionIsCorrect(pw_poly_rotations, pw_poly, num_ancillas)
+
+    @data((1, 0.01), (5, 0.02))
+    @unpack
+    def test_exact_reciprocal(self, num_state_qubits, scaling):
+        """Test the exact reciprocal."""
+
+        def reference(x):
+            if x == 0:
+                return 0
+
+            value = scaling * 2**num_state_qubits / x
+            if value >= 1 - 1e-5:
+                return np.pi / 2
+
+            return np.arcsin(value)
+
+        gate = ExactReciprocalGate(num_state_qubits, scaling)
+        self.assertFunctionIsCorrect(gate, reference, num_ancilla_qubits=0)
+
+    def test_piecewise_chebyshev(self):
+        """Test the piecewise Chebyshev function."""
+
+        with self.subTest(msg="constant"):
+            gate = PiecewiseChebyshevGate(0.123, num_state_qubits=3, degree=0)
+            ref = lambda x: 0.123 / 2
+            self.assertFunctionIsCorrect(gate, ref, num_ancilla_qubits=0)
+
+        with self.subTest(msg="linear"):
+            target = lambda x: x
+            gate = PiecewiseChebyshevGate(target, num_state_qubits=3, degree=1)
+            self.assertFunctionIsCorrect(gate, target, num_ancilla_qubits=0)
+
+        with self.subTest(msg="poly"):
+            target = lambda x: x**3 - x
+            gate = PiecewiseChebyshevGate(target, num_state_qubits=5, degree=3)
+            self.assertFunctionIsCorrect(gate, target, num_ancilla_qubits=0)
+
+        with self.subTest(msg="pw poly"):
+
+            def target(x):  # pylint: disable=function-redefined
+                if hasattr(x, "__len__"):  # support single-value inputs and arrays
+                    return np.array([target(xi) for xi in x])
+
+                if x < 3:
+                    return x
+                elif x < 6:
+                    return x**2
+
+                return x**3
+
+            gate = PiecewiseChebyshevGate(
+                target, num_state_qubits=3, degree=3, breakpoints=[0, 3, 6]
+            )
+            self.assertFunctionIsCorrect(gate, target, num_ancilla_qubits=1)
+
+    def test_piecewise_chebyshev_invalid(self):
+        """Test giving the function in an invalid format."""
+
+        def constant_noarg():
+            return 1
+
+        with self.assertRaises(TypeError):
+            _ = PiecewiseChebyshevGate(constant_noarg, 2, 0)
+
+        def constant(_x):
+            return 1
+
+        with self.assertRaises(TypeError):
+            _ = PiecewiseChebyshevGate(constant, 2, 0)
+
+        as_lambda = lambda x: x**3 if x <= 1 else x
+        with self.assertRaises(TypeError):
+            _ = PiecewiseChebyshevGate(as_lambda, 2, 1, breakpoints=[1])
 
 
 if __name__ == "__main__":
