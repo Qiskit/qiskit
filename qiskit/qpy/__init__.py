@@ -17,13 +17,12 @@ QPY serialization (:mod:`qiskit.qpy`)
 
 .. currentmodule:: qiskit.qpy
 
-QPY is a binary serialization format for :class:`~.QuantumCircuit` and
-:class:`~.ScheduleBlock` objects that is designed to be cross-platform,
-Python version agnostic, and backwards compatible moving forward. QPY should
-be used if you need a mechanism to save or copy between systems a
-:class:`~.QuantumCircuit` or :class:`~.ScheduleBlock` that preserves the full
-Qiskit object structure (except for custom attributes defined outside of
-Qiskit code). This differs from other serialization formats like
+QPY is a binary serialization format for :class:`~.QuantumCircuit`
+objects that is designed to be cross-platform,  Python version agnostic,
+and backwards compatible moving forward. QPY should be used if you need
+a mechanism to save or copy between systems a :class:`~.QuantumCircuit`
+that preserves the full Qiskit object structure (except for custom attributes
+defined outside of Qiskit code). This differs from other serialization formats like
 `OpenQASM <https://github.com/openqasm/openqasm>`__ (2.0 or 3.0) which has a
 different abstraction model and can result in a loss of information contained
 in the original circuit (or is unable to represent some aspects of the
@@ -169,6 +168,14 @@ and how the feature will be internally handled.
     In this case, use Qiskit 0.45.3 with ``symengine==0.9.2`` to load the file, and then re-export
     it to QPY setting ``use_symengine=False``.  The resulting file can then be loaded by any later
     version of Qiskit.
+
+.. note::
+
+    Starting with Qiskit version 2.0.0, which removed the Pulse module from the library, QPY provides 
+    limited support for loading payloads that include pulse data. Loading a ``ScheduleBlock`` payload, 
+    a :class:`.QpyError` exception will be raised. Loading a payload for a circuit that contained pulse 
+    gates, the output circuit will contain  custom instructions **without** calibration data attached 
+    for each pulse gate, leaving them undefined.
 
 QPY format version history
 --------------------------
@@ -926,7 +933,7 @@ Version 7
 ---------
 
 Version 7 adds support for :class:`.~Reference` instruction and serialization of
-a :class:`.~ScheduleBlock` program while keeping its reference to subroutines::
+a ``ScheduleBlock`` program while keeping its reference to subroutines::
 
     from qiskit import pulse
     from qiskit import qpy
@@ -998,12 +1005,12 @@ identical to :ref:`qpy_version_5`.
 Version 5
 ---------
 
-Version 5 changes from :ref:`qpy_version_4` by adding support for :class:`.~ScheduleBlock`
+Version 5 changes from :ref:`qpy_version_4` by adding support for ``ScheduleBlock``
 and changing two payloads the INSTRUCTION metadata payload and the CUSTOM_INSTRUCTION block.
 These now have new fields to better account for :class:`~.ControlledGate` objects in a circuit.
 In addition, new payload MAP_ITEM is defined to implement the :ref:`qpy_mapping` block.
 
-With the support of :class:`.~ScheduleBlock`, now :class:`~.QuantumCircuit` can be
+With the support of ``ScheduleBlock``, now :class:`~.QuantumCircuit` can be
 serialized together with :attr:`~.QuantumCircuit.calibrations`, or
 `Pulse Gates <https://docs.quantum.ibm.com/guides/pulse>`_.
 In QPY version 5 and above, :ref:`qpy_circuit_calibrations` payload is
@@ -1020,7 +1027,7 @@ In QPY version 5 and above,
 immediately follows the file header block to represent the program type stored in the file.
 
 - When ``type==c``, :class:`~.QuantumCircuit` payload follows
-- When ``type==s``, :class:`~.ScheduleBlock` payload follows
+- When ``type==s``, ``ScheduleBlock`` payload follows
 
 .. note::
 
@@ -1033,12 +1040,10 @@ immediately follows the file header block to represent the program type stored i
 SCHEDULE_BLOCK
 ~~~~~~~~~~~~~~
 
-:class:`~.ScheduleBlock` is first supported in QPY Version 5. This allows
+``ScheduleBlock`` is first supported in QPY Version 5. This allows
 users to save pulse programs in the QPY binary format as follows:
 
-.. plot::
-   :include-source:
-   :nofigs:
+.. code-block:: python
 
     from qiskit import pulse, qpy
 
@@ -1051,13 +1056,6 @@ users to save pulse programs in the QPY binary format as follows:
     with open('schedule.qpy', 'rb') as fd:
         new_schedule = qpy.load(fd)[0]
 
-.. plot::
-   :nofigs:
-
-   # This block is hidden from readers. It's cleanup code.
-   from pathlib import Path
-   Path("schedule.qpy").unlink()
-
 Note that circuit and schedule block are serialized and deserialized through
 the same QPY interface. Input data type is implicitly analyzed and
 no extra option is required to save the schedule block.
@@ -1067,7 +1065,7 @@ no extra option is required to save the schedule block.
 SCHEDULE_BLOCK_HEADER
 ~~~~~~~~~~~~~~~~~~~~~
 
-:class:`~.ScheduleBlock` block starts with the following header:
+``ScheduleBlock`` block starts with the following header:
 
 .. code-block:: c
 
@@ -1267,8 +1265,8 @@ the gate name, ``num_qubits`` length of integers representing a sequence of qubi
 and ``num_params`` length of INSTRUCTION_PARAM payload for parameters
 associated to the custom instruction.
 The ``type`` indicates the class of pulse program which is either, in principle,
-:class:`~.ScheduleBlock` or :class:`~.Schedule`. As of QPY Version 5,
-only :class:`~.ScheduleBlock` payload is supported.
+``ScheduleBlock`` or :class:`~.Schedule`. As of QPY Version 5,
+only ``ScheduleBlock`` payload is supported.
 Finally, :ref:`qpy_schedule_block` payload is packed for each CALIBRATION_DEF entry.
 
 .. _qpy_instruction_v5:
