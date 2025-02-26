@@ -68,6 +68,7 @@ from test import QiskitTestCase  # pylint: disable=wrong-import-order
 from .visualization import path_to_diagram_reference, QiskitVisualizationTestCase
 from ..legacy_cmaps import YORKTOWN_CMAP
 
+
 class TestTextDrawerElement(QiskitTestCase):
     """Draw each element"""
 
@@ -1333,6 +1334,7 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         circuit.swap(qr[0], qr[1])
         circuit.rz(11111, qr[2])
         self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
+
 
 class TestTextDrawerLabels(QiskitTestCase):
     """Gates with labels."""
