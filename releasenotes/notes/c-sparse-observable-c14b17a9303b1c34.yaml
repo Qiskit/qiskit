@@ -1,0 +1,36 @@
+---
+features:
+  - |
+    Introduced a C API to build and interact with sparse observables.
+    While the API surface in this release is fairly small, just covering the 
+    :class:`.SparseObservable` class this new API lays the foundation for Qiskit's C interface. 
+
+    The detailed syntax and more information is available under the C API docs, 
+    but a minimal example to construct the 100-qubit observable ``X0 Y1 Z1`` is:
+
+    .. code:: c
+
+      #include <stdio.h>
+      #include <qiskit.h>
+
+      int main(int argc, char* argv[]) {
+        // build a 100-qubit empty observable
+        u_int32_t num_qubits = 100;
+        QkSparseObservable *obs = qk_obs_zero(num_qubits);  
+
+        // add the term 2 * (X0 Y1 Z2) to the observable
+        complex double coeff = 2;  // the coefficient
+        QkBitTerm bit_terms[3] = {QkBitTerm_X, QkBitTerm_Y, QkBitTerm_Z};  // bit terms: X Y Z
+        uint32_t indices[3] = {0, 1, 2};  // indices: 0 1 2
+        QkSparseTerm term = {coeff, 3, bit_terms, indices, num_qubits};
+        qk_obs_add_term(obs, &term);  // append the term
+
+        // print some properties
+        printf("num_qubits: %i\n", qk_obs_num_qubits(obs));
+        printf("num_terms: %lu\n", qk_obs_num_terms(obs));
+
+        // free the memory allocated for the observable
+        qk_obs_free(obs);
+      
+        return 0;
+      }
