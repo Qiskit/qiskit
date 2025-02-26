@@ -26,7 +26,7 @@ pub mod packed_instruction;
 pub mod parameter_table;
 pub mod slice;
 pub mod symbol_expr;
-pub mod symbol_expr_py;
+pub mod py_symbol_expr;
 pub mod symbol_parser;
 pub mod util;
 
@@ -169,7 +169,7 @@ pub fn circuit(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<dag_node::DAGOpNode>()?;
     m.add_class::<operations::StandardGate>()?;
     m.add_class::<operations::StandardInstructionType>()?;
-    m.add_class::<symbol_expr_py::PySymbolExpr>()?;
+    m.add_class::<py_symbol_expr::PySymbolExpr>()?;
     Ok(())
 }
 
