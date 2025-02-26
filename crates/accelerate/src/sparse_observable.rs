@@ -1555,7 +1555,11 @@ impl PySparseTerm {
 
     /// Return the bit labels of the term as string.
     ///
-    /// The bit labels will match the order of :attr:`.SparseTerm.coeffs`.
+    /// The bit labels will match the order of :attr:`.SparseTerm.indices`, such that the
+    /// i-th character in the string is applied to the qubit index at ``term.indices[i]``.
+    ///
+    /// Returns:
+    ///     The non-identity bit terms as concatenated string.
     fn bit_labels<'py>(&self, py: Python<'py>) -> Bound<'py, PyString> {
         let string: String = self
             .inner
