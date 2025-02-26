@@ -19,9 +19,7 @@ rustworkx-core.workspace = true
 bytemuck.workspace = true
 bitfield-struct.workspace = true
 num-complex.workspace = true
-ndarray.workspace = true
 thiserror.workspace = true
-approx.workspace = true
 itertools.workspace = true
 nalgebra.workspace = true
 nom.workspace = true
@@ -46,6 +44,14 @@ features = ["union", "const_generics"]
 [dependencies.numpy]
 workspace = true
 features = ["nalgebra"]
+
+[dependencies.approx]
+workspace = true
+features = ["num-complex"]
+
+[dependencies.ndarray]
+workspace = true
+features = ["rayon", "approx"]
 
 [features]
 cache_pygates = []
