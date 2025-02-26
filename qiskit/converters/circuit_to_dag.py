@@ -55,7 +55,7 @@ def circuit_to_dag(circuit, copy_operations=True, *, qubit_order=None, clbit_ord
             circ.h(q[0])
             circ.cx(q[0], q[1])
             circ.measure(q[0], c[0])
-            circ.rz(0.5, q[1]).c_if(c, 2)
+            circ.rz(0.5, q[1])
             dag = circuit_to_dag(circ)
     """
     # If we have an instance of BluePrintCircuit, make sure it is built by calling ._build()
