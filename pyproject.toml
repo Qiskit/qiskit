@@ -132,7 +132,6 @@ basic = "qiskit.transpiler.preset_passmanagers.builtin_plugins:BasicSwapPassMana
 lookahead = "qiskit.transpiler.preset_passmanagers.builtin_plugins:LookaheadSwapPassManager"
 none = "qiskit.transpiler.preset_passmanagers.builtin_plugins:NoneRoutingPassManager"
 sabre = "qiskit.transpiler.preset_passmanagers.builtin_plugins:SabreSwapPassManager"
-stochastic = "qiskit.transpiler.preset_passmanagers.builtin_plugins:StochasticSwapPassManager"
 
 [project.entry-points."qiskit.transpiler.optimization"]
 default = "qiskit.transpiler.preset_passmanagers.builtin_plugins:OptimizationPassManager"
