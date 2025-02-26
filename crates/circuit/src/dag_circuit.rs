@@ -3227,7 +3227,6 @@ def _format(operand):
     ///         to control the behavior of handling control flow. It has no
     ///         effect anymore, left it for backwards compatibility. Will be
     ///         removed in Qiskit 3.0.
-
     ///
     /// Returns:
     ///     DAGOpNode: the new node containing the added operation.

@@ -24,7 +24,11 @@ pub mod interner;
 pub mod operations;
 pub mod packed_instruction;
 pub mod parameter_table;
+pub mod parameterexpression;
 pub mod slice;
+pub mod symbol_expr;
+pub mod symbol_expr_py;
+pub mod symbol_parser;
 pub mod util;
 
 mod rustworkx_core_vnext;
@@ -166,6 +170,7 @@ pub fn circuit(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<dag_node::DAGOpNode>()?;
     m.add_class::<operations::StandardGate>()?;
     m.add_class::<operations::StandardInstructionType>()?;
+    m.add_class::<symbol_expr_py::PySymbolExpr>()?;
     Ok(())
 }
 

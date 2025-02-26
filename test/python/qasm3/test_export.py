@@ -428,7 +428,7 @@ gate rxx(p0) _gate_q_0, _gate_q_1 {
   h _gate_q_0;
 }
 gate PauliEvolution(_t_0_) _gate_q_0, _gate_q_1 {
-  rxx(2.0*_t_0_) _gate_q_0, _gate_q_1;
+  rxx(2*_t_0_) _gate_q_0, _gate_q_1;
 }
 gate ryy(p0) _gate_q_0, _gate_q_1 {
   rx(pi/2) _gate_q_0;
@@ -440,7 +440,7 @@ gate ryy(p0) _gate_q_0, _gate_q_1 {
   rx(-pi/2) _gate_q_1;
 }
 gate PauliEvolution_0(_t_1_) _gate_q_0, _gate_q_1 {
-  ryy(2.0*_t_1_) _gate_q_0, _gate_q_1;
+  ryy(2*_t_1_) _gate_q_0, _gate_q_1;
 }
 gate rzz(p0) _gate_q_0, _gate_q_1 {
   cx _gate_q_0, _gate_q_1;
@@ -448,7 +448,7 @@ gate rzz(p0) _gate_q_0, _gate_q_1 {
   cx _gate_q_0, _gate_q_1;
 }
 gate PauliEvolution_1(_t_2_) _gate_q_0, _gate_q_1 {
-  rzz(2.0*_t_2_) _gate_q_0, _gate_q_1;
+  rzz(2*_t_2_) _gate_q_0, _gate_q_1;
 }
 qubit[2] q;
 PauliEvolution(_t_0_) q[0], q[1];
