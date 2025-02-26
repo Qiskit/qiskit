@@ -13,7 +13,7 @@
 use pyo3::types::{PyList, PyNone, PyString, PyTuple};
 use pyo3::{intern, prelude::*};
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::circuit_instruction::{ExtraInstructionAttributes, OperationFromPython};
+use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::operations;
 use qiskit_circuit::operations::{multiply_param, radd_param, Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
@@ -475,9 +475,8 @@ fn add_control(gate: StandardGate, params: &[Param], control_state: &[bool]) -> 
     // This function does not return a PyResult to keep the evolution functions free from PyO3.
     // We know that all calls here should be valid and unwrap eagerly.
     Python::with_gil(|py| {
-        let extra_attrs = ExtraInstructionAttributes::default();
         let pygate = gate
-            .create_py_op(py, Some(params), &extra_attrs)
+            .create_py_op(py, Some(params), None)
             .expect("Failed to create Py version of standard gate.");
         let num_controls = control_state.len();
         let py_control_state = PyString::new(

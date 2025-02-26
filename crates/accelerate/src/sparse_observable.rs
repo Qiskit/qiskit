@@ -1552,6 +1552,19 @@ impl PySparseTerm {
             .get_bound(py)
             .call1(((PyArray1::from_vec(py, z), PyArray1::from_vec(py, x)),))
     }
+
+    /// Return the bit labels of the term as string.
+    ///
+    /// The bit labels will match the order of :attr:`.SparseTerm.coeffs`.
+    fn bit_labels<'py>(&self, py: Python<'py>) -> Bound<'py, PyString> {
+        let string: String = self
+            .inner
+            .bit_terms()
+            .iter()
+            .map(|bit| bit.py_label())
+            .collect();
+        PyString::new(py, string.as_str())
+    }
 }
 
 /// An observable over Pauli bases that stores its data in a qubit-sparse format.
