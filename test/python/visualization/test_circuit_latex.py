@@ -95,7 +95,6 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
 
         self.assertEqualToReference(filename)
 
-
     def test_deep_circuit(self):
         """Test draw deep circuit."""
         filename = self._get_resource_path("test_latex_deep.tex")

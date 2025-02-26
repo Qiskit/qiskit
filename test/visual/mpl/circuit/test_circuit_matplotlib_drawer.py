@@ -334,7 +334,6 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         self.assertGreaterEqual(ratio, self.threshold)
         self.assertGreaterEqual(ratio2, self.threshold)
 
-
     def test_plot_partial_barrier(self):
         """Test plotting of partial barriers."""
 
@@ -1019,7 +1018,6 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         )
         self.assertGreaterEqual(ratio, self.threshold)
 
-
     def test_style_custom_gates(self):
         """Tests style for custom gates"""
 
@@ -1281,7 +1279,6 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_PREFIX,
         )
         self.assertGreaterEqual(ratio, self.threshold)
-
 
     def test_idle_wires_barrier(self):
         """Test that idle_wires False works with barrier"""
