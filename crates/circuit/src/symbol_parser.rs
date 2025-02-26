@@ -10,10 +10,8 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-/// symbol_parser.rs
-/// parsing equation to generate symbolic expression
-extern crate nom;
-extern crate nom_unicode;
+/// Parser for equation strings to generate symbolic expression
+
 use nom::branch::{alt, permutation};
 use nom::bytes::complete::tag;
 use nom::character::complete::{char, digit1, multispace0};
