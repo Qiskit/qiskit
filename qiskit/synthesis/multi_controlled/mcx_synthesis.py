@@ -332,15 +332,15 @@ def linear_depth_ladder_ops(qreg: list[int]) -> tuple[QuantumCircuit, list[int]]
 
     # down-ladder
     if n % 2 != 0:
-        x, y, t = n - 3, n - 5, n - 6
+        x, y, target = n - 3, n - 5, n - 6
     else:
-        x, y, t = n - 1, n - 4, n - 5
+        x, y, target = n - 1, n - 4, n - 5
 
-    if t > 0:
-        qc.ccx(qreg[x], qreg[y], qreg[t])
-        qc.x(qreg[t])
+    if target > 0:
+        qc.ccx(qreg[x], qreg[y], qreg[target])
+        qc.x(qreg[target])
 
-    for i in range(t, 2, -2):
+    for i in range(target, 2, -2):
         qc.ccx(qreg[i], qreg[i - 1], qreg[i - 2])
         qc.x(qreg[i - 2])
 
@@ -450,10 +450,10 @@ def ccxn(n: int) -> QuantumCircuit:
     n_qubits = 3 * n
     q = QuantumRegister(n_qubits, name="q")
     qc = QuantumCircuit(q, name=f"ccxn_{n}")
-    x, y, t = q[:n], q[n : 2 * n], q[2 * n :]
-    for x, y, t in zip(x, y, t):
-        qc.x(t)
-        qc.ccx(x, y, t)
+    x, y, target = q[:n], q[n : 2 * n], q[2 * n :]
+    for x, y, target in zip(x, y, target):
+        qc.x(target)
+        qc.ccx(x, y, target)
 
     return qc
 
