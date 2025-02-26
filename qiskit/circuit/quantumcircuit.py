@@ -4664,7 +4664,6 @@ class QuantumCircuit:
         """
         # pylint: disable=cyclic-import
         from .library.standard_gates.ry import RYGate
-        from .library.standard_gates.x import MCXGate
         from qiskit.synthesis.multi_controlled import (
             _apply_cu,
             _apply_mcu_graycode,
@@ -4683,7 +4682,7 @@ class QuantumCircuit:
         # auto-select the best mode
         if mode is None:
             # if enough ancillary qubits are provided, use the 'v-chain' method
-            additional_vchain = MCXGate.get_num_ancilla_qubits(len(control_qubits), "v-chain")
+            additional_vchain = max(0, len(control_qubits) - 2)
             if len(ancillary_qubits) >= additional_vchain:
                 mode = "basic"
             else:
