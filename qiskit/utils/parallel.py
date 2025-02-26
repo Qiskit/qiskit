@@ -106,7 +106,7 @@ def default_num_processes() -> int:
     2. The ``num_processes`` key of the Qiskit user configuration file, if set.
     3. Half of the logical CPUs available to this process, if this can be determined.  This is a
        proxy for the number of physical CPUs, assuming two-fold simultaneous multithreading (SMT);
-       emperically, multiprocessing performance of Qiskit seems to be worse when attempting to use
+       empirically, multiprocessing performance of Qiskit seems to be worse when attempting to use
        SMT cores.
     4. 1, if all else fails.
     """
