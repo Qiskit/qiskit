@@ -1,0 +1,5 @@
+# Default all text files to use LF line endings
+* text eol=lf
+
+# Mark PNG files as binary so git doesn't try to mess with the line endings
+*.png binary
