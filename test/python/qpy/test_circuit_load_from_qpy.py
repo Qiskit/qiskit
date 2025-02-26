@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Test cases for the schedule block qpy loading and saving."""
+"""Test cases for circuit qpy loading and saving."""
 
 import io
 import struct
@@ -30,7 +30,7 @@ from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class QpyCircuitTestCase(QiskitTestCase):
-    """QPY schedule testing platform."""
+    """QPY circuit testing platform."""
 
     def assert_roundtrip_equal(self, circuit, version=None, use_symengine=None):
         """QPY roundtrip equal test."""

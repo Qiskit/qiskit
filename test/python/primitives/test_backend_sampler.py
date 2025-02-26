@@ -25,7 +25,6 @@ from qiskit.providers import JobStatus
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.transpiler import PassManager
-from qiskit.utils import optionals
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 from test.python.transpiler._dummy_passes import DummyAP  # pylint: disable=wrong-import-order
 from ..legacy_cmaps import LAGOS_CMAP
@@ -339,28 +338,6 @@ class TestBackendSampler(QiskitTestCase):
 
         self.assertDictAlmostEqual(result.quasi_dists[0], {0: 1}, 0.1)
         self.assertDictAlmostEqual(result.quasi_dists[1], {1: 1}, 0.1)
-
-    @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required to run this test")
-    def test_circuit_with_dynamic_circuit(self):
-        """Test BackendSampler with QuantumCircuit with a dynamic circuit"""
-        from qiskit_aer import Aer
-
-        qc = QuantumCircuit(2, 1)
-
-        with qc.for_loop(range(5)):
-            qc.h(0)
-            qc.cx(0, 1)
-            qc.measure(0, 0)
-            with self.assertWarns(DeprecationWarning):
-                qc.break_loop().c_if(0, True)
-
-        with self.assertWarns(DeprecationWarning):
-            backend = Aer.get_backend("aer_simulator")
-            sampler = BackendSampler(backend, skip_transpilation=True)
-            sampler.set_options(seed_simulator=15)
-            sampler.set_transpile_options(seed_transpiler=15)
-            result = sampler.run(qc).result()
-        self.assertDictAlmostEqual(result.quasi_dists[0], {0: 0.5029296875, 1: 0.4970703125})
 
     def test_sequential_run(self):
         """Test sequential run."""

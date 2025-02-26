@@ -98,11 +98,6 @@ class PassBenchmarks:
         apply_pass.property_set["layout"] = self.layout
         self.dag = apply_pass.run(self.enlarge_dag)
 
-    def time_stochastic_swap(self, _, __):
-        swap = StochasticSwap(self.coupling_map, seed=42)
-        swap.property_set["layout"] = self.layout
-        swap.run(self.dag)
-
     def time_sabre_swap(self, _, __):
         swap = SabreSwap(self.coupling_map, seed=42)
         swap.property_set["layout"] = self.layout
@@ -227,7 +222,6 @@ class RoutedPassBenchmarks:
         apply_pass = ApplyLayout()
         apply_pass.property_set["layout"] = self.layout
         self.dag = apply_pass.run(self.enlarge_dag)
-        self.routed_dag = StochasticSwap(self.coupling_map, seed=42).run(self.dag)
 
     def time_gate_direction(self, _, __):
         GateDirection(self.coupling_map).run(self.routed_dag)

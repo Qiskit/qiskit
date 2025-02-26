@@ -35,6 +35,7 @@ from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.result import Result
 from qiskit.qobj.utils import MeasReturnType, MeasLevel
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
+from qiskit.utils import optionals
 from ..legacy_cmaps import LAGOS_CMAP
 
 BACKENDS = [
@@ -707,9 +708,16 @@ class TestBackendSamplerV2(QiskitTestCase):
                     self.assertTrue(hasattr(data, creg.name))
                     self._assert_allclose(getattr(data, creg.name), np.array(target[creg.name]))
 
-    @combine(backend=BACKENDS)
-    def test_circuit_with_aliased_cregs(self, backend):
+    @unittest.skipUnless(optionals.HAS_AER, "Aer is required to simuate control flow")
+    def test_circuit_with_aliased_cregs(self):
         """Test for circuit with aliased classical registers."""
+        backend = GenericBackendV2(
+            num_qubits=7,
+            basis_gates=["id", "rz", "sx", "x", "cx", "reset"],
+            coupling_map=LAGOS_CMAP,
+            seed=42,
+            control_flow=True,
+        )
         q = QuantumRegister(3, "q")
         c1 = ClassicalRegister(1, "c1")
         c2 = ClassicalRegister(1, "c2")
@@ -721,10 +729,10 @@ class TestBackendSamplerV2(QiskitTestCase):
         qc.h(0)
         qc.measure(0, c1)
         qc.measure(1, c2)
-        with self.assertWarns(DeprecationWarning):
-            qc.z(2).c_if(c1, 1)
-        with self.assertWarns(DeprecationWarning):
-            qc.x(2).c_if(c2, 1)
+        with qc.if_test((c1, 1)):
+            qc.z(2)
+        with qc.if_test((c2, 1)):
+            qc.x(2)
         qc2 = QuantumCircuit(5, 5)
         qc2.compose(qc, [0, 2, 3], [2, 4], inplace=True)
         cregs = [creg.name for creg in qc2.cregs]
