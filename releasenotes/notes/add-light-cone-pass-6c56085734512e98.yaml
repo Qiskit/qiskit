@@ -13,9 +13,7 @@ features_transpiler:
           from qiskit.circuit import QuantumCircuit
 
           qc = QuantumCircuit(3,1)
-          qc.h(0)
-          qc.h(1)
-          qc.h(2)
+          qc.h(range(3))
           qc.cx(0,1)
           qc.cx(2,1)
           qc.h(0)
