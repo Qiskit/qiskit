@@ -12,6 +12,7 @@
 
 """X, CX, CCX and multi-controlled X gates."""
 from __future__ import annotations
+import warnings
 from typing import Optional, Union, Type
 from math import pi
 import numpy
@@ -1117,7 +1118,13 @@ class MCXGate(ControlledGate):
         _base_label=None,
     ):
         """Create new MCX gate."""
-        num_ancilla_qubits = self.__class__.get_num_ancilla_qubits(num_ctrl_qubits)
+        if self.__class__ in [MCXGate, MCXGrayCode, MCXRecursive, MCXVChain]:
+            with warnings.catch_warnings(action="ignore", category=DeprecationWarning):
+                num_ancilla_qubits = self.__class__.get_num_ancilla_qubits(num_ctrl_qubits)
+        else:
+            num_ancilla_qubits = self.__class__.get_num_ancilla_qubits(num_ctrl_qubits)
+
+        # alternative: just remove the above
         super().__init__(
             _name,
             num_ctrl_qubits + 1 + num_ancilla_qubits,
