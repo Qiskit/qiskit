@@ -72,7 +72,10 @@ class TestBlueprintCircuit(QiskitTestCase):
 
     def test_invalidate_rebuild(self):
         """Test that invalidate and build reset and set _data and _parameter_table."""
-        mock = MockBlueprint(5)
+        with self.assertWarns(DeprecationWarning):
+            # Subclassing BlueprintCircuit is deprecated in 2.0 and the full test can be removed when
+            # BlueprintCircuit gets removed in 3.0
+            mock = MockBlueprint(5)
         mock._build()
 
         with self.subTest(msg="after building"):
@@ -94,7 +97,10 @@ class TestBlueprintCircuit(QiskitTestCase):
         properties = ["data"]
         for prop in properties:
             with self.subTest(prop=prop):
-                circuit = MockBlueprint(3)
+                with self.assertWarns(DeprecationWarning):
+                    # Subclassing BlueprintCircuit is deprecated in 2.0 and the full test can be removed
+                    # when BlueprintCircuit gets removed in 3.0
+                    circuit = MockBlueprint(3)
                 getattr(circuit, prop)
                 self.assertGreater(len(circuit._data), 0)
 
@@ -110,14 +116,20 @@ class TestBlueprintCircuit(QiskitTestCase):
         ]
         for method in methods:
             with self.subTest(method=method):
-                circuit = MockBlueprint(3)
+                with self.assertWarns(DeprecationWarning):
+                    # Subclassing BlueprintCircuit is deprecated in 2.0 and the full test can be
+                    # removed when BlueprintCircuit gets removed in 3.0
+                    circuit = MockBlueprint(3)
                 if method == "qasm":
                     continue  # raises since parameterized circuits produce invalid qasm 2.0.
                 getattr(circuit, method)()
                 self.assertGreater(len(circuit._data), 0)
 
         with self.subTest(method="__get__[0]"):
-            circuit = MockBlueprint(3)
+            with self.assertWarns(DeprecationWarning):
+                # Subclassing BlueprintCircuit is deprecated in 2.0 and the full test can be removed when
+                # BlueprintCircuit gets removed in 3.0
+                circuit = MockBlueprint(3)
             _ = circuit[2]
             self.assertGreater(len(circuit._data), 0)
 
@@ -125,7 +137,10 @@ class TestBlueprintCircuit(QiskitTestCase):
         """Test that the circuit is constructed when compose is called."""
         qc = QuantumCircuit(3)
         qc.x([0, 1, 2])
-        circuit = MockBlueprint(3)
+        with self.assertWarns(DeprecationWarning):
+            # Subclassing BlueprintCircuit is deprecated in 2.0 and the full test can be removed when
+            # BlueprintCircuit gets removed in 3.0
+            circuit = MockBlueprint(3)
         circuit.compose(qc, inplace=True)
 
         reference = QuantumCircuit(3)
@@ -138,7 +153,10 @@ class TestBlueprintCircuit(QiskitTestCase):
     @data("gate", "instruction")
     def test_to_gate_and_instruction(self, method):
         """Test calling to_gate and to_instruction works without calling _build first."""
-        circuit = MockBlueprint(2)
+        with self.assertWarns(DeprecationWarning):
+            # Subclassing BlueprintCircuit is deprecated in 2.0 and the full test can be removed when
+            # BlueprintCircuit gets removed in 3.0
+            circuit = MockBlueprint(2)
 
         if method == "gate":
             gate = circuit.to_gate()
@@ -165,12 +183,18 @@ class TestBlueprintCircuit(QiskitTestCase):
         expected.x(0)
 
         qr = QuantumRegister(2, "q")
-        mock = DummyBlueprint()
+        with self.assertWarns(DeprecationWarning):
+            # Subclassing BlueprintCircuit is deprecated in 2.0 and the full test can be removed when
+            # BlueprintCircuit gets removed in 3.0
+            mock = DummyBlueprint()
         mock.add_register(qr)
         mock.append(XGate(), [qr[0]], [])
         self.assertEqual(expected, mock)
 
-        mock = DummyBlueprint()
+        with self.assertWarns(DeprecationWarning):
+            # Subclassing BlueprintCircuit is deprecated in 2.0 and the full test can be removed when
+            # BlueprintCircuit gets removed in 3.0
+            mock = DummyBlueprint()
         mock.add_register(qr)
         mock._append(CircuitInstruction(XGate(), (qr[0],), ()))
         self.assertEqual(expected, mock)
@@ -189,7 +213,10 @@ class TestBlueprintCircuit(QiskitTestCase):
                 # pylint: disable=useless-parent-delegation
                 return super()._build()
 
-        base = DummyBlueprint()
+        with self.assertWarns(DeprecationWarning):
+            # Subclassing BlueprintCircuit is deprecated in 2.0 and the full test can be removed when
+            # BlueprintCircuit gets removed in 3.0
+            base = DummyBlueprint()
         base.global_phase = math.pi / 2
 
         self.assertEqual(base.copy_empty_like().global_phase, math.pi / 2)
@@ -197,7 +224,10 @@ class TestBlueprintCircuit(QiskitTestCase):
 
         # Verify that a parametric global phase can be assigned after the copy.
         a = Parameter("a")
-        parametric = DummyBlueprint()
+        with self.assertWarns(DeprecationWarning):
+            # Subclassing BlueprintCircuit is deprecated in 2.0 and the full test can be removed when
+            # BlueprintCircuit gets removed in 3.0
+            parametric = DummyBlueprint()
         parametric.global_phase = a
 
         self.assertEqual(
@@ -214,7 +244,9 @@ class TestBlueprintCircuit(QiskitTestCase):
 
         Regression test of #13535.
         """
-        circuit = EfficientSU2(2)
+        with self.assertWarns(DeprecationWarning):
+            # Use the function qiskit.circuit.library.efficient_su2 instead.
+            circuit = EfficientSU2(2)
         circuit.global_phase = -2
         circuit.metadata = {"my_legacy": "i was a blueprintcircuit once"}
 
@@ -231,7 +263,9 @@ class TestBlueprintCircuit(QiskitTestCase):
 
     def test_copy_empty_like_post_build(self):
         """Test copying empty-like after building the circuit."""
-        circuit = EfficientSU2(2)
+        with self.assertWarns(DeprecationWarning):
+            # Use the function qiskit.circuit.library.efficient_su2 instead.
+            circuit = EfficientSU2(2)
         num_params = circuit.num_parameters  # trigger building the circuit
 
         cpy = circuit.copy_empty_like()
