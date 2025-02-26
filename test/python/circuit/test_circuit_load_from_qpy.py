@@ -1911,26 +1911,6 @@ class TestLoadFromQPY(QiskitTestCase):
         ):
             dump(qc, fptr, version=version)
 
-    @ddt.idata(range(QPY_COMPATIBILITY_VERSION, 14))
-    def test_pre_v14_rejects_const_typed_expr(self, version):
-        """Test that dumping to older QPY versions rejects const-typed expressions."""
-        qc = QuantumCircuit()
-        with qc.if_test(
-            expr.not_equal(
-                expr.equal(expr.lift(1, types.Uint(1, const=True)), 1),
-                expr.lift(False, types.Bool(const=True)),
-            )
-        ):
-            pass
-
-        with (
-            io.BytesIO() as fptr,
-            self.assertRaisesRegex(
-                UnsupportedFeatureForVersion, "version 14 is required.*const-typed expressions"
-            ),
-        ):
-            dump(qc, fptr, version=version)
-
 
 class TestSymengineLoadFromQPY(QiskitTestCase):
     """Test use of symengine in qpy set of methods."""
