@@ -3079,9 +3079,7 @@ class QuantumCircuit:
 
     def _check_dups(self, qubits: Sequence[Qubit]) -> None:
         """Raise exception if list of qubits contains duplicates."""
-        squbits = set(qubits)
-        if len(squbits) != len(qubits):
-            raise CircuitError("duplicate qubit arguments")
+        CircuitData._check_dups(qubits)
 
     def to_instruction(
         self,
