@@ -27,19 +27,8 @@ from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.transpiler import PassManager
 from qiskit.utils import optionals
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
-from test import combine  # pylint: disable=wrong-import-order
 from test.python.transpiler._dummy_passes import DummyAP  # pylint: disable=wrong-import-order
 from ..legacy_cmaps import LAGOS_CMAP
-
-
-BACKENDS = [
-    GenericBackendV2(
-        num_qubits=7,
-        basis_gates=["id", "rz", "sx", "x", "cx", "reset"],
-        coupling_map=LAGOS_CMAP,
-        seed=42,
-    )
-]
 
 
 class CallbackPass(DummyAP):
@@ -60,6 +49,12 @@ class TestBackendSampler(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
+        self.backend = GenericBackendV2(
+            num_qubits=7,
+            basis_gates=["id", "rz", "sx", "x", "cx", "reset"],
+            coupling_map=LAGOS_CMAP,
+            seed=42,
+        )
         hadamard = QuantumCircuit(1, 1)
         hadamard.h(0)
         hadamard.measure(0, 0)
@@ -116,12 +111,11 @@ class TestBackendSampler(QiskitTestCase):
                 else:
                     self.assertAlmostEqual(t_val, 0, delta=0.1)
 
-    @combine(backend=BACKENDS)
-    def test_sampler_run(self, backend):
+    def test_sampler_run(self):
         """Test Sampler.run()."""
         bell = self._circuit[1]
         with self.assertWarns(DeprecationWarning):
-            sampler = BackendSampler(backend=backend)
+            sampler = BackendSampler(backend=self.backend)
             job = sampler.run(circuits=[bell], shots=1000)
             result = job.result()
             self.assertIsInstance(result, SamplerResult)
@@ -129,21 +123,19 @@ class TestBackendSampler(QiskitTestCase):
         self.assertEqual(result.quasi_dists[0].stddev_upper_bound, math.sqrt(1 / 1000))
         self._compare_probs(result.quasi_dists, self._target[1])
 
-    @combine(backend=BACKENDS)
-    def test_sample_run_multiple_circuits(self, backend):
+    def test_sample_run_multiple_circuits(self):
         """Test Sampler.run() with multiple circuits."""
         # executes three Bell circuits
         # Argument `parameters` is optional.
         bell = self._circuit[1]
         with self.assertWarns(DeprecationWarning):
-            sampler = BackendSampler(backend=backend)
+            sampler = BackendSampler(backend=self.backend)
             result = sampler.run([bell, bell, bell]).result()
         self._compare_probs(result.quasi_dists[0], self._target[1])
         self._compare_probs(result.quasi_dists[1], self._target[1])
         self._compare_probs(result.quasi_dists[2], self._target[1])
 
-    @combine(backend=BACKENDS)
-    def test_sampler_run_with_parameterized_circuits(self, backend):
+    def test_sampler_run_with_parameterized_circuits(self):
         """Test Sampler.run() with parameterized circuits."""
         # parameterized circuit
 
@@ -152,7 +144,7 @@ class TestBackendSampler(QiskitTestCase):
         theta1, theta2, theta3 = self._theta
 
         with self.assertWarns(DeprecationWarning):
-            sampler = BackendSampler(backend=backend)
+            sampler = BackendSampler(backend=self.backend)
             result = sampler.run([pqc, pqc, pqc2], [theta1, theta2, theta3]).result()
 
         # result of pqc(theta1)
@@ -182,8 +174,7 @@ class TestBackendSampler(QiskitTestCase):
         }
         self.assertDictAlmostEqual(result.quasi_dists[2].binary_probabilities(), prob3, delta=0.1)
 
-    @combine(backend=BACKENDS)
-    def test_run_1qubit(self, backend):
+    def test_run_1qubit(self):
         """test for 1-qubit cases"""
         qc = QuantumCircuit(1)
         qc.measure_all()
@@ -192,7 +183,7 @@ class TestBackendSampler(QiskitTestCase):
         qc2.measure_all()
 
         with self.assertWarns(DeprecationWarning):
-            sampler = BackendSampler(backend=backend)
+            sampler = BackendSampler(backend=self.backend)
             result = sampler.run([qc, qc2]).result()
             self.assertIsInstance(result, SamplerResult)
         self.assertEqual(len(result.quasi_dists), 2)
@@ -200,8 +191,7 @@ class TestBackendSampler(QiskitTestCase):
         self.assertDictAlmostEqual(result.quasi_dists[0], {0: 1}, 0.1)
         self.assertDictAlmostEqual(result.quasi_dists[1], {1: 1}, 0.1)
 
-    @combine(backend=BACKENDS)
-    def test_run_2qubit(self, backend):
+    def test_run_2qubit(self):
         """test for 2-qubit cases"""
         qc0 = QuantumCircuit(2)
         qc0.measure_all()
@@ -216,7 +206,7 @@ class TestBackendSampler(QiskitTestCase):
         qc3.measure_all()
 
         with self.assertWarns(DeprecationWarning):
-            sampler = BackendSampler(backend=backend)
+            sampler = BackendSampler(backend=self.backend)
             result = sampler.run([qc0, qc1, qc2, qc3]).result()
             self.assertIsInstance(result, SamplerResult)
         self.assertEqual(len(result.quasi_dists), 4)
@@ -226,8 +216,7 @@ class TestBackendSampler(QiskitTestCase):
         self.assertDictAlmostEqual(result.quasi_dists[2], {2: 1}, 0.1)
         self.assertDictAlmostEqual(result.quasi_dists[3], {3: 1}, 0.1)
 
-    @combine(backend=BACKENDS)
-    def test_run_errors(self, backend):
+    def test_run_errors(self):
         """Test for errors"""
         qc1 = QuantumCircuit(1)
         qc1.measure_all()
@@ -235,7 +224,7 @@ class TestBackendSampler(QiskitTestCase):
         qc2.measure_all()
 
         with self.assertWarns(DeprecationWarning):
-            sampler = BackendSampler(backend=backend)
+            sampler = BackendSampler(backend=self.backend)
             with self.assertRaises(ValueError):
                 sampler.run([qc1], [[1e2]]).result()
             with self.assertRaises(ValueError):
@@ -243,14 +232,13 @@ class TestBackendSampler(QiskitTestCase):
             with self.assertRaises(ValueError):
                 sampler.run([qc2], [[1e2]]).result()
 
-    @combine(backend=BACKENDS)
-    def test_run_empty_parameter_v2(self, backend):
+    def test_run_empty_parameter_v2(self):
         """Test for empty parameter"""
         n = 5
         qc = QuantumCircuit(n, n - 1)
         qc.measure(range(n - 1), range(n - 1))
         with self.assertWarns(DeprecationWarning):
-            sampler = BackendSampler(backend=backend)
+            sampler = BackendSampler(backend=self.backend)
         with self.subTest("one circuit"):
             result = sampler.run([qc], shots=1000).result()
             self.assertEqual(len(result.quasi_dists), 1)
@@ -267,8 +255,7 @@ class TestBackendSampler(QiskitTestCase):
                 self.assertDictAlmostEqual(quasi_dist, {0: 1.0}, delta=0.1)
             self.assertEqual(len(result.metadata), 2)
 
-    @combine(backend=BACKENDS)
-    def test_run_numpy_params(self, backend):
+    def test_run_numpy_params(self):
         """Test for numpy array as parameter values"""
         qc = RealAmplitudes(num_qubits=2, reps=2)
         qc.measure_all()
@@ -278,7 +265,7 @@ class TestBackendSampler(QiskitTestCase):
         params_list = params_array.tolist()
         params_list_array = list(params_array)
         with self.assertWarns(DeprecationWarning):
-            sampler = BackendSampler(backend=backend)
+            sampler = BackendSampler(backend=self.backend)
             target = sampler.run([qc] * k, params_list).result()
 
         with self.subTest("ndarrary"):
@@ -293,23 +280,21 @@ class TestBackendSampler(QiskitTestCase):
             for i in range(k):
                 self.assertDictAlmostEqual(result.quasi_dists[i], target.quasi_dists[i], delta=0.1)
 
-    @combine(backend=BACKENDS)
-    def test_run_with_shots_option(self, backend):
+    def test_run_with_shots_option(self):
         """test with shots option."""
         params, target = self._generate_params_target([1])
         with self.assertWarns(DeprecationWarning):
-            sampler = BackendSampler(backend=backend)
+            sampler = BackendSampler(backend=self.backend)
             result = sampler.run(
                 circuits=[self._pqc], parameter_values=params, shots=1024, seed=15
             ).result()
         self._compare_probs(result.quasi_dists, target)
 
-    @combine(backend=BACKENDS)
-    def test_primitive_job_status_done(self, backend):
+    def test_primitive_job_status_done(self):
         """test primitive job's status"""
         bell = self._circuit[1]
         with self.assertWarns(DeprecationWarning):
-            sampler = BackendSampler(backend=backend)
+            sampler = BackendSampler(backend=self.backend)
             job = sampler.run(circuits=[bell])
             _ = job.result()
         self.assertEqual(job.status(), JobStatus.DONE)

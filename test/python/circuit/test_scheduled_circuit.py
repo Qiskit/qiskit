@@ -385,7 +385,6 @@ class TestScheduledCircuit(QiskitTestCase):
 
         backend = GenericBackendV2(num_qubits=3, seed=42)
         with self.assertWarns(DeprecationWarning):
-            backend = GenericBackendV2(num_qubits=3, seed=42)
             schedule_config = ScheduleConfig(
                 inst_map=backend.target.instruction_schedule_map(),
                 meas_map=backend.meas_map,
