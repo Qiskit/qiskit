@@ -35,9 +35,6 @@ from qiskit.transpiler.passmanager import PassManager
 class TestLightConePass(QiskitTestCase):
     """Test the LightCone pass."""
 
-    def __init__(self, methodName: str = "runTest") -> None:
-        super().__init__(methodName)
-
     @ddt.data("X", "Z")
     def test_nonparameterized_noncommuting(self, pauli_label):
         """Test for a non-commuting, asymmetric, weight-one Pauli."""
@@ -45,8 +42,7 @@ class TestLightConePass(QiskitTestCase):
         light_cone = LightCone(bit_terms=bit_terms, indices=[1])
         pm = PassManager([light_cone])
 
-        q0 = QuantumRegister(2, "q0")
-        qc = QuantumCircuit(q0)
+        qc = QuantumCircuit(2)
         qc.x(0)
         qc.s(1)
         qc.cy(0, 1)
@@ -62,15 +58,14 @@ class TestLightConePass(QiskitTestCase):
         light_cone = LightCone(bit_terms="Y", indices=[1])
         pm = PassManager([light_cone])
 
-        q0 = QuantumRegister(2, "q0")
-        qc = QuantumCircuit(q0)
+        qc = QuantumCircuit(2)
         qc.x(0)
         qc.s(1)
         qc.cy(0, 1)
 
         new_circuit = pm.run(qc)
 
-        expected = QuantumCircuit(q0)
+        expected = QuantumCircuit(2)
         expected.s(1)
 
         self.assertEqual(expected, new_circuit)
@@ -83,8 +78,7 @@ class TestLightConePass(QiskitTestCase):
         pm = PassManager([light_cone])
         theta = Parameter("θ")
 
-        q0 = QuantumRegister(2, "q0")
-        qc = QuantumCircuit(q0)
+        qc = QuantumCircuit(2)
         qc.rx(theta, 0)
         qc.ry(theta, 1)
         qc.cx(0, 1)
@@ -102,15 +96,14 @@ class TestLightConePass(QiskitTestCase):
         pm = PassManager([light_cone])
         theta = Parameter("θ")
 
-        q0 = QuantumRegister(2, "q0")
-        qc = QuantumCircuit(q0)
+        qc = QuantumCircuit(2)
         qc.rx(theta, 0)
         qc.ry(theta, 1)
         qc.cx(0, 1)
 
         new_circuit = pm.run(qc)
 
-        expected = QuantumCircuit(q0)
+        expected = QuantumCircuit(2)
         expected.ry(theta, 1)
 
         self.assertEqual(expected, new_circuit)
@@ -125,8 +118,7 @@ class TestLightConePass(QiskitTestCase):
 
         new_circuit = pm.run(qc)
 
-        q0 = QuantumRegister(4, "q")
-        expected = QuantumCircuit(q0)
+        expected = QuantumCircuit(4)
         theta = qc.parameters
         expected.ry(theta[0], 0)
         expected.ry(theta[1], 1)
@@ -149,8 +141,7 @@ class TestLightConePass(QiskitTestCase):
 
         new_circuit = pm.run(qc)
 
-        q0 = QuantumRegister(4, "q")
-        expected = QuantumCircuit(q0)
+        expected = QuantumCircuit(4)
         theta = qc.parameters
         expected.ry(theta[0], 0)
         expected.ry(theta[1], 1)
@@ -176,8 +167,7 @@ class TestLightConePass(QiskitTestCase):
         light_cone = LightCone(bit_terms=bit_terms, indices=indices)
         pm = PassManager([light_cone])
 
-        q0 = QuantumRegister(4, "q0")
-        qc = QuantumCircuit(q0)
+        qc = QuantumCircuit(4)
         qc.s(0)
         qc.z(0)
         qc.h(2)
@@ -195,8 +185,7 @@ class TestLightConePass(QiskitTestCase):
         light_cone = LightCone(bit_terms=bit_terms, indices=indices)
         pm = PassManager([light_cone])
 
-        q0 = QuantumRegister(5, "q0")
-        qc = QuantumCircuit(q0)
+        qc = QuantumCircuit(5)
         qc.cx(2, 1)
         qc.cx(3, 4)
         qc.cx(1, 0)
@@ -207,8 +196,7 @@ class TestLightConePass(QiskitTestCase):
 
         new_circuit = pm.run(qc)
 
-        q0 = QuantumRegister(5, "q0")
-        expected = QuantumCircuit(q0)
+        expected = QuantumCircuit(5)
         expected.cx(2, 1)
         expected.cx(3, 4)
         expected.cx(1, 0)
@@ -224,9 +212,7 @@ class TestLightConePass(QiskitTestCase):
         pm = PassManager([light_cone])
         theta = Parameter("θ")
 
-        q0 = QuantumRegister(2, "q0")
-        c0 = ClassicalRegister(1, "c0")
-        qc = QuantumCircuit(q0, c0)
+        qc = QuantumCircuit(2, 1)
         qc.rz(theta, 1)
         qc.ry(theta, 0)
         qc.barrier()
@@ -237,9 +223,7 @@ class TestLightConePass(QiskitTestCase):
 
         new_circuit = pm.run(qc)
 
-        q0 = QuantumRegister(2, "q0")
-        c0 = ClassicalRegister(1, "c0")
-        expected = QuantumCircuit(q0, c0)
+        expected = QuantumCircuit(2, 1)
         expected.rz(theta, 1)
         expected.ry(theta, 0)
         expected.barrier()
@@ -257,8 +241,7 @@ class TestLightConePass(QiskitTestCase):
         pm = PassManager([light_cone])
         theta = Parameter("θ")
 
-        q0 = QuantumRegister(2, "q0")
-        qc = QuantumCircuit(q0)
+        qc = QuantumCircuit(2)
         qc.rz(theta + 2, 1)
         qc.ry(theta - 2, 0)
         qc.h(1)
@@ -269,8 +252,7 @@ class TestLightConePass(QiskitTestCase):
 
         new_circuit = pm.run(qc)
 
-        q0 = QuantumRegister(2, "q0")
-        expected = QuantumCircuit(q0)
+        expected = QuantumCircuit(2)
         expected.rz(theta + 2, 1)
         expected.ry(theta - 2, 0)
         expected.h(1)
@@ -290,8 +272,7 @@ class TestLightConePass(QiskitTestCase):
         pm = PassManager([light_cone])
         theta = Parameter("θ")
 
-        q0 = QuantumRegister(num_qubits, "q0")
-        qc = QuantumCircuit(q0)
+        qc = QuantumCircuit(num_qubits)
         for i in range(num_qubits):
             qc.h(i)
         for i in range(0, num_qubits, 2):
@@ -303,8 +284,7 @@ class TestLightConePass(QiskitTestCase):
 
         new_circuit = pm.run(qc)
 
-        q0 = QuantumRegister(num_qubits, "q0")
-        expected = QuantumCircuit(q0)
+        expected = QuantumCircuit(num_qubits)
         expected.h(0)
         expected.h(1)
         expected.h(2)
