@@ -1,0 +1,43 @@
+---
+features_transpiler:
+  - |
+    Added a new transpiler pass, :class:`.LightCone` that is used
+    to get the lightcone of a circuit when measuring a subset of
+    qubits or a specific Pauli string.
+    For example if you had a circuit like:
+
+        .. plot::
+
+          from qiskit.transpiler.passes.optimization.light_cone import LightCone
+          from qiskit.transpiler.passmanager import PassManager
+          from qiskit.circuit import QuantumCircuit
+
+          qc = QuantumCircuit(3,1)
+          qc.h(range(3))
+          qc.cx(0,1)
+          qc.cx(2,1)
+          qc.h(range(3))
+          qc.measure(0,0)
+
+          qc.draw("mpl")
+
+    running the pass would eliminate the gates that do not affect the
+    outcome.
+
+        .. plot::
+           :include-source:
+
+            from qiskit.transpiler.passes.optimization.light_cone import LightCone
+            from qiskit.transpiler.passmanager import PassManager
+            from qiskit.circuit import QuantumCircuit
+
+            qc = QuantumCircuit(3,1)
+            qc.h(range(3))
+            qc.cx(0,1)
+            qc.cx(2,1)
+            qc.h(range(3))
+            qc.measure(0,0)
+
+            pm = PassManager([LightCone()])
+            new_circuit = pm.run(qc)
+            new_circuit.draw("mpl")
