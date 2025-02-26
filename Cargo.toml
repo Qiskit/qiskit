@@ -5,7 +5,7 @@ resolver = "2"
 [workspace.package]
 version = "2.0.0"
 edition = "2021"
-rust-version = "1.79"  # Keep in sync with README.md and rust-toolchain.toml.
+rust-version = "1.79"  # Keep in sync with README.md, rust-toolchain.toml, and tools/install_rust_msrv.sh
 license = "Apache-2.0"
 
 # Shared dependencies that can be inherited.  This just helps a little with
@@ -15,15 +15,17 @@ license = "Apache-2.0"
 # Each crate can add on specific features freely as it inherits.
 [workspace.dependencies]
 bytemuck = "1.21"
+bitfield-struct = "0.9.3"
 indexmap.version = "2.7.1"
-hashbrown.version = "0.14.5"
+hashbrown.version = "0.15.2"
 num-bigint = "0.4"
 num-complex = "0.4"
-ndarray = "0.15"
+nalgebra = "0.33"
 numpy = "0.23"
-smallvec = "1.13"
+ndarray = "0.16"
+smallvec = "1.14"
 thiserror = "2.0"
-rustworkx-core = "0.15"
+rustworkx-core = "0.16"
 approx = "0.5"
 itertools = "0.13.0"
 ahash = "0.8.11"
@@ -48,6 +50,10 @@ qiskit-cext = { path = "crates/cext" }
 # which uses the `::std::cmp::Ordering` enum as a return.  Both styles are acceptable, and the `if`
 # chain can be more legible to people.
 comparison-chain = "allow"
+# Forbid `{,e}print{,ln}!` calls.  These can be allowed locally if absolutely required, but the
+# vast majority of these are debug statements that we forget about.
+print_stdout = "deny"
+print_stderr = "deny"
 
 [workspace.lints.rust]
 # In Rust 2021, the bodies of `unsafe fn` may use `unsafe` functions themselves without marking

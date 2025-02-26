@@ -19,7 +19,7 @@ num-complex.workspace = true
 qiskit-accelerate.workspace = true
 
 [build-dependencies]
-cbindgen = "0.26"
+cbindgen = "0.28"
 
 [features]
 default = ["cbinding"]

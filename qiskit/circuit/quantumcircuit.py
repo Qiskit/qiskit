@@ -41,6 +41,7 @@ from math import pi
 import numpy as np
 from qiskit._accelerate.circuit import CircuitData
 from qiskit._accelerate.circuit import StandardGate
+from qiskit._accelerate.circuit_duration import compute_estimated_duration
 from qiskit.exceptions import QiskitError
 from qiskit.utils.multiprocessing import is_main_process
 from qiskit.circuit.instruction import Instruction
@@ -157,6 +158,8 @@ class QuantumCircuit:
     :attr:`data`              List of individual :class:`CircuitInstruction`\\ s that make up the
                               circuit.
     :attr:`duration`          Total duration of the circuit, added by scheduling transpiler passes.
+                              This attribute is deprecated and :meth:`.estimate_duration` should
+                              be used instead.
 
     :attr:`layout`            Hardware layout and routing information added by the transpiler.
     :attr:`num_ancillas`      The number of ancilla qubits in the circuit.
@@ -769,6 +772,10 @@ class QuantumCircuit:
     ``with`` statement.  It is far simpler and less error-prone to build control flow
     programmatically this way.
 
+    When using the control-flow builder interface, you may sometimes want a qubit to be included in
+    a block, even though it has no operations defined.  In this case, you can use the :meth:`noop`
+    method.
+
     ..
         TODO: expand the examples of the builder interface.
 
@@ -779,6 +786,7 @@ class QuantumCircuit:
     .. automethod:: if_test
     .. automethod:: switch
     .. automethod:: while_loop
+    .. automethod:: noop
 
 
     Converting circuits to single objects
@@ -904,8 +912,9 @@ class QuantumCircuit:
 
     If a :class:`QuantumCircuit` has been scheduled as part of a transpilation pipeline, the timing
     information for individual qubits can be accessed.  The whole-circuit timing information is
-    available through the :attr:`duration`, :attr:`unit` and :attr:`op_start_times` attributes.
+    available through the :meth:`estimate_duration` method and :attr:`op_start_times` attribute.
 
+    .. automethod:: estimate_duration
     .. automethod:: qubit_duration
     .. automethod:: qubit_start_time
     .. automethod:: qubit_stop_time
@@ -953,19 +962,6 @@ class QuantumCircuit:
 
     .. automethod:: decompose
     .. automethod:: reverse_bits
-
-    Internal utilities
-    ==================
-
-    These functions are not intended for public use, but were accidentally left documented in the
-    public API during the 1.0 release.  They will be removed in Qiskit 2.0, but will be supported
-    until then.
-
-    .. automethod:: cast
-    .. automethod:: cbit_argument_conversion
-    .. automethod:: cls_instances
-    .. automethod:: cls_prefix
-    .. automethod:: qbit_argument_conversion
     """
 
     instances = 0
@@ -1448,33 +1444,10 @@ class QuantumCircuit:
         cls.instances += 1
 
     @classmethod
-    @deprecate_func(
-        since=1.2,
-        removal_timeline="in the 2.0 release",
-        additional_msg="This method is only used as an internal helper "
-        "and will be removed with no replacement.",
-    )
-    def cls_instances(cls) -> int:
-        """Return the current number of instances of this class,
-        useful for auto naming."""
-        return cls.instances
-
-    @classmethod
     def _cls_instances(cls) -> int:
         """Return the current number of instances of this class,
         useful for auto naming."""
         return cls.instances
-
-    @classmethod
-    @deprecate_func(
-        since=1.2,
-        removal_timeline="in the 2.0 release",
-        additional_msg="This method is only used as an internal helper "
-        "and will be removed with no replacement.",
-    )
-    def cls_prefix(cls) -> str:
-        """Return the prefix to use for auto naming."""
-        return cls.prefix
 
     @classmethod
     def _cls_prefix(cls) -> str:
@@ -2084,14 +2057,7 @@ class QuantumCircuit:
 
             def map_vars(op):
                 n_op = op
-                is_control_flow = isinstance(n_op, ControlFlowOp)
-                if (
-                    not is_control_flow
-                    and (condition := getattr(n_op, "_condition", None)) is not None
-                ):
-                    n_op = n_op.copy() if n_op is op and copy else n_op
-                    n_op.condition = variable_mapper.map_condition(condition)
-                elif is_control_flow:
+                if isinstance(n_op, ControlFlowOp):
                     n_op = n_op.replace_blocks(recurse_block(block) for block in n_op.blocks)
                     if isinstance(n_op, (IfElseOp, WhileLoopOp)):
                         n_op.condition = variable_mapper.map_condition(n_op._condition)
@@ -2339,46 +2305,12 @@ class QuantumCircuit:
         return self._data[item]
 
     @staticmethod
-    @deprecate_func(
-        since=1.2,
-        removal_timeline="in the 2.0 release",
-        additional_msg="This method is only used as an internal helper "
-        "and will be removed with no replacement.",
-    )
-    def cast(value: S, type_: Callable[..., T]) -> Union[S, T]:
-        """Best effort to cast value to type. Otherwise, returns the value."""
-        try:
-            return type_(value)
-        except (ValueError, TypeError):
-            return value
-
-    @staticmethod
     def _cast(value: S, type_: Callable[..., T]) -> Union[S, T]:
         """Best effort to cast value to type. Otherwise, returns the value."""
         try:
             return type_(value)
         except (ValueError, TypeError):
             return value
-
-    @deprecate_func(
-        since=1.2,
-        removal_timeline="in the 2.0 release",
-        additional_msg="This method is only used as an internal helper "
-        "and will be removed with no replacement.",
-    )
-    def qbit_argument_conversion(self, qubit_representation: QubitSpecifier) -> list[Qubit]:
-        """
-        Converts several qubit representations (such as indexes, range, etc.)
-        into a list of qubits.
-
-        Args:
-            qubit_representation: Representation to expand.
-
-        Returns:
-            The resolved instances of the qubits.
-        """
-
-        return self._qbit_argument_conversion(qubit_representation)
 
     def _qbit_argument_conversion(self, qubit_representation: QubitSpecifier) -> list[Qubit]:
         """
@@ -2394,25 +2326,6 @@ class QuantumCircuit:
         return _bit_argument_conversion(
             qubit_representation, self.qubits, self._qubit_indices, Qubit
         )
-
-    @deprecate_func(
-        since=1.2,
-        removal_timeline="in the 2.0 release",
-        additional_msg="This method is only used as an internal helper "
-        "and will be removed with no replacement.",
-    )
-    def cbit_argument_conversion(self, clbit_representation: ClbitSpecifier) -> list[Clbit]:
-        """
-        Converts several classical bit representations (such as indexes, range, etc.)
-        into a list of classical bits.
-
-        Args:
-            clbit_representation : Representation to expand.
-
-        Returns:
-            A list of tuples where each tuple is a classical bit.
-        """
-        return self._cbit_argument_conversion(clbit_representation)
 
     def _cbit_argument_conversion(self, clbit_representation: ClbitSpecifier) -> list[Clbit]:
         """
@@ -2585,8 +2498,8 @@ class QuantumCircuit:
 
             * all the qubits and clbits must already exist in the circuit and there can be no
               duplicates in the list.
-            * any control-flow operations or classically conditioned instructions must act only on
-              variables present in the circuit.
+            * any control-flow operations instructions must act only on variables present in the
+              circuit.
             * the circuit must not be within a control-flow builder context.
 
         .. note::
@@ -3620,23 +3533,13 @@ class QuantumCircuit:
                 num_qargs = len(args)
             else:
                 args = instruction.qubits + instruction.clbits
-                num_qargs = len(args) + (
-                    1 if getattr(instruction.operation, "_condition", None) else 0
-                )
+                num_qargs = len(args)
 
             if num_qargs >= 2 and not getattr(instruction.operation, "_directive", False):
                 graphs_touched = []
                 num_touched = 0
                 # Controls necessarily join all the cbits in the
                 # register that they use.
-                if not unitary_only:
-                    for bit in instruction.operation.condition_bits:
-                        idx = bit_indices[bit]
-                        for k in range(num_sub_graphs):
-                            if idx in sub_graphs[k]:
-                                graphs_touched.append(k)
-                                break
-
                 for item in args:
                     reg_int = bit_indices[item]
                     for k in range(num_sub_graphs):
@@ -3750,9 +3653,7 @@ class QuantumCircuit:
 
         _copy_metadata(self, cpy, vars_mode)
 
-        cpy._data = CircuitData(
-            self._data.qubits, self._data.clbits, global_phase=self._data.global_phase
-        )
+        cpy._data = self._data.copy_empty_like()
 
         if name:
             cpy.name = name
@@ -3950,7 +3851,7 @@ class QuantumCircuit:
             circ = self.copy()
         dag = circuit_to_dag(circ)
         qubits_to_measure = [qubit for qubit in circ.qubits if qubit not in dag.idle_wires()]
-        new_creg = circ._create_creg(len(qubits_to_measure), "measure")
+        new_creg = circ._create_creg(len(qubits_to_measure), "meas")
         circ.add_register(new_creg)
         circ.barrier()
         circ.measure(qubits_to_measure, new_creg)
@@ -6176,6 +6077,42 @@ class QuantumCircuit:
 
         return self.append(gate, qubits, [], copy=False)
 
+    def noop(self, *qargs: QubitSpecifier):
+        """Mark the given qubit(s) as used within the current scope, without adding an operation.
+
+        This has no effect (other than raising an exception on invalid input) when called in the
+        top scope of a :class:`QuantumCircuit`.  Within a control-flow builder, this causes the
+        qubit to be "used" by the control-flow block, if it wouldn't already be used, without adding
+        any additional operations on it.
+
+        For example::
+
+            from qiskit.circuit import QuantumCircuit
+
+            qc = QuantumCircuit(3)
+            with qc.box():
+                # This control-flow block will only use qubits 0 and 1.
+                qc.cx(0, 1)
+            with qc.box():
+                # This control-flow block will contain only the same operation as the previous
+                # block, but it will also mark qubit 2 as "used" by the box.
+                qc.cx(0, 1)
+                qc.noop(2)
+
+        Args:
+            *qargs: variadic list of valid qubit specifiers.  Anything that can be passed as a qubit
+                or collection of qubits is valid for each argument here.
+
+        Raises:
+            CircuitError: if any requested qubit is not valid for the circuit.
+        """
+        scope = self._current_scope()
+        for qarg in qargs:
+            for qubit in self._qbit_argument_conversion(qarg):
+                # It doesn't matter if we pass duplicates along here, and the inner scope is going
+                # to have to hash them to check anyway, so no point de-duplicating.
+                scope.use_qubit(qubit)
+
     def _current_scope(self) -> CircuitScopeInterface:
         if self._control_flow_scopes:
             return self._control_flow_scopes[-1]
@@ -6377,7 +6314,8 @@ class QuantumCircuit:
                 qc.h(0)
                 qc.cx(0, 1)
                 qc.measure(0, 0)
-                qc.break_loop().c_if(0, True)
+                with qc.if_test((0, True)):
+                    qc.break_loop()
 
         Args:
             indexset (Iterable[int]): A collection of integers to loop over.  Always necessary.
@@ -6875,7 +6813,69 @@ class QuantumCircuit:
             if len(qubits) == len([done for done in dones.values() if done]):  # all done
                 return max(stop for stop in stops.values())
 
-        return 0  # If there are no instructions over bits
+        if len(stops) > 0:  # not all but some qubits has instructions
+            return max(stops.values())
+        else:
+            return 0  # If there are no instructions over bits
+
+    def estimate_duration(self, target, unit: str = "s") -> int | float:
+        """Estimate the duration of a scheduled circuit
+
+        This method computes the estimate of the circuit duration by finding
+        the longest duration path in the circuit based on the durations
+        provided by a given target. This method only works for simple circuits
+        that have no control flow or other classical feed-forward operations.
+
+        Args:
+            target (Target): The :class:`.Target` instance that contains durations for
+                the instructions if the target is missing duration data for any of the
+                instructions in the circuit an :class:`.QiskitError` will be raised. This
+                should be the same target object used as the target for transpilation.
+            unit: The unit to return the duration in. This defaults to "s" for seconds
+                but this can be a supported SI prefix for seconds returns. For example
+                setting this to "n" will return in unit of nanoseconds. Supported values
+                of this type are "f", "p", "n", "u", "µ", "m", "k", "M", "G", "T", and
+                "P". Additionally, a value of "dt" is also accepted to output an integer
+                in units of "dt". For this to function "dt" must be specified in the
+                ``target``.
+
+        Returns:
+            The estimated duration for the execution of a single shot of the circuit in
+            the specified unit.
+
+        Raises:
+            QiskitError: If the circuit is not scheduled or contains other
+                details that prevent computing an estimated duration from
+                (such as parameterized delay).
+        """
+        from qiskit.converters import circuit_to_dag
+
+        dur = compute_estimated_duration(circuit_to_dag(self), target)
+        if unit == "s":
+            return dur
+        if unit == "dt":
+            from qiskit.circuit.duration import duration_in_dt  # pylint: disable=cyclic-import
+
+            return duration_in_dt(dur, target.dt)
+
+        prefix_dict = {
+            "f": 1e-15,
+            "p": 1e-12,
+            "n": 1e-9,
+            "u": 1e-6,
+            "µ": 1e-6,
+            "m": 1e-3,
+            "k": 1e3,
+            "M": 1e6,
+            "G": 1e9,
+            "T": 1e12,
+            "P": 1e15,
+        }
+        if unit not in prefix_dict:
+            raise QiskitError(
+                f"Specified unit: {unit} is not a valid/supported SI prefix, 's', or 'dt'"
+            )
+        return dur / prefix_dict[unit]
 
 
 class _OuterCircuitScopeInterface(CircuitScopeInterface):
@@ -6903,8 +6903,7 @@ class _OuterCircuitScopeInterface(CircuitScopeInterface):
     def resolve_classical_resource(self, specifier):
         # This is slightly different to cbit_argument_conversion, because it should not
         # unwrap :obj:`.ClassicalRegister` instances into lists, and in general it should not allow
-        # iterables or broadcasting.  It is expected to be used as a callback for things like
-        # :meth:`.InstructionSet.c_if` to check the validity of their arguments.
+        # iterables or broadcasting.
         if isinstance(specifier, Clbit):
             if specifier not in self.circuit._clbit_indices:
                 raise CircuitError(f"Clbit {specifier} is not present in this circuit.")
@@ -6941,6 +6940,10 @@ class _OuterCircuitScopeInterface(CircuitScopeInterface):
     def use_var(self, var):
         if self.get_var(var.name) != var:
             raise CircuitError(f"'{var}' is not present in this circuit")
+
+    def use_qubit(self, qubit):
+        # Since the qubit is guaranteed valid, there's nothing for us to do.
+        pass
 
 
 def _validate_expr(circuit_scope: CircuitScopeInterface, node: expr.Expr) -> expr.Expr:

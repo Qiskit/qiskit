@@ -28,7 +28,7 @@ use rand_pcg::Pcg64Mcg;
 use smallvec::SmallVec;
 
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::circuit_instruction::{ExtraInstructionAttributes, OperationFromPython};
+use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::gate_matrix::ONE_QUBIT_IDENTITY;
@@ -204,11 +204,11 @@ fn twirl_gate(
     out_circ.push(
         py,
         PackedInstruction {
-            op: PackedOperation::from_standard(twirl[0]),
+            op: PackedOperation::from_standard_gate(twirl[0]),
             qubits: bit_zero,
             clbits: circ.cargs_interner().get_default(),
             params: None,
-            extra_attrs: ExtraInstructionAttributes::new(None, None, None, None),
+            label: None,
             #[cfg(feature = "cache_pygates")]
             py_op: std::sync::OnceLock::new(),
         },
@@ -216,11 +216,11 @@ fn twirl_gate(
     out_circ.push(
         py,
         PackedInstruction {
-            op: PackedOperation::from_standard(twirl[1]),
+            op: PackedOperation::from_standard_gate(twirl[1]),
             qubits: bit_one,
             clbits: circ.cargs_interner().get_default(),
             params: None,
-            extra_attrs: ExtraInstructionAttributes::new(None, None, None, None),
+            label: None,
             #[cfg(feature = "cache_pygates")]
             py_op: std::sync::OnceLock::new(),
         },
@@ -230,11 +230,11 @@ fn twirl_gate(
     out_circ.push(
         py,
         PackedInstruction {
-            op: PackedOperation::from_standard(twirl[2]),
+            op: PackedOperation::from_standard_gate(twirl[2]),
             qubits: bit_zero,
             clbits: circ.cargs_interner().get_default(),
             params: None,
-            extra_attrs: ExtraInstructionAttributes::new(None, None, None, None),
+            label: None,
             #[cfg(feature = "cache_pygates")]
             py_op: std::sync::OnceLock::new(),
         },
@@ -242,11 +242,11 @@ fn twirl_gate(
     out_circ.push(
         py,
         PackedInstruction {
-            op: PackedOperation::from_standard(twirl[3]),
+            op: PackedOperation::from_standard_gate(twirl[3]),
             qubits: bit_one,
             clbits: circ.cargs_interner().get_default(),
             params: None,
-            extra_attrs: ExtraInstructionAttributes::new(None, None, None, None),
+            label: None,
             #[cfg(feature = "cache_pygates")]
             py_op: std::sync::OnceLock::new(),
         },
@@ -278,7 +278,7 @@ fn generate_twirled_circuit(
             }
         }
         match inst.op.view() {
-            OperationRef::Standard(gate) => match gate {
+            OperationRef::StandardGate(gate) => match gate {
                 StandardGate::CXGate => {
                     if twirling_mask & CX_MASK != 0 {
                         twirl_gate(py, circ, rng, &mut out_circ, TWIRLING_SETS[0], inst)?;
@@ -360,7 +360,7 @@ fn generate_twirled_circuit(
                                 .map(|x| Ok(Param::Obj(x.clone().into_py_any(py)?)))
                                 .collect::<PyResult<SmallVec<[Param; 3]>>>()?,
                         )),
-                        extra_attrs: inst.extra_attrs.clone(),
+                        label: inst.label.clone(),
                         #[cfg(feature = "cache_pygates")]
                         py_op: std::sync::OnceLock::new(),
                     };
@@ -398,7 +398,7 @@ pub(crate) fn twirl_circuit(
 ) -> PyResult<Vec<CircuitData>> {
     let mut rng = match seed {
         Some(seed) => Pcg64Mcg::seed_from_u64(seed),
-        None => Pcg64Mcg::from_entropy(),
+        None => Pcg64Mcg::from_os_rng(),
     };
     let twirling_mask: u8 = match twirled_gate {
         Some(gates) => {

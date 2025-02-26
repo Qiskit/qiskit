@@ -33,8 +33,6 @@ from qiskit.circuit.library import (
     ZGate,
     SGate,
     SXGate,
-    U1Gate,
-    CPhaseGate,
     HamiltonianGate,
     Isometry,
     iqp,
@@ -333,82 +331,6 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
 
         self.assertGreaterEqual(ratio, self.threshold)
         self.assertGreaterEqual(ratio2, self.threshold)
-
-    def test_conditional(self):
-        """Test that circuits with conditionals draw correctly"""
-        qr = QuantumRegister(2, "q")
-        cr = ClassicalRegister(2, "c")
-        circuit = QuantumCircuit(qr, cr)
-
-        # check gates are shifted over accordingly
-        circuit.h(qr)
-        circuit.measure(qr, cr)
-        with self.assertWarns(DeprecationWarning):
-            circuit.h(qr[0]).c_if(cr, 2)
-
-        fname = "reg_conditional.png"
-        self.circuit_drawer(circuit, output="mpl", filename=fname)
-
-        ratio = VisualTestUtilities._save_diff(
-            self._image_path(fname),
-            self._reference_path(fname),
-            fname,
-            FAILURE_DIFF_DIR,
-            FAILURE_PREFIX,
-        )
-        self.assertGreaterEqual(ratio, self.threshold)
-
-    def test_bit_conditional_with_cregbundle(self):
-        """Test that circuits with single bit conditionals draw correctly
-        with cregbundle=True."""
-        qr = QuantumRegister(2, "q")
-        cr = ClassicalRegister(2, "c")
-        circuit = QuantumCircuit(qr, cr)
-
-        circuit.x(qr[0])
-        circuit.measure(qr, cr)
-        with self.assertWarns(DeprecationWarning):
-            circuit.h(qr[0]).c_if(cr[0], 1)
-        with self.assertWarns(DeprecationWarning):
-            circuit.x(qr[1]).c_if(cr[1], 0)
-
-        fname = "bit_conditional_bundle.png"
-        self.circuit_drawer(circuit, output="mpl", filename=fname)
-
-        ratio = VisualTestUtilities._save_diff(
-            self._image_path(fname),
-            self._reference_path(fname),
-            fname,
-            FAILURE_DIFF_DIR,
-            FAILURE_PREFIX,
-        )
-        self.assertGreaterEqual(ratio, self.threshold)
-
-    def test_bit_conditional_no_cregbundle(self):
-        """Test that circuits with single bit conditionals draw correctly
-        with cregbundle=False."""
-        qr = QuantumRegister(2, "q")
-        cr = ClassicalRegister(2, "c")
-        circuit = QuantumCircuit(qr, cr)
-
-        circuit.x(qr[0])
-        circuit.measure(qr, cr)
-        with self.assertWarns(DeprecationWarning):
-            circuit.h(qr[0]).c_if(cr[0], 1)
-        with self.assertWarns(DeprecationWarning):
-            circuit.x(qr[1]).c_if(cr[1], 0)
-
-        fname = "bit_conditional_no_bundle.png"
-        self.circuit_drawer(circuit, output="mpl", filename=fname, cregbundle=False)
-
-        ratio = VisualTestUtilities._save_diff(
-            self._image_path(fname),
-            self._reference_path(fname),
-            fname,
-            FAILURE_DIFF_DIR,
-            FAILURE_PREFIX,
-        )
-        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_plot_partial_barrier(self):
         """Test plotting of partial barriers."""
@@ -1075,71 +997,6 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         )
         self.assertGreaterEqual(ratio, self.threshold)
 
-    def test_meas_condition(self):
-        """Tests measure with a condition"""
-        qr = QuantumRegister(2, "qr")
-        cr = ClassicalRegister(2, "cr")
-        circuit = QuantumCircuit(qr, cr)
-        circuit.h(qr[0])
-        circuit.measure(qr[0], cr[0])
-        with self.assertWarns(DeprecationWarning):
-            circuit.h(qr[1]).c_if(cr, 1)
-
-        fname = "meas_condition.png"
-        self.circuit_drawer(circuit, output="mpl", filename=fname)
-
-        ratio = VisualTestUtilities._save_diff(
-            self._image_path(fname),
-            self._reference_path(fname),
-            fname,
-            FAILURE_DIFF_DIR,
-            FAILURE_PREFIX,
-        )
-        self.assertGreaterEqual(ratio, self.threshold)
-
-    def test_reverse_bits_condition(self):
-        """Tests reverse_bits with a condition and gate above"""
-        cr = ClassicalRegister(2, "cr")
-        cr2 = ClassicalRegister(1, "cr2")
-        qr = QuantumRegister(3, "qr")
-        circuit = QuantumCircuit(qr, cr, cr2)
-        circuit.h(0)
-        circuit.h(1)
-        circuit.h(2)
-        circuit.x(0)
-        circuit.x(0)
-        circuit.measure(2, 1)
-        with self.assertWarns(DeprecationWarning):
-            circuit.x(2).c_if(cr, 2)
-
-        fname = "reverse_bits_cond_true.png"
-        self.circuit_drawer(
-            circuit, output="mpl", cregbundle=False, reverse_bits=True, filename=fname
-        )
-
-        ratio = VisualTestUtilities._save_diff(
-            self._image_path(fname),
-            self._reference_path(fname),
-            fname,
-            FAILURE_DIFF_DIR,
-            FAILURE_PREFIX,
-        )
-        fname2 = "reverse_bits_cond_false.png"
-        self.circuit_drawer(
-            circuit, output="mpl", cregbundle=False, reverse_bits=False, filename=fname2
-        )
-
-        ratio2 = VisualTestUtilities._save_diff(
-            self._image_path(fname2),
-            self._reference_path(fname2),
-            fname2,
-            FAILURE_DIFF_DIR,
-            FAILURE_PREFIX,
-        )
-
-        self.assertGreaterEqual(ratio, self.threshold)
-        self.assertGreaterEqual(ratio2, self.threshold)
-
     def test_style_custom_gates(self):
         """Tests style for custom gates"""
 
@@ -1396,196 +1253,6 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         )
         self.assertGreaterEqual(ratio, self.threshold)
 
-    def test_measures_with_conditions(self):
-        """Test that a measure containing a condition displays"""
-        qr = QuantumRegister(2, "qr")
-        cr1 = ClassicalRegister(2, "cr1")
-        cr2 = ClassicalRegister(2, "cr2")
-        circuit = QuantumCircuit(qr, cr1, cr2)
-        circuit.h(0)
-        circuit.h(1)
-        circuit.measure(0, cr1[1])
-        with self.assertWarns(DeprecationWarning):
-            circuit.measure(1, cr2[0]).c_if(cr1, 1)
-        with self.assertWarns(DeprecationWarning):
-            circuit.h(0).c_if(cr2, 3)
-
-        fname = "measure_cond_false.png"
-        self.circuit_drawer(circuit, output="mpl", cregbundle=False, filename=fname)
-
-        ratio = VisualTestUtilities._save_diff(
-            self._image_path(fname),
-            self._reference_path(fname),
-            fname,
-            FAILURE_DIFF_DIR,
-            FAILURE_PREFIX,
-        )
-        fname2 = "measure_cond_true.png"
-        self.circuit_drawer(circuit, output="mpl", cregbundle=True, filename=fname2)
-
-        ratio2 = VisualTestUtilities._save_diff(
-            self._image_path(fname2),
-            self._reference_path(fname2),
-            fname2,
-            FAILURE_DIFF_DIR,
-            FAILURE_PREFIX,
-        )
-
-        self.assertGreaterEqual(ratio, self.threshold)
-        self.assertGreaterEqual(ratio2, self.threshold)
-
-    def test_conditions_measures_with_bits(self):
-        """Test that gates with conditions and measures work with bits"""
-        bits = [Qubit(), Qubit(), Clbit(), Clbit()]
-        cr = ClassicalRegister(2, "cr")
-        crx = ClassicalRegister(3, "cs")
-        circuit = QuantumCircuit(bits, cr, [Clbit()], crx)
-        with self.assertWarns(DeprecationWarning):
-            circuit.x(0).c_if(crx[1], 0)
-        circuit.measure(0, bits[3])
-
-        fname = "measure_cond_bits_false.png"
-        self.circuit_drawer(circuit, output="mpl", cregbundle=False, filename=fname)
-
-        ratio = VisualTestUtilities._save_diff(
-            self._image_path(fname),
-            self._reference_path(fname),
-            fname,
-            FAILURE_DIFF_DIR,
-            FAILURE_PREFIX,
-        )
-        fname2 = "measure_cond_bits_true.png"
-        self.circuit_drawer(circuit, output="mpl", cregbundle=True, filename=fname2)
-
-        ratio2 = VisualTestUtilities._save_diff(
-            self._image_path(fname2),
-            self._reference_path(fname2),
-            fname2,
-            FAILURE_DIFF_DIR,
-            FAILURE_PREFIX,
-        )
-
-        self.assertGreaterEqual(ratio, self.threshold)
-        self.assertGreaterEqual(ratio2, self.threshold)
-
-    def test_conditional_gates_right_of_measures_with_bits(self):
-        """Test that gates with conditions draw to right of measures when same bit"""
-        qr = QuantumRegister(3, "qr")
-        cr = ClassicalRegister(2, "cr")
-        circuit = QuantumCircuit(qr, cr)
-        circuit.h(qr[0])
-        circuit.measure(qr[0], cr[1])
-        with self.assertWarns(DeprecationWarning):
-            circuit.h(qr[1]).c_if(cr[1], 0)
-        with self.assertWarns(DeprecationWarning):
-            circuit.h(qr[2]).c_if(cr[0], 0)
-
-        fname = "measure_cond_bits_right.png"
-        self.circuit_drawer(circuit, output="mpl", cregbundle=False, filename=fname)
-
-        ratio = VisualTestUtilities._save_diff(
-            self._image_path(fname),
-            self._reference_path(fname),
-            fname,
-            FAILURE_DIFF_DIR,
-            FAILURE_PREFIX,
-        )
-        self.assertGreaterEqual(ratio, self.threshold)
-
-    def test_conditions_with_bits_reverse(self):
-        """Test that gates with conditions work with bits reversed"""
-        bits = [Qubit(), Qubit(), Clbit(), Clbit()]
-        cr = ClassicalRegister(2, "cr")
-        crx = ClassicalRegister(2, "cs")
-        circuit = QuantumCircuit(bits, cr, [Clbit()], crx)
-        with self.assertWarns(DeprecationWarning):
-            circuit.x(0).c_if(bits[3], 0)
-
-        fname = "cond_bits_reverse.png"
-        self.circuit_drawer(
-            circuit, output="mpl", cregbundle=False, reverse_bits=True, filename=fname
-        )
-
-        ratio = VisualTestUtilities._save_diff(
-            self._image_path(fname),
-            self._reference_path(fname),
-            fname,
-            FAILURE_DIFF_DIR,
-            FAILURE_PREFIX,
-        )
-        self.assertGreaterEqual(ratio, self.threshold)
-
-    def test_sidetext_with_condition(self):
-        """Test that sidetext gates align properly with conditions"""
-        qr = QuantumRegister(2, "q")
-        cr = ClassicalRegister(2, "c")
-        circuit = QuantumCircuit(qr, cr)
-        with self.assertWarns(DeprecationWarning):
-            circuit.append(CPhaseGate(pi / 2), [qr[0], qr[1]]).c_if(cr[1], 1)
-
-        fname = "sidetext_condition.png"
-        self.circuit_drawer(circuit, output="mpl", cregbundle=False, filename=fname)
-
-        ratio = VisualTestUtilities._save_diff(
-            self._image_path(fname),
-            self._reference_path(fname),
-            fname,
-            FAILURE_DIFF_DIR,
-            FAILURE_PREFIX,
-        )
-        self.assertGreaterEqual(ratio, self.threshold)
-
-    def test_fold_with_conditions(self):
-        """Test that gates with conditions draw correctly when folding"""
-        qr = QuantumRegister(3, "qr")
-        cr = ClassicalRegister(5, "cr")
-        circuit = QuantumCircuit(qr, cr)
-
-        with self.assertWarns(DeprecationWarning):
-            circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 1)
-        with self.assertWarns(DeprecationWarning):
-            circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 3)
-        with self.assertWarns(DeprecationWarning):
-            circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 5)
-        with self.assertWarns(DeprecationWarning):
-            circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 7)
-        with self.assertWarns(DeprecationWarning):
-            circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 9)
-        with self.assertWarns(DeprecationWarning):
-            circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 11)
-        with self.assertWarns(DeprecationWarning):
-            circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 13)
-        with self.assertWarns(DeprecationWarning):
-            circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 15)
-        with self.assertWarns(DeprecationWarning):
-            circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 17)
-        with self.assertWarns(DeprecationWarning):
-            circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 19)
-        with self.assertWarns(DeprecationWarning):
-            circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 21)
-        with self.assertWarns(DeprecationWarning):
-            circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 23)
-        with self.assertWarns(DeprecationWarning):
-            circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 25)
-        with self.assertWarns(DeprecationWarning):
-            circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 27)
-        with self.assertWarns(DeprecationWarning):
-            circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 29)
-        with self.assertWarns(DeprecationWarning):
-            circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 31)
-
-        fname = "fold_with_conditions.png"
-        self.circuit_drawer(circuit, output="mpl", cregbundle=False, filename=fname)
-
-        ratio = VisualTestUtilities._save_diff(
-            self._image_path(fname),
-            self._reference_path(fname),
-            fname,
-            FAILURE_DIFF_DIR,
-            FAILURE_PREFIX,
-        )
-        self.assertGreaterEqual(ratio, self.threshold)
-
     def test_idle_wires_barrier(self):
         """Test that idle_wires False works with barrier"""
         circuit = QuantumCircuit(4, 4)
@@ -1613,8 +1280,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.h(0)
         circuit.h(3)
         circuit.x(1)
-        with self.assertWarns(DeprecationWarning):
-            circuit.x(3).c_if(cr, 10)
+        with circuit.if_test((cr, 10)):
+            circuit.x(3)
 
         fname = "wire_order.png"
         self.circuit_drawer(
@@ -1763,16 +1430,14 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.measure(0, 1)
         circuit.measure(1, 2)
         circuit.x(2)
-        with self.assertWarns(DeprecationWarning):
-            circuit.x(2, label="XLabel").c_if(cr, 2)
+        circuit.x(2, label="XLabel")
 
         qr2 = QuantumRegister(3, "qr2")
         qc2 = QuantumCircuit(qr2, cr)
         qc2.x(1)
         qc2.y(1)
         qc2.z(0)
-        with self.assertWarns(DeprecationWarning):
-            qc2.x(0, label="X1i").c_if(cr, 4)
+        qc2.x(0, label="X1i")
 
         circuit.if_else((cr[1], 1), qc2, None, [0, 1, 2], [0, 1, 2])
         circuit.x(0, label="X1i")
@@ -1797,8 +1462,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
 
         circuit.h(0)
         with circuit.if_test((cr[1], 1)) as _else:
-            with self.assertWarns(DeprecationWarning):
-                circuit.x(0, label="X c_if").c_if(cr, 4)
+            circuit.x(0, label="X")
             with circuit.if_test((cr[2], 1)):
                 circuit.z(0)
                 circuit.y(1)
@@ -1839,8 +1503,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
 
         circuit.h(0)
         with circuit.if_test((cr[1], 1)) as _else:
-            with self.assertWarns(DeprecationWarning):
-                circuit.x(0, label="X c_if").c_if(cr, 4)
+            circuit.x(0, label="X")
             with circuit.if_test((cr[2], 1)):
                 circuit.z(0)
                 circuit.y(1)
@@ -1887,8 +1550,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
 
         circuit.h(0)
         with circuit.if_test((cr[1], 1)) as _else:
-            with self.assertWarns(DeprecationWarning):
-                circuit.x(0, label="X c_if").c_if(cr, 4)
+            circuit.x(0, label="X")
             with circuit.if_test((cr[2], 1)):
                 circuit.z(0)
                 circuit.y(1)
@@ -2325,7 +1987,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         qc.cx(1, 2)
         qc.cx(2, 0)
         circuit = transpile(
-            qc, backend, basis_gates=["rz", "sx", "cx"], layout_method="sabre", seed_transpiler=42
+            qc, backend, basis_gates=["rz", "sx", "cx"], layout_method="sabre", seed_transpiler=15
         )
 
         fname = "qreg_names_after_layout.png"
