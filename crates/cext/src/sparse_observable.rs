@@ -19,7 +19,8 @@ use qiskit_accelerate::sparse_observable::{BitTerm, SparseObservable, SparseTerm
 ///
 /// This contains the coefficient (``coeff``), the number of qubits of the observable
 /// (``num_qubits``) and pointers to the ``bit_terms`` and ``indices`` arrays, which have
-/// length ``len``.
+/// length ``len``. It's the responsibility of the user that the data is coherent,
+/// see also the below section on safety.
 ///
 /// # Safety
 ///

@@ -786,9 +786,7 @@ Qiskit uses [clang-format](https://clang.llvm.org/docs/ClangFormat.html) to form
 The style is based on LLVM, with some few Qiskit-specific adjustments. 
 To check whether the C code conforms to the style guide, you can run `make cformat`. This check
 will need to execute without any warnings or errors for CI to pass.
-
-Automatic formatting will not be applied by `make cformat`, but instead you can call
-`./tools/run_clang_format.sh apply`.
+Automatic formatting can be applied by `make fix_cformat`.
 
 ## Building API docs locally
 
