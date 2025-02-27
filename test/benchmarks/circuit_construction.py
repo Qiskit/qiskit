@@ -13,7 +13,6 @@
 # pylint: disable=missing-docstring,invalid-name,no-member
 # pylint: disable=attribute-defined-outside-init
 
-import os
 import itertools
 
 from qiskit.quantum_info import random_clifford
