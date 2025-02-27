@@ -69,9 +69,6 @@ class TestExprConstructors(QiskitTestCase):
         duration = Duration.dt(1000)
         self.assertEqual(expr.lift(duration), expr.Value(duration, types.Duration()))
         self.assertEqual(
-            expr.lift(duration, try_const=True), expr.Value(duration, types.Duration())
-        )
-        self.assertEqual(
             expr.lift(duration, types.Stretch()), expr.Value(duration, types.Stretch())
         )
 
@@ -450,9 +447,10 @@ class TestExprConstructors(QiskitTestCase):
                 opcode,
                 expr.Value(Duration.ms(1000), types.Duration()),
                 expr.Value(Duration.s(1), types.Duration()),
-                types.Bool(const=True),
+                types.Bool(),
             ),
         )
+        self.assertTrue(function(expr.lift(Duration.ms(1000)), Duration.s(1)).const)
 
     @ddt.data(expr.equal, expr.not_equal)
     def test_binary_equal_forbidden(self, function):
@@ -513,19 +511,24 @@ class TestExprConstructors(QiskitTestCase):
                 types.Bool(),
             ),
         )
+        self.assertTrue(function(expr.lift(12.0, types.Float()), expr.lift(12.0)).const)
 
         self.assertEqual(
             function(
                 expr.lift(Duration.ms(1000), types.Duration()),
-                expr.lift(Duration.s(1), try_const=True),
+                expr.lift(Duration.s(1)),
             ),
             expr.Binary(
                 opcode,
                 expr.Value(Duration.ms(1000), types.Duration()),
                 expr.Value(Duration.s(1), types.Duration()),
-                types.Bool(const=True),
+                types.Bool(),
             ),
         )
+        self.assertTrue(function(
+            expr.lift(Duration.ms(1000), types.Duration()),
+            expr.lift(Duration.s(1)),
+        ).const)
 
     @ddt.data(expr.less, expr.less_equal, expr.greater, expr.greater_equal)
     def test_binary_relation_forbidden(self, function):

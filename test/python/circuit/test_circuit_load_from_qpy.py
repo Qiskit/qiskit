@@ -1920,7 +1920,23 @@ class TestLoadFromQPY(QiskitTestCase):
         with (
             io.BytesIO() as fptr,
             self.assertRaisesRegex(
-                UnsupportedFeatureForVersion, "version 14 is required.*Qiskit 2"
+                UnsupportedFeatureForVersion, "version 14 is required.*float"
+            ),
+        ):
+            dump(qc, fptr, version=version)
+
+    @ddt.idata(range(QPY_COMPATIBILITY_VERSION, 14))
+    def test_pre_v14_rejects_duration_typed_expr(self, version):
+        """Test that dumping to older QPY versions rejects duration-typed expressions."""
+        from qiskit.circuit import Duration
+
+        qc = QuantumCircuit()
+        with qc.if_test(expr.less(Duration.dt(10), Duration.dt(100))):
+            pass
+        with (
+            io.BytesIO() as fptr,
+            self.assertRaisesRegex(
+                UnsupportedFeatureForVersion, "version 14 is required.*duration"
             ),
         ):
             dump(qc, fptr, version=version)

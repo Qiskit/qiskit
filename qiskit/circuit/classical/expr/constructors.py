@@ -357,7 +357,7 @@ def logic_or(left: typing.Any, right: typing.Any, /) -> Expr:
 
 def _equal_like(op: Binary.Op, left: typing.Any, right: typing.Any) -> Expr:
     left, right = _lift_binary_operands(left, right)
-    if left.type.kind is not right.type.kind or left.type.kind is types.Stretch
+    if left.type.kind is not right.type.kind or left.type.kind is types.Stretch:
         raise TypeError(f"invalid types for '{op}': '{left.type}' and '{right.type}'")
     type = types.greater(left.type, right.type)
     return Binary(op, _coerce_lossless(left, type), _coerce_lossless(right, type), types.Bool())

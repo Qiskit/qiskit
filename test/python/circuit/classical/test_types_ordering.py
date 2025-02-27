@@ -151,7 +151,6 @@ class TestTypesOrdering(QiskitTestCase):
         with self.assertRaisesRegex(TypeError, "no ordering"):
             types.greater(types.Uint(8), types.Duration())
         with self.assertRaisesRegex(TypeError, "no ordering"):
-        with self.assertRaisesRegex(TypeError, "no ordering"):
             types.greater(types.Float(), types.Duration())
         with self.assertRaisesRegex(TypeError, "no ordering"):
             types.greater(types.Float(), types.Stretch())

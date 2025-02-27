@@ -391,14 +391,14 @@ def _write_expr_type(file_obj, type_: types.Type, version: int):
                 "float-typed expressions", required=14, target=version
             )
         file_obj.write(type_keys.ExprType.FLOAT)
-	elif type_.kind is types.Duration:
-	    if version < 14:
+    elif type_.kind is types.Duration:
+        if version < 14:
             raise exceptions.UnsupportedFeatureForVersion(
                 "duration-typed expressions", required=14, target=version
             )
         file_obj.write(type_keys.ExprType.DURATION)
     elif type_.kind is types.Stretch:
-	    if version < 14:
+        if version < 14:
             raise exceptions.UnsupportedFeatureForVersion(
                 "stretch-typed expressions", required=14, target=version
             )
