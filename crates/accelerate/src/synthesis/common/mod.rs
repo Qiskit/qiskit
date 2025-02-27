@@ -122,23 +122,40 @@ impl<'a> SynthesisData<'a> {
     }
 
     // Convenience functions
+
+    /// Appends XGate to the circuit.
     #[inline]
     pub fn x(&mut self, q: u32) {
         self.push_standard_gate(StandardGate::XGate, &[], &[q]);
     }
 
+    /// Appends HGate to the circuit.
     #[inline]
     pub fn h(&mut self, q: u32) {
         self.push_standard_gate(StandardGate::HGate, &[], &[q]);
     }
 
+    /// Appends TGate to the circuit.
     #[inline]
     pub fn t(&mut self, q: u32) {
         self.push_standard_gate(StandardGate::TGate, &[], &[q]);
     }
 
+    /// Appends TdgGate to the circuit.
     #[inline]
     pub fn tdg(&mut self, q: u32) {
         self.push_standard_gate(StandardGate::TdgGate, &[], &[q]);
+    }
+
+    /// Appends PhaseGate to the circuit.
+    #[inline]
+    pub fn p(&mut self, theta: f64, q: u32) {
+        self.push_standard_gate(StandardGate::PhaseGate, &[Param::Float(theta)], &[q]);
+    }
+
+    /// Appends CXGate to the circuit.
+    #[inline]
+    pub fn cx(&mut self, q1: u32, q2: u32) {
+        self.push_standard_gate(StandardGate::CXGate, &[], &[q1, q2]);
     }
 }
