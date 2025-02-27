@@ -25,6 +25,8 @@ from qiskit.circuit.library.standard_gates import (
     C3SXGate,
 )
 
+from qiskit._accelerate.synthesis.multi_controlled import py_c3x
+
 
 def synth_mcx_n_dirty_i15(
     num_ctrl_qubits: int,
@@ -302,38 +304,8 @@ def synth_mcx_noaux_v24(num_ctrl_qubits: int) -> QuantumCircuit:
 
 def synth_c3x() -> QuantumCircuit:
     """Efficient synthesis of 3-controlled X-gate."""
-
-    q = QuantumRegister(4, name="q")
-    qc = QuantumCircuit(q, name="mcx")
-    qc.h(3)
-    qc.p(np.pi / 8, [0, 1, 2, 3])
-    qc.cx(0, 1)
-    qc.p(-np.pi / 8, 1)
-    qc.cx(0, 1)
-    qc.cx(1, 2)
-    qc.p(-np.pi / 8, 2)
-    qc.cx(0, 2)
-    qc.p(np.pi / 8, 2)
-    qc.cx(1, 2)
-    qc.p(-np.pi / 8, 2)
-    qc.cx(0, 2)
-    qc.cx(2, 3)
-    qc.p(-np.pi / 8, 3)
-    qc.cx(1, 3)
-    qc.p(np.pi / 8, 3)
-    qc.cx(2, 3)
-    qc.p(-np.pi / 8, 3)
-    qc.cx(0, 3)
-    qc.p(np.pi / 8, 3)
-    qc.cx(2, 3)
-    qc.p(-np.pi / 8, 3)
-    qc.cx(1, 3)
-    qc.p(np.pi / 8, 3)
-    qc.cx(2, 3)
-    qc.p(-np.pi / 8, 3)
-    qc.cx(0, 3)
-    qc.h(3)
-    return qc
+    circ = QuantumCircuit._from_circuit_data(py_c3x())
+    return circ
 
 
 def synth_c4x() -> QuantumCircuit:
