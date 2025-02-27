@@ -12,25 +12,32 @@
 
 #![allow(dead_code)]
 
-use qiskit_circuit::operations::{OperationRef, Param, StandardGate, StandardInstruction};
+use pyo3::{PyResult, Python};
+use qiskit_circuit::{
+    circuit_data::CircuitData,
+    operations::{OperationRef, Param, StandardGate, StandardInstruction},
+    Qubit,
+};
 use smallvec::SmallVec;
 
 /// A triple consisting of the circuit operation, its parameters, and the indices of the
 /// qubits its defined on.
-type SynthesisEntry<'a> = (OperationRef<'a>, SmallVec<[Param; 3]>, SmallVec<[usize; 2]>);
+// ToDo: will we ever need to reason about non-Float parameters? Should we then replace
+// this by ``SmallVec<[f64; 3]>``?
+type SynthesisEntry<'a> = (OperationRef<'a>, SmallVec<[Param; 3]>, SmallVec<[u32; 2]>);
 
 /// Represents the synthesized circuit. Ideally, this should be replaced by [CircuitData],
 /// however at the moment [CircuitData] has too high of an overhead.
 #[derive(Debug)]
 pub struct SynthesisData<'a> {
-    num_qubits: usize,
+    num_qubits: u32,
     data: Vec<SynthesisEntry<'a>>,
     global_phase: f64,
 }
 
 impl<'a> SynthesisData<'a> {
     /// Creates a new empty circuit.
-    pub fn new(num_qubits: usize) -> Self {
+    pub fn new(num_qubits: u32) -> Self {
         Self {
             num_qubits,
             data: Vec::new(),
@@ -40,12 +47,7 @@ impl<'a> SynthesisData<'a> {
 
     /// Appends a [StandardGate] to the  circuit.
     #[inline]
-    pub fn push_standard_gate(
-        &mut self,
-        operation: StandardGate,
-        params: &[Param],
-        qargs: &[usize],
-    ) {
+    pub fn push_standard_gate(&mut self, operation: StandardGate, params: &[Param], qargs: &[u32]) {
         self.data.push((
             OperationRef::StandardGate(operation),
             params.into(),
@@ -59,7 +61,7 @@ impl<'a> SynthesisData<'a> {
         &mut self,
         operation: StandardInstruction,
         params: &[Param],
-        qargs: &[usize],
+        qargs: &[u32],
     ) {
         self.data.push((
             OperationRef::StandardInstruction(operation),
@@ -70,19 +72,19 @@ impl<'a> SynthesisData<'a> {
 
     /// Composes ``other`` into ``self``, while optionally remapping the
     /// qubits over which ``other`` is defined.
-    pub fn compose(&mut self, other: &Self, qubit_map: Option<&[usize]>) {
-        for entry in &other.data {
-            let remapped_qubits: SmallVec<[usize; 2]> = match qubit_map {
-                Some(qubit_map) => (entry.2).iter().map(|q| qubit_map[*q]).collect(),
-                None => entry.2.clone(),
+    pub fn compose(&mut self, other: &Self, qubit_map: Option<&[u32]>) {
+        for (op, params, qubits) in &other.data {
+            let remapped_qubits: SmallVec<[u32; 2]> = match qubit_map {
+                Some(qubit_map) => qubits.iter().map(|q| qubit_map[*q as usize]).collect(),
+                None => qubits.clone(),
             };
 
-            match entry.0 {
+            match op {
                 OperationRef::StandardGate(operation) => {
-                    self.push_standard_gate(operation, &entry.1, &remapped_qubits);
+                    self.push_standard_gate(*operation, params, &remapped_qubits);
                 }
                 OperationRef::StandardInstruction(operation) => {
-                    self.push_standard_instruction(operation, &entry.1, &remapped_qubits);
+                    self.push_standard_instruction(*operation, params, &remapped_qubits);
                 }
                 _ => {
                     panic!("Other OperationRef types are not yet supported.");
@@ -91,5 +93,52 @@ impl<'a> SynthesisData<'a> {
         }
 
         self.global_phase += other.global_phase;
+    }
+
+    /// Converts to [CircuitData].
+    pub fn to_circuit_data(&self, py: Python) -> PyResult<CircuitData> {
+        let mut circuit = CircuitData::with_capacity(
+            py,
+            self.num_qubits,
+            0,
+            self.data.len(),
+            Param::Float(self.global_phase),
+        )?;
+        for (op, params, qubits) in &self.data {
+            let circuit_qubits: Vec<Qubit> = qubits.iter().map(|q| Qubit(*q)).collect();
+            match op {
+                OperationRef::StandardGate(operation) => {
+                    circuit.push_standard_gate(*operation, params, &circuit_qubits)?;
+                }
+                OperationRef::StandardInstruction(operation) => {
+                    circuit.push_standard_instruction(*operation, params, &circuit_qubits, &[])?;
+                }
+                _ => {
+                    panic!("Other OperationRef types are not yet supported.");
+                }
+            }
+        }
+        Ok(circuit)
+    }
+
+    // Convenience functions
+    #[inline]
+    pub fn x(&mut self, q: u32) {
+        self.push_standard_gate(StandardGate::XGate, &[], &[q]);
+    }
+
+    #[inline]
+    pub fn h(&mut self, q: u32) {
+        self.push_standard_gate(StandardGate::HGate, &[], &[q]);
+    }
+
+    #[inline]
+    pub fn t(&mut self, q: u32) {
+        self.push_standard_gate(StandardGate::TGate, &[], &[q]);
+    }
+
+    #[inline]
+    pub fn tdg(&mut self, q: u32) {
+        self.push_standard_gate(StandardGate::TdgGate, &[], &[q]);
     }
 }
