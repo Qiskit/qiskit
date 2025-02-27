@@ -10,7 +10,9 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+pub mod bit;
 pub mod bit_data;
+pub mod bit_locator;
 pub mod circuit_data;
 pub mod circuit_instruction;
 pub mod converters;
@@ -24,6 +26,8 @@ pub mod interner;
 pub mod operations;
 pub mod packed_instruction;
 pub mod parameter_table;
+pub mod register;
+pub mod register_data;
 pub mod slice;
 pub mod util;
 
@@ -157,6 +161,14 @@ macro_rules! impl_intopyobject_for_copy_pyclass {
 }
 
 pub fn circuit(m: &Bound<PyModule>) -> PyResult<()> {
+    m.add_class::<bit::PyBit>()?;
+    m.add_class::<bit::PyClbit>()?;
+    m.add_class::<bit::PyQubit>()?;
+    m.add_class::<bit::PyAncillaQubit>()?;
+    m.add_class::<register::PyRegister>()?;
+    m.add_class::<register::PyClassicalRegister>()?;
+    m.add_class::<register::PyQuantumRegister>()?;
+    m.add_class::<register::PyAncillaRegister>()?;
     m.add_class::<circuit_data::CircuitData>()?;
     m.add_class::<circuit_instruction::CircuitInstruction>()?;
     m.add_class::<dag_circuit::DAGCircuit>()?;
@@ -164,6 +176,7 @@ pub fn circuit(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<dag_node::DAGInNode>()?;
     m.add_class::<dag_node::DAGOutNode>()?;
     m.add_class::<dag_node::DAGOpNode>()?;
+    m.add_class::<dag_circuit::PyBitLocations>()?;
     m.add_class::<operations::StandardGate>()?;
     m.add_class::<operations::StandardInstructionType>()?;
     Ok(())
