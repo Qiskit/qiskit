@@ -42,6 +42,7 @@ from qiskit.transpiler.passes.optimization import (
     ConsolidateBlocks,
     InverseCancellation,
     RemoveIdentityEquivalent,
+    ContractIdleWiresInControlFlow,
 )
 from qiskit.transpiler.passes import Depth, Size, FixedPoint, MinimumPoint
 from qiskit.transpiler.passes.utils.gates_basis import GatesInBasis
@@ -66,7 +67,7 @@ from qiskit.circuit.library.standard_gates import (
     SXGate,
     SXdgGate,
 )
-from qiskit.utils.parallel import CPU_COUNT
+from qiskit.utils import default_num_processes
 from qiskit import user_config
 
 CONFIG = user_config.get_config()
@@ -125,22 +126,25 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                     pass_manager_config.qubits_initially_zero,
                 )
             init.append(
-                InverseCancellation(
-                    [
-                        CXGate(),
-                        ECRGate(),
-                        CZGate(),
-                        CYGate(),
-                        XGate(),
-                        YGate(),
-                        ZGate(),
-                        HGate(),
-                        SwapGate(),
-                        (TGate(), TdgGate()),
-                        (SGate(), SdgGate()),
-                        (SXGate(), SXdgGate()),
-                    ]
-                )
+                [
+                    InverseCancellation(
+                        [
+                            CXGate(),
+                            ECRGate(),
+                            CZGate(),
+                            CYGate(),
+                            XGate(),
+                            YGate(),
+                            ZGate(),
+                            HGate(),
+                            SwapGate(),
+                            (TGate(), TdgGate()),
+                            (SGate(), SdgGate()),
+                            (SXGate(), SXdgGate()),
+                        ]
+                    ),
+                    ContractIdleWiresInControlFlow(),
+                ]
             )
 
         elif optimization_level in {2, 3}:
@@ -155,31 +159,32 @@ class DefaultInitPassManager(PassManagerStagePlugin):
             )
             if pass_manager_config.routing_method != "none":
                 init.append(ElidePermutations())
-            init.append(RemoveDiagonalGatesBeforeMeasure())
-            # Target not set on RemoveIdentityEquivalent because we haven't applied a Layout
-            # yet so doing anything relative to an error rate in the target is not valid.
             init.append(
-                RemoveIdentityEquivalent(
-                    approximation_degree=pass_manager_config.approximation_degree
-                )
-            )
-            init.append(
-                InverseCancellation(
-                    [
-                        CXGate(),
-                        ECRGate(),
-                        CZGate(),
-                        CYGate(),
-                        XGate(),
-                        YGate(),
-                        ZGate(),
-                        HGate(),
-                        SwapGate(),
-                        (TGate(), TdgGate()),
-                        (SGate(), SdgGate()),
-                        (SXGate(), SXdgGate()),
-                    ]
-                )
+                [
+                    RemoveDiagonalGatesBeforeMeasure(),
+                    # Target not set on RemoveIdentityEquivalent because we haven't applied a Layout
+                    # yet so doing anything relative to an error rate in the target is not valid.
+                    RemoveIdentityEquivalent(
+                        approximation_degree=pass_manager_config.approximation_degree
+                    ),
+                    InverseCancellation(
+                        [
+                            CXGate(),
+                            ECRGate(),
+                            CZGate(),
+                            CYGate(),
+                            XGate(),
+                            YGate(),
+                            ZGate(),
+                            HGate(),
+                            SwapGate(),
+                            (TGate(), TdgGate()),
+                            (SGate(), SdgGate()),
+                            (SXGate(), SXdgGate()),
+                        ]
+                    ),
+                    ContractIdleWiresInControlFlow(),
+                ]
             )
             init.append(CommutativeCancellation())
             init.append(ConsolidateBlocks())
@@ -539,6 +544,7 @@ class OptimizationPassManager(PassManagerStagePlugin):
                             (SXGate(), SXdgGate()),
                         ]
                     ),
+                    ContractIdleWiresInControlFlow(),
                 ]
 
             elif optimization_level == 2:
@@ -551,6 +557,7 @@ class OptimizationPassManager(PassManagerStagePlugin):
                         basis=pass_manager_config.basis_gates, target=pass_manager_config.target
                     ),
                     CommutativeCancellation(target=pass_manager_config.target),
+                    ContractIdleWiresInControlFlow(),
                 ]
             elif optimization_level == 3:
                 # Steps for optimization level 3
@@ -576,6 +583,7 @@ class OptimizationPassManager(PassManagerStagePlugin):
                         basis=pass_manager_config.basis_gates, target=pass_manager_config.target
                     ),
                     CommutativeCancellation(target=pass_manager_config.target),
+                    ContractIdleWiresInControlFlow(),
                 ]
 
                 def _opt_control(property_set):
@@ -983,5 +991,5 @@ class SabreLayoutPassManager(PassManagerStagePlugin):
 
 def _get_trial_count(default_trials=5):
     if CONFIG.get("sabre_all_threads", None) or os.getenv("QISKIT_SABRE_ALL_THREADS"):
-        return max(CPU_COUNT, default_trials)
+        return max(default_num_processes(), default_trials)
     return default_trials
