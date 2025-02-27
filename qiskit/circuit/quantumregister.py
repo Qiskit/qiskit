@@ -15,9 +15,4 @@
 """
 Quantum register reference object.
 """
-from qiskit._accelerate import circuit
-
-Qubit = circuit.Qubit
-QuantumRegister = circuit.QuantumRegister
-AncillaQubit = circuit.AncillaQubit
-AncillaRegister = circuit.AncillaRegister
+from qiskit._accelerate.circuit import Qubit, QuantumRegister, AncillaQubit, AncillaRegister

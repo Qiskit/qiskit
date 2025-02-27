@@ -39,7 +39,6 @@ class BlueprintCircuit(QuantumCircuit, ABC):
         super().__init__(*regs, name=name)
         self._qregs: list[QuantumRegister] = []
         self._cregs: list[ClassicalRegister] = []
-        # self._qubit_indices = {}
         self._is_built = False
         self._is_initialized = True
 
@@ -97,7 +96,6 @@ class BlueprintCircuit(QuantumCircuit, ABC):
             return
         self._qregs = []
         self._ancillas = []
-        # self._qubit_indices = {}
         self._data = CircuitData(clbits=self._data.clbits)
         self.global_phase = 0
         self._is_built = False

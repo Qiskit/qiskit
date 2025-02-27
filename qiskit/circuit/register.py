@@ -18,6 +18,4 @@ Base register reference object.
 
 from __future__ import annotations
 
-from qiskit._accelerate import circuit
-
-Register = circuit.Register
+from qiskit._accelerate.circuit import Register

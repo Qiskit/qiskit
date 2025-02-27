@@ -14,6 +14,4 @@
 Quantum bit and Classical bit objects.
 """
 
-from qiskit._accelerate import circuit
-
-Bit = circuit.Bit
+from qiskit._accelerate.circuit import Bit

@@ -16,7 +16,4 @@
 Classical register reference object.
 """
 
-from qiskit._accelerate import circuit
-
-Clbit = circuit.Clbit
-ClassicalRegister = circuit.ClassicalRegister
+from qiskit._accelerate.circuit import Clbit, ClassicalRegister
