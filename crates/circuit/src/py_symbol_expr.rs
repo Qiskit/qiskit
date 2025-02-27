@@ -170,6 +170,26 @@ impl PySymbolExpr {
             expr: self.expr.sign(),
         }
     }
+    pub fn pow(&self, rhs: ParameterValue) -> Self {
+        match rhs {
+            ParameterValue::Real(r) => Self {
+                expr: self.expr.pow(&SymbolExpr::Value(Value::from(r))),
+            },
+            ParameterValue::Complex(c) => Self {
+                expr: self.expr.pow(&SymbolExpr::Value(Value::from(c))),
+            },
+            ParameterValue::Int(r) => Self {
+                expr: self.expr.pow(&SymbolExpr::Value(Value::from(r))),
+            },
+            ParameterValue::Str(s) => Self {
+                expr: self.expr.pow(&parse_expression(&s)),
+            },
+            ParameterValue::Expr(e) => Self {
+                expr: self.expr.pow(&e.expr),
+            },
+        }
+    }
+
     /// return complex number if expression does not have symbols
     pub fn complex(&self) -> PyResult<Complex64> {
         match self.expr.eval(true) {
@@ -183,7 +203,7 @@ impl PySymbolExpr {
             )),
         }
     }
-    /// return real number if expression does not have symbols
+    /// return floating number if expression does not have symbols
     pub fn float(&self) -> PyResult<f64> {
         match self.expr.eval(true) {
             Some(v) => match v {
@@ -198,6 +218,27 @@ impl PySymbolExpr {
             )),
         }
     }
+
+    // return real number if expression does not have symbols
+    pub fn real(&self) -> PyResult<f64> {
+        match self.expr.real() {
+            Some(r) => Ok(r),
+            None => Err(pyo3::exceptions::PyRuntimeError::new_err(
+                "Expression has some undefined symbols.",
+            )),
+        }
+    }
+
+    // return imaginary number if expression does not have symbols
+    pub fn imag(&self) -> PyResult<f64> {
+        match self.expr.imag() {
+            Some(r) => Ok(r),
+            None => Err(pyo3::exceptions::PyRuntimeError::new_err(
+                "Expression has some undefined symbols.",
+            )),
+        }
+    }
+
     /// return integer number if expression does not have symbols
     pub fn int(&self) -> PyResult<i64> {
         match self.expr.eval(true) {
@@ -237,6 +278,23 @@ impl PySymbolExpr {
     pub fn expand(&self) -> Self {
         Self {
             expr: self.expr.expand(),
+        }
+    }
+
+    /// helper function to calculate reciprocal of the equation
+    pub fn rcp(&self) -> Self {
+        Self {
+            expr: self.expr.rcp(),
+        }
+    }
+
+    /// helper function to calculate square root of the equation
+    pub fn sqrt(&self) -> Self {
+        Self {
+            expr: match &self.expr {
+                SymbolExpr::Value(v) => SymbolExpr::Value(v.sqrt()),
+                _ => self.expr.pow(&SymbolExpr::Value(Value::Real(0.5))),
+            },
         }
     }
 
@@ -585,24 +643,9 @@ impl PySymbolExpr {
         }
     }
     pub fn __pow__(&self, rhs: ParameterValue, _modulo: Option<i32>) -> Self {
-        match rhs {
-            ParameterValue::Real(r) => Self {
-                expr: self.expr.pow(&SymbolExpr::Value(Value::from(r))),
-            },
-            ParameterValue::Complex(c) => Self {
-                expr: self.expr.pow(&SymbolExpr::Value(Value::from(c))),
-            },
-            ParameterValue::Int(r) => Self {
-                expr: self.expr.pow(&SymbolExpr::Value(Value::from(r))),
-            },
-            ParameterValue::Str(s) => Self {
-                expr: self.expr.pow(&parse_expression(&s)),
-            },
-            ParameterValue::Expr(e) => Self {
-                expr: self.expr.pow(&e.expr),
-            },
-        }
+        self.pow(rhs)
     }
+
     pub fn __rpow__(&self, rhs: ParameterValue, _modulo: Option<i32>) -> Self {
         match rhs {
             ParameterValue::Real(r) => Self {
@@ -699,4 +742,9 @@ pub fn log(expr: &PySymbolExpr) -> PySymbolExpr {
 #[pyfunction]
 pub fn sign(expr: &PySymbolExpr) -> PySymbolExpr {
     expr.sign()
+}
+
+#[pyfunction]
+pub fn pow(lhs: &PySymbolExpr, rhs: ParameterValue) -> PySymbolExpr {
+    lhs.pow(rhs)
 }
