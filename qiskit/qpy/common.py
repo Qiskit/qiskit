@@ -308,7 +308,7 @@ def mapping_from_binary(binary_data, deserializer, **kwargs):
     return mapping
 
 
-@HAS_SYMENGINE.require_in_call
+@HAS_SYMENGINE.require_in_call("QPY versions 10 through 12 with symengine parameter serialization")
 def load_symengine_payload(payload: bytes):
     """Load a symengine expression from it's serialized cereal payload."""
     # This is a horrible hack to workaround the symengine version checking
