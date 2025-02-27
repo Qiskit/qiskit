@@ -1143,6 +1143,29 @@ impl CircuitData {
         Ok(())
     }
 
+    /// Append a packed operation to this CircuitData
+    pub fn push_packed_operation(
+        &mut self,
+        operation: PackedOperation,
+        params: &[Param],
+        qargs: &[Qubit],
+        cargs: &[Clbit],
+    ) -> PyResult<()> {
+        let params = (!params.is_empty()).then(|| Box::new(params.iter().cloned().collect()));
+        let qubits = self.qargs_interner.insert(qargs);
+        let clbits = self.cargs_interner.insert(cargs);
+        self.data.push(PackedInstruction {
+            op: operation,
+            qubits,
+            clbits,
+            params,
+            label: None,
+            #[cfg(feature = "cache_pygates")]
+            py_op: OnceLock::new(),
+        });
+        Ok(())
+    }
+
     /// Add the entries from the `PackedInstruction` at the given index to the internal parameter
     /// table.
     fn track_instruction_parameters(
