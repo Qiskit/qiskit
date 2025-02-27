@@ -28,7 +28,12 @@ from qiskit.quantum_info.operators.predicates import matrix_equal, is_unitary_ma
 from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info.states import Statevector
 import qiskit.circuit.add_control as ac
-from qiskit.transpiler.passes import UnrollCustomDefinitions, BasisTranslator, HLSConfig
+from qiskit.transpiler.passes import (
+    UnrollCustomDefinitions,
+    BasisTranslator,
+    HLSConfig,
+    Unroll3qOrMore,
+)
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.converters.dag_to_circuit import dag_to_circuit
@@ -795,15 +800,10 @@ class TestControlledGate(QiskitTestCase):
 
     @data(5, 10, 15)
     def test_mcxvchain_dirty_ancilla_cx_count(self, num_ctrl_qubits):
-        """Test if cx count of the v-chain mcx with dirty ancilla
+        """Test if cx count of the n_dirty_i15 (former v-chain) mcx with dirty ancilla
         is less than upper bound."""
-        mcx_vchain = MCXVChain(num_ctrl_qubits, dirty_ancillas=True)
-        qc = QuantumCircuit(mcx_vchain.num_qubits)
-
-        qc.append(mcx_vchain, list(range(mcx_vchain.num_qubits)))
-
-        tr_mcx_vchain = transpile(qc, basis_gates=["u", "cx"])
-        cx_count = tr_mcx_vchain.count_ops()["cx"]
+        tr_mcx_vchain = synth_mcx_n_dirty_i15(num_ctrl_qubits)
+        cx_count = Unroll3qOrMore()(tr_mcx_vchain).count_ops()["cx"]
 
         self.assertLessEqual(cx_count, 8 * num_ctrl_qubits - 6)
 
@@ -825,35 +825,36 @@ class TestControlledGate(QiskitTestCase):
     def test_mcxrecursive_clean_ancilla_cx_count(self, num_ctrl_qubits):
         """Test if cx count of the mcx with one clean ancilla is less than upper bound."""
         qc = QuantumCircuit(num_ctrl_qubits + 2)  # 1 target qubit, 1 auxiliary
-        qc.mcx(range(num_ctrl_qubits), num_ctrl_qubits)
+        qc.mcx(list(range(num_ctrl_qubits)), num_ctrl_qubits)
 
         hls_config = HLSConfig(mcx=["1_clean_b95"])
 
-        tr_mcx_rec = transpile(qc, basis_gates=["u", "cx"], hls_config=hls_config)
+        tr_mcx_rec = transpile(
+            qc, basis_gates=["u", "cx"], hls_config=hls_config, seed_transpiler=1
+        )
         cx_count = tr_mcx_rec.count_ops()["cx"]
 
         self.assertLessEqual(cx_count, 16 * num_ctrl_qubits - 8)
 
     def test_mcxvchain_dirty_ancilla_action_only(self):
-        """Test the v-chain mcx with dirty auxiliary qubits
+        """Test the n_dirty_i15 mcx (former v-chain) with dirty auxiliary qubits
         with gate cancelling with mirrored circuit."""
-
         num_ctrl_qubits = 5
 
-        gate = MCXVChain(num_ctrl_qubits, dirty_ancillas=True)
-        gate_with_cancelling = MCXVChain(num_ctrl_qubits, dirty_ancillas=True, action_only=True)
+        without_cancelling = synth_mcx_n_dirty_i15(num_ctrl_qubits, action_only=False)
+        with_cancelling = synth_mcx_n_dirty_i15(num_ctrl_qubits, action_only=True)
 
-        num_qubits = gate.num_qubits
+        num_qubits = with_cancelling.num_qubits
         ref_circuit = QuantumCircuit(num_qubits)
         circuit = QuantumCircuit(num_qubits)
 
-        ref_circuit.append(gate, list(range(num_qubits)), [])
+        ref_circuit.compose(without_cancelling, inplace=True)
         ref_circuit.h(num_ctrl_qubits)
-        ref_circuit.append(gate, list(range(num_qubits)), [])
+        ref_circuit.compose(without_cancelling, inplace=True)
 
-        circuit.append(gate_with_cancelling, list(range(num_qubits)), [])
+        circuit.compose(with_cancelling, inplace=True)
         circuit.h(num_ctrl_qubits)
-        circuit.append(gate_with_cancelling.inverse(), list(range(num_qubits)), [])
+        circuit.compose(with_cancelling, inplace=True)
 
         self.assertTrue(matrix_equal(Operator(circuit).data, Operator(ref_circuit).data))
 
