@@ -638,7 +638,9 @@ def _read_custom_operations(file_obj, version, vectors):
     return custom_operations
 
 
-def _read_calibrations(file_obj, version, vectors, metadata_deserializer):
+def _read_calibrations(
+    file_obj, version, vectors, metadata_deserializer, use_symengine, trust_input=False
+):
     calibrations = {}
 
     header = formats.CALIBRATION._make(
@@ -656,7 +658,13 @@ def _read_calibrations(file_obj, version, vectors, metadata_deserializer):
         params = tuple(
             value.read_value(file_obj, version, vectors) for _ in range(defheader.num_params)
         )
-        schedule = schedules.read_schedule_block(file_obj, version, metadata_deserializer)
+        schedule = schedules.read_schedule_block(
+            file_obj,
+            version,
+            metadata_deserializer,
+            use_symengine=use_symengine,
+            trust_input=trust_input,
+        )
 
         if name not in calibrations:
             calibrations[name] = {(qubits, params): schedule}
@@ -1327,7 +1335,9 @@ def write_circuit(
     _write_layout(file_obj, circuit)
 
 
-def read_circuit(file_obj, version, metadata_deserializer=None, use_symengine=False):
+def read_circuit(
+    file_obj, version, metadata_deserializer=None, use_symengine=False, trust_input=False
+):
     """Read a single QuantumCircuit object from the file like object.
 
     Args:
@@ -1345,6 +1355,7 @@ def read_circuit(file_obj, version, metadata_deserializer=None, use_symengine=Fa
             supported in all platforms. Please check that your target platform is supported by
             the symengine library before setting this option, as it will be required by qpy to
             deserialize the payload.
+        trust_input (bool): If true serialize vulnerable schedule block payloads
     Returns:
         QuantumCircuit: The circuit object from the file.
 
@@ -1454,7 +1465,12 @@ def read_circuit(file_obj, version, metadata_deserializer=None, use_symengine=Fa
     # Read calibrations
     if version >= 5:
         circ._calibrations_prop = _read_calibrations(
-            file_obj, version, vectors, metadata_deserializer
+            file_obj,
+            version,
+            vectors,
+            metadata_deserializer,
+            use_symengine,
+            trust_input=trust_input,
         )
 
     for vec_name, (vector, initialized_params) in vectors.items():

@@ -307,11 +307,13 @@ def _loads_operand(type_key, data_bytes, version, use_symengine):
     return value.loads_value(type_key, data_bytes, version, {})
 
 
-def _read_element(file_obj, version, metadata_deserializer, use_symengine):
+def _read_element(file_obj, version, metadata_deserializer, use_symengine, trust_input=False):
     type_key = common.read_type_key(file_obj)
 
     if type_key == type_keys.Program.SCHEDULE_BLOCK:
-        return read_schedule_block(file_obj, version, metadata_deserializer, use_symengine)
+        return read_schedule_block(
+            file_obj, version, metadata_deserializer, use_symengine, trust_input=trust_input
+        )
 
     operands = common.read_sequence(
         file_obj, deserializer=_loads_operand, version=version, use_symengine=use_symengine
@@ -326,7 +328,7 @@ def _read_element(file_obj, version, metadata_deserializer, use_symengine):
     return instance
 
 
-def _loads_reference_item(type_key, data_bytes, metadata_deserializer, version):
+def _loads_reference_item(type_key, data_bytes, metadata_deserializer, version, trust_input=False):
     if type_key == type_keys.Value.NULL:
         return None
     if type_key == type_keys.Program.SCHEDULE_BLOCK:
@@ -335,6 +337,7 @@ def _loads_reference_item(type_key, data_bytes, metadata_deserializer, version):
             deserializer=read_schedule_block,
             version=version,
             metadata_deserializer=metadata_deserializer,
+            trust_input=trust_input,
         )
 
     raise QpyError(
@@ -512,7 +515,9 @@ def _dumps_reference_item(schedule, metadata_serializer, version):
 
 
 @ignore_pulse_deprecation_warnings
-def read_schedule_block(file_obj, version, metadata_deserializer=None, use_symengine=False):
+def read_schedule_block(
+    file_obj, version, metadata_deserializer=None, use_symengine=False, trust_input=False
+):
     """Read a single ScheduleBlock from the file like object.
 
     Args:
@@ -529,6 +534,13 @@ def read_schedule_block(file_obj, version, metadata_deserializer=None, use_symen
             native mechanism. This is a faster serialization alternative, but not supported in all
             platforms. Please check that your target platform is supported by the symengine library
             before setting this option, as it will be required by qpy to deserialize the payload.
+        trust_input (bool): if set to ``False`` (the default)
+            :class:`.ScheduleBlock` objects in the payload that were
+            serialized using ``sympy`` are not allowed and will error. This
+            is because the ``sympy`` parsing can allow for arbitrary code
+            execution because it uses :func:`.eval`. This should only be set
+            to ``True`` if you trust the QPY payload you are loading.
+
     Returns:
         ScheduleBlock: The schedule block object from the file.
 
@@ -538,6 +550,13 @@ def read_schedule_block(file_obj, version, metadata_deserializer=None, use_symen
     """
     if version < 5:
         raise QiskitError(f"QPY version {version} does not support ScheduleBlock.")
+
+    if not use_symengine and not trust_input:
+        raise QpyError(
+            "This payload can not be loaded unless you set ``trust_payload`` to "
+            "True, as it's using sympy for serialization symbolic expressions which "
+            "is insecure."
+        )
 
     data = formats.SCHEDULE_BLOCK_HEADER._make(
         struct.unpack(
@@ -556,7 +575,9 @@ def read_schedule_block(file_obj, version, metadata_deserializer=None, use_symen
         alignment_context=context,
     )
     for _ in range(data.num_elements):
-        block_elm = _read_element(file_obj, version, metadata_deserializer, use_symengine)
+        block_elm = _read_element(
+            file_obj, version, metadata_deserializer, use_symengine, trust_input=trust_input
+        )
         block.append(block_elm, inplace=True)
 
     # Load references
@@ -566,6 +587,7 @@ def read_schedule_block(file_obj, version, metadata_deserializer=None, use_symen
             deserializer=_loads_reference_item,
             version=version,
             metadata_deserializer=metadata_deserializer,
+            trust_input=trust_input,
         )
         ref_dict = {}
         for key_str, schedule in flat_key_refdict.items():

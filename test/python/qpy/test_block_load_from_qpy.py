@@ -39,7 +39,7 @@ from qiskit.pulse.channels import (
 from qiskit.pulse.instructions import Play, TimeBlockade
 from qiskit.circuit import Parameter, QuantumCircuit, Gate
 from qiskit.qpy import dump, load
-from qiskit.qpy.exceptions import QPYLoadingDeprecatedFeatureWarning
+from qiskit.qpy.exceptions import QPYLoadingDeprecatedFeatureWarning, QpyError
 from qiskit.utils import optionals as _optional
 from qiskit.pulse.configuration import Kernel, Discriminator
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
@@ -48,13 +48,13 @@ from test import QiskitTestCase  # pylint: disable=wrong-import-order
 class QpyScheduleTestCase(QiskitTestCase):
     """QPY schedule testing platform."""
 
-    def assert_roundtrip_equal(self, block, use_symengine=False):
+    def assert_roundtrip_equal(self, block, use_symengine=False, trust_input=True):
         """QPY roundtrip equal test."""
         qpy_file = io.BytesIO()
         with self.assertWarns(DeprecationWarning):
             dump(block, qpy_file, use_symengine=use_symengine)
         qpy_file.seek(0)
-        new_block = load(qpy_file)[0]
+        new_block = load(qpy_file, trust_payload=trust_input)[0]
 
         self.assertEqual(block, new_block)
 
@@ -484,6 +484,22 @@ class TestPulseGate(QpyScheduleTestCase):
             qc.add_calibration("measure", (0,), sched)
 
         self.assert_roundtrip_equal(qc)
+
+    def test_insecure_errors(self):
+        """Check an error is raised if the payload is insecure."""
+        discriminator = Discriminator("my_discriminator")
+
+        with self.assertWarns(DeprecationWarning):
+            with builder.build() as sched:
+                builder.acquire(10, AcquireChannel(0), MemorySlot(0), discriminator=discriminator)
+
+        qc = QuantumCircuit(1, 1)
+        qc.measure(0, 0)
+        with self.assertWarns(DeprecationWarning):
+            qc.add_calibration("measure", (0,), sched)
+
+        with self.assertRaises(QpyError):
+            self.assert_roundtrip_equal(qc, trust_input=False)
 
 
 class TestSymengineLoadFromQPY(QiskitTestCase):
