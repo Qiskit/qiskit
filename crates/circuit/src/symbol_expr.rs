@@ -283,8 +283,8 @@ impl SymbolExpr {
     pub fn complex(&self) -> Option<Complex64> {
         match self.eval(true) {
             Some(v) => match v {
-                Value::Real(_) => Some(0.0.into()),
-                Value::Int(_) => Some(0.0.into()),
+                Value::Real(r) => Some(r.into()),
+                Value::Int(i) => Some((i as f64).into()),
                 Value::Complex(c) => Some(c),
             },
             None => None,
@@ -324,11 +324,15 @@ impl SymbolExpr {
     /// return reciprocal of the equation
     pub fn rcp(&self) -> SymbolExpr {
         match self {
-            SymbolExpr::Symbol(e) => {
-                _div(SymbolExpr::Value(Value::Real(1.0)), SymbolExpr::Symbol(e.clone()))
-            }
+            SymbolExpr::Symbol(e) => _div(
+                SymbolExpr::Value(Value::Real(1.0)),
+                SymbolExpr::Symbol(e.clone()),
+            ),
             SymbolExpr::Value(e) => SymbolExpr::Value(e.rcp()),
-            SymbolExpr::Unary(e) => _div(SymbolExpr::Value(Value::Real(1.0)), SymbolExpr::Unary(e.clone())),
+            SymbolExpr::Unary(e) => _div(
+                SymbolExpr::Value(Value::Real(1.0)),
+                SymbolExpr::Unary(e.clone()),
+            ),
             SymbolExpr::Binary(ref e) => match e.op {
                 BinaryOps::Div => SymbolExpr::Binary(Arc::new(Binary {
                     op: e.op.clone(),
@@ -337,6 +341,13 @@ impl SymbolExpr {
                 })),
                 _ => _div(SymbolExpr::Value(Value::Real(1.0)), self.clone()),
             },
+        }
+    }
+    /// return square root of the equation
+    pub fn sqrt(&self) -> SymbolExpr {
+        match self {
+            SymbolExpr::Value(v) => SymbolExpr::Value(v.sqrt()),
+            _ => self.pow(&SymbolExpr::Value(Value::Real(0.5))),
         }
     }
 
@@ -1427,29 +1438,33 @@ impl Value {
     }
     pub fn sqrt(&self) -> Value {
         match self {
-            Value::Real(e) => if *e < 0.0 {
-                Value::Complex(Complex64::from(e).powf(0.5))
-            } else {
-                Value::Real(e.sqrt())
-            },
-            Value::Int(e) => if *e < 0 {
-                Value::Complex(Complex64::from(*e as f64).powf(0.5))
-            } else {
-                let t = (*e as f64).sqrt();
-                let d = t.floor() - t;
-                if (-f64::EPSILON..f64::EPSILON).contains(&d) {
-                    Value::Int(t as i64)
+            Value::Real(e) => {
+                if *e < 0.0 {
+                    Value::Complex(Complex64::from(e).powf(0.5))
                 } else {
-                    Value::Real(t)
+                    Value::Real(e.sqrt())
                 }
-            },
+            }
+            Value::Int(e) => {
+                if *e < 0 {
+                    Value::Complex(Complex64::from(*e as f64).powf(0.5))
+                } else {
+                    let t = (*e as f64).sqrt();
+                    let d = t.floor() - t;
+                    if (-f64::EPSILON..f64::EPSILON).contains(&d) {
+                        Value::Int(t as i64)
+                    } else {
+                        Value::Real(t)
+                    }
+                }
+            }
             Value::Complex(e) => {
                 let t = Value::Complex(e.sqrt());
                 match t.opt_complex() {
                     Some(v) => v,
                     None => t,
                 }
-            },
+            }
         }
     }
     pub fn pow(&self, p: &Value) -> Value {

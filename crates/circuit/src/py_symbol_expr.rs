@@ -291,10 +291,7 @@ impl PySymbolExpr {
     /// helper function to calculate square root of the equation
     pub fn sqrt(&self) -> Self {
         Self {
-            expr: match &self.expr {
-                SymbolExpr::Value(v) => SymbolExpr::Value(v.sqrt()),
-                _ => self.expr.pow(&SymbolExpr::Value(Value::Real(0.5))),
-            },
+            expr: self.expr.sqrt(),
         }
     }
 
