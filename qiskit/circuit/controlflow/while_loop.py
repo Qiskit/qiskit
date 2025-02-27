@@ -61,6 +61,7 @@ class WhileLoopOp(ControlFlowOp):
 
     @property
     def condition(self):
+        """The condition for the while loop."""
         return self._condition
 
     @condition.setter
@@ -97,12 +98,6 @@ class WhileLoopOp(ControlFlowOp):
     def replace_blocks(self, blocks):
         (body,) = blocks
         return WhileLoopOp(self._condition, body, label=self.label)
-
-    def c_if(self, classical, val):
-        raise NotImplementedError(
-            "WhileLoopOp cannot be classically controlled through Instruction.c_if. "
-            "Please use an IfElseOp instead."
-        )
 
 
 class WhileLoopContext:

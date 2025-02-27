@@ -24,19 +24,32 @@ __all__ = ["Type", "Bool", "Float", "Uint"]
 import typing
 
 
+class _Singleton(type):
+    """Metaclass to make the child, which should take zero initialization arguments, a singleton
+    object."""
+
+    def _get_singleton_instance(cls):
+        return cls._INSTANCE
+
+    @classmethod
+    def __prepare__(mcs, name, bases):  # pylint: disable=unused-argument
+        return {"__new__": mcs._get_singleton_instance}
+
+    @staticmethod
+    def __new__(cls, name, bases, namespace):
+        out = super().__new__(cls, name, bases, namespace)
+        out._INSTANCE = object.__new__(out)  # pylint: disable=invalid-name
+        return out
+
+
 class Type:
     """Root base class of all nodes in the type tree.  The base case should never be instantiated
     directly.
 
     This must not be subclassed by users; subclasses form the internal data of the representation of
-    expressions, and it does not make sense to add more outside of Qiskit library code.
+    expressions, and it does not make sense to add more outside of Qiskit library code."""
 
-    All subclasses are responsible for setting the ``const`` attribute in their ``__init__``.
-    """
-
-    __slots__ = ("const",)
-
-    const: bool
+    __slots__ = ()
 
     @property
     def kind(self):
@@ -64,22 +77,19 @@ class Type:
 
 
 @typing.final
-class Bool(Type):
+class Bool(Type, metaclass=_Singleton):
     """The Boolean type.  This has exactly two values: ``True`` and ``False``."""
 
     __slots__ = ()
 
-    def __init__(self, *, const: bool = False):
-        super(Type, self).__setattr__("const", const)
-
     def __repr__(self):
-        return f"Bool(const={self.const})"
+        return "Bool()"
 
     def __hash__(self):
-        return hash((self.__class__, self.const))
+        return hash(self.__class__)
 
     def __eq__(self, other):
-        return isinstance(other, Bool) and self.const == other.const
+        return isinstance(other, Bool)
 
 
 @typing.final
@@ -88,38 +98,34 @@ class Uint(Type):
 
     __slots__ = ("width",)
 
-    def __init__(self, width: int, *, const: bool = False):
+    def __init__(self, width: int):
         if isinstance(width, int) and width <= 0:
             raise ValueError("uint width must be greater than zero")
-        super(Type, self).__setattr__("const", const)
         super(Type, self).__setattr__("width", width)
 
     def __repr__(self):
-        return f"Uint({self.width}, const={self.const})"
+        return f"Uint({self.width})"
 
     def __hash__(self):
-        return hash((self.__class__, self.const, self.width))
+        return hash((self.__class__, self.width))
 
     def __eq__(self, other):
-        return isinstance(other, Uint) and self.const == other.const and self.width == other.width
+        return isinstance(other, Uint) and self.width == other.width
 
 
 @typing.final
-class Float(Type):
+class Float(Type, metaclass=_Singleton):
     """A floating point number of unspecified width.
     In the future, this may also be used to represent a fixed-width float.
     """
 
     __slots__ = ()
 
-    def __init__(self, *, const: bool = False):
-        super(Type, self).__setattr__("const", const)
-
     def __repr__(self):
-        return f"Float(const={self.const})"
+        return f"Float()"
 
     def __hash__(self):
-        return hash((self.__class__, self.const))
+        return hash(self.__class__)
 
     def __eq__(self, other):
-        return isinstance(other, Float) and self.const == other.const
+        return isinstance(other, Float)

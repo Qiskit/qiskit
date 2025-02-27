@@ -25,6 +25,14 @@ from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 @ddt.ddt
 class TestExprProperties(QiskitTestCase):
+    def test_bool_type_is_singleton(self):
+        """The `Bool` type is meant (and used) as a Python singleton object for efficiency.  It must
+        always be referentially equal to all other references to it."""
+        self.assertIs(types.Bool(), types.Bool())
+        self.assertIs(types.Bool(), copy.copy(types.Bool()))
+        self.assertIs(types.Bool(), copy.deepcopy(types.Bool()))
+        self.assertIs(types.Bool(), pickle.loads(pickle.dumps(types.Bool())))
+
     @ddt.data(types.Bool(), types.Uint(8))
     def test_types_can_be_cloned(self, obj):
         """Test that various ways of cloning a `Type` object are valid and produce equal output."""
