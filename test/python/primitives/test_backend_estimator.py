@@ -19,7 +19,7 @@ import numpy as np
 from ddt import ddt
 
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.library import RealAmplitudes
+from qiskit.circuit.library import real_amplitudes
 from qiskit.primitives import BackendEstimator, EstimatorResult
 from qiskit.providers.fake_provider import Fake7QPulseV1, GenericBackendV2
 from qiskit.providers.backend_compat import BackendV2Converter
@@ -57,7 +57,8 @@ class TestBackendEstimator(QiskitTestCase):
     def setUp(self):
         super().setUp()
         self._rng = np.random.default_rng(12)
-        self.ansatz = RealAmplitudes(num_qubits=2, reps=2)
+        self.ansatz = QuantumCircuit(2)
+        self.ansatz.append(real_amplitudes(num_qubits=2, reps=2), [0, 1])
         self.observable = SparsePauliOp.from_list(
             [
                 ("II", -1.052373245772859),
@@ -68,8 +69,12 @@ class TestBackendEstimator(QiskitTestCase):
             ]
         )
         self.expvals = -1.0284380963435145, -1.284366511861733
+        ra_2_reps = QuantumCircuit(2)
+        ra_2_reps.append(real_amplitudes(num_qubits=2, reps=2), [0, 1])
+        ra_3_reps = QuantumCircuit(2)
+        ra_3_reps.append(real_amplitudes(num_qubits=2, reps=3), [0, 1])
 
-        self.psi = (RealAmplitudes(num_qubits=2, reps=2), RealAmplitudes(num_qubits=2, reps=3))
+        self.psi = (ra_2_reps, ra_3_reps)
         self.params = tuple(psi.parameters for psi in self.psi)
         self.hamiltonian = (
             SparsePauliOp.from_list([("II", 1), ("IZ", 2), ("XI", 3)]),
@@ -241,7 +246,8 @@ class TestBackendEstimator(QiskitTestCase):
     @combine(backend=BACKENDS)
     def test_run_numpy_params(self, backend):
         """Test for numpy array as parameter values"""
-        qc = RealAmplitudes(num_qubits=2, reps=2)
+        qc = QuantumCircuit(2)
+        qc.append(real_amplitudes(num_qubits=2, reps=2), [0, 1])
         op = SparsePauliOp.from_list([("IZ", 1), ("XI", 2), ("ZY", -1)])
         k = 5
         params_array = self._rng.random((k, qc.num_parameters))
@@ -313,7 +319,8 @@ class TestBackendEstimator(QiskitTestCase):
 
         backend = FakeBackendLimitedCircuits(num_qubits=5, seed=42)
         backend.set_options(seed_simulator=123)
-        qc = RealAmplitudes(num_qubits=2, reps=2)
+        qc = QuantumCircuit(2)
+        qc.append(real_amplitudes(num_qubits=2, reps=2), [0, 1])
         op = SparsePauliOp.from_list([("IZ", 1), ("XI", 2), ("ZY", -1)])
         k = 5
         params_array = self._rng.random((k, qc.num_parameters))
@@ -333,7 +340,8 @@ class TestBackendEstimator(QiskitTestCase):
         config = backend.configuration()
         config.max_experiments = 1
         backend._configuration = config
-        qc = RealAmplitudes(num_qubits=2, reps=2)
+        qc = QuantumCircuit(2)
+        qc.append(real_amplitudes(num_qubits=2, reps=2), [0, 1])
         op = SparsePauliOp.from_list([("IZ", 1), ("XI", 2), ("ZY", -1)])
         k = 5
         params_array = self._rng.random((k, qc.num_parameters))
@@ -354,7 +362,8 @@ class TestBackendEstimator(QiskitTestCase):
         config = backend.configuration()
         del config.max_experiments
         backend._configuration = config
-        qc = RealAmplitudes(num_qubits=2, reps=2)
+        qc = QuantumCircuit(2)
+        qc.append(real_amplitudes(num_qubits=2, reps=2), [0, 1])
         op = SparsePauliOp.from_list([("IZ", 1), ("XI", 2), ("ZY", -1)])
         k = 5
         params_array = self._rng.random((k, qc.num_parameters))

@@ -28,7 +28,7 @@ from qiskit.quantum_info.operators.predicates import matrix_equal, is_unitary_ma
 from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info.states import Statevector
 import qiskit.circuit.add_control as ac
-from qiskit.transpiler.passes import UnrollCustomDefinitions, BasisTranslator
+from qiskit.transpiler.passes import UnrollCustomDefinitions, BasisTranslator, HLSConfig
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.converters.dag_to_circuit import dag_to_circuit
@@ -90,6 +90,7 @@ from qiskit.circuit.library import (
     MCMTGate,
 )
 from qiskit.circuit._utils import _compute_control_matrix
+from qiskit.synthesis.multi_controlled import synth_mcx_n_dirty_i15
 import qiskit.circuit.library.standard_gates as allGates
 from qiskit.synthesis.multi_controlled.multi_control_rotation_gates import _mcsu2_real_diagonal
 from qiskit.circuit.library.standard_gates.equivalence_library import (
@@ -544,7 +545,8 @@ class TestControlledGate(QiskitTestCase):
             q_ancillas = QuantumRegister(num_ancillas)
             qc.add_register(q_ancillas)
 
-        qc.mcx(q_controls, q_target[0], q_ancillas, mode=mode)
+        with self.assertWarns(DeprecationWarning):
+            qc.mcx(q_controls, q_target[0], q_ancillas, mode=mode)
 
         simulated = Operator(qc).data
         if num_ancillas > 0:
@@ -821,14 +823,13 @@ class TestControlledGate(QiskitTestCase):
 
     @data(7, 10, 15)
     def test_mcxrecursive_clean_ancilla_cx_count(self, num_ctrl_qubits):
-        """Test if cx count of the mcx with one clean ancilla
-        is less than upper bound."""
-        mcx_recursive = MCXRecursive(num_ctrl_qubits)
-        qc = QuantumCircuit(mcx_recursive.num_qubits)
+        """Test if cx count of the mcx with one clean ancilla is less than upper bound."""
+        qc = QuantumCircuit(num_ctrl_qubits + 2)  # 1 target qubit, 1 auxiliary
+        qc.mcx(range(num_ctrl_qubits), num_ctrl_qubits)
 
-        qc.append(mcx_recursive, list(range(mcx_recursive.num_qubits)))
+        hls_config = HLSConfig(mcx=["1_clean_b95"])
 
-        tr_mcx_rec = transpile(qc, basis_gates=["u", "cx"])
+        tr_mcx_rec = transpile(qc, basis_gates=["u", "cx"], hls_config=hls_config)
         cx_count = tr_mcx_rec.count_ops()["cx"]
 
         self.assertLessEqual(cx_count, 16 * num_ctrl_qubits - 8)
@@ -861,20 +862,21 @@ class TestControlledGate(QiskitTestCase):
         with only relative phase Toffoli gates."""
         num_ctrl_qubits = 5
 
-        gate = MCXVChain(num_ctrl_qubits, dirty_ancillas=True)
-        gate_relative_phase = MCXVChain(num_ctrl_qubits, dirty_ancillas=True, relative_phase=True)
+        rel_phase_false = synth_mcx_n_dirty_i15(num_ctrl_qubits, relative_phase=False)
+        rel_phase_true = synth_mcx_n_dirty_i15(num_ctrl_qubits, relative_phase=True)
 
-        num_qubits = gate.num_qubits + 1
+        num_qubits = rel_phase_false.num_qubits + 1
+
         ref_circuit = QuantumCircuit(num_qubits)
         circuit = QuantumCircuit(num_qubits)
 
-        ref_circuit.append(gate, list(range(num_qubits - 1)), [])
+        ref_circuit.compose(rel_phase_false, inplace=True)
         ref_circuit.h(num_qubits - 1)
-        ref_circuit.append(gate, list(range(num_qubits - 1)), [])
+        ref_circuit.compose(rel_phase_false, inplace=True)
 
-        circuit.append(gate_relative_phase, list(range(num_qubits - 1)), [])
-        circuit.h(num_qubits - 1)
-        circuit.append(gate_relative_phase.inverse(), list(range(num_qubits - 1)), [])
+        ref_circuit.compose(rel_phase_true, inplace=True)
+        ref_circuit.h(num_qubits - 1)
+        ref_circuit.compose(rel_phase_true, inplace=True)
 
         self.assertTrue(matrix_equal(Operator(circuit).data, Operator(ref_circuit).data))
 

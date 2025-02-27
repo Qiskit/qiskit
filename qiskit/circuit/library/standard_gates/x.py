@@ -12,6 +12,7 @@
 
 """X, CX, CCX and multi-controlled X gates."""
 from __future__ import annotations
+import warnings
 from typing import Optional, Union, Type
 from math import pi
 import numpy
@@ -1117,7 +1118,25 @@ class MCXGate(ControlledGate):
         _base_label=None,
     ):
         """Create new MCX gate."""
-        num_ancilla_qubits = self.__class__.get_num_ancilla_qubits(num_ctrl_qubits)
+        if self.__class__ in [MCXGate, MCXGrayCode, MCXRecursive, MCXVChain]:
+            # DeprecationWarning for internal subclasses (that are deprecated) is fine. We should
+            # still raise warnings for other subclasses out of our control
+            # TODO MCXGate, MCXGrayCode, MCXRecursive, MCXVChain are deprecated and this path can be
+            #   removed once they get removed:
+            #   https://github.com/Qiskit/qiskit/pull/12961
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore",
+                    category=DeprecationWarning,
+                    message=r".+qiskit\.circuit\.library\.standard_gates\.x\.MCXGate\."
+                    r"get_num_ancilla_qubits.+",
+                    module="qiskit",
+                )
+                num_ancilla_qubits = self.__class__.get_num_ancilla_qubits(num_ctrl_qubits)
+        else:
+            num_ancilla_qubits = self.__class__.get_num_ancilla_qubits(num_ctrl_qubits)
+
+        # alternative: just remove the above
         super().__init__(
             _name,
             num_ctrl_qubits + 1 + num_ancilla_qubits,
@@ -1153,8 +1172,7 @@ class MCXGate(ControlledGate):
             "qubits is require, one can create a custom gate by calling the corresponding "
             "synthesis function directly."
         ),
-        since="1.3",
-        pending=True,
+        since="1.4",
     )
     def get_num_ancilla_qubits(num_ctrl_qubits: int, mode: str = "noancilla") -> int:
         """Get the number of required ancilla qubits without instantiating the class.
@@ -1181,7 +1199,7 @@ class MCXGate(ControlledGate):
     @property
     def num_ancilla_qubits(self):
         """The number of ancilla qubits."""
-        return self.__class__.get_num_ancilla_qubits(self.num_ctrl_qubits)
+        return self.get_num_ancilla_qubits(self.num_ctrl_qubits)
 
     def control(
         self,
@@ -1257,8 +1275,7 @@ class MCXGrayCode(MCXGate):
             "high-level-synthesis plugin `gray_code` for MCX gates, or, alternatively, "
             "one can use synth_mcx_gray_code to construct the gate directly."
         ),
-        since="1.3",
-        pending=True,
+        since="1.4",
     )
     def __init__(
         self,
@@ -1312,8 +1329,7 @@ class MCXRecursive(MCXGate):
             "high-level-synthesis plugin '1_clean_b95' for MCX gates, or, alternatively, "
             "one can use synth_mcx_1_clean to construct the gate directly."
         ),
-        since="1.3",
-        pending=True,
+        since="1.4",
     )
     def __init__(
         self,
@@ -1395,8 +1411,7 @@ class MCXVChain(MCXGate):
             "`n_dirty_i15` (using dirty ancillas) for MCX gates. Alternatively, one can "
             "use synth_mcx_n_dirty_i15 and synth_mcx_n_clean_m15 to construct the gate directly."
         ),
-        since="1.3",
-        pending=True,
+        since="1.4",
     )
     def __init__(
         self,
