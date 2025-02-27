@@ -228,4 +228,3 @@ class TestTypesCastKind(QiskitTestCase):
         self.assertIs(types.cast_kind(types.Uint(8), types.Stretch()), types.CastKind.NONE)
         self.assertIs(types.cast_kind(types.Uint(16), types.Stretch()), types.CastKind.NONE)
         self.assertIs(types.cast_kind(types.Float(), types.Stretch()), types.CastKind.NONE)
-

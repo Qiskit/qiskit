@@ -1919,9 +1919,7 @@ class TestLoadFromQPY(QiskitTestCase):
             pass
         with (
             io.BytesIO() as fptr,
-            self.assertRaisesRegex(
-                UnsupportedFeatureForVersion, "version 14 is required.*float"
-            ),
+            self.assertRaisesRegex(UnsupportedFeatureForVersion, "version 14 is required.*float"),
         ):
             dump(qc, fptr, version=version)
 

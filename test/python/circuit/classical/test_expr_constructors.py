@@ -14,7 +14,7 @@
 
 import ddt
 
-from qiskit.circuit import Clbit, ClassicalRegister, Duration, Instruction
+from qiskit.circuit import Clbit, ClassicalRegister, Duration
 from qiskit.circuit.classical import expr, types
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -525,10 +525,12 @@ class TestExprConstructors(QiskitTestCase):
                 types.Bool(),
             ),
         )
-        self.assertTrue(function(
-            expr.lift(Duration.ms(1000), types.Duration()),
-            expr.lift(Duration.s(1)),
-        ).const)
+        self.assertTrue(
+            function(
+                expr.lift(Duration.ms(1000), types.Duration()),
+                expr.lift(Duration.s(1)),
+            ).const
+        )
 
     @ddt.data(expr.less, expr.less_equal, expr.greater, expr.greater_equal)
     def test_binary_relation_forbidden(self, function):
