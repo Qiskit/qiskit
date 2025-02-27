@@ -544,7 +544,8 @@ class TestControlledGate(QiskitTestCase):
             q_ancillas = QuantumRegister(num_ancillas)
             qc.add_register(q_ancillas)
 
-        qc.mcx(q_controls, q_target[0], q_ancillas, mode=mode)
+        with self.assertWarns(DeprecationWarning):
+            qc.mcx(q_controls, q_target[0], q_ancillas, mode=mode)
 
         simulated = Operator(qc).data
         if num_ancillas > 0:
