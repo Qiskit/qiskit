@@ -82,8 +82,6 @@ from qiskit.circuit.library import (
     MCU1Gate,
     MCXGate,
     MCXGrayCode,
-    MCXRecursive,
-    MCXVChain,
     C3XGate,
     C3SXGate,
     C4XGate,
@@ -95,7 +93,13 @@ from qiskit.circuit.library import (
     MCMTGate,
 )
 from qiskit.circuit._utils import _compute_control_matrix
-from qiskit.synthesis.multi_controlled import synth_mcx_n_dirty_i15
+from qiskit.synthesis.multi_controlled import (
+    synth_mcx_n_dirty_i15,
+    synth_mcx_n_clean_m15,
+    synth_mcx_1_clean_b95,
+    synth_mcx_gray_code,
+    synth_mcx_noaux_v24,
+)
 import qiskit.circuit.library.standard_gates as allGates
 from qiskit.synthesis.multi_controlled.multi_control_rotation_gates import _mcsu2_real_diagonal
 from qiskit.circuit.library.standard_gates.equivalence_library import (
@@ -776,24 +780,26 @@ class TestControlledGate(QiskitTestCase):
         reference = np.zeros(2 ** (num_ctrl_qubits + 1))
         reference[-1] = 1
 
-        for gate in [
-            MCXGrayCode(num_ctrl_qubits),
-            MCXRecursive(num_ctrl_qubits),
-            MCXVChain(num_ctrl_qubits, False),
-            MCXVChain(num_ctrl_qubits, True),
+        for synth_circuit in [
+            synth_mcx_n_dirty_i15(num_ctrl_qubits),
+            synth_mcx_n_clean_m15(num_ctrl_qubits),
+            synth_mcx_1_clean_b95(num_ctrl_qubits),
+            synth_mcx_gray_code(num_ctrl_qubits),
+            synth_mcx_noaux_v24(num_ctrl_qubits),
         ]:
-            with self.subTest(gate=gate):
-                circuit = QuantumCircuit(gate.num_qubits)
+            with self.subTest(synth_circuit_name=synth_circuit.name):
+                circuit = QuantumCircuit(synth_circuit.num_qubits)
                 if num_ctrl_qubits > 0:
                     circuit.x(list(range(num_ctrl_qubits)))
-                circuit.append(gate, list(range(gate.num_qubits)), [])
+                circuit.compose(synth_circuit, inplace=True)
                 statevector = Statevector(circuit).data
 
                 # account for ancillas
-                if hasattr(gate, "num_ancilla_qubits") and gate.num_ancilla_qubits > 0:
+                num_ancillas = synth_circuit.num_qubits - num_ctrl_qubits - 1
+                if num_ancillas > 0:
                     corrected = np.zeros(2 ** (num_ctrl_qubits + 1), dtype=complex)
                     for i, statevector_amplitude in enumerate(statevector):
-                        i = int(bin(i)[2:].zfill(circuit.num_qubits)[gate.num_ancilla_qubits :], 2)
+                        i = int(bin(i)[2:].zfill(circuit.num_qubits)[num_ancillas:], 2)
                         corrected[i] += statevector_amplitude
                     statevector = corrected
                 np.testing.assert_array_almost_equal(statevector.real, reference)
@@ -811,13 +817,8 @@ class TestControlledGate(QiskitTestCase):
     def test_mcxvchain_clean_ancilla_cx_count(self, num_ctrl_qubits):
         """Test if cx count of the v-chain mcx with clean ancilla
         is less than upper bound."""
-        mcx_vchain = MCXVChain(num_ctrl_qubits, dirty_ancillas=False)
-        qc = QuantumCircuit(mcx_vchain.num_qubits)
-
-        qc.append(mcx_vchain, list(range(mcx_vchain.num_qubits)))
-
-        tr_mcx_vchain = transpile(qc, basis_gates=["u", "cx"])
-        cx_count = tr_mcx_vchain.count_ops()["cx"]
+        tr_mcx_vchain = synth_mcx_n_clean_m15(num_ctrl_qubits)
+        cx_count = Unroll3qOrMore()(tr_mcx_vchain).count_ops()["cx"]
 
         self.assertLessEqual(cx_count, 6 * num_ctrl_qubits - 6)
 
