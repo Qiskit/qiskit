@@ -618,8 +618,8 @@ class TestHoareOptimizer(QiskitTestCase):
         self.assertTrue(HoareOptimizer()._is_identity(seq))
 
         seq = [
-            DAGOpNode(op=RZGate(-pi / 2).control()),
-            DAGOpNode(op=RZGate(pi / 2).control(2)),
+            DAGOpNode(op=RZGate(-pi / 2).control(annotated=False)),
+            DAGOpNode(op=RZGate(pi / 2).control(2, annotated=False)),
         ]
         self.assertTrue(HoareOptimizer()._is_identity(seq))
 
