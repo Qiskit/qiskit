@@ -21,16 +21,18 @@ type SynthesisEntry<'a> = (OperationRef<'a>, SmallVec<[Param; 3]>, SmallVec<[usi
 /// however at the moment [CircuitData] has too high of an overhead.
 #[derive(Debug)]
 pub struct SynthesisData<'a> {
+    num_qubits: usize,
     data: Vec<SynthesisEntry<'a>>,
-    phase: f64,
+    global_phase: f64,
 }
 
 impl<'a> SynthesisData<'a> {
     /// Creates a new empty circuit.
-    pub fn new() -> Self {
+    pub fn new(num_qubits: usize) -> Self {
         Self {
+            num_qubits,
             data: Vec::new(),
-            phase: 0.0,
+            global_phase: 0.0,
         }
     }
 
@@ -84,6 +86,6 @@ impl<'a> SynthesisData<'a> {
             }
         }
 
-        self.phase += other.phase;
+        self.global_phase += other.global_phase;
     }
 }
