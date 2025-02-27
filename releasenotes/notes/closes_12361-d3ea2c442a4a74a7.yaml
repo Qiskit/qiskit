@@ -1,0 +1,4 @@
+---
+upgrade_visualization:
+  - |
+    The default for the parameter ``idle_wires`` changed to ``False`` in all the circuit drawers. If you still want to see wires without instructions, set ``idle_wires=True`` explicitly. 
