@@ -10,6 +10,8 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+#![allow(dead_code)]
+
 use qiskit_circuit::operations::{OperationRef, Param, StandardGate, StandardInstruction};
 use smallvec::SmallVec;
 
@@ -37,6 +39,7 @@ impl<'a> SynthesisData<'a> {
     }
 
     /// Appends a [StandardGate] to the  circuit.
+    #[inline]
     pub fn push_standard_gate(
         &mut self,
         operation: StandardGate,
@@ -51,6 +54,7 @@ impl<'a> SynthesisData<'a> {
     }
 
     /// Appends a [StandardInstruction] to the circuit.
+    #[inline]
     pub fn push_standard_instruction(
         &mut self,
         operation: StandardInstruction,
