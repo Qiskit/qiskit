@@ -65,15 +65,8 @@ class ParseSympyWalker(ast.NodeVisitor):
 
     def visit_UnaryOp(self, node: ast.UnaryOp):
         """Visit a python unary op node"""
-        operand = node.operand
-        if isinstance(operand, ast.Call):
-            self.visit_Call(operand)
-            arg = self.stack.pop()
-        elif isinstance(operand, ast.Constant):
-            arg = operand.value
-        elif isinstance(operand, ast.UnaryOp):
-            self.visit_UnaryOp(operand)
-            arg = self.stack.pop()
+        self.visit(node.operand)
+        arg = self.stack.pop()
         if isinstance(node.op, ast.UAdd):
             self.stack.append(+arg)
         elif isinstance(node.op, ast.USub):
@@ -84,6 +77,10 @@ class ParseSympyWalker(ast.NodeVisitor):
             self.stack.append(~arg)
         else:
             raise QpyError(f"Invalid unary op as part of sympy srepr: {node.op}")
+
+    def visit_Constant(self, node: ast.Constant):
+        """Visit a constant node."""
+        self.stack.append(node.value)
 
     def visit_Call(self, node: ast.Call):
         """Visit a call node
@@ -104,30 +101,12 @@ class ParseSympyWalker(ast.NodeVisitor):
         if name in UNARY:
             if len(args) != 1:
                 raise QpyError(f"{name} has an invalid number of args in sympy srepr")
-            if isinstance(args[0], ast.Call):
-                self.visit_Call(args[0])
-                obj = getattr(sympy, name)(self.stack.pop())
-                self.stack.append(obj)
-            elif isinstance(args[0], ast.Constant):
-                obj = getattr(sympy, name)(args[0].value)
-                self.stack.append(obj)
-            elif isinstance(args[0], ast.UnaryOp):
-                self.visit_UnaryOp(args[0])
-                obj = getattr(sympy, name)(self.stack.pop())
-                self.stack.append(obj)
-
-            else:
-                raise QpyError(f"Invalid argument for {name} in sympy srepr {args[0].name}")
+            self.visit(args[0])
+            obj = getattr(sympy, name)(self.stack.pop())
+            self.stack.append(obj)
         else:
             for arg in args:
-                if isinstance(arg, ast.Call):
-                    self.visit_Call(arg)
-                elif isinstance(args[0], ast.UnaryOp):
-                    self.visit_UnaryOp(arg)
-                elif isinstance(arg, ast.Constant):
-                    self.stack.append(arg.value)
-                else:
-                    raise QpyError(f"Invalid argument for {name} in sympy srepr {arg}")
+                self.visit(arg)
             out_args = [self.stack.pop() for _ in range(len(args))]
             out_args.reverse()
             obj = getattr(sympy, name)(*out_args)

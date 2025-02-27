@@ -348,3 +348,26 @@ class TestUseSymengineFlag(QpyCircuitTestCase):
         with self.assertRaises(QpyError):
             with io.BytesIO(invalid) as fd:
                 load(fd)
+
+    @data(10, 11, 12)
+    def test_all_the_expression_ops_sympy(self, version):
+        """Test a circuit with an expression that uses all the ops available."""
+        qc = QuantumCircuit(1)
+        a = Parameter("a")
+        b = Parameter("b")
+        c = Parameter("c")
+        d = Parameter("d")
+
+        expression = (a + b.sin() / 4) * c**2
+        final_expr = (
+            (expression.cos() + d.arccos() - d.arcsin() + d.arctan() + d.tan()) / d.exp()
+            + expression.gradient(a)
+            + expression.log()
+            - a.sin()
+            - b.conjugate()
+        )
+        final_expr = final_expr.abs()
+        final_expr = final_expr.subs({c: a})
+
+        qc.rx(final_expr, 0)
+        self.assert_roundtrip_equal(qc, version=version, use_symengine=False)
