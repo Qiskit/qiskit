@@ -301,8 +301,23 @@ impl SymbolExpr {
         }
     }
 
+    /// return all numbers in the equation
+    pub fn values(&self) -> Vec<Value> {
+        match self {
+            SymbolExpr::Symbol(_) => Vec::<Value>::new(),
+            SymbolExpr::Value(v) => Vec::<Value>::from([v.clone()]),
+            SymbolExpr::Unary(e) => e.expr.values(),
+            SymbolExpr::Binary(e) => {
+                let mut l = e.lhs.values();
+                let r = e.rhs.values();
+                l.extend(r);
+                return l;
+            }
+        }
+    }
+
     /// concatenate all symbols under this node (internal use for sorting nodes)
-    pub fn get_symbols_string(&self) -> String {
+    fn get_symbols_string(&self) -> String {
         match self {
             SymbolExpr::Symbol(e) => e.name.clone(),
             SymbolExpr::Value(_) => String::new(),

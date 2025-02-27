@@ -55,6 +55,14 @@ pub enum BindValue {
     Complex(Complex64),
 }
 
+/// value types to return to Python
+#[derive(IntoPyObject)]
+pub enum ReturnValueTypes {
+    Int(i64),
+    Real(f64),
+    Complex(Complex64),
+}
+
 #[pymethods]
 impl PySymbolExpr {
     /// parse expression from string
@@ -315,6 +323,21 @@ impl PySymbolExpr {
     #[getter]
     pub fn symbols(&self) -> HashSet<String> {
         self.expr.symbols()
+    }
+
+    /// return all values in this equation
+    pub fn values(&self) -> PyResult<Vec<ReturnValueTypes>> {
+        let ret: Vec<ReturnValueTypes> = self
+            .expr
+            .values()
+            .iter()
+            .map(|val| match val {
+                Value::Real(r) => ReturnValueTypes::Real(r.clone()),
+                Value::Int(i) => ReturnValueTypes::Int(i.clone()),
+                Value::Complex(c) => ReturnValueTypes::Complex(c.clone()),
+            })
+            .collect();
+        Ok(ret)
     }
 
     /// return expression as a string
