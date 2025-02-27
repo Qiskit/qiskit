@@ -188,9 +188,9 @@ def logic_not(operand: typing.Any, /) -> Expr:
             >>> expr.logic_not(ClassicalRegister(3, "c"))
             Unary(\
 Unary.Op.LOGIC_NOT, \
-Cast(Var(ClassicalRegister(3, 'c'), Uint(3, const=False)), \
-Bool(const=False), implicit=True), \
-Bool(const=False))
+Cast(Var(ClassicalRegister(3, 'c'), Uint(3)), \
+Bool(), implicit=True), \
+Bool())
     """
     operand = lift(operand)
     try:
