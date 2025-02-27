@@ -708,10 +708,20 @@ Stretch())
     right_timing = right.type.kind in (types.Stretch, types.Duration)
     type: types.Type
     if left_timing and right_timing:
-        raise TypeError(f"cannot multiply two timing operands: '{left.type}' and '{right.type}'")
-    if left_timing and right.type.kind is types.Float and right.type.const is True:
+        raise TypeError(
+            f"cannot multiply two timing operands, type: '{left.type}' and '{right.type}'"
+        )
+    if left_timing and right.type.kind is types.Float:
+        if not right.const:
+            raise ValueError(
+                f"multiplying operands '{left}' and '{right}' would result in a non-const '{left.type}'"
+            )
         type = left.type
-    elif right_timing and left.type.kind is types.Float and left.type.const is True:
+    elif right_timing and left.type.kind is types.Float:
+        if not left.const:
+            raise ValueError(
+                f"multiplying operands '{left}' and '{right}' would result in a non-const '{right.type}'"
+            )
         type = right.type
     elif (
         left.type.kind is right.type.kind
@@ -779,16 +789,16 @@ Duration())
         if left.type.kind is types.Stretch:
             raise TypeError("cannot divide two stretch operands")
         if left.type.kind is types.Duration:
-            type = types.Float(const=True)
+            type = types.Float()
         elif types.order(left.type, right.type) is not types.Ordering.NONE:
             type = types.greater(left.type, right.type)
             left = _coerce_lossless(left, type)
             right = _coerce_lossless(right, type)
-    elif (
-        left.type.kind in (types.Stretch, types.Duration)
-        and right.type.kind is types.Float
-        and right.type.const is True
-    ):
+    elif left.type.kind in (types.Stretch, types.Duration) and right.type.kind is types.Float:
+        if not right.const:
+            raise ValueError(
+                f"division of '{left}' and '{right}' would result in a non-const '{left.type}'"
+            )
         type = left.type
     else:
         raise TypeError(f"invalid types for '{Binary.Op.DIV}': '{left.type}' and '{right.type}'")

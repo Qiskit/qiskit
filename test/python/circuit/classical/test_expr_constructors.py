@@ -451,6 +451,7 @@ class TestExprConstructors(QiskitTestCase):
                 types.Bool(),
             ),
         )
+        self.assertTrue(function(expr.lift(7.0), 7.0).const)
 
         self.assertEqual(
             function(expr.lift(Duration.ms(1000)), Duration.s(1)),
@@ -676,6 +677,7 @@ class TestExprConstructors(QiskitTestCase):
                 opcode, expr.Var(cr, types.Uint(8)), expr.Value(200, types.Uint(8)), types.Uint(8)
             ),
         )
+        self.assertFalse(function(cr, 200).const)
 
         self.assertEqual(
             function(12, cr),
@@ -686,46 +688,23 @@ class TestExprConstructors(QiskitTestCase):
                 types.Uint(8),
             ),
         )
+        self.assertFalse(function(12, cr).const)
 
         self.assertEqual(
-            function(expr.lift(12, try_const=True), cr),
+            function(12.5, 2.0),
             expr.Binary(
                 opcode,
-                # Explicit cast required to get from Uint(4) to Uint(8)
-                expr.Cast(expr.Value(12, types.Uint(4, const=True)), types.Uint(8), implicit=False),
-                expr.Var(cr, types.Uint(8)),
-                types.Uint(8),
+                expr.Value(12.5, types.Float()),
+                expr.Value(2.0, types.Float()),
+                types.Float(),
             ),
         )
-
-        self.assertEqual(
-            function(expr.lift(12, types.Uint(8, const=True)), expr.lift(12, try_const=True)),
-            expr.Binary(
-                opcode,
-                expr.Value(12, types.Uint(8, const=True)),
-                expr.Cast(
-                    expr.Value(12, types.Uint(4, const=True)),
-                    types.Uint(8, const=True),
-                    implicit=False,
-                ),
-                types.Uint(8, const=True),
-            ),
-        )
-
-        self.assertEqual(
-            function(expr.lift(12.0, types.Float(const=True)), expr.lift(12.0, try_const=True)),
-            expr.Binary(
-                opcode,
-                expr.Value(12.0, types.Float(const=True)),
-                expr.Value(12.0, types.Float(const=True)),
-                types.Float(const=True),
-            ),
-        )
+        self.assertTrue(function(12.5, 2.0).const)
 
         self.assertEqual(
             function(
                 expr.lift(Duration.ms(1000), types.Duration()),
-                expr.lift(Duration.s(1), try_const=True),
+                expr.lift(Duration.s(1)),
             ),
             expr.Binary(
                 opcode,
@@ -734,6 +713,10 @@ class TestExprConstructors(QiskitTestCase):
                 types.Duration(),
             ),
         )
+        self.assertTrue(function(
+            expr.lift(Duration.ms(1000), types.Duration()),
+            expr.lift(Duration.s(1)),
+        ).const)
 
         self.assertEqual(
             function(a, Duration.s(1)),
@@ -746,6 +729,7 @@ class TestExprConstructors(QiskitTestCase):
                 types.Stretch(),
             ),
         )
+        self.assertTrue(function(a, Duration.s(1)).const)
 
         self.assertEqual(
             function(Duration.s(1), a),
@@ -758,11 +742,13 @@ class TestExprConstructors(QiskitTestCase):
                 types.Stretch(),
             ),
         )
+        self.assertTrue(function(Duration.s(1), a).const)
 
         self.assertEqual(
             function(a, b),
             expr.Binary(opcode, a, b, types.Stretch()),
         )
+        self.assertTrue(function(a, b).const)
 
     @ddt.data(expr.add, expr.sub)
     def test_binary_sum_forbidden(self, function):
@@ -802,6 +788,7 @@ class TestExprConstructors(QiskitTestCase):
                 types.Uint(8),
             ),
         )
+        self.assertFalse(expr.mul(cr, 200).const)
 
         self.assertEqual(
             expr.mul(12, cr),
@@ -812,81 +799,89 @@ class TestExprConstructors(QiskitTestCase):
                 types.Uint(8),
             ),
         )
+        self.assertFalse(expr.mul(12, cr).const)
 
         self.assertEqual(
-            expr.mul(expr.lift(12, try_const=True), cr),
+            expr.mul(expr.lift(12), cr),
             expr.Binary(
                 expr.Binary.Op.MUL,
                 # Explicit cast required to get from Uint(4) to Uint(8)
-                expr.Cast(expr.Value(12, types.Uint(4, const=True)), types.Uint(8), implicit=False),
+                expr.Cast(expr.Value(12, types.Uint(4)), types.Uint(8), implicit=False),
                 expr.Var(cr, types.Uint(8)),
                 types.Uint(8),
             ),
         )
+        self.assertFalse(expr.mul(12, cr).const)
 
         self.assertEqual(
-            expr.mul(expr.lift(12, types.Uint(8, const=True)), expr.lift(12, try_const=True)),
+            expr.mul(expr.lift(12, types.Uint(8)), expr.lift(12)),
             expr.Binary(
                 expr.Binary.Op.MUL,
-                expr.Value(12, types.Uint(8, const=True)),
+                expr.Value(12, types.Uint(8)),
                 expr.Cast(
-                    expr.Value(12, types.Uint(4, const=True)),
-                    types.Uint(8, const=True),
+                    expr.Value(12, types.Uint(4)),
+                    types.Uint(8),
                     implicit=False,
                 ),
-                types.Uint(8, const=True),
+                types.Uint(8),
             ),
         )
+        self.assertTrue(expr.mul(expr.lift(12, types.Uint(8)), expr.lift(12)).const)
 
         self.assertEqual(
-            expr.mul(expr.lift(12.0, types.Float(const=True)), expr.lift(12.0, try_const=True)),
+            expr.mul(expr.lift(12.0, types.Float()), expr.lift(12.0)),
             expr.Binary(
                 expr.Binary.Op.MUL,
-                expr.Value(12.0, types.Float(const=True)),
-                expr.Value(12.0, types.Float(const=True)),
-                types.Float(const=True),
+                expr.Value(12.0, types.Float()),
+                expr.Value(12.0, types.Float()),
+                types.Float(),
             ),
         )
+        self.assertTrue(expr.mul(expr.lift(12.0, types.Float()), expr.lift(12.0)).const)
 
         self.assertEqual(
             expr.mul(Duration.ms(1000), 2.0),
             expr.Binary(
                 expr.Binary.Op.MUL,
                 expr.Value(Duration.ms(1000), types.Duration()),
-                expr.Value(2.0, types.Float(const=True)),
+                expr.Value(2.0, types.Float()),
                 types.Duration(),
             ),
         )
+        self.assertTrue(expr.mul(Duration.ms(1000), 2.0).const)
 
         self.assertEqual(
             expr.mul(2.0, Duration.ms(1000)),
             expr.Binary(
                 expr.Binary.Op.MUL,
-                expr.Value(2.0, types.Float(const=True)),
+                expr.Value(2.0, types.Float()),
                 expr.Value(Duration.ms(1000), types.Duration()),
                 types.Duration(),
             ),
         )
+        self.assertTrue(expr.mul(2.0, Duration.ms(1000)).const)
 
         self.assertEqual(
             expr.mul(a, 12.0),
             expr.Binary(
                 expr.Binary.Op.MUL,
                 a,
-                expr.Value(12.0, types.Float(const=True)),
+                expr.Value(12.0, types.Float()),
                 types.Stretch(),
             ),
         )
+        self.assertTrue(expr.mul(a, 12.0).const)
 
         self.assertEqual(
             expr.mul(12.0, a),
             expr.Binary(
                 expr.Binary.Op.MUL,
-                expr.Value(12.0, types.Float(const=True)),
+                expr.Value(12.0, types.Float()),
                 a,
                 types.Stretch(),
             ),
         )
+        self.assertTrue(expr.mul(12.0, a).const)
 
     def test_mul_forbidden(self):
         with self.assertRaisesRegex(TypeError, "invalid types"):
@@ -909,14 +904,15 @@ class TestExprConstructors(QiskitTestCase):
             expr.mul(expr.Var.new("a", types.Stretch()), expr.Var.new("b", types.Stretch()))
 
         # Multiply timing expressions by non-const floats:
-        with self.assertRaisesRegex(TypeError, "invalid types"):
-            expr.mul(Duration.dt(1000), expr.lift(1.0, try_const=False))
-        with self.assertRaisesRegex(TypeError, "invalid types"):
-            expr.mul(expr.lift(1.0, try_const=False), Duration.dt(1000))
-        with self.assertRaisesRegex(TypeError, "invalid types"):
-            expr.mul(expr.Var.new("a", types.Stretch()), expr.lift(1.0, try_const=False))
-        with self.assertRaisesRegex(TypeError, "invalid types"):
-            expr.mul(expr.lift(1.0, try_const=False), expr.Var.new("a", types.Stretch()))
+        non_const_float = expr.Var.new("a", types.Float())
+        with self.assertRaisesRegex(ValueError, "would result in a non-const"):
+            expr.mul(Duration.dt(1000), non_const_float)
+        with self.assertRaisesRegex(ValueError, "would result in a non-const"):
+            expr.mul(non_const_float, Duration.dt(1000))
+        with self.assertRaisesRegex(ValueError, "would result in a non-const"):
+            expr.mul(expr.Var.new("a", types.Stretch()), non_const_float)
+        with self.assertRaisesRegex(ValueError, "would result in a non-const"):
+            expr.mul(non_const_float, expr.Var.new("a", types.Stretch()))
 
     def test_div_explicit(self):
         cr = ClassicalRegister(8, "c")
@@ -931,6 +927,7 @@ class TestExprConstructors(QiskitTestCase):
                 types.Uint(8),
             ),
         )
+        self.assertFalse(expr.div(cr, 200).const)
 
         self.assertEqual(
             expr.div(12, cr),
@@ -941,61 +938,67 @@ class TestExprConstructors(QiskitTestCase):
                 types.Uint(8),
             ),
         )
+        self.assertFalse(expr.div(12, cr).const)
 
         self.assertEqual(
-            expr.div(expr.lift(12, try_const=True), cr),
+            expr.div(expr.lift(12), cr),
             expr.Binary(
                 expr.Binary.Op.DIV,
                 # Explicit cast required to get from Uint(4) to Uint(8)
-                expr.Cast(expr.Value(12, types.Uint(4, const=True)), types.Uint(8), implicit=False),
+                expr.Cast(expr.Value(12, types.Uint(4)), types.Uint(8), implicit=False),
                 expr.Var(cr, types.Uint(8)),
                 types.Uint(8),
             ),
         )
+        self.assertFalse(expr.div(expr.lift(12), cr).const)
 
         self.assertEqual(
-            expr.div(expr.lift(12, types.Uint(8, const=True)), expr.lift(12, try_const=True)),
+            expr.div(expr.lift(12, types.Uint(8)), expr.lift(12)),
             expr.Binary(
                 expr.Binary.Op.DIV,
-                expr.Value(12, types.Uint(8, const=True)),
+                expr.Value(12, types.Uint(8)),
                 expr.Cast(
-                    expr.Value(12, types.Uint(4, const=True)),
-                    types.Uint(8, const=True),
+                    expr.Value(12, types.Uint(4)),
+                    types.Uint(8),
                     implicit=False,
                 ),
-                types.Uint(8, const=True),
+                types.Uint(8),
             ),
         )
+        self.assertTrue(expr.div(expr.lift(12, types.Uint(8)), expr.lift(12)).const)
 
         self.assertEqual(
-            expr.div(expr.lift(12.0, types.Float(const=True)), expr.lift(12.0, try_const=True)),
+            expr.div(expr.lift(12.0, types.Float()), expr.lift(12.0)),
             expr.Binary(
                 expr.Binary.Op.DIV,
-                expr.Value(12.0, types.Float(const=True)),
-                expr.Value(12.0, types.Float(const=True)),
-                types.Float(const=True),
+                expr.Value(12.0, types.Float()),
+                expr.Value(12.0, types.Float()),
+                types.Float(),
             ),
         )
+        self.assertTrue(expr.div(expr.lift(12.0, types.Float()), expr.lift(12.0)).const)
 
         self.assertEqual(
             expr.div(Duration.ms(1000), 2.0),
             expr.Binary(
                 expr.Binary.Op.DIV,
                 expr.Value(Duration.ms(1000), types.Duration()),
-                expr.Value(2.0, types.Float(const=True)),
+                expr.Value(2.0, types.Float()),
                 types.Duration(),
             ),
         )
+        self.assertTrue(expr.div(Duration.ms(1000), 2.0).const)
 
         self.assertEqual(
             expr.div(a, 12.0),
             expr.Binary(
                 expr.Binary.Op.DIV,
                 a,
-                expr.Value(12.0, types.Float(const=True)),
+                expr.Value(12.0, types.Float()),
                 types.Stretch(),
             ),
         )
+        self.assertTrue(expr.div(a, 12.0).const)
 
         self.assertEqual(
             expr.div(Duration.ms(1000), Duration.ms(1000)),
@@ -1003,9 +1006,10 @@ class TestExprConstructors(QiskitTestCase):
                 expr.Binary.Op.DIV,
                 expr.Value(Duration.ms(1000), types.Duration()),
                 expr.Value(Duration.ms(1000), types.Duration()),
-                types.Float(const=True),
+                types.Float(),
             ),
         )
+        self.assertTrue(expr.div(Duration.ms(1000), Duration.ms(1000)).const)
 
     def test_div_forbidden(self):
         with self.assertRaisesRegex(TypeError, "invalid types"):
@@ -1030,7 +1034,8 @@ class TestExprConstructors(QiskitTestCase):
             expr.div(expr.Var.new("a", types.Stretch()), expr.Var.new("b", types.Stretch()))
 
         # Divide timing expressions by non-const floats:
-        with self.assertRaisesRegex(TypeError, "invalid types"):
-            expr.div(Duration.dt(1000), expr.lift(1.0, try_const=False))
-        with self.assertRaisesRegex(TypeError, "invalid types"):
-            expr.div(expr.Var.new("a", types.Stretch()), expr.lift(1.0, try_const=False))
+        non_const_float = expr.Var.new("a", types.Float())
+        with self.assertRaisesRegex(ValueError, "would result in a non-const"):
+            expr.div(Duration.dt(1000), non_const_float)
+        with self.assertRaisesRegex(ValueError, "would result in a non-const"):
+            expr.div(expr.Var.new("a", types.Stretch()), non_const_float)

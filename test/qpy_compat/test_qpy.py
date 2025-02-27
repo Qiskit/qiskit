@@ -866,9 +866,7 @@ def generate_v14_expr():
             ),
             expr.logic_and(
                 expr.equal(expr.mul(1.0, 2.0), expr.div(4.0, 2.0)),
-                expr.equal(
-                    expr.add(3.0, 4.0), expr.sub(10.5, 4.3)
-                ),
+                expr.equal(expr.add(3.0, 4.0), expr.sub(10.5, 4.3)),
             ),
         )
     ):
