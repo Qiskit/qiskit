@@ -190,6 +190,7 @@ class Var(Expr):
     def __setstate__(self, state):
         var, type, name = state
         super().__setattr__("type", type)
+        super().__setattr__("const", False)
         super().__setattr__("var", var)
         super().__setattr__("name", name)
 
@@ -365,6 +366,7 @@ class Binary(Expr):
         return (
             isinstance(other, Binary)
             and self.type == other.type
+            and self.const == other.const
             and self.op is other.op
             and self.left == other.left
             and self.right == other.right
@@ -399,6 +401,7 @@ class Index(Expr):
         return (
             isinstance(other, Index)
             and self.type == other.type
+            and self.const == other.const
             and self.target == other.target
             and self.index == other.index
         )

@@ -448,16 +448,21 @@ class TestExprConstructors(QiskitTestCase):
                 opcode, expr.Var(cr, types.Uint(8)), expr.Value(5, types.Uint(3)), types.Uint(8)
             ),
         )
+        self.assertFalse(function(cr, 5).const)
+
         self.assertEqual(
             function(a, cr),
             expr.Binary(opcode, a, expr.Var(cr, types.Uint(8)), types.Uint(4)),
         )
+        self.assertFalse(function(a, cr).const)
+
         self.assertEqual(
             function(3, 5, types.Uint(8)),
             expr.Binary(
                 opcode, expr.Value(3, types.Uint(8)), expr.Value(5, types.Uint(3)), types.Uint(8)
             ),
         )
+        self.assertTrue(function(3, 5, types.Uint(8)).const)
 
     @ddt.data(expr.shift_left, expr.shift_right)
     def test_shift_forbidden(self, function):
