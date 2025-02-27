@@ -754,11 +754,14 @@ def _write_instruction(
     ):
         gate_class_name = instruction.operation.name
         # Assign a uuid to each instance of a custom operation
-        gate_class_name = f"{gate_class_name}_{uuid.uuid4().hex}"
-        # ucr*_dg gates can have different numbers of parameters,
-        # the uuid is appended to avoid storing a single definition
-        # in circuits with multiple ucr*_dg gates.
-        if instruction.operation.name in {"ucrx_dg", "ucry_dg", "ucrz_dg"}:
+        if instruction.operation.name not in {"ucrx_dg", "ucry_dg", "ucrz_dg"}:
+            gate_class_name = f"{gate_class_name}_{uuid.uuid4().hex}"
+        else:
+            # ucr*_dg gates can have different numbers of parameters,
+            # the uuid is appended to avoid storing a single definition
+            # in circuits with multiple ucr*_dg gates. For legacy reasons
+            # the uuid is stored in a different format as this was done
+            # prior to QPY 11.
             gate_class_name = f"{gate_class_name}_{uuid.uuid4()}"
 
         custom_operations[gate_class_name] = instruction.operation
