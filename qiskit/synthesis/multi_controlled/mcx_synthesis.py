@@ -451,9 +451,8 @@ def ccxn(n: int) -> QuantumCircuit:
     q = QuantumRegister(n_qubits, name="q")
     qc = QuantumCircuit(q, name=f"ccxn_{n}")
     x, y, target = q[:n], q[n : 2 * n], q[2 * n :]
-    for x, y, target in zip(x, y, target):
-        qc.x(target)
-        qc.ccx(x, y, target)
+    qc.x(target)
+    qc.ccx(x, y, target)
 
     return qc
 
