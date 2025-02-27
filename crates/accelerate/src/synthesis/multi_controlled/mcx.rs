@@ -18,39 +18,198 @@ use std::f64::consts::PI;
 // const PI4: f64 = PI / 4.;
 const PI8: f64 = PI / 8.;
 
+pub fn ccx<'a>() -> SynthesisData<'a> {
+    let mut circuit = SynthesisData::new(3);
+    circuit.h(2);
+    circuit.cx(1, 2);
+    circuit.tdg(2);
+    circuit.cx(0, 2);
+    circuit.t(2);
+    circuit.cx(1, 2);
+    circuit.tdg(2);
+    circuit.cx(0, 2);
+    circuit.t(1);
+    circuit.t(2);
+    circuit.h(2);
+    circuit.cx(0, 1);
+    circuit.t(0);
+    circuit.tdg(1);
+    circuit.cx(0, 1);
+    circuit
+}
+
+/// Implements an optimized toffoli operation up to a diagonal gate,
+/// akin to lemma 6 of [arXiv:1501.06911] (https://arxiv.org/abs/1501.06911).
+fn rccx<'a>() -> SynthesisData<'a> {
+    let mut circuit = SynthesisData::new(3);
+    circuit.h(2);
+    circuit.t(2);
+    circuit.cx(1, 2);
+    circuit.tdg(2);
+    circuit.cx(0, 2);
+    circuit.t(2);
+    circuit.cx(1, 2);
+    circuit.tdg(2);
+    circuit.h(2);
+    circuit
+}
+
 /// Efficient synthesis for 3-controlled X-gate.
 pub fn c3x<'a>() -> SynthesisData<'a> {
-    let mut qc = SynthesisData::new(4);
-    qc.h(3);
-    qc.p(PI8, 0);
-    qc.p(PI8, 1);
-    qc.p(PI8, 2);
-    qc.p(PI8, 3);
-    qc.cx(0, 1);
-    qc.p(-PI8, 1);
-    qc.cx(0, 1);
-    qc.cx(1, 2);
-    qc.p(-PI8, 2);
-    qc.cx(0, 2);
-    qc.p(PI8, 2);
-    qc.cx(1, 2);
-    qc.p(-PI8, 2);
-    qc.cx(0, 2);
-    qc.cx(2, 3);
-    qc.p(-PI8, 3);
-    qc.cx(1, 3);
-    qc.p(PI8, 3);
-    qc.cx(2, 3);
-    qc.p(-PI8, 3);
-    qc.cx(0, 3);
-    qc.p(PI8, 3);
-    qc.cx(2, 3);
-    qc.p(-PI8, 3);
-    qc.cx(1, 3);
-    qc.p(PI8, 3);
-    qc.cx(2, 3);
-    qc.p(-PI8, 3);
-    qc.cx(0, 3);
-    qc.h(3);
-    qc
+    let mut circuit = SynthesisData::new(4);
+    circuit.h(3);
+    circuit.p(PI8, 0);
+    circuit.p(PI8, 1);
+    circuit.p(PI8, 2);
+    circuit.p(PI8, 3);
+    circuit.cx(0, 1);
+    circuit.p(-PI8, 1);
+    circuit.cx(0, 1);
+    circuit.cx(1, 2);
+    circuit.p(-PI8, 2);
+    circuit.cx(0, 2);
+    circuit.p(PI8, 2);
+    circuit.cx(1, 2);
+    circuit.p(-PI8, 2);
+    circuit.cx(0, 2);
+    circuit.cx(2, 3);
+    circuit.p(-PI8, 3);
+    circuit.cx(1, 3);
+    circuit.p(PI8, 3);
+    circuit.cx(2, 3);
+    circuit.p(-PI8, 3);
+    circuit.cx(0, 3);
+    circuit.p(PI8, 3);
+    circuit.cx(2, 3);
+    circuit.p(-PI8, 3);
+    circuit.cx(1, 3);
+    circuit.p(PI8, 3);
+    circuit.cx(2, 3);
+    circuit.p(-PI8, 3);
+    circuit.cx(0, 3);
+    circuit.h(3);
+    circuit
+}
+
+/// A block in the `action part`, see Iten et al.
+fn action_gadget<'a>() -> SynthesisData<'a> {
+    let mut circuit = SynthesisData::new(3);
+    circuit.h(2);
+    circuit.t(2);
+    circuit.cx(0, 2);
+    circuit.tdg(2);
+    circuit.cx(1, 2);
+    circuit
+}
+
+/// A block in the `reset part`, see Iten et al.
+fn reset_gadget<'a>() -> SynthesisData<'a> {
+    let mut circuit = SynthesisData::new(3);
+    circuit.cx(1, 2);
+    circuit.t(2);
+    circuit.cx(0, 2);
+    circuit.tdg(2);
+    circuit.h(2);
+    circuit
+}
+
+/// Synthesize a multi-controlled X gate with :math:`k` controls using :math:`k - 2`
+/// dirty ancillary qubits, producing a circuit with :math:`2 * k - 1` qubits and at most
+/// :math:`8 * k - 6` CX gates. For details, see lemma 8 in [1].
+///
+/// # Arguments
+/// - num_ctrl_qubits: the number of control qubits.
+/// - relative_phase: when set to `true`, the method applies the optimized multi-controlled
+///   X gate up to a relative phase, in a way that the relative phases of the `action part`
+///   cancel out with the relative phases of the `reset part`.
+/// - action_only: when set to `true`, the methods applies only the `action part`.
+///
+/// # References
+///
+/// 1. Iten et al., *Quantum Circuits for Isometries*, Phys. Rev. A 93, 032318 (2016),
+/// [arXiv:1501.06911] (http://arxiv.org/abs/1501.06911).
+pub fn synth_mcx_n_dirty_i15<'a>(
+    num_controls: usize,
+    relative_phase: bool,
+    action_only: bool,
+) -> SynthesisData<'a> {
+    if num_controls == 1 {
+        let mut circuit = SynthesisData::new(2);
+        circuit.cx(0, 1);
+        circuit
+    } else if num_controls == 2 {
+        ccx()
+    } else if num_controls == 3 && !relative_phase {
+        c3x()
+    } else {
+        let num_ancillas = num_controls - 2;
+        let num_qubits = num_controls + 1 + num_ancillas;
+        let mut circuit = SynthesisData::new(num_qubits as u32);
+
+        let controls: Vec<u32> = (0..num_controls).map(|q| q as u32).collect();
+        let target = num_controls as u32;
+        let ancillas: Vec<u32> = ((num_controls + 1)..num_qubits).map(|q| q as u32).collect();
+
+        for j in 0..2 {
+            if !relative_phase {
+                circuit.compose(
+                    &ccx(),
+                    Some(&[
+                        controls[num_controls - 1],
+                        ancillas[num_controls - 3],
+                        target,
+                    ]),
+                );
+            } else if j == 0 {
+                circuit.compose(
+                    &action_gadget(),
+                    Some(&[
+                        controls[num_controls - 1],
+                        ancillas[num_controls - 3],
+                        target,
+                    ]),
+                );
+            } else if j == 1 {
+                circuit.compose(
+                    &reset_gadget(),
+                    Some(&[
+                        controls[num_controls - 1],
+                        ancillas[num_controls - 3],
+                        target,
+                    ]),
+                );
+            }
+
+            // action part
+            for i in (0..num_controls - 3).rev() {
+                circuit.compose(
+                    &action_gadget(),
+                    Some(&[controls[i + 2], ancillas[i], ancillas[i + 1]]),
+                );
+            }
+
+            circuit.compose(&rccx(), Some(&[controls[0], controls[1], ancillas[0]]));
+
+            // reset part
+            for i in 0..num_controls - 3 {
+                circuit.compose(
+                    &reset_gadget(),
+                    Some(&[controls[i + 2], ancillas[i], ancillas[i + 1]]),
+                );
+            }
+
+            if action_only {
+                circuit.compose(
+                    &ccx(),
+                    Some(&[
+                        controls[num_controls - 1],
+                        ancillas[num_controls - 3],
+                        target,
+                    ]),
+                );
+                break;
+            }
+        }
+        circuit
+    }
 }
