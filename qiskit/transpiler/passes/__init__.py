@@ -91,6 +91,7 @@ Optimizations
    OptimizeAnnotated
    Split2QUnitaries
    RemoveIdentityEquivalent
+   ContractIdleWiresInControlFlow
 
 Calibration
 =============
@@ -233,6 +234,7 @@ from .optimization import NormalizeRXAngle
 from .optimization import OptimizeAnnotated
 from .optimization import RemoveIdentityEquivalent
 from .optimization import Split2QUnitaries
+from .optimization import ContractIdleWiresInControlFlow
 
 # circuit analysis
 from .analysis import ResourceEstimation

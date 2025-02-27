@@ -82,7 +82,7 @@ from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.providers.options import Options
 from qiskit.pulse import InstructionScheduleMap
 from qiskit.quantum_info import Operator, random_unitary
-from qiskit.utils import parallel
+from qiskit.utils import should_run_in_parallel
 from qiskit.transpiler import CouplingMap, Layout, PassManager
 from qiskit.transpiler.exceptions import TranspilerError, CircuitTooWideForTarget
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements, GateDirection, VF2PostLayout
@@ -2090,6 +2090,45 @@ class TestTranspile(QiskitTestCase):
         )
         self.assertLessEqual(set(transpiled.count_ops().keys()), {"u1", "u2", "u3", "cx"})
 
+    @data(1, 2, 3)
+    def test_optimize_decomposition_around_control_flow(self, level):
+        """Test that we successfully optimise away idle wires from control flow."""
+        qc = QuantumCircuit(5, 1)
+        # This cz(0, 1) can't cancel with its friend on the other side until the data dependency is
+        # removed from the `if` block.  Similarly, the sx(2) needs the two x(2) in the `if` to go.
+        qc.cz(0, 1)
+        qc.sx(2)
+        qc.cz(3, 4)
+        with qc.if_test((qc.clbits[0], False)):
+            # The `(0, 4)` data dependencies should be removed before routing, so we don't see any
+            # swaps in here.
+            qc.cz(0, 4)
+            qc.x(2)
+            qc.x(2)
+            qc.x(3)
+            qc.cz(0, 4)
+        qc.cz(0, 1)
+        qc.sxdg(2)
+        qc.cz(3, 4)
+
+        expected = qc.copy_empty_like()
+        expected.cz(3, 4)
+        with expected.if_test((expected.clbits[0], False)):
+            expected.x(3)
+        expected.cz(3, 4)
+
+        target = Target(5)
+        target.add_instruction(XGate(), {(i,): None for i in range(5)})
+        target.add_instruction(SXGate(), {(i,): None for i in range(5)})
+        target.add_instruction(RZGate(Parameter("a")), {(i,): None for i in range(5)})
+        target.add_instruction(CZGate(), {pair: None for pair in CouplingMap.from_line(5)})
+        target.add_instruction(IfElseOp, name="if_else")
+
+        self.assertEqual(
+            transpile(qc, target=target, optimization_level=level, initial_layout=[0, 1, 2, 3, 4]),
+            expected,
+        )
+
 
 @ddt
 class TestPostTranspileIntegration(QiskitTestCase):
@@ -2593,13 +2632,9 @@ class TestTranspileParallel(QiskitTestCase):
         super().setUp()
 
         # Force parallel execution to True to test multiprocessing for this class
-        original_val = parallel.PARALLEL_DEFAULT
-
-        def restore_default():
-            parallel.PARALLEL_DEFAULT = original_val
-
-        self.addCleanup(restore_default)
-        parallel.PARALLEL_DEFAULT = True
+        cm = should_run_in_parallel.override(True)
+        cm.__enter__()
+        self.addCleanup(cm.__exit__, None, None, None)
 
     @data(0, 1, 2, 3)
     def test_parallel_multiprocessing(self, opt_level):
