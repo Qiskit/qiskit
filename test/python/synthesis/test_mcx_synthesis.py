@@ -1,3 +1,5 @@
+"""Test Multi Controlled X Gate synthesis functions."""
+
 import unittest
 import numpy as np
 from ddt import ddt, data
