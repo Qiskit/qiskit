@@ -4689,10 +4689,18 @@ class QuantumCircuit:
                 mode = "noancilla"
 
         if mode == "basic":
+            from qiskit.synthesis.multi_controlled import synth_mcx_n_clean_m15
+
             self.ry(theta / 2, q_target)
-            self.mcx(list(q_controls), q_target, q_ancillae, mode="v-chain")
+            if len(control_qubits) == 2:
+                self.ccx(control_qubits[0], control_qubits[1], q_target)
+            else:
+                self.compose(synth_mcx_n_clean_m15(len(control_qubits)), inplace=True)
             self.ry(-theta / 2, q_target)
-            self.mcx(list(q_controls), q_target, q_ancillae, mode="v-chain")
+            if len(control_qubits) == 2:
+                self.ccx(control_qubits[0], control_qubits[1], q_target)
+            else:
+                self.compose(synth_mcx_n_clean_m15(len(control_qubits)), inplace=True)
         elif mode == "noancilla":
             n_c = len(control_qubits)
             if n_c == 1:  # cu
