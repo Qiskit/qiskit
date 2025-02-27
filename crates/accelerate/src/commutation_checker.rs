@@ -25,7 +25,7 @@ use pyo3::types::{PyBool, PyDict, PySequence, PyTuple};
 use pyo3::BoundObject;
 
 use qiskit_circuit::bit_data::BitData;
-use qiskit_circuit::circuit_instruction::{ExtraInstructionAttributes, OperationFromPython};
+use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::dag_node::DAGOpNode;
 use qiskit_circuit::imports::QI_OPERATOR;
 use qiskit_circuit::operations::OperationRef::{Gate as PyGateType, Operation as PyOperationType};
@@ -178,12 +178,10 @@ impl CommutationChecker {
             py,
             &op1.instruction.operation.view(),
             &op1.instruction.params,
-            &op1.instruction.extra_attrs,
             &qargs1,
             &cargs1,
             &op2.instruction.operation.view(),
             &op2.instruction.params,
-            &op2.instruction.extra_attrs,
             &qargs2,
             &cargs2,
             max_num_qubits,
@@ -215,12 +213,10 @@ impl CommutationChecker {
             py,
             &op1.operation.view(),
             &op1.params,
-            &op1.extra_attrs,
             &qargs1,
             &cargs1,
             &op2.operation.view(),
             &op2.params,
-            &op2.extra_attrs,
             &qargs2,
             &cargs2,
             max_num_qubits,
@@ -285,12 +281,10 @@ impl CommutationChecker {
         py: Python,
         op1: &OperationRef,
         params1: &[Param],
-        attrs1: &ExtraInstructionAttributes,
         qargs1: &[Qubit],
         cargs1: &[Clbit],
         op2: &OperationRef,
         params2: &[Param],
-        attrs2: &ExtraInstructionAttributes,
         qargs2: &[Qubit],
         cargs2: &[Clbit],
         max_num_qubits: u32,
@@ -321,12 +315,10 @@ impl CommutationChecker {
         let commutation: Option<bool> = commutation_precheck(
             op1,
             params1,
-            attrs1,
             qargs1,
             cargs1,
             op2,
             params2,
-            attrs2,
             qargs2,
             cargs2,
             max_num_qubits,
@@ -576,21 +568,15 @@ impl CommutationChecker {
 fn commutation_precheck(
     op1: &OperationRef,
     params1: &[Param],
-    attrs1: &ExtraInstructionAttributes,
     qargs1: &[Qubit],
     cargs1: &[Clbit],
     op2: &OperationRef,
     params2: &[Param],
-    attrs2: &ExtraInstructionAttributes,
     qargs2: &[Qubit],
     cargs2: &[Clbit],
     max_num_qubits: u32,
 ) -> Option<bool> {
-    if op1.control_flow()
-        || op2.control_flow()
-        || attrs1.condition().is_some()
-        || attrs2.condition().is_some()
-    {
+    if op1.control_flow() || op2.control_flow() {
         return Some(false);
     }
 
@@ -694,9 +680,12 @@ fn get_relative_placement(
     second_qargs: &[Qubit],
 ) -> SmallVec<[Option<Qubit>; 2]> {
     let mut qubits_g2: HashMap<&Qubit, Qubit> = HashMap::with_capacity(second_qargs.len());
-    second_qargs.iter().enumerate().for_each(|(i_g1, q_g1)| {
-        qubits_g2.insert_unique_unchecked(q_g1, Qubit::new(i_g1));
-    });
+    second_qargs
+        .iter()
+        .enumerate()
+        .for_each(|(i_g1, q_g1)| unsafe {
+            qubits_g2.insert_unique_unchecked(q_g1, Qubit::new(i_g1));
+        });
 
     first_qargs
         .iter()
