@@ -90,6 +90,7 @@ from qiskit.circuit.library import (
     MCMTGate,
 )
 from qiskit.circuit._utils import _compute_control_matrix
+from qiskit.synthesis.multi_controlled import synth_mcx_n_dirty_i15
 import qiskit.circuit.library.standard_gates as allGates
 from qiskit.synthesis.multi_controlled.multi_control_rotation_gates import _mcsu2_real_diagonal
 from qiskit.circuit.library.standard_gates.equivalence_library import (
@@ -861,20 +862,21 @@ class TestControlledGate(QiskitTestCase):
         with only relative phase Toffoli gates."""
         num_ctrl_qubits = 5
 
-        gate = MCXVChain(num_ctrl_qubits, dirty_ancillas=True)
-        gate_relative_phase = MCXVChain(num_ctrl_qubits, dirty_ancillas=True, relative_phase=True)
+        rel_phase_false = synth_mcx_n_dirty_i15(num_ctrl_qubits, relative_phase=False)
+        rel_phase_true = synth_mcx_n_dirty_i15(num_ctrl_qubits, relative_phase=True)
 
-        num_qubits = gate.num_qubits + 1
+        num_qubits = rel_phase_false.num_qubits + 1
+
         ref_circuit = QuantumCircuit(num_qubits)
         circuit = QuantumCircuit(num_qubits)
 
-        ref_circuit.append(gate, list(range(num_qubits - 1)), [])
+        ref_circuit.compose(rel_phase_false, inplace=True)
         ref_circuit.h(num_qubits - 1)
-        ref_circuit.append(gate, list(range(num_qubits - 1)), [])
+        ref_circuit.compose(rel_phase_false, inplace=True)
 
-        circuit.append(gate_relative_phase, list(range(num_qubits - 1)), [])
-        circuit.h(num_qubits - 1)
-        circuit.append(gate_relative_phase.inverse(), list(range(num_qubits - 1)), [])
+        ref_circuit.compose(rel_phase_true, inplace=True)
+        ref_circuit.h(num_qubits - 1)
+        ref_circuit.compose(rel_phase_true, inplace=True)
 
         self.assertTrue(matrix_equal(Operator(circuit).data, Operator(ref_circuit).data))
 

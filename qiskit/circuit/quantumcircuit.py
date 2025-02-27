@@ -4692,12 +4692,16 @@ class QuantumCircuit:
             from qiskit.synthesis.multi_controlled import synth_mcx_n_clean_m15
 
             self.ry(theta / 2, q_target)
-            if len(control_qubits) == 2:
+            if len(control_qubits) == 1:
+                self.cx(control_qubits[0], q_target)
+            elif len(control_qubits) == 2:
                 self.ccx(control_qubits[0], control_qubits[1], q_target)
             else:
                 self.compose(synth_mcx_n_clean_m15(len(control_qubits)), inplace=True)
             self.ry(-theta / 2, q_target)
-            if len(control_qubits) == 2:
+            if len(control_qubits) == 1:
+                self.cx(control_qubits[0], q_target)
+            elif len(control_qubits) == 2:
                 self.ccx(control_qubits[0], control_qubits[1], q_target)
             else:
                 self.compose(synth_mcx_n_clean_m15(len(control_qubits)), inplace=True)
