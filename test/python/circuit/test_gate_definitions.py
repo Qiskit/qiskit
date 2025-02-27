@@ -360,6 +360,15 @@ class TestGateEquivalenceEqual(QiskitTestCase):
         "OrGate",
         "BitwiseXorGate",
         "InnerProductGate",
+        "IntegerComparatorGate",
+        "PolynomialPauliRotationsGate",
+        "PiecewiseLinearPauliRotationsGate",
+        "PiecewisePolynomialPauliRotationsGate",
+        "PiecewiseChebyshevGate",
+        "ExactReciprocalGate",
+        "LinearPauliRotationsGate",
+        "LinearAmplitudeFunctionGate",
+        "WeightedSumGate",
     }
 
     # Amazingly, Python's scoping rules for class bodies means that this is the closest we can get
