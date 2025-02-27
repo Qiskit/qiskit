@@ -19,6 +19,7 @@ from __future__ import annotations
 
 __all__ = [
     "lift",
+    "cast",
     "bit_not",
     "logic_not",
     "bit_and",
@@ -32,6 +33,9 @@ __all__ = [
     "less_equal",
     "greater",
     "greater_equal",
+    "shift_left",
+    "shift_right",
+    "index",
     "lift_legacy_condition",
 ]
 
@@ -107,7 +111,7 @@ def lift(value: typing.Any, /, type: types.Type | None = None) -> Expr:
         if type is not None:
             raise ValueError("use 'cast' to cast existing expressions, not 'lift'")
         return value
-    from qiskit.circuit import Clbit, ClassicalRegister  # pylint: disable=cyclic-import
+    from qiskit.circuit import Clbit, ClassicalRegister, Duration  # pylint: disable=cyclic-import
 
     inferred: types.Type
     if value is True or value is False or isinstance(value, Clbit):
@@ -120,6 +124,12 @@ def lift(value: typing.Any, /, type: types.Type | None = None) -> Expr:
         if value < 0:
             raise ValueError("cannot represent a negative value")
         inferred = types.Uint(width=value.bit_length() or 1)
+        constructor = Value
+    elif isinstance(value, float):
+        inferred = types.Float()
+        constructor = Value
+    elif isinstance(value, Duration):
+        inferred = types.Duration()
         constructor = Value
     else:
         raise TypeError(f"failed to infer a type for '{value}'")
@@ -181,11 +191,16 @@ def logic_not(operand: typing.Any, /) -> Expr:
             >>> expr.logic_not(ClassicalRegister(3, "c"))
             Unary(\
 Unary.Op.LOGIC_NOT, \
-Cast(Var(ClassicalRegister(3, 'c'), Uint(3)), Bool(), implicit=True), \
+Cast(Var(ClassicalRegister(3, 'c'), Uint(3)), \
+Bool(), implicit=True), \
 Bool())
     """
-    operand = _coerce_lossless(lift(operand), types.Bool())
-    return Unary(Unary.Op.LOGIC_NOT, operand, operand.type)
+    operand = lift(operand)
+    try:
+        operand = _coerce_lossless(operand, types.Bool())
+        return Unary(Unary.Op.LOGIC_NOT, operand, operand.type)
+    except TypeError as ex:
+        raise TypeError(f"cannot apply '{Unary.Op.BIT_NOT}' to type '{operand.type}'") from ex
 
 
 def _lift_binary_operands(left: typing.Any, right: typing.Any) -> tuple[Expr, Expr]:
@@ -300,9 +315,14 @@ Uint(3))
 
 def _binary_logical(op: Binary.Op, left: typing.Any, right: typing.Any) -> Expr:
     bool_ = types.Bool()
-    left = _coerce_lossless(lift(left), bool_)
-    right = _coerce_lossless(lift(right), bool_)
-    return Binary(op, left, right, bool_)
+    left = lift(left)
+    right = lift(right)
+    try:
+        left = _coerce_lossless(left, bool_)
+        right = _coerce_lossless(right, bool_)
+        return Binary(op, left, right, bool_)
+    except TypeError as ex:
+        raise TypeError(f"invalid types for '{op}': '{left.type}' and '{right.type}'") from ex
 
 
 def logic_and(left: typing.Any, right: typing.Any, /) -> Expr:
@@ -337,7 +357,7 @@ def logic_or(left: typing.Any, right: typing.Any, /) -> Expr:
 
 def _equal_like(op: Binary.Op, left: typing.Any, right: typing.Any) -> Expr:
     left, right = _lift_binary_operands(left, right)
-    if left.type.kind is not right.type.kind:
+    if left.type.kind is not right.type.kind or left.type.kind is types.Stretch:
         raise TypeError(f"invalid types for '{op}': '{left.type}' and '{right.type}'")
     type = types.greater(left.type, right.type)
     return Binary(op, _coerce_lossless(left, type), _coerce_lossless(right, type), types.Bool())
@@ -381,7 +401,7 @@ Uint(3))
 
 def _binary_relation(op: Binary.Op, left: typing.Any, right: typing.Any) -> Expr:
     left, right = _lift_binary_operands(left, right)
-    if left.type.kind is not right.type.kind or left.type.kind is types.Bool:
+    if left.type.kind is not right.type.kind or left.type.kind in {types.Bool, types.Stretch}:
         raise TypeError(f"invalid types for '{op}': '{left.type}' and '{right.type}'")
     type = types.greater(left.type, right.type)
     return Binary(op, _coerce_lossless(left, type), _coerce_lossless(right, type), types.Bool())

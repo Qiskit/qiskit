@@ -833,13 +833,32 @@ def generate_v12_expr():
     return [index, shift]
 
 
-def generate_circuits(version_parts, current_version, load_context=False):
-    """Generate reference circuits.
+def generate_v14_expr():
+    """Circuits that contain expressions and types new in QPY v14."""
+    from qiskit.circuit.classical import expr, types
+    from qiskit.circuit import Duration
 
-    If load_context is True, avoid generating Pulse-based reference
-    circuits. For those circuits, load_qpy only checks that the cached
-    circuits can be loaded without erroring."""
+    float_expr = QuantumCircuit(name="float_expr")
+    with float_expr.if_test(expr.less(1.0, 2.0)):
+        pass
 
+    duration_expr = QuantumCircuit(name="duration_expr")
+    with duration_expr.if_test(
+        expr.logic_and(
+            expr.logic_and(
+                expr.equal(Duration.dt(1), Duration.ns(2)),
+                expr.equal(Duration.us(3), Duration.ms(4)),
+            ),
+            expr.equal(Duration.s(5), Duration.dt(6)),
+        )
+    ):
+        pass
+
+    return [float_expr, duration_expr]
+
+
+def generate_circuits(version_parts):
+    """Generate reference circuits."""
     output_circuits = {
         "full.qpy": [generate_full_circuit()],
         "unitary.qpy": [generate_unitary_gate_circuit()],
@@ -898,6 +917,8 @@ def generate_circuits(version_parts, current_version, load_context=False):
     if version_parts >= (1, 1, 0):
         output_circuits["standalone_vars.qpy"] = generate_standalone_var()
         output_circuits["v12_expr.qpy"] = generate_v12_expr()
+    if version_parts >= (2, 0, 0):
+        output_circuits["v14_expr.qpy"] = generate_v14_expr()
     return output_circuits
 
 

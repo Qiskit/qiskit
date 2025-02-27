@@ -30,6 +30,7 @@ from qiskit.circuit import (
     CASE_DEFAULT,
     Clbit,
     ClassicalRegister,
+    Duration,
 )
 from qiskit.circuit.annotated_operation import AnnotatedOperation, Modifier
 from qiskit.circuit.classical import expr, types
@@ -287,6 +288,9 @@ class ExprType(TypeKeyBase):
 
     BOOL = b"b"
     UINT = b"u"
+    FLOAT = b"f"
+    DURATION = b"d"
+    STRETCH = b"s"
 
     @classmethod
     def assign(cls, obj):
@@ -331,6 +335,8 @@ class ExprValue(TypeKeyBase):
 
     BOOL = b"b"
     INT = b"i"
+    FLOAT = b"f"
+    DURATION = b"t"
 
     @classmethod
     def assign(cls, obj):
@@ -338,9 +344,44 @@ class ExprValue(TypeKeyBase):
             return cls.BOOL
         if isinstance(obj, int):
             return cls.INT
+        if isinstance(obj, float):
+            return cls.FLOAT
+        if isinstance(obj, Duration):
+            return cls.DURATION
         raise exceptions.QpyError(
             f"Object type '{type(obj)}' is not supported in {cls.__name__} namespace."
         )
+
+    @classmethod
+    def retrieve(cls, type_key):
+        raise NotImplementedError
+
+
+class CircuitDuration(TypeKeyBase):
+    """Type keys for the ``DURATION`` QPY item."""
+
+    DT = b"t"
+    NS = b"n"
+    US = b"u"
+    MS = b"m"
+    S = b"s"
+
+    @classmethod
+    def assign(cls, obj):
+        if isinstance(obj, Duration.dt):
+            return cls.DT
+        elif isinstance(obj, Duration.ns):
+            return cls.NS
+        elif isinstance(obj, Duration.us):
+            return cls.US
+        elif isinstance(obj, Duration.ms):
+            return cls.MS
+        elif isinstance(obj, Duration.s):
+            return cls.S
+        else:
+            raise exceptions.QpyError(
+                f"Object type '{type(obj)}' is not supported in {cls.__name__} namespace."
+            )
 
     @classmethod
     def retrieve(cls, type_key):
