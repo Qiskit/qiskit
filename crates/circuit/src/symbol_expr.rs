@@ -311,7 +311,7 @@ impl SymbolExpr {
                 let mut l = e.lhs.values();
                 let r = e.rhs.values();
                 l.extend(r);
-                return l;
+                l
             }
         }
     }

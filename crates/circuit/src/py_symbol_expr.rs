@@ -332,9 +332,9 @@ impl PySymbolExpr {
             .values()
             .iter()
             .map(|val| match val {
-                Value::Real(r) => ReturnValueTypes::Real(r.clone()),
-                Value::Int(i) => ReturnValueTypes::Int(i.clone()),
-                Value::Complex(c) => ReturnValueTypes::Complex(c.clone()),
+                Value::Real(r) => ReturnValueTypes::Real(*r),
+                Value::Int(i) => ReturnValueTypes::Int(*i),
+                Value::Complex(c) => ReturnValueTypes::Complex(*c),
             })
             .collect();
         Ok(ret)
