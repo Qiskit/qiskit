@@ -88,8 +88,8 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
     for inst in circuit.data:
         if isinstance(inst.operation, ControlFlowOp):
             raise QiskitError(
-                f"Circuits with control flow operation {type(inst.operation)} "
-                "cannot be converted to an instruction"
+                f"Circuits with control flow operations ({type(inst.operation)}) "
+                "cannot be converted to an instruction."
             )
 
     if parameter_map is None:
