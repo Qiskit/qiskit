@@ -261,12 +261,15 @@ class _ExprWriter(expr.ExprVisitor[None]):
         self.standalone_var_indices = standalone_var_indices
         self.version = version
 
+    def _write_expr_type(self, type_, /):
+        _write_expr_type(self.file_obj, type_, self.version)
+
     def visit_generic(self, node, /):
         raise exceptions.QpyError(f"unhandled Expr object '{node}'")
 
     def visit_var(self, node, /):
         self.file_obj.write(type_keys.Expression.VAR)
-        _write_expr_type(self.file_obj, node.type)
+        self._write_expr_type(node.type)
         if node.standalone:
             self.file_obj.write(type_keys.ExprVar.UUID)
             self.file_obj.write(
@@ -296,7 +299,7 @@ class _ExprWriter(expr.ExprVisitor[None]):
 
     def visit_value(self, node, /):
         self.file_obj.write(type_keys.Expression.VALUE)
-        _write_expr_type(self.file_obj, node.type)
+        self._write_expr_type(node.type)
         if node.value is True or node.value is False:
             self.file_obj.write(type_keys.ExprValue.BOOL)
             self.file_obj.write(
@@ -327,7 +330,7 @@ class _ExprWriter(expr.ExprVisitor[None]):
 
     def visit_cast(self, node, /):
         self.file_obj.write(type_keys.Expression.CAST)
-        _write_expr_type(self.file_obj, node.type)
+        self._write_expr_type(node.type)
         self.file_obj.write(
             struct.pack(formats.EXPRESSION_CAST_PACK, *formats.EXPRESSION_CAST(node.implicit))
         )
@@ -335,7 +338,7 @@ class _ExprWriter(expr.ExprVisitor[None]):
 
     def visit_unary(self, node, /):
         self.file_obj.write(type_keys.Expression.UNARY)
-        _write_expr_type(self.file_obj, node.type)
+        self._write_expr_type(node.type)
         self.file_obj.write(
             struct.pack(formats.EXPRESSION_UNARY_PACK, *formats.EXPRESSION_UNARY(node.op.value))
         )
@@ -343,7 +346,7 @@ class _ExprWriter(expr.ExprVisitor[None]):
 
     def visit_binary(self, node, /):
         self.file_obj.write(type_keys.Expression.BINARY)
-        _write_expr_type(self.file_obj, node.type)
+        self._write_expr_type(node.type)
         self.file_obj.write(
             struct.pack(formats.EXPRESSION_BINARY_PACK, *formats.EXPRESSION_BINARY(node.op.value))
         )
@@ -356,7 +359,7 @@ class _ExprWriter(expr.ExprVisitor[None]):
                 "the 'Index' expression", required=12, target=self.version
             )
         self.file_obj.write(type_keys.Expression.INDEX)
-        _write_expr_type(self.file_obj, node.type)
+        self._write_expr_type(node.type)
         node.target.accept(self)
         node.index.accept(self)
 
@@ -371,16 +374,7 @@ def _write_expr(
     node.accept(_ExprWriter(file_obj, clbit_indices, standalone_var_indices, version))
 
 
-def _write_expr_type(file_obj, type_: types.Type):
-    if type_.kind is types.Float:
-	    # TODO: actually support this when QPY version is new enough
-        raise exceptions.UnsupportedFeatureForVersion(
-            "float-typed expressions", required=14, target=version
-        )
-		file_obj.write(type_keys.ExprType.FLOAT)
-        file_obj.write(
-            struct.pack(formats.EXPR_TYPE_FLOAT_PACK, *formats.EXPR_TYPE_FLOAT(type_.const))
-        )
+def _write_expr_type(file_obj, type_: types.Type, version: int):
     if type_.kind is types.Bool:
         file_obj.write(type_keys.ExprType.BOOL)
     elif type_.kind is types.Uint:
@@ -388,6 +382,12 @@ def _write_expr_type(file_obj, type_: types.Type):
         file_obj.write(
             struct.pack(formats.EXPR_TYPE_UINT_PACK, *formats.EXPR_TYPE_UINT(type_.width))
         )
+    elif type_.kind is types.Float:
+        if version < 14:
+            raise exceptions.UnsupportedFeatureForVersion(
+                "float-typed expressions", required=14, target=version
+            )
+        file_obj.write(type_keys.ExprType.FLOAT)
     else:
         raise exceptions.QpyError(f"unhandled Type object '{type_};")
 
@@ -750,10 +750,7 @@ def _read_expr_type(file_obj) -> types.Type:
             struct.unpack(formats.EXPR_TYPE_UINT_PACK, file_obj.read(formats.EXPR_TYPE_UINT_SIZE))
         )
         return types.Uint(elem.width)
-	if type_key == type_keys.ExprType.FLOAT:
-        elem = formats.EXPR_TYPE_FLOAT._make(
-            struct.unpack(formats.EXPR_TYPE_FLOAT_PACK, file_obj.read(formats.EXPR_TYPE_FLOAT_SIZE))
-        )
+    if type_key == type_keys.ExprType.FLOAT:
         return types.Float()
     raise exceptions.QpyError(f"Invalid classical-expression Type key '{type_key}'")
 
@@ -791,7 +788,7 @@ def read_standalone_vars(file_obj, num_vars):
     return read_vars, var_order
 
 
-def _write_standalone_var(file_obj, var, type_key):
+def _write_standalone_var(file_obj, var, type_key, version):
     name = var.name.encode(common.ENCODE)
     file_obj.write(
         struct.pack(
@@ -799,16 +796,17 @@ def _write_standalone_var(file_obj, var, type_key):
             *formats.EXPR_VAR_DECLARATION(var.var.bytes, type_key, len(name)),
         )
     )
-    _write_expr_type(file_obj, var.type)
+    _write_expr_type(file_obj, var.type, version)
     file_obj.write(name)
 
 
-def write_standalone_vars(file_obj, circuit):
+def write_standalone_vars(file_obj, circuit, version):
     """Write the standalone variables out from a circuit.
 
     Args:
         file_obj (File): the file-like object to write to.
         circuit (QuantumCircuit): the circuit to take the variables from.
+        version (int): the QPY target version.
 
     Returns:
         dict[expr.Var, int]: a mapping of the variables written to the index that they were written
@@ -817,15 +815,15 @@ def write_standalone_vars(file_obj, circuit):
     index = 0
     out = {}
     for var in circuit.iter_input_vars():
-        _write_standalone_var(file_obj, var, type_keys.ExprVarDeclaration.INPUT)
+        _write_standalone_var(file_obj, var, type_keys.ExprVarDeclaration.INPUT, version)
         out[var] = index
         index += 1
     for var in circuit.iter_captured_vars():
-        _write_standalone_var(file_obj, var, type_keys.ExprVarDeclaration.CAPTURE)
+        _write_standalone_var(file_obj, var, type_keys.ExprVarDeclaration.CAPTURE, version)
         out[var] = index
         index += 1
     for var in circuit.iter_declared_vars():
-        _write_standalone_var(file_obj, var, type_keys.ExprVarDeclaration.LOCAL)
+        _write_standalone_var(file_obj, var, type_keys.ExprVarDeclaration.LOCAL, version)
         out[var] = index
         index += 1
     return out

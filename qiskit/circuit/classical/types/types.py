@@ -122,7 +122,7 @@ class Float(Type, metaclass=_Singleton):
     __slots__ = ()
 
     def __repr__(self):
-        return f"Float()"
+        return "Float()"
 
     def __hash__(self):
         return hash(self.__class__)

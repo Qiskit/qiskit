@@ -192,8 +192,9 @@ Cast(Var(ClassicalRegister(3, 'c'), Uint(3, const=False)), \
 Bool(const=False), implicit=True), \
 Bool(const=False))
     """
+    operand = lift(operand)
     try:
-        operand = _coerce_lossless(lift(operand), types.Bool())
+        operand = _coerce_lossless(operand, types.Bool())
         return Unary(Unary.Op.LOGIC_NOT, operand, operand.type)
     except TypeError as ex:
         raise TypeError(f"cannot apply '{Unary.Op.BIT_NOT}' to type '{operand.type}'") from ex
@@ -311,9 +312,11 @@ Uint(3))
 
 def _binary_logical(op: Binary.Op, left: typing.Any, right: typing.Any) -> Expr:
     bool_ = types.Bool()
+    left = lift(left)
+    right = lift(right)
     try:
-        left = _coerce_lossless(lift(left), bool_)
-        right = _coerce_lossless(lift(right), bool_)
+        left = _coerce_lossless(left, bool_)
+        right = _coerce_lossless(right, bool_)
         return Binary(op, left, right, bool_)
     except TypeError as ex:
         raise TypeError(f"invalid types for '{op}': '{left.type}' and '{right.type}'") from ex

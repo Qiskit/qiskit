@@ -401,7 +401,7 @@ class TestExprConstructors(QiskitTestCase):
                 opcode,
                 expr.Value(7.0, types.Float()),
                 expr.Value(7.0, types.Float()),
-                types.Bool(const=True),
+                types.Bool(),
             ),
         )
 
@@ -455,7 +455,7 @@ class TestExprConstructors(QiskitTestCase):
                 opcode,
                 expr.Value(12.0, types.Float()),
                 expr.Value(12.0, types.Float()),
-                types.Bool(const=True),
+                types.Bool(),
             ),
         )
 

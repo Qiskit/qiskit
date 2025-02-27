@@ -76,7 +76,6 @@ class TestTypesOrdering(QiskitTestCase):
         self.assertEqual(types.greater(types.Uint(8), types.Uint(16)), types.Uint(16))
         self.assertEqual(types.greater(types.Uint(8), types.Uint(8)), types.Uint(8))
         self.assertEqual(types.greater(types.Bool(), types.Bool()), types.Bool())
-        )
         self.assertEqual(types.greater(types.Float(), types.Float()), types.Float())
         with self.assertRaisesRegex(TypeError, "no ordering"):
             types.greater(types.Bool(), types.Uint(8))
@@ -98,4 +97,3 @@ class TestTypesCastKind(QiskitTestCase):
         self.assertIs(types.cast_kind(types.Uint(16), types.Uint(8)), types.CastKind.DANGEROUS)
         self.assertIs(types.cast_kind(types.Uint(16), types.Float()), types.CastKind.DANGEROUS)
         self.assertIs(types.cast_kind(types.Float(), types.Uint(16)), types.CastKind.DANGEROUS)
-
