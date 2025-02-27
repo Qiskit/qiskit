@@ -46,6 +46,7 @@ from qiskit.circuit.library import (
     UCRZGate,
     UnitaryGate,
     DiagonalGate,
+    PauliFeatureMap,
 )
 from qiskit.circuit.annotated_operation import (
     AnnotatedOperation,
@@ -862,6 +863,16 @@ class TestLoadFromQPY(QiskitTestCase):
         new_evo = new_circ.data[0].operation
         self.assertIsInstance(new_evo, PauliEvolutionGate)
         self.assertDeprecatedBitProperties(qc, new_circ)
+
+    def test_pauli_feature_map(self):
+        """Test PauliFeatureMap class. Regression test for
+        https://github.com/Qiskit/qiskit/issues/13720."""
+        qc = PauliFeatureMap(feature_dimension=5, reps=1)
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circuit = load(qpy_file)[0]
+        self.assertEqual(qc, new_circuit)
 
     def test_parameter_expression_global_phase(self):
         """Test a circuit with a parameter expression global_phase."""
