@@ -59,6 +59,7 @@ class ApplyLayout(TransformationPass):
         q = QuantumRegister(len(layout), "q")
 
         new_dag = DAGCircuit()
+        new_dag.name = dag.name
         new_dag.add_qreg(q)
         for var in dag.iter_input_vars():
             new_dag.add_input_var(var)

@@ -151,6 +151,21 @@ Multipliers
 .. autofunction:: multiplier_cumulative_h18
 .. autofunction:: multiplier_qft_r17
 
+Sums
+----
+
+.. autofunction:: synth_weighted_sum_carry
+
+
+Unary Arithmetic Synthesis
+==========================
+
+Integer comparators
+-------------------
+
+.. autofunction:: synth_integer_comparator_2s
+.. autofunction:: synth_integer_comparator_greedy
+
 """
 
 from .evolution import (
@@ -219,4 +234,7 @@ from .arithmetic import (
     adder_ripple_v95,
     multiplier_cumulative_h18,
     multiplier_qft_r17,
+    synth_integer_comparator_greedy,
+    synth_integer_comparator_2s,
+    synth_weighted_sum_carry,
 )

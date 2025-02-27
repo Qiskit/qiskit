@@ -43,7 +43,6 @@ Routing
 
    BasicSwap
    LookaheadSwap
-   StochasticSwap
    SabreSwap
    Commuting2qGateRouter
    StarPreRouting
@@ -92,6 +91,7 @@ Optimizations
    OptimizeAnnotated
    Split2QUnitaries
    RemoveIdentityEquivalent
+   ContractIdleWiresInControlFlow
 
 Calibration
 =============
@@ -195,7 +195,6 @@ from .layout import SabrePreLayout
 from .routing import BasicSwap
 from .routing import LayoutTransformation
 from .routing import LookaheadSwap
-from .routing import StochasticSwap
 from .routing import SabreSwap
 from .routing import Commuting2qGateRouter
 from .routing import StarPreRouting
@@ -235,6 +234,7 @@ from .optimization import NormalizeRXAngle
 from .optimization import OptimizeAnnotated
 from .optimization import RemoveIdentityEquivalent
 from .optimization import Split2QUnitaries
+from .optimization import ContractIdleWiresInControlFlow
 
 # circuit analysis
 from .analysis import ResourceEstimation
