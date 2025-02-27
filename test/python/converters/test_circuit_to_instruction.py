@@ -143,6 +143,17 @@ class TestCircuitToInstruction(QiskitTestCase):
             QiskitError, circuit_to_instruction, qc, {theta: gamma, phi: phi, delta: delta}
         )
 
+    def test_control_flow_raises(self):
+        """Raising if a circuit to convert has control flow.
+        See https://github.com/Qiskit/qiskit/issues/11379"""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure_all()
+        with qc.if_test((qc.clbits[0], 0)):
+            qc.x(0)
+        self.assertRaises(QiskitError, circuit_to_instruction, qc)
+
     def test_parameter_map(self):
         """Verify alternate parameter specification"""
         qr = QuantumRegister(3, "qr")
