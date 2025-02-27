@@ -39,6 +39,10 @@ The expression system is based on tree representation.  All nodes in the tree ar
 
 These objects are mutable and should not be reused in a different location without a copy.
 
+All :class`Expr` instances define a boolean :attr:`~Expr.const` attribute, which indicates
+whether the expression can be evaluated at compile-time. Most expression classes infer this
+during construction based on the const-ness of their operands.
+
 The base for dynamic variables is the :class:`Var`, which can be either an arbitrarily typed
 real-time variable, or a wrapper around a :class:`.Clbit` or :class:`.ClassicalRegister`.
 
@@ -46,7 +50,7 @@ real-time variable, or a wrapper around a :class:`.Clbit` or :class:`.ClassicalR
     :members: var, name, new
 
 Similarly, literals used in expressions (such as integers) should be lifted to :class:`Value` nodes
-with associated types.
+with associated types. A :class:`Value` is always considered a constant expression.
 
 .. autoclass:: Value
 
