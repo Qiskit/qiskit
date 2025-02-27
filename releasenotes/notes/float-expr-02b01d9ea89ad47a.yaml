@@ -10,9 +10,7 @@ features_circuits:
       from qiskit.circuit.classical import expr
 
       expr.lift(5.0)
-      # >>> Value(5.0, Float(const=False))
-      expr.lift(5.0, try_const=True)
-      # >>> Value(5.0, Float(const=True))
+      # >>> Value(5.0, Float())
     
     This type is intended primarily for use in timing-related (duration and stretch)
     expressions. It is not compatible with bitwise or logical operations, though it
