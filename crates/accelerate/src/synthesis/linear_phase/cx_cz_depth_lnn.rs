@@ -31,8 +31,9 @@ enum CircuitInstructions {
     Sdg(u32),
 }
 
-/// Given a CZ layer (represented as an n*n CZ matrix Mz)
-/// Return a schedule of phase gates implementing Mz in a SWAP-only netwrok
+/// Given a CZ layer (represented as an `n*n` CZ matrix `Mz`)
+/// return a schedule of phase gates implementing `Mz` in a SWAP-only network
+///
 /// (c.f. Alg 1, [2])
 fn _initialize_phase_schedule(mat_z: ArrayView2<bool>) -> Array2<usize> {
     let n = mat_z.nrows();
@@ -49,6 +50,7 @@ fn _initialize_phase_schedule(mat_z: ArrayView2<bool>) -> Array2<usize> {
 }
 
 /// Shuffle the indices in labels by swapping adjacent elements
+///
 /// (c.f. Fig.2, [2])
 fn _shuffle(labels: &[usize], start_from: usize) -> Vec<usize> {
     let mut shuffled_labels = labels.to_owned();
@@ -58,9 +60,9 @@ fn _shuffle(labels: &[usize], start_from: usize) -> Vec<usize> {
     shuffled_labels
 }
 
-/// Given the width of the circuit n,
 /// Return the labels of the boxes in order from left to right, top to bottom
-/// (c.f. Fig.2, [2])
+///
+/// Given the width of the circuit `n`, (c.f. Fig.2, [2])
 fn _make_seq(n: usize) -> Vec<(usize, usize)> {
     (0..n)
         .scan((0..n).rev().collect::<Vec<usize>>(), |wire_labels, i| {
@@ -79,15 +81,16 @@ fn _make_seq(n: usize) -> Vec<(usize, usize)> {
         .collect()
 }
 
-/// Given CX instructions (c.f. Thm 7.1, [1]) and the labels of all boxes,
 /// Return a list of labels of the boxes that is SWAP+ in descending order
-///     * Assumes the instruction gives gates in the order from top to bottom,
-///       from left to right
-///     * SWAP+ is defined in section 3.A. of [2]. Note the northwest
-///       diagonalization procedure of [1] consists exactly n layers of boxes,
-///       each being either a SWAP or a SWAP+. That is, each northwest
-///       diagonalization circuit can be uniquely represented by which of its
-///       n(n-1)/2 boxes are SWAP+ and which are SWAP.
+/// Given CX instructions (c.f. Thm 7.1, [1]) and the labels of all boxes.
+///
+/// - Assumes the instruction gives gates in the order from top to bottom,
+///   from left to right
+/// - SWAP+ is defined in section 3.A. of [2]. Note the northwest
+///   diagonalization procedure of [1] consists exactly n layers of boxes,
+///   each being either a SWAP or a SWAP+. That is, each northwest
+///   diagonalization circuit can be uniquely represented by which of its
+///   n(n-1)/2 boxes are SWAP+ and which are SWAP.
 fn _swap_plus(instructions: &[(usize, usize)], seq: &[(usize, usize)]) -> HashSet<(usize, usize)> {
     (0..seq.len())
         .scan(0, |inst_index, i| {
@@ -109,7 +112,7 @@ fn _swap_plus(instructions: &[(usize, usize)], seq: &[(usize, usize)]) -> HashSe
 }
 
 /// Given phase_schedule initialized to induce a CZ circuit in SWAP-only network and list of SWAP+ boxes
-/// Update phase_schedule for each SWAP+ according to Algorithm 2, [2]
+/// updates phase_schedule for each SWAP+ according to Algorithm 2, [2]
 fn _update_phase_schedule(
     n: usize,
     phase_schedule: &mut Array2<usize>,
@@ -165,18 +168,19 @@ fn _update_phase_schedule(
         });
 }
 
-/// Given
-///     Width of the circuit (int n)
-///     A CZ circuit, represented by the n*n phase schedule phase_schedule
-///     A CX circuit, represented by box-labels (seq) and whether the box is SWAP+ (swap_plus)
-///         *   This circuit corresponds to the CX tranformation that tranforms a matrix to
-///             a NW matrix (c.f. Prop.7.4, [1])
-///         *   SWAP+ is defined in section 3.A. of [2].
-///         *   As previously noted, the northwest diagonalization procedure of [1] consists
-///             of exactly n layers of boxes, each being either a SWAP or a SWAP+. That is,
-///             each northwest diagonalization circuit can be uniquely represented by which
-///             of its n(n-1)/2 boxes are SWAP+ and which are SWAP.
 /// Return a QuantumCircuit that computes the phase schedule S inside CX
+///
+/// Given
+/// - Width of the circuit (int `n`)
+/// - A CZ circuit, represented by the `n*n` phase schedule phase_schedule
+/// - A CX circuit, represented by box-labels (seq) and whether the box is SWAP+ (swap_plus)
+///   - This circuit corresponds to the CX tranformation that tranforms a matrix to
+///     a NW matrix (c.f. Prop.7.4, [1])
+///   - SWAP+ is defined in section 3.A. of [2].
+///   - As previously noted, the northwest diagonalization procedure of [1] consists
+///     of exactly n layers of boxes, each being either a SWAP or a SWAP+. That is,
+///     each northwest diagonalization circuit can be uniquely represented by which
+///     of its `n(n-1)/2` boxes are SWAP+ and which are SWAP.
 fn _apply_phase_to_nw_circuit(
     n: usize,
     phase_schedule: &Array2<usize>,
@@ -206,7 +210,7 @@ fn _apply_phase_to_nw_circuit(
         cir.push(CircuitInstructions::CX(w1 as u32, w2 as u32));
     }
     for i in 0..n {
-        match phase_schedule[[n - 1 - i, n - 1 - i]] {
+        match phase_schedule[[n - 1 - i, n - 1 - i]] % 4 {
             0 => {}
             1 => cir.push(CircuitInstructions::Sdg(i as u32)),
             2 => cir.push(CircuitInstructions::Z(i as u32)),
@@ -219,25 +223,27 @@ fn _apply_phase_to_nw_circuit(
 
 /// Joint synthesis of a -CZ-CX- circuit for linear nearest neighbor (LNN) connectivity,
 /// with 2-qubit depth at most 5n, based on Maslov and Yang.
+///
 /// This method computes the CZ circuit inside the CX circuit via phase gate insertions.
 ///
-/// Args:
-///     mat_z : a boolean symmetric matrix representing a CZ circuit.
-///         ``mat_z[i][j]=1`` represents a ``cz(i,j)`` gate
+/// # Arguments
+/// - mat_z : a boolean symmetric matrix representing a CZ circuit.
+///    `mat_z[i][j]=1` represents a `cz(i,j)` gate
 ///
-///     mat_x : a boolean invertible matrix representing a CX circuit.
+/// - mat_x : a boolean invertible matrix representing a CX circuit.
 ///
-/// Returns:
-///     A circuit implementation of a CX circuit following a CZ circuit,
-///     denoted as a -CZ-CX- circuit,in two-qubit depth at most ``5n``, for LNN connectivity.
+/// # Returns
+/// A circuit implementation of a CX circuit following a CZ circuit,
+/// denoted as a -CZ-CX- circuit,in two-qubit depth at most `5n`, for LNN connectivity.
 ///
-/// References:
-///     1. Kutin, S., Moulton, D. P., Smithline, L.,
-///        *Computation at a distance*, Chicago J. Theor. Comput. Sci., vol. 2007, (2007),
-///        `arXiv:quant-ph/0701194 <https://arxiv.org/abs/quant-ph/0701194>`_
-///     2. Dmitri Maslov, Willers Yang, *CNOT circuits need little help to implement arbitrary
-///        Hadamard-free Clifford transformations they generate*,
-///        `arXiv:2210.16195 <https://arxiv.org/abs/2210.16195>`_.
+/// # References
+/// 1. Kutin, S., Moulton, D. P., Smithline, L.,
+/// *Computation at a distance*, Chicago J. Theor. Comput. Sci., vol. 2007, (2007),
+/// [arXiv:quant-ph/0701194] (https://arxiv.org/abs/quant-ph/0701194)
+///
+/// 2. Dmitri Maslov, Willers Yang, *CNOT circuits need little help to implement arbitrary
+/// Hadamard-free Clifford transformations they generate*,
+/// [arXiv:2210.16195] (https://arxiv.org/abs/2210.16195).
 #[pyfunction]
 #[pyo3(signature = (mat_x, mat_z))]
 pub fn py_synth_cx_cz_depth_line_my(
