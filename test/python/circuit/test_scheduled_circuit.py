@@ -65,8 +65,6 @@ class TestScheduledCircuit(QiskitTestCase):
         self.assertEqual(sc.data[0].operation.duration, 450900)
         self.assertEqual(sc.data[0].operation.unit, "dt")
         self.assertEqual(sc.data[1].operation.name, "rz")
-        self.assertEqual(sc.data[1].operation.duration, 0)
-        self.assertEqual(sc.data[1].operation.unit, "dt")
         self.assertEqual(sc.data[4].operation.name, "delay")
         self.assertEqual(sc.data[4].operation.duration, 450885)
         self.assertEqual(sc.data[4].operation.unit, "dt")
@@ -96,8 +94,6 @@ class TestScheduledCircuit(QiskitTestCase):
         self.assertEqual(sc.data[0].operation.duration, 450450)
         self.assertEqual(sc.data[0].operation.unit, "dt")
         self.assertEqual(sc.data[1].operation.name, "rz")
-        self.assertEqual(sc.data[1].operation.duration, 0)
-        self.assertEqual(sc.data[1].operation.unit, "dt")
         self.assertEqual(sc.data[4].operation.name, "delay")
         self.assertEqual(sc.data[4].operation.duration, 450450)
         self.assertEqual(sc.data[4].operation.unit, "dt")
@@ -123,8 +119,6 @@ class TestScheduledCircuit(QiskitTestCase):
         self.assertAlmostEqual(sc.data[0].operation.duration, 1.0e-4 + 1.0e-7)
         self.assertEqual(sc.data[0].operation.unit, "s")
         self.assertEqual(sc.data[1].operation.name, "rz")
-        self.assertAlmostEqual(sc.data[1].operation.duration, 160 * self.dt)
-        self.assertEqual(sc.data[1].operation.unit, "s")
         self.assertEqual(sc.data[4].operation.name, "delay")
         self.assertAlmostEqual(sc.data[4].operation.duration, 1.0e-4 + 1.0e-7)
         self.assertEqual(sc.data[4].operation.unit, "s")
@@ -200,6 +194,7 @@ class TestScheduledCircuit(QiskitTestCase):
                 scheduling_method="alap",
                 basis_gates=["h", "cx"],
                 instruction_durations=[("h", 0, 200), ("cx", [0, 1], 700)],
+                dt=1e-7,
             )
         self.assertEqual(scheduled.duration, 1200)
 
@@ -216,7 +211,10 @@ class TestScheduledCircuit(QiskitTestCase):
             expected_regex="The `target` parameter should be used instead",
         ):
             scheduled = transpile(
-                qc, scheduling_method="alap", instruction_durations=[("bell", [0, 1], 1000)]
+                qc,
+                scheduling_method="alap",
+                instruction_durations=[("bell", [0, 1], 1000)],
+                dt=1e-2,
             )
         self.assertEqual(scheduled.duration, 1500)
 
@@ -278,6 +276,7 @@ class TestScheduledCircuit(QiskitTestCase):
                 basis_gates=["h", "cx", "delay"],
                 scheduling_method="alap",
                 instruction_durations=[("h", 0, 200), ("cx", None, 900)],
+                dt=1e-6,
             )
         self.assertEqual(scheduled.duration, 1400)
         with self.assertWarnsRegex(
@@ -290,6 +289,7 @@ class TestScheduledCircuit(QiskitTestCase):
                 basis_gates=["h", "cx", "delay"],
                 scheduling_method="alap",
                 instruction_durations=[("h", 0, 200), ("cx", None, 900), ("cx", [0, 1], 800)],
+                dt=1e-7,
             )
         self.assertEqual(scheduled.duration, 1300)
 
@@ -342,6 +342,7 @@ class TestScheduledCircuit(QiskitTestCase):
                 scheduling_method="alap",
                 basis_gates=["h", "cx"],
                 instruction_durations=[("h", None, 200), ("cx", [0, 1], 700)],
+                dt=1e-7,
             )
         self.assertEqual(sc.qubit_start_time(0), 300)
         self.assertEqual(sc.qubit_stop_time(0), 1200)
@@ -368,6 +369,7 @@ class TestScheduledCircuit(QiskitTestCase):
                     ("cx", [0, 1], 700),
                     ("measure", None, 1000),
                 ],
+                dt=1e-8,
             )
         q = sc.qubits
         self.assertEqual(sc.qubit_start_time(q[0]), 300)
@@ -519,6 +521,39 @@ class TestScheduledCircuit(QiskitTestCase):
         }
         self.assertEqual(duration, expected_val[unit])
 
+    @data("s", "dt", "f", "p", "n", "u", "µ", "m", "k", "M", "G", "T", "P")
+    def test_estimate_duration_with_dt_float(self, unit):
+        # This is not a valid use case, but it is still expressible currently
+        # since we don't disallow fractional dt values. This should not be assumed
+        # to be a part of an api contract. If there is a refactor and this test
+        # breaks remove the test it is not valid. This was only added to provide
+        # explicit test coverage for a rust code path.
+        backend = GenericBackendV2(num_qubits=3, seed=42)
+
+        circ = QuantumCircuit(3)
+        circ.cx(0, 1)
+        circ.measure_all()
+        circ.delay(1.23e15, 2, unit="dt")
+        circuit_dt = transpile(circ, backend, scheduling_method="asap")
+        duration = circuit_dt.estimate_duration(backend.target, unit=unit)
+        expected_in_sec = 273060.0000013993
+        expected_val = {
+            "s": expected_in_sec,
+            "dt": int(expected_in_sec / backend.target.dt),
+            "f": expected_in_sec / 1e-15,
+            "p": expected_in_sec / 1e-12,
+            "n": expected_in_sec / 1e-9,
+            "u": expected_in_sec / 1e-6,
+            "µ": expected_in_sec / 1e-6,
+            "m": expected_in_sec / 1e-3,
+            "k": expected_in_sec / 1e3,
+            "M": expected_in_sec / 1e6,
+            "G": expected_in_sec / 1e9,
+            "T": expected_in_sec / 1e12,
+            "P": expected_in_sec / 1e15,
+        }
+        self.assertEqual(duration, expected_val[unit])
+
     def test_estimate_duration_invalid_unit(self):
         backend = GenericBackendV2(num_qubits=3, seed=42)
 
@@ -620,7 +655,7 @@ class TestScheduledCircuit(QiskitTestCase):
         ):
             sc = transpile(qc, backend=self.backend_with_dt, scheduling_method=scheduling_method)
         cxs = [inst.operation for inst in sc.data if inst.operation.name == "cx"]
-        self.assertNotEqual(cxs[0].duration, cxs[1].duration)
+        self.assertEqual(cxs[0], cxs[1])
 
     # Tests for circuits with parameterized delays
     def test_can_transpile_circuits_after_assigning_parameters(self):

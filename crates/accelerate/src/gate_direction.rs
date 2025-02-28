@@ -20,7 +20,6 @@ use pyo3::types::PyTuple;
 use qiskit_circuit::operations::OperationRef;
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{
-    circuit_instruction::ExtraInstructionAttributes,
     converters::{circuit_to_dag, QuantumCircuitData},
     dag_circuit::DAGCircuit,
     imports,
@@ -356,7 +355,7 @@ where
             .bind(py)
             .call_method1("replace_blocks", (op_blocks,))?;
 
-        dag.py_substitute_node(dag.get_node(py, node)?.bind(py), &new_op, false, false)?;
+        dag.py_substitute_node(py, dag.get_node(py, node)?.bind(py), &new_op, false, None)?;
     }
 
     for (node, replacemanet_dag) in nodes_to_replace {
@@ -365,7 +364,7 @@ where
             dag.get_node(py, node)?.bind(py),
             &replacemanet_dag,
             None,
-            true,
+            None,
         )?;
     }
 
@@ -433,7 +432,7 @@ fn apply_operation_back(
         qargs,
         &[],
         param,
-        ExtraInstructionAttributes::default(),
+        None,
         #[cfg(feature = "cache_pygates")]
         None,
     )?;

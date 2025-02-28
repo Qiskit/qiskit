@@ -21,7 +21,7 @@ from ddt import ddt, data
 import numpy as np
 
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
-from qiskit.circuit import Qubit, Gate, ControlFlowOp, ForLoopOp, Measure
+from qiskit.circuit import Qubit, Gate, ControlFlowOp, ForLoopOp, Measure, library as lib, Parameter
 from qiskit.compiler import transpile
 from qiskit.transpiler import (
     CouplingMap,
@@ -1186,37 +1186,6 @@ class TestTranspileLevelsSwap(QiskitTestCase):
 
 
 @ddt
-class TestOptimizationWithCondition(QiskitTestCase):
-    """Test optimization levels with condition in the circuit"""
-
-    @data(0, 1, 2, 3)
-    def test_optimization_condition(self, level):
-        """Test optimization levels with condition in the circuit"""
-        qr = QuantumRegister(2)
-        cr = ClassicalRegister(1)
-        qc = QuantumCircuit(qr, cr)
-        with self.assertWarns(DeprecationWarning):
-            qc.cx(0, 1).c_if(cr, 1)
-        backend = GenericBackendV2(
-            num_qubits=20,
-            coupling_map=TOKYO_CMAP,
-            basis_gates=["id", "u1", "u2", "u3", "cx"],
-            seed=42,
-        )
-        circ = transpile(qc, backend, optimization_level=level)
-        self.assertIsInstance(circ, QuantumCircuit)
-
-    def test_input_dag_copy(self):
-        """Test substitute_node_with_dag input_dag copy on condition"""
-        qc = QuantumCircuit(2, 1)
-        with self.assertWarns(DeprecationWarning):
-            qc.cx(0, 1).c_if(qc.cregs[0], 1)
-        qc.cx(1, 0)
-        circ = transpile(qc, basis_gates=["u3", "cz"])
-        self.assertIsInstance(circ, QuantumCircuit)
-
-
-@ddt
 class TestOptimizationOnSize(QiskitTestCase):
     """Test the optimization levels for optimization based on
     both size and depth of the circuit.
@@ -1528,6 +1497,28 @@ class TestGeneratePresetPassManagers(QiskitTestCase):
             ValueError, "Expected non-negative integer as seed for transpiler."
         ):
             generate_preset_pass_manager(seed_transpiler=0.1)
+
+    @data(0, 1, 2, 3)
+    def test_preserves_circuit_metadata(self, optimization_level):
+        """Test that basic metadata is preserved."""
+        metadata = {"experiment_id": "1234", "execution_number": 4}
+        name = "my circuit"
+        circuit = QuantumCircuit(4, metadata=metadata.copy(), name=name)
+        circuit.h(0)
+        circuit.cx(0, 3)
+
+        num_qubits = 10
+        target = Target(num_qubits)
+        for inst in (lib.IGate(), lib.PhaseGate(Parameter("t")), lib.SXGate()):
+            target.add_instruction(inst, {(i,): None for i in range(num_qubits)})
+        target.add_instruction(CXGate(), {pair: None for pair in CouplingMap.from_line(num_qubits)})
+
+        pm = generate_preset_pass_manager(
+            optimization_level=optimization_level, target=target, seed_transpiler=42
+        )
+        res = pm.run(circuit)
+        self.assertEqual(res.metadata, metadata)
+        self.assertEqual(res.name, name)
 
 
 @ddt

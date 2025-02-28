@@ -24,7 +24,7 @@ import warnings
 import numpy as np
 
 from qiskit import circuit as circuit_mod
-from qiskit.circuit import library, controlflow, CircuitInstruction, ControlFlowOp
+from qiskit.circuit import library, controlflow, CircuitInstruction, ControlFlowOp, IfElseOp
 from qiskit.circuit.classical import expr
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.circuit.gate import Gate
@@ -320,12 +320,16 @@ def _read_instruction(
         )
         if condition is not None:
             warnings.warn(
-                f"The .condition attribute on {gate_name} will be loaded as an IfElseOp "
-                "starting in Qiskit 2.0",
-                FutureWarning,
+                f"The .condition attribute on {gate_name} can not be "
+                "represented in this version of Qiskit. It will be "
+                "represented as an IfElseOp instead.",
+                UserWarning,
                 stacklevel=3,
             )
-        inst_obj.condition = condition
+
+            body = QuantumCircuit(qargs, cargs)
+            body.append(inst_obj, qargs, cargs)
+            inst_obj = IfElseOp(condition, body)
         if instruction.label_size > 0:
             inst_obj.label = label
         if circuit is None:
@@ -385,7 +389,9 @@ def _read_instruction(
                 gate.num_ctrl_qubits = instruction.num_ctrl_qubits
                 gate.ctrl_state = instruction.ctrl_state
         if condition:
-            gate = gate.c_if(*condition)
+            body = QuantumCircuit(qargs, cargs)
+            body.append(gate, qargs, cargs)
+            gate = IfElseOp(condition, body)
     else:
         if gate_name in {"Initialize", "StatePreparation"}:
             if isinstance(params[0], str):
@@ -422,12 +428,15 @@ def _read_instruction(
         if condition:
             if not isinstance(gate, ControlFlowOp):
                 warnings.warn(
-                    f"The .condition attribute on {gate} will be loaded as an "
-                    "IfElseOp starting in Qiskit 2.0",
-                    FutureWarning,
+                    f"The .condition attribute on {gate_name} can not be "
+                    "represented in this version of Qiskit. It will be "
+                    "represented as an IfElseOp instead.",
+                    UserWarning,
                     stacklevel=3,
                 )
-                gate = gate.c_if(*condition)
+                body = QuantumCircuit(qargs, cargs)
+                body.append(gate, qargs, cargs)
+                gate = IfElseOp(condition, body)
             else:
                 gate.condition = condition
     if circuit is None:
@@ -650,10 +659,9 @@ def _read_calibrations(file_obj, version, vectors, metadata_deserializer):
         name = file_obj.read(defheader.name_size).decode(common.ENCODE)
         if name:
             warnings.warn(
-                category=exceptions.QPYLoadingDeprecatedFeatureWarning,
+                category=UserWarning,
                 message="Support for loading pulse gates has been removed in Qiskit 2.0. "
-                f"If `{name}` is in the circuit, it will be left as a custom instruction"
-                " without definition.",
+                f"If `{name}` is in the circuit it will be left as an opaque instruction.",
             )
 
         for _ in range(defheader.num_qubits):  # read qubits info
