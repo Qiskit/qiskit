@@ -713,10 +713,12 @@ class TestExprConstructors(QiskitTestCase):
                 types.Duration(),
             ),
         )
-        self.assertTrue(function(
-            expr.lift(Duration.ms(1000), types.Duration()),
-            expr.lift(Duration.s(1)),
-        ).const)
+        self.assertTrue(
+            function(
+                expr.lift(Duration.ms(1000), types.Duration()),
+                expr.lift(Duration.s(1)),
+            ).const
+        )
 
         self.assertEqual(
             function(a, Duration.s(1)),

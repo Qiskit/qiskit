@@ -2254,9 +2254,7 @@ class TestPostTranspileIntegration(QiskitTestCase):
                 ),
                 expr.logic_and(
                     expr.equal(expr.mul(expr.lift(1.0), 2.0), expr.div(4.0, 2.0)),
-                    expr.equal(
-                        expr.add(3.0, 4.0), expr.sub(10.5, expr.lift(4.3, types.Float()))
-                    ),
+                    expr.equal(expr.add(3.0, 4.0), expr.sub(10.5, expr.lift(4.3, types.Float()))),
                 ),
             )
         ):
