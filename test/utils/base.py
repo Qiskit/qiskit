@@ -95,6 +95,13 @@ class QiskitTestCase(BaseTestCase):
         warnings.filterwarnings("error", category=DeprecationWarning)
         warnings.filterwarnings("error", category=QiskitWarning)
 
+        warnings.filterwarnings(
+            "ignore",
+            category=RuntimeWarning,
+            message="Aer not found using BasicSimulator and no noise",
+            module="qiskit.providers.fake_provider.generic_backend_v2",
+        )
+
         # Numpy 2 made a few new modules private, and have warnings that trigger if you try to
         # access attributes that _would_ have existed.  Unfortunately, Python's `warnings` module
         # adds a field called `__warningregistry__` to any module that triggers a warning, and
