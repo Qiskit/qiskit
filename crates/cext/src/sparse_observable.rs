@@ -244,7 +244,7 @@ pub unsafe extern "C" fn qk_obs_free(obs: *mut SparseObservable) {
 /// Add a term to the observable.
 ///
 /// @param obs A pointer to the observable.
-/// @param A pointer to the term to add.
+/// @param cterm A pointer to the term to add.
 ///
 /// @return An exit code. This is ``>0`` if the term is incoherent or adding the term fails.
 ///
@@ -756,7 +756,7 @@ pub unsafe extern "C" fn qk_obs_str(obs: *const SparseObservable) -> *mut c_char
 /// @ingroup QkSparseObservable
 /// Free a string representation of a ``SparseObservable``.
 ///
-///  @param str A pointer to the returned string representation from ``qk_obs_str``
+///  @param string A pointer to the returned string representation from ``qk_obs_str``
 ///
 /// # Safety
 ///
@@ -807,7 +807,7 @@ pub unsafe extern "C" fn qk_obsterm_str(term: *const CSparseTerm) -> *mut c_char
 /// @ingroup QkSparseObservable
 /// Free a string representation of a ``SparseObservable``.
 ///
-///  @param str A pointer to the returned string representation from ``qk_obsterm_str``
+///  @param string A pointer to the returned string representation from ``qk_obsterm_str``
 ///
 /// # Safety
 ///
@@ -823,7 +823,7 @@ pub unsafe extern "C" fn qk_free_obsterm_str(string: *mut c_char) {
 /// @ingroup QkBitTerm
 /// Get the label for a bit term.
 ///
-/// @param bit The bit term.
+/// @param bit_term The bit term.
 ///
 /// @return The label as ``uint8_t``, which can be cast to ``char`` to obtain the character.
 ///
