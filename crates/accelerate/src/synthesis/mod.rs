@@ -11,6 +11,7 @@
 // that they have been altered from the originals.
 
 pub mod clifford;
+mod common;
 mod evolution;
 pub mod linear;
 pub mod linear_phase;
