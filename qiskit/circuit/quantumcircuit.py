@@ -775,6 +775,8 @@ class QuantumCircuit:
     a block, even though it has no operations defined.  In this case, you can use the :meth:`noop`
     method.
 
+    To check whether a circuit contains a :class:`.ControlFlowOp` you can use the helper method
+    :meth:`.QuantumCircuit.has_control_flow_op`.
     ..
         TODO: expand the examples of the builder interface.
 
@@ -786,6 +788,7 @@ class QuantumCircuit:
     .. automethod:: switch
     .. automethod:: while_loop
     .. automethod:: noop
+    .. automethod:: has_control_flow_op
 
 
     Converting circuits to single objects
