@@ -833,6 +833,18 @@ def generate_v12_expr():
     return [index, shift]
 
 
+def generate_replay_with_expression_substitutions():
+    """Circuits with parameters that have substituted expressions in the replay"""
+    a = Parameter("a")
+    b = Parameter("b")
+    a1 = a * 2
+    a2 = a1.subs({a: 3 * b})
+    qc = QuantumCircuit(1)
+    qc.rz(a2, 0)
+
+    return [qc]
+
+
 def generate_circuits(version_parts, current_version, load_context=False):
     """Generate reference circuits.
 
@@ -898,6 +910,11 @@ def generate_circuits(version_parts, current_version, load_context=False):
     if version_parts >= (1, 1, 0):
         output_circuits["standalone_vars.qpy"] = generate_standalone_var()
         output_circuits["v12_expr.qpy"] = generate_v12_expr()
+    if version_parts >= (1, 4, 1):
+        output_circuits["replay_with_expressions.qpy"] = (
+            generate_replay_with_expression_substitutions()
+        )
+
     return output_circuits
 
 
