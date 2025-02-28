@@ -34,7 +34,8 @@ The earlier versions of the sampler and estimator abstractions are defined by :c
 and :class:`~.BaseEstimatorV1`. These interfaces follow a different and less flexible input-output 
 format for the ``run`` method and have been largely replaced in practice by :class:`~.BaseSamplerV2` and 
 :class:`~.BaseEstimatorV2`. However, the original abstract interface definitions have been 
-retained for backward compatibility.
+retained for backward compatibility. Check the migration section of this page to see further details 
+on the difference between V1 and V2. 
 
 Overview of EstimatorV2
 =======================
