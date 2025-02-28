@@ -1254,7 +1254,7 @@ def _build_ast_type(type_: types.Type) -> ast.ClassicalType:
     if type_.kind is types.Uint:
         return ast.UintType(type_.width)
     if type_.kind is types.Float:
-        return ast.FloatType.UNSPECIFIED
+        return ast.FloatType.DOUBLE
     raise RuntimeError(f"unhandled expr type '{type_}'")
 
 

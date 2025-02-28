@@ -49,9 +49,9 @@ if typing.TYPE_CHECKING:
     import qiskit
 
 
-def _coerce_lossless(expr: Expr, type: types.Type) -> Expr:
+def _coerce_lossless(expr: Expr, type: types.Type) -> Expr | None:
     """Coerce ``expr`` to ``type`` by inserting a suitable :class:`Cast` node, if the cast is
-    lossless.  Otherwise, raise a ``TypeError``."""
+    lossless.  Otherwise, return ``None``."""
     kind = cast_kind(expr.type, type)
     if kind is CastKind.EQUAL:
         return expr
@@ -59,9 +59,7 @@ def _coerce_lossless(expr: Expr, type: types.Type) -> Expr:
         return Cast(expr, type, implicit=True)
     if kind is CastKind.LOSSLESS:
         return Cast(expr, type, implicit=False)
-    if kind is CastKind.DANGEROUS:
-        raise TypeError(f"cannot cast '{expr}' to '{type}' without loss of precision")
-    raise TypeError(f"no cast is defined to take '{expr}' to '{type}'")
+    return None
 
 
 def lift_legacy_condition(
@@ -193,11 +191,10 @@ Bool(), implicit=True), \
 Bool())
     """
     operand = lift(operand)
-    try:
-        operand = _coerce_lossless(operand, types.Bool())
-        return Unary(Unary.Op.LOGIC_NOT, operand, operand.type)
-    except TypeError as ex:
-        raise TypeError(f"cannot apply '{Unary.Op.BIT_NOT}' to type '{operand.type}'") from ex
+    coerced_operand = _coerce_lossless(operand, types.Bool())
+    if coerced_operand is None:
+        raise TypeError(f"cannot apply '{Unary.Op.LOGIC_NOT}' to type '{operand.type}'")
+    return Unary(Unary.Op.LOGIC_NOT, coerced_operand, coerced_operand.type)
 
 
 def _lift_binary_operands(left: typing.Any, right: typing.Any) -> tuple[Expr, Expr]:
@@ -314,12 +311,11 @@ def _binary_logical(op: Binary.Op, left: typing.Any, right: typing.Any) -> Expr:
     bool_ = types.Bool()
     left = lift(left)
     right = lift(right)
-    try:
-        left = _coerce_lossless(left, bool_)
-        right = _coerce_lossless(right, bool_)
-        return Binary(op, left, right, bool_)
-    except TypeError as ex:
-        raise TypeError(f"invalid types for '{op}': '{left.type}' and '{right.type}'") from ex
+    coerced_left = _coerce_lossless(left, bool_)
+    coerced_right = _coerce_lossless(right, bool_)
+    if coerced_left is None or coerced_right is None:
+        raise TypeError(f"invalid types for '{op}': '{left.type}' and '{right.type}'")
+    return Binary(op, coerced_left, coerced_right, bool_)
 
 
 def logic_and(left: typing.Any, right: typing.Any, /) -> Expr:

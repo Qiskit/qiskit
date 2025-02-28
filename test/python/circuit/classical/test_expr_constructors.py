@@ -140,7 +140,7 @@ class TestExprConstructors(QiskitTestCase):
         )
 
     @ddt.data(expr.bit_not)
-    def test_urnary_bitwise_forbidden(self, function):
+    def test_unary_bitwise_forbidden(self, function):
         with self.assertRaisesRegex(TypeError, "cannot apply"):
             function(7.0)
 
@@ -161,7 +161,7 @@ class TestExprConstructors(QiskitTestCase):
         )
 
     @ddt.data(expr.logic_not)
-    def test_urnary_logical_forbidden(self, function):
+    def test_unary_logical_forbidden(self, function):
         with self.assertRaisesRegex(TypeError, "cannot apply"):
             function(7.0)
 
@@ -507,6 +507,8 @@ class TestExprConstructors(QiskitTestCase):
             expr.index(ClassicalRegister(3, "a"), 1.0)
         with self.assertRaisesRegex(TypeError, "invalid types"):
             expr.index(0xFFFF, 1.0)
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            expr.index(ClassicalRegister(3, "a"), 1.0)
 
     @ddt.data(
         (expr.shift_left, expr.Binary.Op.SHIFT_LEFT),
