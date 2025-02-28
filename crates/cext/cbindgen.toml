@@ -27,4 +27,5 @@ prefix = "Qk"
 renaming_overrides_prefixing = false
 
 [export.rename]
-"CSparseTerm" = "SparseTerm"
+"SparseObservable" = "Obs"
+"CSparseTerm" = "ObsTerm"

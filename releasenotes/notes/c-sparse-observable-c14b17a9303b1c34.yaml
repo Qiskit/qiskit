@@ -18,13 +18,13 @@ features:
       int main(int argc, char *argv[]) {
           // build a 100-qubit empty observable
           uint32_t num_qubits = 100;
-          QkSparseObservable *obs = qk_obs_zero(num_qubits);
+          QkObs *obs = qk_obs_zero(num_qubits);
 
           // add the term 2 * (X0 Y1 Z2) to the observable
           complex double coeff = 2;
           QkBitTerm bit_terms[3] = {QkBitTerm_X, QkBitTerm_Y, QkBitTerm_Z};
           uint32_t indices[3] = {0, 1, 2};
-          QkSparseTerm term = {coeff, 3, bit_terms, indices, num_qubits};
+          QkObsTerm term = {coeff, 3, bit_terms, indices, num_qubits};
           qk_obs_add_term(obs, &term);
 
           // print some properties
