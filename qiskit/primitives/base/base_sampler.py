@@ -25,8 +25,8 @@ from qiskit.providers import JobV1 as Job
 from ..containers.primitive_result import PrimitiveResult
 from ..containers.sampler_pub import SamplerPubLike
 from ..containers.sampler_pub_result import SamplerPubResult
-from . import validation
-from .base_primitive import BasePrimitive
+from .validation_v1 import _validate_sampler_args
+from .base_primitive_v1 import BasePrimitiveV1
 from .base_primitive_job import BasePrimitiveJob
 
 T = TypeVar("T", bound=Job)
@@ -75,7 +75,7 @@ class BaseSamplerV2(ABC):
         """
 
 
-class BaseSamplerV1(BasePrimitive, Generic[T]):
+class BaseSamplerV1(BasePrimitiveV1, Generic[T]):
     r"""Sampler V1 base class
 
     Base class of Sampler that calculates quasi-probabilities of bitstrings from quantum circuits.
@@ -175,7 +175,7 @@ class BaseSamplerV1(BasePrimitive, Generic[T]):
             ValueError: Invalid arguments are given.
         """
         # Validation
-        circuits, parameter_values = validation._validate_sampler_args(circuits, parameter_values)
+        circuits, parameter_values = _validate_sampler_args(circuits, parameter_values)
 
         # Options
         run_opts = copy(self.options)

@@ -469,8 +469,8 @@ from .base import (
     BaseSamplerV1,
     BaseSamplerV2,
 )
-from .base.estimator_result import EstimatorResult
-from .base.sampler_result import SamplerResult
+from .base.estimator_result_v1 import EstimatorResult
+from .base.sampler_result_v1 import SamplerResult
 from .containers import (
     BitArray,
     DataBin,

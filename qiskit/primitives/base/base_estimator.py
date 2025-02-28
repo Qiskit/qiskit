@@ -31,8 +31,8 @@ from ..containers import (
     PubResult,
 )
 from ..containers.estimator_pub import EstimatorPub
-from . import validation
-from .base_primitive import BasePrimitive
+from .validation_v1 import _validate_estimator_args
+from .base_primitive_v1 import BasePrimitiveV1
 from .base_primitive_job import BasePrimitiveJob
 
 T = TypeVar("T", bound=Job)
@@ -92,7 +92,7 @@ class BaseEstimatorV2(ABC):
         """
 
 
-class BaseEstimatorV1(BasePrimitive, Generic[T]):
+class BaseEstimatorV1(BasePrimitiveV1, Generic[T]):
     r"""Base class for ``EstimatorV1`` implementations.
 
     Note that the reference estimator in Qiskit follows the ``EstimatorV2``
@@ -220,7 +220,7 @@ class BaseEstimatorV1(BasePrimitive, Generic[T]):
             ValueError: Invalid argument values given.
         """
         # Validation
-        circuits, observables, parameter_values = validation._validate_estimator_args(
+        circuits, observables, parameter_values = _validate_estimator_args(
             circuits, observables, parameter_values
         )
 

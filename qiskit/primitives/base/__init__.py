@@ -16,5 +16,5 @@ Abstract base classes for primitives module.
 
 from .base_sampler import BaseSamplerV1, BaseSamplerV2
 from .base_estimator import BaseEstimatorV1, BaseEstimatorV2
-from .estimator_result import EstimatorResult
-from .sampler_result import SamplerResult
+from .estimator_result_v1 import EstimatorResult
+from .sampler_result_v1 import SamplerResult
