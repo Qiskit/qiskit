@@ -19,7 +19,7 @@ from collections.abc import Sequence
 from typing import Any
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.providers.backend import BackendV1, BackendV2
+from qiskit.providers.backend import BackendV2
 from qiskit.providers.options import Options
 from qiskit.result import QuasiDistribution, Result
 from qiskit.transpiler.passmanager import PassManager
@@ -57,7 +57,7 @@ class BackendSampler(BaseSampler[PrimitiveJob[SamplerResult]]):
     )
     def __init__(
         self,
-        backend: BackendV1 | BackendV2,
+        backend: BackendV2,
         options: dict | None = None,
         bound_pass_manager: PassManager | None = None,
         skip_transpilation: bool = False,
@@ -115,7 +115,7 @@ class BackendSampler(BaseSampler[PrimitiveJob[SamplerResult]]):
         return self._transpiled_circuits
 
     @property
-    def backend(self) -> BackendV1 | BackendV2:
+    def backend(self) -> BackendV2:
         """
         Returns:
             The backend which this sampler object based on
