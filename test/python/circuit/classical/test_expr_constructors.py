@@ -440,6 +440,7 @@ class TestExprConstructors(QiskitTestCase):
                 types.Bool(),
             ),
         )
+        self.assertFalse(function(clbit, True).const)
 
         self.assertEqual(
             function(expr.lift(Duration.ms(1000)), Duration.s(1)),
