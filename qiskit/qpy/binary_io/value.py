@@ -138,6 +138,7 @@ def _encode_replay_subs(subs, file_obj, version):
     )
     file_obj.write(entry)
     file_obj.write(data)
+    return subs.binds
 
 
 def _write_parameter_expression_v13(file_obj, obj, version):
@@ -146,8 +147,7 @@ def _write_parameter_expression_v13(file_obj, obj, version):
     symbol_map = {}
     for inst in obj._qpy_replay:
         if isinstance(inst, _SUBS):
-            _encode_replay_subs(inst, file_obj, version)
-            symbol_map.update(inst.binds)
+            symbol_map.update(_encode_replay_subs(inst, file_obj, version))
             continue
         lhs_type, lhs = _encode_replay_entry(inst.lhs, file_obj, version)
         rhs_type, rhs = _encode_replay_entry(inst.rhs, file_obj, version, True)
