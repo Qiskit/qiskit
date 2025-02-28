@@ -136,7 +136,6 @@ class ClassicalType(ASTNode):
 class FloatType(ClassicalType, enum.Enum):
     """Allowed values for the width of floating-point types."""
 
-    UNSPECIFIED = 0
     HALF = 16
     SINGLE = 32
     DOUBLE = 64

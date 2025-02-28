@@ -19,7 +19,14 @@
 
 from __future__ import annotations
 
-__all__ = ["Type", "Bool", "Duration", "Float", "Stretch", "Uint"]
+__all__ = [
+    "Type",
+    "Bool",
+    "Duration",
+    "Float",
+    "Stretch",
+    "Uint",
+]
 
 import typing
 
@@ -115,8 +122,8 @@ class Uint(Type):
 
 @typing.final
 class Float(Type, metaclass=_Singleton):
-    """A floating point number of unspecified width.
-    In the future, this may also be used to represent a fixed-width float.
+    """An IEE-754 double-precision floating point number.
+    In the future, this may also be used to represent other fixed-width floats.
     """
 
     __slots__ = ()
