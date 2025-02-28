@@ -15,7 +15,7 @@ use std::sync::OnceLock;
 
 use crate::bit_data::BitData;
 use crate::circuit_instruction::{CircuitInstruction, OperationFromPython};
-use crate::dag_circuit::add_global_phase;
+use crate::dag_circuit::{add_global_phase, CONTROL_FLOW_OP_NAMES};
 use crate::imports::{ANNOTATED_OPERATION, CLBIT, QUANTUM_CIRCUIT, QUBIT};
 use crate::interner::{Interned, Interner};
 use crate::operations::{Operation, OperationRef, Param, StandardGate};
@@ -421,6 +421,13 @@ impl CircuitData {
             }
         }
         Ok(())
+    }
+
+    /// Checks whether the circuit has an instance of :class:`.ControlFlowOp`
+    /// present amongst its operations.
+    pub fn has_control_flow_op(&self) -> bool {
+        let operations = self.count_ops();
+        CONTROL_FLOW_OP_NAMES.iter().any(|name| operations.contains_key(name))
     }
 
     /// Replaces the bits of this container with the given ``qubits``

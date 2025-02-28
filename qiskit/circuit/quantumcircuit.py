@@ -4341,6 +4341,11 @@ class QuantumCircuit:
         )
         return None if inplace else target
 
+    def has_control_flow_op(self) -> bool:
+        """Checks whether the circuit has an instance of :class:`.ControlFlowOp` 
+        present amongst its operations."""
+        return self._data.has_control_flow_op()
+    
     def _unroll_param_dict(
         self, parameter_binds: Mapping[Parameter, ParameterValueType]
     ) -> Mapping[Parameter, ParameterValueType]:

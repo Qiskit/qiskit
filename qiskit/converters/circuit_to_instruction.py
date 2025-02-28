@@ -85,12 +85,10 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
             " You may be able to use `QuantumCircuit.compose` to inline this circuit into another."
         )
 
-    for inst in circuit.data:
-        if isinstance(inst.operation, ControlFlowOp):
-            raise QiskitError(
-                f"Circuits with control flow operations ({type(inst.operation)}) "
-                "cannot be converted to an instruction."
-            )
+    if circuit.has_control_flow_op():
+        raise QiskitError(
+            f"Circuits with control flow operations cannot be converted to an instruction."
+        )
 
     if parameter_map is None:
         parameter_dict = {p: p for p in circuit.parameters}
