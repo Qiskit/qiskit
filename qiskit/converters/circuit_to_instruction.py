@@ -11,7 +11,6 @@
 # that they have been altered from the originals.
 
 """Helper function for converting a circuit to an instruction."""
-from qiskit.circuit.controlflow.control_flow import ControlFlowOp
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.quantumregister import QuantumRegister
@@ -87,7 +86,7 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
 
     if circuit.has_control_flow_op():
         raise QiskitError(
-            f"Circuits with control flow operations cannot be converted to an instruction."
+            "Circuits with control flow operations cannot be converted to an instruction."
         )
 
     if parameter_map is None:
