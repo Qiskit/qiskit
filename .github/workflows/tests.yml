@@ -48,3 +48,6 @@ jobs:
         if: matrix.python-version == '3.9'
       - name: 'Run tests'
         run: stestr run
+        env:
+          QISKIT_PARALLEL: FALSE
+          QISKIT_IGNORE_USER_SETTINGS: TRUE

@@ -19,7 +19,7 @@ from __future__ import annotations
 import collections.abc
 import copy as _copy
 import itertools
-import multiprocessing as mp
+import multiprocessing
 import typing
 from collections import OrderedDict, defaultdict, namedtuple
 from typing import (
@@ -43,7 +43,6 @@ from qiskit._accelerate.circuit import CircuitData
 from qiskit._accelerate.circuit import StandardGate
 from qiskit._accelerate.circuit_duration import compute_estimated_duration
 from qiskit.exceptions import QiskitError
-from qiskit.utils.multiprocessing import is_main_process
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameter import Parameter
@@ -1456,11 +1455,10 @@ class QuantumCircuit:
 
     def _name_update(self) -> None:
         """update name of instance using instance number"""
-        if not is_main_process():
-            pid_name = f"-{mp.current_process().pid}"
-        else:
+        if multiprocessing.parent_process() is None:
             pid_name = ""
-
+        else:
+            pid_name = f"-{multiprocessing.current_process().pid}"
         self.name = f"{self._base_name}-{self._cls_instances()}{pid_name}"
 
     def has_register(self, register: Register) -> bool:
