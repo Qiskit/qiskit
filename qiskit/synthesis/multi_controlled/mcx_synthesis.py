@@ -494,7 +494,7 @@ def build_logn_depth_ccx_ladder(
                 nxt_batch[st + ccx_n :],
                 anc[-ccx_n:],
             )
-            if not (len(ccx_x) == len(ccx_y) == ccx_n >= 1):
+            if not len(ccx_x) == len(ccx_y) == ccx_n >= 1:
                 raise ValueError("Invalid CCX gate parameters")
             if ccx_t != [ancilla_idx]:
                 qc.compose(ccxn(ccx_n), ccx_x + ccx_y + ccx_t, inplace=True)
