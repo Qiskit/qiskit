@@ -44,6 +44,10 @@ The :class:`Bool` type represents :class:`.Clbit` and the literals ``True`` and 
 Note that :class:`Uint` defines a family of types parametrized by their width; it is not one single
 type, which may be slightly different to the 'classical' programming languages you are used to.
 
+There are also two duration-like types for use in circuit timing expressions.
+
+.. autoclass:: Duration
+.. autoclass:: Stretch
 
 Working with types
 ==================
