@@ -19,7 +19,7 @@ import numpy as np
 from ddt import data, ddt, unpack
 
 from qiskit.circuit import Parameter, QuantumCircuit
-from qiskit.circuit.library import RealAmplitudes
+from qiskit.circuit.library import real_amplitudes
 from qiskit.exceptions import QiskitError
 from qiskit.primitives import Estimator, EstimatorResult
 from qiskit.primitives.base import validation
@@ -32,7 +32,8 @@ class TestEstimator(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        self.ansatz = RealAmplitudes(num_qubits=2, reps=2)
+        self.ansatz = QuantumCircuit(2)
+        self.ansatz.append(real_amplitudes(num_qubits=2, reps=2), [0, 1])
         self.observable = SparsePauliOp.from_list(
             [
                 ("II", -1.052373245772859),
@@ -44,7 +45,12 @@ class TestEstimator(QiskitTestCase):
         )
         self.expvals = -1.0284380963435145, -1.284366511861733
 
-        self.psi = (RealAmplitudes(num_qubits=2, reps=2), RealAmplitudes(num_qubits=2, reps=3))
+        ra_2_reps = QuantumCircuit(2)
+        ra_2_reps.append(real_amplitudes(num_qubits=2, reps=2), [0, 1])
+        ra_3_reps = QuantumCircuit(2)
+        ra_3_reps.append(real_amplitudes(num_qubits=2, reps=3), [0, 1])
+        self.psi = (ra_2_reps, ra_3_reps)
+
         self.params = tuple(psi.parameters for psi in self.psi)
         self.hamiltonian = (
             SparsePauliOp.from_list([("II", 1), ("IZ", 2), ("XI", 3)]),
@@ -258,7 +264,8 @@ class TestEstimator(QiskitTestCase):
 
     def test_run_numpy_params(self):
         """Test for numpy array as parameter values"""
-        qc = RealAmplitudes(num_qubits=2, reps=2)
+        qc = QuantumCircuit(2)
+        qc.append(real_amplitudes(num_qubits=2, reps=2), [0, 1])
         op = SparsePauliOp.from_list([("IZ", 1), ("XI", 2), ("ZY", -1)])
         k = 5
         rng = np.random.default_rng(12)
