@@ -1015,11 +1015,10 @@ Instructions:
                 self,
                 duration=None,
                 error=None,
-                calibration=None,
                 tuned=None,
                 diamond_norm_error=None,
             ):
-                super().__init__(duration=duration, error=error, calibration=calibration)
+                super().__init__(duration=duration, error=error)
                 self.tuned = tuned
                 self.diamond_norm_error = diamond_norm_error
 
@@ -1694,7 +1693,7 @@ class TestInstructionProperties(QiskitTestCase):
         properties = InstructionProperties()
         self.assertEqual(
             repr(properties),
-            "InstructionProperties(duration=None, error=None, calibration=None)",
+            "InstructionProperties(duration=None, error=None)",
         )
 
 

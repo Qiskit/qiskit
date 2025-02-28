@@ -171,10 +171,10 @@ and how the feature will be internally handled.
 
 .. note::
 
-    Starting with Qiskit version 2.0.0, which removed the Pulse module from the library, QPY provides 
-    limited support for loading payloads that include pulse data. Loading a ``ScheduleBlock`` payload, 
-    a :class:`.QpyError` exception will be raised. Loading a payload for a circuit that contained pulse 
-    gates, the output circuit will contain  custom instructions **without** calibration data attached 
+    Starting with Qiskit version 2.0.0, which removed the Pulse module from the library, QPY provides
+    limited support for loading payloads that include pulse data. Loading a ``ScheduleBlock`` payload,
+    a :class:`.QpyError` exception will be raised. Loading a payload for a circuit that contained pulse
+    gates, the output circuit will contain  custom instructions **without** calibration data attached
     for each pulse gate, leaving them undefined.
 
 QPY format version history

@@ -27,8 +27,6 @@ from qiskit.circuit import (
 from qiskit.circuit.classical import expr, types
 from qiskit.dagcircuit import DAGCircuit, DAGCircuitError
 from qiskit.converters import circuit_to_dag, dag_to_circuit
-from qiskit.pulse import Schedule
-from qiskit.circuit.gate import Gate
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -532,23 +530,6 @@ class TestDagCompose(QiskitTestCase):
             DAGCircuitError, "Variable '.*' to be inlined is not in the base DAG"
         ):
             dest.compose(source, inline_captures=True)
-
-    def test_compose_calibrations(self):
-        """Test that compose carries over the calibrations."""
-        dag_cal = QuantumCircuit(1)
-        dag_cal.append(Gate("", 1, []), qargs=[0])
-        with self.assertWarns(DeprecationWarning):
-            dag_cal.add_calibration(Gate("", 1, []), [0], Schedule())
-
-        empty_dag = circuit_to_dag(QuantumCircuit(1))
-        calibrated_dag = circuit_to_dag(dag_cal)
-        composed_dag = empty_dag.compose(calibrated_dag, inplace=False)
-
-        with self.assertWarns(DeprecationWarning):
-            cal = {"": {((0,), ()): Schedule(name="sched0")}}
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(composed_dag.calibrations, cal)
-            self.assertEqual(calibrated_dag.calibrations, cal)
 
 
 if __name__ == "__main__":

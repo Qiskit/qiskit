@@ -1094,18 +1094,6 @@ pub(crate) fn optimize_1q_gates_decomposition(
         } else {
             unreachable!("nodes in runs will always be op nodes")
         };
-        if !dag.calibrations_empty() {
-            let mut has_calibration = false;
-            for node in &raw_run {
-                if dag.has_calibration_for_index(py, *node)? {
-                    has_calibration = true;
-                    break;
-                }
-            }
-            if has_calibration {
-                continue;
-            }
-        }
         if basis_gates_per_qubit[qubit.index()].is_none() {
             let basis_gates = match target {
                 Some(target) => Some(

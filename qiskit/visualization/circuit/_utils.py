@@ -44,7 +44,7 @@ def _is_boolean_expression(gate_text, op):
     return isinstance(op, (PhaseOracleGate, BitFlipOracleGate)) and gate_text == op.label
 
 
-def get_gate_ctrl_text(op, drawer, style=None, calibrations=None):
+def get_gate_ctrl_text(op, drawer, style=None):
     """Load the gate_text and ctrl_text strings based on names and labels"""
     anno_list = []
     anno_text = ""
@@ -118,13 +118,6 @@ def get_gate_ctrl_text(op, drawer, style=None, calibrations=None):
         or (gate_text == base_name and base_type not in (Gate, Instruction))
     ) and (op_type is not PauliEvolutionGate):
         gate_text = gate_text.capitalize()
-
-    if drawer == "mpl" and op.name in calibrations:
-        if isinstance(op, ControlledGate):
-            ctrl_text = "" if ctrl_text is None else ctrl_text
-            ctrl_text = "(cal)\n" + ctrl_text
-        else:
-            gate_text = gate_text + "\n(cal)"
 
     if anno_text:
         gate_text += " - " + anno_text

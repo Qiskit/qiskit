@@ -36,7 +36,7 @@ fn recurse<'py>(
             None => edge_set.contains(&[qubits[0].into(), qubits[1].into()]),
         }
     };
-    for (node, inst) in dag.op_nodes(false) {
+    for (_node, inst) in dag.op_nodes(false) {
         let qubits = dag.get_qargs(inst.qubits);
         if inst.op.control_flow() {
             if let OperationRef::Instruction(py_inst) = inst.op.view() {
@@ -65,10 +65,7 @@ fn recurse<'py>(
                     }
                 }
             }
-        } else if qubits.len() == 2
-            && (dag.calibrations_empty() || !dag.has_calibration_for_index(py, node)?)
-            && !check_qubits(qubits)
-        {
+        } else if qubits.len() == 2 && !check_qubits(qubits) {
             return Ok(Some((
                 inst.op.name().to_string(),
                 [qubits[0].0, qubits[1].0],
