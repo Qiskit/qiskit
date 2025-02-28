@@ -14,6 +14,7 @@ typedef double complex QkComplex64;
 
 [defines]
 "feature = cbinding" = "QISKIT_WITH_CBINDINGS"
+"feature = python_binding" = "QISKIT_C_PYTHON_INTERFACE"
 
 [parse]
 parse_deps = true

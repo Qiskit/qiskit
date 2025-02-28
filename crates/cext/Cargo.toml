@@ -24,4 +24,5 @@ cbindgen = "0.28"
 
 [features]
 default = ["cbinding"]
+python_binding = []
 cbinding = []
