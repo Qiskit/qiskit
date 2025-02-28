@@ -130,8 +130,12 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
     data = target._data.copy()
     data.replace_bits(qubits=qreg, clbits=creg)
 
-    qc = QuantumCircuit(*regs, name=out_instruction.name)
+    qc = QuantumCircuit(name=out_instruction.name)
     qc._data = data
+
+    # Re-add the registers.
+    for reg in regs:
+        qc.add_register(reg)
 
     if circuit.global_phase:
         qc.global_phase = circuit.global_phase
