@@ -12,7 +12,7 @@
 
 OS := $(shell uname -s)
 
-.PHONY: default ruff env lint lint-incr style black test test_randomized pytest pytest_randomized test_ci coverage coverage_erase clean cheader ctest
+.PHONY: default ruff env lint lint-incr style black test test_randomized pytest pytest_randomized test_ci coverage coverage_erase clean cheader ctest cformat fix_cformat cclean
 
 default: ruff style lint-incr test ;
 
@@ -107,4 +107,5 @@ ctest: cheader
 	ctest -V --test-dir test/c/build
 
 cclean:
-	rm -r dist/c
+	rm -r dist/c test/c/build
+

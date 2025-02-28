@@ -31,7 +31,6 @@ style="${repo_root}/.clang-format"
 
 # get all tracked files in HEAD, and filter for files ending in .c or .h
 files=$(git ls-files $repo_root | grep ".*\.[c,h]$")
-echo $files
 
 # apply clang format on all files
 status=0

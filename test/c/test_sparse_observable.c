@@ -23,14 +23,11 @@
  */
 int test_zero() {
     QkSparseObservable *obs = qk_obs_zero(100);
-    uint64_t num_terms = qk_obs_num_terms(obs);
+    size_t num_terms = qk_obs_num_terms(obs);
     uint32_t num_qubits = qk_obs_num_qubits(obs);
     qk_obs_free(obs);
 
-    if (num_terms != 0 || num_qubits != 100) {
-        return EqualityError;
-    }
-    return Ok;
+    return (num_terms != 0 || num_qubits != 100) ? EqualityError : Ok;
 }
 
 /**
@@ -38,14 +35,11 @@ int test_zero() {
  */
 int test_identity() {
     QkSparseObservable *obs = qk_obs_identity(100);
-    uint64_t num_terms = qk_obs_num_terms(obs);
+    size_t num_terms = qk_obs_num_terms(obs);
     uint32_t num_qubits = qk_obs_num_qubits(obs);
     qk_obs_free(obs);
 
-    if (num_terms != 1 || num_qubits != 100) {
-        return EqualityError;
-    }
-    return Ok;
+    return (num_terms != 1 || num_qubits != 100) ? EqualityError : Ok;
 }
 
 /**
@@ -60,11 +54,7 @@ int test_copy() {
     qk_obs_free(obs);
     qk_obs_free(copied);
 
-    if (!are_equal) {
-        return EqualityError;
-    }
-
-    return Ok;
+    return are_equal ? Ok : EqualityError;
 }
 
 /**
@@ -75,17 +65,13 @@ int test_add() {
     QkSparseObservable *right = qk_obs_identity(100);
     QkSparseObservable *obs = qk_obs_add(left, right);
 
-    uint64_t num_terms = qk_obs_num_terms(obs);
+    size_t num_terms = qk_obs_num_terms(obs);
 
     qk_obs_free(left);
     qk_obs_free(right);
     qk_obs_free(obs);
 
-    if (num_terms != 2) {
-        return EqualityError;
-    }
-
-    return Ok;
+    return (num_terms != 2) ? EqualityError : Ok;
 }
 
 /**
@@ -149,11 +135,7 @@ int test_canonicalize() {
     qk_obs_free(simplified);
     qk_obs_free(expected);
 
-    if (!is_equal) {
-        return EqualityError;
-    }
-
-    return Ok;
+    return is_equal ? Ok : EqualityError;
 }
 
 /**
@@ -161,7 +143,7 @@ int test_canonicalize() {
  */
 int test_num_terms() {
     int result = Ok;
-    uint64_t num_terms;
+    size_t num_terms;
 
     QkSparseObservable *zero = qk_obs_zero(100);
     num_terms = qk_obs_num_terms(zero);
@@ -222,16 +204,13 @@ int test_custom_build() {
     double tol = 1e-6;
     QkSparseObservable *simplified = qk_obs_canonicalize(obs, tol);
 
-    uint64_t num_terms = qk_obs_num_terms(obs);
-    uint64_t num_terms_simplified = qk_obs_num_terms(simplified);
+    size_t num_terms = qk_obs_num_terms(obs);
+    size_t num_terms_simplified = qk_obs_num_terms(simplified);
 
     qk_obs_free(obs);
     qk_obs_free(simplified);
 
-    if (num_terms != 2 || num_terms_simplified != 1) {
-        return EqualityError;
-    }
-    return Ok;
+    return (num_terms != 2 || num_terms_simplified != 1) ? EqualityError : Ok;
 }
 
 /**
@@ -249,16 +228,17 @@ int test_term() {
     int err = qk_obs_add_term(obs, &term);
 
     if (err != 0) {
+        qk_obs_free(obs);
         return RuntimeError;
     }
 
     // some placeholders to store the results
-    int nnis[2] = {-1, -1};
-    int bits[3] = {-1, -1, -1};
-    int indices[3] = {-1, -1, -1};
+    size_t nnis[2];
+    QkBitTerm bits[3];
+    uint32_t indices[3];
 
-    uint64_t num_terms = qk_obs_num_terms(obs);
-    for (uint64_t i = 0; i < num_terms; i++) {
+    size_t num_terms = qk_obs_num_terms(obs);
+    for (size_t i = 0; i < num_terms; i++) {
         QkSparseTerm view;
         qk_obs_term(obs, i, &view);
         size_t nni = view.len;
@@ -274,9 +254,9 @@ int test_term() {
     qk_obs_free(obs);
 
     int result = Ok;
-    int expected_nnis[2] = {0, 3};
-    int expected_bits[3] = {QkBitTerm_X, QkBitTerm_Y, QkBitTerm_Z};
-    int expected_indices[3] = {0, 1, 2};
+    size_t expected_nnis[2] = {0, 3};
+    QkBitTerm expected_bits[3] = {QkBitTerm_X, QkBitTerm_Y, QkBitTerm_Z};
+    uint32_t expected_indices[3] = {0, 1, 2};
 
     // check number of terms
     if (num_terms != 2) {
@@ -320,6 +300,7 @@ int test_copy_term() {
     QkSparseTerm borrowed;
     int error = qk_obs_term(obs, 0, &borrowed); // get view on 0th term
     if (error > 0) {
+        qk_obs_free(obs);
         return RuntimeError;
     }
 
@@ -357,10 +338,7 @@ int test_copy_term() {
     qk_obs_free(obs);
     qk_obs_free(expected);
 
-    if (!equal) {
-        return EqualityError;
-    }
-    return Ok;
+    return equal ? Ok : EqualityError;
 }
 
 /**
@@ -486,7 +464,7 @@ int test_boundaries() {
     QkSparseTerm term = {coeff, 3, bit_terms, indices, num_qubits};
     qk_obs_add_term(obs, &term);
 
-    uint64_t num_terms = qk_obs_num_terms(obs);
+    size_t num_terms = qk_obs_num_terms(obs);
     size_t *boundaries = qk_obs_boundaries(obs);
 
     // the identity term has 0 bits, the XYZ has 3, therefore the terms are defined as
@@ -495,7 +473,7 @@ int test_boundaries() {
     // boundaries = [0, 0, 3]
     size_t expected[] = {0, 0, 3};
 
-    for (uint64_t i = 0; i < num_terms + 1; i++) {
+    for (size_t i = 0; i < num_terms + 1; i++) {
         if (boundaries[i] != expected[i]) {
             return EqualityError;
         }
@@ -509,8 +487,8 @@ int test_boundaries() {
 int test_direct_build() {
     // define the raw data for the 100-qubit observable |01><01|_{0, 1} - |+-><+-|_{98, 99}
     uint32_t num_qubits = 100;
-    uint64_t num_terms = 2;
-    uint64_t num_bits = 4;
+    size_t num_terms = 2;
+    size_t num_bits = 4;
 
     complex double coeffs[2] = {1, -1};
     QkBitTerm bits[4] = {QkBitTerm_Zero, QkBitTerm_One, QkBitTerm_Plus, QkBitTerm_Minus};
@@ -530,7 +508,7 @@ int test_direct_build() {
     int result = Ok;
     complex double *obs_coeffs = qk_obs_coeffs(obs);
     size_t *obs_boundaries = qk_obs_boundaries(obs);
-    for (uint64_t i = 0; i < num_terms; i++) {
+    for (size_t i = 0; i < num_terms; i++) {
         if (coeffs[i] != obs_coeffs[i] || boundaries[i] != obs_boundaries[i]) {
             result = EqualityError;
         }
@@ -540,7 +518,7 @@ int test_direct_build() {
 
     QkBitTerm *obs_bits = qk_obs_bit_terms(obs);
     uint32_t *obs_indices = qk_obs_indices(obs);
-    for (uint64_t i = 0; i < num_bits; i++) {
+    for (size_t i = 0; i < num_bits; i++) {
         if (bits[i] != obs_bits[i] || indices[i] != obs_indices[i]) {
             result = EqualityError;
         }
@@ -556,8 +534,8 @@ int test_direct_build() {
 int test_direct_fail() {
     // define the faulty raw data
     uint32_t num_qubits = 100;
-    uint64_t num_terms = 2;
-    uint64_t num_bits = 4;
+    size_t num_terms = 2;
+    size_t num_bits = 4;
 
     complex double coeffs[2] = {1, -1};
     QkBitTerm bits[4] = {QkBitTerm_Zero, QkBitTerm_One, QkBitTerm_Plus, QkBitTerm_Minus};
@@ -587,7 +565,7 @@ int test_obs_str() {
     char *expected = "SparseObservable { num_qubits: 100, coeffs: [Complex { re: 1.0, im: 0.0 }], "
                      "bit_terms: [], indices: [], boundaries: [0, 0] }";
     int result = strcmp(string, expected);
-    qk_free_obs_str(string);
+    qk_str_free(string);
     qk_obs_free(obs);
 
     return result;
@@ -607,6 +585,7 @@ int test_obsterm_str() {
     int err = qk_obs_add_term(obs, &term);
 
     if (err != 0) {
+        qk_obs_free(obs);
         return RuntimeError;
     }
     // Get string for term:
@@ -616,7 +595,7 @@ int test_obsterm_str() {
     char *expected = "SparseTermView { num_qubits: 100, coeff: Complex { re: 1.0, im: 1.0 }, "
                      "bit_terms: [X, Y, Z], indices: [0, 1, 2] }";
     int result = strcmp(string, expected);
-    qk_free_obsterm_str(string);
+    qk_str_free(string);
     qk_obs_free(obs);
 
     return result;

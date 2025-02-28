@@ -70,26 +70,24 @@ fn check_ptr<T>(ptr: *const T) -> Result<(), CInputError> {
     Ok(())
 }
 
-/// Check a const pointer is non-null and aligned, then cast it to a reference.
+/// Casts a const pointer to a reference. Panics is the pointer is null or not aligned.
 ///
 /// # Safety
 ///
-/// This function requires ``ptr`` to be non-null, aligned, initialized object of
-/// type ``T``. While the resulting reference exists, the memory pointed to must not
-/// be mutated.
+/// This function requires ``ptr`` to be point to an initialized object of type ``T``.
+/// While the resulting reference exists, the memory pointed to must not be mutated.
 unsafe fn const_ptr_as_ref<'a, T>(ptr: *const T) -> &'a T {
     check_ptr(ptr).unwrap();
     let as_ref = unsafe { ptr.as_ref() };
     as_ref.unwrap() // we know the pointer is not null, hence we can safely unwrap
 }
 
-/// Check a mutable pointer is non-null and aligned, then cast it to a reference.
+/// Casts a mut pointer to a mut reference. Panics is the pointer is null or not aligned.
 ///
 /// # Safety
 ///
-/// This function requires ``ptr`` to be non-null, aligned, initialized object of
-/// type ``T``. While the resulting reference exists, the memory pointed to must not
-/// be accessed otherwise.
+/// This function requires ``ptr`` to be point to an initialized object of type ``T``.
+/// While the resulting reference exists, the memory pointed to must not be accessed otherwise.
 unsafe fn mut_ptr_as_ref<'a, T>(ptr: *mut T) -> &'a mut T {
     check_ptr(ptr).unwrap();
     let as_mut_ref = unsafe { ptr.as_mut() };
@@ -171,7 +169,7 @@ pub extern "C" fn qk_obs_identity(num_qubits: u32) -> *mut SparseObservable {
 /// Behavior is undefined if any of the following conditions are violated:
 ///
 ///   * ``coeffs`` is a pointer to a ``complex double`` array of length ``num_terms``
-///   * ``bit_terms`` is a pointer to a ``QkBitTerm`` array of length ``num_bits``
+///   * ``bit_terms`` is a pointer to an array of valid ``QkBitTerm`` elements of length ``num_bits``
 ///   * ``indices`` is a pointer to a ``uint32_t`` array of length ``num_bits``, which is
 ///     term-wise sorted in strict ascending order, and every element is smaller than ``num_qubits``
 ///   * ``boundaries`` is a pointer to a ``size_t`` array of length ``num_terms + 1``, which is
@@ -559,7 +557,8 @@ pub unsafe extern "C" fn qk_obs_boundaries(obs: *mut SparseObservable) -> *mut u
 ///
 /// # Safety
 ///
-/// Behavior is undefined ``obs`` is not a valid, non-null pointer to a ``QkSparseObservable``.
+/// Behavior is undefined ``obs`` is not a valid, non-null pointer to a ``QkSparseObservable``,
+/// or if invalid valus are written into the resulting ``QkBitTerm`` pointer.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_obs_bit_terms(obs: *mut SparseObservable) -> *mut BitTerm {
@@ -578,7 +577,8 @@ pub unsafe extern "C" fn qk_obs_bit_terms(obs: *mut SparseObservable) -> *mut Bi
 /// # Example
 ///
 ///     QkSparseObservable *obs = qk_obs_identity(100);
-///     QkSparseObservable *result = qk_obs_multiply(obs, 2);
+///     complex double coeff = 2;
+///     QkSparseObservable *result = qk_obs_multiply(obs, &coeff);
 ///
 /// # Safety
 ///
@@ -733,17 +733,18 @@ pub unsafe extern "C" fn qk_obs_equal(
 ///
 ///     QkSparseObservable *obs = qk_obs_identity(100);
 ///     char *string = qk_obs_str(obs);
-///     qk_free_obs_str(string);
+///     qk_str_free(string);
 ///
 /// # Safety
 ///
 /// Behavior is undefined ``obs`` is not a valid, non-null pointer to a ``QkSparseObservable``.
 ///
-/// The string must not be freed with the normal C free, you must use ``qk_free_obs_str`` to
-/// free the memory consumed by the String. Not calling ``qk_free_obs_str`` will lead to a
+/// The string must not be freed with the normal C free, you must use ``qk_str_free`` to
+/// free the memory consumed by the String. Not calling ``qk_str_free`` will lead to a
 /// memory leak.
 ///
-/// Do not change the length of the string after it's returned, although values can be mutated
+/// Do not change the length of the string after it's returned (by writing a nul byte somewhere
+/// inside the string or removing the final one), although values can be mutated.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_obs_str(obs: *const SparseObservable) -> *mut c_char {
@@ -754,23 +755,25 @@ pub unsafe extern "C" fn qk_obs_str(obs: *const SparseObservable) -> *mut c_char
 }
 
 /// @ingroup QkSparseObservable
-/// Free a string representation of a ``SparseObservable``.
+/// Free a string representation.
 ///
-///  @param string A pointer to the returned string representation from ``qk_obs_str``
+/// @param string A pointer to the returned string representation from ``qk_obs_str`` or
+///     ``qk_obsterm_str``.
 ///
 /// # Safety
 ///
-/// Behavior is undefined if ``str`` is not a pointer returned by ``qk_obs_str``
+/// Behavior is undefined if ``str`` is not a pointer returned by ``qk_obs_str`` or
+/// ``qk_obsterm_str``.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_free_obs_str(string: *mut c_char) {
+pub unsafe extern "C" fn qk_str_free(string: *mut c_char) {
     unsafe {
         let _ = CString::from_raw(string);
     }
 }
 
 /// @ingroup QkSparseTerm
-/// Print the sparse term.
+/// Return a string representation of the sparse term.
 ///
 /// @param term A pointer to the term.
 ///
@@ -782,17 +785,17 @@ pub unsafe extern "C" fn qk_free_obs_str(string: *mut c_char) {
 ///     QkSparseTerm term;
 ///     qk_obs_term(obs, 0, &term);
 ///     char *string = qk_obsterm_print(&term);
-///     qk_free_obsterm_str(string);
+///     qk_str_free(string);
 ///
 /// # Safety
 ///
 /// Behavior is undefined ``term`` is not a valid, non-null pointer to a ``QkSparseTerm``.
 ///
-/// The string must not be freed with the normal C free, you must use ``qk_free_obs_str`` to
-/// free the memory consumed by the String. Not calling ``qk_free_obs_str`` will lead to a
+/// The string must not be freed with the normal C free, you must use ``qk_str_free`` to
+/// free the memory consumed by the String. Not calling ``qk_str_free`` will lead to a
 /// memory leak.
 ///
-/// Do not change the length of the string after it's returned, although values can be mutated
+/// Do not change the length of the string after it's returned, although values can be mutated.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_obsterm_str(term: *const CSparseTerm) -> *mut c_char {
@@ -802,22 +805,6 @@ pub unsafe extern "C" fn qk_obsterm_str(term: *const CSparseTerm) -> *mut c_char
     let view: SparseTermView = term.try_into().unwrap();
     let string: String = format!("{:?}", view);
     CString::new(string).unwrap().into_raw()
-}
-
-/// @ingroup QkSparseObservable
-/// Free a string representation of a ``SparseObservable``.
-///
-///  @param string A pointer to the returned string representation from ``qk_obsterm_str``
-///
-/// # Safety
-///
-/// Behavior is undefined if ``str`` is not a pointer returned by ``qk_obsterm_str``
-#[no_mangle]
-#[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_free_obsterm_str(string: *mut c_char) {
-    unsafe {
-        let _ = CString::from_raw(string);
-    }
 }
 
 /// @ingroup QkBitTerm

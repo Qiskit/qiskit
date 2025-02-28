@@ -6,8 +6,8 @@ This crate contains the bindings for Qiskit's C API.
 
 The C bindings are compiled into a shared library, which can be built along with the header file
 by running
-```
-$ make cheader
+```bash
+make cheader
 ```
 in the root of the repository. The header file, `qiskit.h`, is generated using 
 [cbindgen](https://github.com/mozilla/cbindgen) and stored in `dist/c/include`.
