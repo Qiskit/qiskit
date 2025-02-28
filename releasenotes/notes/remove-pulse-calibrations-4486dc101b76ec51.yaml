@@ -10,7 +10,7 @@ upgrade_transpiler:
     As part of Pulse removal in Qiskit 2.0, all pulse and calibration related functionality
     in the transpiler has been removed. This includes the following:
 
-    The following passes have been removed:
+    Passes that have been removed:
 
       * ``qiskit.transpiler.passes.PulseGates``
       * ``qiskit.transpiler.passes.ValidatePulseGates``

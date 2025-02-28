@@ -81,14 +81,6 @@ class BasePadding(TransformationPass):
         if not self.target and not self.durations:
             return None
         indices = [dag.find_bit(qarg).index for qarg in node.qargs]
-        if dag._has_calibration_for(node):
-            # If node has calibration, this value should be the highest priority
-            cal_key = tuple(indices), tuple(float(p) for p in node.op.params)
-            with warnings.catch_warnings():
-                warnings.simplefilter(action="ignore", category=DeprecationWarning)
-                # `schedule.duration` emits pulse deprecation warnings which we don't want
-                # to see here
-                return dag._calibrations_prop[node.op.name][cal_key].duration
 
         if self.target:
             props_dict = self.target.get(node.name)
