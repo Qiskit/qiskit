@@ -57,9 +57,7 @@ def pi_check(inpt, eps=1e-9, output="text", ndigits=None):
             except (ValueError, TypeError):
                 import qiskit._accelerate.circuit
 
-                SymbolExpr = qiskit._accelerate.circuit.PySymbolExpr
-
-                sym_str = str(SymbolExpr.Value(abs(val)))
+                sym_str = str(qiskit._accelerate.circuit.PySymbolExpr.Value(abs(val)))
                 param_str = param_str.replace(sym_str, pi)
         return param_str
     elif isinstance(inpt, str):
