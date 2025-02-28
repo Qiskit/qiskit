@@ -1255,7 +1255,7 @@ def _build_ast_type(type_: types.Type) -> ast.ClassicalType:
     if type_.kind is types.Uint:
         return ast.UintType(type_.width)
     if type_.kind is types.Float:
-        return ast.FloatType.UNSPECIFIED
+        return ast.FloatType.DOUBLE
     if type_.kind is types.Duration:
         return ast.DurationType()
     if type_.kind is types.Stretch:

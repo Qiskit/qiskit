@@ -82,9 +82,7 @@ class BasicPrinter:
         ast.QuantumGateModifierName.POW: "pow",
     }
 
-    _FLOAT_TYPE_LOOKUP = {ast.FloatType.UNSPECIFIED: "float"} | {
-        type: f"float[{type.value}]" for type in ast.FloatType if type.value > 0
-    }
+    _FLOAT_TYPE_LOOKUP = {type: f"float[{type.value}]" for type in ast.FloatType}
 
     # The visitor names include the class names, so they mix snake_case with PascalCase.
     # pylint: disable=invalid-name

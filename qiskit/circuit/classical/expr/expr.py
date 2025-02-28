@@ -144,7 +144,14 @@ class Var(Expr):
         name: str | None = None,
     ):
         super().__setattr__("type", type)
-        super().__setattr__("const", False)
+        # For now, Stretch is the only kind of const variable we allow.
+        # In the future, we may want to add a 'const' constructor arg here
+        # to let users create other kinds of constants, or perhaps introduce
+        # a separate expr.Const that requires a const expr initializer for this
+        # purpose. `QuantumCircuit.add_stretch` is the official way to create
+        # stretches, and makes no promise that we will track stretches using
+        # `Var` (it accepts just a name and returns just _some_ `Expr`).
+        super().__setattr__("const", type.kind is types.Stretch)
         super().__setattr__("var", var)
         super().__setattr__("name", name)
 
@@ -175,6 +182,7 @@ class Var(Expr):
         return (
             isinstance(other, Var)
             and self.type == other.type
+            and self.const == other.const
             and self.var == other.var
             and self.name == other.name
         )
@@ -190,7 +198,7 @@ class Var(Expr):
     def __setstate__(self, state):
         var, type, name = state
         super().__setattr__("type", type)
-        super().__setattr__("const", False)
+        super().__setattr__("const", type.kind is types.Stretch)
         super().__setattr__("var", var)
         super().__setattr__("name", name)
 

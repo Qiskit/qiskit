@@ -843,6 +843,7 @@ def generate_v14_expr():
         pass
 
     duration_expr = QuantumCircuit(name="duration_expr")
+    duration_expr.add_uninitialized_var(expr.Var.new("a", types.Stretch()))
     with duration_expr.if_test(
         expr.logic_and(
             expr.logic_and(

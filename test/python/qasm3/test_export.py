@@ -1808,7 +1808,7 @@ input bool a;
 input uint[8] b;
 input bool d;
 uint[8] c;
-float e;
+float[64] e;
 a = !a;
 b = b & 8;
 c = ~b;
