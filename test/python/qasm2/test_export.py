@@ -391,9 +391,13 @@ mcx q[0],q[1],q[2],q[3];"""
     def test_mcx_gate_variants(self):
         n = 5
         qc = QuantumCircuit(2 * n - 1)
-        qc.append(lib.MCXGrayCode(n), range(n + 1))
-        qc.append(lib.MCXRecursive(n), range(n + 2))
-        qc.append(lib.MCXVChain(n), range(2 * n - 1))
+        with self.assertWarns(DeprecationWarning):
+            gray = lib.MCXGrayCode(n)
+            recursive = lib.MCXRecursive(n)
+            vchain = lib.MCXVChain(n)
+        qc.append(gray, range(n + 1))
+        qc.append(recursive, range(n + 2))
+        qc.append(vchain, range(2 * n - 1))
         mcx_vchain_id = id(qc.data[-1].operation)
 
         # qasm output doesn't support parameterized gate yet.
