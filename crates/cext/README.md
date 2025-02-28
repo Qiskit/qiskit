@@ -1,16 +1,20 @@
 # `qiskit-cext`
 
-This crate contains the bindings for Qiskit's C API. 
+This crate contains the bindings for Qiskit's C API.
 
 ## Building the library
 
 The C bindings are compiled into a shared library, which can be built along with the header file
 by running
 ```bash
-make cheader
+make c
 ```
-in the root of the repository. The header file, `qiskit.h`, is generated using 
+in the root of the repository. The header file, `qiskit.h`, is generated using
 [cbindgen](https://github.com/mozilla/cbindgen) and stored in `dist/c/include`.
+Similarly, the `libqiskit` shared library is stored in `dist/c/lib`.
+
+You can ask Make to build only the header file with `make cheader`, or only the
+shared-object library with `make clib`.
 
 The following example uses the header to build a 100-qubit observable:
 ```c
@@ -45,13 +49,13 @@ Refer to the C API documentation for more information and examples.
 
 ## Compiling
 
-The above program can be compiled by including the header and linking to the `qiskit_cext` library,
-which is located in `target/release`. (The exact name depends on the platform, e.g.,
-`target/release/libqiskit_cext.dylib` on MacOS.) 
+The above program can be compiled by including the header and linking to the `qiskit` library, which
+are located in the standard directory configuration whose root is `dist/c`.
 
 ```bash
-make cheader
-gcc <program.c> -lqiskit_cext -L /path/to/target/release  -I /path/to/dist/c/include
+make c
+QISKIT_ROOT=/path/to/qiskit/dist/c
+gcc -I$QISKIT_ROOT/include program.c -lqiskit -L$QISKIT_ROOT/lib
 ```
 
 For which the example program will output

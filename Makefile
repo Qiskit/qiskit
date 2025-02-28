@@ -12,7 +12,7 @@
 
 OS := $(shell uname -s)
 
-.PHONY: default ruff env lint lint-incr style black test test_randomized pytest pytest_randomized test_ci coverage coverage_erase clean cheader ctest cformat fix_cformat cclean
+.PHONY: default ruff env lint lint-incr style black test test_randomized pytest pytest_randomized test_ci coverage coverage_erase clean cheader clib ctest cformat fix_cformat cclean
 
 default: ruff style lint-incr test ;
 
@@ -84,6 +84,29 @@ coverage_erase:
 
 clean: coverage_erase ;
 
+C_DIR_OUT = dist/c
+C_DIR_LIB = $(C_DIR_OUT)/lib
+C_DIR_INCLUDE = $(C_DIR_OUT)/include
+C_DIR_TEST_BUILD = test/c/build
+# Whether this is target/debug or target/release depends on the flags in the
+# `cheader` recipe.  For now, they're just hardcoded.
+C_CARGO_TARGET_DIR = target/release
+C_LIB_CARGO_BASENAME=libqiskit_cext
+ifeq ($(OS), Windows_NT)
+	C_DYLIB_EXT=dll
+else ifeq ($(shell uname), Darwin)
+	C_DYLIB_EXT=dylib
+else
+	# ... probably.
+	C_DYLIB_EXT=so
+endif
+C_LIB_CARGO_FILENAME=$(C_LIB_CARGO_BASENAME).$(C_DYLIB_EXT)
+C_LIB_CARGO_PATH=$(C_CARGO_TARGET_DIR)/$(C_LIB_CARGO_FILENAME)
+
+C_QISKIT_H=$(C_DIR_INCLUDE)/qiskit.h
+C_LIBQISKIT=$(C_DIR_LIB)/$(subst _cext,,$(C_LIB_CARGO_FILENAME))
+
+
 # Run clang-format (does not apply any changes)
 cformat:
 	bash tools/run_clang_format.sh
@@ -92,20 +115,31 @@ cformat:
 fix_cformat:
 	bash tools/run_clang_format.sh apply
 
-# Build C API crate and header
-cheader: 
+# The header file is managed by a different build tool - pretend it's always dirty.
+.PHONY: $(C_QISKIT_H)
+$(C_QISKIT_H):
 	cargo build --release --no-default-features --features cbinding
-	cbindgen --crate qiskit-cext --output dist/c/include/qiskit.h --lang C
+	cbindgen --crate qiskit-cext --output $(C_DIR_INCLUDE)/qiskit.h --lang C
+
+$(C_DIR_LIB):
+	mkdir -p $(C_DIR_LIB)
+
+$(C_LIBQISKIT): $(C_DIR_LIB)
+	cp $(C_LIB_CARGO_PATH) $(C_DIR_LIB)/$(subst _cext,,$(C_LIB_CARGO_FILENAME))
+
+.PHONY: cheader clib c
+cheader: $(C_QISKIT_H)
+clib: $(C_LIBQISKIT)
+c: clib cheader
 
 # Use ctest to run C API tests
-ctest: cheader
+ctest: $(C_QISKIT_H)
 	# -S specifically specifies the source path to be the current folder
 	# -B specifically specifies the build path to be inside test/c/build
-	cmake -S. -Btest/c/build
-	cmake --build test/c/build
+	cmake -S. -B$(C_DIR_TEST_BUILD)
+	cmake --build $(C_DIR_TEST_BUILD)
 	# -V ensures we always produce a logging output to indicate the subtests
-	ctest -V --test-dir test/c/build
+	ctest -V --test-dir $(C_DIR_TEST_BUILD)
 
 cclean:
-	rm -r dist/c test/c/build
-
+	rm -rf $(C_DIR_OUT) $(C_DIR_TEST_BUILD)
