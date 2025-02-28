@@ -208,7 +208,7 @@ int test_num_qubits() {
  * Test adding an individual term to an observable.
  */
 int test_custom_build() {
-    u_int32_t num_qubits = 100;
+    uint32_t num_qubits = 100;
     QkSparseObservable *obs = qk_obs_zero(num_qubits);
 
     complex double coeff = 1;
@@ -305,7 +305,7 @@ int test_term() {
  */
 int test_copy_term() {
     // create an observable with the term X0 Y1 Z2
-    u_int32_t num_qubits = 100;
+    uint32_t num_qubits = 100;
     QkSparseObservable *obs = qk_obs_zero(num_qubits);
 
     complex double coeff = 1;
