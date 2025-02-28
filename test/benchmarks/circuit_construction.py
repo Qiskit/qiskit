@@ -13,13 +13,16 @@
 # pylint: disable=missing-docstring,invalid-name,no-member
 # pylint: disable=attribute-defined-outside-init
 
-import os
 import itertools
 
 from qiskit.quantum_info import random_clifford
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.circuit import Parameter
 from qiskit.circuit.library import efficient_su2, quantum_volume
+from qiskit.providers.fake_provider import GenericBackendV2
+from qiskit.compiler import transpile
+from qiskit.transpiler import CouplingMap
+from qiskit import qasm2
 from .utils import dtc_unitary, multi_control_circuit
 
 SEED = 12345
@@ -159,16 +162,16 @@ class ParameterizedCirc:
 
 
 class QasmImport:
+    def setup(self):
+        qv_circuit = quantum_volume(100, seed=2025_12345)
+        qv_circuit.measure_all()
+        backend = GenericBackendV2(100, coupling_map=CouplingMap.from_line(100), seed=2025_12345)
+        t_qv = transpile(qv_circuit, backend, optimization_level=0, seed_transpiler=2025_12345)
+        self.qasm = qasm2.dumps(t_qv)
+
     def time_QV100_qasm2_import(self):
         """QASM import of QV100 circuit"""
-        self.qasm_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "qasm"))
-
-        out = QuantumCircuit.from_qasm_file(os.path.join(self.qasm_path, "qv_N100_12345.qasm"))
-        ops = out.count_ops()
-        assert ops.get("rz", 0) == 120000
-        assert ops.get("rx", 0) == 80000
-        assert ops.get("cx", 0) == 15000
-        return ops
+        QuantumCircuit.from_qasm_str(self.qasm)
 
 
 class CliffordSynthesis:
