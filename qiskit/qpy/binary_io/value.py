@@ -164,8 +164,7 @@ def _write_parameter_expression_v13(file_obj, obj, version):
 
 
 def _write_parameter_expression(file_obj, obj, use_symengine, *, version):
-    # A map from symbols to expressions. Here "expression" includes other symbols.
-    extra_expressions = None
+    extra_symbols = None
     if version < 13:
         if use_symengine:
             expr_bytes = obj._symbol_expr.__reduce__()[1][0]
@@ -175,11 +174,11 @@ def _write_parameter_expression(file_obj, obj, use_symengine, *, version):
             expr_bytes = srepr(sympify(obj._symbol_expr)).encode(common.ENCODE)
     else:
         with io.BytesIO() as buf:
-            extra_expressions = _write_parameter_expression_v13(buf, obj, version)
+            extra_symbols = _write_parameter_expression_v13(buf, obj, version)
             expr_bytes = buf.getvalue()
     symbol_table_len = len(obj._parameter_symbols)
-    if extra_expressions:
-        symbol_table_len += 2 * len(extra_expressions)
+    if extra_symbols:
+        symbol_table_len += 2 * len(extra_symbols)
     param_expr_header_raw = struct.pack(
         formats.PARAMETER_EXPR_PACK, symbol_table_len, len(expr_bytes)
     )
@@ -210,8 +209,8 @@ def _write_parameter_expression(file_obj, obj, use_symengine, *, version):
         file_obj.write(elem_header)
         file_obj.write(symbol_data)
         file_obj.write(value_data)
-    if extra_expressions:
-        for symbol in extra_expressions:
+    if extra_symbols:
+        for symbol in extra_symbols:
             symbol_key = type_keys.Value.assign(symbol)
             # serialize key
             if symbol_key == type_keys.Value.PARAMETER_VECTOR:
@@ -232,7 +231,7 @@ def _write_parameter_expression(file_obj, obj, use_symengine, *, version):
             file_obj.write(elem_header)
             file_obj.write(symbol_data)
             file_obj.write(value_data)
-        for symbol in extra_expressions.values():
+        for symbol in extra_symbols.values():
             symbol_key = type_keys.Value.assign(symbol)
             # serialize key
             if symbol_key == type_keys.Value.PARAMETER_VECTOR:
