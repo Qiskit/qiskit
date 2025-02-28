@@ -27,9 +27,14 @@ accepting quantum circuits (or sweeps of values over parameterized circuits) and
 classical output registers. Estimators accept combinations of circuits and observables (or sweeps
 thereof) to estimate expectation values of the observables.
 
-Qiskit implements a reference implementation for each of these abstractions,
-:class:`~.StatevectorSampler` and :class:`~.StatevectorEstimator`.
+Qiskit offers a reference implementation for each of these abstractions in the
+:class:`~.StatevectorSampler` and :class:`~.StatevectorEstimator` classes.
 
+The earlier versions of the sampler and estimator abstractions are defined by :class:`~.BaseSamplerV1`
+and :class:`~.BaseEstimatorV1`. These interfaces follow a different and less flexible input-output 
+format for the ``run`` method and have been largely replaced in practice by :class:`~.BaseSamplerV2` and 
+:class:`~.BaseEstimatorV2`. However, the original abstract interface definitions have been 
+retained for backward compatibility.
 
 Overview of EstimatorV2
 =======================
@@ -200,7 +205,9 @@ interface in Qiskit.
 
 .. code-block:: python
 
-    from fictional_location import EstimatorV1
+    # This is a fictional import path.
+    # There are currently no EstimatorV1 implementations in Qiskit.
+    from estimator_v1_location import EstimatorV1 
     from qiskit.circuit.library import RealAmplitudes
     from qiskit.quantum_info import SparsePauliOp
 
@@ -239,7 +246,7 @@ Overview of SamplerV1
 
 There are currently no implementations of the legacy ``SamplerV1`` interface in Qiskit. 
 However, the abstract interface definition from :class:`~BaseSamplerV1` is still part 
-of the package to provide backwards compatibility for external implementations. 
+of the package to provide backward compatibility for external implementations. 
 
 Sampler classes calculate probabilities or quasi-probabilities of bitstrings from quantum circuits.
 
@@ -253,7 +260,7 @@ be called via the ``.run()`` method with the following parameters:
   to be bound to the parameters of the quantum circuits.
   (list of list of float)
 
-The method should return a :class:`~qiskit.providers.JobV1` object. Calling
+``.run()`` will return a :class:`~qiskit.providers.JobV1` object. Calling
 :meth:`qiskit.providers.JobV1.result()` yields a :class:`~qiskit.primitives.SamplerResult`
 object, which contains probabilities or quasi-probabilities of bitstrings,
 plus optional metadata like error bars in the samples.
@@ -264,7 +271,9 @@ interface in Qiskit.
 
 .. code-block:: python
 
-    from fictional_location import SamplerV1
+    # This is a fictional import path.
+    # There are currently no SamplerV1 implementations in Qiskit.
+    from sampler_v1_location import Sampler 
     from qiskit import QuantumCircuit
     from qiskit.circuit.library import RealAmplitudes
 

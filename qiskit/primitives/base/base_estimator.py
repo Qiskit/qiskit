@@ -38,15 +38,73 @@ from .base_primitive_job import BasePrimitiveJob
 T = TypeVar("T", bound=Job)
 
 
+class BaseEstimatorV2(ABC):
+    r"""Base class for ``EstimatorV2`` implementations.
+
+    An estimator calculates expectation values for provided quantum circuit and
+    observable combinations. Implementations of this :class:`.BaseEstimatorV2`
+    interface must define their own :meth:`.run` method, which is designed to
+    take the following inputs:
+
+     * pubs: list of pubs (Primitive Unified Blocs). Each pub contains three values that, together,
+        define a computation unit of work for the estimator to complete:
+
+            * a single :class:`~qiskit.circuit.QuantumCircuit`, possibly parametrized, whose final state we
+            define as :math:`\psi(\theta)`,
+
+            * one or more observables (specified as any :class:`~.ObservablesArrayLike`, including
+            :class:`~.Pauli`, :class:`~.SparsePauliOp`, ``str``) that specify which expectation values to
+            estimate, denoted :math:`H_j`, and
+
+            * a collection parameter value sets to bind the circuit against, :math:`\theta_k`.
+
+            * Optionally, the estimation precision.
+
+     * precision: the estimation precision. This specification is optional and will be overriden by
+            the pub-wise shots if provided.
+
+    All estimator implementations must implement default value for the ``precision`` in the
+    :meth:`.run` method. This default value will be used any time ``precision=None`` is specified, which
+    can take place in the :meth:`.run` kwargs or at the pub level.
+    """
+
+    @staticmethod
+    def _make_data_bin(_: EstimatorPub) -> type[DataBin]:
+        # this method is present for backwards compat. new primitive implementations
+        # should avoid it.
+        return DataBin
+
+    @abstractmethod
+    def run(
+        self, pubs: Iterable[EstimatorPubLike], *, precision: float | None = None
+    ) -> BasePrimitiveJob[PrimitiveResult[PubResult]]:
+        """Estimate expectation values for each provided pub (Primitive Unified Bloc).
+
+        Args:
+            pubs: An iterable of pub-like objects, such as tuples ``(circuit, observables)``
+                  or ``(circuit, observables, parameter_values)``.
+            precision: The target precision for expectation value estimates of each
+                       run Estimator Pub that does not specify its own precision. If None
+                       the estimator's default precision value will be used.
+
+        Returns:
+            A job object that contains results.
+        """
+
+
 class BaseEstimatorV1(BasePrimitive, Generic[T]):
-    r"""Estimator V1 base class.
+    r"""Base class for ``EstimatorV1`` implementations.
 
-    Base class for Estimator that estimates expectation values of quantum circuits and observables.
+    Note that the reference estimator in Qiskit follows the ``EstimatorV2``
+    interface specifications instead.
 
-    An estimator is initialized with an empty parameter set. The estimator is used to
-    create a :class:`~qiskit.providers.JobV1`, via the
-    :meth:`qiskit.primitives.Estimator.run()` method. This method is called
-    with the following parameters
+    An estimator calculates expectation values for provided quantum circuit and
+    observable combinations.
+
+    Implementations of :class:`.BaseEstimatorV1` should define their own
+    :meth:`.BaseEstimatorV1._run` method
+    that will be called by the public-facing :meth:`qiskit.primitives.BaseEstimatorV1.run`,
+    which takes the following inputs:
 
     * quantum circuits (:math:`\psi_i(\theta)`): list of (parameterized) quantum circuits
       (a list of :class:`~qiskit.circuit.QuantumCircuit` objects).
@@ -58,7 +116,7 @@ class BaseEstimatorV1(BasePrimitive, Generic[T]):
       to be bound to the parameters of the quantum circuits
       (list of list of float).
 
-    The method returns a :class:`~qiskit.providers.JobV1` object, calling
+    The method returns a :class:`~qiskit.providers.JobV1` object. Calling
     :meth:`qiskit.providers.JobV1.result()` yields the
     a list of expectation values plus optional metadata like confidence intervals for
     the estimation.
@@ -67,13 +125,13 @@ class BaseEstimatorV1(BasePrimitive, Generic[T]):
 
         \langle\psi_i(\theta_k)|H_j|\psi_i(\theta_k)\rangle
 
-    Here is an example of how the estimator is used.
+    Here is an example of how a :class:`.BaseEstimatorV1` would be used:
 
-    .. plot::
-       :include-source:
-       :nofigs:
+    .. code-block:: python
 
-        from qiskit.primitives import Estimator
+        # This is a fictional import path.
+        # There are currently no EstimatorV1 implementations in Qiskit.
+        from estimator_v1_location import EstimatorV1
         from qiskit.circuit.library import RealAmplitudes
         from qiskit.quantum_info import SparsePauliOp
 
@@ -88,7 +146,7 @@ class BaseEstimatorV1(BasePrimitive, Generic[T]):
         theta2 = [0, 1, 1, 2, 3, 5, 8, 13]
         theta3 = [1, 2, 3, 4, 5, 6]
 
-        estimator = Estimator()
+        estimator = EstimatorV1()
 
         # calculate [ <psi1(theta1)|H1|psi1(theta1)> ]
         job = estimator.run([psi1], [H1], [theta1])
@@ -111,8 +169,7 @@ class BaseEstimatorV1(BasePrimitive, Generic[T]):
         options: dict | None = None,
     ):
         """
-        Creating an instance of an Estimator V1, or using one in a ``with`` context opens a session that
-        holds resources until the instance is ``close()`` ed or the context is exited.
+        Initialize ``EstimatorV1``.
 
         Args:
             options: Default options.
@@ -187,38 +244,3 @@ class BaseEstimatorV1(BasePrimitive, Generic[T]):
         **run_options,
     ) -> T:
         raise NotImplementedError("The subclass of BaseEstimatorV1 must implement `_run` method.")
-
-
-class BaseEstimatorV2(ABC):
-    r"""Estimator V2 base class.
-
-    An estimator estimates expectation values for provided quantum circuit and
-    observable combinations.
-
-    An Estimator implementation must treat the :meth:`.run` method ``precision=None``
-    kwarg as using a default ``precision`` value.  The default value and methods to
-    set it can be determined by the Estimator implementor.
-    """
-
-    @staticmethod
-    def _make_data_bin(_: EstimatorPub) -> type[DataBin]:
-        # this method is present for backwards compat. new primitive implementations
-        # should avoid it.
-        return DataBin
-
-    @abstractmethod
-    def run(
-        self, pubs: Iterable[EstimatorPubLike], *, precision: float | None = None
-    ) -> BasePrimitiveJob[PrimitiveResult[PubResult]]:
-        """Estimate expectation values for each provided pub (Primitive Unified Bloc).
-
-        Args:
-            pubs: An iterable of pub-like objects, such as tuples ``(circuit, observables)``
-                  or ``(circuit, observables, parameter_values)``.
-            precision: The target precision for expectation value estimates of each
-                       run Estimator Pub that does not specify its own precision. If None
-                       the estimator's default precision value will be used.
-
-        Returns:
-            A job object that contains results.
-        """

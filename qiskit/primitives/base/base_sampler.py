@@ -32,6 +32,49 @@ from .base_primitive_job import BasePrimitiveJob
 T = TypeVar("T", bound=Job)
 
 
+class BaseSamplerV2(ABC):
+    r"""Base class for ``SamplerV2`` implementations.
+
+    A Sampler returns samples of quantum circuit outputs. Implementations of this
+    :class:`.BaseSamplerV2` interface must define their own :meth:`.run` method,
+    which is designed to take the following inputs:
+
+     * pubs: list of pubs (Primitive Unified Blocs). Each pub contains values that, together,
+            define a computational unit of work for the sampler to complete. The values are
+            formatted as a tuple with:
+
+            * A single :class:`~qiskit.circuit.QuantumCircuit`, possibly parameterized.
+
+            * A collection parameter value sets to bind the circuit against if it is parametric.
+
+            * Optionally, the number of shots to sample.
+
+     * shots: the number of shots to sample. This specification is optional and will be overriden by
+            the pub-wise shots if provided.
+
+    All sampler implementations must implement default value for the ``shots`` in the
+    :meth:`.run` method. This default value will be used any time ``shots=None`` is specified, which
+    can take place in the :meth:`.run` kwargs or at the pub level.
+    """
+
+    @abstractmethod
+    def run(
+        self, pubs: Iterable[SamplerPubLike], *, shots: int | None = None
+    ) -> BasePrimitiveJob[PrimitiveResult[SamplerPubResult]]:
+        """Run and collect samples from each pub.
+
+        Args:
+            pubs: An iterable of pub-like objects. For example, a list of circuits
+                  or tuples ``(circuit, parameter_values)``.
+            shots: The total number of shots to sample for each sampler pub that does
+                   not specify its own shots. If ``None``, the primitive's default
+                   shots value will be used, which can vary by implementation.
+
+        Returns:
+            The job object of Sampler's result.
+        """
+
+
 class BaseSamplerV1(BasePrimitive, Generic[T]):
     r"""Sampler V1 base class
 
@@ -55,11 +98,11 @@ class BaseSamplerV1(BasePrimitive, Generic[T]):
 
     Here is an example of how sampler is used.
 
-    .. plot::
-       :include-source:
-       :nofigs:
+    .. code-block:: python
 
-        from qiskit.primitives import Sampler
+        # This is a fictional import path.
+        # There are currently no Sampler implementations in Qiskit.
+        from sampler_v1_location import SamplerV1
         from qiskit import QuantumCircuit
         from qiskit.circuit.library import RealAmplitudes
 
@@ -104,6 +147,8 @@ class BaseSamplerV1(BasePrimitive, Generic[T]):
         options: dict | None = None,
     ):
         """
+        Initialize ``SamplerV1``.
+
         Args:
             options: Default options.
         """
@@ -150,30 +195,3 @@ class BaseSamplerV1(BasePrimitive, Generic[T]):
         **run_options,
     ) -> T:
         raise NotImplementedError("The subclass of BaseSamplerV1 must implement `_run` method.")
-
-
-class BaseSamplerV2(ABC):
-    r"""Sampler V2 base class.
-
-    A Sampler returns samples of quantum circuit outputs.
-
-    All sampler implementations must implement default value for the ``shots`` in the
-    :meth:`.run` method if ``None`` is given both as a ``kwarg`` and in all of the pubs.
-    """
-
-    @abstractmethod
-    def run(
-        self, pubs: Iterable[SamplerPubLike], *, shots: int | None = None
-    ) -> BasePrimitiveJob[PrimitiveResult[SamplerPubResult]]:
-        """Run and collect samples from each pub.
-
-        Args:
-            pubs: An iterable of pub-like objects. For example, a list of circuits
-                  or tuples ``(circuit, parameter_values)``.
-            shots: The total number of shots to sample for each sampler pub that does
-                   not specify its own shots. If ``None``, the primitive's default
-                   shots value will be used, which can vary by implementation.
-
-        Returns:
-            The job object of Sampler's result.
-        """
