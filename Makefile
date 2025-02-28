@@ -12,7 +12,7 @@
 
 OS := $(shell uname -s)
 
-.PHONY: default ruff env lint lint-incr style black test test_randomized pytest pytest_randomized test_ci coverage coverage_erase clean
+.PHONY: default ruff env lint lint-incr style black test test_randomized pytest pytest_randomized test_ci coverage coverage_erase clean cheader ctest
 
 default: ruff style lint-incr test ;
 
@@ -83,3 +83,28 @@ coverage_erase:
 	coverage erase
 
 clean: coverage_erase ;
+
+# Run clang-format (does not apply any changes)
+cformat:
+	bash tools/run_clang_format.sh
+
+# Apply clang-format changes
+fix_cformat:
+	bash tools/run_clang_format.sh apply
+
+# Build C API crate and header
+cheader: 
+	cargo build --release --no-default-features --features cbinding
+	cbindgen --crate qiskit-cext --output dist/c/include/qiskit.h --lang C
+
+# Use ctest to run C API tests
+ctest: cheader
+	# -S specifically specifies the source path to be the current folder
+	# -B specifically specifies the build path to be inside test/c/build
+	cmake -S. -Btest/c/build
+	cmake --build test/c/build
+	# -V ensures we always produce a logging output to indicate the subtests
+	ctest -V --test-dir test/c/build
+
+cclean:
+	rm -r dist/c
