@@ -15,7 +15,7 @@
 from qiskit import QuantumRegister
 from qiskit.providers.backend import Backend
 from qiskit.providers.basic_provider import BasicSimulator
-from qiskit.providers.fake_provider import Fake20QV1, Fake27QPulseV1, GenericBackendV2
+from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
@@ -24,20 +24,6 @@ from ..legacy_cmaps import ALMADEN_CMAP
 
 class TestPassManagerConfig(QiskitTestCase):
     """Test PassManagerConfig.from_backend()."""
-
-    def test_config_from_backend(self):
-        """Test from_backend() with a valid backend.
-
-        `Fake27QPulseV1` is used in this testcase. This backend has `defaults` attribute
-        that contains an instruction schedule map.
-        """
-        with self.assertWarns(DeprecationWarning):
-            backend = Fake27QPulseV1()
-            config = PassManagerConfig.from_backend(backend)
-        self.assertEqual(config.basis_gates, backend.configuration().basis_gates)
-        self.assertEqual(
-            str(config.coupling_map), str(CouplingMap(backend.configuration().coupling_map))
-        )
 
     def test_config_from_backend_v2(self):
         """Test from_backend() with a BackendV2 instance."""
@@ -50,29 +36,6 @@ class TestPassManagerConfig(QiskitTestCase):
         """Test from_backend() with an invalid backend."""
         with self.assertRaises(AttributeError):
             PassManagerConfig.from_backend(Backend())
-
-    def test_from_backend_and_user_v1(self):
-        """Test from_backend() with a backend and user options.
-
-        `FakeMelbourne` is used in this testcase. This backend does not have
-        `defaults` attribute and thus not provide an instruction schedule map.
-
-        REMOVE AFTER Fake20QV1 GETS REMOVED.
-        """
-        qr = QuantumRegister(4, "qr")
-        initial_layout = [None, qr[0], qr[1], qr[2], None, qr[3]]
-
-        with self.assertWarns(DeprecationWarning):
-            backend = Fake20QV1()
-            config = PassManagerConfig.from_backend(
-                backend, basis_gates=["user_gate"], initial_layout=initial_layout
-            )
-        self.assertEqual(config.basis_gates, ["user_gate"])
-        self.assertNotEqual(config.basis_gates, backend.configuration().basis_gates)
-        self.assertEqual(
-            str(config.coupling_map), str(CouplingMap(backend.configuration().coupling_map))
-        )
-        self.assertEqual(config.initial_layout, initial_layout)
 
     def test_from_backend_and_user(self):
         """Test from_backend() with a backend and user options.

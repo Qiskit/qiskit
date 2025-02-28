@@ -42,11 +42,7 @@ from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler import Target
 from qiskit.transpiler import InstructionProperties
-from qiskit.providers.fake_provider import (
-    GenericBackendV2,
-    Fake5QV1,
-    Fake7QPulseV1,
-)
+from qiskit.providers.fake_provider import GenericBackendV2
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 from qiskit.providers.backend import QubitProperties
 from test.python.providers.fake_mumbai_v2 import (  # pylint: disable=wrong-import-order
@@ -1721,33 +1717,6 @@ class TestTargetFromConfiguration(QiskitTestCase):
         self.assertEqual(target.operation_names, {"u", "cx"})
         self.assertEqual({(0,), (1,), (2,)}, target["u"].keys())
         self.assertEqual({(0, 1), (1, 2), (2, 0)}, target["cx"].keys())
-
-    def test_inst_map(self):
-        with self.assertWarns(DeprecationWarning):
-            fake_backend = Fake7QPulseV1()
-        config = fake_backend.configuration()
-        constraints = TimingConstraints(**config.timing_constraints)
-        target = Target.from_configuration(
-            basis_gates=config.basis_gates,
-            num_qubits=config.num_qubits,
-            coupling_map=CouplingMap(config.coupling_map),
-            dt=config.dt,
-            timing_constraints=constraints,
-        )
-        self.assertEqual(target.granularity, constraints.granularity)
-        self.assertEqual(target.min_length, constraints.min_length)
-        self.assertEqual(target.pulse_alignment, constraints.pulse_alignment)
-        self.assertEqual(target.acquire_alignment, constraints.acquire_alignment)
-
-    def test_concurrent_measurements(self):
-        with self.assertWarns(DeprecationWarning):
-            fake_backend = Fake5QV1()
-        config = fake_backend.configuration()
-        target = Target.from_configuration(
-            basis_gates=config.basis_gates,
-            concurrent_measurements=config.meas_map,
-        )
-        self.assertEqual(target.concurrent_measurements, config.meas_map)
 
     def test_custom_basis_gates(self):
         basis_gates = ["my_x", "cx"]
