@@ -427,7 +427,9 @@ impl CircuitData {
     /// present amongst its operations.
     pub fn has_control_flow_op(&self) -> bool {
         let operations = self.count_ops();
-        CONTROL_FLOW_OP_NAMES.iter().any(|name| operations.contains_key(name))
+        CONTROL_FLOW_OP_NAMES
+            .iter()
+            .any(|name| operations.contains_key(name))
     }
 
     /// Replaces the bits of this container with the given ``qubits``
