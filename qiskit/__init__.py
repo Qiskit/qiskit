@@ -132,19 +132,6 @@ from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from .version import __version__
 
 
-def get_lib() -> str:
-    """Get the path to the compiled library object.
-
-    When interfacing with Qiskit's C API for a Python extension the shared library object
-    returned from this function must be what is linked against. This will ensure that all
-    objects are built using the same library file.
-
-    Returns:
-        The path.
-    """
-    return _accelerate.__file__
-
-
 __all__ = [
     "AncillaRegister",
     "ClassicalRegister",
