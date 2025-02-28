@@ -134,6 +134,10 @@ Similarly, the binary operations and relations have helper functions defined.
 .. autofunction:: greater_equal
 .. autofunction:: shift_left
 .. autofunction:: shift_right
+.. autofunction:: add
+.. autofunction:: sub
+.. autofunction:: mul
+.. autofunction:: div
 
 You can index into unsigned integers and bit-likes using another unsigned integer of any width.
 This includes in storing operations, if the target of the index is writeable.
