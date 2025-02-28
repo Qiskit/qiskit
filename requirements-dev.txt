@@ -1,4 +1,4 @@
-# Requirements to develop Terra, and the minimum needed to run its CI.  All
+# Requirements to develop Qiskit, and the minimum needed to run its CI.  All
 # optional requirements should go in `requirements-optionals.txt` instead.
 #
 # Version requirements here can be more restrictive than elsewhere, because they
