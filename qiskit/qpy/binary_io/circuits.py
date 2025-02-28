@@ -1236,7 +1236,7 @@ def write_circuit(
         file_obj.write(metadata_raw)
         # Write header payload
         file_obj.write(registers_raw)
-        standalone_var_indices = value.write_standalone_vars(file_obj, circuit)
+        standalone_var_indices = value.write_standalone_vars(file_obj, circuit, version)
     else:
         if circuit.num_vars:
             raise exceptions.UnsupportedFeatureForVersion(

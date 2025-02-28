@@ -287,6 +287,7 @@ class ExprType(TypeKeyBase):
 
     BOOL = b"b"
     UINT = b"u"
+    FLOAT = b"f"
 
     @classmethod
     def assign(cls, obj):
@@ -331,6 +332,7 @@ class ExprValue(TypeKeyBase):
 
     BOOL = b"b"
     INT = b"i"
+    FLOAT = b"f"
 
     @classmethod
     def assign(cls, obj):

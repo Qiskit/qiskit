@@ -19,6 +19,7 @@ from __future__ import annotations
 
 __all__ = [
     "lift",
+    "cast",
     "bit_not",
     "logic_not",
     "bit_and",
@@ -32,6 +33,9 @@ __all__ = [
     "less_equal",
     "greater",
     "greater_equal",
+    "shift_left",
+    "shift_right",
+    "index",
     "lift_legacy_condition",
 ]
 
@@ -121,6 +125,9 @@ def lift(value: typing.Any, /, type: types.Type | None = None) -> Expr:
             raise ValueError("cannot represent a negative value")
         inferred = types.Uint(width=value.bit_length() or 1)
         constructor = Value
+    elif isinstance(value, float):
+        inferred = types.Float()
+        constructor = Value
     else:
         raise TypeError(f"failed to infer a type for '{value}'")
     if type is None:
@@ -181,11 +188,16 @@ def logic_not(operand: typing.Any, /) -> Expr:
             >>> expr.logic_not(ClassicalRegister(3, "c"))
             Unary(\
 Unary.Op.LOGIC_NOT, \
-Cast(Var(ClassicalRegister(3, 'c'), Uint(3)), Bool(), implicit=True), \
+Cast(Var(ClassicalRegister(3, 'c'), Uint(3)), \
+Bool(), implicit=True), \
 Bool())
     """
-    operand = _coerce_lossless(lift(operand), types.Bool())
-    return Unary(Unary.Op.LOGIC_NOT, operand, operand.type)
+    operand = lift(operand)
+    try:
+        operand = _coerce_lossless(operand, types.Bool())
+        return Unary(Unary.Op.LOGIC_NOT, operand, operand.type)
+    except TypeError as ex:
+        raise TypeError(f"cannot apply '{Unary.Op.BIT_NOT}' to type '{operand.type}'") from ex
 
 
 def _lift_binary_operands(left: typing.Any, right: typing.Any) -> tuple[Expr, Expr]:
@@ -300,9 +312,14 @@ Uint(3))
 
 def _binary_logical(op: Binary.Op, left: typing.Any, right: typing.Any) -> Expr:
     bool_ = types.Bool()
-    left = _coerce_lossless(lift(left), bool_)
-    right = _coerce_lossless(lift(right), bool_)
-    return Binary(op, left, right, bool_)
+    left = lift(left)
+    right = lift(right)
+    try:
+        left = _coerce_lossless(left, bool_)
+        right = _coerce_lossless(right, bool_)
+        return Binary(op, left, right, bool_)
+    except TypeError as ex:
+        raise TypeError(f"invalid types for '{op}': '{left.type}' and '{right.type}'") from ex
 
 
 def logic_and(left: typing.Any, right: typing.Any, /) -> Expr:
