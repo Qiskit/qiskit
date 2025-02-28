@@ -19,7 +19,7 @@ from __future__ import annotations
 import collections.abc
 import copy as _copy
 import itertools
-import multiprocessing as mp
+import multiprocessing
 import typing
 from collections import OrderedDict, defaultdict, namedtuple
 from typing import (
@@ -43,7 +43,6 @@ from qiskit._accelerate.circuit import CircuitData
 from qiskit._accelerate.circuit import StandardGate
 from qiskit._accelerate.circuit_duration import compute_estimated_duration
 from qiskit.exceptions import QiskitError
-from qiskit.utils.multiprocessing import is_main_process
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameter import Parameter
@@ -962,19 +961,6 @@ class QuantumCircuit:
 
     .. automethod:: decompose
     .. automethod:: reverse_bits
-
-    Internal utilities
-    ==================
-
-    These functions are not intended for public use, but were accidentally left documented in the
-    public API during the 1.0 release.  They will be removed in Qiskit 2.0, but will be supported
-    until then.
-
-    .. automethod:: cast
-    .. automethod:: cbit_argument_conversion
-    .. automethod:: cls_instances
-    .. automethod:: cls_prefix
-    .. automethod:: qbit_argument_conversion
     """
 
     instances = 0
@@ -1457,33 +1443,10 @@ class QuantumCircuit:
         cls.instances += 1
 
     @classmethod
-    @deprecate_func(
-        since=1.2,
-        removal_timeline="in the 2.0 release",
-        additional_msg="This method is only used as an internal helper "
-        "and will be removed with no replacement.",
-    )
-    def cls_instances(cls) -> int:
-        """Return the current number of instances of this class,
-        useful for auto naming."""
-        return cls.instances
-
-    @classmethod
     def _cls_instances(cls) -> int:
         """Return the current number of instances of this class,
         useful for auto naming."""
         return cls.instances
-
-    @classmethod
-    @deprecate_func(
-        since=1.2,
-        removal_timeline="in the 2.0 release",
-        additional_msg="This method is only used as an internal helper "
-        "and will be removed with no replacement.",
-    )
-    def cls_prefix(cls) -> str:
-        """Return the prefix to use for auto naming."""
-        return cls.prefix
 
     @classmethod
     def _cls_prefix(cls) -> str:
@@ -1492,11 +1455,10 @@ class QuantumCircuit:
 
     def _name_update(self) -> None:
         """update name of instance using instance number"""
-        if not is_main_process():
-            pid_name = f"-{mp.current_process().pid}"
-        else:
+        if multiprocessing.parent_process() is None:
             pid_name = ""
-
+        else:
+            pid_name = f"-{multiprocessing.current_process().pid}"
         self.name = f"{self._base_name}-{self._cls_instances()}{pid_name}"
 
     def has_register(self, register: Register) -> bool:
@@ -2093,14 +2055,7 @@ class QuantumCircuit:
 
             def map_vars(op):
                 n_op = op
-                is_control_flow = isinstance(n_op, ControlFlowOp)
-                if (
-                    not is_control_flow
-                    and (condition := getattr(n_op, "_condition", None)) is not None
-                ):
-                    n_op = n_op.copy() if n_op is op and copy else n_op
-                    n_op.condition = variable_mapper.map_condition(condition)
-                elif is_control_flow:
+                if isinstance(n_op, ControlFlowOp):
                     n_op = n_op.replace_blocks(recurse_block(block) for block in n_op.blocks)
                     if isinstance(n_op, (IfElseOp, WhileLoopOp)):
                         n_op.condition = variable_mapper.map_condition(n_op._condition)
@@ -2348,46 +2303,12 @@ class QuantumCircuit:
         return self._data[item]
 
     @staticmethod
-    @deprecate_func(
-        since=1.2,
-        removal_timeline="in the 2.0 release",
-        additional_msg="This method is only used as an internal helper "
-        "and will be removed with no replacement.",
-    )
-    def cast(value: S, type_: Callable[..., T]) -> Union[S, T]:
-        """Best effort to cast value to type. Otherwise, returns the value."""
-        try:
-            return type_(value)
-        except (ValueError, TypeError):
-            return value
-
-    @staticmethod
     def _cast(value: S, type_: Callable[..., T]) -> Union[S, T]:
         """Best effort to cast value to type. Otherwise, returns the value."""
         try:
             return type_(value)
         except (ValueError, TypeError):
             return value
-
-    @deprecate_func(
-        since=1.2,
-        removal_timeline="in the 2.0 release",
-        additional_msg="This method is only used as an internal helper "
-        "and will be removed with no replacement.",
-    )
-    def qbit_argument_conversion(self, qubit_representation: QubitSpecifier) -> list[Qubit]:
-        """
-        Converts several qubit representations (such as indexes, range, etc.)
-        into a list of qubits.
-
-        Args:
-            qubit_representation: Representation to expand.
-
-        Returns:
-            The resolved instances of the qubits.
-        """
-
-        return self._qbit_argument_conversion(qubit_representation)
 
     def _qbit_argument_conversion(self, qubit_representation: QubitSpecifier) -> list[Qubit]:
         """
@@ -2403,25 +2324,6 @@ class QuantumCircuit:
         return _bit_argument_conversion(
             qubit_representation, self.qubits, self._qubit_indices, Qubit
         )
-
-    @deprecate_func(
-        since=1.2,
-        removal_timeline="in the 2.0 release",
-        additional_msg="This method is only used as an internal helper "
-        "and will be removed with no replacement.",
-    )
-    def cbit_argument_conversion(self, clbit_representation: ClbitSpecifier) -> list[Clbit]:
-        """
-        Converts several classical bit representations (such as indexes, range, etc.)
-        into a list of classical bits.
-
-        Args:
-            clbit_representation : Representation to expand.
-
-        Returns:
-            A list of tuples where each tuple is a classical bit.
-        """
-        return self._cbit_argument_conversion(clbit_representation)
 
     def _cbit_argument_conversion(self, clbit_representation: ClbitSpecifier) -> list[Clbit]:
         """
@@ -2594,8 +2496,8 @@ class QuantumCircuit:
 
             * all the qubits and clbits must already exist in the circuit and there can be no
               duplicates in the list.
-            * any control-flow operations or classically conditioned instructions must act only on
-              variables present in the circuit.
+            * any control-flow operations instructions must act only on variables present in the
+              circuit.
             * the circuit must not be within a control-flow builder context.
 
         .. note::
@@ -3629,23 +3531,13 @@ class QuantumCircuit:
                 num_qargs = len(args)
             else:
                 args = instruction.qubits + instruction.clbits
-                num_qargs = len(args) + (
-                    1 if getattr(instruction.operation, "_condition", None) else 0
-                )
+                num_qargs = len(args)
 
             if num_qargs >= 2 and not getattr(instruction.operation, "_directive", False):
                 graphs_touched = []
                 num_touched = 0
                 # Controls necessarily join all the cbits in the
                 # register that they use.
-                if not unitary_only:
-                    for bit in instruction.operation.condition_bits:
-                        idx = bit_indices[bit]
-                        for k in range(num_sub_graphs):
-                            if idx in sub_graphs[k]:
-                                graphs_touched.append(k)
-                                break
-
                 for item in args:
                     reg_int = bit_indices[item]
                     for k in range(num_sub_graphs):
@@ -6420,7 +6312,8 @@ class QuantumCircuit:
                 qc.h(0)
                 qc.cx(0, 1)
                 qc.measure(0, 0)
-                qc.break_loop().c_if(0, True)
+                with qc.if_test((0, True)):
+                    qc.break_loop()
 
         Args:
             indexset (Iterable[int]): A collection of integers to loop over.  Always necessary.
@@ -7008,8 +6901,7 @@ class _OuterCircuitScopeInterface(CircuitScopeInterface):
     def resolve_classical_resource(self, specifier):
         # This is slightly different to cbit_argument_conversion, because it should not
         # unwrap :obj:`.ClassicalRegister` instances into lists, and in general it should not allow
-        # iterables or broadcasting.  It is expected to be used as a callback for things like
-        # :meth:`.InstructionSet.c_if` to check the validity of their arguments.
+        # iterables or broadcasting.
         if isinstance(specifier, Clbit):
             if specifier not in self.circuit._clbit_indices:
                 raise CircuitError(f"Clbit {specifier} is not present in this circuit.")

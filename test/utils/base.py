@@ -28,7 +28,6 @@ import warnings
 import unittest
 from unittest.util import safe_repr
 
-from qiskit.utils.parallel import get_platform_parallel_default
 from qiskit.exceptions import QiskitWarning
 from qiskit.utils import optionals as _optionals
 from qiskit.circuit import QuantumCircuit
@@ -94,6 +93,13 @@ class QiskitTestCase(BaseTestCase):
 
         warnings.filterwarnings("error", category=DeprecationWarning)
         warnings.filterwarnings("error", category=QiskitWarning)
+
+        warnings.filterwarnings(
+            "ignore",
+            category=RuntimeWarning,
+            message="Aer not found using BasicSimulator and no noise",
+            module="qiskit.providers.fake_provider.generic_backend_v2",
+        )
 
         # Numpy 2 made a few new modules private, and have warnings that trigger if you try to
         # access attributes that _would_ have existed.  Unfortunately, Python's `warnings` module
@@ -235,8 +241,7 @@ class QiskitTestCase(BaseTestCase):
         # due to importing the instances from the top-level qiskit namespace.
         from qiskit.providers.basic_provider import BasicProvider
 
-        with self.assertWarns(DeprecationWarning):
-            BasicProvider()._backends = BasicProvider()._verify_backends()
+        BasicProvider()._backends = BasicProvider()._verify_backends()
 
     def assertQuantumCircuitEqual(self, qc1, qc2, msg=None):
         """Extra assertion method to give a better error message when two circuits are unequal."""
@@ -284,24 +289,6 @@ Right circuit:
         if error_msg:
             msg = self._formatMessage(msg, error_msg)
             raise self.failureException(msg)
-
-    def enable_parallel_processing(self):
-        """
-        Enables parallel processing, for the duration of a test, on platforms
-        that support it. This is done by temporarily overriding the value of
-        the QISKIT_PARALLEL environment variable with the platform specific default.
-        """
-        parallel_default = str(get_platform_parallel_default()).upper()
-
-        def set_parallel_env(name, value):
-            os.environ[name] = value
-
-        self.addCleanup(
-            lambda value: set_parallel_env("QISKIT_PARALLEL", value),
-            os.getenv("QISKIT_PARALLEL", parallel_default),
-        )
-
-        os.environ["QISKIT_PARALLEL"] = parallel_default
 
 
 class FullQiskitTestCase(QiskitTestCase):
