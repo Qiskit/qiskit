@@ -404,6 +404,7 @@ class TestExprConstructors(QiskitTestCase):
                 types.Bool(),
             ),
         )
+        self.assertFalse(function(clbit, True).const)
 
     @ddt.data(expr.equal, expr.not_equal)
     def test_binary_equal_forbidden(self, function):
@@ -458,6 +459,7 @@ class TestExprConstructors(QiskitTestCase):
                 types.Bool(),
             ),
         )
+        self.assertFalse(function(12, cr).const)
 
     @ddt.data(expr.less, expr.less_equal, expr.greater, expr.greater_equal)
     def test_binary_relation_forbidden(self, function):
