@@ -33,5 +33,5 @@ upgrade_transpiler:
 
 upgrade_misc:
   - |
-    As part of Pulse removal in Qiskit 2.0, the ``sequence`` and ``schedule_circuit`` functions
+    As part of Pulse removal in Qiskit 2.0, the ``sequence`` and ``schedule_circuit`` functions from :mod:`.qiskit.scheduler`
     together with the ``ScheduleConfig`` class have been removed.

@@ -346,7 +346,8 @@ fn extract_basis_target(
             };
             let bound_inst = op.instruction.bind(py);
             // TODO: Use Rust method `op.blocks` instead of Python side extraction now that
-            // the usage of a python-space method `QuantumCircuit.has_calibration_for` is not needed anymore
+            // the python-space method `QuantumCircuit.has_calibration_for`
+            // has been removed and we don't need to account for it.
             let blocks = bound_inst.getattr("blocks")?.try_iter()?;
             for block in blocks {
                 extract_basis_target_circ(
