@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """Helper function for converting a circuit to an instruction."""
-from qiskit.circuit.controlflow.control_flow import ControlFlowOp
+from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.quantumregister import QuantumRegister
@@ -84,13 +84,10 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
             "Circuits with internal variables cannot yet be converted to instructions."
             " You may be able to use `QuantumCircuit.compose` to inline this circuit into another."
         )
-
-    for inst in circuit.data:
-        if isinstance(inst.operation, ControlFlowOp):
-            raise QiskitError(
-                f"Circuits with control flow operations ({type(inst.operation)}) "
-                "cannot be converted to an instruction."
-            )
+    if CONTROL_FLOW_OP_NAMES.intersection(circuit.count_ops()):
+        raise QiskitError(
+            "Circuits with control flow operations cannot be converted to an instruction."
+        )
 
     if parameter_map is None:
         parameter_dict = {p: p for p in circuit.parameters}
