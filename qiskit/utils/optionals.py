@@ -183,6 +183,12 @@ External Python Libraries
     `testtools <https://pypi.org/project/testtools/>`__ library is installed.  This is generally
     only needed for Qiskit developers.
 
+.. py:data:: HAS_TWEEDLEDUM
+
+    `Tweedledum <https://github.com/boschmitt/tweedledum>`__ is an extension library for
+    synthesis and optimization of circuits that may involve classical oracles. In the past
+    Qiskit's :class:`.PhaseOracle` used this but it is no longer used by Qiskit.
+
 .. py:data:: HAS_Z3
 
     `Z3 <https://github.com/Z3Prover/z3>`__ is a theorem prover, used in the
@@ -318,6 +324,7 @@ HAS_SKQUANT = _LazyImportTester(
 HAS_SQSNOBFIT = _LazyImportTester("SQSnobFit", install="pip install SQSnobFit")
 HAS_SYMENGINE = _LazyImportTester("symengine", install="pip install symengine")
 HAS_TESTTOOLS = _LazyImportTester("testtools", install="pip install testtools")
+HAS_TWEEDLEDUM = _LazyImportTester("tweedledum", install="pip install tweedledum")
 HAS_Z3 = _LazyImportTester("z3", install="pip install z3-solver")
 
 HAS_GRAPHVIZ = _LazySubprocessTester(
