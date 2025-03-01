@@ -349,14 +349,14 @@ impl PySymbolExpr {
     /// bind values to symbols given by input hashmap
     pub fn bind(&self, in_maps: HashMap<String, BindValue>) -> PyResult<Self> {
         let maps: HashMap<String, Value> = in_maps
-            .iter()
+            .into_iter()
             .map(|(key, val)| {
                 (
-                    key.clone(),
+                    key,
                     match val {
-                        BindValue::Complex(c) => Value::from(*c),
-                        BindValue::Real(r) => Value::from(*r),
-                        BindValue::Int(r) => Value::from(*r),
+                        BindValue::Complex(c) => Value::from(c),
+                        BindValue::Real(r) => Value::from(r),
+                        BindValue::Int(r) => Value::from(r),
                     },
                 )
             })

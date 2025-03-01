@@ -1351,6 +1351,7 @@ impl Value {
             Value::Complex(e) => Value::Real((e.re * e.re + e.im * e.im).sqrt()),
         }
     }
+
     pub fn sin(&self) -> Value {
         match self {
             Value::Real(e) => Value::Real(e.sin()),
@@ -1490,50 +1491,38 @@ impl Value {
         match self {
             Value::Real(e) => match p {
                 Value::Real(r) => {
-                    if *e < 0.0 {
+                    if *e < 0.0 && r.fract() != 0. {
                         Value::Complex(Complex64::from(e).powf(*r))
                     } else {
                         Value::Real(e.powf(*r))
                     }
                 }
-                Value::Int(i) => {
-                    if *e < 0.0 {
-                        Value::Complex(Complex64::from(e).powf(*i as f64))
-                    } else {
-                        Value::Real(e.powf(*i as f64))
-                    }
-                }
+                Value::Int(i) => Value::Real(e.powf(*i as f64)),
                 Value::Complex(r) => Value::Complex(Complex64::from(e).powc(*r)),
             },
-            Value::Int(e) => {
-                if *e < 0 {
-                    match p {
-                        Value::Real(r) => Value::Complex(Complex64::from(*e as f64).powf(*r)),
-                        Value::Int(i) => Value::Complex(Complex64::from(*e as f64).powf(*i as f64)),
-                        Value::Complex(c) => Value::Complex(Complex64::from(*e as f64).powc(*c)),
-                    }
-                } else {
-                    match p {
-                        Value::Real(r) => {
-                            let t = (*e as f64).powf(*r);
-                            let d = t.floor() - t;
-                            if (-f64::EPSILON..f64::EPSILON).contains(&d) {
-                                Value::Int(t as i64)
-                            } else {
-                                Value::Real(t)
-                            }
+            Value::Int(e) => match p {
+                Value::Real(r) => {
+                    if *e < 0 && r.fract() == 0. {
+                        let t = (*e as f64).powf(*r);
+                        let d = t.floor() - t;
+                        if (-f64::EPSILON..f64::EPSILON).contains(&d) {
+                            Value::Int(t as i64)
+                        } else {
+                            Value::Real(t)
                         }
-                        Value::Int(r) => {
-                            if *r < 0 {
-                                Value::Real((*e as f64).powf(*r as f64))
-                            } else {
-                                Value::Int(e.pow(*r as u32))
-                            }
-                        }
-                        Value::Complex(r) => Value::Complex(Complex64::from(*e as f64).powc(*r)),
+                    } else {
+                        Value::Complex(Complex64::from(*e as f64).powf(*r))
                     }
                 }
-            }
+                Value::Int(r) => {
+                    if *r < 0 {
+                        Value::Real((*e as f64).powf(*r as f64))
+                    } else {
+                        Value::Int(e.pow(*r as u32))
+                    }
+                }
+                Value::Complex(c) => Value::Complex(Complex64::from(*e as f64).powc(*c)),
+            },
             Value::Complex(e) => {
                 let t = match p {
                     Value::Real(r) => Value::Complex(e.powf(*r)),
