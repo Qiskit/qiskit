@@ -858,8 +858,13 @@ def generate_v14_expr():
     return [float_expr, duration_expr]
 
 
-def generate_circuits(version_parts):
-    """Generate reference circuits."""
+def generate_circuits(version_parts, current_version, load_context=False):
+    """Generate reference circuits.
+
+    If load_context is True, avoid generating Pulse-based reference
+    circuits. For those circuits, load_qpy only checks that the cached
+    circuits can be loaded without erroring."""
+
     output_circuits = {
         "full.qpy": [generate_full_circuit()],
         "unitary.qpy": [generate_unitary_gate_circuit()],
