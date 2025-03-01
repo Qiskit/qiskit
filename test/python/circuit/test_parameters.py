@@ -31,7 +31,7 @@ from qiskit.circuit.exceptions import CircuitError
 from qiskit.compiler import transpile
 from qiskit import pulse
 from qiskit.quantum_info import Operator
-from qiskit.providers.fake_provider import Fake5QV1, GenericBackendV2
+from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.utils import parallel_map
 from test import QiskitTestCase, combine  # pylint: disable=wrong-import-order
@@ -1138,31 +1138,6 @@ class TestParameters(QiskitTestCase):
         job = backend.run(transpile(circuits, backend), shots=512)
 
         self.assertTrue(len(job.result().results), 2)
-
-    @data(0, 1, 2, 3)
-    def test_transpile_across_optimization_levelsV1(self, opt_level):
-        """Verify parameterized circuits can be transpiled with all default pass managers.
-        To remove once Fake5QV1 gets removed"""
-
-        qc = QuantumCircuit(5, 5)
-
-        theta = Parameter("theta")
-        phi = Parameter("phi")
-
-        qc.rx(theta, 0)
-        qc.x(0)
-        for i in range(5 - 1):
-            qc.rxx(phi, i, i + 1)
-
-        qc.measure(range(5 - 1), range(5 - 1))
-        with self.assertWarns(DeprecationWarning):
-            backend = Fake5QV1()
-        with self.assertWarnsRegex(
-            DeprecationWarning,
-            expected_regex="The `transpile` function will "
-            "stop supporting inputs of type `BackendV1`",
-        ):
-            transpile(qc, backend, optimization_level=opt_level)
 
     @data(0, 1, 2, 3)
     def test_transpile_across_optimization_levels(self, opt_level):
