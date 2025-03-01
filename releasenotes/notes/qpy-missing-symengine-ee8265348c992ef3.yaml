@@ -27,6 +27,7 @@ upgrade_qpy:
     the sympy and symengine libraries to generate a serialization for
     :class:`.ParameterExpression` objects, but in Qiskit 2.x neither library
     is required for the :class:`.ParameterExpression` object.
+upgrade_circuits:
   - |
     The :meth:`.ParameterExpression.sympify` method can now raise a
     :class:`.MissingOptionalLibrary` exception if ``sympy`` is not installed.
@@ -35,6 +36,7 @@ upgrade_qpy:
     needed if you are using this method. As this functionality explicitly
     requires ``sympy`` you will need to ensure you have ``sympy`` installed
     to use the method.
+upgrade_visualization:
   - |
     The :func:`.array_to_latex` and :meth:`.Operator.draw` methods can now
     raise a :class:`.MissingOptionalLibrary` exception if the ``sympy``
