@@ -553,3 +553,5 @@ class TestExprConstructors(QiskitTestCase):
             function(0xFFFF, 2.0)
         with self.assertRaisesRegex(TypeError, "invalid types"):
             function(255.0, 1)
+        with self.assertRaisesRegex(TypeError, "cannot losslessly represent"):
+            function(expr.lift(5.0), 3, types.Uint(8))

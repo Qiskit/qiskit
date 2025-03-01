@@ -353,6 +353,8 @@ def _equal_like(op: Binary.Op, left: typing.Any, right: typing.Any) -> Expr:
     if left.type.kind is not right.type.kind:
         raise TypeError(f"invalid types for '{op}': '{left.type}' and '{right.type}'")
     type = types.greater(left.type, right.type)
+    # Note that we don't check the return value of _coerce_lossless for these
+    # since 'left' and 'right' are guaranteed to be the same kind here.
     return Binary(op, _coerce_lossless(left, type), _coerce_lossless(right, type), types.Bool())
 
 
@@ -397,6 +399,8 @@ def _binary_relation(op: Binary.Op, left: typing.Any, right: typing.Any) -> Expr
     if left.type.kind is not right.type.kind or left.type.kind is types.Bool:
         raise TypeError(f"invalid types for '{op}': '{left.type}' and '{right.type}'")
     type = types.greater(left.type, right.type)
+    # Note that we don't check the return value of _coerce_lossless for these
+    # since 'left' and 'right' are guaranteed to be the same kind here.
     return Binary(op, _coerce_lossless(left, type), _coerce_lossless(right, type), types.Bool())
 
 
@@ -478,7 +482,11 @@ def _shift_like(
     if type is not None and type.kind is not types.Uint:
         raise TypeError(f"type '{type}' is not a valid bitshift operand type")
     if isinstance(left, Expr):
-        left = _coerce_lossless(left, type) if type is not None else left
+        if type is not None:
+            coerced_left = _coerce_lossless(left, type)
+            if coerced_left is None:
+                raise TypeError(f"type '{type}' cannot losslessly represent '{left.type}'")
+            left = coerced_left
     else:
         left = lift(left, type)
     right = lift(right)
