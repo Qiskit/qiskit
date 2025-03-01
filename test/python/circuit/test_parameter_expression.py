@@ -415,3 +415,44 @@ class TestParameterExpression(QiskitTestCase):
                 self.assertAlmostEqual(complex(res), left / complex(2.4, -2.3))
             elif not isinstance(right, ParameterExpression):
                 self.assertAlmostEqual(complex(res), complex(2.4, -2.3) / right)
+
+    @combine(expression=operands)
+    def test_is_real(self, expression):
+        """Test the is_real() method."""
+        if isinstance(expression, ParameterExpression):
+            res = expression.bind({x: complex(1.0, 0.0) for x in expression.parameters})
+            self.assertTrue(res.is_real())
+            res = expression.bind({x: complex(1.0, 1.0) for x in expression.parameters})
+            self.assertFalse(res.is_real())
+            res = expression.bind({x: 1.0 for x in expression.parameters})
+            self.assertTrue(res.is_real())
+            res = expression.bind({x: 5 for x in expression.parameters})
+            self.assertTrue(res.is_real())
+            self.assertFalse(expression.is_real())
+
+    @combine(expression=operands)
+    def test_casting(self, expression):
+        """Test casting"""
+        if isinstance(expression, ParameterExpression):
+            res = expression.bind({x: complex(1.0, 0.0) for x in expression.parameters})
+            self.assertIsInstance(complex(res), complex)
+            self.assertIsInstance(float(res), float)
+            self.assertIsInstance(int(res), int)
+            self.assertEqual(res, 1)
+            res = expression.bind({x: complex(1.0, 1.0) for x in expression.parameters})
+            self.assertIsInstance(complex(res), complex)
+            with self.assertRaises(TypeError):
+                float(res)
+            with self.assertRaises(TypeError):
+                int(res)
+            self.assertAlmostEqual(complex(res), complex(1.0, 1.0))
+            res = expression.bind({x: 1.0 for x in expression.parameters})
+            self.assertIsInstance(complex(res), complex)
+            self.assertIsInstance(float(res), float)
+            self.assertIsInstance(int(res), int)
+            self.assertEqual(res, 1.0)
+            res = expression.bind({x: 5 for x in expression.parameters})
+            self.assertIsInstance(complex(res), complex)
+            self.assertIsInstance(float(res), float)
+            self.assertIsInstance(int(res), int)
+            self.assertEqual(res, 5)
