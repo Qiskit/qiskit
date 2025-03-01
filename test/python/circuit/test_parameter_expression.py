@@ -477,3 +477,20 @@ class TestParameterExpression(QiskitTestCase):
             self.assertIsInstance(float(res), float)
             self.assertIsInstance(int(res), int)
             self.assertEqual(res, 5)
+
+    @combine(expression=operands)
+    def test_numeric(self, expression):
+        """Test numeric"""
+        if isinstance(expression, ParameterExpression):
+            res = expression.bind({x: complex(1.0, 0.0) for x in expression.parameters}).numeric()
+            self.assertIsInstance(res, float)
+            self.assertEqual(res, 1)
+            res = expression.bind({x: complex(1.0, 1.0) for x in expression.parameters}).numeric()
+            self.assertIsInstance(res, complex)
+            self.assertAlmostEqual(complex(res), complex(1.0, 1.0))
+            res = expression.bind({x: 1.0 for x in expression.parameters}).numeric()
+            self.assertIsInstance(float(res), float)
+            self.assertEqual(res, 1.0)
+            res = expression.bind({x: 5 for x in expression.parameters}).numeric()
+            self.assertIsInstance(int(res), int)
+            self.assertEqual(res, 5)
