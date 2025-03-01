@@ -2,6 +2,10 @@ include_version = true
 style = "type"
 sys_includes = ["complex.h"]
 after_includes = """
+#ifdef QISKIT_C_PYTHON_INTERFACE
+    #include<Python.h>
+#endif
+
 // Complex number typedefs -- note these are memory aligned but
 // not calling convention compatible.
 typedef float complex QkComplex32;
@@ -25,7 +29,7 @@ prefix_with_name = true
 
 [export]
 prefix = "Qk"
-renaming_overrides_prefixing = true
+renaming_overrides_prefixing = false
 
 [export.rename]
 "SparseObservable" = "Obs"
