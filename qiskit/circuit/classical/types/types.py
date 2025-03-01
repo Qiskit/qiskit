@@ -122,7 +122,7 @@ class Uint(Type):
 
 @typing.final
 class Float(Type, metaclass=_Singleton):
-    """An IEE-754 double-precision floating point number.
+    """An IEEE-754 double-precision floating point number.
     In the future, this may also be used to represent other fixed-width floats.
     """
 
