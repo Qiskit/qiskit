@@ -75,6 +75,7 @@ pub enum UnaryOps {
     Exp,
     Log,
     Sign,
+    Conj,
 }
 
 /// definition of binary operations
@@ -369,7 +370,10 @@ impl SymbolExpr {
     /// return conjugate of the equation
     pub fn conjugate(&self) -> SymbolExpr {
         match self {
-            SymbolExpr::Symbol(e) => SymbolExpr::Symbol(e.clone()),
+            SymbolExpr::Symbol(e) => SymbolExpr::Unary(Arc::new(Unary {
+                op: UnaryOps::Conj,
+                expr: SymbolExpr::Symbol(e.clone()),
+            })),
             SymbolExpr::Value(e) => match e {
                 Value::Complex(c) => SymbolExpr::Value(Value::Complex(c.conj())),
                 _ => SymbolExpr::Value(e.clone()),
@@ -2107,6 +2111,7 @@ impl fmt::Display for Unary {
                 UnaryOps::Exp => format!("exp({})", s),
                 UnaryOps::Log => format!("log({})", s),
                 UnaryOps::Sign => format!("sign({})", s),
+                UnaryOps::Conj => format!("conj({})", s),
             }
         )
     }
@@ -2216,6 +2221,10 @@ impl Unary {
                 op: UnaryOps::Sign,
                 expr: expr_d,
             })),
+            UnaryOps::Conj => SymbolExpr::Unary(Arc::new(Unary {
+                op: UnaryOps::Conj,
+                expr: expr_d,
+            })),
         }
     }
 
@@ -2244,6 +2253,10 @@ impl Unary {
             UnaryOps::Exp => val.exp(),
             UnaryOps::Log => val.log(),
             UnaryOps::Sign => val.sign(),
+            UnaryOps::Conj => match val {
+                Value::Complex(v) => Value::Complex(v.conj()),
+                _ => val,
+            },
         };
         match ret {
             Value::Real(_) => Some(ret),
