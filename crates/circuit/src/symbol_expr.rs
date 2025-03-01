@@ -1502,7 +1502,9 @@ impl Value {
             },
             Value::Int(e) => match p {
                 Value::Real(r) => {
-                    if *e < 0 && r.fract() == 0. {
+                    if *e < 0 && r.fract() != 0. {
+                        Value::Complex(Complex64::from(*e as f64).powf(*r))
+                    } else {
                         let t = (*e as f64).powf(*r);
                         let d = t.floor() - t;
                         if (-f64::EPSILON..f64::EPSILON).contains(&d) {
@@ -1510,8 +1512,6 @@ impl Value {
                         } else {
                             Value::Real(t)
                         }
-                    } else {
-                        Value::Complex(Complex64::from(*e as f64).powf(*r))
                     }
                 }
                 Value::Int(r) => {

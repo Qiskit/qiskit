@@ -144,6 +144,37 @@ class TestParameterExpression(QiskitTestCase):
             elif not isinstance(right, ParameterExpression):
                 self.assertEqual(res, 1.0**right)
 
+    @combine(
+        left=operands,
+        right=operands,
+    )
+    def test_pow_complex_binding(self, left, right):
+        """Test expression pow with complex binding."""
+        if isinstance(left, ParameterExpression) or isinstance(right, ParameterExpression):
+            expr = left**right
+            res = expr.bind({x: complex(1.0, 1.0) for x in expr.parameters})
+            self.assertIsInstance(res, ParameterExpression)
+            if isinstance(left, ParameterExpression) and isinstance(right, ParameterExpression):
+                self.assertEqual(res, complex(1.0, 1.0) ** complex(1.0, 1.0))
+            elif not isinstance(left, ParameterExpression):
+                self.assertAlmostEqual(complex(res), left ** complex(1.0, 1.0))
+            elif not isinstance(right, ParameterExpression):
+                self.assertAlmostEqual(complex(res), complex(1.0, 1.0) ** right)
+
+    def test_pow_creates_complex(self):
+        """Test a complex is created when appropriate."""
+        param_a = Parameter("A")
+        param_b = Parameter("B")
+        param_c = Parameter("C")
+        expr = param_a + param_b + param_c
+        expr = expr.subs({param_b: param_a + 2 * param_c})
+        expr = expr.subs({param_a: -param_a, param_c: -param_c})
+        expr = expr**0.5
+        res = expr.bind({param_a: 2, param_c: 2})
+        self.assertFalse(res.is_real())
+        # Expected is sqrt(-10):
+        self.assertAlmostEqual(complex(0, 3.1622776601683795), complex(res))
+
     @combine(expression=operands)
     def test_abs_simple(self, expression):
         """Test expression abs."""
@@ -300,6 +331,22 @@ class TestParameterExpression(QiskitTestCase):
             res = expr.bind({x: -0.1 for x in expr.parameters})
             self.assertIsInstance(res, ParameterExpression)
             self.assertEqual(res, -1)
+            expr = expression.sign()
+            res = expr.bind({x: 0.1 for x in expr.parameters})
+            self.assertEqual(res, 1)
+            expr = expression.sign()
+            res = expr.bind({x: 0.0 for x in expr.parameters})
+            self.assertEqual(res, 0)
+            expr = expression.sign()
+            res = expr.bind({x: -2 for x in expr.parameters})
+            self.assertIsInstance(res, ParameterExpression)
+            self.assertEqual(res, -1)
+            expr = expression.sign()
+            res = expr.bind({x: 5 for x in expr.parameters})
+            self.assertEqual(res, 1)
+            expr = expression.sign()
+            res = expr.bind({x: 0 for x in expr.parameters})
+            self.assertEqual(res, 0)
 
     @combine(
         left=operands,
