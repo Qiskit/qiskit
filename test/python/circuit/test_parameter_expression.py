@@ -168,7 +168,7 @@ class TestParameterExpression(QiskitTestCase):
             res = expr.bind({x: complex(1.0, 1.0) for x in expr.parameters})
             self.assertIsInstance(res, ParameterExpression)
             if isinstance(left, ParameterExpression) and isinstance(right, ParameterExpression):
-                self.assertEqual(res, complex(1.0, 1.0) ** complex(1.0, 1.0))
+                self.assertAlmostEqual(complex(res), complex(1.0, 1.0) ** complex(1.0, 1.0))
             elif not isinstance(left, ParameterExpression):
                 if left != 0:
                     self.assertAlmostEqual(complex(res), left ** complex(1.0, 1.0))
