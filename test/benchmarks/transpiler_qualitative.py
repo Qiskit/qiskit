@@ -17,7 +17,9 @@ import os
 
 from qiskit import QuantumCircuit
 from qiskit.compiler import transpile
-from qiskit.providers.fake_provider import Fake27QPulseV1
+from qiskit.providers.fake_provider import GenericBackendV2
+
+from .legacy_cmaps import MUMBAI_CMAP
 
 
 class TranspilerQualitativeBench:
@@ -27,7 +29,7 @@ class TranspilerQualitativeBench:
 
     # pylint: disable=unused-argument
     def setup(self, optimization_level):
-        self.backend = Fake27QPulseV1()
+        self.backend = GenericBackendV2(num_qubits=27, coupling_map=MUMBAI_CMAP, seed=0)
         self.qasm_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "qasm"))
 
         self.depth_4gt10_v1_81 = QuantumCircuit.from_qasm_file(

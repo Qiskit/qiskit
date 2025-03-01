@@ -442,7 +442,7 @@ class TestEvolutionGate(QiskitTestCase):
     def test_atomic_evolution(self):
         """Test a custom atomic_evolution."""
 
-        def atomic_evolution(pauli, time):
+        def atomic_evolution(circuit, pauli, time):
             if isinstance(pauli, SparsePauliOp):
                 if len(pauli.paulis) != 1:
                     raise ValueError("Unsupported input.")
@@ -458,24 +458,20 @@ class TestEvolutionGate(QiskitTestCase):
                     target = i
                     break
 
-            definition = QuantumCircuit(pauli.num_qubits)
-            definition.compose(cliff, inplace=True)
-            definition.compose(chain, inplace=True)
-            definition.rz(2 * time, target)
-            definition.compose(chain.inverse(), inplace=True)
-            definition.compose(cliff.inverse(), inplace=True)
-
-            return definition
+            circuit.compose(cliff, inplace=True)
+            circuit.compose(chain, inplace=True)
+            circuit.rz(2 * time, target)
+            circuit.compose(chain.inverse(), inplace=True)
+            circuit.compose(cliff.inverse(), inplace=True)
 
         op = (X ^ X ^ X) + (Y ^ Y ^ Y) + (Z ^ Z ^ Z)
         time = 0.123
         reps = 4
-        with self.assertWarns(PendingDeprecationWarning):
-            evo_gate = PauliEvolutionGate(
-                op,
-                time,
-                synthesis=LieTrotter(reps=reps, atomic_evolution=atomic_evolution),
-            )
+        evo_gate = PauliEvolutionGate(
+            op,
+            time,
+            synthesis=LieTrotter(reps=reps, atomic_evolution=atomic_evolution),
+        )
         decomposed = evo_gate.definition.decompose()
         self.assertEqual(decomposed.count_ops()["cx"], reps * 3 * 4)
 
