@@ -843,6 +843,16 @@ def generate_replay_with_expression_substitutions():
     qc.rz(a2, 0)
 
     return [qc]
+  
+def generate_v14_expr():
+    """Circuits that contain expressions and types new in QPY v14."""
+    from qiskit.circuit.classical import expr, types
+
+    float_expr = QuantumCircuit(name="float_expr")
+    with float_expr.if_test(expr.less(1.0, 2.0)):
+        pass
+
+    return [float_expr]
 
 
 def generate_circuits(version_parts, current_version, load_context=False):
@@ -915,6 +925,8 @@ def generate_circuits(version_parts, current_version, load_context=False):
             generate_replay_with_expression_substitutions()
         )
 
+    if version_parts >= (2, 0, 0):
+        output_circuits["v14_expr.qpy"] = generate_v14_expr()
     return output_circuits
 
 

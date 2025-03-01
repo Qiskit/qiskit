@@ -13,16 +13,27 @@
 """ Test of GenericBackendV2 backend"""
 
 import math
+import operator
+import unittest
+from ddt import ddt, data
 
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, transpile
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.quantum_info import Operator
 from qiskit.transpiler import CouplingMap
+from qiskit.utils import optionals
 from qiskit.exceptions import QiskitError
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase, combine  # pylint: disable=wrong-import-order
 
 
+BACKENDS = []
+for n in [5, 7, 16, 20, 27, 65, 127]:
+    cmap = CouplingMap.from_ring(n)
+    BACKENDS.append(GenericBackendV2(num_qubits=n, coupling_map=cmap, seed=42))
+
+
+@ddt
 class TestGenericBackendV2(QiskitTestCase):
     """Test class for GenericBackendV2 backend"""
 
@@ -31,6 +42,18 @@ class TestGenericBackendV2(QiskitTestCase):
         self.cmap = CouplingMap(
             [(0, 2), (0, 1), (1, 3), (2, 4), (2, 3), (3, 5), (4, 6), (4, 5), (5, 7), (6, 7)]
         )
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.circuit = QuantumCircuit(2)
+        cls.circuit.h(0)
+        cls.circuit.h(1)
+        cls.circuit.h(0)
+        cls.circuit.h(1)
+        cls.circuit.x(0)
+        cls.circuit.x(1)
+        cls.circuit.measure_all()
 
     def test_supported_basis_gates(self):
         """Test that target raises error if basis_gate not in ``supported_names``."""
@@ -205,3 +228,52 @@ class TestGenericBackendV2(QiskitTestCase):
             num_qubits=2, basis_gates=["cx", "id"], dt=ref_backend.dt * 2, seed=42
         )
         self.assertEqual(ref_backend.dt * 2, double_dt_backend.dt)
+
+    @combine(
+        backend=BACKENDS,
+        optimization_level=[0, 1, 2, 3],
+    )
+    def test_circuit_on_generic_backend_v2(self, backend, optimization_level):
+        """Test run method."""
+
+        if not optionals.HAS_AER and backend.num_qubits > 20:
+            self.skipTest(f"Unable to run generic backend {backend.name} without qiskit-aer")
+        job = backend.run(
+            transpile(
+                self.circuit, backend, seed_transpiler=42, optimization_level=optimization_level
+            ),
+            seed_simulator=42,
+        )
+        result = job.result()
+        counts = result.get_counts()
+        max_count = max(counts.items(), key=operator.itemgetter(1))[0]
+        self.assertEqual(max_count, "11")
+
+    @data(*BACKENDS)
+    def test_backend_v2_dt(self, backend):
+        """Test default dt value is consistent with legacy fake backends."""
+
+        target = backend.target
+        if target.dt is not None:
+            self.assertLess(target.dt, 1e-6)
+
+    @data(*BACKENDS)
+    def test_backend_v2_dtm(self, backend):
+        """Test default dtm value is consistent with legacy fake backends."""
+
+        if backend.dtm:
+            self.assertLess(backend.dtm, 1e-6)
+
+    @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required to run this test")
+    def test_generic_noise_model_always_present(self):
+        """Test that GenericBackendV2 instances run with noise if Aer installed."""
+
+        backend = GenericBackendV2(num_qubits=5, seed=42)
+        backend.set_options(seed_simulator=42)
+        qc = QuantumCircuit(1)
+        qc.x(0)
+        qc.measure_all()
+
+        res = backend.run(qc, shots=1000).result().get_counts()
+        # Assert noise was present and result wasn't ideal
+        self.assertNotEqual(res, {"1": 1000})

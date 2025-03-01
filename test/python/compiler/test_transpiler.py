@@ -76,8 +76,7 @@ from qiskit.converters import circuit_to_dag
 from qiskit.dagcircuit import DAGOpNode, DAGOutNode
 from qiskit.exceptions import QiskitError
 from qiskit.providers.backend import BackendV2
-from qiskit.providers.backend_compat import BackendV2Converter
-from qiskit.providers.fake_provider import Fake20QV1, Fake27QPulseV1, GenericBackendV2
+from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.providers.options import Options
 from qiskit.pulse import InstructionScheduleMap
@@ -92,7 +91,6 @@ from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager, 
 from qiskit.transpiler.target import (
     InstructionProperties,
     Target,
-    InstructionDurations,
 )
 
 from test import QiskitTestCase, combine, slow_test  # pylint: disable=wrong-import-order
@@ -1515,44 +1513,29 @@ class TestTranspile(QiskitTestCase):
 
     def test_scheduling_instruction_constraints_backend(self):
         """Test that scheduling-related loose transpile constraints
-        work with both BackendV1 and BackendV2."""
+        work with BackendV2."""
 
-        with self.assertWarns(DeprecationWarning):
-            backend_v1 = Fake27QPulseV1()
-            backend_v2 = BackendV2Converter(backend_v1)
+        backend = GenericBackendV2(
+            2,
+            coupling_map=[[0, 1]],
+            basis_gates=["cx", "h"],
+            seed=42,
+        )
         qc = QuantumCircuit(2)
         qc.h(0)
-        qc.delay(500, 1, "dt")
+        qc.delay(0.000001, 1, "s")
         qc.cx(0, 1)
-        # update durations
-        durations = InstructionDurations.from_backend(backend_v1)
-        durations.update([("cx", [0, 1], 1000, "dt")])
 
-        with self.assertWarnsRegex(
-            DeprecationWarning,
-            expected_regex="The `transpile` function will stop supporting inputs of type `BackendV1` ",
-        ):
-            scheduled = transpile(
-                qc,
-                backend=backend_v1,
-                scheduling_method="alap",
-                instruction_durations=durations,
-                layout_method="trivial",
-            )
-        self.assertEqual(scheduled.duration, 1500)
+        # update cx to 2 seconds
+        backend.target.update_instruction_properties("cx", (0, 1), InstructionProperties(0.000001))
 
-        with self.assertWarnsRegex(
-            DeprecationWarning,
-            expected_regex="The `target` parameter should be used instead",
-        ):
-            scheduled = transpile(
-                qc,
-                backend=backend_v2,
-                scheduling_method="alap",
-                instruction_durations=durations,
-                layout_method="trivial",
-            )
-        self.assertEqual(scheduled.duration, 1500)
+        scheduled = transpile(
+            qc,
+            backend=backend,
+            scheduling_method="alap",
+            layout_method="trivial",
+        )
+        self.assertEqual(scheduled.duration, 9010)
 
     def test_scheduling_instruction_constraints(self):
         """Test that scheduling-related loose transpile constraints work with target."""
@@ -1582,24 +1565,12 @@ class TestTranspile(QiskitTestCase):
         """Test that scheduling-related loose transpile constraints
         work with both BackendV1 and BackendV2."""
 
-        with self.assertWarns(DeprecationWarning):
-            backend_v1 = Fake27QPulseV1()
-            backend_v2 = BackendV2Converter(backend_v1)
+        backend_v2 = GenericBackendV2(num_qubits=2, seed=1)
         qc = QuantumCircuit(1, 1)
         qc.x(0)
         qc.measure(0, 0)
         original_dt = 2.2222222222222221e-10
-        original_duration = 3504
-
-        with self.assertWarnsRegex(
-            DeprecationWarning,
-            expected_regex="The `transpile` function will stop supporting inputs of type `BackendV1` ",
-        ):
-            # halve dt in sec = double duration in dt
-            scheduled = transpile(
-                qc, backend=backend_v1, scheduling_method="asap", dt=original_dt / 2
-            )
-        self.assertEqual(scheduled.duration, original_duration * 2)
+        original_duration = 5059
 
         # halve dt in sec = double duration in dt
         scheduled = transpile(qc, backend=backend_v2, scheduling_method="asap", dt=original_dt / 2)
@@ -2058,21 +2029,6 @@ class TestTranspile(QiskitTestCase):
         self.assertEqual(Operator(qc), Operator(expected))
 
     @combine(opt_level=[0, 1, 2, 3])
-    def test_transpile_annotated_ops_with_backend_v1(self, opt_level):
-        """Test transpilation of circuits with annotated operations given a backend.
-        Remove once Fake20QV1 is removed."""
-        qc = QuantumCircuit(3)
-        qc.append(AnnotatedOperation(SGate(), InverseModifier()), [0])
-        qc.append(AnnotatedOperation(XGate(), ControlModifier(1)), [1, 2])
-        qc.append(AnnotatedOperation(HGate(), PowerModifier(3)), [2])
-        with self.assertWarns(DeprecationWarning):
-            backend = Fake20QV1()
-            transpiled = transpile(
-                qc, optimization_level=opt_level, backend=backend, seed_transpiler=42
-            )
-        self.assertLessEqual(set(transpiled.count_ops().keys()), {"u1", "u2", "u3", "cx"})
-
-    @combine(opt_level=[0, 1, 2, 3])
     def test_transpile_annotated_ops_with_backend(self, opt_level):
         """Test transpilation of circuits with annotated operations given a backend."""
         qc = QuantumCircuit(3)
@@ -2230,6 +2186,8 @@ class TestPostTranspileIntegration(QiskitTestCase):
                 base.cz(1, 4)
                 base.append(CustomCX(), [2, 4])
                 base.append(CustomCX(), [3, 4])
+        with base.if_test(expr.less(1.0, 2.0)):
+            base.cx(0, 1)
         return base
 
     def _standalone_var_circuit(self):
