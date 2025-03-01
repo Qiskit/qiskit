@@ -843,7 +843,8 @@ def generate_replay_with_expression_substitutions():
     qc.rz(a2, 0)
 
     return [qc]
-  
+
+
 def generate_v14_expr():
     """Circuits that contain expressions and types new in QPY v14."""
     from qiskit.circuit.classical import expr, types
