@@ -38,13 +38,22 @@ operands = [
     Parameter("大"),
     ParameterVector("a", 100)[42],
     complex(3.14, -3.14),
+    complex(1.0, 1.0),
+    complex(0, 1),
+    complex(-1, 0),
     2.3,
     int(5),
+    int(-5),
     1.0,
     -1.0,
+    0,
+    0.0,
+    complex(0, 0),
     Parameter("ab") + 2 - 2,
     Parameter("abc") ** 1.0,
     Parameter("abcd") / 1,
+    Parameter("X") * 1.0,
+    Parameter("Y") ** complex(1.0, 0),
     Parameter("abcd_complex") / complex(1, 0),
     ParameterVector("b", 1)[0] + (0 * 1) * Parameter("ZERO"),
     nested_expr,
@@ -114,6 +123,10 @@ class TestParameterExpression(QiskitTestCase):
     def test_division_simple(self, left, right):
         """Test expression division."""
         if isinstance(left, ParameterExpression) or isinstance(right, ParameterExpression):
+            if not isinstance(right, ParameterExpression) and right == 0:
+                with self.assertRaises(ZeroDivisionError):
+                    _ = left / right
+                return
             expr = left / right
             res = expr.bind({x: 1.0 for x in expr.parameters})
             self.assertIsInstance(res, ParameterExpression)
@@ -157,7 +170,11 @@ class TestParameterExpression(QiskitTestCase):
             if isinstance(left, ParameterExpression) and isinstance(right, ParameterExpression):
                 self.assertEqual(res, complex(1.0, 1.0) ** complex(1.0, 1.0))
             elif not isinstance(left, ParameterExpression):
-                self.assertAlmostEqual(complex(res), left ** complex(1.0, 1.0))
+                if left != 0:
+                    self.assertAlmostEqual(complex(res), left ** complex(1.0, 1.0))
+                else:
+                    with self.assertRaises(ZeroDivisionError):
+                        _ = left ** complex(1.0, 1.0)
             elif not isinstance(right, ParameterExpression):
                 self.assertAlmostEqual(complex(res), complex(1.0, 1.0) ** right)
 
@@ -406,6 +423,10 @@ class TestParameterExpression(QiskitTestCase):
     def test_division_simple_complex_bind(self, left, right):
         """Test expression division with complex binding."""
         if isinstance(left, ParameterExpression) or isinstance(right, ParameterExpression):
+            if not isinstance(right, ParameterExpression) and right == 0:
+                with self.assertRaises(ZeroDivisionError):
+                    _ = left / right
+                return
             expr = left / right
             res = expr.bind({x: complex(2.4, -2.3) for x in expr.parameters})
             self.assertIsInstance(res, ParameterExpression)
