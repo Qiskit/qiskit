@@ -833,6 +833,17 @@ def generate_v12_expr():
     return [index, shift]
 
 
+def generate_v14_expr():
+    """Circuits that contain expressions and types new in QPY v14."""
+    from qiskit.circuit.classical import expr, types
+
+    float_expr = QuantumCircuit(name="float_expr")
+    with float_expr.if_test(expr.less(1.0, 2.0)):
+        pass
+
+    return [float_expr]
+
+
 def generate_circuits(version_parts, current_version, load_context=False):
     """Generate reference circuits.
 
@@ -898,6 +909,8 @@ def generate_circuits(version_parts, current_version, load_context=False):
     if version_parts >= (1, 1, 0):
         output_circuits["standalone_vars.qpy"] = generate_standalone_var()
         output_circuits["v12_expr.qpy"] = generate_v12_expr()
+    if version_parts >= (2, 0, 0):
+        output_circuits["v14_expr.qpy"] = generate_v14_expr()
     return output_circuits
 
 
