@@ -377,6 +377,37 @@ There is a circuit payload for each circuit (where the total number is dictated
 by ``num_circuits`` in the file header). There is no padding between the
 circuits in the data.
 
+.. _qpy_version_14:
+
+Version 14
+----------
+
+Version 14 adds support for additional :class:`~.types.Type` classes.
+
+Changes to EXPR_TYPE
+~~~~~~~~~~~~~~~~~~~~
+
+The following table shows the new type classes added in the version:
+
+======================  =========  =================================================================
+Qiskit class            Type code  Payload
+======================  =========  =================================================================
+:class:`~.types.Float`  ``f``      None.
+======================  =========  =================================================================
+
+Changes to EXPR_VALUE
+~~~~~~~~~~~~~~~~~~~~~
+
+The classical expression's type system now supports new encoding types for value literals, in
+addition to the existing encodings for int and bool. The new value type encodings are below:
+
+===========  =========  ============================================================================
+Python type  Type code  Payload
+===========  =========  ============================================================================
+``float``    ``f``      One ``double value``.
+
+===========  =========  ============================================================================
+
 .. _qpy_version_13:
 
 Version 13

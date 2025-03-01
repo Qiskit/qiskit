@@ -1767,6 +1767,7 @@ if (cr == 1) {
         qc.add_var("c", expr.bit_not(b))
         # All inputs should come first, regardless of declaration order.
         qc.add_input("d", types.Bool())
+        qc.add_var("e", expr.lift(7.5))
 
         expected = """\
 OPENQASM 3.0;
@@ -1775,9 +1776,11 @@ input bool a;
 input uint[8] b;
 input bool d;
 uint[8] c;
+float[64] e;
 a = !a;
 b = b & 8;
 c = ~b;
+e = 7.5;
 """
         self.assertEqual(dumps(qc), expected)
 
