@@ -385,7 +385,7 @@ def synth_mcx_1_kg24(num_ctrl_qubits: int, clean: bool = True) -> QuantumCircuit
     if not clean:
         # perform toggle-detection if ancilla is dirty
         qc.compose(ladder_ops, q_ancilla[:] + q_controls[:], inplace=True)
-        qc.ccx(q_ancilla, q_controls[0], q_target)
+        qc.ccx(q_ancilla, q_controls[final_ctrl], q_target)
         qc.compose(ladder_ops.inverse(), q_ancilla[:] + q_controls[:], inplace=True)
 
     return qc
