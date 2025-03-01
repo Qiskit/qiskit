@@ -13,6 +13,8 @@
 """Test adder circuits."""
 
 import unittest
+import warnings
+
 import numpy as np
 from ddt import ddt, data, unpack
 
@@ -150,14 +152,12 @@ class TestAdder(QiskitTestCase):
                 if use_function:
                     circuit = ADDERS[adder](num_state_qubits, kind)
                 else:
-                    circuit = ADDER_CIRCUITS[adder](num_state_qubits, kind)
+                    with self.assertWarns(DeprecationWarning):
+                        circuit = ADDER_CIRCUITS[adder](num_state_qubits, kind)
 
         self.assertAdditionIsCorrect(num_state_qubits, circuit, True, kind)
 
     @data(
-        CDKMRippleCarryAdder,
-        DraperQFTAdder,
-        VBERippleCarryAdder,
         adder_ripple_c04,
         adder_ripple_v95,
         adder_qft_d00,
@@ -166,6 +166,14 @@ class TestAdder(QiskitTestCase):
         """Test an error is raised for a bad number of qubits."""
         with self.assertRaises(ValueError):
             _ = adder(-1)
+
+    @data(CDKMRippleCarryAdder, DraperQFTAdder, VBERippleCarryAdder)
+    def test_raises_on_wrong_num_bits_legacy(self, adder):
+        """Test (legacy) an error is raised for a bad number of qubits."""
+        with self.assertRaises(ValueError):
+            with warnings.catch_warnings(record=True):
+                warnings.filterwarnings("ignore", category=DeprecationWarning)
+                _ = adder(-1)
 
     def test_plugins(self):
         """Test calling HLS plugins for various adder types."""

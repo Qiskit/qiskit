@@ -65,7 +65,8 @@ class TestEvolvedOperatorAnsatz(QiskitTestCase):
         if use_function:
             evo = evolved_operator_ansatz(op, evolution=evolution)
         else:
-            evo = EvolvedOperatorAnsatz(op, evolution=evolution)
+            with self.assertWarns(DeprecationWarning):
+                evo = EvolvedOperatorAnsatz(op, evolution=evolution)
 
         parameters = evo.parameters
 
@@ -80,7 +81,8 @@ class TestEvolvedOperatorAnsatz(QiskitTestCase):
     def test_changing_operators(self):
         """Test rebuilding after the operators changed."""
         ops = [Pauli("X"), Pauli("Y"), Pauli("Z")]
-        evo = EvolvedOperatorAnsatz(ops)
+        evo = QuantumCircuit(1)
+        evo.append(evolved_operator_ansatz(ops), [0])
         evo.operators = [Pauli("X"), Pauli("Y")]
         parameters = evo.parameters
 
