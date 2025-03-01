@@ -2019,6 +2019,8 @@ class TestPostTranspileIntegration(QiskitTestCase):
                 base.cz(1, 4)
                 base.append(CustomCX(), [2, 4])
                 base.append(CustomCX(), [3, 4])
+        with base.if_test(expr.less(1.0, 2.0)):
+            base.cx(0, 1)
         return base
 
     def _standalone_var_circuit(self):

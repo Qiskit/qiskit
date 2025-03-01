@@ -1253,6 +1253,8 @@ def _build_ast_type(type_: types.Type) -> ast.ClassicalType:
         return ast.BoolType()
     if type_.kind is types.Uint:
         return ast.UintType(type_.width)
+    if type_.kind is types.Float:
+        return ast.FloatType.DOUBLE
     raise RuntimeError(f"unhandled expr type '{type_}'")
 
 
@@ -1274,6 +1276,8 @@ class _ExprBuilder(expr.ExprVisitor[ast.Expression]):
             return ast.BooleanLiteral(node.value)
         if node.type.kind is types.Uint:
             return ast.IntegerLiteral(node.value)
+        if node.type.kind is types.Float:
+            return ast.FloatLiteral(node.value)
         raise RuntimeError(f"unhandled Value type '{node}'")
 
     def visit_cast(self, node, /):

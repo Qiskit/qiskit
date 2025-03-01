@@ -1,0 +1,26 @@
+[package]
+name = "qiskit-cext"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[lib]
+name = "qiskit_cext"
+doctest = false
+crate-type = ["cdylib", "rlib"]
+
+[lints]
+workspace = true
+
+[dependencies]
+thiserror.workspace = true
+num-complex.workspace = true
+qiskit-accelerate.workspace = true
+
+[build-dependencies]
+cbindgen = "0.28"
+
+[features]
+default = ["cbinding"]
+cbinding = []
