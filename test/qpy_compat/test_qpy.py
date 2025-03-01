@@ -1024,6 +1024,8 @@ def load_qpy(qpy_files, version_parts):
                 bind = np.linspace(1.0, 2.0, 22)
             elif path == "parameter_vector_expression.qpy":
                 bind = np.linspace(1.0, 2.0, 15)
+            elif path == "replay_with_expressions.qpy":
+                bind = [2.0]
 
             assert_equal(
                 circuit, qpy_circuits[i], i, version_parts, bind=bind, equivalent=equivalent
