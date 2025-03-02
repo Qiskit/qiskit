@@ -2,8 +2,7 @@
 features_circuits:
   - |
     The classical realtime-expressions module :mod:`qiskit.circuit.classical` can now represent
-    duration and stretch types using the new types :class:`~.types.Duration` and
-    :class:`~.types.Stretch`.
+    duration using the new types :class:`~.types.Duration`. 
 
     The module :mod:`qiskit.circuit` also has a new :class:`~.circuit.Duration` class which
     can be used as a literal value within classical expressions.
@@ -16,15 +15,3 @@ features_circuits:
 
       expr.lift(Duration.dt(1000))
       # Value(Duration.dt(1000), Duration())
-
-    A stretch expression can be created within the context of a circuit via
-    :meth:`.QuantumCircuit.add_stretch`::
-
-      from qiskit import QuantumCircuit
-      
-      qc = QuantumCircuit(3)
-      qc.add_stretch("a")
-      # Var("a", Stretch())
-
-    Note that while :class:`~.expr.Var` is currently used to represent stretch expressions,
-    this is subject to change.
