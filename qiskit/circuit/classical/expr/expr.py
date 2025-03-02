@@ -243,6 +243,9 @@ class Stretch(Expr):
             raise AttributeError(f"'Stretch' object attribute '{key}' is read-only")
         raise AttributeError(f"'Stretch' object has no attribute '{key}'")
 
+    def __hash__(self):
+        return hash((self.var, self.name))
+
     def __eq__(self, other):
         return (
                 isinstance(other, Var)

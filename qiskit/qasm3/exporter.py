@@ -627,7 +627,7 @@ class QASM3Builder:
     def build_program(self):
         """Builds a Program"""
         circuit = self.scope.circuit
-        if circuit.num_captured_vars:
+        if circuit.num_captured_vars or circuit.num_captured_stretches:
             raise QASM3ExporterError(
                 "cannot export an inner scope with captured variables as a top-level program"
             )
@@ -674,8 +674,6 @@ class QASM3Builder:
         # model (and used implicitly in PrimitivesV2 outputs) so they get the first go at reserving
         # names in the symbol table.
         self.hoist_classical_io_var_declarations()
-
-        # TODO: hoist stretches
 
         # Similarly, QuantumCircuit qubits/registers are only new variables in the global scope.
         quantum_declarations = self.build_quantum_declarations()
@@ -961,6 +959,13 @@ class QASM3Builder:
             )
             for var in self.scope.circuit.iter_declared_vars()
         ]
+
+        for stretch in self.scope.circuit.iter_declared_stretches():
+            statements.append(ast.ClassicalDeclaration(
+                ast.StretchType(),
+                self.symbols.register_variable(stretch.name, stretch, allow_rename=True),
+            ))
+
         for instruction in self.scope.circuit.data:
             if isinstance(instruction.operation, ControlFlowOp):
                 if isinstance(instruction.operation, ForLoopOp):
