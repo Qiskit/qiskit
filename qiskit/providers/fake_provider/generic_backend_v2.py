@@ -300,7 +300,7 @@ class GenericBackendV2(BackendV2):
                 rounded_duration = round(duration / dt) * dt
                 # Clamp rounded duration to be between min and max values
                 duration = max(noise_params[0], min(rounded_duration, noise_params[1]))
-            props.update({qargs: InstructionProperties(duration, error, None)})
+            props.update({qargs: InstructionProperties(duration, error)})
 
         self._target.add_instruction(instruction, props)
 
