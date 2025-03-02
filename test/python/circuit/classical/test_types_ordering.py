@@ -27,28 +27,19 @@ class TestTypesOrdering(QiskitTestCase):
         self.assertIs(types.order(types.Float(), types.Float()), types.Ordering.EQUAL)
 
         self.assertIs(types.order(types.Duration(), types.Duration()), types.Ordering.EQUAL)
-        self.assertIs(types.order(types.Duration(), types.Stretch()), types.Ordering.LESS)
-        self.assertIs(types.order(types.Stretch(), types.Duration()), types.Ordering.GREATER)
-        self.assertIs(types.order(types.Stretch(), types.Stretch()), types.Ordering.EQUAL)
 
         self.assertIs(types.order(types.Bool(), types.Uint(8)), types.Ordering.NONE)
         self.assertIs(types.order(types.Bool(), types.Float()), types.Ordering.NONE)
         self.assertIs(types.order(types.Bool(), types.Duration()), types.Ordering.NONE)
-        self.assertIs(types.order(types.Bool(), types.Stretch()), types.Ordering.NONE)
         self.assertIs(types.order(types.Uint(8), types.Bool()), types.Ordering.NONE)
         self.assertIs(types.order(types.Uint(8), types.Float()), types.Ordering.NONE)
         self.assertIs(types.order(types.Uint(8), types.Duration()), types.Ordering.NONE)
-        self.assertIs(types.order(types.Uint(8), types.Stretch()), types.Ordering.NONE)
         self.assertIs(types.order(types.Float(), types.Uint(8)), types.Ordering.NONE)
         self.assertIs(types.order(types.Float(), types.Bool()), types.Ordering.NONE)
         self.assertIs(types.order(types.Float(), types.Duration()), types.Ordering.NONE)
-        self.assertIs(types.order(types.Float(), types.Stretch()), types.Ordering.NONE)
         self.assertIs(types.order(types.Duration(), types.Bool()), types.Ordering.NONE)
         self.assertIs(types.order(types.Duration(), types.Uint(8)), types.Ordering.NONE)
         self.assertIs(types.order(types.Duration(), types.Float()), types.Ordering.NONE)
-        self.assertIs(types.order(types.Stretch(), types.Bool()), types.Ordering.NONE)
-        self.assertIs(types.order(types.Stretch(), types.Uint(8)), types.Ordering.NONE)
-        self.assertIs(types.order(types.Stretch(), types.Float()), types.Ordering.NONE)
 
     def test_is_subtype(self):
         self.assertTrue(types.is_subtype(types.Uint(8), types.Uint(16)))
@@ -64,28 +55,16 @@ class TestTypesOrdering(QiskitTestCase):
 
         self.assertTrue(types.is_subtype(types.Duration(), types.Duration()))
         self.assertFalse(types.is_subtype(types.Duration(), types.Duration(), strict=True))
-        self.assertTrue(types.is_subtype(types.Duration(), types.Stretch()))
-        self.assertTrue(types.is_subtype(types.Duration(), types.Stretch(), strict=True))
-
-        self.assertTrue(types.is_subtype(types.Stretch(), types.Stretch()))
-        self.assertFalse(types.is_subtype(types.Stretch(), types.Stretch(), strict=True))
 
         self.assertFalse(types.is_subtype(types.Bool(), types.Uint(8)))
         self.assertFalse(types.is_subtype(types.Bool(), types.Float()))
         self.assertFalse(types.is_subtype(types.Bool(), types.Duration()))
-        self.assertFalse(types.is_subtype(types.Bool(), types.Stretch()))
         self.assertFalse(types.is_subtype(types.Uint(8), types.Bool()))
         self.assertFalse(types.is_subtype(types.Uint(8), types.Float()))
         self.assertFalse(types.is_subtype(types.Uint(8), types.Duration()))
-        self.assertFalse(types.is_subtype(types.Uint(8), types.Stretch()))
         self.assertFalse(types.is_subtype(types.Float(), types.Uint(8)))
         self.assertFalse(types.is_subtype(types.Float(), types.Bool()))
         self.assertFalse(types.is_subtype(types.Float(), types.Duration()))
-        self.assertFalse(types.is_subtype(types.Float(), types.Stretch()))
-        self.assertFalse(types.is_subtype(types.Stretch(), types.Bool()))
-        self.assertFalse(types.is_subtype(types.Stretch(), types.Uint(8)))
-        self.assertFalse(types.is_subtype(types.Stretch(), types.Float()))
-        self.assertFalse(types.is_subtype(types.Stretch(), types.Duration()))
         self.assertFalse(types.is_subtype(types.Duration(), types.Bool()))
         self.assertFalse(types.is_subtype(types.Duration(), types.Uint(8)))
         self.assertFalse(types.is_subtype(types.Duration(), types.Float()))
@@ -105,30 +84,18 @@ class TestTypesOrdering(QiskitTestCase):
         self.assertTrue(types.is_supertype(types.Duration(), types.Duration()))
         self.assertFalse(types.is_supertype(types.Duration(), types.Duration(), strict=True))
 
-        self.assertTrue(types.is_supertype(types.Stretch(), types.Stretch()))
-        self.assertFalse(types.is_supertype(types.Stretch(), types.Stretch(), strict=True))
-        self.assertTrue(types.is_supertype(types.Stretch(), types.Duration()))
-        self.assertTrue(types.is_supertype(types.Stretch(), types.Duration(), strict=True))
-
         self.assertFalse(types.is_supertype(types.Bool(), types.Uint(8)))
         self.assertFalse(types.is_supertype(types.Bool(), types.Float()))
         self.assertFalse(types.is_supertype(types.Bool(), types.Duration()))
-        self.assertFalse(types.is_supertype(types.Bool(), types.Stretch()))
         self.assertFalse(types.is_supertype(types.Uint(8), types.Bool()))
         self.assertFalse(types.is_supertype(types.Uint(8), types.Float()))
         self.assertFalse(types.is_supertype(types.Uint(8), types.Duration()))
-        self.assertFalse(types.is_supertype(types.Uint(8), types.Stretch()))
         self.assertFalse(types.is_supertype(types.Float(), types.Uint(8)))
         self.assertFalse(types.is_supertype(types.Float(), types.Bool()))
         self.assertFalse(types.is_supertype(types.Float(), types.Duration()))
-        self.assertFalse(types.is_supertype(types.Float(), types.Stretch()))
-        self.assertFalse(types.is_supertype(types.Stretch(), types.Bool()))
-        self.assertFalse(types.is_supertype(types.Stretch(), types.Uint(8)))
-        self.assertFalse(types.is_supertype(types.Stretch(), types.Float()))
         self.assertFalse(types.is_supertype(types.Duration(), types.Bool()))
         self.assertFalse(types.is_supertype(types.Duration(), types.Uint(8)))
         self.assertFalse(types.is_supertype(types.Duration(), types.Float()))
-        self.assertFalse(types.is_supertype(types.Duration(), types.Stretch()))
 
     def test_greater(self):
         self.assertEqual(types.greater(types.Uint(16), types.Uint(8)), types.Uint(16))
@@ -137,23 +104,15 @@ class TestTypesOrdering(QiskitTestCase):
         self.assertEqual(types.greater(types.Bool(), types.Bool()), types.Bool())
         self.assertEqual(types.greater(types.Float(), types.Float()), types.Float())
         self.assertEqual(types.greater(types.Duration(), types.Duration()), types.Duration())
-        self.assertEqual(types.greater(types.Stretch(), types.Duration()), types.Stretch())
-        self.assertEqual(types.greater(types.Duration(), types.Stretch()), types.Stretch())
         with self.assertRaisesRegex(TypeError, "no ordering"):
             types.greater(types.Bool(), types.Uint(8))
             types.greater(types.Bool(), types.Float())
         with self.assertRaisesRegex(TypeError, "no ordering"):
             types.greater(types.Bool(), types.Duration())
         with self.assertRaisesRegex(TypeError, "no ordering"):
-            types.greater(types.Bool(), types.Stretch())
-        with self.assertRaisesRegex(TypeError, "no ordering"):
-            types.greater(types.Uint(8), types.Stretch())
-        with self.assertRaisesRegex(TypeError, "no ordering"):
             types.greater(types.Uint(8), types.Duration())
         with self.assertRaisesRegex(TypeError, "no ordering"):
             types.greater(types.Float(), types.Duration())
-        with self.assertRaisesRegex(TypeError, "no ordering"):
-            types.greater(types.Float(), types.Stretch())
 
 
 class TestTypesCastKind(QiskitTestCase):
@@ -196,35 +155,14 @@ class TestTypesCastKind(QiskitTestCase):
         # Duration -> Duration
         self.assertIs(types.cast_kind(types.Duration(), types.Duration()), types.CastKind.EQUAL)
 
-        # Duration -> Stretch (allowed, implicit)
-        self.assertIs(types.cast_kind(types.Duration(), types.Stretch()), types.CastKind.IMPLICIT)
-
-        # Stretch -> Stretch
-        self.assertIs(types.cast_kind(types.Stretch(), types.Stretch()), types.CastKind.EQUAL)
-
-        # Stretch -> Duration (not allowed)
-        self.assertIs(types.cast_kind(types.Stretch(), types.Duration()), types.CastKind.NONE)
-
         # Duration -> Other types (not allowed)
         self.assertIs(types.cast_kind(types.Duration(), types.Bool()), types.CastKind.NONE)
         self.assertIs(types.cast_kind(types.Duration(), types.Uint(8)), types.CastKind.NONE)
         self.assertIs(types.cast_kind(types.Duration(), types.Uint(16)), types.CastKind.NONE)
         self.assertIs(types.cast_kind(types.Duration(), types.Float()), types.CastKind.NONE)
 
-        # Stretch -> Other types (not allowed)
-        self.assertIs(types.cast_kind(types.Stretch(), types.Bool()), types.CastKind.NONE)
-        self.assertIs(types.cast_kind(types.Stretch(), types.Uint(8)), types.CastKind.NONE)
-        self.assertIs(types.cast_kind(types.Stretch(), types.Uint(16)), types.CastKind.NONE)
-        self.assertIs(types.cast_kind(types.Stretch(), types.Float()), types.CastKind.NONE)
-
         # Other types -> Duration (not allowed)
         self.assertIs(types.cast_kind(types.Bool(), types.Duration()), types.CastKind.NONE)
         self.assertIs(types.cast_kind(types.Uint(8), types.Duration()), types.CastKind.NONE)
         self.assertIs(types.cast_kind(types.Uint(16), types.Duration()), types.CastKind.NONE)
         self.assertIs(types.cast_kind(types.Float(), types.Duration()), types.CastKind.NONE)
-
-        # Other types -> Stretch (not allowed, including const variants)
-        self.assertIs(types.cast_kind(types.Bool(), types.Stretch()), types.CastKind.NONE)
-        self.assertIs(types.cast_kind(types.Uint(8), types.Stretch()), types.CastKind.NONE)
-        self.assertIs(types.cast_kind(types.Uint(16), types.Stretch()), types.CastKind.NONE)
-        self.assertIs(types.cast_kind(types.Float(), types.Stretch()), types.CastKind.NONE)

@@ -1258,8 +1258,6 @@ def _build_ast_type(type_: types.Type) -> ast.ClassicalType:
         return ast.FloatType.DOUBLE
     if type_.kind is types.Duration:
         return ast.DurationType()
-    if type_.kind is types.Stretch:
-        return ast.StretchType()
     raise RuntimeError(f"unhandled expr type '{type_}'")
 
 

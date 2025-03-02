@@ -68,9 +68,6 @@ class TestExprConstructors(QiskitTestCase):
 
         duration = Duration.dt(1000)
         self.assertEqual(expr.lift(duration), expr.Value(duration, types.Duration()))
-        self.assertEqual(
-            expr.lift(duration, types.Stretch()), expr.Value(duration, types.Stretch())
-        )
 
     def test_value_lifts_python_builtins(self):
         self.assertEqual(expr.lift(True), expr.Value(True, types.Bool()))
@@ -151,8 +148,6 @@ class TestExprConstructors(QiskitTestCase):
             function(7.0)
         with self.assertRaisesRegex(TypeError, "cannot apply"):
             function(Duration.dt(1000))
-        with self.assertRaisesRegex(TypeError, "cannot apply"):
-            function(expr.Var.new("a", types.Stretch()))
 
     def test_logic_not_explicit(self):
         cr = ClassicalRegister(3)
@@ -176,8 +171,6 @@ class TestExprConstructors(QiskitTestCase):
             function(7.0)
         with self.assertRaisesRegex(TypeError, "cannot apply"):
             function(Duration.dt(1000))
-        with self.assertRaisesRegex(TypeError, "cannot apply"):
-            function(expr.Var.new("a", types.Stretch()))
 
     @ddt.data(
         (expr.bit_and, ClassicalRegister(3), ClassicalRegister(3)),
@@ -322,12 +315,6 @@ class TestExprConstructors(QiskitTestCase):
             function(3.0, 3)
         with self.assertRaisesRegex(TypeError, "invalid types"):
             function(Duration.dt(1000), Duration.dt(1000))
-        with self.assertRaisesRegex(TypeError, "invalid types"):
-            function(expr.Var.new("a", types.Stretch()), Duration.dt(1000))
-        with self.assertRaisesRegex(TypeError, "invalid types"):
-            function(Duration.dt(1000), expr.Var.new("a", types.Stretch()))
-        with self.assertRaisesRegex(TypeError, "invalid types"):
-            function(expr.Var.new("a", types.Stretch()), expr.Var.new("b", types.Stretch()))
         # Unlike most other functions, the bitwise functions should error if the two bit-like types
         # aren't of the same width, except for the special inference for integer literals.
         with self.assertRaisesRegex(TypeError, "binary bitwise operations .* same width"):
@@ -385,12 +372,6 @@ class TestExprConstructors(QiskitTestCase):
             function(3.0, 3)
         with self.assertRaisesRegex(TypeError, "invalid types"):
             function(Duration.dt(1000), Duration.dt(1000))
-        with self.assertRaisesRegex(TypeError, "invalid types"):
-            function(expr.Var.new("a", types.Stretch()), Duration.dt(1000))
-        with self.assertRaisesRegex(TypeError, "invalid types"):
-            function(Duration.dt(1000), expr.Var.new("a", types.Stretch()))
-        with self.assertRaisesRegex(TypeError, "invalid types"):
-            function(expr.Var.new("a", types.Stretch()), expr.Var.new("b", types.Stretch()))
 
     @ddt.data(
         (expr.equal, expr.Binary.Op.EQUAL),
@@ -467,12 +448,6 @@ class TestExprConstructors(QiskitTestCase):
             function(5, 5.0)
         with self.assertRaisesRegex(TypeError, "invalid types"):
             function(ClassicalRegister(3, "c"), 5.0)
-        with self.assertRaisesRegex(TypeError, "invalid types"):
-            function(expr.Var.new("a", types.Stretch()), Duration.dt(1000))
-        with self.assertRaisesRegex(TypeError, "invalid types"):
-            function(Duration.dt(1000), expr.Var.new("a", types.Stretch()))
-        with self.assertRaisesRegex(TypeError, "invalid types"):
-            function(expr.Var.new("a", types.Stretch()), expr.Var.new("b", types.Stretch()))
 
     @ddt.data(
         (expr.less, expr.Binary.Op.LESS),
@@ -547,12 +522,6 @@ class TestExprConstructors(QiskitTestCase):
             function(5, 5.0)
         with self.assertRaisesRegex(TypeError, "invalid types"):
             function(ClassicalRegister(3, "c"), 5.0)
-        with self.assertRaisesRegex(TypeError, "invalid types"):
-            function(expr.Var.new("a", types.Stretch()), Duration.dt(1000))
-        with self.assertRaisesRegex(TypeError, "invalid types"):
-            function(Duration.dt(1000), expr.Var.new("a", types.Stretch()))
-        with self.assertRaisesRegex(TypeError, "invalid types"):
-            function(expr.Var.new("a", types.Stretch()), expr.Var.new("b", types.Stretch()))
 
     def test_index_explicit(self):
         cr = ClassicalRegister(4, "c")
@@ -591,12 +560,6 @@ class TestExprConstructors(QiskitTestCase):
             expr.index(Duration.dt(1000), 1)
         with self.assertRaisesRegex(TypeError, "invalid types"):
             expr.index(Duration.dt(1000), Duration.dt(1000))
-        with self.assertRaisesRegex(TypeError, "invalid types"):
-            expr.index(expr.Var.new("a", types.Stretch()), Duration.dt(1000))
-        with self.assertRaisesRegex(TypeError, "invalid types"):
-            expr.index(Duration.dt(1000), expr.Var.new("a", types.Stretch()))
-        with self.assertRaisesRegex(TypeError, "invalid types"):
-            expr.index(expr.Var.new("a", types.Stretch()), expr.Var.new("b", types.Stretch()))
 
     @ddt.data(
         (expr.shift_left, expr.Binary.Op.SHIFT_LEFT),
@@ -647,9 +610,3 @@ class TestExprConstructors(QiskitTestCase):
             function(Duration.dt(1000), 1)
         with self.assertRaisesRegex(TypeError, "invalid types"):
             function(Duration.dt(1000), Duration.dt(1000))
-        with self.assertRaisesRegex(TypeError, "invalid types"):
-            function(expr.Var.new("a", types.Stretch()), Duration.dt(1000))
-        with self.assertRaisesRegex(TypeError, "invalid types"):
-            function(Duration.dt(1000), expr.Var.new("a", types.Stretch()))
-        with self.assertRaisesRegex(TypeError, "invalid types"):
-            function(expr.Var.new("a", types.Stretch()), expr.Var.new("b", types.Stretch()))

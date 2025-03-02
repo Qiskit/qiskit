@@ -143,7 +143,6 @@ class TestIsLValue(QiskitTestCase):
             types.Bool(),
         ),
         expr.index(expr.bit_not(expr.Var.new("a", types.Uint(8))), 0),
-        expr.Var.new("a", types.Stretch()),
     )
     def test_bad_cases(self, not_an_lvalue):
         self.assertFalse(expr.is_lvalue(not_an_lvalue))
