@@ -179,6 +179,11 @@ not the general structure, the iterator method :func:`iter_vars` is provided.
 
 .. autofunction:: iter_vars
 
+To iterator over all variables including stretch variables, the iterator method
+:func:`iter_identifiers` is provided.
+
+.. autofunction:: iter_identifiers
+
 Two expressions can be compared for direct structural equality by using the built-in Python ``==``
 operator.  In general, though, one might want to compare two expressions slightly more semantically,
 allowing that the :class:`Var` nodes inside them are bound to different memory-location descriptions
@@ -204,6 +209,7 @@ __all__ = [
     "Stretch",
     "ExprVisitor",
     "iter_vars",
+    "iter_identifiers",
     "structurally_equivalent",
     "is_lvalue",
     "lift",
@@ -232,7 +238,7 @@ __all__ = [
 ]
 
 from .expr import Expr, Var, Value, Cast, Unary, Binary, Index, Stretch
-from .visitors import ExprVisitor, iter_vars, structurally_equivalent, is_lvalue
+from .visitors import ExprVisitor, iter_vars, iter_identifiers, structurally_equivalent, is_lvalue
 from .constructors import (
     lift,
     cast,

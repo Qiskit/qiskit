@@ -1116,6 +1116,8 @@ class QuantumCircuit:
         self._vars_input: dict[str, expr.Var] = {}
         self._vars_capture: dict[str, expr.Var] = {}
         self._vars_local: dict[str, expr.Var] = {}
+        self._stretches_capture: dict[str, expr.Stretch] = {}
+        self._stretches_local: dict[str, expr.Stretch] = {}
         for input_ in inputs:
             self.add_input(input_)
         for capture in captures:
@@ -2044,6 +2046,8 @@ class QuantumCircuit:
                 new_block._vars_input = {}
                 new_block._vars_capture = {}
                 new_block._vars_local = {}
+                new_block._stretches_capture = {}
+                new_block._stretches_local = {}
                 # For the recursion, we never want to inline captured variables because we're not
                 # copying onto a base that has variables.
                 copy_with_remapping(block, new_block, bit_map, var_map, inline_captures=False)
@@ -2210,6 +2214,13 @@ class QuantumCircuit:
         return self.num_input_vars + self.num_captured_vars + self.num_declared_vars
 
     @property
+    def num_stretches(self) -> int:
+        """The number of stretch variables in the circuit.
+
+        This is the length of the :meth:`iter_stretches` iterable."""
+        return self.num_captured_stretches + self.num_declared_stretches
+
+    @property
     def num_input_vars(self) -> int:
         """The number of real-time classical variables in the circuit marked as circuit inputs.
 
@@ -2227,12 +2238,29 @@ class QuantumCircuit:
         return len(self._vars_capture)
 
     @property
+    def num_captured_stretches(self) -> int:
+        """The number of stretch variables in the circuit marked as captured from an
+        enclosing scope.
+
+        This is the length of the :meth:`iter_captured_stretches` iterable.  If this is non-zero,
+        :attr:`num_input_vars` must be zero."""
+        return len(self._stretches_capture)
+
+    @property
     def num_declared_vars(self) -> int:
         """The number of real-time classical variables in the circuit that are declared by this
         circuit scope, excluding inputs or captures.
 
         This is the length of the :meth:`iter_declared_vars` iterable."""
         return len(self._vars_local)
+
+    @property
+    def num_declared_stretches(self) -> int:
+        """The number of stretch variables in the circuit that are declared by this
+        circuit scope, excluding captures.
+
+        This is the length of the :meth:`iter_declared_stretches` iterable."""
+        return len(self._stretches_local)
 
     def iter_vars(self) -> typing.Iterable[expr.Var]:
         """Get an iterable over all real-time classical variables in scope within this circuit.
@@ -2246,6 +2274,18 @@ class QuantumCircuit:
             self._vars_input.values(), self._vars_capture.values(), self._vars_local.values()
         )
 
+    def iter_stretches(self) -> typing.Iterable[expr.Stretch]:
+        """Get an iterable over all stretch variables in scope within this circuit.
+
+        This method will iterate over all stretches in scope.  For more fine-grained iterators, see
+        :meth:`iter_declared_stretches` and :meth:`iter_captured_stretches`."""
+        if self._control_flow_scopes:
+            builder = self._control_flow_scopes[-1]
+            return itertools.chain(builder.iter_captured_stretches(), builder.iter_local_stretches())
+        return itertools.chain(
+            self._stretches_capture.values(), self._stretches_local.values()
+        )
+
     def iter_declared_vars(self) -> typing.Iterable[expr.Var]:
         """Get an iterable over all real-time classical variables that are declared with automatic
         storage duration in this scope.  This excludes input variables (see :meth:`iter_input_vars`)
@@ -2253,6 +2293,13 @@ class QuantumCircuit:
         if self._control_flow_scopes:
             return self._control_flow_scopes[-1].iter_local_vars()
         return self._vars_local.values()
+
+    def iter_declared_stretches(self) -> typing.Iterable[expr.Stretch]:
+        """Get an iterable over all stretch variables that are declared in this scope.
+        This excludes captured stretch variables (see :meth:`iter_captured_stretches`)."""
+        if self._control_flow_scopes:
+            return self._control_flow_scopes[-1].iter_local_stretches()
+        return self._stretches_local.values()
 
     def iter_input_vars(self) -> typing.Iterable[expr.Var]:
         """Get an iterable over all real-time classical variables that are declared as inputs to
@@ -2269,6 +2316,14 @@ class QuantumCircuit:
         if self._control_flow_scopes:
             return self._control_flow_scopes[-1].iter_captured_vars()
         return self._vars_capture.values()
+
+    def iter_captured_stretches(self) -> typing.Iterable[expr.Stretch]:
+        """Get an iterable over stretch variables that are captured by this circuit
+        scope from a containing scope.  This excludes locally declared stretch variables
+        (see :meth:`iter_declared_stretches`)."""
+        if self._control_flow_scopes:
+            return self._control_flow_scopes[-1].iter_captured_stretches()
+        return self._stretches_capture.values()
 
     def __and__(self, rhs: "QuantumCircuit") -> "QuantumCircuit":
         """Overload & to implement self.compose."""
@@ -2710,6 +2765,143 @@ class QuantumCircuit:
             return self.get_var(name_or_var, None) is not None
         return self.get_var(name_or_var.name, None) == name_or_var
 
+    @typing.overload
+    def get_stretch(self, name: str, default: T) -> Union[expr.Stretch, T]: ...
+
+    # The builtin `types` module has `EllipsisType`, but only from 3.10+!
+    @typing.overload
+    def get_stretch(self, name: str, default: type(...) = ...) -> expr.Stretch: ...
+
+    def get_stretch(self, name: str, default: typing.Any = ...):
+        """Retrieve a stretch variable that is accessible in this circuit scope by name.
+
+        Args:
+            name: the name of the stretch variable to retrieve.
+            default: if given, this value will be returned if the variable is not present.  If it
+                is not given, a :exc:`KeyError` is raised instead.
+
+        Returns:
+            The corresponding stretch variable.
+
+        Raises:
+            KeyError: if no default is given, but the variable does not exist.
+
+        Examples:
+            Retrieve a stretch variable by name from a circuit::
+
+                from qiskit.circuit import QuantumCircuit
+
+                # Create a circuit and create a variable in it.
+                qc = QuantumCircuit()
+                my_stretch = qc.add_stretch("my_stretch")
+
+                # We can use 'my_stretch' as a variable, but let's say we've lost the Python object and
+                # need to retrieve it.
+                my_stretch_again = qc.get_stretch("my_stretch")
+
+                assert my_stretch is my_stretch_again
+
+            Get a variable from a circuit by name, returning some default if it is not present::
+
+                assert qc.get_stretch("my_stretch", None) is my_stretch
+                assert qc.get_stretch("unknown_stretch", None) is None
+        """
+        if (out := self._current_scope().get_stretch(name)) is not None:
+            return out
+        if default is Ellipsis:
+            raise KeyError(f"no variable named '{name}' is present")
+        return default
+
+    def has_stretch(self, name_or_var: str | expr.Stretch, /) -> bool:
+        """Check whether a stretch variable is accessible in this scope.
+
+        Args:
+            name_or_var: the variable, or name of a variable to check.  If this is a
+                :class:`.expr.Stretch` node, the variable must be exactly the given one for this
+                function to return ``True``.
+
+        Returns:
+            whether a matching stretch variable is accessible.
+
+        See also:
+            :meth:`QuantumCircuit.get_stretch`
+                Retrieve the :class:`.expr.Stretch` instance from this circuit by name.
+        """
+        if isinstance(name_or_var, str):
+            return self.get_stretch(name_or_var, None) is not None
+        return self.get_stretch(name_or_var.name, None) == name_or_var
+
+    @typing.overload
+    def get_identifier(self, name: str, default: T) -> Union[expr.Var | expr.Stretch, T]: ...
+
+    # The builtin `types` module has `EllipsisType`, but only from 3.10+!
+    @typing.overload
+    def get_identifier(self, name: str, default: type(...) = ...) -> expr.Var | expr.Stretch: ...
+
+    # We use a _literal_ `Ellipsis` as the marker value to leave `None` available as a default.
+    def get_identifier(self, name: str, default: typing.Any = ...):
+        """Retrieve an identifier that is accessible in this circuit scope by name.
+
+        This currently includes both real-time classical variables and stretch variables.
+
+        Args:
+            name: the name of the identifier to retrieve.
+            default: if given, this value will be returned if the variable is not present.  If it
+                is not given, a :exc:`KeyError` is raised instead.
+
+        Returns:
+            The corresponding variable.
+
+        Raises:
+            KeyError: if no default is given, but the identifier does not exist.
+
+        See also:
+            :meth:`get_var`
+                Gets an identifier known to be a :class:`.expr.Var` instance.
+            :meth:`get_stretch`
+                Gets an identifier known to be a :class:`.expr.Stretch` instance.
+            :meth:`get_parameter`
+                A similar method, but for :class:`.Parameter` compile-time parameters instead of
+                :class:`.expr.Var` run-time variables.
+        """
+        if (out := self._current_scope().get_var(name)) is not None:
+            return out
+        if (out := self._current_scope().get_stretch(name)) is not None:
+            return out
+        if default is Ellipsis:
+            raise KeyError(f"no variable named '{name}' is present")
+        return default
+
+    def has_identifier(self, name_or_instance: str | expr.Var | expr.Stretch, /) -> bool:
+        """Check whether an identifier is accessible in this scope.
+
+        Args:
+            name_or_instance: the instance, or name of the identifier to check.  If this is a
+                :class:`.expr.Var` or :class:`.expr.Stretch` node, the matched instance must
+                be exactly the given one for this function to return ``True``.
+
+        Returns:
+            whether a matching identifier is accessible.
+
+        See also:
+            :meth:`QuantumCircuit.get_identifier`
+                Retrieve the :class:`.expr.Var` or :class:`.expr.Stretch` instance from this
+                circuit by name.
+            :meth:`QuantumCircuit.has_var`
+                The same as this method, but ignoring anything that isn't a
+                run-time :class:`expr.Var` variable.
+            :meth:`QuantumCircuit.has_stretch`
+                The same as this method, but ignoring anything that isn't a
+                run-time :class:`expr.Stretch` variable.
+            :meth:`QuantumCircuit.has_parameter`
+                A similar method to this, but for compile-time :class:`.Parameter`\\ s instead of
+                run-time :class:`.expr.Var` variables.
+        """
+        if isinstance(name_or_instance, str):
+            return self.get_identifier(name_or_instance, None) is not None
+        return self.get_identifier(name_or_instance.name, None) == name_or_instance
+
+
     def _prepare_new_var(
         self, name_or_var: str | expr.Var, type_: types.Type | None, /
     ) -> expr.Var:
@@ -2734,7 +2926,24 @@ class QuantumCircuit:
 
         # The `var` is guaranteed to have a name because we already excluded the cases where it's
         # wrapping a bit/register.
-        if (previous := self.get_var(var.name, default=None)) is not None:
+        if (previous := self.get_identifier(var.name, default=None)) is not None:
+            if previous == var:
+                raise CircuitError(f"'{var}' is already present in the circuit")
+            raise CircuitError(f"cannot add '{var}' as its name shadows the existing '{previous}'")
+        return var
+
+    def _prepare_new_stretch(
+            self, name_or_var: str | expr.Stretch, /
+    ) -> expr.Stretch:
+        """The common logic for preparing and validating a new :class:`~.expr.Stretch` for the circuit.
+
+        Returns the validated variable, which is guaranteed to be safe to add to the circuit."""
+        if isinstance(name_or_var, str):
+            var = expr.Stretch.new(name_or_var)
+        else:
+            var = name_or_var
+
+        if (previous := self.get_identifier(var.name, default=None)) is not None:
             if previous == var:
                 raise CircuitError(f"'{var}' is already present in the circuit")
             raise CircuitError(f"cannot add '{var}' as its name shadows the existing '{previous}'")
@@ -2747,18 +2956,31 @@ class QuantumCircuit:
             name_or_var: either a string of the stretch variable name, or an existing instance of
                 :class:`~.expr.Stretch` to re-use.  Stretches cannot shadow names that are already in
                 use within the circuit.
+
         Returns:
             The created variable.  If a :class:`~.expr.Stretch` instance was given, the exact same
             object will be returned.
+
         Raises:
             CircuitError: if the stretch variable cannot be created due to shadowing an existing
                 variable.
+
+        Examples:
+            Define and use a new stretch variable given just a name::
+
+                from qiskit.circuit import QuantumCircuit, Duration
+                from qiskit.circuit.classical import expr
+
+                qc = QuantumCircuit(2)
+                my_stretch = qc.add_stretch("my_stretch")
+
+                qc.delay(expr.add(Duration.dt(200), my_stretch), 1)
         """
         if isinstance(name_or_var, str):
             var = expr.Stretch.new(name_or_var)
         else:
             var = name_or_var
-        self._current_scope().add_uninitialized_var(var)
+        self._current_scope().add_stretch(var)
         return var
 
     def add_var(self, name_or_var: str | expr.Var, /, initial: typing.Any) -> expr.Var:
@@ -2890,13 +3112,13 @@ class QuantumCircuit:
             raise CircuitError("cannot add a variable wrapping a bit or register to a circuit")
         self._builder_api.add_uninitialized_var(var)
 
-    def add_capture(self, var: expr.Var):
+    def add_capture(self, var: expr.Var | expr.Stretch):
         """Add a variable to the circuit that it should capture from a scope it will be contained
         within.
 
-        This method requires a :class:`~.expr.Var` node to enforce that you've got a handle to one,
-        because you will need to declare the same variable using the same object into the outer
-        circuit.
+        This method requires a :class:`~.expr.Var` or :class:`~.expr.Stretch` node to enforce that
+        you've got a handle to one, because you will need to declare the same variable using the
+        same object into the outer circuit.
 
         This is a low-level method, which is only really useful if you are manually constructing
         control-flow operations. You typically will not need to call this method, assuming you
@@ -2914,13 +3136,19 @@ class QuantumCircuit:
         if self._control_flow_scopes:
             # Allow manual capturing.  Not sure why it'd be useful, but there's a clear expected
             # behavior here.
-            self._control_flow_scopes[-1].use_var(var)
+            if isinstance(var, expr.Stretch):
+                self._control_flow_scopes[-1].use_stretch(var)
+            else:
+                self._control_flow_scopes[-1].use_var(var)
             return
         if self._vars_input:
             raise CircuitError(
                 "circuits with input variables cannot be enclosed, so cannot be closures"
             )
-        self._vars_capture[var.name] = self._prepare_new_var(var, None)
+        if isinstance(var, expr.Stretch):
+            self._stretches_capture[var.name] = self._prepare_new_stretch(var)
+        else:
+            self._vars_capture[var.name] = self._prepare_new_var(var, None)
 
     @typing.overload
     def add_input(self, name_or_var: str, type_: types.Type, /) -> expr.Var: ...
@@ -2948,7 +3176,7 @@ class QuantumCircuit:
         """
         if self._control_flow_scopes:
             raise CircuitError("cannot add an input variable in a control-flow scope")
-        if self._vars_capture:
+        if self._vars_capture or self._stretches_capture:
             raise CircuitError("circuits to be enclosed with captures cannot have input variables")
         if isinstance(name_or_var, expr.Var) and type_ is not None:
             raise ValueError("cannot give an explicit type with an existing Var")
@@ -3752,8 +3980,6 @@ class QuantumCircuit:
         """
         # As a convenience, lift integer-literal rvalues to the matching width.
         lvalue = expr.lift(lvalue)
-        if lvalue.type.const:
-            raise CircuitError("const variables are not supported.")
         rvalue_type = (
             lvalue.type if isinstance(rvalue, int) and not isinstance(rvalue, bool) else None
         )
@@ -6948,8 +7174,15 @@ class _OuterCircuitScopeInterface(CircuitScopeInterface):
         var = self.circuit._prepare_new_var(var, None)
         self.circuit._vars_local[var.name] = var
 
+    def add_stretch(self, var):
+        var = self.circuit._prepare_new_stretch(var)
+        self.circuit._stretches_local[var.name] = var
+
     def remove_var(self, var):
         self.circuit._vars_local.pop(var.name)
+
+    def remove_stretch(self, var):
+        self.circuit._stretches_local.pop(var.name)
 
     def get_var(self, name):
         if (out := self.circuit._vars_local.get(name)) is not None:
@@ -6958,8 +7191,17 @@ class _OuterCircuitScopeInterface(CircuitScopeInterface):
             return out
         return self.circuit._vars_input.get(name)
 
+    def get_stretch(self, name):
+        if (out := self.circuit._stretches_local.get(name)) is not None:
+            return out
+        return self.circuit._stretches_capture.get(name)
+
     def use_var(self, var):
         if self.get_var(var.name) != var:
+            raise CircuitError(f"'{var}' is not present in this circuit")
+
+    def use_stretch(self, var):
+        if self.get_stretch(var.name) != var:
             raise CircuitError(f"'{var}' is not present in this circuit")
 
     def use_qubit(self, qubit):
@@ -6971,11 +7213,14 @@ def _validate_expr(circuit_scope: CircuitScopeInterface, node: expr.Expr) -> exp
     # This takes the `circuit_scope` object as an argument rather than being a circuit method and
     # inferring it because we may want to call this several times, and we almost invariably already
     # need the interface implementation for something else anyway.
-    for var in set(expr.iter_vars(node)):
-        if var.standalone:
-            circuit_scope.use_var(var)
+    for ident in set(expr.iter_identifiers(node)):
+        if isinstance(ident, expr.Stretch):
+            circuit_scope.use_stretch(ident)
         else:
-            circuit_scope.resolve_classical_resource(var.var)
+            if ident.standalone:
+                circuit_scope.use_var(ident)
+            else:
+                circuit_scope.resolve_classical_resource(ident.var)
     return node
 
 
@@ -7061,14 +7306,20 @@ def _copy_metadata(original, cpy, vars_mode):
         cpy._vars_local = original._vars_local.copy()
         cpy._vars_input = original._vars_input.copy()
         cpy._vars_capture = original._vars_capture.copy()
+        cpy._stretches_local = original._stretches_local.copy()
+        cpy._stretches_capture = original._stretches_capture.copy()
     elif vars_mode == "captures":
         cpy._vars_local = {}
         cpy._vars_input = {}
         cpy._vars_capture = {var.name: var for var in original.iter_vars()}
+        cpy._stretches_local = {}
+        cpy._stretches_capture = {stretch.name: stretch for stretch in original.iter_stretches()}
     elif vars_mode == "drop":
         cpy._vars_local = {}
         cpy._vars_input = {}
         cpy._vars_capture = {}
+        cpy._stretches_local = {}
+        cpy._stretches_capture = {}
     else:  # pragma: no cover
         raise ValueError(f"unknown vars_mode: '{vars_mode}'")
 

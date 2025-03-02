@@ -17,6 +17,7 @@ from __future__ import annotations
 __all__ = [
     "ExprVisitor",
     "iter_vars",
+    "iter_identifiers",
     "structurally_equivalent",
     "is_lvalue",
 ]
@@ -90,7 +91,35 @@ class _VarWalkerImpl(ExprVisitor[typing.Iterable[expr.Var]]):
         yield from node.index.accept(self)
 
 
+class _IdentWalkerImpl(ExprVisitor[typing.Iterable[expr.Var | expr.Stretch]]):
+    __slots__ = ()
+
+    def visit_var(self, node, /):
+        yield node
+
+    def visit_stretch(self, node, /):
+        yield node
+
+    def visit_value(self, node, /):
+        yield from ()
+
+    def visit_unary(self, node, /):
+        yield from node.operand.accept(self)
+
+    def visit_binary(self, node, /):
+        yield from node.left.accept(self)
+        yield from node.right.accept(self)
+
+    def visit_cast(self, node, /):
+        yield from node.operand.accept(self)
+
+    def visit_index(self, node, /):
+        yield from node.target.accept(self)
+        yield from node.index.accept(self)
+
+
 _VAR_WALKER = _VarWalkerImpl()
+_IDENT_WALKER = _IdentWalkerImpl()
 
 
 def iter_vars(node: expr.Expr) -> typing.Iterator[expr.Var]:
@@ -112,6 +141,24 @@ def iter_vars(node: expr.Expr) -> typing.Iterator[expr.Var]:
     """
     yield from node.accept(_VAR_WALKER)
 
+def iter_identifiers(node: expr.Expr) -> typing.Iterator[expr.Var | expr.Stretch]:
+    """Get an iterator over the :class:`~.expr.Var` and :class:`~.expr.Stretch`
+    nodes referenced at any level in the given :class:`~.expr.Expr`.
+
+    Examples:
+        Print out the name of each :class:`.ClassicalRegister` encountered::
+
+            from qiskit.circuit import ClassicalRegister
+            from qiskit.circuit.classical import expr
+
+            cr1 = ClassicalRegister(3, "a")
+            cr2 = ClassicalRegister(3, "b")
+
+            for node in expr.iter_vars(expr.bit_and(expr.bit_not(cr1), cr2)):
+                if isinstance(node.var, ClassicalRegister):
+                    print(node.var.name)
+    """
+    yield from node.accept(_IDENT_WALKER)
 
 class _StructuralEquivalenceImpl(ExprVisitor[bool]):
     # The strategy here is to continue to do regular double dispatch through the visitor format,
