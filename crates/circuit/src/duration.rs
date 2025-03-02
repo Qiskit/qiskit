@@ -15,6 +15,30 @@ use pyo3::prelude::*;
 #[pyclass(eq, module = "qiskit._accelerate.circuit")]
 #[derive(PartialEq, Clone, Copy, Debug)]
 #[allow(non_camel_case_types)]
+/// A length of time used to express circuit timing.
+///
+/// It defines a group of classes which are all subclasses of itself (functionally, an
+/// enumeration carrying data).
+///
+/// In Python 3.10+, you can use it in a match statement::
+///
+///   match duration:
+///      case Duration.dt(dt):
+///          return dt
+///      case Duration.s(seconds):
+///          return seconds / 5e-7
+///      case _:
+///          raise ValueError("expected dt or seconds")
+///
+/// And in Python 3.9, you can use ``isinstance`` to determine which variant
+/// is populated::
+///
+///   if isinstance(duration, Duration.dt):
+///       return duration[0]
+///   elif isinstance(duration, Duration.s):
+///       return duration[0] / 5e-7
+///   else:
+///       raise ValueError("expected dt or seconds")
 pub enum Duration {
     dt(u64),
     ns(f64),

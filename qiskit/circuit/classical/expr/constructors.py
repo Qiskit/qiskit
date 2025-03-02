@@ -53,9 +53,9 @@ if typing.TYPE_CHECKING:
     import qiskit
 
 
-def _coerce_lossless(expr: Expr, type: types.Type) -> Expr:
+def _coerce_lossless(expr: Expr, type: types.Type) -> Expr | None:
     """Coerce ``expr`` to ``type`` by inserting a suitable :class:`Cast` node, if the cast is
-    lossless.  Otherwise, raise a ``TypeError``."""
+    lossless.  Otherwise, return ``None``."""
     kind = cast_kind(expr.type, type)
     if kind is CastKind.EQUAL:
         return expr
@@ -63,29 +63,13 @@ def _coerce_lossless(expr: Expr, type: types.Type) -> Expr:
         return Cast(expr, type, implicit=True)
     if kind is CastKind.LOSSLESS:
         return Cast(expr, type, implicit=False)
-    if kind is CastKind.DANGEROUS:
-        raise TypeError(f"cannot cast '{expr}' to '{type}' without loss of precision")
-    raise TypeError(f"no cast is defined to take '{expr}' to '{type}'")
+    return None
 
 
 def lift_legacy_condition(
     condition: tuple[qiskit.circuit.Clbit | qiskit.circuit.ClassicalRegister, int], /
 ) -> Expr:
-    """Lift a legacy two-tuple equality condition into a new-style :class:`Expr`.
-
-    Examples:
-        Taking an old-style conditional instruction and getting an :class:`Expr` from its
-        condition::
-
-            from qiskit.circuit import ClassicalRegister
-            from qiskit.circuit.library import HGate
-            from qiskit.circuit.classical import expr
-
-            cr = ClassicalRegister(2)
-            instr = HGate().c_if(cr, 3)
-
-            lifted = expr.lift_legacy_condition(instr.condition)
-    """
+    """Lift a legacy two-tuple equality condition into a new-style :class:`Expr`."""
     from qiskit.circuit import Clbit  # pylint: disable=cyclic-import
 
     target, value = condition
@@ -99,14 +83,10 @@ def lift_legacy_condition(
     return Binary(Binary.Op.EQUAL, left, right, types.Bool())
 
 
-def lift(value: typing.Any, /, type: types.Type | None = None, *, try_const: bool = False) -> Expr:
+def lift(value: typing.Any, /, type: types.Type | None = None) -> Expr:
     """Lift the given Python ``value`` to a :class:`~.expr.Value` or :class:`~.expr.Var`.
 
-    By default, lifted scalars are not const.  To lift supported scalars to const-typed
-    expressions, specify `try_const=True`.
-
-    If an explicit ``type`` is given, the typing in the output will reflect that,
-    including its const-ness. The ``try_const`` parameter is ignored when this is specified.
+    If an explicit ``type`` is given, the typing in the output will reflect that.
 
     Examples:
         Lifting simple circuit objects to be :class:`~.expr.Var` instances::
@@ -114,9 +94,9 @@ def lift(value: typing.Any, /, type: types.Type | None = None, *, try_const: boo
             >>> from qiskit.circuit import Clbit, ClassicalRegister
             >>> from qiskit.circuit.classical import expr
             >>> expr.lift(Clbit())
-            Var(<clbit>, Bool(const=False))
+            Var(<clbit>, Bool())
             >>> expr.lift(ClassicalRegister(3, "c"))
-            Var(ClassicalRegister(3, "c"), Uint(3, const=False))
+            Var(ClassicalRegister(3, "c"), Uint(3))
 
         The type of the return value can be influenced, if the given value could be interpreted
         losslessly as the given type (use :func:`cast` to perform a full set of casting
@@ -125,20 +105,9 @@ def lift(value: typing.Any, /, type: types.Type | None = None, *, try_const: boo
             >>> from qiskit.circuit import ClassicalRegister
             >>> from qiskit.circuit.classical import expr, types
             >>> expr.lift(ClassicalRegister(3, "c"), types.Uint(5))
-            Var(ClassicalRegister(3, "c"), Uint(5, const=False))
+            Var(ClassicalRegister(3, "c"), Uint(5))
             >>> expr.lift(5, types.Uint(4))
             Value(5, Uint(4))
-
-        Lifting non-classical resource scalars to const values::
-
-            >>> from qiskit.circuit.classical import expr, types
-            >>> expr.lift(7)
-            Value(7, Uint(3, const=False))
-            >>> expr.lift(7, try_const=True)
-            Value(7, Uint(3, const=True))
-            >>> expr.lift(7, types.Uint(8, const=True))
-            Value(7, Uint(8, const=True))
-
     """
     if isinstance(value, Expr):
         if type is not None:
@@ -146,27 +115,20 @@ def lift(value: typing.Any, /, type: types.Type | None = None, *, try_const: boo
         return value
     from qiskit.circuit import Clbit, ClassicalRegister, Duration  # pylint: disable=cyclic-import
 
-    if type is not None:
-        # If a type was specified, the inferred type must be the same
-        # const-ness.
-        try_const = type.const
     inferred: types.Type
-    if value is True or value is False:
-        inferred = types.Bool(const=try_const)
-        constructor = Value
-    elif isinstance(value, Clbit):
+    if value is True or value is False or isinstance(value, Clbit):
         inferred = types.Bool()
-        constructor = Var
+        constructor = Value if value is True or value is False else Var
     elif isinstance(value, ClassicalRegister):
         inferred = types.Uint(width=value.size)
         constructor = Var
     elif isinstance(value, int):
         if value < 0:
             raise ValueError("cannot represent a negative value")
-        inferred = types.Uint(width=value.bit_length() or 1, const=try_const)
+        inferred = types.Uint(width=value.bit_length() or 1)
         constructor = Value
     elif isinstance(value, float):
-        inferred = types.Float(const=try_const)
+        inferred = types.Float()
         constructor = Value
     elif isinstance(value, Duration):
         inferred = types.Duration()
@@ -186,23 +148,14 @@ def lift(value: typing.Any, /, type: types.Type | None = None, *, try_const: boo
 def cast(operand: typing.Any, type: types.Type, /) -> Expr:
     """Create an explicit cast from the given value to the given type.
 
-    This can also be used to cast-away const status.
-
     Examples:
         Add an explicit cast node that explicitly casts a higher precision type to a lower precision
         one::
 
             >>> from qiskit.circuit.classical import expr, types
-            >>> value = expr.Value(5, types.Uint(32))
+            >>> value = expr.value(5, types.Uint(32))
             >>> expr.cast(value, types.Uint(8))
-            Cast(Value(5, types.Uint(32, const=False)), types.Uint(8, const=False), implicit=False)
-
-        Cast-away const status::
-
-            >>> from qiskit.circuit.classical import expr, types
-            >>> value = expr.Value(5, types.Uint(32, const=True))
-            >>> expr.cast(value, types.Uint(32))
-            Cast(Value(5, types.Uint(32, const=True)), types.Uint(32, const=False), implicit=False)
+            Cast(Value(5, types.Uint(32)), types.Uint(8), implicit=False)
     """
     operand = lift(operand)
     if cast_kind(operand.type, type) is CastKind.NONE:
@@ -220,8 +173,7 @@ def bit_not(operand: typing.Any, /) -> Expr:
             >>> from qiskit.circuit import ClassicalRegister
             >>> from qiskit.circuit.classical import expr
             >>> expr.bit_not(ClassicalRegister(3, "c"))
-            Unary(Unary.Op.BIT_NOT, \
-Var(ClassicalRegister(3, 'c'), Uint(3, const=False)), Uint(3, const=False))
+            Unary(Unary.Op.BIT_NOT, Var(ClassicalRegister(3, 'c'), Uint(3)), Uint(3))
     """
     operand = lift(operand)
     if operand.type.kind not in (types.Bool, types.Uint):
@@ -241,75 +193,47 @@ def logic_not(operand: typing.Any, /) -> Expr:
             >>> expr.logic_not(ClassicalRegister(3, "c"))
             Unary(\
 Unary.Op.LOGIC_NOT, \
-Cast(Var(ClassicalRegister(3, 'c'), Uint(3, const=False)), \
-Bool(const=False), implicit=True), \
-Bool(const=False))
+Cast(Var(ClassicalRegister(3, 'c'), Uint(3)), \
+Bool(), implicit=True), \
+Bool())
     """
     operand = lift(operand)
-    try:
-        operand = _coerce_lossless(operand, types.Bool(const=operand.type.const))
-        return Unary(Unary.Op.LOGIC_NOT, operand, operand.type)
-    except TypeError as ex:
-        raise TypeError(f"cannot apply '{Unary.Op.BIT_NOT}' to type '{operand.type}'") from ex
+    coerced_operand = _coerce_lossless(operand, types.Bool())
+    if coerced_operand is None:
+        raise TypeError(f"cannot apply '{Unary.Op.LOGIC_NOT}' to type '{operand.type}'")
+    return Unary(Unary.Op.LOGIC_NOT, coerced_operand, coerced_operand.type)
 
 
 def _lift_binary_operands(left: typing.Any, right: typing.Any) -> tuple[Expr, Expr]:
     """Lift two binary operands simultaneously, inferring the widths of integer literals in either
-    position to match the other operand.
-
-    Const-ness is handled as follows:
-      * If neither operand is an expression, both are lifted as non-const.
-      * If only one operand is an expression, the other is lifted with the same const-ness, if possible.
-        Otherwise, the returned operands will have different const-ness, and thus may require a cast node
-        to be interoperable.
-      * If both operands are expressions, they are returned as-is, and may require a cast node.
-    """
-    left_other_literal = isinstance(left, (bool, float))
+    position to match the other operand."""
     left_int = isinstance(left, int) and not isinstance(left, bool)
-    right_other_literal = isinstance(right, (bool, float))
-    right_int = isinstance(right, int) and not right_other_literal
+    right_int = isinstance(right, int) and not isinstance(right, bool)
     if not (left_int or right_int):
-        if left_other_literal == right_other_literal:
-            # They're either both literals or neither are, so we lift them
-            # independently.
-            left = lift(left)
-            right = lift(right)
-        elif not right_other_literal:
-            # Left is a literal, which should only be const if right is const.
-            right = lift(right)
-            left = lift(left, try_const=right.type.const)
-        elif not left_other_literal:
-            # Right is a literal, which should only be const if left is const.
-            left = lift(left)
-            right = lift(right, try_const=left.type.const)
+        left = lift(left)
+        right = lift(right)
     elif not right_int:
-        # Left is an int.
         right = lift(right)
         if right.type.kind is types.Uint:
             if left.bit_length() > right.type.width:
                 raise TypeError(
                     f"integer literal '{left}' is wider than the other operand '{right}'"
                 )
-            # Left will share const-ness of right.
             left = Value(left, right.type)
         else:
-            left = lift(left, try_const=right.type.const)
+            left = lift(left)
     elif not left_int:
-        # Right is an int.
         left = lift(left)
         if left.type.kind is types.Uint:
             if right.bit_length() > left.type.width:
                 raise TypeError(
                     f"integer literal '{right}' is wider than the other operand '{left}'"
                 )
-            # Right will share const-ness of left.
             right = Value(right, left.type)
         else:
-            right = lift(right, try_const=left.type.const)
+            right = lift(right)
     else:
         # Both are `int`, so we take our best case to make things work.
-        # If the caller needs a const type, they should lift one side to
-        # a const type explicitly before calling this function.
         uint = types.Uint(max(left.bit_length(), right.bit_length(), 1))
         left = Value(left, uint)
         right = Value(right, uint)
@@ -320,17 +244,17 @@ def _binary_bitwise(op: Binary.Op, left: typing.Any, right: typing.Any) -> Expr:
     left, right = _lift_binary_operands(left, right)
     type: types.Type
     if left.type.kind is right.type.kind is types.Bool:
-        type = types.Bool(const=(left.type.const and right.type.const))
+        type = types.Bool()
     elif left.type.kind is types.Uint and right.type.kind is types.Uint:
-        if left.type.width != right.type.width:
+        if left.type != right.type:
             raise TypeError(
                 "binary bitwise operations are defined between unsigned integers of the same width,"
                 f" but got {left.type.width} and {right.type.width}."
             )
-        type = types.Uint(width=left.type.width, const=(left.type.const and right.type.const))
+        type = left.type
     else:
         raise TypeError(f"invalid types for '{op}': '{left.type}' and '{right.type}'")
-    return Binary(op, _coerce_lossless(left, type), _coerce_lossless(right, type), type)
+    return Binary(op, left, right, type)
 
 
 def bit_and(left: typing.Any, right: typing.Any, /) -> Expr:
@@ -345,9 +269,9 @@ def bit_and(left: typing.Any, right: typing.Any, /) -> Expr:
             >>> expr.bit_and(ClassicalRegister(3, "c"), 0b111)
             Binary(\
 Binary.Op.BIT_AND, \
-Var(ClassicalRegister(3, 'c'), Uint(3, const=False)), \
-Value(7, Uint(3, const=False)), \
-Uint(3, const=False))
+Var(ClassicalRegister(3, 'c'), Uint(3)), \
+Value(7, Uint(3)), \
+Uint(3))
         """
     return _binary_bitwise(Binary.Op.BIT_AND, left, right)
 
@@ -364,9 +288,9 @@ def bit_or(left: typing.Any, right: typing.Any, /) -> Expr:
             >>> expr.bit_or(ClassicalRegister(3, "c"), 0b101)
             Binary(\
 Binary.Op.BIT_OR, \
-Var(ClassicalRegister(3, 'c'), Uint(3, const=False)), \
-Value(5, Uint(3, const=False)), \
-Uint(3, const=False))
+Var(ClassicalRegister(3, 'c'), Uint(3)), \
+Value(5, Uint(3)), \
+Uint(3))
     """
     return _binary_bitwise(Binary.Op.BIT_OR, left, right)
 
@@ -383,23 +307,22 @@ def bit_xor(left: typing.Any, right: typing.Any, /) -> Expr:
             >>> expr.bit_xor(ClassicalRegister(3, "c"), 0b101)
             Binary(\
 Binary.Op.BIT_XOR, \
-Var(ClassicalRegister(3, 'c'), Uint(3, const=False)), \
-Value(5, Uint(3, const=False)), \
-Uint(3, const=False))
+Var(ClassicalRegister(3, 'c'), Uint(3)), \
+Value(5, Uint(3)), \
+Uint(3))
     """
     return _binary_bitwise(Binary.Op.BIT_XOR, left, right)
 
 
 def _binary_logical(op: Binary.Op, left: typing.Any, right: typing.Any) -> Expr:
+    bool_ = types.Bool()
     left = lift(left)
     right = lift(right)
-    type = types.Bool(const=(left.type.const and right.type.const))
-    try:
-        left = _coerce_lossless(left, type)
-        right = _coerce_lossless(right, type)
-        return Binary(op, left, right, type)
-    except TypeError as ex:
-        raise TypeError(f"invalid types for '{op}': '{left.type}' and '{right.type}'") from ex
+    coerced_left = _coerce_lossless(left, bool_)
+    coerced_right = _coerce_lossless(right, bool_)
+    if coerced_left is None or coerced_right is None:
+        raise TypeError(f"invalid types for '{op}': '{left.type}' and '{right.type}'")
+    return Binary(op, coerced_left, coerced_right, bool_)
 
 
 def logic_and(left: typing.Any, right: typing.Any, /) -> Expr:
@@ -411,11 +334,8 @@ def logic_and(left: typing.Any, right: typing.Any, /) -> Expr:
 
             >>> from qiskit.circuit import Clbit
             >>> from qiskit.circuit.classical import expr
-            >>> expr.logic_and(Clbit(), Clbit())
-            Binary(Binary.Op.LOGIC_AND, \
-Var(<clbit 0>, Bool(const=False)), \
-Var(<clbit 1>, Bool(const=False)), \
-Bool(const=False))
+            >>> expr.logical_and(Clbit(), Clbit())
+            Binary(Binary.Op.LOGIC_AND, Var(<clbit 0>, Bool()), Var(<clbit 1>, Bool()), Bool())
     """
     return _binary_logical(Binary.Op.LOGIC_AND, left, right)
 
@@ -430,29 +350,19 @@ def logic_or(left: typing.Any, right: typing.Any, /) -> Expr:
             >>> from qiskit.circuit import Clbit
             >>> from qiskit.circuit.classical import expr
             >>> expr.logical_and(Clbit(), Clbit())
-            Binary(Binary.Op.LOGIC_OR, \
-Var(<clbit 0>, Bool(const=False)), \
-Var(<clbit 1>, Bool(const=False)), \
-Bool(const=False))
+            Binary(Binary.Op.LOGIC_OR, Var(<clbit 0>, Bool()), Var(<clbit 1>, Bool()), Bool())
     """
     return _binary_logical(Binary.Op.LOGIC_OR, left, right)
 
 
 def _equal_like(op: Binary.Op, left: typing.Any, right: typing.Any) -> Expr:
     left, right = _lift_binary_operands(left, right)
-    if (
-        left.type.kind is not right.type.kind
-        or left.type.kind is types.Stretch
-        or types.order(left.type, right.type) is types.Ordering.NONE
-    ):
+    if left.type.kind is not right.type.kind:
         raise TypeError(f"invalid types for '{op}': '{left.type}' and '{right.type}'")
     type = types.greater(left.type, right.type)
-    return Binary(
-        op,
-        _coerce_lossless(left, type),
-        _coerce_lossless(right, type),
-        types.Bool(const=type.const),
-    )
+    # Note that we don't check the return value of _coerce_lossless for these
+    # since 'left' and 'right' are guaranteed to be the same kind here.
+    return Binary(op, _coerce_lossless(left, type), _coerce_lossless(right, type), types.Bool())
 
 
 def equal(left: typing.Any, right: typing.Any, /) -> Expr:
@@ -466,9 +376,9 @@ def equal(left: typing.Any, right: typing.Any, /) -> Expr:
             >>> from qiskit.circuit.classical import expr
             >>> expr.equal(ClassicalRegister(3, "c"), 7)
             Binary(Binary.Op.EQUAL, \
-Var(ClassicalRegister(3, "c"), Uint(3, const=False)), \
-Value(7, Uint(3, const=False)), \
-Uint(3, const=False))
+Var(ClassicalRegister(3, "c"), Uint(3)), \
+Value(7, Uint(3)), \
+Uint(3))
     """
     return _equal_like(Binary.Op.EQUAL, left, right)
 
@@ -484,28 +394,21 @@ def not_equal(left: typing.Any, right: typing.Any, /) -> Expr:
             >>> from qiskit.circuit.classical import expr
             >>> expr.not_equal(ClassicalRegister(3, "c"), 7)
             Binary(Binary.Op.NOT_EQUAL, \
-Var(ClassicalRegister(3, "c"), Uint(3, const=False)), \
-Value(7, Uint(3, const=False)), \
-Uint(3, const=False))
+Var(ClassicalRegister(3, "c"), Uint(3)), \
+Value(7, Uint(3)), \
+Uint(3))
     """
     return _equal_like(Binary.Op.NOT_EQUAL, left, right)
 
 
 def _binary_relation(op: Binary.Op, left: typing.Any, right: typing.Any) -> Expr:
     left, right = _lift_binary_operands(left, right)
-    if (
-        left.type.kind is not right.type.kind
-        or left.type.kind in (types.Bool, types.Stretch)
-        or types.order(left.type, right.type) is types.Ordering.NONE
-    ):
+    if left.type.kind is not right.type.kind or left.type.kind is types.Bool:
         raise TypeError(f"invalid types for '{op}': '{left.type}' and '{right.type}'")
     type = types.greater(left.type, right.type)
-    return Binary(
-        op,
-        _coerce_lossless(left, type),
-        _coerce_lossless(right, type),
-        types.Bool(const=type.const),
-    )
+    # Note that we don't check the return value of _coerce_lossless for these
+    # since 'left' and 'right' are guaranteed to be the same kind here.
+    return Binary(op, _coerce_lossless(left, type), _coerce_lossless(right, type), types.Bool())
 
 
 def less(left: typing.Any, right: typing.Any, /) -> Expr:
@@ -519,9 +422,9 @@ def less(left: typing.Any, right: typing.Any, /) -> Expr:
             >>> from qiskit.circuit.classical import expr
             >>> expr.less(ClassicalRegister(3, "c"), 5)
             Binary(Binary.Op.LESS, \
-Var(ClassicalRegister(3, "c"), Uint(3, const=False)), \
-Value(5, Uint(3, const=False)), \
-Uint(3, const=False))
+Var(ClassicalRegister(3, "c"), Uint(3)), \
+Value(5, Uint(3)), \
+Uint(3))
     """
     return _binary_relation(Binary.Op.LESS, left, right)
 
@@ -537,9 +440,9 @@ def less_equal(left: typing.Any, right: typing.Any, /) -> Expr:
             >>> from qiskit.circuit.classical import expr
             >>> expr.less(ClassicalRegister(3, "a"), ClassicalRegister(3, "b"))
             Binary(Binary.Op.LESS_EQUAL, \
-Var(ClassicalRegister(3, "a"), Uint(3, const=False)), \
-Var(ClassicalRegister(3, "b"), Uint(3, const=False)), \
-Uint(3,const=False))
+Var(ClassicalRegister(3, "a"), Uint(3)), \
+Var(ClassicalRegister(3, "b"), Uint(3)), \
+Uint(3))
     """
     return _binary_relation(Binary.Op.LESS_EQUAL, left, right)
 
@@ -555,9 +458,9 @@ def greater(left: typing.Any, right: typing.Any, /) -> Expr:
             >>> from qiskit.circuit.classical import expr
             >>> expr.less(ClassicalRegister(3, "c"), 5)
             Binary(Binary.Op.GREATER, \
-Var(ClassicalRegister(3, "c"), Uint(3, const=False)), \
-Value(5, Uint(3, const=False)), \
-Uint(3, const=False))
+Var(ClassicalRegister(3, "c"), Uint(3)), \
+Value(5, Uint(3)), \
+Uint(3))
     """
     return _binary_relation(Binary.Op.GREATER, left, right)
 
@@ -573,9 +476,9 @@ def greater_equal(left: typing.Any, right: typing.Any, /) -> Expr:
             >>> from qiskit.circuit.classical import expr
             >>> expr.less(ClassicalRegister(3, "a"), ClassicalRegister(3, "b"))
             Binary(Binary.Op.GREATER_EQUAL, \
-Var(ClassicalRegister(3, "a"), Uint(3, const=False)), \
-Var(ClassicalRegister(3, "b"), Uint(3, const=False)), \
-Uint(3, const=False))
+Var(ClassicalRegister(3, "a"), Uint(3)), \
+Var(ClassicalRegister(3, "b"), Uint(3)), \
+Uint(3))
     """
     return _binary_relation(Binary.Op.GREATER_EQUAL, left, right)
 
@@ -586,18 +489,17 @@ def _shift_like(
     if type is not None and type.kind is not types.Uint:
         raise TypeError(f"type '{type}' is not a valid bitshift operand type")
     if isinstance(left, Expr):
-        left = _coerce_lossless(left, type) if type is not None else left
+        if type is not None:
+            coerced_left = _coerce_lossless(left, type)
+            if coerced_left is None:
+                raise TypeError(f"type '{type}' cannot losslessly represent '{left.type}'")
+            left = coerced_left
     else:
         left = lift(left, type)
-    right = lift(right, try_const=left.type.const)
+    right = lift(right)
     if left.type.kind != types.Uint or right.type.kind != types.Uint:
         raise TypeError(f"invalid types for '{op}': '{left.type}' and '{right.type}'")
-    return Binary(
-        op,
-        left,
-        right,
-        types.Uint(width=left.type.width, const=(left.type.const and right.type.const)),
-    )
+    return Binary(op, left, right, left.type)
 
 
 def shift_left(left: typing.Any, right: typing.Any, /, type: types.Type | None = None) -> Expr:
@@ -613,17 +515,17 @@ def shift_left(left: typing.Any, right: typing.Any, /, type: types.Type | None =
             >>> a = expr.Var.new("a", types.Uint(8))
             >>> expr.shift_left(a, 4)
             Binary(Binary.Op.SHIFT_LEFT, \
-Var(<UUID>, Uint(8, const=False), name='a'), \
-Value(4, Uint(3, const=False)), \
-Uint(8, const=False))
+Var(<UUID>, Uint(8), name='a'), \
+Value(4, Uint(3)), \
+Uint(8))
 
         Shift an integer literal by a variable amount, coercing the type of the literal::
 
             >>> expr.shift_left(3, a, types.Uint(16))
             Binary(Binary.Op.SHIFT_LEFT, \
-Value(3, Uint(16, const=False)), \
-Var(<UUID>, Uint(8, const=False), name='a'), \
-Uint(16, const=False))
+Value(3, Uint(16)), \
+Var(<UUID>, Uint(8), name='a'), \
+Uint(16))
     """
     return _shift_like(Binary.Op.SHIFT_LEFT, left, right, type)
 
@@ -641,9 +543,9 @@ def shift_right(left: typing.Any, right: typing.Any, /, type: types.Type | None 
             >>> from qiskit.circuit.classical import expr
             >>> expr.shift_right(ClassicalRegister(8, "a"), 4)
             Binary(Binary.Op.SHIFT_RIGHT, \
-Var(ClassicalRegister(8, "a"), Uint(8, const=False)), \
-Value(4, Uint(3, const=False)), \
-Uint(8, const=False))
+Var(ClassicalRegister(8, "a"), Uint(8)), \
+Value(4, Uint(3)), \
+Uint(8))
     """
     return _shift_like(Binary.Op.SHIFT_RIGHT, left, right, type)
 
@@ -660,16 +562,12 @@ def index(target: typing.Any, index: typing.Any, /) -> Expr:
             >>> from qiskit.circuit import ClassicalRegister
             >>> from qiskit.circuit.classical import expr
             >>> expr.index(ClassicalRegister(8, "a"), 3)
-            Index(\
-Var(ClassicalRegister(8, "a"), Uint(8, const=False)), \
-Value(3, Uint(2, const=False)), \
-Bool(const=False))
+            Index(Var(ClassicalRegister(8, "a"), Uint(8)), Value(3, Uint(2)), Bool())
     """
-    target = lift(target)
-    index = lift(index, try_const=target.type.const)
+    target, index = lift(target), lift(index)
     if target.type.kind is not types.Uint or index.type.kind is not types.Uint:
         raise TypeError(f"invalid types for indexing: '{target.type}' and '{index.type}'")
-    return Index(target, index, types.Bool(const=target.type.const and index.type.const))
+    return Index(target, index, types.Bool())
 
 
 def _binary_sum(op: Binary.Op, left: typing.Any, right: typing.Any) -> Expr:
@@ -695,15 +593,15 @@ def add(left: typing.Any, right: typing.Any, /) -> Expr:
     lifting the values into :class:`Value` nodes if required.
 
     Examples:
-        Addition of two const floating point numbers::
+        Addition of two floating point numbers::
 
             >>> from qiskit.circuit.classical import expr
-            >>> expr.add(expr.lift(5.0, try_const=True), 2.0)
+            >>> expr.add(5.0, 2.0)
             Binary(\
 Binary.Op.ADD, \
-Value(5.0, Float(const=True)), \
-Value(2.0, Float(const=True)), \
-Float(const=True))
+Value(5.0, Float()), \
+Value(2.0, Float()), \
+Float())
 
         Addition of two durations::
 
@@ -715,17 +613,6 @@ Binary.Op.ADD, \
 Value(Duration.dt(1000), Duration()), \
 Value(Duration.dt(1000), Duration()), \
 Duration())
-
-        Addition of stretch and duration::
-
-            >>> from qiskit.circuit import Duration
-            >>> from qiskit.circuit.classical import expr, types
-            >>> expr.add(expr.Var.new("a", types.Stretch()), Duration.dt(1000))
-            Binary(\
-Binary.Op.ADD, \
-Var(<UUID>, Stretch(), name='a'), \
-Cast(Value(Duration.dt(1000), Duration()), Stretch(), implicit=True), \
-Stretch())
         """
     return _binary_sum(Binary.Op.ADD, left, right)
 
@@ -735,15 +622,15 @@ def sub(left: typing.Any, right: typing.Any, /) -> Expr:
     lifting the values into :class:`Value` nodes if required.
 
     Examples:
-        Subtration of two const floating point numbers::
+        Subtration of two floating point numbers::
 
             >>> from qiskit.circuit.classical import expr
-            >>> expr.sub(expr.lift(5.0, try_const=True), 2.0)
+            >>> expr.sub(5.0, 2.0)
             Binary(\
 Binary.Op.SUB, \
-Value(5.0, Float(const=True)), \
-Value(2.0, Float(const=True)), \
-Float(const=True))
+Value(5.0, Float()), \
+Value(2.0, Float()), \
+Float())
 
     Subtraction of two durations::
 
@@ -755,17 +642,6 @@ Binary.Op.SUB, \
 Value(Duration.dt(1000), Duration()), \
 Value(Duration.dt(1000), Duration()), \
 Duration())
-
-        Subtraction of duration from stretch::
-
-            >>> from qiskit.circuit import Duration
-            >>> from qiskit.circuit.classical import expr, types
-            >>> expr.add(expr.Var.new("a", types.Stretch()), Duration.dt(1000))
-            Binary(\
-Binary.Op.SUB, \
-Var(<UUID>, Stretch(), name='a'), \
-Cast(Value(Duration.dt(1000), Duration()), Stretch(), implicit=True), \
-Stretch())
         """
     return _binary_sum(Binary.Op.SUB, left, right)
 
@@ -774,21 +650,21 @@ def mul(left: typing.Any, right: typing.Any) -> Expr:
     """Create a multiplication expression node from the given values, resolving any implicit casts and
     lifting the values into :class:`Value` nodes if required.
 
-    This can be used to multiply numeric operands of the same type kind, or to multiply a timing
-    operand by a const :class:`~.types.Float`.
+    This can be used to multiply numeric operands of the same type kind, or to multiply a duration
+    operand by a :class:`~.types.Float`.
 
     Examples:
-        Multiplication of two const floating point numbers::
+        Multiplication of two floating point numbers::
 
             >>> from qiskit.circuit.classical import expr
-            >>> expr.mul(expr.lift(5.0, try_const=True), 2.0)
+            >>> expr.mul(5.0, 2.0)
             Binary(\
 Binary.Op.MUL, \
-Value(5.0, Float(const=True)), \
-Value(2.0, Float(const=True)), \
-Float(const=True))
+Value(5.0, Float()), \
+Value(2.0, Float()), \
+Float())
 
-        Multiplication of a duration by a const float::
+        Multiplication of a duration by a float::
 
             >>> from qiskit.circuit import Duration
             >>> from qiskit.circuit.classical import expr
@@ -796,28 +672,24 @@ Float(const=True))
             Binary(\
 Binary.Op.MUL, \
 Value(Duration.dt(1000), Duration()), \
-Value(0.5, Float(const=True)), \
+Value(0.5, Float()), \
 Duration())
-
-        Multiplication of a stretch by a const float::
-
-            >>> from qiskit.circuit.classical import expr
-            >>> expr.mul(expr.Var.new("a", types.Stretch()), 0.5)
-            Binary(\
-Binary.Op.MUL, \
-Var(<UUID>, Stretch(), name='a'), \
-Value(0.5, Float(const=True)), \
-Stretch())
     """
     left, right = _lift_binary_operands(left, right)
-    left_timing = left.type.kind in (types.Stretch, types.Duration)
-    right_timing = right.type.kind in (types.Stretch, types.Duration)
     type: types.Type
-    if left_timing and right_timing:
-        raise TypeError(f"cannot multiply two timing operands: '{left.type}' and '{right.type}'")
-    if left_timing and right.type.kind is types.Float and right.type.const is True:
+    if left.type.kind is types.Duration and right.type.kind is types.Duration:
+        raise TypeError("cannot multiply two durations")
+    if left.type.kind is types.Duration and right.type.kind is types.Float:
+        if not right.const:
+            raise ValueError(
+                f"multiplying operands '{left}' and '{right}' would result in a non-const '{left.type}'"
+            )
         type = left.type
-    elif right_timing and left.type.kind is types.Float and left.type.const is True:
+    elif right.type.kind is types.Duration and left.type.kind is types.Float:
+        if not left.const:
+            raise ValueError(
+                f"multiplying operands '{left}' and '{right}' would result in a non-const '{right.type}'"
+            )
         type = right.type
     elif (
         left.type.kind is right.type.kind
@@ -841,20 +713,21 @@ def div(left: typing.Any, right: typing.Any) -> Expr:
     """Create a division expression node from the given values, resolving any implicit casts and
     lifting the values into :class:`Value` nodes if required.
 
-    This can be used to divide numeric operands of the same type kind, to divide a timing
-    operand by a :class:`~.types.Float`, or to divide two :class`~.types.Duration` operands
-    which yields an expression of type const :class:`~.types.Float`.
+    This can be used to divide numeric operands of the same type kind, to divide a
+    :class`~.types.Duration` operand by a :class:`~.types.Float`, or to divide two
+    :class`~.types.Duration` operands which yields an expression of type
+    :class:`~.types.Float`.
 
     Examples:
-        Division of two const floating point numbers::
+        Division of two floating point numbers::
 
             >>> from qiskit.circuit.classical import expr
-            >>> expr.div(expr.lift(5.0, try_const=True), 2.0)
+            >>> expr.div(5.0, 2.0)
             Binary(\
 Binary.Op.DIV, \
-Value(5.0, Float(const=True)), \
-Value(2.0, Float(const=True)), \
-Float(const=True))
+Value(5.0, Float()), \
+Value(2.0, Float()), \
+Float())
 
         Division of two durations::
 
@@ -865,7 +738,7 @@ Float(const=True))
 Binary.Op.DIV, \
 Value(Duration.dt(10000), Duration()), \
 Value(Duration.dt(1000), Duration()), \
-Float(const=True))
+Float())
 
 
         Division of a duration by a float::
@@ -876,25 +749,23 @@ Float(const=True))
             Binary(\
 Binary.Op.DIV, \
 Value(Duration.dt(10000), Duration()), \
-Value(12.0, types.Float(const=True)), \
-Float(const=True))
+Value(12.0, types.Float()), \
+Duration())
     """
     left, right = _lift_binary_operands(left, right)
     type: types.Type
     if left.type.kind is right.type.kind is not types.Bool:
-        if left.type.kind is types.Stretch:
-            raise TypeError("cannot divide two stretch operands")
         if left.type.kind is types.Duration:
-            type = types.Float(const=True)
+            type = types.Float()
         elif types.order(left.type, right.type) is not types.Ordering.NONE:
             type = types.greater(left.type, right.type)
             left = _coerce_lossless(left, type)
             right = _coerce_lossless(right, type)
-    elif (
-        left.type.kind in (types.Stretch, types.Duration)
-        and right.type.kind is types.Float
-        and right.type.const is True
-    ):
+    elif left.type.kind is types.Duration and right.type.kind is types.Float:
+        if not right.const:
+            raise ValueError(
+                f"division of '{left}' and '{right}' would result in a non-const '{left.type}'"
+            )
         type = left.type
     else:
         raise TypeError(f"invalid types for '{Binary.Op.DIV}': '{left.type}' and '{right.type}'")

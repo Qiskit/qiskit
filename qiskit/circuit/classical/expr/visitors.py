@@ -268,6 +268,8 @@ def is_lvalue(node: expr.Expr, /) -> bool:
     the scope that attempts to write to it.  This would be an access property of the containing
     program, however, and not an inherent property of the expression system.
 
+    A constant expression is never an lvalue.
+
     Examples:
         Literal values are never l-values; there's no memory location associated with (for example)
         the constant ``1``::
@@ -276,15 +278,13 @@ def is_lvalue(node: expr.Expr, /) -> bool:
             >>> expr.is_lvalue(expr.lift(2))
             False
 
-        :class:`~.expr.Var` nodes are l-values (unless their resolution type is `const`!), because
-        they have some associated memory location::
+        :class:`~.expr.Var` nodes are always l-values, because they always have some associated
+        memory location::
 
             >>> from qiskit.circuit.classical import types
             >>> from qiskit.circuit import Clbit
             >>> expr.is_lvalue(expr.Var.new("a", types.Bool()))
             True
-            >>> expr.is_lvalue(expr.Var.new("a", types.Bool(const=True)))
-            False
             >>> expr.is_lvalue(expr.lift(Clbit()))
             True
 
@@ -299,4 +299,7 @@ def is_lvalue(node: expr.Expr, /) -> bool:
             >>> expr.is_lvalue(expr.bit_and(a, b))
             False
     """
+    if node.const:
+        # A constant expression is _never_ an lvalue.
+        return False
     return node.accept(_IS_LVALUE)
