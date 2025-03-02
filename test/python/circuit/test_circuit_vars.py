@@ -17,6 +17,7 @@ from test import QiskitTestCase
 from qiskit.circuit import QuantumCircuit, CircuitError, Clbit, ClassicalRegister, Store
 from qiskit.circuit.classical import expr, types
 
+import itertools
 
 class TestCircuitVars(QiskitTestCase):
     """Tests for variable-manipulation routines on circuits.  More specific functionality is likely
@@ -38,14 +39,20 @@ class TestCircuitVars(QiskitTestCase):
         vars_ = [
             expr.Var.new("a", types.Bool()),
             expr.Var.new("b", types.Uint(16)),
-            expr.Var.new("c", types.Stretch()),
         ]
-        qc = QuantumCircuit(captures=vars_)
+        stretches_ = [
+            expr.Stretch.new("c"),
+        ]
+        qc = QuantumCircuit(captures=itertools.chain(vars_, stretches_))
         self.assertEqual(set(vars_), set(qc.iter_vars()))
+        self.assertEqual(set(stretches_), set(qc.iter_stretches()))
         self.assertEqual(qc.num_vars, len(vars_))
+        self.assertEqual(qc.num_stretches, len(stretches_))
         self.assertEqual(qc.num_input_vars, 0)
         self.assertEqual(qc.num_captured_vars, len(vars_))
+        self.assertEqual(qc.num_captured_stretches, len(stretches_))
         self.assertEqual(qc.num_declared_vars, 0)
+        self.assertEqual(qc.num_declared_stretches, 0)
 
     def test_initialise_declarations_iterable(self):
         vars_ = [
@@ -161,7 +168,7 @@ class TestCircuitVars(QiskitTestCase):
         qc = QuantumCircuit()
         a = qc.add_stretch("a")
         self.assertEqual(a.name, "a")
-        self.assertEqual(a.type, types.Stretch())
+        self.assertEqual(a.type, types.Duration())
 
     def test_add_var_returns_input(self):
         """Test that the `Var` returned by `add_var` is the same as the input if `Var`."""
@@ -171,7 +178,7 @@ class TestCircuitVars(QiskitTestCase):
         self.assertIs(a, a_other)
 
     def test_add_stretch_returns_input(self):
-        a = expr.Var.new("a", types.Stretch())
+        a = expr.Stretch.new("a")
         qc = QuantumCircuit()
         a_other = qc.add_stretch(a)
         self.assertIs(a, a_other)
@@ -236,7 +243,7 @@ class TestCircuitVars(QiskitTestCase):
     def test_initialise_captures_equal_to_add_capture(self):
         a = expr.Var.new("a", types.Bool())
         b = expr.Var.new("b", types.Uint(16))
-        c = expr.Var.new("c", types.Stretch())
+        c = expr.Stretch.new("c")
 
         qc_init = QuantumCircuit(captures=[a, b, c])
         qc_manual = QuantumCircuit()
@@ -244,6 +251,7 @@ class TestCircuitVars(QiskitTestCase):
         qc_manual.add_capture(b)
         qc_manual.add_capture(c)
         self.assertEqual(list(qc_init.iter_vars()), list(qc_manual.iter_vars()))
+        self.assertEqual(list(qc_init.iter_stretches()), list(qc_manual.iter_stretches()))
 
     def test_initialise_declarations_equal_to_add_var(self):
         a = expr.Var.new("a", types.Bool())
@@ -429,11 +437,19 @@ class TestCircuitVars(QiskitTestCase):
 
         missing = "default"
         a = expr.Var.new("a", types.Bool())
-        b = expr.Var.new("b", types.Stretch())
         qc.add_input(a)
         self.assertIs(qc.get_var("c", missing), missing)
         self.assertIs(qc.get_var("c", a), a)
-        self.assertIs(qc.get_var("c", b), b)
+
+    def test_get_stretch_default(self):
+        qc = QuantumCircuit()
+        self.assertIs(qc.get_stretch("a", None), None)
+
+        missing = "default"
+        a = expr.Stretch.new("a")
+        qc.add_stretch(a)
+        self.assertIs(qc.get_stretch("c", missing), missing)
+        self.assertIs(qc.get_stretch("c", a), a)
 
     def test_has_var(self):
         a = expr.Var.new("a", types.Bool())
@@ -449,4 +465,12 @@ class TestCircuitVars(QiskitTestCase):
         self.assertFalse(QuantumCircuit(inputs=[a]).has_var(expr.Var.new("a", types.Uint(8))))
         self.assertFalse(QuantumCircuit(inputs=[a]).has_var(expr.Var.new("a", types.Bool())))
         self.assertFalse(QuantumCircuit(inputs=[a]).has_var(expr.Var.new("a", types.Float())))
-        self.assertFalse(QuantumCircuit(inputs=[a]).has_var(expr.Var.new("a", types.Stretch())))
+
+    def test_has_stretch(self):
+        a = expr.Stretch.new("a")
+        self.assertFalse(QuantumCircuit().has_stretch("a"))
+        self.assertTrue(QuantumCircuit(captures=[a]).has_stretch("a"))
+        self.assertTrue(QuantumCircuit(captures=[a]).has_stretch(a))
+
+        # When giving an `Stretch`, the match must be exact, not just the name.
+        self.assertFalse(QuantumCircuit(captures=[a]).has_stretch(expr.Stretch.new("a")))

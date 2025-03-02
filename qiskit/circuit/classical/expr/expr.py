@@ -225,7 +225,7 @@ class Stretch(Expr):
             var: uuid.UUID,
             name: str,
     ):
-        super().__setattr__("type", types.Duration)
+        super().__setattr__("type", types.Duration())
         super().__setattr__("const", True)
         super().__setattr__("var", var)
         super().__setattr__("name", name)
@@ -248,22 +248,20 @@ class Stretch(Expr):
 
     def __eq__(self, other):
         return (
-                isinstance(other, Var)
+                isinstance(other, Stretch)
                 and self.var == other.var
                 and self.name == other.name
         )
 
     def __repr__(self):
-        if self.name is None:
-            return f"Var({self.var}, {self.type})"
-        return f"Var({self.var}, {self.type}, name='{self.name}')"
+        return f"Stretch({self.var}, {self.name})"
 
     def __getstate__(self):
-        return (self.var, self.type, self.name)
+        return (self.var, self.name)
 
     def __setstate__(self, state):
-        var, type, name = state
-        super().__setattr__("type", type)
+        var, name = state
+        super().__setattr__("type", types.Duration())
         super().__setattr__("const", True)
         super().__setattr__("var", var)
         super().__setattr__("name", name)

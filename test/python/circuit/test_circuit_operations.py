@@ -424,14 +424,15 @@ class TestCircuitOperations(QiskitTestCase):
         b = expr.Var.new("b", types.Uint(8))
         c = expr.Var.new("c", types.Bool())
         d = expr.Var.new("d", types.Uint(8))
-        e = expr.Var.new("e", types.Stretch())
-        f = expr.Var.new("f", types.Stretch())
+        e = expr.Stretch.new("e")
+        f = expr.Stretch.new("f")
 
         qc = QuantumCircuit(inputs=[a], declarations=[(c, expr.lift(False))])
         qc.add_stretch(e)
         copied = qc.copy()
         self.assertEqual({a}, set(copied.iter_input_vars()))
-        self.assertEqual({c, e}, set(copied.iter_declared_vars()))
+        self.assertEqual({c}, set(copied.iter_declared_vars()))
+        self.assertEqual({e}, set(copied.iter_declared_stretches()))
         self.assertEqual(
             [instruction.operation for instruction in qc],
             [instruction.operation for instruction in copied.data],
@@ -441,9 +442,11 @@ class TestCircuitOperations(QiskitTestCase):
         copied.add_input(b)
         copied.add_var(d, 0xFF)
         self.assertEqual({a, b}, set(copied.iter_input_vars()))
-        self.assertEqual({c, e, d}, set(copied.iter_declared_vars()))
+        self.assertEqual({c, d}, set(copied.iter_declared_vars()))
+        self.assertEqual({e}, set(copied.iter_declared_stretches()))
         self.assertEqual({a}, set(qc.iter_input_vars()))
-        self.assertEqual({c, e}, set(qc.iter_declared_vars()))
+        self.assertEqual({c}, set(qc.iter_declared_vars()))
+        self.assertEqual({e}, set(qc.iter_declared_stretches()))
 
         qc = QuantumCircuit(captures=[b], declarations=[(a, expr.lift(False)), (c, a)])
         copied = qc.copy()
@@ -458,9 +461,11 @@ class TestCircuitOperations(QiskitTestCase):
         copied.add_capture(d)
         copied.add_stretch(f)
         self.assertEqual({b, d}, set(copied.iter_captured_vars()))
-        self.assertEqual({a, c, f}, set(copied.iter_declared_vars()))
+        self.assertEqual({a, c}, set(copied.iter_declared_vars()))
+        self.assertEqual({f}, set(copied.iter_declared_stretches()))
         self.assertEqual({b}, set(qc.iter_captured_vars()))
         self.assertEqual({a, c}, set(qc.iter_declared_vars()))
+        self.assertEqual(set(), set(qc.iter_declared_stretches()))
 
     # pylint: disable=invalid-name
     def test_copy_empty_variables(self):
@@ -482,9 +487,11 @@ class TestCircuitOperations(QiskitTestCase):
         copied.add_var(d, 0xFF)
         e = copied.add_stretch("e")
         self.assertEqual({a, b}, set(copied.iter_input_vars()))
-        self.assertEqual({c, d, e}, set(copied.iter_declared_vars()))
+        self.assertEqual({c, d}, set(copied.iter_declared_vars()))
+        self.assertEqual({e}, set(copied.iter_declared_stretches()))
         self.assertEqual({a}, set(qc.iter_input_vars()))
         self.assertEqual({c}, set(qc.iter_declared_vars()))
+        self.assertEqual(set(), set(qc.iter_declared_stretches()))
 
         qc = QuantumCircuit(captures=[b], declarations=[(a, expr.lift(False)), (c, a)])
         copied = qc.copy_empty_like()
@@ -495,8 +502,10 @@ class TestCircuitOperations(QiskitTestCase):
         # Check that the original circuit is not mutated.
         copied.add_capture(d)
         copied.add_capture(e)
-        self.assertEqual({b, d, e}, set(copied.iter_captured_vars()))
+        self.assertEqual({b, d}, set(copied.iter_captured_vars()))
+        self.assertEqual({e}, set(copied.iter_captured_stretches()))
         self.assertEqual({b}, set(qc.iter_captured_vars()))
+        self.assertEqual(set(), set(qc.iter_captured_stretches()))
 
     # pylint: disable=invalid-name
     def test_copy_empty_variables_alike(self):
@@ -506,7 +515,7 @@ class TestCircuitOperations(QiskitTestCase):
         b = expr.Var.new("b", types.Uint(8))
         c = expr.Var.new("c", types.Bool())
         d = expr.Var.new("d", types.Uint(8))
-        e = expr.Var.new("e", types.Stretch())
+        e = expr.Stretch.new("e")
 
         qc = QuantumCircuit(inputs=[a], declarations=[(c, expr.lift(False))])
         copied = qc.copy_empty_like(vars_mode="alike")
@@ -519,9 +528,11 @@ class TestCircuitOperations(QiskitTestCase):
         copied.add_var(d, 0xFF)
         copied.add_stretch(e)
         self.assertEqual({a, b}, set(copied.iter_input_vars()))
-        self.assertEqual({c, d, e}, set(copied.iter_declared_vars()))
+        self.assertEqual({c, d}, set(copied.iter_declared_vars()))
+        self.assertEqual({e}, set(copied.iter_declared_stretches()))
         self.assertEqual({a}, set(qc.iter_input_vars()))
         self.assertEqual({c}, set(qc.iter_declared_vars()))
+        self.assertEqual(set(), set(qc.iter_declared_stretches()))
 
         qc = QuantumCircuit(captures=[b], declarations=[(a, expr.lift(False)), (c, a)])
         copied = qc.copy_empty_like(vars_mode="alike")
@@ -532,7 +543,8 @@ class TestCircuitOperations(QiskitTestCase):
         # Check that the original circuit is not mutated.
         copied.add_capture(d)
         copied.add_capture(e)
-        self.assertEqual({b, d, e}, set(copied.iter_captured_vars()))
+        self.assertEqual({b, d}, set(copied.iter_captured_vars()))
+        self.assertEqual({e}, set(copied.iter_captured_stretches()))
         self.assertEqual({b}, set(qc.iter_captured_vars()))
 
     # pylint: disable=invalid-name
@@ -546,14 +558,18 @@ class TestCircuitOperations(QiskitTestCase):
         qc = QuantumCircuit(inputs=[a, b], declarations=[(c, expr.lift(False))])
         e = qc.add_stretch("e")
         copied = qc.copy_empty_like(vars_mode="captures")
-        self.assertEqual({a, b, c, e}, set(copied.iter_captured_vars()))
-        self.assertEqual({a, b, c, e}, set(copied.iter_vars()))
+        self.assertEqual({a, b, c}, set(copied.iter_captured_vars()))
+        self.assertEqual({e}, set(copied.iter_captured_stretches()))
+        self.assertEqual({a, b, c}, set(copied.iter_vars()))
+        self.assertEqual({e}, set(copied.iter_stretches()))
         self.assertEqual([], list(copied.data))
 
         qc = QuantumCircuit(captures=[c, d, e])
         copied = qc.copy_empty_like(vars_mode="captures")
-        self.assertEqual({c, d, e}, set(copied.iter_captured_vars()))
-        self.assertEqual({c, d, e}, set(copied.iter_vars()))
+        self.assertEqual({c, d}, set(copied.iter_captured_vars()))
+        self.assertEqual({e}, set(copied.iter_captured_stretches()))
+        self.assertEqual({c, d}, set(copied.iter_vars()))
+        self.assertEqual({e}, set(copied.iter_stretches()))
         self.assertEqual([], list(copied.data))
 
     def test_copy_empty_variables_drop(self):
@@ -561,11 +577,12 @@ class TestCircuitOperations(QiskitTestCase):
         a = expr.Var.new("a", types.Bool())
         b = expr.Var.new("b", types.Uint(8))
         c = expr.Var.new("c", types.Bool())
-        d = expr.Var.new("s", types.Stretch())
+        d = expr.Stretch.new("s")
 
         qc = QuantumCircuit(captures=[a, b, d], declarations=[(c, expr.lift(False))])
         copied = qc.copy_empty_like(vars_mode="drop")
         self.assertEqual(set(), set(copied.iter_vars()))
+        self.assertEqual(set(), set(copied.iter_stretches()))
         self.assertEqual([], list(copied.data))
 
     def test_copy_empty_like_parametric_phase(self):
