@@ -15,7 +15,7 @@
 use pyo3::{PyResult, Python};
 use qiskit_circuit::{
     circuit_data::CircuitData,
-    operations::{OperationRef, Param, StandardGate, StandardInstruction},
+    operations::{Operation, OperationRef, Param, StandardGate, StandardInstruction},
     Qubit,
 };
 use smallvec::SmallVec;
@@ -147,7 +147,7 @@ impl<'a> SynthesisData<'a> {
     }
 
     /// Creates from [CircuitData].
-    pub fn from_circuit_data(circuit_data: &'a CircuitData) -> SynthesisData<'a> {
+    pub fn from_circuit_data(circuit_data: &CircuitData) -> SynthesisData {
         let mut circuit = SynthesisData::new(circuit_data.qubits().len() as u32);
         for inst in circuit_data.data() {
             circuit.data.push((
@@ -162,6 +162,13 @@ impl<'a> SynthesisData<'a> {
             ));
         }
         circuit
+    }
+
+
+    /// Constructs from the definition of a standard gate
+    pub fn from_standard_gate_definition(standard_gate: StandardGate, params: &[Param]) -> SynthesisData {
+        let definition = standard_gate.definition(params).expect("Error extracting the definition of a standard gate");
+        Self::from_circuit_data(&definition)
     }
 
     // Convenience functions

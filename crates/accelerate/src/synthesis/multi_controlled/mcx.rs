@@ -11,10 +11,10 @@
 // that they have been altered from the originals.
 
 use crate::synthesis::common::SynthesisData;
-use pyo3::{types::PyAnyMethods, Python};
-use qiskit_circuit::imports;
-use qiskit_circuit::operations::{OperationRef, PyGate};
-use smallvec::smallvec;
+use pyo3::Python;
+// use qiskit_circuit::imports;
+// use qiskit_circuit::operations::{OperationRef, PyGate};
+// use smallvec::smallvec;
 
 use std::f64::consts::PI;
 const PI2: f64 = PI / 2.;
@@ -280,7 +280,7 @@ pub fn synth_mcx_n_dirty_i15<'a>(
 /// 1. Vale et. al., *Circuit Decomposition of Multicontrolled Special Unitary
 /// Single-Qubit Gates*, IEEE TCAD 43(3) (2024),
 /// [arXiv:2302.06377] (https://arxiv.org/abs/2302.06377).
-pub fn synth_mcx_noaux_v24<'a>(py: Python, num_controls: usize) -> SynthesisData<'a> {
+pub fn synth_mcx_noaux_v24<'a>(_py: Python, num_controls: usize) -> SynthesisData<'a> {
     // ToDo: should we return Result?
     if num_controls == 3 {
         c3x()
