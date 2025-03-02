@@ -1615,6 +1615,106 @@ impl CircuitData {
             _ => self.set_global_phase(py, add_global_phase(py, &self.global_phase, value)?),
         }
     }
+
+    /// Composes ``other`` into ``self``, while optionally remapping the
+    /// qubits over which ``other`` is defined.
+    pub fn compose(
+        &mut self,
+        py: Python,
+        other: &Self,
+        qubit_map: Option<&[Qubit]>,
+    ) -> PyResult<()> {
+        for inst in &other.data {
+            let remapped_qubits: Vec<Qubit> = match qubit_map {
+                Some(qubit_map) => other
+                    .get_qargs(inst.qubits)
+                    .iter()
+                    .map(|q| qubit_map[q.index()])
+                    .collect(),
+                None => other.get_qargs(inst.qubits).to_vec(),
+            };
+            let remapped_clbits: Vec<Clbit> = other.get_cargs(inst.clbits).to_vec();
+
+            // let params = (!params.is_empty()).then(|| Box::new(params.iter().cloned().collect()));
+            let qubits = self.qargs_interner.insert(&remapped_qubits);
+            let clbits = self.cargs_interner.insert(&remapped_clbits);
+
+            self.data.push(PackedInstruction {
+                op: inst.op.clone(),
+                qubits,
+                clbits,
+                params: inst.params.clone(),
+                label: None,
+                #[cfg(feature = "cache_pygates")]
+                py_op: OnceLock::new(),
+            });
+        }
+
+        self.add_global_phase(py, other.global_phase())?;
+        Ok(())
+    }
+
+    /// Constructs from the definition of a standard gate
+    pub fn from_standard_gate_definition(standard_gate: StandardGate, params: &[Param]) -> Self {
+        standard_gate
+            .definition(params)
+            .expect("Error extracting the definition of a standard gate")
+    }
+
+    // Convenience functions
+
+    /// Appends XGate to the circuit.
+    #[inline]
+    pub fn x(&mut self, q: u32) {
+        self.push_standard_gate(StandardGate::XGate, &[], &[Qubit(q)])
+            .expect("Error addding a standard gate to the circuit data");
+    }
+
+    /// Appends HGate to the circuit.
+    #[inline]
+    pub fn h(&mut self, q: u32) {
+        self.push_standard_gate(StandardGate::HGate, &[], &[Qubit(q)])
+            .expect("Error addding a standard gate to the circuit data");
+    }
+
+    /// Appends TGate to the circuit.
+    #[inline]
+    pub fn t(&mut self, q: u32) {
+        self.push_standard_gate(StandardGate::TGate, &[], &[Qubit(q)])
+            .expect("Error addding a standard gate to the circuit data");
+    }
+
+    /// Appends TdgGate to the circuit.
+    #[inline]
+    pub fn tdg(&mut self, q: u32) {
+        self.push_standard_gate(StandardGate::TdgGate, &[], &[Qubit(q)])
+            .expect("Error addding a standard gate to the circuit data");
+    }
+
+    /// Appends PhaseGate to the circuit.
+    #[inline]
+    pub fn p(&mut self, theta: f64, q: u32) {
+        self.push_standard_gate(StandardGate::PhaseGate, &[Param::Float(theta)], &[Qubit(q)])
+            .expect("Error addding a standard gate to the circuit data");
+    }
+
+    /// Appends CXGate to the circuit.
+    #[inline]
+    pub fn cx(&mut self, q1: u32, q2: u32) {
+        self.push_standard_gate(StandardGate::CXGate, &[], &[Qubit(q1), Qubit(q2)])
+            .expect("Error addding a standard gate to the circuit data");
+    }
+
+    /// Appends CU1Gate to the circuit.
+    #[inline]
+    pub fn cu1(&mut self, theta: f64, q1: u32, q2: u32) {
+        self.push_standard_gate(
+            StandardGate::CU1Gate,
+            &[Param::Float(theta)],
+            &[Qubit(q1), Qubit(q2)],
+        )
+        .expect("Error addding a standard gate to the circuit data");
+    }
 }
 
 /// Helper struct for `assign_parameters` to allow use of `Param::extract_no_coerce` in

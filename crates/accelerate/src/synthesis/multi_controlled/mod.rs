@@ -19,12 +19,12 @@ mod mcx;
 
 #[pyfunction]
 pub fn py_ccx(py: Python) -> PyResult<CircuitData> {
-    ccx().to_circuit_data(py)
+    ccx(py)
 }
 
 #[pyfunction]
 pub fn py_c3x(py: Python) -> PyResult<CircuitData> {
-    c3x().to_circuit_data(py)
+    c3x(py)
 }
 
 #[pyfunction]
@@ -35,13 +35,13 @@ fn py_synth_mcx_n_dirty_i15(
     relative_phase: bool,
     action_only: bool,
 ) -> PyResult<CircuitData> {
-    synth_mcx_n_dirty_i15(num_controls, relative_phase, action_only).to_circuit_data(py)
+    synth_mcx_n_dirty_i15(py, num_controls, relative_phase, action_only)
 }
 
 #[pyfunction]
 #[pyo3(signature = (num_controls))]
 fn py_synth_mcx_noaux_v24(py: Python, num_controls: usize) -> PyResult<CircuitData> {
-    synth_mcx_noaux_v24(py, num_controls).to_circuit_data(py)
+    synth_mcx_noaux_v24(py, num_controls)
 }
 
 pub fn multi_controlled(m: &Bound<PyModule>) -> PyResult<()> {
