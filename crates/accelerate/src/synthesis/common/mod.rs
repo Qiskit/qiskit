@@ -31,7 +31,7 @@ type SynthesisEntry<'a> = (OperationRef<'a>, SmallVec<[Param; 3]>, SmallVec<[u32
 #[derive(Debug)]
 pub struct SynthesisData<'a> {
     num_qubits: u32,
-    data: Vec<SynthesisEntry<'a>>,
+    pub data: Vec<SynthesisEntry<'a>>,
     global_phase: f64,
 }
 
@@ -69,6 +69,31 @@ impl<'a> SynthesisData<'a> {
             qargs.into(),
         ));
     }
+
+    // /// Appends a [PyGate] to the circuit.
+    // #[inline]
+    // pub fn push_py_gate<'a>(
+    //     &mut self,
+    //     operation: &Bound<PyAny>,
+    //     params: &[Param],
+    //     qargs: &[u32],
+    //     operation_name: String,
+    //     num_params: u32,
+
+    // ) {
+    //     let as_py_gate = PyGate {
+    //         qubits: qargs.len() as u32,
+    //         clbits: 0,
+    //         params: num_params,
+    //         op_name: operation_name,
+    //         gate: operation.clone().unbind(),
+    //     };
+    //     self.data.push((
+    //         OperationRef::Gate(&as_py_gate),
+    //         params.into(),
+    //         qargs.into(),
+    //     ));
+    // }
 
     /// Composes ``other`` into ``self``, while optionally remapping the
     /// qubits over which ``other`` is defined.
@@ -121,6 +146,24 @@ impl<'a> SynthesisData<'a> {
         Ok(circuit)
     }
 
+    /// Creates from [CircuitData].
+    pub fn from_circuit_data(circuit_data: &'a CircuitData) -> SynthesisData<'a> {
+        let mut circuit = SynthesisData::new(circuit_data.qubits().len() as u32);
+        for inst in circuit_data.data() {
+            circuit.data.push((
+                inst.op.view(),
+                inst.params_view().into(),
+                circuit_data
+                    .get_qargs(inst.qubits)
+                    .into_iter()
+                    .map(|q| q.index() as u32)
+                    .collect::<Vec<u32>>()
+                    .into(),
+            ));
+        }
+        circuit
+    }
+
     // Convenience functions
 
     /// Appends XGate to the circuit.
@@ -157,5 +200,11 @@ impl<'a> SynthesisData<'a> {
     #[inline]
     pub fn cx(&mut self, q1: u32, q2: u32) {
         self.push_standard_gate(StandardGate::CXGate, &[], &[q1, q2]);
+    }
+
+    /// Appends CU1Gate to the circuit.
+    #[inline]
+    pub fn cu1(&mut self, theta: f64, q1: u32, q2: u32) {
+        self.push_standard_gate(StandardGate::CU1Gate, &[Param::Float(theta)], &[q1, q2]);
     }
 }

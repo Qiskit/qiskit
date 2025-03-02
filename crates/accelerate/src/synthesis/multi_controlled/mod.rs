@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use mcx::{c3x, ccx, synth_mcx_n_dirty_i15};
+use mcx::{c3x, ccx, synth_mcx_n_dirty_i15, synth_mcx_noaux_v24};
 use pyo3::prelude::*;
 use qiskit_circuit::circuit_data::CircuitData;
 
@@ -38,10 +38,17 @@ fn py_synth_mcx_n_dirty_i15(
     synth_mcx_n_dirty_i15(num_controls, relative_phase, action_only).to_circuit_data(py)
 }
 
+#[pyfunction]
+#[pyo3(signature = (num_controls))]
+fn py_synth_mcx_noaux_v24(py: Python, num_controls: usize) -> PyResult<CircuitData> {
+    synth_mcx_noaux_v24(py, num_controls).to_circuit_data(py)
+}
+
 pub fn multi_controlled(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(py_ccx, m)?)?;
     m.add_function(wrap_pyfunction!(py_c3x, m)?)?;
     m.add_function(wrap_pyfunction!(py_synth_mcx_n_dirty_i15, m)?)?;
+    m.add_function(wrap_pyfunction!(py_synth_mcx_noaux_v24, m)?)?;
     m.add_function(wrap_pyfunction!(mcmt::mcmt_v_chain, m)?)?;
     Ok(())
 }
