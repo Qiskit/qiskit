@@ -274,6 +274,8 @@ class ExprVarDeclaration(TypeKeyBase):
     INPUT = b"I"
     CAPTURE = b"C"
     LOCAL = b"L"
+    STRETCH_CAPTURE = b"A"
+    STRETCH_LOCAL = b"O"
 
     @classmethod
     def assign(cls, obj):
