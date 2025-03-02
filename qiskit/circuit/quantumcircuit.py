@@ -2740,26 +2740,22 @@ class QuantumCircuit:
             raise CircuitError(f"cannot add '{var}' as its name shadows the existing '{previous}'")
         return var
 
-    def add_stretch(self, name_or_var: str | expr.Var) -> expr.Var:
+    def add_stretch(self, name_or_var: str | expr.Stretch) -> expr.Stretch:
         """Declares a new stretch variable scoped to this circuit.
 
         Args:
             name_or_var: either a string of the stretch variable name, or an existing instance of
-                :class:`~.expr.Var` to re-use.  Variables cannot shadow names that are already in
-                use within the circuit. The type of the variable must be
-                :class:`~.types.Stretch`.
+                :class:`~.expr.Stretch` to re-use.  Stretches cannot shadow names that are already in
+                use within the circuit.
         Returns:
-            The created variable.  If a :class:`~.expr.Var` instance was given, the exact same
+            The created variable.  If a :class:`~.expr.Stretch` instance was given, the exact same
             object will be returned.
         Raises:
             CircuitError: if the stretch variable cannot be created due to shadowing an existing
-                variable, or the provided :class:`~.expr.Var` is not typed as a
-                :class:`~.types.Stretch`.
+                variable.
         """
         if isinstance(name_or_var, str):
-            var = expr.Var.new(name_or_var, types.Stretch())
-        elif name_or_var.type.kind is not types.Stretch:
-            raise CircuitError(f"cannot add stretch variable of type {name_or_var.type}")
+            var = expr.Stretch.new(name_or_var)
         else:
             var = name_or_var
         self._current_scope().add_uninitialized_var(var)

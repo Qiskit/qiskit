@@ -297,6 +297,16 @@ class _ExprWriter(expr.ExprVisitor[None]):
         else:
             raise exceptions.QpyError(f"unhandled Var object '{node.var}'")
 
+    def visit_stretch(self, node, /):
+        # TODO: finish implementing
+        self.file_obj.write(type_keys.Expression.STRETCH)
+        self.file_obj.write(
+            struct.pack(
+                formats.EXPR_VAR_UUID_PACK,
+                *formats.EXPR_VAR_UUID(self.standalone_var_indices[node]),
+            )
+        )
+
     def visit_value(self, node, /):
         self.file_obj.write(type_keys.Expression.VALUE)
         self._write_expr_type(node.type)
@@ -705,6 +715,9 @@ def _read_expr(
             name = file_obj.read(payload.reg_name_size).decode(common.ENCODE)
             return expr.Var(cregs[name], type_)
         raise exceptions.QpyError("Invalid classical-expression Var key '{var_type_key}'")
+    if type_key == type_keys.Expression.STRETCH:
+        # TODO
+        raise NotImplemented("")
     if type_key == type_keys.Expression.VALUE:
         value_type_key = file_obj.read(formats.EXPR_VALUE_DISCRIMINATOR_SIZE)
         if value_type_key == type_keys.ExprValue.BOOL:

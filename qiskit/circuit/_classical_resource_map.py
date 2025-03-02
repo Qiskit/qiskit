@@ -18,6 +18,7 @@ import typing
 
 from .bit import Bit
 from .classical import expr
+from .classical.expr.visitors import _T_co
 from .classicalregister import ClassicalRegister, Clbit
 
 
@@ -131,6 +132,10 @@ class VariableMapper(expr.ExprVisitor[expr.Expr]):
         if isinstance(node.var, ClassicalRegister):
             return expr.Var(self._map_register(node.var), node.type)
         return self.var_map.get(node, node)
+
+    def visit_stretch(self, node):
+        # TODO
+        pass
 
     def visit_value(self, node, /):
         return expr.Value(node.value, node.type)

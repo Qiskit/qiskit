@@ -54,6 +54,11 @@ with associated types. A :class:`Value` is always considered a constant expressi
 
 .. autoclass:: Value
 
+Stretch variables for use in duration expressions are represented by the :class:`Stretch` node.
+
+.. autoclass:: Stretch
+    :members: var, name, new
+
 The operations traditionally associated with pre-, post- or infix operators in programming are
 represented by the :class:`Unary` and :class:`Binary` nodes as appropriate.  These each take an
 operation type code, which are exposed as enumerations inside each class as :class:`Unary.Op`
@@ -196,6 +201,7 @@ __all__ = [
     "Unary",
     "Binary",
     "Index",
+    "Stretch",
     "ExprVisitor",
     "iter_vars",
     "structurally_equivalent",
@@ -225,7 +231,7 @@ __all__ = [
     "lift_legacy_condition",
 ]
 
-from .expr import Expr, Var, Value, Cast, Unary, Binary, Index
+from .expr import Expr, Var, Value, Cast, Unary, Binary, Index, Stretch
 from .visitors import ExprVisitor, iter_vars, structurally_equivalent, is_lvalue
 from .constructors import (
     lift,

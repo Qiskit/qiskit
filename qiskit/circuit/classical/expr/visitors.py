@@ -18,6 +18,7 @@ __all__ = [
     "ExprVisitor",
     "iter_vars",
     "structurally_equivalent",
+    "is_lvalue",
 ]
 
 import typing
@@ -43,6 +44,9 @@ class ExprVisitor(typing.Generic[_T_co]):
     def visit_var(self, node: expr.Var, /) -> _T_co:  # pragma: no cover
         return self.visit_generic(node)
 
+    def visit_stretch(self, node: expr.Stretch, /) -> _T_co:  # pragma: no cover
+        return self.visit_generic(node)
+
     def visit_value(self, node: expr.Value, /) -> _T_co:  # pragma: no cover
         return self.visit_generic(node)
 
@@ -64,6 +68,9 @@ class _VarWalkerImpl(ExprVisitor[typing.Iterable[expr.Var]]):
 
     def visit_var(self, node, /):
         yield node
+
+    def visit_stretch(self, node, /):
+        yield from ()
 
     def visit_value(self, node, /):
         yield from ()
@@ -127,6 +134,15 @@ class _StructuralEquivalenceImpl(ExprVisitor[bool]):
 
     def visit_var(self, node, /):
         if self.other.__class__ is not node.__class__ or self.other.type != node.type:
+            return False
+        if self.self_key is None or (self_var := self.self_key(node.var)) is None:
+            self_var = node.var
+        if self.other_key is None or (other_var := self.other_key(self.other.var)) is None:
+            other_var = self.other.var
+        return self_var == other_var
+
+    def visit_stretch(self, node, /):
+        if self.other.__class__ is not node.__class__:
             return False
         if self.self_key is None or (self_var := self.self_key(node.var)) is None:
             self_var = node.var
@@ -239,6 +255,9 @@ class _IsLValueImpl(ExprVisitor[bool]):
 
     def visit_var(self, node, /):
         return True
+
+    def visit_stretch(self, node, /):
+        return False
 
     def visit_value(self, node, /):
         return False

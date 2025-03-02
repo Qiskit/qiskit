@@ -60,7 +60,7 @@ from . import ast
 from .experimental import ExperimentalFeatures
 from .exceptions import QASM3ExporterError
 from .printer import BasicPrinter
-
+from ..circuit.classical.expr.visitors import _T_co
 
 # Reserved keywords that gates and variables cannot be named.  It is possible that some of these
 # _could_ be accepted as variable names by OpenQASM 3 parsers, but it's safer for us to just be very
@@ -675,6 +675,8 @@ class QASM3Builder:
         # names in the symbol table.
         self.hoist_classical_io_var_declarations()
 
+        # TODO: hoist stretches
+
         # Similarly, QuantumCircuit qubits/registers are only new variables in the global scope.
         quantum_declarations = self.build_quantum_declarations()
 
@@ -1265,7 +1267,7 @@ class _ExprBuilder(expr.ExprVisitor[ast.Expression]):
     __slots__ = ("lookup",)
 
     # This is a very simple, non-contextual converter.  As the type system expands, we may well end
-    # up with some places where Terra's abstract type system needs to be lowered to OQ3 rather than
+    # up with some places where Qiskit's abstract type system needs to be lowered to OQ3 rather than
     # mapping 100% directly, which might need a more contextual visitor.
 
     def __init__(self, lookup):
@@ -1273,6 +1275,10 @@ class _ExprBuilder(expr.ExprVisitor[ast.Expression]):
 
     def visit_var(self, node, /):
         return self.lookup(node) if node.standalone else self.lookup(node.var)
+
+    def visit_stretch(self, node, /):
+        # TODO:
+        pass
 
     # pylint: disable=too-many-return-statements
     def visit_value(self, node, /):

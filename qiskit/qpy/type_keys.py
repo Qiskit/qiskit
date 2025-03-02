@@ -247,6 +247,7 @@ class Expression(TypeKeyBase):
     """Type keys for the ``EXPRESSION`` QPY item."""
 
     VAR = b"x"
+    STRETCH = b"s"
     VALUE = b"v"
     CAST = b"c"
     UNARY = b"u"
