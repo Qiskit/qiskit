@@ -397,12 +397,6 @@ def _write_expr_type(file_obj, type_: types.Type, version: int):
                 "duration-typed expressions", required=14, target=version
             )
         file_obj.write(type_keys.ExprType.DURATION)
-    elif type_.kind is types.Stretch:
-        if version < 14:
-            raise exceptions.UnsupportedFeatureForVersion(
-                "stretch-typed expressions", required=14, target=version
-            )
-        file_obj.write(type_keys.ExprType.STRETCH)
     else:
         raise exceptions.QpyError(f"unhandled Type object '{type_};")
 
@@ -792,8 +786,6 @@ def _read_expr_type(file_obj) -> types.Type:
         return types.Float()
     if type_key == type_keys.ExprType.DURATION:
         return types.Duration()
-    if type_key == type_keys.ExprType.STRETCH:
-        return types.Stretch()
     raise exceptions.QpyError(f"Invalid classical-expression Type key '{type_key}'")
 
 

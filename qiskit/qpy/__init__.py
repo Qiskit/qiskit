@@ -418,8 +418,6 @@ Qiskit class               Type code  Payload
 
 :class:`~.types.Duration`  ``d``      None.
 
-:class:`~.types.Stretch`   ``s``      None.
-
 =========================  =========  ==============================================================
 
 Changes to EXPR_VALUE

@@ -24,7 +24,6 @@ __all__ = [
     "Bool",
     "Duration",
     "Float",
-    "Stretch",
     "Uint",
 ]
 
@@ -152,19 +151,3 @@ class Duration(Type, metaclass=_Singleton):
 
     def __eq__(self, other):
         return isinstance(other, Duration)
-
-
-@typing.final
-class Stretch(Type, metaclass=_Singleton):
-    """A special type that denotes some not-yet-known non-negative duration."""
-
-    __slots__ = ()
-
-    def __repr__(self):
-        return "Stretch()"
-
-    def __hash__(self):
-        return hash(self.__class__)
-
-    def __eq__(self, other):
-        return isinstance(other, Stretch)

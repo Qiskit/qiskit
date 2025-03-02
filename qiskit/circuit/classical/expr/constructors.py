@@ -357,7 +357,7 @@ def logic_or(left: typing.Any, right: typing.Any, /) -> Expr:
 
 def _equal_like(op: Binary.Op, left: typing.Any, right: typing.Any) -> Expr:
     left, right = _lift_binary_operands(left, right)
-    if left.type.kind is not right.type.kind or left.type.kind is types.Stretch:
+    if left.type.kind is not right.type.kind:
         raise TypeError(f"invalid types for '{op}': '{left.type}' and '{right.type}'")
     type = types.greater(left.type, right.type)
     # Note that we don't check the return value of _coerce_lossless for these
@@ -403,7 +403,7 @@ Uint(3))
 
 def _binary_relation(op: Binary.Op, left: typing.Any, right: typing.Any) -> Expr:
     left, right = _lift_binary_operands(left, right)
-    if left.type.kind is not right.type.kind or left.type.kind in {types.Bool, types.Stretch}:
+    if left.type.kind is not right.type.kind or left.type.kind is types.Bool:
         raise TypeError(f"invalid types for '{op}': '{left.type}' and '{right.type}'")
     type = types.greater(left.type, right.type)
     # Note that we don't check the return value of _coerce_lossless for these

@@ -34,20 +34,14 @@ heap-allocating a new version of the same thing.  Where possible, the class cons
 singleton instances to facilitate this.
 
 The :class:`Bool` type represents :class:`.Clbit` and the literals ``True`` and ``False``, the
-:class:`Uint` type represents :class:`.ClassicalRegister` and Python integers, and the
-:class:`Float` type represents Python floats.
+:class:`Uint` type represents :class:`.ClassicalRegister` and Python integers, the :class:`Float`
+type represents Python floats, and the :class:`Duration` type represents a duration for use in
+timing-aware circuit operations.
 
 .. autoclass:: Bool
 .. autoclass:: Uint
 .. autoclass:: Float
-
-Note that :class:`Uint` defines a family of types parametrized by their width; it is not one single
-type, which may be slightly different to the 'classical' programming languages you are used to.
-
-There are also two duration-like types for use in circuit timing expressions.
-
 .. autoclass:: Duration
-.. autoclass:: Stretch
 
 Working with types
 ==================
@@ -105,7 +99,6 @@ __all__ = [
     "Bool",
     "Duration",
     "Float",
-    "Stretch",
     "Uint",
     "Ordering",
     "order",
@@ -116,5 +109,5 @@ __all__ = [
     "cast_kind",
 ]
 
-from .types import Type, Bool, Duration, Float, Stretch, Uint
+from .types import Type, Bool, Duration, Float, Uint
 from .ordering import Ordering, order, is_subtype, is_supertype, greater, CastKind, cast_kind

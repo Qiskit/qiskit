@@ -201,7 +201,7 @@ def transpile(  # pylint: disable=too-many-return-statements
             If unit is omitted, the default is 'dt', which is a sample time depending on backend.
             If the time unit is 'dt', the duration must be an integer.
         dt: Backend sample time (resolution) in seconds.
-            If ``None`` (default), ``backend.configuration().dt`` is used.
+            If ``None`` (default), ``backend.dt`` is used.
         approximation_degree (float): heuristic dial used for circuit approximation
             (1.0=no approximation, 0.0=maximal approximation)
         timing_constraints: An optional control hardware restriction on instruction time resolution.

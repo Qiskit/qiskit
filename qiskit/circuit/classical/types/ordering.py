@@ -26,7 +26,7 @@ __all__ = [
 
 import enum
 
-from .types import Type, Bool, Duration, Float, Stretch, Uint
+from .types import Type, Bool, Duration, Float, Uint
 
 
 # While the type system is simple, it's overkill to represent the complete partial ordering graph of
@@ -68,9 +68,6 @@ _ORDERERS = {
     (Uint, Uint): _order_uint_uint,
     (Float, Float): lambda _a, _b, /: Ordering.EQUAL,
     (Duration, Duration): lambda _a, _b, /: Ordering.EQUAL,
-    (Duration, Stretch): lambda _a, _b, /: Ordering.LESS,
-    (Stretch, Stretch): lambda _a, _b, /: Ordering.EQUAL,
-    (Stretch, Duration): lambda _a, _b, /: Ordering.GREATER,
 }
 
 
@@ -204,8 +201,6 @@ _ALLOWED_CASTS = {
     (Float, Uint): lambda _a, _b, /: CastKind.DANGEROUS,
     (Float, Bool): lambda _a, _b, /: CastKind.DANGEROUS,
     (Duration, Duration): lambda _a, _b, /: CastKind.EQUAL,
-    (Duration, Stretch): lambda _a, _b, /: CastKind.IMPLICIT,
-    (Stretch, Stretch): lambda _a, _b, /: CastKind.EQUAL,
 }
 
 

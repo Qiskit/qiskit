@@ -290,7 +290,6 @@ class ExprType(TypeKeyBase):
     UINT = b"u"
     FLOAT = b"f"
     DURATION = b"d"
-    STRETCH = b"s"
 
     @classmethod
     def assign(cls, obj):
