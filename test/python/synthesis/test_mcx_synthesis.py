@@ -15,8 +15,9 @@
 import unittest
 
 from qiskit.quantum_info import Operator
-from qiskit.circuit.library import C3XGate
+from qiskit.circuit.library import XGate, C3XGate
 from qiskit.synthesis.multi_controlled import synth_c3x
+from qiskit.circuit._utils import _compute_control_matrix
 
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -24,10 +25,16 @@ from test import QiskitTestCase  # pylint: disable=wrong-import-order
 class TestMCXSynth(QiskitTestCase):
     """Test MCX synthesis methods."""
 
+    @staticmethod
+    def mcx_matrix(num_ctrl_qubits: int):
+        """Return matrix for the MCX gate with the given number of control qubits."""
+        base_mat = XGate().to_matrix()
+        return _compute_control_matrix(base_mat, num_ctrl_qubits)
+
     def test_c3x(self):
         """Test the default synthesis method for C3XGate."""
-        # ToDo: it might be nicer to compare with the actual matrix
-        self.assertEqual(Operator(C3XGate().definition), Operator(synth_c3x()))
+        expected_mat = self.mcx_matrix(3)
+        self.assertEqual(Operator(synth_c3x()), Operator(expected_mat))
 
 
 if __name__ == "__main__":
