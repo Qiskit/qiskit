@@ -613,17 +613,6 @@ Binary.Op.ADD, \
 Value(Duration.dt(1000), Duration()), \
 Value(Duration.dt(1000), Duration()), \
 Duration())
-
-        Addition of stretch and duration::
-
-            >>> from qiskit.circuit import Duration
-            >>> from qiskit.circuit.classical import expr, types
-            >>> expr.add(expr.Var.new("a", types.Stretch()), Duration.dt(1000))
-            Binary(\
-Binary.Op.ADD, \
-Var(<UUID>, Stretch(), name='a'), \
-Cast(Value(Duration.dt(1000), Duration()), Stretch(), implicit=True), \
-Stretch())
         """
     return _binary_sum(Binary.Op.ADD, left, right)
 
@@ -653,17 +642,6 @@ Binary.Op.SUB, \
 Value(Duration.dt(1000), Duration()), \
 Value(Duration.dt(1000), Duration()), \
 Duration())
-
-        Subtraction of duration from stretch::
-
-            >>> from qiskit.circuit import Duration
-            >>> from qiskit.circuit.classical import expr, types
-            >>> expr.add(expr.Var.new("a", types.Stretch()), Duration.dt(1000))
-            Binary(\
-Binary.Op.SUB, \
-Var(<UUID>, Stretch(), name='a'), \
-Cast(Value(Duration.dt(1000), Duration()), Stretch(), implicit=True), \
-Stretch())
         """
     return _binary_sum(Binary.Op.SUB, left, right)
 
@@ -672,7 +650,7 @@ def mul(left: typing.Any, right: typing.Any) -> Expr:
     """Create a multiplication expression node from the given values, resolving any implicit casts and
     lifting the values into :class:`Value` nodes if required.
 
-    This can be used to multiply numeric operands of the same type kind, or to multiply a timing
+    This can be used to multiply numeric operands of the same type kind, or to multiply a duration
     operand by a :class:`~.types.Float`.
 
     Examples:
@@ -696,32 +674,18 @@ Binary.Op.MUL, \
 Value(Duration.dt(1000), Duration()), \
 Value(0.5, Float()), \
 Duration())
-
-        Multiplication of a stretch by a float::
-
-            >>> from qiskit.circuit.classical import expr
-            >>> expr.mul(expr.Var.new("a", types.Stretch()), 0.5)
-            Binary(\
-Binary.Op.MUL, \
-Var(<UUID>, Stretch(), name='a'), \
-Value(0.5, Float()), \
-Stretch())
     """
     left, right = _lift_binary_operands(left, right)
-    left_timing = left.type.kind in (types.Stretch, types.Duration)
-    right_timing = right.type.kind in (types.Stretch, types.Duration)
     type: types.Type
-    if left_timing and right_timing:
-        raise TypeError(
-            f"cannot multiply two timing operands, type: '{left.type}' and '{right.type}'"
-        )
-    if left_timing and right.type.kind is types.Float:
+    if left.type.kind is types.Duration and right.type.kind is types.Duration:
+        raise TypeError("cannot multiply two durations")
+    if left.type.kind is types.Duration and right.type.kind is types.Float:
         if not right.const:
             raise ValueError(
                 f"multiplying operands '{left}' and '{right}' would result in a non-const '{left.type}'"
             )
         type = left.type
-    elif right_timing and left.type.kind is types.Float:
+    elif right.type.kind is types.Duration and left.type.kind is types.Float:
         if not left.const:
             raise ValueError(
                 f"multiplying operands '{left}' and '{right}' would result in a non-const '{right.type}'"
@@ -749,9 +713,10 @@ def div(left: typing.Any, right: typing.Any) -> Expr:
     """Create a division expression node from the given values, resolving any implicit casts and
     lifting the values into :class:`Value` nodes if required.
 
-    This can be used to divide numeric operands of the same type kind, to divide a timing
-    operand by a :class:`~.types.Float`, or to divide two :class`~.types.Duration` operands
-    which yields an expression of type :class:`~.types.Float`.
+    This can be used to divide numeric operands of the same type kind, to divide a
+    :class`~.types.Duration` operand by a :class:`~.types.Float`, or to divide two
+    :class`~.types.Duration` operands which yields an expression of type
+    :class:`~.types.Float`.
 
     Examples:
         Division of two floating point numbers::
@@ -790,15 +755,13 @@ Duration())
     left, right = _lift_binary_operands(left, right)
     type: types.Type
     if left.type.kind is right.type.kind is not types.Bool:
-        if left.type.kind is types.Stretch:
-            raise TypeError("cannot divide two stretch operands")
         if left.type.kind is types.Duration:
             type = types.Float()
         elif types.order(left.type, right.type) is not types.Ordering.NONE:
             type = types.greater(left.type, right.type)
             left = _coerce_lossless(left, type)
             right = _coerce_lossless(right, type)
-    elif left.type.kind in (types.Stretch, types.Duration) and right.type.kind is types.Float:
+    elif left.type.kind is types.Duration and right.type.kind is types.Float:
         if not right.const:
             raise ValueError(
                 f"division of '{left}' and '{right}' would result in a non-const '{left.type}'"

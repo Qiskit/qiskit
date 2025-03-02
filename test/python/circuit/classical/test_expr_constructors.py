@@ -629,8 +629,6 @@ class TestExprConstructors(QiskitTestCase):
     @ddt.unpack
     def test_binary_sum_explicit(self, function, opcode):
         cr = ClassicalRegister(8, "c")
-        a = expr.Var.new("a", types.Stretch())
-        b = expr.Var.new("b", types.Stretch())
 
         self.assertEqual(
             function(cr, 200),
@@ -681,38 +679,6 @@ class TestExprConstructors(QiskitTestCase):
             ).const
         )
 
-        self.assertEqual(
-            function(a, Duration.s(1)),
-            expr.Binary(
-                opcode,
-                a,
-                expr.Cast(
-                    expr.Value(Duration.s(1), types.Duration()), types.Stretch(), implicit=True
-                ),
-                types.Stretch(),
-            ),
-        )
-        self.assertTrue(function(a, Duration.s(1)).const)
-
-        self.assertEqual(
-            function(Duration.s(1), a),
-            expr.Binary(
-                opcode,
-                expr.Cast(
-                    expr.Value(Duration.s(1), types.Duration()), types.Stretch(), implicit=True
-                ),
-                a,
-                types.Stretch(),
-            ),
-        )
-        self.assertTrue(function(Duration.s(1), a).const)
-
-        self.assertEqual(
-            function(a, b),
-            expr.Binary(opcode, a, b, types.Stretch()),
-        )
-        self.assertTrue(function(a, b).const)
-
     @ddt.data(expr.add, expr.sub)
     def test_binary_sum_forbidden(self, function):
         with self.assertRaisesRegex(TypeError, "invalid types"):
@@ -731,16 +697,9 @@ class TestExprConstructors(QiskitTestCase):
             function(Duration.dt(1000), 1.0)
         with self.assertRaisesRegex(TypeError, "invalid types"):
             function(Duration.dt(1000), expr.lift(1.0))
-        with self.assertRaisesRegex(TypeError, "invalid types"):
-            function(expr.Var.new("a", types.Stretch()), 1)
-        with self.assertRaisesRegex(TypeError, "invalid types"):
-            function(expr.Var.new("a", types.Stretch()), 1.0)
-        with self.assertRaisesRegex(TypeError, "invalid types"):
-            function(expr.Var.new("a", types.Stretch()), expr.lift(1.0))
 
     def test_mul_explicit(self):
         cr = ClassicalRegister(8, "c")
-        a = expr.Var.new("a", types.Stretch())
 
         self.assertEqual(
             expr.mul(cr, 200),
@@ -824,28 +783,6 @@ class TestExprConstructors(QiskitTestCase):
         )
         self.assertTrue(expr.mul(2.0, Duration.ms(1000)).const)
 
-        self.assertEqual(
-            expr.mul(a, 12.0),
-            expr.Binary(
-                expr.Binary.Op.MUL,
-                a,
-                expr.Value(12.0, types.Float()),
-                types.Stretch(),
-            ),
-        )
-        self.assertTrue(expr.mul(a, 12.0).const)
-
-        self.assertEqual(
-            expr.mul(12.0, a),
-            expr.Binary(
-                expr.Binary.Op.MUL,
-                expr.Value(12.0, types.Float()),
-                a,
-                types.Stretch(),
-            ),
-        )
-        self.assertTrue(expr.mul(12.0, a).const)
-
     def test_mul_forbidden(self):
         with self.assertRaisesRegex(TypeError, "invalid types"):
             expr.mul(Clbit(), ClassicalRegister(3, "c"))
@@ -857,14 +794,8 @@ class TestExprConstructors(QiskitTestCase):
             expr.mul(0xFFFF, 2.0)
         with self.assertRaisesRegex(TypeError, "invalid types"):
             expr.mul(255.0, 1)
-        with self.assertRaisesRegex(TypeError, "cannot multiply two timing operands"):
+        with self.assertRaisesRegex(TypeError, "cannot multiply two durations"):
             expr.mul(Duration.dt(1000), Duration.dt(1000))
-        with self.assertRaisesRegex(TypeError, "cannot multiply two timing operands"):
-            expr.mul(Duration.dt(1000), expr.Var.new("a", types.Stretch()))
-        with self.assertRaisesRegex(TypeError, "cannot multiply two timing operands"):
-            expr.mul(expr.Var.new("a", types.Stretch()), Duration.dt(1000))
-        with self.assertRaisesRegex(TypeError, "cannot multiply two timing operands"):
-            expr.mul(expr.Var.new("a", types.Stretch()), expr.Var.new("b", types.Stretch()))
 
         # Multiply timing expressions by non-const floats:
         non_const_float = expr.Var.new("a", types.Float())
@@ -872,14 +803,9 @@ class TestExprConstructors(QiskitTestCase):
             expr.mul(Duration.dt(1000), non_const_float)
         with self.assertRaisesRegex(ValueError, "would result in a non-const"):
             expr.mul(non_const_float, Duration.dt(1000))
-        with self.assertRaisesRegex(ValueError, "would result in a non-const"):
-            expr.mul(expr.Var.new("a", types.Stretch()), non_const_float)
-        with self.assertRaisesRegex(ValueError, "would result in a non-const"):
-            expr.mul(non_const_float, expr.Var.new("a", types.Stretch()))
 
     def test_div_explicit(self):
         cr = ClassicalRegister(8, "c")
-        a = expr.Var.new("a", types.Stretch())
 
         self.assertEqual(
             expr.div(cr, 200),
@@ -953,17 +879,6 @@ class TestExprConstructors(QiskitTestCase):
         self.assertTrue(expr.div(Duration.ms(1000), 2.0).const)
 
         self.assertEqual(
-            expr.div(a, 12.0),
-            expr.Binary(
-                expr.Binary.Op.DIV,
-                a,
-                expr.Value(12.0, types.Float()),
-                types.Stretch(),
-            ),
-        )
-        self.assertTrue(expr.div(a, 12.0).const)
-
-        self.assertEqual(
             expr.div(Duration.ms(1000), Duration.ms(1000)),
             expr.Binary(
                 expr.Binary.Op.DIV,
@@ -987,18 +902,8 @@ class TestExprConstructors(QiskitTestCase):
             expr.div(255.0, 1)
         with self.assertRaisesRegex(TypeError, "invalid types"):
             expr.div(255.0, Duration.dt(1000))
-        with self.assertRaisesRegex(TypeError, "invalid types"):
-            expr.div(255.0, expr.Var.new("a", types.Stretch()))
-        with self.assertRaisesRegex(TypeError, "invalid types"):
-            expr.div(Duration.dt(1000), expr.Var.new("a", types.Stretch()))
-        with self.assertRaisesRegex(TypeError, "invalid types"):
-            expr.div(expr.Var.new("a", types.Stretch()), Duration.dt(1000))
-        with self.assertRaisesRegex(TypeError, "cannot divide two stretch operands"):
-            expr.div(expr.Var.new("a", types.Stretch()), expr.Var.new("b", types.Stretch()))
 
         # Divide timing expressions by non-const floats:
         non_const_float = expr.Var.new("a", types.Float())
         with self.assertRaisesRegex(ValueError, "would result in a non-const"):
             expr.div(Duration.dt(1000), non_const_float)
-        with self.assertRaisesRegex(ValueError, "would result in a non-const"):
-            expr.div(expr.Var.new("a", types.Stretch()), non_const_float)
