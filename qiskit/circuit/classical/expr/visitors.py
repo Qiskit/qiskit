@@ -141,6 +141,7 @@ def iter_vars(node: expr.Expr) -> typing.Iterator[expr.Var]:
     """
     yield from node.accept(_VAR_WALKER)
 
+
 def iter_identifiers(node: expr.Expr) -> typing.Iterator[expr.Var | expr.Stretch]:
     """Get an iterator over the :class:`~.expr.Var` and :class:`~.expr.Stretch`
     nodes referenced at any level in the given :class:`~.expr.Expr`.
@@ -159,6 +160,7 @@ def iter_identifiers(node: expr.Expr) -> typing.Iterator[expr.Var | expr.Stretch
                     print(node.var.name)
     """
     yield from node.accept(_IDENT_WALKER)
+
 
 class _StructuralEquivalenceImpl(ExprVisitor[bool]):
     # The strategy here is to continue to do regular double dispatch through the visitor format,

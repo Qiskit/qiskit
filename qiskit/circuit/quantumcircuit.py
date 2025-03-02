@@ -2281,10 +2281,10 @@ class QuantumCircuit:
         :meth:`iter_declared_stretches` and :meth:`iter_captured_stretches`."""
         if self._control_flow_scopes:
             builder = self._control_flow_scopes[-1]
-            return itertools.chain(builder.iter_captured_stretches(), builder.iter_local_stretches())
-        return itertools.chain(
-            self._stretches_capture.values(), self._stretches_local.values()
-        )
+            return itertools.chain(
+                builder.iter_captured_stretches(), builder.iter_local_stretches()
+            )
+        return itertools.chain(self._stretches_capture.values(), self._stretches_local.values())
 
     def iter_declared_vars(self) -> typing.Iterable[expr.Var]:
         """Get an iterable over all real-time classical variables that are declared with automatic
@@ -2901,7 +2901,6 @@ class QuantumCircuit:
             return self.get_identifier(name_or_instance, None) is not None
         return self.get_identifier(name_or_instance.name, None) == name_or_instance
 
-
     def _prepare_new_var(
         self, name_or_var: str | expr.Var, type_: types.Type | None, /
     ) -> expr.Var:
@@ -2932,9 +2931,7 @@ class QuantumCircuit:
             raise CircuitError(f"cannot add '{var}' as its name shadows the existing '{previous}'")
         return var
 
-    def _prepare_new_stretch(
-            self, name_or_var: str | expr.Stretch, /
-    ) -> expr.Stretch:
+    def _prepare_new_stretch(self, name_or_var: str | expr.Stretch, /) -> expr.Stretch:
         """The common logic for preparing and validating a new :class:`~.expr.Stretch` for the circuit.
 
         Returns the validated variable, which is guaranteed to be safe to add to the circuit."""

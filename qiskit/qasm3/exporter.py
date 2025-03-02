@@ -961,10 +961,12 @@ class QASM3Builder:
         ]
 
         for stretch in self.scope.circuit.iter_declared_stretches():
-            statements.append(ast.ClassicalDeclaration(
-                ast.StretchType(),
-                self.symbols.register_variable(stretch.name, stretch, allow_rename=True),
-            ))
+            statements.append(
+                ast.ClassicalDeclaration(
+                    ast.StretchType(),
+                    self.symbols.register_variable(stretch.name, stretch, allow_rename=True),
+                )
+            )
 
         for instruction in self.scope.circuit.data:
             if isinstance(instruction.operation, ControlFlowOp):

@@ -19,6 +19,7 @@ from qiskit.circuit.classical import expr, types
 
 import itertools
 
+
 class TestCircuitVars(QiskitTestCase):
     """Tests for variable-manipulation routines on circuits.  More specific functionality is likely
     tested in the suites of the specific methods."""

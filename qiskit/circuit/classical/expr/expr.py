@@ -213,7 +213,10 @@ class Stretch(Expr):
     or :meth:`.QuantumCircuit.add_stretch`.
     """
 
-    __slots__ = ("var", "name",)
+    __slots__ = (
+        "var",
+        "name",
+    )
 
     var: uuid.UUID
     """A :class:`~uuid.UUID` to uniquely identify this stretch."""
@@ -221,9 +224,9 @@ class Stretch(Expr):
     """The name of the stretch variable."""
 
     def __init__(
-            self,
-            var: uuid.UUID,
-            name: str,
+        self,
+        var: uuid.UUID,
+        name: str,
     ):
         super().__setattr__("type", types.Duration())
         super().__setattr__("const", True)
@@ -247,11 +250,7 @@ class Stretch(Expr):
         return hash((self.var, self.name))
 
     def __eq__(self, other):
-        return (
-                isinstance(other, Stretch)
-                and self.var == other.var
-                and self.name == other.name
-        )
+        return isinstance(other, Stretch) and self.var == other.var and self.name == other.name
 
     def __repr__(self):
         return f"Stretch({self.var}, {self.name})"
@@ -273,6 +272,7 @@ class Stretch(Expr):
     def __deepcopy__(self, memo):
         # ... as are all my constituent parts.
         return self
+
 
 @typing.final
 class Value(Expr):
