@@ -2221,6 +2221,15 @@ class QuantumCircuit:
         return self.num_captured_stretches + self.num_declared_stretches
 
     @property
+    def num_identifiers(self) -> int:
+        """The number of real-time classical variables and stretch variables in
+        the circuit.
+
+        This is equal to :meth:`num_vars` + :meth:`num_stretches`.
+        """
+        return self.num_vars + self.num_stretches
+
+    @property
     def num_input_vars(self) -> int:
         """The number of real-time classical variables in the circuit marked as circuit inputs.
 
