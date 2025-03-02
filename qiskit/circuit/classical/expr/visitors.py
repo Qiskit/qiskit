@@ -193,11 +193,7 @@ class _StructuralEquivalenceImpl(ExprVisitor[bool]):
     def visit_stretch(self, node, /):
         if self.other.__class__ is not node.__class__:
             return False
-        if self.self_key is None or (self_var := self.self_key(node.var)) is None:
-            self_var = node.var
-        if self.other_key is None or (other_var := self.other_key(self.other.var)) is None:
-            other_var = self.other.var
-        return self_var == other_var
+        return node.var == self.other.var
 
     def visit_value(self, node, /):
         return (
