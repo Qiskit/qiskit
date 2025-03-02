@@ -142,6 +142,8 @@ def _encode_replay_subs(subs, file_obj, version):
 
 
 def _write_parameter_expression_v13(file_obj, obj, version):
+    # A symbol is `Parameter` or `ParameterVectorElement`.
+    # `symbol_map` maps symbols to ParameterExpression (which may be a symbol).
     symbol_map = {}
     for inst in obj._qpy_replay:
         if isinstance(inst, _SUBS):
@@ -234,9 +236,17 @@ def _write_parameter_expression(file_obj, obj, use_symengine, *, version):
             # serialize key
             if symbol_key == type_keys.Value.PARAMETER_VECTOR:
                 symbol_data = common.data_to_binary(symbol, _write_parameter_vec)
+            elif symbol_key == type_keys.Value.PARAMETER_EXPRESSION:
+                symbol_data = common.data_to_binary(
+                    symbol,
+                    _write_parameter_expression,
+                    use_symengine=use_symengine,
+                    version=version,
+                )
             else:
                 symbol_data = common.data_to_binary(symbol, _write_parameter)
             # serialize value
+
             value_key, value_data = dumps_value(
                 symbol, version=version, use_symengine=use_symengine
             )
@@ -530,10 +540,13 @@ def _read_parameter_expression_v13(file_obj, vectors, version):
             symbol = _read_parameter(file_obj)
         elif symbol_key == type_keys.Value.PARAMETER_VECTOR:
             symbol = _read_parameter_vec(file_obj, vectors)
+        elif symbol_key == type_keys.Value.PARAMETER_EXPRESSION:
+            symbol = _read_parameter_expression_v13(file_obj, vectors, version)
         else:
             raise exceptions.QpyError(f"Invalid parameter expression map type: {symbol_key}")
 
         elem_key = type_keys.Value(elem_data.type)
+
         binary_data = file_obj.read(elem_data.size)
         if elem_key == type_keys.Value.INTEGER:
             value = struct.unpack("!q", binary_data)
@@ -548,6 +561,7 @@ def _read_parameter_expression_v13(file_obj, vectors, version):
                 binary_data,
                 _read_parameter_expression_v13,
                 vectors=vectors,
+                version=version,
             )
         else:
             raise exceptions.QpyError(f"Invalid parameter expression map type: {elem_key}")
