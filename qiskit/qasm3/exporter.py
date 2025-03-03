@@ -960,8 +960,7 @@ class QASM3Builder:
 
         for stretch in self.scope.circuit.iter_declared_stretches():
             statements.append(
-                ast.ClassicalDeclaration(
-                    ast.StretchType(),
+                ast.StretchDeclaration(
                     self.symbols.register_variable(stretch.name, stretch, allow_rename=True),
                 )
             )
