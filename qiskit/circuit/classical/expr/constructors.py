@@ -572,7 +572,11 @@ def index(target: typing.Any, index: typing.Any, /) -> Expr:
 
 def _binary_sum(op: Binary.Op, left: typing.Any, right: typing.Any) -> Expr:
     left, right = _lift_binary_operands(left, right)
-    if left.type.kind is right.type.kind in {types.Uint, types.Float, types.Duration}:
+    if left.type.kind is right.type.kind and left.type.kind in {
+        types.Uint,
+        types.Float,
+        types.Duration,
+    }:
         type = types.greater(left.type, right.type)
         return Binary(
             op,
@@ -674,7 +678,7 @@ Duration())
     type: types.Type
     if left.type.kind is right.type.kind is types.Duration:
         raise TypeError("cannot multiply two durations")
-    if left.type.kind is right.type.kind in {types.Uint, types.Float}:
+    if left.type.kind is right.type.kind and left.type.kind in {types.Uint, types.Float}:
         type = types.greater(left.type, right.type)
         left = _coerce_lossless(left, type)
         right = _coerce_lossless(right, type)
@@ -745,7 +749,11 @@ Duration())
     """
     left, right = _lift_binary_operands(left, right)
     type: types.Type
-    if left.type.kind is right.type.kind in {types.Duration, types.Uint, types.Float}:
+    if left.type.kind is right.type.kind and left.type.kind in {
+        types.Duration,
+        types.Uint,
+        types.Float,
+    }:
         if left.type.kind is types.Duration:
             type = types.Float()
         elif types.order(left.type, right.type) is not types.Ordering.NONE:
