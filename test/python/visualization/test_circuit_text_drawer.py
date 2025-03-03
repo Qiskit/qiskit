@@ -63,15 +63,10 @@ from qiskit.circuit.library import (
     UCGate,
 )
 from qiskit.transpiler.passes import ApplyLayout
-from qiskit.utils.optionals import HAS_TWEEDLEDUM
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 from .visualization import path_to_diagram_reference, QiskitVisualizationTestCase
 from ..legacy_cmaps import YORKTOWN_CMAP
-
-if HAS_TWEEDLEDUM:
-    from qiskit.circuit.classicalfunction import classical_function
-    from qiskit.circuit.classicalfunction.types import Int1
 
 
 class TestTextDrawerElement(QiskitTestCase):
@@ -320,10 +315,7 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         cr2 = ClassicalRegister(2, "c2")
         circuit = QuantumCircuit(qr1, qr2, cr1, cr2)
         circuit.measure(qr2, cr2)
-        self.assertEqual(
-            str(circuit_drawer(circuit, output="text", initial_state=True, idle_wires=True)),
-            expected,
-        )
+        self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
 
     def test_text_measure_2_reverse_bits(self):
         """The measure operator, using some registers, with reverse_bits"""
@@ -352,11 +344,7 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         circuit = QuantumCircuit(qr1, qr2, cr1, cr2)
         circuit.measure(qr2, cr2)
         self.assertEqual(
-            str(
-                circuit_drawer(
-                    circuit, output="text", initial_state=True, reverse_bits=True, idle_wires=True
-                )
-            ),
+            str(circuit_drawer(circuit, output="text", initial_state=True, reverse_bits=True)),
             expected,
         )
 
@@ -404,7 +392,6 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
                     initial_state=True,
                     cregbundle=False,
                     wire_order=[2, 1, 3, 0, 6, 8, 9, 5, 4, 7],
-                    idle_wires=True,
                 )
             ),
             expected,
@@ -500,7 +487,10 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
             file_path = pathlib.Path(dir_path) / "qiskit.conf"
             with open(file_path, "w") as fptr:
                 fptr.write(config_content)
-            with unittest.mock.patch.dict(os.environ, {"QISKIT_SETTINGS": str(file_path)}):
+            with unittest.mock.patch.dict(
+                os.environ,
+                {"QISKIT_SETTINGS": str(file_path), "QISKIT_IGNORE_USER_SETTINGS": "false"},
+            ):
                 test_reverse = str(circuit_drawer(circuit, output="text"))
         self.assertEqual(test_reverse, expected_reverse)
 
@@ -535,7 +525,12 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         circuit.h(qr2[0])
 
         self.assertEqual(
-            str(circuit_drawer(circuit, output="text", idle_wires=True)),
+            str(
+                circuit_drawer(
+                    circuit,
+                    output="text",
+                )
+            ),
             expected_with,
         )
 
@@ -547,7 +542,10 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
             file_path = pathlib.Path(dir_path) / "qiskit.conf"
             with open(file_path, "w") as fptr:
                 fptr.write(config_content)
-            with unittest.mock.patch.dict(os.environ, {"QISKIT_SETTINGS": str(file_path)}):
+            with unittest.mock.patch.dict(
+                os.environ,
+                {"QISKIT_SETTINGS": str(file_path), "QISKIT_IGNORE_USER_SETTINGS": "false"},
+            ):
                 test_without = str(circuit_drawer(circuit, output="text"))
         self.assertEqual(test_without, expected_without)
 
@@ -893,10 +891,7 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         circuit = QuantumCircuit(qr1, qr2)
         circuit.reset(qr1)
         circuit.reset(qr2[1])
-        self.assertEqual(
-            str(circuit_drawer(circuit, output="text", initial_state=True, idle_wires=True)),
-            expected,
-        )
+        self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
 
     def test_text_single_gate(self):
         """Single Qbit gate drawing."""
@@ -919,10 +914,7 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         circuit = QuantumCircuit(qr1, qr2)
         circuit.h(qr1)
         circuit.h(qr2[1])
-        self.assertEqual(
-            str(circuit_drawer(circuit, output="text", initial_state=True, idle_wires=True)),
-            expected,
-        )
+        self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
 
     def test_text_id(self):
         """Id drawing."""
@@ -945,10 +937,7 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         circuit = QuantumCircuit(qr1, qr2)
         circuit.id(qr1)
         circuit.id(qr2[1])
-        self.assertEqual(
-            str(circuit_drawer(circuit, output="text", initial_state=True, idle_wires=True)),
-            expected,
-        )
+        self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
 
     def test_text_barrier(self):
         """Barrier drawing."""
@@ -971,10 +960,7 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         circuit = QuantumCircuit(qr1, qr2)
         circuit.barrier(qr1)
         circuit.barrier(qr2[1])
-        self.assertEqual(
-            str(circuit_drawer(circuit, output="text", initial_state=True, idle_wires=True)),
-            expected,
-        )
+        self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
 
     def test_text_no_barriers(self):
         """Drawing without plotbarriers."""
@@ -1333,10 +1319,7 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         circuit.h(qr[0])
         circuit.h(qr[0])
         circuit.rz(0.0000001, qr[2])
-        self.assertEqual(
-            str(circuit_drawer(circuit, output="text", initial_state=True, idle_wires=True)),
-            expected,
-        )
+        self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
 
     def test_text_spacing_2378(self):
         """Small gates in the same layer as long gates.
@@ -1356,31 +1339,6 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         circuit = QuantumCircuit(qr)
         circuit.swap(qr[0], qr[1])
         circuit.rz(11111, qr[2])
-        self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
-
-    @unittest.skipUnless(HAS_TWEEDLEDUM, "Tweedledum is required for these tests.")
-    def test_text_synth_no_registerless(self):
-        """Test synthesis's label when registerless=False.
-        See https://github.com/Qiskit/qiskit-terra/issues/9363"""
-        expected = "\n".join(
-            [
-                "                ",
-                "     a: |0>──■──",
-                "             │  ",
-                "     b: |0>──■──",
-                "             │  ",
-                "     c: |0>──o──",
-                "           ┌─┴─┐",
-                "return: |0>┤ X ├",
-                "           └───┘",
-            ]
-        )
-
-        @classical_function
-        def grover_oracle(a: Int1, b: Int1, c: Int1) -> Int1:
-            return a and b and not c
-
-        circuit = grover_oracle.synth(registerless=False)
         self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
 
 
@@ -1567,11 +1525,7 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
         circuit.append(my_gate2, [qr[0], qr[2]])
 
         self.assertEqual(
-            str(
-                circuit_drawer(
-                    circuit, output="text", initial_state=True, reverse_bits=True, idle_wires=True
-                )
-            ),
+            str(circuit_drawer(circuit, output="text", initial_state=True, reverse_bits=True)),
             expected,
         )
 
@@ -1598,11 +1552,7 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
         circuit.append(my_gate2, [qr[0], qr[3]])
 
         self.assertEqual(
-            str(
-                circuit_drawer(
-                    circuit, output="text", initial_state=True, reverse_bits=True, idle_wires=True
-                )
-            ),
+            str(circuit_drawer(circuit, output="text", initial_state=True, reverse_bits=True)),
             expected,
         )
 
@@ -1627,9 +1577,7 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
 
         qc.append(random_unitary(4, seed=42), [qr[0], qr[3]])
 
-        self.assertEqual(
-            str(circuit_drawer(qc, initial_state=True, output="text", idle_wires=True)), expected
-        )
+        self.assertEqual(str(circuit_drawer(qc, initial_state=True, output="text")), expected)
 
     def test_kraus(self):
         """Test Kraus.
@@ -1919,7 +1867,6 @@ class TestTextDrawerVerticalCompressionMedium(QiskitTestCase):
                     initial_state=True,
                     vertical_compression="medium",
                     cregbundle=False,
-                    idle_wires=True,
                 )
             ),
             expected,
@@ -1956,7 +1903,6 @@ class TestTextDrawerVerticalCompressionMedium(QiskitTestCase):
                     initial_state=True,
                     vertical_compression="medium",
                     cregbundle=False,
-                    idle_wires=True,
                 )
             ),
             expected,
@@ -2240,10 +2186,7 @@ class TestTextInstructionWithBothWires(QiskitTestCase):
         cr6 = ClassicalRegister(6, "c")
         circuit = QuantumCircuit(qr6, cr6)
         circuit.append(inst, qr6[1:5], cr6[1:3])
-        self.assertEqual(
-            str(circuit_drawer(circuit, output="text", initial_state=True, idle_wires=True)),
-            expected,
-        )
+        self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
 
     def test_text_2q_1c(self):
         """Test q0-c0 in q0-q1-c0
@@ -2266,10 +2209,7 @@ class TestTextInstructionWithBothWires(QiskitTestCase):
         inst = QuantumCircuit(1, 1, name="Name").to_instruction()
         circuit.append(inst, [qr[0]], [cr[0]])
 
-        self.assertEqual(
-            str(circuit_drawer(circuit, output="text", initial_state=True, idle_wires=True)),
-            expected,
-        )
+        self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
 
     def test_text_3q_3c_qlabels_inverted(self):
         """Test q3-q0-q1-c0-c1-c_10 in q0-q1-q2-q3-c0-c1-c2-c_10-c_11
@@ -2305,10 +2245,7 @@ class TestTextInstructionWithBothWires(QiskitTestCase):
         inst = QuantumCircuit(3, 3, name="Name").to_instruction()
         circuit.append(inst, [qr[3], qr[0], qr[1]], [cr[0], cr[1], cr1[0]])
 
-        self.assertEqual(
-            str(circuit_drawer(circuit, output="text", initial_state=True, idle_wires=True)),
-            expected,
-        )
+        self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
 
     def test_text_3q_3c_clabels_inverted(self):
         """Test q0-q1-q3-c_11-c0-c_10 in q0-q1-q2-q3-c0-c1-c2-c_10-c_11
@@ -2344,10 +2281,7 @@ class TestTextInstructionWithBothWires(QiskitTestCase):
         inst = QuantumCircuit(3, 3, name="Name").to_instruction()
         circuit.append(inst, [qr[0], qr[1], qr[3]], [cr1[1], cr[0], cr1[0]])
 
-        self.assertEqual(
-            str(circuit_drawer(circuit, output="text", initial_state=True, idle_wires=True)),
-            expected,
-        )
+        self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
 
     def test_text_3q_3c_qclabels_inverted(self):
         """Test q3-q1-q2-c_11-c0-c_10 in q0-q1-q2-q3-c0-c1-c2-c_10-c_11
@@ -2383,10 +2317,7 @@ class TestTextInstructionWithBothWires(QiskitTestCase):
         inst = QuantumCircuit(3, 3, name="Name").to_instruction()
         circuit.append(inst, [qr[3], qr[1], qr[2]], [cr1[1], cr[0], cr1[0]])
 
-        self.assertEqual(
-            str(circuit_drawer(circuit, output="text", initial_state=True, idle_wires=True)),
-            expected,
-        )
+        self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
 
 
 class TestTextDrawerAppendedLargeInstructions(QiskitTestCase):
@@ -3270,10 +3201,7 @@ class TestTextOpenControlledGate(QiskitTestCase):
         circuit = QuantumCircuit(qr)
         circuit.append(XGate().control(3, ctrl_state="101"), [qr[0], qr[3], qr[1], qr[2]])
 
-        self.assertEqual(
-            str(circuit_drawer(circuit, output="text", initial_state=True, idle_wires=True)),
-            expected,
-        )
+        self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
 
 
 class TestTextWithLayout(QiskitTestCase):
@@ -3720,7 +3648,7 @@ class TestTextPhase(QiskitTestCase):
         circuit = QuantumCircuit(qr)
         circuit.global_phase = 3
 
-        self.assertEqual(circuit.draw(output="text", idle_wires=True).single_string(), expected)
+        self.assertEqual(circuit.draw(output="text").single_string(), expected)
 
     def test_empty_noregs(self):
         """Text empty circuit (no registers) with phase."""
@@ -3729,7 +3657,7 @@ class TestTextPhase(QiskitTestCase):
         circuit = QuantumCircuit()
         circuit.global_phase = 4.21
 
-        self.assertEqual(circuit.draw(output="text", idle_wires=True).single_string(), expected)
+        self.assertEqual(circuit.draw(output="text").single_string(), expected)
 
     def test_registerless_one_bit(self):
         """Text circuit with one-bit registers and registerless bits."""
@@ -3757,9 +3685,7 @@ class TestTextPhase(QiskitTestCase):
         qry = QuantumRegister(1, "qry")
         crx = ClassicalRegister(2, "crx")
         circuit = QuantumCircuit(qrx, [Qubit(), Qubit()], qry, [Clbit(), Clbit()], crx)
-        self.assertEqual(
-            circuit.draw(output="text", cregbundle=True, idle_wires=True).single_string(), expected
-        )
+        self.assertEqual(circuit.draw(output="text", cregbundle=True).single_string(), expected)
 
 
 class TestCircuitVisualizationImplementation(QiskitVisualizationTestCase):
@@ -3882,11 +3808,7 @@ class TestCircuitControlFlowOps(QiskitVisualizationTestCase):
             circuit.h(0)
             circuit.cx(0, 1)
         self.assertEqual(
-            str(
-                circuit_drawer(
-                    circuit, output="text", initial_state=False, cregbundle=False, idle_wires=True
-                )
-            ),
+            str(circuit_drawer(circuit, output="text", initial_state=False, cregbundle=False)),
             expected,
         )
 
@@ -3916,7 +3838,7 @@ class TestCircuitControlFlowOps(QiskitVisualizationTestCase):
             circuit.h(0)
             circuit.cx(0, 1)
         self.assertEqual(
-            str(circuit_drawer(circuit, output="text", initial_state=False, idle_wires=True)),
+            str(circuit_drawer(circuit, output="text", initial_state=False)),
             expected,
         )
 
@@ -3996,12 +3918,7 @@ class TestCircuitControlFlowOps(QiskitVisualizationTestCase):
         self.assertEqual(
             str(
                 circuit_drawer(
-                    circuit,
-                    output="text",
-                    initial_state=False,
-                    cregbundle=False,
-                    fold=90,
-                    idle_wires=True,
+                    circuit, output="text", initial_state=False, cregbundle=False, fold=90
                 )
             ),
             expected,
@@ -4093,7 +4010,6 @@ class TestCircuitControlFlowOps(QiskitVisualizationTestCase):
                     fold=77,
                     initial_state=False,
                     wire_order=[2, 0, 3, 1, 4, 5, 6],
-                    idle_wires=True,
                 )
             ),
             expected,
@@ -4134,11 +4050,7 @@ class TestCircuitControlFlowOps(QiskitVisualizationTestCase):
             with circuit.if_test((cr[2], 1)):
                 circuit.x(0)
         self.assertEqual(
-            str(
-                circuit_drawer(
-                    circuit, output="text", initial_state=False, cregbundle=False, idle_wires=True
-                )
-            ),
+            str(circuit_drawer(circuit, output="text", initial_state=False, cregbundle=False)),
             expected,
         )
 
@@ -4180,12 +4092,7 @@ class TestCircuitControlFlowOps(QiskitVisualizationTestCase):
         self.assertEqual(
             str(
                 circuit_drawer(
-                    circuit,
-                    output="text",
-                    fold=-1,
-                    initial_state=False,
-                    cregbundle=False,
-                    idle_wires=True,
+                    circuit, output="text", fold=-1, initial_state=False, cregbundle=False
                 )
             ),
             expected,
@@ -4333,7 +4240,7 @@ class TestCircuitControlFlowOps(QiskitVisualizationTestCase):
             circuit.z(0)
 
         self.assertEqual(
-            str(circuit_drawer(circuit, output="text", initial_state=False, idle_wires=True)),
+            str(circuit_drawer(circuit, output="text", initial_state=False)),
             expected,
         )
 
@@ -4372,11 +4279,7 @@ class TestCircuitControlFlowOps(QiskitVisualizationTestCase):
                 circuit.z(1)
 
         self.assertEqual(
-            str(
-                circuit_drawer(
-                    circuit, output="text", initial_state=False, fold=120, idle_wires=True
-                )
-            ),
+            str(circuit_drawer(circuit, output="text", initial_state=False, fold=120)),
             expected,
         )
 
@@ -4431,11 +4334,7 @@ class TestCircuitControlFlowOps(QiskitVisualizationTestCase):
                 circuit.cx(0, 1)
 
         self.assertEqual(
-            str(
-                circuit_drawer(
-                    circuit, output="text", fold=80, initial_state=False, idle_wires=True
-                )
-            ),
+            str(circuit_drawer(circuit, output="text", fold=80, initial_state=False)),
             expected,
         )
 
@@ -4510,7 +4409,7 @@ class TestCircuitControlFlowOps(QiskitVisualizationTestCase):
                 c = qc.add_var("c", expr.equal(a, b))
                 with qc.if_test(c):
                     qc.h(0)
-        actual = str(qc.draw("text", fold=80, initial_state=False, idle_wires=True))
+        actual = str(qc.draw("text", fold=80, initial_state=False))
         self.assertEqual(actual, expected)
 
 
