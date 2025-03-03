@@ -703,7 +703,7 @@ pub unsafe extern "C" fn qk_obs_compose_map(
 
     // SAFETY: Per documentation, qargs is safe to read up to ``left.num_qubits()`` elements,
     // which is the maximal value of ``index`` here.
-    let qargs_map = |index| unsafe { *qargs.add(index) };
+    let qargs_map = |index: u32| unsafe { *qargs.add(index as usize) };
 
     let result = right.compose_map(left, qargs_map);
     Box::into_raw(Box::new(result))
