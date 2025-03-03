@@ -853,6 +853,10 @@ pub extern "C" fn qk_bitterm_label(bit_term: BitTerm) -> u8 {
 /// # Safety
 ///
 /// Behavior is undefined if ``obs`` is not a valid, non-null pointer to a ``QkObs``.
+///
+/// It is assumed that the thread currently executing this function holds the
+/// Python GIL this is required to create the Python object returned by this
+/// function.
 #[no_mangle]
 #[cfg(feature = "python_binding")]
 #[cfg(feature = "cbinding")]
@@ -860,9 +864,10 @@ pub unsafe extern "C" fn qk_obs_to_python(obs: *const SparseObservable) -> *mut 
     let obs = unsafe { const_ptr_as_ref(obs) };
     let py_obs: PySparseObservable = obs.clone().into();
 
-    Python::with_gil(|py| {
+    unsafe {
+        let py = Python::assume_gil_acquired();
         Py::new(py, py_obs)
             .expect("Unable to create a Python object")
             .into_ptr()
-    })
+    }
 }
