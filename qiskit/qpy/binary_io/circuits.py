@@ -648,8 +648,7 @@ def _read_custom_operations(file_obj, version, vectors):
 
 
 def _read_calibrations(file_obj, version, vectors, metadata_deserializer):
-    calibrations = {}
-
+    """Consume calibrations data, make the file handle point to the next section"""
     header = formats.CALIBRATION._make(
         struct.unpack(formats.CALIBRATION_PACK, file_obj.read(formats.CALIBRATION_SIZE))
     )
@@ -658,21 +657,20 @@ def _read_calibrations(file_obj, version, vectors, metadata_deserializer):
             struct.unpack(formats.CALIBRATION_DEF_PACK, file_obj.read(formats.CALIBRATION_DEF_SIZE))
         )
         name = file_obj.read(defheader.name_size).decode(common.ENCODE)
-        qubits = tuple(
-            struct.unpack("!q", file_obj.read(struct.calcsize("!q")))[0]
-            for _ in range(defheader.num_qubits)
-        )
-        params = tuple(
-            value.read_value(file_obj, version, vectors) for _ in range(defheader.num_params)
-        )
-        schedule = schedules.read_schedule_block(file_obj, version, metadata_deserializer)
+        if name:
+            warnings.warn(
+                category=UserWarning,
+                message="Support for loading pulse gates has been removed in Qiskit 2.0. "
+                f"If `{name}` is in the circuit it will be left as an opaque instruction.",
+            )
 
-        if name not in calibrations:
-            calibrations[name] = {(qubits, params): schedule}
-        else:
-            calibrations[name][(qubits, params)] = schedule
+        for _ in range(defheader.num_qubits):  # read qubits info
+            file_obj.read(struct.calcsize("!q"))
 
-    return calibrations
+        for _ in range(defheader.num_params):  # read params info
+            value.read_value(file_obj, version, vectors)
+
+        schedules.read_schedule_block(file_obj, version, metadata_deserializer)
 
 
 def _dumps_register(register, index_map):
@@ -1003,34 +1001,6 @@ def _write_custom_operation(
     return new_custom_instruction
 
 
-def _write_calibrations(file_obj, calibrations, metadata_serializer, version):
-    flatten_dict = {}
-    for gate, caldef in calibrations.items():
-        for (qubits, params), schedule in caldef.items():
-            key = (gate, qubits, params)
-            flatten_dict[key] = schedule
-    header = struct.pack(formats.CALIBRATION_PACK, len(flatten_dict))
-    file_obj.write(header)
-    for (name, qubits, params), schedule in flatten_dict.items():
-        # In principle ScheduleBlock and Schedule can be supported.
-        # As of version 5 only ScheduleBlock is supported.
-        name_bytes = name.encode(common.ENCODE)
-        defheader = struct.pack(
-            formats.CALIBRATION_DEF_PACK,
-            len(name_bytes),
-            len(qubits),
-            len(params),
-            type_keys.Program.assign(schedule),
-        )
-        file_obj.write(defheader)
-        file_obj.write(name_bytes)
-        for qubit in qubits:
-            file_obj.write(struct.pack("!q", qubit))
-        for param in params:
-            value.write_value(file_obj, param, version=version)
-        schedules.write_schedule_block(file_obj, schedule, metadata_serializer, version=version)
-
-
 def _write_registers(file_obj, in_circ_regs, full_bits):
     bitmap = {bit: index for index, bit in enumerate(full_bits)}
 
@@ -1266,7 +1236,7 @@ def write_circuit(
         file_obj.write(metadata_raw)
         # Write header payload
         file_obj.write(registers_raw)
-        standalone_var_indices = value.write_standalone_vars(file_obj, circuit)
+        standalone_var_indices = value.write_standalone_vars(file_obj, circuit, version)
     else:
         if circuit.num_vars:
             raise exceptions.UnsupportedFeatureForVersion(
@@ -1331,8 +1301,11 @@ def write_circuit(
     file_obj.write(instruction_buffer.getvalue())
     instruction_buffer.close()
 
-    # Write calibrations
-    _write_calibrations(file_obj, circuit._calibrations_prop, metadata_serializer, version=version)
+    # Pulse has been removed in Qiskit 2.0. As long as we keep QPY at version 13,
+    # we need to write an empty calibrations header since read_circuit expects it
+    header = struct.pack(formats.CALIBRATION_PACK, 0)
+    file_obj.write(header)
+
     _write_layout(file_obj, circuit)
 
 
@@ -1460,11 +1433,9 @@ def read_circuit(file_obj, version, metadata_deserializer=None, use_symengine=Fa
             standalone_var_indices,
         )
 
-    # Read calibrations
+    # Consume calibrations, but don't use them since pulse gates are not supported as of Qiskit 2.0
     if version >= 5:
-        circ._calibrations_prop = _read_calibrations(
-            file_obj, version, vectors, metadata_deserializer
-        )
+        _read_calibrations(file_obj, version, vectors, metadata_deserializer)
 
     for vec_name, (vector, initialized_params) in vectors.items():
         if len(initialized_params) != len(vector):

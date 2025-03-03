@@ -242,6 +242,13 @@ class IntegerLiteral(Expression):
         self.value = value
 
 
+class FloatLiteral(Expression):
+    __slots__ = ("value",)
+
+    def __init__(self, value):
+        self.value = value
+
+
 class BooleanLiteral(Expression):
     __slots__ = ("value",)
 

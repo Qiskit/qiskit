@@ -33,12 +33,13 @@ data, and it's best to point to the same instance of the data where possible rat
 heap-allocating a new version of the same thing.  Where possible, the class constructors will return
 singleton instances to facilitate this.
 
-The two different types available are for Booleans (corresponding to :class:`.Clbit` and the
-literals ``True`` and ``False``), and unsigned integers (corresponding to
-:class:`.ClassicalRegister` and Python integers).
+The :class:`Bool` type represents :class:`.Clbit` and the literals ``True`` and ``False``, the
+:class:`Uint` type represents :class:`.ClassicalRegister` and Python integers, and the
+:class:`Float` type represents Python floats.
 
 .. autoclass:: Bool
 .. autoclass:: Uint
+.. autoclass:: Float
 
 Note that :class:`Uint` defines a family of types parametrized by their width; it is not one single
 type, which may be slightly different to the 'classical' programming languages you are used to.
@@ -89,12 +90,16 @@ embedded into the :mod:`types` module.  You can query the casting kinds using :f
 The return values from this function are an enumeration explaining the types of cast that are
 allowed from the left type to the right type.
 
+Note that casts between :class:`Float` and :class:`Uint` are considered dangerous in either
+direction, and must be done explicitly.
+
 .. autoclass:: CastKind
 """
 
 __all__ = [
     "Type",
     "Bool",
+    "Float",
     "Uint",
     "Ordering",
     "order",
@@ -105,5 +110,5 @@ __all__ = [
     "cast_kind",
 ]
 
-from .types import Type, Bool, Uint
+from .types import Type, Bool, Float, Uint
 from .ordering import Ordering, order, is_subtype, is_supertype, greater, CastKind, cast_kind

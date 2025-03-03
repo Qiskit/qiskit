@@ -101,6 +101,10 @@ sk = "qiskit.transpiler.passes.synthesis.solovay_kitaev_synthesis:SolovayKitaevS
 "qft.line" = "qiskit.transpiler.passes.synthesis.hls_plugins:QFTSynthesisLine"
 "qft.default" = "qiskit.transpiler.passes.synthesis.hls_plugins:QFTSynthesisFull"
 "permutation.token_swapper" = "qiskit.transpiler.passes.synthesis.hls_plugins:TokenSwapperSynthesisPermutation"
+"IntComp.default" = "qiskit.transpiler.passes.synthesis.hls_plugins:IntComparatorSynthesisDefault"
+"IntComp.noaux" = "qiskit.transpiler.passes.synthesis.hls_plugins:IntComparatorSynthesisNoAux"
+"IntComp.twos" = "qiskit.transpiler.passes.synthesis.hls_plugins:IntComparatorSynthesis2s"
+"WeightedSum.default" = "qiskit.transpiler.passes.synthesis.hls_plugins:WeightedSumSynthesisDefault"
 "ModularAdder.default" = "qiskit.transpiler.passes.synthesis.hls_plugins:ModularAdderSynthesisDefault"
 "ModularAdder.ripple_c04" = "qiskit.transpiler.passes.synthesis.hls_plugins:ModularAdderSynthesisC04"
 "ModularAdder.ripple_v95" = "qiskit.transpiler.passes.synthesis.hls_plugins:ModularAdderSynthesisV95"
@@ -214,7 +218,6 @@ extension-pkg-allow-list = [
     # statically resolve the cyclical load of the exception and it bugs out.
     "retworkx",
     "rustworkx",
-    "tweedledum",
 ]
 load-plugins = ["pylint.extensions.docparams", "pylint.extensions.docstyle", "pylint.extensions.bad_builtin"]
 py-version = "3.9"  # update it when bumping minimum supported python version
