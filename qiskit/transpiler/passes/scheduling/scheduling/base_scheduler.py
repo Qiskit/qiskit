@@ -61,20 +61,12 @@ class BaseScheduler(AnalysisPass):
         node: DAGOpNode,
         dag: DAGCircuit,
     ) -> int:
-        """A helper method to get duration from node or calibration."""
+        """A helper method to get duration from node"""
         indices = [dag.find_bit(qarg).index for qarg in node.qargs]
 
         if node.name == "delay":
             # `TimeUnitConversion` already handled the unit conversions.
             duration = node.op.duration
-        elif dag._has_calibration_for(node):
-            # If node has calibration, this value should be the highest priority
-            cal_key = tuple(indices), tuple(float(p) for p in node.op.params)
-            with warnings.catch_warnings():
-                warnings.simplefilter(action="ignore", category=DeprecationWarning)
-                # `schedule.duration` emits pulse deprecation warnings which we don't want
-                # to see here
-                duration = dag._calibrations_prop[node.op.name][cal_key].duration
         else:
             unit = "s" if self.durations.dt is None else "dt"
             try:
