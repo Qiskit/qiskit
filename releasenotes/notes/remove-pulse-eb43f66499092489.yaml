@@ -4,11 +4,13 @@ prelude: >
     This include all pulse module files, pulse visualization functionality, support for ``ScheduleBlock``
     and pulse-gate serialization/deserialization capability in QPY, calibrations management in
     :class:`.QuantumCircuit`, :class:`.Target` and :class:`.DAGCircuit` and pulse-based fake backends.
-    For more details, see the corresponding sections below.
+    For more details about the removed components related to pulse, see the corresponding sections below.
 
-    The Pulse package as a whole, along with major dependent components that have been removed in Qiskit, will
-    be part of `Qiskit Dynamics <https://github.com/qiskit-community/qiskit-dynamics>`__ repository to further enable
-    pulse and low-level control simulation.
+    Note that Pulse migration to Qiskit Dynamics, as was the initial plan following the deprecation of Pulse,
+    has been put on hold due to Qiskit Dynamics development priorities. Users wanting to use Qiskit Pulse
+    as a frontend to supporting backends or in other uses-cases can still use it via Qiskit versions prior
+    to 2.0, which include Pulse functionality.
+
 upgrade_providers:
   - |
     As part of Pulse removal in Qiskit 2.0, the following methods have been removed:
