@@ -61,3 +61,10 @@ upgrade_misc:
     ``qobj/utils.py``, have been migrated to ``result/models.py`` following the removal
     of the ``qobj`` module. These classes were not part of the public API, so there should
     not be any effect on users from this move.
+
+  - |
+    The use of positional arguments in the constructor of :class:`.Result` has been disabled.
+    Please set all arguments using kwarg syntax, i.e: ``Result(backend_name="name", ....)``.
+    In addition to this, the ``qobj_id`` argument will no longer be used in the construction
+    of the :class:`.Result` internals. It is still possible to set ``qobj_id`` as a
+    generic kwarg, which will land in the metadata field with the other generic kwargs.

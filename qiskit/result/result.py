@@ -41,11 +41,12 @@ class Result:
 
     def __init__(
         self,
-        backend_name,
-        backend_version,
-        job_id,
-        success,
-        results,
+        *,
+        backend_name=None,
+        backend_version=None,
+        job_id=None,
+        success=None,
+        results=None,
         date=None,
         status=None,
         header=None,
