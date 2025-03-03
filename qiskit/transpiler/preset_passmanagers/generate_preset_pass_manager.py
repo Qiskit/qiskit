@@ -14,7 +14,6 @@
 Preset pass manager generation function
 """
 
-import copy
 import warnings
 
 from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES, get_control_flow_name_mapping
@@ -30,7 +29,6 @@ from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.target import Target
 from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.utils import deprecate_arg
-from qiskit.utils.deprecate_pulse import deprecate_pulse_arg
 
 from .level0 import level_0_pass_manager
 from .level1 import level_1_pass_manager
@@ -56,13 +54,11 @@ from .level3 import level_3_pass_manager
     "with defined timing constraints with "
     "`Target.from_configuration(..., timing_constraints=...)`",
 )
-@deprecate_pulse_arg("inst_map", predicate=lambda inst_map: inst_map is not None)
 def generate_preset_pass_manager(
     optimization_level=2,
     backend=None,
     target=None,
     basis_gates=None,
-    inst_map=None,
     coupling_map=None,
     instruction_durations=None,
     timing_constraints=None,
@@ -93,7 +89,7 @@ def generate_preset_pass_manager(
 
     The target constraints for the pass manager construction can be specified through a :class:`.Target`
     instance, a :class:`.BackendV1` or :class:`.BackendV2` instance, or via loose constraints
-    (``basis_gates``, ``inst_map``, ``coupling_map``, ``instruction_durations``,
+    (``basis_gates``, ``coupling_map``, ``instruction_durations``,
     ``dt`` or ``timing_constraints``).
     The order of priorities for target constraints works as follows: if a ``target``
     input is provided, it will take priority over any ``backend`` input or loose constraints.
@@ -111,7 +107,6 @@ def generate_preset_pass_manager(
     **basis_gates**              target    basis_gates              basis_gates
     **coupling_map**             target    coupling_map             coupling_map
     **instruction_durations**    target    instruction_durations    instruction_durations
-    **inst_map**                 target    inst_map                 inst_map
     **dt**                       target    dt                       dt
     **timing_constraints**       target    timing_constraints       timing_constraints
     ============================ ========= ======================== =======================
@@ -129,7 +124,7 @@ def generate_preset_pass_manager(
                 * 3: even heavier optimization
 
         backend (Backend): An optional backend object which can be used as the
-            source of the default values for the ``basis_gates``, ``inst_map``,
+            source of the default values for the ``basis_gates``,
             ``coupling_map``, ``instruction_durations``,
             ``timing_constraints``, and ``target``. If any of those other arguments
             are specified in addition to ``backend`` they will take precedence
@@ -137,14 +132,9 @@ def generate_preset_pass_manager(
         target (Target): The :class:`~.Target` representing a backend compilation
             target. The following attributes will be inferred from this
             argument if they are not set: ``coupling_map``, ``basis_gates``,
-            ``instruction_durations``, ``inst_map`` and ``timing_constraints``.
+            ``instruction_durations`` and ``timing_constraints``.
         basis_gates (list): List of basis gate names to unroll to
             (e.g: ``['u1', 'u2', 'u3', 'cx']``).
-        inst_map (InstructionScheduleMap): DEPRECATED. Mapping object that maps gates to schedules.
-            If any user defined calibration is found in the map and this is used in a
-            circuit, transpiler attaches the custom gate definition to the circuit.
-            This enables one to flexibly override the low-level instruction
-            implementation.
         coupling_map (CouplingMap or list): Directed graph represented a coupling
             map. Multiple formats are supported:
 
@@ -283,8 +273,6 @@ def generate_preset_pass_manager(
         )
         backend = BackendV2Converter(backend)
 
-    # Check if a custom inst_map was specified before overwriting inst_map
-    _given_inst_map = bool(inst_map)
     # If there are no loose constraints => use backend target if available
     _no_loose_constraints = (
         basis_gates is None
@@ -306,12 +294,9 @@ def generate_preset_pass_manager(
     dt = _parse_dt(dt, backend)
     instruction_durations = _parse_instruction_durations(backend, instruction_durations, dt)
     timing_constraints = _parse_timing_constraints(backend, timing_constraints)
-    inst_map = _parse_inst_map(inst_map, backend)
     # The basis gates parser will set _skip_target to True if a custom basis gate is found
     # (known edge case).
-    basis_gates, name_mapping, _skip_target = _parse_basis_gates(
-        basis_gates, backend, inst_map, _skip_target
-    )
+    basis_gates, name_mapping, _skip_target = _parse_basis_gates(basis_gates, backend, _skip_target)
     coupling_map = _parse_coupling_map(coupling_map, backend)
 
     if target is None:
@@ -319,38 +304,21 @@ def generate_preset_pass_manager(
             # If a backend is specified without loose constraints, use its target directly.
             target = backend.target
         elif not _skip_target:
-            # Only parse backend properties when the target isn't skipped to
-            # preserve the former behavior of transpile.
-            with warnings.catch_warnings():
-                # TODO: inst_map will be removed in 2.0
-                warnings.filterwarnings(
-                    "ignore",
-                    category=DeprecationWarning,
-                    message=".*``inst_map`` is deprecated as of Qiskit 1.3.*",
-                    module="qiskit",
-                )
-                # Build target from constraints.
-                target = Target.from_configuration(
-                    basis_gates=basis_gates,
-                    num_qubits=backend.num_qubits if backend is not None else None,
-                    coupling_map=coupling_map,
-                    # If the instruction map has custom gates, do not give as config, the information
-                    # will be added to the target with update_from_instruction_schedule_map
-                    inst_map=inst_map if inst_map and not inst_map.has_custom_gate() else None,
-                    instruction_durations=instruction_durations,
-                    concurrent_measurements=(
-                        backend.target.concurrent_measurements if backend is not None else None
-                    ),
-                    dt=dt,
-                    timing_constraints=timing_constraints,
-                    custom_name_mapping=name_mapping,
-                )
-
-    # Update target with custom gate information. Note that this is an exception to the priority
-    # order (target > loose constraints), added to handle custom gates for scheduling passes.
-    if target is not None and _given_inst_map and inst_map.has_custom_gate():
-        target = copy.deepcopy(target)
-        target.update_from_instruction_schedule_map(inst_map)
+            # Build target from constraints.
+            target = Target.from_configuration(
+                basis_gates=basis_gates,
+                num_qubits=backend.num_qubits if backend is not None else None,
+                coupling_map=coupling_map,
+                # If the instruction map has custom gates, do not give as config, the information
+                # will be added to the target with update_from_instruction_schedule_map
+                instruction_durations=instruction_durations,
+                concurrent_measurements=(
+                    backend.target.concurrent_measurements if backend is not None else None
+                ),
+                dt=dt,
+                timing_constraints=timing_constraints,
+                custom_name_mapping=name_mapping,
+            )
 
     if target is not None:
         if coupling_map is None:
@@ -359,8 +327,6 @@ def generate_preset_pass_manager(
             basis_gates = target.operation_names
         if instruction_durations is None:
             instruction_durations = target.durations()
-        if inst_map is None:
-            inst_map = target._get_instruction_schedule_map()
         if timing_constraints is None:
             timing_constraints = target.timing_constraints()
 
@@ -372,7 +338,6 @@ def generate_preset_pass_manager(
     pm_options = {
         "target": target,
         "basis_gates": basis_gates,
-        "inst_map": inst_map,
         "coupling_map": coupling_map,
         "instruction_durations": instruction_durations,
         "timing_constraints": timing_constraints,
@@ -391,32 +356,25 @@ def generate_preset_pass_manager(
         "qubits_initially_zero": qubits_initially_zero,
     }
 
-    with warnings.catch_warnings():
-        # inst_map is deprecated in the PassManagerConfig initializer
-        warnings.filterwarnings(
-            "ignore",
-            category=DeprecationWarning,
-            message=".*argument ``inst_map`` is deprecated as of Qiskit 1.3",
-        )
-        if backend is not None:
-            pm_options["_skip_target"] = _skip_target
-            pm_config = PassManagerConfig.from_backend(backend, **pm_options)
-        else:
-            pm_config = PassManagerConfig(**pm_options)
-        if optimization_level == 0:
-            pm = level_0_pass_manager(pm_config)
-        elif optimization_level == 1:
-            pm = level_1_pass_manager(pm_config)
-        elif optimization_level == 2:
-            pm = level_2_pass_manager(pm_config)
-        elif optimization_level == 3:
-            pm = level_3_pass_manager(pm_config)
-        else:
-            raise ValueError(f"Invalid optimization level {optimization_level}")
+    if backend is not None:
+        pm_options["_skip_target"] = _skip_target
+        pm_config = PassManagerConfig.from_backend(backend, **pm_options)
+    else:
+        pm_config = PassManagerConfig(**pm_options)
+    if optimization_level == 0:
+        pm = level_0_pass_manager(pm_config)
+    elif optimization_level == 1:
+        pm = level_1_pass_manager(pm_config)
+    elif optimization_level == 2:
+        pm = level_2_pass_manager(pm_config)
+    elif optimization_level == 3:
+        pm = level_3_pass_manager(pm_config)
+    else:
+        raise ValueError(f"Invalid optimization level {optimization_level}")
     return pm
 
 
-def _parse_basis_gates(basis_gates, backend, inst_map, skip_target):
+def _parse_basis_gates(basis_gates, backend, skip_target):
     standard_gates = get_standard_gate_name_mapping()
     # Add control flow gates by default to basis set and name mapping
     default_gates = {"measure", "delay", "reset"}.union(CONTROL_FLOW_OP_NAMES)
@@ -455,7 +413,7 @@ def _parse_basis_gates(basis_gates, backend, inst_map, skip_target):
         {name: backend.target.operation_from_name(name) for name in backend.operation_names}
     )
 
-    # Check for custom instructions before removing calibrations
+    # Check for custom instructions
     for inst in instructions:
         if inst not in standard_gates and inst not in default_gates:
             if inst not in backend.operation_names:
@@ -472,22 +430,7 @@ def _parse_basis_gates(basis_gates, backend, inst_map, skip_target):
             skip_target = True
             break
 
-    # Remove calibrated instructions, as they will be added later from the instruction schedule map
-    if inst_map is not None and not skip_target:
-        for inst in inst_map.instructions:
-            for qubit in inst_map.qubits_with_instruction(inst):
-                entry = inst_map._get_calibration_entry(inst, qubit)
-                if entry.user_provided and inst in instructions:
-                    instructions.remove(inst)
-
     return list(instructions) if instructions else None, name_mapping, skip_target
-
-
-def _parse_inst_map(inst_map, backend):
-    # try getting inst_map from user, else backend
-    if inst_map is None and backend is not None:
-        inst_map = backend.target._get_instruction_schedule_map()
-    return inst_map
 
 
 def _parse_dt(dt, backend):

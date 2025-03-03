@@ -73,7 +73,6 @@ def dag_to_circuit(dag, copy_operations=True):
     for stretch in dag.iter_declared_stretches():
         circuit.add_stretch(stretch)
     circuit.metadata = dag.metadata
-    circuit._calibrations_prop = dag._calibrations_prop
 
     circuit._data = circuit_data
 

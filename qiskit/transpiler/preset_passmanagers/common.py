@@ -563,9 +563,7 @@ def generate_translation_passmanager(
     return PassManager(unroll)
 
 
-def generate_scheduling(
-    instruction_durations, scheduling_method, timing_constraints, _, target=None
-):
+def generate_scheduling(instruction_durations, scheduling_method, timing_constraints, target=None):
     """Generate a post optimization scheduling :class:`~qiskit.transpiler.PassManager`
 
     Args:
