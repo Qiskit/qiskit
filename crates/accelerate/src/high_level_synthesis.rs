@@ -448,9 +448,11 @@ fn run_on_circuitdata(
     tracker: &mut QubitTracker,
 ) -> PyResult<(CircuitData, Vec<usize>)> {
     if input_circuit.num_qubits() != input_qubits.len() {
-        return Err(TranspilerError::new_err(
-            "HighLevelSynthesis: the input to 'run_on_circuitdata' is incorrect.",
-        ));
+        return Err(TranspilerError::new_err(format!(
+            "HighLevelSynthesis: number of input qubits ({}) does not match the circuit size ({})",
+            input_qubits.len(),
+            input_circuit.num_qubits()
+        )));
     }
 
     // We iteratively process circuit instructions in the order they appear in the input circuit,
@@ -593,9 +595,11 @@ fn run_on_circuitdata(
             Some((synthesized_circuit, synthesized_circuit_qubits)) => {
                 // This pedantic check can possibly be removed.
                 if synthesized_circuit.num_qubits() != synthesized_circuit_qubits.len() {
-                    return Err(TranspilerError::new_err(
-                        "HighLevelSynthesis: the output from 'synthesize_operation' is incorrect.",
-                    ));
+                    return Err(TranspilerError::new_err(format!(
+                        "HighLevelSynthesis: number of output qubits ({}) does not match the circuit size ({})",
+                        synthesized_circuit_qubits.len(),
+                        synthesized_circuit.num_qubits()
+                    )));
                 }
 
                 // If the synthesized circuit uses (auxiliary) global qubits that are not in the output circuit,
@@ -655,9 +659,11 @@ fn run_on_circuitdata(
 
     // Another pedantic check that can possibly be removed.
     if output_circuit.num_qubits() != output_qubits.len() {
-        return Err(TranspilerError::new_err(
-            "HighLevelSynthesis: the output from 'run_on_circuitdata' is incorrect.",
-        ));
+        return Err(TranspilerError::new_err(format!(
+            "HighLevelSynthesis: number of output qubits ({}) does not match the circuit size ({})",
+            output_qubits.len(),
+            output_circuit.num_qubits()
+        )));
     }
 
     Ok((output_circuit, output_qubits))
@@ -758,9 +764,11 @@ fn synthesize_operation(
     label: Option<&str>,
 ) -> PyResult<Option<(CircuitData, Vec<usize>)>> {
     if op.num_qubits() != input_qubits.len() as u32 {
-        return Err(TranspilerError::new_err(
-            "HighLevelSynthesis: the input to 'synthesize_operation' is incorrect.",
-        ));
+        return Err(TranspilerError::new_err(format!(
+            "HighLevelSynthesis: number of operation's qubits ({}) does not match the circuit size ({})",
+            op.num_qubits(),
+            input_qubits.len()
+        )));
     }
 
     let borrowed_data: PyRef<'_, HighLevelSynthesisData> = data.borrow();
