@@ -271,7 +271,6 @@ class HighLevelSynthesis(TransformationPass):
             TranspilerError: when the transpiler is unable to synthesize the given DAG
             (for instance, when the specified synthesis method is not available).
         """
-
         res = py_run_on_dag(dag, self.data, self.qubits_initially_zero)
         return res if res is not None else dag
 
@@ -419,6 +418,7 @@ def _synthesize_op_using_plugins(
         if best_decomposition.num_qubits != len(output_qubits):
             raise TranspilerError(
                 "HighLevelSynthesis: the result from 'synthesize_op_using_plugin' is incorrect."
+
             )
 
     if best_decomposition is None:

@@ -219,7 +219,6 @@ extension-pkg-allow-list = [
     # statically resolve the cyclical load of the exception and it bugs out.
     "retworkx",
     "rustworkx",
-    "tweedledum",
 ]
 load-plugins = ["pylint.extensions.docparams", "pylint.extensions.docstyle", "pylint.extensions.bad_builtin"]
 py-version = "3.9"  # update it when bumping minimum supported python version

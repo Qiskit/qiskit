@@ -833,6 +833,29 @@ def generate_v12_expr():
     return [index, shift]
 
 
+def generate_replay_with_expression_substitutions():
+    """Circuits with parameters that have substituted expressions in the replay"""
+    a = Parameter("a")
+    b = Parameter("b")
+    a1 = a * 2
+    a2 = a1.subs({a: 3 * b})
+    qc = QuantumCircuit(1)
+    qc.rz(a2, 0)
+
+    return [qc]
+
+
+def generate_v14_expr():
+    """Circuits that contain expressions and types new in QPY v14."""
+    from qiskit.circuit.classical import expr, types
+
+    float_expr = QuantumCircuit(name="float_expr")
+    with float_expr.if_test(expr.less(1.0, 2.0)):
+        pass
+
+    return [float_expr]
+
+
 def generate_circuits(version_parts, current_version, load_context=False):
     """Generate reference circuits.
 
@@ -898,6 +921,13 @@ def generate_circuits(version_parts, current_version, load_context=False):
     if version_parts >= (1, 1, 0):
         output_circuits["standalone_vars.qpy"] = generate_standalone_var()
         output_circuits["v12_expr.qpy"] = generate_v12_expr()
+    if version_parts >= (1, 4, 1):
+        output_circuits["replay_with_expressions.qpy"] = (
+            generate_replay_with_expression_substitutions()
+        )
+
+    if version_parts >= (2, 0, 0):
+        output_circuits["v14_expr.qpy"] = generate_v14_expr()
     return output_circuits
 
 
@@ -1007,6 +1037,8 @@ def load_qpy(qpy_files, version_parts):
                 bind = np.linspace(1.0, 2.0, 22)
             elif path == "parameter_vector_expression.qpy":
                 bind = np.linspace(1.0, 2.0, 15)
+            elif path == "replay_with_expressions.qpy":
+                bind = [2.0]
 
             assert_equal(
                 circuit, qpy_circuits[i], i, version_parts, bind=bind, equivalent=equivalent

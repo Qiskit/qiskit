@@ -186,9 +186,8 @@ External Python Libraries
 .. py:data:: HAS_TWEEDLEDUM
 
     `Tweedledum <https://github.com/boschmitt/tweedledum>`__ is an extension library for
-    synthesis and optimization of circuits that may involve classical oracles.  Qiskit's
-    :class:`.PhaseOracle` uses this, which is used in turn by amplification algorithms via
-    the :class:`.AmplificationProblem`.
+    synthesis and optimization of circuits that may involve classical oracles. In the past
+    Qiskit's :class:`.PhaseOracle` used this but it is no longer used by Qiskit.
 
 .. py:data:: HAS_Z3
 

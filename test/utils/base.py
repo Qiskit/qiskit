@@ -94,6 +94,13 @@ class QiskitTestCase(BaseTestCase):
         warnings.filterwarnings("error", category=DeprecationWarning)
         warnings.filterwarnings("error", category=QiskitWarning)
 
+        warnings.filterwarnings(
+            "ignore",
+            category=RuntimeWarning,
+            message="Aer not found using BasicSimulator and no noise",
+            module="qiskit.providers.fake_provider.generic_backend_v2",
+        )
+
         # Numpy 2 made a few new modules private, and have warnings that trigger if you try to
         # access attributes that _would_ have existed.  Unfortunately, Python's `warnings` module
         # adds a field called `__warningregistry__` to any module that triggers a warning, and
@@ -167,14 +174,6 @@ class QiskitTestCase(BaseTestCase):
             message=r".*The property.*qiskit.*unit.*",
         )
 
-        # Safe to remove once `FakeBackend` is removed (2.0)
-        warnings.filterwarnings(
-            "ignore",  # If "default", it floods the CI output
-            category=DeprecationWarning,
-            message=r".*from_backend using V1 based backend is deprecated as of Aer 0.15*",
-            module="qiskit.providers.fake_provider.fake_backend",
-        )
-
         warnings.filterwarnings(
             "default",
             category=DeprecationWarning,
@@ -234,8 +233,7 @@ class QiskitTestCase(BaseTestCase):
         # due to importing the instances from the top-level qiskit namespace.
         from qiskit.providers.basic_provider import BasicProvider
 
-        with self.assertWarns(DeprecationWarning):
-            BasicProvider()._backends = BasicProvider()._verify_backends()
+        BasicProvider()._backends = BasicProvider()._verify_backends()
 
     def assertQuantumCircuitEqual(self, qc1, qc2, msg=None):
         """Extra assertion method to give a better error message when two circuits are unequal."""

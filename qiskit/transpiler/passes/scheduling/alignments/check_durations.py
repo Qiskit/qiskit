@@ -68,11 +68,3 @@ class InstructionDurationCheck(AnalysisPass):
             if not (dur % self.acquire_align == 0 and dur % self.pulse_align == 0):
                 self.property_set["reschedule_required"] = True
                 return
-
-        # Check custom gate durations
-        for inst_defs in dag._calibrations_prop.values():
-            for caldef in inst_defs.values():
-                dur = caldef.duration
-                if not (dur % self.acquire_align == 0 and dur % self.pulse_align == 0):
-                    self.property_set["reschedule_required"] = True
-                    return
