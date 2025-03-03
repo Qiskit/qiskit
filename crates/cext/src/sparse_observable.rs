@@ -632,6 +632,84 @@ pub unsafe extern "C" fn qk_obs_add(
 }
 
 /// @ingroup QkObs
+/// Compose (multiply) two observables.
+///
+/// @param right One observable.
+/// @param left The other observable.
+///
+/// @return ``right.compose(left)`` which equals the observable ``result = left @ right``,
+///     in terms of the matrix multiplication ``@``.
+///
+/// # Example
+///
+///     QkObs *left = qk_obs_identity(100);
+///     QkObs *right = qk_obs_zero(100);
+///     QkObs *result = qk_obs_compose(right, left);
+///
+/// # Safety
+///
+/// Behavior is undefined if ``left`` or ``right`` are not valid, non-null pointers to
+/// ``QkObs``\ s.
+#[no_mangle]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_obs_compose(
+    right: *const SparseObservable,
+    left: *const SparseObservable,
+) -> *mut SparseObservable {
+    // SAFETY: Per documentation, the pointers are non-null and aligned.
+    let right = unsafe { const_ptr_as_ref(right) };
+    let left = unsafe { const_ptr_as_ref(left) };
+
+    let result = right.compose(left);
+    Box::into_raw(Box::new(result))
+}
+
+/// @ingroup QkObs
+/// Compose (multiply) two observables according to a custom qubit order.
+///
+/// Notably, this allows composing two observables of different size.
+///
+/// @param right One observable.
+/// @param left The other observable. The number of qubits must match the length of ``qargs``.
+/// @param qargs The qubit arguments specified which indices in ``right`` to associate with
+///     the ones in ``left``.
+///
+/// @return ``right.compose(left)`` which equals the observable ``result = left @ right``,
+///     in terms of the matrix multiplication ``@``.
+///
+/// # Example
+///
+///     QkObs *left = qk_obs_identity(100);
+///     QkObs *right = qk_obs_zero(100);
+///     QkObs *result = qk_obs_compose(right, left);
+///
+/// # Safety
+///
+/// To call this function safely
+///
+///   * ``left`` or ``right`` must be valid, non-null pointers to ``QkObs``\ s
+///   * ``qargs`` must point to an array of ``uint32_t``, readable for ``qk_obs_num_qubits(left)``
+///     elements (meaning the number of qubits in ``left``)
+#[no_mangle]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_obs_compose_map(
+    right: *const SparseObservable,
+    left: *const SparseObservable,
+    qargs: *const u32,
+) -> *mut SparseObservable {
+    // SAFETY: Per documentation, the pointers are non-null and aligned.
+    let right = unsafe { const_ptr_as_ref(right) };
+    let left = unsafe { const_ptr_as_ref(left) };
+
+    // SAFETY: Per documentation, qargs is safe to read up to ``left.num_qubits()`` elements,
+    // which is the maximal value of ``index`` here.
+    let qargs_map = |index| unsafe { *qargs.add(index) };
+
+    let result = right.compose_map(left, qargs_map);
+    Box::into_raw(Box::new(result))
+}
+
+/// @ingroup QkObs
 /// Calculate the canonical representation of the observable.
 ///
 /// @param obs A pointer to the observable.
