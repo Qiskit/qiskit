@@ -326,6 +326,41 @@ impl HighLevelSynthesisData {
     }
 }
 
+/// A super-fast check whether all operations in `op_names` are natively supported.
+fn all_instructions_supported(
+    py: Python,
+    data: &Bound<HighLevelSynthesisData>,
+    op_names: &HashSet<String>,
+) -> bool {
+    let borrowed_data = data.borrow();
+
+    match &borrowed_data.target {
+        Some(target) => {
+            let target = target.borrow(py);
+            if target.num_qubits.is_some() {
+                // If we have the target and HighLevelSynthesis runs pre-routing,
+                // we check whether every operation name in op_names is supported
+                // by the target.
+                if borrowed_data.use_physical_indices {
+                    return false;
+                }
+                op_names
+                    .iter()
+                    .all(|name| target.instruction_supported(name, None))
+            } else {
+                // If we do not have the target, we check whether every operation
+                // in op_names is inside the basis gates.
+                op_names
+                    .iter()
+                    .all(|name| borrowed_data.device_insts.contains(name))
+            }
+        }
+        None => op_names
+            .iter()
+            .all(|name| borrowed_data.device_insts.contains(name)),
+    }
+}
+
 /// Check whether an operation is natively supported.
 fn instruction_supported(
     py: Python,
@@ -907,6 +942,17 @@ fn py_run_on_dag(
 ) -> PyResult<Option<DAGCircuit>> {
     // Fast-path: check if HighLevelSynthesis can be skipped altogether. This is only
     // done at the top-level since this does not track the qubit states.
+
+    // First, we apply a super-fast (but incomplete) check to see if all the operations
+    // present in the circuit are suported by the target / are in the basis. This check
+    // is based only on the names of the operations in the circuit.
+    let op_names: HashSet<String> = dag.count_ops(py, false)?.keys().cloned().collect();
+    if all_instructions_supported(py, data, &op_names) {
+        return Ok(None);
+    }
+
+    // Second, we apply a slightly slower (but still fast) that considers each operation
+    // one-by-one.
     let mut fast_path: bool = true;
 
     for (_, inst) in dag.op_nodes(false) {
