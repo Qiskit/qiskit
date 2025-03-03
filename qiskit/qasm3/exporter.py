@@ -1284,8 +1284,7 @@ class _ExprBuilder(expr.ExprVisitor[ast.Expression]):
         return self.lookup(node) if node.standalone else self.lookup(node.var)
 
     def visit_stretch(self, node, /):
-        # TODO:
-        pass
+        return self.lookup(node)
 
     # pylint: disable=too-many-return-statements
     def visit_value(self, node, /):
