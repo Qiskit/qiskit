@@ -54,7 +54,7 @@ pub(crate) fn analyze_commutations_inner(
     py: Python,
     dag: &mut DAGCircuit,
     commutation_checker: &mut CommutationChecker,
-    approximation_degree: Option<f64>,
+    approximation_degree: f64,
 ) -> PyResult<(CommutationSet, NodeIndices)> {
     let mut commutation_set: CommutationSet = HashMap::new();
     let mut node_indices: NodeIndices = HashMap::new();
@@ -136,12 +136,12 @@ pub(crate) fn analyze_commutations_inner(
 }
 
 #[pyfunction]
-#[pyo3(signature = (dag, commutation_checker, approximation_degree=None))]
+#[pyo3(signature = (dag, commutation_checker, approximation_degree=1.))]
 pub(crate) fn analyze_commutations(
     py: Python,
     dag: &mut DAGCircuit,
     commutation_checker: &mut CommutationChecker,
-    approximation_degree: Option<f64>,
+    approximation_degree: f64,
 ) -> PyResult<Py<PyDict>> {
     // This returns two HashMaps:
     //   * The commuting nodes per wire: {wire: [commuting_nodes_1, commuting_nodes_2, ...]}

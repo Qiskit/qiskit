@@ -14,6 +14,7 @@ use hashbrown::{HashMap, HashSet};
 use ndarray::linalg::kron;
 use ndarray::Array2;
 use num_complex::Complex64;
+use num_complex::ComplexFloat;
 use once_cell::sync::Lazy;
 use smallvec::SmallVec;
 
@@ -137,14 +138,14 @@ impl CommutationChecker {
         }
     }
 
-    #[pyo3(signature=(op1, op2, max_num_qubits=3, approximation_degree=None))]
+    #[pyo3(signature=(op1, op2, max_num_qubits=3, approximation_degree=1.))]
     fn commute_nodes(
         &mut self,
         py: Python,
         op1: &DAGOpNode,
         op2: &DAGOpNode,
         max_num_qubits: u32,
-        approximation_degree: Option<f64>,
+        approximation_degree: f64,
     ) -> PyResult<bool> {
         let (qargs1, qargs2) = get_bits::<Qubit>(
             py,
@@ -174,7 +175,7 @@ impl CommutationChecker {
         )
     }
 
-    #[pyo3(signature=(op1, qargs1, cargs1, op2, qargs2, cargs2, max_num_qubits=3, approximation_degree=None))]
+    #[pyo3(signature=(op1, qargs1, cargs1, op2, qargs2, cargs2, max_num_qubits=3, approximation_degree=1.))]
     #[allow(clippy::too_many_arguments)]
     fn commute(
         &mut self,
@@ -186,7 +187,7 @@ impl CommutationChecker {
         qargs2: Option<&Bound<PySequence>>,
         cargs2: Option<&Bound<PySequence>>,
         max_num_qubits: u32,
-        approximation_degree: Option<f64>,
+        approximation_degree: f64,
     ) -> PyResult<bool> {
         let qargs1 = qargs1.map_or_else(|| Ok(PyTuple::empty(py)), PySequenceMethods::to_tuple)?;
         let cargs1 = cargs1.map_or_else(|| Ok(PyTuple::empty(py)), PySequenceMethods::to_tuple)?;
@@ -280,11 +281,12 @@ impl CommutationChecker {
         qargs2: &[Qubit],
         cargs2: &[Clbit],
         max_num_qubits: u32,
-        approximation_degree: Option<f64>,
+        approximation_degree: f64,
     ) -> PyResult<bool> {
         // If the average gate infidelity is below this tolerance, they commute. The tolerance
-        // is set to max(machine_eps, 1 - approximation_degree).
-        let tol = f64::EPSILON.max(1. - approximation_degree.unwrap_or(1.));
+        // is set to max(16 * machine_eps, 1 - approximation_degree), where the heuristic factor
+        // of 16 is set to account for round-off errors in matrix multiplication.
+        let tol = (16. * f64::EPSILON).max(1. - approximation_degree);
 
         // if we have rotation gates, we attempt to map them to their generators, for example
         // RX -> X or CPhase -> CZ
@@ -510,7 +512,10 @@ impl CommutationChecker {
 
         // we consider the gates as commuting if the process fidelity of
         // AB (BA)^\dagger is approximately the identity and there is no global phase difference
-        Ok(phase.abs() <= tol && (1.0 - fid).abs() <= tol)
+        // let dim = op12.ncols() as f64;
+        // let matrix_tol = tol * dim.powi(2);
+        let matrix_tol = tol;
+        Ok(phase.abs() <= tol && (1.0 - fid).abs() <= matrix_tol)
     }
 
     fn clear_cache(&mut self) {
@@ -618,8 +623,11 @@ fn map_rotation<'a>(
         // commute with everything, and we simply return the operation with the flag that
         // it commutes trivially.
         if let Param::Float(angle) = params[0] {
-            let gate_fidelity = rotation_fidelity(name, angle).unwrap_or(0.);
-            if (1. - gate_fidelity).abs() <= tol {
+            let (tr_over_dim, dim) = rotation_trace_and_dim(name, angle)
+                .expect("All rotation should be covered at this point");
+            let gate_fidelity = tr_over_dim.abs().powi(2);
+            let process_fidelity = (dim * gate_fidelity + 1.) / (dim + 1.);
+            if (1. - process_fidelity).abs() <= tol {
                 return (op, params, true);
             };
         };
@@ -636,19 +644,24 @@ fn map_rotation<'a>(
     (op, params, false)
 }
 
-fn rotation_fidelity(rotation: &str, angle: f64) -> Option<f64> {
+/// For a (controlled) rotation or phase gate, return a tuple ``(Tr(gate) / dim, dim)``.
+/// Returns ``None`` if the rotation gate (specified by name) is not supported.
+pub fn rotation_trace_and_dim(rotation: &str, angle: f64) -> Option<(Complex64, f64)> {
     let dim = match rotation {
-        "rx" | "ry" | "rz" | "p" => 2.,
+        "rx" | "ry" | "rz" | "p" | "u1" => 2.,
         _ => 4.,
     };
 
-    let gate_fid = match rotation {
-        "rx" | "ry" | "rz" | "p" | "rxx" | "ryy" | "rzx" | "rzz" => (angle / 2.).cos().powi(2),
-        "crx" | "cry" | "crz" => (0.5 + 0.5 * (angle / 2.).cos()).powi(2),
-        "cp" => (10. + 6. * angle.cos()) / 16.,
+    let trace_over_dim = match rotation {
+        "rx" | "ry" | "rz" | "rxx" | "ryy" | "rzx" | "rzz" => {
+            Complex64::new((angle / 2.).cos(), 0.)
+        }
+        "crx" | "cry" | "crz" => Complex64::new(0.5 + 0.5 * (angle / 2.).cos(), 0.),
+        "p" | "u1" => (1. + Complex64::new(0., angle).exp()) / 2.,
+        "cp" => (3. + Complex64::new(0., angle).exp()) / 4.,
         _ => return None,
     };
-    Some((dim * gate_fid + 1.) / (dim + 1.))
+    Some((trace_over_dim, dim))
 }
 
 fn get_relative_placement(

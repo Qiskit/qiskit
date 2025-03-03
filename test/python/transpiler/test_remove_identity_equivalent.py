@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Tests for the DropNegligible transpiler pass."""
+"""Tests for the RemoveIdentityEquivalent transpiler pass."""
 
 import ddt
 import numpy as np
@@ -37,10 +37,10 @@ from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt.ddt
-class TestDropNegligible(QiskitTestCase):
-    """Test the DropNegligible pass."""
+class TestRemoveIdentityEquivalent(QiskitTestCase):
+    """Test the RemoveIdentityEquivalent pass."""
 
-    def test_drops_negligible_gates(self):
+    def test_remove_identity_equiv_pass(self):
         """Test that negligible gates are dropped."""
         qubits = QuantumRegister(2)
         circuit = QuantumCircuit(qubits)

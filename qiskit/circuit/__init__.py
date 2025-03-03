@@ -806,14 +806,8 @@ or cancel gates:
     q_1: ───────────┤ X ├───┤ X ├───┤ X ├     q_1: ───┤ X ├───
                     └───┘   └───┘   └───┘             └───┘
 
-Performing these optimizations are part of the transpiler, but the tools to investigate commutations
-are available in the :class:`CommutationChecker`.
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   CommutationChecker
-
+Performing these optimizations are part of the transpiler, using passes such as 
+:class:`.CommutationAnalysis`.
 
 .. _circuit-custom-gates:
 
