@@ -241,7 +241,7 @@ class TestSparseObservable(QiskitTestCase):
             "1": SparseObservable.BitTerm.ONE,
         }
         self.assertEqual({label: SparseObservable.BitTerm[label] for label in labels}, labels)
-        # The `label` property retusnknown values.
+        # The `label` property returns known values.
         self.assertEqual(
             {bit_term.label: bit_term for bit_term in SparseObservable.BitTerm}, labels
         )

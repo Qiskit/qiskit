@@ -1279,8 +1279,7 @@ mod compose {
         bit_terms: Vec<BitTerm>,
         /// Whether iteration has started.
         started: bool,
-        /// We always have at least one item to put out, but we're exhausted once we've iterated
-        /// through all our product terms.
+        /// Whether iteration will yield any further items.
         exhausted: bool,
     }
     impl Iter {
@@ -3378,8 +3377,9 @@ impl PySparseObservable {
     ///
     /// Args:
     ///     other: the observable used to left-multiply ``self``.
-    ///     qargs: if given, the qubits in ``self`` to associated with the qubits in ``other``.  Put
-    ///         another way: if this is given, it is similar to a more efficient implementation of::
+    ///     qargs: if given, the qubits in ``self`` to be associated with the qubits in ``other``.
+    ///         Put another way: if this is given, it is similar to a more efficient implementation
+    ///         of::
     ///
     ///             self.compose(other.apply_layout(qargs, self.num_qubits))
     ///
@@ -3408,7 +3408,7 @@ impl PySparseObservable {
         if let Some(order) = qargs {
             if other_inner.num_qubits() > inner.num_qubits() {
                 return Err(PyValueError::new_err(format!(
-                    "argument ({}) has more qubits than the base ({})",
+                    "argument has more qubits ({}) than the base ({})",
                     other_inner.num_qubits(),
                     inner.num_qubits()
                 )));
