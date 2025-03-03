@@ -1255,6 +1255,8 @@ def _build_ast_type(type_: types.Type) -> ast.ClassicalType:
         return ast.UintType(type_.width)
     if type_.kind is types.Float:
         return ast.FloatType.DOUBLE
+    if type_.kind is types.Duration:
+        return ast.DurationType()
     raise RuntimeError(f"unhandled expr type '{type_}'")
 
 
@@ -1271,6 +1273,7 @@ class _ExprBuilder(expr.ExprVisitor[ast.Expression]):
     def visit_var(self, node, /):
         return self.lookup(node) if node.standalone else self.lookup(node.var)
 
+    # pylint: disable=too-many-return-statements
     def visit_value(self, node, /):
         if node.type.kind is types.Bool:
             return ast.BooleanLiteral(node.value)
@@ -1278,6 +1281,18 @@ class _ExprBuilder(expr.ExprVisitor[ast.Expression]):
             return ast.IntegerLiteral(node.value)
         if node.type.kind is types.Float:
             return ast.FloatLiteral(node.value)
+        if node.type.kind is types.Duration:
+            unit = node.value.unit()
+            if unit == "dt":
+                return ast.DurationLiteral(node.value.value(), ast.DurationUnit.SAMPLE)
+            if unit == "ns":
+                return ast.DurationLiteral(node.value.value(), ast.DurationUnit.NANOSECOND)
+            if unit == "us":
+                return ast.DurationLiteral(node.value.value(), ast.DurationUnit.MICROSECOND)
+            if unit == "ms":
+                return ast.DurationLiteral(node.value.value(), ast.DurationUnit.MILLISECOND)
+            if unit == "s":
+                return ast.DurationLiteral(node.value.value(), ast.DurationUnit.SECOND)
         raise RuntimeError(f"unhandled Value type '{node}'")
 
     def visit_cast(self, node, /):

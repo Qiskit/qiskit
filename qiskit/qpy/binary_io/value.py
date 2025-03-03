@@ -23,7 +23,7 @@ import numpy as np
 import symengine
 
 
-from qiskit.circuit import CASE_DEFAULT, Clbit, ClassicalRegister
+from qiskit.circuit import CASE_DEFAULT, Clbit, ClassicalRegister, Duration
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import (
@@ -335,6 +335,9 @@ class _ExprWriter(expr.ExprVisitor[None]):
             self.file_obj.write(
                 struct.pack(formats.EXPR_VALUE_FLOAT_PACK, *formats.EXPR_VALUE_FLOAT(node.value))
             )
+        elif isinstance(node.value, Duration):
+            self.file_obj.write(type_keys.ExprValue.DURATION)
+            _write_duration(self.file_obj, node.value)
         else:
             raise exceptions.QpyError(f"unhandled Value object '{node.value}'")
 
@@ -398,8 +401,43 @@ def _write_expr_type(file_obj, type_: types.Type, version: int):
                 "float-typed expressions", required=14, target=version
             )
         file_obj.write(type_keys.ExprType.FLOAT)
+    elif type_.kind is types.Duration:
+        if version < 14:
+            raise exceptions.UnsupportedFeatureForVersion(
+                "duration-typed expressions", required=14, target=version
+            )
+        file_obj.write(type_keys.ExprType.DURATION)
     else:
         raise exceptions.QpyError(f"unhandled Type object '{type_};")
+
+
+def _write_duration(file_obj, duration: Duration):
+    unit = duration.unit()
+    if unit == "dt":
+        file_obj.write(type_keys.CircuitDuration.DT)
+        file_obj.write(
+            struct.pack(formats.DURATION_DT_PACK, *formats.DURATION_DT(duration.value()))
+        )
+    elif unit == "ns":
+        file_obj.write(type_keys.CircuitDuration.NS)
+        file_obj.write(
+            struct.pack(formats.DURATION_NS_PACK, *formats.DURATION_NS(duration.value()))
+        )
+    elif unit == "us":
+        file_obj.write(type_keys.CircuitDuration.US)
+        file_obj.write(
+            struct.pack(formats.DURATION_US_PACK, *formats.DURATION_US(duration.value()))
+        )
+    elif unit == "ms":
+        file_obj.write(type_keys.CircuitDuration.MS)
+        file_obj.write(
+            struct.pack(formats.DURATION_MS_PACK, *formats.DURATION_MS(duration.value()))
+        )
+    elif unit == "s":
+        file_obj.write(type_keys.CircuitDuration.S)
+        file_obj.write(struct.pack(formats.DURATION_S_PACK, *formats.DURATION_S(duration.value())))
+    else:
+        raise exceptions.QpyError(f"unhandled Duration object '{duration};")
 
 
 def _read_parameter(file_obj):
@@ -715,6 +753,9 @@ def _read_expr(
                 )
             )
             return expr.Value(payload.value, type_)
+        if value_type_key == type_keys.ExprValue.DURATION:
+            value = _read_duration(file_obj)
+            return expr.Value(value, type_)
         raise exceptions.QpyError("Invalid classical-expression Value key '{value_type_key}'")
     if type_key == type_keys.Expression.CAST:
         payload = formats.EXPRESSION_CAST._make(
@@ -766,7 +807,39 @@ def _read_expr_type(file_obj) -> types.Type:
         return types.Uint(elem.width)
     if type_key == type_keys.ExprType.FLOAT:
         return types.Float()
+    if type_key == type_keys.ExprType.DURATION:
+        return types.Duration()
     raise exceptions.QpyError(f"Invalid classical-expression Type key '{type_key}'")
+
+
+def _read_duration(file_obj) -> Duration:
+    type_key = file_obj.read(formats.DURATION_DISCRIMINATOR_SIZE)
+    if type_key == type_keys.CircuitDuration.DT:
+        elem = formats.DURATION_DT._make(
+            struct.unpack(formats.DURATION_DT_PACK, file_obj.read(formats.DURATION_DT_SIZE))
+        )
+        return Duration.dt(elem.value)
+    if type_key == type_keys.CircuitDuration.NS:
+        elem = formats.DURATION_NS._make(
+            struct.unpack(formats.DURATION_NS_PACK, file_obj.read(formats.DURATION_NS_SIZE))
+        )
+        return Duration.ns(elem.value)
+    if type_key == type_keys.CircuitDuration.US:
+        elem = formats.DURATION_US._make(
+            struct.unpack(formats.DURATION_US_PACK, file_obj.read(formats.DURATION_US_SIZE))
+        )
+        return Duration.us(elem.value)
+    if type_key == type_keys.CircuitDuration.MS:
+        elem = formats.DURATION_MS._make(
+            struct.unpack(formats.DURATION_MS_PACK, file_obj.read(formats.DURATION_MS_SIZE))
+        )
+        return Duration.ms(elem.value)
+    if type_key == type_keys.CircuitDuration.S:
+        elem = formats.DURATION_S._make(
+            struct.unpack(formats.DURATION_S_PACK, file_obj.read(formats.DURATION_S_SIZE))
+        )
+        return Duration.s(elem.value)
+    raise exceptions.QpyError(f"Invalid duration Type key '{type_key}'")
 
 
 def read_standalone_vars(file_obj, num_vars):
