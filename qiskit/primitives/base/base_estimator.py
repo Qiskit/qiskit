@@ -51,11 +51,11 @@ class BaseEstimatorV2(ABC):
         estimator. These are:
 
         * A single :class:`~qiskit.circuit.QuantumCircuit`, possibly parametrized,
-        whose final state we define as :math:`\psi(\theta)`.
+            whose final state we define as :math:`\psi(\theta)`.
 
         * One or more observables (specified as any :class:`~.ObservablesArrayLike`, including
-        :class:`~.Pauli`, :class:`~.SparsePauliOp`, ``str``) that specify which expectation
-        values to estimate, denoted :math:`H_j`.
+            :class:`~.Pauli`, :class:`~.SparsePauliOp`, ``str``) that specify which expectation
+            values to estimate, denoted :math:`H_j`.
 
         * A collection parameter value sets to bind the circuit against, :math:`\theta_k`
 
