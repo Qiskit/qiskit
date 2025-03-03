@@ -1,6 +1,0 @@
-fixes:
-  - |
-    Fixes doctrings indentation in ``PiecewisePolynomialPauliRotations.init()``,
-    ``qiskit.circuit.random.random_circuit()`` ,``Pauli.evolve()``. Refer to
-    `#13839 <https://github.com/Qiskit/qiskit/issues/13839>` for more
-    details.

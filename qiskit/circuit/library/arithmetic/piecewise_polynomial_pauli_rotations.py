@@ -103,7 +103,7 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
             coeffs: The coefficients of the polynomials for different segments of the
                 piecewise-linear function. ``coeffs[j][i]`` is the coefficient of the i-th power of x
                 for the j-th polynomial.
-                    Defaults to linear: ``[[1]]``.
+                Defaults to linear: ``[[1]]``.
             basis: The type of Pauli rotation (``'X'``, ``'Y'``, ``'Z'``).
             name: The name of the circuit.
         """
