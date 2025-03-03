@@ -15,7 +15,6 @@
 import unittest
 import cmath
 import math
-import copy
 import pickle
 from operator import add, mul, sub, truediv
 import numpy
@@ -29,9 +28,8 @@ from qiskit.circuit import Gate, Instruction, Parameter, ParameterExpression, Pa
 from qiskit.circuit.parametertable import ParameterView
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.compiler import transpile
-from qiskit import pulse
 from qiskit.quantum_info import Operator
-from qiskit.providers.fake_provider import Fake5QV1, GenericBackendV2
+from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.utils import parallel_map
 from test import QiskitTestCase, combine  # pylint: disable=wrong-import-order
@@ -723,165 +721,6 @@ class TestParameters(QiskitTestCase):
         for instruction in qc2.data:
             self.assertEqual(float(instruction.operation.params[0]), 1.0)
 
-    def test_calibration_assignment(self):
-        """That that calibration mapping and the schedules they map are assigned together."""
-        theta = Parameter("theta")
-        circ = QuantumCircuit(3, 3)
-        circ.append(Gate("rxt", 1, [theta]), [0])
-        circ.measure(0, 0)
-
-        with self.assertWarns(DeprecationWarning):
-            rxt_q0 = pulse.Schedule(
-                pulse.Play(
-                    pulse.library.Gaussian(duration=128, sigma=16, amp=0.2 * theta / 3.14),
-                    pulse.DriveChannel(0),
-                )
-            )
-
-            circ.add_calibration("rxt", [0], rxt_q0, [theta])
-        circ = circ.assign_parameters({theta: 3.14})
-
-        instruction = circ.data[0]
-        cal_key = (
-            tuple(circ.find_bit(q).index for q in instruction.qubits),
-            tuple(instruction.operation.params),
-        )
-        self.assertEqual(cal_key, ((0,), (3.14,)))
-
-        with self.assertWarns(DeprecationWarning):
-            # Make sure that key from instruction data matches the calibrations dictionary
-            self.assertIn(cal_key, circ.calibrations["rxt"])
-            sched = circ.calibrations["rxt"][cal_key]
-        self.assertEqual(sched.instructions[0][1].pulse.amp, 0.2)
-
-    def test_calibration_assignment_doesnt_mutate(self):
-        """That that assignment doesn't mutate the original circuit."""
-        theta = Parameter("theta")
-        circ = QuantumCircuit(3, 3)
-        circ.append(Gate("rxt", 1, [theta]), [0])
-        circ.measure(0, 0)
-
-        with self.assertWarns(DeprecationWarning):
-            rxt_q0 = pulse.Schedule(
-                pulse.Play(
-                    pulse.library.Gaussian(duration=128, sigma=16, amp=0.2 * theta / 3.14),
-                    pulse.DriveChannel(0),
-                )
-            )
-
-            circ.add_calibration("rxt", [0], rxt_q0, [theta])
-        circ_copy = copy.deepcopy(circ)
-        assigned_circ = circ.assign_parameters({theta: 3.14})
-
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(circ.calibrations, circ_copy.calibrations)
-            self.assertNotEqual(assigned_circ.calibrations, circ.calibrations)
-
-    def test_calibration_assignment_w_expressions(self):
-        """That calibrations with multiple parameters are assigned correctly"""
-        theta = Parameter("theta")
-        sigma = Parameter("sigma")
-        circ = QuantumCircuit(3, 3)
-        circ.append(Gate("rxt", 1, [theta / 2, sigma]), [0])
-        circ.measure(0, 0)
-
-        with self.assertWarns(DeprecationWarning):
-            rxt_q0 = pulse.Schedule(
-                pulse.Play(
-                    pulse.library.Gaussian(duration=128, sigma=4 * sigma, amp=0.2 * theta / 3.14),
-                    pulse.DriveChannel(0),
-                )
-            )
-
-            circ.add_calibration("rxt", [0], rxt_q0, [theta / 2, sigma])
-        circ = circ.assign_parameters({theta: 3.14, sigma: 4})
-
-        instruction = circ.data[0]
-        cal_key = (
-            tuple(circ.find_bit(q).index for q in instruction.qubits),
-            tuple(instruction.operation.params),
-        )
-        self.assertEqual(cal_key, ((0,), (3.14 / 2, 4)))
-        with self.assertWarns(DeprecationWarning):
-            # Make sure that key from instruction data matches the calibrations dictionary
-            self.assertIn(cal_key, circ.calibrations["rxt"])
-            sched = circ.calibrations["rxt"][cal_key]
-        self.assertEqual(sched.instructions[0][1].pulse.amp, 0.2)
-        self.assertEqual(sched.instructions[0][1].pulse.sigma, 16)
-
-    def test_substitution(self):
-        """Test Parameter substitution (vs bind)."""
-        alpha = Parameter("⍺")
-        beta = Parameter("beta")
-        with self.assertWarns(DeprecationWarning):
-            schedule = pulse.Schedule(pulse.ShiftPhase(alpha, pulse.DriveChannel(0)))
-
-        circ = QuantumCircuit(3, 3)
-        circ.append(Gate("my_rz", 1, [alpha]), [0])
-        with self.assertWarns(DeprecationWarning):
-            circ.add_calibration("my_rz", [0], schedule, [alpha])
-
-        circ = circ.assign_parameters({alpha: 2 * beta})
-
-        circ = circ.assign_parameters({beta: 1.57})
-        with self.assertWarns(DeprecationWarning):
-            cal_sched = circ.calibrations["my_rz"][((0,), (3.14,))]
-        self.assertEqual(float(cal_sched.instructions[0][1].phase), 3.14)
-
-    def test_partial_assignment(self):
-        """Expressions of parameters with partial assignment."""
-        alpha = Parameter("⍺")
-        beta = Parameter("beta")
-        gamma = Parameter("γ")
-        phi = Parameter("ϕ")
-
-        with self.assertWarns(DeprecationWarning):
-            with pulse.build() as my_cal:
-                pulse.set_frequency(alpha + beta, pulse.DriveChannel(0))
-                pulse.shift_frequency(gamma + beta, pulse.DriveChannel(0))
-                pulse.set_phase(phi, pulse.DriveChannel(1))
-
-        circ = QuantumCircuit(2, 2)
-        circ.append(Gate("custom", 2, [alpha, beta, gamma, phi]), [0, 1])
-        with self.assertWarns(DeprecationWarning):
-            circ.add_calibration("custom", [0, 1], my_cal, [alpha, beta, gamma, phi])
-
-        # Partial bind
-        delta = 1e9
-        freq = 4.5e9
-        shift = 0.5e9
-        phase = 3.14 / 4
-
-        circ = circ.assign_parameters({alpha: freq - delta})
-        with self.assertWarns(DeprecationWarning):
-            cal_sched = list(circ.calibrations["custom"].values())[0]
-        with self.assertWarns(DeprecationWarning):
-            # instructions triggers conversion to Schedule
-            self.assertEqual(cal_sched.instructions[0][1].frequency, freq - delta + beta)
-
-        circ = circ.assign_parameters({beta: delta})
-        with self.assertWarns(DeprecationWarning):
-            cal_sched = list(circ.calibrations["custom"].values())[0]
-        with self.assertWarns(DeprecationWarning):
-            # instructions triggers conversion to Schedule
-            self.assertEqual(float(cal_sched.instructions[0][1].frequency), freq)
-            self.assertEqual(cal_sched.instructions[1][1].frequency, gamma + delta)
-
-        circ = circ.assign_parameters({gamma: shift - delta})
-        with self.assertWarns(DeprecationWarning):
-            cal_sched = list(circ.calibrations["custom"].values())[0]
-        with self.assertWarns(DeprecationWarning):
-            # instructions triggers conversion to Schedule
-            self.assertEqual(float(cal_sched.instructions[1][1].frequency), shift)
-            self.assertEqual(cal_sched.instructions[2][1].phase, phi)
-
-        circ = circ.assign_parameters({phi: phase})
-        with self.assertWarns(DeprecationWarning):
-            cal_sched = list(circ.calibrations["custom"].values())[0]
-        with self.assertWarns(DeprecationWarning):
-            # instructions triggers conversion to Schedule
-            self.assertEqual(float(cal_sched.instructions[2][1].phase), phase)
-
     def test_circuit_generation(self):
         """Test creating a series of circuits parametrically"""
         theta = Parameter("θ")
@@ -1138,31 +977,6 @@ class TestParameters(QiskitTestCase):
         job = backend.run(transpile(circuits, backend), shots=512)
 
         self.assertTrue(len(job.result().results), 2)
-
-    @data(0, 1, 2, 3)
-    def test_transpile_across_optimization_levelsV1(self, opt_level):
-        """Verify parameterized circuits can be transpiled with all default pass managers.
-        To remove once Fake5QV1 gets removed"""
-
-        qc = QuantumCircuit(5, 5)
-
-        theta = Parameter("theta")
-        phi = Parameter("phi")
-
-        qc.rx(theta, 0)
-        qc.x(0)
-        for i in range(5 - 1):
-            qc.rxx(phi, i, i + 1)
-
-        qc.measure(range(5 - 1), range(5 - 1))
-        with self.assertWarns(DeprecationWarning):
-            backend = Fake5QV1()
-        with self.assertWarnsRegex(
-            DeprecationWarning,
-            expected_regex="The `transpile` function will "
-            "stop supporting inputs of type `BackendV1`",
-        ):
-            transpile(qc, backend, optimization_level=opt_level)
 
     @data(0, 1, 2, 3)
     def test_transpile_across_optimization_levels(self, opt_level):

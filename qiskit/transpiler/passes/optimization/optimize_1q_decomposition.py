@@ -160,33 +160,24 @@ class Optimize1qGatesDecomposition(TransformationPass):
             out_dag.apply_operation_back(op.operation, qubits, check=False)
         return out_dag
 
-    def _substitution_checks(
-        self, dag, old_run, new_circ, basis, qubit, old_error=None, new_error=None
-    ):
+    def _substitution_checks(self, old_run, new_circ, basis, qubit, old_error=None, new_error=None):
         """
         Returns `True` when it is recommended to replace `old_run` with `new_circ` over `basis`.
         """
         if new_circ is None:
             return False
 
-        # do we even have calibrations?
-        has_cals_p = dag._calibrations_prop is not None and len(dag._calibrations_prop) > 0
-        # does this run have uncalibrated gates?
-        uncalibrated_p = not has_cals_p or any(not dag._has_calibration_for(g) for g in old_run)
-        # does this run have gates not in the image of ._decomposers _and_ uncalibrated?
+        # does this run have gates not in the image of ._decomposers?
         if basis is not None:
-            uncalibrated_and_not_basis_p = any(
-                g.name not in basis and (not has_cals_p or not dag._has_calibration_for(g))
-                for g in old_run
-            )
+            not_basis_p = any(g.name not in basis for g in old_run)
         else:
             # If no basis is specified then we're always in the basis
-            uncalibrated_and_not_basis_p = False
+            not_basis_p = False
 
         # if we're outside of the basis set, we're obligated to logically decompose.
         # if we're outside of the set of gates for which we have physical definitions,
         #    then we _try_ to decompose, using the results if we see improvement.
-        if not uncalibrated_and_not_basis_p:
+        if not not_basis_p:
             if new_error is None:
                 new_error = self._error(new_circ, qubit)
             if old_error is None:
@@ -196,8 +187,8 @@ class Optimize1qGatesDecomposition(TransformationPass):
             old_error = 0.0
 
         return (
-            uncalibrated_and_not_basis_p
-            or (uncalibrated_p and new_error < old_error)
+            not_basis_p
+            or (True and new_error < old_error)
             or (math.isclose(new_error[0], 0) and not math.isclose(old_error[0], 0))
         )
 

@@ -120,7 +120,8 @@ impl BitTerm {
     /// Get the label of this `BitTerm` used in Python-space applications.  This is a single-letter
     /// string.
     #[inline]
-    fn py_label(&self) -> &'static str {
+    pub fn py_label(&self) -> &'static str {
+        // Note: these labels are part of the stable Python API and should not be changed.
         match self {
             Self::X => "X",
             Self::Plus => "+",
@@ -136,7 +137,8 @@ impl BitTerm {
 
     /// Get the name of this `BitTerm`, which is how Python space refers to the integer constant.
     #[inline]
-    fn py_name(&self) -> &'static str {
+    pub fn py_name(&self) -> &'static str {
+        // Note: these names are part of the stable Python API and should not be changed.
         match self {
             Self::X => "X",
             Self::Plus => "PLUS",
@@ -198,8 +200,8 @@ fn bit_term_as_pauli(bit: &BitTerm) -> &'static [(bool, Option<BitTerm>)] {
         BitTerm::Z => &[(true, Some(BitTerm::Z))],
         BitTerm::Plus => &[(true, None), (true, Some(BitTerm::X))],
         BitTerm::Minus => &[(true, None), (false, Some(BitTerm::X))],
-        BitTerm::Left => &[(true, None), (true, Some(BitTerm::Y))],
-        BitTerm::Right => &[(true, None), (false, Some(BitTerm::Y))],
+        BitTerm::Right => &[(true, None), (true, Some(BitTerm::Y))],
+        BitTerm::Left => &[(true, None), (false, Some(BitTerm::Y))],
         BitTerm::Zero => &[(true, None), (true, Some(BitTerm::Z))],
         BitTerm::One => &[(true, None), (false, Some(BitTerm::Z))],
     }
@@ -687,10 +689,10 @@ impl SparseObservable {
                 .multi_cartesian_product();
 
             for combination in combinations {
-                let mut positive = true;
+                let mut positive = true; // keep track of the global sign
 
                 for (index, (sign, bit)) in combination.iter().enumerate() {
-                    positive &= sign;
+                    positive ^= !sign; // accumulate the sign; global_sign *= local_sign
                     if let Some(bit) = bit {
                         paulis.push(*bit);
                         indices.push(view.indices[index]);
@@ -1522,7 +1524,7 @@ impl PySparseTerm {
 
     /// Get a :class:`.Pauli` object that represents the measurement basis needed for this term.
     ///
-    /// For example, the projector ``0l+`` will return a Pauli ``ZXY``.  The resulting
+    /// For example, the projector ``0l+`` will return a Pauli ``ZYX``.  The resulting
     /// :class:`.Pauli` is dense, in the sense that explicit identities are stored.  An identity in
     /// the Pauli output does not require a concrete measurement.
     ///
@@ -2481,7 +2483,7 @@ impl PySparseObservable {
     /// list and back.
     ///
     /// Examples:
-    ///     
+    ///
     ///     >>> obs = SparseObservable.from_list([("IIXIZ", 2j), ("IIZIX", 2j)])
     ///     >>> reconstructed = SparseObservable.from_sparse_list(obs.to_sparse_list(), obs.num_qubits)
     ///

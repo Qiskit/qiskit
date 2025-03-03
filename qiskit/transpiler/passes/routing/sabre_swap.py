@@ -20,7 +20,7 @@ import rustworkx
 
 from qiskit.circuit import SwitchCaseOp, Clbit, ClassicalRegister
 from qiskit.circuit.library.standard_gates import SwapGate
-from qiskit.circuit.controlflow import condition_resources, node_resources
+from qiskit.circuit.controlflow import node_resources
 from qiskit.converters import dag_to_circuit
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.coupling import CouplingMap
@@ -29,7 +29,7 @@ from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.target import Target
 from qiskit.transpiler.passes.layout import disjoint_utils
 from qiskit.dagcircuit import DAGCircuit, DAGOpNode
-from qiskit.utils.parallel import CPU_COUNT
+from qiskit.utils import default_num_processes
 
 from qiskit._accelerate.sabre import sabre_routing, Heuristic, SetScaling, NeighborTable, SabreDAG
 from qiskit._accelerate.nlayout import NLayout
@@ -167,7 +167,7 @@ class SabreSwap(TransformationPass):
         self.heuristic = heuristic
         self.seed = seed
         if trials is None:
-            self.trials = CPU_COUNT
+            self.trials = default_num_processes()
         else:
             self.trials = trials
 
@@ -301,8 +301,6 @@ def _build_sabre_dag(dag, num_physical_qubits, qubit_indices):
         node_blocks = {}
         for node in block_dag.topological_op_nodes():
             cargs_bits = set(node.cargs)
-            if node.condition is not None:
-                cargs_bits.update(condition_resources(node.condition).clbits)
             if node.is_control_flow() and isinstance(node.op, SwitchCaseOp):
                 target = node.op.target
                 if isinstance(target, Clbit):
@@ -416,6 +414,12 @@ def _apply_sabre_result(
                 block_root_logical_map = {
                     inner: root_logical_map[outer] for inner, outer in zip(block.qubits, node.qargs)
                 }
+                # The virtual qubits originally incident to the block should be retained even if not
+                # actually used; the user might be marking them out specially (like in `box`).
+                # There are other transpiler passes to remove those dependencies if desired.
+                incident_qubits = {
+                    layout.virtual_to_physical(block_root_logical_map[bit]) for bit in block.qubits
+                }
                 block_dag, block_layout = recurse(
                     empty_dag(block),
                     circuit_to_dag_dict[id(block)],
@@ -429,7 +433,11 @@ def _apply_sabre_result(
                 )
                 apply_swaps(block_dag, block_result.swap_epilogue, block_layout)
                 mapped_block_dags.append(block_dag)
-                idle_qubits.intersection_update(block_dag.idle_wires())
+                idle_qubits.intersection_update(
+                    bit
+                    for bit in block_dag.idle_wires()
+                    if block_dag.find_bit(bit).index not in incident_qubits
+                )
 
             mapped_blocks = []
             for mapped_block_dag in mapped_block_dags:
