@@ -37,6 +37,8 @@ pub struct QuantumCircuitData<'py> {
     pub input_vars: Vec<Bound<'py, PyAny>>,
     pub captured_vars: Vec<Bound<'py, PyAny>>,
     pub declared_vars: Vec<Bound<'py, PyAny>>,
+    pub captured_stretches: Vec<Bound<'py, PyAny>>,
+    pub declared_stretches: Vec<Bound<'py, PyAny>>,
 }
 
 impl<'py> FromPyObject<'py> for QuantumCircuitData<'py> {
@@ -70,6 +72,14 @@ impl<'py> FromPyObject<'py> for QuantumCircuitData<'py> {
                 .collect::<PyResult<Vec<_>>>()?,
             declared_vars: ob
                 .call_method0(intern!(py, "iter_declared_vars"))?
+                .try_iter()?
+                .collect::<PyResult<Vec<_>>>()?,
+            captured_stretches: ob
+                .call_method0(intern!(py, "iter_captured_stretches"))?
+                .try_iter()?
+                .collect::<PyResult<Vec<_>>>()?,
+            declared_stretches: ob
+                .call_method0(intern!(py, "iter_declared_stretches"))?
                 .try_iter()?
                 .collect::<PyResult<Vec<_>>>()?,
         })
