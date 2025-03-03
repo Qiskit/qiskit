@@ -402,21 +402,30 @@ def _write_expr_type(file_obj, type_: types.Type, version: int):
 
 
 def _write_duration(file_obj, duration: Duration):
-    if isinstance(duration, Duration.dt):
+    unit = duration.unit()
+    if unit == "dt":
         file_obj.write(type_keys.CircuitDuration.DT)
-        file_obj.write(struct.pack(formats.DURATION_DT_PACK, *formats.DURATION_DT(duration[0])))
-    elif isinstance(duration, Duration.ns):
+        file_obj.write(
+            struct.pack(formats.DURATION_DT_PACK, *formats.DURATION_DT(duration.value()))
+        )
+    elif unit == "ns":
         file_obj.write(type_keys.CircuitDuration.NS)
-        file_obj.write(struct.pack(formats.DURATION_NS_PACK, *formats.DURATION_NS(duration[0])))
-    elif isinstance(duration, Duration.us):
+        file_obj.write(
+            struct.pack(formats.DURATION_NS_PACK, *formats.DURATION_NS(duration.value()))
+        )
+    elif unit == "us":
         file_obj.write(type_keys.CircuitDuration.US)
-        file_obj.write(struct.pack(formats.DURATION_US_PACK, *formats.DURATION_US(duration[0])))
-    elif isinstance(duration, Duration.ms):
+        file_obj.write(
+            struct.pack(formats.DURATION_US_PACK, *formats.DURATION_US(duration.value()))
+        )
+    elif unit == "ms":
         file_obj.write(type_keys.CircuitDuration.MS)
-        file_obj.write(struct.pack(formats.DURATION_MS_PACK, *formats.DURATION_MS(duration[0])))
-    elif isinstance(duration, Duration.s):
+        file_obj.write(
+            struct.pack(formats.DURATION_MS_PACK, *formats.DURATION_MS(duration.value()))
+        )
+    elif unit == "s":
         file_obj.write(type_keys.CircuitDuration.S)
-        file_obj.write(struct.pack(formats.DURATION_S_PACK, *formats.DURATION_S(duration[0])))
+        file_obj.write(struct.pack(formats.DURATION_S_PACK, *formats.DURATION_S(duration.value())))
     else:
         raise exceptions.QpyError(f"unhandled Duration object '{duration};")
 
