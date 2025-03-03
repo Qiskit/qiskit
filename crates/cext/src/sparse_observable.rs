@@ -861,9 +861,11 @@ pub extern "C" fn qk_bitterm_label(bit_term: BitTerm) -> u8 {
 #[cfg(feature = "python_binding")]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_obs_to_python(obs: *const SparseObservable) -> *mut PyObject {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
     let obs = unsafe { const_ptr_as_ref(obs) };
     let py_obs: PySparseObservable = obs.clone().into();
 
+    // SAFETY: the C caller is required to hold the GIL.
     unsafe {
         let py = Python::assume_gil_acquired();
         Py::new(py, py_obs)
