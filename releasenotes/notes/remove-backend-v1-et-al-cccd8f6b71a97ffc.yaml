@@ -8,7 +8,7 @@ upgrade_providers:
 
     * ``BackendV1`` class: the core of the removed model
 
-    * all elements in `qiskit/providers/models`, as they were used to represent 
+    * All elements in `qiskit/providers/models`, as they were used to represent 
       components of the ``BackendV1`` model:
 
         * ``BackendConfiguration``
