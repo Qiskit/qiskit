@@ -705,7 +705,7 @@ def div(left: typing.Any, right: typing.Any) -> Expr:
     lifting the values into :class:`Value` nodes if required.
 
     This can be used to divide numeric operands of the same type kind, to divide a
-    :class`~.types.Duration` operand by a :class:`~.types.Float`, or to divide two
+    :class`~.types.Duration` operand by a numeric operand, or to divide two
     :class`~.types.Duration` operands which yields an expression of type
     :class:`~.types.Float`.
 
@@ -752,7 +752,7 @@ Duration())
             type = types.greater(left.type, right.type)
             left = _coerce_lossless(left, type)
             right = _coerce_lossless(right, type)
-    elif left.type.kind is types.Duration and right.type.kind is types.Float:
+    elif left.type.kind is types.Duration and right.type.kind in {types.Uint, types.Float}:
         if not right.const:
             raise ValueError(
                 f"division of '{left}' and '{right}' would result in a non-const '{left.type}'"

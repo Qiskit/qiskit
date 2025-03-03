@@ -890,6 +890,17 @@ class TestExprConstructors(QiskitTestCase):
         self.assertTrue(expr.div(Duration.ms(1000), 2.0).const)
 
         self.assertEqual(
+            expr.div(Duration.ms(1000), 2),
+            expr.Binary(
+                expr.Binary.Op.DIV,
+                expr.Value(Duration.ms(1000), types.Duration()),
+                expr.Value(2, types.Uint(2)),
+                types.Duration(),
+            ),
+        )
+        self.assertTrue(expr.div(Duration.ms(1000), 2).const)
+
+        self.assertEqual(
             expr.div(Duration.ms(1000), Duration.ms(1000)),
             expr.Binary(
                 expr.Binary.Op.DIV,
@@ -913,10 +924,6 @@ class TestExprConstructors(QiskitTestCase):
             expr.div(255.0, 1)
         with self.assertRaisesRegex(TypeError, "invalid types"):
             expr.div(255.0, Duration.dt(1000))
-
-        # We only allow Duration division by a Float for now.
-        with self.assertRaisesRegex(TypeError, "invalid types"):
-            expr.div(Duration.dt(1000), 2)
 
         # Divide timing expressions by non-const floats:
         non_const_float = expr.Var.new("a", types.Float())
