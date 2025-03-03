@@ -2,7 +2,7 @@
 features_circuits:
   - |
     The classical realtime-expressions module :mod:`qiskit.circuit.classical` can now represent
-    floating point values of unspecified width, using the new type :class:`~.types.Float`.
+    IEEE-754 double-precision floating point values using the new type :class:`~.types.Float`.
 
     The :func:`~.expr.lift` function can be used to create a value expression from a Python
     float::
@@ -10,9 +10,7 @@ features_circuits:
       from qiskit.circuit.classical import expr
 
       expr.lift(5.0)
-      # >>> Value(5.0, Float(const=False))
-      expr.lift(5.0, try_const=True)
-      # >>> Value(5.0, Float(const=True))
+      # >>> Value(5.0, Float())
     
     This type is intended primarily for use in timing-related (duration and stretch)
     expressions. It is not compatible with bitwise or logical operations, though it

@@ -15,7 +15,6 @@ use std::f64::consts::PI;
 use std::{fmt, vec};
 
 use crate::circuit_data::CircuitData;
-use crate::circuit_instruction::ExtraInstructionAttributes;
 use crate::imports::{get_std_gate_class, BARRIER, DELAY, MEASURE, RESET};
 use crate::imports::{PARAMETER_EXPRESSION, QUANTUM_CIRCUIT, UNITARY_GATE};
 use crate::{gate_matrix, impl_intopyobject_for_copy_pyclass, Qubit};
@@ -455,21 +454,15 @@ impl StandardInstruction {
         &self,
         py: Python,
         params: Option<&[Param]>,
-        extra_attrs: &ExtraInstructionAttributes,
+        label: Option<&str>,
     ) -> PyResult<Py<PyAny>> {
-        let (label, unit, duration, condition) = (
-            extra_attrs.label(),
-            extra_attrs.unit(),
-            extra_attrs.duration(),
-            extra_attrs.condition(),
-        );
         let kwargs = label
             .map(|label| [("label", label.into_py_any(py)?)].into_py_dict(py))
             .transpose()?;
-        let mut out = match self {
-            StandardInstruction::Barrier(num_qubits) => BARRIER
-                .get_bound(py)
-                .call1((num_qubits.into_py_any(py)?, label.into_py_any(py)?))?,
+        let out = match self {
+            StandardInstruction::Barrier(num_qubits) => {
+                BARRIER.get_bound(py).call((num_qubits,), kwargs.as_ref())?
+            }
             StandardInstruction::Delay(unit) => {
                 let duration = &params.unwrap()[0];
                 DELAY
@@ -480,29 +473,6 @@ impl StandardInstruction {
             StandardInstruction::Reset => RESET.get_bound(py).call((), kwargs.as_ref())?,
         };
 
-        if label.is_some() || unit.is_some() || duration.is_some() || condition.is_some() {
-            let mut mutable = false;
-            if let Some(condition) = condition {
-                if !mutable {
-                    out = out.call_method0("to_mutable")?;
-                    mutable = true;
-                }
-                out.setattr("condition", condition)?;
-            }
-            if let Some(duration) = duration {
-                if !mutable {
-                    out = out.call_method0("to_mutable")?;
-                    mutable = true;
-                }
-                out.setattr("_duration", duration)?;
-            }
-            if let Some(unit) = unit {
-                if !mutable {
-                    out = out.call_method0("to_mutable")?;
-                }
-                out.setattr("_unit", unit)?;
-            }
-        }
         Ok(out.unbind())
     }
 }
@@ -669,44 +639,16 @@ impl StandardGate {
         &self,
         py: Python,
         params: Option<&[Param]>,
-        extra_attrs: &ExtraInstructionAttributes,
+        label: Option<&str>,
     ) -> PyResult<Py<PyAny>> {
         let gate_class = get_std_gate_class(py, *self)?;
         let args = match params.unwrap_or(&[]) {
             &[] => PyTuple::empty(py),
             params => PyTuple::new(py, params.iter().map(|x| x.into_pyobject(py).unwrap()))?,
         };
-        let (label, unit, duration, condition) = (
-            extra_attrs.label(),
-            extra_attrs.unit(),
-            extra_attrs.duration(),
-            extra_attrs.condition(),
-        );
-        if label.is_some() || unit.is_some() || duration.is_some() || condition.is_some() {
+        if let Some(label) = label {
             let kwargs = [("label", label.into_pyobject(py)?)].into_py_dict(py)?;
-            let mut out = gate_class.call(py, args, Some(&kwargs))?;
-            let mut mutable = false;
-            if let Some(condition) = condition {
-                if !mutable {
-                    out = out.call_method0(py, "to_mutable")?;
-                    mutable = true;
-                }
-                out.setattr(py, "condition", condition)?;
-            }
-            if let Some(duration) = duration {
-                if !mutable {
-                    out = out.call_method0(py, "to_mutable")?;
-                    mutable = true;
-                }
-                out.setattr(py, "_duration", duration)?;
-            }
-            if let Some(unit) = unit {
-                if !mutable {
-                    out = out.call_method0(py, "to_mutable")?;
-                }
-                out.setattr(py, "_unit", unit)?;
-            }
-            Ok(out)
+            gate_class.call(py, args, Some(&kwargs))
         } else {
             gate_class.call(py, args, None)
         }
@@ -2651,17 +2593,11 @@ impl Operation for PyInstruction {
     fn definition(&self, _params: &[Param]) -> Option<CircuitData> {
         Python::with_gil(|py| -> Option<CircuitData> {
             match self.instruction.getattr(py, intern!(py, "definition")) {
-                Ok(definition) => {
-                    let res: Option<PyObject> = definition.call0(py).ok()?.extract(py).ok();
-                    match res {
-                        Some(x) => {
-                            let out: CircuitData =
-                                x.getattr(py, intern!(py, "data")).ok()?.extract(py).ok()?;
-                            Some(out)
-                        }
-                        None => None,
-                    }
-                }
+                Ok(definition) => definition
+                    .getattr(py, intern!(py, "_data"))
+                    .ok()?
+                    .extract::<CircuitData>(py)
+                    .ok(),
                 Err(_) => None,
             }
         })
@@ -2734,17 +2670,11 @@ impl Operation for PyGate {
     fn definition(&self, _params: &[Param]) -> Option<CircuitData> {
         Python::with_gil(|py| -> Option<CircuitData> {
             match self.gate.getattr(py, intern!(py, "definition")) {
-                Ok(definition) => {
-                    let res: Option<PyObject> = definition.call0(py).ok()?.extract(py).ok();
-                    match res {
-                        Some(x) => {
-                            let out: CircuitData =
-                                x.getattr(py, intern!(py, "data")).ok()?.extract(py).ok()?;
-                            Some(out)
-                        }
-                        None => None,
-                    }
-                }
+                Ok(definition) => definition
+                    .getattr(py, intern!(py, "_data"))
+                    .ok()?
+                    .extract::<CircuitData>(py)
+                    .ok(),
                 Err(_) => None,
             }
         })
@@ -2882,17 +2812,7 @@ impl Operation for UnitaryGate {
 }
 
 impl UnitaryGate {
-    pub fn create_py_op(
-        &self,
-        py: Python,
-        extra_attrs: &ExtraInstructionAttributes,
-    ) -> PyResult<Py<PyAny>> {
-        let (label, _unit, _duration, condition) = (
-            extra_attrs.label(),
-            extra_attrs.unit(),
-            extra_attrs.duration(),
-            extra_attrs.condition(),
-        );
+    pub fn create_py_op(&self, py: Python, label: Option<&str>) -> PyResult<Py<PyAny>> {
         let kwargs = PyDict::new(py);
         if let Some(label) = label {
             kwargs.set_item(intern!(py, "label"), label.into_py_any(py)?)?;
@@ -2904,12 +2824,9 @@ impl UnitaryGate {
         };
         kwargs.set_item(intern!(py, "check_input"), false)?;
         kwargs.set_item(intern!(py, "num_qubits"), self.num_qubits())?;
-        let mut gate = UNITARY_GATE
+        let gate = UNITARY_GATE
             .get_bound(py)
             .call((out_array,), Some(&kwargs))?;
-        if let Some(cond) = condition {
-            gate = gate.call_method1(intern!(py, "c_if"), (cond,))?;
-        }
         Ok(gate.unbind())
     }
 }

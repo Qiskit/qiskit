@@ -140,21 +140,15 @@ class TimeUnitConversion(TransformationPass):
         else:
             time_unit = "dt"
 
-        # Make units consistent
-        for node in dag.op_nodes():
-            if node._node_id in expression_durations:
-                duration = expression_durations[node._node_id]
-            else:
-                try:
-                    duration = inst_durations.get(
-                        node.op, [dag.find_bit(qarg).index for qarg in node.qargs], unit=time_unit
-                    )
-                except TranspilerError:
-                    continue
+        # Make instructions with local durations consistent.
+        for node in dag.op_nodes(Delay):
             op = node.op.to_mutable()
-            op.duration = duration
+            if node._node_id in expression_durations:
+                op.duration = expression_durations[node._node_id]
+            else:
+			    op.duration = inst_durations._convert_unit(op.duration, op.unit, time_unit)
             op.unit = time_unit
-            dag.substitute_node(node, op, propagate_condition=False)
+            dag.substitute_node(node, op)
 
         self.property_set["time_unit"] = time_unit
         return dag

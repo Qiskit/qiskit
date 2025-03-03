@@ -11,7 +11,7 @@
 // that they have been altered from the originals.
 
 use ndarray::{Array, Array2, ArrayView, ArrayView2, IxDyn};
-use ndarray_einsum_beta::*;
+use ndarray_einsum::*;
 use num_complex::{Complex, Complex64, ComplexFloat};
 use num_traits::Zero;
 use qiskit_circuit::Qubit;
@@ -63,7 +63,7 @@ pub fn compose(
 
     let res = _einsum_matmul(&tensor, &mat, &indices, shift, right_mul)?
         .as_standard_layout()
-        .into_shape((num_rows, num_rows))
+        .into_shape_with_order((num_rows, num_rows))
         .unwrap()
         .into_dimensionality::<ndarray::Ix2>()
         .unwrap()
@@ -76,7 +76,7 @@ fn per_qubit_shaped<'a>(array: &ArrayView2<'a, Complex<f64>>) -> ArrayView<'a, C
     let overall_shape = (0..array.shape()[0].ilog2() as usize)
         .flat_map(|_| [2, 2])
         .collect::<Vec<usize>>();
-    array.into_shape(overall_shape).unwrap()
+    array.into_shape_with_order(overall_shape).unwrap()
 }
 
 // Determine einsum strings for perform a matrix multiplication on the input matrices

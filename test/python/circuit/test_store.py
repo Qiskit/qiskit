@@ -45,14 +45,6 @@ class TestStoreInstruction(QiskitTestCase):
         self.assertEqual(constructed.lvalue, lvalue)
         self.assertEqual(constructed.rvalue, expr.Cast(rvalue, types.Bool(), implicit=True))
 
-    def test_implicit_const_cast(self):
-        lvalue = expr.Var.new("a", types.Bool())
-        rvalue = expr.Value("b", types.Bool(const=True))
-        constructed = Store(lvalue, rvalue)
-        self.assertIsInstance(constructed, Store)
-        self.assertEqual(constructed.lvalue, lvalue)
-        self.assertEqual(constructed.rvalue, expr.Cast(rvalue, types.Bool(), implicit=True))
-
     def test_rejects_non_lvalue(self):
         not_an_lvalue = expr.logic_and(
             expr.Var.new("a", types.Bool()), expr.Var.new("b", types.Bool())
@@ -77,12 +69,6 @@ class TestStoreInstruction(QiskitTestCase):
         rvalue = expr.Var.new("b", types.Uint(16))
         with self.assertRaisesRegex(CircuitError, "an explicit cast is required.*may be lossy"):
             Store(lvalue, rvalue)
-
-    def test_rejects_c_if(self):
-        instruction = Store(expr.Var.new("a", types.Bool()), expr.Var.new("b", types.Bool()))
-        with self.assertRaises(NotImplementedError):
-            with self.assertWarns(DeprecationWarning):
-                instruction.c_if(Clbit(), False)
 
 
 class TestStoreCircuit(QiskitTestCase):
@@ -178,22 +164,6 @@ class TestStoreCircuit(QiskitTestCase):
         qc.store(a, 255)
         self.assertEqual(qc.data[-1].operation, Store(a, expr.Value(255, a.type)))
 
-    def test_implicitly_casts_const_scalars(self):
-        a = expr.Var.new("a", types.Uint(8))
-        qc = QuantumCircuit(inputs=[a])
-        qc.store(a, expr.lift(1, types.Uint(8, const=True)))
-        self.assertEqual(
-            qc.data[-1].operation,
-            Store(a, expr.Cast(expr.Value(1, types.Uint(8, const=True)), a.type, implicit=True)),
-        )
-
-    def test_rejects_const_target(self):
-        qc = QuantumCircuit()
-        with self.assertRaisesRegex(CircuitError, "const.*not supported"):
-            qc.store(expr.Var.new("a", types.Bool(const=True)), True)
-        with self.assertRaisesRegex(CircuitError, "const.*not supported"):
-            qc.store(expr.Var.new("a", types.Bool(const=True)), 1)
-
     def test_does_not_widen_bool_literal(self):
         # `bool` is a subclass of `int` in Python (except some arithmetic operations have different
         # semantics...).  It's not in Qiskit's value type system, though.
@@ -260,11 +230,3 @@ class TestStoreCircuit(QiskitTestCase):
         qc = QuantumCircuit(inputs=[lvalue, rvalue])
         with self.assertRaisesRegex(CircuitError, "an explicit cast is required.*may be lossy"):
             qc.store(lvalue, rvalue)
-
-    def test_rejects_c_if(self):
-        a = expr.Var.new("a", types.Bool())
-        qc = QuantumCircuit([Clbit()], inputs=[a])
-        instruction_set = qc.store(a, True)
-        with self.assertRaises(NotImplementedError):
-            with self.assertWarns(DeprecationWarning):
-                instruction_set.c_if(qc.clbits[0], False)
