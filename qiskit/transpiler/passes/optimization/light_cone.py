@@ -14,14 +14,12 @@
 from __future__ import annotations
 import warnings
 from qiskit.circuit import Gate, Qubit
-from qiskit.circuit.commutation_checker import CommutationChecker
-from qiskit.circuit.commutation_library import standard_gates_commutations
+from qiskit.circuit.commutation_library import SessionCommutationChecker as scc
 from qiskit.circuit.library import PauliGate, ZGate
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.passes.utils.remove_final_measurements import calc_final_ops
 
-commutator = CommutationChecker(standard_gates_commutations)
 translation_table = str.maketrans({"+": "X", "-": "X", "l": "Y", "r": "Y", "0": "Z", "1": "Z"})
 
 
@@ -67,7 +65,7 @@ class LightCone(TransformationPass):
         self, dag: DAGCircuit
     ) -> tuple[set[Qubit], list[tuple[Gate, list[Qubit]]]]:
         """Returns the initial light-cone.
-        If obervable is `None`, the light-cone is the set of measured qubits.
+        If observable is `None`, the light-cone is the set of measured qubits.
         If a `bit_terms` is provided, the qubits corresponding to the
         non-trivial Paulis define the light-cone.
         """
@@ -77,7 +75,7 @@ class LightCone(TransformationPass):
         else:
             # Having both measurements and an observable is not allowed
             if len(dag.qubits) < max(self.indices) + 1:
-                raise ValueError("`indices` contains values outside the qubit rage.")
+                raise ValueError("`indices` contains values outside the qubit range.")
             if lightcone_qubits:
                 raise ValueError(
                     "The circuit contains measurements and an observable has been given: "
@@ -120,7 +118,7 @@ class LightCone(TransformationPass):
                             "This operation can be slow.",
                             category=RuntimeWarning,
                         )
-                    commute_bool = commutator.commute(
+                    commute_bool = scc.commute(
                         op[0], op[1], [], node.op, node.qargs, [], max_num_qubits=max_num_qubits
                     )
                     if not commute_bool:
