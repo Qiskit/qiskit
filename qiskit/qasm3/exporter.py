@@ -31,7 +31,6 @@ from qiskit.circuit import (
     CircuitInstruction,
     Clbit,
     Gate,
-    Duration,
     Measure,
     Parameter,
     ParameterExpression,
