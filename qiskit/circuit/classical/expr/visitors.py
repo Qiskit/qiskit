@@ -91,7 +91,7 @@ class _VarWalkerImpl(ExprVisitor[typing.Iterable[expr.Var]]):
         yield from node.index.accept(self)
 
 
-class _IdentWalkerImpl(ExprVisitor[typing.Iterable[expr.Var | expr.Stretch]]):
+class _IdentWalkerImpl(ExprVisitor[typing.Iterable[typing.Union[expr.Var, expr.Stretch]]]):
     __slots__ = ()
 
     def visit_var(self, node, /):
@@ -142,7 +142,7 @@ def iter_vars(node: expr.Expr) -> typing.Iterator[expr.Var]:
     yield from node.accept(_VAR_WALKER)
 
 
-def iter_identifiers(node: expr.Expr) -> typing.Iterator[expr.Var | expr.Stretch]:
+def iter_identifiers(node: expr.Expr) -> typing.Iterator[typing.Union[expr.Var, expr.Stretch]]:
     """Get an iterator over the :class:`~.expr.Var` and :class:`~.expr.Stretch`
     nodes referenced at any level in the given :class:`~.expr.Expr`.
 

@@ -12,12 +12,12 @@
 
 # pylint: disable=missing-module-docstring,missing-class-docstring,missing-function-docstring
 
+import itertools
+
 from test import QiskitTestCase
 
 from qiskit.circuit import QuantumCircuit, CircuitError, Clbit, ClassicalRegister, Store
 from qiskit.circuit.classical import expr, types
-
-import itertools
 
 
 class TestCircuitVars(QiskitTestCase):

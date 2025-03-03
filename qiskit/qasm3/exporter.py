@@ -60,7 +60,6 @@ from . import ast
 from .experimental import ExperimentalFeatures
 from .exceptions import QASM3ExporterError
 from .printer import BasicPrinter
-from ..circuit.classical.expr.visitors import _T_co
 
 # Reserved keywords that gates and variables cannot be named.  It is possible that some of these
 # _could_ be accepted as variable names by OpenQASM 3 parsers, but it's safer for us to just be very
