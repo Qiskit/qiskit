@@ -899,7 +899,8 @@ fn synthesize_op_using_plugins(
 /// Synthesizes an operation.
 ///
 /// This function is currently called by the default plugin for annotated operations to
-/// synthesize the base operation.
+/// synthesize the base operation. Here `py_op` is a subclass of `Operation` (on the Python
+/// side).
 #[pyfunction]
 #[pyo3(name = "synthesize_operation", signature = (py_op, input_qubits, data, tracker))]
 fn py_synthesize_operation(
