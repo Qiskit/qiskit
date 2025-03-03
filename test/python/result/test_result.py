@@ -673,7 +673,6 @@ class TestResultOperationsFailed(QiskitTestCase):
         self.base_result_args = {
             "backend_name": "test_backend",
             "backend_version": "1.0.0",
-            "qobj_id": "id-123",
             "job_id": "job-123",
             "success": True,
         }

@@ -31,10 +31,10 @@ class Result:
         backend_name (str): backend name.
         backend_version (str): backend version, in the form X.Y.Z.
         job_id (str): unique execution id from the backend.
-        success (bool): True if complete input qobj executed correctly. (Implies
+        success (bool): True if complete input executed correctly. (Implies
             each experiment success)
         results (list[ExperimentResult]): corresponding results for array of
-            experiments of the input qobj
+            experiments of the input
     """
 
     _metadata = {}
