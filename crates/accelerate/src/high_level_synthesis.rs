@@ -338,10 +338,7 @@ fn instruction_supported(
             let target = target.borrow(py);
             if target.num_qubits.is_some() {
                 if data.borrow().use_qubit_indices {
-                    let physical_qubits = qubits
-                        .iter()
-                        .map(|q| PhysicalQubit(q.index() as u32))
-                        .collect();
+                    let physical_qubits = qubits.iter().map(|q| PhysicalQubit(q.0)).collect();
                     target.instruction_supported(name, Some(&physical_qubits))
                 } else {
                     target.instruction_supported(name, None)
@@ -461,7 +458,7 @@ fn run_on_circuitdata(
         }
 
         // Check if synthesis for this operation can be skipped
-        let op_qargs: Vec<Qubit> = op_qubits.iter().map(|q| Qubit(*q as u32)).collect();
+        let op_qargs: Vec<Qubit> = op_qubits.iter().map(|q| Qubit::new(*q)).collect();
         if definitely_skip_op(py, data, &inst.op, &op_qargs) {
             output_circuit.push(py, inst.clone())?;
             tracker.borrow_mut().set_dirty(op_qubits);
@@ -595,12 +592,10 @@ fn run_on_circuitdata(
 
                     let inst_outer_qubits: Vec<Qubit> = inst_inner_qubits
                         .iter()
-                        .map(|q| Qubit(qubit_map[&q.index()] as u32))
+                        .map(|q| Qubit::new(qubit_map[&q.index()]))
                         .collect();
-                    let inst_outer_clbits: Vec<Clbit> = inst_inner_clbits
-                        .iter()
-                        .map(|c| Clbit(c.index() as u32))
-                        .collect();
+                    let inst_outer_clbits: Vec<Clbit> =
+                        inst_inner_clbits.iter().map(|c| Clbit(c.0)).collect();
 
                     output_circuit.push_packed_operation(
                         inst_inner.op.clone(),
@@ -877,7 +872,7 @@ fn py_synthesize_operation(
         &op.operation,
         &input_qubits
             .iter()
-            .map(|q| Qubit(*q as u32))
+            .map(|q| Qubit::new(*q))
             .collect::<Vec<Qubit>>(),
     ) {
         return Ok(None);
