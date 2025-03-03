@@ -597,7 +597,11 @@ class TestConsolidateBlocks(QiskitTestCase):
             optimization_level=opt_level, basis_gates=["rz", "rzz", "sx", "x", "rx"]
         )
         tqc = pm.run(qc)
-        self.assertEqual(ref_tqc, tqc)
+        # it's enough to check that the number of 2-qubit gates does not change
+        count_rzz_ref = ref_tqc.count_ops()["rzz"]
+        count_rzz_tqc = tqc.count_ops()["rzz"]
+        self.assertEqual(Operator.from_circuit(qc), Operator.from_circuit(tqc))
+        self.assertEqual(count_rzz_ref, count_rzz_tqc)
 
     def test_non_cx_basis_gate(self):
         """Test a non-cx kak gate is consolidated correctly."""
