@@ -14,7 +14,6 @@
 
 from __future__ import annotations
 
-import inspect
 import typing
 from collections.abc import Callable
 from itertools import chain
@@ -22,10 +21,7 @@ import numpy as np
 
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.quantum_info import SparsePauliOp, Pauli, SparseObservable
-
-# from qiskit.quantum_info.operators import SparsePauliOp, Pauli
-from qiskit.utils.deprecation import deprecate_arg
+from qiskit.quantum_info import SparsePauliOp, Pauli
 
 from .product_formula import ProductFormula, reorder_paulis
 
@@ -62,21 +58,6 @@ class SuzukiTrotter(ProductFormula):
         `arXiv:math-ph/0506007 <https://arxiv.org/pdf/math-ph/0506007.pdf>`_
     """
 
-    @deprecate_arg(
-        name="atomic_evolution",
-        since="1.2",
-        predicate=lambda callable: callable is not None
-        and len(inspect.signature(callable).parameters) == 2,
-        deprecation_description=(
-            "The 'Callable[[Pauli | SparsePauliOp, float], QuantumCircuit]' signature of the "
-            "'atomic_evolution' argument"
-        ),
-        additional_msg=(
-            "Instead you should update your 'atomic_evolution' function to be of the following "
-            "type: 'Callable[[QuantumCircuit, Pauli | SparsePauliOp, float], None]'."
-        ),
-        pending=True,
-    )
     def __init__(
         self,
         order: int = 2,
@@ -84,9 +65,7 @@ class SuzukiTrotter(ProductFormula):
         insert_barriers: bool = False,
         cx_structure: str = "chain",
         atomic_evolution: (
-            Callable[[Pauli | SparsePauliOp, float], QuantumCircuit]
-            | Callable[[QuantumCircuit, Pauli | SparsePauliOp, float], None]
-            | None
+            Callable[[QuantumCircuit, Pauli | SparsePauliOp, float], None] | None
         ) = None,
         wrap: bool = False,
         preserve_order: bool = True,
@@ -106,9 +85,6 @@ class SuzukiTrotter(ProductFormula):
                 three arguments: the circuit to append the evolution to, the Pauli operator to
                 evolve, and the evolution time. By default, a single Pauli evolution is decomposed
                 into a chain of ``CX`` gates and a single ``RZ`` gate.
-                Alternatively, the function can also take Pauli operator and evolution time as
-                inputs and returns the circuit that will be appended to the overall circuit being
-                built.
             wrap: Whether to wrap the atomic evolutions into custom gate objects. This only takes
                 effect when ``atomic_evolution is None``.
             preserve_order: If ``False``, allows reordering the terms of the operator to
@@ -166,7 +142,7 @@ class SuzukiTrotter(ProductFormula):
         Returns:
             The Pauli network implementing the Trotter expansion.
         """
-        operators = evolution.operator  # type: SparsePauliOp | SparseObservable | list
+        operators = evolution.operator
         time = evolution.time
 
         def to_sparse_list(operator):
@@ -246,22 +222,3 @@ def real_or_fail(value, tol=100):
         return np.real(value)
 
     raise ValueError(f"Encountered complex value {value}, but expected real.")
-
-
-def wrap_custom_atomic_evolution(atomic_evolution):
-    """Convert potential SparseObservables into SparsePauliOps."""
-    if len(inspect.signature(atomic_evolution).parameters) == 2:
-
-        def wrapped(operator, time):
-            if isinstance(operator, SparseObservable):
-                operator = SparsePauliOp.from_sparse_observable(operator)
-            return atomic_evolution(operator, time)
-
-    else:
-
-        def wrapped(circuit, operator, time):
-            if isinstance(operator, SparseObservable):
-                operator = SparsePauliOp.from_sparse_observable(operator)
-            atomic_evolution(circuit, operator, time)
-
-    return wrapped

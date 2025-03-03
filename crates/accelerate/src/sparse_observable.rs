@@ -120,7 +120,8 @@ impl BitTerm {
     /// Get the label of this `BitTerm` used in Python-space applications.  This is a single-letter
     /// string.
     #[inline]
-    fn py_label(&self) -> &'static str {
+    pub fn py_label(&self) -> &'static str {
+        // Note: these labels are part of the stable Python API and should not be changed.
         match self {
             Self::X => "X",
             Self::Plus => "+",
@@ -136,7 +137,8 @@ impl BitTerm {
 
     /// Get the name of this `BitTerm`, which is how Python space refers to the integer constant.
     #[inline]
-    fn py_name(&self) -> &'static str {
+    pub fn py_name(&self) -> &'static str {
+        // Note: these names are part of the stable Python API and should not be changed.
         match self {
             Self::X => "X",
             Self::Plus => "PLUS",

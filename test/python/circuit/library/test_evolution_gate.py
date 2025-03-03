@@ -713,14 +713,12 @@ def cnot_chain(pauli: Pauli) -> QuantumCircuit:
     return chain
 
 
-def custom_atomic_evolution(pauli, time):
+def custom_atomic_evolution(circuit, pauli, time):
     """A custom atomic evolution not supporting SparseObservable."""
     if isinstance(pauli, SparsePauliOp):
-        circuit = QuantumCircuit(pauli.num_qubits)
         for single_term, coeff in zip(pauli.paulis, pauli.coeffs):
-            circuit.compose(
-                custom_atomic_evolution(single_term, np.real(coeff) * time), inplace=True
-            )
+            custom_atomic_evolution(circuit, single_term, np.real(coeff) * time)
+
         return circuit
 
     cliff = diagonalizing_clifford(pauli)
@@ -732,14 +730,13 @@ def custom_atomic_evolution(pauli, time):
             target = i
             break
 
-    definition = QuantumCircuit(pauli.num_qubits)
-    definition.compose(cliff, inplace=True)
-    definition.compose(chain, inplace=True)
-    definition.rz(2 * time, target)
-    definition.compose(chain.inverse(), inplace=True)
-    definition.compose(cliff.inverse(), inplace=True)
+    circuit.compose(cliff, inplace=True)
+    circuit.compose(chain, inplace=True)
+    circuit.rz(2 * time, target)
+    circuit.compose(chain.inverse(), inplace=True)
+    circuit.compose(cliff.inverse(), inplace=True)
 
-    return definition
+    return circuit
 
 
 if __name__ == "__main__":
