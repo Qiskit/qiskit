@@ -1828,6 +1828,44 @@ e = 7.5;
 """
         self.assertEqual(dumps(qc), expected)
 
+    def test_qasm_stretch_example_1(self):
+        """Test an example from the OpenQASM docs."""
+        qc = QuantumCircuit(5)
+        qc.barrier()
+        qc.cx(0, 1)
+        qc.u(pi / 4, 0, pi / 2, 2)
+        qc.cx(3, 4)
+
+        a = qc.add_stretch("a")
+        b = qc.add_stretch("b")
+        c = qc.add_stretch("c")
+
+        # Use the stretches as Delay duration.
+        qc.delay(a, [0, 1])
+        qc.delay(b, 2)
+        qc.delay(c, [3, 4])
+        qc.barrier()
+
+        expected = """\
+OPENQASM 3.0;
+include "stdgates.inc";
+qubit[5] q;
+stretch a;
+stretch b;
+stretch c;
+barrier q[0], q[1], q[2], q[3], q[4];
+cx q[0], q[1];
+U(pi/4, 0, pi/2) q[2];
+cx q[3], q[4];
+delay[a] q[0];
+delay[a] q[1];
+delay[b] q[2];
+delay[c] q[3];
+delay[c] q[4];
+barrier q[0], q[1], q[2], q[3], q[4];
+"""
+        self.assertEqual(dumps(qc), expected)
+
     def test_var_use_in_scopes(self):
         """Test that usage of `Var` nodes works in capturing scopes."""
         qc = QuantumCircuit(2, 2)
