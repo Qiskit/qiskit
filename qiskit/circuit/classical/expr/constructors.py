@@ -572,20 +572,15 @@ def index(target: typing.Any, index: typing.Any, /) -> Expr:
 
 def _binary_sum(op: Binary.Op, left: typing.Any, right: typing.Any) -> Expr:
     left, right = _lift_binary_operands(left, right)
-    if (
-        left.type.kind is types.Bool
-        or right.type.kind is types.Bool
-        or left.type.kind is not right.type.kind
-        and types.order(left.type, right.type) is types.Ordering.NONE
-    ):
-        raise TypeError(f"invalid types for '{op}': '{left.type}' and '{right.type}'")
-    type = types.greater(left.type, right.type)
-    return Binary(
-        op,
-        _coerce_lossless(left, type),
-        _coerce_lossless(right, type),
-        type,
-    )
+    if left.type.kind is right.type.kind in {types.Uint, types.Float, types.Duration}:
+        type = types.greater(left.type, right.type)
+        return Binary(
+            op,
+            _coerce_lossless(left, type),
+            _coerce_lossless(right, type),
+            type,
+        )
+    raise TypeError(f"invalid types for '{op}': '{left.type}' and '{right.type}'")
 
 
 def add(left: typing.Any, right: typing.Any, /) -> Expr:
@@ -622,7 +617,7 @@ def sub(left: typing.Any, right: typing.Any, /) -> Expr:
     lifting the values into :class:`Value` nodes if required.
 
     Examples:
-        Subtration of two floating point numbers::
+        Subtraction of two floating point numbers::
 
             >>> from qiskit.circuit.classical import expr
             >>> expr.sub(5.0, 2.0)
@@ -632,7 +627,7 @@ Value(5.0, Float()), \
 Value(2.0, Float()), \
 Float())
 
-    Subtraction of two durations::
+        Subtraction of two durations::
 
             >>> from qiskit.circuit import Duration
             >>> from qiskit.circuit.classical import expr
@@ -651,7 +646,7 @@ def mul(left: typing.Any, right: typing.Any) -> Expr:
     lifting the values into :class:`Value` nodes if required.
 
     This can be used to multiply numeric operands of the same type kind, or to multiply a duration
-    operand by a :class:`~.types.Float`.
+    operand by a numeric operand.
 
     Examples:
         Multiplication of two floating point numbers::
@@ -677,28 +672,24 @@ Duration())
     """
     left, right = _lift_binary_operands(left, right)
     type: types.Type
-    if left.type.kind is types.Duration and right.type.kind is types.Duration:
+    if left.type.kind is right.type.kind is types.Duration:
         raise TypeError("cannot multiply two durations")
-    if left.type.kind is types.Duration and right.type.kind is types.Float:
+    if left.type.kind is right.type.kind in {types.Uint, types.Float}:
+        type = types.greater(left.type, right.type)
+        left = _coerce_lossless(left, type)
+        right = _coerce_lossless(right, type)
+    elif left.type.kind is types.Duration and right.type.kind in {types.Uint, types.Float}:
         if not right.const:
             raise ValueError(
                 f"multiplying operands '{left}' and '{right}' would result in a non-const '{left.type}'"
             )
         type = left.type
-    elif right.type.kind is types.Duration and left.type.kind is types.Float:
+    elif right.type.kind is types.Duration and left.type.kind in {types.Uint, types.Float}:
         if not left.const:
             raise ValueError(
                 f"multiplying operands '{left}' and '{right}' would result in a non-const '{right.type}'"
             )
         type = right.type
-    elif (
-        left.type.kind is right.type.kind
-        and left.type.kind is not types.Bool
-        and types.order(left.type, right.type) is not types.Ordering.NONE
-    ):
-        type = types.greater(left.type, right.type)
-        left = _coerce_lossless(left, type)
-        right = _coerce_lossless(right, type)
     else:
         raise TypeError(f"invalid types for '{Binary.Op.MUL}': '{left.type}' and '{right.type}'")
     return Binary(
@@ -714,7 +705,7 @@ def div(left: typing.Any, right: typing.Any) -> Expr:
     lifting the values into :class:`Value` nodes if required.
 
     This can be used to divide numeric operands of the same type kind, to divide a
-    :class`~.types.Duration` operand by a :class:`~.types.Float`, or to divide two
+    :class`~.types.Duration` operand by a numeric operand, or to divide two
     :class`~.types.Duration` operands which yields an expression of type
     :class:`~.types.Float`.
 
@@ -754,14 +745,14 @@ Duration())
     """
     left, right = _lift_binary_operands(left, right)
     type: types.Type
-    if left.type.kind is right.type.kind is not types.Bool:
+    if left.type.kind is right.type.kind in {types.Duration, types.Uint, types.Float}:
         if left.type.kind is types.Duration:
             type = types.Float()
         elif types.order(left.type, right.type) is not types.Ordering.NONE:
             type = types.greater(left.type, right.type)
             left = _coerce_lossless(left, type)
             right = _coerce_lossless(right, type)
-    elif left.type.kind is types.Duration and right.type.kind is types.Float:
+    elif left.type.kind is types.Duration and right.type.kind in {types.Uint, types.Float}:
         if not right.const:
             raise ValueError(
                 f"division of '{left}' and '{right}' would result in a non-const '{left.type}'"

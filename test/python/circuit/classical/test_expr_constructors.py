@@ -783,6 +783,17 @@ class TestExprConstructors(QiskitTestCase):
         )
         self.assertTrue(expr.mul(2.0, Duration.ms(1000)).const)
 
+        self.assertEqual(
+            expr.mul(2, Duration.ms(1000)),
+            expr.Binary(
+                expr.Binary.Op.MUL,
+                expr.Value(2, types.Uint(2)),
+                expr.Value(Duration.ms(1000), types.Duration()),
+                types.Duration(),
+            ),
+        )
+        self.assertTrue(expr.mul(2, Duration.ms(1000)).const)
+
     def test_mul_forbidden(self):
         with self.assertRaisesRegex(TypeError, "invalid types"):
             expr.mul(Clbit(), ClassicalRegister(3, "c"))
@@ -877,6 +888,17 @@ class TestExprConstructors(QiskitTestCase):
             ),
         )
         self.assertTrue(expr.div(Duration.ms(1000), 2.0).const)
+
+        self.assertEqual(
+            expr.div(Duration.ms(1000), 2),
+            expr.Binary(
+                expr.Binary.Op.DIV,
+                expr.Value(Duration.ms(1000), types.Duration()),
+                expr.Value(2, types.Uint(2)),
+                types.Duration(),
+            ),
+        )
+        self.assertTrue(expr.div(Duration.ms(1000), 2).const)
 
         self.assertEqual(
             expr.div(Duration.ms(1000), Duration.ms(1000)),

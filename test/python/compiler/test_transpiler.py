@@ -27,7 +27,6 @@ from qiskit import (
     ClassicalRegister,
     QuantumCircuit,
     QuantumRegister,
-    pulse,
     qasm3,
     qpy,
 )
@@ -80,7 +79,6 @@ from qiskit.providers.backend import BackendV2
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.providers.options import Options
-from qiskit.pulse import InstructionScheduleMap
 from qiskit.quantum_info import Operator, random_unitary
 from qiskit.utils import should_run_in_parallel
 from qiskit.transpiler import CouplingMap, Layout, PassManager
@@ -1291,171 +1289,6 @@ class TestTranspile(QiskitTestCase):
 
         self.assertTrue(Operator(out).equiv(qc))
         self.assertTrue(set(out.count_ops()).issubset(basis_gates))
-
-    def test_transpiled_custom_gates_calibration(self):
-        """Test if transpiled calibrations is equal to custom gates circuit calibrations."""
-        custom_180 = Gate("mycustom", 1, [3.14])
-        custom_90 = Gate("mycustom", 1, [1.57])
-
-        circ = QuantumCircuit(2)
-        circ.append(custom_180, [0])
-        circ.append(custom_90, [1])
-
-        with self.assertWarns(DeprecationWarning):
-            with pulse.build() as q0_x180:
-                pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), pulse.DriveChannel(0))
-            with pulse.build() as q1_y90:
-                pulse.play(pulse.library.Gaussian(20, -1.0, 3.0), pulse.DriveChannel(1))
-
-            # Add calibration
-            circ.add_calibration(custom_180, [0], q0_x180)
-            circ.add_calibration(custom_90, [1], q1_y90)
-
-        transpiled_circuit = transpile(
-            circ,
-            backend=GenericBackendV2(num_qubits=4, seed=42),
-            layout_method="trivial",
-            seed_transpiler=42,
-        )
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(transpiled_circuit.calibrations, circ.calibrations)
-        self.assertEqual(list(transpiled_circuit.count_ops().keys()), ["mycustom"])
-        self.assertEqual(list(transpiled_circuit.count_ops().values()), [2])
-
-    def test_transpiled_basis_gates_calibrations(self):
-        """Test if the transpiled calibrations is equal to basis gates circuit calibrations."""
-        circ = QuantumCircuit(2)
-        circ.h(0)
-
-        with self.assertWarns(DeprecationWarning):
-            with pulse.build() as q0_x180:
-                pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), pulse.DriveChannel(0))
-
-            # Add calibration
-            circ.add_calibration("h", [0], q0_x180)
-
-        transpiled_circuit = transpile(
-            circ, backend=GenericBackendV2(num_qubits=4, seed=42), seed_transpiler=42
-        )
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(transpiled_circuit.calibrations, circ.calibrations)
-
-    def test_transpile_calibrated_custom_gate_on_diff_qubit(self):
-        """Test if the custom, non calibrated gate raises QiskitError."""
-        custom_180 = Gate("mycustom", 1, [3.14])
-
-        circ = QuantumCircuit(2)
-        circ.append(custom_180, [0])
-
-        with self.assertWarns(DeprecationWarning):
-            with pulse.build() as q0_x180:
-                pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), pulse.DriveChannel(0))
-
-            # Add calibration
-            circ.add_calibration(custom_180, [1], q0_x180)
-
-        with self.assertRaises(QiskitError):
-            transpile(
-                circ,
-                backend=GenericBackendV2(num_qubits=4, seed=42),
-                layout_method="trivial",
-                seed_transpiler=42,
-                optimization_level=1,
-            )
-
-    def test_transpile_calibrated_nonbasis_gate_on_diff_qubit(self):
-        """Test if the non-basis gates are transpiled if they are on different qubit that
-        is not calibrated."""
-        circ = QuantumCircuit(2)
-        circ.h(0)
-        circ.h(1)
-
-        with self.assertWarns(DeprecationWarning):
-            with pulse.build() as q0_x180:
-                pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), pulse.DriveChannel(0))
-
-            # Add calibration
-            circ.add_calibration("h", [1], q0_x180)
-
-        transpiled_circuit = transpile(
-            circ, backend=GenericBackendV2(num_qubits=4), seed_transpiler=42, optimization_level=1
-        )
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(transpiled_circuit.calibrations, circ.calibrations)
-        self.assertEqual(set(transpiled_circuit.count_ops().keys()), {"rz", "sx", "h"})
-
-    def test_transpile_subset_of_calibrated_gates(self):
-        """Test transpiling a circuit with both basis gate (not-calibrated) and
-        a calibrated gate on different qubits."""
-        x_180 = Gate("mycustom", 1, [3.14])
-
-        circ = QuantumCircuit(2)
-        circ.h(0)
-        circ.append(x_180, [0])
-        circ.h(1)
-
-        with self.assertWarns(DeprecationWarning):
-            with pulse.build() as q0_x180:
-                pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), pulse.DriveChannel(0))
-
-            circ.add_calibration(x_180, [0], q0_x180)
-            circ.add_calibration("h", [1], q0_x180)  # 'h' is calibrated on qubit 1
-
-        transpiled_circ = transpile(
-            circ,
-            backend=GenericBackendV2(num_qubits=4, seed=42),
-            layout_method="trivial",
-            seed_transpiler=42,
-        )
-        self.assertEqual(set(transpiled_circ.count_ops().keys()), {"rz", "sx", "mycustom", "h"})
-
-    def test_parameterized_calibrations_transpile(self):
-        """Check that gates can be matched to their calibrations before and after parameter
-        assignment."""
-        tau = Parameter("tau")
-        circ = QuantumCircuit(3, 3)
-        circ.append(Gate("rxt", 1, [2 * 3.14 * tau]), [0])
-
-        def q0_rxt(tau):
-            with self.assertWarns(DeprecationWarning):
-                with pulse.build() as q0_rxt:
-                    pulse.play(pulse.library.Gaussian(20, 0.4 * tau, 3.0), pulse.DriveChannel(0))
-            return q0_rxt
-
-        with self.assertWarns(DeprecationWarning):
-            circ.add_calibration("rxt", [0], q0_rxt(tau), [2 * 3.14 * tau])
-
-        transpiled_circ = transpile(
-            circ,
-            backend=GenericBackendV2(num_qubits=4, seed=42),
-            layout_method="trivial",
-            seed_transpiler=42,
-        )
-        self.assertEqual(set(transpiled_circ.count_ops().keys()), {"rxt"})
-        circ = circ.assign_parameters({tau: 1})
-        transpiled_circ = transpile(
-            circ,
-            backend=GenericBackendV2(num_qubits=4),
-            layout_method="trivial",
-            seed_transpiler=42,
-        )
-        self.assertEqual(set(transpiled_circ.count_ops().keys()), {"rxt"})
-
-    def test_inst_durations_from_calibrations(self):
-        """Test that circuit calibrations can be used instead of explicitly
-        supplying inst_durations.
-        """
-        qc = QuantumCircuit(2)
-        qc.append(Gate("custom", 1, []), [0])
-
-        with self.assertWarns(DeprecationWarning):
-            with pulse.build() as cal:
-                pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), pulse.DriveChannel(0))
-            qc.add_calibration("custom", [0], cal)
-
-        out = transpile(qc, scheduling_method="alap", seed_transpiler=42)
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(out.duration, cal.duration)
 
     @data(0, 1, 2, 3)
     def test_circuit_with_delay(self, optimization_level):
@@ -2756,35 +2589,6 @@ class TestTranspileParallel(QiskitTestCase):
                 initial_layout=(0, 1, 2),
                 seed_transpiler=42,
             )
-
-    @data(0, 1, 2, 3)
-    def test_backend_and_custom_gate(self, opt_level):
-        """Test transpile() with BackendV2, custom basis pulse gate."""
-        backend = GenericBackendV2(
-            num_qubits=5,
-            coupling_map=[[0, 1], [1, 0], [1, 2], [1, 3], [2, 1], [3, 1], [3, 4], [4, 3]],
-            seed=42,
-        )
-        with self.assertWarns(DeprecationWarning):
-            inst_map = InstructionScheduleMap()
-            inst_map.add("newgate", [0, 1], pulse.ScheduleBlock())
-        newgate = Gate("newgate", 2, [])
-        circ = QuantumCircuit(2)
-        circ.append(newgate, [0, 1])
-
-        with self.assertWarns(DeprecationWarning):
-            tqc = transpile(
-                circ,
-                backend,
-                inst_map=inst_map,
-                basis_gates=["newgate"],
-                optimization_level=opt_level,
-                seed_transpiler=42,
-            )
-        self.assertEqual(len(tqc.data), 1)
-        self.assertEqual(tqc.data[0].operation, newgate)
-        for x in tqc.data[0].qubits:
-            self.assertIn((tqc.find_bit(x).index,), backend.target.qargs)
 
 
 @ddt
