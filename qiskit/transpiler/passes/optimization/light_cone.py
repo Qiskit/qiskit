@@ -12,7 +12,7 @@
 
 """Cancel the redundant (self-adjoint) gates through commutation relations."""
 from __future__ import annotations
-
+import warnings
 from qiskit.circuit import Gate, Qubit
 from qiskit.circuit.commutation_checker import CommutationChecker
 from qiskit.circuit.commutation_library import standard_gates_commutations
@@ -72,10 +72,12 @@ class LightCone(TransformationPass):
         non-trivial Paulis define the light-cone.
         """
         lightcone_qubits = self._find_measurement_qubits(dag)
-        if self.indices and len(dag.qubits) < max(self.indices) + 1:
-            raise ValueError("`indices` contains values outside the qubit rage.")
-        if self.bit_terms is not None:
+        if self.bit_terms is None:
+            lightcone_operations = [(ZGate(), [qubit_index]) for qubit_index in lightcone_qubits]
+        else:
             # Having both measurements and an observable is not allowed
+            if len(dag.qubits) < max(self.indices) + 1:
+                raise ValueError("`indices` contains values outside the qubit rage.")
             if lightcone_qubits:
                 raise ValueError(
                     "The circuit contains measurements and an observable has been given: "
@@ -84,8 +86,6 @@ class LightCone(TransformationPass):
             lightcone_qubits = [dag.qubits[i] for i in self.indices]
             # `lightcone_operations` is a list of tuples, each containing (operation, list_of_qubits)
             lightcone_operations = [(PauliGate(self.bit_terms), lightcone_qubits)]
-        else:
-            lightcone_operations = [(ZGate(), [qubit_index]) for qubit_index in lightcone_qubits]
 
         return set(lightcone_qubits), lightcone_operations
 
@@ -114,10 +114,11 @@ class LightCone(TransformationPass):
                 for op in lightcone_operations:
                     max_num_qubits = max(len(op[1]), len(node.qargs))
                     if max_num_qubits > 10:
-                        raise Warning(
+                        warnings.warn(
                             "LightCone pass is checking commutation of"
                             f"operators of size {max_num_qubits}."
-                            "This operation can be slow."
+                            "This operation can be slow.",
+                            category=RuntimeWarning,
                         )
                     commute_bool = commutator.commute(
                         op[0], op[1], [], node.op, node.qargs, [], max_num_qubits=max_num_qubits
