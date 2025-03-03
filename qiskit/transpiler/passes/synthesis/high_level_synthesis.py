@@ -227,8 +227,8 @@ class HighLevelSynthesis(TransformationPass):
         # to synthesize Operations (when available).
         hls_config = hls_config or HLSConfig(True)
         hls_plugin_manager = HighLevelSynthesisPluginManager()
-        hls_op_names = list(hls_plugin_manager.plugins_by_op.keys()) + list(
-            hls_config.methods.keys()
+        hls_op_names = set(hls_plugin_manager.plugins_by_op.keys()).union(
+            set(hls_config.methods.keys())
         )
 
         if target is not None:

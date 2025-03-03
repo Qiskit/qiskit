@@ -233,7 +233,7 @@ struct HighLevelSynthesisData {
     // This is an optimization to avoid calling python when an object has no
     // synthesis plugins.
     #[pyo3(get)]
-    hls_op_names: Vec<String>,
+    hls_op_names: HashSet<String>,
 
     // Optional, directed graph represented as a coupling map.
     // This is only accessedfrom the Python space (when passing the coupling map to
@@ -279,7 +279,7 @@ impl HighLevelSynthesisData {
     fn __new__(
         hls_config: Py<PyAny>,
         hls_plugin_manager: Py<PyAny>,
-        hls_op_names: Vec<String>,
+        hls_op_names: HashSet<String>,
         coupling_map: Py<PyAny>,
         target: Option<Py<Target>>,
         equivalence_library: Option<Py<EquivalenceLibrary>>,
