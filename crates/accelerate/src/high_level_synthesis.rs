@@ -333,21 +333,22 @@ fn instruction_supported(
     name: &str,
     qubits: &[Qubit],
 ) -> bool {
-    match &data.borrow().target {
+    let borrowed_data = data.borrow();
+    match &borrowed_data.target {
         Some(target) => {
             let target = target.borrow(py);
             if target.num_qubits.is_some() {
-                if data.borrow().use_qubit_indices {
+                if borrowed_data.use_qubit_indices {
                     let physical_qubits = qubits.iter().map(|q| PhysicalQubit(q.0)).collect();
                     target.instruction_supported(name, Some(&physical_qubits))
                 } else {
                     target.instruction_supported(name, None)
                 }
             } else {
-                data.borrow().device_insts.contains(name)
+                borrowed_data.device_insts.contains(name)
             }
         }
-        None => data.borrow().device_insts.contains(name),
+        None => borrowed_data.device_insts.contains(name),
     }
 }
 
@@ -358,7 +359,9 @@ fn definitely_skip_op(
     op: &PackedOperation,
     qubits: &[Qubit],
 ) -> bool {
-    if qubits.len() < data.borrow().min_qubits {
+    let borrowed_data: PyRef<'_, HighLevelSynthesisData> = data.borrow();
+
+    if qubits.len() < borrowed_data.min_qubits {
         return true;
     }
 
@@ -377,11 +380,11 @@ fn definitely_skip_op(
 
     // If there are avilable plugins for this operation, we should try them
     // before checking the equivalence library.
-    if data.borrow().hls_op_names.iter().any(|s| s == op.name()) {
+    if borrowed_data.hls_op_names.iter().any(|s| s == op.name()) {
         return false;
     }
 
-    if let Some(equiv_lib) = &data.borrow().equivalence_library {
+    if let Some(equiv_lib) = &borrowed_data.equivalence_library {
         if equiv_lib.borrow(py).has_entry(op) {
             return true;
         }
@@ -725,6 +728,8 @@ fn synthesize_operation(
         ));
     }
 
+    let borrowed_data: PyRef<'_, HighLevelSynthesisData> = data.borrow();
+
     let mut output_circuit_and_qubits: Option<(CircuitData, Vec<usize>)> = None;
 
     // If this function is called, the operation is not supported by the target, however may have
@@ -739,7 +744,7 @@ fn synthesize_operation(
     // change, we return None.
 
     // Try to synthesize using plugins.
-    if data.borrow().hls_op_names.iter().any(|s| s == op.name()) {
+    if borrowed_data.hls_op_names.iter().any(|s| s == op.name()) {
         output_circuit_and_qubits = synthesize_op_using_plugins(
             py,
             data,
@@ -753,7 +758,7 @@ fn synthesize_operation(
 
     // Check if present in the equivalent library.
     if output_circuit_and_qubits.is_none() {
-        if let Some(equiv_lib) = &data.borrow().equivalence_library {
+        if let Some(equiv_lib) = &borrowed_data.equivalence_library {
             if equiv_lib.borrow(py).has_entry(op) {
                 return Ok(None);
             }
@@ -761,7 +766,7 @@ fn synthesize_operation(
     }
 
     // Extract definition.
-    if output_circuit_and_qubits.is_none() && data.borrow().unroll_definitions {
+    if output_circuit_and_qubits.is_none() && borrowed_data.unroll_definitions {
         let definition_circuit = extract_definition(py, op, params)?;
         match definition_circuit {
             Some(definition_circuit) => {
