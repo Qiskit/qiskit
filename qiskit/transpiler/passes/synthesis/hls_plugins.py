@@ -539,7 +539,7 @@ from qiskit.quantum_info.operators import Clifford
 from qiskit.transpiler.passes.routing.algorithms import ApproximateTokenSwapper
 from qiskit.transpiler.exceptions import TranspilerError
 
-from qiskit._accelerate.high_level_synthesis import py_synthesize_operation
+from qiskit._accelerate.high_level_synthesis import synthesize_operation
 from .plugin import HighLevelSynthesisPlugin
 
 
@@ -1825,7 +1825,7 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
             # to return these (and instead the upstream code greedily grabs some ancilla
             # qubits from the circuit). We should refactor the plugin "run" iterface to
             # return the actual ancilla qubits used.
-            synthesized_base_op_result = py_synthesize_operation(
+            synthesized_base_op_result = synthesize_operation(
                 operation.base_op, input_qubits[num_ctrl:], data, annotated_tracker
             )
 

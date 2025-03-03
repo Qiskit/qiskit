@@ -33,7 +33,7 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit._accelerate.high_level_synthesis import (
     QubitTracker,
     HighLevelSynthesisData,
-    py_run_on_dag,
+    run_on_dag,
 )
 
 from .plugin import HighLevelSynthesisPluginManager
@@ -271,7 +271,7 @@ class HighLevelSynthesis(TransformationPass):
             TranspilerError: when the transpiler is unable to synthesize the given DAG
             (for instance, when the specified synthesis method is not available).
         """
-        res = py_run_on_dag(dag, self.data, self.qubits_initially_zero)
+        res = run_on_dag(dag, self.data, self.qubits_initially_zero)
         return res if res is not None else dag
 
 
