@@ -866,7 +866,25 @@ def generate_v14_expr():
     ):
         pass
 
-    return [float_expr, duration_expr]
+    math_expr = QuantumCircuit(name="math_expr")
+    with math_expr.if_test(
+        expr.logic_and(
+            expr.logic_and(
+                expr.equal(expr.mul(Duration.dt(1), 2.0), expr.div(Duration.ns(2), 2.0)),
+                expr.equal(
+                    expr.add(Duration.us(3), Duration.us(4)),
+                    expr.sub(Duration.ms(5), Duration.ms(6)),
+                ),
+            ),
+            expr.logic_and(
+                expr.equal(expr.mul(1.0, 2.0), expr.div(4.0, 2.0)),
+                expr.equal(expr.add(3.0, 4.0), expr.sub(10.5, 4.3)),
+            ),
+        )
+    ):
+        pass
+
+    return [float_expr, duration_expr, math_expr]
 
 
 def generate_circuits(version_parts, current_version, load_context=False):

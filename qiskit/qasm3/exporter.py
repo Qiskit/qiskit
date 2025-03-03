@@ -60,7 +60,6 @@ from .experimental import ExperimentalFeatures
 from .exceptions import QASM3ExporterError
 from .printer import BasicPrinter
 
-
 # Reserved keywords that gates and variables cannot be named.  It is possible that some of these
 # _could_ be accepted as variable names by OpenQASM 3 parsers, but it's safer for us to just be very
 # conservative.
@@ -626,7 +625,7 @@ class QASM3Builder:
     def build_program(self):
         """Builds a Program"""
         circuit = self.scope.circuit
-        if circuit.num_captured_vars:
+        if circuit.num_captured_vars or circuit.num_captured_stretches:
             raise QASM3ExporterError(
                 "cannot export an inner scope with captured variables as a top-level program"
             )
@@ -958,6 +957,14 @@ class QASM3Builder:
             )
             for var in self.scope.circuit.iter_declared_vars()
         ]
+
+        for stretch in self.scope.circuit.iter_declared_stretches():
+            statements.append(
+                ast.StretchDeclaration(
+                    self.symbols.register_variable(stretch.name, stretch, allow_rename=True),
+                )
+            )
+
         for instruction in self.scope.circuit.data:
             if isinstance(instruction.operation, ControlFlowOp):
                 if isinstance(instruction.operation, ForLoopOp):
@@ -1126,7 +1133,9 @@ class QASM3Builder:
                 f"Found a delay instruction acting on classical bits: {instruction}"
             )
         duration_value, unit = instruction.operation.duration, instruction.operation.unit
-        if unit == "ps":
+        if unit == "expr":
+            duration = self.build_expression(duration_value)
+        elif unit == "ps":
             duration = ast.DurationLiteral(1000 * duration_value, ast.DurationUnit.NANOSECOND)
         else:
             unit_map = {
@@ -1264,7 +1273,7 @@ class _ExprBuilder(expr.ExprVisitor[ast.Expression]):
     __slots__ = ("lookup",)
 
     # This is a very simple, non-contextual converter.  As the type system expands, we may well end
-    # up with some places where Terra's abstract type system needs to be lowered to OQ3 rather than
+    # up with some places where Qiskit's abstract type system needs to be lowered to OQ3 rather than
     # mapping 100% directly, which might need a more contextual visitor.
 
     def __init__(self, lookup):
@@ -1272,6 +1281,9 @@ class _ExprBuilder(expr.ExprVisitor[ast.Expression]):
 
     def visit_var(self, node, /):
         return self.lookup(node) if node.standalone else self.lookup(node.var)
+
+    def visit_stretch(self, node, /):
+        return self.lookup(node)
 
     # pylint: disable=too-many-return-statements
     def visit_value(self, node, /):
