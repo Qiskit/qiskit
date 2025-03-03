@@ -46,7 +46,7 @@ pub(crate) fn compute_estimated_duration(dag: &DAGCircuit, target: &Target) -> P
                                     match dur {
                                         Param::Float(val) =>
                                             {
-                                                Ok(val / dt)
+                                                Ok(val * dt)
 
                                             },
                                         Param::Obj(val) => {

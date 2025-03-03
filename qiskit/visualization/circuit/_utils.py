@@ -32,7 +32,7 @@ from qiskit.circuit import (
 )
 from qiskit.circuit.annotated_operation import AnnotatedOperation, InverseModifier, PowerModifier
 from qiskit.circuit.controlflow import condition_resources
-from qiskit.circuit.library import PauliEvolutionGate
+from qiskit.circuit.library import PauliEvolutionGate, PhaseOracleGate, BitFlipOracleGate
 from qiskit.circuit.tools import pi_check
 from qiskit.converters import circuit_to_dag
 from qiskit.utils import optionals as _optionals
@@ -41,11 +41,7 @@ from ..exceptions import VisualizationError
 
 
 def _is_boolean_expression(gate_text, op):
-    if not _optionals.HAS_TWEEDLEDUM:
-        return False
-    from qiskit.circuit.classicalfunction import BooleanExpression
-
-    return isinstance(op, BooleanExpression) and gate_text == op.name
+    return isinstance(op, (PhaseOracleGate, BitFlipOracleGate)) and gate_text == op.label
 
 
 def get_gate_ctrl_text(op, drawer, style=None):

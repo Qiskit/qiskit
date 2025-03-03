@@ -22,6 +22,7 @@ from qiskit.dagcircuit import DAGCircuit, DAGNode
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.target import Target
+from qiskit.transpiler.instruction_durations import InstructionDurations
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +58,7 @@ class BasePadding(TransformationPass):
     def __init__(
         self,
         target: Target = None,
+        durations: InstructionDurations = None,
     ):
         """BasePadding initializer.
 
@@ -67,6 +69,30 @@ class BasePadding(TransformationPass):
         """
         super().__init__()
         self.target = target
+        self.durations = durations
+
+    def get_duration(self, node, dag):  # pylint: disable=too-many-return-statements
+        """Get duration of a given node in the circuit."""
+        if node.name == "delay":
+            return node.op.duration
+        if node.name == "barrier":
+            return 0
+        if not self.target and not self.durations:
+            return None
+        indices = [dag.find_bit(qarg).index for qarg in node.qargs]
+
+        if self.target:
+            props_dict = self.target.get(node.name)
+            if not props_dict:
+                return None
+            props = props_dict.get(tuple(indices))
+            if not props:
+                return None
+            if self.target.dt is None:
+                return props.duration
+            else:
+                return self.target.seconds_to_dt(props.duration)
+        return self.durations.get(node.name, indices)
 
     def run(self, dag: DAGCircuit):
         """Run the padding pass on ``dag``.
@@ -111,7 +137,7 @@ class BasePadding(TransformationPass):
         for node in dag.topological_op_nodes():
             if node in node_start_time:
                 t0 = node_start_time[node]
-                t1 = t0 + node.op.duration
+                t1 = t0 + self.get_duration(node, dag)
                 circuit_duration = max(circuit_duration, t1)
 
                 if isinstance(node.op, Delay):

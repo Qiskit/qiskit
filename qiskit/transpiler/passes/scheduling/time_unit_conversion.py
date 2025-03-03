@@ -100,18 +100,12 @@ class TimeUnitConversion(TransformationPass):
                     "and dt unit must not be mixed when dt is not supplied."
                 )
 
-        # Make units consistent
-        for node in dag.op_nodes():
-            try:
-                duration = inst_durations.get(
-                    node.op, [dag.find_bit(qarg).index for qarg in node.qargs], unit=time_unit
-                )
-            except TranspilerError:
-                continue
+        # Make instructions with local durations consistent.
+        for node in dag.op_nodes(Delay):
             op = node.op.to_mutable()
-            op.duration = duration
+            op.duration = inst_durations._convert_unit(op.duration, op.unit, time_unit)
             op.unit = time_unit
-            dag.substitute_node(node, op, propagate_condition=False)
+            dag.substitute_node(node, op)
 
         self.property_set["time_unit"] = time_unit
         return dag

@@ -36,6 +36,7 @@ from qiskit._accelerate.target import (
 )
 
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
+from qiskit.circuit.duration import duration_in_dt
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations
@@ -660,6 +661,18 @@ class Target(BaseTarget):
         self._instruction_durations = state["instruction_durations"]
         self._instruction_schedule_map = state["instruction_schedule_map"]
         super().__setstate__(state["base"])
+
+    def seconds_to_dt(self, duration: float) -> int:
+        """Convert a given duration in seconds to units of dt
+
+        Args:
+            duration: The duration in seconds, such as in an :class:`.InstructionProperties`
+                field for an instruction in the target.
+
+        Returns
+            duration: The duration in units of dt
+        """
+        return duration_in_dt(duration, self.dt)
 
     @classmethod
     def from_configuration(

@@ -87,7 +87,8 @@ class TestPadDynamicalDecoupling(QiskitTestCase):
                 ("rx", None, 100),
                 ("measure", None, 1000),
                 ("reset", None, 1500),
-            ]
+            ],
+            dt=1e-9,
         )
 
     def test_insert_dd_ghz(self):

@@ -56,15 +56,23 @@ class BaseScheduler(AnalysisPass):
             )
         self.property_set["node_start_time"] = {}
 
-    @staticmethod
     def _get_node_duration(
+        self,
         node: DAGOpNode,
         dag: DAGCircuit,
     ) -> int:
         """A helper method to get duration from node"""
         indices = [dag.find_bit(qarg).index for qarg in node.qargs]
 
-        duration = node.duration
+        if node.name == "delay":
+            # `TimeUnitConversion` already handled the unit conversions.
+            duration = node.op.duration
+        else:
+            unit = "s" if self.durations.dt is None else "dt"
+            try:
+                duration = self.durations.get(node.name, indices, unit=unit)
+            except TranspilerError:
+                duration = None
 
         if isinstance(duration, ParameterExpression):
             raise TranspilerError(

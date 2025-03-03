@@ -17,6 +17,7 @@ use compose_transforms::GateIdentifier;
 use basis_search::basis_search;
 use compose_transforms::compose_transforms;
 use hashbrown::{HashMap, HashSet};
+use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use pyo3::intern;
 use pyo3::prelude::*;
@@ -45,8 +46,8 @@ use crate::nlayout::PhysicalQubit;
 use crate::target_transpiler::exceptions::TranspilerError;
 use crate::target_transpiler::{Qargs, Target};
 
-type InstMap = HashMap<GateIdentifier, BasisTransformOut>;
-type ExtraInstructionMap<'a> = HashMap<&'a Option<Qargs>, InstMap>;
+type InstMap = IndexMap<GateIdentifier, BasisTransformOut, ahash::RandomState>;
+type ExtraInstructionMap<'a> = IndexMap<&'a Option<Qargs>, InstMap, ahash::RandomState>;
 
 #[allow(clippy::too_many_arguments)]
 #[pyfunction(name = "base_run", signature = (dag, equiv_lib, qargs_with_non_global_operation, min_qubits, target_basis=None, target=None, non_global_operations=None))]
@@ -64,23 +65,40 @@ fn run(
         return Ok(dag);
     }
 
-    let basic_instrs: HashSet<String>;
-    let mut source_basis: HashSet<GateIdentifier> = HashSet::default();
-    let mut new_target_basis: HashSet<String>;
-    let mut qargs_local_source_basis: HashMap<Option<Qargs>, HashSet<GateIdentifier>> =
-        HashMap::default();
+    let qargs_with_non_global_operation: IndexMap<
+        Option<Qargs>,
+        IndexSet<String, ahash::RandomState>,
+        ahash::RandomState,
+    > = qargs_with_non_global_operation
+        .into_iter()
+        .map(|(k, v)| {
+            (
+                k,
+                v.into_iter().collect::<IndexSet<_, ahash::RandomState>>(),
+            )
+        })
+        .collect();
+
+    let basic_instrs: IndexSet<String, ahash::RandomState>;
+    let mut source_basis: IndexSet<GateIdentifier, ahash::RandomState> = IndexSet::default();
+    let mut new_target_basis: IndexSet<String, ahash::RandomState>;
+    let mut qargs_local_source_basis: IndexMap<
+        Option<Qargs>,
+        IndexSet<GateIdentifier, ahash::RandomState>,
+        ahash::RandomState,
+    > = IndexMap::default();
     if let Some(target) = target.as_ref() {
         basic_instrs = ["barrier", "snapshot", "store"]
             .into_iter()
             .map(|x| x.to_string())
             .collect();
-        let non_global_str: HashSet<&str> = if let Some(operations) = non_global_operations.as_ref()
-        {
-            operations.iter().map(|x| x.as_str()).collect()
-        } else {
-            HashSet::default()
-        };
-        let target_keys = target.keys().collect::<HashSet<_>>();
+        let non_global_str: IndexSet<&str, ahash::RandomState> =
+            if let Some(operations) = non_global_operations.as_ref() {
+                operations.iter().map(|x| x.as_str()).collect()
+            } else {
+                IndexSet::default()
+            };
+        let target_keys = target.keys().collect::<IndexSet<_, ahash::RandomState>>();
         new_target_basis = target_keys
             .difference(&non_global_str)
             .map(|x| x.to_string())
@@ -99,7 +117,7 @@ fn run(
             .map(|x| x.to_string())
             .collect();
         source_basis = extract_basis(py, &dag, min_qubits)?;
-        new_target_basis = target_basis.unwrap();
+        new_target_basis = target_basis.unwrap().into_iter().collect();
     }
     new_target_basis = new_target_basis
         .union(&basic_instrs)
@@ -108,15 +126,16 @@ fn run(
     // If the source basis is a subset of the target basis and we have no circuit
     // instructions on qargs that have non-global operations there is nothing to
     // translate and we can exit early.
-    let source_basis_names: HashSet<String> = source_basis.iter().map(|x| x.0.clone()).collect();
+    let source_basis_names: IndexSet<String> = source_basis.iter().map(|x| x.0.clone()).collect();
     if source_basis_names.is_subset(&new_target_basis) && qargs_local_source_basis.is_empty() {
         return Ok(dag);
     }
     let basis_transforms = basis_search(equiv_lib, &source_basis, &new_target_basis);
-    let mut qarg_local_basis_transforms: HashMap<
+    let mut qarg_local_basis_transforms: IndexMap<
         Option<Qargs>,
         Vec<(GateIdentifier, BasisTransformIn)>,
-    > = HashMap::default();
+        ahash::RandomState,
+    > = IndexMap::default();
     for (qarg, local_source_basis) in qargs_local_source_basis.iter() {
         // For any multiqubit operation that contains a subset of qubits that
         // has a non-local operation, include that non-local operation in the
@@ -124,11 +143,12 @@ fn run(
         // subset non-local operations in the check here.
         let mut expanded_target = new_target_basis.clone();
         if qarg.as_ref().is_some_and(|qarg| qarg.len() > 1) {
-            let qarg_as_set: HashSet<PhysicalQubit> =
-                HashSet::from_iter(qarg.as_ref().unwrap().iter().copied());
+            let qarg_as_set: IndexSet<PhysicalQubit> =
+                IndexSet::from_iter(qarg.as_ref().unwrap().iter().copied());
             for (non_local_qarg, local_basis) in qargs_with_non_global_operation.iter() {
                 if let Some(non_local_qarg) = non_local_qarg {
-                    let non_local_qarg_as_set = HashSet::from_iter(non_local_qarg.iter().copied());
+                    let non_local_qarg_as_set: IndexSet<PhysicalQubit, ahash::RandomState> =
+                        IndexSet::from_iter(non_local_qarg.iter().copied());
                     if qarg_as_set.is_superset(&non_local_qarg_as_set) {
                         expanded_target = expanded_target.union(local_basis).cloned().collect();
                     }
@@ -203,13 +223,13 @@ fn extract_basis(
     py: Python,
     circuit: &DAGCircuit,
     min_qubits: usize,
-) -> PyResult<HashSet<GateIdentifier>> {
-    let mut basis = HashSet::default();
+) -> PyResult<IndexSet<GateIdentifier, ahash::RandomState>> {
+    let mut basis = IndexSet::default();
     // Recurse for DAGCircuit
     fn recurse_dag(
         py: Python,
         circuit: &DAGCircuit,
-        basis: &mut HashSet<GateIdentifier>,
+        basis: &mut IndexSet<GateIdentifier, ahash::RandomState>,
         min_qubits: usize,
     ) -> PyResult<()> {
         for (_node, operation) in circuit.op_nodes(true) {
@@ -233,7 +253,7 @@ fn extract_basis(
     fn recurse_circuit(
         py: Python,
         circuit: Bound<PyAny>,
-        basis: &mut HashSet<GateIdentifier>,
+        basis: &mut IndexSet<GateIdentifier, ahash::RandomState>,
         min_qubits: usize,
     ) -> PyResult<()> {
         let circuit_data: PyRef<CircuitData> = circuit
@@ -267,10 +287,18 @@ fn extract_basis(
 fn extract_basis_target(
     py: Python,
     dag: &DAGCircuit,
-    source_basis: &mut HashSet<GateIdentifier>,
-    qargs_local_source_basis: &mut HashMap<Option<Qargs>, HashSet<GateIdentifier>>,
+    source_basis: &mut IndexSet<GateIdentifier, ahash::RandomState>,
+    qargs_local_source_basis: &mut IndexMap<
+        Option<Qargs>,
+        IndexSet<GateIdentifier, ahash::RandomState>,
+        ahash::RandomState,
+    >,
     min_qubits: usize,
-    qargs_with_non_global_operation: &HashMap<Option<Qargs>, HashSet<String>>,
+    qargs_with_non_global_operation: &IndexMap<
+        Option<Qargs>,
+        IndexSet<String, ahash::RandomState>,
+        ahash::RandomState,
+    >,
 ) -> PyResult<()> {
     for (_node, node_obj) in dag.op_nodes(true) {
         let qargs: &[Qubit] = dag.get_qargs(node_obj.qubits);
@@ -288,14 +316,15 @@ fn extract_basis_target(
         // and 1q operations in the same manner)
         let physical_qargs: SmallVec<[PhysicalQubit; 2]> =
             qargs.iter().map(|x| PhysicalQubit(x.0)).collect();
-        let physical_qargs_as_set: HashSet<PhysicalQubit> =
-            HashSet::from_iter(physical_qargs.iter().copied());
+        let physical_qargs_as_set: IndexSet<PhysicalQubit, ahash::RandomState> =
+            IndexSet::from_iter(physical_qargs.iter().copied());
         if qargs_with_non_global_operation.contains_key(&Some(physical_qargs))
             || qargs_with_non_global_operation
                 .keys()
                 .flatten()
                 .any(|incomplete_qargs| {
-                    let incomplete_qargs = HashSet::from_iter(incomplete_qargs.iter().copied());
+                    let incomplete_qargs: IndexSet<PhysicalQubit, ahash::RandomState> =
+                        IndexSet::from_iter(incomplete_qargs.iter().copied());
                     physical_qargs_as_set.is_superset(&incomplete_qargs)
                 })
         {
@@ -304,7 +333,7 @@ fn extract_basis_target(
                 .and_modify(|set| {
                     set.insert((node_obj.op.name().to_string(), node_obj.op.num_qubits()));
                 })
-                .or_insert(HashSet::from_iter([(
+                .or_insert(IndexSet::from_iter([(
                     node_obj.op.name().to_string(),
                     node_obj.op.num_qubits(),
                 )]));
@@ -317,7 +346,8 @@ fn extract_basis_target(
             };
             let bound_inst = op.instruction.bind(py);
             // TODO: Use Rust method `op.blocks` instead of Python side extraction now that
-            // the usage of a python-space method `QuantumCircuit.has_calibration_for` is not needed anymore
+            // the python-space method `QuantumCircuit.has_calibration_for`
+            // has been removed and we don't need to account for it.
             let blocks = bound_inst.getattr("blocks")?.try_iter()?;
             for block in blocks {
                 extract_basis_target_circ(
@@ -340,10 +370,18 @@ fn extract_basis_target(
 /// TODO: pulse is removed, we can use op.blocks
 fn extract_basis_target_circ(
     circuit: &Bound<PyAny>,
-    source_basis: &mut HashSet<GateIdentifier>,
-    qargs_local_source_basis: &mut HashMap<Option<Qargs>, HashSet<GateIdentifier>>,
+    source_basis: &mut IndexSet<GateIdentifier, ahash::RandomState>,
+    qargs_local_source_basis: &mut IndexMap<
+        Option<Qargs>,
+        IndexSet<GateIdentifier, ahash::RandomState>,
+        ahash::RandomState,
+    >,
     min_qubits: usize,
-    qargs_with_non_global_operation: &HashMap<Option<Qargs>, HashSet<String>>,
+    qargs_with_non_global_operation: &IndexMap<
+        Option<Qargs>,
+        IndexSet<String, ahash::RandomState>,
+        ahash::RandomState,
+    >,
 ) -> PyResult<()> {
     let py = circuit.py();
     let circ_data_bound = circuit.getattr("_data")?.downcast_into::<CircuitData>()?;
@@ -364,14 +402,15 @@ fn extract_basis_target_circ(
         // and 1q operations in the same manner)
         let physical_qargs: SmallVec<[PhysicalQubit; 2]> =
             qargs.iter().map(|x| PhysicalQubit(x.0)).collect();
-        let physical_qargs_as_set: HashSet<PhysicalQubit> =
-            HashSet::from_iter(physical_qargs.iter().copied());
+        let physical_qargs_as_set: IndexSet<PhysicalQubit, ahash::RandomState> =
+            IndexSet::from_iter(physical_qargs.iter().copied());
         if qargs_with_non_global_operation.contains_key(&Some(physical_qargs))
             || qargs_with_non_global_operation
                 .keys()
                 .flatten()
                 .any(|incomplete_qargs| {
-                    let incomplete_qargs = HashSet::from_iter(incomplete_qargs.iter().copied());
+                    let incomplete_qargs: IndexSet<PhysicalQubit, ahash::RandomState> =
+                        IndexSet::from_iter(incomplete_qargs.iter().copied());
                     physical_qargs_as_set.is_superset(&incomplete_qargs)
                 })
         {
@@ -380,7 +419,7 @@ fn extract_basis_target_circ(
                 .and_modify(|set| {
                     set.insert((node_obj.op.name().to_string(), node_obj.op.num_qubits()));
                 })
-                .or_insert(HashSet::from_iter([(
+                .or_insert(IndexSet::from_iter([(
                     node_obj.op.name().to_string(),
                     node_obj.op.num_qubits(),
                 )]));
@@ -410,11 +449,15 @@ fn extract_basis_target_circ(
 fn apply_translation(
     py: Python,
     dag: &DAGCircuit,
-    target_basis: &HashSet<String>,
+    target_basis: &IndexSet<String, ahash::RandomState>,
     instr_map: &InstMap,
     extra_inst_map: &ExtraInstructionMap,
     min_qubits: usize,
-    qargs_with_non_global_operation: &HashMap<Option<Qargs>, HashSet<String>>,
+    qargs_with_non_global_operation: &IndexMap<
+        Option<Qargs>,
+        IndexSet<String, ahash::RandomState>,
+        ahash::RandomState,
+    >,
 ) -> PyResult<(DAGCircuit, bool)> {
     let mut is_updated = false;
     let mut out_dag = dag.copy_empty_like(py, "alike")?;
@@ -422,7 +465,8 @@ fn apply_translation(
         let node_obj = dag[node].unwrap_operation();
         let node_qarg = dag.get_qargs(node_obj.qubits);
         let node_carg = dag.get_cargs(node_obj.clbits);
-        let qubit_set: HashSet<Qubit> = HashSet::from_iter(node_qarg.iter().copied());
+        let qubit_set: IndexSet<Qubit, ahash::RandomState> =
+            IndexSet::from_iter(node_qarg.iter().copied());
         let mut new_op: Option<OperationFromPython> = None;
         if target_basis.contains(node_obj.op.name()) || node_qarg.len() < min_qubits {
             if node_obj.op.control_flow() {
@@ -470,7 +514,7 @@ fn apply_translation(
                     } else {
                         Some(new_op.params)
                     },
-                    new_op.extra_attrs,
+                    new_op.label.map(|x| *x),
                     #[cfg(feature = "cache_pygates")]
                     None,
                 )?;
@@ -491,7 +535,7 @@ fn apply_translation(
                                 .collect(),
                         )
                     },
-                    node_obj.extra_attrs.clone(),
+                    node_obj.label.as_ref().map(|x| x.as_ref().clone()),
                     #[cfg(feature = "cache_pygates")]
                     None,
                 )?;
@@ -519,7 +563,7 @@ fn apply_translation(
                             .collect(),
                     )
                 },
-                node_obj.extra_attrs.clone(),
+                node_obj.label.as_ref().map(|x| x.as_ref().clone()),
                 #[cfg(feature = "cache_pygates")]
                 None,
             )?;
@@ -558,7 +602,7 @@ fn replace_node(
     py: Python,
     dag: &mut DAGCircuit,
     node: PackedInstruction,
-    instr_map: &HashMap<GateIdentifier, (SmallVec<[Param; 3]>, DAGCircuit)>,
+    instr_map: &IndexMap<GateIdentifier, (SmallVec<[Param; 3]>, DAGCircuit), ahash::RandomState>,
 ) -> PyResult<()> {
     let (target_params, target_dag) =
         &instr_map[&(node.op.name().to_string(), node.op.num_qubits())];
@@ -592,27 +636,12 @@ fn replace_node(
             } else {
                 inner_node.op.clone()
             };
-            if node.condition().is_some() {
-                match new_op.view() {
-                    OperationRef::Gate(gate) => {
-                        gate.gate.setattr(py, "condition", node.condition())?
-                    }
-                    OperationRef::Instruction(inst) => {
-                        inst.instruction
-                            .setattr(py, "condition", node.condition())?
-                    }
-                    OperationRef::Operation(oper) => {
-                        oper.operation.setattr(py, "condition", node.condition())?
-                    }
-                    _ => (),
-                }
-            }
             let new_params: SmallVec<[Param; 3]> = inner_node
                 .params_view()
                 .iter()
                 .map(|param| param.clone_ref(py))
                 .collect();
-            let new_extra_props = node.extra_attrs.clone();
+            let new_extra_props = node.label.as_ref().map(|x| x.as_ref().clone());
             dag.apply_operation_back(
                 py,
                 new_op,
@@ -727,7 +756,7 @@ fn replace_node(
                 } else {
                     Some(new_params)
                 },
-                inner_node.extra_attrs.clone(),
+                inner_node.label.as_ref().map(|x| x.as_ref().clone()),
                 #[cfg(feature = "cache_pygates")]
                 None,
             )?;

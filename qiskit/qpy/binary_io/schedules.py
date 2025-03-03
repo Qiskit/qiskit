@@ -12,7 +12,7 @@
 
 """Read schedule and schedule instructions.
 
-This module is kep post pulse-removal to allow reading legacy
+This module is kept post pulse-removal to allow reading legacy
 payloads containing pulse gates without breaking the load flow.
 The purpose of the `_read` and `_load` methods below is just to advance
 the file handle while consuming pulse data."""
@@ -25,7 +25,6 @@ from io import BytesIO
 import numpy as np
 import symengine as sym
 
-from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.qpy import formats, common, type_keys
 from qiskit.qpy.binary_io import value
@@ -291,9 +290,9 @@ def read_schedule_block(file_obj, version, metadata_deserializer=None, use_symen
             file_obj.read(formats.SCHEDULE_BLOCK_HEADER_SIZE),
         )
     )
-    name = file_obj.read(data.name_size).decode(common.ENCODE)
+    file_obj.read(data.name_size).decode(common.ENCODE)  # read name
     metadata_raw = file_obj.read(data.metadata_size)
-    metadata = json.loads(metadata_raw, cls=metadata_deserializer)  # read metadata
+    json.loads(metadata_raw, cls=metadata_deserializer)  # read metadata
     _read_alignment_context(file_obj, version)
 
     for _ in range(data.num_elements):
@@ -307,5 +306,3 @@ def read_schedule_block(file_obj, version, metadata_deserializer=None, use_symen
             version=version,
             metadata_deserializer=metadata_deserializer,
         )
-
-    return QuantumCircuit(name=name, metadata=metadata)

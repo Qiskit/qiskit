@@ -28,7 +28,7 @@ use rand_pcg::Pcg64Mcg;
 use smallvec::SmallVec;
 
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::circuit_instruction::{ExtraInstructionAttributes, OperationFromPython};
+use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::gate_matrix::ONE_QUBIT_IDENTITY;
@@ -208,7 +208,7 @@ fn twirl_gate(
             qubits: bit_zero,
             clbits: circ.cargs_interner().get_default(),
             params: None,
-            extra_attrs: ExtraInstructionAttributes::new(None, None, None, None),
+            label: None,
             #[cfg(feature = "cache_pygates")]
             py_op: std::sync::OnceLock::new(),
         },
@@ -220,7 +220,7 @@ fn twirl_gate(
             qubits: bit_one,
             clbits: circ.cargs_interner().get_default(),
             params: None,
-            extra_attrs: ExtraInstructionAttributes::new(None, None, None, None),
+            label: None,
             #[cfg(feature = "cache_pygates")]
             py_op: std::sync::OnceLock::new(),
         },
@@ -234,7 +234,7 @@ fn twirl_gate(
             qubits: bit_zero,
             clbits: circ.cargs_interner().get_default(),
             params: None,
-            extra_attrs: ExtraInstructionAttributes::new(None, None, None, None),
+            label: None,
             #[cfg(feature = "cache_pygates")]
             py_op: std::sync::OnceLock::new(),
         },
@@ -246,7 +246,7 @@ fn twirl_gate(
             qubits: bit_one,
             clbits: circ.cargs_interner().get_default(),
             params: None,
-            extra_attrs: ExtraInstructionAttributes::new(None, None, None, None),
+            label: None,
             #[cfg(feature = "cache_pygates")]
             py_op: std::sync::OnceLock::new(),
         },
@@ -360,7 +360,7 @@ fn generate_twirled_circuit(
                                 .map(|x| Ok(Param::Obj(x.clone().into_py_any(py)?)))
                                 .collect::<PyResult<SmallVec<[Param; 3]>>>()?,
                         )),
-                        extra_attrs: inst.extra_attrs.clone(),
+                        label: inst.label.clone(),
                         #[cfg(feature = "cache_pygates")]
                         py_op: std::sync::OnceLock::new(),
                     };

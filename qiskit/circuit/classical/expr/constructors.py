@@ -19,6 +19,7 @@ from __future__ import annotations
 
 __all__ = [
     "lift",
+    "cast",
     "bit_not",
     "logic_not",
     "bit_and",
@@ -32,6 +33,9 @@ __all__ = [
     "less_equal",
     "greater",
     "greater_equal",
+    "shift_left",
+    "shift_right",
+    "index",
     "lift_legacy_condition",
 ]
 
@@ -45,9 +49,9 @@ if typing.TYPE_CHECKING:
     import qiskit
 
 
-def _coerce_lossless(expr: Expr, type: types.Type) -> Expr:
+def _coerce_lossless(expr: Expr, type: types.Type) -> Expr | None:
     """Coerce ``expr`` to ``type`` by inserting a suitable :class:`Cast` node, if the cast is
-    lossless.  Otherwise, raise a ``TypeError``."""
+    lossless.  Otherwise, return ``None``."""
     kind = cast_kind(expr.type, type)
     if kind is CastKind.EQUAL:
         return expr
@@ -55,29 +59,13 @@ def _coerce_lossless(expr: Expr, type: types.Type) -> Expr:
         return Cast(expr, type, implicit=True)
     if kind is CastKind.LOSSLESS:
         return Cast(expr, type, implicit=False)
-    if kind is CastKind.DANGEROUS:
-        raise TypeError(f"cannot cast '{expr}' to '{type}' without loss of precision")
-    raise TypeError(f"no cast is defined to take '{expr}' to '{type}'")
+    return None
 
 
 def lift_legacy_condition(
     condition: tuple[qiskit.circuit.Clbit | qiskit.circuit.ClassicalRegister, int], /
 ) -> Expr:
-    """Lift a legacy two-tuple equality condition into a new-style :class:`Expr`.
-
-    Examples:
-        Taking an old-style conditional instruction and getting an :class:`Expr` from its
-        condition::
-
-            from qiskit.circuit import ClassicalRegister
-            from qiskit.circuit.library import HGate
-            from qiskit.circuit.classical import expr
-
-            cr = ClassicalRegister(2)
-            instr = HGate().c_if(cr, 3)
-
-            lifted = expr.lift_legacy_condition(instr.condition)
-    """
+    """Lift a legacy two-tuple equality condition into a new-style :class:`Expr`."""
     from qiskit.circuit import Clbit  # pylint: disable=cyclic-import
 
     target, value = condition
@@ -134,6 +122,9 @@ def lift(value: typing.Any, /, type: types.Type | None = None) -> Expr:
         if value < 0:
             raise ValueError("cannot represent a negative value")
         inferred = types.Uint(width=value.bit_length() or 1)
+        constructor = Value
+    elif isinstance(value, float):
+        inferred = types.Float()
         constructor = Value
     else:
         raise TypeError(f"failed to infer a type for '{value}'")
@@ -195,11 +186,15 @@ def logic_not(operand: typing.Any, /) -> Expr:
             >>> expr.logic_not(ClassicalRegister(3, "c"))
             Unary(\
 Unary.Op.LOGIC_NOT, \
-Cast(Var(ClassicalRegister(3, 'c'), Uint(3)), Bool(), implicit=True), \
+Cast(Var(ClassicalRegister(3, 'c'), Uint(3)), \
+Bool(), implicit=True), \
 Bool())
     """
-    operand = _coerce_lossless(lift(operand), types.Bool())
-    return Unary(Unary.Op.LOGIC_NOT, operand, operand.type)
+    operand = lift(operand)
+    coerced_operand = _coerce_lossless(operand, types.Bool())
+    if coerced_operand is None:
+        raise TypeError(f"cannot apply '{Unary.Op.LOGIC_NOT}' to type '{operand.type}'")
+    return Unary(Unary.Op.LOGIC_NOT, coerced_operand, coerced_operand.type)
 
 
 def _lift_binary_operands(left: typing.Any, right: typing.Any) -> tuple[Expr, Expr]:
@@ -314,9 +309,13 @@ Uint(3))
 
 def _binary_logical(op: Binary.Op, left: typing.Any, right: typing.Any) -> Expr:
     bool_ = types.Bool()
-    left = _coerce_lossless(lift(left), bool_)
-    right = _coerce_lossless(lift(right), bool_)
-    return Binary(op, left, right, bool_)
+    left = lift(left)
+    right = lift(right)
+    coerced_left = _coerce_lossless(left, bool_)
+    coerced_right = _coerce_lossless(right, bool_)
+    if coerced_left is None or coerced_right is None:
+        raise TypeError(f"invalid types for '{op}': '{left.type}' and '{right.type}'")
+    return Binary(op, coerced_left, coerced_right, bool_)
 
 
 def logic_and(left: typing.Any, right: typing.Any, /) -> Expr:
@@ -354,6 +353,8 @@ def _equal_like(op: Binary.Op, left: typing.Any, right: typing.Any) -> Expr:
     if left.type.kind is not right.type.kind:
         raise TypeError(f"invalid types for '{op}': '{left.type}' and '{right.type}'")
     type = types.greater(left.type, right.type)
+    # Note that we don't check the return value of _coerce_lossless for these
+    # since 'left' and 'right' are guaranteed to be the same kind here.
     return Binary(op, _coerce_lossless(left, type), _coerce_lossless(right, type), types.Bool())
 
 
@@ -398,6 +399,8 @@ def _binary_relation(op: Binary.Op, left: typing.Any, right: typing.Any) -> Expr
     if left.type.kind is not right.type.kind or left.type.kind is types.Bool:
         raise TypeError(f"invalid types for '{op}': '{left.type}' and '{right.type}'")
     type = types.greater(left.type, right.type)
+    # Note that we don't check the return value of _coerce_lossless for these
+    # since 'left' and 'right' are guaranteed to be the same kind here.
     return Binary(op, _coerce_lossless(left, type), _coerce_lossless(right, type), types.Bool())
 
 
@@ -479,7 +482,11 @@ def _shift_like(
     if type is not None and type.kind is not types.Uint:
         raise TypeError(f"type '{type}' is not a valid bitshift operand type")
     if isinstance(left, Expr):
-        left = _coerce_lossless(left, type) if type is not None else left
+        if type is not None:
+            coerced_left = _coerce_lossless(left, type)
+            if coerced_left is None:
+                raise TypeError(f"type '{type}' cannot losslessly represent '{left.type}'")
+            left = coerced_left
     else:
         left = lift(left, type)
     right = lift(right)

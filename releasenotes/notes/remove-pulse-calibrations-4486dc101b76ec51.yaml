@@ -29,13 +29,11 @@ upgrade_transpiler:
 
     Calibration support has been removed:
 
-      * ``calibration`` has been removed from the :class:`.InstructionProperties` 's constructor and is no longer a property of that class
-      * The ``has_calibration()``, ``get_calibration()``, ``instruction_schedule_map()`` and ``update_from_instruction_schedule_map()`` methods have been removed from the :class:`.Target` class
-
-
+      * ``calibration`` has been removed from the :class:`.InstructionProperties` 's constructor and is no longer a property of that class.
+      * The ``has_calibration``, ``get_calibration``, ``instruction_schedule_map`` and ``update_from_instruction_schedule_map`` methods have been removed from the :class:`.Target` class.
 
 
 upgrade_misc:
   - |
-    As part of Pulse removal in Qiskit 2.0, the ``sequence`` and ``schedule_circuit`` functions
+    As part of Pulse removal in Qiskit 2.0, the ``sequence`` and ``schedule_circuit`` functions from :mod:`.qiskit.scheduler`
     together with the ``ScheduleConfig`` class have been removed.

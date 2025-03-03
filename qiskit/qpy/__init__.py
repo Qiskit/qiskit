@@ -17,7 +17,7 @@ QPY serialization (:mod:`qiskit.qpy`)
 
 .. currentmodule:: qiskit.qpy
 
-QPY is a binary serialization format for :class:`~.QuantumCircuit` and
+QPY is a binary serialization format for :class:`~.QuantumCircuit`
 objects that is designed to be cross-platform,  Python version agnostic,
 and backwards compatible moving forward. QPY should be used if you need
 a mechanism to save or copy between systems a :class:`~.QuantumCircuit`
@@ -169,10 +169,13 @@ and how the feature will be internally handled.
     it to QPY setting ``use_symengine=False``.  The resulting file can then be loaded by any later
     version of Qiskit.
 
-    With the removal of Pulse in Qiskit 2.0, QPY provides limited support for loading
-    payloads with pulse data. Loading a ``ScheduleBlock`` payload, a :class:`.QpyError` exception
-    will be raised. Loading a circuit with pulse gates, the circuit will contain custom
-    instructions without calibration data attached, leaving them undefined.
+.. note::
+
+    Starting with Qiskit version 2.0.0, which removed the Pulse module from the library, QPY provides
+    limited support for loading payloads that include pulse data. Loading a ``ScheduleBlock`` payload,
+    a :class:`.QpyError` exception will be raised. Loading a payload for a circuit that contained pulse
+    gates, the output circuit will contain  custom instructions **without** calibration data attached
+    for each pulse gate, leaving them undefined.
 
 QPY format version history
 --------------------------
@@ -373,6 +376,37 @@ The ``STANDALONE_VARS`` are new in QPY version 12; before that, there was no dat
 There is a circuit payload for each circuit (where the total number is dictated
 by ``num_circuits`` in the file header). There is no padding between the
 circuits in the data.
+
+.. _qpy_version_14:
+
+Version 14
+----------
+
+Version 14 adds support for additional :class:`~.types.Type` classes.
+
+Changes to EXPR_TYPE
+~~~~~~~~~~~~~~~~~~~~
+
+The following table shows the new type classes added in the version:
+
+======================  =========  =================================================================
+Qiskit class            Type code  Payload
+======================  =========  =================================================================
+:class:`~.types.Float`  ``f``      None.
+======================  =========  =================================================================
+
+Changes to EXPR_VALUE
+~~~~~~~~~~~~~~~~~~~~~
+
+The classical expression's type system now supports new encoding types for value literals, in
+addition to the existing encodings for int and bool. The new value type encodings are below:
+
+===========  =========  ============================================================================
+Python type  Type code  Payload
+===========  =========  ============================================================================
+``float``    ``f``      One ``double value``.
+
+===========  =========  ============================================================================
 
 .. _qpy_version_13:
 

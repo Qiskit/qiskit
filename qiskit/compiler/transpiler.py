@@ -333,7 +333,7 @@ def transpile(  # pylint: disable=too-many-return-statements
     # Edge cases require using the old model (loose constraints) instead of building a target,
     # but we don't populate the passmanager config with loose constraints unless it's one of
     # the known edge cases to control the execution path.
-    # Filter instruction_durations, timing_constraints deprecation
+    # Filter instruction_durations and timing_constraints deprecation
     with warnings.catch_warnings():
         warnings.filterwarnings(
             "ignore",

@@ -44,21 +44,20 @@ class TestScheduledCircuit(QiskitTestCase):
         qc = QuantumCircuit(2)
         qc.delay(0.1, 0, unit="ms")  # 450000[dt]
         qc.delay(100, 0, unit="ns")  # 450[dt]
-        qc.h(0)  # duration: rz(0) + sx(195) + rz(0)
-        qc.h(1)  # duration: rz(0)+ sx(210) + rz(0)
+        qc.h(0)  # 195[dt]
+        qc.h(1)  # 210[dt]
 
-        sc = transpile(qc, self.backend_with_dt, scheduling_method="alap", layout_method="trivial")
-        target_durations = self.backend_with_dt.target.durations()
-        self.assertEqual(sc.duration, 450450 + target_durations.get("sx", 0))
+        backend = GenericBackendV2(2, seed=42)
+
+        sc = transpile(qc, backend, scheduling_method="alap", layout_method="trivial")
+        self.assertEqual(sc.duration, 451095)
         self.assertEqual(sc.unit, "dt")
         self.assertEqual(sc.data[0].operation.name, "delay")
-        self.assertEqual(sc.data[0].operation.duration, 450450)
+        self.assertEqual(sc.data[0].operation.duration, 450900)
         self.assertEqual(sc.data[0].operation.unit, "dt")
         self.assertEqual(sc.data[1].operation.name, "rz")
-        self.assertEqual(sc.data[1].operation.duration, 0)
-        self.assertEqual(sc.data[1].operation.unit, "dt")
         self.assertEqual(sc.data[4].operation.name, "delay")
-        self.assertEqual(sc.data[4].operation.duration, 450435)
+        self.assertEqual(sc.data[4].operation.duration, 450885)
         self.assertEqual(sc.data[4].operation.unit, "dt")
 
     def test_schedule_circuit_when_transpile_option_tells_dt(self):
@@ -66,36 +65,37 @@ class TestScheduledCircuit(QiskitTestCase):
         qc = QuantumCircuit(2)
         qc.delay(0.1, 0, unit="ms")  # 450000[dt]
         qc.delay(100, 0, unit="ns")  # 450[dt]
-        qc.h(0)  # duration: rz(0) + sx(195) + rz(0)
-        qc.h(1)  # duration: rz(0)+ sx(210) + rz(0)
-
+        qc.h(0)  # duration: rz(0) + sx(195[dt]) + rz(0)
+        qc.h(1)  # duration: rz(0)+ sx(210[dt]) + rz(0)
         sc = transpile(
             qc,
             self.backend_without_dt,
             scheduling_method="alap",
             dt=self.dt,
             layout_method="trivial",
+            seed_transpiler=20,
         )
         target_durations = self.backend_with_dt.target.durations()
-        self.assertEqual(sc.duration, 450450 + target_durations.get("sx", 0))
+        self.assertAlmostEqual(sc.duration, (450450 + target_durations.get("sx", 0)))
         self.assertEqual(sc.unit, "dt")
         self.assertEqual(sc.data[0].operation.name, "delay")
         self.assertEqual(sc.data[0].operation.duration, 450450)
         self.assertEqual(sc.data[0].operation.unit, "dt")
         self.assertEqual(sc.data[1].operation.name, "rz")
-        self.assertEqual(sc.data[1].operation.duration, 0)
-        self.assertEqual(sc.data[1].operation.unit, "dt")
         self.assertEqual(sc.data[4].operation.name, "delay")
-        self.assertEqual(sc.data[4].operation.duration, 450435)
+        self.assertEqual(
+            sc.data[4].operation.duration,
+            450450 + target_durations.get("sx", 0) - target_durations.get("sx", 1),
+        )
         self.assertEqual(sc.data[4].operation.unit, "dt")
 
     def test_schedule_circuit_in_sec_when_no_one_tells_dt(self):
         """dt is unknown and all delays and gate times are in SI"""
         qc = QuantumCircuit(2)
-        qc.delay(0.1, 0, unit="ms")
-        qc.delay(100, 0, unit="ns")
-        qc.h(0)  # duration: rz(0) + sx(195) + rz(0)
-        qc.h(1)  # duration: rz(0)+ sx(210) + rz(0)
+        qc.delay(0.1, 0, unit="ms")  # 450000[dt]
+        qc.delay(100, 0, unit="ns")  # 450[dt]
+        qc.h(0)  # duration: rz(0) + sx(195[dt]) + rz(0)
+        qc.h(1)  # duration: rz(0)+ sx(210[dt]) + rz(0)
         sc = transpile(
             qc, self.backend_without_dt, scheduling_method="alap", layout_method="trivial"
         )
@@ -106,8 +106,6 @@ class TestScheduledCircuit(QiskitTestCase):
         self.assertAlmostEqual(sc.data[0].operation.duration, 1.0e-4 + 1.0e-7)
         self.assertEqual(sc.data[0].operation.unit, "s")
         self.assertEqual(sc.data[1].operation.name, "rz")
-        self.assertAlmostEqual(sc.data[1].operation.duration, 160 * self.dt)
-        self.assertEqual(sc.data[1].operation.unit, "s")
         self.assertEqual(sc.data[4].operation.name, "delay")
         self.assertAlmostEqual(sc.data[4].operation.duration, 1.0e-4 + 1.0e-7)
         self.assertEqual(sc.data[4].operation.unit, "s")
@@ -115,10 +113,10 @@ class TestScheduledCircuit(QiskitTestCase):
     def test_cannot_schedule_circuit_with_mixed_SI_and_dt_when_no_one_tells_dt(self):
         """dt is unknown but delays and gate times have a mix of SI and dt"""
         qc = QuantumCircuit(2)
-        qc.delay(100, 0, unit="ns")
-        qc.delay(30, 0, unit="dt")
-        qc.h(0)
-        qc.h(1)
+        qc.delay(100, 0, unit="ns")  # 450[dt]
+        qc.delay(30, 0, unit="dt")  # 30[dt]
+        qc.h(0)  # duration: rz(0) + sx(195[dt]) + rz(0)
+        qc.h(1)  # duration: rz(0)+ sx(210[dt]) + rz(0)
         with self.assertRaises(QiskitError):
             transpile(qc, self.backend_without_dt, scheduling_method="alap")
 
@@ -168,6 +166,7 @@ class TestScheduledCircuit(QiskitTestCase):
                 scheduling_method="alap",
                 basis_gates=["h", "cx"],
                 instruction_durations=[("h", 0, 200), ("cx", [0, 1], 700)],
+                dt=1e-7,
             )
         self.assertEqual(scheduled.duration, 1200)
 
@@ -183,7 +182,10 @@ class TestScheduledCircuit(QiskitTestCase):
             DeprecationWarning, "argument ``instruction_durations`` is deprecated"
         ):
             scheduled = transpile(
-                qc, scheduling_method="alap", instruction_durations=[("bell", [0, 1], 1000)]
+                qc,
+                scheduling_method="alap",
+                instruction_durations=[("bell", [0, 1], 1000)],
+                dt=1e-2,
             )
         self.assertEqual(scheduled.duration, 1500)
 
@@ -235,6 +237,7 @@ class TestScheduledCircuit(QiskitTestCase):
                 basis_gates=["h", "cx", "delay"],
                 scheduling_method="alap",
                 instruction_durations=[("h", 0, 200), ("cx", None, 900)],
+                dt=1e-6,
             )
         self.assertEqual(scheduled.duration, 1400)
         with self.assertWarnsRegex(
@@ -247,6 +250,7 @@ class TestScheduledCircuit(QiskitTestCase):
                 basis_gates=["h", "cx", "delay"],
                 scheduling_method="alap",
                 instruction_durations=[("h", 0, 200), ("cx", None, 900), ("cx", [0, 1], 800)],
+                dt=1e-7,
             )
         self.assertEqual(scheduled.duration, 1300)
 
@@ -295,6 +299,7 @@ class TestScheduledCircuit(QiskitTestCase):
                 scheduling_method="alap",
                 basis_gates=["h", "cx"],
                 instruction_durations=[("h", None, 200), ("cx", [0, 1], 700)],
+                dt=1e-7,
             )
         self.assertEqual(sc.qubit_start_time(0), 300)
         self.assertEqual(sc.qubit_stop_time(0), 1200)
@@ -321,6 +326,7 @@ class TestScheduledCircuit(QiskitTestCase):
                     ("cx", [0, 1], 700),
                     ("measure", None, 1000),
                 ],
+                dt=1e-8,
             )
         q = sc.qubits
         self.assertEqual(sc.qubit_start_time(q[0]), 300)
@@ -472,6 +478,39 @@ class TestScheduledCircuit(QiskitTestCase):
         }
         self.assertEqual(duration, expected_val[unit])
 
+    @data("s", "dt", "f", "p", "n", "u", "µ", "m", "k", "M", "G", "T", "P")
+    def test_estimate_duration_with_dt_float(self, unit):
+        # This is not a valid use case, but it is still expressible currently
+        # since we don't disallow fractional dt values. This should not be assumed
+        # to be a part of an api contract. If there is a refactor and this test
+        # breaks remove the test it is not valid. This was only added to provide
+        # explicit test coverage for a rust code path.
+        backend = GenericBackendV2(num_qubits=3, seed=42)
+
+        circ = QuantumCircuit(3)
+        circ.cx(0, 1)
+        circ.measure_all()
+        circ.delay(1.23e15, 2, unit="dt")
+        circuit_dt = transpile(circ, backend, scheduling_method="asap")
+        duration = circuit_dt.estimate_duration(backend.target, unit=unit)
+        expected_in_sec = 273060.0000013993
+        expected_val = {
+            "s": expected_in_sec,
+            "dt": int(expected_in_sec / backend.target.dt),
+            "f": expected_in_sec / 1e-15,
+            "p": expected_in_sec / 1e-12,
+            "n": expected_in_sec / 1e-9,
+            "u": expected_in_sec / 1e-6,
+            "µ": expected_in_sec / 1e-6,
+            "m": expected_in_sec / 1e-3,
+            "k": expected_in_sec / 1e3,
+            "M": expected_in_sec / 1e6,
+            "G": expected_in_sec / 1e9,
+            "T": expected_in_sec / 1e12,
+            "P": expected_in_sec / 1e15,
+        }
+        self.assertEqual(duration, expected_val[unit])
+
     def test_estimate_duration_invalid_unit(self):
         backend = GenericBackendV2(num_qubits=3, seed=42)
 
@@ -565,7 +604,7 @@ class TestScheduledCircuit(QiskitTestCase):
         qc.cz(1, 2)
         sc = transpile(qc, backend=backend, scheduling_method=scheduling_method)
         cxs = [inst.operation for inst in sc.data if inst.operation.name == "cx"]
-        self.assertNotEqual(cxs[0].duration, cxs[1].duration)
+        self.assertEqual(cxs[0], cxs[1])
 
     # Tests for circuits with parameterized delays
     def test_can_transpile_circuits_after_assigning_parameters(self):
