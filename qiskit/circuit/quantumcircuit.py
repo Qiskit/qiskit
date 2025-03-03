@@ -3105,6 +3105,15 @@ class QuantumCircuit:
         # do not copy operations, this is done in the conversion with circuit_to_dag
         return dag_to_circuit(dag, copy_operations=False)
 
+    def _repr_png_(self):
+        if self.width() > 50 or self.size() > 50 or self.depth() > 25:
+            return None
+        import io
+
+        img_byte = io.BytesIO()
+        self.draw("mpl").savefig(img_byte, format="PNG")
+        return img_byte.getvalue()
+
     def draw(
         self,
         output: str | None = None,
