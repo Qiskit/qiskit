@@ -398,7 +398,7 @@ def _get_valid_justify_arg(justify):
 
 
 def _get_layered_instructions(
-    circuit, reverse_bits=False, justify=None, idle_wires=True, wire_order=None, wire_map=None
+    circuit, reverse_bits=False, justify=None, idle_wires="auto", wire_order=None, wire_map=None
 ):
     """
     Given a circuit, return a tuple (qubits, clbits, nodes) where
@@ -413,7 +413,7 @@ def _get_layered_instructions(
         justify (str) : `left`, `right` or `none`. Defaults to `left`. Says how
             the circuit should be justified. If an invalid value is provided,
             default `left` will be used.
-        idle_wires (bool): Include idle wires. Default is True.
+        idle_wires (bool or str): Include idle wires. Default is "auto".
         wire_order (list): A list of ints that modifies the order of the bits.
 
     Returns:
@@ -461,9 +461,15 @@ def _get_layered_instructions(
     else:
         nodes = _LayerSpooler(dag, qubits, clbits, justify, measure_map)
 
-    # Optionally remove all idle wires and instructions that are on them and
-    # on them only.
+    if isinstance(idle_wires, str):
+        if idle_wires == "auto":
+            idle_wires = hasattr(circuit, "_layout") and circuit._layout is None
+        else:
+            raise VisualizationError(f"Parameter idle_wires={idle_wires} unrecognized.")
+
     if not idle_wires:
+        # Optionally remove all idle wires and instructions that are on them and
+        # on them only.
         for wire in dag.idle_wires(ignore=["barrier", "delay"]):
             if wire in qubits:
                 qubits.remove(wire)

@@ -3280,7 +3280,7 @@ class TestTextWithLayout(QiskitTestCase):
     """The with_layout option"""
 
     def test_with_no_layout(self):
-        """A circuit without layout"""
+        """A circuit without layout and idle_wires=auto"""
         expected = "\n".join(
             [
                 "             ",
@@ -3296,12 +3296,12 @@ class TestTextWithLayout(QiskitTestCase):
         circuit = QuantumCircuit(qr)
         circuit.h(qr[1])
         self.assertEqual(
-            str(circuit_drawer(circuit, output="text", initial_state=True, idle_wires=True)),
+            str(circuit_drawer(circuit, output="text", initial_state=True, idle_wires="auto")),
             expected,
         )
 
-    def test_mixed_layout(self):
-        """With a mixed layout."""
+    def test_mixed_layout_idle_wires_true(self):
+        """With a mixed layout and idle_wires=True"""
         expected = "\n".join(
             [
                 "                  ┌───┐",
@@ -3333,8 +3333,37 @@ class TestTextWithLayout(QiskitTestCase):
             expected,
         )
 
-    def test_partial_layout(self):
-        """With a partial layout.
+    def test_mixed_layout_idle_wires_auto(self):
+        """With a mixed layout and idle_wires=False"""
+        expected = "\n".join(
+            [
+                "            ┌───┐",
+                "v_0 -> 0 |0>┤ H ├",
+                "            ├───┤",
+                "v_1 -> 3 |0>┤ H ├",
+                "            └───┘",
+            ]
+        )
+        qr = QuantumRegister(2, "v")
+        ancilla = QuantumRegister(2, "ancilla")
+        circuit = QuantumCircuit(qr, ancilla)
+        circuit.h(qr)
+
+        pass_ = ApplyLayout()
+        pass_.property_set["layout"] = Layout({qr[0]: 0, ancilla[1]: 1, ancilla[0]: 2, qr[1]: 3})
+        circuit_with_layout = pass_(circuit)
+
+        self.assertEqual(
+            str(
+                circuit_drawer(
+                    circuit_with_layout, output="text", initial_state=True, idle_wires="auto"
+                )
+            ),
+            expected,
+        )
+
+    def test_partial_layout_idle_true(self):
+        """With a partial layout and idle_wires=True.
         See: https://github.com/Qiskit/qiskit-terra/issues/4757"""
         expected = "\n".join(
             [
@@ -3362,6 +3391,34 @@ class TestTextWithLayout(QiskitTestCase):
 
         self.assertEqual(
             str(circuit_drawer(circuit, output="text", initial_state=True, idle_wires=True)),
+            expected,
+        )
+
+    def test_partial_layout_idle_auto(self):
+        """With a partial layout and idle_wires="auto"
+        See: https://github.com/Qiskit/qiskit-terra/issues/4757"""
+        expected = "\n".join(
+            [
+                "            ┌───┐",
+                "v_0 -> 0 |0>┤ H ├",
+                "            ├───┤",
+                "v_1 -> 3 |0>┤ H ├",
+                "            └───┘",
+            ]
+        )
+        qr = QuantumRegister(2, "v")
+        pqr = QuantumRegister(4, "physical")
+        circuit = QuantumCircuit(pqr)
+        circuit.h(0)
+        circuit.h(3)
+        circuit._layout = TranspileLayout(
+            Layout({0: qr[0], 1: None, 2: None, 3: qr[1]}),
+            {qubit: index for index, qubit in enumerate(circuit.qubits)},
+        )
+        circuit._layout.initial_layout.add_register(qr)
+
+        self.assertEqual(
+            str(circuit_drawer(circuit, output="text", initial_state=True, idle_wires="auto")),
             expected,
         )
 
