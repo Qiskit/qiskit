@@ -46,22 +46,23 @@ class BaseEstimatorV2(ABC):
     interface must define their own :meth:`.run` method, which is designed to
     take the following inputs:
 
-     * pubs: list of pubs (Primitive Unified Blocs). Each pub contains three values that, together,
-        define a computation unit of work for the estimator to complete:
+     * pubs: list of pubs (Primitive Unified Blocs). An estimator pub is a list
+        or tuple of two to four elements that define the unit of work for the
+        estimator. These are:
 
-            * a single :class:`~qiskit.circuit.QuantumCircuit`, possibly parametrized,
-            whose final state we define as :math:`\psi(\theta)`,
+        * A single :class:`~qiskit.circuit.QuantumCircuit`, possibly parametrized,
+        whose final state we define as :math:`\psi(\theta)`.
 
-            * one or more observables (specified as any :class:`~.ObservablesArrayLike`, including
-            :class:`~.Pauli`, :class:`~.SparsePauliOp`, ``str``) that specify which expectation
-            values to estimate, denoted :math:`H_j`, and
+        * One or more observables (specified as any :class:`~.ObservablesArrayLike`, including
+        :class:`~.Pauli`, :class:`~.SparsePauliOp`, ``str``) that specify which expectation
+        values to estimate, denoted :math:`H_j`.
 
-            * a collection parameter value sets to bind the circuit against, :math:`\theta_k`.
+        * A collection parameter value sets to bind the circuit against, :math:`\theta_k`
 
-            * Optionally, the estimation precision.
+        * Optionally, the estimation precision.
 
      * precision: the estimation precision. This specification is optional and will be overriden by
-            the pub-wise shots if provided.
+        the pub-wise shots if provided.
 
     All estimator implementations must implement default value for the ``precision`` in the
     :meth:`.run` method. This default value will be used any time ``precision=None`` is specified, which

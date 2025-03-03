@@ -39,9 +39,8 @@ class BaseSamplerV2(ABC):
     :class:`.BaseSamplerV2` interface must define their own :meth:`.run` method,
     which is designed to take the following inputs:
 
-     * pubs: list of pubs (Primitive Unified Blocs). Each pub contains values that, together,
-            define a computational unit of work for the sampler to complete. The values are
-            formatted as a tuple with:
+     * pubs: list of pubs (Primitive Unified Blocs). A sampler pub is a list or tuple
+        of two to three elements that define the unit of work for the sampler. These are:
 
             * A single :class:`~qiskit.circuit.QuantumCircuit`, possibly parameterized.
 
@@ -50,7 +49,7 @@ class BaseSamplerV2(ABC):
             * Optionally, the number of shots to sample.
 
      * shots: the number of shots to sample. This specification is optional and will be overriden by
-            the pub-wise shots if provided.
+        the pub-wise shots if provided.
 
     All sampler implementations must implement default value for the ``shots`` in the
     :meth:`.run` method. This default value will be used any time ``shots=None`` is specified, which
