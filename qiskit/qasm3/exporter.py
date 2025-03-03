@@ -1283,16 +1283,17 @@ class _ExprBuilder(expr.ExprVisitor[ast.Expression]):
         if node.type.kind is types.Float:
             return ast.FloatLiteral(node.value)
         if node.type.kind is types.Duration:
-            if isinstance(node.value, Duration.dt):
-                return ast.DurationLiteral(node.value[0], ast.DurationUnit.SAMPLE)
-            if isinstance(node.value, Duration.ns):
-                return ast.DurationLiteral(node.value[0], ast.DurationUnit.NANOSECOND)
-            if isinstance(node.value, Duration.us):
-                return ast.DurationLiteral(node.value[0], ast.DurationUnit.MICROSECOND)
-            if isinstance(node.value, Duration.ms):
-                return ast.DurationLiteral(node.value[0], ast.DurationUnit.MILLISECOND)
-            if isinstance(node.value, Duration.s):
-                return ast.DurationLiteral(node.value[0], ast.DurationUnit.SECOND)
+            unit = node.value.unit()
+            if unit == "dt":
+                return ast.DurationLiteral(node.value.value(), ast.DurationUnit.SAMPLE)
+            if unit == "ns":
+                return ast.DurationLiteral(node.value.value(), ast.DurationUnit.NANOSECOND)
+            if unit == "us":
+                return ast.DurationLiteral(node.value.value(), ast.DurationUnit.MICROSECOND)
+            if unit == "ms":
+                return ast.DurationLiteral(node.value.value(), ast.DurationUnit.MILLISECOND)
+            if unit == "s":
+                return ast.DurationLiteral(node.value.value(), ast.DurationUnit.SECOND)
         raise RuntimeError(f"unhandled Value type '{node}'")
 
     def visit_cast(self, node, /):

@@ -11,10 +11,8 @@
 // that they have been altered from the originals.
 
 use pyo3::prelude::*;
+use pyo3::IntoPyObjectExt;
 
-#[pyclass(eq, module = "qiskit._accelerate.circuit")]
-#[derive(PartialEq, Clone, Copy, Debug)]
-#[allow(non_camel_case_types)]
 /// A length of time used to express circuit timing.
 ///
 /// It defines a group of classes which are all subclasses of itself (functionally, an
@@ -30,21 +28,52 @@ use pyo3::prelude::*;
 ///      case _:
 ///          raise ValueError("expected dt or seconds")
 ///
-/// And in Python 3.9, you can use ``isinstance`` to determine which variant
+/// And in Python 3.9, you can use :meth:`Duration.unit` to determine which variant
 /// is populated::
 ///
-///   if isinstance(duration, Duration.dt):
-///       return duration[0]
-///   elif isinstance(duration, Duration.s):
-///       return duration[0] / 5e-7
+///   if duration.unit() == "dt":
+///       return duration.value()
+///   elif duration.unit() == "s":
+///       return duration.value() / 5e-7
 ///   else:
 ///       raise ValueError("expected dt or seconds")
+#[pyclass(eq, module = "qiskit._accelerate.circuit")]
+#[derive(PartialEq, Clone, Copy, Debug)]
+#[allow(non_camel_case_types)]
 pub enum Duration {
-    dt(u64),
+    dt(i64),
     ns(f64),
     us(f64),
     ms(f64),
     s(f64),
+}
+
+#[pymethods]
+impl Duration {
+    /// The corresponding ``unit`` of the duration.
+    fn unit(&self) -> &'static str {
+        match self {
+            Duration::dt(_) => "dt",
+            Duration::us(_) => "us",
+            Duration::ns(_) => "ns",
+            Duration::ms(_) => "ms",
+            Duration::s(_) => "s",
+        }
+    }
+
+    /// The ``value`` of the duration.
+    ///
+    /// This will be a Python ``int`` if the :meth:`~Duration.unit` is ``"dt"``,
+    /// else a ``float``.
+    #[pyo3(name = "value")]
+    fn py_value(&self, py: Python) -> PyResult<PyObject> {
+        match self {
+            Duration::dt(v) => v.into_py_any(py),
+            Duration::us(v) | Duration::ns(v) | Duration::ms(v) | Duration::s(v) => {
+                v.into_py_any(py)
+            }
+        }
+    }
 }
 
 impl Duration {
