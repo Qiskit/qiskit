@@ -32,7 +32,7 @@ from qiskit.circuit import (
 )
 from qiskit.circuit.annotated_operation import AnnotatedOperation, InverseModifier, PowerModifier
 from qiskit.circuit.controlflow import condition_resources
-from qiskit.circuit.library import PauliEvolutionGate
+from qiskit.circuit.library import PauliEvolutionGate, PhaseOracleGate, BitFlipOracleGate
 from qiskit.circuit.tools import pi_check
 from qiskit.converters import circuit_to_dag
 from qiskit.utils import optionals as _optionals
@@ -41,14 +41,10 @@ from ..exceptions import VisualizationError
 
 
 def _is_boolean_expression(gate_text, op):
-    if not _optionals.HAS_TWEEDLEDUM:
-        return False
-    from qiskit.circuit.classicalfunction import BooleanExpression
-
-    return isinstance(op, BooleanExpression) and gate_text == op.name
+    return isinstance(op, (PhaseOracleGate, BitFlipOracleGate)) and gate_text == op.label
 
 
-def get_gate_ctrl_text(op, drawer, style=None, calibrations=None):
+def get_gate_ctrl_text(op, drawer, style=None):
     """Load the gate_text and ctrl_text strings based on names and labels"""
     anno_list = []
     anno_text = ""
@@ -122,13 +118,6 @@ def get_gate_ctrl_text(op, drawer, style=None, calibrations=None):
         or (gate_text == base_name and base_type not in (Gate, Instruction))
     ) and (op_type is not PauliEvolutionGate):
         gate_text = gate_text.capitalize()
-
-    if drawer == "mpl" and op.name in calibrations:
-        if isinstance(op, ControlledGate):
-            ctrl_text = "" if ctrl_text is None else ctrl_text
-            ctrl_text = "(cal)\n" + ctrl_text
-        else:
-            gate_text = gate_text + "\n(cal)"
 
     if anno_text:
         gate_text += " - " + anno_text

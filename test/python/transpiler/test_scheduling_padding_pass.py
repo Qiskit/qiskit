@@ -18,7 +18,6 @@ from ddt import ddt, data
 from qiskit import QuantumCircuit
 from qiskit.circuit import Measure
 from qiskit.circuit.library import CXGate, HGate
-from qiskit.pulse import Schedule, Play, Constant, DriveChannel
 from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.passes import (
     ASAPScheduleAnalysis,
@@ -294,34 +293,6 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
         asap_expected.measure(1, 1)
 
         self.assertEqual(qc_asap, asap_expected)
-
-    def test_scheduling_with_calibration(self):
-        """Test if calibrated instruction can update node duration."""
-        qc = QuantumCircuit(2)
-        qc.x(0)
-        qc.cx(0, 1)
-        qc.x(1)
-        qc.cx(0, 1)
-
-        with self.assertWarns(DeprecationWarning):
-            xsched = Schedule(Play(Constant(300, 0.1), DriveChannel(0)))
-            qc.add_calibration("x", (0,), xsched)
-
-        durations = InstructionDurations([("x", None, 160), ("cx", None, 600)], dt=1e-7)
-        pm = PassManager([ASAPScheduleAnalysis(durations), PadDelay(durations=durations)])
-        scheduled = pm.run(qc)
-
-        expected = QuantumCircuit(2)
-        expected.x(0)
-        expected.delay(300, 1)
-        expected.cx(0, 1)
-        expected.x(1)
-        expected.delay(160, 0)
-        expected.cx(0, 1)
-        with self.assertWarns(DeprecationWarning):
-            expected.add_calibration("x", (0,), xsched)
-
-        self.assertEqual(expected, scheduled)
 
     def test_padding_not_working_without_scheduling(self):
         """Test padding fails when un-scheduled DAG is input."""
