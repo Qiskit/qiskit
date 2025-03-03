@@ -1833,7 +1833,7 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
             # For simplicity, we wrap the instruction into a circuit. Note that
             # this should not deteriorate the quality of the result.
             if synthesized_base_op_result is None:
-                synthesized_base_op = _instruction_to_circuit(operation.base_op)
+                synthesized_base_op = self._instruction_to_circuit(operation.base_op)
             else:
                 synthesized_base_op = QuantumCircuit._from_circuit_data(
                     synthesized_base_op_result[0]
@@ -1842,7 +1842,7 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
 
             # This step currently does not introduce ancilla qubits. However it makes
             # a lot of sense to allow this in the future.
-            synthesized = _apply_annotations(synthesized_base_op, operation.modifiers)
+            synthesized = self._apply_annotations(synthesized_base_op, operation.modifiers)
 
             if not isinstance(synthesized, QuantumCircuit):
                 raise TranspilerError(
@@ -1853,74 +1853,74 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
 
         return None
 
+    @staticmethod
+    def _apply_annotations(circuit: QuantumCircuit, modifiers: list[Modifier]) -> QuantumCircuit:
+        """
+        Applies modifiers to a quantum circuit.
+        """
 
-def _apply_annotations(circuit: QuantumCircuit, modifiers: list[Modifier]) -> QuantumCircuit:
-    """
-    Applies modifiers to a quantum circuit.
-    """
+        if not isinstance(circuit, QuantumCircuit):
+            raise TranspilerError("HighLevelSynthesis: incorrect input to 'apply_annotations'.")
 
-    if not isinstance(circuit, QuantumCircuit):
-        raise TranspilerError("HighLevelSynthesis: incorrect input to 'apply_annotations'.")
+        for modifier in modifiers:
+            if isinstance(modifier, InverseModifier):
+                circuit = circuit.inverse()
 
-    for modifier in modifiers:
-        if isinstance(modifier, InverseModifier):
-            circuit = circuit.inverse()
+            elif isinstance(modifier, ControlModifier):
+                if circuit.num_clbits > 0:
+                    raise TranspilerError(
+                        "HighLevelSynthesis: cannot control a circuit with classical bits."
+                    )
 
-        elif isinstance(modifier, ControlModifier):
-            if circuit.num_clbits > 0:
-                raise TranspilerError(
-                    "HighLevelSynthesis: cannot control a circuit with classical bits."
-                )
+                # Apply the control modifier to each gate in the circuit.
+                controlled_circuit = QuantumCircuit(modifier.num_ctrl_qubits + circuit.num_qubits)
+                if circuit.global_phase != 0:
+                    controlled_op = GlobalPhaseGate(circuit.global_phase).control(
+                        num_ctrl_qubits=modifier.num_ctrl_qubits,
+                        label=None,
+                        ctrl_state=modifier.ctrl_state,
+                        annotated=False,
+                    )
+                    controlled_qubits = list(range(0, modifier.num_ctrl_qubits))
+                    controlled_circuit.append(controlled_op, controlled_qubits)
+                for inst in circuit:
+                    inst_op = inst.operation
+                    inst_qubits = inst.qubits
+                    controlled_op = inst_op.control(
+                        num_ctrl_qubits=modifier.num_ctrl_qubits,
+                        label=None,
+                        ctrl_state=modifier.ctrl_state,
+                        annotated=False,
+                    )
+                    controlled_qubits = list(range(0, modifier.num_ctrl_qubits)) + [
+                        modifier.num_ctrl_qubits + circuit.find_bit(q).index for q in inst_qubits
+                    ]
+                    controlled_circuit.append(controlled_op, controlled_qubits)
 
-            # Apply the control modifier to each gate in the circuit.
-            controlled_circuit = QuantumCircuit(modifier.num_ctrl_qubits + circuit.num_qubits)
-            if circuit.global_phase != 0:
-                controlled_op = GlobalPhaseGate(circuit.global_phase).control(
-                    num_ctrl_qubits=modifier.num_ctrl_qubits,
-                    label=None,
-                    ctrl_state=modifier.ctrl_state,
-                    annotated=False,
-                )
-                controlled_qubits = list(range(0, modifier.num_ctrl_qubits))
-                controlled_circuit.append(controlled_op, controlled_qubits)
-            for inst in circuit:
-                inst_op = inst.operation
-                inst_qubits = inst.qubits
-                controlled_op = inst_op.control(
-                    num_ctrl_qubits=modifier.num_ctrl_qubits,
-                    label=None,
-                    ctrl_state=modifier.ctrl_state,
-                    annotated=False,
-                )
-                controlled_qubits = list(range(0, modifier.num_ctrl_qubits)) + [
-                    modifier.num_ctrl_qubits + circuit.find_bit(q).index for q in inst_qubits
-                ]
-                controlled_circuit.append(controlled_op, controlled_qubits)
+                circuit = controlled_circuit
 
-            circuit = controlled_circuit
+                if isinstance(circuit, AnnotatedOperation):
+                    raise TranspilerError(
+                        "HighLevelSynthesis: failed to synthesize the control modifier."
+                    )
 
-            if isinstance(circuit, AnnotatedOperation):
-                raise TranspilerError(
-                    "HighLevelSynthesis: failed to synthesize the control modifier."
-                )
+            elif isinstance(modifier, PowerModifier):
+                circuit = circuit.power(modifier.power)
 
-        elif isinstance(modifier, PowerModifier):
-            circuit = circuit.power(modifier.power)
+            else:
+                raise TranspilerError(f"HighLevelSynthesis: Unknown modifier {modifier}.")
 
-        else:
-            raise TranspilerError(f"HighLevelSynthesis: Unknown modifier {modifier}.")
+        if not isinstance(circuit, QuantumCircuit):
+            raise TranspilerError("HighLevelSynthesis: incorrect output of 'apply_annotations'.")
 
-    if not isinstance(circuit, QuantumCircuit):
-        raise TranspilerError("HighLevelSynthesis: incorrect output of 'apply_annotations'.")
+        return circuit
 
-    return circuit
-
-
-def _instruction_to_circuit(op: Operation) -> QuantumCircuit:
-    """Wraps a single operation into a quantum circuit."""
-    circuit = QuantumCircuit(op.num_qubits, op.num_clbits)
-    circuit.append(op, circuit.qubits, circuit.clbits)
-    return circuit
+    @staticmethod
+    def _instruction_to_circuit(op: Operation) -> QuantumCircuit:
+        """Wraps a single operation into a quantum circuit."""
+        circuit = QuantumCircuit(op.num_qubits, op.num_clbits)
+        circuit.append(op, circuit.qubits, circuit.clbits)
+        return circuit
 
 
 class WeightedSumSynthesisDefault(HighLevelSynthesisPlugin):

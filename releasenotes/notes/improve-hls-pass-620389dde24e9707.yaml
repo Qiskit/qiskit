@@ -2,5 +2,5 @@
 features_transpiler:
   - |
     The :class:`.HighLevelSynthesis` transpiler pass now synthesizes
-    objects of type :class:`~.AnnotatedOperation` objects via the
+    objects of type :class:`~.AnnotatedOperation` via the
     plugin interface.

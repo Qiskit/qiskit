@@ -359,7 +359,7 @@ def _synthesize_op_using_plugins(
         # qubits over which the operation is defined, high-level-synthesis data and options,
         # and the tracker that tracks the state for global qubits.
         #
-        # Note: the difference between the argument "qubits" passed explicitely to "run"
+        # Note: the difference between the argument "qubits" passed explicitly to "run"
         # and "input_qubits" passed via "plugin_args" is that for backwards compatibility
         # the former should be None if the synthesis is done before layout/routing.
         # However, plugins may need access to the global qubits over which the operation
