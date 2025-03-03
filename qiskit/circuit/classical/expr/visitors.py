@@ -363,7 +363,4 @@ def is_lvalue(node: expr.Expr, /) -> bool:
             >>> expr.is_lvalue(expr.bit_and(a, b))
             False
     """
-    if node.const:
-        # A constant expression is _never_ an lvalue.
-        return False
     return node.accept(_IS_LVALUE)

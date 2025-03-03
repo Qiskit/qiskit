@@ -427,7 +427,7 @@ The classical expression's type system now supports new encoding types for value
 addition to the existing encodings for int and bool. The new value type encodings are below:
 
 ===========================  =========  ============================================================
-Python type / class          Type code  Payload
+Python type                  Type code  Payload
 ===========================  =========  ============================================================
 ``float``                    ``f``      One ``double value``.
 
