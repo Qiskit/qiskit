@@ -171,9 +171,7 @@ class TestCircuitDrawer(QiskitTestCase):
                 "                                  ",
             ]
         )
-        result = visualization.circuit_drawer(
-            circuit, output="text", idle_wires=True, wire_order=[2, 3, 0, 1]
-        )
+        result = visualization.circuit_drawer(circuit, output="text", wire_order=[2, 3, 0, 1])
         self.assertEqual(result.__str__(), expected)
 
     def test_wire_order_cregbundle(self):
@@ -207,7 +205,7 @@ class TestCircuitDrawer(QiskitTestCase):
             ]
         )
         result = visualization.circuit_drawer(
-            circuit, output="text", wire_order=[2, 3, 0, 1], cregbundle=True, idle_wires=True
+            circuit, output="text", wire_order=[2, 3, 0, 1], cregbundle=True
         )
         self.assertEqual(result.__str__(), expected)
 
@@ -242,9 +240,7 @@ class TestCircuitDrawer(QiskitTestCase):
                 "          ",
             ]
         )
-        result = visualization.circuit_drawer(
-            circuit, output="text", reverse_bits=True, idle_wires=True
-        )
+        result = visualization.circuit_drawer(circuit, output="text", reverse_bits=True)
         self.assertEqual(result.__str__(), expected)
 
     def test_warning_for_bad_justify_argument(self):
@@ -286,7 +282,7 @@ class TestCircuitDrawer(QiskitTestCase):
                 "               ",
             ]
         )
-        result = circuit.draw("text", idle_wires=True)
+        result = circuit.draw("text")
         self.assertEqual(result.__str__(), expected)
         # Extra tests that no cregbundle (or any other) warning is raised with the default settings
         # for the other drawers, if they're available to test.

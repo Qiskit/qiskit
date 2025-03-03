@@ -52,7 +52,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         """Test draw an empty circuit"""
         filename = self._get_resource_path("test_latex_empty.tex")
         circuit = QuantumCircuit(1)
-        circuit_drawer(circuit, filename=filename, output="latex_source", idle_wires=True)
+        circuit_drawer(circuit, filename=filename, output="latex_source")
 
         self.assertEqualToReference(filename)
 
@@ -75,12 +75,8 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         c_reg1 = ClassicalRegister(1, "c1_re_g__g")
         c_reg3 = ClassicalRegister(3, "c3_re_g__g")
         circuit = QuantumCircuit(q_reg1, q_reg3, c_reg1, c_reg3)
-        circuit_drawer(
-            circuit, cregbundle=True, filename=filename1, output="latex_source", idle_wires=True
-        )
-        circuit_drawer(
-            circuit, cregbundle=False, filename=filename2, output="latex_source", idle_wires=True
-        )
+        circuit_drawer(circuit, cregbundle=True, filename=filename1, output="latex_source")
+        circuit_drawer(circuit, cregbundle=False, filename=filename2, output="latex_source")
         self.assertEqualToReference(filename1)
         self.assertEqualToReference(filename2)
 
@@ -133,7 +129,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         See https://github.com/Qiskit/qiskit-terra/issues/5393"""
         filename = self._get_resource_path("test_latex_no_ops.tex")
         circuit = QuantumCircuit(2, 3)
-        circuit_drawer(circuit, filename=filename, output="latex_source", idle_wires=True)
+        circuit_drawer(circuit, filename=filename, output="latex_source")
 
         self.assertEqualToReference(filename)
 
@@ -154,7 +150,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         circuit.h(qr)
         circuit.h(qr)
 
-        circuit_drawer(circuit, filename=filename, idle_wires=True, output="latex_source")
+        circuit_drawer(circuit, filename=filename, output="latex_source")
 
         self.assertEqualToReference(filename)
 
@@ -172,7 +168,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         circuit.barrier(0)
         circuit.h(q[0])
 
-        circuit_drawer(circuit, filename=filename, output="latex_source", idle_wires=True)
+        circuit_drawer(circuit, filename=filename, output="latex_source")
 
         self.assertEqualToReference(filename)
 
@@ -195,14 +191,10 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         circuit.h(q[1])
 
         # check the barriers plot properly when plot_barriers= True
-        circuit_drawer(
-            circuit, filename=filename1, output="latex_source", plot_barriers=True, idle_wires=True
-        )
+        circuit_drawer(circuit, filename=filename1, output="latex_source", plot_barriers=True)
 
         self.assertEqualToReference(filename1)
-        circuit_drawer(
-            circuit, filename=filename2, output="latex_source", plot_barriers=False, idle_wires=True
-        )
+        circuit_drawer(circuit, filename=filename2, output="latex_source", plot_barriers=False)
 
         self.assertEqualToReference(filename2)
 
@@ -216,7 +208,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         circuit.h(q1[0])
         circuit.h(q1[1])
 
-        circuit_drawer(circuit, filename=filename, idle_wires=True, output="latex_source")
+        circuit_drawer(circuit, filename=filename, output="latex_source")
 
         self.assertEqualToReference(filename)
 
@@ -334,12 +326,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         circuit.x(1)
 
         circuit_drawer(
-            circuit,
-            filename=filename1,
-            output="latex_source",
-            cregbundle=True,
-            initial_state=True,
-            idle_wires=True,
+            circuit, filename=filename1, output="latex_source", cregbundle=True, initial_state=True
         )
 
         self.assertEqualToReference(filename1)
@@ -349,7 +336,6 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
             output="latex_source",
             cregbundle=False,
             initial_state=False,
-            idle_wires=True,
         )
 
         self.assertEqualToReference(filename2)
@@ -529,7 +515,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         cr = ClassicalRegister(4, "cr")
         circuit = QuantumCircuit(qr, cr)
         circuit.append(inst, [qr[1], qr[2]], [cr[2], cr[1]])
-        circuit_drawer(circuit, filename=filename, output="latex_source", idle_wires=True)
+        circuit_drawer(circuit, filename=filename, output="latex_source")
 
         self.assertEqualToReference(filename)
 
@@ -540,7 +526,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         qry = QuantumRegister(1, "qry")
         crx = ClassicalRegister(2, "crx")
         circuit = QuantumCircuit(qrx, [Qubit(), Qubit()], qry, [Clbit(), Clbit()], crx)
-        circuit_drawer(circuit, filename=filename, output="latex_source", idle_wires=True)
+        circuit_drawer(circuit, filename=filename, output="latex_source")
 
         self.assertEqualToReference(filename)
 
