@@ -783,6 +783,17 @@ class TestExprConstructors(QiskitTestCase):
         )
         self.assertTrue(expr.mul(2.0, Duration.ms(1000)).const)
 
+        self.assertEqual(
+            expr.mul(2, Duration.ms(1000)),
+            expr.Binary(
+                expr.Binary.Op.MUL,
+                expr.Value(2, types.Uint(2)),
+                expr.Value(Duration.ms(1000), types.Duration()),
+                types.Duration(),
+            ),
+        )
+        self.assertTrue(expr.mul(2, Duration.ms(1000)).const)
+
     def test_mul_forbidden(self):
         with self.assertRaisesRegex(TypeError, "invalid types"):
             expr.mul(Clbit(), ClassicalRegister(3, "c"))
@@ -902,6 +913,10 @@ class TestExprConstructors(QiskitTestCase):
             expr.div(255.0, 1)
         with self.assertRaisesRegex(TypeError, "invalid types"):
             expr.div(255.0, Duration.dt(1000))
+
+        # We only allow Duration division by a Float for now.
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            expr.div(Duration.dt(1000), 2)
 
         # Divide timing expressions by non-const floats:
         non_const_float = expr.Var.new("a", types.Float())
