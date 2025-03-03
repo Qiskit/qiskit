@@ -634,33 +634,33 @@ pub unsafe extern "C" fn qk_obs_add(
 /// @ingroup QkObs
 /// Compose (multiply) two observables.
 ///
-/// @param right One observable.
-/// @param left The other observable.
+/// @param first One observable.
+/// @param second The other observable.
 ///
-/// @return ``right.compose(left)`` which equals the observable ``result = left @ right``,
+/// @return ``first.compose(second)`` which equals the observable ``result = second @ first``,
 ///     in terms of the matrix multiplication ``@``.
 ///
 /// # Example
 ///
-///     QkObs *left = qk_obs_identity(100);
-///     QkObs *right = qk_obs_zero(100);
-///     QkObs *result = qk_obs_compose(right, left);
+///     QkObs *first = qk_obs_zero(100);
+///     QkObs *second = qk_obs_identity(100);
+///     QkObs *result = qk_obs_compose(first, second);
 ///
 /// # Safety
 ///
-/// Behavior is undefined if ``left`` or ``right`` are not valid, non-null pointers to
+/// Behavior is undefined if ``first`` or ``second`` are not valid, non-null pointers to
 /// ``QkObs``\ s.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_obs_compose(
-    right: *const SparseObservable,
-    left: *const SparseObservable,
+    first: *const SparseObservable,
+    second: *const SparseObservable,
 ) -> *mut SparseObservable {
     // SAFETY: Per documentation, the pointers are non-null and aligned.
-    let right = unsafe { const_ptr_as_ref(right) };
-    let left = unsafe { const_ptr_as_ref(left) };
+    let first = unsafe { const_ptr_as_ref(first) };
+    let second = unsafe { const_ptr_as_ref(second) };
 
-    let result = right.compose(left);
+    let result = first.compose(second);
     Box::into_raw(Box::new(result))
 }
 
@@ -669,43 +669,55 @@ pub unsafe extern "C" fn qk_obs_compose(
 ///
 /// Notably, this allows composing two observables of different size.
 ///
-/// @param right One observable.
-/// @param left The other observable. The number of qubits must match the length of ``qargs``.
-/// @param qargs The qubit arguments specified which indices in ``right`` to associate with
-///     the ones in ``left``.
+/// @param first One observable.
+/// @param second The other observable. The number of qubits must match the length of ``qargs``.
+/// @param qargs The qubit arguments specified which indices in ``first`` to associate with
+///     the ones in ``second``.
 ///
-/// @return ``right.compose(left)`` which equals the observable ``result = left @ right``,
+/// @return ``first.compose(second)`` which equals the observable ``result = second @ first``,
 ///     in terms of the matrix multiplication ``@``.
 ///
 /// # Example
 ///
-///     QkObs *left = qk_obs_identity(100);
-///     QkObs *right = qk_obs_zero(100);
-///     QkObs *result = qk_obs_compose(right, left);
+///     QkObs *first = qk_obs_zero(100);
+///     QkObs *second = qk_obs_identity(100);
+///     QkObs *result = qk_obs_compose(first, second);
 ///
 /// # Safety
 ///
 /// To call this function safely
 ///
-///   * ``left`` or ``right`` must be valid, non-null pointers to ``QkObs``\ s
-///   * ``qargs`` must point to an array of ``uint32_t``, readable for ``qk_obs_num_qubits(left)``
-///     elements (meaning the number of qubits in ``left``)
+///   * ``first`` and ``second`` must be valid, non-null pointers to ``QkObs``\ s
+///   * ``qargs`` must point to an array of ``uint32_t``, readable for ``qk_obs_num_qubits(second)``
+///     elements (meaning the number of qubits in ``second``)
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_obs_compose_map(
-    right: *const SparseObservable,
-    left: *const SparseObservable,
+    first: *const SparseObservable,
+    second: *const SparseObservable,
     qargs: *const u32,
 ) -> *mut SparseObservable {
     // SAFETY: Per documentation, the pointers are non-null and aligned.
-    let right = unsafe { const_ptr_as_ref(right) };
-    let left = unsafe { const_ptr_as_ref(left) };
+    let first = unsafe { const_ptr_as_ref(first) };
+    let second = unsafe { const_ptr_as_ref(second) };
 
-    // SAFETY: Per documentation, qargs is safe to read up to ``left.num_qubits()`` elements,
-    // which is the maximal value of ``index`` here.
-    let qargs_map = |index: u32| unsafe { *qargs.add(index as usize) };
+    let qargs = if qargs.is_null() {
+        if second.num_qubits() != 0 {
+            panic!("If qargs is null, then second must have 0 qubits.");
+        }
+        &[]
+    } else {
+        if !qargs.is_aligned() {
+            panic!("qargs pointer is not aligned to u32");
+        }
+        // SAFETY: Per documentation, qargs is safe to read up to ``second.num_qubits()`` elements,
+        // which is the maximal value of ``index`` here.
+        unsafe { ::std::slice::from_raw_parts(qargs, second.num_qubits() as usize) }
+    };
 
-    let result = right.compose_map(left, qargs_map);
+    let qargs_map = |index: u32| qargs[index as usize];
+
+    let result = first.compose_map(second, qargs_map);
     Box::into_raw(Box::new(result))
 }
 

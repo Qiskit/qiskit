@@ -80,21 +80,21 @@ int test_add() {
 int test_compose() {
     u_int32_t num_qubits = 100;
 
-    QkObs *right = qk_obs_zero(num_qubits);
+    QkObs *op1 = qk_obs_zero(num_qubits);
     complex double coeff = 1;
-    QkBitTerm right_bits[3] = {QkBitTerm_X, QkBitTerm_Y, QkBitTerm_Z};
-    uint32_t right_indices[3] = {0, 1, 2};
-    QkObsTerm right_term = {coeff, 3, right_bits, right_indices, num_qubits};
-    qk_obs_add_term(right, &right_term);
+    QkBitTerm op1_bits[3] = {QkBitTerm_X, QkBitTerm_Y, QkBitTerm_Z};
+    uint32_t op1_indices[3] = {0, 1, 2};
+    QkObsTerm term1 = {coeff, 3, op1_bits, op1_indices, num_qubits};
+    qk_obs_add_term(op1, &term1);
 
-    QkObs *left = qk_obs_zero(num_qubits);
+    QkObs *op2 = qk_obs_zero(num_qubits);
     coeff = 2;
-    QkBitTerm left_bits[3] = {QkBitTerm_Plus, QkBitTerm_X, QkBitTerm_Z};
-    uint32_t left_indices[3] = {0, 1, 3};
-    QkObsTerm left_term = {coeff, 3, left_bits, left_indices, num_qubits};
-    qk_obs_add_term(left, &left_term);
+    QkBitTerm op2_bits[3] = {QkBitTerm_Plus, QkBitTerm_X, QkBitTerm_Z};
+    uint32_t op2_indices[3] = {0, 1, 3};
+    QkObsTerm term2 = {coeff, 3, op2_bits, op2_indices, num_qubits};
+    qk_obs_add_term(op2, &term2);
 
-    QkObs *result = qk_obs_compose(right, left);
+    QkObs *result = qk_obs_compose(op1, op2);
 
     QkObs *expected = qk_obs_zero(num_qubits);
     coeff = 2 * I;
@@ -105,8 +105,8 @@ int test_compose() {
 
     bool is_equal = qk_obs_equal(expected, result);
 
-    qk_obs_free(left);
-    qk_obs_free(right);
+    qk_obs_free(op1);
+    qk_obs_free(op2);
     qk_obs_free(result);
     qk_obs_free(expected);
 
@@ -122,23 +122,23 @@ int test_compose() {
 int test_compose_map() {
     u_int32_t num_qubits = 100;
 
-    QkObs *right = qk_obs_zero(num_qubits);
+    QkObs *op1 = qk_obs_zero(num_qubits);
     complex double coeff = 1;
-    QkBitTerm right_bits[3] = {QkBitTerm_X, QkBitTerm_Y, QkBitTerm_Z};
-    uint32_t right_indices[3] = {97, 98, 99};
-    QkObsTerm right_term = {coeff, 3, right_bits, right_indices, num_qubits};
-    qk_obs_add_term(right, &right_term);
+    QkBitTerm op1_bits[3] = {QkBitTerm_X, QkBitTerm_Y, QkBitTerm_Z};
+    uint32_t op1_indices[3] = {97, 98, 99};
+    QkObsTerm term1 = {coeff, 3, op1_bits, op1_indices, num_qubits};
+    qk_obs_add_term(op1, &term1);
 
-    QkObs *left = qk_obs_zero(2);
+    QkObs *op2 = qk_obs_zero(2);
     coeff = 2;
-    QkBitTerm left_bits[3] = {QkBitTerm_Right, QkBitTerm_X};
-    uint32_t left_indices[3] = {0, 1};
-    QkObsTerm left_term = {coeff, 2, left_bits, left_indices, 2};
-    qk_obs_add_term(left, &left_term);
+    QkBitTerm op2_bits[3] = {QkBitTerm_Right, QkBitTerm_X};
+    uint32_t op2_indices[3] = {0, 1};
+    QkObsTerm term2 = {coeff, 2, op2_bits, op2_indices, 2};
+    qk_obs_add_term(op2, &term2);
 
-    uint32_t qargs[2] = {98, 97}; // compose left onto these indices in right
+    uint32_t qargs[2] = {98, 97}; // compose op2 onto these indices in op1
 
-    QkObs *result = qk_obs_compose_map(right, left, qargs);
+    QkObs *result = qk_obs_compose_map(op1, op2, qargs);
 
     QkObs *expected = qk_obs_zero(num_qubits);
     QkBitTerm expected_bits[2] = {QkBitTerm_Right, QkBitTerm_Z};
@@ -148,8 +148,44 @@ int test_compose_map() {
 
     bool is_equal = qk_obs_equal(expected, result);
 
-    qk_obs_free(left);
-    qk_obs_free(right);
+    qk_obs_free(op1);
+    qk_obs_free(op2);
+    qk_obs_free(result);
+    qk_obs_free(expected);
+
+    if (!is_equal) {
+        return EqualityError;
+    }
+    return Ok;
+}
+
+/**
+ * Test composing an observables with a scalar observable.
+ */
+int test_compose_scalar() {
+    u_int32_t num_qubits = 100;
+
+    QkObs *op = qk_obs_zero(num_qubits);
+    complex double coeff = 1;
+    QkBitTerm bits[3] = {QkBitTerm_X, QkBitTerm_Y, QkBitTerm_Z};
+    uint32_t indices[3] = {97, 98, 99};
+    QkObsTerm term = {coeff, 3, bits, indices, num_qubits};
+    qk_obs_add_term(op, &term);
+
+    QkObs *scalar = qk_obs_identity(0);
+    coeff = 2;
+    QkObs *mult = qk_obs_multiply(scalar, &coeff);
+    uint32_t qargs[0];
+
+    QkObs *result = qk_obs_compose_map(op, mult, qargs);
+
+    QkObs *expected = qk_obs_multiply(op, &coeff);
+
+    bool is_equal = qk_obs_equal(expected, result);
+
+    qk_obs_free(op);
+    qk_obs_free(scalar);
+    qk_obs_free(mult);
     qk_obs_free(result);
     qk_obs_free(expected);
 
@@ -691,6 +727,7 @@ int test_sparse_observable() {
     num_failed += RUN_TEST(test_add);
     num_failed += RUN_TEST(test_compose);
     num_failed += RUN_TEST(test_compose_map);
+    num_failed += RUN_TEST(test_compose_scalar);
     num_failed += RUN_TEST(test_mult);
     num_failed += RUN_TEST(test_canonicalize);
     num_failed += RUN_TEST(test_copy);
