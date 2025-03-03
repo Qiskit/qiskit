@@ -220,44 +220,54 @@ struct HighLevelSynthesisData {
     // The high-level-synthesis config that specifies the synthesis methods
     // to use for high-level-objects in the circuit.
     // This is only accessed from the Python space.
+    #[pyo3(get)]
     hls_config: Py<PyAny>,
 
     // The high-level-synthesis plugin manager that specifies the synthesis methods
     // available for various high-level-objects.
     // This is only accessed from the Python space.
+    #[pyo3(get)]
     hls_plugin_manager: Py<PyAny>,
 
     // The names of high-level objects with available synthesis plugins.
     // This is an optimization to avoid calling python when an object has no
     // synthesis plugins.
+    #[pyo3(get)]
     hls_op_names: Vec<String>,
 
     // Optional, directed graph represented as a coupling map.
     // This is only accessedfrom the Python space (when passing the coupling map to
     // high-level synthesis plugins).
+    #[pyo3(get)]
     coupling_map: Py<PyAny>,
 
     // Optional, the backend target to use for this pass. If it is specified,
     // it will be used instead of the coupling map.
     // It needs to be used both from python and rust, and hence is represented
     // as Py<Target> to avoid cloning.
+    #[pyo3(get)]
     target: Option<Py<Target>>,
 
     // The equivalence library used (instructions in this library will not
     // be unrolled by this pass).
+    #[pyo3(get)]
     equivalence_library: Option<Py<EquivalenceLibrary>>,
 
     // Supported instructions in case that target is not specified.
+    #[pyo3(get)]
     device_insts: HashSet<String>,
 
     // A flag indicating whether the qubit indices of high-level-objects in the
     // circuit correspond to qubit indices on the target backend.
+    #[pyo3(get)]
     use_qubit_indices: bool,
 
     // The minimum number of qubits for operations in the input dag to translate.
+    #[pyo3(get)]
     min_qubits: usize,
 
     // Indicates whether to use custom definitions.
+    #[pyo3(get)]
     unroll_definitions: bool,
 }
 
@@ -308,52 +318,6 @@ impl HighLevelSynthesisData {
             .into_py_any(py)
     }
 
-    fn get_hls_config(&self) -> &Py<PyAny> {
-        &self.hls_config
-    }
-
-    fn get_hls_plugin_manager(&self) -> &Py<PyAny> {
-        &self.hls_plugin_manager
-    }
-
-    fn get_hls_op_names(&self) -> Vec<String> {
-        self.hls_op_names.clone()
-    }
-
-    fn get_coupling_map(&self) -> &Py<PyAny> {
-        &self.coupling_map
-    }
-
-    fn get_target(&self, py: Python) -> Option<Py<Target>> {
-        self.target.as_ref().map(|target| target.clone_ref(py))
-    }
-
-    fn get_equivalence_library(&self, py: Python) -> Option<Py<EquivalenceLibrary>> {
-        self.equivalence_library
-            .as_ref()
-            .map(|eqlib| eqlib.clone_ref(py))
-    }
-
-    fn get_device_insts(&self) -> HashSet<String> {
-        self.device_insts.clone()
-    }
-
-    fn get_use_qubit_indices(&self) -> bool {
-        self.use_qubit_indices
-    }
-
-    fn get_min_qubits(&self) -> usize {
-        self.min_qubits
-    }
-
-    fn get_unroll_definitions(&self) -> bool {
-        self.unroll_definitions
-    }
-
-    fn set_device_insts(&mut self, device_insts: HashSet<String>) {
-        self.device_insts = device_insts;
-    }
-
     fn __str__(&self) -> String {
         format!(
             "HighLevelSynthesisData(hls_config: {:?}, hls_plugin_manager: {:?}, hls_op_names: {:?}, coupling_map: {:?}, target: {:?},  equivalence_library: {:?}, device_insts: {:?}, use_qubit_indices: {:?}, min_qubits: {:?}, unroll_definitions: {:?})",
@@ -369,24 +333,22 @@ fn instruction_supported(
     name: &str,
     qubits: &[Qubit],
 ) -> bool {
-    match &data.borrow().target {
+    let borrowed_data = data.borrow();
+    match &borrowed_data.target {
         Some(target) => {
             let target = target.borrow(py);
             if target.num_qubits.is_some() {
-                if data.borrow().use_qubit_indices {
-                    let physical_qubits = qubits
-                        .iter()
-                        .map(|q| PhysicalQubit(q.index() as u32))
-                        .collect();
+                if borrowed_data.use_qubit_indices {
+                    let physical_qubits = qubits.iter().map(|q| PhysicalQubit(q.0)).collect();
                     target.instruction_supported(name, Some(&physical_qubits))
                 } else {
                     target.instruction_supported(name, None)
                 }
             } else {
-                data.borrow().device_insts.contains(name)
+                borrowed_data.device_insts.contains(name)
             }
         }
-        None => data.borrow().device_insts.contains(name),
+        None => borrowed_data.device_insts.contains(name),
     }
 }
 
@@ -397,7 +359,9 @@ fn definitely_skip_op(
     op: &PackedOperation,
     qubits: &[Qubit],
 ) -> bool {
-    if qubits.len() < data.borrow().min_qubits {
+    let borrowed_data: PyRef<'_, HighLevelSynthesisData> = data.borrow();
+
+    if qubits.len() < borrowed_data.min_qubits {
         return true;
     }
 
@@ -414,13 +378,13 @@ fn definitely_skip_op(
         return true;
     }
 
-    // If there are avilable plugins for this operation, we should try them
+    // If there are available plugins for this operation, we should try them
     // before checking the equivalence library.
-    if data.borrow().hls_op_names.iter().any(|s| s == op.name()) {
+    if borrowed_data.hls_op_names.iter().any(|s| s == op.name()) {
         return false;
     }
 
-    if let Some(equiv_lib) = &data.borrow().equivalence_library {
+    if let Some(equiv_lib) = &borrowed_data.equivalence_library {
         if equiv_lib.borrow(py).has_entry(op) {
             return true;
         }
@@ -446,7 +410,7 @@ fn run_on_circuitdata(
     input_circuit: &CircuitData,
     input_qubits: &[usize],
     data: &Bound<HighLevelSynthesisData>,
-    tracker: &Bound<QubitTracker>,
+    tracker: &mut QubitTracker,
 ) -> PyResult<(CircuitData, Vec<usize>)> {
     if input_circuit.num_qubits() != input_qubits.len() {
         return Err(TranspilerError::new_err(
@@ -492,15 +456,15 @@ fn run_on_circuitdata(
 
         if inst.op.name() == "reset" {
             output_circuit.push(py, inst.clone())?;
-            tracker.borrow_mut().set_clean(op_qubits);
+            tracker.set_clean(op_qubits);
             continue;
         }
 
         // Check if synthesis for this operation can be skipped
-        let op_qargs: Vec<Qubit> = op_qubits.iter().map(|q| Qubit(*q as u32)).collect();
+        let op_qargs: Vec<Qubit> = op_qubits.iter().map(|q| Qubit::new(*q)).collect();
         if definitely_skip_op(py, data, &inst.op, &op_qargs) {
             output_circuit.push(py, inst.clone())?;
-            tracker.borrow_mut().set_dirty(op_qubits);
+            tracker.set_dirty(op_qubits);
             continue;
         }
 
@@ -515,19 +479,19 @@ fn run_on_circuitdata(
             if let OperationRef::Instruction(py_inst) = inst.op.view() {
                 let old_blocks_as_bound_obj = py_inst.instruction.bind(py);
 
-                // old_blocks_py keeps the orignal QuantumCircuit's appearing within control-flow ops
+                // old_blocks_py keeps the original QuantumCircuit's appearing within control-flow ops
                 // new_blocks_py keeps the recursively synthesized circuits
                 let old_blocks_py = old_blocks_as_bound_obj.getattr(intern!(py, "blocks"))?;
                 let old_blocks_py = old_blocks_py.downcast::<PyTuple>()?;
                 let mut new_blocks_py: Vec<Bound<PyAny>> = Vec::with_capacity(old_blocks_py.len());
 
                 // We do not allow using any additional qubits outside of the block.
-                let block_tracker = tracker.clone();
-                let to_disable: Vec<usize> = (0..tracker.borrow().num_qubits())
+                let mut block_tracker = tracker.clone();
+                let to_disable: Vec<usize> = (0..tracker.num_qubits())
                     .filter(|q| !op_qubits.contains(q))
                     .collect();
-                block_tracker.borrow_mut().disable(to_disable);
-                block_tracker.borrow_mut().set_dirty(op_qubits.clone());
+                block_tracker.disable(to_disable);
+                block_tracker.set_dirty(op_qubits.clone());
 
                 for block_py in old_blocks_py {
                     let old_block_py: QuantumCircuitData = block_py.extract()?;
@@ -536,7 +500,7 @@ fn run_on_circuitdata(
                         &old_block_py.data,
                         &op_qubits,
                         data,
-                        &block_tracker,
+                        &mut block_tracker,
                     )?;
                     let new_block = new_block.into_bound_py_any(py)?;
 
@@ -564,7 +528,7 @@ fn run_on_circuitdata(
                     py_op: std::sync::OnceLock::new(),
                 };
                 output_circuit.push(py, packed_instruction)?;
-                tracker.borrow_mut().set_dirty(op_qubits);
+                tracker.set_dirty(op_qubits);
                 continue;
             }
         }
@@ -589,7 +553,7 @@ fn run_on_circuitdata(
                 // If the synthesis did not change anything, we add the operation to the output circuit
                 // and update the qubit tracker.
                 output_circuit.push(py, inst.clone())?;
-                tracker.borrow_mut().set_dirty(op_qubits);
+                tracker.set_dirty(op_qubits);
             }
             Some((synthesized_circuit, synthesized_circuit_qubits)) => {
                 // This pedantic check can possibly be removed.
@@ -631,12 +595,10 @@ fn run_on_circuitdata(
 
                     let inst_outer_qubits: Vec<Qubit> = inst_inner_qubits
                         .iter()
-                        .map(|q| Qubit(qubit_map[&q.index()] as u32))
+                        .map(|q| Qubit::new(qubit_map[&q.index()]))
                         .collect();
-                    let inst_outer_clbits: Vec<Clbit> = inst_inner_clbits
-                        .iter()
-                        .map(|c| Clbit(c.index() as u32))
-                        .collect();
+                    let inst_outer_clbits: Vec<Clbit> =
+                        inst_inner_clbits.iter().map(|c| Clbit(c.0)).collect();
 
                     output_circuit.push_packed_operation(
                         inst_inner.op.clone(),
@@ -754,7 +716,7 @@ fn extract_definition(
 fn synthesize_operation(
     py: Python,
     data: &Bound<HighLevelSynthesisData>,
-    tracker: &Bound<QubitTracker>,
+    tracker: &mut QubitTracker,
     input_qubits: &[usize],
     op: &PackedOperation,
     params: &[Param],
@@ -765,6 +727,8 @@ fn synthesize_operation(
             "HighLevelSynthesis: the input to 'synthesize_operation' is incorrect.",
         ));
     }
+
+    let borrowed_data: PyRef<'_, HighLevelSynthesisData> = data.borrow();
 
     let mut output_circuit_and_qubits: Option<(CircuitData, Vec<usize>)> = None;
 
@@ -780,7 +744,7 @@ fn synthesize_operation(
     // change, we return None.
 
     // Try to synthesize using plugins.
-    if data.borrow().hls_op_names.iter().any(|s| s == op.name()) {
+    if borrowed_data.hls_op_names.iter().any(|s| s == op.name()) {
         output_circuit_and_qubits = synthesize_op_using_plugins(
             py,
             data,
@@ -794,7 +758,7 @@ fn synthesize_operation(
 
     // Check if present in the equivalent library.
     if output_circuit_and_qubits.is_none() {
-        if let Some(equiv_lib) = &data.borrow().equivalence_library {
+        if let Some(equiv_lib) = &borrowed_data.equivalence_library {
             if equiv_lib.borrow(py).has_entry(op) {
                 return Ok(None);
             }
@@ -802,7 +766,7 @@ fn synthesize_operation(
     }
 
     // Extract definition.
-    if output_circuit_and_qubits.is_none() && data.borrow().unroll_definitions {
+    if output_circuit_and_qubits.is_none() && borrowed_data.unroll_definitions {
         let definition_circuit = extract_definition(py, op, params)?;
         match definition_circuit {
             Some(definition_circuit) => {
@@ -825,16 +789,14 @@ fn synthesize_operation(
     // clean ancilla qubits after the circuit is synthesized. In order to do that,
     // we save the current state of the tracker.
     if let Some((current_circuit, current_qubits)) = output_circuit_and_qubits {
-        let saved_tracker = tracker.borrow().copy();
+        let saved_tracker = tracker.copy();
         let (synthesized_circuit, synthesized_qubits) =
             run_on_circuitdata(py, &current_circuit, &current_qubits, data, tracker)?;
 
         if synthesized_qubits.len() > input_qubits.len() {
             let qubits_to_replace: Vec<usize> =
                 (input_qubits.len()..synthesized_qubits.len()).collect();
-            tracker
-                .borrow_mut()
-                .replace_state(&saved_tracker, qubits_to_replace);
+            tracker.replace_state(&saved_tracker, qubits_to_replace);
         }
 
         output_circuit_and_qubits = Some((synthesized_circuit, synthesized_qubits));
@@ -858,7 +820,7 @@ fn synthesize_operation(
 fn synthesize_op_using_plugins(
     py: Python,
     data: &Bound<HighLevelSynthesisData>,
-    tracker: &Bound<QubitTracker>,
+    tracker: &mut QubitTracker,
     input_qubits: &[usize],
     op: &OperationRef,
     params: &[Param],
@@ -881,7 +843,7 @@ fn synthesize_op_using_plugins(
 
     let res = HLS_SYNTHESIZE_OP_USING_PLUGINS
         .get_bound(py)
-        .call1((op_py, input_qubits, data, tracker))?
+        .call1((op_py, input_qubits, data, tracker.clone()))?
         .extract::<Option<(QuantumCircuitData, Vec<usize>)>>()?;
 
     if let Some((quantum_circuit_data, qubits)) = res {
@@ -896,13 +858,13 @@ fn synthesize_op_using_plugins(
 /// This function is currently called by the default plugin for annotated operations to
 /// synthesize the base operation.
 #[pyfunction]
-#[pyo3(signature = (py_op, input_qubits, data, tracker))]
+#[pyo3(name = "synthesize_operation", signature = (py_op, input_qubits, data, tracker))]
 fn py_synthesize_operation(
     py: Python,
     py_op: Bound<PyAny>,
     input_qubits: Vec<usize>,
     data: &Bound<HighLevelSynthesisData>,
-    tracker: &Bound<QubitTracker>,
+    tracker: &mut QubitTracker,
 ) -> PyResult<Option<(CircuitData, Vec<usize>)>> {
     let op: OperationFromPython = py_op.extract()?;
 
@@ -913,7 +875,7 @@ fn py_synthesize_operation(
         &op.operation,
         &input_qubits
             .iter()
-            .map(|q| Qubit(*q as u32))
+            .map(|q| Qubit::new(*q))
             .collect::<Vec<Qubit>>(),
     ) {
         return Ok(None);
@@ -936,7 +898,7 @@ fn py_synthesize_operation(
 /// to do anything, it returns None, meaning that the DAG should remain unchanged.
 /// Otherwise, the new DAG is returned.
 #[pyfunction]
-#[pyo3(signature = (dag, data, qubits_initially_zero))]
+#[pyo3(name = "run_on_dag", signature = (dag, data, qubits_initially_zero))]
 fn py_run_on_dag(
     py: Python,
     dag: &DAGCircuit,
@@ -947,11 +909,9 @@ fn py_run_on_dag(
     // done at the top-level since this does not track the qubit states.
     let mut fast_path: bool = true;
 
-    for (node_index, inst) in dag.op_nodes(false) {
+    for (_, inst) in dag.op_nodes(false) {
         let qubits = dag.get_qargs(inst.qubits);
-        if !dag.has_calibration_for_index(py, node_index)?
-            && !definitely_skip_op(py, data, &inst.op, qubits)
-        {
+        if !definitely_skip_op(py, data, &inst.op, qubits) {
             fast_path = false;
             break;
         }
@@ -967,10 +927,10 @@ fn py_run_on_dag(
 
         let num_qubits = circuit.num_qubits();
         let input_qubits: Vec<usize> = (0..num_qubits).collect();
-        let tracker =
-            Py::new(py, QubitTracker::new(num_qubits, qubits_initially_zero))?.into_bound(py);
+        let mut tracker = QubitTracker::new(num_qubits, qubits_initially_zero);
 
-        let (output_circuit, _) = run_on_circuitdata(py, &circuit, &input_qubits, data, &tracker)?;
+        let (output_circuit, _) =
+            run_on_circuitdata(py, &circuit, &input_qubits, data, &mut tracker)?;
 
         let new_dag = convert_circuit_to_dag_with_data(py, dag, &output_circuit)?;
 

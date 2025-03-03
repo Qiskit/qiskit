@@ -29,7 +29,7 @@ from qiskit.circuit.annotated_operation import (
 )
 from qiskit.transpiler.exceptions import TranspilerError
 
-from qiskit._accelerate.high_level_synthesis import py_synthesize_operation, HighLevelSynthesisData
+from qiskit._accelerate.high_level_synthesis import synthesize_operation, HighLevelSynthesisData
 from .plugin import HighLevelSynthesisPlugin
 
 
@@ -48,9 +48,9 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
 
         # Combine the modifiers. If the were no modifiers, or the modifiers magically canceled out,
         # return the quantum circuit containing the base operation.
-        high_level_object = _canonicalize_op(high_level_object)
+        high_level_object = self._canonicalize_op(high_level_object)
         if not isinstance(high_level_object, AnnotatedOperation):
-            return _instruction_to_circuit(high_level_object)
+            return self._instruction_to_circuit(high_level_object)
 
         operation = high_level_object
         modifiers = high_level_object.modifiers
@@ -100,16 +100,16 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
             "qft",
         }
         base_synthesis_data = HighLevelSynthesisData(
-            hls_config=data.get_hls_config(),
-            hls_plugin_manager=data.get_hls_plugin_manager(),
+            hls_config=data.hls_config,
+            hls_plugin_manager=data.hls_plugin_manager,
             coupling_map=None,
             target=None,
-            equivalence_library=data.get_equivalence_library(),
-            hls_op_names=data.get_hls_op_names(),
+            equivalence_library=data.equivalence_library,
+            hls_op_names=data.hls_op_names,
             device_insts=basis,
-            use_qubit_indices=data.get_use_qubit_indices(),
+            use_qubit_indices=data.use_qubit_indices,
             min_qubits=0,
-            unroll_definitions=data.get_unroll_definitions(),
+            unroll_definitions=data.unroll_definitions,
         )
 
         num_ctrl = sum(mod.num_ctrl_qubits for mod in modifiers if isinstance(mod, ControlModifier))
@@ -132,7 +132,7 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
         # to return these (and instead the upstream code greedily grabs some ancilla
         # qubits from the circuit). We should refactor the plugin "run" iterface to
         # return the actual ancilla qubits used.
-        synthesized_base_op_result = py_synthesize_operation(
+        synthesized_base_op_result = synthesize_operation(
             operation.base_op, input_qubits[num_ctrl:], base_synthesis_data, annotated_tracker
         )
 
@@ -140,20 +140,20 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
         # For simplicity, we wrap the instruction into a circuit. Note that
         # this should not deteriorate the quality of the result.
         if synthesized_base_op_result is None:
-            synthesized_base_op = _instruction_to_circuit(operation.base_op)
+            synthesized_base_op = self._instruction_to_circuit(operation.base_op)
         else:
             synthesized_base_op = QuantumCircuit._from_circuit_data(synthesized_base_op_result[0])
         tracker.set_dirty(input_qubits[num_ctrl:])
 
         # As one simple optimization, we apply conjugate decomposition to the circuit obtained
         # while synthesizing the base operator.
-        conjugate_decomp = _conjugate_decomposition(synthesized_base_op)
+        conjugate_decomp = self._conjugate_decomposition(synthesized_base_op)
 
         if conjugate_decomp is None:
             # Apply annotations to the whole circuit.
             # This step currently does not introduce ancilla qubits. However it makes
             # a lot of sense to allow this in the future.
-            synthesized = _apply_annotations(synthesized_base_op, operation.modifiers)
+            synthesized = self._apply_annotations(synthesized_base_op, operation.modifiers)
         else:
             # Apply annotations only to the middle part of the circuit.
             (front, middle, back) = conjugate_decomp
@@ -162,7 +162,9 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
                 front, synthesized.qubits[num_ctrl : operation.num_qubits], inplace=True
             )
             synthesized.compose(
-                _apply_annotations(middle, operation.modifiers), synthesized.qubits, inplace=True
+                self._apply_annotations(middle, operation.modifiers),
+                synthesized.qubits,
+                inplace=True,
             )
             synthesized.compose(
                 back, synthesized.qubits[num_ctrl : operation.num_qubits], inplace=True
@@ -175,163 +177,167 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
 
         return synthesized
 
+    @staticmethod
+    def _apply_annotations(circuit: QuantumCircuit, modifiers: list[Modifier]) -> QuantumCircuit:
+        """
+        Applies modifiers to a quantum circuit.
+        """
 
-def _apply_annotations(circuit: QuantumCircuit, modifiers: list[Modifier]) -> QuantumCircuit:
-    """
-    Applies modifiers to a quantum circuit.
-    """
+        if not isinstance(circuit, QuantumCircuit):
+            raise TranspilerError("HighLevelSynthesis: incorrect input to 'apply_annotations'.")
 
-    if not isinstance(circuit, QuantumCircuit):
-        raise TranspilerError("HighLevelSynthesis: incorrect input to 'apply_annotations'.")
+        for modifier in modifiers:
+            if isinstance(modifier, InverseModifier):
+                circuit = circuit.inverse()
 
-    for modifier in modifiers:
-        if isinstance(modifier, InverseModifier):
-            circuit = circuit.inverse()
+            elif isinstance(modifier, ControlModifier):
+                if circuit.num_clbits > 0:
+                    raise TranspilerError(
+                        "HighLevelSynthesis: cannot control a circuit with classical bits."
+                    )
 
-        elif isinstance(modifier, ControlModifier):
-            if circuit.num_clbits > 0:
-                raise TranspilerError(
-                    "HighLevelSynthesis: cannot control a circuit with classical bits."
-                )
+                # Apply the control modifier to each gate in the circuit.
+                controlled_circuit = QuantumCircuit(modifier.num_ctrl_qubits + circuit.num_qubits)
+                if circuit.global_phase != 0:
+                    controlled_op = GlobalPhaseGate(circuit.global_phase).control(
+                        num_ctrl_qubits=modifier.num_ctrl_qubits,
+                        label=None,
+                        ctrl_state=modifier.ctrl_state,
+                        annotated=False,
+                    )
+                    controlled_qubits = list(range(0, modifier.num_ctrl_qubits))
+                    controlled_circuit.append(controlled_op, controlled_qubits)
+                for inst in circuit:
+                    inst_op = inst.operation
+                    inst_qubits = inst.qubits
+                    controlled_op = inst_op.control(
+                        num_ctrl_qubits=modifier.num_ctrl_qubits,
+                        label=None,
+                        ctrl_state=modifier.ctrl_state,
+                        annotated=False,
+                    )
+                    controlled_qubits = list(range(0, modifier.num_ctrl_qubits)) + [
+                        modifier.num_ctrl_qubits + circuit.find_bit(q).index for q in inst_qubits
+                    ]
+                    controlled_circuit.append(controlled_op, controlled_qubits)
 
-            # Apply the control modifier to each gate in the circuit.
-            controlled_circuit = QuantumCircuit(modifier.num_ctrl_qubits + circuit.num_qubits)
-            if circuit.global_phase != 0:
-                controlled_op = GlobalPhaseGate(circuit.global_phase).control(
-                    num_ctrl_qubits=modifier.num_ctrl_qubits,
-                    label=None,
-                    ctrl_state=modifier.ctrl_state,
-                    annotated=False,
-                )
-                controlled_qubits = list(range(0, modifier.num_ctrl_qubits))
-                controlled_circuit.append(controlled_op, controlled_qubits)
-            for inst in circuit:
-                inst_op = inst.operation
-                inst_qubits = inst.qubits
-                controlled_op = inst_op.control(
-                    num_ctrl_qubits=modifier.num_ctrl_qubits,
-                    label=None,
-                    ctrl_state=modifier.ctrl_state,
-                    annotated=False,
-                )
-                controlled_qubits = list(range(0, modifier.num_ctrl_qubits)) + [
-                    modifier.num_ctrl_qubits + circuit.find_bit(q).index for q in inst_qubits
-                ]
-                controlled_circuit.append(controlled_op, controlled_qubits)
+                circuit = controlled_circuit
 
-            circuit = controlled_circuit
+                if isinstance(circuit, AnnotatedOperation):
+                    raise TranspilerError(
+                        "HighLevelSynthesis: failed to synthesize the control modifier."
+                    )
 
-            if isinstance(circuit, AnnotatedOperation):
-                raise TranspilerError(
-                    "HighLevelSynthesis: failed to synthesize the control modifier."
-                )
+            elif isinstance(modifier, PowerModifier):
+                circuit = circuit.power(modifier.power)
 
-        elif isinstance(modifier, PowerModifier):
-            circuit = circuit.power(modifier.power)
+            else:
+                raise TranspilerError(f"HighLevelSynthesis: Unknown modifier {modifier}.")
 
-        else:
-            raise TranspilerError(f"HighLevelSynthesis: Unknown modifier {modifier}.")
+        if not isinstance(circuit, QuantumCircuit):
+            raise TranspilerError("HighLevelSynthesis: incorrect output of 'apply_annotations'.")
 
-    if not isinstance(circuit, QuantumCircuit):
-        raise TranspilerError("HighLevelSynthesis: incorrect output of 'apply_annotations'.")
+        return circuit
 
-    return circuit
+    @staticmethod
+    def _instruction_to_circuit(op: Operation) -> QuantumCircuit:
+        """Wraps a single operation into a quantum circuit."""
+        circuit = QuantumCircuit(op.num_qubits, op.num_clbits)
+        circuit.append(op, circuit.qubits, circuit.clbits)
+        return circuit
 
+    @staticmethod
+    def _canonicalize_op(op: Operation) -> Operation:
+        """
+        Combines recursive annotated operations and canonicalizes modifiers.
+        """
+        cur = op
+        all_modifiers = []
 
-def _instruction_to_circuit(op: Operation) -> QuantumCircuit:
-    """Wraps a single operation into a quantum circuit."""
-    circuit = QuantumCircuit(op.num_qubits, op.num_clbits)
-    circuit.append(op, circuit.qubits, circuit.clbits)
-    return circuit
+        while isinstance(cur, AnnotatedOperation):
+            all_modifiers.append(cur.modifiers)
+            cur = cur.base_op
 
+        new_modifiers = []
+        for modifiers in all_modifiers[::-1]:
+            new_modifiers.extend(modifiers)
 
-def _canonicalize_op(op: Operation) -> Operation:
-    """
-    Combines recursive annotated operations and canonicalizes modifiers.
-    """
-    cur = op
-    all_modifiers = []
+        canonical_modifiers = _canonicalize_modifiers(new_modifiers)
 
-    while isinstance(cur, AnnotatedOperation):
-        all_modifiers.append(cur.modifiers)
-        cur = cur.base_op
+        if not canonical_modifiers:
+            return cur
 
-    new_modifiers = []
-    for modifiers in all_modifiers[::-1]:
-        new_modifiers.extend(modifiers)
+        return AnnotatedOperation(cur, canonical_modifiers)
 
-    canonical_modifiers = _canonicalize_modifiers(new_modifiers)
+    @staticmethod
+    def _are_inverse_ops(inst1: "CircuitInstruction", inst2: "CircuitInstruction"):
+        """A very naive function that checks whether two circuit instructions are inverse of
+        each other. The main use-case covered is a ``QFTGate`` and its inverse, represented as
+        an ``AnnotatedOperation`` with a single ``InverseModifier``.
+        """
+        res = False
 
-    if not canonical_modifiers:
-        return cur
+        if (
+            inst1.qubits != inst2.qubits
+            or inst1.clbits != inst2.clbits
+            or inst1.params != inst2.params
+        ):
+            return False
 
-    return AnnotatedOperation(cur, canonical_modifiers)
+        op1 = inst1.operation
+        op2 = inst2.operation
 
+        ann1 = isinstance(op1, AnnotatedOperation)
+        ann2 = isinstance(op2, AnnotatedOperation)
 
-def _are_inverse_ops(inst1: "CircuitInstruction", inst2: "CircuitInstruction"):
-    """A very naive function that checks whether two circuit instructions are inverse of
-    each other. The main use-case covered is a ``QFTGate`` and its inverse, represented as
-    an ``AnnotatedOperation`` with a single ``InverseModifier``.
-    """
-    res = False
+        if not ann1 and not ann2:
+            res = op1 == op2.inverse()
+        elif not ann1 and ann2 and op2.modifiers == [InverseModifier()]:
+            res = op1 == op2.base_op
+        elif not ann2 and ann1 and op1.modifiers == [InverseModifier()]:
+            res = op1.base_op == op2
 
-    if inst1.qubits != inst2.qubits or inst1.clbits != inst2.clbits or inst1.params != inst2.params:
-        return False
+        return res
 
-    op1 = inst1.operation
-    op2 = inst2.operation
+    @staticmethod
+    def _conjugate_decomposition(
+        circuit: QuantumCircuit,
+    ) -> tuple[QuantumCircuit, QuantumCircuit, QuantumCircuit] | None:
+        """
+        Decomposes a circuit ``A`` into 3 sub-circuits ``P``, ``Q``, ``R`` such that
+        ``A = P -- Q -- R`` and ``R = P^{-1}``.
 
-    ann1 = isinstance(op1, AnnotatedOperation)
-    ann2 = isinstance(op2, AnnotatedOperation)
+        This is accomplished by iteratively finding inverse nodes at the front and at the back of the
+        circuit.
 
-    if not ann1 and not ann2:
-        res = op1 == op2.inverse()
-    elif not ann1 and ann2 and op2.modifiers == [InverseModifier()]:
-        res = op1 == op2.base_op
-    elif not ann2 and ann1 and op1.modifiers == [InverseModifier()]:
-        res = op1.base_op == op2
+        The function returns ``None`` when ``P`` and ``R`` are empty.
+        """
+        num_gates = circuit.size()
 
-    return res
+        idx = 0
+        ridx = num_gates - 1
 
+        while True:
+            if idx >= ridx:
+                break
+            if AnnotatedSynthesisDefault._are_inverse_ops(circuit[idx], circuit[ridx]):
+                idx += 1
+                ridx -= 1
+            else:
+                break
 
-def _conjugate_decomposition(
-    circuit: QuantumCircuit,
-) -> tuple[QuantumCircuit, QuantumCircuit, QuantumCircuit] | None:
-    """
-    Decomposes a circuit ``A`` into 3 sub-circuits ``P``, ``Q``, ``R`` such that
-    ``A = P -- Q -- R`` and ``R = P^{-1}``.
+        if idx == 0:
+            return None
 
-    This is accomplished by iteratively finding inverse nodes at the front and at the back of the
-    circuit.
-
-    The function returns ``None`` when ``P`` and ``R`` are empty.
-    """
-    num_gates = circuit.size()
-
-    idx = 0
-    ridx = num_gates - 1
-
-    while True:
-        if idx >= ridx:
-            break
-        if _are_inverse_ops(circuit[idx], circuit[ridx]):
-            idx += 1
-            ridx -= 1
-        else:
-            break
-
-    if idx == 0:
-        return None
-
-    front_circuit = circuit.copy_empty_like()
-    front_circuit.global_phase = 0
-    for i in range(0, idx):
-        front_circuit.append(circuit[i])
-    middle_circuit = circuit.copy_empty_like()  # inherits the global phase
-    for i in range(idx, ridx + 1):
-        middle_circuit.append(circuit[i])
-    back_circuit = circuit.copy_empty_like()
-    back_circuit.global_phase = 0
-    for i in range(ridx + 1, num_gates):
-        back_circuit.append(circuit[i])
-    return (front_circuit, middle_circuit, back_circuit)
+        front_circuit = circuit.copy_empty_like()
+        front_circuit.global_phase = 0
+        for i in range(0, idx):
+            front_circuit.append(circuit[i])
+        middle_circuit = circuit.copy_empty_like()  # inherits the global phase
+        for i in range(idx, ridx + 1):
+            middle_circuit.append(circuit[i])
+        back_circuit = circuit.copy_empty_like()
+        back_circuit.global_phase = 0
+        for i in range(ridx + 1, num_gates):
+            back_circuit.append(circuit[i])
+        return (front_circuit, middle_circuit, back_circuit)

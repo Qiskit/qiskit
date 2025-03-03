@@ -71,10 +71,7 @@ def dag_to_circuit(dag, copy_operations=True):
     for var in dag.iter_declared_vars():
         circuit.add_uninitialized_var(var)
     circuit.metadata = dag.metadata or {}
-    circuit.metadata = dag.metadata
-
     circuit._data = circuit_data
-
     circuit._duration = dag.duration
     circuit._unit = dag.unit
     return circuit
