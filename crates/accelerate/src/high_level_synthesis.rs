@@ -410,7 +410,7 @@ fn run_on_circuitdata(
     input_circuit: &CircuitData,
     input_qubits: &[usize],
     data: &Bound<HighLevelSynthesisData>,
-    tracker: &Bound<QubitTracker>,
+    tracker: &mut QubitTracker,
 ) -> PyResult<(CircuitData, Vec<usize>)> {
     if input_circuit.num_qubits() != input_qubits.len() {
         return Err(TranspilerError::new_err(
@@ -456,7 +456,7 @@ fn run_on_circuitdata(
 
         if inst.op.name() == "reset" {
             output_circuit.push(py, inst.clone())?;
-            tracker.borrow_mut().set_clean(op_qubits);
+            tracker.set_clean(op_qubits);
             continue;
         }
 
@@ -464,7 +464,7 @@ fn run_on_circuitdata(
         let op_qargs: Vec<Qubit> = op_qubits.iter().map(|q| Qubit::new(*q)).collect();
         if definitely_skip_op(py, data, &inst.op, &op_qargs) {
             output_circuit.push(py, inst.clone())?;
-            tracker.borrow_mut().set_dirty(op_qubits);
+            tracker.set_dirty(op_qubits);
             continue;
         }
 
@@ -486,12 +486,12 @@ fn run_on_circuitdata(
                 let mut new_blocks_py: Vec<Bound<PyAny>> = Vec::with_capacity(old_blocks_py.len());
 
                 // We do not allow using any additional qubits outside of the block.
-                let block_tracker = tracker.clone();
-                let to_disable: Vec<usize> = (0..tracker.borrow().num_qubits())
+                let mut block_tracker = tracker.clone();
+                let to_disable: Vec<usize> = (0..tracker.num_qubits())
                     .filter(|q| !op_qubits.contains(q))
                     .collect();
-                block_tracker.borrow_mut().disable(to_disable);
-                block_tracker.borrow_mut().set_dirty(op_qubits.clone());
+                block_tracker.disable(to_disable);
+                block_tracker.set_dirty(op_qubits.clone());
 
                 for block_py in old_blocks_py {
                     let old_block_py: QuantumCircuitData = block_py.extract()?;
@@ -500,7 +500,7 @@ fn run_on_circuitdata(
                         &old_block_py.data,
                         &op_qubits,
                         data,
-                        &block_tracker,
+                        &mut block_tracker,
                     )?;
                     let new_block = new_block.into_bound_py_any(py)?;
 
@@ -528,7 +528,7 @@ fn run_on_circuitdata(
                     py_op: std::sync::OnceLock::new(),
                 };
                 output_circuit.push(py, packed_instruction)?;
-                tracker.borrow_mut().set_dirty(op_qubits);
+                tracker.set_dirty(op_qubits);
                 continue;
             }
         }
@@ -553,7 +553,7 @@ fn run_on_circuitdata(
                 // If the synthesis did not change anything, we add the operation to the output circuit
                 // and update the qubit tracker.
                 output_circuit.push(py, inst.clone())?;
-                tracker.borrow_mut().set_dirty(op_qubits);
+                tracker.set_dirty(op_qubits);
             }
             Some((synthesized_circuit, synthesized_circuit_qubits)) => {
                 // This pedantic check can possibly be removed.
@@ -716,7 +716,7 @@ fn extract_definition(
 fn synthesize_operation(
     py: Python,
     data: &Bound<HighLevelSynthesisData>,
-    tracker: &Bound<QubitTracker>,
+    tracker: &mut QubitTracker,
     input_qubits: &[usize],
     op: &PackedOperation,
     params: &[Param],
@@ -789,16 +789,14 @@ fn synthesize_operation(
     // clean ancilla qubits after the circuit is synthesized. In order to do that,
     // we save the current state of the tracker.
     if let Some((current_circuit, current_qubits)) = output_circuit_and_qubits {
-        let saved_tracker = tracker.borrow().copy();
+        let saved_tracker = tracker.copy();
         let (synthesized_circuit, synthesized_qubits) =
             run_on_circuitdata(py, &current_circuit, &current_qubits, data, tracker)?;
 
         if synthesized_qubits.len() > input_qubits.len() {
             let qubits_to_replace: Vec<usize> =
                 (input_qubits.len()..synthesized_qubits.len()).collect();
-            tracker
-                .borrow_mut()
-                .replace_state(&saved_tracker, qubits_to_replace);
+            tracker.replace_state(&saved_tracker, qubits_to_replace);
         }
 
         output_circuit_and_qubits = Some((synthesized_circuit, synthesized_qubits));
@@ -822,7 +820,7 @@ fn synthesize_operation(
 fn synthesize_op_using_plugins(
     py: Python,
     data: &Bound<HighLevelSynthesisData>,
-    tracker: &Bound<QubitTracker>,
+    tracker: &mut QubitTracker,
     input_qubits: &[usize],
     op: &OperationRef,
     params: &[Param],
@@ -845,7 +843,7 @@ fn synthesize_op_using_plugins(
 
     let res = HLS_SYNTHESIZE_OP_USING_PLUGINS
         .get_bound(py)
-        .call1((op_py, input_qubits, data, tracker))?
+        .call1((op_py, input_qubits, data, tracker.clone()))?
         .extract::<Option<(QuantumCircuitData, Vec<usize>)>>()?;
 
     if let Some((quantum_circuit_data, qubits)) = res {
@@ -866,7 +864,7 @@ fn py_synthesize_operation(
     py_op: Bound<PyAny>,
     input_qubits: Vec<usize>,
     data: &Bound<HighLevelSynthesisData>,
-    tracker: &Bound<QubitTracker>,
+    tracker: &mut QubitTracker,
 ) -> PyResult<Option<(CircuitData, Vec<usize>)>> {
     let op: OperationFromPython = py_op.extract()?;
 
@@ -929,10 +927,10 @@ fn py_run_on_dag(
 
         let num_qubits = circuit.num_qubits();
         let input_qubits: Vec<usize> = (0..num_qubits).collect();
-        let tracker =
-            Py::new(py, QubitTracker::new(num_qubits, qubits_initially_zero))?.into_bound(py);
+        let mut tracker = QubitTracker::new(num_qubits, qubits_initially_zero);
 
-        let (output_circuit, _) = run_on_circuitdata(py, &circuit, &input_qubits, data, &tracker)?;
+        let (output_circuit, _) =
+            run_on_circuitdata(py, &circuit, &input_qubits, data, &mut tracker)?;
 
         let new_dag = convert_circuit_to_dag_with_data(py, dag, &output_circuit)?;
 
