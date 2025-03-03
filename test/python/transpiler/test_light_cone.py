@@ -18,10 +18,8 @@ from test import QiskitTestCase  # pylint: disable=wrong-import-order
 import ddt
 
 from qiskit.circuit import (
-    ClassicalRegister,
     Parameter,
     QuantumCircuit,
-    QuantumRegister,
 )
 from qiskit.circuit.library import real_amplitudes
 from qiskit.circuit.library.n_local.efficient_su2 import efficient_su2
