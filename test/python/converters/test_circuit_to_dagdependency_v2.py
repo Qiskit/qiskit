@@ -40,20 +40,6 @@ class TestCircuitToDAGDependencyV2(QiskitTestCase):
         circuit_out = dagdependency_to_circuit(dag_dependency)
         self.assertEqual(circuit_out, circuit_in)
 
-    def test_calibrations(self):
-        """Test that calibrations are properly copied over."""
-        circuit_in = QuantumCircuit(1)
-        with self.assertWarns(DeprecationWarning):
-            circuit_in.add_calibration("h", [0], None)
-            self.assertEqual(len(circuit_in.calibrations), 1)
-
-        dag_dependency = _circuit_to_dagdependency_v2(circuit_in)
-        self.assertEqual(len(dag_dependency.calibrations), 1)
-
-        circuit_out = dagdependency_to_circuit(dag_dependency)
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(len(circuit_out.calibrations), 1)
-
     def test_metadata(self):
         """Test circuit metadata is preservered through conversion."""
         meta_dict = {"experiment_id": "1234", "execution_number": 4}

@@ -1,0 +1,31 @@
+include_version = true
+style = "type" 
+sys_includes = ["complex.h"]
+after_includes = """
+// Complex number typedefs -- note these are memory aligned but
+// not calling convention compatible.
+typedef float complex QkComplex32; 
+typedef double complex QkComplex64;
+
+// Always expose [cfg(feature = "cbinding")] -- workaround for 
+// https://github.com/mozilla/cbindgen/issues/995
+#define QISKIT_WITH_CBINDINGS
+"""
+
+[defines]
+"feature = cbinding" = "QISKIT_WITH_CBINDINGS"
+
+[parse]
+parse_deps = true
+include = ["qiskit-accelerate"]
+
+[enum]
+prefix_with_name = true
+
+[export]
+prefix = "Qk"
+renaming_overrides_prefixing = false
+
+[export.rename]
+"SparseObservable" = "Obs"
+"CSparseTerm" = "ObsTerm"

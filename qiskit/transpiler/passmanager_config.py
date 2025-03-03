@@ -12,18 +12,14 @@
 
 """Pass Manager Configuration class."""
 
-from qiskit.utils.deprecate_pulse import deprecate_pulse_arg
-
 
 class PassManagerConfig:
     """Pass Manager Configuration."""
 
-    @deprecate_pulse_arg("inst_map", predicate=lambda inst_map: inst_map is not None)
     def __init__(
         self,
         initial_layout=None,
         basis_gates=None,
-        inst_map=None,
         coupling_map=None,
         layout_method=None,
         routing_method=None,
@@ -47,7 +43,6 @@ class PassManagerConfig:
             initial_layout (Layout): Initial position of virtual qubits on
                 physical qubits.
             basis_gates (list): List of basis gate names to unroll to.
-            inst_map (InstructionScheduleMap): Mapping object that maps gate to schedule.
             coupling_map (CouplingMap): Directed graph represented a coupling
                 map.
             layout_method (str): the pass to use for choosing initial qubit
@@ -84,7 +79,6 @@ class PassManagerConfig:
         """
         self.initial_layout = initial_layout
         self.basis_gates = basis_gates
-        self.inst_map = inst_map
         self.coupling_map = coupling_map
         self.init_method = init_method
         self.layout_method = layout_method
@@ -122,8 +116,6 @@ class PassManagerConfig:
         res = cls(**pass_manager_options)
         if res.basis_gates is None:
             res.basis_gates = backend.operation_names
-        if res.inst_map is None:
-            res.inst_map = backend._instruction_schedule_map
         if res.coupling_map is None:
             res.coupling_map = backend.coupling_map
         if res.instruction_durations is None:
@@ -143,7 +135,6 @@ class PassManagerConfig:
             "Pass Manager Config:\n"
             f"\tinitial_layout: {self.initial_layout}\n"
             f"\tbasis_gates: {self.basis_gates}\n"
-            f"\tinst_map: {str(self.inst_map).replace(newline, newline_tab)}\n"
             f"\tcoupling_map: {self.coupling_map}\n"
             f"\tlayout_method: {self.layout_method}\n"
             f"\trouting_method: {self.routing_method}\n"
