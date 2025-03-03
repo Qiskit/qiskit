@@ -3,7 +3,7 @@ style = "type"
 sys_includes = ["complex.h"]
 after_includes = """
 #ifdef QISKIT_C_PYTHON_INTERFACE
-    #include<Python.h>
+    #include <Python.h>
 #endif
 
 // Complex number typedefs -- note these are memory aligned but
@@ -30,8 +30,8 @@ prefix_with_name = true
 [export]
 prefix = "Qk"
 renaming_overrides_prefixing = false
+exclude = ["PyObject"]
 
 [export.rename]
 "SparseObservable" = "Obs"
 "CSparseTerm" = "ObsTerm"
-"PyObject" = "PyObject"
