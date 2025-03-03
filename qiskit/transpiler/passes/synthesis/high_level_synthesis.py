@@ -277,13 +277,13 @@ class HighLevelSynthesis(TransformationPass):
 
 def _methods_to_try(data: HighLevelSynthesisData, name: str):
     """Get a sequence of methods to try for a given op name."""
-    if (methods := data.get_hls_config().methods.get(name)) is not None:
+    if (methods := data.hls_config.methods.get(name)) is not None:
         # the operation's name appears in the user-provided config,
         # we use the list of methods provided by the user
         return methods
     if (
-        data.get_hls_config().use_default_on_unspecified
-        and "default" in data.get_hls_plugin_manager().method_names(name)
+        data.hls_config.use_default_on_unspecified
+        and "default" in data.hls_plugin_manager.method_names(name)
     ):
         # the operation's name does not appear in the user-specified config,
         # we use the "default" method when instructed to do so and the "default"
@@ -319,7 +319,7 @@ def _synthesize_op_using_plugins(
     if len(hls_methods) == 0:
         return None
 
-    hls_plugin_manager = data.get_hls_plugin_manager()
+    hls_plugin_manager = data.hls_plugin_manager
     num_clean_ancillas = tracker.num_clean(input_qubits)
     num_dirty_ancillas = tracker.num_dirty(input_qubits)
 
@@ -374,12 +374,12 @@ def _synthesize_op_using_plugins(
         plugin_args["num_clean_ancillas"] = num_clean_ancillas
         plugin_args["num_dirty_ancillas"] = num_dirty_ancillas
 
-        qubits = input_qubits if data.get_use_qubit_indices() else None
+        qubits = input_qubits if data.use_qubit_indices else None
 
         decomposition = plugin_method.run(
             operation,
-            coupling_map=data.get_coupling_map(),
-            target=data.get_target(),
+            coupling_map=data.coupling_map,
+            target=data.target,
             qubits=qubits,
             **plugin_args,
         )
@@ -387,7 +387,7 @@ def _synthesize_op_using_plugins(
         # The synthesis methods that are not suited for the given higher-level-object
         # will return None.
         if decomposition is not None:
-            if data.get_hls_config().plugin_selection == "sequential":
+            if data.hls_config.plugin_selection == "sequential":
                 # In the "sequential" mode the first successful decomposition is
                 # returned.
                 best_decomposition = decomposition
@@ -395,7 +395,7 @@ def _synthesize_op_using_plugins(
 
             # In the "run everything" mode we update the best decomposition
             # discovered
-            current_score = data.get_hls_config().plugin_evaluation_fn(decomposition)
+            current_score = data.hls_config.plugin_evaluation_fn(decomposition)
             if current_score < best_score:
                 best_decomposition = decomposition
                 best_score = current_score

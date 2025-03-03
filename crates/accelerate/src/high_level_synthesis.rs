@@ -220,44 +220,54 @@ struct HighLevelSynthesisData {
     // The high-level-synthesis config that specifies the synthesis methods
     // to use for high-level-objects in the circuit.
     // This is only accessed from the Python space.
+    #[pyo3(get)]
     hls_config: Py<PyAny>,
 
     // The high-level-synthesis plugin manager that specifies the synthesis methods
     // available for various high-level-objects.
     // This is only accessed from the Python space.
+    #[pyo3(get)]
     hls_plugin_manager: Py<PyAny>,
 
     // The names of high-level objects with available synthesis plugins.
     // This is an optimization to avoid calling python when an object has no
     // synthesis plugins.
+    #[pyo3(get)]
     hls_op_names: Vec<String>,
 
     // Optional, directed graph represented as a coupling map.
     // This is only accessedfrom the Python space (when passing the coupling map to
     // high-level synthesis plugins).
+    #[pyo3(get)]
     coupling_map: Py<PyAny>,
 
     // Optional, the backend target to use for this pass. If it is specified,
     // it will be used instead of the coupling map.
     // It needs to be used both from python and rust, and hence is represented
     // as Py<Target> to avoid cloning.
+    #[pyo3(get)]
     target: Option<Py<Target>>,
 
     // The equivalence library used (instructions in this library will not
     // be unrolled by this pass).
+    #[pyo3(get)]
     equivalence_library: Option<Py<EquivalenceLibrary>>,
 
     // Supported instructions in case that target is not specified.
+    #[pyo3(get)]
     device_insts: HashSet<String>,
 
     // A flag indicating whether the qubit indices of high-level-objects in the
     // circuit correspond to qubit indices on the target backend.
+    #[pyo3(get)]
     use_qubit_indices: bool,
 
     // The minimum number of qubits for operations in the input dag to translate.
+    #[pyo3(get)]
     min_qubits: usize,
 
     // Indicates whether to use custom definitions.
+    #[pyo3(get)]
     unroll_definitions: bool,
 }
 
@@ -306,52 +316,6 @@ impl HighLevelSynthesisData {
             self.unroll_definitions,
         )
             .into_py_any(py)
-    }
-
-    fn get_hls_config(&self) -> &Py<PyAny> {
-        &self.hls_config
-    }
-
-    fn get_hls_plugin_manager(&self) -> &Py<PyAny> {
-        &self.hls_plugin_manager
-    }
-
-    fn get_hls_op_names(&self) -> Vec<String> {
-        self.hls_op_names.clone()
-    }
-
-    fn get_coupling_map(&self) -> &Py<PyAny> {
-        &self.coupling_map
-    }
-
-    fn get_target(&self, py: Python) -> Option<Py<Target>> {
-        self.target.as_ref().map(|target| target.clone_ref(py))
-    }
-
-    fn get_equivalence_library(&self, py: Python) -> Option<Py<EquivalenceLibrary>> {
-        self.equivalence_library
-            .as_ref()
-            .map(|eqlib| eqlib.clone_ref(py))
-    }
-
-    fn get_device_insts(&self) -> HashSet<String> {
-        self.device_insts.clone()
-    }
-
-    fn get_use_qubit_indices(&self) -> bool {
-        self.use_qubit_indices
-    }
-
-    fn get_min_qubits(&self) -> usize {
-        self.min_qubits
-    }
-
-    fn get_unroll_definitions(&self) -> bool {
-        self.unroll_definitions
-    }
-
-    fn set_device_insts(&mut self, device_insts: HashSet<String>) {
-        self.device_insts = device_insts;
     }
 
     fn __str__(&self) -> String {
