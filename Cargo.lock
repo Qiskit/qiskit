@@ -163,9 +163,9 @@ dependencies = [
 
 [[package]]
 name = "bytemuck"
-version = "1.21.0"
+version = "1.22.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ef657dfab802224e671f5818e9a4935f9b1957ed18e58292690cc39e7a4092a3"
+checksum = "b6b1fc10dbac614ebc03540c9dbd60e83887fda27794998c6528f1782047d540"
 dependencies = [
  "bytemuck_derive",
 ]
@@ -1162,7 +1162,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8b7cafe60d6cf8e62e1b9b2ea516a089c008945bb5a275416789e7db0bc199dc"
 dependencies = [
  "memchr",
- "thiserror 2.0.11",
+ "thiserror 2.0.12",
  "ucd-trie",
 ]
 
@@ -1437,7 +1437,7 @@ dependencies = [
  "rustiq-core",
  "rustworkx-core",
  "smallvec",
- "thiserror 2.0.11",
+ "thiserror 2.0.12",
 ]
 
 [[package]]
@@ -1448,7 +1448,7 @@ dependencies = [
  "num-complex",
  "pyo3",
  "qiskit-accelerate",
- "thiserror 2.0.11",
+ "thiserror 2.0.12",
 ]
 
 [[package]]
@@ -1470,7 +1470,7 @@ dependencies = [
  "rayon",
  "rustworkx-core",
  "smallvec",
- "thiserror 2.0.11",
+ "thiserror 2.0.12",
 ]
 
 [[package]]
@@ -1964,11 +1964,11 @@ dependencies = [
 
 [[package]]
 name = "thiserror"
-version = "2.0.11"
+version = "2.0.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d452f284b73e6d76dd36758a0c8684b1d5be31f92b89d07fd5822175732206fc"
+checksum = "567b8a2dae586314f7be2a752ec7474332959c6460e02bde30d702a66d488708"
 dependencies = [
- "thiserror-impl 2.0.11",
+ "thiserror-impl 2.0.12",
 ]
 
 [[package]]
@@ -1984,9 +1984,9 @@ dependencies = [
 
 [[package]]
 name = "thiserror-impl"
-version = "2.0.11"
+version = "2.0.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "26afc1baea8a989337eeb52b6e72a039780ce45c3edfcc9c5b9d112feeb173c2"
+checksum = "7f7cf42b4507d8ea322120659672cf1b9dbb93f8f2d4ecfd6e51350ff5b17a1d"
 dependencies = [
  "proc-macro2",
  "quote",
