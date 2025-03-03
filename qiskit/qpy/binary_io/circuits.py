@@ -13,7 +13,7 @@
 # pylint: disable=invalid-name
 
 """Binary IO for circuit objects."""
-
+import itertools
 from collections import defaultdict
 import io
 import json
@@ -1227,7 +1227,7 @@ def write_circuit(
             metadata_size=metadata_size,
             num_registers=num_registers,
             num_instructions=num_instructions,
-            num_vars=circuit.num_vars,
+            num_vars=circuit.num_identifiers,
         )
         header = struct.pack(formats.CIRCUIT_HEADER_V12_PACK, *header_raw)
         file_obj.write(header)
@@ -1350,7 +1350,7 @@ def read_circuit(file_obj, version, metadata_deserializer=None, use_symengine=Fa
     num_clbits = header["num_clbits"]
     num_registers = header["num_registers"]
     num_instructions = header["num_instructions"]
-    num_vars = header.get("num_vars", 0)
+    num_identifiers = header.get("num_vars", 0)
     # `out_registers` is two "name: register" maps segregated by type for the rest of QPY, and
     # `all_registers` is the complete ordered list used to construct the `QuantumCircuit`.
     out_registers = {"q": {}, "c": {}}
@@ -1407,7 +1407,7 @@ def read_circuit(file_obj, version, metadata_deserializer=None, use_symengine=Fa
             "q": [Qubit() for _ in out_bits["q"]],
             "c": [Clbit() for _ in out_bits["c"]],
         }
-    var_segments, standalone_var_indices = value.read_standalone_vars(file_obj, num_vars)
+    var_segments, standalone_var_indices = value.read_standalone_vars(file_obj, num_identifiers)
     circ = QuantumCircuit(
         out_bits["q"],
         out_bits["c"],
@@ -1416,10 +1416,15 @@ def read_circuit(file_obj, version, metadata_deserializer=None, use_symengine=Fa
         global_phase=global_phase,
         metadata=metadata,
         inputs=var_segments[type_keys.ExprVarDeclaration.INPUT],
-        captures=var_segments[type_keys.ExprVarDeclaration.CAPTURE],
+        captures=itertools.chain(
+            var_segments[type_keys.ExprVarDeclaration.CAPTURE],
+            var_segments[type_keys.ExprVarDeclaration.STRETCH_CAPTURE],
+        ),
     )
     for declaration in var_segments[type_keys.ExprVarDeclaration.LOCAL]:
         circ.add_uninitialized_var(declaration)
+    for stretch in var_segments[type_keys.ExprVarDeclaration.STRETCH_LOCAL]:
+        circ.add_stretch(stretch)
     custom_operations = _read_custom_operations(file_obj, version, vectors)
     for _instruction in range(num_instructions):
         _read_instruction(

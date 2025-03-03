@@ -122,6 +122,18 @@ class CircuitScopeInterface(abc.ABC):
         """
 
     @abc.abstractmethod
+    def add_stretch(self, var: expr.Stretch):
+        """Add a stretch variable to the circuit scope.
+
+        Args:
+            var: the variable to add, if valid.
+
+        Raises:
+            CircuitError: if the variable cannot be added, such as because it invalidly shadows or
+                redefines an existing name.
+        """
+
+    @abc.abstractmethod
     def remove_var(self, var: expr.Var):
         """Remove a variable from the locals of this scope.
 
@@ -134,6 +146,18 @@ class CircuitScopeInterface(abc.ABC):
         """
 
     @abc.abstractmethod
+    def remove_stretch(self, var: expr.Stretch):
+        """Remove a stretch variable from the locals of this scope.
+
+        This is only called in the case that an exception occurred while initializing the variable,
+        and is not exposed to users.
+
+        Args:
+            var: the variable to remove.  It can be assumed that this was already the subject of an
+                :meth:`add_stretch` call.
+        """
+
+    @abc.abstractmethod
     def use_var(self, var: expr.Var):
         """Called for every standalone classical real-time variable being used by some circuit
         instruction.
@@ -141,6 +165,20 @@ class CircuitScopeInterface(abc.ABC):
         The given variable is guaranteed to be a stand-alone variable; bit-like resource-wrapping
         variables will have been filtered out and their resources given to
         :meth:`resolve_classical_resource`.
+
+        Args:
+            var: the variable to validate.
+
+        Returns:
+            the same variable.
+
+        Raises:
+            CircuitError: if the variable is not valid for this scope.
+        """
+
+    @abc.abstractmethod
+    def use_stretch(self, var: expr.Stretch):
+        """Called for every stretch variable being used by some circuit instruction.
 
         Args:
             var: the variable to validate.
@@ -164,6 +202,20 @@ class CircuitScopeInterface(abc.ABC):
 
         Returns:
             the variable if it is found, otherwise ``None``.
+        """
+
+    @abc.abstractmethod
+    def get_stretch(self, name: str) -> Optional[expr.Stretch]:
+        """Get the stretch variable (if any) in scope with the given name.
+
+        This should call up to the parent scope if in a control-flow builder scope, in case the
+        variable exists in an outer scope.
+
+        Args:
+            name: the name of the symbol to lookup.
+
+        Returns:
+            the stretch variable if it is found, otherwise ``None``.
         """
 
     @abc.abstractmethod
@@ -317,6 +369,8 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
         "_forbidden_message",
         "_vars_local",
         "_vars_capture",
+        "_stretches_local",
+        "_stretches_capture",
     )
 
     def __init__(
@@ -359,6 +413,8 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
         self.global_phase = 0.0
         self._vars_local = {}
         self._vars_capture = {}
+        self._stretches_local = {}
+        self._stretches_capture = {}
         self._allow_jumps = allow_jumps
         self._parent = parent
         self._built = False
@@ -448,25 +504,54 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
             raise CircuitError("Cannot add resources after the scope has been built.")
         # We can shadow a name if it was declared in an outer scope, but only if we haven't already
         # captured it ourselves yet.
+        if (previous := self._stretches_local.get(var.name)) is not None:
+            raise CircuitError(f"cannot add '{var}' as its name shadows the existing '{previous}'")
         if (previous := self._vars_local.get(var.name)) is not None:
             if previous == var:
                 raise CircuitError(f"'{var}' is already present in the scope")
             raise CircuitError(f"cannot add '{var}' as its name shadows the existing '{previous}'")
-        if var.name in self._vars_capture:
+        if var.name in self._vars_capture or var.name in self._stretches_capture:
             raise CircuitError(f"cannot add '{var}' as its name shadows the existing '{previous}'")
         self._vars_local[var.name] = var
+
+    def add_stretch(self, var: expr.Stretch):
+        if self._built:
+            raise CircuitError("Cannot add resources after the scope has been built.")
+        # We can shadow a name if it was declared in an outer scope, but only if we haven't already
+        # captured it ourselves yet.
+        if (previous := self._vars_local.get(var.name)) is not None:
+            raise CircuitError(f"cannot add '{var}' as its name shadows the existing '{previous}'")
+        if (previous := self._stretches_local.get(var.name)) is not None:
+            if previous == var:
+                raise CircuitError(f"'{var}' is already present in the scope")
+            raise CircuitError(f"cannot add '{var}' as its name shadows the existing '{previous}'")
+        if var.name in self._vars_capture or var.name in self._stretches_capture:
+            raise CircuitError(f"cannot add '{var}' as its name shadows the existing '{previous}'")
+        self._stretches_local[var.name] = var
 
     def remove_var(self, var: expr.Var):
         if self._built:
             raise RuntimeError("exception handler 'remove_var' called after scope built")
         self._vars_local.pop(var.name)
 
+    def remove_stretch(self, var: expr.Stretch):
+        if self._built:
+            raise RuntimeError("exception handler 'remove_stretch' called after scope built")
+        self._stretches_local.pop(var.name)
+
     def get_var(self, name: str):
         if (out := self._vars_local.get(name)) is not None:
             return out
         return self._parent.get_var(name)
 
+    def get_stretch(self, name: str):
+        if (out := self._stretches_local.get(name)) is not None:
+            return out
+        return self._parent.get_stretch(name)
+
     def use_var(self, var: expr.Var):
+        if (local := self._stretches_local.get(var.name)) is not None:
+            raise CircuitError(f"cannot use '{var}' which is shadowed by the local '{local}'")
         if (local := self._vars_local.get(var.name)) is not None:
             if local == var:
                 return
@@ -478,6 +563,20 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
         self._parent.use_var(var)
         self._vars_capture[var.name] = var
 
+    def use_stretch(self, var: expr.Stretch):
+        if (local := self._vars_local.get(var.name)) is not None:
+            raise CircuitError(f"cannot use '{var}' which is shadowed by the local '{local}'")
+        if (local := self._stretches_local.get(var.name)) is not None:
+            if local == var:
+                return
+            raise CircuitError(f"cannot use '{var}' which is shadowed by the local '{local}'")
+        if self._stretches_capture.get(var.name) == var:
+            return
+        if self._parent.get_stretch(var.name) != var:
+            raise CircuitError(f"cannot close over '{var}', which is not in scope")
+        self._parent.use_stretch(var)
+        self._stretches_capture[var.name] = var
+
     def use_qubit(self, qubit: Qubit):
         self._instructions.add_qubit(qubit, strict=False)
 
@@ -485,9 +584,17 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
         """Iterator over the variables currently declared in this scope."""
         return self._vars_local.values()
 
+    def iter_local_stretches(self):
+        """Iterator over the stretch variables currently declared in this scope."""
+        return self._stretches_local.values()
+
     def iter_captured_vars(self):
         """Iterator over the variables currently captured in this scope."""
         return self._vars_capture.values()
+
+    def iter_captured_stretches(self):
+        """Iterator over the stretch variables currently captured in this scope."""
+        return self._stretches_capture.values()
 
     def peek(self) -> CircuitInstruction:
         """Get the value of the most recent instruction tuple in this scope."""
@@ -589,12 +696,15 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
             self._instructions.clbits,
             *self.registers,
             global_phase=self.global_phase,
-            captures=self._vars_capture.values(),
+            captures=itertools.chain(self._vars_capture.values(), self._stretches_capture.values()),
         )
         for var in self._vars_local.values():
             # The requisite `Store` instruction to initialise the variable will have been appended
             # into the instructions.
             out.add_uninitialized_var(var)
+
+        for var in self._stretches_local.values():
+            out.add_stretch(var)
 
         # Maps placeholder index to the newly concrete instruction.
         placeholder_to_concrete = {}
@@ -669,6 +779,8 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
         out.global_phase = self.global_phase
         out._vars_local = self._vars_local.copy()
         out._vars_capture = self._vars_capture.copy()
+        out._stretches_local = self._stretches_local.copy()
+        out._stretches_capture = self._stretches_capture.copy()
         out._parent = self._parent
         out._allow_jumps = self._allow_jumps
         out._forbidden_message = self._forbidden_message
