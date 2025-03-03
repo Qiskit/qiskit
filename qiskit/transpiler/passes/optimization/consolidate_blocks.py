@@ -41,7 +41,6 @@ KAK_GATE_NAMES = {
     "cz": CZGate(),
     "iswap": iSwapGate(),
     "ecr": ECRGate(),
-    # "rxx": RXXGate(pi / 2),
 }
 
 KAK_GATE_PARAM_NAMES = {
