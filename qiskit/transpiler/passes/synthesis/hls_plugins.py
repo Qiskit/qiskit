@@ -1922,7 +1922,7 @@ def _instruction_to_circuit(op: Operation) -> QuantumCircuit:
     circuit.append(op, circuit.qubits, circuit.clbits)
     return circuit
 
-  
+
 class WeightedSumSynthesisDefault(HighLevelSynthesisPlugin):
     """Synthesize a :class:`.WeightedSumGate` using the default synthesis algorithm.
 

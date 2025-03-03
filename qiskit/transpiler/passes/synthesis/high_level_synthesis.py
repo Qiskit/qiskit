@@ -418,7 +418,6 @@ def _synthesize_op_using_plugins(
         if best_decomposition.num_qubits != len(output_qubits):
             raise TranspilerError(
                 "HighLevelSynthesis: the result from 'synthesize_op_using_plugin' is incorrect."
-
             )
 
     if best_decomposition is None:

@@ -947,11 +947,9 @@ fn py_run_on_dag(
     // done at the top-level since this does not track the qubit states.
     let mut fast_path: bool = true;
 
-    for (node_index, inst) in dag.op_nodes(false) {
+    for (_, inst) in dag.op_nodes(false) {
         let qubits = dag.get_qargs(inst.qubits);
-        if !dag.has_calibration_for_index(py, node_index)?
-            && !definitely_skip_op(py, data, &inst.op, qubits)
-        {
+        if !definitely_skip_op(py, data, &inst.op, qubits) {
             fast_path = false;
             break;
         }
