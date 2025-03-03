@@ -41,7 +41,7 @@ class CommutationChecker:
         op1,
         op2,
         max_num_qubits: int = 3,
-        approximation_degree: float | None = None,
+        approximation_degree: float = 1.0,
     ) -> bool:
         """Checks if two DAGOpNodes commute."""
         return self.cc.commute_nodes(op1, op2, max_num_qubits, approximation_degree)
@@ -55,7 +55,7 @@ class CommutationChecker:
         qargs2: List,
         cargs2: List,
         max_num_qubits: int = 3,
-        approximation_degree: float | None = None,
+        approximation_degree: float = 1.0,
     ) -> bool:
         """
         Checks if two Operations commute. The return value of `True` means that the operations
@@ -73,7 +73,7 @@ class CommutationChecker:
             max_num_qubits: the maximum number of qubits to consider, the check may be skipped if
                 the number of qubits for either operation exceeds this amount.
             approximation_degree: If the average gate fidelity in between the two operations
-                is above this number (up to machine epsilon) they are assumed to commute.
+                is above this number (up to 16 times machine epsilon) they are assumed to commute.
 
         Returns:
             bool: whether two operations commute.
