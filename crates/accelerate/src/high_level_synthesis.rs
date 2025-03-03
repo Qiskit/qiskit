@@ -378,7 +378,7 @@ fn definitely_skip_op(
         return true;
     }
 
-    // If there are avilable plugins for this operation, we should try them
+    // If there are available plugins for this operation, we should try them
     // before checking the equivalence library.
     if borrowed_data.hls_op_names.iter().any(|s| s == op.name()) {
         return false;
@@ -479,7 +479,7 @@ fn run_on_circuitdata(
             if let OperationRef::Instruction(py_inst) = inst.op.view() {
                 let old_blocks_as_bound_obj = py_inst.instruction.bind(py);
 
-                // old_blocks_py keeps the orignal QuantumCircuit's appearing within control-flow ops
+                // old_blocks_py keeps the original QuantumCircuit's appearing within control-flow ops
                 // new_blocks_py keeps the recursively synthesized circuits
                 let old_blocks_py = old_blocks_as_bound_obj.getattr(intern!(py, "blocks"))?;
                 let old_blocks_py = old_blocks_py.downcast::<PyTuple>()?;
@@ -858,7 +858,7 @@ fn synthesize_op_using_plugins(
 /// This function is currently called by the default plugin for annotated operations to
 /// synthesize the base operation.
 #[pyfunction]
-#[pyo3(signature = (py_op, input_qubits, data, tracker))]
+#[pyo3(name = "synthesize_operation", signature = (py_op, input_qubits, data, tracker))]
 fn py_synthesize_operation(
     py: Python,
     py_op: Bound<PyAny>,
@@ -898,7 +898,7 @@ fn py_synthesize_operation(
 /// to do anything, it returns None, meaning that the DAG should remain unchanged.
 /// Otherwise, the new DAG is returned.
 #[pyfunction]
-#[pyo3(signature = (dag, data, qubits_initially_zero))]
+#[pyo3(name = "run_on_dag", signature = (dag, data, qubits_initially_zero))]
 fn py_run_on_dag(
     py: Python,
     dag: &DAGCircuit,
