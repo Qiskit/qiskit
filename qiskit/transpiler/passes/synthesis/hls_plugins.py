@@ -250,6 +250,58 @@ MCMT Synthesis
    MCMTSynthesisNoAux
    MCMTSynthesisDefault
 
+   
+Integer comparators
+'''''''''''''''''''
+
+.. list-table:: Plugins for :class:`.IntegerComparatorGate` (key = ``"IntComp"``)
+    :header-rows: 1
+
+    * - Plugin name
+      - Plugin class
+      - Description
+      - Auxiliary qubits
+    * - ``"twos"``
+      - :class:`~.IntComparatorSynthesis2s`
+      - use addition with two's complement 
+      - ``n - 1`` clean 
+    * - ``"noaux"``
+      - :class:`~.IntComparatorSynthesisNoAux`
+      - flip the target controlled on all :math:`O(2^l)` allowed integer values
+      - none
+    * - ``"default"``
+      - :class:`~.IntComparatorSynthesisDefault`
+      - use the best algorithm depending on the available auxiliary qubits
+      - any
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   IntComparatorSynthesis2s
+   IntComparatorSynthesisNoAux
+   IntComparatorSynthesisDefault
+
+   
+Sums
+''''
+
+.. list-table:: Plugins for :class:`.WeightedSumGate` (key = ``"WeightedSum"``)
+    :header-rows: 1
+
+    * - Plugin name
+      - Plugin class
+      - Description
+      - Auxiliary qubits
+    * - ``"default"``
+      - :class:`.WeightedSumSynthesisDefault`
+      - use a V-chain based synthesis
+      - given ``s`` sum qubits, used ``s - 1 + int(s > 2)`` clean auxiliary qubits
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   WeightedSumSynthesisDefault
+
 
 Pauli Evolution Synthesis
 '''''''''''''''''''''''''
@@ -426,9 +478,15 @@ from qiskit.circuit.library import (
     HalfAdderGate,
     FullAdderGate,
     MultiplierGate,
+    WeightedSumGate,
 )
 from qiskit.transpiler.coupling import CouplingMap
 
+from qiskit.synthesis.arithmetic import (
+    synth_integer_comparator_2s,
+    synth_integer_comparator_greedy,
+    synth_weighted_sum_carry,
+)
 from qiskit.synthesis.clifford import (
     synth_clifford_full,
     synth_clifford_layers,
@@ -1248,6 +1306,47 @@ class MCMTSynthesisVChain(HighLevelSynthesisPlugin):
         )
 
 
+class IntComparatorSynthesisDefault(HighLevelSynthesisPlugin):
+    """The default synthesis for ``IntegerComparatorGate``.
+
+    Currently this is only supporting an ancilla-based decomposition.
+    """
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        num_state_qubits = high_level_object.num_qubits - 1
+        num_aux = num_state_qubits - 1
+        if options.get("num_clean_ancillas", 0) < num_aux:
+            return synth_integer_comparator_greedy(
+                num_state_qubits, high_level_object.value, high_level_object.geq
+            )
+
+        return synth_integer_comparator_2s(
+            num_state_qubits, high_level_object.value, high_level_object.geq
+        )
+
+
+class IntComparatorSynthesisNoAux(HighLevelSynthesisPlugin):
+    """A potentially exponentially expensive comparison w/o auxiliary qubits."""
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        return synth_integer_comparator_greedy(
+            high_level_object.num_state_qubits, high_level_object.value, high_level_object.geq
+        )
+
+
+class IntComparatorSynthesis2s(HighLevelSynthesisPlugin):
+    """An integer comparison based on 2s complement."""
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        num_aux = high_level_object.num_state_qubits - 1
+        if options.get("num_clean_ancillas", 0) < num_aux:
+            return None
+
+        return synth_integer_comparator_2s(
+            high_level_object.num_state_qubits, high_level_object.value, high_level_object.geq
+        )
+
+
 class ModularAdderSynthesisDefault(HighLevelSynthesisPlugin):
     """The default modular adder (no carry in, no carry out qubit) synthesis.
 
@@ -1664,3 +1763,34 @@ class PauliEvolutionSynthesisRustiq(HighLevelSynthesisPlugin):
             upto_phase=upto_phase,
             resynth_clifford_method=resynth_clifford_method,
         )
+
+
+class WeightedSumSynthesisDefault(HighLevelSynthesisPlugin):
+    """Synthesize a :class:`.WeightedSumGate` using the default synthesis algorithm.
+
+    This plugin name is:``WeightedSum.default`` which can be used as the key on
+    an :class:`.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+
+    .. note::
+
+        This default plugin requires auxiliary qubits. There is currently no implementation
+        available without auxiliary qubits.
+
+    """
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        if not isinstance(high_level_object, WeightedSumGate):
+            return None
+
+        required_auxiliaries = (
+            high_level_object.num_sum_qubits - 1 + int(high_level_object.num_sum_qubits > 2)
+        )
+        if (num_clean := options.get("num_clean_ancillas", 0)) < required_auxiliaries:
+            warnings.warn(
+                f"Cannot synthesize a WeightedSumGate on {high_level_object.num_state_qubits} state "
+                f"qubits with less than {required_auxiliaries} clean auxiliary qubits. Only "
+                f"{num_clean} are available. This will likely lead to a error in HighLevelSynthesis."
+            )
+            return None
+
+        return synth_weighted_sum_carry(high_level_object)
