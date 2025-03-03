@@ -260,7 +260,7 @@ struct HighLevelSynthesisData {
     // A flag indicating whether the qubit indices of high-level-objects in the
     // circuit correspond to qubit indices on the target backend.
     #[pyo3(get)]
-    use_qubit_indices: bool,
+    use_physical_indices: bool,
 
     // The minimum number of qubits for operations in the input dag to translate.
     #[pyo3(get)]
@@ -274,7 +274,7 @@ struct HighLevelSynthesisData {
 #[pymethods]
 impl HighLevelSynthesisData {
     #[new]
-    #[pyo3(signature=(/, hls_config, hls_plugin_manager, hls_op_names, coupling_map, target, equivalence_library, device_insts, use_qubit_indices, min_qubits, unroll_definitions))]
+    #[pyo3(signature=(/, hls_config, hls_plugin_manager, hls_op_names, coupling_map, target, equivalence_library, device_insts, use_physical_indices, min_qubits, unroll_definitions))]
     #[allow(clippy::too_many_arguments)]
     fn __new__(
         hls_config: Py<PyAny>,
@@ -284,7 +284,7 @@ impl HighLevelSynthesisData {
         target: Option<Py<Target>>,
         equivalence_library: Option<Py<EquivalenceLibrary>>,
         device_insts: HashSet<String>,
-        use_qubit_indices: bool,
+        use_physical_indices: bool,
         min_qubits: usize,
         unroll_definitions: bool,
     ) -> Self {
@@ -296,7 +296,7 @@ impl HighLevelSynthesisData {
             target,
             equivalence_library,
             device_insts,
-            use_qubit_indices,
+            use_physical_indices,
             min_qubits,
             unroll_definitions,
         }
@@ -311,7 +311,7 @@ impl HighLevelSynthesisData {
             self.target.clone(),
             self.equivalence_library.clone(),
             self.device_insts.clone(),
-            self.use_qubit_indices,
+            self.use_physical_indices,
             self.min_qubits,
             self.unroll_definitions,
         )
@@ -320,8 +320,8 @@ impl HighLevelSynthesisData {
 
     fn __str__(&self) -> String {
         format!(
-            "HighLevelSynthesisData(hls_config: {:?}, hls_plugin_manager: {:?}, hls_op_names: {:?}, coupling_map: {:?}, target: {:?},  equivalence_library: {:?}, device_insts: {:?}, use_qubit_indices: {:?}, min_qubits: {:?}, unroll_definitions: {:?})",
-            self.hls_config, self.hls_plugin_manager, self.hls_op_names, self.coupling_map, self.target, self.equivalence_library, self.device_insts,  self.use_qubit_indices, self.min_qubits, self.unroll_definitions
+            "HighLevelSynthesisData(hls_config: {:?}, hls_plugin_manager: {:?}, hls_op_names: {:?}, coupling_map: {:?}, target: {:?},  equivalence_library: {:?}, device_insts: {:?}, use_physical_indices: {:?}, min_qubits: {:?}, unroll_definitions: {:?})",
+            self.hls_config, self.hls_plugin_manager, self.hls_op_names, self.coupling_map, self.target, self.equivalence_library, self.device_insts,  self.use_physical_indices, self.min_qubits, self.unroll_definitions
         )
     }
 }
@@ -338,7 +338,7 @@ fn instruction_supported(
         Some(target) => {
             let target = target.borrow(py);
             if target.num_qubits.is_some() {
-                if borrowed_data.use_qubit_indices {
+                if borrowed_data.use_physical_indices {
                     let physical_qubits = qubits.iter().map(|q| PhysicalQubit(q.0)).collect();
                     target.instruction_supported(name, Some(&physical_qubits))
                 } else {
