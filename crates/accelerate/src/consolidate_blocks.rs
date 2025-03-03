@@ -34,6 +34,7 @@ use crate::nlayout::PhysicalQubit;
 use crate::target_transpiler::Target;
 use crate::two_qubit_decompose::{TwoQubitBasisDecomposer, TwoQubitControlledUDecomposer};
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Clone, Debug, FromPyObject)]
 pub enum DecomposerType {
     TwoQubitBasis(TwoQubitBasisDecomposer),
