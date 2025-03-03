@@ -622,7 +622,7 @@ def sub(left: typing.Any, right: typing.Any, /) -> Expr:
     lifting the values into :class:`Value` nodes if required.
 
     Examples:
-        Subtration of two floating point numbers::
+        Subtraction of two floating point numbers::
 
             >>> from qiskit.circuit.classical import expr
             >>> expr.sub(5.0, 2.0)
@@ -632,7 +632,7 @@ Value(5.0, Float()), \
 Value(2.0, Float()), \
 Float())
 
-    Subtraction of two durations::
+        Subtraction of two durations::
 
             >>> from qiskit.circuit import Duration
             >>> from qiskit.circuit.classical import expr

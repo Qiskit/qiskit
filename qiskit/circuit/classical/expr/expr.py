@@ -314,6 +314,15 @@ class Binary(Expr):
         container types (e.g. unsigned integers) as the left operand, and any integer type as the
         right-hand operand.  In all cases, the output bit width is the same as the input, and zeros
         fill in the "exposed" spaces.
+
+        The binary arithmetic operators :data:`ADD`, :data:`SUB:, :data:`MUL`, and :data:`DIV`
+        can be applied to two floats or two unsigned integers, which should be made to be of
+        the same width during construction via a cast.
+        The :data:`ADD`, :data:`SUB`, and :data:`DIV` operators can be applied on two durations
+        yielding another duration, or a float in the case of :data:`DIV`. The :data:`MUL` operator
+        can also be applied to a duration and a numeric type, yielding another duration. Finally,
+        the :data:`DIV` operator can be used to divide a duration by a numeric type, yielding a
+        duration.
         """
 
         # If adding opcodes, remember to add helper constructor functions in `constructors.py`
