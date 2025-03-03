@@ -10,11 +10,11 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use pyo3::types::PyAnyMethods;
 use pyo3::{PyResult, Python};
+use qiskit_circuit::imports;
+use qiskit_circuit::operations::PyGate;
 use qiskit_circuit::{circuit_data::CircuitData, operations::Param, Qubit};
-// use qiskit_circuit::imports;
-// use qiskit_circuit::operations::{OperationRef, PyGate};
-// use smallvec::smallvec;
 
 use std::f64::consts::PI;
 // const PI2: f64 = PI / 2.;
@@ -181,6 +181,7 @@ pub fn synth_mcx_n_dirty_i15(
     relative_phase: bool,
     action_only: bool,
 ) -> PyResult<CircuitData> {
+    println!("I AM IN RUST!!");
     if num_controls == 1 {
         let mut circuit = CircuitData::with_capacity(py, 2, 0, 1, Param::Float(0.0))?;
         circuit.cx(0, 1);
@@ -301,6 +302,7 @@ pub fn synth_mcx_n_dirty_i15(
 /// Single-Qubit Gates*, IEEE TCAD 43(3) (2024),
 /// [arXiv:2302.06377] (https://arxiv.org/abs/2302.06377).
 pub fn synth_mcx_noaux_v24(py: Python, num_controls: usize) -> PyResult<CircuitData> {
+    println!("I AM IN RUST FOR V24");
     // ToDo: should we return Result?
     if num_controls == 3 {
         c3x(py)
@@ -316,25 +318,25 @@ pub fn synth_mcx_noaux_v24(py: Python, num_controls: usize) -> PyResult<CircuitD
         let mut circuit = CircuitData::with_capacity(py, num_qubits, 0, 0, Param::Float(0.0))?;
         circuit.h(target);
 
-        // let mcphase_cls = imports::MCPHASE_GATE.get_bound(py);
-        // let mcphase_gate = mcphase_cls.call1((PI, num_controls)).expect("Could not create MCPhaseGate Python-side");
+        let mcphase_cls = imports::MCPHASE_GATE.get_bound(py);
+        let mcphase_gate = mcphase_cls
+            .call1((PI, num_controls))
+            .expect("Could not create MCPhaseGate Python-side");
 
-        // let py_obj = Box::new(mcphase_gate.into());
+        let as_py_gate = PyGate {
+            qubits: num_qubits,
+            clbits: 0,
+            params: 1,
+            op_name: "mcphase".to_string(),
+            gate: mcphase_gate.into(),
+        };
 
-        // let as_py_gate = PyGate {
-        //     qubits: num_qubits,
-        //     clbits: 0,
-        //     params: 1, // check me!
-        //     op_name: "mcphase".to_string(),
-        //     gate: *py_obj,
-        // };
-        // circuit.data.push(
-        //     (
-        //     OperationRef::Gate(&as_py_gate),
-        //     smallvec![],
-        //     (0..num_qubits).map(|q| q as u32).collect::<Vec<u32>>().into()
-        //     )
-        // );
+        circuit.push_py_gate(
+            as_py_gate,
+            &[],
+            &(0..num_qubits).map(|q| Qubit(q)).collect::<Vec<Qubit>>(),
+            &[],
+        )?;
 
         circuit.h(target);
 

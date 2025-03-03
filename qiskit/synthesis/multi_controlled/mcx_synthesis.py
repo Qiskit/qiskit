@@ -25,7 +25,21 @@ from qiskit.circuit.library.standard_gates import (
     C3SXGate,
 )
 
-from qiskit._accelerate.synthesis.multi_controlled import py_c3x
+from qiskit._accelerate.synthesis.multi_controlled import (
+    py_c3x,
+    py_synth_mcx_n_dirty_i15,
+    py_synth_mcx_noaux_v24,
+)
+
+
+def synth_mcx_n_dirty_i15_rust(
+    num_ctrl_qubits: int,
+    relative_phase: bool = False,
+    action_only: bool = False,
+) -> QuantumCircuit:
+    return QuantumCircuit._from_circuit_data(
+        py_synth_mcx_n_dirty_i15(num_ctrl_qubits, relative_phase, action_only)
+    )
 
 
 def synth_mcx_n_dirty_i15(
@@ -300,6 +314,11 @@ def synth_mcx_noaux_v24(num_ctrl_qubits: int) -> QuantumCircuit:
     qc.mcp(np.pi, q_controls, q_target)
     qc.h(q_target)
     return qc
+
+
+def synth_mcx_noaux_v24_rust(num_ctrl_qubits: int) -> QuantumCircuit:
+    circ = QuantumCircuit._from_circuit_data(py_synth_mcx_noaux_v24(num_ctrl_qubits))
+    return circ
 
 
 def synth_c3x() -> QuantumCircuit:
