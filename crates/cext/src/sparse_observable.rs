@@ -14,11 +14,15 @@ use std::ffi::{c_char, CString};
 
 use crate::exit_codes::{CInputError, ExitCode};
 use num_complex::Complex64;
+
+use qiskit_accelerate::sparse_observable::{BitTerm, SparseObservable, SparseTermView};
+
+#[cfg(feature = "python_binding")]
 use pyo3::ffi::PyObject;
+#[cfg(feature = "python_binding")]
 use pyo3::{Py, Python};
-use qiskit_accelerate::sparse_observable::{
-    BitTerm, PySparseObservable, SparseObservable, SparseTermView,
-};
+#[cfg(feature = "python_binding")]
+use qiskit_accelerate::sparse_observable::PySparseObservable;
 
 /// @ingroup QkObsTerm
 /// A term in a [SparseObservable].
