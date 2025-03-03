@@ -2453,7 +2453,7 @@ class TestPostTranspileIntegration(QiskitTestCase):
         a = expr.Var.new("a", types.Bool())
         b = expr.Var.new("b", types.Uint(8))
         c = expr.Var.new("c", types.Uint(8))
-        d = expr.Var.new("d", types.Stretch())
+        d = expr.Stretch.new("d")
 
         qc = QuantumCircuit(5, 5, inputs=[a])
         qc.add_var(b, 12)

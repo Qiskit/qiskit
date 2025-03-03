@@ -49,10 +49,12 @@ class Delay(Instruction):
                 raise CircuitError(
                     "Argument 'unit' must not be specified for a duration expression."
                 )
-            if duration.type.kind not in (types.Duration, types.Stretch):
+            if duration.type.kind is not types.Duration:
                 raise CircuitError(
                     f"Expression of type '{duration.type}' is not valid for 'duration'."
                 )
+            if not duration.const:
+                raise CircuitError("Duration expressions must be constant.")
             unit = "expr"
         elif unit is None:
             unit = "dt"
@@ -131,8 +133,10 @@ class Delay(Instruction):
                 return parameter_int
             return parameter
         elif isinstance(parameter, expr.Expr):
-            if parameter.type.kind not in (types.Duration, types.Stretch):
+            if parameter.type.kind is not types.Duration:
                 raise CircuitError(f"Expression duration of type '{parameter.type}' is not valid.")
+            if not parameter.const:
+                raise CircuitError("Duration expressions must be constant.")
             return parameter
         elif isinstance(parameter, ParameterExpression):
             if len(parameter.parameters) > 0:

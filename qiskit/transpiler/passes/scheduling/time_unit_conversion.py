@@ -85,7 +85,9 @@ class TimeUnitConversion(TransformationPass):
         # durations.
         for node in dag.op_nodes(op=Delay):
             if isinstance(node.op.duration, expr.Expr):
-                if node.op.duration.type.kind is types.Stretch:
+                if any(
+                    isinstance(x, expr.Stretch) for x in expr.iter_identifiers(node.op.duration)
+                ):
                     # If any of the delays use a stretch expression, we can't run scheduling
                     # passes anyway, so we bail out. In theory, we _could_ still traverse
                     # through the stretch expression and replace any Duration value nodes it may
@@ -146,7 +148,7 @@ class TimeUnitConversion(TransformationPass):
             if node._node_id in expression_durations:
                 op.duration = expression_durations[node._node_id]
             else:
-			    op.duration = inst_durations._convert_unit(op.duration, op.unit, time_unit)
+                op.duration = inst_durations._convert_unit(op.duration, op.unit, time_unit)
             op.unit = time_unit
             dag.substitute_node(node, op)
 
@@ -176,19 +178,6 @@ class TimeUnitConversion(TransformationPass):
             circ_durations.update(self.inst_durations, getattr(self.inst_durations, "dt", None))
 
         return circ_durations
-
-    @staticmethod
-    def _units_used_in_delays(dag: DAGCircuit) -> Set[str]:
-        units_used = set()
-        for node in dag.op_nodes(op=Delay):
-            if (
-                isinstance(node.op.duration, expr.Expr)
-                and node.op.duration.type.kind is types.Stretch
-            ):
-                units_used.add("stretch")
-                continue
-            units_used.add(node.op.unit)
-        return units_used
 
     @staticmethod
     def _unified(unit_set: Set[str]) -> str:
