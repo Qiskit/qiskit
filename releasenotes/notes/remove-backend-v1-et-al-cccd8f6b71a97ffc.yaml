@@ -57,10 +57,13 @@ upgrade_misc:
     *    ``QobjMeasurementOption``
     *    ``PulseLibraryItem``
 
+  - |
     The :class:`.MeasLevel` and :class`.MeasReturnType` classes, previously defined in 
     ``qobj/utils.py``, have been migrated to ``result/models.py`` following the removal
-    of the ``qobj`` module. These classes were not part of the public API, so there should
-    not be any effect on users from this move.
+    of the ``qobj`` module. These classes were not part of the public API. 
+    The import path has been updated 
+    from: ``from qiskit.qobj.utils import MeasLevel, MeasReturnType`` to: 
+    ``from qiskit.result import MeasLevel, MeasReturnType``.
 
   - |
     The use of positional arguments in the constructor of :class:`.Result` has been disabled.
