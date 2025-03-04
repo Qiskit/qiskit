@@ -1274,20 +1274,51 @@ class TestControlledGate(QiskitTestCase):
         num_ctrl_qubits = 1
         for gate_class in ControlledGate.__subclasses__():
             with self.subTest(i=repr(gate_class)):
+                # Singleton class isn't intended to be created directly
                 if gate_class in {SingletonControlledGate, _SingletonControlledGateOverrides}:
-                    self.skipTest("Singleton class isn't intended to be created directly.")
+                    continue
                 gate_params = _get_free_params(gate_class.__init__, ignore=["self"])
                 num_free_params = len(gate_params)
                 free_params = [0.1 * i for i in range(num_free_params)]
                 # set number of control qubits
                 for i in range(num_free_params):
-                    if gate_params[i] == "num_ctrl_qubits":
+                    if gate_params[i] == "num_ctrl_qubits" or gate_params[i] == "num_target_qubits":
                         free_params[i] = 3
+                    # MCMTGate
+                    elif gate_params[i] == "gate":
+                        free_params[i] = RYGate(free_params[i])
 
                 base_gate = gate_class(*free_params)
                 if base_gate.params:
                     cgate = base_gate.control(num_ctrl_qubits)
                     self.assertIs(cgate.base_gate.params, cgate.params)
+
+    def test_gate_parameterized(self):
+        """
+        Test all standard gates of type ControlledGate whether is_parameterized()
+        is true if the gate takes parameters
+        """
+        for gate_class in ControlledGate.__subclasses__():
+            with self.subTest(i=repr(gate_class)):
+                # Singleton class isn't intended to be created directly, and its subclasses are not parameterized
+                if gate_class in {SingletonControlledGate, _SingletonControlledGateOverrides}:
+                    continue
+                gate_params = _get_free_params(gate_class.__init__, ignore=["self"])
+                num_free_params = len(gate_params)
+                parameterized = False
+                free_params = []
+                for i in range(num_free_params):
+                    if gate_params[i] == "num_ctrl_qubits" or gate_params[i] == "num_target_qubits":
+                        free_params.append(1)
+                    elif gate_params[i] == "gate":
+                        free_params.append(RYGate(Parameter("p" + str(i))))
+                        parameterized = True
+                    else:
+                        free_params.append(Parameter("p" + str(i)))
+                        parameterized = True
+
+                gate = gate_class(*free_params)
+                self.assertIs(gate.is_parameterized(), parameterized)
 
     def test_assign_parameters(self):
         """Test assigning parameters to quantum circuit with controlled gate."""
