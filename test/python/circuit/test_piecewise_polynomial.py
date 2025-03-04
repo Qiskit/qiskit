@@ -78,9 +78,10 @@ class TestPiecewisePolynomialRotations(QiskitTestCase):
                     return np.poly1d(rescaled_c)(x)
             return 0
 
-        pw_polynomial_rotations = PiecewisePolynomialPauliRotations(
-            num_state_qubits, breakpoints, coeffs
-        )
+        with self.assertWarns(DeprecationWarning):
+            pw_polynomial_rotations = PiecewisePolynomialPauliRotations(
+                num_state_qubits, breakpoints, coeffs
+            )
 
         self.assertFunctionIsCorrect(pw_polynomial_rotations, pw_poly)
 
@@ -96,7 +97,8 @@ class TestPiecewisePolynomialRotations(QiskitTestCase):
                     return np.poly1d(rescaled_c)(x)
             return 0
 
-        pw_polynomial_rotations = PiecewisePolynomialPauliRotations()
+        with self.assertWarns(DeprecationWarning):
+            pw_polynomial_rotations = PiecewisePolynomialPauliRotations()
 
         with self.subTest(msg="missing number of state qubits"):
             with self.assertRaises(AttributeError):  # no state qubits set

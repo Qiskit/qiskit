@@ -85,9 +85,17 @@ class TestFunctionalPauliRotations(QiskitTestCase):
             return res
 
         for use_gate in [True, False]:
-            constructor = PolynomialPauliRotationsGate if use_gate else PolynomialPauliRotations
-            polynome = constructor(num_state_qubits, [2 * coeff for coeff in coeffs])
-            num_ancillas = 0 if use_gate else None
+            if use_gate:
+                polynome = PolynomialPauliRotationsGate(
+                    num_state_qubits, [2 * coeff for coeff in coeffs]
+                )
+                num_ancillas = 0
+            else:
+                with self.assertWarns(DeprecationWarning):
+                    polynome = PolynomialPauliRotations(
+                        num_state_qubits, [2 * coeff for coeff in coeffs]
+                    )
+                num_ancillas = None
 
             with self.subTest(use_gate=use_gate):
                 self.assertFunctionIsCorrect(polynome, poly, num_ancillas)
@@ -95,7 +103,8 @@ class TestFunctionalPauliRotations(QiskitTestCase):
     def test_polynomial_rotations_mutability(self):
         """Test the mutability of the linear rotations circuit."""
 
-        polynomial_rotations = PolynomialPauliRotations()
+        with self.assertWarns(DeprecationWarning):
+            polynomial_rotations = PolynomialPauliRotations()
 
         with self.subTest(msg="missing number of state qubits"):
             with self.assertRaises(AttributeError):  # no state qubits set
@@ -127,9 +136,13 @@ class TestFunctionalPauliRotations(QiskitTestCase):
             return offset + slope * x
 
         for use_gate in [True, False]:
-            constructor = LinearPauliRotationsGate if use_gate else LinearPauliRotations
-            linear_rotation = constructor(num_state_qubits, slope * 2, offset * 2)
-            num_ancillas = 0 if use_gate else None
+            if use_gate:
+                linear_rotation = LinearPauliRotationsGate(num_state_qubits, slope * 2, offset * 2)
+                num_ancillas = 0
+            else:
+                with self.assertWarns(DeprecationWarning):
+                    linear_rotation = LinearPauliRotations(num_state_qubits, slope * 2, offset * 2)
+                num_ancillas = None
 
             with self.subTest(use_gate=use_gate):
                 self.assertFunctionIsCorrect(linear_rotation, linear, num_ancillas)
@@ -137,7 +150,8 @@ class TestFunctionalPauliRotations(QiskitTestCase):
     def test_linear_rotations_mutability(self):
         """Test the mutability of the linear rotations circuit."""
 
-        linear_rotation = LinearPauliRotations()
+        with self.assertWarns(DeprecationWarning):
+            linear_rotation = LinearPauliRotations()
 
         with self.subTest(msg="missing number of state qubits"):
             with self.assertRaises(AttributeError):  # no state qubits set
@@ -175,31 +189,31 @@ class TestFunctionalPauliRotations(QiskitTestCase):
                     return offsets[-(i + 1)] + slopes[-(i + 1)] * (x - point)
             return 0
 
-        for use_gate in [False, True]:
-            constructor = (
-                PiecewiseLinearPauliRotationsGate if use_gate else PiecewiseLinearPauliRotations
-            )
+        slopes2 = [2 * slope for slope in slopes]
+        offsets2 = [2 * offset for offset in offsets]
 
+        for use_gate in [False, True]:
             if use_gate:
+                pw_linear_rotations = PiecewiseLinearPauliRotationsGate(
+                    num_state_qubits, breakpoints, slopes2, offsets2
+                )
                 # ancilla for the comparator bit
                 num_ancillas = int(len(breakpoints) > 1)
             else:
+                with self.assertWarns(DeprecationWarning):
+                    pw_linear_rotations = PiecewiseLinearPauliRotations(
+                        num_state_qubits, breakpoints, slopes2, offsets2
+                    )
                 num_ancillas = None  # automatically deducted
 
             with self.subTest(use_gate=use_gate):
-                pw_linear_rotations = constructor(
-                    num_state_qubits,
-                    breakpoints,
-                    [2 * slope for slope in slopes],
-                    [2 * offset for offset in offsets],
-                )
-
                 self.assertFunctionIsCorrect(pw_linear_rotations, pw_linear, num_ancillas)
 
     def test_piecewise_linear_rotations_mutability(self):
         """Test the mutability of the linear rotations circuit."""
 
-        pw_linear_rotations = PiecewiseLinearPauliRotations()
+        with self.assertWarns(DeprecationWarning):
+            pw_linear_rotations = PiecewiseLinearPauliRotations()
 
         with self.subTest(msg="missing number of state qubits"):
             with self.assertRaises(AttributeError):  # no state qubits set
@@ -250,25 +264,20 @@ class TestFunctionalPauliRotations(QiskitTestCase):
             return 0
 
         for use_gate in [False, True]:
-            constructor = (
-                PiecewisePolynomialPauliRotationsGate
-                if use_gate
-                else PiecewisePolynomialPauliRotations
-            )
-
             if use_gate:
+                pw_poly_rotations = PiecewisePolynomialPauliRotationsGate(
+                    num_state_qubits, breakpoints, coeffs
+                )
                 # ancilla for the comparator bit
                 num_ancillas = int(len(breakpoints) > 1)
             else:
+                with self.assertWarns(DeprecationWarning):
+                    pw_poly_rotations = PiecewisePolynomialPauliRotations(
+                        num_state_qubits, breakpoints, coeffs
+                    )
                 num_ancillas = None  # automatically deducted
 
             with self.subTest(use_gate=use_gate):
-                pw_poly_rotations = constructor(
-                    num_state_qubits,
-                    breakpoints,
-                    coeffs,
-                )
-
                 self.assertFunctionIsCorrect(pw_poly_rotations, pw_poly, num_ancillas)
 
     @data((1, 0.01), (5, 0.02))
