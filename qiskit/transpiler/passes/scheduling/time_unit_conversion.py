@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 """Unify time unit in circuit for scheduling and following passes."""
+import warnings
 from typing import Set
 
 from qiskit.circuit import Delay, Duration

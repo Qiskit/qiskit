@@ -1502,6 +1502,12 @@ impl DAGCircuit {
             {
                 target_dag.add_var(py, &var, DAGVarType::Declare)?;
             }
+            for stretch in self.captured_stretches.values() {
+                target_dag.add_captured_stretch(py, stretch.bind(py))?;
+            }
+            for stretch in self.declared_stretches.values() {
+                target_dag.add_declared_stretch(stretch.bind(py))?;
+            }
         } else if vars_mode == "captures" {
             for var in self.vars_by_type[DAGVarType::Input as usize]
                 .bind(py)
@@ -1520,6 +1526,12 @@ impl DAGCircuit {
                 .iter()
             {
                 target_dag.add_var(py, &var, DAGVarType::Capture)?;
+            }
+            for stretch in self.captured_stretches.values() {
+                target_dag.add_captured_stretch(py, stretch.bind(py))?;
+            }
+            for stretch in self.declared_stretches.values() {
+                target_dag.add_captured_stretch(py, stretch.bind(py))?;
             }
         } else if vars_mode != "drop" {
             return Err(PyValueError::new_err(format!(
@@ -1818,9 +1830,9 @@ impl DAGCircuit {
             dag.add_input_var(py, &var?)?;
         }
         if inline_captures {
-            for var in other.iter_captured_vars(py)?.bind(py) {
+            for var in other.iter_captures(py)?.bind(py) {
                 let var = var?;
-                if !dag.has_var(&var)? {
+                if !dag.has_identifier(&var)? {
                     return Err(DAGCircuitError::new_err(format!("Variable '{}' to be inlined is not in the base DAG. If you wanted it to be automatically added, use `inline_captures=False`.", var)));
                 }
             }
@@ -1828,9 +1840,15 @@ impl DAGCircuit {
             for var in other.iter_captured_vars(py)?.bind(py) {
                 dag.add_captured_var(py, &var?)?;
             }
+            for stretch in other.iter_captured_stretches(py)?.bind(py) {
+                dag.add_captured_stretch(py, &stretch?)?;
+            }
         }
         for var in other.iter_declared_vars(py)?.bind(py) {
             dag.add_declared_var(py, &var?)?;
+        }
+        for var in other.iter_declared_stretches(py)?.bind(py) {
+            dag.add_declared_stretch(&var?)?;
         }
 
         let variable_mapper = PyVariableMapper::new(
@@ -4296,12 +4314,86 @@ impl DAGCircuit {
         Ok(())
     }
 
+    /// Add a captured stretch variable to the circuit.
+    ///
+    /// Args:
+    ///     var: the stretch variable to add.
+    fn add_captured_stretch(&mut self, py: Python, var: &Bound<PyAny>) -> PyResult<()> {
+        if !self.vars_by_type[DAGVarType::Input as usize]
+            .bind(py)
+            .is_empty()
+        {
+            return Err(DAGCircuitError::new_err(
+                "cannot add captures to a circuit with inputs",
+            ));
+        }
+        let var_name: String = var.getattr("name")?.extract::<String>()?;
+        if self.vars_info.contains_key(&var_name) {
+            return Err(DAGCircuitError::new_err(
+                "cannot add var as its name shadows an existing var",
+            ));
+        }
+        if let Some(previous) = self.declared_stretches.get(&var_name) {
+            if var.eq(previous)? {
+                return Err(DAGCircuitError::new_err("already present in the circuit"));
+            }
+            return Err(DAGCircuitError::new_err(
+                "cannot add var as its name shadows an existing var",
+            ));
+        }
+        if let Some(previous) = self.captured_stretches.get(&var_name) {
+            if var.eq(previous)? {
+                return Err(DAGCircuitError::new_err("already present in the circuit"));
+            }
+            return Err(DAGCircuitError::new_err(
+                "cannot add var as its name shadows an existing var",
+            ));
+        }
+
+        self.captured_stretches
+            .insert(var_name, var.clone().unbind());
+        Ok(())
+    }
+
     /// Add a declared local variable to the circuit.
     ///
     /// Args:
     ///     var: the variable to add.
     fn add_declared_var(&mut self, py: Python, var: &Bound<PyAny>) -> PyResult<()> {
         self.add_var(py, var, DAGVarType::Declare)?;
+        Ok(())
+    }
+
+    /// Add a declared stretch variable to the circuit.
+    ///
+    /// Args:
+    ///     var: the stretch variable to add.
+    fn add_declared_stretch(&mut self, var: &Bound<PyAny>) -> PyResult<()> {
+        let var_name: String = var.getattr("name")?.extract::<String>()?;
+        if self.vars_info.contains_key(&var_name) {
+            return Err(DAGCircuitError::new_err(
+                "cannot add var as its name shadows an existing var",
+            ));
+        }
+        if let Some(previous) = self.declared_stretches.get(&var_name) {
+            if var.eq(previous)? {
+                return Err(DAGCircuitError::new_err("already present in the circuit"));
+            }
+            return Err(DAGCircuitError::new_err(
+                "cannot add var as its name shadows an existing var",
+            ));
+        }
+        if let Some(previous) = self.captured_stretches.get(&var_name) {
+            if var.eq(previous)? {
+                return Err(DAGCircuitError::new_err("already present in the circuit"));
+            }
+            return Err(DAGCircuitError::new_err(
+                "cannot add var as its name shadows an existing var",
+            ));
+        }
+
+        self.declared_stretches
+            .insert(var_name, var.clone().unbind());
         Ok(())
     }
 
@@ -4349,6 +4441,36 @@ impl DAGCircuit {
                 }
             }
         }
+    }
+
+    /// Is this stretch variable in the DAG?
+    ///
+    /// Args:
+    ///     var: the stretch variable or name to check.
+    fn has_stretch(&self, var: &Bound<PyAny>) -> PyResult<bool> {
+        match var.extract::<String>() {
+            Ok(name) => Ok(self.declared_stretches.contains_key(&name)
+                || self.captured_stretches.contains_key(&name)),
+            Err(_) => {
+                let raw_name = var.getattr("name")?;
+                let var_name: String = raw_name.extract()?;
+                if let Some(stretch) = self.declared_stretches.get(&var_name) {
+                    return Ok(stretch.is(var));
+                }
+                if let Some(stretch) = self.captured_stretches.get(&var_name) {
+                    return Ok(stretch.is(var));
+                }
+                Ok(false)
+            }
+        }
+    }
+
+    /// Is this identifier in the DAG?
+    ///
+    /// Args:
+    ///     var: the identifier or name to check.
+    fn has_identifier(&self, var: &Bound<PyAny>) -> PyResult<bool> {
+        Ok(self.has_var(var)? || self.has_stretch(var)?)
     }
 
     /// Iterable over the input classical variables tracked by the circuit.

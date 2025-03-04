@@ -1938,9 +1938,9 @@ class QuantumCircuit:
             for var in source.iter_input_vars():
                 dest.add_input(replace_var(var, var_map))
             if inline_captures:
-                for var in source.iter_captured_vars():
+                for var in source.iter_captures():
                     replacement = replace_var(var, var_map)
-                    if not dest.has_var(replace_var(var, var_map)):
+                    if not dest.has_identifier(replace_var(var, var_map)):
                         if var is replacement:
                             raise CircuitError(
                                 f"Variable '{var}' to be inlined is not in the base circuit."
@@ -1954,8 +1954,14 @@ class QuantumCircuit:
             else:
                 for var in source.iter_captured_vars():
                     dest.add_capture(replace_var(var, var_map))
+                for stretch in source.iter_captured_stretches():
+                    # TODO: replace_var for stretch
+                    dest.add_capture(stretch)
             for var in source.iter_declared_vars():
                 dest.add_uninitialized_var(replace_var(var, var_map))
+            for stretch in source.iter_declared_stretches():
+                # TODO: replace_var for stretch
+                dest.add_stretch(stretch)
 
             def recurse_block(block):
                 # Recurse the remapping into a control-flow block.  Note that this doesn't remap the
@@ -2238,6 +2244,18 @@ class QuantumCircuit:
             return ()
         return self._vars_input.values()
 
+    def iter_captures(self) -> typing.Iterable[typing.Union[expr.Var, expr.Stretch]]:
+        """Get an iterable over all identifiers are captured by this circuit scope from a
+        containing scope.  This excludes input variables (see :meth:`iter_input_vars`)
+        and locally declared variables and stretches (see :meth:`iter_declared_vars`
+        and :meth:`iter_declared_stretches`)."""
+        if self._control_flow_scopes:
+            return itertools.chain(
+                self._control_flow_scopes[-1].iter_captured_vars(),
+                self._control_flow_scopes[-1].iter_captured_stretches(),
+            )
+        return itertools.chain(self._vars_capture.values(), self._stretches_capture.values())
+
     def iter_captured_vars(self) -> typing.Iterable[expr.Var]:
         """Get an iterable over all real-time classical variables that are captured by this circuit
         scope from a containing scope.  This excludes input variables (see :meth:`iter_input_vars`)
@@ -2427,9 +2445,9 @@ class QuantumCircuit:
             if bad_captures := {
                 var
                 for var in itertools.chain.from_iterable(
-                    block.iter_captured_vars() for block in operation.blocks
+                    block.iter_captures() for block in operation.blocks
                 )
-                if not self.has_var(var)
+                if not self.has_identifier(var)
             }:
                 raise CircuitError(
                     f"Control-flow op attempts to capture '{bad_captures}'"
