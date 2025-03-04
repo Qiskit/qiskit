@@ -953,7 +953,7 @@ def load_qpy(qpy_files, version_parts):
     for path, circuits in qpy_files.items():
         print(f"Loading qpy file: {path}")
         with open(path, "rb") as fd:
-            qpy_circuits = load(fd)
+            qpy_circuits = load(fd, trust_payload=True)
         equivalent = path in {"open_controlled_gates.qpy", "controlled_gates.qpy"}
         for i, circuit in enumerate(circuits):
             bind = None
