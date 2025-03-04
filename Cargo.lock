@@ -1446,6 +1446,7 @@ version = "2.0.0"
 dependencies = [
  "cbindgen",
  "num-complex",
+ "pyo3",
  "qiskit-accelerate",
  "thiserror 2.0.12",
 ]
@@ -1478,6 +1479,7 @@ version = "2.0.0"
 dependencies = [
  "pyo3",
  "qiskit-accelerate",
+ "qiskit-cext",
  "qiskit-circuit",
  "qiskit-qasm2",
  "qiskit-qasm3",

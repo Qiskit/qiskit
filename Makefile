@@ -115,16 +115,18 @@ cformat:
 fix_cformat:
 	bash tools/run_clang_format.sh apply
 
-# The header file is managed by a different build tool - pretend it's always dirty.
-.PHONY: $(C_QISKIT_H)
-$(C_QISKIT_H):
-	cargo build --release --no-default-features --features cbinding
+# The library file is managed by a different build tool - pretend it's always dirty.
+.PHONY: $(C_LIB_CARGO_PATH)
+$(C_LIB_CARGO_PATH):
+	cargo build --release --no-default-features --features cbinding -p qiskit-cext
+
+$(C_QISKIT_H): $(C_LIB_CARGO_PATH)
 	cbindgen --crate qiskit-cext --output $(C_DIR_INCLUDE)/qiskit.h --lang C
 
 $(C_DIR_LIB):
 	mkdir -p $(C_DIR_LIB)
 
-$(C_LIBQISKIT): $(C_DIR_LIB)
+$(C_LIBQISKIT): $(C_DIR_LIB) $(C_LIB_CARGO_PATH)
 	cp $(C_LIB_CARGO_PATH) $(C_DIR_LIB)/$(subst _cext,,$(C_LIB_CARGO_FILENAME))
 
 .PHONY: cheader clib c
