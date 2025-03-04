@@ -308,15 +308,12 @@ class GenericBackendV2(BackendV2):
         """Run on the backend using a simulator.
 
         This method runs circuit jobs (an individual or a list of :class:`~.QuantumCircuit`
-        ) and pulse jobs (an individual or a list of :class:`~.Schedule` or
-        :class:`~.ScheduleBlock`) using :class:`~.BasicSimulator` or Aer simulator and returns a
+        ) using :class:`~.BasicSimulator` or Aer simulator and returns a
         :class:`~qiskit.providers.Job` object.
 
         If qiskit-aer is installed, jobs will be run using the ``AerSimulator`` with
         noise model of the backend. Otherwise, jobs will be run using the
         ``BasicSimulator`` simulator without noise.
-
-        Noisy simulations of pulse jobs are not yet supported in :class:`~.GenericBackendV2`.
 
         Args:
             run_input (QuantumCircuit or list): An
@@ -332,7 +329,8 @@ class GenericBackendV2(BackendV2):
             Job: The job object for the run
 
         Raises:
-            QiskitError: If a pulse job is supplied and qiskit_aer is not installed.
+            QiskitError: If input is not :class:`~qiskit.circuit.QuantumCircuit` or a list of
+            :class:`~qiskit.circuit.QuantumCircuit` objects.
         """
         circuits = run_input
         if not isinstance(circuits, QuantumCircuit) and (
