@@ -1836,6 +1836,10 @@ impl PySparseTerm {
         Ok(obs.into())
     }
 
+    fn to_label(&self) -> PyResult<String> {
+        Ok(self.inner.view().to_sparse_str())
+    }
+
     fn __eq__(slf: Bound<Self>, other: Bound<PyAny>) -> PyResult<bool> {
         if slf.is(&other) {
             return Ok(true);
@@ -1953,6 +1957,23 @@ impl PySparseTerm {
         PAULI_TYPE
             .get_bound(py)
             .call1(((PyArray1::from_vec(py, z), PyArray1::from_vec(py, x)),))
+    }
+
+    /// Return the bit labels of the term as string.
+    ///
+    /// The bit labels will match the order of :attr:`.SparseTerm.indices`, such that the
+    /// i-th character in the string is applied to the qubit index at ``term.indices[i]``.
+    ///
+    /// Returns:
+    ///     The non-identity bit terms as concatenated string.
+    fn bit_labels<'py>(&self, py: Python<'py>) -> Bound<'py, PyString> {
+        let string: String = self
+            .inner
+            .bit_terms()
+            .iter()
+            .map(|bit| bit.py_label())
+            .collect();
+        PyString::new(py, string.as_str())
     }
 }
 
