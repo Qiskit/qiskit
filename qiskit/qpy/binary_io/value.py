@@ -309,6 +309,7 @@ class _ExprWriter(expr.ExprVisitor[None]):
 
     def visit_stretch(self, node, /):
         self.file_obj.write(type_keys.Expression.STRETCH)
+        self._write_expr_type(node.type)
         self.file_obj.write(
             struct.pack(
                 formats.EXPRESSION_STRETCH_PACK,
