@@ -1799,14 +1799,14 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
 
         if data is None or input_qubits is None:
             raise TranspilerError(
-                "HighLevelSynthesis: problem with the default plugin for annotated operations."
+                "The AnnotatedSynthesisDefault plugin should receive data and input_qubits via options."
             )
 
         if len(modifiers) > 0:
             num_ctrl = sum(
                 mod.num_ctrl_qubits for mod in modifiers if isinstance(mod, ControlModifier)
             )
-            total_power = sum(mod.power for mod in modifiers if isinstance(mod, PowerModifier))
+            power = sum(mod.power for mod in modifiers if isinstance(mod, PowerModifier))
             is_inverted = sum(1 for mod in modifiers if isinstance(mod, InverseModifier)) % 2
 
             # The base operation cannot use control qubits as auxiliary qubits.
@@ -1816,7 +1816,7 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
             # their previous state, so clean qubits remain clean after each for- or while- loop.
             annotated_tracker = tracker.copy()
             annotated_tracker.disable(input_qubits[:num_ctrl])  # do not access control qubits
-            if total_power != 0 or is_inverted:
+            if power != 0 or is_inverted:
                 annotated_tracker.set_dirty(input_qubits)
 
             # First, synthesize the base operation of this annotated operation.
@@ -1844,11 +1844,6 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
             # a lot of sense to allow this in the future.
             synthesized = self._apply_annotations(synthesized_base_op, operation.modifiers)
 
-            if not isinstance(synthesized, QuantumCircuit):
-                raise TranspilerError(
-                    "HighLevelSynthesis: problem with the default plugin for annotated operations."
-                )
-
             return synthesized
 
         return None
@@ -1858,10 +1853,6 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
         """
         Applies modifiers to a quantum circuit.
         """
-
-        if not isinstance(circuit, QuantumCircuit):
-            raise TranspilerError("HighLevelSynthesis: incorrect input to 'apply_annotations'.")
-
         for modifier in modifiers:
             if isinstance(modifier, InverseModifier):
                 circuit = circuit.inverse()
@@ -1869,7 +1860,7 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
             elif isinstance(modifier, ControlModifier):
                 if circuit.num_clbits > 0:
                     raise TranspilerError(
-                        "HighLevelSynthesis: cannot control a circuit with classical bits."
+                        "AnnotatedSynthesisDefault: cannot control a circuit with classical bits."
                     )
 
                 # Apply the control modifier to each gate in the circuit.
@@ -1901,17 +1892,14 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
 
                 if isinstance(circuit, AnnotatedOperation):
                     raise TranspilerError(
-                        "HighLevelSynthesis: failed to synthesize the control modifier."
+                        "AnnotatedSynthesisDefault: failed to synthesize the control modifier."
                     )
 
             elif isinstance(modifier, PowerModifier):
                 circuit = circuit.power(modifier.power)
 
             else:
-                raise TranspilerError(f"HighLevelSynthesis: Unknown modifier {modifier}.")
-
-        if not isinstance(circuit, QuantumCircuit):
-            raise TranspilerError("HighLevelSynthesis: incorrect output of 'apply_annotations'.")
+                raise TranspilerError(f"AnnotatedSynthesisDefault: Unknown modifier {modifier}.")
 
         return circuit
 
