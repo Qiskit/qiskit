@@ -1790,7 +1790,7 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
         if not isinstance(high_level_object, AnnotatedOperation):
             return None
 
-        # Combine the modifiers. If the were no modifiers, or the modifiers magically canceled out,
+        # Combine the modifiers. If there were no modifiers, or the modifiers magically canceled out,
         # return the quantum circuit containing the base operation.
         high_level_object = self._canonicalize_op(high_level_object)
         if not isinstance(high_level_object, AnnotatedOperation):
