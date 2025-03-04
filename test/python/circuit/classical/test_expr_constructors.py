@@ -14,7 +14,7 @@
 
 import ddt
 
-from qiskit.circuit import Clbit, ClassicalRegister
+from qiskit.circuit import Clbit, ClassicalRegister, Duration
 from qiskit.circuit.classical import expr, types
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -65,6 +65,9 @@ class TestExprConstructors(QiskitTestCase):
 
         clbit = Clbit()
         self.assertEqual(expr.lift(clbit), expr.Var(clbit, types.Bool()))
+
+        duration = Duration.dt(1000)
+        self.assertEqual(expr.lift(duration), expr.Value(duration, types.Duration()))
 
     def test_value_lifts_python_builtins(self):
         self.assertEqual(expr.lift(True), expr.Value(True, types.Bool()))
@@ -143,6 +146,8 @@ class TestExprConstructors(QiskitTestCase):
     def test_unary_bitwise_forbidden(self, function):
         with self.assertRaisesRegex(TypeError, "cannot apply"):
             function(7.0)
+        with self.assertRaisesRegex(TypeError, "cannot apply"):
+            function(Duration.dt(1000))
 
     def test_logic_not_explicit(self):
         cr = ClassicalRegister(3)
@@ -164,6 +169,8 @@ class TestExprConstructors(QiskitTestCase):
     def test_unary_logical_forbidden(self, function):
         with self.assertRaisesRegex(TypeError, "cannot apply"):
             function(7.0)
+        with self.assertRaisesRegex(TypeError, "cannot apply"):
+            function(Duration.dt(1000))
 
     @ddt.data(
         (expr.bit_and, ClassicalRegister(3), ClassicalRegister(3)),
@@ -183,6 +190,12 @@ class TestExprConstructors(QiskitTestCase):
         (expr.less_equal, 3.0, 5.0),
         (expr.greater, 4.0, 3.0),
         (expr.greater_equal, 3.0, 5.0),
+        (expr.equal, Duration.dt(1000), Duration.dt(1000)),
+        (expr.not_equal, Duration.dt(1000), Duration.dt(1000)),
+        (expr.less, Duration.dt(1000), Duration.dt(1000)),
+        (expr.less_equal, Duration.dt(1000), Duration.dt(1000)),
+        (expr.greater, Duration.dt(1000), Duration.dt(1000)),
+        (expr.greater_equal, Duration.dt(1000), Duration.dt(1000)),
     )
     @ddt.unpack
     def test_binary_functions_lift_scalars(self, function, left, right):
@@ -300,6 +313,8 @@ class TestExprConstructors(QiskitTestCase):
             function(3, 3.0)
         with self.assertRaisesRegex(TypeError, "invalid types"):
             function(3.0, 3)
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(Duration.dt(1000), Duration.dt(1000))
         # Unlike most other functions, the bitwise functions should error if the two bit-like types
         # aren't of the same width, except for the special inference for integer literals.
         with self.assertRaisesRegex(TypeError, "binary bitwise operations .* same width"):
@@ -355,6 +370,8 @@ class TestExprConstructors(QiskitTestCase):
             function(3, 3.0)
         with self.assertRaisesRegex(TypeError, "invalid types"):
             function(3.0, 3)
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(Duration.dt(1000), Duration.dt(1000))
 
     @ddt.data(
         (expr.equal, expr.Binary.Op.EQUAL),
@@ -405,6 +422,17 @@ class TestExprConstructors(QiskitTestCase):
             ),
         )
         self.assertFalse(function(clbit, True).const)
+
+        self.assertEqual(
+            function(expr.lift(Duration.ms(1000)), Duration.s(1)),
+            expr.Binary(
+                opcode,
+                expr.Value(Duration.ms(1000), types.Duration()),
+                expr.Value(Duration.s(1), types.Duration()),
+                types.Bool(),
+            ),
+        )
+        self.assertTrue(function(expr.lift(Duration.ms(1000)), Duration.s(1)).const)
 
     @ddt.data(expr.equal, expr.not_equal)
     def test_binary_equal_forbidden(self, function):
@@ -459,7 +487,26 @@ class TestExprConstructors(QiskitTestCase):
                 types.Bool(),
             ),
         )
-        self.assertFalse(function(12, cr).const)
+        self.assertTrue(function(expr.lift(12.0, types.Float()), expr.lift(12.0)).const)
+
+        self.assertEqual(
+            function(
+                expr.lift(Duration.ms(1000), types.Duration()),
+                expr.lift(Duration.s(1)),
+            ),
+            expr.Binary(
+                opcode,
+                expr.Value(Duration.ms(1000), types.Duration()),
+                expr.Value(Duration.s(1), types.Duration()),
+                types.Bool(),
+            ),
+        )
+        self.assertTrue(
+            function(
+                expr.lift(Duration.ms(1000), types.Duration()),
+                expr.lift(Duration.s(1)),
+            ).const
+        )
 
     @ddt.data(expr.less, expr.less_equal, expr.greater, expr.greater_equal)
     def test_binary_relation_forbidden(self, function):
@@ -509,6 +556,10 @@ class TestExprConstructors(QiskitTestCase):
             expr.index(0xFFFF, 1.0)
         with self.assertRaisesRegex(TypeError, "invalid types"):
             expr.index(ClassicalRegister(3, "a"), 1.0)
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            expr.index(Duration.dt(1000), 1)
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            expr.index(Duration.dt(1000), Duration.dt(1000))
 
     @ddt.data(
         (expr.shift_left, expr.Binary.Op.SHIFT_LEFT),
@@ -555,3 +606,7 @@ class TestExprConstructors(QiskitTestCase):
             function(255.0, 1)
         with self.assertRaisesRegex(TypeError, "cannot losslessly represent"):
             function(expr.lift(5.0), 3, types.Uint(8))
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(Duration.dt(1000), 1)
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(Duration.dt(1000), Duration.dt(1000))

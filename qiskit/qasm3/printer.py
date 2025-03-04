@@ -210,6 +210,12 @@ class BasicPrinter:
     def _visit_BoolType(self, _node: ast.BoolType) -> None:
         self.stream.write("bool")
 
+    def _visit_DurationType(self, _node: ast.DurationType) -> None:
+        self.stream.write("duration")
+
+    def _visit_StretchType(self, _node: ast.StretchType) -> None:
+        self.stream.write("stretch")
+
     def _visit_IntType(self, node: ast.IntType) -> None:
         self.stream.write("int")
         if node.size is not None:

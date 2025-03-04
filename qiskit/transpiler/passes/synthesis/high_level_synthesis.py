@@ -227,8 +227,8 @@ class HighLevelSynthesis(TransformationPass):
         # to synthesize Operations (when available).
         hls_config = hls_config or HLSConfig(True)
         hls_plugin_manager = HighLevelSynthesisPluginManager()
-        hls_op_names = list(hls_plugin_manager.plugins_by_op.keys()) + list(
-            hls_config.methods.keys()
+        hls_op_names = set(hls_plugin_manager.plugins_by_op.keys()).union(
+            set(hls_config.methods.keys())
         )
 
         if target is not None:
@@ -253,7 +253,7 @@ class HighLevelSynthesis(TransformationPass):
             equivalence_library=equivalence_library,
             hls_op_names=hls_op_names,
             device_insts=device_insts,
-            use_qubit_indices=use_qubit_indices,
+            use_physical_indices=use_qubit_indices,
             min_qubits=min_qubits,
             unroll_definitions=unroll_definitions,
         )
@@ -374,7 +374,7 @@ def _synthesize_op_using_plugins(
         plugin_args["num_clean_ancillas"] = num_clean_ancillas
         plugin_args["num_dirty_ancillas"] = num_dirty_ancillas
 
-        qubits = input_qubits if data.use_qubit_indices else None
+        qubits = input_qubits if data.use_physical_indices else None
 
         decomposition = plugin_method.run(
             operation,

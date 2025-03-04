@@ -233,7 +233,7 @@ struct HighLevelSynthesisData {
     // This is an optimization to avoid calling python when an object has no
     // synthesis plugins.
     #[pyo3(get)]
-    hls_op_names: Vec<String>,
+    hls_op_names: HashSet<String>,
 
     // Optional, directed graph represented as a coupling map.
     // This is only accessedfrom the Python space (when passing the coupling map to
@@ -260,7 +260,7 @@ struct HighLevelSynthesisData {
     // A flag indicating whether the qubit indices of high-level-objects in the
     // circuit correspond to qubit indices on the target backend.
     #[pyo3(get)]
-    use_qubit_indices: bool,
+    use_physical_indices: bool,
 
     // The minimum number of qubits for operations in the input dag to translate.
     #[pyo3(get)]
@@ -274,17 +274,17 @@ struct HighLevelSynthesisData {
 #[pymethods]
 impl HighLevelSynthesisData {
     #[new]
-    #[pyo3(signature=(/, hls_config, hls_plugin_manager, hls_op_names, coupling_map, target, equivalence_library, device_insts, use_qubit_indices, min_qubits, unroll_definitions))]
+    #[pyo3(signature=(/, hls_config, hls_plugin_manager, hls_op_names, coupling_map, target, equivalence_library, device_insts, use_physical_indices, min_qubits, unroll_definitions))]
     #[allow(clippy::too_many_arguments)]
     fn __new__(
         hls_config: Py<PyAny>,
         hls_plugin_manager: Py<PyAny>,
-        hls_op_names: Vec<String>,
+        hls_op_names: HashSet<String>,
         coupling_map: Py<PyAny>,
         target: Option<Py<Target>>,
         equivalence_library: Option<Py<EquivalenceLibrary>>,
         device_insts: HashSet<String>,
-        use_qubit_indices: bool,
+        use_physical_indices: bool,
         min_qubits: usize,
         unroll_definitions: bool,
     ) -> Self {
@@ -296,7 +296,7 @@ impl HighLevelSynthesisData {
             target,
             equivalence_library,
             device_insts,
-            use_qubit_indices,
+            use_physical_indices,
             min_qubits,
             unroll_definitions,
         }
@@ -311,7 +311,7 @@ impl HighLevelSynthesisData {
             self.target.clone(),
             self.equivalence_library.clone(),
             self.device_insts.clone(),
-            self.use_qubit_indices,
+            self.use_physical_indices,
             self.min_qubits,
             self.unroll_definitions,
         )
@@ -320,9 +320,42 @@ impl HighLevelSynthesisData {
 
     fn __str__(&self) -> String {
         format!(
-            "HighLevelSynthesisData(hls_config: {:?}, hls_plugin_manager: {:?}, hls_op_names: {:?}, coupling_map: {:?}, target: {:?},  equivalence_library: {:?}, device_insts: {:?}, use_qubit_indices: {:?}, min_qubits: {:?}, unroll_definitions: {:?})",
-            self.hls_config, self.hls_plugin_manager, self.hls_op_names, self.coupling_map, self.target, self.equivalence_library, self.device_insts,  self.use_qubit_indices, self.min_qubits, self.unroll_definitions
+            "HighLevelSynthesisData(hls_config: {:?}, hls_plugin_manager: {:?}, hls_op_names: {:?}, coupling_map: {:?}, target: {:?},  equivalence_library: {:?}, device_insts: {:?}, use_physical_indices: {:?}, min_qubits: {:?}, unroll_definitions: {:?})",
+            self.hls_config, self.hls_plugin_manager, self.hls_op_names, self.coupling_map, self.target, self.equivalence_library, self.device_insts,  self.use_physical_indices, self.min_qubits, self.unroll_definitions
         )
+    }
+}
+
+/// A super-fast check whether all operations in `op_names` are natively supported.
+/// This check is based only on the names of the operations in the circuit.
+fn all_instructions_supported(
+    py: Python,
+    data: &Bound<HighLevelSynthesisData>,
+    dag: &DAGCircuit,
+) -> PyResult<bool> {
+    let ops = dag.count_ops(py, false)?;
+    let mut op_keys = ops.keys();
+
+    let borrowed_data = data.borrow();
+
+    match &borrowed_data.target {
+        Some(target) => {
+            let target = target.borrow(py);
+            if target.num_qubits.is_some() {
+                // If we have the target and HighLevelSynthesis runs pre-routing,
+                // we check whether every operation name in op_names is supported
+                // by the target.
+                if borrowed_data.use_physical_indices {
+                    return Ok(false);
+                }
+                Ok(op_keys.all(|name| target.instruction_supported(name, None)))
+            } else {
+                // If we do not have the target, we check whether every operation
+                // in op_names is inside the basis gates.
+                Ok(op_keys.all(|name| borrowed_data.device_insts.contains(name)))
+            }
+        }
+        None => Ok(op_keys.all(|name| borrowed_data.device_insts.contains(name))),
     }
 }
 
@@ -338,7 +371,7 @@ fn instruction_supported(
         Some(target) => {
             let target = target.borrow(py);
             if target.num_qubits.is_some() {
-                if borrowed_data.use_qubit_indices {
+                if borrowed_data.use_physical_indices {
                     let physical_qubits = qubits.iter().map(|q| PhysicalQubit(q.0)).collect();
                     target.instruction_supported(name, Some(&physical_qubits))
                 } else {
@@ -413,9 +446,11 @@ fn run_on_circuitdata(
     tracker: &mut QubitTracker,
 ) -> PyResult<(CircuitData, Vec<usize>)> {
     if input_circuit.num_qubits() != input_qubits.len() {
-        return Err(TranspilerError::new_err(
-            "HighLevelSynthesis: the input to 'run_on_circuitdata' is incorrect.",
-        ));
+        return Err(TranspilerError::new_err(format!(
+            "HighLevelSynthesis: number of input qubits ({}) does not match the circuit size ({})",
+            input_qubits.len(),
+            input_circuit.num_qubits()
+        )));
     }
 
     // We iteratively process circuit instructions in the order they appear in the input circuit,
@@ -558,9 +593,11 @@ fn run_on_circuitdata(
             Some((synthesized_circuit, synthesized_circuit_qubits)) => {
                 // This pedantic check can possibly be removed.
                 if synthesized_circuit.num_qubits() != synthesized_circuit_qubits.len() {
-                    return Err(TranspilerError::new_err(
-                        "HighLevelSynthesis: the output from 'synthesize_operation' is incorrect.",
-                    ));
+                    return Err(TranspilerError::new_err(format!(
+                        "HighLevelSynthesis: number of output qubits ({}) does not match the circuit size ({})",
+                        synthesized_circuit_qubits.len(),
+                        synthesized_circuit.num_qubits()
+                    )));
                 }
 
                 // If the synthesized circuit uses (auxiliary) global qubits that are not in the output circuit,
@@ -620,9 +657,11 @@ fn run_on_circuitdata(
 
     // Another pedantic check that can possibly be removed.
     if output_circuit.num_qubits() != output_qubits.len() {
-        return Err(TranspilerError::new_err(
-            "HighLevelSynthesis: the output from 'run_on_circuitdata' is incorrect.",
-        ));
+        return Err(TranspilerError::new_err(format!(
+            "HighLevelSynthesis: number of output qubits ({}) does not match the circuit size ({})",
+            output_qubits.len(),
+            output_circuit.num_qubits()
+        )));
     }
 
     Ok((output_circuit, output_qubits))
@@ -723,9 +762,11 @@ fn synthesize_operation(
     label: Option<&str>,
 ) -> PyResult<Option<(CircuitData, Vec<usize>)>> {
     if op.num_qubits() != input_qubits.len() as u32 {
-        return Err(TranspilerError::new_err(
-            "HighLevelSynthesis: the input to 'synthesize_operation' is incorrect.",
-        ));
+        return Err(TranspilerError::new_err(format!(
+            "HighLevelSynthesis: number of operation's qubits ({}) does not match the circuit size ({})",
+            op.num_qubits(),
+            input_qubits.len()
+        )));
     }
 
     let borrowed_data: PyRef<'_, HighLevelSynthesisData> = data.borrow();
@@ -856,7 +897,8 @@ fn synthesize_op_using_plugins(
 /// Synthesizes an operation.
 ///
 /// This function is currently called by the default plugin for annotated operations to
-/// synthesize the base operation.
+/// synthesize the base operation. Here `py_op` is a subclass of `Operation` (on the Python
+/// side).
 #[pyfunction]
 #[pyo3(name = "synthesize_operation", signature = (py_op, input_qubits, data, tracker))]
 fn py_synthesize_operation(
@@ -907,6 +949,15 @@ fn py_run_on_dag(
 ) -> PyResult<Option<DAGCircuit>> {
     // Fast-path: check if HighLevelSynthesis can be skipped altogether. This is only
     // done at the top-level since this does not track the qubit states.
+
+    // First, we apply a super-fast (but incomplete) check to see if all the operations
+    // present in the circuit are suported by the target / are in the basis.
+    if all_instructions_supported(py, data, dag)? {
+        return Ok(None);
+    }
+
+    // Second, we apply a slightly slower (but still fast) that considers each operation
+    // one-by-one.
     let mut fast_path: bool = true;
 
     for (_, inst) in dag.op_nodes(false) {

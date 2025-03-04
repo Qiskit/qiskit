@@ -1282,11 +1282,16 @@ class QuantumCircuit:
     def op_start_times(self) -> list[int]:
         """Return a list of operation start times.
 
+        .. note::
+           This attribute computes the estimate starting time of the operations in the scheduled circuit
+           and only works for simple circuits that have no control flow or other classical feed-forward
+           operations.
+
         This attribute is enabled once one of scheduling analysis passes
         runs on the quantum circuit.
 
         Returns:
-            List of integers representing instruction start times.
+            List of integers representing instruction estimated start times.
             The index corresponds to the index of instruction in :attr:`QuantumCircuit.data`.
 
         Raises:
