@@ -20,7 +20,6 @@ from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES, get_control_flow_n
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
 from qiskit.circuit.quantumregister import Qubit
 from qiskit.providers.backend import Backend
-from qiskit.providers.backend_compat import BackendV2Converter
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations
@@ -88,28 +87,27 @@ def generate_preset_pass_manager(
     function internally builds and uses.
 
     The target constraints for the pass manager construction can be specified through a :class:`.Target`
-    instance, a :class:`.BackendV1` or :class:`.BackendV2` instance, or via loose constraints
+    instance, a :class:`.BackendV2` instance, or via loose constraints
     (``basis_gates``, ``coupling_map``, ``instruction_durations``,
     ``dt`` or ``timing_constraints``).
     The order of priorities for target constraints works as follows: if a ``target``
     input is provided, it will take priority over any ``backend`` input or loose constraints.
     If a ``backend`` is provided together with any loose constraint
     from the list above, the loose constraint will take priority over the corresponding backend
-    constraint. This behavior is independent of whether the ``backend`` instance is of type
-    :class:`.BackendV1` or :class:`.BackendV2`, as summarized in the table below. The first column
+    constraint. This behavior is summarized in the table below. The first column
     in the table summarizes the potential user-provided constraints, and each cell shows whether
     the priority is assigned to that specific constraint input or another input
     (`target`/`backend(V1)`/`backend(V2)`).
 
-    ============================ ========= ======================== =======================
-    User Provided                target    backend(V1)              backend(V2)
-    ============================ ========= ======================== =======================
-    **basis_gates**              target    basis_gates              basis_gates
-    **coupling_map**             target    coupling_map             coupling_map
-    **instruction_durations**    target    instruction_durations    instruction_durations
-    **dt**                       target    dt                       dt
-    **timing_constraints**       target    timing_constraints       timing_constraints
-    ============================ ========= ======================== =======================
+    ============================ ========= ========================
+    User Provided                target    backend(V2)
+    ============================ ========= ========================
+    **basis_gates**              target    basis_gates
+    **coupling_map**             target    coupling_map
+    **instruction_durations**    target    instruction_durations
+    **dt**                       target    dt
+    **timing_constraints**       target    timing_constraints
+    ============================ ========= ========================
 
     Args:
         optimization_level (int): The optimization level to generate a
@@ -258,20 +256,6 @@ def generate_preset_pass_manager(
     elif isinstance(optimization_level, Backend):
         backend = optimization_level
         optimization_level = 2
-
-    if backend is not None and getattr(backend, "version", 0) <= 1:
-        # This is a temporary conversion step to allow for a smoother transition
-        # to a fully target-based transpiler pipeline while maintaining the behavior
-        # of `transpile` with BackendV1 inputs.
-        warnings.warn(
-            "The `generate_preset_pass_manager` function will stop supporting inputs of "
-            f"type `BackendV1` ( {backend} ) in the `backend` parameter in a future "
-            "release no earlier than 2.0. `BackendV1` is deprecated and implementations "
-            "should move to `BackendV2`.",
-            category=DeprecationWarning,
-            stacklevel=2,
-        )
-        backend = BackendV2Converter(backend)
 
     # If there are no loose constraints => use backend target if available
     _no_loose_constraints = (

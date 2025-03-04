@@ -448,12 +448,12 @@ class TestCompiler(QiskitTestCase):
         coupling_map = CouplingMap([[0, 1], [1, 2], [2, 3], [3, 4]])
         coupling_map.make_symmetric()
         shots = 1024
-        qobj = self.backend.run(
+        job = self.backend.run(
             transpile(circ, backend=self.backend, coupling_map=coupling_map, seed_transpiler=42),
             shots=shots,
             seed_simulator=self.seed_simulator,
         )
-        counts = qobj.result().get_counts()
+        counts = job.result().get_counts()
         expected_probs = {
             "00000": 0.079239867254200971,
             "00001": 0.032859032998526903,

@@ -138,7 +138,7 @@ class Arrow3D(Patch3D, FancyArrowPatch):
 
 class Bloch:
     """Class for plotting data on the Bloch sphere.  Valid data can be
-    either points, vectors, or qobj objects.
+    either points or vectors.
 
     Attributes:
         axes (instance):

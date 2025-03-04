@@ -1397,7 +1397,7 @@ class TestTranspile(QiskitTestCase):
 
     def test_scheduling_dt_constraints(self):
         """Test that scheduling-related loose transpile constraints
-        work with both BackendV1 and BackendV2."""
+        work with BackendV2."""
 
         backend_v2 = GenericBackendV2(num_qubits=2, seed=1)
         qc = QuantumCircuit(1, 1)
