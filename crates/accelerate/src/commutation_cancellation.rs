@@ -57,12 +57,13 @@ struct CancellationSetKey {
 }
 
 #[pyfunction]
-#[pyo3(signature = (dag, commutation_checker, basis_gates=None))]
+#[pyo3(signature = (dag, commutation_checker, basis_gates=None, approximation_degree=1.))]
 pub(crate) fn cancel_commutations(
     py: Python,
     dag: &mut DAGCircuit,
     commutation_checker: &mut CommutationChecker,
     basis_gates: Option<HashSet<String>>,
+    approximation_degree: f64,
 ) -> PyResult<()> {
     let basis: HashSet<String> = if let Some(basis) = basis_gates {
         basis
@@ -97,7 +98,8 @@ pub(crate) fn cancel_commutations(
         sec_commutation_set_id), the value is the list gates that share the same gate type,
         qubits and commutation sets.
     */
-    let (commutation_set, node_indices) = analyze_commutations_inner(py, dag, commutation_checker)?;
+    let (commutation_set, node_indices) =
+        analyze_commutations_inner(py, dag, commutation_checker, approximation_degree)?;
     let mut cancellation_sets: HashMap<CancellationSetKey, Vec<NodeIndex>> = HashMap::new();
 
     (0..dag.num_qubits() as u32).for_each(|qubit| {
