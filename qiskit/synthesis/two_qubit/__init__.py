@@ -16,4 +16,5 @@ from .two_qubit_decompose import (
     TwoQubitBasisDecomposer,
     two_qubit_cnot_decompose,
     TwoQubitWeylDecomposition,
+    TwoQubitControlledUDecomposer,
 )
