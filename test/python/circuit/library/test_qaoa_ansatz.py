@@ -31,7 +31,9 @@ class TestQAOAAnsatz(QiskitTestCase):
         if use_function:
             circuit = qaoa_ansatz(Pauli("I"), 1)
         else:
-            circuit = QAOAAnsatz(Pauli("I"), 1).decompose()
+            with self.assertWarns(DeprecationWarning):
+                circuit = QAOAAnsatz(Pauli("I"), 1)
+            circuit = circuit.decompose()
 
         parameters = circuit.parameters
 
@@ -51,9 +53,9 @@ class TestQAOAAnsatz(QiskitTestCase):
         if use_function:
             circuit = qaoa_ansatz(initial_state=initial_state, cost_operator=Pauli("I"), reps=1)
         else:
-            circuit = QAOAAnsatz(
-                initial_state=initial_state, cost_operator=Pauli("I"), reps=1
-            ).decompose()
+            with self.assertWarns(DeprecationWarning):
+                circuit = QAOAAnsatz(initial_state=initial_state, cost_operator=Pauli("I"), reps=1)
+            circuit = circuit.decompose()
 
         parameters = circuit.parameters
         self.assertEqual(1, len(parameters))
@@ -70,7 +72,8 @@ class TestQAOAAnsatz(QiskitTestCase):
             if use_function:
                 _ = qaoa_ansatz(Pauli("I"), reps=-1)
             else:
-                _ = QAOAAnsatz(Pauli("I"), reps=-1)
+                with self.assertWarns(DeprecationWarning):
+                    _ = QAOAAnsatz(Pauli("I"), reps=-1)
 
     @data(True, False)
     def test_zero_reps(self, use_function):
@@ -78,7 +81,9 @@ class TestQAOAAnsatz(QiskitTestCase):
         if use_function:
             circuit = qaoa_ansatz(Pauli("IIII"), reps=0)
         else:
-            circuit = QAOAAnsatz(Pauli("IIII"), reps=0).decompose()
+            with self.assertWarns(DeprecationWarning):
+                circuit = QAOAAnsatz(Pauli("IIII"), reps=0)
+            circuit = circuit.decompose()
 
         reference = QuantumCircuit(4)
         reference.h(range(4))
@@ -89,7 +94,8 @@ class TestQAOAAnsatz(QiskitTestCase):
         """Test circuit with a custom mixer as a circuit"""
         mixer = QuantumCircuit(1)
         mixer.ry(1, 0)
-        circuit = QAOAAnsatz(cost_operator=Pauli("I"), reps=1, mixer_operator=mixer)
+        with self.assertWarns(DeprecationWarning):
+            circuit = QAOAAnsatz(cost_operator=Pauli("I"), reps=1, mixer_operator=mixer)
 
         parameters = circuit.parameters
         circuit = circuit.decompose()
@@ -105,7 +111,9 @@ class TestQAOAAnsatz(QiskitTestCase):
         if use_function:
             circuit = qaoa_ansatz(cost_operator=Pauli("I"), reps=1, mixer_operator=mixer)
         else:
-            circuit = QAOAAnsatz(cost_operator=Pauli("I"), reps=1, mixer_operator=mixer).decompose()
+            with self.assertWarns(DeprecationWarning):
+                circuit = QAOAAnsatz(cost_operator=Pauli("I"), reps=1, mixer_operator=mixer)
+            circuit = circuit.decompose()
 
         parameters = circuit.parameters
         self.assertEqual(1, len(parameters))
@@ -118,7 +126,8 @@ class TestQAOAAnsatz(QiskitTestCase):
     def test_parameter_bounds(self):
         """Test the parameter bounds."""
 
-        circuit = QAOAAnsatz(Pauli("Z"), reps=2)
+        with self.assertWarns(DeprecationWarning):
+            circuit = QAOAAnsatz(Pauli("Z"), reps=2)
         bounds = circuit.parameter_bounds
 
         for lower, upper in bounds[:2]:
@@ -141,9 +150,14 @@ class TestQAOAAnsatz(QiskitTestCase):
                 cost_operator=Pauli("I"), reps=2, initial_state=initial_state, mixer_operator=mixer
             )
         else:
-            circuit = QAOAAnsatz(
-                cost_operator=Pauli("I"), reps=2, initial_state=initial_state, mixer_operator=mixer
-            ).decompose()
+            with self.assertWarns(DeprecationWarning):
+                circuit = QAOAAnsatz(
+                    cost_operator=Pauli("I"),
+                    reps=2,
+                    initial_state=initial_state,
+                    mixer_operator=mixer,
+                )
+            circuit = circuit.decompose()
 
         parameters = circuit.parameters
         self.assertEqual(2, len(parameters))
@@ -157,14 +171,16 @@ class TestQAOAAnsatz(QiskitTestCase):
     def test_configuration(self):
         """Test configuration checks."""
         mixer = QuantumCircuit(2)
-        circuit = QAOAAnsatz(cost_operator=Pauli("I"), reps=1, mixer_operator=mixer)
+        with self.assertWarns(DeprecationWarning):
+            circuit = QAOAAnsatz(cost_operator=Pauli("I"), reps=1, mixer_operator=mixer)
 
         self.assertRaises(ValueError, lambda: circuit.parameters)
 
     def test_rebuild(self):
         """Test how a circuit can be rebuilt."""
 
-        circuit = QAOAAnsatz(cost_operator=Pauli("IZ"))  # circuit with 2 qubits
+        with self.assertWarns(DeprecationWarning):
+            circuit = QAOAAnsatz(cost_operator=Pauli("IZ"))  # circuit with 2 qubits
         # force circuit to be built
         _ = circuit.parameters
 
@@ -182,12 +198,14 @@ class TestQAOAAnsatz(QiskitTestCase):
         mixer.ry(x2, 1)
 
         reps = 4
-        circuit = QAOAAnsatz(cost_operator=Pauli("ZZ"), mixer_operator=mixer, reps=reps)
+        with self.assertWarns(DeprecationWarning):
+            circuit = QAOAAnsatz(cost_operator=Pauli("ZZ"), mixer_operator=mixer, reps=reps)
         self.assertEqual(circuit.num_parameters, 3 * reps)
 
     def test_empty_op(self):
         """Test construction without cost operator"""
-        circuit = QAOAAnsatz(reps=1)
+        with self.assertWarns(DeprecationWarning):
+            circuit = QAOAAnsatz(reps=1)
         self.assertEqual(circuit.num_qubits, 0)
         with self.assertRaises(ValueError):
             circuit.decompose()
@@ -200,7 +218,8 @@ class TestQAOAAnsatz(QiskitTestCase):
                 if use_function:
                     circuit = qaoa_ansatz(cost_operator=Pauli("I" * num_qubits), reps=5)
                 else:
-                    circuit = QAOAAnsatz(cost_operator=Pauli("I" * num_qubits), reps=5)
+                    with self.assertWarns(DeprecationWarning):
+                        circuit = QAOAAnsatz(cost_operator=Pauli("I" * num_qubits), reps=5)
 
                 self.assertEqual(circuit.num_qubits, num_qubits)
 
@@ -217,6 +236,9 @@ class TestQAOAAnsatz(QiskitTestCase):
                     if use_function:
                         circuit = qaoa_ansatz(cost_operator=cost, mixer_operator=mixer, reps=reps)
                     else:
-                        circuit = QAOAAnsatz(cost_operator=cost, mixer_operator=mixer, reps=reps)
+                        with self.assertWarns(DeprecationWarning):
+                            circuit = QAOAAnsatz(
+                                cost_operator=cost, mixer_operator=mixer, reps=reps
+                            )
                     target = reps if mixer is None else 0
                     self.assertEqual(circuit.num_parameters, target)
