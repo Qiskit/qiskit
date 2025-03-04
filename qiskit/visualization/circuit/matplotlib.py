@@ -135,7 +135,6 @@ class MatplotlibDrawer:
 
         self._initial_state = initial_state
         self._global_phase = self._circuit.global_phase
-        self._calibrations = self._circuit._calibrations_prop
         self._expr_len = expr_len
         self._cregbundle = cregbundle
 
@@ -420,7 +419,7 @@ class MatplotlibDrawer:
 
                 base_type = getattr(op, "base_gate", None)
                 gate_text, ctrl_text, raw_gate_text = get_gate_ctrl_text(
-                    op, "mpl", style=self._style, calibrations=self._calibrations
+                    op, "mpl", style=self._style
                 )
                 node_data[node].gate_text = gate_text
                 node_data[node].ctrl_text = ctrl_text
@@ -1074,7 +1073,7 @@ class MatplotlibDrawer:
                 self._get_colors(node, node_data)
 
                 if verbose:
-                    print(op)
+                    print(op)  # pylint: disable=bad-builtin
 
                 # add conditional
                 if getattr(op, "condition", None) or isinstance(op, SwitchCaseOp):
@@ -1455,7 +1454,7 @@ class MatplotlibDrawer:
 
         # Swap gate
         if isinstance(op, SwapGate):
-            self._swap(xy, node, node_data, node_data[node].lc)
+            self._swap(xy, node_data[node].lc)
             return
 
         # RZZ Gate
@@ -1747,7 +1746,7 @@ class MatplotlibDrawer:
             self._gate(node, node_data, glob_data, xy[num_ctrl_qubits:][0])
 
         elif isinstance(base_type, SwapGate):
-            self._swap(xy[num_ctrl_qubits:], node, node_data, node_data[node].lc)
+            self._swap(xy[num_ctrl_qubits:], node_data[node].lc)
 
         else:
             self._multiqubit_gate(node, node_data, glob_data, xy[num_ctrl_qubits:])
@@ -1882,27 +1881,11 @@ class MatplotlibDrawer:
             )
             self._line(qubit_b, qubit_t, lc=lc)
 
-    def _swap(self, xy, node, node_data, color=None):
+    def _swap(self, xy, color=None):
         """Draw a Swap gate"""
         self._swap_cross(xy[0], color=color)
         self._swap_cross(xy[1], color=color)
         self._line(xy[0], xy[1], lc=color)
-
-        # add calibration text
-        gate_text = node_data[node].gate_text.split("\n")[-1]
-        if node_data[node].raw_gate_text in self._calibrations:
-            xpos, ypos = xy[0]
-            self._ax.text(
-                xpos,
-                ypos + 0.7 * HIG,
-                gate_text,
-                ha="center",
-                va="top",
-                fontsize=self._style["sfs"],
-                color=self._style["tc"],
-                clip_on=True,
-                zorder=PORDER_TEXT,
-            )
 
     def _swap_cross(self, xy, color=None):
         """Draw the Swap cross symbol"""

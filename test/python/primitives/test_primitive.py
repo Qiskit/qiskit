@@ -17,11 +17,10 @@ import json
 from ddt import data, ddt, unpack
 from numpy import array, float32, float64, int32, int64
 
-from qiskit import QuantumCircuit, pulse, transpile
+from qiskit import QuantumCircuit
 from qiskit.circuit.random import random_circuit
 from qiskit.primitives.base import validation
 from qiskit.primitives.utils import _circuit_key
-from qiskit.providers.fake_provider import GenericBackendV2
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -122,38 +121,13 @@ class TestCircuitKey(QiskitTestCase):
     def test_different_circuits(self):
         """Test collision of quantum circuits."""
 
-        with self.subTest("Ry circuit"):
+        def test_func(n):
+            qc = QuantumCircuit(1, 1, name="foo")
+            qc.ry(n, 0)
+            return qc
 
-            def test_func(n):
-                qc = QuantumCircuit(1, 1, name="foo")
-                qc.ry(n, 0)
-                return qc
-
-            keys = [_circuit_key(test_func(i)) for i in range(5)]
-            self.assertEqual(len(keys), len(set(keys)))
-
-        with self.subTest("pulse circuit"):
-
-            def test_with_scheduling(n):
-                with self.assertWarns(DeprecationWarning):
-                    custom_gate = pulse.Schedule(name="custom_x_gate")
-                    custom_gate.insert(
-                        0,
-                        pulse.Play(pulse.Constant(160 * n, 0.1), pulse.DriveChannel(0)),
-                        inplace=True,
-                    )
-                    qc = QuantumCircuit(1)
-                qc.x(0)
-                with self.assertWarns(DeprecationWarning):
-                    qc.add_calibration("x", qubits=(0,), schedule=custom_gate)
-
-                backend = GenericBackendV2(
-                    num_qubits=2, basis_gates=["id", "u1", "u2", "u3", "cx"], seed=42
-                )
-                return transpile(qc, backend, scheduling_method="alap", optimization_level=1)
-
-            keys = [_circuit_key(test_with_scheduling(i)) for i in range(1, 5)]
-            self.assertEqual(len(keys), len(set(keys)))
+        keys = [_circuit_key(test_func(i)) for i in range(5)]
+        self.assertEqual(len(keys), len(set(keys)))
 
     def test_circuit_key_controlflow(self):
         """Test for a circuit with control flow."""
@@ -163,8 +137,8 @@ class TestCircuitKey(QiskitTestCase):
             qc.h(0)
             qc.cx(0, 1)
             qc.measure(0, 0)
-            with self.assertWarns(DeprecationWarning):
-                qc.break_loop().c_if(0, True)
+            with qc.if_test((0, True)):
+                qc.break_loop()
 
         self.assertIsInstance(hash(_circuit_key(qc)), int)
         self.assertIsInstance(json.dumps(_circuit_key(qc)), str)

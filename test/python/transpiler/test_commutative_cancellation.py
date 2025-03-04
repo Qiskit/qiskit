@@ -547,32 +547,6 @@ class TestCommutativeCancellation(QiskitTestCase):
 
         self.assertEqual(expected, new_circuit)
 
-    def test_conditional_gates_dont_commute(self):
-        """Conditional gates do not commute and do not cancel"""
-
-        #      ┌───┐┌─┐
-        # q_0: ┤ H ├┤M├─────────────
-        #      └───┘└╥┘       ┌─┐
-        # q_1: ──■───╫────■───┤M├───
-        #      ┌─┴─┐ ║  ┌─┴─┐ └╥┘┌─┐
-        # q_2: ┤ X ├─╫──┤ X ├──╫─┤M├
-        #      └───┘ ║  └─╥─┘  ║ └╥┘
-        #            ║ ┌──╨──┐ ║  ║
-        # c: 2/══════╩═╡ 0x0 ╞═╩══╩═
-        #            0 └─────┘ 0  1
-        circuit = QuantumCircuit(3, 2)
-        circuit.h(0)
-        circuit.measure(0, 0)
-        circuit.cx(1, 2)
-        with self.assertWarns(DeprecationWarning):
-            circuit.cx(1, 2).c_if(circuit.cregs[0], 0)
-        circuit.measure([1, 2], [0, 1])
-
-        new_pm = PassManager(CommutativeCancellation())
-        new_circuit = new_pm.run(circuit)
-
-        self.assertEqual(circuit, new_circuit)
-
     def test_basis_01(self):
         """Test basis priority change, phase gate"""
         circuit = QuantumCircuit(1)
@@ -673,19 +647,6 @@ class TestCommutativeCancellation(QiskitTestCase):
         passmanager.append(CommutativeCancellation())
         ccirc = passmanager.run(circ)
         self.assertEqual(Operator(circ), Operator(ccirc))
-
-    def test_basic_classical_wires(self):
-        """Test that transpile runs without internal errors when dealing with commutable operations
-        with classical controls. Regression test for gh-8553."""
-        original = QuantumCircuit(2, 1)
-        with self.assertWarns(DeprecationWarning):
-            original.x(0).c_if(original.cregs[0], 0)
-        with self.assertWarns(DeprecationWarning):
-            original.x(1).c_if(original.cregs[0], 0)
-        # This transpilation shouldn't change anything, but it should succeed.  At one point it was
-        # triggering an internal logic error and crashing.
-        transpiled = PassManager([CommutativeCancellation()]).run(original)
-        self.assertEqual(original, transpiled)
 
     def test_simple_if_else(self):
         """Test that the pass is not confused by if-else."""

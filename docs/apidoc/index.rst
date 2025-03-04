@@ -15,7 +15,6 @@ Circuit construction:
    circuit
    qiskit.circuit.QuantumCircuit
    circuit_classical
-   classicalfunction
    circuit_library
    circuit_singleton
 
@@ -76,14 +75,12 @@ Pulse-level programming:
    :maxdepth: 1
 
    pulse
-   scheduler
 
 Other:
 
 .. toctree::
    :maxdepth: 1
 
-   assembler
    compiler
    exceptions
    qobj

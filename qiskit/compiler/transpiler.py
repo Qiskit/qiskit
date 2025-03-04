@@ -23,8 +23,7 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.providers.backend import Backend
 from qiskit.providers.backend_compat import BackendV2Converter
-from qiskit.providers.models.backendproperties import BackendProperties
-from qiskit.pulse import Schedule, InstructionScheduleMap
+from qiskit.pulse import Schedule
 from qiskit.transpiler import Layout, CouplingMap, PropertySet
 from qiskit.transpiler.basepasses import BasePass
 from qiskit.transpiler.exceptions import TranspilerError, CircuitTooWideForTarget
@@ -33,7 +32,6 @@ from qiskit.transpiler.passes.synthesis.high_level_synthesis import HLSConfig
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.transpiler.target import Target
 from qiskit.utils import deprecate_arg
-from qiskit.utils.deprecate_pulse import deprecate_pulse_arg
 
 logger = logging.getLogger(__name__)
 
@@ -58,22 +56,11 @@ _CircuitT = TypeVar("_CircuitT", bound=Union[QuantumCircuit, List[QuantumCircuit
     "with defined timing constraints with "
     "`Target.from_configuration(..., timing_constraints=...)`",
 )
-@deprecate_arg(
-    name="backend_properties",
-    since="1.3",
-    package_name="Qiskit",
-    removal_timeline="in Qiskit 2.0",
-    additional_msg="The `target` parameter should be used instead. You can build a `Target` instance "
-    "with defined properties with Target.from_configuration(..., backend_properties=...)",
-)
-@deprecate_pulse_arg("inst_map", predicate=lambda inst_map: inst_map is not None)
 def transpile(  # pylint: disable=too-many-return-statements
     circuits: _CircuitT,
     backend: Optional[Backend] = None,
     basis_gates: Optional[List[str]] = None,
-    inst_map: Optional[List[InstructionScheduleMap]] = None,
     coupling_map: Optional[Union[CouplingMap, List[List[int]]]] = None,
-    backend_properties: Optional[BackendProperties] = None,
     initial_layout: Optional[Union[Layout, Dict, List]] = None,
     layout_method: Optional[str] = None,
     routing_method: Optional[str] = None,
@@ -105,7 +92,7 @@ def transpile(  # pylint: disable=too-many-return-statements
 
     The prioritization of transpilation target constraints works as follows: if a ``target``
     input is provided, it will take priority over any ``backend`` input or loose constraints
-    (``basis_gates``, ``inst_map``, ``coupling_map``, ``backend_properties``, ``instruction_durations``,
+    (``basis_gates``, ``coupling_map``, ``instruction_durations``,
     ``dt`` or ``timing_constraints``). If a ``backend`` is provided together with any loose constraint
     from the list above, the loose constraint will take priority over the corresponding backend
     constraint. This behavior is independent of whether the ``backend`` instance is of type
@@ -120,10 +107,8 @@ def transpile(  # pylint: disable=too-many-return-statements
     **basis_gates**              target    basis_gates              basis_gates
     **coupling_map**             target    coupling_map             coupling_map
     **instruction_durations**    target    instruction_durations    instruction_durations
-    **inst_map**                 target    inst_map                 inst_map
     **dt**                       target    dt                       dt
     **timing_constraints**       target    timing_constraints       timing_constraints
-    **backend_properties**       target    backend_properties       backend_properties
     ============================ ========= ======================== =======================
 
     Args:
@@ -133,12 +118,6 @@ def transpile(  # pylint: disable=too-many-return-statements
             will override the backend's.
         basis_gates: List of basis gate names to unroll to
             (e.g: ``['u1', 'u2', 'u3', 'cx']``). If ``None``, do not unroll.
-        inst_map: DEPRECATED. Mapping of unrolled gates to pulse schedules. If this is not provided,
-            transpiler tries to get from the backend. If any user defined calibration
-            is found in the map and this is used in a circuit, transpiler attaches
-            the custom gate definition to the circuit. This enables one to flexibly
-            override the low-level instruction implementation. This feature is available
-            iff the backend supports the pulse gate experiment.
         coupling_map: Directed coupling map (perhaps custom) to target in mapping. If
             the coupling map is symmetric, both directions need to be specified.
 
@@ -148,10 +127,6 @@ def transpile(  # pylint: disable=too-many-return-statements
             #. List, must be given as an adjacency matrix, where each entry
                specifies all directed two-qubit interactions supported by backend,
                e.g: ``[[0, 1], [0, 3], [1, 2], [1, 5], [2, 5], [4, 1], [5, 3]]``
-
-        backend_properties: properties returned by a backend, including information on gate
-            errors, readout errors, qubit coherence times, etc. Find a backend
-            that provides this information with: ``backend.properties()``
         initial_layout: Initial position of virtual qubits on physical qubits.
             If this layout makes the circuit compatible with the coupling_map
             constraints, it will be used. The final layout is not guaranteed to be the same,
@@ -191,10 +166,10 @@ def transpile(  # pylint: disable=too-many-return-statements
             This can also be the external plugin name to use for the ``routing`` stage.
             You can see a list of installed plugins by using :func:`~.list_stage_plugins` with
             ``"routing"`` for the ``stage_name`` argument.
-        translation_method: Name of translation pass ('unroller', 'translator', 'synthesis')
-            This can also be the external plugin name to use for the ``translation`` stage.
-            You can see a list of installed plugins by using :func:`~.list_stage_plugins` with
-            ``"translation"`` for the ``stage_name`` argument.
+        translation_method: Name of translation pass (``"default"``, ``"translator"`` or
+            ``"synthesis"``). This can also be the external plugin name to use for the
+            ``translation`` stage.  You can see a list of installed plugins by using
+            :func:`~.list_stage_plugins` with ``"translation"`` for the ``stage_name`` argument.
         scheduling_method: Name of scheduling pass.
             * ``'as_soon_as_possible'``: Schedule instructions greedily, as early as possible
             on a qubit resource. (alias: ``'asap'``)
@@ -216,7 +191,7 @@ def transpile(  # pylint: disable=too-many-return-statements
             If unit is omitted, the default is 'dt', which is a sample time depending on backend.
             If the time unit is 'dt', the duration must be an integer.
         dt: Backend sample time (resolution) in seconds.
-            If ``None`` (default), ``backend.configuration().dt`` is used.
+            If ``None`` (default), ``backend.dt`` is used.
         approximation_degree (float): heuristic dial used for circuit approximation
             (1.0=no approximation, 0.0=maximal approximation)
         timing_constraints: An optional control hardware restriction on instruction time resolution.
@@ -394,14 +369,8 @@ def transpile(  # pylint: disable=too-many-return-statements
     # Edge cases require using the old model (loose constraints) instead of building a target,
     # but we don't populate the passmanager config with loose constraints unless it's one of
     # the known edge cases to control the execution path.
-    # Filter instruction_durations, timing_constraints, backend_properties and inst_map deprecation
+    # Filter instruction_durations and timing_constraints deprecation
     with warnings.catch_warnings():
-        warnings.filterwarnings(
-            "ignore",
-            category=DeprecationWarning,
-            message=".*``inst_map`` is deprecated as of Qiskit 1.3.*",
-            module="qiskit",
-        )
         warnings.filterwarnings(
             "ignore",
             category=DeprecationWarning,
@@ -414,12 +383,6 @@ def transpile(  # pylint: disable=too-many-return-statements
             message=".*``instruction_durations`` is deprecated as of Qiskit 1.3.*",
             module="qiskit",
         )
-        warnings.filterwarnings(
-            "ignore",
-            category=DeprecationWarning,
-            message=".*``backend_properties`` is deprecated as of Qiskit 1.3.*",
-            module="qiskit",
-        )
         pm = generate_preset_pass_manager(
             optimization_level,
             target=target,
@@ -427,9 +390,7 @@ def transpile(  # pylint: disable=too-many-return-statements
             basis_gates=basis_gates,
             coupling_map=coupling_map,
             instruction_durations=instruction_durations,
-            backend_properties=backend_properties,
             timing_constraints=timing_constraints,
-            inst_map=inst_map,
             initial_layout=initial_layout,
             layout_method=layout_method,
             routing_method=routing_method,

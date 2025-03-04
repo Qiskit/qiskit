@@ -21,7 +21,7 @@ from ddt import ddt, data
 import numpy as np
 
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
-from qiskit.circuit import Qubit, Gate, ControlFlowOp, ForLoopOp, Measure
+from qiskit.circuit import Qubit, Gate, ControlFlowOp, ForLoopOp, Measure, library as lib, Parameter
 from qiskit.compiler import transpile
 from qiskit.transpiler import (
     CouplingMap,
@@ -37,7 +37,7 @@ from qiskit.transpiler.passes import (
     PadDynamicalDecoupling,
     RemoveResetInZeroState,
 )
-from qiskit.providers.fake_provider import Fake5QV1, Fake20QV1, GenericBackendV2
+from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.converters import circuit_to_dag
 from qiskit.circuit.library import GraphStateGate
 from qiskit.quantum_info import random_unitary
@@ -326,28 +326,6 @@ class TestTranspileLevels(QiskitTestCase):
     def test(self, circuit, level, backend):
         """All the levels with all the backends"""
         result = transpile(circuit(), backend=backend, optimization_level=level, seed_transpiler=42)
-        self.assertIsInstance(result, QuantumCircuit)
-
-    @combine(
-        circuit=[emptycircuit, circuit_2532],
-        level=[0, 1, 2, 3],
-        backend=[
-            Fake5QV1(),
-            Fake20QV1(),
-        ],
-        dsc="Transpiler {circuit.__name__} on {backend} backend V1 at level {level}",
-        name="{circuit.__name__}_{backend}_level{level}",
-    )
-    def test_v1(self, circuit, level, backend):
-        """All the levels with all the backends"""
-        with self.assertWarnsRegex(
-            DeprecationWarning,
-            expected_regex="The `transpile` function will "
-            "stop supporting inputs of type `BackendV1`",
-        ):
-            result = transpile(
-                circuit(), backend=backend, optimization_level=level, seed_transpiler=42
-            )
         self.assertIsInstance(result, QuantumCircuit)
 
     @data(0, 1, 2, 3)
@@ -976,69 +954,17 @@ class TestFinalLayouts(QiskitTestCase):
             for qubit_control in qr:
                 if qubit_control != qubit_target:
                     qc.cx(qubit_control, qubit_target)
-
-        ancilla = QuantumRegister(15, "ancilla")
-
-        trivial_layout = {
-            0: qr[0],
-            1: qr[1],
-            2: qr[2],
-            3: qr[3],
-            4: qr[4],
-            5: ancilla[0],
-            6: ancilla[1],
-            7: ancilla[2],
-            8: ancilla[3],
-            9: ancilla[4],
-            10: ancilla[5],
-            11: ancilla[6],
-            12: ancilla[7],
-            13: ancilla[8],
-            14: ancilla[9],
-            15: ancilla[10],
-            16: ancilla[11],
-            17: ancilla[12],
-            18: ancilla[13],
-            19: ancilla[14],
-        }
-
-        sabre_layout = {
-            0: ancilla[0],
-            1: ancilla[1],
-            2: ancilla[2],
-            3: ancilla[3],
-            4: ancilla[4],
-            5: qr[1],
-            6: qr[0],
-            7: qr[4],
-            8: ancilla[6],
-            9: ancilla[7],
-            10: qr[2],
-            11: qr[3],
-            12: ancilla[5],
-            13: ancilla[8],
-            14: ancilla[9],
-            15: ancilla[10],
-            16: ancilla[11],
-            17: ancilla[12],
-            18: ancilla[13],
-            19: ancilla[14],
-        }
-
-        expected_layout_level0 = trivial_layout
-        expected_layout_level1 = sabre_layout
-        expected_layout_level2 = sabre_layout
-        expected_layout_level3 = sabre_layout
-
         expected_layouts = [
-            expected_layout_level0,
-            expected_layout_level1,
-            expected_layout_level2,
-            expected_layout_level3,
+            [0, 1, 2, 3, 4],
+            [6, 5, 11, 10, 2],
+            [6, 5, 2, 11, 10],
+            [6, 5, 2, 11, 10],
         ]
         backend = GenericBackendV2(num_qubits=20, coupling_map=TOKYO_CMAP, seed=42)
         result = transpile(qc, backend, optimization_level=level, seed_transpiler=42)
-        self.assertEqual(result._layout.initial_layout._p2v, expected_layouts[level])
+        self.assertEqual(
+            result.layout.initial_index_layout(filter_ancillas=True), expected_layouts[level]
+        )
 
     @data(0, 1, 2, 3)
     def test_all_levels_use_trivial_if_perfect(self, level):
@@ -1238,37 +1164,6 @@ class TestTranspileLevelsSwap(QiskitTestCase):
 
 
 @ddt
-class TestOptimizationWithCondition(QiskitTestCase):
-    """Test optimization levels with condition in the circuit"""
-
-    @data(0, 1, 2, 3)
-    def test_optimization_condition(self, level):
-        """Test optimization levels with condition in the circuit"""
-        qr = QuantumRegister(2)
-        cr = ClassicalRegister(1)
-        qc = QuantumCircuit(qr, cr)
-        with self.assertWarns(DeprecationWarning):
-            qc.cx(0, 1).c_if(cr, 1)
-        backend = GenericBackendV2(
-            num_qubits=20,
-            coupling_map=TOKYO_CMAP,
-            basis_gates=["id", "u1", "u2", "u3", "cx"],
-            seed=42,
-        )
-        circ = transpile(qc, backend, optimization_level=level)
-        self.assertIsInstance(circ, QuantumCircuit)
-
-    def test_input_dag_copy(self):
-        """Test substitute_node_with_dag input_dag copy on condition"""
-        qc = QuantumCircuit(2, 1)
-        with self.assertWarns(DeprecationWarning):
-            qc.cx(0, 1).c_if(qc.cregs[0], 1)
-        qc.cx(1, 0)
-        circ = transpile(qc, basis_gates=["u3", "cz"])
-        self.assertIsInstance(circ, QuantumCircuit)
-
-
-@ddt
 class TestOptimizationOnSize(QiskitTestCase):
     """Test the optimization levels for optimization based on
     both size and depth of the circuit.
@@ -1319,17 +1214,8 @@ class TestGeneratePresetPassManagers(QiskitTestCase):
     @data(0, 1, 2, 3)
     def test_with_backend(self, optimization_level):
         """Test a passmanager is constructed when only a backend and optimization level."""
-        with self.assertWarnsRegex(
-            DeprecationWarning,
-            expected_regex=r"qiskit\.providers\.models\.backendconfiguration\.GateConfig`",
-        ):
-            backend = Fake20QV1()
-        with self.assertWarnsRegex(
-            DeprecationWarning,
-            expected_regex="The `generate_preset_pass_manager` function will "
-            "stop supporting inputs of type `BackendV1`",
-        ):
-            pm = generate_preset_pass_manager(optimization_level, backend)
+        backend = GenericBackendV2(num_qubits=2)
+        pm = generate_preset_pass_manager(optimization_level, backend)
         self.assertIsInstance(pm, PassManager)
 
     def test_default_optimization_level(self):
@@ -1362,7 +1248,6 @@ class TestGeneratePresetPassManagers(QiskitTestCase):
                 optimization_level,
                 coupling_map=target.coupling_map,
                 basis_gates=target.operation_names,
-                inst_map=target.instruction_schedule_map,
                 instruction_durations=target.instruction_durations,
                 timing_constraints=target.target.timing_constraints(),
                 target=target.target,
@@ -1582,25 +1467,27 @@ class TestGeneratePresetPassManagers(QiskitTestCase):
         ):
             generate_preset_pass_manager(seed_transpiler=0.1)
 
-    @data(0, 1)
-    def test_gate_direction_with_asymmetric_cmap(self, optimization_level):
-        """Test that GateDirection is run when only an asymmetric coupling_map is provided.
-        Only testing optimization levels 0 and 1 to avoid non-determinism in the result due to Sabre
-        """
-        qc = QuantumCircuit(2, 2)
-        qc.cx(0, 1)
-        expected = QuantumCircuit(2, 2)
-        expected.h(0)
-        expected.h(1)
-        expected.cx(1, 0)
-        expected.h(0)
-        expected.h(1)
+    @data(0, 1, 2, 3)
+    def test_preserves_circuit_metadata(self, optimization_level):
+        """Test that basic metadata is preserved."""
+        metadata = {"experiment_id": "1234", "execution_number": 4}
+        name = "my circuit"
+        circuit = QuantumCircuit(4, metadata=metadata.copy(), name=name)
+        circuit.h(0)
+        circuit.cx(0, 3)
+
+        num_qubits = 10
+        target = Target(num_qubits)
+        for inst in (lib.IGate(), lib.PhaseGate(Parameter("t")), lib.SXGate()):
+            target.add_instruction(inst, {(i,): None for i in range(num_qubits)})
+        target.add_instruction(CXGate(), {pair: None for pair in CouplingMap.from_line(num_qubits)})
 
         pm = generate_preset_pass_manager(
-            optimization_level=optimization_level, coupling_map=[[1, 0]]
+            optimization_level=optimization_level, target=target, seed_transpiler=42
         )
-        tqc = pm.run(qc)
-        self.assertEqual(tqc, expected)
+        res = pm.run(circuit)
+        self.assertEqual(res.metadata, metadata)
+        self.assertEqual(res.name, name)
 
 
 @ddt

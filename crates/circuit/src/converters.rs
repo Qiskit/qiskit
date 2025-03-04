@@ -13,12 +13,8 @@
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
 
-use hashbrown::HashMap;
 use pyo3::prelude::*;
-use pyo3::{
-    intern,
-    types::{PyDict, PyList},
-};
+use pyo3::{intern, types::PyList};
 
 use crate::circuit_data::CircuitData;
 use crate::dag_circuit::{DAGCircuit, NodeType};
@@ -30,7 +26,6 @@ use crate::packed_instruction::PackedInstruction;
 pub struct QuantumCircuitData<'py> {
     pub data: CircuitData,
     pub name: Option<Bound<'py, PyAny>>,
-    pub calibrations: Option<HashMap<String, Py<PyDict>>>,
     pub metadata: Option<Bound<'py, PyAny>>,
     pub qregs: Option<Bound<'py, PyList>>,
     pub cregs: Option<Bound<'py, PyList>>,
@@ -47,10 +42,6 @@ impl<'py> FromPyObject<'py> for QuantumCircuitData<'py> {
         Ok(QuantumCircuitData {
             data: data_borrowed,
             name: ob.getattr(intern!(py, "name")).ok(),
-            calibrations: ob
-                .getattr(intern!(py, "_calibrations_prop"))?
-                .extract()
-                .ok(),
             metadata: ob.getattr(intern!(py, "metadata")).ok(),
             qregs: ob
                 .getattr(intern!(py, "qregs"))
@@ -62,15 +53,15 @@ impl<'py> FromPyObject<'py> for QuantumCircuitData<'py> {
                 .ok(),
             input_vars: ob
                 .call_method0(intern!(py, "iter_input_vars"))?
-                .iter()?
+                .try_iter()?
                 .collect::<PyResult<Vec<_>>>()?,
             captured_vars: ob
                 .call_method0(intern!(py, "iter_captured_vars"))?
-                .iter()?
+                .try_iter()?
                 .collect::<PyResult<Vec<_>>>()?,
             declared_vars: ob
                 .call_method0(intern!(py, "iter_declared_vars"))?
-                .iter()?
+                .try_iter()?
                 .collect::<PyResult<Vec<_>>>()?,
         })
     }
@@ -124,7 +115,7 @@ pub fn dag_to_circuit(
                             .map(|param| param.clone_ref(py))
                             .collect(),
                     )),
-                    extra_attrs: instr.extra_attrs.clone(),
+                    label: instr.label.clone(),
                     #[cfg(feature = "cache_pygates")]
                     py_op: OnceLock::new(),
                 })

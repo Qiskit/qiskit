@@ -11,18 +11,21 @@
 // that they have been altered from the originals.
 
 use hashbrown::{HashMap, HashSet};
+use nalgebra::Matrix2;
 use ndarray::{aview2, Array2};
 use num_complex::Complex64;
-use numpy::{IntoPyArray, PyReadonlyArray2};
+use numpy::PyReadonlyArray2;
 use pyo3::intern;
 use pyo3::prelude::*;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
+use smallvec::smallvec;
 
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::gate_matrix::{ONE_QUBIT_IDENTITY, TWO_QUBIT_IDENTITY};
-use qiskit_circuit::imports::{QI_OPERATOR, QUANTUM_CIRCUIT, UNITARY_GATE};
-use qiskit_circuit::operations::{Operation, Param};
+use qiskit_circuit::imports::{QI_OPERATOR, QUANTUM_CIRCUIT};
+use qiskit_circuit::operations::{ArrayType, Operation, Param, UnitaryGate};
+use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::Qubit;
 
 use crate::convert_2q_block_matrix::{blocks_to_matrix, get_matrix_from_inst};
@@ -112,11 +115,17 @@ pub(crate) fn consolidate_blocks(
                     Ok(mat) => mat,
                     Err(_) => continue,
                 };
-                let array = matrix.into_pyarray_bound(py);
-                let unitary_gate = UNITARY_GATE
-                    .get_bound(py)
-                    .call1((array, py.None(), false))?;
-                dag.substitute_node_with_py_op(py, inst_node, &unitary_gate, false)?;
+                // TODO: Use Matrix2/ArrayType::OneQ when we're using nalgebra
+                // for consolidation
+                let unitary_gate = UnitaryGate {
+                    array: ArrayType::NDArray(matrix),
+                };
+                dag.substitute_op(
+                    inst_node,
+                    PackedOperation::from_unitary(Box::new(unitary_gate)),
+                    smallvec![],
+                    None,
+                )?;
                 continue;
             }
         }
@@ -180,15 +189,16 @@ pub(crate) fn consolidate_blocks(
                     dag.remove_op_node(node);
                 }
             } else {
-                let unitary_gate =
-                    UNITARY_GATE
-                        .get_bound(py)
-                        .call1((array.to_object(py), py.None(), false))?;
+                let matrix = array.as_array().to_owned();
+                let unitary_gate = UnitaryGate {
+                    array: ArrayType::NDArray(matrix),
+                };
                 let clbit_pos_map = HashMap::new();
-                dag.replace_block_with_py_op(
-                    py,
+                dag.replace_block(
                     &block,
-                    unitary_gate,
+                    PackedOperation::from_unitary(Box::new(unitary_gate)),
+                    smallvec![],
+                    None,
                     false,
                     &block_index_map,
                     &clbit_pos_map,
@@ -212,21 +222,22 @@ pub(crate) fn consolidate_blocks(
                             dag.remove_op_node(node);
                         }
                     } else {
-                        let array = matrix.into_pyarray_bound(py);
-                        let unitary_gate =
-                            UNITARY_GATE
-                                .get_bound(py)
-                                .call1((array, py.None(), false))?;
+                        // TODO: Use Matrix4/ArrayType::TwoQ when we're using nalgebra
+                        // for consolidation
+                        let unitary_gate = UnitaryGate {
+                            array: ArrayType::NDArray(matrix),
+                        };
                         let qubit_pos_map = block_index_map
                             .into_iter()
                             .enumerate()
                             .map(|(idx, qubit)| (qubit, idx))
                             .collect();
                         let clbit_pos_map = HashMap::new();
-                        dag.replace_block_with_py_op(
-                            py,
+                        dag.replace_block(
                             &block,
-                            unitary_gate,
+                            PackedOperation::from_unitary(Box::new(unitary_gate)),
+                            smallvec![],
+                            None,
                             false,
                             &qubit_pos_map,
                             &clbit_pos_map,
@@ -257,11 +268,15 @@ pub(crate) fn consolidate_blocks(
                     Ok(mat) => mat,
                     Err(_) => continue,
                 };
-                let array = matrix.into_pyarray_bound(py);
-                let unitary_gate = UNITARY_GATE
-                    .get_bound(py)
-                    .call1((array, py.None(), false))?;
-                dag.substitute_node_with_py_op(py, first_inst_node, &unitary_gate, false)?;
+                let unitary_gate = UnitaryGate {
+                    array: ArrayType::NDArray(matrix),
+                };
+                dag.substitute_op(
+                    first_inst_node,
+                    PackedOperation::from_unitary(Box::new(unitary_gate)),
+                    smallvec![],
+                    None,
+                )?;
                 continue;
             }
             let qubit = first_qubits[0];
@@ -292,17 +307,19 @@ pub(crate) fn consolidate_blocks(
                     dag.remove_op_node(node);
                 }
             } else {
-                let array = aview2(&matrix).to_owned().into_pyarray_bound(py);
-                let unitary_gate = UNITARY_GATE
-                    .get_bound(py)
-                    .call1((array, py.None(), false))?;
+                let array: Matrix2<Complex64> =
+                    Matrix2::from_row_iterator(matrix.into_iter().flat_map(|x| x.into_iter()));
+                let unitary_gate = UnitaryGate {
+                    array: ArrayType::OneQ(array),
+                };
                 let mut block_index_map: HashMap<Qubit, usize> = HashMap::with_capacity(1);
                 block_index_map.insert(qubit, 0);
                 let clbit_pos_map = HashMap::new();
-                dag.replace_block_with_py_op(
-                    py,
+                dag.replace_block(
                     &run,
-                    unitary_gate,
+                    PackedOperation::from_unitary(Box::new(unitary_gate)),
+                    smallvec![],
+                    None,
                     false,
                     &block_index_map,
                     &clbit_pos_map,

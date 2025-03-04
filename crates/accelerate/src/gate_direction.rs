@@ -20,11 +20,8 @@ use pyo3::types::PyTuple;
 use qiskit_circuit::operations::OperationRef;
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{
-    circuit_instruction::CircuitInstruction,
-    circuit_instruction::ExtraInstructionAttributes,
     converters::{circuit_to_dag, QuantumCircuitData},
     dag_circuit::DAGCircuit,
-    dag_node::{DAGNode, DAGOpNode},
     imports,
     imports::get_std_gate_class,
     operations::Operation,
@@ -113,7 +110,7 @@ where
                 let circuit_to_dag = imports::CIRCUIT_TO_DAG.get_bound(py);
                 let py_inst = py_inst.instruction.bind(py);
 
-                for block in py_inst.getattr("blocks")?.iter()? {
+                for block in py_inst.getattr("blocks")?.try_iter()? {
                     let inner_dag: DAGCircuit = circuit_to_dag.call1((block?,))?.extract()?;
 
                     let block_ok = if let Some(mapping) = qubit_mapping {
@@ -208,7 +205,7 @@ fn py_fix_direction_target(
         ];
 
         // Take this path so Target can check for exact match of the parameterized gate's angle
-        if let OperationRef::Standard(std_gate) = inst.op.view() {
+        if let OperationRef::StandardGate(std_gate) = inst.op.view() {
             match std_gate {
                 StandardGate::RXXGate
                 | StandardGate::RYYGate
@@ -292,7 +289,7 @@ where
             }
         }
 
-        if op_args.len() != 2 || dag.has_calibration_for_index(py, node)? {
+        if op_args.len() != 2 {
             continue;
         };
 
@@ -309,7 +306,7 @@ where
 
         // If the op has a pre-defined replacement - replace if the other direction is supported otherwise error
         // If no pre-defined replacement for the op - if the other direction is supported error saying no pre-defined rule otherwise error saying op is not supported
-        if let OperationRef::Standard(std_gate) = packed_inst.op.view() {
+        if let OperationRef::StandardGate(std_gate) = packed_inst.op.view() {
             match std_gate {
                 StandardGate::CXGate
                 | StandardGate::ECRGate
@@ -335,9 +332,7 @@ where
             }
         }
         // No matching replacement found
-        if gate_complies(packed_inst, &[op_args1, op_args0])
-            || has_calibration_for_op_node(py, dag, packed_inst, &[op_args1, op_args0])?
-        {
+        if gate_complies(packed_inst, &[op_args1, op_args0]) {
             return Err(TranspilerError::new_err(format!("{} would be supported on {:?} if the direction was swapped, but no rules are known to do that. {:?} can be automatically flipped.", packed_inst.op.name(), op_args, vec!["cx", "cz", "ecr", "swap", "rzx", "rxx", "ryy", "rzz"])));
             // NOTE: Make sure to update the list of the supported gates if adding more replacements
         } else {
@@ -360,7 +355,7 @@ where
             .bind(py)
             .call_method1("replace_blocks", (op_blocks,))?;
 
-        dag.py_substitute_node(dag.get_node(py, node)?.bind(py), &new_op, false, false)?;
+        dag.py_substitute_node(py, dag.get_node(py, node)?.bind(py), &new_op, false, None)?;
     }
 
     for (node, replacemanet_dag) in nodes_to_replace {
@@ -369,42 +364,11 @@ where
             dag.get_node(py, node)?.bind(py),
             &replacemanet_dag,
             None,
-            true,
+            None,
         )?;
     }
 
     Ok(dag)
-}
-
-// Check whether the dag as calibration for a DAGOpNode
-fn has_calibration_for_op_node(
-    py: Python,
-    dag: &DAGCircuit,
-    packed_inst: &PackedInstruction,
-    qargs: &[Qubit],
-) -> PyResult<bool> {
-    let py_args = PyTuple::new_bound(py, dag.qubits().map_indices(qargs));
-
-    let dag_op_node = Py::new(
-        py,
-        (
-            DAGOpNode {
-                instruction: CircuitInstruction {
-                    operation: packed_inst.op.clone(),
-                    qubits: py_args.unbind(),
-                    clbits: PyTuple::empty_bound(py).unbind(),
-                    params: packed_inst.params_view().iter().cloned().collect(),
-                    extra_attrs: packed_inst.extra_attrs.clone(),
-                    #[cfg(feature = "cache_pygates")]
-                    py_op: packed_inst.py_op.clone(),
-                },
-                sort_key: "".into_py(py),
-            },
-            DAGNode { node: None },
-        ),
-    )?;
-
-    dag.has_calibration_for(py, dag_op_node.borrow(py))
 }
 
 // Return a replacement DAG for the given standard gate in the supported list
@@ -464,11 +428,11 @@ fn apply_operation_back(
 ) -> PyResult<()> {
     dag.apply_operation_back(
         py,
-        PackedOperation::from_standard(gate),
+        PackedOperation::from_standard_gate(gate),
         qargs,
         &[],
         param,
-        ExtraInstructionAttributes::default(),
+        None,
         #[cfg(feature = "cache_pygates")]
         None,
     )?;

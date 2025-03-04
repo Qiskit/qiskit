@@ -37,7 +37,6 @@ impl InstructionProperties {
     ///         specified set of qubits
     ///     error (Option<f64>): The average error rate for the instruction on the specified
     ///         set of qubits.
-    ///     calibration (Option<PyObject>): The pulse representation of the instruction.
     #[new]
     #[pyo3(signature = (duration=None, error=None))]
     pub fn new(_py: Python<'_>, duration: Option<f64>, error: Option<f64>) -> Self {
