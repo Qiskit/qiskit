@@ -107,7 +107,7 @@ def transpile(  # pylint: disable=too-many-return-statements
     **instruction_durations**    target    instruction_durations
     **dt**                       target    dt
     **timing_constraints**       target    timing_constraints
-    ============================ ========= =======================
+    ============================ ========= ========================
 
     Args:
         circuits: Circuit(s) to transpile
