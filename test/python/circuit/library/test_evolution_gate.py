@@ -19,6 +19,7 @@ import numpy as np
 import scipy
 from ddt import ddt, data, unpack
 
+from qiskit import transpile
 from qiskit.circuit import QuantumCircuit, Parameter
 from qiskit.circuit.library import PauliEvolutionGate, HamiltonianGate, PhaseGate
 from qiskit.synthesis import LieTrotter, SuzukiTrotter, MatrixExponential, QDrift
@@ -451,14 +452,47 @@ class TestEvolutionGate(QiskitTestCase):
         op = (X ^ X ^ X) + (Y ^ Y ^ Y) + (Z ^ Z ^ Z)
         time = 0.123
         reps = 4
-        with self.assertWarns(PendingDeprecationWarning):
+
+        with self.subTest(msg="default"):
+            with self.assertWarns(PendingDeprecationWarning):
+                evo_gate = PauliEvolutionGate(
+                    op,
+                    time,
+                    synthesis=LieTrotter(reps=reps, atomic_evolution=custom_atomic_evolution),
+                )
+            decomposed = evo_gate.definition.decompose()
+            self.assertEqual(decomposed.count_ops()["cx"], reps * 3 * 4)
+
+        with self.subTest(msg="supporting sparse obs"):
+            # no pending deprecation warning here
             evo_gate = PauliEvolutionGate(
                 op,
                 time,
-                synthesis=LieTrotter(reps=reps, atomic_evolution=custom_atomic_evolution),
+                synthesis=LieTrotter(
+                    reps=reps,
+                    atomic_evolution=observable_supporting_evolution,
+                    atomic_evolution_sparse_observable=True,
+                ),
             )
-        decomposed = evo_gate.definition.decompose()
-        self.assertEqual(decomposed.count_ops()["cx"], reps * 3 * 4)
+
+    def test_invalid_atomic_evolution(self):
+        """Test a lying about the support of SparseObservable."""
+        op = SparseObservable("IYXZ")
+        time = 0.123
+        reps = 4
+
+        evo_gate = PauliEvolutionGate(
+            op,
+            time,
+            synthesis=LieTrotter(
+                reps=reps,
+                atomic_evolution=custom_atomic_evolution,
+                atomic_evolution_sparse_observable=True,
+            ),
+        )
+
+        with self.assertRaises(AttributeError):
+            _ = evo_gate.definition
 
     def test_all_identity(self):
         """Test circuit with all identity Paulis works correctly."""
@@ -538,27 +572,32 @@ class TestEvolutionGate(QiskitTestCase):
         ref = PauliEvolutionGate(pauli, time=1).definition
         self.assertEqual(Operator(ref), Operator(evo))
 
-    def test_projector_custom_index(self):
+    @data(("00+1", [2, 3, 0, 1], "001+"), ("Z0+Y", [1, 3, 0, 2], "0YZ+"))
+    @unpack
+    def test_projector_custom_index(self, initial, order, final):
         """Test with some random index order."""
-        op = SparseObservable.from_sparse_list([("00+1", [2, 3, 0, 1], 1)], 4)
+        op = SparseObservable.from_sparse_list([(initial, order, 1)], 4)
         evo = PauliEvolutionGate(op, time=1).definition
 
-        direct = SparseObservable("001+")
+        direct = SparseObservable(final)
         ref = PauliEvolutionGate(direct, time=1).definition
-        self.assertEqual(Operator(ref), Operator(evo))
-
-    def test_projector_and_pauli_custom_index(self):
-        """Test with some random index order."""
-        op = SparseObservable.from_sparse_list([("Z0+Y", [1, 3, 0, 2], 1)], 4)
-        evo = PauliEvolutionGate(op, time=1).definition
-
-        direct = SparseObservable("0YZ+")
-        ref = PauliEvolutionGate(direct, time=1).definition
-
         self.assertEqual(Operator(ref), Operator(evo))
 
     def test_projector_circuit(self):
-        """Test a SparseObservable with projectors."""
+        """Test a SparseObservable with projectors.
+
+        This evolves ``SparseObservable("-+rl10")`` which will translate to the following
+        circuit (modulo basis-changing Cliffords)
+
+            q5 q4 q3 q2 q1 q0
+            -----------------
+             -  +  r  l  1  0  // bit term
+            -1 +1 +1 -1 -1 +1  // eigenvalue
+             1  0  0  1  1  0  // ctrl state
+            -----------------
+            --> P(-1).ctrl_state(00110) applied on qubits [0, 1, 2, 3, 4, 5]
+
+        """
         op = SparseObservable("-+rl10")
         evo = PauliEvolutionGate(op, time=1).definition
 
@@ -647,6 +686,42 @@ class TestEvolutionGate(QiskitTestCase):
         ref.sxdg(8)
 
         self.assertEqual(ref, evo)
+
+    @data(
+        "ZZ+Z+Z++",
+        "+ZZ+++++",
+        "++++++++",
+    )
+    def test_gate_count(self, term):
+        """Test the gate count upper bound.
+
+        The goal here is to check that the projectors don't use an exponential number of gates,
+        not to check the precise numbers.
+
+        Note that this test requires 4 or more projectors to work, otherwise the MCRZ bound
+        does not hold.
+        """
+        num_paulis = sum(bit in "XYZ" for bit in term)
+        num_projectors = len(term) - num_paulis
+
+        if num_paulis > 0:
+            num_cx = 2 * (num_paulis - 1)  # number of CX for the Pauli part
+            num_cx += 16 * num_projectors - 40  # MCRZ gate count
+        else:
+            num_cx = (num_projectors - 1) * (16 * num_projectors - 40)
+
+        # if we did use an exponential number of CX, this is what we'd get
+        exponential_paulis = num_paulis + 2**num_projectors
+        exponential_cx = 2 * (exponential_paulis - 1)
+
+        evo = PauliEvolutionGate(SparseObservable(term))
+        tqc = transpile(evo.definition, basis_gates=["u", "cx"], optimization_level=0)
+        cx_count = tqc.count_ops().get("cx", 0)
+
+        # we should for sure be less than this
+        self.assertLess(cx_count, exponential_cx)
+        # we should also be less (or equal) to this
+        self.assertLessEqual(cx_count, num_cx)
 
 
 def exact_atomic_evolution(circuit, pauli, time):
@@ -737,6 +812,14 @@ def custom_atomic_evolution(circuit, pauli, time):
     circuit.compose(cliff.inverse(), inplace=True)
 
     return circuit
+
+
+def observable_supporting_evolution(circuit, pauli, time):
+    """A custom atomic evolution supporting SparseObservable."""
+    if isinstance(pauli, SparseObservable):
+        pauli = SparsePauliOp.from_sparse_observable(pauli)
+
+    custom_atomic_evolution(circuit, pauli, time)
 
 
 if __name__ == "__main__":

@@ -25,18 +25,6 @@ from qiskit.quantum_info import Pauli, SparsePauliOp, SparseObservable
 if TYPE_CHECKING:
     from qiskit.synthesis.evolution import EvolutionSynthesis
 
-BIT_LABELS = {
-    0b0001: "Z",
-    0b1001: "0",
-    0b0101: "1",
-    0b0010: "X",
-    0b1010: "+",
-    0b0110: "-",
-    0b0011: "Y",
-    0b1011: "r",
-    0b0111: "l",
-}
-
 
 class PauliEvolutionGate(Gate):
     r"""Time-evolution of an operator consisting of Paulis.
