@@ -1300,7 +1300,8 @@ class TestControlledGate(QiskitTestCase):
         """
         for gate_class in ControlledGate.__subclasses__():
             with self.subTest(i=repr(gate_class)):
-                # Singleton class isn't intended to be created directly, and its subclasses are not parameterized
+                # Singleton class isn't intended to be created directly, and its subclasses are not
+                # parameterized
                 if gate_class in {SingletonControlledGate, _SingletonControlledGateOverrides}:
                     continue
                 gate_params = _get_free_params(gate_class.__init__, ignore=["self"])
