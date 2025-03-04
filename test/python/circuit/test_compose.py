@@ -33,7 +33,7 @@ from qiskit.circuit import (
     SwitchCaseOp,
     CircuitError,
 )
-from qiskit.circuit.library import HGate, RZGate, CXGate, CCXGate, TwoLocal
+from qiskit.circuit.library import HGate, RZGate, CXGate, CCXGate, n_local
 from qiskit.circuit.classical import expr, types
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -690,7 +690,7 @@ class TestCircuitCompose(QiskitTestCase):
 
     def test_compose_no_clbits_in_one(self):
         """Test combining a circuit with cregs to one without"""
-        ansatz = TwoLocal(2, rotation_blocks="ry", entanglement_blocks="cx")
+        ansatz = n_local(2, rotation_blocks="ry", entanglement_blocks="cx")
 
         qc = QuantumCircuit(2)
         qc.measure_all()
@@ -699,7 +699,7 @@ class TestCircuitCompose(QiskitTestCase):
 
     def test_compose_no_clbits_in_one_inplace(self):
         """Test combining a circuit with cregs to one without inplace"""
-        ansatz = TwoLocal(2, rotation_blocks="ry", entanglement_blocks="cx")
+        ansatz = n_local(2, rotation_blocks="ry", entanglement_blocks="cx")
 
         qc = QuantumCircuit(2)
         qc.measure_all()
@@ -708,7 +708,7 @@ class TestCircuitCompose(QiskitTestCase):
 
     def test_compose_no_clbits_in_one_multireg(self):
         """Test combining a circuit with cregs to one without, multi cregs"""
-        ansatz = TwoLocal(2, rotation_blocks="ry", entanglement_blocks="cx")
+        ansatz = n_local(2, rotation_blocks="ry", entanglement_blocks="cx")
 
         qa = QuantumRegister(2, "q")
         ca = ClassicalRegister(2, "a")

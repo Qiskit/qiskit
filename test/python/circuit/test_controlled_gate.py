@@ -82,6 +82,8 @@ from qiskit.circuit.library import (
     MCU1Gate,
     MCXGate,
     MCXGrayCode,
+    MCXVChain,
+    MCXRecursive,
     C3XGate,
     C3SXGate,
     C4XGate,
@@ -770,7 +772,9 @@ class TestControlledGate(QiskitTestCase):
     def test_mcxgraycode_gates_yield_explicit_gates(self, num_ctrl_qubits):
         """Test an MCXGrayCode yields explicit definition."""
         qc = QuantumCircuit(num_ctrl_qubits + 1)
-        qc.append(MCXGrayCode(num_ctrl_qubits), list(range(qc.num_qubits)), [])
+        with self.assertWarns(DeprecationWarning):
+            mcx = MCXGrayCode(num_ctrl_qubits)
+        qc.append(mcx, list(range(qc.num_qubits)), [])
         explicit = {1: CXGate, 2: CCXGate, 3: C3XGate, 4: C4XGate}
         self.assertEqual(qc[0].operation.base_class, explicit[num_ctrl_qubits])
 
@@ -1688,6 +1692,8 @@ class TestControlledStandardGates(QiskitTestCase):
             args[0] = 2
         elif gate_class in [MCU1Gate, MCPhaseGate]:
             args[1] = 2
+        elif gate_class in [MCXVChain, MCXRecursive]:
+            self.skipTest("No check for gates with auxiliary qubits.")
         elif issubclass(gate_class, MCXGate):
             args = [5]
         else:
@@ -1696,13 +1702,14 @@ class TestControlledStandardGates(QiskitTestCase):
                 if gate_params[i] == "num_ctrl_qubits":
                     args[i] = 2
 
-        gate = gate_class(*args)
+        if gate_class == MCXGrayCode:
+            with self.assertWarns(DeprecationWarning):
+                gate = gate_class(*args)
+        else:
+            gate = gate_class(*args)
 
         for ctrl_state in (ctrl_state_ones, ctrl_state_zeros, ctrl_state_mixed):
             with self.subTest(i=f"{gate_class.__name__}, ctrl_state={ctrl_state}"):
-                if hasattr(gate, "num_ancilla_qubits") and gate.num_ancilla_qubits > 0:
-                    # skip matrices that include ancilla qubits
-                    continue
                 try:
                     cgate = gate.control(num_ctrl_qubits, ctrl_state=ctrl_state)
                 except (AttributeError, QiskitError):
