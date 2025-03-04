@@ -127,6 +127,10 @@ pub static XX_EMBODIMENTS: ImportOnceCell =
     ImportOnceCell::new("qiskit.synthesis.two_qubit.xx_decompose", "XXEmbodiments");
 pub static NUMPY_COPY_ONLY_IF_NEEDED: ImportOnceCell =
     ImportOnceCell::new("qiskit._numpy_compat", "COPY_ONLY_IF_NEEDED");
+pub static HLS_SYNTHESIZE_OP_USING_PLUGINS: ImportOnceCell = ImportOnceCell::new(
+    "qiskit.transpiler.passes.synthesis.high_level_synthesis",
+    "_synthesize_op_using_plugins",
+);
 
 /// A mapping from the enum variant in crate::operations::StandardGate to the python
 /// module path and class name to import it. This is used to populate the conversion table

@@ -874,7 +874,7 @@ pub unsafe extern "C" fn qk_str_free(string: *mut c_char) {
 ///     QkObs *obs = qk_obs_identity(100);
 ///     QkObsTerm term;
 ///     qk_obs_term(obs, 0, &term);
-///     char *string = qk_obsterm_print(&term);
+///     char *string = qk_obsterm_str(&term);
 ///     qk_str_free(string);
 ///
 /// # Safety
