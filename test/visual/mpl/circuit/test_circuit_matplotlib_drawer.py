@@ -1117,7 +1117,9 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.barrier()
 
         fname = "idle_wires_barrier.png"
-        self.circuit_drawer(circuit, output="mpl", cregbundle=False, filename=fname)
+        self.circuit_drawer(
+            circuit, output="mpl", cregbundle=False, filename=fname, idle_wires=False
+        )
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
