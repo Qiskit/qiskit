@@ -638,9 +638,7 @@ def _read_custom_operations(file_obj, version, vectors):
     return custom_operations
 
 
-def _read_calibrations(
-    file_obj, version, vectors, metadata_deserializer, use_symengine, trust_input=False
-):
+def _read_calibrations(file_obj, version, vectors, metadata_deserializer, trust_input=False):
     calibrations = {}
 
     header = formats.CALIBRATION._make(
@@ -662,7 +660,6 @@ def _read_calibrations(
             file_obj,
             version,
             metadata_deserializer,
-            use_symengine=use_symengine,
             trust_input=trust_input,
         )
 
@@ -1469,7 +1466,6 @@ def read_circuit(
             version,
             vectors,
             metadata_deserializer,
-            use_symengine,
             trust_input=trust_input,
         )
 

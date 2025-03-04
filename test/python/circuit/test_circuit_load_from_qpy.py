@@ -357,7 +357,7 @@ class TestLoadFromQPY(QiskitTestCase):
             # qpy.dump warns for deprecations of pulse gate serialization
             dump(qc, qpy_file)
         qpy_file.seek(0)
-        new_circ = load(qpy_file)[0]
+        new_circ = load(qpy_file, trust_payload=True)[0]
         self.assertEqual(qc, new_circ)
         instruction = new_circ.data[0]
         cal_key = (
