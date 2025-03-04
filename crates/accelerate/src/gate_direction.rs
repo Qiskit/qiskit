@@ -20,10 +20,8 @@ use qiskit_circuit::operations::OperationRef;
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::register::{QuantumRegister, Register};
 use qiskit_circuit::{
-    circuit_instruction::CircuitInstruction,
     converters::{circuit_to_dag, QuantumCircuitData},
     dag_circuit::DAGCircuit,
-    dag_node::{DAGNode, DAGOpNode},
     imports,
     imports::get_std_gate_class,
     operations::Operation,
@@ -291,7 +289,7 @@ where
             }
         }
 
-        if op_args.len() != 2 || dag.has_calibration_for_index(py, node)? {
+        if op_args.len() != 2 {
             continue;
         };
 
@@ -334,9 +332,7 @@ where
             }
         }
         // No matching replacement found
-        if gate_complies(packed_inst, &[op_args1, op_args0])
-            || has_calibration_for_op_node(py, dag, packed_inst, &[op_args1, op_args0])?
-        {
+        if gate_complies(packed_inst, &[op_args1, op_args0]) {
             return Err(TranspilerError::new_err(format!("{} would be supported on {:?} if the direction was swapped, but no rules are known to do that. {:?} can be automatically flipped.", packed_inst.op.name(), op_args, vec!["cx", "cz", "ecr", "swap", "rzx", "rxx", "ryy", "rzz"])));
             // NOTE: Make sure to update the list of the supported gates if adding more replacements
         } else {
@@ -373,36 +369,6 @@ where
     }
 
     Ok(dag)
-}
-
-// Check whether the dag as calibration for a DAGOpNode
-fn has_calibration_for_op_node(
-    py: Python,
-    dag: &DAGCircuit,
-    packed_inst: &PackedInstruction,
-    qargs: &[Qubit],
-) -> PyResult<bool> {
-    let py_args = PyTuple::new(py, dag.qubits().map_indices(qargs))?;
-
-    let dag_op_node = Py::new(
-        py,
-        (
-            DAGOpNode {
-                instruction: CircuitInstruction {
-                    operation: packed_inst.op.clone(),
-                    qubits: py_args.unbind(),
-                    clbits: PyTuple::empty(py).unbind(),
-                    params: packed_inst.params_view().iter().cloned().collect(),
-                    label: packed_inst.label.clone(),
-                    #[cfg(feature = "cache_pygates")]
-                    py_op: packed_inst.py_op.clone(),
-                },
-            },
-            DAGNode { node: None },
-        ),
-    )?;
-
-    dag.has_calibration_for(py, dag_op_node.borrow(py))
 }
 
 // Return a replacement DAG for the given standard gate in the supported list

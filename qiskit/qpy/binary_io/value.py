@@ -23,7 +23,7 @@ import numpy as np
 import symengine
 
 
-from qiskit.circuit import CASE_DEFAULT, Clbit, ClassicalRegister
+from qiskit.circuit import CASE_DEFAULT, Clbit, ClassicalRegister, Duration
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import (
@@ -142,6 +142,8 @@ def _encode_replay_subs(subs, file_obj, version):
 
 
 def _write_parameter_expression_v13(file_obj, obj, version):
+    # A symbol is `Parameter` or `ParameterVectorElement`.
+    # `symbol_map` maps symbols to ParameterExpression (which may be a symbol).
     symbol_map = {}
     for inst in obj._qpy_replay:
         if isinstance(inst, _SUBS):
@@ -234,9 +236,17 @@ def _write_parameter_expression(file_obj, obj, use_symengine, *, version):
             # serialize key
             if symbol_key == type_keys.Value.PARAMETER_VECTOR:
                 symbol_data = common.data_to_binary(symbol, _write_parameter_vec)
+            elif symbol_key == type_keys.Value.PARAMETER_EXPRESSION:
+                symbol_data = common.data_to_binary(
+                    symbol,
+                    _write_parameter_expression,
+                    use_symengine=use_symengine,
+                    version=version,
+                )
             else:
                 symbol_data = common.data_to_binary(symbol, _write_parameter)
             # serialize value
+
             value_key, value_data = dumps_value(
                 symbol, version=version, use_symengine=use_symengine
             )
@@ -261,12 +271,15 @@ class _ExprWriter(expr.ExprVisitor[None]):
         self.standalone_var_indices = standalone_var_indices
         self.version = version
 
+    def _write_expr_type(self, type_, /):
+        _write_expr_type(self.file_obj, type_, self.version)
+
     def visit_generic(self, node, /):
         raise exceptions.QpyError(f"unhandled Expr object '{node}'")
 
     def visit_var(self, node, /):
         self.file_obj.write(type_keys.Expression.VAR)
-        _write_expr_type(self.file_obj, node.type)
+        self._write_expr_type(node.type)
         if node.standalone:
             self.file_obj.write(type_keys.ExprVar.UUID)
             self.file_obj.write(
@@ -296,7 +309,7 @@ class _ExprWriter(expr.ExprVisitor[None]):
 
     def visit_value(self, node, /):
         self.file_obj.write(type_keys.Expression.VALUE)
-        _write_expr_type(self.file_obj, node.type)
+        self._write_expr_type(node.type)
         if node.value is True or node.value is False:
             self.file_obj.write(type_keys.ExprValue.BOOL)
             self.file_obj.write(
@@ -317,12 +330,20 @@ class _ExprWriter(expr.ExprVisitor[None]):
                 struct.pack(formats.EXPR_VALUE_INT_PACK, *formats.EXPR_VALUE_INT(num_bytes))
             )
             self.file_obj.write(buffer)
+        elif isinstance(node.value, float):
+            self.file_obj.write(type_keys.ExprValue.FLOAT)
+            self.file_obj.write(
+                struct.pack(formats.EXPR_VALUE_FLOAT_PACK, *formats.EXPR_VALUE_FLOAT(node.value))
+            )
+        elif isinstance(node.value, Duration):
+            self.file_obj.write(type_keys.ExprValue.DURATION)
+            _write_duration(self.file_obj, node.value)
         else:
             raise exceptions.QpyError(f"unhandled Value object '{node.value}'")
 
     def visit_cast(self, node, /):
         self.file_obj.write(type_keys.Expression.CAST)
-        _write_expr_type(self.file_obj, node.type)
+        self._write_expr_type(node.type)
         self.file_obj.write(
             struct.pack(formats.EXPRESSION_CAST_PACK, *formats.EXPRESSION_CAST(node.implicit))
         )
@@ -330,7 +351,7 @@ class _ExprWriter(expr.ExprVisitor[None]):
 
     def visit_unary(self, node, /):
         self.file_obj.write(type_keys.Expression.UNARY)
-        _write_expr_type(self.file_obj, node.type)
+        self._write_expr_type(node.type)
         self.file_obj.write(
             struct.pack(formats.EXPRESSION_UNARY_PACK, *formats.EXPRESSION_UNARY(node.op.value))
         )
@@ -338,7 +359,7 @@ class _ExprWriter(expr.ExprVisitor[None]):
 
     def visit_binary(self, node, /):
         self.file_obj.write(type_keys.Expression.BINARY)
-        _write_expr_type(self.file_obj, node.type)
+        self._write_expr_type(node.type)
         self.file_obj.write(
             struct.pack(formats.EXPRESSION_BINARY_PACK, *formats.EXPRESSION_BINARY(node.op.value))
         )
@@ -351,7 +372,7 @@ class _ExprWriter(expr.ExprVisitor[None]):
                 "the 'Index' expression", required=12, target=self.version
             )
         self.file_obj.write(type_keys.Expression.INDEX)
-        _write_expr_type(self.file_obj, node.type)
+        self._write_expr_type(node.type)
         node.target.accept(self)
         node.index.accept(self)
 
@@ -366,7 +387,7 @@ def _write_expr(
     node.accept(_ExprWriter(file_obj, clbit_indices, standalone_var_indices, version))
 
 
-def _write_expr_type(file_obj, type_: types.Type):
+def _write_expr_type(file_obj, type_: types.Type, version: int):
     if type_.kind is types.Bool:
         file_obj.write(type_keys.ExprType.BOOL)
     elif type_.kind is types.Uint:
@@ -374,8 +395,49 @@ def _write_expr_type(file_obj, type_: types.Type):
         file_obj.write(
             struct.pack(formats.EXPR_TYPE_UINT_PACK, *formats.EXPR_TYPE_UINT(type_.width))
         )
+    elif type_.kind is types.Float:
+        if version < 14:
+            raise exceptions.UnsupportedFeatureForVersion(
+                "float-typed expressions", required=14, target=version
+            )
+        file_obj.write(type_keys.ExprType.FLOAT)
+    elif type_.kind is types.Duration:
+        if version < 14:
+            raise exceptions.UnsupportedFeatureForVersion(
+                "duration-typed expressions", required=14, target=version
+            )
+        file_obj.write(type_keys.ExprType.DURATION)
     else:
         raise exceptions.QpyError(f"unhandled Type object '{type_};")
+
+
+def _write_duration(file_obj, duration: Duration):
+    unit = duration.unit()
+    if unit == "dt":
+        file_obj.write(type_keys.CircuitDuration.DT)
+        file_obj.write(
+            struct.pack(formats.DURATION_DT_PACK, *formats.DURATION_DT(duration.value()))
+        )
+    elif unit == "ns":
+        file_obj.write(type_keys.CircuitDuration.NS)
+        file_obj.write(
+            struct.pack(formats.DURATION_NS_PACK, *formats.DURATION_NS(duration.value()))
+        )
+    elif unit == "us":
+        file_obj.write(type_keys.CircuitDuration.US)
+        file_obj.write(
+            struct.pack(formats.DURATION_US_PACK, *formats.DURATION_US(duration.value()))
+        )
+    elif unit == "ms":
+        file_obj.write(type_keys.CircuitDuration.MS)
+        file_obj.write(
+            struct.pack(formats.DURATION_MS_PACK, *formats.DURATION_MS(duration.value()))
+        )
+    elif unit == "s":
+        file_obj.write(type_keys.CircuitDuration.S)
+        file_obj.write(struct.pack(formats.DURATION_S_PACK, *formats.DURATION_S(duration.value())))
+    else:
+        raise exceptions.QpyError(f"unhandled Duration object '{duration};")
 
 
 def _read_parameter(file_obj):
@@ -516,10 +578,13 @@ def _read_parameter_expression_v13(file_obj, vectors, version):
             symbol = _read_parameter(file_obj)
         elif symbol_key == type_keys.Value.PARAMETER_VECTOR:
             symbol = _read_parameter_vec(file_obj, vectors)
+        elif symbol_key == type_keys.Value.PARAMETER_EXPRESSION:
+            symbol = _read_parameter_expression_v13(file_obj, vectors, version)
         else:
             raise exceptions.QpyError(f"Invalid parameter expression map type: {symbol_key}")
 
         elem_key = type_keys.Value(elem_data.type)
+
         binary_data = file_obj.read(elem_data.size)
         if elem_key == type_keys.Value.INTEGER:
             value = struct.unpack("!q", binary_data)
@@ -534,6 +599,7 @@ def _read_parameter_expression_v13(file_obj, vectors, version):
                 binary_data,
                 _read_parameter_expression_v13,
                 vectors=vectors,
+                version=version,
             )
         else:
             raise exceptions.QpyError(f"Invalid parameter expression map type: {elem_key}")
@@ -680,6 +746,16 @@ def _read_expr(
             return expr.Value(
                 int.from_bytes(file_obj.read(payload.num_bytes), "big", signed=True), type_
             )
+        if value_type_key == type_keys.ExprValue.FLOAT:
+            payload = formats.EXPR_VALUE_FLOAT._make(
+                struct.unpack(
+                    formats.EXPR_VALUE_FLOAT_PACK, file_obj.read(formats.EXPR_VALUE_FLOAT_SIZE)
+                )
+            )
+            return expr.Value(payload.value, type_)
+        if value_type_key == type_keys.ExprValue.DURATION:
+            value = _read_duration(file_obj)
+            return expr.Value(value, type_)
         raise exceptions.QpyError("Invalid classical-expression Value key '{value_type_key}'")
     if type_key == type_keys.Expression.CAST:
         payload = formats.EXPRESSION_CAST._make(
@@ -729,7 +805,41 @@ def _read_expr_type(file_obj) -> types.Type:
             struct.unpack(formats.EXPR_TYPE_UINT_PACK, file_obj.read(formats.EXPR_TYPE_UINT_SIZE))
         )
         return types.Uint(elem.width)
+    if type_key == type_keys.ExprType.FLOAT:
+        return types.Float()
+    if type_key == type_keys.ExprType.DURATION:
+        return types.Duration()
     raise exceptions.QpyError(f"Invalid classical-expression Type key '{type_key}'")
+
+
+def _read_duration(file_obj) -> Duration:
+    type_key = file_obj.read(formats.DURATION_DISCRIMINATOR_SIZE)
+    if type_key == type_keys.CircuitDuration.DT:
+        elem = formats.DURATION_DT._make(
+            struct.unpack(formats.DURATION_DT_PACK, file_obj.read(formats.DURATION_DT_SIZE))
+        )
+        return Duration.dt(elem.value)
+    if type_key == type_keys.CircuitDuration.NS:
+        elem = formats.DURATION_NS._make(
+            struct.unpack(formats.DURATION_NS_PACK, file_obj.read(formats.DURATION_NS_SIZE))
+        )
+        return Duration.ns(elem.value)
+    if type_key == type_keys.CircuitDuration.US:
+        elem = formats.DURATION_US._make(
+            struct.unpack(formats.DURATION_US_PACK, file_obj.read(formats.DURATION_US_SIZE))
+        )
+        return Duration.us(elem.value)
+    if type_key == type_keys.CircuitDuration.MS:
+        elem = formats.DURATION_MS._make(
+            struct.unpack(formats.DURATION_MS_PACK, file_obj.read(formats.DURATION_MS_SIZE))
+        )
+        return Duration.ms(elem.value)
+    if type_key == type_keys.CircuitDuration.S:
+        elem = formats.DURATION_S._make(
+            struct.unpack(formats.DURATION_S_PACK, file_obj.read(formats.DURATION_S_SIZE))
+        )
+        return Duration.s(elem.value)
+    raise exceptions.QpyError(f"Invalid duration Type key '{type_key}'")
 
 
 def read_standalone_vars(file_obj, num_vars):
@@ -765,7 +875,7 @@ def read_standalone_vars(file_obj, num_vars):
     return read_vars, var_order
 
 
-def _write_standalone_var(file_obj, var, type_key):
+def _write_standalone_var(file_obj, var, type_key, version):
     name = var.name.encode(common.ENCODE)
     file_obj.write(
         struct.pack(
@@ -773,16 +883,17 @@ def _write_standalone_var(file_obj, var, type_key):
             *formats.EXPR_VAR_DECLARATION(var.var.bytes, type_key, len(name)),
         )
     )
-    _write_expr_type(file_obj, var.type)
+    _write_expr_type(file_obj, var.type, version)
     file_obj.write(name)
 
 
-def write_standalone_vars(file_obj, circuit):
+def write_standalone_vars(file_obj, circuit, version):
     """Write the standalone variables out from a circuit.
 
     Args:
         file_obj (File): the file-like object to write to.
         circuit (QuantumCircuit): the circuit to take the variables from.
+        version (int): the QPY target version.
 
     Returns:
         dict[expr.Var, int]: a mapping of the variables written to the index that they were written
@@ -791,15 +902,15 @@ def write_standalone_vars(file_obj, circuit):
     index = 0
     out = {}
     for var in circuit.iter_input_vars():
-        _write_standalone_var(file_obj, var, type_keys.ExprVarDeclaration.INPUT)
+        _write_standalone_var(file_obj, var, type_keys.ExprVarDeclaration.INPUT, version)
         out[var] = index
         index += 1
     for var in circuit.iter_captured_vars():
-        _write_standalone_var(file_obj, var, type_keys.ExprVarDeclaration.CAPTURE)
+        _write_standalone_var(file_obj, var, type_keys.ExprVarDeclaration.CAPTURE, version)
         out[var] = index
         index += 1
     for var in circuit.iter_declared_vars():
-        _write_standalone_var(file_obj, var, type_keys.ExprVarDeclaration.LOCAL)
+        _write_standalone_var(file_obj, var, type_keys.ExprVarDeclaration.LOCAL, version)
         out[var] = index
         index += 1
     return out

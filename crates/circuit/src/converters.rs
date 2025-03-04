@@ -13,9 +13,8 @@
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
 
-use hashbrown::HashMap;
 use pyo3::prelude::*;
-use pyo3::{intern, types::PyDict};
+use pyo3::intern;
 
 use crate::circuit_data::CircuitData;
 use crate::dag_circuit::{DAGCircuit, NodeType};
@@ -27,7 +26,6 @@ use crate::packed_instruction::PackedInstruction;
 pub struct QuantumCircuitData<'py> {
     pub data: CircuitData,
     pub name: Option<Bound<'py, PyAny>>,
-    pub calibrations: Option<HashMap<String, Py<PyDict>>>,
     pub metadata: Option<Bound<'py, PyAny>>,
     pub input_vars: Vec<Bound<'py, PyAny>>,
     pub captured_vars: Vec<Bound<'py, PyAny>>,
@@ -42,10 +40,6 @@ impl<'py> FromPyObject<'py> for QuantumCircuitData<'py> {
         Ok(QuantumCircuitData {
             data: data_borrowed,
             name: ob.getattr(intern!(py, "name")).ok(),
-            calibrations: ob
-                .getattr(intern!(py, "_calibrations_prop"))?
-                .extract()
-                .ok(),
             metadata: ob.getattr(intern!(py, "metadata")).ok(),
             input_vars: ob
                 .call_method0(intern!(py, "iter_input_vars"))?

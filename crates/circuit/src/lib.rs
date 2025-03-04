@@ -19,6 +19,7 @@ pub mod converters;
 pub mod dag_circuit;
 pub mod dag_node;
 mod dot_utils;
+pub mod duration;
 pub mod error;
 pub mod gate_matrix;
 pub mod imports;
@@ -169,6 +170,7 @@ pub fn circuit(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<register::PyClassicalRegister>()?;
     m.add_class::<register::PyQuantumRegister>()?;
     m.add_class::<register::PyAncillaRegister>()?;
+    m.add_class::<duration::Duration>()?;
     m.add_class::<circuit_data::CircuitData>()?;
     m.add_class::<circuit_instruction::CircuitInstruction>()?;
     m.add_class::<dag_circuit::DAGCircuit>()?;

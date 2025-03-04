@@ -16,18 +16,15 @@ import warnings
 
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.instruction_durations import InstructionDurations
-from qiskit.utils.deprecate_pulse import deprecate_pulse_arg
 
 
 class PassManagerConfig:
     """Pass Manager Configuration."""
 
-    @deprecate_pulse_arg("inst_map", predicate=lambda inst_map: inst_map is not None)
     def __init__(
         self,
         initial_layout=None,
         basis_gates=None,
-        inst_map=None,
         coupling_map=None,
         layout_method=None,
         routing_method=None,
@@ -51,7 +48,6 @@ class PassManagerConfig:
             initial_layout (Layout): Initial position of virtual qubits on
                 physical qubits.
             basis_gates (list): List of basis gate names to unroll to.
-            inst_map (InstructionScheduleMap): Mapping object that maps gate to schedule.
             coupling_map (CouplingMap): Directed graph represented a coupling
                 map.
             layout_method (str): the pass to use for choosing initial qubit
@@ -88,7 +84,6 @@ class PassManagerConfig:
         """
         self.initial_layout = initial_layout
         self.basis_gates = basis_gates
-        self.inst_map = inst_map
         self.coupling_map = coupling_map
         self.init_method = init_method
         self.layout_method = layout_method
@@ -149,14 +144,6 @@ class PassManagerConfig:
                 res.basis_gates = getattr(config, "basis_gates", None)
             else:
                 res.basis_gates = backend.operation_names
-        if res.inst_map is None:
-            if backend_version < 2:
-                if hasattr(backend, "defaults"):
-                    defaults = backend.defaults()
-                    if defaults is not None:
-                        res.inst_map = defaults.instruction_schedule_map
-            else:
-                res.inst_map = backend._instruction_schedule_map
         if res.coupling_map is None:
             if backend_version < 2:
                 cmap_edge_list = getattr(config, "coupling_map", None)
@@ -185,7 +172,6 @@ class PassManagerConfig:
             "Pass Manager Config:\n"
             f"\tinitial_layout: {self.initial_layout}\n"
             f"\tbasis_gates: {self.basis_gates}\n"
-            f"\tinst_map: {str(self.inst_map).replace(newline, newline_tab)}\n"
             f"\tcoupling_map: {self.coupling_map}\n"
             f"\tlayout_method: {self.layout_method}\n"
             f"\trouting_method: {self.routing_method}\n"
