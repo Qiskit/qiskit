@@ -2799,6 +2799,7 @@ impl Operation for UnitaryGate {
     fn definition(&self, _params: &[Param]) -> Option<CircuitData> {
         None
     }
+
     fn standard_gate(&self) -> Option<StandardGate> {
         None
     }

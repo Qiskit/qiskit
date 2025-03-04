@@ -75,7 +75,7 @@ class UnrollCustomDefinitions(TransformationPass):
             if getattr(node.op, "_directive", False):
                 continue
 
-            if dag._has_calibration_for(node) or len(node.qargs) < self._min_qubits:
+            if len(node.qargs) < self._min_qubits:
                 continue
 
             controlled_gate_open_ctrl = isinstance(node.op, ControlledGate) and node.op._open_ctrl
