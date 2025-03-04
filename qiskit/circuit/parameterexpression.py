@@ -26,6 +26,7 @@ import numpy
 import symengine
 
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.utils.optionals import HAS_SYMPY
 
 # This type is redefined at the bottom to insert the full reference to "ParameterExpression", so it
 # can safely be used by runtime type-checkers like Sphinx.  Mypy does not need this because it
@@ -117,6 +118,8 @@ class ParameterExpression:
 
         Not intended to be called directly, but to be instantiated via operations
         on other :class:`Parameter` or :class:`ParameterExpression` objects.
+        The constructor of this object is **not** a public interface and should not
+        ever be used directly.
 
         Args:
             symbol_map (Dict[Parameter, [ParameterExpression, float, or int]]):
@@ -672,6 +675,7 @@ class ParameterExpression:
             return out.real if out.imag == 0.0 else out
         return float(real_expr)
 
+    @HAS_SYMPY.require_in_call
     def sympify(self):
         """Return symbolic expression as a raw Sympy or Symengine object.
 

@@ -165,17 +165,9 @@ def _write_parameter_expression_v13(file_obj, obj, version):
 
 def _write_parameter_expression(file_obj, obj, use_symengine, *, version):
     extra_symbols = None
-    if version < 13:
-        if use_symengine:
-            expr_bytes = obj._symbol_expr.__reduce__()[1][0]
-        else:
-            from sympy import srepr, sympify
-
-            expr_bytes = srepr(sympify(obj._symbol_expr)).encode(common.ENCODE)
-    else:
-        with io.BytesIO() as buf:
-            extra_symbols = _write_parameter_expression_v13(buf, obj, version)
-            expr_bytes = buf.getvalue()
+    with io.BytesIO() as buf:
+        extra_symbols = _write_parameter_expression_v13(buf, obj, version)
+        expr_bytes = buf.getvalue()
     symbol_table_len = len(obj._parameter_symbols)
     if extra_symbols:
         symbol_table_len += 2 * len(extra_symbols)
