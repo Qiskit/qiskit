@@ -43,7 +43,7 @@ class VariableMapper(expr.ExprVisitor[expr.Expr]):
         self,
         target_cregs: typing.Iterable[ClassicalRegister],
         bit_map: typing.Mapping[Bit, Bit],
-        var_map: typing.Mapping[expr.Var, expr.Var] | None = None,
+        var_map: typing.Mapping[expr.Var | expr.Stretch, expr.Var | expr.Stretch] | None = None,
         *,
         add_register: typing.Callable[[ClassicalRegister], None] | None = None,
     ):
@@ -133,7 +133,7 @@ class VariableMapper(expr.ExprVisitor[expr.Expr]):
         return self.var_map.get(node, node)
 
     def visit_stretch(self, node, /):
-        return expr.Stretch(node.var, node.name)
+        return self.var_map.get(node, node)
 
     def visit_value(self, node, /):
         return expr.Value(node.value, node.type)
