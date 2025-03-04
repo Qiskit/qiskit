@@ -13,8 +13,8 @@
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
 
-use pyo3::prelude::*;
 use pyo3::intern;
+use pyo3::prelude::*;
 
 use crate::circuit_data::CircuitData;
 use crate::dag_circuit::{DAGCircuit, NodeType};
