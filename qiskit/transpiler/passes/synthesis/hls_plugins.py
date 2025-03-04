@@ -1809,17 +1809,33 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
             power = sum(mod.power for mod in modifiers if isinstance(mod, PowerModifier))
             is_inverted = sum(1 for mod in modifiers if isinstance(mod, InverseModifier)) % 2
 
-            # The base operation cannot use control qubits as auxiliary qubits.
-            # In addition, when we have power or inverse modifiers, we need to set all of
-            # the operation's qubits to dirty. Note that synthesizing the base operation we
-            # can use additional auxiliary qubits, however they would always be returned to
-            # their previous state, so clean qubits remain clean after each for- or while- loop.
-            annotated_tracker = tracker.copy()
-            annotated_tracker.disable(input_qubits[:num_ctrl])  # do not access control qubits
-            if power != 0 or is_inverted:
-                annotated_tracker.set_dirty(input_qubits)
-
             # First, synthesize the base operation of this annotated operation.
+            # As this step cannot use any control qubits as auxiliary qubits, we use a dedicated
+            # tracker (annotated_tracker).
+            # The logic is as follows:
+            # - annotated_tracker.disable control qubits
+            # - if have power or inverse modifiers, annotated_tracker.set_dirty(base_qubits)
+            # - synthesize the base operation using annotated tracker
+            # - main_tracker.set_dirty(base_qubits)
+            #
+            # Note that we need to set the base_qubits to dirty if we have power or inverse
+            # modifiers. For power: even if the power is a positive integer (that is, we need
+            # to repeat the same circuit multiple times), even if the target is initially at |0>,
+            # it will generally not be at |0> after one iteration. For inverse: as we
+            # flip the order of operations, we cannot exploit which qubits are at |0> as "viewed from
+            # the back of the circuit". If we just have control modifiers, we can use the state
+            # of base qubits when synthesizing the controlled operation.
+            #
+            # In addition, all of the other global qubits that are not a part of the annotated
+            # operation can be used as they are in all cases, since we are assuming that all of
+            # the synthesis methods preserve the states of ancilla qubits.
+            annotated_tracker = tracker.copy()
+            control_qubits = input_qubits[:num_ctrl]
+            base_qubits = input_qubits[num_ctrl:]
+            annotated_tracker.disable(control_qubits)  # do not access control qubits
+            if power != 0 or is_inverted:
+                annotated_tracker.set_dirty(base_qubits)
+
             # Note that synthesize_operation also returns the output qubits on which the
             # operation is defined, however currently the plugin mechanism has no way
             # to return these (and instead the upstream code greedily grabs some ancilla
@@ -1838,7 +1854,7 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
                 synthesized_base_op = QuantumCircuit._from_circuit_data(
                     synthesized_base_op_result[0]
                 )
-            tracker.set_dirty(input_qubits[num_ctrl:])
+            tracker.set_dirty(base_qubits)
 
             # This step currently does not introduce ancilla qubits. However it makes
             # a lot of sense to allow this in the future.
