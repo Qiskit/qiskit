@@ -953,7 +953,7 @@ class QuantumCircuit:
         global_phase: ParameterValueType = 0,
         metadata: dict | None = None,
         inputs: Iterable[expr.Var] = (),
-        captures: Iterable[expr.Var] = (),
+        captures: Iterable[expr.Var | expr.Stretch] = (),
         declarations: Mapping[expr.Var, expr.Expr] | Iterable[Tuple[expr.Var, expr.Expr]] = (),
     ):
         """
@@ -1697,7 +1697,9 @@ class QuantumCircuit:
         wrap: bool = False,
         *,
         copy: bool = True,
-        var_remap: Mapping[str | expr.Var, str | expr.Var] | None = None,
+        var_remap: (
+            Mapping[str | expr.Var | expr.Stretch, str | expr.Var | expr.Stretch] | None
+        ) = None,
         inline_captures: bool = False,
     ) -> Optional["QuantumCircuit"]:
         """Apply the instructions from one circuit onto specified qubits and/or clbits on another.
@@ -1741,23 +1743,25 @@ class QuantumCircuit:
                 the base circuit, in order to avoid unnecessary copies; in this case, it is not
                 valid to use ``other`` afterward, and some instructions may have been mutated in
                 place.
-            var_remap (Mapping): mapping to use to rewrite :class:`.expr.Var` nodes in ``other`` as
-                they are inlined into ``self``.  This can be used to avoid naming conflicts.
+            var_remap (Mapping): mapping to use to rewrite :class:`.expr.Var` and
+                :class:`.expr.Stretch` nodes in ``other`` as they are inlined into ``self``.
+                This can be used to avoid naming conflicts.
 
-                Both keys and values can be given as strings or direct :class:`.expr.Var` instances.
-                If a key is a string, it matches any :class:`~.expr.Var` with the same name.  If a
-                value is a string, whenever a new key matches a it, a new :class:`~.expr.Var` is
-                created with the correct type.  If a value is a :class:`~.expr.Var`, its
-                :class:`~.expr.Expr.type` must exactly match that of the variable it is replacing.
-            inline_captures (bool): if ``True``, then all "captured" :class:`~.expr.Var` nodes in
-                the ``other`` :class:`.QuantumCircuit` are assumed to refer to variables already
+                Both keys and values can be given as strings or direct identifier instances.
+                If a key is a string, it matches any :class:`~.expr.Var` or :class:`~.expr.Stretch`
+                with the same name.  If a value is a string, whenever a new key matches it, a new
+                :class:`~.expr.Var` or :class:`~.expr.Stretch` is created with the correct type.
+                If a value is a :class:`~.expr.Var`, its :class:`~.expr.Expr.type` must exactly
+                match that of the variable it is replacing.
+            inline_captures (bool): if ``True``, then all "captured" identifier nodes in
+                the ``other`` :class:`.QuantumCircuit` are assumed to refer to identifiers already
                 declared in ``self`` (as any input/capture/local type), and the uses in ``other``
-                will apply to the existing variables.  If you want to build up a layer for an
+                will apply to the existing identifiers.  If you want to build up a layer for an
                 existing circuit to use with :meth:`compose`, you might find the
                 ``vars_mode="captures"`` argument to :meth:`copy_empty_like` useful.  Any remapping
                 in ``vars_remap`` occurs before evaluating this variable inlining.
 
-                If this is ``False`` (the default), then all variables in ``other`` will be required
+                If this is ``False`` (the default), then all identifiers in ``other`` will be required
                 to be distinct from those in ``self``, and new declarations will be made for them.
             wrap (bool): If True, wraps the other circuit into a gate (or instruction, depending on
                 whether it contains only unitary instructions) before composing it onto self.
@@ -1826,20 +1830,36 @@ class QuantumCircuit:
         # instructions.  We cache all replacement lookups for a) speed and b) to ensure that
         # the same variable _always_ maps to the same replacement even if it's used in different
         # places in the recursion tree (such as being a captured variable).
-        def replace_var(var: expr.Var, cache: Mapping[expr.Var, expr.Var]) -> expr.Var:
+        def replace_var(
+            var: Union[expr.Var, expr.Stretch], cache: Mapping[expr.Var, expr.Var]
+        ) -> Union[expr.Var | expr.Stretch]:
             # This is closing over an argument to `compose`.
             nonlocal var_remap
 
             if out := cache.get(var):
                 return out
             if (replacement := var_remap.get(var)) or (replacement := var_remap.get(var.name)):
-                if isinstance(replacement, str):
-                    replacement = expr.Var.new(replacement, var.type)
-                if replacement.type != var.type:
-                    raise CircuitError(
-                        f"mismatched types in replacement for '{var.name}':"
-                        f" '{var.type}' cannot become '{replacement.type}'"
-                    )
+                if isinstance(var, expr.Var):
+                    if isinstance(replacement, expr.Stretch):
+                        raise CircuitError(
+                            "mismatched identifier kinds in replacement:"
+                            f" '{var}' cannot become '{replacement}'"
+                        )
+                    if isinstance(replacement, str):
+                        replacement = expr.Var.new(replacement, var.type)
+                    if replacement.type != var.type:
+                        raise CircuitError(
+                            f"mismatched types in replacement for '{var.name}':"
+                            f" '{var.type}' cannot become '{replacement.type}'"
+                        )
+                else:
+                    if isinstance(replacement, expr.Var):
+                        raise CircuitError(
+                            "mismatched identifier kind in replacement:"
+                            f" '{var}' cannot become '{replacement}'"
+                        )
+                    if isinstance(replacement, str):
+                        replacement = expr.Stretch.new(replacement)
             else:
                 replacement = var
             cache[var] = replacement
@@ -1952,16 +1972,12 @@ class QuantumCircuit:
                             " base circuit.  Is the replacement correct?"
                         )
             else:
-                for var in source.iter_captured_vars():
+                for var in source.iter_captures():
                     dest.add_capture(replace_var(var, var_map))
-                for stretch in source.iter_captured_stretches():
-                    # TODO: replace_var for stretch
-                    dest.add_capture(stretch)
             for var in source.iter_declared_vars():
                 dest.add_uninitialized_var(replace_var(var, var_map))
             for stretch in source.iter_declared_stretches():
-                # TODO: replace_var for stretch
-                dest.add_stretch(stretch)
+                dest.add_stretch(replace_var(stretch, var_map))
 
             def recurse_block(block):
                 # Recurse the remapping into a control-flow block.  Note that this doesn't remap the

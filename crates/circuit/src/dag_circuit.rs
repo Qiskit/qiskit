@@ -809,7 +809,7 @@ impl DAGCircuit {
     /// Args:
     ///     angle (float, :class:`.ParameterExpression`): The phase angle.
     #[setter]
-    fn set_global_phase(&mut self, angle: Param) -> PyResult<()> {
+    pub fn set_global_phase(&mut self, angle: Param) -> PyResult<()> {
         match angle {
             Param::Float(angle) => {
                 self.global_phase = Param::Float(angle.rem_euclid(2. * PI));

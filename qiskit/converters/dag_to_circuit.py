@@ -72,8 +72,7 @@ def dag_to_circuit(dag, copy_operations=True):
         circuit.add_uninitialized_var(var)
     for stretch in dag.iter_declared_stretches():
         circuit.add_stretch(stretch)
-    circuit.metadata = dag.metadata
-
+    circuit.metadata = dag.metadata or {}
     circuit._data = circuit_data
 
     circuit._duration = dag.duration

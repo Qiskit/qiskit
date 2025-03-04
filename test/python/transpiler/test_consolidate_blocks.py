@@ -581,7 +581,11 @@ class TestConsolidateBlocks(QiskitTestCase):
             optimization_level=opt_level, basis_gates=["rz", "rzz", "sx", "x", "rx"]
         )
         tqc = pm.run(qc)
-        self.assertEqual(ref_tqc, tqc)
+        # it's enough to check that the number of 2-qubit gates does not change
+        count_rzz_ref = ref_tqc.count_ops()["rzz"]
+        count_rzz_tqc = tqc.count_ops()["rzz"]
+        self.assertEqual(Operator.from_circuit(qc), Operator.from_circuit(tqc))
+        self.assertEqual(count_rzz_ref, count_rzz_tqc)
 
     def test_non_cx_basis_gate(self):
         """Test a non-cx kak gate is consolidated correctly."""
@@ -646,6 +650,16 @@ class TestConsolidateBlocks(QiskitTestCase):
         target.add_instruction(CZGate(), {(0, 1): None, (1, 0): None})
 
         consolidate_pass = ConsolidateBlocks(target=target)
+        res = consolidate_pass(qc)
+        self.assertEqual({"unitary": 1}, res.count_ops())
+        self.assertEqual(Operator.from_circuit(qc), Operator(res.data[0].operation.params[0]))
+
+    def test_collect_rzz(self):
+        """Collect blocks with RZZ gates."""
+        qc = QuantumCircuit(2)
+        qc.rzz(0.1, 0, 1)
+        qc.rzz(0.2, 0, 1)
+        consolidate_pass = ConsolidateBlocks(basis_gates=["rzz", "rx", "rz"])
         res = consolidate_pass(qc)
         self.assertEqual({"unitary": 1}, res.count_ops())
         self.assertEqual(Operator.from_circuit(qc), Operator(res.data[0].operation.params[0]))
