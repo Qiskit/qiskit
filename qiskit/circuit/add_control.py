@@ -109,10 +109,10 @@ def control(
 
     global_phase = 0
 
-    basis = ["p", "u", "x", "z", "y", "h", "sx", "sxdg", "rx", "ry", "rz", "cx"]
+    basis = ["p", "u", "x", "z", "y", "h", "sx", "sxdg", "rx", "ry", "rz", "cx", "cz"]
 
     if operation.name in basis:
-        apply_basic_controlled_gate(controlled_circ, operation, q_control, q_target[0])
+        apply_basic_controlled_gate(controlled_circ, operation, q_control, q_target)
     else:
         if isinstance(operation, controlledgate.ControlledGate):
             operation = operation.to_mutable()
@@ -187,7 +187,7 @@ def apply_basic_controlled_gate(circuit, gate, controls, target):
 
     This implements multi-control operations for the following basis gates:
 
-        ["p", "u", "x", "z", "y", "h", "sx", "sxdg", "rx", "ry", "rz", "cx"]
+        ["p", "u", "x", "z", "y", "h", "sx", "sxdg", "rx", "ry", "rz", "cx", "cz"]
 
     """
     num_ctrl_qubits = len(controls)
@@ -230,6 +230,14 @@ def apply_basic_controlled_gate(circuit, gate, controls, target):
             controls[:] + [target[0]],  # CX has two targets
             target[1],
         )
+    elif gate.name == "cz":
+        circuit.h(target[1])
+        circuit.mcx(
+            controls[:] + [target[0]],  # CZ has two targets
+            target[1],
+        )
+        circuit.h(target[1])
+
     elif gate.name == "u":
         theta, phi, lamb = gate.params
         if num_ctrl_qubits == 1:
