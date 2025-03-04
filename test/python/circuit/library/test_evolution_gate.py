@@ -366,8 +366,8 @@ class TestEvolutionGate(QiskitTestCase):
         self.assertEqual(rz_angle, 10)
         self.assertSuzukiTrotterIsCorrect(evo)
 
-    def test_paulisumop_coefficients_respected(self):
-        """Test that global ``PauliSumOp`` coefficients are being taken care of."""
+    def test_sparse_pauli_coefficients_respected(self):
+        """Test that global ``SparsePauliOp`` coefficients are being taken care of."""
         evo = PauliEvolutionGate(5 * (2 * X + 3 * Y - Z), time=1, synthesis=LieTrotter())
         circuit = evo.definition.decompose()
         rz_angles = [

@@ -26,7 +26,7 @@ from qiskit import ClassicalRegister, QiskitError, QuantumCircuit
 from qiskit.quantum_info import Statevector
 
 from .base import BaseSamplerV2
-from .base.validation import _has_measure
+from .base.validation_v1 import _has_measure
 from .containers import (
     BitArray,
     DataBin,

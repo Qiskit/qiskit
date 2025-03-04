@@ -25,7 +25,7 @@ from numpy import ndarray
 ExperimentData = Dict[str, Any]
 
 
-class _BasePrimitiveResult(ABC):
+class _BasePrimitiveResultV1(ABC):
     """
     Base class for deprecated Primitive V1 result methods.
     """

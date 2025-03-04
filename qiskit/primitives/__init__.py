@@ -27,9 +27,15 @@ accepting quantum circuits (or sweeps of values over parameterized circuits) and
 classical output registers. Estimators accept combinations of circuits and observables (or sweeps
 thereof) to estimate expectation values of the observables.
 
-Qiskit implements a reference implementation for each of these abstractions,
-:class:`~.StatevectorSampler` and :class:`~.StatevectorEstimator`.
+Qiskit offers a reference implementation for each of these abstractions in the
+:class:`~.StatevectorSampler` and :class:`~.StatevectorEstimator` classes.
 
+The earlier versions of the sampler and estimator abstractions are defined by :class:`~.BaseSamplerV1`
+and :class:`~.BaseEstimatorV1`. These interfaces follow a different and less flexible input-output 
+format for the ``run`` method and have been largely replaced in practice by :class:`~.BaseSamplerV2` and 
+:class:`~.BaseEstimatorV2`. However, the original abstract interface definitions have been 
+retained for backward compatibility. Check the migration section of this page to see further details 
+on the difference between V1 and V2. 
 
 Overview of EstimatorV2
 =======================
@@ -168,12 +174,12 @@ Here is an example of how a sampler is used.
 Overview of EstimatorV1
 =======================
 
-Estimator class estimates expectation values of quantum circuits and observables.
+There are currently no implementations of the legacy ``EstimatorV1`` interface in Qiskit. 
+However, the abstract interface definition from :class:`~BaseEstimatorV1` is still part 
+of the package to provide backwards compatibility for external implementations. 
 
-An estimator is initialized with an empty parameter set. The estimator is used to
-create a :class:`~qiskit.providers.JobV1`, via the
-:meth:`qiskit.primitives.Estimator.run()` method. This method is called
-with the following parameters
+An ``EstimatorV1`` implementation is initialized with an empty parameter set. 
+:class:`~BaseEstimatorV1` can be called via the ``.run()`` method with the following parameters:
 
 * quantum circuits (:math:`\psi_i(\theta)`): list of (parameterized) quantum circuits
   (a list of :class:`~qiskit.circuit.QuantumCircuit` objects).
@@ -185,7 +191,7 @@ with the following parameters
   to be bound to the parameters of the quantum circuits
   (list of list of float).
 
-The method returns a :class:`~qiskit.providers.JobV1` object, calling
+The method should return a :class:`~qiskit.providers.JobV1` object. Calling
 :meth:`qiskit.providers.JobV1.result()` yields the
 a list of expectation values plus optional metadata like confidence intervals for
 the estimation.
@@ -194,13 +200,15 @@ the estimation.
 
     \langle\psi_i(\theta_k)|H_j|\psi_i(\theta_k)\rangle
 
-Here is an example of how the estimator is used.
+Here is an example of how an ``EstimatorV1`` implementation would be used.
+Note that there are currently no implementations of the legacy ``EstimatorV1`` 
+interface in Qiskit. 
 
-.. plot::
-   :include-source:
-   :nofigs:
+.. code-block:: python
 
-    from qiskit.primitives import Estimator
+    # This is a fictional import path.
+    # There are currently no EstimatorV1 implementations in Qiskit.
+    from estimator_v1_location import EstimatorV1 
     from qiskit.circuit.library import RealAmplitudes
     from qiskit.quantum_info import SparsePauliOp
 
@@ -215,7 +223,7 @@ Here is an example of how the estimator is used.
     theta2 = [0, 1, 1, 2, 3, 5, 8, 13]
     theta3 = [1, 2, 3, 4, 5, 6]
 
-    estimator = Estimator()
+    estimator = EstimatorV1()
 
     # calculate [ <psi1(theta1)|H1|psi1(theta1)> ]
     job = estimator.run([psi1], [H1], [theta1])
@@ -237,11 +245,14 @@ Here is an example of how the estimator is used.
 Overview of SamplerV1
 =====================
 
-Sampler class calculates probabilities or quasi-probabilities of bitstrings from quantum circuits.
+There are currently no implementations of the legacy ``SamplerV1`` interface in Qiskit. 
+However, the abstract interface definition from :class:`~BaseSamplerV1` is still part 
+of the package to provide backward compatibility for external implementations. 
 
-A sampler is initialized with an empty parameter set. The sampler is used to
-create a :class:`~qiskit.providers.JobV1`, via the :meth:`qiskit.primitives.Sampler.run()`
-method. This method is called with the following parameters
+Sampler classes calculate probabilities or quasi-probabilities of bitstrings from quantum circuits.
+
+A ``SamplerV1`` is initialized with an empty parameter set. :class:`~BaseSamplerV1` implementations can 
+be called via the ``.run()`` method with the following parameters:
 
 * quantum circuits (:math:`\psi_i(\theta)`): list of (parameterized) quantum circuits.
   (a list of :class:`~qiskit.circuit.QuantumCircuit` objects)
@@ -250,18 +261,20 @@ method. This method is called with the following parameters
   to be bound to the parameters of the quantum circuits.
   (list of list of float)
 
-The method returns a :class:`~qiskit.providers.JobV1` object, calling
+``.run()`` will return a :class:`~qiskit.providers.JobV1` object. Calling
 :meth:`qiskit.providers.JobV1.result()` yields a :class:`~qiskit.primitives.SamplerResult`
 object, which contains probabilities or quasi-probabilities of bitstrings,
 plus optional metadata like error bars in the samples.
 
-Here is an example of how sampler is used.
+Here is an example of how a ``SamplerV1`` implementation would be used.
+Note that there are currently no implementations of the legacy ``SamplerV1`` 
+interface in Qiskit. 
 
-.. plot::
-   :include-source:
-   :nofigs:
+.. code-block:: python
 
-    from qiskit.primitives import Sampler
+    # This is a fictional import path.
+    # There are currently no SamplerV1 implementations in Qiskit.
+    from sampler_v1_location import Sampler 
     from qiskit import QuantumCircuit
     from qiskit.circuit.library import RealAmplitudes
 
@@ -281,7 +294,7 @@ Here is an example of how sampler is used.
     theta2 = [0, 1, 2, 3, 4, 5, 6, 7]
 
     # initialization of the sampler
-    sampler = Sampler()
+    sampler = SamplerV1()
 
     # Sampler runs a job on the Bell circuit
     job = sampler.run(
@@ -435,10 +448,7 @@ Estimator V1
 .. autosummary::
    :toctree: ../stubs/
 
-   BaseEstimator
    BaseEstimatorV1
-   Estimator
-   BackendEstimator
    EstimatorResult
 
 
@@ -448,26 +458,19 @@ Sampler V1
 .. autosummary::
    :toctree: ../stubs/
 
-   BaseSampler
    BaseSamplerV1
-   Sampler
-   BackendSampler
    SamplerResult
 
 """
 
-from .backend_estimator import BackendEstimator
-from .backend_sampler import BackendSampler
 from .base import (
-    BaseEstimator,
     BaseEstimatorV1,
     BaseEstimatorV2,
-    BaseSampler,
     BaseSamplerV1,
     BaseSamplerV2,
 )
-from .base.estimator_result import EstimatorResult
-from .base.sampler_result import SamplerResult
+from .base.estimator_result_v1 import EstimatorResult
+from .base.sampler_result_v1 import SamplerResult
 from .containers import (
     BitArray,
     DataBin,
@@ -480,9 +483,7 @@ from .containers import (
     ObservableLike,
     ObservablesArrayLike,
 )
-from .estimator import Estimator
 from .primitive_job import BasePrimitiveJob, PrimitiveJob
-from .sampler import Sampler
 from .statevector_estimator import StatevectorEstimator
 from .statevector_sampler import StatevectorSampler
 from .backend_estimator_v2 import BackendEstimatorV2
