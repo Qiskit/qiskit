@@ -224,7 +224,6 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
 
             # perform the replacement if it was indeed a good idea
             if self._optimize1q._substitution_checks(
-                dag,
                 (preceding_run or []) + run + (succeeding_run or []),
                 new_preceding_run.op_nodes() + new_run.op_nodes() + new_succeeding_run.op_nodes(),
                 self._optimize1q._basis_gates,
