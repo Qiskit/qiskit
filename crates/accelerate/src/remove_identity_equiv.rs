@@ -34,10 +34,9 @@ fn remove_identity_equiv(
 ) {
     let mut remove_list: Vec<NodeIndex> = Vec::new();
     let mut global_phase_update: f64 = 0.;
-    // Minimum threshold to compare average gate fidelity to 1. Includes a heuristic factor
-    // of 16 to account for round-off errors in the trace calculations, and for consistency
-    // with the commutation checker.
-    let minimum_tol = 16. * f64::EPSILON;
+    // Minimum threshold to compare average gate fidelity to 1. This is chosen to account
+    // for roundoff errors and to be consistent with other places.
+    let minimum_tol = 1e-12_f64;
 
     let get_error_cutoff = |inst: &PackedInstruction| -> f64 {
         match approx_degree {

@@ -2,16 +2,16 @@
 upgrade:
   - |
     Increased the minimum threshold for when gates are assumed to be the identity in
-    :class:`.RemoveIdentityEquivalent` from machine epsilon to 16 times machine epsilon to
+    :class:`.RemoveIdentityEquivalent` from machine epsilon to ``1e-12`` to
     account for round-off errors in the fidelity calculation and for consistency with the
-    :class:`.CommutationAnalysis`. 
+    other classes, such as :class:`.CommutationAnalysis` and :class:`.TwoQubitWeylDecomposition`.
   - |
     Updated the metric used in :class:`.CommutationAnalysis` for matrix-based commutation checks.
     In a matrix-based check (used e.g. for non-standard gates or rotation gates with known rotation
     angles) two gates are assumed to commute if the average gate fidelity of the commutation is
-    above ``1 - 16 * machine_eps``. This value is chosen to account for round-off errors in the
-    fidelity calculation and for consistency with :class:`.RemoveIdentityEquivalent`.
-    See the class docstring for more information.
+    above ``1 - 1e-12``. This value is chosen to account for round-off errors in the
+    fidelity calculation and for consistency with :class:`.RemoveIdentityEquivalent` and
+    :class:`.TwoQubitWeylDecomposition`. See the class docstring for more information.
 fixes:
   - |
     Fixed an inconsistency in dealing with close-to-identity gates in the transpilation process,

@@ -437,11 +437,9 @@ class TestCommutationChecker(QiskitTestCase):
         # the cutoff angle depends on the average gate fidelity; i.e. it is the angle
         # for which the average gate fidelity is smaller than machine epsilon
         if gate_cls in [CPhaseGate, CRXGate, CRYGate, CRZGate]:
-            # cutoff_angle = 4.71e-8
-            cutoff_angle = 1.91e-7
+            cutoff_angle = 3.16e-6
         else:
-            # cutoff_angle = 3.65e-8
-            cutoff_angle = 1.34e-7
+            cutoff_angle = 2.2e-6
 
         for i in range(1, max_power + 1):
             angle = 2 ** (-i)

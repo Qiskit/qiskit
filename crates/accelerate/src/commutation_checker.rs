@@ -284,9 +284,9 @@ impl CommutationChecker {
         approximation_degree: f64,
     ) -> PyResult<bool> {
         // If the average gate infidelity is below this tolerance, they commute. The tolerance
-        // is set to max(16 * machine_eps, 1 - approximation_degree), where the heuristic factor
-        // of 16 is set to account for round-off errors in matrix multiplication.
-        let tol = (16. * f64::EPSILON).max(1. - approximation_degree);
+        // is set to max(1e-12, 1 - approximation_degree), to account for roundoffs and for
+        // consistency with other places in Qiskit.
+        let tol = 1e-12_f64.max(1. - approximation_degree);
 
         // if we have rotation gates, we attempt to map them to their generators, for example
         // RX -> X or CPhase -> CZ
