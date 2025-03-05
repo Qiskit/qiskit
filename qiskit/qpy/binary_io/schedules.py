@@ -538,7 +538,7 @@ def read_schedule_block(
             :class:`.ScheduleBlock` objects in the payload that were
             serialized using ``sympy`` are not allowed and will error. This
             is because the ``sympy`` parsing can allow for arbitrary code
-            execution because it uses :func:`.eval`. This should only be set
+            execution because it uses :func:`eval`. This should only be set
             to ``True`` if you trust the QPY payload you are loading.
 
     Returns:

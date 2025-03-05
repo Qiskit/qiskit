@@ -1352,7 +1352,7 @@ def read_circuit(
             supported in all platforms. Please check that your target platform is supported by
             the symengine library before setting this option, as it will be required by qpy to
             deserialize the payload.
-        trust_input (bool): If true serialize vulnerable schedule block payloads
+        trust_input (bool): If true, deserialize vulnerable schedule block payloads.
     Returns:
         QuantumCircuit: The circuit object from the file.
 
