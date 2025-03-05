@@ -1390,8 +1390,8 @@ class TestTranspile(QiskitTestCase):
             out = transpile(qc, backend, seed_transpiler=42)
 
         self.assertEqual(out.data[0].operation.unit, "dt")
-        self.assertEqual(type(out.data[0].duration), int)
-        self.assertEqual(out.data[0].duration, round(float(1234560) / 1e9 / 5e-7))
+        self.assertEqual(type(out.data[0].operation.duration), int)
+        self.assertEqual(out.data[0].operation.duration, round(float(1234560) / 1e9 / 5e-7))
 
     def test_delay_expr_evaluation_dt(self):
         """Test that a delay instruction with a complex duration expression
