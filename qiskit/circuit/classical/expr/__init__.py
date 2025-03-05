@@ -134,6 +134,10 @@ Similarly, the binary operations and relations have helper functions defined.
 .. autofunction:: greater_equal
 .. autofunction:: shift_left
 .. autofunction:: shift_right
+.. autofunction:: add
+.. autofunction:: sub
+.. autofunction:: mul
+.. autofunction:: div
 
 You can index into unsigned integers and bit-likes using another unsigned integer of any width.
 This includes in storing operations, if the target of the index is writeable.
@@ -214,6 +218,10 @@ __all__ = [
     "greater",
     "greater_equal",
     "index",
+    "add",
+    "sub",
+    "mul",
+    "div",
     "lift_legacy_condition",
 ]
 
@@ -238,5 +246,9 @@ from .constructors import (
     shift_left,
     shift_right,
     index,
+    add,
+    sub,
+    mul,
+    div,
     lift_legacy_condition,
 )

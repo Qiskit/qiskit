@@ -1098,7 +1098,7 @@ class QuantumCircuit:
         transpiler and reattach it to the output, so you can track your own metadata."""
 
     @property
-    @deprecate_func(since="1.3.0", removal_timeline="in Qiskit 2.0.0", is_property=True)
+    @deprecate_func(since="1.3.0", removal_timeline="in Qiskit 3.0.0", is_property=True)
     def duration(self):
         """The total duration of the circuit, set by a scheduling transpiler pass.  Its unit is
         specified by :attr:`unit`."""
@@ -1109,7 +1109,7 @@ class QuantumCircuit:
         self._duration = value
 
     @property
-    @deprecate_func(since="1.3.0", removal_timeline="in Qiskit 2.0.0", is_property=True)
+    @deprecate_func(since="1.3.0", removal_timeline="in Qiskit 3.0.0", is_property=True)
     def unit(self):
         """The unit that :attr:`duration` is specified in."""
         return self._unit
