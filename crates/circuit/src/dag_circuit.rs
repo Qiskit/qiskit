@@ -397,7 +397,7 @@ impl DAGCircuit {
     /// The total duration of the circuit, set by a scheduling transpiler pass. Its unit is
     /// specified by :attr:`.unit`
     ///
-    /// DEPRECATED since Qiskit 1.3.0 and will be removed in Qiskit 2.0.0
+    /// DEPRECATED since Qiskit 1.3.0 and will be removed in Qiskit 3.0.0
     #[getter]
     fn get_duration(&self, py: Python) -> PyResult<Option<Py<PyAny>>> {
         imports::WARNINGS_WARN.get_bound(py).call1((
@@ -405,7 +405,7 @@ impl DAGCircuit {
                 py,
                 concat!(
                     "The property ``qiskit.dagcircuit.dagcircuit.DAGCircuit.duration`` is ",
-                    "deprecated as of Qiskit 1.3.0. It will be removed in Qiskit 2.0.0.",
+                    "deprecated as of Qiskit 1.3.0. It will be removed in Qiskit 3.0.0.",
                 )
             ),
             py.get_type::<PyDeprecationWarning>(),
@@ -416,7 +416,7 @@ impl DAGCircuit {
 
     /// The unit that duration is specified in.
     ///
-    /// DEPRECATED since Qiskit 1.3.0 and will be removed in Qiskit 2.0.0
+    /// DEPRECATED since Qiskit 1.3.0 and will be removed in Qiskit 3.0.0
     #[getter]
     fn get_unit(&self, py: Python) -> PyResult<String> {
         imports::WARNINGS_WARN.get_bound(py).call1((
@@ -424,7 +424,7 @@ impl DAGCircuit {
                 py,
                 concat!(
                     "The property ``qiskit.dagcircuit.dagcircuit.DAGCircuit.unit`` is ",
-                    "deprecated as of Qiskit 1.3.0. It will be removed in Qiskit 2.0.0.",
+                    "deprecated as of Qiskit 1.3.0. It will be removed in Qiskit 3.0.0.",
                 )
             ),
             py.get_type::<PyDeprecationWarning>(),
