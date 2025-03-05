@@ -285,6 +285,11 @@ def load(
             execution because it uses :func:`eval`. This should only be set
             to ``True`` if you trust the QPY payload you are loading.
 
+    .. warning::
+
+        If ``trust_payload`` is set to ``True`` this can enable arbitrary
+        code execution because internally ``sympy`` relies on :func:`eval`.
+
     Returns:
         The list of Qiskit programs contained in the QPY data.
         A list is always returned, even if there is only 1 program in the QPY data.
