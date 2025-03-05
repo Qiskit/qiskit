@@ -50,7 +50,6 @@ Primitives and providers:
    providers
    providers_basic_provider
    providers_fake_provider
-   providers_models
 
 Results and visualizations:
 
@@ -83,5 +82,4 @@ Other:
 
    compiler
    exceptions
-   qobj
    utils
