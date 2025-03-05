@@ -3,3 +3,4 @@ fixes:
   - |
     The serialization of :class:`ParameterExpression` now does not raise an ``AttributeError`` exception
     when serializing with QPY 13.
+    Fixed `#7742 <https://github.com/Qiskit/qiskit-terra/issues/7742>`__.
