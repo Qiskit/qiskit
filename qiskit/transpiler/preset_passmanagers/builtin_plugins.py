@@ -13,14 +13,12 @@
 """Built-in transpiler stage plugins for preset pass managers."""
 
 import os
-import warnings
 
 from qiskit.transpiler.passes.optimization.split_2q_unitaries import Split2QUnitaries
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes import BasicSwap
 from qiskit.transpiler.passes import LookaheadSwap
-from qiskit.transpiler.passes import StochasticSwap
 from qiskit.transpiler.passes import SabreSwap
 from qiskit.transpiler.passes import Error
 from qiskit.transpiler.passes import SetLayout
@@ -43,6 +41,7 @@ from qiskit.transpiler.passes.optimization import (
     ConsolidateBlocks,
     InverseCancellation,
     RemoveIdentityEquivalent,
+    ContractIdleWiresInControlFlow,
 )
 from qiskit.transpiler.passes import Depth, Size, FixedPoint, MinimumPoint
 from qiskit.transpiler.passes.utils.gates_basis import GatesInBasis
@@ -67,7 +66,7 @@ from qiskit.circuit.library.standard_gates import (
     SXGate,
     SXdgGate,
 )
-from qiskit.utils.parallel import CPU_COUNT
+from qiskit.utils import default_num_processes
 from qiskit import user_config
 
 CONFIG = user_config.get_config()
@@ -126,22 +125,25 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                     pass_manager_config.qubits_initially_zero,
                 )
             init.append(
-                InverseCancellation(
-                    [
-                        CXGate(),
-                        ECRGate(),
-                        CZGate(),
-                        CYGate(),
-                        XGate(),
-                        YGate(),
-                        ZGate(),
-                        HGate(),
-                        SwapGate(),
-                        (TGate(), TdgGate()),
-                        (SGate(), SdgGate()),
-                        (SXGate(), SXdgGate()),
-                    ]
-                )
+                [
+                    InverseCancellation(
+                        [
+                            CXGate(),
+                            ECRGate(),
+                            CZGate(),
+                            CYGate(),
+                            XGate(),
+                            YGate(),
+                            ZGate(),
+                            HGate(),
+                            SwapGate(),
+                            (TGate(), TdgGate()),
+                            (SGate(), SdgGate()),
+                            (SXGate(), SXdgGate()),
+                        ]
+                    ),
+                    ContractIdleWiresInControlFlow(),
+                ]
             )
 
         elif optimization_level in {2, 3}:
@@ -156,31 +158,32 @@ class DefaultInitPassManager(PassManagerStagePlugin):
             )
             if pass_manager_config.routing_method != "none":
                 init.append(ElidePermutations())
-            init.append(RemoveDiagonalGatesBeforeMeasure())
-            # Target not set on RemoveIdentityEquivalent because we haven't applied a Layout
-            # yet so doing anything relative to an error rate in the target is not valid.
             init.append(
-                RemoveIdentityEquivalent(
-                    approximation_degree=pass_manager_config.approximation_degree
-                )
-            )
-            init.append(
-                InverseCancellation(
-                    [
-                        CXGate(),
-                        ECRGate(),
-                        CZGate(),
-                        CYGate(),
-                        XGate(),
-                        YGate(),
-                        ZGate(),
-                        HGate(),
-                        SwapGate(),
-                        (TGate(), TdgGate()),
-                        (SGate(), SdgGate()),
-                        (SXGate(), SXdgGate()),
-                    ]
-                )
+                [
+                    RemoveDiagonalGatesBeforeMeasure(),
+                    # Target not set on RemoveIdentityEquivalent because we haven't applied a Layout
+                    # yet so doing anything relative to an error rate in the target is not valid.
+                    RemoveIdentityEquivalent(
+                        approximation_degree=pass_manager_config.approximation_degree
+                    ),
+                    InverseCancellation(
+                        [
+                            CXGate(),
+                            ECRGate(),
+                            CZGate(),
+                            CYGate(),
+                            XGate(),
+                            YGate(),
+                            ZGate(),
+                            HGate(),
+                            SwapGate(),
+                            (TGate(), TdgGate()),
+                            (SGate(), SdgGate()),
+                            (SXGate(), SXdgGate()),
+                        ]
+                    ),
+                    ContractIdleWiresInControlFlow(),
+                ]
             )
             init.append(CommutativeCancellation())
             init.append(ConsolidateBlocks())
@@ -307,59 +310,6 @@ class BasicSwapPassManager(PassManagerStagePlugin):
                 use_barrier_before_measurement=True,
             )
         if optimization_level == 3:
-            return common.generate_routing_passmanager(
-                routing_pass,
-                target,
-                coupling_map=coupling_map,
-                vf2_call_limit=vf2_call_limit,
-                vf2_max_trials=vf2_max_trials,
-                seed_transpiler=-1,
-                use_barrier_before_measurement=True,
-            )
-        raise TranspilerError(f"Invalid optimization level specified: {optimization_level}")
-
-
-class StochasticSwapPassManager(PassManagerStagePlugin):
-    """Plugin class for routing stage with :class:`~.StochasticSwap`"""
-
-    def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
-        """Build routing stage PassManager."""
-        seed_transpiler = pass_manager_config.seed_transpiler
-        target = pass_manager_config.target
-        coupling_map = pass_manager_config.coupling_map
-        coupling_map_routing = target
-        if coupling_map_routing is None:
-            coupling_map_routing = coupling_map
-        vf2_call_limit, vf2_max_trials = common.get_vf2_limits(
-            optimization_level,
-            pass_manager_config.layout_method,
-            pass_manager_config.initial_layout,
-        )
-        if optimization_level == 3:
-            routing_pass = StochasticSwap(coupling_map_routing, trials=200, seed=seed_transpiler)
-        else:
-            routing_pass = StochasticSwap(coupling_map_routing, trials=20, seed=seed_transpiler)
-
-        if optimization_level == 0:
-            return common.generate_routing_passmanager(
-                routing_pass,
-                target,
-                coupling_map=coupling_map,
-                seed_transpiler=-1,
-                use_barrier_before_measurement=True,
-            )
-        if optimization_level == 1:
-            return common.generate_routing_passmanager(
-                routing_pass,
-                target,
-                coupling_map,
-                vf2_call_limit=vf2_call_limit,
-                vf2_max_trials=vf2_max_trials,
-                seed_transpiler=-1,
-                check_trivial=True,
-                use_barrier_before_measurement=True,
-            )
-        if optimization_level in {2, 3}:
             return common.generate_routing_passmanager(
                 routing_pass,
                 target,
@@ -593,6 +543,7 @@ class OptimizationPassManager(PassManagerStagePlugin):
                             (SXGate(), SXdgGate()),
                         ]
                     ),
+                    ContractIdleWiresInControlFlow(),
                 ]
 
             elif optimization_level == 2:
@@ -605,6 +556,7 @@ class OptimizationPassManager(PassManagerStagePlugin):
                         basis=pass_manager_config.basis_gates, target=pass_manager_config.target
                     ),
                     CommutativeCancellation(target=pass_manager_config.target),
+                    ContractIdleWiresInControlFlow(),
                 ]
             elif optimization_level == 3:
                 # Steps for optimization level 3
@@ -630,6 +582,7 @@ class OptimizationPassManager(PassManagerStagePlugin):
                         basis=pass_manager_config.basis_gates, target=pass_manager_config.target
                     ),
                     CommutativeCancellation(target=pass_manager_config.target),
+                    ContractIdleWiresInControlFlow(),
                 ]
 
                 def _opt_control(property_set):
@@ -693,16 +646,11 @@ class AlapSchedulingPassManager(PassManagerStagePlugin):
         instruction_durations = pass_manager_config.instruction_durations
         scheduling_method = pass_manager_config.scheduling_method
         timing_constraints = pass_manager_config.timing_constraints
-        inst_map = pass_manager_config.inst_map
         target = pass_manager_config.target
 
-        with warnings.catch_warnings():
-            warnings.simplefilter(action="ignore", category=DeprecationWarning)
-            # Passing `inst_map` to `generate_scheduling` is deprecated in Qiskit 1.3
-            # so filtering these warning when building pass managers
-            return common.generate_scheduling(
-                instruction_durations, scheduling_method, timing_constraints, inst_map, target
-            )
+        return common.generate_scheduling(
+            instruction_durations, scheduling_method, timing_constraints, target
+        )
 
 
 class AsapSchedulingPassManager(PassManagerStagePlugin):
@@ -714,16 +662,11 @@ class AsapSchedulingPassManager(PassManagerStagePlugin):
         instruction_durations = pass_manager_config.instruction_durations
         scheduling_method = pass_manager_config.scheduling_method
         timing_constraints = pass_manager_config.timing_constraints
-        inst_map = pass_manager_config.inst_map
         target = pass_manager_config.target
 
-        with warnings.catch_warnings():
-            warnings.simplefilter(action="ignore", category=DeprecationWarning)
-            # Passing `inst_map` to `generate_scheduling` is deprecated in Qiskit 1.3
-            # so filtering these warning when building pass managers
-            return common.generate_scheduling(
-                instruction_durations, scheduling_method, timing_constraints, inst_map, target
-            )
+        return common.generate_scheduling(
+            instruction_durations, scheduling_method, timing_constraints, target
+        )
 
 
 class DefaultSchedulingPassManager(PassManagerStagePlugin):
@@ -735,16 +678,11 @@ class DefaultSchedulingPassManager(PassManagerStagePlugin):
         instruction_durations = pass_manager_config.instruction_durations
         scheduling_method = None
         timing_constraints = pass_manager_config.timing_constraints or TimingConstraints()
-        inst_map = pass_manager_config.inst_map
         target = pass_manager_config.target
 
-        with warnings.catch_warnings():
-            warnings.simplefilter(action="ignore", category=DeprecationWarning)
-            # Passing `inst_map` to `generate_scheduling` is deprecated in Qiskit 1.3
-            # so filtering these warning when building pass managers
-            return common.generate_scheduling(
-                instruction_durations, scheduling_method, timing_constraints, inst_map, target
-            )
+        return common.generate_scheduling(
+            instruction_durations, scheduling_method, timing_constraints, target
+        )
 
 
 class DefaultLayoutPassManager(PassManagerStagePlugin):
@@ -1037,5 +975,5 @@ class SabreLayoutPassManager(PassManagerStagePlugin):
 
 def _get_trial_count(default_trials=5):
     if CONFIG.get("sabre_all_threads", None) or os.getenv("QISKIT_SABRE_ALL_THREADS"):
-        return max(CPU_COUNT, default_trials)
+        return max(default_num_processes(), default_trials)
     return default_trials

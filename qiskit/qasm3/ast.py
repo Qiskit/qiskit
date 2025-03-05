@@ -173,6 +173,18 @@ class BitType(ClassicalType):
     __slots__ = ()
 
 
+class DurationType(ClassicalType):
+    """Type information for a duration."""
+
+    __slots__ = ()
+
+
+class StretchType(ClassicalType):
+    """Type information for a stretch."""
+
+    __slots__ = ()
+
+
 class BitArrayType(ClassicalType):
     """Type information for a sized number of classical bits."""
 
@@ -236,6 +248,13 @@ class Constant(Expression, enum.Enum):
 
 
 class IntegerLiteral(Expression):
+    __slots__ = ("value",)
+
+    def __init__(self, value):
+        self.value = value
+
+
+class FloatLiteral(Expression):
     __slots__ = ("value",)
 
     def __init__(self, value):

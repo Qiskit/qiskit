@@ -31,7 +31,6 @@ from qiskit.circuit.quantumcircuit import BitLocations
 from qiskit.circuit.quantumcircuitdata import CircuitInstruction
 from qiskit.circuit.quantumregister import AncillaQubit, AncillaRegister, Qubit
 from qiskit.providers.basic_provider import BasicSimulator
-from qiskit.pulse import DriveChannel, Gaussian, Play, Schedule
 from qiskit.quantum_info import Operator
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -401,9 +400,6 @@ class TestCircuitOperations(QiskitTestCase):
         qc.measure(qr[0], cr[0])
         qc.measure(qr[1], cr[1])
 
-        with self.assertWarns(DeprecationWarning):
-            sched = Schedule(Play(Gaussian(160, 0.1, 40), DriveChannel(0)))
-            qc.add_calibration("h", [0, 1], sched)
         copied = qc.copy_empty_like()
         qc.clear()
 
@@ -411,8 +407,6 @@ class TestCircuitOperations(QiskitTestCase):
         self.assertEqual(qc.global_phase, copied.global_phase)
         self.assertEqual(qc.name, copied.name)
         self.assertEqual(qc.metadata, copied.metadata)
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(qc.calibrations, copied.calibrations)
 
         copied = qc.copy_empty_like("copy")
         self.assertEqual(copied.name, "copy")
@@ -1038,21 +1032,20 @@ class TestCircuitOperations(QiskitTestCase):
         qc.h(0)
         qc.cx(0, 1)
         qc.barrier()
-        with self.assertWarns(DeprecationWarning):
-            qc.h(0).c_if(cr, 1)
+        qc.h(0)
+        qc.measure(0, 0)
+        qc.measure(1, 1)
 
         with self.subTest("repeat 0 times"):
             rep = qc.repeat(0)
             self.assertEqual(rep, QuantumCircuit(qr, cr))
 
         with self.subTest("repeat 3 times"):
-            with self.assertWarns(DeprecationWarning):
-                inst = qc.to_instruction()
+            inst = qc.to_instruction()
             ref = QuantumCircuit(qr, cr)
             for _ in range(3):
                 ref.append(inst, ref.qubits, ref.clbits)
-            with self.assertWarns(DeprecationWarning):
-                rep = qc.repeat(3)
+            rep = qc.repeat(3)
             self.assertEqual(rep, ref)
 
     @data(0, 1, 4)
@@ -1298,15 +1291,13 @@ class TestCircuitOperations(QiskitTestCase):
         qc = QuantumCircuit([q0, q1], [c0, c1])
         qc.h(0)
         qc.cx(0, 1)
-        with self.assertWarns(DeprecationWarning):
-            qc.x(0).c_if(1, True)
+        qc.x(0)
         qc.measure(0, 0)
 
         expected = QuantumCircuit([c1, c0], [q1, q0])
         expected.h(1)
         expected.cx(1, 0)
-        with self.assertWarns(DeprecationWarning):
-            expected.x(1).c_if(0, True)
+        expected.x(1)
         expected.measure(1, 1)
 
         self.assertEqual(qc.reverse_bits(), expected)
@@ -1391,48 +1382,6 @@ class TestCircuitOperations(QiskitTestCase):
         qc2.x(0)
 
         self.assertFalse(qc1 == qc2)
-
-    def test_compare_circuits_with_single_bit_conditions(self):
-        """Test that circuits with single-bit conditions can be compared correctly."""
-        qreg = QuantumRegister(1, name="q")
-        creg = ClassicalRegister(1, name="c")
-        qc1 = QuantumCircuit(qreg, creg, [Clbit()])
-        with self.assertWarns(DeprecationWarning):
-            qc1.x(0).c_if(qc1.cregs[0], 1)
-        with self.assertWarns(DeprecationWarning):
-            qc1.x(0).c_if(qc1.clbits[-1], True)
-        qc2 = QuantumCircuit(qreg, creg, [Clbit()])
-        with self.assertWarns(DeprecationWarning):
-            qc2.x(0).c_if(qc2.cregs[0], 1)
-        with self.assertWarns(DeprecationWarning):
-            qc2.x(0).c_if(qc2.clbits[-1], True)
-        self.assertEqual(qc1, qc2)
-
-        # Order of operations transposed.
-        qc1 = QuantumCircuit(qreg, creg, [Clbit()])
-        with self.assertWarns(DeprecationWarning):
-            qc1.x(0).c_if(qc1.cregs[0], 1)
-        with self.assertWarns(DeprecationWarning):
-            qc1.x(0).c_if(qc1.clbits[-1], True)
-        qc2 = QuantumCircuit(qreg, creg, [Clbit()])
-        with self.assertWarns(DeprecationWarning):
-            qc2.x(0).c_if(qc2.clbits[-1], True)
-        with self.assertWarns(DeprecationWarning):
-            qc2.x(0).c_if(qc2.cregs[0], 1)
-        self.assertNotEqual(qc1, qc2)
-
-        # Single-bit condition values not the same.
-        qc1 = QuantumCircuit(qreg, creg, [Clbit()])
-        with self.assertWarns(DeprecationWarning):
-            qc1.x(0).c_if(qc1.cregs[0], 1)
-        with self.assertWarns(DeprecationWarning):
-            qc1.x(0).c_if(qc1.clbits[-1], True)
-        qc2 = QuantumCircuit(qreg, creg, [Clbit()])
-        with self.assertWarns(DeprecationWarning):
-            qc2.x(0).c_if(qc2.cregs[0], 1)
-        with self.assertWarns(DeprecationWarning):
-            qc2.x(0).c_if(qc2.clbits[-1], False)
-        self.assertNotEqual(qc1, qc2)
 
     def test_compare_a_circuit_with_none(self):
         """Test to compare that a circuit is different to None."""

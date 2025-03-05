@@ -1276,6 +1276,8 @@ In both these cases, the matrix form of :class:`.CCXGate` in ``ctrl_state = 1`` 
         \end{pmatrix}
 """
 
+from qiskit._accelerate.circuit import Duration  # pylint: disable=unused-import
+
 from .exceptions import CircuitError
 from . import _utils
 from .quantumcircuit import QuantumCircuit
