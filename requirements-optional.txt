@@ -18,7 +18,7 @@ pylatexenc>=1.4
 seaborn>=0.9.0
 
 # Functionality and accelerators.
-qiskit-aer!=0.16.4
+qiskit-aer!=0.16.4,!=0.16.3
 qiskit-qasm3-import>=0.5.0
 python-constraint>=1.4
 cvxpy
