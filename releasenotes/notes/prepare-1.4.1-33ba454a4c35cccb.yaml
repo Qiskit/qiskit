@@ -1,3 +1,7 @@
 ---
 prelude: >
     Qiskit 1.4.1 is a small patch release, fixing some bugs found in the 1.4 extended support series.
+fixes:
+  - |
+    The serialization of :class:`ParameterExpression` now does not raise an ``AttributeError`` exception
+    when serializing with QPY 13.
