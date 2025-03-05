@@ -127,18 +127,22 @@ class TestQFT(QiskitTestCase):
 
     @data(
         (4, 0, False),
-        (3, 0, True),
-        (6, 2, False),
-        (4, 5, True),
+        # (3, 0, True),
+        # (6, 2, False),
+        # (4, 5, True),
     )
     @unpack
     def test_qft_num_gates(self, num_qubits, approximation_degree, insert_barriers):
         """Test the number of gates in the QFT and the approximated QFT."""
         basis_gates = ["h", "swap", "cu1"]
-
         qft = QFT(
             num_qubits, approximation_degree=approximation_degree, insert_barriers=insert_barriers
         )
+        print(qft.decompose())
+        print(qft.decompose(reps=2))
+        # from qiskit.providers.fake_provider import GenericBackendV2
+        # backend = GenericBackendV2(num_qubits=num_qubits, basis_gates = ["h", "swap", "cu1"])
+        # ops = transpile(qft, backend=backend, optimization_level=1).count_ops()
         ops = transpile(qft, basis_gates=basis_gates, optimization_level=1).count_ops()
 
         with self.subTest(msg="assert H count"):

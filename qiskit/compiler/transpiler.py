@@ -27,35 +27,15 @@ from qiskit.pulse import Schedule
 from qiskit.transpiler import Layout, CouplingMap, PropertySet
 from qiskit.transpiler.basepasses import BasePass
 from qiskit.transpiler.exceptions import TranspilerError, CircuitTooWideForTarget
-from qiskit.transpiler.instruction_durations import InstructionDurationsType
 from qiskit.transpiler.passes.synthesis.high_level_synthesis import HLSConfig
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.transpiler.target import Target
-from qiskit.utils import deprecate_arg
 
 logger = logging.getLogger(__name__)
 
 _CircuitT = TypeVar("_CircuitT", bound=Union[QuantumCircuit, List[QuantumCircuit]])
 
 
-@deprecate_arg(
-    name="instruction_durations",
-    since="1.3",
-    package_name="Qiskit",
-    removal_timeline="in Qiskit 2.0",
-    additional_msg="The `target` parameter should be used instead. You can build a `Target` instance "
-    "with defined instruction durations with "
-    "`Target.from_configuration(..., instruction_durations=...)`",
-)
-@deprecate_arg(
-    name="timing_constraints",
-    since="1.3",
-    package_name="Qiskit",
-    removal_timeline="in Qiskit 2.0",
-    additional_msg="The `target` parameter should be used instead. You can build a `Target` instance "
-    "with defined timing constraints with "
-    "`Target.from_configuration(..., timing_constraints=...)`",
-)
 def transpile(  # pylint: disable=too-many-return-statements
     circuits: _CircuitT,
     backend: Optional[Backend] = None,
@@ -66,10 +46,8 @@ def transpile(  # pylint: disable=too-many-return-statements
     routing_method: Optional[str] = None,
     translation_method: Optional[str] = None,
     scheduling_method: Optional[str] = None,
-    instruction_durations: Optional[InstructionDurationsType] = None,
     dt: Optional[float] = None,
     approximation_degree: Optional[float] = 1.0,
-    timing_constraints: Optional[Dict[str, int]] = None,
     seed_transpiler: Optional[int] = None,
     optimization_level: Optional[int] = None,
     callback: Optional[Callable[[BasePass, DAGCircuit, float, PropertySet, int], Any]] = None,
@@ -92,8 +70,8 @@ def transpile(  # pylint: disable=too-many-return-statements
 
     The prioritization of transpilation target constraints works as follows: if a ``target``
     input is provided, it will take priority over any ``backend`` input or loose constraints
-    (``basis_gates``, ``coupling_map``, ``instruction_durations``,
-    ``dt`` or ``timing_constraints``). If a ``backend`` is provided together with any loose constraint
+    (``basis_gates``, ``coupling_map``, or ``dt``). If a ``backend`` is provided
+    together with any loose constraint
     from the list above, the loose constraint will take priority over the corresponding backend
     constraint. This behavior is independent of whether the ``backend`` instance is of type
     :class:`.BackendV1` or :class:`.BackendV2`, as summarized in the table below. The first column
@@ -106,9 +84,7 @@ def transpile(  # pylint: disable=too-many-return-statements
     ============================ ========= ======================== =======================
     **basis_gates**              target    basis_gates              basis_gates
     **coupling_map**             target    coupling_map             coupling_map
-    **instruction_durations**    target    instruction_durations    instruction_durations
     **dt**                       target    dt                       dt
-    **timing_constraints**       target    timing_constraints       timing_constraints
     ============================ ========= ======================== =======================
 
     Args:
@@ -179,40 +155,10 @@ def transpile(  # pylint: disable=too-many-return-statements
             to use for the ``scheduling`` stage. You can see a list of installed plugins by
             using :func:`~.list_stage_plugins` with ``"scheduling"`` for the ``stage_name``
             argument.
-        instruction_durations: Durations of instructions.
-            Applicable only if scheduling_method is specified.
-            The gate lengths defined in ``backend.properties`` are used as default.
-            They are overwritten if this ``instruction_durations`` is specified.
-            The format of ``instruction_durations`` must be as follows.
-            The `instruction_durations` must be given as a list of tuples
-            [(instruction_name, qubits, duration, unit), ...].
-            | [('cx', [0, 1], 12.3, 'ns'), ('u3', [0], 4.56, 'ns')]
-            | [('cx', [0, 1], 1000), ('u3', [0], 300)]
-            If unit is omitted, the default is 'dt', which is a sample time depending on backend.
-            If the time unit is 'dt', the duration must be an integer.
         dt: Backend sample time (resolution) in seconds.
             If ``None`` (default), ``backend.dt`` is used.
         approximation_degree (float): heuristic dial used for circuit approximation
             (1.0=no approximation, 0.0=maximal approximation)
-        timing_constraints: An optional control hardware restriction on instruction time resolution.
-            A quantum computer backend may report a set of restrictions, namely:
-
-            - granularity: An integer value representing minimum pulse gate
-              resolution in units of ``dt``. A user-defined pulse gate should have
-              duration of a multiple of this granularity value.
-            - min_length: An integer value representing minimum pulse gate
-              length in units of ``dt``. A user-defined pulse gate should be longer
-              than this length.
-            - pulse_alignment: An integer value representing a time resolution of gate
-              instruction starting time. Gate instruction should start at time which
-              is a multiple of the alignment value.
-            - acquire_alignment: An integer value representing a time resolution of measure
-              instruction starting time. Measure instruction should start at time which
-              is a multiple of the alignment value.
-
-            This information will be provided by the backend configuration.
-            If the backend doesn't have any restriction on the instruction time allocation,
-            then ``timing_constraints`` is None and no adjustment will be performed.
         seed_transpiler: Sets random seed for the stochastic parts of the transpiler
         optimization_level: How much optimization to perform on the circuits.
             Higher levels generate more optimized circuits,
@@ -344,18 +290,6 @@ def transpile(  # pylint: disable=too-many-return-statements
             )
             backend = BackendV2Converter(backend)
 
-    if (
-        scheduling_method is not None
-        and backend is None
-        and target is None
-        and not instruction_durations
-    ):
-        warnings.warn(
-            "When scheduling circuits without backend,"
-            " 'instruction_durations' should be usually provided.",
-            UserWarning,
-        )
-
     if not ignore_backend_supplied_default_methods:
         if scheduling_method is None and hasattr(backend, "get_scheduling_stage_plugin"):
             scheduling_method = backend.get_scheduling_stage_plugin()
@@ -369,43 +303,27 @@ def transpile(  # pylint: disable=too-many-return-statements
     # Edge cases require using the old model (loose constraints) instead of building a target,
     # but we don't populate the passmanager config with loose constraints unless it's one of
     # the known edge cases to control the execution path.
-    # Filter instruction_durations and timing_constraints deprecation
-    with warnings.catch_warnings():
-        warnings.filterwarnings(
-            "ignore",
-            category=DeprecationWarning,
-            message=".*``timing_constraints`` is deprecated as of Qiskit 1.3.*",
-            module="qiskit",
-        )
-        warnings.filterwarnings(
-            "ignore",
-            category=DeprecationWarning,
-            message=".*``instruction_durations`` is deprecated as of Qiskit 1.3.*",
-            module="qiskit",
-        )
-        pm = generate_preset_pass_manager(
-            optimization_level,
-            target=target,
-            backend=backend,
-            basis_gates=basis_gates,
-            coupling_map=coupling_map,
-            instruction_durations=instruction_durations,
-            timing_constraints=timing_constraints,
-            initial_layout=initial_layout,
-            layout_method=layout_method,
-            routing_method=routing_method,
-            translation_method=translation_method,
-            scheduling_method=scheduling_method,
-            approximation_degree=approximation_degree,
-            seed_transpiler=seed_transpiler,
-            unitary_synthesis_method=unitary_synthesis_method,
-            unitary_synthesis_plugin_config=unitary_synthesis_plugin_config,
-            hls_config=hls_config,
-            init_method=init_method,
-            optimization_method=optimization_method,
-            dt=dt,
-            qubits_initially_zero=qubits_initially_zero,
-        )
+    pm = generate_preset_pass_manager(
+        optimization_level,
+        target=target,
+        backend=backend,
+        basis_gates=basis_gates,
+        coupling_map=coupling_map,
+        initial_layout=initial_layout,
+        layout_method=layout_method,
+        routing_method=routing_method,
+        translation_method=translation_method,
+        scheduling_method=scheduling_method,
+        approximation_degree=approximation_degree,
+        seed_transpiler=seed_transpiler,
+        unitary_synthesis_method=unitary_synthesis_method,
+        unitary_synthesis_plugin_config=unitary_synthesis_plugin_config,
+        hls_config=hls_config,
+        init_method=init_method,
+        optimization_method=optimization_method,
+        dt=dt,
+        qubits_initially_zero=qubits_initially_zero,
+    )
 
     out_circuits = pm.run(circuits, callback=callback, num_processes=num_processes)
 

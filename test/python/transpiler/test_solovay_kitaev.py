@@ -174,7 +174,9 @@ class TestSolovayKitaev(QiskitTestCase):
     def test_approximation_on_qft(self):
         """Test the Solovay-Kitaev decomposition on the QFT circuit."""
         qft = QFT(3)
-        transpiled = transpile(qft, basis_gates=["u", "cx"], optimization_level=1)
+        transpiled = transpile(
+            qft, basis_gates=["u1", "u2", "u3", "u", "cx", "id"], optimization_level=1
+        )
 
         skd = SolovayKitaev(1)
 

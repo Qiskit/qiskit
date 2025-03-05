@@ -1299,19 +1299,22 @@ class TestTranspile(QiskitTestCase):
         qc.delay(500, 1)
         qc.cx(0, 1)
 
-        with self.assertWarnsRegex(
-            DeprecationWarning,
-            expected_regex="The `target` parameter should be used instead",
-        ):
-            out = transpile(
-                qc,
-                scheduling_method="alap",
-                basis_gates=["h", "cx"],
-                instruction_durations=[("h", 0, 200), ("cx", [0, 1], 700)],
-                dt=1e-9,
-                optimization_level=optimization_level,
-                seed_transpiler=42,
-            )
+        dt = 1e-9
+        backend = GenericBackendV2(
+            2, coupling_map=[[0, 1]], basis_gates=["cx", "h"], seed=42, dt=dt
+        )
+        # update durations
+        backend.target.update_instruction_properties("cx", (0, 1), InstructionProperties(700 * dt))
+        backend.target.update_instruction_properties("h", (0,), InstructionProperties(200 * dt))
+
+        out = transpile(
+            qc,
+            scheduling_method="alap",
+            target=backend.target,
+            dt=1e-9,
+            optimization_level=optimization_level,
+            seed_transpiler=42,
+        )
 
         self.assertEqual(out.duration, 1200)
 
