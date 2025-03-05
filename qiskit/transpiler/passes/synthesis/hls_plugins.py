@@ -465,6 +465,7 @@ import numpy as np
 import rustworkx as rx
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.operation import Operation
 from qiskit.circuit.library import (
     LinearFunction,
     QFTGate,
@@ -479,6 +480,14 @@ from qiskit.circuit.library import (
     FullAdderGate,
     MultiplierGate,
     WeightedSumGate,
+    GlobalPhaseGate,
+)
+from qiskit.circuit.annotated_operation import (
+    AnnotatedOperation,
+    Modifier,
+    ControlModifier,
+    InverseModifier,
+    PowerModifier,
 )
 from qiskit.transpiler.coupling import CouplingMap
 
@@ -528,6 +537,9 @@ from qiskit.synthesis.arithmetic import (
 )
 from qiskit.quantum_info.operators import Clifford
 from qiskit.transpiler.passes.routing.algorithms import ApproximateTokenSwapper
+from qiskit.transpiler.exceptions import TranspilerError
+
+from qiskit._accelerate.high_level_synthesis import synthesize_operation
 from .plugin import HighLevelSynthesisPlugin
 
 
@@ -1762,6 +1774,157 @@ class PauliEvolutionSynthesisRustiq(HighLevelSynthesisPlugin):
             upto_phase=upto_phase,
             resynth_clifford_method=resynth_clifford_method,
         )
+
+
+class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
+    """Synthesize an :class:`.AnnotatedOperation` using the default synthesis algorithm.
+
+    This plugin name is:``annotated.default`` which can be used as the key on
+    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+    """
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        if not isinstance(high_level_object, AnnotatedOperation):
+            return None
+
+        operation = high_level_object
+        modifiers = high_level_object.modifiers
+
+        # The plugin needs additional information that is not yet passed via the run's method
+        # arguments: namely high-level-synthesis data and options, the global qubits over which
+        # the operation is defined, and the initial state of each global qubit.
+        tracker = options.get("qubit_tracker", None)
+        data = options.get("hls_data", None)
+        input_qubits = options.get("input_qubits", None)
+
+        if data is None or input_qubits is None:
+            raise TranspilerError(
+                "The AnnotatedSynthesisDefault plugin should receive data and input_qubits via options."
+            )
+
+        if len(modifiers) > 0:
+            num_ctrl = sum(
+                mod.num_ctrl_qubits for mod in modifiers if isinstance(mod, ControlModifier)
+            )
+            power = sum(mod.power for mod in modifiers if isinstance(mod, PowerModifier))
+            is_inverted = sum(1 for mod in modifiers if isinstance(mod, InverseModifier)) % 2
+
+            # First, synthesize the base operation of this annotated operation.
+            # As this step cannot use any control qubits as auxiliary qubits, we use a dedicated
+            # tracker (annotated_tracker).
+            # The logic is as follows:
+            # - annotated_tracker.disable control qubits
+            # - if have power or inverse modifiers, annotated_tracker.set_dirty(base_qubits)
+            # - synthesize the base operation using annotated tracker
+            # - main_tracker.set_dirty(base_qubits)
+            #
+            # Note that we need to set the base_qubits to dirty if we have power or inverse
+            # modifiers. For power: even if the power is a positive integer (that is, we need
+            # to repeat the same circuit multiple times), even if the target is initially at |0>,
+            # it will generally not be at |0> after one iteration. For inverse: as we
+            # flip the order of operations, we cannot exploit which qubits are at |0> as "viewed from
+            # the back of the circuit". If we just have control modifiers, we can use the state
+            # of base qubits when synthesizing the controlled operation.
+            #
+            # In addition, all of the other global qubits that are not a part of the annotated
+            # operation can be used as they are in all cases, since we are assuming that all of
+            # the synthesis methods preserve the states of ancilla qubits.
+            annotated_tracker = tracker.copy()
+            control_qubits = input_qubits[:num_ctrl]
+            base_qubits = input_qubits[num_ctrl:]
+            annotated_tracker.disable(control_qubits)  # do not access control qubits
+            if power != 0 or is_inverted:
+                annotated_tracker.set_dirty(base_qubits)
+
+            # Note that synthesize_operation also returns the output qubits on which the
+            # operation is defined, however currently the plugin mechanism has no way
+            # to return these (and instead the upstream code greedily grabs some ancilla
+            # qubits from the circuit). We should refactor the plugin "run" iterface to
+            # return the actual ancilla qubits used.
+            synthesized_base_op_result = synthesize_operation(
+                operation.base_op, input_qubits[num_ctrl:], data, annotated_tracker
+            )
+
+            # The base operation does not need to be synthesized.
+            # For simplicity, we wrap the instruction into a circuit. Note that
+            # this should not deteriorate the quality of the result.
+            if synthesized_base_op_result is None:
+                synthesized_base_op = self._instruction_to_circuit(operation.base_op)
+            else:
+                synthesized_base_op = QuantumCircuit._from_circuit_data(
+                    synthesized_base_op_result[0]
+                )
+            tracker.set_dirty(base_qubits)
+
+            # This step currently does not introduce ancilla qubits. However it makes
+            # a lot of sense to allow this in the future.
+            synthesized = self._apply_annotations(synthesized_base_op, operation.modifiers)
+
+            return synthesized
+
+        return None
+
+    @staticmethod
+    def _apply_annotations(circuit: QuantumCircuit, modifiers: list[Modifier]) -> QuantumCircuit:
+        """
+        Applies modifiers to a quantum circuit.
+        """
+        for modifier in modifiers:
+            if isinstance(modifier, InverseModifier):
+                circuit = circuit.inverse()
+
+            elif isinstance(modifier, ControlModifier):
+                if circuit.num_clbits > 0:
+                    raise TranspilerError(
+                        "AnnotatedSynthesisDefault: cannot control a circuit with classical bits."
+                    )
+
+                # Apply the control modifier to each gate in the circuit.
+                controlled_circuit = QuantumCircuit(modifier.num_ctrl_qubits + circuit.num_qubits)
+                if circuit.global_phase != 0:
+                    controlled_op = GlobalPhaseGate(circuit.global_phase).control(
+                        num_ctrl_qubits=modifier.num_ctrl_qubits,
+                        label=None,
+                        ctrl_state=modifier.ctrl_state,
+                        annotated=False,
+                    )
+                    controlled_qubits = list(range(0, modifier.num_ctrl_qubits))
+                    controlled_circuit.append(controlled_op, controlled_qubits)
+                for inst in circuit:
+                    inst_op = inst.operation
+                    inst_qubits = inst.qubits
+                    controlled_op = inst_op.control(
+                        num_ctrl_qubits=modifier.num_ctrl_qubits,
+                        label=None,
+                        ctrl_state=modifier.ctrl_state,
+                        annotated=False,
+                    )
+                    controlled_qubits = list(range(0, modifier.num_ctrl_qubits)) + [
+                        modifier.num_ctrl_qubits + circuit.find_bit(q).index for q in inst_qubits
+                    ]
+                    controlled_circuit.append(controlled_op, controlled_qubits)
+
+                circuit = controlled_circuit
+
+                if isinstance(circuit, AnnotatedOperation):
+                    raise TranspilerError(
+                        "AnnotatedSynthesisDefault: failed to synthesize the control modifier."
+                    )
+
+            elif isinstance(modifier, PowerModifier):
+                circuit = circuit.power(modifier.power)
+
+            else:
+                raise TranspilerError(f"AnnotatedSynthesisDefault: Unknown modifier {modifier}.")
+
+        return circuit
+
+    @staticmethod
+    def _instruction_to_circuit(op: Operation) -> QuantumCircuit:
+        """Wraps a single operation into a quantum circuit."""
+        circuit = QuantumCircuit(op.num_qubits, op.num_clbits)
+        circuit.append(op, circuit.qubits, circuit.clbits)
+        return circuit
 
 
 class WeightedSumSynthesisDefault(HighLevelSynthesisPlugin):

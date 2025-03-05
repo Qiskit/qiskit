@@ -173,6 +173,18 @@ class BitType(ClassicalType):
     __slots__ = ()
 
 
+class DurationType(ClassicalType):
+    """Type information for a duration."""
+
+    __slots__ = ()
+
+
+class StretchType(ClassicalType):
+    """Type information for a stretch."""
+
+    __slots__ = ()
+
+
 class BitArrayType(ClassicalType):
     """Type information for a sized number of classical bits."""
 
@@ -311,6 +323,10 @@ class Binary(Expression):
         NOT_EQUAL = "!="
         SHIFT_LEFT = "<<"
         SHIFT_RIGHT = ">>"
+        ADD = "+"
+        SUB = "-"
+        MUL = "*"
+        DIV = "/"
 
     def __init__(self, op: Op, left: Expression, right: Expression):
         self.op = op

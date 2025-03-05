@@ -40,6 +40,7 @@ from qiskit.circuit import (
     Qubit,
     SwitchCaseOp,
     WhileLoopOp,
+    Duration,
 )
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.annotated_operation import (
@@ -2020,6 +2021,32 @@ class TestPostTranspileIntegration(QiskitTestCase):
                 base.append(CustomCX(), [2, 4])
                 base.append(CustomCX(), [3, 4])
         with base.if_test(expr.less(1.0, 2.0)):
+            base.cx(0, 1)
+        with base.if_test(
+            expr.logic_and(
+                expr.logic_and(
+                    expr.equal(Duration.dt(1), Duration.ns(2)),
+                    expr.equal(Duration.us(3), Duration.ms(4)),
+                ),
+                expr.equal(Duration.s(5), Duration.dt(6)),
+            )
+        ):
+            base.cx(0, 1)
+        with base.if_test(
+            expr.logic_and(
+                expr.logic_and(
+                    expr.equal(expr.mul(Duration.dt(1), 2.0), expr.div(Duration.ns(2), 2.0)),
+                    expr.equal(
+                        expr.add(Duration.us(3), Duration.us(4)),
+                        expr.sub(Duration.ms(5), Duration.ms(6)),
+                    ),
+                ),
+                expr.logic_and(
+                    expr.equal(expr.mul(expr.lift(1.0), 2.0), expr.div(4.0, 2.0)),
+                    expr.equal(expr.add(3.0, 4.0), expr.sub(10.5, expr.lift(4.3, types.Float()))),
+                ),
+            )
+        ):
             base.cx(0, 1)
         return base
 

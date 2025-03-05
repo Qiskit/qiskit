@@ -1113,7 +1113,7 @@ class QuantumCircuit:
         transpiler and reattach it to the output, so you can track your own metadata."""
 
     @property
-    @deprecate_func(since="1.3.0", removal_timeline="in Qiskit 2.0.0", is_property=True)
+    @deprecate_func(since="1.3.0", removal_timeline="in Qiskit 3.0.0", is_property=True)
     def duration(self):
         """The total duration of the circuit, set by a scheduling transpiler pass.  Its unit is
         specified by :attr:`unit`."""
@@ -1124,7 +1124,7 @@ class QuantumCircuit:
         self._duration = value
 
     @property
-    @deprecate_func(since="1.3.0", removal_timeline="in Qiskit 2.0.0", is_property=True)
+    @deprecate_func(since="1.3.0", removal_timeline="in Qiskit 3.0.0", is_property=True)
     def unit(self):
         """The unit that :attr:`duration` is specified in."""
         return self._unit
@@ -1282,11 +1282,16 @@ class QuantumCircuit:
     def op_start_times(self) -> list[int]:
         """Return a list of operation start times.
 
+        .. note::
+           This attribute computes the estimate starting time of the operations in the scheduled circuit
+           and only works for simple circuits that have no control flow or other classical feed-forward
+           operations.
+
         This attribute is enabled once one of scheduling analysis passes
         runs on the quantum circuit.
 
         Returns:
-            List of integers representing instruction start times.
+            List of integers representing instruction estimated start times.
             The index corresponds to the index of instruction in :attr:`QuantumCircuit.data`.
 
         Raises:
