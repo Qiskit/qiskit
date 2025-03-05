@@ -1,23 +1,11 @@
 ---
-features_circuits:
-  - |
-   Python classes :class:`.Bit` and :class:`.Register` have been ported to Rust
-   along with all their respective subclasses including:
-   
-   * :class:`.Qubit` and :class:`.QuantumRegister`.
-   * :class:`.Clbit` and :class:`.ClassicalRegister`.
-   * :class:`.AncillaQubit` and :class:`.AncillaRegister`.
 upgrade_circuits:
   - |
-    :class:`.DAGCircuit` and :class:`.CircuitData` will now store :class:`.Qubit`,
-    :class:`.Clbit`, as well as its register counterparts, in Rust space.
-  - The :attr:`.QuantumCircuit._qubit_indices` and :attr:`.QuantumCircuit._clbit_indices`
-    attributes of the :class:`.QuantumCircuit` class have been moved to live in 
-    rust space and store rust native data.
-  - The :meth:`.QuantumCircuit._qbit_argument_conversion` and :meth:`.QuantumCircuit._cbit_argument_conversion`
-    have been moved to Rust to operate with native data.
-other:
-  - |
     :class:`.Bit` and :class:`.Register` as well as their subclassess are no
-    longer guaranteed to be compared using `is()` checks due to conversions to
-    and from Python which would re-allocate each instance exposed to Python.
+    longer guaranteed to be comparable using ``is`` checks, due to conversions to
+    and from Python which may re-allocate each instance exposed to Python.
+  - |
+    :class:`.Bit` and :class:`.Register` (and their subclasses) can no longer be
+    subclassed.  This was never intended to be supported behavior, and doing so
+    would cause unspecified behavior in Qiskit.  It is no longer possible to do
+    this as an implementation detail of the classes.
