@@ -6,9 +6,8 @@ upgrade:
     account for round-off errors in the fidelity calculation and for consistency with the
     other classes, such as :class:`.CommutationAnalysis` and :class:`.TwoQubitWeylDecomposition`.
   - |
-    Updated the metric used in :class:`.CommutationAnalysis` for matrix-based commutation checks.
-    In a matrix-based check (used e.g. for non-standard gates or rotation gates with known rotation
-    angles) two gates are assumed to commute if the average gate fidelity of the commutation is
+    Updated the metric used to check commutations in :class:`.CommutationChecker`.
+    Two gates are assumed to commute if the average gate fidelity of the commutation is
     above ``1 - 1e-12``. This value is chosen to account for round-off errors in the
     fidelity calculation and for consistency with :class:`.RemoveIdentityEquivalent` and
     :class:`.TwoQubitWeylDecomposition`. See the class docstring for more information.
@@ -22,3 +21,15 @@ fixes:
     should be treated as identity (such as a rotation gate with very small angle). See either
     of the aforementioned classes' docstrings for more information.
     Fixed `#13547 <https://github.com/Qiskit/qiskit/issues/13547>`__.
+features_circuit:
+  - |
+    Added a new argument ``approximation_degree`` to :meth:`.CommutationChecker.commute` and
+    :meth:`.CommutationChecker.commute_nodes`, which allows to set the approximation threshold
+    for when gates are said to commute. See the docstring of :class:`.CommutationChecker` for more 
+    detail.
+features_transpiler:
+  - |
+    Added a new argument ``approximation_degree`` to :class:`.CommutationAnalysis`, which allows 
+    setting the approximation threshold for when gates are said to commute. See the class docstring 
+    for more information.
+

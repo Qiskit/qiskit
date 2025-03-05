@@ -14,7 +14,7 @@ use num_complex::ComplexFloat;
 use pyo3::prelude::*;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
-use crate::commutation_checker::rotation_trace_and_dim;
+use crate::gate_metrics::rotation_trace_and_dim;
 use crate::nlayout::PhysicalQubit;
 use crate::target_transpiler::Target;
 use qiskit_circuit::dag_circuit::DAGCircuit;
@@ -23,6 +23,8 @@ use qiskit_circuit::operations::OperationRef;
 use qiskit_circuit::operations::Param;
 use qiskit_circuit::operations::StandardGate;
 use qiskit_circuit::packed_instruction::PackedInstruction;
+
+const MINIMUM_TOL: f64 = 1e-12;
 
 #[pyfunction]
 #[pyo3(signature=(dag, approx_degree=Some(1.0), target=None))]
@@ -36,13 +38,12 @@ fn remove_identity_equiv(
     let mut global_phase_update: f64 = 0.;
     // Minimum threshold to compare average gate fidelity to 1. This is chosen to account
     // for roundoff errors and to be consistent with other places.
-    let minimum_tol = 1e-12_f64;
 
     let get_error_cutoff = |inst: &PackedInstruction| -> f64 {
         match approx_degree {
             Some(degree) => {
                 if degree == 1.0 {
-                    minimum_tol
+                    MINIMUM_TOL
                 } else {
                     match target {
                         Some(target) => {
@@ -54,10 +55,10 @@ fn remove_identity_equiv(
                             let error_rate = target.get_error(inst.op.name(), qargs.as_slice());
                             match error_rate {
                                 Some(err) => err * degree,
-                                None => minimum_tol.max(1. - degree),
+                                None => MINIMUM_TOL.max(1. - degree),
                             }
                         }
-                        None => minimum_tol.max(1. - degree),
+                        None => MINIMUM_TOL.max(1. - degree),
                     }
                 }
             }
@@ -71,10 +72,10 @@ fn remove_identity_equiv(
                     let error_rate = target.get_error(inst.op.name(), qargs.as_slice());
                     match error_rate {
                         Some(err) => err,
-                        None => minimum_tol,
+                        None => MINIMUM_TOL,
                     }
                 }
-                None => minimum_tol,
+                None => MINIMUM_TOL,
             },
         }
     };
@@ -100,10 +101,9 @@ fn remove_identity_equiv(
                     | StandardGate::CRYGate
                     | StandardGate::CRZGate
                     | StandardGate::CPhaseGate => {
-                        let name = gate.name();
                         if let Param::Float(angle) = inst.params_view()[0] {
                             let (tr_over_dim, dim) =
-                                rotation_trace_and_dim(name, angle).expect("All rotation covered");
+                                rotation_trace_and_dim(gate, angle).expect("Since only supported rotation gates are given, the result is not None");
                             (tr_over_dim, dim)
                         } else {
                             continue;

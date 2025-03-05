@@ -35,6 +35,7 @@ use qiskit_circuit::operations::{
 };
 use qiskit_circuit::{BitType, Clbit, Qubit};
 
+use crate::gate_metrics;
 use crate::unitary_compose;
 use crate::QiskitError;
 
@@ -500,7 +501,7 @@ impl CommutationChecker {
             Ok(matrix) => matrix,
             Err(e) => return Err(PyRuntimeError::new_err(e)),
         };
-        let (fid, phase) = unitary_compose::gate_fidelity(&op12.view(), &op21.view(), None);
+        let (fid, phase) = gate_metrics::gate_fidelity(&op12.view(), &op21.view(), None);
 
         // we consider the gates as commuting if the process fidelity of
         // AB (BA)^\dagger is approximately the identity and there is no global phase difference
@@ -609,7 +610,10 @@ fn map_rotation<'a>(
         // commute with everything, and we simply return the operation with the flag that
         // it commutes trivially.
         if let Param::Float(angle) = params[0] {
-            let (tr_over_dim, dim) = rotation_trace_and_dim(name, angle)
+            let gate = op
+                .standard_gate()
+                .expect("Supported gates are standard gates");
+            let (tr_over_dim, dim) = gate_metrics::rotation_trace_and_dim(gate, angle)
                 .expect("All rotation should be covered at this point");
             let gate_fidelity = tr_over_dim.abs().powi(2);
             let process_fidelity = (dim * gate_fidelity + 1.) / (dim + 1.);
@@ -628,26 +632,6 @@ fn map_rotation<'a>(
         };
     }
     (op, params, false)
-}
-
-/// For a (controlled) rotation or phase gate, return a tuple ``(Tr(gate) / dim, dim)``.
-/// Returns ``None`` if the rotation gate (specified by name) is not supported.
-pub fn rotation_trace_and_dim(rotation: &str, angle: f64) -> Option<(Complex64, f64)> {
-    let dim = match rotation {
-        "rx" | "ry" | "rz" | "p" | "u1" => 2.,
-        _ => 4.,
-    };
-
-    let trace_over_dim = match rotation {
-        "rx" | "ry" | "rz" | "rxx" | "ryy" | "rzx" | "rzz" => {
-            Complex64::new((angle / 2.).cos(), 0.)
-        }
-        "crx" | "cry" | "crz" => Complex64::new(0.5 + 0.5 * (angle / 2.).cos(), 0.),
-        "p" | "u1" => (1. + Complex64::new(0., angle).exp()) / 2.,
-        "cp" => (3. + Complex64::new(0., angle).exp()) / 4.,
-        _ => return None,
-    };
-    Some((trace_over_dim, dim))
 }
 
 fn get_relative_placement(

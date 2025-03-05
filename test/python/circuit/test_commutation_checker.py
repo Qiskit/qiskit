@@ -399,7 +399,7 @@ class TestCommutationChecker(QiskitTestCase):
         generic_gate = DCXGate()  # gate that does not commute with any rotation gate
 
         # the cutoff angle depends on the average gate fidelity; i.e. it is the angle
-        # for which the average gate fidelity is smaller than machine epsilon
+        # for which the average gate fidelity is smaller than 1e-12
         if gate_cls in [CPhaseGate, CRXGate, CRYGate, CRZGate]:
             cutoff_angle = 3.16e-6
         else:

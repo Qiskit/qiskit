@@ -10,10 +10,9 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use ndarray::{arr2, Array, Array2, ArrayView, ArrayView2, IxDyn};
+use ndarray::{Array, Array2, ArrayView, ArrayView2, IxDyn};
 use ndarray_einsum::*;
-use num_complex::{Complex, Complex64, ComplexFloat};
-use qiskit_circuit::util::C_ZERO;
+use num_complex::{Complex, Complex64};
 use qiskit_circuit::Qubit;
 
 static LOWERCASE: [u8; 26] = [
@@ -153,33 +152,8 @@ fn _einsum_matmul_index(qubits: &[u32], num_qubits: usize) -> String {
     )
 }
 
-pub fn gate_fidelity(
-    left: &ArrayView2<Complex64>,
-    right: &ArrayView2<Complex64>,
-    qargs: Option<&[Qubit]>,
-) -> (f64, f64) {
-    let dim = left.nrows(); // == left.ncols() == right.nrows() == right.ncols()
-                            // let trace = left.t().mapv(|el| el.conj()).dot(right).diag().sum();
-
-    let left = left.t().mapv(|el| el.conj());
-    let product = match dim {
-        2 => mm1q(&left.view(), right),
-        4 => mm2q(&left.view(), right, qargs.unwrap_or(&[Qubit(0), Qubit(1)])),
-        _ => left.dot(right),
-    };
-    let trace = product.diag().sum();
-
-    let dim = dim as f64;
-    let normalized_trace = trace / dim;
-    let phase = normalized_trace.arg(); // compute phase difference
-
-    let process_fidelity = normalized_trace.abs().powi(2);
-    let gate_fidelity = (dim * process_fidelity + 1.) / (dim + 1.);
-    (gate_fidelity, phase)
-}
-
-fn mm1q(left: &ArrayView2<Complex64>, right: &ArrayView2<Complex64>) -> Array2<Complex64> {
-    let mut out = arr2(&[[C_ZERO, C_ZERO], [C_ZERO, C_ZERO]]);
+pub fn matmul_1q(left: &ArrayView2<Complex64>, right: &ArrayView2<Complex64>) -> Array2<Complex64> {
+    let mut out = Array2::zeros((2, 2));
     out[[0, 0]] = left[[0, 0]] * right[[0, 0]] + left[[0, 1]] * right[[1, 0]];
     out[[0, 1]] = left[[0, 0]] * right[[0, 1]] + left[[0, 1]] * right[[1, 1]];
     out[[1, 0]] = left[[1, 0]] * right[[0, 0]] + left[[1, 1]] * right[[1, 0]];
@@ -197,17 +171,12 @@ fn _ind(i: usize, reversed: bool) -> usize {
     }
 }
 
-pub fn mm2q(
+pub fn matmul_2q(
     left: &ArrayView2<Complex64>,
     right: &ArrayView2<Complex64>,
     qargs: &[Qubit],
 ) -> Array2<Complex64> {
-    let mut out = arr2(&[
-        [C_ZERO, C_ZERO, C_ZERO, C_ZERO],
-        [C_ZERO, C_ZERO, C_ZERO, C_ZERO],
-        [C_ZERO, C_ZERO, C_ZERO, C_ZERO],
-        [C_ZERO, C_ZERO, C_ZERO, C_ZERO],
-    ]);
+    let mut out = Array2::zeros((4, 4));
 
     let rev = qargs[0].0 == 1;
     for i in 0..4usize {
