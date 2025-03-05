@@ -21,7 +21,7 @@ fixes:
     should be treated as identity (such as a rotation gate with very small angle). See either
     of the aforementioned classes' docstrings for more information.
     Fixed `#13547 <https://github.com/Qiskit/qiskit/issues/13547>`__.
-features_circuit:
+features_circuits:
   - |
     Added a new argument ``approximation_degree`` to :meth:`.CommutationChecker.commute` and
     :meth:`.CommutationChecker.commute_nodes`, which allows to set the approximation threshold

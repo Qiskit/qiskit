@@ -152,6 +152,7 @@ fn _einsum_matmul_index(qubits: &[u32], num_qubits: usize) -> String {
     )
 }
 
+#[inline]
 pub fn matmul_1q(left: &ArrayView2<Complex64>, right: &ArrayView2<Complex64>) -> Array2<Complex64> {
     let mut out = Array2::zeros((2, 2));
     out[[0, 0]] = left[[0, 0]] * right[[0, 0]] + left[[0, 1]] * right[[1, 0]];
@@ -171,6 +172,7 @@ fn _ind(i: usize, reversed: bool) -> usize {
     }
 }
 
+#[inline]
 pub fn matmul_2q(
     left: &ArrayView2<Complex64>,
     right: &ArrayView2<Complex64>,

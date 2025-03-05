@@ -53,8 +53,7 @@ pub fn gate_fidelity(
     right: &ArrayView2<Complex64>,
     qargs: Option<&[Qubit]>,
 ) -> (f64, f64) {
-    let dim = left.nrows(); // == left.ncols() == right.nrows() == right.ncols()
-                            // let trace = left.t().mapv(|el| el.conj()).dot(right).diag().sum();
+    let dim = left.nrows();
 
     let left = left.t().mapv(|el| el.conj());
     let product = match dim {
