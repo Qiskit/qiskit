@@ -23,36 +23,35 @@ use nom::Parser;
 
 use num_complex::c64;
 
-use crate::symbol_expr::{BinaryOps, Symbol, SymbolExpr, Unary, UnaryOps, Value};
-use std::sync::Arc;
+use crate::symbol_expr::{BinaryOp, Symbol, SymbolExpr, UnaryOp, Value};
 
 // struct to contain parsed binary operation
 #[derive(Clone)]
 struct BinaryOpContainer {
-    op: BinaryOps,
+    op: BinaryOp,
     expr: SymbolExpr,
 }
 
 impl BinaryOpContainer {
     fn accum(self, rhs: BinaryOpContainer) -> BinaryOpContainer {
         match rhs.op {
-            BinaryOps::Add => BinaryOpContainer {
+            BinaryOp::Add => BinaryOpContainer {
                 op: rhs.op,
                 expr: self.expr + rhs.expr,
             },
-            BinaryOps::Sub => BinaryOpContainer {
+            BinaryOp::Sub => BinaryOpContainer {
                 op: rhs.op,
                 expr: self.expr - rhs.expr,
             },
-            BinaryOps::Mul => BinaryOpContainer {
+            BinaryOp::Mul => BinaryOpContainer {
                 op: rhs.op,
                 expr: self.expr * rhs.expr,
             },
-            BinaryOps::Div => BinaryOpContainer {
+            BinaryOp::Div => BinaryOpContainer {
                 op: rhs.op,
                 expr: self.expr / rhs.expr,
             },
-            BinaryOps::Pow => BinaryOpContainer {
+            BinaryOp::Pow => BinaryOpContainer {
                 op: rhs.op,
                 expr: self.expr.pow(&rhs.expr),
             },
@@ -64,7 +63,7 @@ impl BinaryOpContainer {
 fn parse_value(s: &str) -> IResult<&str, BinaryOpContainer> {
     map_res(double, |v| -> Result<BinaryOpContainer, &str> {
         Ok(BinaryOpContainer {
-            op: BinaryOps::Add,
+            op: BinaryOp::Add,
             expr: SymbolExpr::Value(Value::Real(v)),
         })
     })(s)
@@ -76,7 +75,7 @@ fn parse_imaginary_value(s: &str) -> IResult<&str, BinaryOpContainer> {
         tuple((double, char('i'))),
         |(v, _)| -> Result<BinaryOpContainer, &str> {
             Ok(BinaryOpContainer {
-                op: BinaryOps::Add,
+                op: BinaryOp::Add,
                 expr: SymbolExpr::Value(Value::Complex(c64(0.0, v))),
             })
         },
@@ -119,12 +118,12 @@ fn parse_symbol(s: &str) -> IResult<&str, BinaryOpContainer> {
                     // add indexing in Symbol struct
                     let s = format!("{}[{}]", v, i);
                     Ok(BinaryOpContainer {
-                        op: BinaryOps::Add,
+                        op: BinaryOp::Add,
                         expr: SymbolExpr::Symbol(Symbol::new(&s)),
                     })
                 }
                 None => Ok(BinaryOpContainer {
-                    op: BinaryOps::Add,
+                    op: BinaryOp::Add,
                     expr: SymbolExpr::Symbol(Symbol::new(v)),
                 }),
             }
@@ -145,20 +144,20 @@ fn parse_unary(s: &str) -> IResult<&str, BinaryOpContainer> {
         )),
         |(v, expr)| -> Result<BinaryOpContainer, &str> {
             let op = match v {
-                "sin" => UnaryOps::Sin,
-                "asin" => UnaryOps::Asin,
-                "cos" => UnaryOps::Cos,
-                "acos" => UnaryOps::Acos,
-                "tan" => UnaryOps::Tan,
-                "atan" => UnaryOps::Atan,
-                "log" => UnaryOps::Log,
-                "exp" => UnaryOps::Exp,
-                "sign" => UnaryOps::Sign,
+                "sin" => UnaryOp::Sin,
+                "asin" => UnaryOp::Asin,
+                "cos" => UnaryOp::Cos,
+                "acos" => UnaryOp::Acos,
+                "tan" => UnaryOp::Tan,
+                "atan" => UnaryOp::Atan,
+                "log" => UnaryOp::Log,
+                "exp" => UnaryOp::Exp,
+                "sign" => UnaryOp::Sign,
                 &_ => return Err("unsupported unary operation found."),
             };
             Ok(BinaryOpContainer {
-                op: BinaryOps::Add,
-                expr: SymbolExpr::Unary(Arc::new(Unary::new(op, expr.expr))),
+                op: BinaryOp::Add,
+                expr: SymbolExpr::Unary{op: op, expr: Box::new(expr.expr)},
             })
         },
     )(s)
@@ -183,8 +182,8 @@ fn parse_neg(s: &str) -> IResult<&str, BinaryOpContainer> {
         )),
         |(_, expr)| -> Result<BinaryOpContainer, &str> {
             Ok(BinaryOpContainer {
-                op: BinaryOps::Add,
-                expr: SymbolExpr::Unary(Arc::new(Unary::new(UnaryOps::Neg, expr.expr))),
+                op: BinaryOp::Add,
+                expr: SymbolExpr::Unary{op: UnaryOp::Neg, expr: Box::new(expr.expr)},
             })
         },
     )(s)
@@ -219,13 +218,13 @@ fn parse_muldiv(s: &str) -> IResult<&str, BinaryOpContainer> {
                 )),
                 |(_, opr, _, mut rhs)| -> Result<BinaryOpContainer, &str> {
                     if opr == "**" {
-                        rhs.op = BinaryOps::Pow;
+                        rhs.op = BinaryOp::Pow;
                         Ok(rhs)
                     } else if opr == "*" {
-                        rhs.op = BinaryOps::Mul;
+                        rhs.op = BinaryOp::Mul;
                         Ok(rhs)
                     } else {
-                        rhs.op = BinaryOps::Div;
+                        rhs.op = BinaryOp::Div;
                         Ok(rhs)
                     }
                 },
@@ -251,10 +250,10 @@ fn parse_addsub(s: &str) -> IResult<&str, BinaryOpContainer> {
                 )),
                 |(_, opr, _, mut rhs)| -> Result<BinaryOpContainer, &str> {
                     if opr == '+' {
-                        rhs.op = BinaryOps::Add;
+                        rhs.op = BinaryOp::Add;
                         Ok(rhs)
                     } else {
-                        rhs.op = BinaryOps::Sub;
+                        rhs.op = BinaryOp::Sub;
                         Ok(rhs)
                     }
                 },
