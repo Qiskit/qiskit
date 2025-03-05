@@ -1,0 +1,29 @@
+---
+upgrade_circuits:
+  - |
+    The deprecated ``.duration`` and ``.unit`` attributes for the
+    :class:`.QuantumCircuit` class have been removed. These attributes
+    were used to track the estimated duration and unit of that duration
+    to execute on the circuit. However, the values of these attributes
+    were always limited, as they would only be properly populated if the
+    transpiler were run with the correct settings. The duration was also
+    only a guess based on the longest path on the sum of instruction
+    durations and wouldn’t ever correctly account for control flow or
+    conditionals in the circuit. If you need to compute an estimate of
+    the duration of a circuit you can use the
+    :meth:`.QuantumCircuit.estimate_duration` method which does a similar
+    calculation but makes the fact that it's an estimate explicit.
+upgrade_transpiler:
+  - |
+    The deprecated ``.duration`` and ``.unit`` attributes for the
+    :class:`.DAGCircuit` class have been removed. These attributes
+    were used to track the estimated duration and unit of that duration
+    to execute on the circuit. However, the values of these attributes
+    were always limited, as they would only be properly populated if the
+    transpiler were run with the correct settings. The duration was also
+    only a guess based on the longest path on the sum of instruction
+    durations and wouldn’t ever correctly account for control flow or
+    conditionals in the circuit. If you need to compute an estimate of
+    the duration of a circuit you can use the
+    :meth:`.QuantumCircuit.estimate_duration` method which does a similar
+    calculation but makes the fact that it's an estimate explicit.

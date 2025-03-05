@@ -73,6 +73,4 @@ def dag_to_circuit(dag, copy_operations=True):
     circuit.metadata = dag.metadata or {}
     circuit._data = circuit_data
 
-    circuit._duration = dag.duration
-    circuit._unit = dag.unit
     return circuit

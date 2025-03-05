@@ -205,12 +205,6 @@ pub struct DAGCircuit {
     vars: BitData<Var>,
     /// Global phase.
     global_phase: Param,
-    /// Duration.
-    #[pyo3(set)]
-    duration: Option<PyObject>,
-    /// Unit of duration.
-    #[pyo3(set)]
-    unit: String,
 
     // Note: these are tracked separately from `qubits` and `clbits`
     // because it's not yet clear if the Rust concept of a native Qubit
@@ -376,8 +370,6 @@ impl DAGCircuit {
             clbits: BitData::new(py, "clbits".to_string()),
             vars: BitData::new(py, "vars".to_string()),
             global_phase: Param::Float(0.),
-            duration: None,
-            unit: "dt".to_string(),
             qubit_locations: PyDict::new(py).unbind(),
             clbit_locations: PyDict::new(py).unbind(),
             qubit_io_map: Vec::new(),
@@ -392,45 +384,6 @@ impl DAGCircuit {
                 PySet::empty(py)?.unbind(),
             ],
         })
-    }
-
-    /// The total duration of the circuit, set by a scheduling transpiler pass. Its unit is
-    /// specified by :attr:`.unit`
-    ///
-    /// DEPRECATED since Qiskit 1.3.0 and will be removed in Qiskit 2.0.0
-    #[getter]
-    fn get_duration(&self, py: Python) -> PyResult<Option<Py<PyAny>>> {
-        imports::WARNINGS_WARN.get_bound(py).call1((
-            intern!(
-                py,
-                concat!(
-                    "The property ``qiskit.dagcircuit.dagcircuit.DAGCircuit.duration`` is ",
-                    "deprecated as of Qiskit 1.3.0. It will be removed in Qiskit 2.0.0.",
-                )
-            ),
-            py.get_type::<PyDeprecationWarning>(),
-            2,
-        ))?;
-        Ok(self.duration.as_ref().map(|x| x.clone_ref(py)))
-    }
-
-    /// The unit that duration is specified in.
-    ///
-    /// DEPRECATED since Qiskit 1.3.0 and will be removed in Qiskit 2.0.0
-    #[getter]
-    fn get_unit(&self, py: Python) -> PyResult<String> {
-        imports::WARNINGS_WARN.get_bound(py).call1((
-            intern!(
-                py,
-                concat!(
-                    "The property ``qiskit.dagcircuit.dagcircuit.DAGCircuit.unit`` is ",
-                    "deprecated as of Qiskit 1.3.0. It will be removed in Qiskit 2.0.0.",
-                )
-            ),
-            py.get_type::<PyDeprecationWarning>(),
-            2,
-        ))?;
-        Ok(self.unit.clone())
     }
 
     #[getter]
@@ -1443,7 +1396,6 @@ impl DAGCircuit {
     /// That structure includes:
     ///     * name and other metadata
     ///     * global phase
-    ///     * duration
     ///     * all the qubits and clbits, including the registers.
     ///
     /// Returns:
@@ -1460,8 +1412,6 @@ impl DAGCircuit {
         )?;
         target_dag.name = self.name.as_ref().map(|n| n.clone_ref(py));
         target_dag.global_phase = self.global_phase.clone();
-        target_dag.duration = self.duration.as_ref().map(|d| d.clone_ref(py));
-        target_dag.unit.clone_from(&self.unit);
         target_dag.metadata = self.metadata.as_ref().map(|m| m.clone_ref(py));
         target_dag.qargs_interner = self.qargs_interner.clone();
         target_dag.cargs_interner = self.cargs_interner.clone();
@@ -5895,8 +5845,6 @@ impl DAGCircuit {
             clbits: BitData::with_capacity(py, "clbits".to_string(), num_clbits),
             vars: BitData::with_capacity(py, "vars".to_string(), num_vars),
             global_phase: Param::Float(0.),
-            duration: None,
-            unit: "dt".to_string(),
             qubit_locations: PyDict::new(py).unbind(),
             clbit_locations: PyDict::new(py).unbind(),
             qubit_io_map: Vec::with_capacity(num_qubits),
