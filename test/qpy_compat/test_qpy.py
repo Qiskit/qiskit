@@ -892,7 +892,12 @@ def generate_v14_expr():
     with stretch_expr.if_test(expr.equal(stretch, Duration.dt(100))):
         pass
 
-    return [float_expr, duration_expr, math_expr, stretch_expr]
+    return [
+        float_expr,
+        duration_expr,
+        math_expr,
+        stretch_expr,
+    ]
 
 
 def generate_circuits(version_parts, current_version, load_context=False):
