@@ -38,7 +38,7 @@ from .primitive_job import PrimitiveJob
 
 def _run_circuits(
     circuits: QuantumCircuit | list[QuantumCircuit],
-    backend: BackendV1 | BackendV2,
+    backend: BackendV2,
     clear_metadata: bool = True,
     **run_options,
 ) -> tuple[list[Result], list[dict]]:
@@ -59,9 +59,7 @@ def _run_circuits(
         metadata.append(circ.metadata)
         if clear_metadata:
             circ.metadata = {}
-    if isinstance(backend, BackendV1):
-        max_circuits = getattr(backend.configuration(), "max_experiments", None)
-    elif isinstance(backend, BackendV2):
+    if isinstance(backend, BackendV2):
         max_circuits = backend.max_circuits
     else:
         raise RuntimeError("Backend version not supported")

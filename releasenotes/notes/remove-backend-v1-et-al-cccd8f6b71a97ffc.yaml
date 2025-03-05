@@ -33,6 +33,30 @@ upgrade_providers:
 
     * ``BackendPropertyError`` and ``BackendConfigurationError``: exceptions linked to removed classes
 
+upgrade_primitives:
+  - |
+   As a consequence of the removal of the ``BackendV1`` model, the :class:`.BackendSamplerV2` and 
+   :class:`.BackendEstimatorV2` classes no longer accept inputs of type ``BackendV1`` in their 
+   ``backend`` input argument.
+
+upgrade_transpiler:
+ - | 
+   As a consequence of the removal of the ``BackendV1`` model, the accepted input types of the following 
+   transpiler objects have been updated:
+   
+    * The :func:`.generate_preset_pass_manager` and :func:`.transpile` functions no longer accept inputs of
+      type ``BackendV1`` in their ``backend`` input argument.
+    
+    * The :meth:`.Target.from_configuration` method no longer accepts a ``backend_properties`` argument
+
+    * The :meth:`.Target.target_to_backend_properties` method has been removed
+
+upgrade_visualization:
+  - |
+   As a consequence of the removal of the ``BackendV1`` model, the :func:`.plot_gate_map`,  :func:`.plot_error_map`
+   and :func:`.plot_circuit_layout` functions no longer accept inputs of type ``BackendV1`` in their 
+   ``backend`` input argument.
+
 upgrade_misc:
   - |
     The ``Qobj`` structure and related classes, deprecated in Qiskit 1.2.0,
