@@ -1588,6 +1588,10 @@ while (cr == 3) {
         )
         qc.if_test(expr.logic_and(expr.logic_and(cr1[0], cr1[1]), cr1[2]), body.copy(), [], [])
         qc.if_test(expr.logic_or(expr.logic_or(cr1[0], cr1[1]), cr1[2]), body.copy(), [], [])
+        qc.if_test(expr.equal(expr.add(expr.add(cr1, cr2), cr3), 7), body.copy(), [], [])
+        qc.if_test(expr.equal(expr.sub(expr.sub(cr1, cr2), cr3), 7), body.copy(), [], [])
+        qc.if_test(expr.equal(expr.mul(expr.mul(cr1, cr2), cr3), 7), body.copy(), [], [])
+        qc.if_test(expr.equal(expr.div(expr.div(cr1, cr2), cr3), 7), body.copy(), [], [])
 
         # Note that bitwise operations except shift have lower priority than `==` so there's extra
         # parentheses.  All these operators are left-associative in OQ3.
@@ -1612,6 +1616,14 @@ if (cr1 >> cr2 << cr3 == 7) {
 if (cr1[0] && cr1[1] && cr1[2]) {
 }
 if (cr1[0] || cr1[1] || cr1[2]) {
+}
+if (cr1 + cr2 + cr3 == 7) {
+}
+if (cr1 - cr2 - cr3 == 7) {
+}
+if (cr1 * cr2 * cr3 == 7) {
+}
+if (cr1 / cr2 / cr3 == 7) {
 }
 """
         self.assertEqual(dumps(qc), expected)
@@ -1639,6 +1651,10 @@ if (cr1[0] || cr1[1] || cr1[2]) {
         )
         qc.if_test(expr.logic_and(cr1[0], expr.logic_and(cr1[1], cr1[2])), body.copy(), [], [])
         qc.if_test(expr.logic_or(cr1[0], expr.logic_or(cr1[1], cr1[2])), body.copy(), [], [])
+        qc.if_test(expr.equal(expr.add(cr1, expr.add(cr2, cr3)), 7), body.copy(), [], [])
+        qc.if_test(expr.equal(expr.sub(cr1, expr.sub(cr2, cr3)), 7), body.copy(), [], [])
+        qc.if_test(expr.equal(expr.mul(cr1, expr.mul(cr2, cr3)), 7), body.copy(), [], [])
+        qc.if_test(expr.equal(expr.div(cr1, expr.div(cr2, cr3)), 7), body.copy(), [], [])
 
         # Note that bitwise operations have lower priority than `==` so there's extra parentheses.
         # All these operators are left-associative in OQ3, so we need parentheses for them to be
@@ -1665,6 +1681,14 @@ if (cr1 << (cr2 >> cr3) == 7) {
 if (cr1[0] && (cr1[1] && cr1[2])) {
 }
 if (cr1[0] || (cr1[1] || cr1[2])) {
+}
+if (cr1 + (cr2 + cr3) == 7) {
+}
+if (cr1 - (cr2 - cr3) == 7) {
+}
+if (cr1 * (cr2 * cr3) == 7) {
+}
+if (cr1 / (cr2 / cr3) == 7) {
 }
 """
         self.assertEqual(dumps(qc), expected)
@@ -1741,11 +1765,17 @@ if (!!cr[0]) {
             ),
         )
 
+        arithmetic = expr.equal(
+            expr.add(expr.mul(cr, expr.sub(cr, cr)), expr.div(expr.add(cr, cr), cr)),
+            expr.sub(expr.div(expr.mul(cr, cr), expr.add(cr, cr)), expr.mul(cr, expr.add(cr, cr))),
+        )
+
         qc = QuantumCircuit(cr)
         qc.if_test(inside_out, body.copy(), [], [])
         qc.if_test(outside_in, body.copy(), [], [])
         qc.if_test(logics, body.copy(), [], [])
         qc.if_test(bitshifts, body.copy(), [], [])
+        qc.if_test(arithmetic, body.copy(), [], [])
 
         expected = """\
 OPENQASM 3.0;
@@ -1760,6 +1790,8 @@ if ((cr | cr) == (cr & cr) && (cr & cr) == (cr | cr)\
 if ((!cr[0] || !cr[0]) && !(cr[0] && cr[0]) || !(cr[0] && cr[0]) && (!cr[0] || !cr[0])) {
 }
 if (((cr ^ cr) & cr) << (cr | cr) == (cr >> 3 ^ cr << 4 | cr << 1)) {
+}
+if (cr * (cr - cr) + (cr + cr) / cr == cr * cr / (cr + cr) - cr * (cr + cr)) {
 }
 """
         self.assertEqual(dumps(qc), expected)
@@ -1795,6 +1827,7 @@ if (cr == 1) {
         qc.add_var("c", expr.bit_not(b))
         # All inputs should come first, regardless of declaration order.
         qc.add_input("d", types.Bool())
+        qc.add_var("e", expr.lift(7.5))
 
         expected = """\
 OPENQASM 3.0;
@@ -1803,9 +1836,11 @@ input bool a;
 input uint[8] b;
 input bool d;
 uint[8] c;
+float[64] e;
 a = !a;
 b = b & 8;
 c = ~b;
+e = 7.5;
 """
         self.assertEqual(dumps(qc), expected)
 

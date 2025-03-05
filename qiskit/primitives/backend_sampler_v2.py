@@ -24,7 +24,7 @@ from numpy.typing import NDArray
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
-from qiskit.primitives.backend_estimator import _run_circuits
+from qiskit.primitives.backend_estimator_v2 import _run_circuits
 from qiskit.primitives.base import BaseSamplerV2
 from qiskit.primitives.containers import (
     BitArray,
