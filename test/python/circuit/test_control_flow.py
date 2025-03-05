@@ -580,6 +580,22 @@ class TestCreatingControlFlowOperations(QiskitTestCase):
         self.assertEqual(op.unit, "ms")
         self.assertEqual(op.label, "hello, world")
 
+    def test_box_valid_params_setter(self):
+        """Verify that valid sets to `params` function."""
+        a = Parameter("a")
+        body = QuantumCircuit(2, 1)
+        body.h(0)
+        body.rzx(a, 0, 1)
+        body.measure(0, 0)
+
+        op = BoxOp(body.copy())
+
+        assigned = body.assign_parameters({a: 2.5}, inplace=False)
+        op.params = [assigned.copy()]
+        self.assertEqual(op.params, [assigned])
+        self.assertEqual(op.blocks, (assigned,))
+        self.assertEqual(op.body, assigned)
+
     def test_box_invalid_params_setter(self):
         """Verify we catch invalid param settings for BoxOp."""
         body = QuantumCircuit(3, 1)
@@ -590,6 +606,17 @@ class TestCreatingControlFlowOperations(QiskitTestCase):
             op.params = [bad_body]
         with self.assertRaisesRegex(CircuitError, "body parameter of type QuantumCircuit"):
             op.params = [None]
+
+    def test_box_body(self):
+        """The `body` property should work and be unsettable."""
+        body = QuantumCircuit(2)
+        body.h(0)
+        body.cx(0, 1)
+
+        op = BoxOp(body)
+        self.assertEqual(op.body, body)
+        with self.assertRaises(AttributeError):
+            op.body = body.copy()
 
     def test_box_replace_blocks(self):
         """Test all properties copied across."""

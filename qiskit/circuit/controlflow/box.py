@@ -85,6 +85,16 @@ class BoxOp(ControlFlowOp):
         self._params = [body]
 
     @property
+    def body(self):
+        """The ``body`` :class:`.QuantumCircuit` of the operation.
+
+        This is the same as object returned as the sole entry in :meth:`params` and :meth:`blocks`.
+        """
+        # Not settable via this property; the only meaningful way to replace a body is via
+        # larger `QuantumCircuit` methods, or using `replace_blocks`.
+        return self.params[0]
+
+    @property
     def blocks(self):
         return (self._params[0],)
 
