@@ -184,6 +184,28 @@ class TestCircuitVars(QiskitTestCase):
         a_other = qc.add_stretch(a)
         self.assertIs(a, a_other)
 
+    def test_stretch_circuit_equality(self):
+        a = expr.Stretch.new("a")
+        b = expr.Stretch.new("b")
+        c = expr.Stretch.new("c")
+
+        qc1 = QuantumCircuit(captures=[a, b, c])
+        self.assertEqual(qc1, QuantumCircuit(captures=[a, b, c]))
+        self.assertNotEqual(qc1, QuantumCircuit(captures=[c, b, a]))
+
+        qc2 = QuantumCircuit(captures=[a])
+        qc2.add_stretch(b)
+        qc2.add_stretch(c)
+        self.assertNotEqual(qc1, qc2)
+
+        qc1 = qc2.copy()
+        self.assertEqual(qc1, qc2)
+
+        qc2 = QuantumCircuit(captures=[a])
+        qc2.add_stretch(c)
+        qc2.add_stretch(b)
+        self.assertNotEqual(qc1, qc2)
+
     def test_add_input_returns_good_var(self):
         qc = QuantumCircuit()
         a = qc.add_input("a", types.Bool())
