@@ -1,12 +1,12 @@
 ---
 prelude: |
-    The Qiskit v1.4.0 release is the final minor version release for the v1.x series.
+    The Qiskit v1.4 release is the final minor version release for the v1.x series.
     This release contains minimal features, and primarily adds new 
     deprecation warnings for API changes coming
-    in the future major version release v2.0.0. It is fully compatible with the
+    in the future major version release v2.0. It is fully compatible with the
     Qiskit v1.3.x releases. It is strongly recommended that you upgrade from
-    v1.3.x to v1.4.0 so that you're able to see the warnings about which
-    interfaces will change with Qiskit 2.0.0.
+    v1.3.x to v1.4 so that you're able to see the warnings about which
+    interfaces will change with Qiskit v2.0.
     The v1.4.x release series will continue to be supported and receive
     bugfixes  for 6 months and security fixes for 1 year after this
     release. The fixes will take place via patch releases.
@@ -32,16 +32,16 @@ fixes:
 deprecations_circuits:
   - |
     Subclassing :class:`.Register` or :class:`.Bit`, or any subclass of them
-    (for example, :class:`.QuantumRegister` or :class:`~.circuit.Qubit`) is deprecated as of Qiskit v1.4.0.  
+    (for example, :class:`.QuantumRegister` or :class:`~.circuit.Qubit`) is deprecated as of Qiskit v1.4.
     Subclassing these types was never explicitly supported by Qiskit, and its meaning was never defined.
-    In Qiskit v2.0.0, the subclassing may become impossible due to technical limitations, 
+    In Qiskit v2.0, the subclassing may become impossible due to technical limitations,
     and will certainly not be stored in a circuit.  This is due to the move of the data model 
     to the Rust space to improve performance.
   - |
     The ``dag`` optional parameter in the constructor of :class:`DAGNode`
     subclasses (namely :class:`DAGOpNode`), 
-    which has been unused and ignored since Qiskit v1.2.0, is now deprecated as of 
-    Qiskit v1.4.0 and will be removed in Qiskit v2.0.0.
+    which has been unused and ignored since Qiskit v1.2, is now deprecated as of
+    Qiskit v1.4 and will be removed in Qiskit v2.0.
   - |
     The Multiple-Control-Multiple-Target (MCMT) class in 
     :class:`~qiskit.circuit.library.generalized_gates.MCMT` is now deprecated
@@ -52,14 +52,14 @@ deprecations_circuits:
     The :mod:`qiskit.circuit.classicalfunction` module, and with it the
     :class:`.ClassicalFunction` class and its related :func:`.classical_function`
     and :class:`.BooleanExpression` utilities, have been deprecated as of 
-    Qiskit v1.4.0 and will be removed in Qiskit v2.0.0. 
+    Qiskit v1.4 and will be removed in Qiskit v2.0.
     
     This change is performed to avoid a 
     dependency on the external library ``tweedledum``, which is no longer 
     compatible with all of Qiskit's supported platforms and Python versions.
     For a similar functionality please use the :class:`.PhaseOracle` which
     is going to have an implementation that doesn't use ``tweedledum``, and
-    the ``BitFlipOracle`` which will be added in Qiskit v2.0.0.
+    the ``BitFlipOracle`` which will be added in Qiskit v2.0.
 
     Until ``BitFlipOracle`` is added, a phase-flip oracle can be converted
     to a bit-flip oracle by conditioning it on the result qubit, and applying
@@ -96,22 +96,22 @@ deprecations_circuits:
       x_2: ─────┤2              ├─────
                 │               │     
       x_3: ─────┤3              ├─────
-          ┌───┐└───────┬───────┘┌───┐
-       y: ┤ H ├────────■────────┤ H ├
-          └───┘                 └───┘
+           ┌───┐└───────┬───────┘┌───┐
+        y: ┤ H ├────────■────────┤ H ├
+           └───┘                 └───┘
 
 deprecations_providers:
   - |
     The :class:`.BackendV2Converter` class and  :func:`.convert_to_target` functions 
-    have been deprecated in Qiskit v1.4.0 following the deprecation of :class:`.BackendV1`.
-    :func:`.convert_to_target` is used to build a :class:`.Target` instance 
+    have been deprecated in Qiskit v1.4 following the deprecation of :class:`.BackendV1`.
+    The :func:`.convert_to_target` function is used to build a :class:`.Target` instance 
     from a series of objects from the deprecated :class:`.BackendV1` workflow: 
     :class:`.BackendConfiguration`, :class:`.BackendProperties` and :class:`.PulseDefaults`.
     :class:`.BackendV2Converter` is used for converting :class:`.BackendV1` 
     to :class:`.BackendV2`, and cannot be maintained once :class:`.BackendV1` is removed.
   - |
     The :meth:`.BasicSimulator.run_experiment` method has been deprecated 
-    and will be removed in Qiskit v2.0.0.
+    and will be removed in Qiskit v2.0.
     The method takes a :class:`.QasmQobjExperiment` as input argument, 
     which has been deprecated together
     with the :class:`.Qobj` class and other related functionality. 
@@ -122,9 +122,9 @@ deprecations_synthesis:
   - |
     The signature of the argument ``atomic_evolution`` in the constructor of the classes
     :class:`.LieTrotter`, :class:`.ProductFormula`, and 
-    :class:`.SuzukiTrotter` was modified in Qiskit v1.2.0 to improve the visualization
+    :class:`.SuzukiTrotter` was modified in Qiskit v1.2 to improve the visualization
     of the output circuit. The older signature has now been deprecated in favor of the 
-    new alternative. From Qiskit 2.0.0, only the new alternative will be valid.
+    new alternative. From Qiskit v2.0, only the new alternative will be valid.
 
     To migrate, please modify the callable from
     ``Callable[[Pauli | SparsePauliOp, float], QuantumCircuit]`` to
@@ -134,7 +134,7 @@ deprecations_transpiler:
   - |
     The :attr:`.DAGOpNode.sort_key`, :attr:`.DAGOutNode.sort_key`, and
     :attr:`.DAGInNode.sort_key` attributes have been deprecated and will be
-    removed in the Qiskit v2.0.0 release. These attributes were originally used
+    removed in the Qiskit v2.0 release. These attributes were originally used
     as a lexicographical key for topological sorting nodes in a 
     :class:`.DAGCircuit`. However, the key is no longer used for this
     as the sorting is done internally in Rust code now. If you're using this
@@ -151,7 +151,7 @@ deprecations_transpiler:
     which will generate a string like the sort key does.
   - |
     The following uses of the :class:`.BackendProperties` object in the transpilation pipeline
-    have been deprecated as of Qiskit v1.4.0 and will be removed in Qiskit v2.0.0:
+    have been deprecated as of Qiskit v1.4 and will be removed in Qiskit v2.0:
 
     * ``backend_prop`` input argument in :class:`.DenseLayout`
     * ``properties`` input argument in :class:`.VF2Layout`
@@ -162,8 +162,8 @@ deprecations_transpiler:
     * ``backend_properties`` in :func:`.generate_routing_passmanager`
     * ``backend_properties`` in :func:`.generate_translation_passmanager`
 
-    The :class:`.BackendProperties` class has been deprecated since Qiskit v1.2.0, together with 
-    other elements from the :class:`.BackendV1` workflow, and will be removed in Qiskit v2.0.0. 
+    The :class:`.BackendProperties` class has been deprecated since Qiskit v1.2, together with
+    other elements from the :class:`.BackendV1` workflow, and will be removed in Qiskit v2.0.
     The alternative path for communicating hardware information to the transpilation argument is the
     :class:`.Target` class, which can be set using the ``target`` input argument.
     Specific instruction properties such as gate errors or durations can be added to a :class:`.Target` upon 
@@ -175,31 +175,31 @@ deprecations_transpiler:
     passing in a target, which was the recommended use.
 
   - |
-    The Pulse deprecation in Qiskit v1.3.0, included calibration builder passes
+    The Pulse deprecation in Qiskit v1.3, included calibration builder passes
     such as :class:`.RXCalibrationBuilder`. The
     :class:`.NormalizeRXAngle` pass is a requirement of :class:`.RXCalibrationBuilder`;
-    hence, it is being deprecated in Qiskit v1.4.0. The :func:`.rzx_templates`
+    hence, it is being deprecated in Qiskit v1.4. The :func:`.rzx_templates`
     function in the calibration module is also being deprecated as it is not used in our codebase.
 
 deprecations_visualization:
   - |
     The parameters ``show_idle`` and ``show_barrier`` in the timeline drawers are 
-    deprecated as of Qiskit v1.4.0. The alternatives are, respectively, the 
-    ``idle_wires`` and ``plot_barriers`` parameters, introduced in Qiskit v1.1.0,
+    deprecated as of Qiskit v1.4. The alternatives are, respectively, the
+    ``idle_wires`` and ``plot_barriers`` parameters, introduced in Qiskit v1.1,
     which are fully equivalent.
-    The legacy parameter names will be removed in Qiskit v2.0.0.
+    The legacy parameter names will be removed in Qiskit v2.0.
   - |
-    In Qiskit v1.4.0, the timeline drawer :func:`~qiskit.visualization.timeline.interface.draw` function
+    In Qiskit v1.4, the timeline drawer :func:`~qiskit.visualization.timeline_drawer` function
     will issue a deprecation warning if a ``target`` is not specified to get the duration
-    of instructions. From Qiskit v2.0.0 on, ``target`` will be required and 
-    :func:`~qiskit.visualization.timeline.interface.draw` will fail if it is not specified.
+    of instructions. From Qiskit v2.0 on, ``target`` will be required and
+    :func:`~qiskit.visualization.timeline_drawer` will fail if it is not specified.
 
 other:
   - |
     Passing ``property_set`` as an arbitrary keyword argument to the :meth:`~.BasePassManager.run`
-    method of a subclass of :class:`.BasePassManager` will change behavior in Qiskit v2.0.0.  It is
+    method of a subclass of :class:`.BasePassManager` will change behavior in Qiskit v2.0.  It is
     currently forwarded to the internal representation converting functions of the pass manager, as
-    is any arbitrary keyword argument to that method.  Starting from Qiskit v2.0.0, the option will
+    is any arbitrary keyword argument to that method.  Starting from Qiskit v2.0, the option will
     instead be used to set the seed of the :class:`.PropertySet` for the pipeline run, and the
     argument will not be passed to the conversion functions.
 
