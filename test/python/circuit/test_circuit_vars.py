@@ -204,15 +204,27 @@ class TestCircuitVars(QiskitTestCase):
     def test_cannot_have_both_inputs_and_captures(self):
         a = expr.Var.new("a", types.Bool())
         b = expr.Var.new("b", types.Bool())
+        c = expr.Stretch.new("c")
 
         with self.assertRaisesRegex(CircuitError, "circuits with input.*cannot be closures"):
             QuantumCircuit(inputs=[a], captures=[b])
+
+        with self.assertRaisesRegex(CircuitError, "circuits with input.*cannot be closures"):
+            QuantumCircuit(inputs=[a], captures=[c])
 
         qc = QuantumCircuit(inputs=[a])
         with self.assertRaisesRegex(CircuitError, "circuits with input.*cannot be closures"):
             qc.add_capture(b)
 
+        qc = QuantumCircuit(inputs=[a])
+        with self.assertRaisesRegex(CircuitError, "circuits with input.*cannot be closures"):
+            qc.add_capture(c)
+
         qc = QuantumCircuit(captures=[a])
+        with self.assertRaisesRegex(CircuitError, "circuits to be enclosed.*cannot have input"):
+            qc.add_input(b)
+
+        qc = QuantumCircuit(captures=[c])
         with self.assertRaisesRegex(CircuitError, "circuits to be enclosed.*cannot have input"):
             qc.add_input(b)
 
@@ -314,6 +326,20 @@ class TestCircuitVars(QiskitTestCase):
         with self.assertRaisesRegex(CircuitError, "already present"):
             QuantumCircuit(captures=[a], declarations=[(a, a_init)])
 
+    def test_cannot_shadow_stretches(self):
+        """Test that exact duplicate ``Stretch`` nodes within different combinations of the inputs are
+        detected and rejected."""
+        a = expr.Stretch.new("a")
+        with self.assertRaisesRegex(CircuitError, "already present"):
+            QuantumCircuit(captures=[a, a])
+        qc = QuantumCircuit(captures=[a])
+        with self.assertRaisesRegex(CircuitError, "already present"):
+            qc.add_stretch(a)
+        qc = QuantumCircuit()
+        with self.assertRaisesRegex(CircuitError, "already present"):
+            qc.add_stretch(a)
+            qc.add_stretch(a)
+
     def test_cannot_shadow_names(self):
         """Test that exact duplicate ``Var`` nodes within different combinations of the inputs are
         detected and rejected."""
@@ -363,6 +389,26 @@ class TestCircuitVars(QiskitTestCase):
             qc.add_var("a", expr.lift(True))
         with self.assertRaisesRegex(CircuitError, "its name shadows"):
             qc.add_var("a", expr.lift(0xFF))
+
+        a_stretch1 = expr.Stretch.new("a")
+        a_stretch2 = expr.Stretch.new("a")
+        with self.assertRaisesRegex(CircuitError, "its name shadows"):
+            QuantumCircuit(captures=[a_stretch1, a_stretch2])
+        with self.assertRaisesRegex(CircuitError, "its name shadows"):
+            QuantumCircuit(captures=[a_stretch1, a_bool1])
+        with self.assertRaisesRegex(CircuitError, "its name shadows"):
+            QuantumCircuit(captures=[a_bool1, a_stretch1])
+        with self.assertRaisesRegex(CircuitError, "its name shadows"):
+            QuantumCircuit(captures=[a_stretch1], declarations=[(a_bool1, a_bool_init)])
+        qc = QuantumCircuit(declarations=[(a_bool1, a_bool_init)])
+        with self.assertRaisesRegex(CircuitError, "its name shadows"):
+            qc.add_stretch(a_stretch1)
+        with self.assertRaisesRegex(CircuitError, "its name shadows"):
+            qc.add_stretch("a")
+        qc = QuantumCircuit()
+        qc.add_stretch("a")
+        with self.assertRaisesRegex(CircuitError, "its name shadows"):
+            qc.add_var("a", expr.lift(True))
 
     def test_cannot_add_vars_wrapping_clbits(self):
         a = expr.Var(Clbit(), types.Bool())
@@ -422,6 +468,19 @@ class TestCircuitVars(QiskitTestCase):
         self.assertIs(qc.get_var("a"), a)
         self.assertIs(qc.get_var("b"), b)
 
+    def test_get_stretch_success(self):
+        a = expr.Stretch.new("a")
+        b = expr.Stretch.new("b")
+
+        qc = QuantumCircuit(captures=[a])
+        qc.add_stretch(b)
+        self.assertIs(qc.get_stretch("a"), a)
+        self.assertIs(qc.get_stretch("b"), b)
+
+        qc = QuantumCircuit(captures=[a, b])
+        self.assertIs(qc.get_stretch("a"), a)
+        self.assertIs(qc.get_stretch("b"), b)
+
     def test_get_var_missing(self):
         qc = QuantumCircuit()
         with self.assertRaises(KeyError):
@@ -431,6 +490,16 @@ class TestCircuitVars(QiskitTestCase):
         qc.add_input(a)
         with self.assertRaises(KeyError):
             qc.get_var("b")
+
+    def test_get_stretch_missing(self):
+        qc = QuantumCircuit()
+        with self.assertRaises(KeyError):
+            qc.get_stretch("a")
+
+        a = expr.Stretch.new("a")
+        qc.add_capture(a)
+        with self.assertRaises(KeyError):
+            qc.get_stretch("b")
 
     def test_get_var_default(self):
         qc = QuantumCircuit()
