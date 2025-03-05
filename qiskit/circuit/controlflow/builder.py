@@ -540,11 +540,15 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
         self._stretches_local.pop(var.name)
 
     def get_var(self, name: str):
+        if name in self._stretches_local:
+            return None
         if (out := self._vars_local.get(name)) is not None:
             return out
         return self._parent.get_var(name)
 
     def get_stretch(self, name: str):
+        if name in self._vars_local:
+            return None
         if (out := self._stretches_local.get(name)) is not None:
             return out
         return self._parent.get_stretch(name)
