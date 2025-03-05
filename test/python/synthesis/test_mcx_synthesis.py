@@ -65,13 +65,13 @@ class TestMCXSynthesis(QiskitTestCase):
         synthesized_op = Operator(synthesized_circuit)
 
         num_qubits_original = original_op._op_shape._num_qargs_l
-        num_qubits__synthesized = synthesized_circuit.num_qubits
+        num_qubits_synthesized = synthesized_circuit.num_qubits
 
         expected_op = Operator(
-            np.kron(np.eye(2 ** (num_qubits__synthesized - num_qubits_original)), original_op)
+            np.kron(np.eye(2 ** (num_qubits_synthesized - num_qubits_original)), original_op)
         )
         if clean_ancillas:
-            ancilla_qubits = list(range(num_qubits_original, num_qubits__synthesized))
+            ancilla_qubits = list(range(num_qubits_original, num_qubits_synthesized))
         else:
             ancilla_qubits = []
 
