@@ -229,7 +229,7 @@ def synth_mcx_1_clean_b95(num_ctrl_qubits: int) -> QuantumCircuit:
     )
     qc.append(
         qc_second_half,
-        qargs=[*second_half, q_target, *q[0 : num_second_half_ancillas]],
+        qargs=[*second_half, q_target, *q[0:num_second_half_ancillas]],
         cargs=[],
     )
     qc.append(
@@ -239,7 +239,7 @@ def synth_mcx_1_clean_b95(num_ctrl_qubits: int) -> QuantumCircuit:
     )
     qc.append(
         qc_second_half,
-        qargs=[*second_half, q_target, *q[0 : num_second_half_ancillas]],
+        qargs=[*second_half, q_target, *q[0:num_second_half_ancillas]],
         cargs=[],
     )
 
