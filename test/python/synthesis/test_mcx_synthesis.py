@@ -60,9 +60,6 @@ class TestMCXSynthesis(QiskitTestCase):
 
         Note: currently we do not have any MCX synthesis algorithms that use both clean and dirty
         ancilla qubits. When we do, we will need to extend this function.
-
-        Returns:
-            A Boolean indicating whether the synthesized circuit correctly implements the MCX gate.
         """
         original_op = Operator(self.mcx_matrix(num_ctrl_qubits))
         synthesized_op = Operator(synthesized_circuit)
