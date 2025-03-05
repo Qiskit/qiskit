@@ -10,34 +10,30 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Primitive validation methods.
+"""Primitive V1 validation methods.
 
 Note that these are not intended to be part of the public API of base primitives
-but are here for backwards compatibility with deprecated functions.
+but are here for backward compatibility with BaseSamplerV1 and BaseEstimatorV1 classes.
 """
 
 from __future__ import annotations
 
 from collections.abc import Sequence
-import typing
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit, ControlFlowOp, Measure
-from qiskit.quantum_info.operators import SparsePauliOp
+from qiskit.exceptions import QiskitError
+from qiskit.quantum_info import PauliList, SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
-
-from ..utils import init_observable
-
-if typing.TYPE_CHECKING:
-    from qiskit.opflow import PauliSumOp
+from qiskit.quantum_info.operators.symplectic.base_pauli import BasePauli
 
 
 def _validate_estimator_args(
     circuits: Sequence[QuantumCircuit] | QuantumCircuit,
-    observables: Sequence[BaseOperator | PauliSumOp | str] | BaseOperator | PauliSumOp | str,
+    observables: Sequence[BaseOperator | str] | BaseOperator | str,
     parameter_values: Sequence[Sequence[float]] | Sequence[float] | float | None = None,
 ) -> tuple[tuple[QuantumCircuit], tuple[BaseOperator], tuple[tuple[float]]]:
-    """Validate run arguments for a reference Estimator.
+    """Validate run arguments for BaseEstimatorV1.
 
     Args:
         circuits: one or more circuit objects.
@@ -70,7 +66,7 @@ def _validate_sampler_args(
     circuits: Sequence[QuantumCircuit] | QuantumCircuit,
     parameter_values: Sequence[Sequence[float]] | Sequence[float] | float | None = None,
 ) -> tuple[tuple[QuantumCircuit], tuple[BaseOperator], tuple[tuple[float]]]:
-    """Validate run arguments for a reference Sampler.
+    """Validate run arguments for BaseSamplerV1.
 
     Args:
         circuits: one or more circuit objects.
@@ -94,6 +90,29 @@ def _validate_sampler_args(
     _cross_validate_circuits_parameter_values(circuits, parameter_values)
 
     return circuits, parameter_values
+
+
+def _init_observable(observable: BaseOperator | str) -> SparsePauliOp:
+    """Initialize observable by converting the input to a :class:`~qiskit.quantum_info.SparsePauliOp`.
+
+    Args:
+        observable: The observable.
+
+    Returns:
+        The observable as :class:`~qiskit.quantum_info.SparsePauliOp`.
+
+    Raises:
+        QiskitError: when observable type cannot be converted to SparsePauliOp.
+    """
+
+    if isinstance(observable, SparsePauliOp):
+        return observable
+    elif isinstance(observable, BaseOperator) and not isinstance(observable, BasePauli):
+        raise QiskitError(f"observable type not supported: {type(observable)}")
+    else:
+        if isinstance(observable, PauliList):
+            raise QiskitError(f"observable type not supported: {type(observable)}")
+        return SparsePauliOp(observable)
 
 
 def _validate_circuits(
@@ -166,13 +185,13 @@ def _validate_parameter_values(
 
 
 def _validate_observables(
-    observables: Sequence[BaseOperator | PauliSumOp | str] | BaseOperator | PauliSumOp | str,
+    observables: Sequence[BaseOperator | str] | BaseOperator | str,
 ) -> tuple[SparsePauliOp, ...]:
     if isinstance(observables, str) or not isinstance(observables, Sequence):
         observables = (observables,)
     if len(observables) == 0:
         raise ValueError("No observables were provided.")
-    return tuple(init_observable(obs) for obs in observables)
+    return tuple(_init_observable(obs) for obs in observables)
 
 
 def _cross_validate_circuits_parameter_values(
@@ -192,7 +211,7 @@ def _cross_validate_circuits_parameter_values(
 
 
 def _cross_validate_circuits_observables(
-    circuits: tuple[QuantumCircuit, ...], observables: tuple[BaseOperator | PauliSumOp, ...]
+    circuits: tuple[QuantumCircuit, ...], observables: tuple[BaseOperator, ...]
 ) -> None:
     if len(circuits) != len(observables):
         raise ValueError(
