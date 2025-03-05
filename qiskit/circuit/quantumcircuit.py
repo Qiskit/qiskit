@@ -2157,14 +2157,14 @@ class QuantumCircuit:
 
     @property
     def num_stretches(self) -> int:
-        """The number of stretch variables in the circuit.
+        """The number of stretches in the circuit.
 
         This is the length of the :meth:`iter_stretches` iterable."""
         return self.num_captured_stretches + self.num_declared_stretches
 
     @property
     def num_identifiers(self) -> int:
-        """The number of real-time classical variables and stretch variables in
+        """The number of real-time classical variables and stretches in
         the circuit.
 
         This is equal to :meth:`num_vars` + :meth:`num_stretches`.
@@ -2190,7 +2190,7 @@ class QuantumCircuit:
 
     @property
     def num_captured_stretches(self) -> int:
-        """The number of stretch variables in the circuit marked as captured from an
+        """The number of stretches in the circuit marked as captured from an
         enclosing scope.
 
         This is the length of the :meth:`iter_captured_stretches` iterable.  If this is non-zero,
@@ -2207,7 +2207,7 @@ class QuantumCircuit:
 
     @property
     def num_declared_stretches(self) -> int:
-        """The number of stretch variables in the circuit that are declared by this
+        """The number of stretches in the circuit that are declared by this
         circuit scope, excluding captures.
 
         This is the length of the :meth:`iter_declared_stretches` iterable."""
@@ -2226,7 +2226,7 @@ class QuantumCircuit:
         )
 
     def iter_stretches(self) -> typing.Iterable[expr.Stretch]:
-        """Get an iterable over all stretch variables in scope within this circuit.
+        """Get an iterable over all stretches in scope within this circuit.
 
         This method will iterate over all stretches in scope.  For more fine-grained iterators, see
         :meth:`iter_declared_stretches` and :meth:`iter_captured_stretches`."""
@@ -2246,8 +2246,8 @@ class QuantumCircuit:
         return self._vars_local.values()
 
     def iter_declared_stretches(self) -> typing.Iterable[expr.Stretch]:
-        """Get an iterable over all stretch variables that are declared in this scope.
-        This excludes captured stretch variables (see :meth:`iter_captured_stretches`)."""
+        """Get an iterable over all stretches that are declared in this scope.
+        This excludes captured stretches (see :meth:`iter_captured_stretches`)."""
         if self._control_flow_scopes:
             return self._control_flow_scopes[-1].iter_local_stretches()
         return self._stretches_local.values()
@@ -2281,8 +2281,8 @@ class QuantumCircuit:
         return self._vars_capture.values()
 
     def iter_captured_stretches(self) -> typing.Iterable[expr.Stretch]:
-        """Get an iterable over stretch variables that are captured by this circuit
-        scope from a containing scope.  This excludes locally declared stretch variables
+        """Get an iterable over stretches that are captured by this circuit
+        scope from a containing scope.  This excludes locally declared stretches
         (see :meth:`iter_declared_stretches`)."""
         if self._control_flow_scopes:
             return self._control_flow_scopes[-1].iter_captured_stretches()
@@ -2736,21 +2736,21 @@ class QuantumCircuit:
     def get_stretch(self, name: str, default: type(...) = ...) -> expr.Stretch: ...
 
     def get_stretch(self, name: str, default: typing.Any = ...):
-        """Retrieve a stretch variable that is accessible in this circuit scope by name.
+        """Retrieve a stretch that is accessible in this circuit scope by name.
 
         Args:
-            name: the name of the stretch variable to retrieve.
+            name: the name of the stretch to retrieve.
             default: if given, this value will be returned if the variable is not present.  If it
                 is not given, a :exc:`KeyError` is raised instead.
 
         Returns:
-            The corresponding stretch variable.
+            The corresponding stretch.
 
         Raises:
             KeyError: if no default is given, but the variable does not exist.
 
         Examples:
-            Retrieve a stretch variable by name from a circuit::
+            Retrieve a stretch by name from a circuit::
 
                 from qiskit.circuit import QuantumCircuit
 
@@ -2776,7 +2776,7 @@ class QuantumCircuit:
         return default
 
     def has_stretch(self, name_or_var: str | expr.Stretch, /) -> bool:
-        """Check whether a stretch variable is accessible in this scope.
+        """Check whether a stretch is accessible in this scope.
 
         Args:
             name_or_var: the variable, or name of a variable to check.  If this is a
@@ -2784,7 +2784,7 @@ class QuantumCircuit:
                 function to return ``True``.
 
         Returns:
-            whether a matching stretch variable is accessible.
+            whether a matching stretch is accessible.
 
         See also:
             :meth:`QuantumCircuit.get_stretch`
@@ -2805,7 +2805,7 @@ class QuantumCircuit:
     def get_identifier(self, name: str, default: typing.Any = ...):
         """Retrieve an identifier that is accessible in this circuit scope by name.
 
-        This currently includes both real-time classical variables and stretch variables.
+        This currently includes both real-time classical variables and stretches.
 
         Args:
             name: the name of the identifier to retrieve.
@@ -2910,10 +2910,10 @@ class QuantumCircuit:
         return var
 
     def add_stretch(self, name_or_var: str | expr.Stretch) -> expr.Stretch:
-        """Declares a new stretch variable scoped to this circuit.
+        """Declares a new stretch scoped to this circuit.
 
         Args:
-            name_or_var: either a string of the stretch variable name, or an existing instance of
+            name_or_var: either a string of the stretch name, or an existing instance of
                 :class:`~.expr.Stretch` to re-use.  Stretches cannot shadow names that are already in
                 use within the circuit.
 
@@ -2922,11 +2922,11 @@ class QuantumCircuit:
             object will be returned.
 
         Raises:
-            CircuitError: if the stretch variable cannot be created due to shadowing an existing
+            CircuitError: if the stretch cannot be created due to shadowing an existing
                 variable.
 
         Examples:
-            Define and use a new stretch variable given just a name::
+            Define and use a new stretch given just a name::
 
                 from qiskit.circuit import QuantumCircuit, Duration
                 from qiskit.circuit.classical import expr
