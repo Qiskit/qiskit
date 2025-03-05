@@ -261,7 +261,7 @@ def hamiltonian_variational_ansatz(
 
     """
     # If a single operator is given, check if it is a sum of operators (a SparsePauliOp),
-    # and split it into commuting terms. Otherwise treat it as single operator.
+    # and split it into commuting terms. Otherwise, treat it as single operator.
     if isinstance(hamiltonian, SparsePauliOp):
         hamiltonian = hamiltonian.group_commuting()
 

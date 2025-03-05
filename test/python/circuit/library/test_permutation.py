@@ -33,7 +33,8 @@ class TestPermutationLibrary(QiskitTestCase):
 
     def test_permutation(self):
         """Test permutation circuit."""
-        circuit = Permutation(num_qubits=4, pattern=[1, 0, 3, 2])
+        with self.assertWarns(DeprecationWarning):
+            circuit = Permutation(num_qubits=4, pattern=[1, 0, 3, 2])
         expected = QuantumCircuit(4)
         expected.swap(0, 1)
         expected.swap(2, 3)
@@ -43,7 +44,9 @@ class TestPermutationLibrary(QiskitTestCase):
 
     def test_permutation_bad(self):
         """Test that [0,..,n-1] permutation is required (no -1 for last element)."""
-        self.assertRaises(CircuitError, Permutation, 4, [1, 0, -1, 2])
+        with self.assertRaises(CircuitError):
+            with self.assertWarns(DeprecationWarning):
+                _ = Permutation(4, [1, 0, -1, 2])
 
 
 class TestPermutationGate(QiskitTestCase):
