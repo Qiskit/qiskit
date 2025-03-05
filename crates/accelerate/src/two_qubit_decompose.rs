@@ -533,6 +533,23 @@ impl TwoQubitWeylDecomposition {
     pub fn c(&self) -> f64 {
         self.c
     }
+
+    pub fn k1l_view(&self) -> ArrayView2<Complex64> {
+        self.K1l.view()
+    }
+
+    pub fn k2l_view(&self) -> ArrayView2<Complex64> {
+        self.K2l.view()
+    }
+
+    pub fn k1r_view(&self) -> ArrayView2<Complex64> {
+        self.K1r.view()
+    }
+
+    pub fn k2r_view(&self) -> ArrayView2<Complex64> {
+        self.K2r.view()
+    }
+
     fn weyl_gate(
         &self,
         simplify: bool,
@@ -2480,6 +2497,16 @@ type InverseReturn = (Option<StandardGate>, SmallVec<[f64; 3]>, SmallVec<[u8; 2]
 ///  :math:`U \sim U_d(\alpha, 0, 0) \sim \text{Ctrl-U}`
 ///  gate that is locally equivalent to an :class:`.RXXGate`.
 impl TwoQubitControlledUDecomposer {
+    /// Compute the number of basis gates needed for a given unitary
+    pub fn num_basis_gates_inner(&self, unitary: ArrayView2<Complex64>) -> PyResult<usize> {
+        let target_decomposed =
+            TwoQubitWeylDecomposition::new_inner(unitary, Some(DEFAULT_FIDELITY), None)?;
+        let num_basis_gates = (((target_decomposed.a).abs() > DEFAULT_ATOL) as usize)
+            + (((target_decomposed.b).abs() > DEFAULT_ATOL) as usize)
+            + (((target_decomposed.c).abs() > DEFAULT_ATOL) as usize);
+        Ok(num_basis_gates)
+    }
+
     /// invert 2q gate sequence
     fn invert_2q_gate(
         &self,

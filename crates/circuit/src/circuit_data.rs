@@ -14,9 +14,7 @@
 use std::sync::OnceLock;
 
 use crate::bit_data::BitData;
-use crate::circuit_instruction::{
-    CircuitInstruction, ExtraInstructionAttributes, OperationFromPython,
-};
+use crate::circuit_instruction::{CircuitInstruction, OperationFromPython};
 use crate::dag_circuit::add_global_phase;
 use crate::imports::{ANNOTATED_OPERATION, CLBIT, QUANTUM_CIRCUIT, QUBIT};
 use crate::interner::{Interned, Interner};
@@ -284,16 +282,10 @@ impl CircuitData {
     ///     CircuitData: The shallow copy.
     #[pyo3(signature = (copy_instructions=true, deepcopy=false))]
     pub fn copy(&self, py: Python<'_>, copy_instructions: bool, deepcopy: bool) -> PyResult<Self> {
-        let mut res = CircuitData::new(
-            py,
-            Some(self.qubits.cached().bind(py)),
-            Some(self.clbits.cached().bind(py)),
-            None,
-            self.data.len(),
-            self.global_phase.clone(),
-        )?;
+        let mut res = self.copy_empty_like(py)?;
         res.qargs_interner = self.qargs_interner.clone();
         res.cargs_interner = self.cargs_interner.clone();
+        res.reserve(py, self.data().len());
         res.param_table.clone_from(&self.param_table);
 
         if deepcopy {
@@ -304,7 +296,7 @@ impl CircuitData {
                     qubits: inst.qubits,
                     clbits: inst.clbits,
                     params: inst.params.clone(),
-                    extra_attrs: inst.extra_attrs.clone(),
+                    label: inst.label.clone(),
                     #[cfg(feature = "cache_pygates")]
                     py_op: OnceLock::new(),
                 });
@@ -316,7 +308,7 @@ impl CircuitData {
                     qubits: inst.qubits,
                     clbits: inst.clbits,
                     params: inst.params.clone(),
-                    extra_attrs: inst.extra_attrs.clone(),
+                    label: inst.label.clone(),
                     #[cfg(feature = "cache_pygates")]
                     py_op: OnceLock::new(),
                 });
@@ -327,6 +319,22 @@ impl CircuitData {
         Ok(res)
     }
 
+    /// Performs a copy with no instruction.
+    ///
+    /// Returns:
+    ///     CircuitData: The shallow copy.
+    pub fn copy_empty_like(&self, py: Python<'_>) -> PyResult<Self> {
+        let res = CircuitData::new(
+            py,
+            Some(self.qubits.cached().bind(py)),
+            Some(self.clbits.cached().bind(py)),
+            None,
+            0,
+            self.global_phase.clone(),
+        )?;
+
+        Ok(res)
+    }
     /// Reserves capacity for at least ``additional`` more
     /// :class:`.CircuitInstruction` instances to be added to this container.
     ///
@@ -399,14 +407,14 @@ impl CircuitData {
     #[pyo3(signature = (func))]
     pub fn map_nonstandard_ops(&mut self, py: Python<'_>, func: &Bound<PyAny>) -> PyResult<()> {
         for inst in self.data.iter_mut() {
-            if inst.op.try_standard_gate().is_some() && inst.extra_attrs.condition().is_none() {
+            if inst.op.try_standard_gate().is_some() {
                 continue;
             }
             let py_op = func.call1((inst.unpack_py_op(py)?,))?;
             let result = py_op.extract::<OperationFromPython>()?;
             inst.op = result.operation;
             inst.params = (!result.params.is_empty()).then(|| Box::new(result.params));
-            inst.extra_attrs = result.extra_attrs;
+            inst.label = result.label;
             #[cfg(feature = "cache_pygates")]
             {
                 inst.py_op = py_op.unbind().into();
@@ -517,7 +525,7 @@ impl CircuitData {
                     .unwrap()
                     .unbind(),
                 params: inst.params_view().iter().cloned().collect(),
-                extra_attrs: inst.extra_attrs.clone(),
+                label: inst.label.clone(),
                 #[cfg(feature = "cache_pygates")]
                 py_op: inst.py_op.clone(),
             }
@@ -697,7 +705,7 @@ impl CircuitData {
                     qubits: qubits_id,
                     clbits: clbits_id,
                     params: inst.params.clone(),
-                    extra_attrs: inst.extra_attrs.clone(),
+                    label: inst.label.clone(),
                     #[cfg(feature = "cache_pygates")]
                     py_op: inst.py_op.clone(),
                 });
@@ -951,7 +959,7 @@ impl CircuitData {
                 qubits,
                 clbits,
                 params,
-                extra_attrs: ExtraInstructionAttributes::default(),
+                label: None,
                 #[cfg(feature = "cache_pygates")]
                 py_op: OnceLock::new(),
             });
@@ -1065,7 +1073,7 @@ impl CircuitData {
                 qubits,
                 clbits: no_clbit_index,
                 params,
-                extra_attrs: ExtraInstructionAttributes::default(),
+                label: None,
                 #[cfg(feature = "cache_pygates")]
                 py_op: OnceLock::new(),
             });
@@ -1128,7 +1136,30 @@ impl CircuitData {
             qubits,
             clbits: no_clbit_index,
             params,
-            extra_attrs: ExtraInstructionAttributes::default(),
+            label: None,
+            #[cfg(feature = "cache_pygates")]
+            py_op: OnceLock::new(),
+        });
+        Ok(())
+    }
+
+    /// Append a packed operation to this CircuitData
+    pub fn push_packed_operation(
+        &mut self,
+        operation: PackedOperation,
+        params: &[Param],
+        qargs: &[Qubit],
+        cargs: &[Clbit],
+    ) -> PyResult<()> {
+        let params = (!params.is_empty()).then(|| Box::new(params.iter().cloned().collect()));
+        let qubits = self.qargs_interner.insert(qargs);
+        let clbits = self.cargs_interner.insert(cargs);
+        self.data.push(PackedInstruction {
+            op: operation,
+            qubits,
+            clbits,
+            params,
+            label: None,
             #[cfg(feature = "cache_pygates")]
             py_op: OnceLock::new(),
         });
@@ -1224,7 +1255,7 @@ impl CircuitData {
             qubits,
             clbits,
             params: (!inst.params.is_empty()).then(|| Box::new(inst.params.clone())),
-            extra_attrs: inst.extra_attrs.clone(),
+            label: inst.label.clone(),
             #[cfg(feature = "cache_pygates")]
             py_op: inst.py_op.clone(),
         })
@@ -1471,7 +1502,7 @@ impl CircuitData {
                             let mut new_op = op.extract::<OperationFromPython>()?;
                             previous.op = new_op.operation;
                             previous.params_mut().swap_with_slice(&mut new_op.params);
-                            previous.extra_attrs = new_op.extra_attrs;
+                            previous.label = new_op.label;
                             #[cfg(feature = "cache_pygates")]
                             {
                                 previous.py_op = op.unbind().into();
