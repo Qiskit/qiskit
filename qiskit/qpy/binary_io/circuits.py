@@ -1242,6 +1242,11 @@ def write_circuit(
             raise exceptions.UnsupportedFeatureForVersion(
                 "circuits containing realtime variables", required=12, target=version
             )
+        if circuit.num_stretches:
+            raise exceptions.UnsupportedFeatureForVersion(
+                "circuits containing stretch variables", required=14, target=version
+            )
+
         header_raw = formats.CIRCUIT_HEADER_V2(
             name_size=len(circuit_name),
             global_phase_type=global_phase_type,
