@@ -220,7 +220,7 @@ class Stretch(Expr):
 
     var: uuid.UUID
     """A :class:`~uuid.UUID` to uniquely identify this stretch."""
-    name: str | None
+    name: str
     """The name of the stretch variable."""
 
     def __init__(
