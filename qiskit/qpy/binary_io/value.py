@@ -170,6 +170,9 @@ def _write_parameter_expression(file_obj, obj, use_symengine, *, version):
         else:
             from sympy import srepr, sympify
 
+            if not isinstance(obj._symbol_expr, symengine.Basic):
+                raise exceptions.QpyError("Invalid ParameterExpression")
+
             expr_bytes = srepr(sympify(obj._symbol_expr)).encode(common.ENCODE)
     else:
         with io.BytesIO() as buf:

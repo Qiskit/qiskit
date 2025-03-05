@@ -411,6 +411,9 @@ def _dumps_symbolic_expr(expr, use_symengine):
     else:
         from sympy import srepr, sympify
 
+        if not isinstance(expr, sym.Basic):
+            raise QiskitError("Invalid ParameterExpression")
+
         expr_bytes = srepr(sympify(expr)).encode(common.ENCODE)
     return zlib.compress(expr_bytes)
 
