@@ -2169,6 +2169,23 @@ class TestSparseObservable(QiskitTestCase):
         reconstructed = SparseObservable.from_sparse_list(obs.to_sparse_list(), obs.num_qubits)
         self.assertEqual(obs.simplify(), reconstructed.simplify())
 
+    def test_sparse_term_bit_labels(self):
+        """Test getting the bit labels of a SparseTerm."""
+
+        obs = SparseObservable("IXYZ+r0-l1")
+        term = obs[0]
+        indices = term.indices
+        labels = term.bit_labels()
+
+        label_dict = dict(zip(indices, labels))
+        expected = dict(enumerate("1l-0r+ZYX"))
+
+        for i, label in expected.items():
+            self.assertEqual(label, label_dict[i])
+
+        reconstructed = SparseObservable.from_sparse_list([(labels, indices, 1)], obs.num_qubits)
+        self.assertEqual(obs, reconstructed)
+
     @combine(first=SparseObservable.BitTerm, second=SparseObservable.BitTerm)
     def test_compose_single_qubit(self, first, second):
         first = SparseObservable.from_label(first.label)
