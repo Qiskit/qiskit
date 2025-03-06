@@ -237,6 +237,9 @@ pub struct DAGCircuit {
     control_flow_module: PyControlFlowModule,
     vars_info: HashMap<String, DAGVarInfo>,
     vars_by_type: [Py<PySet>; 3],
+
+    captured_stretches: IndexMap<String, Py<PyAny>, RandomState>,
+    declared_stretches: IndexMap<String, Py<PyAny>, RandomState>,
 }
 
 #[derive(Clone, Debug)]
@@ -391,13 +394,15 @@ impl DAGCircuit {
                 PySet::empty(py)?.unbind(),
                 PySet::empty(py)?.unbind(),
             ],
+            captured_stretches: IndexMap::default(),
+            declared_stretches: IndexMap::default(),
         })
     }
 
     /// The total duration of the circuit, set by a scheduling transpiler pass. Its unit is
     /// specified by :attr:`.unit`
     ///
-    /// DEPRECATED since Qiskit 1.3.0 and will be removed in Qiskit 2.0.0
+    /// DEPRECATED since Qiskit 1.3.0 and will be removed in Qiskit 3.0.0
     #[getter]
     fn get_duration(&self, py: Python) -> PyResult<Option<Py<PyAny>>> {
         imports::WARNINGS_WARN.get_bound(py).call1((
@@ -405,7 +410,7 @@ impl DAGCircuit {
                 py,
                 concat!(
                     "The property ``qiskit.dagcircuit.dagcircuit.DAGCircuit.duration`` is ",
-                    "deprecated as of Qiskit 1.3.0. It will be removed in Qiskit 2.0.0.",
+                    "deprecated as of Qiskit 1.3.0. It will be removed in Qiskit 3.0.0.",
                 )
             ),
             py.get_type::<PyDeprecationWarning>(),
@@ -416,7 +421,7 @@ impl DAGCircuit {
 
     /// The unit that duration is specified in.
     ///
-    /// DEPRECATED since Qiskit 1.3.0 and will be removed in Qiskit 2.0.0
+    /// DEPRECATED since Qiskit 1.3.0 and will be removed in Qiskit 3.0.0
     #[getter]
     fn get_unit(&self, py: Python) -> PyResult<String> {
         imports::WARNINGS_WARN.get_bound(py).call1((
@@ -424,7 +429,7 @@ impl DAGCircuit {
                 py,
                 concat!(
                     "The property ``qiskit.dagcircuit.dagcircuit.DAGCircuit.unit`` is ",
-                    "deprecated as of Qiskit 1.3.0. It will be removed in Qiskit 2.0.0.",
+                    "deprecated as of Qiskit 1.3.0. It will be removed in Qiskit 3.0.0.",
                 )
             ),
             py.get_type::<PyDeprecationWarning>(),
@@ -1497,6 +1502,12 @@ impl DAGCircuit {
             {
                 target_dag.add_var(py, &var, DAGVarType::Declare)?;
             }
+            for stretch in self.captured_stretches.values() {
+                target_dag.add_captured_stretch(py, stretch.bind(py))?;
+            }
+            for stretch in self.declared_stretches.values() {
+                target_dag.add_declared_stretch(stretch.bind(py))?;
+            }
         } else if vars_mode == "captures" {
             for var in self.vars_by_type[DAGVarType::Input as usize]
                 .bind(py)
@@ -1515,6 +1526,12 @@ impl DAGCircuit {
                 .iter()
             {
                 target_dag.add_var(py, &var, DAGVarType::Capture)?;
+            }
+            for stretch in self.captured_stretches.values() {
+                target_dag.add_captured_stretch(py, stretch.bind(py))?;
+            }
+            for stretch in self.declared_stretches.values() {
+                target_dag.add_captured_stretch(py, stretch.bind(py))?;
             }
         } else if vars_mode != "drop" {
             return Err(PyValueError::new_err(format!(
@@ -1813,9 +1830,9 @@ impl DAGCircuit {
             dag.add_input_var(py, &var?)?;
         }
         if inline_captures {
-            for var in other.iter_captured_vars(py)?.bind(py) {
+            for var in other.iter_captures(py)?.bind(py) {
                 let var = var?;
-                if !dag.has_var(&var)? {
+                if !dag.has_identifier(&var)? {
                     return Err(DAGCircuitError::new_err(format!("Variable '{}' to be inlined is not in the base DAG. If you wanted it to be automatically added, use `inline_captures=False`.", var)));
                 }
             }
@@ -1823,9 +1840,15 @@ impl DAGCircuit {
             for var in other.iter_captured_vars(py)?.bind(py) {
                 dag.add_captured_var(py, &var?)?;
             }
+            for stretch in other.iter_captured_stretches(py)?.bind(py) {
+                dag.add_captured_stretch(py, &stretch?)?;
+            }
         }
         for var in other.iter_declared_vars(py)?.bind(py) {
             dag.add_declared_var(py, &var?)?;
+        }
+        for var in other.iter_declared_stretches(py)?.bind(py) {
+            dag.add_declared_stretch(&var?)?;
         }
 
         let variable_mapper = PyVariableMapper::new(
@@ -2244,6 +2267,32 @@ impl DAGCircuit {
             }
         }
 
+        if self.captured_stretches.len() != other.captured_stretches.len()
+            || self.declared_stretches.len() != other.declared_stretches.len()
+        {
+            return Ok(false);
+        }
+
+        for (our_stretch, their_stretch) in self
+            .captured_stretches
+            .values()
+            .zip(other.captured_stretches.values())
+        {
+            if !our_stretch.bind(py).eq(their_stretch)? {
+                return Ok(false);
+            }
+        }
+
+        for (our_stretch, their_stretch) in self
+            .declared_stretches
+            .values()
+            .zip(other.declared_stretches.values())
+        {
+            if !our_stretch.bind(py).eq(their_stretch)? {
+                return Ok(false);
+            }
+        }
+
         let self_bit_indices = {
             let indices = self
                 .qubits
@@ -2317,6 +2366,7 @@ impl DAGCircuit {
         let condition_op_check = imports::CONDITION_OP_CHECK.get_bound(py);
         let switch_case_op_check = imports::SWITCH_CASE_OP_CHECK.get_bound(py);
         let for_loop_op_check = imports::FOR_LOOP_OP_CHECK.get_bound(py);
+        let box_op_check = imports::BOX_OP_CHECK.get_bound(py);
         let node_match = |n1: &NodeType, n2: &NodeType| -> PyResult<bool> {
             match [n1, n2] {
                 [NodeType::Operation(inst1), NodeType::Operation(inst2)] => {
@@ -2371,6 +2421,10 @@ impl DAGCircuit {
                                         .extract()
                                 } else if name == "for_loop" {
                                     for_loop_op_check
+                                        .call1((n1, n2, &self_bit_indices, &other_bit_indices))?
+                                        .extract()
+                                } else if name == "box" {
+                                    box_op_check
                                         .call1((n1, n2, &self_bit_indices, &other_bit_indices))?
                                         .extract()
                                 } else {
@@ -4265,12 +4319,86 @@ impl DAGCircuit {
         Ok(())
     }
 
+    /// Add a captured stretch to the circuit.
+    ///
+    /// Args:
+    ///     var: the stretch to add.
+    fn add_captured_stretch(&mut self, py: Python, var: &Bound<PyAny>) -> PyResult<()> {
+        if !self.vars_by_type[DAGVarType::Input as usize]
+            .bind(py)
+            .is_empty()
+        {
+            return Err(DAGCircuitError::new_err(
+                "cannot add captures to a circuit with inputs",
+            ));
+        }
+        let var_name: String = var.getattr("name")?.extract::<String>()?;
+        if self.vars_info.contains_key(&var_name) {
+            return Err(DAGCircuitError::new_err(
+                "cannot add stretch as its name shadows an existing identifier",
+            ));
+        }
+        if let Some(previous) = self.declared_stretches.get(&var_name) {
+            if var.eq(previous)? {
+                return Err(DAGCircuitError::new_err("already present in the circuit"));
+            }
+            return Err(DAGCircuitError::new_err(
+                "cannot add stretch as its name shadows an existing identifier",
+            ));
+        }
+        if let Some(previous) = self.captured_stretches.get(&var_name) {
+            if var.eq(previous)? {
+                return Err(DAGCircuitError::new_err("already present in the circuit"));
+            }
+            return Err(DAGCircuitError::new_err(
+                "cannot add stretch as its name shadows an existing identifier",
+            ));
+        }
+
+        self.captured_stretches
+            .insert(var_name, var.clone().unbind());
+        Ok(())
+    }
+
     /// Add a declared local variable to the circuit.
     ///
     /// Args:
     ///     var: the variable to add.
     fn add_declared_var(&mut self, py: Python, var: &Bound<PyAny>) -> PyResult<()> {
         self.add_var(py, var, DAGVarType::Declare)?;
+        Ok(())
+    }
+
+    /// Add a declared stretch to the circuit.
+    ///
+    /// Args:
+    ///     var: the stretch to add.
+    fn add_declared_stretch(&mut self, var: &Bound<PyAny>) -> PyResult<()> {
+        let var_name: String = var.getattr("name")?.extract::<String>()?;
+        if self.vars_info.contains_key(&var_name) {
+            return Err(DAGCircuitError::new_err(
+                "cannot add stretch as its name shadows an existing identifier",
+            ));
+        }
+        if let Some(previous) = self.declared_stretches.get(&var_name) {
+            if var.eq(previous)? {
+                return Err(DAGCircuitError::new_err("already present in the circuit"));
+            }
+            return Err(DAGCircuitError::new_err(
+                "cannot add stretch as its name shadows an existing identifier",
+            ));
+        }
+        if let Some(previous) = self.captured_stretches.get(&var_name) {
+            if var.eq(previous)? {
+                return Err(DAGCircuitError::new_err("already present in the circuit"));
+            }
+            return Err(DAGCircuitError::new_err(
+                "cannot add stretch as its name shadows an existing identifier",
+            ));
+        }
+
+        self.declared_stretches
+            .insert(var_name, var.clone().unbind());
         Ok(())
     }
 
@@ -4320,6 +4448,36 @@ impl DAGCircuit {
         }
     }
 
+    /// Is this stretch in the DAG?
+    ///
+    /// Args:
+    ///     var: the stretch or name to check.
+    fn has_stretch(&self, var: &Bound<PyAny>) -> PyResult<bool> {
+        match var.extract::<String>() {
+            Ok(name) => Ok(self.declared_stretches.contains_key(&name)
+                || self.captured_stretches.contains_key(&name)),
+            Err(_) => {
+                let raw_name = var.getattr("name")?;
+                let var_name: String = raw_name.extract()?;
+                if let Some(stretch) = self.declared_stretches.get(&var_name) {
+                    return Ok(stretch.is(var));
+                }
+                if let Some(stretch) = self.captured_stretches.get(&var_name) {
+                    return Ok(stretch.is(var));
+                }
+                Ok(false)
+            }
+        }
+    }
+
+    /// Is this identifier in the DAG?
+    ///
+    /// Args:
+    ///     var: the identifier or name to check.
+    fn has_identifier(&self, var: &Bound<PyAny>) -> PyResult<bool> {
+        Ok(self.has_var(var)? || self.has_stretch(var)?)
+    }
+
     /// Iterable over the input classical variables tracked by the circuit.
     fn iter_input_vars(&self, py: Python) -> PyResult<Py<PyIterator>> {
         Ok(self.vars_by_type[DAGVarType::Input as usize]
@@ -4340,11 +4498,42 @@ impl DAGCircuit {
             .unbind())
     }
 
+    /// Iterable over the captured stretches tracked by the circuit.
+    fn iter_captured_stretches(&self, py: Python) -> PyResult<Py<PyIterator>> {
+        Ok(PyList::new(py, self.captured_stretches.values())?
+            .into_any()
+            .try_iter()?
+            .unbind())
+    }
+
+    /// Iterable over all captured identifiers tracked by the circuit.
+    fn iter_captures(&self, py: Python) -> PyResult<Py<PyIterator>> {
+        let out_set = PySet::empty(py)?;
+        for var in self.vars_by_type[DAGVarType::Capture as usize]
+            .bind(py)
+            .iter()
+        {
+            out_set.add(var)?;
+        }
+        for stretch in self.captured_stretches.values() {
+            out_set.add(stretch)?;
+        }
+        Ok(out_set.into_any().try_iter()?.unbind())
+    }
+
     /// Iterable over the declared classical variables tracked by the circuit.
     fn iter_declared_vars(&self, py: Python) -> PyResult<Py<PyIterator>> {
         Ok(self.vars_by_type[DAGVarType::Declare as usize]
             .bind(py)
             .clone()
+            .into_any()
+            .try_iter()?
+            .unbind())
+    }
+
+    /// Iterable over the declared stretches tracked by the circuit.
+    fn iter_declared_stretches(&self, py: Python) -> PyResult<Py<PyIterator>> {
+        Ok(PyList::new(py, self.declared_stretches.values())?
             .into_any()
             .try_iter()?
             .unbind())
@@ -4357,6 +4546,18 @@ impl DAGCircuit {
             for var in var_type_set.bind(py).iter() {
                 out_set.add(var)?;
             }
+        }
+        Ok(out_set.into_any().try_iter()?.unbind())
+    }
+
+    /// Iterable over all the stretches tracked by the circuit.
+    fn iter_stretches(&self, py: Python) -> PyResult<Py<PyIterator>> {
+        let out_set = PySet::empty(py)?;
+        for s in self.captured_stretches.values() {
+            out_set.add(s)?;
+        }
+        for s in self.declared_stretches.values() {
+            out_set.add(s)?;
         }
         Ok(out_set.into_any().try_iter()?.unbind())
     }
@@ -5789,7 +5990,14 @@ impl DAGCircuit {
                 return Err(DAGCircuitError::new_err("already present in the circuit"));
             }
             return Err(DAGCircuitError::new_err(
-                "cannot add var as its name shadows an existing var",
+                "cannot add var as its name shadows an existing identifier",
+            ));
+        }
+        if self.declared_stretches.contains_key(&var_name)
+            || self.captured_stretches.contains_key(&var_name)
+        {
+            return Err(DAGCircuitError::new_err(
+                "cannot add var as its name shadows an existing identifier",
             ));
         }
 
@@ -5910,6 +6118,8 @@ impl DAGCircuit {
                 PySet::empty(py)?.unbind(),
                 PySet::empty(py)?.unbind(),
             ],
+            captured_stretches: IndexMap::default(),
+            declared_stretches: IndexMap::default(),
         })
     }
 
@@ -6406,6 +6616,24 @@ impl DAGCircuit {
             new_dag.add_var(py, var, DAGVarType::Capture)?;
         }
 
+        new_dag
+            .captured_stretches
+            .reserve(qc.captured_stretches.len());
+
+        for var in qc.captured_stretches {
+            let name: String = var.getattr("name")?.extract::<String>()?;
+            new_dag.captured_stretches.insert(name, var.unbind());
+        }
+
+        new_dag
+            .declared_stretches
+            .reserve(qc.declared_stretches.len());
+
+        for var in qc.declared_stretches {
+            let name: String = var.getattr("name")?.extract::<String>()?;
+            new_dag.declared_stretches.insert(name, var.unbind());
+        }
+
         // Add all the registers
         if let Some(qregs) = qc.qregs {
             for qreg in qregs.iter() {
@@ -6455,6 +6683,8 @@ impl DAGCircuit {
             input_vars: Vec::new(),
             captured_vars: Vec::new(),
             declared_vars: Vec::new(),
+            captured_stretches: Vec::new(),
+            declared_stretches: Vec::new(),
         };
         Self::from_circuit(py, circ, copy_op, None, None)
     }

@@ -716,7 +716,7 @@ class TestInitialLayouts(QiskitTestCase):
     @data(0, 1, 2, 3)
     def test_layout_1711(self, level):
         """Test that a user-given initial layout is respected
-        in the qobj.
+        in the output.
 
         See: https://github.com/Qiskit/qiskit-terra/issues/1711
         """
