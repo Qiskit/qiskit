@@ -29,7 +29,7 @@ fn sample_qmallows(n: usize, rng: &mut Pcg64Mcg) -> (Array1<bool>, Array1<usize>
     for i in 0..n {
         let m = n - i;
         let eps: f64 = 4f64.powi(-(m as i32));
-        let r: f64 = rng.gen();
+        let r: f64 = rng.random();
         let index: usize = -((r + (1f64 - r) * eps).log2().ceil() as isize) as usize;
         had[i] = index < m;
         let k = if index < m { index } else { 2 * m - index - 1 };
@@ -44,7 +44,7 @@ fn fill_tril(mut mat: ArrayViewMut2<bool>, rng: &mut Pcg64Mcg, symmetric: bool) 
     let n = mat.shape()[0];
     for i in 0..n {
         for j in 0..i {
-            mat[[i, j]] = rng.gen();
+            mat[[i, j]] = rng.random();
             if symmetric {
                 mat[[j, i]] = mat[[i, j]];
             }
@@ -67,20 +67,20 @@ fn inverse_tril(mat: ArrayView2<bool>) -> Array2<bool> {
 pub fn random_clifford_tableau_inner(num_qubits: usize, seed: Option<u64>) -> Array2<bool> {
     let mut rng = match seed {
         Some(seed) => Pcg64Mcg::seed_from_u64(seed),
-        None => Pcg64Mcg::from_entropy(),
+        None => Pcg64Mcg::from_os_rng(),
     };
 
     let (had, perm) = sample_qmallows(num_qubits, &mut rng);
 
     let mut gamma1: Array2<bool> = Array2::from_elem((num_qubits, num_qubits), false);
     for i in 0..num_qubits {
-        gamma1[[i, i]] = rng.gen();
+        gamma1[[i, i]] = rng.random();
     }
     fill_tril(gamma1.view_mut(), &mut rng, true);
 
     let mut gamma2: Array2<bool> = Array2::from_elem((num_qubits, num_qubits), false);
     for i in 0..num_qubits {
-        gamma2[[i, i]] = rng.gen();
+        gamma2[[i, i]] = rng.random();
     }
     fill_tril(gamma2.view_mut(), &mut rng, true);
 
@@ -125,17 +125,15 @@ pub fn random_clifford_tableau_inner(num_qubits: usize, seed: Option<u64>) -> Ar
 
     // Compute the full stabilizer tableau
 
-    // The code below is identical to the Python implementation, but is based on the original
-    // code in the paper.
-
+    // The code below is based on the original code in the referenced paper.
     let mut table = Array2::from_elem((2 * num_qubits, 2 * num_qubits), false);
 
     // Apply qubit permutation
     for i in 0..num_qubits {
-        replace_row_inner(table.view_mut(), i, table2.slice(s![i, ..]));
+        replace_row_inner(table.view_mut(), i, table2.slice(s![perm[i], ..]));
         replace_row_inner(
             table.view_mut(),
-            perm[i] + num_qubits,
+            i + num_qubits,
             table2.slice(s![perm[i] + num_qubits, ..]),
         );
     }
@@ -151,7 +149,7 @@ pub fn random_clifford_tableau_inner(num_qubits: usize, seed: Option<u64>) -> Ar
     let random_symplectic_mat = binary_matmul_inner(table1.view(), table.view()).unwrap();
 
     // Generate random phases
-    let random_phases: Array2<bool> = Array2::from_shape_fn((2 * num_qubits, 1), |_| rng.gen());
+    let random_phases: Array2<bool> = Array2::from_shape_fn((2 * num_qubits, 1), |_| rng.random());
 
     let random_tableau: Array2<bool> = concatenate(
         Axis(1),

@@ -54,6 +54,7 @@ class Permutation(QuantumCircuit):
 
         Reference Circuit:
             .. plot::
+               :alt: Diagram illustrating the previously described circuit.
 
                from qiskit.circuit.library import Permutation
                A = [2,4,3,0,1]
@@ -62,6 +63,7 @@ class Permutation(QuantumCircuit):
 
         Expanded Circuit:
             .. plot::
+               :alt: Diagram illustrating the previously described circuit.
 
                from qiskit.circuit.library import Permutation
                from qiskit.visualization.library import _generate_circuit_library_visualization
@@ -116,6 +118,7 @@ class PermutationGate(Gate):
 
         Reference Circuit:
             .. plot::
+               :alt: Diagram illustrating the previously described circuit.
 
                 from qiskit.circuit.quantumcircuit import QuantumCircuit
                 from qiskit.circuit.library import PermutationGate
@@ -127,6 +130,7 @@ class PermutationGate(Gate):
 
         Expanded Circuit:
             .. plot::
+               :alt: Diagram illustrating the previously described circuit.
 
                 from qiskit.circuit.quantumcircuit import QuantumCircuit
                 from qiskit.circuit.library import PermutationGate
@@ -182,7 +186,7 @@ class PermutationGate(Gate):
 
         return PermutationGate(pattern=_inverse_pattern(self.pattern))
 
-    def _qasm2_decomposition(self):
+    def _qasm_decomposition(self):
         # pylint: disable=cyclic-import
         from qiskit.synthesis.permutation import synth_permutation_basic
 

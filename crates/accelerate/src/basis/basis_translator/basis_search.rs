@@ -12,7 +12,7 @@
 
 use std::cell::RefCell;
 
-use hashbrown::{HashMap, HashSet};
+use indexmap::{IndexMap, IndexSet};
 
 use crate::equivalence::{EdgeData, Equivalence, EquivalenceLibrary, Key, NodeData};
 use qiskit_circuit::operations::Operation;
@@ -33,20 +33,22 @@ type BasisTransforms = Vec<(GateIdentifier, BasisTransformIn)>;
 /// basis` are reached.
 pub(crate) fn basis_search(
     equiv_lib: &mut EquivalenceLibrary,
-    source_basis: &HashSet<GateIdentifier>,
-    target_basis: &HashSet<String>,
+    source_basis: &IndexSet<GateIdentifier, ahash::RandomState>,
+    target_basis: &IndexSet<String, ahash::RandomState>,
 ) -> Option<BasisTransforms> {
     // Build the visitor attributes:
-    let mut num_gates_remaining_for_rule: HashMap<usize, usize> = HashMap::default();
-    let predecessors: RefCell<HashMap<GateIdentifier, Equivalence>> =
-        RefCell::new(HashMap::default());
-    let opt_cost_map: RefCell<HashMap<GateIdentifier, u32>> = RefCell::new(HashMap::default());
+    let mut num_gates_remaining_for_rule: IndexMap<usize, usize, ahash::RandomState> =
+        IndexMap::default();
+    let predecessors: RefCell<IndexMap<GateIdentifier, Equivalence, ahash::RandomState>> =
+        RefCell::new(IndexMap::default());
+    let opt_cost_map: RefCell<IndexMap<GateIdentifier, u32, ahash::RandomState>> =
+        RefCell::new(IndexMap::default());
     let mut basis_transforms: Vec<(GateIdentifier, BasisTransformIn)> = vec![];
 
     // Initialize visitor attributes:
     initialize_num_gates_remain_for_rule(equiv_lib.graph(), &mut num_gates_remaining_for_rule);
 
-    let mut source_basis_remain: HashSet<Key> = source_basis
+    let mut source_basis_remain: IndexSet<Key, ahash::RandomState> = source_basis
         .iter()
         .filter_map(|(gate_name, gate_num_qubits)| {
             if !target_basis.contains(gate_name) {
@@ -115,72 +117,70 @@ pub(crate) fn basis_search(
             )])
     };
 
-    let basis_transforms = match dijkstra_search(
-        &equiv_lib.graph(),
-        [dummy],
-        edge_weight,
-        |event: DijkstraEvent<NodeIndex, &Option<EdgeData>, u32>| {
-            match event {
-                DijkstraEvent::Discover(n, score) => {
-                    let gate_key = &equiv_lib.graph()[n].key;
-                    let gate = (gate_key.name.to_string(), gate_key.num_qubits);
-                    source_basis_remain.remove(gate_key);
-                    let mut borrowed_cost_map = opt_cost_map.borrow_mut();
-                    if let Some(entry) = borrowed_cost_map.get_mut(&gate) {
-                        *entry = score;
-                    } else {
-                        borrowed_cost_map.insert(gate.clone(), score);
-                    }
-                    if let Some(rule) = predecessors.borrow().get(&gate) {
-                        basis_transforms.push((
-                            (gate_key.name.to_string(), gate_key.num_qubits),
-                            (rule.params.clone(), rule.circuit.clone()),
-                        ));
-                    }
+    let event_matcher = |event: DijkstraEvent<NodeIndex, &Option<EdgeData>, u32>| {
+        match event {
+            DijkstraEvent::Discover(n, score) => {
+                let gate_key = &equiv_lib.graph()[n].key;
+                let gate = (gate_key.name.to_string(), gate_key.num_qubits);
+                source_basis_remain.swap_remove(gate_key);
+                let mut borrowed_cost_map = opt_cost_map.borrow_mut();
+                if let Some(entry) = borrowed_cost_map.get_mut(&gate) {
+                    *entry = score;
+                } else {
+                    borrowed_cost_map.insert(gate.clone(), score);
+                }
+                if let Some(rule) = predecessors.borrow().get(&gate) {
+                    basis_transforms.push((
+                        (gate_key.name.to_string(), gate_key.num_qubits),
+                        (rule.params.clone(), rule.circuit.clone()),
+                    ));
+                }
 
-                    if source_basis_remain.is_empty() {
-                        basis_transforms.reverse();
-                        return Control::Break(());
-                    }
+                if source_basis_remain.is_empty() {
+                    basis_transforms.reverse();
+                    return Control::Break(());
                 }
-                DijkstraEvent::EdgeRelaxed(_, target, Some(edata)) => {
-                    let gate = &equiv_lib.graph()[target].key;
-                    predecessors
-                        .borrow_mut()
-                        .entry((gate.name.to_string(), gate.num_qubits))
-                        .and_modify(|value| *value = edata.rule.clone())
-                        .or_insert(edata.rule.clone());
-                }
-                DijkstraEvent::ExamineEdge(_, target, Some(edata)) => {
-                    num_gates_remaining_for_rule
-                        .entry(edata.index)
-                        .and_modify(|val| *val -= 1)
-                        .or_insert(0);
-                    let target = &equiv_lib.graph()[target].key;
+            }
+            DijkstraEvent::EdgeRelaxed(_, target, Some(edata)) => {
+                let gate = &equiv_lib.graph()[target].key;
+                predecessors
+                    .borrow_mut()
+                    .entry((gate.name.to_string(), gate.num_qubits))
+                    .and_modify(|value| *value = edata.rule.clone())
+                    .or_insert(edata.rule.clone());
+            }
+            DijkstraEvent::ExamineEdge(_, target, Some(edata)) => {
+                num_gates_remaining_for_rule
+                    .entry(edata.index)
+                    .and_modify(|val| *val -= 1)
+                    .or_insert(0);
+                let target = &equiv_lib.graph()[target].key;
 
-                    // If there are gates in this `rule` that we have not yet generated, we can't apply
-                    // this `rule`. if `target` is already in basis, it's not beneficial to use this rule.
-                    if num_gates_remaining_for_rule[&edata.index] > 0
-                        || target_basis_keys.contains(target)
-                    {
-                        return Control::Prune;
-                    }
+                // If there are gates in this `rule` that we have not yet generated, we can't apply
+                // this `rule`. if `target` is already in basis, it's not beneficial to use this rule.
+                if num_gates_remaining_for_rule[&edata.index] > 0
+                    || target_basis_keys.contains(target)
+                {
+                    return Control::Prune;
                 }
-                _ => {}
-            };
-            Control::Continue
-        },
-    ) {
-        Ok(Control::Break(_)) => Some(basis_transforms),
-        _ => None,
+            }
+            _ => {}
+        };
+        Control::Continue
     };
+
+    let basis_transforms =
+        match dijkstra_search(&equiv_lib.graph(), [dummy], edge_weight, event_matcher) {
+            Ok(Control::Break(_)) => Some(basis_transforms),
+            _ => None,
+        };
     equiv_lib.graph_mut().remove_node(dummy);
     basis_transforms
 }
 
 fn initialize_num_gates_remain_for_rule(
     graph: &StableDiGraph<NodeData, Option<EdgeData>>,
-    source: &mut HashMap<usize, usize>,
+    source: &mut IndexMap<usize, usize, ahash::RandomState>,
 ) {
     let mut save_index = usize::MAX;
     // When iterating over the edges, ignore any none-valued ones by calling `flatten`

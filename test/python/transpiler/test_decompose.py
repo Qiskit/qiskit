@@ -17,8 +17,9 @@ from numpy import pi
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.transpiler.passes import Decompose
 from qiskit.converters import circuit_to_dag
-from qiskit.circuit.library import HGate, CCXGate, U2Gate
+from qiskit.circuit.library import HGate, CCXGate
 from qiskit.quantum_info.operators import Operator, Clifford
+
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -111,28 +112,6 @@ class TestDecompose(QiskitTestCase):
         self.assertEqual(len(op_nodes), 15)
         for node in op_nodes:
             self.assertIn(node.name, ["h", "t", "tdg", "cx"])
-
-    def test_decompose_conditional(self):
-        """Test decompose a 1-qubit gates with a conditional."""
-        qr = QuantumRegister(1, "qr")
-        cr = ClassicalRegister(1, "cr")
-        circuit = QuantumCircuit(qr, cr)
-        with self.assertWarns(DeprecationWarning):
-            circuit.h(qr).c_if(cr, 1)
-        with self.assertWarns(DeprecationWarning):
-            circuit.x(qr).c_if(cr, 1)
-        dag = circuit_to_dag(circuit)
-        pass_ = Decompose(HGate)
-        after_dag = pass_.run(dag)
-
-        ref_circuit = QuantumCircuit(qr, cr)
-        with self.assertWarns(DeprecationWarning):
-            ref_circuit.append(U2Gate(0, pi), [qr[0]]).c_if(cr, 1)
-        with self.assertWarns(DeprecationWarning):
-            ref_circuit.x(qr).c_if(cr, 1)
-        ref_dag = circuit_to_dag(ref_circuit)
-
-        self.assertEqual(after_dag, ref_dag)
 
     def test_decompose_oversized_instruction(self):
         """Test decompose on a single-op gate that doesn't use all qubits."""
@@ -352,3 +331,58 @@ class TestDecompose(QiskitTestCase):
         expected.h(0)
 
         self.assertEqual(expected, decomposed)
+
+    def test_control_flow_if(self):
+        """Test decompose with control flow."""
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(1)
+        qc = QuantumCircuit(qr, cr)
+
+        qc.p(0.2, 0)
+        qc.measure(0, 0)
+
+        with qc.if_test((cr[0], 0)) as else_:
+            qc.cry(0.5, 0, 1)
+        with else_:
+            qc.crz(0.5, 0, 1)
+
+        expect = qc.copy_empty_like()
+        expect.u(0, 0, 0.2, 0)
+        expect.measure(0, 0)
+
+        with expect.if_test((cr[0], 0)) as else_:
+            expect.ry(0.25, 1)
+            expect.cx(0, 1)
+            expect.ry(-0.25, 1)
+            expect.cx(0, 1)
+        with else_:
+            expect.rz(0.25, 1)
+            expect.cx(0, 1)
+            expect.rz(-0.25, 1)
+            expect.cx(0, 1)
+
+        self.assertEqual(expect, qc.decompose())
+
+    def test_control_flow_for(self):
+        """Test decompose with control flow."""
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(1)
+        qc = QuantumCircuit(qr, cr)
+
+        qc.p(0.2, 0)
+        qc.measure(0, 0)
+
+        with qc.for_loop(range(3)):
+            qc.cry(0.5, 0, 1)
+
+        expect = qc.copy_empty_like()
+        expect.u(0, 0, 0.2, 0)
+        expect.measure(0, 0)
+
+        with expect.for_loop(range(3)):
+            expect.ry(0.25, 1)
+            expect.cx(0, 1)
+            expect.ry(-0.25, 1)
+            expect.cx(0, 1)
+
+        self.assertEqual(expect, qc.decompose())

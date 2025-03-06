@@ -181,6 +181,7 @@ class Statevector(QuantumState, TolerancesMixin):
             Plot one of the Bell states
 
             .. plot::
+               :alt: Output from the previous code.
                :include-source:
 
                 from numpy import sqrt
@@ -197,7 +198,7 @@ class Statevector(QuantumState, TolerancesMixin):
     def _ipython_display_(self):
         out = self.draw()
         if isinstance(out, str):
-            print(out)
+            print(out)  # pylint: disable=bad-builtin
         else:
             from IPython.display import display
 

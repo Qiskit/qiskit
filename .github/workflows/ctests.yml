@@ -1,0 +1,20 @@
+---
+name: Tests
+on:
+  push:
+    branches: [ main, 'stable/*' ]
+  pull_request:
+    branches: [ main, 'stable/*' ]
+  merge_group:
+
+jobs:
+  tests:
+    if: github.repository_owner == 'Qiskit'
+    name: linux-tests-c
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: cargo install cbindgen
+      - name: Run tests
+        run: make ctest

@@ -26,6 +26,7 @@ method and so the circuit library allows users to program at higher levels of ab
 For example, to append a multi-controlled CNOT:
 
 .. plot::
+   :alt: Circuit diagram output by the previous code.
    :include-source:
 
    from qiskit.circuit.library import MCXGate
@@ -258,6 +259,7 @@ Amplitude Functions
    :template: autosummary/class_no_inherited_members.rst
 
    LinearAmplitudeFunction
+   LinearAmplitudeFunctionGate
 
 Functional Pauli Rotations
 --------------------------
@@ -268,10 +270,15 @@ Functional Pauli Rotations
 
    FunctionalPauliRotations
    LinearPauliRotations
+   LinearPauliRotationsGate
    PolynomialPauliRotations
+   PolynomialPauliRotationsGate
    PiecewiseLinearPauliRotations
+   PiecewiseLinearPauliRotationsGate
    PiecewisePolynomialPauliRotations
+   PiecewisePolynomialPauliRotationsGate
    PiecewiseChebyshev
+   PiecewiseChebyshevGate
 
 Adders
 ------
@@ -283,7 +290,6 @@ Adders
    DraperQFTAdder
    CDKMRippleCarryAdder
    VBERippleCarryAdder
-   WeightedAdder
    ModularAdderGate
    HalfAdderGate
    FullAdderGate
@@ -307,6 +313,7 @@ Comparators
    :template: autosummary/class_no_inherited_members.rst
 
    IntegerComparator
+   IntegerComparatorGate
 
 Functions on binary variables
 -----------------------------
@@ -316,6 +323,7 @@ Functions on binary variables
    :template: autosummary/class_no_inherited_members.rst
 
    QuadraticForm
+   QuadraticFormGate
 
 Other arithmetic functions
 --------------------------
@@ -325,6 +333,9 @@ Other arithmetic functions
    :template: autosummary/class_no_inherited_members.rst
 
    ExactReciprocal
+   ExactReciprocalGate
+   WeightedAdder
+   WeightedSumGate
 
 Particular Quantum Circuits
 ===========================
@@ -344,6 +355,8 @@ quantum circuits of interest:
    QuantumVolume
    PhaseEstimation
    GroverOperator
+   BitFlipOracleGate
+   PhaseOracleGate
    PhaseOracle
    PauliEvolutionGate
    HamiltonianGate
@@ -618,20 +631,30 @@ from .arithmetic import (
     MultiplierGate,
     FunctionalPauliRotations,
     LinearPauliRotations,
+    LinearPauliRotationsGate,
     PiecewiseLinearPauliRotations,
+    PiecewiseLinearPauliRotationsGate,
     PiecewisePolynomialPauliRotations,
+    PiecewisePolynomialPauliRotationsGate,
     PolynomialPauliRotations,
+    PolynomialPauliRotationsGate,
     IntegerComparator,
+    IntegerComparatorGate,
     WeightedAdder,
+    WeightedSumGate,
     QuadraticForm,
+    QuadraticFormGate,
     LinearAmplitudeFunction,
+    LinearAmplitudeFunctionGate,
     VBERippleCarryAdder,
     CDKMRippleCarryAdder,
     DraperQFTAdder,
     PiecewiseChebyshev,
+    PiecewiseChebyshevGate,
     HRSCumulativeMultiplier,
     RGQFTMultiplier,
     ExactReciprocal,
+    ExactReciprocalGate,
 )
 
 from .n_local import (
@@ -669,6 +692,7 @@ from .hidden_linear_function import HiddenLinearFunction, hidden_linear_function
 from .iqp import IQP, iqp, random_iqp
 from .phase_estimation import PhaseEstimation, phase_estimation
 from .grover_operator import GroverOperator, grover_operator
-from .phase_oracle import PhaseOracle
+from .phase_oracle import PhaseOracle, PhaseOracleGate
+from .bit_flip_oracle import BitFlipOracleGate
 from .overlap import UnitaryOverlap, unitary_overlap
 from .standard_gates import get_standard_gate_name_mapping

@@ -241,6 +241,10 @@ class TestSparseObservable(QiskitTestCase):
             "1": SparseObservable.BitTerm.ONE,
         }
         self.assertEqual({label: SparseObservable.BitTerm[label] for label in labels}, labels)
+        # The `label` property returns known values.
+        self.assertEqual(
+            {bit_term.label: bit_term for bit_term in SparseObservable.BitTerm}, labels
+        )
 
     @ddt.idata(single_cases())
     def test_pickle(self, observable):
@@ -1172,9 +1176,9 @@ class TestSparseObservable(QiskitTestCase):
             base += AllowRightArithmetic()
 
     def test_add_failures(self):
-        with self.assertRaisesRegex(ValueError, "incompatible numbers of qubits"):
+        with self.assertRaisesRegex(ValueError, "mismatched numbers of qubits"):
             _ = SparseObservable.zero(4) + SparseObservable.zero(6)
-        with self.assertRaisesRegex(ValueError, "incompatible numbers of qubits"):
+        with self.assertRaisesRegex(ValueError, "mismatched numbers of qubits"):
             _ = SparseObservable.zero(6) + SparseObservable.zero(4)
 
     def test_sub_simple(self):
@@ -1283,9 +1287,9 @@ class TestSparseObservable(QiskitTestCase):
             base -= AllowRightArithmetic()
 
     def test_sub_failures(self):
-        with self.assertRaisesRegex(ValueError, "incompatible numbers of qubits"):
+        with self.assertRaisesRegex(ValueError, "mismatched numbers of qubits"):
             _ = SparseObservable.zero(4) - SparseObservable.zero(6)
-        with self.assertRaisesRegex(ValueError, "incompatible numbers of qubits"):
+        with self.assertRaisesRegex(ValueError, "mismatched numbers of qubits"):
             _ = SparseObservable.zero(6) - SparseObservable.zero(4)
 
     @ddt.idata(single_cases())
@@ -2008,3 +2012,340 @@ class TestSparseObservable(QiskitTestCase):
             Pauli("YYYII"),
         ]
         self.assertEqual([term.pauli_base() for term in obs], expected)
+
+    def test_to_sparse_list(self):
+        """Test converting to a sparse list."""
+        with self.subTest(msg="zero"):
+            obs = SparseObservable.zero(100)
+            expected = []
+            self.assertEqual(expected, obs.to_sparse_list())
+
+        with self.subTest(msg="identity"):
+            obs = SparseObservable.identity(100)
+            expected = [("", [], 1)]
+            self.assertEqual(expected, obs.to_sparse_list())
+
+        with self.subTest(msg="IXYZ"):
+            obs = SparseObservable("IXYZ")
+            expected = [("ZYX", [0, 1, 2], 1)]
+            self.assertEqual(
+                canonicalize_sparse_list(expected), canonicalize_sparse_list(obs.to_sparse_list())
+            )
+
+        with self.subTest(msg="multiple"):
+            obs = SparseObservable.from_list([("lrI0", 0.5), ("YYIZ", -1j)])
+            expected = [("lr0", [3, 2, 0], 0.5), ("ZYY", [0, 2, 3], -1j)]
+            self.assertEqual(
+                canonicalize_sparse_list(expected), canonicalize_sparse_list(obs.to_sparse_list())
+            )
+
+    def test_as_paulis(self):
+        """Test converting to Paulis."""
+        # test on zero operator
+        with self.subTest(msg="zero"):
+            obs = SparseObservable.zero(10)
+            obs_paulis = obs.as_paulis()
+            self.assertEqual(obs, obs_paulis)
+
+        # test on identity operator
+        with self.subTest(msg="identity"):
+            obs = SparseObservable.identity(10)
+            obs_paulis = obs.as_paulis()
+            self.assertEqual(obs, obs_paulis)
+
+        # test it does nothing on Paulis
+        with self.subTest(msg="paulis"):
+            obs = SparseObservable.from_list([("IIX", 1), ("ZZY", -1)])
+            obs_paulis = obs.as_paulis()
+            self.assertEqual(obs, obs_paulis)
+
+        # test multiple +1 projectors
+        with self.subTest(msg="00"):
+            obs = SparseObservable("00")
+            obs_paulis = obs.as_paulis()
+            expected = SparseObservable.from_sparse_list(
+                [
+                    ("", [], 1 / 4),
+                    ("Z", [0], 1 / 4),
+                    ("Z", [1], 1 / 4),
+                    ("ZZ", [0, 1], 1 / 4),
+                ],
+                2,
+            )
+            self.assertEqual(expected.simplify(), obs_paulis.simplify())
+
+        # test multiple -1 projectors
+        with self.subTest(msg="11"):
+            obs = SparseObservable("11")
+            obs_paulis = obs.as_paulis()
+            expected = SparseObservable.from_sparse_list(
+                [
+                    ("", [], 1 / 4),
+                    ("Z", [0], -1 / 4),
+                    ("Z", [1], -1 / 4),
+                    ("ZZ", [0, 1], 1 / 4),
+                ],
+                2,
+            )
+            self.assertEqual(expected.simplify(), obs_paulis.simplify())
+
+        # test +1 -1 projector
+        with self.subTest(msg="01"):
+            obs = SparseObservable("01")
+            obs_paulis = obs.as_paulis()
+            expected = SparseObservable.from_sparse_list(
+                [
+                    ("", [], 1 / 4),
+                    ("Z", [0], -1 / 4),
+                    ("Z", [1], 1 / 4),
+                    ("ZZ", [0, 1], -1 / 4),
+                ],
+                2,
+            )
+            self.assertEqual(expected.simplify(), obs_paulis.simplify())
+
+        # test multiple negative projectors with a positive
+        with self.subTest(msg="011"):
+            obs = SparseObservable("011")
+            obs_paulis = obs.as_paulis()
+            expected = SparseObservable.from_sparse_list(
+                [
+                    ("", [], 1 / 8),
+                    ("Z", [0], -1 / 8),
+                    ("Z", [1], -1 / 8),
+                    ("Z", [2], 1 / 8),
+                    ("ZZ", [0, 1], 1 / 8),
+                    ("ZZ", [0, 2], -1 / 8),
+                    ("ZZ", [1, 2], -1 / 8),
+                    ("ZZZ", [0, 1, 2], 1 / 8),
+                ],
+                3,
+            )
+            self.assertEqual(expected.simplify(), obs_paulis.simplify())
+
+        # test explicitly on written-out projector
+        with self.subTest(msg="lrI0"):
+            obs = SparseObservable("lrI0")
+            obs_paulis = obs.as_paulis()
+            expected = SparseObservable.from_sparse_list(
+                [
+                    ("", [], 1 / 8),
+                    ("Y", [2], 1 / 8),
+                    ("YY", [3, 2], -1 / 8),
+                    ("Z", [0], 1 / 8),
+                    ("YZ", [2, 0], 1 / 8),
+                    ("YYZ", [3, 2, 0], -1 / 8),
+                    ("Y", [3], -1 / 8),
+                    ("YZ", [3, 0], -1 / 8),
+                ],
+                4,
+            )
+            self.assertEqual(expected.simplify(), obs_paulis.simplify())
+
+        # test multiple terms
+        with self.subTest(msg="+X + lY - ZI"):
+            obs = SparseObservable.from_list([("+X", 1), ("lY", 1), ("ZI", -1)])
+            obs_paulis = obs.as_paulis()
+
+            expected = SparseObservable.from_list(
+                [("IX", 0.5), ("XX", 0.5), ("IY", 0.5), ("YY", -0.5), ("ZI", -1)]
+            )
+
+            self.assertEqual(expected.simplify(), obs_paulis.simplify())
+
+    def test_sparse_list_roundtrip(self):
+        """Test dumping into a sparse list and constructing from one."""
+        obs = SparseObservable.from_list(
+            [
+                ("IIXIZ", 2j),
+                ("IIZIX", 2j),
+                ("++III", -1.5),
+                ("--III", -1.5),
+                ("IrIlI", 0.5),
+                ("IIrIl", 0.5),
+            ]
+        )
+
+        reconstructed = SparseObservable.from_sparse_list(obs.to_sparse_list(), obs.num_qubits)
+        self.assertEqual(obs.simplify(), reconstructed.simplify())
+
+    def test_sparse_term_bit_labels(self):
+        """Test getting the bit labels of a SparseTerm."""
+
+        obs = SparseObservable("IXYZ+r0-l1")
+        term = obs[0]
+        indices = term.indices
+        labels = term.bit_labels()
+
+        label_dict = dict(zip(indices, labels))
+        expected = dict(enumerate("1l-0r+ZYX"))
+
+        for i, label in expected.items():
+            self.assertEqual(label, label_dict[i])
+
+        reconstructed = SparseObservable.from_sparse_list([(labels, indices, 1)], obs.num_qubits)
+        self.assertEqual(obs, reconstructed)
+
+    @combine(first=SparseObservable.BitTerm, second=SparseObservable.BitTerm)
+    def test_compose_single_qubit(self, first, second):
+        first = SparseObservable.from_label(first.label)
+        second = SparseObservable.from_label(second.label)
+        self.assertEqual(
+            SparsePauliOp.from_sparse_observable(first.compose(second)).simplify().sort(),
+            SparsePauliOp.from_sparse_observable(first)
+            .compose(SparsePauliOp.from_sparse_observable(second))
+            .simplify()
+            .sort(),
+        )
+
+    @ddt.idata(SparseObservable.BitTerm)
+    def test_compose_single_qubit_identity(self, term):
+        ident = SparseObservable.identity(1)
+        single_term = SparseObservable(term.label)
+        self.assertEqual(ident.compose(single_term), single_term)
+        self.assertEqual(single_term.compose(ident), single_term)
+
+        num_qubits = 5
+        big_ident = SparseObservable.identity(num_qubits)
+        for i in range(num_qubits):
+            big_term = SparseObservable.from_sparse_list(
+                [(term.label, (i,), 2.0)], num_qubits=num_qubits
+            )
+            self.assertEqual(big_ident.compose(big_term), big_term)
+            self.assertEqual(big_term.compose(big_ident), big_term)
+
+    def test_compose_with_zero_operator(self):
+        zero_10 = SparseObservable.zero(10)
+        self.assertEqual(zero_10.compose(SparseObservable("IIX+rIIZ01")), zero_10)
+        self.assertEqual(SparseObservable("ZXYII+-01l").compose(zero_10), zero_10)
+
+        zero_0 = SparseObservable.zero(0)
+        self.assertEqual(zero_0.compose(zero_0), zero_0)
+        self.assertEqual(zero_0.compose(SparseObservable.identity(0)), zero_0)
+        self.assertEqual(SparseObservable.identity(0).compose(zero_0), zero_0)
+
+    def test_compose_multiplies_identity_coefficients(self):
+        a, b = 1.5j, -1.25 + 3j
+        ident = SparseObservable.identity(5)
+        self.assertEqual((a * ident).compose(b * ident), a * b * ident)
+
+    def test_compose_term_expansion(self):
+        left = SparseObservable("+-rl01")
+        right = SparseObservable("YZZXXY")
+        self.assertEqual(
+            SparsePauliOp.from_sparse_observable(left.compose(right)).simplify().sort(),
+            SparsePauliOp.from_sparse_observable(left)
+            .compose(SparsePauliOp.from_sparse_observable(right))
+            .simplify()
+            .sort(),
+        )
+
+    def test_compose_expands_sums(self):
+        one = SparseObservable.from_list([("IIXIZ", 1.5), ("IY+II", 2j)])
+        two = SparseObservable.from_list([("I+ZIr", -0.25), ("01rl+", 0.75j)])
+        op_one = SparsePauliOp.from_sparse_observable(one)
+        op_two = SparsePauliOp.from_sparse_observable(two)
+        self.assertEqual(
+            SparsePauliOp.from_sparse_observable(one.compose(two)).simplify().sort(),
+            op_one.compose(op_two).simplify().sort(),
+        )
+        self.assertEqual(
+            SparsePauliOp.from_sparse_observable(two.compose(one)).simplify().sort(),
+            op_two.compose(op_one).simplify().sort(),
+        )
+
+    def test_compose_coerces(self):
+        base = SparseObservable("IXYZ")
+        label = "rl+-"
+        self.assertEqual(base.compose(label), base.compose(SparseObservable(label)))
+        self.assertEqual(base.compose(label, front=True), SparseObservable(label).compose(base))
+
+    def test_compose_scalar_observable(self):
+        """Edge-case test where one operand is 0q."""
+        a, b = 1.5, -0.25j
+        scalar = SparseObservable.identity(0)
+        self.assertEqual((a * scalar).compose(b * scalar), a * b * scalar)
+        self.assertEqual((a * scalar).compose(b * scalar, front=True), a * b * scalar)
+        self.assertEqual((a * scalar).compose(b * scalar, qargs=[]), a * b * scalar)
+        self.assertEqual((a * scalar).compose(b * scalar, qargs=[], front=True), a * b * scalar)
+
+    def test_compose_scalar_observable_onto_nonscalar(self):
+        a = -1.5
+        scalar = a * SparseObservable.identity(0)
+        base = SparseObservable.from_list([("IXY+l", 0.75), ("ZXYII", -0.5j)])
+        self.assertEqual(base.compose(scalar, qargs=[]), a * base)
+        self.assertEqual(base.compose(scalar, front=True, qargs=[]), a * base)
+
+    def test_compose_front(self):
+        one = SparseObservable.from_list([("IIXIZ", 1.5), ("IY+II", 2j)])
+        two = SparseObservable.from_list([("I+ZIr", -0.25), ("01rl+", 0.75j)])
+        self.assertEqual(one.compose(two, front=True), two.compose(one))
+
+    def test_compose_front_qargs(self):
+        qargs = [4, 3, 8]
+        one = SparseObservable.from_sparse_list(
+            [("XYZ", (4, 2, 1), 2.5), ("+-rl01", (9, 7, 5, 3, 2, 1), 1.25j)], num_qubits=10
+        )
+        two = SparseObservable.from_list([("X+Z", -0.5), ("01l", 0.25j)])
+        self.assertEqual(
+            one.compose(two, front=True, qargs=qargs),
+            two.apply_layout(qargs, num_qubits=10).compose(one),
+        )
+
+    def test_compose_qargs(self):
+        qargs = [4, 3, 8]
+        one = SparseObservable.from_sparse_list(
+            [("XYZ", (4, 2, 1), 2.5), ("+-rl01", (9, 7, 5, 3, 2, 1), 1.25j)], num_qubits=10
+        )
+        two = SparseObservable.from_list([("X+Z", -0.5), ("01l", 0.25j)])
+        self.assertEqual(
+            one.compose(two, qargs=qargs),
+            one.compose(two.apply_layout(qargs, num_qubits=10)),
+        )
+
+    def test_compose_coercion_failure(self):
+        with self.assertRaisesRegex(TypeError, "unknown type for compose"):
+            SparseObservable.identity(5).compose(None)
+        with self.assertRaisesRegex(TypeError, "unknown type for compose"):
+            SparseObservable.identity(5).compose(...)
+
+    def test_compose_failure_qubit_mismatch(self):
+        with self.assertRaisesRegex(ValueError, "mismatched numbers of qubits"):
+            SparseObservable.identity(5).compose(SparseObservable.identity(8))
+        with self.assertRaisesRegex(ValueError, "mismatched numbers of qubits"):
+            SparseObservable.identity(7).compose(SparseObservable.identity(2))
+
+    def test_compose_qargs_failure_wrong_length(self):
+        with self.assertRaisesRegex(ValueError, "input qargs has length"):
+            SparseObservable.identity(5).compose(SparseObservable.identity(2), qargs=[0, 1, 2])
+        with self.assertRaisesRegex(ValueError, "input qargs has length"):
+            SparseObservable.identity(5).compose(SparseObservable.identity(2), qargs=[0])
+
+    def test_compose_qargs_failure_out_of_bounds(self):
+        with self.assertRaisesRegex(ValueError, "qargs contains out-of-range qubits"):
+            SparseObservable.identity(5).compose("XYZ", qargs=[0, 1, 5])
+        with self.assertRaisesRegex(ValueError, "qargs contains out-of-range qubits"):
+            SparseObservable.identity(5).compose("XYZ", qargs=[9, 1, 0])
+
+    def test_compose_qargs_failure_duplicates(self):
+        with self.assertRaisesRegex(ValueError, "duplicate indices in qargs"):
+            SparseObservable.identity(5).compose("XX", qargs=[0, 0])
+        with self.assertRaisesRegex(ValueError, "duplicate indices in qargs"):
+            SparseObservable.identity(5).compose("XYZX", qargs=[0, 1, 2, 0])
+        with self.assertRaisesRegex(ValueError, "duplicate indices in qargs"):
+            SparseObservable.identity(5).compose("XYZX", qargs=[0, 1, 1, 0])
+
+
+def canonicalize_term(pauli, indices, coeff):
+    # canonicalize a sparse list term by sorting by indices (which is unique as
+    # indices cannot be repeated)
+    idcs = np.argsort(indices)
+    sorted_paulis = "".join(pauli[i] for i in idcs)
+    return (sorted_paulis, np.asarray(indices)[idcs].tolist(), complex(coeff))
+
+
+def canonicalize_sparse_list(sparse_list):
+    # sort a sparse list representation by canonicalizing the terms and then applying
+    # Python's built-in sort
+    canonicalized_terms = [canonicalize_term(*term) for term in sparse_list]
+    return sorted(canonicalized_terms)

@@ -18,10 +18,10 @@ from qiskit._accelerate.commutation_analysis import analyze_commutations
 
 
 class CommutationAnalysis(AnalysisPass):
-    """Analysis pass to find commutation relations between DAG nodes.
+    r"""Analysis pass to find commutation relations between DAG nodes.
 
-    ``property_set['commutation_set']`` is a dictionary that describes
-    the commutation relations on a given wire, all the gates on a wire
+    This sets ``property_set['commutation_set']`` to a dictionary that describes
+    the commutation relations on a given wire: all the gates on a wire
     are grouped into a set of gates that commute.
     """
 

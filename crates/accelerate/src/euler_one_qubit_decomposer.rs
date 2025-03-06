@@ -24,6 +24,7 @@ use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::{PyList, PyString};
 use pyo3::wrap_pyfunction;
+use pyo3::IntoPyObjectExt;
 use pyo3::Python;
 
 use ndarray::prelude::*;
@@ -37,7 +38,7 @@ use qiskit_circuit::dag_node::DAGOpNode;
 use qiskit_circuit::operations::{Operation, Param, StandardGate};
 use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};
 use qiskit_circuit::util::c64;
-use qiskit_circuit::Qubit;
+use qiskit_circuit::{impl_intopyobject_for_copy_pyclass, Qubit};
 
 use crate::nlayout::PhysicalQubit;
 use crate::target_transpiler::Target;
@@ -109,11 +110,13 @@ impl OneQubitGateSequence {
 
     fn __getitem__(&self, py: Python, idx: PySequenceIndex) -> PyResult<PyObject> {
         match idx.with_len(self.gates.len())? {
-            SequenceIndex::Int(idx) => Ok(self.gates[idx].to_object(py)),
-            indices => Ok(PyList::new_bound(
+            SequenceIndex::Int(idx) => Ok((&self.gates[idx]).into_py_any(py)?),
+            indices => Ok(PyList::new(
                 py,
-                indices.iter().map(|pos| self.gates[pos].to_object(py)),
-            )
+                indices
+                    .iter()
+                    .map(|pos| (&self.gates[pos]).into_pyobject(py).unwrap()),
+            )?
             .into_any()
             .unbind()),
         }
@@ -690,6 +693,7 @@ pub enum EulerBasis {
     ZSXX = 10,
     ZSX = 11,
 }
+impl_intopyobject_for_copy_pyclass!(EulerBasis);
 
 impl EulerBasis {
     pub fn as_str(&self) -> &'static str {
@@ -712,12 +716,8 @@ impl EulerBasis {
 
 #[pymethods]
 impl EulerBasis {
-    fn __reduce__(&self, py: Python) -> Py<PyAny> {
-        (
-            py.get_type_bound::<Self>(),
-            (PyString::new_bound(py, self.as_str()),),
-        )
-            .into_py(py)
+    fn __reduce__(&self, py: Python) -> PyResult<Py<PyAny>> {
+        (py.get_type::<Self>(), (PyString::new(py, self.as_str()),)).into_py_any(py)
     }
 
     #[new]
@@ -1089,23 +1089,11 @@ pub(crate) fn optimize_1q_gates_decomposition(
             Some(_) => 1.,
             None => raw_run.len() as f64,
         };
-        let qubit: PhysicalQubit = if let NodeType::Operation(inst) = &dag.dag()[raw_run[0]] {
+        let qubit: PhysicalQubit = if let NodeType::Operation(inst) = &dag[raw_run[0]] {
             PhysicalQubit::new(dag.get_qargs(inst.qubits)[0].0)
         } else {
             unreachable!("nodes in runs will always be op nodes")
         };
-        if !dag.calibrations_empty() {
-            let mut has_calibration = false;
-            for node in &raw_run {
-                if dag.has_calibration_for_index(py, *node)? {
-                    has_calibration = true;
-                    break;
-                }
-            }
-            if has_calibration {
-                continue;
-            }
-        }
         if basis_gates_per_qubit[qubit.index()].is_none() {
             let basis_gates = match target {
                 Some(target) => Some(
@@ -1175,7 +1163,7 @@ pub(crate) fn optimize_1q_gates_decomposition(
         let operator = raw_run
             .iter()
             .map(|node_index| {
-                let node = &dag.dag()[*node_index];
+                let node = &dag[*node_index];
                 if let NodeType::Operation(inst) = node {
                     if let Some(target) = target {
                         error *= compute_error_term_from_target(inst.op.name(), target, qubit);
@@ -1218,7 +1206,7 @@ pub(crate) fn optimize_1q_gates_decomposition(
         let mut outside_basis = false;
         if let Some(basis) = basis_gates {
             for node in &raw_run {
-                if let NodeType::Operation(inst) = &dag.dag()[*node] {
+                if let NodeType::Operation(inst) = &dag[*node] {
                     if !basis.contains(inst.op.name()) {
                         outside_basis = true;
                         break;
