@@ -1507,11 +1507,11 @@ class TestTranspile(QiskitTestCase):
             )
 
     def test_rejects_mixed_units_delay_expr_without_target_dt(self):
-        """Test that a delay instruction with an expression duration is rejected
-        when the duration resolves to a negative number."""
-        negative_delay = expr.sub(Duration.dt(100), Duration.s(200))
+        """Test that a delay instruction with wall time and cycles without target DT
+        is rejected."""
+        mixed_delay = expr.sub(Duration.dt(100), Duration.s(200))
         qc = QuantumCircuit(2)
-        qc.delay(negative_delay, 1)
+        qc.delay(mixed_delay, 1)
 
         backend = GenericBackendV2(num_qubits=2)
         backend.target.dt = None

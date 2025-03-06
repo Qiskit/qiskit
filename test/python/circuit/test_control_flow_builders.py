@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-function-docstring
+# pylint: disable=missing-function-docstring,invalid-name
 
 """Test operations on the builder interfaces for control flow in dynamic QuantumCircuits."""
 
@@ -3127,52 +3127,51 @@ class TestControlFlowBuilders(QiskitTestCase):
         self.assertTrue(base.has_var(outer))
         self.assertFalse(base.has_var(inner))
 
+    def test_has_stretch_respects_scope(self):
+        outer = expr.Stretch.new("a")
+        inner = expr.Stretch.new("a")
+        base = QuantumCircuit(captures=[outer])
+        self.assertEqual(base.get_stretch("a"), outer)
+        with base.if_test(expr.lift(False)) as else_:
+            self.assertFalse(base.has_stretch("b"))
 
-def test_has_stretch_respects_scope(self):
-    outer = expr.Stretch.new("a")
-    inner = expr.Stretch.new("a")
-    base = QuantumCircuit(captures=[outer])
-    self.assertEqual(base.get_stretch("a"), outer)
-    with base.if_test(expr.lift(False)) as else_:
-        self.assertFalse(base.has_stretch("b"))
+            # Before we've done anything, we should see the outer one.
+            self.assertTrue(base.has_stretch("a"))
+            self.assertTrue(base.has_stretch(outer))
+            self.assertFalse(base.has_stretch(inner))
 
-        # Before we've done anything, we should see the outer one.
+            # If we shadow it, we should see the shadowed one after.
+            base.add_stretch(inner)
+            self.assertTrue(base.has_stretch("a"))
+            self.assertFalse(base.has_stretch(outer))
+            self.assertTrue(base.has_stretch(inner))
+        with else_:
+            # In a new scope, we should see the outer one again.
+            self.assertTrue(base.has_stretch("a"))
+            self.assertTrue(base.has_stretch(outer))
+            self.assertFalse(base.has_stretch(inner))
+
+            # ... until we shadow it.
+            base.add_stretch(inner)
+            self.assertTrue(base.has_stretch("a"))
+            self.assertFalse(base.has_stretch(outer))
+            self.assertTrue(base.has_stretch(inner))
+        with base.if_test(expr.lift(False)):
+            # New scope, so again we see the outer one.
+            self.assertTrue(base.has_stretch("a"))
+            self.assertTrue(base.has_stretch(outer))
+            self.assertFalse(base.has_stretch(inner))
+
+            # Now make sure shadowing the stretch with a var works.
+            v = base.add_var("a", expr.lift(True))
+            self.assertFalse(base.has_stretch("a"))
+            self.assertFalse(base.has_stretch(outer))
+            self.assertFalse(base.has_stretch(inner))
+            self.assertTrue(base.has_var(v))
+
         self.assertTrue(base.has_stretch("a"))
         self.assertTrue(base.has_stretch(outer))
         self.assertFalse(base.has_stretch(inner))
-
-        # If we shadow it, we should see the shadowed one after.
-        base.add_stretch(inner)
-        self.assertTrue(base.has_stretch("a"))
-        self.assertFalse(base.has_stretch(outer))
-        self.assertTrue(base.has_stretch(inner))
-    with else_:
-        # In a new scope, we should see the outer one again.
-        self.assertTrue(base.has_stretch("a"))
-        self.assertTrue(base.has_stretch(outer))
-        self.assertFalse(base.has_stretch(inner))
-
-        # ... until we shadow it.
-        base.add_stretch(inner)
-        self.assertTrue(base.has_stretch("a"))
-        self.assertFalse(base.has_stretch(outer))
-        self.assertTrue(base.has_stretch(inner))
-    with base.if_test(expr.lift(False)):
-        # New scope, so again we see the outer one.
-        self.assertTrue(base.has_stretch("a"))
-        self.assertTrue(base.has_stretch(outer))
-        self.assertFalse(base.has_stretch(inner))
-
-        # Now make sure shadowing the stretch with a var works.
-        v = base.add_var("a", expr.lift(True))
-        self.assertFalse(base.has_stretch("a"))
-        self.assertFalse(base.has_stretch(outer))
-        self.assertFalse(base.has_stretch(inner))
-        self.assertTrue(base.has_var(v))
-
-    self.assertTrue(base.has_stretch("a"))
-    self.assertTrue(base.has_stretch(outer))
-    self.assertFalse(base.has_stretch(inner))
 
     def test_store_to_clbit_captures_bit(self):
         base = QuantumCircuit(1, 2)

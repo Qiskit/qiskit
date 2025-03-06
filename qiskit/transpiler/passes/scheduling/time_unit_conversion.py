@@ -11,11 +11,11 @@
 # that they have been altered from the originals.
 
 """Unify time unit in circuit for scheduling and following passes."""
-import warnings
 from typing import Set
 
 from qiskit.circuit import Delay, Duration
-from qiskit.circuit.classical import expr, types
+from qiskit.circuit.classical import expr
+from qiskit.circuit.duration import duration_in_dt
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
@@ -103,14 +103,7 @@ class TimeUnitConversion(TransformationPass):
                 if visitor.in_cycles():
                     has_dt = True
                     # We need to round in case the expression evaluated to a non-integral 'dt'.
-                    rounded_duration = round(duration)
-                    rounding_error = abs(duration - rounded_duration)
-                    if rounding_error > 1e-15:
-                        warnings.warn(
-                            f"Duration is rounded to {rounded_duration:d} [dt] from {duration:f}",
-                            UserWarning,
-                        )
-                    duration = rounded_duration
+                    duration = duration_in_dt(duration, 1.0)
                 else:
                     has_si = True
                 if duration < 0:
@@ -178,15 +171,6 @@ class TimeUnitConversion(TransformationPass):
         return "mixed"
 
 
-_DURATION_KIND_NAME = {
-    Duration.dt: "dt",
-    Duration.ns: "ns",
-    Duration.us: "us",
-    Duration.ms: "ms",
-    Duration.s: "s",
-}
-
-
 class _EvalDurationImpl(expr.ExprVisitor[float]):
     """Evaluates the expression to a single float result.
 
@@ -197,19 +181,19 @@ class _EvalDurationImpl(expr.ExprVisitor[float]):
     __slots__ = ("dt", "has_dt", "has_si")
 
     def __init__(self, dt=None):
-        self.dt = dt if dt is not None else 1
+        self.dt = dt
         self.has_dt = False
         self.has_si = False
 
     def in_cycles(self):
         """Returns ``True`` if units are 'dt' after visit."""
-        return self.has_dt or self.dt != 1
+        return self.has_dt or self.dt is not None
 
     def visit_value(self, node, /) -> float:
         if isinstance(node.value, float):
             return node.value
         if isinstance(node.value, Duration.dt):
-            if self.has_si and self.dt == 1:
+            if self.has_si and self.dt is None:
                 raise TranspilerError(
                     "Fail to unify time units in delays. SI units "
                     "and dt unit must not be mixed when dt is not supplied."
@@ -217,16 +201,19 @@ class _EvalDurationImpl(expr.ExprVisitor[float]):
             self.has_dt = True
             return node.value[0]
         if isinstance(node.value, Duration):
-            if self.has_dt and self.dt == 1:
+            if self.has_dt and self.dt is None:
                 raise TranspilerError(
                     "Fail to unify time units in delays. SI units "
                     "and dt unit must not be mixed when dt is not supplied."
                 )
             self.has_si = True
+            # Setting 'divisor' to 1 when there's no 'dt' is just to simplify
+            # the logic (we don't need to divide).
+            divisor = self.dt if self.dt is not None else 1
             if isinstance(node.value, Duration.s):
-                return node.value[0] / self.dt
-            from_unit = _DURATION_KIND_NAME.get(type(node.value))
-            return apply_prefix(node.value[0], from_unit) / self.dt
+                return node.value[0] / divisor
+            from_unit = node.value.unit()
+            return apply_prefix(node.value[0], from_unit) / divisor
         raise TranspilerError(f"invalid duration expression: {node}")
 
     def visit_binary(self, node, /) -> float:
@@ -244,6 +231,3 @@ class _EvalDurationImpl(expr.ExprVisitor[float]):
 
     def visit_cast(self, node, /) -> float:
         return node.operand.accept(self)
-
-    def visit_index(self, node, /) -> float:
-        return node.target.accept(self)
