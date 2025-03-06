@@ -367,8 +367,11 @@ def _read_instruction(
 
     if instruction.label_size <= 0:
         label = None
-    if gate_name in {"IfElseOp", "WhileLoopOp"}:
+    if gate_name in ("IfElseOp", "WhileLoopOp"):
         gate = gate_class(condition, *params, label=label)
+    elif gate_name == "BoxOp":
+        *params, duration, unit = params
+        gate = gate_class(*params, label=label, duration=duration, unit=unit)
     elif version >= 5 and issubclass(gate_class, ControlledGate):
         if gate_name in {
             "MCPhaseGate",
@@ -804,6 +807,12 @@ def _write_instruction(
         instruction_params = [
             instruction.operation.target,
             tuple(instruction.operation.cases_specifier()),
+        ]
+    elif isinstance(instruction.operation, controlflow.BoxOp):
+        instruction_params = [
+            instruction.operation.blocks[0],
+            instruction.operation.duration,
+            instruction.operation.unit,
         ]
     elif isinstance(instruction.operation, Clifford):
         instruction_params = [instruction.operation.tableau]
