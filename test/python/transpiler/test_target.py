@@ -1765,3 +1765,11 @@ class TestFakeTarget(QiskitTestCase):
         self.assertNotEqual(target, None)
         self.assertEqual(target.num_qubits, 2)
         self.assertEqual(target.build_coupling_map(), cmap)
+
+    def test_fake_only_when_necessary(self):
+        # Make sure _FakeTarget cannot be instantiated if there
+        # is enough info for a real Target
+        with self.assertRaises(TypeError):
+            _ = _FakeTarget.from_configuration(
+                basis_gates=["cx"], coupling_map=CouplingMap([[0, 1]])
+            )
