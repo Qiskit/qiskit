@@ -1301,20 +1301,24 @@ class TestTranspile(QiskitTestCase):
         qc.delay(500, 1)
         qc.cx(0, 1)
 
-        with self.assertWarnsRegex(
-            DeprecationWarning,
-            expected_regex="The `target` parameter should be used instead",
-        ):
-            out = transpile(
-                qc,
-                scheduling_method="alap",
-                basis_gates=["h", "cx"],
-                instruction_durations=[("h", 0, 200), ("cx", [0, 1], 700)],
-                dt=1e-9,
-                optimization_level=optimization_level,
-                seed_transpiler=42,
-            )
+        target = Target(num_qubits=2, dt=1e-9)
+        target.add_instruction(
+            HGate(), {(i,): InstructionProperties(duration=200 * 1e-9) for i in range(2)}
+        )
+        target.add_instruction(
+            CXGate(),
+            {(0, 1): InstructionProperties(duration=700 * 1e-9)},
+        )
+        target.add_instruction(Delay(Parameter("t")), {(i,): None for i in range(2)})
+        out = transpile(
+            qc,
+            scheduling_method="alap",
+            target=target,
+            optimization_level=optimization_level,
+            seed_transpiler=42,
+        )
 
+        self.assertEqual(out.unit, "dt")
         self.assertEqual(out.duration, 1200)
 
     @data(0, 1, 2, 3)
@@ -1333,20 +1337,25 @@ class TestTranspile(QiskitTestCase):
         qc.delay(delay_expr, 1)
         qc.cx(0, 1)
 
-        with self.assertWarnsRegex(
-            DeprecationWarning,
-            expected_regex="The `target` parameter should be used instead",
-        ):
-            out = transpile(
-                qc,
-                scheduling_method="alap",
-                basis_gates=["h", "cx"],
-                instruction_durations=[("h", 0, 200), ("cx", [0, 1], 700)],
-                dt=1e-9,
-                optimization_level=optimization_level,
-                seed_transpiler=42,
-            )
+        target = Target(num_qubits=2, dt=1e-9)
+        target.add_instruction(
+            HGate(), {(i,): InstructionProperties(duration=200 * 1e-9) for i in range(2)}
+        )
+        target.add_instruction(
+            CXGate(),
+            {(0, 1): InstructionProperties(duration=700 * 1e-9)},
+        )
+        target.add_instruction(Delay(Parameter("t")), {(i,): None for i in range(2)})
 
+        out = transpile(
+            qc,
+            scheduling_method="alap",
+            target=target,
+            optimization_level=optimization_level,
+            seed_transpiler=42,
+        )
+
+        self.assertEqual(out.unit, "dt")
         self.assertEqual(out.duration, 1200)
 
     def test_delay_converts_to_dt(self):
@@ -1478,16 +1487,14 @@ class TestTranspile(QiskitTestCase):
         qc = QuantumCircuit(2)
         qc.delay(delay_expr, 1)
 
-        with self.assertWarnsRegex(
-            DeprecationWarning,
-            expected_regex="The `target` parameter should be used instead",
-        ):
-            out = transpile(
-                qc,
-                basis_gates=[],
-                instruction_durations=[],
-                seed_transpiler=42,
-            )
+        target = Target(num_qubits=2, dt=None)
+        target.add_instruction(Delay(Parameter("t")), {(i,): None for i in range(2)})
+
+        out = transpile(
+            qc,
+            target=target,
+            seed_transpiler=42,
+        )
 
         self.assertEqual(out.data[0].operation.unit, "dt")
         self.assertTrue(math.isclose(out.data[0].operation.duration, 300, rel_tol=1e-07))
