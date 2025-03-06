@@ -34,8 +34,8 @@ class Delay(Instruction):
         """
         Args:
             duration: the length of time of the duration. If this is an
-                :class:`~.expr.Expr`, it must be of type :class:`~.types.Duration`
-                or :class:`~.types.Stretch` and the ``unit`` parameter should be
+                :class:`~.expr.Expr`, it must be a constant expression of type
+                :class:`~.types.Duration` and the ``unit`` parameter should be
                 omitted (or MUST be "expr" if it is specified).
             unit: the unit of the duration, if ``duration`` is a numeric
                 value. Must be ``"dt"``, an SI-prefixed seconds unit, or "expr".

@@ -4563,7 +4563,7 @@ class QuantumCircuit:
         Args:
             duration (Object):
                 duration of the delay. If this is an :class:`~.expr.Expr`, it must be
-                of type :class:`~.types.Duration` or :class:`~.types.Stretch`.
+                a constant expression of type :class:`~.types.Duration`.
             qarg (Object): qubit argument to apply this delay.
             unit (str | None): unit of the duration, unless ``duration`` is an :class:`~.expr.Expr`
                 in which case it must not be specified. Supported units: ``'s'``, ``'ms'``, ``'us'``,
