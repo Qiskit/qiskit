@@ -13,7 +13,7 @@
 """Test QASM3 exporter."""
 
 # We can't really help how long the lines output by the exporter are in some cases.
-# pylint: disable=line-too-long
+# pylint: disable=line-too-long,invalid-name
 
 from io import StringIO
 from math import pi
@@ -22,7 +22,7 @@ import re
 from ddt import ddt, data
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, transpile
-from qiskit.circuit import Parameter, Qubit, Clbit, Gate, ParameterVector
+from qiskit.circuit import Parameter, Qubit, Clbit, Duration, Gate, ParameterVector
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.controlflow import CASE_DEFAULT
 from qiskit.circuit.library import PauliEvolutionGate
@@ -721,15 +721,25 @@ c[1] = measure q[1];
         """Test that delay operations get output into valid OpenQASM 3."""
         qreg = QuantumRegister(2, "qr")
         qc = QuantumCircuit(qreg)
+        s = qc.add_stretch("s")
+        t = qc.add_stretch("t")
         qc.delay(100, qreg[0], unit="ms")
+        qc.delay(expr.lift(Duration.ms(100)), qreg[0])
         qc.delay(2, qreg[1], unit="ps")  # "ps" is not a valid unit in OQ3, so we need to convert.
+        qc.delay(expr.div(s, 2.0), qreg[1])
+        qc.delay(expr.add(expr.mul(s, expr.div(Duration.dt(1000), Duration.ns(200))), t), qreg[0])
 
         expected_qasm = "\n".join(
             [
                 "OPENQASM 3.0;",
                 "qubit[2] qr;",
+                "stretch s;",
+                "stretch t;",
                 "delay[100ms] qr[0];",
+                "delay[100.0ms] qr[0];",
                 "delay[2000ns] qr[1];",
+                "delay[s / 2.0] qr[1];",
+                "delay[s * (1000dt / 200.0ns) + t] qr[0];",
                 "",
             ]
         )
@@ -1843,6 +1853,44 @@ a = !a;
 b = b & 8;
 c = ~b;
 e = 7.5;
+"""
+        self.assertEqual(dumps(qc), expected)
+
+    def test_qasm_stretch_example_1(self):
+        """Test an example from the OpenQASM docs."""
+        qc = QuantumCircuit(5)
+        qc.barrier()
+        qc.cx(0, 1)
+        qc.u(pi / 4, 0, pi / 2, 2)
+        qc.cx(3, 4)
+
+        a = qc.add_stretch("a")
+        b = qc.add_stretch("b")
+        c = qc.add_stretch("c")
+
+        # Use the stretches as Delay duration.
+        qc.delay(a, [0, 1])
+        qc.delay(b, 2)
+        qc.delay(c, [3, 4])
+        qc.barrier()
+
+        expected = """\
+OPENQASM 3.0;
+include "stdgates.inc";
+qubit[5] q;
+stretch a;
+stretch b;
+stretch c;
+barrier q[0], q[1], q[2], q[3], q[4];
+cx q[0], q[1];
+U(pi/4, 0, pi/2) q[2];
+cx q[3], q[4];
+delay[a] q[0];
+delay[a] q[1];
+delay[b] q[2];
+delay[c] q[3];
+delay[c] q[4];
+barrier q[0], q[1], q[2], q[3], q[4];
 """
         self.assertEqual(dumps(qc), expected)
 
