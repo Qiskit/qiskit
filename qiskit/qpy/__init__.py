@@ -18,7 +18,7 @@ QPY serialization (:mod:`qiskit.qpy`)
 .. currentmodule:: qiskit.qpy
 
 QPY is a binary serialization format for :class:`~.QuantumCircuit`
-objects that is designed to be cross-platform,  Python version agnostic,
+objects that is designed to be cross-platform, Python version agnostic,
 and backwards compatible moving forward. QPY should be used if you need
 a mechanism to save or copy between systems a :class:`~.QuantumCircuit`
 that preserves the full Qiskit object structure (except for custom attributes

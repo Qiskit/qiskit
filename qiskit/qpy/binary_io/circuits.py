@@ -40,7 +40,7 @@ from qiskit.circuit.annotated_operation import (
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
-from qiskit.qpy import common, formats, type_keys, exceptions
+from qiskit.qpy import common, formats, type_keys
 from qiskit.qpy.binary_io import value, schedules
 from qiskit.quantum_info.operators import SparsePauliOp, Clifford
 from qiskit.synthesis import evolution as evo_synth
@@ -367,8 +367,11 @@ def _read_instruction(
 
     if instruction.label_size <= 0:
         label = None
-    if gate_name in {"IfElseOp", "WhileLoopOp"}:
+    if gate_name in ("IfElseOp", "WhileLoopOp"):
         gate = gate_class(condition, *params, label=label)
+    elif gate_name == "BoxOp":
+        *params, duration, unit = params
+        gate = gate_class(*params, label=label, duration=duration, unit=unit)
     elif version >= 5 and issubclass(gate_class, ControlledGate):
         if gate_name in {
             "MCPhaseGate",
@@ -753,13 +756,15 @@ def _write_instruction(
         or isinstance(instruction.operation, library.BlueprintCircuit)
     ):
         gate_class_name = instruction.operation.name
-        if version >= 11:
-            # Assign a uuid to each instance of a custom operation
+        # Assign a uuid to each instance of a custom operation
+        if instruction.operation.name not in {"ucrx_dg", "ucry_dg", "ucrz_dg"}:
             gate_class_name = f"{gate_class_name}_{uuid.uuid4().hex}"
-        # ucr*_dg gates can have different numbers of parameters,
-        # the uuid is appended to avoid storing a single definition
-        # in circuits with multiple ucr*_dg gates.
-        elif instruction.operation.name in {"ucrx_dg", "ucry_dg", "ucrz_dg"}:
+        else:
+            # ucr*_dg gates can have different numbers of parameters,
+            # the uuid is appended to avoid storing a single definition
+            # in circuits with multiple ucr*_dg gates. For legacy reasons
+            # the uuid is stored in a different format as this was done
+            # prior to QPY 11.
             gate_class_name = f"{gate_class_name}_{uuid.uuid4()}"
 
         custom_operations[gate_class_name] = instruction.operation
@@ -802,6 +807,12 @@ def _write_instruction(
         instruction_params = [
             instruction.operation.target,
             tuple(instruction.operation.cases_specifier()),
+        ]
+    elif isinstance(instruction.operation, controlflow.BoxOp):
+        instruction_params = [
+            instruction.operation.blocks[0],
+            instruction.operation.duration,
+            instruction.operation.unit,
         ]
     elif isinstance(instruction.operation, Clifford):
         instruction_params = [instruction.operation.tableau]
@@ -1217,48 +1228,25 @@ def write_circuit(
     num_registers = num_qregs + num_cregs
 
     # Write circuit header
-    if version >= 12:
-        header_raw = formats.CIRCUIT_HEADER_V12(
-            name_size=len(circuit_name),
-            global_phase_type=global_phase_type,
-            global_phase_size=len(global_phase_data),
-            num_qubits=circuit.num_qubits,
-            num_clbits=circuit.num_clbits,
-            metadata_size=metadata_size,
-            num_registers=num_registers,
-            num_instructions=num_instructions,
-            num_vars=circuit.num_vars,
-        )
-        header = struct.pack(formats.CIRCUIT_HEADER_V12_PACK, *header_raw)
-        file_obj.write(header)
-        file_obj.write(circuit_name)
-        file_obj.write(global_phase_data)
-        file_obj.write(metadata_raw)
-        # Write header payload
-        file_obj.write(registers_raw)
-        standalone_var_indices = value.write_standalone_vars(file_obj, circuit, version)
-    else:
-        if circuit.num_vars:
-            raise exceptions.UnsupportedFeatureForVersion(
-                "circuits containing realtime variables", required=12, target=version
-            )
-        header_raw = formats.CIRCUIT_HEADER_V2(
-            name_size=len(circuit_name),
-            global_phase_type=global_phase_type,
-            global_phase_size=len(global_phase_data),
-            num_qubits=circuit.num_qubits,
-            num_clbits=circuit.num_clbits,
-            metadata_size=metadata_size,
-            num_registers=num_registers,
-            num_instructions=num_instructions,
-        )
-        header = struct.pack(formats.CIRCUIT_HEADER_V2_PACK, *header_raw)
-        file_obj.write(header)
-        file_obj.write(circuit_name)
-        file_obj.write(global_phase_data)
-        file_obj.write(metadata_raw)
-        file_obj.write(registers_raw)
-        standalone_var_indices = {}
+    header_raw = formats.CIRCUIT_HEADER_V12(
+        name_size=len(circuit_name),
+        global_phase_type=global_phase_type,
+        global_phase_size=len(global_phase_data),
+        num_qubits=circuit.num_qubits,
+        num_clbits=circuit.num_clbits,
+        metadata_size=metadata_size,
+        num_registers=num_registers,
+        num_instructions=num_instructions,
+        num_vars=circuit.num_vars,
+    )
+    header = struct.pack(formats.CIRCUIT_HEADER_V12_PACK, *header_raw)
+    file_obj.write(header)
+    file_obj.write(circuit_name)
+    file_obj.write(global_phase_data)
+    file_obj.write(metadata_raw)
+    # Write header payload
+    file_obj.write(registers_raw)
+    standalone_var_indices = value.write_standalone_vars(file_obj, circuit, version)
 
     instruction_buffer = io.BytesIO()
     custom_operations = {}

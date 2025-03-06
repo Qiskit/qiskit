@@ -39,8 +39,12 @@ _BINDING_POWER = {
     ast.Unary.Op.LOGIC_NOT: _BindingPower(right=22),
     ast.Unary.Op.BIT_NOT: _BindingPower(right=22),
     #
-    # Multiplication/division/modulo: (19, 20)
-    # Addition/subtraction: (17, 18)
+    # Modulo: (19, 20)
+    ast.Binary.Op.MUL: _BindingPower(19, 20),
+    ast.Binary.Op.DIV: _BindingPower(19, 20),
+    #
+    ast.Binary.Op.ADD: _BindingPower(17, 18),
+    ast.Binary.Op.SUB: _BindingPower(17, 18),
     #
     ast.Binary.Op.SHIFT_LEFT: _BindingPower(15, 16),
     ast.Binary.Op.SHIFT_RIGHT: _BindingPower(15, 16),
@@ -584,3 +588,14 @@ class BasicPrinter:
 
     def _visit_DefaultCase(self, _node: ast.DefaultCase) -> None:
         self.stream.write("default")
+
+    def _visit_BoxStatement(self, node: ast.BoxStatement) -> None:
+        self._start_line()
+        self.stream.write("box")
+        if node.duration is not None:
+            self.stream.write("[")
+            self.visit(node.duration)
+            self.stream.write("]")
+        self.stream.write(" ")
+        self.visit(node.body)
+        self._end_line()

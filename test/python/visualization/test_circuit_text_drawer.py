@@ -397,6 +397,35 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
             expected,
         )
 
+    def test_basic_box(self):
+        """Test that drawing a `box` doesn't explode."""
+        # The exact output is not important - feel free to change it.  We only care that it doesn't
+        # explode when drawing.
+        qc = QuantumCircuit(5)
+        with qc.box():
+            qc.x(0)
+        with qc.box():
+            qc.cx(2, 3)
+            with qc.box():
+                qc.noop(4)
+        # We don't care about trailing whitespace on a line.
+        actual = "\n".join(line.rstrip() for line in str(qc.draw("text", fold=80)).splitlines())
+
+        expected = """\
+     ┌─────── ┌───┐ ───────┐
+q_0: ┤ Box-0  ┤ X ├  End-0 ├────────────────────────────────────────────
+     └─────── └───┘ ───────┘
+q_1: ───────────────────────────────────────────────────────────────────
+                             ┌───────                          ───────┐
+q_2: ────────────────────────┤        ──■─────────────────────        ├─
+                             │        ┌─┴─┐                           │
+q_3: ────────────────────────┤ Box-0  ┤ X ├───────────────────  End-0 ├─
+                             │        └───┘┌───────  ───────┐         │
+q_4: ────────────────────────┤        ─────┤ Box-1    End-1 ├─        ├─
+                             └───────      └───────  ───────┘  ───────┘
+""".rstrip()
+        self.assertEqual(actual, expected)
+
     def test_text_swap(self):
         """Swap drawing."""
         expected = "\n".join(
@@ -3246,8 +3275,8 @@ class TestTextWithLayout(QiskitTestCase):
         circuit.h(qr)
 
         pass_ = ApplyLayout()
-        pass_.property_set["layout"] = Layout({qr[0]: 0, ancilla[1]: 1, ancilla[0]: 2, qr[1]: 3})
-        circuit_with_layout = pass_(circuit)
+        layout = Layout({qr[0]: 0, ancilla[1]: 1, ancilla[0]: 2, qr[1]: 3})
+        circuit_with_layout = pass_(circuit, property_set={"layout": layout})
 
         self.assertEqual(
             str(circuit_drawer(circuit_with_layout, output="text", initial_state=True)), expected
@@ -3308,8 +3337,8 @@ class TestTextWithLayout(QiskitTestCase):
         circuit.measure(qr2[1], cr[1])
 
         pass_ = ApplyLayout()
-        pass_.property_set["layout"] = Layout({qr1[0]: 0, qr1[1]: 1, qr2[0]: 2, qr2[1]: 3})
-        circuit_with_layout = pass_(circuit)
+        layout = Layout({qr1[0]: 0, qr1[1]: 1, qr2[0]: 2, qr2[1]: 3})
+        circuit_with_layout = pass_(circuit, property_set={"layout": layout})
 
         self.assertEqual(
             str(circuit_drawer(circuit_with_layout, output="text", initial_state=True)), expected

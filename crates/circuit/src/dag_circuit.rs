@@ -397,7 +397,7 @@ impl DAGCircuit {
     /// The total duration of the circuit, set by a scheduling transpiler pass. Its unit is
     /// specified by :attr:`.unit`
     ///
-    /// DEPRECATED since Qiskit 1.3.0 and will be removed in Qiskit 2.0.0
+    /// DEPRECATED since Qiskit 1.3.0 and will be removed in Qiskit 3.0.0
     #[getter]
     fn get_duration(&self, py: Python) -> PyResult<Option<Py<PyAny>>> {
         imports::WARNINGS_WARN.get_bound(py).call1((
@@ -405,7 +405,7 @@ impl DAGCircuit {
                 py,
                 concat!(
                     "The property ``qiskit.dagcircuit.dagcircuit.DAGCircuit.duration`` is ",
-                    "deprecated as of Qiskit 1.3.0. It will be removed in Qiskit 2.0.0.",
+                    "deprecated as of Qiskit 1.3.0. It will be removed in Qiskit 3.0.0.",
                 )
             ),
             py.get_type::<PyDeprecationWarning>(),
@@ -416,7 +416,7 @@ impl DAGCircuit {
 
     /// The unit that duration is specified in.
     ///
-    /// DEPRECATED since Qiskit 1.3.0 and will be removed in Qiskit 2.0.0
+    /// DEPRECATED since Qiskit 1.3.0 and will be removed in Qiskit 3.0.0
     #[getter]
     fn get_unit(&self, py: Python) -> PyResult<String> {
         imports::WARNINGS_WARN.get_bound(py).call1((
@@ -424,7 +424,7 @@ impl DAGCircuit {
                 py,
                 concat!(
                     "The property ``qiskit.dagcircuit.dagcircuit.DAGCircuit.unit`` is ",
-                    "deprecated as of Qiskit 1.3.0. It will be removed in Qiskit 2.0.0.",
+                    "deprecated as of Qiskit 1.3.0. It will be removed in Qiskit 3.0.0.",
                 )
             ),
             py.get_type::<PyDeprecationWarning>(),
@@ -2317,6 +2317,7 @@ impl DAGCircuit {
         let condition_op_check = imports::CONDITION_OP_CHECK.get_bound(py);
         let switch_case_op_check = imports::SWITCH_CASE_OP_CHECK.get_bound(py);
         let for_loop_op_check = imports::FOR_LOOP_OP_CHECK.get_bound(py);
+        let box_op_check = imports::BOX_OP_CHECK.get_bound(py);
         let node_match = |n1: &NodeType, n2: &NodeType| -> PyResult<bool> {
             match [n1, n2] {
                 [NodeType::Operation(inst1), NodeType::Operation(inst2)] => {
@@ -2371,6 +2372,10 @@ impl DAGCircuit {
                                         .extract()
                                 } else if name == "for_loop" {
                                     for_loop_op_check
+                                        .call1((n1, n2, &self_bit_indices, &other_bit_indices))?
+                                        .extract()
+                                } else if name == "box" {
+                                    box_op_check
                                         .call1((n1, n2, &self_bit_indices, &other_bit_indices))?
                                         .extract()
                                 } else {

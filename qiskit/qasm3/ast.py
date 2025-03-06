@@ -14,6 +14,8 @@
 
 """QASM3 AST Nodes"""
 
+from __future__ import annotations
+
 import enum
 from typing import Optional, List, Union, Iterable, Tuple, Sequence
 
@@ -323,6 +325,10 @@ class Binary(Expression):
         NOT_EQUAL = "!="
         SHIFT_LEFT = "<<"
         SHIFT_RIGHT = ">>"
+        ADD = "+"
+        SUB = "-"
+        MUL = "*"
+        DIV = "/"
 
     def __init__(self, op: Op, left: Expression, right: Expression):
         self.op = op
@@ -685,6 +691,20 @@ class WhileLoopStatement(Statement):
     def __init__(self, condition: Expression, body: ProgramBlock):
         self.condition = condition
         self.body = body
+
+
+class BoxStatement(Statement):
+    """Like ``box[duration] { statements* }``."""
+
+    __slots__ = ("duration", "body")
+
+    def __init__(
+        self,
+        body: ProgramBlock,
+        duration: Expression | None = None,
+    ):
+        self.body = body
+        self.duration = duration
 
 
 class BreakStatement(Statement):
