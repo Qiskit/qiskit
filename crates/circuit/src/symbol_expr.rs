@@ -1073,35 +1073,34 @@ impl SymbolExpr {
                 }
             } else if let SymbolExpr::Binary{op, lhs: r_lhs, rhs: r_rhs} = rhs {
                 // recursive optimization for add and sub
-                if let BinaryOp::Add = op {
-                    // self + r.lhs + r.rhs
-                    match self.add_opt(r_lhs) {
-                        Some(rl) => return match rl.add_opt(r_rhs) {
-                            Some(rr) => Some(rr),
-                            None => Some(_add(rl, r_rhs.as_ref().clone())),
-                        },
-                        None => if let Some(rr) = self.add_opt(r_rhs) {
-                            return match rr.add_opt(r_lhs) {
-                                Some(rl) => Some(rl),
-                                None => Some(_add(rr, r_lhs.as_ref().clone())),
-                            };
-                        },
+                if let BinaryOp::Add = &op {
+                    if let Some(e) = self.add_opt(r_lhs) {
+                        return match e.add_opt(r_rhs) {
+                            Some(ee) => Some(ee),
+                            None => Some(_add(e, r_rhs.as_ref().clone())),
+                        };
                     }
-                } else if let BinaryOp::Sub = op {
-                    // self + r.lhs - r.rhs
-                    match self.add_opt(r_lhs) {
-                        Some(rl) => return match rl.sub_opt(r_rhs) {
-                            Some(rr) => Some(rr),
-                            None => Some(_sub(rl, r_rhs.as_ref().clone())),
-                        },
-                        None => if let Some(rr) = self.sub_opt(r_rhs) {
-                            return match rr.add_opt(r_lhs) {
-                                Some(rl) => Some(rl),
-                                None => Some(_add(rr, r_lhs.as_ref().clone())),
-                            };
-                        },
+                    if let Some(e) = self.add_opt(r_rhs) {
+                        return match e.add_opt(r_lhs) {
+                            Some(ee) => Some(ee),
+                            None => Some(_add(e, r_lhs.as_ref().clone())),
+                        };
                     }
-                };
+                }
+                if let BinaryOp::Sub = &op {
+                    if let Some(e) = self.add_opt(r_lhs) {
+                        return match e.sub_opt(r_rhs) {
+                            Some(ee) => Some(ee),
+                            None => Some(_sub(e, r_rhs.as_ref().clone())),
+                        };
+                    }
+                    if let Some(e) = self.sub_opt(r_rhs) {
+                        return match e.add_opt(r_lhs) {
+                            Some(ee) => Some(ee),
+                            None => Some(_add(e, r_lhs.as_ref().clone())),
+                        };
+                    }
+                }
             }
 
             // optimization for each node type
@@ -1213,7 +1212,6 @@ impl SymbolExpr {
                             };
                         }
                     }
-            
                     // swap nodes by sorting rule
                     if let BinaryOp::Mul | BinaryOp::Div | BinaryOp::Pow = op {
                         match rhs {
@@ -1261,35 +1259,34 @@ impl SymbolExpr {
                 }
             } else if let SymbolExpr::Binary{op, lhs: r_lhs, rhs: r_rhs} = rhs {
                 // recursive optimization for add and sub
-                if let BinaryOp::Add = op {
-                    // self - r.lhs - r.rhs
-                    match self.sub_opt(r_lhs) {
-                        Some(rl) => return match rl.sub_opt(r_rhs) {
-                            Some(rr) => Some(rr),
-                            None => Some(_sub(rl, r_rhs.as_ref().clone())),
-                        },
-                        None => if let Some(rr) = self.sub_opt(r_rhs) {
-                            return match rr.sub_opt(r_lhs) {
-                                Some(rl) => Some(rl),
-                                None => Some(_sub(rr, r_lhs.as_ref().clone())),
-                            };
-                        },
+                if let BinaryOp::Add = &op {
+                    if let Some(e) = self.sub_opt(r_lhs) {
+                        return match e.sub_opt(r_rhs) {
+                            Some(ee) => Some(ee),
+                            None => Some(_sub(e, r_rhs.as_ref().clone())),
+                        };
                     }
-                } else if let BinaryOp::Sub = op {
-                    // self - r.lhs + r.rhs
-                    match self.sub_opt(r_lhs) {                        
-                        Some(rl) => return match rl.add_opt(r_rhs) {
-                            Some(rr) => Some(rr),
-                            None => Some(_add(rl, r_rhs.as_ref().clone())),
-                        },
-                        None => if let Some(rr) = self.add_opt(r_rhs) {
-                            return match rr.sub_opt(r_lhs) {
-                                Some(rl) => Some(rl),
-                                None => Some(_sub(rr, r_lhs.as_ref().clone())),
-                            };
-                        },
+                    if let Some(e) = self.sub_opt(r_rhs) {
+                        return match e.sub_opt(r_lhs) {
+                            Some(ee) => Some(ee),
+                            None => Some(_sub(e, r_lhs.as_ref().clone())),
+                        };
                     }
-                };
+                }
+                if let BinaryOp::Sub = &op {
+                    if let Some(e) = self.sub_opt(r_lhs) {
+                        return match e.add_opt(r_rhs) {
+                            Some(ee) => Some(ee),
+                            None => Some(_add(e, r_rhs.as_ref().clone())),
+                        };
+                    }
+                    if let Some(e) = self.add_opt(r_rhs) {
+                        return match e.sub_opt(r_lhs) {
+                            Some(ee) => Some(ee),
+                            None => Some(_sub(e, r_lhs.as_ref().clone())),
+                        };
+                    }
+                }
             }
 
             // optimization for each type
@@ -1406,7 +1403,6 @@ impl SymbolExpr {
                             };
                         }
                     }
-            
                     // swap nodes by sorting rule
                     if let BinaryOp::Mul | BinaryOp::Div | BinaryOp::Pow = op {
                         match rhs {
@@ -1908,6 +1904,33 @@ impl SymbolExpr {
             _ => None,
         }
     }
+
+    /*
+    /// optimize the equation
+    pub fn optimize(&self) -> SymbolExpr {
+        match self {
+            SymbolExpr::Value(_) => self.clone(),
+            SymbolExpr::Symbol(_) => self.clone(),
+            SymbolExpr::Unary { op, expr } => {
+                let opt = expr.optimize();
+                match op {
+                    UnaryOp::Neg => match opt.neg_opt() {
+                        Some(e) => e,
+                        None => _neg(opt),
+                    }
+                    _ => SymbolExpr::Unary { op: op.clone(), expr: Box::new(opt) },
+                }
+            },
+            SymbolExpr::Binary { op, lhs, rhs } => {
+                match op {
+                    BinaryOp::Add
+                }
+                let l_opt = lhs.optimize();
+                let r_opt = rhs.optimize();
+            }
+        }
+    }
+    */
 }
 
 impl Add for SymbolExpr {
@@ -2085,11 +2108,11 @@ impl PartialOrd for SymbolExpr {
                 SymbolExpr::Binary{op: _, lhs: rl, rhs: rr} => {
                     let ls = match ll.as_ref() {
                         SymbolExpr::Value(_) => lr.to_string(),
-                        _ => ll.to_string(),
+                        _ => self.to_string(),
                     };
                     let rs = match rl.as_ref() {
                         SymbolExpr::Value(_) => rr.to_string(),
-                        _ => lr.to_string(),
+                        _ => rhs.to_string(),
                     };
                     if rs > ls && rs.len() > ls.len() {
                         Some(Ordering::Less)
