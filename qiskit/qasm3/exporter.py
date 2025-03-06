@@ -1151,6 +1151,8 @@ class QASM3Builder:
         """Build the expression of a given duration (if not ``None``)."""
         if duration is None:
             return None
+        if unit == "expr":
+            return self.build_expression(duration)
         if unit == "ps":
             return ast.DurationLiteral(1000 * duration, ast.DurationUnit.NANOSECOND)
         unit_map = {

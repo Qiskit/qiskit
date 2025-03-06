@@ -4555,17 +4555,20 @@ class QuantumCircuit:
 
     def delay(
         self,
-        duration: ParameterValueType,
+        duration: Union[ParameterValueType, expr.Expr],
         qarg: QubitSpecifier | None = None,
-        unit: str = "dt",
+        unit: str | None = None,
     ) -> InstructionSet:
         """Apply :class:`~.circuit.Delay`. If qarg is ``None``, applies to all qubits.
         When applying to multiple qubits, delays with the same duration will be created.
 
         Args:
-            duration (int or float or ParameterExpression): duration of the delay.
+            duration (Object):
+                duration of the delay. If this is an :class:`~.expr.Expr`, it must be
+                a constant expression of type :class:`~.types.Duration`.
             qarg (Object): qubit argument to apply this delay.
-            unit (str): unit of the duration. Supported units: ``'s'``, ``'ms'``, ``'us'``,
+            unit (str | None): unit of the duration, unless ``duration`` is an :class:`~.expr.Expr`
+                in which case it must not be specified. Supported units: ``'s'``, ``'ms'``, ``'us'``,
                 ``'ns'``, ``'ps'``, and ``'dt'``. Default is ``'dt'``, i.e. integer time unit
                 depending on the target backend.
 
