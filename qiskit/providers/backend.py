@@ -18,10 +18,9 @@
 from abc import ABC
 from abc import abstractmethod
 import datetime
-from typing import List, Union, Iterable, Tuple
+from typing import List, Union, Tuple
 
 from qiskit.circuit.gate import Instruction
-from qiskit.utils.deprecate_pulse import deprecate_pulse_dependency
 
 
 class Backend:
@@ -202,7 +201,7 @@ class BackendV2(Backend, ABC):
     @property
     @abstractmethod
     def max_circuits(self):
-        """The maximum number of circuits (or Pulse schedules) that can be
+        """The maximum number of circuits that can be
         run in a single job.
 
         If there is no limit this will return None
@@ -267,18 +266,6 @@ class BackendV2(Backend, ABC):
         """
         raise NotImplementedError
 
-    @property
-    @deprecate_pulse_dependency(is_property=True)
-    def instruction_schedule_map(self):
-        """Return the :class:`~qiskit.pulse.InstructionScheduleMap` for the
-        instructions defined in this backend's target."""
-        return self._instruction_schedule_map
-
-    @property
-    def _instruction_schedule_map(self):
-        """An alternative private path to be used internally to avoid pulse deprecation warnings."""
-        return self.target._get_instruction_schedule_map()
-
     def qubit_properties(
         self, qubit: Union[int, List[int]]
     ) -> Union[QubitProperties, List[QubitProperties]]:
@@ -312,77 +299,6 @@ class BackendV2(Backend, ABC):
         if isinstance(qubit, int):
             return self.target.qubit_properties[qubit]
         return [self.target.qubit_properties[q] for q in qubit]
-
-    @deprecate_pulse_dependency
-    def drive_channel(self, qubit: int):
-        """Return the drive channel for the given qubit.
-
-        This is required to be implemented if the backend supports Pulse
-        scheduling.
-
-        Returns:
-            DriveChannel: The Qubit drive channel
-
-        Raises:
-            NotImplementedError: if the backend doesn't support querying the
-                measurement mapping
-        """
-        raise NotImplementedError
-
-    @deprecate_pulse_dependency
-    def measure_channel(self, qubit: int):
-        """Return the measure stimulus channel for the given qubit.
-
-        This is required to be implemented if the backend supports Pulse
-        scheduling.
-
-        Returns:
-            MeasureChannel: The Qubit measurement stimulus line
-
-        Raises:
-            NotImplementedError: if the backend doesn't support querying the
-                measurement mapping
-        """
-        raise NotImplementedError
-
-    @deprecate_pulse_dependency
-    def acquire_channel(self, qubit: int):
-        """Return the acquisition channel for the given qubit.
-
-        This is required to be implemented if the backend supports Pulse
-        scheduling.
-
-        Returns:
-            AcquireChannel: The Qubit measurement acquisition line.
-
-        Raises:
-            NotImplementedError: if the backend doesn't support querying the
-                measurement mapping
-        """
-        raise NotImplementedError
-
-    @deprecate_pulse_dependency
-    def control_channel(self, qubits: Iterable[int]):
-        """Return the secondary drive channel for the given qubit
-
-        This is typically utilized for controlling multiqubit interactions.
-        This channel is derived from other channels.
-
-        This is required to be implemented if the backend supports Pulse
-        scheduling.
-
-        Args:
-            qubits: Tuple or list of qubits of the form
-                ``(control_qubit, target_qubit)``.
-
-        Returns:
-            List[ControlChannel]: The multi qubit control line.
-
-        Raises:
-            NotImplementedError: if the backend doesn't support querying the
-                measurement mapping
-        """
-        raise NotImplementedError
 
     def set_options(self, **fields):
         """Set the options fields for the backend
@@ -433,9 +349,8 @@ class BackendV2(Backend, ABC):
         class can handle either situation.
 
         Args:
-            run_input (QuantumCircuit or Schedule or ScheduleBlock or list): An
-                individual or a list of :class:`.QuantumCircuit`,
-                :class:`~qiskit.pulse.ScheduleBlock`, or :class:`~qiskit.pulse.Schedule` objects to
+            run_input (QuantumCircuit or list): An
+                individual or a list of :class:`.QuantumCircuit` objects to
                 run on the backend.
             options: Any kwarg options to pass to the backend for running the
                 config. If a key is also present in the options

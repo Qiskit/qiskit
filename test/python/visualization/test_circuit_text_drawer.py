@@ -3275,8 +3275,8 @@ class TestTextWithLayout(QiskitTestCase):
         circuit.h(qr)
 
         pass_ = ApplyLayout()
-        pass_.property_set["layout"] = Layout({qr[0]: 0, ancilla[1]: 1, ancilla[0]: 2, qr[1]: 3})
-        circuit_with_layout = pass_(circuit)
+        layout = Layout({qr[0]: 0, ancilla[1]: 1, ancilla[0]: 2, qr[1]: 3})
+        circuit_with_layout = pass_(circuit, property_set={"layout": layout})
 
         self.assertEqual(
             str(circuit_drawer(circuit_with_layout, output="text", initial_state=True)), expected
@@ -3337,8 +3337,8 @@ class TestTextWithLayout(QiskitTestCase):
         circuit.measure(qr2[1], cr[1])
 
         pass_ = ApplyLayout()
-        pass_.property_set["layout"] = Layout({qr1[0]: 0, qr1[1]: 1, qr2[0]: 2, qr2[1]: 3})
-        circuit_with_layout = pass_(circuit)
+        layout = Layout({qr1[0]: 0, qr1[1]: 1, qr2[0]: 2, qr2[1]: 3})
+        circuit_with_layout = pass_(circuit, property_set={"layout": layout})
 
         self.assertEqual(
             str(circuit_drawer(circuit_with_layout, output="text", initial_state=True)), expected

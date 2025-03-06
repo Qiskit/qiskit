@@ -63,7 +63,6 @@ class Optimize1qGatesDecomposition(TransformationPass):
     The decision to replace the original chain with a new re-synthesis depends on:
      - whether the original chain was out of basis: replace
      - whether the original chain was in basis but re-synthesis is lower error: replace
-     - whether the original chain contains a pulse gate: do not replace
      - whether the original chain amounts to identity: replace with null
 
      Error is computed as a multiplication of the errors of individual gates on that qubit.

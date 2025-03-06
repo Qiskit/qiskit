@@ -68,13 +68,6 @@ Serialization:
    qasm3
    qpy
 
-Pulse-level programming:
-
-.. toctree::
-   :maxdepth: 1
-
-   pulse
-
 Other:
 
 .. toctree::

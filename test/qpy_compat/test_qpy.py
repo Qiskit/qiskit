@@ -1109,10 +1109,11 @@ def load_qpy(qpy_files, version_parts):
 
     from qiskit.qpy.exceptions import QpyError
 
-    while pulse_files:
-        path, version = pulse_files.popitem()
+    for path, min_version in pulse_files.items():
 
-        if version_parts < version or version_parts >= (2, 0):
+        # version_parts is the version of Qiskit used to generate the payloads being loaded in this test.
+        # min_version is the minimal version of Qiskit this pulse payload was generated with.
+        if version_parts < min_version or version_parts >= (2, 0):
             continue
 
         if path == "pulse_gates.qpy":
@@ -1125,7 +1126,7 @@ def load_qpy(qpy_files, version_parts):
                 sys.exit(1)
         else:
             try:
-                # A ScheduleBlock payload, should raise QpyError
+                # A ScheduleBlock payload, should raise QpyError.
                 with open(path, "rb") as fd:
                     load(fd)
             except QpyError:

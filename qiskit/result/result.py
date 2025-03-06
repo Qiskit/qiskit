@@ -16,7 +16,6 @@ import copy
 import warnings
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.pulse.schedule import Schedule
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.states import statevector
 from qiskit.result.models import ExperimentResult, MeasLevel
@@ -345,8 +344,8 @@ class Result:
                 )
             key = 0
 
-        # Key is a QuantumCircuit/Schedule or str: retrieve result by name.
-        if isinstance(key, (QuantumCircuit, Schedule)):
+        # Key is a QuantumCircuit or str: retrieve result by name.
+        if isinstance(key, QuantumCircuit):
             key = key.name
         # Key is an integer: return result by index.
         if isinstance(key, int):
