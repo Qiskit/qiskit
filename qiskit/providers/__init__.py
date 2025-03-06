@@ -128,8 +128,7 @@ method to get available :class:`~qiskit.providers.BackendV2` objects. The
 a backend and its operation for the :mod:`~qiskit.transpiler` so that circuits
 can be compiled to something that is optimized and can execute on the
 backend. It also provides the :meth:`~qiskit.providers.BackendV2.run` method which can
-run the :class:`~qiskit.circuit.QuantumCircuit` objects and/or
-:class:`~qiskit.pulse.Schedule` objects. This enables users and other Qiskit
+run the :class:`~qiskit.circuit.QuantumCircuit` objects. This enables users and other Qiskit
 APIs to get results from
 executing circuits on devices in a standard
 fashion regardless of how the backend is implemented. At a high level the basic
