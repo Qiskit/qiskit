@@ -251,7 +251,7 @@ def _write_deprecation_msg(
     removal_timeline: str | None,
 ) -> tuple[str, Type[DeprecationWarning] | Type[PendingDeprecationWarning]]:
     if not removal_timeline:
-        removal_major = int(str(since).split(".")[0]) + 1
+        removal_major = int(str(since).split(".", maxsplit=1)[0]) + 1
         removal_timeline = f"in the next major release {removal_major}.0"
 
     if pending:
