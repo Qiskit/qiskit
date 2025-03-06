@@ -1,0 +1,16 @@
+---
+features_synthesis:
+  - |
+    Added new MCX gate decompositions utilising conditionally clean ancillae, improving circuit
+    depth and efficiency. New synthesis methods `synth_mcx_1_clean_kg24`, `synth_mcx_`_dirty_kg24`,
+    `synth_mcx_2_clean_kg24`, `synth_mcx_2_dirty_kg24` have been added to
+    `qiskit/synthesis/multi_controlled/mcx_synthesis.py`.
+    Example usage:
+    .. code-block:: python
+        
+        from qiskit.synthesis.multi_controlled import synth_mcx_1_clean_kg24
+        
+        n_ctrls = 10
+        qc = synth_mcx_1_clean_kg24(n_ctrls)
+        qc.draw()
+
