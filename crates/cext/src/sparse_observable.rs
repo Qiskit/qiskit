@@ -14,7 +14,15 @@ use std::ffi::{c_char, CString};
 
 use crate::exit_codes::{CInputError, ExitCode};
 use num_complex::Complex64;
+
 use qiskit_accelerate::sparse_observable::{BitTerm, SparseObservable, SparseTermView};
+
+#[cfg(feature = "python_binding")]
+use pyo3::ffi::PyObject;
+#[cfg(feature = "python_binding")]
+use pyo3::{Py, Python};
+#[cfg(feature = "python_binding")]
+use qiskit_accelerate::sparse_observable::PySparseObservable;
 
 /// @ingroup QkObsTerm
 /// A term in a [SparseObservable].
@@ -923,4 +931,35 @@ pub extern "C" fn qk_bitterm_label(bit_term: BitTerm) -> u8 {
         .chars()
         .next()
         .expect("Label has exactly one character") as u8
+}
+
+/// @ingroup SparseObservable
+/// Convert to a Python-space [PySparseObservable].
+///
+/// @param obs The C-space [SparseObservable] pointer.
+///
+/// @return A Python object representing the [PySparseObservable].
+///
+/// # Safety
+///
+/// Behavior is undefined if ``obs`` is not a valid, non-null pointer to a ``QkObs``.
+///
+/// It is assumed that the thread currently executing this function holds the
+/// Python GIL this is required to create the Python object returned by this
+/// function.
+#[no_mangle]
+#[cfg(feature = "python_binding")]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_obs_to_python(obs: *const SparseObservable) -> *mut PyObject {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let obs = unsafe { const_ptr_as_ref(obs) };
+    let py_obs: PySparseObservable = obs.clone().into();
+
+    // SAFETY: the C caller is required to hold the GIL.
+    unsafe {
+        let py = Python::assume_gil_acquired();
+        Py::new(py, py_obs)
+            .expect("Unable to create a Python object")
+            .into_ptr()
+    }
 }

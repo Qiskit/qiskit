@@ -25,9 +25,8 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.passmanager_config import PassManagerConfig
-from qiskit.transpiler.target import Target
+from qiskit.transpiler.target import Target, _FakeTarget
 from qiskit.transpiler.timing_constraints import TimingConstraints
-from qiskit.utils import deprecate_arg
 
 from .level0 import level_0_pass_manager
 from .level1 import level_1_pass_manager
@@ -35,32 +34,15 @@ from .level2 import level_2_pass_manager
 from .level3 import level_3_pass_manager
 
 
-@deprecate_arg(
-    name="instruction_durations",
-    since="1.3",
-    package_name="Qiskit",
-    removal_timeline="in Qiskit 2.0",
-    additional_msg="The `target` parameter should be used instead. You can build a `Target` instance "
-    "with defined instruction durations with "
-    "`Target.from_configuration(..., instruction_durations=...)`",
-)
-@deprecate_arg(
-    name="timing_constraints",
-    since="1.3",
-    package_name="Qiskit",
-    removal_timeline="in Qiskit 2.0",
-    additional_msg="The `target` parameter should be used instead. You can build a `Target` instance "
-    "with defined timing constraints with "
-    "`Target.from_configuration(..., timing_constraints=...)`",
-)
+OVER_3Q_GATES = ["ccx", "ccz", "cswap", "rccx", "c3x", "c3sx", "rc3x"]
+
+
 def generate_preset_pass_manager(
     optimization_level=2,
     backend=None,
     target=None,
     basis_gates=None,
     coupling_map=None,
-    instruction_durations=None,
-    timing_constraints=None,
     initial_layout=None,
     layout_method=None,
     routing_method=None,
@@ -88,8 +70,7 @@ def generate_preset_pass_manager(
 
     The target constraints for the pass manager construction can be specified through a :class:`.Target`
     instance, a :class:`.BackendV2` instance, or via loose constraints
-    (``basis_gates``, ``coupling_map``, ``instruction_durations``,
-    ``dt`` or ``timing_constraints``).
+    (``basis_gates``, ``coupling_map``, or ``dt``).
     The order of priorities for target constraints works as follows: if a ``target``
     input is provided, it will take priority over any ``backend`` input or loose constraints.
     If a ``backend`` is provided together with any loose constraint
@@ -104,9 +85,7 @@ def generate_preset_pass_manager(
     ============================ ========= ========================
     **basis_gates**              target    basis_gates
     **coupling_map**             target    coupling_map
-    **instruction_durations**    target    instruction_durations
     **dt**                       target    dt
-    **timing_constraints**       target    timing_constraints
     ============================ ========= ========================
 
     Args:
@@ -123,14 +102,12 @@ def generate_preset_pass_manager(
 
         backend (Backend): An optional backend object which can be used as the
             source of the default values for the ``basis_gates``,
-            ``coupling_map``, ``instruction_durations``,
-            ``timing_constraints``, and ``target``. If any of those other arguments
+            ``coupling_map``, and ``target``. If any of those other arguments
             are specified in addition to ``backend`` they will take precedence
             over the value contained in the backend.
         target (Target): The :class:`~.Target` representing a backend compilation
             target. The following attributes will be inferred from this
-            argument if they are not set: ``coupling_map``, ``basis_gates``,
-            ``instruction_durations`` and ``timing_constraints``.
+            argument if they are not set: ``coupling_map`` and ``basis_gates``.
         basis_gates (list): List of basis gate names to unroll to
             (e.g: ``['u1', 'u2', 'u3', 'cx']``).
         coupling_map (CouplingMap or list): Directed graph represented a coupling
@@ -140,45 +117,8 @@ def generate_preset_pass_manager(
             #. List, must be given as an adjacency matrix, where each entry
                specifies all directed two-qubit interactions supported by backend,
                e.g: ``[[0, 1], [0, 3], [1, 2], [1, 5], [2, 5], [4, 1], [5, 3]]``
-
-        instruction_durations (InstructionDurations or list): Dictionary of duration
-            (in dt) for each instruction. If specified, these durations overwrite the
-            gate lengths in ``backend.properties``. Applicable only if ``scheduling_method``
-            is specified.
-            The format of ``instruction_durations`` must be as follows:
-            They must be given as an :class:`.InstructionDurations` instance or a list of tuples
-
-            ```
-            [(instruction_name, qubits, duration, unit), ...].
-            | [('cx', [0, 1], 12.3, 'ns'), ('u3', [0], 4.56, 'ns')]
-            | [('cx', [0, 1], 1000), ('u3', [0], 300)]
-            ```
-
-            If ``unit`` is omitted, the default is ``'dt'``, which is a sample time depending on backend.
-            If the time unit is ``'dt'``, the duration must be an integer.
         dt (float): Backend sample time (resolution) in seconds.
-            If provided, this value will overwrite the ``dt`` value in ``instruction_durations``.
             If ``None`` (default) and a backend is provided, ``backend.dt`` is used.
-        timing_constraints (TimingConstraints): Hardware time alignment restrictions.
-             A quantum computer backend may report a set of restrictions, namely:
-
-                - granularity: An integer value representing minimum pulse gate
-                  resolution in units of ``dt``. A user-defined pulse gate should have
-                  duration of a multiple of this granularity value.
-                - min_length: An integer value representing minimum pulse gate
-                  length in units of ``dt``. A user-defined pulse gate should be longer
-                  than this length.
-                - pulse_alignment: An integer value representing a time resolution of gate
-                  instruction starting time. Gate instruction should start at time which
-                  is a multiple of the alignment value.
-                - acquire_alignment: An integer value representing a time resolution of measure
-                  instruction starting time. Measure instruction should start at time which
-                  is a multiple of the alignment value.
-
-                This information will be provided by the backend configuration.
-                If the backend doesn't have any restriction on the instruction time allocation,
-                then ``timing_constraints`` is None and no adjustment will be performed.
-
         initial_layout (Layout | List[int]): Initial position of virtual qubits on
             physical qubits.
         layout_method (str): The :class:`~.Pass` to use for choosing initial qubit
@@ -258,61 +198,72 @@ def generate_preset_pass_manager(
         optimization_level = 2
 
     # If there are no loose constraints => use backend target if available
-    _no_loose_constraints = (
-        basis_gates is None
-        and coupling_map is None
-        and dt is None
-        and instruction_durations is None
-        and timing_constraints is None
-    )
-    # If it's an edge case => do not build target
-    _skip_target = (
-        target is None
-        and backend is None
-        # Note: instruction_durations is deprecated and will be removed in 2.0 (no need for alternative)
-        and (basis_gates is None or coupling_map is None or instruction_durations is not None)
-    )
+    _no_loose_constraints = basis_gates is None and coupling_map is None and dt is None
+
+    # Warn about inconsistencies in backend + loose constraints path (dt shouldn't be a problem)
+    if backend is not None and (coupling_map is not None or basis_gates is not None):
+        warnings.warn(
+            "Providing `coupling_map` and/or `basis_gates` along with `backend` is not "
+            "recommended. This may introduce inconsistencies in the transpilation target, "
+            "leading to potential errors.",
+            category=UserWarning,
+            stacklevel=2,
+        )
 
     # Resolve loose constraints case-by-case against backend constraints.
     # The order of priority is loose constraints > backend.
     dt = _parse_dt(dt, backend)
-    instruction_durations = _parse_instruction_durations(backend, instruction_durations, dt)
-    timing_constraints = _parse_timing_constraints(backend, timing_constraints)
-    # The basis gates parser will set _skip_target to True if a custom basis gate is found
-    # (known edge case).
-    basis_gates, name_mapping, _skip_target = _parse_basis_gates(basis_gates, backend, _skip_target)
+    instruction_durations = _parse_instruction_durations(backend, dt)
+    timing_constraints = _parse_timing_constraints(backend)
     coupling_map = _parse_coupling_map(coupling_map, backend)
+    basis_gates, name_mapping = _parse_basis_gates(basis_gates, backend)
+
+    # Check if coupling map has been provided (either standalone or through backend)
+    # with user-defined basis_gates, and whether these have 3q or more.
+    if coupling_map is not None and basis_gates is not None:
+        for gate in OVER_3Q_GATES:
+            if gate in basis_gates:
+                raise ValueError(
+                    f"Gates with 3 or more qubits ({gate}) in `basis_gates` or `backend` are "
+                    "incompatible with a custom `coupling_map`. To include 3-qubit or larger "
+                    " gates in the transpilation basis, use a custom `target` instance instead."
+                )
 
     if target is None:
         if backend is not None and _no_loose_constraints:
             # If a backend is specified without loose constraints, use its target directly.
             target = backend.target
-        elif not _skip_target:
-            # Build target from constraints.
-            target = Target.from_configuration(
-                basis_gates=basis_gates,
-                num_qubits=backend.num_qubits if backend is not None else None,
-                coupling_map=coupling_map,
-                # If the instruction map has custom gates, do not give as config, the information
-                # will be added to the target with update_from_instruction_schedule_map
-                instruction_durations=instruction_durations,
-                concurrent_measurements=(
-                    backend.target.concurrent_measurements if backend is not None else None
-                ),
-                dt=dt,
-                timing_constraints=timing_constraints,
-                custom_name_mapping=name_mapping,
-            )
+        else:
+            if basis_gates is not None:
+                # Build target from constraints.
+                target = Target.from_configuration(
+                    basis_gates=basis_gates,
+                    num_qubits=backend.num_qubits if backend is not None else None,
+                    coupling_map=coupling_map,
+                    instruction_durations=instruction_durations,
+                    concurrent_measurements=(
+                        backend.target.concurrent_measurements if backend is not None else None
+                    ),
+                    dt=dt,
+                    timing_constraints=timing_constraints,
+                    custom_name_mapping=name_mapping,
+                )
+            else:
+                target = _FakeTarget.from_configuration(
+                    num_qubits=backend.num_qubits if backend is not None else None,
+                    coupling_map=coupling_map,
+                    dt=dt,
+                )
 
-    if target is not None:
-        if coupling_map is None:
-            coupling_map = target.build_coupling_map()
-        if basis_gates is None:
-            basis_gates = target.operation_names
-        if instruction_durations is None:
-            instruction_durations = target.durations()
-        if timing_constraints is None:
-            timing_constraints = target.timing_constraints()
+    # update loose constraints to populate pm options
+    if coupling_map is None:
+        coupling_map = target.build_coupling_map()
+    if basis_gates is None and len(target.operation_names) > 0:
+        basis_gates = target.operation_names
+    if instruction_durations is None:
+        instruction_durations = target.durations()
+    if timing_constraints is None:
+        timing_constraints = target.timing_constraints()
 
     # Parse non-target dependent pm options
     initial_layout = _parse_initial_layout(initial_layout)
@@ -358,7 +309,7 @@ def generate_preset_pass_manager(
     return pm
 
 
-def _parse_basis_gates(basis_gates, backend, skip_target):
+def _parse_basis_gates(basis_gates, backend):
     standard_gates = get_standard_gate_name_mapping()
     # Add control flow gates by default to basis set and name mapping
     default_gates = {"measure", "delay", "reset"}.union(CONTROL_FLOW_OP_NAMES)
@@ -374,23 +325,18 @@ def _parse_basis_gates(basis_gates, backend, skip_target):
     if backend is None:
         # Check for custom instructions
         if instructions is None:
-            return None, name_mapping, skip_target
+            return None, name_mapping
 
         for inst in instructions:
             if inst not in standard_gates and inst not in default_gates:
-                warnings.warn(
-                    category=DeprecationWarning,
-                    message=f"Providing non-standard gates ({inst}) through the ``basis_gates`` "
-                    "argument is deprecated for both ``transpile`` and ``generate_preset_pass_manager`` "
-                    "as of Qiskit 1.3.0. "
-                    "It will be removed in Qiskit 2.0. The ``target`` parameter should be used instead. "
+                raise ValueError(
+                    f"Providing non-standard gates ({inst}) through the ``basis_gates`` "
+                    "argument is not allowed. Use the ``target`` parameter instead. "
                     "You can build a target instance using ``Target.from_configuration()`` and provide "
-                    "custom gate definitions with the ``custom_name_mapping`` argument.",
+                    "custom gate definitions with the ``custom_name_mapping`` argument."
                 )
-                skip_target = True
-                break
 
-        return list(instructions), name_mapping, skip_target
+        return list(instructions), name_mapping
 
     instructions = instructions or backend.operation_names
     name_mapping.update(
@@ -401,20 +347,16 @@ def _parse_basis_gates(basis_gates, backend, skip_target):
     for inst in instructions:
         if inst not in standard_gates and inst not in default_gates:
             if inst not in backend.operation_names:
-                # do not raise warning when the custom instruction comes from the backend
+                # do not raise error when the custom instruction comes from the backend
                 # (common case with BasicSimulator)
-                warnings.warn(
-                    category=DeprecationWarning,
-                    message="Providing custom gates through the ``basis_gates`` argument is deprecated "
-                    "for both ``transpile`` and ``generate_preset_pass_manager`` as of Qiskit 1.3.0. "
-                    "It will be removed in Qiskit 2.0. The ``target`` parameter should be used instead. "
-                    "You can build a target instance using ``Target.from_configuration()`` and provide"
-                    "custom gate definitions with the ``custom_name_mapping`` argument.",
+                raise ValueError(
+                    f"Providing non-standard gates ({inst}) through the ``basis_gates`` "
+                    "argument is not allowed. Use the ``target`` parameter instead. "
+                    "You can build a target instance using ``Target.from_configuration()`` and provide "
+                    "custom gate definitions with the ``custom_name_mapping`` argument."
                 )
-            skip_target = True
-            break
 
-    return list(instructions) if instructions else None, name_mapping, skip_target
+    return list(instructions) if instructions else None, name_mapping
 
 
 def _parse_dt(dt, backend):
@@ -442,28 +384,20 @@ def _parse_coupling_map(coupling_map, backend):
         )
 
 
-def _parse_instruction_durations(backend, inst_durations, dt):
-    """Create a list of ``InstructionDuration``s. If ``inst_durations`` is provided,
-    the backend will be ignored, otherwise, the durations will be populated from the
-    backend.
-    """
+def _parse_instruction_durations(backend, dt):
+    """Create a list of ``InstructionDuration``s populated from the backend."""
     final_durations = InstructionDurations()
-    if not inst_durations:
-        backend_durations = InstructionDurations()
-        if backend is not None:
-            backend_durations = backend.instruction_durations
-        final_durations.update(backend_durations, dt or backend_durations.dt)
-    else:
-        final_durations.update(inst_durations, dt or getattr(inst_durations, "dt", None))
+    backend_durations = InstructionDurations()
+    if backend is not None:
+        backend_durations = backend.instruction_durations
+    final_durations.update(backend_durations, dt or backend_durations.dt)
     return final_durations
 
 
-def _parse_timing_constraints(backend, timing_constraints):
-    if isinstance(timing_constraints, TimingConstraints):
-        return timing_constraints
-    if backend is None and timing_constraints is None:
+def _parse_timing_constraints(backend):
+    if backend is None:
         timing_constraints = TimingConstraints()
-    elif backend is not None:
+    else:
         timing_constraints = backend.target.timing_constraints()
     return timing_constraints
 
