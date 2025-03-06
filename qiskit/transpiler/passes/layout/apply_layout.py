@@ -67,6 +67,10 @@ class ApplyLayout(TransformationPass):
             new_dag.add_captured_var(var)
         for var in dag.iter_declared_vars():
             new_dag.add_declared_var(var)
+        for stretch in dag.iter_captured_stretches():
+            new_dag.add_captured_stretch(stretch)
+        for stretch in dag.iter_declared_stretches():
+            new_dag.add_declared_stretch(stretch)
         new_dag.metadata = dag.metadata
         new_dag.add_clbits(dag.clbits)
         for creg in dag.cregs.values():
