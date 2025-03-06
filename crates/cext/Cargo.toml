@@ -17,12 +17,12 @@ workspace = true
 thiserror.workspace = true
 num-complex.workspace = true
 qiskit-accelerate.workspace = true
-pyo3.workspace = true
+pyo3 = { workspace = true, optional = true }
 
 [build-dependencies]
 cbindgen = "0.28"
 
 [features]
 default = ["cbinding"]
-python_binding = []
+python_binding = ["dep:pyo3"]
 cbinding = []
