@@ -225,6 +225,11 @@ def circuit_drawer(
 
     if idle_wires is None:
         idle_wires = default_idle_wires
+    elif isinstance(idle_wires, str):
+        if idle_wires == "auto":
+            idle_wires = hasattr(circuit, "_layout") and circuit._layout is None
+        else:
+            raise VisualizationError(f"Parameter idle_wires={idle_wires} unrecognized.")
 
     if wire_order is not None and reverse_bits:
         raise VisualizationError(
@@ -370,7 +375,7 @@ def _text_circuit_drawer(
     plot_barriers=True,
     justify=None,
     vertical_compression="high",
-    idle_wires="auto",
+    idle_wires=True,
     with_layout=True,
     fold=None,
     initial_state=True,
@@ -390,7 +395,7 @@ def _text_circuit_drawer(
             the circuit should be justified.
         vertical_compression (string): `high`, `medium`, or `low`. It merges the
             lines so the drawing will take less vertical room. Default is `high`.
-        idle_wires (bool or str): Include idle wires. Default is "auto".
+        idle_wires (bool): Include idle wires. Default is True.
         with_layout (bool): Include layout information with labels on the physical
             layout. Default: True
         fold (int): Optional. Breaks the circuit drawing to this length. This
@@ -461,7 +466,7 @@ def _latex_circuit_drawer(
     plot_barriers=True,
     reverse_bits=False,
     justify=None,
-    idle_wires="auto",
+    idle_wires=True,
     with_layout=True,
     initial_state=False,
     cregbundle=None,
@@ -482,7 +487,7 @@ def _latex_circuit_drawer(
             circuit. Defaults to True.
         justify (str) : `left`, `right` or `none`. Defaults to `left`. Says how
             the circuit should be justified.
-        idle_wires (bool or str): Include idle wires. Default is "auto".
+        idle_wires (bool): Include idle wires. Default is True.
         with_layout (bool): Include layout information, with labels on the physical
             layout. Default: True
         initial_state (bool): Optional. Adds |0> in the beginning of the line.
@@ -580,7 +585,7 @@ def _generate_latex_source(
     reverse_bits=False,
     plot_barriers=True,
     justify=None,
-    idle_wires="auto",
+    idle_wires=True,
     with_layout=True,
     initial_state=False,
     cregbundle=None,
@@ -599,7 +604,7 @@ def _generate_latex_source(
             circuit. Defaults to True.
         justify (str) : `left`, `right` or `none`. Defaults to `left`. Says how
             the circuit should be justified.
-        idle_wires (bool or str): Include idle wires. Default is "auto".
+        idle_wires (bool): Include idle wires. Default is True.
         with_layout (bool): Include layout information, with labels on the physical
             layout. Default: True
         initial_state (bool): Optional. Adds |0> in the beginning of the line.
@@ -653,7 +658,7 @@ def _matplotlib_circuit_drawer(
     plot_barriers=True,
     reverse_bits=False,
     justify=None,
-    idle_wires="auto",
+    idle_wires=True,
     with_layout=True,
     fold=None,
     ax=None,
@@ -677,7 +682,7 @@ def _matplotlib_circuit_drawer(
             circuit. Defaults to True.
         justify (str): `left`, `right` or `none`. Defaults to `left`. Says how
             the circuit should be justified.
-        idle_wires (bool or str): Include idle wires. Default is "auto".
+        idle_wires (bool): Include idle wires. Default is True.
         with_layout (bool): Include layout information, with labels on the physical
             layout. Default: True.
         fold (int): Number of vertical layers allowed before folding. Default is 25.
