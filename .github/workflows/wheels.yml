@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - '*'
+    branches: ['dnm-retrigger-141']
 jobs:
   build-core:
     name: Build core

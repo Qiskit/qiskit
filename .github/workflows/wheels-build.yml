@@ -154,6 +154,7 @@ jobs:
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.21.3
         env:
+          CIBW_BEFORE_ALL_LINUX: 'yum install -y wget libatomic && {package}/tools/install_rust.sh'
           CIBW_SKIP: 'pp* cp36-* cp37-* cp38-* *musllinux* *amd64 *x86_64'
       - uses: actions/upload-artifact@v4
         with:
