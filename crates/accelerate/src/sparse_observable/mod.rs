@@ -2467,7 +2467,7 @@ impl PySparseObservable {
                     "if using the sparse-list form, 'num_qubits' must be provided",
                 ));
             };
-            return Self::from_sparse_list(vec, num_qubits);
+            return Self::from_sparse_list(vec, num_qubits).map_err(PyErr::from);
         }
         if let Ok(term) = data.downcast_exact::<PySparseTerm>() {
             return term.borrow().to_observable();
@@ -2638,7 +2638,7 @@ impl PySparseObservable {
         for (i, (x, z)) in x.as_array().iter().zip(z.as_array().iter()).enumerate() {
             // The only failure case possible here is the identity, because of how we're
             // constructing the value to convert.
-            let Ok(term) = ::bytemuck::checked::try_cast(((*x as u8) << 1) | (*z as u8)) else {
+            let Ok(term) = ::bytemuck::checked::try_cast((*x as u8) << 1 | (*z as u8)) else {
                 continue;
             };
             num_ys += (term == BitTerm::Y) as isize;
@@ -3018,7 +3018,7 @@ impl PySparseObservable {
             for (i, (x, z)) in term_x.iter().zip(term_z.iter()).enumerate() {
                 // The only failure case possible here is the identity, because of how we're
                 // constructing the value to convert.
-                let Ok(term) = ::bytemuck::checked::try_cast(((*x as u8) << 1) | (*z as u8)) else {
+                let Ok(term) = ::bytemuck::checked::try_cast((*x as u8) << 1 | (*z as u8)) else {
                     continue;
                 };
                 indices.push(i as u32);
