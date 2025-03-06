@@ -1228,7 +1228,7 @@ def write_circuit(
         metadata_size=metadata_size,
         num_registers=num_registers,
         num_instructions=num_instructions,
-        num_vars=circuit.num_vars,
+        num_vars=circuit.num_identifiers,
     )
     header = struct.pack(formats.CIRCUIT_HEADER_V12_PACK, *header_raw)
     file_obj.write(header)
