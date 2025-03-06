@@ -55,9 +55,10 @@ class Expr(abc.ABC):
     All subclasses are responsible for setting their ``type`` attribute in their ``__init__``, and
     should not call the parent initializer."""
 
-    __slots__ = ("type",)
+    __slots__ = ("type", "const")
 
     type: types.Type
+    const: bool
 
     # Sentinel to prevent instantiation of the base class.
     @abc.abstractmethod
@@ -89,6 +90,7 @@ class Cast(Expr):
 
     def __init__(self, operand: Expr, type: types.Type, implicit: bool = False):
         self.type = type
+        self.const = operand.const
         self.operand = operand
         self.implicit = implicit
 
@@ -99,6 +101,7 @@ class Cast(Expr):
         return (
             isinstance(other, Cast)
             and self.type == other.type
+            and self.const == other.const
             and self.operand == other.operand
             and self.implicit == other.implicit
         )
@@ -141,6 +144,7 @@ class Var(Expr):
         name: str | None = None,
     ):
         super().__setattr__("type", type)
+        super().__setattr__("const", False)
         super().__setattr__("var", var)
         super().__setattr__("name", name)
 
@@ -151,8 +155,9 @@ class Var(Expr):
 
     @property
     def standalone(self) -> bool:
-        """Whether this :class:`Var` is a standalone variable that owns its storage location.  If
-        false, this is a wrapper :class:`Var` around a pre-existing circuit object."""
+        """Whether this :class:`Var` is a standalone variable that owns its storage
+        location, if applicable. If false, this is a wrapper :class:`Var` around a
+        pre-existing circuit object."""
         return isinstance(self.var, uuid.UUID)
 
     def accept(self, visitor, /):
@@ -185,6 +190,7 @@ class Var(Expr):
     def __setstate__(self, state):
         var, type, name = state
         super().__setattr__("type", type)
+        super().__setattr__("const", False)
         super().__setattr__("var", var)
         super().__setattr__("name", name)
 
@@ -206,6 +212,7 @@ class Value(Expr):
     def __init__(self, value: typing.Any, type: types.Type):
         self.type = type
         self.value = value
+        self.const = True
 
     def accept(self, visitor, /):
         return visitor.visit_value(self)
@@ -257,6 +264,7 @@ class Unary(Expr):
         self.op = op
         self.operand = operand
         self.type = type
+        self.const = operand.const
 
     def accept(self, visitor, /):
         return visitor.visit_unary(self)
@@ -265,6 +273,7 @@ class Unary(Expr):
         return (
             isinstance(other, Unary)
             and self.type == other.type
+            and self.const == other.const
             and self.op is other.op
             and self.operand == other.operand
         )
@@ -305,6 +314,15 @@ class Binary(Expr):
         container types (e.g. unsigned integers) as the left operand, and any integer type as the
         right-hand operand.  In all cases, the output bit width is the same as the input, and zeros
         fill in the "exposed" spaces.
+
+        The binary arithmetic operators :data:`ADD`, :data:`SUB:, :data:`MUL`, and :data:`DIV`
+        can be applied to two floats or two unsigned integers, which should be made to be of
+        the same width during construction via a cast.
+        The :data:`ADD`, :data:`SUB`, and :data:`DIV` operators can be applied on two durations
+        yielding another duration, or a float in the case of :data:`DIV`. The :data:`MUL` operator
+        can also be applied to a duration and a numeric type, yielding another duration. Finally,
+        the :data:`DIV` operator can be used to divide a duration by a numeric type, yielding a
+        duration.
         """
 
         # If adding opcodes, remember to add helper constructor functions in `constructors.py`
@@ -336,6 +354,14 @@ class Binary(Expr):
         """Zero-padding bitshift to the left.  ``lhs << rhs``."""
         SHIFT_RIGHT = 13
         """Zero-padding bitshift to the right.  ``lhs >> rhs``."""
+        ADD = 14
+        """Addition. ``lhs + rhs``."""
+        SUB = 15
+        """Subtraction. ``lhs - rhs``."""
+        MUL = 16
+        """Multiplication. ``lhs * rhs``."""
+        DIV = 17
+        """Division. ``lhs / rhs``."""
 
         def __str__(self):
             return f"Binary.{super().__str__()}"
@@ -348,6 +374,7 @@ class Binary(Expr):
         self.left = left
         self.right = right
         self.type = type
+        self.const = left.const and right.const
 
     def accept(self, visitor, /):
         return visitor.visit_binary(self)
@@ -356,6 +383,7 @@ class Binary(Expr):
         return (
             isinstance(other, Binary)
             and self.type == other.type
+            and self.const == other.const
             and self.op is other.op
             and self.left == other.left
             and self.right == other.right
@@ -381,6 +409,7 @@ class Index(Expr):
         self.target = target
         self.index = index
         self.type = type
+        self.const = target.const and index.const
 
     def accept(self, visitor, /):
         return visitor.visit_index(self)
@@ -389,6 +418,7 @@ class Index(Expr):
         return (
             isinstance(other, Index)
             and self.type == other.type
+            and self.const == other.const
             and self.target == other.target
             and self.index == other.index
         )

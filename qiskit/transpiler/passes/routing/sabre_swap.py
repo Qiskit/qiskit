@@ -20,7 +20,7 @@ import rustworkx
 
 from qiskit.circuit import SwitchCaseOp, Clbit, ClassicalRegister
 from qiskit.circuit.library.standard_gates import SwapGate
-from qiskit.circuit.controlflow import condition_resources, node_resources
+from qiskit.circuit.controlflow import node_resources
 from qiskit.converters import dag_to_circuit
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.coupling import CouplingMap
@@ -29,7 +29,7 @@ from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.target import Target
 from qiskit.transpiler.passes.layout import disjoint_utils
 from qiskit.dagcircuit import DAGCircuit, DAGOpNode
-from qiskit.utils.parallel import CPU_COUNT
+from qiskit.utils import default_num_processes
 
 from qiskit._accelerate.sabre import sabre_routing, Heuristic, SetScaling, NeighborTable, SabreDAG
 from qiskit._accelerate.nlayout import NLayout
@@ -167,7 +167,7 @@ class SabreSwap(TransformationPass):
         self.heuristic = heuristic
         self.seed = seed
         if trials is None:
-            self.trials = CPU_COUNT
+            self.trials = default_num_processes()
         else:
             self.trials = trials
 
@@ -301,8 +301,6 @@ def _build_sabre_dag(dag, num_physical_qubits, qubit_indices):
         node_blocks = {}
         for node in block_dag.topological_op_nodes():
             cargs_bits = set(node.cargs)
-            if node.condition is not None:
-                cargs_bits.update(condition_resources(node.condition).clbits)
             if node.is_control_flow() and isinstance(node.op, SwitchCaseOp):
                 target = node.op.target
                 if isinstance(target, Clbit):

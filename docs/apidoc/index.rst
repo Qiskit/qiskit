@@ -15,7 +15,6 @@ Circuit construction:
    circuit
    qiskit.circuit.QuantumCircuit
    circuit_classical
-   classicalfunction
    circuit_library
    circuit_singleton
 
@@ -51,7 +50,6 @@ Primitives and providers:
    providers
    providers_basic_provider
    providers_fake_provider
-   providers_models
 
 Results and visualizations:
 
@@ -76,7 +74,6 @@ Pulse-level programming:
    :maxdepth: 1
 
    pulse
-   scheduler
 
 Other:
 
@@ -85,5 +82,4 @@ Other:
 
    compiler
    exceptions
-   qobj
    utils

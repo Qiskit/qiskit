@@ -22,8 +22,7 @@ from qiskit import user_config
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.providers.backend import Backend
-from qiskit.providers.backend_compat import BackendV2Converter
-from qiskit.pulse import Schedule, InstructionScheduleMap
+from qiskit.pulse import Schedule
 from qiskit.transpiler import Layout, CouplingMap, PropertySet
 from qiskit.transpiler.basepasses import BasePass
 from qiskit.transpiler.exceptions import TranspilerError, CircuitTooWideForTarget
@@ -32,7 +31,6 @@ from qiskit.transpiler.passes.synthesis.high_level_synthesis import HLSConfig
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.transpiler.target import Target
 from qiskit.utils import deprecate_arg
-from qiskit.utils.deprecate_pulse import deprecate_pulse_arg
 
 logger = logging.getLogger(__name__)
 
@@ -57,12 +55,10 @@ _CircuitT = TypeVar("_CircuitT", bound=Union[QuantumCircuit, List[QuantumCircuit
     "with defined timing constraints with "
     "`Target.from_configuration(..., timing_constraints=...)`",
 )
-@deprecate_pulse_arg("inst_map", predicate=lambda inst_map: inst_map is not None)
 def transpile(  # pylint: disable=too-many-return-statements
     circuits: _CircuitT,
     backend: Optional[Backend] = None,
     basis_gates: Optional[List[str]] = None,
-    inst_map: Optional[List[InstructionScheduleMap]] = None,
     coupling_map: Optional[Union[CouplingMap, List[List[int]]]] = None,
     initial_layout: Optional[Union[Layout, Dict, List]] = None,
     layout_method: Optional[str] = None,
@@ -95,25 +91,23 @@ def transpile(  # pylint: disable=too-many-return-statements
 
     The prioritization of transpilation target constraints works as follows: if a ``target``
     input is provided, it will take priority over any ``backend`` input or loose constraints
-    (``basis_gates``, ``inst_map``, ``coupling_map``, ``instruction_durations``,
+    (``basis_gates``, ``coupling_map``, ``instruction_durations``,
     ``dt`` or ``timing_constraints``). If a ``backend`` is provided together with any loose constraint
     from the list above, the loose constraint will take priority over the corresponding backend
-    constraint. This behavior is independent of whether the ``backend`` instance is of type
-    :class:`.BackendV1` or :class:`.BackendV2`, as summarized in the table below. The first column
+    constraint. This behavior is summarized in the table below. The first column
     in the table summarizes the potential user-provided constraints, and each cell shows whether
     the priority is assigned to that specific constraint input or another input
-    (`target`/`backend(V1)`/`backend(V2)`).
+    (`target`/`backend(V2)`).
 
-    ============================ ========= ======================== =======================
-    User Provided                target    backend(V1)              backend(V2)
-    ============================ ========= ======================== =======================
-    **basis_gates**              target    basis_gates              basis_gates
-    **coupling_map**             target    coupling_map             coupling_map
-    **instruction_durations**    target    instruction_durations    instruction_durations
-    **inst_map**                 target    inst_map                 inst_map
-    **dt**                       target    dt                       dt
-    **timing_constraints**       target    timing_constraints       timing_constraints
-    ============================ ========= ======================== =======================
+    ============================ ========= ========================
+    User Provided                target    backend(V2)
+    ============================ ========= ========================
+    **basis_gates**              target    basis_gates
+    **coupling_map**             target    coupling_map
+    **instruction_durations**    target    instruction_durations
+    **dt**                       target    dt
+    **timing_constraints**       target    timing_constraints
+    ============================ ========= ========================
 
     Args:
         circuits: Circuit(s) to transpile
@@ -122,12 +116,6 @@ def transpile(  # pylint: disable=too-many-return-statements
             will override the backend's.
         basis_gates: List of basis gate names to unroll to
             (e.g: ``['u1', 'u2', 'u3', 'cx']``). If ``None``, do not unroll.
-        inst_map: DEPRECATED. Mapping of unrolled gates to pulse schedules. If this is not provided,
-            transpiler tries to get from the backend. If any user defined calibration
-            is found in the map and this is used in a circuit, transpiler attaches
-            the custom gate definition to the circuit. This enables one to flexibly
-            override the low-level instruction implementation. This feature is available
-            iff the backend supports the pulse gate experiment.
         coupling_map: Directed coupling map (perhaps custom) to target in mapping. If
             the coupling map is symmetric, both directions need to be specified.
 
@@ -201,7 +189,7 @@ def transpile(  # pylint: disable=too-many-return-statements
             If unit is omitted, the default is 'dt', which is a sample time depending on backend.
             If the time unit is 'dt', the duration must be an integer.
         dt: Backend sample time (resolution) in seconds.
-            If ``None`` (default), ``backend.configuration().dt`` is used.
+            If ``None`` (default), ``backend.dt`` is used.
         approximation_degree (float): heuristic dial used for circuit approximation
             (1.0=no approximation, 0.0=maximal approximation)
         timing_constraints: An optional control hardware restriction on instruction time resolution.
@@ -330,30 +318,6 @@ def transpile(  # pylint: disable=too-many-return-statements
         config = user_config.get_config()
         optimization_level = config.get("transpile_optimization_level", 2)
 
-    if backend is not None and getattr(backend, "version", 0) <= 1:
-        warnings.warn(
-            "The `transpile` function will stop supporting inputs of "
-            f"type `BackendV1` ( {backend} ) in the `backend` parameter in a future "
-            "release no earlier than 2.0. `BackendV1` is deprecated and implementations "
-            "should move to `BackendV2`.",
-            category=DeprecationWarning,
-            stacklevel=2,
-        )
-        with warnings.catch_warnings():
-            # This is a temporary conversion step to allow for a smoother transition
-            # to a fully target-based transpiler pipeline while maintaining the behavior
-            # of `transpile` with BackendV1 inputs.
-            # TODO BackendV1 is deprecated and this path can be
-            #   removed once it gets removed:
-            #   https://github.com/Qiskit/qiskit/pull/12850
-            warnings.filterwarnings(
-                "ignore",
-                category=DeprecationWarning,
-                message=r".+qiskit\.providers\.backend_compat\.BackendV2Converter.+",
-                module="qiskit",
-            )
-            backend = BackendV2Converter(backend)
-
     if (
         scheduling_method is not None
         and backend is None
@@ -379,14 +343,8 @@ def transpile(  # pylint: disable=too-many-return-statements
     # Edge cases require using the old model (loose constraints) instead of building a target,
     # but we don't populate the passmanager config with loose constraints unless it's one of
     # the known edge cases to control the execution path.
-    # Filter instruction_durations, timing_constraints and inst_map deprecation
+    # Filter instruction_durations and timing_constraints deprecation
     with warnings.catch_warnings():
-        warnings.filterwarnings(
-            "ignore",
-            category=DeprecationWarning,
-            message=".*``inst_map`` is deprecated as of Qiskit 1.3.*",
-            module="qiskit",
-        )
         warnings.filterwarnings(
             "ignore",
             category=DeprecationWarning,
@@ -407,7 +365,6 @@ def transpile(  # pylint: disable=too-many-return-statements
             coupling_map=coupling_map,
             instruction_durations=instruction_durations,
             timing_constraints=timing_constraints,
-            inst_map=inst_map,
             initial_layout=initial_layout,
             layout_method=layout_method,
             routing_method=routing_method,

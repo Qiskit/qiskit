@@ -336,8 +336,6 @@ class TestGateEquivalenceEqual(QiskitTestCase):
         "MCXGate",
         "MCMTGate",
         "VariadicZeroParamGate",
-        "ClassicalFunction",
-        "ClassicalElement",
         "StatePreparation",
         "UniformSuperpositionGate",
         "LinearFunction",
@@ -360,6 +358,15 @@ class TestGateEquivalenceEqual(QiskitTestCase):
         "OrGate",
         "BitwiseXorGate",
         "InnerProductGate",
+        "IntegerComparatorGate",
+        "PolynomialPauliRotationsGate",
+        "PiecewiseLinearPauliRotationsGate",
+        "PiecewisePolynomialPauliRotationsGate",
+        "PiecewiseChebyshevGate",
+        "ExactReciprocalGate",
+        "LinearPauliRotationsGate",
+        "LinearAmplitudeFunctionGate",
+        "WeightedSumGate",
     }
 
     # Amazingly, Python's scoping rules for class bodies means that this is the closest we can get
@@ -377,7 +384,7 @@ class TestGateEquivalenceEqual(QiskitTestCase):
             params[0] = 2
         if gate_class.__name__ in ["PauliGate"]:
             params = ["IXYZ"]
-        if gate_class.__name__ in ["BooleanExpression"]:
+        if gate_class.__name__ in ["BooleanExpression", "BitFlipOracleGate", "PhaseOracleGate"]:
             params = ["x | y"]
 
         gate = gate_class(*params)

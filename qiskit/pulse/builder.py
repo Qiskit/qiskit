@@ -639,29 +639,6 @@ def build(
 ) -> ContextManager[ScheduleBlock]:
     """Create a context manager for launching the imperative pulse builder DSL.
 
-    To enter a building context and starting building a pulse program:
-
-    .. code-block:: python
-
-        from qiskit import transpile, pulse
-        from qiskit.providers.fake_provider import FakeOpenPulse2Q
-
-        backend = FakeOpenPulse2Q()
-
-        d0 = pulse.DriveChannel(0)
-
-        with pulse.build() as pulse_prog:
-            pulse.play(pulse.Constant(100, 0.5), d0)
-
-
-    While the output program ``pulse_prog`` cannot be executed as we are using
-    a mock backend. If a real backend is being used, executing the program is
-    done with:
-
-    .. code-block:: python
-
-        backend.run(transpile(pulse_prog, backend))
-
     Args:
         backend (Backend): A Qiskit backend. If not supplied certain
             builder functionality will be unavailable.
@@ -761,15 +738,11 @@ def num_qubits() -> int:
 
     Examples:
 
-    .. plot::
-       :include-source:
-       :nofigs:
+    .. code-block:: python
 
         from qiskit import pulse
         from qiskit.providers.fake_provider import FakeOpenPulse2Q
-
         backend = FakeOpenPulse2Q()
-
         with pulse.build(backend):
             print(pulse.num_qubits())
 
@@ -823,15 +796,11 @@ def qubit_channels(qubit: int) -> set[chans.Channel]:
 
     Examples:
 
-    .. plot::
-       :include-source:
-       :nofigs:
+    .. code-block:: python
 
         from qiskit import pulse
         from qiskit.providers.fake_provider import FakeOpenPulse2Q
-
         backend = FakeOpenPulse2Q()
-
         with pulse.build(backend):
             print(pulse.qubit_channels(0))
 
@@ -1206,9 +1175,7 @@ def frequency_offset(
 
     Examples:
 
-    .. plot::
-        :include-source:
-        :nofigs:
+    .. code-block:: python
 
         from qiskit import pulse
         from qiskit.providers.fake_provider import FakeOpenPulse2Q
@@ -1231,6 +1198,7 @@ def frequency_offset(
                 pulse.play(pulse.Constant(10, 1.0), d0)
 
         assert len(pulse_prog.instructions) == 4
+
 
     Args:
         frequency: Amount of frequency offset in Hz.
@@ -1271,9 +1239,7 @@ def drive_channel(qubit: int) -> chans.DriveChannel:
 
     Examples:
 
-    .. plot::
-       :include-source:
-       :nofigs:
+    .. code-block:: python
 
         from qiskit import pulse
         from qiskit.providers.fake_provider import FakeOpenPulse2Q
@@ -1297,9 +1263,7 @@ def measure_channel(qubit: int) -> chans.MeasureChannel:
 
     Examples:
 
-    .. plot::
-       :include-source:
-       :nofigs:
+    .. code-block:: python
 
         from qiskit import pulse
         from qiskit.providers.fake_provider import FakeOpenPulse2Q
@@ -1323,9 +1287,7 @@ def acquire_channel(qubit: int) -> chans.AcquireChannel:
 
     Examples:
 
-    .. plot::
-       :include-source:
-       :nofigs:
+    .. code-block:: python
 
         from qiskit import pulse
         from qiskit.providers.fake_provider import FakeOpenPulse2Q
@@ -1352,14 +1314,13 @@ def control_channels(*qubits: Iterable[int]) -> list[chans.ControlChannel]:
 
     Examples:
 
-    .. plot::
-       :include-source:
-       :nofigs:
+    .. code-block:: python
 
         from qiskit import pulse
         from qiskit.providers.fake_provider import FakeOpenPulse2Q
 
         backend = FakeOpenPulse2Q()
+
         with pulse.build(backend):
             assert pulse.control_channels(0, 1) == [pulse.ControlChannel(0)]
 
@@ -1855,10 +1816,7 @@ def barrier(*channels_or_qubits: chans.Channel | int, name: str | None = None):
     the barrier. Consider the case where we want to enforce that one pulse
     happens after another on separate channels, this can be done with:
 
-    .. plot::
-       :include-source:
-       :nofigs:
-       :context: reset
+    .. code-block:: python
 
         from qiskit import pulse
         from qiskit.providers.fake_provider import FakeOpenPulse2Q
@@ -1875,10 +1833,7 @@ def barrier(*channels_or_qubits: chans.Channel | int, name: str | None = None):
 
     Of course this could have been accomplished with:
 
-    .. plot::
-       :include-source:
-       :nofigs:
-       :context:
+    .. code-block:: python
 
         from qiskit.pulse import transforms
 
@@ -1940,12 +1895,9 @@ def macro(func: Callable):
     behave as if the function code was embedded inline in the parent builder context
     after parameter substitution.
 
-
     Examples:
 
-    .. plot::
-       :alt: Output from the previous code.
-       :include-source:
+    .. code-block:: python
 
         from qiskit import pulse
         from qiskit.providers.fake_provider import FakeOpenPulse2Q
@@ -1958,7 +1910,6 @@ def macro(func: Callable):
 
             return mem_slot
 
-
         backend = FakeOpenPulse2Q()
 
         with pulse.build(backend=backend) as sched:
@@ -1966,7 +1917,6 @@ def macro(func: Callable):
             print(f"Qubit measured into {mem_slot}")
 
         sched.draw()
-
 
     Args:
         func: The Python function to enable as a builder macro. There are no
@@ -2005,38 +1955,9 @@ def measure(
     the process for you, but if desired full control is still available with
     :func:`acquire` and :func:`play`.
 
-    To use the measurement it is as simple as specifying the qubit you wish to
-    measure:
-
-    .. code-block:: python
-
-        from qiskit import pulse
-        from qiskit.providers.fake_provider import FakeOpenPulse2Q
-
-        backend = FakeOpenPulse2Q()
-
-        qubit = 0
-
-        with pulse.build(backend) as pulse_prog:
-            # Do something to the qubit.
-            qubit_drive_chan = pulse.drive_channel(0)
-            pulse.play(pulse.Constant(100, 1.0), qubit_drive_chan)
-            # Measure the qubit.
-            reg = pulse.measure(qubit)
-
     For now it is not possible to do much with the handle to ``reg`` but in the
     future we will support using this handle to a result register to build
-    up ones program. It is also possible to supply this register:
-
-    .. code-block:: python
-
-        with pulse.build(backend) as pulse_prog:
-            pulse.play(pulse.Constant(100, 1.0), qubit_drive_chan)
-            # Measure the qubit.
-            mem0 = pulse.MemorySlot(0)
-            reg = pulse.measure(qubit, mem0)
-
-        assert reg == mem0
+    up ones program.
 
     .. note:: Requires the active builder context to have a backend set.
 
@@ -2091,9 +2012,7 @@ def measure_all() -> list[chans.MemorySlot]:
 
     Examples:
 
-    .. plot::
-       :include-source:
-       :nofigs:
+    .. code-block:: python
 
         from qiskit import pulse
         from qiskit.providers.fake_provider import FakeOpenPulse2Q
@@ -2134,9 +2053,7 @@ def delay_qubits(duration: int, *qubits: int):
 
     Examples:
 
-    .. plot::
-       :include-source:
-       :nofigs:
+    .. code-block:: python
 
         from qiskit import pulse
         from qiskit.providers.fake_provider import FakeOpenPulse3Q

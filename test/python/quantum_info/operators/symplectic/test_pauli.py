@@ -43,7 +43,7 @@ from qiskit.circuit.library import (
 from qiskit.circuit.library.generalized_gates import PauliGate
 from qiskit.compiler.transpiler import transpile
 from qiskit.exceptions import QiskitError
-from qiskit.primitives import BackendEstimator
+from qiskit.primitives import BackendEstimatorV2
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.quantum_info.operators import Operator, Pauli, SparsePauliOp
 from qiskit.quantum_info.random import random_clifford, random_pauli
@@ -545,14 +545,12 @@ class TestPauli(QiskitTestCase):
         op = Pauli("XXXI")
         backend = GenericBackendV2(num_qubits=7, seed=0)
         backend.set_options(seed_simulator=123)
-        with self.assertWarns(DeprecationWarning):
-            estimator = BackendEstimator(backend=backend, skip_transpilation=True)
+        estimator = BackendEstimatorV2(backend=backend)
         thetas = list(range(len(psi.parameters)))
         transpiled_psi = transpile(psi, backend, optimization_level=3)
         permuted_op = op.apply_layout(transpiled_psi.layout)
-        with self.assertWarns(DeprecationWarning):
-            job = estimator.run(transpiled_psi, permuted_op, thetas)
-            res = job.result().values
+        job = estimator.run([(transpiled_psi, permuted_op, thetas)])
+        res = job.result()[0].data.evs
         if optionals.HAS_AER:
             np.testing.assert_allclose(res, [0.20898438], rtol=0.5, atol=0.2)
         else:

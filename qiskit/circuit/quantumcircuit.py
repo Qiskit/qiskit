@@ -19,9 +19,9 @@ from __future__ import annotations
 import collections.abc
 import copy as _copy
 import itertools
-import multiprocessing as mp
+import multiprocessing
 import typing
-from collections import OrderedDict, defaultdict, namedtuple
+from collections import OrderedDict, namedtuple
 from typing import (
     Union,
     Optional,
@@ -33,7 +33,6 @@ from typing import (
     Mapping,
     Iterable,
     Any,
-    DefaultDict,
     Literal,
     overload,
 )
@@ -43,13 +42,11 @@ from qiskit._accelerate.circuit import CircuitData
 from qiskit._accelerate.circuit import StandardGate
 from qiskit._accelerate.circuit_duration import compute_estimated_duration
 from qiskit.exceptions import QiskitError
-from qiskit.utils.multiprocessing import is_main_process
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.utils import deprecate_func
-from qiskit.utils.deprecate_pulse import deprecate_pulse_dependency
 from . import _classical_resource_map
 from .controlflow import ControlFlowOp, _builder_utils
 from .controlflow.builder import CircuitScopeInterface, ControlFlowBuilderBlock
@@ -151,7 +148,6 @@ class QuantumCircuit:
     Immutable data attribute  Summary
     ========================= ======================================================================
     :attr:`ancillas`          List of :class:`AncillaQubit`\\ s tracked by the circuit.
-    :attr:`calibrations`      Custom user-supplied pulse calibrations for individual instructions.
     :attr:`cregs`             List of :class:`ClassicalRegister`\\ s tracked by the circuit.
 
     :attr:`clbits`            List of :class:`Clbit`\\ s tracked by the circuit.
@@ -231,12 +227,6 @@ class QuantumCircuit:
     :class:`set`-like constant-time membership testing.
 
     .. autoattribute:: parameters
-
-    The storage of any :ref:`manual pulse-level calibrations <circuit-calibrations>` for individual
-    instructions on the circuit is in :attr:`calibrations`.  This presents as a :class:`dict`, but
-    should not be mutated directly; use the methods discussed in :ref:`circuit-calibrations`.
-
-    .. autoattribute:: calibrations
 
     If you have transpiled your circuit, so you have a physical circuit, you can inspect the
     :attr:`layout` attribute for information stored by the transpiler about how the virtual qubits
@@ -816,17 +806,6 @@ class QuantumCircuit:
     .. automethod:: clear
     .. automethod:: remove_final_measurements
 
-    .. _circuit-calibrations:
-
-    Manual calibration of instructions
-    ----------------------------------
-
-    :class:`QuantumCircuit` can store :attr:`calibrations` of instructions that define the pulses
-    used to run them on one particular hardware backend.  You can
-
-    .. automethod:: add_calibration
-    .. automethod:: has_calibration_for
-
 
     Circuit properties
     ==================
@@ -1106,7 +1085,6 @@ class QuantumCircuit:
         self._data: CircuitData = CircuitData()
 
         self._ancillas: list[AncillaQubit] = []
-        self._calibrations: DefaultDict[str, dict[tuple, Any]] = defaultdict(dict)
         self.add_register(*regs)
 
         self._layout = None
@@ -1135,7 +1113,7 @@ class QuantumCircuit:
         transpiler and reattach it to the output, so you can track your own metadata."""
 
     @property
-    @deprecate_func(since="1.3.0", removal_timeline="in Qiskit 2.0.0", is_property=True)
+    @deprecate_func(since="1.3.0", removal_timeline="in Qiskit 3.0.0", is_property=True)
     def duration(self):
         """The total duration of the circuit, set by a scheduling transpiler pass.  Its unit is
         specified by :attr:`unit`."""
@@ -1146,7 +1124,7 @@ class QuantumCircuit:
         self._duration = value
 
     @property
-    @deprecate_func(since="1.3.0", removal_timeline="in Qiskit 2.0.0", is_property=True)
+    @deprecate_func(since="1.3.0", removal_timeline="in Qiskit 3.0.0", is_property=True)
     def unit(self):
         """The unit that :attr:`duration` is specified in."""
         return self._unit
@@ -1304,11 +1282,16 @@ class QuantumCircuit:
     def op_start_times(self) -> list[int]:
         """Return a list of operation start times.
 
+        .. note::
+           This attribute computes the estimate starting time of the operations in the scheduled circuit
+           and only works for simple circuits that have no control flow or other classical feed-forward
+           operations.
+
         This attribute is enabled once one of scheduling analysis passes
         runs on the quantum circuit.
 
         Returns:
-            List of integers representing instruction start times.
+            List of integers representing instruction estimated start times.
             The index corresponds to the index of instruction in :attr:`QuantumCircuit.data`.
 
         Raises:
@@ -1320,67 +1303,6 @@ class QuantumCircuit:
                 "To schedule it run the circuit through one of the transpiler scheduling passes."
             )
         return self._op_start_times
-
-    @property
-    @deprecate_pulse_dependency(is_property=True)
-    def calibrations(self) -> dict:
-        """Return calibration dictionary.
-
-        The custom pulse definition of a given gate is of the form
-        ``{'gate_name': {(qubits, params): schedule}}``
-        """
-        return self._calibrations_prop
-
-    @calibrations.setter
-    @deprecate_pulse_dependency(is_property=True)
-    def calibrations(self, calibrations: dict):
-        """Set the circuit calibration data from a dictionary of calibration definition.
-
-        Args:
-            calibrations (dict): A dictionary of input in the format
-               ``{'gate_name': {(qubits, gate_params): schedule}}``
-        """
-        self._calibrations_prop = calibrations
-
-    @property
-    def _calibrations_prop(self) -> dict:
-        """An alternative private path to the `calibrations` property for
-        avoiding deprecation warnings."""
-        return dict(self._calibrations)
-
-    @_calibrations_prop.setter
-    def _calibrations_prop(self, calibrations: dict):
-        """An alternative private path to the `calibrations` property for
-        avoiding deprecation warnings."""
-        self._calibrations = defaultdict(dict, calibrations)
-
-    @deprecate_pulse_dependency
-    def has_calibration_for(self, instruction: CircuitInstruction | tuple):
-        """Return True if the circuit has a calibration defined for the instruction context. In this
-        case, the operation does not need to be translated to the device basis.
-        """
-
-        return self._has_calibration_for(instruction)
-
-    def _has_calibration_for(self, instruction: CircuitInstruction | tuple):
-        """An alternative private path to the `has_calibration_for` method for
-        avoiding deprecation warnings."""
-        if isinstance(instruction, CircuitInstruction):
-            operation = instruction.operation
-            qubits = instruction.qubits
-        else:
-            operation, qubits, _ = instruction
-        if not self._calibrations_prop or operation.name not in self._calibrations_prop:
-            return False
-        qubits = tuple(self.qubits.index(qubit) for qubit in qubits)
-        params = []
-        for p in operation.params:
-            if isinstance(p, ParameterExpression) and not p.parameters:
-                params.append(float(p))
-            else:
-                params.append(p)
-        params = tuple(params)
-        return (qubits, params) in self._calibrations_prop[operation.name]
 
     @property
     def metadata(self) -> dict:
@@ -1456,11 +1378,10 @@ class QuantumCircuit:
 
     def _name_update(self) -> None:
         """update name of instance using instance number"""
-        if not is_main_process():
-            pid_name = f"-{mp.current_process().pid}"
-        else:
+        if multiprocessing.parent_process() is None:
             pid_name = ""
-
+        else:
+            pid_name = f"-{multiprocessing.current_process().pid}"
         self.name = f"{self._base_name}-{self._cls_instances()}{pid_name}"
 
     def has_register(self, register: Register) -> bool:
@@ -1998,9 +1919,6 @@ class QuantumCircuit:
                 )
             edge_map.update(zip(other.clbits, dest._cbit_argument_conversion(clbits)))
 
-        for gate, cals in other._calibrations_prop.items():
-            dest._calibrations[gate].update(cals)
-
         dest.duration = None
         dest.unit = "dt"
         dest.global_phase += other.global_phase
@@ -2057,14 +1975,7 @@ class QuantumCircuit:
 
             def map_vars(op):
                 n_op = op
-                is_control_flow = isinstance(n_op, ControlFlowOp)
-                if (
-                    not is_control_flow
-                    and (condition := getattr(n_op, "_condition", None)) is not None
-                ):
-                    n_op = n_op.copy() if n_op is op and copy else n_op
-                    n_op.condition = variable_mapper.map_condition(condition)
-                elif is_control_flow:
+                if isinstance(n_op, ControlFlowOp):
                     n_op = n_op.replace_blocks(recurse_block(block) for block in n_op.blocks)
                     if isinstance(n_op, (IfElseOp, WhileLoopOp)):
                         n_op.condition = variable_mapper.map_condition(n_op._condition)
@@ -2505,8 +2416,8 @@ class QuantumCircuit:
 
             * all the qubits and clbits must already exist in the circuit and there can be no
               duplicates in the list.
-            * any control-flow operations or classically conditioned instructions must act only on
-              variables present in the circuit.
+            * any control-flow operations instructions must act only on variables present in the
+              circuit.
             * the circuit must not be within a control-flow builder context.
 
         .. note::
@@ -3540,23 +3451,13 @@ class QuantumCircuit:
                 num_qargs = len(args)
             else:
                 args = instruction.qubits + instruction.clbits
-                num_qargs = len(args) + (
-                    1 if getattr(instruction.operation, "_condition", None) else 0
-                )
+                num_qargs = len(args)
 
             if num_qargs >= 2 and not getattr(instruction.operation, "_directive", False):
                 graphs_touched = []
                 num_touched = 0
                 # Controls necessarily join all the cbits in the
                 # register that they use.
-                if not unitary_only:
-                    for bit in instruction.operation.condition_bits:
-                        idx = bit_indices[bit]
-                        for k in range(num_sub_graphs):
-                            if idx in sub_graphs[k]:
-                                graphs_touched.append(k)
-                                break
-
                 for item in args:
                     reg_int = bit_indices[item]
                     for k in range(num_sub_graphs):
@@ -3627,7 +3528,7 @@ class QuantumCircuit:
 
         That structure includes:
 
-        * name, calibrations and other metadata
+        * name and other metadata
         * global phase
         * all the qubits and clbits, including the registers
         * the realtime variables defined in the circuit, handled according to the ``vars`` keyword
@@ -3679,7 +3580,7 @@ class QuantumCircuit:
     def clear(self) -> None:
         """Clear all instructions in self.
 
-        Clearing the circuits will keep the metadata and calibrations.
+        Clearing the circuits will keep the metadata.
 
         .. seealso::
             :meth:`copy_empty_like`
@@ -4294,70 +4195,10 @@ class QuantumCircuit:
                     " the circuit."
                 )
 
-            def create_mapping_view():
-                return raw_mapping
-
             target._data.assign_parameters_mapping(raw_mapping)
         else:
-            # This should be a cache retrieval, since we warmed the cache.  We need to keep hold of
-            # what the parameters were before anything is assigned, because we assign parameters in
-            # the calibrations (which aren't tracked in the internal parameter table) after, which
-            # would change what we create.  We don't make the full Python-space mapping object of
-            # parameters to values eagerly because 99.9% of the time we don't need it, and it's
-            # relatively expensive to do for large numbers of parameters.
-            initial_parameters = target._data.parameters
-
-            def create_mapping_view():
-                return dict(zip(initial_parameters, parameters))
-
             target._data.assign_parameters_iterable(parameters)
 
-        # Finally, assign the parameters inside any of the calibrations.  We don't track these in
-        # the `ParameterTable`, so we manually reconstruct things.  We lazily construct the mapping
-        # `{parameter: bound_value}` the first time we encounter a binding (we have to scan for
-        # this, because calibrations don't use a parameter-table lookup), rather than always paying
-        # the cost - most circuits don't have parametric calibrations, and it's expensive.
-        mapping_view = None
-
-        def map_calibration(qubits, parameters, schedule):
-            # All calls to this function should share the same `{Parameter: bound_value}` mapping,
-            # which we only want to lazily construct a single time.
-            nonlocal mapping_view
-            if mapping_view is None:
-                mapping_view = create_mapping_view()
-
-            modified = False
-            new_parameters = list(parameters)
-            for i, parameter in enumerate(new_parameters):
-                if not isinstance(parameter, ParameterExpression):
-                    continue
-                if not (contained := parameter.parameters & mapping_view.keys()):
-                    continue
-                for to_bind in contained:
-                    parameter = parameter.assign(to_bind, mapping_view[to_bind])
-                if not parameter.parameters:
-                    parameter = parameter.numeric()
-                    if isinstance(parameter, complex):
-                        raise TypeError(f"Calibration cannot use complex number: '{parameter}'")
-                new_parameters[i] = parameter
-                modified = True
-            if modified:
-                schedule.assign_parameters(mapping_view)
-            return (qubits, tuple(new_parameters)), schedule
-
-        target._calibrations = defaultdict(
-            dict,
-            (
-                (
-                    gate,
-                    dict(
-                        map_calibration(qubits, parameters, schedule)
-                        for (qubits, parameters), schedule in calibrations.items()
-                    ),
-                )
-                for gate, calibrations in target._calibrations.items()
-            ),
-        )
         return None if inplace else target
 
     def _unroll_param_dict(
@@ -6331,7 +6172,8 @@ class QuantumCircuit:
                 qc.h(0)
                 qc.cx(0, 1)
                 qc.measure(0, 0)
-                qc.break_loop().c_if(0, True)
+                with qc.if_test((0, True)):
+                    qc.break_loop()
 
         Args:
             indexset (Iterable[int]): A collection of integers to loop over.  Always necessary.
@@ -6683,57 +6525,6 @@ class QuantumCircuit:
             ContinueLoopOp(self.num_qubits, self.num_clbits), self.qubits, self.clbits, copy=False
         )
 
-    @deprecate_pulse_dependency
-    def add_calibration(
-        self,
-        gate: Union[Gate, str],
-        qubits: Sequence[int],
-        # Schedule has the type `qiskit.pulse.Schedule`, but `qiskit.pulse` cannot be imported
-        # while this module is, and so Sphinx will not accept a forward reference to it.  Sphinx
-        # needs the types available at runtime, whereas mypy will accept it, because it handles the
-        # type checking by static analysis.
-        schedule,
-        params: Sequence[ParameterValueType] | None = None,
-    ) -> None:
-        """Register a low-level, custom pulse definition for the given gate.
-
-        Args:
-            gate (Union[Gate, str]): Gate information.
-            qubits (Union[int, Tuple[int]]): List of qubits to be measured.
-            schedule (Schedule): Schedule information.
-            params (Optional[List[Union[float, Parameter]]]): A list of parameters.
-
-        Raises:
-            Exception: if the gate is of type string and params is None.
-        """
-
-        def _format(operand):
-            try:
-                # Using float/complex value as a dict key is not good idea.
-                # This makes the mapping quite sensitive to the rounding error.
-                # However, the mechanism is already tied to the execution model (i.e. pulse gate)
-                # and we cannot easily update this rule.
-                # The same logic exists in DAGCircuit.add_calibration.
-                evaluated = complex(operand)
-                if np.isreal(evaluated):
-                    evaluated = float(evaluated.real)
-                    if evaluated.is_integer():
-                        evaluated = int(evaluated)
-                return evaluated
-            except TypeError:
-                # Unassigned parameter
-                return operand
-
-        if isinstance(gate, Gate):
-            params = gate.params
-            gate = gate.name
-        if params is not None:
-            params = tuple(map(_format, params))
-        else:
-            params = ()
-
-        self._calibrations[gate][(tuple(qubits), params)] = schedule
-
     # Functions only for scheduled circuits
     def qubit_duration(self, *qubits: Union[Qubit, int]) -> float:
         """Return the duration between the start and stop time of the first and last instructions,
@@ -6919,8 +6710,7 @@ class _OuterCircuitScopeInterface(CircuitScopeInterface):
     def resolve_classical_resource(self, specifier):
         # This is slightly different to cbit_argument_conversion, because it should not
         # unwrap :obj:`.ClassicalRegister` instances into lists, and in general it should not allow
-        # iterables or broadcasting.  It is expected to be used as a callback for things like
-        # :meth:`.InstructionSet.c_if` to check the validity of their arguments.
+        # iterables or broadcasting.
         if isinstance(specifier, Clbit):
             if specifier not in self.circuit._clbit_indices:
                 raise CircuitError(f"Clbit {specifier} is not present in this circuit.")
@@ -7068,5 +6858,4 @@ def _copy_metadata(original, cpy, vars_mode):
     else:  # pragma: no cover
         raise ValueError(f"unknown vars_mode: '{vars_mode}'")
 
-    cpy._calibrations = _copy.deepcopy(original._calibrations)
     cpy._metadata = _copy.deepcopy(original._metadata)

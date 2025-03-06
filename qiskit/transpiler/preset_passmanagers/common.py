@@ -563,9 +563,7 @@ def generate_translation_passmanager(
     return PassManager(unroll)
 
 
-def generate_scheduling(
-    instruction_durations, scheduling_method, timing_constraints, _, target=None
-):
+def generate_scheduling(instruction_durations, scheduling_method, timing_constraints, target=None):
     """Generate a post optimization scheduling :class:`~qiskit.transpiler.PassManager`
 
     Args:
@@ -637,7 +635,7 @@ def generate_scheduling(
         )
     if scheduling_method:
         # Call padding pass if circuit is scheduled
-        scheduling.append(PadDelay(target=target))
+        scheduling.append(PadDelay(target=target, durations=instruction_durations))
 
     return scheduling
 
