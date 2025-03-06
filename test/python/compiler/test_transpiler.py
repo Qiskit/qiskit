@@ -2133,6 +2133,7 @@ class TestPostTranspileIntegration(QiskitTestCase):
 
         qc = QuantumCircuit(5, 5, inputs=[a])
         qc.add_var(b, 12)
+        qc.add_stretch("d")
         qc.h(0)
         qc.cx(0, 1)
         qc.measure([0, 1], [0, 1])

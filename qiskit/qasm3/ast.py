@@ -181,12 +181,6 @@ class DurationType(ClassicalType):
     __slots__ = ()
 
 
-class StretchType(ClassicalType):
-    """Type information for a stretch."""
-
-    __slots__ = ()
-
-
 class BitArrayType(ClassicalType):
     """Type information for a sized number of classical bits."""
 
@@ -412,6 +406,17 @@ class ClassicalDeclaration(Statement):
         self.type = type_
         self.identifier = identifier
         self.initializer = initializer
+
+
+class StretchDeclaration(Statement):
+    """Declaration of a stretch variable, optionally with a lower bound
+    expression."""
+
+    __slots__ = ("identifier", "bound")
+
+    def __init__(self, identifier: Identifier, bound=None):
+        self.identifier = identifier
+        self.bound = bound
 
 
 class AssignmentStatement(Statement):

@@ -1828,6 +1828,7 @@ if (cr == 1) {
         # All inputs should come first, regardless of declaration order.
         qc.add_input("d", types.Bool())
         qc.add_var("e", expr.lift(7.5))
+        qc.add_stretch("f")
 
         expected = """\
 OPENQASM 3.0;
@@ -1837,6 +1838,7 @@ input uint[8] b;
 input bool d;
 uint[8] c;
 float[64] e;
+stretch f;
 a = !a;
 b = b & 8;
 c = ~b;
