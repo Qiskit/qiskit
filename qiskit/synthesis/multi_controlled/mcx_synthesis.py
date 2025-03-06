@@ -53,31 +53,25 @@ def synth_mcx_n_dirty_i15(
            `arXiv:1501.06911 <http://arxiv.org/abs/1501.06911>`_
     """
 
+    # First, handle some special cases
     if num_ctrl_qubits == 1:
-        num_qubits = 2
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1)
+        return qc
     elif num_ctrl_qubits == 2:
-        num_qubits = 3
-    elif num_ctrl_qubits == 3:
-        num_qubits = 4
-    else:
-        num_qubits = 2 * num_ctrl_qubits - 1
+        qc = QuantumCircuit(3)
+        qc.ccx(0, 1, 2)
+        return qc
+    elif num_ctrl_qubits == 3 and not relative_phase:
+        qc = synth_c3x()
+        return qc
+
+    num_qubits = 2 * num_ctrl_qubits - 1
     q = QuantumRegister(num_qubits, name="q")
     qc = QuantumCircuit(q, name="mcx_vchain")
     q_controls = q[:num_ctrl_qubits]
     q_target = q[num_ctrl_qubits]
     q_ancillas = q[num_ctrl_qubits + 1 :]
-
-    if num_ctrl_qubits == 1:
-        qc.cx(q_controls, q_target)
-        return qc
-    elif num_ctrl_qubits == 2:
-        qc.ccx(q_controls[0], q_controls[1], q_target)
-        return qc
-    elif not relative_phase and num_ctrl_qubits == 3:
-        circuit = synth_c3x()
-        qc.compose(circuit, [*q_controls, q_target], inplace=True, copy=False)
-        return qc
-
     num_ancillas = num_ctrl_qubits - 2
     targets = [q_target] + q_ancillas[:num_ancillas][::-1]
 
