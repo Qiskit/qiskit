@@ -1120,7 +1120,7 @@ class TestAddingControlFlowOperations(QiskitTestCase):
         outer.box(inner.copy(), [0], [0])
         added = outer.data[-1].operation
         self.assertEqual(added.name, "box")
-        self.assertEqual(set(added.blocks[0].iter_captured_vars()), {a})
+        self.assertEqual(set(added.blocks[0].iter_captures()), {a, b})
 
     def test_can_add_op_with_captures_of_locals(self):
         """Test circuit methods can capture declared variables."""
@@ -1160,7 +1160,7 @@ class TestAddingControlFlowOperations(QiskitTestCase):
         outer.box(inner.copy(), [0], [0])
         added = outer.data[-1].operation
         self.assertEqual(added.name, "box")
-        self.assertEqual(set(added.blocks[0].iter_captured_vars()), {a})
+        self.assertEqual(set(added.blocks[0].iter_captures()), {a, b})
 
     def test_cannot_capture_unknown_variables_methods(self):
         """Control-flow operations should not be able to capture variables that don't exist in the
@@ -1251,4 +1251,3 @@ class TestAddingControlFlowOperations(QiskitTestCase):
             )
         with self.assertRaisesRegex(CircuitError, "not in this circuit"):
             outer.append(BoxOp(inner.copy()), [0], [0])
-
