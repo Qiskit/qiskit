@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import collections.abc
 import copy as _copy
+
 import itertools
 import multiprocessing
 import typing
@@ -2772,15 +2773,15 @@ class QuantumCircuit:
         if (out := self._current_scope().get_stretch(name)) is not None:
             return out
         if default is Ellipsis:
-            raise KeyError(f"no variable named '{name}' is present")
+            raise KeyError(f"no stretch named '{name}' is present")
         return default
 
-    def has_stretch(self, name_or_var: str | expr.Stretch, /) -> bool:
+    def has_stretch(self, name_or_stretch: str | expr.Stretch, /) -> bool:
         """Check whether a stretch is accessible in this scope.
 
         Args:
-            name_or_var: the variable, or name of a variable to check.  If this is a
-                :class:`.expr.Stretch` node, the variable must be exactly the given one for this
+            name_or_stretch: the stretch, or name of a stretch to check.  If this is a
+                :class:`.expr.Stretch` node, the stretch must be exactly the given one for this
                 function to return ``True``.
 
         Returns:
@@ -2790,16 +2791,18 @@ class QuantumCircuit:
             :meth:`QuantumCircuit.get_stretch`
                 Retrieve the :class:`.expr.Stretch` instance from this circuit by name.
         """
-        if isinstance(name_or_var, str):
-            return self.get_stretch(name_or_var, None) is not None
-        return self.get_stretch(name_or_var.name, None) == name_or_var
+        if isinstance(name_or_stretch, str):
+            return self.get_stretch(name_or_stretch, None) is not None
+        return self.get_stretch(name_or_stretch.name, None) == name_or_stretch
 
     @typing.overload
     def get_identifier(self, name: str, default: T) -> Union[expr.Var | expr.Stretch, T]: ...
 
     # The builtin `types` module has `EllipsisType`, but only from 3.10+!
     @typing.overload
-    def get_identifier(self, name: str, default: type(...) = ...) -> expr.Var | expr.Stretch: ...
+    def get_identifier(
+        self, name: str, default: type(...) = ...
+    ) -> Union[expr.Var, expr.Stretch]: ...
 
     # We use a _literal_ `Ellipsis` as the marker value to leave `None` available as a default.
     def get_identifier(self, name: str, default: typing.Any = ...):
@@ -2832,14 +2835,14 @@ class QuantumCircuit:
         if (out := self._current_scope().get_stretch(name)) is not None:
             return out
         if default is Ellipsis:
-            raise KeyError(f"no variable named '{name}' is present")
+            raise KeyError(f"no identifier named '{name}' is present")
         return default
 
-    def has_identifier(self, name_or_instance: str | expr.Var | expr.Stretch, /) -> bool:
+    def has_identifier(self, name_or_ident: str | expr.Var | expr.Stretch, /) -> bool:
         """Check whether an identifier is accessible in this scope.
 
         Args:
-            name_or_instance: the instance, or name of the identifier to check.  If this is a
+            name_or_ident: the instance, or name of the identifier to check.  If this is a
                 :class:`.expr.Var` or :class:`.expr.Stretch` node, the matched instance must
                 be exactly the given one for this function to return ``True``.
 
@@ -2860,9 +2863,9 @@ class QuantumCircuit:
                 A similar method to this, but for compile-time :class:`.Parameter`\\ s instead of
                 run-time :class:`.expr.Var` variables.
         """
-        if isinstance(name_or_instance, str):
-            return self.get_identifier(name_or_instance, None) is not None
-        return self.get_identifier(name_or_instance.name, None) == name_or_instance
+        if isinstance(name_or_ident, str):
+            return self.get_identifier(name_or_ident, None) is not None
+        return self.get_identifier(name_or_ident.name, None) == name_or_ident
 
     def _prepare_new_var(
         self, name_or_var: str | expr.Var, type_: types.Type | None, /
@@ -2894,36 +2897,38 @@ class QuantumCircuit:
             raise CircuitError(f"cannot add '{var}' as its name shadows the existing '{previous}'")
         return var
 
-    def _prepare_new_stretch(self, name_or_var: str | expr.Stretch, /) -> expr.Stretch:
+    def _prepare_new_stretch(self, name_or_stretch: str | expr.Stretch, /) -> expr.Stretch:
         """The common logic for preparing and validating a new :class:`~.expr.Stretch` for the circuit.
 
-        Returns the validated variable, which is guaranteed to be safe to add to the circuit."""
-        if isinstance(name_or_var, str):
-            var = expr.Stretch.new(name_or_var)
+        Returns the validated stretch, which is guaranteed to be safe to add to the circuit."""
+        if isinstance(name_or_stretch, str):
+            stretch = expr.Stretch.new(name_or_stretch)
         else:
-            var = name_or_var
+            stretch = name_or_stretch
 
-        if (previous := self.get_identifier(var.name, default=None)) is not None:
-            if previous == var:
-                raise CircuitError(f"'{var}' is already present in the circuit")
-            raise CircuitError(f"cannot add '{var}' as its name shadows the existing '{previous}'")
-        return var
+        if (previous := self.get_identifier(stretch.name, default=None)) is not None:
+            if previous == stretch:
+                raise CircuitError(f"'{stretch}' is already present in the circuit")
+            raise CircuitError(
+                f"cannot add '{stretch}' as its name shadows the existing '{previous}'"
+            )
+        return stretch
 
-    def add_stretch(self, name_or_var: str | expr.Stretch) -> expr.Stretch:
+    def add_stretch(self, name_or_stretch: str | expr.Stretch) -> expr.Stretch:
         """Declares a new stretch scoped to this circuit.
 
         Args:
-            name_or_var: either a string of the stretch name, or an existing instance of
+            name_or_stretch: either a string of the stretch name, or an existing instance of
                 :class:`~.expr.Stretch` to re-use.  Stretches cannot shadow names that are already in
                 use within the circuit.
 
         Returns:
-            The created variable.  If a :class:`~.expr.Stretch` instance was given, the exact same
+            The created stretch.  If a :class:`~.expr.Stretch` instance was given, the exact same
             object will be returned.
 
         Raises:
             CircuitError: if the stretch cannot be created due to shadowing an existing
-                variable.
+                identifier.
 
         Examples:
             Define and use a new stretch given just a name::
@@ -2936,12 +2941,12 @@ class QuantumCircuit:
 
                 qc.delay(expr.add(Duration.dt(200), my_stretch), 1)
         """
-        if isinstance(name_or_var, str):
-            var = expr.Stretch.new(name_or_var)
+        if isinstance(name_or_stretch, str):
+            stretch = expr.Stretch.new(name_or_stretch)
         else:
-            var = name_or_var
-        self._current_scope().add_stretch(var)
-        return var
+            stretch = name_or_stretch
+        self._current_scope().add_stretch(stretch)
+        return stretch
 
     def add_var(self, name_or_var: str | expr.Var, /, initial: typing.Any) -> expr.Var:
         """Add a classical variable with automatic storage and scope to this circuit.
@@ -2968,7 +2973,7 @@ class QuantumCircuit:
             object will be returned.
 
         Raises:
-            CircuitError: if the variable cannot be created due to shadowing an existing variable.
+            CircuitError: if the variable cannot be created due to shadowing an existing identifier.
 
         Examples:
             Define a new variable given just a name and an initializer expression::
@@ -3072,26 +3077,34 @@ class QuantumCircuit:
             raise CircuitError("cannot add a variable wrapping a bit or register to a circuit")
         self._builder_api.add_uninitialized_var(var)
 
-    def add_capture(self, var: expr.Var | expr.Stretch):
-        """Add a variable to the circuit that it should capture from a scope it will be contained
-        within.
+    @typing.overload
+    def add_capture(self, var: expr.Var): ...
+
+    @typing.overload
+    def add_capture(self, stretch: expr.Stretch): ...
+
+    def add_capture(self, var):
+        """Add an identifier to the circuit that it should capture from a scope it will
+        be contained within.
 
         This method requires a :class:`~.expr.Var` or :class:`~.expr.Stretch` node to enforce that
-        you've got a handle to one, because you will need to declare the same variable using the
-        same object into the outer circuit.
+        you've got a handle to an identifier, because you will need to declare the same identifier
+        using the same object in the outer circuit.
 
         This is a low-level method, which is only really useful if you are manually constructing
         control-flow operations. You typically will not need to call this method, assuming you
         are using the builder interface for control-flow scopes (``with`` context-manager statements
         for :meth:`if_test` and the other scoping constructs).  The builder interface will
-        automatically make the inner scopes closures on your behalf by capturing any variables that
-        are used within them.
+        automatically make the inner scopes closures on your behalf by capturing any identifiers
+        that are used within them.
 
         Args:
-            var: the variable to capture from an enclosing scope.
+            var (Union[expr.Var, expr.Stretch]): the variable or stretch to capture from an
+                enclosing scope.
 
         Raises:
-            CircuitError: if the variable cannot be created due to shadowing an existing variable.
+            CircuitError: if the identifier cannot be created due to shadowing an existing
+                identifier.
         """
         if self._control_flow_scopes:
             # Allow manual capturing.  Not sure why it'd be useful, but there's a clear expected
@@ -7023,15 +7036,15 @@ class _OuterCircuitScopeInterface(CircuitScopeInterface):
         var = self.circuit._prepare_new_var(var, None)
         self.circuit._vars_local[var.name] = var
 
-    def add_stretch(self, var):
-        var = self.circuit._prepare_new_stretch(var)
-        self.circuit._stretches_local[var.name] = var
+    def add_stretch(self, stretch):
+        stretch = self.circuit._prepare_new_stretch(stretch)
+        self.circuit._stretches_local[stretch.name] = stretch
 
     def remove_var(self, var):
         self.circuit._vars_local.pop(var.name)
 
-    def remove_stretch(self, var):
-        self.circuit._stretches_local.pop(var.name)
+    def remove_stretch(self, stretch):
+        self.circuit._stretches_local.pop(stretch.name)
 
     def get_var(self, name):
         if (out := self.circuit._vars_local.get(name)) is not None:
@@ -7049,9 +7062,9 @@ class _OuterCircuitScopeInterface(CircuitScopeInterface):
         if self.get_var(var.name) != var:
             raise CircuitError(f"'{var}' is not present in this circuit")
 
-    def use_stretch(self, var):
-        if self.get_stretch(var.name) != var:
-            raise CircuitError(f"'{var}' is not present in this circuit")
+    def use_stretch(self, stretch):
+        if self.get_stretch(stretch.name) != stretch:
+            raise CircuitError(f"'{stretch}' is not present in this circuit")
 
     def use_qubit(self, qubit):
         # Since the qubit is guaranteed valid, there's nothing for us to do.
@@ -7062,6 +7075,8 @@ def _validate_expr(circuit_scope: CircuitScopeInterface, node: expr.Expr) -> exp
     # This takes the `circuit_scope` object as an argument rather than being a circuit method and
     # inferring it because we may want to call this several times, and we almost invariably already
     # need the interface implementation for something else anyway.
+    # If we're not in a capturing scope (i.e. we're in the root scope), then the
+    # `use_{var,stretch}` calls are no-ops.
     for ident in set(expr.iter_identifiers(node)):
         if isinstance(ident, expr.Stretch):
             circuit_scope.use_stretch(ident)

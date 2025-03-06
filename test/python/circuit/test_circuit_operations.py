@@ -10,6 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=invalid-name
 
 """Test Qiskit's QuantumCircuit class."""
 import copy
@@ -411,7 +412,6 @@ class TestCircuitOperations(QiskitTestCase):
         copied = qc.copy_empty_like("copy")
         self.assertEqual(copied.name, "copy")
 
-    # pylint: disable=invalid-name
     def test_copy_variables(self):
         """Test that a full copy of circuits including variables copies them across."""
         a = expr.Var.new("a", types.Bool())
@@ -435,9 +435,10 @@ class TestCircuitOperations(QiskitTestCase):
         # Check that the original circuit is not mutated.
         copied.add_input(b)
         copied.add_var(d, 0xFF)
+        copied.add_stretch(f)
         self.assertEqual({a, b}, set(copied.iter_input_vars()))
         self.assertEqual({c, d}, set(copied.iter_declared_vars()))
-        self.assertEqual({e}, set(copied.iter_declared_stretches()))
+        self.assertEqual({e, f}, set(copied.iter_declared_stretches()))
         self.assertEqual({a}, set(qc.iter_input_vars()))
         self.assertEqual({c}, set(qc.iter_declared_vars()))
         self.assertEqual({e}, set(qc.iter_declared_stretches()))

@@ -25,7 +25,7 @@ prelude: >
       qc.barrier()
 
     For additional context and examples, refer to the 
-    `QASM language specification. <https://openqasm.com/language/delays.html#duration-and-stretch-types>`__
+    `OpenQASM 3 language specification. <https://openqasm.com/language/delays.html#duration-and-stretch-types>`__
 
 features_circuits:
   - |
@@ -33,7 +33,7 @@ features_circuits:
     system to represent ``stretch`` variables. To create a new ``stretch` variable, you can
     use :meth:`.QuantumCircuit.add_stretch`. The resulting expression is a constant
     expression of type :class:`~.types.Duration`, which can currently be used as the ``duration``
-    argument of a :meth:`~.QuantumCircuit.delay` or :meth:`~.QuantumCircuit.box` instruction.
+    argument of a :meth:`~.QuantumCircuit.delay`.
 
     The :class:`~.expr.Stretch` expression is most similar to the existing :class:`~.expr.Var`
     expression used to represent classical variables in a circuit, except it is constant and
