@@ -19,7 +19,7 @@ from abc import ABC
 from qiskit.providers import Options
 
 
-class BasePrimitive(ABC):
+class BasePrimitiveV1(ABC):
     """Primitive V1 abstract base class."""
 
     def __init__(self, options: dict | None = None):

@@ -138,6 +138,11 @@ def iter_vars(node: expr.Expr) -> typing.Iterator[expr.Var]:
             for node in expr.iter_vars(expr.bit_and(expr.bit_not(cr1), cr2)):
                 if isinstance(node.var, ClassicalRegister):
                     print(node.var.name)
+
+    .. seealso::
+        :func:`iter_identifiers`
+            Get an iterator over all identifier nodes in the expression, including
+            both :class:`~.expr.Var` and :class:`~.expr.Stretch` nodes.
     """
     yield from node.accept(_VAR_WALKER)
 
@@ -158,6 +163,10 @@ def iter_identifiers(node: expr.Expr) -> typing.Iterator[typing.Union[expr.Var, 
             for node in expr.iter_vars(expr.bit_and(expr.bit_not(cr1), cr2)):
                 if isinstance(node.var, ClassicalRegister):
                     print(node.var.name)
+
+    .. seealso::
+        :func:`iter_vars`
+            Get an iterator over just the :class:`~.expr.Var` nodes in the expression.
     """
     yield from node.accept(_IDENT_WALKER)
 

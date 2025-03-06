@@ -37,6 +37,7 @@ from qiskit.circuit import (
     ForLoopOp,
     Gate,
     IfElseOp,
+    BoxOp,
     Parameter,
     Qubit,
     SwitchCaseOp,
@@ -1630,7 +1631,7 @@ class TestTranspile(QiskitTestCase):
 
     def test_scheduling_dt_constraints(self):
         """Test that scheduling-related loose transpile constraints
-        work with both BackendV1 and BackendV2."""
+        work with BackendV2."""
 
         backend_v2 = GenericBackendV2(num_qubits=2, seed=1)
         qc = QuantumCircuit(1, 1)
@@ -2151,6 +2152,81 @@ class TestTranspile(QiskitTestCase):
             transpile(qc, target=target, optimization_level=level, initial_layout=[0, 1, 2, 3, 4]),
             expected,
         )
+
+    @data(0, 1, 2, 3)
+    def test_no_cancelling_around_box(self, level):
+        """Test that operations aren't cancelled through the walls of a 'box'."""
+        # In linear opeartion, we do cz(0,1) - cz(0,1) - cx(1,2) - cx(1,2), so without the `box`,
+        # the circuit would optimise to the identity.  We want to be sure that the box itself is
+        # treated as atomic, though.
+        qc = QuantumCircuit(3)
+        qc.cz(0, 1)
+        with qc.box():
+            qc.cz(0, 1)
+            qc.cx(1, 2)
+        qc.cx(1, 2)
+
+        target = Target(3)
+        target.add_instruction(SXGate(), {(i,): None for i in range(3)})
+        target.add_instruction(RZGate(Parameter("a")), {(i,): None for i in range(3)})
+        target.add_instruction(CZGate(), {pair: None for pair in CouplingMap.from_line(3)})
+        target.add_instruction(CXGate(), {pair: None for pair in CouplingMap.from_line(3)})
+        target.add_instruction(BoxOp, name="box")
+
+        out = transpile(qc, target=target, optimization_level=level, initial_layout=[0, 1, 2])
+        self.assertEqual(out, qc)
+
+    @data(0, 1, 2, 3)
+    def test_no_contraction_of_wires_in_box(self, level):
+        """Test that no-ops in boxes are not contracted."""
+        qc = QuantumCircuit(3)
+        with qc.box():
+            qc.cz(0, 1)
+            # This qubit should stay used; optimisation must not remove it from the `box`.
+            qc.noop(2)
+
+        target = Target(3)
+        target.add_instruction(SXGate(), {(i,): None for i in range(3)})
+        target.add_instruction(RZGate(Parameter("a")), {(i,): None for i in range(3)})
+        target.add_instruction(CZGate(), {pair: None for pair in CouplingMap.from_line(3)})
+        target.add_instruction(BoxOp, name="box")
+
+        out = transpile(qc, target=target, optimization_level=level, initial_layout=[0, 1, 2])
+        self.assertEqual(out, qc)
+
+    @data(0, 1, 2, 3)
+    def test_no_contraction_of_wires_in_routed_box(self, level):
+        """Test that no-ops in boxes are not contracted, even if routing happens."""
+        num_qubits = 10
+        qc = QuantumCircuit(num_qubits)
+        with qc.box():
+            # This is long range, and we force routing to engage by requiring the trivial layout.
+            qc.cz(0, 4)
+            # This qubit should stay used, even though routing will be engaged to sort out the
+            # long-range `cz`.
+            qc.noop(8)
+
+        target = Target(num_qubits)
+        target.add_instruction(SXGate(), {(i,): None for i in range(num_qubits)})
+        target.add_instruction(RZGate(Parameter("a")), {(i,): None for i in range(num_qubits)})
+        target.add_instruction(CZGate(), {pair: None for pair in CouplingMap.from_line(num_qubits)})
+        target.add_instruction(BoxOp, name="box")
+
+        out = transpile(
+            qc, target=target, optimization_level=level, initial_layout=list(range(num_qubits))
+        )
+        self.assertIsInstance(out.data[0].operation, BoxOp)
+        body = out.data[0].operation.blocks[0]
+        qubit_map = dict(zip(body.qubits, (out.find_bit(bit).index for bit in out.data[0].qubits)))
+
+        # It must use the initial indices (because of the trivial layout), and more for routing.
+        self.assertGreater(set(qubit_map.values()), {0, 4, 8})
+
+        # Index 8 must be idle still; there's no reason for routing to have engaged it.  If this
+        # fails, the test isn't valid---we want to test that the no-op marker _alone_ is sufficient
+        # to prevent contraction of the wires.
+        active_indices = {qubit_map[bit] for instruction in body for bit in instruction.qubits}
+        self.assertNotIn(8, active_indices)
 
 
 @ddt

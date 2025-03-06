@@ -595,3 +595,14 @@ class BasicPrinter:
 
     def _visit_DefaultCase(self, _node: ast.DefaultCase) -> None:
         self.stream.write("default")
+
+    def _visit_BoxStatement(self, node: ast.BoxStatement) -> None:
+        self._start_line()
+        self.stream.write("box")
+        if node.duration is not None:
+            self.stream.write("[")
+            self.visit(node.duration)
+            self.stream.write("]")
+        self.stream.write(" ")
+        self.visit(node.body)
+        self._end_line()

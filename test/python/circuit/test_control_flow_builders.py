@@ -3286,6 +3286,10 @@ def test_has_stretch_respects_scope(self):
         with else_:
             with qc.if_test(expr.lift(True)):
                 qc.noop(2)
+        # Instruction 5.
+        with qc.box():
+            qc.noop(0)
+            qc.noop(2)
 
         expected = QuantumCircuit(qc.qubits, qc.clbits)
         body_0 = QuantumCircuit([qc.qubits[0]])
@@ -3306,6 +3310,131 @@ def test_has_stretch_respects_scope(self):
         body_4_false_0 = QuantumCircuit([qc.qubits[2]])
         body_4_false.if_test(expr.lift(True), body_4_false_0, body_4_false_0.qubits, [])
         expected.if_else(expr.lift(True), body_4_true, body_4_false, body_4_true.qubits, [])
+        body_5 = QuantumCircuit([qc.qubits[0], qc.qubits[2]])
+        expected.box(body_5, body_5.qubits, [])
+
+        self.assertEqual(qc, expected)
+
+    def test_box_simple(self):
+        qc = QuantumCircuit(5, 5)
+        with qc.box():  # Instruction 0
+            qc.h(0)
+            qc.cx(0, 1)
+        with qc.box():  # Instruction 1
+            qc.h(3)
+            qc.cx(3, 2)
+            qc.cx(3, 4)
+        with qc.box():  # Instruction 2
+            with qc.box():  # Instruction 2-0
+                qc.measure(qc.qubits, qc.clbits)
+
+        expected = qc.copy_empty_like()
+        body_0 = QuantumCircuit(expected.qubits[0:2])
+        body_0.h(expected.qubits[0])
+        body_0.cx(expected.qubits[0], expected.qubits[1])
+        expected.box(body_0, body_0.qubits, body_0.clbits)
+        body_1 = QuantumCircuit(expected.qubits[2:5])
+        body_1.h(expected.qubits[3])
+        body_1.cx(expected.qubits[3], expected.qubits[2])
+        body_1.cx(expected.qubits[3], expected.qubits[4])
+        expected.box(body_1, body_1.qubits, body_1.clbits)
+        body_2 = QuantumCircuit(expected.qubits, expected.clbits)
+        body_2_0 = QuantumCircuit(expected.qubits, expected.clbits)
+        body_2_0.measure(expected.qubits, expected.clbits)
+        body_2.box(body_2_0, body_2_0.qubits, body_2_0.clbits)
+        expected.box(body_2, body_2.qubits, body_2.clbits)
+
+        self.assertEqual(qc, expected)
+
+    def test_box_register(self):
+        cr1 = ClassicalRegister(3, "cr1")
+        cr2 = ClassicalRegister(3, "cr2")
+        qc = QuantumCircuit([Qubit()], cr1, cr2)
+        with qc.box():  # Instruction 0
+            with qc.if_test((cr1, 7)):  # Instruction 0-0
+                qc.x(0)
+        with qc.box():  # Instruction 1
+            with qc.box():  # Instruction 1-0
+                with qc.if_test((cr2, 7)):  # Instruction 1-0-0
+                    qc.x(0)
+
+        expected = QuantumCircuit([Qubit()], cr1, cr2)
+        body_0 = QuantumCircuit(expected.qubits, cr1)
+        body_0_0 = QuantumCircuit(expected.qubits, cr1)
+        body_0_0.x(0)
+        body_0.if_test((cr1, 7), body_0_0, expected.qubits, cr1[:])
+        expected.box(body_0, expected.qubits, cr1[:])
+
+        body_1 = QuantumCircuit(expected.qubits, cr2)
+        body_1_0 = QuantumCircuit(expected.qubits, cr2)
+        body_1_0_0 = QuantumCircuit(expected.qubits, cr2)
+        body_1_0_0.x(0)
+        body_1_0.if_test((cr2, 7), body_1_0_0, expected.qubits, cr2[:])
+        body_1.box(body_1_0, expected.qubits, cr2[:])
+        expected.box(body_1, expected.qubits, cr2[:])
+
+        self.assertEqual(qc, expected)
+
+    def test_box_duration(self):
+        qc = QuantumCircuit([Qubit()])
+        with qc.box(duration=3, unit="dt"):  # Instruction 0
+            qc.x(0)
+        with qc.box(duration=2.5, unit="ms"):  # Instruction 1
+            qc.x(0)
+        with qc.box(duration=300e-9, unit="s"):  # Instruction 2
+            with qc.box(duration=50.0, unit="ns"):  # Instruction 2-0
+                qc.x(0)
+            qc.delay(250.0, 0, unit="ns")
+
+        expected = QuantumCircuit([Qubit()])
+        body_0 = expected.copy_empty_like()
+        body_0.x(0)
+        expected.box(body_0, expected.qubits, [], duration=3, unit="dt")
+        body_1 = expected.copy_empty_like()
+        body_1.x(0)
+        expected.box(body_1, expected.qubits, [], duration=2.5, unit="ms")
+        body_2 = expected.copy_empty_like()
+        body_2_0 = body_2.copy_empty_like()
+        body_2_0.x(0)
+        body_2.box(body_2_0, expected.qubits, [], duration=50.0, unit="ns")
+        body_2.delay(250.0, 0, unit="ns")
+        expected.box(body_2, expected.qubits, [], duration=300e-9, unit="s")
+
+        self.assertEqual(qc, expected)
+
+    def test_box_label(self):
+        qc = QuantumCircuit([Qubit()])
+        with qc.box(label="hello, world"):
+            qc.noop(0)
+        self.assertEqual(qc.data[0].label, "hello, world")
+
+    def test_box_var_scope(self):
+        a = expr.Var.new("a", types.Bool())
+        qc = QuantumCircuit(inputs=[a])
+        b = qc.add_var("b", expr.lift(5, types.Uint(8)))
+        with qc.box():  # Instruction 0
+            qc.store(a, False)
+        with qc.box():  # Instruction 1
+            qc.store(b, 9)
+        with qc.box():  # Instruction 2
+            c = qc.add_var("c", False)
+            with qc.box():  # Instruction 2-0
+                qc.store(c, a)
+
+        expected = QuantumCircuit(inputs=[a])
+        expected.add_var(b, 5)
+        body_0 = QuantumCircuit(captures=[a])
+        body_0.store(a, False)
+        expected.box(body_0, [], [])
+        body_1 = QuantumCircuit(captures=[b])
+        body_1.store(b, 9)
+        expected.box(body_1, [], [])
+        body_2 = QuantumCircuit(captures=[a])
+        body_2.add_var(c, False)
+        body_2_0 = QuantumCircuit(captures=[a, c])
+        body_2_0.store(c, a)
+        body_2.box(body_2_0, [], [])
+        expected.box(body_2, [], [])
 
         self.assertEqual(qc, expected)
 
@@ -3608,6 +3737,15 @@ class TestControlFlowBuildersFailurePaths(QiskitTestCase):
             expected.h(0)
             self.assertEqual(test, expected)
 
+        with self.subTest("box"):
+            test = QuantumCircuit(1, 1)
+            with self.assertRaises(SentinelException), test.box():
+                raise SentinelException
+            test.h(0)
+            expected = test.copy_empty_like()
+            expected.h(0)
+            self.assertEqual(test, expected)
+
     def test_can_reuse_else_manager_after_exception(self):
         """Test that the "else" context manager is usable after a first attempt to construct it
         raises an exception.  Normally you cannot re-enter an "else" block, but we want the user to
@@ -3663,6 +3801,9 @@ class TestControlFlowBuildersFailurePaths(QiskitTestCase):
         with self.subTest("switch"):
             with self.assertRaisesRegex(CircuitError, r"When using 'switch' as a context manager"):
                 test.switch(test.clbits[0], cases=None, qubits=qubits, clbits=clbits)
+        with self.subTest("box"):
+            with self.assertRaisesRegex(CircuitError, r"When using 'box' as a context manager"):
+                test.box(qubits=qubits, clbits=clbits)
 
     @ddt.data((None, [0]), ([0], None), (None, None))
     def test_non_context_manager_calling_states_reject_missing_resources(self, resources):
@@ -3695,6 +3836,12 @@ class TestControlFlowBuildersFailurePaths(QiskitTestCase):
                 r"When using 'switch' with cases, you must pass qubits and clbits\.",
             ):
                 test.switch(test.clbits[0], [(False, body)], qubits=qubits, clbits=clbits)
+        with self.subTest("box"):
+            with self.assertRaisesRegex(
+                CircuitError,
+                r"When using 'box' with a body, you must pass qubits and clbits\.",
+            ):
+                test.box(QuantumCircuit(1, 1), qubits=qubits, clbits=clbits)
 
     def test_compose_front_inplace_invalid_within_builder(self):
         """Test that `QuantumCircuit.compose` raises a sensible error when called within a
@@ -3738,6 +3885,9 @@ class TestControlFlowBuildersFailurePaths(QiskitTestCase):
             with base.switch(base.clbits[0]) as case, case(0):
                 with self.assertRaisesRegex(CircuitError, "not in scope"):
                     base.store(expr.Var.new("a", types.Bool()), expr.lift(False))
+
+        with base.box(), self.assertRaisesRegex(CircuitError, "not in scope"):
+            base.store(expr.Var.new("a", types.Bool()), expr.lift(False))
 
     def test_cannot_add_existing_variable(self):
         a = expr.Var.new("a", types.Bool())
@@ -3855,3 +4005,21 @@ class TestControlFlowBuildersFailurePaths(QiskitTestCase):
                 base.noop(3)
             with self.assertRaises(CircuitError):
                 base.noop(Clbit())
+
+    def test_box_rejects_break_continue(self):
+        with self.subTest("break"):
+            qc = QuantumCircuit(2)
+            with (
+                qc.while_loop(expr.lift(True)),
+                qc.box(),
+                self.assertRaisesRegex(CircuitError, "The current builder scope cannot take"),
+            ):
+                qc.break_loop()
+        with self.subTest("continue"):
+            qc = QuantumCircuit(2)
+            with (
+                qc.while_loop(expr.lift(True)),
+                qc.box(),
+                self.assertRaisesRegex(CircuitError, "The current builder scope cannot take"),
+            ):
+                qc.continue_loop()

@@ -397,6 +397,35 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
             expected,
         )
 
+    def test_basic_box(self):
+        """Test that drawing a `box` doesn't explode."""
+        # The exact output is not important - feel free to change it.  We only care that it doesn't
+        # explode when drawing.
+        qc = QuantumCircuit(5)
+        with qc.box():
+            qc.x(0)
+        with qc.box():
+            qc.cx(2, 3)
+            with qc.box():
+                qc.noop(4)
+        # We don't care about trailing whitespace on a line.
+        actual = "\n".join(line.rstrip() for line in str(qc.draw("text", fold=80)).splitlines())
+
+        expected = """\
+     ┌─────── ┌───┐ ───────┐
+q_0: ┤ Box-0  ┤ X ├  End-0 ├────────────────────────────────────────────
+     └─────── └───┘ ───────┘
+q_1: ───────────────────────────────────────────────────────────────────
+                             ┌───────                          ───────┐
+q_2: ────────────────────────┤        ──■─────────────────────        ├─
+                             │        ┌─┴─┐                           │
+q_3: ────────────────────────┤ Box-0  ┤ X ├───────────────────  End-0 ├─
+                             │        └───┘┌───────  ───────┐         │
+q_4: ────────────────────────┤        ─────┤ Box-1    End-1 ├─        ├─
+                             └───────      └───────  ───────┘  ───────┘
+""".rstrip()
+        self.assertEqual(actual, expected)
+
     def test_text_swap(self):
         """Swap drawing."""
         expected = "\n".join(
