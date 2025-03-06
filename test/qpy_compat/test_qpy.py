@@ -887,6 +887,24 @@ def generate_v14_expr():
     return [float_expr, duration_expr, math_expr]
 
 
+def generate_box():
+    """Circuits that contain `Box`.  Only added in Qiskit 2.0."""
+    bare = QuantumCircuit(2, name="box-bare")
+    with bare.box():
+        bare.h(0)
+        bare.cx(0, 1)
+
+    nested = QuantumCircuit(2, name="box-nested")
+    with nested.box():
+        with nested.box(duration=2, unit="dt"):
+            nested.h(0)
+            nested.cx(0, 1)
+        with nested.box(duration=200.0, unit="ns"):
+            nested.x(0)
+            nested.noop(1)
+    return [bare, nested]
+
+
 def generate_circuits(version_parts, current_version, load_context=False):
     """Generate reference circuits.
 
@@ -959,6 +977,7 @@ def generate_circuits(version_parts, current_version, load_context=False):
 
     if version_parts >= (2, 0, 0):
         output_circuits["v14_expr.qpy"] = generate_v14_expr()
+        output_circuits["box.qpy"] = generate_box()
     return output_circuits
 
 
