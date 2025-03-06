@@ -323,6 +323,10 @@ class Binary(Expression):
         NOT_EQUAL = "!="
         SHIFT_LEFT = "<<"
         SHIFT_RIGHT = ">>"
+        ADD = "+"
+        SUB = "-"
+        MUL = "*"
+        DIV = "/"
 
     def __init__(self, op: Op, left: Expression, right: Expression):
         self.op = op

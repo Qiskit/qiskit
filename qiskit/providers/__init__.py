@@ -597,7 +597,6 @@ An example job class for an async API based backend would look something like::
                 'backend_name': self._backend.configuration().backend_name,
                 'backend_version': self._backend.configuration().backend_version,
                 'job_id': self._job_id,
-                'qobj_id': ', '.join(x.name for x in self.circuits),
                 'success': True,
             })
 
