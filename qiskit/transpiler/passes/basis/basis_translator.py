@@ -101,7 +101,7 @@ class BasisTranslator(TransformationPass):
         super().__init__()
         self._equiv_lib = equivalence_library
         self._target_basis = target_basis
-        # Bypass target if it doesn't contain any basis gates, as this
+        # Bypass target if it doesn't contain any basis gates (i.e. it's a _FakeTarget), as this
         # not part of the official target model.
         self._target = target if target is not None and len(target.operation_names) > 0 else None
         self._non_global_operations = None
