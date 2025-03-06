@@ -364,13 +364,6 @@ def load(
     if type_key == type_keys.Program.CIRCUIT:
         loader = binary_io.read_circuit
     elif type_key == type_keys.Program.SCHEDULE_BLOCK:
-        if not use_symengine and not trust_payload:
-            raise QpyError(
-                "This payload can not be loaded unless you set ``trust_payload`` to "
-                "True, as it's using sympy for serialization symbolic expressions which "
-                "is insecure."
-            )
-
         loader = binary_io.read_schedule_block
         warnings.warn(
             category=QPYLoadingDeprecatedFeatureWarning,
