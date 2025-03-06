@@ -225,7 +225,7 @@ def circuit_drawer(
 
     if idle_wires is None:
         idle_wires = default_idle_wires
-    elif isinstance(idle_wires, str):
+    if isinstance(idle_wires, str):
         if idle_wires == "auto":
             idle_wires = hasattr(circuit, "_layout") and circuit._layout is None
         else:
