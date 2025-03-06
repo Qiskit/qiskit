@@ -12,10 +12,10 @@
 
 use indexmap::{IndexMap, IndexSet};
 use pyo3::prelude::*;
+use qiskit_circuit::bit::QuantumRegister;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::imports::{GATE, PARAMETER_VECTOR};
 use qiskit_circuit::parameter_table::ParameterUuid;
-use qiskit_circuit::register::QuantumRegister;
 use qiskit_circuit::Qubit;
 use qiskit_circuit::{
     circuit_data::CircuitData,

@@ -16,7 +16,10 @@ use ahash::RandomState;
 use approx::relative_eq;
 use smallvec::SmallVec;
 
-use crate::bit::{BitLocations, PyClbit, PyQubit, ShareableClbit, ShareableQubit};
+use crate::bit::{
+    BitLocations, ClassicalRegister, PyClassicalRegister, PyClbit, PyQubit, QuantumRegister,
+    Register, ShareableClbit, ShareableQubit,
+};
 use crate::bit_data::{BitData, VarAsKey};
 use crate::bit_locator::BitLocator;
 use crate::circuit_data::CircuitData;
@@ -29,7 +32,6 @@ use crate::imports;
 use crate::interner::{Interned, InternedMap, Interner};
 use crate::operations::{ArrayType, Operation, OperationRef, Param, PyInstruction, StandardGate};
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
-use crate::register::{ClassicalRegister, PyClassicalRegister, QuantumRegister, Register};
 use crate::register_data::RegisterData;
 use crate::rustworkx_core_vnext::isomorphism;
 use crate::{BitType, Clbit, Qubit, TupleLikeArg};
@@ -6883,10 +6885,10 @@ type SortKeyType<'a> = (&'a [Qubit], &'a [Clbit]);
 
 #[cfg(all(test, not(miri)))]
 mod test {
+    use crate::bit::{ClassicalRegister, QuantumRegister};
     use crate::dag_circuit::{DAGCircuit, Wire};
     use crate::operations::{StandardGate, StandardInstruction};
     use crate::packed_instruction::{PackedInstruction, PackedOperation};
-    use crate::register::{ClassicalRegister, QuantumRegister};
     use crate::{Clbit, Qubit};
     use hashbrown::HashSet;
     use pyo3::prelude::*;

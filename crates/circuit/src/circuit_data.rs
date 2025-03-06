@@ -15,7 +15,10 @@ use std::hash::Hash;
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
 
-use crate::bit::{BitLocations, PyBit, ShareableClbit, ShareableQubit};
+use crate::bit::{
+    BitLocations, ClassicalRegister, PyBit, QuantumRegister, Register, ShareableClbit,
+    ShareableQubit,
+};
 use crate::bit_data::BitData;
 use crate::bit_locator::BitLocator;
 use crate::circuit_instruction::{CircuitInstruction, OperationFromPython};
@@ -25,7 +28,6 @@ use crate::interner::{Interned, Interner};
 use crate::operations::{Operation, OperationRef, Param, StandardGate};
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter_table::{ParameterTable, ParameterTableError, ParameterUse, ParameterUuid};
-use crate::register::{ClassicalRegister, QuantumRegister, Register};
 use crate::register_data::RegisterData;
 use crate::slice::{PySequenceIndex, SequenceIndex};
 use crate::{Clbit, Qubit};

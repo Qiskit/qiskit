@@ -12,7 +12,7 @@
 
 use std::{fmt::Debug, hash::Hash, sync::OnceLock};
 
-use crate::{bit::BitLocations, register::Register};
+use crate::bit::{BitLocations, Register};
 use indexmap::IndexMap;
 use pyo3::{
     prelude::*,

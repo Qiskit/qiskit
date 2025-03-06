@@ -16,9 +16,9 @@ use crate::target_transpiler::Target;
 use hashbrown::HashSet;
 use pyo3::prelude::*;
 use pyo3::types::PyTuple;
+use qiskit_circuit::bit::{QuantumRegister, Register};
 use qiskit_circuit::operations::OperationRef;
 use qiskit_circuit::packed_instruction::PackedOperation;
-use qiskit_circuit::register::{QuantumRegister, Register};
 use qiskit_circuit::{
     converters::{circuit_to_dag, QuantumCircuitData},
     dag_circuit::DAGCircuit,

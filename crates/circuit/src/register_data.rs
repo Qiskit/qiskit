@@ -19,7 +19,7 @@ use pyo3::{
     types::{IntoPyDict, PyDict, PyList},
 };
 
-use crate::{circuit_data::CircuitError, register::Register};
+use crate::{bit::Register, circuit_data::CircuitError};
 
 /// Represents the location in which the register is stored within [RegisterData].
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
