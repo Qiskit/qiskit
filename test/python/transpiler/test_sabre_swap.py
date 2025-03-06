@@ -25,7 +25,7 @@ from qiskit.circuit.random import random_circuit
 from qiskit.compiler.transpiler import transpile
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.providers.fake_provider import GenericBackendV2
-from qiskit.transpiler.passes import SabreSwap, TrivialLayout, CheckMap
+from qiskit.transpiler.passes import SabreSwap, CheckMap
 from qiskit.transpiler import CouplingMap, Layout, PassManager, Target, TranspilerError
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit.utils import optionals
@@ -282,93 +282,6 @@ class TestSabreSwap(QiskitTestCase):
         in_results = sim.run(qc, shots=4096).result().get_counts()
         out_results = sim.run(routed, shots=4096).result().get_counts()
         self.assertEqual(set(in_results), set(out_results))
-
-    def test_classical_condition(self):
-        """Test that :class:`.SabreSwap` correctly accounts for classical conditions in its
-        reckoning on whether a node is resolved or not.  If it is not handled correctly, the second
-        gate might not appear in the output.
-
-        Regression test of gh-8040."""
-        with self.subTest("1 bit in register"):
-            qc = QuantumCircuit(2, 1)
-            qc.z(0)
-            with self.assertWarns(DeprecationWarning):
-                qc.z(0).c_if(qc.cregs[0], 0)
-            cm = CouplingMap([(0, 1), (1, 0)])
-            expected = PassManager([TrivialLayout(cm)]).run(qc)
-            actual = PassManager([TrivialLayout(cm), SabreSwap(cm)]).run(qc)
-            self.assertEqual(expected, actual)
-        with self.subTest("multiple registers"):
-            cregs = [ClassicalRegister(3), ClassicalRegister(4)]
-            qc = QuantumCircuit(QuantumRegister(2, name="q"), *cregs)
-            qc.z(0)
-            with self.assertWarns(DeprecationWarning):
-                qc.z(0).c_if(cregs[0], 0)
-            with self.assertWarns(DeprecationWarning):
-                qc.z(0).c_if(cregs[1], 0)
-            cm = CouplingMap([(0, 1), (1, 0)])
-            expected = PassManager([TrivialLayout(cm)]).run(qc)
-            actual = PassManager([TrivialLayout(cm), SabreSwap(cm)]).run(qc)
-            self.assertEqual(expected, actual)
-
-    def test_classical_condition_cargs(self):
-        """Test that classical conditions are preserved even if missing from cargs DAGNode field.
-
-        Created from reproduction in https://github.com/Qiskit/qiskit-terra/issues/8675
-        """
-        with self.subTest("missing measurement"):
-            qc = QuantumCircuit(3, 1)
-            with self.assertWarns(DeprecationWarning):
-                qc.cx(0, 2).c_if(0, 0)
-            qc.measure(1, 0)
-            with self.assertWarns(DeprecationWarning):
-                qc.h(2).c_if(0, 0)
-            expected = QuantumCircuit(3, 1)
-            expected.swap(1, 2)
-            with self.assertWarns(DeprecationWarning):
-                expected.cx(0, 1).c_if(0, 0)
-            expected.measure(2, 0)
-            with self.assertWarns(DeprecationWarning):
-                expected.h(1).c_if(0, 0)
-            result = SabreSwap(CouplingMap.from_line(3), seed=12345)(qc)
-            self.assertEqual(result, expected)
-        with self.subTest("reordered measurement"):
-            qc = QuantumCircuit(3, 1)
-            with self.assertWarns(DeprecationWarning):
-                qc.cx(0, 1).c_if(0, 0)
-            qc.measure(1, 0)
-            with self.assertWarns(DeprecationWarning):
-                qc.h(0).c_if(0, 0)
-            expected = QuantumCircuit(3, 1)
-            with self.assertWarns(DeprecationWarning):
-                expected.cx(0, 1).c_if(0, 0)
-            expected.measure(1, 0)
-            with self.assertWarns(DeprecationWarning):
-                expected.h(0).c_if(0, 0)
-            result = SabreSwap(CouplingMap.from_line(3), seed=12345)(qc)
-            self.assertEqual(result, expected)
-
-    def test_conditional_measurement(self):
-        """Test that instructions with cargs and conditions are handled correctly."""
-        qc = QuantumCircuit(3, 2)
-        with self.assertWarns(DeprecationWarning):
-            qc.cx(0, 2).c_if(0, 0)
-        with self.assertWarns(DeprecationWarning):
-            qc.measure(2, 0).c_if(1, 0)
-        with self.assertWarns(DeprecationWarning):
-            qc.h(2).c_if(0, 0)
-        qc.measure(1, 1)
-        expected = QuantumCircuit(3, 2)
-        expected.swap(1, 2)
-        with self.assertWarns(DeprecationWarning):
-            expected.cx(0, 1).c_if(0, 0)
-        with self.assertWarns(DeprecationWarning):
-            expected.measure(1, 0).c_if(1, 0)
-        with self.assertWarns(DeprecationWarning):
-            expected.h(1).c_if(0, 0)
-        expected.measure(2, 1)
-        result = SabreSwap(CouplingMap.from_line(3), seed=12345)(qc)
-        self.assertEqual(result, expected)
 
     @ddt.data("basic", "lookahead", "decay")
     def test_deterministic(self, heuristic):
@@ -757,11 +670,11 @@ class TestSabreSwapControlFlow(QiskitTestCase):
         efalse_body.swap(3, 4)
 
         expected.if_else((creg[0], 0), etrue_body, efalse_body, qreg, creg[[0]])
-        expected.swap(1, 2)
         expected.h(3)
-        expected.cx(3, 2)
+        expected.swap(2, 3)
+        expected.cx(2, 1)
         expected.barrier()
-        expected.measure(qreg[[2, 0, 1, 3, 4]], creg)
+        expected.measure(qreg[[1, 0, 3, 2, 4]], creg)
         self.assertEqual(dag_to_circuit(cdag), expected)
 
     def test_if_expr(self):

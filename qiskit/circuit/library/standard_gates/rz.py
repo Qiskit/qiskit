@@ -37,17 +37,17 @@ class RZGate(Gate):
     .. code-block:: text
 
              ┌───────┐
-        q_0: ┤ Rz(λ) ├
+        q_0: ┤ Rz(φ) ├
              └───────┘
 
     **Matrix Representation:**
 
     .. math::
 
-        RZ(\lambda) = \exp\left(-i\frac{\lambda}{2}Z\right) =
+        RZ(\phi) = \exp\left(-i\frac{\phi}{2}Z\right) =
             \begin{pmatrix}
-                e^{-i\frac{\lambda}{2}} & 0 \\
-                0 & e^{i\frac{\lambda}{2}}
+                e^{-i\frac{\phi}{2}} & 0 \\
+                0 & e^{i\frac{\phi}{2}}
             \end{pmatrix}
 
     .. seealso::
@@ -57,7 +57,7 @@ class RZGate(Gate):
 
             .. math::
 
-                U1(\lambda) = e^{i{\lambda}/2}RZ(\lambda)
+                U1(\theta=\phi) = e^{i{\phi}/2}RZ(\phi)
 
         Reference for virtual Z gate implementation:
         `1612.00858 <https://arxiv.org/abs/1612.00858>`_
@@ -65,11 +65,9 @@ class RZGate(Gate):
 
     _standard_gate = StandardGate.RZGate
 
-    def __init__(
-        self, phi: ParameterValueType, label: Optional[str] = None, *, duration=None, unit="dt"
-    ):
+    def __init__(self, phi: ParameterValueType, label: Optional[str] = None):
         """Create new RZ gate."""
-        super().__init__("rz", 1, [phi], label=label, duration=duration, unit=unit)
+        super().__init__("rz", 1, [phi], label=label)
 
     def _define(self):
         """
@@ -181,10 +179,10 @@ class CRZGate(ControlledGate):
     .. math::
 
         CRZ(\theta)\ q_0, q_1 =
-            I \otimes |0\rangle\langle 0| + RZ(\theta) \otimes |1\rangle\langle 1| =
+            I \otimes |0\rangle\langle 0| + RZ(\phi=\theta) \otimes |1\rangle\langle 1| =
             \begin{pmatrix}
                 1 & 0 & 0 & 0 \\
-                0 & e^{-i\frac{\lambda}{2}} & 0 & 0 \\
+                0 & e^{-i\frac{\theta}{2}} & 0 & 0 \\
                 0 & 0 & 1 & 0 \\
                 0 & 0 & 0 & e^{i\frac{\theta}{2}}
             \end{pmatrix}
@@ -231,8 +229,6 @@ class CRZGate(ControlledGate):
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
         *,
-        duration=None,
-        unit="dt",
         _base_label=None,
     ):
         """Create new CRZ gate."""
@@ -244,8 +240,6 @@ class CRZGate(ControlledGate):
             label=label,
             ctrl_state=ctrl_state,
             base_gate=RZGate(theta, label=_base_label),
-            duration=duration,
-            unit=unit,
         )
 
     def _define(self):

@@ -15,7 +15,7 @@ use numpy::{IntoPyArray, PyArray2, PyReadonlyArray2, PyReadwriteArray2};
 use pyo3::prelude::*;
 use pyo3::IntoPyObjectExt;
 
-mod lnn;
+pub mod lnn;
 mod pmh;
 pub mod utils;
 

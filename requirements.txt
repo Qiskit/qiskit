@@ -7,6 +7,7 @@ python-dateutil>=2.8.0
 stevedore>=3.0.0
 typing-extensions
 
-# If updating the version range here, consider updating 'test/qpy_compat/run_tests.sh' to update the
-# list of symengine dependencies used in the cross-version tests.
+# If updating the version range here, consider updating the 
+# list of symengine dependencies used in the cross-version tests
+# in 'test/qpy_compat/run_tests.sh' and 'test/qpy_compat/qpy_test_constraints.txt'
 symengine>=0.11,<0.14

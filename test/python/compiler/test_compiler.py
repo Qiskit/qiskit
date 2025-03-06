@@ -16,12 +16,15 @@ import os
 import unittest
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.transpiler import PassManager
+from qiskit.transpiler import PassManager, CouplingMap
 from qiskit.circuit.library import U1Gate, U2Gate
 from qiskit.compiler import transpile
+from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.qasm2 import dumps
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
+
+from ..legacy_cmaps import TOKYO_CMAP
 
 
 class TestCompiler(QiskitTestCase):
@@ -172,17 +175,30 @@ class TestCompiler(QiskitTestCase):
             qc.measure(qr1[j], ans[j + n])
         # First version: no mapping
         result = backend.run(
-            transpile(qc, backend), coupling_map=None, shots=1024, seed_simulator=14
+            transpile(qc, backend, coupling_map=None), shots=1024, seed_simulator=14
         ).result()
         self.assertEqual(result.get_counts(qc), {"010000": 1024})
         # Second version: map to coupling graph
         result = backend.run(
             transpile(qc, backend, coupling_map=coupling_map),
-            coupling_map=coupling_map,
             shots=1024,
             seed_simulator=14,
         ).result()
         self.assertEqual(result.get_counts(qc), {"010000": 1024})
+
+    def test_parallel_compile(self):
+        """Trigger parallel routines in compile."""
+        qr = QuantumRegister(16)
+        cr = ClassicalRegister(2)
+        qc = QuantumCircuit(qr, cr)
+        qc.h(qr[0])
+        for k in range(1, 15):
+            qc.cx(qr[0], qr[k])
+        qc.measure(qr[5], cr[0])
+        qlist = [qc for k in range(10)]
+        backend = GenericBackendV2(num_qubits=20, coupling_map=TOKYO_CMAP, seed=0)
+        out = transpile(qlist, backend=backend)
+        self.assertEqual(len(out), 10)
 
     def test_no_conflict_backend_passmanager(self):
         """See: https://github.com/Qiskit/qiskit-terra/issues/5037"""
@@ -364,7 +380,6 @@ class TestCompiler(QiskitTestCase):
                 self.backend,
                 coupling_map=coupling_map,
             ),
-            coupling_map=coupling_map,
             seed_simulator=self.seed_simulator,
             shots=shots,
         )
@@ -416,8 +431,8 @@ class TestCompiler(QiskitTestCase):
             transpile(
                 circ,
                 backend=self.backend,
+                coupling_map=coupling_map,
             ),
-            coupling_map=coupling_map,
             seed_simulator=self.seed_simulator,
             shots=shots,
         )
@@ -430,14 +445,15 @@ class TestCompiler(QiskitTestCase):
         """Run a circuit with randomly generated parameters."""
         qasm_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "qasm")
         circ = QuantumCircuit.from_qasm_file(os.path.join(qasm_dir, "random_n5_d5.qasm"))
-        coupling_map = [[0, 1], [1, 2], [2, 3], [3, 4]]
+        coupling_map = CouplingMap([[0, 1], [1, 2], [2, 3], [3, 4]])
+        coupling_map.make_symmetric()
         shots = 1024
-        qobj = self.backend.run(
+        job = self.backend.run(
             transpile(circ, backend=self.backend, coupling_map=coupling_map, seed_transpiler=42),
             shots=shots,
             seed_simulator=self.seed_simulator,
         )
-        counts = qobj.result().get_counts()
+        counts = job.result().get_counts()
         expected_probs = {
             "00000": 0.079239867254200971,
             "00001": 0.032859032998526903,

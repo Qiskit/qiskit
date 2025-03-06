@@ -12,7 +12,6 @@
 
 """Unify time unit in circuit for scheduling and following passes."""
 from typing import Set
-import warnings
 
 from qiskit.circuit import Delay
 from qiskit.dagcircuit import DAGCircuit
@@ -51,6 +50,7 @@ class TimeUnitConversion(TransformationPass):
         super().__init__()
         self.inst_durations = inst_durations or InstructionDurations()
         if target is not None:
+            # The priority order for instruction durations is: target > standalone.
             self.inst_durations = target.durations()
         self._durations_provided = inst_durations is not None or target is not None
 
@@ -67,7 +67,9 @@ class TimeUnitConversion(TransformationPass):
             TranspilerError: if the units are not unifiable
         """
 
-        inst_durations = self._update_inst_durations(dag)
+        inst_durations = InstructionDurations()
+        if self._durations_provided:
+            inst_durations.update(self.inst_durations, getattr(self.inst_durations, "dt", None))
 
         # Choose unit
         if inst_durations.dt is not None:
@@ -98,45 +100,15 @@ class TimeUnitConversion(TransformationPass):
                     "and dt unit must not be mixed when dt is not supplied."
                 )
 
-        # Make units consistent
-        for node in dag.op_nodes():
-            try:
-                duration = inst_durations.get(
-                    node.op, [dag.find_bit(qarg).index for qarg in node.qargs], unit=time_unit
-                )
-            except TranspilerError:
-                continue
+        # Make instructions with local durations consistent.
+        for node in dag.op_nodes(Delay):
             op = node.op.to_mutable()
-            op.duration = duration
+            op.duration = inst_durations._convert_unit(op.duration, op.unit, time_unit)
             op.unit = time_unit
-            dag.substitute_node(node, op, propagate_condition=False)
+            dag.substitute_node(node, op)
 
         self.property_set["time_unit"] = time_unit
         return dag
-
-    def _update_inst_durations(self, dag):
-        """Update instruction durations with circuit information. If the dag contains gate
-        calibrations and no instruction durations were provided through the target or as a
-        standalone input, the circuit calibration durations will be used.
-        The priority order for instruction durations is: target > standalone > circuit.
-        """
-        circ_durations = InstructionDurations()
-
-        if dag._calibrations_prop:
-            cal_durations = []
-            with warnings.catch_warnings():
-                warnings.simplefilter(action="ignore", category=DeprecationWarning)
-                # `schedule.duration` emits pulse deprecation warnings which we don't want
-                # to see here
-                for gate, gate_cals in dag._calibrations_prop.items():
-                    for (qubits, parameters), schedule in gate_cals.items():
-                        cal_durations.append((gate, qubits, parameters, schedule.duration))
-            circ_durations.update(cal_durations, circ_durations.dt)
-
-        if self._durations_provided:
-            circ_durations.update(self.inst_durations, getattr(self.inst_durations, "dt", None))
-
-        return circ_durations
 
     @staticmethod
     def _units_used_in_delays(dag: DAGCircuit) -> Set[str]:
