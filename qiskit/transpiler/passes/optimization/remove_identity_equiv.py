@@ -32,7 +32,7 @@ class RemoveIdentityEquivalent(TransformationPass):
 
     .. math::
 
-        \bar{F} = \frac{1 + F_{\text{process}}}{1 + d},\ 
+        \bar{F} = \frac{1 + d F_{\text{process}}}{1 + d},\ 
 
         F_{\text{process}} = \frac{|\mathrm{Tr}(G)|^2}{d^2}
 
@@ -47,9 +47,11 @@ class RemoveIdentityEquivalent(TransformationPass):
         Args:
             approximation_degree: The degree to approximate for the equivalence check. This can be a
                 floating point value between 0 and 1, or ``None``. If the value is 1 this does not
-                approximate above floating point precision. For a value < 1 this is used as a scaling
-                factor for the cutoff fidelity. If the value is ``None`` this approximates up to the
-                fidelity for the gate specified in ``target``.
+                approximate above the floating point precision. For a value < 1 this is used as a
+                scaling factor for the cutoff fidelity. If the value is ``None`` this approximates up
+                to the fidelity for the gate specified in ``target``. In case no ``target`` is set
+                we approximate up to ``16 * machine_eps`` as default to account for accumulations
+                on few-qubit systems.
 
             target: If ``approximation_degree`` is set to ``None`` and a :class:`.Target` is provided
                 for this field the tolerance for determining whether an operation is equivalent to
