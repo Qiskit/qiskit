@@ -29,7 +29,7 @@ use crate::imports;
 use crate::interner::{Interned, InternedMap, Interner};
 use crate::operations::{ArrayType, Operation, OperationRef, Param, PyInstruction, StandardGate};
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
-use crate::register::{ClassicalRegister, QuantumRegister, Register};
+use crate::register::{ClassicalRegister, PyClassicalRegister, QuantumRegister, Register};
 use crate::register_data::RegisterData;
 use crate::rustworkx_core_vnext::isomorphism;
 use crate::{BitType, Clbit, Qubit, TupleLikeArg};
@@ -956,9 +956,6 @@ impl DAGCircuit {
 
     /// Add all wires in a quantum register.
     pub fn add_qreg(&mut self, qreg: QuantumRegister) -> PyResult<()> {
-        // if !qreg.is_instance(imports::QUANTUM_REGISTER.get_bound(py))? {
-        //     return Err(DAGCircuitError::new_err("not a QuantumRegister instance."));
-        // }
         self.qregs
             .add_register(qreg.clone(), true)
             .map_err(|_| DAGCircuitError::new_err(format!("duplicate register {}", qreg.name())))?;
@@ -976,12 +973,6 @@ impl DAGCircuit {
 
     /// Add all wires in a classical register.
     fn add_creg(&mut self, creg: ClassicalRegister) -> PyResult<()> {
-        // if !creg.is_instance(imports::CLASSICAL_REGISTER.get_bound(py))? {
-        //     return Err(DAGCircuitError::new_err(
-        //         "not a ClassicalRegister instance.",
-        //     ));
-        // }
-
         self.cregs
             .add_register(creg.clone(), true)
             .map_err(|_| DAGCircuitError::new_err(format!("duplicate register {}", creg.name())))?;
@@ -5186,7 +5177,7 @@ impl DAGCircuit {
                 if var_var.downcast::<PyClbit>().is_ok() {
                     let var_clbit: ShareableClbit = var_var.extract()?;
                     clbits.push(self.clbits.find(&var_clbit).unwrap());
-                } else if var_var.is_instance(imports::CLASSICAL_REGISTER.get_bound(py))? {
+                } else if var_var.is_instance_of::<PyClassicalRegister>() {
                     for bit in var_var.try_iter().unwrap() {
                         let clbit: ShareableClbit = bit?.extract()?;
                         clbits.push(self.clbits.find(&clbit).unwrap());
@@ -5237,7 +5228,7 @@ impl DAGCircuit {
                     if target.downcast::<PyClbit>().is_ok() {
                         let target_clbit: ShareableClbit = target.extract()?;
                         clbits.push(self.clbits.find(&target_clbit).unwrap());
-                    } else if target.is_instance(imports::CLASSICAL_REGISTER.get_bound(py))? {
+                    } else if target.is_instance_of::<PyClassicalRegister>() {
                         for bit in target.try_iter()? {
                             let clbit: ShareableClbit = bit?.extract()?;
                             clbits.push(self.clbits.find(&clbit).unwrap());
@@ -6655,9 +6646,7 @@ impl DAGCircuit {
                                 if target.downcast::<PyClbit>().is_ok() {
                                     let target_clbit: ShareableClbit = target.extract()?;
                                     block_cargs.insert(self.clbits.find(&target_clbit).unwrap());
-                                } else if target
-                                    .is_instance(imports::CLASSICAL_REGISTER.get_bound(py))?
-                                {
+                                } else if target.is_instance_of::<PyClassicalRegister>() {
                                     block_cargs.extend(self.clbits.map_bits(
                                         target.extract::<Vec<ShareableClbit>>()?.into_iter(),
                                     )?);

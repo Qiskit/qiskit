@@ -394,7 +394,7 @@ static REG_COUNTER: AtomicU32 = AtomicU32::new(0);
 ///     for :class:`~.ClassicalRegister` and :class:`~.QuantumRegister`.
 #[pyclass(
     name = "Register",
-    module = "qiskit.circuit.register",
+    module = "qiskit.circuit",
     subclass,
     frozen,
     sequence
@@ -949,7 +949,7 @@ create_py_register! {
     PyQubit,
     ShareableQubit,
     "QuantumRegister",
-    "qiskit.circuit.quantumregister",
+    "qiskit.circuit",
     BitExtraInfo::Qubit { is_ancilla: false },
     "q",
     "quantum"
@@ -1004,7 +1004,7 @@ create_py_register! {
     PyClbit,
     ShareableClbit,
     "ClassicalRegister",
-    "qiskit.circuit.classicalregister",
+    "qiskit.circuit",
     BitExtraInfo::Clbit(),
     "c",
     "classical"
@@ -1015,7 +1015,7 @@ static AREG_COUNTER: AtomicU32 = AtomicU32::new(0);
 /// Implement an ancilla register.
 #[pyclass(
     name = "AncillaRegister",
-    module = "qiskit.circuit.quantumregister",
+    module = "qiskit.circuit",
     frozen,
     extends=PyQuantumRegister
 )]

@@ -21,7 +21,7 @@ import copy as _copy
 import itertools
 import multiprocessing
 import typing
-from collections import OrderedDict, namedtuple
+from collections import OrderedDict
 from typing import (
     Union,
     Optional,
@@ -48,6 +48,16 @@ from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.utils import deprecate_func
+from . import (  # pylint: disable=cyclic-import
+    Bit,
+    QuantumRegister,
+    Qubit,
+    AncillaRegister,
+    AncillaQubit,
+    Clbit,
+    ClassicalRegister,
+    Register,
+)
 from . import _classical_resource_map
 from .controlflow import ControlFlowOp, _builder_utils
 from .controlflow.builder import CircuitScopeInterface, ControlFlowBuilderBlock
@@ -59,14 +69,10 @@ from .controlflow.switch_case import SwitchCaseOp, SwitchContext
 from .controlflow.while_loop import WhileLoopOp, WhileLoopContext
 from .classical import expr, types
 from .parameterexpression import ParameterExpression, ParameterValueType
-from .quantumregister import QuantumRegister, Qubit, AncillaRegister, AncillaQubit
-from .classicalregister import ClassicalRegister, Clbit
 from .parametertable import ParameterView
 from .parametervector import ParameterVector
 from .instructionset import InstructionSet
 from .operation import Operation
-from .register import Register
-from .bit import Bit
 from .quantumcircuitdata import QuantumCircuitData, CircuitInstruction
 from .delay import Delay
 from .store import Store
@@ -3021,6 +3027,7 @@ class QuantumCircuit:
             qiskit.circuit.Instruction: a composite instruction encapsulating this circuit (can be
                 decomposed back).
         """
+        # pylint: disable=cyclic-import
         from qiskit.converters.circuit_to_instruction import circuit_to_instruction
 
         return circuit_to_instruction(self, parameter_map, label=label)
@@ -3046,6 +3053,7 @@ class QuantumCircuit:
         Returns:
             Gate: a composite gate encapsulating this circuit (can be decomposed back).
         """
+        # pylint: disable=cyclic-import
         from qiskit.converters.circuit_to_gate import circuit_to_gate
 
         return circuit_to_gate(self, parameter_map, label=label)
@@ -3735,6 +3743,7 @@ class QuantumCircuit:
         Returns:
             QuantumCircuit: Returns circuit with measurements when ``inplace = False``.
         """
+        # pylint: disable=cyclic-import
         from qiskit.converters.circuit_to_dag import circuit_to_dag
 
         if inplace:

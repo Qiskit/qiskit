@@ -16,9 +16,8 @@ from __future__ import annotations
 
 import typing
 
-from .bit import Bit
+from . import Bit, Clbit, ClassicalRegister  # pylint: disable=cyclic-import
 from .classical import expr
-from .classicalregister import ClassicalRegister, Clbit
 
 
 class VariableMapper(expr.ExprVisitor[expr.Expr]):

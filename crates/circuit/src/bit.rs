@@ -277,7 +277,7 @@ impl<'py> FromPyObject<'py> for ShareableClbit {
 /// .. note::
 ///     This class should not be instantiated directly. This is just a superclass
 ///     for :class:`~.Clbit` and :class:`~.circuit.Qubit`.
-#[pyclass(subclass, name = "Bit", module = "qiskit.circuit.bit")]
+#[pyclass(subclass, name = "Bit", module = "qiskit.circuit")]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Hash)]
 pub struct PyBit(pub(crate) BitInfo);
 
@@ -522,7 +522,7 @@ create_py_bit!(
     PyQubit,
     ShareableQubit,
     "Qubit",
-    "qiskit.circuit.quantumcircuit",
+    "qiskit.circuit",
     BitExtraInfo::Qubit { is_ancilla: false },
     PyQuantumRegister,
     "quantum",
@@ -554,7 +554,7 @@ create_py_bit!(
     PyClbit,
     ShareableClbit,
     "Clbit",
-    "qiskit.circuit.classicalregister",
+    "qiskit.circuit",
     BitExtraInfo::Clbit(),
     PyClassicalRegister,
     "classical",
@@ -565,7 +565,7 @@ create_py_bit!(
 #[pyclass(
     extends=PyQubit,
     name = "AncillaQubit",
-    module = "qiskit.circuit.quantumregister",
+    module = "qiskit.circuit",
     frozen,
 )]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

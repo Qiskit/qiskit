@@ -25,13 +25,13 @@ import typing
 from typing import Collection, Iterable, FrozenSet, Tuple, Union, Optional, Sequence
 
 from qiskit._accelerate.circuit import CircuitData
+from qiskit.circuit import Register
 from qiskit.circuit.classical import expr
-from qiskit.circuit.classicalregister import Clbit, ClassicalRegister
+from qiskit.circuit import Clbit, ClassicalRegister
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.quantumcircuitdata import CircuitInstruction
-from qiskit.circuit.quantumregister import Qubit, QuantumRegister
-from qiskit.circuit.register import Register
+from qiskit.circuit import Qubit, QuantumRegister
 
 from ._builder_utils import condition_resources, node_resources
 

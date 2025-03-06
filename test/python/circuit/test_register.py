@@ -16,7 +16,7 @@
 
 from ddt import data, ddt
 
-from qiskit.circuit import bit
+from qiskit.circuit import Bit
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit import AncillaRegister
 from qiskit.circuit import ClassicalRegister
@@ -47,7 +47,7 @@ class TestRegisterClass(QiskitTestCase):
 
     @data(QuantumRegister, ClassicalRegister, AncillaRegister)
     def test_init_raise_if_bits_of_incorrect_type(self, reg_type):
-        bits = [bit.Bit()]
+        bits = [Bit()]
         with self.assertRaisesRegex(CircuitError, "did not all match register type"):
             _ = reg_type(bits=bits)
 
