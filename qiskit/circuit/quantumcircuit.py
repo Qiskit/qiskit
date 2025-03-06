@@ -4553,7 +4553,7 @@ class QuantumCircuit:
 
     def delay(
         self,
-        duration: ParameterValueType | expr.Expr,
+        duration: Union[ParameterValueType, expr.Expr],
         qarg: QubitSpecifier | None = None,
         unit: str | None = None,
     ) -> InstructionSet:
