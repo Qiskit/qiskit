@@ -164,7 +164,6 @@ class TestScheduledCircuit(QiskitTestCase):
         qc.delay(500, 1)
         qc.append(bell_instr, [0, 1])
 
-        print(qc)
         target = Target(num_qubits=2)
         target.add_instruction(CXGate(), {(0, 1): InstructionProperties(0)})
         target.add_instruction(
@@ -179,14 +178,12 @@ class TestScheduledCircuit(QiskitTestCase):
             },
         )
         target.dt = 1e-2
-        print(target)
         scheduled = transpile(
             qc,
             scheduling_method="alap",
             target=target,
             dt=1e-2,
         )
-        print(scheduled)
         self.assertEqual(scheduled.duration, 1500)
 
     def test_transpile_delay_circuit_with_dt_but_without_scheduling_method(self):

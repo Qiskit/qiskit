@@ -24,6 +24,7 @@ import itertools
 from typing import Optional, List, Any
 from collections.abc import Mapping
 import io
+import copy
 import logging
 import inspect
 

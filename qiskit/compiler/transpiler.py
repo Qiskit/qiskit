@@ -16,7 +16,6 @@
 import logging
 from time import time
 from typing import List, Union, Dict, Callable, Any, Optional, TypeVar
-import warnings
 
 from qiskit import user_config
 from qiskit.circuit.quantumcircuit import QuantumCircuit
