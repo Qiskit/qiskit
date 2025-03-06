@@ -61,196 +61,184 @@ def transpile(  # pylint: disable=too-many-return-statements
 ) -> _CircuitT:
     """Transpile one or more circuits, according to some desired transpilation targets.
 
-        Transpilation is potentially done in parallel using multiprocessing when ``circuits``
-        is a list with > 1 :class:`~.QuantumCircuit` object, depending on the local environment
-        and configuration.
+    Transpilation is potentially done in parallel using multiprocessing when ``circuits``
+    is a list with > 1 :class:`~.QuantumCircuit` object, depending on the local environment
+    and configuration.
 
-        The prioritization of transpilation target constraints works as follows: if a ``target``
-        input is provided, it will take priority over any ``backend`` input or loose constraints
-        (``basis_gates``, ``coupling_map``, or ``dt``). If a ``backend`` is provided
-        together with any loose constraint
-        from the list above, the loose constraint will take priority over the corresponding backend
-        constraint. This behavior is summarized in the table below. The first column
-        in the table summarizes the potential user-provided constraints, and each cell shows whether
-        the priority is assigned to that specific constraint input or another input
-        (`target`/`backend(V2)`).
+    The prioritization of transpilation target constraints works as follows: if a ``target``
+    input is provided, it will take priority over any ``backend`` input or loose constraints
+    (``basis_gates``, ``coupling_map``, or ``dt``). If a ``backend`` is provided
+    together with any loose constraint
+    from the list above, the loose constraint will take priority over the corresponding backend
+    constraint. This behavior is summarized in the table below. The first column
+    in the table summarizes the potential user-provided constraints, and each cell shows whether
+    the priority is assigned to that specific constraint input or another input
+    (`target`/`backend(V2)`).
 
-    <<<<<<< HEAD
-        ============================ ========= ======================== =======================
-        User Provided                target    backend(V1)              backend(V2)
-        ============================ ========= ======================== =======================
-        **basis_gates**              target    basis_gates              basis_gates
-        **coupling_map**             target    coupling_map             coupling_map
-        **dt**                       target    dt                       dt
-        ============================ ========= ======================== =======================
-    =======
-        ============================ ========= ========================
-        User Provided                target    backend(V2)
-        ============================ ========= ========================
-        **basis_gates**              target    basis_gates
-        **coupling_map**             target    coupling_map
-        **instruction_durations**    target    instruction_durations
-        **dt**                       target    dt
-        **timing_constraints**       target    timing_constraints
-        ============================ ========= ========================
-    >>>>>>> 2ec8f8f66650d84159f3bc058b9f38a1285175cb
+    ============================ ========= ========================
+    User Provided                target    backend(V2)
+    ============================ ========= ========================
+    **basis_gates**              target    basis_gates
+    **coupling_map**             target    coupling_map
+    **dt**                       target    dt
+    ============================ ========= ========================
 
-        Args:
-            circuits: Circuit(s) to transpile
-            backend: If set, the transpiler will compile the input circuit to this target
-                device. If any other option is explicitly set (e.g., ``coupling_map``), it
-                will override the backend's.
-            basis_gates: List of basis gate names to unroll to
-                (e.g: ``['u1', 'u2', 'u3', 'cx']``). If ``None``, do not unroll.
-            coupling_map: Directed coupling map (perhaps custom) to target in mapping. If
-                the coupling map is symmetric, both directions need to be specified.
+    Args:
+        circuits: Circuit(s) to transpile
+        backend: If set, the transpiler will compile the input circuit to this target
+            device. If any other option is explicitly set (e.g., ``coupling_map``), it
+            will override the backend's.
+        basis_gates: List of basis gate names to unroll to
+            (e.g: ``['u1', 'u2', 'u3', 'cx']``). If ``None``, do not unroll.
+        coupling_map: Directed coupling map (perhaps custom) to target in mapping. If
+            the coupling map is symmetric, both directions need to be specified.
 
-                Multiple formats are supported:
+            Multiple formats are supported:
 
-                #. ``CouplingMap`` instance
-                #. List, must be given as an adjacency matrix, where each entry
-                   specifies all directed two-qubit interactions supported by backend,
-                   e.g: ``[[0, 1], [0, 3], [1, 2], [1, 5], [2, 5], [4, 1], [5, 3]]``
-            initial_layout: Initial position of virtual qubits on physical qubits.
-                If this layout makes the circuit compatible with the coupling_map
-                constraints, it will be used. The final layout is not guaranteed to be the same,
-                as the transpiler may permute qubits through swaps or other means.
-                Multiple formats are supported:
+            #. ``CouplingMap`` instance
+            #. List, must be given as an adjacency matrix, where each entry
+               specifies all directed two-qubit interactions supported by backend,
+               e.g: ``[[0, 1], [0, 3], [1, 2], [1, 5], [2, 5], [4, 1], [5, 3]]``
+        initial_layout: Initial position of virtual qubits on physical qubits.
+            If this layout makes the circuit compatible with the coupling_map
+            constraints, it will be used. The final layout is not guaranteed to be the same,
+            as the transpiler may permute qubits through swaps or other means.
+            Multiple formats are supported:
 
-                #. ``Layout`` instance
-                #. Dict
-                   * virtual to physical::
+            #. ``Layout`` instance
+            #. Dict
+               * virtual to physical::
 
-                        {qr[0]: 0,
-                         qr[1]: 3,
-                         qr[2]: 5}
+                    {qr[0]: 0,
+                     qr[1]: 3,
+                     qr[2]: 5}
 
-                   * physical to virtual::
+               * physical to virtual::
 
-                        {0: qr[0],
-                         3: qr[1],
-                         5: qr[2]}
+                    {0: qr[0],
+                     3: qr[1],
+                     5: qr[2]}
 
-                #. List
+            #. List
 
-                   * virtual to physical::
+               * virtual to physical::
 
-                        [0, 3, 5]  # virtual qubits are ordered (in addition to named)
+                    [0, 3, 5]  # virtual qubits are ordered (in addition to named)
 
-                   * physical to virtual::
+               * physical to virtual::
 
-                        [qr[0], None, None, qr[1], None, qr[2]]
+                    [qr[0], None, None, qr[1], None, qr[2]]
 
-            layout_method: Name of layout selection pass ('trivial', 'dense', 'sabre').
-                This can also be the external plugin name to use for the ``layout`` stage.
-                You can see a list of installed plugins by using :func:`~.list_stage_plugins` with
-                ``"layout"`` for the ``stage_name`` argument.
-            routing_method: Name of routing pass
-                ('basic', 'lookahead', 'stochastic', 'sabre', 'none'). Note
-                This can also be the external plugin name to use for the ``routing`` stage.
-                You can see a list of installed plugins by using :func:`~.list_stage_plugins` with
-                ``"routing"`` for the ``stage_name`` argument.
-            translation_method: Name of translation pass (``"default"``, ``"translator"`` or
-                ``"synthesis"``). This can also be the external plugin name to use for the
-                ``translation`` stage.  You can see a list of installed plugins by using
-                :func:`~.list_stage_plugins` with ``"translation"`` for the ``stage_name`` argument.
-            scheduling_method: Name of scheduling pass.
-                * ``'as_soon_as_possible'``: Schedule instructions greedily, as early as possible
-                on a qubit resource. (alias: ``'asap'``)
-                * ``'as_late_as_possible'``: Schedule instructions late, i.e. keeping qubits
-                in the ground state when possible. (alias: ``'alap'``)
-                If ``None``, no scheduling will be done. This can also be the external plugin name
-                to use for the ``scheduling`` stage. You can see a list of installed plugins by
-                using :func:`~.list_stage_plugins` with ``"scheduling"`` for the ``stage_name``
-                argument.
-            dt: Backend sample time (resolution) in seconds.
-                If ``None`` (default), ``backend.dt`` is used.
-            approximation_degree (float): heuristic dial used for circuit approximation
-                (1.0=no approximation, 0.0=maximal approximation)
-            seed_transpiler: Sets random seed for the stochastic parts of the transpiler
-            optimization_level: How much optimization to perform on the circuits.
-                Higher levels generate more optimized circuits,
-                at the expense of longer transpilation time.
+        layout_method: Name of layout selection pass ('trivial', 'dense', 'sabre').
+            This can also be the external plugin name to use for the ``layout`` stage.
+            You can see a list of installed plugins by using :func:`~.list_stage_plugins` with
+            ``"layout"`` for the ``stage_name`` argument.
+        routing_method: Name of routing pass
+            ('basic', 'lookahead', 'stochastic', 'sabre', 'none'). Note
+            This can also be the external plugin name to use for the ``routing`` stage.
+            You can see a list of installed plugins by using :func:`~.list_stage_plugins` with
+            ``"routing"`` for the ``stage_name`` argument.
+        translation_method: Name of translation pass (``"default"``, ``"translator"`` or
+            ``"synthesis"``). This can also be the external plugin name to use for the
+            ``translation`` stage.  You can see a list of installed plugins by using
+            :func:`~.list_stage_plugins` with ``"translation"`` for the ``stage_name`` argument.
+        scheduling_method: Name of scheduling pass.
+            * ``'as_soon_as_possible'``: Schedule instructions greedily, as early as possible
+            on a qubit resource. (alias: ``'asap'``)
+            * ``'as_late_as_possible'``: Schedule instructions late, i.e. keeping qubits
+            in the ground state when possible. (alias: ``'alap'``)
+            If ``None``, no scheduling will be done. This can also be the external plugin name
+            to use for the ``scheduling`` stage. You can see a list of installed plugins by
+            using :func:`~.list_stage_plugins` with ``"scheduling"`` for the ``stage_name``
+            argument.
+        dt: Backend sample time (resolution) in seconds.
+            If ``None`` (default), ``backend.dt`` is used.
+        approximation_degree (float): heuristic dial used for circuit approximation
+            (1.0=no approximation, 0.0=maximal approximation)
+        seed_transpiler: Sets random seed for the stochastic parts of the transpiler
+        optimization_level: How much optimization to perform on the circuits.
+            Higher levels generate more optimized circuits,
+            at the expense of longer transpilation time.
 
-                * 0: no optimization
-                * 1: light optimization
-                * 2: heavy optimization
-                * 3: even heavier optimization
+            * 0: no optimization
+            * 1: light optimization
+            * 2: heavy optimization
+            * 3: even heavier optimization
 
-                If ``None``, level 2 will be chosen as default.
-            callback: A callback function that will be called after each
-                pass execution. The function will be called with 5 keyword
-                arguments,
-                | ``pass_``: the pass being run.
-                | ``dag``: the dag output of the pass.
-                | ``time``: the time to execute the pass.
-                | ``property_set``: the property set.
-                | ``count``: the index for the pass execution.
-                The exact arguments passed expose the internals of the pass manager,
-                and are subject to change as the pass manager internals change. If
-                you intend to reuse a callback function over multiple releases, be
-                sure to check that the arguments being passed are the same.
-                To use the callback feature, define a function that will
-                take in kwargs dict and access the variables. For example::
+            If ``None``, level 2 will be chosen as default.
+        callback: A callback function that will be called after each
+            pass execution. The function will be called with 5 keyword
+            arguments,
+            | ``pass_``: the pass being run.
+            | ``dag``: the dag output of the pass.
+            | ``time``: the time to execute the pass.
+            | ``property_set``: the property set.
+            | ``count``: the index for the pass execution.
+            The exact arguments passed expose the internals of the pass manager,
+            and are subject to change as the pass manager internals change. If
+            you intend to reuse a callback function over multiple releases, be
+            sure to check that the arguments being passed are the same.
+            To use the callback feature, define a function that will
+            take in kwargs dict and access the variables. For example::
 
-                    def callback_func(**kwargs):
-                        pass_ = kwargs['pass_']
-                        dag = kwargs['dag']
-                        time = kwargs['time']
-                        property_set = kwargs['property_set']
-                        count = kwargs['count']
-                        ...
-                    transpile(circ, callback=callback_func)
+                def callback_func(**kwargs):
+                    pass_ = kwargs['pass_']
+                    dag = kwargs['dag']
+                    time = kwargs['time']
+                    property_set = kwargs['property_set']
+                    count = kwargs['count']
+                    ...
+                transpile(circ, callback=callback_func)
 
-            output_name: A list with strings to identify the output circuits. The length of
-                the list should be exactly the length of the ``circuits`` parameter.
-            unitary_synthesis_method (str): The name of the unitary synthesis
-                method to use. By default ``'default'`` is used. You can see a list of installed
-                plugins with :func:`.unitary_synthesis_plugin_names`.
-            unitary_synthesis_plugin_config: An optional configuration dictionary
-                that will be passed directly to the unitary synthesis plugin. By
-                default this setting will have no effect as the default unitary
-                synthesis method does not take custom configuration. This should
-                only be necessary when a unitary synthesis plugin is specified with
-                the ``unitary_synthesis_method`` argument. As this is custom for each
-                unitary synthesis plugin refer to the plugin documentation for how
-                to use this option.
-            target: A backend transpiler target. Normally this is specified as part of
-                the ``backend`` argument, but if you have manually constructed a
-                :class:`~qiskit.transpiler.Target` object you can specify it manually here.
-                This will override the target from ``backend``.
-            hls_config: An optional configuration class
-                :class:`~qiskit.transpiler.passes.synthesis.HLSConfig` that will be passed directly
-                to :class:`~qiskit.transpiler.passes.synthesis.HighLevelSynthesis` transformation pass.
-                This configuration class allows to specify for various high-level objects the lists of
-                synthesis algorithms and their parameters.
-            init_method: The plugin name to use for the ``init`` stage. By default an external
-                plugin is not used. You can see a list of installed plugins by
-                using :func:`~.list_stage_plugins` with ``"init"`` for the stage
-                name argument.
-            optimization_method: The plugin name to use for the
-                ``optimization`` stage. By default an external
-                plugin is not used. You can see a list of installed plugins by
-                using :func:`~.list_stage_plugins` with ``"optimization"`` for the
-                ``stage_name`` argument.
-            ignore_backend_supplied_default_methods: If set to ``True`` any default methods specified by
-                a backend will be ignored. Some backends specify alternative default methods
-                to support custom compilation target-specific passes/plugins which support
-                backend-specific compilation techniques. If you'd prefer that these defaults were
-                not used this option is used to disable those backend-specific defaults.
-            num_processes: The maximum number of parallel processes to launch for this call to
-                transpile if parallel execution is enabled. This argument overrides
-                ``num_processes`` in the user configuration file, and the ``QISKIT_NUM_PROCS``
-                environment variable. If set to ``None`` the system default or local user configuration
-                will be used.
-            qubits_initially_zero: Indicates whether the input circuit is zero-initialized.
+        output_name: A list with strings to identify the output circuits. The length of
+            the list should be exactly the length of the ``circuits`` parameter.
+        unitary_synthesis_method (str): The name of the unitary synthesis
+            method to use. By default ``'default'`` is used. You can see a list of installed
+            plugins with :func:`.unitary_synthesis_plugin_names`.
+        unitary_synthesis_plugin_config: An optional configuration dictionary
+            that will be passed directly to the unitary synthesis plugin. By
+            default this setting will have no effect as the default unitary
+            synthesis method does not take custom configuration. This should
+            only be necessary when a unitary synthesis plugin is specified with
+            the ``unitary_synthesis_method`` argument. As this is custom for each
+            unitary synthesis plugin refer to the plugin documentation for how
+            to use this option.
+        target: A backend transpiler target. Normally this is specified as part of
+            the ``backend`` argument, but if you have manually constructed a
+            :class:`~qiskit.transpiler.Target` object you can specify it manually here.
+            This will override the target from ``backend``.
+        hls_config: An optional configuration class
+            :class:`~qiskit.transpiler.passes.synthesis.HLSConfig` that will be passed directly
+            to :class:`~qiskit.transpiler.passes.synthesis.HighLevelSynthesis` transformation pass.
+            This configuration class allows to specify for various high-level objects the lists of
+            synthesis algorithms and their parameters.
+        init_method: The plugin name to use for the ``init`` stage. By default an external
+            plugin is not used. You can see a list of installed plugins by
+            using :func:`~.list_stage_plugins` with ``"init"`` for the stage
+            name argument.
+        optimization_method: The plugin name to use for the
+            ``optimization`` stage. By default an external
+            plugin is not used. You can see a list of installed plugins by
+            using :func:`~.list_stage_plugins` with ``"optimization"`` for the
+            ``stage_name`` argument.
+        ignore_backend_supplied_default_methods: If set to ``True`` any default methods specified by
+            a backend will be ignored. Some backends specify alternative default methods
+            to support custom compilation target-specific passes/plugins which support
+            backend-specific compilation techniques. If you'd prefer that these defaults were
+            not used this option is used to disable those backend-specific defaults.
+        num_processes: The maximum number of parallel processes to launch for this call to
+            transpile if parallel execution is enabled. This argument overrides
+            ``num_processes`` in the user configuration file, and the ``QISKIT_NUM_PROCS``
+            environment variable. If set to ``None`` the system default or local user configuration
+            will be used.
+        qubits_initially_zero: Indicates whether the input circuit is zero-initialized.
 
-        Returns:
-            The transpiled circuit(s).
+    Returns:
+        The transpiled circuit(s).
 
-        Raises:
-            TranspilerError: in case of bad inputs to transpiler (like conflicting parameters)
-                or errors in passes
+    Raises:
+        TranspilerError: in case of bad inputs to transpiler (like conflicting parameters)
+            or errors in passes
     """
     arg_circuits_list = isinstance(circuits, list)
     circuits = circuits if arg_circuits_list else [circuits]
