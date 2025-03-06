@@ -1,5 +1,6 @@
 ---
-prelude: >
+upgrade:
+  - |
     Qiskit Pulse has been completely removed in this release, following its deprecation in Qiskit 1.3.
     This include all pulse module files, pulse visualization functionality, support for ``ScheduleBlock``
     and pulse-gate serialization/deserialization capability in QPY, calibrations management in
