@@ -315,6 +315,9 @@ def _linear_depth_ladder_ops(qreg: list[int]) -> tuple[QuantumCircuit, list[int]
         A tuple consisting of the linear-depth ladder circuit and the index of control qubit to
         apply the final CCX gate.
 
+    Raises:
+        QiskitError: If len(qreg) <= 3.
+
     References:
         1. Khattar and Gidney, Rise of conditionally clean ancillae for optimizing quantum circuits
         `arXiv:2407.17966 <https://arxiv.org/abs/2407.17966>`__
@@ -473,6 +476,9 @@ def _build_logn_depth_ccx_ladder(
     Returns:
         A tuple consisting of the log-depth ladder circuit of conditionally clean ancillae and the
         list of indices of control qubit to apply the linear-depth MCX gate.
+
+    Raises:
+        QiskitError: If no. of qubits in parallel CCX + X gates are not the same.
 
     References:
         1. Khattar and Gidney, Rise of conditionally clean ancillae for optimizing quantum circuits
