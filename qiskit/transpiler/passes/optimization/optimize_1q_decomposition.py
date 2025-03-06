@@ -85,7 +85,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
             self._basis_gates = set(basis)
         else:
             self._basis_gates = None
-        # Bypass target if it doesn't contain any basis gates, as this
+        # Bypass target if it doesn't contain any basis gates (i.e. it's a _FakeTarget), as this
         # not part of the official target model.
         self._target = target if target is not None and len(target.operation_names) > 0 else None
         self._global_decomposers = None

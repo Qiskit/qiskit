@@ -52,6 +52,7 @@ class CheckGateDirection(AnalysisPass):
                 dag, set(self.coupling_map.get_edges())
             )
         elif len(self.target.operation_names) == 0:
+            # A  _FakeTarget path, no basis gates, just use the coupling map
             self.property_set["is_direction_mapped"] = check_gate_direction_coupling(
                 dag, set(self.target.build_coupling_map().get_edges())
             )
