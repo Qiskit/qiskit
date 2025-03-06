@@ -80,17 +80,19 @@ class Optimize1qGatesDecomposition(TransformationPass):
         """
         super().__init__()
 
-        if basis:
+        if basis and len(basis) > 0:
             self._basis_gates = set(basis)
         else:
             self._basis_gates = None
-        self._target = target
+        # Bypass target if it doesn't contain any basis gates (i.e. it's a _FakeTarget), as this
+        # not part of the official target model.
+        self._target = target if target is not None and len(target.operation_names) > 0 else None
         self._global_decomposers = None
         self._local_decomposers_cache = {}
 
-        if basis:
+        if self._basis_gates:
             self._global_decomposers = _possible_decomposers(set(basis))
-        elif target is None:
+        elif target is None or len(target.operation_names) == 0:
             self._global_decomposers = _possible_decomposers(None)
             self._basis_gates = None
 
@@ -114,7 +116,11 @@ class Optimize1qGatesDecomposition(TransformationPass):
 
     def _get_decomposer(self, qubit=None):
         # include path for when target exists but target.num_qubits is None (BasicSimulator)
-        if self._target is not None and self._target.num_qubits is not None:
+        if (
+            self._target is not None
+            and self._target.num_qubits is not None
+            and len(self._target.operation_names) > 0
+        ):
             if qubit is not None:
                 qubits_tuple = (qubit,)
             else:
