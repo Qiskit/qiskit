@@ -14,10 +14,8 @@ use std::sync::OnceLock;
 use std::{fmt::Debug, marker::PhantomData};
 
 use hashbrown::HashMap;
-use pyo3::{
-    prelude::*,
-    types::{IntoPyDict, PyDict, PyList},
-};
+use pyo3::prelude::*;
+use pyo3::types::{IntoPyDict, PyDict, PyList};
 
 use crate::{bit::Register, circuit_data::CircuitError};
 

@@ -80,7 +80,7 @@ pub fn dag_to_circuit(
     dag: &DAGCircuit,
     copy_operations: bool,
 ) -> PyResult<CircuitData> {
-    let circuit = CircuitData::from_packed_instructions(
+    CircuitData::from_packed_instructions(
         py,
         dag.qubits().clone(),
         dag.clbits().clone(),
@@ -118,8 +118,7 @@ pub fn dag_to_circuit(
             }
         }),
         dag.get_global_phase(),
-    )?;
-    Ok(circuit)
+    )
 }
 
 pub fn converters(m: &Bound<PyModule>) -> PyResult<()> {
