@@ -101,7 +101,9 @@ where
 /// Main representation of the inner properties of a shareable `Bit` object.
 ///
 /// This is supplemented by an extra marker type to encode additional subclass information for
-/// communication with Python space.
+/// communication with Python space, which is used to distinguish an AncillaQubit from a Qubit
+/// which is a Python domain construct only for backwards compatibility, but we don't need in
+/// rust.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Hash)]
 enum BitInfo<B> {
     Owned {
