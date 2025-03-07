@@ -532,9 +532,9 @@ macro_rules! create_bit_object {
 
             /// Create a new owning register.
             #[inline]
-            pub fn new_owning(name: String, size: u32) -> Self {
+            pub fn new_owning<S: Into<String>>(name: S, size: u32) -> Self {
                 Self(Arc::new(RegisterInfo::Owning(Arc::new(OwningRegisterInfo {
-                    name,
+                    name: name.into(),
                     size,
                     subclass: Default::default(),
                 }))))
