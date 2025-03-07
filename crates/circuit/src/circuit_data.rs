@@ -46,6 +46,7 @@ use smallvec::SmallVec;
 
 import_exception!(qiskit.circuit.exceptions, CircuitError);
 
+/// A tuple of a `CircuitData`'s internal state used for pickle's `__setstate__()` method.
 type CircuitDataState<'py> = (
     Vec<QuantumRegister>,
     Vec<ClassicalRegister>,
@@ -218,7 +219,7 @@ impl CircuitData {
         Ok(())
     }
 
-    /// Returns the a list of registered :class:`.QuantumRegisters` instances.
+    /// The list of registered :class:`.QuantumRegister` instances.
     ///
     /// .. warning::
     ///
@@ -226,16 +227,15 @@ impl CircuitData {
     ///     structures.
     ///
     /// Returns:
-    ///     dict(:class:`.QuantumRegister`): The current sequence of registered qubits.
+    ///     list[:class:`.QuantumRegister`]: The current sequence of registered qubits.
     #[getter("qregs")]
     pub fn py_qregs<'py>(&'py self, py: Python<'py>) -> Bound<'py, PyList> {
         self.qregs.cached_list(py)
     }
 
-    /// Returns a dict mapping Qubit instances to tuple comprised of 0) the
-    /// corresponding index in circuit.qubits and 1) a list of
-    /// Register-int pairs for each Register containing the Bit and its index
-    /// within that register.
+    /// A dict mapping Qubit instances to tuple comprised of 0) the corresponding index in
+    /// circuit.qubits and 1) a list of Register-int pairs for each Register containing the Bit and
+    /// its index within that register.
     #[getter("_qubit_indices")]
     pub fn get_qubit_indices(&self, py: Python) -> &Py<PyDict> {
         self.qubit_indices.cached(py)
@@ -281,7 +281,7 @@ impl CircuitData {
         self.qubits.len()
     }
 
-    /// Returns the a list of registered :class:`.ClassicalRegisters` instances.
+    /// The list of registered :class:`.ClassicalRegisters` instances.
     ///
     /// .. warning::
     ///
@@ -289,16 +289,15 @@ impl CircuitData {
     ///     structures.
     ///
     /// Returns:
-    ///     dict(:class:`.ClassicalRegister`): The current sequence of registered qubits.
+    ///     list[:class:`.ClassicalRegister`]: The current sequence of registered qubits.
     #[getter("cregs")]
     pub fn py_cregs<'py>(&'py self, py: Python<'py>) -> Bound<'py, PyList> {
         self.cregs.cached_list(py)
     }
 
-    /// Returns a dict mapping Clbit instances to tuple comprised of 0) the
-    /// corresponding index in circuit.clbits and 1) a list of
-    /// Register-int pairs for each Register containing the Bit and its index
-    /// within that register.
+    /// A dict mapping Clbit instances to tuple comprised of 0) the corresponding index in
+    /// circuit.clbits and 1) a list of Register-int pairs for each Register containing the Bit and
+    /// its index within that register.
     #[getter("_clbit_indices")]
     pub fn get_clbit_indices(&self, py: Python) -> &Py<PyDict> {
         self.clbit_indices.cached(py)
@@ -695,33 +694,14 @@ impl CircuitData {
     pub fn replace_bits(
         &mut self,
         py: Python<'_>,
-        qubits: Option<Bound<PyAny>>,
-        clbits: Option<Bound<PyAny>>,
+        qubits: Option<Vec<ShareableQubit>>,
+        clbits: Option<Vec<ShareableClbit>>,
         qregs: Option<Vec<QuantumRegister>>,
         cregs: Option<Vec<ClassicalRegister>>,
     ) -> PyResult<()> {
         let qubits_is_some = qubits.is_some();
         let clbits_is_some = clbits.is_some();
-        let mut temp = CircuitData::new(
-            py,
-            qubits
-                .map(|bits| -> PyResult<_> {
-                    bits.try_iter()?
-                        .map(|bit| -> PyResult<_> { bit?.extract() })
-                        .collect::<PyResult<_>>()
-                })
-                .transpose()?,
-            clbits
-                .map(|bits| -> PyResult<_> {
-                    bits.try_iter()?
-                        .map(|bit| -> PyResult<_> { bit?.extract() })
-                        .collect::<PyResult<_>>()
-                })
-                .transpose()?,
-            None,
-            0,
-            self.global_phase.clone(),
-        )?;
+        let mut temp = CircuitData::new(py, qubits, clbits, None, 0, self.global_phase.clone())?;
 
         // Add qregs if provided.
         if let Some(qregs) = qregs {
