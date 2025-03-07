@@ -167,7 +167,7 @@ pub struct PyRegister;
 /// Contains the information for a register that owns the bits it contains.
 ///
 /// This is separate to the full [RegisterInfo] because owned bits also need to store a
-/// backreference to it.
+/// backreference to their owning register.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Hash)]
 pub struct OwningRegisterInfo<S> {
     name: String,
