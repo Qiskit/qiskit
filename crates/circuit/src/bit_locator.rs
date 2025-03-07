@@ -14,18 +14,14 @@ use std::{fmt::Debug, hash::Hash, sync::OnceLock};
 
 use crate::bit::{BitLocations, Register};
 use indexmap::IndexMap;
-use pyo3::{
-    prelude::*,
-    types::{IntoPyDict, PyDict},
-};
-
-pub type BitIndexType<B, R> = IndexMap<B, BitLocations<R>>;
+use pyo3::prelude::*;
+use pyo3::types::{IntoPyDict, PyDict};
 
 /// Structure that keeps a mapping of bits and their locations within
 /// the circuit.
 #[derive(Debug)]
 pub struct BitLocator<B, R: Register> {
-    bit_locations: BitIndexType<B, R>,
+    bit_locations: IndexMap<B, BitLocations<R>, ::ahash::RandomState>,
     cached: OnceLock<Py<PyDict>>,
 }
 
@@ -58,38 +54,46 @@ where
     B: Debug + Clone + Hash + Eq,
     R: Register + Debug + Clone,
 {
+    /// Create an empty locator for bits.
     pub fn new() -> Self {
-        Self {
-            bit_locations: BitIndexType::new(),
-            cached: OnceLock::new(),
-        }
+        Self::with_capacity(0)
     }
 
+    /// Create an empty locator for bits with pre-allocated capacity to contain a given number.
     pub fn with_capacity(capacity: usize) -> Self {
         Self {
-            bit_locations: BitIndexType::with_capacity(capacity),
+            bit_locations: IndexMap::with_capacity_and_hasher(capacity, Default::default()),
             cached: OnceLock::new(),
         }
     }
 
+    /// Track a bit at the given locations.
+    ///
+    /// If the bit was already tracked, its locations are updated with the new ones, and the old
+    /// ones are returned.
     pub fn insert(&mut self, bit: B, location: BitLocations<R>) -> Option<BitLocations<R>> {
         self.cached.take();
         self.bit_locations.insert(bit, location)
     }
 
+    /// Get the locations of a bit, if it is tracked.
     pub fn get(&self, bit: &B) -> Option<&BitLocations<R>> {
         self.bit_locations.get(bit)
     }
 
+    /// Get the locations of a bit for mutation, if it is tracked.
     pub fn get_mut(&mut self, bit: &B) -> Option<&mut BitLocations<R>> {
         self.cached.take();
         self.bit_locations.get_mut(bit)
     }
 
+    /// Is the bit tracked?
     pub fn contains_key(&self, bit: &B) -> bool {
         self.bit_locations.contains_key(bit)
     }
 
+    /// Called during Python garbage collection, only!.
+    /// Note: INVALIDATES THIS INSTANCE.
     pub fn dispose(&mut self) {
         self.bit_locations.clear();
         self.cached.take();
@@ -101,6 +105,7 @@ where
     B: Debug + Clone + Hash + Eq + for<'py> IntoPyObject<'py> + for<'py> FromPyObject<'py>,
     R: Register + Debug + Clone + for<'py> IntoPyObject<'py> + for<'py> FromPyObject<'py>,
 {
+    /// Get or create the cached Python dictionary that represents this.
     pub fn cached(&self, py: Python) -> &Py<PyDict> {
         self.cached.get_or_init(|| {
             self.bit_locations
@@ -112,6 +117,7 @@ where
         })
     }
 
+    /// Recreate this object from a Python dictionary.
     pub fn from_py_dict(dict: &Bound<PyDict>) -> PyResult<Self> {
         let mut locator = Self::new();
         for (key, value) in dict {
@@ -120,6 +126,7 @@ where
         Ok(locator)
     }
 
+    /// Get the cache field without creating it if it doesn't exist.
     pub fn cached_raw(&self) -> Option<&Py<PyDict>> {
         self.cached.get()
     }
