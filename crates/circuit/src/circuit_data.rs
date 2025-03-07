@@ -571,10 +571,10 @@ impl CircuitData {
         let clbits = PySet::empty(py)?;
         for inst in self.data.iter() {
             for b in self.qargs_interner.get(inst.qubits) {
-                qubits.add(self.qubits.get(*b).unwrap().clone())?;
+                qubits.add(self.qubits.get(*b).unwrap())?;
             }
             for b in self.cargs_interner.get(inst.clbits) {
-                clbits.add(self.clbits.get(*b).unwrap().clone())?;
+                clbits.add(self.clbits.get(*b).unwrap())?;
             }
         }
 
