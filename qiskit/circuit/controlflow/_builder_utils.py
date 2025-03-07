@@ -182,10 +182,12 @@ def _unify_circuit_resources_rebuild(  # pylint: disable=invalid-name  # (it's t
             *circuit.cregs,
             global_phase=circuit.global_phase,
             inputs=circuit.iter_input_vars(),
-            captures=circuit.iter_captured_vars(),
+            captures=circuit.iter_captures(),
         )
         for var in circuit.iter_declared_vars():
             out.add_uninitialized_var(var)
+        for stretch in circuit.iter_declared_stretches():
+            out.add_stretch(stretch)
         for instruction in circuit.data:
             out._append(instruction)
         out_circuits.append(out)

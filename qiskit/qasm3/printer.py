@@ -217,9 +217,6 @@ class BasicPrinter:
     def _visit_DurationType(self, _node: ast.DurationType) -> None:
         self.stream.write("duration")
 
-    def _visit_StretchType(self, _node: ast.StretchType) -> None:
-        self.stream.write("stretch")
-
     def _visit_IntType(self, node: ast.IntType) -> None:
         self.stream.write("int")
         if node.size is not None:
@@ -367,6 +364,16 @@ class BasicPrinter:
         if node.initializer is not None:
             self.stream.write(" = ")
             self.visit(node.initializer)
+        self._end_statement()
+
+    def _visit_StretchDeclaration(self, node: ast.StretchDeclaration) -> None:
+        self._start_line()
+        self.stream.write("stretch")
+        self.stream.write(" ")
+        self.visit(node.identifier)
+        if node.bound is not None:
+            self.stream.write(" = ")
+            self.visit(node.bound)
         self._end_statement()
 
     def _visit_AssignmentStatement(self, node: ast.AssignmentStatement) -> None:
@@ -588,3 +595,14 @@ class BasicPrinter:
 
     def _visit_DefaultCase(self, _node: ast.DefaultCase) -> None:
         self.stream.write("default")
+
+    def _visit_BoxStatement(self, node: ast.BoxStatement) -> None:
+        self._start_line()
+        self.stream.write("box")
+        if node.duration is not None:
+            self.stream.write("[")
+            self.visit(node.duration)
+            self.stream.write("]")
+        self.stream.write(" ")
+        self.visit(node.body)
+        self._end_line()

@@ -24,8 +24,6 @@
 
 # Qiskit folders (also their corresponding tests)
 providers/            @Qiskit/terra-core @jyu00
-pulse/                @Qiskit/terra-core @eggerdj @wshanks @nkanazawa1989
-scheduler/            @Qiskit/terra-core @eggerdj @wshanks @nkanazawa1989
 visualization/        @Qiskit/terra-core @nonhermitian
 primitives/           @Qiskit/terra-core @Qiskit/qiskit-primitives
 # Override the release notes directories to have _no_ code owners, so any review

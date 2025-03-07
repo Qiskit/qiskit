@@ -135,7 +135,6 @@ class TestQFT(QiskitTestCase):
     def test_qft_num_gates(self, num_qubits, approximation_degree, insert_barriers):
         """Test the number of gates in the QFT and the approximated QFT."""
         basis_gates = ["h", "swap", "cu1"]
-
         qft = QFT(
             num_qubits, approximation_degree=approximation_degree, insert_barriers=insert_barriers
         )

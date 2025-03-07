@@ -14,6 +14,8 @@
 
 """QASM3 AST Nodes"""
 
+from __future__ import annotations
+
 import enum
 from typing import Optional, List, Union, Iterable, Tuple, Sequence
 
@@ -175,12 +177,6 @@ class BitType(ClassicalType):
 
 class DurationType(ClassicalType):
     """Type information for a duration."""
-
-    __slots__ = ()
-
-
-class StretchType(ClassicalType):
-    """Type information for a stretch."""
 
     __slots__ = ()
 
@@ -410,6 +406,17 @@ class ClassicalDeclaration(Statement):
         self.type = type_
         self.identifier = identifier
         self.initializer = initializer
+
+
+class StretchDeclaration(Statement):
+    """Declaration of a stretch variable, optionally with a lower bound
+    expression."""
+
+    __slots__ = ("identifier", "bound")
+
+    def __init__(self, identifier: Identifier, bound=None):
+        self.identifier = identifier
+        self.bound = bound
 
 
 class AssignmentStatement(Statement):
@@ -689,6 +696,20 @@ class WhileLoopStatement(Statement):
     def __init__(self, condition: Expression, body: ProgramBlock):
         self.condition = condition
         self.body = body
+
+
+class BoxStatement(Statement):
+    """Like ``box[duration] { statements* }``."""
+
+    __slots__ = ("duration", "body")
+
+    def __init__(
+        self,
+        body: ProgramBlock,
+        duration: Expression | None = None,
+    ):
+        self.body = body
+        self.duration = duration
 
 
 class BreakStatement(Statement):

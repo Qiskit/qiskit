@@ -91,7 +91,9 @@ class ConsolidateBlocks(TransformationPass):
         """
         super().__init__()
         self.basis_gates = None
-        self.target = target
+        # Bypass target if it doesn't contain any basis gates (i.e. it's a _FakeTarget), as this
+        # not part of the official target model.
+        self.target = target if target is not None and len(target.operation_names) > 0 else None
         if basis_gates is not None:
             self.basis_gates = set(basis_gates)
         self.force_consolidate = force_consolidate

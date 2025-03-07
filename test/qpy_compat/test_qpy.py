@@ -15,6 +15,7 @@
 """Test cases to verify qpy backwards compatibility."""
 
 import argparse
+
 import itertools
 import random
 import re
@@ -847,7 +848,8 @@ def generate_replay_with_expression_substitutions():
 
 def generate_v14_expr():
     """Circuits that contain expressions and types new in QPY v14."""
-    from qiskit.circuit.classical import expr, types
+    import uuid
+    from qiskit.circuit.classical import expr
     from qiskit.circuit import Duration
 
     float_expr = QuantumCircuit(name="float_expr")
@@ -884,7 +886,36 @@ def generate_v14_expr():
     ):
         pass
 
-    return [float_expr, duration_expr, math_expr]
+    stretch_expr = QuantumCircuit(name="stretch_expr")
+    s = expr.Stretch(uuid.UUID(bytes=b"hello, qpy world", version=4), "a")
+    stretch = stretch_expr.add_stretch(s)
+    with stretch_expr.if_test(expr.equal(stretch, Duration.dt(100))):
+        pass
+
+    return [
+        float_expr,
+        duration_expr,
+        math_expr,
+        stretch_expr,
+    ]
+
+
+def generate_box():
+    """Circuits that contain `Box`.  Only added in Qiskit 2.0."""
+    bare = QuantumCircuit(2, name="box-bare")
+    with bare.box():
+        bare.h(0)
+        bare.cx(0, 1)
+
+    nested = QuantumCircuit(2, name="box-nested")
+    with nested.box():
+        with nested.box(duration=2, unit="dt"):
+            nested.h(0)
+            nested.cx(0, 1)
+        with nested.box(duration=200.0, unit="ns"):
+            nested.x(0)
+            nested.noop(1)
+    return [bare, nested]
 
 
 def generate_circuits(version_parts, current_version, load_context=False):
@@ -959,6 +990,7 @@ def generate_circuits(version_parts, current_version, load_context=False):
 
     if version_parts >= (2, 0, 0):
         output_circuits["v14_expr.qpy"] = generate_v14_expr()
+        output_circuits["box.qpy"] = generate_box()
     return output_circuits
 
 
@@ -1077,10 +1109,11 @@ def load_qpy(qpy_files, version_parts):
 
     from qiskit.qpy.exceptions import QpyError
 
-    while pulse_files:
-        path, version = pulse_files.popitem()
+    for path, min_version in pulse_files.items():
 
-        if version_parts < version or version_parts >= (2, 0):
+        # version_parts is the version of Qiskit used to generate the payloads being loaded in this test.
+        # min_version is the minimal version of Qiskit this pulse payload was generated with.
+        if version_parts < min_version or version_parts >= (2, 0):
             continue
 
         if path == "pulse_gates.qpy":
@@ -1093,7 +1126,7 @@ def load_qpy(qpy_files, version_parts):
                 sys.exit(1)
         else:
             try:
-                # A ScheduleBlock payload, should raise QpyError
+                # A ScheduleBlock payload, should raise QpyError.
                 with open(path, "rb") as fd:
                     load(fd)
             except QpyError:
