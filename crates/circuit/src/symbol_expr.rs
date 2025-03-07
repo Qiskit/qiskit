@@ -22,10 +22,12 @@ use std::ops::{Add, Div, Mul, Neg, Sub};
 
 use num_complex::Complex64;
 
+pub const SYMEXPR_EPSILON: f64 = f64::EPSILON * 8.0;
+
 /// node types of expression tree
 #[derive(Debug, Clone)]
 pub enum SymbolExpr {
-    Symbol(Symbol),
+    Symbol(Box<String>),
     Value(Value),
     Unary {
         op: UnaryOp,
@@ -36,12 +38,6 @@ pub enum SymbolExpr {
         lhs: Box<SymbolExpr>,
         rhs: Box<SymbolExpr>,
     },
-}
-
-/// symbol with its name
-#[derive(Debug, Clone)]
-pub struct Symbol {
-    name: String,
 }
 
 /// Value type, can be integer, real or complex number
@@ -176,13 +172,17 @@ impl fmt::Display for SymbolExpr {
             match self {
                 SymbolExpr::Symbol(e) => e.to_string(),
                 SymbolExpr::Value(e) => e.to_string(),
-                SymbolExpr::Unary{op, expr} => {
+                SymbolExpr::Unary { op, expr } => {
                     let s = expr.to_string();
                     match op {
                         UnaryOp::Abs => format!("abs({})", s),
                         UnaryOp::Neg => match expr.as_ref() {
                             SymbolExpr::Value(e) => (-e).to_string(),
-                            SymbolExpr::Binary{op: eop, lhs: _, rhs: _} => match eop {
+                            SymbolExpr::Binary {
+                                op: eop,
+                                lhs: _,
+                                rhs: _,
+                            } => match eop {
                                 BinaryOp::Add | BinaryOp::Sub => format!("-({})", s),
                                 _ => format!("-{}", s),
                             },
@@ -199,12 +199,16 @@ impl fmt::Display for SymbolExpr {
                         UnaryOp::Sign => format!("sign({})", s),
                         UnaryOp::Conj => format!("conj({})", s),
                     }
-                },
-                SymbolExpr::Binary{op, lhs, rhs} => {
+                }
+                SymbolExpr::Binary { op, lhs, rhs } => {
                     let s_lhs = lhs.to_string();
                     let s_rhs = rhs.to_string();
                     let op_lhs = match lhs.as_ref() {
-                        SymbolExpr::Binary{op: lop, lhs: _, rhs: _} => matches!(lop, BinaryOp::Add | BinaryOp::Sub),
+                        SymbolExpr::Binary {
+                            op: lop,
+                            lhs: _,
+                            rhs: _,
+                        } => matches!(lop, BinaryOp::Add | BinaryOp::Sub),
                         SymbolExpr::Value(e) => match e {
                             Value::Real(v) => *v < 0.0,
                             Value::Int(v) => *v < 0,
@@ -213,7 +217,11 @@ impl fmt::Display for SymbolExpr {
                         _ => false,
                     };
                     let op_rhs = match rhs.as_ref() {
-                        SymbolExpr::Binary{op: rop, lhs: _, rhs: _} => match rop {
+                        SymbolExpr::Binary {
+                            op: rop,
+                            lhs: _,
+                            rhs: _,
+                        } => match rop {
                             BinaryOp::Add | BinaryOp::Sub => true,
                             _ => matches!(op, BinaryOp::Div),
                         },
@@ -227,7 +235,7 @@ impl fmt::Display for SymbolExpr {
 
                     match op {
                         BinaryOp::Add => match rhs.as_ref() {
-                            SymbolExpr::Unary{op: rop, expr: _} => match rop {
+                            SymbolExpr::Unary { op: rop, expr: _ } => match rop {
                                 UnaryOp::Neg => {
                                     if s_rhs.as_str().char_indices().nth(0).unwrap().1 == '-' {
                                         format!("{} {}", s_lhs, s_rhs)
@@ -240,7 +248,7 @@ impl fmt::Display for SymbolExpr {
                             _ => format!("{} + {}", s_lhs, s_rhs),
                         },
                         BinaryOp::Sub => match rhs.as_ref() {
-                            SymbolExpr::Unary{op: rop, expr: _} => match rop {
+                            SymbolExpr::Unary { op: rop, expr: _ } => match rop {
                                 UnaryOp::Neg => {
                                     if s_rhs.as_str().char_indices().nth(0).unwrap().1 == '-' {
                                         let st = s_rhs.char_indices().nth(0).unwrap().0;
@@ -296,8 +304,18 @@ impl fmt::Display for SymbolExpr {
                             }
                         }
                         BinaryOp::Pow => match lhs.as_ref() {
-                            SymbolExpr::Binary{op: _, lhs: _, rhs: _} | SymbolExpr::Unary{op: _, expr: _} => match rhs.as_ref() {
-                                SymbolExpr::Binary{op: _, lhs: _, rhs: _} | SymbolExpr::Unary{op: _, expr: _} => {
+                            SymbolExpr::Binary {
+                                op: _,
+                                lhs: _,
+                                rhs: _,
+                            }
+                            | SymbolExpr::Unary { op: _, expr: _ } => match rhs.as_ref() {
+                                SymbolExpr::Binary {
+                                    op: _,
+                                    lhs: _,
+                                    rhs: _,
+                                }
+                                | SymbolExpr::Unary { op: _, expr: _ } => {
                                     format!("({})**({})", s_lhs, s_rhs)
                                 }
                                 SymbolExpr::Value(r) => {
@@ -312,14 +330,24 @@ impl fmt::Display for SymbolExpr {
                             SymbolExpr::Value(l) => {
                                 if l.as_real() < 0.0 {
                                     match rhs.as_ref() {
-                                        SymbolExpr::Binary{op: _, lhs: _, rhs: _} | SymbolExpr::Unary{op: _, expr: _} => {
+                                        SymbolExpr::Binary {
+                                            op: _,
+                                            lhs: _,
+                                            rhs: _,
+                                        }
+                                        | SymbolExpr::Unary { op: _, expr: _ } => {
                                             format!("({})**({})", s_lhs, s_rhs)
                                         }
                                         _ => format!("({})**{}", s_lhs, s_rhs),
                                     }
                                 } else {
                                     match rhs.as_ref() {
-                                        SymbolExpr::Binary{op: _, lhs: _, rhs: _} | SymbolExpr::Unary{op: _, expr: _} => {
+                                        SymbolExpr::Binary {
+                                            op: _,
+                                            lhs: _,
+                                            rhs: _,
+                                        }
+                                        | SymbolExpr::Unary { op: _, expr: _ } => {
                                             format!("{}**({})", s_lhs, s_rhs)
                                         }
                                         _ => format!("{}**{}", s_lhs, s_rhs),
@@ -327,7 +355,12 @@ impl fmt::Display for SymbolExpr {
                                 }
                             }
                             _ => match rhs.as_ref() {
-                                SymbolExpr::Binary{op: _, lhs: _, rhs: _} | SymbolExpr::Unary{op: _, expr: _} => {
+                                SymbolExpr::Binary {
+                                    op: _,
+                                    lhs: _,
+                                    rhs: _,
+                                }
+                                | SymbolExpr::Unary { op: _, expr: _ } => {
                                     format!("{}**({})", s_lhs, s_rhs)
                                 }
                                 SymbolExpr::Value(r) => {
@@ -354,22 +387,27 @@ impl SymbolExpr {
     /// bind value to symbol node
     pub fn bind(&self, maps: &HashMap<String, Value>) -> SymbolExpr {
         match self {
-            SymbolExpr::Symbol(e) => e.bind(maps),
-            SymbolExpr::Value(e) => SymbolExpr::Value(e.clone()),
-            SymbolExpr::Unary{op, expr} => {
-                let new_expr = SymbolExpr::Unary {
-                    op: op.clone(),
-                    expr: Box::new(expr.bind(maps)),
-                };
-                match new_expr.eval(false) {
-                    Some(v) => SymbolExpr::Value(v.clone()),
-                    None => new_expr,
-                }
+            SymbolExpr::Symbol(e) => match maps.get(e.as_ref()) {
+                Some(v) => SymbolExpr::Value(v.clone()),
+                None => self.clone(),
             },
-            SymbolExpr::Binary{op, lhs, rhs} => {
+            SymbolExpr::Value(e) => SymbolExpr::Value(e.clone()),
+            SymbolExpr::Unary { op, expr } => SymbolExpr::Unary {
+                op: op.clone(),
+                expr: Box::new(expr.bind(maps)),
+            }, /*{
+            let new_expr = SymbolExpr::Unary {
+            op: op.clone(),
+            expr: Box::new(expr.bind(maps)),
+            };
+            match new_expr.eval(false) {
+            Some(v) => SymbolExpr::Value(v.clone()),
+            None => new_expr,
+            }
+            },*/
+            SymbolExpr::Binary { op, lhs, rhs } => {
                 let new_lhs = lhs.bind(maps);
                 let new_rhs = rhs.bind(maps);
-                /*
                 match op {
                     BinaryOp::Add => _add(new_lhs, new_rhs),
                     BinaryOp::Sub => _sub(new_lhs, new_rhs),
@@ -377,8 +415,8 @@ impl SymbolExpr {
                     BinaryOp::Div => _div(new_lhs, new_rhs),
                     BinaryOp::Pow => _pow(new_lhs, new_rhs),
                 }
-                */
-                match op {
+
+                /*match op {
                     BinaryOp::Add => match new_lhs.add_opt(&new_rhs) {
                         Some(e) => e,
                         None => _add(new_lhs, new_rhs),
@@ -396,30 +434,35 @@ impl SymbolExpr {
                         None => _div(new_lhs, new_rhs),
                     },
                     BinaryOp::Pow => new_lhs.pow(&new_rhs),
-                }
-            }        
+                }*/
+            }
         }
     }
 
     /// substitute symbol node to other expression
     pub fn subs(&self, maps: &HashMap<String, SymbolExpr>) -> SymbolExpr {
         match self {
-            SymbolExpr::Symbol(e) => e.subs(maps),
-            SymbolExpr::Value(e) => SymbolExpr::Value(e.clone()),
-            SymbolExpr::Unary{op, expr} => {
-                let new_expr = SymbolExpr::Unary {
-                    op: op.clone(),
-                    expr: Box::new(expr.subs(maps)),
-                };
-                match new_expr.eval(false) {
-                    Some(v) => SymbolExpr::Value(v.clone()),
-                    None => new_expr,
-                }
+            SymbolExpr::Symbol(e) => match maps.get(e.as_ref()) {
+                Some(v) => v.clone(),
+                None => self.clone(),
             },
-            SymbolExpr::Binary{op, lhs, rhs} => {
+            SymbolExpr::Value(e) => SymbolExpr::Value(e.clone()),
+            SymbolExpr::Unary { op, expr } => SymbolExpr::Unary {
+                op: op.clone(),
+                expr: Box::new(expr.subs(maps)),
+            }, /*{
+            let new_expr = SymbolExpr::Unary {
+            op: op.clone(),
+            expr: Box::new(expr.subs(maps)),
+            };
+            match new_expr.eval(false) {
+            Some(v) => SymbolExpr::Value(v.clone()),
+            None => new_expr,
+            }
+            },*/
+            SymbolExpr::Binary { op, lhs, rhs } => {
                 let new_lhs = lhs.subs(maps);
                 let new_rhs = rhs.subs(maps);
-                /*
                 match op {
                     BinaryOp::Add => _add(new_lhs, new_rhs),
                     BinaryOp::Sub => _sub(new_lhs, new_rhs),
@@ -427,8 +470,7 @@ impl SymbolExpr {
                     BinaryOp::Div => _div(new_lhs, new_rhs),
                     BinaryOp::Pow => _pow(new_lhs, new_rhs),
                 }
-                */
-                match op {
+                /*match op {
                     BinaryOp::Add => match new_lhs.add_opt(&new_rhs) {
                         Some(e) => e,
                         None => _add(new_lhs, new_rhs),
@@ -446,7 +488,7 @@ impl SymbolExpr {
                         None => _div(new_lhs, new_rhs),
                     },
                     BinaryOp::Pow => new_lhs.pow(&new_rhs),
-                }
+                }*/
             }
         }
     }
@@ -457,7 +499,7 @@ impl SymbolExpr {
         match self {
             SymbolExpr::Symbol(_) => None,
             SymbolExpr::Value(e) => Some(e.clone()),
-            SymbolExpr::Unary{op, expr} => {
+            SymbolExpr::Unary { op, expr } => {
                 let val: Value;
                 if recurse {
                     match expr.eval(recurse) {
@@ -491,15 +533,15 @@ impl SymbolExpr {
                     Value::Real(_) => Some(ret),
                     Value::Int(_) => Some(ret),
                     Value::Complex(c) => {
-                        if c.im < f64::EPSILON && c.im > -f64::EPSILON {
+                        if (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&c.im) {
                             Some(Value::Real(c.re))
                         } else {
                             Some(ret)
                         }
                     }
                 }
-            },        
-            SymbolExpr::Binary{op, lhs, rhs} => {
+            }
+            SymbolExpr::Binary { op, lhs, rhs } => {
                 let lval: Value;
                 let rval: Value;
                 if recurse {
@@ -530,7 +572,7 @@ impl SymbolExpr {
                     Value::Real(_) => Some(ret),
                     Value::Int(_) => Some(ret),
                     Value::Complex(c) => {
-                        if c.im < f64::EPSILON && c.im > -f64::EPSILON {
+                        if (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&c.im) {
                             Some(Value::Real(c.re))
                         } else {
                             Some(ret)
@@ -548,7 +590,7 @@ impl SymbolExpr {
         } else {
             match self {
                 SymbolExpr::Value(_) | SymbolExpr::Symbol(_) => SymbolExpr::Value(Value::Real(0.0)),
-                SymbolExpr::Unary{op, expr} => {
+                SymbolExpr::Unary { op, expr } => {
                     let expr_d = expr.derivative(param);
                     match op {
                         UnaryOp::Abs => {
@@ -570,7 +612,8 @@ impl SymbolExpr {
                             lhs * expr_d
                         }
                         UnaryOp::Asin => {
-                            let d = &SymbolExpr::Value(Value::Real(1.0)) - &(expr.as_ref() * expr.as_ref());
+                            let d = &SymbolExpr::Value(Value::Real(1.0))
+                                - &(expr.as_ref() * expr.as_ref());
                             let lhs = match d {
                                 SymbolExpr::Value(v) => SymbolExpr::Value(v.sqrt()),
                                 _ => _pow(d, SymbolExpr::Value(Value::Real(0.5))),
@@ -585,7 +628,8 @@ impl SymbolExpr {
                             &-&lhs * &expr_d
                         }
                         UnaryOp::Acos => {
-                            let d = &SymbolExpr::Value(Value::Real(1.0)) - &(expr.as_ref() * expr.as_ref());
+                            let d = &SymbolExpr::Value(Value::Real(1.0))
+                                - &(expr.as_ref() * expr.as_ref());
                             let lhs = match d {
                                 SymbolExpr::Value(v) => SymbolExpr::Value(v.sqrt()),
                                 _ => _pow(d, SymbolExpr::Value(Value::Real(0.5))),
@@ -600,7 +644,8 @@ impl SymbolExpr {
                             &(&expr_d / &d) / &d
                         }
                         UnaryOp::Atan => {
-                            let d = &SymbolExpr::Value(Value::Real(1.0)) + &(expr.as_ref() * expr.as_ref());
+                            let d = &SymbolExpr::Value(Value::Real(1.0))
+                                + &(expr.as_ref() * expr.as_ref());
                             &expr_d / &d
                         }
                         UnaryOp::Exp => {
@@ -619,60 +664,61 @@ impl SymbolExpr {
                             expr: Box::new(expr_d),
                         },
                     }
-                },
-                SymbolExpr::Binary{op, lhs, rhs} => {
-                    match op {
-                        BinaryOp::Add => &lhs.derivative(param) + &rhs.derivative(param),
-                        BinaryOp::Sub => &lhs.derivative(param) - &rhs.derivative(param),
-                        BinaryOp::Mul => {
-                            &(&lhs.derivative(param) * rhs.as_ref())
-                                + &(lhs.as_ref() * &rhs.derivative(param))
-                        }
-                        BinaryOp::Div => {
-                            &(&(&(&lhs.derivative(param) * rhs.as_ref())
-                                - &(lhs.as_ref() * &rhs.derivative(param)))
-                                / rhs.as_ref())
-                                / rhs.as_ref()
-                        }
-                        BinaryOp::Pow => {
-                            if !lhs.has_symbol(&param.to_string()) {
-                                if !rhs.has_symbol(&param.to_string()) {
-                                    SymbolExpr::Value(Value::Real(0.0))
-                                } else {
-                                    _mul(
-                                        SymbolExpr::Binary {
-                                            op: BinaryOp::Pow,
-                                            lhs: Box::new(lhs.as_ref().clone()),
-                                            rhs: Box::new(rhs.as_ref().clone()),
-                                        },
-                                         SymbolExpr::Unary {
-                                            op: UnaryOp::Log,
-                                            expr: Box::new(lhs.as_ref().clone()),
-                                        },
-                                    )
-                                }
-                            } else if !rhs.has_symbol(&param.to_string()) {
-                                rhs.as_ref() * &SymbolExpr::Binary {
+                }
+                SymbolExpr::Binary { op, lhs, rhs } => match op {
+                    BinaryOp::Add => &lhs.derivative(param) + &rhs.derivative(param),
+                    BinaryOp::Sub => &lhs.derivative(param) - &rhs.derivative(param),
+                    BinaryOp::Mul => {
+                        &(&lhs.derivative(param) * rhs.as_ref())
+                            + &(lhs.as_ref() * &rhs.derivative(param))
+                    }
+                    BinaryOp::Div => {
+                        &(&(&(&lhs.derivative(param) * rhs.as_ref())
+                            - &(lhs.as_ref() * &rhs.derivative(param)))
+                            / rhs.as_ref())
+                            / rhs.as_ref()
+                    }
+                    BinaryOp::Pow => {
+                        if !lhs.has_symbol(&param.to_string()) {
+                            if !rhs.has_symbol(&param.to_string()) {
+                                SymbolExpr::Value(Value::Real(0.0))
+                            } else {
+                                _mul(
+                                    SymbolExpr::Binary {
                                         op: BinaryOp::Pow,
                                         lhs: Box::new(lhs.as_ref().clone()),
-                                        rhs: Box::new(rhs.as_ref() - &SymbolExpr::Value(Value::Real(1.0))),
-                                    }
-                            } else {
-                                let new_expr = SymbolExpr::Unary {
-                                    op: UnaryOp::Exp,
-                                    expr: Box::new(_mul(
-                                        SymbolExpr::Unary {
-                                            op: UnaryOp::Log,
-                                            expr: Box::new(lhs.as_ref().clone()),
-                                        },
-                                        rhs.as_ref().clone()
-                                    )),
-                                };
-                                new_expr.derivative(param)
+                                        rhs: Box::new(rhs.as_ref().clone()),
+                                    },
+                                    SymbolExpr::Unary {
+                                        op: UnaryOp::Log,
+                                        expr: Box::new(lhs.as_ref().clone()),
+                                    },
+                                )
                             }
+                        } else if !rhs.has_symbol(&param.to_string()) {
+                            rhs.as_ref()
+                                * &SymbolExpr::Binary {
+                                    op: BinaryOp::Pow,
+                                    lhs: Box::new(lhs.as_ref().clone()),
+                                    rhs: Box::new(
+                                        rhs.as_ref() - &SymbolExpr::Value(Value::Real(1.0)),
+                                    ),
+                                }
+                        } else {
+                            let new_expr = SymbolExpr::Unary {
+                                op: UnaryOp::Exp,
+                                expr: Box::new(_mul(
+                                    SymbolExpr::Unary {
+                                        op: UnaryOp::Log,
+                                        expr: Box::new(lhs.as_ref().clone()),
+                                    },
+                                    rhs.as_ref().clone(),
+                                )),
+                            };
+                            new_expr.derivative(param)
                         }
                     }
-                }
+                },
             }
         }
     }
@@ -682,7 +728,7 @@ impl SymbolExpr {
         match self {
             SymbolExpr::Symbol(_) => self.clone(),
             SymbolExpr::Value(_) => self.clone(),
-            SymbolExpr::Unary{op, expr} => {
+            SymbolExpr::Unary { op, expr } => {
                 let ex = expr.expand();
                 match op {
                     UnaryOp::Neg => match ex.neg_opt() {
@@ -694,17 +740,8 @@ impl SymbolExpr {
                         expr: Box::new(ex),
                     },
                 }
-            },
-            SymbolExpr::Binary{op, lhs, rhs} => {
-                /*
-                match op {
-                    BinaryOp::Mul => _mul(*lhs.clone(), *rhs.clone()),
-                    BinaryOp::Div => _div(*lhs.clone(), *rhs.clone()),
-                    BinaryOp::Add => _add(*lhs.clone(), *rhs.clone()),
-                    BinaryOp::Sub => _sub(*lhs.clone(), *rhs.clone()),
-                    _ => _pow(lhs.expand(), rhs.expand()), // TO DO : add expand for pow
-                }
-                */
+            }
+            SymbolExpr::Binary { op, lhs, rhs } => {
                 match op {
                     BinaryOp::Mul => match lhs.mul_expand(rhs) {
                         Some(e) => e,
@@ -714,11 +751,11 @@ impl SymbolExpr {
                         Some(e) => e,
                         None => _div(lhs.as_ref().clone(), rhs.as_ref().clone()),
                     },
-                    BinaryOp::Add => match lhs.add_opt(rhs) {
+                    BinaryOp::Add => match lhs.add_opt(rhs, true) {
                         Some(e) => e,
                         None => _add(lhs.as_ref().clone(), rhs.as_ref().clone()),
                     },
-                    BinaryOp::Sub => match lhs.sub_opt(rhs) {
+                    BinaryOp::Sub => match lhs.sub_opt(rhs, true) {
                         Some(e) => e,
                         None => _sub(lhs.as_ref().clone(), rhs.as_ref().clone()),
                     },
@@ -773,12 +810,10 @@ impl SymbolExpr {
     /// return hashset of all symbols this equation contains
     pub fn symbols(&self) -> HashSet<String> {
         match self {
-            SymbolExpr::Symbol(e) => HashSet::<String>::from([e.name.clone()]),
+            SymbolExpr::Symbol(e) => HashSet::<String>::from([e.as_ref().clone()]),
             SymbolExpr::Value(_) => HashSet::<String>::new(),
-            SymbolExpr::Unary{op: _, expr} => {
-                expr.symbols()
-            },
-            SymbolExpr::Binary{op: _, lhs, rhs} => {
+            SymbolExpr::Unary { op: _, expr } => expr.symbols(),
+            SymbolExpr::Binary { op: _, lhs, rhs } => {
                 let mut symbols = HashSet::<String>::new();
                 for s in lhs.symbols().union(&rhs.symbols()) {
                     symbols.insert(s.to_string());
@@ -793,8 +828,8 @@ impl SymbolExpr {
         match self {
             SymbolExpr::Symbol(_) => Vec::<Value>::new(),
             SymbolExpr::Value(v) => Vec::<Value>::from([v.clone()]),
-            SymbolExpr::Unary{op: _, expr} => expr.values(),
-            SymbolExpr::Binary{op: _, lhs, rhs} => {
+            SymbolExpr::Unary { op: _, expr } => expr.values(),
+            SymbolExpr::Binary { op: _, lhs, rhs } => {
                 let mut l = lhs.values();
                 let r = rhs.values();
                 l.extend(r);
@@ -803,23 +838,25 @@ impl SymbolExpr {
         }
     }
 
-    /// concatenate all symbols under this node (internal use for sorting nodes)
+    // concatenate all symbols under this node (internal use for sorting nodes)
     fn get_symbols_string(&self) -> String {
         match self {
-            SymbolExpr::Symbol(e) => e.name.clone(),
+            SymbolExpr::Symbol(e) => e.as_ref().clone(),
             SymbolExpr::Value(_) => String::new(),
-            SymbolExpr::Unary{op: _, expr} => expr.get_symbols_string(),
-            SymbolExpr::Binary{op: _, lhs, rhs} => lhs.get_symbols_string() + &rhs.get_symbols_string(),
+            SymbolExpr::Unary { op: _, expr } => expr.get_symbols_string(),
+            SymbolExpr::Binary { op: _, lhs, rhs } => {
+                lhs.get_symbols_string() + &rhs.get_symbols_string()
+            }
         }
     }
 
     /// check if a symbol is in this equation
     pub fn has_symbol(&self, param: &String) -> bool {
         match self {
-            SymbolExpr::Symbol(e) => e.name == *param,
+            SymbolExpr::Symbol(e) => e.as_ref() == param,
             SymbolExpr::Value(_) => false,
-            SymbolExpr::Unary{op: _, expr} => expr.has_symbol(param),
-            SymbolExpr::Binary{op: _, lhs, rhs} => lhs.has_symbol(param) | rhs.has_symbol(param),
+            SymbolExpr::Unary { op: _, expr } => expr.has_symbol(param),
+            SymbolExpr::Binary { op: _, lhs, rhs } => lhs.has_symbol(param) | rhs.has_symbol(param),
         }
     }
 
@@ -831,11 +868,10 @@ impl SymbolExpr {
                 SymbolExpr::Symbol(e.clone()),
             ),
             SymbolExpr::Value(e) => SymbolExpr::Value(e.rcp()),
-            SymbolExpr::Unary{op: _, expr: _} => _div(
-                SymbolExpr::Value(Value::Real(1.0)),
-                self.clone()
-            ),
-            SymbolExpr::Binary{op, lhs, rhs} => match op {
+            SymbolExpr::Unary { op: _, expr: _ } => {
+                _div(SymbolExpr::Value(Value::Real(1.0)), self.clone())
+            }
+            SymbolExpr::Binary { op, lhs, rhs } => match op {
                 BinaryOp::Div => SymbolExpr::Binary {
                     op: op.clone(),
                     lhs: Box::new(*rhs.clone()),
@@ -864,11 +900,11 @@ impl SymbolExpr {
                 Value::Complex(c) => SymbolExpr::Value(Value::Complex(c.conj())),
                 _ => SymbolExpr::Value(e.clone()),
             },
-            SymbolExpr::Unary{op, expr} => SymbolExpr::Unary {
+            SymbolExpr::Unary { op, expr } => SymbolExpr::Unary {
                 op: op.clone(),
                 expr: Box::new(expr.conjugate()),
             },
-            SymbolExpr::Binary{op, lhs, rhs} => SymbolExpr::Binary {
+            SymbolExpr::Binary { op, lhs, rhs } => SymbolExpr::Binary {
                 op: op.clone(),
                 lhs: Box::new(lhs.conjugate()),
                 rhs: Box::new(rhs.conjugate()),
@@ -893,7 +929,7 @@ impl SymbolExpr {
             Some(v) => match v {
                 Value::Real(_) => Some(true),
                 Value::Int(_) => Some(false),
-                Value::Complex(c) => Some(c.im < f64::EPSILON && c.im > -f64::EPSILON),
+                Value::Complex(c) => Some((-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&c.im)),
             },
             None => None,
         }
@@ -939,12 +975,12 @@ impl SymbolExpr {
         match self {
             SymbolExpr::Value(v) => v.is_negative(),
             SymbolExpr::Symbol(_) => false,
-            SymbolExpr::Unary{op, expr} => match op {
+            SymbolExpr::Unary { op, expr } => match op {
                 UnaryOp::Abs => false,
                 UnaryOp::Neg => !expr.is_negative(),
                 _ => false, // TO DO add heuristic determination
             },
-            SymbolExpr::Binary{op, lhs, rhs} => match op {
+            SymbolExpr::Binary { op, lhs, rhs } => match op {
                 BinaryOp::Mul | BinaryOp::Div => lhs.is_negative() ^ rhs.is_negative(),
                 BinaryOp::Add | BinaryOp::Sub => lhs.is_negative(),
                 _ => false, // TO DO add heuristic determination for pow
@@ -956,9 +992,9 @@ impl SymbolExpr {
     pub fn abs(&self) -> SymbolExpr {
         match self {
             SymbolExpr::Value(l) => SymbolExpr::Value(l.abs()),
-            SymbolExpr::Unary{op, expr} => match op {
+            SymbolExpr::Unary { op, expr } => match op {
                 UnaryOp::Abs | UnaryOp::Neg => expr.abs(),
-                _ => SymbolExpr::Unary{
+                _ => SymbolExpr::Unary {
                     op: UnaryOp::Abs,
                     expr: Box::new(self.clone()),
                 },
@@ -1060,45 +1096,53 @@ impl SymbolExpr {
     }
 
     // Add with heuristic optimization
-    fn add_opt(&self, rhs: &SymbolExpr) -> Option<SymbolExpr> {
+    fn add_opt(&self, rhs: &SymbolExpr, recursive: bool) -> Option<SymbolExpr> {
+        //println!("  add_opt : {}, {}",self, rhs);
         if self.is_zero() {
             Some(rhs.clone())
         } else if rhs.is_zero() {
             Some(self.clone())
         } else {
             // if neg operation, call sub_opt
-            if let SymbolExpr::Unary{op, expr} = rhs {
+            if let SymbolExpr::Unary { op, expr } = rhs {
                 if let UnaryOp::Neg = op {
-                    return self.sub_opt(&expr);
+                    return self.sub_opt(&expr, recursive);
                 }
-            } else if let SymbolExpr::Binary{op, lhs: r_lhs, rhs: r_rhs} = rhs {
-                // recursive optimization for add and sub
-                if let BinaryOp::Add = &op {
-                    if let Some(e) = self.add_opt(r_lhs) {
-                        return match e.add_opt(r_rhs) {
-                            Some(ee) => Some(ee),
-                            None => Some(_add(e, r_rhs.as_ref().clone())),
-                        };
+            } else if recursive {
+                if let SymbolExpr::Binary {
+                    op,
+                    lhs: r_lhs,
+                    rhs: r_rhs,
+                } = rhs
+                {
+                    // recursive optimization for add and sub
+                    if let BinaryOp::Add = &op {
+                        if let Some(e) = self.add_opt(r_lhs, true) {
+                            return match e.add_opt(r_rhs, true) {
+                                Some(ee) => Some(ee),
+                                None => Some(_add(e, r_rhs.as_ref().clone())),
+                            };
+                        }
+                        if let Some(e) = self.add_opt(r_rhs, true) {
+                            return match e.add_opt(r_lhs, true) {
+                                Some(ee) => Some(ee),
+                                None => Some(_add(e, r_lhs.as_ref().clone())),
+                            };
+                        }
                     }
-                    if let Some(e) = self.add_opt(r_rhs) {
-                        return match e.add_opt(r_lhs) {
-                            Some(ee) => Some(ee),
-                            None => Some(_add(e, r_lhs.as_ref().clone())),
-                        };
-                    }
-                }
-                if let BinaryOp::Sub = &op {
-                    if let Some(e) = self.add_opt(r_lhs) {
-                        return match e.sub_opt(r_rhs) {
-                            Some(ee) => Some(ee),
-                            None => Some(_sub(e, r_rhs.as_ref().clone())),
-                        };
-                    }
-                    if let Some(e) = self.sub_opt(r_rhs) {
-                        return match e.add_opt(r_lhs) {
-                            Some(ee) => Some(ee),
-                            None => Some(_add(e, r_lhs.as_ref().clone())),
-                        };
+                    if let BinaryOp::Sub = &op {
+                        if let Some(e) = self.add_opt(r_lhs, true) {
+                            return match e.sub_opt(r_rhs, true) {
+                                Some(ee) => Some(ee),
+                                None => Some(_sub(e, r_rhs.as_ref().clone())),
+                            };
+                        }
+                        if let Some(e) = self.sub_opt(r_rhs, true) {
+                            return match e.add_opt(r_lhs, true) {
+                                Some(ee) => Some(ee),
+                                None => Some(_add(e, r_lhs.as_ref().clone())),
+                            };
+                        }
                     }
                 }
             }
@@ -1107,33 +1151,90 @@ impl SymbolExpr {
             match self {
                 SymbolExpr::Value(l) => match rhs {
                     SymbolExpr::Value(r) => Some(SymbolExpr::Value(l + r)),
+                    SymbolExpr::Binary {
+                        op,
+                        lhs: r_lhs,
+                        rhs: r_rhs,
+                    } => {
+                        if let SymbolExpr::Value(v) = r_lhs.as_ref() {
+                            let t = l + v;
+                            match op {
+                                BinaryOp::Add => {
+                                    if t.is_zero() {
+                                        Some(r_rhs.as_ref().clone())
+                                    } else {
+                                        Some(_add(SymbolExpr::Value(t), r_rhs.as_ref().clone()))
+                                    }
+                                }
+                                BinaryOp::Sub => {
+                                    if t.is_zero() {
+                                        match r_rhs.neg_opt() {
+                                            Some(e) => Some(e),
+                                            None => Some(_neg(r_rhs.as_ref().clone())),
+                                        }
+                                    } else {
+                                        Some(_sub(SymbolExpr::Value(t), r_rhs.as_ref().clone()))
+                                    }
+                                }
+                                _ => None,
+                            }
+                        } else {
+                            None
+                        }
+                    }
                     _ => None,
                 },
                 SymbolExpr::Symbol(l) => match rhs {
                     SymbolExpr::Value(_) => Some(_add(rhs.clone(), self.clone())),
                     SymbolExpr::Symbol(r) => {
-                        if r.name == l.name {
-                            Some(_mul(
-                                SymbolExpr::Value(Value::Int(2)),
-                                self.clone(),
-                            ))
-                        } else if r.name < l.name {
+                        if r == l {
+                            Some(_mul(SymbolExpr::Value(Value::Int(2)), self.clone()))
+                        } else if r < l {
                             Some(_add(rhs.clone(), self.clone()))
                         } else {
                             None
                         }
                     }
-                    _ => None,  // TO DO add optimization for adding binary mul/div case
+                    SymbolExpr::Binary {
+                        op,
+                        lhs: r_lhs,
+                        rhs: r_rhs,
+                    } => {
+                        if let (
+                            BinaryOp::Mul | BinaryOp::Div,
+                            SymbolExpr::Value(v),
+                            SymbolExpr::Symbol(s),
+                        ) = (op, r_lhs.as_ref(), r_rhs.as_ref())
+                        {
+                            if l == s {
+                                let t = v + &Value::Int(1);
+                                if t.is_zero() {
+                                    Some(SymbolExpr::Value(Value::Int(0)))
+                                } else {
+                                    Some(_mul(SymbolExpr::Value(t), r_rhs.as_ref().clone()))
+                                }
+                            } else {
+                                None
+                            }
+                        } else {
+                            None
+                        }
+                    }
+                    _ => None,
                 },
-                SymbolExpr::Unary{op, expr} => {
+                SymbolExpr::Unary { op, expr } => {
                     if let UnaryOp::Neg = op {
-                        if let Some(e) = expr.sub_opt(rhs) {
+                        if let Some(e) = expr.sub_opt(rhs, recursive) {
                             return match e.neg_opt() {
                                 Some(ee) => Some(ee),
                                 None => Some(_neg(e)),
                             };
                         }
-                    } else if let SymbolExpr::Unary{op: rop, expr: rexpr} = rhs {
+                    } else if let SymbolExpr::Unary {
+                        op: rop,
+                        expr: rexpr,
+                    } = rhs
+                    {
                         if op == rop {
                             let t = expr.expand() + rexpr.expand();
                             if t.is_zero() {
@@ -1144,9 +1245,13 @@ impl SymbolExpr {
 
                     // swap nodes by sorting rule
                     match rhs {
-                        SymbolExpr::Binary{op: rop, lhs: _, rhs: _} => {
+                        SymbolExpr::Binary {
+                            op: rop,
+                            lhs: _,
+                            rhs: _,
+                        } => {
                             if let BinaryOp::Mul | BinaryOp::Div | BinaryOp::Pow = rop {
-                                if rhs < self {
+                                if self > rhs {
                                     Some(_add(rhs.clone(), self.clone()))
                                 } else {
                                     None
@@ -1156,27 +1261,43 @@ impl SymbolExpr {
                             }
                         }
                         _ => {
-                            if rhs < self {
+                            if self > rhs {
                                 Some(_add(rhs.clone(), self.clone()))
                             } else {
                                 None
                             }
                         }
                     }
-                },
-                SymbolExpr::Binary{op, lhs: l_lhs, rhs: l_rhs} => {
-                    if let SymbolExpr::Binary{op: rop, lhs: r_lhs, rhs: r_rhs} = rhs {
+                }
+                SymbolExpr::Binary {
+                    op,
+                    lhs: l_lhs,
+                    rhs: l_rhs,
+                } => {
+                    if let SymbolExpr::Binary {
+                        op: rop,
+                        lhs: r_lhs,
+                        rhs: r_rhs,
+                    } = rhs
+                    {
                         if op == rop {
                             if let BinaryOp::Mul | BinaryOp::Div | BinaryOp::Pow = op {
-                                if let (SymbolExpr::Value(rv), SymbolExpr::Value(lv)) = (l_lhs.as_ref(), r_lhs.as_ref()) {
+                                if let (SymbolExpr::Value(rv), SymbolExpr::Value(lv)) =
+                                    (l_lhs.as_ref(), r_lhs.as_ref())
+                                {
                                     if l_rhs.expand().to_string() == r_rhs.expand().to_string() {
-                                        return match SymbolExpr::Value(rv + lv).mul_opt(l_rhs) {
+                                        return match SymbolExpr::Value(rv + lv)
+                                            .mul_opt(l_rhs, recursive)
+                                        {
                                             Some(e) => Some(e),
-                                            None => Some(_mul(SymbolExpr::Value(rv + lv), l_rhs.as_ref().clone())),
+                                            None => Some(_mul(
+                                                SymbolExpr::Value(rv + lv),
+                                                l_rhs.as_ref().clone(),
+                                            )),
                                         };
                                     }
                                 }
-            
+
                                 if let Some(e) = rhs.neg_opt() {
                                     if self.expand().to_string() == e.expand().to_string() {
                                         return Some(SymbolExpr::Value(Value::Int(0)));
@@ -1184,40 +1305,65 @@ impl SymbolExpr {
                                 }
                             }
                         }
+                    } else if let SymbolExpr::Symbol(r) = rhs {
+                        if let (
+                            BinaryOp::Mul | BinaryOp::Div,
+                            SymbolExpr::Value(v),
+                            SymbolExpr::Symbol(s),
+                        ) = (op, l_lhs.as_ref(), l_rhs.as_ref())
+                        {
+                            if s == r {
+                                let t = v + &Value::Int(1);
+                                if t.is_zero() {
+                                    return Some(SymbolExpr::Value(Value::Int(0)));
+                                } else {
+                                    return Some(_mul(
+                                        SymbolExpr::Value(t),
+                                        l_rhs.as_ref().clone(),
+                                    ));
+                                }
+                            }
+                        }
                     }
-                    if let BinaryOp::Add = op {
-                        if let Some(e) = l_lhs.add_opt(rhs) {
-                            return match e.add_opt(l_rhs) {
-                                Some(ee) => Some(ee),
-                                None => Some(_add(e, l_rhs.as_ref().clone())),
-                            };
-                        }
-                        if let Some(e) = l_rhs.add_opt(rhs) {
-                            return match l_lhs.add_opt(&e) {
-                                Some(ee) => Some(ee),
-                                None => Some(_add(l_lhs.as_ref().clone(), e)),
-                            };
-                        }
-                    } else if let BinaryOp::Sub = op {
-                        if let Some(e) = l_lhs.add_opt(rhs) {
-                            return match e.sub_opt(l_rhs) {
-                                Some(ee) => Some(ee),
-                                None => Some(_sub(e, l_rhs.as_ref().clone())),
-                            };
-                        }
-                        if let Some(e) = rhs.sub_opt(l_rhs) {
-                            return match l_lhs.add_opt(&e) {
-                                Some(ee) => Some(ee),
-                                None => Some(_add(l_lhs.as_ref().clone(), e)),
-                            };
+                    if recursive {
+                        if let BinaryOp::Add = op {
+                            if let Some(e) = l_lhs.add_opt(rhs, true) {
+                                return match e.add_opt(l_rhs, true) {
+                                    Some(ee) => Some(ee),
+                                    None => Some(_add(e, l_rhs.as_ref().clone())),
+                                };
+                            }
+                            if let Some(e) = l_rhs.add_opt(rhs, true) {
+                                return match l_lhs.add_opt(&e, true) {
+                                    Some(ee) => Some(ee),
+                                    None => Some(_add(l_lhs.as_ref().clone(), e)),
+                                };
+                            }
+                        } else if let BinaryOp::Sub = op {
+                            if let Some(e) = l_lhs.add_opt(rhs, true) {
+                                return match e.sub_opt(l_rhs, true) {
+                                    Some(ee) => Some(ee),
+                                    None => Some(_sub(e, l_rhs.as_ref().clone())),
+                                };
+                            }
+                            if let Some(e) = l_rhs.sub_opt(rhs, true) {
+                                return match l_lhs.sub_opt(&e, true) {
+                                    Some(ee) => Some(ee),
+                                    None => Some(_sub(l_lhs.as_ref().clone(), e)),
+                                };
+                            }
                         }
                     }
                     // swap nodes by sorting rule
                     if let BinaryOp::Mul | BinaryOp::Div | BinaryOp::Pow = op {
                         match rhs {
-                            SymbolExpr::Binary{op: rop, lhs: _, rhs: _} => {
+                            SymbolExpr::Binary {
+                                op: rop,
+                                lhs: _,
+                                rhs: _,
+                            } => {
                                 if let BinaryOp::Mul | BinaryOp::Div | BinaryOp::Pow = rop {
-                                    if rhs < self {
+                                    if self > rhs {
                                         Some(_add(rhs.clone(), self.clone()))
                                     } else {
                                         None
@@ -1227,7 +1373,7 @@ impl SymbolExpr {
                                 }
                             }
                             _ => {
-                                if rhs < self {
+                                if self > rhs {
                                     Some(_add(rhs.clone(), self.clone()))
                                 } else {
                                     None
@@ -1237,13 +1383,14 @@ impl SymbolExpr {
                     } else {
                         None
                     }
-                },
+                }
             }
         }
     }
 
     /// Sub with heuristic optimization
-    fn sub_opt(&self, rhs: &SymbolExpr) -> Option<SymbolExpr> {
+    fn sub_opt(&self, rhs: &SymbolExpr, recursive: bool) -> Option<SymbolExpr> {
+        //println!("  sub_opt : {}, {}",self, rhs);
         if self.is_zero() {
             match rhs.neg_opt() {
                 Some(e) => Some(e),
@@ -1253,38 +1400,45 @@ impl SymbolExpr {
             Some(self.clone())
         } else {
             // if neg, call add_opt
-            if let SymbolExpr::Unary{op, expr} = rhs {
+            if let SymbolExpr::Unary { op, expr } = rhs {
                 if let UnaryOp::Neg = op {
-                    return self.add_opt(expr);
+                    return self.add_opt(expr, recursive);
                 }
-            } else if let SymbolExpr::Binary{op, lhs: r_lhs, rhs: r_rhs} = rhs {
-                // recursive optimization for add and sub
-                if let BinaryOp::Add = &op {
-                    if let Some(e) = self.sub_opt(r_lhs) {
-                        return match e.sub_opt(r_rhs) {
-                            Some(ee) => Some(ee),
-                            None => Some(_sub(e, r_rhs.as_ref().clone())),
-                        };
+            } else if recursive {
+                if let SymbolExpr::Binary {
+                    op,
+                    lhs: r_lhs,
+                    rhs: r_rhs,
+                } = rhs
+                {
+                    // recursive optimization for add and sub
+                    if let BinaryOp::Add = &op {
+                        if let Some(e) = self.sub_opt(r_lhs, true) {
+                            return match e.sub_opt(r_rhs, true) {
+                                Some(ee) => Some(ee),
+                                None => Some(_sub(e, r_rhs.as_ref().clone())),
+                            };
+                        }
+                        if let Some(e) = self.sub_opt(r_rhs, true) {
+                            return match e.sub_opt(r_lhs, true) {
+                                Some(ee) => Some(ee),
+                                None => Some(_sub(e, r_lhs.as_ref().clone())),
+                            };
+                        }
                     }
-                    if let Some(e) = self.sub_opt(r_rhs) {
-                        return match e.sub_opt(r_lhs) {
-                            Some(ee) => Some(ee),
-                            None => Some(_sub(e, r_lhs.as_ref().clone())),
-                        };
-                    }
-                }
-                if let BinaryOp::Sub = &op {
-                    if let Some(e) = self.sub_opt(r_lhs) {
-                        return match e.add_opt(r_rhs) {
-                            Some(ee) => Some(ee),
-                            None => Some(_add(e, r_rhs.as_ref().clone())),
-                        };
-                    }
-                    if let Some(e) = self.add_opt(r_rhs) {
-                        return match e.sub_opt(r_lhs) {
-                            Some(ee) => Some(ee),
-                            None => Some(_sub(e, r_lhs.as_ref().clone())),
-                        };
+                    if let BinaryOp::Sub = &op {
+                        if let Some(e) = self.sub_opt(r_lhs, true) {
+                            return match e.add_opt(r_rhs, true) {
+                                Some(ee) => Some(ee),
+                                None => Some(_add(e, r_rhs.as_ref().clone())),
+                            };
+                        }
+                        if let Some(e) = self.add_opt(r_rhs, true) {
+                            return match e.sub_opt(r_lhs, true) {
+                                Some(ee) => Some(ee),
+                                None => Some(_sub(e, r_lhs.as_ref().clone())),
+                            };
+                        }
                     }
                 }
             }
@@ -1293,34 +1447,91 @@ impl SymbolExpr {
             match self {
                 SymbolExpr::Value(l) => match &rhs {
                     SymbolExpr::Value(r) => Some(SymbolExpr::Value(l - r)),
+                    SymbolExpr::Binary {
+                        op,
+                        lhs: r_lhs,
+                        rhs: r_rhs,
+                    } => {
+                        if let SymbolExpr::Value(v) = r_lhs.as_ref() {
+                            let t = l - v;
+                            match op {
+                                BinaryOp::Add => {
+                                    if t.is_zero() {
+                                        match r_rhs.neg_opt() {
+                                            Some(e) => Some(e),
+                                            None => Some(_neg(r_rhs.as_ref().clone())),
+                                        }
+                                    } else {
+                                        Some(_sub(SymbolExpr::Value(t), r_rhs.as_ref().clone()))
+                                    }
+                                }
+                                BinaryOp::Sub => {
+                                    if t.is_zero() {
+                                        Some(r_rhs.as_ref().clone())
+                                    } else {
+                                        Some(_add(SymbolExpr::Value(t), r_rhs.as_ref().clone()))
+                                    }
+                                }
+                                _ => None,
+                            }
+                        } else {
+                            None
+                        }
+                    }
                     _ => None,
                 },
                 SymbolExpr::Symbol(l) => match &rhs {
-                    SymbolExpr::Value(r) => Some(_add(
-                        SymbolExpr::Value(-r),
-                        self.clone(),
-                    )),
+                    SymbolExpr::Value(r) => Some(_add(SymbolExpr::Value(-r), self.clone())),
                     SymbolExpr::Symbol(r) => {
-                        if r.name == l.name {
+                        if r == l {
                             Some(SymbolExpr::Value(Value::Int(0)))
-                        } else if r.name < l.name {
+                        } else if r < l {
                             Some(_add(_neg(rhs.clone()), self.clone()))
                         } else {
                             None
                         }
-                    },
-                    _ => None,  // TO DO add optimization for adding binary mul/div case
+                    }
+                    SymbolExpr::Binary {
+                        op,
+                        lhs: r_lhs,
+                        rhs: r_rhs,
+                    } => {
+                        if let (
+                            BinaryOp::Mul | BinaryOp::Div,
+                            SymbolExpr::Value(v),
+                            SymbolExpr::Symbol(s),
+                        ) = (op, r_lhs.as_ref(), r_rhs.as_ref())
+                        {
+                            if l == s {
+                                let t = &Value::Int(1) - v;
+                                if t.is_zero() {
+                                    Some(SymbolExpr::Value(Value::Int(0)))
+                                } else {
+                                    Some(_mul(SymbolExpr::Value(t), r_rhs.as_ref().clone()))
+                                }
+                            } else {
+                                None
+                            }
+                        } else {
+                            None
+                        }
+                    }
+                    _ => None,
                 },
-                SymbolExpr::Unary{op, expr} => {
+                SymbolExpr::Unary { op, expr } => {
                     if let UnaryOp::Neg = op {
-                        if let Some(e) = expr.add_opt(rhs) {
+                        if let Some(e) = expr.add_opt(rhs, recursive) {
                             return match e.neg_opt() {
                                 Some(ee) => Some(ee),
                                 None => Some(_neg(e)),
                             };
                         }
                     }
-                    if let SymbolExpr::Unary{op: rop, expr: rexpr} = rhs {
+                    if let SymbolExpr::Unary {
+                        op: rop,
+                        expr: rexpr,
+                    } = rhs
+                    {
                         if op == rop {
                             let t = expr.expand() - rexpr.expand();
                             if t.is_zero() {
@@ -1331,9 +1542,13 @@ impl SymbolExpr {
 
                     // swap nodes by sorting rule
                     match rhs {
-                        SymbolExpr::Binary{op: rop, lhs: _, rhs: _} => {
+                        SymbolExpr::Binary {
+                            op: rop,
+                            lhs: _,
+                            rhs: _,
+                        } => {
                             if let BinaryOp::Mul | BinaryOp::Div | BinaryOp::Pow = rop {
-                                if rhs < self {
+                                if self > rhs {
                                     match rhs.neg_opt() {
                                         Some(e) => Some(_add(e, self.clone())),
                                         None => Some(_add(_neg(rhs.clone()), self.clone())),
@@ -1346,7 +1561,7 @@ impl SymbolExpr {
                             }
                         }
                         _ => {
-                            if rhs < self {
+                            if self > rhs {
                                 match rhs.neg_opt() {
                                     Some(e) => Some(_add(e, self.clone())),
                                     None => Some(_add(_neg(rhs.clone()), self.clone())),
@@ -1356,16 +1571,32 @@ impl SymbolExpr {
                             }
                         }
                     }
-                },
-                SymbolExpr::Binary{op, lhs: l_lhs, rhs: l_rhs} => {
-                    if let SymbolExpr::Binary{op: rop, lhs: r_lhs, rhs: r_rhs} = rhs {
+                }
+                SymbolExpr::Binary {
+                    op,
+                    lhs: l_lhs,
+                    rhs: l_rhs,
+                } => {
+                    if let SymbolExpr::Binary {
+                        op: rop,
+                        lhs: r_lhs,
+                        rhs: r_rhs,
+                    } = rhs
+                    {
                         if op == rop {
                             if let BinaryOp::Mul | BinaryOp::Div | BinaryOp::Pow = op {
-                                if let (SymbolExpr::Value(rv), SymbolExpr::Value(lv)) = (l_lhs.as_ref(), r_lhs.as_ref()) {
+                                if let (SymbolExpr::Value(rv), SymbolExpr::Value(lv)) =
+                                    (l_lhs.as_ref(), r_lhs.as_ref())
+                                {
                                     if l_rhs.expand().to_string() == r_rhs.expand().to_string() {
-                                        return match SymbolExpr::Value(rv - lv).mul_opt(l_rhs) {
+                                        return match SymbolExpr::Value(rv - lv)
+                                            .mul_opt(l_rhs, recursive)
+                                        {
                                             Some(e) => Some(e),
-                                            None => Some(_mul(SymbolExpr::Value(rv - lv), l_rhs.as_ref().clone())),
+                                            None => Some(_mul(
+                                                SymbolExpr::Value(rv - lv),
+                                                l_rhs.as_ref().clone(),
+                                            )),
                                         };
                                     }
                                 }
@@ -1374,41 +1605,66 @@ impl SymbolExpr {
                                 }
                             }
                         }
+                    } else if let SymbolExpr::Symbol(r) = rhs {
+                        if let (
+                            BinaryOp::Mul | BinaryOp::Div,
+                            SymbolExpr::Value(v),
+                            SymbolExpr::Symbol(s),
+                        ) = (op, l_lhs.as_ref(), l_rhs.as_ref())
+                        {
+                            if s == r {
+                                let t = v - &Value::Int(1);
+                                if t.is_zero() {
+                                    return Some(SymbolExpr::Value(Value::Int(0)));
+                                } else {
+                                    return Some(_mul(
+                                        SymbolExpr::Value(t),
+                                        l_rhs.as_ref().clone(),
+                                    ));
+                                }
+                            }
+                        }
                     }
-                    if let BinaryOp::Add = op {
-                        if let Some(e) = l_lhs.sub_opt(rhs) {
-                            return match e.add_opt(l_rhs) {
-                                Some(ee) => Some(ee),
-                                None => Some(_add(e, l_rhs.as_ref().clone())),
-                            };
+                    if recursive {
+                        if let BinaryOp::Add = op {
+                            if let Some(e) = l_lhs.sub_opt(rhs, true) {
+                                return match e.add_opt(l_rhs, true) {
+                                    Some(ee) => Some(ee),
+                                    None => Some(_add(e, l_rhs.as_ref().clone())),
+                                };
+                            }
+                            if let Some(e) = l_rhs.sub_opt(rhs, true) {
+                                return match l_lhs.add_opt(&e, true) {
+                                    Some(ee) => Some(ee),
+                                    None => Some(_add(l_lhs.as_ref().clone(), e)),
+                                };
+                            }
                         }
-                        if let Some(e) = l_rhs.sub_opt(rhs) {
-                            return match l_lhs.add_opt(&e) {
-                                Some(ee) => Some(ee),
-                                None => Some(_add(l_lhs.as_ref().clone(), e)),
-                            };
-                        }
-                    }
-                    if let BinaryOp::Sub = op {
-                        if let Some(e) = l_lhs.sub_opt(rhs) {
-                            return match e.sub_opt(l_rhs) {
-                                Some(ee) => Some(ee),
-                                None => Some(_sub(e, l_rhs.as_ref().clone())),
-                            };
-                        }
-                        if let Some(e) = l_rhs.add_opt(rhs) {
-                            return match l_lhs.sub_opt(&e) {
-                                Some(ee) => Some(ee),
-                                None => Some(_sub(l_lhs.as_ref().clone(), e)),
-                            };
+                        if let BinaryOp::Sub = op {
+                            if let Some(e) = l_lhs.sub_opt(rhs, true) {
+                                return match e.sub_opt(l_rhs, true) {
+                                    Some(ee) => Some(ee),
+                                    None => Some(_sub(e, l_rhs.as_ref().clone())),
+                                };
+                            }
+                            if let Some(e) = l_rhs.add_opt(rhs, true) {
+                                return match l_lhs.sub_opt(&e, true) {
+                                    Some(ee) => Some(ee),
+                                    None => Some(_sub(l_lhs.as_ref().clone(), e)),
+                                };
+                            }
                         }
                     }
                     // swap nodes by sorting rule
                     if let BinaryOp::Mul | BinaryOp::Div | BinaryOp::Pow = op {
                         match rhs {
-                            SymbolExpr::Binary{op: rop, lhs: _, rhs: _} => {
+                            SymbolExpr::Binary {
+                                op: rop,
+                                lhs: _,
+                                rhs: _,
+                            } => {
                                 if let BinaryOp::Mul | BinaryOp::Div | BinaryOp::Pow = rop {
-                                    if rhs < self {
+                                    if self > rhs {
                                         match rhs.neg_opt() {
                                             Some(e) => Some(_add(e, self.clone())),
                                             None => Some(_add(_neg(rhs.clone()), self.clone())),
@@ -1421,7 +1677,7 @@ impl SymbolExpr {
                                 }
                             }
                             _ => {
-                                if rhs < self {
+                                if self > rhs {
                                     match rhs.neg_opt() {
                                         Some(e) => Some(_add(e, self.clone())),
                                         None => Some(_add(_neg(rhs.clone()), self.clone())),
@@ -1434,13 +1690,13 @@ impl SymbolExpr {
                     } else {
                         None
                     }
-                },
+                }
             }
         }
     }
 
     /// Mul with heuristic optimization
-    fn mul_opt(&self, rhs: &SymbolExpr) -> Option<SymbolExpr> {
+    fn mul_opt(&self, rhs: &SymbolExpr, recursive: bool) -> Option<SymbolExpr> {
         if self.is_zero() {
             Some(self.clone())
         } else if rhs.is_zero() || self.is_one() {
@@ -1459,8 +1715,8 @@ impl SymbolExpr {
             }
         } else {
             if let SymbolExpr::Value(_) | SymbolExpr::Symbol(_) = rhs {
-                if let SymbolExpr::Unary{op: _, expr: _} = self {
-                    return match rhs.mul_opt(self) {
+                if let SymbolExpr::Unary { op: _, expr: _ } = self {
+                    return match rhs.mul_opt(self, recursive) {
                         Some(e) => Some(e),
                         None => Some(_mul(rhs.clone(), self.clone())),
                     };
@@ -1468,10 +1724,45 @@ impl SymbolExpr {
             }
 
             match self {
-                SymbolExpr::Value(e) => e.mul_opt(rhs),
-                SymbolExpr::Symbol(e) => e.mul_opt(rhs),
-                SymbolExpr::Unary{op, expr} => match op {
-                    UnaryOp::Neg => match expr.mul_opt(rhs) {
+                SymbolExpr::Value(e) => e.mul_opt(rhs, recursive),
+                SymbolExpr::Symbol(e) => match rhs {
+                    SymbolExpr::Value(_) => Some(_mul(rhs.clone(), self.clone())),
+                    SymbolExpr::Symbol(r) => {
+                        if r < e {
+                            Some(_mul(rhs.clone(), self.clone()))
+                        } else {
+                            None
+                        }
+                    }
+                    SymbolExpr::Unary { op, expr } => match &op {
+                        UnaryOp::Neg => match expr.as_ref() {
+                            SymbolExpr::Value(v) => Some(_mul(SymbolExpr::Value(-v), self.clone())),
+                            SymbolExpr::Symbol(s) => {
+                                if s < e {
+                                    Some(_neg(_mul(*expr.clone(), self.clone())))
+                                } else {
+                                    Some(_neg(_mul(self.clone(), expr.as_ref().clone())))
+                                }
+                            }
+                            SymbolExpr::Binary {
+                                op: _,
+                                lhs: _,
+                                rhs: _,
+                            } => match self.mul_opt(expr, recursive) {
+                                Some(e) => match e.neg_opt() {
+                                    Some(ee) => Some(ee),
+                                    None => Some(_neg(e)),
+                                },
+                                None => None,
+                            },
+                            _ => None,
+                        },
+                        _ => None,
+                    },
+                    _ => None,
+                },
+                SymbolExpr::Unary { op, expr } => match op {
+                    UnaryOp::Neg => match expr.mul_opt(rhs, recursive) {
                         Some(e) => match e.neg_opt() {
                             Some(ee) => Some(ee),
                             None => Some(_neg(e)),
@@ -1479,15 +1770,21 @@ impl SymbolExpr {
                         None => None,
                     },
                     UnaryOp::Abs => match rhs {
-                        SymbolExpr::Unary{op: rop, expr: rexpr} => match &rop {
-                            UnaryOp::Abs => match expr.mul_opt(rexpr) {
+                        SymbolExpr::Unary {
+                            op: rop,
+                            expr: rexpr,
+                        } => match &rop {
+                            UnaryOp::Abs => match expr.mul_opt(rexpr, recursive) {
                                 Some(e) => Some(SymbolExpr::Unary {
                                     op: UnaryOp::Abs,
                                     expr: Box::new(e),
                                 }),
                                 None => Some(SymbolExpr::Unary {
                                     op: UnaryOp::Abs,
-                                    expr: Box::new(_mul(expr.as_ref().clone(), rexpr.as_ref().clone())),
+                                    expr: Box::new(_mul(
+                                        expr.as_ref().clone(),
+                                        rexpr.as_ref().clone(),
+                                    )),
                                 }),
                             },
                             _ => None,
@@ -1496,94 +1793,110 @@ impl SymbolExpr {
                     },
                     _ => None,
                 },
-                SymbolExpr::Binary{op,lhs: l_lhs, rhs: l_rhs} => {
-                    if let SymbolExpr::Binary{op: rop, lhs: r_lhs, rhs: r_rhs} = rhs {
-                        if let BinaryOp::Mul = &rop {
-                            if let Some(e) = self.mul_opt(r_lhs) {
-                                return match e.mul_opt(r_rhs) {
-                                    Some(ee) => Some(ee),
-                                    None => Some(_mul(e, r_rhs.as_ref().clone())),
-                                };
+                SymbolExpr::Binary {
+                    op,
+                    lhs: l_lhs,
+                    rhs: l_rhs,
+                } => {
+                    if recursive {
+                        if let SymbolExpr::Binary {
+                            op: rop,
+                            lhs: r_lhs,
+                            rhs: r_rhs,
+                        } = rhs
+                        {
+                            if let BinaryOp::Mul = &rop {
+                                if let Some(e) = self.mul_opt(r_lhs, true) {
+                                    return match e.mul_opt(r_rhs, true) {
+                                        Some(ee) => Some(ee),
+                                        None => Some(_mul(e, r_rhs.as_ref().clone())),
+                                    };
+                                }
+                                if let Some(e) = self.mul_opt(r_rhs, true) {
+                                    return match e.mul_opt(r_lhs, true) {
+                                        Some(ee) => Some(ee),
+                                        None => Some(_mul(e, r_lhs.as_ref().clone())),
+                                    };
+                                }
                             }
-                            if let Some(e) = self.mul_opt(r_rhs) {
-                                return match e.mul_opt(r_lhs) {
-                                    Some(ee) => Some(ee),
-                                    None => Some(_mul(e, r_lhs.as_ref().clone())),
-                                };
+                            if let BinaryOp::Div = &rop {
+                                if let Some(e) = self.mul_opt(r_lhs, true) {
+                                    return match e.div_opt(r_rhs, true) {
+                                        Some(ee) => Some(ee),
+                                        None => Some(_div(e, r_rhs.as_ref().clone())),
+                                    };
+                                }
+                                if let Some(e) = self.div_opt(r_rhs, true) {
+                                    return match e.mul_opt(r_lhs, true) {
+                                        Some(ee) => Some(ee),
+                                        None => Some(_mul(e, r_lhs.as_ref().clone())),
+                                    };
+                                }
                             }
                         }
-                        if let BinaryOp::Div = &rop {
-                            if let Some(e) = self.mul_opt(r_lhs) {
-                                return match e.div_opt(r_rhs) {
+
+                        if let BinaryOp::Mul = &op {
+                            if let Some(e) = l_lhs.mul_opt(rhs, true) {
+                                return match e.mul_opt(l_rhs, true) {
                                     Some(ee) => Some(ee),
-                                    None => Some(_div(e, r_rhs.as_ref().clone())),
+                                    None => Some(_mul(e, l_rhs.as_ref().clone())),
                                 };
                             }
-                            if let Some(e) = self.div_opt(r_rhs) {
-                                return match e.mul_opt(r_lhs) {
+                            if let Some(e) = l_rhs.mul_opt(rhs, true) {
+                                return match l_lhs.mul_opt(&e, true) {
                                     Some(ee) => Some(ee),
-                                    None => Some(_mul(e, r_lhs.as_ref().clone())),
+                                    None => Some(_mul(l_lhs.as_ref().clone(), e)),
+                                };
+                            }
+                        } else if let BinaryOp::Div = &op {
+                            if let Some(e) = l_lhs.mul_opt(rhs, true) {
+                                return match e.div_opt(l_rhs, true) {
+                                    Some(ee) => Some(ee),
+                                    None => Some(_div(e, l_rhs.as_ref().clone())),
+                                };
+                            }
+                            if let Some(e) = rhs.div_opt(l_rhs, true) {
+                                return match l_lhs.mul_opt(&e, true) {
+                                    Some(ee) => Some(ee),
+                                    None => Some(_mul(l_lhs.as_ref().clone(), e)),
                                 };
                             }
                         }
                     }
-            
-                    if let BinaryOp::Mul = &op {
-                        if let Some(e) = l_lhs.mul_opt(rhs) {
-                            return match e.mul_opt(l_rhs) {
-                                Some(ee) => Some(ee),
-                                None => Some(_mul(e, l_rhs.as_ref().clone())),
-                            };
-                        }
-                        if let Some(e) = l_rhs.mul_opt(rhs) {
-                            return match l_lhs.mul_opt(&e) {
-                                Some(ee) => Some(ee),
-                                None => Some(_mul(l_lhs.as_ref().clone(), e)),
-                            };
-                        }
-                    } else if let BinaryOp::Div = &op {
-                        if let Some(e) = l_lhs.mul_opt(rhs) {
-                            return match e.div_opt(l_rhs) {
-                                Some(ee) => Some(ee),
-                                None => Some(_div(e, l_rhs.as_ref().clone())),
-                            };
-                        }
-                        if let Some(e) = rhs.div_opt(l_rhs) {
-                            return match l_lhs.mul_opt(&e) {
-                                Some(ee) => Some(ee),
-                                None => Some(_mul(l_lhs.as_ref().clone(), e)),
-                            };
-                        }
-                    }
-                    None            
-                },
+                    None
+                }
             }
         }
     }
     /// expand with optimization for mul operation
     fn mul_expand(&self, rhs: &SymbolExpr) -> Option<SymbolExpr> {
-        if let SymbolExpr::Binary{op: rop, lhs: r_lhs, rhs: r_rhs} = rhs {
+        if let SymbolExpr::Binary {
+            op: rop,
+            lhs: r_lhs,
+            rhs: r_rhs,
+        } = rhs
+        {
             if let BinaryOp::Add | BinaryOp::Sub = &rop {
                 let el = match self.mul_expand(r_lhs) {
                     Some(e) => e,
-                    None => match self.mul_opt(r_lhs) {
+                    None => match self.mul_opt(r_lhs, true) {
                         Some(e) => e,
                         None => _mul(self.clone(), r_lhs.as_ref().clone()),
                     },
                 };
                 let er = match self.mul_expand(r_rhs) {
                     Some(e) => e,
-                    None => match self.mul_opt(r_rhs) {
+                    None => match self.mul_opt(r_rhs, true) {
                         Some(e) => e,
                         None => _mul(self.clone(), r_rhs.as_ref().clone()),
                     },
                 };
                 return match &rop {
-                    BinaryOp::Sub => match el.sub_opt(&er) {
+                    BinaryOp::Sub => match el.sub_opt(&er, true) {
                         Some(e) => Some(e),
                         None => Some(_sub(el, er)),
                     },
-                    _ => match el.add_opt(&er) {
+                    _ => match el.add_opt(&er, true) {
                         Some(e) => Some(e),
                         None => Some(_add(el, er)),
                     },
@@ -1595,7 +1908,9 @@ impl SymbolExpr {
                         Some(ee) => Some(ee),
                         None => Some(_mul(e, r_rhs.as_ref().clone())),
                     },
-                    None => self.mul_expand(r_rhs).map(|e| _mul(e, r_lhs.as_ref().clone())),
+                    None => self
+                        .mul_expand(r_rhs)
+                        .map(|e| _mul(e, r_lhs.as_ref().clone())),
                 };
             }
             if let BinaryOp::Div = &rop {
@@ -1604,18 +1919,24 @@ impl SymbolExpr {
                         Some(ee) => Some(ee),
                         None => Some(_mul(e, r_rhs.as_ref().clone())),
                     },
-                    None => self.div_expand(r_rhs).map(|e| _div(e, r_lhs.as_ref().clone())),
+                    None => self
+                        .div_expand(r_rhs)
+                        .map(|e| _div(e, r_lhs.as_ref().clone())),
                 };
             }
         }
-        if let SymbolExpr::Unary{op: rop, expr: rexpr} = rhs {
+        if let SymbolExpr::Unary {
+            op: rop,
+            expr: rexpr,
+        } = rhs
+        {
             if let UnaryOp::Neg = &rop {
                 return match self.mul_expand(rexpr) {
                     Some(e) => match e.neg_opt() {
                         Some(ee) => Some(ee),
                         None => Some(_neg(e)),
                     },
-                    None => match self.mul_opt(rexpr) {
+                    None => match self.mul_opt(rexpr, true) {
                         Some(e) => match e.neg_opt() {
                             Some(ee) => Some(ee),
                             None => Some(_neg(e)),
@@ -1627,13 +1948,13 @@ impl SymbolExpr {
         }
 
         match self {
-            SymbolExpr::Unary{op, expr} => match op {
+            SymbolExpr::Unary { op, expr } => match op {
                 UnaryOp::Neg => match expr.mul_expand(rhs) {
                     Some(e) => match e.neg_opt() {
                         Some(ee) => Some(ee),
                         None => Some(_neg(e)),
                     },
-                    None => match expr.mul_opt(rhs) {
+                    None => match expr.mul_opt(rhs, true) {
                         Some(e) => match e.neg_opt() {
                             Some(ee) => Some(ee),
                             None => Some(_neg(e)),
@@ -1642,29 +1963,33 @@ impl SymbolExpr {
                     },
                 },
                 _ => None,
-            },    
-            SymbolExpr::Binary{op, lhs: l_lhs, rhs: l_rhs} => match &op {
+            },
+            SymbolExpr::Binary {
+                op,
+                lhs: l_lhs,
+                rhs: l_rhs,
+            } => match &op {
                 BinaryOp::Add | BinaryOp::Sub => {
                     let l = match l_lhs.mul_expand(rhs) {
                         Some(e) => e,
-                        None => match l_lhs.mul_opt(rhs) {
+                        None => match l_lhs.mul_opt(rhs, true) {
                             Some(e) => e,
                             None => _mul(l_lhs.as_ref().clone(), rhs.clone()),
                         },
                     };
                     let r = match l_rhs.mul_expand(rhs) {
                         Some(e) => e,
-                        None => match l_rhs.mul_opt(rhs) {
+                        None => match l_rhs.mul_opt(rhs, true) {
                             Some(e) => e,
                             None => _mul(l_rhs.as_ref().clone(), rhs.clone()),
                         },
                     };
                     match &op {
-                        BinaryOp::Sub => match l.sub_opt(&r) {
+                        BinaryOp::Sub => match l.sub_opt(&r, true) {
                             Some(e) => Some(e),
                             None => Some(_sub(l, r)),
                         },
-                        _ => match l.add_opt(&r) {
+                        _ => match l.add_opt(&r, true) {
                             Some(e) => Some(e),
                             None => Some(_add(l, r)),
                         },
@@ -1673,7 +1998,7 @@ impl SymbolExpr {
                 BinaryOp::Mul => match l_lhs.mul_expand(rhs) {
                     Some(e) => match e.mul_expand(l_rhs) {
                         Some(ee) => Some(ee),
-                        None => match e.mul_opt(l_rhs) {
+                        None => match e.mul_opt(l_rhs, true) {
                             Some(ee) => Some(ee),
                             None => Some(_mul(e, l_rhs.as_ref().clone())),
                         },
@@ -1681,7 +2006,7 @@ impl SymbolExpr {
                     None => match l_rhs.mul_expand(rhs) {
                         Some(e) => match l_lhs.mul_expand(&e) {
                             Some(ee) => Some(ee),
-                            None => match l_lhs.mul_opt(&e) {
+                            None => match l_lhs.mul_opt(&e, true) {
                                 Some(ee) => Some(ee),
                                 None => Some(_mul(l_lhs.as_ref().clone(), e)),
                             },
@@ -1691,7 +2016,9 @@ impl SymbolExpr {
                 },
                 BinaryOp::Div => match l_lhs.div_expand(rhs) {
                     Some(e) => Some(_div(e, l_rhs.as_ref().clone())),
-                    None => l_rhs.div_expand(rhs).map(|e| _div(l_lhs.as_ref().clone(), e)),
+                    None => l_rhs
+                        .div_expand(rhs)
+                        .map(|e| _div(l_lhs.as_ref().clone(), e)),
                 },
                 _ => None,
             },
@@ -1700,7 +2027,7 @@ impl SymbolExpr {
     }
 
     /// Div with heuristic optimization
-    fn div_opt(&self, rhs: &SymbolExpr) -> Option<SymbolExpr> {
+    fn div_opt(&self, rhs: &SymbolExpr, recursive: bool) -> Option<SymbolExpr> {
         if self.is_zero() {
             Some(self.clone())
         } else if rhs.is_zero() {
@@ -1723,10 +2050,13 @@ impl SymbolExpr {
             }
         } else {
             match self {
-                SymbolExpr::Value(e) => e.div_opt(rhs),
-                SymbolExpr::Symbol(e) => e.div_opt(rhs),
-                SymbolExpr::Unary{op, expr} => match op {
-                    UnaryOp::Neg => match expr.div_opt(rhs) {
+                SymbolExpr::Value(e) => e.div_opt(rhs, recursive),
+                SymbolExpr::Symbol(e) => match rhs {
+                    SymbolExpr::Value(r) => Some(_mul(SymbolExpr::Value(r.rcp()), self.clone())),
+                    _ => None,
+                },
+                SymbolExpr::Unary { op, expr } => match op {
+                    UnaryOp::Neg => match expr.div_opt(rhs, recursive) {
                         Some(e) => match e.neg_opt() {
                             Some(ee) => Some(ee),
                             None => Some(_neg(e)),
@@ -1734,15 +2064,21 @@ impl SymbolExpr {
                         None => None,
                     },
                     UnaryOp::Abs => match rhs {
-                        SymbolExpr::Unary{op: rop, expr: rexpr} => match &rop {
-                            UnaryOp::Abs => match expr.div_opt(rexpr) {
+                        SymbolExpr::Unary {
+                            op: rop,
+                            expr: rexpr,
+                        } => match &rop {
+                            UnaryOp::Abs => match expr.div_opt(rexpr, recursive) {
                                 Some(e) => Some(SymbolExpr::Unary {
                                     op: UnaryOp::Abs,
                                     expr: Box::new(e),
                                 }),
                                 None => Some(SymbolExpr::Unary {
                                     op: UnaryOp::Abs,
-                                    expr: Box::new(_div(expr.as_ref().clone(), rexpr.as_ref().clone())),
+                                    expr: Box::new(_div(
+                                        expr.as_ref().clone(),
+                                        rexpr.as_ref().clone(),
+                                    )),
                                 }),
                             },
                             _ => None,
@@ -1751,63 +2087,74 @@ impl SymbolExpr {
                     },
                     _ => None,
                 },
-                SymbolExpr::Binary{op, lhs: l_lhs, rhs: l_rhs} => {
-                    if let SymbolExpr::Binary{op: rop, lhs: r_lhs, rhs: r_rhs} = rhs {
-                        if let BinaryOp::Mul = &rop {
-                            if let Some(e) = self.div_opt(r_lhs) {
-                                return match e.div_opt(r_rhs) {
+                SymbolExpr::Binary {
+                    op,
+                    lhs: l_lhs,
+                    rhs: l_rhs,
+                } => {
+                    if recursive {
+                        if let SymbolExpr::Binary {
+                            op: rop,
+                            lhs: r_lhs,
+                            rhs: r_rhs,
+                        } = rhs
+                        {
+                            if let BinaryOp::Mul = &rop {
+                                if let Some(e) = self.div_opt(r_lhs, true) {
+                                    return match e.div_opt(r_rhs, true) {
+                                        Some(ee) => Some(ee),
+                                        None => Some(_div(e, r_rhs.as_ref().clone())),
+                                    };
+                                }
+                                if let Some(e) = self.div_opt(r_rhs, true) {
+                                    return match e.div_opt(r_lhs, true) {
+                                        Some(ee) => Some(ee),
+                                        None => Some(_div(e, r_lhs.as_ref().clone())),
+                                    };
+                                }
+                            }
+                            if let BinaryOp::Div = &rop {
+                                if let Some(e) = self.mul_opt(r_rhs, true) {
+                                    return match e.div_opt(r_lhs, true) {
+                                        Some(ee) => Some(ee),
+                                        None => Some(_div(e, r_lhs.as_ref().clone())),
+                                    };
+                                }
+                                if let Some(e) = self.div_opt(r_lhs, true) {
+                                    return match e.mul_opt(r_rhs, true) {
+                                        Some(ee) => Some(ee),
+                                        None => Some(_mul(e, r_rhs.as_ref().clone())),
+                                    };
+                                }
+                            }
+                        }
+
+                        if let BinaryOp::Mul = &op {
+                            if let Some(e) = l_lhs.div_opt(rhs, true) {
+                                return match e.mul_opt(l_rhs, true) {
                                     Some(ee) => Some(ee),
-                                    None => Some(_div(e, r_rhs.as_ref().clone())),
+                                    None => Some(_mul(e, l_rhs.as_ref().clone())),
                                 };
                             }
-                            if let Some(e) = self.div_opt(r_rhs) {
-                                return match e.div_opt(r_lhs) {
+                            if let Some(e) = l_rhs.div_opt(rhs, true) {
+                                return match l_lhs.mul_opt(&e, true) {
                                     Some(ee) => Some(ee),
-                                    None => Some(_div(e, r_lhs.as_ref().clone())),
+                                    None => Some(_mul(l_lhs.as_ref().clone(), e)),
                                 };
                             }
-                        }
-                        if let BinaryOp::Div = &rop {
-                            if let Some(e) = self.mul_opt(r_rhs) {
-                                return match e.div_opt(r_lhs) {
+                        } else if let BinaryOp::Div = &op {
+                            if let Some(e) = l_rhs.mul_opt(rhs, true) {
+                                return match l_lhs.div_opt(&e, true) {
                                     Some(ee) => Some(ee),
-                                    None => Some(_div(e, r_lhs.as_ref().clone())),
+                                    None => Some(_div(l_lhs.as_ref().clone(), e)),
                                 };
                             }
-                            if let Some(e) = self.div_opt(r_lhs) {
-                                return match e.mul_opt(r_rhs) {
+                            if let Some(e) = l_lhs.div_opt(rhs, true) {
+                                return match e.div_opt(l_rhs, true) {
                                     Some(ee) => Some(ee),
-                                    None => Some(_mul(e, r_rhs.as_ref().clone())),
+                                    None => Some(_div(e, l_rhs.as_ref().clone())),
                                 };
                             }
-                        }
-                    }
-            
-                    if let BinaryOp::Mul = &op {
-                        if let Some(e) = l_lhs.div_opt(rhs) {
-                            return match e.mul_opt(l_rhs) {
-                                Some(ee) => Some(ee),
-                                None => Some(_mul(e, l_rhs.as_ref().clone())),
-                            };
-                        }
-                        if let Some(e) = l_rhs.div_opt(rhs) {
-                            return match l_lhs.mul_opt(&e) {
-                                Some(ee) => Some(ee),
-                                None => Some(_mul(l_lhs.as_ref().clone(), e)),
-                            };
-                        }
-                    } else if let BinaryOp::Div = &op {
-                        if let Some(e) = l_rhs.mul_opt(rhs) {
-                            return match l_lhs.div_opt(&e) {
-                                Some(ee) => Some(ee),
-                                None => Some(_div(l_lhs.as_ref().clone(), e)),
-                            };
-                        }
-                        if let Some(e) = l_lhs.div_opt(rhs) {
-                            return match e.div_opt(l_rhs) {
-                                Some(ee) => Some(ee),
-                                None => Some(_div(e, l_rhs.as_ref().clone())),
-                            };
                         }
                     }
                     None
@@ -1819,13 +2166,13 @@ impl SymbolExpr {
     /// expand with optimization for div operation
     fn div_expand(&self, rhs: &SymbolExpr) -> Option<SymbolExpr> {
         match self {
-            SymbolExpr::Unary{op, expr} => match op {
+            SymbolExpr::Unary { op, expr } => match op {
                 UnaryOp::Neg => match expr.div_expand(rhs) {
                     Some(e) => match e.neg_opt() {
                         Some(ee) => Some(ee),
                         None => Some(_neg(e)),
                     },
-                    None => match expr.div_opt(rhs) {
+                    None => match expr.div_opt(rhs, true) {
                         Some(e) => match e.neg_opt() {
                             Some(ee) => Some(ee),
                             None => Some(_neg(e)),
@@ -1835,28 +2182,32 @@ impl SymbolExpr {
                 },
                 _ => None,
             },
-            SymbolExpr::Binary{op, lhs: l_lhs, rhs: l_rhs} => match &op {
+            SymbolExpr::Binary {
+                op,
+                lhs: l_lhs,
+                rhs: l_rhs,
+            } => match &op {
                 BinaryOp::Add | BinaryOp::Sub => {
                     let l = match l_lhs.div_expand(rhs) {
                         Some(e) => e,
-                        None => match l_lhs.div_opt(rhs) {
+                        None => match l_lhs.div_opt(rhs, true) {
                             Some(e) => e,
                             None => _div(l_lhs.as_ref().clone(), rhs.clone()),
                         },
                     };
                     let r = match l_rhs.div_expand(rhs) {
                         Some(e) => e,
-                        None => match l_rhs.div_opt(rhs) {
+                        None => match l_rhs.div_opt(rhs, true) {
                             Some(e) => e,
                             None => _div(l_rhs.as_ref().clone(), rhs.clone()),
                         },
                     };
                     match &op {
-                        BinaryOp::Sub => match l.sub_opt(&r) {
+                        BinaryOp::Sub => match l.sub_opt(&r, true) {
                             Some(e) => Some(e),
                             None => Some(_sub(l, r)),
                         },
-                        _ => match l.add_opt(&r) {
+                        _ => match l.add_opt(&r, true) {
                             Some(e) => Some(e),
                             None => Some(_add(l, r)),
                         },
@@ -1864,7 +2215,7 @@ impl SymbolExpr {
                 }
                 _ => None,
             },
-            _ => self.div_opt(rhs),
+            _ => self.div_opt(rhs, true),
         }
     }
 
@@ -1872,11 +2223,11 @@ impl SymbolExpr {
     fn neg_opt(&self) -> Option<SymbolExpr> {
         match self {
             SymbolExpr::Value(v) => Some(SymbolExpr::Value(-v)),
-            SymbolExpr::Unary{op, expr} => match &op {
+            SymbolExpr::Unary { op, expr } => match &op {
                 UnaryOp::Neg => Some(expr.as_ref().clone()),
                 _ => None,
             },
-            SymbolExpr::Binary{op, lhs, rhs} => match &op {
+            SymbolExpr::Binary { op, lhs, rhs } => match &op {
                 BinaryOp::Add => match lhs.neg_opt() {
                     Some(ln) => match rhs.neg_opt() {
                         Some(rn) => Some(_add(ln, rn)),
@@ -1905,7 +2256,6 @@ impl SymbolExpr {
         }
     }
 
-    /*
     /// optimize the equation
     pub fn optimize(&self) -> SymbolExpr {
         match self {
@@ -1917,20 +2267,38 @@ impl SymbolExpr {
                     UnaryOp::Neg => match opt.neg_opt() {
                         Some(e) => e,
                         None => _neg(opt),
-                    }
-                    _ => SymbolExpr::Unary { op: op.clone(), expr: Box::new(opt) },
+                    },
+                    _ => SymbolExpr::Unary {
+                        op: op.clone(),
+                        expr: Box::new(opt),
+                    },
                 }
-            },
+            }
             SymbolExpr::Binary { op, lhs, rhs } => {
+                let opt_lhs = lhs.optimize();
+                let opt_rhs = rhs.optimize();
                 match op {
-                    BinaryOp::Add
+                    BinaryOp::Add => match opt_lhs.add_opt(&opt_rhs, true) {
+                        Some(e) => e,
+                        None => _add(opt_lhs, opt_rhs),
+                    },
+                    BinaryOp::Sub => match opt_lhs.sub_opt(&opt_rhs, true) {
+                        Some(e) => e,
+                        None => _sub(opt_lhs, opt_rhs),
+                    },
+                    BinaryOp::Mul => match opt_lhs.mul_opt(&opt_rhs, true) {
+                        Some(e) => e,
+                        None => _mul(opt_lhs, opt_rhs),
+                    },
+                    BinaryOp::Div => match opt_lhs.div_opt(&opt_rhs, true) {
+                        Some(e) => e,
+                        None => _div(opt_lhs, opt_rhs),
+                    },
+                    BinaryOp::Pow => _pow(opt_lhs, opt_rhs),
                 }
-                let l_opt = lhs.optimize();
-                let r_opt = rhs.optimize();
             }
         }
     }
-    */
 }
 
 impl Add for SymbolExpr {
@@ -1944,7 +2312,7 @@ impl Add for &SymbolExpr {
     type Output = SymbolExpr;
     fn add(self, rhs: Self) -> SymbolExpr {
         //_add(self.clone(), rhs.clone())
-        match self.add_opt(rhs) {
+        match self.add_opt(rhs, false) {
             Some(e) => e,
             None => _add(self.clone(), rhs.clone()),
         }
@@ -1961,8 +2329,8 @@ impl Sub for SymbolExpr {
 impl Sub for &SymbolExpr {
     type Output = SymbolExpr;
     fn sub(self, rhs: Self) -> SymbolExpr {
-        //_sub(self.clone(), rhs.clone())
-        match self.sub_opt(rhs) {
+        // _sub(self.clone(), rhs.clone())
+        match self.sub_opt(rhs, false) {
             Some(e) => e,
             None => _sub(self.clone(), rhs.clone()),
         }
@@ -1980,7 +2348,7 @@ impl Mul for &SymbolExpr {
     type Output = SymbolExpr;
     fn mul(self, rhs: Self) -> SymbolExpr {
         //_mul(self.clone(), rhs.clone())
-        match self.mul_opt(rhs) {
+        match self.mul_opt(rhs, false) {
             Some(e) => e,
             None => _mul(self.clone(), rhs.clone()),
         }
@@ -1998,7 +2366,7 @@ impl Div for &SymbolExpr {
     type Output = SymbolExpr;
     fn div(self, rhs: Self) -> SymbolExpr {
         //_div(self.clone(), rhs.clone())
-        match self.div_opt(rhs) {
+        match self.div_opt(rhs, false) {
             Some(e) => e,
             None => _div(self.clone(), rhs.clone()),
         }
@@ -2025,12 +2393,26 @@ impl Neg for &SymbolExpr {
 
 impl PartialEq for SymbolExpr {
     fn eq(&self, rexpr: &Self) -> bool {
+        if let (Some(l), Some(r)) = (self.eval(true), rexpr.eval(true)) {
+            return l == r;
+        }
+
         match (self, rexpr) {
-            (SymbolExpr::Symbol(l), SymbolExpr::Symbol(r)) => l.name == r.name,
+            (SymbolExpr::Symbol(l), SymbolExpr::Symbol(r)) => l == r,
             (SymbolExpr::Value(l), SymbolExpr::Value(r)) => l == r,
             (
-                SymbolExpr::Binary{op: _, lhs: _, rhs: _} | SymbolExpr::Unary{op: _, expr: _},
-                SymbolExpr::Binary{op: _, lhs: _, rhs: _} | SymbolExpr::Unary{op: _, expr: _},
+                SymbolExpr::Binary {
+                    op: _,
+                    lhs: _,
+                    rhs: _,
+                }
+                | SymbolExpr::Unary { op: _, expr: _ },
+                SymbolExpr::Binary {
+                    op: _,
+                    lhs: _,
+                    rhs: _,
+                }
+                | SymbolExpr::Unary { op: _, expr: _ },
             ) => {
                 let ex_lhs = self.expand();
                 let ex_rhs = rexpr.expand();
@@ -2040,7 +2422,14 @@ impl PartialEq for SymbolExpr {
                     _ => false,
                 }
             }
-            (SymbolExpr::Binary{op: _, lhs: _, rhs: _}, _) => {
+            (
+                SymbolExpr::Binary {
+                    op: _,
+                    lhs: _,
+                    rhs: _,
+                },
+                _,
+            ) => {
                 let ex_lhs = self.expand();
 
                 let t = &ex_lhs - rexpr;
@@ -2049,7 +2438,14 @@ impl PartialEq for SymbolExpr {
                     _ => false,
                 }
             }
-            (_, SymbolExpr::Binary{op: _, lhs: _, rhs: _}) => {
+            (
+                _,
+                SymbolExpr::Binary {
+                    op: _,
+                    lhs: _,
+                    rhs: _,
+                },
+            ) => {
                 let ex_rhs = rexpr.expand();
                 let t = self - &ex_rhs;
                 match t {
@@ -2090,22 +2486,30 @@ impl PartialOrd for SymbolExpr {
             },
             SymbolExpr::Symbol(l) => match rhs {
                 SymbolExpr::Value(_) => Some(Ordering::Greater),
-                SymbolExpr::Symbol(r) => l.name.partial_cmp(&r.name),
-                SymbolExpr::Unary{op: _, expr} => self.partial_cmp(expr),
+                SymbolExpr::Symbol(r) => l.partial_cmp(r),
+                SymbolExpr::Unary { op: _, expr } => self.partial_cmp(expr),
                 _ => Some(Ordering::Less),
             },
-            SymbolExpr::Unary{op: _, expr} => match rhs {
+            SymbolExpr::Unary { op: _, expr } => match rhs {
                 SymbolExpr::Value(_) => Some(Ordering::Greater),
-                SymbolExpr::Unary{op: _, expr: rexpr} => expr.partial_cmp(rexpr),
+                SymbolExpr::Unary { op: _, expr: rexpr } => expr.partial_cmp(rexpr),
                 _ => (expr.as_ref()).partial_cmp(rhs),
             },
-            SymbolExpr::Binary{op, lhs: ll, rhs: lr} => match rhs {
+            SymbolExpr::Binary {
+                op,
+                lhs: ll,
+                rhs: lr,
+            } => match rhs {
                 SymbolExpr::Value(_) | SymbolExpr::Symbol(_) => match op {
                     BinaryOp::Mul | BinaryOp::Div | BinaryOp::Pow => Some(Ordering::Greater),
                     _ => Some(Ordering::Equal),
                 },
-                SymbolExpr::Unary{op: _, expr} => self.partial_cmp(expr),
-                SymbolExpr::Binary{op: _, lhs: rl, rhs: rr} => {
+                SymbolExpr::Unary { op: _, expr } => self.partial_cmp(expr),
+                SymbolExpr::Binary {
+                    op: _,
+                    lhs: rl,
+                    rhs: rr,
+                } => {
                     let ls = match ll.as_ref() {
                         SymbolExpr::Value(_) => lr.to_string(),
                         _ => self.to_string(),
@@ -2127,94 +2531,9 @@ impl PartialOrd for SymbolExpr {
     }
 }
 
-impl fmt::Display for Symbol {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.name)
-    }
-}
-
-// ===============================================================
-//  implementations for Symbol
-// ===============================================================
-impl Symbol {
-    pub fn new(expr: &str) -> Self {
-        Self {
-            name: expr.to_string(),
-        }
-    }
-
-    pub fn bind(&self, maps: &HashMap<String, Value>) -> SymbolExpr {
-        match maps.get(&self.name) {
-            Some(v) => SymbolExpr::Value(v.clone()),
-            None => SymbolExpr::Symbol(self.clone()),
-        }
-    }
-
-    pub fn subs(&self, maps: &HashMap<String, SymbolExpr>) -> SymbolExpr {
-        match maps.get(&self.name) {
-            Some(v) => v.clone(),
-            None => SymbolExpr::Symbol(self.clone()),
-        }
-    }
-
-    fn mul_opt(&self, rhs: &SymbolExpr) -> Option<SymbolExpr> {
-        match rhs {
-            SymbolExpr::Value(_) => Some(_mul(rhs.clone(), SymbolExpr::Symbol(self.clone()))),
-            SymbolExpr::Symbol(r) => {
-                if r.name < self.name {
-                    Some(_mul(rhs.clone(), SymbolExpr::Symbol(self.clone())))
-                } else {
-                    None
-                }
-            }
-            SymbolExpr::Unary{op, expr} => match &op {
-                UnaryOp::Neg => match expr.as_ref() {
-                    SymbolExpr::Value(v) => Some(_mul(
-                        SymbolExpr::Value(-v),
-                        SymbolExpr::Symbol(self.clone()),
-                    )),
-                    SymbolExpr::Symbol(s) => {
-                        if s.name < self.name {
-                            Some(_neg(_mul(*expr.clone(), SymbolExpr::Symbol(self.clone()))))
-                        } else {
-                            Some(_neg(_mul(SymbolExpr::Symbol(self.clone()), expr.as_ref().clone())))
-                        }
-                    }
-                    SymbolExpr::Binary{op: _, lhs: _, rhs: _} => match self.mul_opt(expr) {
-                        Some(e) => match e.neg_opt() {
-                            Some(ee) => Some(ee),
-                            None => Some(_neg(e)),
-                        },
-                        None => None,
-                    },
-                    _ => None,
-                },
-                _ => None,
-            },
-            _ => None,
-        }
-    }
-
-    fn div_opt(&self, rhs: &SymbolExpr) -> Option<SymbolExpr> {
-        match rhs {
-            SymbolExpr::Value(r) => Some(_mul(
-                SymbolExpr::Value(r.rcp()),
-                SymbolExpr::Symbol(self.clone()),
-            )),
-            _ => None,
-        }
-    }
-}
-
-impl From<&str> for Symbol {
+impl From<&str> for SymbolExpr {
     fn from(v: &str) -> Self {
-        Self::new(v)
-    }
-}
-
-impl PartialEq for Symbol {
-    fn eq(&self, r: &Self) -> bool {
-        self.name == r.name
+        SymbolExpr::Symbol(Box::new(v.to_string()))
     }
 }
 
@@ -2227,13 +2546,13 @@ impl fmt::Display for Value {
                 Value::Real(e) => e.to_string(),
                 Value::Int(e) => e.to_string(),
                 Value::Complex(e) => {
-                    if e.re < f64::EPSILON && e.re > -f64::EPSILON {
-                        if e.im < f64::EPSILON && e.im > -f64::EPSILON {
+                    if (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&e.re) {
+                        if (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&e.im) {
                             0.to_string()
                         } else {
                             format!("{}i", e.im)
                         }
-                    } else if e.im < f64::EPSILON && e.im > -f64::EPSILON {
+                    } else if (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&e.im) {
                         e.re.to_string()
                     } else {
                         e.to_string()
@@ -2383,7 +2702,7 @@ impl Value {
                 } else {
                     let t = (*e as f64).sqrt();
                     let d = t.floor() - t;
-                    if (-f64::EPSILON..f64::EPSILON).contains(&d) {
+                    if (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&d) {
                         Value::Int(t as i64)
                     } else {
                         Value::Real(t)
@@ -2419,7 +2738,7 @@ impl Value {
                     } else {
                         let t = (*e as f64).powf(*r);
                         let d = t.floor() - t;
-                        if (-f64::EPSILON..f64::EPSILON).contains(&d) {
+                        if (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&d) {
                             Value::Int(t as i64)
                         } else {
                             Value::Real(t)
@@ -2454,7 +2773,7 @@ impl Value {
             Value::Int(e) => {
                 let t = 1.0 / (*e as f64);
                 let d = t.floor() - t;
-                if (-f64::EPSILON..f64::EPSILON).contains(&d) {
+                if (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&d) {
                     Value::Int(t as i64)
                 } else {
                     Value::Real(t)
@@ -2466,9 +2785,9 @@ impl Value {
     pub fn sign(&self) -> Value {
         match self {
             Value::Real(e) => {
-                if *e > f64::EPSILON {
+                if *e > SYMEXPR_EPSILON {
                     Value::Real(1.0)
-                } else if *e < -f64::EPSILON {
+                } else if *e < -SYMEXPR_EPSILON {
                     Value::Real(-1.0)
                 } else {
                     Value::Real(0.0)
@@ -2489,37 +2808,31 @@ impl Value {
 
     pub fn is_zero(&self) -> bool {
         match self {
-            Value::Real(r) => *r < f64::EPSILON && *r > -f64::EPSILON,
+            Value::Real(r) => (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(r),
             Value::Int(i) => *i == 0,
             Value::Complex(c) => {
-                c.re < f64::EPSILON
-                    && c.re > -f64::EPSILON
-                    && c.im < f64::EPSILON
-                    && c.im > -f64::EPSILON
+                (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&c.re)
+                    && (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&c.im)
             }
         }
     }
     pub fn is_one(&self) -> bool {
         match self {
-            Value::Real(r) => *r - 1.0 < f64::EPSILON && *r - 1.0 > -f64::EPSILON,
+            Value::Real(r) => (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&(*r - 1.0)),
             Value::Int(i) => *i == 1,
             Value::Complex(c) => {
-                c.re - 1.0 < f64::EPSILON
-                    && c.re - 1.0 > -f64::EPSILON
-                    && c.im < f64::EPSILON
-                    && c.im > -f64::EPSILON
+                (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&(c.re - 1.0))
+                    && (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&c.im)
             }
         }
     }
     pub fn is_minus_one(&self) -> bool {
         match self {
-            Value::Real(r) => *r + 1.0 < f64::EPSILON && *r + 1.0 > -f64::EPSILON,
+            Value::Real(r) => (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&(*r + 1.0)),
             Value::Int(i) => *i == -1,
             Value::Complex(c) => {
-                c.re + 1.0 < f64::EPSILON
-                    && c.re + 1.0 > -f64::EPSILON
-                    && c.im < f64::EPSILON
-                    && c.im > -f64::EPSILON
+                (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&(c.re + 1.0))
+                    && (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&c.im)
             }
         }
     }
@@ -2529,36 +2842,40 @@ impl Value {
             Value::Real(r) => *r < 0.0,
             Value::Int(i) => *i < 0,
             Value::Complex(c) => {
-                (c.re < 0.0 && c.im < f64::EPSILON && c.im > -f64::EPSILON)
-                    || (c.im < 0.0 && c.re < f64::EPSILON && c.re > -f64::EPSILON)
+                (c.re < 0.0 && c.im < SYMEXPR_EPSILON && c.im > -SYMEXPR_EPSILON)
+                    || (c.im < 0.0 && c.re < SYMEXPR_EPSILON && c.re > -SYMEXPR_EPSILON)
             }
         }
     }
 
-    fn mul_opt(&self, rhs: &SymbolExpr) -> Option<SymbolExpr> {
+    fn mul_opt(&self, rhs: &SymbolExpr, recursive: bool) -> Option<SymbolExpr> {
         match rhs {
             SymbolExpr::Value(r) => Some(SymbolExpr::Value(self * r)),
-            SymbolExpr::Unary{op, expr} => match op {
+            SymbolExpr::Unary { op, expr } => match op {
                 UnaryOp::Neg => {
                     let l = SymbolExpr::Value(-self);
-                    match l.mul_opt(expr) {
+                    match l.mul_opt(expr, recursive) {
                         Some(e) => Some(e),
                         None => Some(_mul(l, expr.as_ref().clone())),
                     }
                 }
                 _ => None,
             },
-            SymbolExpr::Binary{op, lhs: l, rhs: r} => match op {
-                BinaryOp::Mul => match self.mul_opt(l) {
-                    Some(e) => match e.mul_opt(r) {
+            SymbolExpr::Binary { op, lhs: l, rhs: r } => match op {
+                BinaryOp::Mul => match self.mul_opt(l, recursive) {
+                    Some(e) => match e.mul_opt(r, recursive) {
                         Some(ee) => Some(ee),
                         None => Some(_mul(e, r.as_ref().clone())),
                     },
-                    None => self.mul_opt(r).map(|e| _mul(e, l.as_ref().clone())),
+                    None => self
+                        .mul_opt(r, recursive)
+                        .map(|e| _mul(e, l.as_ref().clone())),
                 },
-                BinaryOp::Div => match self.mul_opt(l) {
+                BinaryOp::Div => match self.mul_opt(l, recursive) {
                     Some(e) => Some(_div(e, r.as_ref().clone())),
-                    None => self.div_opt(r).map(|e| _mul(e, l.as_ref().clone())),
+                    None => self
+                        .div_opt(r, recursive)
+                        .map(|e| _mul(e, l.as_ref().clone())),
                 },
                 _ => None,
             },
@@ -2566,14 +2883,14 @@ impl Value {
         }
     }
 
-    fn div_opt(&self, rhs: &SymbolExpr) -> Option<SymbolExpr> {
+    fn div_opt(&self, rhs: &SymbolExpr, recursive: bool) -> Option<SymbolExpr> {
         match rhs {
             SymbolExpr::Value(r) => Some(SymbolExpr::Value(self / r)),
-            SymbolExpr::Unary{op, expr} => match op {
-                UnaryOp::Neg => self.div_opt(expr).map(_neg),
+            SymbolExpr::Unary { op, expr } => match op {
+                UnaryOp::Neg => self.div_opt(expr, recursive).map(_neg),
                 _ => None,
             },
-            SymbolExpr::Binary{op, lhs: l, rhs: r} => match l.as_ref() {
+            SymbolExpr::Binary { op, lhs: l, rhs: r } => match l.as_ref() {
                 SymbolExpr::Value(v) => match op {
                     BinaryOp::Mul => Some(_div(SymbolExpr::Value(self / v), r.as_ref().clone())),
                     BinaryOp::Div => Some(_mul(SymbolExpr::Value(self / v), r.as_ref().clone())),
@@ -2581,8 +2898,12 @@ impl Value {
                 },
                 _ => match r.as_ref() {
                     SymbolExpr::Value(v) => match op {
-                        BinaryOp::Mul => Some(_div(SymbolExpr::Value(self / v), l.as_ref().clone())),
-                        BinaryOp::Div => Some(_div(SymbolExpr::Value(self * v), l.as_ref().clone())),
+                        BinaryOp::Mul => {
+                            Some(_div(SymbolExpr::Value(self / v), l.as_ref().clone()))
+                        }
+                        BinaryOp::Div => {
+                            Some(_div(SymbolExpr::Value(self * v), l.as_ref().clone()))
+                        }
                         _ => None,
                     },
                     _ => None,
@@ -2595,7 +2916,7 @@ impl Value {
     fn opt_complex(&self) -> Option<Value> {
         match self {
             Value::Complex(c) => {
-                if c.im < f64::EPSILON && c.im > -f64::EPSILON {
+                if (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&c.im) {
                     Some(Value::Real(c.re))
                 } else {
                     None
@@ -2620,7 +2941,7 @@ impl From<i64> for Value {
 
 impl From<Complex64> for Value {
     fn from(v: Complex64) -> Self {
-        if v.im < f64::EPSILON && v.im > -f64::EPSILON {
+        if v.im < SYMEXPR_EPSILON && v.im > -SYMEXPR_EPSILON {
             Value::Real(v.re)
         } else {
             Value::Complex(v)
@@ -2755,7 +3076,7 @@ impl Div for &Value {
                     Value::Int(r) => {
                         let t = *l as f64 / *r as f64;
                         let d = t.floor() - t;
-                        if (-f64::EPSILON..f64::EPSILON).contains(&d) {
+                        if (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&d) {
                             Value::Int(t as i64)
                         } else {
                             Value::Real(t)
@@ -2799,48 +3120,38 @@ impl PartialEq for Value {
     fn eq(&self, r: &Self) -> bool {
         match self {
             Value::Real(e) => match r {
-                Value::Real(rv) => (e - rv).abs() < f64::EPSILON,
-                Value::Int(rv) => (e - *rv as f64).abs() < f64::EPSILON,
+                Value::Real(rv) => (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&(e - rv)),
+                Value::Int(rv) => (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&(e - *rv as f64)),
                 Value::Complex(rv) => {
                     let t = Complex64::from(*e) - rv;
-                    t.re < f64::EPSILON
-                        && t.re > -f64::EPSILON
-                        && t.im < f64::EPSILON
-                        && t.im > -f64::EPSILON
+                    (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.re)
+                        && (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.im)
                 }
             },
             Value::Int(e) => match r {
                 Value::Int(rv) => e == rv,
-                Value::Real(rv) => (*e as f64 - rv).abs() < f64::EPSILON,
+                Value::Real(rv) => (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&(*e as f64 - rv)),
                 Value::Complex(rv) => {
                     let t = Complex64::from(*e as f64) - rv;
-                    t.re < f64::EPSILON
-                        && t.re > -f64::EPSILON
-                        && t.im < f64::EPSILON
-                        && t.im > -f64::EPSILON
+                    (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.re)
+                        && (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.im)
                 }
             },
             Value::Complex(e) => match r {
                 Value::Real(rv) => {
                     let t = *e - Complex64::from(rv);
-                    t.re < f64::EPSILON
-                        && t.re > -f64::EPSILON
-                        && t.im < f64::EPSILON
-                        && t.im > -f64::EPSILON
+                    (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.re)
+                        && (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.im)
                 }
                 Value::Int(rv) => {
                     let t = *e - Complex64::from(*rv as f64);
-                    t.re < f64::EPSILON
-                        && t.re > -f64::EPSILON
-                        && t.im < f64::EPSILON
-                        && t.im > -f64::EPSILON
+                    (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.re)
+                        && (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.im)
                 }
                 Value::Complex(rv) => {
                     let t = *e - rv;
-                    t.re < f64::EPSILON
-                        && t.re > -f64::EPSILON
-                        && t.im < f64::EPSILON
-                        && t.im > -f64::EPSILON
+                    (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.re)
+                        && (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.im)
                 }
             },
         }
@@ -2850,14 +3161,12 @@ impl PartialEq for Value {
 impl PartialEq<f64> for Value {
     fn eq(&self, r: &f64) -> bool {
         match self {
-            Value::Real(e) => (e - r).abs() < f64::EPSILON,
-            Value::Int(e) => (*e as f64 - r).abs() < f64::EPSILON,
+            Value::Real(e) => (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&(e - r)),
+            Value::Int(e) => (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&(*e as f64 - r)),
             Value::Complex(e) => {
                 let t = *e - Complex64::from(r);
-                t.re < f64::EPSILON
-                    && t.re > -f64::EPSILON
-                    && t.im < f64::EPSILON
-                    && t.im > -f64::EPSILON
+                (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.re)
+                    && (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.im)
             }
         }
     }
@@ -2868,24 +3177,18 @@ impl PartialEq<Complex64> for Value {
         match self {
             Value::Real(e) => {
                 let t = Complex64::from(*e) - r;
-                t.re < f64::EPSILON
-                    && t.re > -f64::EPSILON
-                    && t.im < f64::EPSILON
-                    && t.im > -f64::EPSILON
+                (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.re)
+                    && (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.im)
             }
             Value::Int(e) => {
                 let t = Complex64::from(*e as f64) - r;
-                t.re < f64::EPSILON
-                    && t.re > -f64::EPSILON
-                    && t.im < f64::EPSILON
-                    && t.im > -f64::EPSILON
+                (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.re)
+                    && (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.im)
             }
             Value::Complex(e) => {
                 let t = *e - r;
-                t.re < f64::EPSILON
-                    && t.re > -f64::EPSILON
-                    && t.im < f64::EPSILON
-                    && t.im > -f64::EPSILON
+                (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.re)
+                    && (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.im)
             }
         }
     }

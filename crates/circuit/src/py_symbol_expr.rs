@@ -12,7 +12,7 @@
 
 /// symbol_expr_py.rs
 /// Python interface of symbolic expression
-use crate::symbol_expr::{Symbol, SymbolExpr, Value};
+use crate::symbol_expr::{SymbolExpr, Value, SYMEXPR_EPSILON};
 use crate::symbol_parser::parse_expression;
 
 use hashbrown::{HashMap, HashSet};
@@ -84,7 +84,7 @@ impl PySymbolExpr {
     #[staticmethod]
     pub fn Symbol(name: String) -> Self {
         PySymbolExpr {
-            expr: SymbolExpr::Symbol(Symbol::new(&name)),
+            expr: SymbolExpr::Symbol(Box::new(name)),
         }
     }
 
@@ -343,7 +343,7 @@ impl PySymbolExpr {
     /// return expression as a string
     #[getter]
     pub fn name(&self) -> String {
-        self.expr.to_string()
+        self.expr.optimize().to_string()
     }
 
     /// bind values to symbols given by input hashmap
@@ -362,8 +362,8 @@ impl PySymbolExpr {
             })
             .collect();
         let bound = self.expr.bind(&maps);
-        match bound {
-            SymbolExpr::Value(ref v) => match v {
+        match bound.eval(true) {
+            Some(v) => match &v {
                 Value::Real(r) => {
                     if *r == f64::INFINITY {
                         Err(pyo3::exceptions::PyZeroDivisionError::new_err(
@@ -379,7 +379,7 @@ impl PySymbolExpr {
                         Err(pyo3::exceptions::PyZeroDivisionError::new_err(
                             "zero division occurs while binding parameter",
                         ))
-                    } else if c.im < f64::EPSILON && c.im > -f64::EPSILON {
+                    } else if (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&c.im) {
                         Ok(Self {
                             expr: SymbolExpr::Value(Value::Real(c.re)),
                         })
@@ -388,7 +388,7 @@ impl PySymbolExpr {
                     }
                 }
             },
-            _ => Ok(Self { expr: bound }),
+            None => Ok(Self { expr: bound }),
         }
     }
     // this function is used for numpy.complex128
@@ -398,8 +398,8 @@ impl PySymbolExpr {
             .map(|(key, val)| (key.clone(), Value::from(*val)))
             .collect();
         let bound = self.expr.bind(&maps);
-        match bound {
-            SymbolExpr::Value(ref v) => match v {
+        match bound.eval(true) {
+            Some(v) => match &v {
                 Value::Real(r) => {
                     if *r == f64::INFINITY {
                         Err(pyo3::exceptions::PyZeroDivisionError::new_err(
@@ -415,7 +415,7 @@ impl PySymbolExpr {
                         Err(pyo3::exceptions::PyZeroDivisionError::new_err(
                             "zero division occurs while binding parameter",
                         ))
-                    } else if c.im < f64::EPSILON && c.im > -f64::EPSILON {
+                    } else if (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&c.im) {
                         Ok(Self {
                             expr: SymbolExpr::Value(Value::Real(c.re)),
                         })
@@ -424,7 +424,7 @@ impl PySymbolExpr {
                     }
                 }
             },
-            _ => Ok(Self { expr: bound }),
+            None => Ok(Self { expr: bound }),
         }
     }
 
@@ -580,7 +580,7 @@ impl PySymbolExpr {
     pub fn __truediv__(&self, rhs: ParameterValue) -> PyResult<Self> {
         match rhs {
             ParameterValue::Real(r) => {
-                if r < f64::EPSILON && r > -f64::EPSILON {
+                if (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&r) {
                     Err(pyo3::exceptions::PyZeroDivisionError::new_err(
                         "Division by zero",
                     ))
@@ -592,7 +592,7 @@ impl PySymbolExpr {
             }
             ParameterValue::Complex(c) => {
                 let t = (c.re * c.re + c.im * c.im).sqrt();
-                if t < f64::EPSILON && t > -f64::EPSILON {
+                if (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t) {
                     Err(pyo3::exceptions::PyZeroDivisionError::new_err(
                         "Division by zero",
                     ))
@@ -686,7 +686,10 @@ impl PySymbolExpr {
         }
     }
     pub fn __str__(&self) -> String {
-        self.expr.to_string()
+        match self.expr.eval(true) {
+            Some(e) => e.to_string(),
+            None => self.expr.optimize().to_string(),
+        }
     }
 
     pub fn __float__(&self) -> PyResult<f64> {
@@ -701,13 +704,13 @@ impl PySymbolExpr {
 
     pub fn __hash__(&self) -> u64 {
         let mut hasher = DefaultHasher::new();
-        self.expr.to_string().hash(&mut hasher);
+        self.expr.optimize().to_string().hash(&mut hasher);
         hasher.finish()
     }
 
     // for pickle, we can reproduce equation from expression string
     fn __getstate__(&self) -> String {
-        self.expr.to_string()
+        self.expr.optimize().to_string()
     }
     fn __setstate__(&mut self, state: String) {
         self.expr = parse_expression(&state);

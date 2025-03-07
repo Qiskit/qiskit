@@ -23,7 +23,7 @@ use nom::Parser;
 
 use num_complex::c64;
 
-use crate::symbol_expr::{BinaryOp, Symbol, SymbolExpr, UnaryOp, Value};
+use crate::symbol_expr::{BinaryOp, SymbolExpr, UnaryOp, Value};
 
 // struct to contain parsed binary operation
 #[derive(Clone)]
@@ -119,12 +119,12 @@ fn parse_symbol(s: &str) -> IResult<&str, BinaryOpContainer> {
                     let s = format!("{}[{}]", v, i);
                     Ok(BinaryOpContainer {
                         op: BinaryOp::Add,
-                        expr: SymbolExpr::Symbol(Symbol::new(&s)),
+                        expr: SymbolExpr::Symbol(Box::new(s)),
                     })
                 }
                 None => Ok(BinaryOpContainer {
                     op: BinaryOp::Add,
-                    expr: SymbolExpr::Symbol(Symbol::new(v)),
+                    expr: SymbolExpr::Symbol(Box::new(v.to_string())),
                 }),
             }
         },
@@ -157,7 +157,10 @@ fn parse_unary(s: &str) -> IResult<&str, BinaryOpContainer> {
             };
             Ok(BinaryOpContainer {
                 op: BinaryOp::Add,
-                expr: SymbolExpr::Unary{op: op, expr: Box::new(expr.expr)},
+                expr: SymbolExpr::Unary {
+                    op: op,
+                    expr: Box::new(expr.expr),
+                },
             })
         },
     )(s)
@@ -183,7 +186,10 @@ fn parse_neg(s: &str) -> IResult<&str, BinaryOpContainer> {
         |(_, expr)| -> Result<BinaryOpContainer, &str> {
             Ok(BinaryOpContainer {
                 op: BinaryOp::Add,
-                expr: SymbolExpr::Unary{op: UnaryOp::Neg, expr: Box::new(expr.expr)},
+                expr: SymbolExpr::Unary {
+                    op: UnaryOp::Neg,
+                    expr: Box::new(expr.expr),
+                },
             })
         },
     )(s)
