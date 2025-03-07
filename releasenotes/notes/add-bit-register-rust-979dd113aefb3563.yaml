@@ -10,7 +10,7 @@ upgrade_circuits:
     would cause unspecified behavior in Qiskit.  It is no longer possible to do
     this as an implementation detail of the classes.
   - |
-    It is no logner possible to create instances of the base :class:`.Bit` and
+    It is no longer possible to create instances of the base :class:`.Bit` and
     :class:`.Register` classes is no longer possible. Directly instantiating
     these classes was clearly documented as something that was **not** supported
     and being able to do it was was just an implementation artifact of how the

@@ -1976,19 +1976,22 @@ impl<'py> FromPyObject<'py> for AssignParam {
     }
 }
 
-/// Get the list of bits referred to by the specifier ``specifier``.
+/// Get the `Vec` of bits referred to by the specifier `specifier`.
 ///
-/// Valid types for ``specifier`` are integers, bits of the correct type (as given in ``type_``), or
+/// Valid types for `specifier` are integers, bits of the correct type (as given in `type_`), or
 /// iterables of one of those two scalar types.  Integers are interpreted as indices into the
-/// sequence ``bit_sequence``.  All allowed bits must be in ``bit_set`` (which should implement
-/// fast lookup), which is assumed to contain the same bits as ``bit_sequence``.
+/// sequence `bit_sequence`.  All allowed bits must be in `bit_set` (which should implement
+/// fast lookup), which is assumed to contain the same bits as `bit_sequence`.
 ///
-/// Returns:
-///     List[Bit]: a list of the specified bits from ``bits``.
+/// # Args
+///   `specifier` - the Python object specifier to look up.
+///   `bit_sequence` - The sequence of bit objects assumed to be the same bits as `bit_set`
+///   ` bit_set` - The bit locator, contains the same bits as `bit_sequence`
 ///
-/// Raises:
-///     CircuitError: if an incorrect type or index is encountered, if the same bit is specified
-///         more than once, or if the specifier is to a bit not in the ``bit_set``.
+/// # Returns
+///     A list of the specified bits from `bits`. The `PyResult` error will contain a Python
+///     `CircuitError` if an incorrect type or index is encountered, if the same bit is specified
+///     more than once, or if the specifier is to a bit not in the `bit_set`.
 fn bit_argument_conversion<B, R>(
     specifier: &Bound<PyAny>,
     bit_sequence: &[B],
