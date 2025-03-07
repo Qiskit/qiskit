@@ -128,6 +128,7 @@ impl<B> BitInfo<B> {
 // The trait bounds aren't _strictly_ necessary, but they simplify a lot of later bounds.
 pub trait ShareableBit: Clone + Eq + Hash + Debug {
     type Subclass: Copy + Eq + Hash + Debug + Default;
+    // A description of the bit class which is used for error messages
     const DESCRIPTION: &'static str;
 }
 // An internal trait to let `RegisterInfo` manifest full `ShareableBit` instances from `BitInfo`
