@@ -13,7 +13,7 @@
 """Test the ResetAfterMeasureSimplification pass"""
 
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
-from qiskit.circuit.classicalregister import Clbit
+from qiskit.circuit import Clbit
 from qiskit.transpiler.passes.optimization import ResetAfterMeasureSimplification
 from qiskit.circuit import IfElseOp
 from test import QiskitTestCase  # pylint: disable=wrong-import-order

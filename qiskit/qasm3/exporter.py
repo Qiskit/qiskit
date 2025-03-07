@@ -39,8 +39,9 @@ from qiskit.circuit import (
     Reset,
     Delay,
     Store,
+    Bit,
+    Register,
 )
-from qiskit.circuit.bit import Bit
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.controlflow import (
     BoxOp,
@@ -53,7 +54,6 @@ from qiskit.circuit.controlflow import (
     ContinueLoopOp,
     CASE_DEFAULT,
 )
-from qiskit.circuit.register import Register
 from qiskit.circuit.tools import pi_check
 
 from . import ast

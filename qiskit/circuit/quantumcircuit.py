@@ -22,7 +22,7 @@ import copy as _copy
 import itertools
 import multiprocessing
 import typing
-from collections import OrderedDict, namedtuple
+from collections import OrderedDict
 from typing import (
     Union,
     Optional,
@@ -41,6 +41,7 @@ from math import pi
 import numpy as np
 from qiskit._accelerate.circuit import CircuitData
 from qiskit._accelerate.circuit import StandardGate
+from qiskit._accelerate.circuit import BitLocations
 from qiskit._accelerate.circuit_duration import compute_estimated_duration
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.instruction import Instruction
@@ -48,6 +49,16 @@ from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.utils import deprecate_func
+from . import (  # pylint: disable=cyclic-import
+    Bit,
+    QuantumRegister,
+    Qubit,
+    AncillaRegister,
+    AncillaQubit,
+    Clbit,
+    ClassicalRegister,
+    Register,
+)
 from . import _classical_resource_map
 from .controlflow import ControlFlowOp, _builder_utils
 from .controlflow.builder import CircuitScopeInterface, ControlFlowBuilderBlock
@@ -60,14 +71,10 @@ from .controlflow.switch_case import SwitchCaseOp, SwitchContext
 from .controlflow.while_loop import WhileLoopOp, WhileLoopContext
 from .classical import expr, types
 from .parameterexpression import ParameterExpression, ParameterValueType
-from .quantumregister import QuantumRegister, Qubit, AncillaRegister, AncillaQubit
-from .classicalregister import ClassicalRegister, Clbit
 from .parametertable import ParameterView
 from .parametervector import ParameterVector
 from .instructionset import InstructionSet
 from .operation import Operation
-from .register import Register
-from .bit import Bit
 from .quantumcircuitdata import QuantumCircuitData, CircuitInstruction
 from .delay import Delay
 from .store import Store
@@ -78,8 +85,6 @@ if typing.TYPE_CHECKING:
     from qiskit.transpiler.layout import TranspileLayout  # pylint: disable=cyclic-import
     from qiskit.quantum_info.operators.base_operator import BaseOperator
     from qiskit.quantum_info.states.statevector import Statevector  # pylint: disable=cyclic-import
-
-BitLocations = namedtuple("BitLocations", ("index", "registers"))
 
 
 # The following types are not marked private to avoid leaking this "private/public" abstraction out
@@ -1070,20 +1075,6 @@ class QuantumCircuit:
             "qiskit.circuit.controlflow.builder.ControlFlowBuilderBlock"
         ] = []
 
-        self.qregs: list[QuantumRegister] = []
-        """A list of the :class:`QuantumRegister`\\ s in this circuit.  You should not mutate
-        this."""
-        self.cregs: list[ClassicalRegister] = []
-        """A list of the :class:`ClassicalRegister`\\ s in this circuit.  You should not mutate
-        this."""
-
-        # Dict mapping Qubit or Clbit instances to tuple comprised of 0) the
-        # corresponding index in circuit.{qubits,clbits} and 1) a list of
-        # Register-int pairs for each Register containing the Bit and its index
-        # within that register.
-        self._qubit_indices: dict[Qubit, BitLocations] = {}
-        self._clbit_indices: dict[Clbit, BitLocations] = {}
-
         # Data contains a list of instructions and their contexts,
         # in the order they were applied.
         self._data: CircuitData = CircuitData()
@@ -1148,27 +1139,11 @@ class QuantumCircuit:
 
         if data.num_qubits > 0:
             if add_regs:
-                qr = QuantumRegister(name="q", bits=data.qubits)
-                out.qregs = [qr]
-                out._qubit_indices = {
-                    bit: BitLocations(index, [(qr, index)]) for index, bit in enumerate(data.qubits)
-                }
-            else:
-                out._qubit_indices = {
-                    bit: BitLocations(index, []) for index, bit in enumerate(data.qubits)
-                }
+                data.qregs = [QuantumRegister(name="q", bits=data.qubits)]
 
         if data.num_clbits > 0:
             if add_regs:
-                cr = ClassicalRegister(name="c", bits=data.clbits)
-                out.cregs = [cr]
-                out._clbit_indices = {
-                    bit: BitLocations(index, [(cr, index)]) for index, bit in enumerate(data.clbits)
-                }
-            else:
-                out._clbit_indices = {
-                    bit: BitLocations(index, []) for index, bit in enumerate(data.clbits)
-                }
+                data.creg = [ClassicalRegister(name="c", bits=data.clbits)]
 
         out._data = data
 
@@ -1364,6 +1339,8 @@ class QuantumCircuit:
         result._data.replace_bits(
             qubits=_copy.deepcopy(self._data.qubits, memo),
             clbits=_copy.deepcopy(self._data.clbits, memo),
+            qregs=_copy.deepcopy(self._data.qregs, memo),
+            cregs=_copy.deepcopy(self._data.cregs, memo),
         )
         return result
 
@@ -2135,6 +2112,22 @@ class QuantumCircuit:
         return dest
 
     @property
+    def _clbit_indices(self) -> dict[Clbit, BitLocations]:
+        """Dict mapping Clbit instances to an object comprised of `.index` the
+        corresponding index in circuit. and `.registers` a list of
+        Register-int pairs for each Register containing the Bit and its index
+        within that register."""
+        return self._data._clbit_indices
+
+    @property
+    def _qubit_indices(self) -> dict[Qubit, BitLocations]:
+        """Dict mapping Qubit instances to an object comprised of `.index` the
+        corresponding index in circuit. and `.registers` a list of
+        Register-int pairs for each Register containing the Bit and its index
+        within that register."""
+        return self._data._qubit_indices
+
+    @property
     def qubits(self) -> list[Qubit]:
         """A list of :class:`Qubit`\\ s in the order that they were added.  You should not mutate
         this."""
@@ -2145,6 +2138,26 @@ class QuantumCircuit:
         """A list of :class:`Clbit`\\ s in the order that they were added.  You should not mutate
         this."""
         return self._data.clbits
+
+    @property
+    def qregs(self) -> list[QuantumRegister]:
+        """A list of :class:`Qubit`\\ s in the order that they were added.  You should not mutate
+        this."""
+        return self._data.qregs
+
+    @qregs.setter
+    def qregs(self, other: list[QuantumRegister]):
+        self._data.qregs = other
+
+    @property
+    def cregs(self) -> list[ClassicalRegister]:
+        """A list of :class:`Clbit`\\ s in the order that they were added.  You should not mutate
+        this."""
+        return self._data.cregs
+
+    @cregs.setter
+    def cregs(self, other: list[ClassicalRegister]):
+        self._data.cregs = other
 
     @property
     def ancillas(self) -> list[AncillaQubit]:
@@ -2343,9 +2356,7 @@ class QuantumCircuit:
         Returns:
             The resolved instances of the qubits.
         """
-        return _bit_argument_conversion(
-            qubit_representation, self.qubits, self._qubit_indices, Qubit
-        )
+        return self._data._qbit_argument_conversion(qubit_representation)
 
     def _cbit_argument_conversion(self, clbit_representation: ClbitSpecifier) -> list[Clbit]:
         """
@@ -2358,9 +2369,7 @@ class QuantumCircuit:
         Returns:
             A list of tuples where each tuple is a classical bit.
         """
-        return _bit_argument_conversion(
-            clbit_representation, self.clbits, self._clbit_indices, Clbit
-        )
+        return self._data._cbit_argument_conversion(clbit_representation)
 
     def _append_standard_gate(
         self,
@@ -3203,34 +3212,15 @@ class QuantumCircuit:
                         self._ancillas.append(bit)
 
             if isinstance(register, QuantumRegister):
-                self._add_qreg(register)
+                self._data.add_qreg(register)
 
             elif isinstance(register, ClassicalRegister):
-                self.cregs.append(register)
-
-                for idx, bit in enumerate(register):
-                    if bit in self._clbit_indices:
-                        self._clbit_indices[bit].registers.append((register, idx))
-                    else:
-                        self._data.add_clbit(bit)
-                        self._clbit_indices[bit] = BitLocations(
-                            self._data.num_clbits - 1, [(register, idx)]
-                        )
+                self._data.add_creg(register)
 
             elif isinstance(register, list):
                 self.add_bits(register)
             else:
                 raise CircuitError("expected a register")
-
-    def _add_qreg(self, qreg: QuantumRegister) -> None:
-        self.qregs.append(qreg)
-
-        for idx, bit in enumerate(qreg):
-            if bit in self._qubit_indices:
-                self._qubit_indices[bit].registers.append((qreg, idx))
-            else:
-                self._data.add_qubit(bit)
-                self._qubit_indices[bit] = BitLocations(self._data.num_qubits - 1, [(qreg, idx)])
 
     def add_bits(self, bits: Iterable[Bit]) -> None:
         """Add Bits to the circuit."""
@@ -3245,10 +3235,8 @@ class QuantumCircuit:
                 self._ancillas.append(bit)
             if isinstance(bit, Qubit):
                 self._data.add_qubit(bit)
-                self._qubit_indices[bit] = BitLocations(self._data.num_qubits - 1, [])
             elif isinstance(bit, Clbit):
                 self._data.add_clbit(bit)
-                self._clbit_indices[bit] = BitLocations(self._data.num_clbits - 1, [])
             else:
                 raise CircuitError(
                     "Expected an instance of Qubit, Clbit, or "
@@ -3308,9 +3296,9 @@ class QuantumCircuit:
 
         try:
             if isinstance(bit, Qubit):
-                return self._qubit_indices[bit]
+                return self._data._qubit_indices[bit]
             elif isinstance(bit, Clbit):
-                return self._clbit_indices[bit]
+                return self._data._clbit_indices[bit]
             else:
                 raise CircuitError(f"Could not locate bit of unknown type: {type(bit)}")
         except KeyError as err:
@@ -3320,9 +3308,7 @@ class QuantumCircuit:
 
     def _check_dups(self, qubits: Sequence[Qubit]) -> None:
         """Raise exception if list of qubits contains duplicates."""
-        squbits = set(qubits)
-        if len(squbits) != len(qubits):
-            raise CircuitError("duplicate qubit arguments")
+        CircuitData._check_dups(qubits)
 
     def to_instruction(
         self,
@@ -3346,6 +3332,7 @@ class QuantumCircuit:
             qiskit.circuit.Instruction: a composite instruction encapsulating this circuit (can be
                 decomposed back).
         """
+        # pylint: disable=cyclic-import
         from qiskit.converters.circuit_to_instruction import circuit_to_instruction
 
         return circuit_to_instruction(self, parameter_map, label=label)
@@ -3371,6 +3358,7 @@ class QuantumCircuit:
         Returns:
             Gate: a composite gate encapsulating this circuit (can be decomposed back).
         """
+        # pylint: disable=cyclic-import
         from qiskit.converters.circuit_to_gate import circuit_to_gate
 
         return circuit_to_gate(self, parameter_map, label=label)
@@ -3901,10 +3889,7 @@ class QuantumCircuit:
     def _create_creg(self, length: int, name: str) -> ClassicalRegister:
         """Creates a creg, checking if ClassicalRegister with same name exists"""
         if name in [creg.name for creg in self.cregs]:
-            save_prefix = ClassicalRegister.prefix
-            ClassicalRegister.prefix = name
-            new_creg = ClassicalRegister(length)
-            ClassicalRegister.prefix = save_prefix
+            new_creg = ClassicalRegister(length, name=f"{name}{ClassicalRegister.instance_count}")
         else:
             new_creg = ClassicalRegister(length, name)
         return new_creg
@@ -3912,10 +3897,7 @@ class QuantumCircuit:
     def _create_qreg(self, length: int, name: str) -> QuantumRegister:
         """Creates a qreg, checking if QuantumRegister with same name exists"""
         if name in [qreg.name for qreg in self.qregs]:
-            save_prefix = QuantumRegister.prefix
-            QuantumRegister.prefix = name
-            new_qreg = QuantumRegister(length)
-            QuantumRegister.prefix = save_prefix
+            new_qreg = QuantumRegister(length, name=f"{name}{QuantumRegister.instance_count}")
         else:
             new_qreg = QuantumRegister(length, name)
         return new_qreg
@@ -4068,6 +4050,7 @@ class QuantumCircuit:
         Returns:
             QuantumCircuit: Returns circuit with measurements when ``inplace = False``.
         """
+        # pylint: disable=cyclic-import
         from qiskit.converters.circuit_to_dag import circuit_to_dag
 
         if inplace:
@@ -4188,14 +4171,17 @@ class QuantumCircuit:
         cregs_to_add = [creg for creg in circ.cregs if creg in kept_cregs]
         clbits_to_add = [clbit for clbit in circ._data.clbits if clbit in kept_clbits]
 
-        # Clear cregs and clbits
-        circ.cregs = []
-        circ._clbit_indices = {}
+        # Save the old qregs
+        old_qregs = circ.qregs
 
         # Clear instruction info
         circ._data = CircuitData(
             qubits=circ._data.qubits, reserve=len(circ._data), global_phase=circ.global_phase
         )
+
+        # Re-add old registers
+        for qreg in old_qregs:
+            circ.add_register(qreg)
 
         # We must add the clbits first to preserve the original circuit
         # order. This way, add_register never adds clbits and just
@@ -7197,80 +7183,10 @@ def _validate_expr(circuit_scope: CircuitScopeInterface, node: expr.Expr) -> exp
     return node
 
 
-def _bit_argument_conversion(specifier, bit_sequence, bit_set, type_) -> list[Bit]:
-    """Get the list of bits referred to by the specifier ``specifier``.
-
-    Valid types for ``specifier`` are integers, bits of the correct type (as given in ``type_``), or
-    iterables of one of those two scalar types.  Integers are interpreted as indices into the
-    sequence ``bit_sequence``.  All allowed bits must be in ``bit_set`` (which should implement
-    fast lookup), which is assumed to contain the same bits as ``bit_sequence``.
-
-    Returns:
-        List[Bit]: a list of the specified bits from ``bits``.
-
-    Raises:
-        CircuitError: if an incorrect type or index is encountered, if the same bit is specified
-            more than once, or if the specifier is to a bit not in the ``bit_set``.
-    """
-    # The duplication between this function and `_bit_argument_conversion_scalar` is so that fast
-    # paths return as quickly as possible, and all valid specifiers will resolve without needing to
-    # try/catch exceptions (which is too slow for inner-loop code).
-    if isinstance(specifier, type_):
-        if specifier in bit_set:
-            return [specifier]
-        raise CircuitError(f"Bit '{specifier}' is not in the circuit.")
-    if isinstance(specifier, (int, np.integer)):
-        try:
-            return [bit_sequence[specifier]]
-        except IndexError as ex:
-            raise CircuitError(
-                f"Index {specifier} out of range for size {len(bit_sequence)}."
-            ) from ex
-    # Slices can't raise IndexError - they just return an empty list.
-    if isinstance(specifier, slice):
-        return bit_sequence[specifier]
-    try:
-        return [
-            _bit_argument_conversion_scalar(index, bit_sequence, bit_set, type_)
-            for index in specifier
-        ]
-    except TypeError as ex:
-        message = (
-            f"Incorrect bit type: expected '{type_.__name__}' but got '{type(specifier).__name__}'"
-            if isinstance(specifier, Bit)
-            else f"Invalid bit index: '{specifier}' of type '{type(specifier)}'"
-        )
-        raise CircuitError(message) from ex
-
-
-def _bit_argument_conversion_scalar(specifier, bit_sequence, bit_set, type_):
-    if isinstance(specifier, type_):
-        if specifier in bit_set:
-            return specifier
-        raise CircuitError(f"Bit '{specifier}' is not in the circuit.")
-    if isinstance(specifier, (int, np.integer)):
-        try:
-            return bit_sequence[specifier]
-        except IndexError as ex:
-            raise CircuitError(
-                f"Index {specifier} out of range for size {len(bit_sequence)}."
-            ) from ex
-    message = (
-        f"Incorrect bit type: expected '{type_.__name__}' but got '{type(specifier).__name__}'"
-        if isinstance(specifier, Bit)
-        else f"Invalid bit index: '{specifier}' of type '{type(specifier)}'"
-    )
-    raise CircuitError(message)
-
-
 def _copy_metadata(original, cpy, vars_mode):
     # copy registers correctly, in copy.copy they are only copied via reference
-    cpy.qregs = original.qregs.copy()
-    cpy.cregs = original.cregs.copy()
     cpy._builder_api = _OuterCircuitScopeInterface(cpy)
     cpy._ancillas = original._ancillas.copy()
-    cpy._qubit_indices = original._qubit_indices.copy()
-    cpy._clbit_indices = original._clbit_indices.copy()
 
     if vars_mode == "alike":
         # Note that this causes the local variables to be uninitialised, because the stores are
