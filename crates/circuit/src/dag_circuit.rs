@@ -6896,8 +6896,8 @@ mod test {
     use rustworkx_core::petgraph::visit::IntoEdgeReferences;
 
     fn new_dag(py: Python, qubits: u32, clbits: u32) -> DAGCircuit {
-        let qreg = QuantumRegister::new_owning(None, qubits);
-        let creg = ClassicalRegister::new_owning(None, clbits);
+        let qreg = QuantumRegister::new_owning("q".to_owned(), qubits);
+        let creg = ClassicalRegister::new_owning("c".to_owned(), clbits);
         let mut dag = DAGCircuit::new(py).unwrap();
         dag.add_qreg(qreg).unwrap();
         dag.add_creg(creg).unwrap();
