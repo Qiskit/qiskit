@@ -10,7 +10,9 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use crate::bit::ShareableBit;
 use crate::BitType;
+
 use hashbrown::HashMap;
 use pyo3::exceptions::{PyKeyError, PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
@@ -19,22 +21,19 @@ use std::fmt::Debug;
 use std::hash::{Hash, Hasher};
 use std::sync::OnceLock;
 
-/// Private wrapper for Python-side Bit instances that implements
-/// [Hash] and [Eq], allowing them to be used in Rust hash-based
-/// sets and maps.
+/// Private wrapper for Python-side objects that implements [Hash] and [Eq], allowing them to be
+/// used in Rust hash-based sets and maps.
 ///
-/// Python's `hash()` is called on the wrapped Bit instance during
-/// construction and returned from Rust's [Hash] trait impl.
-/// The impl of [PartialEq] first compares the native Py pointers
-/// to determine equality. If these are not equal, only then does
-/// it call `repr()` on both sides, which has a significant
-/// performance advantage.
+/// Python's `hash()` is called on the wrapped object during construction and returned from Rust's
+/// [Hash] trait impl.  The impl of [PartialEq] first compares the native Py pointers to determine
+/// equality. If these are not equal, only then does it call `repr()` on both sides, which has a
+/// significant performance advantage.
 #[derive(Clone, Debug)]
 pub struct VarAsKey {
     /// Python's `hash()` of the wrapped instance.
     hash: isize,
     /// The wrapped instance.
-    bit: PyObject,
+    ob: PyObject,
 }
 
 impl VarAsKey {
@@ -43,7 +42,7 @@ impl VarAsKey {
             // This really shouldn't fail, but if it does,
             // we'll just use 0.
             hash: bit.hash().unwrap_or(0),
-            bit: bit.clone().unbind(),
+            ob: bit.clone().unbind(),
         }
     }
 
@@ -51,7 +50,7 @@ impl VarAsKey {
     pub fn clone_ref(&self, py: Python) -> Self {
         Self {
             hash: self.hash,
-            bit: self.bit.clone_ref(py),
+            ob: self.ob.clone_ref(py),
         }
     }
 }
@@ -76,49 +75,49 @@ impl<'py> From<Bound<'py, PyAny>> for VarAsKey {
 
 impl<'py> IntoPyObject<'py> for VarAsKey {
     type Target = PyAny;
-
     type Output = Bound<'py, PyAny>;
-
     type Error = PyErr;
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        Ok(self.bit.bind(py).clone())
+        Ok(self.ob.bind(py).clone())
     }
 }
 
 impl<'py> IntoPyObject<'py> for &VarAsKey {
     type Target = PyAny;
-
     type Output = Bound<'py, PyAny>;
-
     type Error = PyErr;
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        Ok(self.bit.bind(py).clone())
+        Ok(self.ob.bind(py).clone())
     }
 }
 
 impl PartialEq for VarAsKey {
     fn eq(&self, other: &Self) -> bool {
-        self.bit.is(&other.bit)
+        self.ob.is(&other.ob)
             || Python::with_gil(|py| {
-                self.bit
+                self.ob
                     .bind(py)
                     .repr()
                     .unwrap()
                     .as_any()
-                    .eq(other.bit.bind(py).repr().unwrap())
+                    .eq(other.ob.bind(py).repr().unwrap())
                     .unwrap()
             })
     }
 }
-
 impl Eq for VarAsKey {}
+
+// VarAsKey isn't really a _bit_, but it's still the shareable object between circuits, and naming
+// thing is hard.
+impl ShareableBit for VarAsKey {
+    type Subclass = ();
+    const DESCRIPTION: &'static str = "var";
+}
 
 #[derive(Clone, Debug)]
 pub struct BitData<T, B> {
-    /// The public field name (i.e. `qubits` or `clbits`).
-    description: String,
     /// Registered Python bits.
     bits: Vec<B>,
     /// Maps Python bits to native type.
@@ -127,24 +126,28 @@ pub struct BitData<T, B> {
     cached: OnceLock<Py<PyList>>,
 }
 
+impl<T, B> Default for BitData<T, B>
+where
+    T: From<BitType> + Copy,
+    BitType: From<T>,
+    B: for<'a> IntoPyObject<'a> + ShareableBit,
+{
+    fn default() -> Self {
+        Self::new()
+    }
+}
 impl<T, B> BitData<T, B>
 where
     T: From<BitType> + Copy,
     BitType: From<T>,
-    B: for<'a> IntoPyObject<'a> + Clone + Eq + Hash + Debug,
+    B: for<'a> IntoPyObject<'a> + ShareableBit,
 {
-    pub fn new(description: String) -> Self {
-        BitData {
-            description,
-            bits: Vec::new(),
-            indices: HashMap::new(),
-            cached: OnceLock::new(),
-        }
+    pub fn new() -> Self {
+        Self::with_capacity(0)
     }
 
-    pub fn with_capacity(description: String, capacity: usize) -> Self {
+    pub fn with_capacity(capacity: usize) -> Self {
         BitData {
-            description,
             bits: Vec::with_capacity(capacity),
             indices: HashMap::with_capacity(capacity),
             cached: OnceLock::new(),
@@ -226,8 +229,8 @@ where
     pub fn add(&mut self, bit: B, strict: bool) -> PyResult<T> {
         let idx: BitType = self.bits.len().try_into().map_err(|_| {
             PyRuntimeError::new_err(format!(
-                "The number of {} in the circuit has exceeded the maximum capacity",
-                self.description
+                "The number of {}s in the circuit has exceeded the maximum capacity",
+                <B as ShareableBit>::DESCRIPTION,
             ))
         })?;
         // Dump the cache
