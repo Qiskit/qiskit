@@ -715,17 +715,17 @@ impl DAGCircuit {
         }
 
         let binding = dict_state.get_item("qubits")?.unwrap();
-        let qubits_raw = binding.extract::<Vec<ShareableQubit>>().unwrap();
+        let qubits_raw = binding.extract::<Vec<ShareableQubit>>()?;
         for bit in qubits_raw.into_iter() {
             self.qubits.add(bit, false)?;
         }
         let binding = dict_state.get_item("clbits")?.unwrap();
-        let clbits_raw = binding.extract::<Vec<ShareableClbit>>().unwrap();
+        let clbits_raw = binding.extract::<Vec<ShareableClbit>>()?;
         for bit in clbits_raw.into_iter() {
             self.clbits.add(bit, false)?;
         }
         let binding = dict_state.get_item("vars")?.unwrap();
-        let vars_raw = binding.downcast::<PyList>().unwrap();
+        let vars_raw = binding.downcast::<PyList>()?;
         for bit in vars_raw.iter() {
             self.vars.add(VarAsKey::new(&bit), false)?;
         }
@@ -4235,7 +4235,7 @@ impl DAGCircuit {
         }
 
         let qubits_in_cone_vec: Vec<_> = qubits_in_cone.iter().map(|&&qubit| qubit).collect();
-        let elements = self.qubits.map_indices(&qubits_in_cone_vec[..]).cloned();
+        let elements = self.qubits.map_indices(&qubits_in_cone_vec);
         Ok(PySet::new(py, elements)?.unbind())
     }
 
@@ -5449,11 +5449,9 @@ impl DAGCircuit {
         Ok(if let Ok(in_node) = b.downcast::<DAGInNode>() {
             let in_node = in_node.borrow();
             let wire = in_node.wire.bind(py);
-            if wire.downcast::<PyQubit>().is_ok() {
-                let qubit: ShareableQubit = wire.extract()?;
+            if let Ok(qubit) = wire.extract::<ShareableQubit>() {
                 NodeType::QubitIn(self.qubits.find(&qubit).unwrap())
-            } else if wire.downcast::<PyClbit>().is_ok() {
-                let clbit: ShareableClbit = wire.extract()?;
+            } else if let Ok(clbit) = wire.extract::<ShareableClbit>() {
                 NodeType::ClbitIn(self.clbits.find(&clbit).unwrap())
             } else {
                 let var = VarAsKey::new(wire);
@@ -5462,11 +5460,9 @@ impl DAGCircuit {
         } else if let Ok(out_node) = b.downcast::<DAGOutNode>() {
             let out_node = out_node.borrow();
             let wire = out_node.wire.bind(py);
-            if wire.downcast::<PyQubit>().is_ok() {
-                let qubit: ShareableQubit = wire.extract()?;
+            if let Ok(qubit) = wire.extract::<ShareableQubit>() {
                 NodeType::QubitOut(self.qubits.find(&qubit).unwrap())
-            } else if wire.downcast::<PyClbit>().is_ok() {
-                let clbit: ShareableClbit = wire.extract()?;
+            } else if let Ok(clbit) = wire.extract::<ShareableClbit>() {
                 NodeType::ClbitOut(self.clbits.find(&clbit).unwrap())
             } else {
                 let var = VarAsKey::new(wire);
