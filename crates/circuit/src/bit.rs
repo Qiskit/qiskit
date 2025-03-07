@@ -515,11 +515,6 @@ macro_rules! create_bit_object {
             }
         }
 
-
-        // "Registers" as a concept are somewhat left over from Python space, so we just make the
-        // class a pyclass directly.  The register objects store an `Arc` internally so that they're
-        // cheaper to clone when passing over to Python space.
-
         /// A Rust-space register object.
         #[derive(Clone, Debug, PartialEq, Eq, Hash)]
         pub struct $reg_struct(Arc<RegisterInfo<$bit_struct>>);
