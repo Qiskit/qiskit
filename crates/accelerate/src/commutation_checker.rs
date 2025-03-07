@@ -15,8 +15,10 @@ use ndarray::linalg::kron;
 use ndarray::Array2;
 use num_complex::Complex64;
 use once_cell::sync::Lazy;
+use qiskit_circuit::bit_data::VarAsKey;
 use smallvec::SmallVec;
 use std::fmt::Debug;
+use std::hash::Hash;
 
 use numpy::PyReadonlyArray2;
 use pyo3::exceptions::PyRuntimeError;
@@ -25,7 +27,6 @@ use pyo3::prelude::*;
 use pyo3::types::{PyBool, PyDict, PySequence, PyTuple};
 use pyo3::BoundObject;
 
-use qiskit_circuit::bit::{ShareableBit, ShareableClbit, ShareableQubit};
 use qiskit_circuit::bit_data::BitData;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::dag_node::DAGOpNode;
@@ -101,19 +102,25 @@ static SUPPORTED_ROTATIONS: Lazy<HashMap<&str, (u8, Option<OperationRef>)>> = La
     ])
 });
 
-fn get_bits<T, B>(bits1: Vec<B>, bits2: Vec<B>) -> PyResult<(Vec<T>, Vec<T>)>
+fn get_bits<T, B>(bits1: &Bound<PyTuple>, bits2: &Bound<PyTuple>) -> PyResult<(Vec<T>, Vec<T>)>
 where
     T: From<BitType> + Copy,
     BitType: From<T>,
-    B: for<'a> IntoPyObject<'a> + for<'a> FromPyObject<'a> + ShareableBit,
+    B: for<'a> IntoPyObject<'a> + Clone + Eq + Hash + Debug + for<'a> From<Bound<'a, PyAny>>,
 {
-    let mut bitdata: BitData<T, B> = BitData::new();
+    let mut bitdata: BitData<T, B> = BitData::new("bits".to_string());
+
     for bit in bits1.iter().chain(bits2.iter()) {
-        bitdata.add(bit.clone(), false)?;
+        bitdata.add(bit.into(), false)?;
     }
+
     Ok((
-        bitdata.map_bits(bits1.into_iter())?.collect(),
-        bitdata.map_bits(bits2.into_iter())?.collect(),
+        bitdata
+            .map_bits(bits1.iter().map(|bit| bit.into()))?
+            .collect(),
+        bitdata
+            .map_bits(bits2.iter().map(|bit| bit.into()))?
+            .collect(),
     ))
 }
 
@@ -160,13 +167,13 @@ impl CommutationChecker {
         op2: &DAGOpNode,
         max_num_qubits: u32,
     ) -> PyResult<bool> {
-        let (qargs1, qargs2) = get_bits::<Qubit, ShareableQubit>(
-            op1.instruction.qubits.extract(py)?,
-            op2.instruction.qubits.extract(py)?,
+        let (qargs1, qargs2) = get_bits::<Qubit, VarAsKey>(
+            op1.instruction.qubits.bind(py),
+            op2.instruction.qubits.bind(py),
         )?;
-        let (cargs1, cargs2) = get_bits::<Clbit, ShareableClbit>(
-            op1.instruction.clbits.extract(py)?,
-            op2.instruction.clbits.extract(py)?,
+        let (cargs1, cargs2) = get_bits::<Clbit, VarAsKey>(
+            op1.instruction.clbits.bind(py),
+            op2.instruction.clbits.bind(py),
         )?;
 
         self.commute_inner(
@@ -201,10 +208,8 @@ impl CommutationChecker {
         let qargs2 = qargs2.map_or_else(|| Ok(PyTuple::empty(py)), PySequenceMethods::to_tuple)?;
         let cargs2 = cargs2.map_or_else(|| Ok(PyTuple::empty(py)), PySequenceMethods::to_tuple)?;
 
-        let (qargs1, qargs2) =
-            get_bits::<Qubit, ShareableQubit>(qargs1.extract()?, qargs2.extract()?)?;
-        let (cargs1, cargs2) =
-            get_bits::<Clbit, ShareableClbit>(cargs1.extract()?, cargs2.extract()?)?;
+        let (qargs1, qargs2) = get_bits::<Qubit, VarAsKey>(&qargs1, &qargs2)?;
+        let (cargs1, cargs2) = get_bits::<Clbit, VarAsKey>(&cargs1, &cargs2)?;
 
         self.commute_inner(
             py,
