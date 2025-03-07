@@ -90,9 +90,8 @@ where
     T: From<BitType> + Copy,
     BitType: From<T>,
 {
-    // Using `VarAsKey` here is a total hack, but the commutation checker could really use a lot
-    // more work than just the typing of things here.  There's a lot more to sort out than just
-    // overuse of Python objects and weird type erasure.
+    // Using `VarAsKey` here is a total hack, but this is a short-term workaround before a
+    // larger refactor of the commutation checker.
     let mut bitdata: BitData<T, VarAsKey> = BitData::new();
 
     for bit in bits1.iter().chain(bits2.iter()) {

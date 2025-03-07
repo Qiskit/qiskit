@@ -223,8 +223,7 @@ impl CircuitData {
     ///
     /// .. warning::
     ///
-    ///     Do not modify this list yourself.  It will invalidate the :class:`CircuitData` data
-    ///     structures.
+    ///     Do not modify this list yourself.  It will invalidate/corrupt :attr:`.data` for this circuit.
     ///
     /// Returns:
     ///     list[:class:`.QuantumRegister`]: The current sequence of registered qubits.
@@ -285,8 +284,7 @@ impl CircuitData {
     ///
     /// .. warning::
     ///
-    ///     Do not modify this list yourself.  It will invalidate the :class:`CircuitData` data
-    ///     structures.
+    ///     Do not modify this list yourself.  It will invalidate/corrupt :attr:`.data` for this circuit.
     ///
     /// Returns:
     ///     list[:class:`.ClassicalRegister`]: The current sequence of registered qubits.

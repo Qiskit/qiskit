@@ -1179,7 +1179,6 @@ impl DAGCircuit {
     ///     the circuit.
     #[pyo3(signature = (*cregs))]
     fn remove_cregs(&mut self, cregs: &Bound<PyTuple>) -> PyResult<()> {
-        // let self_bound_cregs = self.cregs.bind(py);
         let mut valid_regs: Vec<ClassicalRegister> = Vec::new();
         for reg in cregs.iter() {
             if let Ok(creg) = reg.extract::<ClassicalRegister>() {
@@ -1214,12 +1213,6 @@ impl DAGCircuit {
             reg.name().to_string()
         });
         self.cregs.remove_registers(valid_names);
-        // for creg in valid_regs {
-        //     for (index, bit) in creg.bits().enumerate() {
-        //         let bit_position = self.clbit_locations.get_mut(&bit).unwrap();
-        //         bit_position.remove_register(&creg, index);
-        //     }
-        // }
         Ok(())
     }
 
