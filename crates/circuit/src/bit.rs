@@ -52,7 +52,7 @@ impl<R: Register + PartialEq> BitLocations<R> {
         self.registers.push((register, index))
     }
 
-    /// Removes a register location on `O(n)`` time, where N is the number of
+    /// Removes a register location in `O(n)`` time, where N is the number of
     /// registers in this entry.
     pub fn remove_register(&mut self, register: &R, index: usize) -> Option<(R, usize)> {
         for (idx, reg) in self.registers.iter().enumerate() {
