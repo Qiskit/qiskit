@@ -282,7 +282,7 @@ def load(
             :class:`.ScheduleBlock` objects in the payload that were
             serialized using ``sympy`` are not allowed and will error. This
             is because the ``sympy`` parsing uses :func:`eval`, which
-            can allow for arbitrary code execution. 
+            can allow for arbitrary code execution.
             The flag should only be set
             to ``True`` if you trust the QPY payload you are loading.
 
