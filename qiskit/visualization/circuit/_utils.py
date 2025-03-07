@@ -450,9 +450,9 @@ def _get_layered_instructions(
     else:
         nodes = _LayerSpooler(dag, qubits, clbits, justify, measure_map)
 
-    # Optionally remove all idle wires and instructions that are on them and
-    # on them only.
     if not idle_wires:
+        # Optionally remove all idle wires and instructions that are on them and
+        # on them only.
         for wire in dag.idle_wires(ignore=["barrier", "delay"]):
             if wire in qubits:
                 qubits.remove(wire)

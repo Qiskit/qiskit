@@ -299,6 +299,16 @@ class _ExprWriter(expr.ExprVisitor[None]):
         else:
             raise exceptions.QpyError(f"unhandled Var object '{node.var}'")
 
+    def visit_stretch(self, node, /):
+        self.file_obj.write(type_keys.Expression.STRETCH)
+        self._write_expr_type(node.type)
+        self.file_obj.write(
+            struct.pack(
+                formats.EXPRESSION_STRETCH_PACK,
+                *formats.EXPRESSION_STRETCH(self.standalone_var_indices[node]),
+            )
+        )
+
     def visit_value(self, node, /):
         self.file_obj.write(type_keys.Expression.VALUE)
         self._write_expr_type(node.type)
@@ -720,6 +730,13 @@ def _read_expr(
             name = file_obj.read(payload.reg_name_size).decode(common.ENCODE)
             return expr.Var(cregs[name], type_)
         raise exceptions.QpyError("Invalid classical-expression Var key '{var_type_key}'")
+    if type_key == type_keys.Expression.STRETCH:
+        payload = formats.EXPRESSION_STRETCH._make(
+            struct.unpack(
+                formats.EXPRESSION_STRETCH_PACK, file_obj.read(formats.EXPRESSION_STRETCH_SIZE)
+            )
+        )
+        return standalone_vars[payload.var_index]
     if type_key == type_keys.Expression.VALUE:
         value_type_key = file_obj.read(formats.EXPR_VALUE_DISCRIMINATOR_SIZE)
         if value_type_key == type_keys.ExprValue.BOOL:
@@ -850,6 +867,8 @@ def read_standalone_vars(file_obj, num_vars):
         type_keys.ExprVarDeclaration.INPUT: [],
         type_keys.ExprVarDeclaration.CAPTURE: [],
         type_keys.ExprVarDeclaration.LOCAL: [],
+        type_keys.ExprVarDeclaration.STRETCH_CAPTURE: [],
+        type_keys.ExprVarDeclaration.STRETCH_LOCAL: [],
     }
     var_order = []
     for _ in range(num_vars):
@@ -861,7 +880,13 @@ def read_standalone_vars(file_obj, num_vars):
         )
         type_ = _read_expr_type(file_obj)
         name = file_obj.read(data.name_size).decode(common.ENCODE)
-        var = expr.Var(uuid.UUID(bytes=data.uuid_bytes), type_, name=name)
+        if data.usage in {
+            type_keys.ExprVarDeclaration.STRETCH_CAPTURE,
+            type_keys.ExprVarDeclaration.STRETCH_LOCAL,
+        }:
+            var = expr.Stretch(uuid.UUID(bytes=data.uuid_bytes), name)
+        else:
+            var = expr.Var(uuid.UUID(bytes=data.uuid_bytes), type_, name=name)
         read_vars[data.usage].append(var)
         var_order.append(var)
     return read_vars, var_order
@@ -888,8 +913,8 @@ def write_standalone_vars(file_obj, circuit, version):
         version (int): the QPY target version.
 
     Returns:
-        dict[expr.Var, int]: a mapping of the variables written to the index that they were written
-        at.
+        dict[expr.Var | expr.Stretch, int]: a mapping of the variables written to the
+            index that they were written at.
     """
     index = 0
     out = {}
@@ -903,6 +928,18 @@ def write_standalone_vars(file_obj, circuit, version):
         index += 1
     for var in circuit.iter_declared_vars():
         _write_standalone_var(file_obj, var, type_keys.ExprVarDeclaration.LOCAL, version)
+        out[var] = index
+        index += 1
+    if version < 14 and circuit.num_stretches:
+        raise exceptions.UnsupportedFeatureForVersion(
+            "circuits containing stretch variables", required=14, target=version
+        )
+    for var in circuit.iter_captured_stretches():
+        _write_standalone_var(file_obj, var, type_keys.ExprVarDeclaration.STRETCH_CAPTURE, version)
+        out[var] = index
+        index += 1
+    for var in circuit.iter_declared_stretches():
+        _write_standalone_var(file_obj, var, type_keys.ExprVarDeclaration.STRETCH_LOCAL, version)
         out[var] = index
         index += 1
     return out

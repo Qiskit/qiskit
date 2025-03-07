@@ -1084,80 +1084,83 @@ class TestAddingControlFlowOperations(QiskitTestCase):
         """Test circuit methods can capture captured variables."""
         outer = QuantumCircuit(1, 1)
         a = expr.Var.new("a", types.Bool())
+        b = expr.Stretch.new("b")
         outer.add_capture(a)
+        outer.add_capture(b)
 
-        inner = QuantumCircuit(1, 1, captures=[a])
+        inner = QuantumCircuit(1, 1, captures=[a, b])
 
         outer.if_test((outer.clbits[0], False), inner.copy(), [0], [0])
         added = outer.data[-1].operation
         self.assertEqual(added.name, "if_else")
-        self.assertEqual(set(added.blocks[0].iter_captured_vars()), {a})
+        self.assertEqual(set(added.blocks[0].iter_captures()), {a, b})
 
         outer.if_else((outer.clbits[0], False), inner.copy(), inner.copy(), [0], [0])
         added = outer.data[-1].operation
         self.assertEqual(added.name, "if_else")
-        self.assertEqual(set(added.blocks[0].iter_captured_vars()), {a})
-        self.assertEqual(set(added.blocks[1].iter_captured_vars()), {a})
+        self.assertEqual(set(added.blocks[0].iter_captures()), {a, b})
+        self.assertEqual(set(added.blocks[1].iter_captures()), {a, b})
 
         outer.while_loop((outer.clbits[0], False), inner.copy(), [0], [0])
         added = outer.data[-1].operation
         self.assertEqual(added.name, "while_loop")
-        self.assertEqual(set(added.blocks[0].iter_captured_vars()), {a})
+        self.assertEqual(set(added.blocks[0].iter_captures()), {a, b})
 
         outer.for_loop(range(3), None, inner.copy(), [0], [0])
         added = outer.data[-1].operation
         self.assertEqual(added.name, "for_loop")
-        self.assertEqual(set(added.blocks[0].iter_captured_vars()), {a})
+        self.assertEqual(set(added.blocks[0].iter_captures()), {a, b})
 
         outer.switch(outer.clbits[0], [(False, inner.copy()), (True, inner.copy())], [0], [0])
         added = outer.data[-1].operation
         self.assertEqual(added.name, "switch_case")
-        self.assertEqual(set(added.blocks[0].iter_captured_vars()), {a})
-        self.assertEqual(set(added.blocks[1].iter_captured_vars()), {a})
+        self.assertEqual(set(added.blocks[0].iter_captures()), {a, b})
+        self.assertEqual(set(added.blocks[1].iter_captures()), {a, b})
 
         outer.box(inner.copy(), [0], [0])
         added = outer.data[-1].operation
         self.assertEqual(added.name, "box")
-        self.assertEqual(set(added.blocks[0].iter_captured_vars()), {a})
+        self.assertEqual(set(added.blocks[0].iter_captures()), {a, b})
 
     def test_can_add_op_with_captures_of_locals(self):
         """Test circuit methods can capture declared variables."""
         outer = QuantumCircuit(1, 1)
         a = outer.add_var("a", expr.lift(True))
+        b = outer.add_stretch("b")
 
-        inner = QuantumCircuit(1, 1, captures=[a])
+        inner = QuantumCircuit(1, 1, captures=[a, b])
 
         outer.if_test((outer.clbits[0], False), inner.copy(), [0], [0])
         added = outer.data[-1].operation
         self.assertEqual(added.name, "if_else")
-        self.assertEqual(set(added.blocks[0].iter_captured_vars()), {a})
+        self.assertEqual(set(added.blocks[0].iter_captures()), {a, b})
 
         outer.if_else((outer.clbits[0], False), inner.copy(), inner.copy(), [0], [0])
         added = outer.data[-1].operation
         self.assertEqual(added.name, "if_else")
-        self.assertEqual(set(added.blocks[0].iter_captured_vars()), {a})
-        self.assertEqual(set(added.blocks[1].iter_captured_vars()), {a})
+        self.assertEqual(set(added.blocks[0].iter_captures()), {a, b})
+        self.assertEqual(set(added.blocks[1].iter_captures()), {a, b})
 
         outer.while_loop((outer.clbits[0], False), inner.copy(), [0], [0])
         added = outer.data[-1].operation
         self.assertEqual(added.name, "while_loop")
-        self.assertEqual(set(added.blocks[0].iter_captured_vars()), {a})
+        self.assertEqual(set(added.blocks[0].iter_captures()), {a, b})
 
         outer.for_loop(range(3), None, inner.copy(), [0], [0])
         added = outer.data[-1].operation
         self.assertEqual(added.name, "for_loop")
-        self.assertEqual(set(added.blocks[0].iter_captured_vars()), {a})
+        self.assertEqual(set(added.blocks[0].iter_captures()), {a, b})
 
         outer.switch(outer.clbits[0], [(False, inner.copy()), (True, inner.copy())], [0], [0])
         added = outer.data[-1].operation
         self.assertEqual(added.name, "switch_case")
-        self.assertEqual(set(added.blocks[0].iter_captured_vars()), {a})
-        self.assertEqual(set(added.blocks[1].iter_captured_vars()), {a})
+        self.assertEqual(set(added.blocks[0].iter_captures()), {a, b})
+        self.assertEqual(set(added.blocks[1].iter_captures()), {a, b})
 
         outer.box(inner.copy(), [0], [0])
         added = outer.data[-1].operation
         self.assertEqual(added.name, "box")
-        self.assertEqual(set(added.blocks[0].iter_captured_vars()), {a})
+        self.assertEqual(set(added.blocks[0].iter_captures()), {a, b})
 
     def test_cannot_capture_unknown_variables_methods(self):
         """Control-flow operations should not be able to capture variables that don't exist in the
@@ -1165,6 +1168,25 @@ class TestAddingControlFlowOperations(QiskitTestCase):
         outer = QuantumCircuit(1, 1)
 
         a = expr.Var.new("a", types.Bool())
+        inner = QuantumCircuit(1, 1, captures=[a])
+
+        with self.assertRaisesRegex(CircuitError, "not in this circuit"):
+            outer.if_test((outer.clbits[0], False), inner.copy(), [0], [0])
+        with self.assertRaisesRegex(CircuitError, "not in this circuit"):
+            outer.if_else((outer.clbits[0], False), inner.copy(), inner.copy(), [0], [0])
+        with self.assertRaisesRegex(CircuitError, "not in this circuit"):
+            outer.while_loop((outer.clbits[0], False), inner.copy(), [0], [0])
+        with self.assertRaisesRegex(CircuitError, "not in this circuit"):
+            outer.for_loop(range(3), None, inner.copy(), [0], [0])
+        with self.assertRaisesRegex(CircuitError, "not in this circuit"):
+            outer.switch(outer.clbits[0], [(False, inner.copy()), (True, inner.copy())], [0], [0])
+
+    def test_cannot_capture_unknown_stretches_methods(self):
+        """Control-flow operations should not be able to capture stretches that don't exist in the
+        outer circuit."""
+        outer = QuantumCircuit(1, 1)
+
+        a = expr.Stretch.new("b")
         inner = QuantumCircuit(1, 1, captures=[a])
 
         with self.assertRaisesRegex(CircuitError, "not in this circuit"):
@@ -1186,6 +1208,31 @@ class TestAddingControlFlowOperations(QiskitTestCase):
         outer = QuantumCircuit(1, 1)
 
         a = expr.Var.new("a", types.Bool())
+        inner = QuantumCircuit(1, 1, captures=[a])
+
+        with self.assertRaisesRegex(CircuitError, "not in this circuit"):
+            outer.append(IfElseOp((outer.clbits[0], False), inner.copy(), None), [0], [0])
+        with self.assertRaisesRegex(CircuitError, "not in this circuit"):
+            outer.append(IfElseOp((outer.clbits[0], False), inner.copy(), inner.copy()), [0], [0])
+        with self.assertRaisesRegex(CircuitError, "not in this circuit"):
+            outer.append(WhileLoopOp((outer.clbits[0], False), inner.copy()), [0], [0])
+        with self.assertRaisesRegex(CircuitError, "not in this circuit"):
+            outer.append(ForLoopOp(range(3), None, inner.copy()), [0], [0])
+        with self.assertRaisesRegex(CircuitError, "not in this circuit"):
+            outer.append(
+                SwitchCaseOp(outer.clbits[0], [(False, inner.copy()), (True, inner.copy())]),
+                [0],
+                [0],
+            )
+        with self.assertRaisesRegex(CircuitError, "not in this circuit"):
+            outer.append(BoxOp(inner.copy()), [0], [0])
+
+    def test_cannot_capture_unknown_stretches_append(self):
+        """Control-flow operations should not be able to capture stretches that don't exist in the
+        outer circuit."""
+        outer = QuantumCircuit(1, 1)
+
+        a = expr.Stretch.new("a")
         inner = QuantumCircuit(1, 1, captures=[a])
 
         with self.assertRaisesRegex(CircuitError, "not in this circuit"):

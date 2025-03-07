@@ -1971,6 +1971,17 @@ class TestLoadFromQPY(QiskitTestCase):
         ):
             dump(qc, fptr, version=version)
 
+    @ddt.idata(range(QPY_COMPATIBILITY_VERSION, 14))
+    def test_pre_v14_rejects_stretch_expr(self, version):
+        """Test that dumping to older QPY versions rejects duration-typed expressions."""
+        qc = QuantumCircuit()
+        qc.add_stretch("a")
+        with (
+            io.BytesIO() as fptr,
+            self.assertRaisesRegex(UnsupportedFeatureForVersion, "version 14 is required.*stretch"),
+        ):
+            dump(qc, fptr, version=version)
+
 
 class TestSymengineLoadFromQPY(QiskitTestCase):
     """Test use of symengine in qpy set of methods."""

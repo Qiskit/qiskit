@@ -15,6 +15,7 @@
 """Test cases to verify qpy backwards compatibility."""
 
 import argparse
+
 import itertools
 import random
 import re
@@ -847,7 +848,8 @@ def generate_replay_with_expression_substitutions():
 
 def generate_v14_expr():
     """Circuits that contain expressions and types new in QPY v14."""
-    from qiskit.circuit.classical import expr, types
+    import uuid
+    from qiskit.circuit.classical import expr
     from qiskit.circuit import Duration
 
     float_expr = QuantumCircuit(name="float_expr")
@@ -884,7 +886,18 @@ def generate_v14_expr():
     ):
         pass
 
-    return [float_expr, duration_expr, math_expr]
+    stretch_expr = QuantumCircuit(name="stretch_expr")
+    s = expr.Stretch(uuid.UUID(bytes=b"hello, qpy world", version=4), "a")
+    stretch = stretch_expr.add_stretch(s)
+    with stretch_expr.if_test(expr.equal(stretch, Duration.dt(100))):
+        pass
+
+    return [
+        float_expr,
+        duration_expr,
+        math_expr,
+        stretch_expr,
+    ]
 
 
 def generate_box():

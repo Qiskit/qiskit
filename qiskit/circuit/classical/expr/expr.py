@@ -22,10 +22,12 @@ from __future__ import annotations
 __all__ = [
     "Expr",
     "Var",
+    "Stretch",
     "Value",
     "Cast",
     "Unary",
     "Binary",
+    "Index",
 ]
 
 import abc
@@ -191,6 +193,75 @@ class Var(Expr):
         var, type, name = state
         super().__setattr__("type", type)
         super().__setattr__("const", False)
+        super().__setattr__("var", var)
+        super().__setattr__("name", name)
+
+    def __copy__(self):
+        # I am immutable...
+        return self
+
+    def __deepcopy__(self, memo):
+        # ... as are all my constituent parts.
+        return self
+
+
+@typing.final
+class Stretch(Expr):
+    """A stretch variable.
+
+    In general, construction of stretch variables for use in programs should use :meth:`Stretch.new`
+    or :meth:`.QuantumCircuit.add_stretch`.
+    """
+
+    __slots__ = (
+        "var",
+        "name",
+    )
+
+    var: uuid.UUID
+    """A :class:`~uuid.UUID` to uniquely identify this stretch."""
+    name: str
+    """The name of the stretch variable."""
+
+    def __init__(
+        self,
+        var: uuid.UUID,
+        name: str,
+    ):
+        super().__setattr__("type", types.Duration())
+        super().__setattr__("const", True)
+        super().__setattr__("var", var)
+        super().__setattr__("name", name)
+
+    @classmethod
+    def new(cls, name: str) -> typing.Self:
+        """Generate a new named stretch variable."""
+        return cls(uuid.uuid4(), name)
+
+    def accept(self, visitor, /):
+        return visitor.visit_stretch(self)
+
+    def __setattr__(self, key, value):
+        if hasattr(self, key):
+            raise AttributeError(f"'Stretch' object attribute '{key}' is read-only")
+        raise AttributeError(f"'Stretch' object has no attribute '{key}'")
+
+    def __hash__(self):
+        return hash((self.var, self.name))
+
+    def __eq__(self, other):
+        return isinstance(other, Stretch) and self.var == other.var and self.name == other.name
+
+    def __repr__(self):
+        return f"Stretch({self.var}, {self.name})"
+
+    def __getstate__(self):
+        return (self.var, self.name)
+
+    def __setstate__(self, state):
+        var, name = state
+        super().__setattr__("type", types.Duration())
+        super().__setattr__("const", True)
         super().__setattr__("var", var)
         super().__setattr__("name", name)
 
