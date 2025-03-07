@@ -1028,7 +1028,6 @@ impl SymbolExpr {
 
     // Add with heuristic optimization
     fn add_opt(&self, rhs: &SymbolExpr, recursive: bool) -> Option<SymbolExpr> {
-        //println!("  add_opt : {}, {}",self, rhs);
         if self.is_zero() {
             Some(rhs.clone())
         } else if rhs.is_zero() {
@@ -1322,7 +1321,6 @@ impl SymbolExpr {
 
     /// Sub with heuristic optimization
     fn sub_opt(&self, rhs: &SymbolExpr, recursive: bool) -> Option<SymbolExpr> {
-        //println!("  sub_opt : {}, {}",self, rhs);
         if self.is_zero() {
             match rhs.neg_opt() {
                 Some(e) => Some(e),
@@ -2051,7 +2049,6 @@ impl SymbolExpr {
                     }
                 } else if let Value::Int(i) = v {
                     let a = i.abs() as u64;
-                    println!("  i = {}, t = {}", i, (a - 1) & a);
                     if ((a - 1) & a) == 0 {
                         if recursive {
                             return self.mul_opt(
