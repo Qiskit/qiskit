@@ -16,7 +16,9 @@ use ndarray::Array2;
 use num_complex::Complex64;
 use num_complex::ComplexFloat;
 use once_cell::sync::Lazy;
+use qiskit_circuit::bit_data::VarAsKey;
 use smallvec::SmallVec;
+use std::fmt::Debug;
 
 use numpy::PyReadonlyArray2;
 use pyo3::exceptions::PyRuntimeError;
@@ -83,24 +85,26 @@ static SUPPORTED_ROTATIONS: Lazy<HashMap<&str, Option<OperationRef>>> = Lazy::ne
     ])
 });
 
-fn get_bits<T>(
-    py: Python,
-    bits1: &Bound<PyTuple>,
-    bits2: &Bound<PyTuple>,
-) -> PyResult<(Vec<T>, Vec<T>)>
+fn get_bits<T>(bits1: &Bound<PyTuple>, bits2: &Bound<PyTuple>) -> PyResult<(Vec<T>, Vec<T>)>
 where
     T: From<BitType> + Copy,
     BitType: From<T>,
 {
-    let mut bitdata: BitData<T> = BitData::new(py, "bits".to_string());
+    // Using `VarAsKey` here is a total hack, but this is a short-term workaround before a
+    // larger refactor of the commutation checker.
+    let mut bitdata: BitData<T, VarAsKey> = BitData::new();
 
     for bit in bits1.iter().chain(bits2.iter()) {
-        bitdata.add(py, &bit, false)?;
+        bitdata.add(bit.into(), false)?;
     }
 
     Ok((
-        bitdata.map_bits(bits1)?.collect(),
-        bitdata.map_bits(bits2)?.collect(),
+        bitdata
+            .map_bits(bits1.iter().map(|bit| bit.into()))?
+            .collect(),
+        bitdata
+            .map_bits(bits2.iter().map(|bit| bit.into()))?
+            .collect(),
     ))
 }
 
@@ -149,12 +153,10 @@ impl CommutationChecker {
         approximation_degree: f64,
     ) -> PyResult<bool> {
         let (qargs1, qargs2) = get_bits::<Qubit>(
-            py,
             op1.instruction.qubits.bind(py),
             op2.instruction.qubits.bind(py),
         )?;
         let (cargs1, cargs2) = get_bits::<Clbit>(
-            py,
             op1.instruction.clbits.bind(py),
             op2.instruction.clbits.bind(py),
         )?;
@@ -193,8 +195,8 @@ impl CommutationChecker {
         let qargs2 = qargs2.map_or_else(|| Ok(PyTuple::empty(py)), PySequenceMethods::to_tuple)?;
         let cargs2 = cargs2.map_or_else(|| Ok(PyTuple::empty(py)), PySequenceMethods::to_tuple)?;
 
-        let (qargs1, qargs2) = get_bits::<Qubit>(py, &qargs1, &qargs2)?;
-        let (cargs1, cargs2) = get_bits::<Clbit>(py, &cargs1, &cargs2)?;
+        let (qargs1, qargs2) = get_bits::<Qubit>(&qargs1, &qargs2)?;
+        let (cargs1, cargs2) = get_bits::<Clbit>(&cargs1, &cargs2)?;
 
         self.commute_inner(
             py,

@@ -26,7 +26,7 @@ import numpy as np
 from qiskit import circuit as circuit_mod
 from qiskit.circuit import library, controlflow, CircuitInstruction, ControlFlowOp, IfElseOp
 from qiskit.circuit.classical import expr
-from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
+from qiskit.circuit import ClassicalRegister, Clbit
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.singleton import SingletonInstruction, SingletonGate
 from qiskit.circuit.controlledgate import ControlledGate
@@ -39,7 +39,7 @@ from qiskit.circuit.annotated_operation import (
 )
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.quantumregister import QuantumRegister, Qubit
+from qiskit.circuit import QuantumRegister, Qubit
 from qiskit.qpy import common, formats, type_keys
 from qiskit.qpy.binary_io import value, schedules
 from qiskit.quantum_info.operators import SparsePauliOp, Clifford
@@ -1022,7 +1022,9 @@ def _write_registers(file_obj, in_circ_regs, full_bits):
 
     for regs, is_in_circuit in [(in_circ_regs, True), (out_circ_regs, False)]:
         for reg in regs:
-            standalone = all(bit._register is reg for bit in reg)
+            standalone = all(
+                bit._register == reg and bit._index == index for index, bit in enumerate(reg)
+            )
             reg_name = reg.name.encode(common.ENCODE)
             reg_type = reg.prefix.encode(common.ENCODE)
             file_obj.write(

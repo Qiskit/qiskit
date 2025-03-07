@@ -17,14 +17,16 @@ from __future__ import annotations
 import dataclasses
 from typing import Iterable, Tuple, Set, Union, TypeVar, TYPE_CHECKING
 
+from qiskit.circuit import (  # pylint: disable=cyclic-import
+    ClassicalRegister,
+    Clbit,
+    QuantumRegister,
+)
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.circuit.register import Register
-from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
-from qiskit.circuit.quantumregister import QuantumRegister
 
 if TYPE_CHECKING:
-    from qiskit.circuit import QuantumCircuit
+    from qiskit.circuit import QuantumCircuit, Register
 
 _ConditionT = TypeVar(
     "_ConditionT", bound=Union[Tuple[ClassicalRegister, int], Tuple[Clbit, int], expr.Expr]

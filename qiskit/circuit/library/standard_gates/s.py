@@ -20,7 +20,6 @@ from typing import Optional, Union
 import numpy
 
 from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, stdlib_singleton_key
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
 from qiskit._accelerate.circuit import StandardGate
 
@@ -73,7 +72,7 @@ class SGate(SingletonGate):
         gate s a { u1(pi/2) a; }
         """
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
 
         from .u1 import U1Gate
 
@@ -185,7 +184,7 @@ class SdgGate(SingletonGate):
         gate sdg a { u1(-pi/2) a; }
         """
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
 
         from .u1 import U1Gate
 
