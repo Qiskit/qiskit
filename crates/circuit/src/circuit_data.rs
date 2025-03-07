@@ -756,10 +756,10 @@ impl CircuitData {
             let clbits = self.cargs_interner.get(inst.clbits);
             CircuitInstruction {
                 operation: inst.op.clone(),
-                qubits: PyTuple::new(py, self.qubits.map_indices(qubits).cloned())
+                qubits: PyTuple::new(py, self.qubits.map_indices(qubits))
                     .unwrap()
                     .unbind(),
-                clbits: PyTuple::new(py, self.clbits.map_indices(clbits).cloned())
+                clbits: PyTuple::new(py, self.clbits.map_indices(clbits))
                     .unwrap()
                     .unbind(),
                 params: inst.params_view().iter().cloned().collect(),
