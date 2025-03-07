@@ -278,11 +278,12 @@ def load(
             If this is not specified the circuit metadata will
             be parsed as JSON with the stdlib ``json.load()`` function using
             the default ``JSONDecoder`` class.
-        trust_payload: if set to ``False`` (the default)
+        trust_payload: if set to ``False`` (the default),
             :class:`.ScheduleBlock` objects in the payload that were
             serialized using ``sympy`` are not allowed and will error. This
-            is because the ``sympy`` parsing can allow for arbitrary code
-            execution because it uses :func:`eval`. This should only be set
+            is because the ``sympy`` parsing uses :func:`eval`, which
+            can allow for arbitrary code execution. 
+            The flag should only be set
             to ``True`` if you trust the QPY payload you are loading.
 
     .. warning::

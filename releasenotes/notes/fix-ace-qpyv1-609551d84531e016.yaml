@@ -14,19 +14,19 @@ features:
 
 security:
   - |
-    Fixed a security vulnerability in :func:`.qpy.load` when it was loading
-    payloads that are using ``sympy`` to serialize
+    Fixed a security vulnerability in :func:`.qpy.load` when loading
+    payloads that use ``sympy`` to serialize
     :class:`.ParameterExpression` objects and other symbolic expressions.
     This potentially includes any QPY payload using QPY version < 10, and
     optionally 10, 11, and 12 depending on the symbolic encoding used in the
-    payload.
+    serialization step (:func:`.qpy.dump`).
 upgrade:
   - |
-    By default when calling :class:`.qpy.load` with a QPY payload that
-    contains a :class:`.ScheduleBlock` object (either standalone or as part of
-    :attr:`.QuantumCircuit.calibrations`) and is using ``sympy`` for encoding
-    symbolic expressions the function will now raise a :class:`.QpyError`. This
+    By default, :class:`.qpy.load` will now raise a :class:`.QpyError` when
+    called with a QPY payload that contains a :class:`.ScheduleBlock` object (either standalone or as part of
+    :attr:`.QuantumCircuit.calibrations`) which is using ``sympy`` for encoding
+    symbolic expressions. This
     is because the payload is potentially vulnerable and should only be loaded
-    if you trust the contents. You can assert the payload is not malicious with
-    the new ``trust_payload`` argument to :class:`.qpy.load` which if set to
-    ``True`` will enable loading the payload.
+    if you trust the contents. If you are certain that the payload is not malicious,
+    you can set the new ``trust_payload`` argument of :class:`.qpy.load` to
+    ``True``, and this will enable loading the payload.

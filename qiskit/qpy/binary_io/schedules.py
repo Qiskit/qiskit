@@ -561,11 +561,12 @@ def read_schedule_block(
             native mechanism. This is a faster serialization alternative, but not supported in all
             platforms. Please check that your target platform is supported by the symengine library
             before setting this option, as it will be required by qpy to deserialize the payload.
-        trust_input (bool): if set to ``False`` (the default)
+        trust_input (bool): if set to ``False`` (the default),
             :class:`.ScheduleBlock` objects in the payload that were
             serialized using ``sympy`` are not allowed and will error. This
-            is because the ``sympy`` parsing can allow for arbitrary code
-            execution because it uses :func:`eval`. This should only be set
+            is because the ``sympy`` parsing uses :func:`eval`, which
+            can allow for arbitrary code execution. 
+            The flag should only be set
             to ``True`` if you trust the QPY payload you are loading.
 
     Returns:
