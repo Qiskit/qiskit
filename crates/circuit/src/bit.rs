@@ -254,7 +254,7 @@ struct RegisterInfoIter<'a, B: ManifestableBit> {
     base: &'a RegisterInfo<B>,
     index: usize,
 }
-impl<'a, B: ManifestableBit> Iterator for RegisterInfoIter<'a, B> {
+impl<B: ManifestableBit> Iterator for RegisterInfoIter<'_, B> {
     type Item = B;
     fn next(&mut self) -> Option<Self::Item> {
         let out = self.base.get(self.index);
@@ -268,7 +268,7 @@ impl<'a, B: ManifestableBit> Iterator for RegisterInfoIter<'a, B> {
         (rem, Some(rem))
     }
 }
-impl<'a, B: ManifestableBit> ExactSizeIterator for RegisterInfoIter<'a, B> {}
+impl<B: ManifestableBit> ExactSizeIterator for RegisterInfoIter<'_, B> {}
 
 pub trait Register {
     /// The type of bit stored by the [Register]
