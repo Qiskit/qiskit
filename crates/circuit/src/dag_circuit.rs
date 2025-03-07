@@ -524,7 +524,7 @@ impl DAGCircuit {
             .map(|(idx, indices)| (Qubit::new(idx), indices))
         {
             out_dict.set_item(
-                self.qubits.get(qubit).cloned().unwrap(),
+                self.qubits.get(qubit).unwrap(),
                 self.get_node(py, indices[0])?,
             )?;
         }
@@ -535,7 +535,7 @@ impl DAGCircuit {
             .map(|(idx, indices)| (Clbit::new(idx), indices))
         {
             out_dict.set_item(
-                self.clbits.get(clbit).cloned().unwrap(),
+                self.clbits.get(clbit).unwrap(),
                 self.get_node(py, indices[0])?,
             )?;
         }
@@ -563,7 +563,7 @@ impl DAGCircuit {
             .map(|(idx, indices)| (Qubit::new(idx), indices))
         {
             out_dict.set_item(
-                self.qubits.get(qubit).cloned().unwrap(),
+                self.qubits.get(qubit).unwrap(),
                 self.get_node(py, indices[1])?,
             )?;
         }
@@ -574,7 +574,7 @@ impl DAGCircuit {
             .map(|(idx, indices)| (Clbit::new(idx), indices))
         {
             out_dict.set_item(
-                self.clbits.get(clbit).cloned().unwrap(),
+                self.clbits.get(clbit).unwrap(),
                 self.get_node(py, indices[1])?,
             )?;
         }
@@ -646,9 +646,9 @@ impl DAGCircuit {
                 .into_py_dict(py)?,
         )?;
         out_dict.set_item("vars_by_type", self.vars_by_type.clone())?;
-        out_dict.set_item("qubits", self.qubits.bits().clone())?;
-        out_dict.set_item("clbits", self.clbits.bits().clone())?;
-        out_dict.set_item("vars", self.vars.bits().clone())?;
+        out_dict.set_item("qubits", self.qubits.bits())?;
+        out_dict.set_item("clbits", self.clbits.bits())?;
+        out_dict.set_item("vars", self.vars.bits())?;
         let mut nodes: Vec<PyObject> = Vec::with_capacity(self.dag.node_count());
         for node_idx in self.dag.node_indices() {
             let node_data = self.get_node(py, node_idx)?;
@@ -867,9 +867,9 @@ impl DAGCircuit {
     /// Return a list of the wires in order.
     #[getter]
     fn get_wires(&self, py: Python<'_>) -> PyResult<Py<PyList>> {
-        let wires: Bound<PyList> = PyList::new(py, self.qubits.bits().iter().cloned())?;
+        let wires: Bound<PyList> = PyList::new(py, self.qubits.bits().iter())?;
 
-        for clbit in self.clbits.bits().iter().cloned() {
+        for clbit in self.clbits.bits().iter() {
             wires.append(clbit)?
         }
 
@@ -1580,16 +1580,12 @@ impl DAGCircuit {
             .map(|c| c.value.extract::<Vec<ShareableClbit>>())
             .transpose()?;
         let node = {
-            let qubits_id = self.qargs_interner.insert_owned(
-                self.qubits
-                    .map_bits(qargs.iter().flatten().cloned())?
-                    .collect(),
-            );
-            let clbits_id = self.cargs_interner.insert_owned(
-                self.clbits
-                    .map_bits(cargs.iter().flatten().cloned())?
-                    .collect(),
-            );
+            let qubits_id = self
+                .qargs_interner
+                .insert_owned(self.qubits.map_bits(qargs.into_iter().flatten())?.collect());
+            let clbits_id = self
+                .cargs_interner
+                .insert_owned(self.clbits.map_bits(cargs.into_iter().flatten())?.collect());
             let instr = PackedInstruction {
                 op: py_op.operation,
                 qubits: qubits_id,
@@ -1642,16 +1638,12 @@ impl DAGCircuit {
             .map(|c| c.value.extract::<Vec<ShareableClbit>>())
             .transpose()?;
         let node = {
-            let qubits_id = self.qargs_interner.insert_owned(
-                self.qubits
-                    .map_bits(qargs.iter().flatten().cloned())?
-                    .collect(),
-            );
-            let clbits_id = self.cargs_interner.insert_owned(
-                self.clbits
-                    .map_bits(cargs.iter().flatten().cloned())?
-                    .collect(),
-            );
+            let qubits_id = self
+                .qargs_interner
+                .insert_owned(self.qubits.map_bits(qargs.into_iter().flatten())?.collect());
+            let clbits_id = self
+                .cargs_interner
+                .insert_owned(self.clbits.map_bits(cargs.into_iter().flatten())?.collect());
             let instr = PackedInstruction {
                 op: py_op.operation,
                 qubits: qubits_id,
@@ -1731,15 +1723,13 @@ impl DAGCircuit {
             .qubits
             .bits()
             .iter()
-            .cloned()
-            .zip(slf.qubits.bits().clone())
+            .zip(slf.qubits.bits())
             .into_py_dict(py)?;
         let identity_clbit_map = other
             .clbits
             .bits()
             .iter()
-            .cloned()
-            .zip(slf.clbits.bits().clone())
+            .zip(slf.clbits.bits())
             .into_py_dict(py)?;
 
         let qubit_map: Bound<PyDict> = match qubits {
@@ -1867,7 +1857,7 @@ impl DAGCircuit {
                 NodeType::QubitIn(q) => {
                     let bit = other.qubits.get(*q).unwrap();
                     let m_wire = edge_map
-                        .get_item(bit.clone())?
+                        .get_item(bit)?
                         .map(|py_bit| py_bit.extract::<ShareableQubit>())
                         .transpose()?
                         .unwrap_or_else(|| bit.clone());
@@ -1886,7 +1876,7 @@ impl DAGCircuit {
                 NodeType::ClbitIn(c) => {
                     let bit = other.clbits.get(*c).unwrap();
                     let m_wire = edge_map
-                        .get_item(bit.clone())?
+                        .get_item(bit)?
                         .map(|py_bit| py_bit.extract::<ShareableClbit>())
                         .transpose()?
                         .unwrap_or_else(|| bit.clone());
@@ -1910,7 +1900,7 @@ impl DAGCircuit {
                         for bit in qubits {
                             mapped.push(
                                 edge_map
-                                    .get_item(bit.clone())?
+                                    .get_item(bit)?
                                     .map(|bit| bit.extract())
                                     .transpose()?
                                     .unwrap_or_else(|| bit.clone()),
@@ -1926,7 +1916,7 @@ impl DAGCircuit {
                         for bit in clbits {
                             mapped.push(
                                 edge_map
-                                    .get_item(bit.clone())?
+                                    .get_item(bit)?
                                     .map(|bit| bit.extract())
                                     .transpose()?
                                     .unwrap_or_else(|| bit.clone()),
@@ -2030,14 +2020,12 @@ impl DAGCircuit {
                     if !nodes_found {
                         result.push(match wire {
                             Wire::Qubit(qubit) => {
-                                self.qubits.get(qubit).unwrap().clone().into_py_any(py)?
+                                self.qubits.get(qubit).unwrap().into_py_any(py)?
                             }
                             Wire::Clbit(clbit) => {
-                                self.clbits.get(clbit).unwrap().clone().into_py_any(py)?
+                                self.clbits.get(clbit).unwrap().into_py_any(py)?
                             }
-                            Wire::Var(var) => {
-                                self.vars.get(var).unwrap().clone_ref(py).into_py_any(py)?
-                            }
+                            Wire::Var(var) => self.vars.get(var).unwrap().into_py_any(py)?,
                         });
                     }
                 }
@@ -2047,14 +2035,12 @@ impl DAGCircuit {
                     if self.is_wire_idle(&wire)? {
                         result.push(match wire {
                             Wire::Qubit(qubit) => {
-                                self.qubits.get(qubit).unwrap().clone().into_py_any(py)?
+                                self.qubits.get(qubit).unwrap().into_py_any(py)?
                             }
                             Wire::Clbit(clbit) => {
-                                self.clbits.get(clbit).unwrap().clone().into_py_any(py)?
+                                self.clbits.get(clbit).unwrap().into_py_any(py)?
                             }
-                            Wire::Var(var) => {
-                                self.vars.get(var).unwrap().clone_ref(py).into_py_any(py)?
-                            }
+                            Wire::Var(var) => self.vars.get(var).unwrap().into_py_any(py)?,
                         });
                     }
                 }
@@ -2336,7 +2322,6 @@ impl DAGCircuit {
             let indices = other
                 .qubits
                 .bits()
-                .clone()
                 .into_pyobject(py)?
                 .try_iter()?
                 .chain(other.clbits.bits().clone().into_pyobject(py)?.try_iter()?)
@@ -2997,7 +2982,7 @@ impl DAGCircuit {
                 None => input_dag.clbits.get(*source),
             };
             let target_bit = self.clbits.get(*target);
-            wire_map_dict.set_item(source_bit.cloned(), target_bit.cloned())?;
+            wire_map_dict.set_item(source_bit, target_bit)?;
         }
         let bound_var_map = var_map.bind(py);
 
@@ -3960,8 +3945,7 @@ impl DAGCircuit {
                     py,
                     new_layer
                         .qubits
-                        .map_indices(new_layer.qargs_interner.get(instruction.qubits))
-                        .cloned(),
+                        .map_indices(new_layer.qargs_interner.get(instruction.qubits)),
                 )
                 .unwrap()
             });
@@ -5714,34 +5698,22 @@ impl DAGCircuit {
         let dag_node = match weight {
             NodeType::QubitIn(qubit) => Py::new(
                 py,
-                DAGInNode::new(
-                    id,
-                    self.qubits.get(*qubit).cloned().unwrap().into_py_any(py)?,
-                ),
+                DAGInNode::new(id, self.qubits.get(*qubit).unwrap().into_py_any(py)?),
             )?
             .into_any(),
             NodeType::QubitOut(qubit) => Py::new(
                 py,
-                DAGOutNode::new(
-                    id,
-                    self.qubits.get(*qubit).cloned().unwrap().into_py_any(py)?,
-                ),
+                DAGOutNode::new(id, self.qubits.get(*qubit).unwrap().into_py_any(py)?),
             )?
             .into_any(),
             NodeType::ClbitIn(clbit) => Py::new(
                 py,
-                DAGInNode::new(
-                    id,
-                    self.clbits.get(*clbit).cloned().unwrap().into_py_any(py)?,
-                ),
+                DAGInNode::new(id, self.clbits.get(*clbit).unwrap().into_py_any(py)?),
             )?
             .into_any(),
             NodeType::ClbitOut(clbit) => Py::new(
                 py,
-                DAGOutNode::new(
-                    id,
-                    self.clbits.get(*clbit).cloned().unwrap().into_py_any(py)?,
-                ),
+                DAGOutNode::new(id, self.clbits.get(*clbit).unwrap().into_py_any(py)?),
             )?
             .into_any(),
             NodeType::Operation(packed) => {
@@ -5753,10 +5725,8 @@ impl DAGCircuit {
                         DAGOpNode {
                             instruction: CircuitInstruction {
                                 operation: packed.op.clone(),
-                                qubits: PyTuple::new(py, self.qubits.map_indices(qubits).cloned())?
-                                    .unbind(),
-                                clbits: PyTuple::new(py, self.clbits.map_indices(clbits).cloned())?
-                                    .unbind(),
+                                qubits: PyTuple::new(py, self.qubits.map_indices(qubits))?.unbind(),
+                                clbits: PyTuple::new(py, self.clbits.map_indices(clbits))?.unbind(),
                                 params: packed.params_view().iter().cloned().collect(),
                                 label: packed.label.clone(),
                                 #[cfg(feature = "cache_pygates")]
@@ -5770,18 +5740,12 @@ impl DAGCircuit {
             }
             NodeType::VarIn(var) => Py::new(
                 py,
-                DAGInNode::new(
-                    id,
-                    self.vars.get(*var).unwrap().clone_ref(py).into_py_any(py)?,
-                ),
+                DAGInNode::new(id, self.vars.get(*var).unwrap().into_py_any(py)?),
             )?
             .into_any(),
             NodeType::VarOut(var) => Py::new(
                 py,
-                DAGOutNode::new(
-                    id,
-                    self.vars.get(*var).unwrap().clone_ref(py).into_py_any(py)?,
-                ),
+                DAGOutNode::new(id, self.vars.get(*var).unwrap().into_py_any(py)?),
             )?
             .into_any(),
         };
