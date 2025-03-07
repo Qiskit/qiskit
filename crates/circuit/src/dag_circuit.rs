@@ -2747,8 +2747,8 @@ impl DAGCircuit {
                 let (add_cargs, _add_vars) = self.additional_wires(py, node.op.view())?;
                 for wire in add_cargs.iter() {
                     let clbit = self.clbits.get(*wire).unwrap();
-                    if !cargs_set.contains(clbit.clone())? {
-                        cargs_list.append(clbit.clone())?;
+                    if !cargs_set.contains(clbit)? {
+                        cargs_list.append(clbit)?;
                     }
                 }
             }
