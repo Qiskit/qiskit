@@ -20,7 +20,6 @@ from ddt import data, ddt
 
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.circuit import Gate, Instruction, Measure, Parameter, Barrier, AnnotatedOperation
-from qiskit.circuit import Bit
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit import Clbit
 from qiskit.circuit.exceptions import CircuitError
@@ -127,13 +126,6 @@ class TestCircuitOperations(QiskitTestCase):
             test.append(Measure(), [clbits[0]], [clbits[1]])
         with self.subTest("q to c"), self.assertRaisesRegex(CircuitError, "Incorrect bit type"):
             test.append(Measure(), [qubits[0]], [qubits[1]])
-
-        with self.subTest("none to q"), self.assertRaisesRegex(CircuitError, "Incorrect bit type"):
-            test.append(Measure(), [Bit()], [clbits[0]])
-        with self.subTest("none to c"), self.assertRaisesRegex(CircuitError, "Incorrect bit type"):
-            test.append(Measure(), [qubits[0]], [Bit()])
-        with self.subTest("none list"), self.assertRaisesRegex(CircuitError, "Incorrect bit type"):
-            test.append(Measure(), [[qubits[0], Bit()]], [[clbits[0], Bit()]])
 
     @data(0.0, 1.0, 1.0 + 0.0j, "0")
     def test_append_rejects_wrong_types(self, specifier):

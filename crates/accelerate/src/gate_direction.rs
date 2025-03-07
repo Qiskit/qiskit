@@ -400,7 +400,7 @@ fn replace_dag(
 // TODO: replace this once we have a Rust version of QuantumRegister
 #[inline]
 fn add_qreg(dag: &mut DAGCircuit, num_qubits: u32) -> PyResult<Vec<Qubit>> {
-    let qreg = QuantumRegister::new_owning(None, num_qubits);
+    let qreg = QuantumRegister::new_owning("q".to_string(), num_qubits);
     dag.add_qreg(qreg.clone())?;
     let mut qargs = Vec::new();
 

@@ -15,85 +15,84 @@
 """Test library of quantum circuits."""
 import copy
 
-from qiskit.circuit import Bit, Register
+from qiskit.circuit import Qubit, QuantumRegister
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
-class TestBitClass(QiskitTestCase):
+class TestQubitClass(QiskitTestCase):
     """Test library of boolean logic quantum circuits."""
 
     def test_bit_eq_invalid_type_comparison(self):
-        orig_reg = Register(3)
-        test_bit = Bit(orig_reg, 0)
+        orig_reg = QuantumRegister(3)
+        test_bit = Qubit(orig_reg, 0)
         self.assertNotEqual(test_bit, 3.14)
 
     def test_old_style_bit_equality(self):
-        test_reg = Register(size=3, name="foo")
+        test_reg = QuantumRegister(size=3, name="foo")
 
-        self.assertEqual(Bit(test_reg, 0), Bit(test_reg, 0))
-        self.assertNotEqual(Bit(test_reg, 0), Bit(test_reg, 2))
+        self.assertEqual(Qubit(test_reg, 0), Qubit(test_reg, 0))
+        self.assertNotEqual(Qubit(test_reg, 0), Qubit(test_reg, 2))
 
         reg_copy = copy.copy(test_reg)
 
-        self.assertEqual(Bit(test_reg, 0), Bit(reg_copy, 0))
-        self.assertNotEqual(Bit(test_reg, 0), Bit(reg_copy, 1))
+        self.assertEqual(Qubit(test_reg, 0), Qubit(reg_copy, 0))
+        self.assertNotEqual(Qubit(test_reg, 0), Qubit(reg_copy, 1))
 
-        reg_larger = Register(size=4, name="foo")
+        reg_larger = QuantumRegister(size=4, name="foo")
 
-        self.assertNotEqual(Bit(test_reg, 0), Bit(reg_larger, 0))
+        self.assertNotEqual(Qubit(test_reg, 0), Qubit(reg_larger, 0))
 
-        reg_renamed = Register(size=3, name="bar")
+        reg_renamed = QuantumRegister(size=3, name="bar")
 
-        self.assertNotEqual(Bit(test_reg, 0), Bit(reg_renamed, 0))
+        self.assertNotEqual(Qubit(test_reg, 0), Qubit(reg_renamed, 0))
 
-        reg_difftype = Register(size=3, name="bar")
+        reg_difftype = QuantumRegister(size=3, name="bar")
 
-        self.assertNotEqual(Bit(test_reg, 0), Bit(reg_difftype, 0))
+        self.assertNotEqual(Qubit(test_reg, 0), Qubit(reg_difftype, 0))
 
     def test_old_style_bit_deepcopy(self):
-        """Verify deep-copies of bits are equal but not the same instance."""
-        test_reg = Register(size=3, name="foo")
+        """Verify deep-copies of bits are equal."""
+        test_reg = QuantumRegister(size=3, name="foo")
 
-        bit1 = Bit(test_reg, 0)
+        bit1 = Qubit(test_reg, 0)
         bit2 = copy.deepcopy(bit1)
 
-        self.assertIsNot(bit1, bit2)
-        self.assertIsNot(bit1._register, bit2._register)
-        self.assertEqual(bit1, bit2)
+        # Bits are fully immutable.
+        self.assertIs(bit1, bit2)
 
     def test_old_style_bit_copy(self):
         """Verify copies of bits are the same instance."""
-        bit1 = Bit()
+        bit1 = Qubit()
         bit2 = copy.copy(bit1)
 
         self.assertIs(bit1, bit2)
 
 
-class TestNewStyleBit(QiskitTestCase):
+class TestNewStyleQubit(QiskitTestCase):
     """Test behavior of new-style bits."""
 
     def test_bits_do_not_require_registers(self):
         """Verify we can create a bit outside the context of a register."""
-        self.assertIsInstance(Bit(), Bit)
+        self.assertIsInstance(Qubit(), Qubit)
 
     def test_new_style_bit_deepcopy(self):
         """Verify deep-copies of bits are the same instance."""
-        bit1 = Bit()
+        bit1 = Qubit()
         bit2 = copy.deepcopy(bit1)
 
         self.assertIs(bit1, bit2)
 
     def test_new_style_bit_copy(self):
         """Verify copies of bits are the same instance."""
-        bit1 = Bit()
+        bit1 = Qubit()
         bit2 = copy.copy(bit1)
 
         self.assertIs(bit1, bit2)
 
     def test_new_style_bit_equality(self):
         """Verify bits instances are equal only to themselves."""
-        bit1 = Bit()
-        bit2 = Bit()
+        bit1 = Qubit()
+        bit2 = Qubit()
 
         self.assertEqual(bit1, bit1)
         self.assertNotEqual(bit1, bit2)
