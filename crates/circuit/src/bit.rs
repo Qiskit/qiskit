@@ -111,7 +111,7 @@ enum BitInfo<B> {
         index: u32,
     },
     Anonymous {
-        /// Unique id for bit, derives from [ShareableBit::anonymous_instances]
+        /// Unique id for bit, derives from [ShareableBit::anonymous_instance_count]
         uid: u64,
         subclass: B,
     },
@@ -341,7 +341,7 @@ macro_rules! create_bit_object {
         pub struct $bit_struct(BitInfo<$subclass_ty>);
         impl $bit_struct {
             #[inline]
-            fn anonymous_instances() -> &'static AtomicU64 {
+            fn anonymous_instance_count() -> &'static AtomicU64 {
                 &$bit_counter_name
             }
 
@@ -354,7 +354,7 @@ macro_rules! create_bit_object {
             /// Create a new anonymous bit.
             pub fn new_anonymous() -> Self {
                 Self(BitInfo::Anonymous {
-                    uid: Self::anonymous_instances().fetch_add(1, Ordering::Relaxed),
+                    uid: Self::anonymous_instance_count().fetch_add(1, Ordering::Relaxed),
                     subclass: Default::default(),
                 })
             }
@@ -523,7 +523,7 @@ macro_rules! create_bit_object {
         pub struct $reg_struct(Arc<RegisterInfo<$bit_struct>>);
         impl $reg_struct {
             #[inline]
-            fn anonymous_instances() -> &'static AtomicU32 {
+            fn anonymous_instance_count() -> &'static AtomicU32 {
                 &$reg_counter_name
             }
 
@@ -670,7 +670,7 @@ macro_rules! create_bit_object {
                     format!(
                         "{}{}",
                         Self::prefix(),
-                        $reg_struct::anonymous_instances().fetch_add(1, Ordering::Relaxed)
+                        $reg_struct::anonymous_instance_count().fetch_add(1, Ordering::Relaxed)
                     )
                 });
                 match (size, bits) {
@@ -781,7 +781,7 @@ macro_rules! create_bit_object {
             }
             #[classattr]
             fn instances_count() -> u32 {
-                $reg_struct::anonymous_instances().load(Ordering::Relaxed)
+                $reg_struct::anonymous_instance_count().load(Ordering::Relaxed)
             }
         }
     };
@@ -815,7 +815,7 @@ impl ShareableQubit {
     /// Qubits owned by registers can only be created *by* registers.
     pub fn new_anonymous_ancilla() -> Self {
         Self(BitInfo::Anonymous {
-            uid: Self::anonymous_instances().fetch_add(1, Ordering::Relaxed),
+            uid: Self::anonymous_instance_count().fetch_add(1, Ordering::Relaxed),
             subclass: QubitSubclass::ANCILLA,
         })
     }
@@ -965,7 +965,7 @@ impl PyAncillaRegister {
             format!(
                 "{}{}",
                 Self::prefix(),
-                QuantumRegister::anonymous_instances().fetch_add(1, Ordering::Relaxed)
+                QuantumRegister::anonymous_instance_count().fetch_add(1, Ordering::Relaxed)
             )
         });
         let reg = match (size, bits) {
