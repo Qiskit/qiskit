@@ -1106,10 +1106,6 @@ class MatplotlibDrawer:
                 # draw barriers, snapshots, etc.
                 elif getattr(op, "_directive", False):
                     if self._plot_barriers:
-                        # top_node = min(
-                        #     self._nodes[[node]],
-                        #     key=lambda q: get_wire_map(self._circuit, self._qubits + self._clbits, self._cregbundle).get(q[0].qargs[0], float("inf"))
-                        # )
                         self._barrier(node, node_data, glob_data)
 
                 # draw the box for control flow circuits
