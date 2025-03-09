@@ -19,7 +19,6 @@ import numpy
 
 from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
 from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, stdlib_singleton_key
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit._accelerate.circuit import StandardGate
 
 from .p import PhaseGate
@@ -84,8 +83,7 @@ class ZGate(SingletonGate):
 
     def _define(self):
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
         from .u1 import U1Gate
 
         q = QuantumRegister(1, "q")
@@ -211,7 +209,7 @@ class CZGate(SingletonControlledGate):
         gate cz a,b { h b; cx a,b; h b; }
         """
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
 
         from .h import HGate
         from .x import CXGate
@@ -309,7 +307,7 @@ class CCZGate(SingletonControlledGate):
         gate ccz a,b,c { h c; ccx a,b,c; h c; }
         """
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
 
         from .h import HGate
         from .x import CCXGate

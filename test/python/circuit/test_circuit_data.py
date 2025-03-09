@@ -244,7 +244,7 @@ class TestQuantumCircuitData(QiskitTestCase):
             ],
         )
 
-        data.replace_bits(qubits=reversed(qr), clbits=reversed(cr))
+        data.replace_bits(qubits=list(reversed(qr)), clbits=list(reversed(cr)))
         self.assertEqual(
             data,
             [

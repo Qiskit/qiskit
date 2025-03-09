@@ -10,14 +10,16 @@ upgrade_transpiler:
     As part of Pulse removal in Qiskit 2.0, all pulse and calibration related functionality
     in the transpiler has been removed. This includes the following:
 
-    Passes that have been removed:
+    The following passes and function have been removed:
 
-      * ``qiskit.transpiler.passes.PulseGates``
-      * ``qiskit.transpiler.passes.ValidatePulseGates``
-      * ``qiskit.transpiler.passes.RXCalibrationBuilder``
-      * ``qiskit.transpiler.passes.RZXCalibrationBuilder``
-      * ``qiskit.transpiler.passes.RZXCalibrationBuilderNoEcho``
-      * ``qiskit.transpiler.passes.EchoRZXWeylDecomposition``
+      * ``qiskit.transpiler.passes.PulseGates`` pass
+      * ``qiskit.transpiler.passes.ValidatePulseGates``  pass
+      * ``qiskit.transpiler.passes.RXCalibrationBuilder`` pass
+      * ``qiskit.transpiler.passes.RZXCalibrationBuilder`` pass
+      * ``qiskit.transpiler.passes.RZXCalibrationBuilderNoEcho`` pass
+      * ``qiskit.transpiler.passes.EchoRZXWeylDecomposition`` pass
+      * ``qiskit.transpiler.passes.NoramlizeRXAngle`` pass
+      * ``qiskit.transpiler.passes.rzx_templates()`` function
 
     The ``inst_map`` argument has been removed from the following elements:
 

@@ -1282,13 +1282,21 @@ In both these cases, the matrix form of :class:`.CCXGate` in ``ctrl_state = 1`` 
         \end{pmatrix}
 """
 
-from qiskit._accelerate.circuit import Duration  # pylint: disable=unused-import
+from qiskit._accelerate.circuit import (  # pylint: disable=unused-import
+    Bit,
+    Qubit,
+    AncillaQubit,
+    Clbit,
+    QuantumRegister,
+    AncillaRegister,
+    ClassicalRegister,
+    Register,
+    Duration,
+)
 
 from .exceptions import CircuitError
 from . import _utils
 from .quantumcircuit import QuantumCircuit
-from .classicalregister import ClassicalRegister, Clbit
-from .quantumregister import QuantumRegister, Qubit, AncillaRegister, AncillaQubit
 from .gate import Gate
 
 # pylint: disable=cyclic-import
@@ -1307,14 +1315,13 @@ from .parametervector import ParameterVector, ParameterVectorElement
 from .parameterexpression import ParameterExpression
 from .quantumcircuitdata import CircuitInstruction
 from .equivalence import EquivalenceLibrary
-from .bit import Bit
-from .register import Register
 from . import library
 from .equivalence_library import StandardEquivalenceLibrary, SessionEquivalenceLibrary
 from .commutation_checker import CommutationChecker
 
 from .controlflow import (
     ControlFlowOp,
+    BoxOp,
     WhileLoopOp,
     ForLoopOp,
     IfElseOp,

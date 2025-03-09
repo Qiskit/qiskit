@@ -14,9 +14,9 @@ use crate::nlayout::PhysicalQubit;
 use crate::target_transpiler::exceptions::TranspilerError;
 use crate::target_transpiler::Target;
 use hashbrown::HashSet;
-use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::types::PyTuple;
+use qiskit_circuit::bit::{QuantumRegister, Register};
 use qiskit_circuit::operations::OperationRef;
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{
@@ -399,15 +399,12 @@ fn replace_dag(
 //
 // TODO: replace this once we have a Rust version of QuantumRegister
 #[inline]
-fn add_qreg(py: Python, dag: &mut DAGCircuit, num_qubits: u32) -> PyResult<Vec<Qubit>> {
-    let qreg = imports::QUANTUM_REGISTER
-        .get_bound(py)
-        .call1((num_qubits,))?;
-    dag.add_qreg(py, &qreg)?;
+fn add_qreg(dag: &mut DAGCircuit, num_qubits: u32) -> PyResult<Vec<Qubit>> {
+    let qreg = QuantumRegister::new_owning("q".to_string(), num_qubits);
+    dag.add_qreg(qreg.clone())?;
     let mut qargs = Vec::new();
 
-    for i in 0..num_qubits {
-        let qubit = qreg.call_method1(intern!(py, "__getitem__"), (i,))?;
+    for qubit in qreg.bits() {
         qargs.push(
             dag.qubits()
                 .find(&qubit)
@@ -442,7 +439,7 @@ fn apply_operation_back(
 
 fn cx_replacement_dag(py: Python) -> PyResult<DAGCircuit> {
     let new_dag = &mut DAGCircuit::new(py)?;
-    let qargs = add_qreg(py, new_dag, 2)?;
+    let qargs = add_qreg(new_dag, 2)?;
     let qargs = qargs.as_slice();
 
     apply_operation_back(py, new_dag, StandardGate::HGate, &[qargs[0]], None)?;
@@ -463,7 +460,7 @@ fn cx_replacement_dag(py: Python) -> PyResult<DAGCircuit> {
 fn ecr_replacement_dag(py: Python) -> PyResult<DAGCircuit> {
     let new_dag = &mut DAGCircuit::new(py)?;
     new_dag.add_global_phase(py, &Param::Float(-PI / 2.0))?;
-    let qargs = add_qreg(py, new_dag, 2)?;
+    let qargs = add_qreg(new_dag, 2)?;
     let qargs = qargs.as_slice();
 
     apply_operation_back(py, new_dag, StandardGate::SGate, &[qargs[0]], None)?;
@@ -487,7 +484,7 @@ fn ecr_replacement_dag(py: Python) -> PyResult<DAGCircuit> {
 
 fn cz_replacement_dag(py: Python) -> PyResult<DAGCircuit> {
     let new_dag = &mut DAGCircuit::new(py)?;
-    let qargs = add_qreg(py, new_dag, 2)?;
+    let qargs = add_qreg(new_dag, 2)?;
     let qargs = qargs.as_slice();
 
     apply_operation_back(
@@ -503,7 +500,7 @@ fn cz_replacement_dag(py: Python) -> PyResult<DAGCircuit> {
 
 fn swap_replacement_dag(py: Python) -> PyResult<DAGCircuit> {
     let new_dag = &mut DAGCircuit::new(py)?;
-    let qargs = add_qreg(py, new_dag, 2)?;
+    let qargs = add_qreg(new_dag, 2)?;
     let qargs = qargs.as_slice();
 
     apply_operation_back(
@@ -519,7 +516,7 @@ fn swap_replacement_dag(py: Python) -> PyResult<DAGCircuit> {
 
 fn rxx_replacement_dag(py: Python, param: &[Param]) -> PyResult<DAGCircuit> {
     let new_dag = &mut DAGCircuit::new(py)?;
-    let qargs = add_qreg(py, new_dag, 2)?;
+    let qargs = add_qreg(new_dag, 2)?;
     let qargs = qargs.as_slice();
 
     apply_operation_back(
@@ -535,7 +532,7 @@ fn rxx_replacement_dag(py: Python, param: &[Param]) -> PyResult<DAGCircuit> {
 
 fn ryy_replacement_dag(py: Python, param: &[Param]) -> PyResult<DAGCircuit> {
     let new_dag = &mut DAGCircuit::new(py)?;
-    let qargs = add_qreg(py, new_dag, 2)?;
+    let qargs = add_qreg(new_dag, 2)?;
     let qargs = qargs.as_slice();
 
     apply_operation_back(
@@ -551,7 +548,7 @@ fn ryy_replacement_dag(py: Python, param: &[Param]) -> PyResult<DAGCircuit> {
 
 fn rzz_replacement_dag(py: Python, param: &[Param]) -> PyResult<DAGCircuit> {
     let new_dag = &mut DAGCircuit::new(py)?;
-    let qargs = add_qreg(py, new_dag, 2)?;
+    let qargs = add_qreg(new_dag, 2)?;
     let qargs = qargs.as_slice();
 
     apply_operation_back(
@@ -567,7 +564,7 @@ fn rzz_replacement_dag(py: Python, param: &[Param]) -> PyResult<DAGCircuit> {
 
 fn rzx_replacement_dag(py: Python, param: &[Param]) -> PyResult<DAGCircuit> {
     let new_dag = &mut DAGCircuit::new(py)?;
-    let qargs = add_qreg(py, new_dag, 2)?;
+    let qargs = add_qreg(new_dag, 2)?;
     let qargs = qargs.as_slice();
 
     apply_operation_back(py, new_dag, StandardGate::HGate, &[qargs[0]], None)?;
