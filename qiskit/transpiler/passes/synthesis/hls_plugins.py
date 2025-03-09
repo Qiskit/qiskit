@@ -523,6 +523,7 @@ from qiskit.synthesis.arithmetic import (
     adder_ripple_c04,
     adder_qft_d00,
     adder_ripple_v95,
+    adder_ripple_rv25,
     multiplier_qft_r17,
     multiplier_cumulative_h18,
 )
