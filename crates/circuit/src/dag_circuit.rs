@@ -353,6 +353,18 @@ struct BitLocations {
     registers: Py<PyList>,
 }
 
+#[pymethods]
+impl BitLocations {
+    fn __getstate__(&self, py: Python) -> (usize, Py<PyList>) {
+        (self.index, self.registers.clone_ref(py))
+    }
+
+    fn __setstate__(&mut self, state: (usize, Py<PyList>)) {
+        self.index = state.0;
+        self.registers = state.1;
+    }
+}
+
 #[derive(Copy, Clone, Debug)]
 enum DAGVarType {
     Input = 0,
