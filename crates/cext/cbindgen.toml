@@ -22,7 +22,7 @@ typedef double complex QkComplex64;
 
 [parse]
 parse_deps = true
-include = ["qiskit-accelerate"]
+include = ["qiskit-accelerate", "qiskit-circuit"]
 
 [enum]
 prefix_with_name = true
@@ -32,3 +32,7 @@ prefix_with_name = true
 "CSparseTerm" = "QkObsTerm"
 "BitTerm" = "QkBitTerm"
 "Complex64" = "QkComplex64"
+"CircuitData" = "QkCircuit"
+"StandardGate" = "QkStandardGate"
+"OpCounts" = "QkOpCounts"
+"OpCount" = "QkOpCount"

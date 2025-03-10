@@ -1447,6 +1447,7 @@ dependencies = [
  "num-complex",
  "pyo3",
  "qiskit-accelerate",
+ "qiskit-circuit",
  "thiserror 2.0.12",
 ]
 
