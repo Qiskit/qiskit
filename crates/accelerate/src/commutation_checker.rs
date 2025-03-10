@@ -16,7 +16,7 @@ use ndarray::Array2;
 use num_complex::Complex64;
 use num_complex::ComplexFloat;
 use once_cell::sync::Lazy;
-use qiskit_circuit::bit_data::VarAsKey;
+use qiskit_circuit::bit_data::PyObjectAsKey;
 use smallvec::SmallVec;
 use std::fmt::Debug;
 
@@ -92,7 +92,7 @@ where
 {
     // Using `VarAsKey` here is a total hack, but this is a short-term workaround before a
     // larger refactor of the commutation checker.
-    let mut bitdata: BitData<T, VarAsKey> = BitData::new();
+    let mut bitdata: BitData<T, PyObjectAsKey> = BitData::new();
 
     for bit in bits1.iter().chain(bits2.iter()) {
         bitdata.add(bit.into(), false)?;

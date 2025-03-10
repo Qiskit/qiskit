@@ -20,7 +20,7 @@ use crate::bit::{
     BitLocations, ClassicalRegister, PyClassicalRegister, PyClbit, PyQubit, QuantumRegister,
     Register, ShareableClbit, ShareableQubit,
 };
-use crate::bit_data::{BitData, VarAsKey};
+use crate::bit_data::{BitData, PyObjectAsKey};
 use crate::bit_locator::BitLocator;
 use crate::circuit_data::CircuitData;
 use crate::circuit_instruction::{CircuitInstruction, OperationFromPython};
@@ -206,7 +206,7 @@ pub struct DAGCircuit {
     /// Clbits registered in the circuit.
     clbits: BitData<Clbit, ShareableClbit>,
     /// Variables registered in the circuit.
-    vars: BitData<Var, VarAsKey>,
+    vars: BitData<Var, PyObjectAsKey>,
     /// Global phase.
     global_phase: Param,
     /// Duration.
@@ -732,7 +732,7 @@ impl DAGCircuit {
         let binding = dict_state.get_item("vars")?.unwrap();
         let vars_raw = binding.downcast::<PyList>()?;
         for bit in vars_raw.iter() {
-            self.vars.add(VarAsKey::new(&bit), false)?;
+            self.vars.add(PyObjectAsKey::new(&bit), false)?;
         }
         let binding = dict_state.get_item("qubit_io_map")?.unwrap();
         let qubit_index_map_raw = binding.downcast::<PyDict>().unwrap();
@@ -2279,6 +2279,10 @@ impl DAGCircuit {
             return Ok(false);
         }
 
+        // {
+        //     let our_stretches = PySet::new(py, self.captured_stretches.values())?;
+        //     let their_stretches = PySet::new(py, self.their_stretches.values())?;
+        // }
         for (our_stretch, their_stretch) in self
             .captured_stretches
             .values()
@@ -2951,7 +2955,11 @@ impl DAGCircuit {
             self.dag.add_edge(
                 pred.source(),
                 succ.target(),
-                Wire::Var(self.vars.find(&VarAsKey::new(&contracted_var)).unwrap()),
+                Wire::Var(
+                    self.vars
+                        .find(&PyObjectAsKey::new(&contracted_var))
+                        .unwrap(),
+                ),
             );
         }
 
@@ -4116,7 +4124,7 @@ impl DAGCircuit {
             let wire = wire.extract::<ShareableClbit>()?;
             self.clbits.find(&wire).map(Wire::Clbit)
         } else {
-            let wire = VarAsKey::new(wire);
+            let wire = PyObjectAsKey::new(wire);
             self.vars.find(&wire).map(Wire::Var)
         }
         .ok_or_else(|| {
@@ -4803,7 +4811,7 @@ impl DAGCircuit {
 
     /// Returns an immutable view of the Variable wires registered in the circuit
     #[inline(always)]
-    pub fn vars(&self) -> &BitData<Var, VarAsKey> {
+    pub fn vars(&self) -> &BitData<Var, PyObjectAsKey> {
         &self.vars
     }
 
@@ -5098,7 +5106,7 @@ impl DAGCircuit {
                 input_nodes.push(
                     self.var_io_map[self
                         .vars
-                        .find(&VarAsKey::new(var.bind(py)))
+                        .find(&PyObjectAsKey::new(var.bind(py)))
                         .unwrap()
                         .index()][0],
                 );
@@ -5632,7 +5640,7 @@ impl DAGCircuit {
             } else if let Ok(clbit) = wire.extract::<ShareableClbit>() {
                 NodeType::ClbitIn(self.clbits.find(&clbit).unwrap())
             } else {
-                let var = VarAsKey::new(wire);
+                let var = PyObjectAsKey::new(wire);
                 NodeType::VarIn(self.vars.find(&var).unwrap())
             }
         } else if let Ok(out_node) = b.downcast::<DAGOutNode>() {
@@ -5643,7 +5651,7 @@ impl DAGCircuit {
             } else if let Ok(clbit) = wire.extract::<ShareableClbit>() {
                 NodeType::ClbitOut(self.clbits.find(&clbit).unwrap())
             } else {
-                let var = VarAsKey::new(wire);
+                let var = PyObjectAsKey::new(wire);
                 NodeType::VarIn(self.vars.find(&var).unwrap())
             }
         } else if let Ok(op_node) = b.downcast::<DAGOpNode>() {
