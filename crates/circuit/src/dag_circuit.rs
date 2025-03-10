@@ -20,7 +20,6 @@ use crate::bit::{
     BitLocations, ClassicalRegister, PyClassicalRegister, PyClbit, PyQubit, QuantumRegister,
     Register, ShareableClbit, ShareableQubit,
 };
-use crate::object_registry::{ObjectRegistry, PyObjectAsKey};
 use crate::bit_locator::BitLocator;
 use crate::circuit_data::CircuitData;
 use crate::circuit_instruction::{CircuitInstruction, OperationFromPython};
@@ -30,6 +29,7 @@ use crate::dot_utils::build_dot;
 use crate::error::DAGCircuitError;
 use crate::imports;
 use crate::interner::{Interned, InternedMap, Interner};
+use crate::object_registry::{ObjectRegistry, PyObjectAsKey};
 use crate::operations::{ArrayType, Operation, OperationRef, Param, PyInstruction, StandardGate};
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::register_data::RegisterData;
@@ -1573,12 +1573,16 @@ impl DAGCircuit {
             .map(|c| c.value.extract::<Vec<ShareableClbit>>())
             .transpose()?;
         let node = {
-            let qubits_id = self
-                .qargs_interner
-                .insert_owned(self.qubits.map_objects(qargs.into_iter().flatten())?.collect());
-            let clbits_id = self
-                .cargs_interner
-                .insert_owned(self.clbits.map_objects(cargs.into_iter().flatten())?.collect());
+            let qubits_id = self.qargs_interner.insert_owned(
+                self.qubits
+                    .map_objects(qargs.into_iter().flatten())?
+                    .collect(),
+            );
+            let clbits_id = self.cargs_interner.insert_owned(
+                self.clbits
+                    .map_objects(cargs.into_iter().flatten())?
+                    .collect(),
+            );
             let instr = PackedInstruction {
                 op: py_op.operation,
                 qubits: qubits_id,
@@ -1631,12 +1635,16 @@ impl DAGCircuit {
             .map(|c| c.value.extract::<Vec<ShareableClbit>>())
             .transpose()?;
         let node = {
-            let qubits_id = self
-                .qargs_interner
-                .insert_owned(self.qubits.map_objects(qargs.into_iter().flatten())?.collect());
-            let clbits_id = self
-                .cargs_interner
-                .insert_owned(self.clbits.map_objects(cargs.into_iter().flatten())?.collect());
+            let qubits_id = self.qargs_interner.insert_owned(
+                self.qubits
+                    .map_objects(qargs.into_iter().flatten())?
+                    .collect(),
+            );
+            let clbits_id = self.cargs_interner.insert_owned(
+                self.clbits
+                    .map_objects(cargs.into_iter().flatten())?
+                    .collect(),
+            );
             let instr = PackedInstruction {
                 op: py_op.operation,
                 qubits: qubits_id,
@@ -2317,7 +2325,14 @@ impl DAGCircuit {
                 .objects()
                 .into_pyobject(py)?
                 .try_iter()?
-                .chain(other.clbits.objects().clone().into_pyobject(py)?.try_iter()?)
+                .chain(
+                    other
+                        .clbits
+                        .objects()
+                        .clone()
+                        .into_pyobject(py)?
+                        .try_iter()?,
+                )
                 .enumerate()
                 .map(|(idx, bit)| -> PyResult<_> { Ok((bit?, idx)) });
             indices.collect::<PyResult<Vec<_>>>()?.into_py_dict(py)?

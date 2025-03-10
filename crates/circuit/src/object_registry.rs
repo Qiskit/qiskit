@@ -195,12 +195,18 @@ where
 
     /// Map the provided objects to their native indices.
     /// An error is returned if any object is not registered.
-    pub fn map_objects(&self, objects: impl IntoIterator<Item = B>) -> PyResult<impl Iterator<Item = T>> {
+    pub fn map_objects(
+        &self,
+        objects: impl IntoIterator<Item = B>,
+    ) -> PyResult<impl Iterator<Item = T>> {
         let v: Result<Vec<_>, _> = objects
             .into_iter()
             .map(|b| {
                 self.indices.get(&b).copied().ok_or_else(|| {
-                    PyKeyError::new_err(format!("Object {:?} has not been added to this circuit.", b))
+                    PyKeyError::new_err(format!(
+                        "Object {:?} has not been added to this circuit.",
+                        b
+                    ))
                 })
             })
             .collect();

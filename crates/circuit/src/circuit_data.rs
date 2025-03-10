@@ -19,12 +19,12 @@ use crate::bit::{
     BitLocations, ClassicalRegister, PyBit, QuantumRegister, Register, ShareableClbit,
     ShareableQubit,
 };
-use crate::object_registry::ObjectRegistry;
 use crate::bit_locator::BitLocator;
 use crate::circuit_instruction::{CircuitInstruction, OperationFromPython};
 use crate::dag_circuit::add_global_phase;
 use crate::imports::{ANNOTATED_OPERATION, QUANTUM_CIRCUIT};
 use crate::interner::{Interned, Interner};
+use crate::object_registry::ObjectRegistry;
 use crate::operations::{Operation, OperationRef, Param, StandardGate};
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter_table::{ParameterTable, ParameterTableError, ParameterUse, ParameterUuid};
