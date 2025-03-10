@@ -528,6 +528,8 @@ impl DAGCircuit {
         out_dict.set_item("qregs", self.qregs.clone_ref(py))?;
         out_dict.set_item("cregs", self.cregs.clone_ref(py))?;
         out_dict.set_item("global_phase", self.global_phase.clone())?;
+        out_dict.set_item("qubit_locations", self.qubit_locations.clone_ref(py))?;
+        out_dict.set_item("clbit_locations", self.clbit_locations.clone_ref(py))?;
         out_dict.set_item(
             "qubit_io_map",
             self.qubit_io_map
@@ -617,6 +619,8 @@ impl DAGCircuit {
         self.qregs = dict_state.get_item("qregs")?.unwrap().extract()?;
         self.cregs = dict_state.get_item("cregs")?.unwrap().extract()?;
         self.global_phase = dict_state.get_item("global_phase")?.unwrap().extract()?;
+        self.qubit_locations = dict_state.get_item("qubit_locations")?.unwrap().extract()?;
+        self.clbit_locations = dict_state.get_item("clbit_locations")?.unwrap().extract()?;
         self.op_names = dict_state.get_item("op_name")?.unwrap().extract()?;
         self.vars_by_type = dict_state.get_item("vars_by_type")?.unwrap().extract()?;
         let binding = dict_state.get_item("vars_info")?.unwrap();
