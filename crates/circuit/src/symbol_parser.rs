@@ -158,7 +158,7 @@ fn parse_unary(s: &str) -> IResult<&str, BinaryOpContainer> {
             Ok(BinaryOpContainer {
                 op: BinaryOp::Add,
                 expr: SymbolExpr::Unary {
-                    op: op,
+                    op,
                     expr: Box::new(expr.expr),
                 },
             })
