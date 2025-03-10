@@ -20,7 +20,7 @@ use crate::bit::{
     BitLocations, ClassicalRegister, PyClassicalRegister, PyClbit, PyQubit, QuantumRegister,
     Register, ShareableClbit, ShareableQubit,
 };
-use crate::bit_data::{BitData, PyObjectAsKey};
+use crate::object_registry::{ObjectRegistry, PyObjectAsKey};
 use crate::bit_locator::BitLocator;
 use crate::circuit_data::CircuitData;
 use crate::circuit_instruction::{CircuitInstruction, OperationFromPython};
@@ -202,11 +202,11 @@ pub struct DAGCircuit {
     /// The cache used to intern instruction cargs.
     pub cargs_interner: Interner<[Clbit]>,
     /// Qubits registered in the circuit.
-    qubits: BitData<Qubit, ShareableQubit>,
+    qubits: ObjectRegistry<Qubit, ShareableQubit>,
     /// Clbits registered in the circuit.
-    clbits: BitData<Clbit, ShareableClbit>,
+    clbits: ObjectRegistry<Clbit, ShareableClbit>,
     /// Variables registered in the circuit.
-    vars: BitData<Var, PyObjectAsKey>,
+    vars: ObjectRegistry<Var, PyObjectAsKey>,
     /// Global phase.
     global_phase: Param,
     /// Duration.
@@ -421,9 +421,9 @@ impl DAGCircuit {
             cregs: RegisterData::new(),
             qargs_interner: Interner::new(),
             cargs_interner: Interner::new(),
-            qubits: BitData::new(),
-            clbits: BitData::new(),
-            vars: BitData::new(),
+            qubits: ObjectRegistry::new(),
+            clbits: ObjectRegistry::new(),
+            vars: ObjectRegistry::new(),
             global_phase: Param::Float(0.),
             duration: None,
             unit: "dt".to_string(),
@@ -646,9 +646,9 @@ impl DAGCircuit {
                 .into_py_dict(py)?,
         )?;
         out_dict.set_item("vars_by_type", self.vars_by_type.clone())?;
-        out_dict.set_item("qubits", self.qubits.bits())?;
-        out_dict.set_item("clbits", self.clbits.bits())?;
-        out_dict.set_item("vars", self.vars.bits())?;
+        out_dict.set_item("qubits", self.qubits.objects())?;
+        out_dict.set_item("clbits", self.clbits.objects())?;
+        out_dict.set_item("vars", self.vars.objects())?;
         let mut nodes: Vec<PyObject> = Vec::with_capacity(self.dag.node_count());
         for node_idx in self.dag.node_indices() {
             let node_data = self.get_node(py, node_idx)?;
@@ -867,9 +867,9 @@ impl DAGCircuit {
     /// Return a list of the wires in order.
     #[getter]
     fn get_wires(&self, py: Python<'_>) -> PyResult<Py<PyList>> {
-        let wires: Bound<PyList> = PyList::new(py, self.qubits.bits().iter())?;
+        let wires: Bound<PyList> = PyList::new(py, self.qubits.objects().iter())?;
 
-        for clbit in self.clbits.bits().iter() {
+        for clbit in self.clbits.objects().iter() {
             wires.append(clbit)?
         }
 
@@ -1063,7 +1063,7 @@ impl DAGCircuit {
     ///         or is not idle.
     #[pyo3(signature = (*clbits))]
     fn remove_clbits(&mut self, py: Python, clbits: Vec<ShareableClbit>) -> PyResult<()> {
-        let bit_iter = match self.clbits.map_bits(clbits.iter().cloned()) {
+        let bit_iter = match self.clbits.map_objects(clbits.iter().cloned()) {
             Ok(bit_iter) => bit_iter,
             Err(_) => {
                 return Err(DAGCircuitError::new_err(format!(
@@ -1154,7 +1154,7 @@ impl DAGCircuit {
                     let carg_bits = old_clbits.map_indices(cargs).cloned();
                     op.clbits = self
                         .cargs_interner
-                        .insert_owned(self.clbits.map_bits(carg_bits)?.collect());
+                        .insert_owned(self.clbits.map_objects(carg_bits)?.collect());
                 }
                 NodeType::ClbitIn(c) | NodeType::ClbitOut(c) => {
                     *c = self.clbits.find(old_clbits.get(*c).unwrap()).unwrap();
@@ -1164,7 +1164,7 @@ impl DAGCircuit {
         }
 
         // Update bit locations.
-        for (i, bit) in self.clbits.bits().iter().enumerate() {
+        for (i, bit) in self.clbits.objects().iter().enumerate() {
             let raw_loc = self.clbit_locations.get_mut(bit).unwrap();
             raw_loc.index = i as u32;
         }
@@ -1232,7 +1232,7 @@ impl DAGCircuit {
     ///         or is not idle.
     #[pyo3(signature = (*qubits))]
     fn remove_qubits(&mut self, py: Python, qubits: Vec<ShareableQubit>) -> PyResult<()> {
-        let bit_iter = match self.qubits.map_bits(qubits.iter().cloned()) {
+        let bit_iter = match self.qubits.map_objects(qubits.iter().cloned()) {
             Ok(bit_iter) => bit_iter,
             Err(_) => {
                 return Err(DAGCircuitError::new_err(format!(
@@ -1319,7 +1319,7 @@ impl DAGCircuit {
                     let qarg_bits = old_qubits.map_indices(qargs).cloned();
                     op.qubits = self
                         .qargs_interner
-                        .insert_owned(self.qubits.map_bits(qarg_bits)?.collect());
+                        .insert_owned(self.qubits.map_objects(qarg_bits)?.collect());
                 }
                 NodeType::QubitIn(q) | NodeType::QubitOut(q) => {
                     *q = self.qubits.find(old_qubits.get(*q).unwrap()).unwrap();
@@ -1329,7 +1329,7 @@ impl DAGCircuit {
         }
 
         // Update bit locations.
-        for (i, bit) in self.qubits.bits().iter().enumerate() {
+        for (i, bit) in self.qubits.objects().iter().enumerate() {
             let raw_loc = self.qubit_locations.get_mut(bit).unwrap();
             raw_loc.index = i as u32;
         }
@@ -1449,10 +1449,10 @@ impl DAGCircuit {
         target_dag.qargs_interner = self.qargs_interner.clone();
         target_dag.cargs_interner = self.cargs_interner.clone();
 
-        for bit in self.qubits.bits() {
+        for bit in self.qubits.objects() {
             target_dag.add_qubit_unchecked(bit.clone())?;
         }
-        for bit in self.clbits.bits() {
+        for bit in self.clbits.objects() {
             target_dag.add_clbit_unchecked(bit.clone())?;
         }
         for reg in self.qregs.registers() {
@@ -1575,10 +1575,10 @@ impl DAGCircuit {
         let node = {
             let qubits_id = self
                 .qargs_interner
-                .insert_owned(self.qubits.map_bits(qargs.into_iter().flatten())?.collect());
+                .insert_owned(self.qubits.map_objects(qargs.into_iter().flatten())?.collect());
             let clbits_id = self
                 .cargs_interner
-                .insert_owned(self.clbits.map_bits(cargs.into_iter().flatten())?.collect());
+                .insert_owned(self.clbits.map_objects(cargs.into_iter().flatten())?.collect());
             let instr = PackedInstruction {
                 op: py_op.operation,
                 qubits: qubits_id,
@@ -1633,10 +1633,10 @@ impl DAGCircuit {
         let node = {
             let qubits_id = self
                 .qargs_interner
-                .insert_owned(self.qubits.map_bits(qargs.into_iter().flatten())?.collect());
+                .insert_owned(self.qubits.map_objects(qargs.into_iter().flatten())?.collect());
             let clbits_id = self
                 .cargs_interner
-                .insert_owned(self.clbits.map_bits(cargs.into_iter().flatten())?.collect());
+                .insert_owned(self.clbits.map_objects(cargs.into_iter().flatten())?.collect());
             let instr = PackedInstruction {
                 op: py_op.operation,
                 qubits: qubits_id,
@@ -1714,15 +1714,15 @@ impl DAGCircuit {
         // Number of qubits and clbits must match number in circuit or None
         let identity_qubit_map = other
             .qubits
-            .bits()
+            .objects()
             .iter()
-            .zip(slf.qubits.bits())
+            .zip(slf.qubits.objects())
             .into_py_dict(py)?;
         let identity_clbit_map = other
             .clbits
-            .bits()
+            .objects()
             .iter()
-            .zip(slf.clbits.bits())
+            .zip(slf.clbits.objects())
             .into_py_dict(py)?;
 
         let qubit_map: Bound<PyDict> = match qubits {
@@ -2306,10 +2306,10 @@ impl DAGCircuit {
         let self_bit_indices = {
             let indices = self
                 .qubits
-                .bits()
+                .objects()
                 .into_pyobject(py)?
                 .try_iter()?
-                .chain(self.clbits.bits().into_pyobject(py)?.try_iter()?)
+                .chain(self.clbits.objects().into_pyobject(py)?.try_iter()?)
                 .enumerate()
                 .map(|(idx, bit)| -> PyResult<_> { Ok((bit?, idx)) });
             indices.collect::<PyResult<Vec<_>>>()?.into_py_dict(py)?
@@ -2318,10 +2318,10 @@ impl DAGCircuit {
         let other_bit_indices = {
             let indices = other
                 .qubits
-                .bits()
+                .objects()
                 .into_pyobject(py)?
                 .try_iter()?
-                .chain(other.clbits.bits().clone().into_pyobject(py)?.try_iter()?)
+                .chain(other.clbits.objects().clone().into_pyobject(py)?.try_iter()?)
                 .enumerate()
                 .map(|(idx, bit)| -> PyResult<_> { Ok((bit?, idx)) });
             indices.collect::<PyResult<Vec<_>>>()?.into_py_dict(py)?
@@ -2341,8 +2341,8 @@ impl DAGCircuit {
             };
             if !self
                 .qubits
-                .map_bits(self_bits)?
-                .eq(other.qubits.map_bits(other_bits)?)
+                .map_objects(self_bits)?
+                .eq(other.qubits.map_objects(other_bits)?)
             {
                 return Ok(false);
             }
@@ -2363,8 +2363,8 @@ impl DAGCircuit {
             };
             if !self
                 .clbits
-                .map_bits(self_bits)?
-                .eq(other.clbits.map_bits(other_bits)?)
+                .map_objects(self_bits)?
+                .eq(other.clbits.map_objects(other_bits)?)
             {
                 return Ok(false);
             }
@@ -4799,19 +4799,19 @@ impl DAGCircuit {
 
     /// Returns an immutable view of the Qubits registered in the circuit
     #[inline(always)]
-    pub fn qubits(&self) -> &BitData<Qubit, ShareableQubit> {
+    pub fn qubits(&self) -> &ObjectRegistry<Qubit, ShareableQubit> {
         &self.qubits
     }
 
     /// Returns an immutable view of the Classical bits registered in the circuit
     #[inline(always)]
-    pub fn clbits(&self) -> &BitData<Clbit, ShareableClbit> {
+    pub fn clbits(&self) -> &ObjectRegistry<Clbit, ShareableClbit> {
         &self.clbits
     }
 
     /// Returns an immutable view of the Variable wires registered in the circuit
     #[inline(always)]
-    pub fn vars(&self) -> &BitData<Var, PyObjectAsKey> {
+    pub fn vars(&self) -> &ObjectRegistry<Var, PyObjectAsKey> {
         &self.vars
     }
 
@@ -5658,7 +5658,7 @@ impl DAGCircuit {
             let op_node = op_node.borrow();
             let qubits = self.qargs_interner.insert_owned(
                 self.qubits
-                    .map_bits(
+                    .map_objects(
                         op_node
                             .instruction
                             .qubits
@@ -5669,7 +5669,7 @@ impl DAGCircuit {
             );
             let clbits = self.cargs_interner.insert_owned(
                 self.clbits
-                    .map_bits(
+                    .map_objects(
                         op_node
                             .instruction
                             .clbits
@@ -6218,9 +6218,9 @@ impl DAGCircuit {
             cregs: RegisterData::new(),
             qargs_interner: Interner::with_capacity(num_qubits),
             cargs_interner: Interner::with_capacity(num_clbits),
-            qubits: BitData::with_capacity(num_qubits),
-            clbits: BitData::with_capacity(num_clbits),
-            vars: BitData::with_capacity(num_vars),
+            qubits: ObjectRegistry::with_capacity(num_qubits),
+            clbits: ObjectRegistry::with_capacity(num_clbits),
+            vars: ObjectRegistry::with_capacity(num_vars),
             global_phase: Param::Float(0.),
             duration: None,
             unit: "dt".to_string(),
@@ -6681,7 +6681,7 @@ impl DAGCircuit {
         } else {
             qc_data
                 .qubits()
-                .bits()
+                .objects()
                 .iter()
                 .try_for_each(|qubit| -> PyResult<_> {
                     new_dag.add_qubit_unchecked(qubit.clone())?;
@@ -6715,7 +6715,7 @@ impl DAGCircuit {
         } else {
             qc_data
                 .clbits()
-                .bits()
+                .objects()
                 .iter()
                 .try_for_each(|clbit| -> PyResult<()> {
                     new_dag.add_clbit_unchecked(clbit.clone())?;
@@ -6840,12 +6840,12 @@ impl DAGCircuit {
                                     let target_clbit: ShareableClbit = target.extract()?;
                                     block_cargs.insert(self.clbits.find(&target_clbit).unwrap());
                                 } else if target.is_instance_of::<PyClassicalRegister>() {
-                                    block_cargs.extend(self.clbits.map_bits(
+                                    block_cargs.extend(self.clbits.map_objects(
                                         target.extract::<Vec<ShareableClbit>>()?.into_iter(),
                                     )?);
                                 } else {
                                     block_cargs.extend(
-                                        self.clbits.map_bits(
+                                        self.clbits.map_objects(
                                             self.control_flow_module
                                                 .node_resources(&target)?
                                                 .clbits

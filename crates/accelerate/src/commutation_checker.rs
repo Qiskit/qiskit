@@ -16,7 +16,7 @@ use ndarray::Array2;
 use num_complex::Complex64;
 use num_complex::ComplexFloat;
 use once_cell::sync::Lazy;
-use qiskit_circuit::bit_data::PyObjectAsKey;
+use qiskit_circuit::object_registry::PyObjectAsKey;
 use smallvec::SmallVec;
 use std::fmt::Debug;
 
@@ -27,7 +27,7 @@ use pyo3::prelude::*;
 use pyo3::types::{PyBool, PyDict, PySequence, PyTuple};
 use pyo3::BoundObject;
 
-use qiskit_circuit::bit_data::BitData;
+use qiskit_circuit::object_registry::ObjectRegistry;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::dag_node::DAGOpNode;
 use qiskit_circuit::imports::QI_OPERATOR;
@@ -92,7 +92,7 @@ where
 {
     // Using `VarAsKey` here is a total hack, but this is a short-term workaround before a
     // larger refactor of the commutation checker.
-    let mut bitdata: BitData<T, PyObjectAsKey> = BitData::new();
+    let mut bitdata: ObjectRegistry<T, PyObjectAsKey> = ObjectRegistry::new();
 
     for bit in bits1.iter().chain(bits2.iter()) {
         bitdata.add(bit.into(), false)?;
@@ -100,10 +100,10 @@ where
 
     Ok((
         bitdata
-            .map_bits(bits1.iter().map(|bit| bit.into()))?
+            .map_objects(bits1.iter().map(|bit| bit.into()))?
             .collect(),
         bitdata
-            .map_bits(bits2.iter().map(|bit| bit.into()))?
+            .map_objects(bits2.iter().map(|bit| bit.into()))?
             .collect(),
     ))
 }
