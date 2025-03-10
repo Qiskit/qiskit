@@ -346,7 +346,7 @@ fn reject_new_register(reg: &Bound<PyAny>) -> PyResult<()> {
 
 #[pyclass(module = "qiskit._accelerate.circuit")]
 #[derive(Clone, Debug)]
-struct BitLocations {
+pub(crate) struct BitLocations {
     #[pyo3(get)]
     index: usize,
     #[pyo3(get)]
