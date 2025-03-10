@@ -2279,10 +2279,6 @@ impl DAGCircuit {
             return Ok(false);
         }
 
-        // {
-        //     let our_stretches = PySet::new(py, self.captured_stretches.values())?;
-        //     let their_stretches = PySet::new(py, self.their_stretches.values())?;
-        // }
         for (our_stretch, their_stretch) in self
             .captured_stretches
             .values()
