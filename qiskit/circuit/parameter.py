@@ -16,12 +16,14 @@ Parameter Class for variable parameters.
 from __future__ import annotations
 
 from uuid import uuid4, UUID
+import numpy
 
-import symengine
-
+import qiskit._accelerate.circuit
 from qiskit.circuit.exceptions import CircuitError
 
 from .parameterexpression import ParameterExpression
+
+SymbolExpr = qiskit._accelerate.circuit.PySymbolExpr
 
 
 class Parameter(ParameterExpression):
@@ -81,7 +83,7 @@ class Parameter(ParameterExpression):
                 allows them to be equal.  This is useful during serialization and deserialization.
         """
         self._uuid = uuid4() if uuid is None else uuid
-        symbol = symengine.Symbol(name)
+        symbol = SymbolExpr.Symbol(name)
 
         self._symbol_expr = symbol
         self._parameter_keys = frozenset((self._hash_key(),))
@@ -101,9 +103,13 @@ class Parameter(ParameterExpression):
         if isinstance(value, ParameterExpression):
             # This is the `super().subs` case.
             return value
+        # numpy.complex128 has issue in passing pyo3 with Complex64
+        # so we call specialized function for numpy.complex128
+        if isinstance(value, numpy.complex128):
+            return ParameterExpression({}, SymbolExpr.Complex(value))
         # This is the `super().bind` case, where we're required to return a `ParameterExpression`,
         # so we need to lift the given value to a symbolic expression.
-        return ParameterExpression({}, symengine.sympify(value))
+        return ParameterExpression({}, SymbolExpr.Value(value))
 
     def subs(self, parameter_map: dict, allow_unknown_parameters: bool = False):
         """Substitute self with the corresponding parameter in ``parameter_map``."""

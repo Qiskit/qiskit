@@ -1,0 +1,8 @@
+---
+features_circuits:
+  - |
+    Added a Qiskit native symbolic expression implementation to replace
+    the previous use of ``symengine``. This removes the dependency on an
+    external library for using :class:`.ParameterExpression`. This simplifies
+    the installation experience and also enables future extended usage of
+    the object.
