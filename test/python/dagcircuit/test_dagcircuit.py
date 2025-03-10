@@ -185,7 +185,7 @@ class TestDagRegisters(QiskitTestCase):
         self.assertEqual(output.find_bit(output.clbits[0]).registers, [(cr, 0)])
 
     def test_deepcopy_bit_locations_with_reg(self):
-        """Test bit locations preserved through pickle."""
+        """Test bit locations preserved through deepcopy."""
         dag = DAGCircuit()
         qr = QuantumRegister(2, "qr")
         cr = ClassicalRegister(1, "cr")
@@ -202,7 +202,7 @@ class TestDagRegisters(QiskitTestCase):
         self.assertEqual(output.find_bit(output.clbits[0]).registers, [(cr, 0)])
 
     def test_pickle_bit_locations_with_no_reg(self):
-        """Test bit locations preserved through pickle."""
+        """Test bit locations with no registers preserved through pickle."""
         dag = DAGCircuit()
         qubits = [Qubit(), Qubit()]
         clbits = [Clbit()]
@@ -222,7 +222,7 @@ class TestDagRegisters(QiskitTestCase):
         self.assertEqual(output.find_bit(output.clbits[0]).registers, [])
 
     def test_deepcopy_bit_locations_with_no_reg(self):
-        """Test bit locations preserved through pickle."""
+        """Test bit locations with no registers preserved through deepcopy."""
         dag = DAGCircuit()
         qubits = [Qubit(), Qubit()]
         clbits = [Clbit()]
