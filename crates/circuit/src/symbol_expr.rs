@@ -1030,7 +1030,7 @@ impl SymbolExpr {
             // if neg operation, call sub_opt
             if let SymbolExpr::Unary { op, expr } = rhs {
                 if let UnaryOp::Neg = op {
-                    return self.sub_opt(&expr, recursive);
+                    return self.sub_opt(expr, recursive);
                 }
             } else if recursive {
                 if let SymbolExpr::Binary {
