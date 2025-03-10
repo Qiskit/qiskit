@@ -53,14 +53,6 @@ features = ["union", "const_generics"]
 workspace = true
 features = ["nalgebra"]
 
-[dependencies.approx]
-workspace = true
-features = ["num-complex"]
-
-[dependencies.ndarray]
-workspace = true
-features = ["rayon", "approx"]
-
 [features]
 cache_pygates = []
 
