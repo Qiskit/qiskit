@@ -19,7 +19,7 @@ use crate::bit::{
     BitLocations, ClassicalRegister, PyBit, QuantumRegister, Register, ShareableClbit,
     ShareableQubit,
 };
-use crate::bit_data::BitData;
+use crate::object_registry::ObjectRegistry;
 use crate::bit_locator::BitLocator;
 use crate::circuit_instruction::{CircuitInstruction, OperationFromPython};
 use crate::dag_circuit::add_global_phase;
@@ -116,9 +116,9 @@ pub struct CircuitData {
     /// The cache used to intern instruction bits.
     cargs_interner: Interner<[Clbit]>,
     /// Qubits registered in the circuit.
-    qubits: BitData<Qubit, ShareableQubit>,
+    qubits: ObjectRegistry<Qubit, ShareableQubit>,
     /// Clbits registered in the circuit.
-    clbits: BitData<Clbit, ShareableClbit>,
+    clbits: ObjectRegistry<Clbit, ShareableClbit>,
     /// QuantumRegisters stored in the circuit
     qregs: RegisterData<QuantumRegister>,
     /// ClassicalRegisters stored in the circuit
@@ -150,8 +150,8 @@ impl CircuitData {
             data: Vec::new(),
             qargs_interner: Interner::new(),
             cargs_interner: Interner::new(),
-            qubits: BitData::new(),
-            clbits: BitData::new(),
+            qubits: ObjectRegistry::new(),
+            clbits: ObjectRegistry::new(),
             param_table: ParameterTable::new(),
             global_phase: Param::Float(0.),
             qregs: RegisterData::new(),
@@ -182,8 +182,8 @@ impl CircuitData {
         let args = {
             let self_ = self_.borrow();
             (
-                (!self_.qubits.is_empty()).then_some(self_.qubits.bits().clone()),
-                (!self_.clbits.is_empty()).then_some(self_.clbits.bits().clone()),
+                (!self_.qubits.is_empty()).then_some(self_.qubits.objects().clone()),
+                (!self_.clbits.is_empty()).then_some(self_.clbits.objects().clone()),
                 None::<()>,
                 self_.data.len(),
                 self_.global_phase.clone(),
@@ -247,7 +247,7 @@ impl CircuitData {
             self.add_qreg(register, true)?;
         }
 
-        for (index, qubit) in self.qubits.bits().iter().enumerate() {
+        for (index, qubit) in self.qubits.objects().iter().enumerate() {
             if !self.qubit_indices.contains_key(qubit) {
                 self.qubit_indices
                     .insert(qubit.clone(), BitLocations::new(index as u32, []));
@@ -308,7 +308,7 @@ impl CircuitData {
             self.add_creg(register, true)?;
         }
 
-        for (index, clbit) in self.clbits.bits().iter().enumerate() {
+        for (index, clbit) in self.clbits.objects().iter().enumerate() {
             if !self.clbit_indices.contains_key(clbit) {
                 self.clbit_indices
                     .insert(clbit.clone(), BitLocations::new(index as u32, []));
@@ -533,8 +533,8 @@ impl CircuitData {
     pub fn copy_empty_like(&self, py: Python<'_>) -> PyResult<Self> {
         let mut res = CircuitData::new(
             py,
-            Some(self.qubits.bits().clone()),
-            Some(self.clbits.bits().clone()),
+            Some(self.qubits.objects().clone()),
+            Some(self.clbits.objects().clone()),
             None,
             0,
             self.global_phase.clone(),
@@ -1159,7 +1159,7 @@ impl CircuitData {
     ) -> PyResult<Vec<ShareableQubit>> {
         bit_argument_conversion(
             &qubit_representation,
-            self.qubits.bits(),
+            self.qubits.objects(),
             &self.qubit_indices,
         )
     }
@@ -1178,7 +1178,7 @@ impl CircuitData {
     ) -> PyResult<Vec<ShareableClbit>> {
         bit_argument_conversion(
             &clbit_representation,
-            self.clbits.bits(),
+            self.clbits.objects(),
             &self.clbit_indices,
         )
     }
@@ -1294,8 +1294,8 @@ impl CircuitData {
     #[allow(clippy::too_many_arguments)]
     pub fn from_packed_instructions<I>(
         py: Python,
-        qubits: BitData<Qubit, ShareableQubit>,
-        clbits: BitData<Clbit, ShareableClbit>,
+        qubits: ObjectRegistry<Qubit, ShareableQubit>,
+        clbits: ObjectRegistry<Clbit, ShareableClbit>,
         qargs_interner: Interner<[Qubit]>,
         cargs_interner: Interner<[Clbit]>,
         qregs: RegisterData<QuantumRegister>,
@@ -1399,8 +1399,8 @@ impl CircuitData {
             data: Vec::with_capacity(instruction_capacity),
             qargs_interner: Interner::new(),
             cargs_interner: Interner::new(),
-            qubits: BitData::with_capacity(num_qubits as usize),
-            clbits: BitData::with_capacity(num_clbits as usize),
+            qubits: ObjectRegistry::with_capacity(num_qubits as usize),
+            clbits: ObjectRegistry::with_capacity(num_clbits as usize),
             param_table: ParameterTable::new(),
             global_phase: Param::Float(0.0),
             qregs: RegisterData::new(),
@@ -1553,12 +1553,12 @@ impl CircuitData {
     fn pack(&mut self, py: Python, inst: &CircuitInstruction) -> PyResult<PackedInstruction> {
         let qubits = self.qargs_interner.insert_owned(
             self.qubits
-                .map_bits(inst.qubits.extract::<Vec<ShareableQubit>>(py)?.into_iter())?
+                .map_objects(inst.qubits.extract::<Vec<ShareableQubit>>(py)?.into_iter())?
                 .collect(),
         );
         let clbits = self.cargs_interner.insert_owned(
             self.clbits
-                .map_bits(inst.clbits.extract::<Vec<ShareableClbit>>(py)?.into_iter())?
+                .map_objects(inst.clbits.extract::<Vec<ShareableClbit>>(py)?.into_iter())?
                 .collect(),
         );
         Ok(PackedInstruction {
@@ -1637,12 +1637,12 @@ impl CircuitData {
     }
 
     /// Returns an immutable view of the Qubits registered in the circuit
-    pub fn qubits(&self) -> &BitData<Qubit, ShareableQubit> {
+    pub fn qubits(&self) -> &ObjectRegistry<Qubit, ShareableQubit> {
         &self.qubits
     }
 
     /// Returns an immutable view of the Classical bits registered in the circuit
-    pub fn clbits(&self) -> &BitData<Clbit, ShareableClbit> {
+    pub fn clbits(&self) -> &ObjectRegistry<Clbit, ShareableClbit> {
         &self.clbits
     }
 

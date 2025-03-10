@@ -11,7 +11,7 @@
 // that they have been altered from the originals.
 
 pub mod bit;
-pub mod bit_data;
+pub mod object_registry;
 pub mod bit_locator;
 pub mod circuit_data;
 pub mod circuit_instruction;
