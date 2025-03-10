@@ -20,8 +20,6 @@ import struct
 import uuid
 
 import numpy as np
-import symengine
-
 
 from qiskit.circuit import CASE_DEFAULT, Clbit, ClassicalRegister, Duration
 from qiskit.circuit.classical import expr, types
