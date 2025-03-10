@@ -459,7 +459,7 @@ fn cx_replacement_dag(py: Python) -> PyResult<DAGCircuit> {
 
 fn ecr_replacement_dag(py: Python) -> PyResult<DAGCircuit> {
     let new_dag = &mut DAGCircuit::new(py)?;
-    new_dag.add_global_phase(py, &Param::Float(-PI / 2.0))?;
+    new_dag.add_global_phase(&Param::Float(-PI / 2.0))?;
     let qargs = add_qreg(new_dag, 2)?;
     let qargs = qargs.as_slice();
 
