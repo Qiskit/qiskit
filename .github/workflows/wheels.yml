@@ -2,6 +2,7 @@
 name: Deploy release artifacts
 on:
   push:
+    branches: ['dnm-retrigger-fix-build']
     tags:
       - '*'
 jobs:
