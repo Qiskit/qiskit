@@ -29,6 +29,14 @@ nom-unicode.workspace = true
 workspace = true
 features = ["hashbrown", "indexmap", "num-complex", "num-bigint", "smallvec", "py-clone"]
 
+[dependencies.approx]
+workspace = true
+features = ["num-complex"]
+
+[dependencies.ndarray]
+workspace = true
+features = ["rayon", "approx"]
+
 [dependencies.hashbrown]
 workspace = true
 features = ["rayon"]

@@ -180,7 +180,7 @@ class TestDagRegisters(QiskitTestCase):
         """add_qreg with a classical register is not allowed."""
         dag = DAGCircuit()
         cr = ClassicalRegister(2)
-        self.assertRaises(DAGCircuitError, dag.add_qreg, cr)
+        self.assertRaises((DAGCircuitError, TypeError), dag.add_qreg, cr)
 
     def test_add_qubits_invalid_qubits(self):
         """Verify we raise if pass not a Qubit."""
@@ -388,7 +388,7 @@ class TestDagWireRemoval(QiskitTestCase):
     def test_remove_unknown_creg(self):
         """Classical register removal of unknown registers raises."""
         unknown_creg = ClassicalRegister(1)
-        with self.assertRaisesRegex(DAGCircuitError, ".*cregs not in circuit.*"):
+        with self.assertRaisesRegex(DAGCircuitError, ".*creg not in circuit.*"):
             self.dag.remove_cregs(unknown_creg)
 
         self.assert_cregs_equal(self.original_cregs)
@@ -853,9 +853,9 @@ class TestDagNodeSelection(QiskitTestCase):
 
     def test_apply_operation_reject_invalid_qarg_carg(self):
         """Test that we can't add a carg to qargs and vice versa on apply methods"""
-        with self.assertRaises(KeyError):
+        with self.assertRaises((KeyError, TypeError)):
             self.dag.apply_operation_back(Measure(), [self.clbit1], [self.qubit1])
-        with self.assertRaises(KeyError):
+        with self.assertRaises((KeyError, TypeError)):
             self.dag.apply_operation_front(Measure(), [self.clbit1], [self.qubit1])
 
     def test_classical_successors(self):

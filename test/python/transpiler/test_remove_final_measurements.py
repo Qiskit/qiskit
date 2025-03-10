@@ -15,7 +15,7 @@
 import unittest
 
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
-from qiskit.circuit.classicalregister import Clbit
+from qiskit.circuit import Clbit
 from qiskit.transpiler.passes import RemoveFinalMeasurements
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.passes.utils.remove_final_measurements import calc_final_ops

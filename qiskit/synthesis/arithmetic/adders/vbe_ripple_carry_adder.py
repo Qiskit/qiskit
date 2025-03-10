@@ -13,10 +13,10 @@
 """Compute the sum of two qubit registers using Classical Addition."""
 
 from __future__ import annotations
-from qiskit.circuit.bit import Bit
+from qiskit.circuit import Bit
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.quantumregister import QuantumRegister, AncillaRegister
+from qiskit.circuit import QuantumRegister, AncillaRegister
 
 
 def adder_ripple_v95(num_state_qubits: int, kind: str = "half") -> QuantumCircuit:

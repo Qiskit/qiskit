@@ -21,15 +21,14 @@ use pyo3::types::PyAny;
 use pyo3::types::PyTuple;
 use pyo3::Bound;
 use pyo3::IntoPyObjectExt;
+use qiskit_circuit::bit::ShareableQubit;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::converters::QuantumCircuitData;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::gate_matrix::CX_GATE;
-use qiskit_circuit::imports::{
-    HLS_SYNTHESIZE_OP_USING_PLUGINS, QS_DECOMPOSITION, QUANTUM_CIRCUIT, QUBIT,
-};
+use qiskit_circuit::imports::{HLS_SYNTHESIZE_OP_USING_PLUGINS, QS_DECOMPOSITION, QUANTUM_CIRCUIT};
 use qiskit_circuit::operations::Operation;
 use qiskit_circuit::operations::OperationRef;
 use qiskit_circuit::operations::StandardGate;
@@ -603,15 +602,11 @@ fn run_on_circuitdata(
                 // If the synthesized circuit uses (auxiliary) global qubits that are not in the output circuit,
                 // we add these qubits to the output circuit.
                 if synthesized_circuit_qubits.len() > op_qubits.len() {
-                    let qubit_cls = QUBIT.get_bound(py);
-
                     for q in &synthesized_circuit_qubits {
                         if !global_to_local.contains_key(q) {
-                            let new_qubit_index = output_qubits.len();
-                            let bit = qubit_cls.call0()?;
-                            global_to_local.insert(*q, new_qubit_index);
+                            global_to_local.insert(*q, output_qubits.len());
                             output_qubits.push(*q);
-                            output_circuit.add_qubit(py, &bit, false)?;
+                            output_circuit.add_qubit(ShareableQubit::new_anonymous(), false)?;
                         }
                     }
                 }

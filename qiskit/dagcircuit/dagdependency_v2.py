@@ -28,7 +28,7 @@ from qiskit.circuit import (
     ParameterExpression,
 )
 from qiskit.circuit.controlflow import condition_resources
-from qiskit.circuit.bit import Bit
+from qiskit.circuit import Bit
 from qiskit.dagcircuit.dagnode import DAGOpNode
 from qiskit.dagcircuit.exceptions import DAGDependencyError
 from qiskit.circuit.commutation_checker import CommutationChecker
