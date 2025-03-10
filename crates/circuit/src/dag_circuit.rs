@@ -355,13 +355,13 @@ struct BitLocations {
 
 #[pymethods]
 impl BitLocations {
-    fn __getstate__(&self, py: Python) -> (usize, Py<PyList>) {
-        (self.index, self.registers.clone_ref(py))
+    #[new]
+    fn new(index: usize, registers: Py<PyList>) -> Self {
+        Self { index, registers }
     }
 
-    fn __setstate__(&mut self, state: (usize, Py<PyList>)) {
-        self.index = state.0;
-        self.registers = state.1;
+    fn __getnewargs__(&self, py: Python) -> (usize, Py<PyList>) {
+        (self.index, self.registers.clone_ref(py))
     }
 }
 
