@@ -443,6 +443,7 @@ class TemplateSubstitution:
         self.dag_dep_optimized = dag_dep_opt
         self.dag_optimized = dagdependency_to_dag(dag_dep_opt)
 
+    @_optionals.HAS_SYMPY.require_in_call("Bind parameters in templates")
     def _attempt_bind(self, template_sublist, circuit_sublist):
         """
         Copies the template and attempts to bind any parameters,

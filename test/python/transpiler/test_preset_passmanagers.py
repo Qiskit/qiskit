@@ -39,7 +39,7 @@ from qiskit.transpiler.passes import (
 )
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.converters import circuit_to_dag
-from qiskit.circuit.library import GraphStateGate
+from qiskit.circuit.library import GraphStateGate, UnitaryGate
 from qiskit.quantum_info import random_unitary
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.transpiler.preset_passmanagers import level0, level1, level2, level3
@@ -163,16 +163,18 @@ class TestPresetPassManager(QiskitTestCase):
         self.assertEqual(result, circuit)
 
     @combine(level=[0, 1, 2, 3], name="level{level}")
-    def test_unitary_is_preserved_if_in_basis(self, level):
+    def test_unitary_is_preserved_if_in_basis_lala(self, level):
         """Test that a unitary is not synthesized if in the basis."""
         qc = QuantumCircuit(2)
-        qc.unitary(random_unitary(4, seed=42), [0, 1])
+        ugate = UnitaryGate(random_unitary(4, seed=42))
+        qc.append(ugate, [0, 1])
         qc.measure_all()
-        with self.assertWarnsRegex(
-            DeprecationWarning,
-            "Providing non-standard gates \\(unitary\\) through the ``basis_gates`` argument",
-        ):
-            result = transpile(qc, basis_gates=["cx", "u", "unitary"], optimization_level=level)
+        target = Target.from_configuration(
+            num_qubits=2,
+            basis_gates=["cx", "u", "unitary", "measure"],
+            custom_name_mapping={"unitary": ugate},
+        )
+        result = transpile(qc, target=target, optimization_level=level)
         self.assertEqual(result, qc)
 
     @combine(level=[0, 1, 2, 3], name="level{level}")
@@ -188,18 +190,20 @@ class TestPresetPassManager(QiskitTestCase):
     def test_unitary_is_preserved_if_in_basis_synthesis_translation(self, level):
         """Test that a unitary is not synthesized if in the basis with synthesis translation."""
         qc = QuantumCircuit(2)
-        qc.unitary(random_unitary(4, seed=424242), [0, 1])
+        ugate = UnitaryGate(random_unitary(4, seed=424242))
+        qc.unitary(ugate, [0, 1])
         qc.measure_all()
-        with self.assertWarnsRegex(
-            DeprecationWarning,
-            "Providing non-standard gates \\(unitary\\) through the ``basis_gates`` argument",
-        ):
-            result = transpile(
-                qc,
-                basis_gates=["cx", "u", "unitary"],
-                optimization_level=level,
-                translation_method="synthesis",
-            )
+        target = Target.from_configuration(
+            num_qubits=2,
+            basis_gates=["cx", "u", "unitary", "measure"],
+            custom_name_mapping={"unitary": ugate},
+        )
+        result = transpile(
+            qc,
+            target=target,
+            optimization_level=level,
+            translation_method="synthesis",
+        )
         self.assertEqual(result, qc)
 
     @combine(level=[0, 1, 2, 3], name="level{level}")
@@ -712,7 +716,7 @@ class TestInitialLayouts(QiskitTestCase):
     @data(0, 1, 2, 3)
     def test_layout_1711(self, level):
         """Test that a user-given initial layout is respected
-        in the qobj.
+        in the output.
 
         See: https://github.com/Qiskit/qiskit-terra/issues/1711
         """
@@ -1240,19 +1244,12 @@ class TestGeneratePresetPassManagers(QiskitTestCase):
     def test_with_no_backend(self, optimization_level):
         """Test a passmanager is constructed with no backend and optimization level."""
         target = GenericBackendV2(num_qubits=7, coupling_map=LAGOS_CMAP, seed=42)
-        with self.assertWarnsRegex(
-            DeprecationWarning,
-            expected_regex="The `target` parameter should be used instead",
-        ):
-            pm = generate_preset_pass_manager(
-                optimization_level,
-                coupling_map=target.coupling_map,
-                basis_gates=target.operation_names,
-                inst_map=target.instruction_schedule_map,
-                instruction_durations=target.instruction_durations,
-                timing_constraints=target.target.timing_constraints(),
-                target=target.target,
-            )
+        pm = generate_preset_pass_manager(
+            optimization_level,
+            coupling_map=target.coupling_map,
+            basis_gates=target.operation_names,
+            target=target.target,
+        )
         self.assertIsInstance(pm, PassManager)
 
     @data(0, 1, 2, 3)
@@ -1680,27 +1677,26 @@ class TestIntegrationControlFlow(QiskitTestCase):
     @data(0, 1, 2, 3)
     def test_custom_basis_gates_raise(self, optimization_level):
         """Test that trying to provide a list of custom basis gates to generate_preset_pass_manager
-        raises a deprecation warning."""
+        raises a ValueError."""
 
-        with self.subTest(msg="no warning"):
+        with self.subTest(msg="no error"):
             # check that the warning isn't raised if the basis gates aren't custom
             basis_gates = ["x", "cx"]
             _ = generate_preset_pass_manager(
                 optimization_level=optimization_level, basis_gates=basis_gates
             )
 
-        with self.subTest(msg="warning only basis gates"):
+        with self.subTest(msg="error only basis gates"):
             # check that the warning is raised if they are custom
             basis_gates = ["my_gate"]
-            with self.assertWarnsRegex(
-                DeprecationWarning,
-                "Providing non-standard gates \\(my_gate\\) through the ``basis_gates`` argument",
+            with self.assertRaises(
+                ValueError,
             ):
                 _ = generate_preset_pass_manager(
                     optimization_level=optimization_level, basis_gates=basis_gates
                 )
 
-        with self.subTest(msg="no warning custom basis gates in backend"):
+        with self.subTest(msg="no error custom basis gates in backend"):
             # check that the warning is not raised if a loose custom gate is found in the backend
             backend = GenericBackendV2(num_qubits=2)
             gate = Gate(name="my_gate", num_qubits=1, params=[])

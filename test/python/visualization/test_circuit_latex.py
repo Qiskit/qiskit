@@ -441,7 +441,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
             seed_transpiler=0,
         )
 
-        circuit_drawer(transpiled, filename=filename, output="latex_source")
+        circuit_drawer(transpiled, filename=filename, output="latex_source", idle_wires=True)
 
         self.assertEqualToReference(filename)
 

@@ -112,149 +112,6 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         )
         self.assertGreaterEqual(ratio, self.threshold)
 
-    def test_calibrations(self):
-        """Test calibrations annotations
-        See https://github.com/Qiskit/qiskit-terra/issues/5920
-        """
-
-        circuit = QuantumCircuit(2, 2)
-        circuit.h(0)
-
-        from qiskit import pulse
-
-        with self.assertWarns(DeprecationWarning):
-            with pulse.build(name="hadamard") as h_q0:
-                pulse.play(
-                    pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.DriveChannel(0)
-                )
-
-            circuit.add_calibration("h", [0], h_q0)
-
-        fname = "calibrations.png"
-        self.circuit_drawer(circuit, output="mpl", filename=fname)
-
-        ratio = VisualTestUtilities._save_diff(
-            self._image_path(fname),
-            self._reference_path(fname),
-            fname,
-            FAILURE_DIFF_DIR,
-            FAILURE_PREFIX,
-        )
-        self.assertGreaterEqual(ratio, self.threshold)
-
-    def test_calibrations_with_control_gates(self):
-        """Test calibrations annotations
-        See https://github.com/Qiskit/qiskit-terra/issues/5920
-        """
-
-        circuit = QuantumCircuit(2, 2)
-        circuit.cx(0, 1)
-        circuit.ch(0, 1)
-
-        from qiskit import pulse
-
-        with self.assertWarns(DeprecationWarning):
-            with pulse.build(name="cnot") as cx_q01:
-                pulse.play(
-                    pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.DriveChannel(1)
-                )
-
-            circuit.add_calibration("cx", [0, 1], cx_q01)
-
-            with pulse.build(name="ch") as ch_q01:
-                pulse.play(
-                    pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.DriveChannel(1)
-                )
-
-            circuit.add_calibration("ch", [0, 1], ch_q01)
-
-        fname = "calibrations_with_control_gates.png"
-        self.circuit_drawer(circuit, output="mpl", filename=fname)
-
-        ratio = VisualTestUtilities._save_diff(
-            self._image_path(fname),
-            self._reference_path(fname),
-            fname,
-            FAILURE_DIFF_DIR,
-            FAILURE_PREFIX,
-        )
-        self.assertGreaterEqual(ratio, self.threshold)
-
-    def test_calibrations_with_swap_and_reset(self):
-        """Test calibrations annotations
-        See https://github.com/Qiskit/qiskit-terra/issues/5920
-        """
-
-        circuit = QuantumCircuit(2, 2)
-        circuit.swap(0, 1)
-        circuit.reset(0)
-
-        from qiskit import pulse
-
-        with self.assertWarns(DeprecationWarning):
-            with pulse.build(name="swap") as swap_q01:
-                pulse.play(
-                    pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.DriveChannel(1)
-                )
-
-            circuit.add_calibration("swap", [0, 1], swap_q01)
-
-            with pulse.build(name="reset") as reset_q0:
-                pulse.play(
-                    pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.DriveChannel(1)
-                )
-
-            circuit.add_calibration("reset", [0], reset_q0)
-
-        fname = "calibrations_with_swap_and_reset.png"
-        self.circuit_drawer(circuit, output="mpl", filename=fname)
-
-        ratio = VisualTestUtilities._save_diff(
-            self._image_path(fname),
-            self._reference_path(fname),
-            fname,
-            FAILURE_DIFF_DIR,
-            FAILURE_PREFIX,
-        )
-        self.assertGreaterEqual(ratio, self.threshold)
-
-    def test_calibrations_with_rzz_and_rxx(self):
-        """Test calibrations annotations
-        See https://github.com/Qiskit/qiskit-terra/issues/5920
-        """
-        circuit = QuantumCircuit(2, 2)
-        circuit.rzz(pi, 0, 1)
-        circuit.rxx(pi, 0, 1)
-
-        from qiskit import pulse
-
-        with self.assertWarns(DeprecationWarning):
-            with pulse.build(name="rzz") as rzz_q01:
-                pulse.play(
-                    pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.DriveChannel(1)
-                )
-
-            circuit.add_calibration("rzz", [0, 1], rzz_q01)
-
-            with pulse.build(name="rxx") as rxx_q01:
-                pulse.play(
-                    pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.DriveChannel(1)
-                )
-
-            circuit.add_calibration("rxx", [0, 1], rxx_q01)
-
-        fname = "calibrations_with_rzz_and_rxx.png"
-        self.circuit_drawer(circuit, output="mpl", filename=fname)
-
-        ratio = VisualTestUtilities._save_diff(
-            self._image_path(fname),
-            self._reference_path(fname),
-            fname,
-            FAILURE_DIFF_DIR,
-            FAILURE_PREFIX,
-        )
-        self.assertGreaterEqual(ratio, self.threshold)
-
     def test_no_ops(self):
         """Test circuit with no ops.
         See https://github.com/Qiskit/qiskit-terra/issues/5393"""
@@ -1260,7 +1117,9 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.barrier()
 
         fname = "idle_wires_barrier.png"
-        self.circuit_drawer(circuit, output="mpl", cregbundle=False, filename=fname)
+        self.circuit_drawer(
+            circuit, output="mpl", cregbundle=False, filename=fname, idle_wires=False
+        )
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -1292,6 +1151,28 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             filename=fname,
         )
 
+        ratio = VisualTestUtilities._save_diff(
+            self._image_path(fname),
+            self._reference_path(fname),
+            fname,
+            FAILURE_DIFF_DIR,
+            FAILURE_PREFIX,
+        )
+        self.assertGreaterEqual(ratio, self.threshold)
+
+    def test_basic_box(self):
+        """Test that drawing a `box` doesn't explode."""
+        # The exact output is not important - feel free to change it.  We only care that it doesn't
+        # explode when drawing.
+        qc = QuantumCircuit(5)
+        with qc.box():
+            qc.x(0)
+        with qc.box():
+            qc.cx(2, 3)
+            with qc.box():
+                qc.noop(4)
+        fname = "basic_box.png"
+        self.circuit_drawer(qc, output="mpl", filename=fname)
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
             self._reference_path(fname),

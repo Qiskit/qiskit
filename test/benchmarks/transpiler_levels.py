@@ -21,7 +21,7 @@ from qiskit.transpiler import InstructionDurations
 from qiskit.providers.fake_provider import GenericBackendV2
 
 from .utils import build_qv_model_circuit
-from ..python.legacy_cmaps import MELBOURNE_CMAP
+from .legacy_cmaps import MELBOURNE_CMAP
 
 
 class TranspilerLevelBenchmarks:
@@ -231,7 +231,6 @@ class TranspilerLevelBenchmarks:
             seed_transpiler=0,
             optimization_level=transpiler_level,
             scheduling_method="alap",
-            instruction_durations=self.durations,
         )
 
     # limit optimization levels to reduce time

@@ -123,7 +123,7 @@ class BasicSimulator(BackendV2):
 
     def _build_basic_target(self) -> Target:
         """Helper method that returns a minimal target with a basis gate set but
-        no coupling map, instruction properties or calibrations.
+        no coupling map or instruction properties.
 
         Returns:
             The configured target.
@@ -491,7 +491,6 @@ class BasicSimulator(BackendV2):
         result = {
             "backend_name": self.name,
             "backend_version": self.backend_version,
-            "qobj_id": None,
             "job_id": job_id,
             "results": result_list,
             "status": "COMPLETED",

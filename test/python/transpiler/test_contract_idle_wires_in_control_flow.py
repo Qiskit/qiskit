@@ -181,3 +181,13 @@ class TestContractIdleWiresInControlFlow(QiskitTestCase):
         actual = ContractIdleWiresInControlFlow()(qc)
         self.assertNotEqual(qc, actual)  # Smoke test.
         self.assertEqual(actual, expected)
+
+    def test_box_is_ignored(self):
+        qc = QuantumCircuit(5)
+        with qc.box():
+            qc.noop(range(5))
+        with qc.if_test(expr.lift(True)):
+            with qc.box():
+                qc.noop(3)
+        actual = ContractIdleWiresInControlFlow()(qc.copy())
+        self.assertEqual(actual, qc)
