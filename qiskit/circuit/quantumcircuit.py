@@ -776,6 +776,7 @@ class QuantumCircuit:
 
     To check whether a circuit contains a :class:`.ControlFlowOp` you can use the helper method
     :meth:`.QuantumCircuit.has_control_flow_op`.
+    
     ..
         TODO: expand the examples of the builder interface.
 
