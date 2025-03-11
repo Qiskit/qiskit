@@ -582,7 +582,7 @@ fn commutation_precheck(
         return Some(false);
     }
 
-    if is_commutation_skipped(params1) || is_commutation_skipped(params2) {
+    if is_parameterized(params1) || is_parameterized(params2) {
         return Some(false);
     }
 
@@ -614,7 +614,7 @@ fn matrix_via_operator(py: Python, py_obj: &PyObject) -> PyResult<Array2<Complex
         .to_owned())
 }
 
-fn is_commutation_skipped(params: &[Param]) -> bool {
+fn is_parameterized(params: &[Param]) -> bool {
     params
         .iter()
         .any(|x| matches!(x, Param::ParameterExpression(_)))
