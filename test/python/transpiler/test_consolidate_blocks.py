@@ -656,7 +656,8 @@ class TestConsolidateBlocks(QiskitTestCase):
 
     @data(["rzz", "rx", "rz"], ["rzz", "rx", "rz", "cz"])
     def test_collect_and_synthesize_rzz(self, basis_gates):
-        """Collect blocks with RZZ gates, and re-synthesizing it."""
+        """Collect blocks with RZZ gates, and re-synthesizing it.
+        Regression test for https://github.com/Qiskit/qiskit/issues/13428"""
         qc = QuantumCircuit(2)
         qc.rzz(0.1, 0, 1)
         qc.rzz(0.2, 0, 1)
