@@ -1572,7 +1572,7 @@ impl DAGCircuit {
                 target_dag.add_captured_stretch(py, &stretch)?;
             }
             for stretch in self.declared_stretches.bind(py).iter() {
-                target_dag.add_declared_stretch(py, &stretch)?;
+                target_dag.add_captured_stretch(py, &stretch)?;
             }
         } else if vars_mode != "drop" {
             return Err(PyValueError::new_err(format!(
@@ -4409,6 +4409,7 @@ impl DAGCircuit {
         if !self.vars_by_type[DAGVarType::Capture as usize]
             .bind(py)
             .is_empty()
+            || !self.captured_stretches.bind(py).is_empty()
         {
             return Err(DAGCircuitError::new_err(
                 "cannot add inputs to a circuit with captures",
