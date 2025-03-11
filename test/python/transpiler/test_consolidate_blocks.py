@@ -664,9 +664,7 @@ class TestConsolidateBlocks(QiskitTestCase):
         res = consolidate_pass(qc)
         self.assertEqual({"unitary": 1}, res.count_ops())
         self.assertEqual(Operator.from_circuit(qc), Operator(res.data[0].operation.params[0]))
-        pm = generate_preset_pass_manager(
-            optimization_level=2, basis_gates=["rz", "rzz", "sx", "x", "rx"]
-        )
+        pm = generate_preset_pass_manager(optimization_level=2, basis_gates=basis_gates)
         tqc = pm.run(qc)
         self.assertEqual(tqc.count_ops()["rzz"], 1)
 
