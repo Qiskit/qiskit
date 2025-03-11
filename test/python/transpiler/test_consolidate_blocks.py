@@ -655,8 +655,8 @@ class TestConsolidateBlocks(QiskitTestCase):
         self.assertEqual(Operator.from_circuit(qc), Operator(res.data[0].operation.params[0]))
 
     @data(["rzz", "rx", "rz"], ["rzz", "rx", "rz", "cz"])
-    def test_collect_rzz(self, basis_gates):
-        """Collect blocks with RZZ gates."""
+    def test_collect_and_synthesize_rzz(self, basis_gates):
+        """Collect blocks with RZZ gates, and re-synthesizing it."""
         qc = QuantumCircuit(2)
         qc.rzz(0.1, 0, 1)
         qc.rzz(0.2, 0, 1)
@@ -664,6 +664,11 @@ class TestConsolidateBlocks(QiskitTestCase):
         res = consolidate_pass(qc)
         self.assertEqual({"unitary": 1}, res.count_ops())
         self.assertEqual(Operator.from_circuit(qc), Operator(res.data[0].operation.params[0]))
+        pm = generate_preset_pass_manager(
+            optimization_level=2, basis_gates=["rz", "rzz", "sx", "x", "rx"]
+        )
+        tqc = pm.run(qc)
+        self.assertEqual(tqc.count_ops()["rzz"], 1)
 
 
 if __name__ == "__main__":
