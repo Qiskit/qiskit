@@ -171,7 +171,7 @@ impl CircuitData {
         }
         if let Some(data) = data {
             self_.reserve(reserve);
-            Python::with_gil(|py| -> PyResult<()> { self_.extend(py, data) })?;
+            self_.extend(data)?;
         }
         Ok(self_)
     }
@@ -902,7 +902,8 @@ impl CircuitData {
         Ok(())
     }
 
-    pub fn extend(&mut self, py: Python<'_>, itr: &Bound<PyAny>) -> PyResult<()> {
+    pub fn extend(&mut self, itr: &Bound<PyAny>) -> PyResult<()> {
+        let py = itr.py();
         if let Ok(other) = itr.downcast::<CircuitData>() {
             let other = other.borrow();
             // Fast path to avoid unnecessary construction of CircuitInstruction instances.
