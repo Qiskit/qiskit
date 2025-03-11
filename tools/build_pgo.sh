@@ -22,10 +22,19 @@ if [[ $arch == "arm64" ]]; then
     arch="aarch64"
 fi
 
+# On macOS, manually link the python libraries
+if [[ `uname -s` == "Darwin" ]] ; then
+    PYLIB=$(python -c "import sysconfig; print(sysconfig.get_config_var('LIBDIR'))")
+    PYNAME=$(find $PYLIB -maxdepth 1 -name "libpython*" | grep -oE "[^/]+$" | grep -oE "python[0-9]+\.[0-9]+" || echo "python")
+    LDFLAGS="-L $PYLIB -l $PYNAME"
+else
+    LDFLAGS=""
+fi
+
 # Build with instrumentation
 pip install -U -c constraints.txt setuptools-rust wheel setuptools
-RUSTFLAGS="-Cprofile-generate=$work_dir" pip install --prefer-binary -c constraints.txt -r requirements-dev.txt -e .
-RUSTFLAGS="-Cprofile-generate=$work_dir" python setup.py build_rust --release --inplace
+RUSTFLAGS="-Cprofile-generate=$work_dir $LDFLAGS" pip install --prefer-binary -c constraints.txt -r requirements-dev.txt -e .
+RUSTFLAGS="-Cprofile-generate=$work_dir $LDFLAGS" python setup.py build_rust --release --inplace
 # Run profile data generation
 
 QISKIT_PARALLEL=FALSE stestr run --abbreviate
