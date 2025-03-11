@@ -309,7 +309,7 @@ def _linear_depth_ladder_ops(qreg: list[int]) -> tuple[QuantumCircuit, list[int]
     CCX gates.
 
     Args:
-        List of qubit indices to apply the ladder operations on. qreg[0] is assumed to be ancilla.
+        qreg: List of qubit indices to apply the ladder operations on. qreg[0] is assumed to be ancilla.
 
     Returns:
         A tuple consisting of the linear-depth ladder circuit and the index of control qubit to
@@ -355,7 +355,7 @@ def _linear_depth_ladder_ops(qreg: list[int]) -> tuple[QuantumCircuit, list[int]
 
 def synth_mcx_1_kg24(num_ctrl_qubits: int, clean: bool = True) -> QuantumCircuit:
     r"""
-    Synthesise a multi-controlled X gate with :math:`k` controls using :math:`1` ancillary qubit as
+    Synthesize a multi-controlled X gate with :math:`k` controls using :math:`1` ancillary qubit as
     described in Sec. 5 of [1].
 
     Args:
@@ -372,7 +372,7 @@ def synth_mcx_1_kg24(num_ctrl_qubits: int, clean: bool = True) -> QuantumCircuit
 
     q_controls = QuantumRegister(num_ctrl_qubits, name="ctrl")
     q_target = QuantumRegister(1, name="targ")
-    q_ancilla = QuantumRegister(1, name="anc")
+    q_ancilla = AncillaRegister(1, name="anc")
     qc = QuantumCircuit(q_controls, q_target, q_ancilla, name="mcx_linear_depth")
 
     ladder_ops, final_ctrl = _linear_depth_ladder_ops(list(range(num_ctrl_qubits + 1)))
