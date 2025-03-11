@@ -167,26 +167,6 @@ where
         &self.objects
     }
 
-    /// Gets a reference to the cached Python list, maintained by
-    /// this instance.
-    #[inline]
-    pub fn cached<'py>(&self, py: Python<'py>) -> &Py<PyList>
-    where
-        B: IntoPyObject<'py>,
-    {
-        self.cached
-            .get_or_init(|| PyList::new(py, self.objects.clone()).unwrap().into())
-    }
-
-    /// Gets a reference to the cached Python list, even if not initialized.
-    #[inline]
-    pub fn cached_raw(&self) -> Option<&Py<PyList>>
-    where
-        for<'a> B: IntoPyObject<'a>,
-    {
-        self.cached.get()
-    }
-
     /// Finds the native index of the given object.
     #[inline]
     pub fn find(&self, object: &B) -> Option<T> {
@@ -279,5 +259,28 @@ where
     pub fn dispose(&mut self) {
         self.indices.clear();
         self.objects.clear();
+    }
+}
+
+impl<'a, T, B> ObjectRegistry<T, B>
+where
+    B: Clone,
+    B: IntoPyObject<'a>,
+{
+    /// Gets a reference to the cached Python list, maintained by
+    /// this instance.
+    #[inline]
+    pub fn cached(&self, py: Python<'a>) -> &Py<PyList> {
+        self.cached.get_or_init(|| {
+            PyList::new(py, self.objects.iter().cloned())
+                .unwrap()
+                .into()
+        })
+    }
+
+    /// Gets a reference to the cached Python list, even if not initialized.
+    #[inline]
+    pub fn cached_raw(&self) -> Option<&Py<PyList>> {
+        self.cached.get()
     }
 }
