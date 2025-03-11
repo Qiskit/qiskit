@@ -4503,7 +4503,7 @@ impl DAGCircuit {
         self.stretches.add(stretch.into(), true)?;
         self.declared_stretches
             .bind(py)
-            .add(stretch.clone().unbind())?;
+            .append(stretch.clone().unbind())?;
         self.identifier_info.insert(
             name,
             DAGIdentifierInfo::Stretch(DAGStretchInfo {
