@@ -34,6 +34,7 @@ use crate::operations::{ArrayType, Operation, OperationRef, Param, PyInstruction
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::register_data::RegisterData;
 use crate::rustworkx_core_vnext::isomorphism;
+use crate::slice::PySequenceIndex;
 use crate::{BitType, Clbit, Qubit, TupleLikeArg};
 
 use hashbrown::{HashMap, HashSet};
@@ -343,7 +344,7 @@ fn reject_new_register(reg: &Bound<PyAny>) -> PyResult<()> {
     )))
 }
 
-#[pyclass(name = "BitLocations", module = "qiskit._accelerate.circuit")]
+#[pyclass(name = "BitLocations", module = "qiskit._accelerate.circuit", sequence)]
 #[derive(Clone, Debug)]
 pub struct PyBitLocations {
     #[pyo3(get)]
@@ -391,6 +392,30 @@ impl PyBitLocations {
 
     fn __getnewargs__(slf: Bound<Self>) -> PyResult<(Bound<PyAny>, Bound<PyAny>)> {
         Ok((slf.getattr("index")?, slf.getattr("registers")?))
+    }
+
+    fn __getitem__(&self, py: Python, index: PySequenceIndex<'_>) -> PyResult<PyObject> {
+        let getter = |index: usize| -> PyResult<PyObject> {
+            match index {
+                0 => self.index.into_py_any(py),
+                1 => Ok(self.registers.clone_ref(py).into_any()),
+                _ => Err(PyIndexError::new_err("index out of range")),
+            }
+        };
+        if let Ok(index) = index.with_len(2) {
+            match index {
+                crate::slice::SequenceIndex::Int(index) => getter(index),
+                _ => PyTuple::new(py, index.iter().map(|idx| getter(idx).unwrap()))
+                    .map(|obj| obj.into_any().unbind()),
+            }
+        } else {
+            Err(PyIndexError::new_err("index out of range"))
+        }
+    }
+
+    #[staticmethod]
+    fn __len__() -> usize {
+        2
     }
 }
 
