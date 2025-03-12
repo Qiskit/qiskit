@@ -188,9 +188,13 @@ class TestQuantumCircuitBitLocations(QiskitTestCase):
                 ],
             )
             self.assertEqual(location[0], index)
-            self.assertEqual(location[-1], [(reg, index),])
+            self.assertEqual(
+                location[-1],
+                [
+                    (reg, index),
+                ],
+            )
             self.assertEqual(location[-2], index)
-
 
             # Test index by slice positive range
             self.assertEqual(location[0:], tuple(location))

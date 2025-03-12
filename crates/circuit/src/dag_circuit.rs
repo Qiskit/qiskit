@@ -394,19 +394,19 @@ impl PyBitLocations {
         Ok((slf.getattr("index")?, slf.getattr("registers")?))
     }
 
-    fn __getitem__<'py>(
-        slf: Bound<'py, Self>,
-        index: PySequenceIndex<'py>,
-    ) -> PyResult<Bound<'py, PyAny>> {
-        let names = [intern!(slf.py(), "index"), intern!(slf.py(), "registers")];
+    fn __getitem__(&self, py: Python, index: PySequenceIndex<'_>) -> PyResult<PyObject> {
+        let getter = |index: usize| -> PyResult<PyObject> {
+            match index {
+                0 => self.index.into_py_any(py),
+                1 => Ok(self.registers.clone_ref(py).into_any()),
+                _ => Err(PyIndexError::new_err("tuple index out of range")),
+            }
+        };
         if let Ok(index) = index.with_len(2) {
             match index {
-                crate::slice::SequenceIndex::Int(index) => slf.getattr(names[index]),
-                _ => PyTuple::new(
-                    slf.py(),
-                    index.iter().map(|idx| slf.getattr(names[idx]).unwrap()),
-                )
-                .map(|obj| obj.into_any()),
+                crate::slice::SequenceIndex::Int(index) => getter(index),
+                _ => PyTuple::new(py, index.iter().map(|idx| getter(idx).unwrap()))
+                    .map(|obj| obj.into_any().unbind()),
             }
         } else {
             Err(PyIndexError::new_err("tuple index out of range"))
