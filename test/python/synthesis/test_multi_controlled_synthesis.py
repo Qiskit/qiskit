@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Test MCX synthesis algorithms."""
+"""Test synthesis algorithms for multi-controlled gates."""
 
 import unittest
 from test import combine
@@ -145,7 +145,7 @@ class TestMCXSynthesis(QiskitTestCase):
 
     @data(5, 10, 15)
     def test_mcx_n_dirty_i15_cx_count(self, num_ctrl_qubits: int):
-        """Test synth_mcx_n_dirty_i15 bound of CX count."""
+        """Test synth_mcx_n_dirty_i15 bound on CX count."""
         synthesized_circuit = synth_mcx_n_dirty_i15(num_ctrl_qubits)
         pm = generate_preset_pass_manager(
             optimization_level=0, basis_gates=["u", "cx"], seed_transpiler=12345
