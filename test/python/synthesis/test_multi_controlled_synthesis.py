@@ -13,12 +13,29 @@
 """Test MCX synthesis algorithms."""
 
 import unittest
+from test import combine
 import numpy as np
 from ddt import ddt, data
 
 from qiskit.quantum_info import Operator
-from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.library import XGate
+from qiskit.circuit import QuantumCircuit, Gate
+from qiskit.circuit.library import (
+    XGate,
+    RXGate,
+    RYGate,
+    RZGate,
+    PhaseGate,
+    YGate,
+    ZGate,
+    HGate,
+    SGate,
+    SdgGate,
+    TGate,
+    TdgGate,
+    SXGate,
+    SXdgGate,
+    UGate,
+)
 from qiskit.synthesis.multi_controlled import (
     synth_mcx_n_dirty_i15,
     synth_mcx_n_clean_m15,
@@ -29,7 +46,7 @@ from qiskit.synthesis.multi_controlled import (
     synth_c4x,
 )
 from qiskit.circuit._utils import _compute_control_matrix
-from qiskit.quantum_info.operators.operator_utils import _equal_with_ancillas
+from qiskit.quantum_info.operators.operator_utils import _equal_with_ancillas, matrix_equal
 from qiskit.transpiler import generate_preset_pass_manager
 
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
@@ -131,7 +148,7 @@ class TestMCXSynthesis(QiskitTestCase):
         """Test synth_mcx_n_dirty_i15 bound of CX count."""
         synthesized_circuit = synth_mcx_n_dirty_i15(num_ctrl_qubits)
         pm = generate_preset_pass_manager(
-            optimization_level=1, basis_gates=["u", "cx"], seed_transpiler=12345
+            optimization_level=0, basis_gates=["u", "cx"], seed_transpiler=12345
         )
         transpiled_circuit = pm.run(synthesized_circuit)
         cx_count = transpiled_circuit.count_ops()["cx"]
@@ -142,7 +159,7 @@ class TestMCXSynthesis(QiskitTestCase):
         """Test synth_mcx_n_clean_m15 bound on CX count."""
         synthesized_circuit = synth_mcx_n_clean_m15(num_ctrl_qubits)
         pm = generate_preset_pass_manager(
-            optimization_level=1, basis_gates=["u", "cx"], seed_transpiler=12345
+            optimization_level=0, basis_gates=["u", "cx"], seed_transpiler=12345
         )
         transpiled_circuit = pm.run(synthesized_circuit)
         cx_count = transpiled_circuit.count_ops()["cx"]
@@ -153,29 +170,29 @@ class TestMCXSynthesis(QiskitTestCase):
         """Test synth_mcx_1_clean_b95 bound on CX count."""
         synthesized_circuit = synth_mcx_1_clean_b95(num_ctrl_qubits)
         pm = generate_preset_pass_manager(
-            optimization_level=1, basis_gates=["u", "cx"], seed_transpiler=12345
+            optimization_level=0, basis_gates=["u", "cx"], seed_transpiler=12345
         )
         transpiled_circuit = pm.run(synthesized_circuit)
         cx_count = transpiled_circuit.count_ops()["cx"]
         self.assertLessEqual(cx_count, 16 * num_ctrl_qubits - 8)
 
-    @data(5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15)
+    @data(5, 8, 10, 13, 15)
     def test_mcx_noaux_v24_cx_count(self, num_ctrl_qubits: int):
-        """Test synth_mcx_noaux_v24 by comparing synthesized and expected matrices."""
+        """Test synth_mcx_noaux_v24 bound on CX count."""
         synthesized_circuit = synth_mcx_noaux_v24(num_ctrl_qubits)
         pm = generate_preset_pass_manager(
-            optimization_level=1, basis_gates=["u", "cx"], seed_transpiler=12345
+            optimization_level=0, basis_gates=["u", "cx"], seed_transpiler=12345
         )
         transpiled_circuit = pm.run(synthesized_circuit)
         cx_count = transpiled_circuit.count_ops()["cx"]
-        # need to verify an exact bound
-        self.assertLessEqual(cx_count, 9 * num_ctrl_qubits**2)
+        # The bound is based on an arithmetic progression of mcrz gates
+        self.assertLessEqual(cx_count, 8 * num_ctrl_qubits**2 - 16 * num_ctrl_qubits)
 
     def test_c3x_cx_count(self):
         """Test synth_c3x bound on CX count."""
         synthesized_circuit = synth_c3x()
         pm = generate_preset_pass_manager(
-            optimization_level=1, basis_gates=["u", "cx"], seed_transpiler=12345
+            optimization_level=0, basis_gates=["u", "cx"], seed_transpiler=12345
         )
         transpiled_circuit = pm.run(synthesized_circuit)
         cx_count = transpiled_circuit.count_ops()["cx"]
@@ -185,11 +202,145 @@ class TestMCXSynthesis(QiskitTestCase):
         """Test synth_c4x bound on CX count."""
         synthesized_circuit = synth_c4x()
         pm = generate_preset_pass_manager(
-            optimization_level=1, basis_gates=["u", "cx"], seed_transpiler=12345
+            optimization_level=0, basis_gates=["u", "cx"], seed_transpiler=12345
         )
         transpiled_circuit = pm.run(synthesized_circuit)
         cx_count = transpiled_circuit.count_ops()["cx"]
         self.assertLessEqual(cx_count, 36)
+
+
+@ddt
+class TestMCSynthesis(QiskitTestCase):
+    """Test multi-controlled synthesis methods."""
+
+    @combine(
+        num_ctrl_qubits=[5, 8, 10, 13, 15],
+        base_gate=[
+            XGate(),
+            YGate(),
+            ZGate(),
+            HGate(),
+            SGate(),
+            SdgGate(),
+            TGate(),
+            TdgGate(),
+            SXGate(),
+            SXdgGate(),
+            PhaseGate(0.345),
+        ],
+    )
+    def test_mcx_equiv_noaux_cx_count(self, num_ctrl_qubits: int, base_gate: Gate):
+        """Test gates which are locally equivalent to MCX synthesis bound on CX count."""
+        qc = QuantumCircuit(num_ctrl_qubits + 1)
+        qc.append(base_gate.control(num_ctrl_qubits), range(num_ctrl_qubits + 1))
+        pm = generate_preset_pass_manager(
+            optimization_level=0, basis_gates=["u", "cx"], seed_transpiler=12345
+        )
+        transpiled_circuit = pm.run(qc)
+        cx_count = transpiled_circuit.count_ops()["cx"]
+        # The bound is based on an arithmetic progression of mcrz gates
+        self.assertLessEqual(cx_count, 8 * num_ctrl_qubits**2 - 16 * num_ctrl_qubits)
+
+    @combine(
+        num_ctrl_qubits=[4, 5, 8, 10, 13, 15],
+        base_gate=[RXGate(0.123), RYGate(0.456), RZGate(0.789)],
+    )
+    def test_mc_rotation_gates_cx_count(self, num_ctrl_qubits: int, base_gate: Gate):
+        """Test mcrx / mcry / mcrz synthesis bound on CX count."""
+        qc = QuantumCircuit(num_ctrl_qubits + 1)
+        qc.append(base_gate.control(num_ctrl_qubits), range(num_ctrl_qubits + 1))
+        pm = generate_preset_pass_manager(
+            optimization_level=0, basis_gates=["u", "cx"], seed_transpiler=12345
+        )
+        transpiled_circuit = pm.run(qc)
+        cx_count = transpiled_circuit.count_ops()["cx"]
+        # The bound is based on arXiv:2302.06377, Theorem 3
+        self.assertLessEqual(cx_count, 16 * (num_ctrl_qubits + 1) - 40)
+
+    @data(5, 8, 10, 13, 15)
+    def test_mcu_noaux_cx_count(self, num_ctrl_qubits: int):
+        """Test multi-controlled random unitary synthesis bound on CX count."""
+        base_gate = UGate(0.123, 0.456, 0.789)
+        qc = QuantumCircuit(num_ctrl_qubits + 1)
+        qc.append(base_gate.control(num_ctrl_qubits), range(num_ctrl_qubits + 1))
+        pm = generate_preset_pass_manager(
+            optimization_level=0, basis_gates=["u", "cx"], seed_transpiler=12345
+        )
+        transpiled_circuit = pm.run(qc)
+        cx_count = transpiled_circuit.count_ops()["cx"]
+        # The bound is based on the synthesis of multi-controlled UGate using two mcrz gates,
+        # one mcry gate and one mcp gate (with num_ctrl_qubits-1 controls)
+        self.assertLessEqual(cx_count, 8 * num_ctrl_qubits**2 + 16 * num_ctrl_qubits - 96)
+
+    @combine(num_ctrl_qubits=[1, 2, 3, 4], base_gate=[XGate(), YGate(), ZGate(), HGate()])
+    def test_small_mcx_gates_yield_cx_count(self, num_ctrl_qubits, base_gate):
+        """Test that creating a MCX gate (and other locally equivalent multi-controlled gates)
+        with small number of controls (with no ancillas) yields the expected number of cx gates
+        and provides the correct unitary.
+        """
+        qc = QuantumCircuit(num_ctrl_qubits + 1)
+        qc.append(base_gate.control(num_ctrl_qubits), range(num_ctrl_qubits + 1))
+
+        base_mat = base_gate.to_matrix()
+        test_op = Operator(qc)
+        cop_mat = _compute_control_matrix(base_mat, num_ctrl_qubits)
+        self.assertTrue(matrix_equal(cop_mat, test_op.data))
+        pm = generate_preset_pass_manager(
+            optimization_level=0, basis_gates=["u", "cx"], seed_transpiler=12345
+        )
+        transpiled_circuit = pm.run(qc)
+        cx_count = transpiled_circuit.count_ops()["cx"]
+        expected = {1: 1, 2: 6, 3: 14, 4: 36}
+        self.assertEqual(cx_count, expected[num_ctrl_qubits])
+
+    @combine(
+        num_ctrl_qubits=[1, 2, 3, 4],
+        base_gate=[PhaseGate(0.123), SGate(), SdgGate(), TGate(), TdgGate(), SXGate(), SXdgGate()],
+    )
+    def test_small_mcp_gates_yield_cx_count(self, num_ctrl_qubits, base_gate):
+        """Test that creating a MCPhase gate (and other locally equivalent multi-controlled gates)
+        with small number of controls (with no ancillas) yields the expected number of cx gates
+        and provides the correct unitary.
+        """
+        qc = QuantumCircuit(num_ctrl_qubits + 1)
+        qc.append(base_gate.control(num_ctrl_qubits), range(num_ctrl_qubits + 1))
+        base_mat = base_gate.to_matrix()
+        test_op = Operator(qc)
+        cop_mat = _compute_control_matrix(base_mat, num_ctrl_qubits)
+        self.assertTrue(matrix_equal(cop_mat, test_op.data))
+
+        # TODO: fix optimization_level=0 after updating CS and CSdg in the equivalence library
+        pm = generate_preset_pass_manager(
+            optimization_level=2, basis_gates=["u", "cx"], seed_transpiler=12345
+        )
+        transpiled_circuit = pm.run(qc)
+        cx_count = transpiled_circuit.count_ops()["cx"]
+        expected = {1: 2, 2: 6, 3: 20, 4: 44}
+        self.assertEqual(cx_count, expected[num_ctrl_qubits])
+
+    @combine(num_ctrl_qubits=[1, 2, 3], base_gate=[RXGate(0.789), RYGate(0.123), RZGate(0.456)])
+    def test_small_mc_rotation_gates_yield_cx_count(self, num_ctrl_qubits, base_gate):
+        """Test that creating a MCRX / MCRY / MCRZ gate
+        with small number of controls (with no ancillas) yields the expected number of cx gates
+        and provides the correct unitary.
+        """
+        qc = QuantumCircuit(num_ctrl_qubits + 1)
+        qc.append(base_gate.control(num_ctrl_qubits), range(num_ctrl_qubits + 1))
+
+        base_mat = base_gate.to_matrix()
+        test_op = Operator(qc)
+        cop_mat = _compute_control_matrix(base_mat, num_ctrl_qubits)
+        self.assertTrue(matrix_equal(cop_mat, test_op.data))
+        pm = generate_preset_pass_manager(
+            optimization_level=0, basis_gates=["u", "cx"], seed_transpiler=12345
+        )
+        transpiled_circuit = pm.run(qc)
+        cx_count = transpiled_circuit.count_ops()["cx"]
+        if base_gate.name == "rz":
+            expected = {1: 2, 2: 4, 3: 14}
+        else:
+            expected = {1: 2, 2: 8, 3: 20}
+        self.assertEqual(cx_count, expected[num_ctrl_qubits])
 
 
 if __name__ == "__main__":
