@@ -15,7 +15,7 @@ use ndarray::linalg::kron;
 use ndarray::Array2;
 use num_complex::Complex64;
 use num_complex::ComplexFloat;
-use qiskit_circuit::bit_data::VarAsKey;
+use qiskit_circuit::object_registry::PyObjectAsKey;
 use smallvec::SmallVec;
 use std::fmt::Debug;
 
@@ -26,10 +26,10 @@ use pyo3::prelude::*;
 use pyo3::types::{PyBool, PyDict, PySequence, PyTuple};
 use pyo3::BoundObject;
 
-use qiskit_circuit::bit_data::BitData;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::dag_node::DAGOpNode;
 use qiskit_circuit::imports::QI_OPERATOR;
+use qiskit_circuit::object_registry::ObjectRegistry;
 use qiskit_circuit::operations::OperationRef::{Gate as PyGateType, Operation as PyOperationType};
 use qiskit_circuit::operations::{
     Operation, OperationRef, Param, StandardGate, STANDARD_GATE_SIZE,
@@ -101,20 +101,20 @@ where
     T: From<BitType> + Copy,
     BitType: From<T>,
 {
-    // Using `VarAsKey` here is a total hack, but this is a short-term workaround before a
+    // Using `PyObjectAsKey` here is a total hack, but this is a short-term workaround before a
     // larger refactor of the commutation checker.
-    let mut bitdata: BitData<T, VarAsKey> = BitData::new();
+    let mut registry: ObjectRegistry<T, PyObjectAsKey> = ObjectRegistry::new();
 
     for bit in bits1.iter().chain(bits2.iter()) {
-        bitdata.add(bit.into(), false)?;
+        registry.add(bit.into(), false)?;
     }
 
     Ok((
-        bitdata
-            .map_bits(bits1.iter().map(|bit| bit.into()))?
+        registry
+            .map_objects(bits1.iter().map(|bit| bit.into()))?
             .collect(),
-        bitdata
-            .map_bits(bits2.iter().map(|bit| bit.into()))?
+        registry
+            .map_objects(bits2.iter().map(|bit| bit.into()))?
             .collect(),
     ))
 }
