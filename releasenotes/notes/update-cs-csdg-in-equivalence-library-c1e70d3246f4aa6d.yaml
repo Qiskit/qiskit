@@ -1,5 +1,7 @@
 ---
-fixes:
+upgrades_synthesis:
   - |
-    Update the synthesis of :class:`.CSGate` and :class:`.CSdgGate` in the equivalence library
-    so that the basis translator will use only two :class:`.CXGate`s for their synthesis and not 3.
+    Update the synthesis of :class:`.CSGate` and :class:`.CSdgGate` in the equivalence library.
+    Previously, the basis translator used 3 :class:`.CXGate` gates for the synthesis of
+    :class:`.CSdgGate` and now it uses only two :class:`.CXGate`.
+    For both gates we reduce the number of single-qubit gates in their basis translation.
