@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Update the synthesis of :class:`.CSGate` and :class:`.CSdgGate` in the equivalence library
+    so that the basis translator will use only two :class:`.CXGate`s for their synthesis and not 3.
