@@ -10,10 +10,15 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=invalid-name
+
 """Test for the DAGCircuit object"""
 
 from __future__ import annotations
 
+import copy
+import io
+import pickle
 from collections import Counter
 import unittest
 
@@ -1989,6 +1994,51 @@ class TestDagEquivalence(QiskitTestCase):
             dag.add_declared_var(a1)
         with self.assertRaisesRegex(DAGCircuitError, "cannot add .* as its name shadows"):
             dag.add_declared_var(a2)
+
+    def test_pickle_stretches(self):
+        """Test stretches preserved through pickle."""
+        a = expr.Stretch.new("a")
+        b = expr.Stretch.new("b")
+
+        # Check captures and declarations.
+        dag = DAGCircuit()
+        dag.add_declared_stretch(a)
+        dag.add_captured_stretch(b)
+
+        self.assertEqual(dag.num_stretches, 2)
+        self.assertEqual(dag.num_captured_stretches, 1)
+        self.assertEqual(dag.num_declared_stretches, 1)
+
+        with io.BytesIO() as buf:
+            pickle.dump(dag, buf)
+            buf.seek(0)
+            output = pickle.load(buf)
+
+        self.assertEqual(output.num_stretches, 2)
+        self.assertEqual(output.num_captured_stretches, 1)
+        self.assertEqual(output.num_declared_stretches, 1)
+        self.assertEqual(output, dag)
+
+    def test_deepcopy_stretches(self):
+        """Test stretches preserved through deepcopy."""
+        a = expr.Stretch.new("a")
+        b = expr.Stretch.new("b")
+
+        # Check captures and declarations.
+        dag = DAGCircuit()
+        dag.add_declared_stretch(a)
+        dag.add_captured_stretch(b)
+
+        self.assertEqual(dag.num_stretches, 2)
+        self.assertEqual(dag.num_captured_stretches, 1)
+        self.assertEqual(dag.num_declared_stretches, 1)
+
+        output = copy.deepcopy(dag)
+
+        self.assertEqual(output.num_stretches, 2)
+        self.assertEqual(output.num_captured_stretches, 1)
+        self.assertEqual(output.num_declared_stretches, 1)
+        self.assertEqual(output, dag)
 
 
 class TestDagSubstitute(QiskitTestCase):
