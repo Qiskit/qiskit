@@ -1426,7 +1426,6 @@ dependencies = [
  "num-complex",
  "num-traits",
  "numpy",
- "once_cell",
  "pulp 0.21.4",
  "pyo3",
  "qiskit-circuit",
