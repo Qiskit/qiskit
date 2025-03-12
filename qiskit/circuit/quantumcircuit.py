@@ -1332,7 +1332,7 @@ class QuantumCircuit:
 
                 from qiskit import QuantumCircuit
                 from qiskit.providers.fake_provider import GenericBackendV2
-                from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
+                from qiskit.transpiler import generate_preset_pass_manager
 
                 # Create circuit to test transpiler on
                 qc = QuantumCircuit(3)
@@ -1364,10 +1364,6 @@ class QuantumCircuit:
                 _output_qubit_list=[Qubit(QuantumRegister(3, 'q'), 0), Qubit
                 (QuantumRegister(3, 'q'), 1), Qubit(QuantumRegister(3, 'q'),
                 2)])
-
-
-
-
         """
         return self._layout
 
