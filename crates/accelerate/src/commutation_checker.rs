@@ -34,7 +34,7 @@ use qiskit_circuit::operations::OperationRef::{Gate as PyGateType, Operation as 
 use qiskit_circuit::operations::{
     Operation, OperationRef, Param, StandardGate, STANDARD_GATE_SIZE,
 };
-use qiskit_circuit::{BitType, Clbit, Qubit};
+use qiskit_circuit::{Clbit, Qubit};
 
 use crate::gate_metrics;
 use crate::unitary_compose;
@@ -98,8 +98,8 @@ static SUPPORTED_ROTATIONS: [Option<Option<StandardGate>>; STANDARD_GATE_SIZE] =
 
 fn get_bits<T>(bits1: &Bound<PyTuple>, bits2: &Bound<PyTuple>) -> PyResult<(Vec<T>, Vec<T>)>
 where
-    T: From<BitType> + Copy,
-    BitType: From<T>,
+    T: From<u32> + Copy,
+    u32: From<T>,
 {
     // Using `PyObjectAsKey` here is a total hack, but this is a short-term workaround before a
     // larger refactor of the commutation checker.
