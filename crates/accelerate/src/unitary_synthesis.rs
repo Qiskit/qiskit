@@ -598,7 +598,44 @@ fn get_2q_decomposers_from_target(
     // If there are available 2q gates, start search for decomposers:
     let mut decomposers: Vec<DecomposerElement> = Vec::new();
 
-    // Step 1: Try TwoQubitBasisDecomposers
+    // Step 1: Try TwoQubitControlledUDecomposers
+    for basis_1q in &available_1q_basis {
+        for (_, (gate, _)) in available_2q_param_basis.iter() {
+            let rxx_equivalent_gate = if let Some(std_gate) = gate.operation.try_standard_gate() {
+                RXXEquivalent::Standard(std_gate)
+            } else {
+                let module = PyModule::import(py, "builtins")?;
+                let py_type = module.getattr("type")?;
+                let gate_type = py_type
+                    .call1((gate.clone().into_pyobject(py)?,))?
+                    .downcast_into::<PyType>()?
+                    .unbind();
+
+                RXXEquivalent::CustomPython(gate_type)
+            };
+
+            match TwoQubitControlledUDecomposer::new_inner(rxx_equivalent_gate, basis_1q) {
+                Ok(decomposer) => {
+                    decomposers.push(DecomposerElement {
+                        decomposer: DecomposerType::TwoQubitControlledU(Box::new(decomposer)),
+                        packed_op: gate.operation.clone(),
+                        params: gate.params.clone(),
+                    });
+                }
+                Err(_) => continue,
+            };
+        }
+    }
+    // If the 2q basis gates are a subset of PARAM_SET, exit here
+    if available_2q_param_basis
+        .keys()
+        .all(|gate| PARAM_SET.contains(gate))
+        && !available_2q_param_basis.is_empty()
+    {
+        return Ok(Some(decomposers));
+    }
+
+    // Step 2: Try TwoQubitBasisDecomposers
     #[inline]
     fn is_supercontrolled(op: &NormalOperation) -> bool {
         match op.operation.matrix(&op.params) {
@@ -644,43 +681,6 @@ fn get_2q_decomposers_from_target(
         .keys()
         .all(|gate| GOODBYE_SET.contains(gate))
         && !available_2q_basis.is_empty()
-    {
-        return Ok(Some(decomposers));
-    }
-
-    // Step 2: Try TwoQubitControlledUDecomposers
-    for basis_1q in &available_1q_basis {
-        for (_, (gate, _)) in available_2q_param_basis.iter() {
-            let rxx_equivalent_gate = if let Some(std_gate) = gate.operation.try_standard_gate() {
-                RXXEquivalent::Standard(std_gate)
-            } else {
-                let module = PyModule::import(py, "builtins")?;
-                let py_type = module.getattr("type")?;
-                let gate_type = py_type
-                    .call1((gate.clone().into_pyobject(py)?,))?
-                    .downcast_into::<PyType>()?
-                    .unbind();
-
-                RXXEquivalent::CustomPython(gate_type)
-            };
-
-            match TwoQubitControlledUDecomposer::new_inner(rxx_equivalent_gate, basis_1q) {
-                Ok(decomposer) => {
-                    decomposers.push(DecomposerElement {
-                        decomposer: DecomposerType::TwoQubitControlledU(Box::new(decomposer)),
-                        packed_op: gate.operation.clone(),
-                        params: gate.params.clone(),
-                    });
-                }
-                Err(_) => continue,
-            };
-        }
-    }
-    // If the 2q basis gates are a subset of PARAM_SET, exit here
-    if available_2q_param_basis
-        .keys()
-        .all(|gate| PARAM_SET.contains(gate))
-        && !available_2q_param_basis.is_empty()
     {
         return Ok(Some(decomposers));
     }
