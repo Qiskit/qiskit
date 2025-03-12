@@ -27,7 +27,7 @@ use qiskit_circuit::{Clbit, Qubit};
 /// @param num_qubits The number of qubits the circuit contains.
 /// @param num_clbits The number of clbits the circuit contains.
 ///
-/// @return A pointer to the created Circuit
+/// @return A pointer to the created circuit.
 ///
 /// # Example
 ///
@@ -92,8 +92,8 @@ pub unsafe extern "C" fn qk_circuit_num_qubits(circuit: *const CircuitData) -> u
 ///
 /// # Example
 ///
-///     QkCircuit *qc = qk_circuit_new(100);
-///     uint32_t num_qubits = qk_circuit_num_clbits(qc);  // num_qubits==100
+///     QkCircuit *qc = qk_circuit_new(100, 50);
+///     uint32_t num_clbits = qk_circuit_num_clbits(qc);  // num_clbits==50
 ///
 /// # Safety
 ///
@@ -119,7 +119,7 @@ pub unsafe extern "C" fn qk_circuit_num_clbits(circuit: *const CircuitData) -> u
 ///
 /// # Safety
 ///
-/// Behavior is undefined if ``circt`` is not either null or a valid pointer to a
+/// Behavior is undefined if ``circuit`` is not either null or a valid pointer to a
 /// [CircuitData].
 #[no_mangle]
 #[cfg(feature = "cbinding")]
@@ -138,20 +138,20 @@ pub unsafe extern "C" fn qk_circuit_free(circuit: *mut CircuitData) {
 }
 
 /// @ingroup QkCircuit
-/// Append a standard gate to the circuit
+/// Append a standard gate to the circuit.
 ///
-/// @param circuit A pointer to the circuit to add the gate to
-/// @param gate The StandardGate to add to the circuit
-/// @param qubits The pointer to the array of ``uint32_t`` qubit indices to add the gate on
-/// @param params The pointer to the array of ``double`` values to use for the gate parameters
+/// @param circuit A pointer to the circuit to add the gate to.
+/// @param gate The StandardGate to add to the circuit.
+/// @param qubits The pointer to the array of ``uint32_t`` qubit indices to add the gate on.
+/// @param params The pointer to the array of ``double`` values to use for the gate parameters.
 ///
 /// # Example
 ///
 ///     QkCircuit *qc = qk_circuit_new(100);
 ///     qk_circuit_append_standard_gate(qc, HGate, *[0], *[]);
 ///
-///
 /// # Safety
+///
 /// The ``qubits`` and ``params`` types are expected to be a non-null pointer to an array of
 /// ``uint32_t`` and ``double`` respectively where the length is matching the expectations for
 /// the standard gate. If the array is insufficently long the behavior of this function is
@@ -319,9 +319,9 @@ pub struct OpCounts {
 }
 
 /// @ingroup QkCircuit
-/// Return a list of string names for instructions in a circuit and their counts
+/// Return a list of string names for instructions in a circuit and their counts.
 ///
-/// @param circuit A pointer to the circuit to get the counts for
+/// @param circuit A pointer to the circuit to get the counts for.
 ///
 /// # Example
 ///
@@ -330,6 +330,7 @@ pub struct OpCounts {
 ///     qk_circuit_count_ops(qc);
 ///
 /// # Safety
+///
 /// Behavior is undefined ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
@@ -352,11 +353,11 @@ pub unsafe extern "C" fn qk_circuit_count_ops(circuit: *const CircuitData) -> Op
 /// @ingroup QkCircuit
 /// Free a circuit op count list.
 ///
-/// @param op_counts The returned op count list from ``qk_circuit_count_ops``
+/// @param op_counts The returned op count list from ``qk_circuit_count_ops``.
 ///
 /// # Safety
 ///
-/// Behavior is undefined if ``op_counts`` is not the object returned by ``qk_circuit_count_ops``
+/// Behavior is undefined if ``op_counts`` is not the object returned by ``qk_circuit_count_ops``.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_free_count_ops(op_counts: OpCounts) {
