@@ -172,6 +172,7 @@ class TestQuantumCircuitBitLocations(QiskitTestCase):
     """Test cases for BitLocations in the QuantumCircuit."""
 
     def test_bit_indexable(self):
+        """Tests whether a BitLocations instance can be indexed correctly"""
         qc = QuantumCircuit(5)
         # Retrieve the register this circuit contains
         reg = qc.qregs[0]
@@ -207,10 +208,10 @@ class TestQuantumCircuitBitLocations(QiskitTestCase):
 
             # Test invalid indices
             with self.assertRaisesRegex(IndexError, "out of range"):
-                location[2]
+                return location[2]
             with self.assertRaisesRegex(IndexError, "out of range"):
-                location[-3]
+                return location[-3]
             with self.assertRaisesRegex(IndexError, "out of range"):
-                location[-999999999]
+                return location[-999999999]
             with self.assertRaisesRegex(IndexError, "out of range"):
-                location[999999999]
+                return location[999999999]
