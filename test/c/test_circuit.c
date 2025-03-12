@@ -58,32 +58,39 @@ int test_get_gate_counts_bv_no_measure() {
         qk_circuit_append_standard_gate(qc, QkStandardGate_HGate, qubits, params);
     }
     QkOpCounts op_counts = qk_circuit_count_ops(qc);
+    int result = Ok;
     if (op_counts.len != 3) {
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup;
     }
-    int result = strcmp(op_counts.data[2].name, "x");
+    result = strcmp(op_counts.data[2].name, "x");
     if (result != 0) {
-        return result;
+        goto cleanup;
     }
     if (op_counts.data[2].count != 1) {
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup;
     }
     result = strcmp(op_counts.data[0].name, "h");
     if (result != 0) {
-        return result;
+        goto cleanup;
     }
     if (op_counts.data[0].count != 1999) {
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup;
     }
     result = strcmp(op_counts.data[1].name, "cx");
     if (result != 0) {
-        return result;
+        goto cleanup;
     }
     if (op_counts.data[1].count != 500) {
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup;
     }
+cleanup:
     qk_circuit_free(qc);
-    return 0;
+    qk_opcounts_free(op_counts);
+    return result;
 }
 
 int test_get_gate_counts_bv_measures() {
@@ -108,39 +115,47 @@ int test_get_gate_counts_bv_measures() {
         qk_circuit_append_measure(qc, i, i);
     }
     QkOpCounts op_counts = qk_circuit_count_ops(qc);
+    int result = Ok;
     if (op_counts.len != 4) {
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup;
     }
-    int result = strcmp(op_counts.data[3].name, "x");
+    result = strcmp(op_counts.data[3].name, "x");
     if (result != 0) {
-        return result;
+        goto cleanup;
     }
     if (op_counts.data[3].count != 1) {
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup;
     }
     result = strcmp(op_counts.data[0].name, "h");
     if (result != 0) {
-        return result;
+        goto cleanup;
     }
     if (op_counts.data[0].count != 1999) {
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup;
     }
     result = strcmp(op_counts.data[2].name, "cx");
     if (result != 0) {
-        return result;
+        goto cleanup;
     }
     if (op_counts.data[2].count != 500) {
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup;
     }
     result = strcmp(op_counts.data[1].name, "measure");
     if (result != 0) {
-        return result;
+        goto cleanup;
     }
     if (op_counts.data[1].count != 999) {
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup;
     }
+cleanup:
     qk_circuit_free(qc);
-    return 0;
+    qk_opcounts_free(op_counts);
+    return result;
 }
 
 int test_get_gate_counts_bv_barrier_and_measures() {
@@ -171,47 +186,56 @@ int test_get_gate_counts_bv_barrier_and_measures() {
         qk_circuit_append_measure(qc, i, i);
     }
     QkOpCounts op_counts = qk_circuit_count_ops(qc);
+    int result = Ok;
     if (op_counts.len != 5) {
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup;
     }
-    int result = strcmp(op_counts.data[4].name, "x");
+    result = strcmp(op_counts.data[4].name, "x");
     if (result != 0) {
-        return result;
+        goto cleanup;
     }
     if (op_counts.data[4].count != 1) {
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup;
     }
     result = strcmp(op_counts.data[0].name, "h");
     if (result != 0) {
-        return result;
+        goto cleanup;
     }
     if (op_counts.data[0].count != 1999) {
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup;
     }
     result = strcmp(op_counts.data[2].name, "cx");
     if (result != 0) {
-        return result;
+        goto cleanup;
     }
     if (op_counts.data[2].count != 500) {
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup;
     }
     result = strcmp(op_counts.data[1].name, "measure");
     if (result != 0) {
         return result;
     }
     if (op_counts.data[1].count != 999) {
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup;
     }
     result = strcmp(op_counts.data[3].name, "barrier");
     if (result != 0) {
-        return result;
+        goto cleanup;
     }
     if (op_counts.data[3].count != 2) {
         return EqualityError;
+        result = EqualityError;
+        goto cleanup;
     }
-
+cleanup:
     qk_circuit_free(qc);
-    return 0;
+    qk_opcounts_free(op_counts);
+    return result;
 }
 
 int test_get_gate_counts_bv_resets_barrier_and_measures() {
@@ -246,54 +270,63 @@ int test_get_gate_counts_bv_resets_barrier_and_measures() {
         qk_circuit_append_measure(qc, i, i);
     }
     QkOpCounts op_counts = qk_circuit_count_ops(qc);
+    int result = Ok;
     if (op_counts.len != 6) {
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup;
     }
-    int result = strcmp(op_counts.data[5].name, "x");
+    result = strcmp(op_counts.data[5].name, "x");
     if (result != 0) {
-        return result;
+        goto cleanup;
     }
     if (op_counts.data[5].count != 1) {
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup;
     }
     result = strcmp(op_counts.data[0].name, "h");
     if (result != 0) {
-        return result;
+        goto cleanup;
     }
     if (op_counts.data[0].count != 1999) {
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup;
     }
     result = strcmp(op_counts.data[3].name, "cx");
     if (result != 0) {
-        return result;
+        goto cleanup;
     }
     if (op_counts.data[3].count != 500) {
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup;
     }
     result = strcmp(op_counts.data[2].name, "measure");
     if (result != 0) {
-        return result;
+        goto cleanup;
     }
     if (op_counts.data[2].count != 999) {
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup;
     }
     result = strcmp(op_counts.data[4].name, "barrier");
     if (result != 0) {
-        return result;
+        goto cleanup;
     }
     if (op_counts.data[4].count != 2) {
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup;
     }
     result = strcmp(op_counts.data[1].name, "reset");
     if (result != 0) {
-        return result;
+        goto cleanup;
     }
     if (op_counts.data[1].count != 1000) {
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup;
     }
-
+cleanup:
     qk_circuit_free(qc);
-    return 0;
+    qk_opcounts_free(op_counts);
+    return result;
 }
 
 int test_circuit() {

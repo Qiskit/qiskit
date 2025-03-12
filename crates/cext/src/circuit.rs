@@ -360,7 +360,7 @@ pub unsafe extern "C" fn qk_circuit_count_ops(circuit: *const CircuitData) -> Op
 /// Behavior is undefined if ``op_counts`` is not the object returned by ``qk_circuit_count_ops``.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_circuit_free_count_ops(op_counts: OpCounts) {
+pub unsafe extern "C" fn qk_opcounts_free(op_counts: OpCounts) {
     let data = unsafe { std::slice::from_raw_parts_mut(op_counts.data, op_counts.len) };
     let data = data.as_mut_ptr();
     unsafe {
