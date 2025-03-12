@@ -167,7 +167,6 @@ class TestQuantumCircuitFindBit(QiskitTestCase):
                 )
 
 
-@ddt
 class TestQuantumCircuitBitLocations(QiskitTestCase):
     """Test cases for BitLocations in the QuantumCircuit."""
 

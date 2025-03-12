@@ -399,7 +399,7 @@ impl PyBitLocations {
             match index {
                 0 => self.index.into_py_any(py),
                 1 => Ok(self.registers.clone_ref(py).into_any()),
-                _ => Err(PyIndexError::new_err("tuple index out of range")),
+                _ => Err(PyIndexError::new_err("index out of range")),
             }
         };
         if let Ok(index) = index.with_len(2) {
@@ -409,7 +409,7 @@ impl PyBitLocations {
                     .map(|obj| obj.into_any().unbind()),
             }
         } else {
-            Err(PyIndexError::new_err("tuple index out of range"))
+            Err(PyIndexError::new_err("index out of range"))
         }
     }
 
