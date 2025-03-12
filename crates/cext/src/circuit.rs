@@ -17,8 +17,9 @@ use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
 
 use qiskit_circuit::bit::{ShareableClbit, ShareableQubit};
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::operations::{Operation, Param, StandardGate};
-use qiskit_circuit::Qubit;
+use qiskit_circuit::operations::{Operation, Param, StandardGate, StandardInstruction};
+use qiskit_circuit::packed_instruction::PackedOperation;
+use qiskit_circuit::{Clbit, Qubit};
 
 /// @ingroup QkCircuit
 /// Construct a new circuit with the given number of qubits and clbits.
@@ -199,6 +200,109 @@ pub unsafe extern "C" fn qk_circuit_append_standard_gate(
         };
         circuit.push_standard_gate(gate, params, qargs);
     }
+    ExitCode::Success
+}
+
+/// @ingroup QkCircuit
+/// Append a measurement to the circuit
+///
+/// @param circuit A pointer to the circuit to add the gate to
+/// @param qubits The ``uint32_t`` for the qubit to measure
+/// @param clbits The ``uint32_t`` for the clbit to store the measurement outcome in
+///
+/// # Example
+///
+///     QkCircuit *qc = qk_circuit_new(100);
+///     qk_circuit_append_measure(qc, 0, 0);
+///
+/// # Safety
+///
+/// Behavior is undefined ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
+#[no_mangle]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_circuit_append_measure(
+    circuit: *mut CircuitData,
+    qubit: u32,
+    clbit: u32,
+) -> ExitCode {
+    let circuit = unsafe { mut_ptr_as_ref(circuit) };
+    circuit.push_packed_operation(
+        PackedOperation::from_standard_instruction(StandardInstruction::Measure),
+        &[],
+        &[Qubit(qubit)],
+        &[Clbit(clbit)],
+    );
+    ExitCode::Success
+}
+
+/// @ingroup QkCircuit
+/// Append a reset to the circuit
+///
+/// @param circuit A pointer to the circuit to add the reset to
+/// @param qubits The ``uint32_t`` for the qubit to reset
+///
+/// # Example
+///
+///     QkCircuit *qc = qk_circuit_new(100);
+///     qk_circuit_append_reset(qc, 0);
+///
+///
+/// # Safety
+///
+/// Behavior is undefined ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
+#[no_mangle]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_circuit_append_reset(
+    circuit: *mut CircuitData,
+    qubit: u32,
+) -> ExitCode {
+    let circuit = unsafe { mut_ptr_as_ref(circuit) };
+    circuit.push_packed_operation(
+        PackedOperation::from_standard_instruction(StandardInstruction::Reset),
+        &[],
+        &[Qubit(qubit)],
+        &[],
+    );
+    ExitCode::Success
+}
+
+/// @ingroup QkCircuit
+/// Append a barrier to the circuit
+///
+/// @param circuit A pointer to the circuit to add the barrier to
+/// @param num_qubits The number of qubits wide the barrier is
+/// @param qubits The pointer to the array of ``uint32_t`` qubit indices to add the barrier on.
+///
+/// # Example
+///
+///     QkCircuit *qc = qk_circuit_new(100);
+///     qk_circuit_append_reset(qc, 0);
+///
+///
+/// # Safety
+/// The length of the array qubits points to must be num_qubits. If there is
+/// a mismatch the behavior is undefined.
+///
+/// Behavior is undefined ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
+#[no_mangle]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_circuit_append_barrier(
+    circuit: *mut CircuitData,
+    num_qubits: u32,
+    qubits: *const u32,
+) -> ExitCode {
+    let circuit = unsafe { mut_ptr_as_ref(circuit) };
+    let qubits: Vec<Qubit> = unsafe {
+        (0..num_qubits)
+            .map(|idx| Qubit(*qubits.wrapping_add(idx as usize)))
+            .collect()
+    };
+    circuit.push_packed_operation(
+        PackedOperation::from_standard_instruction(StandardInstruction::Barrier(num_qubits)),
+        &[],
+        &qubits,
+        &[],
+    );
     ExitCode::Success
 }
 

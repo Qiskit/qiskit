@@ -86,11 +86,224 @@ int test_get_gate_counts_bv_no_measure() {
     return 0;
 }
 
+int test_get_gate_counts_bv_measures() {
+    QkCircuit *qc = qk_circuit_new(1000, 1000);
+    double *params = NULL;
+    uint32_t i = 0;
+    uint32_t qubits[1] = {999};
+    qk_circuit_append_standard_gate(qc, QkStandardGate_XGate, qubits, params);
+    for (i = 0; i < 1000; i++) {
+        uint32_t qubits[1] = {i};
+        qk_circuit_append_standard_gate(qc, QkStandardGate_HGate, qubits, params);
+    }
+    for (i = 0; i < 1000; i += 2) {
+        uint32_t qubits[2] = {i, 999};
+        qk_circuit_append_standard_gate(qc, QkStandardGate_CXGate, qubits, params);
+    }
+    for (i = 0; i < 999; i++) {
+        uint32_t qubits[1] = {i};
+        qk_circuit_append_standard_gate(qc, QkStandardGate_HGate, qubits, params);
+    }
+    for (i = 0; i < 999; i++) {
+        qk_circuit_append_measure(qc, i, i);
+    }
+    QkOpCounts op_counts = qk_circuit_count_ops(qc);
+    if (op_counts.len != 4) {
+        return EqualityError;
+    }
+    int result = strcmp(op_counts.data[3].name, "x");
+    if (result != 0) {
+        return result;
+    }
+    if (op_counts.data[3].count != 1) {
+        return EqualityError;
+    }
+    result = strcmp(op_counts.data[0].name, "h");
+    if (result != 0) {
+        return result;
+    }
+    if (op_counts.data[0].count != 1999) {
+        return EqualityError;
+    }
+    result = strcmp(op_counts.data[2].name, "cx");
+    if (result != 0) {
+        return result;
+    }
+    if (op_counts.data[2].count != 500) {
+        return EqualityError;
+    }
+    result = strcmp(op_counts.data[1].name, "measure");
+    if (result != 0) {
+        return result;
+    }
+    if (op_counts.data[1].count != 999) {
+        return EqualityError;
+    }
+    qk_circuit_free(qc);
+    return 0;
+}
+
+int test_get_gate_counts_bv_barrier_and_measures() {
+    QkCircuit *qc = qk_circuit_new(1000, 1000);
+    double *params = NULL;
+    uint32_t i = 0;
+    uint32_t qubits[1] = {999};
+    qk_circuit_append_standard_gate(qc, QkStandardGate_XGate, qubits, params);
+    for (i = 0; i < 1000; i++) {
+        uint32_t qubits[1] = {i};
+        qk_circuit_append_standard_gate(qc, QkStandardGate_HGate, qubits, params);
+    }
+    uint32_t barrier_qubits[1000];
+    for (i = 0; i < 1000; i++) {
+        barrier_qubits[i] = i;
+    }
+    qk_circuit_append_barrier(qc, 1000, barrier_qubits);
+    for (i = 0; i < 1000; i += 2) {
+        uint32_t qubits[2] = {i, 999};
+        qk_circuit_append_standard_gate(qc, QkStandardGate_CXGate, qubits, params);
+    }
+    qk_circuit_append_barrier(qc, 1000, barrier_qubits);
+    for (i = 0; i < 999; i++) {
+        uint32_t qubits[1] = {i};
+        qk_circuit_append_standard_gate(qc, QkStandardGate_HGate, qubits, params);
+    }
+    for (i = 0; i < 999; i++) {
+        qk_circuit_append_measure(qc, i, i);
+    }
+    QkOpCounts op_counts = qk_circuit_count_ops(qc);
+    if (op_counts.len != 5) {
+        return EqualityError;
+    }
+    int result = strcmp(op_counts.data[4].name, "x");
+    if (result != 0) {
+        return result;
+    }
+    if (op_counts.data[4].count != 1) {
+        return EqualityError;
+    }
+    result = strcmp(op_counts.data[0].name, "h");
+    if (result != 0) {
+        return result;
+    }
+    if (op_counts.data[0].count != 1999) {
+        return EqualityError;
+    }
+    result = strcmp(op_counts.data[2].name, "cx");
+    if (result != 0) {
+        return result;
+    }
+    if (op_counts.data[2].count != 500) {
+        return EqualityError;
+    }
+    result = strcmp(op_counts.data[1].name, "measure");
+    if (result != 0) {
+        return result;
+    }
+    if (op_counts.data[1].count != 999) {
+        return EqualityError;
+    }
+    result = strcmp(op_counts.data[3].name, "barrier");
+    if (result != 0) {
+        return result;
+    }
+    if (op_counts.data[3].count != 2) {
+        return EqualityError;
+    }
+
+    qk_circuit_free(qc);
+    return 0;
+}
+
+int test_get_gate_counts_bv_resets_barrier_and_measures() {
+    QkCircuit *qc = qk_circuit_new(1000, 1000);
+    double *params = NULL;
+    uint32_t i = 0;
+    uint32_t qubits[1] = {999};
+    for (i = 0; i < 1000; i++) {
+        uint32_t qubits[1] = {i};
+        qk_circuit_append_reset(qc, i);
+    }
+    qk_circuit_append_standard_gate(qc, QkStandardGate_XGate, qubits, params);
+    for (i = 0; i < 1000; i++) {
+        uint32_t qubits[1] = {i};
+        qk_circuit_append_standard_gate(qc, QkStandardGate_HGate, qubits, params);
+    }
+    uint32_t barrier_qubits[1000];
+    for (i = 0; i < 1000; i++) {
+        barrier_qubits[i] = i;
+    }
+    qk_circuit_append_barrier(qc, 1000, barrier_qubits);
+    for (i = 0; i < 1000; i += 2) {
+        uint32_t qubits[2] = {i, 999};
+        qk_circuit_append_standard_gate(qc, QkStandardGate_CXGate, qubits, params);
+    }
+    qk_circuit_append_barrier(qc, 1000, barrier_qubits);
+    for (i = 0; i < 999; i++) {
+        uint32_t qubits[1] = {i};
+        qk_circuit_append_standard_gate(qc, QkStandardGate_HGate, qubits, params);
+    }
+    for (i = 0; i < 999; i++) {
+        qk_circuit_append_measure(qc, i, i);
+    }
+    QkOpCounts op_counts = qk_circuit_count_ops(qc);
+    if (op_counts.len != 6) {
+        return EqualityError;
+    }
+    int result = strcmp(op_counts.data[5].name, "x");
+    if (result != 0) {
+        return result;
+    }
+    if (op_counts.data[5].count != 1) {
+        return EqualityError;
+    }
+    result = strcmp(op_counts.data[0].name, "h");
+    if (result != 0) {
+        return result;
+    }
+    if (op_counts.data[0].count != 1999) {
+        return EqualityError;
+    }
+    result = strcmp(op_counts.data[3].name, "cx");
+    if (result != 0) {
+        return result;
+    }
+    if (op_counts.data[3].count != 500) {
+        return EqualityError;
+    }
+    result = strcmp(op_counts.data[2].name, "measure");
+    if (result != 0) {
+        return result;
+    }
+    if (op_counts.data[2].count != 999) {
+        return EqualityError;
+    }
+    result = strcmp(op_counts.data[4].name, "barrier");
+    if (result != 0) {
+        return result;
+    }
+    if (op_counts.data[4].count != 2) {
+        return EqualityError;
+    }
+    result = strcmp(op_counts.data[1].name, "reset");
+    if (result != 0) {
+        return result;
+    }
+    if (op_counts.data[1].count != 1000) {
+        return EqualityError;
+    }
+
+    qk_circuit_free(qc);
+    return 0;
+}
+
 int test_circuit() {
     int num_failed = 0;
     num_failed += RUN_TEST(test_empty);
     num_failed += RUN_TEST(test_no_gate_1000_bits);
     num_failed += RUN_TEST(test_get_gate_counts_bv_no_measure);
+    num_failed += RUN_TEST(test_get_gate_counts_bv_measures);
+    num_failed += RUN_TEST(test_get_gate_counts_bv_barrier_and_measures);
+    num_failed += RUN_TEST(test_get_gate_counts_bv_resets_barrier_and_measures);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);
