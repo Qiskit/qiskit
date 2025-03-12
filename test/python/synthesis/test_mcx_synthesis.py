@@ -30,6 +30,7 @@ from qiskit.synthesis.multi_controlled import (
 )
 from qiskit.circuit._utils import _compute_control_matrix
 from qiskit.quantum_info.operators.operator_utils import _equal_with_ancillas
+from qiskit.transpiler import generate_preset_pass_manager
 
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -124,6 +125,71 @@ class TestMCXSynthesis(QiskitTestCase):
         """Test synth_c4x by comparing synthesized and expected matrices."""
         synthesized_circuit = synth_c4x()
         self.check_mcx_synthesis(4, synthesized_circuit, clean_ancillas=False)
+
+    @data(5, 10, 15)
+    def test_mcx_n_dirty_i15_cx_count(self, num_ctrl_qubits: int):
+        """Test synth_mcx_n_dirty_i15 bound of CX count."""
+        synthesized_circuit = synth_mcx_n_dirty_i15(num_ctrl_qubits)
+        pm = generate_preset_pass_manager(
+            optimization_level=1, basis_gates=["u", "cx"], seed_transpiler=12345
+        )
+        transpiled_circuit = pm.run(synthesized_circuit)
+        cx_count = transpiled_circuit.count_ops()["cx"]
+        self.assertLessEqual(cx_count, 8 * num_ctrl_qubits - 6)
+
+    @data(5, 10, 15)
+    def test_mcx_n_clean_m15_cx_count(self, num_ctrl_qubits: int):
+        """Test synth_mcx_n_clean_m15 bound on CX count."""
+        synthesized_circuit = synth_mcx_n_clean_m15(num_ctrl_qubits)
+        pm = generate_preset_pass_manager(
+            optimization_level=1, basis_gates=["u", "cx"], seed_transpiler=12345
+        )
+        transpiled_circuit = pm.run(synthesized_circuit)
+        cx_count = transpiled_circuit.count_ops()["cx"]
+        self.assertLessEqual(cx_count, 6 * num_ctrl_qubits - 6)
+
+    @data(5, 10, 15)
+    def test_mcx_1_clean_b95_cx_count(self, num_ctrl_qubits: int):
+        """Test synth_mcx_1_clean_b95 bound on CX count."""
+        synthesized_circuit = synth_mcx_1_clean_b95(num_ctrl_qubits)
+        pm = generate_preset_pass_manager(
+            optimization_level=1, basis_gates=["u", "cx"], seed_transpiler=12345
+        )
+        transpiled_circuit = pm.run(synthesized_circuit)
+        cx_count = transpiled_circuit.count_ops()["cx"]
+        self.assertLessEqual(cx_count, 16 * num_ctrl_qubits - 8)
+
+    @data(5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15)
+    def test_mcx_noaux_v24_cx_count(self, num_ctrl_qubits: int):
+        """Test synth_mcx_noaux_v24 by comparing synthesized and expected matrices."""
+        synthesized_circuit = synth_mcx_noaux_v24(num_ctrl_qubits)
+        pm = generate_preset_pass_manager(
+            optimization_level=1, basis_gates=["u", "cx"], seed_transpiler=12345
+        )
+        transpiled_circuit = pm.run(synthesized_circuit)
+        cx_count = transpiled_circuit.count_ops()["cx"]
+        # need to verify an exact bound
+        self.assertLessEqual(cx_count, 9 * num_ctrl_qubits**2)
+
+    def test_c3x_cx_count(self):
+        """Test synth_c3x bound on CX count."""
+        synthesized_circuit = synth_c3x()
+        pm = generate_preset_pass_manager(
+            optimization_level=1, basis_gates=["u", "cx"], seed_transpiler=12345
+        )
+        transpiled_circuit = pm.run(synthesized_circuit)
+        cx_count = transpiled_circuit.count_ops()["cx"]
+        self.assertLessEqual(cx_count, 14)
+
+    def test_c4x_cx_count(self):
+        """Test synth_c4x bound on CX count."""
+        synthesized_circuit = synth_c4x()
+        pm = generate_preset_pass_manager(
+            optimization_level=1, basis_gates=["u", "cx"], seed_transpiler=12345
+        )
+        transpiled_circuit = pm.run(synthesized_circuit)
+        cx_count = transpiled_circuit.count_ops()["cx"]
+        self.assertLessEqual(cx_count, 36)
 
 
 if __name__ == "__main__":
