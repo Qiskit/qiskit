@@ -15,12 +15,7 @@ use ndarray::linalg::kron;
 use ndarray::Array2;
 use num_complex::Complex64;
 use num_complex::ComplexFloat;
-<<<<<<< HEAD
-use once_cell::sync::Lazy;
 use qiskit_circuit::bit_data::VarAsKey;
-=======
-use qiskit_circuit::object_registry::PyObjectAsKey;
->>>>>>> abb0cf9db (Fix string and standard gate mismatch in commutation checker (#13991))
 use smallvec::SmallVec;
 use std::fmt::Debug;
 
