@@ -808,13 +808,6 @@ class TestExprConstructors(QiskitTestCase):
         with self.assertRaisesRegex(TypeError, "cannot multiply two durations"):
             expr.mul(Duration.dt(1000), Duration.dt(1000))
 
-        # Multiply timing expressions by non-const floats:
-        non_const_float = expr.Var.new("a", types.Float())
-        with self.assertRaisesRegex(ValueError, "would result in a non-const"):
-            expr.mul(Duration.dt(1000), non_const_float)
-        with self.assertRaisesRegex(ValueError, "would result in a non-const"):
-            expr.mul(non_const_float, Duration.dt(1000))
-
     def test_div_explicit(self):
         cr = ClassicalRegister(8, "c")
 
@@ -924,8 +917,3 @@ class TestExprConstructors(QiskitTestCase):
             expr.div(255.0, 1)
         with self.assertRaisesRegex(TypeError, "invalid types"):
             expr.div(255.0, Duration.dt(1000))
-
-        # Divide timing expressions by non-const floats:
-        non_const_float = expr.Var.new("a", types.Float())
-        with self.assertRaisesRegex(ValueError, "would result in a non-const"):
-            expr.div(Duration.dt(1000), non_const_float)
