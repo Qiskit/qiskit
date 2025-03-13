@@ -102,7 +102,7 @@ jobs:
           mkdir -p "$PGO_WORK_DIR"
           if [[ `uname -m` == "aarch64" ]] ; then
               INSTALL_RUST_PATH=tools/install_rust_msrv.sh
-              RUST_TOOLCHAIN=1.79
+              RUST_TOOLCHAIN=1.83
           else
               INSTALL_RUST_PATH=tools/install_rust.sh
               RUST_TOOLCHAIN=stable
