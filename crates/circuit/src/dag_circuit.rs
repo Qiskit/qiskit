@@ -858,7 +858,7 @@ impl DAGCircuit {
         }
         self.dag.remove_node(tmp_node);
         self.qubit_locations = BitLocator::with_capacity(self.qubits.len());
-        for (index, qubit) in self.qubits.objects().iter().enumerate() {
+        for (index, qubit) in self.qubits.bits().iter().enumerate() {
             let registers = self
                 .qregs
                 .registers()
@@ -868,7 +868,7 @@ impl DAGCircuit {
                 .insert(qubit.clone(), BitLocations::new(index as u32, registers));
         }
         self.clbit_locations = BitLocator::with_capacity(self.clbits.len());
-        for (index, clbit) in self.clbits.objects().iter().enumerate() {
+        for (index, clbit) in self.clbits.bits().iter().enumerate() {
             let registers = self
                 .cregs
                 .registers()
