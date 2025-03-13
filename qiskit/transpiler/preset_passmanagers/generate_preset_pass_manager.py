@@ -70,7 +70,7 @@ def generate_preset_pass_manager(
 
     The target constraints for the pass manager construction can be specified through a :class:`.Target`
     instance, a :class:`.BackendV2` instance, or via loose constraints
-    (``basis_gates``, ``coupling_map``, or ``dt``).
+    (``basis_gates``, ``coupling_map`` or ``dt``).
     The order of priorities for target constraints works as follows: if a ``target``
     input is provided, it will take priority over any ``backend`` input or loose constraints.
     If a ``backend`` is provided together with any loose constraint
@@ -102,7 +102,7 @@ def generate_preset_pass_manager(
 
         backend (Backend): An optional backend object which can be used as the
             source of the default values for the ``basis_gates``,
-            ``coupling_map``, and ``target``. If any of those other arguments
+            ``coupling_map`` and ``target``. If any of those other arguments
             are specified in addition to ``backend`` they will take precedence
             over the value contained in the backend.
         target (Target): The :class:`~.Target` representing a backend compilation
@@ -226,7 +226,7 @@ def generate_preset_pass_manager(
                 raise ValueError(
                     f"Gates with 3 or more qubits ({gate}) in `basis_gates` or `backend` are "
                     "incompatible with a custom `coupling_map`. To include 3-qubit or larger "
-                    " gates in the transpilation basis, use a custom `target` instance instead."
+                    "gates in the transpilation basis, use a custom `Target` instance instead."
                 )
 
     if target is None:
