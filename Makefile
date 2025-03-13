@@ -118,7 +118,7 @@ fix_cformat:
 # The library file is managed by a different build tool - pretend it's always dirty.
 .PHONY: $(C_LIB_CARGO_PATH)
 $(C_LIB_CARGO_PATH):
-	cargo build --release --no-default-features --features cbinding -p qiskit-cext
+	cargo rustc --release --no-default-features --features cbinding --crate-type cdylib -p qiskit-cext
 
 $(C_QISKIT_H): $(C_LIB_CARGO_PATH)
 	cbindgen --crate qiskit-cext --output $(C_DIR_INCLUDE)/qiskit.h --lang C
