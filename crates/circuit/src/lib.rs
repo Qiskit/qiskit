@@ -125,6 +125,7 @@ impl From<Clbit> for BitType {
 pub fn circuit(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<circuit_data::CircuitData>()?;
     m.add_class::<circuit_instruction::CircuitInstruction>()?;
+    m.add_class::<dag_circuit::BitLocations>()?;
     m.add_class::<dag_circuit::DAGCircuit>()?;
     m.add_class::<dag_node::DAGNode>()?;
     m.add_class::<dag_node::DAGInNode>()?;

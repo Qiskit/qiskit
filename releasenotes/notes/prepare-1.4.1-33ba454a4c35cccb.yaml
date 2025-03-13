@@ -1,0 +1,23 @@
+---
+prelude: >
+    Qiskit 1.4.1 is a small patch release, fixing some bugs found in the 1.4 extended support series.
+fixes:
+  - |
+    Fixed an issue with QPY 13 when serializing or deserializing a :class:`ParameterExpression`  object that was defined
+    by calling :meth:`.ParameterExpression.subs` to substitute a :class:`Parameter` with a
+    :class:`.ParameterExpression`. For example::
+
+        from qiskit.circuit import Parameter
+
+        a = Parameter("A")
+        b = Parameter("B")
+        expr = a + b
+        c = Parameter("C")
+        new_expr = c ** 3.14
+        final_expr.subs({b: new_expr})
+
+    In previous releases if you went to serialize a :class:`.QuantumCircuit` that contained an expression like
+    this with :func:`.qpy.dump` it would have raised an ``AttributeError`` with an error message
+    `'ParameterExpression' object has no attribute 'name'` when using QPY 13 (the default). This has been
+    fixed so that the exception is no longer raised and you can serialize and deserialize a payload containing
+    these nested :class:`.ParameterExpression` objects. See `#13879 <https://github.com/Qiskit/qiskit/issues/13879>`__.
