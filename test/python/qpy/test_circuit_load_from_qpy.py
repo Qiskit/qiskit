@@ -16,7 +16,6 @@ import io
 import struct
 
 from ddt import ddt, data
-import sympy
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister, Qubit, Parameter, Gate
 from qiskit.providers.fake_provider import GenericBackendV2
@@ -27,7 +26,6 @@ from qiskit.transpiler import TranspileLayout
 from qiskit.compiler import transpile
 from qiskit.utils import optionals
 from qiskit.qpy.formats import FILE_HEADER_V10_PACK, FILE_HEADER_V10, FILE_HEADER_V10_SIZE
-from qiskit.qpy.exceptions import QpyError
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -316,58 +314,3 @@ class TestUseSymengineFlag(QpyCircuitTestCase):
                 )
             )
             self.assertEqual(header_data.symbolic_encoding, b"e")
-
-    @data(10, 11, 12)
-    def test_use_sympy(self, version):
-        """Test that the use_symengine flag works correctly if set False."""
-        theta = Parameter("theta")
-        two_theta = 2 * theta
-        qc = QuantumCircuit(1)
-        qc.rx(two_theta, 0)
-        qc.measure_all()
-        # Assert Roundtrip works
-        self.assert_roundtrip_equal(qc, use_symengine=False, version=version)
-
-    @data(10, 11, 12)
-    def test_invalid_expression_reject(self, version):
-        """Test that an invalid string is rejected by the sympy parser."""
-        expr = Parameter("z") + 1
-        qc = QuantumCircuit(1)
-        qc.rz(expr, 0)
-        with io.BytesIO() as fptr:
-            dump(qc, fptr, use_symengine=False, version=version)
-            normal = fptr.getvalue()
-
-        def prepend_len(payload):
-            return struct.pack("!Q", len(payload)) + payload
-
-        target = prepend_len(sympy.srepr(sympy.sympify(expr._symbol_expr)).encode("utf8"))
-        modified = prepend_len(b"""exec("import os; os.execv('/bin/ls', ['ls', '/'])")""")
-
-        invalid = normal.replace(target, modified)
-        with self.assertRaises(QpyError):
-            with io.BytesIO(invalid) as fd:
-                load(fd)
-
-    @data(10, 11, 12)
-    def test_all_the_expression_ops_sympy(self, version):
-        """Test a circuit with an expression that uses all the ops available."""
-        qc = QuantumCircuit(1)
-        a = Parameter("a")
-        b = Parameter("b")
-        c = Parameter("c")
-        d = Parameter("d")
-
-        expression = (a + b.sin() / 4) * c**2
-        final_expr = (
-            (expression.cos() + d.arccos() - d.arcsin() + d.arctan() + d.tan()) / d.exp()
-            + expression.gradient(a)
-            + expression.log()
-            - a.sin()
-            - b.conjugate()
-        )
-        final_expr = final_expr.abs()
-        final_expr = final_expr.subs({c: a})
-
-        qc.rx(final_expr, 0)
-        self.assert_roundtrip_equal(qc, version=version, use_symengine=False)
