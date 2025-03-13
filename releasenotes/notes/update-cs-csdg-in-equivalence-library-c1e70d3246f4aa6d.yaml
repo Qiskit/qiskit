@@ -1,7 +1,7 @@
 ---
 features_synthesis:
   - |
-    Add more equivalences to :class:`.CSGate` and :class:`.CSdgGate` in the equivalence library.
-    Previously, the basis translator used 3 :class:`.CXGate` gates for the synthesis of
-    :class:`.CSdgGate` and now it uses only two :class:`.CXGate`.
-    For both gates we reduce the number of single-qubit gates in their basis translation.
+    The standard equivalence library has additional equivalences for :class:`.CSGate` and :class:`.CSdgGate`.
+    When transpiling to the `["cx", "u"]` basis set, the :class:`.BasisTranslator` transpiler pass now uses
+    2  :class:`.CXGate` gates instead of 3 for :class:`.CSdgGate`, and in addition reduces the number of single-qubit
+    gates in both cases.
