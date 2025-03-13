@@ -1,4 +1,7 @@
 ---
+prelude: >
+    Qiskit 1.4.2 is a patch release that fixes bugs found in the 1.4 release
+    series.
 features:
   - |
     Added a new flag ``trust_payload``, to the :func:`.qpy.load` function.
