@@ -19,6 +19,7 @@ fn main() {
     config.style = cbindgen::Style::Type; // define enums/structs as: typedef struct { .. } Name;
     config.language = cbindgen::Language::C;
 
+    config.include_guard = Some("QISKIT_H_INCLUDED".to_string());
     config.sys_includes = vec!["complex.h".to_string()]; // C includes to add
     let after_includes = r##"#ifdef QISKIT_C_PYTHON_INTERFACE
     #include <Python.h>
@@ -31,12 +32,11 @@ typedef double complex QkComplex64;
 
 // Always expose [cfg(feature = "cbinding")] -- workaround for
 // https://github.com/mozilla/cbindgen/issues/995
-#define QISKIT_WITH_CBINDINGS
-"##;
+#define QISKIT_WITH_CBINDINGS"##;
     config.after_includes = Some(after_includes.to_string()); // additional header lines
 
+    // map cfg(feature=..) to #ifdef
     config.defines = [
-        // map cfg(feature=..) to #ifdef
         (
             "feature = cbinding".to_string(),
             "QISKIT_WITH_CBINDINGS".to_string(),
