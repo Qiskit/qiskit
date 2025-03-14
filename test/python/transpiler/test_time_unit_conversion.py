@@ -13,18 +13,15 @@
 """Test the optimize-1q-gate pass"""
 
 import itertools
-import unittest
-import numpy as np
 from ddt import ddt, idata, unpack
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import Delay
 from qiskit.circuit.library import XGate
-from qiskit.transpiler import InstructionDurations, InstructionProperties, PassManager, Target
+from qiskit.transpiler import InstructionDurations, InstructionProperties, Target
 from qiskit.transpiler.passes import TimeUnitConversion
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.transpiler.target import Target
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
