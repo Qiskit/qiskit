@@ -32,12 +32,6 @@ from test import QiskitTestCase  # pylint: disable=wrong-import-order
 class TestTimeUnitConversion(QiskitTestCase):
     """Test for time unit conversion pass."""
 
-    # test w inst_durations, target, none
-    # test all si pass or convert
-    # test all dt pass
-    # test mixed convert
-    # test mixed error
-
     def setUp(self):
         super().setUp()
 
