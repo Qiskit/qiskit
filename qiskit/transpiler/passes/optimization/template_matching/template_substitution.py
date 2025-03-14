@@ -496,7 +496,6 @@ class TemplateSubstitution:
                 parameter constraints, returns None.
         """
         import sympy as sym
-        from sympy.parsing.sympy_parser import parse_expr
 
         if _optionals.HAS_SYMENGINE:
             import symengine
@@ -572,7 +571,8 @@ class TemplateSubstitution:
                 if isinstance(circuit_param, ParameterExpression):
                     circ_param_sym = circuit_param.sympify()
                 else:
-                    circ_param_sym = parse_expr(str(circuit_param))
+                    # if it's not a ParameterExpression we're a float
+                    circ_param_sym = sym.Float(circuit_param)
                 equations.append(sym.Eq(template_param.sympify(), circ_param_sym))
 
                 for param in template_param.parameters:
