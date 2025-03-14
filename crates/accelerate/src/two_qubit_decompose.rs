@@ -2494,7 +2494,7 @@ type InverseReturn = (Option<StandardGate>, SmallVec<[f64; 3]>, SmallVec<[u8; 2]
 
 ///  Decompose two-qubit unitary in terms of a desired
 ///  :math:`U \sim U_d(\alpha, 0, 0) \sim \text{Ctrl-U}`
-///  gate that is locally equivalent to an :class:`.RXX`.
+///  gate that is locally equivalent to an :class:`.RXXGate`.
 impl TwoQubitControlledUDecomposer {
     /// Compute the number of basis gates needed for a given unitary
     pub fn num_basis_gates_inner(&self, unitary: ArrayView2<Complex64>) -> PyResult<usize> {
@@ -2571,20 +2571,20 @@ impl TwoQubitControlledUDecomposer {
         }
     }
 
-    ///  Takes an angle and returns the circuit equivalent to an RXX with the
+    ///  Takes an angle and returns the circuit equivalent to an RXXGate with the
     ///  RXX equivalent gate as the two-qubit unitary.
     ///  Args:
     ///      angle: Rotation angle (in this case one of the Weyl parameters a, b, or c)
     ///  Returns:
-    ///      Circuit: Circuit equivalent to an RXX.
+    ///      Circuit: Circuit equivalent to an RXXGate.
     ///  Raises:
-    ///      QiskitError: If the circuit is not equivalent to an RXX.
+    ///      QiskitError: If the circuit is not equivalent to an RXXGate.
     fn to_rxx_gate(&self, angle: f64) -> PyResult<TwoQubitGateSequence> {
-        // The user-provided RXX equivalent gate may be locally equivalent to the RXX
+        // The user-provided RXX equivalent gate may be locally equivalent to the RXX gate
         // but with some scaling in the rotation angle. For example, RXX(angle) has Weyl
         // parameters (angle, 0, 0) for angle in [0, pi/2] but the user provided gate, i.e.
         // :code:`self.rxx_equivalent_gate(angle)` might produce the Weyl parameters
-        // (scale * angle, 0, 0) where scale != 1. This is the case for the CPhase.
+        // (scale * angle, 0, 0) where scale != 1. This is the case for the CPhase gate.
 
         let mat = self.rxx_equivalent_gate.matrix(self.scale * angle)?;
         let decomposer_inv =
@@ -2687,7 +2687,7 @@ impl TwoQubitControlledUDecomposer {
             None,
         );
 
-        // translate the RYY(b) into a circuit based on the desired Ctrl-U gate.
+        // translate RYY(b) into a circuit based on the desired Ctrl-U gate.
         if (target_decomposed.b).abs() > atol {
             let circ_b = self.to_rxx_gate(-2.0 * target_decomposed.b)?;
             global_phase += circ_b.global_phase;
@@ -2712,7 +2712,7 @@ impl TwoQubitControlledUDecomposer {
             }
         }
 
-        // # translate the RZZ(c) into a circuit based on the desired Ctrl-U gate.
+        // translate RZZ(c) into a circuit based on the desired Ctrl-U gate.
         if (target_decomposed.c).abs() > atol {
             // Since the Weyl chamber is here defined as a > b > |c| we may have
             // negative c. This will cause issues in _to_rxx_gate
@@ -2922,12 +2922,12 @@ impl TwoQubitControlledUDecomposer {
 impl TwoQubitControlledUDecomposer {
     ///  Initialize the KAK decomposition.
     ///  Args:
-    ///      rxx_equivalent_gate: Gate that is locally equivalent to an :class:`.RXX`:
+    ///      rxx_equivalent_gate: Gate that is locally equivalent to an :class:`.RXXGate`:
     ///      :math:`U \sim U_d(\alpha, 0, 0) \sim \text{Ctrl-U}` gate.
     ///     euler_basis: Basis string to be provided to :class:`.OneQubitEulerDecomposer`
     ///     for 1Q synthesis.
     ///  Raises:
-    ///      QiskitError: If the gate is not locally equivalent to an :class:`.RXX`.
+    ///      QiskitError: If the gate is not locally equivalent to an :class:`.RXXGate`.
     #[new]
     #[pyo3(signature=(rxx_equivalent_gate, euler_basis="ZXZ"))]
     pub fn new(rxx_equivalent_gate: RXXEquivalent, euler_basis: &str) -> PyResult<Self> {

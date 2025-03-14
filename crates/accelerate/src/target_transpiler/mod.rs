@@ -511,7 +511,7 @@ impl Target {
     ///         ``operation_name`` argument. The typical use case for this
     ///         operation is to check whether a specific variant of an operation
     ///         is supported on the backend. For example, if you wanted to
-    ///         check whether a :class:`~.RX` was supported on a specific
+    ///         check whether a :class:`~.RXGate` was supported on a specific
     ///         qubit with a fixed angle. That fixed angle variant will
     ///         typically have a name different from the object's
     ///         :attr:`~.Instruction.name` attribute (``"rx"``) in the target.
@@ -535,14 +535,14 @@ impl Target {
     ///             parameters = [Parameter("theta")]
     ///             target.instruction_supported("rx", (0,), parameters=parameters)
     ///
-    ///         will return ``True`` if an :class:`~.RX` is supported on qubit 0
+    ///         will return ``True`` if an :class:`~.RXGate` is supported on qubit 0
     ///         that will accept any parameter. If you need to check for a fixed numeric
     ///         value parameter this argument is typically paired with the ``operation_class``
     ///         argument. For example::
     ///
-    ///             target.instruction_supported("rx", (0,), RX, parameters=[pi / 4])
+    ///             target.instruction_supported("rx", (0,), RXGate, parameters=[pi / 4])
     ///
-    ///         will return ``True`` if an RX(pi/4) exists on qubit 0.
+    ///         will return ``True`` if an RXGate(pi/4) exists on qubit 0.
     ///
     /// Returns:
     ///     bool: Returns ``True`` if the instruction is supported and ``False`` if it isn't.
@@ -672,9 +672,9 @@ impl Target {
     /// and qubits to get the instruction properties. For example, if
     /// :attr:`~qiskit.transpiler.Target.instructions` returned::
     ///
-    ///     [(X(), (0,)), (X(), (1,))]
+    ///     [(XGate(), (0,)), (XGate(), (1,))]
     ///
-    /// you could get the properties of the ``X`` on qubit 1 with::
+    /// you could get the properties of the ``XGate`` on qubit 1 with::
     ///
     ///     props = target.instruction_properties(1)
     ///
@@ -682,7 +682,7 @@ impl Target {
     ///
     ///     props = target['x'][(1,)]
     ///
-    /// (assuming the ``X``'s canonical name in the target is ``'x'``)
+    /// (assuming the ``XGate``'s canonical name in the target is ``'x'``)
     /// This is especially true for larger targets as this will scale worse with the number
     /// of instruction tuples in a target.
     ///

@@ -85,7 +85,7 @@ fn single_qubit_evolution(
 ) -> Box<dyn Iterator<Item = Instruction>> {
     let qubit = vec![Qubit(index)];
 
-    // We don't need to explictly cover the |1><1| projector case (which is the Phase),
+    // We don't need to explictly cover the |1><1| projector case (which is the Phase gate),
     // which will be handled by the multi-qubit evolution.
     match pauli {
         'x' => Box::new(std::iter::once((
@@ -130,7 +130,7 @@ fn two_qubit_evolution<'a>(
     let qubits = vec![Qubit(indices[0]), Qubit(indices[1])];
     let paulistring: String = pauli.iter().collect();
 
-    // We don't need to explictly cover the |11><11| projector case (which is the CPhase),
+    // We don't need to explictly cover the |11><11| projector case (which is the CPhase gate),
     // which will be handled by the multi-qubit evolution. The Paulis need special treatment here
     // since the generic code would use CX-RZ-CX instead of the two-qubit Pauli standard gates.
     match paulistring.as_str() {

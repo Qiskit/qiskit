@@ -78,7 +78,7 @@ type CircuitDataState<'py> = (
 ///
 ///     qubits = [Qubit()]
 ///     data = CircuitData(qubits)
-///     data.append(CircuitInstruction(X(), (qubits[0],), ()))
+///     data.append(CircuitInstruction(XGate(), (qubits[0],), ()))
 ///     assert(data[0] == data[0]) # => Ok.
 ///     assert(data[0] is data[0]) # => PANICS!
 ///
@@ -675,16 +675,16 @@ impl CircuitData {
     ///
     ///         qr = QuantumRegister(3)
     ///         data = CircuitData(qubits=qr, data=[
-    ///             CircuitInstruction(X(), [qr[0]], []),
-    ///             CircuitInstruction(X(), [qr[1]], []),
-    ///             CircuitInstruction(X(), [qr[2]], []),
+    ///             CircuitInstruction(XGate(), [qr[0]], []),
+    ///             CircuitInstruction(XGate(), [qr[1]], []),
+    ///             CircuitInstruction(XGate(), [qr[2]], []),
     ///         ])
     ///
     ///         data.replace_bits(qubits=reversed(qr))
     ///         assert(data == [
-    ///             CircuitInstruction(X(), [qr[2]], []),
-    ///             CircuitInstruction(X(), [qr[1]], []),
-    ///             CircuitInstruction(X(), [qr[0]], []),
+    ///             CircuitInstruction(XGate(), [qr[2]], []),
+    ///             CircuitInstruction(XGate(), [qr[1]], []),
+    ///             CircuitInstruction(XGate(), [qr[0]], []),
     ///         ])
     #[pyo3(signature = (qubits=None, clbits=None, qregs=None, cregs=None))]
     pub fn replace_bits(
