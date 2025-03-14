@@ -1883,7 +1883,10 @@ class QuantumCircuit:
 
         if other.num_qubits > dest.num_qubits or other.num_clbits > dest.num_clbits:
             raise CircuitError(
-                "Trying to compose with another QuantumCircuit which has more 'in' edges."
+                f"Cannot compose: the other circuit has {other.num_qubits} qubit(s) and {other.num_clbits} classical bit(s), "
+                f"but the destination circuit has only {dest.num_qubits} qubit(s) and {dest.num_clbits} classical bit(s).\n"
+                "When composing quantum circuits using the compose method, the number of qubits and "
+                "classical bits in the other circuit must not exceed those in the destination circuit."
             )
 
         # Maps bits in 'other' to bits in 'dest'.
