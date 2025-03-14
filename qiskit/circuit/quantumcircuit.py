@@ -3889,7 +3889,7 @@ class QuantumCircuit:
     def _create_creg(self, length: int, name: str) -> ClassicalRegister:
         """Creates a creg, checking if ClassicalRegister with same name exists"""
         if name in [creg.name for creg in self.cregs]:
-            new_creg = ClassicalRegister(length, name=f"{name}{ClassicalRegister.instance_count}")
+            new_creg = ClassicalRegister._new_with_prefix(length, name)
         else:
             new_creg = ClassicalRegister(length, name)
         return new_creg
@@ -3897,7 +3897,7 @@ class QuantumCircuit:
     def _create_qreg(self, length: int, name: str) -> QuantumRegister:
         """Creates a qreg, checking if QuantumRegister with same name exists"""
         if name in [qreg.name for qreg in self.qregs]:
-            new_qreg = QuantumRegister(length, name=f"{name}{QuantumRegister.instance_count}")
+            new_qreg = QuantumRegister._new_with_prefix(length, name)
         else:
             new_qreg = QuantumRegister(length, name)
         return new_qreg
