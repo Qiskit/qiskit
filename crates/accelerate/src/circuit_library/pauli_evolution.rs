@@ -37,8 +37,8 @@ type Instruction = (
 ///     time: The rotation angle. Note that this will directly be used as input of the
 ///         rotation gate and not be multiplied by a factor of 2 (that should be done before so
 ///         that this function can remain Rust-only).
-///     phase_gate_for_paulis: If ``true``, use the ``Phase`` instead of ``RZ`` as
-///         single-qubit Pauli rotations.
+///     phase_gate_for_paulis: If ``true``, use the :class:`.PhaseGate` instead of :class:`.RZGate`
+///         as single-qubit Pauli rotations.
 ///     do_fountain: If ``true``, implement the CX propagation as "fountain" shape, where each
 ///         CX uses the top qubit as target. If ``false``, uses a "chain" shape, where CX in between
 ///         neighboring qubits are used.
