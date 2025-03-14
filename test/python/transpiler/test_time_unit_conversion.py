@@ -64,7 +64,7 @@ class TestTimeUnitConversion(QiskitTestCase):
     @idata(itertools.product(("s", "dt"), ("dt", "si", "none"), ("dt", "nodt", "none")))
     @unpack
     def test_gate_and_delay(self, delay_unit, inst_durations_unit, target_type):
-        """Test delays in dt pass through"""
+        """Test delays are converted, passed through or flagged as appropriate"""
         if delay_unit == "s":
             delay_val = self.delay_dt * self.dt
         else:
