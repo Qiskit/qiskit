@@ -26,8 +26,8 @@ pub(crate) mod cz_depth_lnn;
 /// based on Maslov and Roetteler.
 ///
 ///  Note that this method *reverts* the order of qubits in the circuit,
-///  and returns a circuit containing :class:`.CXGate`\s and phase gates
-/// (:class:`.SGate`, :class:`.SdgGate` or :class:`.ZGate`).
+///  and returns a circuit containing :class:`.CX`\s and phase gates
+/// (:class:`.S`, :class:`.Sdg` or :class:`.Z`).
 ///
 /// References:
 ///     1. Dmitri Maslov, Martin Roetteler,

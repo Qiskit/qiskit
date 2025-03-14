@@ -89,18 +89,18 @@ fn remove_identity_equiv(
         match view {
             OperationRef::StandardGate(gate) => {
                 let (tr_over_dim, dim) = match gate {
-                    StandardGate::RXGate
-                    | StandardGate::RYGate
-                    | StandardGate::RZGate
-                    | StandardGate::PhaseGate
-                    | StandardGate::RXXGate
-                    | StandardGate::RYYGate
-                    | StandardGate::RZXGate
-                    | StandardGate::RZZGate
-                    | StandardGate::CRXGate
-                    | StandardGate::CRYGate
-                    | StandardGate::CRZGate
-                    | StandardGate::CPhaseGate => {
+                    StandardGate::RX
+                    | StandardGate::RY
+                    | StandardGate::RZ
+                    | StandardGate::Phase
+                    | StandardGate::RXX
+                    | StandardGate::RYY
+                    | StandardGate::RZX
+                    | StandardGate::RZZ
+                    | StandardGate::CRX
+                    | StandardGate::CRY
+                    | StandardGate::CRZ
+                    | StandardGate::CPhase => {
                         if let Param::Float(angle) = inst.params_view()[0] {
                             let (tr_over_dim, dim) =
                                 rotation_trace_and_dim(gate, angle).expect("Since only supported rotation gates are given, the result is not None");

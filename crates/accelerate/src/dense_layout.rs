@@ -85,7 +85,7 @@ fn bfs_sort(adj_matrix: ArrayView2<f64>, start: usize, num_qubits: usize) -> Vec
 ///     coupling_adjacency (numpy.ndarray): An adjacency matrix for the
 ///         coupling graph.
 ///     num_meas (int): The number of measurement operations in the circuit
-///     num_cx (int): The number of CXGates that are in the circuit
+///     num_cx (int): The number of CXs that are in the circuit
 ///     use_error (bool): Set to True to use the error
 ///     symmetric_coupling_map (bool): Is the coupling graph symmetric
 ///     error_matrix (numpy.ndarray): A 2D array that represents the error

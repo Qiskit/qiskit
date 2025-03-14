@@ -21,8 +21,7 @@ use smallvec::{smallvec, SmallVec};
 
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, Wire};
 use qiskit_circuit::operations::StandardGate::{
-    CXGate, CYGate, CZGate, HGate, PhaseGate, RXGate, RZGate, SGate, TGate, U1Gate, XGate, YGate,
-    ZGate,
+    Phase, U1, CX, CY, CZ, H, RX, RZ, S, T, X, Y, Z,
 };
 use qiskit_circuit::operations::{Operation, Param, StandardGate};
 use qiskit_circuit::Qubit;
@@ -37,10 +36,10 @@ static HALF_TURNS: [&str; 2] = ["z", "x"];
 static QUARTER_TURNS: [&str; 1] = ["s"];
 static EIGHTH_TURNS: [&str; 1] = ["t"];
 
-static VAR_Z_MAP: [(&str, StandardGate); 3] = [("rz", RZGate), ("p", PhaseGate), ("u1", U1Gate)];
-static Z_ROTATIONS: [StandardGate; 6] = [PhaseGate, ZGate, U1Gate, RZGate, TGate, SGate];
-static X_ROTATIONS: [StandardGate; 2] = [XGate, RXGate];
-static SUPPORTED_GATES: [StandardGate; 5] = [CXGate, CYGate, CZGate, HGate, YGate];
+static VAR_Z_MAP: [(&str, StandardGate); 3] = [("rz", RZ), ("p", Phase), ("u1", U1)];
+static Z_ROTATIONS: [StandardGate; 6] = [Phase, Z, U1, RZ, T, S];
+static X_ROTATIONS: [StandardGate; 2] = [X, RX];
+static SUPPORTED_GATES: [StandardGate; 5] = [CX, CY, CZ, H, Y];
 
 #[derive(Hash, Eq, PartialEq, Debug)]
 enum GateOrRotation {
@@ -242,7 +241,7 @@ pub(crate) fn cancel_commutations(
 
                 let new_op = match cancel_key.gate {
                     GateOrRotation::ZRotation => z_var_gate.unwrap(),
-                    GateOrRotation::XRotation => &RXGate,
+                    GateOrRotation::XRotation => &RX,
                     _ => unreachable!(),
                 };
 

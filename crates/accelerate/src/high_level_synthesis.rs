@@ -686,7 +686,7 @@ fn extract_definition(
                     let mut circuit_data: CircuitData =
                         CircuitData::with_capacity(py, 1, 0, 1, Param::Float(phase))?;
                     circuit_data.push_standard_gate(
-                        StandardGate::UGate,
+                        StandardGate::U,
                         &[Param::Float(theta), Param::Float(phi), Param::Float(lam)],
                         &[Qubit(0)],
                     )?;
@@ -708,7 +708,7 @@ fn extract_definition(
                         2,
                         two_qubit_sequence.gates().iter().map(
                             |(gate, params_floats, qubit_indices)| {
-                                let unwrapped_gate = gate.unwrap_or(StandardGate::CXGate);
+                                let unwrapped_gate = gate.unwrap_or(StandardGate::CX);
                                 let params: SmallVec<[Param; 3]> =
                                     params_floats.iter().map(|p| Param::Float(*p)).collect();
                                 let qubits =

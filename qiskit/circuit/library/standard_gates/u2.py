@@ -86,7 +86,7 @@ class U2Gate(Gate):
         using two X90 pulses.
     """
 
-    _standard_gate = StandardGate.U2Gate
+    _standard_gate = StandardGate.U2
 
     def __init__(
         self,
