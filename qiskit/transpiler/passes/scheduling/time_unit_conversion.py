@@ -126,9 +126,9 @@ class TimeUnitConversion(TransformationPass):
             # Check what units are used in other instructions: dt or SI or mixed
             units_other = inst_durations.units_used()
             unified_unit = self._unified(units_other)
-            if unified_unit == "SI" and not has_dt:
+            if unified_unit in ("SI", "none") and has_si and not has_dt:
                 time_unit = "s"
-            elif unified_unit == "dt" and not has_si:
+            elif unified_unit in ("dt", "none") and has_dt and not has_si:
                 time_unit = "dt"
             else:
                 raise TranspilerError(
@@ -154,7 +154,7 @@ class TimeUnitConversion(TransformationPass):
     @staticmethod
     def _unified(unit_set: Set[str]) -> str:
         if not unit_set:
-            return "dt"
+            return "none"
 
         if len(unit_set) == 1 and "dt" in unit_set:
             return "dt"
