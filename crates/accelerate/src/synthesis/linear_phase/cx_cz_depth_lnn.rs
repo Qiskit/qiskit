@@ -272,19 +272,15 @@ pub fn py_synth_cx_cz_depth_line_my(
 
     let instructions = qc_instructions.into_iter().map(|inst| match inst {
         CircuitInstructions::CX(ctrl, target) => (
-            StandardGate::CXGate,
+            StandardGate::CX,
             smallvec![],
             smallvec![Qubit(ctrl), Qubit(target)],
         ),
-        CircuitInstructions::S(qubit) => {
-            (StandardGate::SGate, smallvec![], smallvec![Qubit(qubit)])
-        }
+        CircuitInstructions::S(qubit) => (StandardGate::S, smallvec![], smallvec![Qubit(qubit)]),
         CircuitInstructions::Sdg(qubit) => {
-            (StandardGate::SdgGate, smallvec![], smallvec![Qubit(qubit)])
+            (StandardGate::Sdg, smallvec![], smallvec![Qubit(qubit)])
         }
-        CircuitInstructions::Z(qubit) => {
-            (StandardGate::ZGate, smallvec![], smallvec![Qubit(qubit)])
-        }
+        CircuitInstructions::Z(qubit) => (StandardGate::Z, smallvec![], smallvec![Qubit(qubit)]),
     });
     CircuitData::from_standard_gates(py, n as u32, instructions, Param::Float(0.0))
 }

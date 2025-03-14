@@ -92,7 +92,7 @@ class U1Gate(Gate):
         `1612.00858 <https://arxiv.org/abs/1612.00858>`_
     """
 
-    _standard_gate = StandardGate.U1Gate
+    _standard_gate = StandardGate.U1
 
     def __init__(self, theta: ParameterValueType, label: str | None = None):
         """Create new U1 gate."""
@@ -224,7 +224,7 @@ class CU1Gate(ControlledGate):
         phase difference.
     """
 
-    _standard_gate = StandardGate.CU1Gate
+    _standard_gate = StandardGate.CU1
 
     def __init__(
         self,

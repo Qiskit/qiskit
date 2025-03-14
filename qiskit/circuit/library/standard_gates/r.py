@@ -49,7 +49,7 @@ class RGate(Gate):
             \end{pmatrix}
     """
 
-    _standard_gate = StandardGate.RGate
+    _standard_gate = StandardGate.R
 
     def __init__(
         self,

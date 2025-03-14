@@ -64,7 +64,7 @@ class SXGate(SingletonGate):
 
     """
 
-    _standard_gate = StandardGate.SXGate
+    _standard_gate = StandardGate.SX
 
     def __init__(self, label: Optional[str] = None):
         """Create new SX gate."""
@@ -168,7 +168,7 @@ class SXdgGate(SingletonGate):
                     = e^{-i \pi/4} \sqrt{X}^{\dagger}
     """
 
-    _standard_gate = StandardGate.SXdgGate
+    _standard_gate = StandardGate.SXdg
 
     def __init__(self, label: Optional[str] = None):
         """Create new SXdg gate."""
@@ -268,7 +268,7 @@ class CSXGate(SingletonControlledGate):
 
     """
 
-    _standard_gate = StandardGate.CSXGate
+    _standard_gate = StandardGate.CSX
 
     def __init__(
         self,

@@ -62,7 +62,7 @@ class RZGate(Gate):
         `1612.00858 <https://arxiv.org/abs/1612.00858>`_
     """
 
-    _standard_gate = StandardGate.RZGate
+    _standard_gate = StandardGate.RZ
 
     def __init__(self, phi: ParameterValueType, label: Optional[str] = None):
         """Create new RZ gate."""
@@ -220,7 +220,7 @@ class CRZGate(ControlledGate):
         phase difference.
     """
 
-    _standard_gate = StandardGate.CRZGate
+    _standard_gate = StandardGate.CRZ
 
     def __init__(
         self,

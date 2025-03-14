@@ -203,7 +203,7 @@ fn circuit_u3(
     let phi = mod_2pi(phi, atol);
     let lam = mod_2pi(lam, atol);
     if !simplify || theta.abs() > atol || phi.abs() > atol || lam.abs() > atol {
-        circuit.push((StandardGate::U3Gate, smallvec![theta, phi, lam]));
+        circuit.push((StandardGate::U3, smallvec![theta, phi, lam]));
     }
     OneQubitGateSequence {
         gates: circuit,
@@ -230,16 +230,16 @@ fn circuit_u321(
     if theta.abs() < atol {
         let tot = mod_2pi(phi + lam, atol);
         if tot.abs() > atol {
-            circuit.push((StandardGate::U1Gate, smallvec![tot]));
+            circuit.push((StandardGate::U1, smallvec![tot]));
         }
     } else if (theta - PI / 2.).abs() < atol {
         circuit.push((
-            StandardGate::U2Gate,
+            StandardGate::U2,
             smallvec![mod_2pi(phi, atol), mod_2pi(lam, atol)],
         ));
     } else {
         circuit.push((
-            StandardGate::U3Gate,
+            StandardGate::U3,
             smallvec![theta, mod_2pi(phi, atol), mod_2pi(lam, atol)],
         ));
     }
@@ -268,7 +268,7 @@ fn circuit_u(
     let phi = mod_2pi(phi, atol);
     let lam = mod_2pi(lam, atol);
     if theta.abs() > atol || phi.abs() > atol || lam.abs() > atol {
-        circuit.push((StandardGate::UGate, smallvec![theta, phi, lam]));
+        circuit.push((StandardGate::U, smallvec![theta, phi, lam]));
     }
     OneQubitGateSequence {
         gates: circuit,
@@ -371,7 +371,7 @@ fn circuit_rr(
         // This can be expressed as a single R gate
         if theta.abs() > atol {
             circuit.push((
-                StandardGate::RGate,
+                StandardGate::R,
                 smallvec![theta, mod_2pi(PI / 2. + phi, atol)],
             ));
         }
@@ -379,12 +379,12 @@ fn circuit_rr(
         // General case: use two R gates
         if (theta - PI).abs() > atol {
             circuit.push((
-                StandardGate::RGate,
+                StandardGate::R,
                 smallvec![theta - PI, mod_2pi(PI / 2. - lam, atol)],
             ));
         }
         circuit.push((
-            StandardGate::RGate,
+            StandardGate::R,
             smallvec![PI, mod_2pi(0.5 * (phi - lam + PI), atol)],
         ));
     }
@@ -412,8 +412,8 @@ pub fn generate_circuit(
             phi,
             lam,
             phase,
-            StandardGate::RZGate,
-            StandardGate::RYGate,
+            StandardGate::RZ,
+            StandardGate::RY,
             simplify,
             atol,
         ),
@@ -422,8 +422,8 @@ pub fn generate_circuit(
             phi,
             lam,
             phase,
-            StandardGate::RZGate,
-            StandardGate::RXGate,
+            StandardGate::RZ,
+            StandardGate::RX,
             simplify,
             atol,
         ),
@@ -432,8 +432,8 @@ pub fn generate_circuit(
             phi,
             lam,
             phase,
-            StandardGate::RXGate,
-            StandardGate::RZGate,
+            StandardGate::RX,
+            StandardGate::RZ,
             simplify,
             atol,
         ),
@@ -442,8 +442,8 @@ pub fn generate_circuit(
             phi,
             lam,
             phase,
-            StandardGate::RXGate,
-            StandardGate::RYGate,
+            StandardGate::RX,
+            StandardGate::RY,
             simplify,
             atol,
         ),
@@ -461,13 +461,11 @@ pub fn generate_circuit(
             let fnz = |circuit: &mut OneQubitGateSequence, phi: f64| {
                 let phi = mod_2pi(phi, inner_atol);
                 if phi.abs() > inner_atol {
-                    circuit
-                        .gates
-                        .push((StandardGate::PhaseGate, smallvec![phi]));
+                    circuit.gates.push((StandardGate::Phase, smallvec![phi]));
                 }
             };
             let fnx = |circuit: &mut OneQubitGateSequence| {
-                circuit.gates.push((StandardGate::SXGate, SmallVec::new()));
+                circuit.gates.push((StandardGate::SX, SmallVec::new()));
             };
 
             circuit_psx_gen(
@@ -493,12 +491,12 @@ pub fn generate_circuit(
             let fnz = |circuit: &mut OneQubitGateSequence, phi: f64| {
                 let phi = mod_2pi(phi, inner_atol);
                 if phi.abs() > inner_atol {
-                    circuit.gates.push((StandardGate::RZGate, smallvec![phi]));
+                    circuit.gates.push((StandardGate::RZ, smallvec![phi]));
                     circuit.global_phase += phi / 2.;
                 }
             };
             let fnx = |circuit: &mut OneQubitGateSequence| {
-                circuit.gates.push((StandardGate::SXGate, SmallVec::new()));
+                circuit.gates.push((StandardGate::SX, SmallVec::new()));
             };
             circuit_psx_gen(
                 theta,
@@ -523,14 +521,12 @@ pub fn generate_circuit(
             let fnz = |circuit: &mut OneQubitGateSequence, phi: f64| {
                 let phi = mod_2pi(phi, inner_atol);
                 if phi.abs() > inner_atol {
-                    circuit.gates.push((StandardGate::U1Gate, smallvec![phi]));
+                    circuit.gates.push((StandardGate::U1, smallvec![phi]));
                 }
             };
             let fnx = |circuit: &mut OneQubitGateSequence| {
                 circuit.global_phase += PI / 4.;
-                circuit
-                    .gates
-                    .push((StandardGate::RXGate, smallvec![PI / 2.]));
+                circuit.gates.push((StandardGate::RX, smallvec![PI / 2.]));
             };
             circuit_psx_gen(
                 theta,
@@ -555,15 +551,15 @@ pub fn generate_circuit(
             let fnz = |circuit: &mut OneQubitGateSequence, phi: f64| {
                 let phi = mod_2pi(phi, inner_atol);
                 if phi.abs() > inner_atol {
-                    circuit.gates.push((StandardGate::RZGate, smallvec![phi]));
+                    circuit.gates.push((StandardGate::RZ, smallvec![phi]));
                     circuit.global_phase += phi / 2.;
                 }
             };
             let fnx = |circuit: &mut OneQubitGateSequence| {
-                circuit.gates.push((StandardGate::SXGate, SmallVec::new()));
+                circuit.gates.push((StandardGate::SX, SmallVec::new()));
             };
             let fnxpi = |circuit: &mut OneQubitGateSequence| {
-                circuit.gates.push((StandardGate::XGate, SmallVec::new()));
+                circuit.gates.push((StandardGate::X, SmallVec::new()));
             };
             circuit_psx_gen(
                 theta,

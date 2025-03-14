@@ -55,7 +55,7 @@ class TGate(SingletonGate):
     Equivalent to a :math:`\pi/4` radian rotation about the Z axis.
     """
 
-    _standard_gate = StandardGate.TGate
+    _standard_gate = StandardGate.T
 
     def __init__(self, label: Optional[str] = None):
         """Create new T gate."""
@@ -132,7 +132,7 @@ class TdgGate(SingletonGate):
     Equivalent to a :math:`-\pi/4` radian rotation about the Z axis.
     """
 
-    _standard_gate = StandardGate.TdgGate
+    _standard_gate = StandardGate.Tdg
 
     def __init__(self, label: Optional[str] = None):
         """Create new Tdg gate."""

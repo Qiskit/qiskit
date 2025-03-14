@@ -49,7 +49,7 @@ class DCXGate(SingletonGate):
             \end{pmatrix}
     """
 
-    _standard_gate = StandardGate.DCXGate
+    _standard_gate = StandardGate.DCX
 
     def __init__(self, label=None):
         """Create new DCX gate."""

@@ -427,23 +427,23 @@ fn get_2q_decomposer_from_basis(
 ) -> PyResult<Option<DecomposerElement>> {
     // Non-parametrized 2q basis candidates (TwoQubitBasisDecomposer)
     let basis_names: IndexMap<&str, StandardGate> = [
-        ("cx", StandardGate::CXGate),
-        ("cz", StandardGate::CZGate),
-        ("iswap", StandardGate::ISwapGate),
-        ("ecr", StandardGate::ECRGate),
+        ("cx", StandardGate::CX),
+        ("cz", StandardGate::CZ),
+        ("iswap", StandardGate::ISwap),
+        ("ecr", StandardGate::ECR),
     ]
     .into_iter()
     .collect();
     // Parametrized 2q basis candidates (TwoQubitControlledUDecomposer)
     let param_basis_names: IndexMap<&str, StandardGate> = [
-        ("rxx", StandardGate::RXXGate),
-        ("rzx", StandardGate::RZXGate),
-        ("rzz", StandardGate::RZZGate),
-        ("ryy", StandardGate::RYYGate),
-        ("cphase", StandardGate::CPhaseGate),
-        ("crx", StandardGate::CRXGate),
-        ("cry", StandardGate::CRYGate),
-        ("crz", StandardGate::CRZGate),
+        ("rxx", StandardGate::RXX),
+        ("rzx", StandardGate::RZX),
+        ("rzz", StandardGate::RZZ),
+        ("ryy", StandardGate::RYY),
+        ("cphase", StandardGate::CPhase),
+        ("crx", StandardGate::CRX),
+        ("cry", StandardGate::CRY),
+        ("crz", StandardGate::CRZ),
     ]
     .into_iter()
     .collect();
@@ -756,7 +756,7 @@ fn get_2q_decomposers_from_target(
                     };
                     Some(TwoQubitBasisDecomposer::new_inner(
                         pi_2_basis.to_string(),
-                        StandardGate::CXGate.matrix(&[]).unwrap().view(),
+                        StandardGate::CX.matrix(&[]).unwrap().view(),
                         fidelity,
                         basis_1q,
                         Some(true),
