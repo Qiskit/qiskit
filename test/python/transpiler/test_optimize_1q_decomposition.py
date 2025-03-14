@@ -741,7 +741,7 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
             def __init__(self, lam):
                 super().__init__("custom_u1", 1, [lam])
 
-            def __array__(self, dtype=None, copy=None):
+            def __array__(self, dtype=None, _copy=None):
                 return U1Gate(*self.params).__array__(dtype=dtype)
 
         qc = QuantumCircuit(1)
