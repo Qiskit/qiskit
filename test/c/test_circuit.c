@@ -14,6 +14,7 @@
 #include <complex.h>
 #include <qiskit.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -25,18 +26,20 @@ int test_empty() {
     QkCircuit *qc = qk_circuit_new(0, 0);
     uint32_t num_qubits = qk_circuit_num_qubits(qc);
     uint32_t num_clbits = qk_circuit_num_clbits(qc);
+    size_t num_instructions = qk_circuit_num_instructions(qc);
     qk_circuit_free(qc);
 
-    return (num_qubits != 0 || num_clbits != 0) ? EqualityError : Ok;
+    return (num_qubits != 0 || num_clbits != 0 || num_instructions != 0) ? EqualityError : Ok;
 }
 
 int test_no_gate_1000_bits() {
     QkCircuit *qc = qk_circuit_new(1000, 1000);
     uint32_t num_qubits = qk_circuit_num_qubits(qc);
     uint32_t num_clbits = qk_circuit_num_clbits(qc);
+    size_t num_instructions = qk_circuit_num_instructions(qc);
     qk_circuit_free(qc);
 
-    return (num_qubits != 1000 || num_clbits != 1000) ? EqualityError : Ok;
+    return (num_qubits != 1000 || num_clbits != 1000 || num_instructions != 0) ? EqualityError : Ok;
 }
 
 int test_get_gate_counts_bv_no_measure() {
@@ -322,6 +325,137 @@ int test_get_gate_counts_bv_resets_barrier_and_measures() {
     if (op_counts.data[1].count != 1000) {
         result = EqualityError;
         goto cleanup;
+    }
+    size_t num_instructions = qk_circuit_num_instructions(qc);
+    if (num_instructions != 1000 + 2 + 999 + 500 + 1999 + 1) {
+        result = EqualityError;
+        goto cleanup;
+    }
+    for (size_t i = 0; i < num_instructions; i++) {
+
+        QkCircuitInstruction inst = qk_circuit_get_instruction(qc, i);
+        if (i < 1000) {
+            result = strcmp(inst.name, "reset");
+            if (result != 0) {
+                goto loop_exit;
+            }
+            if (inst.qubits[0] != i || inst.num_qubits != 1) {
+                result = EqualityError;
+                goto loop_exit;
+            }
+            if (inst.num_clbits > 0 || inst.num_params > 0) {
+                result = EqualityError;
+                goto loop_exit;
+            }
+        } else if (i == 1000) {
+            result = strcmp(inst.name, "x");
+            if (result != 0) {
+                goto loop_exit;
+            }
+            if (inst.qubits[0] != 999 || inst.num_qubits != 1) {
+                result = EqualityError;
+                goto loop_exit;
+            }
+            if (inst.num_clbits > 0 || inst.num_params > 0) {
+                result = EqualityError;
+                goto loop_exit;
+            }
+        } else if (i < 2001) {
+            result = strcmp(inst.name, "h");
+            if (result != 0) {
+                goto loop_exit;
+            }
+            if (inst.qubits[0] != i - 1001 || inst.num_qubits != 1) {
+                result = EqualityError;
+                goto loop_exit;
+            }
+            if (inst.num_clbits > 0 || inst.num_params > 0 || inst.num_qubits != 1) {
+                result = EqualityError;
+                goto loop_exit;
+            }
+        } else if (i == 2001) {
+            result = strcmp(inst.name, "barrier");
+            if (result != 0) {
+                goto loop_exit;
+            }
+            for (uint32_t j = 0; i < 1000; j++) {
+                if (inst.qubits[i] != i) {
+                    result = EqualityError;
+                    goto loop_exit;
+                }
+            }
+            if (inst.num_clbits > 0 || inst.num_params > 0 || inst.num_qubits != 1000) {
+                result = EqualityError;
+                goto loop_exit;
+            }
+        } else if (i <= 2501) {
+            result = strcmp(inst.name, "cx");
+            if (result != 0) {
+                goto loop_exit;
+            }
+            if (inst.qubits[0] != (i - 2002) * 2) {
+                result = EqualityError;
+                goto loop_exit;
+            }
+            if (inst.qubits[1] != 999 || inst.num_qubits != 2) {
+                result = EqualityError;
+                goto loop_exit;
+            }
+            if (inst.num_clbits > 0 || inst.num_params > 0) {
+                result = EqualityError;
+                goto loop_exit;
+            }
+        } else if (i == 2502) {
+            result = strcmp(inst.name, "barrier");
+            if (result != 0) {
+                goto loop_exit;
+            }
+            for (uint32_t j = 0; i < 1000; j++) {
+                if (inst.qubits[i] != i) {
+                    result = EqualityError;
+                    goto loop_exit;
+                }
+            }
+            if (inst.num_clbits > 0 || inst.num_params > 0 || inst.num_qubits != 1000) {
+                result = EqualityError;
+                goto loop_exit;
+            }
+        } else if (i <= 3501) {
+            result = strcmp(inst.name, "h");
+            if (result != 0) {
+                goto loop_exit;
+            }
+            if (inst.qubits[0] != i - 2503 || inst.num_qubits != 1) {
+                result = EqualityError;
+                goto loop_exit;
+            }
+            if (inst.num_clbits > 0 || inst.num_params > 0) {
+                result = EqualityError;
+                goto loop_exit;
+            }
+        } else if (i <= 4500) {
+            result = strcmp(inst.name, "measure");
+            if (result != 0) {
+                goto loop_exit;
+            }
+            if (inst.qubits[0] != i - 3502 || inst.num_qubits != 1) {
+                result = EqualityError;
+                goto loop_exit;
+            }
+            if (inst.clbits[0] != i - 3502 || inst.num_clbits != 1) {
+                result = EqualityError;
+                goto loop_exit;
+            }
+            if (inst.num_params > 0) {
+                result = EqualityError;
+                goto loop_exit;
+            }
+        }
+    loop_exit:
+        qk_free_circuit_instruction(inst);
+        if (result != 0) {
+            break;
+        }
     }
 cleanup:
     qk_circuit_free(qc);

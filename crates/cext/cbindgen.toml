@@ -36,3 +36,4 @@ prefix_with_name = true
 "StandardGate" = "QkStandardGate"
 "OpCounts" = "QkOpCounts"
 "OpCount" = "QkOpCount"
+"CInstruction" = "QkCircuitInstruction"

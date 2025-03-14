@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use std::ffi::{c_char, CString};
+use std::ffi::{c_char, CStr, CString};
 
 use crate::exit_codes::ExitCode;
 use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
@@ -348,6 +348,120 @@ pub unsafe extern "C" fn qk_circuit_count_ops(circuit: *const CircuitData) -> Op
     let len = output.len();
     std::mem::forget(output);
     OpCounts { data, len }
+}
+
+/// @ingroup QKCircuit
+/// Return the number of instructions in the circuit
+///
+/// @param m circuit A pointer to the circuit to get the counts for.
+///
+///   /// # Example
+///
+///     QkCircuit *qc = qk_circuit_new(100);
+///     qk_circuit_append_standard_gate(qc, HGate, *[0], *[]);
+///     qk_circuit_num_instructions(qc); // 1
+///
+/// # Safety
+///
+/// Behavior is undefined ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
+#[no_mangle]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_circuit_num_instructions(circuit: *const CircuitData) -> usize {
+    let circuit = unsafe { const_ptr_as_ref(circuit) };
+    circuit.__len__()
+}
+
+#[repr(C)]
+pub struct CInstruction {
+    name: *mut c_char,
+    num_qubits: u32,
+    qubits: *mut u32,
+    num_clbits: u32,
+    clbits: *mut u32,
+    num_params: u32,
+    params: *mut f64,
+}
+
+/// @ingroup QKCircuit
+/// Return the number of instructions in the circuit
+///
+/// @param m circuit A pointer to the circuit to get the counts for.
+///
+///   /// # Example
+///
+///     QkCircuit *qc = qk_circuit_new(100);
+///     qk_circuit_append_standard_gate(qc, HGate, *[0], *[]);
+///     qk_circuit_get_instruction(qc, 0); //
+///
+/// # Safety
+///
+/// Behavior is undefined ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
+#[no_mangle]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_circuit_get_instruction(
+    circuit: *const CircuitData,
+    index: usize,
+) -> CInstruction {
+    let circuit = unsafe { const_ptr_as_ref(circuit) };
+    if index >= circuit.__len__() {
+        panic!("Invalid index")
+    }
+    let packed_inst = &circuit.data()[index];
+    let qargs = circuit.get_qargs(packed_inst.qubits);
+    let mut qargs_vec: Vec<u32> = qargs.iter().map(|x| x.0).collect();
+    let cargs = circuit.get_cargs(packed_inst.clbits);
+    let mut cargs_vec: Vec<u32> = cargs.iter().map(|x| x.0).collect();
+    let params = packed_inst.params_view();
+    let mut params_vec: Vec<f64> = params
+        .iter()
+        .map(|x| match x {
+            Param::Float(val) => *val,
+            _ => unreachable!("Invalid parameter on instruction"),
+        })
+        .collect();
+    let out_qargs = qargs_vec.as_mut_ptr();
+    std::mem::forget(qargs_vec);
+    let out_cargs = cargs_vec.as_mut_ptr();
+    std::mem::forget(cargs_vec);
+    let out_params = params_vec.as_mut_ptr();
+    std::mem::forget(params_vec);
+
+    CInstruction {
+        name: CString::new(packed_inst.op.name()).unwrap().into_raw(),
+        num_qubits: qargs.len() as u32,
+        qubits: out_qargs,
+        num_clbits: cargs.len() as u32,
+        clbits: out_cargs,
+        num_params: params.len() as u32,
+        params: out_params,
+    }
+}
+
+/// @ingroup QkCircuit
+/// Free a circuit instruction object
+///
+/// @param inst The instruction to free
+///
+/// # Safety
+/// Behavior is undefined if ``inst`` is not an object returned by ``qk_circuit_get_instruction``.
+#[no_mangle]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_free_circuit_instruction(inst: CInstruction) {
+    unsafe {
+        if inst.num_qubits > 0 {
+            let qubits = std::slice::from_raw_parts_mut(inst.qubits, inst.num_qubits as usize);
+            let _ = Box::from_raw(qubits.as_mut_ptr());
+        }
+        if inst.num_clbits > 0 {
+            let clbits = std::slice::from_raw_parts_mut(inst.clbits, inst.num_clbits as usize);
+            let _ = Box::from_raw(clbits.as_mut_ptr());
+        }
+        if inst.num_params > 0 {
+            let params = std::slice::from_raw_parts_mut(inst.params, inst.num_params as usize);
+            let _ = Box::from_raw(params.as_mut_ptr());
+        }
+        let _: Box<CStr> = Box::from(CStr::from_ptr(inst.name));
+    }
 }
 
 /// @ingroup QkCircuit
