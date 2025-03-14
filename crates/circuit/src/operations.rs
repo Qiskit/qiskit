@@ -161,6 +161,11 @@ pub trait Operation {
     fn directive(&self) -> bool;
 }
 
+/// Trait for single-qubit operations
+pub trait SingleQubitOperation {
+    fn get_mat_static_1q(&self, params: &[Param]) -> Option<[[Complex64; 2]; 2]>;
+}
+
 /// Unpacked view object onto a `PackedOperation`.  This is the return value of
 /// `PackedInstruction::op`, and in turn is a view object onto a `PackedOperation`.
 ///
@@ -2461,6 +2466,129 @@ impl Operation for StandardGate {
     }
 }
 
+impl SingleQubitOperation for StandardGate {
+    fn get_mat_static_1q(&self, params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
+        match self {
+            Self::GlobalPhaseGate => None,
+            Self::HGate => match params {
+                [] => Some(gate_matrix::H_GATE),
+                _ => None,
+            },
+            Self::IGate => match params {
+                [] => Some(gate_matrix::ONE_QUBIT_IDENTITY),
+                _ => None,
+            },
+            Self::XGate => match params {
+                [] => Some(gate_matrix::X_GATE),
+                _ => None,
+            },
+            Self::YGate => match params {
+                [] => Some(gate_matrix::Y_GATE),
+                _ => None,
+            },
+            Self::ZGate => match params {
+                [] => Some(gate_matrix::Z_GATE),
+                _ => None,
+            },
+            Self::PhaseGate => match params {
+                [Param::Float(theta)] => Some(gate_matrix::phase_gate(*theta)),
+                _ => None,
+            },
+            Self::RGate => match params {
+                [Param::Float(theta), Param::Float(phi)] => Some(gate_matrix::r_gate(*theta, *phi)),
+                _ => None,
+            },
+            Self::RXGate => match params {
+                [Param::Float(theta)] => Some(gate_matrix::rx_gate(*theta)),
+                _ => None,
+            },
+            Self::RYGate => match params {
+                [Param::Float(theta)] => Some(gate_matrix::ry_gate(*theta)),
+                _ => None,
+            },
+            Self::RZGate => match params {
+                [Param::Float(theta)] => Some(gate_matrix::rz_gate(*theta)),
+                _ => None,
+            },
+            Self::SGate => match params {
+                [] => Some(gate_matrix::S_GATE),
+                _ => None,
+            },
+            Self::SdgGate => match params {
+                [] => Some(gate_matrix::SDG_GATE),
+                _ => None,
+            },
+            Self::SXGate => match params {
+                [] => Some(gate_matrix::SX_GATE),
+                _ => None,
+            },
+            Self::SXdgGate => match params {
+                [] => Some(gate_matrix::SXDG_GATE),
+                _ => None,
+            },
+            Self::TGate => match params {
+                [] => Some(gate_matrix::T_GATE),
+                _ => None,
+            },
+            Self::TdgGate => match params {
+                [] => Some(gate_matrix::TDG_GATE),
+                _ => None,
+            },
+            Self::UGate => match params {
+                [Param::Float(theta), Param::Float(phi), Param::Float(lam)] => {
+                    Some(gate_matrix::u_gate(*theta, *phi, *lam))
+                }
+                _ => None,
+            },
+            Self::U1Gate => match params[0] {
+                Param::Float(val) => Some(gate_matrix::u1_gate(val)),
+                _ => None,
+            },
+            Self::U2Gate => match params {
+                [Param::Float(phi), Param::Float(lam)] => Some(gate_matrix::u2_gate(*phi, *lam)),
+                _ => None,
+            },
+            Self::U3Gate => match params {
+                [Param::Float(theta), Param::Float(phi), Param::Float(lam)] => {
+                    Some(gate_matrix::u3_gate(*theta, *phi, *lam))
+                }
+                _ => None,
+            },
+            Self::CHGate => None,
+            Self::CXGate => None,
+            Self::CYGate => None,
+            Self::CZGate => None,
+            Self::DCXGate => None,
+            Self::ECRGate => None,
+            Self::SwapGate => None,
+            Self::ISwapGate => None,
+            Self::CPhaseGate => None,
+            Self::CRXGate => None,
+            Self::CRYGate => None,
+            Self::CRZGate => None,
+            Self::CSGate => None,
+            Self::CSdgGate => None,
+            Self::CSXGate => None,
+            Self::CUGate => None,
+            Self::CU1Gate => None,
+            Self::CU3Gate => None,
+            Self::RXXGate => None,
+            Self::RYYGate => None,
+            Self::RZZGate => None,
+            Self::RZXGate => None,
+            Self::XXMinusYYGate => None,
+            Self::XXPlusYYGate => None,
+            Self::CCXGate => None,
+            Self::CCZGate => None,
+            Self::CSwapGate => None,
+            Self::RCCXGate => None,
+            Self::C3XGate => None,
+            Self::C3SXGate => None,
+            Self::RC3XGate => None,
+        }
+    }
+}
+
 const FLOAT_ZERO: Param = Param::Float(0.0);
 
 // Return explicitly requested copy of `param`, handling
@@ -2692,6 +2820,33 @@ impl Operation for PyGate {
     }
 }
 
+impl SingleQubitOperation for PyGate {
+    fn get_mat_static_1q(&self, _params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
+        Python::with_gil(|py| -> Option<[[Complex64; 2]; 2]> {
+            match self.num_qubits() {
+                1 => {
+                    match self.gate.getattr(py, intern!(py, "to_matrix")) {
+                        Ok(to_matrix) => {
+                            let res: Option<PyObject> = to_matrix.call0(py).ok()?.extract(py).ok();
+                            match res {
+                                Some(x) => {
+                                    let array: PyReadonlyArray2<Complex64> = x.extract(py).ok()?;
+                                    let arr = array.as_array();
+                                    // Some(array.as_array().to_owned())
+                                    Some([[arr[[0, 0]], arr[[0, 1]]], [arr[[1, 0]], arr[[1, 1]]]])
+                                }
+                                None => None,
+                            }
+                        }
+                        Err(_) => None,
+                    }
+                }
+                _ => None,
+            }
+        })
+    }
+}
+
 /// This class is used to wrap a Python side Operation that is not in the standard library
 #[derive(Clone, Debug)]
 // We bit-pack pointers to this, so having a known alignment even on 32-bit systems is good.
@@ -2809,6 +2964,23 @@ impl Operation for UnitaryGate {
 
     fn directive(&self) -> bool {
         false
+    }
+}
+
+impl SingleQubitOperation for UnitaryGate {
+    fn get_mat_static_1q(&self, _params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
+        match self.num_qubits() {
+            1 => match &self.array {
+                ArrayType::NDArray(arr) => {
+                    Some([[arr[(0, 0)], arr[(0, 1)]], [arr[(1, 0)], arr[(1, 1)]]])
+                }
+                ArrayType::OneQ(mat) => {
+                    Some([[mat[(0, 0)], mat[(0, 1)]], [mat[(1, 0)], mat[(1, 1)]]])
+                }
+                _ => None,
+            },
+            _ => None,
+        }
     }
 }
 

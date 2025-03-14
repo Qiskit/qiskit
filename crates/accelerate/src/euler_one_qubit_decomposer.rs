@@ -35,10 +35,10 @@ use rustworkx_core::petgraph::stable_graph::NodeIndex;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::dag_node::DAGOpNode;
-use qiskit_circuit::operations::{Operation, Param, StandardGate};
+use qiskit_circuit::operations::{Operation, Param, SingleQubitOperation, StandardGate};
 use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};
 use qiskit_circuit::util::c64;
-use qiskit_circuit::{impl_intopyobject_for_copy_pyclass, Qubit};
+use qiskit_circuit::{gate_matrix, impl_intopyobject_for_copy_pyclass, Qubit};
 
 use crate::nlayout::PhysicalQubit;
 use crate::target_transpiler::Target;
@@ -1168,21 +1168,15 @@ pub(crate) fn optimize_1q_gates_decomposition(
                     if let Some(target) = target {
                         error *= compute_error_term_from_target(inst.op.name(), target, qubit);
                     }
-                    inst.op.matrix(inst.params_view()).unwrap()
+                    inst.op.get_mat_static_1q(inst.params_view()).unwrap()
                 } else {
                     unreachable!("Can only have op nodes here")
                 }
             })
-            .fold(
-                [
-                    [Complex64::new(1., 0.), Complex64::new(0., 0.)],
-                    [Complex64::new(0., 0.), Complex64::new(1., 0.)],
-                ],
-                |mut operator, node| {
-                    matmul_1q(&mut operator, node);
-                    operator
-                },
-            );
+            .fold(gate_matrix::ONE_QUBIT_IDENTITY, |mut operator, node| {
+                matmul_1q_with_slice(&mut operator, &node);
+                operator
+            });
 
         let old_error = if target.is_some() {
             (1. - error, raw_run.len())
@@ -1240,6 +1234,21 @@ pub fn matmul_1q(operator: &mut [[Complex64; 2]; 2], other: Array2<Complex64>) {
         [
             other[[1, 0]] * operator[0][0] + other[[1, 1]] * operator[1][0],
             other[[1, 0]] * operator[0][1] + other[[1, 1]] * operator[1][1],
+        ],
+    ];
+}
+
+/// Computes matrix product ``other * operator`` and stores the result within ``operator``.
+#[inline(always)]
+pub fn matmul_1q_with_slice(operator: &mut [[Complex64; 2]; 2], other: &[[Complex64; 2]; 2]) {
+    *operator = [
+        [
+            other[0][0] * operator[0][0] + other[0][1] * operator[1][0],
+            other[0][0] * operator[0][1] + other[0][1] * operator[1][1],
+        ],
+        [
+            other[1][0] * operator[0][0] + other[1][1] * operator[1][0],
+            other[1][0] * operator[0][1] + other[1][1] * operator[1][1],
         ],
     ];
 }

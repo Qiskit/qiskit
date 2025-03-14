@@ -17,7 +17,8 @@ import unittest
 import ddt
 import numpy as np
 
-from qiskit.circuit import QuantumRegister, QuantumCircuit, ClassicalRegister, Parameter
+from qiskit.circuit import QuantumRegister, QuantumCircuit, ClassicalRegister, Parameter, Gate
+from qiskit.circuit.library.generalized_gates import UnitaryGate
 from qiskit.circuit.library.standard_gates import (
     UGate,
     SXGate,
@@ -29,6 +30,7 @@ from qiskit.circuit.library.standard_gates import (
     RXGate,
     RYGate,
     HGate,
+    SGate,
 )
 from qiskit.circuit.random import random_circuit
 from qiskit.compiler import transpile
@@ -729,6 +731,38 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         opt_pass = Optimize1qGatesDecomposition(target)
         res = opt_pass(qc)
         self.assertEqual(res, qc)
+
+    def test_custom_gate(self):
+        """Test that pass handles custom single-qubit gates."""
+
+        class CustomGate(Gate):
+            """Custom u1 gate."""
+
+            def __init__(self, lam):
+                super().__init__("custom_u1", 1, [lam])
+
+            def __array__(self, dtype=None, copy=None):
+                return U1Gate(*self.params).__array__(dtype=dtype)
+
+        qc = QuantumCircuit(1)
+        qc.append(CustomGate(0.5), [0])
+        result = Optimize1qGatesDecomposition(["cx", "u"])(qc)
+
+        expected = QuantumCircuit(1)
+        expected.u(0, 0, 0.5, [0])
+
+        self.assertEqual(result, expected)
+
+    def test_unitary_gate(self):
+        """Test that pass handles unitary single-qubit gates."""
+
+        qc = QuantumCircuit(1)
+        qc.append(UnitaryGate(SGate()), [0])
+        result = Optimize1qGatesDecomposition(["cx", "u"])(qc)
+
+        expected = QuantumCircuit(1)
+        expected.u(0, 0, np.pi / 2, [0])
+        self.assertEqual(result, expected)
 
 
 if __name__ == "__main__":

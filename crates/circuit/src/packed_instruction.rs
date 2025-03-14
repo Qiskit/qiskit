@@ -25,8 +25,8 @@ use crate::circuit_data::CircuitData;
 use crate::imports::{get_std_gate_class, BARRIER, DEEPCOPY, DELAY, MEASURE, RESET, UNITARY_GATE};
 use crate::interner::Interned;
 use crate::operations::{
-    Operation, OperationRef, Param, PyGate, PyInstruction, PyOperation, StandardGate,
-    StandardInstruction, UnitaryGate,
+    Operation, OperationRef, Param, PyGate, PyInstruction, PyOperation, SingleQubitOperation,
+    StandardGate, StandardInstruction, UnitaryGate,
 };
 use crate::{Clbit, Qubit};
 
@@ -631,6 +631,20 @@ impl Operation for PackedOperation {
     #[inline]
     fn directive(&self) -> bool {
         self.view().directive()
+    }
+}
+
+impl SingleQubitOperation for PackedOperation {
+    fn get_mat_static_1q(&self, params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
+        let view = self.view();
+        match view {
+            OperationRef::StandardGate(standard) => standard.get_mat_static_1q(params),
+            OperationRef::StandardInstruction(_) => None,
+            OperationRef::Gate(gate) => gate.get_mat_static_1q(params),
+            OperationRef::Instruction(_) => None,
+            OperationRef::Operation(_) => None,
+            OperationRef::Unitary(gate) => gate.get_mat_static_1q(params),
+        }
     }
 }
 
