@@ -211,65 +211,29 @@ impl GreedyCliffordSynthesis<'_> {
             let single_qubit_gate = PAULI_INDEX_TO_1Q_GATE[pauli_pair_index];
             match single_qubit_gate {
                 SingleQubitGate::GateS => {
-                    gate_seq.push((
-                        StandardGate::S,
-                        smallvec![],
-                        smallvec![Qubit::new(*qubit)],
-                    ));
+                    gate_seq.push((StandardGate::S, smallvec![], smallvec![Qubit::new(*qubit)]));
                     self.symplectic_matrix.prepend_s(*qubit);
                 }
                 SingleQubitGate::GateH => {
-                    gate_seq.push((
-                        StandardGate::H,
-                        smallvec![],
-                        smallvec![Qubit::new(*qubit)],
-                    ));
+                    gate_seq.push((StandardGate::H, smallvec![], smallvec![Qubit::new(*qubit)]));
                     self.symplectic_matrix.prepend_h(*qubit);
                 }
                 SingleQubitGate::GateSH => {
-                    gate_seq.push((
-                        StandardGate::S,
-                        smallvec![],
-                        smallvec![Qubit::new(*qubit)],
-                    ));
-                    gate_seq.push((
-                        StandardGate::H,
-                        smallvec![],
-                        smallvec![Qubit::new(*qubit)],
-                    ));
+                    gate_seq.push((StandardGate::S, smallvec![], smallvec![Qubit::new(*qubit)]));
+                    gate_seq.push((StandardGate::H, smallvec![], smallvec![Qubit::new(*qubit)]));
                     self.symplectic_matrix.prepend_s(*qubit);
                     self.symplectic_matrix.prepend_h(*qubit);
                 }
                 SingleQubitGate::GateHS => {
-                    gate_seq.push((
-                        StandardGate::H,
-                        smallvec![],
-                        smallvec![Qubit::new(*qubit)],
-                    ));
-                    gate_seq.push((
-                        StandardGate::S,
-                        smallvec![],
-                        smallvec![Qubit::new(*qubit)],
-                    ));
+                    gate_seq.push((StandardGate::H, smallvec![], smallvec![Qubit::new(*qubit)]));
+                    gate_seq.push((StandardGate::S, smallvec![], smallvec![Qubit::new(*qubit)]));
                     self.symplectic_matrix.prepend_h(*qubit);
                     self.symplectic_matrix.prepend_s(*qubit);
                 }
                 SingleQubitGate::GateSHS => {
-                    gate_seq.push((
-                        StandardGate::S,
-                        smallvec![],
-                        smallvec![Qubit::new(*qubit)],
-                    ));
-                    gate_seq.push((
-                        StandardGate::H,
-                        smallvec![],
-                        smallvec![Qubit::new(*qubit)],
-                    ));
-                    gate_seq.push((
-                        StandardGate::S,
-                        smallvec![],
-                        smallvec![Qubit::new(*qubit)],
-                    ));
+                    gate_seq.push((StandardGate::S, smallvec![], smallvec![Qubit::new(*qubit)]));
+                    gate_seq.push((StandardGate::H, smallvec![], smallvec![Qubit::new(*qubit)]));
+                    gate_seq.push((StandardGate::S, smallvec![], smallvec![Qubit::new(*qubit)]));
                     self.symplectic_matrix.prepend_s(*qubit);
                     self.symplectic_matrix.prepend_h(*qubit);
                     self.symplectic_matrix.prepend_s(*qubit);
@@ -362,11 +326,7 @@ impl GreedyCliffordSynthesis<'_> {
             ));
             self.symplectic_matrix.prepend_cx(min_qubit, qubit_b);
 
-            gate_seq.push((
-                StandardGate::H,
-                smallvec![],
-                smallvec![Qubit::new(qubit_b)],
-            ));
+            gate_seq.push((StandardGate::H, smallvec![], smallvec![Qubit::new(qubit_b)]));
             self.symplectic_matrix.prepend_h(qubit_b);
 
             gate_seq.push((

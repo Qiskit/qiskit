@@ -170,22 +170,10 @@ fn reduce_cost(
                 // We append the gates from this decomposition.
                 if new_cost == cost - 1 {
                     if n0 == 1 {
-                        gates.push((
-                            StandardGate::S,
-                            smallvec![],
-                            smallvec![Qubit::new(qubit0)],
-                        ));
-                        gates.push((
-                            StandardGate::H,
-                            smallvec![],
-                            smallvec![Qubit::new(qubit0)],
-                        ));
+                        gates.push((StandardGate::S, smallvec![], smallvec![Qubit::new(qubit0)]));
+                        gates.push((StandardGate::H, smallvec![], smallvec![Qubit::new(qubit0)]));
                     } else if n0 == 2 {
-                        gates.push((
-                            StandardGate::H,
-                            smallvec![],
-                            smallvec![Qubit::new(qubit0)],
-                        ));
+                        gates.push((StandardGate::H, smallvec![], smallvec![Qubit::new(qubit0)]));
                         gates.push((
                             StandardGate::Sdg,
                             smallvec![],
@@ -193,22 +181,10 @@ fn reduce_cost(
                         ));
                     }
                     if n1 == 1 {
-                        gates.push((
-                            StandardGate::S,
-                            smallvec![],
-                            smallvec![Qubit::new(qubit1)],
-                        ));
-                        gates.push((
-                            StandardGate::H,
-                            smallvec![],
-                            smallvec![Qubit::new(qubit1)],
-                        ));
+                        gates.push((StandardGate::S, smallvec![], smallvec![Qubit::new(qubit1)]));
+                        gates.push((StandardGate::H, smallvec![], smallvec![Qubit::new(qubit1)]));
                     } else if n1 == 2 {
-                        gates.push((
-                            StandardGate::H,
-                            smallvec![],
-                            smallvec![Qubit::new(qubit1)],
-                        ));
+                        gates.push((StandardGate::H, smallvec![], smallvec![Qubit::new(qubit1)]));
                         gates.push((
                             StandardGate::Sdg,
                             smallvec![],

@@ -59,31 +59,11 @@ fn to_qiskit_clifford_gate(rustiq_gate: &CliffordGate) -> QiskitGate {
             smallvec![],
             smallvec![Qubit(*i as u32), Qubit(*j as u32)],
         ),
-        CliffordGate::H(i) => (
-            StandardGate::H,
-            smallvec![],
-            smallvec![Qubit(*i as u32)],
-        ),
-        CliffordGate::S(i) => (
-            StandardGate::S,
-            smallvec![],
-            smallvec![Qubit(*i as u32)],
-        ),
-        CliffordGate::Sd(i) => (
-            StandardGate::Sdg,
-            smallvec![],
-            smallvec![Qubit(*i as u32)],
-        ),
-        CliffordGate::SqrtX(i) => (
-            StandardGate::SX,
-            smallvec![],
-            smallvec![Qubit(*i as u32)],
-        ),
-        CliffordGate::SqrtXd(i) => (
-            StandardGate::SXdg,
-            smallvec![],
-            smallvec![Qubit(*i as u32)],
-        ),
+        CliffordGate::H(i) => (StandardGate::H, smallvec![], smallvec![Qubit(*i as u32)]),
+        CliffordGate::S(i) => (StandardGate::S, smallvec![], smallvec![Qubit(*i as u32)]),
+        CliffordGate::Sd(i) => (StandardGate::Sdg, smallvec![], smallvec![Qubit(*i as u32)]),
+        CliffordGate::SqrtX(i) => (StandardGate::SX, smallvec![], smallvec![Qubit(*i as u32)]),
+        CliffordGate::SqrtXd(i) => (StandardGate::SXdg, smallvec![], smallvec![Qubit(*i as u32)]),
     }
 }
 

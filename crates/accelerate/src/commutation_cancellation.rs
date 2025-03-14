@@ -20,9 +20,7 @@ use rustworkx_core::petgraph::stable_graph::NodeIndex;
 use smallvec::{smallvec, SmallVec};
 
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, Wire};
-use qiskit_circuit::operations::StandardGate::{
-    Phase, U1, CX, CY, CZ, H, RX, RZ, S, T, X, Y, Z,
-};
+use qiskit_circuit::operations::StandardGate::{Phase, CX, CY, CZ, H, RX, RZ, S, T, U1, X, Y, Z};
 use qiskit_circuit::operations::{Operation, Param, StandardGate};
 use qiskit_circuit::Qubit;
 
