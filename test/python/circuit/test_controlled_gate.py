@@ -1275,7 +1275,11 @@ class TestControlledGate(QiskitTestCase):
         for gate_class in ControlledGate.__subclasses__():
             with self.subTest(i=repr(gate_class)):
                 # Singleton class isn't intended to be created directly
-                if gate_class in {SingletonControlledGate, _SingletonControlledGateOverrides}:
+                # Ignore classes from Aer, which has its own unit tests.
+                if gate_class in {
+                    SingletonControlledGate,
+                    _SingletonControlledGateOverrides,
+                } or gate_class.__module__.startswith("qiskit_aer"):
                     continue
                 gate_params = _get_free_params(gate_class.__init__, ignore=["self"])
                 num_free_params = len(gate_params)
@@ -1300,9 +1304,12 @@ class TestControlledGate(QiskitTestCase):
         """
         for gate_class in ControlledGate.__subclasses__():
             with self.subTest(i=repr(gate_class)):
-                # Singleton class isn't intended to be created directly, and its subclasses are not
-                # parameterized
-                if gate_class in {SingletonControlledGate, _SingletonControlledGateOverrides}:
+                # Singleton class isn't intended to be created directly, and its subclasses are not parameterized.
+                # Ignore classes from Aer, which has its own unit tests.
+                if gate_class in {
+                    SingletonControlledGate,
+                    _SingletonControlledGateOverrides,
+                } or gate_class.__module__.startswith("qiskit_aer"):
                     continue
                 gate_params = _get_free_params(gate_class.__init__, ignore=["self"])
                 num_free_params = len(gate_params)
