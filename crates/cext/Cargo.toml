@@ -17,7 +17,7 @@ workspace = true
 thiserror.workspace = true
 num-complex.workspace = true
 qiskit-accelerate.workspace = true
-pyo3 = { workspace = true, default-features = false }
+pyo3 = { workspace = true, optional = true }
 
 [build-dependencies]
 cbindgen = "0.28"
