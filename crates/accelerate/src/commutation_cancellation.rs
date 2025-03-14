@@ -263,7 +263,7 @@ pub(crate) fn cancel_commutations(
                     0.0
                 };
 
-                dag.add_global_phase(py, &Param::Float(total_phase - new_op_phase))?;
+                dag.add_global_phase(&Param::Float(total_phase - new_op_phase))?;
 
                 for node in cancel_set {
                     dag.remove_op_node(*node);
