@@ -289,7 +289,6 @@ class TestVersionArg(QpyCircuitTestCase):
         self.assert_roundtrip_equal(qc)
 
 
-@ddt
 class TestUseSymengineFlag(QpyCircuitTestCase):
     """Test that the symengine flag works correctly."""
 
