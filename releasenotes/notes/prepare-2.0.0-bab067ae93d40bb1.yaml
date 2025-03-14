@@ -1,0 +1,25 @@
+---
+prelude: >
+    We are pleased to release Qiskit 2.0.0, with 
+    new features that improve performance and expand Qiskit's capabilities.
+    In line with our semantic versioning policy, documented a the time of 
+    the 1.0.0 release, this major release also includes API changes that 
+    are not backward-compatible with the 1.x series. 
+    
+    The feature highlights of Qiskit 2.0.0 are:
+
+    * The introduction of a C API for building and interacting with
+      :class:`.SparseObservable` objects. This marks Qiskit's first 
+      compiled language interface, an experimental feature that we will 
+      fine-tune and grow in scope throughout the 2.x series.
+    * The ability to create stretch durations for :class:`.Delay` instructions.
+      This expands the existing set of classical variable expressions in Qiskit.
+    * Improved runtime performance for circuit construction and transpilation.
+
+    As for API changes, this release removes several deprecated components of the Qiskit
+    data model, such as the ``.c_if()`` method, ``BackendV1``, and ``qiskit.pulse``, as 
+    well as the deprecated  V1 primitive reference implementations.
+    You can refer to the upgrade release notes sections for more details on all of
+    these removals and API changes. The removed APIs are still supported in the Qiskit 1.4.x
+    release which will recieve bugfixes for another 6 months and will have security
+    updates for one year.
