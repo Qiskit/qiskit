@@ -99,7 +99,7 @@ def _read_discriminator(file_obj, version):
     return Discriminator(name=name, **params)
 
 
-def _loads_symbolic_expr(expr_bytes, use_symengine=False):
+def _loads_symbolic_expr(expr_bytes, use_symengine=False, trust_input=False):
     if expr_bytes == b"":
         return None
     expr_bytes = zlib.decompress(expr_bytes)
@@ -108,12 +108,18 @@ def _loads_symbolic_expr(expr_bytes, use_symengine=False):
     else:
         from sympy import parse_expr
 
+        if not trust_input:
+            raise QpyError(
+                "This payload can not be loaded unless you set ``trust_payload`` to "
+                "True, as it's using sympy for serialization of symbolic expressions which "
+                "is insecure."
+            )
         expr_txt = expr_bytes.decode(common.ENCODE)
         expr = parse_expr(expr_txt)
         return sym.sympify(expr)
 
 
-def _read_symbolic_pulse(file_obj, version):
+def _read_symbolic_pulse(file_obj, version, trust_input=False):
     make = formats.SYMBOLIC_PULSE._make
     pack = formats.SYMBOLIC_PULSE_PACK
     size = formats.SYMBOLIC_PULSE_SIZE
@@ -125,9 +131,13 @@ def _read_symbolic_pulse(file_obj, version):
         )
     )
     pulse_type = file_obj.read(header.type_size).decode(common.ENCODE)
-    envelope = _loads_symbolic_expr(file_obj.read(header.envelope_size))
-    constraints = _loads_symbolic_expr(file_obj.read(header.constraints_size))
-    valid_amp_conditions = _loads_symbolic_expr(file_obj.read(header.valid_amp_conditions_size))
+    envelope = _loads_symbolic_expr(file_obj.read(header.envelope_size), trust_input=trust_input)
+    constraints = _loads_symbolic_expr(
+        file_obj.read(header.constraints_size), trust_input=trust_input
+    )
+    valid_amp_conditions = _loads_symbolic_expr(
+        file_obj.read(header.valid_amp_conditions_size), trust_input=trust_input
+    )
     parameters = common.read_mapping(
         file_obj,
         deserializer=value.loads_value,
@@ -189,7 +199,7 @@ def _read_symbolic_pulse(file_obj, version):
         raise NotImplementedError(f"Unknown class '{class_name}'")
 
 
-def _read_symbolic_pulse_v6(file_obj, version, use_symengine):
+def _read_symbolic_pulse_v6(file_obj, version, use_symengine, trust_input=False):
     make = formats.SYMBOLIC_PULSE_V2._make
     pack = formats.SYMBOLIC_PULSE_PACK_V2
     size = formats.SYMBOLIC_PULSE_SIZE_V2
@@ -202,10 +212,14 @@ def _read_symbolic_pulse_v6(file_obj, version, use_symengine):
     )
     class_name = file_obj.read(header.class_name_size).decode(common.ENCODE)
     pulse_type = file_obj.read(header.type_size).decode(common.ENCODE)
-    envelope = _loads_symbolic_expr(file_obj.read(header.envelope_size), use_symengine)
-    constraints = _loads_symbolic_expr(file_obj.read(header.constraints_size), use_symengine)
+    envelope = _loads_symbolic_expr(
+        file_obj.read(header.envelope_size), use_symengine, trust_input=trust_input
+    )
+    constraints = _loads_symbolic_expr(
+        file_obj.read(header.constraints_size), use_symengine, trust_input=trust_input
+    )
     valid_amp_conditions = _loads_symbolic_expr(
-        file_obj.read(header.valid_amp_conditions_size), use_symengine
+        file_obj.read(header.valid_amp_conditions_size), use_symengine, trust_input=trust_input
     )
     parameters = common.read_mapping(
         file_obj,
@@ -277,15 +291,21 @@ def _read_alignment_context(file_obj, version):
 
 
 # pylint: disable=too-many-return-statements
-def _loads_operand(type_key, data_bytes, version, use_symengine):
+def _loads_operand(type_key, data_bytes, version, use_symengine, trust_input=False):
     if type_key == type_keys.ScheduleOperand.WAVEFORM:
         return common.data_from_binary(data_bytes, _read_waveform, version=version)
     if type_key == type_keys.ScheduleOperand.SYMBOLIC_PULSE:
         if version < 6:
-            return common.data_from_binary(data_bytes, _read_symbolic_pulse, version=version)
+            return common.data_from_binary(
+                data_bytes, _read_symbolic_pulse, version=version, trust_input=trust_input
+            )
         else:
             return common.data_from_binary(
-                data_bytes, _read_symbolic_pulse_v6, version=version, use_symengine=use_symengine
+                data_bytes,
+                _read_symbolic_pulse_v6,
+                version=version,
+                use_symengine=use_symengine,
+                trust_input=trust_input,
             )
     if type_key == type_keys.ScheduleOperand.CHANNEL:
         return common.data_from_binary(data_bytes, _read_channel, version=version)
@@ -307,14 +327,20 @@ def _loads_operand(type_key, data_bytes, version, use_symengine):
     return value.loads_value(type_key, data_bytes, version, {})
 
 
-def _read_element(file_obj, version, metadata_deserializer, use_symengine):
+def _read_element(file_obj, version, metadata_deserializer, use_symengine, trust_input=False):
     type_key = common.read_type_key(file_obj)
 
     if type_key == type_keys.Program.SCHEDULE_BLOCK:
-        return read_schedule_block(file_obj, version, metadata_deserializer, use_symengine)
+        return read_schedule_block(
+            file_obj, version, metadata_deserializer, use_symengine, trust_input=trust_input
+        )
 
     operands = common.read_sequence(
-        file_obj, deserializer=_loads_operand, version=version, use_symengine=use_symengine
+        file_obj,
+        deserializer=_loads_operand,
+        version=version,
+        use_symengine=use_symengine,
+        trust_input=trust_input,
     )
     name = value.read_value(file_obj, version, {})
 
@@ -326,7 +352,7 @@ def _read_element(file_obj, version, metadata_deserializer, use_symengine):
     return instance
 
 
-def _loads_reference_item(type_key, data_bytes, metadata_deserializer, version):
+def _loads_reference_item(type_key, data_bytes, metadata_deserializer, version, trust_input=False):
     if type_key == type_keys.Value.NULL:
         return None
     if type_key == type_keys.Program.SCHEDULE_BLOCK:
@@ -335,6 +361,7 @@ def _loads_reference_item(type_key, data_bytes, metadata_deserializer, version):
             deserializer=read_schedule_block,
             version=version,
             metadata_deserializer=metadata_deserializer,
+            trust_input=trust_input,
         )
 
     raise QpyError(
@@ -407,6 +434,9 @@ def _dumps_symbolic_expr(expr, use_symengine):
         expr_bytes = expr.__reduce__()[1][0]
     else:
         from sympy import srepr, sympify
+
+        if not isinstance(expr, sym.Basic):
+            raise QiskitError("Invalid ParameterExpression")
 
         expr_bytes = srepr(sympify(expr)).encode(common.ENCODE)
     return zlib.compress(expr_bytes)
@@ -512,7 +542,9 @@ def _dumps_reference_item(schedule, metadata_serializer, version):
 
 
 @ignore_pulse_deprecation_warnings
-def read_schedule_block(file_obj, version, metadata_deserializer=None, use_symengine=False):
+def read_schedule_block(
+    file_obj, version, metadata_deserializer=None, use_symengine=False, trust_input=False
+):
     """Read a single ScheduleBlock from the file like object.
 
     Args:
@@ -529,6 +561,14 @@ def read_schedule_block(file_obj, version, metadata_deserializer=None, use_symen
             native mechanism. This is a faster serialization alternative, but not supported in all
             platforms. Please check that your target platform is supported by the symengine library
             before setting this option, as it will be required by qpy to deserialize the payload.
+        trust_input (bool): if set to ``False`` (the default),
+            :class:`.ScheduleBlock` objects in the payload that were
+            serialized using ``sympy`` are not allowed and will error. This
+            is because the ``sympy`` parsing uses :func:`eval`, which
+            can allow for arbitrary code execution.
+            The flag should only be set
+            to ``True`` if you trust the QPY payload you are loading.
+
     Returns:
         ScheduleBlock: The schedule block object from the file.
 
@@ -556,7 +596,9 @@ def read_schedule_block(file_obj, version, metadata_deserializer=None, use_symen
         alignment_context=context,
     )
     for _ in range(data.num_elements):
-        block_elm = _read_element(file_obj, version, metadata_deserializer, use_symengine)
+        block_elm = _read_element(
+            file_obj, version, metadata_deserializer, use_symengine, trust_input=trust_input
+        )
         block.append(block_elm, inplace=True)
 
     # Load references
@@ -566,6 +608,7 @@ def read_schedule_block(file_obj, version, metadata_deserializer=None, use_symen
             deserializer=_loads_reference_item,
             version=version,
             metadata_deserializer=metadata_deserializer,
+            trust_input=trust_input,
         )
         ref_dict = {}
         for key_str, schedule in flat_key_refdict.items():

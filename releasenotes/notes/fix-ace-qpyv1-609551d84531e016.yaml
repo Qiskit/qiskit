@@ -1,0 +1,35 @@
+---
+prelude: >
+    Qiskit 1.4.2 is a patch release that fixes bugs found in the 1.4 release
+    series.
+features:
+  - |
+    Added a new flag ``trust_payload``, to the :func:`.qpy.load` function.
+    This is used to force the function to load a payload that is potentially
+    insecure. If the payload contains :class:`.ScheduleBlock` objects
+    (either standalone or as part of :attr:`.QuantumCircuit.calibrations`)
+    and the symbolic encoding in the QPY file is set to ``sympy`` then the
+    payload is potentially insecure and loading it could allow for arbitrary
+    code execution. Since this flag is for controlling the deserialization
+    of :class:`.ScheduleBlock` instances which do not exist in
+    Qiskit >= 2.0.0 this flag will only exist in Qiskit 1.4.x and will not
+    exist in Qiskit >=2.0.0.
+
+security:
+  - |
+    Fixed a security vulnerability in :func:`.qpy.load` when loading
+    payloads that use ``sympy`` to serialize
+    :class:`.ParameterExpression` objects and other symbolic expressions.
+    This potentially includes any QPY payload using QPY version < 10, and
+    optionally 10, 11, and 12 depending on the symbolic encoding used in the
+    serialization step (:func:`.qpy.dump`).
+upgrade:
+  - |
+    By default, :class:`.qpy.load` will now raise a :class:`.QpyError` when
+    called with a QPY payload that contains a :class:`.ScheduleBlock` object (either standalone or as part of
+    :attr:`.QuantumCircuit.calibrations`) which is using ``sympy`` for encoding
+    symbolic expressions. This
+    is because the payload is potentially vulnerable and should only be loaded
+    if you trust the contents. If you are certain that the payload is not malicious,
+    you can set the new ``trust_payload`` argument of :class:`.qpy.load` to
+    ``True``, and this will enable loading the payload.

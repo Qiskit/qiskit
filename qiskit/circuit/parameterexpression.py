@@ -25,7 +25,7 @@ import operator
 import numpy
 import symengine
 
-from qiskit.circuit.exceptions import CircuitError
+from qiskit.circuit.exceptions import CircuitError, QiskitError
 
 # This type is redefined at the bottom to insert the full reference to "ParameterExpression", so it
 # can safely be used by runtime type-checkers like Sphinx.  Mypy does not need this because it
@@ -528,6 +528,9 @@ class ParameterExpression:
     def __str__(self):
         from sympy import sympify, sstr
 
+        if not isinstance(self._symbol_expr, symengine.Basic):
+            raise QiskitError("Invalid ParameterExpression")
+
         return sstr(sympify(self._symbol_expr), full_prec=False)
 
     def __complex__(self):
@@ -608,6 +611,8 @@ class ParameterExpression:
                 return False
             from sympy import sympify
 
+            if not isinstance(self._symbol_expr, symengine.Basic):
+                raise QiskitError("Invalid ParameterExpression")
             return sympify(self._symbol_expr).equals(sympify(other._symbol_expr))
         elif isinstance(other, numbers.Number):
             return len(self.parameters) == 0 and complex(self._symbol_expr) == other

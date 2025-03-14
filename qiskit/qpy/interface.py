@@ -238,6 +238,7 @@ def dump(
 def load(
     file_obj: BinaryIO,
     metadata_deserializer: Optional[Type[JSONDecoder]] = None,
+    trust_payload: bool = False,
 ) -> List[QPY_SUPPORTED_TYPES]:
     """Load a QPY binary file
 
@@ -277,6 +278,18 @@ def load(
             If this is not specified the circuit metadata will
             be parsed as JSON with the stdlib ``json.load()`` function using
             the default ``JSONDecoder`` class.
+        trust_payload: if set to ``False`` (the default),
+            :class:`.ScheduleBlock` objects in the payload that were
+            serialized using ``sympy`` are not allowed and will error. This
+            is because the ``sympy`` parsing uses :func:`eval`, which
+            can allow for arbitrary code execution.
+            The flag should only be set
+            to ``True`` if you trust the QPY payload you are loading.
+
+    .. warning::
+
+        If ``trust_payload`` is set to ``True`` this can enable arbitrary
+        code execution because internally ``sympy`` relies on :func:`eval`.
 
     Returns:
         The list of Qiskit programs contained in the QPY data.
@@ -344,6 +357,11 @@ def load(
     else:
         type_key = common.read_type_key(file_obj)
 
+    if data.qpy_version < 10:
+        use_symengine = False
+    else:
+        use_symengine = data.symbolic_encoding == type_keys.SymExprEncoding.SYMENGINE
+
     if type_key == type_keys.Program.CIRCUIT:
         loader = binary_io.read_circuit
     elif type_key == type_keys.Program.SCHEDULE_BLOCK:
@@ -359,11 +377,6 @@ def load(
     else:
         raise TypeError(f"Invalid payload format data kind '{type_key}'.")
 
-    if data.qpy_version < 10:
-        use_symengine = False
-    else:
-        use_symengine = data.symbolic_encoding == type_keys.SymExprEncoding.SYMENGINE
-
     programs = []
     for _ in range(data.num_programs):
         programs.append(
@@ -372,6 +385,7 @@ def load(
                 data.qpy_version,
                 metadata_deserializer=metadata_deserializer,
                 use_symengine=use_symengine,
+                trust_input=trust_payload,
             )
         )
     return programs
