@@ -253,7 +253,7 @@ fn twirl_gate(
     )?;
 
     if *twirl_phase != 0. {
-        out_circ.add_global_phase(py, &Param::Float(*twirl_phase))?;
+        out_circ.add_global_phase(&Param::Float(*twirl_phase))?;
     }
     Ok(())
 }
@@ -268,7 +268,7 @@ fn generate_twirled_circuit(
     custom_gate_map: Option<&CustomGateTwirlingMap>,
     optimizer_target: Option<&Target>,
 ) -> PyResult<CircuitData> {
-    let mut out_circ = CircuitData::clone_empty_like(py, circ, None)?;
+    let mut out_circ = CircuitData::clone_empty_like(circ, None)?;
 
     for inst in circ.data() {
         if let Some(custom_gate_map) = custom_gate_map {
@@ -378,7 +378,7 @@ fn generate_twirled_circuit(
     }
     if optimizer_target.is_some() {
         let mut dag = DAGCircuit::from_circuit_data(py, out_circ, false)?;
-        optimize_1q_gates_decomposition(py, &mut dag, optimizer_target, None, None)?;
+        optimize_1q_gates_decomposition(&mut dag, optimizer_target, None, None)?;
         dag_to_circuit(py, &dag, false)
     } else {
         Ok(out_circ)

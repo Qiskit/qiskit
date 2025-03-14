@@ -1070,7 +1070,6 @@ fn compute_error_from_target_one_qubit_sequence(
 #[pyfunction]
 #[pyo3(signature = (dag, *, target=None, basis_gates=None, global_decomposers=None))]
 pub(crate) fn optimize_1q_gates_decomposition(
-    py: Python,
     dag: &mut DAGCircuit,
     target: Option<&Target>,
     basis_gates: Option<HashSet<String>>,
@@ -1219,7 +1218,7 @@ pub(crate) fn optimize_1q_gates_decomposition(
             for gate in sequence.gates {
                 dag.insert_1q_on_incoming_qubit((gate.0, &gate.1), raw_run[0]);
             }
-            dag.add_global_phase(py, &Param::Float(sequence.global_phase))?;
+            dag.add_global_phase(&Param::Float(sequence.global_phase))?;
             dag.remove_1q_sequence(&raw_run);
         }
     }
