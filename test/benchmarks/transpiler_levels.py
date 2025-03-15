@@ -231,7 +231,6 @@ class TranspilerLevelBenchmarks:
             seed_transpiler=0,
             optimization_level=transpiler_level,
             scheduling_method="alap",
-            instruction_durations=self.durations,
         )
 
     # limit optimization levels to reduce time

@@ -85,9 +85,9 @@ class _InvalidControlFlowForBackend:
     # Explicitly stateful closure to allow pickling.
 
     def __init__(self, basis_gates=(), target=None):
-        if target is not None:
+        if target is not None and len(target.operation_names) > 0:
             self.unsupported = [op for op in CONTROL_FLOW_OP_NAMES if op not in target]
-        elif basis_gates is not None:
+        elif basis_gates is not None and len(basis_gates) > 0:
             basis_gates = set(basis_gates)
             self.unsupported = [op for op in CONTROL_FLOW_OP_NAMES if op not in basis_gates]
         else:
@@ -457,6 +457,9 @@ def generate_translation_passmanager(
     Raises:
         TranspilerError: If the ``method`` kwarg is not a valid value
     """
+    if basis_gates is None and target is None:
+        return PassManager([])
+
     if method == "translator":
         translator = BasisTranslator(sel, basis_gates, target)
         unroll = [

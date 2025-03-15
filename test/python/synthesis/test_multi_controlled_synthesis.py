@@ -53,8 +53,8 @@ from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt
-class TestMCXSynthesis(QiskitTestCase):
-    """Test MCX synthesis methods."""
+class TestMCXSynthesisCorrectness(QiskitTestCase):
+    """Test correctness of MCX synthesis methods."""
 
     @staticmethod
     def mcx_matrix(num_ctrl_qubits: int):
@@ -143,6 +143,11 @@ class TestMCXSynthesis(QiskitTestCase):
         synthesized_circuit = synth_c4x()
         self.check_mcx_synthesis(4, synthesized_circuit, clean_ancillas=False)
 
+
+@ddt
+class TestMCSynthesisCounts(QiskitTestCase):
+    """Test gate counts produced by multi-controlled synthesis methods."""
+
     @data(5, 10, 15)
     def test_mcx_n_dirty_i15_cx_count(self, num_ctrl_qubits: int):
         """Test synth_mcx_n_dirty_i15 bound on CX count."""
@@ -176,6 +181,7 @@ class TestMCXSynthesis(QiskitTestCase):
         cx_count = transpiled_circuit.count_ops()["cx"]
         self.assertLessEqual(cx_count, 16 * num_ctrl_qubits - 8)
 
+
     @data(5, 8, 10, 13, 15)
     def test_mcx_noaux_v24_cx_count(self, num_ctrl_qubits: int):
         """Test synth_mcx_noaux_v24 bound on CX count."""
@@ -207,11 +213,6 @@ class TestMCXSynthesis(QiskitTestCase):
         transpiled_circuit = pm.run(synthesized_circuit)
         cx_count = transpiled_circuit.count_ops()["cx"]
         self.assertLessEqual(cx_count, 36)
-
-
-@ddt
-class TestMCSynthesis(QiskitTestCase):
-    """Test multi-controlled synthesis methods."""
 
     @combine(
         num_ctrl_qubits=[5, 8, 10, 13, 15],
@@ -309,9 +310,8 @@ class TestMCSynthesis(QiskitTestCase):
         cop_mat = _compute_control_matrix(base_mat, num_ctrl_qubits)
         self.assertTrue(matrix_equal(cop_mat, test_op.data))
 
-        # TODO: fix optimization_level=0 after updating CS and CSdg in the equivalence library
         pm = generate_preset_pass_manager(
-            optimization_level=2, basis_gates=["u", "cx"], seed_transpiler=12345
+            optimization_level=0, basis_gates=["u", "cx"], seed_transpiler=12345
         )
         transpiled_circuit = pm.run(qc)
         cx_count = transpiled_circuit.count_ops()["cx"]

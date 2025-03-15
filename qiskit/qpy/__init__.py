@@ -18,7 +18,7 @@ QPY serialization (:mod:`qiskit.qpy`)
 .. currentmodule:: qiskit.qpy
 
 QPY is a binary serialization format for :class:`~.QuantumCircuit`
-objects that is designed to be cross-platform,  Python version agnostic,
+objects that is designed to be cross-platform, Python version agnostic,
 and backwards compatible moving forward. QPY should be used if you need
 a mechanism to save or copy between systems a :class:`~.QuantumCircuit`
 that preserves the full Qiskit object structure (except for custom attributes
@@ -382,8 +382,9 @@ circuits in the data.
 Version 14
 ----------
 
-Version 14 adds a new core DURATION type, as well as support for additional :class:`~.types.Type`
-classes.
+Version 14 adds a new core DURATION type, support for additional :class:`~.types.Type`
+classes :class:`~.types.Float` and :class:`~.types.Duration`, and a new expression
+node type :class:`~.expr.Stretch`.
 
 DURATION
 ~~~~~~~~
@@ -405,6 +406,34 @@ Qiskit class                    Type code  Payload
 :class:`~.circuit.Duration.s`    ``s``     One ``double value``.
 
 ==============================  =========  =========================================================
+
+Changes to EXPR_VAR_DECLARATION
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``EXPR_VAR_DECLARATION`` type is now used to represent both :class:`~.expr.Var` standalone
+variables and :class:`~.expr.Stretch` identifiers. To support this change, the usage type code has
+two new possible entries, in addition to the existing ones:
+
+=========  =========================================================================================
+Type code  Meaning
+=========  =========================================================================================
+``A``      A ``capture`` stretch to the circuit.
+
+``O``      A locally declared stretch to the circuit.
+
+=========  =========================================================================================
+
+Changes to EXPRESSION
+---------------------
+
+The EXPRESSION type code has a new possible entry, ``s``, corresponding to :class:`.expr.Stretch`
+nodes.
+
+=======================  =========  ======================================================  ========
+Qiskit class             Type code  Payload                                                 Children
+=======================  =========  ======================================================  ========
+:class:`~.expr.Stretch`  ``s``      One ``unsigned short var_index``                        0
+=======================  =========  ======================================================  ========
 
 Changes to EXPR_TYPE
 ~~~~~~~~~~~~~~~~~~~~

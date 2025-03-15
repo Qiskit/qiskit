@@ -234,7 +234,10 @@ class HighLevelSynthesis(TransformationPass):
         if target is not None:
             coupling_map = target.build_coupling_map()
 
-        unroll_definitions = not (basis_gates is None and target is None)
+        unroll_definitions = not (
+            (basis_gates is None or len(basis_gates) == 0)
+            and (target is None or len(target.operation_names) == 0)
+        )
 
         # include path for when target exists but target.num_qubits is None (BasicSimulator)
         if unroll_definitions and (target is None or target.num_qubits is None):

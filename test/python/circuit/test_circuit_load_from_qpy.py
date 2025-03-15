@@ -24,8 +24,8 @@ import numpy as np
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.circuit import CASE_DEFAULT, IfElseOp, WhileLoopOp, SwitchCaseOp
 from qiskit.circuit.classical import expr, types
-from qiskit.circuit.classicalregister import Clbit
-from qiskit.circuit.quantumregister import Qubit
+from qiskit.circuit import Clbit
+from qiskit.circuit import Qubit
 from qiskit.circuit.random import random_circuit
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.library import (
@@ -1625,6 +1625,38 @@ class TestLoadFromQPY(QiskitTestCase):
         self.assertEqual(qc.cregs, new_circuit.cregs)
         self.assertDeprecatedBitProperties(qc, new_circuit)
 
+    def test_box(self):
+        """Test that box, including duration, unit and label roundtrips."""
+        qc = QuantumCircuit(2)
+        with qc.box():  # Instruction 0
+            qc.cx(0, 1)
+        with qc.box(duration=1, unit="dt", label="hello"):  # Instruction 1
+            with qc.box(duration=2.5, unit="s", label="world"):  # Instruction 1-0
+                qc.cx(0, 1)
+
+        with io.BytesIO() as fptr:
+            dump(qc, fptr)
+            fptr.seek(0)
+            out = load(fptr)[0]
+
+        self.assertEqual(qc, out)
+        self.assertDeprecatedBitProperties(qc, out)
+
+        # ... and a couple of manual checks, to be extra sure we check things not in `__eq__`.
+        box_0 = out.data[0].operation
+        self.assertIsNone(box_0.duration)
+        self.assertIsNone(box_0.label)
+
+        box_1 = out.data[1].operation
+        self.assertEqual(box_1.duration, 1)
+        self.assertEqual(box_1.unit, "dt")
+        self.assertEqual(box_1.label, "hello")
+
+        box_1_0 = box_1.blocks[0].data[0].operation
+        self.assertEqual(box_1_0.duration, 2.5)
+        self.assertEqual(box_1_0.unit, "s")
+        self.assertEqual(box_1_0.label, "world")
+
     def test_multiple_nested_control_custom_definitions(self):
         """Test that circuits with multiple controlled custom gates that in turn depend on custom
         gates can be exported successfully when there are several such gates in the outer circuit.
@@ -1936,6 +1968,17 @@ class TestLoadFromQPY(QiskitTestCase):
             self.assertRaisesRegex(
                 UnsupportedFeatureForVersion, "version 14 is required.*duration"
             ),
+        ):
+            dump(qc, fptr, version=version)
+
+    @ddt.idata(range(QPY_COMPATIBILITY_VERSION, 14))
+    def test_pre_v14_rejects_stretch_expr(self, version):
+        """Test that dumping to older QPY versions rejects duration-typed expressions."""
+        qc = QuantumCircuit()
+        qc.add_stretch("a")
+        with (
+            io.BytesIO() as fptr,
+            self.assertRaisesRegex(UnsupportedFeatureForVersion, "version 14 is required.*stretch"),
         ):
             dump(qc, fptr, version=version)
 
