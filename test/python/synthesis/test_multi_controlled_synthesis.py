@@ -328,7 +328,7 @@ class TestMCSynthesisCounts(QiskitTestCase):
     @combine(num_ctrl_qubits=[1, 2, 3, 4], base_gate=[XGate(), YGate(), ZGate(), HGate()])
     def test_small_mc_gates_cx_count(self, num_ctrl_qubits, base_gate):
         """Test that transpiling a MCX gate (and other locally equivalent multi-controlled gates)
-        with small number of controls (with no ancillas) yields the expected number of CX-gates.
+        with small number of controls (with no ancillas) yields the expected number of CX gates.
         """
         qc = QuantumCircuit(num_ctrl_qubits + 1)
         qc.append(base_gate.control(num_ctrl_qubits), range(num_ctrl_qubits + 1))
@@ -360,9 +360,8 @@ class TestMCSynthesisCounts(QiskitTestCase):
 
     @combine(num_ctrl_qubits=[1, 2, 3], base_gate=[RXGate(0.789), RYGate(0.123), RZGate(0.456)])
     def test_small_mc_rotation_gates_yield_cx_count(self, num_ctrl_qubits, base_gate):
-        """Test that creating a MCRX / MCRY / MCRZ gate
-        with small number of controls (with no ancillas) yields the expected number of cx gates
-        and provides the correct unitary.
+        """Test that creating a MCRX / MCRY / MCRZ gates with small number of controls (with no ancillas)
+        yields the expected number of CX gates.
         """
         qc = QuantumCircuit(num_ctrl_qubits + 1)
         qc.append(base_gate.control(num_ctrl_qubits), range(num_ctrl_qubits + 1))
