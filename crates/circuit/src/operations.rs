@@ -2407,122 +2407,122 @@ impl Operation for StandardGate {
 impl SingleQubitOperation for StandardGate {
     fn get_mat_static_1q(&self, params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
         match self {
-            Self::GlobalPhaseGate => None,
-            Self::HGate => match params {
+            Self::GlobalPhase => None,
+            Self::H => match params {
                 [] => Some(gate_matrix::H_GATE),
                 _ => None,
             },
-            Self::IGate => match params {
+            Self::I => match params {
                 [] => Some(gate_matrix::ONE_QUBIT_IDENTITY),
                 _ => None,
             },
-            Self::XGate => match params {
+            Self::X => match params {
                 [] => Some(gate_matrix::X_GATE),
                 _ => None,
             },
-            Self::YGate => match params {
+            Self::Y => match params {
                 [] => Some(gate_matrix::Y_GATE),
                 _ => None,
             },
-            Self::ZGate => match params {
+            Self::Z => match params {
                 [] => Some(gate_matrix::Z_GATE),
                 _ => None,
             },
-            Self::PhaseGate => match params {
+            Self::Phase => match params {
                 [Param::Float(theta)] => Some(gate_matrix::phase_gate(*theta)),
                 _ => None,
             },
-            Self::RGate => match params {
+            Self::R => match params {
                 [Param::Float(theta), Param::Float(phi)] => Some(gate_matrix::r_gate(*theta, *phi)),
                 _ => None,
             },
-            Self::RXGate => match params {
+            Self::RX => match params {
                 [Param::Float(theta)] => Some(gate_matrix::rx_gate(*theta)),
                 _ => None,
             },
-            Self::RYGate => match params {
+            Self::RY => match params {
                 [Param::Float(theta)] => Some(gate_matrix::ry_gate(*theta)),
                 _ => None,
             },
-            Self::RZGate => match params {
+            Self::RZ => match params {
                 [Param::Float(theta)] => Some(gate_matrix::rz_gate(*theta)),
                 _ => None,
             },
-            Self::SGate => match params {
+            Self::S => match params {
                 [] => Some(gate_matrix::S_GATE),
                 _ => None,
             },
-            Self::SdgGate => match params {
+            Self::Sdg => match params {
                 [] => Some(gate_matrix::SDG_GATE),
                 _ => None,
             },
-            Self::SXGate => match params {
+            Self::SX => match params {
                 [] => Some(gate_matrix::SX_GATE),
                 _ => None,
             },
-            Self::SXdgGate => match params {
+            Self::SXdg => match params {
                 [] => Some(gate_matrix::SXDG_GATE),
                 _ => None,
             },
-            Self::TGate => match params {
+            Self::T => match params {
                 [] => Some(gate_matrix::T_GATE),
                 _ => None,
             },
-            Self::TdgGate => match params {
+            Self::Tdg => match params {
                 [] => Some(gate_matrix::TDG_GATE),
                 _ => None,
             },
-            Self::UGate => match params {
+            Self::U => match params {
                 [Param::Float(theta), Param::Float(phi), Param::Float(lam)] => {
                     Some(gate_matrix::u_gate(*theta, *phi, *lam))
                 }
                 _ => None,
             },
-            Self::U1Gate => match params[0] {
+            Self::U1 => match params[0] {
                 Param::Float(val) => Some(gate_matrix::u1_gate(val)),
                 _ => None,
             },
-            Self::U2Gate => match params {
+            Self::U2 => match params {
                 [Param::Float(phi), Param::Float(lam)] => Some(gate_matrix::u2_gate(*phi, *lam)),
                 _ => None,
             },
-            Self::U3Gate => match params {
+            Self::U3 => match params {
                 [Param::Float(theta), Param::Float(phi), Param::Float(lam)] => {
                     Some(gate_matrix::u3_gate(*theta, *phi, *lam))
                 }
                 _ => None,
             },
-            Self::CHGate => None,
-            Self::CXGate => None,
-            Self::CYGate => None,
-            Self::CZGate => None,
-            Self::DCXGate => None,
-            Self::ECRGate => None,
-            Self::SwapGate => None,
-            Self::ISwapGate => None,
-            Self::CPhaseGate => None,
-            Self::CRXGate => None,
-            Self::CRYGate => None,
-            Self::CRZGate => None,
-            Self::CSGate => None,
-            Self::CSdgGate => None,
-            Self::CSXGate => None,
-            Self::CUGate => None,
-            Self::CU1Gate => None,
-            Self::CU3Gate => None,
-            Self::RXXGate => None,
-            Self::RYYGate => None,
-            Self::RZZGate => None,
-            Self::RZXGate => None,
-            Self::XXMinusYYGate => None,
-            Self::XXPlusYYGate => None,
-            Self::CCXGate => None,
-            Self::CCZGate => None,
-            Self::CSwapGate => None,
-            Self::RCCXGate => None,
-            Self::C3XGate => None,
-            Self::C3SXGate => None,
-            Self::RC3XGate => None,
+            Self::CH => None,
+            Self::CX => None,
+            Self::CY => None,
+            Self::CZ => None,
+            Self::DCX => None,
+            Self::ECR => None,
+            Self::Swap => None,
+            Self::ISwap => None,
+            Self::CPhase => None,
+            Self::CRX => None,
+            Self::CRY => None,
+            Self::CRZ => None,
+            Self::CS => None,
+            Self::CSdg => None,
+            Self::CSX => None,
+            Self::CU => None,
+            Self::CU1 => None,
+            Self::CU3 => None,
+            Self::RXX => None,
+            Self::RYY => None,
+            Self::RZZ => None,
+            Self::RZX => None,
+            Self::XXMinusYY => None,
+            Self::XXPlusYY => None,
+            Self::CCX => None,
+            Self::CCZ => None,
+            Self::CSwap => None,
+            Self::RCCX => None,
+            Self::C3X => None,
+            Self::C3SX => None,
+            Self::RC3X => None,
         }
     }
 
