@@ -175,7 +175,7 @@ int test_compose_scalar() {
     QkObs *scalar = qk_obs_identity(0);
     QkComplex64 factor = make_complex_double(2.0, 0.0);
     QkObs *mult = qk_obs_multiply(scalar, &factor);
-    uint32_t qargs[0];
+    uint32_t *qargs; // no value will be read (also MSVC doesn't allow qargs[0], so use this)
 
     QkObs *result = qk_obs_compose_map(op, mult, qargs);
 
@@ -315,7 +315,7 @@ int test_custom_build() {
     uint32_t num_qubits = 100;
     QkObs *obs = qk_obs_zero(num_qubits);
 
-    QkComplex64 coeff = 1;
+    QkComplex64 coeff = make_complex_double(1.0, 0.0);
     QkBitTerm bit_terms[3] = {QkBitTerm_X, QkBitTerm_Y, QkBitTerm_Z};
     uint32_t indices[3] = {0, 1, 2};
     QkObsTerm term = {coeff, 3, bit_terms, indices, num_qubits};
@@ -344,7 +344,7 @@ int test_term() {
 
     QkBitTerm bit_terms[3] = {QkBitTerm_X, QkBitTerm_Y, QkBitTerm_Z};
     uint32_t qubits[3] = {0, 1, 2};
-    QkComplex64 coeff = 1 + I;
+    QkComplex64 coeff = make_complex_double(1.0, 1.0);
 
     QkObsTerm term = {coeff, 3, bit_terms, qubits, num_qubits};
     int err = qk_obs_add_term(obs, &term);
@@ -410,7 +410,7 @@ int test_copy_term() {
     uint32_t num_qubits = 100;
     QkObs *obs = qk_obs_zero(num_qubits);
 
-    QkComplex64 coeff = 1;
+    QkComplex64 coeff = make_complex_double(1.0, 0.0);
     QkBitTerm bits[3] = {QkBitTerm_X, QkBitTerm_Y, QkBitTerm_Z};
     uint32_t indices[3] = {0, 1, 2};
 
@@ -436,7 +436,7 @@ int test_copy_term() {
     }
 
     // modify the term and add it onto the observable
-    QkComplex64 coeff2 = 2 * I;
+    QkComplex64 coeff2 = make_complex_double(0.0, 2.0);
     copied_indices[1] = 99;
     copied_bits[0] = QkBitTerm_Zero;
     QkObsTerm copied = {
@@ -514,7 +514,7 @@ int test_bit_terms() {
     QkBitTerm bits[6] = {QkBitTerm_Left,  QkBitTerm_Right, QkBitTerm_Plus,
                          QkBitTerm_Minus, QkBitTerm_Zero,  QkBitTerm_One};
     uint32_t indices[6] = {9, 8, 7, 6, 5, 4};
-    QkComplex64 coeff = 1;
+    QkComplex64 coeff = make_complex_double(1.0, 0.0);
     QkObsTerm term = {coeff, 6, bits, indices, 10};
 
     QkObs *obs = qk_obs_zero(10);

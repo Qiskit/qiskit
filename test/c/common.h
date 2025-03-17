@@ -15,7 +15,7 @@
 #include <stdio.h>
 
 #ifdef _MSC_VER
-QkComplex64 make_complex_double(double real, double imag) { return (QkComplex64){real, double}; }
+QkComplex64 make_complex_double(double real, double imag) { return (QkComplex64){real, imag}; }
 #else
 QkComplex64 make_complex_double(double real, double imag) { return real + I * imag; }
 #endif
