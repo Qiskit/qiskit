@@ -90,7 +90,6 @@ from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements, GateDirecti
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager, level_0_pass_manager
 from qiskit.transpiler.target import (
-    InstructionDurations,
     InstructionProperties,
     Target,
 )
