@@ -149,6 +149,16 @@ class CheckDecompositions(QiskitTestCase):
             )
             self.assertIn("Requested fidelity:", record.getMessage())
 
+    def assertPickle(self, decomp: TwoQubitControlledUDecomposer):
+        """Assert that TwoQubitControlledUDecomposer supports pickle"""
+
+        pkl = pickle.dumps(decomp, protocol=max(4, pickle.DEFAULT_PROTOCOL))
+        decomp_cpy = pickle.loads(pkl)
+        msg_base = f"decomp:\n{decomp}\ndecomp_cpy:\n{decomp_cpy}"
+        self.assertEqual(type(decomp), type(decomp_cpy), msg_base)
+        self.assertEqual(decomp.rxx_equivalent_gate, decomp_cpy.rxx_equivalent_gate, msg=msg_base)
+        self.assertEqual(decomp.euler_basis, decomp_cpy.euler_basis, msg=msg_base)
+
     def assertRoundTrip(self, weyl1: TwoQubitWeylDecomposition):
         """Fail if eval(repr(weyl1)) not equal to weyl1"""
         repr1 = repr(weyl1)
