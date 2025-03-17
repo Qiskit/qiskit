@@ -49,7 +49,7 @@ class RGate(Gate):
             \end{pmatrix}
     """
 
-    _standard_gate = StandardGate.RGate
+    _standard_gate = StandardGate.R
 
     def __init__(
         self,
@@ -79,7 +79,7 @@ class RGate(Gate):
         self.definition = qc
 
     def inverse(self, annotated: bool = False):
-        """Invert this gate as: :math:`r(θ, φ)^dagger = r(-θ, φ)`
+        r"""Invert this gate as: :math:`R(θ, φ)^{\dagger} = R(-θ, φ)`
 
         Args:
             annotated: when set to ``True``, this is typically used to return an

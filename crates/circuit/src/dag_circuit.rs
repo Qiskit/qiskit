@@ -1855,7 +1855,7 @@ impl DAGCircuit {
             Py::new(py, slf.clone())?.into_bound(py).borrow_mut()
         };
 
-        dag.global_phase = add_global_phase(py, &dag.global_phase, &other.global_phase)?;
+        dag.global_phase = add_global_phase(&dag.global_phase, &other.global_phase)?;
 
         // This is all the handling we need for realtime variables, if there's no remapping. They:
         //
@@ -3030,7 +3030,7 @@ impl DAGCircuit {
             &clbit_wire_map,
             &var_map,
         )?;
-        self.global_phase = add_global_phase(py, &self.global_phase, &input_dag.global_phase)?;
+        self.global_phase = add_global_phase(&self.global_phase, &input_dag.global_phase)?;
 
         let wire_map_dict = PyDict::new(py);
         for (source, target) in clbit_wire_map.iter() {
@@ -6441,14 +6441,14 @@ impl DAGCircuit {
         Ok(())
     }
 
-    pub fn add_global_phase(&mut self, py: Python, value: &Param) -> PyResult<()> {
+    pub fn add_global_phase(&mut self, value: &Param) -> PyResult<()> {
         match value {
             Param::Obj(_) => {
                 return Err(PyTypeError::new_err(
                     "Invalid parameter type, only float and parameter expression are supported",
                 ))
             }
-            _ => self.set_global_phase(add_global_phase(py, &self.global_phase, value)?)?,
+            _ => self.set_global_phase(add_global_phase(&self.global_phase, value)?)?,
         }
         Ok(())
     }
@@ -7106,23 +7106,26 @@ impl ::std::ops::Index<NodeIndex> for DAGCircuit {
 
 /// Add to global phase. Global phase can only be Float or ParameterExpression so this
 /// does not handle the full possibility of parameter values.
-pub(crate) fn add_global_phase(py: Python, phase: &Param, other: &Param) -> PyResult<Param> {
+pub(crate) fn add_global_phase(phase: &Param, other: &Param) -> PyResult<Param> {
     Ok(match [phase, other] {
         [Param::Float(a), Param::Float(b)] => Param::Float(a + b),
-        [Param::Float(a), Param::ParameterExpression(b)] => Param::ParameterExpression(
-            b.clone_ref(py)
-                .call_method1(py, intern!(py, "__radd__"), (*a,))?,
-        ),
-        [Param::ParameterExpression(a), Param::Float(b)] => Param::ParameterExpression(
-            a.clone_ref(py)
-                .call_method1(py, intern!(py, "__add__"), (*b,))?,
-        ),
+        [Param::Float(a), Param::ParameterExpression(b)] => {
+            Param::ParameterExpression(Python::with_gil(|py| -> PyResult<PyObject> {
+                b.clone_ref(py)
+                    .call_method1(py, intern!(py, "__radd__"), (*a,))
+            })?)
+        }
+        [Param::ParameterExpression(a), Param::Float(b)] => {
+            Param::ParameterExpression(Python::with_gil(|py| -> PyResult<PyObject> {
+                a.clone_ref(py)
+                    .call_method1(py, intern!(py, "__add__"), (*b,))
+            })?)
+        }
         [Param::ParameterExpression(a), Param::ParameterExpression(b)] => {
-            Param::ParameterExpression(a.clone_ref(py).call_method1(
-                py,
-                intern!(py, "__add__"),
-                (b,),
-            )?)
+            Param::ParameterExpression(Python::with_gil(|py| -> PyResult<PyObject> {
+                a.clone_ref(py)
+                    .call_method1(py, intern!(py, "__add__"), (b,))
+            })?)
         }
         _ => panic!("Invalid global phase"),
     })
@@ -7154,7 +7157,7 @@ mod test {
     macro_rules! cx_gate {
         ($dag:expr, $q0:expr, $q1:expr) => {
             PackedInstruction {
-                op: PackedOperation::from_standard_gate(StandardGate::CXGate),
+                op: PackedOperation::from_standard_gate(StandardGate::CX),
                 qubits: $dag
                     .qargs_interner
                     .insert_owned(vec![Qubit($q0), Qubit($q1)]),
