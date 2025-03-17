@@ -29,7 +29,6 @@ const MINIMUM_TOL: f64 = 1e-12;
 #[pyfunction]
 #[pyo3(signature=(dag, approx_degree=Some(1.0), target=None))]
 fn remove_identity_equiv(
-    py: Python,
     dag: &mut DAGCircuit,
     approx_degree: Option<f64>,
     target: Option<&Target>,
@@ -149,7 +148,7 @@ fn remove_identity_equiv(
     }
 
     if global_phase_update != 0. {
-        dag.add_global_phase(py, &Param::Float(global_phase_update))
+        dag.add_global_phase(&Param::Float(global_phase_update))
             .expect("The global phase is guaranteed to be a float");
     }
 }
