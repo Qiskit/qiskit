@@ -94,26 +94,6 @@ where
         }
     }
 
-    /// Creates an instance of `NullableIndexMap<K, V>` from an iterator over instances of
-    /// `(Option<K>, V)`.
-    pub fn from_iter<'a, I>(iter: I) -> Self
-    where
-        I: IntoIterator<Item = (Option<K>, V)> + 'a,
-    {
-        let mut null_val = None;
-        let filtered = iter.into_iter().filter_map(|item| match item {
-            (Some(key), value) => Some((key, value)),
-            (None, value) => {
-                null_val = Some(value);
-                None
-            }
-        });
-        Self {
-            map: IndexMap::from_iter(filtered),
-            null_val,
-        }
-    }
-
     /// Returns `true` if the map contains a slot indexed by `key`, otherwise `false`.
     pub fn contains_key(&self, key: Option<&K>) -> bool {
         match key {
@@ -386,6 +366,48 @@ where
         Self {
             map: IndexMap::default(),
             null_val: None,
+        }
+    }
+}
+
+impl<K, V, const N: usize> From<[(Option<K>, V); N]> for NullableIndexMap<K, V>
+where
+    K: Eq + Hash + Clone,
+    V: Clone,
+{
+    fn from(value: [(Option<K>, V); N]) -> Self {
+        let mut null_val = None;
+        let filtered = value.into_iter().filter_map(|item| match item {
+            (Some(key), value) => Some((key, value)),
+            (None, value) => {
+                null_val = Some(value);
+                None
+            }
+        });
+        Self {
+            map: IndexMap::from_iter(filtered),
+            null_val,
+        }
+    }
+}
+
+impl<K, V> FromIterator<(Option<K>, V)> for NullableIndexMap<K, V>
+where
+    K: Eq + Hash + Clone,
+    V: Clone,
+{
+    fn from_iter<T: IntoIterator<Item = (Option<K>, V)>>(iter: T) -> Self {
+        let mut null_val = None;
+        let filtered = iter.into_iter().filter_map(|item| match item {
+            (Some(key), value) => Some((key, value)),
+            (None, value) => {
+                null_val = Some(value);
+                None
+            }
+        });
+        Self {
+            map: IndexMap::from_iter(filtered),
+            null_val,
         }
     }
 }
