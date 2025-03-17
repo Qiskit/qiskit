@@ -492,14 +492,14 @@ int test_coeffs() {
     // read the first coefficient
     QkComplex64 first = coeffs[0];
     int result = Ok;
-    if (first != 1) {
+    if (creal(first) != 1.0 || cimag(first) != 0.0) {
         result = EqualityError;
     }
 
     // modify the coefficient by ref
-    coeffs[0] = I;
+    coeffs[0] = make_complex_double(0.0, 1.0);
     QkComplex64 later = qk_obs_coeffs(obs)[0];
-    if (later != I) {
+    if (creal(later) != 0.0 || cimag(later) != 1.0) {
         result = EqualityError;
     }
 
@@ -630,7 +630,8 @@ int test_direct_build() {
     QkComplex64 *obs_coeffs = qk_obs_coeffs(obs);
     size_t *obs_boundaries = qk_obs_boundaries(obs);
     for (size_t i = 0; i < num_terms; i++) {
-        if (coeffs[i] != obs_coeffs[i] || boundaries[i] != obs_boundaries[i]) {
+        if (creal(coeffs[i]) != creal(obs_coeffs[i]) || cimag(coeffs[i]) != cimag(obs_coeffs[i]) ||
+            boundaries[i] != obs_boundaries[i]) {
             result = EqualityError;
         }
     }
