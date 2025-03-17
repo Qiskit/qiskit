@@ -2459,7 +2459,7 @@ fn invert_1q_gate(gate: (StandardGate, SmallVec<[f64; 3]>)) -> (StandardGate, Sm
     (inv_gate.0, inv_gate_params)
 }
 
-#[derive(Clone, Debug, FromPyObject)]
+#[derive(Clone, Debug, FromPyObject, IntoPyObject)]
 pub enum RXXEquivalent {
     Standard(StandardGate),
     CustomPython(Py<PyType>),
@@ -2928,6 +2928,9 @@ impl TwoQubitControlledUDecomposer {
     ///     for 1Q synthesis.
     ///  Raises:
     ///      QiskitError: If the gate is not locally equivalent to an :class:`.RXXGate`.
+    fn __getnewargs__(&self) -> (RXXEquivalent, &str) {
+        (self.rxx_equivalent_gate.clone(), self.euler_basis.as_str())
+    }
     #[new]
     #[pyo3(signature=(rxx_equivalent_gate, euler_basis="ZXZ"))]
     pub fn new(rxx_equivalent_gate: RXXEquivalent, euler_basis: &str) -> PyResult<Self> {
