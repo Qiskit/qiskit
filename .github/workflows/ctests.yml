@@ -10,7 +10,7 @@ on:
 jobs:
   tests:
     if: github.repository_owner == 'Qiskit'
-    name: linux-tests-c
+    name: tests-c-${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -21,7 +21,6 @@ jobs:
           - macos-13
           # Used for the ARM builds.
           - macos-14
-          - windows-latest
           - ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v4
@@ -29,3 +28,18 @@ jobs:
         run: cargo install cbindgen
       - name: Run tests
         run: make ctest
+  win_tests:
+    if: github.repository_owner == 'Qiskit'
+    name: tests-c-windows
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: cargo install cbindgen
+      - name: Run tests
+        run: make ctest_win
