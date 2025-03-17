@@ -71,7 +71,7 @@ class UGate(Gate):
         U(\theta, 0, 0) = RY(\theta)
     """
 
-    _standard_gate = StandardGate.UGate
+    _standard_gate = StandardGate.U
 
     def __init__(
         self,
@@ -269,7 +269,7 @@ class CUGate(ControlledGate):
             \end{pmatrix}
     """
 
-    _standard_gate = StandardGate.CUGate
+    _standard_gate = StandardGate.CU
 
     def __init__(
         self,

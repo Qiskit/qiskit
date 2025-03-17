@@ -20,29 +20,27 @@ use crate::unitary_compose;
 /// Returns ``None`` if the rotation gate (specified by name) is not supported.
 pub fn rotation_trace_and_dim(rotation: StandardGate, angle: f64) -> Option<(Complex64, f64)> {
     let dim = match rotation {
-        StandardGate::RXGate
-        | StandardGate::RYGate
-        | StandardGate::RZGate
-        | StandardGate::PhaseGate
-        | StandardGate::U1Gate => 2.,
+        StandardGate::RX
+        | StandardGate::RY
+        | StandardGate::RZ
+        | StandardGate::Phase
+        | StandardGate::U1 => 2.,
         _ => 4.,
     };
 
     let trace_over_dim = match rotation {
-        StandardGate::RXGate
-        | StandardGate::RYGate
-        | StandardGate::RZGate
-        | StandardGate::RXXGate
-        | StandardGate::RYYGate
-        | StandardGate::RZZGate
-        | StandardGate::RZXGate => Complex64::new((angle / 2.).cos(), 0.),
-        StandardGate::CRXGate | StandardGate::CRYGate | StandardGate::CRZGate => {
+        StandardGate::RX
+        | StandardGate::RY
+        | StandardGate::RZ
+        | StandardGate::RXX
+        | StandardGate::RYY
+        | StandardGate::RZZ
+        | StandardGate::RZX => Complex64::new((angle / 2.).cos(), 0.),
+        StandardGate::CRX | StandardGate::CRY | StandardGate::CRZ => {
             Complex64::new(0.5 + 0.5 * (angle / 2.).cos(), 0.)
         }
-        StandardGate::PhaseGate | StandardGate::U1Gate => {
-            (1. + Complex64::new(0., angle).exp()) / 2.
-        }
-        StandardGate::CPhaseGate => (3. + Complex64::new(0., angle).exp()) / 4.,
+        StandardGate::Phase | StandardGate::U1 => (1. + Complex64::new(0., angle).exp()) / 2.,
+        StandardGate::CPhase => (3. + Complex64::new(0., angle).exp()) / 4.,
         _ => return None,
     };
     Some((trace_over_dim, dim))
