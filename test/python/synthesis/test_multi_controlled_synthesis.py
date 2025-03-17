@@ -149,7 +149,7 @@ class TestMCSynthesisCorrectness(QiskitTestCase):
         self.check_mc_synthesis(XGate(), 4, synthesized_circuit, clean_ancillas=False)
 
     @combine(
-        num_ctrl_qubits=[1, 2, 3, 4],
+        num_ctrl_qubits=[1, 2, 3, 4, 5, 6, 7],
         base_gate=[
             XGate(),
             YGate(),
@@ -256,7 +256,8 @@ class TestMCSynthesisCounts(QiskitTestCase):
         # The synthesis of mcrx/mcry/mcrz gates uses _mcsu2_real_diagonal.
         # The bounds are given in arXiv:2302.06377, Theorem 3.
         # In practice, we actually get better bounds for small values of num_ctrl_qubits.
-        self.assertLessEqual(cx_count, 16 * (num_ctrl_qubits + 1) - 40)
+        expected_cx_count = 16 * (num_ctrl_qubits + 1) - 40
+        self.assertLessEqual(cx_count, expected_cx_count)
 
     @data(5, 8, 10, 13, 15)
     def test_mcx_noaux_v24_cx_count(self, num_ctrl_qubits: int):
