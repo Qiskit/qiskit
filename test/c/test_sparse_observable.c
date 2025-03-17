@@ -78,7 +78,7 @@ int test_add() {
  * Test composing two observables.
  */
 int test_compose() {
-    u_int32_t num_qubits = 100;
+    uint32_t num_qubits = 100;
 
     QkObs *op1 = qk_obs_zero(num_qubits);
     complex double coeff = 1;
@@ -120,7 +120,7 @@ int test_compose() {
  * Test composing two observables and specifying the qargs argument.
  */
 int test_compose_map() {
-    u_int32_t num_qubits = 100;
+    uint32_t num_qubits = 100;
 
     QkObs *op1 = qk_obs_zero(num_qubits);
     complex double coeff = 1;
@@ -163,7 +163,7 @@ int test_compose_map() {
  * Test composing an observables with a scalar observable.
  */
 int test_compose_scalar() {
-    u_int32_t num_qubits = 100;
+    uint32_t num_qubits = 100;
 
     QkObs *op = qk_obs_zero(num_qubits);
     complex double coeff = 1;
