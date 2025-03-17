@@ -1544,7 +1544,7 @@ class TestTranspile(QiskitTestCase):
         backend = GenericBackendV2(num_qubits=2)
         backend.target.dt = None
         with self.assertRaisesRegex(TranspilerError, ".*SI units and dt unit must not be mixed"):
-            t = transpile(
+            transpile(
                 qc,
                 backend=backend,
                 seed_transpiler=42,
