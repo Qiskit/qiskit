@@ -343,7 +343,11 @@ where
     /// stored.
     ///
     /// This method does not store `value` if it is not present.
-    pub fn try_key(&self, value: &T) -> Option<Interned<T>> {
+    pub fn try_key<Q>(&self, value: &Q) -> Option<Interned<T>>
+    where
+        Q: ?Sized + Hash + Eq + ToOwned,
+        T: Borrow<Q> + ToOwned<Owned = <Q as ToOwned>::Owned>,
+    {
         self.0.get_index_of(value).map(|index| Interned {
             index: index as u32,
             _type: PhantomData,
@@ -354,7 +358,11 @@ where
     ///
     /// Typically you want to use [try_key], which returns the key if present, or [insert], which
     /// stores the value if it wasn't already present.
-    pub fn contains(&self, value: &T) -> bool {
+    pub fn contains<Q>(&self, value: &Q) -> bool
+    where
+        Q: ?Sized + Hash + Eq + ToOwned,
+        T: Borrow<Q> + ToOwned<Owned = <Q as ToOwned>::Owned>,
+    {
         self.try_key(value).is_some()
     }
 }
@@ -403,7 +411,11 @@ where
     ///
     /// If you already have an owned value, use `insert_owned`, but in general this function will be
     /// more efficient *unless* you already had the value for other reasons.
-    pub fn insert(&mut self, value: &T) -> Interned<T> {
+    pub fn insert<Q>(&mut self, value: &Q) -> Interned<T>
+    where
+        Q: ?Sized + Hash + Eq + ToOwned,
+        T: Borrow<Q> + ToOwned<Owned = <Q as ToOwned>::Owned>,
+    {
         let index = match self.0.get_index_of(value) {
             Some(index) => index as u32,
             None => self.insert_new(value.to_owned()),
