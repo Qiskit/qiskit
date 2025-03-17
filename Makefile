@@ -149,7 +149,7 @@ ctest_win: $(C_QISKIT_H)
 	cmake -S. -B$(C_DIR_TEST_BUILD)
 	cmake --build $(C_DIR_TEST_BUILD)
 	# -V ensures we always produce a logging output to indicate the subtests
-	ctest -V -C Debug --test-dir $(C_DIR_TEST_BUILD)
+	ctest -C Debug --extra-verbose --debug --output-on-failure --test-dir $(C_DIR_TEST_BUILD)
 
 cclean:
 	rm -rf $(C_DIR_OUT) $(C_DIR_TEST_BUILD)
