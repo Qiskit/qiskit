@@ -1,18 +1,16 @@
 ---
 upgrade_circuits:
   - |
-    The :class:`.PhaseOracle` no longer relies on the `tweedledum` library
-    but might not be synthesized as effectively as before.
-    :class:`.BitFlipOracleGate` was added as an alternative to
-    directly synthesizing :class:`.BooleanExpression`, as this
-    class is removed in Qiskit 2.0. A :class:`.PhaseOracleGate`
-    was added and will replace :class:`.PhaseOracle` in Qiskit 3.0.
+     The :class:`.PhaseOracle` no longer relies on the ``tweedledum`` library, 
+     as the dependency was not actively maintained. This change may affect 
+     synthesis effectiveness.
 
-    The interface of :class:`.PhaseOracle` was simplified; it no longer
-    accepts a `synthesizer` parameter, and the `expression` parameter
-    can only be a string; `ClassicalElement` has been deprecated in Qiskit 1.4.
+     Additionally, the interface of :class:`.PhaseOracle` has been simplified: 
+     it no longer accepts a synthesizer parameter, and the expression parameter 
+     can only be a string. This is because the previously accepted ``ClassicalElement``
+     type, deprecated in Qiskit 1.4, has been removed in Qiskit 2.0.
 
-    :class:`.PhaseOracle` is used exactly as before:
+     Despite these upgrades, the standard usage of :class:`.PhaseOracle` remains unchanged:
     
     .. code-block:: python
       
@@ -33,13 +31,19 @@ upgrade_circuits:
                       
 features_circuits:
   - |
-    The new :class:`.BitFlipOracleGate` and :class:`.PhaseOracleGate`
-    have the same interface as :class:`.PhaseOracle` 
-    (except the `evaluate_bitstring` method). Bit-flip oracle gate
-    synthesizes a bit flip oracle instead
-    of a phase flip oracle, meaning it acts on one additional qubit
-    and can be seen as applying a controlled X operation, where the
-    control is the value of the expression encoded by the oracle.
+     Added two new classes: :class:`.BitFlipOracleGate` and :class:`.PhaseOracleGate`.
+
+     :class:`.BitFlipOracleGate` was introduced as an alternative to directly 
+     synthesizing :class:`.BooleanExpression`, which has been removed in Qiskit 2.0. 
+     :class:`.PhaseOracleGate` was added as an alternative to :class:`.PhaseOracle`, as the 
+     latter will be deprecated throughout the 2.x series. Both classes share the interface 
+     of :class:`.PhaseOracle`, except for the ``evaluate_bitstring`` method, which is no longer
+     present.
+
+     :class:`.BitFlipOracleGate` synthesizes a bit-flip oracle instead of a phase-flip 
+     oracle, meaning it acts on one additional qubit and can be viewed as applying a 
+     controlled-X operation, where the control is determined by the value of the 
+     expression encoded by the oracle.
 
     .. code-block:: python
     

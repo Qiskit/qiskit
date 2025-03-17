@@ -1,9 +1,9 @@
 ---
 features_synthesis:
   - |
-    Add a :class:`.TwoQubitControlledUDecomposer` that decomposes any two-qubit unitary
+    Added a new :class:`.TwoQubitControlledUDecomposer` class that decomposes any two-qubit unitary
     in terms of basis two-qubit fractional gates, such as :class:`.RZZGate`
-    (or two-gates gates which are locally equivalent to :class:`.RZZGate` up to single qubit gates).
+    (or two-qubit gates that are locally equivalent to :class:`.RZZGate` up to single qubit gates).
 
     For example::
 
@@ -33,5 +33,7 @@ features_transpiler:
       qc = QuantumCircuit(2)
       qc.append(unitary, [0, 1])
       dag = circuit_to_dag(qc)
+      
+      # basis_gates contains fractional gate (rzz)
       circ = UnitarySynthesis(basis_gates=['rzz', 'rx', 'rz']).run(dag)
       dag_to_circuit(circ).draw(output='mpl')
