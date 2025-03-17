@@ -148,7 +148,7 @@ fn apply_synth_dag(
         out_packed_instr.qubits = out_dag.qargs_interner.insert(&mapped_qargs);
         out_dag.push_back(py, out_packed_instr)?;
     }
-    out_dag.add_global_phase(py, &synth_dag.get_global_phase())?;
+    out_dag.add_global_phase(&synth_dag.get_global_phase())?;
     Ok(())
 }
 
@@ -224,7 +224,7 @@ fn apply_synth_sequence(
         instructions.push(instruction);
     }
     out_dag.extend(py, instructions.into_iter())?;
-    out_dag.add_global_phase(py, &Param::Float(sequence.gate_sequence.global_phase()))?;
+    out_dag.add_global_phase(&Param::Float(sequence.gate_sequence.global_phase()))?;
     Ok(())
 }
 
@@ -358,7 +358,7 @@ fn py_run_main_loop(
                                 None,
                             )?;
                         }
-                        out_dag.add_global_phase(py, &Param::Float(sequence.global_phase))?;
+                        out_dag.add_global_phase(&Param::Float(sequence.global_phase))?;
                     }
                     None => {
                         out_dag.push_back(py, packed_instr)?;
