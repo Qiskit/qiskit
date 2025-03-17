@@ -690,4 +690,39 @@ mod test {
             .collect::<HashSet<_>>();
         assert_eq!(expected, actual);
     }
+
+    #[test]
+    fn can_check_with_equivalent_element() {
+        // Check that borrowed equivalent elements can be used in queries.
+        let mut with_array: Interner<[u8]> = Interner::new();
+        let mut with_string: Interner<String> = Interner::new();
+
+        // Try to insert with slice
+        with_array.insert(&[1, 2]);
+        // Try to insert with vec ref
+        with_array.insert(&[0, 2]);
+
+        // Try to insert with str
+        with_string.insert("Foo");
+        // Try to insert with borrowed String
+        with_string.insert(&"Bar".to_string());
+
+        // Try checking with slice
+        assert!(with_array.contains(&[0, 2]));
+        // Try checking with vec
+        assert!(with_array.contains(&[1, 2]));
+        // Try checking with slice (fail)
+        assert!(!with_array.contains(&[0, 4]));
+        // Try checking with vec
+        assert!(!with_array.contains(&[1, 3]));
+
+        // Try checking with str
+        assert!(with_string.contains("Bar"));
+        // Try checking with String
+        assert!(with_string.contains(&"Foo".to_string()));
+        // Try checking with str (fail)
+        assert!(!with_string.contains("Fee"));
+        // Try checking with String (fail)
+        assert!(!with_string.contains(&"vec![1,3]".to_string()));
+    }
 }
