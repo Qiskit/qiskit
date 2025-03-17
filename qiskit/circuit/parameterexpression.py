@@ -26,6 +26,7 @@ import numpy
 import symengine
 
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.exceptions import QiskitError
 from qiskit.utils.optionals import HAS_SYMPY
 
 # This type is redefined at the bottom to insert the full reference to "ParameterExpression", so it
@@ -531,6 +532,9 @@ class ParameterExpression:
     def __str__(self):
         from sympy import sympify, sstr
 
+        if not isinstance(self._symbol_expr, symengine.Basic):
+            raise QiskitError("Invalid ParameterExpression")
+
         return sstr(sympify(self._symbol_expr), full_prec=False)
 
     def __complex__(self):
@@ -610,6 +614,9 @@ class ParameterExpression:
             if self.parameters != other.parameters:
                 return False
             from sympy import sympify
+
+            if not isinstance(self._symbol_expr, symengine.Basic):
+                raise QiskitError("Invalid ParameterExpression")
 
             return sympify(self._symbol_expr).equals(sympify(other._symbol_expr))
         elif isinstance(other, numbers.Number):

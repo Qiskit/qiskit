@@ -318,7 +318,7 @@ pub fn py_synth_cnot_depth_line_kms(
         .chain(cx_instructions_rows_nw2id)
         .map(|(ctrl, target)| {
             (
-                StandardGate::CXGate,
+                StandardGate::CX,
                 smallvec![],
                 smallvec![Qubit(ctrl as u32), Qubit(target as u32)],
             )
