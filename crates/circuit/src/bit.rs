@@ -771,7 +771,7 @@ macro_rules! create_bit_object {
                 })
             }
 
-            /// Allows for the creation of a new register with a provisional prefix and the
+            /// Allows for the creation of a new register with a temporary prefix and the
             /// same instance counter.
             #[pyo3(signature=(size=None, name=None, bits=None))]
             #[staticmethod]
