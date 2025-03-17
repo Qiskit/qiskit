@@ -867,7 +867,7 @@ class TestCircuitOperations(QiskitTestCase):
         # Second call should also create a new register
         circuit.measure_all()
         self.assertEqual(len(circuit.cregs), 2)  # Now two cregs
-        self.assertTrue(all(circuit.cregs), lambda reg: len(reg) == 1)  # All of length 1
+        self.assertTrue(all(len(reg) == 1 for reg in circuit.cregs))  # All of length 1
         # Check that no name is the same
         self.assertEqual(len(set([reg.name for reg in circuit.cregs])), 2)
 
