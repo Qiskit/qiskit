@@ -15,7 +15,7 @@
 from math import ceil
 import numpy as np
 
-from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit import QuantumRegister
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.library.standard_gates import (
     HGate,

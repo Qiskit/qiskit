@@ -17,7 +17,6 @@ from math import pi
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, stdlib_singleton_key
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import _ctrl_state_to_int, with_gate_array, with_controlled_gate_array
 from qiskit._accelerate.circuit import StandardGate
 from qiskit.utils.deprecation import deprecate_func
@@ -86,7 +85,7 @@ class XGate(SingletonGate):
         gate x a { u3(pi,0,pi) a; }
         """
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
         from .u3 import U3Gate
 
         q = QuantumRegister(1, "q")
@@ -399,7 +398,7 @@ class CCXGate(SingletonControlledGate):
         t a; tdg b; cx a,b;}
         """
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
         from .h import HGate
         from .t import TGate, TdgGate
 
@@ -541,7 +540,7 @@ class RCCXGate(SingletonGate):
         }
         """
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
         from .u1 import U1Gate
         from .u2 import U2Gate
 
@@ -627,7 +626,7 @@ class C3SXGate(SingletonControlledGate):
         }
         """
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
         from .u1 import CU1Gate
         from .h import HGate
 
@@ -739,7 +738,7 @@ class C3XGate(SingletonControlledGate):
             h d;
         }
         """
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
 
         q = QuantumRegister(4, name="q")
         qc = QuantumCircuit(q, name=self.name)
@@ -896,7 +895,7 @@ class RC3XGate(SingletonGate):
         }
         """
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
         from .u1 import U1Gate
         from .u2 import U2Gate
 
@@ -992,7 +991,7 @@ class C4XGate(SingletonControlledGate):
         }
         """
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
         from .u1 import CU1Gate
         from .h import HGate
 

@@ -278,10 +278,21 @@ def get_wire_label(drawer, register, index, layout=None, cregbundle=True):
                     f"{{{virt_reg.name}}}_{{{virt_reg[:].index(virt_bit)}}} \\mapsto {{{index}}}"
                 )
         except StopIteration:
-            if drawer == "text":
-                wire_label = f"{virt_bit} -> {index}"
+            if virt_bit._register is not None:
+                virt_reg = virt_bit._register
+                if drawer == "text":
+                    wire_label = f"{virt_reg.name}_{virt_reg[:].index(virt_bit)} -> {index}"
+                else:
+                    wire_label = (
+                        f"{{{virt_reg.name}}}_"
+                        f"{{{virt_reg[:].index(virt_bit)}}} "
+                        f"\\mapsto {{{index}}}"
+                    )
             else:
-                wire_label = f"{{{virt_bit}}} \\mapsto {{{index}}}"
+                if drawer == "text":
+                    wire_label = f"{index_str} -> {index}"
+                else:
+                    wire_label = f"{index_str} \\mapsto {{{index}}}"
         if drawer != "text":
             wire_label = wire_label.replace(" ", "\\;")  # use wider spaces
     else:
@@ -450,9 +461,9 @@ def _get_layered_instructions(
     else:
         nodes = _LayerSpooler(dag, qubits, clbits, justify, measure_map)
 
-    # Optionally remove all idle wires and instructions that are on them and
-    # on them only.
     if not idle_wires:
+        # Optionally remove all idle wires and instructions that are on them and
+        # on them only.
         for wire in dag.idle_wires(ignore=["barrier", "delay"]):
             if wire in qubits:
                 qubits.remove(wire)
