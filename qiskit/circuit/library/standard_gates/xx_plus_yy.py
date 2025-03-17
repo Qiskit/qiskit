@@ -91,7 +91,7 @@ class XXPlusYYGate(Gate):
                 \end{pmatrix}
     """
 
-    _standard_gate = StandardGate.XXPlusYYGate
+    _standard_gate = StandardGate.XXPlusYY
 
     def __init__(
         self,
