@@ -875,22 +875,16 @@ class Statevector(QuantumState, TolerancesMixin):
         axes = indices + [i for i in range(num_qargs) if i not in indices]
         axes_inv = np.argsort(axes).tolist()
 
-        # Calculate contraction dimensions
-        contract_dim = oper._op_shape.shape[1]
-        contract_shape = (contract_dim, statevec._op_shape.shape[0] // contract_dim)
-
         # Reshape and transpose input array for contraction
         tensor = np.transpose(
             np.reshape(statevec.data, statevec._op_shape.tensor_shape),
             axes,
         )
-        tensor_shape = tensor.shape
 
         # Perform contraction
-        tensor = np.reshape(
-            np.dot(oper.data, np.reshape(tensor, contract_shape)),
-            tensor_shape,
-        )
+        oper_tensor = oper.data.reshape(oper._op_shape.tensor_shape)
+        axes = oper_tensor.ndim // 2
+        tensor = np.tensordot(oper_tensor, tensor, axes=axes)
 
         # Transpose back to  original subsystem spec and flatten
         statevec._data = np.reshape(np.transpose(tensor, axes_inv), new_shape.shape[0])
