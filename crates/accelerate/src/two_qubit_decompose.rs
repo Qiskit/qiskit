@@ -1176,7 +1176,6 @@ impl TwoQubitWeylDecomposition {
     #[pyo3(signature = (euler_basis=None, simplify=false, atol=None))]
     fn circuit(
         &self,
-        py: Python,
         euler_basis: Option<PyBackedStr>,
         simplify: bool,
         atol: Option<f64>,
@@ -1188,7 +1187,7 @@ impl TwoQubitWeylDecomposition {
         let mut target_1q_basis_list = EulerBasisSet::new();
         target_1q_basis_list.add_basis(euler_basis);
 
-        let mut gate_sequence = CircuitData::with_capacity(py, 2, 0, 21, Param::Float(0.))?;
+        let mut gate_sequence = CircuitData::with_capacity(2, 0, 21, Param::Float(0.))?;
         let mut global_phase: f64 = self.global_phase;
 
         let c2r = unitary_to_gate_sequence_inner(
@@ -1264,7 +1263,7 @@ impl TwoQubitWeylDecomposition {
                 &[Qubit(1)],
             )?
         }
-        gate_sequence.set_global_phase(py, Param::Float(global_phase))?;
+        gate_sequence.set_global_phase(Param::Float(global_phase))?;
         Ok(gate_sequence)
     }
 }

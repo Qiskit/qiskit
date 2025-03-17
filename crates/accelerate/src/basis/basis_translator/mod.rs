@@ -657,7 +657,7 @@ fn replace_node(
                 None,
             )?;
         }
-        dag.add_global_phase(py, target_dag.global_phase())?;
+        dag.add_global_phase(target_dag.global_phase())?;
     } else {
         let parameter_map = target_params
             .iter()
@@ -793,7 +793,7 @@ fn replace_node(
                 }
             }
             let new_phase: Param = new_phase.extract()?;
-            dag.add_global_phase(py, &new_phase)?;
+            dag.add_global_phase(&new_phase)?;
         }
     }
 

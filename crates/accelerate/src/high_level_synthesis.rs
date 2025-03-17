@@ -462,7 +462,7 @@ fn run_on_circuitdata(
     // all available ancilla qubits to the current operation ("the-first-takes-all" approach).
     // It does not distribute ancilla qubits between different operations present in the circuit.
 
-    let mut output_circuit: CircuitData = CircuitData::clone_empty_like(py, input_circuit, None)?;
+    let mut output_circuit: CircuitData = CircuitData::clone_empty_like(input_circuit, None)?;
     let mut output_qubits = input_qubits.to_vec();
 
     // The "inverse" map from the global qubits to the output circuit's qubits.
@@ -645,7 +645,7 @@ fn run_on_circuitdata(
                     synthesized_circuit.global_phase().clone(),
                     py,
                 );
-                output_circuit.set_global_phase(py, updated_global_phase)?;
+                output_circuit.set_global_phase(updated_global_phase)?;
             }
         }
     }
@@ -684,7 +684,7 @@ fn extract_definition(
                     let [theta, phi, lam, phase] =
                         angles_from_unitary(unitary.view(), EulerBasis::U);
                     let mut circuit_data: CircuitData =
-                        CircuitData::with_capacity(py, 1, 0, 1, Param::Float(phase))?;
+                        CircuitData::with_capacity(1, 0, 1, Param::Float(phase))?;
                     circuit_data.push_standard_gate(
                         StandardGate::UGate,
                         &[Param::Float(theta), Param::Float(phi), Param::Float(lam)],
