@@ -17,6 +17,7 @@ use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyType};
 
+use nalgebra::Matrix2;
 use ndarray::Array2;
 use num_complex::Complex64;
 use smallvec::SmallVec;
@@ -645,6 +646,11 @@ impl SingleQubitOperation for PackedOperation {
             OperationRef::Operation(_) => None,
             OperationRef::Unitary(gate) => gate.get_mat_static_1q(params),
         }
+    }
+
+    fn get_mat_nalgebra_1q(&self, params: &[Param]) -> Option<Matrix2<Complex64>> {
+        self.get_mat_static_1q(params)
+            .map(|arr| Matrix2::new(arr[0][0], arr[0][1], arr[1][0], arr[1][1]))
     }
 }
 

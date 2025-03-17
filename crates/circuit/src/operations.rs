@@ -164,6 +164,7 @@ pub trait Operation {
 /// Trait for single-qubit operations
 pub trait SingleQubitOperation {
     fn get_mat_static_1q(&self, params: &[Param]) -> Option<[[Complex64; 2]; 2]>;
+    fn get_mat_nalgebra_1q(&self, params: &[Param]) -> Option<Matrix2<Complex64>>;
 }
 
 /// Unpacked view object onto a `PackedOperation`.  This is the return value of
@@ -2587,6 +2588,11 @@ impl SingleQubitOperation for StandardGate {
             Self::RC3XGate => None,
         }
     }
+
+    fn get_mat_nalgebra_1q(&self, params: &[Param]) -> Option<Matrix2<Complex64>> {
+        self.get_mat_static_1q(params)
+            .map(|arr| Matrix2::new(arr[0][0], arr[0][1], arr[1][0], arr[1][1]))
+    }
 }
 
 const FLOAT_ZERO: Param = Param::Float(0.0);
@@ -2842,6 +2848,11 @@ impl SingleQubitOperation for PyGate {
             }
         })
     }
+
+    fn get_mat_nalgebra_1q(&self, params: &[Param]) -> Option<Matrix2<Complex64>> {
+        self.get_mat_static_1q(params)
+            .map(|arr| Matrix2::new(arr[0][0], arr[0][1], arr[1][0], arr[1][1]))
+    }
 }
 
 /// This class is used to wrap a Python side Operation that is not in the standard library
@@ -2978,6 +2989,11 @@ impl SingleQubitOperation for UnitaryGate {
             },
             _ => None,
         }
+    }
+
+    fn get_mat_nalgebra_1q(&self, params: &[Param]) -> Option<Matrix2<Complex64>> {
+        self.get_mat_static_1q(params)
+            .map(|arr| Matrix2::new(arr[0][0], arr[0][1], arr[1][0], arr[1][1]))
     }
 }
 
