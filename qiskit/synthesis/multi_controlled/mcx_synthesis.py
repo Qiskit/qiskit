@@ -64,6 +64,7 @@ def synth_mcx_n_dirty_i15(
         return qc
     elif num_ctrl_qubits == 3 and not relative_phase:
         qc = synth_c3x()
+        qc.name = "mcx_vchain"
         return qc
 
     num_qubits = 2 * num_ctrl_qubits - 1
