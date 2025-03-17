@@ -2824,23 +2824,20 @@ impl SingleQubitOperation for PyGate {
     fn get_mat_static_1q(&self, _params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
         Python::with_gil(|py| -> Option<[[Complex64; 2]; 2]> {
             match self.num_qubits() {
-                1 => {
-                    match self.gate.getattr(py, intern!(py, "to_matrix")) {
-                        Ok(to_matrix) => {
-                            let res: Option<PyObject> = to_matrix.call0(py).ok()?.extract(py).ok();
-                            match res {
-                                Some(x) => {
-                                    let array: PyReadonlyArray2<Complex64> = x.extract(py).ok()?;
-                                    let arr = array.as_array();
-                                    // Some(array.as_array().to_owned())
-                                    Some([[arr[[0, 0]], arr[[0, 1]]], [arr[[1, 0]], arr[[1, 1]]]])
-                                }
-                                None => None,
+                1 => match self.gate.getattr(py, intern!(py, "to_matrix")) {
+                    Ok(to_matrix) => {
+                        let res: Option<PyObject> = to_matrix.call0(py).ok()?.extract(py).ok();
+                        match res {
+                            Some(x) => {
+                                let array: PyReadonlyArray2<Complex64> = x.extract(py).ok()?;
+                                let arr = array.as_array();
+                                Some([[arr[[0, 0]], arr[[0, 1]]], [arr[[1, 0]], arr[[1, 1]]]])
                             }
+                            None => None,
                         }
-                        Err(_) => None,
                     }
-                }
+                    Err(_) => None,
+                },
                 _ => None,
             }
         })
