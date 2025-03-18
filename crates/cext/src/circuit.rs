@@ -166,7 +166,10 @@ pub unsafe extern "C" fn qk_circuit_append_standard_gate(
     qubits: *const u32,
     params: *const f64,
 ) -> ExitCode {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { mut_ptr_as_ref(circuit) };
+    // SAFETY: Per the documentation the qubits and params pointers are arrays of num_qubits()
+    // and num_params() elements respectively.
     unsafe {
         let qargs: &[Qubit] = match gate.num_qubits() {
             0 => &[],
@@ -225,6 +228,7 @@ pub unsafe extern "C" fn qk_circuit_append_measure(
     qubit: u32,
     clbit: u32,
 ) -> ExitCode {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { mut_ptr_as_ref(circuit) };
     circuit.push_packed_operation(
         PackedOperation::from_standard_instruction(StandardInstruction::Measure),
@@ -256,6 +260,7 @@ pub unsafe extern "C" fn qk_circuit_append_reset(
     circuit: *mut CircuitData,
     qubit: u32,
 ) -> ExitCode {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { mut_ptr_as_ref(circuit) };
     circuit.push_packed_operation(
         PackedOperation::from_standard_instruction(StandardInstruction::Reset),
@@ -280,7 +285,7 @@ pub unsafe extern "C" fn qk_circuit_append_reset(
 ///     qk_circuit_append_barrier(qc, 5, qubits);
 ///
 /// # Safety
-/// 
+///
 /// The length of the array qubits points to must be num_qubits. If there is
 /// a mismatch the behavior is undefined.
 ///
@@ -292,7 +297,9 @@ pub unsafe extern "C" fn qk_circuit_append_barrier(
     num_qubits: u32,
     qubits: *const u32,
 ) -> ExitCode {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { mut_ptr_as_ref(circuit) };
+    // SAFETY: Per the documentation the qubits pointer is an array of num_qubits elements
     let qubits: Vec<Qubit> = unsafe {
         (0..num_qubits)
             .map(|idx| Qubit(*qubits.wrapping_add(idx as usize)))
@@ -336,6 +343,7 @@ pub struct OpCounts {
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_count_ops(circuit: *const CircuitData) -> OpCounts {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { const_ptr_as_ref(circuit) };
     let count_ops = circuit.count_ops();
     let mut output: Vec<OpCount> = count_ops
@@ -368,6 +376,7 @@ pub unsafe extern "C" fn qk_circuit_count_ops(circuit: *const CircuitData) -> Op
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_num_instructions(circuit: *const CircuitData) -> usize {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { const_ptr_as_ref(circuit) };
     circuit.__len__()
 }
@@ -403,6 +412,7 @@ pub unsafe extern "C" fn qk_circuit_get_instruction(
     circuit: *const CircuitData,
     index: usize,
 ) -> CInstruction {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { const_ptr_as_ref(circuit) };
     if index >= circuit.__len__() {
         panic!("Invalid index")
@@ -448,6 +458,8 @@ pub unsafe extern "C" fn qk_circuit_get_instruction(
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_free_circuit_instruction(inst: CInstruction) {
+    // SAFETY: Loading the data from pointers contained in a CInstruction. These should only be
+    // created by rust code and are constructed from Vecs internally or CStrings.
     unsafe {
         if inst.num_qubits > 0 {
             let qubits = std::slice::from_raw_parts_mut(inst.qubits, inst.num_qubits as usize);
@@ -476,8 +488,10 @@ pub unsafe extern "C" fn qk_free_circuit_instruction(inst: CInstruction) {
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_opcounts_free(op_counts: OpCounts) {
+    // SAFETY: Loading data contained in OpCounts as a slice which was constructed from a Vec
     let data = unsafe { std::slice::from_raw_parts_mut(op_counts.data, op_counts.len) };
     let data = data.as_mut_ptr();
+    // SAFETY: Loading a box from the slice pointer created above
     unsafe {
         let _ = Box::from_raw(data);
     }
