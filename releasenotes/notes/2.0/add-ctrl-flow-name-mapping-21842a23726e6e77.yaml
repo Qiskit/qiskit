@@ -3,7 +3,7 @@ features_circuits:
   - |
     Added a new :func:`.get_control_flow_name_mapping` convenience function that returns a 
     mapping of Qiskit's control-flow operation names to their corresponding class. 
-    
+
     Example usage:
 
     .. code-block:: python

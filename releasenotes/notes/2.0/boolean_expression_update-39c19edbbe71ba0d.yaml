@@ -12,14 +12,14 @@ upgrade_circuits:
 
      Despite these upgrades, the standard usage of :class:`.PhaseOracle` remains unchanged:
     
-    .. code-block:: python
+     .. code-block:: python
       
       from qiskit.circuit.library.phase_oracle import PhaseOracle
       bool_expr = "(x0 & x1 | ~x2) & x4"
       oracle = PhaseOracle(bool_expr)
       print(oracle)
     
-    .. code-block:: text
+     .. code-block:: text
 
       q_0: ─o──■──■─
             │  │  │ 
@@ -45,7 +45,7 @@ features_circuits:
      controlled-X operation, where the control is determined by the value of the 
      expression encoded by the oracle.
 
-    .. code-block:: python
+     .. code-block:: python
     
       from qiskit import QuantumCircuit
       from qiskit.circuit.library.bit_flip_oracle import BitFlipOracleGate
@@ -56,7 +56,7 @@ features_circuits:
       qc.compose(oracle, inplace=True)
       print(qc)
 
-    .. code-block:: text
+     .. code-block:: text
 
            ┌─────────────────────┐
       q_0: ┤0                    ├
@@ -70,11 +70,11 @@ features_circuits:
       q_4: ┤4                    ├
            └─────────────────────┘
 
-    .. code-block:: python
+     .. code-block:: python
 
       print(qc.decompose())
 
-    .. code-block:: text
+     .. code-block:: text
 
       q_0: ──o────■────■──
              │    │    │  
@@ -87,7 +87,7 @@ features_circuits:
       q_4: ┤ X ├┤ X ├┤ X ├
            └───┘└───┘└───┘
 
-    .. code-block:: python
+     .. code-block:: python
 
       qc = QuantumCircuit(5)
       bool_expr = "(x0 & x1 | ~x2) & x4"
@@ -95,7 +95,7 @@ features_circuits:
       qc.compose(oracle, inplace=True)
       print(qc)
 
-    .. code-block:: text
+     .. code-block:: text
 
            ┌───────────────┐
       q_0: ┤0              ├
@@ -108,11 +108,11 @@ features_circuits:
            └───────────────┘
       q_4: ─────────────────
 
-    .. code-block:: python
+     .. code-block:: python
 
       print(qc.decompose())
 
-    .. code-block:: text
+     .. code-block:: text
 
       q_0: ─o──■──■─
             │  │  │ 
