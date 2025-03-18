@@ -87,7 +87,7 @@ fn parse_symbol(s: &str) -> IResult<&str, SymbolExpr> {
 fn parse_unary(s: &str) -> IResult<&str, SymbolExpr> {
     map_res(
         tuple((
-            alphanumeric1,
+            delimited(multispace0, alphanumeric1, multispace0),
             delimited(
                 char('('),
                 delimited(multispace0, parse_addsub, multispace0),
@@ -119,7 +119,7 @@ fn parse_unary(s: &str) -> IResult<&str, SymbolExpr> {
 fn parse_sign(s: &str) -> IResult<&str, SymbolExpr> {
     map_res(
         tuple((
-            alt((char('-'), char('+'))),
+            delimited(multispace0, alt((char('-'), char('+'))), multispace0),
             alt((
                 parse_imaginary_value,
                 parse_value,
@@ -171,7 +171,7 @@ fn parse_pow(s: &str) -> IResult<&str, SymbolExpr> {
             )),
         )),
         |(lhs, rvec)| -> Result<SymbolExpr, &str> {
-            let accum = rvec.iter().fold(lhs, |acc, x| acc.pow(&x));
+            let accum = rvec.iter().fold(lhs, |acc, x| acc.pow(x));
             Ok(accum)
         },
     )(s)

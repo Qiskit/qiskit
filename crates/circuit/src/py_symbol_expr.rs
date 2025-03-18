@@ -10,8 +10,8 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-/// symbol_expr_py.rs
-/// Python interface of symbolic expression
+// symbol_expr_py.rs
+// Python interface of symbolic expression
 use crate::symbol_expr::{SymbolExpr, Value, SYMEXPR_EPSILON};
 use crate::symbol_parser::parse_expression;
 
@@ -23,7 +23,7 @@ use std::hash::{Hash, Hasher};
 
 use pyo3::prelude::*;
 
-/// Python interface to SymbolExpr
+// Python interface to SymbolExpr
 #[pyclass(sequence, module = "qiskit._accelerate.circuit")]
 #[derive(Clone, Debug)]
 pub struct PySymbolExpr {
@@ -280,20 +280,6 @@ impl PySymbolExpr {
         }
     }
 
-    /// helper function to calculate reciprocal of the equation
-    pub fn rcp(&self) -> Self {
-        Self {
-            expr: self.expr.rcp(),
-        }
-    }
-
-    /// helper function to calculate square root of the equation
-    pub fn sqrt(&self) -> Self {
-        Self {
-            expr: self.expr.sqrt(),
-        }
-    }
-
     /// check if this expression is real number of not
     #[getter]
     pub fn is_real(&self) -> Option<bool> {
@@ -437,16 +423,16 @@ impl PySymbolExpr {
             },
         }
     }
-    pub fn __radd__(&self, rhs: ParameterValue) -> Self {
-        match rhs {
+    pub fn __radd__(&self, lhs: ParameterValue) -> Self {
+        match lhs {
             ParameterValue::Real(r) => Self {
                 expr: &SymbolExpr::Value(Value::from(r)) + &self.expr,
             },
             ParameterValue::Complex(c) => Self {
                 expr: &SymbolExpr::Value(Value::from(c)) + &self.expr,
             },
-            ParameterValue::Int(r) => Self {
-                expr: &SymbolExpr::Value(Value::from(r)) + &self.expr,
+            ParameterValue::Int(i) => Self {
+                expr: &SymbolExpr::Value(Value::from(i)) + &self.expr,
             },
             ParameterValue::Str(s) => Self {
                 expr: &parse_expression(&s) + &self.expr,
@@ -475,16 +461,16 @@ impl PySymbolExpr {
             },
         }
     }
-    pub fn __rsub__(&self, rhs: ParameterValue) -> Self {
-        match rhs {
+    pub fn __rsub__(&self, lhs: ParameterValue) -> Self {
+        match lhs {
             ParameterValue::Real(r) => Self {
                 expr: &SymbolExpr::Value(Value::from(r)) - &self.expr,
             },
             ParameterValue::Complex(c) => Self {
                 expr: &SymbolExpr::Value(Value::from(c)) - &self.expr,
             },
-            ParameterValue::Int(r) => Self {
-                expr: &SymbolExpr::Value(Value::from(r)) - &self.expr,
+            ParameterValue::Int(i) => Self {
+                expr: &SymbolExpr::Value(Value::from(i)) - &self.expr,
             },
             ParameterValue::Str(s) => Self {
                 expr: &parse_expression(&s) - &self.expr,
@@ -513,16 +499,16 @@ impl PySymbolExpr {
             },
         }
     }
-    pub fn __rmul__(&self, rhs: ParameterValue) -> Self {
-        match rhs {
+    pub fn __rmul__(&self, lhs: ParameterValue) -> Self {
+        match lhs {
             ParameterValue::Real(r) => Self {
                 expr: &SymbolExpr::Value(Value::from(r)) * &self.expr,
             },
             ParameterValue::Complex(c) => Self {
                 expr: &SymbolExpr::Value(Value::from(c)) * &self.expr,
             },
-            ParameterValue::Int(r) => Self {
-                expr: &SymbolExpr::Value(Value::from(r)) * &self.expr,
+            ParameterValue::Int(i) => Self {
+                expr: &SymbolExpr::Value(Value::from(i)) * &self.expr,
             },
             ParameterValue::Str(s) => Self {
                 expr: &parse_expression(&s) * &self.expr,
@@ -593,21 +579,21 @@ impl PySymbolExpr {
             }
         }
     }
-    pub fn __rtruediv__(&self, rhs: ParameterValue) -> PyResult<Self> {
+    pub fn __rtruediv__(&self, lhs: ParameterValue) -> PyResult<Self> {
         if self.expr == 0.0 {
             return Err(pyo3::exceptions::PyZeroDivisionError::new_err(
                 "Division by zero",
             ));
         }
-        match rhs {
+        match lhs {
             ParameterValue::Real(r) => Ok(Self {
                 expr: &SymbolExpr::Value(Value::from(r)) / &self.expr,
             }),
             ParameterValue::Complex(c) => Ok(Self {
                 expr: &SymbolExpr::Value(Value::from(c)) / &self.expr,
             }),
-            ParameterValue::Int(r) => Ok(Self {
-                expr: &SymbolExpr::Value(Value::from(r)) / &self.expr,
+            ParameterValue::Int(i) => Ok(Self {
+                expr: &SymbolExpr::Value(Value::from(i)) / &self.expr,
             }),
             ParameterValue::Str(s) => Ok(Self {
                 expr: &parse_expression(&s) / &self.expr,
@@ -621,16 +607,16 @@ impl PySymbolExpr {
         self.pow(rhs)
     }
 
-    pub fn __rpow__(&self, rhs: ParameterValue, _modulo: Option<i32>) -> Self {
-        match rhs {
+    pub fn __rpow__(&self, lhs: ParameterValue, _modulo: Option<i32>) -> Self {
+        match lhs {
             ParameterValue::Real(r) => Self {
                 expr: SymbolExpr::Value(Value::from(r)).pow(&self.expr),
             },
             ParameterValue::Complex(c) => Self {
                 expr: SymbolExpr::Value(Value::from(c)).pow(&self.expr),
             },
-            ParameterValue::Int(r) => Self {
-                expr: SymbolExpr::Value(Value::from(r)).pow(&self.expr),
+            ParameterValue::Int(i) => Self {
+                expr: SymbolExpr::Value(Value::from(i)).pow(&self.expr),
             },
             ParameterValue::Str(s) => Self {
                 expr: parse_expression(&s).pow(&self.expr),
