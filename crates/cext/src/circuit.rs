@@ -183,7 +183,13 @@ pub unsafe extern "C" fn qk_circuit_append_standard_gate(
                 Qubit(*qubits.wrapping_add(1)),
                 Qubit(*qubits.wrapping_add(2)),
             ],
-            // There are no standard gates > 3 qubits
+            4 => &[
+                Qubit(*qubits.wrapping_add(0)),
+                Qubit(*qubits.wrapping_add(1)),
+                Qubit(*qubits.wrapping_add(2)),
+                Qubit(*qubits.wrapping_add(3)),
+            ],
+            // There are no standard gates > 4 qubits
             _ => unreachable!(),
         };
         let params: &[Param] = match gate.num_params() {
@@ -198,12 +204,48 @@ pub unsafe extern "C" fn qk_circuit_append_standard_gate(
                 (*params.wrapping_add(1)).into(),
                 (*params.wrapping_add(2)).into(),
             ],
-            // There are no standard gates that take > 3 params
+            4 => &[
+                (*params.wrapping_add(0)).into(),
+                (*params.wrapping_add(1)).into(),
+                (*params.wrapping_add(2)).into(),
+                (*params.wrapping_add(3)).into(),
+            ],
+            // There are no standard gates that take > 4 params
             _ => unreachable!(),
         };
         circuit.push_standard_gate(gate, params, qargs);
     }
     ExitCode::Success
+}
+
+/// @ingroup QkCircuit
+/// Get the number of qubits for a `QkGate`
+///
+/// @param gate The standard gate to get the number of qubits for
+///
+/// # Example
+///
+///     uint32_t num_qubits = qk_gate_num_qubits(QkGate_CCX);
+///
+#[no_mangle]
+#[cfg(feature = "cbinding")]
+pub extern "C" fn qk_gate_num_qubits(gate: StandardGate) -> u32 {
+    gate.num_qubits()
+}
+
+/// @ingroup QkCircuit
+/// Get the number of params for a `QkGate`
+///
+/// @param gate The standard gate to get the number of qubits for
+///
+/// # Example
+///
+///     uint32_t num_params = qk_gate_num_params(QkGate_R);
+///
+#[no_mangle]
+#[cfg(feature = "cbinding")]
+pub extern "C" fn qk_gate_num_params(gate: StandardGate) -> u32 {
+    gate.num_params()
 }
 
 /// @ingroup QkCircuit

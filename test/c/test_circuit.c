@@ -42,6 +42,79 @@ int test_no_gate_1000_bits() {
     return (num_qubits != 1000 || num_clbits != 1000 || num_instructions != 0) ? EqualityError : Ok;
 }
 
+int test_gate_num_qubits() {
+    for (uint8_t i = 0; i < 52; i++) {
+        if (i == 0) {
+            if (qk_gate_num_qubits(i) != 0) {
+
+                return EqualityError;
+            }
+        } else if (i < 21) {
+            if (qk_gate_num_qubits(i) != 1) {
+                return EqualityError;
+            }
+        } else if (i <= 44) {
+            if (qk_gate_num_qubits(i) != 2) {
+                return EqualityError;
+            }
+        } else if (i <= 48) {
+            if (qk_gate_num_qubits(i) != 3) {
+                return EqualityError;
+            }
+        } else {
+            if (qk_gate_num_qubits(i) != 4) {
+                return EqualityError;
+            }
+        }
+    }
+    return Ok;
+}
+
+int test_gate_num_params() {
+
+    bool value_in_array(uint8_t val, uint8_t *arr, size_t n) {
+        for (size_t i = 0; i < n; i++) {
+            printf("i: %d\n", i);
+            printf("arr[i]: %d\n", arr[i]);
+            printf("val: %d\n", val);
+            if (arr[i] == val)
+                return true;
+        }
+        return false;
+    }
+
+    uint8_t zero_param_gates[29] = {1,  2,  3,  4,  5,  11, 12, 13, 14, 15, 16, 21, 22, 23, 24,
+                                    25, 26, 27, 28, 33, 34, 35, 45, 46, 47, 48, 49, 50, 51};
+    uint8_t one_param_gates[15] = {0, 6, 8, 9, 10, 18, 29, 30, 31, 32, 37, 39, 40, 41, 42};
+    uint8_t two_param_gates[4] = {7, 19, 43, 44};
+
+    for (uint8_t i = 0; i < 52; i++) {
+        if (value_in_array(i, zero_param_gates, 29)) {
+            if (qk_gate_num_params(i) != 0) {
+                return EqualityError;
+            }
+        } else if (value_in_array(i, one_param_gates, 15)) {
+            if (qk_gate_num_params(i) != 1) {
+                return EqualityError;
+            }
+        } else if (value_in_array(i, two_param_gates, 4)) {
+            if (qk_gate_num_params(i) != 2) {
+                return EqualityError;
+            }
+        } else if (i == 36) {
+            // CU takes 4 parameters theta, phi, lambda, gamma
+            if (qk_gate_num_params(i) != 4) {
+                return EqualityError;
+            }
+        } else {
+            if (qk_gate_num_params(i) != 3) {
+                return EqualityError;
+            }
+        }
+    }
+    return Ok;
+}
+
 int test_get_gate_counts_bv_no_measure() {
     QkCircuit *qc = qk_circuit_new(1000, 1000);
     double *params = NULL;
@@ -471,6 +544,8 @@ int test_circuit() {
     num_failed += RUN_TEST(test_get_gate_counts_bv_measures);
     num_failed += RUN_TEST(test_get_gate_counts_bv_barrier_and_measures);
     num_failed += RUN_TEST(test_get_gate_counts_bv_resets_barrier_and_measures);
+    num_failed += RUN_TEST(test_gate_num_qubits);
+    num_failed += RUN_TEST(test_gate_num_params);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);
