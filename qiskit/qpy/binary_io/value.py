@@ -32,6 +32,7 @@ from qiskit.circuit.parameterexpression import (
 )
 from qiskit.circuit.parametervector import ParameterVector, ParameterVectorElement
 from qiskit.qpy import common, formats, exceptions, type_keys
+from qiskit.qpy.binary_io.parse_sympy_repr import parse_sympy_repr
 
 
 def _write_parameter(file_obj, obj):
@@ -471,7 +472,6 @@ def _read_parameter_expression(file_obj):
     data = formats.PARAMETER_EXPR(
         *struct.unpack(formats.PARAMETER_EXPR_PACK, file_obj.read(formats.PARAMETER_EXPR_SIZE))
     )
-    from sympy.parsing.sympy_parser import parse_expr
 
     expr_ = parse_expr(file_obj.read(data.expr_size).decode(common.ENCODE))
     symbol_map = {}
@@ -512,9 +512,8 @@ def _read_parameter_expression_v3(file_obj, vectors, use_symengine):
     if use_symengine:
         expr_ = common.load_symengine_payload(payload)
     else:
-        from sympy.parsing.sympy_parser import parse_expr
-
-        expr_ = parse_expr(payload.decode(common.ENCODE))
+        sympy_str = payload.decode(common.ENCODE)
+        expr_ = symengine.sympify(parse_sympy_repr(sympy_str))
 
     symbol_map = {}
     for _ in range(data.map_elements):

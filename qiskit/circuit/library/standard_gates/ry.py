@@ -51,7 +51,7 @@ class RYGate(Gate):
             \end{pmatrix}
     """
 
-    _standard_gate = StandardGate.RYGate
+    _standard_gate = StandardGate.RY
 
     def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
         """Create new RY gate."""
@@ -201,7 +201,7 @@ class CRYGate(ControlledGate):
                 \end{pmatrix}
     """
 
-    _standard_gate = StandardGate.CRYGate
+    _standard_gate = StandardGate.CRY
 
     def __init__(
         self,

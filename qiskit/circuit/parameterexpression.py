@@ -25,6 +25,7 @@ import numpy
 
 from qiskit.utils.optionals import HAS_SYMPY
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.exceptions import QiskitError
 import qiskit._accelerate.circuit
 
 SymbolExpr = qiskit._accelerate.circuit.PySymbolExpr
