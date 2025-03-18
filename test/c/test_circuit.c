@@ -72,7 +72,7 @@ int test_gate_num_qubits() {
 
 int test_gate_num_params() {
 
-    bool value_in_array(uint8_t val, uint8_t *arr, size_t n) {
+    bool value_in_array(uint8_t val, uint8_t * arr, size_t n) {
         for (size_t i = 0; i < n; i++) {
             printf("i: %d\n", i);
             printf("arr[i]: %d\n", arr[i]);
