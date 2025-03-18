@@ -15,7 +15,7 @@ use std::fmt;
 use std::hash::Hash;
 use std::marker::PhantomData;
 
-use indexmap::IndexSet;
+use indexmap::{Equivalent, IndexSet};
 use smallvec::SmallVec;
 
 /// A key to retrieve a value (by reference) from an interner of the same type.  This is narrower
@@ -345,8 +345,8 @@ where
     /// This method does not store `value` if it is not present.
     pub fn try_key<Q>(&self, value: &Q) -> Option<Interned<T>>
     where
-        Q: ?Sized + Hash + Eq + ToOwned,
-        T: Borrow<Q> + ToOwned<Owned = <Q as ToOwned>::Owned>,
+        Q: ?Sized + Hash + Eq + Equivalent<T::Owned>,
+        T: Borrow<Q>,
     {
         self.0.get_index_of(value).map(|index| Interned {
             index: index as u32,
@@ -360,8 +360,8 @@ where
     /// stores the value if it wasn't already present.
     pub fn contains<Q>(&self, value: &Q) -> bool
     where
-        Q: ?Sized + Hash + Eq + ToOwned,
-        T: Borrow<Q> + ToOwned<Owned = <Q as ToOwned>::Owned>,
+        Q: ?Sized + Hash + Eq + Equivalent<T::Owned>,
+        T: Borrow<Q>,
     {
         self.try_key(value).is_some()
     }
