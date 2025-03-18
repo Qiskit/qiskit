@@ -1372,6 +1372,28 @@ class TestTranspile(QiskitTestCase):
         out = transpile(qc, dt=1e-9, seed_transpiler=42)
         self.assertEqual(out.data[0].operation.unit, "dt")
 
+    def test_delay_converts_to_seconds(self):
+        """Test that a delay instruction is converted to units of seconds when there is no dt."""
+        qc = QuantumCircuit(2)
+        qc.delay(1000, [0], unit="us")
+        qc.x(0)
+
+        # No backend
+        out = transpile([qc, qc], seed_transpiler=42)
+        self.assertEqual(out[0].data[0].operation.unit, "s")
+        self.assertEqual(out[1].data[0].operation.unit, "s")
+        self.assertEqual(out[0].data[0].operation.params[0], 1e-3)
+        self.assertEqual(out[1].data[0].operation.params[0], 1e-3)
+
+        # Backend without dt
+        backend = GenericBackendV2(num_qubits=4)
+        backend.target.dt = None
+        out = transpile([qc, qc], backend, seed_transpiler=42)
+        self.assertEqual(out[0].data[0].operation.unit, "s")
+        self.assertEqual(out[1].data[0].operation.unit, "s")
+        self.assertEqual(out[0].data[0].operation.params[0], 1e-3)
+        self.assertEqual(out[1].data[0].operation.params[0], 1e-3)
+
     def test_delay_converts_expr_to_dt(self):
         """Test that a delay instruction with a duration expression of type Duration
         is converted to units of dt given a backend."""
@@ -1510,6 +1532,21 @@ class TestTranspile(QiskitTestCase):
             transpile(
                 qc,
                 backend=GenericBackendV2(num_qubits=2),
+                seed_transpiler=42,
+            )
+
+    def test_rejects_mixed_units_delay_without_target_dt(self):
+        """Test that delay instructions with SI and dt units are rejected without dt."""
+        qc = QuantumCircuit(2)
+        qc.delay(10, 1, unit="dt")
+        qc.delay(10, 1, unit="ns")
+
+        backend = GenericBackendV2(num_qubits=2)
+        backend.target.dt = None
+        with self.assertRaisesRegex(TranspilerError, ".*SI units and dt unit must not be mixed"):
+            transpile(
+                qc,
+                backend=backend,
                 seed_transpiler=42,
             )
 
