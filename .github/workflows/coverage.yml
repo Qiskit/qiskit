@@ -33,6 +33,7 @@ jobs:
         run: |
             cargo install grcov
             sudo apt-get install lcov
+            cargo install cbindgen
 
       # This is needed to support any requirements, particularly in the `optionals` set,
       # that might not have 'pyproject.toml' files specifying their build requirements.
