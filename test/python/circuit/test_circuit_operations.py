@@ -852,6 +852,32 @@ class TestCircuitOperations(QiskitTestCase):
         self.assertEqual(len(circuit.cregs[0]), 2)  # Both length 2
         self.assertEqual(len(circuit.cregs[1]), 2)
 
+    def test_measure_all_with_multiple_regs_creation(self):
+        """Test measure_all in a circuit where the method is called
+        multiple times consecutively and checks that a register of
+        a different name is created on each call."""
+
+        circuit = QuantumCircuit(1)
+
+        # First call should create a new register
+        circuit.measure_all()
+        self.assertEqual(len(circuit.cregs), 1)  # One creg
+        self.assertEqual(len(circuit.cregs[0]), 1)  # Of length 1
+
+        # Second call should also create a new register
+        circuit.measure_all()
+        self.assertEqual(len(circuit.cregs), 2)  # Now two cregs
+        self.assertTrue(all(len(reg) == 1 for reg in circuit.cregs))  # All of length 1
+        # Check that no name is the same
+        self.assertEqual(len({reg.name for reg in circuit.cregs}), 2)
+
+        # Third call should also create a new register
+        circuit.measure_all()
+        self.assertEqual(len(circuit.cregs), 3)  # Now three cregs
+        self.assertTrue(all(len(reg) == 1 for reg in circuit.cregs))  # All of length 1
+        # Check that no name is the same
+        self.assertEqual(len({reg.name for reg in circuit.cregs}), 3)
+
     def test_remove_final_measurements(self):
         """Test remove_final_measurements
         Removes all measurements at end of circuit.
