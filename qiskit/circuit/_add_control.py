@@ -24,21 +24,47 @@ from . import ControlledGate, Gate, QuantumRegister, QuantumCircuit
 from ._utils import _ctrl_state_to_int
 
 
+# The list of gates whose controlled versions have efficient synthesis algorithms.
+# For example, a controlled version of X is MCX (with many synthesis algorithms avalable),
+# and a controlled version of Z is MCX + two Hadamard gates.
+#
+# Note: when adding a new gate to this list, also add the decomposition of its controlled
+# version to apply_basic_controlled_gate.
+EFFICIENTLY_CONTROLLED_GATES = [
+    "p",
+    "u",
+    "x",
+    "z",
+    "y",
+    "h",
+    "sx",
+    "sxdg",
+    "rx",
+    "ry",
+    "rz",
+    "cx",
+    "cz",
+]
+
+
 def add_control(
     operation: Gate | ControlledGate,
     num_ctrl_qubits: int,
     label: str | None,
     ctrl_state: str | int | None,
 ) -> ControlledGate:
-    """For standard gates, if the controlled version already exists in the
-    library, it will be returned (e.g. XGate.control() = CnotGate().
+    """Return the controlled version of the gate.
 
-    For more generic gates, this method implements the controlled
-    version by first decomposing into the ['u1', 'u3', 'cx'] basis, then
-    controlling each gate in the decomposition.
+    This function first checks whether the gate's name corresponds to a known
+    method for generating its controlled version. Currently, these methods exist
+    for gates in ``EFFICIENTLY_CONTROLLED_GATES``.
 
-    Open controls are implemented by conjugating the control line with
-    X gates. Adds num_ctrl_qubits controls to operation.
+    For gates not in ``EFFICIENTLY_CONTROLLED_GATES``, the function calls the unroller
+    to decompose the gate into gates in ``EFFICIENTLY_CONTROLLED_GATES``,
+    and then generates the controlled version by controlling every gate in this
+    decomposition.
+
+    Open controls are implemented by conjugating the control line with X gates.
 
     This function is meant to be called from the
     :method:`qiskit.circuit.gate.Gate.control()` method.
@@ -72,11 +98,18 @@ def control(
     label: str | None = None,
     ctrl_state: str | int | None = None,
 ) -> ControlledGate:
-    """Return controlled version of gate using controlled rotations. This function
-    first checks the name of the operation to see if it knows of a method from which
-    to generate a controlled version. Currently, these are ``x``, ``rx``, ``ry``, and ``rz``.
-    If a method is not directly known, it calls the unroller to convert to `u1`, `u3`,
-    and `cx` gates.
+    """Return the controlled version of the gate.
+
+    This function first checks whether the gate's name corresponds to a known
+    method for generating its controlled version. Currently, these methods exist
+    for gates in ``EFFICIENTLY_CONTROLLED_GATES``.
+
+    For gates not in ``EFFICIENTLY_CONTROLLED_GATES``, the function calls the unroller
+    to decompose the gate into gates in ``EFFICIENTLY_CONTROLLED_GATES``,
+    and then generates the controlled version by controlling every gate in this
+    decomposition.
+
+    Open controls are implemented by conjugating the control line with X gates.
 
     Args:
         operation: The gate used to create the ControlledGate.
@@ -109,16 +142,14 @@ def control(
 
     global_phase = 0
 
-    basis = ["p", "u", "x", "z", "y", "h", "sx", "sxdg", "rx", "ry", "rz", "cx", "cz"]
-
-    if operation.name in basis:
+    if operation.name in EFFICIENTLY_CONTROLLED_GATES:
         apply_basic_controlled_gate(controlled_circ, operation, q_control, q_target)
     else:
         if isinstance(operation, controlledgate.ControlledGate):
             operation = operation.to_mutable()
             operation.ctrl_state = None
 
-        unrolled_gate = _unroll_gate(operation, basis_gates=basis)
+        unrolled_gate = _unroll_gate(operation, basis_gates=EFFICIENTLY_CONTROLLED_GATES)
         if unrolled_gate.definition.global_phase:
             global_phase += unrolled_gate.definition.global_phase
 
@@ -185,9 +216,8 @@ def control(
 def apply_basic_controlled_gate(circuit, gate, controls, target):
     """Apply a controlled version of ``gate`` to the circuit.
 
-    This implements multi-control operations for the following basis gates:
-
-        ["p", "u", "x", "z", "y", "h", "sx", "sxdg", "rx", "ry", "rz", "cx", "cz"]
+    This implements multi-control operations for every gate in
+    ``EFFICIENTLY_CONTROLLED_GATES``.
 
     """
     num_ctrl_qubits = len(controls)
