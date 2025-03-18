@@ -23,9 +23,9 @@ from ddt import ddt, data
 
 from qiskit import transpile
 from qiskit.circuit import QuantumCircuit, Parameter
-from qiskit.circuit.classicalregister import ClassicalRegister
+from qiskit.circuit import ClassicalRegister
 from qiskit.circuit.library import TGate, TdgGate, HGate, SGate, SdgGate, IGate, QFT
-from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit import QuantumRegister
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.quantum_info import Operator
 from qiskit.synthesis.discrete_basis.generate_basis_approximations import (
@@ -174,7 +174,9 @@ class TestSolovayKitaev(QiskitTestCase):
     def test_approximation_on_qft(self):
         """Test the Solovay-Kitaev decomposition on the QFT circuit."""
         qft = QFT(3)
-        transpiled = transpile(qft, basis_gates=["u", "cx"], optimization_level=1)
+        transpiled = transpile(
+            qft, basis_gates=["u1", "u2", "u3", "u", "cx", "id"], optimization_level=1
+        )
 
         skd = SolovayKitaev(1)
 
@@ -463,7 +465,7 @@ class TestSolovayKitaevUtils(QiskitTestCase):
 
         Regression test of Qiskit/qiskit-terra#9585.
         """
-        basis = ["i", "x", "y", "z", "h", "t", "tdg", "s", "sdg"]
+        basis = ["i", "x", "y", "z", "h", "t", "tdg", "s", "sdg", "sx", "sxdg"]
         approx = generate_basic_approximations(basis, depth=2)
 
         # This mainly checks that there are no errors in the generation (like

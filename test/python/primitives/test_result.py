@@ -19,13 +19,10 @@ from dataclasses import dataclass
 from typing import Any
 from ddt import data, ddt, unpack
 
-from qiskit.primitives.base.base_result import _BasePrimitiveResult as BasePrimitiveResult
+from qiskit.primitives.base.base_result_v1 import _BasePrimitiveResultV1 as BasePrimitiveResult
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
-################################################################################
-## STUB DATACLASS
-################################################################################
 @dataclass
 class Result(BasePrimitiveResult):
     """Dummy result dataclass implementing BasePrimitiveResult."""
@@ -34,9 +31,6 @@ class Result(BasePrimitiveResult):
     field_2: Collection[Any]
 
 
-################################################################################
-## TESTS
-################################################################################
 @ddt
 class TestBasePrimitiveResult(QiskitTestCase):
     """Tests BasePrimitiveResult."""

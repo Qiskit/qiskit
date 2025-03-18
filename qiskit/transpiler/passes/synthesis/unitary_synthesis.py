@@ -138,9 +138,11 @@ class UnitarySynthesis(TransformationPass):
         self._pulse_optimize = pulse_optimize
         self._natural_direction = natural_direction
         self._plugin_config = plugin_config
-        self._target = target
+        # Bypass target if it doesn't contain any basis gates (i.e it's _FakeTarget), as this
+        # not part of the official target model.
+        self._target = target if target is not None and len(target.operation_names) > 0 else None
         if target is not None:
-            self._coupling_map = self._target.build_coupling_map()
+            self._coupling_map = target.build_coupling_map()
         if synth_gates:
             self._synth_gates = synth_gates
         else:

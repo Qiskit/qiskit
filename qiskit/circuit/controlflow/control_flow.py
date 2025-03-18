@@ -82,3 +82,13 @@ class ControlFlowOp(Instruction, ABC):
                 if var not in seen:
                     seen.add(var)
                     yield var
+
+    def iter_captured_stretches(self) -> typing.Iterable[expr.Stretch]:
+        """Get an iterator over the unique captured stretch variables in all blocks of this
+        construct."""
+        seen = set()
+        for block in self.blocks:
+            for stretch in block.iter_captured_stretches():
+                if stretch not in seen:
+                    seen.add(stretch)
+                    yield stretch

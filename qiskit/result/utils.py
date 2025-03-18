@@ -24,7 +24,6 @@ from qiskit.result.result import Result
 from qiskit.result.counts import Counts
 from qiskit.result.distributions.probability import ProbDistribution
 from qiskit.result.distributions.quasi import QuasiDistribution
-
 from qiskit.result.postprocess import _bin_to_hex
 
 from qiskit._accelerate import results as results_rs  # pylint: disable=no-name-in-module
@@ -74,10 +73,10 @@ def marginal_counts(
             experiment_result.data.counts = new_counts_hex
 
             if indices is not None:
-                experiment_result.header.memory_slots = len(indices)
-                csize = getattr(experiment_result.header, "creg_sizes", None)
+                experiment_result.header["memory_slots"] = len(indices)
+                csize = experiment_result.header.get("creg_sizes", None)
                 if csize is not None:
-                    experiment_result.header.creg_sizes = _adjust_creg_sizes(csize, indices)
+                    experiment_result.header["creg_sizes"] = _adjust_creg_sizes(csize, indices)
 
             if getattr(experiment_result.data, "memory", None) is not None and indices is not None:
                 if marginalize_memory is False:
