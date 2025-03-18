@@ -165,11 +165,12 @@ class TestMCSynthesisCorrectness(QiskitTestCase):
             RXGate(0.789),
             RYGate(0.123),
             RZGate(0.456),
+            UGate(0.1, 0.2, 0.3),
         ],
     )
     def test_create_mc_gates(self, num_ctrl_qubits, base_gate):
         """Test that creating various multi-controlled gates with small number of controls
-        (and no ancillas) yields the correct unitary.
+        and no ancillas yields correct unitaries.
         """
         qc = QuantumCircuit(num_ctrl_qubits + 1)
         qc.append(base_gate.control(num_ctrl_qubits), range(num_ctrl_qubits + 1))
@@ -269,11 +270,12 @@ class TestMCSynthesisCounts(QiskitTestCase):
         transpiled_circuit = pm.run(synthesized_circuit)
         cx_count = transpiled_circuit.count_ops()["cx"]
         # The algorithm synth_mcx_noaux_v24 is based on the synthesis of MCPhase,
-        # which is defined using a sequence of MCRZ gates: a single n-controlled
-        # MCPhase is defined using one MCRZ(1), one MCRZ(2), ..., one MCRZ(n-1).
-        # The bound below follows using the bound of 16*k-40 for MCRZ(k) and summing
-        # the resulting arithmetic progression.
-        # TODO: update this comment with 40
+        # which is defined using a sequence of MCRZ gates:
+        # MCPhase(n) is defined using one MCRZ(1), one MCRZ(2), ..., one MCRZ(n).
+        # The bound below follows using the bound of 16*(k+1)-40 for MCRZ(k) and summing
+        # the resulting arithmetic progression:
+        #   sum_{k=1}^n (16*(k+1)-40) = sum_{k=1}^n (16*k - 24) =
+        #     16*n*(n+1)/2 - 24*n = 8n^2 - 16*n.
         self.assertLessEqual(cx_count, 8 * num_ctrl_qubits**2 - 16 * num_ctrl_qubits)
 
     @combine(
@@ -304,7 +306,6 @@ class TestMCSynthesisCounts(QiskitTestCase):
         transpiled_circuit = pm.run(qc)
         cx_count = transpiled_circuit.count_ops()["cx"]
         # The bounds should be the same as for synth_mcx_noaux_v24
-        # TODO: update this comment with 40
         self.assertLessEqual(cx_count, 8 * num_ctrl_qubits**2 - 16 * num_ctrl_qubits)
 
     @data(5, 8, 10, 13, 15)
@@ -322,47 +323,34 @@ class TestMCSynthesisCounts(QiskitTestCase):
         cx_count = transpiled_circuit.count_ops()["cx"]
         # The synthesis of MCX(n) uses two MCRZ(n), one MCRY(n), and one MCPhase(n-1).
         # Thus the number of CX-gate should be upper-bounded by
-        # 3 * (16 * (n + 1) - 40) + (8 * (n-1)^2 - 16 * (n-1) + 40)
-        # TODO: update this comment with 40; 96->56
+        # 3*(16 * (n + 1) - 40) + (8 * (n-1)^2 - 16 * (n-1))
         self.assertLessEqual(cx_count, 8 * num_ctrl_qubits**2 + 16 * num_ctrl_qubits - 96)
 
-    @combine(num_ctrl_qubits=[1, 2, 3, 4], base_gate=[XGate(), YGate(), ZGate(), HGate()])
-    def test_small_mc_gates_cx_count(self, num_ctrl_qubits, base_gate):
-        """Test that transpiling a MCX gate (and other locally equivalent multi-controlled gates)
-        with small number of controls (with no ancillas) yields the expected number of CX gates.
-        """
-        qc = QuantumCircuit(num_ctrl_qubits + 1)
-        qc.append(base_gate.control(num_ctrl_qubits), range(num_ctrl_qubits + 1))
-        pm = generate_preset_pass_manager(
-            optimization_level=0, basis_gates=["u", "cx"], seed_transpiler=12345
-        )
-        transpiled_circuit = pm.run(qc)
-        cx_count = transpiled_circuit.count_ops()["cx"]
-        expected = {1: 1, 2: 6, 3: 14, 4: 36}
-        self.assertEqual(cx_count, expected[num_ctrl_qubits])
-
     @combine(
-        num_ctrl_qubits=[1, 2, 3, 4],
-        base_gate=[PhaseGate(0.123), SGate(), SdgGate(), TGate(), TdgGate(), SXGate(), SXdgGate()],
+        num_ctrl_qubits=[1, 2, 3, 4, 5, 6, 7, 8],
+        base_gate=[
+            XGate(),
+            YGate(),
+            ZGate(),
+            HGate(),
+            PhaseGate(0.123),
+            SGate(),
+            SdgGate(),
+            TGate(),
+            TdgGate(),
+            SXGate(),
+            SXdgGate(),
+            RXGate(0.789),
+            RYGate(0.123),
+            RZGate(0.456),
+        ],
     )
-    def test_small_mcp_gates_yield_cx_count(self, num_ctrl_qubits, base_gate):
-        """Test that creating a MCPhase gate (and other locally equivalent multi-controlled gates)
-        with small number of controls (with no ancillas) yields the expected number of CX gates.
-        """
-        qc = QuantumCircuit(num_ctrl_qubits + 1)
-        qc.append(base_gate.control(num_ctrl_qubits), range(num_ctrl_qubits + 1))
-        pm = generate_preset_pass_manager(
-            optimization_level=0, basis_gates=["u", "cx"], seed_transpiler=12345
-        )
-        transpiled_circuit = pm.run(qc)
-        cx_count = transpiled_circuit.count_ops()["cx"]
-        expected = {1: 2, 2: 6, 3: 20, 4: 44}
-        self.assertEqual(cx_count, expected[num_ctrl_qubits])
+    def test_small_mc_gates_cx_count(self, num_ctrl_qubits, base_gate):
+        """Test that transpiling various multi-controlled gates with small number of controls and no
+        ancillas yields the expected number of CX gates.
 
-    @combine(num_ctrl_qubits=[1, 2, 3], base_gate=[RXGate(0.789), RYGate(0.123), RZGate(0.456)])
-    def test_small_mc_rotation_gates_yield_cx_count(self, num_ctrl_qubits, base_gate):
-        """Test that creating a MCRX / MCRY / MCRZ gates with small number of controls (with no ancillas)
-        yields the expected number of CX gates.
+        This test prevents making changes to the synthesis algorithms that would deteriorate the
+        quality of the synthesized circuits.
         """
         qc = QuantumCircuit(num_ctrl_qubits + 1)
         qc.append(base_gate.control(num_ctrl_qubits), range(num_ctrl_qubits + 1))
@@ -371,10 +359,20 @@ class TestMCSynthesisCounts(QiskitTestCase):
         )
         transpiled_circuit = pm.run(qc)
         cx_count = transpiled_circuit.count_ops()["cx"]
-        if base_gate.name == "rz":
-            expected = {1: 2, 2: 4, 3: 14}
-        else:
-            expected = {1: 2, 2: 8, 3: 20}
+
+        if isinstance(base_gate, (XGate, YGate, ZGate, HGate)):
+            # MCX gate and other locally equivalent multi-controlled gates
+            expected = {1: 1, 2: 6, 3: 14, 4: 36, 5: 84, 6: 140, 7: 220, 8: 324}
+        elif isinstance(base_gate, (PhaseGate, SGate, SdgGate, TGate, TdgGate, SXGate, SXdgGate)):
+            # MCPhase gate and other locally equivalent multi-controlled gates
+            expected = {1: 2, 2: 6, 3: 20, 4: 44, 5: 84, 6: 140, 7: 220, 8: 324}
+        elif isinstance(base_gate, RZGate):
+            expected = {1: 2, 2: 4, 3: 14, 4: 24, 5: 40, 6: 56, 7: 80, 8: 104}
+        elif isinstance(base_gate, (RXGate, RYGate)):
+            expected = {1: 2, 2: 8, 3: 20, 4: 24, 5: 40, 6: 56, 7: 80, 8: 104}
+        elif isinstance(base_gate, UGate):
+            expected = {1: 2, 2: 22, 3: 54, 4: 92, 5: 164, 6: 252, 7: 380, 8: 532}
+
         self.assertEqual(cx_count, expected[num_ctrl_qubits])
 
 
