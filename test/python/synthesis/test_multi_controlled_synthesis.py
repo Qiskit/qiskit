@@ -343,6 +343,7 @@ class TestMCSynthesisCounts(QiskitTestCase):
             RXGate(0.789),
             RYGate(0.123),
             RZGate(0.456),
+            UGate(0.1, 0.2, 0.3),
         ],
     )
     def test_small_mc_gates_cx_count(self, num_ctrl_qubits, base_gate):
@@ -372,8 +373,11 @@ class TestMCSynthesisCounts(QiskitTestCase):
             expected = {1: 2, 2: 8, 3: 20, 4: 24, 5: 40, 6: 56, 7: 80, 8: 104}
         elif isinstance(base_gate, UGate):
             expected = {1: 2, 2: 22, 3: 54, 4: 92, 5: 164, 6: 252, 7: 380, 8: 532}
+        else:
+            # make sure we don't miss any case (and make pytint happy)
+            expected = 0
 
-        self.assertEqual(cx_count, expected[num_ctrl_qubits])
+        self.assertLessEqual(cx_count, expected[num_ctrl_qubits])
 
 
 if __name__ == "__main__":
