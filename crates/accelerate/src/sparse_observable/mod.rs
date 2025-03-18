@@ -1836,6 +1836,10 @@ impl PySparseTerm {
         Ok(obs.into())
     }
 
+    fn to_label(&self) -> PyResult<String> {
+        Ok(self.inner.view().to_sparse_str())
+    }
+
     fn __eq__(slf: Bound<Self>, other: Bound<PyAny>) -> PyResult<bool> {
         if slf.is(&other) {
             return Ok(true);
@@ -1953,6 +1957,23 @@ impl PySparseTerm {
         PAULI_TYPE
             .get_bound(py)
             .call1(((PyArray1::from_vec(py, z), PyArray1::from_vec(py, x)),))
+    }
+
+    /// Return the bit labels of the term as string.
+    ///
+    /// The bit labels will match the order of :attr:`.SparseTerm.indices`, such that the
+    /// i-th character in the string is applied to the qubit index at ``term.indices[i]``.
+    ///
+    /// Returns:
+    ///     The non-identity bit terms as concatenated string.
+    fn bit_labels<'py>(&self, py: Python<'py>) -> Bound<'py, PyString> {
+        let string: String = self
+            .inner
+            .bit_terms()
+            .iter()
+            .map(|bit| bit.py_label())
+            .collect();
+        PyString::new(py, string.as_str())
     }
 }
 
@@ -2446,7 +2467,7 @@ impl PySparseObservable {
                     "if using the sparse-list form, 'num_qubits' must be provided",
                 ));
             };
-            return Self::from_sparse_list(vec, num_qubits).map_err(PyErr::from);
+            return Self::from_sparse_list(vec, num_qubits);
         }
         if let Ok(term) = data.downcast_exact::<PySparseTerm>() {
             return term.borrow().to_observable();
@@ -2617,7 +2638,7 @@ impl PySparseObservable {
         for (i, (x, z)) in x.as_array().iter().zip(z.as_array().iter()).enumerate() {
             // The only failure case possible here is the identity, because of how we're
             // constructing the value to convert.
-            let Ok(term) = ::bytemuck::checked::try_cast((*x as u8) << 1 | (*z as u8)) else {
+            let Ok(term) = ::bytemuck::checked::try_cast(((*x as u8) << 1) | (*z as u8)) else {
                 continue;
             };
             num_ys += (term == BitTerm::Y) as isize;
@@ -2997,7 +3018,7 @@ impl PySparseObservable {
             for (i, (x, z)) in term_x.iter().zip(term_z.iter()).enumerate() {
                 // The only failure case possible here is the identity, because of how we're
                 // constructing the value to convert.
-                let Ok(term) = ::bytemuck::checked::try_cast((*x as u8) << 1 | (*z as u8)) else {
+                let Ok(term) = ::bytemuck::checked::try_cast(((*x as u8) << 1) | (*z as u8)) else {
                     continue;
                 };
                 indices.push(i as u32);

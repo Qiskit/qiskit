@@ -15,6 +15,9 @@
 from __future__ import annotations
 
 from collections import Counter
+import pickle
+import copy
+import io
 import unittest
 
 from ddt import ddt, data
@@ -161,6 +164,80 @@ class TestDagRegisters(QiskitTestCase):
             ],
         )
 
+    def test_pickle_bit_locations_with_reg(self):
+        """Test bit locations preserved through pickle."""
+        dag = DAGCircuit()
+        qr = QuantumRegister(2, "qr")
+        cr = ClassicalRegister(1, "cr")
+        dag.add_qreg(qr)
+        dag.add_creg(cr)
+        self.assertEqual(dag.find_bit(dag.qubits[1]).index, 1)
+        self.assertEqual(dag.find_bit(dag.qubits[1]).registers, [(qr, 1)])
+        self.assertEqual(dag.find_bit(dag.clbits[0]).index, 0)
+        self.assertEqual(dag.find_bit(dag.clbits[0]).registers, [(cr, 0)])
+        with io.BytesIO() as buf:
+            pickle.dump(dag, buf)
+            buf.seek(0)
+            output = pickle.load(buf)
+        self.assertEqual(output.find_bit(output.qubits[1]).index, 1)
+        self.assertEqual(output.find_bit(output.qubits[1]).registers, [(qr, 1)])
+        self.assertEqual(output.find_bit(output.clbits[0]).index, 0)
+        self.assertEqual(output.find_bit(output.clbits[0]).registers, [(cr, 0)])
+
+    def test_deepcopy_bit_locations_with_reg(self):
+        """Test bit locations preserved through deepcopy."""
+        dag = DAGCircuit()
+        qr = QuantumRegister(2, "qr")
+        cr = ClassicalRegister(1, "cr")
+        dag.add_qreg(qr)
+        dag.add_creg(cr)
+        self.assertEqual(dag.find_bit(dag.qubits[1]).index, 1)
+        self.assertEqual(dag.find_bit(dag.qubits[1]).registers, [(qr, 1)])
+        self.assertEqual(dag.find_bit(dag.clbits[0]).index, 0)
+        self.assertEqual(dag.find_bit(dag.clbits[0]).registers, [(cr, 0)])
+        output = copy.deepcopy(dag)
+        self.assertEqual(output.find_bit(output.qubits[1]).index, 1)
+        self.assertEqual(output.find_bit(output.qubits[1]).registers, [(qr, 1)])
+        self.assertEqual(output.find_bit(output.clbits[0]).index, 0)
+        self.assertEqual(output.find_bit(output.clbits[0]).registers, [(cr, 0)])
+
+    def test_pickle_bit_locations_with_no_reg(self):
+        """Test bit locations with no registers preserved through pickle."""
+        dag = DAGCircuit()
+        qubits = [Qubit(), Qubit()]
+        clbits = [Clbit()]
+        dag.add_qubits(qubits)
+        dag.add_clbits(clbits)
+        self.assertEqual(dag.find_bit(dag.qubits[1]).index, 1)
+        self.assertEqual(dag.find_bit(dag.qubits[1]).registers, [])
+        self.assertEqual(dag.find_bit(dag.clbits[0]).index, 0)
+        self.assertEqual(dag.find_bit(dag.clbits[0]).registers, [])
+        with io.BytesIO() as buf:
+            pickle.dump(dag, buf)
+            buf.seek(0)
+            output = pickle.load(buf)
+        self.assertEqual(output.find_bit(output.qubits[1]).index, 1)
+        self.assertEqual(output.find_bit(output.qubits[1]).registers, [])
+        self.assertEqual(output.find_bit(output.clbits[0]).index, 0)
+        self.assertEqual(output.find_bit(output.clbits[0]).registers, [])
+
+    def test_deepcopy_bit_locations_with_no_reg(self):
+        """Test bit locations with no registers preserved through deepcopy."""
+        dag = DAGCircuit()
+        qubits = [Qubit(), Qubit()]
+        clbits = [Clbit()]
+        dag.add_qubits(qubits)
+        dag.add_clbits(clbits)
+        self.assertEqual(dag.find_bit(dag.qubits[1]).index, 1)
+        self.assertEqual(dag.find_bit(dag.qubits[1]).registers, [])
+        self.assertEqual(dag.find_bit(dag.clbits[0]).index, 0)
+        self.assertEqual(dag.find_bit(dag.clbits[0]).registers, [])
+        output = copy.deepcopy(dag)
+        self.assertEqual(output.find_bit(output.qubits[1]).index, 1)
+        self.assertEqual(output.find_bit(output.qubits[1]).registers, [])
+        self.assertEqual(output.find_bit(output.clbits[0]).index, 0)
+        self.assertEqual(output.find_bit(output.clbits[0]).registers, [])
+
     def test_add_reg_duplicate(self):
         """add_qreg with the same register twice is not allowed."""
         dag = DAGCircuit()
@@ -180,7 +257,7 @@ class TestDagRegisters(QiskitTestCase):
         """add_qreg with a classical register is not allowed."""
         dag = DAGCircuit()
         cr = ClassicalRegister(2)
-        self.assertRaises(DAGCircuitError, dag.add_qreg, cr)
+        self.assertRaises((DAGCircuitError, TypeError), dag.add_qreg, cr)
 
     def test_add_qubits_invalid_qubits(self):
         """Verify we raise if pass not a Qubit."""
@@ -388,7 +465,7 @@ class TestDagWireRemoval(QiskitTestCase):
     def test_remove_unknown_creg(self):
         """Classical register removal of unknown registers raises."""
         unknown_creg = ClassicalRegister(1)
-        with self.assertRaisesRegex(DAGCircuitError, ".*cregs not in circuit.*"):
+        with self.assertRaisesRegex(DAGCircuitError, ".*creg not in circuit.*"):
             self.dag.remove_cregs(unknown_creg)
 
         self.assert_cregs_equal(self.original_cregs)
@@ -853,9 +930,9 @@ class TestDagNodeSelection(QiskitTestCase):
 
     def test_apply_operation_reject_invalid_qarg_carg(self):
         """Test that we can't add a carg to qargs and vice versa on apply methods"""
-        with self.assertRaises(KeyError):
+        with self.assertRaises((KeyError, TypeError)):
             self.dag.apply_operation_back(Measure(), [self.clbit1], [self.qubit1])
-        with self.assertRaises(KeyError):
+        with self.assertRaises((KeyError, TypeError)):
             self.dag.apply_operation_front(Measure(), [self.clbit1], [self.qubit1])
 
     def test_classical_successors(self):

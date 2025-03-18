@@ -23,7 +23,7 @@ import numpy as np
 from qiskit.circuit.library.pauli_evolution import PauliEvolutionGate
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parametervector import ParameterVector
-from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit import QuantumRegister
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.quantum_info import Operator, Pauli, SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator

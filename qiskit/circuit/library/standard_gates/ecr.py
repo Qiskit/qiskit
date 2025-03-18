@@ -15,7 +15,6 @@ from math import sqrt
 import numpy as np
 
 from qiskit.circuit._utils import with_gate_array
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.singleton import SingletonGate, stdlib_singleton_key
 from qiskit._accelerate.circuit import StandardGate
 from .rzx import RZXGate
@@ -85,7 +84,7 @@ class ECRGate(SingletonGate):
                 \end{pmatrix}
     """
 
-    _standard_gate = StandardGate.ECRGate
+    _standard_gate = StandardGate.ECR
 
     def __init__(self, label=None):
         """Create new ECR gate."""
@@ -98,7 +97,7 @@ class ECRGate(SingletonGate):
         gate ecr a, b { rzx(pi/4) a, b; x a; rzx(-pi/4) a, b;}
         """
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
 
         q = QuantumRegister(2, "q")
         qc = QuantumCircuit(q, name=self.name)

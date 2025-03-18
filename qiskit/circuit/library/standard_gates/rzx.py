@@ -17,7 +17,6 @@ from __future__ import annotations
 import math
 from typing import Optional
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.parameterexpression import ParameterValueType, ParameterExpression
 from qiskit._accelerate.circuit import StandardGate
 
@@ -121,7 +120,7 @@ class RZXGate(Gate):
                                     \end{pmatrix}
     """
 
-    _standard_gate = StandardGate.RZXGate
+    _standard_gate = StandardGate.RZX
 
     def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
         """Create new RZX gate."""
@@ -132,7 +131,7 @@ class RZXGate(Gate):
         gate rzx(theta) a, b { h b; cx a, b; u1(theta) b; cx a, b; h b;}
         """
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
         from .h import HGate
         from .x import CXGate
         from .rz import RZGate

@@ -18,7 +18,6 @@ from cmath import exp
 from typing import Optional, Union
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.controlledgate import ControlledGate
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit._accelerate.circuit import StandardGate
 
@@ -63,7 +62,7 @@ class RZGate(Gate):
         `1612.00858 <https://arxiv.org/abs/1612.00858>`_
     """
 
-    _standard_gate = StandardGate.RZGate
+    _standard_gate = StandardGate.RZ
 
     def __init__(self, phi: ParameterValueType, label: Optional[str] = None):
         """Create new RZ gate."""
@@ -74,7 +73,7 @@ class RZGate(Gate):
         gate rz(phi) a { u1(phi) a; }
         """
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
         from .u1 import U1Gate
 
         q = QuantumRegister(1, "q")
@@ -221,7 +220,7 @@ class CRZGate(ControlledGate):
         phase difference.
     """
 
-    _standard_gate = StandardGate.CRZGate
+    _standard_gate = StandardGate.CRZ
 
     def __init__(
         self,
@@ -250,7 +249,7 @@ class CRZGate(ControlledGate):
         }
         """
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
         from .x import CXGate
 
         # q_0: ─────────────■────────────────■──

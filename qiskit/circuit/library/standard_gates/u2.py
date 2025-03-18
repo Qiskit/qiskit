@@ -17,7 +17,6 @@ from typing import Optional
 import numpy
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameterexpression import ParameterValueType
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit._accelerate.circuit import StandardGate
 
 
@@ -87,7 +86,7 @@ class U2Gate(Gate):
         using two X90 pulses.
     """
 
-    _standard_gate = StandardGate.U2Gate
+    _standard_gate = StandardGate.U2
 
     def __init__(
         self,
@@ -100,7 +99,7 @@ class U2Gate(Gate):
 
     def _define(self):
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
         from .u3 import U3Gate
 
         q = QuantumRegister(1, "q")
