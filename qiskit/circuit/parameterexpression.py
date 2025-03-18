@@ -194,8 +194,6 @@ class ParameterExpression:
         """
         if isinstance(value, ParameterExpression):
             return self.subs({parameter: value})
-        if isinstance(value, numpy.complex128):
-            return self.bind({parameter: complex(value)})
         return self.bind({parameter: value})
 
     def bind(
@@ -380,9 +378,6 @@ class ParameterExpression:
             self._raise_if_parameter_names_conflict(other._names)
             parameter_symbols = {**self._parameter_symbols, **other._parameter_symbols}
             other_expr = other._symbol_expr
-        elif isinstance(other, numpy.complex128):
-            parameter_symbols = self._parameter_symbols.copy()
-            other_expr = complex(other)
         elif isinstance(other, numbers.Number) and numpy.isfinite(other):
             parameter_symbols = self._parameter_symbols.copy()
             other_expr = other

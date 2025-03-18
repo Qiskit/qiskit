@@ -3027,7 +3027,7 @@ impl From<i64> for Value {
 
 impl From<Complex64> for Value {
     fn from(v: Complex64) -> Self {
-        if v.im < SYMEXPR_EPSILON && v.im > -SYMEXPR_EPSILON {
+        if (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&v.im) {
             Value::Real(v.re)
         } else {
             Value::Complex(v)

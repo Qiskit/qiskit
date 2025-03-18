@@ -103,10 +103,6 @@ class Parameter(ParameterExpression):
         if isinstance(value, ParameterExpression):
             # This is the `super().subs` case.
             return value
-        # numpy.complex128 has issue in passing pyo3 with Complex64
-        # so we call specialized function for numpy.complex128
-        if isinstance(value, numpy.complex128):
-            return ParameterExpression({}, SymbolExpr.Complex(value))
         # This is the `super().bind` case, where we're required to return a `ParameterExpression`,
         # so we need to lift the given value to a symbolic expression.
         return ParameterExpression({}, SymbolExpr.Value(value))

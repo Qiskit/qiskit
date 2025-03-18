@@ -35,10 +35,10 @@ pub struct PySymbolExpr {
 pub enum ParameterValue {
     #[pyo3(transparent, annotation = "int")]
     Int(i64),
-    #[pyo3(transparent, annotation = "float")]
-    Real(f64),
     #[pyo3(transparent, annotation = "complex")]
     Complex(Complex64),
+    #[pyo3(transparent, annotation = "float")]
+    Real(f64),
     #[pyo3(transparent, annotation = "str")]
     Str(String),
     Expr(PySymbolExpr),
@@ -49,10 +49,10 @@ pub enum ParameterValue {
 pub enum BindValue {
     #[pyo3(transparent, annotation = "int")]
     Int(i64),
-    #[pyo3(transparent, annotation = "float")]
-    Real(f64),
     #[pyo3(transparent, annotation = "complex")]
     Complex(Complex64),
+    #[pyo3(transparent, annotation = "float")]
+    Real(f64),
 }
 
 /// value types to return to Python
@@ -106,15 +106,6 @@ impl PySymbolExpr {
                 expr: parse_expression(&s),
             },
             ParameterValue::Expr(e) => PySymbolExpr { expr: e.expr },
-        }
-    }
-
-    /// this is called for np.complex128 because np.complex is recognized as Real in Value function
-    #[allow(non_snake_case)]
-    #[staticmethod]
-    pub fn Complex(value: Complex64) -> Self {
-        PySymbolExpr {
-            expr: SymbolExpr::Value(Value::from(value)),
         }
     }
 
@@ -360,42 +351,6 @@ impl PySymbolExpr {
                     },
                 )
             })
-            .collect();
-        let bound = self.expr.bind(&maps);
-        match bound.eval(true) {
-            Some(v) => match &v {
-                Value::Real(r) => {
-                    if *r == f64::INFINITY {
-                        Err(pyo3::exceptions::PyZeroDivisionError::new_err(
-                            "zero division occurs while binding parameter",
-                        ))
-                    } else {
-                        Ok(Self { expr: bound })
-                    }
-                }
-                Value::Int(_) => Ok(Self { expr: bound }),
-                Value::Complex(c) => {
-                    if c.re == f64::INFINITY || c.im == f64::INFINITY {
-                        Err(pyo3::exceptions::PyZeroDivisionError::new_err(
-                            "zero division occurs while binding parameter",
-                        ))
-                    } else if (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&c.im) {
-                        Ok(Self {
-                            expr: SymbolExpr::Value(Value::Real(c.re)),
-                        })
-                    } else {
-                        Ok(Self { expr: bound })
-                    }
-                }
-            },
-            None => Ok(Self { expr: bound }),
-        }
-    }
-    // this function is used for numpy.complex128
-    pub fn bind_complex(&self, in_maps: HashMap<String, Complex64>) -> PyResult<Self> {
-        let maps: HashMap<String, Value> = in_maps
-            .iter()
-            .map(|(key, val)| (key.clone(), Value::from(*val)))
             .collect();
         let bound = self.expr.bind(&maps);
         match bound.eval(true) {
