@@ -2082,6 +2082,80 @@ class TestDagEquivalence(QiskitTestCase):
         right.add_captured_var(a_u8_other)
         self.assertNotEqual(left, right)
 
+    def test_pickle_vars(self):
+        """Test vars preserved through pickle."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Uint(8))
+
+        # Check inputs.
+        dag = DAGCircuit()
+        dag.add_input_var(a)
+
+        self.assertEqual(dag.num_vars, 1)
+        self.assertEqual(dag.num_input_vars, 1)
+
+        with io.BytesIO() as buf:
+            pickle.dump(dag, buf)
+            buf.seek(0)
+            output = pickle.load(buf)
+
+        self.assertEqual(output.num_vars, 1)
+        self.assertEqual(output.num_input_vars, 1)
+        self.assertEqual(output, dag)
+
+        # Check captures and declarations.
+        dag = DAGCircuit()
+        dag.add_declared_var(a)
+        dag.add_captured_var(b)
+
+        self.assertEqual(dag.num_vars, 2)
+        self.assertEqual(dag.num_captured_vars, 1)
+        self.assertEqual(dag.num_declared_vars, 1)
+
+        with io.BytesIO() as buf:
+            pickle.dump(dag, buf)
+            buf.seek(0)
+            output = pickle.load(buf)
+
+        self.assertEqual(output.num_vars, 2)
+        self.assertEqual(output.num_captured_vars, 1)
+        self.assertEqual(output.num_declared_vars, 1)
+        self.assertEqual(output, dag)
+
+    def test_deepcopy_vars(self):
+        """Test vars preserved through deepcopy."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Uint(8))
+
+        # Check inputs.
+        dag = DAGCircuit()
+        dag.add_input_var(a)
+
+        self.assertEqual(dag.num_vars, 1)
+        self.assertEqual(dag.num_input_vars, 1)
+
+        output = copy.deepcopy(dag)
+
+        self.assertEqual(output.num_vars, 1)
+        self.assertEqual(output.num_input_vars, 1)
+        self.assertEqual(output, dag)
+
+        # Check captures and declarations.
+        dag = DAGCircuit()
+        dag.add_declared_var(a)
+        dag.add_captured_var(b)
+
+        self.assertEqual(dag.num_vars, 2)
+        self.assertEqual(dag.num_captured_vars, 1)
+        self.assertEqual(dag.num_declared_vars, 1)
+
+        output = copy.deepcopy(dag)
+
+        self.assertEqual(output.num_vars, 2)
+        self.assertEqual(output.num_captured_vars, 1)
+        self.assertEqual(output.num_declared_vars, 1)
+        self.assertEqual(output, dag)
+
     def test_wires_added_for_simple_classical_vars(self):
         """Var uses should be represented in the wire structure."""
         a = expr.Var.new("a", types.Bool())
