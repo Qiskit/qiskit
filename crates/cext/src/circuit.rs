@@ -142,8 +142,10 @@ pub unsafe extern "C" fn qk_circuit_free(circuit: *mut CircuitData) {
 ///
 /// @param circuit A pointer to the circuit to add the gate to.
 /// @param gate The StandardGate to add to the circuit.
-/// @param qubits The pointer to the array of ``uint32_t`` qubit indices to add the gate on.
+/// @param qubits The pointer to the array of ``uint32_t`` qubit indices to add the gate on. This
+///     can be a null pointer if there are no qubits for `gate` (e.g. `QkGate_GlobalPhase`)
 /// @param params The pointer to the array of ``double`` values to use for the gate parameters.
+///     This can be a null pointer if there are no parameters for `gate` (e.g. `QkGate_H`).
 ///
 /// # Example
 ///
@@ -152,10 +154,12 @@ pub unsafe extern "C" fn qk_circuit_free(circuit: *mut CircuitData) {
 ///
 /// # Safety
 ///
-/// The ``qubits`` and ``params`` types are expected to be a non-null pointer to an array of
-/// ``uint32_t`` and ``double`` respectively where the length is matching the expectations for
-/// the standard gate. If the array is insufficently long the behavior of this function is
-/// undefined as this will read outside the bounds of the array.
+/// The ``qubits`` and ``params`` types are expected to be a pointer to an array of ``uint32_t``
+/// and ``double`` respectively where the length is matching the expectations for the standard
+/// gate. If the array is insufficently long the behavior of this function is undefined as this
+/// will read outside the bounds of the array. It can be a null pointer if there are no qubits
+/// or params for a given gate. You can check `qk_gate_num_qubits` and `qk_gate_num_params` to
+/// determine how many qubits and params are required for a given gate.
 ///
 /// Behavior is undefined ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
 #[no_mangle]
