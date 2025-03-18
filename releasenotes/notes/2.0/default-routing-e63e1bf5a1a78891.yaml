@@ -2,8 +2,8 @@
 ---
 features_transpiler:
   - |
-    A new :ref:`routing plugin stage <transpiler-preset-stage-routing>` is added, called
-    ``"default"``.  In Qiskit 2.0, this is simply an alias for the previous default ``"sabre"``.
+    A new ``"default"`` :ref:`routing plugin stage <transpiler-preset-stage-routing>` is added.  
+    In Qiskit 2.0, this is simply an alias for the previous default ``"sabre"``.
     The underlying default algorithm may change over the course of the Qiskit 2.x series for some or
     all targets, but you can always set ``routing_method="sabre"`` explicitly to maintain
     the current behavior.

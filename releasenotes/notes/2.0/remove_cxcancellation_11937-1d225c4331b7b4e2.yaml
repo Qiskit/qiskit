@@ -1,6 +1,6 @@
 ---
 upgrade_transpiler:
   - |
-    The pass ``qiskit.transpiler.passes.CXCancellation`` was removed. It was deprecated in favor of
+    The ``qiskit.transpiler.passes.CXCancellation`` pass has been removed. It was deprecated in favor of
     class:`.InverseCancellation`, which is more generic.
-    ``CXCancellation`` is fully semantically equivalent to ``InverseCancellation([CXGate()])``.
+    ``CXCancellation()`` is fully semantically equivalent to ``InverseCancellation([CXGate()])``.

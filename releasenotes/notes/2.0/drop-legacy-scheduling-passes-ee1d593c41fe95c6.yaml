@@ -1,9 +1,8 @@
 ---
 upgrade_transpiler:
   - |
-    The deprecated transpiler passes ``ASAPSchedule``, ``ALAPSchedule``,
-    ``DynamicalDecoupling``, and ``AlignMeasures`` have been removed. These
-    passes were marked as deprecated. They have been replaced by the
+    The legacy scheduling passes ``ASAPSchedule``, ``ALAPSchedule``,
+    ``DynamicalDecoupling``, and ``AlignMeasures`` have been removed in favor of the updated alternatives
     :class:`.ALAPScheduleAnalysis`, :class:`.ASAPScheduleAnalysis`,
-    :class:`.PadDynamicalDecoupling`, and :class:`.ConstrainedReschedule`
-    passes respectively which can be used instead.
+    :class:`.PadDynamicalDecoupling`, and :class:`.ConstrainedReschedule` (respectively).
+    These were deprecated in Qiskit 1.1 after the new scheduling workflow superseded the legacy one.
