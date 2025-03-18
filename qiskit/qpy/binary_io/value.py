@@ -473,6 +473,7 @@ def _read_parameter_expression(file_obj):
         *struct.unpack(formats.PARAMETER_EXPR_PACK, file_obj.read(formats.PARAMETER_EXPR_SIZE))
     )
 
+    from sympy.parsing.sympy_parser import parse_expr
     expr_ = parse_expr(file_obj.read(data.expr_size).decode(common.ENCODE))
     symbol_map = {}
     for _ in range(data.map_elements):
@@ -512,8 +513,8 @@ def _read_parameter_expression_v3(file_obj, vectors, use_symengine):
     if use_symengine:
         expr_ = common.load_symengine_payload(payload)
     else:
-        sympy_str = payload.decode(common.ENCODE)
-        expr_ = symengine.sympify(parse_sympy_repr(sympy_str))
+        from sympy.parsing.sympy_parser import parse_expr
+        expr_ = parse_expr(payload.decode(common.ENCODE))
 
     symbol_map = {}
     for _ in range(data.map_elements):
