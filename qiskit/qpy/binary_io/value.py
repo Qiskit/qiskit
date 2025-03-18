@@ -32,7 +32,6 @@ from qiskit.circuit.parameterexpression import (
 )
 from qiskit.circuit.parametervector import ParameterVector, ParameterVectorElement
 from qiskit.qpy import common, formats, exceptions, type_keys
-from qiskit.qpy.binary_io.parse_sympy_repr import parse_sympy_repr
 
 
 def _write_parameter(file_obj, obj):

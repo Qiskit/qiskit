@@ -25,60 +25,18 @@ use num_complex::c64;
 
 use crate::symbol_expr::{BinaryOp, SymbolExpr, UnaryOp, Value};
 
-// struct to contain parsed binary operation
-#[derive(Clone)]
-struct BinaryOpContainer {
-    op: BinaryOp,
-    expr: SymbolExpr,
-}
-
-impl BinaryOpContainer {
-    fn accum(self, rhs: BinaryOpContainer) -> BinaryOpContainer {
-        match rhs.op {
-            BinaryOp::Add => BinaryOpContainer {
-                op: rhs.op,
-                expr: self.expr + rhs.expr,
-            },
-            BinaryOp::Sub => BinaryOpContainer {
-                op: rhs.op,
-                expr: self.expr - rhs.expr,
-            },
-            BinaryOp::Mul => BinaryOpContainer {
-                op: rhs.op,
-                expr: self.expr * rhs.expr,
-            },
-            BinaryOp::Div => BinaryOpContainer {
-                op: rhs.op,
-                expr: self.expr / rhs.expr,
-            },
-            BinaryOp::Pow => BinaryOpContainer {
-                op: rhs.op,
-                expr: self.expr.pow(&rhs.expr),
-            },
-        }
-    }
-}
-
 // parsing value as real
-fn parse_value(s: &str) -> IResult<&str, BinaryOpContainer> {
-    map_res(double, |v| -> Result<BinaryOpContainer, &str> {
-        Ok(BinaryOpContainer {
-            op: BinaryOp::Add,
-            expr: SymbolExpr::Value(Value::Real(v)),
-        })
+fn parse_value(s: &str) -> IResult<&str, SymbolExpr> {
+    map_res(double, |v| -> Result<SymbolExpr, &str> {
+        Ok(SymbolExpr::Value(Value::Real(v)))
     })(s)
 }
 
 // parsing imaginary part of complex number as real
-fn parse_imaginary_value(s: &str) -> IResult<&str, BinaryOpContainer> {
+fn parse_imaginary_value(s: &str) -> IResult<&str, SymbolExpr> {
     map_res(
         tuple((double, char('i'))),
-        |(v, _)| -> Result<BinaryOpContainer, &str> {
-            Ok(BinaryOpContainer {
-                op: BinaryOp::Add,
-                expr: SymbolExpr::Value(Value::Complex(c64(0.0, v))),
-            })
-        },
+        |(v, _)| -> Result<SymbolExpr, &str> { Ok(SymbolExpr::Value(Value::Complex(c64(0.0, v)))) },
     )(s)
 }
 
@@ -98,41 +56,35 @@ fn parse_symbol_string(s: &str) -> IResult<&str, &str> {
     .parse(s)
 }
 
-fn parse_special_char(s: &str) -> IResult<&str, &str> {
+fn parse_mpl_special_char(s: &str) -> IResult<&str, &str> {
     recognize(tuple((tag("$\\"), alpha1, tag("$")))).parse(s)
 }
 
 // parse string as symbol
 // symbol starting with alphabet and can contain numbers and '_', '[', ']'
-fn parse_symbol(s: &str) -> IResult<&str, BinaryOpContainer> {
+fn parse_symbol(s: &str) -> IResult<&str, SymbolExpr> {
     map_res(
         tuple((
-            alt((parse_special_char, parse_symbol_string)),
+            alt((parse_mpl_special_char, parse_symbol_string)),
             opt(delimited(char('['), digit1, char(']'))),
         )),
-        |(v, array_idx)| -> Result<BinaryOpContainer, &str> {
+        |(v, array_idx)| -> Result<SymbolExpr, &str> {
             match array_idx {
                 Some(i) => {
                     // currently array index is stored as string
                     // if array indexing is required in the future
                     // add indexing in Symbol struct
                     let s = format!("{}[{}]", v, i);
-                    Ok(BinaryOpContainer {
-                        op: BinaryOp::Add,
-                        expr: SymbolExpr::Symbol(Box::new(s)),
-                    })
+                    Ok(SymbolExpr::Symbol(Box::new(s)))
                 }
-                None => Ok(BinaryOpContainer {
-                    op: BinaryOp::Add,
-                    expr: SymbolExpr::Symbol(Box::new(v.to_string())),
-                }),
+                None => Ok(SymbolExpr::Symbol(Box::new(v.to_string()))),
             }
         },
     )(s)
 }
 
 // parse unary operations
-fn parse_unary(s: &str) -> IResult<&str, BinaryOpContainer> {
+fn parse_unary(s: &str) -> IResult<&str, SymbolExpr> {
     map_res(
         tuple((
             alphanumeric1,
@@ -142,7 +94,7 @@ fn parse_unary(s: &str) -> IResult<&str, BinaryOpContainer> {
                 char(')'),
             ),
         )),
-        |(v, expr)| -> Result<BinaryOpContainer, &str> {
+        |(v, expr)| -> Result<SymbolExpr, &str> {
             let op = match v {
                 "sin" => UnaryOp::Sin,
                 "asin" => UnaryOp::Asin,
@@ -155,22 +107,19 @@ fn parse_unary(s: &str) -> IResult<&str, BinaryOpContainer> {
                 "sign" => UnaryOp::Sign,
                 &_ => return Err("unsupported unary operation found."),
             };
-            Ok(BinaryOpContainer {
-                op: BinaryOp::Add,
-                expr: SymbolExpr::Unary {
-                    op,
-                    expr: Box::new(expr.expr),
-                },
+            Ok(SymbolExpr::Unary {
+                op,
+                expr: Box::new(expr),
             })
         },
     )(s)
 }
 
-// neg operation is separetely parsed in this function
-fn parse_neg(s: &str) -> IResult<&str, BinaryOpContainer> {
+// sign is separetely parsed in this function
+fn parse_sign(s: &str) -> IResult<&str, SymbolExpr> {
     map_res(
         tuple((
-            char('-'),
+            alt((char('-'), char('+'))),
             alt((
                 parse_imaginary_value,
                 parse_value,
@@ -183,23 +132,24 @@ fn parse_neg(s: &str) -> IResult<&str, BinaryOpContainer> {
                 ),
             )),
         )),
-        |(_, expr)| -> Result<BinaryOpContainer, &str> {
-            Ok(BinaryOpContainer {
-                op: BinaryOp::Add,
-                expr: SymbolExpr::Unary {
+        |(s, expr)| -> Result<SymbolExpr, &str> {
+            if s == '+' {
+                Ok(expr)
+            } else {
+                Ok(SymbolExpr::Unary {
                     op: UnaryOp::Neg,
-                    expr: Box::new(expr.expr),
-                },
-            })
+                    expr: Box::new(expr),
+                })
+            }
         },
     )(s)
 }
 
-fn parse_expr(s: &str) -> IResult<&str, BinaryOpContainer> {
+fn parse_expr(s: &str) -> IResult<&str, SymbolExpr> {
     alt((
         parse_imaginary_value,
         parse_value,
-        parse_neg,
+        parse_sign,
         parse_unary,
         parse_symbol,
         delimited(
@@ -210,40 +160,57 @@ fn parse_expr(s: &str) -> IResult<&str, BinaryOpContainer> {
     ))(s)
 }
 
-// parse mul and div and pow
-fn parse_muldiv(s: &str) -> IResult<&str, BinaryOpContainer> {
+// parse pow
+fn parse_pow(s: &str) -> IResult<&str, SymbolExpr> {
     map_res(
         permutation((
             parse_expr,
             many0(map_res(
+                tuple((multispace0, tag("**"), multispace0, parse_expr)),
+                |(_, _, _, rhs)| -> Result<SymbolExpr, &str> { Ok(rhs) },
+            )),
+        )),
+        |(lhs, rvec)| -> Result<SymbolExpr, &str> {
+            let accum = rvec.iter().fold(lhs, |acc, x| acc.pow(&x));
+            Ok(accum)
+        },
+    )(s)
+}
+
+// parse mul and div
+fn parse_muldiv(s: &str) -> IResult<&str, SymbolExpr> {
+    map_res(
+        permutation((
+            parse_pow,
+            many0(map_res(
                 tuple((
                     multispace0,
-                    alt((tag("**"), tag("*"), tag("/"))),
+                    alt((tag("*"), tag("/"))),
                     multispace0,
-                    parse_expr,
+                    parse_pow,
                 )),
-                |(_, opr, _, mut rhs)| -> Result<BinaryOpContainer, &str> {
-                    if opr == "**" {
-                        rhs.op = BinaryOp::Pow;
-                        Ok(rhs)
-                    } else if opr == "*" {
-                        rhs.op = BinaryOp::Mul;
-                        Ok(rhs)
+                |(_, opr, _, rhs)| -> Result<(BinaryOp, SymbolExpr), &str> {
+                    if opr == "*" {
+                        Ok((BinaryOp::Mul, rhs))
                     } else {
-                        rhs.op = BinaryOp::Div;
-                        Ok(rhs)
+                        Ok((BinaryOp::Div, rhs))
                     }
                 },
             )),
         )),
-        |(lhs, rvec)| -> Result<BinaryOpContainer, &str> {
-            Ok(rvec.iter().fold(lhs, |acc, x| acc.accum(x.clone())))
+        |(lhs, rvec)| -> Result<SymbolExpr, &str> {
+            let accum = rvec.iter().fold(lhs, |acc, x| match x.0 {
+                BinaryOp::Mul => &acc * &x.1,
+                BinaryOp::Div => &acc / &x.1,
+                _ => acc,
+            });
+            Ok(accum)
         },
     )(s)
 }
 
 // parse add and sub
-fn parse_addsub(s: &str) -> IResult<&str, BinaryOpContainer> {
+fn parse_addsub(s: &str) -> IResult<&str, SymbolExpr> {
     map_res(
         permutation((
             parse_muldiv,
@@ -254,24 +221,27 @@ fn parse_addsub(s: &str) -> IResult<&str, BinaryOpContainer> {
                     multispace0,
                     parse_muldiv,
                 )),
-                |(_, opr, _, mut rhs)| -> Result<BinaryOpContainer, &str> {
+                |(_, opr, _, rhs)| -> Result<(BinaryOp, SymbolExpr), &str> {
                     if opr == '+' {
-                        rhs.op = BinaryOp::Add;
-                        Ok(rhs)
+                        Ok((BinaryOp::Add, rhs))
                     } else {
-                        rhs.op = BinaryOp::Sub;
-                        Ok(rhs)
+                        Ok((BinaryOp::Sub, rhs))
                     }
                 },
             )),
         )),
-        |(lhs, rvec)| -> Result<BinaryOpContainer, &str> {
-            Ok(rvec.iter().fold(lhs, |acc, x| acc.accum(x.clone())))
+        |(lhs, rvec)| -> Result<SymbolExpr, &str> {
+            let accum = rvec.iter().fold(lhs, |acc, x| match x.0 {
+                BinaryOp::Add => &acc + &x.1,
+                BinaryOp::Sub => &acc - &x.1,
+                _ => acc,
+            });
+            Ok(accum)
         },
     )(s)
 }
 
 pub fn parse_expression(s: &str) -> SymbolExpr {
     let mut parser = all_consuming(parse_addsub);
-    parser(s).unwrap().1.expr
+    parser(s).unwrap().1
 }
