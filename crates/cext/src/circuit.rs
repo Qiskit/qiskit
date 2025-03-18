@@ -206,13 +206,13 @@ pub unsafe extern "C" fn qk_circuit_append_standard_gate(
 /// @ingroup QkCircuit
 /// Append a measurement to the circuit
 ///
-/// @param circuit A pointer to the circuit to add the gate to
+/// @param circuit A pointer to the circuit to add the measurement to
 /// @param qubits The ``uint32_t`` for the qubit to measure
 /// @param clbits The ``uint32_t`` for the clbit to store the measurement outcome in
 ///
 /// # Example
 ///
-///     QkCircuit *qc = qk_circuit_new(100);
+///     QkCircuit *qc = qk_circuit_new(100, 1);
 ///     qk_circuit_append_measure(qc, 0, 0);
 ///
 /// # Safety
@@ -276,10 +276,11 @@ pub unsafe extern "C" fn qk_circuit_append_reset(
 /// # Example
 ///
 ///     QkCircuit *qc = qk_circuit_new(100);
-///     qk_circuit_append_reset(qc, 0);
-///
+///     uint32_t qubits[5] = {0, 1, 2, 3, 4};
+///     qk_circuit_append_barrier(qc, 5, qubits);
 ///
 /// # Safety
+/// 
 /// The length of the array qubits points to must be num_qubits. If there is
 /// a mismatch the behavior is undefined.
 ///
@@ -350,15 +351,15 @@ pub unsafe extern "C" fn qk_circuit_count_ops(circuit: *const CircuitData) -> Op
     OpCounts { data, len }
 }
 
-/// @ingroup QKCircuit
+/// @ingroup QkCircuit
 /// Return the number of instructions in the circuit
 ///
-/// @param m circuit A pointer to the circuit to get the counts for.
+/// @param circuit A pointer to the circuit to get the counts for.
 ///
-///   /// # Example
+/// # Example
 ///
 ///     QkCircuit *qc = qk_circuit_new(100);
-///     qk_circuit_append_standard_gate(qc, HGate, *[0], *[]);
+///     qk_circuit_append_standard_gate(qc, QkGate_H, *[0], *[]);
 ///     qk_circuit_num_instructions(qc); // 1
 ///
 /// # Safety
@@ -382,16 +383,16 @@ pub struct CInstruction {
     params: *mut f64,
 }
 
-/// @ingroup QKCircuit
+/// @ingroup QkCircuit
 /// Return the number of instructions in the circuit
 ///
-/// @param m circuit A pointer to the circuit to get the counts for.
+/// @param circuit A pointer to the circuit to get the counts for.
 ///
-///   /// # Example
+/// # Example
 ///
 ///     QkCircuit *qc = qk_circuit_new(100);
-///     qk_circuit_append_standard_gate(qc, HGate, *[0], *[]);
-///     qk_circuit_get_instruction(qc, 0); //
+///     qk_circuit_append_standard_gate(qc, QkGate_H, *[0], *[]);
+///     QkCircuitInstruction inst = qk_circuit_get_instruction(qc, 0);
 ///
 /// # Safety
 ///
