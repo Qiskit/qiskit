@@ -149,16 +149,6 @@ class CheckDecompositions(QiskitTestCase):
             )
             self.assertIn("Requested fidelity:", record.getMessage())
 
-    def assertPickle(self, decomp: TwoQubitControlledUDecomposer):
-        """Assert that TwoQubitControlledUDecomposer supports pickle"""
-
-        pkl = pickle.dumps(decomp, protocol=max(4, pickle.DEFAULT_PROTOCOL))
-        decomp_cpy = pickle.loads(pkl)
-        msg_base = f"decomp:\n{decomp}\ndecomp_cpy:\n{decomp_cpy}"
-        self.assertEqual(type(decomp), type(decomp_cpy), msg_base)
-        self.assertEqual(decomp.rxx_equivalent_gate, decomp_cpy.rxx_equivalent_gate, msg=msg_base)
-        self.assertEqual(decomp.euler_basis, decomp_cpy.euler_basis, msg=msg_base)
-
     def assertRoundTrip(self, weyl1: TwoQubitWeylDecomposition):
         """Fail if eval(repr(weyl1)) not equal to weyl1"""
         repr1 = repr(weyl1)
@@ -1553,6 +1543,31 @@ class TestTwoQubitControlledUDecompose(CheckDecompositions):
         decomposer = TwoQubitControlledUDecomposer(CustomRZZeqGate)
         circ = decomposer(unitary)
         self.assertEqual(Operator(unitary), Operator(circ))
+
+    @data(True, False)
+    def test_assertPickle(self, is_standard):
+        """Assert that TwoQubitControlledUDecomposer supports pickle"""
+
+        class CustomXXGate(RXXGate):
+            """Custom RXXGate subclass that's not a standard gate"""
+
+            _standard_gate = None
+
+            def __init__(self, theta, label=None):
+                super().__init__(theta, label)
+                self.name = "MyCustomXXGate"
+
+        if is_standard:
+            decomp = TwoQubitControlledUDecomposer(RXXGate)
+        else:
+            decomp = TwoQubitControlledUDecomposer(CustomXXGate)
+
+        pkl = pickle.dumps(decomp, protocol=max(4, pickle.DEFAULT_PROTOCOL))
+        decomp_cpy = pickle.loads(pkl)
+        msg_base = f"decomp:\n{decomp}\ndecomp_cpy:\n{decomp_cpy}"
+        self.assertEqual(type(decomp), type(decomp_cpy), msg_base)
+        self.assertEqual(decomp.rxx_equivalent_gate, decomp_cpy.rxx_equivalent_gate, msg=msg_base)
+        self.assertEqual(decomp.euler_basis, decomp_cpy.euler_basis, msg=msg_base)
 
 
 class TestDecomposeProductRaises(QiskitTestCase):
