@@ -5688,13 +5688,8 @@ impl DAGCircuit {
             } else if let Ok(clbit) = wire.extract::<ShareableClbit>() {
                 NodeType::ClbitOut(self.clbits.find(&clbit).unwrap())
             } else {
-<<<<<<< HEAD
-                let var = VarAsKey::new(wire);
-                NodeType::VarIn(self.vars.find(&var).unwrap())
-=======
                 let var = PyObjectAsKey::new(wire);
                 NodeType::VarOut(self.vars.find(&var).unwrap())
->>>>>>> ddd04013f (Fix deepcopy/pickle of `DAGCircuit` variable IO nodes (#14041))
             }
         } else if let Ok(op_node) = b.downcast::<DAGOpNode>() {
             let op_node = op_node.borrow();
