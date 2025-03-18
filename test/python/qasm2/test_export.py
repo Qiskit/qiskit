@@ -376,6 +376,7 @@ custom q\[0\];""",
         self.assertEqual(Operator(qc), Operator(qasm2.loads(qasm_str)))
 
     def test_mcx_gate(self):
+        # pylint: disable=line-too-long
         qc = QuantumCircuit(4)
         qc.mcx([0, 1, 2], 3)
 
@@ -389,6 +390,7 @@ mcx q[0],q[1],q[2],q[3];"""
         self.assertEqual(qasm2.dumps(qc), expected_qasm)
 
     def test_mcx_gate_variants(self):
+        # pylint: disable=line-too-long
         n = 5
         qc = QuantumCircuit(2 * n - 1)
         qc.append(lib.MCXGrayCode(n), range(n + 1))
