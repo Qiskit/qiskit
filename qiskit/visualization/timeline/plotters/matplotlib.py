@@ -188,5 +188,6 @@ class MplPlotter(BasePlotter):
 
         if self.figure and interactive:
             self.figure.show()
-
+        
+        self.figure.tight_layout()
         return self.figure
