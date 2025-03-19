@@ -1184,6 +1184,10 @@ impl Target {
         Some(qargs)
     }
 
+    pub fn num_qargs(&self) -> usize {
+        self.qarg_gate_map.len()
+    }
+
     /// Checks whether an instruction is supported by the Target based on instruction name and qargs.
     pub fn instruction_supported(&self, operation_name: &str, qargs: Option<&Qargs>) -> bool {
         // Handle case where num_qubits is None by checking globally supported operations
