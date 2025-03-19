@@ -159,10 +159,6 @@ pub trait Operation {
     fn definition(&self, params: &[Param]) -> Option<CircuitData>;
     fn standard_gate(&self) -> Option<StandardGate>;
     fn directive(&self) -> bool;
-}
-
-/// Trait for single-qubit operations
-pub trait SingleQubitOperation {
     fn get_mat_static_1q(&self, params: &[Param]) -> Option<[[Complex64; 2]; 2]>;
     fn get_mat_nalgebra_1q(&self, params: &[Param]) -> Option<Matrix2<Complex64>>;
 }
@@ -290,6 +286,27 @@ impl Operation for OperationRef<'_> {
             Self::Instruction(instruction) => instruction.directive(),
             Self::Operation(operation) => operation.directive(),
             Self::Unitary(unitary) => unitary.directive(),
+        }
+    }
+    #[inline]
+    fn get_mat_static_1q(&self, params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
+        match self {
+            Self::StandardGate(standard) => standard.get_mat_static_1q(params),
+            Self::StandardInstruction(instruction) => instruction.get_mat_static_1q(params),
+            Self::Gate(gate) => gate.get_mat_static_1q(params),
+            Self::Instruction(instruction) => instruction.get_mat_static_1q(params),
+            Self::Operation(operation) => operation.get_mat_static_1q(params),
+            Self::Unitary(unitary) => unitary.get_mat_static_1q(params),
+        }
+    }
+    fn get_mat_nalgebra_1q(&self, params: &[Param]) -> Option<Matrix2<Complex64>> {
+        match self {
+            Self::StandardGate(standard) => standard.get_mat_nalgebra_1q(params),
+            Self::StandardInstruction(instruction) => instruction.get_mat_nalgebra_1q(params),
+            Self::Gate(gate) => gate.get_mat_nalgebra_1q(params),
+            Self::Instruction(instruction) => instruction.get_mat_nalgebra_1q(params),
+            Self::Operation(operation) => operation.get_mat_nalgebra_1q(params),
+            Self::Unitary(unitary) => unitary.get_mat_nalgebra_1q(params),
         }
     }
 }
@@ -452,6 +469,13 @@ impl Operation for StandardInstruction {
             StandardInstruction::Measure => false,
             StandardInstruction::Reset => false,
         }
+    }
+
+    fn get_mat_static_1q(&self, _params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
+        None
+    }
+    fn get_mat_nalgebra_1q(&self, _params: &[Param]) -> Option<Matrix2<Complex64>> {
+        None
     }
 }
 
@@ -2402,9 +2426,7 @@ impl Operation for StandardGate {
     fn directive(&self) -> bool {
         false
     }
-}
 
-impl SingleQubitOperation for StandardGate {
     fn get_mat_static_1q(&self, params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
         match self {
             Self::GlobalPhase => None,
@@ -2688,6 +2710,12 @@ impl Operation for PyInstruction {
             }
         })
     }
+    fn get_mat_static_1q(&self, _params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
+        None
+    }
+    fn get_mat_nalgebra_1q(&self, _params: &[Param]) -> Option<Matrix2<Complex64>> {
+        None
+    }
 }
 
 /// This class is used to wrap a Python side Gate that is not in the standard library
@@ -2761,9 +2789,7 @@ impl Operation for PyGate {
     fn directive(&self) -> bool {
         false
     }
-}
 
-impl SingleQubitOperation for PyGate {
     fn get_mat_static_1q(&self, _params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
         Python::with_gil(|py| -> Option<[[Complex64; 2]; 2]> {
             match self.num_qubits() {
@@ -2844,6 +2870,13 @@ impl Operation for PyOperation {
             }
         })
     }
+
+    fn get_mat_static_1q(&self, _params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
+        None
+    }
+    fn get_mat_nalgebra_1q(&self, _params: &[Param]) -> Option<Matrix2<Complex64>> {
+        None
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -2910,9 +2943,6 @@ impl Operation for UnitaryGate {
     fn directive(&self) -> bool {
         false
     }
-}
-
-impl SingleQubitOperation for UnitaryGate {
     fn get_mat_static_1q(&self, _params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
         match self.num_qubits() {
             1 => match &self.array {
