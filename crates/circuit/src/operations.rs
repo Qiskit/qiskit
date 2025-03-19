@@ -2683,7 +2683,7 @@ impl Operation for PyOperation {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum ArrayType {
     NDArray(Array2<Complex64>),
     OneQ(Matrix2<Complex64>),
