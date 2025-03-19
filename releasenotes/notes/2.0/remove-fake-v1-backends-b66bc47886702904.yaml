@@ -7,7 +7,6 @@ upgrade_providers:
     implement a simulated :meth:`.BackendV2.run`. The removal affects:
 
     * Base classes:
-
       * ``FakeBackend``
       * ``FakePulseBackend``
       * ``FakeQasmBackend``
@@ -18,9 +17,9 @@ upgrade_providers:
       * ``FakeOpenPulse3Q``
 
     * Legacy fake backends:
-
       * ``Fake5QV1``
       * ``Fake20QV1``
       * ``Fake7QPulseV1``
       * ``Fake27QPulseV1``
       * ``Fake127QPulseV1``
+

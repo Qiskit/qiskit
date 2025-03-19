@@ -5,3 +5,4 @@ upgrade_transpiler:
     that contain single-qubit operations without a ``to_matrix`` method (such as measures,
     barriers, control-flow operations) or parameterized single-qubit operations,
     but will leave them unchanged.
+    

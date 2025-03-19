@@ -39,12 +39,12 @@ upgrade_transpiler:
     raise a ``UserWarning`` when providing a ``coupling_map`` and/or ``basis_gates`` 
     along with a ``backend``. In these cases there are multiple sources of truth, 
     the user intentions are not always clear, and there can be conflicts that  
-    :func:`.generate_preset_pass_manager` may not know how to resolve. In these cases,
-    we highly encourage the creation of a custom target that combines the chosen
+    :func:`.generate_preset_pass_manager` may not know how to resolve. 
+    The proposed alternative is defining of a custom target that combines the chosen
     constraints.
 
     One of these situations is the specification of a gate with 3 or more qubits in
-    `backend` or `basis_gates` together with a custom coupling map. The coupling map
+    ``backend`` or ``basis_gates`` together with a custom ``coupling_map``. The coupling map
     does not provide the necessary connectivity details to be able to determine the 
     action of the gate. In these cases, :func:`.transpile` and 
     :func:`.generate_preset_pass_manager` now raise a ``ValueError``.
