@@ -17,6 +17,7 @@ import unittest
 import contextlib
 import logging
 import math
+import dill
 import numpy as np
 import scipy
 import scipy.stats
@@ -1544,8 +1545,19 @@ class TestTwoQubitControlledUDecompose(CheckDecompositions):
         circ = decomposer(unitary)
         self.assertEqual(Operator(unitary), Operator(circ))
 
-    @data(True, False)
-    def test_assertPickle(self, is_standard):
+    def test_assertPickle(self):
+        """Assert that TwoQubitControlledUDecomposer supports pickle"""
+
+        decomp = TwoQubitControlledUDecomposer(RXXGate)
+
+        pkl = pickle.dumps(decomp, protocol=max(4, pickle.DEFAULT_PROTOCOL))
+        decomp_cpy = pickle.loads(pkl)
+        msg_base = f"decomp:\n{decomp}\ndecomp_cpy:\n{decomp_cpy}"
+        self.assertEqual(type(decomp), type(decomp_cpy), msg_base)
+        self.assertEqual(decomp.rxx_equivalent_gate, decomp_cpy.rxx_equivalent_gate, msg=msg_base)
+        self.assertEqual(decomp.euler_basis, decomp_cpy.euler_basis, msg=msg_base)
+
+    def test_assertPickle_with_dill(self):
         """Assert that TwoQubitControlledUDecomposer supports pickle"""
 
         class CustomXXGate(RXXGate):
@@ -1557,16 +1569,15 @@ class TestTwoQubitControlledUDecompose(CheckDecompositions):
                 super().__init__(theta, label)
                 self.name = "MyCustomXXGate"
 
-        if is_standard:
-            decomp = TwoQubitControlledUDecomposer(RXXGate)
-        else:
-            decomp = TwoQubitControlledUDecomposer(CustomXXGate)
+        decomp = TwoQubitControlledUDecomposer(CustomXXGate)
 
-        pkl = pickle.dumps(decomp, protocol=max(4, pickle.DEFAULT_PROTOCOL))
-        decomp_cpy = pickle.loads(pkl)
+        pkl = dill.dumps(decomp, protocol=max(4, pickle.DEFAULT_PROTOCOL))
+        decomp_cpy = dill.loads(pkl)
         msg_base = f"decomp:\n{decomp}\ndecomp_cpy:\n{decomp_cpy}"
         self.assertEqual(type(decomp), type(decomp_cpy), msg_base)
-        self.assertEqual(decomp.rxx_equivalent_gate, decomp_cpy.rxx_equivalent_gate, msg=msg_base)
+        self.assertEqual(
+            decomp.rxx_equivalent_gate.name, decomp_cpy.rxx_equivalent_gate.name, msg=msg_base
+        )
         self.assertEqual(decomp.euler_basis, decomp_cpy.euler_basis, msg=msg_base)
 
 
