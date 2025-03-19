@@ -5708,7 +5708,7 @@ impl DAGCircuit {
                 NodeType::ClbitOut(self.clbits.find(&clbit).unwrap())
             } else {
                 let var = PyObjectAsKey::new(wire);
-                NodeType::VarIn(self.vars.find(&var).unwrap())
+                NodeType::VarOut(self.vars.find(&var).unwrap())
             }
         } else if let Ok(op_node) = b.downcast::<DAGOpNode>() {
             let op_node = op_node.borrow();

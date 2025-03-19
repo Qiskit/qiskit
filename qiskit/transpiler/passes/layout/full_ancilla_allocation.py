@@ -92,9 +92,8 @@ class FullAncillaAllocation(AnalysisPass):
 
         if idle_physical_qubits:
             if self.ancilla_name in dag.qregs:
-                qreg = QuantumRegister(
-                    len(idle_physical_qubits),
-                    name=f"{self.ancilla_name}{QuantumRegister.instances_count + 1}",
+                qreg = QuantumRegister._new_with_prefix(
+                    len(idle_physical_qubits), self.ancilla_name
                 )
             else:
                 qreg = QuantumRegister(len(idle_physical_qubits), name=self.ancilla_name)

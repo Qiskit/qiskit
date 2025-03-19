@@ -771,6 +771,25 @@ macro_rules! create_bit_object {
                 })
             }
 
+            /// Allows for the creation of a new register with a temporary prefix and the
+            /// same instance counter.
+            #[pyo3(signature=(size=None, name=None, bits=None))]
+            #[staticmethod]
+            fn _new_with_prefix(
+                py: Python,
+                size: Option<isize>,
+                name: Option<String>,
+                bits: Option<Vec<$bit_struct>>,
+            ) -> PyResult<Py<Self>> {
+                let name =
+                    format!(
+                        "{}{}",
+                        name.unwrap_or(Self::prefix().to_string()),
+                        $reg_struct::anonymous_instance_count().fetch_add(1, Ordering::Relaxed)
+                    );
+                Py::new(py, Self::py_new(size, Some(name), bits)?)
+            }
+
             #[classattr]
             fn prefix() -> &'static str {
                 $pyreg_prefix
