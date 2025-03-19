@@ -933,7 +933,7 @@ pub extern "C" fn qk_bitterm_label(bit_term: BitTerm) -> u8 {
         .expect("Label has exactly one character") as u8
 }
 
-/// @ingroup SparseObservable
+/// @ingroup QkSparseObservable
 /// Convert to a Python-space [PySparseObservable].
 ///
 /// @param obs The C-space [SparseObservable] pointer.

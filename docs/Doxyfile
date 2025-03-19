@@ -1,0 +1,10 @@
+INPUT = docs/cdoc/ dist/c/include/qiskit.h
+
+
+EXTRACT_ALL = YES
+
+GENERATE_XML = YES
+XML_OUTPUT = docs/xml
+
+GENERATE_HTML = NO
+GENERATE_LATEX = NO
