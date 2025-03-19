@@ -17,16 +17,11 @@ fn main() {
     // Pull the config from the cbindgen.toml file.
     let config = cbindgen::Config::from_file("cbindgen.toml").unwrap();
 
-    // Ensure the include directory exists, and then set the full header path.
-    let mut path = "../../dist/c/include".to_string();
-    ::std::fs::create_dir_all(&path).expect("Failed creating dist/c/include.");
-    path.push_str("/qiskit.h");
-
     // Build the header.
     cbindgen::Builder::new()
         .with_crate(".")
         .with_config(config)
         .generate()
         .expect("Unable to generate C bindings.")
-        .write_to_file(path);
+        .write_to_file("qiskit.h");
 }
