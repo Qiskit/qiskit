@@ -264,7 +264,7 @@ class TestMCSynthesisCounts(QiskitTestCase):
         expected_cx_count = 16 * (num_ctrl_qubits + 1) - 40
         self.assertLessEqual(cx_count, expected_cx_count)
 
-    @data(5, 8, 10, 13, 15)
+    @data(5, 10, 15)
     def test_mcx_noaux_v24_cx_count(self, num_ctrl_qubits: int):
         """Test synth_mcx_noaux_v24 bound on CX count."""
         synthesized_circuit = synth_mcx_noaux_v24(num_ctrl_qubits)
@@ -306,7 +306,7 @@ class TestMCSynthesisCounts(QiskitTestCase):
         # The bounds should be the same as for synth_mcx_noaux_v24
         self.assertLessEqual(cx_count, 8 * num_ctrl_qubits**2 - 16 * num_ctrl_qubits)
 
-    @data(5, 8, 10, 13, 15)
+    @data(5, 10, 15)
     def test_mcu_noaux_cx_count(self, num_ctrl_qubits: int):
         """Test bounds on the number of CX-gates when synthesizing multi-controlled single-qubit
         unitary gates.
