@@ -55,7 +55,7 @@ pub(crate) mod exceptions {
 
 // Custom types
 pub type Qargs = SmallVec<[PhysicalQubit; 2]>;
-type GateMap = IndexMap<Interned<String>, PropsMap, RandomState>;
+type GateMap = IndexMap<Interned<str>, PropsMap, RandomState>;
 type PropsMap = NullableIndexMap<Qargs, Option<InstructionProperties>>;
 type GateMapState = (String, Vec<(Option<Qargs>, Option<InstructionProperties>)>);
 
@@ -181,12 +181,12 @@ pub(crate) struct Target {
     #[pyo3(get, set)]
     pub concurrent_measurements: Option<Vec<Vec<PhysicalQubit>>>,
     gate_map: GateMap,
-    gate_name_interner: Interner<String>,
-    _gate_name_map: IndexMap<Interned<String>, TargetOperation, RandomState>,
-    global_operations: IndexMap<u32, HashSet<Interned<String>>, RandomState>,
-    qarg_gate_map: NullableIndexMap<Qargs, Option<HashSet<Interned<String>>>>,
-    non_global_strict_basis: Option<Vec<Interned<String>>>,
-    non_global_basis: Option<Vec<Interned<String>>>,
+    gate_name_interner: Interner<str>,
+    _gate_name_map: IndexMap<Interned<str>, TargetOperation, RandomState>,
+    global_operations: IndexMap<u32, HashSet<Interned<str>>, RandomState>,
+    qarg_gate_map: NullableIndexMap<Qargs, Option<HashSet<Interned<str>>>>,
+    non_global_strict_basis: Option<Vec<Interned<str>>>,
+    non_global_basis: Option<Vec<Interned<str>>>,
 }
 
 #[pymethods]
@@ -888,8 +888,7 @@ impl Target {
                         value
                             .clone()
                             .into_iter()
-                            .map(|key| self.gate_name_interner.get(key))
-                            .cloned()
+                            .map(|key| self.gate_name_interner.get(key).to_owned())
                             .collect::<HashSet<String>>(),
                     )
                 })
@@ -916,7 +915,7 @@ impl Target {
             "non_global_basis",
             self.non_global_basis.as_ref().map(|vec| {
                 vec.iter()
-                    .map(|key| self.gate_name_interner.get(*key).clone())
+                    .map(|key| self.gate_name_interner.get(*key))
                     .collect_vec()
             }),
         )?;
@@ -924,7 +923,7 @@ impl Target {
             "non_global_strict_basis",
             self.non_global_strict_basis.as_ref().map(|vec| {
                 vec.iter()
-                    .map(|key| self.gate_name_interner.get(*key).clone())
+                    .map(|key| self.gate_name_interner.get(*key))
                     .collect_vec()
             }),
         )?;
@@ -977,7 +976,7 @@ impl Target {
             .downcast_into::<PyDict>()?
             .items()
             .iter()
-            .map(|item| -> PyResult<(Interned<String>, TargetOperation)> {
+            .map(|item| -> PyResult<(Interned<str>, TargetOperation)> {
                 let (name, op): (String, TargetOperation) = item.extract()?;
                 Ok((self.gate_name_interner.try_key(&name).unwrap(), op))
             })
@@ -1078,7 +1077,7 @@ impl Target {
     pub fn operation_names(&self) -> impl ExactSizeIterator<Item = &str> {
         self.gate_map
             .keys()
-            .map(|x| self.gate_name_interner.get(*x).as_str())
+            .map(|x| self.gate_name_interner.get(*x))
     }
 
     /// Get the `OperationType` objects present in the target.
@@ -1137,7 +1136,7 @@ impl Target {
                 }
             }
         }
-        let mut incomplete_basis_gates: Vec<Interned<String>> = vec![];
+        let mut incomplete_basis_gates: Vec<Interned<str>> = vec![];
         let mut size_dict: IndexMap<usize, usize, RandomState> = IndexMap::default();
         *size_dict
             .entry(1)
@@ -1184,7 +1183,7 @@ impl Target {
     pub fn get_non_global_operation_names<'a>(
         &'a mut self,
         strict_direction: bool,
-    ) -> Option<Box<dyn ExactSizeIterator<Item = &'a String> + 'a>> {
+    ) -> Option<Box<dyn ExactSizeIterator<Item = &'a str> + 'a>> {
         if strict_direction {
             if self.non_global_strict_basis.is_some() {
                 return Some(Box::new(
@@ -1256,7 +1255,7 @@ impl Target {
             res.extend(
                 qarg_gate_map_arg
                     .iter()
-                    .map(|key| self.gate_name_interner.get(*key).as_str()),
+                    .map(|key| self.gate_name_interner.get(*key)),
             );
         }
         for (name, obj) in self._gate_name_map.iter() {
@@ -1269,7 +1268,7 @@ impl Target {
                 res.extend(
                     global_gates
                         .iter()
-                        .map(|key| self.gate_name_interner.get(*key).as_str()),
+                        .map(|key| self.gate_name_interner.get(*key)),
                 );
             }
         }
@@ -1435,7 +1434,7 @@ impl Target {
     pub fn keys(&self) -> impl Iterator<Item = &str> {
         self.gate_map
             .keys()
-            .map(|x| self.gate_name_interner.get(*x).as_str())
+            .map(|x| self.gate_name_interner.get(*x))
     }
 
     /// Retrieves an iterator over the property maps stored within the Target
