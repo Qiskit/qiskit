@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixed a bug that caused the :class:`ElidePermutations` pass to yield incorrect results
+    for the final layout in some cases when applied after :class:`Split2QUnitaries` pass.
