@@ -83,6 +83,11 @@ impl PySymbolExpr {
     #[allow(non_snake_case)]
     #[staticmethod]
     pub fn Symbol(name: String) -> Self {
+        // check if expr contains replacements for sympy
+        let name = name
+            .replace("__begin_sympy_replace__", "$\\")
+            .replace("__end_sympy_replace__", "$");
+
         PySymbolExpr {
             expr: SymbolExpr::Symbol(Box::new(name)),
         }
@@ -112,10 +117,20 @@ impl PySymbolExpr {
     /// create new expression from string
     #[allow(non_snake_case)]
     #[staticmethod]
-    pub fn Expression(name: String) -> Self {
+    pub fn Expression(expr: String) -> Self {
+        // check if expr contains replacements for sympy
+        let expr = expr
+            .replace("__begin_sympy_replace__", "$\\")
+            .replace("__end_sympy_replace__", "$");
         PySymbolExpr {
-            expr: parse_expression(&name),
+            expr: parse_expression(&expr),
         }
+    }
+
+    pub fn expr_for_sympy(&self) -> String {
+        let ret = self.expr.optimize().to_string();
+        ret.replace("$\\", "__begin_sympy_replace__")
+            .replace("$", "__end_sympy_replace__")
     }
 
     /// unary functions
