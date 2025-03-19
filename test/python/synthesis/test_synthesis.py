@@ -1545,7 +1545,7 @@ class TestTwoQubitControlledUDecompose(CheckDecompositions):
         circ = decomposer(unitary)
         self.assertEqual(Operator(unitary), Operator(circ))
 
-    def test_assertPickle(self):
+    def test_assert_pickle(self):
         """Assert that TwoQubitControlledUDecomposer supports pickle"""
 
         decomp = TwoQubitControlledUDecomposer(RXXGate)
@@ -1557,7 +1557,7 @@ class TestTwoQubitControlledUDecompose(CheckDecompositions):
         self.assertEqual(decomp.rxx_equivalent_gate, decomp_cpy.rxx_equivalent_gate, msg=msg_base)
         self.assertEqual(decomp.euler_basis, decomp_cpy.euler_basis, msg=msg_base)
 
-    def test_assertPickle_with_dill(self):
+    def test_assert_pickle_with_dill(self):
         """Assert that TwoQubitControlledUDecomposer supports pickle"""
 
         class CustomXXGate(RXXGate):
