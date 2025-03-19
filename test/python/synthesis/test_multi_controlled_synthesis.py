@@ -35,6 +35,9 @@ from qiskit.circuit.library import (
     SXGate,
     SXdgGate,
     UGate,
+    U1Gate,
+    U2Gate,
+    U3Gate,
 )
 from qiskit.synthesis.multi_controlled import (
     synth_mcx_n_dirty_i15,
@@ -62,7 +65,7 @@ class TestMCSynthesisCorrectness(QiskitTestCase):
         base_mat = base_gate.to_matrix()
         return _compute_control_matrix(base_mat, num_ctrl_qubits)
 
-    def check_mc_synthesis(
+    def assertSynthesisCorrect(
         self,
         base_gate: Gate,
         num_ctrl_qubits: int,
@@ -109,44 +112,54 @@ class TestMCSynthesisCorrectness(QiskitTestCase):
     def test_mcx_n_dirty_i15(self, num_ctrl_qubits: int):
         """Test synth_mcx_n_dirty_i15 by comparing synthesized and expected matrices."""
         synthesized_circuit = synth_mcx_n_dirty_i15(num_ctrl_qubits)
-        self.check_mc_synthesis(XGate(), num_ctrl_qubits, synthesized_circuit, clean_ancillas=False)
+        self.assertSynthesisCorrect(
+            XGate(), num_ctrl_qubits, synthesized_circuit, clean_ancillas=False
+        )
 
     @data(3, 4, 5, 6)
     def test_mcx_n_clean_m15(self, num_ctrl_qubits: int):
         """Test synth_mcx_n_clean_m15 by comparing synthesized and expected matrices."""
         # Note: the method requires at least 3 control qubits
         synthesized_circuit = synth_mcx_n_clean_m15(num_ctrl_qubits)
-        self.check_mc_synthesis(XGate(), num_ctrl_qubits, synthesized_circuit, clean_ancillas=True)
+        self.assertSynthesisCorrect(
+            XGate(), num_ctrl_qubits, synthesized_circuit, clean_ancillas=True
+        )
 
     @data(3, 4, 5, 6, 7, 8)
     def test_mcx_1_clean_b95(self, num_ctrl_qubits: int):
         """Test synth_mcx_1_clean_b95 by comparing synthesized and expected matrices."""
         # Note: the method requires at least 3 control qubits
         synthesized_circuit = synth_mcx_1_clean_b95(num_ctrl_qubits)
-        self.check_mc_synthesis(XGate(), num_ctrl_qubits, synthesized_circuit, clean_ancillas=True)
+        self.assertSynthesisCorrect(
+            XGate(), num_ctrl_qubits, synthesized_circuit, clean_ancillas=True
+        )
 
     @data(3, 4, 5, 6, 7, 8)
     def test_mcx_gray_code(self, num_ctrl_qubits: int):
         """Test synth_mcx_gray_code by comparing synthesized and expected matrices."""
         # Note: the method requires at least 3 control qubits
         synthesized_circuit = synth_mcx_gray_code(num_ctrl_qubits)
-        self.check_mc_synthesis(XGate(), num_ctrl_qubits, synthesized_circuit, clean_ancillas=False)
+        self.assertSynthesisCorrect(
+            XGate(), num_ctrl_qubits, synthesized_circuit, clean_ancillas=False
+        )
 
     @data(1, 2, 3, 4, 5, 6, 7, 8)
     def test_mcx_noaux_v24(self, num_ctrl_qubits: int):
         """Test synth_mcx_noaux_v24 by comparing synthesized and expected matrices."""
         synthesized_circuit = synth_mcx_noaux_v24(num_ctrl_qubits)
-        self.check_mc_synthesis(XGate(), num_ctrl_qubits, synthesized_circuit, clean_ancillas=False)
+        self.assertSynthesisCorrect(
+            XGate(), num_ctrl_qubits, synthesized_circuit, clean_ancillas=False
+        )
 
     def test_c3x(self):
         """Test synth_c3x by comparing synthesized and expected matrices."""
         synthesized_circuit = synth_c3x()
-        self.check_mc_synthesis(XGate(), 3, synthesized_circuit, clean_ancillas=False)
+        self.assertSynthesisCorrect(XGate(), 3, synthesized_circuit, clean_ancillas=False)
 
     def test_c4x(self):
         """Test synth_c4x by comparing synthesized and expected matrices."""
         synthesized_circuit = synth_c4x()
-        self.check_mc_synthesis(XGate(), 4, synthesized_circuit, clean_ancillas=False)
+        self.assertSynthesisCorrect(XGate(), 4, synthesized_circuit, clean_ancillas=False)
 
     @combine(
         num_ctrl_qubits=[1, 2, 3, 4, 5, 6, 7],
@@ -166,6 +179,9 @@ class TestMCSynthesisCorrectness(QiskitTestCase):
             RYGate(0.123),
             RZGate(0.456),
             UGate(0.1, 0.2, 0.3),
+            U1Gate(0.1),
+            U2Gate(0.1, 0.2),
+            U3Gate(0.1, 0.2, 0.3),
         ],
     )
     def test_create_mc_gates(self, num_ctrl_qubits, base_gate):
@@ -323,6 +339,9 @@ class TestMCSynthesisCounts(QiskitTestCase):
             RYGate(0.123),
             RZGate(0.456),
             UGate(0.1, 0.2, 0.3),
+            U1Gate(0.1),
+            U2Gate(0.1, 0.2),
+            U3Gate(0.1, 0.2, 0.3),
         ],
     )
     def test_small_mc_gates_cx_count(self, num_ctrl_qubits, base_gate):
@@ -347,8 +366,10 @@ class TestMCSynthesisCounts(QiskitTestCase):
             expected = {1: 2, 2: 4, 3: 14, 4: 24, 5: 40, 6: 56, 7: 80, 8: 104}
         elif isinstance(base_gate, (RXGate, RYGate)):
             expected = {1: 2, 2: 8, 3: 20, 4: 24, 5: 40, 6: 56, 7: 80, 8: 104}
-        elif isinstance(base_gate, UGate):
+        elif isinstance(base_gate, (UGate, U2Gate, U3Gate)):
             expected = {1: 2, 2: 22, 3: 54, 4: 92, 5: 164, 6: 252, 7: 380, 8: 532}
+        elif isinstance(base_gate, U1Gate):
+            expected = {1: 2, 2: 8, 3: 20, 4: 44, 5: 92, 6: 188, 7: 380, 8: 764}
         else:
             raise NotImplementedError
 
