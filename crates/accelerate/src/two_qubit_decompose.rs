@@ -2483,7 +2483,6 @@ impl<'a, 'py> IntoPyObject<'py> for &'a RXXEquivalent {
     type Target = PyAny;
     type Output = Borrowed<'a, 'py, Self::Target>;
     type Error = PyErr;
-
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
         match self {
             RXXEquivalent::Standard(gate) => Ok(gate.get_gate_class(py)?.bind_borrowed(py)),
@@ -2491,6 +2490,18 @@ impl<'a, 'py> IntoPyObject<'py> for &'a RXXEquivalent {
         }
     }
 }
+impl<'py> IntoPyObject<'py> for RXXEquivalent {
+    type Target = PyAny;
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        match self {
+            RXXEquivalent::Standard(gate) => Ok(gate.get_gate_class(py)?.bind(py).clone()),
+            RXXEquivalent::CustomPython(gate) => Ok(gate.bind(py).clone().into_any()),
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 #[pyclass(module = "qiskit._accelerate.two_qubit_decompose", subclass)]
 pub struct TwoQubitControlledUDecomposer {
