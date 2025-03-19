@@ -2479,20 +2479,18 @@ impl RXXEquivalent {
         }
     }
 }
-
-impl<'py> IntoPyObject<'py> for RXXEquivalent {
+impl<'a, 'py> IntoPyObject<'py> for &'a RXXEquivalent {
     type Target = PyAny;
-    type Output = Bound<'py, Self::Target>;
+    type Output = Borrowed<'a, 'py, Self::Target>;
     type Error = PyErr;
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
         match self {
-            RXXEquivalent::Standard(gate) => Ok(gate.get_gate_class(py)?.bind(py).clone()),
-            RXXEquivalent::CustomPython(gate) => Ok(gate.bind(py).clone().into_any()),
+            RXXEquivalent::Standard(gate) => Ok(gate.get_gate_class(py)?.bind_borrowed(py)),
+            RXXEquivalent::CustomPython(gate) => Ok(gate.as_any().bind_borrowed(py)),
         }
     }
 }
-
 #[derive(Clone, Debug)]
 #[pyclass(module = "qiskit._accelerate.two_qubit_decompose", subclass)]
 pub struct TwoQubitControlledUDecomposer {
@@ -2933,8 +2931,8 @@ impl TwoQubitControlledUDecomposer {
 
 #[pymethods]
 impl TwoQubitControlledUDecomposer {
-    fn __getnewargs__(&self) -> (RXXEquivalent, &str) {
-        (self.rxx_equivalent_gate.clone(), self.euler_basis.as_str())
+    fn __getnewargs__(&self) -> (&RXXEquivalent, &str) {
+        (&self.rxx_equivalent_gate, self.euler_basis.as_str())
     }
 
     ///  Initialize the KAK decomposition.
