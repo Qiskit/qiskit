@@ -85,7 +85,7 @@ class iSwapGate(SingletonGate):
             \end{pmatrix}
     """
 
-    _standard_gate = StandardGate.ISwapGate
+    _standard_gate = StandardGate.ISwap
 
     def __init__(self, label: Optional[str] = None):
         """Create new iSwap gate."""
