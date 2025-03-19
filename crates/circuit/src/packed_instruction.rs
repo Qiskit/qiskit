@@ -448,7 +448,7 @@ impl PackedOperation {
             }
             (OperationRef::Unitary(left), OperationRef::Unitary(right)) => {
                 Ok(left.array == right.array)
-            }    
+            }
             _ => Ok(false),
         }
     }
