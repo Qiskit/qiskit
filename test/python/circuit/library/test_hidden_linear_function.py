@@ -52,13 +52,15 @@ class TestHiddenLinearFunctionLibrary(QiskitTestCase):
     def test_hlf(self):
         """Test if the HLF matrix produces the right matrix."""
         hidden_function = [[1, 1, 0], [1, 0, 1], [0, 1, 1]]
-        hlf = HiddenLinearFunction(hidden_function)
+        with self.assertWarns(DeprecationWarning):
+            hlf = HiddenLinearFunction(hidden_function)
         self.assertHLFIsCorrect(hidden_function, hlf)
 
     def test_non_symmetric_raises(self):
         """Test that adjacency matrix is required to be symmetric."""
         with self.assertRaises(CircuitError):
-            HiddenLinearFunction([[1, 1, 0], [1, 0, 1], [1, 1, 1]])
+            with self.assertWarns(DeprecationWarning):
+                HiddenLinearFunction([[1, 1, 0], [1, 0, 1], [1, 1, 1]])
 
     def test_hlf_function(self):
         """Test if the HLF matrix produces the right matrix."""
