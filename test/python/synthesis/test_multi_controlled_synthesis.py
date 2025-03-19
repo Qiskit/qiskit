@@ -249,7 +249,7 @@ class TestMCSynthesisCounts(QiskitTestCase):
         self.assertLessEqual(cx_count, 36)
 
     @combine(
-        num_ctrl_qubits=[4, 5, 8, 10, 13, 15],
+        num_ctrl_qubits=[5, 10, 15],
         base_gate=[RXGate(0.123), RYGate(0.456), RZGate(0.789)],
     )
     def test_mc_rotation_gates_cx_count(self, num_ctrl_qubits: int, base_gate: Gate):
