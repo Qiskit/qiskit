@@ -2459,7 +2459,7 @@ fn invert_1q_gate(gate: (StandardGate, SmallVec<[f64; 3]>)) -> (StandardGate, Sm
     (inv_gate.0, inv_gate_params)
 }
 
-#[derive(Clone, Debug, FromPyObject, IntoPyObject)]
+#[derive(Clone, Debug, FromPyObject)]
 pub enum RXXEquivalent {
     Standard(StandardGate),
     CustomPython(Py<PyType>),
@@ -2476,6 +2476,19 @@ impl RXXEquivalent {
                     .extract::<PyReadonlyArray2<Complex64>>()?;
                 Ok(raw_matrix.as_array().to_owned())
             }),
+        }
+    }
+}
+
+impl<'py> IntoPyObject<'py> for RXXEquivalent {
+    type Target = PyAny;
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        match self {
+            RXXEquivalent::Standard(gate) => Ok(gate.get_gate_class(py)?.bind(py).clone()),
+            RXXEquivalent::CustomPython(gate) => Ok(gate.bind(py).clone().into_any()),
         }
     }
 }
@@ -2920,6 +2933,10 @@ impl TwoQubitControlledUDecomposer {
 
 #[pymethods]
 impl TwoQubitControlledUDecomposer {
+    fn __getnewargs__(&self) -> (RXXEquivalent, &str) {
+        (self.rxx_equivalent_gate.clone(), self.euler_basis.as_str())
+    }
+
     ///  Initialize the KAK decomposition.
     ///  Args:
     ///      rxx_equivalent_gate: Gate that is locally equivalent to an :class:`.RXXGate`:
@@ -2928,9 +2945,6 @@ impl TwoQubitControlledUDecomposer {
     ///     for 1Q synthesis.
     ///  Raises:
     ///      QiskitError: If the gate is not locally equivalent to an :class:`.RXXGate`.
-    fn __getnewargs__(&self) -> (RXXEquivalent, &str) {
-        (self.rxx_equivalent_gate.clone(), self.euler_basis.as_str())
-    }
     #[new]
     #[pyo3(signature=(rxx_equivalent_gate, euler_basis="ZXZ"))]
     pub fn new(rxx_equivalent_gate: RXXEquivalent, euler_basis: &str) -> PyResult<Self> {
