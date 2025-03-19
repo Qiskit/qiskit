@@ -2683,7 +2683,7 @@ impl Operation for PyOperation {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub enum ArrayType {
     NDArray(Array2<Complex64>),
     OneQ(Matrix2<Complex64>),
@@ -2696,6 +2696,12 @@ pub enum ArrayType {
 #[repr(align(8))]
 pub struct UnitaryGate {
     pub array: ArrayType,
+}
+
+impl PartialEq for UnitaryGate {
+    fn eq(&self, other: &Self) -> bool {
+        self.matrix(&[]) == other.matrix(&[])
+    }
 }
 
 impl Operation for UnitaryGate {
