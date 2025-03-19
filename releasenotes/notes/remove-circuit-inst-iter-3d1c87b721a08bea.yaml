@@ -1,0 +1,8 @@
+---
+upgrade_circuits:
+  - |
+    :class:`~.circuit.CircuitInstruction` is no longer tuple-like nor iterable,
+    which was deprecated in Qiskit 1.2. Instead, use the
+    :class:`~.circuit.CircuitInstruction.operation`,
+    :class:`~.circuit.CircuitInstruction.qubits`, and
+    :class:`~.circuit.CircuitInstruction.clbits` named attributes.

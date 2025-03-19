@@ -344,27 +344,6 @@ impl CircuitInstruction {
         )
     }
 
-    pub fn __getitem__(&self, py: Python<'_>, key: &Bound<PyAny>) -> PyResult<PyObject> {
-        warn_on_legacy_circuit_instruction_iteration(py)?;
-        self._legacy_format(py)?
-            .as_any()
-            .get_item(key)?
-            .into_py_any(py)
-    }
-
-    pub fn __iter__(&self, py: Python<'_>) -> PyResult<PyObject> {
-        warn_on_legacy_circuit_instruction_iteration(py)?;
-        self._legacy_format(py)?
-            .as_any()
-            .try_iter()?
-            .into_py_any(py)
-    }
-
-    pub fn __len__(&self, py: Python) -> PyResult<usize> {
-        warn_on_legacy_circuit_instruction_iteration(py)?;
-        Ok(3)
-    }
-
     pub fn __richcmp__(
         self_: &Bound<Self>,
         other: &Bound<PyAny>,
@@ -682,30 +661,4 @@ fn as_tuple<'py>(py: Python<'py>, seq: Option<Bound<'py, PyAny>>) -> PyResult<Bo
                 .collect::<PyResult<Vec<PyObject>>>()?,
         )
     }
-}
-
-/// Issue a Python `DeprecationWarning` about using the legacy tuple-like interface to
-/// `CircuitInstruction`.
-///
-/// Beware the `stacklevel` here doesn't work quite the same way as it does in Python as Rust-space
-/// calls are completely transparent to Python.
-#[inline]
-fn warn_on_legacy_circuit_instruction_iteration(py: Python) -> PyResult<()> {
-    WARNINGS_WARN
-        .get_bound(py)
-        .call1((
-            intern!(
-                py,
-                concat!(
-                    "Treating CircuitInstruction as an iterable is deprecated legacy behavior",
-                    " since Qiskit 1.2, and will be removed in Qiskit 2.0.",
-                    " Instead, use the `operation`, `qubits` and `clbits` named attributes."
-                )
-            ),
-            py.get_type::<PyDeprecationWarning>(),
-            // Stack level.  Compared to Python-space calls to `warn`, this is unusually low
-            // beacuse all our internal call structure is now Rust-space and invisible to Python.
-            1,
-        ))
-        .map(|_| ())
 }
