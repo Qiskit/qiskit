@@ -16,7 +16,6 @@ Parameter Class for variable parameters.
 from __future__ import annotations
 
 from uuid import uuid4, UUID
-import numpy
 
 import qiskit._accelerate.circuit
 from qiskit.circuit.exceptions import CircuitError

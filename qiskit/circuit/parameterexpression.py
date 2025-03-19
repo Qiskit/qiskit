@@ -25,11 +25,9 @@ import numpy
 
 from qiskit.utils.optionals import HAS_SYMPY
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.exceptions import QiskitError
 import qiskit._accelerate.circuit
 
 SymbolExpr = qiskit._accelerate.circuit.PySymbolExpr
-
 
 # This type is redefined at the bottom to insert the full reference to "ParameterExpression", so it
 # can safely be used by runtime type-checkers like Sphinx.  Mypy does not need this because it
@@ -138,13 +136,13 @@ class ParameterExpression:
             self._symbol_expr = expr
         else:
             # replace prefix for greek letters
-            re_expr = expr.replace("__pre_gl__", "$\\").replace("__pos_gl__", "$")
+#            re_expr = expr.replace("__pre_gl__", "$\\").replace("__pos_gl__", "$")
 
             self._symbol_expr = SymbolExpr(re_expr)
             self._parameter_symbols = {}
             # reconstruct symbols from input parameters
             for param in symbol_map.keys():
-                re_name = param.name.replace("__pre_gl__", "$\\").replace("__pos_gl__", "$")
+#                re_name = param.name.replace("__pre_gl__", "$\\").replace("__pos_gl__", "$")
                 self._parameter_symbols[param] = SymbolExpr.Symbol(re_name)
         self._name_map: dict | None = None
         self._parameter_keys = frozenset(p._hash_key() for p in self._parameter_symbols)
@@ -692,7 +690,7 @@ class ParameterExpression:
 
         expr = str(self._symbol_expr)
         # replace prefix for greek letters
-        expr = expr.replace("$\\", "__pre_gl__").replace("$", "__pos_gl__")
+#        expr = expr.replace("$\\", "__pre_gl__").replace("$", "__pos_gl__")
 
         return sym.sympify(expr)
 
