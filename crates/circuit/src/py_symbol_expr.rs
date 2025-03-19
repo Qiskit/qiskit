@@ -130,7 +130,7 @@ impl PySymbolExpr {
     pub fn expr_for_sympy(&self) -> String {
         let ret = self.expr.optimize().to_string();
         ret.replace("$\\", "__begin_sympy_replace__")
-            .replace("$", "__end_sympy_replace__")
+            .replace('$', "__end_sympy_replace__")
     }
 
     /// unary functions
