@@ -16,7 +16,7 @@ mod errors;
 mod instruction_properties;
 mod nullable_index_map;
 
-use std::ops::Index;
+use std::{ops::Index, sync::OnceLock};
 
 use ahash::RandomState;
 
@@ -35,7 +35,7 @@ use pyo3::{
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::operations::{Operation, OperationRef, Param};
 use qiskit_circuit::packed_instruction::PackedOperation;
-use smallvec::SmallVec;
+use smallvec::{smallvec, SmallVec};
 
 use crate::nlayout::PhysicalQubit;
 
@@ -92,7 +92,47 @@ impl TargetOperation {
 pub(crate) struct NormalOperation {
     pub operation: PackedOperation,
     pub params: SmallVec<[Param; 3]>,
-    op_object: PyObject,
+    op_object: OnceLock<PyObject>,
+}
+
+impl NormalOperation {
+    // Creates a python Operation type based on the operation's internal data.
+    #[inline]
+    fn create_py_op(&self, py: Python, label: Option<&str>) -> PyResult<PyObject> {
+        let obj = match self.operation.view() {
+            OperationRef::StandardGate(standard_gate) => {
+                standard_gate.create_py_op(py, Some(&self.params), label)?
+            }
+            OperationRef::StandardInstruction(standard_instruction) => {
+                standard_instruction.create_py_op(py, Some(&self.params), label)?
+            }
+            OperationRef::Gate(gate) => gate.gate.clone_ref(py),
+            OperationRef::Instruction(instruction) => instruction.instruction.clone_ref(py),
+            OperationRef::Operation(operation) => operation.operation.clone_ref(py),
+            OperationRef::Unitary(unitary) => unitary.create_py_op(py, label)?,
+        };
+        Ok(obj)
+    }
+}
+
+impl From<PackedOperation> for NormalOperation {
+    fn from(value: PackedOperation) -> Self {
+        Self {
+            operation: value,
+            params: smallvec![],
+            op_object: OnceLock::new(),
+        }
+    }
+}
+
+impl From<(PackedOperation, SmallVec<[Param; 3]>)> for NormalOperation {
+    fn from(value: (PackedOperation, SmallVec<[Param; 3]>)) -> Self {
+        Self {
+            operation: value.0,
+            params: value.1,
+            op_object: OnceLock::new(),
+        }
+    }
 }
 
 impl<'py> IntoPyObject<'py> for NormalOperation {
@@ -101,7 +141,11 @@ impl<'py> IntoPyObject<'py> for NormalOperation {
     type Error = PyErr;
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        Ok(self.op_object.bind(py).clone())
+        Ok(self
+            .op_object
+            .get_or_init(|| self.create_py_op(py, None).unwrap())
+            .bind(py)
+            .clone())
     }
 }
 
@@ -111,7 +155,10 @@ impl<'a, 'py> IntoPyObject<'py> for &'a NormalOperation {
     type Error = PyErr;
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        Ok(self.op_object.bind_borrowed(py))
+        Ok(self
+            .op_object
+            .get_or_init(|| self.create_py_op(py, None).unwrap())
+            .bind_borrowed(py))
     }
 }
 
@@ -121,7 +168,7 @@ impl<'py> FromPyObject<'py> for NormalOperation {
         Ok(Self {
             operation: operation.operation,
             params: operation.params,
-            op_object: ob.clone().unbind(),
+            op_object: ob.clone().unbind().into(),
         })
     }
 }
@@ -1273,6 +1320,28 @@ impl Index<&str> for Target {
     }
 }
 
+impl Default for Target {
+    fn default() -> Self {
+        Self {
+            description: None,
+            num_qubits: Default::default(),
+            dt: None,
+            granularity: 1,
+            min_length: 1,
+            pulse_alignment: 1,
+            acquire_alignment: 1,
+            qubit_properties: None,
+            concurrent_measurements: None,
+            gate_map: Default::default(),
+            _gate_name_map: Default::default(),
+            global_operations: Default::default(),
+            qarg_gate_map: Default::default(),
+            non_global_strict_basis: None,
+            non_global_basis: None,
+        }
+    }
+}
+
 // For instruction_supported
 fn check_obj_params(parameters: &[Param], obj: &NormalOperation) -> bool {
     for (index, param) in parameters.iter().enumerate() {
@@ -1307,3 +1376,118 @@ pub fn target(m: &Bound<PyModule>) -> PyResult<()> {
 }
 
 // TODO: Add rust-based unit testing.
+#[cfg(all(test, not(miri)))]
+mod test {
+    use std::sync::Mutex;
+
+    use crate::target_transpiler::{Target, TargetOperation};
+    use nalgebra::Matrix2;
+    use numpy::Complex64;
+    use pyo3::{exceptions::PyRuntimeError, prelude::*};
+    use qiskit_circuit::{
+        imports::ImportOnceCell,
+        operations::{Param, StandardGate, StandardInstruction, UnitaryGate},
+    };
+    use qiskit_circuit::{imports::UNITARY_GATE, packed_instruction::PackedOperation};
+    use smallvec::smallvec;
+
+    static PY_RXGATE: ImportOnceCell = ImportOnceCell::new("qiskit.circuit.library", "RXGate");
+    static BARRIER: ImportOnceCell = ImportOnceCell::new("qiskit.circuit.library", "Barrier");
+    static IMPORT_LOCK: Mutex<()> = Mutex::new(());
+
+    #[test]
+    fn add_standard_gate_without_python() -> PyResult<()> {
+        let _lock = IMPORT_LOCK
+            .lock()
+            .map_err(|_| PyRuntimeError::new_err("Error avoiding deadlock"))?;
+        Python::with_gil(|py| -> PyResult<()> {
+            let rxgate = PackedOperation::from_standard_gate(StandardGate::RXGate);
+            let mut test_target = Target::default();
+            test_target
+                .add_instruction(
+                    TargetOperation::Normal(
+                        (rxgate, smallvec![std::f64::consts::PI.into(),]).into(),
+                    ),
+                    "rx",
+                    None,
+                )
+                .unwrap();
+            let op = test_target.py_operation_from_name(py, "rx")?;
+
+            let py_rx_gate = PY_RXGATE.get_bound(py);
+
+            assert!(
+                op.is_instance(py_rx_gate)?,
+                "The resulting operation in python did not have the correct type."
+            );
+            assert!(
+                op.eq(py_rx_gate.call1((Param::from(std::f64::consts::PI),))?)?,
+                "The resulting operation did not contain the correct parameters."
+            );
+            Ok(())
+        })
+    }
+
+    #[test]
+    fn add_standard_instruction_without_python() -> PyResult<()> {
+        let _lock = IMPORT_LOCK
+            .lock()
+            .map_err(|_| PyRuntimeError::new_err("Error avoiding deadlock"))?;
+        Python::with_gil(|py| -> PyResult<()> {
+            let barrier =
+                PackedOperation::from_standard_instruction(StandardInstruction::Barrier(0));
+            let mut test_target = Target::default();
+            test_target
+                .add_instruction(TargetOperation::Normal(barrier.into()), "barrier", None)
+                .unwrap();
+            let op = test_target.py_operation_from_name(py, "barrier")?;
+            assert!(
+                op.is_instance(BARRIER.get_bound(py))?,
+                "The resulting operation in python did not have the correct type."
+            );
+            Ok(())
+        })
+    }
+
+    #[test]
+    fn add_unitary_gate_without_python() -> PyResult<()> {
+        let _lock = IMPORT_LOCK
+            .lock()
+            .map_err(|_| PyRuntimeError::new_err("Error avoiding deadlock"))?;
+        Python::with_gil(|py| -> PyResult<()> {
+            let unitary: Matrix2<Complex64> = Matrix2::new(
+                Complex64::new(0.0, 0.0),
+                Complex64::new(1.0, 0.0),
+                Complex64::new(1.0, 0.0),
+                Complex64::new(0.0, 0.0),
+            );
+            let unitary_gate = PackedOperation::from_unitary(
+                UnitaryGate {
+                    array: qiskit_circuit::operations::ArrayType::OneQ(unitary),
+                }
+                .into(),
+            );
+            let mut test_target = Target::default();
+            test_target
+                .add_instruction(
+                    TargetOperation::Normal(unitary_gate.into()),
+                    "unitary",
+                    None,
+                )
+                .unwrap();
+            let op = test_target.py_operation_from_name(py, "unitary")?;
+            assert!(
+                op.is_instance(UNITARY_GATE.get_bound(py))?,
+                "The resulting operation in python did not have the correct type."
+            );
+            let py_gate = UNITARY_GATE
+                .get_bound(py)
+                .call1(([[0.0, 1.0], [1.0, 0.0]],))?;
+            assert!(
+                op.eq(py_gate)?,
+                "The resulting unitaries did not contain the same matrices"
+            );
+            Ok(())
+        })
+    }
+}
