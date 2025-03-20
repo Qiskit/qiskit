@@ -281,7 +281,7 @@ def plot_bloch_multivector(
         reverse_bits (bool): If True, plots qubits following Qiskit's convention [Default:False].
         font_size (float): Font size for the Bloch ball figures.
         title_font_size (float): Font size for the title.
-        title_pad (float): Padding for the title (suptitle `y` position is `0.98` 
+        title_pad (float): Padding for the title (suptitle `y` position is `0.98`
         and the image height will be extended by `0.02+title_pad/100`).
 
     Returns:
@@ -346,7 +346,7 @@ def plot_bloch_multivector(
         width *= num
     else:
         width, height = plt.figaspect(1 / num)
-    height += 0.02 + title_pad / 100 # additional space for the title
+    height += 0.02 + title_pad / 100  # additional space for the title
     default_title_font_size = font_size if font_size is not None else 16
     title_font_size = title_font_size if title_font_size is not None else default_title_font_size
     fig = plt.figure(figsize=(width, height))
@@ -359,7 +359,10 @@ def plot_bloch_multivector(
     fig.suptitle(title, fontsize=title_font_size, y=0.98)
     matplotlib_close_if_inline(fig)
     if filename is None:
-        fig.tight_layout()
+        try:
+            fig.tight_layout()
+        except AttributeError:
+            pass
         return fig
     else:
         return fig.savefig(filename)
@@ -729,7 +732,10 @@ def plot_state_paulivec(state, title="", figsize=None, color=None, ax=None, *, f
     if return_fig:
         matplotlib_close_if_inline(fig)
     if filename is None:
-        fig.tight_layout()
+        try:
+            fig.tight_layout()
+        except AttributeError:
+            pass
         return fig
     else:
         return fig.savefig(filename)

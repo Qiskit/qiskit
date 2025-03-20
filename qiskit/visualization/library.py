@@ -34,7 +34,7 @@ def _generate_circuit_library_visualization(circuit: QuantumCircuit):
     ax1.table(
         [[circuit.name], [circuit.width()], [circuit.depth()], [sum(ops.values())], [num_nl]],
         rowLabels=["Circuit Name", "Width", "Depth", "Total Gates", "Non-local Gates"],
-        loc="top"
+        loc="top",
     )
     plt.tight_layout()
     plt.show()
