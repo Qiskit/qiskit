@@ -17,8 +17,7 @@ from math import ceil
 import numpy as np
 
 from qiskit.exceptions import QiskitError
-from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.quantumcircuit import QuantumCircuit, QuantumRegister, AncillaRegister
 from qiskit.circuit.library.standard_gates import (
     HGate,
     MCU1Gate,
@@ -302,32 +301,33 @@ def synth_mcx_noaux_v24(num_ctrl_qubits: int) -> QuantumCircuit:
     return qc
 
 
-def _linear_depth_ladder_ops(qreg: list[int]) -> tuple[QuantumCircuit, list[int]]:
+def _linear_depth_ladder_ops(num_ladder_qubits: int) -> tuple[QuantumCircuit, list[int]]:
     r"""
     Helper function to create linear-depth ladder operations used in Khattar and Gidney's MCX synthesis.
     In particular, this implements Step-1 and Step-2 on Fig. 3 of [1] except for the first and last
     CCX gates.
 
     Args:
-        qreg: List of qubit indices to apply the ladder operations on. qreg[0] is assumed to be ancilla.
+        num_ladder_qubits: No. of qubits involved in the ladder operation.
 
     Returns:
         A tuple consisting of the linear-depth ladder circuit and the index of control qubit to
         apply the final CCX gate.
 
     Raises:
-        QiskitError: If len(qreg) <= 3.
+        QiskitError: If num_ladder_qubits <= 2.
 
     References:
         1. Khattar and Gidney, Rise of conditionally clean ancillae for optimizing quantum circuits
         `arXiv:2407.17966 <https://arxiv.org/abs/2407.17966>`__
     """
 
-    n = len(qreg)
-    if n <= 3:
-        raise QiskitError("n = n_ctrls + 1 => n_ctrls >= 3 to use MCX ladder. Otherwise, use CCX")
+    if num_ladder_qubits <= 2:
+        raise QiskitError("n_ctrls >= 3 to use MCX ladder. Otherwise, use CCX")
 
+    n = num_ladder_qubits + 1
     qc = QuantumCircuit(n)
+    qreg = list(range(n))
 
     # up-ladder
     for i in range(2, n - 2, 2):
@@ -365,17 +365,23 @@ def synth_mcx_1_kg24(num_ctrl_qubits: int, clean: bool = True) -> QuantumCircuit
     Returns:
         The synthesized quantum circuit.
 
+    Raises:
+        QiskitError: If num_ctrl_qubits <= 2.
+
     References:
         1. Khattar and Gidney, Rise of conditionally clean ancillae for optimizing quantum circuits
         `arXiv:2407.17966 <https://arxiv.org/abs/2407.17966>`__
     """
+
+    if num_ctrl_qubits <= 2:
+        raise QiskitError("kg24 synthesis requires at least 3 control qubits. Use CCX directly.")
 
     q_controls = QuantumRegister(num_ctrl_qubits, name="ctrl")
     q_target = QuantumRegister(1, name="targ")
     q_ancilla = AncillaRegister(1, name="anc")
     qc = QuantumCircuit(q_controls, q_target, q_ancilla, name="mcx_linear_depth")
 
-    ladder_ops, final_ctrl = _linear_depth_ladder_ops(list(range(num_ctrl_qubits + 1)))
+    ladder_ops, final_ctrl = _linear_depth_ladder_ops(num_ctrl_qubits)
     qc.ccx(q_controls[0], q_controls[1], q_ancilla)  #                  # create cond. clean ancilla
     qc.compose(ladder_ops, q_ancilla[:] + q_controls[:], inplace=True)  # up-ladder
     qc.ccx(q_ancilla, q_controls[final_ctrl], q_target)  #              # target
@@ -407,6 +413,9 @@ def synth_mcx_1_clean_kg24(num_ctrl_qubits: int) -> QuantumCircuit:
     Returns:
         The synthesized quantum circuit.
 
+    Raises:
+        QiskitError: If num_ctrl_qubits <= 2.
+
     References:
         1. Khattar and Gidney, Rise of conditionally clean ancillae for optimizing quantum circuits
         `arXiv:2407.17966 <https://arxiv.org/abs/2407.17966>`__
@@ -426,6 +435,9 @@ def synth_mcx_1_dirty_kg24(num_ctrl_qubits: int) -> QuantumCircuit:
 
     Returns:
         The synthesized quantum circuit.
+
+    Raises:
+        QiskitError: If num_ctrl_qubits <= 2.
 
     References:
         1. Khattar and Gidney, Rise of conditionally clean ancillae for optimizing quantum circuits
@@ -534,14 +546,20 @@ def synth_mcx_2_kg24(num_ctrl_qubits: int, clean: bool = True) -> QuantumCircuit
     Returns:
         The synthesized quantum circuit.
 
+    Raises:
+        QiskitError: If num_ctrl_qubits <= 2.
+
     References:
         1. Khattar and Gidney, Rise of conditionally clean ancillae for optimizing quantum circuits
         `arXiv:2407.17966 <https://arxiv.org/abs/2407.17966>`__
     """
 
+    if num_ctrl_qubits <= 2:
+        raise QiskitError("kg24 synthesis requires at least 3 control qubits. Use CCX directly.")
+
     q_control = QuantumRegister(num_ctrl_qubits, name="ctrl")
     q_target = QuantumRegister(1, name="targ")
-    q_ancilla = QuantumRegister(2, name="anc")
+    q_ancilla = AncillaRegister(2, name="anc")
     qc = QuantumCircuit(q_control, q_target, q_ancilla, name="mcx_logn_depth")
 
     ladder_ops, final_ctrls = _build_logn_depth_ccx_ladder(
@@ -593,6 +611,9 @@ def synth_mcx_2_clean_kg24(num_ctrl_qubits: int) -> QuantumCircuit:
     Returns:
         The synthesized quantum circuit.
 
+    Raises:
+        QiskitError: If num_ctrl_qubits <= 2.
+
     References:
         1. Khattar and Gidney, Rise of conditionally clean ancillae for optimizing quantum circuits
         `arXiv:2407.17966 <https://arxiv.org/abs/2407.17966>`__
@@ -612,6 +633,9 @@ def synth_mcx_2_dirty_kg24(num_ctrl_qubits: int) -> QuantumCircuit:
 
     Returns:
         The synthesized quantum circuit.
+
+    Raises:
+        QiskitError: If num_ctrl_qubits <= 2.
 
     References:
         1. Khattar and Gidney, Rise of conditionally clean ancillae for optimizing quantum circuits
