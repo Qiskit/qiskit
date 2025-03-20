@@ -1,6 +1,0 @@
----
-fixes:
-  - |
-    Fixes several small problems in the way graphs are displayed in 
-    the docs, mostly due to bounding box problems which do not turn out
-    when not using sphinx. The fixes should be transparent to most users.

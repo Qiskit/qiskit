@@ -282,7 +282,7 @@ def plot_bloch_multivector(
         font_size (float): Font size for the Bloch ball figures.
         title_font_size (float): Font size for the title.
         title_pad (float): Padding for the title (suptitle `y` position is `0.98`
-        and the image height will be extended by `0.02+title_pad/100`).
+        and the image height will be extended by `1 + title_pad/100`).
 
     Returns:
         :class:`matplotlib:matplotlib.figure.Figure` :
@@ -346,7 +346,7 @@ def plot_bloch_multivector(
         width *= num
     else:
         width, height = plt.figaspect(1 / num)
-    height += 0.02 + title_pad / 100  # additional space for the title
+    height += 1 + title_pad / 100  # additional space for the title
     default_title_font_size = font_size if font_size is not None else 16
     title_font_size = title_font_size if title_font_size is not None else default_title_font_size
     fig = plt.figure(figsize=(width, height))
