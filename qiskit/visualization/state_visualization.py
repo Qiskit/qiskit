@@ -346,7 +346,8 @@ def plot_bloch_multivector(
         width *= num
     else:
         width, height = plt.figaspect(1 / num)
-    height += 1 + title_pad / 100  # additional space for the title
+    if len(title) > 0:
+        height += 1 + title_pad / 100  # additional space for the title
     default_title_font_size = font_size if font_size is not None else 16
     title_font_size = title_font_size if title_font_size is not None else default_title_font_size
     fig = plt.figure(figsize=(width, height))
