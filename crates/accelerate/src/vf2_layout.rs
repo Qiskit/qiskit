@@ -332,10 +332,14 @@ fn map_free_qubits(
     }
     let mut free_qubits: Vec<u32> = free_qubits_set.into_iter().collect();
     free_qubits.par_sort_by(|qubit_a, qubit_b| {
-        let score_a =
-            avg_error_map.error_map[&[PhysicalQubit::new(*qubit_a), PhysicalQubit::new(*qubit_a)]];
-        let score_b =
-            avg_error_map.error_map[&[PhysicalQubit::new(*qubit_b), PhysicalQubit::new(*qubit_b)]];
+        let score_a = *avg_error_map
+            .error_map
+            .get(&[PhysicalQubit::new(*qubit_a), PhysicalQubit::new(*qubit_a)])
+            .unwrap_or(&0.);
+        let score_b = *avg_error_map
+            .error_map
+            .get(&[PhysicalQubit::new(*qubit_b), PhysicalQubit::new(*qubit_b)])
+            .unwrap_or(&0.);
         score_a.partial_cmp(&score_b).unwrap()
     });
     let mut free_indices: Vec<NodeIndex> = free_nodes.keys().copied().collect();
