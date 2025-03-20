@@ -130,8 +130,8 @@ class VF2Layout(AnalysisPass):
         if self.coupling_map is None:
             raise TranspilerError("coupling_map or target must be specified.")
         self.avg_error_map = self.property_set["vf2_avg_error_map"]
-        # Run rust fast path if we hae a target, no randomization, and no custom error map.
-        if self.seed == -1 and self.avg_error_map is None and self.target is not None:
+        # Run rust fast path if we hae a target and no randomization
+        if self.seed == -1 and self.target is not None:
             try:
                 layout = vf2_layout_pass(
                     dag,
@@ -140,6 +140,7 @@ class VF2Layout(AnalysisPass):
                     self.call_limit,
                     self.time_limit,
                     self.max_trials,
+                    self.avg_error_map,
                 )
             except MultiQEncountered:
                 self.property_set["VF2Layout_stop_reason"] = VF2LayoutStopReason.MORE_THAN_2Q
@@ -155,8 +156,8 @@ class VF2Layout(AnalysisPass):
             for reg in dag.qregs.values():
                 self.property_set["layout"].add_register(reg)
             return
-        # We can't use the rust fast path because we have a seed set, a custom error map, or no target
-        # so continue with the python path
+        # We can't use the rust fast path because we have a seed set, or no target so continue with
+        # the python path
         if self.avg_error_map is None:
             self.avg_error_map = vf2_utils.build_average_error_map(self.target, self.coupling_map)
 

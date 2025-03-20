@@ -18,8 +18,8 @@ use pyo3::types::PyTuple;
 use pyo3::{create_exception, wrap_pyfunction};
 use rayon::prelude::*;
 use rustworkx_core::petgraph::prelude::*;
+use rustworkx_core::petgraph::visit::{EdgeRef, IntoEdgeReferences, IntoNodeReferences, NodeRef};
 use rustworkx_core::petgraph::EdgeType;
-use smallvec::smallvec;
 use std::cmp::Ordering;
 use std::time::Instant;
 
@@ -49,6 +49,32 @@ impl EdgeList {
 }
 
 create_exception!(qiskit, MultiQEncountered, pyo3::exceptions::PyException);
+
+fn build_average_error_map(target: &Target) -> ErrorMap {
+    let qargs_count = target.qargs().unwrap().count();
+    let mut error_map = ErrorMap::new(Some(qargs_count));
+    for qargs in target.qargs().unwrap().flatten() {
+        let mut qarg_error: f64 = 0.;
+        let mut count: usize = 0;
+        for op in target.operation_names_for_qargs(Some(qargs)).unwrap() {
+            if let Some(error) = target.get_error(op, qargs) {
+                count += 1;
+                qarg_error += error;
+            }
+        }
+        if count > 0 {
+            let out_qargs = if qargs.len() == 1 {
+                [qargs[0], qargs[0]]
+            } else {
+                [qargs[0], qargs[1]]
+            };
+            error_map
+                .error_map
+                .insert(out_qargs, qarg_error / count as f64);
+        }
+    }
+    error_map
+}
 
 struct InteractionGraphData<Ty: EdgeType> {
     im_graph: StableGraph<HashMap<String, usize>, HashMap<String, usize>, Ty>,
@@ -292,6 +318,7 @@ fn map_free_qubits(
     free_nodes: HashMap<NodeIndex, HashMap<String, usize>>,
     mut partial_layout: HashMap<VirtualQubit, PhysicalQubit>,
     reverse_im_graph_node_map: &[Option<Qubit>],
+    avg_error_map: &ErrorMap,
     target: &Target,
 ) -> Option<HashMap<VirtualQubit, PhysicalQubit>> {
     if free_nodes.is_empty() {
@@ -305,30 +332,14 @@ fn map_free_qubits(
     }
     let mut free_qubits: Vec<u32> = free_qubits_set.into_iter().collect();
     free_qubits.par_sort_by(|qubit_a, qubit_b| {
-        let avg_error = |qubit: &u32| -> f64 {
-            let p_bit = smallvec![PhysicalQubit::new(*qubit)];
-            let ops = target.operation_names_for_qargs(Some(&p_bit));
-            if ops.is_err() {
-                return 1.;
-            }
-            let ops = ops.unwrap();
-            let error: f64 = ops
-                .iter()
-                .map(|name| target.get_error(name, &p_bit).unwrap_or_default())
-                .sum::<f64>()
-                / ops.len() as f64;
-            if !error.is_nan() {
-                1. - error
-            } else {
-                1.
-            }
-        };
-        let score_a = avg_error(qubit_a);
-        let score_b = avg_error(qubit_b);
+        let score_a =
+            avg_error_map.error_map[&[PhysicalQubit::new(*qubit_a), PhysicalQubit::new(*qubit_a)]];
+        let score_b =
+            avg_error_map.error_map[&[PhysicalQubit::new(*qubit_b), PhysicalQubit::new(*qubit_b)]];
         score_a.partial_cmp(&score_b).unwrap()
     });
     let mut free_indices: Vec<NodeIndex> = free_nodes.keys().copied().collect();
-    free_indices.par_sort_by_key(|index| free_nodes[index].values().sum::<usize>());
+    free_indices.par_sort_by_cached_key(|index| free_nodes[index].values().sum::<usize>());
     for im_index in free_indices {
         let selected_qubit = free_qubits.pop()?;
         partial_layout.insert(
@@ -340,7 +351,7 @@ fn map_free_qubits(
 }
 
 #[pyfunction]
-#[pyo3(signature = (dag, target, strict_direction=false, call_limit=None, time_limit=None, max_trials=None))]
+#[pyo3(signature = (dag, target, strict_direction=false, call_limit=None, time_limit=None, max_trials=None, avg_error_map=None))]
 pub fn vf2_layout_pass(
     dag: &DAGCircuit,
     target: &Target,
@@ -348,6 +359,7 @@ pub fn vf2_layout_pass(
     call_limit: Option<usize>,
     time_limit: Option<f64>,
     max_trials: Option<usize>,
+    avg_error_map: Option<ErrorMap>,
 ) -> PyResult<Option<HashMap<VirtualQubit, PhysicalQubit>>> {
     if strict_direction {
         let cm_graph: Option<StableDiGraph<_, _>> = build_coupling_map(target);
@@ -370,6 +382,7 @@ pub fn vf2_layout_pass(
         let start_time = Instant::now();
         let mut chosen_layout: Option<HashMap<VirtualQubit, PhysicalQubit>> = None;
         let mut chosen_layout_score = f64::MAX;
+        let avg_error_map = avg_error_map.unwrap_or_else(|| build_average_error_map(target));
         for mapping in mappings {
             trials += 1;
             let mapping = mapping_to_layout(dag, mapping.unwrap(), &im_graph_data);
@@ -377,7 +390,7 @@ pub fn vf2_layout_pass(
                 return Ok(Some(mapping));
             }
             let layout_score =
-                score_layout_target(&mapping, target, &im_graph_data, strict_direction)?;
+                score_layout_target(&mapping, &avg_error_map, &im_graph_data, strict_direction)?;
             if layout_score == 0. {
                 return Ok(Some(mapping));
             }
@@ -406,6 +419,7 @@ pub fn vf2_layout_pass(
         }
         let cm_graph = cm_graph.unwrap();
         let im_graph_data = generate_undirected_interaction(dag)?;
+        let avg_error_map = avg_error_map.unwrap_or_else(|| build_average_error_map(target));
         // If there are no virtual qubits in the interaction graph and we have free nodes
         // (virtual qubits with 1q operations but no 2q interactions) then we can skip vf2 and run
         // the free qubit mapping directly.
@@ -414,6 +428,7 @@ pub fn vf2_layout_pass(
                 im_graph_data.free_nodes,
                 HashMap::new(),
                 &im_graph_data.reverse_im_graph_node_map,
+                &avg_error_map,
                 target,
             ));
         }
@@ -438,7 +453,7 @@ pub fn vf2_layout_pass(
                 return Ok(Some(mapping));
             }
             let layout_score =
-                score_layout_target(&mapping, target, &im_graph_data, strict_direction)?;
+                score_layout_target(&mapping, &avg_error_map, &im_graph_data, strict_direction)?;
             if layout_score == 0. {
                 return Ok(Some(mapping));
             }
@@ -467,6 +482,7 @@ pub fn vf2_layout_pass(
             im_graph_data.free_nodes,
             chosen_layout,
             &im_graph_data.reverse_im_graph_node_map,
+            &avg_error_map,
             target,
         ))
     }
@@ -474,11 +490,11 @@ pub fn vf2_layout_pass(
 
 fn score_layout_target<Ty: EdgeType>(
     mapping: &HashMap<VirtualQubit, PhysicalQubit>,
-    target: &Target,
+    error_map: &ErrorMap,
     im_graph_data: &InteractionGraphData<Ty>,
     strict_direction: bool,
 ) -> PyResult<f64> {
-    let edge_filter_map = |(a, b): (NodeIndex, NodeIndex)| -> Option<f64> {
+    let edge_filter_map = |a: NodeIndex, b: NodeIndex, gate_count: usize| -> Option<f64> {
         let qubit_a = VirtualQubit(
             im_graph_data.reverse_im_graph_node_map[a.index()]
                 .unwrap()
@@ -490,64 +506,49 @@ fn score_layout_target<Ty: EdgeType>(
                 .0,
         );
 
-        let qargs = smallvec![mapping[&qubit_a], mapping[&qubit_b]];
-
-        let ops = target.operation_names_for_qargs(Some(&qargs));
-        let ops = match ops {
-            Ok(ops) => ops,
-            Err(_) => {
-                if !strict_direction {
-                    let qargs = smallvec![qargs[1], qargs[0]];
-                    match target.operation_names_for_qargs(Some(&qargs)) {
-                        Ok(ops) => ops,
-                        Err(_) => {
-                            return None;
-                        }
-                    }
-                } else {
-                    return None;
-                }
+        let qargs = [mapping[&qubit_a], mapping[&qubit_b]];
+        let mut error = error_map.error_map.get(&qargs);
+        if !strict_direction && error.is_none() {
+            error = error_map.error_map.get(&[qargs[1], qargs[0]]);
+        }
+        error.map(|error| {
+            if !error.is_nan() {
+                (1. - error).powi(gate_count as i32)
+            } else {
+                1.
             }
-        };
-        let error: f64 = ops
-            .iter()
-            .map(|name| target.get_error(name, &qargs).unwrap_or_default())
-            .sum::<f64>()
-            / ops.len() as f64;
-        Some(if !error.is_nan() { 1. - error } else { 1. })
+        })
     };
 
-    let bit_filter_map = |v_bit_index: NodeIndex| -> Option<f64> {
+    let bit_filter_map = |v_bit_index: NodeIndex, gate_counts: usize| -> Option<f64> {
         let v_bit = VirtualQubit(
             im_graph_data.reverse_im_graph_node_map[v_bit_index.index()]
                 .unwrap()
                 .0,
         );
-        let p_bit = smallvec![mapping[&v_bit]];
-        let ops = target.operation_names_for_qargs(Some(&p_bit));
-        if ops.is_err() {
-            return None;
-        }
-        let ops = ops.unwrap();
-        let error: f64 = ops
-            .iter()
-            .map(|name| target.get_error(name, &p_bit).unwrap_or_default())
-            .sum::<f64>()
-            / ops.len() as f64;
+        let p_bit = mapping[&v_bit];
+        let error = error_map.error_map.get(&[p_bit, p_bit]);
 
-        Some(if !error.is_nan() { 1. - error } else { 1. })
+        error.map(|error| {
+            if !error.is_nan() {
+                (1. - error).powi(gate_counts as i32)
+            } else {
+                1.
+            }
+        })
     };
 
     let mut fidelity: f64 = im_graph_data
         .im_graph
-        .edge_indices()
-        .map(|x| im_graph_data.im_graph.edge_endpoints(x).unwrap())
-        .filter_map(edge_filter_map)
+        .edge_references()
+        .filter_map(|edge| {
+            edge_filter_map(edge.source(), edge.target(), edge.weight().values().sum())
+        })
         .product();
     fidelity *= im_graph_data
         .im_graph
-        .node_indices()
-        .filter_map(bit_filter_map)
+        .node_references()
+        .filter_map(|node| bit_filter_map(node.id(), node.weight().values().sum()))
         .product::<f64>();
     Ok(1. - fidelity)
 }
