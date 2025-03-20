@@ -15,6 +15,7 @@
 mod errors;
 mod instruction_properties;
 mod nullable_index_map;
+mod gate_map;
 
 use std::{ops::Index, sync::OnceLock};
 
@@ -35,7 +36,7 @@ use pyo3::{
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::operations::{Operation, OperationRef, Param};
 use qiskit_circuit::packed_instruction::PackedOperation;
-use smallvec::SmallVec;
+use smallvec::{SmallVec, smallvec};
 
 use crate::nlayout::PhysicalQubit;
 
