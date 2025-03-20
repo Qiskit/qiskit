@@ -6534,12 +6534,14 @@ impl DAGCircuit {
         PyErr: From<E>,
     {
         let mut new_nodes = Vec::new();
-        let mut dag_concat = self.as_concat();
+        // TODO: Find a less hacky way of doing this
+        let mut replacement_dag = DAGCircuit::new(py)?;
+        std::mem::swap(self, &mut replacement_dag);
+        let mut dag_concat = replacement_dag.into_concat();
         for inst in iter {
-            new_nodes.push(dag_concat.push_operation_back(py, inst?));
+            new_nodes.push(dag_concat.push_instruction_back(py, inst?));
         }
-        dag_concat.end();
-
+        std::mem::swap(self, &mut dag_concat.end());
         Ok(new_nodes)
     }
 
@@ -6965,22 +6967,22 @@ impl DAGCircuit {
 
     /// Returns a concatenable version of the DAGCircuit. Preferably used
     /// for adding multiple new instructions to the [DAGCircuit].
-    pub fn as_concat(&mut self) -> DAGCircuitConcat<'_> {
+    pub fn into_concat(self) -> DAGCircuitConcat {
         DAGCircuitConcat::new(self)
     }
 }
 
-pub struct DAGCircuitConcat<'a> {
-    dag: &'a mut DAGCircuit,
+pub struct DAGCircuitConcat {
+    dag: DAGCircuit,
     last_clbits: Vec<Option<NodeIndex>>,
     last_qubits: Vec<Option<NodeIndex>>,
     last_vars: Vec<Option<NodeIndex>>,
 }
 
-impl<'a> DAGCircuitConcat<'a> {
+impl DAGCircuitConcat {
     /// Builds a new instance of [DAGCircuitConcat] which allows instructions to
     /// be added continuously into the [DAGCircuit].
-    pub fn new(dag: &'a mut DAGCircuit) -> DAGCircuitConcat<'a> {
+    pub fn new(dag: DAGCircuit) -> DAGCircuitConcat {
         let num_qubits = dag.num_qubits();
         let num_clbits = dag.num_clbits();
         let num_vars = dag.num_vars();
@@ -6994,7 +6996,7 @@ impl<'a> DAGCircuitConcat<'a> {
 
     /// Finishes up the changes by re-connecting all of the ouput nodes back to the last
     /// recorded nodes.
-    pub fn end(self) {
+    pub fn end(mut self) -> DAGCircuit {
         // Re-connects all of the output nodes with their respective last nodes.
         // Add the output_nodes back to qargs
         for (qubit, node) in self
@@ -7034,6 +7036,7 @@ impl<'a> DAGCircuitConcat<'a> {
                 .dag
                 .add_edge(node, output_node, Wire::Var(Var(var as u32)));
         }
+        self.dag
     }
 
     /// Applies a new operation to the back of the circuit. This variant works with non-owned bit indices.
@@ -7056,11 +7059,11 @@ impl<'a> DAGCircuitConcat<'a> {
             #[cfg(feature = "cache_pygates")]
             py_op,
         );
-        self.push_operation_back(py, instruction)
+        self.push_instruction_back(py, instruction)
     }
 
     /// Pushes a valid [PackedInstruction] to the back ot the circuit.
-    pub fn push_operation_back(&mut self, py: Python<'_>, inst: PackedInstruction) -> NodeIndex {
+    pub fn push_instruction_back(&mut self, py: Python<'_>, inst: PackedInstruction) -> NodeIndex {
         let op_name = inst.op.name();
         let (all_cbits, vars): (Vec<Clbit>, Option<Vec<Var>>) = {
             if self.dag.may_have_additional_wires(py, &inst) {

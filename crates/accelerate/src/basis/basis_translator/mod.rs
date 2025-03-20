@@ -461,8 +461,8 @@ fn apply_translation(
     >,
 ) -> PyResult<(DAGCircuit, bool)> {
     let mut is_updated = false;
-    let mut out_dag = dag.copy_empty_like(py, "alike")?;
-    let mut out_dag_concat = out_dag.as_concat();
+    let out_dag = dag.copy_empty_like(py, "alike")?;
+    let mut out_dag_concat = out_dag.into_concat();
     for node in dag.topological_op_nodes()? {
         let node_obj = dag[node].unwrap_operation();
         let node_qarg = dag.get_qargs(node_obj.qubits);
@@ -577,8 +577,7 @@ fn apply_translation(
         is_updated = true;
     }
     // Kill the concatenator
-    out_dag_concat.end();
-    Ok((out_dag, is_updated))
+    Ok((out_dag_concat.end(), is_updated))
 }
 
 fn replace_node(
