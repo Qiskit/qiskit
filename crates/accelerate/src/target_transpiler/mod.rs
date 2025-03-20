@@ -15,6 +15,7 @@
 mod errors;
 mod instruction_properties;
 mod qargs;
+mod gate_map;
 
 use std::{ops::Index, sync::OnceLock};
 
@@ -36,7 +37,7 @@ pub use qargs::{Qargs, QargsRef};
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::operations::{Operation, OperationRef, Param};
 use qiskit_circuit::packed_instruction::PackedOperation;
-use smallvec::SmallVec;
+use smallvec::{SmallVec, smallvec};
 
 use crate::nlayout::PhysicalQubit;
 
