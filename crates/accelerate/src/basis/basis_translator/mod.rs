@@ -601,8 +601,8 @@ fn replace_node(
     if node.params_view().is_empty() {
         for inner_index in target_dag.topological_op_nodes()? {
             let inner_node = &target_dag[inner_index].unwrap_operation();
-            let old_qargs = dag.qarg_interner().get(node.qubits);
-            let old_cargs = dag.carg_interner().get(node.clbits);
+            let old_qargs = dag.qargs_interner().get(node.qubits);
+            let old_cargs = dag.cargs_interner().get(node.clbits);
             let new_qubits: Vec<Qubit> = target_dag
                 .get_qargs(inner_node.qubits)
                 .iter()
@@ -646,8 +646,8 @@ fn replace_node(
             .into_py_dict(py)?;
         for inner_index in target_dag.topological_op_nodes()? {
             let inner_node = &target_dag[inner_index].unwrap_operation();
-            let old_qargs = dag.qarg_interner().get(node.qubits);
-            let old_cargs = dag.carg_interner().get(node.clbits);
+            let old_qargs = dag.qargs_interner().get(node.qubits);
+            let old_cargs = dag.cargs_interner().get(node.clbits);
             let new_qubits: Vec<Qubit> = target_dag
                 .get_qargs(inner_node.qubits)
                 .iter()

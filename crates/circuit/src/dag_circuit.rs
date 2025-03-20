@@ -7187,12 +7187,12 @@ impl DAGCircuitConcat {
             OnceLock::new()
         };
         let qubits = if let Some(qubits) = qubits {
-            self.qarg_interner_mut().insert_cow(qubits)
+            self.qargs_interner_mut().insert_cow(qubits)
         } else {
             self.dag.qargs_interner.get_default()
         };
         let clbits = if let Some(clbits) = clbits {
-            self.carg_interner_mut().insert_cow(clbits)
+            self.cargs_interner_mut().insert_cow(clbits)
         } else {
             self.dag.cargs_interner.get_default()
         };
@@ -7208,22 +7208,22 @@ impl DAGCircuitConcat {
     }
 
     /// Returns an immutable view to the qubit interner
-    pub fn qarg_interner(&self) -> &Interner<[Qubit]> {
+    pub fn qargs_interner(&self) -> &Interner<[Qubit]> {
         &self.dag.qargs_interner
     }
 
     /// Returns an immutable view to the clbit interner
-    pub fn carg_interner(&self) -> &Interner<[Clbit]> {
+    pub fn cargs_interner(&self) -> &Interner<[Clbit]> {
         &self.dag.cargs_interner
     }
 
     /// Returns a mutable view to the qubit interner
-    pub fn qarg_interner_mut(&mut self) -> &mut Interner<[Qubit]> {
+    pub fn qargs_interner_mut(&mut self) -> &mut Interner<[Qubit]> {
         &mut self.dag.qargs_interner
     }
 
     /// Returns a mutable view to the clbit interner
-    pub fn carg_interner_mut(&mut self) -> &mut Interner<[Clbit]> {
+    pub fn cargs_interner_mut(&mut self) -> &mut Interner<[Clbit]> {
         &mut self.dag.cargs_interner
     }
 

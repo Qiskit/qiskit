@@ -138,27 +138,14 @@ fn apply_synth_dag(
     synth_dag: &DAGCircuit,
 ) -> PyResult<()> {
     for out_node in synth_dag.topological_op_nodes()? {
-        let out_packed_instr = synth_dag[out_node].unwrap_operation();
+        let mut out_packed_instr = synth_dag[out_node].unwrap_operation().clone();
         let synth_qargs = synth_dag.get_qargs(out_packed_instr.qubits);
         let mapped_qargs: Vec<Qubit> = synth_qargs
             .iter()
             .map(|qarg| out_qargs[qarg.0 as usize])
             .collect();
-        out_dag.apply_operation_back(
-            py,
-            out_packed_instr.op.clone(),
-            Some(mapped_qargs.into()),
-            Some(
-                synth_dag
-                    .cargs_interner()
-                    .get(out_packed_instr.clbits)
-                    .into(),
-            ),
-            out_packed_instr.params.clone(),
-            out_packed_instr.label.as_deref().cloned(),
-            #[cfg(feature = "cache_pygates")]
-            None,
-        );
+        out_packed_instr.qubits = out_dag.qargs_interner_mut().insert_owned(mapped_qargs);
+        out_dag.push_instruction_back(py, out_packed_instr);
     }
     out_dag.add_global_phase(&synth_dag.get_global_phase())?;
     Ok(())
@@ -1099,7 +1086,7 @@ fn reversed_synth_su4_dag(
             .map(|x| flip_bits[x.0 as usize])
             .collect();
         inst.qubits = target_dag_concat
-            .qarg_interner_mut()
+            .qargs_interner_mut()
             .insert_cow(qubits.into());
         target_dag_concat.push_instruction_back(py, inst);
     }
