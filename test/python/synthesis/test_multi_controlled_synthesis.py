@@ -359,7 +359,9 @@ class TestMCSynthesisCounts(QiskitTestCase):
         if isinstance(base_gate, (XGate, YGate, ZGate, HGate)):
             # MCX gate and other locally equivalent multi-controlled gates
             expected = {1: 1, 2: 6, 3: 14, 4: 36, 5: 84, 6: 140, 7: 220, 8: 324}
-        elif isinstance(base_gate, (PhaseGate, SGate, SdgGate, TGate, TdgGate, SXGate, SXdgGate)):
+        elif isinstance(
+            base_gate, (PhaseGate, SGate, SdgGate, TGate, TdgGate, SXGate, SXdgGate, U1Gate)
+        ):
             # MCPhase gate and other locally equivalent multi-controlled gates
             expected = {1: 2, 2: 6, 3: 20, 4: 44, 5: 84, 6: 140, 7: 220, 8: 324}
         elif isinstance(base_gate, RZGate):
@@ -368,8 +370,6 @@ class TestMCSynthesisCounts(QiskitTestCase):
             expected = {1: 2, 2: 8, 3: 20, 4: 24, 5: 40, 6: 56, 7: 80, 8: 104}
         elif isinstance(base_gate, (UGate, U2Gate, U3Gate)):
             expected = {1: 2, 2: 22, 3: 54, 4: 92, 5: 164, 6: 252, 7: 380, 8: 532}
-        elif isinstance(base_gate, U1Gate):
-            expected = {1: 2, 2: 8, 3: 20, 4: 44, 5: 92, 6: 188, 7: 380, 8: 764}
         else:
             raise NotImplementedError
 
