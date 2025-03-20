@@ -1092,23 +1092,17 @@ fn reversed_synth_su4_dag(
     let flip_bits: [Qubit; 2] = [Qubit(1), Qubit(0)];
     let mut target_dag_concat = target_dag.as_concat();
     for node in synth_dag.topological_op_nodes()? {
-        let inst = synth_dag[node].unwrap_operation().clone();
+        let mut inst = synth_dag[node].unwrap_operation().clone();
         let qubits: Vec<Qubit> = synth_dag
             .qargs_interner()
             .get(inst.qubits)
             .iter()
             .map(|x| flip_bits[x.0 as usize])
             .collect();
-        target_dag_concat.apply_operation_back(
-            py,
-            inst.op.clone(),
-            Some(qubits.into()),
-            Some(synth_dag.cargs_interner().get(inst.clbits).into()),
-            inst.params.clone(),
-            inst.label.as_deref().cloned(),
-            #[cfg(feature = "cache_pygates")]
-            None,
-        );
+        inst.qubits = target_dag_concat
+            .qarg_interner_mut()
+            .insert_cow(qubits.into());
+        target_dag_concat.push_operation_back(py, inst);
     }
     Ok(target_dag)
 }

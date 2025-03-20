@@ -7184,18 +7184,12 @@ impl<'a> DAGCircuitConcat<'a> {
             OnceLock::new()
         };
         let qubits = if let Some(qubits) = qubits {
-            match qubits {
-                Cow::Owned(owned) => self.dag.qargs_interner.insert_owned(owned),
-                Cow::Borrowed(slice) => self.dag.qargs_interner.insert(slice),
-            }
+            self.qarg_interner_mut().insert_cow(qubits)
         } else {
             self.dag.qargs_interner.get_default()
         };
         let clbits = if let Some(clbits) = clbits {
-            match clbits {
-                Cow::Owned(owned) => self.dag.cargs_interner.insert_owned(owned),
-                Cow::Borrowed(slice) => self.dag.cargs_interner.insert(slice),
-            }
+            self.carg_interner_mut().insert_cow(clbits)
         } else {
             self.dag.cargs_interner.get_default()
         };
@@ -7210,14 +7204,24 @@ impl<'a> DAGCircuitConcat<'a> {
         }
     }
 
-    /// Gets qargs from an interned index without exposing the inner [DAGCircuit].
-    pub fn get_qargs(&self, index: Interned<[Qubit]>) -> &[Qubit] {
-        self.dag.get_qargs(index)
+    /// Returns an immutable view to the qubit interner
+    pub fn qarg_interner(&self) -> &Interner<[Qubit]> {
+        &self.dag.qargs_interner
     }
 
-    /// Gets cargs from an interned index without exposing the inner [DAGCircuit].
-    pub fn get_cargs(&self, index: Interned<[Clbit]>) -> &[Clbit] {
-        self.dag.get_cargs(index)
+    /// Returns an immutable view to the clbit interner
+    pub fn carg_interner(&self) -> &Interner<[Clbit]> {
+        &self.dag.cargs_interner
+    }
+
+    /// Returns a mutable view to the qubit interner
+    pub fn qarg_interner_mut(&mut self) -> &mut Interner<[Qubit]> {
+        &mut self.dag.qargs_interner
+    }
+
+    /// Returns a mutable view to the clbit interner
+    pub fn carg_interner_mut(&mut self) -> &mut Interner<[Clbit]> {
+        &mut self.dag.cargs_interner
     }
 
     /// Adds a new value to the global phase of the inner [DAGCircuit].
