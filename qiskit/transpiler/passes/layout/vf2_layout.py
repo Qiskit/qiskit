@@ -149,7 +149,7 @@ class VF2Layout(AnalysisPass):
                 return
 
             self.property_set["VF2Layout_stop_reason"] = VF2LayoutStopReason.SOLUTION_FOUND
-            mapping = {dag.qubits[virt]: phys for virt, phys in layout.layout_mapping()}
+            mapping = {dag.qubits[virt]: phys for virt, phys in layout.items()}
             chosen_layout = Layout(mapping)
             self.property_set["layout"] = chosen_layout
             for reg in dag.qregs.values():

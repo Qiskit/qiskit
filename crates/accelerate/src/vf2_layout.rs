@@ -51,6 +51,7 @@ create_exception!(qiskit, MultiQEncountered, pyo3::exceptions::PyException);
 struct InteractionGraphData<Ty: EdgeType> {
     im_graph: StableGraph<HashMap<String, usize>, HashMap<String, usize>, Ty>,
     reverse_im_graph_node_map: Vec<Option<Qubit>>,
+    free_nodes: HashMap<NodeIndex, HashMap<String, usize>>,
 }
 
 fn generate_directed_interaction(dag: &DAGCircuit) -> PyResult<InteractionGraphData<Directed>> {
@@ -70,6 +71,7 @@ fn generate_directed_interaction(dag: &DAGCircuit) -> PyResult<InteractionGraphD
     Ok(InteractionGraphData {
         im_graph,
         reverse_im_graph_node_map,
+        free_nodes: HashMap::new(),
     })
 }
 
@@ -87,9 +89,17 @@ fn generate_undirected_interaction(dag: &DAGCircuit) -> PyResult<InteractionGrap
         &mut im_graph_node_map,
         &mut reverse_im_graph_node_map,
     )?;
+    let mut free_nodes: HashMap<NodeIndex, HashMap<String, usize>> = HashMap::new();
+    let indices = im_graph.node_indices().collect::<Vec<_>>();
+    for index in indices {
+        if im_graph.edges(index).next().is_none() {
+            free_nodes.insert(index, im_graph.remove_node(index).unwrap());
+        }
+    }
     Ok(InteractionGraphData {
         im_graph,
         reverse_im_graph_node_map,
+        free_nodes,
     })
 }
 
@@ -258,14 +268,69 @@ fn mapping_to_layout<Ty: EdgeType>(
     dag: &DAGCircuit,
     mapping: IndexMap<usize, usize, ahash::RandomState>,
     data: &InteractionGraphData<Ty>,
-) -> NLayout {
-    let mut out_layout: Vec<PhysicalQubit> = vec![PhysicalQubit(u32::MAX); dag.num_qubits()];
+) -> HashMap<VirtualQubit, PhysicalQubit> {
+    let mut out_layout: HashMap<VirtualQubit, PhysicalQubit> =
+        HashMap::with_capacity(dag.num_qubits());
 
     for (k, v) in mapping.iter() {
-        out_layout[data.reverse_im_graph_node_map[*v].unwrap().index()] =
-            PhysicalQubit::new(*k as u32);
+        out_layout.insert(
+            VirtualQubit::new(data.reverse_im_graph_node_map[*v].unwrap().0),
+            PhysicalQubit::new(*k as u32),
+        );
     }
-    NLayout::from_virtual_to_physical(out_layout).unwrap()
+    out_layout
+}
+
+fn map_free_qubits(
+    free_nodes: HashMap<NodeIndex, HashMap<String, usize>>,
+    mut partial_layout: HashMap<VirtualQubit, PhysicalQubit>,
+    reverse_im_graph_node_map: &[Option<Qubit>],
+    target: &Target,
+) -> Option<HashMap<VirtualQubit, PhysicalQubit>> {
+    let num_physical_qubits = target.num_qubits.unwrap() as u32;
+    if free_nodes.is_empty() {
+        return Some(partial_layout);
+    }
+    let mut free_qubits_set: HashSet<u32> = (0..num_physical_qubits).collect();
+    for phys in partial_layout.values() {
+        let qubit = phys.index() as u32;
+        free_qubits_set.remove(&qubit);
+    }
+    let mut free_qubits: Vec<u32> = free_qubits_set.into_iter().collect();
+    free_qubits.par_sort_by(|qubit_a, qubit_b| {
+        let avg_error = |qubit: &u32| -> f64 {
+            let p_bit = smallvec![PhysicalQubit::new(*qubit)];
+            let ops = target.operation_names_for_qargs(Some(&p_bit));
+            if ops.is_err() {
+                return 1.;
+            }
+            let ops = ops.unwrap();
+            let error: f64 = ops
+                .iter()
+                .map(|name| target.get_error(name, &p_bit).unwrap_or_default())
+                .sum::<f64>()
+                / ops.len() as f64;
+            if !error.is_nan() {
+                1. - error
+            } else {
+                1.
+            }
+        };
+        let score_a = avg_error(qubit_a);
+        let score_b = avg_error(qubit_b);
+        // Reversed sort order to pop from the right
+        score_b.partial_cmp(&score_a).unwrap()
+    });
+    let mut free_indices: Vec<NodeIndex> = free_nodes.keys().copied().collect();
+    free_indices.par_sort_by_key(|index| free_nodes[index].values().sum::<usize>());
+    for im_index in free_indices {
+        let selected_qubit = free_qubits.pop()?;
+        partial_layout.insert(
+            VirtualQubit(reverse_im_graph_node_map[im_index.index()].unwrap().0),
+            PhysicalQubit::new(selected_qubit),
+        );
+    }
+    Some(partial_layout)
 }
 
 #[pyfunction]
@@ -277,7 +342,7 @@ pub fn vf2_layout_pass(
     call_limit: Option<usize>,
     time_limit: Option<f64>,
     max_trials: Option<usize>,
-) -> PyResult<Option<NLayout>> {
+) -> PyResult<Option<HashMap<VirtualQubit, PhysicalQubit>>> {
     if strict_direction {
         let cm_graph: Option<StableDiGraph<_, _>> = build_coupling_map(target);
         if cm_graph.is_none() {
@@ -387,11 +452,13 @@ pub fn vf2_layout_pass(
         if chosen_layout.is_none() {
             return Ok(None);
         }
-        Ok(Some(mapping_to_layout(
-            dag,
-            chosen_layout.unwrap(),
-            &im_graph_data,
-        )))
+        let chosen_layout = mapping_to_layout(dag, chosen_layout.unwrap(), &im_graph_data);
+        Ok(map_free_qubits(
+            im_graph_data.free_nodes,
+            chosen_layout,
+            &im_graph_data.reverse_im_graph_node_map,
+            target,
+        ))
     }
 }
 
