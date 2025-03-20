@@ -519,7 +519,7 @@ def _build_logn_depth_ccx_ladder(
 
     final_ctrls += ctrls
     final_ctrls = sorted(final_ctrls)
-    return qc, final_ctrls[:-1]  #                           # exclude ancilla
+    return qc, final_ctrls[:-1]  # exclude ancilla
 
 
 def synth_mcx_2_kg24(num_ctrl_qubits: int, clean: bool = True) -> QuantumCircuit:
