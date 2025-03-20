@@ -15,6 +15,7 @@ use indexmap::IndexMap;
 use numpy::PyReadonlyArray1;
 use pyo3::prelude::*;
 use pyo3::{create_exception, wrap_pyfunction};
+use pyo3::types::PyTuple;
 use rayon::prelude::*;
 use rustworkx_core::petgraph::prelude::*;
 use rustworkx_core::petgraph::EdgeType;
@@ -23,9 +24,10 @@ use std::cmp::Ordering;
 use std::time::Instant;
 
 use qiskit_circuit::dag_circuit::DAGCircuit;
-use qiskit_circuit::operations::{Operation, Param};
+use qiskit_circuit::operations::{Operation, Param, OperationRef};
 use qiskit_circuit::rustworkx_core_vnext::isomorphism::vf2;
 use qiskit_circuit::Qubit;
+use qiskit_circuit::converters::circuit_to_dag;
 
 use crate::error_map::ErrorMap;
 use crate::nlayout::{NLayout, PhysicalQubit, VirtualQubit};
@@ -122,14 +124,19 @@ fn build_interaction_graph<Ty: EdgeType>(
                 } else {
                     weight
                 };
-                for block in inst.op.blocks() {
+                let OperationRef::Instruction(py_inst) = inst.op.view() else {
+                    unreachable!("Control flow must be a python instruction");
+                };
+                let raw_blocks = py_inst.instruction.getattr(py, "blocks").unwrap();
+                let blocks: &Bound<PyTuple> = raw_blocks.downcast_bound::<PyTuple>(py).unwrap();
+                for block in blocks.iter() {
                     let mut inner_wire_map = vec![Qubit(u32::MAX); wire_map.len()];
                     let node_qargs = dag.get_qargs(inst.qubits);
 
-                    for (outer, inner) in node_qargs.iter().zip(0..block.num_qubits()) {
-                        inner_wire_map[inner] = wire_map[outer.index()]
+                    for (outer, inner) in node_qargs.iter().zip(0..inst.op.num_qubits()) {
+                        inner_wire_map[inner as usize] = wire_map[outer.index()]
                     }
-                    let block_dag = DAGCircuit::from_circuit_data(py, block, false).unwrap();
+                    let block_dag = circuit_to_dag(py, block.extract()?, false, None, None)?;
                     build_interaction_graph(
                         &block_dag,
                         &inner_wire_map,
