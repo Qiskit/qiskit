@@ -294,10 +294,10 @@ fn map_free_qubits(
     reverse_im_graph_node_map: &[Option<Qubit>],
     target: &Target,
 ) -> Option<HashMap<VirtualQubit, PhysicalQubit>> {
-    let num_physical_qubits = target.num_qubits.unwrap() as u32;
     if free_nodes.is_empty() {
         return Some(partial_layout);
     }
+    let num_physical_qubits = target.num_qubits.unwrap() as u32;
     let mut free_qubits_set: HashSet<u32> = (0..num_physical_qubits).collect();
     for phys in partial_layout.values() {
         let qubit = phys.index() as u32;
@@ -325,8 +325,7 @@ fn map_free_qubits(
         };
         let score_a = avg_error(qubit_a);
         let score_b = avg_error(qubit_b);
-        // Reversed sort order to pop from the right
-        score_b.partial_cmp(&score_a).unwrap()
+        score_a.partial_cmp(&score_b).unwrap()
     });
     let mut free_indices: Vec<NodeIndex> = free_nodes.keys().copied().collect();
     free_indices.par_sort_by_key(|index| free_nodes[index].values().sum::<usize>());
@@ -407,6 +406,17 @@ pub fn vf2_layout_pass(
         }
         let cm_graph = cm_graph.unwrap();
         let im_graph_data = generate_undirected_interaction(dag)?;
+        // If there are no virtual qubits in the interaction graph and we have free nodes
+        // (virtual qubits with 1q operations but no 2q interactions) then we can skip vf2 and run
+        // the free qubit mapping directly.
+        if im_graph_data.im_graph.node_count() == 0 && !im_graph_data.free_nodes.is_empty() {
+            return Ok(map_free_qubits(
+                im_graph_data.free_nodes,
+                HashMap::new(),
+                &im_graph_data.reverse_im_graph_node_map,
+                target,
+            ));
+        }
         let mappings = vf2::Vf2Algorithm::new(
             &cm_graph,
             &im_graph_data.im_graph,
