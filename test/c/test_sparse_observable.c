@@ -175,7 +175,7 @@ int test_compose_scalar(void) {
     QkObs *scalar = qk_obs_identity(0);
     QkComplex64 factor = make_complex_double(2.0, 0.0);
     QkObs *mult = qk_obs_multiply(scalar, &factor);
-    uint32_t *qargs; // no value will be read (also MSVC doesn't allow qargs[0], so use this)
+    uint32_t *qargs = NULL; // no value will be read (also MSVC doesn't allow qargs[0], so use this)
 
     QkObs *result = qk_obs_compose_map(op, mult, qargs);
 
