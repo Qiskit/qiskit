@@ -14,8 +14,8 @@ use hashbrown::{HashMap, HashSet};
 use indexmap::IndexMap;
 use numpy::PyReadonlyArray1;
 use pyo3::prelude::*;
-use pyo3::{create_exception, wrap_pyfunction};
 use pyo3::types::PyTuple;
+use pyo3::{create_exception, wrap_pyfunction};
 use rayon::prelude::*;
 use rustworkx_core::petgraph::prelude::*;
 use rustworkx_core::petgraph::EdgeType;
@@ -23,11 +23,11 @@ use smallvec::smallvec;
 use std::cmp::Ordering;
 use std::time::Instant;
 
+use qiskit_circuit::converters::circuit_to_dag;
 use qiskit_circuit::dag_circuit::DAGCircuit;
-use qiskit_circuit::operations::{Operation, Param, OperationRef};
+use qiskit_circuit::operations::{Operation, OperationRef, Param};
 use qiskit_circuit::rustworkx_core_vnext::isomorphism::vf2;
 use qiskit_circuit::Qubit;
-use qiskit_circuit::converters::circuit_to_dag;
 
 use crate::error_map::ErrorMap;
 use crate::nlayout::{NLayout, PhysicalQubit, VirtualQubit};
@@ -369,18 +369,18 @@ pub fn vf2_layout_pass(
         );
         let mut trials: usize = 0;
         let start_time = Instant::now();
-        let mut chosen_layout: Option<IndexMap<usize, usize, ahash::RandomState>> = None;
+        let mut chosen_layout: Option<HashMap<VirtualQubit, PhysicalQubit>> = None;
         let mut chosen_layout_score = f64::MAX;
         for mapping in mappings {
             trials += 1;
-            let mapping = mapping.unwrap();
+            let mapping = mapping_to_layout(dag, mapping.unwrap(), &im_graph_data);
             if cm_graph.node_count() == im_graph_data.im_graph.node_count() {
-                return Ok(Some(mapping_to_layout(dag, mapping, &im_graph_data)));
+                return Ok(Some(mapping));
             }
             let layout_score =
                 score_layout_target(&mapping, target, &im_graph_data, strict_direction)?;
             if layout_score == 0. {
-                return Ok(Some(mapping_to_layout(dag, mapping, &im_graph_data)));
+                return Ok(Some(mapping));
             }
             if layout_score < chosen_layout_score {
                 chosen_layout = Some(mapping);
@@ -399,14 +399,7 @@ pub fn vf2_layout_pass(
                 }
             }
         }
-        if chosen_layout.is_none() {
-            return Ok(None);
-        }
-        Ok(Some(mapping_to_layout(
-            dag,
-            chosen_layout.unwrap(),
-            &im_graph_data,
-        )))
+        Ok(chosen_layout)
     } else {
         let cm_graph: Option<StableUnGraph<_, _>> = build_coupling_map(target);
         if cm_graph.is_none() {
@@ -426,18 +419,18 @@ pub fn vf2_layout_pass(
         );
         let mut trials: usize = 0;
         let start_time = Instant::now();
-        let mut chosen_layout: Option<IndexMap<usize, usize, ahash::RandomState>> = None;
+        let mut chosen_layout: Option<HashMap<VirtualQubit, PhysicalQubit>> = None;
         let mut chosen_layout_score = f64::MAX;
         for mapping in mappings {
             trials += 1;
-            let mapping = mapping.unwrap();
+            let mapping = mapping_to_layout(dag, mapping.unwrap(), &im_graph_data);
             if cm_graph.node_count() == im_graph_data.im_graph.node_count() {
-                return Ok(Some(mapping_to_layout(dag, mapping, &im_graph_data)));
+                return Ok(Some(mapping));
             }
             let layout_score =
                 score_layout_target(&mapping, target, &im_graph_data, strict_direction)?;
             if layout_score == 0. {
-                return Ok(Some(mapping_to_layout(dag, mapping, &im_graph_data)));
+                return Ok(Some(mapping));
             }
             if layout_score < chosen_layout_score {
                 chosen_layout = Some(mapping);
@@ -459,7 +452,7 @@ pub fn vf2_layout_pass(
         if chosen_layout.is_none() {
             return Ok(None);
         }
-        let chosen_layout = mapping_to_layout(dag, chosen_layout.unwrap(), &im_graph_data);
+        let chosen_layout = chosen_layout.unwrap();
         Ok(map_free_qubits(
             im_graph_data.free_nodes,
             chosen_layout,
@@ -470,16 +463,24 @@ pub fn vf2_layout_pass(
 }
 
 fn score_layout_target<Ty: EdgeType>(
-    mapping: &IndexMap<usize, usize, ahash::RandomState>,
+    mapping: &HashMap<VirtualQubit, PhysicalQubit>,
     target: &Target,
     im_graph_data: &InteractionGraphData<Ty>,
     strict_direction: bool,
 ) -> PyResult<f64> {
     let edge_filter_map = |(a, b): (NodeIndex, NodeIndex)| -> Option<f64> {
-        let qargs = smallvec![
-            PhysicalQubit::new(mapping[a.index()] as u32),
-            PhysicalQubit::new(mapping[b.index()] as u32)
-        ];
+        let qubit_a = VirtualQubit(
+            im_graph_data.reverse_im_graph_node_map[a.index()]
+                .unwrap()
+                .0,
+        );
+        let qubit_b = VirtualQubit(
+            im_graph_data.reverse_im_graph_node_map[b.index()]
+                .unwrap()
+                .0,
+        );
+
+        let qargs = smallvec![mapping[&qubit_a], mapping[&qubit_b]];
 
         let ops = target.operation_names_for_qargs(Some(&qargs));
         let ops = match ops {
@@ -507,7 +508,12 @@ fn score_layout_target<Ty: EdgeType>(
     };
 
     let bit_filter_map = |v_bit_index: NodeIndex| -> Option<f64> {
-        let p_bit = smallvec![PhysicalQubit::new(mapping[v_bit_index.index()] as u32)];
+        let v_bit = VirtualQubit(
+            im_graph_data.reverse_im_graph_node_map[v_bit_index.index()]
+                .unwrap()
+                .0,
+        );
+        let p_bit = smallvec![mapping[&v_bit]];
         let ops = target.operation_names_for_qargs(Some(&p_bit));
         if ops.is_err() {
             return None;
