@@ -14,6 +14,7 @@
 
 mod errors;
 mod instruction_properties;
+mod gate_map;
 
 use std::{ops::Index, sync::OnceLock};
 
@@ -1428,7 +1429,7 @@ mod test {
             .lock()
             .map_err(|_| PyRuntimeError::new_err("Error avoiding deadlock"))?;
         Python::with_gil(|py| -> PyResult<()> {
-            let rxgate = PackedOperation::from_standard_gate(StandardGate::RXGate);
+            let rxgate = PackedOperation::from_standard_gate(StandardGate::RX);
             let mut test_target = Target::default();
             test_target
                 .add_instruction(
