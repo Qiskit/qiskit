@@ -23,6 +23,7 @@ from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.circuit import Gate, Instruction, Measure, Parameter, Barrier, AnnotatedOperation
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit import Clbit
+from qiskit.circuit.controlflow.control_flow import ControlFlowOp
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.controlflow import IfElseOp
 from qiskit.circuit.library import CXGate, HGate
@@ -1549,6 +1550,82 @@ class TestCircuitOperations(QiskitTestCase):
 
         self.assertEqual(circuit, expected)
         self.assertEqual(circuit.name, "test")
+
+    def test_circuit_has_control_flow_op(self):
+        """Test `has_control_flow_op` method"""
+        circuit_1 = QuantumCircuit(2, 1)
+        circuit_1.x(0)
+        circuit_2 = QuantumCircuit(2, 1)
+        circuit_2.y(0)
+
+        # Build a circuit
+        circ = QuantumCircuit(2, 2)
+        circ.h(0)
+        circ.cx(0, 1)
+        circ.measure(0, 0)
+        circ.measure(1, 1)
+
+        # Check if circuit has any control flow operations
+        self.assertFalse(circ.has_control_flow_op())
+
+        # Add a control flow operation
+        circ.if_else((1, 1), circuit_1, circuit_2, [0, 1], [1])
+
+        # Check if circuit has any control flow operation
+        self.assertTrue(circ.has_control_flow_op())
+
+    def test_circuit_has_control_flow_op_custom_op(self):
+        """Test `has_control_flow_op` method with custom control flow op"""
+
+        class CustomControlFlow(ControlFlowOp):
+            """Custom control flow operation class"""
+
+            def __init__(self, condition, true_body, false_body, label):
+                if not isinstance(true_body, QuantumCircuit):
+                    raise CircuitError(
+                        "IfElseOp expects a true_body parameter "
+                        f"of type QuantumCircuit, but received {type(true_body)}."
+                    )
+                num_qubits = true_body.num_qubits
+                num_clbits = true_body.num_clbits
+
+                super().__init__(
+                    "custom_ctrl_flow", num_qubits, num_clbits, [true_body, false_body], label=label
+                )
+                # We do not need to validate this custom condition
+                self.condition = condition
+                self._params = [true_body, false_body]
+
+            @property
+            def blocks(self):
+                return self._params
+
+            def replace_blocks(self, blocks):
+                return self
+
+        qreg = QuantumRegister(2)
+        creg = ClassicalRegister(2)
+
+        circuit_1 = QuantumCircuit(2, 1)
+        circuit_1.x(0)
+        circuit_2 = QuantumCircuit(2, 1)
+        circuit_2.y(0)
+
+        # Build a circuit
+        circ = QuantumCircuit(qreg, creg)
+        circ.h(0)
+        circ.cx(0, 1)
+        circ.measure(0, 0)
+        circ.measure(1, 1)
+
+        # Check if circuit has any control flow operations
+        self.assertFalse(circ.has_control_flow_op())
+
+        # Add the custom control flow operation
+        circ.append(CustomControlFlow((creg[1], 1), circuit_1, circuit_2, "foo"), [0, 1], [0])
+
+        # Check if circuit has any control flow operation
+        self.assertTrue(circ.has_control_flow_op())
 
 
 class TestCircuitPrivateOperations(QiskitTestCase):
