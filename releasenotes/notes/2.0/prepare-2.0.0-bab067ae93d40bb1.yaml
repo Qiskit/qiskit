@@ -3,21 +3,24 @@ prelude: >
     We are pleased to release Qiskit 2.0.0, with new features that improve performance and expand Qiskit's capabilities.
     The feature highlights of Qiskit 2.0.0 include:
 
-    * The introduction of a C API for building and interacting with
-      :class:`.SparseObservable` objects. This will be Qiskit's first 
-      compiled language interface, an experimental feature that we will 
-      fine-tune and grow in scope throughout the 2.x series.
-    * The ability to create ``stretch`` durations for :class:`.Delay` instructions,  
-      which enable expressing relationships between timing-aware instructions.  
-      The new :class:`~.expr.Stretch` type extends the existing classical expression system,  
-      allowing design intent to be captured at circuit construction time and resolved at compile time.
-      See the `OpenQASM documentation <https://openqasm.com/language/delays.html#duration-and-stretch-types>`__ for details.  
-    * Support for synthesis using fractional basis gates,
-      significantly reducing gate counts in elegible circuits (see `blog post <https://www.ibm.com/quantum/blog/fractional-gates>`__ for more details).
-    * Improved runtime performance, particularly during the circuit construction step,  
-      where `benchpress <https://github.com/Qiskit/benchpress>`__ benchmarking shows a 2x speedup over Qiskit 1.3.  
-      This improvement is achieved through a combination of contributions, including leveraging additional native Rust 
-      gate representations, such as :class:`UnitaryGate`, or removing legacy data model elements.  
+      * The introduction of a C API for building and interacting with
+        :class:`.SparseObservable` objects. This will be Qiskit's first 
+        compiled language interface, an experimental feature that we will 
+        fine-tune and grow in scope throughout the 2.x series.
+
+      * The ability to create ``stretch`` durations for :class:`.Delay` instructions,  
+        which enable expressing relationships between timing-aware instructions.  
+        The new :class:`~.expr.Stretch` type extends the existing classical expression system,  
+        allowing design intent to be captured at circuit construction time and resolved at compile time.
+        See the `OpenQASM documentation <https://openqasm.com/language/delays.html#duration-and-stretch-types>`__ for details.
+
+      * Support for synthesis using fractional basis gates,
+        significantly reducing gate counts in elegible circuits (see `blog post <https://www.ibm.com/quantum/blog/fractional-gates>`__ for more details).
+        
+      * Improved runtime performance, particularly during the circuit construction step,  
+        where `benchpress <https://github.com/Qiskit/benchpress>`__ benchmarking shows a 2x speedup over Qiskit 1.3.  
+        This improvement is achieved through a combination of contributions, including leveraging additional native Rust 
+        gate representations, such as :class:`UnitaryGate`, or removing legacy data model elements.  
 
     In line with our semantic versioning policy, documented a the time of 
     the 1.0.0 release, this major release also includes API changes that 
