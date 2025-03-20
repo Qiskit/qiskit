@@ -2700,7 +2700,13 @@ pub struct UnitaryGate {
 
 impl PartialEq for UnitaryGate {
     fn eq(&self, other: &Self) -> bool {
-        self.matrix(&[]) == other.matrix(&[])
+        match (&self.array, &other.array) {
+            (ArrayType::OneQ(mat1), ArrayType::OneQ(mat2)) => mat1 == mat2,
+            (ArrayType::TwoQ(mat1), ArrayType::TwoQ(mat2)) => mat1 == mat2,
+            // we could also slightly optimize comparisons between NDArray and OneQ/TwoQ if
+            // this becomes performance critical
+            _ => self.matrix(&[]) == other.matrix(&[]),
+        }
     }
 }
 
