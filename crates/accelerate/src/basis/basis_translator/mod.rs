@@ -800,7 +800,6 @@ fn replace_node(
     Ok(())
 }
 
-#[pymodule]
 pub fn basis_translator(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(run))?;
     Ok(())
