@@ -397,6 +397,7 @@ mcx q[0],q[1],q[2],q[3];"""
         self.assertEqual(dumps(qc), expected_qasm)
 
     def test_circuit_qasm_with_mcx_gate_variants(self):
+        # pylint: disable=line-too-long
         """Test circuit qasm() method with MCXGrayCode, MCXRecursive, MCXVChain"""
         import qiskit.circuit.library as cl
 

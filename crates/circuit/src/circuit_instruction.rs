@@ -698,7 +698,7 @@ fn warn_on_legacy_circuit_instruction_iteration(py: Python) -> PyResult<()> {
                 py,
                 concat!(
                     "Treating CircuitInstruction as an iterable is deprecated legacy behavior",
-                    " since Qiskit 1.2, and will be removed in Qiskit 2.0.",
+                    " since Qiskit 1.2, and will be removed in Qiskit 3.0.",
                     " Instead, use the `operation`, `qubits` and `clbits` named attributes."
                 )
             ),
