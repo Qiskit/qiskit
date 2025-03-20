@@ -28,12 +28,11 @@ from qiskit.circuit.library.standard_gates import (
 from qiskit.compiler import transpile
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.providers.fake_provider import GenericBackendV2
-from qiskit.pulse import channels
 from qiskit.quantum_info import Operator
 from qiskit.transpiler import InstructionProperties
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
-from ..legacy_cmaps import BOGOTA_CMAP, TENERIFE_CMAP
+from ..legacy_cmaps import TENERIFE_CMAP
 from .fake_mumbai_v2 import FakeMumbaiFractionalCX
 
 
@@ -203,49 +202,3 @@ class TestBackendV2(QiskitTestCase):
         expected.measure(qr[0], cr[0])
         expected.measure(qr[1], cr[1])
         self.assertEqual(expected, tqc)
-
-    @data(0, 1, 2, 3, 4)
-    def test_drive_channel(self, qubit):
-        """Test getting drive channel with qubit index."""
-        backend = GenericBackendV2(num_qubits=5, seed=42)
-        with self.assertWarns(DeprecationWarning):
-            chan = backend.drive_channel(qubit)
-            ref = channels.DriveChannel(qubit)
-        self.assertEqual(chan, ref)
-
-    @data(0, 1, 2, 3, 4)
-    def test_measure_channel(self, qubit):
-        """Test getting measure channel with qubit index."""
-        backend = GenericBackendV2(num_qubits=5, seed=42)
-        with self.assertWarns(DeprecationWarning):
-            chan = backend.measure_channel(qubit)
-            ref = channels.MeasureChannel(qubit)
-        self.assertEqual(chan, ref)
-
-    @data(0, 1, 2, 3, 4)
-    def test_acquire_channel(self, qubit):
-        """Test getting acquire channel with qubit index."""
-        backend = GenericBackendV2(num_qubits=5, seed=42)
-        with self.assertWarns(DeprecationWarning):
-            chan = backend.acquire_channel(qubit)
-            ref = channels.AcquireChannel(qubit)
-        self.assertEqual(chan, ref)
-
-    @data((4, 3), (3, 4), (3, 2), (2, 3), (1, 2), (2, 1), (1, 0), (0, 1))
-    def test_control_channel(self, qubits):
-        """Test getting acquire channel with qubit index."""
-        bogota_cr_channels_map = {
-            (4, 3): 7,
-            (3, 4): 6,
-            (3, 2): 5,
-            (2, 3): 4,
-            (1, 2): 2,
-            (2, 1): 3,
-            (1, 0): 1,
-            (0, 1): 0,
-        }
-        backend = GenericBackendV2(num_qubits=5, coupling_map=BOGOTA_CMAP, seed=42)
-        with self.assertWarns(DeprecationWarning):
-            chan = backend.control_channel(qubits)[0]
-            ref = channels.ControlChannel(bogota_cr_channels_map[qubits])
-        self.assertEqual(chan, ref)

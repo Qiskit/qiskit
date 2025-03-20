@@ -155,7 +155,6 @@ class ParameterizedCirc:
         circuit with 1000 parameters
         """
         out = efficient_su2(num_qubits, reps=4, entanglement="circular")
-        out._build()
         return out
 
 

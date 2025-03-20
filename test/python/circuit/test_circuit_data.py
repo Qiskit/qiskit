@@ -42,7 +42,7 @@ class TestQuantumCircuitData(QiskitTestCase):
         self.assertEqual(data.qubits, list(qr))
 
         # Test re-adding is disallowed by default.
-        with self.assertRaisesRegex(ValueError, "Existing bit"):
+        with self.assertRaisesRegex(ValueError, "Existing object"):
             data.add_qubit(qr[0])
 
         # Make sure re-adding is allowed in non-strict mode
@@ -58,7 +58,7 @@ class TestQuantumCircuitData(QiskitTestCase):
         self.assertEqual(data.qubits, qubits)
 
         # Test re-adding is disallowed by default.
-        with self.assertRaisesRegex(ValueError, "Existing bit"):
+        with self.assertRaisesRegex(ValueError, "Existing object"):
             data.add_qubit(qubits[0])
 
         # Make sure re-adding is allowed in non-strict mode
@@ -74,7 +74,7 @@ class TestQuantumCircuitData(QiskitTestCase):
         self.assertEqual(data.clbits, list(cr))
 
         # Test re-adding is disallowed by default.
-        with self.assertRaisesRegex(ValueError, "Existing bit"):
+        with self.assertRaisesRegex(ValueError, "Existing object"):
             data.add_clbit(cr[0])
 
         # Make sure re-adding is allowed in non-strict mode
@@ -90,7 +90,7 @@ class TestQuantumCircuitData(QiskitTestCase):
         self.assertEqual(data.clbits, clbits)
 
         # Test re-adding is disallowed by default.
-        with self.assertRaisesRegex(ValueError, "Existing bit"):
+        with self.assertRaisesRegex(ValueError, "Existing object"):
             data.add_clbit(clbits[0])
 
         # Make sure re-adding is allowed in non-strict mode
@@ -244,7 +244,7 @@ class TestQuantumCircuitData(QiskitTestCase):
             ],
         )
 
-        data.replace_bits(qubits=reversed(qr), clbits=reversed(cr))
+        data.replace_bits(qubits=list(reversed(qr)), clbits=list(reversed(cr)))
         self.assertEqual(
             data,
             [
