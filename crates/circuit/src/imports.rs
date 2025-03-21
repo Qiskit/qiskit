@@ -127,6 +127,10 @@ pub static HLS_SYNTHESIZE_OP_USING_PLUGINS: ImportOnceCell = ImportOnceCell::new
     "qiskit.transpiler.passes.synthesis.high_level_synthesis",
     "_synthesize_op_using_plugins",
 );
+pub static CONTROL_FLOW_CONDITION_RESOURCES: ImportOnceCell =
+    ImportOnceCell::new("qiskit.circuit.controlflow", "condition_resources");
+pub static CONTROL_FLOW_NODE_RESOURCES: ImportOnceCell =
+    ImportOnceCell::new("qiskit.circuit.controlflow", "node_resources");
 
 /// A mapping from the enum variant in crate::operations::StandardGate to the python
 /// module path and class name to import it. This is used to populate the conversion table
