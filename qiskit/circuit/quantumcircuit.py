@@ -2352,25 +2352,15 @@ class QuantumCircuit:
                 cr2 = ClassicalRegister(1)
                 qc = QuantumCircuit(qr1, qr2, cr1, cr2)
 
-                print("List the quantum registers:", qc.qregs)
-                print("List the classical registers:", qc.cregs)
                 print("List the qubits in this circuit:", qc.qubits)
-                print("List the ancilla qubits:", qc.ancillas)
                 print("List the classical bits in this circuit:", qc.clbits)
 
             .. code-block:: text
 
-                List the quantum registers: [QuantumRegister(2, 'q0'),
-                QuantumRegister(1, 'q1')]
-                List the classical registers: [ClassicalRegister(2, 'c0'),
-                ClassicalRegister(1, 'c1')]
-                List the qubits in this circuit: [Qubit(QuantumRegister(2,
-                'q0'), 0), Qubit(QuantumRegister(2, 'q0'), 1), Qubit
-                (QuantumRegister(1, 'q1'), 0)]
-                List the ancilla qubits: []
-                List the classical bits in this circuit: [Clbit
-                (ClassicalRegister(2, 'c0'), 0), Clbit(ClassicalRegister(2,
-                'c0'), 1), Clbit(ClassicalRegister(1, 'c1'), 0)]
+                List the qubits in this circuit: [Qubit(QuantumRegister(2, 'q0'), 0), 
+                Qubit(QuantumRegister(2, 'q0'), 1), Qubit(QuantumRegister(1, 'q1'), 0)]
+                List the classical bits in this circuit: [Clbit(ClassicalRegister(2, 'c0'), 0),
+                Clbit(ClassicalRegister(2, 'c0'), 1), Clbit(ClassicalRegister(1, 'c1'), 0)]
         """
         return self._data.clbits
 
