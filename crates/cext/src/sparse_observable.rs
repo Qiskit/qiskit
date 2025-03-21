@@ -24,7 +24,6 @@ use pyo3::{Py, Python};
 #[cfg(feature = "python_binding")]
 use qiskit_accelerate::sparse_observable::PySparseObservable;
 
-/// @ingroup QkObsTerm
 /// A term in a [SparseObservable].
 ///
 /// This contains the coefficient (``coeff``), the number of qubits of the observable
@@ -933,7 +932,7 @@ pub extern "C" fn qk_bitterm_label(bit_term: BitTerm) -> u8 {
         .expect("Label has exactly one character") as u8
 }
 
-/// @ingroup QkSparseObservable
+/// @ingroup QkObs
 /// Convert to a Python-space [PySparseObservable].
 ///
 /// @param obs The C-space [SparseObservable] pointer.
