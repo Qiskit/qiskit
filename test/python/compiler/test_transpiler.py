@@ -1677,12 +1677,13 @@ class TestTranspile(QiskitTestCase):
         """Test that scheduling-related loose transpile constraints
         work with BackendV2."""
 
-        backend_v2 = GenericBackendV2(num_qubits=2, seed=1)
+        original_dt = 2.2222222222222221e-10
+        backend_v2 = GenericBackendV2(num_qubits=2, dt=original_dt, seed=3)
         qc = QuantumCircuit(1, 1)
         qc.x(0)
         qc.measure(0, 0)
-        original_dt = 2.2222222222222221e-10
-        original_duration = 5059
+        scheduled = transpile(qc, backend=backend_v2, scheduling_method="asap")
+        original_duration = scheduled.duration
 
         # halve dt in sec = double duration in dt
         scheduled = transpile(qc, backend=backend_v2, scheduling_method="asap", dt=original_dt / 2)
