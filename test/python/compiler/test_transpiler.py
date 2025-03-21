@@ -2296,12 +2296,12 @@ class TestTranspile(QiskitTestCase):
         tqc_no_dt = transpile(qc, backend=backend, seed_transpiler=4242)
         # confirm that the output layouts are different
         self.assertNotEqual(
-            tqc_no_dt.layout.final_index_layout, tqc_no_error.layout.final_index_layout
+            tqc_no_dt.layout.final_index_layout(), tqc_no_error.layout.final_index_layout()
         )
         # now modify dt with gate errors
         tqc_dt = transpile(qc, backend=backend, seed_transpiler=4242, dt=backend.dt * 2)
         # confirm that dt doesn't affect layout
-        self.assertEqual(tqc_no_dt.layout.final_index_layout, tqc_dt.layout.final_index_layout)
+        self.assertEqual(tqc_no_dt.layout.final_index_layout(), tqc_dt.layout.final_index_layout())
 
 
 @ddt

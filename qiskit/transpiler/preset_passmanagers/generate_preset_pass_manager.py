@@ -239,9 +239,6 @@ def generate_preset_pass_manager(
             # If a backend is specified with loose dt, use its target and adjust the dt value.
             target = copy.deepcopy(backend.target)
             target.dt = dt
-            # we must update the instruction properties to internally clear the value of
-            # _instruction_durations in the target so that the new dt is saved
-            target._instruction_durations = None
         else:
             if basis_gates is not None:
                 # Build target from constraints.
