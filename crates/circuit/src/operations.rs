@@ -160,7 +160,11 @@ pub trait Operation {
     fn standard_gate(&self) -> Option<StandardGate>;
     fn directive(&self) -> bool;
     fn get_mat_static_1q(&self, params: &[Param]) -> Option<[[Complex64; 2]; 2]>;
-    fn get_mat_nalgebra_1q(&self, params: &[Param]) -> Option<Matrix2<Complex64>>;
+    fn get_mat_nalgebra_1q(&self, params: &[Param]) -> Option<Matrix2<Complex64>> {
+        // default implementation
+        self.get_mat_static_1q(params)
+            .map(|arr| Matrix2::new(arr[0][0], arr[0][1], arr[1][0], arr[1][1]))
+    }
 }
 
 /// Unpacked view object onto a `PackedOperation`.  This is the return value of
@@ -297,16 +301,6 @@ impl Operation for OperationRef<'_> {
             Self::Instruction(instruction) => instruction.get_mat_static_1q(params),
             Self::Operation(operation) => operation.get_mat_static_1q(params),
             Self::Unitary(unitary) => unitary.get_mat_static_1q(params),
-        }
-    }
-    fn get_mat_nalgebra_1q(&self, params: &[Param]) -> Option<Matrix2<Complex64>> {
-        match self {
-            Self::StandardGate(standard) => standard.get_mat_nalgebra_1q(params),
-            Self::StandardInstruction(instruction) => instruction.get_mat_nalgebra_1q(params),
-            Self::Gate(gate) => gate.get_mat_nalgebra_1q(params),
-            Self::Instruction(instruction) => instruction.get_mat_nalgebra_1q(params),
-            Self::Operation(operation) => operation.get_mat_nalgebra_1q(params),
-            Self::Unitary(unitary) => unitary.get_mat_nalgebra_1q(params),
         }
     }
 }
@@ -472,9 +466,6 @@ impl Operation for StandardInstruction {
     }
 
     fn get_mat_static_1q(&self, _params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
-        None
-    }
-    fn get_mat_nalgebra_1q(&self, _params: &[Param]) -> Option<Matrix2<Complex64>> {
         None
     }
 }
@@ -2547,11 +2538,6 @@ impl Operation for StandardGate {
             Self::RC3X => None,
         }
     }
-
-    fn get_mat_nalgebra_1q(&self, params: &[Param]) -> Option<Matrix2<Complex64>> {
-        self.get_mat_static_1q(params)
-            .map(|arr| Matrix2::new(arr[0][0], arr[0][1], arr[1][0], arr[1][1]))
-    }
 }
 
 const FLOAT_ZERO: Param = Param::Float(0.0);
@@ -2713,9 +2699,6 @@ impl Operation for PyInstruction {
     fn get_mat_static_1q(&self, _params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
         None
     }
-    fn get_mat_nalgebra_1q(&self, _params: &[Param]) -> Option<Matrix2<Complex64>> {
-        None
-    }
 }
 
 /// This class is used to wrap a Python side Gate that is not in the standard library
@@ -2811,11 +2794,6 @@ impl Operation for PyGate {
             }
         })
     }
-
-    fn get_mat_nalgebra_1q(&self, params: &[Param]) -> Option<Matrix2<Complex64>> {
-        self.get_mat_static_1q(params)
-            .map(|arr| Matrix2::new(arr[0][0], arr[0][1], arr[1][0], arr[1][1]))
-    }
 }
 
 /// This class is used to wrap a Python side Operation that is not in the standard library
@@ -2872,9 +2850,6 @@ impl Operation for PyOperation {
     }
 
     fn get_mat_static_1q(&self, _params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
-        None
-    }
-    fn get_mat_nalgebra_1q(&self, _params: &[Param]) -> Option<Matrix2<Complex64>> {
         None
     }
 }
@@ -2956,11 +2931,6 @@ impl Operation for UnitaryGate {
             },
             _ => None,
         }
-    }
-
-    fn get_mat_nalgebra_1q(&self, params: &[Param]) -> Option<Matrix2<Complex64>> {
-        self.get_mat_static_1q(params)
-            .map(|arr| Matrix2::new(arr[0][0], arr[0][1], arr[1][0], arr[1][1]))
     }
 }
 
