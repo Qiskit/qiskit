@@ -13,7 +13,7 @@
 """
 Preset pass manager generation function
 """
-
+import copy
 import warnings
 
 from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES, get_control_flow_name_mapping
@@ -237,8 +237,14 @@ def generate_preset_pass_manager(
             target = backend.target
         elif _adjust_dt:
             # If a backend is specified with loose dt, use its target and adjust the dt value.
-            target = backend.target
+            target = copy.deepcopy(backend.target)
             target.dt = dt
+            # we must update the instruction properties to internally clear the value of
+            # _instruction_durations in the target so that the new dt is saved
+            for inst_name in target.operation_names:
+                props_map = target[inst_name]
+                for qargs, props in props_map.items():
+                    target.update_instruction_properties(inst_name, qargs, props)
         else:
             if basis_gates is not None:
                 # Build target from constraints.
@@ -261,7 +267,7 @@ def generate_preset_pass_manager(
                     dt=dt,
                 )
 
-    # update loose constraints to populate pm options
+    # Update loose constraints to populate pm options
     if coupling_map is None:
         coupling_map = target.build_coupling_map()
     if basis_gates is None and len(target.operation_names) > 0:
