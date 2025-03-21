@@ -2278,29 +2278,6 @@ class TestTranspile(QiskitTestCase):
         and vf2 runs as expected.
         """
 
-        def _get_index_layout(transpiled_circuit: QuantumCircuit, num_source_qubits: int):
-            """Return the index layout of a transpiled circuit"""
-            layout = transpiled_circuit.layout
-            if layout is None:
-                return list(range(num_source_qubits))
-
-            pos_to_virt = {v: k for k, v in layout.input_qubit_mapping.items()}
-            qubit_indices = []
-            for index in range(num_source_qubits):
-                qubit_idx = layout.initial_layout[pos_to_virt[index]]
-                if layout.final_layout is not None:
-                    qubit_idx = layout.final_layout[transpiled_circuit.qubits[qubit_idx]]
-                qubit_indices.append(qubit_idx)
-            return qubit_indices
-
-        vf2_post_layout_called = False
-
-        def callback(**kwargs):
-            nonlocal vf2_post_layout_called
-            if isinstance(kwargs["pass_"], VF2PostLayout):
-                vf2_post_layout_called = True
-                self.assertIsNotNone(kwargs["property_set"]["post_layout"])
-
         coupling_map = [[0, 1], [1, 0], [1, 2], [1, 3], [2, 1], [3, 1], [3, 4], [4, 3]]
         backend = GenericBackendV2(
             num_qubits=5,
@@ -2313,11 +2290,18 @@ class TestTranspile(QiskitTestCase):
         for i in range(5):
             qc.cx(i % qubits, int(i + qubits / 2) % qubits)
 
-        tqc = transpile(
-            qc, backend=backend, seed_transpiler=4242, callback=callback, dt=backend.dt * 2
+        # transpile with no gate errors
+        tqc_no_error = transpile(qc, coupling_map=coupling_map, seed_transpiler=4242)
+        # transpile with gate errors
+        tqc_no_dt = transpile(qc, backend=backend, seed_transpiler=4242)
+        # confirm that the output layouts are different
+        self.assertNotEqual(
+            tqc_no_dt.layout.final_index_layout, tqc_no_error.layout.final_index_layout
         )
-        self.assertTrue(vf2_post_layout_called)
-        self.assertEqual([2, 1, 0], _get_index_layout(tqc, qubits))
+        # now modify dt with gate errors
+        tqc_dt = transpile(qc, backend=backend, seed_transpiler=4242, dt=backend.dt * 2)
+        # confirm that dt doesn't affect layout
+        self.assertEqual(tqc_no_dt.layout.final_index_layout, tqc_dt.layout.final_index_layout)
 
 
 @ddt
