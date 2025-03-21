@@ -140,6 +140,8 @@ class TestMCSynthesisCorrectness(QiskitTestCase):
 
     @data(3, 5, 8, 9, 10)
     def test_mcx_1_clean_kg24(self, num_ctrl_qubits: int):
+        """Test synth_mcx_1_clean_kg24 by comparing synthesized and expected matrices."""
+        # Note: the method requires at least 3 control qubits
         synthesized_circuit = synth_mcx_1_clean_kg24(num_ctrl_qubits)
         self.assertSynthesisCorrect(
             XGate(), num_ctrl_qubits, synthesized_circuit, clean_ancillas=True
@@ -147,6 +149,8 @@ class TestMCSynthesisCorrectness(QiskitTestCase):
 
     @data(3, 5, 8, 9, 10)
     def test_mcx_1_dirty_kg24(self, num_ctrl_qubits: int):
+        """Test synth_mcx_1_dirty_kg24 by comparing synthesized and expected matrices."""
+        # Note: the method requires at least 3 control qubits
         synthesized_circuit = synth_mcx_1_dirty_kg24(num_ctrl_qubits)
         self.assertSynthesisCorrect(
             XGate(), num_ctrl_qubits, synthesized_circuit, clean_ancillas=False
@@ -154,6 +158,8 @@ class TestMCSynthesisCorrectness(QiskitTestCase):
 
     @data(3, 5, 8, 9, 10)
     def test_mcx_2_clean_kg24(self, num_ctrl_qubits: int):
+        """Test synth_mcx_2_clean_kg24 by comparing synthesized and expected matrices."""
+        # Note: the method requires at least 3 control qubits
         synthesized_circuit = synth_mcx_2_clean_kg24(num_ctrl_qubits)
         self.assertSynthesisCorrect(
             XGate(), num_ctrl_qubits, synthesized_circuit, clean_ancillas=True
@@ -161,6 +167,8 @@ class TestMCSynthesisCorrectness(QiskitTestCase):
 
     @data(3, 5, 8, 9, 10)
     def test_mcx_2_dirty_kg24(self, num_ctrl_qubits: int):
+        """Test synth_mcx_2_dirty_kg24 by comparing synthesized and expected matrices."""
+        # Note: the method requires at least 3 control qubits
         synthesized_circuit = synth_mcx_2_dirty_kg24(num_ctrl_qubits)
         self.assertSynthesisCorrect(
             XGate(), num_ctrl_qubits, synthesized_circuit, clean_ancillas=False
@@ -266,7 +274,7 @@ class TestMCSynthesisCounts(QiskitTestCase):
 
     @data(3, 5, 10, 15)
     def test_mcx_1_clean_kg24_cx_count(self, num_ctrl_qubits: int):
-        """ Test synth_mcx_1_clean_kg24 bound on CX count."""
+        """Test synth_mcx_1_clean_kg24 bound on CX count."""
         synthesized_circuit = synth_mcx_1_clean_kg24(num_ctrl_qubits)
         transpiled_circuit = self.pm.run(synthesized_circuit)
         cx_count = transpiled_circuit.count_ops()["cx"]
@@ -297,7 +305,7 @@ class TestMCSynthesisCounts(QiskitTestCase):
     @data(3, 5, 10, 15)
     def test_mcx_2_dirty_kg24_cx_count(self, num_ctrl_qubits: int):
         """Test synth_mcx_2_dirty_kg24 bound on CX count."""
-        synthesized_circuit = synth_mcx_2_dirty_kg24(num_ctrl_qubits)                          
+        synthesized_circuit = synth_mcx_2_dirty_kg24(num_ctrl_qubits)
         transpiled_circuit = self.pm.run(synthesized_circuit)
         cx_count = transpiled_circuit.count_ops()["cx"]
         # Based on the bound from the Sec 5.4 of arXiv:2407.17966, assuming Toffoli decomposition
