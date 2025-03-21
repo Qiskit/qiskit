@@ -14,6 +14,7 @@ use crate::bit::{ClassicalRegister, ShareableClbit};
 use crate::classical::Type;
 use crate::duration::Duration;
 use pyo3::prelude::*;
+use pyo3::IntoPyObjectExt;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Expr {
@@ -72,7 +73,14 @@ impl From<Index> for Expr {
 ///
 /// We store a [ExprKind] enum inside to quickly determine which Python expression
 /// we're looking at during extraction.
-#[pyclass(eq, hash, subclass, frozen, name = "Expr", module = "qiskit._accelerate.circuit")]
+#[pyclass(
+    eq,
+    hash,
+    subclass,
+    frozen,
+    name = "Expr",
+    module = "qiskit._accelerate.circuit"
+)]
 #[derive(PartialEq, Clone, Copy, Debug, Hash)]
 struct PyExpr(ExprKind);
 
@@ -203,6 +211,14 @@ pub enum UnaryOp {
 #[derive(PartialEq, Clone, Debug)]
 struct PyUnary(Unary);
 
+#[pymethods]
+impl PyUnary {
+    #[getter]
+    fn get_type(&self, py: Python) -> PyResult<Py<PyAny>> {
+        self.0.ty.clone().into_py_any(py)
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct Binary {
     op: BinaryOp,
@@ -238,6 +254,14 @@ pub enum BinaryOp {
 #[derive(PartialEq, Clone, Debug)]
 struct PyBinary(Binary);
 
+#[pymethods]
+impl PyBinary {
+    #[getter]
+    fn get_type(&self, py: Python) -> PyResult<Py<PyAny>> {
+        self.0.ty.clone().into_py_any(py)
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct Cast {
     operand: Expr,
@@ -250,6 +274,14 @@ pub struct Cast {
 #[derive(PartialEq, Clone, Debug)]
 struct PyCast(Cast);
 
+#[pymethods]
+impl PyCast {
+    #[getter]
+    fn get_type(&self, py: Python) -> PyResult<Py<PyAny>> {
+        self.0.ty.clone().into_py_any(py)
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum Value {
     Duration(Duration),
@@ -260,6 +292,17 @@ pub enum Value {
 #[pyclass(eq, extends = PyExpr, name = "Value", module = "qiskit._accelerate.circuit")]
 #[derive(PartialEq, Clone, Debug)]
 struct PyValue(Value);
+
+#[pymethods]
+impl PyValue {
+    #[getter]
+    fn get_type(&self, py: Python) -> PyResult<Py<PyAny>> {
+        match self.0 {
+            Value::Duration(_) => Type::Duration.into_py_any(py),
+            Value::Float { ty, .. } | Value::Uint { ty, .. } => ty.into_py_any(py),
+        }
+    }
+}
 
 #[derive(Clone, Debug, PartialEq, Hash)]
 pub enum Var {
@@ -277,6 +320,17 @@ pub enum Var {
     },
 }
 
+#[pymethods]
+impl PyVar {
+    #[getter]
+    fn get_type(&self, py: Python) -> PyResult<Py<PyAny>> {
+        match self.0 {
+            Var::Bit { .. } => Type::Bool.into_py_any(py),
+            Var::Standalone { ty, .. } | Var::Register { ty, .. } => ty.into_py_any(py),
+        }
+    }
+}
+
 #[pyclass(eq, hash, frozen, extends = PyExpr, name = "Var", module = "qiskit._accelerate.circuit")]
 #[derive(PartialEq, Clone, Debug, Hash)]
 struct PyVar(Var);
@@ -291,6 +345,14 @@ pub struct Stretch {
 #[derive(PartialEq, Clone, Debug, Hash)]
 struct PyStretch(Stretch);
 
+#[pymethods]
+impl PyStretch {
+    #[getter]
+    fn get_type(&self, py: Python) -> PyResult<Py<PyAny>> {
+        Type::Duration.into_py_any(py)
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct Index {
     target: Expr,
@@ -302,6 +364,14 @@ pub struct Index {
 #[pyclass(eq, extends = PyExpr, name = "Index", module = "qiskit._accelerate.circuit")]
 #[derive(PartialEq, Clone, Debug)]
 struct PyIndex(Index);
+
+#[pymethods]
+impl PyIndex {
+    #[getter]
+    fn get_type(&self, py: Python) -> PyResult<Py<PyAny>> {
+        self.0.ty.clone().into_py_any(py)
+    }
+}
 
 pub(crate) fn register_python(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<PyExpr>()?;

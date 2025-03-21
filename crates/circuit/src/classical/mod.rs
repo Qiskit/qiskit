@@ -13,9 +13,11 @@ mod ordering;
 mod types;
 mod visitors;
 
-use pyo3::prelude::*;
 pub use self::{expr::Expr, types::Type};
+use pyo3::prelude::*;
 
 pub(crate) fn register_python(m: &Bound<PyModule>) -> PyResult<()> {
-    expr::register_python(m)
+    expr::register_python(m)?;
+    types::register_python(m)?;
+    Ok(())
 }
