@@ -207,8 +207,7 @@ def generate_preset_pass_manager(
     if backend is not None and (coupling_map is not None or basis_gates is not None):
         warnings.warn(
             "Providing `coupling_map` and/or `basis_gates` along with `backend` is not "
-            "recommended. This may introduce inconsistencies in the transpilation target, "
-            "leading to potential errors.",
+            "recommended, as this will invalidate the backend's gate durations and error rates.",
             category=UserWarning,
             stacklevel=2,
         )
@@ -229,7 +228,7 @@ def generate_preset_pass_manager(
                 raise ValueError(
                     f"Gates with 3 or more qubits ({gate}) in `basis_gates` or `backend` are "
                     "incompatible with a custom `coupling_map`. To include 3-qubit or larger "
-                    " gates in the transpilation basis, use a custom `target` instance instead."
+                    " gates in the transpilation basis, provide a custom `target` instead."
                 )
 
     if target is None:
@@ -237,7 +236,7 @@ def generate_preset_pass_manager(
             # If a backend is specified without loose constraints, use its target directly.
             target = backend.target
         elif _adjust_dt:
-            # If a backend is specified with loose dt, use its target and andjust the dt value.
+            # If a backend is specified with loose dt, use its target and adjust the dt value.
             target = backend.target
             target.dt = dt
         else:
