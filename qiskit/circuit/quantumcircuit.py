@@ -4542,7 +4542,7 @@ class QuantumCircuit:
                 circuit = QuantumCircuit(2)
                 circuit.h(0)
                 circuit.cx(0, 1)
-                print(circuit.global_phase) # find the global phase of the current circuit
+                print(circuit.global_phase)
 
             .. code-block:: text
 
@@ -4555,7 +4555,7 @@ class QuantumCircuit:
 
                 from numpy import pi
 
-                circuit.global_phase = pi/4 # set the global phase of the circuit to pi/4
+                circuit.global_phase = pi/4
                 print(circuit.global_phase)
 
             .. code-block:: text
