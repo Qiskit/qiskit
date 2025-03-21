@@ -395,7 +395,7 @@ pub fn vf2_layout_pass(
                 return Ok(Some(mapping));
             }
             let layout_score =
-                score_layout_target(&mapping, &avg_error_map, &im_graph_data, strict_direction)?;
+                score_layout_internal(&mapping, &avg_error_map, &im_graph_data, strict_direction)?;
             if layout_score == 0. {
                 return Ok(Some(mapping));
             }
@@ -458,7 +458,7 @@ pub fn vf2_layout_pass(
                 return Ok(Some(mapping));
             }
             let layout_score =
-                score_layout_target(&mapping, &avg_error_map, &im_graph_data, strict_direction)?;
+                score_layout_internal(&mapping, &avg_error_map, &im_graph_data, strict_direction)?;
             if layout_score == 0. {
                 return Ok(Some(mapping));
             }
@@ -493,7 +493,7 @@ pub fn vf2_layout_pass(
     }
 }
 
-fn score_layout_target<Ty: EdgeType>(
+fn score_layout_internal<Ty: EdgeType>(
     mapping: &HashMap<VirtualQubit, PhysicalQubit>,
     error_map: &ErrorMap,
     im_graph_data: &InteractionGraphData<Ty>,
