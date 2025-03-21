@@ -1,6 +1,6 @@
 language = "C"
 include_version = true
-include_guard = "QISKIT_H_INCLUDED"
+include_guard = "QISKIT_H"
 style = "type"
 
 sys_includes = ["complex.h"]

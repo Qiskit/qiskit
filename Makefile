@@ -120,7 +120,6 @@ fix_cformat:
 # Compile the C library and move the header into the right location, if it was generated
 $(C_LIB_CARGO_PATH): $(C_DIR_INCLUDE)
 	cargo build --release -p qiskit-cext
-	@if [ -f crates/cext/qiskit.h ]; then mv crates/cext/qiskit.h $(C_DIR_INCLUDE)/qiskit.h; fi
 
 $(C_DIR_LIB):
 	mkdir -p $(C_DIR_LIB)
@@ -132,9 +131,9 @@ $(C_LIBQISKIT): $(C_DIR_LIB)  $(C_LIB_CARGO_PATH)
 	cp $(C_LIB_CARGO_PATH) $(C_DIR_LIB)/$(subst _cext,,$(C_LIB_CARGO_FILENAME))
 
 $(C_QISKIT_H): $(C_LIB_CARGO_PATH)
-	@if [ ! -f "$(C_QISKIT_H)" ]; then cbindgen --crate qiskit-cext --output $(C_DIR_INCLUDE)/qiskit.h; fi
+	cp target/qiskit.h $(C_DIR_INCLUDE)/qiskit.h
 
-.PHONY: c cheader
+.PHONY: c cheader 
 cheader: $(C_QISKIT_H)
 c: $(C_LIBQISKIT) $(C_QISKIT_H)
 
@@ -149,4 +148,5 @@ ctest: $(C_LIB_CARGO_PATH)
 
 cclean:
 	rm -rf $(C_DIR_OUT) $(C_DIR_TEST_BUILD)
+	rm -f target/qiskit.h
 	cargo clean

@@ -10,12 +10,22 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use std::str::FromStr;
+
 extern crate cbindgen;
 
 /// This function generates the C header for Qiskit from the qiskit-cext crate.
 fn main() {
+    // Trigger this script if the header was changed/removed.
+    println!("cargo:rerun-if-changed=../../target/qiskit.h");
+
     // Pull the config from the cbindgen.toml file.
     let config = cbindgen::Config::from_file("cbindgen.toml").unwrap();
+
+    // Ensure target path exists and then set the full filename of qiskit.h.
+    let mut path = ::std::path::PathBuf::from_str("../../target/").unwrap();
+    ::std::fs::create_dir_all(&path).expect("Could not create target directory.");
+    path.push("qiskit.h");
 
     // Build the header.
     cbindgen::Builder::new()
@@ -23,5 +33,5 @@ fn main() {
         .with_config(config)
         .generate()
         .expect("Unable to generate C bindings.")
-        .write_to_file("qiskit.h");
+        .write_to_file(path);
 }
