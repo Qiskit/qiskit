@@ -292,6 +292,8 @@ impl Operation for OperationRef<'_> {
             Self::Unitary(unitary) => unitary.directive(),
         }
     }
+
+    /// Returns a static matrix for 1-qubit gates. Will return `None` when the gate is not 1-qubit.ß
     #[inline]
     fn matrix_as_static_1q(&self, params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
         match self {
