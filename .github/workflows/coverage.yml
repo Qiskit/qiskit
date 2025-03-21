@@ -63,16 +63,19 @@ jobs:
 
       - name: Generate ctest coverage report
         run: |
-          make ctest
+          cargo rustc --release --crate-type cdylib -p qiskit-cext -- -Cinstrument-coverage -Cincremental=false
+          cbindgen --crate qiskit-cext --output dist/c/include/qiskit.h --lang C
+          cmake -S. -Btest/c/build
+          cmake --build test/c/build
+          ctest -V --test-dir test/c/build
+        env:
+          LLVM_PROFILE_FILE: "qiskit-%p-%m.profraw"
+      - name: Generate lcov with grcov
+        run: |
           # We set the --source-dir to '.' because we want all paths to appear relative to the repo
           # root (we need to combine them with the Python ones), but we only care about `grcov`
           # keeping the `crates/*` files; we don't care about coverage in dependencies.
           grcov . --binary-path target/debug/ --source-dir . --output-type lcov --output-path rust.info --llvm --branch --parallel --keep-only 'crates/*'
-        env:
-          CARGO_INCREMENTAL: 0
-          RUSTFLAGS: "-Cinstrument-coverage"
-          LLVM_PROFILE_FILE: "qiskit-%p-%m.profraw"
-
       - name: Convert to lcov and combine data
         run: |
           set -e
