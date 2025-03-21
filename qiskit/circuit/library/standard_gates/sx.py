@@ -17,7 +17,6 @@ from __future__ import annotations
 from math import pi
 from typing import Optional, Union
 from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, stdlib_singleton_key
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
 from qiskit._accelerate.circuit import StandardGate
 
@@ -67,9 +66,9 @@ class SXGate(SingletonGate):
 
     _standard_gate = StandardGate.SXGate
 
-    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
+    def __init__(self, label: Optional[str] = None):
         """Create new SX gate."""
-        super().__init__("sx", 1, [], label=label, duration=duration, unit=unit)
+        super().__init__("sx", 1, [], label=label)
 
     _singleton_lookup_key = stdlib_singleton_key()
 
@@ -78,7 +77,7 @@ class SXGate(SingletonGate):
         gate sx a { rz(-pi/2) a; h a; rz(-pi/2); }
         """
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
         from .s import SdgGate
         from .h import HGate
 
@@ -171,9 +170,9 @@ class SXdgGate(SingletonGate):
 
     _standard_gate = StandardGate.SXdgGate
 
-    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
+    def __init__(self, label: Optional[str] = None):
         """Create new SXdg gate."""
-        super().__init__("sxdg", 1, [], label=label, duration=duration, unit=unit)
+        super().__init__("sxdg", 1, [], label=label)
 
     _singleton_lookup_key = stdlib_singleton_key()
 
@@ -182,7 +181,7 @@ class SXdgGate(SingletonGate):
         gate sxdg a { rz(pi/2) a; h a; rz(pi/2); }
         """
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
         from .s import SGate
         from .h import HGate
 
@@ -276,8 +275,6 @@ class CSXGate(SingletonControlledGate):
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
         *,
-        duration=None,
-        unit="dt",
         _base_label=None,
     ):
         """Create new CSX gate."""
@@ -289,8 +286,6 @@ class CSXGate(SingletonControlledGate):
             label=label,
             ctrl_state=ctrl_state,
             base_gate=SXGate(label=_base_label),
-            duration=duration,
-            unit=unit,
         )
 
     _singleton_lookup_key = stdlib_singleton_key(num_ctrl_qubits=1)
@@ -300,7 +295,7 @@ class CSXGate(SingletonControlledGate):
         gate csx a,b { h b; cu1(pi/2) a,b; h b; }
         """
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
         from .h import HGate
         from .u1 import CU1Gate
 

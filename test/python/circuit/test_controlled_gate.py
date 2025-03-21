@@ -27,7 +27,6 @@ from qiskit.circuit.exceptions import CircuitError
 from qiskit.quantum_info.operators.predicates import matrix_equal, is_unitary_matrix
 from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info.states import Statevector
-import qiskit.circuit.add_control as ac
 from qiskit.transpiler.passes import UnrollCustomDefinitions, BasisTranslator
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.converters.circuit_to_dag import circuit_to_dag
@@ -63,7 +62,12 @@ from qiskit.circuit.library import (
     CRZGate,
     CU3Gate,
     CUGate,
+    SGate,
+    SdgGate,
     SXGate,
+    SXdgGate,
+    TGate,
+    TdgGate,
     CSXGate,
     MSGate,
     Barrier,
@@ -709,16 +713,45 @@ class TestControlledGate(QiskitTestCase):
         explicit = {1: CXGate, 2: CCXGate}
         self.assertEqual(cls, explicit[num_ctrl_qubits])
 
-    @data(1, 2, 3, 4)
-    def test_small_mcx_gates_yield_cx_count(self, num_ctrl_qubits):
-        """Test the creating a MCX gate with small number of controls (with no ancillas)
-        yields the expected number of cx gates."""
+    @combine(num_ctrl_qubits=[1, 2, 3, 4], base_gate=[XGate(), YGate(), ZGate(), HGate()])
+    def test_small_mcx_gates_yield_cx_count(self, num_ctrl_qubits, base_gate):
+        """Test the creating a MCX gate (and other locally equivalent multi-controlled gates)
+        with small number of controls (with no ancillas) yields the expected number of cx gates
+        and provides the correct unitary.
+        """
         qc = QuantumCircuit(num_ctrl_qubits + 1)
-        qc.append(MCXGate(num_ctrl_qubits), range(num_ctrl_qubits + 1))
+        qc.append(base_gate.control(num_ctrl_qubits), range(num_ctrl_qubits + 1))
+
+        base_mat = base_gate.to_matrix()
+        test_op = Operator(qc)
+        cop_mat = _compute_control_matrix(base_mat, num_ctrl_qubits)
+        self.assertTrue(matrix_equal(cop_mat, test_op.data))
 
         cqc = transpile(qc, basis_gates=["u", "cx"])
         cx_count = cqc.count_ops()["cx"]
         expected = {1: 1, 2: 6, 3: 14, 4: 36}
+        self.assertEqual(cx_count, expected[num_ctrl_qubits])
+
+    @combine(
+        num_ctrl_qubits=[1, 2, 3, 4],
+        base_gate=[PhaseGate(0.123), SGate(), SdgGate(), TGate(), TdgGate(), SXGate(), SXdgGate()],
+    )
+    def test_small_mcp_gates_yield_cx_count(self, num_ctrl_qubits, base_gate):
+        """Test the creating a MCPhase gate (and other locally equivalent multi-controlled gates)
+        with small number of controls (with no ancillas) yields the expected number of cx gates
+        and provides the correct unitary.
+        """
+        qc = QuantumCircuit(num_ctrl_qubits + 1)
+        qc.append(base_gate.control(num_ctrl_qubits), range(num_ctrl_qubits + 1))
+
+        base_mat = base_gate.to_matrix()
+        test_op = Operator(qc)
+        cop_mat = _compute_control_matrix(base_mat, num_ctrl_qubits)
+        self.assertTrue(matrix_equal(cop_mat, test_op.data))
+
+        cqc = transpile(qc, basis_gates=["u", "cx"])
+        cx_count = cqc.count_ops()["cx"]
+        expected = {1: 2, 2: 6, 3: 20, 4: 44}
         self.assertEqual(cx_count, expected[num_ctrl_qubits])
 
     @data(1, 2, 3, 4)
@@ -1550,10 +1583,10 @@ class TestSingleControlledRotationGates(QiskitTestCase):
     gry = ry.RYGate(theta)
     grz = rz.RZGate(theta)
 
-    ugu1 = ac._unroll_gate(gu1, ["p", "u", "cx"])
-    ugrx = ac._unroll_gate(grx, ["p", "u", "cx"])
-    ugry = ac._unroll_gate(gry, ["p", "u", "cx"])
-    ugrz = ac._unroll_gate(grz, ["p", "u", "cx"])
+    ugu1 = u1.U1Gate(theta).definition
+    ugrx = rx.RXGate(theta).definition
+    ugry = ry.RYGate(theta).definition
+    ugrz = rz.RZGate(theta).definition
     ugrz.params = grz.params
 
     cgu1 = ugu1.control(num_ctrl)
@@ -1730,6 +1763,7 @@ class TestControlledGateLabel(QiskitTestCase):
         (CU1Gate, [0.1]),
         (SwapGate, []),
         (SXGate, []),
+        (SXdgGate, []),
         (CSXGate, []),
         (CCXGate, []),
         (RZGate, [0.1]),

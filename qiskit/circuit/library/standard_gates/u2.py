@@ -17,7 +17,6 @@ from typing import Optional
 import numpy
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameterexpression import ParameterValueType
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit._accelerate.circuit import StandardGate
 
 
@@ -94,16 +93,13 @@ class U2Gate(Gate):
         phi: ParameterValueType,
         lam: ParameterValueType,
         label: Optional[str] = None,
-        *,
-        duration=None,
-        unit="dt",
     ):
         """Create new U2 gate."""
-        super().__init__("u2", 1, [phi, lam], label=label, duration=duration, unit=unit)
+        super().__init__("u2", 1, [phi, lam], label=label)
 
     def _define(self):
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
         from .u3 import U3Gate
 
         q = QuantumRegister(1, "q")

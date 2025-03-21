@@ -17,7 +17,6 @@ from math import pi
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, stdlib_singleton_key
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import _ctrl_state_to_int, with_gate_array, with_controlled_gate_array
 from qiskit._accelerate.circuit import StandardGate
 from qiskit.utils.deprecation import deprecate_func
@@ -75,9 +74,9 @@ class XGate(SingletonGate):
 
     _standard_gate = StandardGate.XGate
 
-    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
+    def __init__(self, label: Optional[str] = None):
         """Create new X gate."""
-        super().__init__("x", 1, [], label=label, duration=duration, unit=unit)
+        super().__init__("x", 1, [], label=label)
 
     _singleton_lookup_key = stdlib_singleton_key()
 
@@ -86,7 +85,7 @@ class XGate(SingletonGate):
         gate x a { u3(pi,0,pi) a; }
         """
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
         from .u3 import U3Gate
 
         q = QuantumRegister(1, "q")
@@ -225,8 +224,6 @@ class CXGate(SingletonControlledGate):
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
         *,
-        duration=None,
-        unit="dt",
         _base_label=None,
     ):
         """Create new CX gate."""
@@ -239,8 +236,6 @@ class CXGate(SingletonControlledGate):
             ctrl_state=ctrl_state,
             base_gate=XGate(label=_base_label),
             _base_label=_base_label,
-            duration=duration,
-            unit=unit,
         )
 
     _singleton_lookup_key = stdlib_singleton_key(num_ctrl_qubits=1)
@@ -378,8 +373,6 @@ class CCXGate(SingletonControlledGate):
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
         *,
-        duration=None,
-        unit="dt",
         _base_label=None,
     ):
         """Create new CCX gate."""
@@ -391,8 +384,6 @@ class CCXGate(SingletonControlledGate):
             label=label,
             ctrl_state=ctrl_state,
             base_gate=XGate(label=_base_label),
-            duration=duration,
-            unit=unit,
         )
 
     _singleton_lookup_key = stdlib_singleton_key(num_ctrl_qubits=2)
@@ -407,7 +398,7 @@ class CCXGate(SingletonControlledGate):
         t a; tdg b; cx a,b;}
         """
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
         from .h import HGate
         from .t import TGate, TdgGate
 
@@ -528,9 +519,9 @@ class RCCXGate(SingletonGate):
 
     _standard_gate = StandardGate.RCCXGate
 
-    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
+    def __init__(self, label: Optional[str] = None):
         """Create a new simplified CCX gate."""
-        super().__init__("rccx", 3, [], label=label, duration=duration, unit=unit)
+        super().__init__("rccx", 3, [], label=label)
 
     _singleton_lookup_key = stdlib_singleton_key()
 
@@ -549,7 +540,7 @@ class RCCXGate(SingletonGate):
         }
         """
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
         from .u1 import U1Gate
         from .u2 import U2Gate
 
@@ -592,8 +583,6 @@ class C3SXGate(SingletonControlledGate):
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
         *,
-        duration=None,
-        unit="dt",
         _base_label=None,
     ):
         """Create a new 3-qubit controlled sqrt-X gate.
@@ -613,8 +602,6 @@ class C3SXGate(SingletonControlledGate):
             label=label,
             ctrl_state=ctrl_state,
             base_gate=SXGate(label=_base_label),
-            duration=duration,
-            unit=unit,
         )
 
     _singleton_lookup_key = stdlib_singleton_key(num_ctrl_qubits=3)
@@ -639,7 +626,7 @@ class C3SXGate(SingletonControlledGate):
         }
         """
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
         from .u1 import CU1Gate
         from .h import HGate
 
@@ -699,8 +686,6 @@ class C3XGate(SingletonControlledGate):
         ctrl_state: Optional[Union[str, int]] = None,
         *,
         _base_label=None,
-        duration=None,
-        unit="dt",
     ):
         """Create a new 3-qubit controlled X gate."""
         super().__init__(
@@ -711,8 +696,6 @@ class C3XGate(SingletonControlledGate):
             label=label,
             ctrl_state=ctrl_state,
             base_gate=XGate(label=_base_label),
-            duration=duration,
-            unit=unit,
         )
 
     _singleton_lookup_key = stdlib_singleton_key(num_ctrl_qubits=3)
@@ -755,7 +738,7 @@ class C3XGate(SingletonControlledGate):
             h d;
         }
         """
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
 
         q = QuantumRegister(4, name="q")
         qc = QuantumCircuit(q, name=self.name)
@@ -882,9 +865,9 @@ class RC3XGate(SingletonGate):
 
     _standard_gate = StandardGate.RC3XGate
 
-    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
+    def __init__(self, label: Optional[str] = None):
         """Create a new RC3X gate."""
-        super().__init__("rcccx", 4, [], label=label, duration=duration, unit=unit)
+        super().__init__("rcccx", 4, [], label=label)
 
     _singleton_lookup_key = stdlib_singleton_key()
 
@@ -912,7 +895,7 @@ class RC3XGate(SingletonGate):
         }
         """
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
         from .u1 import U1Gate
         from .u2 import U2Gate
 
@@ -964,13 +947,9 @@ class C4XGate(SingletonControlledGate):
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
         *,
-        duration=None,
-        unit="dt",
         _base_label=None,
     ):
         """Create a new 4-qubit controlled X gate."""
-        if unit is None:
-            unit = "dt"
         super().__init__(
             "mcx",
             5,
@@ -979,8 +958,6 @@ class C4XGate(SingletonControlledGate):
             label=label,
             ctrl_state=ctrl_state,
             base_gate=XGate(label=_base_label),
-            duration=duration,
-            unit=unit,
         )
 
     _singleton_lookup_key = stdlib_singleton_key(num_ctrl_qubits=4)
@@ -1014,7 +991,7 @@ class C4XGate(SingletonControlledGate):
         }
         """
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
         from .u1 import CU1Gate
         from .h import HGate
 
@@ -1105,8 +1082,6 @@ class MCXGate(ControlledGate):
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
         *,
-        duration=None,
-        unit="dt",
         _base_label=None,
     ):
         """Create a new MCX instance.
@@ -1127,8 +1102,6 @@ class MCXGate(ControlledGate):
                 label=label,
                 ctrl_state=ctrl_state,
                 _base_label=_base_label,
-                duration=duration,
-                unit=unit,
             )
             return gate
         return super().__new__(cls)
@@ -1139,8 +1112,6 @@ class MCXGate(ControlledGate):
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
         *,
-        duration=None,
-        unit="dt",
         _name="mcx",
         _base_label=None,
     ):
@@ -1256,8 +1227,6 @@ class MCXGrayCode(MCXGate):
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
         *,
-        duration=None,
-        unit="dt",
         _base_label=None,
     ):
         """Create a new MCXGrayCode instance"""
@@ -1270,15 +1239,11 @@ class MCXGrayCode(MCXGate):
                 label=label,
                 ctrl_state=ctrl_state,
                 _base_label=_base_label,
-                duration=duration,
-                unit=unit,
             )
             # if __new__ does not return the same type as cls, init is not called
             gate.__init__(
                 label=label,
                 ctrl_state=ctrl_state,
-                duration=duration,
-                unit=unit,
             )
             return gate
         return super().__new__(cls)
@@ -1355,8 +1320,6 @@ class MCXRecursive(MCXGate):
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
         *,
-        duration=None,
-        unit="dt",
         _base_label=None,
     ):
         super().__init__(
@@ -1364,8 +1327,6 @@ class MCXRecursive(MCXGate):
             label=label,
             ctrl_state=ctrl_state,
             _name="mcx_recursive",
-            duration=duration,
-            unit=unit,
             _base_label=None,
         )
 
@@ -1408,8 +1369,6 @@ class MCXVChain(MCXGate):
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
         *,
-        duration=None,
-        unit="dt",
         _base_label=None,
         relative_phase: bool = False,  # pylint: disable=unused-argument
         action_only: bool = False,  # pylint: disable=unused-argument
@@ -1424,8 +1383,6 @@ class MCXVChain(MCXGate):
             label=label,
             ctrl_state=ctrl_state,
             _base_label=_base_label,
-            duration=duration,
-            unit=unit,
         )
 
     @deprecate_func(
@@ -1447,8 +1404,6 @@ class MCXVChain(MCXGate):
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
         *,
-        duration=None,
-        unit="dt",
         _base_label=None,
         relative_phase: bool = False,
         action_only: bool = False,
@@ -1474,8 +1429,6 @@ class MCXVChain(MCXGate):
             ctrl_state=ctrl_state,
             _name="mcx_vchain",
             _base_label=_base_label,
-            duration=duration,
-            unit=unit,
         )
         self._dirty_ancillas = dirty_ancillas
         self._relative_phase = relative_phase

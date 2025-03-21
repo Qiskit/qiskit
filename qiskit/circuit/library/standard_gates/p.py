@@ -17,7 +17,6 @@ from cmath import exp
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit._accelerate.circuit import StandardGate
 
@@ -78,15 +77,13 @@ class PhaseGate(Gate):
 
     _standard_gate = StandardGate.PhaseGate
 
-    def __init__(
-        self, theta: ParameterValueType, label: str | None = None, *, duration=None, unit="dt"
-    ):
+    def __init__(self, theta: ParameterValueType, label: str | None = None):
         """Create new Phase gate."""
-        super().__init__("p", 1, [theta], label=label, duration=duration, unit=unit)
+        super().__init__("p", 1, [theta], label=label)
 
     def _define(self):
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
         from .u import UGate
 
         q = QuantumRegister(1, "q")
@@ -208,8 +205,6 @@ class CPhaseGate(ControlledGate):
         label: str | None = None,
         ctrl_state: str | int | None = None,
         *,
-        duration=None,
-        unit="dt",
         _base_label=None,
     ):
         """Create new CPhase gate."""
@@ -221,8 +216,6 @@ class CPhaseGate(ControlledGate):
             label=label,
             ctrl_state=ctrl_state,
             base_gate=PhaseGate(theta, label=_base_label),
-            duration=duration,
-            unit=unit,
         )
 
     def _define(self):
@@ -234,7 +227,7 @@ class CPhaseGate(ControlledGate):
         }
         """
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
 
         #      ┌────────┐
         # q_0: ┤ P(λ/2) ├──■───────────────■────────────
@@ -342,8 +335,6 @@ class MCPhaseGate(ControlledGate):
         label: str | None = None,
         ctrl_state: str | int | None = None,
         *,
-        duration=None,
-        unit="dt",
         _base_label=None,
     ):
         """Create new MCPhase gate."""
@@ -355,13 +346,11 @@ class MCPhaseGate(ControlledGate):
             label=label,
             ctrl_state=ctrl_state,
             base_gate=PhaseGate(lam, label=_base_label),
-            duration=duration,
-            unit=unit,
         )
 
     def _define(self):
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
 
         qr = QuantumRegister(self.num_qubits, "q")
         qc = QuantumCircuit(qr, name=self.name)

@@ -51,29 +51,8 @@ class TranspileLayoutTest(QiskitTestCase):
         qc.cx(0, 2)
         cmap = CouplingMap.from_line(10, bidirectional=False)
         tqc = transpile(qc, coupling_map=cmap, initial_layout=[9, 4, 0], seed_transpiler=42)
-        # tqc:
-        #       q_2 -> 0 ──X─────────────────────────────────────────────────
-        #                  │
-        # ancilla_0 -> 1 ──X───X─────────────────────────────────────────────
-        #                      │
-        # ancilla_1 -> 2 ──────X──X──────────────────────────────────────────
-        #                         │ ┌───┐                               ┌───┐
-        # ancilla_2 -> 3 ─────────X─┤ H ├────────────────────────────■──┤ H ├
-        #                ┌───┐      └───┘             ┌───┐   ┌───┐┌─┴─┐├───┤
-        #       q_1 -> 4 ┤ H ├─────────────────────■──┤ H ├─X─┤ H ├┤ X ├┤ H ├
-        #                └───┘              ┌───┐┌─┴─┐├───┤ │ └───┘└───┘└───┘
-        # ancilla_3 -> 5 ─────────────────X─┤ H ├┤ X ├┤ H ├─X────────────────
-        #                                 │ └───┘└───┘└───┘
-        # ancilla_4 -> 6 ─────────────X───X──────────────────────────────────
-        #                             │
-        # ancilla_5 -> 7 ─────────X───X──────────────────────────────────────
-        #                         │
-        # ancilla_6 -> 8 ──────X──X──────────────────────────────────────────
-        #                ┌───┐ │
-        #       q_0 -> 9 ┤ H ├─X─────────────────────────────────────────────
-        #                └───┘
         res = tqc.layout.final_index_layout()
-        self.assertEqual(res, [4, 5, 3])
+        self.assertEqual(res, [3, 5, 2])
 
     def test_final_index_layout_full_path_with_ancilla_no_filter(self):
         qc = QuantumCircuit(3)
@@ -82,29 +61,8 @@ class TranspileLayoutTest(QiskitTestCase):
         qc.cx(0, 2)
         cmap = CouplingMap.from_line(10, bidirectional=False)
         tqc = transpile(qc, coupling_map=cmap, initial_layout=[9, 4, 0], seed_transpiler=42)
-        # tqc:
-        #       q_2 -> 0 ──X─────────────────────────────────────────────────
-        #                  │
-        # ancilla_0 -> 1 ──X───X─────────────────────────────────────────────
-        #                      │
-        # ancilla_1 -> 2 ──────X──X──────────────────────────────────────────
-        #                         │ ┌───┐                               ┌───┐
-        # ancilla_2 -> 3 ─────────X─┤ H ├────────────────────────────■──┤ H ├
-        #                ┌───┐      └───┘             ┌───┐   ┌───┐┌─┴─┐├───┤
-        #       q_1 -> 4 ┤ H ├─────────────────────■──┤ H ├─X─┤ H ├┤ X ├┤ H ├
-        #                └───┘              ┌───┐┌─┴─┐├───┤ │ └───┘└───┘└───┘
-        # ancilla_3 -> 5 ─────────────────X─┤ H ├┤ X ├┤ H ├─X────────────────
-        #                                 │ └───┘└───┘└───┘
-        # ancilla_4 -> 6 ─────────────X───X──────────────────────────────────
-        #                             │
-        # ancilla_5 -> 7 ─────────X───X──────────────────────────────────────
-        #                         │
-        # ancilla_6 -> 8 ──────X──X──────────────────────────────────────────
-        #                ┌───┐ │
-        #       q_0 -> 9 ┤ H ├─X─────────────────────────────────────────────
-        #                └───┘
         res = tqc.layout.final_index_layout(filter_ancillas=False)
-        self.assertEqual(res, [4, 5, 3, 0, 1, 2, 6, 7, 8, 9])
+        self.assertEqual(res, [3, 5, 2, 0, 1, 4, 6, 7, 8, 9])
 
     def test_final_virtual_layout_full_path_with_ancilla(self):
         qc = QuantumCircuit(3)
@@ -113,29 +71,8 @@ class TranspileLayoutTest(QiskitTestCase):
         qc.cx(0, 2)
         cmap = CouplingMap.from_line(10, bidirectional=False)
         tqc = transpile(qc, coupling_map=cmap, initial_layout=[9, 4, 0], seed_transpiler=42)
-        # tqc:
-        #       q_2 -> 0 ──X─────────────────────────────────────────────────
-        #                  │
-        # ancilla_0 -> 1 ──X───X─────────────────────────────────────────────
-        #                      │
-        # ancilla_1 -> 2 ──────X──X──────────────────────────────────────────
-        #                         │ ┌───┐                               ┌───┐
-        # ancilla_2 -> 3 ─────────X─┤ H ├────────────────────────────■──┤ H ├
-        #                ┌───┐      └───┘             ┌───┐   ┌───┐┌─┴─┐├───┤
-        #       q_1 -> 4 ┤ H ├─────────────────────■──┤ H ├─X─┤ H ├┤ X ├┤ H ├
-        #                └───┘              ┌───┐┌─┴─┐├───┤ │ └───┘└───┘└───┘
-        # ancilla_3 -> 5 ─────────────────X─┤ H ├┤ X ├┤ H ├─X────────────────
-        #                                 │ └───┘└───┘└───┘
-        # ancilla_4 -> 6 ─────────────X───X──────────────────────────────────
-        #                             │
-        # ancilla_5 -> 7 ─────────X───X──────────────────────────────────────
-        #                         │
-        # ancilla_6 -> 8 ──────X──X──────────────────────────────────────────
-        #                ┌───┐ │
-        #       q_0 -> 9 ┤ H ├─X─────────────────────────────────────────────
-        #                └───┘
         res = tqc.layout.final_virtual_layout()
-        self.assertEqual(res, Layout({qc.qubits[0]: 4, qc.qubits[1]: 5, qc.qubits[2]: 3}))
+        self.assertEqual(res, Layout({qc.qubits[0]: 3, qc.qubits[1]: 5, qc.qubits[2]: 2}))
 
     def test_final_virtual_layout_full_path_with_ancilla_no_filter(self):
         qc = QuantumCircuit(3)
@@ -144,37 +81,16 @@ class TranspileLayoutTest(QiskitTestCase):
         qc.cx(0, 2)
         cmap = CouplingMap.from_line(10, bidirectional=False)
         tqc = transpile(qc, coupling_map=cmap, initial_layout=[9, 4, 0], seed_transpiler=42)
-        # tqc:
-        #       q_2 -> 0 ──X─────────────────────────────────────────────────
-        #                  │
-        # ancilla_0 -> 1 ──X───X─────────────────────────────────────────────
-        #                      │
-        # ancilla_1 -> 2 ──────X──X──────────────────────────────────────────
-        #                         │ ┌───┐                               ┌───┐
-        # ancilla_2 -> 3 ─────────X─┤ H ├────────────────────────────■──┤ H ├
-        #                ┌───┐      └───┘             ┌───┐   ┌───┐┌─┴─┐├───┤
-        #       q_1 -> 4 ┤ H ├─────────────────────■──┤ H ├─X─┤ H ├┤ X ├┤ H ├
-        #                └───┘              ┌───┐┌─┴─┐├───┤ │ └───┘└───┘└───┘
-        # ancilla_3 -> 5 ─────────────────X─┤ H ├┤ X ├┤ H ├─X────────────────
-        #                                 │ └───┘└───┘└───┘
-        # ancilla_4 -> 6 ─────────────X───X──────────────────────────────────
-        #                             │
-        # ancilla_5 -> 7 ─────────X───X──────────────────────────────────────
-        #                         │
-        # ancilla_6 -> 8 ──────X──X──────────────────────────────────────────
-        #                ┌───┐ │
-        #       q_0 -> 9 ┤ H ├─X─────────────────────────────────────────────
-        #                └───┘
         res = tqc.layout.final_virtual_layout(filter_ancillas=False)
         pos_to_virt = {v: k for k, v in tqc.layout.input_qubit_mapping.items()}
         expected = Layout(
             {
-                pos_to_virt[0]: 4,
+                pos_to_virt[0]: 3,
                 pos_to_virt[1]: 5,
-                pos_to_virt[2]: 3,
+                pos_to_virt[2]: 2,
                 pos_to_virt[3]: 0,
                 pos_to_virt[4]: 1,
-                pos_to_virt[5]: 2,
+                pos_to_virt[5]: 4,
                 pos_to_virt[6]: 6,
                 pos_to_virt[7]: 7,
                 pos_to_virt[8]: 8,
