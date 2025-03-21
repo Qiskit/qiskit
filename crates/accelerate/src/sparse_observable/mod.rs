@@ -2931,10 +2931,7 @@ impl PySparseObservable {
         let to_py_tuple = |view: SparseTermView| {
             let mut pauli_string = String::with_capacity(view.bit_terms.len());
 
-            // we reverse the order of bits and indices so the Pauli string comes out in
-            // "reading order", consistent with how one would write the label in
-            // SparseObservable.from_list or .from_label
-            for bit in view.bit_terms.iter()) {
+            for bit in view.bit_terms.iter() {
                 pauli_string.push_str(bit.py_label());
             }
             let py_string = PyString::new(py, &pauli_string).unbind();

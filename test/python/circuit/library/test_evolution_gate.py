@@ -27,7 +27,7 @@ from qiskit.synthesis.evolution.product_formula import reorder_paulis
 from qiskit.converters import circuit_to_dag
 from qiskit.quantum_info import Operator, SparsePauliOp, Pauli, Statevector, SparseObservable
 from qiskit.transpiler.passes import HLSConfig, HighLevelSynthesis
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase, combine  # pylint: disable=wrong-import-order
 
 X = SparsePauliOp("X")
 Y = SparsePauliOp("Y")
@@ -316,34 +316,32 @@ class TestEvolutionGate(QiskitTestCase):
 
         self.assertEqual(ops, expected_ops)
 
-    @data("chain", "fountain")
-    def test_cnot_chain_options(self, option):
+    @combine(option=["chain", "fountain"], use_sparse_observable=[True, False])
+    def test_cnot_chain_options(self, option, use_sparse_observable):
         """Test selecting different kinds of CNOT chains."""
-        for use_sparse_observable in [True, False]:
-            with self.subTest(use_sparse_observable=use_sparse_observable):
-                op = SparseObservable("ZZZ") if use_sparse_observable else SparsePauliOp(["ZZZ"])
-                synthesis = LieTrotter(reps=1, cx_structure=option)
-                evo = PauliEvolutionGate(op, synthesis=synthesis)
+        op = SparseObservable("ZZZ") if use_sparse_observable else SparsePauliOp(["ZZZ"])
+        synthesis = LieTrotter(reps=1, cx_structure=option)
+        evo = PauliEvolutionGate(op, synthesis=synthesis)
 
-                expected = QuantumCircuit(3)
-                if option == "chain":
-                    expected.cx(2, 1)
-                    expected.cx(1, 0)
-                else:
-                    expected.cx(1, 0)
-                    expected.cx(2, 0)
+        expected = QuantumCircuit(3)
+        if option == "chain":
+            expected.cx(2, 1)
+            expected.cx(1, 0)
+        else:
+            expected.cx(1, 0)
+            expected.cx(2, 0)
 
-                expected.rz(2, 0)
+        expected.rz(2, 0)
 
-                if option == "chain":
-                    expected.cx(1, 0)
-                    expected.cx(2, 1)
-                else:
-                    expected.cx(2, 0)
-                    expected.cx(1, 0)
+        if option == "chain":
+            expected.cx(1, 0)
+            expected.cx(2, 1)
+        else:
+            expected.cx(2, 0)
+            expected.cx(1, 0)
 
-                self.assertEqual(expected, evo.definition)
-                self.assertSuzukiTrotterIsCorrect(evo)
+        self.assertEqual(expected, evo.definition)
+        self.assertSuzukiTrotterIsCorrect(evo)
 
     @data(
         Pauli("XI"),
