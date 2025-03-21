@@ -7,7 +7,7 @@ Quantum information:
 .. toctree::
    :maxdepth: 1
 
-   sparse-observable
-   sparse-term
-   bit-term
+   qk-obs
+   qk-obs-term
+   qk-bit-term
 
