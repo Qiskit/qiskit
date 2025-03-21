@@ -1295,13 +1295,13 @@ class QuantumCircuit:
                 qc.cx(0, 1)
                 qc.swap(1, 2)
                 qc.cx(0, 1)
-                
+
                 # Add measurements to the circuit
                 qc.measure([0, 1, 2], [0, 1, 2])
 
                 # Specify the QPU to target
                 backend = GenericBackendV2(3)
-                
+
                 # Transpile the circuit
                 pass_manager = generate_preset_pass_manager(
                 optimization_level=1, backend=backend
@@ -1312,7 +1312,7 @@ class QuantumCircuit:
                 print(transpiled.layout.routing_permutation())
 
             .. code-block:: text
-            
+
                 [0, 1, 2]
 
         """
@@ -2357,7 +2357,7 @@ class QuantumCircuit:
 
             .. code-block:: text
 
-                List the qubits in this circuit: [Qubit(QuantumRegister(2, 'q0'), 0), 
+                List the qubits in this circuit: [Qubit(QuantumRegister(2, 'q0'), 0),
                 Qubit(QuantumRegister(2, 'q0'), 1), Qubit(QuantumRegister(1, 'q1'), 0)]
                 List the classical bits in this circuit: [Clbit(ClassicalRegister(2, 'c0'), 0),
                 Clbit(ClassicalRegister(2, 'c0'), 1), Clbit(ClassicalRegister(1, 'c1'), 0)]
