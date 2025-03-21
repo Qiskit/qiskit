@@ -319,30 +319,31 @@ class TestEvolutionGate(QiskitTestCase):
     @data("chain", "fountain")
     def test_cnot_chain_options(self, option):
         """Test selecting different kinds of CNOT chains."""
+        for use_sparse_observable in [True, False]:
+            with self.subTest(use_sparse_observable=use_sparse_observable):
+                op = SparseObservable("ZZZ") if use_sparse_observable else SparsePauliOp(["ZZZ"])
+                synthesis = LieTrotter(reps=1, cx_structure=option)
+                evo = PauliEvolutionGate(op, synthesis=synthesis)
 
-        op = Z ^ Z ^ Z
-        synthesis = LieTrotter(reps=1, cx_structure=option)
-        evo = PauliEvolutionGate(op, synthesis=synthesis)
+                expected = QuantumCircuit(3)
+                if option == "chain":
+                    expected.cx(2, 1)
+                    expected.cx(1, 0)
+                else:
+                    expected.cx(1, 0)
+                    expected.cx(2, 0)
 
-        expected = QuantumCircuit(3)
-        if option == "chain":
-            expected.cx(2, 1)
-            expected.cx(1, 0)
-        else:
-            expected.cx(1, 0)
-            expected.cx(2, 0)
+                expected.rz(2, 0)
 
-        expected.rz(2, 0)
+                if option == "chain":
+                    expected.cx(1, 0)
+                    expected.cx(2, 1)
+                else:
+                    expected.cx(2, 0)
+                    expected.cx(1, 0)
 
-        if option == "chain":
-            expected.cx(1, 0)
-            expected.cx(2, 1)
-        else:
-            expected.cx(2, 0)
-            expected.cx(1, 0)
-
-        self.assertEqual(expected, evo.definition)
-        self.assertSuzukiTrotterIsCorrect(evo)
+                self.assertEqual(expected, evo.definition)
+                self.assertSuzukiTrotterIsCorrect(evo)
 
     @data(
         Pauli("XI"),
@@ -595,7 +596,7 @@ class TestEvolutionGate(QiskitTestCase):
             -1 +1 +1 -1 -1 +1  // eigenvalue
              1  0  0  1  1  0  // ctrl state
             -----------------
-            --> P(-1).ctrl_state(00110) applied on qubits [0, 1, 2, 3, 4, 5]
+            --> [X P(-1) X].ctrl_state(11001) applied on qubits [5, 4, 3, 2, 1, 0]
 
         """
         op = SparseObservable("-+rl10")
@@ -605,7 +606,9 @@ class TestEvolutionGate(QiskitTestCase):
         reference.sx([2, 3])
         reference.h([4, 5])
 
-        reference.append(PhaseGate(-1.0).control(5, ctrl_state="00110"), reference.qubits)
+        reference.x(0)
+        reference.append(PhaseGate(-1.0).control(5, ctrl_state="11001"), reference.qubits[::-1])
+        reference.x(0)
 
         reference.sxdg([2, 3])
         reference.h([4, 5])
