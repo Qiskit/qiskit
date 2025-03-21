@@ -344,7 +344,7 @@ fn map_free_qubits(
         score_b.partial_cmp(&score_a).unwrap()
     });
     let mut free_indices: Vec<NodeIndex> = free_nodes.keys().copied().collect();
-    free_indices.par_sort_by_cached_key(|index| free_nodes[index].values().sum::<usize>());
+    free_indices.par_sort_by_key(|index| free_nodes[index].values().sum::<usize>());
     for im_index in free_indices {
         let selected_qubit = free_qubits.pop()?;
         partial_layout.insert(
