@@ -340,7 +340,8 @@ fn map_free_qubits(
             .error_map
             .get(&[PhysicalQubit::new(*qubit_b), PhysicalQubit::new(*qubit_b)])
             .unwrap_or(&0.);
-        score_a.partial_cmp(&score_b).unwrap()
+        // Reverse comparison so lower error rates are at the end of the vec.
+        score_b.partial_cmp(&score_a).unwrap()
     });
     let mut free_indices: Vec<NodeIndex> = free_nodes.keys().copied().collect();
     free_indices.par_sort_by_cached_key(|index| free_nodes[index].values().sum::<usize>());
