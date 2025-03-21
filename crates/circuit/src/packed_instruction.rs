@@ -632,16 +632,9 @@ impl Operation for PackedOperation {
     fn directive(&self) -> bool {
         self.view().directive()
     }
-    fn get_mat_static_1q(&self, params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
-        let view = self.view();
-        match view {
-            OperationRef::StandardGate(standard) => standard.get_mat_static_1q(params),
-            OperationRef::StandardInstruction(_) => None,
-            OperationRef::Gate(gate) => gate.get_mat_static_1q(params),
-            OperationRef::Instruction(_) => None,
-            OperationRef::Operation(_) => None,
-            OperationRef::Unitary(gate) => gate.get_mat_static_1q(params),
-        }
+    #[inline]
+    fn matrix_as_static_1q(&self, params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
+        self.view().matrix_as_static_1q(params)
     }
 }
 

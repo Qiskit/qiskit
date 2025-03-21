@@ -159,10 +159,10 @@ pub trait Operation {
     fn definition(&self, params: &[Param]) -> Option<CircuitData>;
     fn standard_gate(&self) -> Option<StandardGate>;
     fn directive(&self) -> bool;
-    fn get_mat_static_1q(&self, params: &[Param]) -> Option<[[Complex64; 2]; 2]>;
-    fn get_mat_nalgebra_1q(&self, params: &[Param]) -> Option<Matrix2<Complex64>> {
+    fn matrix_as_static_1q(&self, params: &[Param]) -> Option<[[Complex64; 2]; 2]>;
+    fn matrix_as_nalgebra_1q(&self, params: &[Param]) -> Option<Matrix2<Complex64>> {
         // default implementation
-        self.get_mat_static_1q(params)
+        self.matrix_as_static_1q(params)
             .map(|arr| Matrix2::new(arr[0][0], arr[0][1], arr[1][0], arr[1][1]))
     }
 }
@@ -293,14 +293,14 @@ impl Operation for OperationRef<'_> {
         }
     }
     #[inline]
-    fn get_mat_static_1q(&self, params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
+    fn matrix_as_static_1q(&self, params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
         match self {
-            Self::StandardGate(standard) => standard.get_mat_static_1q(params),
-            Self::StandardInstruction(instruction) => instruction.get_mat_static_1q(params),
-            Self::Gate(gate) => gate.get_mat_static_1q(params),
-            Self::Instruction(instruction) => instruction.get_mat_static_1q(params),
-            Self::Operation(operation) => operation.get_mat_static_1q(params),
-            Self::Unitary(unitary) => unitary.get_mat_static_1q(params),
+            Self::StandardGate(standard) => standard.matrix_as_static_1q(params),
+            Self::StandardInstruction(instruction) => instruction.matrix_as_static_1q(params),
+            Self::Gate(gate) => gate.matrix_as_static_1q(params),
+            Self::Instruction(instruction) => instruction.matrix_as_static_1q(params),
+            Self::Operation(operation) => operation.matrix_as_static_1q(params),
+            Self::Unitary(unitary) => unitary.matrix_as_static_1q(params),
         }
     }
 }
@@ -465,7 +465,7 @@ impl Operation for StandardInstruction {
         }
     }
 
-    fn get_mat_static_1q(&self, _params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
+    fn matrix_as_static_1q(&self, _params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
         None
     }
 }
@@ -2418,7 +2418,7 @@ impl Operation for StandardGate {
         false
     }
 
-    fn get_mat_static_1q(&self, params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
+    fn matrix_as_static_1q(&self, params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
         match self {
             Self::GlobalPhase => None,
             Self::H => match params {
@@ -2696,7 +2696,7 @@ impl Operation for PyInstruction {
             }
         })
     }
-    fn get_mat_static_1q(&self, _params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
+    fn matrix_as_static_1q(&self, _params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
         None
     }
 }
@@ -2773,7 +2773,7 @@ impl Operation for PyGate {
         false
     }
 
-    fn get_mat_static_1q(&self, _params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
+    fn matrix_as_static_1q(&self, _params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
         Python::with_gil(|py| -> Option<[[Complex64; 2]; 2]> {
             match self.num_qubits() {
                 1 => match self.gate.getattr(py, intern!(py, "to_matrix")) {
@@ -2849,7 +2849,7 @@ impl Operation for PyOperation {
         })
     }
 
-    fn get_mat_static_1q(&self, _params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
+    fn matrix_as_static_1q(&self, _params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
         None
     }
 }
@@ -2918,7 +2918,7 @@ impl Operation for UnitaryGate {
     fn directive(&self) -> bool {
         false
     }
-    fn get_mat_static_1q(&self, _params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
+    fn matrix_as_static_1q(&self, _params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
         match self.num_qubits() {
             1 => match &self.array {
                 ArrayType::NDArray(arr) => {
