@@ -1266,7 +1266,7 @@ class QuantumCircuit:
 
     @property
     def layout(self) -> Optional[TranspileLayout]:
-        r"""Return any associated layout information about the circuit
+        """Return any associated layout information about the circuit.
 
         This attribute contains an optional :class:`~.TranspileLayout`
         object. This is typically set on the output from :func:`~.transpile`
@@ -1274,8 +1274,8 @@ class QuantumCircuit:
         permutations caused on the input circuit by transpilation.
 
         There are two types of permutations caused by the :func:`~.transpile`
-        function, an initial layout which permutes the qubits based on the
-        selected physical qubits on the :class:`~.Target`, and a final layout
+        function: an initial layout that permutes the qubits based on the
+        selected physical qubits on the :class:`~.Target`, and a final layout,
         which is an output permutation caused by :class:`~.SwapGate`\s
         inserted during routing.
 
@@ -1290,35 +1290,31 @@ class QuantumCircuit:
                 from qiskit.transpiler import generate_preset_pass_manager
 
                 # Create circuit to test transpiler on
-                qc = QuantumCircuit(3)
-                qc.h([0, 1, 2])
-
+                qc = QuantumCircuit(3, 3)
+                qc.h(0)
+                qc.cx(0, 1)
+                qc.swap(1, 2)
+                qc.cx(0, 1)
+                
                 # Add measurements to the circuit
-                qc.measure_all()
+                qc.measure([0, 1, 2], [0, 1, 2])
 
                 # Specify the QPU to target
                 backend = GenericBackendV2(3)
-
+                
                 # Transpile the circuit
                 pass_manager = generate_preset_pass_manager(
-                    optimization_level=1, backend=backend
+                optimization_level=1, backend=backend
                 )
-                transpiled_circ = pass_manager.run(qc)
+                transpiled = pass_manager.run(qc)
 
-                print(transpiled_circ.layout)
+                # Print the layout after transpilation
+                print(transpiled.layout.routing_permutation())
 
             .. code-block:: text
+            
+                [0, 1, 2]
 
-                TranspileLayout(initial_layout=Layout({
-                0: Qubit(QuantumRegister(3, 'q'), 0),
-                1: Qubit(QuantumRegister(3, 'q'), 1),
-                2: Qubit(QuantumRegister(3, 'q'), 2)
-                }), input_qubit_mapping={Qubit(QuantumRegister(3, 'q'), 0): 0,
-                Qubit(QuantumRegister(3, 'q'), 1): 1, Qubit(QuantumRegister(3,
-                'q'), 2): 2}, final_layout=None, _input_qubit_count=3,
-                _output_qubit_list=[Qubit(QuantumRegister(3, 'q'), 0), Qubit
-                (QuantumRegister(3, 'q'), 1), Qubit(QuantumRegister(3, 'q'),
-                2)])
         """
         return self._layout
 
@@ -1344,9 +1340,8 @@ class QuantumCircuit:
                 num_clbits=1, params=[]), qubits=(Qubit(QuantumRegister(2, 'q'), 0),),
                 clbits=(Clbit(ClassicalRegister(2, 'c'), 1),))]
 
-            Returns:
-                QuantumCircuitData: a list-like object containing the :class:`.CircuitInstruction`\\ s
-                for each instruction.
+        Returns:
+            A list-like object containing the :class:`.CircuitInstruction` instances in the circuit.
         """
         return QuantumCircuitData(self)
 
