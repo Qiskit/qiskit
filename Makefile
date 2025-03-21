@@ -116,6 +116,8 @@ fix_cformat:
 
 # The library file is managed by a different build tool - pretend it's always dirty.
 .PHONY: $(C_LIB_CARGO_PATH)
+$(C_LIB_CARGO_PATH):
+	cargo rustc --release --crate-type cdylib -p qiskit-cext
 
 # Compile the C library and move the header into the right location, if it was generated
 $(C_LIB_CARGO_PATH): $(C_DIR_INCLUDE)

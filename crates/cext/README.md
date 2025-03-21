@@ -15,6 +15,11 @@ Similarly, the `libqiskit` shared library is stored in `dist/c/lib`.
 
 You can ask Make to build only the header file with `make cheader`, or only the
 shared-object library with `make clib`.
+Instead of ``make clib`` the shared C library can also be compiled via
+```bash
+cargo rustc --release --crate-type cdylib -p qiskit-cext
+```
+note that the `crate-type` should be defined explicitly to build the `cdylib` instead of the `rlib` default.
 
 The following example uses the header to build a 100-qubit observable:
 ```c
@@ -51,14 +56,12 @@ Refer to the C API documentation for more information and examples.
 
 The above program can be compiled by including the header and linking to the `qiskit` library, which
 are located in the standard directory configuration whose root is `dist/c`.
-
 ```bash
 make c
-QISKIT_ROOT=/path/to/qiskit/dist/c
-gcc -I$QISKIT_ROOT/include program.c -lqiskit -L$QISKIT_ROOT/lib
+gcc program.c -I$/path/to/dist/c/include -lqiskit -L/path/to/dist/c/lib
 ```
 
-For which the example program will output
+The example program will then output
 ```bash
 ./a.out
 ```

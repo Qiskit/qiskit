@@ -73,7 +73,7 @@ class ZGate(SingletonGate):
         |1\rangle \rightarrow -|1\rangle
     """
 
-    _standard_gate = StandardGate.ZGate
+    _standard_gate = StandardGate.Z
 
     def __init__(self, label: Optional[str] = None):
         """Create new Z gate."""
@@ -182,7 +182,7 @@ class CZGate(SingletonControlledGate):
     the target qubit if the control qubit is in the :math:`|1\rangle` state.
     """
 
-    _standard_gate = StandardGate.CZGate
+    _standard_gate = StandardGate.CZ
 
     def __init__(
         self,
@@ -280,7 +280,7 @@ class CCZGate(SingletonControlledGate):
     the target qubit if the control qubits are in the :math:`|11\rangle` state.
     """
 
-    _standard_gate = StandardGate.CCZGate
+    _standard_gate = StandardGate.CCZ
 
     def __init__(
         self,

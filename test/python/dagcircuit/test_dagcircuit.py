@@ -15,6 +15,9 @@
 from __future__ import annotations
 
 from collections import Counter
+import pickle
+import copy
+import io
 import unittest
 
 from ddt import ddt, data
@@ -160,6 +163,80 @@ class TestDagRegisters(QiskitTestCase):
                 QuantumRegister(1, "qr6")[0],
             ],
         )
+
+    def test_pickle_bit_locations_with_reg(self):
+        """Test bit locations preserved through pickle."""
+        dag = DAGCircuit()
+        qr = QuantumRegister(2, "qr")
+        cr = ClassicalRegister(1, "cr")
+        dag.add_qreg(qr)
+        dag.add_creg(cr)
+        self.assertEqual(dag.find_bit(dag.qubits[1]).index, 1)
+        self.assertEqual(dag.find_bit(dag.qubits[1]).registers, [(qr, 1)])
+        self.assertEqual(dag.find_bit(dag.clbits[0]).index, 0)
+        self.assertEqual(dag.find_bit(dag.clbits[0]).registers, [(cr, 0)])
+        with io.BytesIO() as buf:
+            pickle.dump(dag, buf)
+            buf.seek(0)
+            output = pickle.load(buf)
+        self.assertEqual(output.find_bit(output.qubits[1]).index, 1)
+        self.assertEqual(output.find_bit(output.qubits[1]).registers, [(qr, 1)])
+        self.assertEqual(output.find_bit(output.clbits[0]).index, 0)
+        self.assertEqual(output.find_bit(output.clbits[0]).registers, [(cr, 0)])
+
+    def test_deepcopy_bit_locations_with_reg(self):
+        """Test bit locations preserved through deepcopy."""
+        dag = DAGCircuit()
+        qr = QuantumRegister(2, "qr")
+        cr = ClassicalRegister(1, "cr")
+        dag.add_qreg(qr)
+        dag.add_creg(cr)
+        self.assertEqual(dag.find_bit(dag.qubits[1]).index, 1)
+        self.assertEqual(dag.find_bit(dag.qubits[1]).registers, [(qr, 1)])
+        self.assertEqual(dag.find_bit(dag.clbits[0]).index, 0)
+        self.assertEqual(dag.find_bit(dag.clbits[0]).registers, [(cr, 0)])
+        output = copy.deepcopy(dag)
+        self.assertEqual(output.find_bit(output.qubits[1]).index, 1)
+        self.assertEqual(output.find_bit(output.qubits[1]).registers, [(qr, 1)])
+        self.assertEqual(output.find_bit(output.clbits[0]).index, 0)
+        self.assertEqual(output.find_bit(output.clbits[0]).registers, [(cr, 0)])
+
+    def test_pickle_bit_locations_with_no_reg(self):
+        """Test bit locations with no registers preserved through pickle."""
+        dag = DAGCircuit()
+        qubits = [Qubit(), Qubit()]
+        clbits = [Clbit()]
+        dag.add_qubits(qubits)
+        dag.add_clbits(clbits)
+        self.assertEqual(dag.find_bit(dag.qubits[1]).index, 1)
+        self.assertEqual(dag.find_bit(dag.qubits[1]).registers, [])
+        self.assertEqual(dag.find_bit(dag.clbits[0]).index, 0)
+        self.assertEqual(dag.find_bit(dag.clbits[0]).registers, [])
+        with io.BytesIO() as buf:
+            pickle.dump(dag, buf)
+            buf.seek(0)
+            output = pickle.load(buf)
+        self.assertEqual(output.find_bit(output.qubits[1]).index, 1)
+        self.assertEqual(output.find_bit(output.qubits[1]).registers, [])
+        self.assertEqual(output.find_bit(output.clbits[0]).index, 0)
+        self.assertEqual(output.find_bit(output.clbits[0]).registers, [])
+
+    def test_deepcopy_bit_locations_with_no_reg(self):
+        """Test bit locations with no registers preserved through deepcopy."""
+        dag = DAGCircuit()
+        qubits = [Qubit(), Qubit()]
+        clbits = [Clbit()]
+        dag.add_qubits(qubits)
+        dag.add_clbits(clbits)
+        self.assertEqual(dag.find_bit(dag.qubits[1]).index, 1)
+        self.assertEqual(dag.find_bit(dag.qubits[1]).registers, [])
+        self.assertEqual(dag.find_bit(dag.clbits[0]).index, 0)
+        self.assertEqual(dag.find_bit(dag.clbits[0]).registers, [])
+        output = copy.deepcopy(dag)
+        self.assertEqual(output.find_bit(output.qubits[1]).index, 1)
+        self.assertEqual(output.find_bit(output.qubits[1]).registers, [])
+        self.assertEqual(output.find_bit(output.clbits[0]).index, 0)
+        self.assertEqual(output.find_bit(output.clbits[0]).registers, [])
 
     def test_add_reg_duplicate(self):
         """add_qreg with the same register twice is not allowed."""
@@ -1773,6 +1850,80 @@ class TestDagEquivalence(QiskitTestCase):
         right = DAGCircuit()
         right.add_captured_var(a_u8_other)
         self.assertNotEqual(left, right)
+
+    def test_pickle_vars(self):
+        """Test vars preserved through pickle."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Uint(8))
+
+        # Check inputs.
+        dag = DAGCircuit()
+        dag.add_input_var(a)
+
+        self.assertEqual(dag.num_vars, 1)
+        self.assertEqual(dag.num_input_vars, 1)
+
+        with io.BytesIO() as buf:
+            pickle.dump(dag, buf)
+            buf.seek(0)
+            output = pickle.load(buf)
+
+        self.assertEqual(output.num_vars, 1)
+        self.assertEqual(output.num_input_vars, 1)
+        self.assertEqual(output, dag)
+
+        # Check captures and declarations.
+        dag = DAGCircuit()
+        dag.add_declared_var(a)
+        dag.add_captured_var(b)
+
+        self.assertEqual(dag.num_vars, 2)
+        self.assertEqual(dag.num_captured_vars, 1)
+        self.assertEqual(dag.num_declared_vars, 1)
+
+        with io.BytesIO() as buf:
+            pickle.dump(dag, buf)
+            buf.seek(0)
+            output = pickle.load(buf)
+
+        self.assertEqual(output.num_vars, 2)
+        self.assertEqual(output.num_captured_vars, 1)
+        self.assertEqual(output.num_declared_vars, 1)
+        self.assertEqual(output, dag)
+
+    def test_deepcopy_vars(self):
+        """Test vars preserved through deepcopy."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Uint(8))
+
+        # Check inputs.
+        dag = DAGCircuit()
+        dag.add_input_var(a)
+
+        self.assertEqual(dag.num_vars, 1)
+        self.assertEqual(dag.num_input_vars, 1)
+
+        output = copy.deepcopy(dag)
+
+        self.assertEqual(output.num_vars, 1)
+        self.assertEqual(output.num_input_vars, 1)
+        self.assertEqual(output, dag)
+
+        # Check captures and declarations.
+        dag = DAGCircuit()
+        dag.add_declared_var(a)
+        dag.add_captured_var(b)
+
+        self.assertEqual(dag.num_vars, 2)
+        self.assertEqual(dag.num_captured_vars, 1)
+        self.assertEqual(dag.num_declared_vars, 1)
+
+        output = copy.deepcopy(dag)
+
+        self.assertEqual(output.num_vars, 2)
+        self.assertEqual(output.num_captured_vars, 1)
+        self.assertEqual(output.num_declared_vars, 1)
+        self.assertEqual(output, dag)
 
     def test_wires_added_for_simple_classical_vars(self):
         """Var uses should be represented in the wire structure."""
