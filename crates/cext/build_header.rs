@@ -17,6 +17,7 @@ extern crate cbindgen;
 /// This function generates the C header for Qiskit from the qiskit-cext crate.
 fn main() {
     // Trigger this script if the header was changed/removed.
+    #![allow(clippy::print_stdout)]
     println!("cargo:rerun-if-changed=../../target/qiskit.h");
 
     // Pull the config from the cbindgen.toml file.

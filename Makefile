@@ -140,7 +140,7 @@ cheader: $(C_QISKIT_H)
 c: $(C_LIBQISKIT) $(C_QISKIT_H)
 
 # Use ctest to run C API tests
-ctest: $(C_LIB_CARGO_PATH)
+ctest: $(C_LIB_CARGO_PATH) $(C_QISKIT_H) 
 	# -S specifically specifies the source path to be the current folder
 	# -B specifically specifies the build path to be inside test/c/build
 	cmake -S. -B$(C_DIR_TEST_BUILD)
