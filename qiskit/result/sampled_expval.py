@@ -33,7 +33,7 @@ def sampled_expectation_value(dist, oper):
         oper (str or Pauli or SparsePauliOp): The operator for the observable
 
     Returns:
-        float: The expectation value
+        float or complex: The expectation value
     Raises:
         QiskitError: if the input distribution or operator is an invalid type
     """
