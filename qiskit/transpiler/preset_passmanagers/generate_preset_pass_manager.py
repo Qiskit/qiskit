@@ -200,6 +200,9 @@ def generate_preset_pass_manager(
     # If there are no loose constraints => use backend target if available
     _no_loose_constraints = basis_gates is None and coupling_map is None and dt is None
 
+    # If the only loose constraint is dt => use backend target and modify dt
+    _adjust_dt = backend is not None and dt is not None
+
     # Warn about inconsistencies in backend + loose constraints path (dt shouldn't be a problem)
     if backend is not None and (coupling_map is not None or basis_gates is not None):
         warnings.warn(
@@ -233,6 +236,10 @@ def generate_preset_pass_manager(
         if backend is not None and _no_loose_constraints:
             # If a backend is specified without loose constraints, use its target directly.
             target = backend.target
+        elif _adjust_dt:
+            # If a backend is specified with loose dt, use its target and andjust the dt value.
+            target = backend.target
+            target.dt = dt
         else:
             if basis_gates is not None:
                 # Build target from constraints.
