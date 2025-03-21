@@ -22,45 +22,13 @@ use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 
 use pyo3::prelude::*;
+use pyo3::IntoPyObjectExt;
 
 // Python interface to SymbolExpr
 #[pyclass(sequence, module = "qiskit._accelerate.circuit")]
 #[derive(Clone, Debug)]
 pub struct PySymbolExpr {
     pub expr: SymbolExpr,
-}
-
-/// enum for parameter value types, used to accept multiple types from Python
-#[derive(FromPyObject, Clone, Debug)]
-pub enum ParameterValue {
-    #[pyo3(transparent, annotation = "int")]
-    Int(i64),
-    #[pyo3(transparent, annotation = "complex")]
-    Complex(Complex64),
-    #[pyo3(transparent, annotation = "float")]
-    Real(f64),
-    #[pyo3(transparent, annotation = "str")]
-    Str(String),
-    Expr(PySymbolExpr),
-}
-
-/// enum for bind value types, used to accept multiple types from Python
-#[derive(FromPyObject, Clone, Debug)]
-pub enum BindValue {
-    #[pyo3(transparent, annotation = "int")]
-    Int(i64),
-    #[pyo3(transparent, annotation = "complex")]
-    Complex(Complex64),
-    #[pyo3(transparent, annotation = "float")]
-    Real(f64),
-}
-
-/// value types to return to Python
-#[derive(IntoPyObject)]
-pub enum ReturnValueTypes {
-    Int(i64),
-    Real(f64),
-    Complex(Complex64),
 }
 
 #[pymethods]
@@ -74,7 +42,7 @@ impl PySymbolExpr {
                 expr: parse_expression(&e),
             }),
             None => Ok(PySymbolExpr {
-                expr: SymbolExpr::Value(Value::Real(0.0)),
+                expr: SymbolExpr::Value(Value::Int(0)),
             }),
         }
     }
@@ -96,21 +64,40 @@ impl PySymbolExpr {
     /// create new expression as a value
     #[allow(non_snake_case)]
     #[staticmethod]
-    pub fn Value(value: ParameterValue) -> Self {
-        match value {
-            ParameterValue::Real(r) => PySymbolExpr {
+    pub fn Value(py: Python, value: PyObject) -> PyResult<Self> {
+        match Self::_extract_value(py, value) {
+            Some(v) => Ok(v),
+            None => Err(pyo3::exceptions::PyRuntimeError::new_err(
+                "Unsupported data type to initialize SymbolExpr as a value",
+            )),
+        }
+    }
+
+    #[inline]
+    #[staticmethod]
+    fn _extract_value(py: Python, value: PyObject) -> Option<Self> {
+        if let Ok(i) = value.extract::<i64>(py) {
+            Some(PySymbolExpr {
+                expr: SymbolExpr::Value(Value::from(i)),
+            })
+        } else if let Ok(r) = value.extract::<f64>(py) {
+            Some(PySymbolExpr {
                 expr: SymbolExpr::Value(Value::from(r)),
-            },
-            ParameterValue::Complex(c) => PySymbolExpr {
+            })
+        } else if let Ok(c) = value.extract::<Complex64>(py) {
+            Some(PySymbolExpr {
                 expr: SymbolExpr::Value(Value::from(c)),
-            },
-            ParameterValue::Int(r) => PySymbolExpr {
-                expr: SymbolExpr::Value(Value::from(r)),
-            },
-            ParameterValue::Str(s) => PySymbolExpr {
+            })
+        } else if let Ok(s) = value.extract::<String>(py) {
+            Some(PySymbolExpr {
                 expr: parse_expression(&s),
-            },
-            ParameterValue::Expr(e) => PySymbolExpr { expr: e.expr },
+            })
+        } else if let Ok(e) = value.extract::<PySymbolExpr>(py) {
+            Some(PySymbolExpr {
+                expr: e.expr.clone(),
+            })
+        } else {
+            None
         }
     }
 
@@ -127,13 +114,14 @@ impl PySymbolExpr {
         }
     }
 
+    // return string to pass to sympify
     pub fn expr_for_sympy(&self) -> String {
         let ret = self.expr.optimize().to_string();
         ret.replace("$\\", "__begin_sympy_replace__")
             .replace('$', "__end_sympy_replace__")
     }
 
-    /// unary functions
+    // unary functions
     pub fn sin(&self) -> Self {
         Self {
             expr: self.expr.sin(),
@@ -184,84 +172,20 @@ impl PySymbolExpr {
             expr: self.expr.sign(),
         }
     }
-    pub fn pow(&self, rhs: ParameterValue) -> Self {
-        match rhs {
-            ParameterValue::Real(r) => Self {
-                expr: self.expr.pow(&SymbolExpr::Value(Value::from(r))),
-            },
-            ParameterValue::Complex(c) => Self {
-                expr: self.expr.pow(&SymbolExpr::Value(Value::from(c))),
-            },
-            ParameterValue::Int(r) => Self {
-                expr: self.expr.pow(&SymbolExpr::Value(Value::from(r))),
-            },
-            ParameterValue::Str(s) => Self {
-                expr: self.expr.pow(&parse_expression(&s)),
-            },
-            ParameterValue::Expr(e) => Self {
-                expr: self.expr.pow(&e.expr),
-            },
-        }
-    }
 
-    /// return complex number if expression does not have symbols
-    pub fn complex(&self) -> PyResult<Complex64> {
+    /// return value if expression does not contain any symbols
+    pub fn value(&self, py: Python) -> PyResult<PyObject> {
         match self.expr.eval(true) {
             Some(v) => match v {
-                Value::Real(r) => Ok(Complex64::from(r)),
-                Value::Int(r) => Ok(Complex64::from(r as f64)),
-                Value::Complex(c) => Ok(c),
-            },
-            None => Err(pyo3::exceptions::PyRuntimeError::new_err(
-                "Expression has some undefined symbols.",
-            )),
-        }
-    }
-    /// return floating number if expression does not have symbols
-    pub fn float(&self) -> PyResult<f64> {
-        match self.expr.eval(true) {
-            Some(v) => match v {
-                Value::Real(r) => Ok(r),
-                Value::Int(r) => Ok(r as f64),
-                Value::Complex(_) => Err(pyo3::exceptions::PyTypeError::new_err(
-                    "complex can not be converted to float",
-                )),
-            },
-            None => Err(pyo3::exceptions::PyRuntimeError::new_err(
-                "Expression has some undefined symbols.",
-            )),
-        }
-    }
-
-    // return real number if expression does not have symbols
-    pub fn real(&self) -> PyResult<f64> {
-        match self.expr.real() {
-            Some(r) => Ok(r),
-            None => Err(pyo3::exceptions::PyRuntimeError::new_err(
-                "Expression has some undefined symbols.",
-            )),
-        }
-    }
-
-    // return imaginary number if expression does not have symbols
-    pub fn imag(&self) -> PyResult<f64> {
-        match self.expr.imag() {
-            Some(r) => Ok(r),
-            None => Err(pyo3::exceptions::PyRuntimeError::new_err(
-                "Expression has some undefined symbols.",
-            )),
-        }
-    }
-
-    /// return integer number if expression does not have symbols
-    pub fn int(&self) -> PyResult<i64> {
-        match self.expr.eval(true) {
-            Some(v) => match v {
-                Value::Real(r) => Ok(r as i64),
-                Value::Int(r) => Ok(r),
-                Value::Complex(_) => Err(pyo3::exceptions::PyTypeError::new_err(
-                    "complex can not be converted to int",
-                )),
+                Value::Real(r) => r.into_py_any(py),
+                Value::Int(i) => i.into_py_any(py),
+                Value::Complex(c) => {
+                    if (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&c.im) {
+                        c.re.into_py_any(py)
+                    } else {
+                        c.into_py_any(py)
+                    }
+                }
             },
             None => Err(pyo3::exceptions::PyRuntimeError::new_err(
                 "Expression has some undefined symbols.",
@@ -295,38 +219,21 @@ impl PySymbolExpr {
         }
     }
 
-    /// check if this expression is real number of not
-    #[getter]
-    pub fn is_real(&self) -> Option<bool> {
-        self.expr.is_real()
-    }
-    /// check if this expression is complex number of not
-    #[getter]
-    pub fn is_complex(&self) -> Option<bool> {
-        self.expr.is_complex()
-    }
-    /// check if this expression is integer of not
-    #[getter]
-    pub fn is_int(&self) -> Option<bool> {
-        self.expr.is_int()
-    }
-
     /// get hashset of all the symbols used in this expression
-    #[getter]
     pub fn symbols(&self) -> HashSet<String> {
         self.expr.symbols()
     }
 
     /// return all values in this equation
-    pub fn values(&self) -> PyResult<Vec<ReturnValueTypes>> {
-        let ret: Vec<ReturnValueTypes> = self
+    pub fn values(&self, py: Python) -> PyResult<Vec<PyObject>> {
+        let ret: Vec<PyObject> = self
             .expr
             .values()
             .iter()
             .map(|val| match val {
-                Value::Real(r) => ReturnValueTypes::Real(*r),
-                Value::Int(i) => ReturnValueTypes::Int(*i),
-                Value::Complex(c) => ReturnValueTypes::Complex(*c),
+                Value::Real(r) => r.into_py_any(py).unwrap(),
+                Value::Int(i) => i.into_py_any(py).unwrap(),
+                Value::Complex(c) => c.into_py_any(py).unwrap(),
             })
             .collect();
         Ok(ret)
@@ -339,21 +246,23 @@ impl PySymbolExpr {
     }
 
     /// bind values to symbols given by input hashmap
-    pub fn bind(&self, in_maps: HashMap<String, BindValue>) -> PyResult<Self> {
-        let maps: HashMap<String, Value> = in_maps
+    pub fn bind(&self, py: Python, map: HashMap<String, PyObject>) -> PyResult<Self> {
+        let map: HashMap<String, Value> = map
             .into_iter()
             .map(|(key, val)| {
-                (
-                    key,
-                    match val {
-                        BindValue::Complex(c) => Value::from(c),
-                        BindValue::Real(r) => Value::from(r),
-                        BindValue::Int(r) => Value::from(r),
-                    },
-                )
+                if let Ok(i) = val.extract::<i64>(py) {
+                    (key, Value::from(i))
+                } else if let Ok(r) = val.extract::<f64>(py) {
+                    (key, Value::from(r))
+                } else if let Ok(c) = val.extract::<Complex64>(py) {
+                    (key, Value::from(c))
+                } else {
+                    // if unsupported data type, insert empty
+                    ("".to_string(), Value::Int(0))
+                }
             })
             .collect();
-        let bound = self.expr.bind(&maps);
+        let bound = self.expr.bind(&map);
         match bound.eval(true) {
             Some(v) => match &v {
                 Value::Real(r) => {
@@ -398,264 +307,141 @@ impl PySymbolExpr {
     // ====================================
     // operator overrides
     // ====================================
-    pub fn __eq__(&self, rhs: ParameterValue) -> bool {
-        match rhs {
-            ParameterValue::Real(r) => self.expr == SymbolExpr::Value(Value::from(r)),
-            ParameterValue::Complex(c) => self.expr == SymbolExpr::Value(Value::from(c)),
-            ParameterValue::Int(r) => self.expr == SymbolExpr::Value(Value::from(r)),
-            ParameterValue::Str(s) => self.expr == parse_expression(&s),
-            ParameterValue::Expr(e) => self.expr == e.expr,
+    pub fn __eq__(&self, py: Python, rhs: PyObject) -> bool {
+        match Self::_extract_value(py, rhs) {
+            Some(rhs) => self.expr == rhs.expr,
+            None => false,
         }
     }
-    pub fn __ne__(&self, rhs: ParameterValue) -> bool {
-        match rhs {
-            ParameterValue::Real(r) => self.expr != SymbolExpr::Value(Value::from(r)),
-            ParameterValue::Complex(c) => self.expr != SymbolExpr::Value(Value::from(c)),
-            ParameterValue::Int(r) => self.expr != SymbolExpr::Value(Value::from(r)),
-            ParameterValue::Str(s) => self.expr != parse_expression(&s),
-            ParameterValue::Expr(e) => self.expr != e.expr,
+    pub fn __ne__(&self, py: Python, rhs: PyObject) -> bool {
+        match Self::_extract_value(py, rhs) {
+            Some(rhs) => self.expr != rhs.expr,
+            None => false,
         }
     }
     pub fn __neg__(&self) -> Self {
         Self { expr: -&self.expr }
     }
-    pub fn __add__(&self, rhs: ParameterValue) -> Self {
-        match rhs {
-            ParameterValue::Real(r) => Self {
-                expr: &self.expr + &SymbolExpr::Value(Value::from(r)),
-            },
-            ParameterValue::Complex(c) => Self {
-                expr: &self.expr + &SymbolExpr::Value(Value::from(c)),
-            },
-            ParameterValue::Int(r) => Self {
-                expr: &self.expr + &SymbolExpr::Value(Value::from(r)),
-            },
-            ParameterValue::Str(s) => Self {
-                expr: &self.expr + &parse_expression(&s),
-            },
-            ParameterValue::Expr(e) => Self {
-                expr: &self.expr + &e.expr,
-            },
-        }
-    }
-    pub fn __radd__(&self, lhs: ParameterValue) -> Self {
-        match lhs {
-            ParameterValue::Real(r) => Self {
-                expr: &SymbolExpr::Value(Value::from(r)) + &self.expr,
-            },
-            ParameterValue::Complex(c) => Self {
-                expr: &SymbolExpr::Value(Value::from(c)) + &self.expr,
-            },
-            ParameterValue::Int(i) => Self {
-                expr: &SymbolExpr::Value(Value::from(i)) + &self.expr,
-            },
-            ParameterValue::Str(s) => Self {
-                expr: &parse_expression(&s) + &self.expr,
-            },
-            ParameterValue::Expr(e) => Self {
-                expr: &e.expr + &self.expr,
-            },
-        }
-    }
-    pub fn __sub__(&self, rhs: ParameterValue) -> Self {
-        match rhs {
-            ParameterValue::Real(r) => Self {
-                expr: &self.expr - &SymbolExpr::Value(Value::from(r)),
-            },
-            ParameterValue::Complex(c) => Self {
-                expr: &self.expr - &SymbolExpr::Value(Value::from(c)),
-            },
-            ParameterValue::Int(r) => Self {
-                expr: &self.expr - &SymbolExpr::Value(Value::from(r)),
-            },
-            ParameterValue::Str(s) => Self {
-                expr: &self.expr - &parse_expression(&s),
-            },
-            ParameterValue::Expr(e) => Self {
-                expr: &self.expr - &e.expr,
-            },
-        }
-    }
-    pub fn __rsub__(&self, lhs: ParameterValue) -> Self {
-        match lhs {
-            ParameterValue::Real(r) => Self {
-                expr: &SymbolExpr::Value(Value::from(r)) - &self.expr,
-            },
-            ParameterValue::Complex(c) => Self {
-                expr: &SymbolExpr::Value(Value::from(c)) - &self.expr,
-            },
-            ParameterValue::Int(i) => Self {
-                expr: &SymbolExpr::Value(Value::from(i)) - &self.expr,
-            },
-            ParameterValue::Str(s) => Self {
-                expr: &parse_expression(&s) - &self.expr,
-            },
-            ParameterValue::Expr(e) => Self {
-                expr: &e.expr - &self.expr,
-            },
-        }
-    }
-    pub fn __mul__(&self, rhs: ParameterValue) -> Self {
-        match rhs {
-            ParameterValue::Real(r) => Self {
-                expr: &self.expr * &SymbolExpr::Value(Value::from(r)),
-            },
-            ParameterValue::Complex(c) => Self {
-                expr: &self.expr * &SymbolExpr::Value(Value::from(c)),
-            },
-            ParameterValue::Int(r) => Self {
-                expr: &self.expr * &SymbolExpr::Value(Value::from(r)),
-            },
-            ParameterValue::Str(s) => Self {
-                expr: &self.expr * &parse_expression(&s),
-            },
-            ParameterValue::Expr(e) => Self {
-                expr: &self.expr * &e.expr,
-            },
-        }
-    }
-    pub fn __rmul__(&self, lhs: ParameterValue) -> Self {
-        match lhs {
-            ParameterValue::Real(r) => Self {
-                expr: &SymbolExpr::Value(Value::from(r)) * &self.expr,
-            },
-            ParameterValue::Complex(c) => Self {
-                expr: &SymbolExpr::Value(Value::from(c)) * &self.expr,
-            },
-            ParameterValue::Int(i) => Self {
-                expr: &SymbolExpr::Value(Value::from(i)) * &self.expr,
-            },
-            ParameterValue::Str(s) => Self {
-                expr: &parse_expression(&s) * &self.expr,
-            },
-            ParameterValue::Expr(e) => Self {
-                expr: &e.expr * &self.expr,
-            },
-        }
-    }
-    pub fn __truediv__(&self, rhs: ParameterValue) -> PyResult<Self> {
-        match rhs {
-            ParameterValue::Real(r) => {
-                if (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&r) {
-                    Err(pyo3::exceptions::PyZeroDivisionError::new_err(
-                        "Division by zero",
-                    ))
-                } else {
-                    Ok(Self {
-                        expr: &self.expr / &SymbolExpr::Value(Value::from(r)),
-                    })
-                }
-            }
-            ParameterValue::Complex(c) => {
-                let t = (c.re * c.re + c.im * c.im).sqrt();
-                if (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t) {
-                    Err(pyo3::exceptions::PyZeroDivisionError::new_err(
-                        "Division by zero",
-                    ))
-                } else {
-                    Ok(Self {
-                        expr: &self.expr / &SymbolExpr::Value(Value::from(c)),
-                    })
-                }
-            }
-            ParameterValue::Int(r) => {
-                if r == 0 {
-                    Err(pyo3::exceptions::PyZeroDivisionError::new_err(
-                        "Division by zero",
-                    ))
-                } else {
-                    Ok(Self {
-                        expr: &self.expr / &SymbolExpr::Value(Value::from(r)),
-                    })
-                }
-            }
-            ParameterValue::Str(s) => {
-                let r = parse_expression(&s);
-                if r == 0.0 {
-                    Err(pyo3::exceptions::PyZeroDivisionError::new_err(
-                        "Division by zero",
-                    ))
-                } else {
-                    Ok(Self {
-                        expr: &self.expr / &r,
-                    })
-                }
-            }
-            ParameterValue::Expr(e) => {
-                if e.expr == 0.0 {
-                    Err(pyo3::exceptions::PyZeroDivisionError::new_err(
-                        "Division by zero",
-                    ))
-                } else {
-                    Ok(Self {
-                        expr: &self.expr / &e.expr,
-                    })
-                }
-            }
-        }
-    }
-    pub fn __rtruediv__(&self, lhs: ParameterValue) -> PyResult<Self> {
-        if self.expr == 0.0 {
-            return Err(pyo3::exceptions::PyZeroDivisionError::new_err(
-                "Division by zero",
-            ));
-        }
-        match lhs {
-            ParameterValue::Real(r) => Ok(Self {
-                expr: &SymbolExpr::Value(Value::from(r)) / &self.expr,
+    pub fn __add__(&self, py: Python, rhs: PyObject) -> PyResult<Self> {
+        match Self::_extract_value(py, rhs) {
+            Some(rhs) => Ok(Self {
+                expr: &self.expr + &rhs.expr,
             }),
-            ParameterValue::Complex(c) => Ok(Self {
-                expr: &SymbolExpr::Value(Value::from(c)) / &self.expr,
-            }),
-            ParameterValue::Int(i) => Ok(Self {
-                expr: &SymbolExpr::Value(Value::from(i)) / &self.expr,
-            }),
-            ParameterValue::Str(s) => Ok(Self {
-                expr: &parse_expression(&s) / &self.expr,
-            }),
-            ParameterValue::Expr(e) => Ok(Self {
-                expr: &e.expr / &self.expr,
-            }),
+            None => Err(pyo3::exceptions::PyRuntimeError::new_err(
+                "Unsupported data type for __add__",
+            )),
         }
     }
-    pub fn __pow__(&self, rhs: ParameterValue, _modulo: Option<i32>) -> Self {
-        self.pow(rhs)
+    pub fn __radd__(&self, py: Python, lhs: PyObject) -> PyResult<Self> {
+        match Self::_extract_value(py, lhs) {
+            Some(lhs) => Ok(Self {
+                expr: &lhs.expr + &self.expr,
+            }),
+            None => Err(pyo3::exceptions::PyRuntimeError::new_err(
+                "Unsupported data type for __radd__",
+            )),
+        }
+    }
+    pub fn __sub__(&self, py: Python, rhs: PyObject) -> PyResult<Self> {
+        match Self::_extract_value(py, rhs) {
+            Some(rhs) => Ok(Self {
+                expr: &self.expr - &rhs.expr,
+            }),
+            None => Err(pyo3::exceptions::PyRuntimeError::new_err(
+                "Unsupported data type for __sub__",
+            )),
+        }
+    }
+    pub fn __rsub__(&self, py: Python, lhs: PyObject) -> PyResult<Self> {
+        match Self::_extract_value(py, lhs) {
+            Some(lhs) => Ok(Self {
+                expr: &lhs.expr - &self.expr,
+            }),
+            None => Err(pyo3::exceptions::PyRuntimeError::new_err(
+                "Unsupported data type for __rsub__",
+            )),
+        }
+    }
+    pub fn __mul__(&self, py: Python, rhs: PyObject) -> PyResult<Self> {
+        match Self::_extract_value(py, rhs) {
+            Some(rhs) => Ok(Self {
+                expr: &self.expr * &rhs.expr,
+            }),
+            None => Err(pyo3::exceptions::PyRuntimeError::new_err(
+                "Unsupported data type for __mul__",
+            )),
+        }
+    }
+    pub fn __rmul__(&self, py: Python, lhs: PyObject) -> PyResult<Self> {
+        match Self::_extract_value(py, lhs) {
+            Some(lhs) => Ok(Self {
+                expr: &lhs.expr * &self.expr,
+            }),
+            None => Err(pyo3::exceptions::PyRuntimeError::new_err(
+                "Unsupported data type for __rmul__",
+            )),
+        }
     }
 
-    pub fn __rpow__(&self, lhs: ParameterValue, _modulo: Option<i32>) -> Self {
-        match lhs {
-            ParameterValue::Real(r) => Self {
-                expr: SymbolExpr::Value(Value::from(r)).pow(&self.expr),
-            },
-            ParameterValue::Complex(c) => Self {
-                expr: SymbolExpr::Value(Value::from(c)).pow(&self.expr),
-            },
-            ParameterValue::Int(i) => Self {
-                expr: SymbolExpr::Value(Value::from(i)).pow(&self.expr),
-            },
-            ParameterValue::Str(s) => Self {
-                expr: parse_expression(&s).pow(&self.expr),
-            },
-            ParameterValue::Expr(e) => Self {
-                expr: e.expr.pow(&self.expr),
-            },
+    pub fn __truediv__(&self, py: Python, rhs: PyObject) -> PyResult<Self> {
+        match Self::_extract_value(py, rhs) {
+            Some(rhs) => {
+                if rhs.expr.is_zero() {
+                    Err(pyo3::exceptions::PyZeroDivisionError::new_err(
+                        "Division by zero in __truediv__",
+                    ))
+                } else {
+                    Ok(Self {
+                        expr: &self.expr / &rhs.expr,
+                    })
+                }
+            }
+            None => Err(pyo3::exceptions::PyRuntimeError::new_err(
+                "Unsupported data type for __truediv__",
+            )),
         }
     }
+    pub fn __rtruediv__(&self, py: Python, lhs: PyObject) -> PyResult<Self> {
+        if self.expr.is_zero() {
+            return Err(pyo3::exceptions::PyZeroDivisionError::new_err(
+                "Division by zero in __rtruediv__",
+            ));
+        }
+        match Self::_extract_value(py, lhs) {
+            Some(lhs) => Ok(Self {
+                expr: &lhs.expr / &self.expr,
+            }),
+            None => Err(pyo3::exceptions::PyRuntimeError::new_err(
+                "Unsupported data type for __truediv__",
+            )),
+        }
+    }
+    pub fn __pow__(&self, py: Python, rhs: PyObject, _modulo: Option<i32>) -> PyResult<Self> {
+        match Self::_extract_value(py, rhs) {
+            Some(rhs) => Ok(Self {
+                expr: self.expr.pow(&rhs.expr),
+            }),
+            None => Err(pyo3::exceptions::PyRuntimeError::new_err(
+                "Unsupported data type for __pow__",
+            )),
+        }
+    }
+    pub fn __rpow__(&self, py: Python, lhs: PyObject, _modulo: Option<i32>) -> PyResult<Self> {
+        match Self::_extract_value(py, lhs) {
+            Some(lhs) => Ok(Self {
+                expr: lhs.expr.pow(&self.expr),
+            }),
+            None => Err(pyo3::exceptions::PyRuntimeError::new_err(
+                "Unsupported data type for __rpow__",
+            )),
+        }
+    }
+
     pub fn __str__(&self) -> String {
         match self.expr.eval(true) {
             Some(e) => e.to_string(),
             None => self.expr.optimize().to_string(),
         }
-    }
-
-    pub fn __float__(&self) -> PyResult<f64> {
-        self.float()
-    }
-    pub fn __complex__(&self) -> PyResult<Complex64> {
-        self.complex()
-    }
-    pub fn __int__(&self) -> PyResult<i64> {
-        self.int()
     }
 
     pub fn __hash__(&self) -> u64 {

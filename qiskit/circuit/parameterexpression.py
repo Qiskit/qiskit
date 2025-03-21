@@ -437,17 +437,13 @@ class ParameterExpression:
         # when deriving linear expression)
         parameter_symbols = {}
         for parameter, symbol in self._parameter_symbols.items():
-            if symbol.name in expr_grad.symbols:
+            if symbol.name in expr_grad.symbols():
                 parameter_symbols[parameter] = symbol
         # If the gradient corresponds to a parameter expression then return the new expression.
         if len(parameter_symbols) > 0:
             return ParameterExpression(parameter_symbols, expr=expr_grad, _qpy_replay=qpy_replay)
         # If no free symbols left, return a complex or float gradient
-        expr_grad_cplx = expr_grad.complex()
-        if expr_grad_cplx.imag != 0:
-            return expr_grad_cplx
-        else:
-            return float(expr_grad_cplx.real)
+        return expr_grad.value()
 
     def __add__(self, other):
         return self._apply_operation(operator.add, other, op_code=_OPCode.ADD)
@@ -542,7 +538,7 @@ class ParameterExpression:
 
     def __complex__(self):
         try:
-            return complex(self._symbol_expr)
+            return complex(self._symbol_expr.value())
         # TypeError is for sympy, RuntimeError for symengine
         except (TypeError, RuntimeError) as exc:
             if self.parameters:
@@ -554,7 +550,7 @@ class ParameterExpression:
 
     def __float__(self):
         try:
-            return float(self._symbol_expr)
+            return float(self._symbol_expr.value())
         # TypeError is for sympy, RuntimeError for symengine
         except (TypeError, RuntimeError) as exc:
             if self.parameters:
@@ -574,7 +570,7 @@ class ParameterExpression:
 
     def __int__(self):
         try:
-            return int(self._symbol_expr)
+            return int(self._symbol_expr.value())
         # TypeError is for backwards compatibility, RuntimeError is raised by symengine
         except RuntimeError as exc:
             if self.parameters:
@@ -624,16 +620,11 @@ class ParameterExpression:
 
     def is_real(self):
         """Return whether the expression is real"""
-        if not self._symbol_expr.is_real and self._symbol_expr.is_real is not None:
-            # returns false for is_real on the expression if
-            # there is a imaginary component (even if that component is 0),
-            # but the parameter will evaluate as real. Check that if the
-            # expression's is_real attribute returns false that we have a
-            # non-zero imaginary
-            if self._symbol_expr.complex().imag == 0.0:
-                return True
-            return False
-        return self._symbol_expr.is_real
+        try:
+            val = self._symbol_expr.value()
+            return not isinstance(val, complex)
+        except:
+            return None
 
     def numeric(self) -> int | float | complex:
         """Return a Python number representing this object, using the most restrictive of
@@ -666,11 +657,7 @@ class ParameterExpression:
             raise TypeError(
                 f"Expression with unbound parameters '{self.parameters}' is not numeric"
             )
-        if self._symbol_expr.is_complex:
-            return self._symbol_expr.complex()
-        if self._symbol_expr.is_int:
-            return self._symbol_expr.int()
-        return self._symbol_expr.float()
+        return self._symbol_expr.value()
 
     @HAS_SYMPY.require_in_call
     def sympify(self):

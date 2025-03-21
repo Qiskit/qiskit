@@ -2999,7 +2999,7 @@ impl Value {
         }
     }
 
-    fn opt_complex(&self) -> Option<Value> {
+    pub fn opt_complex(&self) -> Option<Value> {
         match self {
             Value::Complex(c) => {
                 if (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&c.im) {
