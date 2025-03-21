@@ -21,6 +21,7 @@ import io
 import unittest
 
 from ddt import ddt, data
+import numpy as np
 from numpy import pi
 
 from qiskit.dagcircuit import DAGCircuit, DAGOpNode, DAGInNode, DAGOutNode, DAGCircuitError
@@ -44,7 +45,17 @@ from qiskit.circuit import (
     Store,
 )
 from qiskit.circuit.classical import expr, types
-from qiskit.circuit.library import IGate, HGate, CXGate, CZGate, XGate, YGate, U1Gate, RXGate
+from qiskit.circuit.library import (
+    IGate,
+    HGate,
+    CXGate,
+    CZGate,
+    XGate,
+    YGate,
+    U1Gate,
+    RXGate,
+    CSGate,
+)
 from qiskit.converters import circuit_to_dag
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -1656,6 +1667,59 @@ class TestDagEquivalence(QiskitTestCase):
         circ1.u(0.0, 0.1, 0.2, self.qr1[3])
         circ1.ccx(self.qr2[0], self.qr2[1], self.qr1[0])
         self.dag1 = circuit_to_dag(circ1)
+
+    def test_unitary_gate_eq(self):
+        """Test equality of equal DAGOpNodes containing unitary gates.
+        See: https://github.com/Qiskit/qiskit-terra/issues/14047
+        """
+        # Create the unitary matrix
+        unitary_matrix = np.array(
+            [
+                [0.65328148 - 0.27059805j, 0.0 + 0.0j, 0.0 + 0.0j, 0.65328148 - 0.27059805j],
+                [0.0 + 0.0j, 0.65328148 - 0.27059805j, -0.65328148 + 0.27059805j, 0.0 + 0.0j],
+                [0.27059805 - 0.65328148j, 0.0 + 0.0j, 0.0 + 0.0j, -0.27059805 + 0.65328148j],
+                [0.0 + 0.0j, 0.27059805 - 0.65328148j, 0.27059805 - 0.65328148j, 0.0 + 0.0j],
+            ]
+        )
+
+        # Create the instruction
+        instruction = Instruction(
+            name="unitary", num_qubits=2, num_clbits=0, params=[unitary_matrix]
+        )
+
+        # Create the quantum register and qubits
+        qreg = QuantumRegister(9, "q")
+        qubit1 = Qubit(qreg, 7)
+        qubit2 = Qubit(qreg, 5)
+
+        # Create the DAGOpNode
+        dag_op_node = DAGOpNode(op=instruction, qargs=(qubit1, qubit2), cargs=())
+
+        # Create the DAGOpNode2
+        dag_op_node_2 = DAGOpNode(op=instruction, qargs=(qubit1, qubit2), cargs=())
+
+        self.assertEqual(dag_op_node, dag_op_node_2)
+
+    def test_unitary_gate_variants_eq(self):
+        """Test equality of equal DAGOpNodes containing unitary gates."""
+        # Create the instructions.
+        # Note that our rust code will interpret mat1 as ArrayType::NDArray and
+        # mat2 as ArrayType::TwoQ.
+        mat1 = np.asarray(CSGate().to_matrix(), dtype=complex)
+        mat2 = np.asarray(CSGate().to_matrix(), dtype=complex, order="f")
+        instruction1 = Instruction(name="unitary", num_qubits=2, num_clbits=0, params=[mat1])
+        instruction2 = Instruction(name="unitary", num_qubits=2, num_clbits=0, params=[mat2])
+
+        # Create the quantum register and qubits
+        qreg = QuantumRegister(9, "q")
+        qubit1 = Qubit(qreg, 7)
+        qubit2 = Qubit(qreg, 5)
+
+        # Create DAGOpNodes
+        node1 = DAGOpNode(op=instruction1, qargs=(qubit1, qubit2), cargs=())
+        node2 = DAGOpNode(op=instruction2, qargs=(qubit1, qubit2), cargs=())
+
+        self.assertEqual(node1, node2)
 
     def test_dag_eq(self):
         """DAG equivalence check: True."""
