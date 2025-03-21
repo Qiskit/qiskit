@@ -1276,7 +1276,7 @@ class QuantumCircuit:
         There are two types of permutations caused by the :func:`~.transpile`
         function: an initial layout that permutes the qubits based on the
         selected physical qubits on the :class:`~.Target`, and a final layout,
-        which is an output permutation caused by :class:`~.SwapGate`\s
+        which is an output permutation caused by :class:`~.SwapGate`\\ s
         inserted during routing.
 
         Example:
