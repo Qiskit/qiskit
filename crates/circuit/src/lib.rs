@@ -31,7 +31,7 @@ pub mod register_data;
 pub mod slice;
 pub mod util;
 
-mod rustworkx_core_vnext;
+pub mod rustworkx_core_vnext;
 
 use pyo3::prelude::*;
 use pyo3::types::{PySequence, PyTuple};
