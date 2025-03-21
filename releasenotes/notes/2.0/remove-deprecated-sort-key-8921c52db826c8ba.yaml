@@ -3,7 +3,7 @@ upgrade_transpiler:
   - |
     Removed the deprecated ``DAGNode.sort_key`` attribute. This attribute was deprecated
     in the Qiskit 1.4.0 release. As the lexicographical topological sorting is done internally
-    and rust and the sort key attribute was unused this was removed to remove the overhead
+    in Rust and the sort key attribute was unused, this attribute was removed to avoid the overhead
     from DAG node creation. If you were relying on the sort key you can reproduce it from
     a given node using something like::
 

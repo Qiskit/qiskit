@@ -5,10 +5,12 @@ upgrade_visualization:
     the default behavior. If you still want to display wires without instructions, explicitly set ``idle_wires=True``.
 
     When set to ``"auto"``, the behavior is as follows:
-    - If the circuit has a defined ``.layout`` attribute, ``idle_wires`` is automatically set to ``False`` (hiding idle wires).
-    - Otherwise, ``idle_wires`` remains ``True`` (showing all wires, as previous default).
 
-    Here an example. A circuit without a layout, using ``idle_wires="auto"``:
+    * If the circuit has a defined ``.layout`` attribute, ``idle_wires`` is automatically set to ``False`` (hiding idle wires)
+
+    * Otherwise, ``idle_wires`` remains ``True`` (showing all wires, as previous default)
+
+    The following example shows a circuit without layout diplayed using ``idle_wires="auto"``:
 
     .. code-block:: text
 

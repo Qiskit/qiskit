@@ -8,7 +8,7 @@ features_misc:
     :func:`.should_run_in_parallel.override` to temporarily override most system and user
     configuration around this decision.
 
-    An additional function, :func:`.default_num_processes` reads the default maximum number of
+    An additional function, :func:`.default_num_processes`, reads the default maximum number of
     subprocesses that Qiskit will use for process-based parallelism.
   - |
     A new environment variable, ``QISKIT_IGNORE_USER_SETTINGS``, now controls whether to read the

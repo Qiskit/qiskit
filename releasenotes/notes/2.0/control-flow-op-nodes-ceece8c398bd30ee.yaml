@@ -1,8 +1,8 @@
 ---
 upgrade_circuits:
   - |
-    :meth:`.DAGCircuit.control_flow_op_nodes` now always returns a list, even if empty.  Previously,
-    it returned ``None`` if empty, and never returned the empty list, which required special handling.
+    The :meth:`.DAGCircuit.control_flow_op_nodes` method has been updated to always return a list, even if empty.  Previously,
+    it returned ``None`` if empty, and never returned an empty list, which required special handling.
     If you need to explicitly test for emptiness in both Qiskit 1.x and 2.x, you can do::
 
       control_flow_nodes = dag.control_flow_op_nodes()

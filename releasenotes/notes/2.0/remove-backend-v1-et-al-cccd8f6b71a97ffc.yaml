@@ -8,7 +8,7 @@ upgrade_providers:
 
     * ``BackendV1`` class: the core of the removed model
 
-    * All elements in `qiskit/providers/models`, as they were used to represent 
+    * All elements in ``qiskit/providers/models``, as they were used to represent 
       components of the ``BackendV1`` model:
 
         * ``BackendConfiguration``
@@ -62,7 +62,7 @@ upgrade_misc:
     The ``Qobj`` structure and related classes, deprecated in Qiskit 1.2.0,
     have been removed. They were introduced as part of the ``BackendV1``
     workflow and are no longer necessary for interacting with :class:`.BackendV2` backends.
-    This removal includes:
+    This removal affects the following classes:
 
     *    ``QobjExperimentHeader``
     *    ``QobjHeader``
