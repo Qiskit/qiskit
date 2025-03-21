@@ -119,10 +119,6 @@ fix_cformat:
 $(C_LIB_CARGO_PATH):
 	cargo rustc --release --crate-type cdylib -p qiskit-cext
 
-# Compile the C library and move the header into the right location, if it was generated
-$(C_LIB_CARGO_PATH): $(C_DIR_INCLUDE)
-	cargo build --release -p qiskit-cext
-
 $(C_DIR_LIB):
 	mkdir -p $(C_DIR_LIB)
 
