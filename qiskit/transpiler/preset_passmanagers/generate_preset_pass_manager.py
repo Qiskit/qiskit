@@ -241,10 +241,11 @@ def generate_preset_pass_manager(
             target.dt = dt
             # we must update the instruction properties to internally clear the value of
             # _instruction_durations in the target so that the new dt is saved
-            for inst_name in target.operation_names:
-                props_map = target[inst_name]
-                for qargs, props in props_map.items():
-                    target.update_instruction_properties(inst_name, qargs, props)
+            inst_name = list(target.operation_names)[0]
+            props_map = target[inst_name]
+            for qargs, props in props_map.items():
+                target.update_instruction_properties(inst_name, qargs, props)
+                break
         else:
             if basis_gates is not None:
                 # Build target from constraints.
