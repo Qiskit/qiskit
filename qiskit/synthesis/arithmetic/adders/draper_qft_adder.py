@@ -19,7 +19,9 @@ from qiskit.circuit import QuantumRegister
 from qiskit.circuit.library.basis_change import QFTGate
 
 
-def adder_qft_d00(num_state_qubits: int, kind: str = "half") -> QuantumCircuit:
+def adder_qft_d00(
+    num_state_qubits: int, kind: str = "half", annotated: bool = False
+) -> QuantumCircuit:
     r"""A circuit that uses QFT to perform in-place addition on two qubit registers.
 
     For registers with :math:`n` qubits, the QFT adder can perform addition modulo
@@ -51,6 +53,8 @@ def adder_qft_d00(num_state_qubits: int, kind: str = "half") -> QuantumCircuit:
             ``"fixed"`` for a fixed-sized adder. A half adder contains a carry-out to represent
             the most-significant bit, but the fixed-sized adder doesn't and hence performs
             addition modulo ``2 ** num_state_qubits``.
+        annotated: If ``True``, creates appropriate control and inverse operations as
+            ``AnnotatedOperation`` objects.
 
     **References:**
 
@@ -98,6 +102,6 @@ def adder_qft_d00(num_state_qubits: int, kind: str = "half") -> QuantumCircuit:
             # can be elided and cancelled by the compiler
             circuit.cp(lam, qr_a[j], qr_sum[~(j + k)])
 
-    circuit.append(qft.inverse(), qr_sum[:])
+    circuit.append(qft.inverse(annotated=annotated), qr_sum[:])
 
     return circuit
