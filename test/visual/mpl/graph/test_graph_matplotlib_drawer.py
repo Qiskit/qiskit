@@ -650,7 +650,6 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
             title_pad=8,
             filename=fname,
         )
-
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
             self._reference_path(fname),
