@@ -138,7 +138,7 @@ class TestMCSynthesisCorrectness(QiskitTestCase):
             XGate(), num_ctrl_qubits, synthesized_circuit, clean_ancillas=True
         )
 
-    @data(3, 5, 8, 9, 10)
+    @data(3, 4, 5, 6, 7, 8)
     def test_mcx_1_clean_kg24(self, num_ctrl_qubits: int):
         """Test synth_mcx_1_clean_kg24 by comparing synthesized and expected matrices."""
         # Note: the method requires at least 3 control qubits
@@ -147,7 +147,7 @@ class TestMCSynthesisCorrectness(QiskitTestCase):
             XGate(), num_ctrl_qubits, synthesized_circuit, clean_ancillas=True
         )
 
-    @data(3, 5, 8, 9, 10)
+    @data(3, 4, 5, 6, 7, 8)
     def test_mcx_1_dirty_kg24(self, num_ctrl_qubits: int):
         """Test synth_mcx_1_dirty_kg24 by comparing synthesized and expected matrices."""
         # Note: the method requires at least 3 control qubits
@@ -156,7 +156,7 @@ class TestMCSynthesisCorrectness(QiskitTestCase):
             XGate(), num_ctrl_qubits, synthesized_circuit, clean_ancillas=False
         )
 
-    @data(3, 5, 8, 9, 10)
+    @data(3, 4, 5, 6, 7, 8)
     def test_mcx_2_clean_kg24(self, num_ctrl_qubits: int):
         """Test synth_mcx_2_clean_kg24 by comparing synthesized and expected matrices."""
         # Note: the method requires at least 3 control qubits
@@ -165,7 +165,7 @@ class TestMCSynthesisCorrectness(QiskitTestCase):
             XGate(), num_ctrl_qubits, synthesized_circuit, clean_ancillas=True
         )
 
-    @data(3, 5, 8, 9, 10)
+    @data(3, 4, 5, 6, 7, 8)
     def test_mcx_2_dirty_kg24(self, num_ctrl_qubits: int):
         """Test synth_mcx_2_dirty_kg24 by comparing synthesized and expected matrices."""
         # Note: the method requires at least 3 control qubits
