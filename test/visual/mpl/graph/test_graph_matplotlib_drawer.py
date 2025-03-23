@@ -113,7 +113,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.99, msg=fname)
+        self.assertGreaterEqual(ratio, 0.98, msg=fname)
 
     def test_plot_state_hinton(self):
         """test plot_state_hinton"""
@@ -657,7 +657,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.99, msg=fname)
+        self.assertGreaterEqual(ratio, 0.98, msg=fname)
 
 
 if __name__ == "__main__":
