@@ -633,12 +633,15 @@ impl SparseObservable {
         out
     }
 
-    // 2 * '+' = 'I' + 'X'
-    // 2 * '-' = 'I' - 'X'
-    // 2 * '0' = 'I' + 'Z'
-    // 2 * '1' = 'I' - 'Z'
-    // 2 * 'r' = 'I' + 'Y'
-    // 2 * 'l' = 'I' - 'Y'
+    /// Attempt to combine two [SparseTerm].
+    ///
+    /// The following reductions are currently supported:
+    /// * 'I' + 'X' = 2 * '+'
+    /// * 'I' - 'X' = 2 * '-'
+    /// * 'I' + 'Z' = 2 * '0'
+    /// * 'I' - 'Z' = 2 * '1'
+    /// * 'I' + 'Y' = 2 * 'r'
+    /// * 'I' - 'Y' = 2 * 'l'
     fn try_combine_terms(
         &self,
         term1: &SparseTerm,
@@ -656,24 +659,22 @@ impl SparseObservable {
             return None;
         }
 
-        // the reduction only works when the width of the wider term is 1 more than the width of the
-        // other term
+        // check that the width of the wider term be 1 more than the width of the shallower term
         if t1.bit_terms.len() != t2.bit_terms.len() + 1 {
             return None;
         }
 
-        // the reduction only works when the coefficients are equal or negative of each other (within
-        // the specified tolerance)
-        let mut same_sign: bool = false;
-        if (t1.coeff - t2.coeff).norm_sqr() <= tol * tol {
-            same_sign = true;
+        // check that the coefficients are equal or negative of each other (within the specified tolerance)
+        let same_sign = if (t1.coeff - t2.coeff).norm_sqr() <= tol * tol {
+            true
         } else if (t1.coeff + t2.coeff).norm_sqr() <= tol * tol {
-            same_sign = false;
+            false
         } else {
             return None;
-        }
+        };
 
-        // we want all the indices of t2 to be within those of t1 with the same Pauli bitterms
+        // Check that all the indices of the shallower term are contained within the indices of the wider
+        // terms, with the corresponding BitTerms being equal. Identify the remaining index in the wider term.
         let mut extra_pos_found = false;
         let mut extra_pos: usize = 0;
         for (t1_pos, t1_idx) in t1.indices.iter().enumerate() {
@@ -694,7 +695,7 @@ impl SparseObservable {
             return None;
         }
 
-        // we can do the reduction if the extra BitTerm in t1 is X, Y, or Z
+        // Check that the missing BitTerm is X, Y, or Z, in which case the reduction applies.
         if ![BitTerm::X, BitTerm::Y, BitTerm::Z].contains(&t1.bit_terms[extra_pos]) {
             return None;
         }
@@ -716,18 +717,23 @@ impl SparseObservable {
             SparseTerm::new(
                 t1.num_qubits,
                 t2.coeff * Complex64::new(2.0, 0.0),
-                new_bits.into(),
-                t1.indices.clone().into(),
+                new_bits,
+                t1.indices.clone(),
             )
             .unwrap(),
         )
     }
 
+    /// Greedily combine the terms in the observable.
+    ///
+    /// For example, a term ``1.5 * "X+IZ"`` can be combined with the term ``-1.5 * "X+ZZ"``,
+    /// producing the term ``3.0 * "X+1Z"``.
+    ///
+    /// Keeps the original ordering of terms as much as possible.
     pub fn compress(&self, tol: f64) -> SparseObservable {
         let mut terms: Vec<SparseTerm> = self.iter().map(|t| t.to_term()).collect();
         let dummy_term =
             SparseTerm::new(0, Complex64::new(0.0, 0.0), [].into(), [].into()).unwrap();
-        // println!("In compress: terms = {:?}", terms);
         let mut another_iter: bool = true;
 
         while another_iter {
@@ -743,17 +749,12 @@ impl SparseObservable {
                     }
                     // try to combine terms[i] and terms[j], storing the result in terms[i]
                     if let Some(combined) = self.try_combine_terms(&terms[i], &terms[j], tol) {
-                        // println!(
-                        //     "RCOMBINED: terms[i] = {:?}, terms[j] = {:?}, combined = {:?}",
-                        //     terms[i], terms[j], combined
-                        // );
                         terms[i] = combined;
                         terms[j] = dummy_term.clone();
                         num_modified += 1;
                     }
                 }
             }
-            println!("==> num_modified = {:?}", num_modified);
             if num_modified > 0 {
                 another_iter = true;
             }
@@ -3352,11 +3353,23 @@ impl PySparseObservable {
         Ok(simplified.into())
     }
 
+    /// Greedily combine the terms in the observable.
+    ///
+    /// Keeps the original ordering of terms as much as possible.
+    ///
+    /// Args:
+    ///     tol (float): the coefficients that differ no more than the given tolerance are considered
+    ///         equal.
+    ///
+    /// Example:
+    ///
+    ///     >>> obs = SparseObservable.from_list([("X+IZ", 1.5), ("X+ZZ", -1.5)])
+    ///     >>> compressed = obs.compress()
+    ///     >>> assert compressed == SparseObservable.from_list([("X+1Z", 3.0)])
     #[pyo3(
         signature = (/, tol=1e-8),
     )]
     fn compress(&self, tol: f64) -> PyResult<Self> {
-        // fn compress(&self, tol: f64) -> PyResult<Self> {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
         let simplified = inner.compress(tol);
         Ok(simplified.into())
