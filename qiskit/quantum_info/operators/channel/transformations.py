@@ -234,8 +234,23 @@ def _choi_to_kraus(data, input_dim, output_dim, atol=ATOL_DEFAULT):
         #
         # So the eigenvalues are on the diagonal, therefore the basis-transformation matrix must be
         # a spanning set of the eigenspace.
+        #
+        # In addition, to prevent `numpy.linalg` errors when the matrix A is ill-conditioned,
+        # we apply a small perturbation, replacing A by A + eI. Since (A + eI)x = kx is
+        # equivalent to Ax = (k-e)x, it means that the eigenvectors of A + eI and A are the same,
+        # and we can perfectly recover the eigenvalues of A from the eigenvalues of A + eI by
+        # subtracting e.
+        apply_perturbation = np.linalg.cond(data) >= 1e10
+
+        if apply_perturbation:
+            data += 1e-10 * np.eye(data.shape[0])
+
         triangular, vecs = scipy.linalg.schur(data)
         values = triangular.diagonal().real
+
+        if apply_perturbation:
+            values = values - 1e-10
+
         # If we're not a CP map, fall-through back to the generalization handling.  Since we needed
         # to get the eigenvalues anyway, we can do the CP check manually rather than deferring to a
         # separate re-calculation.

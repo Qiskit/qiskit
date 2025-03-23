@@ -247,31 +247,31 @@ impl Clifford {
         gate_seq
             .iter()
             .try_for_each(|(gate, _params, qubits)| match *gate {
-                StandardGate::SGate => {
+                StandardGate::S => {
                     clifford.append_s(qubits[0].index());
                     Ok(())
                 }
-                StandardGate::SdgGate => {
+                StandardGate::Sdg => {
                     clifford.append_sdg(qubits[0].0 as usize);
                     Ok(())
                 }
-                StandardGate::SXGate => {
+                StandardGate::SX => {
                     clifford.append_sx(qubits[0].0 as usize);
                     Ok(())
                 }
-                StandardGate::SXdgGate => {
+                StandardGate::SXdg => {
                     clifford.append_sxdg(qubits[0].0 as usize);
                     Ok(())
                 }
-                StandardGate::HGate => {
+                StandardGate::H => {
                     clifford.append_h(qubits[0].index());
                     Ok(())
                 }
-                StandardGate::CXGate => {
+                StandardGate::CX => {
                     clifford.append_cx(qubits[0].index(), qubits[1].index());
                     Ok(())
                 }
-                StandardGate::SwapGate => {
+                StandardGate::Swap => {
                     clifford.append_swap(qubits[0].index(), qubits[1].index());
                     Ok(())
                 }
@@ -319,23 +319,11 @@ pub fn adjust_final_pauli_gates(
     // add pauli gates
     for qubit in 0..num_qubits {
         if delta_phase_pre[qubit] && delta_phase_pre[qubit + num_qubits] {
-            gate_seq.push((
-                StandardGate::YGate,
-                smallvec![],
-                smallvec![Qubit::new(qubit)],
-            ));
+            gate_seq.push((StandardGate::Y, smallvec![], smallvec![Qubit::new(qubit)]));
         } else if delta_phase_pre[qubit] {
-            gate_seq.push((
-                StandardGate::ZGate,
-                smallvec![],
-                smallvec![Qubit::new(qubit)],
-            ));
+            gate_seq.push((StandardGate::Z, smallvec![], smallvec![Qubit::new(qubit)]));
         } else if delta_phase_pre[qubit + num_qubits] {
-            gate_seq.push((
-                StandardGate::XGate,
-                smallvec![],
-                smallvec![Qubit::new(qubit)],
-            ));
+            gate_seq.push((StandardGate::X, smallvec![], smallvec![Qubit::new(qubit)]));
         }
     }
 

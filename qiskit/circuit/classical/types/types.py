@@ -22,6 +22,8 @@ from __future__ import annotations
 __all__ = [
     "Type",
     "Bool",
+    "Duration",
+    "Float",
     "Uint",
 ]
 
@@ -115,3 +117,37 @@ class Uint(Type):
 
     def __eq__(self, other):
         return isinstance(other, Uint) and self.width == other.width
+
+
+@typing.final
+class Float(Type, metaclass=_Singleton):
+    """An IEEE-754 double-precision floating point number.
+    In the future, this may also be used to represent other fixed-width floats.
+    """
+
+    __slots__ = ()
+
+    def __repr__(self):
+        return "Float()"
+
+    def __hash__(self):
+        return hash(self.__class__)
+
+    def __eq__(self, other):
+        return isinstance(other, Float)
+
+
+@typing.final
+class Duration(Type, metaclass=_Singleton):
+    """A length of time, possibly negative."""
+
+    __slots__ = ()
+
+    def __repr__(self):
+        return "Duration()"
+
+    def __hash__(self):
+        return hash(self.__class__)
+
+    def __eq__(self, other):
+        return isinstance(other, Duration)

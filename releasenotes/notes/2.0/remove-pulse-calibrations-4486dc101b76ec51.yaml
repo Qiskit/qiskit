@@ -1,0 +1,39 @@
+---
+upgrade_circuits:
+  - |
+    As part of Pulse removal in Qiskit 2.0, the ``calibrations`` property has been removed
+    from the :class:`.QuantumCircuit`, :class:`.DAGCircuit` and :class:`.DAGDependency` classes.
+    In addition, the method ``has_calibration_for`` has been removed from the :class:`.QuantumCircuit` and
+    :class:`.DAGCircuit` classes and ``add_calibration`` has been removed from :class:`.QuantumCircuit`.
+upgrade_transpiler:
+  - |
+    As part of Pulse removal in Qiskit 2.0, all pulse and calibration related functionality
+    in the transpiler has been removed. This includes the following:
+
+    The following passes and function have been removed:
+
+      * ``qiskit.transpiler.passes.PulseGates`` pass
+      * ``qiskit.transpiler.passes.ValidatePulseGates``  pass
+      * ``qiskit.transpiler.passes.RXCalibrationBuilder`` pass
+      * ``qiskit.transpiler.passes.RZXCalibrationBuilder`` pass
+      * ``qiskit.transpiler.passes.RZXCalibrationBuilderNoEcho`` pass
+      * ``qiskit.transpiler.passes.EchoRZXWeylDecomposition`` pass
+      * ``qiskit.transpiler.passes.NoramlizeRXAngle`` pass
+      * ``qiskit.transpiler.passes.rzx_templates()`` function
+
+    The ``inst_map`` argument has been removed from the following elements:
+
+      * The :func:`.generate_preset_pass_manager` and :func:`.transpile` functions
+      * The :meth:`.Target.from_configuration` method
+      * The constructor of the :class:`.PassManagerConfig` class
+
+    Calibration support has been removed:
+
+      * ``calibration`` has been removed from the :class:`.InstructionProperties` 's constructor and is no longer a property of that class.
+      * The ``has_calibration``, ``get_calibration``, ``instruction_schedule_map`` and ``update_from_instruction_schedule_map`` methods have been removed from the :class:`.Target` class.
+
+
+upgrade_misc:
+  - |
+    As part of Pulse removal in Qiskit 2.0, the ``sequence`` and ``schedule_circuit`` functions from :mod:`.qiskit.scheduler`
+    together with the ``ScheduleConfig`` class have been removed.

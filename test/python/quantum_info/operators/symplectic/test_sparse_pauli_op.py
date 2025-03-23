@@ -26,7 +26,7 @@ from qiskit.circuit import Parameter, ParameterExpression, ParameterVector
 from qiskit.circuit.library import efficient_su2
 from qiskit.circuit.parametertable import ParameterView
 from qiskit.compiler.transpiler import transpile
-from qiskit.primitives import BackendEstimator
+from qiskit.primitives import BackendEstimatorV2
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.quantum_info import SparseObservable
 from qiskit.quantum_info.operators import (
@@ -392,7 +392,7 @@ class TestSparsePauliOpConversions(QiskitTestCase):
         with self.subTest("XrZ"):
             obs = SparseObservable("XrZ")
             spo = SparsePauliOp.from_sparse_observable(obs)
-            expected = SparsePauliOp(["XIZ", "XYZ"], coeffs=[0.5, -0.5])
+            expected = SparsePauliOp(["XIZ", "XYZ"], coeffs=[0.5, 0.5])
 
             # we don't guarantee the order of Paulis, so check equality by comparing
             # the matrix representation and that all Pauli strings are present
@@ -1238,14 +1238,12 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         op = SparsePauliOp.from_list([("IIII", 1), ("IZZZ", 2), ("XXXI", 3)])
         backend = GenericBackendV2(num_qubits=7, seed=0)
         backend.set_options(seed_simulator=123)
-        with self.assertWarns(DeprecationWarning):
-            estimator = BackendEstimator(backend=backend, skip_transpilation=True)
+        estimator = BackendEstimatorV2(backend=backend)
         thetas = list(range(len(psi.parameters)))
         transpiled_psi = transpile(psi, backend, optimization_level=3)
         permuted_op = op.apply_layout(transpiled_psi.layout)
-        with self.assertWarns(DeprecationWarning):
-            job = estimator.run(transpiled_psi, permuted_op, thetas)
-            res = job.result().values
+        job = estimator.run([(transpiled_psi, permuted_op, thetas)])
+        res = job.result()[0].data.evs
         if optionals.HAS_AER:
             np.testing.assert_allclose(res, [1.419922], rtol=0.5, atol=0.2)
         else:

@@ -1266,6 +1266,9 @@ def state_to_latex(
 
     Returns:
         Latex representation of the state
+        MissingOptionalLibrary: If SymPy isn't installed and ``'latex'`` or
+            ``'latex_source'`` is selected for ``output``.
+
     """
     if dims is None:  # show dims if state is not only qubits
         if set(state.dims()) == {2}:
@@ -1438,6 +1441,9 @@ def state_drawer(state, output=None, **drawer_args):
 
     Raises:
         MissingOptionalLibraryError: when `output` is `latex` and IPython is not installed.
+            or if SymPy isn't installed and ``'latex'`` or ``'latex_source'`` is selected for
+            ``output``.
+
         ValueError: when `output` is not a valid selection.
     """
     config = user_config.get_config()

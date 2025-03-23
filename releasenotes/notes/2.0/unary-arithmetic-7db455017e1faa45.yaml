@@ -1,0 +1,30 @@
+---
+features_circuits:
+  - |
+    Added :class:`.Gate` versions of the single-register arithmetic gates,
+    which allow the compiler to perform high-level optimizations compared to
+    their :class:`.QuantumCircuit` variants. These are:
+
+      * :class:`.ExactReciprocalGate` (replacing :class:`.ExactReciprocal`)
+      * :class:`.IntegerComparatorGate` (replacing :class:`.IntegerComparator`)
+      * :class:`.LinearPauliRotationsGate` (replacing :class:`.LinearPauliRotations`)
+      * :class:`.PiecewiseLinearPauliRotationsGate` (replacing :class:`.PiecewiseLinearPauliRotations`)
+      * :class:`.PiecewiseChebyshevGate` (replacing :class:`.PiecewiseChebyshev`)
+      * :class:`.PiecewisePolynomialPauliRotationsGate` (replacing :class:`.PiecewisePolynomialPauliRotations`)
+      * :class:`.PolynomialPauliRotationsGate` (replacing :class:`.PolynomialPauliRotations`)
+      * :class:`.LinearAmplitudeFunctionGate` (replacing :class:`.LinearAmplitudeFunction`)
+      * :class:`.QuadraticFormGate` (replacing :class:`.QuadraticForm`)
+      * :class:`.WeightedSumGate` (replacing :class:`.WeightedAdder`)
+
+features_synthesis:
+  - |
+    Added synthesis functions :func:`.synth_integer_comparator_2s` and 
+    :func:`.synth_integer_comparator_greedy` to compile gates implementing an integer 
+    comparison, such as represented by :class:`.IntegerComparatorGate`. The 
+    corresponding high-level synthesis plugins are :class:`.IntComparatorSynthesis2s` 
+    and :class:`.IntComparatorSynthesisNoAux`. To let the compiler select the optimal
+    decomposition based on the availably auxiliary qubits, use :class:`.IntComparatorSynthesisDefault`.
+  - |
+    Added :func:`.synth_weighted_sum_carry` to synthesize :class:`.WeightedSumGate` objects.
+    This is currently the only available synthesis method, with the corresponding
+    high-level synthesis plugin :class:`.WeightedSumSynthesisDefault`.

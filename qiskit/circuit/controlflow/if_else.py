@@ -17,7 +17,7 @@ from __future__ import annotations
 from typing import Optional, Union, Iterable, TYPE_CHECKING
 import itertools
 
-from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
+from qiskit.circuit import ClassicalRegister, Clbit  # pylint: disable=cyclic-import
 from qiskit.circuit.classical import expr
 from qiskit.circuit.instructionset import InstructionSet
 from qiskit.circuit.exceptions import CircuitError
@@ -95,6 +95,7 @@ class IfElseOp(ControlFlowOp):
 
     @property
     def condition(self):
+        """The condition for the if else operation."""
         return self._condition
 
     @condition.setter
@@ -161,12 +162,6 @@ class IfElseOp(ControlFlowOp):
             ablock for ablock, _ in itertools.zip_longest(blocks, range(2), fillvalue=None)
         )
         return IfElseOp(self._condition, true_body, false_body=false_body, label=self.label)
-
-    def c_if(self, classical, val):
-        raise NotImplementedError(
-            "IfElseOp cannot be classically controlled through Instruction.c_if. "
-            "Please nest it in an IfElseOp instead."
-        )
 
 
 class IfElsePlaceholder(InstructionPlaceholder):
@@ -295,21 +290,13 @@ class IfElsePlaceholder(InstructionPlaceholder):
                 (true_body, self.__false_block.build(qubits, clbits))
             )
         return (
-            self._copy_mutable_properties(
-                IfElseOp(self._condition, true_body, false_body, label=self.label)
-            ),
+            IfElseOp(self._condition, true_body, false_body, label=self.label),
             InstructionResources(
                 qubits=tuple(true_body.qubits),
                 clbits=tuple(true_body.clbits),
                 qregs=tuple(true_body.qregs),
                 cregs=tuple(true_body.cregs),
             ),
-        )
-
-    def c_if(self, classical, val):
-        raise NotImplementedError(
-            "IfElseOp cannot be classically controlled through Instruction.c_if. "
-            "Please nest it in another IfElseOp instead."
         )
 
 

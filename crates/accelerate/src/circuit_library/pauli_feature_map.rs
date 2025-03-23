@@ -134,7 +134,7 @@ pub fn pauli_feature_map(
 fn _get_h_layer(feature_dimension: u32) -> impl Iterator<Item = Instruction> {
     (0..feature_dimension).map(|i| {
         (
-            StandardGate::HGate.into(),
+            StandardGate::H.into(),
             smallvec![],
             vec![Qubit(i)],
             vec![] as Vec<Clbit>,
@@ -178,17 +178,13 @@ fn _get_evolution_layer<'a>(
             // to call CircuitData::from_packed_operations. This is needed since we might
             // have to interject barriers, which are not a standard gate and prevents us
             // from using CircuitData::from_standard_gates.
-            let evo = pauli_evolution::pauli_evolution(
+            let evo = pauli_evolution::sparse_term_evolution(
                 pauli,
                 indices.into_iter().rev().collect(),
                 multiply_param(&angle, alpha, py),
                 true,
                 false,
-            )
-            .map(|(gate, params, qargs)| {
-                (gate.into(), params, qargs.to_vec(), vec![] as Vec<Clbit>)
-            })
-            .collect::<Vec<Instruction>>();
+            );
             insts.extend(evo);
         }
     }

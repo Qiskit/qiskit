@@ -16,7 +16,7 @@
 
 from ddt import data, ddt
 
-from qiskit.circuit import bit
+from qiskit.circuit import Qubit, Clbit
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit import AncillaRegister
 from qiskit.circuit import ClassicalRegister
@@ -30,7 +30,7 @@ class TestRegisterClass(QiskitTestCase):
 
     @data(QuantumRegister, ClassicalRegister, AncillaRegister)
     def test_raise_on_init_with_invalid_size(self, reg_type):
-        with self.assertRaisesRegex(CircuitError, "must be an integer"):
+        with self.assertRaises(TypeError):
             _ = reg_type(1j, "foo")
 
     @data(QuantumRegister, ClassicalRegister, AncillaRegister)
@@ -47,8 +47,8 @@ class TestRegisterClass(QiskitTestCase):
 
     @data(QuantumRegister, ClassicalRegister, AncillaRegister)
     def test_init_raise_if_bits_of_incorrect_type(self, reg_type):
-        bits = [bit.Bit()]
-        with self.assertRaisesRegex(CircuitError, "did not all match register type"):
+        bits = [Qubit(), Clbit()]
+        with self.assertRaises(TypeError):
             _ = reg_type(bits=bits)
 
     @data(QuantumRegister, ClassicalRegister, AncillaRegister)

@@ -1,0 +1,121 @@
+---
+upgrade_circuits:
+  - |
+    The :class:`.PhaseOracle` no longer relies on the `tweedledum` library
+    but might not be synthesized as effectively as before.
+    :class:`.BitFlipOracleGate` was added as an alternative to
+    directly synthesizing :class:`.BooleanExpression`, as this
+    class is removed in Qiskit 2.0. A :class:`.PhaseOracleGate`
+    was added and will replace :class:`.PhaseOracle` in Qiskit 3.0.
+
+    The interface of :class:`.PhaseOracle` was simplified; it no longer
+    accepts a `synthesizer` parameter, and the `expression` parameter
+    can only be a string; `ClassicalElement` has been deprecated in Qiskit 1.4.
+
+    :class:`.PhaseOracle` is used exactly as before:
+    
+    .. code-block:: python
+      
+      from qiskit.circuit.library.phase_oracle import PhaseOracle
+      bool_expr = "(x0 & x1 | ~x2) & x4"
+      oracle = PhaseOracle(bool_expr)
+      print(oracle)
+    
+    .. code-block:: text
+
+      q_0: ─o──■──■─
+            │  │  │ 
+      q_1: ─┼──o──■─
+            │  │  │ 
+      q_2: ─o──o──┼─
+            │  │  │ 
+      q_3: ─■──■──■─
+                      
+features_circuits:
+  - |
+    The new :class:`.BitFlipOracleGate` and :class:`.PhaseOracleGate`
+    have the same interface as :class:`.PhaseOracle` 
+    (except the `evaluate_bitstring` method). Bit-flip oracle gate
+    synthesizes a bit flip oracle instead
+    of a phase flip oracle, meaning it acts on one additional qubit
+    and can be seen as applying a controlled X operation, where the
+    control is the value of the expression encoded by the oracle.
+
+    .. code-block:: python
+    
+      from qiskit import QuantumCircuit
+      from qiskit.circuit.library.bit_flip_oracle import BitFlipOracleGate
+      from qiskit.circuit.library.phase_oracle import PhaseOracleGate
+      qc = QuantumCircuit(5)
+      bool_expr = "(x0 & x1 | ~x2) & x4"
+      oracle = BitFlipOracleGate(bool_expr)
+      qc.compose(oracle, inplace=True)
+      print(qc)
+
+    .. code-block:: text
+
+           ┌─────────────────────┐
+      q_0: ┤0                    ├
+           │                     │
+      q_1: ┤1                    ├
+           │                     │
+      q_2: ┤2 (x0 & x1 | ~x2)... ├
+           │                     │
+      q_3: ┤3                    ├
+           │                     │
+      q_4: ┤4                    ├
+           └─────────────────────┘
+
+    .. code-block:: python
+
+      print(qc.decompose())
+
+    .. code-block:: text
+
+      q_0: ──o────■────■──
+             │    │    │  
+      q_1: ──┼────o────■──
+             │    │    │  
+      q_2: ──o────o────┼──
+             │    │    │  
+      q_3: ──■────■────■──
+           ┌─┴─┐┌─┴─┐┌─┴─┐
+      q_4: ┤ X ├┤ X ├┤ X ├
+           └───┘└───┘└───┘
+
+    .. code-block:: python
+
+      qc = QuantumCircuit(5)
+      bool_expr = "(x0 & x1 | ~x2) & x4"
+      oracle = PhaseOracleGate(bool_expr)
+      qc.compose(oracle, inplace=True)
+      print(qc)
+
+    .. code-block:: text
+
+           ┌───────────────┐
+      q_0: ┤0              ├
+           │               │
+      q_1: ┤1              ├
+           │  Phase oracle │
+      q_2: ┤2              ├
+           │               │
+      q_3: ┤3              ├
+           └───────────────┘
+      q_4: ─────────────────
+
+    .. code-block:: python
+
+      print(qc.decompose())
+
+    .. code-block:: text
+
+      q_0: ─o──■──■─
+            │  │  │ 
+      q_1: ─┼──o──■─
+            │  │  │ 
+      q_2: ─o──o──┼─
+            │  │  │ 
+      q_3: ─■──■──■─
+
+      q_4: ─────────

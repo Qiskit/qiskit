@@ -17,7 +17,6 @@ from __future__ import annotations
 from typing import Optional, Union
 import numpy
 from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, stdlib_singleton_key
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
 from qiskit._accelerate.circuit import StandardGate
 
@@ -61,11 +60,11 @@ class SwapGate(SingletonGate):
         |a, b\rangle \rightarrow |b, a\rangle
     """
 
-    _standard_gate = StandardGate.SwapGate
+    _standard_gate = StandardGate.Swap
 
-    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
+    def __init__(self, label: Optional[str] = None):
         """Create new SWAP gate."""
-        super().__init__("swap", 2, [], label=label, duration=duration, unit=unit)
+        super().__init__("swap", 2, [], label=label)
 
     _singleton_lookup_key = stdlib_singleton_key()
 
@@ -74,7 +73,7 @@ class SwapGate(SingletonGate):
         gate swap a,b { cx a,b; cx b,a; cx a,b; }
         """
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
         from .x import CXGate
 
         q = QuantumRegister(2, "q")
@@ -218,20 +217,16 @@ class CSwapGate(SingletonControlledGate):
         |1, b, c\rangle \rightarrow |1, c, b\rangle
     """
 
-    _standard_gate = StandardGate.CSwapGate
+    _standard_gate = StandardGate.CSwap
 
     def __init__(
         self,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
         *,
-        duration=None,
-        unit="dt",
         _base_label=None,
     ):
         """Create new CSWAP gate."""
-        if unit is None:
-            unit = "dt"
         super().__init__(
             "cswap",
             3,
@@ -240,8 +235,6 @@ class CSwapGate(SingletonControlledGate):
             label=label,
             ctrl_state=ctrl_state,
             base_gate=SwapGate(label=_base_label),
-            duration=duration,
-            unit=unit,
         )
 
     _singleton_lookup_key = stdlib_singleton_key(num_ctrl_qubits=1)
@@ -255,7 +248,7 @@ class CSwapGate(SingletonControlledGate):
         }
         """
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
         from .x import CXGate, CCXGate
 
         q = QuantumRegister(3, "q")

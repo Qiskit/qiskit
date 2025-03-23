@@ -20,6 +20,7 @@ use std::io::prelude::*;
 
 use crate::dag_circuit::{DAGCircuit, Wire};
 use pyo3::prelude::*;
+use pyo3::IntoPyObjectExt;
 use rustworkx_core::petgraph::visit::{
     EdgeRef, IntoEdgeReferences, IntoNodeReferences, NodeIndexable, NodeRef,
 };
@@ -57,9 +58,13 @@ where
     }
     for edge in graph.edge_references() {
         let edge_weight = match edge.weight() {
-            Wire::Qubit(qubit) => dag.qubits().get(*qubit).unwrap(),
-            Wire::Clbit(clbit) => dag.clbits().get(*clbit).unwrap(),
-            Wire::Var(var) => dag.vars().get(*var).unwrap(),
+            Wire::Qubit(qubit) => dag.qubits().get(*qubit).cloned().into_bound_py_any(py)?,
+            Wire::Clbit(clbit) => dag.clbits().get(*clbit).cloned().into_bound_py_any(py)?,
+            Wire::Var(var) => dag
+                .vars()
+                .get(*var)
+                .map(|var| var.clone_ref(py))
+                .into_bound_py_any(py)?,
         };
         writeln!(
             file,

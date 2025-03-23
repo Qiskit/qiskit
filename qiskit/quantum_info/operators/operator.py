@@ -206,6 +206,8 @@ class Operator(LinearOp):
 
         Raises:
             ValueError: when an invalid output method is selected.
+            MissingOptionalLibrary: If SymPy isn't installed and ``'latex'`` or
+                ``'latex_source'`` is selected for ``output``.
 
         """
         # pylint: disable=cyclic-import

@@ -57,6 +57,8 @@ popd
 # This will likely duplicate the base dev-compatibility test, but the tests are fairly fast, and
 # it's better safe than sorry with the serialisation tests.
 
+# Note that the constraint in the range of symengine versions is logically duplicated 
+# in `qpy_test_constraints.txt`
 symengine_versions=(
     '>=0.11,<0.12'
     '>=0.13,<0.14'

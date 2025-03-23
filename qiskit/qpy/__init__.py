@@ -17,13 +17,12 @@ QPY serialization (:mod:`qiskit.qpy`)
 
 .. currentmodule:: qiskit.qpy
 
-QPY is a binary serialization format for :class:`~.QuantumCircuit` and
-:class:`~.ScheduleBlock` objects that is designed to be cross-platform,
-Python version agnostic, and backwards compatible moving forward. QPY should
-be used if you need a mechanism to save or copy between systems a
-:class:`~.QuantumCircuit` or :class:`~.ScheduleBlock` that preserves the full
-Qiskit object structure (except for custom attributes defined outside of
-Qiskit code). This differs from other serialization formats like
+QPY is a binary serialization format for :class:`~.QuantumCircuit`
+objects that is designed to be cross-platform, Python version agnostic,
+and backwards compatible moving forward. QPY should be used if you need
+a mechanism to save or copy between systems a :class:`~.QuantumCircuit`
+that preserves the full Qiskit object structure (except for custom attributes
+defined outside of Qiskit code). This differs from other serialization formats like
 `OpenQASM <https://github.com/openqasm/openqasm>`__ (2.0 or 3.0) which has a
 different abstraction model and can result in a loss of information contained
 in the original circuit (or is unable to represent some aspects of the
@@ -170,6 +169,14 @@ and how the feature will be internally handled.
     it to QPY setting ``use_symengine=False``.  The resulting file can then be loaded by any later
     version of Qiskit.
 
+.. note::
+
+    Starting with Qiskit version 2.0.0, which removed the Pulse module from the library, QPY provides
+    limited support for loading payloads that include pulse data. Loading a ``ScheduleBlock`` payload,
+    a :class:`.QpyError` exception will be raised. Loading a payload for a circuit that contained pulse
+    gates, the output circuit will contain  custom instructions **without** calibration data attached
+    for each pulse gate, leaving them undefined.
+
 QPY format version history
 --------------------------
 
@@ -187,6 +194,27 @@ of QPY in qiskit-terra 0.18.0.
    * - Qiskit (qiskit-terra for < 1.0.0) version
      - :func:`.dump` format(s) output versions
      - :func:`.load` maximum supported version (older format versions can always be read)
+   * - 2.0.0
+     - 13, 14
+     - 14
+   * - 1.4.2
+     - 10, 11, 12, 13
+     - 13
+   * - 1.4.1
+     - 10, 11, 12, 13
+     - 13
+   * - 1.4.0
+     - 10, 11, 12, 13
+     - 13
+   * - 1.3.3
+     - 10, 11, 12, 13
+     - 13
+   * - 1.3.2
+     - 10, 11, 12, 13
+     - 13
+   * - 1.3.1
+     - 10, 11, 12, 13
+     - 13
    * - 1.3.0
      - 10, 11, 12, 13
      - 13
@@ -369,6 +397,93 @@ The ``STANDALONE_VARS`` are new in QPY version 12; before that, there was no dat
 There is a circuit payload for each circuit (where the total number is dictated
 by ``num_circuits`` in the file header). There is no padding between the
 circuits in the data.
+
+.. _qpy_version_14:
+
+Version 14
+----------
+
+Version 14 adds a new core DURATION type, support for additional :class:`~.types.Type`
+classes :class:`~.types.Float` and :class:`~.types.Duration`, and a new expression
+node type :class:`~.expr.Stretch`.
+
+DURATION
+~~~~~~~~
+
+A :class:`~.circuit.Duration` is encoded by a single-byte ASCII ``char`` that encodes the kind of
+type, followed by a payload that varies depending on the type.  The defined codes are:
+
+==============================  =========  =========================================================
+Qiskit class                    Type code  Payload
+==============================  =========  =========================================================
+:class:`~.circuit.Duration.dt`   ``t``     One ``unsigned long long value``.
+
+:class:`~.circuit.Duration.ns`   ``n``     One ``double value``.
+
+:class:`~.circuit.Duration.us`   ``u``     One ``double value``.
+
+:class:`~.circuit.Duration.ms`   ``m``     One ``double value``.
+
+:class:`~.circuit.Duration.s`    ``s``     One ``double value``.
+
+==============================  =========  =========================================================
+
+Changes to EXPR_VAR_DECLARATION
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``EXPR_VAR_DECLARATION`` type is now used to represent both :class:`~.expr.Var` standalone
+variables and :class:`~.expr.Stretch` identifiers. To support this change, the usage type code has
+two new possible entries, in addition to the existing ones:
+
+=========  =========================================================================================
+Type code  Meaning
+=========  =========================================================================================
+``A``      A ``capture`` stretch to the circuit.
+
+``O``      A locally declared stretch to the circuit.
+
+=========  =========================================================================================
+
+Changes to EXPRESSION
+---------------------
+
+The EXPRESSION type code has a new possible entry, ``s``, corresponding to :class:`.expr.Stretch`
+nodes.
+
+=======================  =========  ======================================================  ========
+Qiskit class             Type code  Payload                                                 Children
+=======================  =========  ======================================================  ========
+:class:`~.expr.Stretch`  ``s``      One ``unsigned short var_index``                        0
+=======================  =========  ======================================================  ========
+
+Changes to EXPR_TYPE
+~~~~~~~~~~~~~~~~~~~~
+
+The following table shows the new type classes added in the version:
+
+=========================  =========  ==============================================================
+Qiskit class               Type code  Payload
+=========================  =========  ==============================================================
+:class:`~.types.Float`     ``f``      None.
+
+:class:`~.types.Duration`  ``d``      None.
+
+=========================  =========  ==============================================================
+
+Changes to EXPR_VALUE
+~~~~~~~~~~~~~~~~~~~~~
+
+The classical expression's type system now supports new encoding types for value literals, in
+addition to the existing encodings for int and bool. The new value type encodings are below:
+
+===========================  =========  ============================================================
+Python type                  Type code  Payload
+===========================  =========  ============================================================
+``float``                    ``f``      One ``double value``.
+
+:class:`~.circuit.Duration`  ``t``      One ``DURATION``.
+
+===========================  =========  ============================================================
 
 .. _qpy_version_13:
 
@@ -902,7 +1017,7 @@ Version 7
 ---------
 
 Version 7 adds support for :class:`.~Reference` instruction and serialization of
-a :class:`.~ScheduleBlock` program while keeping its reference to subroutines::
+a ``ScheduleBlock`` program while keeping its reference to subroutines::
 
     from qiskit import pulse
     from qiskit import qpy
@@ -974,12 +1089,12 @@ identical to :ref:`qpy_version_5`.
 Version 5
 ---------
 
-Version 5 changes from :ref:`qpy_version_4` by adding support for :class:`.~ScheduleBlock`
+Version 5 changes from :ref:`qpy_version_4` by adding support for ``ScheduleBlock``
 and changing two payloads the INSTRUCTION metadata payload and the CUSTOM_INSTRUCTION block.
 These now have new fields to better account for :class:`~.ControlledGate` objects in a circuit.
 In addition, new payload MAP_ITEM is defined to implement the :ref:`qpy_mapping` block.
 
-With the support of :class:`.~ScheduleBlock`, now :class:`~.QuantumCircuit` can be
+With the support of ``ScheduleBlock``, now :class:`~.QuantumCircuit` can be
 serialized together with :attr:`~.QuantumCircuit.calibrations`, or
 `Pulse Gates <https://docs.quantum.ibm.com/guides/pulse>`_.
 In QPY version 5 and above, :ref:`qpy_circuit_calibrations` payload is
@@ -996,7 +1111,7 @@ In QPY version 5 and above,
 immediately follows the file header block to represent the program type stored in the file.
 
 - When ``type==c``, :class:`~.QuantumCircuit` payload follows
-- When ``type==s``, :class:`~.ScheduleBlock` payload follows
+- When ``type==s``, ``ScheduleBlock`` payload follows
 
 .. note::
 
@@ -1009,12 +1124,10 @@ immediately follows the file header block to represent the program type stored i
 SCHEDULE_BLOCK
 ~~~~~~~~~~~~~~
 
-:class:`~.ScheduleBlock` is first supported in QPY Version 5. This allows
+``ScheduleBlock`` is first supported in QPY Version 5. This allows
 users to save pulse programs in the QPY binary format as follows:
 
-.. plot::
-   :include-source:
-   :nofigs:
+.. code-block:: python
 
     from qiskit import pulse, qpy
 
@@ -1027,13 +1140,6 @@ users to save pulse programs in the QPY binary format as follows:
     with open('schedule.qpy', 'rb') as fd:
         new_schedule = qpy.load(fd)[0]
 
-.. plot::
-   :nofigs:
-
-   # This block is hidden from readers. It's cleanup code.
-   from pathlib import Path
-   Path("schedule.qpy").unlink()
-
 Note that circuit and schedule block are serialized and deserialized through
 the same QPY interface. Input data type is implicitly analyzed and
 no extra option is required to save the schedule block.
@@ -1043,7 +1149,7 @@ no extra option is required to save the schedule block.
 SCHEDULE_BLOCK_HEADER
 ~~~~~~~~~~~~~~~~~~~~~
 
-:class:`~.ScheduleBlock` block starts with the following header:
+``ScheduleBlock`` block starts with the following header:
 
 .. code-block:: c
 
@@ -1243,8 +1349,8 @@ the gate name, ``num_qubits`` length of integers representing a sequence of qubi
 and ``num_params`` length of INSTRUCTION_PARAM payload for parameters
 associated to the custom instruction.
 The ``type`` indicates the class of pulse program which is either, in principle,
-:class:`~.ScheduleBlock` or :class:`~.Schedule`. As of QPY Version 5,
-only :class:`~.ScheduleBlock` payload is supported.
+``ScheduleBlock`` or :class:`~.Schedule`. As of QPY Version 5,
+only ``ScheduleBlock`` payload is supported.
 Finally, :ref:`qpy_schedule_block` payload is packed for each CALIBRATION_DEF entry.
 
 .. _qpy_instruction_v5:

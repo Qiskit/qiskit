@@ -23,7 +23,7 @@ import numpy
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumcircuit import QuantumCircuit, ParameterValueType
 from qiskit.circuit.parametervector import ParameterVector, ParameterVectorElement
-from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit import QuantumRegister
 from qiskit.circuit import (
     Instruction,
     Parameter,

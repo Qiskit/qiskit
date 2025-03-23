@@ -17,7 +17,6 @@ from typing import Optional, Union
 
 # pylint: disable=cyclic-import
 from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, stdlib_singleton_key
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
 from qiskit._accelerate.circuit import StandardGate
 
@@ -71,17 +70,17 @@ class YGate(SingletonGate):
         |1\rangle \rightarrow -i|0\rangle
     """
 
-    _standard_gate = StandardGate.YGate
+    _standard_gate = StandardGate.Y
 
-    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
+    def __init__(self, label: Optional[str] = None):
         """Create new Y gate."""
-        super().__init__("y", 1, [], label=label, duration=duration, unit=unit)
+        super().__init__("y", 1, [], label=label)
 
     _singleton_lookup_key = stdlib_singleton_key()
 
     def _define(self):
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
         from .u3 import U3Gate
 
         q = QuantumRegister(1, "q")
@@ -201,15 +200,13 @@ class CYGate(SingletonControlledGate):
 
     """
 
-    _standard_gate = StandardGate.CYGate
+    _standard_gate = StandardGate.CY
 
     def __init__(
         self,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
         *,
-        duration=None,
-        unit="dt",
         _base_label=None,
     ):
         """Create new CY gate."""
@@ -221,8 +218,6 @@ class CYGate(SingletonControlledGate):
             label=label,
             ctrl_state=ctrl_state,
             base_gate=YGate(label=_base_label),
-            duration=duration,
-            unit=unit,
         )
 
     _singleton_lookup_key = stdlib_singleton_key(num_ctrl_qubits=1)
@@ -232,7 +227,7 @@ class CYGate(SingletonControlledGate):
         gate cy a,b { sdg b; cx a,b; s b; }
         """
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
         from .s import SGate, SdgGate
         from .x import CXGate
 

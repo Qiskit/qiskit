@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Circuits compiled using a preset passmanager constructed by :func:`.generate_preset_pass_manager`
+    will now correctly retain their :attr:`~.QuantumCircuit.name` attribute, as they do with
+    :func:`.transpile`.

@@ -14,6 +14,9 @@
 
 from qiskit import QuantumCircuit, transpile
 from qiskit.visualization.timeline import core, stylesheet, generators, layouts
+from qiskit.transpiler.target import Target, InstructionProperties
+from qiskit.circuit import Delay, Parameter, Measure
+from qiskit.circuit.library import HGate, CXGate
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -30,17 +33,24 @@ class TestCanvas(QiskitTestCase):
         circ.cx(0, 2)
         circ.cx(1, 3)
 
-        with self.assertWarnsRegex(
-            DeprecationWarning,
-            expected_regex="The `target` parameter should be used instead",
-        ):
-            self.circ = transpile(
-                circ,
-                scheduling_method="alap",
-                basis_gates=["h", "cx"],
-                instruction_durations=[("h", 0, 200), ("cx", [0, 2], 1000), ("cx", [1, 3], 1000)],
-                optimization_level=0,
-            )
+        self.target = Target(num_qubits=4, dt=1e-7)
+        self.target.add_instruction(HGate(), {(0,): InstructionProperties(duration=200 * 1e-7)})
+        self.target.add_instruction(
+            CXGate(),
+            {
+                (0, 2): InstructionProperties(duration=1000 * 1e-7),
+                (1, 3): InstructionProperties(duration=1000 * 1e-7),
+            },
+        )
+        self.target.add_instruction(Delay(Parameter("t")))
+
+        self.circ = transpile(
+            circ,
+            scheduling_method="alap",
+            target=self.target,
+            dt=1e-7,
+            optimization_level=0,
+        )
 
     def test_time_range(self):
         """Test calculating time range."""
@@ -65,7 +75,7 @@ class TestCanvas(QiskitTestCase):
             "time_axis_map": layouts.time_map_in_dt,
         }
 
-        canvas.load_program(self.circ)
+        canvas.load_program(self.circ, target=self.target)
         canvas.update()
         drawings_tested = list(canvas.collections)
 
@@ -100,7 +110,7 @@ class TestCanvas(QiskitTestCase):
             "time_axis_map": layouts.time_map_in_dt,
         }
 
-        canvas.load_program(self.circ)
+        canvas.load_program(self.circ, self.target)
         canvas.update()
         drawings_tested = list(canvas.collections)
 
@@ -126,8 +136,7 @@ class TestCanvas(QiskitTestCase):
             "bit_arrange": layouts.qreg_creg_ascending,
             "time_axis_map": layouts.time_map_in_dt,
         }
-
-        canvas.load_program(self.circ)
+        canvas.load_program(self.circ, target=self.target)
         canvas.set_time_range(t_start=400, t_end=600)
         canvas.update()
         drawings_tested = list(canvas.collections)
@@ -148,8 +157,8 @@ class TestCanvas(QiskitTestCase):
         }
 
         with self.assertWarns(DeprecationWarning):
-            canvas.load_program(circ)
-        self.assertEqual(len(canvas._collections), 1)
+            canvas.load_program(circ, target=self.target)
+        self.assertEqual(len(canvas._collections), 4)
 
     def test_multi_measurement_with_clbit_not_shown(self):
         """Test generating bit link drawings of measurements when clbits is disabled."""
@@ -157,17 +166,22 @@ class TestCanvas(QiskitTestCase):
         circ.measure(0, 0)
         circ.measure(1, 1)
 
-        with self.assertWarnsRegex(
-            DeprecationWarning,
-            expected_regex="The `target` parameter should be used instead",
-        ):
-            circ = transpile(
-                circ,
-                scheduling_method="alap",
-                basis_gates=[],
-                instruction_durations=[("measure", 0, 2000), ("measure", 1, 2000)],
-                optimization_level=0,
-            )
+        target = Target(num_qubits=2, dt=1e-7)
+        target.add_instruction(
+            Measure(),
+            {
+                (0,): InstructionProperties(duration=2000 * 1e-7),
+                (1,): InstructionProperties(duration=2000 * 1e-7),
+            },
+        )
+
+        circ = transpile(
+            circ,
+            scheduling_method="alap",
+            dt=1e-7,
+            target=target,
+            optimization_level=0,
+        )
 
         canvas = core.DrawerCanvas(stylesheet=self.style)
         canvas.formatter.update({"control.show_clbits": False})
@@ -182,7 +196,7 @@ class TestCanvas(QiskitTestCase):
             "gate_links": [generators.gen_gate_link],
         }
 
-        canvas.load_program(circ)
+        canvas.load_program(circ, target)
         canvas.update()
         self.assertEqual(len(canvas._output_dataset), 0)
 
@@ -192,17 +206,18 @@ class TestCanvas(QiskitTestCase):
         circ.measure(0, 0)
         circ.measure(1, 1)
 
-        with self.assertWarnsRegex(
-            DeprecationWarning,
-            expected_regex="The `target` parameter should be used instead",
-        ):
-            circ = transpile(
-                circ,
-                scheduling_method="alap",
-                basis_gates=[],
-                instruction_durations=[("measure", 0, 2000), ("measure", 1, 2000)],
-                optimization_level=0,
-            )
+        target = Target(num_qubits=2, dt=1e-7)
+        target.add_instruction(
+            Measure(),
+            {
+                (0,): InstructionProperties(duration=2000 * 1e-7),
+                (1,): InstructionProperties(duration=2000 * 1e-7),
+            },
+        )
+
+        circ = transpile(
+            circ, scheduling_method="alap", dt=1e-7, optimization_level=0, target=target
+        )
 
         canvas = core.DrawerCanvas(stylesheet=self.style)
         canvas.formatter.update({"control.show_clbits": True})
@@ -217,6 +232,6 @@ class TestCanvas(QiskitTestCase):
             "gate_links": [generators.gen_gate_link],
         }
 
-        canvas.load_program(circ)
+        canvas.load_program(circ, target)
         canvas.update()
         self.assertEqual(len(canvas._output_dataset), 2)

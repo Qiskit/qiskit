@@ -1,0 +1,37 @@
+---
+features_synthesis:
+  - |
+    Add a :class:`.TwoQubitControlledUDecomposer` that decomposes any two-qubit unitary
+    in terms of basis two-qubit fractional gates, such as :class:`.RZZGate`
+    (or two-gates gates which are locally equivalent to :class:`.RZZGate` up to single qubit gates).
+
+    For example::
+
+      from qiskit.circuit.library import RZZGate
+      from qiskit.synthesis import TwoQubitControlledUDecomposer
+      from qiskit.quantum_info import random_unitary
+
+      unitary = random_unitary(4, seed=1)
+      decomposer = TwoQubitControlledUDecomposer(RZZGate, euler_basis="ZXZ")
+      circ = decomposer(unitary)
+      circ.draw(output='mpl')
+
+features_transpiler:
+  - |
+    Added support for two-qubit fractional basis gates, such as :class:`.RZZGate`, to the
+    :class:`.UnitarySynthesis` transpiler pass. The decomposition is done using the
+    :class:`.TwoQubitControlledUDecomposer`, and supports both standard and custom basis gates.
+
+    For example::
+
+      from qiskit import QuantumCircuit
+      from qiskit.quantum_info import random_unitary
+      from qiskit.transpiler.passes import UnitarySynthesis
+      from qiskit.converters import circuit_to_dag, dag_to_circuit
+
+      unitary = random_unitary(4, seed=1)
+      qc = QuantumCircuit(2)
+      qc.append(unitary, [0, 1])
+      dag = circuit_to_dag(qc)
+      circ = UnitarySynthesis(basis_gates=['rzz', 'rx', 'rz']).run(dag)
+      dag_to_circuit(circ).draw(output='mpl')

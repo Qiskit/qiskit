@@ -22,7 +22,7 @@ import sys
 
 from qiskit.circuit import Qubit, Clbit, ClassicalRegister, CircuitError
 from qiskit.circuit import ControlledGate, Reset, Measure
-from qiskit.circuit import ControlFlowOp, WhileLoopOp, IfElseOp, ForLoopOp, SwitchCaseOp
+from qiskit.circuit import ControlFlowOp, WhileLoopOp, IfElseOp, ForLoopOp, SwitchCaseOp, BoxOp
 from qiskit.circuit.classical import expr
 from qiskit.circuit.controlflow import node_resources
 from qiskit.circuit.library.standard_gates import IGate, RZZGate, SwapGate, SXGate, SXdgGate
@@ -1335,7 +1335,7 @@ class TextDrawing:
             if len(self._expr_text) > self.expr_len:
                 self._expr_text = self._expr_text[: self.expr_len] + "..."
         else:
-            draw_conditional = not isinstance(node.op, ForLoopOp)
+            draw_conditional = isinstance(node.op, (IfElseOp, WhileLoopOp, SwitchCaseOp))
 
         # # Draw a left box such as If, While, For, and Switch
         flow_layer = self.draw_flow_box(node, wire_map, CF_LEFT, conditional=draw_conditional)
@@ -1421,8 +1421,12 @@ class TextDrawing:
                 else:
                     index_str = str(indexset)
                 label = "For-" + depth + " " + index_str
-            else:
+            elif isinstance(op, BoxOp):
+                label = "Box-" + depth + etext
+            elif isinstance(op, SwitchCaseOp):
                 label = "Switch-" + depth + etext
+            else:
+                raise RuntimeError(f"unhandled control-flow operation: {node.name}")
         elif section == CF_MID:
             if isinstance(op, IfElseOp):
                 label = "Else-" + depth

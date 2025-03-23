@@ -10,12 +10,4 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use pyo3::{prelude::*, wrap_pymodule};
-
 pub mod basis_translator;
-
-#[pymodule]
-pub fn basis(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pymodule!(basis_translator::basis_translator))?;
-    Ok(())
-}

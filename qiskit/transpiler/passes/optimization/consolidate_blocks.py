@@ -12,10 +12,22 @@
 
 """Replace each block of consecutive gates by a single Unitary node."""
 from __future__ import annotations
-from math import pi
 
-from qiskit.synthesis.two_qubit import TwoQubitBasisDecomposer
-from qiskit.circuit.library.standard_gates import CXGate, CZGate, iSwapGate, ECRGate, RXXGate
+from qiskit.synthesis.two_qubit import TwoQubitBasisDecomposer, TwoQubitControlledUDecomposer
+from qiskit.circuit.library.standard_gates import (
+    CXGate,
+    CZGate,
+    iSwapGate,
+    ECRGate,
+    RXXGate,
+    RYYGate,
+    RZZGate,
+    RZXGate,
+    CRXGate,
+    CRYGate,
+    CRZGate,
+    CPhaseGate,
+)
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.passmanager import PassManager
@@ -29,7 +41,17 @@ KAK_GATE_NAMES = {
     "cz": CZGate(),
     "iswap": iSwapGate(),
     "ecr": ECRGate(),
-    "rxx": RXXGate(pi / 2),
+}
+
+KAK_GATE_PARAM_NAMES = {
+    "rxx": RXXGate,
+    "rzz": RZZGate,
+    "ryy": RYYGate,
+    "rzx": RZXGate,
+    "cphase": CPhaseGate,
+    "crx": CRXGate,
+    "cry": CRYGate,
+    "crz": CRZGate,
 }
 
 
@@ -69,7 +91,9 @@ class ConsolidateBlocks(TransformationPass):
         """
         super().__init__()
         self.basis_gates = None
-        self.target = target
+        # Bypass target if it doesn't contain any basis gates (i.e. it's a _FakeTarget), as this
+        # not part of the official target model.
+        self.target = target if target is not None and len(target.operation_names) > 0 else None
         if basis_gates is not None:
             self.basis_gates = set(basis_gates)
         self.force_consolidate = force_consolidate
@@ -77,13 +101,14 @@ class ConsolidateBlocks(TransformationPass):
             self.decomposer = TwoQubitBasisDecomposer(kak_basis_gate)
         elif basis_gates is not None:
             kak_gates = KAK_GATE_NAMES.keys() & (basis_gates or [])
-            if kak_gates:
-                self.decomposer = TwoQubitBasisDecomposer(
-                    KAK_GATE_NAMES[kak_gates.pop()], basis_fidelity=approximation_degree or 1.0
+            kak_param_gates = KAK_GATE_PARAM_NAMES.keys() & (basis_gates or [])
+            if kak_param_gates:
+                self.decomposer = TwoQubitControlledUDecomposer(
+                    KAK_GATE_PARAM_NAMES[list(kak_param_gates)[0]]
                 )
-            elif "rzx" in basis_gates:
+            elif kak_gates:
                 self.decomposer = TwoQubitBasisDecomposer(
-                    CXGate(), basis_fidelity=approximation_degree or 1.0
+                    KAK_GATE_NAMES[list(kak_gates)[0]], basis_fidelity=approximation_degree or 1.0
                 )
             else:
                 self.decomposer = None
@@ -109,7 +134,7 @@ class ConsolidateBlocks(TransformationPass):
         consolidate_blocks(
             dag,
             self.decomposer._inner_decomposer,
-            self.decomposer.gate.name,
+            self.decomposer.gate_name,
             self.force_consolidate,
             target=self.target,
             basis_gates=self.basis_gates,
@@ -138,12 +163,9 @@ class ConsolidateBlocks(TransformationPass):
             pass_manager.append(Collect2qBlocks())
 
         pass_manager.append(self)
-        control_flow_nodes = dag.control_flow_op_nodes()
-        if control_flow_nodes is not None:
-            for node in control_flow_nodes:
-                dag.substitute_node(
-                    node,
-                    node.op.replace_blocks(pass_manager.run(block) for block in node.op.blocks),
-                    propagate_condition=False,
-                )
+        for node in dag.control_flow_op_nodes():
+            dag.substitute_node(
+                node,
+                node.op.replace_blocks(pass_manager.run(block) for block in node.op.blocks),
+            )
         return dag

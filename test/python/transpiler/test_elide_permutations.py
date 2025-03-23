@@ -176,16 +176,6 @@ class TestElidePermutations(QiskitTestCase):
         res = self.swap_pass(qc)
         self.assertEqual(res, expected)
 
-    def test_swap_condition(self):
-        """Test swap elision doesn't touch conditioned swap."""
-        qc = QuantumCircuit(3, 3)
-        qc.h(0)
-        with self.assertWarns(DeprecationWarning):
-            qc.swap(0, 1).c_if(qc.clbits[0], 0)
-        qc.cx(0, 1)
-        res = self.swap_pass(qc)
-        self.assertEqual(res, qc)
-
     def test_permutation_in_middle(self):
         """Test permutation in middle of bell is elided."""
         qc = QuantumCircuit(3, 3)
@@ -235,8 +225,7 @@ class TestElidePermutations(QiskitTestCase):
 
         # Make sure that the transpiled circuit *with* the final permutation
         # is equivalent to the original circuit
-        perm = pass_.property_set["virtual_permutation_layout"].to_permutation(qc.qubits)
-        res.append(PermutationGate(perm), [0, 1, 2, 3, 4])
+        res.append(PermutationGate(res.layout.routing_permutation()), [0, 1, 2, 3, 4])
         self.assertEqual(Operator(res), Operator(qc))
 
     def test_permutation_at_beginning(self):

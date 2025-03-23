@@ -131,7 +131,8 @@ def dag_drawer(
             circ.h(q[0])
             circ.cx(q[0], q[1])
             circ.measure(q[0], c[0])
-            circ.rz(0.5, q[1]).c_if(c, 2)
+            with circ.if_test((c, 2)):
+                circ.rz(0.5, q[1])
 
             dag = circuit_to_dag(circ)
 

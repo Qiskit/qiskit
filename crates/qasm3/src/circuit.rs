@@ -12,7 +12,7 @@
 
 use pyo3::prelude::*;
 use pyo3::types::{PyAny, PyList, PyString, PyTuple, PyType};
-use pyo3::IntoPyObjectExt;
+use pyo3::{IntoPyObjectExt, PyTypeInfo};
 
 use crate::error::QASM3ImporterError;
 
@@ -235,9 +235,8 @@ impl PyCircuitModule {
     ) -> PyResult<PyQuantumRegister> {
         let qreg = self.qreg.call1(py, (size, name))?;
         Ok(PyQuantumRegister {
-            items: qreg
-                .bind(py)
-                .getattr("_bits")?
+            items: PyList::type_object(py)
+                .call1((qreg.clone(),))?
                 .downcast_into::<PyList>()?
                 .unbind(),
             object: qreg,
@@ -256,9 +255,8 @@ impl PyCircuitModule {
     ) -> PyResult<PyClassicalRegister> {
         let creg = self.creg.call1(py, (size, name))?;
         Ok(PyClassicalRegister {
-            items: creg
-                .bind(py)
-                .getattr("_bits")?
+            items: PyList::type_object(py)
+                .call1((creg.clone(),))?
                 .downcast_into::<PyList>()?
                 .unbind(),
             object: creg,

@@ -30,7 +30,7 @@ from qiskit.transpiler.passes.synthesis.plugin import (
     UnitarySynthesisPluginManager,
     unitary_synthesis_plugin_names,
 )
-from qiskit.transpiler.passes.synthesis.unitary_synthesis import DefaultUnitarySynthesis
+from qiskit.transpiler.passes.synthesis.default_unitary_synth_plugin import DefaultUnitarySynthesis
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 

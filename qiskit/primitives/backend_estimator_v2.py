@@ -23,18 +23,114 @@ import numpy as np
 
 from qiskit.circuit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.exceptions import QiskitError
-from qiskit.providers import BackendV1, BackendV2
+from qiskit.providers import BackendV2
 from qiskit.quantum_info import Pauli, PauliList
-from qiskit.result import Counts
+from qiskit.result import Counts, Result
 from qiskit.transpiler import PassManager, PassManagerConfig
 from qiskit.transpiler.passes import Optimize1qGatesDecomposition
 
-from .backend_estimator import _pauli_expval_with_variance, _prepare_counts, _run_circuits
 from .base import BaseEstimatorV2
 from .containers import DataBin, EstimatorPubLike, PrimitiveResult, PubResult
 from .containers.bindings_array import BindingsArray
 from .containers.estimator_pub import EstimatorPub
 from .primitive_job import PrimitiveJob
+
+
+def _run_circuits(
+    circuits: QuantumCircuit | list[QuantumCircuit],
+    backend: BackendV2,
+    clear_metadata: bool = True,
+    **run_options,
+) -> tuple[list[Result], list[dict]]:
+    """Remove metadata of circuits and run the circuits on a backend.
+    Args:
+        circuits: The circuits
+        backend: The backend
+        clear_metadata: Clear circuit metadata before passing to backend.run if
+            True.
+        **run_options: run_options
+    Returns:
+        The result and the metadata of the circuits
+    """
+    if isinstance(circuits, QuantumCircuit):
+        circuits = [circuits]
+    metadata = []
+    for circ in circuits:
+        metadata.append(circ.metadata)
+        if clear_metadata:
+            circ.metadata = {}
+    if isinstance(backend, BackendV2):
+        max_circuits = backend.max_circuits
+    else:
+        raise RuntimeError("Backend version not supported")
+    if max_circuits:
+        jobs = [
+            backend.run(circuits[pos : pos + max_circuits], **run_options)
+            for pos in range(0, len(circuits), max_circuits)
+        ]
+        result = [x.result() for x in jobs]
+    else:
+        result = [backend.run(circuits, **run_options).result()]
+    return result, metadata
+
+
+def _prepare_counts(results: list[Result]):
+    counts = []
+    for res in results:
+        count = res.get_counts()
+        if not isinstance(count, list):
+            count = [count]
+        counts.extend(count)
+    return counts
+
+
+def _pauli_expval_with_variance(counts: Counts, paulis: PauliList) -> tuple[np.ndarray, np.ndarray]:
+    """Return array of expval and variance pairs for input Paulis.
+    Note: All non-identity Pauli's are treated as Z-paulis, assuming
+    that basis rotations have been applied to convert them to the
+    diagonal basis.
+    """
+    # Diag indices
+    size = len(paulis)
+    diag_inds = _paulis2inds(paulis)
+
+    expvals = np.zeros(size, dtype=float)
+    denom = 0  # Total shots for counts dict
+    for bin_outcome, freq in counts.items():
+        split_outcome = bin_outcome.split(" ", 1)[0] if " " in bin_outcome else bin_outcome
+        outcome = int(split_outcome, 2)
+        denom += freq
+        for k in range(size):
+            coeff = (-1) ** _parity(diag_inds[k] & outcome)
+            expvals[k] += freq * coeff
+
+    # Divide by total shots
+    expvals /= denom
+
+    # Compute variance
+    variances = 1 - expvals**2
+    return expvals, variances
+
+
+def _paulis2inds(paulis: PauliList) -> list[int]:
+    """Convert PauliList to diagonal integers.
+    These are integer representations of the binary string with a
+    1 where there are Paulis, and 0 where there are identities.
+    """
+    # Treat Z, X, Y the same
+    nonid = paulis.z | paulis.x
+
+    # bits are packed into uint8 in little endian
+    # e.g., i-th bit corresponds to coefficient 2^i
+    packed_vals = np.packbits(nonid, axis=1, bitorder="little")
+    power_uint8 = 1 << (8 * np.arange(packed_vals.shape[1], dtype=object))
+    inds = packed_vals @ power_uint8
+    return inds.tolist()
+
+
+def _parity(integer: int) -> int:
+    """Return the parity of an integer"""
+    return bin(integer).count("1") % 2
 
 
 @dataclass
@@ -76,7 +172,7 @@ class BackendEstimatorV2(BaseEstimatorV2):
 
     The :class:`~.BackendEstimatorV2` class is a generic implementation of the
     :class:`~.BaseEstimatorV2` interface that is used to wrap a :class:`~.BackendV2`
-    (or :class:`~.BackendV1`) object in the :class:`~.BaseEstimatorV2` API. It
+    object in the :class:`~.BaseEstimatorV2` API. It
     facilitates using backends that do not provide a native
     :class:`~.BaseEstimatorV2` implementation in places that work with
     :class:`~.BaseEstimatorV2`. However,
@@ -127,7 +223,7 @@ class BackendEstimatorV2(BaseEstimatorV2):
     def __init__(
         self,
         *,
-        backend: BackendV1 | BackendV2,
+        backend: BackendV2,
         options: dict | None = None,
     ):
         """
@@ -153,7 +249,7 @@ class BackendEstimatorV2(BaseEstimatorV2):
         return self._options
 
     @property
-    def backend(self) -> BackendV1 | BackendV2:
+    def backend(self) -> BackendV2:
         """Returns the backend which this sampler object based on."""
         return self._backend
 

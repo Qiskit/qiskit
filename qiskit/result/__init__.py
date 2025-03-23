@@ -48,26 +48,14 @@ Expectation values
 
 .. autofunction:: sampled_expectation_value
 
-Mitigation
-==========
-.. autosummary::
-   :toctree: ../stubs/
-
-   BaseReadoutMitigator
-   CorrelatedReadoutMitigator
-   LocalReadoutMitigator
-
 """
 
-from .result import Result
+from .counts import Counts
+from .distributions import QuasiDistribution, ProbDistribution
 from .exceptions import ResultError
+from .models import MeasLevel, MeasReturnType
+from .result import Result
+from .sampled_expval import sampled_expectation_value
 from .utils import marginal_counts
 from .utils import marginal_distribution
 from .utils import marginal_memory
-from .counts import Counts
-
-from .distributions import QuasiDistribution, ProbDistribution
-from .sampled_expval import sampled_expectation_value
-from .mitigation.base_readout_mitigator import BaseReadoutMitigator
-from .mitigation.correlated_readout_mitigator import CorrelatedReadoutMitigator
-from .mitigation.local_readout_mitigator import LocalReadoutMitigator

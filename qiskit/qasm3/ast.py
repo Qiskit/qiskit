@@ -14,6 +14,8 @@
 
 """QASM3 AST Nodes"""
 
+from __future__ import annotations
+
 import enum
 from typing import Optional, List, Union, Iterable, Tuple, Sequence
 
@@ -173,6 +175,12 @@ class BitType(ClassicalType):
     __slots__ = ()
 
 
+class DurationType(ClassicalType):
+    """Type information for a duration."""
+
+    __slots__ = ()
+
+
 class BitArrayType(ClassicalType):
     """Type information for a sized number of classical bits."""
 
@@ -242,6 +250,13 @@ class IntegerLiteral(Expression):
         self.value = value
 
 
+class FloatLiteral(Expression):
+    __slots__ = ("value",)
+
+    def __init__(self, value):
+        self.value = value
+
+
 class BooleanLiteral(Expression):
     __slots__ = ("value",)
 
@@ -304,6 +319,10 @@ class Binary(Expression):
         NOT_EQUAL = "!="
         SHIFT_LEFT = "<<"
         SHIFT_RIGHT = ">>"
+        ADD = "+"
+        SUB = "-"
+        MUL = "*"
+        DIV = "/"
 
     def __init__(self, op: Op, left: Expression, right: Expression):
         self.op = op
@@ -387,6 +406,17 @@ class ClassicalDeclaration(Statement):
         self.type = type_
         self.identifier = identifier
         self.initializer = initializer
+
+
+class StretchDeclaration(Statement):
+    """Declaration of a stretch variable, optionally with a lower bound
+    expression."""
+
+    __slots__ = ("identifier", "bound")
+
+    def __init__(self, identifier: Identifier, bound=None):
+        self.identifier = identifier
+        self.bound = bound
 
 
 class AssignmentStatement(Statement):
@@ -666,6 +696,20 @@ class WhileLoopStatement(Statement):
     def __init__(self, condition: Expression, body: ProgramBlock):
         self.condition = condition
         self.body = body
+
+
+class BoxStatement(Statement):
+    """Like ``box[duration] { statements* }``."""
+
+    __slots__ = ("duration", "body")
+
+    def __init__(
+        self,
+        body: ProgramBlock,
+        duration: Expression | None = None,
+    ):
+        self.body = body
+        self.duration = duration
 
 
 class BreakStatement(Statement):

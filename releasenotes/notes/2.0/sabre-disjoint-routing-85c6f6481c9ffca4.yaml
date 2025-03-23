@@ -1,0 +1,15 @@
+---
+fixes:
+  - |
+    When :class:`.SabreLayout` is used to do both layout and routing simultaneously (as is the case
+    for the default options to :func:`.transpile` and :func:`.generate_preset_pass_manager`) on a
+    :class:`.Target` or :class:`.CouplingMap` with disjoint connectivity, and the input circuit fits
+    into a single component of the coupling map, the routing permutation will now be tracked
+    correctly.
+
+    Previously, any qubits in the coupling map that were not connected, even indirectly, to a qubit
+    used by the routed circuit would not be included in the final routing permutation.  This could
+    cause surprising behaviour a long way from the point of failure, even if compilation appeared to
+    succeed, such as calls to :meth:`.TranspileLayout.final_index_layout` raising :exc:`KeyError`.
+
+    This bug did not affect backends that were fully connected, as most are.

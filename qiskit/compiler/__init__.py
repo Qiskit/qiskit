@@ -17,15 +17,11 @@ Compilation Routines (:mod:`qiskit.compiler`)
 
 .. currentmodule:: qiskit.compiler
 
-Circuit and Pulse Compilation Functions
+Circuit Compilation Functions
 =======================================
 
-.. autofunction:: schedule
 .. autofunction:: transpile
-.. autofunction:: sequence
 
 """
 
 from .transpiler import transpile
-from .scheduler import schedule
-from .sequencer import sequence

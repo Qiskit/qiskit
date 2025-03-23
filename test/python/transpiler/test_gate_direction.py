@@ -17,7 +17,7 @@ from math import pi
 
 import ddt
 
-from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit, pulse
+from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit.circuit import Parameter, Gate
 from qiskit.circuit.library import (
     CXGate,
@@ -220,72 +220,6 @@ class TestGateDirection(QiskitTestCase):
         expected.h(qr[0])
         expected.h(qr[1])
         expected.measure(qr[0], cr[0])
-
-        pass_ = GateDirection(coupling)
-        after = pass_.run(dag)
-
-        self.assertEqual(circuit_to_dag(expected), after)
-
-    def test_preserves_conditions(self):
-        """Verify GateDirection preserves conditional on CX gates.
-
-                        ┌───┐      ┌───┐
-        q_0: |0>───■────┤ X ├───■──┤ X ├
-                 ┌─┴─┐  └─┬─┘ ┌─┴─┐└─┬─┘
-        q_1: |0>─┤ X ├────■───┤ X ├──■──
-                 └─┬─┘    │   └───┘
-                ┌──┴──┐┌──┴──┐
-         c_0: 0 ╡ = 0 ╞╡ = 0 ╞══════════
-                └─────┘└─────┘
-        """
-
-        qr = QuantumRegister(2, "q")
-        cr = ClassicalRegister(1, "c")
-
-        circuit = QuantumCircuit(qr, cr)
-        with self.assertWarns(DeprecationWarning):
-            circuit.cx(qr[0], qr[1]).c_if(cr, 0)
-        with self.assertWarns(DeprecationWarning):
-            circuit.cx(qr[1], qr[0]).c_if(cr, 0)
-
-        circuit.cx(qr[0], qr[1])
-        circuit.cx(qr[1], qr[0])
-
-        coupling = CouplingMap([[0, 1]])
-        dag = circuit_to_dag(circuit)
-
-        #                     ┌───┐                ┌───┐      ┌───┐     ┌───┐
-        # q_0: ───■───────────┤ H ├────■───────────┤ H ├───■──┤ H ├──■──┤ H ├
-        #       ┌─┴─┐  ┌───┐  └─╥─┘  ┌─┴─┐  ┌───┐  └─╥─┘ ┌─┴─┐├───┤┌─┴─┐├───┤
-        # q_1: ─┤ X ├──┤ H ├────╫────┤ X ├──┤ H ├────╫───┤ X ├┤ H ├┤ X ├┤ H ├
-        #       └─╥─┘  └─╥─┘    ║    └─╥─┘  └─╥─┘    ║   └───┘└───┘└───┘└───┘
-        #      ┌──╨──┐┌──╨──┐┌──╨──┐┌──╨──┐┌──╨──┐┌──╨──┐
-        # c: 1/╡ 0x0 ╞╡ 0x0 ╞╡ 0x0 ╞╡ 0x0 ╞╡ 0x0 ╞╡ 0x0 ╞════════════════════
-        #      └─────┘└─────┘└─────┘└─────┘└─────┘└─────┘
-        expected = QuantumCircuit(qr, cr)
-        with self.assertWarns(DeprecationWarning):
-            expected.cx(qr[0], qr[1]).c_if(cr, 0)
-
-        # Order of H gates is important because DAG comparison will consider
-        # different conditional order on a creg to be a different circuit.
-        # See https://github.com/Qiskit/qiskit-terra/issues/3164
-        with self.assertWarns(DeprecationWarning):
-            expected.h(qr[1]).c_if(cr, 0)
-        with self.assertWarns(DeprecationWarning):
-            expected.h(qr[0]).c_if(cr, 0)
-        with self.assertWarns(DeprecationWarning):
-            expected.cx(qr[0], qr[1]).c_if(cr, 0)
-        with self.assertWarns(DeprecationWarning):
-            expected.h(qr[1]).c_if(cr, 0)
-        with self.assertWarns(DeprecationWarning):
-            expected.h(qr[0]).c_if(cr, 0)
-
-        expected.cx(qr[0], qr[1])
-        expected.h(qr[1])
-        expected.h(qr[0])
-        expected.cx(qr[0], qr[1])
-        expected.h(qr[1])
-        expected.h(qr[0])
 
         pass_ = GateDirection(coupling)
         after = pass_.run(dag)
@@ -495,22 +429,6 @@ class TestGateDirection(QiskitTestCase):
         with self.assertRaisesRegex(TranspilerError, "my_2q_gate would be supported.*"):
             pass_(circuit)
 
-    def test_target_cannot_flip_message_calibrated(self):
-        """A suitable error message should be emitted if the gate would be supported if it were
-        flipped."""
-        target = Target(num_qubits=2)
-        target.add_instruction(CXGate(), properties={(0, 1): None})
-
-        gate = Gate("my_2q_gate", 2, [])
-        circuit = QuantumCircuit(2)
-        circuit.append(gate, (1, 0))
-        with self.assertWarns(DeprecationWarning):
-            circuit.add_calibration(gate, (0, 1), pulse.ScheduleBlock())
-
-        pass_ = GateDirection(None, target)
-        with self.assertRaisesRegex(TranspilerError, "my_2q_gate would be supported.*"):
-            pass_(circuit)
-
     def test_target_unknown_gate_message(self):
         """A suitable error message should be emitted if the gate isn't valid in either direction on
         the target."""
@@ -524,35 +442,6 @@ class TestGateDirection(QiskitTestCase):
         pass_ = GateDirection(None, target)
         with self.assertRaisesRegex(TranspilerError, "my_2q_gate.*not supported on qubits .*"):
             pass_(circuit)
-
-    def test_allows_calibrated_gates_coupling_map(self):
-        """Test that the gate direction pass allows a gate that's got a calibration to pass through
-        without error."""
-        cm = CouplingMap([(1, 0)])
-
-        gate = Gate("my_2q_gate", 2, [])
-        circuit = QuantumCircuit(2)
-        circuit.append(gate, (0, 1))
-        with self.assertWarns(DeprecationWarning):
-            circuit.add_calibration(gate, (0, 1), pulse.ScheduleBlock())
-
-        pass_ = GateDirection(cm)
-        self.assertEqual(pass_(circuit), circuit)
-
-    def test_allows_calibrated_gates_target(self):
-        """Test that the gate direction pass allows a gate that's got a calibration to pass through
-        without error."""
-        target = Target(num_qubits=2)
-        target.add_instruction(CXGate(), properties={(0, 1): None})
-
-        gate = Gate("my_2q_gate", 2, [])
-        circuit = QuantumCircuit(2)
-        circuit.append(gate, (0, 1))
-        with self.assertWarns(DeprecationWarning):
-            circuit.add_calibration(gate, (0, 1), pulse.ScheduleBlock())
-
-        pass_ = GateDirection(None, target)
-        self.assertEqual(pass_(circuit), circuit)
 
 
 if __name__ == "__main__":

@@ -19,7 +19,7 @@ from collections.abc import Sequence
 import typing
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit import QuantumRegister
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.library.generalized_gates import Isometry
 from .state_preparation import StatePreparation

@@ -502,10 +502,10 @@ pub fn swap_map(
     };
     let outer_rng = match seed {
         Some(seed) => Pcg64Mcg::seed_from_u64(seed),
-        None => Pcg64Mcg::from_entropy(),
+        None => Pcg64Mcg::from_os_rng(),
     };
     let seed_vec: Vec<u64> = outer_rng
-        .sample_iter(&rand::distributions::Standard)
+        .sample_iter(&rand::distr::StandardUniform)
         .take(num_trials)
         .collect();
     if run_in_parallel {
