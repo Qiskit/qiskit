@@ -13,7 +13,7 @@
 """Test QASM3 exporter."""
 
 # We can't really help how long the lines output by the exporter are in some cases.
-# pylint: disable=line-too-long
+# pylint: disable=line-too-long,invalid-name
 
 from io import StringIO
 from math import pi
@@ -22,7 +22,7 @@ import re
 from ddt import ddt, data
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, transpile
-from qiskit.circuit import Parameter, Qubit, Clbit, Gate, Delay, Barrier, ParameterVector
+from qiskit.circuit import Parameter, Qubit, Clbit, Duration, Gate, ParameterVector
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.controlflow import CASE_DEFAULT
 from qiskit.circuit.library import PauliEvolutionGate
@@ -94,45 +94,6 @@ class TestCircuitQASM3(QiskitTestCase):
             re.U | re.M,
         )
         super().setUpClass()
-
-    def test_regs_conds_qasm(self):
-        """Test with registers and conditionals."""
-        qr1 = QuantumRegister(1, "qr1")
-        qr2 = QuantumRegister(2, "qr2")
-        cr = ClassicalRegister(3, "cr")
-        qc = QuantumCircuit(qr1, qr2, cr)
-        qc.measure(qr1[0], cr[0])
-        qc.measure(qr2[0], cr[1])
-        qc.measure(qr2[1], cr[2])
-        with self.assertWarns(DeprecationWarning):
-            qc.x(qr2[1]).c_if(cr, 0)
-        with self.assertWarns(DeprecationWarning):
-            qc.y(qr1[0]).c_if(cr, 1)
-        with self.assertWarns(DeprecationWarning):
-            qc.z(qr1[0]).c_if(cr, 2)
-        expected_qasm = "\n".join(
-            [
-                "OPENQASM 3.0;",
-                'include "stdgates.inc";',
-                "bit[3] cr;",
-                "qubit[1] qr1;",
-                "qubit[2] qr2;",
-                "cr[0] = measure qr1[0];",
-                "cr[1] = measure qr2[0];",
-                "cr[2] = measure qr2[1];",
-                "if (cr == 0) {",
-                "  x qr2[1];",
-                "}",
-                "if (cr == 1) {",
-                "  y qr1[0];",
-                "}",
-                "if (cr == 2) {",
-                "  z qr1[0];",
-                "}",
-                "",
-            ]
-        )
-        self.assertEqual(Exporter().dumps(qc), expected_qasm)
 
     def test_registers_as_aliases(self):
         """Test that different types of alias creation and concatenation work."""
@@ -715,118 +676,6 @@ c[1] = measure q[1];
 """
         self.assertEqual(dumps(qc, includes=["mygates.inc"], basis_gates=["h", "cx"]), expected)
 
-    def test_teleportation(self):
-        """Teleportation with physical qubits"""
-        qc = QuantumCircuit(3, 2)
-        qc.h(1)
-        qc.cx(1, 2)
-        qc.barrier()
-        qc.cx(0, 1)
-        qc.h(0)
-        qc.barrier()
-        qc.measure([0, 1], [0, 1])
-        qc.barrier()
-        with self.assertWarns(DeprecationWarning):
-            qc.x(2).c_if(qc.clbits[1], 1)
-        with self.assertWarns(DeprecationWarning):
-            qc.z(2).c_if(qc.clbits[0], 1)
-
-        transpiled = transpile(qc, initial_layout=[0, 1, 2])
-        expected_qasm = """\
-OPENQASM 3.0;
-gate u3(p0, p1, p2) _gate_q_0 {
-  U(p0, p1, p2) _gate_q_0;
-}
-gate u2(p0, p1) _gate_q_0 {
-  u3(pi/2, p0, p1) _gate_q_0;
-}
-gate h _gate_q_0 {
-  u2(0, pi) _gate_q_0;
-}
-gate cx c, t {
-  ctrl @ U(pi, 0, pi) c, t;
-}
-gate x _gate_q_0 {
-  u3(pi, 0, pi) _gate_q_0;
-}
-gate u1(p0) _gate_q_0 {
-  u3(0, 0, p0) _gate_q_0;
-}
-gate z _gate_q_0 {
-  u1(pi) _gate_q_0;
-}
-bit[2] c;
-h $1;
-cx $1, $2;
-barrier $0, $1, $2;
-cx $0, $1;
-h $0;
-barrier $0, $1, $2;
-c[0] = measure $0;
-c[1] = measure $1;
-barrier $0, $1, $2;
-if (c[1]) {
-  x $2;
-}
-if (c[0]) {
-  z $2;
-}
-"""
-        self.assertEqual(Exporter(includes=[]).dumps(transpiled), expected_qasm)
-
-    def test_basis_gates(self):
-        """Teleportation with physical qubits"""
-        qc = QuantumCircuit(3, 2)
-        qc.h(1)
-        qc.cx(1, 2)
-        qc.barrier()
-        qc.cx(0, 1)
-        qc.h(0)
-        qc.barrier()
-        qc.measure([0, 1], [0, 1])
-        qc.barrier()
-        with self.assertWarns(DeprecationWarning):
-            qc.x(2).c_if(qc.clbits[1], 1)
-        with self.assertWarns(DeprecationWarning):
-            qc.z(2).c_if(qc.clbits[0], 1)
-
-        transpiled = transpile(qc, initial_layout=[0, 1, 2])
-        expected_qasm = """\
-OPENQASM 3.0;
-gate u3(p0, p1, p2) _gate_q_0 {
-  U(p0, p1, p2) _gate_q_0;
-}
-gate u2(p0, p1) _gate_q_0 {
-  u3(pi/2, p0, p1) _gate_q_0;
-}
-gate h _gate_q_0 {
-  u2(0, pi) _gate_q_0;
-}
-gate x _gate_q_0 {
-  u3(pi, 0, pi) _gate_q_0;
-}
-bit[2] c;
-h $1;
-cx $1, $2;
-barrier $0, $1, $2;
-cx $0, $1;
-h $0;
-barrier $0, $1, $2;
-c[0] = measure $0;
-c[1] = measure $1;
-barrier $0, $1, $2;
-if (c[1]) {
-  x $2;
-}
-if (c[0]) {
-  z $2;
-}
-"""
-        self.assertEqual(
-            Exporter(includes=[], basis_gates=["cx", "z", "U"]).dumps(transpiled),
-            expected_qasm,
-        )
-
     def test_opaque_instruction_in_basis_gates(self):
         """Test that an instruction that is set in the basis gates is output verbatim with no
         definition."""
@@ -872,15 +721,25 @@ if (c[0]) {
         """Test that delay operations get output into valid OpenQASM 3."""
         qreg = QuantumRegister(2, "qr")
         qc = QuantumCircuit(qreg)
+        s = qc.add_stretch("s")
+        t = qc.add_stretch("t")
         qc.delay(100, qreg[0], unit="ms")
+        qc.delay(expr.lift(Duration.ms(100)), qreg[0])
         qc.delay(2, qreg[1], unit="ps")  # "ps" is not a valid unit in OQ3, so we need to convert.
+        qc.delay(expr.div(s, 2.0), qreg[1])
+        qc.delay(expr.add(expr.mul(s, expr.div(Duration.dt(1000), Duration.ns(200))), t), qreg[0])
 
         expected_qasm = "\n".join(
             [
                 "OPENQASM 3.0;",
                 "qubit[2] qr;",
+                "stretch s;",
+                "stretch t;",
                 "delay[100ms] qr[0];",
+                "delay[100.0ms] qr[0];",
                 "delay[2000ns] qr[1];",
+                "delay[s / 2.0] qr[1];",
+                "delay[s * (1000dt / 200.0ns) + t] qr[0];",
                 "",
             ]
         )
@@ -1476,6 +1335,34 @@ if (c[0]) {
         BasicPrinter(stream, indent="  ", chain_else_if=True).visit(builder.build_program())
         self.assertEqual(stream.getvalue(), expected_qasm)
 
+    def test_box(self):
+        """Test that 'box' statements can be exported'"""
+        qc = QuantumCircuit(2)
+        with qc.box():
+            qc.x(0)
+        with qc.box(duration=50.0, unit="ms"):
+            qc.h(1)
+        with qc.box(duration=200, unit="dt"):
+            with qc.box(duration=10, unit="dt"):
+                pass
+
+        expected = """\
+OPENQASM 3.0;
+include "stdgates.inc";
+qubit[2] q;
+box {
+  x q[0];
+}
+box[50.0ms] {
+  h q[1];
+}
+box[200dt] {
+  box[10dt] {
+  }
+}
+"""
+        self.assertEqual(dumps(qc), expected)
+
     def test_custom_gate_used_in_loop_scope(self):
         """Test that a custom gate only used within a loop scope still gets a definition at the top
         level."""
@@ -1711,6 +1598,10 @@ while (cr == 3) {
         )
         qc.if_test(expr.logic_and(expr.logic_and(cr1[0], cr1[1]), cr1[2]), body.copy(), [], [])
         qc.if_test(expr.logic_or(expr.logic_or(cr1[0], cr1[1]), cr1[2]), body.copy(), [], [])
+        qc.if_test(expr.equal(expr.add(expr.add(cr1, cr2), cr3), 7), body.copy(), [], [])
+        qc.if_test(expr.equal(expr.sub(expr.sub(cr1, cr2), cr3), 7), body.copy(), [], [])
+        qc.if_test(expr.equal(expr.mul(expr.mul(cr1, cr2), cr3), 7), body.copy(), [], [])
+        qc.if_test(expr.equal(expr.div(expr.div(cr1, cr2), cr3), 7), body.copy(), [], [])
 
         # Note that bitwise operations except shift have lower priority than `==` so there's extra
         # parentheses.  All these operators are left-associative in OQ3.
@@ -1735,6 +1626,14 @@ if (cr1 >> cr2 << cr3 == 7) {
 if (cr1[0] && cr1[1] && cr1[2]) {
 }
 if (cr1[0] || cr1[1] || cr1[2]) {
+}
+if (cr1 + cr2 + cr3 == 7) {
+}
+if (cr1 - cr2 - cr3 == 7) {
+}
+if (cr1 * cr2 * cr3 == 7) {
+}
+if (cr1 / cr2 / cr3 == 7) {
 }
 """
         self.assertEqual(dumps(qc), expected)
@@ -1762,6 +1661,10 @@ if (cr1[0] || cr1[1] || cr1[2]) {
         )
         qc.if_test(expr.logic_and(cr1[0], expr.logic_and(cr1[1], cr1[2])), body.copy(), [], [])
         qc.if_test(expr.logic_or(cr1[0], expr.logic_or(cr1[1], cr1[2])), body.copy(), [], [])
+        qc.if_test(expr.equal(expr.add(cr1, expr.add(cr2, cr3)), 7), body.copy(), [], [])
+        qc.if_test(expr.equal(expr.sub(cr1, expr.sub(cr2, cr3)), 7), body.copy(), [], [])
+        qc.if_test(expr.equal(expr.mul(cr1, expr.mul(cr2, cr3)), 7), body.copy(), [], [])
+        qc.if_test(expr.equal(expr.div(cr1, expr.div(cr2, cr3)), 7), body.copy(), [], [])
 
         # Note that bitwise operations have lower priority than `==` so there's extra parentheses.
         # All these operators are left-associative in OQ3, so we need parentheses for them to be
@@ -1788,6 +1691,14 @@ if (cr1 << (cr2 >> cr3) == 7) {
 if (cr1[0] && (cr1[1] && cr1[2])) {
 }
 if (cr1[0] || (cr1[1] || cr1[2])) {
+}
+if (cr1 + (cr2 + cr3) == 7) {
+}
+if (cr1 - (cr2 - cr3) == 7) {
+}
+if (cr1 * (cr2 * cr3) == 7) {
+}
+if (cr1 / (cr2 / cr3) == 7) {
 }
 """
         self.assertEqual(dumps(qc), expected)
@@ -1864,11 +1775,17 @@ if (!!cr[0]) {
             ),
         )
 
+        arithmetic = expr.equal(
+            expr.add(expr.mul(cr, expr.sub(cr, cr)), expr.div(expr.add(cr, cr), cr)),
+            expr.sub(expr.div(expr.mul(cr, cr), expr.add(cr, cr)), expr.mul(cr, expr.add(cr, cr))),
+        )
+
         qc = QuantumCircuit(cr)
         qc.if_test(inside_out, body.copy(), [], [])
         qc.if_test(outside_in, body.copy(), [], [])
         qc.if_test(logics, body.copy(), [], [])
         qc.if_test(bitshifts, body.copy(), [], [])
+        qc.if_test(arithmetic, body.copy(), [], [])
 
         expected = """\
 OPENQASM 3.0;
@@ -1883,6 +1800,8 @@ if ((cr | cr) == (cr & cr) && (cr & cr) == (cr | cr)\
 if ((!cr[0] || !cr[0]) && !(cr[0] && cr[0]) || !(cr[0] && cr[0]) && (!cr[0] || !cr[0])) {
 }
 if (((cr ^ cr) & cr) << (cr | cr) == (cr >> 3 ^ cr << 4 | cr << 1)) {
+}
+if (cr * (cr - cr) + (cr + cr) / cr == cr * cr / (cr + cr) - cr * (cr + cr)) {
 }
 """
         self.assertEqual(dumps(qc), expected)
@@ -1918,6 +1837,8 @@ if (cr == 1) {
         qc.add_var("c", expr.bit_not(b))
         # All inputs should come first, regardless of declaration order.
         qc.add_input("d", types.Bool())
+        qc.add_var("e", expr.lift(7.5))
+        qc.add_stretch("f")
 
         expected = """\
 OPENQASM 3.0;
@@ -1926,9 +1847,50 @@ input bool a;
 input uint[8] b;
 input bool d;
 uint[8] c;
+float[64] e;
+stretch f;
 a = !a;
 b = b & 8;
 c = ~b;
+e = 7.5;
+"""
+        self.assertEqual(dumps(qc), expected)
+
+    def test_qasm_stretch_example_1(self):
+        """Test an example from the OpenQASM docs."""
+        qc = QuantumCircuit(5)
+        qc.barrier()
+        qc.cx(0, 1)
+        qc.u(pi / 4, 0, pi / 2, 2)
+        qc.cx(3, 4)
+
+        a = qc.add_stretch("a")
+        b = qc.add_stretch("b")
+        c = qc.add_stretch("c")
+
+        # Use the stretches as Delay duration.
+        qc.delay(a, [0, 1])
+        qc.delay(b, 2)
+        qc.delay(c, [3, 4])
+        qc.barrier()
+
+        expected = """\
+OPENQASM 3.0;
+include "stdgates.inc";
+qubit[5] q;
+stretch a;
+stretch b;
+stretch c;
+barrier q[0], q[1], q[2], q[3], q[4];
+cx q[0], q[1];
+U(pi/4, 0, pi/2) q[2];
+cx q[3], q[4];
+delay[a] q[0];
+delay[a] q[1];
+delay[b] q[2];
+delay[c] q[3];
+delay[c] q[4];
+barrier q[0], q[1], q[2], q[3], q[4];
 """
         self.assertEqual(dumps(qc), expected)
 
@@ -2046,63 +2008,6 @@ cx q[0], q[1];
 U(0.5, 0.125, 0.25) q[0];
 """
         self.assertEqual(dumps(qc), expected)
-
-    def test_unusual_conditions(self):
-        """Test that special QASM constructs such as ``measure`` are correctly handled when the
-        Terra instructions have old-style conditions."""
-        qc = QuantumCircuit(3, 2)
-        qc.h(0)
-        qc.measure(0, 0)
-        with self.assertWarns(DeprecationWarning):
-            qc.measure(1, 1).c_if(0, True)
-        with self.assertWarns(DeprecationWarning):
-            qc.reset([0, 1]).c_if(0, True)
-        with qc.while_loop((qc.clbits[0], True)):
-            with self.assertWarns(DeprecationWarning):
-                qc.break_loop().c_if(0, True)
-            with self.assertWarns(DeprecationWarning):
-                qc.continue_loop().c_if(0, True)
-        # Terra forbids delay and barrier from being conditioned through `c_if`, but in theory they
-        # should work fine in a dynamic-circuits sense (although what a conditional barrier _means_
-        # is a whole other kettle of fish).
-        delay = Delay(16, "dt")
-        delay.condition = (qc.clbits[0], True)
-        qc.append(delay, [0], [])
-        barrier = Barrier(2)
-        barrier.condition = (qc.clbits[0], True)
-        qc.append(barrier, [0, 1], [])
-
-        expected = """
-OPENQASM 3.0;
-include "stdgates.inc";
-bit[2] c;
-qubit[3] q;
-h q[0];
-c[0] = measure q[0];
-if (c[0]) {
-  c[1] = measure q[1];
-}
-if (c[0]) {
-  reset q[0];
-}
-if (c[0]) {
-  reset q[1];
-}
-while (c[0]) {
-  if (c[0]) {
-    break;
-  }
-  if (c[0]) {
-    continue;
-  }
-}
-if (c[0]) {
-  delay[16dt] q[0];
-}
-if (c[0]) {
-  barrier q[0], q[1];
-}"""
-        self.assertEqual(dumps(qc).strip(), expected.strip())
 
     def test_switch_clbit(self):
         """Test that a switch statement can be constructed with a bit as a condition."""
