@@ -89,8 +89,8 @@ def load_style(
     style_dict: type[StyleDict],
     default_style: DefaultStyle,
     user_config_opt: str,
-    user_config_path_opt,
-    raise_error_if_not_found=False,
+    user_config_path_opt: str,
+    raise_error_if_not_found: bool = False,
 ) -> tuple[StyleDict, float]:
     """Utility function to load style from json files.
 
@@ -113,6 +113,9 @@ def load_style(
             used to define the style loaded
         user_config_path_opt: User config field in the Qiskit User Configuration File
             used to define the path to the style loaded
+        raise_error_if_not_found: When True, load_style will throw a VisualizationError
+            if the style parameter file is not found. When False, load_style will load
+            the style passed in by the default_style parameter.
 
 
     Returns:
