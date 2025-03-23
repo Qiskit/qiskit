@@ -22,6 +22,8 @@ from pathlib import Path
 
 from qiskit import user_config
 
+from .exceptions import VisualizationError
+
 
 class StyleDict(dict):
     """
@@ -37,7 +39,7 @@ class StyleDict(dict):
     NESTED_ATTRS = set()
 
     def __setitem__(self, key: Any, value: Any) -> None:
-        # allow using field abbreviations
+        # allow using field ABBREVIATIONS
         if key in self.ABBREVIATIONS:
             key = self.ABBREVIATIONS[key]
 
@@ -50,7 +52,7 @@ class StyleDict(dict):
         return super().__setitem__(key, value)
 
     def __getitem__(self, key: Any) -> Any:
-        # allow using field abbreviations
+        # allow using field ABBREVIATIONS
         if key in self.ABBREVIATIONS:
             key = self.ABBREVIATIONS[key]
 
@@ -73,29 +75,22 @@ class DefaultStyle:
     Attributes:
         DEFAULT_STYLE_NAME (str): style name for the default style
         STYLE_PATH: file path where DEFAULT_STYLE_NAME.json is located
-        STYLE_DICT_CLASS: style dict type for DefaultStyle to use
     """
 
-    DEFAULT_STYLE_NAME = "default"
-    DEFAULT_STYLE_PATH = Path(__file__).parent / "styles"
-    STYLE_DICT_CLASS = StyleDict
+    DEFAULT_STYLE_NAME = None
+    DEFAULT_STYLE_PATH = None
 
     def __init__(self):
-        path = self.DEFAULT_STYLE_PATH / Path(self.DEFAULT_STYLE_NAME).with_suffix(".json")
-
-        with open(path, "r") as infile:
-            default_style = json.load(infile)
-
-        # set shortcuts, such as "ec" for "edgecolor"
-        self.style = self.STYLE_DICT_CLASS(**default_style)
+        raise NotImplementedError()
 
 
 def load_style(
     style: Union[dict, str, None],
-    style_dict: StyleDict,
+    style_dict: type[StyleDict],
     default_style: DefaultStyle,
-    user_config_opt: str = "circuit_mpl_style",
-    user_config_path_opt: str = "circuit_mpl_style_path",
+    user_config_opt: str,
+    user_config_path_opt,
+    raise_error_if_not_found=False
 ) -> tuple[StyleDict, float]:
     """Utility function to load style from json files.
 
@@ -200,6 +195,9 @@ def load_style(
                     )
                     break
         else:
+            if raise_error_if_not_found:
+                raise VisualizationError(f"Invalid style {style_name}")
+            
             warn(
                 f"Style JSON file '{style_name}' not found in any of these locations: "
                 f"{', '.join(map(str, style_paths))}. "
