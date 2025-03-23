@@ -90,7 +90,7 @@ def load_style(
     default_style: DefaultStyle,
     user_config_opt: str,
     user_config_path_opt,
-    raise_error_if_not_found=False
+    raise_error_if_not_found=False,
 ) -> tuple[StyleDict, float]:
     """Utility function to load style from json files.
 
@@ -197,7 +197,7 @@ def load_style(
         else:
             if raise_error_if_not_found:
                 raise VisualizationError(f"Invalid style {style_name}")
-            
+
             warn(
                 f"Style JSON file '{style_name}' not found in any of these locations: "
                 f"{', '.join(map(str, style_paths))}. "

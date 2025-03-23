@@ -268,11 +268,11 @@ class MatplotlibDrawer:
         plt_mod = plt
 
         self._style, def_font_ratio = load_style(
-            self._style, 
-            style_dict=MPLStyleDict, 
+            self._style,
+            style_dict=MPLStyleDict,
             default_style=MPLDefaultStyle(),
             user_config_opt="circuit_mpl_style",
-            user_config_path_opt="circuit_mpl_style_path"
+            user_config_path_opt="circuit_mpl_style_path",
         )
 
         # If font/subfont ratio changes from default, have to scale width calculations for

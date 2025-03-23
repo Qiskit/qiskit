@@ -169,7 +169,7 @@ def dag_drawer(
         default_style=DAGDefaultStyle(),
         user_config_opt="circuit_graphviz_style",
         user_config_path_opt="circuit_graphviz_style_path",
-        raise_error_if_not_found=True
+        raise_error_if_not_found=True,
     )
 
     if "DAGDependency" in type_str:
