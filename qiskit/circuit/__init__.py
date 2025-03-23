@@ -1058,6 +1058,7 @@ Generating random circuits
 
 .. currentmodule:: qiskit.circuit.random
 .. autofunction:: random_circuit
+.. autofunction:: random_clifford_circuit
 .. currentmodule:: qiskit.circuit
 
 Apply Pauli twirling to a circuit
