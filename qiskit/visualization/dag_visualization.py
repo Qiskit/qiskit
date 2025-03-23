@@ -166,10 +166,10 @@ def dag_drawer(
     style, _ = load_style(
         style,
         style_dict=DAGStyleDict,
-        default_style=DAGDefaultStyle,
-        default_style_name="color",
+        default_style=DAGDefaultStyle(),
         user_config_opt="circuit_graphviz_style",
-        user_config_path_opt="circuit_graphviz_style_path"
+        user_config_path_opt="circuit_graphviz_style_path",
+        raise_error_if_not_found=True
     )
 
     if "DAGDependency" in type_str:
@@ -307,7 +307,7 @@ def dag_drawer(
 
                 return n
             else:
-                raise VisualizationError(f"Invalid style {style}, {type(style)}")
+                raise VisualizationError(f"Invalid style {style}")
 
         def edge_attr_func(edge):
             e = {}

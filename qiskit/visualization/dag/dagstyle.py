@@ -14,6 +14,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from qiskit.visualization.circuit.qcstyle import StyleDict, DefaultStyle
 
@@ -90,4 +91,12 @@ class DAGDefaultStyle(DefaultStyle):
     """
     DEFAULT_STYLE_NAME = "plain"
     DEFAULT_STYLE_PATH = Path(__file__).parent / "styles"
-    STYLE_DICT_CLASS = DAGStyleDict
+
+    def __init__(self):
+        path = self.DEFAULT_STYLE_PATH / Path(self.DEFAULT_STYLE_NAME).with_suffix(".json")
+
+        with open(path, "r") as infile:
+            default_style = json.load(infile)
+
+        # set shortcuts, such as "ec" for "edgecolor"
+        self.style = DAGStyleDict(**default_style)

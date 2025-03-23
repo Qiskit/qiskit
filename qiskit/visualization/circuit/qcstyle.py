@@ -14,6 +14,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 from qiskit.visualization.style import StyleDict, DefaultStyle
@@ -118,4 +119,12 @@ class MPLDefaultStyle(DefaultStyle):
 
     DEFAULT_STYLE_NAME = "iqp"
     DEFAULT_STYLE_PATH = Path(__file__).parent / "styles"
-    STYLE_DICT_CLASS = MPLStyleDict
+
+    def __init__(self):
+        path = self.DEFAULT_STYLE_PATH / Path(self.DEFAULT_STYLE_NAME).with_suffix(".json")
+
+        with open(path, "r") as infile:
+            default_style = json.load(infile)
+
+        # set shortcuts, such as "ec" for "edgecolor"
+        self.style = MPLStyleDict(**default_style)
