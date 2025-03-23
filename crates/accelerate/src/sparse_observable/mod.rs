@@ -633,6 +633,145 @@ impl SparseObservable {
         out
     }
 
+    // 2 * '+' = 'I' + 'X'
+    // 2 * '-' = 'I' - 'X'
+    // 2 * '0' = 'I' + 'Z'
+    // 2 * '1' = 'I' - 'Z'
+    // 2 * 'r' = 'I' + 'Y'
+    // 2 * 'l' = 'I' - 'Y'
+    fn try_combine_terms(
+        &self,
+        term1: &SparseTerm,
+        term2: &SparseTerm,
+        tol: f64,
+    ) -> Option<SparseTerm> {
+        // order terms so that the width of t1 is larger than or equal to the width of t2
+        let (t1, t2) = if term1.bit_terms().len() < term2.bit_terms().len() {
+            (term2, term1)
+        } else {
+            (term1, term2)
+        };
+
+        if t1.num_qubits != t2.num_qubits {
+            return None;
+        }
+
+        // the reduction only works when the width of the wider term is 1 more than the width of the
+        // other term
+        if t1.bit_terms.len() != t2.bit_terms.len() + 1 {
+            return None;
+        }
+
+        // the reduction only works when the coefficients are equal or negative of each other (within
+        // the specified tolerance)
+        let mut same_sign: bool = false;
+        if (t1.coeff - t2.coeff).norm_sqr() <= tol * tol {
+            same_sign = true;
+        } else if (t1.coeff + t2.coeff).norm_sqr() <= tol * tol {
+            same_sign = false;
+        } else {
+            return None;
+        }
+
+        // we want all the indices of t2 to be within those of t1 with the same Pauli bitterms
+        let mut extra_pos_found = false;
+        let mut extra_pos: usize = 0;
+        for (t1_pos, t1_idx) in t1.indices.iter().enumerate() {
+            if let Some(t2_pos) = t2.indices.iter().position(|&x| x == *t1_idx) {
+                if t1.bit_terms[t1_pos] != t2.bit_terms[t2_pos] {
+                    return None;
+                }
+            } else {
+                if extra_pos_found {
+                    return None;
+                }
+                extra_pos_found = true;
+                extra_pos = t1_pos;
+            }
+        }
+
+        if !extra_pos_found {
+            return None;
+        }
+
+        // we can do the reduction if the extra BitTerm in t1 is X, Y, or Z
+        if ![BitTerm::X, BitTerm::Y, BitTerm::Z].contains(&t1.bit_terms[extra_pos]) {
+            return None;
+        }
+
+        let new_bit = match (t1.bit_terms[extra_pos], same_sign) {
+            (BitTerm::X, true) => BitTerm::Plus,
+            (BitTerm::X, false) => BitTerm::Minus,
+            (BitTerm::Y, true) => BitTerm::Right,
+            (BitTerm::Y, false) => BitTerm::Left,
+            (BitTerm::Z, true) => BitTerm::Zero,
+            (BitTerm::Z, false) => BitTerm::One,
+            _ => unreachable!("The extra bit-term must be either X, Y, or Z."),
+        };
+
+        let mut new_bits = t1.bit_terms.clone();
+        new_bits[extra_pos] = new_bit;
+
+        Some(
+            SparseTerm::new(
+                t1.num_qubits,
+                t2.coeff * Complex64::new(2.0, 0.0),
+                new_bits.into(),
+                t1.indices.clone().into(),
+            )
+            .unwrap(),
+        )
+    }
+
+    pub fn compress(&self, tol: f64) -> SparseObservable {
+        let mut terms: Vec<SparseTerm> = self.iter().map(|t| t.to_term()).collect();
+        let dummy_term =
+            SparseTerm::new(0, Complex64::new(0.0, 0.0), [].into(), [].into()).unwrap();
+        // println!("In compress: terms = {:?}", terms);
+        let mut another_iter: bool = true;
+
+        while another_iter {
+            another_iter = false;
+            let mut num_modified: usize = 0;
+            for i in 0..terms.len() {
+                if terms[i].coeff().norm_sqr() <= tol * tol {
+                    continue;
+                }
+                for j in i + 1..terms.len() {
+                    if terms[j].coeff().norm_sqr() <= tol * tol {
+                        continue;
+                    }
+                    // try to combine terms[i] and terms[j], storing the result in terms[i]
+                    if let Some(combined) = self.try_combine_terms(&terms[i], &terms[j], tol) {
+                        // println!(
+                        //     "RCOMBINED: terms[i] = {:?}, terms[j] = {:?}, combined = {:?}",
+                        //     terms[i], terms[j], combined
+                        // );
+                        terms[i] = combined;
+                        terms[j] = dummy_term.clone();
+                        num_modified += 1;
+                    }
+                }
+            }
+            println!("==> num_modified = {:?}", num_modified);
+            if num_modified > 0 {
+                another_iter = true;
+            }
+        }
+
+        let mut out = SparseObservable::zero(self.num_qubits);
+        for term in terms {
+            if term.coeff.norm_sqr() <= tol * tol {
+                continue;
+            }
+            out.coeffs.push(term.coeff);
+            out.bit_terms.extend_from_slice(&term.bit_terms);
+            out.indices.extend_from_slice(&term.indices);
+            out.boundaries.push(out.indices.len());
+        }
+        out
+    }
+
     /// Tensor product of `self` with `other`.
     ///
     /// The bit ordering is defined such that the qubit indices of `other` will remain the same, and
@@ -3210,6 +3349,16 @@ impl PySparseObservable {
     fn simplify(&self, tol: f64) -> PyResult<Self> {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
         let simplified = inner.canonicalize(tol);
+        Ok(simplified.into())
+    }
+
+    #[pyo3(
+        signature = (/, tol=1e-8),
+    )]
+    fn compress(&self, tol: f64) -> PyResult<Self> {
+        // fn compress(&self, tol: f64) -> PyResult<Self> {
+        let inner = self.inner.read().map_err(|_| InnerReadError)?;
+        let simplified = inner.compress(tol);
         Ok(simplified.into())
     }
 
