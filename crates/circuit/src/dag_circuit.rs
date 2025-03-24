@@ -415,6 +415,7 @@ struct DAGVarInfo {
     out_node: NodeIndex,
 }
 
+/// A container struct for the Vars in a dag grouped by their types
 #[derive(Clone, Debug)]
 struct VarsByType {
     input: OnceLock<Py<PySet>>,
