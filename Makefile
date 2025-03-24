@@ -128,7 +128,7 @@ $(C_DIR_INCLUDE):
 $(C_LIBQISKIT): $(C_DIR_LIB)  $(C_LIB_CARGO_PATH)
 	cp $(C_LIB_CARGO_PATH) $(C_DIR_LIB)/$(subst _cext,,$(C_LIB_CARGO_FILENAME))
 
-$(C_QISKIT_H): $(C_LIB_CARGO_PATH)
+$(C_QISKIT_H): $(C_DIR_INCLUDE) $(C_LIB_CARGO_PATH) 
 	cp target/qiskit.h $(C_DIR_INCLUDE)/qiskit.h
 
 .PHONY: c cheader 
