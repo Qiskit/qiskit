@@ -7,8 +7,7 @@ features_circuits:
     This method only works for simple circuits that do not contain control flow or other classical 
     feed-forward operations.
 
-    Use this method if you need an estimate of the full circuit duration instead of the deprecated 
-    :attr:.QuantumCircuit.duration attribute.
+    Use this method instead of the deprecated :attr:.QuantumCircuit.duration attribute if you need an estimate of the full circuit duration.
 
     Example usage::
 

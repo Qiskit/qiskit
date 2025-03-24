@@ -59,7 +59,7 @@ upgrade_visualization:
 
 upgrade_misc:
   - |
-    The ``Qobj`` structure and related classes, deprecated in Qiskit 1.2.0,
+    The ``Qobj`` structure and related classes, deprecated in Qiskit v1.2.0,
     have been removed. They were introduced as part of the ``BackendV1``
     workflow and are no longer necessary for interacting with :class:`.BackendV2` backends.
     This removal affects the following classes:

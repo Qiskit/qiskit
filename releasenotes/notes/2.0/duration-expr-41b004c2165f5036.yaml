@@ -2,7 +2,7 @@
 features_circuits:
   - |
     The classical realtime-expressions module :mod:`qiskit.circuit.classical` can now represent
-    durations using the new type :class:`~.types.Duration`. 
+    durations by using the new type :class:`~.types.Duration`. 
 
     The module :mod:`qiskit.circuit` also has a new :class:`~.circuit.Duration` class which
     can be used as a literal value within classical expressions.

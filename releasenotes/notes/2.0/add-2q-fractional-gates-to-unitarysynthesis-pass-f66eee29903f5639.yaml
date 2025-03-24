@@ -3,7 +3,7 @@ features_synthesis:
   - |
     Added a new :class:`.TwoQubitControlledUDecomposer` class that decomposes any two-qubit unitary
     in terms of basis two-qubit fractional gates, such as :class:`.RZZGate`
-    (or two-qubit gates that are locally equivalent to :class:`.RZZGate` up to single qubit gates).
+    (or two-qubit gates that are locally equivalent to :class:`.RZZGate`, up to single qubit gates).
 
     For example::
 

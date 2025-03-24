@@ -1,12 +1,12 @@
 ---
 prelude: >
-    We are pleased to release Qiskit 2.0.0, with new features that improve performance and expand Qiskit's capabilities.
-    The feature highlights of Qiskit 2.0.0 include:
+    We are pleased to release Qiskit v2.0.0, with new features that improve performance and its capabilities.
+    The feature highlights of Qiskit v2.0.0 include:
 
       * The introduction of a C API for building and interacting with
-        :class:`.SparseObservable` objects. This will be Qiskit's first 
-        compiled language interface, an experimental feature that we will 
-        fine-tune and grow in scope throughout the 2.x series.
+        :class:`.SparseObservable` objects. This first 
+        compiled language interface is an experimental feature that will 
+        be fine-tuned and will grow in scope throughout the v2.x release series.
 
       * The ability to create ``stretch`` durations for :class:`.Delay` instructions,  
         which enable expressing relationships between timing-aware instructions.  
@@ -18,18 +18,18 @@ prelude: >
         significantly reducing gate counts in elegible circuits (see `blog post <https://www.ibm.com/quantum/blog/fractional-gates>`__ for more details).
         
       * Improved runtime performance, particularly during the circuit construction step,  
-        where `benchpress <https://github.com/Qiskit/benchpress>`__ benchmarking shows a 2x speedup over Qiskit 1.3.  
+        where `benchpress <https://github.com/Qiskit/benchpress>`__ benchmarking shows a 2x speedup over Qiskit v1.3.  
         This improvement is achieved through a combination of contributions, including leveraging additional native Rust 
-        gate representations, such as :class:`UnitaryGate`, or removing legacy data model elements.  
+        gate representations, such as :class:`UnitaryGate`, and removing legacy data model elements.  
 
-    In line with our semantic versioning policy, documented a the time of 
-    the 1.0.0 release, this major release also includes API changes that 
-    are not backward-compatible with the 1.x series. 
+    In line with our semantic versioning policy, documented at the time of 
+    the v1.0.0 release, this major release also includes API changes that 
+    are not backward-compatible with the v1.x release series. 
     In particular, several deprecated components of the Qiskit data model have
     been removed, such as the ``.c_if()`` method, the ``qobj`` module,
     ``BackendV1``, and ``qiskit.pulse``, as well as the deprecated  V1 
     primitive reference implementations.
     You can refer to the upgrade release notes sections for more details on all of
-    these removals and API changes. The removed APIs are still supported in the Qiskit 1.4.x
-    release which will receive bugfixes for another 6 months and will have security
+    these removals and API changes. The removed APIs are still supported in the Qiskit v1.4.x
+    release which will receive bug fixes for another six months and will have security
     updates for one year.

@@ -2,15 +2,15 @@
 upgrade:
   - |
     Qiskit no longer supports Linux i686 and 32-bit Windows. Starting in Qiskit
-    2.0.0, a 64-bit platform is required to run Qiskit. The user base for 32-bit
+    v2.0.0, a 64-bit platform is required to run Qiskit. The user base for 32-bit
     architectures is relatively small, and as Qiskit continues to focus on
     improving performance to handle the increased scale in the complexity
     of quantum computing hardware, maintaining support for 32-bit platforms
     has become increasingly difficult. 
-    This, coupled with the larger scientific/numeric Python community's trend 
+    This, coupled with the larger scientific Python community's trend 
     away from 32-bit platform support, makes maintaining support for 32-bit 
     platforms no longer viable.
-    Qiskit 1.x will continue to support 32-bit platforms, but starting with 
+    Qiskit v1.x will continue to support 32-bit platforms, but starting with 
     this 2.0.0 release, Qiskit no longer supports these platforms, will no 
     longer publish pre-compiled binaries for them, and offers no guarantee of 
     successful source builds on 32-bit platforms.

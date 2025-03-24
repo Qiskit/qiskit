@@ -4,11 +4,11 @@ features_circuits:
     A new expression node :class:`~.expr.Stretch` has been added to the classical expression
     system to represent ``stretch`` variables. To create a new ``stretch` variable, you can
     use :meth:`.QuantumCircuit.add_stretch`. The resulting expression is a constant
-    expression of type :class:`~.types.Duration`, which can currently be used as the ``duration``
+    expression of type :class:`~.types.Duration`, which can be used as the ``duration``
     argument of a :meth:`~.QuantumCircuit.delay`.
 
-    For example, in order to ensure a sequence of gates between two barriers will be
-    left-aligned, whatever their actual durations may be, we can do the following::
+    For example, to ensure a sequence of gates between two barriers will be
+    left-aligned, whatever their actual durations are, you can do the following::
 
       from qiskit import QuantumCircuit
       from numpy import pi
@@ -31,9 +31,9 @@ features_circuits:
 
     The :class:`~.expr.Stretch` expression is most similar to the existing :class:`~.expr.Var`
     expression used to represent classical variables in a circuit, except it is constant and
-    is always of type :class:`~.types.Duration`. It can be used in other expressions (e.g.
+    is always of type :class:`~.types.Duration`. It can be used in other expressions (for example,
     you can multiply it by a numeric constant) and :class:`.QuantumCircuit` provides full
-    scoping support for it (e.g. it can be captured by or declared within a control flow
+    scoping support for it (for example, it can be captured by or declared within a control flow
     scope).
 
     For additional context and examples, refer to the 

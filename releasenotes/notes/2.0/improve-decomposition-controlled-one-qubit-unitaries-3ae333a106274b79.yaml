@@ -4,10 +4,10 @@ features_circuits:
     Reduced the number of two-qubit gates when decomposing multi-controlled 
     single-qubit unitary gates. For example:
 
-    * For multi-controlled :class:`.YGate` on 10 qubits, we reduced the :class:`.CXGate` count by 56%
+    *  For multi-controlled :class:`.YGate` on 10 qubits, the :class:`.CXGate` count was reduced by 56%.
 
-    * For multi-controlled :class:`.HGate` on 10 qubits, we reduced the :class:`.CXGate` count by 56%
+    * For multi-controlled :class:`.HGate` on 10 qubits, the :class:`.CXGate` count was reduced by 56%.
 
-    * For multi-controlled :class:`.SXGate` and :class:`.SXdgGate` on 10 qubits, we reduced the :class:`.CXGate` count by 80%
+    * For multi-controlled :class:`.SXGate` and :class:`.SXdgGate` on 10 qubits, the :class:`.CXGate` count was reduced  by 80%.
 
-    * For multi-controlled :class:`.UGate` on 10 qubits, we reduced the :class:`.CXGate` count by 31%
+    * For multi-controlled :class:`.UGate` on 10 qubits, the :class:`.CXGate` count was reduced by 31%.

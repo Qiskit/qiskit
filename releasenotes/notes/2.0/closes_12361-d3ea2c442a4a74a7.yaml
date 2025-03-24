@@ -8,9 +8,9 @@ upgrade_visualization:
 
     * If the circuit has a defined ``.layout`` attribute, ``idle_wires`` is automatically set to ``False`` (hiding idle wires)
 
-    * Otherwise, ``idle_wires`` remains ``True`` (showing all wires, as previous default)
+    * Otherwise, ``idle_wires`` remains ``True`` (showing all wires, as was the previous default)
 
-    The following example shows a circuit without layout diplayed using ``idle_wires="auto"``:
+    The following example shows a circuit without a layout displayed by using ``idle_wires="auto"``:
 
     .. code-block:: text
 

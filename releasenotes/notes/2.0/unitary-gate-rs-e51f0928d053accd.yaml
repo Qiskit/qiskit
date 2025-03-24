@@ -8,7 +8,7 @@ upgrade_circuits:
     :class:`.UnitaryGate` object directly or by reference was always unsound and
     likely to corrupt the circuit, especially when modifying the matrix.
     If you need to mutate an element in the circuit (which is **not** recommended
-    as it's inefficient and error prone), you should ensure that you do something
+    as it's inefficient and error prone), do something
     like::
 
       from qiskit.circuit import QuantumCircuit

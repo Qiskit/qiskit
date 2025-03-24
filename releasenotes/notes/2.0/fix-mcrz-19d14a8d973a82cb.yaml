@@ -2,7 +2,7 @@
 fixes:
   - |
     Fixed a bug in :meth:`.RZGate.control`, which applied
-    an unnecessarily expensive decomposition for more than 1 control qubit.
+    an unnecessarily expensive decomposition for more than one control qubit.
     Fixed `#13473 <https://github.com/Qiskit/qiskit/issues/13473>`__.
 upgrade_circuits:
   - |

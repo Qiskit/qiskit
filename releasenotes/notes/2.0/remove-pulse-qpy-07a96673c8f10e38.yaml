@@ -1,8 +1,8 @@
 ---
 upgrade_qpy:
   - |
-    With the removal of Pulse in Qiskit 2.0, support for serializing ``ScheduleBlock`` programs
+    With the removal of pulse in Qiskit v2.0.0, support for serializing ``ScheduleBlock`` programs
     through the :func:`qiskit.qpy.dump` function has been removed. Users can still load payloads
-    containing pulse gates using the :func:`qiskit.qpy.load` function, however, they will be
+    containing pulse gates by using the :func:`qiskit.qpy.load` function, however, they will be
     treated as opaque custom instructions. Loading ``ScheduleBlock`` payloads is not supported
-    anymore and will result with a :class:`.QpyError` exception.
+    anymore and will cause a :class:`.QpyError` exception.

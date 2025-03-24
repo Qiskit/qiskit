@@ -2,7 +2,7 @@
 upgrade_primitives:
   - |
     Primitive V1 implementations and V1-exclusive non-versioned type aliases, deprecated in
-    Qiskit 1.2, have been removed. These interfaces have been superseded by their V2 counterparts. 
+    Qiskit v1.2, have been removed. These interfaces have been superseded by their V2 counterparts. 
     The removal includes the following classes implementing V1 interfaces:
 
     * ``Estimator``, in favor of the V2 equivalent, :class:`.StatevectorEstimator`
@@ -18,15 +18,15 @@ upgrade_primitives:
     This removal does NOT affect the explicitly-versioned :class:`BaseEstimatorV1` 
     and :class:`BaseSamplerV1` abstract
     interface definitions or related result and job classes, which have been kept to maintain
-    backwards compatibitily. If you are using a non-versioned V1 type alias such as ``BaseEstimator``,
+    backwards compatibility. If you are using a non-versioned V1-type alias such as ``BaseEstimator``,
     you can directly replace it with the versioned type (:class:`.BaseEstimatorV1`).
 
-    In addition to this, the following utility functions have been removed. These functions were only
+    Additionally, the following utility functions have been removed. These functions were only
     used in Primitive V1 implementations:
 
     * ``init_circuit``: to initialize a circuit from a :class:`.Statevector`,
-      use :meth:`.QuantumCircuit.initialize` instead
-    * ``init_observable``: use the constructor of :class:`.SparsePauliOp` instead
+      use :meth:`.QuantumCircuit.initialize` instead.
+    * ``init_observable``: use the constructor of :class:`.SparsePauliOp` instead.
     * ``final_measurement_mapping``: use :meth:`.QuantumCircuit.layout` and
       :meth:`.SparsePauliOp.apply_layout` to adjust an operator for a layout.
       Otherwise, use ``mthree.utils.final_measurement_mapping``.

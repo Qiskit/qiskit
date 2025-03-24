@@ -1,7 +1,7 @@
 ---
 features_circuits:
   - |
-    Added :class:`.Gate` versions of the single-register arithmetic gates,
+    Added :class:`.Gate` versions of the single-register arithmetic gates
     that allow the transpiler to perform high-level optimizations compared to
     their :class:`.QuantumCircuit` variants. These are:
 
@@ -19,7 +19,7 @@ features_circuits:
 features_synthesis:
   - |
     Added synthesis functions :func:`.synth_integer_comparator_2s` and 
-    :func:`.synth_integer_comparator_greedy` to compile gates implementing an integer 
+    :func:`.synth_integer_comparator_greedy` to compile gates that implement an integer 
     comparison, such as :class:`.IntegerComparatorGate`. The 
     corresponding high-level synthesis plugins are :class:`.IntComparatorSynthesis2s` 
     and :class:`.IntComparatorSynthesisNoAux`. To let the compiler select the optimal

@@ -26,12 +26,12 @@ fixes:
 features_circuits:
   - |
     Added a new ``approximation_degree`` argument to :meth:`.CommutationChecker.commute` and
-    :meth:`.CommutationChecker.commute_nodes`. This argument allows to set the approximation threshold
+    :meth:`.CommutationChecker.commute_nodes`. This argument allows you to set the approximation threshold
     for when gates are evaluated to commute. See the docstring of :class:`.CommutationChecker` for more 
     information.
 features_transpiler:
   - |
     Added a new ``approximation_degree`` argument to :class:`.CommutationAnalysis`. This argument 
-    allows to set the approximation threshold for when gates are evaluated to commute. See the class docstring 
+    allows you to set the approximation threshold for when gates are evaluated to commute. See the class docstring 
     for more information.
 

@@ -1,5 +1,5 @@
 ---
 fixes:
   - |
-    Applied a small regularisation factor against ill-conditioned Hermitian matrices
+    Applied a small regularization factor against ill-conditioned Hermitian matrices
     in :mod:`.quantum_info` super-operator representations.

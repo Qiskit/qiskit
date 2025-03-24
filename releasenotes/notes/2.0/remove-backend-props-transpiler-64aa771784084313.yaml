@@ -18,8 +18,8 @@ upgrade_transpiler:
     * ``properties`` and ``coupling_map`` input arguments in :class:`.VF2PostLayout`
     * ``backend_props`` input argument in :class:`.UnitarySynthesis`
 
-    The ``BackendProperties`` class has been deprecated since Qiskit 1.2, as it was part
-    of the ``BackendV1`` workflow. Specific instruction properties such as gate errors or 
+    The ``BackendProperties`` class has been deprecated since Qiskit v1.2, because it was part
+    of the ``BackendV1`` workflow. Specific instruction properties, such as gate errors or 
     durations can be added to a :class:`.Target` upon construction through the 
     :meth:`.Target.add_instruction` method, and communicated to the relevant transpiler
     passes through the ``target`` input argument.

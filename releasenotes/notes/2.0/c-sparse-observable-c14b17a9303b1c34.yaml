@@ -3,9 +3,9 @@ features:
   - |
     Introduced a C API to build and interact with sparse observables.
     While the API surface in this release is fairly small - covering only the 
-    :class:`.SparseObservable` class - it lays the foundation for Qiskit's C interface. 
+    :class:`.SparseObservable` class - it lays the foundation for the Qiskit C interface. 
 
-    Detailed syntax and additional information can be found in the C API docs.
+    Detailed syntax and additional information can be found in the C API documentation.
     A minimal example to construct the 100-qubit observable ``X0 Y1 Z1`` is:
 
     .. code:: c

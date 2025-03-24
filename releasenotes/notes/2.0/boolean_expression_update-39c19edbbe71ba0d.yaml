@@ -1,16 +1,16 @@
 ---
 upgrade_circuits:
   - |
-     The :class:`.PhaseOracle` no longer relies on the ``tweedledum`` library, 
+     The :class:`.PhaseOracle` class no longer relies on the ``tweedledum`` library, 
      as the dependency was not actively maintained. This change may affect 
      synthesis effectiveness.
 
-     Additionally, the interface of :class:`.PhaseOracle` has been simplified: 
+     Additionally, the :class:`.PhaseOracle` class interface has been simplified: 
      it no longer accepts a ``synthesizer`` parameter, and the ``expression`` parameter 
      can only be a string. This is because the previously accepted ``ClassicalElement``
-     type, deprecated in Qiskit 1.4, has been removed in Qiskit 2.0.
+     type, deprecated in Qiskit v1.4, has been removed in Qiskit v2.0.
 
-     Despite these upgrades, the standard usage of :class:`.PhaseOracle` remains unchanged:
+     Despite these upgrades, the standard usage of the :class:`.PhaseOracle` class remains unchanged:
 
      .. code-block:: python
 
@@ -33,9 +33,9 @@ features_circuits:
   - |
      Added two new classes: :class:`.BitFlipOracleGate` and :class:`.PhaseOracleGate`.
      :class:`.BitFlipOracleGate` was introduced as an alternative to directly 
-     synthesizing :class:`.BooleanExpression`, which has been removed in Qiskit 2.0. 
+     synthesizing :class:`.BooleanExpression`, which has been removed in Qiskit v2.0. 
      :class:`.PhaseOracleGate` was added as an alternative to :class:`.PhaseOracle`, as the 
-     latter will be deprecated throughout the 2.x series. Both classes share the interface 
+     latter will be deprecated throughout the v2.x releases. Both classes share the interface 
      of :class:`.PhaseOracle`, except for the ``evaluate_bitstring`` method, which is no longer
      present.
 

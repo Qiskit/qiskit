@@ -3,7 +3,7 @@ features_transpiler:
   - |
     Added a new argument ``max_block_width`` to the :class:`.BlockCollector` class
     and to the :class:`.CollectLinearFunctions` and :class:`.CollectCliffords` transpiler passes.
-    This argument allows to restrict the maximum number of qubits over which a block of nodes 
+    This argument allows you to restrict the maximum number of qubits over which a block of nodes 
     is defined. 
 
     For example::

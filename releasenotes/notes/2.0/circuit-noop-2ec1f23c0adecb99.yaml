@@ -1,6 +1,6 @@
 ---
 features_circuits:
   - |
-    Added a new circuit method, :meth:`.QuantumCircuit.noop`, which allows qubits to be marked 
-    as explicitly used within a control-flow builder scope without adding a corresponding 
+    Added a new circuit method, :meth:`.QuantumCircuit.noop`, which allows qubits to be explicitly marked 
+    as used within a control-flow builder scope without adding a corresponding 
     operation to them.

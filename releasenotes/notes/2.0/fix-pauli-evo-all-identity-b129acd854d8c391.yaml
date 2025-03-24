@@ -3,6 +3,6 @@ fixes:
   - |
     Fixed a bug in the class :class:`.PauliEvolutionGate`, where using a product formula synthesis (the default)
     did not correctly handle all-identity terms in the operator. The all-identity term should introduce a 
-    global phase equal to ``-evolution_time``, but was previously off by a factor of 2 and could break 
+    global phase equal to ``-evolution_time``, but was previously off by a factor of two and could break 
     for parameterized times.
     Fixed `#13625 <https://github.com/Qiskit/qiskit/issues/13625>`__.

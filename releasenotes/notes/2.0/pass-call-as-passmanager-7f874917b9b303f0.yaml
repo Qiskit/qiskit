@@ -15,8 +15,8 @@ fixes:
     Calling an :class:`.AnalysisPass` or a :class:`.TransformationPass` like a function (as in
     ``pass_ = MyPass(); pass_(qc)``) will now respect any requirements that the pass might have.
     For example, scheduling passes such as :class:`.ALAPScheduleAnalysis` require that
-    :class:`.TimeUnitConversion` runs before them.  Running the pass via a :class:`.PassManager`
-    always respected this requirement, but until this note, it was not respected when calling the
+    :class:`.TimeUnitConversion` runs before them.  Running the pass by using a :class:`.PassManager`
+    always respected this requirement, but until now, it was not respected when calling the
     pass directly.
   - |
     When a :exc:`.TranspilerError` subclass is raised by a pass inside a call to

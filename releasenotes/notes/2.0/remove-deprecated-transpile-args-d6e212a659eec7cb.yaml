@@ -40,7 +40,7 @@ upgrade_transpiler:
     along with a ``backend``. In these cases there are multiple sources of truth, 
     the user intentions are not always clear, and there can be conflicts that  
     :func:`.generate_preset_pass_manager` may not know how to resolve. 
-    The proposed alternative is defining of a custom target that combines the chosen
+    The suggested alternative is to define a custom target that combines the chosen
     constraints.
 
     One of these situations is the specification of a gate with 3 or more qubits in

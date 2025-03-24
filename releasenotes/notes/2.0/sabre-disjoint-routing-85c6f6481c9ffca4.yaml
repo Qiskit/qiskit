@@ -2,7 +2,7 @@
 fixes:
   - |
     When :class:`.SabreLayout` is used to do both layout and routing simultaneously (as is the case
-    with the default settings of :func:`.transpile` and :func:`.generate_preset_pass_manager`) on a
+    with the default :func:`.transpile` and :func:`.generate_preset_pass_manager` settings) on a
     :class:`.Target` or :class:`.CouplingMap` with disjoint connectivity, and the input circuit fits
     into a single component of the coupling map, the routing permutation will now be tracked
     correctly.

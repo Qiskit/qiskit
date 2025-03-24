@@ -6,4 +6,4 @@ upgrade_circuits:
     and :class:`.DAGInNode`.
 
     The ``dag`` parameter was an optional argument when constructing these objects,
-    but it has been unused and ignored since the 1.3 release, and deprecated since the 1.4 release.
+    but it has been unused and ignored since the v1.3 release, and deprecated since the v1.4 release.

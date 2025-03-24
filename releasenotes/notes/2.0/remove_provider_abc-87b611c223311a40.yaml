@@ -2,7 +2,7 @@
 upgrade_providers:
   - |
     Removed the abstract base classes ``Provider`` and ``ProviderV1``, which have been 
-    deprecated since Qiskit 1.1.0. The abstraction provided by these interface definitions 
+    deprecated since Qiskit v1.1.0. The abstraction provided by these interface definitions 
     was not offering significant value, only including the attributes ``name``, ``backends``, 
     and a ``get_backend()`` method.  
 
