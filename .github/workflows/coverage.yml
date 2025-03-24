@@ -73,7 +73,7 @@ jobs:
       - name: Generate lcov with grcov
         run: |
           # Copy ctest coverage to cwd
-          cp test/c/build/*profraw .
+          cp test/c/build/test/c/*profraw .
           # We set the --source-dir to '.' because we want all paths to appear relative to the repo
           # root (we need to combine them with the Python ones), but we only care about `grcov`
           # keeping the `crates/*` files; we don't care about coverage in dependencies.
