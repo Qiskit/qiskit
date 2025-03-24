@@ -16,7 +16,7 @@ use crate::duration::Duration;
 use crate::imports::UUID;
 use pyo3::prelude::*;
 use pyo3::types::IntoPyDict;
-use pyo3::{intern, BoundObject, IntoPyObjectExt};
+use pyo3::{intern, BoundObject, IntoPyObjectExt, PyTypeInfo};
 use uuid::Uuid;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -234,11 +234,13 @@ pub struct Unary {
     eq,
     hash,
     frozen,
-    name = "Unary",
-    module = "qiskit._accelerate.circuit"
+    name = "Op",
+    module = "qiskit._accelerate.circuit.classical"
 )]
 pub enum UnaryOp {
+    #[pyo3(name = "BIT_NOT")]
     BitNot = 1,
+    #[pyo3(name = "LOGIC_NOT")]
     LogicNot = 2,
 }
 
@@ -259,6 +261,11 @@ struct PyUnary(Unary);
 
 #[pymethods]
 impl PyUnary {
+    #[classattr]
+    fn Op(py: Python) -> Py<PyAny> {
+        UnaryOp::type_object(py).into_any().unbind()
+    }
+
     #[getter]
     fn get_type(&self, py: Python) -> PyResult<Py<PyAny>> {
         self.0.ty.clone().into_py_any(py)
@@ -281,32 +288,49 @@ pub struct Binary {
     constant: bool,
 }
 
-#[repr(u8)]
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 #[pyclass(
     eq,
     hash,
     frozen,
-    name = "Unary",
-    module = "qiskit._accelerate.circuit.classical.Binary"
+    name = "Op",
+    module = "qiskit._accelerate.circuit.classical"
 )]
+#[repr(u8)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum BinaryOp {
+    #[pyo3(name = "BIT_AND")]
     BitAnd = 1,
+    #[pyo3(name = "BIT_OR")]
     BitOr = 2,
+    #[pyo3(name = "BIT_XOR")]
     BitXor = 3,
+    #[pyo3(name = "LOGIC_AND")]
     LogicAnd = 4,
+    #[pyo3(name = "LOGIC_OR")]
     LogicOr = 5,
+    #[pyo3(name = "EQUAL")]
     Equal = 6,
+    #[pyo3(name = "NOT_EQUAL")]
     NotEqual = 7,
+    #[pyo3(name = "LESS")]
     Less = 8,
+    #[pyo3(name = "LESS_EQUAL")]
     LessEqual = 9,
+    #[pyo3(name = "GREATER")]
     Greater = 10,
+    #[pyo3(name = "GREATER_EQUAL")]
     GreaterEqual = 11,
+    #[pyo3(name = "SHIFT_LEFT")]
     ShiftLeft = 12,
+    #[pyo3(name = "SHIFT_RIGHT")]
     ShiftRight = 13,
+    #[pyo3(name = "ADD")]
     Add = 14,
+    #[pyo3(name = "SUB")]
     Sub = 15,
+    #[pyo3(name = "MUL")]
     Mul = 16,
+    #[pyo3(name = "DIV")]
     Div = 17,
 }
 
@@ -327,6 +351,11 @@ struct PyBinary(Binary);
 
 #[pymethods]
 impl PyBinary {
+    #[classattr]
+    fn Op(py: Python) -> Py<PyAny> {
+        BinaryOp::type_object(py).into_any().unbind()
+    }
+
     #[getter]
     fn get_type(&self, py: Python) -> PyResult<Py<PyAny>> {
         self.0.ty.clone().into_py_any(py)
@@ -625,7 +654,9 @@ impl PyIndex {
 pub(crate) fn register_python(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<PyExpr>()?;
     m.add_class::<PyUnary>()?;
+    m.add_class::<UnaryOp>()?;
     m.add_class::<PyBinary>()?;
+    m.add_class::<BinaryOp>()?;
     m.add_class::<PyCast>()?;
     m.add_class::<PyValue>()?;
     m.add_class::<PyVar>()?;
