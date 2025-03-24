@@ -15,7 +15,7 @@
 import copy
 import ddt
 
-from qiskit.circuit import Clbit, ClassicalRegister
+from qiskit.circuit import Clbit, ClassicalRegister, Duration
 from qiskit.circuit.classical import expr, types
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -32,6 +32,7 @@ class TestStructurallyEquivalent(QiskitTestCase):
         expr.logic_and(expr.less(2, ClassicalRegister(3, "a")), expr.lift(Clbit())),
         expr.shift_left(expr.shift_right(255, 3), 3),
         expr.index(expr.Var.new("a", types.Uint(8)), 0),
+        expr.greater(expr.Stretch.new("a"), Duration.dt(100)),
     )
     def test_equivalent_to_self(self, node):
         self.assertTrue(expr.structurally_equivalent(node, node))

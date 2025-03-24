@@ -17,7 +17,6 @@ import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameterexpression import ParameterValueType
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import _ctrl_state_to_int
 from qiskit._accelerate.circuit import StandardGate
 
@@ -93,17 +92,15 @@ class U1Gate(Gate):
         `1612.00858 <https://arxiv.org/abs/1612.00858>`_
     """
 
-    _standard_gate = StandardGate.U1Gate
+    _standard_gate = StandardGate.U1
 
-    def __init__(
-        self, theta: ParameterValueType, label: str | None = None, *, duration=None, unit="dt"
-    ):
+    def __init__(self, theta: ParameterValueType, label: str | None = None):
         """Create new U1 gate."""
-        super().__init__("u1", 1, [theta], label=label, duration=duration, unit=unit)
+        super().__init__("u1", 1, [theta], label=label)
 
     def _define(self):
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
         from .u3 import U3Gate  # pylint: disable=cyclic-import
 
         q = QuantumRegister(1, "q")
@@ -227,7 +224,7 @@ class CU1Gate(ControlledGate):
         phase difference.
     """
 
-    _standard_gate = StandardGate.CU1Gate
+    _standard_gate = StandardGate.CU1
 
     def __init__(
         self,
@@ -235,8 +232,6 @@ class CU1Gate(ControlledGate):
         label: str | None = None,
         ctrl_state: str | int | None = None,
         *,
-        duration=None,
-        unit="dt",
         _base_label=None,
     ):
         """Create new CU1 gate."""
@@ -248,8 +243,6 @@ class CU1Gate(ControlledGate):
             label=label,
             ctrl_state=ctrl_state,
             base_gate=U1Gate(theta, label=_base_label),
-            duration=duration,
-            unit=unit,
         )
 
     def _define(self):
@@ -261,7 +254,7 @@ class CU1Gate(ControlledGate):
         }
         """
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
         from .x import CXGate  # pylint: disable=cyclic-import
 
         #      ┌─────────┐
@@ -400,8 +393,6 @@ class MCU1Gate(ControlledGate):
         label: str | None = None,
         ctrl_state: str | int | None = None,
         *,
-        duration=None,
-        unit="dt",
         _base_label=None,
     ):
         """Create new MCU1 gate."""
@@ -413,30 +404,20 @@ class MCU1Gate(ControlledGate):
             label=label,
             ctrl_state=ctrl_state,
             base_gate=U1Gate(lam, label=_base_label),
-            duration=duration,
-            unit=unit,
         )
 
     def _define(self):
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-
-        q = QuantumRegister(self.num_qubits, "q")
-        qc = QuantumCircuit(q, name=self.name)
-
         if self.num_ctrl_qubits == 0:
             definition = U1Gate(self.params[0]).definition
-        if self.num_ctrl_qubits == 1:
+        elif self.num_ctrl_qubits == 1:
             definition = CU1Gate(self.params[0]).definition
         else:
-            from .u3 import _gray_code_chain
+            from .p import MCPhaseGate
 
-            scaled_lam = self.params[0] / (2 ** (self.num_ctrl_qubits - 1))
-            bottom_gate = CU1Gate(scaled_lam)
-            definition = _gray_code_chain(q, self.num_ctrl_qubits, bottom_gate)
-        for instr, qargs, cargs in definition:
-            qc._append(instr, qargs, cargs)
-        self.definition = qc
+            definition = MCPhaseGate(self.params[0], self.num_ctrl_qubits).definition
+
+        self.definition = definition
 
     def control(
         self,

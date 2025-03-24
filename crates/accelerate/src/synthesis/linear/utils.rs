@@ -10,7 +10,9 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use ndarray::{azip, concatenate, s, Array2, ArrayView1, ArrayView2, ArrayViewMut2, Axis, Zip};
+use ndarray::{
+    azip, concatenate, s, Array1, Array2, ArrayView1, ArrayView2, ArrayViewMut2, Axis, Zip,
+};
 use rand::{Rng, SeedableRng};
 use rand_pcg::Pcg64Mcg;
 use rayon::iter::{IndexedParallelIterator, ParallelIterator};
@@ -194,18 +196,41 @@ pub fn _add_row_or_col(mut mat: ArrayViewMut2<bool>, add_cols: &bool, ctrl: usiz
     row1.zip_mut_with(&row0, |x, &y| *x ^= y);
 }
 
+/// Perform ROW operation on a matrix mat
+pub fn _row_op(mat: ArrayViewMut2<bool>, ctrl: usize, trgt: usize) {
+    _add_row_or_col(mat, &false, ctrl, trgt);
+}
+
+/// Perform COL operation on a matrix mat
+pub fn _col_op(mat: ArrayViewMut2<bool>, ctrl: usize, trgt: usize) {
+    _add_row_or_col(mat, &true, ctrl, trgt);
+}
+
+/// Returns the element-wise sum of two boolean rows (i.e. addition modulo 2)
+pub fn _row_sum(row_1: ArrayView1<bool>, row_2: ArrayView1<bool>) -> Result<Array1<bool>, String> {
+    if row_1.len() != row_2.len() {
+        Err(format!(
+            "row sum performed on rows with different lengths ({} and {})",
+            row_1.len(),
+            row_2.len()
+        ))
+    } else {
+        Ok((0..row_1.len()).map(|i| row_1[i] ^ row_2[i]).collect())
+    }
+}
+
 /// Generate a random invertible n x n binary matrix.
 pub fn random_invertible_binary_matrix_inner(num_qubits: usize, seed: Option<u64>) -> Array2<bool> {
     let mut rng = match seed {
         Some(seed) => Pcg64Mcg::seed_from_u64(seed),
-        None => Pcg64Mcg::from_entropy(),
+        None => Pcg64Mcg::from_os_rng(),
     };
 
     let mut matrix = Array2::from_elem((num_qubits, num_qubits), false);
 
     loop {
         for value in matrix.iter_mut() {
-            *value = rng.gen_bool(0.5);
+            *value = rng.random_bool(0.5);
         }
 
         let rank = compute_rank_inner(matrix.view());
