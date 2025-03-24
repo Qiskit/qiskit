@@ -63,7 +63,7 @@ jobs:
 
       - name: Generate ctest coverage report
         run: |
-          cargo rustc --release --crate-type cdylib -p qiskit-cext -- -Cinstrument-coverage -Cincremental=false
+          cargo rustc --crate-type cdylib -p qiskit-cext -- -Cinstrument-coverage -Cincremental=false
           cbindgen --crate qiskit-cext --output dist/c/include/qiskit.h --lang C
           cmake -S. -Btest/c/build
           cmake --build test/c/build
