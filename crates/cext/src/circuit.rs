@@ -73,7 +73,7 @@ pub extern "C" fn qk_circuit_new(num_qubits: u32, num_clbits: u32) -> *mut Circu
 ///
 /// # Safety
 ///
-/// Behavior is undefined ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_num_qubits(circuit: *const CircuitData) -> u32 {
@@ -97,7 +97,7 @@ pub unsafe extern "C" fn qk_circuit_num_qubits(circuit: *const CircuitData) -> u
 ///
 /// # Safety
 ///
-/// Behavior is undefined ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_num_clbits(circuit: *const CircuitData) -> u32 {
@@ -161,7 +161,7 @@ pub unsafe extern "C" fn qk_circuit_free(circuit: *mut CircuitData) {
 /// or params for a given gate. You can check `qk_gate_num_qubits` and `qk_gate_num_params` to
 /// determine how many qubits and params are required for a given gate.
 ///
-/// Behavior is undefined ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_append_standard_gate(
@@ -266,7 +266,7 @@ pub extern "C" fn qk_gate_num_params(gate: StandardGate) -> u32 {
 ///
 /// # Safety
 ///
-/// Behavior is undefined ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_append_measure(
@@ -299,7 +299,7 @@ pub unsafe extern "C" fn qk_circuit_append_measure(
 ///
 /// # Safety
 ///
-/// Behavior is undefined ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_append_reset(
@@ -335,7 +335,7 @@ pub unsafe extern "C" fn qk_circuit_append_reset(
 /// The length of the array qubits points to must be num_qubits. If there is
 /// a mismatch the behavior is undefined.
 ///
-/// Behavior is undefined ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_append_barrier(
@@ -385,7 +385,7 @@ pub struct OpCounts {
 ///
 /// # Safety
 ///
-/// Behavior is undefined ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_count_ops(circuit: *const CircuitData) -> OpCounts {
@@ -418,7 +418,7 @@ pub unsafe extern "C" fn qk_circuit_count_ops(circuit: *const CircuitData) -> Op
 ///
 /// # Safety
 ///
-/// Behavior is undefined ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_num_instructions(circuit: *const CircuitData) -> usize {
@@ -451,7 +451,7 @@ pub struct CInstruction {
 ///
 /// # Safety
 ///
-/// Behavior is undefined ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_get_instruction(
