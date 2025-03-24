@@ -346,7 +346,7 @@ def random_circuit_from_graph(
                     is_rst_control, is_rst_target = is_rst
                     rst_oper = Reset()
                     if is_rst_control:
-                        qc._append(
+                        qc.append(
                             CircuitInstruction(
                                 operation=rst_oper,
                                 qubits=[qubits[control_qubit]],
@@ -354,7 +354,7 @@ def random_circuit_from_graph(
                         )
 
                     if is_rst_target:
-                        qc._append(
+                        qc.append(
                             CircuitInstruction(
                                 operation=rst_oper,
                                 qubits=[qubits[target_qubit]],
@@ -368,15 +368,21 @@ def random_circuit_from_graph(
                 if is_cond_2q:
                     qc.measure(qc.qubits, cr)
                     # The condition values are required to be bigints, not Numpy's fixed-width type.
-                    current_instr = current_instr.c_if(cr, int(cond_val_2q[clbit_2q_idx]))
-                    clbit_2q_idx += 1
-
-                qc._append(
-                    CircuitInstruction(
-                        operation=current_instr,
-                        qubits=[qubits[control_qubit], qubits[target_qubit]],
+                    with qc.if_test((cr, int(cond_val_2q[clbit_2q_idx]))):
+                        clbit_2q_idx += 1
+                        qc.append(
+                            CircuitInstruction(
+                                operation=current_instr,
+                                qubits=[qubits[control_qubit], qubits[target_qubit]],
+                            )
+                        )
+                else:
+                    qc.append(
+                        CircuitInstruction(
+                            operation=current_instr,
+                            qubits=[qubits[control_qubit], qubits[target_qubit]],
+                        )
                     )
-                )
 
                 qubit_idx_used.update(set(edge))
                 qubit_idx_not_used = qubit_idx_not_used - qubit_idx_used
@@ -415,15 +421,21 @@ def random_circuit_from_graph(
                     if is_cond_1q:
                         qc.measure(qc.qubits, cr)
                         # The condition values are required to be bigints, not Numpy's fixed-width type.
-                        current_instr = current_instr.c_if(cr, int(cond_val_1q[clbit_1q_idx]))
-                        clbit_1q_idx += 1
-
-                    qc._append(
-                        CircuitInstruction(
-                            operation=current_instr,
-                            qubits=[qubits[qubit_idx]],
+                        with qc.if_test((cr, int(cond_val_1q[clbit_1q_idx]))):
+                            clbit_1q_idx += 1
+                            qc.append(
+                                CircuitInstruction(
+                                    operation=current_instr,
+                                    qubits=[qubits[qubit_idx]],
+                                )
+                            )
+                    else:
+                        qc.append(
+                            CircuitInstruction(
+                                operation=current_instr,
+                                qubits=[qubits[qubit_idx]],
+                            )
                         )
-                    )
 
     if measure:
         qc.measure(qc.qubits, cr)
@@ -638,21 +650,21 @@ def random_circuit(
                     # The condition values are required to be bigints, not Numpy's fixed-width type.
                     with qc.if_test((cr, int(condition_values[c_ptr]))):
                         c_ptr += 1
-                        qc._append(
-                            CircuitInstruction(operation=operation, qubits=qubits[q_start:q_end])
+                        qc.append(
+                            CircuitInstruction(
+                                operation=current_instr, qubits=qubits[q_start:q_end]
+                            )
                         )
                 else:
-                    qc._append(
-                        CircuitInstruction(operation=operation, qubits=qubits[q_start:q_end])
+                    qc.append(
+                        CircuitInstruction(operation=current_instr, qubits=qubits[q_start:q_end])
                     )
         else:
             for current_gate, q_start, q_end, p_start, p_end in zip(
                 gate_specs["class"], q_indices[:-1], q_indices[1:], p_indices[:-1], p_indices[1:]
             ):
                 current_instr = current_gate(*parameters[p_start:p_end])
-                qc._append(
-                    CircuitInstruction(operation=current_instr, qubits=qubits[q_start:q_end])
-                )
+                qc.append(CircuitInstruction(operation=current_instr, qubits=qubits[q_start:q_end]))
     if measure:
         qc.measure(qc.qubits, cr)
 

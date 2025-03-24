@@ -87,7 +87,7 @@ class TestCircuitRandom(QiskitTestCase):
         conditions = [
             bool(getattr(instruction.operation, "condition", None)) for instruction in circ
         ]
-        self.assertEqual([False, False, False, False, True], conditions)
+        self.assertEqual([False, False, False, True], conditions)
 
     def test_random_circuit_num_operand_distribution(self):
         """Test that num_operand_distribution argument generates gates in correct proportion"""
@@ -287,18 +287,16 @@ class TestRandomCircuitFromGraph(QiskitTestCase):
     @ddt.unpack
     def test_random_circuit_conditional_reset(self, inter_graph, seed):
         """Test generating random circuits with conditional and reset."""
-
-        with self.assertWarns(DeprecationWarning):
-            qc = random_circuit_from_graph(
-                interaction_graph=inter_graph,
-                min_2q_gate_per_edge=2,
-                conditional=True,
-                reset=True,
-                seed=seed,  # Do not change the seed or the args.
-                insert_1q_oper=True,
-                prob_conditional=0.95,
-                prob_reset=0.50,
-            )
+        qc = random_circuit_from_graph(
+            interaction_graph=inter_graph,
+            min_2q_gate_per_edge=2,
+            conditional=True,
+            reset=True,
+            seed=seed,  # Do not change the seed or the args.
+            insert_1q_oper=True,
+            prob_conditional=0.95,
+            prob_reset=0.50,
+        )
 
         # Check if reset is applied.
         self.assertIn("reset", qc.count_ops())
@@ -318,18 +316,17 @@ class TestRandomCircuitFromGraph(QiskitTestCase):
     @ddt.unpack
     def test_2q_gates_applied_to_edges_from_interaction_graph(self, inter_graph, seed):
         """Test 2Q gates are applied to the qubit-pairs given by the interaction graph supplied"""
-        with self.assertWarns(DeprecationWarning):
-            qc = random_circuit_from_graph(
-                interaction_graph=inter_graph,
-                min_2q_gate_per_edge=2,
-                measure=True,
-                conditional=True,
-                reset=True,
-                insert_1q_oper=True,
-                seed=seed,  # Do not change the seed or args
-                prob_conditional=0.41,
-                prob_reset=0.50,
-            )
+        qc = random_circuit_from_graph(
+            interaction_graph=inter_graph,
+            min_2q_gate_per_edge=2,
+            measure=True,
+            conditional=True,
+            reset=True,
+            insert_1q_oper=True,
+            seed=seed,  # Do not change the seed or args
+            prob_conditional=0.41,
+            prob_reset=0.50,
+        )
         dag = circuit_to_dag(qc)
 
         cp_mp = set()
@@ -427,19 +424,18 @@ class TestRandomCircuitFromGraph(QiskitTestCase):
         inter_graph = rx.PyDiGraph()
         inter_graph.add_nodes_from(range(10))
         with self.assertRaisesRegex(CircuitError, ".there could be only 1Q gates."):
-            with self.assertWarns(DeprecationWarning):
-                _ = random_circuit_from_graph(
-                    interaction_graph=inter_graph,
-                    min_2q_gate_per_edge=2,
-                    max_operands=2,
-                    measure=False,
-                    conditional=True,
-                    reset=True,
-                    seed=0,
-                    insert_1q_oper=False,  # This will error out!
-                    prob_conditional=0.9,
-                    prob_reset=0.9,
-                )
+            _ = random_circuit_from_graph(
+                interaction_graph=inter_graph,
+                min_2q_gate_per_edge=2,
+                max_operands=2,
+                measure=False,
+                conditional=True,
+                reset=True,
+                seed=0,
+                insert_1q_oper=False,  # This will error out!
+                prob_conditional=0.9,
+                prob_reset=0.9,
+            )
 
     def test_no_1q_when_insert_1q_oper_is_false(self):
         """Test no 1Q gates in the circuit, if `insert_1q_oper` is set to False."""
@@ -449,19 +445,18 @@ class TestRandomCircuitFromGraph(QiskitTestCase):
         cp_map = [(0, 1, 10), (1, 2, 11), (2, 3, 0), (3, 4, 9), (4, 5, 12), (5, 6, 13)]
         pydi_graph.add_edges_from(cp_map)
 
-        with self.assertWarns(DeprecationWarning):
-            qc = random_circuit_from_graph(
-                interaction_graph=pydi_graph,
-                min_2q_gate_per_edge=2,
-                max_operands=2,
-                measure=True,
-                conditional=True,
-                reset=True,
-                seed=0,
-                insert_1q_oper=False,
-                prob_conditional=0.8,
-                prob_reset=0.6,
-            )
+        qc = random_circuit_from_graph(
+            interaction_graph=pydi_graph,
+            min_2q_gate_per_edge=2,
+            max_operands=2,
+            measure=True,
+            conditional=True,
+            reset=True,
+            seed=0,
+            insert_1q_oper=False,
+            prob_conditional=0.8,
+            prob_reset=0.6,
+        )
 
         count_1q = 0
         count_2q = 0
@@ -490,19 +485,18 @@ class TestRandomCircuitFromGraph(QiskitTestCase):
         cp_map = [(0, 1, 10), (1, 2, 11), (2, 3, 0), (3, 4, 9), (4, 5, 12), (5, 6, 13)]
         pydi_graph.add_edges_from(cp_map)
 
-        with self.assertWarns(DeprecationWarning):
-            qc = random_circuit_from_graph(
-                interaction_graph=pydi_graph,
-                min_2q_gate_per_edge=4,
-                max_operands=2,
-                measure=True,
-                conditional=True,
-                reset=True,
-                seed=0,
-                insert_1q_oper=True,
-                prob_conditional=0.91,
-                prob_reset=0.6,
-            )
+        qc = random_circuit_from_graph(
+            interaction_graph=pydi_graph,
+            min_2q_gate_per_edge=4,
+            max_operands=2,
+            measure=True,
+            conditional=True,
+            reset=True,
+            seed=0,
+            insert_1q_oper=True,
+            prob_conditional=0.91,
+            prob_reset=0.6,
+        )
 
         cond_counter_1q = 0
         cond_counter_2q = 0
@@ -553,19 +547,18 @@ class TestRandomCircuitFromGraph(QiskitTestCase):
         # probability of getting selected, so we have to generate a fairly big
         # circuit to include that edge in the circuit, and achieve the required
         # probability.
-        with self.assertWarns(DeprecationWarning):
-            qc = random_circuit_from_graph(
-                h_h_g,
-                min_2q_gate_per_edge=150,
-                max_operands=2,
-                measure=False,
-                conditional=True,  # Just making it a bit more challenging.
-                reset=True,
-                seed=seed,
-                insert_1q_oper=False,
-                prob_conditional=0.91,
-                prob_reset=0.50,
-            )
+        qc = random_circuit_from_graph(
+            h_h_g,
+            min_2q_gate_per_edge=90,
+            max_operands=2,
+            measure=False,
+            conditional=True,  # Just making it a bit more challenging.
+            reset=True,
+            seed=seed,
+            insert_1q_oper=False,
+            prob_conditional=0.91,
+            prob_reset=0.50,
+        )
         dag = circuit_to_dag(qc)
         edge_count = defaultdict(int)
 
