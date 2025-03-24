@@ -7145,10 +7145,10 @@ mod test {
     use rustworkx_core::petgraph::prelude::*;
     use rustworkx_core::petgraph::visit::IntoEdgeReferences;
 
-    fn new_dag(py: Python, qubits: u32, clbits: u32) -> DAGCircuit {
+    fn new_dag(qubits: u32, clbits: u32) -> DAGCircuit {
         let qreg = QuantumRegister::new_owning("q".to_owned(), qubits);
         let creg = ClassicalRegister::new_owning("c".to_owned(), clbits);
-        let mut dag = DAGCircuit::new(py).unwrap();
+        let mut dag = DAGCircuit::new().unwrap();
         dag.add_qreg(qreg).unwrap();
         dag.add_creg(creg).unwrap();
         dag
@@ -7189,7 +7189,7 @@ mod test {
     #[test]
     fn test_push_back() -> PyResult<()> {
         Python::with_gil(|py| {
-            let mut dag = new_dag(py, 2, 2);
+            let mut dag = new_dag(2, 2);
 
             // IO nodes.
             let [q0_in_node, q0_out_node] = dag.qubit_io_map[0];
@@ -7260,7 +7260,7 @@ mod test {
     #[test]
     fn test_push_front() -> PyResult<()> {
         Python::with_gil(|py| {
-            let mut dag = new_dag(py, 2, 2);
+            let mut dag = new_dag(2, 2);
 
             // IO nodes.
             let [q0_in_node, q0_out_node] = dag.qubit_io_map[0];
