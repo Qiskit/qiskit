@@ -431,29 +431,29 @@ impl<'py> VarsByType {
         }
     }
 
-    fn get_input_bound(&'py self, py: Python<'py>) -> &'py Bound<'py, PySet> {
+    fn get_input(&'py self, py: Python<'py>) -> &'py Bound<'py, PySet> {
         self.input
             .get_or_init(|| PySet::empty(py).unwrap().unbind())
             .bind(py)
     }
 
-    fn get_capture_bound(&'py self, py: Python<'py>) -> &'py Bound<'py, PySet> {
+    fn get_capture(&'py self, py: Python<'py>) -> &'py Bound<'py, PySet> {
         self.capture
             .get_or_init(|| PySet::empty(py).unwrap().unbind())
             .bind(py)
     }
 
-    fn get_declare_bound(&'py self, py: Python<'py>) -> &'py Bound<'py, PySet> {
+    fn get_declare(&'py self, py: Python<'py>) -> &'py Bound<'py, PySet> {
         self.declare
             .get_or_init(|| PySet::empty(py).unwrap().unbind())
             .bind(py)
     }
 
-    fn get_all_bound(&'py self, py: Python<'py>) -> [&'py Bound<'py, PySet>; 3] {
+    fn get_all(&'py self, py: Python<'py>) -> [&'py Bound<'py, PySet>; 3] {
         [
-            self.get_input_bound(py),
-            self.get_capture_bound(py),
-            self.get_declare_bound(py),
+            self.get_input(py),
+            self.get_capture(py),
+            self.get_declare(py),
         ]
     }
 
@@ -675,7 +675,7 @@ impl DAGCircuit {
                 })
                 .into_py_dict(py)?,
         )?;
-        out_dict.set_item("vars_by_type", self.vars_by_type.get_all_bound(py))?;
+        out_dict.set_item("vars_by_type", self.vars_by_type.get_all(py))?;
         out_dict.set_item("qubits", self.qubits.objects())?;
         out_dict.set_item("clbits", self.clbits.objects())?;
         out_dict.set_item("vars", self.vars.objects())?;
@@ -925,7 +925,7 @@ impl DAGCircuit {
         }
 
         let out_list = PyList::new(py, wires)?;
-        for var_type_set in &self.vars_by_type.get_all_bound(py) {
+        for var_type_set in &self.vars_by_type.get_all(py) {
             for var in var_type_set.iter() {
                 out_list.append(var)?;
             }
@@ -1513,13 +1513,13 @@ impl DAGCircuit {
             target_dag.add_creg(reg.clone())?;
         }
         if vars_mode == "alike" {
-            for var in self.vars_by_type.get_input_bound(py).iter() {
+            for var in self.vars_by_type.get_input(py).iter() {
                 target_dag.add_var(py, &var, DAGVarType::Input)?;
             }
-            for var in self.vars_by_type.get_capture_bound(py).iter() {
+            for var in self.vars_by_type.get_capture(py).iter() {
                 target_dag.add_var(py, &var, DAGVarType::Capture)?;
             }
-            for var in self.vars_by_type.get_declare_bound(py).iter() {
+            for var in self.vars_by_type.get_declare(py).iter() {
                 target_dag.add_var(py, &var, DAGVarType::Declare)?;
             }
             for stretch in self.captured_stretches.values() {
@@ -1529,13 +1529,13 @@ impl DAGCircuit {
                 target_dag.add_declared_stretch(stretch.bind(py))?;
             }
         } else if vars_mode == "captures" {
-            for var in self.vars_by_type.get_input_bound(py).iter() {
+            for var in self.vars_by_type.get_input(py).iter() {
                 target_dag.add_var(py, &var, DAGVarType::Capture)?;
             }
-            for var in self.vars_by_type.get_capture_bound(py).iter() {
+            for var in self.vars_by_type.get_capture(py).iter() {
                 target_dag.add_var(py, &var, DAGVarType::Capture)?;
             }
-            for var in self.vars_by_type.get_declare_bound(py).iter() {
+            for var in self.vars_by_type.get_declare(py).iter() {
                 target_dag.add_var(py, &var, DAGVarType::Capture)?;
             }
             for stretch in self.captured_stretches.values() {
@@ -2310,9 +2310,9 @@ impl DAGCircuit {
         // equal in our mind if they use the exact same UUID vars.
         for (our_vars, their_vars) in self
             .vars_by_type
-            .get_all_bound(py)
+            .get_all(py)
             .iter()
-            .zip(&other.vars_by_type.get_all_bound(py))
+            .zip(&other.vars_by_type.get_all(py))
         {
             if !our_vars.eq(their_vars)? {
                 return Ok(false);
@@ -4389,7 +4389,7 @@ impl DAGCircuit {
     /// Args:
     ///     var: the variable to add.
     fn add_input_var(&mut self, py: Python, var: &Bound<PyAny>) -> PyResult<()> {
-        if !self.vars_by_type.get_capture_bound(py).is_empty() {
+        if !self.vars_by_type.get_capture(py).is_empty() {
             return Err(DAGCircuitError::new_err(
                 "cannot add inputs to a circuit with captures",
             ));
@@ -4403,7 +4403,7 @@ impl DAGCircuit {
     /// Args:
     ///     var: the variable to add.
     fn add_captured_var(&mut self, py: Python, var: &Bound<PyAny>) -> PyResult<()> {
-        if !self.vars_by_type.get_input_bound(py).is_empty() {
+        if !self.vars_by_type.get_input(py).is_empty() {
             return Err(DAGCircuitError::new_err(
                 "cannot add captures to a circuit with inputs",
             ));
@@ -4417,7 +4417,7 @@ impl DAGCircuit {
     /// Args:
     ///     var: the stretch to add.
     fn add_captured_stretch(&mut self, py: Python, var: &Bound<PyAny>) -> PyResult<()> {
-        if !self.vars_by_type.get_input_bound(py).is_empty() {
+        if !self.vars_by_type.get_input(py).is_empty() {
             return Err(DAGCircuitError::new_err(
                 "cannot add captures to a circuit with inputs",
             ));
@@ -4501,19 +4501,19 @@ impl DAGCircuit {
     /// Number of input classical variables tracked by the circuit.
     #[getter]
     fn num_input_vars(&self, py: Python) -> usize {
-        self.vars_by_type.get_input_bound(py).len()
+        self.vars_by_type.get_input(py).len()
     }
 
     /// Number of captured classical variables tracked by the circuit.
     #[getter]
     fn num_captured_vars(&self, py: Python) -> usize {
-        self.vars_by_type.get_capture_bound(py).len()
+        self.vars_by_type.get_capture(py).len()
     }
 
     /// Number of declared local classical variables tracked by the circuit.
     #[getter]
     fn num_declared_vars(&self, py: Python) -> usize {
-        self.vars_by_type.get_declare_bound(py).len()
+        self.vars_by_type.get_declare(py).len()
     }
 
     /// Is this realtime variable in the DAG?
@@ -4568,7 +4568,7 @@ impl DAGCircuit {
     fn iter_input_vars(&self, py: Python) -> PyResult<Py<PyIterator>> {
         Ok(self
             .vars_by_type
-            .get_input_bound(py)
+            .get_input(py)
             .clone()
             .into_any()
             .try_iter()?
@@ -4579,7 +4579,7 @@ impl DAGCircuit {
     fn iter_captured_vars(&self, py: Python) -> PyResult<Py<PyIterator>> {
         Ok(self
             .vars_by_type
-            .get_capture_bound(py)
+            .get_capture(py)
             .clone()
             .into_any()
             .try_iter()?
@@ -4597,7 +4597,7 @@ impl DAGCircuit {
     /// Iterable over all captured identifiers tracked by the circuit.
     fn iter_captures(&self, py: Python) -> PyResult<Py<PyIterator>> {
         let out_set = PySet::empty(py)?;
-        for var in self.vars_by_type.get_capture_bound(py).iter() {
+        for var in self.vars_by_type.get_capture(py).iter() {
             out_set.add(var)?;
         }
         for stretch in self.captured_stretches.values() {
@@ -4610,7 +4610,7 @@ impl DAGCircuit {
     fn iter_declared_vars(&self, py: Python) -> PyResult<Py<PyIterator>> {
         Ok(self
             .vars_by_type
-            .get_declare_bound(py)
+            .get_declare(py)
             .clone()
             .into_any()
             .try_iter()?
@@ -4628,7 +4628,7 @@ impl DAGCircuit {
     /// Iterable over all the classical variables tracked by the circuit.
     fn iter_vars(&self, py: Python) -> PyResult<Py<PyIterator>> {
         let out_set = PySet::empty(py)?;
-        for var_type_set in &self.vars_by_type.get_all_bound(py) {
+        for var_type_set in &self.vars_by_type.get_all(py) {
             for var in var_type_set.iter() {
                 out_set.add(var)?;
             }
@@ -6182,9 +6182,9 @@ impl DAGCircuit {
         let var_idx = self.vars.add(var.into(), true)?;
         let (in_index, out_index) = self.add_wire(Wire::Var(var_idx))?;
         match type_ {
-            DAGVarType::Input => self.vars_by_type.get_input_bound(py),
-            DAGVarType::Capture => self.vars_by_type.get_capture_bound(py),
-            DAGVarType::Declare => self.vars_by_type.get_declare_bound(py),
+            DAGVarType::Input => self.vars_by_type.get_input(py),
+            DAGVarType::Capture => self.vars_by_type.get_capture(py),
+            DAGVarType::Declare => self.vars_by_type.get_declare(py),
         }
         .add(var.clone().unbind())?;
         self.vars_info.insert(
