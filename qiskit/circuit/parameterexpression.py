@@ -623,7 +623,7 @@ class ParameterExpression:
         try:
             val = self._symbol_expr.value()
             return not isinstance(val, complex)
-        except:
+        except RuntimeError:
             return None
 
     def numeric(self) -> int | float | complex:

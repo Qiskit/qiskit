@@ -266,26 +266,40 @@ impl PySymbolExpr {
         match bound.eval(true) {
             Some(v) => match &v {
                 Value::Real(r) => {
-                    if *r == f64::INFINITY {
+                    if r.is_infinite() {
                         Err(pyo3::exceptions::PyZeroDivisionError::new_err(
                             "zero division occurs while binding parameter",
                         ))
+                    } else if r.is_nan() {
+                        Err(pyo3::exceptions::PyRuntimeError::new_err(
+                            "NAN detected while binding parameter",
+                        ))
                     } else {
-                        Ok(Self { expr: bound })
+                        Ok(Self {
+                            expr: SymbolExpr::Value(v),
+                        })
                     }
                 }
-                Value::Int(_) => Ok(Self { expr: bound }),
+                Value::Int(_) => Ok(Self {
+                    expr: SymbolExpr::Value(v),
+                }),
                 Value::Complex(c) => {
-                    if c.re == f64::INFINITY || c.im == f64::INFINITY {
+                    if c.re.is_infinite() || c.im.is_infinite() {
                         Err(pyo3::exceptions::PyZeroDivisionError::new_err(
                             "zero division occurs while binding parameter",
+                        ))
+                    } else if c.re.is_nan() || c.im.is_nan() {
+                        Err(pyo3::exceptions::PyRuntimeError::new_err(
+                            "NAN detected while binding parameter",
                         ))
                     } else if (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&c.im) {
                         Ok(Self {
                             expr: SymbolExpr::Value(Value::Real(c.re)),
                         })
                     } else {
-                        Ok(Self { expr: bound })
+                        Ok(Self {
+                            expr: SymbolExpr::Value(v),
+                        })
                     }
                 }
             },
@@ -309,14 +323,26 @@ impl PySymbolExpr {
     // ====================================
     pub fn __eq__(&self, py: Python, rhs: PyObject) -> bool {
         match Self::_extract_value(py, rhs) {
-            Some(rhs) => self.expr == rhs.expr,
+            Some(rhs) => match rhs.expr {
+                SymbolExpr::Value(v) => match self.expr.eval(true) {
+                    Some(e) => e == v,
+                    None => false,
+                },
+                _ => self.expr == rhs.expr,
+            },
             None => false,
         }
     }
     pub fn __ne__(&self, py: Python, rhs: PyObject) -> bool {
         match Self::_extract_value(py, rhs) {
-            Some(rhs) => self.expr != rhs.expr,
-            None => false,
+            Some(rhs) => match rhs.expr {
+                SymbolExpr::Value(v) => match self.expr.eval(true) {
+                    Some(e) => e != v,
+                    None => true,
+                },
+                _ => self.expr != rhs.expr,
+            },
+            None => true,
         }
     }
     pub fn __neg__(&self) -> Self {
@@ -385,28 +411,15 @@ impl PySymbolExpr {
 
     pub fn __truediv__(&self, py: Python, rhs: PyObject) -> PyResult<Self> {
         match Self::_extract_value(py, rhs) {
-            Some(rhs) => {
-                if rhs.expr.is_zero() {
-                    Err(pyo3::exceptions::PyZeroDivisionError::new_err(
-                        "Division by zero in __truediv__",
-                    ))
-                } else {
-                    Ok(Self {
-                        expr: &self.expr / &rhs.expr,
-                    })
-                }
-            }
+            Some(rhs) => Ok(Self {
+                expr: &self.expr / &rhs.expr,
+            }),
             None => Err(pyo3::exceptions::PyRuntimeError::new_err(
                 "Unsupported data type for __truediv__",
             )),
         }
     }
     pub fn __rtruediv__(&self, py: Python, lhs: PyObject) -> PyResult<Self> {
-        if self.expr.is_zero() {
-            return Err(pyo3::exceptions::PyZeroDivisionError::new_err(
-                "Division by zero in __rtruediv__",
-            ));
-        }
         match Self::_extract_value(py, lhs) {
             Some(lhs) => Ok(Self {
                 expr: &lhs.expr / &self.expr,
@@ -438,6 +451,9 @@ impl PySymbolExpr {
     }
 
     pub fn __str__(&self) -> String {
+        if let SymbolExpr::Symbol(s) = &self.expr {
+            return s.as_ref().clone();
+        }
         match self.expr.eval(true) {
             Some(e) => e.to_string(),
             None => self.expr.optimize().to_string(),

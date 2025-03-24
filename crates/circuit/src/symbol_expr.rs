@@ -2510,6 +2510,8 @@ impl PartialEq for SymbolExpr {
     }
 }
 
+impl Eq for SymbolExpr {}
+
 impl PartialEq<f64> for SymbolExpr {
     fn eq(&self, r: &f64) -> bool {
         match self.eval(true) {
