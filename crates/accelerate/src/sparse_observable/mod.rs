@@ -642,6 +642,13 @@ impl SparseObservable {
     /// * 'I' - 'Z' = 2 * '1'
     /// * 'I' + 'Y' = 2 * 'r'
     /// * 'I' - 'Y' = 2 * 'l'
+    ///
+    /// * '+' + '-' = 0.5 * 'I'
+    /// * '+' - '-' = 0.5 * 'X'
+    /// * '0' + '1' = 0.5 * 'I'
+    /// * '0' - '1' = 0.5 * 'Z'
+    /// * 'r' + 'l' = 0.5 * 'I'
+    /// * 'r' - 'l' = 0.5 * 'Y'
     fn try_combine_terms(
         &self,
         term1: &SparseTerm,
@@ -659,11 +666,6 @@ impl SparseObservable {
             return None;
         }
 
-        // check that the width of the wider term be 1 more than the width of the shallower term
-        if t1.bit_terms.len() != t2.bit_terms.len() + 1 {
-            return None;
-        }
-
         // check that the coefficients are equal or negative of each other (within the specified tolerance)
         let same_sign = if (t1.coeff - t2.coeff).norm_sqr() <= tol * tol {
             true
@@ -673,55 +675,164 @@ impl SparseObservable {
             return None;
         };
 
-        // Check that all the indices of the shallower term are contained within the indices of the wider
-        // terms, with the corresponding BitTerms being equal. Identify the remaining index in the wider term.
-        let mut extra_pos_found = false;
-        let mut extra_pos: usize = 0;
-        for (t1_pos, t1_idx) in t1.indices.iter().enumerate() {
-            if let Some(t2_pos) = t2.indices.iter().position(|&x| x == *t1_idx) {
-                if t1.bit_terms[t1_pos] != t2.bit_terms[t2_pos] {
-                    return None;
+        if t1.bit_terms.len() == t2.bit_terms.len() + 1 {
+            // In this case, one of the first 6 reductions may be applicable.
+            // Check that all the indices of the shallower term are contained within the indices of the wider
+            // terms, with the corresponding BitTerms being equal. Identify the remaining index in the wider term.
+            let mut extra_pos_found = false;
+            let mut extra_pos: usize = 0;
+            for (t1_pos, t1_idx) in t1.indices.iter().enumerate() {
+                if let Some(t2_pos) = t2.indices.iter().position(|&x| x == *t1_idx) {
+                    if t1.bit_terms[t1_pos] != t2.bit_terms[t2_pos] {
+                        return None;
+                    }
+                } else {
+                    if extra_pos_found {
+                        return None;
+                    }
+                    extra_pos_found = true;
+                    extra_pos = t1_pos;
                 }
-            } else {
-                if extra_pos_found {
-                    return None;
-                }
-                extra_pos_found = true;
-                extra_pos = t1_pos;
             }
-        }
 
-        if !extra_pos_found {
-            return None;
-        }
+            if !extra_pos_found {
+                return None;
+            }
 
-        // Check that the missing BitTerm is X, Y, or Z, in which case the reduction applies.
-        if ![BitTerm::X, BitTerm::Y, BitTerm::Z].contains(&t1.bit_terms[extra_pos]) {
-            return None;
-        }
+            // Check that the missing BitTerm is X, Y, or Z, in which case the reduction applies.
+            if ![BitTerm::X, BitTerm::Y, BitTerm::Z].contains(&t1.bit_terms[extra_pos]) {
+                return None;
+            }
 
-        let new_bit = match (t1.bit_terms[extra_pos], same_sign) {
-            (BitTerm::X, true) => BitTerm::Plus,
-            (BitTerm::X, false) => BitTerm::Minus,
-            (BitTerm::Y, true) => BitTerm::Right,
-            (BitTerm::Y, false) => BitTerm::Left,
-            (BitTerm::Z, true) => BitTerm::Zero,
-            (BitTerm::Z, false) => BitTerm::One,
-            _ => unreachable!("The extra bit-term must be either X, Y, or Z."),
-        };
+            let new_bit = match (t1.bit_terms[extra_pos], same_sign) {
+                (BitTerm::X, true) => BitTerm::Plus,
+                (BitTerm::X, false) => BitTerm::Minus,
+                (BitTerm::Y, true) => BitTerm::Right,
+                (BitTerm::Y, false) => BitTerm::Left,
+                (BitTerm::Z, true) => BitTerm::Zero,
+                (BitTerm::Z, false) => BitTerm::One,
+                _ => unreachable!("The extra bit-term must be either X, Y, or Z."),
+            };
 
-        let mut new_bits = t1.bit_terms.clone();
-        new_bits[extra_pos] = new_bit;
+            let mut new_bits = t1.bit_terms.clone();
+            new_bits[extra_pos] = new_bit;
 
-        Some(
-            SparseTerm::new(
-                t1.num_qubits,
-                t2.coeff * Complex64::new(2.0, 0.0),
-                new_bits,
-                t1.indices.clone(),
+            Some(
+                SparseTerm::new(
+                    t1.num_qubits,
+                    t2.coeff * Complex64::new(2.0, 0.0),
+                    new_bits,
+                    t1.indices.clone(),
+                )
+                .unwrap(),
             )
-            .unwrap(),
-        )
+        } else if t1.bit_terms.len() == t2.bit_terms.len() {
+            // In this case, one of the last 6 reductions may be applicable.
+            // The indices must be the same and there should be exactly one place where the
+            // two bit-terms should differ.
+            let mut mismatch_pos_found = false;
+            let mut mismatch_pos: usize = 0;
+
+            for (pos, (t1_idx, t2_idx)) in t1.indices.iter().zip(t2.indices.iter()).enumerate() {
+                if t1_idx != t2_idx {
+                    return None;
+                }
+                if t1.bit_terms[pos] != t2.bit_terms[pos] {
+                    if mismatch_pos_found {
+                        return None;
+                    }
+                    mismatch_pos_found = true;
+                    mismatch_pos = pos;
+                }
+            }
+
+            if !mismatch_pos_found {
+                return None;
+            }
+
+            let (new_bits, new_indices, new_coeff) = match (
+                t1.bit_terms[mismatch_pos],
+                t2.bit_terms[mismatch_pos],
+                same_sign,
+            ) {
+                (BitTerm::Plus, BitTerm::Minus, true)
+                | (BitTerm::Minus, BitTerm::Plus, true)
+                | (BitTerm::Zero, BitTerm::One, true)
+                | (BitTerm::One, BitTerm::Zero, true)
+                | (BitTerm::Right, BitTerm::Left, true)
+                | (BitTerm::Left, BitTerm::Right, true) => {
+                    let mut new_bits = t1.bit_terms.to_vec();
+                    let mut new_indices = t1.indices.to_vec();
+                    new_bits.remove(mismatch_pos);
+                    new_indices.remove(mismatch_pos);
+                    let new_coeff = t1.coeff * Complex64::new(0.5, 0.0);
+                    (new_bits, new_indices, new_coeff)
+                }
+                (BitTerm::Plus, BitTerm::Minus, false) => {
+                    // c * '+' - c * '-' = 0.5c * 'X'
+                    let mut new_bits = t1.bit_terms.to_vec();
+                    new_bits[mismatch_pos] = BitTerm::X;
+                    let new_indices = t1.indices.to_vec();
+                    let new_coeff = t1.coeff * Complex64::new(0.5, 0.0);
+                    (new_bits, new_indices, new_coeff)
+                }
+                (BitTerm::Minus, BitTerm::Plus, false) => {
+                    // c * '-' - c * '+' = -0.5c * 'X'
+                    let mut new_bits = t1.bit_terms.to_vec();
+                    new_bits[mismatch_pos] = BitTerm::X;
+                    let new_indices = t1.indices.to_vec();
+                    let new_coeff = t1.coeff * Complex64::new(-0.5, 0.0);
+                    (new_bits, new_indices, new_coeff)
+                }
+                (BitTerm::Zero, BitTerm::One, false) => {
+                    // c * '0' - c * '1' = 0.5c * 'Z'
+                    let mut new_bits = t1.bit_terms.to_vec();
+                    new_bits[mismatch_pos] = BitTerm::Z;
+                    let new_indices = t1.indices.to_vec();
+                    let new_coeff = t1.coeff * Complex64::new(0.5, 0.0);
+                    (new_bits, new_indices, new_coeff)
+                }
+                (BitTerm::One, BitTerm::Zero, false) => {
+                    // c * '-' - c * '+' = -0.5c * 'Z'
+                    let mut new_bits = t1.bit_terms.to_vec();
+                    new_bits[mismatch_pos] = BitTerm::Z;
+                    let new_indices = t1.indices.to_vec();
+                    let new_coeff = t1.coeff * Complex64::new(-0.5, 0.0);
+                    (new_bits, new_indices, new_coeff)
+                }
+                (BitTerm::Right, BitTerm::Left, false) => {
+                    // c * 'r' - c * 'l' = 0.5c * 'Y'
+                    let mut new_bits = t1.bit_terms.to_vec();
+                    new_bits[mismatch_pos] = BitTerm::Y;
+                    let new_indices = t1.indices.to_vec();
+                    let new_coeff = t1.coeff * Complex64::new(0.5, 0.0);
+                    (new_bits, new_indices, new_coeff)
+                }
+                (BitTerm::Left, BitTerm::Right, false) => {
+                    // c * '-' - c * '+' = -0.5c * 'Y'
+                    let mut new_bits = t1.bit_terms.to_vec();
+                    new_bits[mismatch_pos] = BitTerm::Y;
+                    let new_indices = t1.indices.to_vec();
+                    let new_coeff = t1.coeff * Complex64::new(-0.5, 0.0);
+                    (new_bits, new_indices, new_coeff)
+                }
+                _ => {
+                    return None;
+                }
+            };
+
+            Some(
+                SparseTerm::new(
+                    t1.num_qubits,
+                    new_coeff,
+                    new_bits.into(),
+                    new_indices.into(),
+                )
+                .unwrap(),
+            )
+        } else {
+            None
+        }
     }
 
     /// Greedily combine the terms in the observable.
@@ -3361,11 +3472,17 @@ impl PySparseObservable {
     ///     tol (float): the coefficients that differ no more than the given tolerance are considered
     ///         equal.
     ///
-    /// Example:
+    /// Examples:
     ///
-    ///     >>> obs = SparseObservable.from_list([("X+IZ", 1.5), ("X+ZZ", -1.5)])
-    ///     >>> compressed = obs.compress()
-    ///     >>> assert compressed == SparseObservable.from_list([("X+1Z", 3.0)])
+    ///     .. code-block:: python
+    ///
+    ///         >>> obs = SparseObservable.from_list([("X+IZ", 1.5), ("X+ZZ", -1.5)])
+    ///         >>> compressed = obs.compress()
+    ///         >>> assert compressed == SparseObservable.from_list([("X+1Z", 3.0)])
+    ///
+    ///         >>> obs = SparseObservable.from_list([("X+IZ", 1.5), ("X-IZ", -1.5)])
+    ///         >>> compressed = obs.compress()
+    ///         >>> assert compressed == SparseObservable.from_list([("XXIZ", 0.75)])
     #[pyo3(
         signature = (/, tol=1e-8),
     )]
