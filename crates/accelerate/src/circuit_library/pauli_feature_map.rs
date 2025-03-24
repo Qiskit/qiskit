@@ -14,9 +14,9 @@ use pyo3::prelude::*;
 use pyo3::types::PySequence;
 use pyo3::types::PyString;
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::imports;
-use qiskit_circuit::operations::PyInstruction;
-use qiskit_circuit::operations::{add_param, multiply_param, multiply_params, Param, StandardGate};
+use qiskit_circuit::operations::{
+    add_param, multiply_param, multiply_params, Param, StandardGate, StandardInstruction,
+};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Clbit, Qubit};
 use smallvec::{smallvec, SmallVec};
@@ -67,18 +67,25 @@ pub fn pauli_feature_map(
     let pauli_strings = _get_paulis(feature_dimension, paulis)?;
 
     // set the default value for entanglement
-    let default = PyString::new_bound(py, "full");
+    let default = PyString::new(py, "full");
     let entanglement = entanglement.unwrap_or(&default);
 
     // extract the parameters from the input variable ``parameters``
     let parameter_vector = parameters
-        .iter()?
+        .try_iter()?
         .map(|el| Param::extract_no_coerce(&el?))
         .collect::<PyResult<Vec<Param>>>()?;
 
     // construct a Barrier object Python side to (possibly) add to the circuit
     let packed_barrier = if insert_barriers {
-        Some(_get_barrier(py, feature_dimension)?)
+        Some((
+            PackedOperation::from_standard_instruction(StandardInstruction::Barrier(
+                feature_dimension,
+            )),
+            smallvec![],
+            (0..feature_dimension).map(Qubit).collect(),
+            vec![] as Vec<Clbit>,
+        ))
     } else {
         None
     };
@@ -127,7 +134,7 @@ pub fn pauli_feature_map(
 fn _get_h_layer(feature_dimension: u32) -> impl Iterator<Item = Instruction> {
     (0..feature_dimension).map(|i| {
         (
-            StandardGate::HGate.into(),
+            StandardGate::H.into(),
             smallvec![],
             vec![Qubit(i)],
             vec![] as Vec<Clbit>,
@@ -171,17 +178,13 @@ fn _get_evolution_layer<'a>(
             // to call CircuitData::from_packed_operations. This is needed since we might
             // have to interject barriers, which are not a standard gate and prevents us
             // from using CircuitData::from_standard_gates.
-            let evo = pauli_evolution::pauli_evolution(
+            let evo = pauli_evolution::sparse_term_evolution(
                 pauli,
                 indices.into_iter().rev().collect(),
                 multiply_param(&angle, alpha, py),
                 true,
                 false,
-            )
-            .map(|(gate, params, qargs)| {
-                (gate.into(), params, qargs.to_vec(), vec![] as Vec<Clbit>)
-            })
-            .collect::<Vec<Instruction>>();
+            );
             insts.extend(evo);
         }
     }
@@ -243,24 +246,4 @@ fn _get_paulis(
                 .collect::<PyResult<Vec<String>>>()
         },
     )
-}
-
-/// Get a barrier object from Python space.
-fn _get_barrier(py: Python, feature_dimension: u32) -> PyResult<Instruction> {
-    let barrier_cls = imports::BARRIER.get_bound(py);
-    let barrier = barrier_cls.call1((feature_dimension,))?;
-    let barrier_inst = PyInstruction {
-        qubits: feature_dimension,
-        clbits: 0,
-        params: 0,
-        op_name: "barrier".to_string(),
-        control_flow: false,
-        instruction: barrier.into(),
-    };
-    Ok((
-        barrier_inst.into(),
-        smallvec![],
-        (0..feature_dimension).map(Qubit).collect(),
-        vec![] as Vec<Clbit>,
-    ))
 }

@@ -23,7 +23,7 @@ import numpy as np
 from qiskit.circuit.library.pauli_evolution import PauliEvolutionGate
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parametervector import ParameterVector
-from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit import QuantumRegister
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.quantum_info import Operator, Pauli, SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
@@ -61,6 +61,7 @@ def evolved_operator_ansatz(
     Examples:
 
         .. plot::
+            :alt: Circuit diagram output by the previous code.
             :include-source:
 
             from qiskit.circuit.library import evolved_operator_ansatz
@@ -213,6 +214,7 @@ def hamiltonian_variational_ansatz(
         A single operator will be split into commuting terms automatically:
 
         .. plot::
+            :alt: Circuit diagram output by the previous code.
             :include-source:
 
             from qiskit.quantum_info import SparsePauliOp
@@ -226,6 +228,7 @@ def hamiltonian_variational_ansatz(
         Alternatively, we can directly provide the terms:
 
         .. plot::
+            :alt: Circuit diagram output by the previous code.
             :include-source:
 
             from qiskit.quantum_info import SparsePauliOp

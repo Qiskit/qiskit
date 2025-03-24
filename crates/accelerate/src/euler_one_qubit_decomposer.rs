@@ -24,6 +24,7 @@ use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::{PyList, PyString};
 use pyo3::wrap_pyfunction;
+use pyo3::IntoPyObjectExt;
 use pyo3::Python;
 
 use ndarray::prelude::*;
@@ -37,7 +38,7 @@ use qiskit_circuit::dag_node::DAGOpNode;
 use qiskit_circuit::operations::{Operation, Param, StandardGate};
 use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};
 use qiskit_circuit::util::c64;
-use qiskit_circuit::Qubit;
+use qiskit_circuit::{impl_intopyobject_for_copy_pyclass, Qubit};
 
 use crate::nlayout::PhysicalQubit;
 use crate::target_transpiler::Target;
@@ -109,11 +110,13 @@ impl OneQubitGateSequence {
 
     fn __getitem__(&self, py: Python, idx: PySequenceIndex) -> PyResult<PyObject> {
         match idx.with_len(self.gates.len())? {
-            SequenceIndex::Int(idx) => Ok(self.gates[idx].to_object(py)),
-            indices => Ok(PyList::new_bound(
+            SequenceIndex::Int(idx) => Ok((&self.gates[idx]).into_py_any(py)?),
+            indices => Ok(PyList::new(
                 py,
-                indices.iter().map(|pos| self.gates[pos].to_object(py)),
-            )
+                indices
+                    .iter()
+                    .map(|pos| (&self.gates[pos]).into_pyobject(py).unwrap()),
+            )?
             .into_any()
             .unbind()),
         }
@@ -200,7 +203,7 @@ fn circuit_u3(
     let phi = mod_2pi(phi, atol);
     let lam = mod_2pi(lam, atol);
     if !simplify || theta.abs() > atol || phi.abs() > atol || lam.abs() > atol {
-        circuit.push((StandardGate::U3Gate, smallvec![theta, phi, lam]));
+        circuit.push((StandardGate::U3, smallvec![theta, phi, lam]));
     }
     OneQubitGateSequence {
         gates: circuit,
@@ -227,16 +230,16 @@ fn circuit_u321(
     if theta.abs() < atol {
         let tot = mod_2pi(phi + lam, atol);
         if tot.abs() > atol {
-            circuit.push((StandardGate::U1Gate, smallvec![tot]));
+            circuit.push((StandardGate::U1, smallvec![tot]));
         }
     } else if (theta - PI / 2.).abs() < atol {
         circuit.push((
-            StandardGate::U2Gate,
+            StandardGate::U2,
             smallvec![mod_2pi(phi, atol), mod_2pi(lam, atol)],
         ));
     } else {
         circuit.push((
-            StandardGate::U3Gate,
+            StandardGate::U3,
             smallvec![theta, mod_2pi(phi, atol), mod_2pi(lam, atol)],
         ));
     }
@@ -265,7 +268,7 @@ fn circuit_u(
     let phi = mod_2pi(phi, atol);
     let lam = mod_2pi(lam, atol);
     if theta.abs() > atol || phi.abs() > atol || lam.abs() > atol {
-        circuit.push((StandardGate::UGate, smallvec![theta, phi, lam]));
+        circuit.push((StandardGate::U, smallvec![theta, phi, lam]));
     }
     OneQubitGateSequence {
         gates: circuit,
@@ -368,7 +371,7 @@ fn circuit_rr(
         // This can be expressed as a single R gate
         if theta.abs() > atol {
             circuit.push((
-                StandardGate::RGate,
+                StandardGate::R,
                 smallvec![theta, mod_2pi(PI / 2. + phi, atol)],
             ));
         }
@@ -376,12 +379,12 @@ fn circuit_rr(
         // General case: use two R gates
         if (theta - PI).abs() > atol {
             circuit.push((
-                StandardGate::RGate,
+                StandardGate::R,
                 smallvec![theta - PI, mod_2pi(PI / 2. - lam, atol)],
             ));
         }
         circuit.push((
-            StandardGate::RGate,
+            StandardGate::R,
             smallvec![PI, mod_2pi(0.5 * (phi - lam + PI), atol)],
         ));
     }
@@ -409,8 +412,8 @@ pub fn generate_circuit(
             phi,
             lam,
             phase,
-            StandardGate::RZGate,
-            StandardGate::RYGate,
+            StandardGate::RZ,
+            StandardGate::RY,
             simplify,
             atol,
         ),
@@ -419,8 +422,8 @@ pub fn generate_circuit(
             phi,
             lam,
             phase,
-            StandardGate::RZGate,
-            StandardGate::RXGate,
+            StandardGate::RZ,
+            StandardGate::RX,
             simplify,
             atol,
         ),
@@ -429,8 +432,8 @@ pub fn generate_circuit(
             phi,
             lam,
             phase,
-            StandardGate::RXGate,
-            StandardGate::RZGate,
+            StandardGate::RX,
+            StandardGate::RZ,
             simplify,
             atol,
         ),
@@ -439,8 +442,8 @@ pub fn generate_circuit(
             phi,
             lam,
             phase,
-            StandardGate::RXGate,
-            StandardGate::RYGate,
+            StandardGate::RX,
+            StandardGate::RY,
             simplify,
             atol,
         ),
@@ -458,13 +461,11 @@ pub fn generate_circuit(
             let fnz = |circuit: &mut OneQubitGateSequence, phi: f64| {
                 let phi = mod_2pi(phi, inner_atol);
                 if phi.abs() > inner_atol {
-                    circuit
-                        .gates
-                        .push((StandardGate::PhaseGate, smallvec![phi]));
+                    circuit.gates.push((StandardGate::Phase, smallvec![phi]));
                 }
             };
             let fnx = |circuit: &mut OneQubitGateSequence| {
-                circuit.gates.push((StandardGate::SXGate, SmallVec::new()));
+                circuit.gates.push((StandardGate::SX, SmallVec::new()));
             };
 
             circuit_psx_gen(
@@ -490,12 +491,12 @@ pub fn generate_circuit(
             let fnz = |circuit: &mut OneQubitGateSequence, phi: f64| {
                 let phi = mod_2pi(phi, inner_atol);
                 if phi.abs() > inner_atol {
-                    circuit.gates.push((StandardGate::RZGate, smallvec![phi]));
+                    circuit.gates.push((StandardGate::RZ, smallvec![phi]));
                     circuit.global_phase += phi / 2.;
                 }
             };
             let fnx = |circuit: &mut OneQubitGateSequence| {
-                circuit.gates.push((StandardGate::SXGate, SmallVec::new()));
+                circuit.gates.push((StandardGate::SX, SmallVec::new()));
             };
             circuit_psx_gen(
                 theta,
@@ -520,14 +521,12 @@ pub fn generate_circuit(
             let fnz = |circuit: &mut OneQubitGateSequence, phi: f64| {
                 let phi = mod_2pi(phi, inner_atol);
                 if phi.abs() > inner_atol {
-                    circuit.gates.push((StandardGate::U1Gate, smallvec![phi]));
+                    circuit.gates.push((StandardGate::U1, smallvec![phi]));
                 }
             };
             let fnx = |circuit: &mut OneQubitGateSequence| {
                 circuit.global_phase += PI / 4.;
-                circuit
-                    .gates
-                    .push((StandardGate::RXGate, smallvec![PI / 2.]));
+                circuit.gates.push((StandardGate::RX, smallvec![PI / 2.]));
             };
             circuit_psx_gen(
                 theta,
@@ -552,15 +551,15 @@ pub fn generate_circuit(
             let fnz = |circuit: &mut OneQubitGateSequence, phi: f64| {
                 let phi = mod_2pi(phi, inner_atol);
                 if phi.abs() > inner_atol {
-                    circuit.gates.push((StandardGate::RZGate, smallvec![phi]));
+                    circuit.gates.push((StandardGate::RZ, smallvec![phi]));
                     circuit.global_phase += phi / 2.;
                 }
             };
             let fnx = |circuit: &mut OneQubitGateSequence| {
-                circuit.gates.push((StandardGate::SXGate, SmallVec::new()));
+                circuit.gates.push((StandardGate::SX, SmallVec::new()));
             };
             let fnxpi = |circuit: &mut OneQubitGateSequence| {
-                circuit.gates.push((StandardGate::XGate, SmallVec::new()));
+                circuit.gates.push((StandardGate::X, SmallVec::new()));
             };
             circuit_psx_gen(
                 theta,
@@ -690,6 +689,7 @@ pub enum EulerBasis {
     ZSXX = 10,
     ZSX = 11,
 }
+impl_intopyobject_for_copy_pyclass!(EulerBasis);
 
 impl EulerBasis {
     pub fn as_str(&self) -> &'static str {
@@ -712,12 +712,8 @@ impl EulerBasis {
 
 #[pymethods]
 impl EulerBasis {
-    fn __reduce__(&self, py: Python) -> Py<PyAny> {
-        (
-            py.get_type_bound::<Self>(),
-            (PyString::new_bound(py, self.as_str()),),
-        )
-            .into_py(py)
+    fn __reduce__(&self, py: Python) -> PyResult<Py<PyAny>> {
+        (py.get_type::<Self>(), (PyString::new(py, self.as_str()),)).into_py_any(py)
     }
 
     #[new]
@@ -1074,7 +1070,6 @@ fn compute_error_from_target_one_qubit_sequence(
 #[pyfunction]
 #[pyo3(signature = (dag, *, target=None, basis_gates=None, global_decomposers=None))]
 pub(crate) fn optimize_1q_gates_decomposition(
-    py: Python,
     dag: &mut DAGCircuit,
     target: Option<&Target>,
     basis_gates: Option<HashSet<String>>,
@@ -1089,23 +1084,11 @@ pub(crate) fn optimize_1q_gates_decomposition(
             Some(_) => 1.,
             None => raw_run.len() as f64,
         };
-        let qubit: PhysicalQubit = if let NodeType::Operation(inst) = &dag.dag()[raw_run[0]] {
+        let qubit: PhysicalQubit = if let NodeType::Operation(inst) = &dag[raw_run[0]] {
             PhysicalQubit::new(dag.get_qargs(inst.qubits)[0].0)
         } else {
             unreachable!("nodes in runs will always be op nodes")
         };
-        if !dag.calibrations_empty() {
-            let mut has_calibration = false;
-            for node in &raw_run {
-                if dag.has_calibration_for_index(py, *node)? {
-                    has_calibration = true;
-                    break;
-                }
-            }
-            if has_calibration {
-                continue;
-            }
-        }
         if basis_gates_per_qubit[qubit.index()].is_none() {
             let basis_gates = match target {
                 Some(target) => Some(
@@ -1175,7 +1158,7 @@ pub(crate) fn optimize_1q_gates_decomposition(
         let operator = raw_run
             .iter()
             .map(|node_index| {
-                let node = &dag.dag()[*node_index];
+                let node = &dag[*node_index];
                 if let NodeType::Operation(inst) = node {
                     if let Some(target) = target {
                         error *= compute_error_term_from_target(inst.op.name(), target, qubit);
@@ -1218,7 +1201,7 @@ pub(crate) fn optimize_1q_gates_decomposition(
         let mut outside_basis = false;
         if let Some(basis) = basis_gates {
             for node in &raw_run {
-                if let NodeType::Operation(inst) = &dag.dag()[*node] {
+                if let NodeType::Operation(inst) = &dag[*node] {
                     if !basis.contains(inst.op.name()) {
                         outside_basis = true;
                         break;
@@ -1235,7 +1218,7 @@ pub(crate) fn optimize_1q_gates_decomposition(
             for gate in sequence.gates {
                 dag.insert_1q_on_incoming_qubit((gate.0, &gate.1), raw_run[0]);
             }
-            dag.add_global_phase(py, &Param::Float(sequence.global_phase))?;
+            dag.add_global_phase(&Param::Float(sequence.global_phase))?;
             dag.remove_1q_sequence(&raw_run);
         }
     }

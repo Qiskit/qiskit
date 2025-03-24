@@ -119,6 +119,7 @@ Two-Qubit Synthesis
    TwoQubitBasisDecomposer
    XXDecomposer
    TwoQubitWeylDecomposition
+   TwoQubitControlledUDecomposer
 
 .. autofunction:: two_qubit_cnot_decompose
 
@@ -147,8 +148,23 @@ Adders
 Multipliers
 -----------
 
-.. autofunction:: multiplier_cumulative_h18 
+.. autofunction:: multiplier_cumulative_h18
 .. autofunction:: multiplier_qft_r17
+
+Sums
+----
+
+.. autofunction:: synth_weighted_sum_carry
+
+
+Unary Arithmetic Synthesis
+==========================
+
+Integer comparators
+-------------------
+
+.. autofunction:: synth_integer_comparator_2s
+.. autofunction:: synth_integer_comparator_greedy
 
 """
 
@@ -200,6 +216,7 @@ from .two_qubit.two_qubit_decompose import (
     TwoQubitBasisDecomposer,
     two_qubit_cnot_decompose,
     TwoQubitWeylDecomposition,
+    TwoQubitControlledUDecomposer,
 )
 from .multi_controlled import (
     synth_mcmt_vchain,
@@ -217,4 +234,7 @@ from .arithmetic import (
     adder_ripple_v95,
     multiplier_cumulative_h18,
     multiplier_qft_r17,
+    synth_integer_comparator_greedy,
+    synth_integer_comparator_2s,
+    synth_weighted_sum_carry,
 )

@@ -26,6 +26,8 @@ import numpy
 import symengine
 
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.exceptions import QiskitError
+from qiskit.utils.optionals import HAS_SYMPY
 
 # This type is redefined at the bottom to insert the full reference to "ParameterExpression", so it
 # can safely be used by runtime type-checkers like Sphinx.  Mypy does not need this because it
@@ -117,6 +119,8 @@ class ParameterExpression:
 
         Not intended to be called directly, but to be instantiated via operations
         on other :class:`Parameter` or :class:`ParameterExpression` objects.
+        The constructor of this object is **not** a public interface and should not
+        ever be used directly.
 
         Args:
             symbol_map (Dict[Parameter, [ParameterExpression, float, or int]]):
@@ -340,7 +344,7 @@ class ParameterExpression:
         either a constant or a second ParameterExpression.
 
         Args:
-            operation: One of operator.{add,sub,mul,truediv}.
+            operation: An operator, such as add, sub, mul, and truediv.
             other: The second argument to be used with self in operation.
             reflected: Optional - The default ordering is "self operator other".
                        If reflected is True, this is switched to "other operator self".
@@ -528,6 +532,9 @@ class ParameterExpression:
     def __str__(self):
         from sympy import sympify, sstr
 
+        if not isinstance(self._symbol_expr, symengine.Basic):
+            raise QiskitError("Invalid ParameterExpression")
+
         return sstr(sympify(self._symbol_expr), full_prec=False)
 
     def __complex__(self):
@@ -608,6 +615,9 @@ class ParameterExpression:
                 return False
             from sympy import sympify
 
+            if not isinstance(self._symbol_expr, symengine.Basic):
+                raise QiskitError("Invalid ParameterExpression")
+
             return sympify(self._symbol_expr).equals(sympify(other._symbol_expr))
         elif isinstance(other, numbers.Number):
             return len(self.parameters) == 0 and complex(self._symbol_expr) == other
@@ -672,6 +682,7 @@ class ParameterExpression:
             return out.real if out.imag == 0.0 else out
         return float(real_expr)
 
+    @HAS_SYMPY.require_in_call
     def sympify(self):
         """Return symbolic expression as a raw Sympy or Symengine object.
 

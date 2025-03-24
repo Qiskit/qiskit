@@ -15,11 +15,10 @@
 from math import ceil
 import numpy as np
 
-from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit import QuantumRegister
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.library.standard_gates import (
     HGate,
-    MCU1Gate,
     CU1Gate,
     RC3XGate,
     C3SXGate,
@@ -53,7 +52,10 @@ def synth_mcx_n_dirty_i15(
            `arXiv:1501.06911 <http://arxiv.org/abs/1501.06911>`_
     """
 
-    num_qubits = 2 * num_ctrl_qubits - 1
+    if num_ctrl_qubits == 1:
+        num_qubits = 2
+    else:
+        num_qubits = 2 * num_ctrl_qubits - 1
     q = QuantumRegister(num_qubits, name="q")
     qc = QuantumCircuit(q, name="mcx_vchain")
     q_controls = q[:num_ctrl_qubits]
@@ -249,11 +251,17 @@ def synth_mcx_gray_code(num_ctrl_qubits: int) -> QuantumCircuit:
     Returns:
         The synthesized quantum circuit.
     """
+    from qiskit.circuit.library.standard_gates.u3 import _gray_code_chain
+
     num_qubits = num_ctrl_qubits + 1
     q = QuantumRegister(num_qubits, name="q")
     qc = QuantumCircuit(q, name="mcx_gray")
     qc._append(HGate(), [q[-1]], [])
-    qc._append(MCU1Gate(np.pi, num_ctrl_qubits=num_ctrl_qubits), q[:], [])
+    scaled_lam = np.pi / (2 ** (num_ctrl_qubits - 1))
+    bottom_gate = CU1Gate(scaled_lam)
+    definition = _gray_code_chain(q, num_ctrl_qubits, bottom_gate)
+    for instr, qargs, cargs in definition:
+        qc._append(instr, qargs, cargs)
     qc._append(HGate(), [q[-1]], [])
     return qc
 

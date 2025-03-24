@@ -536,34 +536,6 @@ class TestRemoveDiagonalGatesBeforeMeasureOveroptimizations(QiskitTestCase):
 
         self.assertEqual(expected, after)
 
-    def test_do_not_optimize_with_conditional(self):
-        """Diagonal gates with conditionals on a measurement target.
-        See https://github.com/Qiskit/qiskit-terra/pull/2208#issuecomment-487238819
-                                 ░ ┌───┐┌─┐
-            qr_0: |0>────────────░─┤ H ├┤M├
-                     ┌─────────┐ ░ └───┘└╥┘
-            qr_1: |0>┤ Rz(0.1) ├─░───────╫─
-                     └─┬──┴──┬─┘ ░       ║
-             cr_0: 0 ══╡ = 1 ╞═══════════╩═
-                       └─────┘
-        """
-        qr = QuantumRegister(2, "qr")
-        cr = ClassicalRegister(1, "cr")
-        circuit = QuantumCircuit(qr, cr)
-        with self.assertWarns(DeprecationWarning):
-            circuit.rz(0.1, qr[1]).c_if(cr, 1)
-        circuit.barrier()
-        circuit.h(qr[0])
-        circuit.measure(qr[0], cr[0])
-        dag = circuit_to_dag(circuit)
-
-        expected = deepcopy(dag)
-
-        pass_ = RemoveDiagonalGatesBeforeMeasure()
-        after = pass_.run(dag)
-
-        self.assertEqual(expected, after)
-
 
 class TestRemoveDiagonalGatesBeforeMeasureFixedPoint(QiskitTestCase):
     """Test remove_diagonal_gates_before_measure optimizations in

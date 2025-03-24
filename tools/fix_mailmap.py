@@ -12,6 +12,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=bad-builtin
+
 """Check and fixup mailmaps files against git log."""
 
 from __future__ import annotations

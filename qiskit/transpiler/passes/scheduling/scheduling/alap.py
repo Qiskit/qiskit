@@ -20,9 +20,8 @@ from qiskit.transpiler.passes.scheduling.scheduling.base_scheduler import BaseSc
 class ALAPScheduleAnalysis(BaseScheduler):
     """ALAP Scheduling pass, which schedules the **stop** time of instructions as late as possible.
 
-    See the :ref:`scheduling_stage` section in the :mod:`qiskit.transpiler`
-    module documentation for the detailed behavior of the control flow
-    operation, i.e. ``c_if``.
+    See the :ref:`transpiler-scheduling-description` section in the :mod:`qiskit.transpiler`
+    module documentation for a more detailed explanation.
     """
 
     def run(self, dag):
@@ -40,8 +39,9 @@ class ALAPScheduleAnalysis(BaseScheduler):
         """
         if len(dag.qregs) != 1 or dag.qregs.get("q", None) is None:
             raise TranspilerError("ALAP schedule runs on physical circuits only")
+        if self.property_set["time_unit"] == "stretch":
+            raise TranspilerError("Scheduling cannot run on circuits with stretch durations.")
 
-        conditional_latency = self.property_set.get("conditional_latency", 0)
         clbit_write_latency = self.property_set.get("clbit_write_latency", 0)
 
         node_start_time = {}
@@ -58,43 +58,9 @@ class ALAPScheduleAnalysis(BaseScheduler):
             # the physical meaning of t0 and t1 is flipped here.
             if isinstance(node.op, self.CONDITIONAL_SUPPORTED):
                 t0q = max(idle_before[q] for q in node.qargs)
-                if node.op.condition_bits:
-                    # conditional is bit tricky due to conditional_latency
-                    t0c = max(idle_before[c] for c in node.op.condition_bits)
-                    # Assume following case (t0c > t0q):
-                    #
-                    #                |t0q
-                    # Q ░░░░░░░░░░░░░▒▒▒
-                    # C ░░░░░░░░▒▒▒▒▒▒▒▒
-                    #           |t0c
-                    #
-                    # In this case, there is no actual clbit read before gate.
-                    #
-                    #             |t0q' = t0c - conditional_latency
-                    # Q ░░░░░░░░▒▒▒░░▒▒▒
-                    # C ░░░░░░▒▒▒▒▒▒▒▒▒▒
-                    #         |t1c' = t0c + conditional_latency
-                    #
-                    # rather than naively doing
-                    #
-                    #        |t1q' = t0c + duration
-                    # Q ░░░░░▒▒▒░░░░░▒▒▒
-                    # C ░░▒▒░░░░▒▒▒▒▒▒▒▒
-                    #     |t1c' = t0c + duration + conditional_latency
-                    #
-                    t0 = max(t0q, t0c - op_duration)
-                    t1 = t0 + op_duration
-                    for clbit in node.op.condition_bits:
-                        idle_before[clbit] = t1 + conditional_latency
-                else:
-                    t0 = t0q
-                    t1 = t0 + op_duration
+                t0 = t0q
+                t1 = t0 + op_duration
             else:
-                if node.op.condition_bits:
-                    raise TranspilerError(
-                        f"Conditional instruction {node.op.name} is not supported in ALAP scheduler."
-                    )
-
                 if isinstance(node.op, Measure):
                     # clbit time is always right (alap) justified
                     t0 = max(idle_before[bit] for bit in node.qargs + node.cargs)
