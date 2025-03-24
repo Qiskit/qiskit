@@ -555,7 +555,6 @@ fn rzx_replacement_dag(py: Python, param: &[Param]) -> PyResult<DAGCircuit> {
     Ok(new_dag.clone())
 }
 
-#[pymodule]
 pub fn gate_direction(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(py_check_direction_coupling_map))?;
     m.add_wrapped(wrap_pyfunction!(py_check_direction_target))?;

@@ -446,6 +446,7 @@ impl PackedOperation {
             (OperationRef::Operation(left), OperationRef::Operation(right)) => {
                 left.operation.bind(py).eq(&right.operation)
             }
+            (OperationRef::Unitary(left), OperationRef::Unitary(right)) => Ok(left == right),
             _ => Ok(false),
         }
     }

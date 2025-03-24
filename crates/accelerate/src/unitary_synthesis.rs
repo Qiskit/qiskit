@@ -1346,7 +1346,6 @@ fn run_2q_unitary_synthesis(
     Ok(())
 }
 
-#[pymodule]
 pub fn unitary_synthesis(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(py_run_main_loop))?;
     Ok(())
