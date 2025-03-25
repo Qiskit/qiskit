@@ -47,6 +47,11 @@ from qiskit.circuit.library import (
     UnitaryGate,
     DiagonalGate,
     PauliFeatureMap,
+    ZZFeatureMap,
+    QAOAAnsatz,
+    pauli_feature_map,
+    zz_feature_map,
+    qaoa_ansatz,
 )
 from qiskit.circuit.annotated_operation import (
     AnnotatedOperation,
@@ -865,9 +870,65 @@ class TestLoadFromQPY(QiskitTestCase):
         self.assertDeprecatedBitProperties(qc, new_circ)
 
     def test_pauli_feature_map(self):
-        """Test PauliFeatureMap class. Regression test for
+        """Regression test for
         https://github.com/Qiskit/qiskit/issues/13720."""
+        # legacy construction
         qc = PauliFeatureMap(feature_dimension=5, reps=1)
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circuit = load(qpy_file)[0]
+        self.assertEqual(qc, new_circuit)
+
+        # new construction
+        qc = pauli_feature_map(feature_dimension=5, reps=1)
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circuit = load(qpy_file)[0]
+        self.assertEqual(qc, new_circuit)
+
+    def test_zz_feature_map(self):
+        """Regression test for
+        https://github.com/Qiskit/qiskit/issues/14088."""
+        # legacy construction
+        qc = ZZFeatureMap(2, reps=1)
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circuit = load(qpy_file)[0]
+        self.assertEqual(qc, new_circuit)
+
+        # new construction
+        qc = zz_feature_map(2, reps=1)
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circuit = load(qpy_file)[0]
+        self.assertEqual(qc, new_circuit)
+
+    def test_duplicated_param_name(self):
+        """Regression test for
+        https://github.com/Qiskit/qiskit/issues/14089."""
+        op = SparsePauliOp(["ZIZI", "IZIZ", "ZIIZ"])
+        x = ParameterVector("γ", 1)
+
+        # legacy construction
+        ansatz = QAOAAnsatz(op, reps=1)
+        ansatz = ansatz.assign_parameters({ansatz.parameters[1]: x[0]})
+        qc = QuantumCircuit(4)
+        qc.append(ansatz, range(4))
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circuit = load(qpy_file)[0]
+        self.assertEqual(qc, new_circuit)
+
+        # new construction
+        ansatz = qaoa_ansatz(op, reps=1)
+        ansatz = ansatz.assign_parameters({ansatz.parameters[1]: x[0]})
+        qc = QuantumCircuit(4)
+        qc.append(ansatz, range(4))
         qpy_file = io.BytesIO()
         dump(qc, qpy_file)
         qpy_file.seek(0)
