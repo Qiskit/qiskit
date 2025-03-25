@@ -1008,9 +1008,10 @@ class MCXSynthesisNDirtyI15(HighLevelSynthesisPlugin):
     This plugin name is :``mcx.n_dirty_i15`` which can be used as the key on
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
 
-    For a multi-controlled X gate with :math:`k\ge 3` control qubits this synthesis
+    For a multi-controlled X gate with :math:`k\ge 4` control qubits this synthesis
     method requires :math:`k - 2` additional dirty auxiliary qubits. The synthesized
     circuit consists of :math:`2 * k - 1` qubits and at most :math:`8 * k - 6` CX gates.
+    For :math:`k\le 3` explicit efficient circuits are used instead.
 
     The plugin supports the following plugin-specific options:
 

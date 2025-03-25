@@ -31,9 +31,12 @@ def synth_mcx_n_dirty_i15(
     action_only: bool = False,
 ) -> QuantumCircuit:
     r"""
-    Synthesize a multi-controlled X gate with :math:`k` controls using :math:`k - 2`
-    dirty ancillary qubits producing a circuit with :math:`2 * k - 1` qubits and at most
-    :math:`8 * k - 6` CX gates, by Iten et. al. [1].
+    Synthesize a multi-controlled X gate with :math:`k` controls based on the paper
+    by Iten et al. [1].
+
+    For :math:`k\ge 4` the method uses :math:`k - 2` dirty ancillary qubits, producing a circuit
+    with :math:`2 * k - 1` qubits and at most :math:`8 * k - 6` CX gates. For :math:`k\le 3`
+    explicit efficient circuits are used instead.
 
     Args:
         num_ctrl_qubits: The number of control qubits.
