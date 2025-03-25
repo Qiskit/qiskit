@@ -411,6 +411,7 @@ mcx_gray q[0],q[1],q[2],q[3],q[4],q[5];
 mcx_recursive q[0],q[1],q[2],q[3],q[4],q[5],q[6];
 mcx_vchain_{mcx_vchain_id} q[0],q[1],q[2],q[3],q[4],q[5],q[6],q[7],q[8];"""
 
+        print(qasm2.dumps(qc))
         self.assertEqual(qasm2.dumps(qc), expected_qasm)
 
     def test_registerless_bits(self):

@@ -207,35 +207,18 @@ def synth_mcx_1_clean_b95(num_ctrl_qubits: int) -> QuantumCircuit:
     q_target = q[-2]
     middle = ceil(num_ctrl_qubits / 2)
 
-    first_half = [*q[:middle]]
-    second_half = [*q[middle : num_ctrl_qubits - 1], q_ancilla]
+    controls1 = [*q[:middle]]
+    mcx1 = synth_mcx_n_dirty_i15(num_ctrl_qubits=len(controls1), relative_phase=True)
+    qubits1 = [*controls1, q_ancilla, *q[middle : middle + mcx1.num_qubits - len(controls1) - 1]]
 
-    qc_first_half = synth_mcx_n_dirty_i15(num_ctrl_qubits=len(first_half))
-    qc_second_half = synth_mcx_n_dirty_i15(num_ctrl_qubits=len(second_half))
+    controls2 = [*q[middle : num_ctrl_qubits - 1], q_ancilla]
+    mcx2 = synth_mcx_n_dirty_i15(num_ctrl_qubits=len(controls2))
+    qc2_qubits = [*controls2, q_target, *q[0 : mcx2.num_qubits - len(controls2) - 1]]
 
-    num_first_half_ancillas = qc_first_half.num_qubits - len(first_half) - 1
-    num_second_half_ancillas = qc_second_half.num_qubits - len(second_half) - 1
-
-    qc.append(
-        qc_first_half,
-        qargs=[*first_half, q_ancilla, *q[middle : middle + num_first_half_ancillas]],
-        cargs=[],
-    )
-    qc.append(
-        qc_second_half,
-        qargs=[*second_half, q_target, *q[0:num_second_half_ancillas]],
-        cargs=[],
-    )
-    qc.append(
-        qc_first_half,
-        qargs=[*first_half, q_ancilla, *q[middle : middle + num_first_half_ancillas]],
-        cargs=[],
-    )
-    qc.append(
-        qc_second_half,
-        qargs=[*second_half, q_target, *q[0:num_second_half_ancillas]],
-        cargs=[],
-    )
+    qc.compose(mcx1, qubits1, inplace=True)
+    qc.compose(mcx2, qc2_qubits, inplace=True)
+    qc.compose(mcx1.inverse(), qubits1, inplace=True)
+    qc.compose(mcx2, qc2_qubits, inplace=True)
 
     return qc
 

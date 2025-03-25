@@ -171,14 +171,9 @@ def _mcsu2_real_diagonal(
     k_1 = math.ceil(num_controls / 2.0)
     k_2 = math.floor(num_controls / 2.0)
 
-    circuit = QuantumCircuit(num_controls + 1, name="MCSU2")
     controls = list(range(num_controls))  # control indices, defined for code legibility
     target = num_controls  # target index, defined for code legibility
 
-    if not is_secondary_diag_real:
-        circuit.h(target)
-
-    # TODO: improve CX count by using action_only=True (based on #9687)
     mcx1 = synth_mcx_n_dirty_i15(num_ctrl_qubits=k_1)
     mcx1_num_ancillas = mcx1.num_qubits - k_1 - 1
     mcx1_qubits = controls[:k_1] + [target] + controls[k_1 : k_1 + mcx1_num_ancillas]
@@ -187,9 +182,14 @@ def _mcsu2_real_diagonal(
     mcx2_num_ancillas = mcx2.num_qubits - k_2 - 1
     mcx2_qubits = controls[k_1:] + [target] + controls[k_1 - mcx2_num_ancillas : k_1]
 
+    circuit = QuantumCircuit(num_controls + 1, name="MCSU2")
+
+    if not is_secondary_diag_real:
+        circuit.h(target)
+
     circuit.compose(mcx1, mcx1_qubits, inplace=True)
     circuit.append(s_gate, [target])
-    circuit.compose(mcx2.inverse(), mcx2_qubits, inplace=True)
+    circuit.compose(mcx2, mcx2_qubits, inplace=True)
     circuit.append(s_gate.inverse(), [target])
     circuit.compose(mcx1, mcx1_qubits, inplace=True)
     circuit.append(s_gate, [target])

@@ -112,7 +112,6 @@ class TestMCSynthesisCorrectness(QiskitTestCase):
     def test_mcx_n_dirty_i15(self, num_ctrl_qubits: int):
         """Test synth_mcx_n_dirty_i15 by comparing synthesized and expected matrices."""
         synthesized_circuit = synth_mcx_n_dirty_i15(num_ctrl_qubits)
-        self.check_mc_synthesis(XGate(), num_ctrl_qubits, synthesized_circuit, clean_ancillas=False)
         self.assertSynthesisCorrect(
             XGate(), num_ctrl_qubits, synthesized_circuit, clean_ancillas=False
         )
