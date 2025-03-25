@@ -37,10 +37,15 @@ use qiskit_accelerate::sparse_observable::PySparseObservable;
 /// * ``indices`` must be a non-null, aligned pointer to ``len`` elements of type ``uint32_t``.
 #[repr(C)]
 pub struct CSparseTerm {
+    /// The coefficient of the observable term
     coeff: Complex64,
+    /// Length of ``bit_terms`` and ``indices`` arrays
     len: usize,
+    /// A non-null, aligned pointer to ``len`` elements of type ``BitTerm``.
     bit_terms: *mut BitTerm,
+    /// A non-null, aligned pointer to ``len`` elements of type ``uint32_t``.
     indices: *mut u32,
+    /// The number of qubits of the observable term
     num_qubits: u32,
 }
 
