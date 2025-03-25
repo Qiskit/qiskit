@@ -242,7 +242,7 @@ impl PySymbolExpr {
     /// return expression as a string
     #[getter]
     pub fn name(&self) -> String {
-        self.expr.optimize().to_string()
+        self.__str__()
     }
 
     /// bind values to symbols given by input hashmap
@@ -462,13 +462,13 @@ impl PySymbolExpr {
 
     pub fn __hash__(&self) -> u64 {
         let mut hasher = DefaultHasher::new();
-        self.expr.optimize().to_string().hash(&mut hasher);
+        self.expr.to_string().hash(&mut hasher);
         hasher.finish()
     }
 
     // for pickle, we can reproduce equation from expression string
     fn __getstate__(&self) -> String {
-        self.expr.optimize().to_string()
+        self.__str__()
     }
     fn __setstate__(&mut self, state: String) {
         self.expr = parse_expression(&state);

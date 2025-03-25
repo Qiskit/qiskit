@@ -2358,7 +2358,6 @@ impl Add for SymbolExpr {
 impl Add for &SymbolExpr {
     type Output = SymbolExpr;
     fn add(self, rhs: Self) -> SymbolExpr {
-        //_add(self.clone(), rhs.clone())
         match self.add_opt(rhs, false) {
             Some(e) => e,
             None => _add(self.clone(), rhs.clone()),
@@ -2376,7 +2375,6 @@ impl Sub for SymbolExpr {
 impl Sub for &SymbolExpr {
     type Output = SymbolExpr;
     fn sub(self, rhs: Self) -> SymbolExpr {
-        // _sub(self.clone(), rhs.clone())
         match self.sub_opt(rhs, false) {
             Some(e) => e,
             None => _sub(self.clone(), rhs.clone()),
@@ -2394,7 +2392,6 @@ impl Mul for SymbolExpr {
 impl Mul for &SymbolExpr {
     type Output = SymbolExpr;
     fn mul(self, rhs: Self) -> SymbolExpr {
-        //_mul(self.clone(), rhs.clone())
         match self.mul_opt(rhs, false) {
             Some(e) => e,
             None => _mul(self.clone(), rhs.clone()),
@@ -2412,7 +2409,6 @@ impl Div for SymbolExpr {
 impl Div for &SymbolExpr {
     type Output = SymbolExpr;
     fn div(self, rhs: Self) -> SymbolExpr {
-        //_div(self.clone(), rhs.clone())
         match self.div_opt(rhs, false) {
             Some(e) => e,
             None => _div(self.clone(), rhs.clone()),
@@ -2430,7 +2426,6 @@ impl Neg for SymbolExpr {
 impl Neg for &SymbolExpr {
     type Output = SymbolExpr;
     fn neg(self) -> SymbolExpr {
-        //_neg(self.clone())
         match self.neg_opt() {
             Some(e) => e,
             None => _neg(self.clone()),
@@ -2509,8 +2504,6 @@ impl PartialEq for SymbolExpr {
         }
     }
 }
-
-impl Eq for SymbolExpr {}
 
 impl PartialEq<f64> for SymbolExpr {
     fn eq(&self, r: &f64) -> bool {
