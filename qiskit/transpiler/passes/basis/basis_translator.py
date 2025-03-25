@@ -18,7 +18,7 @@ import logging
 from collections import defaultdict
 
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit._accelerate.basis.basis_translator import base_run
+from qiskit._accelerate.basis_translator import base_run
 
 logger = logging.getLogger(__name__)
 
@@ -98,15 +98,16 @@ class BasisTranslator(TransformationPass):
             min_qubits (int): The minimum number of qubits for operations in the input
                 dag to translate.
         """
-
         super().__init__()
         self._equiv_lib = equivalence_library
         self._target_basis = target_basis
-        self._target = target
+        # Bypass target if it doesn't contain any basis gates (i.e. it's a _FakeTarget), as this
+        # not part of the official target model.
+        self._target = target if target is not None and len(target.operation_names) > 0 else None
         self._non_global_operations = None
         self._qargs_with_non_global_operation = {}
         self._min_qubits = min_qubits
-        if target is not None:
+        if self._target is not None:
             self._non_global_operations = self._target.get_non_global_operation_names()
             self._qargs_with_non_global_operation = defaultdict(set)
             for gate in self._non_global_operations:
