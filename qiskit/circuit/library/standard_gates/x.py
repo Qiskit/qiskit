@@ -72,7 +72,7 @@ class XGate(SingletonGate):
         |1\rangle \rightarrow |0\rangle
     """
 
-    _standard_gate = StandardGate.XGate
+    _standard_gate = StandardGate.X
 
     def __init__(self, label: Optional[str] = None):
         """Create new X gate."""
@@ -217,7 +217,7 @@ class CXGate(SingletonControlledGate):
         `|a, b\rangle \rightarrow |a, a \oplus b\rangle`
     """
 
-    _standard_gate = StandardGate.CXGate
+    _standard_gate = StandardGate.CX
 
     def __init__(
         self,
@@ -301,8 +301,7 @@ class CCXGate(SingletonControlledGate):
     r"""CCX gate, also known as Toffoli gate.
 
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
-    with the :meth:`~qiskit.circuit.QuantumCircuit.ccx` and
-    :meth:`~qiskit.circuit.QuantumCircuit.toffoli` methods.
+    with the :meth:`~qiskit.circuit.QuantumCircuit.ccx` method.
 
     **Circuit symbol:**
 
@@ -366,7 +365,7 @@ class CCXGate(SingletonControlledGate):
 
     """
 
-    _standard_gate = StandardGate.CCXGate
+    _standard_gate = StandardGate.CCX
 
     def __init__(
         self,
@@ -517,7 +516,7 @@ class RCCXGate(SingletonGate):
     with the :meth:`~qiskit.circuit.QuantumCircuit.rccx` method.
     """
 
-    _standard_gate = StandardGate.RCCXGate
+    _standard_gate = StandardGate.RCCX
 
     def __init__(self, label: Optional[str] = None):
         """Create a new simplified CCX gate."""
@@ -576,7 +575,7 @@ class C3SXGate(SingletonControlledGate):
         [1] Barenco et al., 1995. https://arxiv.org/pdf/quant-ph/9503016.pdf
     """
 
-    _standard_gate = StandardGate.C3SXGate
+    _standard_gate = StandardGate.C3SX
 
     def __init__(
         self,
@@ -678,7 +677,7 @@ class C3XGate(SingletonControlledGate):
     This implementation uses :math:`\sqrt{T}` and 14 CNOT gates.
     """
 
-    _standard_gate = StandardGate.C3XGate
+    _standard_gate = StandardGate.C3X
 
     def __init__(
         self,
@@ -863,7 +862,7 @@ class RC3XGate(SingletonGate):
     with the :meth:`~qiskit.circuit.QuantumCircuit.rcccx` method.
     """
 
-    _standard_gate = StandardGate.RC3XGate
+    _standard_gate = StandardGate.RC3X
 
     def __init__(self, label: Optional[str] = None):
         """Create a new RC3X gate."""

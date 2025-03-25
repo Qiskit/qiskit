@@ -32,9 +32,10 @@ class RGate(Gate):
 
     .. code-block:: text
 
-             ┌──────┐
-        q_0: ┤ R(ϴ) ├
-             └──────┘
+               ┌─────────┐
+        q_0:   ┤ R(θ,ϕ)  ├ 
+               └─────────┘
+
 
     **Matrix Representation:**
 
@@ -49,7 +50,7 @@ class RGate(Gate):
             \end{pmatrix}
     """
 
-    _standard_gate = StandardGate.RGate
+    _standard_gate = StandardGate.R
 
     def __init__(
         self,

@@ -137,7 +137,7 @@ fn cx_cost3(clifford: &Clifford) -> usize {
 /// Returns the modified Clifford, the new cost (equal to the original cost - 1),
 /// and appends the corresponding gates to the ``gates`` vector. Slightly different
 /// from the Python implementation, the gates are already inverted (in practice this
-/// means applying an SGate instead of an SdgGate and vice versa), and at the end
+/// means applying an S instead of an Sdg and vice versa), and at the end
 /// of the algorithm the vector of computed gates only needs to be reversed (but not
 /// also inverted).
 fn reduce_cost(
@@ -170,53 +170,29 @@ fn reduce_cost(
                 // We append the gates from this decomposition.
                 if new_cost == cost - 1 {
                     if n0 == 1 {
-                        gates.push((
-                            StandardGate::SGate,
-                            smallvec![],
-                            smallvec![Qubit::new(qubit0)],
-                        ));
-                        gates.push((
-                            StandardGate::HGate,
-                            smallvec![],
-                            smallvec![Qubit::new(qubit0)],
-                        ));
+                        gates.push((StandardGate::S, smallvec![], smallvec![Qubit::new(qubit0)]));
+                        gates.push((StandardGate::H, smallvec![], smallvec![Qubit::new(qubit0)]));
                     } else if n0 == 2 {
+                        gates.push((StandardGate::H, smallvec![], smallvec![Qubit::new(qubit0)]));
                         gates.push((
-                            StandardGate::HGate,
-                            smallvec![],
-                            smallvec![Qubit::new(qubit0)],
-                        ));
-                        gates.push((
-                            StandardGate::SdgGate,
+                            StandardGate::Sdg,
                             smallvec![],
                             smallvec![Qubit::new(qubit0)],
                         ));
                     }
                     if n1 == 1 {
-                        gates.push((
-                            StandardGate::SGate,
-                            smallvec![],
-                            smallvec![Qubit::new(qubit1)],
-                        ));
-                        gates.push((
-                            StandardGate::HGate,
-                            smallvec![],
-                            smallvec![Qubit::new(qubit1)],
-                        ));
+                        gates.push((StandardGate::S, smallvec![], smallvec![Qubit::new(qubit1)]));
+                        gates.push((StandardGate::H, smallvec![], smallvec![Qubit::new(qubit1)]));
                     } else if n1 == 2 {
+                        gates.push((StandardGate::H, smallvec![], smallvec![Qubit::new(qubit1)]));
                         gates.push((
-                            StandardGate::HGate,
-                            smallvec![],
-                            smallvec![Qubit::new(qubit1)],
-                        ));
-                        gates.push((
-                            StandardGate::SdgGate,
+                            StandardGate::Sdg,
                             smallvec![],
                             smallvec![Qubit::new(qubit1)],
                         ));
                     }
                     gates.push((
-                        StandardGate::CXGate,
+                        StandardGate::CX,
                         smallvec![],
                         smallvec![Qubit::new(qubit0), Qubit::new(qubit1)],
                     ));
@@ -240,19 +216,19 @@ fn decompose_clifford_1q(cliff: &Clifford, gates: &mut CliffordGatesVec, output_
 
     if destab_phase && !stab_phase {
         gates.push((
-            StandardGate::ZGate,
+            StandardGate::Z,
             smallvec![],
             smallvec![Qubit::new(output_qubit)],
         ));
     } else if !destab_phase && stab_phase {
         gates.push((
-            StandardGate::XGate,
+            StandardGate::X,
             smallvec![],
             smallvec![Qubit::new(output_qubit)],
         ));
     } else if destab_phase && stab_phase {
         gates.push((
-            StandardGate::YGate,
+            StandardGate::Y,
             smallvec![],
             smallvec![Qubit::new(output_qubit)],
         ));
@@ -266,7 +242,7 @@ fn decompose_clifford_1q(cliff: &Clifford, gates: &mut CliffordGatesVec, output_
     if stab_z && !stab_x {
         if destab_z {
             gates.push((
-                StandardGate::SGate,
+                StandardGate::S,
                 smallvec![],
                 smallvec![Qubit::new(output_qubit)],
             ));
@@ -274,31 +250,31 @@ fn decompose_clifford_1q(cliff: &Clifford, gates: &mut CliffordGatesVec, output_
     } else if !stab_z && stab_x {
         if destab_x {
             gates.push((
-                StandardGate::SdgGate,
+                StandardGate::Sdg,
                 smallvec![],
                 smallvec![Qubit::new(output_qubit)],
             ));
         }
         gates.push((
-            StandardGate::HGate,
+            StandardGate::H,
             smallvec![],
             smallvec![Qubit::new(output_qubit)],
         ));
     } else {
         if !destab_z {
             gates.push((
-                StandardGate::SGate,
+                StandardGate::S,
                 smallvec![],
                 smallvec![Qubit::new(output_qubit)],
             ));
         }
         gates.push((
-            StandardGate::HGate,
+            StandardGate::H,
             smallvec![],
             smallvec![Qubit::new(output_qubit)],
         ));
         gates.push((
-            StandardGate::SGate,
+            StandardGate::S,
             smallvec![],
             smallvec![Qubit::new(output_qubit)],
         ));
