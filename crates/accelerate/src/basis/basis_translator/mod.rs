@@ -767,36 +767,6 @@ fn replace_node(
             )?;
         }
 
-<<<<<<< HEAD
-        if let Param::ParameterExpression(old_phase) = target_dag.global_phase() {
-            let bound_old_phase = old_phase.bind(py);
-            let bind_dict = PyDict::new_bound(py);
-            for key in target_dag.global_phase().iter_parameters(py)? {
-                let key = key?;
-                bind_dict.set_item(&key, parameter_map.get_item(&key)?)?;
-            }
-            let mut new_phase: Bound<PyAny>;
-            if bind_dict.values().iter().any(|param| {
-                param
-                    .is_instance(PARAMETER_EXPRESSION.get_bound(py))
-                    .is_ok_and(|x| x)
-            }) {
-                new_phase = bound_old_phase.clone();
-                for key_val in bind_dict.items() {
-                    new_phase =
-                        new_phase.call_method1(intern!(py, "assign"), key_val.downcast()?)?;
-                }
-            } else {
-                new_phase = bound_old_phase.call_method1(intern!(py, "bind"), (bind_dict,))?;
-            }
-            if !new_phase.getattr(intern!(py, "parameters"))?.is_truthy()? {
-                new_phase = new_phase.call_method0(intern!(py, "numeric"))?;
-                if new_phase.is_instance(&PyComplex::type_object_bound(py))? {
-                    return Err(TranspilerError::new_err(format!(
-                        "Global phase must be real, but got {}",
-                        new_phase.repr()?
-                    )));
-=======
         match target_dag.global_phase() {
             Param::ParameterExpression(old_phase) => {
                 let bound_old_phase = old_phase.bind(py);
@@ -818,7 +788,6 @@ fn replace_node(
                     }
                 } else {
                     new_phase = bound_old_phase.call_method1(intern!(py, "bind"), (bind_dict,))?;
->>>>>>> d67c8182b (Fix global phase update in `BasisTranslator` Pass (#14078))
                 }
                 if !new_phase.getattr(intern!(py, "parameters"))?.is_truthy()? {
                     new_phase = new_phase.call_method0(intern!(py, "numeric"))?;
@@ -830,19 +799,14 @@ fn replace_node(
                     }
                 }
                 let new_phase: Param = new_phase.extract()?;
-                dag.add_global_phase(&new_phase)?;
+                dag.add_global_phase(py, &new_phase)?;
             }
-<<<<<<< HEAD
-            let new_phase: Param = new_phase.extract()?;
-            dag.add_global_phase(py, &new_phase)?;
-=======
 
             Param::Float(_) => {
-                dag.add_global_phase(target_dag.global_phase())?;
+                dag.add_global_phase(py, target_dag.global_phase())?;
             }
 
             _ => {}
->>>>>>> d67c8182b (Fix global phase update in `BasisTranslator` Pass (#14078))
         }
     }
 
