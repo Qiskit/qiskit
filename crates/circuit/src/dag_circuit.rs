@@ -5591,8 +5591,7 @@ impl DAGCircuit {
             } else if wire.is_instance(imports::CLBIT.get_bound(py))? {
                 NodeType::ClbitOut(self.clbits.find(wire).unwrap())
             } else {
-                let var = PyObjectAsKey::new(wire);
-                NodeType::VarOut(self.vars.find(&var).unwrap())
+                NodeType::VarIn(self.vars.find(wire).unwrap())
             }
         } else if let Ok(op_node) = b.downcast::<DAGOpNode>() {
             let op_node = op_node.borrow();
