@@ -76,6 +76,7 @@ Abstract operations
    decomposition. For example:
 
    .. plot::
+      :alt: A circuit with a multi-controlled X gate.
       :include-source:
 
       from qiskit.circuit.library import MCXGate
@@ -114,6 +115,7 @@ Structural operations
    object. For example:
 
    .. plot::
+      :alt: The real amplitudes ansatz circuit.
       :include-source:
 
       from qiskit.circuit.library import real_amplitudes
@@ -135,13 +137,14 @@ and :meth:`~qiskit.circuit.Gate.control`, which we can generally only apply to u
 For example:
 
 .. plot::
+   :alt: The X gate and the matrix, power, and control methods.
    :include-source:
    :nofigs:
 
     from qiskit.circuit.library import XGate
     gate = XGate()
     print(gate.to_matrix())             # X gate
-    print(gate.power(1/2).to_matrix())  # √X gate
+    print(gate.power(1/2).to_matrix())  # √X gate -- see also the SXGate
     print(gate.control(1).to_matrix())  # CX (controlled X) gate
 
 .. code-block:: text
@@ -589,7 +592,7 @@ a broad set of variational quantum algorithms.
 For example, we can build a variational circuit
 
 .. plot::
-   :include-source:
+   :alt: The efficient SU2 ansatz circuit...
    :context:
 
    from qiskit.circuit.library import efficient_su2
@@ -601,6 +604,7 @@ For example, we can build a variational circuit
 and combine it with
 
 .. plot::
+   :alt: ... combined with the ZZ feature map.
    :include-source:
    :context:
 
@@ -688,7 +692,7 @@ The following operations are used for state preparation:
    StatePreparation
    Initialize
 
-.. _template:
+.. _oracles:
 
 Oracles
 =======
@@ -712,7 +716,7 @@ These are implemented in
 .. autosummary::
    :toctree: ../stubs/
 
-   PhaseFlipOracleGate
+   PhaseOracleGate
    BitFlipOracleGate
 
 and an important building block for Grover's algorithm (see :func:`.grover_operator`).
@@ -724,7 +728,7 @@ In addition to the :class:`.Gate`-based implementation we also support the
    :toctree: ../stubs/
    :template: autosummary/class_no_inherited_members.rst
 
-   PhaseFlipOracle
+   PhaseOracle
 
 
 .. _template:
@@ -739,6 +743,7 @@ to replace the match with the inverse of the remainder from the template.
 In this example, the identity constant in a template is checked:
 
 .. plot::
+   :alt: A Toffoli template circuit.
    :include-source:
    :nofigs:
 
