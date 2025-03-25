@@ -1677,12 +1677,13 @@ class TestTranspile(QiskitTestCase):
         """Test that scheduling-related loose transpile constraints
         work with BackendV2."""
 
-        backend_v2 = GenericBackendV2(num_qubits=2, seed=1)
+        original_dt = 2.2222222222222221e-10
+        backend_v2 = GenericBackendV2(num_qubits=2, dt=original_dt, seed=3)
         qc = QuantumCircuit(1, 1)
         qc.x(0)
         qc.measure(0, 0)
-        original_dt = 2.2222222222222221e-10
-        original_duration = 5059
+        scheduled = transpile(qc, backend=backend_v2, scheduling_method="asap")
+        original_duration = scheduled.duration
 
         # halve dt in sec = double duration in dt
         scheduled = transpile(qc, backend=backend_v2, scheduling_method="asap", dt=original_dt / 2)
@@ -2271,6 +2272,36 @@ class TestTranspile(QiskitTestCase):
         # to prevent contraction of the wires.
         active_indices = {qubit_map[bit] for instruction in body for bit in instruction.qubits}
         self.assertNotIn(8, active_indices)
+
+    def test_custom_dt_preserves_properties(self):
+        """Test that setting the `dt` parameter with a `backend` doesn't affect the target properties
+        and vf2 runs as expected.
+        """
+
+        coupling_map = [[0, 1], [1, 0], [1, 2], [1, 3], [2, 1], [3, 1], [3, 4], [4, 3]]
+        backend = GenericBackendV2(
+            num_qubits=5,
+            basis_gates=["id", "sx", "x", "cx", "rz"],
+            coupling_map=coupling_map,
+            seed=0,
+        )
+        qubits = 3
+        qc = QuantumCircuit(qubits)
+        for i in range(5):
+            qc.cx(i % qubits, int(i + qubits / 2) % qubits)
+
+        # transpile with no gate errors
+        tqc_no_error = transpile(qc, coupling_map=coupling_map, seed_transpiler=4242)
+        # transpile with gate errors
+        tqc_no_dt = transpile(qc, backend=backend, seed_transpiler=4242)
+        # confirm that the output layouts are different
+        self.assertNotEqual(
+            tqc_no_dt.layout.final_index_layout(), tqc_no_error.layout.final_index_layout()
+        )
+        # now modify dt with gate errors
+        tqc_dt = transpile(qc, backend=backend, seed_transpiler=4242, dt=backend.dt * 2)
+        # confirm that dt doesn't affect layout
+        self.assertEqual(tqc_no_dt.layout.final_index_layout(), tqc_dt.layout.final_index_layout())
 
 
 @ddt
