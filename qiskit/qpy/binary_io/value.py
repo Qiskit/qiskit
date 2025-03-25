@@ -124,6 +124,10 @@ def _encode_replay_entry(inst, file_obj, version, r_side=False):
 
 def _encode_replay_subs(subs, file_obj, version):
     with io.BytesIO() as mapping_buf:
+        # the keys in subs_dict have been updated from using `name` to `uuid`
+        # to avoid name clashes when a parameter has been re-assigned to another
+        # parameter with the same name. The decoding side still supports both key
+        # formats for backward compatibility.
         subs_dict = {str(k.uuid): v for k, v in subs.binds.items()}
         common.write_mapping(
             mapping_buf, mapping=subs_dict, serializer=dumps_value, version=version
