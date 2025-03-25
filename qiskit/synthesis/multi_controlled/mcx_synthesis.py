@@ -403,7 +403,7 @@ def synth_mcx_1_kg24(num_ctrl_qubits: int, clean: bool = True) -> QuantumCircuit
 
 def synth_mcx_1_clean_kg24(num_ctrl_qubits: int) -> QuantumCircuit:
     r"""
-    Synthesise a multi-controlled X gate with :math:`k` controls using :math:`1` clean ancillary qubit
+    Synthesize a multi-controlled X gate with :math:`k` controls using :math:`1` clean ancillary qubit
     producing a circuit with :math:`2k-3` Toffoli gates and depth :math:`O(k)` as described in
     Sec. 5.1 of [1].
 
@@ -426,7 +426,7 @@ def synth_mcx_1_clean_kg24(num_ctrl_qubits: int) -> QuantumCircuit:
 
 def synth_mcx_1_dirty_kg24(num_ctrl_qubits: int) -> QuantumCircuit:
     r"""
-    Synthesise a multi-controlled X gate with :math:`k` controls using :math:`1` dirty ancillary qubit
+    Synthesize a multi-controlled X gate with :math:`k` controls using :math:`1` dirty ancillary qubit
     producing a circuit with :math:`4k-8` Toffoli gates and depth :math:`O(k)` as described in
     Sec. 5.3 of [1].
 
@@ -536,7 +536,7 @@ def _build_logn_depth_ccx_ladder(
 
 def synth_mcx_2_kg24(num_ctrl_qubits: int, clean: bool = True) -> QuantumCircuit:
     r"""
-    Synthesise a multi-controlled X gate with :math:`k` controls using :math:`2` ancillary qubits.
+    Synthesize a multi-controlled X gate with :math:`k` controls using :math:`2` ancillary qubits.
     as described in Sec. 5 of [1].
 
     Args:
@@ -601,7 +601,7 @@ def synth_mcx_2_kg24(num_ctrl_qubits: int, clean: bool = True) -> QuantumCircuit
 
 def synth_mcx_2_clean_kg24(num_ctrl_qubits: int) -> QuantumCircuit:
     r"""
-    Synthesise a multi-controlled X gate with :math:`k` controls using :math:`2` clean ancillary qubits
+    Synthesize a multi-controlled X gate with :math:`k` controls using :math:`2` clean ancillary qubits
     producing a circuit with :math:`2k-3` Toffoli gates and depth :math:`O(\log(k))` as described in
     Sec. 5.2 of [1].
 
@@ -624,7 +624,7 @@ def synth_mcx_2_clean_kg24(num_ctrl_qubits: int) -> QuantumCircuit:
 
 def synth_mcx_2_dirty_kg24(num_ctrl_qubits: int) -> QuantumCircuit:
     r"""
-    Synthesise a multi-controlled X gate with :math:`k` controls using :math:`2` dirty ancillary qubits
+    Synthesize a multi-controlled X gate with :math:`k` controls using :math:`2` dirty ancillary qubits
     producing a circuit with :math:`4k-8` Toffoli gates and depth :math:`O(\log(k))` as described in
     Sec. 5.4 of [1].
 
