@@ -246,6 +246,11 @@ pub enum UnaryOp {
 
 #[pymethods]
 impl UnaryOp {
+    #[classmethod]
+    fn __iter__(cls: &Bound<'_, pyo3::types::PyType>) -> PyResult<Py<PyAny>> {
+        panic!("CALLED ITER ON TYPE")
+    }
+
     fn __str__(&self) -> String {
         format!("Unary.Op.{:?}", self)
     }
@@ -264,6 +269,24 @@ impl PyUnary {
     #[classattr]
     fn Op(py: Python) -> Py<PyAny> {
         UnaryOp::type_object(py).into_any().unbind()
+    }
+
+    #[new]
+    #[pyo3(text_signature = "(op, operand, type)")]
+    fn new(py: Python, op: UnaryOp, operand: Expr, ty: Type) -> PyResult<Py<Self>> {
+        let constant = operand.is_const();
+        Py::new(
+            py,
+            (
+                PyUnary(Unary {
+                    op,
+                    operand,
+                    ty,
+                    constant,
+                }),
+                PyExpr(ExprKind::Unary),
+            ),
+        )
     }
 
     #[getter]
@@ -336,6 +359,11 @@ pub enum BinaryOp {
 
 #[pymethods]
 impl BinaryOp {
+    #[classmethod]
+    fn __iter__(cls: &Bound<'_, pyo3::types::PyType>) -> PyResult<Py<PyAny>> {
+        panic!("CALLED ITER ON TYPE")
+    }
+
     fn __str__(&self) -> String {
         format!("Binary.Op.{:?}", self)
     }
@@ -354,6 +382,25 @@ impl PyBinary {
     #[classattr]
     fn Op(py: Python) -> Py<PyAny> {
         BinaryOp::type_object(py).into_any().unbind()
+    }
+
+    #[new]
+    #[pyo3(text_signature = "(op, left, right, type)")]
+    fn new(py: Python, op: BinaryOp, left: Expr, right: Expr, ty: Type) -> PyResult<Py<Self>> {
+        let constant = left.is_const() && right.is_const();
+        Py::new(
+            py,
+            (
+                PyBinary(Binary {
+                    op,
+                    left,
+                    right,
+                    ty,
+                    constant,
+                }),
+                PyExpr(ExprKind::Binary),
+            ),
+        )
     }
 
     #[getter]
@@ -385,6 +432,24 @@ struct PyCast(Cast);
 
 #[pymethods]
 impl PyCast {
+    #[new]
+    #[pyo3(signature=(operand, ty, implicit=false), text_signature="(operand, type, implicit=False)")]
+    fn new(py: Python, operand: Expr, ty: Type, implicit: bool) -> PyResult<Py<Self>> {
+        let constant = operand.is_const();
+        Py::new(
+            py,
+            (
+                PyCast(Cast {
+                    operand,
+                    ty,
+                    constant,
+                    implicit,
+                }),
+                PyExpr(ExprKind::Cast),
+            ),
+        )
+    }
+
     #[getter]
     fn get_type(&self, py: Python) -> PyResult<Py<PyAny>> {
         self.0.ty.clone().into_py_any(py)
@@ -411,6 +476,19 @@ struct PyValue(Value);
 
 #[pymethods]
 impl PyValue {
+    #[new]
+    #[pyo3(text_signature = "(value, type)")]
+    fn new(py: Python, value: Bound<PyAny>, ty: Type) -> PyResult<Py<Self>> {
+        let value = if let Ok(raw) = value.extract::<u64>() {
+            Value::Uint { raw, ty }
+        } else if let Ok(raw) = value.extract::<f64>() {
+            Value::Float { raw, ty }
+        } else {
+            Value::Duration(value.extract()?)
+        };
+        Py::new(py, (PyValue(value), PyExpr(ExprKind::Value)))
+    }
+
     #[getter]
     fn get_type(&self, py: Python) -> PyResult<Py<PyAny>> {
         match self.0 {
@@ -638,6 +716,24 @@ struct PyIndex(Index);
 
 #[pymethods]
 impl PyIndex {
+    #[new]
+    #[pyo3(text_signature = "(target, index, type)")]
+    fn new(py: Python, target: Expr, index: Expr, ty: Type) -> PyResult<Py<Self>> {
+        let constant = target.is_const() && index.is_const();
+        Py::new(
+            py,
+            (
+                PyIndex(Index {
+                    target,
+                    index,
+                    ty,
+                    constant,
+                }),
+                PyExpr(ExprKind::Index),
+            ),
+        )
+    }
+
     #[getter]
     fn get_type(&self, py: Python) -> PyResult<Py<PyAny>> {
         self.0.ty.clone().into_py_any(py)

@@ -30,6 +30,17 @@ __all__ = [
     "Index",
 ]
 
+from qiskit._accelerate.circuit.classical import (
+    Expr,
+    Var,
+    Stretch,
+    Value,
+    Cast,
+    Unary,
+    Binary,
+    Index,
+)  # pylint: disable=unused-import
+
 import abc
 import enum
 import typing
@@ -47,7 +58,7 @@ _T_co = typing.TypeVar("_T_co", covariant=True)
 # If adding nodes, remember to update `visitors.ExprVisitor` as well.
 
 
-class Expr(abc.ABC):
+class _Expr(abc.ABC):
     """Root base class of all nodes in the expression tree.  The base case should never be
     instantiated directly.
 
@@ -84,7 +95,7 @@ class Expr(abc.ABC):
 
 
 @typing.final
-class Cast(Expr):
+class _Cast(_Expr):
     """A cast from one type to another, implied by the use of an expression in a different
     context."""
 
@@ -113,7 +124,7 @@ class Cast(Expr):
 
 
 @typing.final
-class Var(Expr):
+class _Var(_Expr):
     """A classical variable.
 
     These variables take two forms: a new-style variable that owns its storage location and has an
@@ -206,7 +217,7 @@ class Var(Expr):
 
 
 @typing.final
-class Stretch(Expr):
+class _Stretch(_Expr):
     """A stretch variable.
 
     In general, construction of stretch variables for use in programs should use :meth:`Stretch.new`
@@ -275,7 +286,7 @@ class Stretch(Expr):
 
 
 @typing.final
-class Value(Expr):
+class _Value(_Expr):
     """A single scalar value."""
 
     __slots__ = ("value",)
@@ -296,7 +307,7 @@ class Value(Expr):
 
 
 @typing.final
-class Unary(Expr):
+class _Unary(_Expr):
     """A unary expression.
 
     Args:
@@ -354,7 +365,7 @@ class Unary(Expr):
 
 
 @typing.final
-class Binary(Expr):
+class _Binary(_Expr):
     """A binary expression.
 
     Args:
@@ -465,7 +476,7 @@ class Binary(Expr):
 
 
 @typing.final
-class Index(Expr):
+class _Index(_Expr):
     """An indexing expression.
 
     Args:
