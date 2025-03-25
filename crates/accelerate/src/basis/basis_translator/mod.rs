@@ -794,19 +794,14 @@ fn replace_node(
                     }
                 }
                 let new_phase: Param = new_phase.extract()?;
-                dag.add_global_phase(&new_phase)?;
+                dag.add_global_phase(py, &new_phase)?;
             }
-<<<<<<< HEAD
-            let new_phase: Param = new_phase.extract()?;
-            dag.add_global_phase(py, &new_phase)?;
-=======
 
             Param::Float(_) => {
-                dag.add_global_phase(target_dag.global_phase())?;
+                dag.add_global_phase(py, target_dag.global_phase())?;
             }
 
             _ => {}
->>>>>>> d67c8182b (Fix global phase update in `BasisTranslator` Pass (#14078))
         }
     }
 
