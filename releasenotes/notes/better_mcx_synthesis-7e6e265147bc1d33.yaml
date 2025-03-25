@@ -8,7 +8,9 @@ features_synthesis:
     * :func:`.synth_mcx_1_dirty_kg24`, using 1 additional dirty ancilla qubit
     * :func:`.synth_mcx_2_clean_kg24`, using 2 additional clean ancillary qubits
     * :func:`.synth_mcx_2_dirty_kg24`, using 2 additional dirty ancillary qubits
+
     Example usage:
+
     .. code-block:: python
         
         from qiskit.synthesis.multi_controlled import synth_mcx_1_clean_kg24
