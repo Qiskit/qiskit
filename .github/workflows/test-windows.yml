@@ -78,6 +78,7 @@ jobs:
           LANG: "C.UTF-8"
           PYTHONIOENCODING: "utf-8:backslashreplace"
           QISKIT_PARALLEL: FALSE
+          QISKIT_IGNORE_USER_SETTINGS: TRUE
           RUST_BACKTRACE: 1
       - name: Copy and Publish images
         uses: actions/upload-artifact@v4
