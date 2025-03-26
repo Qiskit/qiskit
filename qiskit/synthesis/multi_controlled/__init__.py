@@ -14,6 +14,10 @@
 
 from .mcmt_vchain import synth_mcmt_vchain
 from .mcx_synthesis import (
+    synth_mcx_1_clean_kg24,
+    synth_mcx_1_dirty_kg24,
+    synth_mcx_2_clean_kg24,
+    synth_mcx_2_dirty_kg24,
     synth_mcx_n_dirty_i15,
     synth_mcx_n_clean_m15,
     synth_mcx_1_clean_b95,
