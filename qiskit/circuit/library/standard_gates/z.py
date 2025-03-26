@@ -19,7 +19,6 @@ import numpy
 
 from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
 from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, stdlib_singleton_key
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit._accelerate.circuit import StandardGate
 
 from .p import PhaseGate
@@ -74,18 +73,17 @@ class ZGate(SingletonGate):
         |1\rangle \rightarrow -|1\rangle
     """
 
-    _standard_gate = StandardGate.ZGate
+    _standard_gate = StandardGate.Z
 
-    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
+    def __init__(self, label: Optional[str] = None):
         """Create new Z gate."""
-        super().__init__("z", 1, [], label=label, duration=duration, unit=unit)
+        super().__init__("z", 1, [], label=label)
 
     _singleton_lookup_key = stdlib_singleton_key()
 
     def _define(self):
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
         from .u1 import U1Gate
 
         q = QuantumRegister(1, "q")
@@ -184,15 +182,13 @@ class CZGate(SingletonControlledGate):
     the target qubit if the control qubit is in the :math:`|1\rangle` state.
     """
 
-    _standard_gate = StandardGate.CZGate
+    _standard_gate = StandardGate.CZ
 
     def __init__(
         self,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
         *,
-        duration=None,
-        unit="dt",
         _base_label=None,
     ):
         """Create new CZ gate."""
@@ -204,8 +200,6 @@ class CZGate(SingletonControlledGate):
             num_ctrl_qubits=1,
             ctrl_state=ctrl_state,
             base_gate=ZGate(label=_base_label),
-            duration=duration,
-            unit=unit,
         )
 
     _singleton_lookup_key = stdlib_singleton_key(num_ctrl_qubits=1)
@@ -215,7 +209,7 @@ class CZGate(SingletonControlledGate):
         gate cz a,b { h b; cx a,b; h b; }
         """
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
 
         from .h import HGate
         from .x import CXGate
@@ -286,15 +280,13 @@ class CCZGate(SingletonControlledGate):
     the target qubit if the control qubits are in the :math:`|11\rangle` state.
     """
 
-    _standard_gate = StandardGate.CCZGate
+    _standard_gate = StandardGate.CCZ
 
     def __init__(
         self,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
         *,
-        duration=None,
-        unit="dt",
         _base_label=None,
     ):
         """Create new CCZ gate."""
@@ -306,8 +298,6 @@ class CCZGate(SingletonControlledGate):
             num_ctrl_qubits=2,
             ctrl_state=ctrl_state,
             base_gate=ZGate(label=_base_label),
-            duration=duration,
-            unit=unit,
         )
 
     _singleton_lookup_key = stdlib_singleton_key(num_ctrl_qubits=2)
@@ -317,7 +307,7 @@ class CCZGate(SingletonControlledGate):
         gate ccz a,b,c { h c; ccx a,b,c; h c; }
         """
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
 
         from .h import HGate
         from .x import CCXGate

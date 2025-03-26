@@ -331,22 +331,6 @@ class TestConsolidateBlocks(QiskitTestCase):
         self.assertIsInstance(result.data[0].operation, UnitaryGate)
         self.assertTrue(np.allclose(result.data[0].operation.to_matrix(), expected))
 
-    def test_classical_conditions_maintained(self):
-        """Test that consolidate blocks doesn't drop the classical conditions
-        This issue was raised in #2752
-        """
-        qc = QuantumCircuit(1, 1)
-        with self.assertWarns(DeprecationWarning):
-            qc.h(0).c_if(qc.cregs[0], 1)
-        qc.measure(0, 0)
-
-        pass_manager = PassManager()
-        pass_manager.append(Collect2qBlocks())
-        pass_manager.append(ConsolidateBlocks())
-        qc1 = pass_manager.run(qc)
-
-        self.assertEqual(qc, qc1)
-
     def test_no_kak_in_basis(self):
         """Test that pass just returns the input dag without a KAK gate."""
         qc = QuantumCircuit(1)
@@ -597,7 +581,11 @@ class TestConsolidateBlocks(QiskitTestCase):
             optimization_level=opt_level, basis_gates=["rz", "rzz", "sx", "x", "rx"]
         )
         tqc = pm.run(qc)
-        self.assertEqual(ref_tqc, tqc)
+        # it's enough to check that the number of 2-qubit gates does not change
+        count_rzz_ref = ref_tqc.count_ops()["rzz"]
+        count_rzz_tqc = tqc.count_ops()["rzz"]
+        self.assertEqual(Operator.from_circuit(qc), Operator.from_circuit(tqc))
+        self.assertEqual(count_rzz_ref, count_rzz_tqc)
 
     def test_non_cx_basis_gate(self):
         """Test a non-cx kak gate is consolidated correctly."""
@@ -665,6 +653,21 @@ class TestConsolidateBlocks(QiskitTestCase):
         res = consolidate_pass(qc)
         self.assertEqual({"unitary": 1}, res.count_ops())
         self.assertEqual(Operator.from_circuit(qc), Operator(res.data[0].operation.params[0]))
+
+    @data(["rzz", "rx", "rz"], ["rzz", "rx", "rz", "cz"])
+    def test_collect_and_synthesize_rzz(self, basis_gates):
+        """Collect blocks with RZZ gates, and re-synthesizing it.
+        Regression test for https://github.com/Qiskit/qiskit/issues/13428"""
+        qc = QuantumCircuit(2)
+        qc.rzz(0.1, 0, 1)
+        qc.rzz(0.2, 0, 1)
+        consolidate_pass = ConsolidateBlocks(basis_gates=basis_gates)
+        res = consolidate_pass(qc)
+        self.assertEqual({"unitary": 1}, res.count_ops())
+        self.assertEqual(Operator.from_circuit(qc), Operator(res.data[0].operation.params[0]))
+        pm = generate_preset_pass_manager(optimization_level=2, basis_gates=basis_gates)
+        tqc = pm.run(qc)
+        self.assertEqual(tqc.count_ops()["rzz"], 1)
 
 
 if __name__ == "__main__":
