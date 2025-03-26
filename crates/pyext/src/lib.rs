@@ -72,5 +72,6 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, ::qiskit_circuit::converters::converters, "converters")?;
     add_submodule(m, ::qiskit_qasm2::qasm2, "qasm2")?;
     add_submodule(m, ::qiskit_qasm3::qasm3, "qasm3")?;
+    add_submodule(m, ::qiskit_qpy::qpy, "qpy")?;
     Ok(())
 }

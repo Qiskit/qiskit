@@ -43,6 +43,7 @@ qiskit-accelerate = { path = "crates/accelerate" }
 qiskit-circuit = { path = "crates/circuit" }
 qiskit-qasm2 = { path = "crates/qasm2" }
 qiskit-qasm3 = { path = "crates/qasm3" }
+qiskit-qpy = { path = "crates/qpy" }
 qiskit-cext = { path = "crates/cext" }
 
 [workspace.lints.clippy]
