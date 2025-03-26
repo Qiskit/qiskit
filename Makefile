@@ -90,7 +90,8 @@ C_DIR_INCLUDE = $(C_DIR_OUT)/include
 C_DIR_TEST_BUILD = test/c/build
 # Whether this is target/debug or target/release depends on the flags in the
 # `cheader` recipe.  For now, they're just hardcoded.
-C_CARGO_TARGET_DIR = target/release
+C_CARGO_RELEASE_TARGET_DIR = target/release
+C_CARGO_DEBUG_TARGET_DIR = target/debug
 C_LIB_CARGO_BASENAME=libqiskit_cext
 ifeq ($(OS), Windows_NT)
 	C_DYLIB_EXT=dll
@@ -101,7 +102,8 @@ else
 	C_DYLIB_EXT=so
 endif
 C_LIB_CARGO_FILENAME=$(C_LIB_CARGO_BASENAME).$(C_DYLIB_EXT)
-C_LIB_CARGO_PATH=$(C_CARGO_TARGET_DIR)/$(C_LIB_CARGO_FILENAME)
+C_LIB_RELEASE_CARGO_PATH=$(C_CARGO_RELEASE_TARGET_DIR)/$(C_LIB_CARGO_FILENAME)
+C_LIB_DEBUG_CARGO_PATH=$(C_CARGO_DEBUG_TARGET_DIR)/$(C_LIB_CARGO_FILENAME)
 
 C_QISKIT_H=$(C_DIR_INCLUDE)/qiskit.h
 C_LIBQISKIT=$(C_DIR_LIB)/$(subst _cext,,$(C_LIB_CARGO_FILENAME))
@@ -115,20 +117,20 @@ cformat:
 fix_cformat:
 	bash tools/run_clang_format.sh apply
 
-# The library file is managed by a different build tool - pretend it's always dirty.
-.PHONY: $(C_LIB_CARGO_PATH)
-$(C_LIB_CARGO_PATH):
+$(C_LIB_DEBUG_CARGO_PATH):
 	cargo rustc --crate-type cdylib -p qiskit-cext
+
+$(C_LIB_RELEASE_CARGO_PATH):
 	cargo rustc --release --crate-type cdylib -p qiskit-cext
 
-$(C_QISKIT_H): $(C_LIB_CARGO_PATH)
+$(C_QISKIT_H):
 	cbindgen --crate qiskit-cext --output $(C_DIR_INCLUDE)/qiskit.h --lang C
 
 $(C_DIR_LIB):
 	mkdir -p $(C_DIR_LIB)
 
-$(C_LIBQISKIT): $(C_DIR_LIB) $(C_LIB_CARGO_PATH)
-	cp $(C_LIB_CARGO_PATH) $(C_DIR_LIB)/$(subst _cext,,$(C_LIB_CARGO_FILENAME))
+$(C_LIBQISKIT): $(C_DIR_LIB) $(C_LIB_RELEASE_CARGO_PATH)
+	cp $(C_LIB_RELEASE_CARGO_PATH) $(C_DIR_LIB)/$(subst _cext,,$(C_LIB_CARGO_FILENAME))
 
 .PHONY: cheader clib c
 cheader: $(C_QISKIT_H)
@@ -136,7 +138,7 @@ clib: $(C_LIBQISKIT)
 c: clib cheader
 
 # Use ctest to run C API tests
-ctest: $(C_QISKIT_H)
+ctest: $(C_LIB_DEBUG_CARGO_PATH) $(C_QISKIT_H)
 	# -S specifically specifies the source path to be the current folder
 	# -B specifically specifies the build path to be inside test/c/build
 	cmake -S. -B$(C_DIR_TEST_BUILD)
