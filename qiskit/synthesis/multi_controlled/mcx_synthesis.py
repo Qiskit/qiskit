@@ -182,7 +182,7 @@ def synth_mcx_1_clean_b95(num_ctrl_qubits: int) -> QuantumCircuit:
     r"""
     Synthesize a multi-controlled X gate with :math:`k` controls using a single
     clean ancillary qubit producing a circuit with :math:`k + 2` qubits and at most
-    :math:`16 * k - 8` CX gates, by Barenco et al. [1].
+    :math:`16 * k - 24` CX gates, by Barenco et al. [1].
 
     Args:
         num_ctrl_qubits: The number of control qubits.

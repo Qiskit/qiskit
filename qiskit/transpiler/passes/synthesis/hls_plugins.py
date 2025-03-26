@@ -1106,7 +1106,7 @@ class MCXSynthesis1CleanB95(HighLevelSynthesisPlugin):
 
     For a multi-controlled X gate with :math:`k\ge 5` control qubits this synthesis
     method requires a single additional clean auxiliary qubit. The synthesized
-    circuit consists of :math:`k + 2` qubits and at most :math:`16 * k - 8` CX gates.
+    circuit consists of :math:`k + 2` qubits and at most :math:`16 * k - 24` CX gates.
 
     The plugin supports the following plugin-specific options:
 
