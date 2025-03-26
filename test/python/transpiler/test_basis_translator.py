@@ -1080,7 +1080,6 @@ class TestBasisExamples(QiskitTestCase):
         )
         self.assertEqual(Operator(dag_to_circuit(out_dag)), Operator(expected))
 
-<<<<<<< HEAD
     def test_condition_set_substitute_node(self):
         """Verify condition is set in BasisTranslator on substitute_node"""
 
@@ -1118,7 +1117,7 @@ class TestBasisExamples(QiskitTestCase):
             expected.u(pi / 2, 0, pi, 0).c_if(cr, 1)
 
         self.assertEqual(circ_transpiled, expected)
-=======
+
     def test_rx_to_rz(self):
         """Verify global phase is updated correctly in basis translation.
         See https://github.com/Qiskit/qiskit/issues/14074."""
@@ -1127,7 +1126,6 @@ class TestBasisExamples(QiskitTestCase):
         circ.rx(theta, 0)
         out_circ = BasisTranslator(std_eqlib, ["h", "rz"])(circ)
         self.assertEqual(Operator(circ), Operator(out_circ))
->>>>>>> d67c8182b (Fix global phase update in `BasisTranslator` Pass (#14078))
 
     def test_skip_target_basis_equivalences_1(self):
         """Test that BasisTranslator skips gates in the target_basis - #6085"""
