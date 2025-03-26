@@ -770,7 +770,7 @@ fn replace_node(
         match target_dag.global_phase() {
             Param::ParameterExpression(old_phase) => {
                 let bound_old_phase = old_phase.bind(py);
-                let bind_dict = PyDict::new(py);
+                let bind_dict = PyDict::new_bound(py);
                 for key in target_dag.global_phase().iter_parameters(py)? {
                     let key = key?;
                     bind_dict.set_item(&key, parameter_map.get_item(&key)?)?;
@@ -791,7 +791,7 @@ fn replace_node(
                 }
                 if !new_phase.getattr(intern!(py, "parameters"))?.is_truthy()? {
                     new_phase = new_phase.call_method0(intern!(py, "numeric"))?;
-                    if new_phase.is_instance(&PyComplex::type_object(py))? {
+                    if new_phase.is_instance(&PyComplex::type_object_bound(py))? {
                         return Err(TranspilerError::new_err(format!(
                             "Global phase must be real, but got {}",
                             new_phase.repr()?
