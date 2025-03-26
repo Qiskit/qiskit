@@ -74,6 +74,7 @@ use std::collections::{BTreeMap, VecDeque};
 use std::convert::Infallible;
 use std::f64::consts::PI;
 
+use crate::classical::expr;
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
 
@@ -5408,26 +5409,21 @@ impl DAGCircuit {
         py: Python,
         op: OperationRef,
     ) -> PyResult<(Vec<Clbit>, Vec<PyObject>)> {
-        let wires_from_expr = |node: &Bound<PyAny>| -> PyResult<(Vec<Clbit>, Vec<PyObject>)> {
+        let wires_from_expr = |node: &expr::Expr| -> PyResult<(Vec<Clbit>, Vec<PyObject>)> {
             let mut clbits = Vec::new();
-            let mut vars = Vec::new();
-            for var in imports::ITER_VARS
-                .get_bound(py)
-                .call1((node,))?
-                .try_iter()?
-            {
-                let var = var?;
-                let var_var = var.getattr("var")?;
-                if var_var.downcast::<PyClbit>().is_ok() {
-                    let var_clbit: ShareableClbit = var_var.extract()?;
-                    clbits.push(self.clbits.find(&var_clbit).unwrap());
-                } else if var_var.is_instance_of::<PyClassicalRegister>() {
-                    for bit in var_var.try_iter().unwrap() {
-                        let clbit: ShareableClbit = bit?.extract()?;
-                        clbits.push(self.clbits.find(&clbit).unwrap());
+            let mut vars: Vec<Py<PyAny>> = Vec::new();
+            for var in node.vars() {
+                match var {
+                    expr::Var::Bit { bit } => {
+                        clbits.push(self.clbits.find(bit).unwrap());
                     }
-                } else {
-                    vars.push(var.unbind());
+                    expr::Var::Register { register, .. } => {
+                        for bit in register.bits() {
+                            clbits.push(self.clbits.find(&bit).unwrap());
+                        }
+                    }
+                    // TODO: don't clone here
+                    expr::Var::Standalone { .. } => vars.push(var.clone().into_py_any(py)?),
                 }
             }
             Ok((clbits, vars))
@@ -5443,7 +5439,7 @@ impl DAGCircuit {
                 // that's not an exceptional state for us.
                 if let Ok(condition) = op.getattr(intern!(py, "condition")) {
                     if !condition.is_none() {
-                        if condition.is_instance(imports::EXPR.get_bound(py)).unwrap() {
+                        if let Ok(condition) = condition.extract::<expr::Expr>() {
                             let (expr_clbits, expr_vars) = wires_from_expr(&condition)?;
                             for bit in expr_clbits {
                                 clbits.push(bit);
@@ -5478,7 +5474,7 @@ impl DAGCircuit {
                             clbits.push(self.clbits.find(&clbit).unwrap());
                         }
                     } else {
-                        let (expr_clbits, expr_vars) = wires_from_expr(&target)?;
+                        let (expr_clbits, expr_vars) = wires_from_expr(&target.extract()?)?;
                         for bit in expr_clbits {
                             clbits.push(bit);
                         }
@@ -5488,14 +5484,14 @@ impl DAGCircuit {
                     }
                 }
             } else if op.is_instance(imports::STORE_OP.get_bound(py))? {
-                let (expr_clbits, expr_vars) = wires_from_expr(&op.getattr("lvalue")?)?;
+                let (expr_clbits, expr_vars) = wires_from_expr(&op.getattr("lvalue")?.extract()?)?;
                 for bit in expr_clbits {
                     clbits.push(bit);
                 }
                 for var in expr_vars {
                     vars.push(var);
                 }
-                let (expr_clbits, expr_vars) = wires_from_expr(&op.getattr("rvalue")?)?;
+                let (expr_clbits, expr_vars) = wires_from_expr(&op.getattr("rvalue")?.extract()?)?;
                 for bit in expr_clbits {
                     clbits.push(bit);
                 }
@@ -5504,6 +5500,12 @@ impl DAGCircuit {
                 }
             }
         }
+
+        println!("Vars:");
+        for v in &vars {
+            println!("    Got var {:?}", v.bind(py).repr()?);
+        }
+
         Ok((clbits, vars))
     }
 

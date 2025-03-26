@@ -11,8 +11,9 @@
 // that they have been altered from the originals.
 
 use crate::bit::{ClassicalRegister, ShareableClbit};
-use crate::classical::Type;
+use crate::classical::types::Type;
 use crate::duration::Duration;
+use crate::imports;
 use crate::imports::UUID;
 use pyo3::prelude::*;
 use pyo3::types::IntoPyDict;
@@ -61,6 +62,10 @@ impl Expr {
             Expr::Stretch(_) => Type::Duration,
             Expr::Index(i) => i.ty,
         }
+    }
+
+    pub fn vars(&self) -> impl Iterator<Item = &Var> {
+        VarIterator(ExprIterator { stack: vec![self] })
     }
 }
 
@@ -158,6 +163,125 @@ enum ExprKind {
     Index,
 }
 
+impl<'py> IntoPyObject<'py> for Unary {
+    type Target = PyAny;
+    type Output = Bound<'py, PyAny>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        Ok(Bound::new(py, (PyUnary(self), PyExpr(ExprKind::Unary)))?.into_any())
+    }
+}
+
+impl<'py> FromPyObject<'py> for Unary {
+    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+        let PyUnary(u) = ob.extract()?;
+        Ok(u.into())
+    }
+}
+
+impl<'py> IntoPyObject<'py> for Binary {
+    type Target = PyAny;
+    type Output = Bound<'py, PyAny>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        Ok(Bound::new(py, (PyBinary(self), PyExpr(ExprKind::Binary)))?.into_any())
+    }
+}
+
+impl<'py> FromPyObject<'py> for Binary {
+    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+        let PyBinary(b) = ob.extract()?;
+        Ok(b.into())
+    }
+}
+
+impl<'py> IntoPyObject<'py> for Cast {
+    type Target = PyAny;
+    type Output = Bound<'py, PyAny>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        Ok(Bound::new(py, (PyCast(self), PyExpr(ExprKind::Cast)))?.into_any())
+    }
+}
+
+impl<'py> FromPyObject<'py> for Cast {
+    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+        let PyCast(c) = ob.extract()?;
+        Ok(c.into())
+    }
+}
+
+impl<'py> IntoPyObject<'py> for Value {
+    type Target = PyAny;
+    type Output = Bound<'py, PyAny>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        Ok(Bound::new(py, (PyValue(self), PyExpr(ExprKind::Value)))?.into_any())
+    }
+}
+
+impl<'py> FromPyObject<'py> for Value {
+    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+        let PyValue(v) = ob.extract()?;
+        Ok(v.into())
+    }
+}
+
+impl<'py> IntoPyObject<'py> for Var {
+    type Target = PyAny;
+    type Output = Bound<'py, PyAny>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        Ok(Bound::new(py, (PyVar(self), PyExpr(ExprKind::Var)))?.into_any())
+    }
+}
+
+impl<'py> FromPyObject<'py> for Var {
+    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+        let PyVar(v) = ob.extract()?;
+        Ok(v.into())
+    }
+}
+
+impl<'py> IntoPyObject<'py> for Stretch {
+    type Target = PyAny;
+    type Output = Bound<'py, PyAny>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        Ok(Bound::new(py, (PyStretch(self), PyExpr(ExprKind::Stretch)))?.into_any())
+    }
+}
+
+impl<'py> FromPyObject<'py> for Stretch {
+    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+        let PyStretch(s) = ob.extract()?;
+        Ok(s.into())
+    }
+}
+
+impl<'py> IntoPyObject<'py> for Index {
+    type Target = PyAny;
+    type Output = Bound<'py, PyAny>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        Ok(Bound::new(py, (PyIndex(self), PyExpr(ExprKind::Index)))?.into_any())
+    }
+}
+
+impl<'py> FromPyObject<'py> for Index {
+    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+        let PyIndex(i) = ob.extract()?;
+        Ok(i.into())
+    }
+}
+
 impl<'py> IntoPyObject<'py> for Expr {
     type Target = PyAny;
     type Output = Bound<'py, PyAny>;
@@ -166,20 +290,16 @@ impl<'py> IntoPyObject<'py> for Expr {
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
         match self {
             Expr::Unary(u) => {
-                Ok(Bound::new(py, (PyUnary(*u), PyExpr(ExprKind::Unary)))?.into_any())
+                u.into_bound_py_any(py)
             }
             Expr::Binary(b) => {
-                Ok(Bound::new(py, (PyBinary(*b), PyExpr(ExprKind::Binary)))?.into_any())
+                b.into_bound_py_any(py)
             }
-            Expr::Cast(c) => Ok(Bound::new(py, (PyCast(*c), PyExpr(ExprKind::Cast)))?.into_any()),
-            Expr::Value(v) => Ok(Bound::new(py, (PyValue(v), PyExpr(ExprKind::Value)))?.into_any()),
-            Expr::Var(v) => Ok(Bound::new(py, (PyVar(v), PyExpr(ExprKind::Var)))?.into_any()),
-            Expr::Stretch(s) => {
-                Ok(Bound::new(py, (PyStretch(s), PyExpr(ExprKind::Stretch)))?.into_any())
-            }
-            Expr::Index(i) => {
-                Ok(Bound::new(py, (PyIndex(*i), PyExpr(ExprKind::Index)))?.into_any())
-            }
+            Expr::Cast(c) => c.into_bound_py_any(py),
+            Expr::Value(v) => v.into_bound_py_any(py),
+            Expr::Var(v) => v.into_bound_py_any(py),
+            Expr::Stretch(s) => s.into_bound_py_any(py),
+            Expr::Index(i) => i.into_bound_py_any(py),
         }
     }
 }
@@ -222,41 +342,54 @@ impl<'py> FromPyObject<'py> for Expr {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Unary {
-    op: UnaryOp,
-    operand: Expr,
-    ty: Type,
-    constant: bool,
+    pub op: UnaryOp,
+    pub operand: Expr,
+    pub ty: Type,
+    pub constant: bool,
 }
 
+// WARNING: these must EXACTLY match _UnaryOp from expr.py!
 #[repr(u8)]
 #[derive(Copy, Hash, Clone, Debug, PartialEq)]
-#[pyclass(
-    eq,
-    hash,
-    frozen,
-    name = "Op",
-    module = "qiskit._accelerate.circuit.classical"
-)]
 pub enum UnaryOp {
-    #[pyo3(name = "BIT_NOT")]
     BitNot = 1,
-    #[pyo3(name = "LOGIC_NOT")]
     LogicNot = 2,
 }
 
+unsafe impl ::bytemuck::CheckedBitPattern for UnaryOp {
+    type Bits = u8;
+
+    fn is_valid_bit_pattern(bits: &Self::Bits) -> bool {
+        *bits > 0 && *bits < 3
+    }
+}
+
+impl<'py> IntoPyObject<'py> for UnaryOp {
+    type Target = PyAny;
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        imports::UNARY_OP.get_bound(py).call1((self as usize,))
+    }
+}
+
+impl<'py> FromPyObject<'py> for UnaryOp {
+    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+        let value = ob.getattr(intern!(ob.py(), "value"))?;
+        Ok(bytemuck::checked::cast(value.extract::<u8>()?))
+    }
+}
+
+/// A Python descriptor to prevent PyO3 from attempting to import the Python-side
+/// enum before we're initialized.
+#[pyclass(module = "qiskit._accelerate.circuit.classical")]
+struct PyUnaryOp;
+
 #[pymethods]
-impl UnaryOp {
-    #[classmethod]
-    fn __iter__(cls: &Bound<'_, pyo3::types::PyType>) -> PyResult<Py<PyAny>> {
-        panic!("CALLED ITER ON TYPE")
-    }
-
-    fn __str__(&self) -> String {
-        format!("Unary.Op.{:?}", self)
-    }
-
-    fn __repr__(&self) -> String {
-        format!("Unary.Op.{:?}", self)
+impl PyUnaryOp {
+    fn __get__(&self, obj: &Bound<PyAny>, _obj_type: &Bound<PyAny>) -> Py<PyAny> {
+        imports::UNARY_OP.get_bound(obj.py()).clone().unbind()
     }
 }
 
@@ -267,8 +400,8 @@ struct PyUnary(Unary);
 #[pymethods]
 impl PyUnary {
     #[classattr]
-    fn Op(py: Python) -> Py<PyAny> {
-        UnaryOp::type_object(py).into_any().unbind()
+    fn Op(py: Python) -> PyResult<Py<PyAny>> {
+        PyUnaryOp.into_py_any(py)
     }
 
     #[new]
@@ -290,6 +423,21 @@ impl PyUnary {
     }
 
     #[getter]
+    fn get_op(&self, py: Python) -> PyResult<Py<PyAny>> {
+        self.0.op.into_py_any(py)
+    }
+
+    #[getter]
+    fn get_operand(&self, py: Python) -> PyResult<Py<PyAny>> {
+        self.0.operand.clone().into_py_any(py)
+    }
+
+    #[getter]
+    fn get_const(&self, py: Python) -> bool {
+        self.0.constant
+    }
+
+    #[getter]
     fn get_type(&self, py: Python) -> PyResult<Py<PyAny>> {
         self.0.ty.clone().into_py_any(py)
     }
@@ -304,72 +452,70 @@ impl PyUnary {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Binary {
-    op: BinaryOp,
-    left: Expr,
-    right: Expr,
-    ty: Type,
-    constant: bool,
+    pub op: BinaryOp,
+    pub left: Expr,
+    pub right: Expr,
+    pub ty: Type,
+    pub constant: bool,
 }
 
-#[pyclass(
-    eq,
-    hash,
-    frozen,
-    name = "Op",
-    module = "qiskit._accelerate.circuit.classical"
-)]
+// WARNING: these must EXACTLY match _BinaryOp from expr.py!
 #[repr(u8)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum BinaryOp {
-    #[pyo3(name = "BIT_AND")]
     BitAnd = 1,
-    #[pyo3(name = "BIT_OR")]
     BitOr = 2,
-    #[pyo3(name = "BIT_XOR")]
     BitXor = 3,
-    #[pyo3(name = "LOGIC_AND")]
     LogicAnd = 4,
-    #[pyo3(name = "LOGIC_OR")]
     LogicOr = 5,
-    #[pyo3(name = "EQUAL")]
     Equal = 6,
-    #[pyo3(name = "NOT_EQUAL")]
     NotEqual = 7,
-    #[pyo3(name = "LESS")]
     Less = 8,
-    #[pyo3(name = "LESS_EQUAL")]
     LessEqual = 9,
-    #[pyo3(name = "GREATER")]
     Greater = 10,
-    #[pyo3(name = "GREATER_EQUAL")]
     GreaterEqual = 11,
-    #[pyo3(name = "SHIFT_LEFT")]
     ShiftLeft = 12,
-    #[pyo3(name = "SHIFT_RIGHT")]
     ShiftRight = 13,
-    #[pyo3(name = "ADD")]
     Add = 14,
-    #[pyo3(name = "SUB")]
     Sub = 15,
-    #[pyo3(name = "MUL")]
     Mul = 16,
-    #[pyo3(name = "DIV")]
     Div = 17,
 }
 
+unsafe impl ::bytemuck::CheckedBitPattern for BinaryOp {
+    type Bits = u8;
+
+    fn is_valid_bit_pattern(bits: &Self::Bits) -> bool {
+        *bits > 0 && *bits < 18
+    }
+}
+
+impl<'py> IntoPyObject<'py> for BinaryOp {
+    type Target = PyAny;
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        imports::BINARY_OP.get_bound(py).call1((self as usize,))
+    }
+}
+
+impl<'py> FromPyObject<'py> for BinaryOp {
+    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+        let value = ob.getattr(intern!(ob.py(), "value"))?;
+        Ok(bytemuck::checked::cast(value.extract::<u8>()?))
+    }
+}
+
+/// A Python descriptor to prevent PyO3 from attempting to import the Python-side
+/// enum before we're initialized.
+#[pyclass(module = "qiskit._accelerate.circuit.classical")]
+struct PyBinaryOp;
+
 #[pymethods]
-impl BinaryOp {
-    #[classmethod]
-    fn __iter__(cls: &Bound<'_, pyo3::types::PyType>) -> PyResult<Py<PyAny>> {
-        panic!("CALLED ITER ON TYPE")
-    }
-
-    fn __str__(&self) -> String {
-        format!("Binary.Op.{:?}", self)
-    }
-
-    fn __repr__(&self) -> String {
-        format!("Binary.Op.{:?}", self)
+impl PyBinaryOp {
+    fn __get__(&self, obj: &Bound<PyAny>, _obj_type: &Bound<PyAny>) -> Py<PyAny> {
+        imports::BINARY_OP.get_bound(obj.py()).clone().unbind()
     }
 }
 
@@ -380,8 +526,8 @@ struct PyBinary(Binary);
 #[pymethods]
 impl PyBinary {
     #[classattr]
-    fn Op(py: Python) -> Py<PyAny> {
-        BinaryOp::type_object(py).into_any().unbind()
+    fn Op(py: Python) -> PyResult<Py<PyAny>> {
+        PyBinaryOp.into_py_any(py)
     }
 
     #[new]
@@ -404,6 +550,26 @@ impl PyBinary {
     }
 
     #[getter]
+    fn get_op(&self, py: Python) -> PyResult<Py<PyAny>> {
+        self.0.op.into_py_any(py)
+    }
+
+    #[getter]
+    fn get_left(&self, py: Python) -> PyResult<Py<PyAny>> {
+        self.0.left.clone().into_py_any(py)
+    }
+
+    #[getter]
+    fn get_right(&self, py: Python) -> PyResult<Py<PyAny>> {
+        self.0.right.clone().into_py_any(py)
+    }
+
+    #[getter]
+    fn get_const(&self, py: Python) -> bool {
+        self.0.constant
+    }
+
+    #[getter]
     fn get_type(&self, py: Python) -> PyResult<Py<PyAny>> {
         self.0.ty.clone().into_py_any(py)
     }
@@ -418,10 +584,10 @@ impl PyBinary {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Cast {
-    operand: Expr,
-    ty: Type,
-    constant: bool,
-    implicit: bool,
+    pub operand: Expr,
+    pub ty: Type,
+    pub constant: bool,
+    pub implicit: bool,
 }
 
 /// A cast from one type to another, implied by the use of an expression in a different
@@ -448,6 +614,21 @@ impl PyCast {
                 PyExpr(ExprKind::Cast),
             ),
         )
+    }
+
+    #[getter]
+    fn get_operand(&self, py: Python) -> PyResult<Py<PyAny>> {
+        self.0.operand.clone().into_py_any(py)
+    }
+
+    #[getter]
+    fn get_implicit(&self, py: Python) -> bool {
+        self.0.implicit
+    }
+
+    #[getter]
+    fn get_const(&self, py: Python) -> bool {
+        self.0.constant
     }
 
     #[getter]
@@ -490,6 +671,20 @@ impl PyValue {
     }
 
     #[getter]
+    fn get_value(&self, py: Python) -> PyResult<Py<PyAny>> {
+        match self.0 {
+            Value::Duration(d) => d.into_py_any(py),
+            Value::Float { raw, .. } => raw.into_py_any(py),
+            Value::Uint { raw, .. } => raw.into_py_any(py),
+        }
+    }
+
+    #[getter]
+    fn get_const(&self, py: Python) -> bool {
+        true
+    }
+
+    #[getter]
     fn get_type(&self, py: Python) -> PyResult<Py<PyAny>> {
         match self.0 {
             Value::Duration(_) => Type::Duration.into_py_any(py),
@@ -519,6 +714,54 @@ pub enum Var {
         register: ClassicalRegister,
         ty: Type,
     },
+}
+
+struct ExprIterator<'a> {
+    stack: Vec<&'a Expr>,
+}
+
+impl<'a> Iterator for ExprIterator<'a> {
+    type Item = &'a Expr;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let Some(expr) = self.stack.pop() else {
+            return None;
+        };
+
+        match expr {
+            Expr::Unary(u) => {
+                self.stack.push(&u.operand);
+            }
+            Expr::Binary(b) => {
+                self.stack.push(&b.left);
+                self.stack.push(&b.right);
+            }
+            Expr::Cast(c) => self.stack.push(&c.operand),
+            Expr::Value(_) => {}
+            Expr::Var(_) => {}
+            Expr::Stretch(_) => {}
+            Expr::Index(i) => {
+                self.stack.push(&i.index);
+                self.stack.push(&i.target);
+            }
+        }
+        Some(expr)
+    }
+}
+
+struct VarIterator<'a>(ExprIterator<'a>);
+
+impl<'a> Iterator for VarIterator<'a> {
+    type Item = &'a Var;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        while let Some(expr) = self.0.next() {
+            if let Expr::Var(v) = expr {
+                return Some(v);
+            }
+        }
+        None
+    }
 }
 
 /// A classical variable.
@@ -569,6 +812,11 @@ impl PyVar {
                 PyExpr(ExprKind::Var),
             ),
         )
+    }
+
+    #[getter]
+    fn get_const(&self) -> bool {
+        false
     }
 
     #[getter]
@@ -636,12 +884,19 @@ impl PyVar {
         // ... as are all my constituent parts.
         slf
     }
+
+    fn __repr__(&self, py: Python) -> PyResult<String> {
+        if matches!(self.0, Var::Bit { .. } | Var::Register { .. }) {
+            return Ok(format!("Var({}, {:?})", self.get_var(py)?, self.get_type(py)?));
+        };
+        Ok(format!("Var({}, {:?}, name='{}')", self.get_var(py)?, self.get_type(py)?, self.get_name(py)?))
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Hash)]
 pub struct Stretch {
-    uuid: u128,
-    name: String,
+    pub uuid: u128,
+    pub name: String,
 }
 
 #[pyclass(eq, hash, frozen, extends = PyExpr, name = "Stretch", module = "qiskit._accelerate.circuit.classical")]
@@ -680,6 +935,11 @@ impl PyStretch {
     }
 
     #[getter]
+    fn get_const(&self) -> bool {
+        true
+    }
+
+    #[getter]
     fn get_type(&self, py: Python) -> PyResult<Py<PyAny>> {
         Type::Duration.into_py_any(py)
     }
@@ -704,10 +964,10 @@ impl PyStretch {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Index {
-    target: Expr,
-    index: Expr,
-    ty: Type,
-    constant: bool,
+    pub target: Expr,
+    pub index: Expr,
+    pub ty: Type,
+    pub constant: bool,
 }
 
 #[pyclass(eq, extends = PyExpr, name = "Index", module = "qiskit._accelerate.circuit.classical")]
@@ -735,6 +995,21 @@ impl PyIndex {
     }
 
     #[getter]
+    fn get_target(&self, py: Python) -> PyResult<Py<PyAny>> {
+        self.0.target.clone().into_py_any(py)
+    }
+
+    #[getter]
+    fn get_index(&self, py: Python) -> PyResult<Py<PyAny>> {
+        self.0.index.clone().into_py_any(py)
+    }
+
+    #[getter]
+    fn get_const(&self, py: Python) -> bool {
+        self.0.constant
+    }
+
+    #[getter]
     fn get_type(&self, py: Python) -> PyResult<Py<PyAny>> {
         self.0.ty.clone().into_py_any(py)
     }
@@ -750,9 +1025,7 @@ impl PyIndex {
 pub(crate) fn register_python(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<PyExpr>()?;
     m.add_class::<PyUnary>()?;
-    m.add_class::<UnaryOp>()?;
     m.add_class::<PyBinary>()?;
-    m.add_class::<BinaryOp>()?;
     m.add_class::<PyCast>()?;
     m.add_class::<PyValue>()?;
     m.add_class::<PyVar>()?;
