@@ -7,13 +7,9 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-mod constructors;
 pub mod expr;
-mod ordering;
 pub mod types;
-mod visitors;
 
-use crate::classical;
 use pyo3::prelude::*;
 
 pub(crate) fn register_python(m: &Bound<PyModule>) -> PyResult<()> {
