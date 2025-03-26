@@ -36,7 +36,7 @@ jobs:
   tests-linux:
     # if: github.repository_owner == 'Qiskit'
     name: ubuntu-latest-tests-Python-${{ inputs.python-version }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     env:
       QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
       PIP_CACHE_DIR: ${{ github.workspace }}/.pip
