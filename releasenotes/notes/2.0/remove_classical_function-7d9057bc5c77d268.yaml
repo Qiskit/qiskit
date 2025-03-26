@@ -1,0 +1,7 @@
+---
+upgrade_circuits:
+  - |
+    The :mod:`.classical_function` was removed. This module was dependent on the
+    `tweedledum` library which is no longer compatible with newer versions of Python.
+    As an alternative, the :class:`.PhaseOracleGate` and :class:`.BitFlipOracleGate` classes
+    can be used to generate circuits from boolean expressions.
