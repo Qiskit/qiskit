@@ -31,7 +31,16 @@ __all__ = [
 
 import enum
 
-# from .. import types
+from qiskit._accelerate.circuit.classical.expr import (
+    Expr,
+    Var,
+    Stretch,
+    Value,
+    Cast,
+    Unary,
+    Binary,
+    Index,
+)  # pylint: disable=unused-import
 
 
 class _UnaryOp(enum.Enum):
@@ -57,6 +66,7 @@ class _UnaryOp(enum.Enum):
 
     def __repr__(self):
         return f"Unary.{super().__repr__()}"
+
 
 class _BinaryOp(enum.Enum):
     """Enumeration of the opcodes for binary operations.
@@ -131,18 +141,6 @@ class _BinaryOp(enum.Enum):
 
     def __repr__(self):
         return f"Binary.{super().__repr__()}"
-
-
-from qiskit._accelerate.circuit.classical import (
-    Expr,
-    Var,
-    Stretch,
-    Value,
-    Cast,
-    Unary,
-    Binary,
-    Index,
-)  # pylint: disable=unused-import
 
 
 # _T_co = typing.TypeVar("_T_co", covariant=True)

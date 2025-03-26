@@ -5501,11 +5501,6 @@ impl DAGCircuit {
             }
         }
 
-        println!("Vars:");
-        for v in &vars {
-            println!("    Got var {:?}", v.bind(py).repr()?);
-        }
-
         Ok((clbits, vars))
     }
 

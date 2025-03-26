@@ -16,7 +16,7 @@ use crate::duration::Duration;
 use crate::imports;
 use crate::imports::UUID;
 use pyo3::prelude::*;
-use pyo3::types::IntoPyDict;
+use pyo3::types::{IntoPyDict, PyTuple};
 use pyo3::{intern, BoundObject, IntoPyObjectExt, PyTypeInfo};
 use uuid::Uuid;
 
@@ -289,12 +289,8 @@ impl<'py> IntoPyObject<'py> for Expr {
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
         match self {
-            Expr::Unary(u) => {
-                u.into_bound_py_any(py)
-            }
-            Expr::Binary(b) => {
-                b.into_bound_py_any(py)
-            }
+            Expr::Unary(u) => u.into_bound_py_any(py),
+            Expr::Binary(b) => b.into_bound_py_any(py),
             Expr::Cast(c) => c.into_bound_py_any(py),
             Expr::Value(v) => v.into_bound_py_any(py),
             Expr::Var(v) => v.into_bound_py_any(py),
@@ -383,7 +379,7 @@ impl<'py> FromPyObject<'py> for UnaryOp {
 
 /// A Python descriptor to prevent PyO3 from attempting to import the Python-side
 /// enum before we're initialized.
-#[pyclass(module = "qiskit._accelerate.circuit.classical")]
+#[pyclass(module = "qiskit._accelerate.circuit.classical.expr")]
 struct PyUnaryOp;
 
 #[pymethods]
@@ -393,7 +389,7 @@ impl PyUnaryOp {
     }
 }
 
-#[pyclass(eq, extends = PyExpr, name = "Unary", module = "qiskit._accelerate.circuit.classical")]
+#[pyclass(eq, extends = PyExpr, name = "Unary", module = "qiskit._accelerate.circuit.classical.expr")]
 #[derive(PartialEq, Clone, Debug)]
 struct PyUnary(Unary);
 
@@ -447,6 +443,14 @@ impl PyUnary {
         visitor: &Bound<'py, PyAny>,
     ) -> PyResult<Bound<'py, PyAny>> {
         visitor.call_method1(intern!(visitor.py(), "visit_unary"), (slf,))
+    }
+
+    fn __reduce__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyTuple>> {
+        (
+            py.get_type::<Self>(),
+            (self.get_op(py)?, self.get_operand(py)?, self.get_type(py)?),
+        )
+            .into_pyobject(py)
     }
 }
 
@@ -509,7 +513,7 @@ impl<'py> FromPyObject<'py> for BinaryOp {
 
 /// A Python descriptor to prevent PyO3 from attempting to import the Python-side
 /// enum before we're initialized.
-#[pyclass(module = "qiskit._accelerate.circuit.classical")]
+#[pyclass(module = "qiskit._accelerate.circuit.classical.expr")]
 struct PyBinaryOp;
 
 #[pymethods]
@@ -519,7 +523,7 @@ impl PyBinaryOp {
     }
 }
 
-#[pyclass(eq, extends = PyExpr, name = "Binary", module = "qiskit._accelerate.circuit.classical")]
+#[pyclass(eq, extends = PyExpr, name = "Binary", module = "qiskit._accelerate.circuit.classical.expr")]
 #[derive(PartialEq, Clone, Debug)]
 struct PyBinary(Binary);
 
@@ -580,6 +584,19 @@ impl PyBinary {
     ) -> PyResult<Bound<'py, PyAny>> {
         visitor.call_method1(intern!(visitor.py(), "visit_binary"), (slf,))
     }
+
+    fn __reduce__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyTuple>> {
+        (
+            py.get_type::<Self>(),
+            (
+                self.get_op(py)?,
+                self.get_left(py)?,
+                self.get_right(py)?,
+                self.get_type(py)?,
+            ),
+        )
+            .into_pyobject(py)
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -592,7 +609,7 @@ pub struct Cast {
 
 /// A cast from one type to another, implied by the use of an expression in a different
 /// context.
-#[pyclass(eq, extends = PyExpr, name = "Cast", module = "qiskit._accelerate.circuit.classical")]
+#[pyclass(eq, extends = PyExpr, name = "Cast", module = "qiskit._accelerate.circuit.classical.expr")]
 #[derive(PartialEq, Clone, Debug)]
 struct PyCast(Cast);
 
@@ -642,6 +659,18 @@ impl PyCast {
     ) -> PyResult<Bound<'py, PyAny>> {
         visitor.call_method1(intern!(visitor.py(), "visit_cast"), (slf,))
     }
+
+    fn __reduce__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyTuple>> {
+        (
+            py.get_type::<Self>(),
+            (
+                self.get_operand(py)?,
+                self.get_type(py)?,
+                self.get_implicit(py),
+            ),
+        )
+            .into_pyobject(py)
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -651,7 +680,7 @@ pub enum Value {
     Uint { raw: u64, ty: Type },
 }
 
-#[pyclass(eq, extends = PyExpr, name = "Value", module = "qiskit._accelerate.circuit.classical")]
+#[pyclass(eq, extends = PyExpr, name = "Value", module = "qiskit._accelerate.circuit.classical.expr")]
 #[derive(PartialEq, Clone, Debug)]
 struct PyValue(Value);
 
@@ -697,6 +726,14 @@ impl PyValue {
         visitor: &Bound<'py, PyAny>,
     ) -> PyResult<Bound<'py, PyAny>> {
         visitor.call_method1(intern!(visitor.py(), "visit_value"), (slf,))
+    }
+
+    fn __reduce__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyTuple>> {
+        (
+            py.get_type::<Self>(),
+            (self.get_value(py)?, self.get_type(py)?),
+        )
+            .into_pyobject(py)
     }
 }
 
@@ -773,7 +810,7 @@ impl<'a> Iterator for VarIterator<'a> {
 /// :meth:`.QuantumCircuit.add_var`.
 ///
 /// Variables are immutable after construction, so they can be used as dictionary keys."""
-#[pyclass(eq, hash, frozen, extends = PyExpr, name = "Var", module = "qiskit._accelerate.circuit.classical")]
+#[pyclass(eq, hash, frozen, extends = PyExpr, name = "Var", module = "qiskit._accelerate.circuit.classical.expr")]
 #[derive(PartialEq, Clone, Debug, Hash)]
 struct PyVar(Var);
 
@@ -887,9 +924,37 @@ impl PyVar {
 
     fn __repr__(&self, py: Python) -> PyResult<String> {
         if matches!(self.0, Var::Bit { .. } | Var::Register { .. }) {
-            return Ok(format!("Var({}, {:?})", self.get_var(py)?, self.get_type(py)?));
+            return Ok(format!(
+                "Var({}, {:?})",
+                self.get_var(py)?,
+                self.get_type(py)?
+            ));
         };
-        Ok(format!("Var({}, {:?}, name='{}')", self.get_var(py)?, self.get_type(py)?, self.get_name(py)?))
+        Ok(format!(
+            "Var({}, {:?}, name='{}')",
+            self.get_var(py)?,
+            self.get_type(py)?,
+            self.get_name(py)?
+        ))
+    }
+
+    // This is needed to handle the 'name' kwarg for __reduce__.
+    #[classmethod]
+    fn _from_pickle(
+        _cls: &Bound<'_, pyo3::types::PyType>,
+        var: &Bound<PyAny>,
+        ty: Type,
+        name: &Bound<PyAny>,
+    ) -> PyResult<Py<Self>> {
+        PyVar::new0(var, ty, name.extract()?)
+    }
+
+    fn __reduce__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyTuple>> {
+        (
+            py.get_type::<Self>().getattr(intern!(py, "_from_pickle"))?,
+            (self.get_var(py)?, self.get_type(py)?, self.get_name(py)?),
+        )
+            .into_pyobject(py)
     }
 }
 
@@ -899,7 +964,7 @@ pub struct Stretch {
     pub name: String,
 }
 
-#[pyclass(eq, hash, frozen, extends = PyExpr, name = "Stretch", module = "qiskit._accelerate.circuit.classical")]
+#[pyclass(eq, hash, frozen, extends = PyExpr, name = "Stretch", module = "qiskit._accelerate.circuit.classical.expr")]
 #[derive(PartialEq, Clone, Debug, Hash)]
 struct PyStretch(Stretch);
 
@@ -935,6 +1000,17 @@ impl PyStretch {
     }
 
     #[getter]
+    fn get_var(&self, py: Python) -> PyResult<Py<PyAny>> {
+        let kwargs = [("int", self.0.uuid)].into_py_dict(py)?;
+        Ok(UUID.get_bound(py).call((), Some(&kwargs))?.unbind())
+    }
+
+    #[getter]
+    fn get_name(&self, py: Python) -> PyResult<Py<PyAny>> {
+        self.0.name.clone().into_py_any(py)
+    }
+
+    #[getter]
     fn get_const(&self) -> bool {
         true
     }
@@ -960,6 +1036,14 @@ impl PyStretch {
         // ... as are all my constituent parts.
         slf
     }
+
+    fn __reduce__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyTuple>> {
+        (
+            py.get_type::<Self>(),
+            (self.get_var(py)?, self.get_name(py)?),
+        )
+            .into_pyobject(py)
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -970,7 +1054,7 @@ pub struct Index {
     pub constant: bool,
 }
 
-#[pyclass(eq, extends = PyExpr, name = "Index", module = "qiskit._accelerate.circuit.classical")]
+#[pyclass(eq, extends = PyExpr, name = "Index", module = "qiskit._accelerate.circuit.classical.expr")]
 #[derive(PartialEq, Clone, Debug)]
 struct PyIndex(Index);
 
@@ -1019,6 +1103,18 @@ impl PyIndex {
         visitor: &Bound<'py, PyAny>,
     ) -> PyResult<Bound<'py, PyAny>> {
         visitor.call_method1(intern!(visitor.py(), "visit_index"), (slf,))
+    }
+
+    fn __reduce__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyTuple>> {
+        (
+            py.get_type::<Self>(),
+            (
+                self.get_target(py)?,
+                self.get_index(py)?,
+                self.get_type(py)?,
+            ),
+        )
+            .into_pyobject(py)
     }
 }
 

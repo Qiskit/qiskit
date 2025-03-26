@@ -21,7 +21,7 @@ __all__ = [
     "Uint",
 ]
 
-from qiskit._accelerate.circuit.classical import (
+from qiskit._accelerate.circuit.classical.types import (
     Type,
     Bool,
     Uint,

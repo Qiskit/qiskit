@@ -74,7 +74,7 @@ impl<'py> FromPyObject<'py> for Type {
     subclass,
     frozen,
     name = "Type",
-    module = "qiskit._accelerate.circuit.classical"
+    module = "qiskit._accelerate.circuit.classical.types"
 )]
 #[derive(PartialEq, Clone, Copy, Debug, Hash)]
 struct PyType(TypeKind);
@@ -122,7 +122,7 @@ enum TypeKind {
 }
 
 /// The Boolean type.  This has exactly two values: ``True`` and ``False``.
-#[pyclass(eq, hash, extends = PyType, frozen, name = "Bool", module = "qiskit._accelerate.circuit.classical")]
+#[pyclass(eq, hash, extends = PyType, frozen, name = "Bool", module = "qiskit._accelerate.circuit.classical.types")]
 #[derive(PartialEq, Clone, Copy, Debug, Hash)]
 struct PyBool;
 
@@ -147,7 +147,7 @@ impl PyBool {
 }
 
 /// A length of time, possibly negative.
-#[pyclass(eq, hash, extends = PyType, frozen, name = "Duration", module = "qiskit._accelerate.circuit.classical")]
+#[pyclass(eq, hash, extends = PyType, frozen, name = "Duration", module = "qiskit._accelerate.circuit.classical.types")]
 #[derive(PartialEq, Clone, Copy, Debug, Hash)]
 struct PyDuration;
 
@@ -174,7 +174,7 @@ impl PyDuration {
 /// An IEEE-754 double-precision floating point number.
 ///
 /// In the future, this may also be used to represent other fixed-width floats.
-#[pyclass(eq, hash, extends = PyType, frozen, name = "Float", module = "qiskit._accelerate.circuit.classical")]
+#[pyclass(eq, hash, extends = PyType, frozen, name = "Float", module = "qiskit._accelerate.circuit.classical.types")]
 #[derive(PartialEq, Clone, Copy, Debug, Hash)]
 struct PyFloat;
 
@@ -199,7 +199,7 @@ impl PyFloat {
 }
 
 /// An unsigned integer of fixed bit width.
-#[pyclass(eq, hash, extends = PyType, frozen, name = "Uint", module = "qiskit._accelerate.circuit.classical")]
+#[pyclass(eq, hash, extends = PyType, frozen, name = "Uint", module = "qiskit._accelerate.circuit.classical.types")]
 #[derive(PartialEq, Clone, Copy, Debug, Hash)]
 struct PyUint(u16);
 
