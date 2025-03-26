@@ -52,7 +52,7 @@ class RXGate(Gate):
             \end{pmatrix}
     """
 
-    _standard_gate = StandardGate.RXGate
+    _standard_gate = StandardGate.RX
 
     def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
         """Create new RX gate."""
@@ -202,7 +202,7 @@ class CRXGate(ControlledGate):
                 \end{pmatrix}
     """
 
-    _standard_gate = StandardGate.CRXGate
+    _standard_gate = StandardGate.CRX
 
     def __init__(
         self,

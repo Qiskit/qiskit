@@ -408,6 +408,10 @@ def _plotting_core(
     if fig:
         matplotlib_close_if_inline(fig)
     if filename is None:
+        try:
+            fig.tight_layout()
+        except AttributeError:
+            pass
         return fig
     else:
         return fig.savefig(filename)
