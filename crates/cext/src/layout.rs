@@ -55,7 +55,7 @@ pub unsafe extern "C" fn qk_layout_new(virt_to_phys: *const u32, len: usize) -> 
 ///
 ///     uint32_t virt_to_phys[5] = {0, 2, 3, 4, 1};
 ///     QkLayout layout = qk_layout_new(virt_to_phys, 5);
-///     qk_layout_free(obs);
+///     qk_layout_free(layout);
 ///
 /// # Safety
 ///
