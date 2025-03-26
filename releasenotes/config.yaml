@@ -7,6 +7,7 @@ unreleased_version_title: Unreleased Notes Preview
 sections:
   - [features, New Features]
   - [features_algorithms, Algorithms Features]
+  - [features_c, C API Features]
   - [features_circuits, Circuits Features]
   - [features_primitives, Primitives Features]
   - [features_providers, Providers Features]
@@ -22,6 +23,7 @@ sections:
   - [upgrade, Upgrade Notes]
   - [upgrade_algorithms, Algorithms Upgrade Notes]
   - [upgrade_circuits, Circuits Upgrade Notes]
+  - [upgrade_c, C API Upgrade Notes]
   - [upgrade_primitives, Primitives Upgrade Notes]
   - [upgrade_providers, Providers Upgrade Notes]
   - [upgrade_pulse, Pulse Upgrade Notes]
@@ -34,6 +36,7 @@ sections:
   - [upgrade_misc, Misc. Upgrade Notes]
   - [deprecations, Deprecation Notes]
   - [deprecations_algorithms, Algorithms Deprecations]
+  - [deprecations_c, C API Deprecations]
   - [deprecations_circuits, Circuits Deprecations]
   - [deprecations_primitives, Primitives Deprecations]
   - [deprecations_providers, Providers Deprecations]
@@ -67,6 +70,9 @@ template: |
       available in another section, such as the prelude. This may mean repeating
       some details. If the feature note is contained within one of the modules
       listed below you should use the appropriate subsection instead.
+  features_c:
+    - |
+      New features related to the C API.
   features_circuits:
     - |
       New features related to the qiskit.circuit module.
@@ -116,6 +122,9 @@ template: |
       available in another section, such as the prelude. This may mean repeating
       some details. If the upgrade note is contained within one of the modules
       listed below you should use the appropriate subsection instead.
+  upgrade_c:
+    - |
+      Notes with upgrade impact related to the C API.
   upgrade_circuits:
     - |
       Notes with upgrade impact related to the qiskit.circuit module.
@@ -158,6 +167,9 @@ template: |
       the text needs to be worded so that it does not depend on any information
       only available in another section, such as the prelude. This may mean
       repeating some details.
+  deprecations_c:
+    - |
+      Deprecations related to the C API.
   deprecations_circuits:
     - |
       Deprecations related to the qiskit.circuit module.
