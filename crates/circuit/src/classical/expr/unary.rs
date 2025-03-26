@@ -54,7 +54,7 @@ impl<'py> IntoPyObject<'py> for Unary {
 impl<'py> FromPyObject<'py> for Unary {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         let PyUnary(u) = ob.extract()?;
-        Ok(u.into())
+        Ok(u)
     }
 }
 
@@ -94,6 +94,7 @@ pub struct PyUnary(Unary);
 #[pymethods]
 impl PyUnary {
     #[classattr]
+    #[allow(non_snake_case)]
     fn Op(py: Python) -> PyResult<Py<PyAny>> {
         PyUnaryOp.into_py_any(py)
     }
@@ -127,13 +128,13 @@ impl PyUnary {
     }
 
     #[getter]
-    fn get_const(&self, py: Python) -> bool {
+    fn get_const(&self) -> bool {
         self.0.constant
     }
 
     #[getter]
     fn get_type(&self, py: Python) -> PyResult<Py<PyAny>> {
-        self.0.ty.clone().into_py_any(py)
+        self.0.ty.into_py_any(py)
     }
 
     fn accept<'py>(

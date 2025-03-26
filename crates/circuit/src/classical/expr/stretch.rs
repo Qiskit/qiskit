@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::classical::expr::{Expr, ExprKind, PyExpr};
+use crate::classical::expr::{ExprKind, PyExpr};
 use crate::classical::types::Type;
 use crate::imports::UUID;
 use pyo3::prelude::*;
@@ -37,7 +37,7 @@ impl<'py> IntoPyObject<'py> for Stretch {
 impl<'py> FromPyObject<'py> for Stretch {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         let PyStretch(s) = ob.extract()?;
-        Ok(s.into())
+        Ok(s)
     }
 }
 

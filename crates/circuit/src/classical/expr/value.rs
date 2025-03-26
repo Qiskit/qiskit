@@ -37,7 +37,7 @@ impl<'py> IntoPyObject<'py> for Value {
 impl<'py> FromPyObject<'py> for Value {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         let PyValue(v) = ob.extract()?;
-        Ok(v.into())
+        Ok(v)
     }
 }
 
@@ -70,7 +70,7 @@ impl PyValue {
     }
 
     #[getter]
-    fn get_const(&self, py: Python) -> bool {
+    fn get_const(&self) -> bool {
         true
     }
 

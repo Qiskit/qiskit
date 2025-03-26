@@ -37,7 +37,7 @@ impl<'py> IntoPyObject<'py> for Cast {
 impl<'py> FromPyObject<'py> for Cast {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         let PyCast(c) = ob.extract()?;
-        Ok(c.into())
+        Ok(c)
     }
 }
 
@@ -73,18 +73,18 @@ impl PyCast {
     }
 
     #[getter]
-    fn get_implicit(&self, py: Python) -> bool {
+    fn get_implicit(&self) -> bool {
         self.0.implicit
     }
 
     #[getter]
-    fn get_const(&self, py: Python) -> bool {
+    fn get_const(&self) -> bool {
         self.0.constant
     }
 
     #[getter]
     fn get_type(&self, py: Python) -> PyResult<Py<PyAny>> {
-        self.0.ty.clone().into_py_any(py)
+        self.0.ty.into_py_any(py)
     }
 
     fn accept<'py>(
@@ -100,7 +100,7 @@ impl PyCast {
             (
                 self.get_operand(py)?,
                 self.get_type(py)?,
-                self.get_implicit(py),
+                self.get_implicit(),
             ),
         )
             .into_pyobject(py)

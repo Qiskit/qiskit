@@ -14,7 +14,7 @@ use pyo3::exceptions::PyAttributeError;
 use pyo3::prelude::*;
 use pyo3::sync::GILOnceCell;
 use pyo3::types::PyTuple;
-use pyo3::{IntoPyObjectExt, PyTypeInfo};
+use pyo3::PyTypeInfo;
 
 static BOOL_TYPE: GILOnceCell<Py<PyBool>> = GILOnceCell::new();
 static DURATION_TYPE: GILOnceCell<Py<PyDuration>> = GILOnceCell::new();

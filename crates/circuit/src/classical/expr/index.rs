@@ -37,7 +37,7 @@ impl<'py> IntoPyObject<'py> for Index {
 impl<'py> FromPyObject<'py> for Index {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         let PyIndex(i) = ob.extract()?;
-        Ok(i.into())
+        Ok(i)
     }
 }
 
@@ -76,13 +76,13 @@ impl PyIndex {
     }
 
     #[getter]
-    fn get_const(&self, py: Python) -> bool {
+    fn get_const(&self) -> bool {
         self.0.constant
     }
 
     #[getter]
     fn get_type(&self, py: Python) -> PyResult<Py<PyAny>> {
-        self.0.ty.clone().into_py_any(py)
+        self.0.ty.into_py_any(py)
     }
 
     fn accept<'py>(

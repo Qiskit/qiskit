@@ -11,7 +11,7 @@
 // that they have been altered from the originals.
 
 use crate::bit::{ClassicalRegister, ShareableClbit};
-use crate::classical::expr::{Expr, ExprKind, PyExpr};
+use crate::classical::expr::{ExprKind, PyExpr};
 use crate::classical::types::Type;
 use crate::imports::UUID;
 use pyo3::prelude::*;
@@ -48,7 +48,7 @@ impl<'py> IntoPyObject<'py> for Var {
 impl<'py> FromPyObject<'py> for Var {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         let PyVar(v) = ob.extract()?;
-        Ok(v.into())
+        Ok(v)
     }
 }
 

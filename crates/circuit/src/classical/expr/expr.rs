@@ -72,10 +72,7 @@ impl<'a> Iterator for ExprIterator<'a> {
     type Item = &'a Expr;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let Some(expr) = self.stack.pop() else {
-            return None;
-        };
-
+        let expr = self.stack.pop()?;
         match expr {
             Expr::Unary(u) => {
                 self.stack.push(&u.operand);
@@ -103,7 +100,7 @@ impl<'a> Iterator for VarIterator<'a> {
     type Item = &'a Var;
 
     fn next(&mut self) -> Option<Self::Item> {
-        while let Some(expr) = self.0.next() {
+        for expr in self.0.by_ref() {
             if let Expr::Var(v) = expr {
                 return Some(v);
             }

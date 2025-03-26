@@ -11,11 +11,10 @@
 // that they have been altered from the originals.
 
 use pyo3::prelude::*;
-use pyo3::types::IntoPyDict;
-use pyo3::{BoundObject, IntoPyObjectExt, PyTypeInfo};
 
 mod binary;
 mod cast;
+#[allow(clippy::module_inception)]
 mod expr;
 mod index;
 mod stretch;
