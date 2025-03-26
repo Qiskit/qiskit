@@ -1,0 +1,31 @@
+features_c:
+  - |
+    Added ``qk_obs_apply_layout`` to apply a layout, in form of ``QkLayout``, to an
+    observable.
+  - |
+    Introduce ``QkLayout`` to represent the mapping of virtual to physical qubits,
+    along with the related functions ``qk_layout_new`` and ``qk_layout_free``.
+    A layout can be constructed by passing an array containing the virtual-to-physical
+    mapping into ``qk_layout_new``, for example
+
+    .. code-block:: c
+
+      QkObs *obs = qk_obs_zero(4);
+
+      QkBitTerm bit_terms[3] = {QkBitTerm_X, QkBitTerm_Y, QkBitTerm_Z};
+      uint32_t qubits[3] = {1, 2, 3};
+      complex double coeff = 1;
+      QkObsTerm term = {coeff, 3, bit_terms, qubits, 4};
+
+      qk_obs_add_term(obs, &term);
+
+      uint32_t virt_to_phys[3] = {0, 3, 2, 1};
+      QkLayout *layout = qk_layout_new(virt_to_phys, num_qubits);
+      QkObs *obs_with_layout = qk_obs_apply_layout(obs, layout);
+
+    Ensure to free the layout at the end of the computation, via
+
+    .. code-block:: c
+
+      qk_layout_free(layout);
+

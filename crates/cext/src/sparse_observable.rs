@@ -832,9 +832,22 @@ pub unsafe extern "C" fn qk_obs_equal(
 ///
 /// # Example
 ///
-///     QkObs *observable = qk_obs_identity(100);
-///     QkObs *other = qk_obs_identity(100);
-///     bool are_equal = qk_obs_equal(observable, other);
+///     QkObs *obs = qk_obs_zero(4);
+///
+///     QkBitTerm bit_terms[3] = {QkBitTerm_X, QkBitTerm_Y, QkBitTerm_Z};
+///     uint32_t qubits[3] = {1, 2, 3};
+///     complex double coeff = 1;
+///     QkObsTerm term = {coeff, 3, bit_terms, qubits, 4};
+///
+///     int err = qk_obs_add_term(obs, &term);
+///     if (err != 0) {
+///         qk_obs_free(obs);
+///         return err;
+///     }
+///
+///     uint32_t virt_to_phys[3] = {0, 3, 2, 1};
+///     QkLayout *layout = qk_layout_new(virt_to_phys, num_qubits);
+///     QkObs *obs_with_layout = qk_obs_apply_layout(obs, layout);
 ///
 /// # Safety
 ///
