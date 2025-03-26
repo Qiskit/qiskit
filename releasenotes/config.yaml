@@ -6,6 +6,7 @@ pre_release_tag_re: (?P<pre_release>(?:[ab]|rc|pre)+\d*)$
 unreleased_version_title: Unreleased Notes Preview
 sections:
   - [features, New Features]
+  - [features_algorithms, Algorithms Features]
   - [features_c, C API Features]
   - [features_circuits, Circuits Features]
   - [features_primitives, Primitives Features]
@@ -34,6 +35,8 @@ sections:
   - [upgrade_visualization, Visualization Upgrade Notes]
   - [upgrade_misc, Misc. Upgrade Notes]
   - [deprecations, Deprecation Notes]
+  - [deprecations_algorithms, Algorithms Deprecations]
+  - [deprecations_c, C API Deprecations]
   - [deprecations_circuits, Circuits Deprecations]
   - [deprecations_primitives, Primitives Deprecations]
   - [deprecations_providers, Providers Deprecations]
@@ -164,6 +167,9 @@ template: |
       the text needs to be worded so that it does not depend on any information
       only available in another section, such as the prelude. This may mean
       repeating some details.
+  deprecations_c:
+    - |
+      Deprecations related to the C API.
   deprecations_circuits:
     - |
       Deprecations related to the qiskit.circuit module.
