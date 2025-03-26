@@ -720,6 +720,79 @@ int test_obsterm_str() {
     return result;
 }
 
+/**
+ * Test applying a layout
+ */
+int test_apply_layout() {
+    uint32_t num_qubits = 6;
+    QkObs *obs = qk_obs_zero(num_qubits);
+
+    // Add the term X1 +2 -3 Y4 Z5
+    QkBitTerm bit_terms[5] = {QkBitTerm_X, QkBitTerm_Plus, QkBitTerm_Left, QkBitTerm_Y,
+                              QkBitTerm_Z};
+    uint32_t qubits[5] = {1, 2, 3, 4, 5};
+    complex double coeff = 1;
+    QkObsTerm term = {coeff, 5, bit_terms, qubits, num_qubits};
+    int err = qk_obs_add_term(obs, &term);
+
+    if (err != 0) {
+        qk_obs_free(obs);
+        return RuntimeError;
+    }
+
+    // now apply a custom layout reverting to X5 +4 -3 Y2 Z1
+    uint32_t virt_to_phys[6] = {0, 5, 4, 3, 2, 1};
+    QkLayout *layout = qk_layout_new(virt_to_phys, num_qubits);
+    QkObs *obs_with_layout = qk_obs_apply_layout(obs, layout);
+
+    // compare against expectations
+    QkBitTerm bits_l[5] = {QkBitTerm_Z, QkBitTerm_Y, QkBitTerm_Left, QkBitTerm_Plus, QkBitTerm_X};
+    QkObsTerm term_l = {coeff, 5, bits_l, qubits, num_qubits};
+    QkObs *expected = qk_obs_zero(num_qubits);
+    qk_obs_add_term(expected, &term_l);
+
+    bool is_equal = qk_obs_equal(expected, obs_with_layout);
+
+    qk_obs_free(obs);
+    qk_obs_free(expected);
+    qk_obs_free(obs_with_layout);
+    qk_layout_free(layout);
+
+    if (!is_equal)
+        return EqualityError;
+    return Ok;
+}
+
+/**
+ * Test wrong layouts return null
+ */
+int test_apply_faulty_layout() {
+    uint32_t num_qubits = 6;
+    QkObs *obs = qk_obs_identity(num_qubits);
+
+    uint32_t virt_to_phys[6] = {0, 0, 4, 3, 2, 1};
+    QkLayout *wrong_layout = qk_layout_new(virt_to_phys, num_qubits);
+    QkObs *obs_with_wrong_layout = qk_obs_apply_layout(obs, wrong_layout);
+    qk_layout_free(wrong_layout);
+
+    if (obs_with_wrong_layout) {
+        qk_obs_free(obs_with_wrong_layout);
+        return EqualityError;
+    }
+
+    uint32_t too_small[2] = {0, 1}; // wrong size
+    QkLayout *too_small_layout = qk_layout_new(too_small, 2);
+    QkObs *obs_too_small = qk_obs_apply_layout(obs, too_small_layout);
+    qk_layout_free(too_small_layout);
+
+    if (obs_too_small) {
+        qk_obs_free(obs_too_small);
+        return EqualityError;
+    }
+
+    return Ok;
+}
+
 int test_sparse_observable() {
     int num_failed = 0;
     num_failed += RUN_TEST(test_zero);
@@ -745,6 +818,8 @@ int test_sparse_observable() {
     num_failed += RUN_TEST(test_direct_fail);
     num_failed += RUN_TEST(test_obs_str);
     num_failed += RUN_TEST(test_obsterm_str);
+    num_failed += RUN_TEST(test_apply_layout);
+    num_failed += RUN_TEST(test_apply_faulty_layout);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);

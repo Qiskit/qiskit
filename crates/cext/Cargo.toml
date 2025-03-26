@@ -14,6 +14,7 @@ crate-type = ["rlib"]
 workspace = true
 
 [dependencies]
+bytemuck.workspace = true
 thiserror.workspace = true
 num-complex.workspace = true
 qiskit-accelerate.workspace = true
