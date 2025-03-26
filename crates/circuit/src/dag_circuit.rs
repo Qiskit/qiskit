@@ -12,6 +12,7 @@
 
 use std::borrow::Cow;
 use std::hash::Hash;
+use std::sync::OnceLock;
 
 use ahash::RandomState;
 use approx::relative_eq;
@@ -74,9 +75,6 @@ use std::cmp::Ordering;
 use std::collections::{BTreeMap, VecDeque};
 use std::convert::Infallible;
 use std::f64::consts::PI;
-
-#[cfg(feature = "cache_pygates")]
-use std::sync::OnceLock;
 
 static CONTROL_FLOW_OP_NAMES: [&str; 4] = ["for_loop", "while_loop", "if_else", "switch_case"];
 static SEMANTIC_EQ_SYMMETRIC: [&str; 4] = ["barrier", "swap", "break_loop", "continue_loop"];
@@ -239,19 +237,11 @@ pub struct DAGCircuit {
     /// Operation kind to count
     op_names: IndexMap<String, usize, RandomState>,
 
-    // Python modules we need to frequently access (for now).
-    control_flow_module: PyControlFlowModule,
     vars_info: HashMap<String, DAGVarInfo>,
-    vars_by_type: [Py<PySet>; 3],
+    vars_by_type: VarsByType,
 
     captured_stretches: IndexMap<String, Py<PyAny>, RandomState>,
     declared_stretches: IndexMap<String, Py<PyAny>, RandomState>,
-}
-
-#[derive(Clone, Debug)]
-struct PyControlFlowModule {
-    condition_resources: Py<PyAny>,
-    node_resources: Py<PyAny>,
 }
 
 #[derive(Clone, Debug)]
@@ -260,33 +250,24 @@ struct PyLegacyResources {
     cregs: Py<PyTuple>,
 }
 
-impl PyControlFlowModule {
-    fn new(py: Python) -> PyResult<Self> {
-        let module = PyModule::import(py, "qiskit.circuit.controlflow")?;
-        Ok(PyControlFlowModule {
-            condition_resources: module.getattr("condition_resources")?.unbind(),
-            node_resources: module.getattr("node_resources")?.unbind(),
-        })
-    }
+fn condition_resources(condition: &Bound<PyAny>) -> PyResult<PyLegacyResources> {
+    let res = imports::CONTROL_FLOW_CONDITION_RESOURCES
+        .get_bound(condition.py())
+        .call1((condition,))?;
+    Ok(PyLegacyResources {
+        clbits: res.getattr("clbits")?.downcast_into_exact()?.unbind(),
+        cregs: res.getattr("cregs")?.downcast_into_exact()?.unbind(),
+    })
+}
 
-    fn condition_resources(&self, condition: &Bound<PyAny>) -> PyResult<PyLegacyResources> {
-        let res = self
-            .condition_resources
-            .bind(condition.py())
-            .call1((condition,))?;
-        Ok(PyLegacyResources {
-            clbits: res.getattr("clbits")?.downcast_into_exact()?.unbind(),
-            cregs: res.getattr("cregs")?.downcast_into_exact()?.unbind(),
-        })
-    }
-
-    fn node_resources(&self, node: &Bound<PyAny>) -> PyResult<PyLegacyResources> {
-        let res = self.node_resources.bind(node.py()).call1((node,))?;
-        Ok(PyLegacyResources {
-            clbits: res.getattr("clbits")?.downcast_into_exact()?.unbind(),
-            cregs: res.getattr("cregs")?.downcast_into_exact()?.unbind(),
-        })
-    }
+fn node_resources(node: &Bound<PyAny>) -> PyResult<PyLegacyResources> {
+    let res = imports::CONTROL_FLOW_NODE_RESOURCES
+        .get_bound(node.py())
+        .call1((node,))?;
+    Ok(PyLegacyResources {
+        clbits: res.getattr("clbits")?.downcast_into_exact()?.unbind(),
+        cregs: res.getattr("cregs")?.downcast_into_exact()?.unbind(),
+    })
 }
 
 #[derive(IntoPyObject)]
@@ -435,40 +416,65 @@ struct DAGVarInfo {
     out_node: NodeIndex,
 }
 
+/// A container struct for the Vars in a dag grouped by their types
+#[derive(Clone, Debug)]
+struct VarsByType {
+    input: OnceLock<Py<PySet>>,
+    capture: OnceLock<Py<PySet>>,
+    declare: OnceLock<Py<PySet>>,
+}
+
+impl<'py> VarsByType {
+    fn new() -> Self {
+        Self {
+            input: OnceLock::new(),
+            capture: OnceLock::new(),
+            declare: OnceLock::new(),
+        }
+    }
+
+    fn get_input(&'py self, py: Python<'py>) -> &'py Bound<'py, PySet> {
+        self.input
+            .get_or_init(|| PySet::empty(py).unwrap().unbind())
+            .bind(py)
+    }
+
+    fn get_capture(&'py self, py: Python<'py>) -> &'py Bound<'py, PySet> {
+        self.capture
+            .get_or_init(|| PySet::empty(py).unwrap().unbind())
+            .bind(py)
+    }
+
+    fn get_declare(&'py self, py: Python<'py>) -> &'py Bound<'py, PySet> {
+        self.declare
+            .get_or_init(|| PySet::empty(py).unwrap().unbind())
+            .bind(py)
+    }
+
+    fn get_all(&'py self, py: Python<'py>) -> [&'py Bound<'py, PySet>; 3] {
+        [
+            self.get_input(py),
+            self.get_capture(py),
+            self.get_declare(py),
+        ]
+    }
+
+    fn from_all(input: [Py<PySet>; 3], py: Python) -> Self {
+        Self {
+            input: OnceLock::from(input[0].clone_ref(py)),
+            capture: OnceLock::from(input[1].clone_ref(py)),
+            declare: OnceLock::from(input[2].clone_ref(py)),
+        }
+    }
+}
+
 #[pymethods]
 impl DAGCircuit {
     #[new]
-    pub fn new(py: Python<'_>) -> PyResult<Self> {
-        Ok(DAGCircuit {
-            name: None,
-            metadata: Some(PyDict::new(py).unbind().into()),
-            dag: StableDiGraph::default(),
-            qregs: RegisterData::new(),
-            cregs: RegisterData::new(),
-            qargs_interner: Interner::new(),
-            cargs_interner: Interner::new(),
-            qubits: ObjectRegistry::new(),
-            clbits: ObjectRegistry::new(),
-            vars: ObjectRegistry::new(),
-            global_phase: Param::Float(0.),
-            duration: None,
-            unit: "dt".to_string(),
-            qubit_locations: BitLocator::new(),
-            clbit_locations: BitLocator::new(),
-            qubit_io_map: Vec::new(),
-            clbit_io_map: Vec::new(),
-            var_io_map: Vec::new(),
-            op_names: IndexMap::default(),
-            control_flow_module: PyControlFlowModule::new(py)?,
-            vars_info: HashMap::new(),
-            vars_by_type: [
-                PySet::empty(py)?.unbind(),
-                PySet::empty(py)?.unbind(),
-                PySet::empty(py)?.unbind(),
-            ],
-            captured_stretches: IndexMap::default(),
-            declared_stretches: IndexMap::default(),
-        })
+    pub fn py_new(py: Python) -> PyResult<Self> {
+        let mut out = Self::new()?;
+        out.metadata = Some(PyDict::new(py).unbind().into());
+        Ok(out)
     }
 
     /// Returns the dict containing the QuantumRegisters in the circuit
@@ -671,7 +677,7 @@ impl DAGCircuit {
                 })
                 .into_py_dict(py)?,
         )?;
-        out_dict.set_item("vars_by_type", self.vars_by_type.clone())?;
+        out_dict.set_item("vars_by_type", self.vars_by_type.get_all(py))?;
         out_dict.set_item("qubits", self.qubits.objects())?;
         out_dict.set_item("clbits", self.clbits.objects())?;
         out_dict.set_item("vars", self.vars.objects())?;
@@ -725,7 +731,8 @@ impl DAGCircuit {
         );
         self.global_phase = dict_state.get_item("global_phase")?.unwrap().extract()?;
         self.op_names = dict_state.get_item("op_name")?.unwrap().extract()?;
-        self.vars_by_type = dict_state.get_item("vars_by_type")?.unwrap().extract()?;
+        self.vars_by_type =
+            VarsByType::from_all(dict_state.get_item("vars_by_type")?.unwrap().extract()?, py);
         let binding = dict_state.get_item("vars_info")?.unwrap();
         let vars_info_raw = binding.downcast::<PyDict>().unwrap();
         self.vars_info = HashMap::with_capacity(vars_info_raw.len());
@@ -920,8 +927,8 @@ impl DAGCircuit {
         }
 
         let out_list = PyList::new(py, wires)?;
-        for var_type_set in &self.vars_by_type {
-            for var in var_type_set.bind(py).iter() {
+        for var_type_set in &self.vars_by_type.get_all(py) {
+            for var in var_type_set.iter() {
                 out_list.append(var)?;
             }
         }
@@ -1441,7 +1448,7 @@ impl DAGCircuit {
             return Ok(());
         }
 
-        let resources = self.control_flow_module.condition_resources(condition)?;
+        let resources = condition_resources(condition)?;
         for reg in resources.cregs.bind(py) {
             if !self
                 .cregs
@@ -1508,22 +1515,13 @@ impl DAGCircuit {
             target_dag.add_creg(reg.clone())?;
         }
         if vars_mode == "alike" {
-            for var in self.vars_by_type[DAGVarType::Input as usize]
-                .bind(py)
-                .iter()
-            {
+            for var in self.vars_by_type.get_input(py).iter() {
                 target_dag.add_var(py, &var, DAGVarType::Input)?;
             }
-            for var in self.vars_by_type[DAGVarType::Capture as usize]
-                .bind(py)
-                .iter()
-            {
+            for var in self.vars_by_type.get_capture(py).iter() {
                 target_dag.add_var(py, &var, DAGVarType::Capture)?;
             }
-            for var in self.vars_by_type[DAGVarType::Declare as usize]
-                .bind(py)
-                .iter()
-            {
+            for var in self.vars_by_type.get_declare(py).iter() {
                 target_dag.add_var(py, &var, DAGVarType::Declare)?;
             }
             for stretch in self.captured_stretches.values() {
@@ -1533,22 +1531,13 @@ impl DAGCircuit {
                 target_dag.add_declared_stretch(stretch.bind(py))?;
             }
         } else if vars_mode == "captures" {
-            for var in self.vars_by_type[DAGVarType::Input as usize]
-                .bind(py)
-                .iter()
-            {
+            for var in self.vars_by_type.get_input(py).iter() {
                 target_dag.add_var(py, &var, DAGVarType::Capture)?;
             }
-            for var in self.vars_by_type[DAGVarType::Capture as usize]
-                .bind(py)
-                .iter()
-            {
+            for var in self.vars_by_type.get_capture(py).iter() {
                 target_dag.add_var(py, &var, DAGVarType::Capture)?;
             }
-            for var in self.vars_by_type[DAGVarType::Declare as usize]
-                .bind(py)
-                .iter()
-            {
+            for var in self.vars_by_type.get_declare(py).iter() {
                 target_dag.add_var(py, &var, DAGVarType::Capture)?;
             }
             for stretch in self.captured_stretches.values() {
@@ -2321,8 +2310,13 @@ impl DAGCircuit {
 
         // We don't do any semantic equivalence between Var nodes, as things stand; DAGs can only be
         // equal in our mind if they use the exact same UUID vars.
-        for (our_vars, their_vars) in self.vars_by_type.iter().zip(&other.vars_by_type) {
-            if !our_vars.bind(py).eq(their_vars)? {
+        for (our_vars, their_vars) in self
+            .vars_by_type
+            .get_all(py)
+            .iter()
+            .zip(&other.vars_by_type.get_all(py))
+        {
+            if !our_vars.eq(their_vars)? {
                 return Ok(false);
             }
         }
@@ -4397,10 +4391,7 @@ impl DAGCircuit {
     /// Args:
     ///     var: the variable to add.
     fn add_input_var(&mut self, py: Python, var: &Bound<PyAny>) -> PyResult<()> {
-        if !self.vars_by_type[DAGVarType::Capture as usize]
-            .bind(py)
-            .is_empty()
-        {
+        if !self.vars_by_type.get_capture(py).is_empty() {
             return Err(DAGCircuitError::new_err(
                 "cannot add inputs to a circuit with captures",
             ));
@@ -4414,10 +4405,7 @@ impl DAGCircuit {
     /// Args:
     ///     var: the variable to add.
     fn add_captured_var(&mut self, py: Python, var: &Bound<PyAny>) -> PyResult<()> {
-        if !self.vars_by_type[DAGVarType::Input as usize]
-            .bind(py)
-            .is_empty()
-        {
+        if !self.vars_by_type.get_input(py).is_empty() {
             return Err(DAGCircuitError::new_err(
                 "cannot add captures to a circuit with inputs",
             ));
@@ -4431,10 +4419,7 @@ impl DAGCircuit {
     /// Args:
     ///     var: the stretch to add.
     fn add_captured_stretch(&mut self, py: Python, var: &Bound<PyAny>) -> PyResult<()> {
-        if !self.vars_by_type[DAGVarType::Input as usize]
-            .bind(py)
-            .is_empty()
-        {
+        if !self.vars_by_type.get_input(py).is_empty() {
             return Err(DAGCircuitError::new_err(
                 "cannot add captures to a circuit with inputs",
             ));
@@ -4518,23 +4503,19 @@ impl DAGCircuit {
     /// Number of input classical variables tracked by the circuit.
     #[getter]
     fn num_input_vars(&self, py: Python) -> usize {
-        self.vars_by_type[DAGVarType::Input as usize].bind(py).len()
+        self.vars_by_type.get_input(py).len()
     }
 
     /// Number of captured classical variables tracked by the circuit.
     #[getter]
     fn num_captured_vars(&self, py: Python) -> usize {
-        self.vars_by_type[DAGVarType::Capture as usize]
-            .bind(py)
-            .len()
+        self.vars_by_type.get_capture(py).len()
     }
 
     /// Number of declared local classical variables tracked by the circuit.
     #[getter]
     fn num_declared_vars(&self, py: Python) -> usize {
-        self.vars_by_type[DAGVarType::Declare as usize]
-            .bind(py)
-            .len()
+        self.vars_by_type.get_declare(py).len()
     }
 
     /// Is this realtime variable in the DAG?
@@ -4587,8 +4568,9 @@ impl DAGCircuit {
 
     /// Iterable over the input classical variables tracked by the circuit.
     fn iter_input_vars(&self, py: Python) -> PyResult<Py<PyIterator>> {
-        Ok(self.vars_by_type[DAGVarType::Input as usize]
-            .bind(py)
+        Ok(self
+            .vars_by_type
+            .get_input(py)
             .clone()
             .into_any()
             .try_iter()?
@@ -4597,8 +4579,9 @@ impl DAGCircuit {
 
     /// Iterable over the captured classical variables tracked by the circuit.
     fn iter_captured_vars(&self, py: Python) -> PyResult<Py<PyIterator>> {
-        Ok(self.vars_by_type[DAGVarType::Capture as usize]
-            .bind(py)
+        Ok(self
+            .vars_by_type
+            .get_capture(py)
             .clone()
             .into_any()
             .try_iter()?
@@ -4616,10 +4599,7 @@ impl DAGCircuit {
     /// Iterable over all captured identifiers tracked by the circuit.
     fn iter_captures(&self, py: Python) -> PyResult<Py<PyIterator>> {
         let out_set = PySet::empty(py)?;
-        for var in self.vars_by_type[DAGVarType::Capture as usize]
-            .bind(py)
-            .iter()
-        {
+        for var in self.vars_by_type.get_capture(py).iter() {
             out_set.add(var)?;
         }
         for stretch in self.captured_stretches.values() {
@@ -4630,8 +4610,9 @@ impl DAGCircuit {
 
     /// Iterable over the declared classical variables tracked by the circuit.
     fn iter_declared_vars(&self, py: Python) -> PyResult<Py<PyIterator>> {
-        Ok(self.vars_by_type[DAGVarType::Declare as usize]
-            .bind(py)
+        Ok(self
+            .vars_by_type
+            .get_declare(py)
             .clone()
             .into_any()
             .try_iter()?
@@ -4649,8 +4630,8 @@ impl DAGCircuit {
     /// Iterable over all the classical variables tracked by the circuit.
     fn iter_vars(&self, py: Python) -> PyResult<Py<PyIterator>> {
         let out_set = PySet::empty(py)?;
-        for var_type_set in &self.vars_by_type {
-            for var in var_type_set.bind(py).iter() {
+        for var_type_set in &self.vars_by_type.get_all(py) {
+            for var in var_type_set.iter() {
                 out_set.add(var)?;
             }
         }
@@ -4788,6 +4769,34 @@ impl DAGCircuit {
 }
 
 impl DAGCircuit {
+    pub fn new() -> PyResult<Self> {
+        Ok(DAGCircuit {
+            name: None,
+            metadata: None,
+            dag: StableDiGraph::default(),
+            qregs: RegisterData::new(),
+            cregs: RegisterData::new(),
+            qargs_interner: Interner::new(),
+            cargs_interner: Interner::new(),
+            qubits: ObjectRegistry::new(),
+            clbits: ObjectRegistry::new(),
+            vars: ObjectRegistry::new(),
+            global_phase: Param::Float(0.),
+            duration: None,
+            unit: "dt".to_string(),
+            qubit_locations: BitLocator::new(),
+            clbit_locations: BitLocator::new(),
+            qubit_io_map: Vec::new(),
+            clbit_io_map: Vec::new(),
+            var_io_map: Vec::new(),
+            op_names: IndexMap::default(),
+            vars_info: HashMap::new(),
+            vars_by_type: VarsByType::new(),
+            captured_stretches: IndexMap::default(),
+            declared_stretches: IndexMap::default(),
+        })
+    }
+
     /// Returns an immutable view of the [QuantumRegister] instances in the circuit.
     #[inline(always)]
     pub fn qregs(&self) -> &[QuantumRegister] {
@@ -5453,12 +5462,7 @@ impl DAGCircuit {
                                 vars.push(var);
                             }
                         } else {
-                            for bit in self
-                                .control_flow_module
-                                .condition_resources(&condition)?
-                                .clbits
-                                .bind(py)
-                            {
+                            for bit in condition_resources(&condition)?.clbits.bind(py) {
                                 clbits.push(self.clbits.find(&bit.extract()?).unwrap());
                             }
                         }
@@ -6179,9 +6183,12 @@ impl DAGCircuit {
 
         let var_idx = self.vars.add(var.into(), true)?;
         let (in_index, out_index) = self.add_wire(Wire::Var(var_idx))?;
-        self.vars_by_type[type_ as usize]
-            .bind(py)
-            .add(var.clone().unbind())?;
+        match type_ {
+            DAGVarType::Input => self.vars_by_type.get_input(py),
+            DAGVarType::Capture => self.vars_by_type.get_capture(py),
+            DAGVarType::Declare => self.vars_by_type.get_declare(py),
+        }
+        .add(var.clone().unbind())?;
         self.vars_info.insert(
             var_name,
             DAGVarInfo {
@@ -6287,13 +6294,8 @@ impl DAGCircuit {
             clbit_io_map: Vec::with_capacity(num_clbits),
             var_io_map: Vec::with_capacity(num_vars),
             op_names: IndexMap::default(),
-            control_flow_module: PyControlFlowModule::new(py)?,
             vars_info: HashMap::with_capacity(num_vars),
-            vars_by_type: [
-                PySet::empty(py)?.unbind(),
-                PySet::empty(py)?.unbind(),
-                PySet::empty(py)?.unbind(),
-            ],
+            vars_by_type: VarsByType::new(),
             captured_stretches: IndexMap::default(),
             declared_stretches: IndexMap::default(),
         })
@@ -6772,8 +6774,7 @@ impl DAGCircuit {
                                 } else {
                                     block_cargs.extend(
                                         self.clbits.map_objects(
-                                            self.control_flow_module
-                                                .node_resources(&target)?
+                                            node_resources(&target)?
                                                 .clbits
                                                 .extract::<Vec<ShareableClbit>>(py)?
                                                 .into_iter(),
@@ -7282,10 +7283,10 @@ mod test {
     use rustworkx_core::petgraph::prelude::*;
     use rustworkx_core::petgraph::visit::IntoEdgeReferences;
 
-    fn new_dag(py: Python, qubits: u32, clbits: u32) -> DAGCircuit {
+    fn new_dag(qubits: u32, clbits: u32) -> DAGCircuit {
         let qreg = QuantumRegister::new_owning("q".to_owned(), qubits);
         let creg = ClassicalRegister::new_owning("c".to_owned(), clbits);
-        let mut dag = DAGCircuit::new(py).unwrap();
+        let mut dag = DAGCircuit::new().unwrap();
         dag.add_qreg(qreg).unwrap();
         dag.add_creg(creg).unwrap();
         dag
@@ -7326,7 +7327,7 @@ mod test {
     #[test]
     fn test_push_back() -> PyResult<()> {
         Python::with_gil(|py| {
-            let mut dag = new_dag(py, 2, 2);
+            let mut dag = new_dag(2, 2);
 
             // IO nodes.
             let [q0_in_node, q0_out_node] = dag.qubit_io_map[0];
@@ -7397,7 +7398,7 @@ mod test {
     #[test]
     fn test_push_front() -> PyResult<()> {
         Python::with_gil(|py| {
-            let mut dag = new_dag(py, 2, 2);
+            let mut dag = new_dag(2, 2);
 
             // IO nodes.
             let [q0_in_node, q0_out_node] = dag.qubit_io_map[0];
