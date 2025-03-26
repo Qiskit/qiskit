@@ -13,8 +13,11 @@
 """
 Tests for the Split2QUnitaries transpiler pass.
 """
+
+
 from math import pi
 from test import QiskitTestCase
+import ddt
 import numpy as np
 
 from qiskit import QuantumCircuit, QuantumRegister, transpile
@@ -26,8 +29,12 @@ from qiskit.transpiler import PassManager
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.transpiler.passes import Collect2qBlocks, ConsolidateBlocks
 from qiskit.transpiler.passes.optimization.split_2q_unitaries import Split2QUnitaries
+from qiskit.transpiler.passes.optimization.elide_permutations import ElidePermutations
+
+from test import combine  # pylint: disable=wrong-import-order
 
 
+@ddt.ddt
 class TestSplit2QUnitaries(QiskitTestCase):
     """
     Tests to verify that splitting two-qubit unitaries into two single-qubit unitaries works correctly.
@@ -375,5 +382,51 @@ class TestSplit2QUnitaries(QiskitTestCase):
         self.assertEqual(
             res.count_ops()["unitary"], 2
         )  # the original 2-qubit unitary should be split into 2 1-qubit unitaries.
+        self.assertTrue(expected_op.equiv(res_op))
+        self.assertTrue(matrix_equal(expected_op.data, res_op.data, ignore_phase=False))
+
+    @combine(
+        swap_list=[
+            [(0, 1), (1, 0)],
+            [(0, 1), (0, 2), (0, 3), (0, 4)],
+            [(0, 3), (5, 6), (2, 3), (1, 5), (2, 1)],
+            [(0, 5), (2, 1), (1, 2), (6, 0), (3, 2), (4, 2), (0, 1), (4, 2), (1, 3), (6, 4)],
+        ],
+        elide_before=[True, False],
+        seed=[42, 13, 55],
+    )
+    def test_2q_swap_with_elide_permutations(self, swap_list, elide_before, seed):
+        """Tests compatability of 2q-swap with the elide permutations pass"""
+        qc = QuantumCircuit(2)
+        qc.swap(0, 1)
+        qc.global_phase += 1.2345
+        np.random.seed(seed)
+        num_qubits = 7
+        qc_split = QuantumCircuit(num_qubits)
+        unitary_swap_list = np.random.choice([True, False], size=len(swap_list))
+        expected_layout = list(range(num_qubits))
+        for swap, unitary_swap in zip(swap_list, unitary_swap_list):
+            expected_layout[swap[0]], expected_layout[swap[1]] = (
+                expected_layout[swap[1]],
+                expected_layout[swap[0]],
+            )
+            if unitary_swap:
+                qc_split.append(UnitaryGate(Operator(qc)), swap)
+            else:
+                qc_split.swap(*swap)
+
+        pm = PassManager()
+        if elide_before:
+            pm.append(ElidePermutations())
+            pm.append(Split2QUnitaries(split_swap=True))
+        else:
+            pm.append(Split2QUnitaries(split_swap=True))
+            pm.append(ElidePermutations())
+
+        res = pm.run(qc_split)
+        self.assertEqual(expected_layout, res.layout.final_index_layout())
+
+        res_op = Operator.from_circuit(res)
+        expected_op = Operator(qc_split)
         self.assertTrue(expected_op.equiv(res_op))
         self.assertTrue(matrix_equal(expected_op.data, res_op.data, ignore_phase=False))
