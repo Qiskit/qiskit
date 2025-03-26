@@ -22,7 +22,7 @@ from qiskit.circuit.exceptions import CircuitError
 
 from .parameterexpression import ParameterExpression
 
-SymbolExpr = qiskit._accelerate.circuit.PySymbolExpr
+SymbolExpr = qiskit._accelerate.circuit.ParameterExpression
 
 
 class Parameter(ParameterExpression):

@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-// symbol_expr_py.rs
+// symbol_exprpy.rs
 // Python interface of symbolic expression
 use crate::symbol_expr::{SymbolExpr, Value, SYMEXPR_EPSILON};
 use crate::symbol_parser::parse_expression;
@@ -19,7 +19,9 @@ use hashbrown::{HashMap, HashSet};
 use num_complex::Complex64;
 
 use std::collections::hash_map::DefaultHasher;
+use std::fmt;
 use std::hash::{Hash, Hasher};
+use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
 use pyo3::prelude::*;
 use pyo3::IntoPyObjectExt;
@@ -27,21 +29,21 @@ use pyo3::IntoPyObjectExt;
 // Python interface to SymbolExpr
 #[pyclass(sequence, module = "qiskit._accelerate.circuit")]
 #[derive(Clone, Debug)]
-pub struct PySymbolExpr {
-    pub expr: SymbolExpr,
+pub struct ParameterExpression {
+    expr: SymbolExpr,
 }
 
 #[pymethods]
-impl PySymbolExpr {
+impl ParameterExpression {
     /// parse expression from string
     #[new]
     #[pyo3(signature = (in_expr=None))]
     pub fn new(in_expr: Option<String>) -> PyResult<Self> {
         match in_expr {
-            Some(e) => Ok(PySymbolExpr {
+            Some(e) => Ok(ParameterExpression {
                 expr: parse_expression(&e),
             }),
-            None => Ok(PySymbolExpr {
+            None => Ok(ParameterExpression {
                 expr: SymbolExpr::Value(Value::Int(0)),
             }),
         }
@@ -56,7 +58,7 @@ impl PySymbolExpr {
             .replace("__begin_sympy_replace__", "$\\")
             .replace("__end_sympy_replace__", "$");
 
-        PySymbolExpr {
+        ParameterExpression {
             expr: SymbolExpr::Symbol(Box::new(name)),
         }
     }
@@ -77,23 +79,23 @@ impl PySymbolExpr {
     #[staticmethod]
     fn _extract_value(py: Python, value: PyObject) -> Option<Self> {
         if let Ok(i) = value.extract::<i64>(py) {
-            Some(PySymbolExpr {
+            Some(ParameterExpression {
                 expr: SymbolExpr::Value(Value::from(i)),
             })
-        } else if let Ok(r) = value.extract::<f64>(py) {
-            Some(PySymbolExpr {
-                expr: SymbolExpr::Value(Value::from(r)),
-            })
         } else if let Ok(c) = value.extract::<Complex64>(py) {
-            Some(PySymbolExpr {
+            Some(ParameterExpression {
                 expr: SymbolExpr::Value(Value::from(c)),
             })
+        } else if let Ok(r) = value.extract::<f64>(py) {
+            Some(ParameterExpression {
+                expr: SymbolExpr::Value(Value::from(r)),
+            })
         } else if let Ok(s) = value.extract::<String>(py) {
-            Some(PySymbolExpr {
+            Some(ParameterExpression {
                 expr: parse_expression(&s),
             })
-        } else if let Ok(e) = value.extract::<PySymbolExpr>(py) {
-            Some(PySymbolExpr {
+        } else if let Ok(e) = value.extract::<ParameterExpression>(py) {
+            Some(ParameterExpression {
                 expr: e.expr.clone(),
             })
         } else {
@@ -109,7 +111,7 @@ impl PySymbolExpr {
         let expr = expr
             .replace("__begin_sympy_replace__", "$\\")
             .replace("__end_sympy_replace__", "$");
-        PySymbolExpr {
+        ParameterExpression {
             expr: parse_expression(&expr),
         }
     }
@@ -474,3 +476,304 @@ impl PySymbolExpr {
         self.expr = parse_expression(&state);
     }
 }
+
+impl Default for ParameterExpression {
+    // default constructor returns zero
+    fn default() -> Self {
+        Self {
+            expr: SymbolExpr::Value(Value::Int(0)),
+        }
+    }
+}
+
+impl fmt::Display for ParameterExpression {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.expr)
+    }
+}
+
+// rust native implementation
+impl ParameterExpression {
+    /// return number of symbols in this expression
+    pub fn num_symbols(&self) -> usize {
+        self.expr.symbols().len()
+    }
+
+    /// check if the symbol is used in this expression
+    pub fn has_symbol(&self, symbol: String) -> bool {
+        self.expr.symbols().contains(&symbol)
+    }
+
+    /// bind values to symbols given by input hashmap
+    pub fn bind_for_rust(&self, map: &HashMap<String, Value>) -> Result<Self, &str> {
+        let bound = self.expr.bind(map);
+        match bound.eval(true) {
+            Some(v) => match &v {
+                Value::Real(r) => {
+                    if r.is_infinite() {
+                        Err("zero division occurs while binding parameter")
+                    } else if r.is_nan() {
+                        Err("NAN detected while binding parameter")
+                    } else {
+                        Ok(Self {
+                            expr: SymbolExpr::Value(v),
+                        })
+                    }
+                }
+                Value::Int(_) => Ok(Self {
+                    expr: SymbolExpr::Value(v),
+                }),
+                Value::Complex(c) => {
+                    if c.re.is_infinite() || c.im.is_infinite() {
+                        Err("zero division occurs while binding parameter")
+                    } else if c.re.is_nan() || c.im.is_nan() {
+                        Err("NAN detected while binding parameter")
+                    } else if (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&c.im) {
+                        Ok(Self {
+                            expr: SymbolExpr::Value(Value::Real(c.re)),
+                        })
+                    } else {
+                        Ok(Self {
+                            expr: SymbolExpr::Value(v),
+                        })
+                    }
+                }
+            },
+            None => Ok(Self { expr: bound }),
+        }
+    }
+
+    /// add 2 expressions
+    fn add_expr(&self, rhs: &Self) -> Self {
+        Self {
+            expr: &self.expr + &rhs.expr,
+        }
+    }
+
+    /// add other expression
+    fn add_assign_expr(&mut self, rhs: &Self) {
+        self.expr = &self.expr + &rhs.expr;
+    }
+
+    /// subtract 2 expressions
+    fn sub_expr(&self, rhs: &Self) -> Self {
+        Self {
+            expr: &self.expr - &rhs.expr,
+        }
+    }
+
+    /// subtract other expression
+    fn sub_assign_expr(&mut self, rhs: &Self) {
+        self.expr = &self.expr - &rhs.expr;
+    }
+
+    /// multiply 2 expressions
+    fn mul_expr(&self, rhs: &Self) -> Self {
+        Self {
+            expr: &self.expr * &rhs.expr,
+        }
+    }
+
+    /// multiply other expression
+    fn mul_assign_expr(&mut self, rhs: &Self) {
+        self.expr = &self.expr * &rhs.expr;
+    }
+
+    /// divide expression
+    fn div_expr(&self, rhs: &Self) -> Self {
+        Self {
+            expr: &self.expr / &rhs.expr,
+        }
+    }
+
+    /// divide by other expression
+    fn div_assign_expr(&mut self, rhs: &Self) {
+        self.expr = &self.expr / &rhs.expr;
+    }
+}
+
+impl PartialEq for ParameterExpression {
+    fn eq(&self, rprm: &Self) -> bool {
+        self.expr == rprm.expr
+    }
+}
+
+// =============================
+// Make from Rust native types
+// =============================
+
+impl From<i32> for ParameterExpression {
+    fn from(v: i32) -> Self {
+        Self {
+            expr: SymbolExpr::Value(Value::Real(v as f64)),
+        }
+    }
+}
+impl From<i64> for ParameterExpression {
+    fn from(v: i64) -> Self {
+        Self {
+            expr: SymbolExpr::Value(Value::Real(v as f64)),
+        }
+    }
+}
+
+impl From<u32> for ParameterExpression {
+    fn from(v: u32) -> Self {
+        Self {
+            expr: SymbolExpr::Value(Value::Real(v as f64)),
+        }
+    }
+}
+
+impl From<f64> for ParameterExpression {
+    fn from(v: f64) -> Self {
+        Self {
+            expr: SymbolExpr::Value(Value::Real(v)),
+        }
+    }
+}
+
+impl From<Complex64> for ParameterExpression {
+    fn from(v: Complex64) -> Self {
+        Self {
+            expr: SymbolExpr::Value(Value::Complex(v)),
+        }
+    }
+}
+
+impl From<&str> for ParameterExpression {
+    fn from(s: &str) -> Self {
+        Self {
+            expr: parse_expression(s),
+        }
+    }
+}
+
+impl From<&SymbolExpr> for ParameterExpression {
+    fn from(expr: &SymbolExpr) -> Self {
+        Self { expr: expr.clone() }
+    }
+}
+
+// =============================
+// Unary operations
+// =============================
+impl Neg for ParameterExpression {
+    type Output = Self;
+
+    fn neg(self) -> Self::Output {
+        Self { expr: -&self.expr }
+    }
+}
+
+// =============================
+// Add
+// =============================
+
+macro_rules! add_impl_expr {
+    ($($t:ty)*) => ($(
+        impl Add<$t> for ParameterExpression {
+            type Output = Self;
+
+            #[inline]
+            #[track_caller]
+            fn add(self, other: $t) -> Self::Output {
+                self.add_expr(&other.into())
+            }
+        }
+
+        impl AddAssign<$t> for ParameterExpression {
+            #[inline]
+            #[track_caller]
+            fn add_assign(&mut self, other: $t) {
+                self.add_assign_expr(&other.into())
+            }
+        }
+    )*)
+}
+
+add_impl_expr! {f64 i32 u32 ParameterExpression}
+
+// =============================
+// Sub
+// =============================
+
+macro_rules! sub_impl_expr {
+    ($($t:ty)*) => ($(
+        impl Sub<$t> for ParameterExpression {
+            type Output = Self;
+
+            #[inline]
+            #[track_caller]
+            fn sub(self, other: $t) -> Self::Output {
+                self.sub_expr(&other.into())
+            }
+        }
+
+        impl SubAssign<$t> for ParameterExpression {
+            #[inline]
+            #[track_caller]
+            fn sub_assign(&mut self, other: $t) {
+                self.sub_assign_expr(&other.into())
+            }
+        }
+    )*)
+}
+
+sub_impl_expr! {f64 i32 u32 ParameterExpression}
+
+// =============================
+// Mul
+// =============================
+
+macro_rules! mul_impl_expr {
+    ($($t:ty)*) => ($(
+        impl Mul<$t> for ParameterExpression {
+            type Output = Self;
+
+            #[inline]
+            #[track_caller]
+            fn mul(self, other: $t) -> Self::Output {
+                self.mul_expr(&other.into())
+            }
+        }
+
+        impl MulAssign<$t> for ParameterExpression {
+            #[inline]
+            #[track_caller]
+            fn mul_assign(&mut self, other: $t) {
+                self.mul_assign_expr(&other.into())
+            }
+        }
+    )*)
+}
+
+mul_impl_expr! {f64 i32 u32 ParameterExpression}
+
+// =============================
+// Div
+// =============================
+
+macro_rules! div_impl_expr {
+    ($($t:ty)*) => ($(
+        impl Div<$t> for ParameterExpression {
+            type Output = Self;
+
+            #[inline]
+            #[track_caller]
+            fn div(self, other: $t) -> Self::Output {
+                self.div_expr(&other.into())
+            }
+        }
+
+        impl DivAssign<$t> for ParameterExpression {
+            #[inline]
+            #[track_caller]
+            fn div_assign(&mut self, other: $t) {
+                self.div_assign_expr(&other.into())
+            }
+        }
+    )*)
+}
+
+div_impl_expr! {f64 i32 u32 ParameterExpression}

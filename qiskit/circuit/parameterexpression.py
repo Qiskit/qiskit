@@ -27,7 +27,7 @@ from qiskit.utils.optionals import HAS_SYMPY
 from qiskit.circuit.exceptions import CircuitError
 import qiskit._accelerate.circuit
 
-SymbolExpr = qiskit._accelerate.circuit.PySymbolExpr
+SymbolExpr = qiskit._accelerate.circuit.ParameterExpression
 
 # This type is redefined at the bottom to insert the full reference to "ParameterExpression", so it
 # can safely be used by runtime type-checkers like Sphinx.  Mypy does not need this because it
