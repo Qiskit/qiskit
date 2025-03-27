@@ -3451,6 +3451,10 @@ impl PySparseObservable {
 
     /// Greedily combine the terms in the observable.
     ///
+    /// The terms are iteratively compressed until no more progress can be made. The time complexity of
+    /// each iteration is :math:`O(terms^2 * qubits)` and the total time complexity is
+    /// :math:`O(terms^3 * qubits)`, however in practice the worst-time complexity is not observed.
+    ///
     /// Keeps the original ordering of terms as much as possible.
     ///
     /// Args:
