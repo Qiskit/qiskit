@@ -171,30 +171,29 @@ def _mcsu2_real_diagonal(
     k_1 = math.ceil(num_controls / 2.0)
     k_2 = math.floor(num_controls / 2.0)
 
-    circuit = QuantumCircuit(num_controls + 1, name="MCSU2")
     controls = list(range(num_controls))  # control indices, defined for code legibility
     target = num_controls  # target index, defined for code legibility
+
+    mcx1 = synth_mcx_n_dirty_i15(num_ctrl_qubits=k_1)
+    mcx1_num_ancillas = mcx1.num_qubits - k_1 - 1
+    mcx1_qubits = controls[:k_1] + [target] + controls[k_1 : k_1 + mcx1_num_ancillas]
+
+    mcx2 = synth_mcx_n_dirty_i15(num_ctrl_qubits=k_2)
+    mcx2_num_ancillas = mcx2.num_qubits - k_2 - 1
+    mcx2_qubits = controls[k_1:] + [target] + controls[k_1 - mcx2_num_ancillas : k_1]
+
+    circuit = QuantumCircuit(num_controls + 1, name="MCSU2")
 
     if not is_secondary_diag_real:
         circuit.h(target)
 
-    mcx_1 = synth_mcx_n_dirty_i15(num_ctrl_qubits=k_1)
-    circuit.compose(mcx_1, controls[:k_1] + [target] + controls[k_1 : 2 * k_1 - 2], inplace=True)
+    circuit.compose(mcx1, mcx1_qubits, inplace=True)
     circuit.append(s_gate, [target])
-
-    # TODO: improve CX count by using action_only=True (based on #9687)
-    mcx_2 = synth_mcx_n_dirty_i15(num_ctrl_qubits=k_2).to_gate()
-    circuit.compose(
-        mcx_2.inverse(), controls[k_1:] + [target] + controls[k_1 - k_2 + 2 : k_1], inplace=True
-    )
+    circuit.compose(mcx2, mcx2_qubits, inplace=True)
     circuit.append(s_gate.inverse(), [target])
-
-    mcx_3 = synth_mcx_n_dirty_i15(num_ctrl_qubits=k_1).to_gate()
-    circuit.compose(mcx_3, controls[:k_1] + [target] + controls[k_1 : 2 * k_1 - 2], inplace=True)
+    circuit.compose(mcx1, mcx1_qubits, inplace=True)
     circuit.append(s_gate, [target])
-
-    mcx_4 = synth_mcx_n_dirty_i15(num_ctrl_qubits=k_2).to_gate()
-    circuit.compose(mcx_4, controls[k_1:] + [target] + controls[k_1 - k_2 + 2 : k_1], inplace=True)
+    circuit.compose(mcx2, mcx2_qubits, inplace=True)
     circuit.append(s_gate.inverse(), [target])
 
     if not is_secondary_diag_real:
