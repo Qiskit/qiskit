@@ -4506,15 +4506,15 @@ impl DAGCircuit {
     ///
     /// Args:
     ///     stretch: the stretch to add.
-    fn add_captured_stretch(&mut self, py: Python, stretch: &Bound<PyAny>) -> PyResult<()> {
+    fn add_captured_stretch(&mut self, py: Python, var: &Bound<PyAny>) -> PyResult<()> {
         if !self.vars_by_type.get_input(py).is_empty() {
             return Err(DAGCircuitError::new_err(
                 "cannot add captures to a circuit with inputs",
             ));
         }
-        let name: String = stretch.getattr("name")?.extract::<String>()?;
+        let name: String = var.getattr("name")?.extract::<String>()?;
         match self.identifier_info.get(&name) {
-            Some(DAGIdentifierInfo::Stretch(info)) if stretch.eq(&info.stretch)? => {
+            Some(DAGIdentifierInfo::Stretch(info)) if var.eq(&info.stretch)? => {
                 return Err(DAGCircuitError::new_err("already present in the circuit"));
             }
             Some(_) => {
@@ -4524,14 +4524,14 @@ impl DAGCircuit {
             }
             _ => {}
         }
-        self.stretches.add(stretch.into(), true)?;
+        self.stretches.add(var.into(), true)?;
         self.stretches_by_type
             .get_capture(py)
-            .add(stretch.clone().unbind())?;
+            .add(var.clone().unbind())?;
         self.identifier_info.insert(
             name,
             DAGIdentifierInfo::Stretch(DAGStretchInfo {
-                stretch: stretch.clone().unbind(),
+                stretch: var.clone().unbind(),
                 type_: DAGStretchType::Capture,
             }),
         );
@@ -4551,10 +4551,10 @@ impl DAGCircuit {
     ///
     /// Args:
     ///     stretch: the stretch to add.
-    fn add_declared_stretch(&mut self, py: Python, stretch: &Bound<PyAny>) -> PyResult<()> {
-        let name: String = stretch.getattr("name")?.extract::<String>()?;
+    fn add_declared_stretch(&mut self, py: Python, var: &Bound<PyAny>) -> PyResult<()> {
+        let name: String = var.getattr("name")?.extract::<String>()?;
         match self.identifier_info.get(&name) {
-            Some(DAGIdentifierInfo::Stretch(info)) if stretch.eq(&info.stretch)? => {
+            Some(DAGIdentifierInfo::Stretch(info)) if var.eq(&info.stretch)? => {
                 return Err(DAGCircuitError::new_err("already present in the circuit"));
             }
             Some(_) => {
@@ -4564,14 +4564,14 @@ impl DAGCircuit {
             }
             _ => {}
         }
-        self.stretches.add(stretch.into(), true)?;
+        self.stretches.add(var.into(), true)?;
         self.stretches_by_type
             .get_declare(py)
-            .append(stretch.clone().unbind())?;
+            .append(var.clone().unbind())?;
         self.identifier_info.insert(
             name,
             DAGIdentifierInfo::Stretch(DAGStretchInfo {
-                stretch: stretch.clone().unbind(),
+                stretch: var.clone().unbind(),
                 type_: DAGStretchType::Declare,
             }),
         );
