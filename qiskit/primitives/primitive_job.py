@@ -48,10 +48,15 @@ class PrimitiveJob(BasePrimitiveJob[ResultT, JobStatus]):
         self._future = executor.submit(self._function, *self._args, **self._kwargs)
         executor.shutdown(wait=False)
 
-    def _prepare_dump(self):
-        """This method allows PrimitiveJob to be serialized"""
+    def __getstate__(self):
         _ = self.result()
         _ = self.status()
+        state = self.__dict__.copy()
+        state["_future"] = None
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
         self._future = None
 
     def result(self) -> ResultT:
