@@ -45,7 +45,7 @@ class TestPrimitiveJob(QiskitTestCase):
         result2 = job2.result()
         self.assertEqual(result.metadata, result2.metadata)
         self.assertEqual(len(result), len(result2))
-        for i in range(len(result)):
-            self.assertEqual(result[i].metadata, result2[i].metadata)
-            self.assertEqual(result[i].data.keys(), result2[i].data.keys())
-            np.testing.assert_allclose(result[i].join_data().array, result2[i].join_data().array)
+        for _, sampler_pub in enumerate(result):
+            self.assertEqual(sampler_pub.metadata, sampler_pub.metadata)
+            self.assertEqual(sampler_pub.data.keys(), sampler_pub.data.keys())
+            np.testing.assert_allclose(sampler_pub.join_data().array, sampler_pub.join_data().array)
