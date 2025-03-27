@@ -1113,7 +1113,7 @@ class MCXSynthesis1CleanB95(HighLevelSynthesisPlugin):
     * num_clean_ancillas: The number of clean auxiliary qubits available.
 
     References:
-        1. Barenco et. al., Phys.Rev. A52 3457 (1995),
+        1. Barenco et. al., *Elementary gates for quantum computation*, Phys.Rev. A52 3457 (1995),
            `arXiv:quant-ph/9503016 <https://arxiv.org/abs/quant-ph/9503016>`_
     """
 

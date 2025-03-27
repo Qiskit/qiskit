@@ -182,7 +182,7 @@ def synth_mcx_1_clean_b95(num_ctrl_qubits: int) -> QuantumCircuit:
     r"""
     Synthesize a multi-controlled X gate with :math:`k` controls using a single
     clean ancillary qubit producing a circuit with :math:`k + 2` qubits and at most
-    :math:`16 * k - 24` CX gates, by Barenco et al. [1].
+    :math:`16 * k - 24` CX gates, by [1], [2].
 
     Args:
         num_ctrl_qubits: The number of control qubits.
@@ -191,8 +191,10 @@ def synth_mcx_1_clean_b95(num_ctrl_qubits: int) -> QuantumCircuit:
         The synthesized quantum circuit.
 
     References:
-        1. Barenco et. al., Phys.Rev. A52 3457 (1995),
+        1. Barenco et. al., *Elementary gates for quantum computation*, Phys.Rev. A52 3457 (1995),
            `arXiv:quant-ph/9503016 <https://arxiv.org/abs/quant-ph/9503016>`_
+        2. Iten et. al., *Quantum Circuits for Isometries*, Phys. Rev. A 93, 032318 (2016),
+           `arXiv:1501.06911 <http://arxiv.org/abs/1501.06911>`_
     """
 
     if num_ctrl_qubits == 3:
@@ -210,6 +212,11 @@ def synth_mcx_1_clean_b95(num_ctrl_qubits: int) -> QuantumCircuit:
     q_target = q[-2]
     middle = ceil(num_ctrl_qubits / 2)
 
+    # The contruction involving 4 MCX gates is descrined in Lemma 7.3 of [1], and also
+    # appears as Lemma 9 in [2]. The optimization that the first and third MCX gates
+    # can be synthesized up to relative phase follows from Lemma 7 in [2], as a diagonal
+    # gate following the first MCX gate commutes with the second MCX gate, and
+    # thus cancels with the inverse diagonal gate preceding the third MCX gate.
     controls1 = [*q[:middle]]
     mcx1 = synth_mcx_n_dirty_i15(num_ctrl_qubits=len(controls1), relative_phase=True)
     qubits1 = [*controls1, q_ancilla, *q[middle : middle + mcx1.num_qubits - len(controls1) - 1]]
