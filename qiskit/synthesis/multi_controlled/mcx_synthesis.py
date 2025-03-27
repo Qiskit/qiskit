@@ -212,11 +212,14 @@ def synth_mcx_1_clean_b95(num_ctrl_qubits: int) -> QuantumCircuit:
     q_target = q[-2]
     middle = ceil(num_ctrl_qubits / 2)
 
-    # The contruction involving 4 MCX gates is descrined in Lemma 7.3 of [1], and also
+    # The contruction involving 4 MCX gates is described in Lemma 7.3 of [1], and also
     # appears as Lemma 9 in [2]. The optimization that the first and third MCX gates
     # can be synthesized up to relative phase follows from Lemma 7 in [2], as a diagonal
     # gate following the first MCX gate commutes with the second MCX gate, and
-    # thus cancels with the inverse diagonal gate preceding the third MCX gate.
+    # thus cancels with the inverse diagonal gate preceding the third MCX gate. The
+    # same optimization cannot be applied to the second MCX gate, since a diagonal
+    # gate following the second MCX gate would not satisfy the preconditions of Lemma 7,
+    # and would not necessarily commute with the third MCX gate.
     controls1 = [*q[:middle]]
     mcx1 = synth_mcx_n_dirty_i15(num_ctrl_qubits=len(controls1), relative_phase=True)
     qubits1 = [*controls1, q_ancilla, *q[middle : middle + mcx1.num_qubits - len(controls1) - 1]]
