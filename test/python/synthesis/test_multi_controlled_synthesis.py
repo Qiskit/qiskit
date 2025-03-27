@@ -43,6 +43,10 @@ from qiskit.synthesis.multi_controlled import (
     synth_mcx_n_dirty_i15,
     synth_mcx_n_clean_m15,
     synth_mcx_1_clean_b95,
+    synth_mcx_1_clean_kg24,
+    synth_mcx_1_dirty_kg24,
+    synth_mcx_2_clean_kg24,
+    synth_mcx_2_dirty_kg24,
     synth_mcx_gray_code,
     synth_mcx_noaux_v24,
     synth_c3x,
@@ -132,6 +136,42 @@ class TestMCSynthesisCorrectness(QiskitTestCase):
         synthesized_circuit = synth_mcx_1_clean_b95(num_ctrl_qubits)
         self.assertSynthesisCorrect(
             XGate(), num_ctrl_qubits, synthesized_circuit, clean_ancillas=True
+        )
+
+    @data(3, 4, 5, 6, 7, 8)
+    def test_mcx_1_clean_kg24(self, num_ctrl_qubits: int):
+        """Test synth_mcx_1_clean_kg24 by comparing synthesized and expected matrices."""
+        # Note: the method requires at least 3 control qubits
+        synthesized_circuit = synth_mcx_1_clean_kg24(num_ctrl_qubits)
+        self.assertSynthesisCorrect(
+            XGate(), num_ctrl_qubits, synthesized_circuit, clean_ancillas=True
+        )
+
+    @data(3, 4, 5, 6, 7, 8)
+    def test_mcx_1_dirty_kg24(self, num_ctrl_qubits: int):
+        """Test synth_mcx_1_dirty_kg24 by comparing synthesized and expected matrices."""
+        # Note: the method requires at least 3 control qubits
+        synthesized_circuit = synth_mcx_1_dirty_kg24(num_ctrl_qubits)
+        self.assertSynthesisCorrect(
+            XGate(), num_ctrl_qubits, synthesized_circuit, clean_ancillas=False
+        )
+
+    @data(3, 4, 5, 6, 7, 8)
+    def test_mcx_2_clean_kg24(self, num_ctrl_qubits: int):
+        """Test synth_mcx_2_clean_kg24 by comparing synthesized and expected matrices."""
+        # Note: the method requires at least 3 control qubits
+        synthesized_circuit = synth_mcx_2_clean_kg24(num_ctrl_qubits)
+        self.assertSynthesisCorrect(
+            XGate(), num_ctrl_qubits, synthesized_circuit, clean_ancillas=True
+        )
+
+    @data(3, 4, 5, 6, 7, 8)
+    def test_mcx_2_dirty_kg24(self, num_ctrl_qubits: int):
+        """Test synth_mcx_2_dirty_kg24 by comparing synthesized and expected matrices."""
+        # Note: the method requires at least 3 control qubits
+        synthesized_circuit = synth_mcx_2_dirty_kg24(num_ctrl_qubits)
+        self.assertSynthesisCorrect(
+            XGate(), num_ctrl_qubits, synthesized_circuit, clean_ancillas=False
         )
 
     @data(3, 4, 5, 6, 7, 8)
@@ -230,7 +270,47 @@ class TestMCSynthesisCounts(QiskitTestCase):
         transpiled_circuit = self.pm.run(synthesized_circuit)
         cx_count = transpiled_circuit.count_ops()["cx"]
         # The bound from the documentation of synth_mcx_1_clean_b95
-        self.assertLessEqual(cx_count, 16 * num_ctrl_qubits - 8)
+        self.assertLessEqual(cx_count, 16 * num_ctrl_qubits - 24)
+
+    @data(3, 5, 10, 15)
+    def test_mcx_1_clean_kg24_cx_count(self, num_ctrl_qubits: int):
+        """Test synth_mcx_1_clean_kg24 bound on CX count."""
+        synthesized_circuit = synth_mcx_1_clean_kg24(num_ctrl_qubits)
+        transpiled_circuit = self.pm.run(synthesized_circuit)
+        cx_count = transpiled_circuit.count_ops()["cx"]
+        # Based on the bound from the Sec 5.1 of arXiv:2407.17966, assuming Toffoli decomposition
+        # requires 6 CX gates.
+        self.assertLessEqual(cx_count, 12 * num_ctrl_qubits - 18)
+
+    @data(3, 5, 10, 15)
+    def test_mcx_1_dirty_kg24_cx_count(self, num_ctrl_qubits: int):
+        """Test synth_mcx_1_dirty_kg24 bound on CX count."""
+        synthesized_circuit = synth_mcx_1_dirty_kg24(num_ctrl_qubits)
+        transpiled_circuit = self.pm.run(synthesized_circuit)
+        cx_count = transpiled_circuit.count_ops()["cx"]
+        ## Based on the bound from the Sec 5.3 of arXiv:2407.17966, assuming Toffoli decomposition
+        # requires 6 CX gates.
+        self.assertLessEqual(cx_count, 24 * num_ctrl_qubits - 48)
+
+    @data(3, 5, 10, 15)
+    def test_mcx_2_clean_kg24_cx_count(self, num_ctrl_qubits: int):
+        """Test synth_mcx_2_clean_kg24 bound on CX count."""
+        synthesized_circuit = synth_mcx_2_clean_kg24(num_ctrl_qubits)
+        transpiled_circuit = self.pm.run(synthesized_circuit)
+        cx_count = transpiled_circuit.count_ops()["cx"]
+        # Based on the bound from the Sec 5.2 of arXiv:2407.17966, assuming Toffoli decomposition
+        # requires 6 CX gates.
+        self.assertLessEqual(cx_count, 12 * num_ctrl_qubits - 18)
+
+    @data(3, 5, 10, 15)
+    def test_mcx_2_dirty_kg24_cx_count(self, num_ctrl_qubits: int):
+        """Test synth_mcx_2_dirty_kg24 bound on CX count."""
+        synthesized_circuit = synth_mcx_2_dirty_kg24(num_ctrl_qubits)
+        transpiled_circuit = self.pm.run(synthesized_circuit)
+        cx_count = transpiled_circuit.count_ops()["cx"]
+        # Based on the bound from the Sec 5.4 of arXiv:2407.17966, assuming Toffoli decomposition
+        # requires 6 CX gates.
+        self.assertLessEqual(cx_count, 24 * num_ctrl_qubits - 48)
 
     def test_c3x_cx_count(self):
         """Test synth_c3x bound on CX count."""
@@ -359,7 +439,9 @@ class TestMCSynthesisCounts(QiskitTestCase):
         if isinstance(base_gate, (XGate, YGate, ZGate, HGate)):
             # MCX gate and other locally equivalent multi-controlled gates
             expected = {1: 1, 2: 6, 3: 14, 4: 36, 5: 84, 6: 140, 7: 220, 8: 324}
-        elif isinstance(base_gate, (PhaseGate, SGate, SdgGate, TGate, TdgGate, SXGate, SXdgGate)):
+        elif isinstance(
+            base_gate, (PhaseGate, SGate, SdgGate, TGate, TdgGate, SXGate, SXdgGate, U1Gate)
+        ):
             # MCPhase gate and other locally equivalent multi-controlled gates
             expected = {1: 2, 2: 6, 3: 20, 4: 44, 5: 84, 6: 140, 7: 220, 8: 324}
         elif isinstance(base_gate, RZGate):
@@ -368,8 +450,6 @@ class TestMCSynthesisCounts(QiskitTestCase):
             expected = {1: 2, 2: 8, 3: 20, 4: 24, 5: 40, 6: 56, 7: 80, 8: 104}
         elif isinstance(base_gate, (UGate, U2Gate, U3Gate)):
             expected = {1: 2, 2: 22, 3: 54, 4: 92, 5: 164, 6: 252, 7: 380, 8: 532}
-        elif isinstance(base_gate, U1Gate):
-            expected = {1: 2, 2: 8, 3: 20, 4: 44, 5: 92, 6: 188, 7: 380, 8: 764}
         else:
             raise NotImplementedError
 

@@ -249,7 +249,7 @@ def transpile(  # pylint: disable=too-many-return-statements
     start_time = time()
 
     if optimization_level is None:
-        # Take optimization level from the configuration or 1 as default.
+        # Take optimization level from the configuration or 2 as default.
         config = user_config.get_config()
         optimization_level = config.get("transpile_optimization_level", 2)
 
