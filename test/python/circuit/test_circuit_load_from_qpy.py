@@ -48,7 +48,6 @@ from qiskit.circuit.library import (
     DiagonalGate,
     PauliFeatureMap,
     ZZFeatureMap,
-    QAOAAnsatz,
     pauli_feature_map,
     zz_feature_map,
     qaoa_ansatz,
