@@ -22,14 +22,14 @@ The circuit library is a collection of valuable circuits and building blocks. We
 for different reasons. For instance, they can be used as building blocks for algorithms, serve as
 benchmarks, or they are circuits conjectured to be difficult to simulate classically.
 
-Elements in the circuit library are provided as :class:`.QuantumCircuit`\ s or
+Elements in the circuit library are either :class:`.QuantumCircuit`\ s or
 :class:`~.circuit.Instruction`\ s, allowing them to be easily investigated or plugged into other
-circuits. This enables fast prototyping and circuit design circuit at higher levels of abstraction.
+circuits. This enables fast prototyping and circuit design at higher levels of abstraction.
 
 For example:
 
 .. plot::
-   :alt: Circuit diagram output by the previous code.
+   :alt: A circuit implementing a Suzuki-Trotter expansion of a Hamiltonian evolution.
    :include-source:
 
    from qiskit.circuit import QuantumCircuit
@@ -69,13 +69,13 @@ Standard gates
    operations (like :class:`.Measure`).
 
 Abstract operations
-   This category includes operations that are defined by a mathematical action, but can be implemented with
-   different decompositions. For example, a multi-controlled X gate flips the target qubit if all
-   control qubits are :math:`|1\rangle`, and there are a variety of concrete circuits implementing
-   this operation using lower-level gates. Such abstract operations are represented as :class:`.Gate`
-   or  :class:`~.circuit.Instruction`. This allows building the circuit without choosing a concrete
-   implementation of each block and, finally, let the compiler (or you as user) choose the optimal
-   decomposition. For example:
+   This category includes operations that are defined by a mathematical action, but can be implemented
+   with different decompositions. For example, a multi-controlled :class:`.XGate` flips the target
+   qubit if all control qubits are :math:`|1\rangle`, and there are a variety of concrete circuits
+   implementing this operation using lower-level gates. Such abstract operations are represented as
+   :class:`.Gate` or :class:`~.circuit.Instruction`. This allows building the circuit without choosing
+   a concrete implementation of each block and, finally, let the compiler (or you as user) choose the
+   optimal decomposition. For example:
 
    .. plot::
       :alt: A circuit with a multi-controlled X gate.
@@ -89,8 +89,9 @@ Abstract operations
       circuit.append(mcx, [0, 1, 4, 2, 3])
       circuit.draw("mpl")
 
-   For circuits with abstract operations, the circuit context is taken into account during transpilation. For example, if idle
-   qubits are available, they can be used to obtain a shallower circuit::
+   For circuits with abstract operations, the circuit context is taken into account during
+   transpilation. For example, if idle qubits are available, they can be used to obtain a shallower
+   circuit::
 
      from qiskit import transpile
 
@@ -174,7 +175,6 @@ and operations.
 
    HGate
    IGate
-   MSGate
    PhaseGate
    RGate
    RXGate
@@ -217,7 +217,6 @@ and operations.
    DCXGate
    ECRGate
    iSwapGate
-   RCCXGate
    RXXGate
    RYYGate
    RZXGate
@@ -238,6 +237,7 @@ and operations.
    CCXGate
    CCZGate
    CSwapGate
+   RCCXGate
    RC3XGate
 
 Global standard gates
@@ -306,9 +306,7 @@ which prints:
    MCMTGate
    MCPhaseGate
    MCXGate
-   MCXGrayCode
-   MCXRecursive
-   MCXVChain
+   MSGate
    RVGate
    PauliGate
    LinearFunction
@@ -331,6 +329,9 @@ of the following, which derive :class:`.QuantumCircuit` and are eagerly construc
    Diagonal
    MCMT
    MCMTVChain
+   MCXGrayCode
+   MCXRecursive
+   MCXVChain
    Permutation
    GMS
    GR
@@ -340,11 +341,11 @@ of the following, which derive :class:`.QuantumCircuit` and are eagerly construc
 
 .. _boolean-logic:
 
-Boolean Logic Circuits
-======================
+Boolean Logic
+=============
 
 These :class:`.Gate`\ s implement boolean logic operations, such as the logical
-or of a set of qubit states.
+``or`` of a set of qubit states.
 
 .. autosummary::
    :toctree: ../stubs/
@@ -352,7 +353,6 @@ or of a set of qubit states.
    AndGate
    OrGate
    BitwiseXorGate
-   random_bitwise_xor
    InnerProductGate
 
 The above objects derive :class:`.Gate` (or return this type), which allows the
@@ -368,10 +368,18 @@ of the following which derive :class:`.QuantumCircuit` and are eagerly construct
    XOR
    InnerProduct
 
+
+A random bitwise ``xor`` circuit can be directly generated using:
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   random_bitwise_xor
+
 .. _basis-change:
 
-Basis Change Circuits
-=====================
+Basis Change
+============
 
 These gates perform basis transformations of the qubit states. For example,
 in the case of the Quantum Fourier Transform (QFT), it transforms between
@@ -394,70 +402,10 @@ of the following which derives :class:`.QuantumCircuit` and is eagerly construct
 
 .. _arithmetic:
 
-Arithmetic Circuits
-===================
+Arithmetic
+==========
 
-These :class:`~qiskit.circuit.QuantumCircuit`\\ s perform classical arithmetic,
-such as addition or multiplication.
-
-Amplitude Functions
--------------------
-
-An amplitude function approximates a function :math:`f: \{0, ..., 2^n - 1\} \rightarrow [0, 1]`
-applied on the amplitudes of :math:`n` qubits. See the class docstring for more detailed information.
-
-.. autosummary::
-   :toctree: ../stubs/
-   :template: autosummary/class_no_inherited_members.rst
-
-   LinearAmplitudeFunction
-
-The above object derives :class:`.Gate`, which allows the
-compiler to reason about it on an abstract level. We therefore suggest using this instead
-of the following which derives :class:`.QuantumCircuit` and is eagerly constructed.
-
-.. autosummary::
-   :toctree: ../stubs/
-   :template: autosummary/class_no_inherited_members.rst
-
-   LinearAmplitudeFunctionGate
-
-Functional Pauli Rotations
---------------------------
-
-Functional Pauli rotations implement operations of the form
-
-.. math::
-
-   |x\rangle |0\rangle \mapsto \cos(f(x))|x\rangle|0\rangle + \sin(f(x))|x\rangle|1\rangle
-
-using Pauli-:math:`Y` rotations for different types of functions :math:`f`, such as linear,
-polynomial, or  a piecewise version of these. They are similar to the amplitude functions above, but
-without pre- and post-processing for the domain and image of the target function.
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   LinearPauliRotationsGate
-   PolynomialPauliRotationsGate
-   PiecewiseLinearPauliRotationsGate
-   PiecewisePolynomialPauliRotationsGate
-   PiecewiseChebyshevGate
-
-The above objects derive :class:`.Gate`, which allows the
-compiler to reason about them on an abstract level. We therefore suggest using these instead
-of the following which derive :class:`.QuantumCircuit` and are eagerly constructed.
-
-.. autosummary::
-   :toctree: ../stubs/
-   :template: autosummary/class_no_inherited_members.rst
-
-   FunctionalPauliRotations
-   LinearPauliRotations
-   PolynomialPauliRotations
-   PiecewiseLinearPauliRotations
-   PiecewisePolynomialPauliRotations
-   PiecewiseChebyshev
+These gates and circuits perform classical arithmetic, such as addition or multiplication.
 
 Adders
 ------
@@ -516,6 +464,65 @@ of the following which derive :class:`.QuantumCircuit` and are eagerly construct
    HRSCumulativeMultiplier
    RGQFTMultiplier
 
+Amplitude Functions
+-------------------
+
+An amplitude function approximates a function :math:`f: \{0, ..., 2^n - 1\} \rightarrow [0, 1]`
+applied on the amplitudes of :math:`n` qubits. See the class docstring for more detailed information.
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   LinearAmplitudeFunctionGate
+
+The above object derives :class:`.Gate`, which allows the
+compiler to reason about it on an abstract level. We therefore suggest using this instead
+of the following which derives :class:`.QuantumCircuit` and is eagerly constructed.
+
+.. autosummary::
+   :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
+
+   LinearAmplitudeFunction
+
+Functional Pauli Rotations
+--------------------------
+
+Functional Pauli rotations implement operations of the form
+
+.. math::
+
+   |x\rangle |0\rangle \mapsto \cos(f(x))|x\rangle|0\rangle + \sin(f(x))|x\rangle|1\rangle
+
+using Pauli-:math:`Y` rotations for different types of functions :math:`f`, such as linear,
+polynomial, or  a piecewise version of these. They are similar to the amplitude functions above, but
+without pre- and post-processing for the domain and image of the target function.
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   LinearPauliRotationsGate
+   PolynomialPauliRotationsGate
+   PiecewiseLinearPauliRotationsGate
+   PiecewisePolynomialPauliRotationsGate
+   PiecewiseChebyshevGate
+
+The above objects derive :class:`.Gate`, which allows the
+compiler to reason about them on an abstract level. We therefore suggest using these instead
+of the following which derive :class:`.QuantumCircuit` and are eagerly constructed.
+
+.. autosummary::
+   :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
+
+   FunctionalPauliRotations
+   LinearPauliRotations
+   PolynomialPauliRotations
+   PiecewiseLinearPauliRotations
+   PiecewisePolynomialPauliRotations
+   PiecewiseChebyshev
+
+
 Other arithmetic functions
 --------------------------
 
@@ -547,8 +554,7 @@ of the following which derive :class:`.QuantumCircuit` and are eagerly construct
 Particular Quantum Circuits
 ===========================
 
-The following gates and quantum circuits define specific
-quantum circuits of interest:
+The following gates and quantum circuits define specific operations of interest:
 
 .. autosummary::
    :toctree: ../stubs/
@@ -565,9 +571,8 @@ quantum circuits of interest:
    PauliEvolutionGate
    HamiltonianGate
 
-While the above are functions returning circuits, the following
-classes directly derive :class:`.QuantumCircuits`. For better performance, however,
-we suggest using above functions.
+Below we provide the same operations as classes deriving :class:`.QuantumCircuit`. For better
+runtime and compiler performance, however, we suggest using above functions and gates.
 
 .. autosummary::
    :toctree: ../stubs/
@@ -581,7 +586,6 @@ we suggest using above functions.
    PhaseEstimation
    GroverOperator
    UnitaryOverlap
-
 
 .. _n-local:
 
@@ -636,7 +640,7 @@ construction:
    evolved_operator_ansatz
 
 While we suggest using the above functions, we also continue supporting the following
-:class:`~qiskit.circuit.library.BlueprintCircuit`, which wrap the circuits into a block
+:class:`.BlueprintCircuit`, which wrap the circuits into a block
 and allow for inplace mutations of the circuits:
 
 .. autosummary::
@@ -669,7 +673,7 @@ encoding circuits in a series of variational quantum algorithms:
    zz_feature_map
 
 While we suggest using the above functions, we also continue supporting the following
-:class:`~qiskit.circuit.library.BlueprintCircuit`, which wrap the circuits into a block
+:class:`.BlueprintCircuit`, which wrap the circuits into a block
 and allow for inplace mutations of the circuits:
 
 .. autosummary::
