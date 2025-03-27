@@ -653,6 +653,9 @@ impl SparseObservable {
         const BIT_P: Option<BitTerm> = Some(BitTerm::Plus);
         const BIT_M: Option<BitTerm> = Some(BitTerm::Minus);
 
+        const C_TWO: Complex64 = c64(2.0, 0.0);
+        const C_M_TWO: Complex64 = c64(-2.0, 0.0);
+
         /// Creates an iterator over the differences of two (index, BitTerm)-lists.
         fn differences<'a>(
             term1_indices: &'a [u32],
@@ -698,41 +701,41 @@ impl SparseObservable {
             factor: Complex64,
         ) -> Option<(Option<BitTerm>, Complex64)> {
             match (bit1, bit2, factor) {
-                (BIT_I, BIT_X, C_ONE) => Some((BIT_P, c64(2.0, 0.0))),
-                (BIT_X, BIT_I, C_ONE) => Some((BIT_P, c64(2.0, 0.0))),
+                (BIT_I, BIT_X, C_ONE) => Some((BIT_P, C_TWO)),
+                (BIT_X, BIT_I, C_ONE) => Some((BIT_P, C_TWO)),
 
-                (BIT_I, BIT_X, C_M_ONE) => Some((BIT_M, c64(2.0, 0.0))),
-                (BIT_X, BIT_I, C_M_ONE) => Some((BIT_M, c64(-2.0, 0.0))),
+                (BIT_I, BIT_X, C_M_ONE) => Some((BIT_M, C_TWO)),
+                (BIT_X, BIT_I, C_M_ONE) => Some((BIT_M, C_M_TWO)),
 
-                (BIT_I, BIT_Z, C_ONE) => Some((BIT_0, c64(2.0, 0.0))),
-                (BIT_Z, BIT_I, C_ONE) => Some((BIT_0, c64(2.0, 0.0))),
+                (BIT_I, BIT_Z, C_ONE) => Some((BIT_0, C_TWO)),
+                (BIT_Z, BIT_I, C_ONE) => Some((BIT_0, C_TWO)),
 
-                (BIT_I, BIT_Z, C_M_ONE) => Some((BIT_1, c64(2.0, 0.0))),
-                (BIT_Z, BIT_I, C_M_ONE) => Some((BIT_1, c64(-2.0, 0.0))),
+                (BIT_I, BIT_Z, C_M_ONE) => Some((BIT_1, C_TWO)),
+                (BIT_Z, BIT_I, C_M_ONE) => Some((BIT_1, C_M_TWO)),
 
-                (BIT_I, BIT_Y, C_ONE) => Some((BIT_R, c64(2.0, 0.0))),
-                (BIT_Y, BIT_I, C_ONE) => Some((BIT_R, c64(2.0, 0.0))),
+                (BIT_I, BIT_Y, C_ONE) => Some((BIT_R, C_TWO)),
+                (BIT_Y, BIT_I, C_ONE) => Some((BIT_R, C_M_TWO)),
 
-                (BIT_I, BIT_Y, C_M_ONE) => Some((BIT_L, c64(2.0, 0.0))),
-                (BIT_Y, BIT_I, C_M_ONE) => Some((BIT_L, c64(-2.0, 0.0))),
+                (BIT_I, BIT_Y, C_M_ONE) => Some((BIT_L, C_TWO)),
+                (BIT_Y, BIT_I, C_M_ONE) => Some((BIT_L, C_M_TWO)),
 
-                (BIT_P, BIT_M, C_ONE) => Some((BIT_I, c64(1.0, 0.0))),
-                (BIT_M, BIT_P, C_ONE) => Some((BIT_I, c64(1.0, 0.0))),
+                (BIT_P, BIT_M, C_ONE) => Some((BIT_I, C_ONE)),
+                (BIT_M, BIT_P, C_ONE) => Some((BIT_I, C_ONE)),
 
-                (BIT_P, BIT_M, C_M_ONE) => Some((BIT_X, c64(1.0, 0.0))),
-                (BIT_M, BIT_P, C_M_ONE) => Some((BIT_X, c64(-1.0, 0.0))),
+                (BIT_P, BIT_M, C_M_ONE) => Some((BIT_X, C_ONE)),
+                (BIT_M, BIT_P, C_M_ONE) => Some((BIT_X, C_M_ONE)),
 
-                (BIT_0, BIT_1, C_ONE) => Some((BIT_I, c64(1.0, 0.0))),
-                (BIT_1, BIT_Z, C_ONE) => Some((BIT_I, c64(1.0, 0.0))),
+                (BIT_0, BIT_1, C_ONE) => Some((BIT_I, C_ONE)),
+                (BIT_1, BIT_Z, C_ONE) => Some((BIT_I, C_ONE)),
 
-                (BIT_0, BIT_1, C_M_ONE) => Some((BIT_Z, c64(1.0, 0.0))),
-                (BIT_1, BIT_Z, C_M_ONE) => Some((BIT_Z, c64(-1.0, 0.0))),
+                (BIT_0, BIT_1, C_M_ONE) => Some((BIT_Z, C_ONE)),
+                (BIT_1, BIT_Z, C_M_ONE) => Some((BIT_Z, C_M_ONE)),
 
-                (BIT_R, BIT_L, C_ONE) => Some((BIT_I, c64(1.0, 0.0))),
-                (BIT_L, BIT_R, C_ONE) => Some((BIT_I, c64(1.0, 0.0))),
+                (BIT_R, BIT_L, C_ONE) => Some((BIT_I, C_ONE)),
+                (BIT_L, BIT_R, C_ONE) => Some((BIT_I, C_ONE)),
 
-                (BIT_R, BIT_L, C_M_ONE) => Some((BIT_Y, c64(1.0, 0.0))),
-                (BIT_L, BIT_R, C_M_ONE) => Some((BIT_Y, c64(1.0, 0.0))),
+                (BIT_R, BIT_L, C_M_ONE) => Some((BIT_Y, C_ONE)),
+                (BIT_L, BIT_R, C_M_ONE) => Some((BIT_Y, C_M_ONE)),
 
                 _ => None,
             }
@@ -787,10 +790,10 @@ impl SparseObservable {
 
             // we should have exactly one difference
             let mut iter = differences(
-                &term1.indices,
-                &term1.bit_terms,
-                &term2.indices,
-                &term2.bit_terms,
+                term1.indices,
+                term1.bit_terms,
+                term2.indices,
+                term2.bit_terms,
             );
             match iter.next() {
                 Some((index, bit1, bit2)) => {
@@ -800,8 +803,8 @@ impl SparseObservable {
                             // exactly one difference
                             apply_reduction(bit1, bit2, factor).map(|(new_bit, factor)| {
                                 let (new_indices, new_bits) = apply_changes(
-                                    &term1.indices,
-                                    &term1.bit_terms,
+                                    term1.indices,
+                                    term1.bit_terms,
                                     &[index],
                                     &[new_bit],
                                 );
