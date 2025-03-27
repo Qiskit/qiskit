@@ -18,7 +18,7 @@ import logging
 from collections import defaultdict
 
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit._accelerate.basis.basis_translator import base_run
+from qiskit._accelerate.basis_translator import base_run
 
 logger = logging.getLogger(__name__)
 
