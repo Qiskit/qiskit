@@ -670,6 +670,14 @@ impl DAGCircuit {
                 })
                 .into_py_dict(py)?,
         )?;
+        out_dict.set_item(
+            "captured_stretches",
+            self.captured_stretches.iter().into_py_dict(py)?,
+        )?;
+        out_dict.set_item(
+            "declared_stretches",
+            self.declared_stretches.iter().into_py_dict(py)?,
+        )?;
         out_dict.set_item("vars_by_type", self.vars_by_type.clone())?;
         out_dict.set_item("qubits", self.qubits.bits())?;
         out_dict.set_item("clbits", self.clbits.bits())?;
@@ -743,7 +751,14 @@ impl DAGCircuit {
             };
             self.vars_info.insert(key.extract()?, info);
         }
-
+        self.captured_stretches = dict_state
+            .get_item("captured_stretches")?
+            .unwrap()
+            .extract()?;
+        self.declared_stretches = dict_state
+            .get_item("declared_stretches")?
+            .unwrap()
+            .extract()?;
         let binding = dict_state.get_item("qubits")?.unwrap();
         let qubits_raw = binding.extract::<Vec<ShareableQubit>>()?;
         for bit in qubits_raw.into_iter() {
@@ -2324,12 +2339,11 @@ impl DAGCircuit {
             return Ok(false);
         }
 
-        for (our_stretch, their_stretch) in self
-            .captured_stretches
-            .values()
-            .zip(other.captured_stretches.values())
-        {
-            if !our_stretch.bind(py).eq(their_stretch)? {
+        // Note that `captured_stretches` is a set and thus order of captured stretches
+        // does not influence equality.
+        let our_captured_stretches = PySet::new(py, self.captured_stretches.values())?;
+        for their_stretch in other.captured_stretches.values() {
+            if !our_captured_stretches.contains(their_stretch)? {
                 return Ok(false);
             }
         }
@@ -4380,6 +4394,7 @@ impl DAGCircuit {
         if !self.vars_by_type[DAGVarType::Capture as usize]
             .bind(py)
             .is_empty()
+            || !self.captured_stretches.is_empty()
         {
             return Err(DAGCircuitError::new_err(
                 "cannot add inputs to a circuit with captures",
@@ -4515,6 +4530,21 @@ impl DAGCircuit {
         self.vars_by_type[DAGVarType::Declare as usize]
             .bind(py)
             .len()
+    }
+
+    #[getter]
+    fn _num_stretches(&self) -> usize {
+        self._num_captured_stretches() + self._num_declared_stretches()
+    }
+
+    #[getter]
+    fn _num_captured_stretches(&self) -> usize {
+        self.captured_stretches.len()
+    }
+
+    #[getter]
+    fn _num_declared_stretches(&self) -> usize {
+        self.declared_stretches.len()
     }
 
     /// Is this realtime variable in the DAG?
