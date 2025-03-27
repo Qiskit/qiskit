@@ -2420,7 +2420,7 @@ impl DAGCircuit {
         if !self
             .stretches_by_type
             .get_capture(py)
-            .eq(&other.stretches_by_type.get_capture(py))?
+            .eq(other.stretches_by_type.get_capture(py))?
         {
             return Ok(false);
         }
@@ -2428,7 +2428,7 @@ impl DAGCircuit {
         if !self
             .stretches_by_type
             .get_declare(py)
-            .eq(&other.stretches_by_type.get_declare(py))?
+            .eq(other.stretches_by_type.get_declare(py))?
         {
             return Ok(false);
         }
