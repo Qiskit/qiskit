@@ -270,7 +270,7 @@ class TestMCSynthesisCounts(QiskitTestCase):
         transpiled_circuit = self.pm.run(synthesized_circuit)
         cx_count = transpiled_circuit.count_ops()["cx"]
         # The bound from the documentation of synth_mcx_1_clean_b95
-        self.assertLessEqual(cx_count, 16 * num_ctrl_qubits - 8)
+        self.assertLessEqual(cx_count, 16 * num_ctrl_qubits - 24)
 
     @data(3, 5, 10, 15)
     def test_mcx_1_clean_kg24_cx_count(self, num_ctrl_qubits: int):
