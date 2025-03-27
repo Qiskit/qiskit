@@ -247,8 +247,8 @@ impl<'py> IntoPyObject<'py> for Expr {
 
 impl<'py> FromPyObject<'py> for Expr {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let PyExpr(kind) = ob.extract()?;
-        match kind {
+        let expr: PyRef<'_, PyExpr> = ob.downcast()?.borrow();
+        match expr.0 {
             ExprKind::Unary => Ok(Expr::Unary(Box::new(ob.extract()?))),
             ExprKind::Binary => Ok(Expr::Binary(Box::new(ob.extract()?))),
             ExprKind::Value => Ok(Expr::Value(ob.extract()?)),
