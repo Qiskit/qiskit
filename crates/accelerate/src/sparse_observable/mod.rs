@@ -820,47 +820,54 @@ impl SparseObservable {
             }
         }
 
-        // the main code
-        let mut terms: Vec<SparseTerm> = self.iter().map(|t| t.to_term()).collect();
-        let dummy_term =
-            SparseTerm::new(0, Complex64::new(0.0, 0.0), [].into(), [].into()).unwrap();
-        let mut another_iter: bool = true;
+        fn do_one_iteration(obs: &SparseObservable, tol: f64) -> SparseObservable {
+            let terms: Vec<SparseTermView> = obs.iter().collect();
+            let mut removed = vec![false; terms.len()]; // keeps removed elements
 
-        while another_iter {
-            another_iter = false;
-            let mut num_modified: usize = 0;
+            let mut out = SparseObservable::zero(obs.num_qubits);
+
             for i in 0..terms.len() {
-                if terms[i].coeff().norm_sqr() <= tol * tol {
+                if removed[i] || (terms[i].coeff.norm_sqr() <= tol * tol) {
                     continue;
                 }
+
                 for j in i + 1..terms.len() {
-                    if terms[j].coeff().norm_sqr() <= tol * tol {
+                    if removed[j] || (terms[j].coeff.norm_sqr() <= tol * tol) {
                         continue;
                     }
-                    // try to combine terms[i] and terms[j], storing the result in terms[i]
-                    if let Some(combined) = try_combine_terms(&terms[i], &terms[j], tol) {
-                        terms[i] = combined;
-                        terms[j] = dummy_term.clone();
-                        num_modified += 1;
+
+                    // try to combine terms[i] and terms[j]
+                    if let Some(combined) =
+                        try_combine_terms(&terms[i].to_term(), &terms[j].to_term(), tol)
+                    {
+                        // succeeded to combine
+                        removed[i] = true;
+                        removed[j] = true;
+                        out.add_term(combined.view())
+                            .expect("qubit counts were checked during initialisation");
+                        break;
                     }
                 }
+
+                if !removed[i] {
+                    // did not combine term[i] with anything
+                    out.add_term(terms[i])
+                        .expect("qubit counts were checked during initialisation");
+                }
             }
-            if num_modified > 0 {
-                another_iter = true;
-            }
+
+            out
         }
 
-        let mut out = SparseObservable::zero(self.num_qubits);
-        for term in terms {
-            if term.coeff.norm_sqr() <= tol * tol {
-                continue;
-            }
-            out.coeffs.push(term.coeff);
-            out.bit_terms.extend_from_slice(&term.bit_terms);
-            out.indices.extend_from_slice(&term.indices);
-            out.boundaries.push(out.indices.len());
+        // the main code
+        let mut num_terms = self.num_terms();
+        let mut new_obs = do_one_iteration(self, tol);
+        while new_obs.num_terms() < num_terms {
+            num_terms = new_obs.num_terms();
+            new_obs = do_one_iteration(&new_obs, tol);
         }
-        out
+
+        new_obs
     }
 
     /// Tensor product of `self` with `other`.
