@@ -1836,3 +1836,19 @@ class TestStrict(QiskitTestCase):
         qc = QuantumCircuit(QuantumRegister(1, "q"))
         qc.h(0)
         self.assertEqual(parsed, qc)
+
+    def test_unitary_qasm(self):
+        """Test that UnitaryGate can be loaded by OQ2 correctly."""
+        qc = QuantumCircuit(1)
+        qc.unitary([[1, 0], [0, 1]], 0)
+        qasm = """
+            OPENQASM 2.0;
+            include "qelib1.inc";
+            gate unitary q0 { U(0,0,0) q0; }
+            qreg q[1];
+            unitary q[0];
+        """
+        parsed = qiskit.qasm2.loads(qasm)
+        self.assertIsInstance(parsed, QuantumCircuit)
+        self.assertIsInstance(parsed.data[0].operation, qiskit.qasm2.parse._DefinedGate)
+        self.assertEqual(Operator.from_circuit(parsed), Operator.from_circuit(qc))
