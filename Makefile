@@ -141,15 +141,9 @@ ctest: $(C_QISKIT_H)
 	cmake -S. -B$(C_DIR_TEST_BUILD)
 	cmake --build $(C_DIR_TEST_BUILD)
 	# -V ensures we always produce a logging output to indicate the subtests
-	ctest -V --test-dir $(C_DIR_TEST_BUILD)
-
-ctest_win: $(C_QISKIT_H)
-	# -S specifically specifies the source path to be the current folder
-	# -B specifically specifies the build path to be inside test/c/build
-	cmake -S. -B$(C_DIR_TEST_BUILD)
-	cmake --build $(C_DIR_TEST_BUILD)
-	# -V ensures we always produce a logging output to indicate the subtests
-	ctest -C Debug --test-dir $(C_DIR_TEST_BUILD)
+	# -C Debug is needed for windows to work, if you don't specify Debug (or
+	#  release) explicitly ctest doesn't run on windows
+	ctest -V -C Debug --test-dir $(C_DIR_TEST_BUILD)
 
 cclean:
 	rm -rf $(C_DIR_OUT) $(C_DIR_TEST_BUILD)
