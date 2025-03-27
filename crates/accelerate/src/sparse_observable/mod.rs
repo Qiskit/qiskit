@@ -762,10 +762,10 @@ impl SparseObservable {
                 .unzip()
         }
 
-        /// Attempt to combine two [SparseTerm].
+        /// Attempt to combine two sparse terms, returning the combined term when successful.
         fn try_combine_terms(
-            term1: &SparseTerm,
-            term2: &SparseTerm,
+            term1: &SparseTermView,
+            term2: &SparseTermView,
             tol: f64,
         ) -> Option<SparseTerm> {
             // compute factor = term2.coeff / term1.coeff
@@ -820,6 +820,7 @@ impl SparseObservable {
             }
         }
 
+        /// Compresses a sparse observable by greedily combining terms.
         fn do_one_iteration(obs: &SparseObservable, tol: f64) -> SparseObservable {
             let terms: Vec<SparseTermView> = obs.iter().collect();
             let mut removed = vec![false; terms.len()]; // keeps removed elements
@@ -837,9 +838,7 @@ impl SparseObservable {
                     }
 
                     // try to combine terms[i] and terms[j]
-                    if let Some(combined) =
-                        try_combine_terms(&terms[i].to_term(), &terms[j].to_term(), tol)
-                    {
+                    if let Some(combined) = try_combine_terms(&terms[i], &terms[j], tol) {
                         // succeeded to combine
                         removed[i] = true;
                         removed[j] = true;
