@@ -46,13 +46,15 @@ For example:
 
 This library is organized in different sections:
 
-   * :ref:`Standard gates <standard-gates>`, :ref:`directives <standard-directives>`,
-     and :ref:`operations <standard-operations>`
+   * :ref:`Standard gates <standard-gates>`
+   * :ref:`Standard directives <standard-directives>`
+   * :ref:`Standard operations <standard-operations>`
    * :ref:`Generalized gates <generalized-gates>`
    * :ref:`Arithmetic operations <arithmetic>`
    * :ref:`Basis changes <basis-change>`
    * :ref:`Boolean logic <boolean-logic>`
-   * :ref:`Data encoding <data-encoding>` and :ref:`preparation <data-preparation>`
+   * :ref:`Data encoding <data-encoding>`
+   * :ref:`Data preparation <data-preparation>`
    * :ref:`Particular operations <particular>`
    * :ref:`N-local circuits <n-local>`
    * :ref:`Oracles <oracles>`
@@ -67,7 +69,7 @@ Standard gates
    operations (like :class:`.Measure`).
 
 Abstract operations
-   This describes operations that are defined by a mathematical action, but can be implemented with
+   This category includes operations that are defined by a mathematical action, but can be implemented with
    different decompositions. For example, a multi-controlled X gate flips the target qubit if all
    control qubits are :math:`|1\rangle`, and there are a variety of concrete circuits implementing
    this operation using lower-level gates. Such abstract operations are represented as :class:`.Gate`
@@ -87,8 +89,8 @@ Abstract operations
       circuit.append(mcx, [0, 1, 4, 2, 3])
       circuit.draw("mpl")
 
-   When this circuit is transpiled the circuit context is taken into account. For example, if idle
-   qubits are available they can be used to obtain a shallower circuit::
+   For circuits with abstract operations, the circuit context is taken into account during transpilation. For example, if idle
+   qubits are available, they can be used to obtain a shallower circuit::
 
      from qiskit import transpile
 
@@ -111,7 +113,7 @@ Abstract operations
 
 Structural operations
    These operations have a unique decomposition. As the compiler does not need to reason about
-   them on a higher level, they are implemented as function that return a :class:`.QuantumCircuit`
+   them on a higher level, they are implemented as functions that return a :class:`.QuantumCircuit`
    object. For example:
 
    .. plot::
@@ -238,8 +240,8 @@ and operations.
    CSwapGate
    RC3XGate
 
-Global standard gate
---------------------
+Global standard gates
+---------------------
 
 The following gate is global and does not take any qubit arguments.
 
@@ -277,7 +279,7 @@ Operations are non-reversible changes in the quantum state of the circuit.
 Generalized Gates
 =================
 
-This module extends the standard gates by a broader collection of basic gates. This includes
+This module extends the standard gates with a broader collection of basic gates. This includes
 gates that are variadic, meaning that the number of qubits depends on the input.
 For example::
 
@@ -320,7 +322,7 @@ which prints:
 
 The above objects derive :class:`.Gate` or :class:`~.circuit.Instruction`, which allows the
 compiler to reason about them on an abstract level. We therefore suggest using these instead
-of the following which derive :class:`.QuantumCircuit` and are eagerly constructed.
+of the following, which derive :class:`.QuantumCircuit` and are eagerly constructed.
 
 .. autosummary::
    :toctree: ../stubs/
@@ -371,7 +373,7 @@ of the following which derive :class:`.QuantumCircuit` and are eagerly construct
 Basis Change Circuits
 =====================
 
-These gates allow basis transformations of the qubit states. For example,
+These gates perform basis transformations of the qubit states. For example,
 in the case of the Quantum Fourier Transform (QFT), it transforms between
 the computational basis and the Fourier basis.
 
@@ -430,7 +432,7 @@ Functional Pauli rotations implement operations of the form
    |x\rangle |0\rangle \mapsto \cos(f(x))|x\rangle|0\rangle + \sin(f(x))|x\rangle|1\rangle
 
 using Pauli-:math:`Y` rotations for different types of functions :math:`f`, such as linear,
-polynomial, or piecewise version of these. They are similar to the amplitude functions above, but
+polynomial, or  a piecewise version of these. They are similar to the amplitude functions above, but
 without pre- and post-processing for the domain and image of the target function.
 
 .. autosummary::
