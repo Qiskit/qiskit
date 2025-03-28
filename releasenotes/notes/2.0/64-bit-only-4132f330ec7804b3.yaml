@@ -6,6 +6,7 @@ upgrade:
     This aligns with the trend in the scientific Python community and allows Qiskit to 
     focus on performance improvements for increasingly complex quantum computing hardware.
     
-    Qiskit v1.x will continue to support 32-bit platforms, but starting in 
-    this v2.0.0 release, Qiskit will no longer publish pre-compiled binaries for them, and 
-    offers no guarantee of successful source builds on 32-bit platforms.
+    Qiskit v1.4 will continue to support 32-bit platforms until end-of-life (September 2025), 
+    but starting in this 2.0.0 release, Qiskit will no 
+    longer publish pre-compiled binaries for them, and offers no guarantee of 
+    successful source builds on 32-bit platforms.
