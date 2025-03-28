@@ -1,13 +1,19 @@
 ---
 upgrade_circuits:
   - |
-     The :class:`.PhaseOracle` class no longer relies on the ``tweedledum`` library, 
-     as the dependency was not actively maintained. This change may affect 
-     synthesis effectiveness.
+     The ``qiskit.circuit.classicalfunction`` module has been removed following its deprecation in Qiskit v1.4,
+     including the ``ClassicalFunction`` class, its related ``classical_function`` function, and 
+     the ``BooleanExpression`` class. This change was made to remove the dependency on the ``tweedledum`` 
+     library, which is no longer compatible with all of Qiskit's supported platforms and Python versions.
+     ``ClassicalFunction`` was exclusively used in :class:`.PhaseOracle`, which has been upgraded to only accept
+     expressions in ``string`` format (see following release note). ``BooleanExpression`` has been superseded by the
+     new :class:`.BitFlipOracleGate` class. 
 
-     Additionally, the :class:`.PhaseOracle` class interface has been simplified: 
+  - |
+     The :class:`.PhaseOracle` class no longer depends on the ``tweedledum`` library, 
+     as the dependency was not actively maintained. The interface has been simplified: 
      it no longer accepts a ``synthesizer`` parameter, and the ``expression`` parameter 
-     can only be a string. This is because the previously accepted ``ClassicalElement``
+     can only be a string. The previously accepted ``ClassicalFunction``
      type, deprecated in Qiskit v1.4, has been removed in Qiskit v2.0.
 
      Despite these upgrades, the standard usage of the :class:`.PhaseOracle` class remains unchanged:
@@ -19,7 +25,10 @@ upgrade_circuits:
           bool_expr = "(x0 & x1 | ~x2) & x4"
           oracle = PhaseOracle(bool_expr)
           oracle.draw('mpl')
-                    
+
+     Note that this change may affect synthesis effectiveness, but was required for compatibility with all 
+     of Qiskit's supported platforms and Python versions.
+
 features_circuits:
   - |
      Added two new classes: :class:`.BitFlipOracleGate` and :class:`.PhaseOracleGate`.
@@ -35,81 +44,26 @@ features_circuits:
      controlled-X operation, where the control is determined by the value of the 
      expression encoded by the oracle.
 
-     .. code-block:: python
+     .. plot::
+         :include-source:
 
           from qiskit import QuantumCircuit
           from qiskit.circuit.library.bit_flip_oracle import BitFlipOracleGate
-          from qiskit.circuit.library.phase_oracle import PhaseOracleGate
           qc = QuantumCircuit(5)
           bool_expr = "(x0 & x1 | ~x2) & x4"
           oracle = BitFlipOracleGate(bool_expr)
           qc.compose(oracle, inplace=True)
-          print(qc)
+          qc.draw('mpl')
+          qc.decompose().draw('mpl')
 
-     .. code-block:: text
+     .. plot::
+         :include-source:
 
-               ┌─────────────────────┐
-          q_0: ┤0                    ├
-               │                     │
-          q_1: ┤1                    ├
-               │                     │
-          q_2: ┤2 (x0 & x1 | ~x2)... ├
-               │                     │
-          q_3: ┤3                    ├
-               │                     │
-          q_4: ┤4                    ├
-               └─────────────────────┘
-
-     .. code-block:: python
-
-          print(qc.decompose())
-
-     .. code-block:: text
-
-          q_0: ──o────■────■──
-                    │    │    │  
-          q_1: ──┼────o────■──
-                    │    │    │  
-          q_2: ──o────o────┼──
-                    │    │    │  
-          q_3: ──■────■────■──
-               ┌─┴─┐┌─┴─┐┌─┴─┐
-          q_4: ┤ X ├┤ X ├┤ X ├
-               └───┘└───┘└───┘
-
-     .. code-block:: python
-
+          from qiskit import QuantumCircuit
+          from qiskit.circuit.library.phase_oracle import PhaseOracleGate
           qc = QuantumCircuit(5)
           bool_expr = "(x0 & x1 | ~x2) & x4"
           oracle = PhaseOracleGate(bool_expr)
           qc.compose(oracle, inplace=True)
-          print(qc)
-
-     .. code-block:: text
-
-               ┌───────────────┐
-          q_0: ┤0              ├
-               │               │
-          q_1: ┤1              ├
-               │  Phase oracle │
-          q_2: ┤2              ├
-               │               │
-          q_3: ┤3              ├
-               └───────────────┘
-          q_4: ─────────────────
-
-     .. code-block:: python
-
-          print(qc.decompose())
-
-     .. code-block:: text
-
-          q_0: ─o──■──■─
-                    │  │  │ 
-          q_1: ─┼──o──■─
-                    │  │  │ 
-          q_2: ─o──o──┼─
-                    │  │  │ 
-          q_3: ─■──■──■─
-
-          q_4: ─────────
+          qc.draw('mpl')
+          qc.decompose().draw('mpl')

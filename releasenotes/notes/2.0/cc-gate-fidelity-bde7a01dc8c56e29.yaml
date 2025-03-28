@@ -1,10 +1,11 @@
 ---
-upgrade:
+upgrade_transpiler:
   - |
     Increased the minimum threshold for when gates are assumed to be the identity in
     :class:`.RemoveIdentityEquivalent` from machine epsilon to ``1e-12`` to
     account for round-off errors in the fidelity calculation and for consistency with the
     other classes, such as :class:`.CommutationAnalysis` and :class:`.TwoQubitWeylDecomposition`.
+upgrade_circuits:
   - |
     Updated the metric used to check commutations in :class:`.CommutationChecker`.
     Two gates are assumed to commute if the average gate fidelity of the commutation is
@@ -27,7 +28,7 @@ features_circuits:
   - |
     Added a new ``approximation_degree`` argument to :meth:`.CommutationChecker.commute` and
     :meth:`.CommutationChecker.commute_nodes`. This argument allows you to set the approximation threshold
-    for when gates are evaluated to commute. See the docstring of :class:`.CommutationChecker` for more 
+    for when gates are evaluated as commuting. See the docstring of :class:`.CommutationChecker` for more 
     information.
 features_transpiler:
   - |
