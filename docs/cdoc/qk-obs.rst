@@ -27,35 +27,35 @@ Pauli operators and the Pauli-eigenstate projection operators.  Explicitly, thes
 .. _sparse-observable-alphabet:
 .. table:: Alphabet of single-qubit terms used in ``QkObs``
 
-  =======================================  ==================  ===============
-  Operator                                 ``QkBitTerm``       Numeric value
-  =======================================  ==================  ===============
-  :math:`I` (identity)                     Not stored.         Not stored.
+  =======================================  ===================  ================
+  Operator                                 ``QkBitTerm``        Numeric value
+  =======================================  ===================  ================
+  :math:`I` (identity)                     Not stored.          Not stored.
 
-  :math:`X` (Pauli X)                      ``QkBitTerm_X``     ``0b0010`` (2)   
+  :math:`X` (Pauli X)                      ``QkBitTerm_X``      ``0b0010`` (2)   
 
-  :math:`Y` (Pauli Y)                      ``QkBitTerm_Y``     ``0b0011`` (3)   
+  :math:`Y` (Pauli Y)                      ``QkBitTerm_Y``      ``0b0011`` (3)   
 
-  :math:`Z` (Pauli Z)                      ``QkBitTerm_Z``     ``0b0001`` (1)   
+  :math:`Z` (Pauli Z)                      ``QkBitTerm_Z``      ``0b0001`` (1)   
 
-  :math:`\lvert+\rangle\langle+\rvert`     ``QkBitTerm_Plus``  ``0b1010`` (10)  
+  :math:`\lvert+\rangle\langle+\rvert`     ``QkBitTerm_Plus``   ``0b1010`` (10)  
   (projector to positive eigenstate of X)
 
-  :math:`\lvert-\rangle\langle-\rvert`     ``QkBitTerm_Minus`` ``0b0110`` (6)   
+  :math:`\lvert-\rangle\langle-\rvert`     ``QkBitTerm_Minus``  ``0b0110`` (6)   
   (projector to negative eigenstate of X)
 
-  :math:`\lvert r\rangle\langle r\rvert`   ``QkBitTerm_Right`` ``0b1011`` (11)  
+  :math:`\lvert r\rangle\langle r\rvert`   ``QkBitTerm_Right``  ``0b1011`` (11)  
   (projector to positive eigenstate of Y)
 
-  :math:`\lvert l\rangle\langle l\rvert`   ``QkBitTerm_Left``  ``0b0111`` (7)   
+  :math:`\lvert l\rangle\langle l\rvert`   ``QkBitTerm_Left``   ``0b0111`` (7)   
   (projector to negative eigenstate of Y)
 
-  :math:`\lvert0\rangle\langle0\rvert`     ``QkBitTerm_Zero``  ``0b1001`` (9)   
+  :math:`\lvert0\rangle\langle0\rvert`     ``QkBitTerm_Zero``   ``0b1001`` (9)   
   (projector to positive eigenstate of Z)
 
-  :math:`\lvert1\rangle\langle1\rvert`     ``QkBitTerm_One``   ``0b0101`` (5)   
+  :math:`\lvert1\rangle\langle1\rvert`     ``QkBitTerm_One``    ``0b0101`` (5)   
   (projector to negative eigenstate of Z)
-  =======================================  ==================  ===============
+  =======================================  ===================  ================
 
 Due to allowing both the Paulis and their projectors, the allowed alphabet forms an overcomplete
 basis of the operator space.  This means that there is not a unique summation to represent a
@@ -88,20 +88,23 @@ the representation is made up of four contiguous arrays:
 .. _sparse-observable-arrays:
 .. table:: Data arrays used to represent ``QkObs``
 
-  =======================  ===========  ========================================================
+  =======================  ===========  ============================================================
   Attribute accessible by  Length       Description
-  =======================  ===========  ========================================================
+  =======================  ===========  ============================================================
   ``qk_obs_coeffs``        :math:`t`    The complex scalar multiplier for each term.
+
   ``qk_obs_bit_terms``     :math:`s`    Each of the non-identity single-qubit terms for all of
                                         the operators, in order. These correspond to the
                                         non-identity :math:`A^{(n)}_i` in the sum description,
                                         where the entries are stored in order of increasing
                                         :math:`i` first, and in order of increasing :math:`n`
                                         within each term.
+
   ``qk_obs_indices``       :math:`s`    The corresponding qubit (:math:`n`) for each of the
                                         bit terms. ``QkObs`` requires that this list is term-wise
                                         sorted, and algorithms can rely on this invariant being
                                         upheld.
+
   ``qk_obs_boundaries``    :math:`t+1`  The indices that partition the bit terms and indices
                                         into complete terms.  For term number :math:`i`, its
                                         complex coefficient is stored at index ``i``, and its
@@ -110,7 +113,7 @@ the representation is made up of four contiguous arrays:
                                         in the bit terms and indices, respectively.
                                         The boundaries always have an explicit 0 as their first
                                         element.
-  =======================  ===========  ========================================================
+  =======================  ===========  ============================================================
 
 The length parameter :math:`t` is the number of terms in the sum and can be queried using
 ``qk_obs_num_terms``. The parameter :math:`s` is the total number of non-identity single-qubit
@@ -220,7 +223,9 @@ care to ensure the data is coherent and results in a valid observable.
   Function             Summary
   ===================  =========================================================================
   ``qk_obs_zero``      Construct an empty observable on a given number of qubits.
+
   ``qk_obs_identity``  Construct the identity observable on a given number of qubits.
+
   ``qk_obs_new``       Construct an observable from :ref:`the raw data arrays
                        <sparse-observable-arrays>`.
   ===================  =========================================================================
