@@ -24,7 +24,7 @@ terms, and the tensor product produces the operator strings.
 The alphabet of allowed single-qubit operators that the :math:`A^{(n)}_i` are drawn from is the
 Pauli operators and the Pauli-eigenstate projection operators.  Explicitly, these are:
 
-.. _sparse-observable-alphabet:
+.. _qkobs-alphabet:
 .. table:: Alphabet of single-qubit terms used in ``QkObs``
 
   =======================================  ===================  ===============
@@ -85,23 +85,26 @@ matrices.  In this analogy, the terms of the sum are the "rows", and the qubit t
 "columns", where an absent entry represents the identity rather than a zero.  More explicitly,
 the representation is made up of four contiguous arrays:
 
-.. _sparse-observable-arrays:
+.. _qkobs-arrays:
 .. table:: Data arrays used to represent ``QkObs``
 
-  =======================  ===========  ========================================================
+  =======================  ===========  ============================================================
   Attribute accessible by  Length       Description
-  =======================  ===========  ========================================================
+  =======================  ===========  ============================================================
   ``qk_obs_coeffs``        :math:`t`    The complex scalar multiplier for each term.
+
   ``qk_obs_bit_terms``     :math:`s`    Each of the non-identity single-qubit terms for all of
                                         the operators, in order. These correspond to the
                                         non-identity :math:`A^{(n)}_i` in the sum description,
                                         where the entries are stored in order of increasing
                                         :math:`i` first, and in order of increasing :math:`n`
                                         within each term.
+
   ``qk_obs_indices``       :math:`s`    The corresponding qubit (:math:`n`) for each of the
                                         bit terms. ``QkObs`` requires that this list is term-wise
                                         sorted, and algorithms can rely on this invariant being
                                         upheld.
+
   ``qk_obs_boundaries``    :math:`t+1`  The indices that partition the bit terms and indices
                                         into complete terms.  For term number :math:`i`, its
                                         complex coefficient is stored at index ``i``, and its
@@ -110,11 +113,12 @@ the representation is made up of four contiguous arrays:
                                         in the bit terms and indices, respectively.
                                         The boundaries always have an explicit 0 as their first
                                         element.
-  =======================  ===========  ========================================================
+  =======================  ===========  ============================================================
 
 The length parameter :math:`t` is the number of terms in the sum and can be queried using
 ``qk_obs_num_terms``. The parameter :math:`s` is the total number of non-identity single-qubit
 terms and can be queried using ``qk_obs_len``.
+
 As illustrative examples:
 
 * in the case of a zero operator, the boundaries are length 1 (a single 0) and all other
@@ -124,8 +128,8 @@ As illustrative examples:
   the coefficients have a single entry, and both the bit terms and indices are empty.
 
 * for the operator :math:`Z_2 Z_0 - X_3 Y_1`, the boundaries are ``{0, 2, 4}``,
-  the coeffs are ``{1.0, -1.0}``, the bit terms are ``[BitTerm.Z, BitTerm.Z, BitTerm.Y,
-  BitTerm.X]`` and the indices are ``{0, 2, 1, 3}``.  The operator might act on more than
+  the coeffs are ``{1.0, -1.0}``, the bit terms are ``{BitTerm.Z, BitTerm.Z, BitTerm.Y,
+  BitTerm.X}`` and the indices are ``{0, 2, 1, 3}``.  The operator might act on more than
   four qubits, depending on the the number of qubits (see ``qk_obs_num_qubits``). Note
   that the single-bit terms and indices are sorted into termwise sorted order.
 
@@ -214,16 +218,17 @@ iteratively adding terms (with ``qk_obs_add_term``). Alternatively, an observabl
 constructed from "raw" data (with ``qk_obs_new``) if all internal data is specified. This requires
 care to ensure the data is coherent and results in a valid observable.
 
-.. _sparse-observable-constructors:
+.. _qkobs-constructors:
 .. table:: Constructors
 
   ===================  =========================================================================
   Function             Summary
   ===================  =========================================================================
   ``qk_obs_zero``      Construct an empty observable on a given number of qubits.
+
   ``qk_obs_identity``  Construct the identity observable on a given number of qubits.
-  ``qk_obs_new``       Construct an observable from :ref:`the raw data arrays
-                       <sparse-observable-arrays>`.
+
+  ``qk_obs_new``       Construct an observable from :ref:`the raw data arrays <qkobs-arrays>`.
   ===================  =========================================================================
 
 
