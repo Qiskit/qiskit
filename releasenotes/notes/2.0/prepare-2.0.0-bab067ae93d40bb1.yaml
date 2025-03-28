@@ -1,10 +1,11 @@
 ---
 prelude: >
-    We are pleased to release Qiskit v2.0.0, with new features that improve performance and its capabilities.
+    We are pleased to release Qiskit v2.0.0, with new features that improve its 
+    performance and capabilities.
     The feature highlights of Qiskit v2.0.0 include:
 
-      * The introduction of a C API for building and interacting with
-        :class:`.SparseObservable` objects. This first 
+      * The introduction of a `C API <https://quantum.cloud.ibm.com/docs/api/qiskit-c>`__ for 
+        building and interacting with :class:`.SparseObservable` objects. This first 
         compiled language interface, while intially small, represents an important milestone in the 
         evolution of Qiskit, and it will grow in scope throughout the v2.x release series.
         The initial iteration of the C API is an experimental feature, and Qiskit

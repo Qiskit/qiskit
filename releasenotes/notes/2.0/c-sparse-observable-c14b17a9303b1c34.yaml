@@ -9,7 +9,8 @@ features:
     minor version if necessary, and it lays the foundation for future expansions of
     the Qiskit C interface. 
 
-    Detailed syntax and additional information can be found in the C API documentation.
+    Detailed syntax and additional information can be found in the 
+    `C API documentation <https://quantum.cloud.ibm.com/docs/api/qiskit-c>`__.
     A minimal example to construct the 100-qubit observable ``X0 Y1 Z1`` is:
 
     .. code:: c
