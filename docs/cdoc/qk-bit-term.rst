@@ -10,7 +10,7 @@ QkBitTerm
 
    enum QkBitTerm
 
-An enum that to represent each of the single-qubit alphabet terms enumerated below. 
+An enum that to represent each of the single-qubit alphabet terms enumerated below.
 
 Values
 ------
@@ -60,7 +60,7 @@ The enum is stored as single byte, its elements are represented as unsigned 8-bi
 
    typedef uint8_t QkBitTerm
 
-.. warning:: 
+.. warning::
 
    Not all ``uint8_t`` values are valid bit terms. Passing invalid values is undefined behavior.
 
@@ -70,7 +70,6 @@ object, where the low bit denotes a contribution by :math:`Z` and the second low
 contribution by :math:`X`, while the upper two bits are ``00`` for a Pauli operator, ``01``
 for the negative-eigenstate projector, and ``10`` for the positive-eigenstate projector.
 
----------
 Functions
 ---------
 

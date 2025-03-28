@@ -24,52 +24,52 @@ terms, and the tensor product produces the operator strings.
 The alphabet of allowed single-qubit operators that the :math:`A^{(n)}_i` are drawn from is the
 Pauli operators and the Pauli-eigenstate projection operators.  Explicitly, these are:
 
-.. _sparse-observable-alphabet:
+.. _qkobs-alphabet:
 .. table:: Alphabet of single-qubit terms used in ``QkObs``
 
-  =======================================  ===================  ================
+  =======================================  ===================  ===============
   Operator                                 ``QkBitTerm``        Numeric value
-  =======================================  ===================  ================
+  =======================================  ===================  ===============
   :math:`I` (identity)                     Not stored.          Not stored.
 
-  :math:`X` (Pauli X)                      ``QkBitTerm_X``      ``0b0010`` (2)   
+  :math:`X` (Pauli X)                      ``QkBitTerm_X``      ``0b0010`` (2)
 
-  :math:`Y` (Pauli Y)                      ``QkBitTerm_Y``      ``0b0011`` (3)   
+  :math:`Y` (Pauli Y)                      ``QkBitTerm_Y``      ``0b0011`` (3)
 
-  :math:`Z` (Pauli Z)                      ``QkBitTerm_Z``      ``0b0001`` (1)   
+  :math:`Z` (Pauli Z)                      ``QkBitTerm_Z``      ``0b0001`` (1)
 
-  :math:`\lvert+\rangle\langle+\rvert`     ``QkBitTerm_Plus``   ``0b1010`` (10)  
+  :math:`\lvert+\rangle\langle+\rvert`     ``QkBitTerm_Plus``   ``0b1010`` (10)
   (projector to positive eigenstate of X)
 
-  :math:`\lvert-\rangle\langle-\rvert`     ``QkBitTerm_Minus``  ``0b0110`` (6)   
+  :math:`\lvert-\rangle\langle-\rvert`     ``QkBitTerm_Minus``  ``0b0110`` (6)
   (projector to negative eigenstate of X)
 
-  :math:`\lvert r\rangle\langle r\rvert`   ``QkBitTerm_Right``  ``0b1011`` (11)  
+  :math:`\lvert r\rangle\langle r\rvert`   ``QkBitTerm_Right``  ``0b1011`` (11)
   (projector to positive eigenstate of Y)
 
-  :math:`\lvert l\rangle\langle l\rvert`   ``QkBitTerm_Left``   ``0b0111`` (7)   
+  :math:`\lvert l\rangle\langle l\rvert`   ``QkBitTerm_Left``   ``0b0111`` (7)
   (projector to negative eigenstate of Y)
 
-  :math:`\lvert0\rangle\langle0\rvert`     ``QkBitTerm_Zero``   ``0b1001`` (9)   
+  :math:`\lvert0\rangle\langle0\rvert`     ``QkBitTerm_Zero``   ``0b1001`` (9)
   (projector to positive eigenstate of Z)
 
-  :math:`\lvert1\rangle\langle1\rvert`     ``QkBitTerm_One``    ``0b0101`` (5)   
+  :math:`\lvert1\rangle\langle1\rvert`     ``QkBitTerm_One``    ``0b0101`` (5)
   (projector to negative eigenstate of Z)
-  =======================================  ===================  ================
+  =======================================  ===================  ===============
 
 Due to allowing both the Paulis and their projectors, the allowed alphabet forms an overcomplete
 basis of the operator space.  This means that there is not a unique summation to represent a
-given observable. As a consequence, comparison requires additional care and using 
+given observable. As a consequence, comparison requires additional care and using
 ``qk_obs_canonicalize`` on two mathematically equivalent observables might not result in the same
-representation. 
+representation.
 
 ``QkObs`` uses its particular overcomplete basis with the aim of making
 "efficiency of measurement" equivalent to "efficiency of representation".  For example, the
 observable :math:`{\lvert0\rangle\langle0\rvert}^{\otimes n}` can be efficiently measured on
 hardware with simple :math:`Z` measurements, but can only be represented in terms of Paulis
-as :math:`{(I + Z)}^{\otimes n}/2^n`, which requires :math:`2^n` stored terms. ``QkObs`` requires 
-only a single term to store this. The downside to this is that it is impractical to take an 
-arbitrary matrix and find the *best* ``QkObs`` representation.  You typically will want to construct 
+as :math:`{(I + Z)}^{\otimes n}/2^n`, which requires :math:`2^n` stored terms. ``QkObs`` requires
+only a single term to store this. The downside to this is that it is impractical to take an
+arbitrary matrix and find the *best* ``QkObs`` representation.  You typically will want to construct
 a ``QkObs`` directly, rather than trying to decompose into one.
 
 
@@ -85,7 +85,7 @@ matrices.  In this analogy, the terms of the sum are the "rows", and the qubit t
 "columns", where an absent entry represents the identity rather than a zero.  More explicitly,
 the representation is made up of four contiguous arrays:
 
-.. _sparse-observable-arrays:
+.. _qkobs-arrays:
 .. table:: Data arrays used to represent ``QkObs``
 
   =======================  ===========  ============================================================
@@ -123,13 +123,15 @@ As illustrative examples:
 
 * in the case of a zero operator, the boundaries are length 1 (a single 0) and all other
   vectors are empty.
+
 * in the case of a fully simplified identity operator, the boundaries are ``{0, 0}``,
   the coefficients have a single entry, and both the bit terms and indices are empty.
+
 * for the operator :math:`Z_2 Z_0 - X_3 Y_1`, the boundaries are ``{0, 2, 4}``,
   the coeffs are ``{1.0, -1.0}``, the bit terms are ``{BitTerm.Z, BitTerm.Z, BitTerm.Y,
   BitTerm.X}`` and the indices are ``{0, 2, 1, 3}``.  The operator might act on more than
   four qubits, depending on the the number of qubits (see ``qk_obs_num_qubits``). Note
-  that the single-bit terms and indices are sorted into termwise sorted order.  
+  that the single-bit terms and indices are sorted into termwise sorted order.
 
 These cases are not special, they're fully consistent with the rules and should not need special
 handling.
@@ -160,14 +162,14 @@ structurally by comparing their simplified forms.
     If you wish to account for floating-point tolerance in the comparison, it is safest to use
     a recipe such as:
 
-    .. code-block:: c    
+    .. code-block:: c
 
         bool equivalent(QkObs *left, QkObs *right, double tol) {
             // compare a canonicalized version of left - right to the zero observable
             QkObs *neg_right = qk_obs_mul(right, -1);
             QkObs *diff = qk_obs_add(left, neg_right);
             QkObs *canonical = qk_obs_canonicalize(diff, tol);
-        
+
             QkObs *zero = qk_obs_zero(qk_obs_num_qubits(left));
             bool equiv = qk_obs_equal(diff, zero);
             // free all temporary variables
@@ -216,7 +218,7 @@ iteratively adding terms (with ``qk_obs_add_term``). Alternatively, an observabl
 constructed from "raw" data (with ``qk_obs_new``) if all internal data is specified. This requires
 care to ensure the data is coherent and results in a valid observable.
 
-.. _sparse-observable-constructors:
+.. _qkobs-constructors:
 .. table:: Constructors
 
   ===================  =========================================================================
@@ -226,8 +228,7 @@ care to ensure the data is coherent and results in a valid observable.
 
   ``qk_obs_identity``  Construct the identity observable on a given number of qubits.
 
-  ``qk_obs_new``       Construct an observable from :ref:`the raw data arrays
-                       <sparse-observable-arrays>`.
+  ``qk_obs_new``       Construct an observable from :ref:`the raw data arrays <qkobs-arrays>`.
   ===================  =========================================================================
 
 
@@ -238,12 +239,14 @@ Mathematical manipulation
 You can:
 
 * add two observables using ``qk_obs_add``
+
 * multiply by a complex number with ``qk_obs_multiply``
+
 * compose (multiply) two observables via ``qk_obs_compose`` and ``qk_obs_compose_map``
 
----------
+
 Functions
----------
+=========
 
 .. doxygengroup:: QkObs
    :content-only:
