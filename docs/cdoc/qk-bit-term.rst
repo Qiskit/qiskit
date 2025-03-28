@@ -32,7 +32,7 @@ Values
       * Value: 10 (``0b1010``)
 
 ``QkBitTerm_Minus``
-   The projector :math:`\lvert -\rangle\langle -\rvert` to the negative :math:`X` eigenstate.]
+   The projector :math:`\lvert -\rangle\langle -\rvert` to the negative :math:`X` eigenstate.
       * Value: 6 (``0b0110``)
 
 ``QkBitTerm_Right``
