@@ -15,41 +15,50 @@ An enum that to represent each of the single-qubit alphabet terms enumerated bel
 Values
 ------
 
-``QkBitTerm_X`` 
+* ``QkBitTerm_X`` 
    The Pauli :math:`X` operator. 
-      * Value: 2 (``0b0010``)
 
-``QkBitTerm_Y``
+   Value: 2 (``0b0010``)
+
+* ``QkBitTerm_Y``
    The Pauli :math:`Y` operator.
-      * Value: 3 (``0b0011``)
+   
+   Value: 3 (``0b0011``)
 
-``QkBitTerm_Z``
+* ``QkBitTerm_Z``
    The Pauli :math:`Z` operator.
-      * Value: 1 (``0b0001``)
+   
+   Value: 1 (``0b0001``)
 
-``QkBitTerm_Plus``
+* ``QkBitTerm_Plus``
    The projector :math:`\lvert +\rangle\langle +\rvert` to the positive :math:`X` eigenstate.
-      * Value: 10 (``0b1010``)
+   
+   Value: 10 (``0b1010``)
 
-``QkBitTerm_Minus``
+* ``QkBitTerm_Minus``
    The projector :math:`\lvert -\rangle\langle -\rvert` to the negative :math:`X` eigenstate.
-      * Value: 6 (``0b0110``)
+   
+   Value: 6 (``0b0110``)
 
-``QkBitTerm_Right``
+* ``QkBitTerm_Right``
    The projector :math:`\lvert r\rangle\langle r\rvert` to the positive :math:`Y` eigenstate.
-      * Value: 11 (``0b1011``)
 
-``QkBitTerm_Left``
+   Value: 11 (``0b1011``)
+
+* ``QkBitTerm_Left``
    The projector :math:`\lvert l\rangle\langle l\rvert` to the negative :math:`Y` eigenstate.
-      * Value: 7 (``0b1011``)
+  
+   Value: 7 (``0b1011``)
 
-``QkBitTerm_Zero``
+* ``QkBitTerm_Zero``
    The projector :math:`\lvert 0\rangle\langle 0\rvert` to the positive :math:`Z` eigenstate.
-      * Value: 9 (``0b1001``)
+   
+   Value: 9 (``0b1001``)
 
-``QkBitTerm_One``
+* ``QkBitTerm_One``
    The projector :math:`\lvert 1\rangle\langle 1\rvert` to the negative :math:`Z` eigenstate.
-      * Value: 5 (``0b0101``)
+   
+   Value: 5 (``0b0101``)
 
 Representation
 --------------
