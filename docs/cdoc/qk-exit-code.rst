@@ -1,5 +1,5 @@
 ==========
-Exit codes
+QkExitCode
 ==========
 
 .. code-block:: c
@@ -23,7 +23,7 @@ Values
 
 * ``QkExitCode_NullPointerError``
     Unexpected null pointer.
-    
+
     Value: 101
 
 * ``QkExitCode_AlignmentError``
@@ -33,7 +33,7 @@ Values
 
 * ``QkExitCode_IndexError``
     Index out of bounds.
-    
+
     Value: 103
 
 * ``QkExitCode_ArithmeticError``
