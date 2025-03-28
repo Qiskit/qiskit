@@ -33,8 +33,8 @@ if (MSVC)
 
     # Get the Python runtime library, which has been stored into a config file during the 
     # crate build process. This is to ensure we link against the same library that PyO3 is using.
-    file(READ "${CMAKE_SOURCE_DIR}/target/qiskit_pyo3_python.config" pyo3_config)
-    string(REGEX MATCH "QISKIT_PYTHON_LIB_DIR=([^\n]*)" _match "${pyo3_config}")
+    file(READ "${CMAKE_SOURCE_DIR}/target/pyo3_python.config" pyo3_config)
+    string(REGEX MATCH "PYO3_PYTHON_LIB_DIR=([^\n]*)" _match "${pyo3_config}")
     set(pyo3_python_lib_dir ${CMAKE_MATCH_1})
 endif ()
 
