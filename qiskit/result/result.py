@@ -88,7 +88,7 @@ class Result:
             "backend_name": self.backend_name,
             "backend_version": self.backend_version,
             "date": self.date,
-            "header": None if self.header is None else self.header,
+            "header": self.header,
             "job_id": self.job_id,
             "status": self.status,
             "success": self.success,
