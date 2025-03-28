@@ -647,8 +647,8 @@ class OptimizationPassManager(PassManagerStagePlugin):
                 else _opt + _unroll_if_out_of_basis + _depth_check + _size_check
             )
             optimization.append(DoWhileController(opt_loop, do_while=_opt_control))
-            
-            if optimization_level==3 and pass_manager_config.coupling_map:
+
+            if optimization_level == 3 and pass_manager_config.coupling_map:
                 vf2_call_limit, vf2_max_trials = common.get_vf2_limits(
                     optimization_level,
                     pass_manager_config.layout_method,
