@@ -783,6 +783,11 @@ def _write_instruction(
         custom_operations[gate_class_name] = instruction.operation
         custom_operations_list.append(gate_class_name)
 
+    elif isinstance(instruction.operation, library.MCMTGate):
+        gate_class_name = instruction.operation.name + "_" + str(uuid.uuid4())
+        custom_operations[gate_class_name] = instruction.operation
+        custom_operations_list.append(gate_class_name)
+
     condition_type = type_keys.Condition.NONE
     condition_register = b""
     condition_value = 0
