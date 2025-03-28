@@ -141,6 +141,7 @@ qiskit/quantum_info/states/cython/*.cpp
 /docs/_build
 /docs/stubs
 /docs/locale
+/docs/xml
 /executed_tutorials
 
 # Notebook testing images
