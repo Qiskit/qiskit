@@ -633,6 +633,10 @@ impl Operation for PackedOperation {
     fn directive(&self) -> bool {
         self.view().directive()
     }
+    #[inline]
+    fn matrix_as_static_1q(&self, params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
+        self.view().matrix_as_static_1q(params)
+    }
 }
 
 impl Clone for PackedOperation {
