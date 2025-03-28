@@ -4,6 +4,7 @@ version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
+build = "build_header.rs"
 
 [lib]
 name = "qiskit_cext"
