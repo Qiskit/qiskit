@@ -5,4 +5,4 @@ upgrade_transpiler:
     ``DynamicalDecoupling``, and ``AlignMeasures`` have been removed in favor of the updated alternatives
     :class:`.ALAPScheduleAnalysis`, :class:`.ASAPScheduleAnalysis`,
     :class:`.PadDynamicalDecoupling`, and :class:`.ConstrainedReschedule` (respectively).
-    These were deprecated in Qiskit 1.1 after the new scheduling workflow superseded the legacy one.
+    These were deprecated in Qiskit v1.1 after the new scheduling workflow superseded the legacy one.

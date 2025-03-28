@@ -12,22 +12,13 @@ upgrade_circuits:
 
      Despite these upgrades, the standard usage of the :class:`.PhaseOracle` class remains unchanged:
 
-     .. code-block:: python
+     .. plot::
+         :include-source:
 
           from qiskit.circuit.library.phase_oracle import PhaseOracle
           bool_expr = "(x0 & x1 | ~x2) & x4"
           oracle = PhaseOracle(bool_expr)
-          print(oracle)
-
-     .. code-block:: text
-
-          q_0: ─o──■──■─
-               │  │  │ 
-          q_1: ─┼──o──■─
-               │  │  │ 
-          q_2: ─o──o──┼─
-               │  │  │ 
-          q_3: ─■──■──■─
+          oracle.draw('mpl')
                     
 features_circuits:
   - |

@@ -14,8 +14,9 @@ prelude: >
         allowing design intent to be captured at circuit construction time and resolved at compile time.
         See the `OpenQASM documentation <https://openqasm.com/language/delays.html#duration-and-stretch-types>`__ for details.
 
-      * Support for synthesis using fractional basis gates,
-        significantly reducing gate counts in elegible circuits (see `blog post <https://www.ibm.com/quantum/blog/fractional-gates>`__ for more details).
+      * Improved synthesis when a :class:`.Target` contains fractional two qubit basis gates with support
+         for arbitrary angles such as :class:`.RZXGate` or :class:`.RZZGate` which significantly reducing gate counts in the synthesized circuits when using these
+        gates.
         
       * Improved runtime performance, particularly during the circuit construction step,  
         where `benchpress <https://github.com/Qiskit/benchpress>`__ benchmarking shows a 2x speedup over Qiskit v1.3.  

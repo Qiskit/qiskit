@@ -3,7 +3,7 @@ fixes:
   - |
     Fixed an unexpected behavior in :class:`.CommutationChecker`, where
     commutation relations of :class:`~.circuit.Instruction`\ s with float-only params
-    were eagerly cached using params as the key to query the relation.
+    were eagerly cached using parameters as the key to query the relation.
 
     This could lead to incorrect results if an instruction's definition depended on
     additional information beyond the :attr:`~.circuit.Instruction.params` attribute,

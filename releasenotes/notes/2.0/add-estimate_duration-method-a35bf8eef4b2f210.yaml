@@ -1,7 +1,7 @@
 ---
 features_circuits:
   - |
-    Added a new circuit method, :meth:.QuantumCircuit.estimate_duration, to estimate the duration of 
+    Added a new circuit method, :meth:`.QuantumCircuit.estimate_duration`, to estimate the duration of 
     a scheduled circuit after transpilation. The circuit duration is estimated by finding the 
     longest path on a scheduled circuit based on the durations provided by a given :class:.Target. 
     This method only works for simple circuits that do not contain control flow or other classical 
