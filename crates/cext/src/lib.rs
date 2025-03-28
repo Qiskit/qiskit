@@ -11,4 +11,5 @@
 // that they have been altered from the originals.
 
 pub mod exit_codes;
+pub mod layout;
 pub mod sparse_observable;

@@ -234,7 +234,7 @@ fn layout_trial(
             physical_qubits.shuffle(&mut rng);
             physical_qubits
         };
-        NLayout::from_virtual_to_physical(physical_qubits).unwrap()
+        NLayout::from_virtual_to_physical(physical_qubits)
     };
 
     // Sabre routing currently enforces that control-flow blocks return to their starting layout,

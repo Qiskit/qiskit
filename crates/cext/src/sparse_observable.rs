@@ -15,6 +15,7 @@ use std::ffi::{c_char, CString};
 use crate::exit_codes::{CInputError, ExitCode};
 use num_complex::Complex64;
 
+use qiskit_accelerate::nlayout::NLayout;
 use qiskit_accelerate::sparse_observable::{BitTerm, SparseObservable, SparseTermView};
 
 #[cfg(feature = "python_binding")]
@@ -68,7 +69,7 @@ impl TryFrom<&CSparseTerm> for SparseTermView<'_> {
 }
 
 /// Check the pointer is not null and is aligned.
-fn check_ptr<T>(ptr: *const T) -> Result<(), CInputError> {
+pub(crate) fn check_ptr<T>(ptr: *const T) -> Result<(), CInputError> {
     if ptr.is_null() {
         return Err(CInputError::NullPointerError);
     };
@@ -818,6 +819,58 @@ pub unsafe extern "C" fn qk_obs_equal(
     let other = unsafe { const_ptr_as_ref(other) };
 
     obs.eq(other)
+}
+
+/// @ingroup QkObs
+/// Apply a [NLayout] to the observable.
+///
+/// @param obs A pointer to the observable.
+/// @param layout A pointer to the layout.
+///
+/// @return The observable with the layout applied, or null if the layout was incompatible
+///     with the observable.
+///
+/// # Example
+///
+///     QkObs *obs = qk_obs_zero(4);
+///
+///     QkBitTerm bit_terms[3] = {QkBitTerm_X, QkBitTerm_Y, QkBitTerm_Z};
+///     uint32_t qubits[3] = {1, 2, 3};
+///     complex double coeff = 1;
+///     QkObsTerm term = {coeff, 3, bit_terms, qubits, 4};
+///
+///     int err = qk_obs_add_term(obs, &term);
+///     if (err != 0) {
+///         qk_obs_free(obs);
+///         return err;
+///     }
+///
+///     uint32_t virt_to_phys[3] = {0, 3, 2, 1};
+///     QkLayout *layout = qk_layout_new(virt_to_phys, num_qubits);
+///     QkObs *obs_with_layout = qk_obs_apply_layout(obs, layout);
+///
+/// # Safety
+///
+/// Behavior is undefined if ``obs`` is not a valid, non-null pointer to ``QkObs`` or if ``layout``
+/// is not a valid, non-null pointer to ``QkLayout``.
+#[no_mangle]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_obs_apply_layout(
+    obs: *const SparseObservable,
+    layout: *const NLayout,
+) -> *mut SparseObservable {
+    let obs = unsafe { const_ptr_as_ref(obs) };
+    let layout = unsafe { const_ptr_as_ref(layout) };
+
+    // Cast the slice of PhysicalQubit (which is u32) to plain u32, which is required
+    // by the apply_layout method.
+    let as_slice: &[u32] = ::bytemuck::cast_slice(&layout.virt_to_phys);
+    let obs_with_layout = match obs.apply_layout(Some(as_slice), obs.num_qubits()) {
+        Ok(obs_with_layout) => obs_with_layout,
+        Err(_) => return ::std::ptr::null_mut(),
+    };
+
+    Box::into_raw(Box::new(obs_with_layout))
 }
 
 /// @ingroup QkObs
