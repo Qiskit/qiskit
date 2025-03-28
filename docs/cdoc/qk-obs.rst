@@ -69,7 +69,7 @@ observable :math:`{\lvert0\rangle\langle0\rvert}^{\otimes n}` can be efficiently
 hardware with simple :math:`Z` measurements, but can only be represented in terms of Paulis
 as :math:`{(I + Z)}^{\otimes n}/2^n`, which requires :math:`2^n` stored terms. ``QkObs`` requires 
 only a single term to store this. The downside to this is that it is impractical to take an 
-arbitrary matrix and find the *best*``QkObs`` representation.  You typically will want to construct 
+arbitrary matrix and find the *best* ``QkObs`` representation.  You typically will want to construct 
 a ``QkObs`` directly, rather than trying to decompose into one.
 
 
@@ -84,8 +84,10 @@ The terms are stored compressed, similar in spirit to the compressed sparse row 
 matrices.  In this analogy, the terms of the sum are the "rows", and the qubit terms are the
 "columns", where an absent entry represents the identity rather than a zero.  More explicitly,
 the representation is made up of four contiguous arrays:
+
 .. _sparse-observable-arrays:
 .. table:: Data arrays used to represent ``QkObs``
+
   =======================  ===========  ========================================================
   Attribute accessible by  Length       Description
   =======================  ===========  ========================================================
@@ -113,14 +115,16 @@ the representation is made up of four contiguous arrays:
 The length parameter :math:`t` is the number of terms in the sum and can be queried using
 ``qk_obs_num_terms``. The parameter :math:`s` is the total number of non-identity single-qubit
 terms and can be queried using ``qk_obs_len``.
+
 As illustrative examples:
+
 * in the case of a zero operator, the boundaries are length 1 (a single 0) and all other
   vectors are empty.
 * in the case of a fully simplified identity operator, the boundaries are ``{0, 0}``,
   the coefficients have a single entry, and both the bit terms and indices are empty.
 * for the operator :math:`Z_2 Z_0 - X_3 Y_1`, the boundaries are ``{0, 2, 4}``,
-  the coeffs are ``{1.0, -1.0}``, the bit terms are ``[BitTerm.Z, BitTerm.Z, BitTerm.Y,
-  BitTerm.X]`` and the indices are ``{0, 2, 1, 3}``.  The operator might act on more than
+  the coeffs are ``{1.0, -1.0}``, the bit terms are ``{BitTerm.Z, BitTerm.Z, BitTerm.Y,
+  BitTerm.X}`` and the indices are ``{0, 2, 1, 3}``.  The operator might act on more than
   four qubits, depending on the the number of qubits (see ``qk_obs_num_qubits``). Note
   that the single-bit terms and indices are sorted into termwise sorted order.  
 
@@ -227,6 +231,7 @@ Mathematical manipulation
 
 ``QkObs`` supports fundamental arithmetic operations in between observables or with scalars.
 You can:
+
 * add two observables using ``qk_obs_add``
 * multiply by a complex number with ``qk_obs_multiply``
 * compose (multiply) two observables via ``qk_obs_compose`` and ``qk_obs_compose_map``
