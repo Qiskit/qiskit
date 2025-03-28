@@ -177,7 +177,7 @@ structurally by comparing their simplified forms.
             qk_obs_free(diff);
             qk_obs_free(canonical);
             qk_obs_free(zero);
-            return equal;
+            return equiv;
         }
 
 .. note::
