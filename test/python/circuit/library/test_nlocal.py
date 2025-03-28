@@ -44,6 +44,7 @@ from qiskit.circuit.library import (
     RYYGate,
     CXGate,
     SXGate,
+    XXPlusYYGate,
 )
 from qiskit.circuit.random.utils import random_circuit
 from qiskit.converters.circuit_to_dag import circuit_to_dag
@@ -809,8 +810,7 @@ class TestNLocalFamily(QiskitTestCase):
 
         x = Parameter("x")
         block = QuantumCircuit(2)
-        block.rxx(x, 0, 1)
-        block.ryy(x, 0, 1)
+        block.append(XXPlusYYGate(2 * x), [0, 1])
         if mode == "fsim":
             y = Parameter("y")
             block.cp(y, 0, 1)
