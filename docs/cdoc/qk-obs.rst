@@ -128,8 +128,8 @@ As illustrative examples:
   the coefficients have a single entry, and both the bit terms and indices are empty.
 
 * for the operator :math:`Z_2 Z_0 - X_3 Y_1`, the boundaries are ``{0, 2, 4}``,
-  the coeffs are ``{1.0, -1.0}``, the bit terms are ``{BitTerm.Z, BitTerm.Z, BitTerm.Y,
-  BitTerm.X}`` and the indices are ``{0, 2, 1, 3}``.  The operator might act on more than
+  the coeffs are ``{1.0, -1.0}``, the bit terms are ``{QkBitTerm_Z, QkBitTerm_Z, QkBitTerm_Y,
+  QkBitTerm_X}`` and the indices are ``{0, 2, 1, 3}``.  The operator might act on more than
   four qubits, depending on the the number of qubits (see ``qk_obs_num_qubits``). Note
   that the single-bit terms and indices are sorted into termwise sorted order.
 

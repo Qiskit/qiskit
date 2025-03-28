@@ -232,8 +232,7 @@ pub unsafe extern "C" fn qk_obs_new(
 ///
 /// # Safety
 ///
-/// Behavior is undefined if ``obs`` is not either null or a valid pointer to a
-/// [SparseObservable].
+/// Behavior is undefined if ``obs`` is not either null or a valid pointer to a ``QkObs``.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_obs_free(obs: *mut SparseObservable) {
@@ -300,14 +299,14 @@ pub unsafe extern "C" fn qk_obs_add_term(
 /// @ingroup QkObs
 /// Get an observable term by reference.
 ///
-/// A [CSparseTerm] contains pointers to the indices and bit terms in the term, which
+/// A ``QkObsTerm`` contains pointers to the indices and bit terms in the term, which
 /// can be used to modify the internal data of the observable. This can leave the observable
 /// in an incoherent state and should be avoided, unless great care is taken. It is generally
 /// safer to construct a new observable instead of attempting in-place modifications.
 ///
 /// @param obs A pointer to the observable.
 /// @param index The index of the term to get.
-/// @param out A pointer to a [CSparseTerm] used to return the observable term.
+/// @param out A pointer to a ``QkObsTerm`` used to return the observable term.
 ///
 /// @return An exit code.
 ///
@@ -825,9 +824,9 @@ pub unsafe extern "C" fn qk_obs_equal(
 }
 
 /// @ingroup QkObs
-/// Return a string representation of a ``SparseObservable``.
+/// Return a string representation of a ``QkObs``.
 ///
-/// @param obs A pointer to the ``SparseObservable`` to get the string for.
+/// @param obs A pointer to the ``QkObs`` to get the string for.
 ///
 /// @return A pointer to a nul-terminated char array of the string representation for ``obs``
 ///
