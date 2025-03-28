@@ -32,4 +32,3 @@ Quantum information
    qk-obs-term
    qk-bit-term
    qk-exit-code
-
