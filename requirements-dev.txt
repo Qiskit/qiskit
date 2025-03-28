@@ -47,3 +47,4 @@ threadpoolctl
 Sphinx>=6.0,<7.2
 reno >= 4.1.0
 sphinxcontrib-katex==0.9.9
+breathe>=4.35.0
