@@ -1,7 +1,0 @@
----
-fixes:
-  - |
-    Fixed a bug where :meth:`.QuantumCircuit.qubit_stop_time` and 
-    :meth:`.QuantumCircuit.qubit_duration` returned the incorrect time (duration) value
-    when the circuit contained a mix of idle and non-idle qubits.
-    Fixes `#8729 <https://github.com/Qiskit/qiskit/issues/8729>`__.

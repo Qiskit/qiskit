@@ -1,5 +1,0 @@
----
-fixes:
-  - |
-    Comparisons of :class:`~.circuit.Delay` instructions, including those within circuits, now require
-    both the units and the duration values to be equal for a comparison to return ``True``.

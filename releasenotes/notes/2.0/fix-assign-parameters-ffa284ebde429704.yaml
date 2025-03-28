@@ -1,7 +1,0 @@
----
-fixes:
-  - |
-    Fixed an incorrect behavior in :class:`.CircuitData` in which, upon parameter assignment,
-    Qiskit attempted to modify the cached operation inside of a ``PackedInstruction``. Now,
-    the cache is discarded instead, which prompts ``PackedInstruction`` to build a new Python
-    operation if it is needed.
