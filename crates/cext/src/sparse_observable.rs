@@ -937,11 +937,11 @@ pub extern "C" fn qk_bitterm_label(bit_term: BitTerm) -> u8 {
 }
 
 /// @ingroup QkObs
-/// Convert to a Python-space [``SparseObservable``](https://docs.quantum.ibm.com/api/qiskit/qiskit.quantum_info.SparseObservable#sparseobservable).
+/// Convert to a Python-space ``SparseObservable``.
 ///
 /// @param obs The C-space ``QkObs`` pointer.
 ///
-/// @return A Python object representing the [``SparseObservable``](https://docs.quantum.ibm.com/api/qiskit/qiskit.quantum_info.SparseObservable#sparseobservable).
+/// @return A Python object representing the ``SparseObservable``.
 ///
 /// # Safety
 ///
