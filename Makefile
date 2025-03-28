@@ -141,7 +141,9 @@ ctest: $(C_QISKIT_H)
 	cmake -S. -B$(C_DIR_TEST_BUILD)
 	cmake --build $(C_DIR_TEST_BUILD)
 	# -V ensures we always produce a logging output to indicate the subtests
-	ctest -V --test-dir $(C_DIR_TEST_BUILD)
+	# -C Debug is needed for windows to work, if you don't specify Debug (or
+	#  release) explicitly ctest doesn't run on windows
+	ctest -V -C Debug --test-dir $(C_DIR_TEST_BUILD)
 
 cclean:
 	rm -rf $(C_DIR_OUT) $(C_DIR_TEST_BUILD)
