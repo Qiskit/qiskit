@@ -4532,6 +4532,8 @@ impl DAGCircuit {
             .len()
     }
 
+    // These three stretch getter methods are for testing purposes, they'll be public
+    // APIs in Qiskit 2.1
     #[getter]
     fn _num_stretches(&self) -> usize {
         self._num_captured_stretches() + self._num_declared_stretches()
