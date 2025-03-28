@@ -24,7 +24,7 @@ use pyo3::{Py, Python};
 #[cfg(feature = "python_binding")]
 use qiskit_accelerate::sparse_observable::PySparseObservable;
 
-/// A term in a [SparseObservable].
+/// A term in a ``QkObs``.
 ///
 /// This contains the coefficient (``coeff``), the number of qubits of the observable
 /// (``num_qubits``) and pointers to the ``bit_terms`` and ``indices`` arrays, which have
@@ -33,7 +33,7 @@ use qiskit_accelerate::sparse_observable::PySparseObservable;
 ///
 /// # Safety
 ///
-/// * ``bit_terms`` must be a non-null, aligned pointer to ``len`` elements of type ``BitTerm``.
+/// * ``bit_terms`` must be a non-null, aligned pointer to ``len`` elements of type ``QkBitTerm``.
 /// * ``indices`` must be a non-null, aligned pointer to ``len`` elements of type ``uint32_t``.
 #[repr(C)]
 pub struct CSparseTerm {
@@ -41,7 +41,7 @@ pub struct CSparseTerm {
     coeff: Complex64,
     /// Length of the ``bit_terms`` and ``indices`` arrays.
     len: usize,
-    /// A non-null, aligned pointer to ``len`` elements of type ``BitTerm``.
+    /// A non-null, aligned pointer to ``len`` elements of type ``QkBitTerm``.
     bit_terms: *mut BitTerm,
     /// A non-null, aligned pointer to ``len`` elements of type ``uint32_t``.
     indices: *mut u32,
@@ -923,7 +923,7 @@ pub unsafe extern "C" fn qk_obsterm_str(term: *const CSparseTerm) -> *mut c_char
 ///
 /// # Safety
 ///
-/// The behavior is undefined if ``bit_term`` is not a valid ``uint8_t`` value of a [BitTerm].
+/// The behavior is undefined if ``bit_term`` is not a valid ``uint8_t`` value of a ``QkBitTerm``.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub extern "C" fn qk_bitterm_label(bit_term: BitTerm) -> u8 {
@@ -937,11 +937,11 @@ pub extern "C" fn qk_bitterm_label(bit_term: BitTerm) -> u8 {
 }
 
 /// @ingroup QkObs
-/// Convert to a Python-space [PySparseObservable].
+/// Convert to a Python-space [``SparseObservable``](https://docs.quantum.ibm.com/api/qiskit/qiskit.quantum_info.SparseObservable#sparseobservable).
 ///
-/// @param obs The C-space [SparseObservable] pointer.
+/// @param obs The C-space ``QkObs`` pointer.
 ///
-/// @return A Python object representing the [PySparseObservable].
+/// @return A Python object representing the [``SparseObservable``](https://docs.quantum.ibm.com/api/qiskit/qiskit.quantum_info.SparseObservable#sparseobservable).
 ///
 /// # Safety
 ///
