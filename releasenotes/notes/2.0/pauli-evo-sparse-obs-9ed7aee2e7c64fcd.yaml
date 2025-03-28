@@ -12,3 +12,4 @@ features_circuits:
       obs = SparseObservable("001")
       evo_proj = PauliEvolutionGate(obs, time=1)
       print(evo_proj.definition.draw())
+

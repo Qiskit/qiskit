@@ -1,8 +1,8 @@
 ---
 fixes:
   - |
-    Fixed a bug in :meth:`.QuantumCircuit.assign_parameters`, occurring when assigning parameters
-    to standard gates whose definition has already been triggered. In this case, the new values
+    Fixed a bug in :meth:.QuantumCircuit.assign_parameters, which occurred when assigning parameters 
+    to standard gates whose definition had already been triggered. In this case, the new values
     were not properly propagated to the gate instances. While the circuit itself was still
     compiled as expected, inspecting the individual operations would still show the old parameter.
 

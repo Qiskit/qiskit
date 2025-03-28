@@ -24,4 +24,4 @@ features_circuits:
       with qc.if_test(expr.greater(expr.div(Duration.dt(200), Duration.dt(400)), 0.5)):
           pass
 
-    For additional examples, see the module-level documentation linked above.
+    For additional examples, see the module-level documentation linked above. 
