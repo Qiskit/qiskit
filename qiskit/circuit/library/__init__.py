@@ -10,38 +10,124 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
+
+r"""
 ===============================================
 Circuit Library (:mod:`qiskit.circuit.library`)
 ===============================================
 
 .. currentmodule:: qiskit.circuit.library
 
-The circuit library is a collection of well-studied and valuable circuits, directives, and gates.
-We call them valuable for different reasons, for instance they can serve as building blocks for
-algorithms or they are circuits that we think are hard to simulate classically.
+The circuit library is a collection of valuable circuits and building blocks. We call these valuable
+for different reasons. For instance, they can be used as building blocks for algorithms, serve as
+benchmarks, or they are circuits conjectured to be difficult to simulate classically.
 
-Each element can be plugged into a circuit using the :meth:`.QuantumCircuit.append`
-method and so the circuit library allows users to program at higher levels of abstraction.
-For example, to append a multi-controlled CNOT:
+Elements in the circuit library are either :class:`.QuantumCircuit`\ s or
+:class:`~.circuit.Instruction`\ s, allowing them to be easily investigated or plugged into other
+circuits. This enables fast prototyping and circuit design at higher levels of abstraction.
+
+For example:
 
 .. plot::
-   :alt: Circuit diagram output by the previous code.
+   :alt: A circuit implementing a Suzuki-Trotter expansion of a Hamiltonian evolution.
    :include-source:
 
-   from qiskit.circuit.library import MCXGate
-   gate = MCXGate(4)
+   from qiskit.circuit import QuantumCircuit
+   from qiskit.circuit.library import PauliEvolutionGate
+   from qiskit.quantum_info import SparsePauliOp
 
-   from qiskit import QuantumCircuit
-   circuit = QuantumCircuit(5)
-   circuit.append(gate, [0, 1, 4, 2, 3])
-   circuit.draw('mpl')
+   hamiltonian = SparsePauliOp(["ZZI", "IZZ", "IXI"], coeffs=[1, 1, -1])
+   gate = PauliEvolutionGate(hamiltonian)
 
-The library is organized in several sections. The function
-:func:`.get_standard_gate_name_mapping` allows you to see the available standard gates and operations.
+   circuit = QuantumCircuit(hamiltonian.num_qubits)
+   circuit.append(gate, circuit.qubits)
 
-.. autofunction:: get_standard_gate_name_mapping
+   circuit.draw("mpl")
 
+This library is organized in different sections:
+
+   * :ref:`Standard gates <standard-gates>`
+   * :ref:`Standard directives <standard-directives>`
+   * :ref:`Standard operations <standard-operations>`
+   * :ref:`Generalized gates <generalized-gates>`
+   * :ref:`Arithmetic operations <arithmetic>`
+   * :ref:`Basis changes <basis-change>`
+   * :ref:`Boolean logic <boolean-logic>`
+   * :ref:`Data encoding <data-encoding>`
+   * :ref:`Data preparation <data-preparation>`
+   * :ref:`Particular operations <particular>`
+   * :ref:`N-local circuits <n-local>`
+   * :ref:`Oracles <oracles>`
+   * :ref:`Template circuits <template>`
+
+We distinguish into different categories of operations:
+
+Standard gates
+   These are fundamental quantum gates, a subset of which typically forms a basis gate
+   set on a quantum computer. These are unitary operations represented as :class:`.Gate`.
+   The library also provides standard compiler directives (a :class:`.Barrier`) and non-unitary
+   operations (like :class:`.Measure`).
+
+Abstract operations
+   This category includes operations that are defined by a mathematical action, but can be implemented
+   with different decompositions. For example, a multi-controlled :class:`.XGate` flips the target
+   qubit if all control qubits are :math:`|1\rangle`, and there are a variety of concrete circuits
+   implementing this operation using lower-level gates. Such abstract operations are represented as
+   :class:`.Gate` or :class:`~.circuit.Instruction`. This allows building the circuit without choosing
+   a concrete implementation of each block and, finally, let the compiler (or you as user) choose the
+   optimal decomposition. For example:
+
+   .. plot::
+      :alt: A circuit with a multi-controlled X gate.
+      :include-source:
+
+      from qiskit.circuit.library import MCXGate
+      mcx = MCXGate(4)
+
+      from qiskit import QuantumCircuit
+      circuit = QuantumCircuit(5)
+      circuit.append(mcx, [0, 1, 4, 2, 3])
+      circuit.draw("mpl")
+
+   For circuits with abstract operations, the circuit context is taken into account during
+   transpilation. For example, if idle qubits are available, they can be used to obtain a shallower
+   circuit::
+
+     from qiskit import transpile
+
+     small_circuit = QuantumCircuit(5)  # here we have no idle qubits
+     small_circuit.append(mcx, [0, 1, 4, 2, 3])
+     small_tqc = transpile(small_circuit, basis_gates=["u", "cx"])
+     print("No aux:", small_tqc.count_ops())
+
+     large_circuit = QuantumCircuit(10)  # now we will have 5 idle qubits
+     large_circuit.append(mcx, [0, 1, 4, 2, 3])
+     large_tqc = transpile(large_circuit, basis_gates=["u", "cx"])
+     print("With aux:", large_tqc.count_ops())
+
+   Which prints:
+
+   .. parsed-literal::
+
+      No aux: OrderedDict([('u', 41), ('cx', 36)])
+      With aux: OrderedDict([('u', 24), ('cx', 18)])
+
+Structural operations
+   These operations have a unique decomposition. As the compiler does not need to reason about
+   them on a higher level, they are implemented as functions that return a :class:`.QuantumCircuit`
+   object. For example:
+
+   .. plot::
+      :alt: The real amplitudes ansatz circuit.
+      :include-source:
+
+      from qiskit.circuit.library import real_amplitudes
+
+      ansatz = real_amplitudes(5, entanglement="pairwise")
+      ansatz.draw("mpl")
+
+
+.. _standard-gates:
 
 Standard gates
 ==============
@@ -54,13 +140,14 @@ and :meth:`~qiskit.circuit.Gate.control`, which we can generally only apply to u
 For example:
 
 .. plot::
+   :alt: The X gate and the matrix, power, and control methods.
    :include-source:
    :nofigs:
 
     from qiskit.circuit.library import XGate
     gate = XGate()
     print(gate.to_matrix())             # X gate
-    print(gate.power(1/2).to_matrix())  # √X gate
+    print(gate.power(1/2).to_matrix())  # √X gate -- see also the SXGate
     print(gate.control(1).to_matrix())  # CX (controlled X) gate
 
 .. code-block:: text
@@ -74,52 +161,27 @@ For example:
      [0.+0.j 0.+0.j 1.+0.j 0.+0.j]
      [0.+0.j 1.+0.j 0.+0.j 0.+0.j]]
 
+
+The function :func:`.get_standard_gate_name_mapping` allows you to see the available standard gates
+and operations.
+
+.. autofunction:: get_standard_gate_name_mapping
+
+1-qubit standard gates
+----------------------
+
 .. autosummary::
    :toctree: ../stubs/
-   :template: autosummary/class_no_inherited_members.rst
 
-   C3XGate
-   C3SXGate
-   C4XGate
-   CCXGate
-   DCXGate
-   CHGate
-   CPhaseGate
-   CRXGate
-   CRYGate
-   CRZGate
-   CSGate
-   CSdgGate
-   CSwapGate
-   CSXGate
-   CUGate
-   CU1Gate
-   CU3Gate
-   CXGate
-   CYGate
-   CZGate
-   CCZGate
-   ECRGate
    HGate
    IGate
-   MSGate
    PhaseGate
-   RCCXGate
-   RC3XGate
    RGate
    RXGate
-   RXXGate
    RYGate
-   RYYGate
    RZGate
-   RZZGate
-   RZXGate
-   XXMinusYYGate
-   XXPlusYYGate
    SGate
    SdgGate
-   SwapGate
-   iSwapGate
    SXGate
    SXdgGate
    TGate
@@ -131,8 +193,65 @@ For example:
    XGate
    YGate
    ZGate
+
+2-qubit standard gates
+----------------------
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   CHGate
+   CPhaseGate
+   CRXGate
+   CRYGate
+   CRZGate
+   CSGate
+   CSdgGate
+   CSXGate
+   CUGate
+   CU1Gate
+   CU3Gate
+   CXGate
+   CYGate
+   CZGate
+   DCXGate
+   ECRGate
+   iSwapGate
+   RXXGate
+   RYYGate
+   RZXGate
+   RZZGate
+   SwapGate
+   XXMinusYYGate
+   XXPlusYYGate
+
+3+ qubit standard gates
+-----------------------
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   C3SXGate
+   C3XGate
+   C4XGate
+   CCXGate
+   CCZGate
+   CSwapGate
+   RCCXGate
+   RC3XGate
+
+Global standard gates
+---------------------
+
+The following gate is global and does not take any qubit arguments.
+
+.. autosummary::
+   :toctree: ../stubs/
+
    GlobalPhaseGate
 
+
+.. _standard-directives:
 
 Standard Directives
 ===================
@@ -141,26 +260,28 @@ Directives are operations to the quantum stack that are meant to be interpreted 
 the transpiler. In general, the transpiler or backend might optionally ignore them if there is no
 implementation for them.
 
-* :class:`qiskit.circuit.Barrier`
+* :class:`~qiskit.circuit.Barrier`
+
+
+.. _standard-operations:
 
 Standard Operations
 ===================
 
 Operations are non-reversible changes in the quantum state of the circuit.
 
-* :class:`qiskit.circuit.Measure`
-* :class:`qiskit.circuit.Reset`
+* :class:`~qiskit.circuit.Measure`
+* :class:`~qiskit.circuit.Reset`
+
+
+.. _generalized-gates:
 
 Generalized Gates
 =================
 
-These "gates" (many are :class:`~qiskit.circuit.QuantumCircuit` subclasses) allow to
-set the amount of qubits involved at instantiation time.
-
-
-.. plot::
-   :include-source:
-   :nofigs:
+This module extends the standard gates with a broader collection of basic gates. This includes
+gates that are variadic, meaning that the number of qubits depends on the input.
+For example::
 
     from qiskit.circuit.library import DiagonalGate
 
@@ -170,33 +291,22 @@ set the amount of qubits involved at instantiation time.
     diagonal = DiagonalGate([1, 1, 1, -1])
     print(diagonal.num_qubits)
 
+which prints:
+
 .. code-block:: text
 
     1
     2
 
-
 .. autosummary::
    :toctree: ../stubs/
-   :template: autosummary/class_no_inherited_members.rst
 
-   Diagonal
    DiagonalGate
-   MCMT
-   MCMTVChain
-   Permutation
    PermutationGate
-   GMS
-   GR
-   GRX
-   GRY
-   GRZ
    MCMTGate
    MCPhaseGate
    MCXGate
-   MCXGrayCode
-   MCXRecursive
-   MCXVChain
+   MSGate
    RVGate
    PauliGate
    LinearFunction
@@ -208,80 +318,116 @@ set the amount of qubits involved at instantiation time.
    UCRYGate
    UCRZGate
 
-Boolean Logic Circuits
-======================
+The above objects derive :class:`.Gate` or :class:`~.circuit.Instruction`, which allows the
+compiler to reason about them on an abstract level. We therefore suggest using these instead
+of the following, which derive :class:`.QuantumCircuit` and are eagerly constructed.
 
-These are :class:`~qiskit.circuit.QuantumCircuit` subclasses
-that implement boolean logic operations, such as the logical
-or of a set of qubit states.
+.. autosummary::
+   :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
 
+   Diagonal
+   MCMT
+   MCMTVChain
+   MCXGrayCode
+   MCXRecursive
+   MCXVChain
+   Permutation
+   GMS
+   GR
+   GRX
+   GRY
+   GRZ
+
+.. _boolean-logic:
+
+Boolean Logic
+=============
+
+These :class:`.Gate`\ s implement boolean logic operations, such as the logical
+``or`` of a set of qubit states.
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   AndGate
+   OrGate
+   BitwiseXorGate
+   InnerProductGate
+
+The above objects derive :class:`.Gate` (or return this type), which allows the
+compiler to reason about them on an abstract level. We therefore suggest using these instead
+of the following which derive :class:`.QuantumCircuit` and are eagerly constructed.
 
 .. autosummary::
    :toctree: ../stubs/
    :template: autosummary/class_no_inherited_members.rst
 
    AND
-   AndGate
    OR
-   OrGate
    XOR
-   BitwiseXorGate
-   random_bitwise_xor
    InnerProduct
-   InnerProductGate
 
 
-Basis Change Circuits
-=====================
+A random bitwise ``xor`` circuit can be directly generated using:
 
-These circuits allow basis transformations of the qubit states. For example,
+.. autosummary::
+   :toctree: ../stubs/
+
+   random_bitwise_xor
+
+.. _basis-change:
+
+Basis Change
+============
+
+These gates perform basis transformations of the qubit states. For example,
 in the case of the Quantum Fourier Transform (QFT), it transforms between
 the computational basis and the Fourier basis.
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   QFTGate
+
+The above object derives :class:`.Gate`, which allows the
+compiler to reason about it on an abstract level. We therefore suggest using this instead
+of the following which derives :class:`.QuantumCircuit` and is eagerly constructed.
 
 .. autosummary::
    :toctree: ../stubs/
    :template: autosummary/class_no_inherited_members.rst
 
    QFT
-   QFTGate
 
-Arithmetic Circuits
-===================
+.. _arithmetic:
 
-These :class:`~qiskit.circuit.QuantumCircuit`\\ s perform classical arithmetic,
-such as addition or multiplication.
+Arithmetic
+==========
 
-Amplitude Functions
--------------------
-
-.. autosummary::
-   :toctree: ../stubs/
-   :template: autosummary/class_no_inherited_members.rst
-
-   LinearAmplitudeFunction
-   LinearAmplitudeFunctionGate
-
-Functional Pauli Rotations
---------------------------
-
-.. autosummary::
-   :toctree: ../stubs/
-   :template: autosummary/class_no_inherited_members.rst
-
-   FunctionalPauliRotations
-   LinearPauliRotations
-   LinearPauliRotationsGate
-   PolynomialPauliRotations
-   PolynomialPauliRotationsGate
-   PiecewiseLinearPauliRotations
-   PiecewiseLinearPauliRotationsGate
-   PiecewisePolynomialPauliRotations
-   PiecewisePolynomialPauliRotationsGate
-   PiecewiseChebyshev
-   PiecewiseChebyshevGate
+These gates and circuits perform classical arithmetic, such as addition or multiplication.
 
 Adders
 ------
+
+Adders compute the sum of two :math:`n`-qubit registers, that is
+
+.. math::
+
+   |a\rangle_n |b\rangle_n \mapsto |a\rangle_n |a + b\rangle_{t},
+
+where the size :math:`t` of the output register depends on the type of adder used.
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   ModularAdderGate
+   HalfAdderGate
+   FullAdderGate
+
+The above objects derive :class:`.Gate`, which allows the
+compiler to reason about them on an abstract level. We therefore suggest using these instead
+of the following which derive :class:`.QuantumCircuit` and are eagerly constructed.
 
 .. autosummary::
    :toctree: ../stubs/
@@ -290,12 +436,26 @@ Adders
    DraperQFTAdder
    CDKMRippleCarryAdder
    VBERippleCarryAdder
-   ModularAdderGate
-   HalfAdderGate
-   FullAdderGate
 
 Multipliers
 -----------
+
+Multipliers compute the product of two :math:`n`-qubit registers, that is
+
+.. math::
+
+   |a\rangle_n |b\rangle_n |0\rangle_{t} \mapsto |a\rangle_n |b\rangle_n |a \cdot b\rangle_t,
+
+where :math:`t` is the number of bits used to represent the result.
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   MultiplierGate
+
+The above object derives :class:`.Gate`, which allows the
+compiler to reason about it on an abstract level. We therefore suggest using this instead
+of the following which derive :class:`.QuantumCircuit` and are eagerly constructed.
 
 .. autosummary::
    :toctree: ../stubs/
@@ -303,71 +463,101 @@ Multipliers
 
    HRSCumulativeMultiplier
    RGQFTMultiplier
-   MultiplierGate
 
-Comparators
------------
+Amplitude Functions
+-------------------
+
+An amplitude function approximates a function :math:`f: \{0, ..., 2^n - 1\} \rightarrow [0, 1]`
+applied on the amplitudes of :math:`n` qubits. See the class docstring for more detailed information.
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   LinearAmplitudeFunctionGate
+
+The above object derives :class:`.Gate`, which allows the
+compiler to reason about it on an abstract level. We therefore suggest using this instead
+of the following which derives :class:`.QuantumCircuit` and is eagerly constructed.
 
 .. autosummary::
    :toctree: ../stubs/
    :template: autosummary/class_no_inherited_members.rst
 
-   IntegerComparator
-   IntegerComparatorGate
+   LinearAmplitudeFunction
 
-Functions on binary variables
------------------------------
+Functional Pauli Rotations
+--------------------------
+
+Functional Pauli rotations implement operations of the form
+
+.. math::
+
+   |x\rangle |0\rangle \mapsto \cos(f(x))|x\rangle|0\rangle + \sin(f(x))|x\rangle|1\rangle
+
+using Pauli-:math:`Y` rotations for different types of functions :math:`f`, such as linear,
+polynomial, or  a piecewise version of these. They are similar to the amplitude functions above, but
+without pre- and post-processing for the domain and image of the target function.
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   LinearPauliRotationsGate
+   PolynomialPauliRotationsGate
+   PiecewiseLinearPauliRotationsGate
+   PiecewisePolynomialPauliRotationsGate
+   PiecewiseChebyshevGate
+
+The above objects derive :class:`.Gate`, which allows the
+compiler to reason about them on an abstract level. We therefore suggest using these instead
+of the following which derive :class:`.QuantumCircuit` and are eagerly constructed.
 
 .. autosummary::
    :toctree: ../stubs/
    :template: autosummary/class_no_inherited_members.rst
 
-   QuadraticForm
-   QuadraticFormGate
+   FunctionalPauliRotations
+   LinearPauliRotations
+   PolynomialPauliRotations
+   PiecewiseLinearPauliRotations
+   PiecewisePolynomialPauliRotations
+   PiecewiseChebyshev
+
 
 Other arithmetic functions
 --------------------------
+
+Here we list additional arithmetic circuits. See the individual class docstrings for more details.
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   ExactReciprocalGate
+   IntegerComparatorGate
+   QuadraticFormGate
+   WeightedSumGate
+
+The above objects derive :class:`.Gate`, which allows the
+compiler to reason about them on an abstract level. We therefore suggest using these instead
+of the following which derive :class:`.QuantumCircuit` and are eagerly constructed.
 
 .. autosummary::
    :toctree: ../stubs/
    :template: autosummary/class_no_inherited_members.rst
 
    ExactReciprocal
-   ExactReciprocalGate
+   IntegerComparator
+   QuadraticForm
    WeightedAdder
-   WeightedSumGate
+
+.. _particular:
 
 Particular Quantum Circuits
 ===========================
 
-The following gates and quantum circuits define specific
-quantum circuits of interest:
+The following gates and quantum circuits define specific operations of interest:
 
 .. autosummary::
    :toctree: ../stubs/
-   :template: autosummary/class_no_inherited_members.rst
-
-   FourierChecking
-   GraphState
-   GraphStateGate
-   HiddenLinearFunction
-   IQP
-   QuantumVolume
-   PhaseEstimation
-   GroverOperator
-   BitFlipOracleGate
-   PhaseOracleGate
-   PhaseOracle
-   PauliEvolutionGate
-   HamiltonianGate
-   UnitaryOverlap
-
-For circuits that have a well-defined structure it is preferrable
-to use the following functions to construct them:
-
-.. autosummary::
-   :toctree: ../stubs/
-   :template: autosummary/class_no_inherited_members.rst
 
    fourier_checking
    hidden_linear_function
@@ -377,17 +567,68 @@ to use the following functions to construct them:
    phase_estimation
    grover_operator
    unitary_overlap
+   GraphStateGate
+   PauliEvolutionGate
+   HamiltonianGate
 
+Below we provide the same operations as classes deriving :class:`.QuantumCircuit`. For better
+runtime and compiler performance, however, we suggest using above functions and gates.
+
+.. autosummary::
+   :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
+
+   FourierChecking
+   GraphState
+   HiddenLinearFunction
+   IQP
+   QuantumVolume
+   PhaseEstimation
+   GroverOperator
+   UnitaryOverlap
+
+.. _n-local:
 
 N-local circuits
 ================
 
 The following functions return a parameterized :class:`.QuantumCircuit` to use as ansatz in
-a broad set of variational quantum algorithms:
+a broad set of variational quantum algorithms.
+
+For example, we can build a variational circuit
+
+.. plot::
+   :alt: The efficient SU2 ansatz circuit...
+   :context:
+
+   from qiskit.circuit.library import efficient_su2
+
+   num_qubits = 4
+   ansatz = efficient_su2(num_qubits, entanglement="pairwise")
+   ansatz.draw("mpl")
+
+and combine it with
+
+.. plot::
+   :alt: ... combined with the ZZ feature map.
+   :include-source:
+   :context:
+
+   from qiskit.circuit.library import zz_feature_map
+
+   circuit = zz_feature_map(num_qubits)
+   circuit.barrier()
+   circuit.compose(ansatz, inplace=True)
+
+   circuit.draw("mpl")
+
+to obtain a circuit for variational quantum classification.
+
+The following functions all construct variational circuits and are optimized for a fast
+construction:
 
 .. autosummary::
    :toctree: ../stubs/
-   :template: autosummary/class_no_inherited_members.rst
 
    n_local
    efficient_su2
@@ -398,9 +639,9 @@ a broad set of variational quantum algorithms:
    hamiltonian_variational_ansatz
    evolved_operator_ansatz
 
-These :class:`~qiskit.circuit.library.BlueprintCircuit` subclasses are used
-as parameterized models (a.k.a. ansatzes or variational forms) in variational algorithms.
-They are heavily used in near-term algorithms in e.g. Chemistry, Physics or Optimization.
+While we suggest using the above functions, we also continue supporting the following
+:class:`.BlueprintCircuit`, which wrap the circuits into a block
+and allow for inplace mutations of the circuits:
 
 .. autosummary::
    :toctree: ../stubs/
@@ -416,6 +657,8 @@ They are heavily used in near-term algorithms in e.g. Chemistry, Physics or Opti
    QAOAAnsatz
 
 
+.. _data-encoding:
+
 Data encoding circuits
 ======================
 
@@ -424,14 +667,14 @@ encoding circuits in a series of variational quantum algorithms:
 
 .. autosummary::
    :toctree: ../stubs/
-   :template: autosummary/class_no_inherited_members.rst
 
    pauli_feature_map
    z_feature_map
    zz_feature_map
 
-These :class:`~qiskit.circuit.library.BlueprintCircuit` encode classical
-data in quantum states and are used as feature maps for classification.
+While we suggest using the above functions, we also continue supporting the following
+:class:`.BlueprintCircuit`, which wrap the circuits into a block
+and allow for inplace mutations of the circuits:
 
 .. autosummary::
    :toctree: ../stubs/
@@ -442,6 +685,8 @@ data in quantum states and are used as feature maps for classification.
    ZZFeatureMap
 
 
+.. _data-preparation:
+
 Data preparation circuits
 =========================
 
@@ -449,10 +694,50 @@ The following operations are used for state preparation:
 
 .. autosummary::
    :toctree: ../stubs/
-   :template: autosummary/class_no_inherited_members.rst
 
    StatePreparation
    Initialize
+
+.. _oracles:
+
+Oracles
+=======
+
+An "oracle" can refer to a variety of black-box operations on quantum states. Here, we consider
+oracles implementing boolean functions :math:`f: \{0, ..., 2^n - 1\} \rightarrow \{0, 1\}` via
+phase-flips
+
+.. math::
+
+   |x\rangle_n \mapsto (-1)^{f(x)} |x\rangle_n,
+
+or bit-flips
+
+.. math::
+
+   |x\rangle_n |b\rangle \mapsto |x\rangle_n |b \oplus f(x)\rangle.
+
+These are implemented in
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   PhaseOracleGate
+   BitFlipOracleGate
+
+and an important building block for Grover's algorithm (see :func:`.grover_operator`).
+
+In addition to the :class:`.Gate`-based implementation we also support the
+:class:`.QuantumCircuit`-version of the phase flip oracle
+
+.. autosummary::
+   :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
+
+   PhaseOracle
+
+
+.. _template:
 
 Template circuits
 =================
@@ -464,6 +749,7 @@ to replace the match with the inverse of the remainder from the template.
 In this example, the identity constant in a template is checked:
 
 .. plot::
+   :alt: A Toffoli template circuit.
    :include-source:
    :nofigs:
 
