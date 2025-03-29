@@ -75,8 +75,8 @@ impl PyCast {
     }
 
     #[getter]
-    fn get_implicit(&self) -> bool {
-        self.0.implicit
+    fn get_implicit(&self, py: Python) -> PyResult<Py<PyAny>> {
+        self.0.implicit.into_py_any(py)
     }
 
     #[getter]
@@ -102,9 +102,18 @@ impl PyCast {
             (
                 self.get_operand(py)?,
                 self.get_type(py)?,
-                self.get_implicit(),
+                self.get_implicit(py)?,
             ),
         )
             .into_pyobject(py)
+    }
+
+    fn __repr__(&self, py: Python) -> PyResult<String> {
+        Ok(format!(
+            "Cast({}, {}, implicit={})",
+            self.get_operand(py)?.bind(py).repr()?,
+            self.get_type(py)?.bind(py).repr()?,
+            self.get_implicit(py)?.bind(py).repr()?,
+        ))
     }
 }

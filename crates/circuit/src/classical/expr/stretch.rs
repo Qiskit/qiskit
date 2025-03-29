@@ -128,4 +128,12 @@ impl PyStretch {
         )
             .into_pyobject(py)
     }
+
+    fn __repr__(&self, py: Python) -> PyResult<String> {
+        Ok(format!(
+            "Stretch({}, '{}')",
+            self.get_var(py)?.bind(py).repr()?,
+            self.get_name(py)?
+        ))
+    }
 }

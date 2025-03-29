@@ -98,4 +98,12 @@ impl PyValue {
         )
             .into_pyobject(py)
     }
+
+    fn __repr__(&self, py: Python) -> PyResult<String> {
+        Ok(format!(
+            "Value({}, {})",
+            self.get_value(py)?.bind(py).repr()?,
+            self.get_type(py)?.bind(py).repr()?,
+        ))
+    }
 }

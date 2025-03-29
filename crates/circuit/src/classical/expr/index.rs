@@ -110,4 +110,13 @@ impl PyIndex {
         )
             .into_pyobject(py)
     }
+
+    fn __repr__(&self, py: Python) -> PyResult<String> {
+        Ok(format!(
+            "Index({}, {}, {})",
+            self.get_target(py)?.bind(py).repr()?,
+            self.get_index(py)?.bind(py).repr()?,
+            self.get_type(py)?.bind(py).repr()?,
+        ))
+    }
 }

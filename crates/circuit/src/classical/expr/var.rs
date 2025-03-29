@@ -180,15 +180,15 @@ impl PyVar {
     fn __repr__(&self, py: Python) -> PyResult<String> {
         if matches!(self.0, Var::Bit { .. } | Var::Register { .. }) {
             return Ok(format!(
-                "Var({}, {:?})",
-                self.get_var(py)?,
-                self.get_type(py)?
+                "Var({}, {})",
+                self.get_var(py)?.bind(py).repr()?,
+                self.get_type(py)?.bind(py).repr()?,
             ));
         };
         Ok(format!(
-            "Var({}, {:?}, name='{}')",
-            self.get_var(py)?,
-            self.get_type(py)?,
+            "Var({}, {}, name='{}')",
+            self.get_var(py)?.bind(py).repr()?,
+            self.get_type(py)?.bind(py).repr()?,
             self.get_name(py)?
         ))
     }

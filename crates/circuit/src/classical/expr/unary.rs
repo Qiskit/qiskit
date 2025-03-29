@@ -165,4 +165,13 @@ impl PyUnary {
         )
             .into_pyobject(py)
     }
+
+    fn __repr__(&self, py: Python) -> PyResult<String> {
+        Ok(format!(
+            "Unary({}, {}, {})",
+            self.get_op(py)?.bind(py).repr()?,
+            self.get_operand(py)?.bind(py).repr()?,
+            self.get_type(py)?.bind(py).repr()?,
+        ))
+    }
 }

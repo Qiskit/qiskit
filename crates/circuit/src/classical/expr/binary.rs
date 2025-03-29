@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::classical::expr::{Expr, ExprKind, PyExpr, Unary};
+use crate::classical::expr::{Expr, ExprKind, PyExpr};
 use crate::classical::types::Type;
 use crate::imports;
 use pyo3::prelude::*;
@@ -192,5 +192,15 @@ impl PyBinary {
             ),
         )
             .into_pyobject(py)
+    }
+
+    fn __repr__(&self, py: Python) -> PyResult<String> {
+        Ok(format!(
+            "Binary({}, {}, {}, {})",
+            self.get_op(py)?.bind(py).repr()?,
+            self.get_left(py)?.bind(py).repr()?,
+            self.get_right(py)?.bind(py).repr()?,
+            self.get_type(py)?.bind(py).repr()?,
+        ))
     }
 }
