@@ -17,6 +17,7 @@ use pyo3::prelude::*;
 use pyo3::types::PyTuple;
 use pyo3::{intern, IntoPyObjectExt};
 
+/// A single scalar value expression.
 #[derive(Clone, Debug, PartialEq)]
 pub enum Value {
     Duration(Duration),
@@ -41,6 +42,7 @@ impl<'py> FromPyObject<'py> for Value {
     }
 }
 
+/// A single scalar value.
 #[pyclass(eq, extends = PyExpr, name = "Value", module = "qiskit._accelerate.circuit.classical.expr")]
 #[derive(PartialEq, Clone, Debug)]
 pub struct PyValue(Value);

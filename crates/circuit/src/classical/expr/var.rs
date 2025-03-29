@@ -19,6 +19,10 @@ use pyo3::types::{IntoPyDict, PyTuple};
 use pyo3::{intern, IntoPyObjectExt};
 use uuid::Uuid;
 
+/// A classical variable expression.
+///
+/// Note that the type of variant [Var::Bit] is always assumed to be a bool,
+/// so we don't store it.
 #[derive(Clone, Debug, PartialEq, Hash)]
 pub enum Var {
     Standalone {

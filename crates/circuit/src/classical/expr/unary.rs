@@ -17,6 +17,7 @@ use pyo3::prelude::*;
 use pyo3::types::PyTuple;
 use pyo3::{intern, IntoPyObjectExt};
 
+/// A unary expression.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Unary {
     pub op: UnaryOp,
@@ -25,7 +26,13 @@ pub struct Unary {
     pub constant: bool,
 }
 
-// WARNING: these must EXACTLY match _UnaryOp from expr.py!
+/// The Rust-side enum indicating a [Unary] expression's kind.
+///
+/// The values are part of the public Qiskit Python interface, since
+/// they are public in the sister Python enum `_UnaryOp` in `expr.py`
+/// and used in our QPY serialization format.
+///
+/// WARNING: If you add more, **be sure to update expr.py**, too.
 #[repr(u8)]
 #[derive(Copy, Hash, Clone, Debug, PartialEq)]
 pub enum UnaryOp {
@@ -87,12 +94,19 @@ impl PyUnaryOp {
     }
 }
 
+/// A unary expression.
+///
+/// Args:
+///     op: The opcode describing which operation is being done.
+///     operand: The operand of the operation.
+///     type: The resolved type of the result.
 #[pyclass(eq, extends = PyExpr, name = "Unary", module = "qiskit._accelerate.circuit.classical.expr")]
 #[derive(PartialEq, Clone, Debug)]
 pub struct PyUnary(Unary);
 
 #[pymethods]
 impl PyUnary {
+    // The docstring for 'Op' is defined in Python (expr.py).
     #[classattr]
     #[allow(non_snake_case)]
     fn Op(py: Python) -> PyResult<Py<PyAny>> {

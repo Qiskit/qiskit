@@ -18,6 +18,7 @@ use pyo3::types::{IntoPyDict, PyTuple};
 use pyo3::{intern, IntoPyObjectExt};
 use uuid::Uuid;
 
+/// A stretch variable.
 #[derive(Clone, Debug, PartialEq, Hash)]
 pub struct Stretch {
     pub uuid: u128,
@@ -41,6 +42,10 @@ impl<'py> FromPyObject<'py> for Stretch {
     }
 }
 
+/// A stretch variable.
+///
+/// In general, construction of stretch variables for use in programs should use :meth:`Stretch.new`
+/// or :meth:`.QuantumCircuit.add_stretch`
 #[pyclass(eq, hash, frozen, extends = PyExpr, name = "Stretch", module = "qiskit._accelerate.circuit.classical.expr")]
 #[derive(PartialEq, Clone, Debug, Hash)]
 pub struct PyStretch(Stretch);
@@ -76,12 +81,14 @@ impl PyStretch {
         )
     }
 
+    /// A :class:`~uuid.UUID` to uniquely identify this stretch.
     #[getter]
     fn get_var(&self, py: Python) -> PyResult<Py<PyAny>> {
         let kwargs = [("int", self.0.uuid)].into_py_dict(py)?;
         Ok(UUID.get_bound(py).call((), Some(&kwargs))?.unbind())
     }
 
+    /// The name of the stretch variable.
     #[getter]
     fn get_name(&self, py: Python) -> PyResult<Py<PyAny>> {
         self.0.name.clone().into_py_any(py)

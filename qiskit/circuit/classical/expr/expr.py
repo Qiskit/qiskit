@@ -51,6 +51,8 @@ class _UnaryOp(enum.Enum):
     # If adding opcodes, remember to add helper constructor functions in `constructors.py`.
     # The opcode integers should be considered a public interface; they are used by
     # serialization formats that may transfer data between different versions of Qiskit.
+    #
+    # !!! YOU MUST ALSO UPDATE the underlying Rust enum if you touch this.
     BIT_NOT = 1
     """Bitwise negation. ``~operand``."""
     LOGIC_NOT = 2
@@ -61,6 +63,12 @@ class _UnaryOp(enum.Enum):
 
     def __repr__(self):
         return f"Unary.{super().__repr__()}"
+
+
+# Setting these tricks Sphinx into thinking that this enum is actually
+# defined as an inner class of the Rust pyclass.
+_UnaryOp.__module__ = "qiskit._accelerate.circuit.classical.expr"
+_UnaryOp.__name__ = "Op"
 
 
 class _BinaryOp(enum.Enum):
@@ -96,6 +104,8 @@ class _BinaryOp(enum.Enum):
     # If adding opcodes, remember to add helper constructor functions in `constructors.py`
     # The opcode integers should be considered a public interface; they are used by
     # serialization formats that may transfer data between different versions of Qiskit.
+    #
+    # !!! YOU MUST ALSO UPDATE the underlying Rust enum if you touch this.
     BIT_AND = 1
     """Bitwise "and". ``lhs & rhs``."""
     BIT_OR = 2
@@ -136,3 +146,9 @@ class _BinaryOp(enum.Enum):
 
     def __repr__(self):
         return f"Binary.{super().__repr__()}"
+
+
+# Setting these tricks Sphinx into thinking that this enum is actually
+# defined as an inner class of the Rust pyclass.
+_BinaryOp.__module__ = "qiskit._accelerate.circuit.classical.expr"
+_BinaryOp.__name__ = "Op"

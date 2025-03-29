@@ -16,6 +16,8 @@ use pyo3::prelude::*;
 use pyo3::types::PyTuple;
 use pyo3::{intern, IntoPyObjectExt};
 
+/// A cast from one type to another, implied by the use of an expression in a different
+/// context.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Cast {
     pub operand: Expr,

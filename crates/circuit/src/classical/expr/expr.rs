@@ -15,6 +15,12 @@ use crate::classical::types::Type;
 use pyo3::prelude::*;
 use pyo3::{intern, IntoPyObjectExt};
 
+/// A classical expression.
+///
+/// Variants that themselves contain [Expr]s are boxed. This is done instead
+/// of boxing the contained [Expr]s within the specific type to reduce the
+/// number of boxes we need (e.g. Binary would otherwise contain two boxed
+/// expressions).
 #[derive(Clone, Debug, PartialEq)]
 pub enum Expr {
     Unary(Box<Unary>),
@@ -27,6 +33,7 @@ pub enum Expr {
 }
 
 impl Expr {
+    /// The const-ness of the expression.
     pub fn is_const(&self) -> bool {
         match self {
             Expr::Unary(u) => u.constant,
@@ -39,6 +46,7 @@ impl Expr {
         }
     }
 
+    /// The expression's [Type].
     pub fn ty(&self) -> Type {
         match self {
             Expr::Unary(u) => u.ty,
@@ -59,11 +67,17 @@ impl Expr {
         }
     }
 
+    /// Returns an iterator over the [Var] nodes in this expression in some
+    /// deterministic order.
     pub fn vars(&self) -> impl Iterator<Item = &Var> {
         VarIterator(ExprIterator { stack: vec![self] })
     }
 }
 
+/// A private iterator over the [Expr] nodes of an expression
+/// by reference.
+///
+/// The first node reference returned is the [Expr] itself.
 struct ExprIterator<'a> {
     stack: Vec<&'a Expr>,
 }
@@ -94,6 +108,7 @@ impl<'a> Iterator for ExprIterator<'a> {
     }
 }
 
+/// A private iterator over the [Var] nodes contained within an [Expr].
 struct VarIterator<'a>(ExprIterator<'a>);
 
 impl<'a> Iterator for VarIterator<'a> {
@@ -189,7 +204,7 @@ impl From<Box<Index>> for Expr {
     subclass,
     frozen,
     name = "Expr",
-    module = "qiskit._accelerate.circuit"
+    module = "qiskit._accelerate.circuit.classical.expr"
 )]
 #[derive(PartialEq, Clone, Copy, Debug, Hash)]
 pub struct PyExpr(pub ExprKind); // ExprKind is used for fast extraction from Python
@@ -215,6 +230,8 @@ impl PyExpr {
     }
 }
 
+/// The expression's kind, used internally during Python instance extraction to avoid
+/// `isinstance` checks.
 #[repr(u8)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum ExprKind {

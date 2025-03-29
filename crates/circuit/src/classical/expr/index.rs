@@ -16,6 +16,7 @@ use pyo3::prelude::*;
 use pyo3::types::PyTuple;
 use pyo3::{intern, IntoPyObjectExt};
 
+/// An indexing expression.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Index {
     pub target: Expr,
@@ -41,6 +42,12 @@ impl<'py> FromPyObject<'py> for Index {
     }
 }
 
+/// An indexing expression.
+///
+/// Args:
+///     target: The object being indexed.
+///     index: The expression doing the indexing.
+///     type: The resolved type of the result.
 #[pyclass(eq, extends = PyExpr, name = "Index", module = "qiskit._accelerate.circuit.classical.expr")]
 #[derive(PartialEq, Clone, Debug)]
 pub struct PyIndex(Index);

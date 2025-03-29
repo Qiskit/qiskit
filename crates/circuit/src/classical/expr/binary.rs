@@ -10,13 +10,14 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::classical::expr::{Expr, ExprKind, PyExpr};
+use crate::classical::expr::{Expr, ExprKind, PyExpr, Unary};
 use crate::classical::types::Type;
 use crate::imports;
 use pyo3::prelude::*;
 use pyo3::types::PyTuple;
 use pyo3::{intern, IntoPyObjectExt};
 
+/// A binary expression.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Binary {
     pub op: BinaryOp,
@@ -26,7 +27,13 @@ pub struct Binary {
     pub constant: bool,
 }
 
-// WARNING: these must EXACTLY match _BinaryOp from expr.py!
+/// The Rust-side enum indicating a [Binary] expression's kind.
+///
+/// The values are part of the public Qiskit Python interface, since
+/// they are public in the sister Python enum `_BinaryOp` in `expr.py`
+/// and used in our QPY serialization format.
+///
+/// WARNING: If you add more, **be sure to update expr.py**, too.
 #[repr(u8)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum BinaryOp {
@@ -103,12 +110,20 @@ impl PyBinaryOp {
     }
 }
 
+/// A binary expression.
+///
+/// Args:
+///     op: The opcode describing which operation is being done.
+///     left: The left-hand operand.
+///     right: The right-hand operand.
+///     type: The resolved type of the result.
 #[pyclass(eq, extends = PyExpr, name = "Binary", module = "qiskit._accelerate.circuit.classical.expr")]
 #[derive(PartialEq, Clone, Debug)]
 pub struct PyBinary(Binary);
 
 #[pymethods]
 impl PyBinary {
+    // The docstring for 'Op' is defined in Python (expr.py).
     #[classattr]
     #[allow(non_snake_case)]
     fn Op(py: Python) -> PyResult<Py<PyAny>> {
