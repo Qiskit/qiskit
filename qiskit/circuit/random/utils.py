@@ -48,9 +48,9 @@ def random_circuit(
     Args:
         num_qubits (int): number of quantum wires
         depth (int): layers of operations (i.e. critical path length).
-            Note - It is possible that for some of the layers some of the qubits
-            are not a part of any gate, which at the end produces a circuit
-            with lesser critical path.
+            Note -  that due to the stochastic nature of the method, some of the qubits
+            in some layers may end up not being assigned to any gate, leading to a
+            circuit with a shorter critical path than specified by `depth`.
         max_operands (int): maximum qubit operands of each gate (between 1 and 4)
         measure (bool): if True, measure all qubits at the end
         conditional (bool): if True, insert middle measurements and conditionals
