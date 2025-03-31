@@ -14,4 +14,4 @@ features_circuits:
     
     This type is intended primarily for use in timing-related (``duration`` and ``stretch``)
     expressions. It is not compatible with bitwise or logical operations, although it
-    can be used (dangerously) with these if they are first explicitly cast to something else.
+    can be used with these if they are first explicitly cast to something else.
