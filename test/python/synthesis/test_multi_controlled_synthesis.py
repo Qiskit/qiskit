@@ -223,13 +223,16 @@ class TestMCSynthesisCorrectness(QiskitTestCase):
             U2Gate(0.1, 0.2),
             U3Gate(0.1, 0.2, 0.3),
         ],
+        annotated=[False, True],
     )
-    def test_create_mc_gates(self, num_ctrl_qubits, base_gate):
+    def test_create_mc_gates(self, num_ctrl_qubits, base_gate, annotated):
         """Test that creating various multi-controlled gates with small number of controls
         and no ancillas yields correct unitaries.
         """
         qc = QuantumCircuit(num_ctrl_qubits + 1)
-        qc.append(base_gate.control(num_ctrl_qubits), range(num_ctrl_qubits + 1))
+        qc.append(
+            base_gate.control(num_ctrl_qubits, annotated=annotated), range(num_ctrl_qubits + 1)
+        )
         test_op = Operator(qc).data
         cop_mat = self.mc_matrix(base_gate, num_ctrl_qubits)
         self.assertTrue(matrix_equal(cop_mat, test_op))
@@ -331,11 +334,16 @@ class TestMCSynthesisCounts(QiskitTestCase):
     @combine(
         num_ctrl_qubits=[5, 10, 15],
         base_gate=[RXGate(0.123), RYGate(0.456), RZGate(0.789)],
+        annotated=[False, True],
     )
-    def test_mc_rotation_gates_cx_count(self, num_ctrl_qubits: int, base_gate: Gate):
+    def test_mc_rotation_gates_cx_count(
+        self, num_ctrl_qubits: int, base_gate: Gate, annotated: bool
+    ):
         """Test bounds on the number of CX gates for mcrx / mcry / mcrz."""
         qc = QuantumCircuit(num_ctrl_qubits + 1)
-        qc.append(base_gate.control(num_ctrl_qubits), range(num_ctrl_qubits + 1))
+        qc.append(
+            base_gate.control(num_ctrl_qubits, annotated=annotated), range(num_ctrl_qubits + 1)
+        )
         transpiled_circuit = self.pm.run(qc)
         cx_count = transpiled_circuit.count_ops()["cx"]
         # The synthesis of mcrx/mcry/mcrz gates uses _mcsu2_real_diagonal.
@@ -374,26 +382,34 @@ class TestMCSynthesisCounts(QiskitTestCase):
             SXdgGate(),
             PhaseGate(0.345),
         ],
+        annotated=[False, True],
     )
-    def test_mcx_equiv_noaux_cx_count(self, num_ctrl_qubits: int, base_gate: Gate):
+    def test_mcx_equiv_noaux_cx_count(self, num_ctrl_qubits: int, base_gate: Gate, annotated: bool):
         """Test bounds on the number of CX-gates when synthesizing multi-controlled gates
         which are locally equivalent to MCX.
         """
         qc = QuantumCircuit(num_ctrl_qubits + 1)
-        qc.append(base_gate.control(num_ctrl_qubits), range(num_ctrl_qubits + 1))
+        qc.append(
+            base_gate.control(num_ctrl_qubits, annotated=annotated), range(num_ctrl_qubits + 1)
+        )
         transpiled_circuit = self.pm.run(qc)
         cx_count = transpiled_circuit.count_ops()["cx"]
         # The bounds should be the same as for synth_mcx_noaux_v24
         self.assertLessEqual(cx_count, 8 * num_ctrl_qubits**2 - 16 * num_ctrl_qubits)
 
-    @data(5, 10, 15)
-    def test_mcu_noaux_cx_count(self, num_ctrl_qubits: int):
+    @combine(
+        num_ctrl_qubits=[5, 10, 15],
+        annotated=[False, True],
+    )
+    def test_mcu_noaux_cx_count(self, num_ctrl_qubits: int, annotated: bool):
         """Test bounds on the number of CX-gates when synthesizing multi-controlled single-qubit
         unitary gates.
         """
         base_gate = UGate(0.123, 0.456, 0.789)
         qc = QuantumCircuit(num_ctrl_qubits + 1)
-        qc.append(base_gate.control(num_ctrl_qubits), range(num_ctrl_qubits + 1))
+        qc.append(
+            base_gate.control(num_ctrl_qubits, annotated=annotated), range(num_ctrl_qubits + 1)
+        )
         transpiled_circuit = self.pm.run(qc)
         cx_count = transpiled_circuit.count_ops()["cx"]
         # The synthesis of MCX(n) uses two MCRZ(n), one MCRY(n), and one MCPhase(n-1).
@@ -423,8 +439,9 @@ class TestMCSynthesisCounts(QiskitTestCase):
             U2Gate(0.1, 0.2),
             U3Gate(0.1, 0.2, 0.3),
         ],
+        annotated=[False, True],
     )
-    def test_small_mc_gates_cx_count(self, num_ctrl_qubits, base_gate):
+    def test_small_mc_gates_cx_count(self, num_ctrl_qubits: int, base_gate: Gate, annotated: bool):
         """Test that transpiling various multi-controlled gates with small number of controls and no
         ancillas yields the expected number of CX gates.
 
@@ -432,7 +449,9 @@ class TestMCSynthesisCounts(QiskitTestCase):
         quality of the synthesized circuits.
         """
         qc = QuantumCircuit(num_ctrl_qubits + 1)
-        qc.append(base_gate.control(num_ctrl_qubits), range(num_ctrl_qubits + 1))
+        qc.append(
+            base_gate.control(num_ctrl_qubits, annotated=annotated), range(num_ctrl_qubits + 1)
+        )
         transpiled_circuit = self.pm.run(qc)
         cx_count = transpiled_circuit.count_ops()["cx"]
 
