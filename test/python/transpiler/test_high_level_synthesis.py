@@ -48,6 +48,8 @@ from qiskit.circuit.library import (
     QFTGate,
     IGate,
     MCXGate,
+    HGate,
+    PhaseGate,
     SGate,
     QAOAAnsatz,
     GlobalPhaseGate,
@@ -2891,6 +2893,107 @@ class TestPauliEvolutionSynthesisPlugins(QiskitTestCase):
         )
         self.assertEqual(count_rotation_gates(qct), 2)
         self.assertEqual(set(qct.parameters), {alpha, beta})
+
+
+class TestAnnotatedSynthesisPlugins(QiskitTestCase):
+    """Tests related to plugins for AnnotatedOperation."""
+
+    def setUp(self):
+        super().setUp()
+        self._pass = HighLevelSynthesis(basis_gates=["cx", "u"])
+
+    def test_conjugate_reduction_applies_1(self):
+        """Test that conjugate reduction optimization applies when the first and the last gates
+        are inverse of each other for the given choice of parameters."""
+        qc_inner = QuantumCircuit(1)
+        qc_inner.append(PhaseGate(1), [0])
+        qc_inner.append(HGate(), [0])
+        qc_inner.append(PhaseGate(-1), [0])
+
+        qc_main = QuantumCircuit(5)
+        qc_main.append(qc_inner.to_gate().control(4, annotated=True), [0, 1, 2, 3, 4])
+
+        # Optimized circuit with non-controlled phase gates
+        qc_expected = QuantumCircuit(5)
+        qc_expected.append(PhaseGate(1), [4])
+        qc_expected.append(HGate().control(4), [0, 1, 2, 3, 4])
+        qc_expected.append(PhaseGate(-1), [4])
+
+        qc_main_tranpiled = self._pass(qc_main)
+        qc_expected_transpiled = self._pass(qc_expected)
+
+        self.assertEqual(Operator(qc_main_tranpiled), Operator(qc_expected_transpiled))
+        self.assertEqual(qc_main_tranpiled.count_ops(), qc_expected_transpiled.count_ops())
+
+    def test_conjugate_reduction_not_applies_1(self):
+        """Test that conjugate reduction optimization does not apply when the first and the
+        last gates are not inverse of each other for the given choice of parameters."""
+        qc_inner = QuantumCircuit(1)
+        qc_inner.append(PhaseGate(1), [0])
+        qc_inner.append(HGate(), [0])
+        qc_inner.append(PhaseGate(-2), [0])
+
+        qc_main = QuantumCircuit(5)
+        qc_main.append(qc_inner.to_gate().control(4, annotated=True), [0, 1, 2, 3, 4])
+
+        # Non-optimized circuit with controlled phase gates
+        qc_expected = QuantumCircuit(5)
+        qc_expected.append(PhaseGate(1).control(4), [0, 1, 2, 3, 4])
+        qc_expected.append(HGate().control(4), [0, 1, 2, 3, 4])
+        qc_expected.append(PhaseGate(-2).control(4), [0, 1, 2, 3, 4])
+
+        qc_main_tranpiled = self._pass(qc_main)
+        qc_expected_transpiled = self._pass(qc_expected)
+
+        self.assertEqual(Operator(qc_main_tranpiled), Operator(qc_expected_transpiled))
+        self.assertEqual(qc_main_tranpiled.count_ops(), qc_expected_transpiled.count_ops())
+
+    def test_conjugate_reduction_applies_2(self):
+        """Test that conjugate reduction optimization applies when the first and the last gates
+        are inverse of each other for the given choice of parameters, with the inverse represented
+        via a modifier."""
+        qc_inner = QuantumCircuit(1)
+        qc_inner.append(PhaseGate(1), [0])
+        qc_inner.append(HGate(), [0])
+        qc_inner.append(PhaseGate(1).inverse(annotated=True), [0])
+
+        qc_main = QuantumCircuit(5)
+        qc_main.append(qc_inner.to_gate().control(4, annotated=True), [0, 1, 2, 3, 4])
+
+        # Optimized circuit with non-controlled phase gates
+        qc_expected = QuantumCircuit(5)
+        qc_expected.append(PhaseGate(1), [4])
+        qc_expected.append(HGate().control(4), [0, 1, 2, 3, 4])
+        qc_expected.append(PhaseGate(-1), [4])
+
+        qc_main_tranpiled = self._pass(qc_main)
+        qc_expected_transpiled = self._pass(qc_expected)
+        self.assertEqual(Operator(qc_main_tranpiled), Operator(qc_expected_transpiled))
+        self.assertEqual(qc_main_tranpiled.count_ops(), qc_expected_transpiled.count_ops())
+
+    def test_conjugate_reduction_not_applies_2(self):
+        """Test that conjugate reduction optimization does not apply when the first and the
+        last gates are not inverse of each other for the given choice of parameters.
+        """
+        qc_inner = QuantumCircuit(1)
+        qc_inner.append(PhaseGate(1), [0])
+        qc_inner.append(HGate(), [0])
+        qc_inner.append(PhaseGate(2).inverse(annotated=True), [0])
+
+        qc_main = QuantumCircuit(5)
+        qc_main.append(qc_inner.to_gate().control(4, annotated=True), [0, 1, 2, 3, 4])
+
+        # Non-optimized circuit with controlled phase gates
+        qc_expected = QuantumCircuit(5)
+        qc_expected.append(PhaseGate(1).control(4), [0, 1, 2, 3, 4])
+        qc_expected.append(HGate().control(4), [0, 1, 2, 3, 4])
+        qc_expected.append(PhaseGate(-2).control(4), [0, 1, 2, 3, 4])
+
+        qc_main_tranpiled = self._pass(qc_main)
+        qc_expected_transpiled = self._pass(qc_expected)
+
+        self.assertEqual(Operator(qc_main_tranpiled), Operator(qc_expected_transpiled))
+        self.assertEqual(qc_main_tranpiled.count_ops(), qc_expected_transpiled.count_ops())
 
 
 def count_rotation_gates(qc: QuantumCircuit):

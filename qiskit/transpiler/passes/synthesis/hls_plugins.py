@@ -2021,7 +2021,7 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
         if (
             inst1.qubits != inst2.qubits
             or inst1.clbits != inst2.clbits
-            or inst1.params != inst2.params
+            or len(inst1.params) != len(inst2.params)
         ):
             return False
 
