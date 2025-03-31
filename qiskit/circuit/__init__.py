@@ -711,9 +711,9 @@ classes associated to each name.
 .. autofunction:: get_control_flow_name_mapping
 
 These control-flow operations (:class:`IfElseOp`, :class:`WhileLoopOp`,
-:class:`SwitchCaseOp`, :class:`ForLoopOp` and :class:`BoxOp`) all have specific state that defines the branching
-conditions and strategies, but contain all the different subcircuit blocks that might be entered in
-their :attr:`~ControlFlowOp.blocks` property.
+:class:`SwitchCaseOp`, :class:`ForLoopOp` and :class:`BoxOp`) all have specific state that defines
+the branching conditions and strategies, but contain all the different subcircuit blocks that
+might be entered in their :attr:`~ControlFlowOp.blocks` property.
 
 .. autosummary::
     :toctree: ../stubs/
