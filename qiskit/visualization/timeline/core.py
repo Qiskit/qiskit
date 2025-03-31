@@ -260,7 +260,7 @@ class DrawerCanvas:
                     self.add_data(datum)
 
         # update time range
-        t_end = max(program.duration, self.formatter["margin.minimum_duration"])
+        t_end = max(program._duration, self.formatter["margin.minimum_duration"])
         self.set_time_range(t_start=0, t_end=t_end)
 
     def set_time_range(self, t_start: int, t_end: int):
