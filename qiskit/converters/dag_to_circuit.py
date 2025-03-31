@@ -12,6 +12,7 @@
 
 """Helper function for converting a dag to a circuit."""
 
+import warnings
 from qiskit.circuit import QuantumCircuit
 from qiskit._accelerate.converters import dag_to_circuit as dag_to_circuit_rs
 
@@ -75,6 +76,19 @@ def dag_to_circuit(dag, copy_operations=True):
     circuit.metadata = dag.metadata or {}
     circuit._data = circuit_data
 
-    circuit._duration = dag.duration
-    circuit._unit = dag.unit
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore",
+            category=DeprecationWarning,
+            module="qiskit",
+            message=r".*The property.*qiskit.dagcircuit.dagcircuit.DAGCircuit.duration.*is deprecated.*",
+        )
+        warnings.filterwarnings(
+            "ignore",
+            category=DeprecationWarning,
+            module="qiskit",
+            message=r".*The property.*qiskit.dagcircuit.dagcircuit.DAGCircuit.unit.*is deprecated.*",
+        )
+        circuit._duration = dag.duration
+        circuit._unit = dag.unit
     return circuit

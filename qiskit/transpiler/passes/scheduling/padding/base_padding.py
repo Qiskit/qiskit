@@ -15,6 +15,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 import logging
+import warnings
 
 from qiskit.circuit import Qubit, Clbit, Instruction
 from qiskit.circuit.delay import Delay
@@ -186,7 +187,14 @@ class BasePadding(TransformationPass):
                     prev_node=prev_node,
                 )
 
-        new_dag.duration = circuit_duration
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                category=DeprecationWarning,
+                module="qiskit",
+                message=r".*The property.*qiskit.dagcircuit.dagcircuit.DAGCircuit.duration.*is deprecated.*",
+            )
+            new_dag.duration = circuit_duration
 
         return new_dag
 
