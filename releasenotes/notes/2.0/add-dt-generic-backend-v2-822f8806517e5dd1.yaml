@@ -1,14 +1,14 @@
 ---
 features_providers:
   - |
-    Added the ability to set the ``dt`` property of :class:`.GenericBackendV2` in the class 
+    Added the ability to set the ``dt`` property of :class:`.GenericBackendV2` in the class
     initializer with a new ``dt`` argument. Example usage::
 
       from qiskit.providers.fake_provider import GenericBackendV2
 
       backend = GenericBackendV2(
-        num_qubits = 5, 
+        num_qubits = 5,
         basis_gates = ["cx", "id", "rz", "sx", "x"],
-        dt = 2.22*e-10, 
+        dt = 2.22*e-10,
         seed = 42
-    )
+      )
