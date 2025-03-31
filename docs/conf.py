@@ -49,7 +49,11 @@ extensions = [
     "matplotlib.sphinxext.plot_directive",
     "reno.sphinxext",
     "sphinxcontrib.katex",
+    "breathe",
 ]
+
+breathe_projects = {"qiskit": "xml/"}
+breathe_default_project = "qiskit"
 
 templates_path = ["_templates"]
 

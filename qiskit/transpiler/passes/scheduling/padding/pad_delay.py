@@ -87,4 +87,4 @@ class PadDelay(BasePadding):
             return
 
         time_interval = t_end - t_start
-        self._apply_scheduled_op(dag, t_start, Delay(time_interval, dag.unit), qubit)
+        self._apply_scheduled_op(dag, t_start, Delay(time_interval, dag._unit), qubit)
