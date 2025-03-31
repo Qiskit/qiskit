@@ -70,15 +70,15 @@ int test_gate_num_qubits() {
     return Ok;
 }
 
-int test_gate_num_params() {
-
-    bool value_in_array(uint8_t val, uint8_t * arr, size_t n) {
-        for (size_t i = 0; i < n; i++) {
-            if (arr[i] == val)
-                return true;
-        }
-        return false;
+bool value_in_array(uint8_t val, uint8_t * arr, size_t n) {
+    for (size_t i = 0; i < n; i++) {
+        if (arr[i] == val)
+            return true;
     }
+    return false;
+}
+
+int test_gate_num_params() {
 
     uint8_t zero_param_gates[29] = {1,  2,  3,  4,  5,  11, 12, 13, 14, 15, 16, 21, 22, 23, 24,
                                     25, 26, 27, 28, 33, 34, 35, 45, 46, 47, 48, 49, 50, 51};
