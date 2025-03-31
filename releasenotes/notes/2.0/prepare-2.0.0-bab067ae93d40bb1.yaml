@@ -6,12 +6,18 @@ prelude: >
 
       * The introduction of a `C API <https://quantum.cloud.ibm.com/docs/api/qiskit-c>`__ for 
         building and interacting with :class:`.SparseObservable` objects. This first 
-        compiled language interface, while intially small, represents an important milestone in the 
-        evolution of Qiskit, and it will grow in scope throughout the v2.x release series.
+        compiled language interface represents an important milestone in the 
+        evolution of Qiskit and will grow in scope throughout the v2.x release series.
         The initial iteration of the C API is an experimental feature, and Qiskit
-        reserves the right to make breaking changes in minor versions, following our
+        reserves the right to make breaking changes in minor versions following our
         `version strategy <https://docs.quantum.ibm.com/open-source/qiskit-sdk-version-strategy>`__.
-        
+      
+      * The addition of a new :class:`.BoxOp` control-flow op that maps to 
+        `the OpenQASM 3 concept of a box <https://openqasm.com/language/delays.html#boxed-expressions>`__
+        and allows to group series of instructions for later processing and custom scheduling.
+        This operator is useful for applications such as twirling, noise-learning, and stretch-based scheduling
+        among others.
+
       * The ability to create ``stretch`` durations for :class:`.Delay` instructions,  
         which enable expressing relationships between timing-aware instructions.  
         The new :class:`~.expr.Stretch` type extends the existing classical expression system,  
@@ -34,6 +40,7 @@ prelude: >
     been removed, such as the ``.c_if()`` method, the ``qobj`` module,
     ``BackendV1``, and ``qiskit.pulse``, as well as the deprecated  V1 
     primitive reference implementations.
+
     You can refer to the upgrade release notes sections for more details on all of
     these removals and API changes. The removed APIs are still supported in the Qiskit v1.4.x
     release which will receive bug fixes for another six months and will have security
