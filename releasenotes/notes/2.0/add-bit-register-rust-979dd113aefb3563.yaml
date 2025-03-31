@@ -14,5 +14,5 @@ upgrade_circuits:
     :class:`.Register` classes is no longer possible. Directly instantiating
     these classes was clearly documented as something that was **not** supported
     and being able to do it was was just an implementation artifact of how the
-    class heirarchy in previous releases. Starting in this release it is no longer
+    class hierarchy in previous releases. Starting in this release it is no longer
     possible to do this.
