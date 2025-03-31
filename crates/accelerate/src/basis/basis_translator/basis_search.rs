@@ -12,7 +12,7 @@
 
 use std::cell::RefCell;
 
-use hashbrown::{HashMap, HashSet};
+use indexmap::{IndexMap, IndexSet};
 
 use crate::equivalence::{EdgeData, Equivalence, EquivalenceLibrary, Key, NodeData};
 use qiskit_circuit::operations::Operation;
@@ -33,20 +33,22 @@ type BasisTransforms = Vec<(GateIdentifier, BasisTransformIn)>;
 /// basis` are reached.
 pub(crate) fn basis_search(
     equiv_lib: &mut EquivalenceLibrary,
-    source_basis: &HashSet<GateIdentifier>,
-    target_basis: &HashSet<String>,
+    source_basis: &IndexSet<GateIdentifier, ahash::RandomState>,
+    target_basis: &IndexSet<String, ahash::RandomState>,
 ) -> Option<BasisTransforms> {
     // Build the visitor attributes:
-    let mut num_gates_remaining_for_rule: HashMap<usize, usize> = HashMap::default();
-    let predecessors: RefCell<HashMap<GateIdentifier, Equivalence>> =
-        RefCell::new(HashMap::default());
-    let opt_cost_map: RefCell<HashMap<GateIdentifier, u32>> = RefCell::new(HashMap::default());
+    let mut num_gates_remaining_for_rule: IndexMap<usize, usize, ahash::RandomState> =
+        IndexMap::default();
+    let predecessors: RefCell<IndexMap<GateIdentifier, Equivalence, ahash::RandomState>> =
+        RefCell::new(IndexMap::default());
+    let opt_cost_map: RefCell<IndexMap<GateIdentifier, u32, ahash::RandomState>> =
+        RefCell::new(IndexMap::default());
     let mut basis_transforms: Vec<(GateIdentifier, BasisTransformIn)> = vec![];
 
     // Initialize visitor attributes:
     initialize_num_gates_remain_for_rule(equiv_lib.graph(), &mut num_gates_remaining_for_rule);
 
-    let mut source_basis_remain: HashSet<Key> = source_basis
+    let mut source_basis_remain: IndexSet<Key, ahash::RandomState> = source_basis
         .iter()
         .filter_map(|(gate_name, gate_num_qubits)| {
             if !target_basis.contains(gate_name) {
@@ -120,7 +122,7 @@ pub(crate) fn basis_search(
             DijkstraEvent::Discover(n, score) => {
                 let gate_key = &equiv_lib.graph()[n].key;
                 let gate = (gate_key.name.to_string(), gate_key.num_qubits);
-                source_basis_remain.remove(gate_key);
+                source_basis_remain.swap_remove(gate_key);
                 let mut borrowed_cost_map = opt_cost_map.borrow_mut();
                 if let Some(entry) = borrowed_cost_map.get_mut(&gate) {
                     *entry = score;
@@ -178,7 +180,7 @@ pub(crate) fn basis_search(
 
 fn initialize_num_gates_remain_for_rule(
     graph: &StableDiGraph<NodeData, Option<EdgeData>>,
-    source: &mut HashMap<usize, usize>,
+    source: &mut IndexMap<usize, usize, ahash::RandomState>,
 ) {
     let mut save_index = usize::MAX;
     // When iterating over the edges, ignore any none-valued ones by calling `flatten`

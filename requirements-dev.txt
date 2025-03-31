@@ -1,4 +1,4 @@
-# Requirements to develop Terra, and the minimum needed to run its CI.  All
+# Requirements to develop Qiskit, and the minimum needed to run its CI.  All
 # optional requirements should go in `requirements-optionals.txt` instead.
 #
 # Version requirements here can be more restrictive than elsewhere, because they
@@ -47,3 +47,4 @@ threadpoolctl
 Sphinx>=6.0,<7.2
 reno >= 4.1.0
 sphinxcontrib-katex==0.9.9
+breathe>=4.35.0

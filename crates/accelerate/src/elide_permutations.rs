@@ -40,15 +40,15 @@ fn run(py: Python, dag: &mut DAGCircuit) -> PyResult<Option<(DAGCircuit, Vec<usi
     let mut new_dag = dag.copy_empty_like(py, "alike")?;
     for node_index in dag.topological_op_nodes()? {
         if let NodeType::Operation(inst) = &dag[node_index] {
-            match (inst.op().name(), inst.condition()) {
-                ("swap", None) => {
+            match inst.op().name() {
+                "swap" => {
                     let qargs = dag.get_qargs(inst.qubits());
                     let index0 = qargs[0].index();
                     let index1 = qargs[1].index();
                     mapping.swap(index0, index1);
                 }
-                ("permutation", None) => {
-                    if let Param::Obj(ref pyobj) = inst.params_view()[0] {
+                "permutation" => {
+                    if let Param::Obj(ref pyobj) = inst.params_raw().as_ref().unwrap()[0] {
                         let pyarray: PyReadonlyArray1<i32> = pyobj.extract(py)?;
                         let pattern = pyarray.as_array();
 
@@ -87,8 +87,10 @@ fn run(py: Python, dag: &mut DAGCircuit) -> PyResult<Option<(DAGCircuit, Vec<usi
                         inst.op().clone(),
                         &mapped_qargs,
                         cargs,
-                        (!inst.params_view().is_empty()).then_some(inst.params_view().into()),
-                        inst.extra_attrs().clone(),
+                        inst.params_raw().as_deref().cloned(),
+                        inst.label.as_ref().map(|x| x.as_ref().clone()),
+                        #[cfg(feature = "cache_pygates")]
+                        inst.py_op().get().map(|x| x.clone_ref(py)),
                     )?;
                 }
             }

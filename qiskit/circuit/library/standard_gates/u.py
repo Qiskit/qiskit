@@ -23,7 +23,6 @@ import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameterexpression import ParameterValueType, ParameterExpression
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit._accelerate.circuit import StandardGate
 
 
@@ -72,7 +71,7 @@ class UGate(Gate):
         U(\theta, 0, 0) = RY(\theta)
     """
 
-    _standard_gate = StandardGate.UGate
+    _standard_gate = StandardGate.U
 
     def __init__(
         self,
@@ -80,12 +79,9 @@ class UGate(Gate):
         phi: ParameterValueType,
         lam: ParameterValueType,
         label: Optional[str] = None,
-        *,
-        duration=None,
-        unit="dt",
     ):
         """Create new U gate."""
-        super().__init__("u", 1, [theta, phi, lam], label=label, duration=duration, unit=unit)
+        super().__init__("u", 1, [theta, phi, lam], label=label)
 
     def inverse(self, annotated: bool = False):
         r"""Return inverted U gate.
@@ -273,7 +269,7 @@ class CUGate(ControlledGate):
             \end{pmatrix}
     """
 
-    _standard_gate = StandardGate.CUGate
+    _standard_gate = StandardGate.CU
 
     def __init__(
         self,
@@ -284,8 +280,6 @@ class CUGate(ControlledGate):
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
         *,
-        duration=None,
-        unit="dt",
         _base_label=None,
     ):
         """Create new CU gate."""
@@ -297,8 +291,6 @@ class CUGate(ControlledGate):
             label=label,
             ctrl_state=ctrl_state,
             base_gate=UGate(theta, phi, lam, label=_base_label),
-            duration=duration,
-            unit=unit,
         )
 
     def _define(self):
@@ -314,7 +306,7 @@ class CUGate(ControlledGate):
         }
         """
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
 
         #          ┌──────┐    ┌──────────────┐
         # q_0: ────┤ P(γ) ├────┤ P(λ/2 + φ/2) ├──■────────────────────────────■────────────────

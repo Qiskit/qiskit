@@ -22,7 +22,7 @@ from typing import List
 from dataclasses import dataclass
 
 from qiskit import circuit
-from qiskit.circuit.quantumregister import Qubit, QuantumRegister
+from qiskit.circuit import Qubit, QuantumRegister
 from qiskit.transpiler.exceptions import LayoutError
 from qiskit.converters import isinstanceint
 

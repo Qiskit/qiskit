@@ -135,7 +135,6 @@ class TestQFT(QiskitTestCase):
     def test_qft_num_gates(self, num_qubits, approximation_degree, insert_barriers):
         """Test the number of gates in the QFT and the approximated QFT."""
         basis_gates = ["h", "swap", "cu1"]
-
         qft = QFT(
             num_qubits, approximation_degree=approximation_degree, insert_barriers=insert_barriers
         )
@@ -270,14 +269,6 @@ class TestQFTGate(QiskitTestCase):
         expected.append(QFTGate(4), [1, 2, 0, 4])
         expected.cx(1, 3)
         self.assertEqual(qcr, expected)
-
-    def test_conditional(self):
-        """Test adding conditional to a QFTGate."""
-        qc = QuantumCircuit(5, 1)
-        with self.assertWarns(DeprecationWarning):
-            qc.append(QFTGate(4), [1, 2, 0, 4]).c_if(0, 1)
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsNotNone(qc.data[0].operation.condition)
 
     def test_qasm(self):
         """Test qasm for circuits with QFTGates."""

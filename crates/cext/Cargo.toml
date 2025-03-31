@@ -1,0 +1,31 @@
+[package]
+name = "qiskit-cext"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+build = "build.rs"
+
+[lib]
+name = "qiskit_cext"
+doctest = false
+crate-type = ["rlib"]
+
+[lints]
+workspace = true
+
+
+[dependencies]
+thiserror.workspace = true
+num-complex.workspace = true
+qiskit-accelerate.workspace = true
+pyo3 = { workspace = true, optional = true }
+
+[build-dependencies]
+cbindgen = "0.28"
+pyo3-build-config = { version = "0.24.0", features = ["resolve-config"] }
+
+[features]
+default = ["cbinding"]
+python_binding = ["dep:pyo3"]
+cbinding = []

@@ -47,6 +47,7 @@ from qiskit.circuit.library import (
     MCXGate,
     SGate,
     QAOAAnsatz,
+    GlobalPhaseGate,
 )
 from qiskit.circuit.library import LinearFunction, PauliEvolutionGate
 from qiskit.quantum_info import Clifford, Operator, Statevector, SparsePauliOp
@@ -232,6 +233,10 @@ class MockPluginManager:
         plugin_name = op_name + "." + method_name
         return self.plugins[plugin_name]()
 
+    def op_names(self):
+        """Returns the names of high-level-objects with available synthesis methods."""
+        return list(self.plugins_by_op.keys())
+
 
 class MockPlugin(HighLevelSynthesisPlugin):
     """A mock HLS using auxiliary qubits."""
@@ -263,6 +268,16 @@ class EmptyPlugin(HighLevelSynthesisPlugin):
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Elaborate code to return None :)"""
         return None
+
+
+class GlobalPhaseGatePlugin(HighLevelSynthesisPlugin):
+    """Plugin that replaces a global phase gate by a global phase."""
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        """Returns a quantum circuit with global phase."""
+        decomposition = QuantumCircuit(1)
+        decomposition.global_phase = high_level_object.params[0]
+        return decomposition
 
 
 @ddt
@@ -676,6 +691,46 @@ class TestHighLevelSynthesisInterface(QiskitTestCase):
         pm = PassManager([HighLevelSynthesis(basis_gates=["PauliEvolution"])])
         qct = pm.run(qc)
         self.assertEqual(qct.count_ops()["PauliEvolution"], 2)
+
+    def test_track_global_phase(self):
+        """Test that high-level-synthesis keeps track of the global phases."""
+
+        # Custom plugin that replaces GlobalPhaseGate by global phase.
+        hls_config = HLSConfig(global_phase=[GlobalPhaseGatePlugin()])
+        hls_pass = HighLevelSynthesis(hls_config=hls_config, basis_gates=["cx", "u"])
+
+        # A circuit that has both a GlobalPhaseGate and a global phase
+        qc = QuantumCircuit(2, global_phase=0.2)
+        qc.append(GlobalPhaseGate(0.1))
+        qc.cx(0, 1)
+        qc.append(GlobalPhaseGate(0.5))
+
+        with self.subTest("global phase at top level"):
+            transpiled = hls_pass(qc)
+            expected = QuantumCircuit(2, global_phase=0.8)
+            expected.cx(0, 1)
+            self.assertEqual(transpiled, expected)
+
+        with self.subTest("global phase in custom gate"):
+            # A circuit with qc as custom gate
+            qc2 = QuantumCircuit(4, global_phase=0.1)
+            qc2.append(qc.to_gate(), [1, 3])
+            qc2.cx(0, 1)
+            transpiled = hls_pass(qc2)
+            expected = QuantumCircuit(4, global_phase=0.9)
+            expected.cx(1, 3)
+            expected.cx(0, 1)
+            self.assertEqual(transpiled, expected)
+
+        with self.subTest("global phase in control flow op"):
+            # A circuit with qc inside control flow blocks
+            qc3 = QuantumCircuit(4, 1)
+            qc3.if_else((0, True), qc, qc, [0, 1], [])
+            transpiled = hls_pass(qc3)
+            transpiled_block = transpiled[0].operation.blocks[0]
+            expected_block = QuantumCircuit(2, global_phase=0.8)
+            expected_block.cx(0, 1)
+            self.assertEqual(transpiled_block, expected_block)
 
 
 class TestPMHSynthesisLinearFunctionPlugin(QiskitTestCase):
@@ -1139,10 +1194,8 @@ class TestHighLevelSynthesisModifiers(QiskitTestCase):
         cliff = Clifford(qc)
         circuit = QuantumCircuit(4)
         circuit.append(AnnotatedOperation(cliff, ControlModifier(2)), [0, 1, 2, 3])
-        transpiled_circuit = HighLevelSynthesis()(circuit)
-        expected_circuit = QuantumCircuit(4)
-        expected_circuit.append(cliff.to_instruction().control(2), [0, 1, 2, 3])
-        self.assertEqual(transpiled_circuit, expected_circuit)
+        transpiled_circuit = HighLevelSynthesis(basis_gates=["cx", "u"])(circuit)
+        self.assertEqual(transpiled_circuit.count_ops().keys(), {"cx", "u"})
 
     def test_multiple_controls(self):
         """Test lazy controlled synthesis with multiple control modifiers."""
@@ -1652,6 +1705,25 @@ class TestHighLevelSynthesisModifiers(QiskitTestCase):
         qct = pass_(qc)
         self.assertEqual(Statevector(qc), Statevector(qct))
 
+    def test_annotated_circuit_with_phase(self):
+        """Test controlled-annotated circuits with global phase."""
+        inner = QuantumCircuit(2)
+        inner.global_phase = 1
+        inner.h(0)
+        inner.cx(0, 1)
+        gate = inner.to_gate()
+
+        qc1 = QuantumCircuit(3)
+        qc1.append(gate.control(annotated=False), [0, 1, 2])
+        qct1 = HighLevelSynthesis(basis_gates=["cx", "u"])(qc1)
+
+        qc2 = QuantumCircuit(3)
+        qc2.append(gate.control(annotated=True), [0, 1, 2])
+        qct2 = HighLevelSynthesis(basis_gates=["cx", "u"])(qc2)
+
+        self.assertEqual(Operator(qc1), Operator(qc2))
+        self.assertEqual(Operator(qct1), Operator(qct2))
+
     def test_annotated_rec(self):
         """Test synthesis with annotated custom gates and recursion."""
         inner2 = QuantumCircuit(2)
@@ -1740,78 +1812,6 @@ class TestUnrollerCompatability(QiskitTestCase):
         self.assertEqual(len(op_nodes), 16)
         for node in op_nodes:
             self.assertIn(node.name, ["h", "t", "tdg", "cx", "sx"])
-
-    def test_unroll_1q_chain_conditional(self):
-        """Test unroll chain of 1-qubit gates interrupted by conditional."""
-
-        #     ┌───┐┌─────┐┌───┐┌───┐┌─────────┐┌─────────┐┌─────────┐┌─┐ ┌───┐  ┌───┐ »
-        # qr: ┤ H ├┤ Tdg ├┤ Z ├┤ T ├┤ Ry(0.5) ├┤ Rz(0.3) ├┤ Rx(0.1) ├┤M├─┤ X ├──┤ Y ├─»
-        #     └───┘└─────┘└───┘└───┘└─────────┘└─────────┘└─────────┘└╥┘ └─╥─┘  └─╥─┘ »
-        #                                                             ║ ┌──╨──┐┌──╨──┐»
-        # cr: 1/══════════════════════════════════════════════════════╩═╡ 0x1 ╞╡ 0x1 ╞»
-        #                                                             0 └─────┘└─────┘»
-        # «       ┌───┐
-        # «  qr: ─┤ Z ├─
-        # «       └─╥─┘
-        # «      ┌──╨──┐
-        # «cr: 1/╡ 0x1 ╞
-        # «      └─────┘
-        qr = QuantumRegister(1, "qr")
-        cr = ClassicalRegister(1, "cr")
-        circuit = QuantumCircuit(qr, cr)
-        circuit.h(qr)
-        circuit.tdg(qr)
-        circuit.z(qr)
-        circuit.t(qr)
-        circuit.ry(0.5, qr)
-        circuit.rz(0.3, qr)
-        circuit.rx(0.1, qr)
-        circuit.measure(qr, cr)
-        with self.assertWarns(DeprecationWarning):
-            circuit.x(qr).c_if(cr, 1)
-        with self.assertWarns(DeprecationWarning):
-            circuit.y(qr).c_if(cr, 1)
-        with self.assertWarns(DeprecationWarning):
-            circuit.z(qr).c_if(cr, 1)
-        dag = circuit_to_dag(circuit)
-        pass_ = HighLevelSynthesis(equivalence_library=std_eqlib, basis_gates=["u1", "u2", "u3"])
-        dag = pass_.run(dag)
-
-        pass_ = BasisTranslator(std_eqlib, ["u1", "u2", "u3"])
-        unrolled_dag = pass_.run(dag)
-
-        # Pick up -1 * 0.3 / 2 global phase for one RZ -> U1.
-        #
-        # global phase: 6.1332
-        #     ┌─────────┐┌──────────┐┌───────┐┌─────────┐┌─────────────┐┌─────────┐»
-        # qr: ┤ U2(0,π) ├┤ U1(-π/4) ├┤ U1(π) ├┤ U1(π/4) ├┤ U3(0.5,0,0) ├┤ U1(0.3) ├»
-        #     └─────────┘└──────────┘└───────┘└─────────┘└─────────────┘└─────────┘»
-        # cr: 1/═══════════════════════════════════════════════════════════════════»
-        #                                                                          »
-        # «      ┌──────────────────┐┌─┐┌───────────┐┌───────────────┐┌───────┐
-        # «  qr: ┤ U3(0.1,-π/2,π/2) ├┤M├┤ U3(π,0,π) ├┤ U3(π,π/2,π/2) ├┤ U1(π) ├
-        # «      └──────────────────┘└╥┘└─────╥─────┘└───────╥───────┘└───╥───┘
-        # «                           ║    ┌──╨──┐        ┌──╨──┐      ┌──╨──┐
-        # «cr: 1/═════════════════════╩════╡ 0x1 ╞════════╡ 0x1 ╞══════╡ 0x1 ╞═
-        # «                           0    └─────┘        └─────┘      └─────┘
-        ref_circuit = QuantumCircuit(qr, cr, global_phase=-0.3 / 2)
-        ref_circuit.append(U2Gate(0, np.pi), [qr[0]])
-        ref_circuit.append(U1Gate(-np.pi / 4), [qr[0]])
-        ref_circuit.append(U1Gate(np.pi), [qr[0]])
-        ref_circuit.append(U1Gate(np.pi / 4), [qr[0]])
-        ref_circuit.append(U3Gate(0.5, 0, 0), [qr[0]])
-        ref_circuit.append(U1Gate(0.3), [qr[0]])
-        ref_circuit.append(U3Gate(0.1, -np.pi / 2, np.pi / 2), [qr[0]])
-        ref_circuit.measure(qr[0], cr[0])
-        with self.assertWarns(DeprecationWarning):
-            ref_circuit.append(U3Gate(np.pi, 0, np.pi), [qr[0]]).c_if(cr, 1)
-        with self.assertWarns(DeprecationWarning):
-            ref_circuit.append(U3Gate(np.pi, np.pi / 2, np.pi / 2), [qr[0]]).c_if(cr, 1)
-        with self.assertWarns(DeprecationWarning):
-            ref_circuit.append(U1Gate(np.pi), [qr[0]]).c_if(cr, 1)
-        ref_dag = circuit_to_dag(ref_circuit)
-
-        self.assertEqual(unrolled_dag, ref_dag)
 
     def test_unroll_no_basis(self):
         """Test when a given gate has no decompositions."""

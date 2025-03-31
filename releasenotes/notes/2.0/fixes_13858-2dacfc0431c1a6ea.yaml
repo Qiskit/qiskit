@@ -1,0 +1,10 @@
+---
+upgrade_synthesis:
+  - |
+    The ``atomic_evolution`` argument to :class:`.ProductFormula` (and its
+    subclasses :class:`.QDrift`, :class:`.LieTrotter` and :class:`SuzukiTrotter` ) 
+    has a new function signature. Rather than taking some Pauli
+    operator and time coefficient and returning the evolution circuit, the new
+    function takes in an existing circuit and should append the evolution of the
+    provided Pauli and given time to this circuit. This new implementation
+    benefits from significantly better performance.

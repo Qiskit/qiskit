@@ -22,7 +22,6 @@ use num_complex::Complex64;
 use smallvec::SmallVec;
 
 use crate::circuit_data::CircuitData;
-use crate::circuit_instruction::ExtraInstructionAttributes;
 use crate::imports::{get_std_gate_class, BARRIER, DEEPCOPY, DELAY, MEASURE, RESET, UNITARY_GATE};
 use crate::interner::Interned;
 use crate::operations::{
@@ -447,6 +446,7 @@ impl PackedOperation {
             (OperationRef::Operation(left), OperationRef::Operation(right)) => {
                 left.operation.bind(py).eq(&right.operation)
             }
+            (OperationRef::Unitary(left), OperationRef::Unitary(right)) => Ok(left == right),
             _ => Ok(false),
         }
     }
@@ -681,11 +681,11 @@ impl Drop for PackedOperation {
 pub struct PackedInstruction {
     op: PackedOperation,
     /// The index under which the interner has stored `qubits`.
-    qubits: Interned<[Qubit]>,
+    pub qubits: Interned<[Qubit]>,
     /// The index under which the interner has stored `clbits`.
-    clbits: Interned<[Clbit]>,
+    pub clbits: Interned<[Clbit]>,
     params: Option<Box<SmallVec<[Param; 3]>>>,
-    extra_attrs: ExtraInstructionAttributes,
+    pub label: Option<Box<String>>,
 
     #[cfg(feature = "cache_pygates")]
     /// This is hidden in a `OnceLock` because it's just an on-demand cache; we don't create this
@@ -708,46 +708,47 @@ impl PackedInstruction {
         qubits: Interned<[Qubit]>,
         clbits: Interned<[Clbit]>,
         params: Option<Box<SmallVec<[Param; 3]>>>,
-        extra_attrs: ExtraInstructionAttributes,
+        label: Option<Box<String>>,
+        #[cfg(feature = "cache_pygates")] py_op: OnceLock<PyObject>,
     ) -> Self {
         Self {
             op,
             qubits,
             clbits,
             params,
-            extra_attrs,
+            label,
             #[cfg(feature = "cache_pygates")]
-            py_op: OnceLock::new(),
+            py_op,
         }
     }
 
     /// Retrieves an immutable reference to the instruction's underlying operation.
+    #[inline]
     pub fn op(&self) -> &PackedOperation {
         &self.op
     }
 
     /// Retrieves an immutable reference to the index under which the interner has stored `qubits`.
+    #[inline]
     pub fn qubits(&self) -> Interned<[Qubit]> {
         self.qubits
     }
 
     /// Retrieves an immutable reference to the index under which the interner has stored `clbits`.
+    #[inline]
     pub fn clbits(&self) -> Interned<[Clbit]> {
         self.clbits
     }
 
-    /// Retrieves an immutable reference to the extra_attributes of this instruction.
-    pub fn extra_attrs(&self) -> &ExtraInstructionAttributes {
-        &self.extra_attrs
-    }
-
     /// Retrieves the cached py_gate immutably.
     #[cfg(feature = "cache_pygates")]
+    #[inline]
     pub fn py_op(&self) -> &OnceLock<PyObject> {
         &self.py_op
     }
 
     /// Retrieves a mutable reference to the instruction's underlying operation.
+    #[inline]
     pub fn op_mut(&mut self) -> &mut PackedOperation {
         #[cfg(feature = "cache_pygates")]
         {
@@ -757,26 +758,30 @@ impl PackedInstruction {
     }
 
     /// Retrieves a mutable reference to the index under which the interner has stored `qubits`.
+    #[inline]
     pub fn qubits_mut(&mut self) -> &mut Interned<[Qubit]> {
         &mut self.qubits
     }
 
     /// Retrieves a mutable reference to the index under which the interner has stored `clbits`.
+    #[inline]
     pub fn clbits_mut(&mut self) -> &mut Interned<[Clbit]> {
         &mut self.clbits
     }
 
-    /// Retrieves a mutable reference to the extra_attributes of this instruction.
-    pub fn extra_attrs_mut(&mut self) -> &mut ExtraInstructionAttributes {
+    /// Retrieves a mutable reference to the label of this instruction.
+    #[inline]
+    pub fn label_mut(&mut self) -> Option<&mut String> {
         #[cfg(feature = "cache_pygates")]
         {
             self.py_op.take();
         }
-        &mut self.extra_attrs
+        self.label.as_deref_mut()
     }
 
     /// Retrieves the cached py_gate mutably.
     #[cfg(feature = "cache_pygates")]
+    #[inline]
     pub fn py_op_mut(&mut self) -> &mut OnceLock<PyObject> {
         &mut self.py_op
     }
@@ -815,8 +820,8 @@ impl PackedInstruction {
 
     /// Get a reference of the contained parameters.
     #[inline]
-    pub fn params_raw(&self) -> Option<&SmallVec<[Param; 3]>> {
-        self.params.as_deref()
+    pub fn params_raw(&self) -> &Option<Box<SmallVec<[Param; 3]>>> {
+        &self.params
     }
 
     /// Get a mutable reference of the contained parameters.
@@ -837,14 +842,10 @@ impl PackedInstruction {
             .any(|x| matches!(x, Param::ParameterExpression(_)))
     }
 
-    #[inline]
-    pub fn condition(&self) -> Option<&Py<PyAny>> {
-        self.extra_attrs.condition()
-    }
-
+    /// Retrieves an immutable reference to the extra_attributes of this instruction.
     #[inline]
     pub fn label(&self) -> Option<&str> {
-        self.extra_attrs.label()
+        self.label.as_ref().map(|label| label.as_str())
     }
 
     /// Build a reference to the Python-space operation object (the `Gate`, etc) packed into this
@@ -860,17 +861,19 @@ impl PackedInstruction {
                 OperationRef::StandardGate(standard) => standard.create_py_op(
                     py,
                     self.params.as_deref().map(SmallVec::as_slice),
-                    &self.extra_attrs,
+                    self.label.as_ref().map(|x| x.as_str()),
                 ),
                 OperationRef::StandardInstruction(instruction) => instruction.create_py_op(
                     py,
                     self.params.as_deref().map(SmallVec::as_slice),
-                    &self.extra_attrs,
+                    self.label.as_ref().map(|x| x.as_str()),
                 ),
                 OperationRef::Gate(gate) => Ok(gate.gate.clone_ref(py)),
                 OperationRef::Instruction(instruction) => Ok(instruction.instruction.clone_ref(py)),
                 OperationRef::Operation(operation) => Ok(operation.operation.clone_ref(py)),
-                OperationRef::Unitary(unitary) => unitary.create_py_op(py, &self.extra_attrs),
+                OperationRef::Unitary(unitary) => {
+                    unitary.create_py_op(py, self.label.as_ref().map(|x| x.as_str()))
+                }
             }
         };
 
@@ -943,7 +946,7 @@ impl Clone for PackedInstruction {
             qubits: self.qubits,
             clbits: self.clbits,
             params: self.params.clone(),
-            extra_attrs: self.extra_attrs.clone(),
+            label: self.label.clone(),
             #[cfg(feature = "cache_pygates")]
             py_op: OnceLock::new(),
         }

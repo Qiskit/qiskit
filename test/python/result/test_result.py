@@ -18,7 +18,6 @@ from qiskit.result import models
 from qiskit.result import marginal_counts
 from qiskit.result import marginal_distribution
 from qiskit.result import Result
-from qiskit.qobj import QobjExperimentHeader
 from qiskit.exceptions import QiskitError
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -30,7 +29,6 @@ class TestResultOperations(QiskitTestCase):
         self.base_result_args = {
             "backend_name": "test_backend",
             "backend_version": "1.0.0",
-            "qobj_id": "id-123",
             "job_id": "job-123",
             "success": True,
         }
@@ -42,8 +40,7 @@ class TestResultOperations(QiskitTestCase):
         memory = [hex(ii) for ii in range(8)]
         counts = {m: 1 for m in memory}
         data_1 = models.ExperimentResultData(counts=counts, memory=memory)
-        with self.assertWarns(DeprecationWarning):
-            exp_result_header_1 = QobjExperimentHeader(creg_sizes=[["c0", 4]], memory_slots=4)
+        exp_result_header_1 = {"creg_sizes": [["c0", 4]], "memory_slots": 4}
         exp_result_1 = models.ExperimentResult(
             shots=8, success=True, data=data_1, header=exp_result_header_1
         )
@@ -68,10 +65,7 @@ class TestResultOperations(QiskitTestCase):
         raw_counts = {"0x0": 4, "0x2": 10}
         processed_counts = {"0 0 00": 4, "0 0 10": 10}
         data = models.ExperimentResultData(counts=raw_counts)
-        with self.assertWarns(DeprecationWarning):
-            exp_result_header = QobjExperimentHeader(
-                creg_sizes=[["c0", 2], ["c0", 1], ["c1", 1]], memory_slots=4
-            )
+        exp_result_header = {"creg_sizes": [["c0", 2], ["c0", 1], ["c1", 1]], "memory_slots": 4}
         exp_result = models.ExperimentResult(
             shots=14, success=True, meas_level=2, data=data, header=exp_result_header
         )
@@ -84,10 +78,11 @@ class TestResultOperations(QiskitTestCase):
         raw_counts = {"0x0": 4, "0x2": 10}
         processed_counts = {"0 0 00": 4, "0 0 10": 10}
         data = models.ExperimentResultData(counts=raw_counts)
-        with self.assertWarns(DeprecationWarning):
-            exp_result_header = QobjExperimentHeader(
-                creg_sizes=[["c0", 2], ["c0", 1], ["c1", 1]], memory_slots=4, name="a_name"
-            )
+        exp_result_header = {
+            "creg_sizes": [["c0", 2], ["c0", 1], ["c1", 1]],
+            "memory_slots": 4,
+            "name": "a_name",
+        }
         exp_result = models.ExperimentResult(
             shots=14, success=True, meas_level=2, data=data, header=exp_result_header
         )
@@ -98,8 +93,7 @@ class TestResultOperations(QiskitTestCase):
     def test_counts_duplicate_name(self):
         """Test results containing multiple entries of a single name will warn."""
         data = models.ExperimentResultData(counts={})
-        with self.assertWarns(DeprecationWarning):
-            exp_result_header = QobjExperimentHeader(name="foo")
+        exp_result_header = {"name": "foo"}
         exp_result = models.ExperimentResult(
             shots=14, success=True, data=data, header=exp_result_header
         )
@@ -112,24 +106,52 @@ class TestResultOperations(QiskitTestCase):
         """Test that repr is constructed correctly for a results object."""
         raw_counts = {"0x0": 4, "0x2": 10}
         data = models.ExperimentResultData(counts=raw_counts)
-        with self.assertWarns(DeprecationWarning):
-            exp_result_header = QobjExperimentHeader(
-                creg_sizes=[["c0", 2], ["c0", 1], ["c1", 1]], memory_slots=4
-            )
+        exp_result_header = {"creg_sizes": [["c0", 2], ["c0", 1], ["c1", 1]], "memory_slots": 4}
         exp_result = models.ExperimentResult(
             shots=14, success=True, meas_level=2, data=data, header=exp_result_header
         )
         result = Result(results=[exp_result], **self.base_result_args)
         expected = (
             "Result(backend_name='test_backend', backend_version='1.0.0', "
-            "qobj_id='id-123', job_id='job-123', success=True, "
-            "results=[ExperimentResult(shots=14, success=True, "
-            "meas_level=2, data=ExperimentResultData(counts={'0x0': 4,"
-            " '0x2': 10}), header=QobjExperimentHeader(creg_sizes="
-            "[['c0', 2], ['c0', 1], ['c1', 1]], memory_slots=4))], date=None, "
+            "job_id='job-123', success=True, results=[ExperimentResult("
+            "shots=14, success=True, meas_level=2, data=ExperimentResultData("
+            "counts={'0x0': 4, '0x2': 10}), header={'creg_sizes': [['c0', 2], "
+            "['c0', 1], ['c1', 1]], 'memory_slots': 4})], date=None, "
             "status=None, header=None)"
         )
         self.assertEqual(expected, repr(result))
+
+    def test_result_to_dict(self):
+        """Test that dictionary is constructed correctly for a results object."""
+        raw_counts = {"0x0": 4, "0x2": 10}
+        data = models.ExperimentResultData(counts=raw_counts)
+        exp_result_header = {"creg_sizes": [["c0", 2], ["c0", 1], ["c1", 1]], "memory_slots": 4}
+        exp_result = models.ExperimentResult(
+            shots=14, success=True, meas_level=2, data=data, header=exp_result_header
+        )
+        header = {"header-property": 1}
+        result = Result(results=[exp_result], header=header, **self.base_result_args)
+
+        expected = {
+            "backend_name": "test_backend",
+            "backend_version": "1.0.0",
+            "header": {"header-property": 1},
+            "date": None,
+            "job_id": "job-123",
+            "status": None,
+            "success": True,
+            "results": [
+                {
+                    "shots": 14,
+                    "success": True,
+                    "data": {"counts": {"0x0": 4, "0x2": 10}},
+                    "meas_level": 2,
+                    "header": {"creg_sizes": [["c0", 2], ["c0", 1], ["c1", 1]], "memory_slots": 4},
+                }
+            ],
+        }
+
+        self.assertEqual(expected, result.to_dict())
 
     def test_multiple_circuits_counts(self):
         """Test that counts are returned either as a list or a single item.
@@ -142,8 +164,7 @@ class TestResultOperations(QiskitTestCase):
         raw_counts_1 = {"0x0": 5, "0x3": 12, "0x5": 9, "0xD": 6, "0xE": 2}
         processed_counts_1 = {"0000": 5, "0011": 12, "0101": 9, "1101": 6, "1110": 2}
         data_1 = models.ExperimentResultData(counts=raw_counts_1)
-        with self.assertWarns(DeprecationWarning):
-            exp_result_header_1 = QobjExperimentHeader(creg_sizes=[["c0", 4]], memory_slots=4)
+        exp_result_header_1 = {"creg_sizes": [["c0", 4]], "memory_slots": 4}
         exp_result_1 = models.ExperimentResult(
             shots=14, success=True, meas_level=2, data=data_1, header=exp_result_header_1
         )
@@ -151,8 +172,7 @@ class TestResultOperations(QiskitTestCase):
         raw_counts_2 = {"0x1": 0, "0x4": 3, "0x6": 6, "0xA": 1, "0xB": 2}
         processed_counts_2 = {"0001": 0, "0100": 3, "0110": 6, "1010": 1, "1011": 2}
         data_2 = models.ExperimentResultData(counts=raw_counts_2)
-        with self.assertWarns(DeprecationWarning):
-            exp_result_header_2 = QobjExperimentHeader(creg_sizes=[["c0", 4]], memory_slots=4)
+        exp_result_header_2 = {"creg_sizes": [["c0", 4]], "memory_slots": 4}
         exp_result_2 = models.ExperimentResult(
             shots=14, success=True, meas_level=2, data=data_2, header=exp_result_header_2
         )
@@ -160,8 +180,7 @@ class TestResultOperations(QiskitTestCase):
         raw_counts_3 = {"0xC": 27, "0xF": 20}
         processed_counts_3 = {"1100": 27, "1111": 20}
         data_3 = models.ExperimentResultData(counts=raw_counts_3)
-        with self.assertWarns(DeprecationWarning):
-            exp_result_header_3 = QobjExperimentHeader(creg_sizes=[["c0", 4]], memory_slots=4)
+        exp_result_header_3 = {"creg_sizes": [["c0", 4]], "memory_slots": 4}
         exp_result_3 = models.ExperimentResult(
             shots=14, success=True, meas_level=2, data=data_3, header=exp_result_header_3
         )
@@ -180,8 +199,7 @@ class TestResultOperations(QiskitTestCase):
         """Test that counts are marginalized correctly."""
         raw_counts = {"0x0": 4, "0x1": 7, "0x2": 10, "0x6": 5, "0x9": 11, "0xD": 9, "0xE": 8}
         data = models.ExperimentResultData(counts=raw_counts)
-        with self.assertWarns(DeprecationWarning):
-            exp_result_header = QobjExperimentHeader(creg_sizes=[["c0", 4]], memory_slots=4)
+        exp_result_header = {"creg_sizes": [["c0", 4]], "memory_slots": 4}
         exp_result = models.ExperimentResult(
             shots=54, success=True, data=data, header=exp_result_header
         )
@@ -195,8 +213,7 @@ class TestResultOperations(QiskitTestCase):
         """Test that counts are marginalized correctly."""
         raw_counts = {"0x0": 4, "0x1": 7, "0x2": 10, "0x6": 5, "0x9": 11, "0xD": 9, "0xE": 8}
         data = models.ExperimentResultData(counts=raw_counts)
-        with self.assertWarns(DeprecationWarning):
-            exp_result_header = QobjExperimentHeader(creg_sizes=[["c0", 4]], memory_slots=4)
+        exp_result_header = {"creg_sizes": [["c0", 4]], "memory_slots": 4}
         exp_result = models.ExperimentResult(
             shots=54, success=True, data=data, header=exp_result_header
         )
@@ -210,10 +227,7 @@ class TestResultOperations(QiskitTestCase):
         self.assertEqual(marginal_distribution(result.get_counts(), [1, 0]), expected_reverse)
         # test with register spacing, bitstrings are in form of "00 00" for register split
         data = models.ExperimentResultData(counts=raw_counts)
-        with self.assertWarns(DeprecationWarning):
-            exp_result_header = QobjExperimentHeader(
-                creg_sizes=[["c0", 2], ["c1", 2]], memory_slots=4
-            )
+        exp_result_header = {"creg_sizes": [["c0", 2], ["c1", 2]], "memory_slots": 4}
         exp_result = models.ExperimentResult(
             shots=54, success=True, data=data, header=exp_result_header
         )
@@ -227,16 +241,14 @@ class TestResultOperations(QiskitTestCase):
         """Test that a Result object containing counts marginalizes correctly."""
         raw_counts_1 = {"0x0": 4, "0x1": 7, "0x2": 10, "0x6": 5, "0x9": 11, "0xD": 9, "0xE": 8}
         data_1 = models.ExperimentResultData(counts=raw_counts_1)
-        with self.assertWarns(DeprecationWarning):
-            exp_result_header_1 = QobjExperimentHeader(creg_sizes=[["c0", 4]], memory_slots=4)
+        exp_result_header_1 = {"creg_sizes": [["c0", 4]], "memory_slots": 4}
         exp_result_1 = models.ExperimentResult(
             shots=54, success=True, data=data_1, header=exp_result_header_1
         )
 
         raw_counts_2 = {"0x2": 5, "0x3": 8}
         data_2 = models.ExperimentResultData(counts=raw_counts_2)
-        with self.assertWarns(DeprecationWarning):
-            exp_result_header_2 = QobjExperimentHeader(creg_sizes=[["c0", 2]], memory_slots=2)
+        exp_result_header_2 = {"creg_sizes": [["c0", 2]], "memory_slots": 2}
         exp_result_2 = models.ExperimentResult(
             shots=13, success=True, data=data_2, header=exp_result_header_2
         )
@@ -255,20 +267,14 @@ class TestResultOperations(QiskitTestCase):
             "1110": 8,
         }
 
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(
-                marginal_counts(result, [0, 1]).get_counts(0), expected_marginal_counts_1
-            )
-            self.assertEqual(marginal_counts(result, [0]).get_counts(1), expected_marginal_counts_2)
-            self.assertEqual(
-                marginal_counts(result, None).get_counts(0), expected_marginal_counts_none
-            )
+        self.assertEqual(marginal_counts(result, [0, 1]).get_counts(0), expected_marginal_counts_1)
+        self.assertEqual(marginal_counts(result, [0]).get_counts(1), expected_marginal_counts_2)
+        self.assertEqual(marginal_counts(result, None).get_counts(0), expected_marginal_counts_none)
 
     def test_marginal_counts_result_memory(self):
         """Test that a Result object containing memory marginalizes correctly."""
         result = self.generate_qiskit_result()
-        with self.assertWarns(DeprecationWarning):
-            marginal_result = marginal_counts(result, indices=[0])
+        marginal_result = marginal_counts(result, indices=[0])
         marginal_memory = marginal_result.results[0].data.memory
         self.assertEqual(marginal_memory, [hex(ii % 2) for ii in range(8)])
 
@@ -276,8 +282,7 @@ class TestResultOperations(QiskitTestCase):
         """Test that a Result object containing memory marginalizes correctly."""
         result = self.generate_qiskit_result()
         index = 2
-        with self.assertWarns(DeprecationWarning):
-            marginal_result = marginal_counts(result, indices=[index])
+        marginal_result = marginal_counts(result, indices=[index])
         marginal_memory = marginal_result.results[0].data.memory
         mask = 1 << index
         expected = [hex((ii & mask) >> index) for ii in range(8)]
@@ -288,8 +293,7 @@ class TestResultOperations(QiskitTestCase):
         result = self.generate_qiskit_result()
         memory = "should not be touched"
         result.results[0].data.memory = memory
-        with self.assertWarns(DeprecationWarning):
-            marginal_result = marginal_counts(result, indices=None)
+        marginal_result = marginal_counts(result, indices=None)
         marginal_memory = marginal_result.results[0].data.memory
         self.assertEqual(marginal_memory, memory)
 
@@ -320,20 +324,17 @@ class TestResultOperations(QiskitTestCase):
         self.assertTrue(hasattr(marginal_result.results[0].data, "memory"))
 
         result = self.generate_qiskit_result()
-        with self.assertWarns(DeprecationWarning):
-            marginal_result = marginal_counts(
-                result, indices=[0], inplace=False, marginalize_memory=False
-            )
+        marginal_result = marginal_counts(
+            result, indices=[0], inplace=False, marginalize_memory=False
+        )
         self.assertFalse(hasattr(marginal_result.results[0].data, "memory"))
-        with self.assertWarns(DeprecationWarning):
-            marginal_result = marginal_counts(
-                result, indices=[0], inplace=False, marginalize_memory=None
-            )
+        marginal_result = marginal_counts(
+            result, indices=[0], inplace=False, marginalize_memory=None
+        )
         self.assertTrue(hasattr(marginal_result.results[0].data, "memory"))
-        with self.assertWarns(DeprecationWarning):
-            marginal_result = marginal_counts(
-                result, indices=[0], inplace=False, marginalize_memory=True
-            )
+        marginal_result = marginal_counts(
+            result, indices=[0], inplace=False, marginalize_memory=True
+        )
         self.assertTrue(hasattr(marginal_result.results[0].data, "memory"))
 
     def test_marginal_counts_result_inplace(self):
@@ -349,10 +350,7 @@ class TestResultOperations(QiskitTestCase):
         """Test that marginal_counts with Result input properly changes creg_sizes."""
         raw_counts = {"0x0": 4, "0x1": 7, "0x2": 10, "0x6": 5, "0x9": 11, "0xD": 9, "0xE": 8}
         data = models.ExperimentResultData(counts=raw_counts)
-        with self.assertWarns(DeprecationWarning):
-            exp_result_header = QobjExperimentHeader(
-                creg_sizes=[["c0", 1], ["c1", 3]], memory_slots=4
-            )
+        exp_result_header = {"creg_sizes": [["c0", 1], ["c1", 3]], "memory_slots": 4}
         exp_result = models.ExperimentResult(
             shots=54, success=True, data=data, header=exp_result_header
         )
@@ -362,11 +360,12 @@ class TestResultOperations(QiskitTestCase):
         expected_marginal_counts = {"0 0": 14, "0 1": 18, "1 0": 13, "1 1": 9}
         expected_creg_sizes = [["c0", 1], ["c1", 1]]
         expected_memory_slots = 2
-        with self.assertWarns(DeprecationWarning):
-            marginal_counts_result = marginal_counts(result, [0, 2])
-        self.assertEqual(marginal_counts_result.results[0].header.creg_sizes, expected_creg_sizes)
+        marginal_counts_result = marginal_counts(result, [0, 2])
         self.assertEqual(
-            marginal_counts_result.results[0].header.memory_slots, expected_memory_slots
+            marginal_counts_result.results[0].header["creg_sizes"], expected_creg_sizes
+        )
+        self.assertEqual(
+            marginal_counts_result.results[0].header["memory_slots"], expected_memory_slots
         )
         self.assertEqual(marginal_counts_result.get_counts(0), expected_marginal_counts)
 
@@ -374,10 +373,7 @@ class TestResultOperations(QiskitTestCase):
         """Test that marginal_counts with format_marginal true properly formats output."""
         raw_counts_1 = {"0x0": 4, "0x1": 7, "0x2": 10, "0x6": 5, "0x9": 11, "0xD": 9, "0x12": 8}
         data_1 = models.ExperimentResultData(counts=raw_counts_1)
-        with self.assertWarns(DeprecationWarning):
-            exp_result_header_1 = QobjExperimentHeader(
-                creg_sizes=[["c0", 2], ["c1", 3]], memory_slots=5
-            )
+        exp_result_header_1 = {"creg_sizes": [["c0", 2], ["c1", 3]], "memory_slots": 5}
         exp_result_1 = models.ExperimentResult(
             shots=54, success=True, data=data_1, header=exp_result_header_1
         )
@@ -400,16 +396,14 @@ class TestResultOperations(QiskitTestCase):
         """Test marginal_counts(Result, inplace = True)"""
         raw_counts_1 = {"0x0": 4, "0x1": 7, "0x2": 10, "0x6": 5, "0x9": 11, "0xD": 9, "0xE": 8}
         data_1 = models.ExperimentResultData(counts=raw_counts_1)
-        with self.assertWarns(DeprecationWarning):
-            exp_result_header_1 = QobjExperimentHeader(creg_sizes=[["c0", 4]], memory_slots=4)
+        exp_result_header_1 = {"creg_sizes": [["c0", 4]], "memory_slots": 4}
         exp_result_1 = models.ExperimentResult(
             shots=54, success=True, data=data_1, header=exp_result_header_1
         )
 
         raw_counts_2 = {"0x2": 5, "0x3": 8}
         data_2 = models.ExperimentResultData(counts=raw_counts_2)
-        with self.assertWarns(DeprecationWarning):
-            exp_result_header_2 = QobjExperimentHeader(creg_sizes=[["c0", 2]], memory_slots=2)
+        exp_result_header_2 = {"creg_sizes": [["c0", 2]], "memory_slots": 2}
         exp_result_2 = models.ExperimentResult(
             shots=13, success=True, data=data_2, header=exp_result_header_2
         )
@@ -427,16 +421,14 @@ class TestResultOperations(QiskitTestCase):
         """Test marginal_counts(Result, inplace=False)"""
         raw_counts_1 = {"0x0": 4, "0x1": 7, "0x2": 10, "0x6": 5, "0x9": 11, "0xD": 9, "0xE": 8}
         data_1 = models.ExperimentResultData(counts=raw_counts_1)
-        with self.assertWarns(DeprecationWarning):
-            exp_result_header_1 = QobjExperimentHeader(creg_sizes=[["c0", 4]], memory_slots=4)
+        exp_result_header_1 = {"creg_sizes": [["c0", 4]], "memory_slots": 4}
         exp_result_1 = models.ExperimentResult(
             shots=54, success=True, data=data_1, header=exp_result_header_1
         )
 
         raw_counts_2 = {"0x2": 5, "0x3": 8}
         data_2 = models.ExperimentResultData(counts=raw_counts_2)
-        with self.assertWarns(DeprecationWarning):
-            exp_result_header_2 = QobjExperimentHeader(creg_sizes=[["c0", 2]], memory_slots=2)
+        exp_result_header_2 = {"creg_sizes": [["c0", 2]], "memory_slots": 2}
         exp_result_2 = models.ExperimentResult(
             shots=13, success=True, data=data_2, header=exp_result_header_2
         )
@@ -445,10 +437,9 @@ class TestResultOperations(QiskitTestCase):
 
         expected_marginal_counts = {"0": 27, "1": 27}
 
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(
-                marginal_counts(result, [0], inplace=False).get_counts(0), expected_marginal_counts
-            )
+        self.assertEqual(
+            marginal_counts(result, [0], inplace=False).get_counts(0), expected_marginal_counts
+        )
         self.assertNotEqual(result.get_counts(0), expected_marginal_counts)
 
     def test_marginal_counts_with_dict(self):
@@ -501,10 +492,7 @@ class TestResultOperations(QiskitTestCase):
             "0 0 10",
         ]
         data = models.ExperimentResultData(memory=raw_memory)
-        with self.assertWarns(DeprecationWarning):
-            exp_result_header = QobjExperimentHeader(
-                creg_sizes=[["c0", 2], ["c0", 1], ["c1", 1]], memory_slots=4
-            )
+        exp_result_header = {"creg_sizes": [["c0", 2], ["c0", 1], ["c1", 1]], "memory_slots": 4}
         exp_result = models.ExperimentResult(
             shots=14, success=True, meas_level=2, memory=True, data=data, header=exp_result_header
         )
@@ -717,7 +705,6 @@ class TestResultOperationsFailed(QiskitTestCase):
         self.base_result_args = {
             "backend_name": "test_backend",
             "backend_version": "1.0.0",
-            "qobj_id": "id-123",
             "job_id": "job-123",
             "success": True,
         }
@@ -740,10 +727,11 @@ class TestResultOperationsFailed(QiskitTestCase):
         """Test that fails when get_count is called with a nonexistent name."""
         raw_counts = {"0x0": 4, "0x2": 10}
         data = models.ExperimentResultData(counts=raw_counts)
-        with self.assertWarns(DeprecationWarning):
-            exp_result_header = QobjExperimentHeader(
-                creg_sizes=[["c0", 2], ["c0", 1], ["c1", 1]], memory_slots=4, name="a_name"
-            )
+        exp_result_header = {
+            "creg_sizes": [["c0", 2], ["c0", 1], ["c1", 1]],
+            "memory_slots": 4,
+            "name": "a_name",
+        }
         exp_result = models.ExperimentResult(
             shots=14, success=True, meas_level=2, data=data, header=exp_result_header
         )
@@ -774,15 +762,13 @@ class TestResultOperationsFailed(QiskitTestCase):
         """Test that marginal_counts without cregs See qiskit-terra/6430."""
         raw_counts_1 = {"0x0": 4, "0x1": 7, "0x2": 10, "0x6": 5, "0x9": 11, "0xD": 9, "0x12": 8}
         data_1 = models.ExperimentResultData(counts=raw_counts_1)
-        with self.assertWarns(DeprecationWarning):
-            exp_result_header_1 = QobjExperimentHeader(memory_slots=5)
+        exp_result_header_1 = {"memory_slots": 5}
         exp_result_1 = models.ExperimentResult(
             shots=54, success=True, data=data_1, header=exp_result_header_1
         )
 
         result = Result(results=[exp_result_1], **self.base_result_args)
 
-        with self.assertWarns(DeprecationWarning):
-            _ = marginal_counts(result, indices=[0])
-            marginal_counts_result = marginal_counts(result, indices=[0])
+        _ = marginal_counts(result, indices=[0])
+        marginal_counts_result = marginal_counts(result, indices=[0])
         self.assertEqual(marginal_counts_result.get_counts(), {"0": 27, "1": 27})

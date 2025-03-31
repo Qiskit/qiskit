@@ -28,3 +28,4 @@ qiskit-accelerate.workspace = true
 qiskit-circuit.workspace = true
 qiskit-qasm2.workspace = true
 qiskit-qasm3.workspace = true
+qiskit-cext = { workspace = true, features = ["python_binding"] }
