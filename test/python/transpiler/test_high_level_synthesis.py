@@ -58,6 +58,7 @@ from qiskit.circuit.library import LinearFunction, PauliEvolutionGate, HalfAdder
 from qiskit.quantum_info import Clifford, Operator, Statevector, SparsePauliOp
 from qiskit.synthesis.evolution import synth_pauli_network_rustiq
 from qiskit.synthesis.linear import random_invertible_binary_matrix
+from qiskit.synthesis.arithmetic import adder_qft_d00
 from qiskit.compiler import transpile
 from qiskit.exceptions import QiskitError
 from qiskit.converters import dag_to_circuit, circuit_to_dag, circuit_to_instruction
@@ -791,7 +792,9 @@ class TestHighLevelSynthesisQuality(QiskitTestCase):
 
     def test_controlled_qft_adder(self):
         """Test QFT-based synthesis of half-adder gate."""
-        gate = HalfAdderGate(3).control(2, annotated=True)
+        gate = adder_qft_d00(num_state_qubits=3, kind="half", annotated=True).control(
+            num_ctrl_qubits=2, annotated=True
+        )
         qc = QuantumCircuit(gate.num_qubits)
         qc.append(gate, qc.qubits)
         qct = HighLevelSynthesis(basis_gates=["cx", "u"], qubits_initially_zero=False)(qc)
