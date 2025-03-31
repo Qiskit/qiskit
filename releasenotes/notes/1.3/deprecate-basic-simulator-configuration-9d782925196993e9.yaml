@@ -28,5 +28,5 @@ deprecations_providers:
     (*) Note that ``backend.target.operation_names`` includes ``basis_gates`` and additional 
     non-gate instructions, in some implementations it might be necessary to filter the output.
 
-    See `this guide <https://docs.quantum.ibm.com/api/qiskit/providers#migrating-from-backendv1-to-backendv2>`__
+    See `this guide <https://docs.quantum.ibm.com/migration-guides/qiskit-backendv1-to-v2>`__
     for more information on migrating to the ``BackendV2`` model.

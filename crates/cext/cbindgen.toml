@@ -38,3 +38,4 @@ prefix_with_name = true
 "CSparseTerm" = "QkObsTerm"
 "BitTerm" = "QkBitTerm"
 "Complex64" = "QkComplex64"
+"ExitCode" = "QkExitCode"
