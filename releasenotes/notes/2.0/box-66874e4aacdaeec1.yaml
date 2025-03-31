@@ -1,8 +1,8 @@
 ---
 features_circuits:
   - |
-    A new control-flow op, :class:`.BoxOp`, is now available from :mod:`qiskit.circuit` and as the
-    :meth:`.QuantumCircuit.box` method and context manager.
+    A new control-flow op, :class:`.BoxOp`, its associated :meth:`.QuantumCircuit.box` method and context manager
+    are now available from :mod:`qiskit.circuit`.
 
     The normal way to construct a box is to use the :meth:`.QuantumCircuit.box` context manager::
 
