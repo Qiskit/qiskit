@@ -8,8 +8,8 @@ prelude: >
         building and interacting with :class:`.SparseObservable` objects. This first 
         compiled language interface represents an important milestone in the 
         evolution of Qiskit and will grow in scope throughout the v2.x release series.
-        The initial iteration of the C API is an experimental feature, and Qiskit
-        reserves the right to make breaking changes in minor versions following our
+        The initial iteration of the C API is an experimental feature, and there
+        may be breaking API changes in minor versions following our
         `version strategy <https://docs.quantum.ibm.com/open-source/qiskit-sdk-version-strategy>`__.
       
       * The addition of a new :class:`.BoxOp` control-flow op that maps to 
@@ -31,7 +31,7 @@ prelude: >
       * Improved runtime performance, particularly during the circuit construction step,  
         where `benchpress <https://github.com/Qiskit/benchpress>`__ benchmarking shows a 2x speedup over Qiskit v1.3.  
         This improvement is achieved through a combination of contributions, including leveraging additional native Rust 
-        gate representations, such as :class:`UnitaryGate`, and removing legacy data model elements.  
+        gate representations, such as :class:`.UnitaryGate`, and removing legacy data model elements.  
 
     In line with our `semantic versioning policy <https://docs.quantum.ibm.com/open-source/qiskit-sdk-version-strategy>`__, documented at the time of 
     the v1.0.0 release, this major release also includes API changes that 

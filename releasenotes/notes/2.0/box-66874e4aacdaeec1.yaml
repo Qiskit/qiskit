@@ -36,10 +36,9 @@ features_circuits:
     grouping a partial layer of two-qubit gates), and to schedule a compound block together at one
     scope while using relative scheduling within the block (such as dynamical decoupling several
     qubits in a group).  Qiskit's compiler does not yet have built-in passes that will group
-    instructions or schedule instructions with a :class:`.BoxOp`, but we expect this functionality
-    to be researched in downstream packages.
+    instructions or schedule instructions with a :class:`.BoxOp`.
 
-    Support for "box" is still in its infancy.  The transpiler supports routing and layout in the
+    The transpiler supports routing and layout in the
     presence of boxes, and will optimize within the box (up to the ``optimization_level`` setting),
     but does not yet perform optimizations around the atomic structure of boxes.  The text- and
     Matplotlib-based circuit drawers support box.  Exporting to QPY and to OpenQASM 3 is supported,

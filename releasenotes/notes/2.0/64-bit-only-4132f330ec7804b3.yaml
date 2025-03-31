@@ -2,7 +2,7 @@
 upgrade:
   - |
     Qiskit v2.0 has dropped support for Linux i686 and 32-bit Windows. Starting in Qiskit
-    v2.0.0, a 64-bit platform is required to run pre-compiled installations of Qiskit. 
+    v2.0.0, a 64-bit platform is required to run Qiskit. 
     This aligns with the trend in the scientific Python community and allows Qiskit to 
     focus on performance improvements for increasingly complex quantum computing hardware.
     
