@@ -15,7 +15,6 @@
 
 import itertools
 import math
-import warnings
 from collections import OrderedDict, namedtuple
 from typing import Dict, List, Generator, Any
 
@@ -455,21 +454,8 @@ class _DAGDependencyV2:
         target_dag.add_qubits(self.qubits)
         target_dag.add_clbits(self.clbits)
 
-        with warnings.catch_warnings():
-            warnings.filterwarnings(
-                "ignore",
-                category=DeprecationWarning,
-                module="qiskit",
-                message=r".*The property.*qiskit.dagcircuit.dagcircuit.DAGCircuit.duration.*is deprecated.*",
-            )
-            warnings.filterwarnings(
-                "ignore",
-                category=DeprecationWarning,
-                module="qiskit",
-                message=r".*The property.*qiskit.dagcircuit.dagcircuit.DAGCircuit.unit.*is deprecated.*",
-            )
-            target_dag.duration = self.duration
-            target_dag.unit = self.unit
+        target_dag._duration = self.duration
+        target_dag._unit = self.unit
 
         for qreg in self.qregs.values():
             target_dag.add_qreg(qreg)
