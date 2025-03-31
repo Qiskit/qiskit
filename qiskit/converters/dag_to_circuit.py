@@ -74,7 +74,6 @@ def dag_to_circuit(dag, copy_operations=True):
     circuit._calibrations_prop = dag._calibrations_prop
 
     circuit._data = circuit_data
-
-    circuit._duration = dag.duration
-    circuit._unit = dag.unit
+    circuit._duration = dag._duration
+    circuit._unit = dag._unit
     return circuit

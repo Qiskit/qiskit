@@ -208,10 +208,8 @@ pub struct DAGCircuit {
     /// Global phase.
     global_phase: Param,
     /// Duration.
-    #[pyo3(set)]
     duration: Option<PyObject>,
     /// Unit of duration.
-    #[pyo3(set)]
     unit: String,
 
     // Note: these are tracked separately from `qubits` and `clbits`
@@ -415,11 +413,16 @@ impl DAGCircuit {
         })
     }
 
-    /// The total duration of the circuit, set by a scheduling transpiler pass. Its unit is
+    /// Returns the total duration of the circuit, set by a scheduling transpiler pass. Its unit is
     /// specified by :attr:`.unit`
     ///
+<<<<<<< HEAD
     /// DEPRECATED since Qiskit 1.3.0 and will be removed in Qiskit 2.0.0
     #[getter]
+=======
+    /// DEPRECATED since Qiskit 1.3.0 and will be removed in Qiskit 3.0.0
+    #[getter("duration")]
+>>>>>>> d0aa10088 (Do not raise deprecation warnings for internal uses of dag.duration and dag.unit (#14133))
     fn get_duration(&self, py: Python) -> PyResult<Option<Py<PyAny>>> {
         imports::WARNINGS_WARN.get_bound(py).call1((
             intern!(
@@ -429,13 +432,55 @@ impl DAGCircuit {
                     "deprecated as of qiskit 1.3.0. It will be removed in Qiskit 2.0.0.",
                 )
             ),
+<<<<<<< HEAD
             py.get_type_bound::<PyDeprecationWarning>(),
             2,
+=======
+            py.get_type::<PyDeprecationWarning>(),
+            1,
+>>>>>>> d0aa10088 (Do not raise deprecation warnings for internal uses of dag.duration and dag.unit (#14133))
         ))?;
+        self.get_internal_duration(py)
+    }
+
+    /// Returns the total duration of the circuit for internal use (no deprecation warning).
+    ///
+    /// To be removed with get_duration.
+    #[getter("_duration")]
+    fn get_internal_duration(&self, py: Python) -> PyResult<Option<Py<PyAny>>> {
         Ok(self.duration.as_ref().map(|x| x.clone_ref(py)))
     }
 
-    /// The unit that duration is specified in.
+    /// Sets the total duration of the circuit, set by a scheduling transpiler pass. Its unit is
+    /// specified by :attr:`.unit`
+    ///
+    /// DEPRECATED since Qiskit 1.3.0 and will be removed in Qiskit 3.0.0
+    #[setter("duration")]
+    fn set_duration(&mut self, py: Python, duration: Option<PyObject>) -> PyResult<()> {
+        imports::WARNINGS_WARN.get_bound(py).call1((
+            intern!(
+                py,
+                concat!(
+                    "The property ``qiskit.dagcircuit.dagcircuit.DAGCircuit.duration`` is ",
+                    "deprecated as of Qiskit 1.3.0. It will be removed in Qiskit 3.0.0.",
+                )
+            ),
+            py.get_type::<PyDeprecationWarning>(),
+            1,
+        ))?;
+        self.set_internal_duration(duration);
+        Ok(())
+    }
+
+    /// Sets the total duration of the circuit for internal use (no deprecation warning).
+    ///
+    /// To be removed with set_duration.
+    #[setter("_duration")]
+    fn set_internal_duration(&mut self, duration: Option<PyObject>) {
+        self.duration = duration
+    }
+
+    /// Returns the unit that duration is specified in.
     ///
     /// DEPRECATED since Qiskit 1.3.0 and will be removed in Qiskit 2.0.0
     #[getter]
@@ -448,10 +493,51 @@ impl DAGCircuit {
                     "deprecated as of qiskit 1.3.0. It will be removed in Qiskit 2.0.0.",
                 )
             ),
+<<<<<<< HEAD
             py.get_type_bound::<PyDeprecationWarning>(),
             2,
+=======
+            py.get_type::<PyDeprecationWarning>(),
+            1,
+>>>>>>> d0aa10088 (Do not raise deprecation warnings for internal uses of dag.duration and dag.unit (#14133))
         ))?;
+        self.get_internal_unit()
+    }
+
+    /// Returns the unit that duration is specified in for internal use (no deprecation warning).
+    ///
+    /// To be removed with get_unit.
+    #[getter("_unit")]
+    fn get_internal_unit(&self) -> PyResult<String> {
         Ok(self.unit.clone())
+    }
+
+    /// Sets the unit that duration is specified in.
+    ///
+    /// DEPRECATED since Qiskit 1.3.0 and will be removed in Qiskit 3.0.0
+    #[setter("unit")]
+    fn set_unit(&mut self, py: Python, unit: String) -> PyResult<()> {
+        imports::WARNINGS_WARN.get_bound(py).call1((
+            intern!(
+                py,
+                concat!(
+                    "The property ``qiskit.dagcircuit.dagcircuit.DAGCircuit.unit`` is ",
+                    "deprecated as of Qiskit 1.3.0. It will be removed in Qiskit 3.0.0.",
+                )
+            ),
+            py.get_type::<PyDeprecationWarning>(),
+            1,
+        ))?;
+        self.set_internal_unit(unit);
+        Ok(())
+    }
+
+    /// Sets the unit that duration is specified in for internal use (no deprecation warning).
+    ///
+    /// To be removed with set_unit.
+    #[setter("_unit")]
+    fn set_internal_unit(&mut self, unit: String) {
+        self.unit = unit
     }
 
     #[getter]

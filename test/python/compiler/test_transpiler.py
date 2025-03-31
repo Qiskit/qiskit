@@ -1537,7 +1537,51 @@ class TestTranspile(QiskitTestCase):
                 seed_transpiler=42,
             )
 
+<<<<<<< HEAD
         self.assertEqual(out.duration, 1200)
+=======
+        with self.assertRaises(DeprecationWarning):
+            self.assertEqual(out.unit, "dt")
+            self.assertEqual(out.duration, 1200)
+
+    @data(0, 1, 2, 3)
+    def test_circuit_with_delay_expr_duration(self, optimization_level):
+        """Verify a circuit with delay with a duration of type types.Duration
+        can transpile to a scheduled circuit."""
+
+        # This resolves to 500dt
+        delay_expr = expr.add(
+            expr.mul(expr.mul(Duration.dt(400), 2.0), expr.div(Duration.dt(200), Duration.dt(400))),
+            Duration.dt(100),
+        )
+
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.delay(delay_expr, 1)
+        qc.cx(0, 1)
+
+        target = Target(num_qubits=2, dt=1e-9)
+        target.add_instruction(
+            HGate(), {(i,): InstructionProperties(duration=200 * 1e-9) for i in range(2)}
+        )
+        target.add_instruction(
+            CXGate(),
+            {(0, 1): InstructionProperties(duration=700 * 1e-9)},
+        )
+        target.add_instruction(Delay(Parameter("t")), {(i,): None for i in range(2)})
+
+        out = transpile(
+            qc,
+            scheduling_method="alap",
+            target=target,
+            optimization_level=optimization_level,
+            seed_transpiler=42,
+        )
+
+        with self.assertRaises(DeprecationWarning):
+            self.assertEqual(out.unit, "dt")
+            self.assertEqual(out.duration, 1200)
+>>>>>>> d0aa10088 (Do not raise deprecation warnings for internal uses of dag.duration and dag.unit (#14133))
 
     def test_delay_converts_to_dt(self):
         """Test that a delay instruction is converted to units of dt given a backend."""
@@ -1645,6 +1689,7 @@ class TestTranspile(QiskitTestCase):
             )
         self.assertEqual(scheduled.duration, 1500)
 
+<<<<<<< HEAD
         with self.assertWarnsRegex(
             DeprecationWarning,
             expected_regex="The `target` parameter should be used instead",
@@ -1657,6 +1702,16 @@ class TestTranspile(QiskitTestCase):
                 layout_method="trivial",
             )
         self.assertEqual(scheduled.duration, 1500)
+=======
+        scheduled = transpile(
+            qc,
+            backend=backend,
+            scheduling_method="alap",
+            layout_method="trivial",
+        )
+        with self.assertRaises(DeprecationWarning):
+            self.assertEqual(scheduled.duration, 9010)
+>>>>>>> d0aa10088 (Do not raise deprecation warnings for internal uses of dag.duration and dag.unit (#14133))
 
     def test_scheduling_instruction_constraints(self):
         """Test that scheduling-related loose transpile constraints work with target."""
@@ -1685,7 +1740,8 @@ class TestTranspile(QiskitTestCase):
             scheduling_method="alap",
             layout_method="trivial",
         )
-        self.assertEqual(scheduled.duration, 9010)
+        with self.assertRaises(DeprecationWarning):
+            self.assertEqual(scheduled.duration, 9010)
 
     def test_scheduling_dt_constraints(self):
         """Test that scheduling-related loose transpile constraints
@@ -1697,6 +1753,7 @@ class TestTranspile(QiskitTestCase):
         qc = QuantumCircuit(1, 1)
         qc.x(0)
         qc.measure(0, 0)
+<<<<<<< HEAD
         original_dt = 2.2222222222222221e-10
         original_duration = 3504
 
@@ -1709,10 +1766,16 @@ class TestTranspile(QiskitTestCase):
                 qc, backend=backend_v1, scheduling_method="asap", dt=original_dt / 2
             )
         self.assertEqual(scheduled.duration, original_duration * 2)
+=======
+        scheduled = transpile(qc, backend=backend_v2, scheduling_method="asap")
+        with self.assertRaises(DeprecationWarning):
+            original_duration = scheduled.duration
+>>>>>>> d0aa10088 (Do not raise deprecation warnings for internal uses of dag.duration and dag.unit (#14133))
 
         # halve dt in sec = double duration in dt
         scheduled = transpile(qc, backend=backend_v2, scheduling_method="asap", dt=original_dt / 2)
-        self.assertEqual(scheduled.duration, original_duration * 2)
+        with self.assertRaises(DeprecationWarning):
+            self.assertEqual(scheduled.duration, original_duration * 2)
 
     def test_backend_props_constraints(self):
         """Test that loose transpile constraints work with both BackendV1 and BackendV2."""

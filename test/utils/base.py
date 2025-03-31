@@ -127,6 +127,7 @@ class QiskitTestCase(BaseTestCase):
             module=r"seaborn(\..*)?",
         )
 
+<<<<<<< HEAD
         # Safe to remove once https://github.com/Qiskit/qiskit-aer/pull/2179 is in a release version
         # of Aer.
         warnings.filterwarnings(
@@ -231,6 +232,8 @@ class QiskitTestCase(BaseTestCase):
         for msg in allow_DeprecationWarning_message:
             warnings.filterwarnings("default", category=DeprecationWarning, message=msg)
 
+=======
+>>>>>>> d0aa10088 (Do not raise deprecation warnings for internal uses of dag.duration and dag.unit (#14133))
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.__setup_called = False
