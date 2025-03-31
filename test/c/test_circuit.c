@@ -70,7 +70,7 @@ int test_gate_num_qubits() {
     return Ok;
 }
 
-bool value_in_array(uint8_t val, uint8_t * arr, size_t n) {
+bool value_in_array(uint8_t val, uint8_t *arr, size_t n) {
     for (size_t i = 0; i < n; i++) {
         if (arr[i] == val)
             return true;
