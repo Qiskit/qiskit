@@ -108,7 +108,6 @@ C_LIB_DEBUG_CARGO_PATH=$(C_CARGO_DEBUG_TARGET_DIR)/$(C_LIB_CARGO_FILENAME)
 C_QISKIT_H=$(C_DIR_INCLUDE)/qiskit.h
 C_LIBQISKIT=$(C_DIR_LIB)/$(subst _cext,,$(C_LIB_CARGO_FILENAME))
 
-
 # Run clang-format (does not apply any changes)
 cformat:
 	bash tools/run_clang_format.sh
@@ -129,13 +128,18 @@ $(C_QISKIT_H):
 $(C_DIR_LIB):
 	mkdir -p $(C_DIR_LIB)
 
-$(C_LIBQISKIT): $(C_DIR_LIB) $(C_LIB_RELEASE_CARGO_PATH)
-	cp $(C_LIB_RELEASE_CARGO_PATH) $(C_DIR_LIB)/$(subst _cext,,$(C_LIB_CARGO_FILENAME))
+$(C_DIR_INCLUDE):
+	mkdir -p $(C_DIR_INCLUDE)
 
-.PHONY: cheader clib c
+$(C_LIBQISKIT): $(C_DIR_LIB)  $(C_LIB_CARGO_PATH)
+	cp $(C_LIB_CARGO_PATH) $(C_DIR_LIB)/$(subst _cext,,$(C_LIB_CARGO_FILENAME))
+
+$(C_QISKIT_H): $(C_DIR_INCLUDE) $(C_LIB_CARGO_PATH)
+	cp target/qiskit.h $(C_DIR_INCLUDE)/qiskit.h
+
+.PHONY: c cheader
 cheader: $(C_QISKIT_H)
-clib: $(C_LIBQISKIT)
-c: clib cheader
+c: $(C_LIBQISKIT) $(C_QISKIT_H)
 
 # Use ctest to run C API tests
 ctest: $(C_LIB_DEBUG_CARGO_PATH) $(C_QISKIT_H)
@@ -144,7 +148,11 @@ ctest: $(C_LIB_DEBUG_CARGO_PATH) $(C_QISKIT_H)
 	cmake -S. -B$(C_DIR_TEST_BUILD)
 	cmake --build $(C_DIR_TEST_BUILD)
 	# -V ensures we always produce a logging output to indicate the subtests
-	ctest -V --test-dir $(C_DIR_TEST_BUILD)
+	# -C Debug is needed for windows to work, if you don't specify Debug (or
+	#  release) explicitly ctest doesn't run on windows
+	ctest -V -C Debug --test-dir $(C_DIR_TEST_BUILD)
 
 cclean:
 	rm -rf $(C_DIR_OUT) $(C_DIR_TEST_BUILD)
+	rm -f target/qiskit.h
+	cargo clean

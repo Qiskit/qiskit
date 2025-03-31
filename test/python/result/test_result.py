@@ -121,6 +121,38 @@ class TestResultOperations(QiskitTestCase):
         )
         self.assertEqual(expected, repr(result))
 
+    def test_result_to_dict(self):
+        """Test that dictionary is constructed correctly for a results object."""
+        raw_counts = {"0x0": 4, "0x2": 10}
+        data = models.ExperimentResultData(counts=raw_counts)
+        exp_result_header = {"creg_sizes": [["c0", 2], ["c0", 1], ["c1", 1]], "memory_slots": 4}
+        exp_result = models.ExperimentResult(
+            shots=14, success=True, meas_level=2, data=data, header=exp_result_header
+        )
+        header = {"header-property": 1}
+        result = Result(results=[exp_result], header=header, **self.base_result_args)
+
+        expected = {
+            "backend_name": "test_backend",
+            "backend_version": "1.0.0",
+            "header": {"header-property": 1},
+            "date": None,
+            "job_id": "job-123",
+            "status": None,
+            "success": True,
+            "results": [
+                {
+                    "shots": 14,
+                    "success": True,
+                    "data": {"counts": {"0x0": 4, "0x2": 10}},
+                    "meas_level": 2,
+                    "header": {"creg_sizes": [["c0", 2], ["c0", 1], ["c1", 1]], "memory_slots": 4},
+                }
+            ],
+        }
+
+        self.assertEqual(expected, result.to_dict())
+
     def test_multiple_circuits_counts(self):
         """Test that counts are returned either as a list or a single item.
 
