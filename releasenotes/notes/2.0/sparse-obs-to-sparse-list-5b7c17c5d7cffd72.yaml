@@ -9,7 +9,7 @@ features_quantum_info:
       obs = SparseObservable.from_list([("+II", 1), ("-II", 1)])
       print(obs.to_sparse_list())  # [("+", [2], 1), ("-", [2], 1)]
 
-  - | 
+  - |
     Added a new :meth:`.SparseObservable.as_paulis` method to express a sparse observable in terms of Paulis
     only, by expanding all projectors. For example::
 
@@ -20,6 +20,6 @@ features_quantum_info:
 
   - |
     Qiskit v2.0.0 supports constructing a :class:`.SparsePauliOp` from a :class:`.SparseObservable`
-    by using the new method :class:`.SparsePauliOp.from_sparse_observable`. It is important
+    by using the new method :meth:`.SparsePauliOp.from_sparse_observable`. It is important
     to remember that :class:`.SparseObservable` objects can efficiently represent projectors,
     which require an exponential number of terms in the :class:`.SparsePauliOp`.

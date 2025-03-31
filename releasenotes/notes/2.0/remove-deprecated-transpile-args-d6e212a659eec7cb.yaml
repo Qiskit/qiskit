@@ -4,20 +4,20 @@ upgrade_transpiler:
     The following :func:`.transpile` and :func:`.generate_preset_pass_manager` input arguments,
     deprecated since Qiskit 1.3 , have been removed from the API:
 
-      * `instruction_durations`
+      * ``instruction_durations``
 
-      * `timing_constraints`
-    
+      * ``timing_constraints``
+
     In addition to this, the specification of custom basis gates through the ``basis`` gate argument of
     :func:`.transpile` and :func:`.generate_preset_pass_manager`, also deprecated in Qiskit 1.3, is
     no longer allowed, and a ``ValueError`` will be raised in these cases.
 
-    The information formerly provided through these can still be specified via the ``backend`` or 
+    The information formerly provided through these can still be specified via the ``backend`` or
     ``target`` arguments. You can build a `Target` instance with defined instruction durations doing::
 
       Target.from_configuration(..., instruction_durations=...)
 
-    
+
     For specific timing constraints::
 
       Target.from_configuration(..., timing_constraints=...)
@@ -27,7 +27,7 @@ upgrade_transpiler:
 
         from qiskit.circuit.library import XGate
         from qiskit.transpiler.target import Target
-        
+
         basis_gates = ["my_x", "cx"]
         custom_name_mapping = {"my_x": XGate()}
         target = Target.from_configuration(
@@ -36,15 +36,15 @@ upgrade_transpiler:
 
   - |
     The :func:`.transpile` and :func:`.generate_preset_pass_manager` interfaces now
-    raise a ``UserWarning`` when providing a ``coupling_map`` and/or ``basis_gates`` 
-    along with a ``backend``. In these cases there are multiple sources of truth, 
-    the user intentions are not always clear, and there can be conflicts that  
-    :func:`.generate_preset_pass_manager` may not know how to resolve. 
+    raise a ``UserWarning`` when providing a ``coupling_map`` and/or ``basis_gates``
+    along with a ``backend``. In these cases there are multiple sources of truth,
+    the user intentions are not always clear, and there can be conflicts that
+    :func:`.generate_preset_pass_manager` may not know how to resolve.
     The suggested alternative is to define a custom target that combines the chosen
     constraints.
 
     One of these situations is the specification of a gate with 3 or more qubits in
     ``backend`` or ``basis_gates`` together with a custom ``coupling_map``. The coupling map
-    does not provide the necessary connectivity details to be able to determine the 
-    action of the gate. In these cases, :func:`.transpile` and 
+    does not provide the necessary connectivity details to be able to determine the
+    action of the gate. In these cases, :func:`.transpile` and
     :func:`.generate_preset_pass_manager` now raise a ``ValueError``.

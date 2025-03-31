@@ -1,12 +1,12 @@
 ---
 upgrade_providers:
   - |
-    The ``configuration`` method of :class:`.BasicSimulator` has been removed following its deprecation  
-    in Qiskit v1.3. This method returned a ``BackendConfiguration`` instance,  
+    The ``configuration`` method of :class:`.BasicSimulator` has been removed following its deprecation
+    in Qiskit v1.3. This method returned a ``BackendConfiguration`` instance,
     a class that was part of the discontinued ``BackendV1`` workflow and is also removed in Qiskit v2.0.0.
-    The individual configuration elements can now be retrieved directly from the backend or from the contained  
-    :class:`.Target` instance (``backend.target``).  
-
-    The ``run_experiment`` method of :class:`.BasicSimulator` has also been removed.  
-    This method took an instance of the ``QasmQobjExperiment`` class as an input argument,  
-    a class that has been deprecated since Qiskit v1.2 and was removed with the ``Qobj`` workflow in Qiskit v2.0.0.  
+    The individual configuration elements can now be retrieved directly from the backend or from the contained
+    :class:`.Target` instance (``backend.target``).
+  - |
+    The ``run_experiment`` method of :class:`.BasicSimulator` has been removed.
+    This method took an instance of the ``QasmQobjExperiment`` class as an input argument,
+    a class that has been deprecated since Qiskit v1.2 and was removed with the ``Qobj`` workflow in Qiskit v2.0.0.

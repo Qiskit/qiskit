@@ -31,6 +31,14 @@ Circuits as Directed Acyclic Graphs
    DAGDepNode
    DAGDependency
 
+Block Collection
+================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   BlockCollector
+
 Exceptions
 ==========
 
@@ -42,3 +50,4 @@ from .dagnode import DAGNode, DAGOpNode, DAGInNode, DAGOutNode
 from .dagdepnode import DAGDepNode
 from .exceptions import DAGCircuitError, DAGDependencyError
 from .dagdependency import DAGDependency
+from .collect_blocks import BlockCollector

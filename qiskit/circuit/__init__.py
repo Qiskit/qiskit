@@ -560,6 +560,8 @@ Hardware can be instructed to apply a real-time idle period on a given qubit.  A
 
 .. autoclass:: Delay
     :show-inheritance:
+.. autoclass:: Duration
+
 
 The :class:`Barrier` instruction can span an arbitrary number of qubits and clbits, and is a no-op
 in hardware.  During transpilation and optimization, however, it blocks any optimizations from

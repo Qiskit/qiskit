@@ -12,15 +12,15 @@ features_transpiler:
     to units of ``dt``.
 upgrade_circuits:
   - |
-    The deprecated attributes for :class:`~qiskit.circuit.Instruction` and :class:`.Gate`: 
-    ``duration`` and ``unit`` have been removed, so you can no longer 
+    The deprecated attributes for :class:`~qiskit.circuit.Instruction` and :class:`.Gate`:
+    ``duration`` and ``unit`` have been removed, so you can no longer
     set the ``unit`` or ``duration`` arguments for any :class:`qiskit.circuit.Instruction`
-    or subclass. These attributes were deprecated in Qiskit v1.3.0 and 
+    or subclass. These attributes were deprecated in Qiskit v1.3.0 and
     were used to attach a custom execution
     duration and unit for that duration to an individual instruction. However,
     the source of truth of the duration of a gate is the :class:`.BackendV2`
     :class:`.Target`, which contains the duration for each instruction supported
-    on the backend. The duration of an instruction is not 
+    on the backend. The duration of an instruction is not
     typically user adjustable and is an immutable property of the backend. If
     you previously used this capability to experiment with different
     gate durations, you can mutate the
@@ -31,7 +31,7 @@ upgrade_circuits:
     The deprecated attribute for :class:`qiskit.circuit.Instruction` and :class:`.Gate`: ``condition`` has been
     removed.
     This functionality has been superseded by the :class:`.IfElseOp` class,
-    which can be used to describe a classical condition in a circuit.  
+    which can be used to describe a classical condition in a circuit.
     This attribute was deprecated in the v1.3.0 release.
   - |
     The deprecated methods for :class:`~qiskit.circuit.Instruction` and :class:`.Gate`: ``c_if`` and ``condition_bits``
@@ -84,16 +84,11 @@ upgrade_transpiler:
     these passes determined these values from the now removed ``duration`` attribute of
     :class:`~qiskit.circuit.Instruction` objects.
   - |
-    The previously deprecated argument ``propagate_condition`` on the :class:`.DAGCircuit` methods
-    :meth:`~.DAGCircuit.substitute_node_with_dag` and :meth:`~.DAGCircuit.substitute_node` has been
-    removed. This argument was deprecated in Qiskit v1.4.0 and was removed because it no longer served a purpose
-    after  ``Instruction.condition``  was removed.
-  - |
     The previously deprecated ``AlignMeasures`` transpiler pass has been removed. This pass was deprecated in Qiskit v1.1.0. Instead, the
     :class:`.ConstrainedReschedule` pass should be used. :class:`.ConstrainedReschedule` performs the
     same function and also supports aligning to additional timing constraints.
   - |
-    When scheduling by using :func:`.generate_preset_pass_manager` or :func:`.transpile`, if the 
+    When scheduling by using :func:`.generate_preset_pass_manager` or :func:`.transpile`, if the
     ``instruction_durations`` argument is specified, the durations are formatted as a ``list``, and they are
     in units of ``dt``. You must also set the ``dt`` input argument of the transpilation function.
 upgrade_providers:
