@@ -43,7 +43,9 @@ jobs:
           echo "QISKIT_DOCS_GITHUB_BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
 
       - name: Build documentation
-        run: tox run -e docs
+        run: |
+          mkdir -p dist/c/include
+          tox run -e docs
       - name: Store built documentation artifact
         uses: actions/upload-artifact@v4
         with:
