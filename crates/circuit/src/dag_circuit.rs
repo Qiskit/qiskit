@@ -521,7 +521,7 @@ impl DAGCircuit {
             py.get_type::<PyDeprecationWarning>(),
             1,
         ))?;
-        Ok(self.duration.as_ref().map(|x| x.clone_ref(py)))
+        self.get_internal_duration(py)
     }
 
     /// Returns the total duration of the circuit for internal use (no deprecation warning).
@@ -549,7 +549,7 @@ impl DAGCircuit {
             py.get_type::<PyDeprecationWarning>(),
             1,
         ))?;
-        self.duration = duration;
+        self.set_internal_duration(duration);
         Ok(())
     }
 
@@ -577,7 +577,7 @@ impl DAGCircuit {
             py.get_type::<PyDeprecationWarning>(),
             1,
         ))?;
-        Ok(self.unit.clone())
+        self.get_internal_unit()
     }
 
     /// Returns the unit that duration is specified in for internal use (no deprecation warning).
@@ -604,7 +604,7 @@ impl DAGCircuit {
             py.get_type::<PyDeprecationWarning>(),
             1,
         ))?;
-        self.unit = unit;
+        self.set_internal_unit(unit);
         Ok(())
     }
 
