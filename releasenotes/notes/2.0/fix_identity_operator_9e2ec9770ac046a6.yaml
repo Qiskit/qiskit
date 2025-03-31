@@ -1,5 +1,6 @@
 ---
 fixes:
   - |
-    Fixed a bug that caused :meth:`.Statevector.expectation_value` to yield incorrect results
-    for the identity operator when the statevector was not normalized.
+    Fixed a bug that caused :meth:`.Statevector.expectation_value` to yield incorrect
+    results for the identity operator when the statevector was not normalized.
+    Fixed `#13029 <https://github.com/Qiskit/qiskit/issues/13029>`__

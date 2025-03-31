@@ -1,7 +1,7 @@
 ---
 upgrade_circuits:
   - |
-    The :class:`.QuantumCircuit` methods:
+    The following :class:`.QuantumCircuit` methods:
 
     * ``cast``
     * ``cbit_argument_conversion``

@@ -273,11 +273,11 @@ circuit.  The top-level ones are:
 * :class:`ControlFlowOp`, which has specific subclasses:
     * :class:`BreakLoopOp`, to break out of the nearest containing loop
     * :class:`ContinueLoopOp`, to move immediately to the next iteration of the containing loop
-    * :class:`BoxOp`, a simple grouping of instructions
     * :class:`ForLoopOp`, to loop over a fixed range of values
     * :class:`IfElseOp`, to conditionally enter one of two subcircuits
     * :class:`SwitchCaseOp`, to conditionally enter one of many subcircuits
-    * :class:`WhileLoopOp`, to repeat a subcircuit until a condition is falsified.
+    * :class:`WhileLoopOp`, to repeat a subcircuit until a condition is falsified
+    * :class:`BoxOp`, to group a series of instructions for later processing
 
 Certain instructions can be "annotated" with metadata, which is typically intended to be consumed by
 a compiler pass either locally, or in later backend processing.  Currently this is limited to
@@ -571,6 +571,8 @@ Hardware can be instructed to apply a real-time idle period on a given qubit.  A
 
 .. autoclass:: Delay
     :show-inheritance:
+.. autoclass:: Duration
+
 
 Delay durations can be specified either with concrete, constant times, or with delayed-resolution
 "duration expressions" built out of :class:`.expr.Stretch` objects.  See :ref:`circuit-stretches`
@@ -724,7 +726,7 @@ classes associated to each name.
 .. autofunction:: get_control_flow_name_mapping
 
 These control-flow operations (:class:`IfElseOp`, :class:`WhileLoopOp`,
-:class:`SwitchCaseOp`, :class:`ForLoopOp` and :class:`.BoxOp`) all have specific state that defines
+:class:`SwitchCaseOp`, :class:`ForLoopOp`, and :class:`BoxOp`) all have specific state that defines
 the branching conditions and strategies, but contain all the different subcircuit blocks that might
 be entered in their :attr:`~ControlFlowOp.blocks` property.
 

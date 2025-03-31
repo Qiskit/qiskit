@@ -1,7 +1,7 @@
 ---
 upgrade_misc:
   - |
-    The ``deprecate_function`` and ``deprecate_arguments`` decorators had been deprecated since 0.24, released
-    on May 2023, and have been removed in 2.0.
-    Current :func:`deprecate_func`` replaces ``@deprecate_function`` and current
+    The ``deprecate_function`` and ``deprecate_arguments`` decorators, deprecated since Qiskit v0.24 (May 2023),
+    have been removed in Qiskit v2.0.0.
+    The current :func:`.deprecate_func` replaces ``@deprecate_function`` and the current
     :func:`deprecate_arg` replaces ``@deprecate_arguments``.

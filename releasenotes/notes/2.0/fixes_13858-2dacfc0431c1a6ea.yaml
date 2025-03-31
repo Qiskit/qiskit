@@ -1,10 +1,20 @@
 ---
 upgrade_synthesis:
   - |
-    The ``atomic_evolution`` argument to :class:`.ProductFormula` (and its
-    subclasses :class:`.QDrift`, :class:`.LieTrotter` and :class:`SuzukiTrotter` ) 
-    has a new function signature. Rather than taking some Pauli
-    operator and time coefficient and returning the evolution circuit, the new
-    function takes in an existing circuit and should append the evolution of the
-    provided Pauli and given time to this circuit. This new implementation
-    benefits from significantly better performance.
+    The ``atomic_evolution`` callable argument of :class:`.ProductFormula` (and its
+    subclasses :class:`.QDrift`, :class:`.LieTrotter`, and :class:`.SuzukiTrotter` ) 
+    has a new function signature. The old signature would take some Pauli
+    operator and time coefficient and return the evolution circuit::
+
+      def atomic_evolution(pauli_op: SparsePauliOp, time: float) -> QuantumCircuit:
+        evol_circuit = QuantumCircuit(pauli_op.num_qubits)
+        # append operators to circuit
+        return evol_circuit
+
+    The new signature directly takes in an existing circuit and should append the evolution of the
+    provided Pauli and given time to this circuit::
+
+      def atomic_evolution(evol_circuit: QuantumCircuit, pauli_op: SparsePauliOp, time: float):
+        # append operators to circuit, in-place modification
+    
+    This new implementation benefits from significantly better performance.

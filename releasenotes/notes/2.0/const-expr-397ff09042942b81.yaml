@@ -1,8 +1,8 @@
 ---
 features_circuits:
   - |
-    The classical realtime-expressions module :mod:`qiskit.circuit.classical` can now represent
-    constant expressions. The :class:`~.expr.Expr` class now has a bool
+    The classical realtime-expressions module :mod:`qiskit.circuit.classical` 
+    can now represent constant expressions. The :class:`~.expr.Expr` class now has a boolean
     :attr:`~.expr.Expr.const` attribute which indicates the expression's const-ness. This allows
     us to enforce that expressions in certain contexts must be possible to evaluate at compile time.
 

@@ -1,8 +1,8 @@
 ---
 upgrade_transpiler:
   - |
-    Plugins for the :ref:`translation stage of the preset compiler <transpiler-preset-stage-translation>`
-    are now required to respect gate directionality in the :class:`.Target` in their output.
+    Plugins for the :ref:`translation stage of the preset pass managers <transpiler-preset-stage-translation>`
+    are now required to respect :class:`.Target` gate directionality in their output.
     Previously, :func:`.transpile` and :func:`.generate_preset_pass_manager` would generate a
     :class:`.PassManager` that contained fix-up passes if needed.  You must now include these in
     your own custom stage, if your stage does not guarantee that it respects directionality.
@@ -26,7 +26,7 @@ upgrade_transpiler:
               ))
               return pm
   - |
-    The :ref:`preset pass managers <transpiler-preset>` no longer populate the implicit ``pre_optimization``
+    The :ref:`preset pass managers <transpiler-preset>` no longer populates the implicit ``pre_optimization``
     stage of their output :class:`.StagedPassManager`.  You can now safely assign your own
     :class:`.PassManager` to this field.  You could previously only append to the existing
     :class:`.PassManager`.
