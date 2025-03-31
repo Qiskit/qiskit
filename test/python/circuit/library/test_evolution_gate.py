@@ -27,7 +27,7 @@ from qiskit.synthesis.evolution.product_formula import reorder_paulis
 from qiskit.converters import circuit_to_dag
 from qiskit.quantum_info import Operator, SparsePauliOp, Pauli, Statevector, SparseObservable
 from qiskit.transpiler.passes import HLSConfig, HighLevelSynthesis
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase, combine  # pylint: disable=wrong-import-order
 
 X = SparsePauliOp("X")
 Y = SparsePauliOp("Y")
@@ -316,11 +316,10 @@ class TestEvolutionGate(QiskitTestCase):
 
         self.assertEqual(ops, expected_ops)
 
-    @data("chain", "fountain")
-    def test_cnot_chain_options(self, option):
+    @combine(option=["chain", "fountain"], use_sparse_observable=[True, False])
+    def test_cnot_chain_options(self, option, use_sparse_observable):
         """Test selecting different kinds of CNOT chains."""
-
-        op = Z ^ Z ^ Z
+        op = SparseObservable("ZZZ") if use_sparse_observable else SparsePauliOp(["ZZZ"])
         synthesis = LieTrotter(reps=1, cx_structure=option)
         evo = PauliEvolutionGate(op, synthesis=synthesis)
 
@@ -595,7 +594,7 @@ class TestEvolutionGate(QiskitTestCase):
             -1 +1 +1 -1 -1 +1  // eigenvalue
              1  0  0  1  1  0  // ctrl state
             -----------------
-            --> P(-1).ctrl_state(00110) applied on qubits [0, 1, 2, 3, 4, 5]
+            --> [X P(-1) X].ctrl_state(11001) applied on qubits [5, 4, 3, 2, 1, 0]
 
         """
         op = SparseObservable("-+rl10")
@@ -605,7 +604,9 @@ class TestEvolutionGate(QiskitTestCase):
         reference.sx([2, 3])
         reference.h([4, 5])
 
-        reference.append(PhaseGate(-1.0).control(5, ctrl_state="00110"), reference.qubits)
+        reference.x(0)
+        reference.append(PhaseGate(-1.0).control(5, ctrl_state="11001"), reference.qubits[::-1])
+        reference.x(0)
 
         reference.sxdg([2, 3])
         reference.h([4, 5])
