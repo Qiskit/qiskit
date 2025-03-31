@@ -539,6 +539,7 @@ from qiskit.synthesis.arithmetic import (
 from qiskit.quantum_info.operators import Clifford
 from qiskit.transpiler.passes.routing.algorithms import ApproximateTokenSwapper
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.circuit._add_control import EFFICIENTLY_CONTROLLED_GATES
 
 from qiskit._accelerate.high_level_synthesis import synthesize_operation, HighLevelSynthesisData
 from .plugin import HighLevelSynthesisPlugin
@@ -1818,32 +1819,15 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
         #
         # An important optimization (similar to the code in ``add_control.py``) is to synthesize
         # the base operation with respect to a larger set of "basis" gates, to which the control
-        # logic can be added more efficiently. In particular, we add annotated operations to be
-        # in this larger set, exploting the fact that adding control to annotated operations
+        # logic can be added more efficiently. In addition, we add annotated operations to be
+        # in this larger set, exploiting the fact that adding control to annotated operations
         # returns a new annotated operation with an extended list of modifiers.
         #
         # Note that it is fine for this function to return a circuit with high-level objects
         # (including annotated operations) as the HighLevelSynthesis transpiler pass will
         # recursively re-synthesize this circuit, However, we should always guarantee that some
         # progress is made.
-        basis = {
-            "p",
-            "u",
-            "x",
-            "z",
-            "y",
-            "h",
-            "sx",
-            "sxdg",
-            "rx",
-            "ry",
-            "rz",
-            "cx",
-            "cz",
-            "annotated",
-            "mcx",
-            "qft",
-        }
+        basis = set(EFFICIENTLY_CONTROLLED_GATES + ["annotated", "mcx", "qft"])
 
         base_synthesis_data = HighLevelSynthesisData(
             hls_config=data.hls_config,
