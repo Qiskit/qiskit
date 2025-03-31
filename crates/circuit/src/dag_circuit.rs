@@ -519,7 +519,7 @@ impl DAGCircuit {
                 )
             ),
             py.get_type::<PyDeprecationWarning>(),
-            2,
+            1,
         ))?;
         Ok(self.duration.as_ref().map(|x| x.clone_ref(py)))
     }
@@ -547,7 +547,7 @@ impl DAGCircuit {
                 )
             ),
             py.get_type::<PyDeprecationWarning>(),
-            2,
+            1,
         ))?;
         self.duration = duration;
         Ok(())
@@ -575,7 +575,7 @@ impl DAGCircuit {
                 )
             ),
             py.get_type::<PyDeprecationWarning>(),
-            2,
+            1,
         ))?;
         Ok(self.unit.clone())
     }
@@ -602,7 +602,7 @@ impl DAGCircuit {
                 )
             ),
             py.get_type::<PyDeprecationWarning>(),
-            2,
+            1,
         ))?;
         self.unit = unit;
         Ok(())
