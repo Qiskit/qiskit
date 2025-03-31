@@ -454,8 +454,8 @@ class _DAGDependencyV2:
         target_dag.add_qubits(self.qubits)
         target_dag.add_clbits(self.clbits)
 
-        target_dag._duration = self.duration
-        target_dag._unit = self.unit
+        target_dag.duration = self.duration
+        target_dag.unit = self.unit
 
         for qreg in self.qregs.values():
             target_dag.add_qreg(qreg)
