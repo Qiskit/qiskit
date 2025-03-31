@@ -21,7 +21,7 @@
 /**
  * Test the zero constructor.
  */
-int test_zero() {
+int test_zero(void) {
     QkObs *obs = qk_obs_zero(100);
     size_t num_terms = qk_obs_num_terms(obs);
     uint32_t num_qubits = qk_obs_num_qubits(obs);
@@ -33,7 +33,7 @@ int test_zero() {
 /**
  * Test the identity constructor.
  */
-int test_identity() {
+int test_identity(void) {
     QkObs *obs = qk_obs_identity(100);
     size_t num_terms = qk_obs_num_terms(obs);
     uint32_t num_qubits = qk_obs_num_qubits(obs);
@@ -45,7 +45,7 @@ int test_identity() {
 /**
  * Test copying an observable.
  */
-int test_copy() {
+int test_copy(void) {
     QkObs *obs = qk_obs_identity(100);
     QkObs *copied = qk_obs_copy(obs);
 
@@ -60,7 +60,7 @@ int test_copy() {
 /**
  * Test adding two observables.
  */
-int test_add() {
+int test_add(void) {
     QkObs *left = qk_obs_identity(100);
     QkObs *right = qk_obs_identity(100);
     QkObs *obs = qk_obs_add(left, right);
@@ -77,30 +77,30 @@ int test_add() {
 /**
  * Test composing two observables.
  */
-int test_compose() {
-    u_int32_t num_qubits = 100;
+int test_compose(void) {
+    uint32_t num_qubits = 100;
 
     QkObs *op1 = qk_obs_zero(num_qubits);
-    complex double coeff = 1;
+    QkComplex64 coeff1 = make_complex_double(1.0, 0.0);
     QkBitTerm op1_bits[3] = {QkBitTerm_X, QkBitTerm_Y, QkBitTerm_Z};
     uint32_t op1_indices[3] = {0, 1, 2};
-    QkObsTerm term1 = {coeff, 3, op1_bits, op1_indices, num_qubits};
+    QkObsTerm term1 = {coeff1, 3, op1_bits, op1_indices, num_qubits};
     qk_obs_add_term(op1, &term1);
 
     QkObs *op2 = qk_obs_zero(num_qubits);
-    coeff = 2;
+    QkComplex64 coeff2 = make_complex_double(2.0, 0.0);
     QkBitTerm op2_bits[3] = {QkBitTerm_Plus, QkBitTerm_X, QkBitTerm_Z};
     uint32_t op2_indices[3] = {0, 1, 3};
-    QkObsTerm term2 = {coeff, 3, op2_bits, op2_indices, num_qubits};
+    QkObsTerm term2 = {coeff2, 3, op2_bits, op2_indices, num_qubits};
     qk_obs_add_term(op2, &term2);
 
     QkObs *result = qk_obs_compose(op1, op2);
 
     QkObs *expected = qk_obs_zero(num_qubits);
-    coeff = 2 * I;
+    QkComplex64 expected_coeff = make_complex_double(0.0, 2.0);
     QkBitTerm expected_bits[4] = {QkBitTerm_Plus, QkBitTerm_Z, QkBitTerm_Z, QkBitTerm_Z};
     uint32_t expected_indices[4] = {0, 1, 2, 3};
-    QkObsTerm expected_term = {coeff, 4, expected_bits, expected_indices, num_qubits};
+    QkObsTerm expected_term = {expected_coeff, 4, expected_bits, expected_indices, num_qubits};
     qk_obs_add_term(expected, &expected_term);
 
     bool is_equal = qk_obs_equal(expected, result);
@@ -119,21 +119,21 @@ int test_compose() {
 /**
  * Test composing two observables and specifying the qargs argument.
  */
-int test_compose_map() {
-    u_int32_t num_qubits = 100;
+int test_compose_map(void) {
+    uint32_t num_qubits = 100;
 
     QkObs *op1 = qk_obs_zero(num_qubits);
-    complex double coeff = 1;
+    QkComplex64 coeff1 = make_complex_double(1.0, 0.0);
     QkBitTerm op1_bits[3] = {QkBitTerm_X, QkBitTerm_Y, QkBitTerm_Z};
     uint32_t op1_indices[3] = {97, 98, 99};
-    QkObsTerm term1 = {coeff, 3, op1_bits, op1_indices, num_qubits};
+    QkObsTerm term1 = {coeff1, 3, op1_bits, op1_indices, num_qubits};
     qk_obs_add_term(op1, &term1);
 
     QkObs *op2 = qk_obs_zero(2);
-    coeff = 2;
+    QkComplex64 coeff2 = make_complex_double(2.0, 0.0);
     QkBitTerm op2_bits[3] = {QkBitTerm_Right, QkBitTerm_X};
     uint32_t op2_indices[3] = {0, 1};
-    QkObsTerm term2 = {coeff, 2, op2_bits, op2_indices, 2};
+    QkObsTerm term2 = {coeff2, 2, op2_bits, op2_indices, 2};
     qk_obs_add_term(op2, &term2);
 
     uint32_t qargs[2] = {98, 97}; // compose op2 onto these indices in op1
@@ -143,7 +143,7 @@ int test_compose_map() {
     QkObs *expected = qk_obs_zero(num_qubits);
     QkBitTerm expected_bits[2] = {QkBitTerm_Right, QkBitTerm_Z};
     uint32_t expected_indices[2] = {98, 99};
-    QkObsTerm expected_term = {coeff, 2, expected_bits, expected_indices, num_qubits};
+    QkObsTerm expected_term = {coeff2, 2, expected_bits, expected_indices, num_qubits};
     qk_obs_add_term(expected, &expected_term);
 
     bool is_equal = qk_obs_equal(expected, result);
@@ -162,24 +162,24 @@ int test_compose_map() {
 /**
  * Test composing an observables with a scalar observable.
  */
-int test_compose_scalar() {
-    u_int32_t num_qubits = 100;
+int test_compose_scalar(void) {
+    uint32_t num_qubits = 100;
 
     QkObs *op = qk_obs_zero(num_qubits);
-    complex double coeff = 1;
+    QkComplex64 coeff = make_complex_double(1.0, 0.0);
     QkBitTerm bits[3] = {QkBitTerm_X, QkBitTerm_Y, QkBitTerm_Z};
     uint32_t indices[3] = {97, 98, 99};
     QkObsTerm term = {coeff, 3, bits, indices, num_qubits};
     qk_obs_add_term(op, &term);
 
     QkObs *scalar = qk_obs_identity(0);
-    coeff = 2;
-    QkObs *mult = qk_obs_multiply(scalar, &coeff);
-    uint32_t qargs[0];
+    QkComplex64 factor = make_complex_double(2.0, 0.0);
+    QkObs *mult = qk_obs_multiply(scalar, &factor);
+    uint32_t *qargs = NULL; // no value will be read (also MSVC doesn't allow qargs[0], so use this)
 
     QkObs *result = qk_obs_compose_map(op, mult, qargs);
 
-    QkObs *expected = qk_obs_multiply(op, &coeff);
+    QkObs *expected = qk_obs_multiply(op, &factor);
 
     bool is_equal = qk_obs_equal(expected, result);
 
@@ -198,8 +198,9 @@ int test_compose_scalar() {
 /**
  * Test multiplying an observable by a complex coefficient.
  */
-int test_mult() {
-    complex double coeffs[3] = {2, 2 * I, 2 + 2 * I};
+int test_mult(void) {
+    QkComplex64 coeffs[3] = {make_complex_double(2.0, 0.0), make_complex_double(0.0, 2.0),
+                             make_complex_double(2.0, 2.0)};
 
     for (int i = 0; i < 3; i++) {
         QkObs *obs = qk_obs_identity(100);
@@ -232,7 +233,7 @@ int test_mult() {
 /**
  * Test bringing an observable into canonical form.
  */
-int test_canonicalize() {
+int test_canonicalize(void) {
     QkObs *left = qk_obs_identity(100);
     QkObs *right = qk_obs_identity(100);
     QkObs *obs = qk_obs_add(left, right);
@@ -244,7 +245,7 @@ int test_canonicalize() {
     QkObs *expected = qk_obs_zero(100);
     QkBitTerm bit_terms[] = {};
     uint32_t indices[] = {};
-    complex double coeff = 2.0;
+    QkComplex64 coeff = make_complex_double(2.0, 0.0);
     QkObsTerm term = {coeff, 0, bit_terms, indices, 100};
     qk_obs_add_term(expected, &term);
 
@@ -262,7 +263,7 @@ int test_canonicalize() {
 /**
  * Test getting the number of terms in an observable.
  */
-int test_num_terms() {
+int test_num_terms(void) {
     int result = Ok;
     size_t num_terms;
 
@@ -286,7 +287,7 @@ int test_num_terms() {
 /**
  * Test getting the number of qubits in an observable.
  */
-int test_num_qubits() {
+int test_num_qubits(void) {
     int result = Ok;
     uint32_t num_qubits;
 
@@ -310,11 +311,11 @@ int test_num_qubits() {
 /**
  * Test adding an individual term to an observable.
  */
-int test_custom_build() {
+int test_custom_build(void) {
     uint32_t num_qubits = 100;
     QkObs *obs = qk_obs_zero(num_qubits);
 
-    complex double coeff = 1;
+    QkComplex64 coeff = make_complex_double(1.0, 0.0);
     QkBitTerm bit_terms[3] = {QkBitTerm_X, QkBitTerm_Y, QkBitTerm_Z};
     uint32_t indices[3] = {0, 1, 2};
     QkObsTerm term = {coeff, 3, bit_terms, indices, num_qubits};
@@ -337,13 +338,13 @@ int test_custom_build() {
 /**
  * Test getting the terms in an observable.
  */
-int test_term() {
+int test_term(void) {
     uint32_t num_qubits = 100;
     QkObs *obs = qk_obs_identity(num_qubits);
 
     QkBitTerm bit_terms[3] = {QkBitTerm_X, QkBitTerm_Y, QkBitTerm_Z};
     uint32_t qubits[3] = {0, 1, 2};
-    complex double coeff = 1 + I;
+    QkComplex64 coeff = make_complex_double(1.0, 1.0);
 
     QkObsTerm term = {coeff, 3, bit_terms, qubits, num_qubits};
     int err = qk_obs_add_term(obs, &term);
@@ -404,12 +405,12 @@ int test_term() {
 /**
  * Test copying and modifying a term.
  */
-int test_copy_term() {
+int test_copy_term(void) {
     // create an observable with the term X0 Y1 Z2
     uint32_t num_qubits = 100;
     QkObs *obs = qk_obs_zero(num_qubits);
 
-    complex double coeff = 1;
+    QkComplex64 coeff = make_complex_double(1.0, 0.0);
     QkBitTerm bits[3] = {QkBitTerm_X, QkBitTerm_Y, QkBitTerm_Z};
     uint32_t indices[3] = {0, 1, 2};
 
@@ -435,7 +436,7 @@ int test_copy_term() {
     }
 
     // modify the term and add it onto the observable
-    complex double coeff2 = 2 * I;
+    QkComplex64 coeff2 = make_complex_double(0.0, 2.0);
     copied_indices[1] = 99;
     copied_bits[0] = QkBitTerm_Zero;
     QkObsTerm copied = {
@@ -465,7 +466,7 @@ int test_copy_term() {
 /**
  * Test getting the bit term labels.
  */
-int test_bitterm_label() {
+int test_bitterm_label(void) {
     char expected[9] = {'X', '+', '-', 'Y', 'l', 'r', 'Z', '0', '1'};
     QkBitTerm bits[9] = {QkBitTerm_X, QkBitTerm_Plus, QkBitTerm_Minus,
                          QkBitTerm_Y, QkBitTerm_Left, QkBitTerm_Right,
@@ -484,21 +485,21 @@ int test_bitterm_label() {
 /**
  * Test the coeffs access.
  */
-int test_coeffs() {
+int test_coeffs(void) {
     QkObs *obs = qk_obs_identity(2);
-    complex double *coeffs = qk_obs_coeffs(obs);
+    QkComplex64 *coeffs = qk_obs_coeffs(obs);
 
     // read the first coefficient
-    complex double first = coeffs[0];
+    QkComplex64 first = coeffs[0];
     int result = Ok;
-    if (first != 1) {
+    if (creal(first) != 1.0 || cimag(first) != 0.0) {
         result = EqualityError;
     }
 
     // modify the coefficient by ref
-    coeffs[0] = I;
-    complex double later = qk_obs_coeffs(obs)[0];
-    if (later != I) {
+    coeffs[0] = make_complex_double(0.0, 1.0);
+    QkComplex64 later = qk_obs_coeffs(obs)[0];
+    if (creal(later) != 0.0 || cimag(later) != 1.0) {
         result = EqualityError;
     }
 
@@ -509,11 +510,11 @@ int test_coeffs() {
 /**
  * Test the bit term access.
  */
-int test_bit_terms() {
+int test_bit_terms(void) {
     QkBitTerm bits[6] = {QkBitTerm_Left,  QkBitTerm_Right, QkBitTerm_Plus,
                          QkBitTerm_Minus, QkBitTerm_Zero,  QkBitTerm_One};
     uint32_t indices[6] = {9, 8, 7, 6, 5, 4};
-    complex double coeff = 1;
+    QkComplex64 coeff = make_complex_double(1.0, 0.0);
     QkObsTerm term = {coeff, 6, bits, indices, 10};
 
     QkObs *obs = qk_obs_zero(10);
@@ -542,11 +543,11 @@ int test_bit_terms() {
 /**
  * Test the index access.
  */
-int test_indices() {
+int test_indices(void) {
     QkBitTerm bits[6] = {QkBitTerm_Left,  QkBitTerm_Right, QkBitTerm_Plus,
                          QkBitTerm_Minus, QkBitTerm_Zero,  QkBitTerm_One};
     uint32_t indices[6] = {9, 8, 7, 6, 5, 4};
-    complex double coeff = 1;
+    QkComplex64 coeff = make_complex_double(1.0, 0.0);
     QkObsTerm term = {coeff, 6, bits, indices, 10};
 
     QkObs *obs = qk_obs_zero(10);
@@ -575,11 +576,11 @@ int test_indices() {
 /**
  * Test access to the term boundaries.
  */
-int test_boundaries() {
+int test_boundaries(void) {
     uint32_t num_qubits = 100;
     QkObs *obs = qk_obs_identity(num_qubits);
 
-    complex double coeff = 1;
+    QkComplex64 coeff = make_complex_double(1.0, 0.0);
     QkBitTerm bit_terms[3] = {QkBitTerm_X, QkBitTerm_Y, QkBitTerm_Z};
     uint32_t indices[3] = {0, 1, 2};
     QkObsTerm term = {coeff, 3, bit_terms, indices, num_qubits};
@@ -605,13 +606,13 @@ int test_boundaries() {
 /**
  * Test direct setting.
  */
-int test_direct_build() {
+int test_direct_build(void) {
     // define the raw data for the 100-qubit observable |01><01|_{0, 1} - |+-><+-|_{98, 99}
     uint32_t num_qubits = 100;
     size_t num_terms = 2;
     size_t num_bits = 4;
 
-    complex double coeffs[2] = {1, -1};
+    QkComplex64 coeffs[2] = {make_complex_double(1.0, 0.0), make_complex_double(-1.0, 0.0)};
     QkBitTerm bits[4] = {QkBitTerm_Zero, QkBitTerm_One, QkBitTerm_Plus, QkBitTerm_Minus};
     uint32_t indices[4] = {0, 1, 98, 99};
     size_t boundaries[3] = {0, 2, 4};
@@ -626,10 +627,11 @@ int test_direct_build() {
 
     // check the data content
     int result = Ok;
-    complex double *obs_coeffs = qk_obs_coeffs(obs);
+    QkComplex64 *obs_coeffs = qk_obs_coeffs(obs);
     size_t *obs_boundaries = qk_obs_boundaries(obs);
     for (size_t i = 0; i < num_terms; i++) {
-        if (coeffs[i] != obs_coeffs[i] || boundaries[i] != obs_boundaries[i]) {
+        if (creal(coeffs[i]) != creal(obs_coeffs[i]) || cimag(coeffs[i]) != cimag(obs_coeffs[i]) ||
+            boundaries[i] != obs_boundaries[i]) {
             result = EqualityError;
         }
     }
@@ -651,13 +653,13 @@ int test_direct_build() {
 /**
  * Test direct setting fails.
  */
-int test_direct_fail() {
+int test_direct_fail(void) {
     // define the faulty raw data
     uint32_t num_qubits = 100;
     size_t num_terms = 2;
     size_t num_bits = 4;
 
-    complex double coeffs[2] = {1, -1};
+    QkComplex64 coeffs[2] = {make_complex_double(1.0, 0.0), make_complex_double(-1.0, 0.0)};
     QkBitTerm bits[4] = {QkBitTerm_Zero, QkBitTerm_One, QkBitTerm_Plus, QkBitTerm_Minus};
     uint32_t indices[4] = {0, 1, 99, 98}; // <-- needs to be ordered
     size_t boundaries[3] = {0, 2, 4};
@@ -678,7 +680,7 @@ int test_direct_fail() {
 /**
  * Test string generator for observable
  */
-int test_obs_str() {
+int test_obs_str(void) {
     QkObs *obs = qk_obs_identity(100);
     char *string = qk_obs_str(obs);
     char *expected = "SparseObservable { num_qubits: 100, coeffs: [Complex { re: 1.0, im: 0.0 }], "
@@ -693,13 +695,13 @@ int test_obs_str() {
 /**
  * Test string generator for observable term
  */
-int test_obsterm_str() {
+int test_obsterm_str(void) {
     // Initialize observable and add a term
     uint32_t num_qubits = 100;
     QkObs *obs = qk_obs_identity(num_qubits);
     QkBitTerm bit_terms[3] = {QkBitTerm_X, QkBitTerm_Y, QkBitTerm_Z};
     uint32_t qubits[3] = {0, 1, 2};
-    complex double coeff = 1 + I;
+    QkComplex64 coeff = make_complex_double(1.0, 1.0);
     QkObsTerm term = {coeff, 3, bit_terms, qubits, num_qubits};
     int err = qk_obs_add_term(obs, &term);
 
@@ -720,7 +722,7 @@ int test_obsterm_str() {
     return result;
 }
 
-int test_sparse_observable() {
+int test_sparse_observable(void) {
     int num_failed = 0;
     num_failed += RUN_TEST(test_zero);
     num_failed += RUN_TEST(test_identity);
