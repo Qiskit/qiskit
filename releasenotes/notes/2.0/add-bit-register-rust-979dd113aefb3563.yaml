@@ -14,5 +14,5 @@ upgrade_circuits:
     :class:`.Register` classes. Directly instantiating
     these classes was clearly documented as something that was **not** supported,
     and being able to do it was was just an implementation artifact of the
-    class heirarchy in previous releases. Starting in Qiskit v2.0.0, it is no longer
+    class hierarchy in previous releases. Starting in Qiskit v2.0.0, it is no longer
     possible to do this.
