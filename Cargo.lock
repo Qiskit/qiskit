@@ -1355,7 +1355,7 @@ dependencies = [
  "num-complex",
  "once_cell",
  "portable-atomic",
- "pyo3-build-config",
+ "pyo3-build-config 0.23.5",
  "pyo3-ffi",
  "pyo3-macros",
  "smallvec",
@@ -1369,7 +1369,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "94f6cbe86ef3bf18998d9df6e0f3fc1050a8c5efa409bf712e661a4366e010fb"
 dependencies = [
  "once_cell",
- "target-lexicon",
+ "target-lexicon 0.12.16",
+]
+
+[[package]]
+name = "pyo3-build-config"
+version = "0.24.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e9b6c2b34cf71427ea37c7001aefbaeb85886a074795e35f161f5aecc7620a7a"
+dependencies = [
+ "once_cell",
+ "target-lexicon 0.13.2",
 ]
 
 [[package]]
@@ -1379,7 +1389,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e9f1b4c431c0bb1c8fb0a338709859eed0d030ff6daa34368d3b152a63dfdd8d"
 dependencies = [
  "libc",
- "pyo3-build-config",
+ "pyo3-build-config 0.23.5",
 ]
 
 [[package]]
@@ -1402,7 +1412,7 @@ checksum = "fca6726ad0f3da9c9de093d6f116a93c1a38e417ed73bf138472cf4064f72028"
 dependencies = [
  "heck 0.5.0",
  "proc-macro2",
- "pyo3-build-config",
+ "pyo3-build-config 0.23.5",
  "quote",
  "syn 2.0.99",
 ]
@@ -1446,6 +1456,7 @@ dependencies = [
  "cbindgen",
  "num-complex",
  "pyo3",
+ "pyo3-build-config 0.24.0",
  "qiskit-accelerate",
  "qiskit-circuit",
  "thiserror 2.0.12",
@@ -1932,6 +1943,12 @@ name = "target-lexicon"
 version = "0.12.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "61c41af27dd6d1e27b1b16b489db798443478cef1f06a660c96db617ba5de3b1"
+
+[[package]]
+name = "target-lexicon"
+version = "0.13.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e502f78cdbb8ba4718f566c418c52bc729126ffd16baee5baa718cf25dd5a69a"
 
 [[package]]
 name = "tempfile"
