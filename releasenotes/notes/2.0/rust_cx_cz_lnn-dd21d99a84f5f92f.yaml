@@ -1,6 +1,6 @@
 ---
-features_transpiler:
+features_synthesis:
   - |
-    The :meth:`.synth_cx_cz_depth_line_my` pass was ported into rust, with preliminary
+    The :func:`.synth_cx_cz_depth_line_my` pass has been ported into Rust, with preliminary
     benchmarks pointing at a factor of 70x speedup.
 

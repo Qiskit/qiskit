@@ -91,6 +91,7 @@ Optimizations
    Split2QUnitaries
    RemoveIdentityEquivalent
    ContractIdleWiresInControlFlow
+   LightCone
 
 Scheduling
 =============
@@ -225,6 +226,7 @@ from .optimization import OptimizeAnnotated
 from .optimization import RemoveIdentityEquivalent
 from .optimization import Split2QUnitaries
 from .optimization import ContractIdleWiresInControlFlow
+from .optimization import LightCone
 
 # circuit analysis
 from .analysis import ResourceEstimation

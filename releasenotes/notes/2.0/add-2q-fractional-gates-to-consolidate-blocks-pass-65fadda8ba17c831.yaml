@@ -1,9 +1,13 @@
 ---
 features_transpiler:
   - |
-    Added support for two-qubit fractional basis gates, such as :class:`.RZZGate`, to the
-    :class:`.ConsolidateBlocks` transpiler pass. The decomposition itself is done using the
-    :class:`.TwoQubitControlledUDecomposer`.
+    Added support for working with :class:`.Target` objects that contain two-qubit
+    basis gates that contain arbitrary angles, such as :class:`.RZZGate`, to the
+    :class:`.ConsolidateBlocks` transpiler pass. The pass previously would not
+    correctly estimate the number of gates required for a decomposition which
+    would result in blocks not being consolidated where :class:`.UnitarySynthesis`
+    could potentially optimize the block. Internally, the gate count estimate is
+    done using the :class:`.TwoQubitControlledUDecomposer` class.
 
     For example::
 
@@ -14,6 +18,7 @@ features_transpiler:
       qc = QuantumCircuit(2)
       qc.rzz(0.1, 0, 1)
       qc.rzz(0.2, 0, 1)
+      # basis_gates contains fractional gate (rzz)
       consolidate_pass = ConsolidateBlocks(basis_gates=["rz", "rzz", "sx", "x", "rx"])
       block = consolidate_pass(qc)  # consolidate the circuit into a single unitary block
       block.draw(output='mpl')

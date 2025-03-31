@@ -13,6 +13,7 @@ upgrade_providers:
       * ``FakeQasmBackend``
 
     * Fake backends for special testing purposes:
+
       * ``Fake1Q``
       * ``FakeOpenPulse2Q``
       * ``FakeOpenPulse3Q``

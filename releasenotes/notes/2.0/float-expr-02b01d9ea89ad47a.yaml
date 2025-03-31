@@ -12,6 +12,6 @@ features_circuits:
       expr.lift(5.0)
       # >>> Value(5.0, Float())
     
-    This type is intended primarily for use in timing-related (duration and stretch)
-    expressions. It is not compatible with bitwise or logical operations, though it
-    can be used (dangerously) with these if first explicitly cast to something else.
+    This type is intended primarily for use in timing-related (``duration`` and ``stretch``)
+    expressions. It is not compatible with bitwise or logical operations, although it
+    can be used with these if they are first explicitly cast to something else.

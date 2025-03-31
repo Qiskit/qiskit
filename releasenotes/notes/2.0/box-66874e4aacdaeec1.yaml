@@ -1,0 +1,47 @@
+---
+features_circuits:
+  - |
+    A new control-flow op, :class:`.BoxOp`, its associated :meth:`.QuantumCircuit.box` method and context manager
+    are now available from :mod:`qiskit.circuit`.
+
+    The normal way to construct a box is to use the :meth:`.QuantumCircuit.box` context manager::
+
+      from qiskit.circuit import QuantumCircuit
+
+      qc = QuantumCircuit(5)
+
+      with qc.box():
+        # This box "uses" qubits 0 and 1.
+        qc.x(0)
+        qc.z(1)
+
+      # Boxes can be assigned a duration.
+      with qc.box(duration=100, unit="ms"):
+        # This box "uses" qubits 2, 3 and 4.
+        # Qubit 4 undergoes no operations.
+        qc.cx(2, 3)
+        qc.noop(4)
+
+    The Qiskit "box" maps nearly directly to `the OpenQASM 3 concept of a box
+    <https://openqasm.com/language/delays.html#boxed-expressions>`__.
+
+    All qubits "used" by the box are timing synchronized at the start and end of the box.  In other
+    words, the box has the same "duration" for every qubit it uses, and the start points are
+    synchronized.  Other operations at the same scope as the :class:`.BoxOp` itself see the box as
+    atomic; it is valid to commute an operation past an entire box if the operation commutes with
+    the action of the whole box, but it is not generally valid to move an operation into or out of a
+    box.
+
+    The principal uses of a box are to group a series of instructions for later processing (such as
+    grouping a partial layer of two-qubit gates), and to schedule a compound block together at one
+    scope while using relative scheduling within the block (such as dynamical decoupling several
+    qubits in a group).  Qiskit's compiler does not yet have built-in passes that will group
+    instructions or schedule instructions with a :class:`.BoxOp`.
+
+    The transpiler supports routing and layout in the
+    presence of boxes, and will optimize within the box (up to the ``optimization_level`` setting),
+    but does not yet perform optimizations around the atomic structure of boxes.  The text- and
+    Matplotlib-based circuit drawers support box.  Exporting to QPY and to OpenQASM 3 is supported,
+    although OpenQASM 3 currently has no way of designating idling qubits within a box (it is
+    expected that a spec change will add this in the near future: see `the relevant feature proposal
+    <https://github.com/openqasm/openqasm/issues/584>`__).
