@@ -1,8 +1,8 @@
 ---
 upgrade_circuits:
   - |
-     The ``qiskit.circuit.classicalfunction`` module has been removed following its deprecation in Qiskit v1.4,
-     including the ``ClassicalFunction`` class, its related ``classical_function`` function, and 
+     The ``qiskit.circuit.classicalfunction`` module has been removed following its deprecation in Qiskit v1.4.
+     That includes the ``ClassicalFunction`` class, its related ``classical_function`` function, and
      the ``BooleanExpression`` class. This change was made to remove the dependency on the ``tweedledum`` 
      library, which is no longer compatible with all of Qiskit's supported platforms and Python versions.
      ``ClassicalFunction`` was exclusively used in :class:`.PhaseOracle`, which has been upgraded to only accept
@@ -11,7 +11,7 @@ upgrade_circuits:
 
   - |
      The :class:`.PhaseOracle` class no longer depends on the ``tweedledum`` library, 
-     as the dependency was not actively maintained. The interface has been simplified: 
+     as the dependency is not actively maintained. The interface has been simplified: 
      it no longer accepts a ``synthesizer`` parameter, and the ``expression`` parameter 
      can only be a string. The previously accepted ``ClassicalFunction``
      type, deprecated in Qiskit v1.4, has been removed in Qiskit v2.0.

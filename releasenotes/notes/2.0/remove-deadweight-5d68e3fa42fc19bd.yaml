@@ -86,7 +86,7 @@ upgrade_transpiler:
   - |
     The previously deprecated argument ``propagate_condition`` on the :class:`.DAGCircuit` methods
     :meth:`~.DAGCircuit.substitute_node_with_dag` and :meth:`~.DAGCircuit.substitute_node` has been
-    removed. These arguments were deprecated in Qiskit v1.4.0 and were removed because they no longer served a purpose
+    removed. This argument was deprecated in Qiskit v1.4.0 and was removed because it no longer served a purpose
     after  ``Instruction.condition``  was removed.
   - |
     The previously deprecated ``AlignMeasures`` transpiler pass has been removed. This pass was deprecated in Qiskit v1.1.0. Instead, the

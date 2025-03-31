@@ -1,7 +1,7 @@
 ---
 upgrade_circuits:
   - |
-    The :mod:`.classical_function` module has been removed. This module was dependent on the
+    The ``qiskit.circuit.classicalfunction`` module has been removed. This module was dependent on the
     ``tweedledum`` library which is not compatible with newer versions of Python.
     As an alternative, the :class:`.PhaseOracleGate` and :class:`.BitFlipOracleGate` classes
     can be used to generate circuits from boolean expressions.
