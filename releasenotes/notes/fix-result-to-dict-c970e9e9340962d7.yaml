@@ -1,3 +1,0 @@
-fixes:
-  - |
-    Fix Result unable to generate a dictionary via to_dict()
