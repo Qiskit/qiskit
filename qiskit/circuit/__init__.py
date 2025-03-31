@@ -272,7 +272,8 @@ circuit.  The top-level ones are:
     * :class:`ForLoopOp`, to loop over a fixed range of values
     * :class:`IfElseOp`, to conditionally enter one of two subcircuits
     * :class:`SwitchCaseOp`, to conditionally enter one of many subcircuits
-    * :class:`WhileLoopOp`, to repeat a subcircuit until a condition is falsified.
+    * :class:`WhileLoopOp`, to repeat a subcircuit until a condition is falsified
+    * :class:`BoxOp`, to group a series of instructions for later processing
 
 :ref:`Circuits can include classical expressions that are evaluated in real time
 <circuit-repr-real-time-classical>`, while the QPU is executing a single shot of the circuit.  These
@@ -708,7 +709,7 @@ classes associated to each name.
 .. autofunction:: get_control_flow_name_mapping
 
 These control-flow operations (:class:`IfElseOp`, :class:`WhileLoopOp`,
-:class:`SwitchCaseOp` and :class:`ForLoopOp`) all have specific state that defines the branching
+:class:`SwitchCaseOp`, :class:`ForLoopOp` and :class:`BoxOp`) all have specific state that defines the branching
 conditions and strategies, but contain all the different subcircuit blocks that might be entered in
 their :attr:`~ControlFlowOp.blocks` property.
 
@@ -719,6 +720,7 @@ their :attr:`~ControlFlowOp.blocks` property.
     WhileLoopOp
     SwitchCaseOp
     ForLoopOp
+    BoxOp
 
 The :class:`.SwitchCaseOp` also understands a special value:
 
