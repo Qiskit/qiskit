@@ -15,7 +15,7 @@ use std::str::FromStr;
 extern crate cbindgen;
 
 /// This function generates the C header for Qiskit from the qiskit-cext crate.
-fn main() {
+fn generate_qiskit_header() {
     // Trigger this script if the header was changed/removed.
     #![allow(clippy::print_stdout)]
     println!("cargo:rerun-if-changed=../../target/qiskit.h");
@@ -35,4 +35,30 @@ fn main() {
         .generate()
         .expect("Unable to generate C bindings.")
         .write_to_file(path);
+}
+
+// Get the Python library directory and library name that PyO3 is using, and store it into a
+// configuration file.
+fn write_python_config() {
+    let interpreter_config = pyo3_build_config::get();
+    let pyo3_lib_config = format!(
+        "PYO3_PYTHON_LIB_DIR={}\nPYO3_PYTHON_LIB_NAME={}\n",
+        interpreter_config.lib_dir.clone().unwrap_or("".to_string()),
+        interpreter_config
+            .lib_name
+            .clone()
+            .unwrap_or("".to_string())
+    );
+
+    // This path is relative to the current file, i.e. we write into the root's target dir.
+    let pyo3_config_file = "../../target/pyo3_python.config";
+    match ::std::fs::write(pyo3_config_file, pyo3_lib_config) {
+        Ok(_) => (),
+        Err(_) => println!("cargo:warning=Failed to write Python config."),
+    };
+}
+
+fn main() {
+    generate_qiskit_header();
+    write_python_config();
 }
