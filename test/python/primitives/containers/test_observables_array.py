@@ -28,24 +28,10 @@ class ObservablesArrayTestCase(QiskitTestCase):
     @ddt.data(0, 1, 2)
     def test_coerce_observable_str(self, num_qubits):
         """Test coerce_observable for allowed basis str input"""
-        for chars in it.permutations(ObservablesArray.ALLOWED_BASIS, num_qubits):
+        for chars in it.permutations("IXYZ01+-lr", num_qubits):
             label = "".join(chars)
             obs = ObservablesArray.coerce_observable(label)
             self.assertEqual(obs, qi.SparseObservable.from_label(label))
-
-    def test_coerce_observable_custom_basis(self):
-        """Test coerce_observable for custom al flowed basis"""
-
-        class PauliArray(ObservablesArray):
-            """Custom array allowing only Paulis, not projectors"""
-
-            ALLOWED_BASIS = "IXYZ"
-
-        with self.assertRaises(ValueError):
-            PauliArray.coerce_observable("0101")
-        for p in qi.pauli_basis(1):
-            obs = PauliArray.coerce_observable(p)
-            self.assertEqual(obs, qi.SparseObservable.from_pauli(p))
 
     @ddt.data("iXX", "012", "+/-")
     def test_coerce_observable_invalid_str(self, basis):
@@ -73,7 +59,7 @@ class ObservablesArrayTestCase(QiskitTestCase):
             obs = ObservablesArray.coerce_observable(pauli)
             self.assertIsInstance(obs, qi.SparseObservable)
             obs_pauli, _, obs_coeff = obs.to_sparse_list()[0]
-            self.assertEqual(obs_pauli, "IXYZ")
+            self.assertEqual(obs_pauli, "XYZ")
             np.testing.assert_almost_equal(
                 obs_coeff, coeff, err_msg=f"Wrong value for Pauli {pauli}"
             )
@@ -90,7 +76,7 @@ class ObservablesArrayTestCase(QiskitTestCase):
             obs = ObservablesArray.coerce_observable(pauli)
             self.assertIsInstance(obs, qi.SparseObservable)
             obs_pauli, _, obs_coeff = obs.to_sparse_list()[0]
-            self.assertEqual(obs_pauli, "IXYZ")
+            self.assertEqual(obs_pauli, "XYZ")
             np.testing.assert_almost_equal(
                 obs_coeff, coeff, err_msg=f"Wrong value for Pauli {pauli}"
             )
@@ -104,7 +90,7 @@ class ObservablesArrayTestCase(QiskitTestCase):
         self.assertEqual(len(sparse_list), 4)
         obs_paulis = [term[0] for term in sparse_list]
         obs_coeffs = [term[2] for term in sparse_list]
-        self.assertEqual(obs_paulis, ["I", "X", "Y", "Z"])
+        self.assertEqual(obs_paulis, ["", "X", "Y", "Z"])
         np.testing.assert_allclose(obs_coeffs, [1, -2, 3, -4])
 
     def test_coerce_observable_zero_sparse_pauli_op(self):
@@ -135,7 +121,7 @@ class ObservablesArrayTestCase(QiskitTestCase):
         obs = ObservablesArray.coerce_observable(mapping)
         target = qi.SparseObservable.from_list(
             [(key.to_label(), val) for key, val in mapping.items()]
-        )
+        ).simplify()
         self.assertEqual(obs, target)
 
     def test_coerce_0d(self):
