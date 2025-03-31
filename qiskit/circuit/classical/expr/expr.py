@@ -69,6 +69,7 @@ class _UnaryOp(enum.Enum):
 # defined as an inner class of the Rust pyclass.
 _UnaryOp.__module__ = "qiskit._accelerate.circuit.classical.expr"
 _UnaryOp.__name__ = "Op"
+_UnaryOp.__qualname__ = "Unary.Op"
 
 
 class _BinaryOp(enum.Enum):
@@ -152,3 +153,4 @@ class _BinaryOp(enum.Enum):
 # defined as an inner class of the Rust pyclass.
 _BinaryOp.__module__ = "qiskit._accelerate.circuit.classical.expr"
 _BinaryOp.__name__ = "Op"
+_BinaryOp.__qualname__ = "Binary.Op"
