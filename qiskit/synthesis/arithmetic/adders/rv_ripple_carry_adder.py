@@ -15,7 +15,9 @@
 from __future__ import annotations
 from math import ceil
 from qiskit.exceptions import QiskitError
-from qiskit import QuantumCircuit, QuantumRegister
+from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit import QuantumRegister
+from qiskit.synthesis.multi_controlled import synth_mcx_2_dirty_kg24
 
 
 def _mcx_ladder(n_mcx: int, alpha: int):
@@ -76,7 +78,7 @@ def _mcx_ladder(n_mcx: int, alpha: int):
         else:
             # for each mcx with n_ctrls > 2, use 2 qubits above the first ctrl index as ancillae
             ancilla_idx = [mcx[0] - 2, mcx[0] - 1]
-            gate = MCXLogDepth(len(mcx) - 1)
+            gate = synth_mcx_2_dirty_kg24(len(mcx) - 1)
             qc.compose(
                 gate,
                 # ctrls, targ, anc
