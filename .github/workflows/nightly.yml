@@ -7,6 +7,7 @@
 # reach their end-of-life.
 name: Nightly Main tests
 on:
+  pull_request:
   schedule:
     - cron: "20 6 * * *"
   workflow_dispatch:
