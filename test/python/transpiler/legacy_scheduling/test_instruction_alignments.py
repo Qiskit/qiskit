@@ -313,7 +313,8 @@ class TestAlignMeasures(QiskitTestCase):
         aligned_circuit = self.align_measure_pass(
             scheduled_circuit, property_set={"time_unit": "dt"}
         )
-        self.assertEqual(aligned_circuit.duration, 2032)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(aligned_circuit.duration, 2032)
 
         ref_circuit = QuantumCircuit(3, 1)
         ref_circuit.x(0)
