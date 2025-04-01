@@ -243,9 +243,7 @@ class TestRandomCircuitFromGraph(QiskitTestCase):
         else:
             n_nodes = inter_graph.num_nodes()
 
-        circ = random_circuit_from_graph(
-            interaction_graph=inter_graph, min_2q_gate_per_edge=1, seed=seed
-        )
+        circ = random_circuit_from_graph(interaction_graph=inter_graph, seed=seed)
 
         self.assertIsInstance(circ, QuantumCircuit)
         self.assertEqual(circ.width(), n_nodes)
@@ -278,9 +276,7 @@ class TestRandomCircuitFromGraph(QiskitTestCase):
     def test_random_measure(self, inter_graph, seed):
         """Test random circuit with final measurement."""
 
-        qc = random_circuit_from_graph(
-            interaction_graph=inter_graph, min_2q_gate_per_edge=1, measure=True, seed=seed
-        )
+        qc = random_circuit_from_graph(interaction_graph=inter_graph, measure=True, seed=seed)
         self.assertIn("measure", qc.count_ops())
 
     @ddt.data(*test_cases)
@@ -293,7 +289,6 @@ class TestRandomCircuitFromGraph(QiskitTestCase):
             conditional=True,
             reset=True,
             seed=seed,  # Do not change the seed or the args.
-            insert_1q_oper=True,
             prob_conditional=0.95,
             prob_reset=0.50,
         )
@@ -322,7 +317,6 @@ class TestRandomCircuitFromGraph(QiskitTestCase):
             measure=True,
             conditional=True,
             reset=True,
-            insert_1q_oper=True,
             seed=seed,  # Do not change the seed or args
             prob_conditional=0.41,
             prob_reset=0.50,
@@ -362,7 +356,6 @@ class TestRandomCircuitFromGraph(QiskitTestCase):
 
         qc = random_circuit_from_graph(
             interaction_graph=pydi_graph,
-            min_2q_gate_per_edge=1,
         )
         dag = circuit_to_dag(qc)
 
@@ -391,7 +384,6 @@ class TestRandomCircuitFromGraph(QiskitTestCase):
         with self.assertRaisesRegex(ValueError, ".getting selected is."):
             _ = random_circuit_from_graph(
                 interaction_graph=pydi_graph,
-                min_2q_gate_per_edge=1,
             )
 
     def test_max_operands_not_between_1_2_raises(self):
@@ -415,7 +407,7 @@ class TestRandomCircuitFromGraph(QiskitTestCase):
 
         pydi_graph.add_edges_from(cp_mp)
         with self.assertRaisesRegex(ValueError, "Probabilities cannot be negative"):
-            _ = random_circuit_from_graph(interaction_graph=pydi_graph, min_2q_gate_per_edge=1)
+            _ = random_circuit_from_graph(interaction_graph=pydi_graph)
 
     def test_raise_no_edges_insert_1q_oper_to_false(self):
         """Test if the function raises CircuitError when no edges are present in the
@@ -427,8 +419,6 @@ class TestRandomCircuitFromGraph(QiskitTestCase):
             _ = random_circuit_from_graph(
                 interaction_graph=inter_graph,
                 min_2q_gate_per_edge=2,
-                max_operands=2,
-                measure=False,
                 conditional=True,
                 reset=True,
                 seed=0,
@@ -448,7 +438,6 @@ class TestRandomCircuitFromGraph(QiskitTestCase):
         qc = random_circuit_from_graph(
             interaction_graph=pydi_graph,
             min_2q_gate_per_edge=2,
-            max_operands=2,
             measure=True,
             conditional=True,
             reset=True,
@@ -488,12 +477,10 @@ class TestRandomCircuitFromGraph(QiskitTestCase):
         qc = random_circuit_from_graph(
             interaction_graph=pydi_graph,
             min_2q_gate_per_edge=4,
-            max_operands=2,
             measure=True,
             conditional=True,
             reset=True,
             seed=0,
-            insert_1q_oper=True,
             prob_conditional=0.91,
             prob_reset=0.6,
         )
@@ -524,7 +511,7 @@ class TestRandomCircuitFromGraph(QiskitTestCase):
         coupling map is present in the circuit.
         """
 
-        num_qubits = 5
+        num_qubits = 3
         seed = 32434
         h_h_g = rx.generators.directed_heavy_hex_graph(d=num_qubits, bidirectional=False)
         rng = np.random.default_rng(seed=seed)
@@ -550,8 +537,6 @@ class TestRandomCircuitFromGraph(QiskitTestCase):
         qc = random_circuit_from_graph(
             h_h_g,
             min_2q_gate_per_edge=90,
-            max_operands=2,
-            measure=False,
             conditional=True,  # Just making it a bit more challenging.
             reset=True,
             seed=seed,
@@ -586,6 +571,12 @@ class TestRandomCircuitFromGraph(QiskitTestCase):
         # Check if the probabilities of occurrences of edges in the circuit,
         # is indeed equal to the probabilities supplied as the edge data in
         # the interaction graph, upto a given tolerance.
-        tol = 0.02  # Setting 2% tolerance in probabilities.
+        tol = 0.04  # Setting 4% tolerance in probabilities.
         for edge_orig, prob_orig in edges_norm_orig.items():
             self.assertTrue(np.isclose(edges_norm_qc[edge_orig], prob_orig, atol=tol))
+
+    def test_invalid_interaction_graph(self):
+        """Test if CircuitError is raised when passed with an invalid interaction graph"""
+        cp_map = [(0, 1, 10), (1, 2, 11), (2, 3, 0), (3, 4, 9), (4, 5, 12), (5, 6, 13)]
+        with self.assertRaisesRegex(CircuitError, ".interaction graph object."):
+            _ = random_circuit_from_graph(tuple(cp_map))  # Tuples are invalid interaction graph

@@ -303,7 +303,7 @@ assist compilation workflows.  These include:
 * :data:`SessionEquivalenceLibrary`, a mutable instance of :class:`EquivalenceLibrary` which is used
   by default by the compiler's :class:`.BasisTranslator`.
 
-There is also a utility for generating random circuits:
+There are also utilities for generating random circuits:
 
 * :func:`random.random_circuit`
 * :func:`random.random_circuit_from_graph`

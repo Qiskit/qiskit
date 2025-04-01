@@ -13,23 +13,25 @@ features_circuits:
     This is an example where 'cp_map' is a list of edges with some arbitrary weights.
 
     .. plot::
-       
-       from qiskit.circuit.random.utils import random_circuit_from_graph
-       import rustworkx as rx
-       pydi_graph = rx.PyDiGraph()
-       n_q = 5
-       cp_map = [(0, 1, 0.18), (1, 2, 0.15), (2, 3, 0.15), (3, 4, 0.22)]
-       pydi_graph.add_nodes_from(range(n_q))
-       pydi_graph.add_edges_from(cp_map)
-       # cp_map can be passed in directly as interaction_graph
-       qc = random_circuit_from_graph(interaction_graph = pydi_graph, 
-       min_2q_gate_per_edge = 1, 
-       max_operands = 2, 
-       measure = True, 
-       conditional = True, 
-       reset = True, 
-       seed = 0, 
-       insert_1q_oper = True, 
-       prob_conditional = 0.21,
-       prob_reset = 0.1)
-       qc.draw(output='mpl')
+      :include-source:
+        
+        from qiskit.circuit.random.utils import random_circuit_from_graph
+        import rustworkx as rx
+        pydi_graph = rx.PyDiGraph()
+        n_q = 5
+        cp_map = [(0, 1, 0.18), (1, 2, 0.15), (2, 3, 0.15), (3, 4, 0.22)]
+        pydi_graph.add_nodes_from(range(n_q))
+        pydi_graph.add_edges_from(cp_map)
+        # cp_map can be passed in directly as interaction_graph
+        qc = random_circuit_from_graph(interaction_graph = pydi_graph,
+          min_2q_gate_per_edge = 1, 
+          max_operands = 2, 
+          measure = True, 
+          conditional = True, 
+          reset = True, 
+          seed = 0, 
+          insert_1q_oper = True, 
+          prob_conditional = 0.21,
+          prob_reset = 0.1)
+        qc.draw(output='mpl')
+

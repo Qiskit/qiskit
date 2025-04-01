@@ -20,29 +20,24 @@ Random Circuits (:mod:`qiskit.circuit.random`)
 Overview
 ========
 
-Existing architecture of Quantum Computers have varying computational capabilities.
-High number of highly connected qubits with lower gate error rates, and faster gate 
-times are defining properties of a capable Quantum Computer.
+The :mod:qiskit.circuit.random module offers functions that can be used for generating 
+arbitrary circuits with gates randomly selected from a given set of gates. 
 
-One of the basic usages of a quantum circuit with arbitrary gates, qubits, depth etc
-is to benchmark existing Quantum Hardware. It can also be used to estimate the 
-performance of quantum circuit transpilers and supporting software infrastructure.
-
-Below functions can be used to generate an arbitrary circuit with gates randomly 
-selected from a given set of gates. These functions can generate bespoke quantum 
-circuits respecting properties like number of qubits, depth of circuit, coupling map
-of the hardware, gate set, etc.
-
-Generating arbitrary circuits respecting qubit-coupling
---------------------------------------------------------------
-
-.. autofunction:: random_circuit_from_graph
-
+These circuits can be used for benchmarking existing quantum hardware and estimating 
+the performance of quantum circuit transpilers and software infrastructure.
+The functions below can generate bespoke quantum circuits respecting various properties
+such as number of qubits, depth of the circuit, coupling map, gate set, etc.
 
 Generating arbitrary circuits
 ------------------------------------
 
 .. autofunction:: random_circuit
+
+
+Generating arbitrary circuits respecting qubit-coupling
+--------------------------------------------------------------
+
+.. autofunction:: random_circuit_from_graph
 
 
 Generating arbitrary circuits with clifford gates
