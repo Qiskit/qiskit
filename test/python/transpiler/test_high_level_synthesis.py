@@ -13,7 +13,6 @@
 """
 Tests the interface for HighLevelSynthesis transpiler pass.
 """
-from test import combine
 import itertools
 import unittest.mock
 import numpy as np

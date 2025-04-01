@@ -1422,52 +1422,23 @@ class MCXSynthesisDefault(HighLevelSynthesisPlugin):
 
         # Iteratively run other synthesis methods available
 
-        if (
-            decomposition := MCXSynthesisNCleanM15().run(
-                high_level_object, coupling_map, target, qubits, **options
-            )
-        ) is not None:
-            return decomposition
+        for synthesis_method in [
+            MCXSynthesisNCleanM15,
+            MCXSynthesisNDirtyI15,
+            MCXSynthesis2CleanKG24,
+            MCXSynthesis2DirtyKG24,
+            MCXSynthesis1CleanKG24,
+            MCXSynthesis1DirtyKG24,
+            MCXSynthesis1CleanB95,
+        ]:
+            if (
+                decomposition := synthesis_method().run(
+                    high_level_object, coupling_map, target, qubits, **options
+                )
+            ) is not None:
+                return decomposition
 
-        if (
-            decomposition := MCXSynthesisNDirtyI15().run(
-                high_level_object, coupling_map, target, qubits, **options
-            )
-        ) is not None:
-            return decomposition
-
-        if (
-            decomposition := MCXSynthesis2CleanKG24().run(
-                high_level_object, coupling_map, target, qubits, **options
-            )
-        ) is not None:
-            return decomposition
-        if (
-            decomposition := MCXSynthesis2DirtyKG24().run(
-                high_level_object, coupling_map, target, qubits, **options
-            )
-        ) is not None:
-            return decomposition
-        if (
-            decomposition := MCXSynthesis1CleanKG24().run(
-                high_level_object, coupling_map, target, qubits, **options
-            )
-        ) is not None:
-            return decomposition
-        if (
-            decomposition := MCXSynthesis1DirtyKG24().run(
-                high_level_object, coupling_map, target, qubits, **options
-            )
-        ) is not None:
-            return decomposition
-
-        if (
-            decomposition := MCXSynthesis1CleanB95().run(
-                high_level_object, coupling_map, target, qubits, **options
-            )
-        ) is not None:
-            return decomposition
-
+        # If no synthesis method was successful, fall back to the default
         return MCXSynthesisNoAuxV24().run(
             high_level_object, coupling_map, target, qubits, **options
         )
