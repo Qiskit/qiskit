@@ -25,6 +25,7 @@ jobs:
     name: Create comment on failed test run
     if: ${{ github.repository_owner == 'Qiskit' && failure() }}
     runs-on: ubuntu-latest
+    needs: [nightly-tests]
     steps:
       - uses: peter-evans/create-or-update-comment@v4
         with:
