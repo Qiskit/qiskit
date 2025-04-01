@@ -20,6 +20,7 @@ file (
 create_test_sourcelist (source_files test_driver.c ${discovered_tests})
 
 add_library(common common.c)
+install(TARGETS common RUNTIME DESTINATION ${CMAKE_BINARY_DIR})
 # Actually define the test driver program executable to be built...
 add_executable (test_driver ${source_files})
 # ...include the location of the header file...
