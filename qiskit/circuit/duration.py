@@ -65,29 +65,29 @@ def convert_durations_to_dt(qc: QuantumCircuit, dt_in_sec: float, inplace=True):
 
     for instruction in circ.data:
         operation = instruction.operation
-        if operation.unit == "dt" or operation.duration is None:
+        if operation._unit == "dt" or operation._duration is None:
             continue
 
-        if not operation.unit.endswith("s"):
-            raise CircuitError(f"Invalid time unit: '{operation.unit}'")
+        if not operation._unit.endswith("s"):
+            raise CircuitError(f"Invalid time unit: '{operation._unit}'")
 
-        duration = operation.duration
-        if operation.unit != "s":
-            duration = apply_prefix(duration, operation.unit)
+        duration = operation._duration
+        if operation._unit != "s":
+            duration = apply_prefix(duration, operation._unit)
 
-        operation.duration = duration_in_dt(duration, dt_in_sec)
-        operation.unit = "dt"
+        operation._duration = duration_in_dt(duration, dt_in_sec)
+        operation._unit = "dt"
 
-    if circ.duration is not None and circ.unit != "dt":
-        if not circ.unit.endswith("s"):
-            raise CircuitError(f"Invalid time unit: '{circ.unit}'")
+    if circ._duration is not None and circ._unit != "dt":
+        if not circ._unit.endswith("s"):
+            raise CircuitError(f"Invalid time unit: '{circ._unit}'")
 
-        duration = circ.duration
-        if circ.unit != "s":
-            duration = apply_prefix(duration, circ.unit)
+        duration = circ._duration
+        if circ._unit != "s":
+            duration = apply_prefix(duration, circ._unit)
 
-        circ.duration = duration_in_dt(duration, dt_in_sec)
-        circ.unit = "dt"
+        circ._duration = duration_in_dt(duration, dt_in_sec)
+        circ._unit = "dt"
 
     if not inplace:
         return circ

@@ -416,13 +416,8 @@ impl DAGCircuit {
     /// Returns the total duration of the circuit, set by a scheduling transpiler pass. Its unit is
     /// specified by :attr:`.unit`
     ///
-<<<<<<< HEAD
-    /// DEPRECATED since Qiskit 1.3.0 and will be removed in Qiskit 2.0.0
-    #[getter]
-=======
     /// DEPRECATED since Qiskit 1.3.0 and will be removed in Qiskit 3.0.0
     #[getter("duration")]
->>>>>>> d0aa10088 (Do not raise deprecation warnings for internal uses of dag.duration and dag.unit (#14133))
     fn get_duration(&self, py: Python) -> PyResult<Option<Py<PyAny>>> {
         imports::WARNINGS_WARN.get_bound(py).call1((
             intern!(
@@ -432,13 +427,8 @@ impl DAGCircuit {
                     "deprecated as of qiskit 1.3.0. It will be removed in Qiskit 2.0.0.",
                 )
             ),
-<<<<<<< HEAD
             py.get_type_bound::<PyDeprecationWarning>(),
-            2,
-=======
-            py.get_type::<PyDeprecationWarning>(),
             1,
->>>>>>> d0aa10088 (Do not raise deprecation warnings for internal uses of dag.duration and dag.unit (#14133))
         ))?;
         self.get_internal_duration(py)
     }
@@ -465,7 +455,7 @@ impl DAGCircuit {
                     "deprecated as of Qiskit 1.3.0. It will be removed in Qiskit 3.0.0.",
                 )
             ),
-            py.get_type::<PyDeprecationWarning>(),
+            py.get_type_bound::<PyDeprecationWarning>(),
             1,
         ))?;
         self.set_internal_duration(duration);
@@ -493,13 +483,8 @@ impl DAGCircuit {
                     "deprecated as of qiskit 1.3.0. It will be removed in Qiskit 2.0.0.",
                 )
             ),
-<<<<<<< HEAD
             py.get_type_bound::<PyDeprecationWarning>(),
-            2,
-=======
-            py.get_type::<PyDeprecationWarning>(),
             1,
->>>>>>> d0aa10088 (Do not raise deprecation warnings for internal uses of dag.duration and dag.unit (#14133))
         ))?;
         self.get_internal_unit()
     }
@@ -525,7 +510,7 @@ impl DAGCircuit {
                     "deprecated as of Qiskit 1.3.0. It will be removed in Qiskit 3.0.0.",
                 )
             ),
-            py.get_type::<PyDeprecationWarning>(),
+            py.get_type_bound::<PyDeprecationWarning>(),
             1,
         ))?;
         self.set_internal_unit(unit);
