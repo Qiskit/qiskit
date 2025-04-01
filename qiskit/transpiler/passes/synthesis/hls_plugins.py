@@ -1271,7 +1271,7 @@ class MCXSynthesis1CleanKG24(HighLevelSynthesisPlugin):
 
         decomposition = synth_mcx_1_clean_kg24(num_ctrl_qubits)
         return decomposition
-    
+
 
 class MCXSynthesis1DirtyKG24(HighLevelSynthesisPlugin):
     r"""Synthesis plugin for a multi-controlled X gate based on the paper by Khattar and
@@ -1313,8 +1313,8 @@ class MCXSynthesis1DirtyKG24(HighLevelSynthesisPlugin):
 
         decomposition = synth_mcx_1_dirty_kg24(num_ctrl_qubits)
         return decomposition
-    
-    
+
+
 class MCXSynthesisGrayCode(HighLevelSynthesisPlugin):
     r"""Synthesis plugin for a multi-controlled X gate based on the Gray code.
 
@@ -1407,6 +1407,31 @@ class MCXSynthesisDefault(HighLevelSynthesisPlugin):
 
         if (
             decomposition := MCXSynthesisNDirtyI15().run(
+                high_level_object, coupling_map, target, qubits, **options
+            )
+        ) is not None:
+            return decomposition
+
+        if (
+            decomposition := MCXSynthesis2CleanKG24().run(
+                high_level_object, coupling_map, target, qubits, **options
+            )
+        ) is not None:
+            return decomposition
+        if (
+            decomposition := MCXSynthesis2DirtyKG24().run(
+                high_level_object, coupling_map, target, qubits, **options
+            )
+        ) is not None:
+            return decomposition
+        if (
+            decomposition := MCXSynthesis1CleanKG24().run(
+                high_level_object, coupling_map, target, qubits, **options
+            )
+        ) is not None:
+            return decomposition
+        if (
+            decomposition := MCXSynthesis1DirtyKG24().run(
                 high_level_object, coupling_map, target, qubits, **options
             )
         ) is not None:
