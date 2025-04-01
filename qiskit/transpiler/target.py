@@ -270,6 +270,17 @@ class Target(BaseTarget):
         self._instruction_durations = None
         self._instruction_schedule_map = None
 
+    @property
+    def dt(self):
+        """Return dt."""
+        return self._dt
+
+    @dt.setter
+    def dt(self, dt):
+        """Set dt and invalidate instruction duration cache"""
+        self._dt = dt
+        self._instruction_durations = None
+
     def add_instruction(self, instruction, properties=None, name=None):
         """Add a new instruction to the :class:`~qiskit.transpiler.Target`
 

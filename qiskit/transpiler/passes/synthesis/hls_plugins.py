@@ -1009,9 +1009,10 @@ class MCXSynthesisNDirtyI15(HighLevelSynthesisPlugin):
     This plugin name is :``mcx.n_dirty_i15`` which can be used as the key on
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
 
-    For a multi-controlled X gate with :math:`k\ge 3` control qubits this synthesis
+    For a multi-controlled X gate with :math:`k\ge 4` control qubits this synthesis
     method requires :math:`k - 2` additional dirty auxiliary qubits. The synthesized
     circuit consists of :math:`2 * k - 1` qubits and at most :math:`8 * k - 6` CX gates.
+    For :math:`k\le 3` explicit efficient circuits are used instead.
 
     The plugin supports the following plugin-specific options:
 
@@ -1106,14 +1107,14 @@ class MCXSynthesis1CleanB95(HighLevelSynthesisPlugin):
 
     For a multi-controlled X gate with :math:`k\ge 5` control qubits this synthesis
     method requires a single additional clean auxiliary qubit. The synthesized
-    circuit consists of :math:`k + 2` qubits and at most :math:`16 * k - 8` CX gates.
+    circuit consists of :math:`k + 2` qubits and at most :math:`16 * k - 24` CX gates.
 
     The plugin supports the following plugin-specific options:
 
     * num_clean_ancillas: The number of clean auxiliary qubits available.
 
     References:
-        1. Barenco et. al., Phys.Rev. A52 3457 (1995),
+        1. Barenco et. al., *Elementary gates for quantum computation*, Phys.Rev. A52 3457 (1995),
            `arXiv:quant-ph/9503016 <https://arxiv.org/abs/quant-ph/9503016>`_
     """
 

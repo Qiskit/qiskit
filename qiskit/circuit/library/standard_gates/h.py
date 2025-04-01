@@ -54,7 +54,7 @@ class HGate(SingletonGate):
             \end{pmatrix}
     """
 
-    _standard_gate = StandardGate.HGate
+    _standard_gate = StandardGate.H
 
     def __init__(self, label: Optional[str] = None):
         """Create new H gate."""
@@ -188,7 +188,7 @@ class CHGate(SingletonControlledGate):
                 \end{pmatrix}
     """
 
-    _standard_gate = StandardGate.CHGate
+    _standard_gate = StandardGate.CH
 
     def __init__(
         self,

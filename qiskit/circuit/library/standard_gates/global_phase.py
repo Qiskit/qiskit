@@ -35,7 +35,7 @@ class GlobalPhaseGate(Gate):
             \end{pmatrix}
     """
 
-    _standard_gate = StandardGate.GlobalPhaseGate
+    _standard_gate = StandardGate.GlobalPhase
 
     def __init__(self, phase: ParameterValueType, label: Optional[str] = None):
         """
