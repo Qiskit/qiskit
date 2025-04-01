@@ -194,6 +194,26 @@ not sufficient, the corresponding synthesis method will return `None`.
       - `0`
       - `k-2`
       - at most `8*k-6` CX gates
+    * - ``"2_clean_kg24"``
+        - :class:`~.MCXSynthesis2CleanKG24`
+        - `2`
+        - `0`
+        - at most `12*k-18` CX gates
+    * - ``"2_dirty_kg24"``
+        - :class:`~.MCXSynthesis2DirtyKG24`
+        - `0`
+        - `2`
+        - at most `24*k-48` CX gates
+    * - ``"1_clean_kg24"``
+        - :class:`~.MCXSynthesis1CleanKG24`
+        - `1`
+        - `0`
+        - at most `12*k-18` CX gates
+    * - ``"1_dirty_kg24"``
+        - :class:`~.MCXSynthesis1DirtyKG24`
+        - `0`
+        - `1`
+        - at most `24*k-48` CX gates
     * - ``"1_clean_b95"``
       - :class:`~.MCXSynthesis1CleanB95`
       - `1`
@@ -212,6 +232,10 @@ not sufficient, the corresponding synthesis method will return `None`.
    MCXSynthesisNoAuxV24
    MCXSynthesisNCleanM15
    MCXSynthesisNDirtyI15
+   MCXSynthesis2CleanKG24
+   MCXSynthesis2DirtyKG24
+   MCXSynthesis1CleanKG24
+   MCXSynthesis1DirtyKG24
    MCXSynthesis1CleanB95
    MCXSynthesisDefault
 
