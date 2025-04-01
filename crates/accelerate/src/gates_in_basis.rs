@@ -13,7 +13,6 @@
 use hashbrown::{HashMap, HashSet};
 use pyo3::prelude::*;
 use qiskit_circuit::circuit_data::CircuitData;
-use smallvec::SmallVec;
 
 use crate::nlayout::PhysicalQubit;
 use crate::target_transpiler::Target;
@@ -35,8 +34,8 @@ fn any_gate_missing_from_target(dag: &DAGCircuit, target: &Target) -> PyResult<b
         qargs: &[Qubit],
         wire_map: &HashMap<Qubit, PhysicalQubit>,
     ) -> PyResult<bool> {
-        let qargs_mapped = SmallVec::from_iter(qargs.iter().map(|q| wire_map[q]));
-        if !target.instruction_supported(gate.op.name(), Some(&qargs_mapped)) {
+        let qargs_mapped: Vec<PhysicalQubit> = qargs.iter().map(|q| wire_map[q]).collect();
+        if !target.instruction_supported(gate.op.name(), &qargs_mapped) {
             return Ok(true);
         }
 
