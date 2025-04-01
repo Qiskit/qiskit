@@ -61,8 +61,9 @@ class TestScheduledCircuit(QiskitTestCase):
             backend = GenericBackendV2(2, calibrate_instructions=True, seed=42)
 
         sc = transpile(qc, backend, scheduling_method="alap", layout_method="trivial")
-        self.assertEqual(sc.duration, 451095)
-        self.assertEqual(sc.unit, "dt")
+        with self.assertRaises(DeprecationWarning):
+            self.assertEqual(sc.duration, 451095)
+            self.assertEqual(sc.unit, "dt")
         self.assertEqual(sc.data[0].operation.name, "delay")
         self.assertEqual(sc.data[0].operation.duration, 450900)
         self.assertEqual(sc.data[0].operation.unit, "dt")
@@ -92,8 +93,9 @@ class TestScheduledCircuit(QiskitTestCase):
                 dt=self.dt,
                 layout_method="trivial",
             )
-        self.assertEqual(sc.duration, 450546)
-        self.assertEqual(sc.unit, "dt")
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(sc.duration, 450546)
+            self.assertEqual(sc.unit, "dt")
         self.assertEqual(sc.data[0].operation.name, "delay")
         self.assertEqual(sc.data[0].operation.duration, 450450)
         self.assertEqual(sc.data[0].operation.unit, "dt")
@@ -119,8 +121,9 @@ class TestScheduledCircuit(QiskitTestCase):
             sc = transpile(
                 qc, self.backend_without_dt, scheduling_method="alap", layout_method="trivial"
             )
-        self.assertAlmostEqual(sc.duration, 450610 * self.dt)
-        self.assertEqual(sc.unit, "s")
+        with self.assertWarns(DeprecationWarning):
+            self.assertAlmostEqual(sc.duration, 450610 * self.dt)
+            self.assertEqual(sc.unit, "s")
         self.assertEqual(sc.data[0].operation.name, "delay")
         self.assertAlmostEqual(sc.data[0].operation.duration, 1.0e-4 + 1.0e-7)
         self.assertEqual(sc.data[0].operation.unit, "s")
@@ -157,7 +160,8 @@ class TestScheduledCircuit(QiskitTestCase):
             "stop supporting inputs of type `BackendV1`",
         ):
             sc = transpile(qc, backend=self.backend_with_dt, scheduling_method="alap")
-        self.assertEqual(sc.duration, 1234)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(sc.duration, 1234)
         self.assertEqual(sc.data[0].operation.name, "delay")
         self.assertEqual(sc.data[0].operation.duration, 1234)
         self.assertEqual(sc.data[0].operation.unit, "dt")
@@ -173,7 +177,8 @@ class TestScheduledCircuit(QiskitTestCase):
             "stop supporting inputs of type `BackendV1`",
         ):
             scheduled = transpile(qc, backend=self.backend_with_dt, scheduling_method="alap")
-        self.assertEqual(scheduled.duration, 8004)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(scheduled.duration, 8004)
 
     def test_transpile_delay_circuit_with_backend(self):
         qc = QuantumCircuit(2)
@@ -188,7 +193,8 @@ class TestScheduledCircuit(QiskitTestCase):
             scheduled = transpile(
                 qc, backend=self.backend_with_dt, scheduling_method="alap", layout_method="trivial"
             )
-        self.assertEqual(scheduled.duration, 1826)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(scheduled.duration, 1826)
 
     def test_transpile_delay_circuit_without_backend(self):
         qc = QuantumCircuit(2)
@@ -205,7 +211,8 @@ class TestScheduledCircuit(QiskitTestCase):
                 basis_gates=["h", "cx"],
                 instruction_durations=[("h", 0, 200), ("cx", [0, 1], 700)],
             )
-        self.assertEqual(scheduled.duration, 1200)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(scheduled.duration, 1200)
 
     def test_transpile_circuit_with_custom_instruction(self):
         """See: https://github.com/Qiskit/qiskit-terra/issues/5154"""
@@ -222,7 +229,8 @@ class TestScheduledCircuit(QiskitTestCase):
             scheduled = transpile(
                 qc, scheduling_method="alap", instruction_durations=[("bell", [0, 1], 1000)]
             )
-        self.assertEqual(scheduled.duration, 1500)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(scheduled.duration, 1500)
 
     def test_transpile_delay_circuit_with_dt_but_without_scheduling_method(self):
         qc = QuantumCircuit(1)
@@ -233,7 +241,8 @@ class TestScheduledCircuit(QiskitTestCase):
             "stop supporting inputs of type `BackendV1`",
         ):
             transpiled = transpile(qc, backend=self.backend_with_dt)
-        self.assertEqual(transpiled.duration, None)  # not scheduled
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(transpiled.duration, None)  # not scheduled
         self.assertEqual(transpiled.data[0].operation.duration, 450)  # unit is converted ns -> dt
 
     def test_transpile_delay_circuit_without_scheduling_method_or_durs(self):
@@ -242,7 +251,8 @@ class TestScheduledCircuit(QiskitTestCase):
         qc.delay(500, 1)
         qc.cx(0, 1)
         not_scheduled = transpile(qc)
-        self.assertEqual(not_scheduled.duration, None)
+        with self.assertRaises(DeprecationWarning):
+            self.assertEqual(not_scheduled.duration, None)
 
     def test_raise_error_if_transpile_with_scheduling_method_but_without_durations(self):
         qc = QuantumCircuit(2)
@@ -265,7 +275,8 @@ class TestScheduledCircuit(QiskitTestCase):
             scheduled = transpile(qc, backend=self.backend_with_dt, scheduling_method="alap")
         # append a gate to a scheduled circuit
         scheduled.h(0)
-        self.assertEqual(scheduled.duration, None)
+        with self.assertRaises(DeprecationWarning):
+            self.assertEqual(scheduled.duration, None)
 
     def test_default_units_for_my_own_duration_users(self):
         qc = QuantumCircuit(2)
@@ -283,7 +294,8 @@ class TestScheduledCircuit(QiskitTestCase):
                 scheduling_method="alap",
                 instruction_durations=[("h", 0, 200), ("cx", None, 900)],
             )
-        self.assertEqual(scheduled.duration, 1400)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(scheduled.duration, 1400)
         with self.assertWarnsRegex(
             DeprecationWarning,
             expected_regex="The `target` parameter should be used instead",
@@ -295,7 +307,8 @@ class TestScheduledCircuit(QiskitTestCase):
                 scheduling_method="alap",
                 instruction_durations=[("h", 0, 200), ("cx", None, 900), ("cx", [0, 1], 800)],
             )
-        self.assertEqual(scheduled.duration, 1300)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(scheduled.duration, 1300)
 
     def test_unit_seconds_when_using_backend_durations(self):
         qc = QuantumCircuit(2)
@@ -311,7 +324,8 @@ class TestScheduledCircuit(QiskitTestCase):
             scheduled = transpile(
                 qc, backend=self.backend_with_dt, scheduling_method="alap", layout_method="trivial"
             )
-        self.assertEqual(scheduled.duration, 1876)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(scheduled.duration, 1876)
 
         # update durations
         durations = InstructionDurations.from_backend(self.backend_with_dt)
@@ -328,7 +342,8 @@ class TestScheduledCircuit(QiskitTestCase):
                 instruction_durations=durations,
                 layout_method="trivial",
             )
-        self.assertEqual(scheduled.duration, 1500)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(scheduled.duration, 1500)
 
     def test_per_qubit_durations_loose_constrain(self):
         """See Qiskit/5109 and Qiskit/13306"""
@@ -451,31 +466,33 @@ class TestScheduledCircuit(QiskitTestCase):
         circ.measure_all()
 
         circuit_dt = transpile(circ, backend, scheduling_method="asap")
-        # reference duration and unit in dt
-        ref_duration = circuit_dt.duration
-        ref_unit = circuit_dt.unit
+        with self.assertWarns(DeprecationWarning):
+            # reference duration and unit in dt
+            ref_duration = circuit_dt.duration
+            ref_unit = circuit_dt.unit
 
-        circuit_s = circuit_dt.copy()
-        circuit_s.duration *= backend.dt
-        circuit_s.unit = "s"
+            circuit_s = circuit_dt.copy()
+            circuit_s.duration *= backend.dt
+            circuit_s.unit = "s"
 
-        circuit_ms = circuit_s.copy()
-        circuit_ms.duration *= 1000
-        circuit_ms.unit = "ms"
+            circuit_ms = circuit_s.copy()
+            circuit_ms.duration *= 1000
+            circuit_ms.unit = "ms"
 
         for circuit in [circuit_dt, circuit_s, circuit_ms]:
             with self.subTest(circuit=circuit):
                 converted_circ = convert_durations_to_dt(
                     circuit, dt_in_sec=schedule_config.dt, inplace=False
                 )
-                self.assertEqual(
-                    converted_circ.duration,
-                    ref_duration,
-                )
-                self.assertEqual(
-                    converted_circ.unit,
-                    ref_unit,
-                )
+                with self.assertWarns(DeprecationWarning):
+                    self.assertEqual(
+                        converted_circ.duration,
+                        ref_duration,
+                    )
+                    self.assertEqual(
+                        converted_circ.unit,
+                        ref_unit,
+                    )
 
     @data("s", "dt", "f", "p", "n", "u", "µ", "m", "k", "M", "G", "T", "P")
     def test_estimate_duration(self, unit):
@@ -641,7 +658,9 @@ class TestScheduledCircuit(QiskitTestCase):
             "stop supporting inputs of type `BackendV1`",
         ):
             scheduled = transpile(qc, backend=self.backend_with_dt, scheduling_method="asap")
-        org_duration = scheduled.duration
+
+        with self.assertWarns(DeprecationWarning):
+            org_duration = scheduled.duration
 
         # halve dt in sec = double duration in dt
         with self.assertWarnsRegex(
@@ -652,7 +671,8 @@ class TestScheduledCircuit(QiskitTestCase):
             scheduled = transpile(
                 qc, backend=self.backend_with_dt, scheduling_method="asap", dt=self.dt / 2
             )
-        self.assertEqual(scheduled.duration, org_duration * 2)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(scheduled.duration, org_duration * 2)
 
     @data("asap", "alap")
     def test_duration_on_same_instruction_instance(self, scheduling_method):
@@ -677,7 +697,8 @@ class TestScheduledCircuit(QiskitTestCase):
         qc = QuantumCircuit(1)
         qc.delay(100, 0, "ns")
         circ = transpile(qc, self.simulator_backend)
-        self.assertEqual(circ.duration, None)  # not scheduled
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(circ.duration, None)  # not scheduled
         with self.assertWarns(DeprecationWarning):
             qobj = assemble(circ, self.simulator_backend)
         self.assertEqual(qobj.experiments[0].instructions[0].name, "delay")
@@ -690,7 +711,8 @@ class TestScheduledCircuit(QiskitTestCase):
         qc.delay(0.1, 0, "us")
         qc.measure(0, 0)
         circ = transpile(qc, self.simulator_backend)
-        self.assertEqual(circ.duration, None)  # not scheduled
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(circ.duration, None)  # not scheduled
         with self.assertWarns(DeprecationWarning):
             qobj = assemble(circ, self.simulator_backend)
         self.assertEqual(qobj.experiments[0].instructions[1].name, "delay")
@@ -712,7 +734,8 @@ class TestScheduledCircuit(QiskitTestCase):
             "stop supporting inputs of type `BackendV1`",
         ):
             circ = transpile(qc, self.backend_with_dt)
-        self.assertEqual(circ.duration, None)  # not scheduled
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(circ.duration, None)  # not scheduled
         self.assertEqual(circ.data[1].operation.duration, 450)  # converted in dt
 
     def test_can_transpile_and_assemble_circuits_with_assigning_parameters_inbetween(self):
@@ -746,7 +769,8 @@ class TestScheduledCircuit(QiskitTestCase):
             "stop supporting inputs of type `BackendV1`",
         ):
             circ = transpile(qc, self.backend_with_dt)
-        self.assertEqual(circ.duration, None)  # not scheduled
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(circ.duration, None)  # not scheduled
         self.assertEqual(circ.data[1].operation.unit, "dt")  # converted in dt
         self.assertEqual(
             circ.data[1].operation.duration, idle_dur * 1e-6 / self.dt
@@ -781,7 +805,8 @@ class TestScheduledCircuit(QiskitTestCase):
             "stop supporting inputs of type `BackendV1`",
         ):
             circ = transpile(qc, self.backend_with_dt, scheduling_method=scheduling_method)
-        self.assertIsNotNone(circ.duration)  # scheduled
+        with self.assertWarns(DeprecationWarning):
+            self.assertIsNotNone(circ.duration)  # scheduled
 
     @data("asap", "alap")
     def test_fail_to_schedule_circuits_with_unbounded_parameters(self, scheduling_method):

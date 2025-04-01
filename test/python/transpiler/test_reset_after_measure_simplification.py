@@ -202,5 +202,4 @@ class TestResetAfterMeasureSimplificationt(QiskitTestCase):
         expected.while_loop(
             (expected.clbits[0], True), body_expected, expected.qubits, expected.clbits
         )
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(pass_(test), expected)
+        self.assertEqual(pass_(test), expected)

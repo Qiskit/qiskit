@@ -129,7 +129,7 @@ class AlignMeasures(TransformationPass):
             return dag
 
         # if circuit is not yet scheduled, schedule with ALAP method
-        if dag.duration is None:
+        if dag._duration is None:
             raise TranspilerError(
                 f"This circuit {dag.name} may involve a delay instruction violating the "
                 "pulse controller alignment. To adjust instructions to "
@@ -201,8 +201,8 @@ class AlignMeasures(TransformationPass):
         new_dag.metadata = dag.metadata
 
         # set circuit duration and unit to indicate it is scheduled
-        new_dag.duration = circuit_duration
-        new_dag.unit = time_unit
+        new_dag._duration = circuit_duration
+        new_dag._unit = time_unit
 
         return new_dag
 
