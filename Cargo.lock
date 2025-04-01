@@ -1374,9 +1374,9 @@ dependencies = [
 
 [[package]]
 name = "pyo3-build-config"
-version = "0.24.0"
+version = "0.24.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e9b6c2b34cf71427ea37c7001aefbaeb85886a074795e35f161f5aecc7620a7a"
+checksum = "e27165889bd793000a098bb966adc4300c312497ea25cf7a690a9f0ac5aa5fc1"
 dependencies = [
  "once_cell",
  "target-lexicon 0.13.2",
@@ -1456,7 +1456,7 @@ dependencies = [
  "cbindgen",
  "num-complex",
  "pyo3",
- "pyo3-build-config 0.24.0",
+ "pyo3-build-config 0.24.1",
  "qiskit-accelerate",
  "thiserror 2.0.12",
 ]
