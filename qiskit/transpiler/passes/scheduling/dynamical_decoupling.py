@@ -168,7 +168,7 @@ class DynamicalDecoupling(TransformationPass):
         if len(dag.qregs) != 1 or dag.qregs.get("q", None) is None:
             raise TranspilerError("DD runs on physical circuits only.")
 
-        if dag.duration is None:
+        if dag._duration is None:
             raise TranspilerError("DD runs after circuit is scheduled.")
 
         durations = self._update_inst_durations(dag)
