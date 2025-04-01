@@ -42,10 +42,10 @@ pub fn split_2q_unitaries(
             if qubits.len() != 2 || inst.op.name() != "unitary" {
                 continue;
             }
-            let matrix = inst
-                .op
-                .matrix(inst.params_view())
-                .expect("'unitary' gates should always have a matrix form");
+            let matrix = match inst.op.matrix(inst.params_view()) {
+                Some(mat) => mat,
+                None => continue,
+            };
             let decomp = TwoQubitWeylDecomposition::new_inner(
                 matrix.view(),
                 Some(requested_fidelity),
