@@ -739,7 +739,8 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
         expected_asap.delay(300, 2)
         expected_asap.measure(2, 0)
         self.assertEqual(expected_asap, actual_asap)
-        self.assertEqual(actual_asap.duration, 3100)
+        with self.assertWarns(DeprecationWarning):
+          self.assertEqual(actual_asap.duration, 3100)
 
         expected_alap = QuantumCircuit(3, 1)
         expected_alap.delay(200, 0)  # due to conditional latency of 200dt
@@ -767,7 +768,8 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
         expected_alap.delay(700, 0)
         expected_alap.delay(700, 1)
         self.assertEqual(expected_alap, actual_alap)
-        self.assertEqual(actual_alap.duration, 3100)
+        with self.assertWarns(DeprecationWarning):
+          self.assertEqual(actual_alap.duration, 3100)
 
     def test_dag_introduces_extra_dependency_between_conditionals(self):
         """Test dependency between conditional operations in the scheduling.

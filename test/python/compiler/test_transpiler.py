@@ -1644,7 +1644,8 @@ class TestTranspile(QiskitTestCase):
                 instruction_durations=durations,
                 layout_method="trivial",
             )
-        self.assertEqual(scheduled.duration, 1500)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(scheduled.duration, 1500)
 
         with self.assertWarnsRegex(
             DeprecationWarning,
