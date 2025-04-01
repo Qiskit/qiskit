@@ -42,7 +42,7 @@ jobs:
   # pipeline to reduce the amount of resources used.
   main-tests-ubuntu:
     if: github.repository_owner == 'Qiskit'
-    name: Main Tests (ubuntu-latest)
+    name: Main Tests (ubuntu)
     needs: [lint-docs, preliminary-tests]
     strategy:
       matrix:
