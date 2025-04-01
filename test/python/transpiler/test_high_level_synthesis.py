@@ -54,7 +54,7 @@ from qiskit.circuit.library import (
     QAOAAnsatz,
     GlobalPhaseGate,
 )
-from qiskit.circuit.library import LinearFunction, PauliEvolutionGate, HalfAdderGate
+from qiskit.circuit.library import LinearFunction, PauliEvolutionGate
 from qiskit.quantum_info import Clifford, Operator, Statevector, SparsePauliOp
 from qiskit.synthesis.evolution import synth_pauli_network_rustiq
 from qiskit.synthesis.linear import random_invertible_binary_matrix
