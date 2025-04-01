@@ -1,4 +1,8 @@
 ---
 features:
   - |
-    Improved the default plugin for synthesizing annotated operations.
+    Improved synthesis of multi-controlled :class:`.CZGate` gates.
+  - |
+    Improved the default plugin for synthesizing :class:`~.AnnotatedOperation` objects.
+    The improvement is especially useful when transpiling controlled circuits with 
+    controlled gates within. 
