@@ -2683,7 +2683,18 @@ class TestMCXSynthesisPlugins(QiskitTestCase):
             )
             self.assertIsNotNone(decomposition)
 
-    @data("n_clean_m15", "n_dirty_i15", "1_clean_b95", "noaux_v24", "gray_code", "default")
+    @data(
+        "n_clean_m15",
+        "n_dirty_i15",
+        "2_clean_kg24",
+        "2_dirty_kg24",
+        "1_clean_kg24",
+        "1_dirty_kg24",
+        "1_clean_b95",
+        "noaux_v24",
+        "gray_code",
+        "default",
+    )
     def test_mcx_plugins_correctness_from_arbitrary(self, mcx_plugin_name):
         """Test that all plugins return a correct Operator when qubits are not
         initially zero."""
@@ -2698,7 +2709,18 @@ class TestMCXSynthesisPlugins(QiskitTestCase):
         qct = hls_pass(qc)
         self.assertEqual(Operator(qc), Operator(qct))
 
-    @data("n_clean_m15", "n_dirty_i15", "1_clean_b95", "noaux_v24", "gray_code", "default")
+    @data(
+        "n_clean_m15",
+        "n_dirty_i15",
+        "2_clean_kg24",
+        "2_dirty_kg24",
+        "1_clean_kg24",
+        "1_dirty_kg24",
+        "1_clean_b95",
+        "noaux_v24",
+        "gray_code",
+        "default",
+    )
     def test_mcx_plugins_correctness_from_zero(self, mcx_plugin_name):
         """Test that all plugins return a correct Statevector when qubits are
         initially zero."""
