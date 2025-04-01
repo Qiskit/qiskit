@@ -3,12 +3,14 @@
 # be in the triggers at the top of this file.
 name: Push
 on:
+  # Remove when proven to work
+  pull_request:
   push:
     branches: [main, "stable/*"]
 
 jobs:
   tests-mac:
-    # if: github.repository_owner == 'Qiskit'
+    if: github.repository_owner == 'Qiskit'
     uses: ./.github/workflows/test-mac.yml
     strategy:
       matrix:
@@ -17,7 +19,7 @@ jobs:
       python-version: ${{ matrix.python-version }}
       install-optionals: false
   test-linux:
-    # if: github.repository_owner == 'Qiskit'
+    if: github.repository_owner == 'Qiskit'
     uses: ./.github/workflows/test-linux.yml
     with:
       python-version: "3.9"

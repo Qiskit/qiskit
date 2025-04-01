@@ -19,7 +19,7 @@ on:
 
 jobs:
   test-windows:
-    # if: github.repository_owner == 'Qiskit'
+    if: github.repository_owner == 'Qiskit'
     name: windows-latest-tests-Python-${{ inputs.python-version }}
     runs-on: windows-latest
     env:

@@ -19,7 +19,7 @@ on:
 
 jobs:
   tests-mac:
-    # if: github.repository_owner == 'Qiskit'
+    if: github.repository_owner == 'Qiskit'
     name: macOS-arm64-tests-Python-${{ inputs.python-version }}
     runs-on: macOS-14
     env:

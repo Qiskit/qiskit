@@ -8,7 +8,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   docs:
-    # if: github.repository_owner == 'Qiskit'
+    if: github.repository_owner == 'Qiskit'
     name: Docs
     runs-on: ubuntu-latest
     strategy:

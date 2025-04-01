@@ -34,7 +34,7 @@ on:
 
 jobs:
   tests-linux:
-    # if: github.repository_owner == 'Qiskit'
+    if: github.repository_owner == 'Qiskit'
     name: ${{ matrix.os }}-tests-Python-${{ inputs.python-version }}
     runs-on: ${{ matrix.os }}
     env:

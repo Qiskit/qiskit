@@ -9,6 +9,8 @@
 # throughput in low-contention cases, and guarantees a longer critical path.
 name: Merge queue
 on:
+  # remove when proven to work
+  pull_request:
   merge_group:
     branches: [main, "stable/*"]
 concurrency:
@@ -17,11 +19,11 @@ concurrency:
 
 jobs:
   docs_lint:
-    # if: github.repository_owner == 'Qiskit'
+    if: github.repository_owner == 'Qiskit'
     name: Docs and Lint
     uses: ./.github/workflows/lint_docs.yml
   test-linux:
-    # if: github.repository_owner == 'Qiskit'
+    if: github.repository_owner == 'Qiskit'
     uses: ./.github/workflows/test-linux.yml
     strategy:
       matrix:
@@ -32,13 +34,13 @@ jobs:
       test-rust: ${{ matrix.python-version == '3.9' }}
       test-images: ${{ matrix.python-version == '3.9' }}
   test-mac:
-    # if: github.repository_owner == 'Qiskit'
+    if: github.repository_owner == 'Qiskit'
     uses: ./.github/workflows/test-mac.yml
     with:
       python-version: "3.13"
       install-optionals: false
   test-windows:
-    # if: github.repository_owner == 'Qiskit'
+    if: github.repository_owner == 'Qiskit'
     uses: ./.github/workflows/test-windows.yml
     with:
       python-version: "3.13"

@@ -18,13 +18,13 @@ jobs:
   # failure that would affect _any_ OS or Python version.  The goal in the
   # first stage is to catch the vast majority of failures with minimal cost.
   lint-docs:
-    # if: github.repository_owner == 'Qiskit'
+    if: github.repository_owner == 'Qiskit'
     name: Docs and Lint
     uses: ./.github/workflows/lint_docs.yml
   preliminary-tests:
     name: Preliminary Tests
     uses: ./.github/workflows/test-linux.yml
-    # if: github.repository_owner == 'Qiskit'
+    if: github.repository_owner == 'Qiskit'
     with:
       python-version: "3.9"
       # A PR is more likely to fail CI because it introduces a logic error
@@ -41,7 +41,7 @@ jobs:
   # intermediate version of Python, so we just catch those in the cron-job
   # pipeline to reduce the amount of resources used.
   main-tests-ubuntu:
-    # if: github.repository_owner == 'Qiskit'
+    if: github.repository_owner == 'Qiskit'
     name: Main Tests (ubuntu-latest)
     needs: [lint-docs, preliminary-tests]
     strategy:
@@ -56,7 +56,7 @@ jobs:
       install-optionals: false
 
   main-tests-mac:
-    # if: github.repository_owner == 'Qiskit'
+    if: github.repository_owner == 'Qiskit'
     name: Main Tests (macos)
     needs: [lint-docs, preliminary-tests]
     strategy:
@@ -68,7 +68,7 @@ jobs:
       install-optionals: ${{ matrix.python_version == '3.9'}}
 
   main-tests-windows:
-    # if: github.repository_owner == 'Qiskit'
+    if: github.repository_owner == 'Qiskit'
     name: Main Tests (windows-latest)
     needs: [lint-docs, preliminary-tests]
     strategy:
