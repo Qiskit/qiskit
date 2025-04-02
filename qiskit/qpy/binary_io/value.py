@@ -124,11 +124,10 @@ def _encode_replay_entry(inst, file_obj, version, r_side=False):
 
 def _encode_replay_subs(subs, file_obj, version):
     with io.BytesIO() as mapping_buf:
-        # the keys in subs_dict have been updated from using `name` to `uuid`
-        # to avoid name clashes when a parameter has been re-assigned to another
-        # parameter with the same name. The decoding side still supports both key
-        # formats for backward compatibility.
-        subs_dict = {str(k.uuid): v for k, v in subs.binds.items()}
+        if version < 15:
+            subs_dict = {k.name: v for k, v in subs.binds.items()}
+        else:
+            subs_dict = {k.uuid.bytes: v for k, v in subs.binds.items()}
         common.write_mapping(
             mapping_buf, mapping=subs_dict, serializer=dumps_value, version=version
         )
@@ -617,11 +616,10 @@ def _read_parameter_expression_v13(file_obj, vectors, version):
 
 def _read_parameter_expr_v13(buf, symbol_map, version, vectors):
     param_uuid_map = {symbol.uuid: symbol for symbol in symbol_map if isinstance(symbol, Parameter)}
-    # accept both names and uuids as name_map keys
-    name_map = {str(v): k for k, v in symbol_map.items()}
-    name_map.update(
-        {str(symbol.uuid): symbol for symbol in symbol_map if isinstance(symbol, Parameter)}
-    )
+    if version < 15:
+        name_map = {str(v): k for k, v in symbol_map.items()}
+    else:
+        name_map = {symbol.uuid: symbol for symbol in symbol_map if isinstance(symbol, Parameter)}
     data = buf.read(formats.PARAM_EXPR_ELEM_V13_SIZE)
     stack = []
     while data:
