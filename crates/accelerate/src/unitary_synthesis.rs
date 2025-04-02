@@ -516,8 +516,7 @@ fn get_2q_decomposers_from_target(
     pulse_optimize: Option<bool>,
 ) -> PyResult<Option<Vec<DecomposerElement>>> {
     // Store elegible basis gates (1q and 2q) with corresponding qargs (PhysicalQubit)
-    let qubits: SmallVec<[PhysicalQubit; 2]> = SmallVec::from_buf(*qubits);
-    let reverse_qubits: SmallVec<[PhysicalQubit; 2]> = qubits.iter().rev().copied().collect();
+    let reverse_qubits: [PhysicalQubit; 2] = [qubits[1], qubits[0]];
     let mut qubit_gate_map = IndexMap::new();
     match target.operation_names_for_qargs(&qubits) {
         Ok(direct_keys) => {
