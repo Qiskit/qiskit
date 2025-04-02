@@ -26,25 +26,25 @@ use qiskit_circuit::operations::StandardGate;
 #[pyo3(name = "remove_diagonal_gates_before_measure")]
 fn run_remove_diagonal_before_measure(dag: &mut DAGCircuit) -> PyResult<()> {
     static DIAGONAL_1Q_GATES: [StandardGate; 8] = [
-        StandardGate::RZGate,
-        StandardGate::ZGate,
-        StandardGate::TGate,
-        StandardGate::SGate,
-        StandardGate::TdgGate,
-        StandardGate::SdgGate,
-        StandardGate::U1Gate,
-        StandardGate::PhaseGate,
+        StandardGate::RZ,
+        StandardGate::Z,
+        StandardGate::T,
+        StandardGate::S,
+        StandardGate::Tdg,
+        StandardGate::Sdg,
+        StandardGate::U1,
+        StandardGate::Phase,
     ];
     static DIAGONAL_2Q_GATES: [StandardGate; 7] = [
-        StandardGate::CZGate,
-        StandardGate::CRZGate,
-        StandardGate::CU1Gate,
-        StandardGate::RZZGate,
-        StandardGate::CPhaseGate,
-        StandardGate::CSGate,
-        StandardGate::CSdgGate,
+        StandardGate::CZ,
+        StandardGate::CRZ,
+        StandardGate::CU1,
+        StandardGate::RZZ,
+        StandardGate::CPhase,
+        StandardGate::CS,
+        StandardGate::CSdg,
     ];
-    static DIAGONAL_3Q_GATES: [StandardGate; 1] = [StandardGate::CCZGate];
+    static DIAGONAL_3Q_GATES: [StandardGate; 1] = [StandardGate::CCZ];
 
     let mut nodes_to_remove = Vec::new();
     for (index, inst) in dag.op_nodes(true) {

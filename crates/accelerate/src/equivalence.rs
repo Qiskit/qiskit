@@ -817,7 +817,6 @@ where
     Ok(graph.unbind())
 }
 
-#[pymodule]
 pub fn equivalence(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<EquivalenceLibrary>()?;
     m.add_class::<NodeData>()?;

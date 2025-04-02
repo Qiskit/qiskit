@@ -17,6 +17,7 @@ import unittest
 import contextlib
 import logging
 import math
+import dill
 import numpy as np
 import scipy
 import scipy.stats
@@ -1543,6 +1544,41 @@ class TestTwoQubitControlledUDecompose(CheckDecompositions):
         decomposer = TwoQubitControlledUDecomposer(CustomRZZeqGate)
         circ = decomposer(unitary)
         self.assertEqual(Operator(unitary), Operator(circ))
+
+    def test_assert_pickle(self):
+        """Assert that TwoQubitControlledUDecomposer supports pickle"""
+
+        decomp = TwoQubitControlledUDecomposer(RXXGate)
+
+        pkl = pickle.dumps(decomp, protocol=max(4, pickle.DEFAULT_PROTOCOL))
+        decomp_cpy = pickle.loads(pkl)
+        msg_base = f"decomp:\n{decomp}\ndecomp_cpy:\n{decomp_cpy}"
+        self.assertEqual(type(decomp), type(decomp_cpy), msg_base)
+        self.assertEqual(decomp.rxx_equivalent_gate, decomp_cpy.rxx_equivalent_gate, msg=msg_base)
+        self.assertEqual(decomp.euler_basis, decomp_cpy.euler_basis, msg=msg_base)
+
+    def test_assert_pickle_with_dill(self):
+        """Assert that TwoQubitControlledUDecomposer supports pickle"""
+
+        class CustomXXGate(RXXGate):
+            """Custom RXXGate subclass that's not a standard gate"""
+
+            _standard_gate = None
+
+            def __init__(self, theta, label=None):
+                super().__init__(theta, label)
+                self.name = "MyCustomXXGate"
+
+        decomp = TwoQubitControlledUDecomposer(CustomXXGate)
+
+        pkl = dill.dumps(decomp, protocol=max(4, pickle.DEFAULT_PROTOCOL))
+        decomp_cpy = dill.loads(pkl)
+        msg_base = f"decomp:\n{decomp}\ndecomp_cpy:\n{decomp_cpy}"
+        self.assertEqual(type(decomp), type(decomp_cpy), msg_base)
+        self.assertEqual(
+            decomp.rxx_equivalent_gate.name, decomp_cpy.rxx_equivalent_gate.name, msg=msg_base
+        )
+        self.assertEqual(decomp.euler_basis, decomp_cpy.euler_basis, msg=msg_base)
 
 
 class TestDecomposeProductRaises(QiskitTestCase):

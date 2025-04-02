@@ -120,7 +120,7 @@ class RZXGate(Gate):
                                     \end{pmatrix}
     """
 
-    _standard_gate = StandardGate.RZXGate
+    _standard_gate = StandardGate.RZX
 
     def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
         """Create new RZX gate."""

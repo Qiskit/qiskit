@@ -194,6 +194,27 @@ of QPY in qiskit-terra 0.18.0.
    * - Qiskit (qiskit-terra for < 1.0.0) version
      - :func:`.dump` format(s) output versions
      - :func:`.load` maximum supported version (older format versions can always be read)
+   * - 2.0.0
+     - 13, 14
+     - 14
+   * - 1.4.2
+     - 10, 11, 12, 13
+     - 13
+   * - 1.4.1
+     - 10, 11, 12, 13
+     - 13
+   * - 1.4.0
+     - 10, 11, 12, 13
+     - 13
+   * - 1.3.3
+     - 10, 11, 12, 13
+     - 13
+   * - 1.3.2
+     - 10, 11, 12, 13
+     - 13
+   * - 1.3.1
+     - 10, 11, 12, 13
+     - 13
    * - 1.3.0
      - 10, 11, 12, 13
      - 13

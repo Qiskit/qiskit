@@ -1318,8 +1318,9 @@ class TestTranspile(QiskitTestCase):
             seed_transpiler=42,
         )
 
-        self.assertEqual(out.unit, "dt")
-        self.assertEqual(out.duration, 1200)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(out.unit, "dt")
+            self.assertEqual(out.duration, 1200)
 
     @data(0, 1, 2, 3)
     def test_circuit_with_delay_expr_duration(self, optimization_level):
@@ -1355,8 +1356,9 @@ class TestTranspile(QiskitTestCase):
             seed_transpiler=42,
         )
 
-        self.assertEqual(out.unit, "dt")
-        self.assertEqual(out.duration, 1200)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(out.unit, "dt")
+            self.assertEqual(out.duration, 1200)
 
     def test_delay_converts_to_dt(self):
         """Test that a delay instruction is converted to units of dt given a backend."""
@@ -1371,6 +1373,28 @@ class TestTranspile(QiskitTestCase):
 
         out = transpile(qc, dt=1e-9, seed_transpiler=42)
         self.assertEqual(out.data[0].operation.unit, "dt")
+
+    def test_delay_converts_to_seconds(self):
+        """Test that a delay instruction is converted to units of seconds when there is no dt."""
+        qc = QuantumCircuit(2)
+        qc.delay(1000, [0], unit="us")
+        qc.x(0)
+
+        # No backend
+        out = transpile([qc, qc], seed_transpiler=42)
+        self.assertEqual(out[0].data[0].operation.unit, "s")
+        self.assertEqual(out[1].data[0].operation.unit, "s")
+        self.assertEqual(out[0].data[0].operation.params[0], 1e-3)
+        self.assertEqual(out[1].data[0].operation.params[0], 1e-3)
+
+        # Backend without dt
+        backend = GenericBackendV2(num_qubits=4)
+        backend.target.dt = None
+        out = transpile([qc, qc], backend, seed_transpiler=42)
+        self.assertEqual(out[0].data[0].operation.unit, "s")
+        self.assertEqual(out[1].data[0].operation.unit, "s")
+        self.assertEqual(out[0].data[0].operation.params[0], 1e-3)
+        self.assertEqual(out[1].data[0].operation.params[0], 1e-3)
 
     def test_delay_converts_expr_to_dt(self):
         """Test that a delay instruction with a duration expression of type Duration
@@ -1513,6 +1537,21 @@ class TestTranspile(QiskitTestCase):
                 seed_transpiler=42,
             )
 
+    def test_rejects_mixed_units_delay_without_target_dt(self):
+        """Test that delay instructions with SI and dt units are rejected without dt."""
+        qc = QuantumCircuit(2)
+        qc.delay(10, 1, unit="dt")
+        qc.delay(10, 1, unit="ns")
+
+        backend = GenericBackendV2(num_qubits=2)
+        backend.target.dt = None
+        with self.assertRaisesRegex(TranspilerError, ".*SI units and dt unit must not be mixed"):
+            transpile(
+                qc,
+                backend=backend,
+                seed_transpiler=42,
+            )
+
     def test_rejects_mixed_units_delay_expr_without_target_dt(self):
         """Test that a delay instruction with wall time and cycles without target DT
         is rejected."""
@@ -1610,7 +1649,8 @@ class TestTranspile(QiskitTestCase):
             scheduling_method="alap",
             layout_method="trivial",
         )
-        self.assertEqual(scheduled.duration, 9010)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(scheduled.duration, 9010)
 
     def test_scheduling_instruction_constraints(self):
         """Test that scheduling-related loose transpile constraints work with target."""
@@ -1634,22 +1674,26 @@ class TestTranspile(QiskitTestCase):
             scheduling_method="alap",
             layout_method="trivial",
         )
-        self.assertEqual(scheduled.duration, 9010)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(scheduled.duration, 9010)
 
     def test_scheduling_dt_constraints(self):
         """Test that scheduling-related loose transpile constraints
         work with BackendV2."""
 
-        backend_v2 = GenericBackendV2(num_qubits=2, seed=1)
+        original_dt = 2.2222222222222221e-10
+        backend_v2 = GenericBackendV2(num_qubits=2, dt=original_dt, seed=3)
         qc = QuantumCircuit(1, 1)
         qc.x(0)
         qc.measure(0, 0)
-        original_dt = 2.2222222222222221e-10
-        original_duration = 5059
+        scheduled = transpile(qc, backend=backend_v2, scheduling_method="asap")
+        with self.assertWarns(DeprecationWarning):
+            original_duration = scheduled.duration
 
         # halve dt in sec = double duration in dt
         scheduled = transpile(qc, backend=backend_v2, scheduling_method="asap", dt=original_dt / 2)
-        self.assertEqual(scheduled.duration, original_duration * 2)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(scheduled.duration, original_duration * 2)
 
     @data(1, 2, 3)
     def test_no_infinite_loop(self, optimization_level):
@@ -2234,6 +2278,36 @@ class TestTranspile(QiskitTestCase):
         # to prevent contraction of the wires.
         active_indices = {qubit_map[bit] for instruction in body for bit in instruction.qubits}
         self.assertNotIn(8, active_indices)
+
+    def test_custom_dt_preserves_properties(self):
+        """Test that setting the `dt` parameter with a `backend` doesn't affect the target properties
+        and vf2 runs as expected.
+        """
+
+        coupling_map = [[0, 1], [1, 0], [1, 2], [1, 3], [2, 1], [3, 1], [3, 4], [4, 3]]
+        backend = GenericBackendV2(
+            num_qubits=5,
+            basis_gates=["id", "sx", "x", "cx", "rz"],
+            coupling_map=coupling_map,
+            seed=0,
+        )
+        qubits = 3
+        qc = QuantumCircuit(qubits)
+        for i in range(5):
+            qc.cx(i % qubits, int(i + qubits / 2) % qubits)
+
+        # transpile with no gate errors
+        tqc_no_error = transpile(qc, coupling_map=coupling_map, seed_transpiler=4242)
+        # transpile with gate errors
+        tqc_no_dt = transpile(qc, backend=backend, seed_transpiler=4242)
+        # confirm that the output layouts are different
+        self.assertNotEqual(
+            tqc_no_dt.layout.final_index_layout(), tqc_no_error.layout.final_index_layout()
+        )
+        # now modify dt with gate errors
+        tqc_dt = transpile(qc, backend=backend, seed_transpiler=4242, dt=backend.dt * 2)
+        # confirm that dt doesn't affect layout
+        self.assertEqual(tqc_no_dt.layout.final_index_layout(), tqc_dt.layout.final_index_layout())
 
 
 @ddt

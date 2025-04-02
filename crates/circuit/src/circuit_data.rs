@@ -19,12 +19,12 @@ use crate::bit::{
     BitLocations, ClassicalRegister, PyBit, QuantumRegister, Register, ShareableClbit,
     ShareableQubit,
 };
-use crate::bit_data::BitData;
 use crate::bit_locator::BitLocator;
 use crate::circuit_instruction::{CircuitInstruction, OperationFromPython};
 use crate::dag_circuit::add_global_phase;
 use crate::imports::{ANNOTATED_OPERATION, QUANTUM_CIRCUIT};
 use crate::interner::{Interned, Interner};
+use crate::object_registry::ObjectRegistry;
 use crate::operations::{Operation, OperationRef, Param, StandardGate};
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter_table::{ParameterTable, ParameterTableError, ParameterUse, ParameterUuid};
@@ -116,9 +116,9 @@ pub struct CircuitData {
     /// The cache used to intern instruction bits.
     cargs_interner: Interner<[Clbit]>,
     /// Qubits registered in the circuit.
-    qubits: BitData<Qubit, ShareableQubit>,
+    qubits: ObjectRegistry<Qubit, ShareableQubit>,
     /// Clbits registered in the circuit.
-    clbits: BitData<Clbit, ShareableClbit>,
+    clbits: ObjectRegistry<Clbit, ShareableClbit>,
     /// QuantumRegisters stored in the circuit
     qregs: RegisterData<QuantumRegister>,
     /// ClassicalRegisters stored in the circuit
@@ -139,7 +139,6 @@ impl CircuitData {
     #[new]
     #[pyo3(signature = (qubits=None, clbits=None, data=None, reserve=0, global_phase=Param::Float(0.0)))]
     pub fn new(
-        py: Python<'_>,
         qubits: Option<Vec<ShareableQubit>>,
         clbits: Option<Vec<ShareableClbit>>,
         data: Option<&Bound<PyAny>>,
@@ -150,8 +149,8 @@ impl CircuitData {
             data: Vec::new(),
             qargs_interner: Interner::new(),
             cargs_interner: Interner::new(),
-            qubits: BitData::new(),
-            clbits: BitData::new(),
+            qubits: ObjectRegistry::new(),
+            clbits: ObjectRegistry::new(),
             param_table: ParameterTable::new(),
             global_phase: Param::Float(0.),
             qregs: RegisterData::new(),
@@ -159,7 +158,7 @@ impl CircuitData {
             qubit_indices: BitLocator::new(),
             clbit_indices: BitLocator::new(),
         };
-        self_.set_global_phase(py, global_phase)?;
+        self_.set_global_phase(global_phase)?;
         if let Some(qubits) = qubits {
             for bit in qubits.into_iter() {
                 self_.add_qubit(bit, true)?;
@@ -171,8 +170,8 @@ impl CircuitData {
             }
         }
         if let Some(data) = data {
-            self_.reserve(py, reserve);
-            self_.extend(py, data)?;
+            self_.reserve(reserve);
+            self_.extend(data)?;
         }
         Ok(self_)
     }
@@ -182,8 +181,8 @@ impl CircuitData {
         let args = {
             let self_ = self_.borrow();
             (
-                (!self_.qubits.is_empty()).then_some(self_.qubits.bits().clone()),
-                (!self_.clbits.is_empty()).then_some(self_.clbits.bits().clone()),
+                (!self_.qubits.is_empty()).then_some(self_.qubits.objects().clone()),
+                (!self_.clbits.is_empty()).then_some(self_.clbits.objects().clone()),
                 None::<()>,
                 self_.data.len(),
                 self_.global_phase.clone(),
@@ -247,7 +246,7 @@ impl CircuitData {
             self.add_qreg(register, true)?;
         }
 
-        for (index, qubit) in self.qubits.bits().iter().enumerate() {
+        for (index, qubit) in self.qubits.objects().iter().enumerate() {
             if !self.qubit_indices.contains_key(qubit) {
                 self.qubit_indices
                     .insert(qubit.clone(), BitLocations::new(index as u32, []));
@@ -308,7 +307,7 @@ impl CircuitData {
             self.add_creg(register, true)?;
         }
 
-        for (index, clbit) in self.clbits.bits().iter().enumerate() {
+        for (index, clbit) in self.clbits.objects().iter().enumerate() {
             if !self.clbit_indices.contains_key(clbit) {
                 self.clbit_indices
                     .insert(clbit.clone(), BitLocations::new(index as u32, []));
@@ -489,10 +488,10 @@ impl CircuitData {
     ///     CircuitData: The shallow copy.
     #[pyo3(signature = (copy_instructions=true, deepcopy=false))]
     pub fn copy(&self, py: Python<'_>, copy_instructions: bool, deepcopy: bool) -> PyResult<Self> {
-        let mut res = self.copy_empty_like(py)?;
+        let mut res = self.copy_empty_like()?;
         res.qargs_interner = self.qargs_interner.clone();
         res.cargs_interner = self.cargs_interner.clone();
-        res.reserve(py, self.data().len());
+        res.reserve(self.data().len());
         res.param_table.clone_from(&self.param_table);
 
         if deepcopy {
@@ -530,11 +529,10 @@ impl CircuitData {
     ///
     /// Returns:
     ///     CircuitData: The shallow copy.
-    pub fn copy_empty_like(&self, py: Python<'_>) -> PyResult<Self> {
+    pub fn copy_empty_like(&self) -> PyResult<Self> {
         let mut res = CircuitData::new(
-            py,
-            Some(self.qubits.bits().clone()),
-            Some(self.clbits.bits().clone()),
+            Some(self.qubits.objects().clone()),
+            Some(self.clbits.objects().clone()),
             None,
             0,
             self.global_phase.clone(),
@@ -555,7 +553,7 @@ impl CircuitData {
     /// Args:
     ///     additional (int): The additional capacity to reserve. If the
     ///         capacity is already sufficient, does nothing.
-    pub fn reserve(&mut self, _py: Python<'_>, additional: usize) {
+    pub fn reserve(&mut self, additional: usize) {
         self.data.reserve(additional);
     }
 
@@ -691,7 +689,6 @@ impl CircuitData {
     #[pyo3(signature = (qubits=None, clbits=None, qregs=None, cregs=None))]
     pub fn replace_bits(
         &mut self,
-        py: Python<'_>,
         qubits: Option<Vec<ShareableQubit>>,
         clbits: Option<Vec<ShareableClbit>>,
         qregs: Option<Vec<QuantumRegister>>,
@@ -699,7 +696,7 @@ impl CircuitData {
     ) -> PyResult<()> {
         let qubits_is_some = qubits.is_some();
         let clbits_is_some = clbits.is_some();
-        let mut temp = CircuitData::new(py, qubits, clbits, None, 0, self.global_phase.clone())?;
+        let mut temp = CircuitData::new(qubits, clbits, None, 0, self.global_phase.clone())?;
 
         // Add qregs if provided.
         if let Some(qregs) = qregs {
@@ -905,7 +902,8 @@ impl CircuitData {
         Ok(())
     }
 
-    pub fn extend(&mut self, py: Python<'_>, itr: &Bound<PyAny>) -> PyResult<()> {
+    pub fn extend(&mut self, itr: &Bound<PyAny>) -> PyResult<()> {
+        let py = itr.py();
         if let Ok(other) = itr.downcast::<CircuitData>() {
             let other = other.borrow();
             // Fast path to avoid unnecessary construction of CircuitInstruction instances.
@@ -1103,37 +1101,40 @@ impl CircuitData {
     /// uncommon for subclasses and other parts of Qiskit to have filled in the global phase field
     /// by copies or other means, before making the parameter table consistent.
     #[setter]
-    pub fn set_global_phase(&mut self, py: Python, angle: Param) -> PyResult<()> {
+    pub fn set_global_phase(&mut self, angle: Param) -> PyResult<()> {
         if let Param::ParameterExpression(expr) = &self.global_phase {
-            for param_ob in expr
-                .bind(py)
-                .getattr(intern!(py, "parameters"))?
-                .try_iter()?
-            {
-                match self.param_table.remove_use(
-                    ParameterUuid::from_parameter(&param_ob?)?,
-                    ParameterUse::GlobalPhase,
-                ) {
-                    Ok(_)
-                    | Err(ParameterTableError::ParameterNotTracked(_))
-                    | Err(ParameterTableError::UsageNotTracked(_)) => (),
-                    // Any errors added later might want propagating.
+            Python::with_gil(|py| -> PyResult<()> {
+                for param_ob in expr
+                    .bind(py)
+                    .getattr(intern!(py, "parameters"))?
+                    .try_iter()?
+                {
+                    match self.param_table.remove_use(
+                        ParameterUuid::from_parameter(&param_ob?)?,
+                        ParameterUse::GlobalPhase,
+                    ) {
+                        Ok(_)
+                        | Err(ParameterTableError::ParameterNotTracked(_))
+                        | Err(ParameterTableError::UsageNotTracked(_)) => (),
+                        // Any errors added later might want propagating.
+                    }
                 }
-            }
+                Ok(())
+            })?;
         }
         match angle {
             Param::Float(angle) => {
                 self.global_phase = Param::Float(angle.rem_euclid(2. * std::f64::consts::PI));
                 Ok(())
             }
-            Param::ParameterExpression(_) => {
+            Param::ParameterExpression(_) => Python::with_gil(|py| -> PyResult<()> {
                 for param_ob in angle.iter_parameters(py)? {
                     self.param_table
                         .track(&param_ob?, Some(ParameterUse::GlobalPhase))?;
                 }
                 self.global_phase = angle;
                 Ok(())
-            }
+            }),
             Param::Obj(_) => Err(PyTypeError::new_err("invalid type for global phase")),
         }
     }
@@ -1159,7 +1160,7 @@ impl CircuitData {
     ) -> PyResult<Vec<ShareableQubit>> {
         bit_argument_conversion(
             &qubit_representation,
-            self.qubits.bits(),
+            self.qubits.objects(),
             &self.qubit_indices,
         )
     }
@@ -1178,7 +1179,7 @@ impl CircuitData {
     ) -> PyResult<Vec<ShareableClbit>> {
         bit_argument_conversion(
             &clbit_representation,
-            self.clbits.bits(),
+            self.clbits.objects(),
             &self.clbit_indices,
         )
     }
@@ -1232,7 +1233,6 @@ impl CircuitData {
     {
         let instruction_iter = instructions.into_iter();
         let mut res = Self::with_capacity(
-            py,
             num_qubits,
             num_clbits,
             instruction_iter.size_hint().0,
@@ -1294,8 +1294,8 @@ impl CircuitData {
     #[allow(clippy::too_many_arguments)]
     pub fn from_packed_instructions<I>(
         py: Python,
-        qubits: BitData<Qubit, ShareableQubit>,
-        clbits: BitData<Clbit, ShareableClbit>,
+        qubits: ObjectRegistry<Qubit, ShareableQubit>,
+        clbits: ObjectRegistry<Clbit, ShareableClbit>,
         qargs_interner: Interner<[Qubit]>,
         cargs_interner: Interner<[Clbit]>,
         qregs: RegisterData<QuantumRegister>,
@@ -1325,7 +1325,7 @@ impl CircuitData {
 
         // use the global phase setter to ensure parameters are registered
         // in the parameter table
-        res.set_global_phase(py, global_phase)?;
+        res.set_global_phase(global_phase)?;
 
         for inst in instruction_iter {
             res.data.push(inst?);
@@ -1361,13 +1361,8 @@ impl CircuitData {
         I: IntoIterator<Item = (StandardGate, SmallVec<[Param; 3]>, SmallVec<[Qubit; 2]>)>,
     {
         let instruction_iter = instructions.into_iter();
-        let mut res = Self::with_capacity(
-            py,
-            num_qubits,
-            0,
-            instruction_iter.size_hint().0,
-            global_phase,
-        )?;
+        let mut res =
+            Self::with_capacity(num_qubits, 0, instruction_iter.size_hint().0, global_phase)?;
 
         let no_clbit_index = res.cargs_interner.get_default();
         for (operation, params, qargs) in instruction_iter {
@@ -1389,7 +1384,6 @@ impl CircuitData {
 
     /// Build an empty CircuitData object with an initially allocated instruction capacity
     pub fn with_capacity(
-        py: Python,
         num_qubits: u32,
         num_clbits: u32,
         instruction_capacity: usize,
@@ -1399,8 +1393,8 @@ impl CircuitData {
             data: Vec::with_capacity(instruction_capacity),
             qargs_interner: Interner::new(),
             cargs_interner: Interner::new(),
-            qubits: BitData::with_capacity(num_qubits as usize),
-            clbits: BitData::with_capacity(num_clbits as usize),
+            qubits: ObjectRegistry::with_capacity(num_qubits as usize),
+            clbits: ObjectRegistry::with_capacity(num_clbits as usize),
             param_table: ParameterTable::new(),
             global_phase: Param::Float(0.0),
             qregs: RegisterData::new(),
@@ -1411,7 +1405,7 @@ impl CircuitData {
 
         // use the global phase setter to ensure parameters are registered
         // in the parameter table
-        res.set_global_phase(py, global_phase)?;
+        res.set_global_phase(global_phase)?;
 
         if num_qubits > 0 {
             for _i in 0..num_qubits {
@@ -1553,12 +1547,12 @@ impl CircuitData {
     fn pack(&mut self, py: Python, inst: &CircuitInstruction) -> PyResult<PackedInstruction> {
         let qubits = self.qargs_interner.insert_owned(
             self.qubits
-                .map_bits(inst.qubits.extract::<Vec<ShareableQubit>>(py)?.into_iter())?
+                .map_objects(inst.qubits.extract::<Vec<ShareableQubit>>(py)?.into_iter())?
                 .collect(),
         );
         let clbits = self.cargs_interner.insert_owned(
             self.clbits
-                .map_bits(inst.clbits.extract::<Vec<ShareableClbit>>(py)?.into_iter())?
+                .map_objects(inst.clbits.extract::<Vec<ShareableClbit>>(py)?.into_iter())?
                 .collect(),
         );
         Ok(PackedInstruction {
@@ -1637,12 +1631,12 @@ impl CircuitData {
     }
 
     /// Returns an immutable view of the Qubits registered in the circuit
-    pub fn qubits(&self) -> &BitData<Qubit, ShareableQubit> {
+    pub fn qubits(&self) -> &ObjectRegistry<Qubit, ShareableQubit> {
         &self.qubits
     }
 
     /// Returns an immutable view of the Classical bits registered in the circuit
-    pub fn clbits(&self) -> &BitData<Clbit, ShareableClbit> {
+    pub fn clbits(&self) -> &ObjectRegistry<Clbit, ShareableClbit> {
         &self.clbits
     }
 
@@ -1744,10 +1738,12 @@ impl CircuitData {
                         let Param::ParameterExpression(expr) = &self.global_phase else {
                             return Err(inconsistent());
                         };
-                        self.set_global_phase(
-                            py,
-                            bind_expr(expr.bind_borrowed(py), &param_ob, value.as_ref(), true)?,
-                        )?;
+                        self.set_global_phase(bind_expr(
+                            expr.bind_borrowed(py),
+                            &param_ob,
+                            value.as_ref(),
+                            true,
+                        )?)?;
                     }
                     ParameterUse::Index {
                         instruction,
@@ -1924,7 +1920,7 @@ impl CircuitData {
     /// * capacity - The capacity for instructions to use in the output `CircuitData`
     ///     If `None` the length of `other` will be used, if `Some` the integer
     ///     value will be used as the capacity.
-    pub fn clone_empty_like(py: Python, other: &Self, capacity: Option<usize>) -> PyResult<Self> {
+    pub fn clone_empty_like(other: &Self, capacity: Option<usize>) -> PyResult<Self> {
         let mut empty = CircuitData {
             data: Vec::with_capacity(capacity.unwrap_or(other.data.len())),
             qargs_interner: other.qargs_interner.clone(),
@@ -1938,7 +1934,7 @@ impl CircuitData {
             qubit_indices: other.qubit_indices.clone(),
             clbit_indices: other.clbit_indices.clone(),
         };
-        empty.set_global_phase(py, other.global_phase.clone())?;
+        empty.set_global_phase(other.global_phase.clone())?;
         Ok(empty)
     }
 
@@ -1956,12 +1952,12 @@ impl CircuitData {
     }
 
     /// Add a param to the current global phase of the circuit
-    pub fn add_global_phase(&mut self, py: Python, value: &Param) -> PyResult<()> {
+    pub fn add_global_phase(&mut self, value: &Param) -> PyResult<()> {
         match value {
             Param::Obj(_) => Err(PyTypeError::new_err(
                 "Invalid parameter type, only float and parameter expression are supported",
             )),
-            _ => self.set_global_phase(py, add_global_phase(py, &self.global_phase, value)?),
+            _ => self.set_global_phase(add_global_phase(&self.global_phase, value)?),
         }
     }
 }
