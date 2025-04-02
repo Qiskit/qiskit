@@ -98,6 +98,7 @@ sys.modules["qiskit._accelerate.synthesis.evolution"] = _accelerate.synthesis.ev
 sys.modules["qiskit._accelerate.synthesis.multi_controlled"] = (
     _accelerate.synthesis.multi_controlled
 )
+sys.modules["qiskit._accelerate.synthesis.qft"] = _accelerate.synthesis.qft
 sys.modules["qiskit._accelerate.split_2q_unitaries"] = _accelerate.split_2q_unitaries
 sys.modules["qiskit._accelerate.gate_direction"] = _accelerate.gate_direction
 sys.modules["qiskit._accelerate.inverse_cancellation"] = _accelerate.inverse_cancellation
