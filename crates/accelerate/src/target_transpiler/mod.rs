@@ -374,7 +374,7 @@ impl Target {
         qargs: Option<Qargs>,
         properties: Option<InstructionProperties>,
     ) -> PyResult<()> {
-        let qargs_extract = qargs.as_ref().cloned().unwrap_or_default();
+        let qargs_extract = qargs.as_deref().unwrap_or_default();
         if !self.contains_key(&instruction) {
             return Err(PyKeyError::new_err(format!(
                 "Provided instruction: '{:?}' not in this Target.",
