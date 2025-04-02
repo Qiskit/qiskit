@@ -1062,7 +1062,9 @@ impl Target {
                     }
                     qarg_len = deduplicated_qargs.len();
                 }
-                if !qarg_sample.is_empty() && qarg_len != *size_dict.entry(qarg_sample.len()).or_insert(0) {
+                if !qarg_sample.is_empty()
+                    && qarg_len != *size_dict.entry(qarg_sample.len()).or_insert(0)
+                {
                     incomplete_basis_gates.push(inst.clone());
                 }
             }
@@ -1099,9 +1101,11 @@ impl Target {
         if self.num_qubits.unwrap_or_default() == 0 || self.num_qubits.is_none() {
             qargs = [].as_slice();
         }
-        if !qargs.is_empty() && qargs
+        if !qargs.is_empty()
+            && qargs
                 .iter()
-                .any(|x| !(0..self.num_qubits.unwrap_or_default()).contains(&x.index())) {
+                .any(|x| !(0..self.num_qubits.unwrap_or_default()).contains(&x.index()))
+        {
             return Err(TargetKeyError::new_err(format!(
                 "{:?} not in Target",
                 qargs
