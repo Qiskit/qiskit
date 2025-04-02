@@ -112,13 +112,13 @@ def random_circuit_from_graph(
     of the edges, in such case the function will return a circuit from the `random_circuit` function,
     which would be passed with the `max_operands` as 1.
 
-    If `max_operands` is set to 2, then in every iteration `N` 2Q gates and qubit-pairs which
-    exists in the input interaction graph are chosen at random, the qubit-pairs are also chosen at
-    random based on the probability attached to the qubit-pair, the 2Q gates are applied on the
-    qubit-pairs which are idle for that particular iteration, this is to make sure that for a particular
-    iteration only one circuit layer exists, now, if `insert_1q_oper` is set to True, randomly
-    chosen 1Q gates are applied to qubits that are still idle for that particular iteration, after
-    applying 2Q gates for that particular iteration.
+    If `max_operands` is set to 2, then in every while-iteration 2Q gates are chosen randomly, and
+    qubit-pairs which exist in the input interaction graph are also chosen randomly based on the
+    probability attached to the qubit-pair. Then in a for-iteration 2Q gates are applied to the
+    randomly chosen qubit-pairs with the aim to reach the count of 2Q on any qubit-pair to
+    `min_2q_gate_per_edge` criteria as soon as possible within a particular iteration. Now, if
+    some qubits are still idle after applying 2Q gates for that particular iteration, then randomly
+    chosen 1Q gates are applied to those idle qubits if `insert_1q_oper` is set to True.
 
     Example:
 
@@ -307,12 +307,12 @@ def random_circuit_from_graph(
     # has 2Q operations applied at-least `min_2q_gate_per_edge` times.
     while np.any(edge_list):
 
-        # For any given layer, this is a set of qubits not having any 2Q gates.
+        # For any given while-iteration, this is a set of qubits not having any 2Q gates.
         # Qubits in this set will have 1Q gates, if `insert_1q_oper` is True.
         qubit_idx_idle = set(range(num_qubits))
 
         # normalized edge weights represent the probability with which each qubit-pair
-        # interaction is inserted into a layer.
+        # is inserted into the circuit.
         edge_choices = rng.choice(
             edge_list,
             size=num_edges,
@@ -392,7 +392,7 @@ def random_circuit_from_graph(
                 )
 
             # Removing the qubits that have been applied with 2Q gates from the
-            # set of idle qubits for that layer.
+            # set of idle qubits for that while-iteration.
             qubit_idx_idle = qubit_idx_idle - set(edge)
 
             # Update the number of occurrences of the edge in the circuit.
@@ -403,22 +403,23 @@ def random_circuit_from_graph(
             # be removed from the `edge_list`, it's associated probability must
             # also be removed from `edges_probs`.
             if edges_used[_temp_edge] >= min_2q_gate_per_edge:
+                # Remove any occurrences of this particular edge in 'edge_choices'
+                _mask = np.all(edge_choices != edge, axis=1)
+                edge_choices = edge_choices[_mask]
 
                 # Remove the edge.
                 edge_list_mask = np.all(edge_list != edge, axis=1)
                 edge_list = edge_list[edge_list_mask]
 
-                # Remove the associated probability.
-                edges_probs = edges_probs[edge_list_mask]
-
-                # Renormalize probabilities of occurrences of edges
-                edges_probs = edges_probs / edges_probs.sum()
-
+                # Update `num_edges`
                 num_edges = len(edge_list)
 
-                # Remove any occurrences of this particular edge in 'edge_choices'
-                _mask = np.all(edge_choices != edge, axis=1)
-                edge_choices = edge_choices[_mask]
+                # Remove the associated probability, and adjust the
+                # probabilities of the remaining edges in `edge_list`.
+                if num_edges > 0:
+                    probs_dropped = edges_probs[~edge_list_mask]
+                    norm_probs = np.ones(num_edges) * (probs_dropped.sum() / num_edges)
+                    edges_probs = edges_probs[edge_list_mask] + norm_probs
 
         if insert_1q_oper:
             num_unused_qubits = len(qubit_idx_idle)
@@ -719,7 +720,7 @@ def random_clifford_circuit(num_qubits, num_gates, gates="all", seed=None):
         num_qubits (int): number of quantum wires.
         num_gates (int): number of gates in the circuit.
         gates (list[str]): optional list of Clifford gate names to randomly sample from.
-                           If ``"all"`` (default), use all Clifford gates in the standard library.
+            If ``"all"`` (default), use all Clifford gates in the standard library.
         seed (int | np.random.Generator): sets random seed/generator (optional).
 
     Returns:
