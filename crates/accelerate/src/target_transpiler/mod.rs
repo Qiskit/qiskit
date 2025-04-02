@@ -298,7 +298,7 @@ impl Target {
                 qargs_val.extend([(smallvec![], None)]);
             }
             TargetOperation::Normal(normal) => {
-                if let Some(mut properties) = properties {
+                if let Some(properties) = properties {
                     qargs_val = PropsMap::with_capacity(properties.len());
                     let inst_num_qubits = normal.operation.view().num_qubits();
                     if properties.contains_key(&None) {
@@ -309,13 +309,10 @@ impl Target {
                             })
                             .or_insert(HashSet::from_iter([name.to_string()]));
                     }
-                    let property_keys: Vec<Qargs> = properties
-                        .keys()
-                        .map(|qargs| match qargs {
-                            Some(qargs) => qargs.clone(),
-                            None => smallvec![],
-                        })
-                        .collect();
+                    let property_keys = properties.keys().map(|qargs| match qargs {
+                        Some(qargs) => qargs.clone(),
+                        None => smallvec![],
+                    });
                     for qarg in property_keys {
                         if !qarg.is_empty() {
                             if qarg.len() != inst_num_qubits as usize {
@@ -337,9 +334,9 @@ impl Target {
                                 ));
                         }
                         let inst_properties = properties
-                            .swap_remove(&(!qarg.is_empty()).then_some(qarg.clone()))
+                            .get(&(!qarg.is_empty()).then_some(qarg.clone()))
                             .unwrap();
-                        qargs_val.insert(qarg.clone(), inst_properties);
+                        qargs_val.insert(qarg.clone(), inst_properties.clone());
                         if let Some(Some(value)) = self.qarg_gate_map.get_mut(qarg.as_ref()) {
                             value.insert(name.to_string());
                         } else {
@@ -1099,7 +1096,7 @@ impl Target {
         let mut res: HashSet<&str> = HashSet::default();
         let mut qargs = qargs;
         if self.num_qubits.unwrap_or_default() == 0 || self.num_qubits.is_none() {
-            qargs = [].as_slice();
+            qargs = &[];
         }
         if !qargs.is_empty()
             && qargs
