@@ -517,10 +517,10 @@ fn get_2q_decomposers_from_target(
 ) -> PyResult<Option<Vec<DecomposerElement>>> {
     // Store elegible basis gates (1q and 2q) with corresponding qargs (PhysicalQubit)
     let reverse_qubits: [PhysicalQubit; 2] = [qubits[1], qubits[0]];
-    let mut qubit_gate_map = IndexMap::new();
-    match target.operation_names_for_qargs(&qubits) {
+    let mut qubit_gate_map: IndexMap<&[PhysicalQubit; 2], HashSet<&str>> = IndexMap::new();
+    match target.operation_names_for_qargs(qubits) {
         Ok(direct_keys) => {
-            qubit_gate_map.insert(&qubits, direct_keys);
+            qubit_gate_map.insert(qubits, direct_keys);
             if let Ok(reverse_keys) = target.operation_names_for_qargs(&reverse_qubits) {
                 qubit_gate_map.insert(&reverse_qubits, reverse_keys);
             }
@@ -566,7 +566,7 @@ fn get_2q_decomposers_from_target(
                             key,
                             (
                                 op.clone(),
-                                match &target[key].get(q_pair) {
+                                match &target[key].get(q_pair.as_slice()) {
                                     Some(Some(props)) => props.error,
                                     _ => None,
                                 },
@@ -577,7 +577,7 @@ fn get_2q_decomposers_from_target(
                         key,
                         (
                             op.clone(),
-                            match &target[key].get(q_pair) {
+                            match &target[key].get(q_pair.as_slice()) {
                                 Some(Some(props)) => props.error,
                                 _ => None,
                             },
@@ -748,7 +748,7 @@ fn get_2q_decomposers_from_target(
                 if pi_2_basis == "cx" && basis_1q == "ZSX" {
                     let fidelity = match approximation_degree {
                         Some(approx_degree) => approx_degree,
-                        None => match &target["cx"][&qubits] {
+                        None => match &target["cx"][qubits.as_slice()] {
                             Some(props) => 1.0 - props.error.unwrap_or_default(),
                             None => 1.0,
                         },
