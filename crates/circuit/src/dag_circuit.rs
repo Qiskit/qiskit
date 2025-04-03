@@ -380,36 +380,18 @@ struct DAGVarInfo {
     out_node: NodeIndex,
 }
 
-#[derive(Clone, Debug)]
-struct DAGStretchInfo {
-    stretch: PyObject,
-    type_: DAGStretchType,
-}
-
-#[derive(Clone, Debug)]
-enum DAGIdentifierInfo {
-    Stretch(DAGStretchInfo),
-    Var(DAGVarInfo),
-}
-
-impl<'py> IntoPyObject<'py> for DAGVarInfo {
-    type Target = PyAny;
-    type Output = Bound<'py, Self::Target>;
-    type Error = PyErr;
-
-    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+impl DAGVarInfo {
+    fn to_pickle(&self, py: Python) -> PyResult<PyObject> {
         (
             self.var.clone_ref(py),
             self.type_ as u8,
             self.in_node.index(),
             self.out_node.index(),
         )
-            .into_bound_py_any(py)
+            .into_py_any(py)
     }
-}
 
-impl<'py> FromPyObject<'py> for DAGVarInfo {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+    fn from_pickle(ob: &Bound<PyAny>) -> PyResult<Self> {
         let val_tuple = ob.downcast::<PyTuple>()?;
         Ok(DAGVarInfo {
             var: val_tuple.get_item(0)?.unbind(),
@@ -425,18 +407,18 @@ impl<'py> FromPyObject<'py> for DAGVarInfo {
     }
 }
 
-impl<'py> IntoPyObject<'py> for DAGStretchInfo {
-    type Target = PyAny;
-    type Output = Bound<'py, Self::Target>;
-    type Error = PyErr;
-
-    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        (self.stretch.clone_ref(py), self.type_ as u8).into_bound_py_any(py)
-    }
+#[derive(Clone, Debug)]
+struct DAGStretchInfo {
+    stretch: PyObject,
+    type_: DAGStretchType,
 }
 
-impl<'py> FromPyObject<'py> for DAGStretchInfo {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+impl DAGStretchInfo {
+    fn to_pickle(&self, py: Python) -> PyResult<PyObject> {
+        (self.stretch.clone_ref(py), self.type_ as u8).into_py_any(py)
+    }
+
+    fn from_pickle(ob: &Bound<PyAny>) -> PyResult<Self> {
         let val_tuple = ob.downcast::<PyTuple>()?;
         Ok(DAGStretchInfo {
             stretch: val_tuple.get_item(0)?.unbind(),
@@ -449,29 +431,29 @@ impl<'py> FromPyObject<'py> for DAGStretchInfo {
     }
 }
 
-impl<'py> IntoPyObject<'py> for DAGIdentifierInfo {
-    type Target = PyAny;
-    type Output = Bound<'py, Self::Target>;
-    type Error = PyErr;
-
-    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        match self {
-            DAGIdentifierInfo::Stretch(info) => {
-                (0, info.into_bound_py_any(py)?).into_bound_py_any(py)
-            }
-            DAGIdentifierInfo::Var(info) => (1, info.into_bound_py_any(py)?).into_bound_py_any(py),
-        }
-    }
+#[derive(Clone, Debug)]
+enum DAGIdentifierInfo {
+    Stretch(DAGStretchInfo),
+    Var(DAGVarInfo),
 }
 
-impl<'py> FromPyObject<'py> for DAGIdentifierInfo {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+impl DAGIdentifierInfo {
+    fn to_pickle(&self, py: Python) -> PyResult<PyObject> {
+        match self {
+            DAGIdentifierInfo::Stretch(info) => (0, info.to_pickle(py)?).into_py_any(py),
+            DAGIdentifierInfo::Var(info) => (1, info.to_pickle(py)?).into_py_any(py),
+        }
+    }
+
+    fn from_pickle(ob: &Bound<PyAny>) -> PyResult<Self> {
         let val_tuple = ob.downcast::<PyTuple>()?;
         match val_tuple.get_item(0)?.extract::<u8>()? {
-            0 => Ok(DAGIdentifierInfo::Stretch(
-                val_tuple.get_item(1)?.extract()?,
-            )),
-            1 => Ok(DAGIdentifierInfo::Var(val_tuple.get_item(1)?.extract()?)),
+            0 => Ok(DAGIdentifierInfo::Stretch(DAGStretchInfo::from_pickle(
+                &val_tuple.get_item(1)?,
+            )?)),
+            1 => Ok(DAGIdentifierInfo::Var(DAGVarInfo::from_pickle(
+                &val_tuple.get_item(1)?,
+            )?)),
             _ => Err(PyValueError::new_err("Invalid identifier info type")),
         }
     }
@@ -764,7 +746,7 @@ impl DAGCircuit {
             "identifier_info",
             self.identifier_info
                 .iter()
-                .map(|(k, v)| (k, v.clone().into_py_any(py).unwrap()))
+                .map(|(k, v)| (k, v.clone().to_pickle(py).unwrap()))
                 .into_py_dict(py)?,
         )?;
         out_dict.set_item("vars_by_type", self.vars_by_type.get_all(py))?;
@@ -837,7 +819,7 @@ impl DAGCircuit {
         self.identifier_info = HashMap::with_capacity(identifier_info_raw.len());
         for (key, value) in identifier_info_raw.iter() {
             self.identifier_info
-                .insert(key.extract()?, value.extract()?);
+                .insert(key.extract()?, DAGIdentifierInfo::from_pickle(&value)?);
         }
 
         let binding = dict_state.get_item("qubits")?.unwrap();
@@ -4505,7 +4487,7 @@ impl DAGCircuit {
     /// Add a captured stretch to the circuit.
     ///
     /// Args:
-    ///     stretch: the stretch to add.
+    ///     var: the stretch to add.
     fn add_captured_stretch(&mut self, py: Python, var: &Bound<PyAny>) -> PyResult<()> {
         if !self.vars_by_type.get_input(py).is_empty() {
             return Err(DAGCircuitError::new_err(
@@ -4550,7 +4532,7 @@ impl DAGCircuit {
     /// Add a declared stretch to the circuit.
     ///
     /// Args:
-    ///     stretch: the stretch to add.
+    ///     var: the stretch to add.
     fn add_declared_stretch(&mut self, py: Python, var: &Bound<PyAny>) -> PyResult<()> {
         let name: String = var.getattr("name")?.extract::<String>()?;
         match self.identifier_info.get(&name) {
@@ -4644,19 +4626,19 @@ impl DAGCircuit {
     /// Is this stretch in the DAG?
     ///
     /// Args:
-    ///     stretch: the stretch or name to check.
-    fn has_stretch(&self, stretch: &Bound<PyAny>) -> PyResult<bool> {
-        match stretch.extract::<String>() {
+    ///     var: the stretch or name to check.
+    fn has_stretch(&self, var: &Bound<PyAny>) -> PyResult<bool> {
+        match var.extract::<String>() {
             Ok(name) => Ok(matches!(
                 self.identifier_info.get(&name),
                 Some(DAGIdentifierInfo::Stretch(_))
             )),
             Err(_) => {
-                let raw_name = stretch.getattr("name")?;
+                let raw_name = var.getattr("name")?;
                 let var_name: String = raw_name.extract()?;
                 if let Some(DAGIdentifierInfo::Stretch(info)) = self.identifier_info.get(&var_name)
                 {
-                    return Ok(stretch.is(&info.stretch));
+                    return Ok(var.is(&info.stretch));
                 }
                 Ok(false)
             }
