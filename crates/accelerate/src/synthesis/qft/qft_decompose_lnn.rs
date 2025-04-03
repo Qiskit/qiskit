@@ -51,13 +51,19 @@ use std::f64::consts::PI;
 
 #[pyfunction]
 #[pyo3(signature=(num_qubits, do_swaps=true, approximation_degree=0))]
-pub(super) fn _synth_qft_line(
+pub fn synth_qft_line(
     py: Python,
     num_qubits: usize,
     do_swaps: bool,
     approximation_degree: usize,
 ) -> PyResult<CircuitData> {
-    let mut instructions: LnnGatesVec = Vec::new();
+    // Total number of compound gates required = L(L-1)/2
+    // For each compound gate -> H + 3CX + 3P
+    // For approximation degree D, D(D+1)/2 * 3 gates will be reduced
+    let no_of_gates = num_qubits + (num_qubits * (num_qubits - 1) / 2) * 6
+        - (approximation_degree * (approximation_degree + 1) / 2) * 3;
+
+    let mut instructions: LnnGatesVec = Vec::with_capacity(no_of_gates);
 
     for i in 0..num_qubits {
         // Hadamard
