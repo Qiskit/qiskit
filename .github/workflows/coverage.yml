@@ -33,7 +33,6 @@ jobs:
         run: |
             cargo install grcov
             sudo apt-get install lcov
-            cargo install cbindgen
 
       # This is needed to support any requirements, particularly in the `optionals` set,
       # that might not have 'pyproject.toml' files specifying their build requirements.
@@ -64,7 +63,6 @@ jobs:
       - name: Generate ctest coverage report
         run: |
           cargo rustc --crate-type cdylib -p qiskit-cext -- -Cinstrument-coverage -Cincremental=false
-          cbindgen --crate qiskit-cext --output dist/c/include/qiskit.h --lang C
           cmake -S. -Btest/c/build
           cmake --build test/c/build
           ctest -V --test-dir test/c/build
