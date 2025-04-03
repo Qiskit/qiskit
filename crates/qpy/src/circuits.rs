@@ -13,9 +13,10 @@ use std::io::Cursor;
 use pyo3::prelude::*;
 use pyo3::types::PyAny;
 use pyo3::intern;
+use qiskit_circuit::imports::{BARRIER, DELAY, MEASURE, RESET};
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::packed_instruction::PackedInstruction;
-use qiskit_circuit::operations::{Operation, OperationRef};
+use qiskit_circuit::operations::{Operation, OperationRef, StandardInstruction};
 use binrw::BinWrite;
 use crate::params::{SerializableParam, param_to_serializable};
 
@@ -45,6 +46,13 @@ struct CircuitInstructionArgPack {
     bit_type: u8,
     bit_value: u32,
 }
+#[derive(BinWrite)]
+#[brw(big)]
+#[derive(Debug)]
+struct CustomCircuitInstructionsPack {
+    custom_operations_length: u64,
+}
+
 
 fn get_packed_bit_list(inst: &PackedInstruction, circuit_data: &CircuitData) -> Vec<CircuitInstructionArgPack>{
     let mut result: Vec<CircuitInstructionArgPack> = Vec::new();
@@ -59,9 +67,28 @@ fn get_packed_bit_list(inst: &PackedInstruction, circuit_data: &CircuitData) -> 
 
 fn gate_class_name(py: Python, inst: &PackedInstruction) -> PyResult<Vec<u8>> {
     let name = match inst.op.view() {
+        // getting __name__ for standard gates and instructions should
+        // eventually be replaced with a Rust-side mapping
         OperationRef::StandardGate(gate) => {
             gate.get_gate_class(py)?
             .bind(py)
+            .getattr(intern!(py, "__name__"))?
+            .extract::<String>()
+        }
+        OperationRef::StandardInstruction(inst) => {
+            match inst {
+                StandardInstruction::Measure => MEASURE.get_bound(py).getattr(intern!(py, "__name__"))?,
+                StandardInstruction::Delay(_) => DELAY.get_bound(py).getattr(intern!(py, "__name__"))?,
+                StandardInstruction::Barrier(_) => BARRIER.get_bound(py).getattr(intern!(py, "__name__"))?,
+                StandardInstruction::Reset => RESET.get_bound(py).getattr(intern!(py, "__name__"))?,
+            }
+            .extract::<String>()
+        }
+        OperationRef::Gate(pygate) => {
+            pygate
+            .gate
+            .bind(py)
+            .getattr(intern!(py, "__class__"))?
             .getattr(intern!(py, "__name__"))?
             .extract::<String>()
         }
@@ -150,14 +177,24 @@ pub fn py_write_instructions(
     file_obj: &Bound<PyAny>,
     circuit_data: CircuitData,
 ) -> PyResult<usize> {
+    let mut instructions_buffer = Cursor::new(Vec::new());
     for instruction in circuit_data.data(){
         let raw_instruction = instruction_raw(py, instruction, &circuit_data);
-        let mut buffer = Cursor::new(Vec::new());
-        raw_instruction.write(&mut buffer).map_err(|e| {
+        raw_instruction.write(&mut instructions_buffer).map_err(|e| {
             PyErr::new::<pyo3::exceptions::PyIOError, _>(format!("BinRW write failed: {e}"))
         })?;
-        let bytes = buffer.into_inner();
-        file_obj.call_method1("write", (pyo3::types::PyBytes::new(py, &bytes),))?;
     }
+    // placeholder for now
+    let mut custom_operations_buffer = Cursor::new(Vec::new());
+    let custom_operations = CustomCircuitInstructionsPack{
+        custom_operations_length: 0
+    };
+    custom_operations.write(&mut custom_operations_buffer).map_err(|e| {
+        PyErr::new::<pyo3::exceptions::PyIOError, _>(format!("BinRW write failed: {e}"))
+    })?;
+    let custom_operations_bytes = custom_operations_buffer.into_inner();
+    file_obj.call_method1("write", (pyo3::types::PyBytes::new(py, &custom_operations_bytes),))?;
+    let instructions_bytes = instructions_buffer.into_inner();
+    file_obj.call_method1("write", (pyo3::types::PyBytes::new(py, &instructions_bytes),))?;
     Ok(55)
 }

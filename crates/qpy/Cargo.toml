@@ -17,6 +17,8 @@ indexmap.workspace = true
 hashbrown.workspace = true
 oq3_semantics = "0.7.0"
 ahash.workspace = true
+qiskit-circuit.workspace = true
+binrw = "0.13"
 
 [dependencies.pyo3]
 workspace = true
