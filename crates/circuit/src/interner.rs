@@ -15,7 +15,7 @@ use std::fmt;
 use std::hash::Hash;
 use std::marker::PhantomData;
 
-use indexmap::IndexSet;
+use indexmap::{Equivalent, IndexSet};
 use smallvec::SmallVec;
 
 /// A key to retrieve a value (by reference) from an interner of the same type.  This is narrower
@@ -343,7 +343,11 @@ where
     /// stored.
     ///
     /// This method does not store `value` if it is not present.
-    pub fn try_key(&self, value: &T) -> Option<Interned<T>> {
+    pub fn try_key<Q>(&self, value: &Q) -> Option<Interned<T>>
+    where
+        Q: ?Sized + Hash + Eq + Equivalent<T::Owned>,
+        T: Borrow<Q>,
+    {
         self.0.get_index_of(value).map(|index| Interned {
             index: index as u32,
             _type: PhantomData,
@@ -354,7 +358,11 @@ where
     ///
     /// Typically you want to use [try_key], which returns the key if present, or [insert], which
     /// stores the value if it wasn't already present.
-    pub fn contains(&self, value: &T) -> bool {
+    pub fn contains<Q>(&self, value: &Q) -> bool
+    where
+        Q: ?Sized + Hash + Eq + Equivalent<T::Owned>,
+        T: Borrow<Q>,
+    {
         self.try_key(value).is_some()
     }
 }
@@ -403,7 +411,11 @@ where
     ///
     /// If you already have an owned value, use `insert_owned`, but in general this function will be
     /// more efficient *unless* you already had the value for other reasons.
-    pub fn insert(&mut self, value: &T) -> Interned<T> {
+    pub fn insert<Q>(&mut self, value: &Q) -> Interned<T>
+    where
+        Q: ?Sized + Hash + Eq + ToOwned,
+        T: Borrow<Q> + ToOwned<Owned = <Q as ToOwned>::Owned>,
+    {
         let index = match self.0.get_index_of(value) {
             Some(index) => index as u32,
             None => self.insert_new(value.to_owned()),
@@ -677,5 +689,40 @@ mod test {
             .map(|(small, big)| (only_2q.get(small).to_owned(), base.get(big).to_owned()))
             .collect::<HashSet<_>>();
         assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn can_check_with_equivalent_element() {
+        // Check that borrowed equivalent elements can be used in queries.
+        let mut with_array: Interner<[u8]> = Interner::new();
+        let mut with_string: Interner<String> = Interner::new();
+
+        // Try to insert with slice
+        with_array.insert(&[1, 2]);
+        // Try to insert with vec ref
+        with_array.insert(&[0, 2]);
+
+        // Try to insert with str
+        with_string.insert("Foo");
+        // Try to insert with borrowed String
+        with_string.insert(&"Bar".to_string());
+
+        // Try checking with slice
+        assert!(with_array.contains(&[0, 2]));
+        // Try checking with vec
+        assert!(with_array.contains(&[1, 2]));
+        // Try checking with slice (fail)
+        assert!(!with_array.contains(&[0, 4]));
+        // Try checking with vec
+        assert!(!with_array.contains(&[1, 3]));
+
+        // Try checking with str
+        assert!(with_string.contains("Bar"));
+        // Try checking with String
+        assert!(with_string.contains(&"Foo".to_string()));
+        // Try checking with str (fail)
+        assert!(!with_string.contains("Fee"));
+        // Try checking with String (fail)
+        assert!(!with_string.contains(&"vec![1,3]".to_string()));
     }
 }
