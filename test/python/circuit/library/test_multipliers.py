@@ -141,7 +141,7 @@ class TestMultiplier(QiskitTestCase):
     def test_plugins(self):
         """Test setting HLS plugins for the multiplier."""
 
-        # For each pliugin, we check the presence of an expected operation after
+        # For each plugin, we check the presence of an expected operation after
         # using this plugin.
         # Note that HighLevelSynthesis runs without basis_gates, so it does not
         # synthesize down to 1-qubit and 2-qubit gates.
