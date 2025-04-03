@@ -15,7 +15,6 @@ mod qft_decompose_lnn;
 use pyo3::prelude::*;
 use qft_decompose_lnn::_synth_qft_line;
 
-
 pub fn qft(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(_synth_qft_line, m)?)?;
     Ok(())
