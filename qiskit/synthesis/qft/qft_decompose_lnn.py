@@ -14,7 +14,7 @@ Circuit synthesis for a QFT circuit.
 """
 
 from qiskit.circuit import QuantumCircuit
-from qiskit._accelerate.synthesis.qft import _synth_qft_line
+from qiskit._accelerate.synthesis.qft import synth_qft_line as _synth_qft_line
 
 from .qft_decompose_full import _warn_if_precision_loss
 
@@ -55,5 +55,7 @@ def synth_qft_line(
     _warn_if_precision_loss(num_qubits - approximation_degree - 1)
 
     return QuantumCircuit._from_circuit_data(
-        _synth_qft_line(num_qubits, do_swaps, approximation_degree), add_regs=True
+        # From rust
+        _synth_qft_line(num_qubits, do_swaps, approximation_degree),
+        add_regs=True,
     )
