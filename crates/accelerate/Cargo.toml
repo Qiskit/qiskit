@@ -32,6 +32,13 @@ rustiq-core = "0.0.10"
 bytemuck.workspace = true
 nalgebra.workspace = true
 
+[dependencies.uuid]
+version = "1.12.1"
+features = [
+    "v4",                # Lets you generate random UUIDs
+    "fast-rng",          # Use a faster (but still sufficiently random) RNG
+]
+
 [dependencies.smallvec]
 workspace = true
 features = ["union"]

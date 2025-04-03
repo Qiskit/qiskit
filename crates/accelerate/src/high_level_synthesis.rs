@@ -992,7 +992,7 @@ fn convert_circuit_to_dag_with_data(
 ) -> PyResult<DAGCircuit> {
     // Calling copy_empty_like makes sure that all the python-space information (qregs, cregs, input variables)
     // get copied correctly.
-    let mut new_dag = dag.copy_empty_like(py, "alike")?;
+    let mut new_dag = dag.copy_empty_like("alike")?;
     new_dag.set_global_phase(circuit.global_phase().clone())?;
     let qarg_map = new_dag.merge_qargs(circuit.qargs_interner(), |bit| Some(*bit));
     let carg_map = new_dag.merge_cargs(circuit.cargs_interner(), |bit: &Clbit| Some(*bit));
