@@ -195,17 +195,17 @@ class ObservablesArrayTestCase(QiskitTestCase):
 
     def test_init_validate_false(self):
         """Test init validate kwarg"""
-        obj = [["A", "B", "C"], ["D", "E", "F"]]
+        obj = [["X", "Y", "Z"], ["I", "0", "1"]]
         obs = ObservablesArray(obj, validate=False)
         self.assertEqual(obs.shape, (2, 3))
         self.assertEqual(obs.size, 6)
         for i in range(2):
             for j in range(3):
-                self.assertEqual(obs[i, j], obj[i][j])
+                self.assertEqual(obs._array[i, j], obj[i][j])
 
     def test_init_validate_true(self):
         """Test init validate kwarg"""
-        obj = [["A", "B", "C"], ["D", "E", "F"]]
+        obj = [["X", "Y", "Z"], ["I", "0", "1"]]
         with self.assertRaises(ValueError):
             ObservablesArray(obj, validate=True)
 
@@ -215,7 +215,7 @@ class ObservablesArrayTestCase(QiskitTestCase):
         obs = {"XX": 1}
         for _ in range(ndim):
             obs = [obs]
-        arr = ObservablesArray(obs, validate=False)
+        arr = ObservablesArray(obs)
         self.assertEqual(arr.size, 1, msg="Incorrect ObservablesArray.size")
         self.assertEqual(arr.shape, (1,) * ndim, msg="Incorrect ObservablesArray.shape")
 
@@ -225,7 +225,7 @@ class ObservablesArrayTestCase(QiskitTestCase):
         obs = {"XX": 1}
         for _ in range(ndim):
             obs = [obs]
-        arr = ObservablesArray(obs, validate=False)
+        arr = ObservablesArray(obs)
         ls = arr.tolist()
         self.assertEqual(ls, obs)
 
@@ -235,7 +235,7 @@ class ObservablesArrayTestCase(QiskitTestCase):
         obs = {"XX": 1}
         for _ in range(ndim):
             obs = [obs]
-        arr = ObservablesArray(obs, validate=False)
+        arr = ObservablesArray(obs)
         nparr = np.array(arr)
         self.assertEqual(nparr.dtype, object)
         self.assertEqual(nparr.shape, arr.shape)
@@ -249,46 +249,46 @@ class ObservablesArrayTestCase(QiskitTestCase):
         obs = base_obs
         for _ in range(ndim):
             obs = [obs]
-        arr = ObservablesArray(obs, validate=False)
+        arr = ObservablesArray(obs)
         idx = ndim * (0,)
         item = arr[idx]
         self.assertEqual(item, base_obs)
 
     def test_tolist_1d(self):
         """Test tolist method"""
-        obj = ["A", "B", "C", "D"]
-        obs = ObservablesArray(obj, validate=False)
+        obj = [{"I": 1}, {"X": 2}, {"Y": 3}, {"Z": 4}]
+        obs = ObservablesArray(obj)
         self.assertEqual(obs.tolist(), obj)
 
     def test_tolist_2d(self):
         """Test tolist method"""
-        obj = [["A", "B", "C"], ["D", "E", "F"]]
-        obs = ObservablesArray(obj, validate=False)
+        obj = [[{"II": 1.0}, {"XI": 2.0}, {"IY": 3.0}], [{"XX": 1.0}, {"XY": 2.0}, {"YY": 3.0}]]
+        obs = ObservablesArray(obj)
         self.assertEqual(obs.tolist(), obj)
 
     def test_array_1d(self):
         """Test __array__ dunder method"""
-        obj = np.array(["A", "B", "C", "D"], dtype=object)
-        obs = ObservablesArray(obj, validate=False)
+        obj = np.array([{"I": 1}, {"X": 2}, {"Y": 3}, {"Z": 4}], dtype=object)
+        obs = ObservablesArray(obj)
         self.assertTrue(np.all(np.array(obs) == obj))
 
     def test_array_2d(self):
         """Test __array__ dunder method"""
-        obj = np.array([["A", "B", "C"], ["D", "E", "F"]], dtype=object)
-        obs = ObservablesArray(obj, validate=False)
+        obj = np.array([[{"II": 1}, {"XI": 2}, {"IY": 3}], [{"XX": 1}, {"XY": 2}, {"YY": 3}]], dtype=object)
+        obs = ObservablesArray(obj)
         self.assertTrue(np.all(np.array(obs) == obj))
 
     def test_getitem_1d(self):
         """Test __getitem__ for 1D array"""
-        obj = np.array(["A", "B", "C", "D"], dtype=object)
-        obs = ObservablesArray(obj, validate=False)
+        obj = np.array([{"I": 1}, {"X": 2}, {"Y": 3}, {"Z": 4}], dtype=object)
+        obs = ObservablesArray(obj)
         for i in range(obj.size):
             self.assertEqual(obs[i], obj[i])
 
     def test_getitem_2d(self):
         """Test __getitem__ for 2D array"""
-        obj = np.array([["A", "B", "C"], ["D", "E", "F"]], dtype=object)
-        obs = ObservablesArray(obj, validate=False)
+        obj = np.array([[{"II": 1}, {"XI": 2}, {"IY": 3}], [{"XX": 1}, {"XY": 2}, {"YY": 3}]], dtype=object)
+        obs = ObservablesArray(obj)
         for i in range(obj.shape[0]):
             row = obs[i]
             self.assertIsInstance(row, ObservablesArray)
@@ -345,12 +345,3 @@ class ObservablesArrayTestCase(QiskitTestCase):
                             msg=f"failed for shape {shape} with input format {input_shape}",
                         )
 
-    def test_validate(self):
-        """Test the validate method"""
-        ObservablesArray({"XX": 1}).validate()
-        ObservablesArray([{"XX": 1}] * 5).validate()
-        ObservablesArray([{"XX": 1}] * 15).reshape((3, 5)).validate()
-
-        obs = ObservablesArray([{"XX": 1}, {"XYZ": 1}], validate=False)
-        with self.assertRaisesRegex(ValueError, "number of qubits must be the same"):
-            obs.validate()

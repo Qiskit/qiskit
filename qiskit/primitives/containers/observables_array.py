@@ -68,7 +68,7 @@ class ObservablesArray(ShapedMixin):
                 the input should already be an array-like.
 
         Raises:
-            ValueError: If ``validate=True`` and the input observables is not valid.
+            ValueError: If ``validate=True`` and the input observables array is not valid.
         """
         super().__init__()
         if isinstance(observables, ObservablesArray):
@@ -76,23 +76,46 @@ class ObservablesArray(ShapedMixin):
         self._array = object_array(observables, copy=copy, list_types=(PauliList,))
         self._shape = self._array.shape
         if validate:
-            num_qubits = None
             for ndi, obs in np.ndenumerate(self._array):
-                basis_obs = self.coerce_observable(obs)
-                basis_num_qubits = len(next(iter(basis_obs)))
-                if num_qubits is None:
-                    num_qubits = basis_num_qubits
-                elif basis_num_qubits != num_qubits:
-                    raise ValueError(
-                        "The number of qubits must be the same for all observables in the "
-                        "observables array."
-                    )
-                self._array[ndi] = basis_obs
+                self._array[ndi] = self.coerce_observable(obs)
+
+    @staticmethod
+    def obs_to_dict(obs: SparseObservable) -> Mapping[str, float]:
+        sparse_list = obs.to_sparse_list()
+        result = {}
+        for pauli_term in sparse_list:
+            sparse_pauli_str, pauli_qubits, coeff = pauli_term
+            next_index_in_pauli_qubits = 0
+            if len(sparse_pauli_str) == 0:
+                next_pauli_qubit = -1
+            else:
+                sorted_lists = sorted(zip(pauli_qubits, sparse_pauli_str))
+                pauli_qubits = [pq for pq, _ in sorted_lists]
+                sparse_pauli_str = [spstr for _, spstr in sorted_lists]
+                next_pauli_qubit = pauli_qubits[0]
+            full_pauli_str = ""
+            for qubit_id in range(obs.num_qubits):
+                if qubit_id == next_pauli_qubit:
+                    full_pauli_str += sparse_pauli_str[next_index_in_pauli_qubits]
+                    next_index_in_pauli_qubits += 1
+                    if next_index_in_pauli_qubits != len(pauli_qubits):
+                        next_pauli_qubit = pauli_qubits[next_index_in_pauli_qubits]
+                else:
+                    full_pauli_str += "I"
+
+            full_pauli_str = full_pauli_str[::-1]
+
+            # We know that the dictionary doesn't contain yet full_pauli_str as a key
+            # because the observable is guaranteed to be simplified
+            result[full_pauli_str] = np.real(coeff)
+        
+        return result
+
 
     def __repr__(self):
         prefix = f"{type(self).__name__}("
         suffix = f", shape={self.shape})"
-        array = np.array2string(self._array, prefix=prefix, suffix=suffix, threshold=50)
+        array = np.array2string(self.__array__(), prefix=prefix, suffix=suffix, threshold=50)
         return prefix + array + suffix
 
     def tolist(self) -> list | ObservableLike:
@@ -114,12 +137,18 @@ class ObservablesArray(ShapedMixin):
                 >>> print(type(oa.tolist()))
                 <class 'dict'>
         """
-        return self._array.tolist()
+        return self.__array__().tolist()
 
-    def __array__(self, dtype=None, copy=None):
+    def __array__(self, dtype=None, copy=None) -> np.ndarray:
         """Convert to an Numpy.ndarray"""
         if dtype is None or dtype == object:
-            return self._array.copy() if copy else self._array
+            tmp_result = self.__getitem__(tuple(slice(None) for _ in self._array.shape))
+            if len(self._array.shape) == 0:
+                result = np.ndarray(shape=self._array.shape, dtype=dict)
+                result[()] = tmp_result
+            else:
+                result = tmp_result
+            return result
         raise ValueError("Type must be 'None' or 'object'")
 
     @overload
@@ -131,8 +160,13 @@ class ObservablesArray(ShapedMixin):
     def __getitem__(self, args):
         item = self._array[args]
         if not isinstance(item, np.ndarray):
-            return item
-        return ObservablesArray(item, copy=False, validate=False)
+            return self.obs_to_dict(item)
+        
+        result = np.ndarray(item.shape, dtype=dict)
+        for ndi, obs in np.ndenumerate(item):
+            result[ndi] = self.obs_to_dict(obs)
+
+        return result
 
     def reshape(self, *shape: int | Iterable[int]) -> ObservablesArray:
         """Return a new array with a different shape.
