@@ -32,8 +32,11 @@ from qiskit.circuit import (
 )
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.library import (
+    XGate,
+    ZGate,
     SwapGate,
     CXGate,
+    CZGate,
     RZGate,
     PermutationGate,
     U3Gate,
@@ -45,6 +48,8 @@ from qiskit.circuit.library import (
     QFTGate,
     IGate,
     MCXGate,
+    HGate,
+    PhaseGate,
     SGate,
     QAOAAnsatz,
     GlobalPhaseGate,
@@ -53,6 +58,7 @@ from qiskit.circuit.library import LinearFunction, PauliEvolutionGate
 from qiskit.quantum_info import Clifford, Operator, Statevector, SparsePauliOp
 from qiskit.synthesis.evolution import synth_pauli_network_rustiq
 from qiskit.synthesis.linear import random_invertible_binary_matrix
+from qiskit.synthesis.arithmetic import adder_qft_d00
 from qiskit.compiler import transpile
 from qiskit.exceptions import QiskitError
 from qiskit.converters import dag_to_circuit, circuit_to_dag, circuit_to_instruction
@@ -733,6 +739,76 @@ class TestHighLevelSynthesisInterface(QiskitTestCase):
             self.assertEqual(transpiled_block, expected_block)
 
 
+class TestHighLevelSynthesisQuality(QiskitTestCase):
+    """Test the "quality" of circuits produced by HighLevelSynthesis."""
+
+    def test_controlled_x(self):
+        """Test default synthesis of controlled-X gate."""
+        qc = QuantumCircuit(15)
+        qc.append(XGate().control(6), [0, 1, 2, 3, 4, 5, 6])
+        qct = HighLevelSynthesis(basis_gates=["cx", "u"])(qc)
+        self.assertLessEqual(qct.count_ops()["cx"], 30)
+
+    def test_controlled_cx(self):
+        """Test default synthesis of controlled-CX gate."""
+        qc = QuantumCircuit(15)
+        qc.append(CXGate().control(5), [0, 1, 2, 3, 4, 5, 6])
+        qct = HighLevelSynthesis(basis_gates=["cx", "u"])(qc)
+        self.assertLessEqual(qct.count_ops()["cx"], 30)
+
+    def test_recursively_controlled_cx(self):
+        """Test default synthesis of recursively controlled CX-gate."""
+        inner = QuantumCircuit(5)
+        inner.append(CXGate().control(3, annotated=True), [0, 1, 2, 3, 4])
+        controlled_inner_gate2 = inner.to_gate().control(2, annotated=True)
+        qc = QuantumCircuit(15)
+        qc.append(controlled_inner_gate2, [0, 1, 2, 3, 4, 5, 6])
+        qct = HighLevelSynthesis(basis_gates=["cx", "u"])(qc)
+        self.assertLessEqual(qct.count_ops()["cx"], 30)
+
+    def test_controlled_z(self):
+        """Test default synthesis of controlled-X gate."""
+        qc = QuantumCircuit(15)
+        qc.append(ZGate().control(6), [0, 1, 2, 3, 4, 5, 6])
+        qct = HighLevelSynthesis(basis_gates=["cx", "u"])(qc)
+        self.assertLessEqual(qct.count_ops()["cx"], 30)
+
+    def test_controlled_cz(self):
+        """Test default synthesis of controlled-CZ gate."""
+        qc = QuantumCircuit(15)
+        qc.append(CZGate().control(5), [0, 1, 2, 3, 4, 5, 6])
+        qct = HighLevelSynthesis(basis_gates=["cx", "u"])(qc)
+        self.assertLessEqual(qct.count_ops()["cx"], 30)
+
+    def test_recursively_controlled_cz(self):
+        """Test default synthesis of recursively controlled CZ-gate."""
+        inner = QuantumCircuit(5)
+        inner.append(CZGate().control(3, annotated=True), [0, 1, 2, 3, 4])
+        controlled_inner_gate2 = inner.to_gate().control(2, annotated=True)
+        qc = QuantumCircuit(15)
+        qc.append(controlled_inner_gate2, [0, 1, 2, 3, 4, 5, 6])
+        qct = HighLevelSynthesis(basis_gates=["cx", "u"])(qc)
+        self.assertLessEqual(qct.count_ops()["cx"], 30)
+
+    def test_controlled_qft_adder(self):
+        """Test QFT-based synthesis of half-adder gate."""
+        gate = adder_qft_d00(num_state_qubits=3, kind="half", annotated=True).control(
+            num_ctrl_qubits=2, annotated=True
+        )
+        qc = QuantumCircuit(gate.num_qubits)
+        qc.append(gate, qc.qubits)
+        qct = HighLevelSynthesis(basis_gates=["cx", "u"], qubits_initially_zero=False)(qc)
+        self.assertLessEqual(qct.count_ops()["cx"], 450)
+
+    def test_controlled_qft(self):
+        """Test controlled QFT-gate."""
+        gate = QFTGate(3).control(2, annotated=True)
+        qc = QuantumCircuit(gate.num_qubits)
+        qc.append(gate, qc.qubits)
+        qct = HighLevelSynthesis(basis_gates=["cx", "u"], qubits_initially_zero=False)(qc)
+        self.assertLessEqual(qct.count_ops()["cx"], 198)
+
+
 class TestPMHSynthesisLinearFunctionPlugin(QiskitTestCase):
     """Tests for the PMHSynthesisLinearFunction plugin for synthesizing linear functions."""
 
@@ -1204,7 +1280,7 @@ class TestHighLevelSynthesisModifiers(QiskitTestCase):
         circuit.append(lazy_gate1, [0, 1, 2, 3, 4])
         transpiled_circuit = HighLevelSynthesis()(circuit)
         expected_circuit = QuantumCircuit(5)
-        expected_circuit.append(SwapGate().control(2).control(1), [0, 1, 2, 3, 4])
+        expected_circuit.append(SwapGate().control(3), [0, 1, 2, 3, 4])
         self.assertEqual(transpiled_circuit, expected_circuit)
 
     def test_nested_controls(self):
@@ -1215,7 +1291,7 @@ class TestHighLevelSynthesisModifiers(QiskitTestCase):
         circuit.append(lazy_gate2, [0, 1, 2, 3, 4])
         transpiled_circuit = HighLevelSynthesis()(circuit)
         expected_circuit = QuantumCircuit(5)
-        expected_circuit.append(SwapGate().control(2).control(1), [0, 1, 2, 3, 4])
+        expected_circuit.append(SwapGate().control(3), [0, 1, 2, 3, 4])
         self.assertEqual(transpiled_circuit, expected_circuit)
 
     def test_nested_controls_permutation(self):
@@ -1739,6 +1815,40 @@ class TestHighLevelSynthesisModifiers(QiskitTestCase):
         pass_ = HighLevelSynthesis(basis_gates=["h", "z", "cx", "u"])
         qct = pass_(qc)
         self.assertEqual(Statevector(qc), Statevector(qct))
+
+    def test_annotated_with_empty_modifiers(self):
+        """Test synthesis of an annotated gate with an empty list of modifiers."""
+        annotated_gate = AnnotatedOperation(SwapGate(), [])
+        circuit = QuantumCircuit(2)
+        circuit.h(0)
+        circuit.append(annotated_gate, [0, 1])
+
+        transpiled_circuit = HighLevelSynthesis()(circuit)
+        expected_circuit = QuantumCircuit(2)
+        expected_circuit.h(0)
+        expected_circuit.swap(0, 1)
+
+        self.assertEqual(transpiled_circuit, expected_circuit)
+
+    def test_annotated_rec_with_control_states(self):
+        """Test that control states are combined correctly."""
+        # qc1 contains h.control('10').control('111')
+        inner2 = QuantumCircuit(1)
+        inner2.h(0)
+        inner1 = QuantumCircuit(3)
+        inner1.append(inner2.to_gate().control(2, ctrl_state=2, annotated=True), [0, 1, 2])
+        qc1 = QuantumCircuit(6)
+        qc1.append(inner1.to_gate().control(3, annotated=True, ctrl_state=7), [0, 1, 2, 3, 4, 5])
+
+        # qc2 contains h.control('10111')
+        qc2 = QuantumCircuit(6)
+        qc2.append(inner2.to_gate().control(5, annotated=True, ctrl_state=23), [0, 1, 2, 3, 4, 5])
+
+        pass_ = HighLevelSynthesis(basis_gates=["h", "z", "cx", "u"], qubits_initially_zero=False)
+        qct1 = pass_(qc1)
+        qct2 = pass_(qc2)
+
+        self.assertEqual(Operator(qct1), Operator(qct2))
 
 
 class TestUnrollerCompatability(QiskitTestCase):
@@ -2786,6 +2896,107 @@ class TestPauliEvolutionSynthesisPlugins(QiskitTestCase):
         )
         self.assertEqual(count_rotation_gates(qct), 2)
         self.assertEqual(set(qct.parameters), {alpha, beta})
+
+
+class TestAnnotatedSynthesisPlugins(QiskitTestCase):
+    """Tests related to plugins for AnnotatedOperation."""
+
+    def setUp(self):
+        super().setUp()
+        self._pass = HighLevelSynthesis(basis_gates=["cx", "u"])
+
+    def test_conjugate_reduction_applies_1(self):
+        """Test that conjugate reduction optimization applies when the first and the last gates
+        are inverse of each other for the given choice of parameters."""
+        qc_inner = QuantumCircuit(1)
+        qc_inner.append(PhaseGate(1), [0])
+        qc_inner.append(HGate(), [0])
+        qc_inner.append(PhaseGate(-1), [0])
+
+        qc_main = QuantumCircuit(5)
+        qc_main.append(qc_inner.to_gate().control(4, annotated=True), [0, 1, 2, 3, 4])
+
+        # Optimized circuit with non-controlled phase gates
+        qc_expected = QuantumCircuit(5)
+        qc_expected.append(PhaseGate(1), [4])
+        qc_expected.append(HGate().control(4), [0, 1, 2, 3, 4])
+        qc_expected.append(PhaseGate(-1), [4])
+
+        qc_main_tranpiled = self._pass(qc_main)
+        qc_expected_transpiled = self._pass(qc_expected)
+
+        self.assertEqual(Operator(qc_main_tranpiled), Operator(qc_expected_transpiled))
+        self.assertEqual(qc_main_tranpiled.count_ops(), qc_expected_transpiled.count_ops())
+
+    def test_conjugate_reduction_not_applies_1(self):
+        """Test that conjugate reduction optimization does not apply when the first and the
+        last gates are not inverse of each other for the given choice of parameters."""
+        qc_inner = QuantumCircuit(1)
+        qc_inner.append(PhaseGate(1), [0])
+        qc_inner.append(HGate(), [0])
+        qc_inner.append(PhaseGate(-2), [0])
+
+        qc_main = QuantumCircuit(5)
+        qc_main.append(qc_inner.to_gate().control(4, annotated=True), [0, 1, 2, 3, 4])
+
+        # Non-optimized circuit with controlled phase gates
+        qc_expected = QuantumCircuit(5)
+        qc_expected.append(PhaseGate(1).control(4), [0, 1, 2, 3, 4])
+        qc_expected.append(HGate().control(4), [0, 1, 2, 3, 4])
+        qc_expected.append(PhaseGate(-2).control(4), [0, 1, 2, 3, 4])
+
+        qc_main_tranpiled = self._pass(qc_main)
+        qc_expected_transpiled = self._pass(qc_expected)
+
+        self.assertEqual(Operator(qc_main_tranpiled), Operator(qc_expected_transpiled))
+        self.assertEqual(qc_main_tranpiled.count_ops(), qc_expected_transpiled.count_ops())
+
+    def test_conjugate_reduction_applies_2(self):
+        """Test that conjugate reduction optimization applies when the first and the last gates
+        are inverse of each other for the given choice of parameters, with the inverse represented
+        via a modifier."""
+        qc_inner = QuantumCircuit(1)
+        qc_inner.append(PhaseGate(1), [0])
+        qc_inner.append(HGate(), [0])
+        qc_inner.append(PhaseGate(1).inverse(annotated=True), [0])
+
+        qc_main = QuantumCircuit(5)
+        qc_main.append(qc_inner.to_gate().control(4, annotated=True), [0, 1, 2, 3, 4])
+
+        # Optimized circuit with non-controlled phase gates
+        qc_expected = QuantumCircuit(5)
+        qc_expected.append(PhaseGate(1), [4])
+        qc_expected.append(HGate().control(4), [0, 1, 2, 3, 4])
+        qc_expected.append(PhaseGate(-1), [4])
+
+        qc_main_tranpiled = self._pass(qc_main)
+        qc_expected_transpiled = self._pass(qc_expected)
+        self.assertEqual(Operator(qc_main_tranpiled), Operator(qc_expected_transpiled))
+        self.assertEqual(qc_main_tranpiled.count_ops(), qc_expected_transpiled.count_ops())
+
+    def test_conjugate_reduction_not_applies_2(self):
+        """Test that conjugate reduction optimization does not apply when the first and the
+        last gates are not inverse of each other for the given choice of parameters.
+        """
+        qc_inner = QuantumCircuit(1)
+        qc_inner.append(PhaseGate(1), [0])
+        qc_inner.append(HGate(), [0])
+        qc_inner.append(PhaseGate(2).inverse(annotated=True), [0])
+
+        qc_main = QuantumCircuit(5)
+        qc_main.append(qc_inner.to_gate().control(4, annotated=True), [0, 1, 2, 3, 4])
+
+        # Non-optimized circuit with controlled phase gates
+        qc_expected = QuantumCircuit(5)
+        qc_expected.append(PhaseGate(1).control(4), [0, 1, 2, 3, 4])
+        qc_expected.append(HGate().control(4), [0, 1, 2, 3, 4])
+        qc_expected.append(PhaseGate(-2).control(4), [0, 1, 2, 3, 4])
+
+        qc_main_tranpiled = self._pass(qc_main)
+        qc_expected_transpiled = self._pass(qc_expected)
+
+        self.assertEqual(Operator(qc_main_tranpiled), Operator(qc_expected_transpiled))
+        self.assertEqual(qc_main_tranpiled.count_ops(), qc_expected_transpiled.count_ops())
 
 
 def count_rotation_gates(qc: QuantumCircuit):
