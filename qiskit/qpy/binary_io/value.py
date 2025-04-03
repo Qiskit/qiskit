@@ -124,7 +124,10 @@ def _encode_replay_entry(inst, file_obj, version, r_side=False):
 
 def _encode_replay_subs(subs, file_obj, version):
     with io.BytesIO() as mapping_buf:
-        subs_dict = {k.name: v for k, v in subs.binds.items()}
+        if version < 15:
+            subs_dict = {k.name: v for k, v in subs.binds.items()}
+        else:
+            subs_dict = {k.uuid.bytes: v for k, v in subs.binds.items()}
         common.write_mapping(
             mapping_buf, mapping=subs_dict, serializer=dumps_value, version=version
         )
@@ -452,7 +455,7 @@ def _read_parameter(file_obj):
     return Parameter(name, uuid=param_uuid)
 
 
-def _read_parameter_vec(file_obj, vectors):
+def _read_parameter_vec(file_obj, vectors, from_expr):
     data = formats.PARAMETER_VECTOR_ELEMENT(
         *struct.unpack(
             formats.PARAMETER_VECTOR_ELEMENT_PACK,
@@ -461,7 +464,8 @@ def _read_parameter_vec(file_obj, vectors):
     )
     param_uuid = uuid.UUID(bytes=data.uuid)
     name = file_obj.read(data.vector_name_size).decode(common.ENCODE)
-    if name not in vectors:
+
+    if from_expr or name not in vectors:
         vectors[name] = (ParameterVector(name, data.vector_size), set())
     vector = vectors[name][0]
     if vector[data.index].uuid != param_uuid:
@@ -531,7 +535,7 @@ def _read_parameter_expression_v3(file_obj, vectors, use_symengine):
         if symbol_key == type_keys.Value.PARAMETER:
             symbol = _read_parameter(file_obj)
         elif symbol_key == type_keys.Value.PARAMETER_VECTOR:
-            symbol = _read_parameter_vec(file_obj, vectors)
+            symbol = _read_parameter_vec(file_obj, vectors, False)
         else:
             raise exceptions.QpyError(f"Invalid parameter expression map type: {symbol_key}")
 
@@ -579,7 +583,7 @@ def _read_parameter_expression_v13(file_obj, vectors, version):
         if symbol_key == type_keys.Value.PARAMETER:
             symbol = _read_parameter(file_obj)
         elif symbol_key == type_keys.Value.PARAMETER_VECTOR:
-            symbol = _read_parameter_vec(file_obj, vectors)
+            symbol = _read_parameter_vec(file_obj, vectors, True)
         elif symbol_key == type_keys.Value.PARAMETER_EXPRESSION:
             symbol = _read_parameter_expression_v13(file_obj, vectors, version)
         else:
@@ -612,7 +616,10 @@ def _read_parameter_expression_v13(file_obj, vectors, version):
 
 def _read_parameter_expr_v13(buf, symbol_map, version, vectors):
     param_uuid_map = {symbol.uuid: symbol for symbol in symbol_map if isinstance(symbol, Parameter)}
-    name_map = {str(v): k for k, v in symbol_map.items()}
+    if version < 15:
+        name_map = {str(v): k for k, v in symbol_map.items()}
+    else:
+        name_map = {symbol.uuid: symbol for symbol in symbol_map if isinstance(symbol, Parameter)}
     data = buf.read(formats.PARAM_EXPR_ELEM_V13_SIZE)
     stack = []
     while data:
@@ -1094,7 +1101,9 @@ def loads_value(
     if type_key == type_keys.Value.CASE_DEFAULT:
         return CASE_DEFAULT
     if type_key == type_keys.Value.PARAMETER_VECTOR:
-        return common.data_from_binary(binary_data, _read_parameter_vec, vectors=vectors)
+        return common.data_from_binary(
+            binary_data, _read_parameter_vec, vectors=vectors, from_expr=False
+        )
     if type_key == type_keys.Value.PARAMETER:
         return common.data_from_binary(binary_data, _read_parameter)
     if type_key == type_keys.Value.PARAMETER_EXPRESSION:

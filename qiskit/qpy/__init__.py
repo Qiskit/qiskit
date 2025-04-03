@@ -194,6 +194,9 @@ of QPY in qiskit-terra 0.18.0.
    * - Qiskit (qiskit-terra for < 1.0.0) version
      - :func:`.dump` format(s) output versions
      - :func:`.load` maximum supported version (older format versions can always be read)
+   * - 2.1.0
+     - 13, 14, 15
+     - 15
    * - 2.0.0
      - 13, 14
      - 14
@@ -397,6 +400,20 @@ The ``STANDALONE_VARS`` are new in QPY version 12; before that, there was no dat
 There is a circuit payload for each circuit (where the total number is dictated
 by ``num_circuits`` in the file header). There is no padding between the
 circuits in the data.
+
+.. _qpy_version_15:
+
+Version 15
+----------
+
+Version 15 improves the native Qiskit serialization of ParameterExpressions to support parameter
+re-assignments with the same name. This is achieved by modifying the PARAM_EXPR_ELEM_V13 payload 
+for the substitution operation. In version 15, the type value
+of ``u`` is still used to represent a substitution call. This is only used for ``lhs_type``
+and is always paired with an ``rhs_type`` of ``n``. However, the data value is the size in bytes of
+a :ref:`qpy_mapping` encoded mapping of :class:`.Parameter` uuids (not names) to their value for the
+:meth:`~.ParameterExpression.subs` call. The mapping data is immediately following the
+struct, and the next struct starts immediately after the mapping data.
 
 .. _qpy_version_14:
 
