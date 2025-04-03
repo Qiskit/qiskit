@@ -832,7 +832,9 @@ class TestNLocalFamily(QiskitTestCase):
     def test_excitation_preserving_transpile(self):
         """Test two-qubit gate count after transpiling excitation preserving ansatz."""
         ansatz = excitation_preserving(3, reps=1, insert_barriers=True, entanglement="linear")
-        pm = generate_preset_pass_manager(optimization_level=0, basis_gates=["u", "cx"], seed_transpiler=12345)
+        pm = generate_preset_pass_manager(
+            optimization_level=0, basis_gates=["u", "cx"], seed_transpiler=12345
+        )
         transpiled_circuit = pm.run(ansatz)
         self.assertEqual(ansatz.decompose().decompose().count_ops()["cx"], 4)
         self.assertEqual(transpiled_circuit.count_ops()["cx"], 4)
@@ -1202,7 +1204,7 @@ class TestTwoLocal(QiskitTestCase):
         # «     ├──────────────┤└────────────────────────┘│  (XX+YY)(2*theta[9],0) │»
         # «q_2: ┤ Rz(theta[7]) ├──────────────────────────┤1                       ├»
         # «     └──────────────┘                          └────────────────────────┘»
-        # «                      
+        # «
         # «q_0: ─────────────────
         # «     ┌───────────────┐
         # «q_1: ┤ Rz(theta[11]) ├
@@ -1243,7 +1245,7 @@ class TestTwoLocal(QiskitTestCase):
         #     ├───────┤└───────────────┘       │  (XX+YY)(2,0) │ │P(1) ├───────┤»
         # q_2: ┤ Rz(1) ├────────────────────────┤1              ├─■─────┤ Rz(1) ├»
         #     └───────┘                        └───────────────┘       └───────┘»
-        # «     ┌───────────────┐           ┌───────┐                    
+        # «     ┌───────────────┐           ┌───────┐
         # «q_0: ┤0              ├─■─────────┤ Rz(1) ├────────────────────
         # «     │  (XX+YY)(2,0) │ │P(1) ┌───┴───────┴───┐       ┌───────┐
         # «q_1: ┤1              ├─■─────┤0              ├─■─────┤ Rz(1) ├
