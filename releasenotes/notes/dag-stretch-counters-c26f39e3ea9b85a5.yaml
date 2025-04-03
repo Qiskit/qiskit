@@ -1,0 +1,7 @@
+---
+features_transpiler:
+  - |
+    Adds :class:`~.DAGCircuit` attributes
+    :attr:`~.DAGCircuit.num_stretches`,
+    :attr:`~.DAGCircuit.num_captured_stretches`,
+    and :attr:`~.DAGCircuit.num_declared_stretches`.
