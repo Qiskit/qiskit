@@ -19,7 +19,8 @@ import rustworkx
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.transpiler.passes.layout import disjoint_utils
+from qiskit._accelerate import disjoint_utils
+from qiskit.transpiler.passes.layout import disjoint_utils as disjoint_py
 
 from qiskit._accelerate.dense_layout import best_subset
 
@@ -66,11 +67,24 @@ class DenseLayout(AnalysisPass):
             raise TranspilerError(
                 "A coupling_map or target with constrained qargs is necessary to run the pass."
             )
-        layout_components = disjoint_utils.run_pass_over_connected_components(
-            dag,
-            self.coupling_map if self.target is None else self.target,
-            self._inner_run,
-        )
+        if self.target is not None:
+            layout_components = disjoint_utils.run_pass_over_connected_components(
+                dag,
+                self.target,
+                self._inner_run,
+            )
+            if layout_components is None:
+                layout_components = disjoint_py.run_pass_over_connected_components(
+                    dag,
+                    self.coupling_map,
+                    self._inner_run,
+                )
+        else:
+            layout_components = disjoint_py.run_pass_over_connected_components(
+                dag,
+                self.coupling_map,
+                self._inner_run,
+            )
         layout_mapping = {}
         for component in layout_components:
             layout_mapping.update(component)
