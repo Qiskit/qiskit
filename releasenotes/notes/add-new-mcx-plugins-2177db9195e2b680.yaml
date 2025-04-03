@@ -8,5 +8,6 @@ features_transpiler:
     * :class:`.MCXSynthesis2CleanKG24`, based on :func:`.synth_mcx_2_clean_kg24`.
     * :class:`.MCXSynthesis2DirtyKG24`, based on :func:`.synth_mcx_2_dirty_kg24`.
 
-    The :class:`.MCXSynthesisDefault` has also been updated to follow the sequence:
-    mcx_2_clean, mcx_2_dirty, mcx_1_clean, mcx_1_dirty when synthesizing MCX gate.
+    The :class:`.MCXSynthesisDefault` has also been updated to follow the following sequence of
+    MCX synthesizers: "mcx.n_clean_m15", "mcx.n_dirty_i15", "mcx.2_clean_kg24", "mcx.2_dirty_kg24",
+    "mcx.1_clean_kg24", "mcx.1_dirty_kg24" "mcx.1_clean_b95", "mcx.noaux_v24".
