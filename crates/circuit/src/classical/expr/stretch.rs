@@ -19,7 +19,7 @@ use pyo3::{intern, IntoPyObjectExt};
 use uuid::Uuid;
 
 /// A stretch variable.
-#[derive(Clone, Debug, PartialEq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Stretch {
     pub uuid: u128,
     pub name: String,

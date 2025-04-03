@@ -63,7 +63,7 @@ where
             Wire::Var(var) => dag
                 .vars()
                 .get(*var)
-                .map(|var| var.clone_ref(py))
+                .cloned()
                 .into_bound_py_any(py)?,
         };
         writeln!(
