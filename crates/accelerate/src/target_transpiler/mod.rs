@@ -13,14 +13,15 @@
 #![allow(clippy::too_many_arguments)]
 
 mod errors;
+mod gate_map;
 mod instruction_properties;
 mod nullable_index_map;
-mod gate_map;
 
 use std::{ops::Index, sync::OnceLock};
 
 use ahash::RandomState;
 
+use gate_map::{GateMap, PropsMap};
 use hashbrown::HashSet;
 use indexmap::IndexMap;
 use itertools::Itertools;
@@ -29,14 +30,14 @@ use pyo3::{
     exceptions::{PyAttributeError, PyIndexError, PyKeyError, PyValueError},
     prelude::*,
     pyclass,
-    types::{PyDict, PyList, PySet, PyTuple},
+    types::{PyDict, PyIterator, PyList, PySet, PyTuple},
     IntoPyObjectExt,
 };
 
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::operations::{Operation, OperationRef, Param};
 use qiskit_circuit::packed_instruction::PackedOperation;
-use smallvec::{SmallVec, smallvec};
+use smallvec::SmallVec;
 
 use crate::nlayout::PhysicalQubit;
 
@@ -53,9 +54,6 @@ pub(crate) mod exceptions {
 
 // Custom types
 pub type Qargs = SmallVec<[PhysicalQubit; 2]>;
-type GateMap = IndexMap<String, PropsMap, RandomState>;
-type PropsMap = NullableIndexMap<Qargs, Option<InstructionProperties>>;
-type GateMapState = Vec<(String, Vec<(Option<Qargs>, Option<InstructionProperties>)>)>;
 
 /// Represents a Qiskit `Gate` object or a Variadic instruction.
 /// Keeps a reference to its Python instance for caching purposes.
@@ -100,7 +98,7 @@ impl From<NormalOperation> for TargetOperation {
 
 /// Represents a Qiskit `Gate` object, keeps a reference to its Python
 /// instance for caching purposes.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct NormalOperation {
     pub operation: PackedOperation,
     pub params: SmallVec<[Param; 3]>,
@@ -131,6 +129,16 @@ impl NormalOperation {
         Self {
             operation,
             params,
+            op_object: OnceLock::new(),
+        }
+    }
+}
+
+impl Clone for NormalOperation {
+    fn clone(&self) -> Self {
+        NormalOperation {
+            operation: self.operation.clone(),
+            params: self.params.clone(),
             op_object: OnceLock::new(),
         }
     }
@@ -307,7 +315,7 @@ impl Target {
             acquire_alignment: acquire_alignment.unwrap_or(0),
             qubit_properties,
             concurrent_measurements,
-            gate_map: GateMap::default(),
+            gate_map: GateMap::new(),
             _gate_name_map: IndexMap::default(),
             global_operations: IndexMap::default(),
             qarg_gate_map: NullableIndexMap::default(),
@@ -346,51 +354,47 @@ impl Target {
                 qargs_val = PropsMap::with_capacity(1);
                 qargs_val.extend([(None, None)]);
             }
-            TargetOperation::Normal(normal) => {
-                if let Some(mut properties) = properties {
-                    qargs_val = PropsMap::with_capacity(properties.len());
-                    let inst_num_qubits = normal.operation.view().num_qubits();
-                    if properties.contains_key(None::<&[PhysicalQubit]>) {
-                        self.global_operations
-                            .entry(inst_num_qubits)
-                            .and_modify(|e| {
-                                e.insert(name.to_string());
-                            })
-                            .or_insert(HashSet::from_iter([name.to_string()]));
-                    }
-                    let property_keys: Vec<Option<Qargs>> =
-                        properties.keys().map(|qargs| qargs.cloned()).collect();
-                    for qarg in property_keys {
-                        if let Some(qarg) = qarg.as_ref() {
-                            if qarg.len() != inst_num_qubits as usize {
-                                return Err(TranspilerError::new_err(format!(
-                                    "The number of qubits for {name} does not match\
-                                    the number of qubits in the properties dictionary: {:?}",
-                                    qarg
-                                )));
-                            }
-                            self.num_qubits =
-                                Some(self.num_qubits.unwrap_or_default().max(
-                                    qarg.iter().fold(0, |acc, x| {
-                                        if acc > x.index() {
-                                            acc
-                                        } else {
-                                            x.index()
-                                        }
-                                    }) + 1,
-                                ));
+            TargetOperation::Normal(_) => {
+                let properties =
+                    properties.unwrap_or(NullableIndexMap::from_iter([(None, None)]).into());
+                qargs_val = PropsMap::with_capacity(properties.len());
+                if properties.contains_key(None::<&[PhysicalQubit]>) {
+                    self.global_operations
+                        .entry(instruction.num_qubits())
+                        .and_modify(|e| {
+                            e.insert(name.to_string());
+                        })
+                        .or_insert(HashSet::from_iter([name.to_string()]));
+                }
+                for (qarg, inst_properties) in properties {
+                    if let Some(qarg) = qarg.as_ref() {
+                        if qarg.len() != instruction.num_qubits() as usize {
+                            return Err(TranspilerError::new_err(format!(
+                                "The number of qubits for {name} does not match\
+                                the number of qubits in the properties dictionary: {:?}",
+                                qarg
+                            )));
                         }
-                        let inst_properties = properties.swap_remove(qarg.as_ref()).unwrap();
-                        qargs_val.insert(qarg.clone(), inst_properties);
-                        if let Some(Some(value)) = self.qarg_gate_map.get_mut(qarg.as_ref()) {
-                            value.insert(name.to_string());
-                        } else {
-                            self.qarg_gate_map
-                                .insert(qarg, Some(HashSet::from_iter([name.to_string()])));
-                        }
+                        self.num_qubits = Some(self.num_qubits.unwrap_or_default().max(
+                            qarg.iter().fold(
+                                0,
+                                |acc, x| {
+                                    if acc > x.index() {
+                                        acc
+                                    } else {
+                                        x.index()
+                                    }
+                                },
+                            ) + 1,
+                        ));
                     }
-                } else {
-                    qargs_val = PropsMap::with_capacity(0);
+                    qargs_val.insert(qarg.clone(), inst_properties.clone());
+                    if let Some(Some(value)) = self.qarg_gate_map.get_mut(qarg.as_ref()) {
+                        value.insert(name.to_string());
+                    } else {
+                        self.qarg_gate_map
+                            .insert(qarg, Some(HashSet::from_iter([name.to_string()])));
+                    }
                 }
             }
         }
@@ -446,18 +450,16 @@ impl Target {
     /// Returns:
     ///     set: The set of qargs the gate instance applies to.
     #[pyo3(name = "qargs_for_operation_name")]
-    pub fn py_qargs_for_operation_name(
-        &self,
-        py: Python,
-        operation: &str,
-    ) -> PyResult<Option<Vec<PyObject>>> {
-        match self.qargs_for_operation_name(operation) {
-            Ok(option_set) => Ok(option_set.map(|qargs| {
-                qargs
-                    .map(|qargs| qargs.into_pyobject(py).unwrap().unbind())
-                    .collect()
-            })),
-            Err(e) => Err(PyKeyError::new_err(e.message)),
+    pub fn py_qargs_for_operation_name(&self, py: Python, operation: &str) -> PyResult<Py<PyAny>> {
+        if let Some(props_map) = self.gate_map.get(operation) {
+            if props_map.contains_key(None::<&[PhysicalQubit]>) {
+                return Ok(py.None());
+            }
+            Ok(props_map.into_pyobject(py)?.call_method0("keys")?.unbind())
+        } else {
+            Err(PyKeyError::new_err(format!(
+                "Operation: {operation} not in Target."
+            )))
         }
     }
 
@@ -503,18 +505,10 @@ impl Target {
         qargs: Option<Qargs>,
     ) -> PyResult<Vec<PyObject>> {
         // Move to rust native once Gates are in rust
-        Ok(self
-            .py_operation_names_for_qargs(qargs)?
+        self.py_operation_names_for_qargs(qargs)?
             .into_iter()
-            .map(|x| {
-                self._gate_name_map[x]
-                    .into_pyobject(py)
-                    .as_ref()
-                    .unwrap()
-                    .clone()
-                    .unbind()
-            })
-            .collect())
+            .map(|x| (&self._gate_name_map[x]).into_py_any(py))
+            .collect()
     }
 
     /// Get the operation names for a specified qargs tuple
@@ -830,30 +824,15 @@ impl Target {
                 Some(q) => Some(PyTuple::new(py, q)?.unbind()),
                 None => None,
             };
-            let out_inst = match inst {
-                TargetOperation::Normal(op) => match op.operation.view() {
-                    OperationRef::StandardGate(standard) => standard
-                        .create_py_op(py, Some(&op.params), None)?
-                        .into_any(),
-                    OperationRef::StandardInstruction(standard) => standard
-                        .create_py_op(py, Some(&op.params), None)?
-                        .into_any(),
-                    OperationRef::Gate(gate) => gate.gate.clone_ref(py),
-                    OperationRef::Instruction(instruction) => instruction.instruction.clone_ref(py),
-                    OperationRef::Operation(operation) => operation.operation.clone_ref(py),
-                    OperationRef::Unitary(unitary) => unitary.create_py_op(py, None)?.into_any(),
-                },
-                TargetOperation::Variadic(op_cls) => op_cls.clone_ref(py),
-            };
-            list.append((out_inst, qargs))?;
+            list.append((inst, qargs))?;
         }
         Ok(list.unbind())
     }
     /// Get the operation names in the target.
     #[getter]
     #[pyo3(name = "operation_names")]
-    fn py_operation_names(&self, py: Python<'_>) -> PyResult<Py<PyList>> {
-        Ok(PyList::new(py, self.operation_names())?.unbind())
+    fn py_operation_names(&self, py: Python) -> PyResult<PyObject> {
+        self.py_keys(py)
     }
 
     /// Get the operation objects in the target.
@@ -890,22 +869,7 @@ impl Target {
             "concurrent_measurements",
             self.concurrent_measurements.clone(),
         )?;
-        result_list.set_item(
-            "gate_map",
-            self.gate_map
-                .clone()
-                .into_iter()
-                .map(|(key, value)| {
-                    (
-                        key,
-                        value
-                            .into_iter()
-                            .collect::<Vec<(Option<Qargs>, Option<InstructionProperties>)>>(),
-                    )
-                })
-                .collect::<GateMapState>()
-                .into_pyobject(py)?,
-        )?;
+        result_list.set_item("gate_map", &self.gate_map)?;
         result_list.set_item("gate_name_map", self._gate_name_map.into_pyobject(py)?)?;
         result_list.set_item("global_operations", self.global_operations.clone())?;
         result_list.set_item(
@@ -948,14 +912,7 @@ impl Target {
             .get_item("concurrent_measurements")?
             .unwrap()
             .extract::<Option<Vec<Vec<PhysicalQubit>>>>()?;
-        self.gate_map = IndexMap::from_iter(
-            state
-                .get_item("gate_map")?
-                .unwrap()
-                .extract::<GateMapState>()?
-                .into_iter()
-                .map(|(name, prop_map)| (name, PropsMap::from_iter(prop_map))),
-        );
+        self.gate_map = state.get_item("gate_map")?.unwrap().extract::<GateMap>()?;
         self._gate_name_map = state
             .get_item("gate_name_map")?
             .unwrap()
@@ -979,6 +936,60 @@ impl Target {
             .unwrap()
             .extract::<Option<Vec<String>>>()?;
         Ok(())
+    }
+
+    fn __iter__(slf: PyRef<Self>) -> PyResult<Bound<PyIterator>> {
+        (&slf.gate_map).into_pyobject(slf.py())?.try_iter()
+    }
+
+    fn __getitem__<'py>(&self, py: Python<'py>, key: &str) -> PyResult<Bound<'py, PyAny>> {
+        (&self.gate_map).into_bound_py_any(py)?.get_item(key)
+    }
+
+    /// Gets an item from the Target. If not found return a provided default or `None`.
+    #[pyo3(name = "get", signature= (key, default=None))]
+    fn py_get(
+        &self,
+        py: Python,
+        key: &str,
+        default: Option<PyObject>,
+    ) -> PyResult<Option<PyObject>> {
+        if let Some(value) = self.gate_map.get(key) {
+            Some(value.into_py_any(py)).transpose()
+        } else {
+            Ok(default)
+        }
+    }
+
+    fn __contains__(&self, item: &str) -> bool {
+        self.contains_key(item)
+    }
+
+    /// Return the keys (operation_names) of the Target
+    #[pyo3(name = "keys")]
+    fn py_keys(&self, py: Python) -> PyResult<PyObject> {
+        (&self.gate_map)
+            .into_pyobject(py)?
+            .call_method0("keys")
+            .map(|obj| obj.unbind())
+    }
+
+    /// Return the Property Map (qargs -> InstructionProperties) of every instruction in the Target
+    #[pyo3(name = "values")]
+    fn py_values(&self, py: Python) -> PyResult<PyObject> {
+        (&self.gate_map)
+            .into_pyobject(py)?
+            .call_method0("values")
+            .map(|obj| obj.unbind())
+    }
+
+    /// Returns pairs of Gate names and its property map (str, dict[tuple, InstructionProperties])
+    #[pyo3(name = "items")]
+    fn py_items(&self, py: Python) -> PyResult<PyObject> {
+        (&self.gate_map)
+            .into_pyobject(py)?
+            .call_method0("items")
+            .map(|obj| obj.unbind())
     }
 }
 
@@ -1128,13 +1139,15 @@ impl Target {
         Some(self.generate_non_global_op_names(strict_direction))
     }
 
-    /// Gets all the operation names that use these qargs. Rust native equivalent of ``BaseTarget.operation_names_for_qargs()``
+    /// Gets all the operation names that use these qargs. Set non_global to `true`
+    /// to return the names of all globally defined operations in the `Target`.
+    ///
+    /// Rust native equivalent of ``BaseTarget.operation_names_for_qargs()``
     pub fn operation_names_for_qargs(
         &self,
         qargs: Option<&[PhysicalQubit]>,
     ) -> Result<HashSet<&str>, TargetKeyError> {
         // When num_qubits == 0 we return globally defined operators
-        let mut res: HashSet<&str> = HashSet::default();
         let mut qargs = qargs;
         if self.num_qubits.unwrap_or_default() == 0 || self.num_qubits.is_none() {
             qargs = None;
@@ -1150,6 +1163,7 @@ impl Target {
                 )));
             }
         }
+        let mut res: HashSet<&str> = HashSet::default();
         if let Some(Some(qarg_gate_map_arg)) = self.qarg_gate_map.get(qargs).as_ref() {
             res.extend(qarg_gate_map_arg.iter().map(|key| key.as_str()));
         }
@@ -1210,8 +1224,6 @@ impl Target {
     }
 
     /// Gets a tuple of Operation object and Parameters based on the operation name if present in the Target.
-    // TODO: Remove once `Target` is being consumed.
-    #[allow(dead_code)]
     pub fn operation_from_name(
         &self,
         instruction: &str,
@@ -1317,8 +1329,6 @@ impl Target {
     // IndexMap methods
 
     /// Retreive all the gate names in the Target
-    // TODO: Remove once `Target` is being consumed.
-    #[allow(dead_code)]
     pub fn keys(&self) -> impl Iterator<Item = &str> {
         self.gate_map.keys().map(|x| x.as_str())
     }
