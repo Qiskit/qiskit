@@ -271,8 +271,7 @@ class ExcitationPreserving(TwoLocal):
 
         theta = Parameter("θ")
         swap = QuantumCircuit(2, name="Interaction")
-        swap.rxx(theta, 0, 1)
-        swap.ryy(theta, 0, 1)
+        swap.append(XXPlusYYGate(2 * theta), [0, 1])
         if mode == "fsim":
             phi = Parameter("φ")
             swap.cp(phi, 0, 1)
