@@ -305,7 +305,7 @@ def random_circuit_from_graph(
 
     # This loop will keep on applying gates to qubits until every qubit-pair
     # has 2Q operations applied at-least `min_2q_gate_per_edge` times.
-    while np.any(edge_list):
+    while edges_used:
 
         # For any given while-iteration, this is a set of qubits not having any 2Q gates.
         # Qubits in this set will have 1Q gates, if `insert_1q_oper` is True.
@@ -397,29 +397,10 @@ def random_circuit_from_graph(
 
             # Update the number of occurrences of the edge in the circuit.
             _temp_edge = (control_qubit, target_qubit)
-            edges_used[_temp_edge] += 1
-
-            # If an edge has been repeated `min_2q_gate_per_edge` times, it must
-            # be removed from the `edge_list`, it's associated probability must
-            # also be removed from `edges_probs`.
-            if edges_used[_temp_edge] >= min_2q_gate_per_edge:
-                # Remove any occurrences of this particular edge in 'edge_choices'
-                _mask = np.all(edge_choices != edge, axis=1)
-                edge_choices = edge_choices[_mask]
-
-                # Remove the edge.
-                edge_list_mask = np.all(edge_list != edge, axis=1)
-                edge_list = edge_list[edge_list_mask]
-
-                # Update `num_edges`
-                num_edges = len(edge_list)
-
-                # Remove the associated probability, and adjust the
-                # probabilities of the remaining edges in `edge_list`.
-                if num_edges > 0:
-                    probs_dropped = edges_probs[~edge_list_mask]
-                    norm_probs = np.ones(num_edges) * (probs_dropped.sum() / num_edges)
-                    edges_probs = edges_probs[edge_list_mask] + norm_probs
+            if _temp_edge in edges_used:
+                edges_used[_temp_edge] += 1
+                if edges_used[_temp_edge] >= min_2q_gate_per_edge:
+                    del edges_used[_temp_edge]
 
         if insert_1q_oper:
             num_unused_qubits = len(qubit_idx_idle)

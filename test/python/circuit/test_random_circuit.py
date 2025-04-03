@@ -254,22 +254,19 @@ class TestRandomCircuitFromGraph(QiskitTestCase):
         """the `min_2q_gate_per_edge` parameter specifies how often each qubit-pair must at
         least be used in a two-qubit gate before the circuit is returned"""
 
-        freq = 1
+        freq = 8  # Some arbitrary repetations, don't put 1.
         qc = random_circuit_from_graph(
             interaction_graph=inter_graph, min_2q_gate_per_edge=freq, seed=seed
         )
-        dag = circuit_to_dag(qc)
         count_register = defaultdict(int)
 
-        for wire in dag.wires:
-            for node in dag.nodes_on_wire(wire, only_ops=True):
-                if node.op.name == "measure" or node.op.num_qubits < 2:
-                    continue
-                q_args = node.qargs
-                count_register[(q_args[0]._index, q_args[1]._index)] += 1
+        for c_instr in qc._data:
+            qubits = c_instr.qubits
+            if len(qubits) == 2:
+                count_register[(qubits[0]._index, qubits[1]._index)] += 1
 
-        for occurence in count_register.values():
-            self.assertLessEqual(freq, occurence)
+        for occurrence in count_register.values():
+            self.assertLessEqual(freq, occurrence)
 
     @ddt.data(*test_cases)
     @ddt.unpack
@@ -321,9 +318,8 @@ class TestRandomCircuitFromGraph(QiskitTestCase):
             prob_conditional=0.41,
             prob_reset=0.50,
         )
-        dag = circuit_to_dag(qc)
 
-        cp_mp = set()
+        cp_map = set()
         edge_list = None
         if isinstance(inter_graph, list):
             edge_list = []
@@ -332,17 +328,14 @@ class TestRandomCircuitFromGraph(QiskitTestCase):
         else:
             edge_list = inter_graph.edge_list()
 
-        for wire in dag.wires:
-            for dag_op_node in dag.nodes_on_wire(wire, only_ops=True):
-                if dag_op_node.op.num_qubits == 2:
-                    control, target = dag_op_node.qargs
-                    control_idx = control._index
-                    target_idx = target._index
-                    cp_mp.update({(control_idx, target_idx)})
+        for c_instr in qc._data:
+            qubits = c_instr.qubits
+            if len(qubits) == 2:
+                cp_map.update({(qubits[0]._index, qubits[1]._index)})
 
         # make sure every qubit-pair from the circuit actually present in the edge_list
-        for cp in cp_mp:
-            self.assertTrue(cp in edge_list)
+        for cp in cp_map:
+            self.assertIn(cp, edge_list)
 
     def test_2q_gates_excluded_edges_with_zero_weight(self):
         """Test 2Q gates are not applied to the qubit-pairs given by the interaction graph
@@ -357,16 +350,11 @@ class TestRandomCircuitFromGraph(QiskitTestCase):
         qc = random_circuit_from_graph(
             interaction_graph=pydi_graph,
         )
-        dag = circuit_to_dag(qc)
-
         ckt_cp_mp = set()
-        for wire in dag.wires:
-            for dag_op_node in dag.nodes_on_wire(wire, only_ops=True):
-                if dag_op_node.op.num_qubits == 2:
-                    control, target = dag_op_node.qargs
-                    control_idx = control._index
-                    target_idx = target._index
-                    ckt_cp_mp.update({(control_idx, target_idx)})
+        for c_instr in qc._data:
+            qubits = c_instr.qubits
+            if len(qubits) == 2:
+                ckt_cp_mp.update({(qubits[0]._index, qubits[1]._index)})
 
         # make sure qubit-pair with zero weight is not present in the edge_list from
         # the circuit.
@@ -512,14 +500,14 @@ class TestRandomCircuitFromGraph(QiskitTestCase):
         """
 
         num_qubits = 3
-        seed = 32434
+        seed = 121
         h_h_g = rx.generators.directed_heavy_hex_graph(d=num_qubits, bidirectional=False)
         rng = np.random.default_rng(seed=seed)
         cp_map_list = []
         edge_list = h_h_g.edge_list()
 
         # generating a non-normalized list.
-        list_choices = range(15, 25)  # keep the variance relatively low.
+        list_choices = range(1, 100)  # keep the variance moderately high.
         random_probs = rng.choice(list_choices, size=len(edge_list)).tolist()
         sum_probs = sum(random_probs)
 
@@ -536,7 +524,7 @@ class TestRandomCircuitFromGraph(QiskitTestCase):
         # probability.
         qc = random_circuit_from_graph(
             h_h_g,
-            min_2q_gate_per_edge=90,
+            min_2q_gate_per_edge=10,
             conditional=True,  # Just making it a bit more challenging.
             reset=True,
             seed=seed,
@@ -544,17 +532,12 @@ class TestRandomCircuitFromGraph(QiskitTestCase):
             prob_conditional=0.91,
             prob_reset=0.50,
         )
-        dag = circuit_to_dag(qc)
         edge_count = defaultdict(int)
 
-        count_2q_oper = 0  # Declaring variable so that lint doesn't complaint.
-        for count_2q_oper, op_node in enumerate(dag.collect_2q_runs()):
-            control, target = op_node[0].qargs
-            control = control._index
-            target = target._index
-            edge_count[(control, target)] += 1
-
-        count_2q_oper += 1  # index starts from 0
+        for c_instr in qc._data:
+            qubits = c_instr.qubits
+            if len(qubits) == 2:
+                edge_count[(qubits[0]._index, qubits[1]._index)] += 1
 
         # make sure every qubit-pair from the edge_list is present in the circuit.
         for ctrl, trgt, _ in cp_map_list:
@@ -562,7 +545,7 @@ class TestRandomCircuitFromGraph(QiskitTestCase):
 
         edges_norm_qc = {}
         for edge, prob in edge_count.items():
-            edges_norm_qc[edge] = prob / count_2q_oper
+            edges_norm_qc[edge] = prob / sum(edge_count.values())
 
         edges_norm_orig = {}
         for ctrl, trgt, prob in cp_map_list:
@@ -571,9 +554,12 @@ class TestRandomCircuitFromGraph(QiskitTestCase):
         # Check if the probabilities of occurrences of edges in the circuit,
         # is indeed equal to the probabilities supplied as the edge data in
         # the interaction graph, upto a given tolerance.
-        tol = 0.04  # Setting 4% tolerance in probabilities.
+        prob_deviations = []
         for edge_orig, prob_orig in edges_norm_orig.items():
-            self.assertTrue(np.isclose(edges_norm_qc[edge_orig], prob_orig, atol=tol))
+            prob_deviations.append(np.absolute(prob_orig - edges_norm_qc[edge_orig]))
+
+        # Setting 1% tolerance in probabilities.
+        self.assertLess(max(prob_deviations), 0.01)
 
     def test_invalid_interaction_graph(self):
         """Test if CircuitError is raised when passed with an invalid interaction graph"""
