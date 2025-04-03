@@ -19,7 +19,7 @@ import numpy as np
 
 from ddt import ddt, data, unpack
 
-from qiskit import transpile
+from qiskit import transpile, generate_preset_pass_manager
 from qiskit.circuit import QuantumCircuit, Parameter, ParameterVector, ParameterExpression, Gate
 from qiskit.circuit.library import (
     n_local,
@@ -828,6 +828,14 @@ class TestNLocalFamily(QiskitTestCase):
         self.assertEqual(
             expected.assign_parameters(circuit.parameters).decompose(), circuit.decompose()
         )
+
+    def test_excitation_preserving_transpile(self):
+        """Test two-qubit gate count after transpiling excitation preserving ansatz."""
+        ansatz = excitation_preserving(3, reps=1, insert_barriers=True, entanglement="linear")
+        pm = generate_preset_pass_manager(optimization_level=0, basis_gates=["u", "cx"], seed_transpiler=12345)
+        transpiled_circuit = pm.run(ansatz)
+        self.assertEqual(ansatz.decompose().decompose().count_ops()["cx"], 4)
+        self.assertEqual(transpiled_circuit.count_ops()["cx"], 4)
 
     def test_excitation_preserving_invalid_mode(self):
         """Test an error is raised for an invalid mode."""
