@@ -38,6 +38,7 @@ from qiskit.circuit.library import (
     U1Gate,
     U2Gate,
     U3Gate,
+    CZGate,
 )
 from qiskit.synthesis.multi_controlled import (
     synth_mcx_n_dirty_i15,
@@ -438,6 +439,7 @@ class TestMCSynthesisCounts(QiskitTestCase):
             U1Gate(0.1),
             U2Gate(0.1, 0.2),
             U3Gate(0.1, 0.2, 0.3),
+            CZGate(),
         ],
         annotated=[False, True],
     )
@@ -448,10 +450,8 @@ class TestMCSynthesisCounts(QiskitTestCase):
         This test prevents making changes to the synthesis algorithms that would deteriorate the
         quality of the synthesized circuits.
         """
-        qc = QuantumCircuit(num_ctrl_qubits + 1)
-        qc.append(
-            base_gate.control(num_ctrl_qubits, annotated=annotated), range(num_ctrl_qubits + 1)
-        )
+        qc = QuantumCircuit(num_ctrl_qubits + base_gate.num_qubits)
+        qc.append(base_gate.control(num_ctrl_qubits, annotated=annotated), qc.qubits)
         transpiled_circuit = self.pm.run(qc)
         cx_count = transpiled_circuit.count_ops()["cx"]
 
@@ -469,6 +469,8 @@ class TestMCSynthesisCounts(QiskitTestCase):
             expected = {1: 2, 2: 8, 3: 20, 4: 24, 5: 40, 6: 56, 7: 80, 8: 104}
         elif isinstance(base_gate, (UGate, U2Gate, U3Gate)):
             expected = {1: 2, 2: 22, 3: 54, 4: 92, 5: 164, 6: 252, 7: 380, 8: 532}
+        elif isinstance(base_gate, CZGate):
+            expected = {1: 6, 2: 14, 3: 36, 4: 84, 5: 140, 6: 220, 7: 324, 8: 444}
         else:
             raise NotImplementedError
 
