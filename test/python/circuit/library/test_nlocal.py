@@ -40,8 +40,6 @@ from qiskit.circuit.library import (
     RYGate,
     EfficientSU2,
     RZGate,
-    RXXGate,
-    RYYGate,
     CXGate,
     SXGate,
     XXPlusYYGate,
