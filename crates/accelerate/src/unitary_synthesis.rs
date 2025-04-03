@@ -12,6 +12,7 @@
 #![allow(clippy::too_many_arguments)]
 
 use std::f64::consts::PI;
+
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
 
@@ -140,12 +141,12 @@ fn apply_synth_dag(
 ) -> PyResult<()> {
     for out_node in synth_dag.topological_op_nodes()? {
         let mut out_packed_instr = synth_dag[out_node].unwrap_operation().clone();
-        let synth_qargs = synth_dag.get_qargs(out_packed_instr.qubits);
+        let synth_qargs = synth_dag.get_qargs(out_packed_instr.qubits());
         let mapped_qargs: Vec<Qubit> = synth_qargs
             .iter()
             .map(|qarg| out_qargs[qarg.0 as usize])
             .collect();
-        out_packed_instr.qubits = out_dag.qargs_interner.insert(&mapped_qargs);
+        *out_packed_instr.qubits_mut() = out_dag.qargs_interner.insert(&mapped_qargs);
         out_dag.push_back(py, out_packed_instr)?;
     }
     out_dag.add_global_phase(&synth_dag.get_global_phase())?;
@@ -212,15 +213,15 @@ fn apply_synth_sequence(
             }
         };
 
-        let instruction = PackedInstruction {
-            op: new_op,
-            qubits: out_dag.qargs_interner.insert(&mapped_qargs),
-            clbits: out_dag.cargs_interner.get_default(),
-            params: new_params,
-            label: None,
+        let instruction = PackedInstruction::new(
+            new_op,
+            out_dag.qargs_interner.insert(&mapped_qargs),
+            out_dag.cargs_interner.get_default(),
+            new_params,
+            None,
             #[cfg(feature = "cache_pygates")]
-            py_op: OnceLock::new(),
-        };
+            OnceLock::new(),
+        );
         instructions.push(instruction);
     }
     out_dag.extend(py, instructions.into_iter())?;
@@ -260,8 +261,8 @@ fn py_run_main_loop(
     for node in dag.topological_op_nodes()? {
         let mut packed_instr = dag[node].unwrap_operation().clone();
 
-        if packed_instr.op.control_flow() {
-            let OperationRef::Instruction(py_instr) = packed_instr.op.view() else {
+        if packed_instr.op().control_flow() {
+            let OperationRef::Instruction(py_instr) = packed_instr.op().view() else {
                 unreachable!("Control flow op must be an instruction")
             };
             let raw_blocks: Vec<PyResult<Bound<PyAny>>> = py_instr
@@ -302,23 +303,23 @@ fn py_run_main_loop(
                 .bind(py)
                 .call_method1("replace_blocks", (new_blocks,))?;
             let new_node_op: OperationFromPython = new_node.extract()?;
-            packed_instr = PackedInstruction {
-                op: new_node_op.operation,
-                qubits: packed_instr.qubits,
-                clbits: packed_instr.clbits,
-                params: (!new_node_op.params.is_empty()).then(|| Box::new(new_node_op.params)),
-                label: new_node_op.label,
+            packed_instr = PackedInstruction::new(
+                new_node_op.operation,
+                packed_instr.qubits,
+                packed_instr.clbits,
+                (!new_node_op.params.is_empty()).then(|| Box::new(new_node_op.params)),
+                new_node_op.label,
                 #[cfg(feature = "cache_pygates")]
-                py_op: new_node.unbind().into(),
-            };
+                new_node.unbind().into(),
+            );
         }
-        if !(packed_instr.op.name() == "unitary"
-            && packed_instr.op.num_qubits() >= min_qubits as u32)
+        if !(packed_instr.op().name() == "unitary"
+            && packed_instr.op().num_qubits() >= min_qubits as u32)
         {
             out_dag.push_back(py, packed_instr)?;
             continue;
         }
-        let unitary: Array<Complex<f64>, Dim<[usize; 2]>> = match packed_instr.op.matrix(&[]) {
+        let unitary: Array<Complex<f64>, Dim<[usize; 2]>> = match packed_instr.op().matrix(&[]) {
             Some(unitary) => unitary,
             None => return Err(QiskitError::new_err("Unitary not found")),
         };
@@ -1010,7 +1011,7 @@ fn synth_su4_dag(
             let mut synth_direction: Option<Vec<u32>> = None;
             for node in synth_dag.topological_op_nodes()? {
                 let inst = &synth_dag[node].unwrap_operation();
-                if inst.op.num_qubits() == 2 {
+                if inst.op().num_qubits() == 2 {
                     let qargs = synth_dag.get_qargs(inst.qubits);
                     synth_direction = Some(vec![qargs[0].0, qargs[1].0]);
                 }
@@ -1076,10 +1077,10 @@ fn reversed_synth_su4_dag(
     let mut target_dag = synth_dag.copy_empty_like(py, "alike")?;
     let flip_bits: [Qubit; 2] = [Qubit(1), Qubit(0)];
     for node in synth_dag.topological_op_nodes()? {
-        let mut inst = synth_dag[node].unwrap_operation().clone();
+        let mut inst: PackedInstruction = synth_dag[node].unwrap_operation().clone();
         let qubits: Vec<Qubit> = synth_dag
             .qargs_interner()
-            .get(inst.qubits)
+            .get(inst.qubits())
             .iter()
             .map(|x| flip_bits[x.0 as usize])
             .collect();
@@ -1302,13 +1303,13 @@ fn run_2q_unitary_synthesis(
                             unreachable!("DAG node must be an instruction")
                         };
                         let inst_qubits = synth_dag
-                            .get_qargs(inst.qubits)
+                            .get_qargs(inst.qubits())
                             .iter()
                             .map(|q| ref_qubits[q.0 as usize])
                             .collect();
                         (
-                            inst.op.name().to_string(),
-                            inst.params.clone().map(|boxed| *boxed),
+                            inst.op().name().to_string(),
+                            inst.params_raw().as_deref().cloned(),
                             inst_qubits,
                         )
                     });

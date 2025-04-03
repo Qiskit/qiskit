@@ -234,10 +234,13 @@ fn extract_basis(
     ) -> PyResult<()> {
         for (_node, operation) in circuit.op_nodes(true) {
             if circuit.get_qargs(operation.qubits).len() >= min_qubits {
-                basis.insert((operation.op.name().to_string(), operation.op.num_qubits()));
+                basis.insert((
+                    operation.op().name().to_string(),
+                    operation.op().num_qubits(),
+                ));
             }
-            if operation.op.control_flow() {
-                let OperationRef::Instruction(inst) = operation.op.view() else {
+            if operation.op().control_flow() {
+                let OperationRef::Instruction(inst) = operation.op().view() else {
                     unreachable!("Control flow operation is not an instance of PyInstruction.")
                 };
                 let inst_bound = inst.instruction.bind(py);
@@ -263,9 +266,9 @@ fn extract_basis(
         for (index, inst) in circuit_data.iter().enumerate() {
             let instruction_object = circuit.get_item(index)?;
             if circuit_data.get_qargs(inst.qubits).len() >= min_qubits {
-                basis.insert((inst.op.name().to_string(), inst.op.num_qubits()));
+                basis.insert((inst.op().name().to_string(), inst.op().num_qubits()));
             }
-            if inst.op.control_flow() {
+            if inst.op().control_flow() {
                 let operation_ob = instruction_object.getattr(intern!(py, "operation"))?;
                 let blocks = operation_ob.getattr("blocks")?;
                 for block in blocks.try_iter()? {
@@ -331,17 +334,17 @@ fn extract_basis_target(
             qargs_local_source_basis
                 .entry(Some(physical_qargs_as_set.into_iter().collect()))
                 .and_modify(|set| {
-                    set.insert((node_obj.op.name().to_string(), node_obj.op.num_qubits()));
+                    set.insert((node_obj.op().name().to_string(), node_obj.op().num_qubits()));
                 })
                 .or_insert(IndexSet::from_iter([(
-                    node_obj.op.name().to_string(),
-                    node_obj.op.num_qubits(),
+                    node_obj.op().name().to_string(),
+                    node_obj.op().num_qubits(),
                 )]));
         } else {
-            source_basis.insert((node_obj.op.name().to_string(), node_obj.op.num_qubits()));
+            source_basis.insert((node_obj.op().name().to_string(), node_obj.op().num_qubits()));
         }
-        if node_obj.op.control_flow() {
-            let OperationRef::Instruction(op) = node_obj.op.view() else {
+        if node_obj.op().control_flow() {
+            let OperationRef::Instruction(op) = node_obj.op().view() else {
                 unreachable!("Control flow op is not a control flow op. But control_flow is `true`")
             };
             let bound_inst = op.instruction.bind(py);
@@ -417,17 +420,17 @@ fn extract_basis_target_circ(
             qargs_local_source_basis
                 .entry(Some(physical_qargs_as_set.into_iter().collect()))
                 .and_modify(|set| {
-                    set.insert((node_obj.op.name().to_string(), node_obj.op.num_qubits()));
+                    set.insert((node_obj.op().name().to_string(), node_obj.op().num_qubits()));
                 })
                 .or_insert(IndexSet::from_iter([(
-                    node_obj.op.name().to_string(),
-                    node_obj.op.num_qubits(),
+                    node_obj.op().name().to_string(),
+                    node_obj.op().num_qubits(),
                 )]));
         } else {
-            source_basis.insert((node_obj.op.name().to_string(), node_obj.op.num_qubits()));
+            source_basis.insert((node_obj.op().name().to_string(), node_obj.op().num_qubits()));
         }
-        if node_obj.op.control_flow() {
-            let OperationRef::Instruction(op) = node_obj.op.view() else {
+        if node_obj.op().control_flow() {
+            let OperationRef::Instruction(op) = node_obj.op().view() else {
                 unreachable!("Control flow op is not a control flow op. But control_flow is `true`")
             };
             let bound_inst = op.instruction.bind(py);
@@ -468,10 +471,10 @@ fn apply_translation(
         let qubit_set: IndexSet<Qubit, ahash::RandomState> =
             IndexSet::from_iter(node_qarg.iter().copied());
         let mut new_op: Option<OperationFromPython> = None;
-        if target_basis.contains(node_obj.op.name()) || node_qarg.len() < min_qubits {
-            if node_obj.op.control_flow() {
-                let OperationRef::Instruction(control_op) = node_obj.op.view() else {
-                    unreachable!("This instruction {} says it is of control flow type, but is not an Instruction instance", node_obj.op.name())
+        if target_basis.contains(node_obj.op().name()) || node_qarg.len() < min_qubits {
+            if node_obj.op().control_flow() {
+                let OperationRef::Instruction(control_op) = node_obj.op().view() else {
+                    unreachable!("This instruction {} says it is of control flow type, but is not an Instruction instance", node_obj.op().name())
                 };
                 let mut flow_blocks = vec![];
                 let bound_obj = control_op.instruction.bind(py);
@@ -521,7 +524,7 @@ fn apply_translation(
             } else {
                 out_dag.apply_operation_back(
                     py,
-                    node_obj.op.clone(),
+                    node_obj.op().clone(),
                     node_qarg,
                     node_carg,
                     if node_obj.params_view().is_empty() {
@@ -545,11 +548,12 @@ fn apply_translation(
         let node_qarg_as_physical: Option<Qargs> =
             Some(node_qarg.iter().map(|x| PhysicalQubit(x.0)).collect());
         if qargs_with_non_global_operation.contains_key(&node_qarg_as_physical)
-            && qargs_with_non_global_operation[&node_qarg_as_physical].contains(node_obj.op.name())
+            && qargs_with_non_global_operation[&node_qarg_as_physical]
+                .contains(node_obj.op().name())
         {
             out_dag.apply_operation_back(
                 py,
-                node_obj.op.clone(),
+                node_obj.op().clone(),
                 node_qarg,
                 node_carg,
                 if node_obj.params_view().is_empty() {
@@ -583,13 +587,13 @@ fn apply_translation(
                 &extra_inst_map[&unique_qargs],
             )?;
         } else if instr_map
-            .contains_key(&(node_obj.op.name().to_string(), node_obj.op.num_qubits()))
+            .contains_key(&(node_obj.op().name().to_string(), node_obj.op().num_qubits()))
         {
             replace_node(py, &mut out_dag, node_obj.clone(), instr_map)?;
         } else {
             return Err(TranspilerError::new_err(format!(
                 "BasisTranslator did not map {}",
-                node_obj.op.name()
+                node_obj.op().name()
             )));
         }
         is_updated = true;
@@ -605,36 +609,37 @@ fn replace_node(
     instr_map: &IndexMap<GateIdentifier, (SmallVec<[Param; 3]>, DAGCircuit), ahash::RandomState>,
 ) -> PyResult<()> {
     let (target_params, target_dag) =
-        &instr_map[&(node.op.name().to_string(), node.op.num_qubits())];
-    if node.params_view().len() != target_params.len() {
+        &instr_map[&(node.op().name().to_string(), node.op().num_qubits())];
+    let node_params = node.params_view();
+    if node_params.len() != target_params.len() {
         return Err(TranspilerError::new_err(format!(
             "Translation num_params not equal to op num_params. \
             Op: {:?} {} Translation: {:?}\n{:?}",
             node.params_view(),
-            node.op.name(),
+            node.op().name(),
             &target_params,
             &target_dag
         )));
     }
-    if node.params_view().is_empty() {
+    if node_params.is_empty() {
         for inner_index in target_dag.topological_op_nodes()? {
             let inner_node = &target_dag[inner_index].unwrap_operation();
-            let old_qargs = dag.get_qargs(node.qubits);
-            let old_cargs = dag.get_cargs(node.clbits);
+            let old_qargs = dag.get_qargs(node.qubits());
+            let old_cargs = dag.get_cargs(node.clbits());
             let new_qubits: Vec<Qubit> = target_dag
-                .get_qargs(inner_node.qubits)
+                .get_qargs(inner_node.qubits())
                 .iter()
                 .map(|qubit| old_qargs[qubit.0 as usize])
                 .collect();
             let new_clbits: Vec<Clbit> = target_dag
-                .get_cargs(inner_node.clbits)
+                .get_cargs(inner_node.clbits())
                 .iter()
                 .map(|clbit| old_cargs[clbit.0 as usize])
                 .collect();
-            let new_op = if inner_node.op.try_standard_gate().is_none() {
-                inner_node.op.py_copy(py)?
+            let new_op = if inner_node.op().try_standard_gate().is_none() {
+                inner_node.op().py_copy(py)?
             } else {
-                inner_node.op.clone()
+                inner_node.op().clone()
             };
             let new_params: SmallVec<[Param; 3]> = inner_node
                 .params_view()
@@ -647,11 +652,7 @@ fn replace_node(
                 new_op,
                 &new_qubits,
                 &new_clbits,
-                if new_params.is_empty() {
-                    None
-                } else {
-                    Some(new_params)
-                },
+                (!new_params.is_empty()).then_some(new_params),
                 new_extra_props,
                 #[cfg(feature = "cache_pygates")]
                 None,
@@ -665,35 +666,35 @@ fn replace_node(
             .into_py_dict(py)?;
         for inner_index in target_dag.topological_op_nodes()? {
             let inner_node = &target_dag[inner_index].unwrap_operation();
-            let old_qargs = dag.get_qargs(node.qubits);
-            let old_cargs = dag.get_cargs(node.clbits);
+            let old_qargs = dag.get_qargs(node.qubits());
+            let old_cargs = dag.get_cargs(node.clbits());
             let new_qubits: Vec<Qubit> = target_dag
-                .get_qargs(inner_node.qubits)
+                .get_qargs(inner_node.qubits())
                 .iter()
                 .map(|qubit| old_qargs[qubit.0 as usize])
                 .collect();
             let new_clbits: Vec<Clbit> = target_dag
-                .get_cargs(inner_node.clbits)
+                .get_cargs(inner_node.clbits())
                 .iter()
                 .map(|clbit| old_cargs[clbit.0 as usize])
                 .collect();
-            let new_op = if inner_node.op.try_standard_gate().is_none() {
-                inner_node.op.py_copy(py)?
+            let new_op = if inner_node.op().try_standard_gate().is_none() {
+                inner_node.op().py_copy(py)?
             } else {
-                inner_node.op.clone()
+                inner_node.op().clone()
             };
             let mut new_params: SmallVec<[Param; 3]> = inner_node
                 .params_view()
                 .iter()
                 .map(|param| param.clone_ref(py))
                 .collect();
-            if inner_node
-                .params_view()
+            let inner_params = inner_node.params_view();
+            if inner_params
                 .iter()
                 .any(|param| matches!(param, Param::ParameterExpression(_)))
             {
                 new_params = SmallVec::new();
-                for param in inner_node.params_view() {
+                for param in inner_params {
                     if let Param::ParameterExpression(param_obj) = param {
                         let bound_param = param_obj.bind(py);
                         let exp_params = param.iter_parameters(py)?;

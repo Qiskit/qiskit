@@ -39,14 +39,15 @@ pub fn barrier_before_final_measurements(
                 let node = &dag[*index];
                 match node {
                     NodeType::Operation(inst) => {
-                        if let OperationRef::StandardInstruction(op) = inst.op.view() {
+                        if let OperationRef::StandardInstruction(op) = inst.op().view() {
                             if matches!(
                                 op,
                                 StandardInstruction::Measure | StandardInstruction::Barrier(_)
                             ) {
                                 dag.bfs_successors(*index).all(|(_, child_successors)| {
                                     child_successors.iter().all(|suc| match &dag[*suc] {
-                                        NodeType::Operation(suc_inst) => match suc_inst.op.view() {
+                                        NodeType::Operation(suc_inst) => match suc_inst.op().view()
+                                        {
                                             OperationRef::StandardInstruction(suc_op) => {
                                                 matches!(
                                                     suc_op,
@@ -77,7 +78,7 @@ pub fn barrier_before_final_measurements(
             if node_index != *out_index
                 && dag.bfs_successors(node_index).all(|(_, child_successors)| {
                     child_successors.iter().all(|suc| match &dag[*suc] {
-                        NodeType::Operation(suc_inst) => match suc_inst.op.view() {
+                        NodeType::Operation(suc_inst) => match suc_inst.op().view() {
                             OperationRef::StandardInstruction(suc_op) => matches!(
                                 suc_op,
                                 StandardInstruction::Measure | StandardInstruction::Barrier(_)
@@ -94,7 +95,7 @@ pub fn barrier_before_final_measurements(
             for pred in dag.quantum_predecessors(node_index) {
                 match &dag[pred] {
                     NodeType::Operation(inst) => {
-                        if let OperationRef::StandardInstruction(op) = inst.op.view() {
+                        if let OperationRef::StandardInstruction(op) = inst.op().view() {
                             if matches!(
                                 op,
                                 StandardInstruction::Measure | StandardInstruction::Barrier(_)
