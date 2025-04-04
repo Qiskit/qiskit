@@ -58,7 +58,7 @@ pub fn synth_qft_line(
     approximation_degree: usize,
 ) -> PyResult<CircuitData> {
     // Total number of compound gates required = L(L-1)/2
-    // For each compound gate -> H + 3CX + 3P
+    // Compound gate: H + 3CX + 3P or 3CX + 3P
     // For approximation degree D, D(D+1)/2 * 3 gates will be reduced
     let mut no_of_gates = num_qubits + (num_qubits * (num_qubits - 1) / 2) * 6
         - (approximation_degree * (approximation_degree + 1) / 2) * 3;
