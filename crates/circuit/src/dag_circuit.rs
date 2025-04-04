@@ -196,7 +196,8 @@ pub struct DAGCircuit {
     /// Operation kind to count
     op_names: IndexMap<String, usize, RandomState>,
 
-    identifier_info: HashMap<String, DAGIdentifierInfo>,
+    /// Identifiers, in order of their addition to the DAG.
+    identifier_info: IndexMap<String, DAGIdentifierInfo, RandomState>,
 
     vars_by_type: VarsByType,
     stretches_by_type: StretchesByType,
@@ -903,7 +904,8 @@ impl DAGCircuit {
         );
         let binding = dict_state.get_item("identifier_info")?.unwrap();
         let identifier_info_raw = binding.downcast::<PyDict>().unwrap();
-        self.identifier_info = HashMap::with_capacity(identifier_info_raw.len());
+        self.identifier_info =
+            IndexMap::with_capacity_and_hasher(identifier_info_raw.len(), RandomState::default());
         for (key, value) in identifier_info_raw.iter() {
             self.identifier_info
                 .insert(key.extract()?, value.extract()?);
@@ -1678,36 +1680,37 @@ impl DAGCircuit {
             target_dag.add_creg(reg.clone())?;
         }
         if vars_mode == "alike" {
-            for var in self.vars_by_type.get_input(py).iter() {
-                target_dag.add_var(py, var.extract()?, DAGVarType::Input)?;
-            }
-            for var in self.vars_by_type.get_capture(py).iter() {
-                target_dag.add_var(py, var.extract()?, DAGVarType::Capture)?;
-            }
-            for var in self.vars_by_type.get_declare(py).iter() {
-                target_dag.add_var(py, var.extract()?, DAGVarType::Declare)?;
-            }
-            for stretch in self.stretches_by_type.get_capture(py).iter() {
-                target_dag.add_captured_stretch(py, stretch.extract()?)?;
-            }
-            for stretch in self.stretches_by_type.get_declare(py).iter() {
-                target_dag.add_declared_stretch(py, stretch.extract()?)?;
+            for info in self.identifier_info.values() {
+                match info {
+                    DAGIdentifierInfo::Stretch(DAGStretchInfo { stretch, type_ }) => {
+                        let stretch = self.stretches.get(*stretch).unwrap().clone();
+                        match type_ {
+                            DAGStretchType::Capture => {
+                                target_dag.add_captured_stretch(py, stretch)?;
+                            }
+                            DAGStretchType::Declare => {
+                                target_dag.add_declared_stretch(py, stretch)?;
+                            }
+                        }
+                    }
+                    DAGIdentifierInfo::Var(DAGVarInfo { var, type_, .. }) => {
+                        let var = self.vars.get(*var).unwrap().clone();
+                        target_dag.add_var(py, var, *type_)?;
+                    }
+                }
             }
         } else if vars_mode == "captures" {
-            for var in self.vars_by_type.get_input(py).iter() {
-                target_dag.add_var(py, var.extract()?, DAGVarType::Capture)?;
-            }
-            for var in self.vars_by_type.get_capture(py).iter() {
-                target_dag.add_var(py, var.extract()?, DAGVarType::Capture)?;
-            }
-            for var in self.vars_by_type.get_declare(py).iter() {
-                target_dag.add_var(py, var.extract()?, DAGVarType::Capture)?;
-            }
-            for stretch in self.stretches_by_type.get_capture(py).iter() {
-                target_dag.add_captured_stretch(py, stretch.extract()?)?;
-            }
-            for stretch in self.stretches_by_type.get_declare(py).iter() {
-                target_dag.add_captured_stretch(py, stretch.extract()?)?;
+            for info in self.identifier_info.values() {
+                match info {
+                    DAGIdentifierInfo::Stretch(DAGStretchInfo { stretch, .. }) => {
+                        let stretch = self.stretches.get(*stretch).unwrap().clone();
+                        target_dag.add_captured_stretch(py, stretch)?;
+                    }
+                    DAGIdentifierInfo::Var(DAGVarInfo { var, .. }) => {
+                        let var = self.vars.get(*var).unwrap().clone();
+                        target_dag.add_var(py, var, DAGVarType::Capture)?;
+                    }
+                }
             }
         } else if vars_mode != "drop" {
             return Err(PyValueError::new_err(format!(
@@ -4991,7 +4994,7 @@ impl DAGCircuit {
             clbit_io_map: Vec::new(),
             var_io_map: Vec::new(),
             op_names: IndexMap::default(),
-            identifier_info: HashMap::new(),
+            identifier_info: IndexMap::default(),
             vars_by_type: VarsByType::new(),
             stretches_by_type: StretchesByType::new(),
         })
@@ -6482,7 +6485,10 @@ impl DAGCircuit {
             clbit_io_map: Vec::with_capacity(num_clbits),
             var_io_map: Vec::with_capacity(num_vars),
             op_names: IndexMap::default(),
-            identifier_info: HashMap::with_capacity(num_vars + num_stretches),
+            identifier_info: IndexMap::with_capacity_and_hasher(
+                num_vars + num_stretches,
+                RandomState::default(),
+            ),
             vars_by_type: VarsByType::new(),
             stretches_by_type: StretchesByType::new(),
         })
