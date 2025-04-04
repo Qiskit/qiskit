@@ -1796,6 +1796,31 @@ for instr, qargs, cargs in rules:
     xxplusyy._append(instr, qargs, cargs)
 _sel.add_equivalence(XXPlusYYGate(theta, beta), xxplusyy)
 
+# XXPlusYYGate
+# ┌───────────────┐
+# ┤0              ├
+# │  {XX+YY}(θ,β) │
+# ┤1              ├
+# └───────────────┘
+#   ┌───────┐┌─────────┐┌─────────┐┌────────┐
+#   ┤ Rz(β) ├┤0        ├┤0        ├┤ Rz(-β) ├
+# ≡ └───────┘│  Rxx(θ) ││  Ryy(θ) │└────────┘
+#   ─────────┤1        ├┤1        ├──────────
+#            └─────────┘└─────────┘
+q = QuantumRegister(2, "q")
+xxplusyy = QuantumCircuit(q)
+beta = Parameter("beta")
+theta = Parameter("theta")
+rules: list[tuple[Gate, list[Qubit], list[Clbit]]] = [
+    (RZGate(beta), [q[0]], []),
+    (RXXGate(0.5 * theta), [q[0], q[1]], []),
+    (RYYGate(0.5 * theta), [q[0], q[1]], []),
+    (RZGate(-beta), [q[0]], []),
+]
+for instr, qargs, cargs in rules:
+    xxplusyy._append(instr, qargs, cargs)
+_sel.add_equivalence(XXPlusYYGate(theta, beta), xxplusyy)
+
 # XXMinusYYGate
 # ┌───────────────┐
 # ┤0              ├
