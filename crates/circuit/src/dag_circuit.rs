@@ -6974,7 +6974,7 @@ impl DAGCircuit {
 
                 PyVariableMapper::new(
                     py,
-                    cregs.registers().to_vec().into_bound_py_any(py)?,
+                    PyList::new(py, cregs.registers())?.into_any(),
                     Some(edge_map),
                     None,
                     Some(wrap_pyfunction!(reject_new_register, py)?.into_py_any(py)?),
