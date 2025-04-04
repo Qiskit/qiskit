@@ -500,7 +500,7 @@ class TestDagWireRemoval(QiskitTestCase):
         self.assertEqual(self.dag.qubits, result_dag.qubits)
         self.assertEqual(self.dag.cregs, result_dag.cregs)
         self.assertEqual(self.dag.qregs, result_dag.qregs)
-        with self.assertRaises(DeprecationWarning):
+        with self.assertWarns(DeprecationWarning):
             self.assertEqual(self.dag.duration, result_dag.duration)
             self.assertEqual(self.dag.unit, result_dag.unit)
 
