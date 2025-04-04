@@ -1861,7 +1861,6 @@ impl DAGCircuit {
                 other,
                 qubits.as_deref(),
                 clbits.as_deref(),
-                front,
                 inline_captures,
             )?;
             Ok(None)
@@ -1872,7 +1871,6 @@ impl DAGCircuit {
                 other,
                 qubits.as_deref(),
                 clbits.as_deref(),
-                front,
                 inline_captures,
             )?;
             let out_obj = dag.into_py_any(py)?;
@@ -6854,15 +6852,8 @@ impl DAGCircuit {
         other: &DAGCircuit,
         qubits: Option<&[ShareableQubit]>,
         clbits: Option<&[ShareableClbit]>,
-        front: bool,
         inline_captures: bool,
     ) -> PyResult<()> {
-        if front {
-            return Err(DAGCircuitError::new_err(
-                "Front composition not supported yet.",
-            ));
-        }
-
         if other.qubits.len() > self.qubits.len() || other.clbits.len() > self.clbits.len() {
             return Err(DAGCircuitError::new_err(
                 "Trying to compose with another DAGCircuit which has more 'in' edges.",
