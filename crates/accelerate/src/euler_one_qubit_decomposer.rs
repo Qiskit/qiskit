@@ -1091,11 +1091,7 @@ pub(crate) fn optimize_1q_gates_decomposition(
         };
         if basis_gates_per_qubit[qubit.index()].is_none() {
             let basis_gates = match target {
-                Some(target) => Some(
-                    target
-                        .operation_names_for_qargs(Some(&smallvec![qubit]))
-                        .unwrap(),
-                ),
+                Some(target) => Some(target.operation_names_for_qargs(&[qubit]).unwrap()),
                 None => {
                     let basis = basis_gates.as_ref();
                     basis.map(|basis| basis.iter().map(|x| x.as_str()).collect())
