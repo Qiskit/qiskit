@@ -18,17 +18,19 @@ mod mcmt;
 mod mcx;
 
 #[pyfunction]
+#[pyo3(name = "ccx")]
 pub fn py_ccx() -> PyResult<CircuitData> {
     ccx()
 }
 
 #[pyfunction]
+#[pyo3(name = "c3x")]
 pub fn py_c3x() -> PyResult<CircuitData> {
     c3x()
 }
 
 #[pyfunction]
-#[pyo3(signature = (num_controls, relative_phase=false, action_only=false))]
+#[pyo3(name="synth_mcx_n_dirty_i15", signature = (num_controls, relative_phase=false, action_only=false))]
 fn py_synth_mcx_n_dirty_i15(
     num_controls: usize,
     relative_phase: bool,
@@ -38,7 +40,7 @@ fn py_synth_mcx_n_dirty_i15(
 }
 
 #[pyfunction]
-#[pyo3(signature = (num_controls))]
+#[pyo3(name="synth_mcx_noaux_v24", signature = (num_controls))]
 fn py_synth_mcx_noaux_v24(py: Python, num_controls: usize) -> PyResult<CircuitData> {
     synth_mcx_noaux_v24(py, num_controls)
 }

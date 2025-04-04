@@ -180,7 +180,6 @@ pub fn synth_mcx_n_dirty_i15(
     relative_phase: bool,
     action_only: bool,
 ) -> PyResult<CircuitData> {
-    println!("I AM IN RUST 2!!");
     if num_controls == 1 {
         let mut circuit = CircuitData::with_capacity(2, 0, 1, Param::Float(0.0))?;
         circuit.cx(0, 1);
@@ -293,7 +292,6 @@ pub fn synth_mcx_n_dirty_i15(
 /// Single-Qubit Gates*, IEEE TCAD 43(3) (2024),
 /// [arXiv:2302.06377] (https://arxiv.org/abs/2302.06377).
 pub fn synth_mcx_noaux_v24(py: Python, num_controls: usize) -> PyResult<CircuitData> {
-    println!("I AM IN RUST FOR V24 2");
     // ToDo: should we return Result?
     if num_controls == 3 {
         c3x()

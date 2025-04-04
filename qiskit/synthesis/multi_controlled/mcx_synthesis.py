@@ -26,9 +26,9 @@ from qiskit.circuit.library.standard_gates import (
 )
 
 from qiskit._accelerate.synthesis.multi_controlled import (
-    py_c3x,
-    py_synth_mcx_n_dirty_i15,
-    py_synth_mcx_noaux_v24,
+    c3x as c3x_rs,
+    synth_mcx_n_dirty_i15 as synth_mcx_n_dirty_i15_rs,
+    synth_mcx_noaux_v24 as synth_mcx_noaux_v24_rs,
 )
 
 
@@ -62,7 +62,7 @@ def synth_mcx_n_dirty_i15(
            `arXiv:1501.06911 <http://arxiv.org/abs/1501.06911>`_
     """
     return QuantumCircuit._from_circuit_data(
-        py_synth_mcx_n_dirty_i15(num_ctrl_qubits, relative_phase, action_only)
+        synth_mcx_n_dirty_i15_rs(num_ctrl_qubits, relative_phase, action_only)
     )
 
 
@@ -218,7 +218,7 @@ def synth_mcx_noaux_v24(num_ctrl_qubits: int) -> QuantumCircuit:
            Single-Qubit Gates*, IEEE TCAD 43(3) (2024),
            `arXiv:2302.06377 <https://arxiv.org/abs/2302.06377>`_
     """
-    circ = QuantumCircuit._from_circuit_data(py_synth_mcx_noaux_v24(num_ctrl_qubits))
+    circ = QuantumCircuit._from_circuit_data(synth_mcx_noaux_v24_rs(num_ctrl_qubits))
     return circ
 
 
@@ -568,7 +568,7 @@ def synth_mcx_2_dirty_kg24(num_ctrl_qubits: int) -> QuantumCircuit:
 
 def synth_c3x() -> QuantumCircuit:
     """Efficient synthesis of 3-controlled X-gate."""
-    circ = QuantumCircuit._from_circuit_data(py_c3x())
+    circ = QuantumCircuit._from_circuit_data(c3x_rs())
     return circ
 
 
