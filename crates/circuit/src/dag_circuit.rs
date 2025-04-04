@@ -6975,24 +6975,24 @@ impl DAGCircuit {
         };
 
         // Add all of the new vars.
-        for var in &qc.declared_vars {
-            new_dag.add_var(py, var.extract()?, DAGVarType::Declare)?;
+        for var in qc.declared_vars {
+            new_dag.add_var(py, var, DAGVarType::Declare)?;
         }
 
-        for var in &qc.input_vars {
-            new_dag.add_var(py, var.extract()?, DAGVarType::Input)?;
+        for var in qc.input_vars {
+            new_dag.add_var(py, var, DAGVarType::Input)?;
         }
 
-        for var in &qc.captured_vars {
-            new_dag.add_var(py, var.extract()?, DAGVarType::Capture)?;
+        for var in qc.captured_vars {
+            new_dag.add_var(py, var, DAGVarType::Capture)?;
         }
 
-        for stretch in &qc.captured_stretches {
-            new_dag.add_captured_stretch(py, stretch.extract()?)?;
+        for stretch in qc.captured_stretches {
+            new_dag.add_captured_stretch(py, stretch)?;
         }
 
-        for stretch in &qc.declared_stretches {
-            new_dag.add_declared_stretch(py, stretch.extract()?)?;
+        for stretch in qc.declared_stretches {
+            new_dag.add_declared_stretch(py, stretch)?;
         }
 
         // Add all the registers
