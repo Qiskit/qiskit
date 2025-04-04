@@ -21,7 +21,7 @@ import rustworkx as rx
 from qiskit.circuit import QuantumCircuit, Parameter, Gate
 from qiskit.circuit.library import U2Gate
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.circuit.quantumregister import Qubit
+from qiskit.circuit import Qubit
 from qiskit.converters import circuit_to_instruction, circuit_to_gate
 from qiskit.circuit.equivalence import EquivalenceLibrary, Key, Equivalence, NodeData, EdgeData
 from qiskit.utils import optionals

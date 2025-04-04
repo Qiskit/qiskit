@@ -1008,6 +1008,15 @@ class TestBasisExamples(QiskitTestCase):
         )
         self.assertEqual(Operator(dag_to_circuit(out_dag)), Operator(expected))
 
+    def test_rx_to_rz(self):
+        """Verify global phase is updated correctly in basis translation.
+        See https://github.com/Qiskit/qiskit/issues/14074."""
+        theta = 0.5 * pi
+        circ = QuantumCircuit(1)
+        circ.rx(theta, 0)
+        out_circ = BasisTranslator(std_eqlib, ["h", "rz"])(circ)
+        self.assertEqual(Operator(circ), Operator(out_circ))
+
     def test_skip_target_basis_equivalences_1(self):
         """Test that BasisTranslator skips gates in the target_basis - #6085"""
         circ = QuantumCircuit()

@@ -263,7 +263,9 @@ fn _north_west_to_identity(n: usize, mut mat: ArrayViewMut2<bool>) -> Instructio
 /// [1]: Kutin, S., Moulton, D. P., Smithline, L. (2007).
 /// Computation at a Distance.
 /// `arXiv:quant-ph/0701194 <https://arxiv.org/abs/quant-ph/0701194>`_.
-fn _synth_cnot_lnn_instructions(arrayview: ArrayView2<bool>) -> (InstructionList, InstructionList) {
+pub fn synth_cnot_lnn_instructions(
+    arrayview: ArrayView2<bool>,
+) -> (InstructionList, InstructionList) {
     // According to [1] the synthesis is done on the inverse matrix
     // so the matrix mat is inverted at this step
     let mut mat_inv: Array2<bool> = arrayview.to_owned();
@@ -294,7 +296,7 @@ fn _synth_cnot_lnn_instructions(arrayview: ArrayView2<bool>) -> (InstructionList
 pub fn py_synth_cnot_lnn_instructions(
     mat: PyReadonlyArray2<bool>,
 ) -> PyResult<(InstructionList, InstructionList)> {
-    Ok(_synth_cnot_lnn_instructions(mat.as_array()))
+    Ok(synth_cnot_lnn_instructions(mat.as_array()))
 }
 
 /// Synthesize CX circuit in depth bounded by 5n for LNN connectivity.
@@ -309,14 +311,14 @@ pub fn py_synth_cnot_depth_line_kms(
 ) -> PyResult<CircuitData> {
     let num_qubits = mat.as_array().nrows(); // is a quadratic matrix
     let (cx_instructions_rows_m2nw, cx_instructions_rows_nw2id) =
-        _synth_cnot_lnn_instructions(mat.as_array());
+        synth_cnot_lnn_instructions(mat.as_array());
 
     let instructions = cx_instructions_rows_m2nw
         .into_iter()
         .chain(cx_instructions_rows_nw2id)
         .map(|(ctrl, target)| {
             (
-                StandardGate::CXGate,
+                StandardGate::CX,
                 smallvec![],
                 smallvec![Qubit(ctrl as u32), Qubit(target as u32)],
             )

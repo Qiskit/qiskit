@@ -24,7 +24,7 @@ from numpy.typing import NDArray
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
-from qiskit.primitives.backend_estimator import _run_circuits
+from qiskit.primitives.backend_estimator_v2 import _run_circuits
 from qiskit.primitives.base import BaseSamplerV2
 from qiskit.primitives.containers import (
     BitArray,
@@ -36,7 +36,7 @@ from qiskit.primitives.containers import (
 from qiskit.primitives.containers.bit_array import _min_num_bytes
 from qiskit.primitives.containers.sampler_pub import SamplerPub
 from qiskit.primitives.primitive_job import PrimitiveJob
-from qiskit.providers.backend import BackendV1, BackendV2
+from qiskit.providers.backend import BackendV2
 from qiskit.result import Result
 
 
@@ -83,7 +83,7 @@ class BackendSamplerV2(BaseSamplerV2):
 
     The :class:`~.BackendSamplerV2` class is a generic implementation of the
     :class:`~.BaseSamplerV2` interface that is used to wrap a :class:`~.BackendV2`
-    (or :class:`~.BackendV1`) object in the class :class:`~.BaseSamplerV2` API. It
+    object in the class :class:`~.BaseSamplerV2` API. It
     facilitates using backends that do not provide a native
     :class:`~.BaseSamplerV2` implementation in places that work with
     :class:`~.BaseSamplerV2`. However,
@@ -119,7 +119,7 @@ class BackendSamplerV2(BaseSamplerV2):
     def __init__(
         self,
         *,
-        backend: BackendV1 | BackendV2,
+        backend: BackendV2,
         options: dict | None = None,
     ):
         """
@@ -132,7 +132,7 @@ class BackendSamplerV2(BaseSamplerV2):
         self._options = Options(**options) if options else Options()
 
     @property
-    def backend(self) -> BackendV1 | BackendV2:
+    def backend(self) -> BackendV2:
         """Returns the backend which this sampler object based on."""
         return self._backend
 

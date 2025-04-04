@@ -19,7 +19,6 @@ import numpy
 
 from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
 from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, stdlib_singleton_key
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit._accelerate.circuit import StandardGate
 
 from .p import PhaseGate
@@ -74,7 +73,7 @@ class ZGate(SingletonGate):
         |1\rangle \rightarrow -|1\rangle
     """
 
-    _standard_gate = StandardGate.ZGate
+    _standard_gate = StandardGate.Z
 
     def __init__(self, label: Optional[str] = None):
         """Create new Z gate."""
@@ -84,8 +83,7 @@ class ZGate(SingletonGate):
 
     def _define(self):
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
         from .u1 import U1Gate
 
         q = QuantumRegister(1, "q")
@@ -184,7 +182,7 @@ class CZGate(SingletonControlledGate):
     the target qubit if the control qubit is in the :math:`|1\rangle` state.
     """
 
-    _standard_gate = StandardGate.CZGate
+    _standard_gate = StandardGate.CZ
 
     def __init__(
         self,
@@ -211,7 +209,7 @@ class CZGate(SingletonControlledGate):
         gate cz a,b { h b; cx a,b; h b; }
         """
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
 
         from .h import HGate
         from .x import CXGate
@@ -282,7 +280,7 @@ class CCZGate(SingletonControlledGate):
     the target qubit if the control qubits are in the :math:`|11\rangle` state.
     """
 
-    _standard_gate = StandardGate.CCZGate
+    _standard_gate = StandardGate.CCZ
 
     def __init__(
         self,
@@ -309,7 +307,7 @@ class CCZGate(SingletonControlledGate):
         gate ccz a,b,c { h c; ccx a,b,c; h c; }
         """
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
 
         from .h import HGate
         from .x import CCXGate

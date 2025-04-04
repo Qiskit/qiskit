@@ -19,7 +19,7 @@ import numpy as np
 
 from qiskit._accelerate import euler_one_qubit_decomposer
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.quantumregister import Qubit
+from qiskit.circuit import Qubit
 from qiskit.circuit.library.standard_gates import (
     UGate,
     PhaseGate,

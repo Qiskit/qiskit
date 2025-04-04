@@ -21,8 +21,8 @@ use std::f64::consts::PI;
 // const PI4: f64 = PI / 4.;
 const PI8: f64 = PI / 8.;
 
-pub fn ccx(py: Python) -> PyResult<CircuitData> {
-    let mut circuit = CircuitData::with_capacity(py, 3, 0, 15, Param::Float(0.0))?;
+pub fn ccx() -> PyResult<CircuitData> {
+    let mut circuit = CircuitData::with_capacity(3, 0, 15, Param::Float(0.0))?;
     circuit.h(2);
     circuit.cx(1, 2);
     circuit.tdg(2);
@@ -43,8 +43,8 @@ pub fn ccx(py: Python) -> PyResult<CircuitData> {
 
 /// Implements an optimized toffoli operation up to a diagonal gate,
 /// akin to lemma 6 of [arXiv:1501.06911] (https://arxiv.org/abs/1501.06911).
-fn rccx(py: Python) -> PyResult<CircuitData> {
-    let mut circuit = CircuitData::with_capacity(py, 3, 0, 9, Param::Float(0.0))?;
+fn rccx() -> PyResult<CircuitData> {
+    let mut circuit = CircuitData::with_capacity(3, 0, 9, Param::Float(0.0))?;
     circuit.h(2);
     circuit.t(2);
     circuit.cx(1, 2);
@@ -58,8 +58,8 @@ fn rccx(py: Python) -> PyResult<CircuitData> {
 }
 
 /// Efficient synthesis for 3-controlled X-gate.
-pub fn c3x(py: Python) -> PyResult<CircuitData> {
-    let mut circuit = CircuitData::with_capacity(py, 4, 0, 31, Param::Float(0.0))?;
+pub fn c3x() -> PyResult<CircuitData> {
+    let mut circuit = CircuitData::with_capacity(4, 0, 31, Param::Float(0.0))?;
     circuit.h(3);
     circuit.p(PI8, 0);
     circuit.p(PI8, 1);
@@ -139,8 +139,8 @@ pub fn c3x(py: Python) -> PyResult<CircuitData> {
 //     return qc
 
 /// A block in the `action part`, see Iten et al.
-fn action_gadget(py: Python) -> PyResult<CircuitData> {
-    let mut circuit = CircuitData::with_capacity(py, 3, 0, 5, Param::Float(0.0))?;
+fn action_gadget() -> PyResult<CircuitData> {
+    let mut circuit = CircuitData::with_capacity(3, 0, 5, Param::Float(0.0))?;
     circuit.h(2);
     circuit.t(2);
     circuit.cx(0, 2);
@@ -150,8 +150,8 @@ fn action_gadget(py: Python) -> PyResult<CircuitData> {
 }
 
 /// A block in the `reset part`, see Iten et al.
-fn reset_gadget(py: Python) -> PyResult<CircuitData> {
-    let mut circuit = CircuitData::with_capacity(py, 3, 0, 5, Param::Float(0.0))?;
+fn reset_gadget() -> PyResult<CircuitData> {
+    let mut circuit = CircuitData::with_capacity(3, 0, 5, Param::Float(0.0))?;
     circuit.cx(1, 2);
     circuit.t(2);
     circuit.cx(0, 2);
@@ -176,25 +176,23 @@ fn reset_gadget(py: Python) -> PyResult<CircuitData> {
 /// 1. Iten et al., *Quantum Circuits for Isometries*, Phys. Rev. A 93, 032318 (2016),
 /// [arXiv:1501.06911] (http://arxiv.org/abs/1501.06911).
 pub fn synth_mcx_n_dirty_i15(
-    py: Python,
     num_controls: usize,
     relative_phase: bool,
     action_only: bool,
 ) -> PyResult<CircuitData> {
-    println!("I AM IN RUST!!");
+    println!("I AM IN RUST 2!!");
     if num_controls == 1 {
-        let mut circuit = CircuitData::with_capacity(py, 2, 0, 1, Param::Float(0.0))?;
+        let mut circuit = CircuitData::with_capacity(2, 0, 1, Param::Float(0.0))?;
         circuit.cx(0, 1);
         Ok(circuit)
     } else if num_controls == 2 {
-        ccx(py)
+        ccx()
     } else if num_controls == 3 && !relative_phase {
-        c3x(py)
+        c3x()
     } else {
         let num_ancillas = num_controls - 2;
         let num_qubits = num_controls + 1 + num_ancillas;
-        let mut circuit =
-            CircuitData::with_capacity(py, num_qubits as u32, 0, 0, Param::Float(0.0))?;
+        let mut circuit = CircuitData::with_capacity(num_qubits as u32, 0, 0, Param::Float(0.0))?;
 
         let controls: Vec<u32> = (0..num_controls).map(|q| q as u32).collect();
         let target = num_controls as u32;
@@ -203,8 +201,7 @@ pub fn synth_mcx_n_dirty_i15(
         for j in 0..2 {
             if !relative_phase {
                 circuit.compose(
-                    py,
-                    &ccx(py)?,
+                    &ccx()?,
                     Some(&[
                         Qubit(controls[num_controls - 1]),
                         Qubit(ancillas[num_controls - 3]),
@@ -213,8 +210,7 @@ pub fn synth_mcx_n_dirty_i15(
                 )?;
             } else if j == 0 {
                 circuit.compose(
-                    py,
-                    &action_gadget(py)?,
+                    &action_gadget()?,
                     Some(&[
                         Qubit(controls[num_controls - 1]),
                         Qubit(ancillas[num_controls - 3]),
@@ -223,8 +219,7 @@ pub fn synth_mcx_n_dirty_i15(
                 )?;
             } else if j == 1 {
                 circuit.compose(
-                    py,
-                    &reset_gadget(py)?,
+                    &reset_gadget()?,
                     Some(&[
                         Qubit(controls[num_controls - 1]),
                         Qubit(ancillas[num_controls - 3]),
@@ -236,8 +231,7 @@ pub fn synth_mcx_n_dirty_i15(
             // action part
             for i in (0..num_controls - 3).rev() {
                 circuit.compose(
-                    py,
-                    &action_gadget(py)?,
+                    &action_gadget()?,
                     Some(&[
                         Qubit(controls[i + 2]),
                         Qubit(ancillas[i]),
@@ -247,16 +241,14 @@ pub fn synth_mcx_n_dirty_i15(
             }
 
             circuit.compose(
-                py,
-                &rccx(py)?,
+                &rccx()?,
                 Some(&[Qubit(controls[0]), Qubit(controls[1]), Qubit(ancillas[0])]),
             )?;
 
             // reset part
             for i in 0..num_controls - 3 {
                 circuit.compose(
-                    py,
-                    &reset_gadget(py)?,
+                    &reset_gadget()?,
                     Some(&[
                         Qubit(controls[i + 2]),
                         Qubit(ancillas[i]),
@@ -267,8 +259,7 @@ pub fn synth_mcx_n_dirty_i15(
 
             if action_only {
                 circuit.compose(
-                    py,
-                    &ccx(py)?,
+                    &ccx()?,
                     Some(&[
                         Qubit(controls[num_controls - 1]),
                         Qubit(ancillas[num_controls - 3]),
@@ -302,10 +293,10 @@ pub fn synth_mcx_n_dirty_i15(
 /// Single-Qubit Gates*, IEEE TCAD 43(3) (2024),
 /// [arXiv:2302.06377] (https://arxiv.org/abs/2302.06377).
 pub fn synth_mcx_noaux_v24(py: Python, num_controls: usize) -> PyResult<CircuitData> {
-    println!("I AM IN RUST FOR V24");
+    println!("I AM IN RUST FOR V24 2");
     // ToDo: should we return Result?
     if num_controls == 3 {
-        c3x(py)
+        c3x()
     }
     // restore me!
     // else if num_controls == 4 {
@@ -315,7 +306,7 @@ pub fn synth_mcx_noaux_v24(py: Python, num_controls: usize) -> PyResult<CircuitD
         let num_qubits = (num_controls + 1) as u32;
         let target = num_controls as u32;
 
-        let mut circuit = CircuitData::with_capacity(py, num_qubits, 0, 0, Param::Float(0.0))?;
+        let mut circuit = CircuitData::with_capacity(num_qubits, 0, 0, Param::Float(0.0))?;
         circuit.h(target);
 
         let mcphase_cls = imports::MCPHASE_GATE.get_bound(py);
@@ -334,7 +325,7 @@ pub fn synth_mcx_noaux_v24(py: Python, num_controls: usize) -> PyResult<CircuitD
         circuit.push_py_gate(
             as_py_gate,
             &[],
-            &(0..num_qubits).map(|q| Qubit(q)).collect::<Vec<Qubit>>(),
+            &(0..num_qubits).map(Qubit).collect::<Vec<Qubit>>(),
             &[],
         )?;
 

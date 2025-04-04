@@ -18,24 +18,23 @@ mod mcmt;
 mod mcx;
 
 #[pyfunction]
-pub fn py_ccx(py: Python) -> PyResult<CircuitData> {
-    ccx(py)
+pub fn py_ccx() -> PyResult<CircuitData> {
+    ccx()
 }
 
 #[pyfunction]
-pub fn py_c3x(py: Python) -> PyResult<CircuitData> {
-    c3x(py)
+pub fn py_c3x() -> PyResult<CircuitData> {
+    c3x()
 }
 
 #[pyfunction]
 #[pyo3(signature = (num_controls, relative_phase=false, action_only=false))]
 fn py_synth_mcx_n_dirty_i15(
-    py: Python,
     num_controls: usize,
     relative_phase: bool,
     action_only: bool,
 ) -> PyResult<CircuitData> {
-    synth_mcx_n_dirty_i15(py, num_controls, relative_phase, action_only)
+    synth_mcx_n_dirty_i15(num_controls, relative_phase, action_only)
 }
 
 #[pyfunction]
