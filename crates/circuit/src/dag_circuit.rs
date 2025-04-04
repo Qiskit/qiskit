@@ -6949,34 +6949,38 @@ impl DAGCircuit {
         for var in other.iter_declared_stretches(py)?.bind(py) {
             self.add_declared_stretch(&var?)?;
         }
-        let edge_map = if qubit_map.is_empty() && clbit_map.is_empty() {
-            // try to ido a 1-1 mapping in order
-            let out_dict = PyDict::new(py);
-            for (a, b) in identity_qubit_map.iter() {
-                out_dict.set_item(a.into_py_any(py)?, b.into_pyobject(py)?)?;
-            }
-            for (a, b) in identity_clbit_map.iter() {
-                out_dict.set_item(a.into_py_any(py)?, b.into_pyobject(py)?)?;
-            }
-            out_dict
-        } else {
-            let out_dict = PyDict::new(py);
-            for (a, b) in qubit_map.iter() {
-                out_dict.set_item(a.into_py_any(py)?, b.into_pyobject(py)?)?;
-            }
-            for (a, b) in clbit_map.iter() {
-                out_dict.set_item(a.into_py_any(py)?, b.into_pyobject(py)?)?;
-            }
-            out_dict
-        };
+        let build_var_mapper =
+            |cregs: &RegisterData<ClassicalRegister>| -> PyResult<PyVariableMapper> {
+                let edge_map = if qubit_map.is_empty() && clbit_map.is_empty() {
+                    // try to ido a 1-1 mapping in order
+                    let out_dict = PyDict::new(py);
+                    for (a, b) in identity_qubit_map.iter() {
+                        out_dict.set_item(a.into_py_any(py)?, b.into_pyobject(py)?)?;
+                    }
+                    for (a, b) in identity_clbit_map.iter() {
+                        out_dict.set_item(a.into_py_any(py)?, b.into_pyobject(py)?)?;
+                    }
+                    out_dict
+                } else {
+                    let out_dict = PyDict::new(py);
+                    for (a, b) in qubit_map.iter() {
+                        out_dict.set_item(a.into_py_any(py)?, b.into_pyobject(py)?)?;
+                    }
+                    for (a, b) in clbit_map.iter() {
+                        out_dict.set_item(a.into_py_any(py)?, b.into_pyobject(py)?)?;
+                    }
+                    out_dict
+                };
 
-        let variable_mapper = PyVariableMapper::new(
-            py,
-            self.cregs.registers().to_vec().into_bound_py_any(py)?,
-            Some(edge_map),
-            None,
-            Some(wrap_pyfunction!(reject_new_register, py)?.into_py_any(py)?),
-        )?;
+                PyVariableMapper::new(
+                    py,
+                    cregs.registers().to_vec().into_bound_py_any(py)?,
+                    Some(edge_map),
+                    None,
+                    Some(wrap_pyfunction!(reject_new_register, py)?.into_py_any(py)?),
+                )
+            };
+        let mut variable_mapper: Option<PyVariableMapper> = None;
 
         for node in other.topological_nodes()? {
             match &other.dag[node] {
@@ -7030,16 +7034,42 @@ impl DAGCircuit {
                                 || py_op.is_instance(imports::WHILE_LOOP_OP.get_bound(py))?
                             {
                                 if let Ok(condition) = py_op.getattr(intern!(py, "condition")) {
-                                    let condition =
-                                        variable_mapper.map_condition(&condition, true)?;
-                                    py_op.setattr(intern!(py, "condition"), condition)?;
+                                    match variable_mapper {
+                                        Some(ref variable_mapper) => {
+                                            let condition =
+                                                variable_mapper.map_condition(&condition, true)?;
+                                            py_op.setattr(intern!(py, "condition"), condition)?;
+                                        }
+                                        None => {
+                                            let var_mapper = build_var_mapper(&self.cregs)?;
+                                            let condition =
+                                                var_mapper.map_condition(&condition, true)?;
+                                            py_op.setattr(intern!(py, "condition"), condition)?;
+                                            variable_mapper = Some(var_mapper);
+                                        }
+                                    }
                                 }
                             } else if py_op.is_instance(imports::SWITCH_CASE_OP.get_bound(py))? {
-                                py_op.setattr(
-                                    intern!(py, "target"),
-                                    variable_mapper
-                                        .map_target(&py_op.getattr(intern!(py, "target"))?)?,
-                                )?;
+                                match variable_mapper {
+                                    Some(ref variable_mapper) => {
+                                        py_op.setattr(
+                                            intern!(py, "target"),
+                                            variable_mapper.map_target(
+                                                &py_op.getattr(intern!(py, "target"))?,
+                                            )?,
+                                        )?;
+                                    }
+                                    None => {
+                                        let var_mapper = build_var_mapper(&self.cregs)?;
+                                        py_op.setattr(
+                                            intern!(py, "target"),
+                                            var_mapper.map_target(
+                                                &py_op.getattr(intern!(py, "target"))?,
+                                            )?,
+                                        )?;
+                                        variable_mapper = Some(var_mapper);
+                                    }
+                                }
                             }
                             PackedInstruction {
                                 op: PackedOperation::from_instruction(Box::new(PyInstruction {
