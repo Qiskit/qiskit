@@ -60,8 +60,13 @@ pub fn synth_qft_line(
     // Total number of compound gates required = L(L-1)/2
     // For each compound gate -> H + 3CX + 3P
     // For approximation degree D, D(D+1)/2 * 3 gates will be reduced
-    let no_of_gates = num_qubits + (num_qubits * (num_qubits - 1) / 2) * 6
+    let mut no_of_gates = num_qubits + (num_qubits * (num_qubits - 1) / 2) * 6
         - (approximation_degree * (approximation_degree + 1) / 2) * 3;
+
+    if !do_swaps {
+        // `_append_reverse_permutation_lnn_kms` would add
+        no_of_gates += num_qubits * num_qubits - 1;
+    }
 
     let mut instructions: LnnGatesVec = Vec::with_capacity(no_of_gates);
 
