@@ -12,6 +12,7 @@
 
 use pyo3::prelude::*;
 use pyo3::IntoPyObjectExt;
+use pyo3::PyTypeInfo;
 
 /// A length of time used to express circuit timing.
 ///
@@ -74,9 +75,7 @@ impl Duration {
             }
         }
     }
-}
 
-impl Duration {
     fn __repr__(&self) -> String {
         match self {
             Duration::ns(t) => format!("Duration.ns({})", t),
@@ -85,5 +84,13 @@ impl Duration {
             Duration::s(t) => format!("Duration.s({})", t),
             Duration::dt(t) => format!("Duration.dt({})", t),
         }
+    }
+
+    fn __reduce__(&self, py: Python) -> PyResult<Py<PyAny>> {
+        (
+            Duration::type_object(py).getattr(self.unit())?,
+            (self.py_value(py)?,),
+        )
+            .into_py_any(py)
     }
 }
