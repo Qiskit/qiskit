@@ -6938,7 +6938,10 @@ impl DAGCircuit {
             for var in other.iter_captures(py)?.bind(py) {
                 let var = var?;
                 if !self.has_identifier(&var)? {
-                    return Err(DAGCircuitError::new_err(format!("Variable '{}' to be inlined is not in the base DAG. If you wanted it to be automatically added, use `inline_captures=False`.", var)));
+                    return Err(DAGCircuitError::new_err(format!(
+                        "Variable '{}' to be inlined is not in the base DAG. If you wanted it to be automatically added, use `inline_captures=False`.",
+                        var
+                    )));
                 }
             }
         } else {
@@ -6990,7 +6993,6 @@ impl DAGCircuit {
                     let bit = other.qubits.get(*q).unwrap();
                     let m_wire = &qubit_map[bit];
                     let wire_in_dag = self.qubits.find(m_wire);
-
                     if wire_in_dag.is_none()
                         || (self.qubit_io_map.len() - 1 < wire_in_dag.unwrap().index())
                     {
@@ -7029,11 +7031,10 @@ impl DAGCircuit {
                         .map(|bit| self.clbits.find(&clbit_map[bit]).unwrap())
                         .collect::<Vec<Clbit>>();
 
-                    // We explicitly create a mutable py_op here since we might
-                    // update the condition.
-                    if inst.op.control_flow() {
+                    let instr = if inst.op.control_flow() {
                         if let OperationRef::Instruction(op) = inst.op.view() {
                             let py_op = op.instruction.bind(py);
+                            let py_op = py_op.call_method0(intern!(py, "to_mutable"))?;
                             if py_op.is_instance(imports::IF_ELSE_OP.get_bound(py))?
                                 || py_op.is_instance(imports::WHILE_LOOP_OP.get_bound(py))?
                             {
@@ -7049,17 +7050,35 @@ impl DAGCircuit {
                                         .map_target(&py_op.getattr(intern!(py, "target"))?)?,
                                 )?;
                             }
+                            PackedInstruction {
+                                op: PackedOperation::from_instruction(Box::new(PyInstruction {
+                                    qubits: op.qubits,
+                                    clbits: op.clbits,
+                                    params: op.params,
+                                    op_name: op.op_name.clone(),
+                                    control_flow: op.control_flow,
+                                    instruction: py_op.unbind(),
+                                })),
+                                qubits: self.qargs_interner.insert_owned(mapped_qargs),
+                                clbits: self.cargs_interner.insert_owned(mapped_cargs),
+                                params: inst.params.clone(),
+                                label: inst.label.clone(),
+                                #[cfg(feature = "cache_pygates")]
+                                py_op: OnceLock::new(),
+                            }
+                        } else {
+                            unreachable!("All control_flow ops should be PyInstruction");
                         }
-                    }
-
-                    let instr = PackedInstruction {
-                        op: inst.op.clone(),
-                        qubits: self.qargs_interner.insert_owned(mapped_qargs),
-                        clbits: self.cargs_interner.insert_owned(mapped_cargs),
-                        params: inst.params.clone(),
-                        label: inst.label.clone(),
-                        #[cfg(feature = "cache_pygates")]
-                        py_op: inst.py_op.clone(),
+                    } else {
+                        PackedInstruction {
+                            op: inst.op.clone(),
+                            qubits: self.qargs_interner.insert_owned(mapped_qargs),
+                            clbits: self.cargs_interner.insert_owned(mapped_cargs),
+                            params: inst.params.clone(),
+                            label: inst.label.clone(),
+                            #[cfg(feature = "cache_pygates")]
+                            py_op: inst.py_op.clone(),
+                        }
                     };
                     self.push_back(py, instr)?;
                 }
