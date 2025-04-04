@@ -7027,68 +7027,68 @@ impl DAGCircuit {
                         .collect::<Vec<Clbit>>();
 
                     let instr = if inst.op.control_flow() {
-                        if let OperationRef::Instruction(op) = inst.op.view() {
-                            let py_op = op.instruction.bind(py);
-                            let py_op = py_op.call_method0(intern!(py, "to_mutable"))?;
-                            if py_op.is_instance(imports::IF_ELSE_OP.get_bound(py))?
-                                || py_op.is_instance(imports::WHILE_LOOP_OP.get_bound(py))?
-                            {
-                                if let Ok(condition) = py_op.getattr(intern!(py, "condition")) {
-                                    match variable_mapper {
-                                        Some(ref variable_mapper) => {
-                                            let condition =
-                                                variable_mapper.map_condition(&condition, true)?;
-                                            py_op.setattr(intern!(py, "condition"), condition)?;
-                                        }
-                                        None => {
-                                            let var_mapper = build_var_mapper(&self.cregs)?;
-                                            let condition =
-                                                var_mapper.map_condition(&condition, true)?;
-                                            py_op.setattr(intern!(py, "condition"), condition)?;
-                                            variable_mapper = Some(var_mapper);
-                                        }
-                                    }
-                                }
-                            } else if py_op.is_instance(imports::SWITCH_CASE_OP.get_bound(py))? {
+                        let OperationRef::Instruction(op) = inst.op.view() else {
+                            unreachable!("All control_flow ops should be PyInstruction");
+                        };
+                        let py_op = op.instruction.bind(py);
+                        let py_op = py_op.call_method0(intern!(py, "to_mutable"))?;
+                        if py_op.is_instance(imports::IF_ELSE_OP.get_bound(py))?
+                            || py_op.is_instance(imports::WHILE_LOOP_OP.get_bound(py))?
+                        {
+                            if let Ok(condition) = py_op.getattr(intern!(py, "condition")) {
                                 match variable_mapper {
                                     Some(ref variable_mapper) => {
-                                        py_op.setattr(
-                                            intern!(py, "target"),
-                                            variable_mapper.map_target(
-                                                &py_op.getattr(intern!(py, "target"))?,
-                                            )?,
-                                        )?;
+                                        let condition =
+                                            variable_mapper.map_condition(&condition, true)?;
+                                        py_op.setattr(intern!(py, "condition"), condition)?;
                                     }
                                     None => {
                                         let var_mapper = build_var_mapper(&self.cregs)?;
-                                        py_op.setattr(
-                                            intern!(py, "target"),
-                                            var_mapper.map_target(
-                                                &py_op.getattr(intern!(py, "target"))?,
-                                            )?,
-                                        )?;
+                                        let condition =
+                                            var_mapper.map_condition(&condition, true)?;
+                                        py_op.setattr(intern!(py, "condition"), condition)?;
                                         variable_mapper = Some(var_mapper);
                                     }
                                 }
                             }
-                            PackedInstruction {
-                                op: PackedOperation::from_instruction(Box::new(PyInstruction {
+                        } else if py_op.is_instance(imports::SWITCH_CASE_OP.get_bound(py))? {
+                            match variable_mapper {
+                                Some(ref variable_mapper) => {
+                                    py_op.setattr(
+                                        intern!(py, "target"),
+                                        variable_mapper
+                                            .map_target(&py_op.getattr(intern!(py, "target"))?)?,
+                                    )?;
+                                }
+                                None => {
+                                    let var_mapper = build_var_mapper(&self.cregs)?;
+                                    py_op.setattr(
+                                        intern!(py, "target"),
+                                        var_mapper
+                                            .map_target(&py_op.getattr(intern!(py, "target"))?)?,
+                                    )?;
+                                    variable_mapper = Some(var_mapper);
+                                }
+                            }
+                        }
+                        PackedInstruction {
+                            op: PackedOperation::from_instruction(
+                                PyInstruction {
                                     qubits: op.qubits,
                                     clbits: op.clbits,
                                     params: op.params,
                                     op_name: op.op_name.clone(),
                                     control_flow: op.control_flow,
                                     instruction: py_op.unbind(),
-                                })),
-                                qubits: self.qargs_interner.insert_owned(mapped_qargs),
-                                clbits: self.cargs_interner.insert_owned(mapped_cargs),
-                                params: inst.params.clone(),
-                                label: inst.label.clone(),
-                                #[cfg(feature = "cache_pygates")]
-                                py_op: OnceLock::new(),
-                            }
-                        } else {
-                            unreachable!("All control_flow ops should be PyInstruction");
+                                }
+                                .into(),
+                            ),
+                            qubits: self.qargs_interner.insert_owned(mapped_qargs),
+                            clbits: self.cargs_interner.insert_owned(mapped_cargs),
+                            params: inst.params.clone(),
+                            label: inst.label.clone(),
+                            #[cfg(feature = "cache_pygates")]
+                            py_op: OnceLock::new(),
                         }
                     } else {
                         PackedInstruction {
