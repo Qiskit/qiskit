@@ -145,8 +145,7 @@ class ExperimentResult:
             status (str): The status of the experiment
             seed (int): The seed used for simulation (if run on a simulator)
             meas_return (str): The type of measurement returned
-            header (dict): A free form dictionary
-                header for the experiment
+            header (dict): A free form dictionary header for the experiment
             kwargs: Arbitrary extra fields
 
         Raises:

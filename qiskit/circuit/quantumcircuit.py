@@ -1420,8 +1420,8 @@ class QuantumCircuit:
         for instruction in reversed(self.data):
             reverse_circ._append(instruction.replace(operation=instruction.operation.reverse_ops()))
 
-        reverse_circ.duration = self.duration
-        reverse_circ.unit = self.unit
+        reverse_circ._duration = self._duration
+        reverse_circ._unit = self._unit
         return reverse_circ
 
     def reverse_bits(self) -> "QuantumCircuit":
@@ -2559,8 +2559,8 @@ class QuantumCircuit:
         """
         if _standard_gate:
             self._data.append(instruction)
-            self.duration = None
-            self.unit = "dt"
+            self._duration = None
+            self._unit = "dt"
             return instruction
 
         old_style = not isinstance(instruction, CircuitInstruction)
@@ -2582,8 +2582,8 @@ class QuantumCircuit:
             self._data.append_manual_params(instruction, params)
 
         # Invalidate whole circuit duration if an instruction is added
-        self.duration = None
-        self.unit = "dt"
+        self._duration = None
+        self._unit = "dt"
         return instruction.operation if old_style else instruction
 
     @typing.overload
@@ -6951,7 +6951,7 @@ class QuantumCircuit:
         Raises:
             CircuitError: if ``self`` is a not-yet scheduled circuit.
         """
-        if self.duration is None:
+        if self._duration is None:
             # circuit has only delays, this is kind of scheduled
             for instruction in self._data:
                 if not isinstance(instruction.operation, Delay):
@@ -6993,7 +6993,7 @@ class QuantumCircuit:
         Raises:
             CircuitError: if ``self`` is a not-yet scheduled circuit.
         """
-        if self.duration is None:
+        if self._duration is None:
             # circuit has only delays, this is kind of scheduled
             for instruction in self._data:
                 if not isinstance(instruction.operation, Delay):
@@ -7004,7 +7004,7 @@ class QuantumCircuit:
 
         qubits = [self.qubits[q] if isinstance(q, int) else q for q in qubits]
 
-        stops = {q: self.duration for q in qubits}
+        stops = {q: self._duration for q in qubits}
         dones = {q: False for q in qubits}
         for instruction in reversed(self._data):
             for q in qubits:
