@@ -1593,11 +1593,7 @@ impl Operation for StandardGate {
                         py,
                         2,
                         [
-                            (
-                                Self::Phase,
-                                smallvec![Param::Float(PI / 2.)],
-                                smallvec![Qubit(1)],
-                            ),
+                            (Self::S, smallvec![], smallvec![Qubit(1)]),
                             (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
                             (
                                 Self::U,
