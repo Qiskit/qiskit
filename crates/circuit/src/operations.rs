@@ -1892,13 +1892,13 @@ impl Operation for StandardGate {
                         py,
                         2,
                         [
-                            (Self::RX, smallvec![Param::Float(PI / 2.)], q0.clone()),
-                            (Self::RX, smallvec![Param::Float(PI / 2.)], q1.clone()),
+                            (Self::SXdg, smallvec![], q0.clone()),
+                            (Self::SXdg, smallvec![], q1.clone()),
                             (Self::CX, smallvec![], q0_q1.clone()),
                             (Self::RZ, smallvec![theta.clone()], q1.clone()),
                             (Self::CX, smallvec![], q0_q1),
-                            (Self::RX, smallvec![Param::Float(-PI / 2.)], q0),
-                            (Self::RX, smallvec![Param::Float(-PI / 2.)], q1),
+                            (Self::SX, smallvec![], q0),
+                            (Self::SX, smallvec![], q1),
                         ],
                         FLOAT_ZERO,
                     )
