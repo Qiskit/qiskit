@@ -379,6 +379,10 @@ Half Adder Synthesis
       - :class:`.HalfAdderSynthesisC04`
       - 1
       - a ripple-carry adder
+    * - ``"ripple_rv25"``
+      - :class:`.HalfAdderSynthesisRV25`
+      - 0
+      - a ripple-carry adder with no ancillas
     * - ``"ripple_vbe"``
       - :class:`.HalfAdderSynthesisV95`
       - :math:`n-1`, for :math:`n`-bit numbers
@@ -398,6 +402,7 @@ Half Adder Synthesis
    HalfAdderSynthesisC04
    HalfAdderSynthesisD00
    HalfAdderSynthesisV95
+   HalfAdderSynthesisRV25
    HalfAdderSynthesisDefault
 
 Full Adder Synthesis
@@ -1494,6 +1499,14 @@ class HalfAdderSynthesisDefault(HighLevelSynthesisPlugin):
         if not isinstance(high_level_object, HalfAdderGate):
             return None
 
+        # The RV25 adder is the best option in all cases requiring no ancilla qubits.
+        if (
+            decomposition := HalfAdderSynthesisRV25().run(
+                high_level_object, coupling_map, target, qubits, **options
+            )
+        ) is not None:
+            return decomposition
+
         # For up to 3 qubits, ripple_v95 is better (if there are enough ancilla qubits)
         if high_level_object.num_state_qubits <= 3:
             decomposition = HalfAdderSynthesisV95().run(
@@ -1566,6 +1579,22 @@ class HalfAdderSynthesisV95(HighLevelSynthesisPlugin):
             return None
 
         return adder_ripple_v95(num_state_qubits, kind="half")
+
+
+class HalfAdderSynthesisRV25(HighLevelSynthesisPlugin):
+    """A ripple-carry adder with a carry-out bit with no ancillary qubits.
+
+    This plugin name is:``HalfAdder.ripple_rv25`` which can be used as the key on an
+    :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+
+    """
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        if not isinstance(high_level_object, HalfAdderGate):
+            return None
+
+        num_state_qubits = high_level_object.num_state_qubits
+        return adder_ripple_rv25(num_state_qubits, kind="half")
 
 
 class HalfAdderSynthesisD00(HighLevelSynthesisPlugin):
