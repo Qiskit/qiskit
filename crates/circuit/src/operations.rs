@@ -1699,11 +1699,11 @@ impl Operation for StandardGate {
                         py,
                         2,
                         [
-                            (Self::Phase, smallvec![Param::Float(-PI / 4.)], q0),
+                            (Self::Tdg, smallvec![], q0),
                             (Self::CX, smallvec![], q0_1.clone()),
-                            (Self::Phase, smallvec![Param::Float(PI / 4.)], q1.clone()),
+                            (Self::T, smallvec![], q1.clone()),
                             (Self::CX, smallvec![], q0_1),
-                            (Self::Phase, smallvec![Param::Float(-PI / 4.)], q1),
+                            (Self::Tdg, smallvec![], q1),
                         ],
                         FLOAT_ZERO,
                     )
