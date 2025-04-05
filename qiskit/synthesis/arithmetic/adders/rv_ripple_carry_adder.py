@@ -111,12 +111,17 @@ def adder_ripple_rv25(num_qubits: int) -> QuantumCircuit:
 
     """
     if num_qubits < 1:
-        raise QiskitError("The number of qubits must be at least 1.")
+        raise ValueError("The number of qubits must be at least 1.")
 
     qr_a = QuantumRegister(num_qubits, "a")
     qr_b = QuantumRegister(num_qubits, "b")
     qr_z = QuantumRegister(1, "cout")
     qc = QuantumCircuit(qr_a, qr_b, qr_z)
+
+    if num_qubits == 1:
+        qc.ccx(qr_a[0], qr_b[0], qr_z[0])
+        qc.cx(qr_a[0], qr_b[0])
+        return qc
 
     ab_interleaved = [q for pair in zip(qr_a, qr_b) for q in pair]
 
@@ -124,9 +129,9 @@ def adder_ripple_rv25(num_qubits: int) -> QuantumCircuit:
     qc.compose(_mcx_ladder(num_qubits - 1, 1), qr_a[1:] + qr_z[:], inplace=True)
     qc.compose(_mcx_ladder(num_qubits, 2).inverse(), ab_interleaved + qr_z[:], inplace=True)
     qc.cx(qr_a[1:], qr_b[1:])
-    qc.x(qr_b[1 : num_qubits - 1])
+    qc.x(qr_b[1 : num_qubits - 1]) if num_qubits > 2 else qc.x(qr_b[1])
     qc.compose(_mcx_ladder(num_qubits - 1, 2), ab_interleaved[:-1], inplace=True)
-    qc.x(qr_b[1 : num_qubits - 1])
+    qc.x(qr_b[1 : num_qubits - 1]) if num_qubits > 2 else qc.x(qr_b[1])
     qc.compose(_mcx_ladder(num_qubits - 2, 1).inverse(), qr_a[1:], inplace=True)
     qc.cx(qr_a, qr_b)
 
