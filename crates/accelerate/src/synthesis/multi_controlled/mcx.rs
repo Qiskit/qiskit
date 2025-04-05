@@ -13,7 +13,7 @@
 use pyo3::types::PyAnyMethods;
 use pyo3::{PyResult, Python};
 use qiskit_circuit::imports;
-use qiskit_circuit::operations::PyGate;
+use qiskit_circuit::operations::{Operation, PyGate, StandardGate};
 use qiskit_circuit::{circuit_data::CircuitData, operations::Param, Qubit};
 
 use std::f64::consts::PI;
@@ -59,38 +59,9 @@ fn rccx() -> PyResult<CircuitData> {
 
 /// Efficient synthesis for 3-controlled X-gate.
 pub fn c3x() -> PyResult<CircuitData> {
-    let mut circuit = CircuitData::with_capacity(4, 0, 31, Param::Float(0.0))?;
-    circuit.h(3);
-    circuit.p(PI8, 0);
-    circuit.p(PI8, 1);
-    circuit.p(PI8, 2);
-    circuit.p(PI8, 3);
-    circuit.cx(0, 1);
-    circuit.p(-PI8, 1);
-    circuit.cx(0, 1);
-    circuit.cx(1, 2);
-    circuit.p(-PI8, 2);
-    circuit.cx(0, 2);
-    circuit.p(PI8, 2);
-    circuit.cx(1, 2);
-    circuit.p(-PI8, 2);
-    circuit.cx(0, 2);
-    circuit.cx(2, 3);
-    circuit.p(-PI8, 3);
-    circuit.cx(1, 3);
-    circuit.p(PI8, 3);
-    circuit.cx(2, 3);
-    circuit.p(-PI8, 3);
-    circuit.cx(0, 3);
-    circuit.p(PI8, 3);
-    circuit.cx(2, 3);
-    circuit.p(-PI8, 3);
-    circuit.cx(1, 3);
-    circuit.p(PI8, 3);
-    circuit.cx(2, 3);
-    circuit.p(-PI8, 3);
-    circuit.cx(0, 3);
-    circuit.h(3);
+    let circuit = StandardGate::C3X
+        .definition(&[])
+        .expect("Could not extract definition for C3X.");
     Ok(circuit)
 }
 
