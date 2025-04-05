@@ -40,7 +40,8 @@ use std::sync::OnceLock;
 
 create_exception!(qiskit, MultiQEncountered, pyo3::exceptions::PyException);
 
-static COUPLING_MAP: ImportOnceCell = ImportOnceCell::new("qiskit.transpiler.coupling", "CouplingMap");
+static COUPLING_MAP: ImportOnceCell =
+    ImportOnceCell::new("qiskit.transpiler.coupling", "CouplingMap");
 
 type CouplingMap = StableDiGraph<NodeIndex, ()>;
 
@@ -117,6 +118,7 @@ where
     let out_component_pairs: Vec<(DAGCircuit, CouplingMap)> = mapped_components
         .into_iter()
         .enumerate()
+        .filter(|(_, dag_indices)| !dag_indices.is_empty())
         .map(|(cmap_index, dag_indices)| {
             let mut out_dag = dag_components[*dag_indices.first().unwrap()].clone();
             for dag_index in &dag_indices[1..] {
@@ -133,7 +135,12 @@ where
                 for creg in dag.cregs() {
                     out_dag.add_creg(creg.clone())?;
                 }
-                out_dag.compose(&dag, None, None, false)?;
+                out_dag.compose(
+                    dag,
+                    Some(dag.qubits().objects()),
+                    Some(dag.clbits().objects()),
+                    false,
+                )?;
             }
             let subgraph = subgraph(&coupling_map, &cmap_components[cmap_index]);
             Ok((out_dag, subgraph))
@@ -338,7 +345,7 @@ fn separate_dag(dag: &mut DAGCircuit) -> PyResult<Vec<DAGCircuit>> {
         .map(|dag_qubits| -> PyResult<DAGCircuit> {
             let mut new_dag = dag.copy_empty_like("alike")?;
             let qubits_to_revmove: Vec<ShareableQubit> = qubits
-                .intersection(&dag_qubits)
+                .difference(&dag_qubits)
                 .map(|x| new_dag.qubits().get(*x).unwrap())
                 .cloned()
                 .collect();
@@ -347,8 +354,7 @@ fn separate_dag(dag: &mut DAGCircuit) -> PyResult<Vec<DAGCircuit>> {
             let old_qubits = dag.qubits();
             for index in dag.topological_op_nodes()? {
                 let node = dag[index].unwrap_operation();
-                let qargs: HashSet<Qubit> =
-                    dag.get_qargs(node.qubits).into_iter().copied().collect();
+                let qargs: HashSet<Qubit> = dag.get_qargs(node.qubits).iter().copied().collect();
                 if dag_qubits.is_superset(&qargs) {
                     let qargs = dag.get_qargs(node.qubits);
                     let qarg_bits = old_qubits.map_indices(qargs).cloned();
@@ -429,7 +435,7 @@ pub fn combine_barriers(dag: &mut DAGCircuit, retain_uuid: bool) -> PyResult<()>
                     &[*other_index, node_index],
                     new_op,
                     SmallVec::new(),
-                    new_label.as_ref().map(|x| x.as_str()),
+                    new_label.as_deref(),
                     true,
                     &HashMap::new(),
                     &HashMap::new(),
@@ -446,31 +452,29 @@ pub fn combine_barriers(dag: &mut DAGCircuit, retain_uuid: bool) -> PyResult<()>
 
 fn split_barriers(dag: &mut DAGCircuit) -> PyResult<()> {
     for (_index, inst) in dag.op_nodes(true) {
-        if let OperationRef::StandardInstruction(op) = inst.op.view() {
-            if let StandardInstruction::Barrier(num_qubits) = op {
-                if num_qubits == 1 {
-                    continue;
-                }
-                let barrier_uuid = match &inst.label {
-                    Some(label) => format!("{}_uuid={}", label, Uuid::new_v4()),
-                    None => format!("_none_uuid={}", Uuid::new_v4()),
+        if let OperationRef::StandardInstruction(StandardInstruction::Barrier(num_qubits)) =
+            inst.op.view()
+        {
+            if num_qubits == 1 {
+                continue;
+            }
+            let barrier_uuid = match &inst.label {
+                Some(label) => format!("{}_uuid={}", label, Uuid::new_v4()),
+                None => format!("_none_uuid={}", Uuid::new_v4()),
+            };
+            let mut split_dag = DAGCircuit::new()?;
+            for q in 0..num_qubits {
+                split_dag.add_qubit_unchecked(ShareableQubit::new_anonymous())?;
+                let out_inst = PackedInstruction {
+                    op: PackedOperation::from_standard_instruction(StandardInstruction::Barrier(1)),
+                    qubits: split_dag.qargs_interner_mut().insert(&[Qubit(q)]),
+                    clbits: split_dag.cargs_interner().get_default(),
+                    params: None,
+                    label: Some(Box::new(barrier_uuid.clone())),
+                    #[cfg(feature = "cache_pygates")]
+                    py_op: OnceLock::new(),
                 };
-                let mut split_dag = DAGCircuit::new()?;
-                for q in 0..num_qubits {
-                    split_dag.add_qubit_unchecked(ShareableQubit::new_anonymous())?;
-                    let out_inst = PackedInstruction {
-                        op: PackedOperation::from_standard_instruction(
-                            StandardInstruction::Barrier(1),
-                        ),
-                        qubits: split_dag.qargs_interner_mut().insert(&[Qubit(q)]),
-                        clbits: split_dag.cargs_interner().get_default(),
-                        params: None,
-                        label: Some(Box::new(barrier_uuid.clone())),
-                        #[cfg(feature = "cache_pygates")]
-                        py_op: OnceLock::new()
-                    };
-                    split_dag.push_back(out_inst)?;
-                }
+                split_dag.push_back(out_inst)?;
             }
         }
     }
