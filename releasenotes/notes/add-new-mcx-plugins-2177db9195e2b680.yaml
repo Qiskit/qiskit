@@ -1,0 +1,13 @@
+---
+features_transpiler:
+  - |
+    Added multiple high-level-synthesis plugins for synthesizing an :class:`.MCXGate`:
+
+    * :class:`.MCXSynthesis1CleanKG24`, based on :func:`.synth_mcx_1_clean_kg24`.
+    * :class:`.MCXSynthesis1DirtyKG24`, based on :func:`.synth_mcx_1_dirty_kg24`.
+    * :class:`.MCXSynthesis2CleanKG24`, based on :func:`.synth_mcx_2_clean_kg24`.
+    * :class:`.MCXSynthesis2DirtyKG24`, based on :func:`.synth_mcx_2_dirty_kg24`.
+
+    The :class:`.MCXSynthesisDefault` has also been updated to follow the following sequence of
+    MCX synthesizers: "mcx.n_clean_m15", "mcx.n_dirty_i15", "mcx.2_clean_kg24", "mcx.2_dirty_kg24",
+    "mcx.1_clean_kg24", "mcx.1_dirty_kg24" "mcx.1_clean_b95", "mcx.noaux_v24".
