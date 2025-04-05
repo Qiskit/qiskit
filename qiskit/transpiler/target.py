@@ -264,8 +264,6 @@ class Target(BaseTarget):
         qubit_properties=None,  # pylint: disable=unused-argument
         concurrent_measurements=None,  # pylint: disable=unused-argument
     ):
-        # A nested mapping of gate name -> qargs -> properties
-        self._gate_map = {}
         self._coupling_graph = None
         self._instruction_durations = None
         self._instruction_schedule_map = None
@@ -362,12 +360,7 @@ class Target(BaseTarget):
                     "An instruction added globally by class can't have properties set."
                 )
             instruction_name = name
-        if properties is None or is_class:
-            properties = {None: None}
-        if instruction_name in self._gate_map:
-            raise AttributeError(f"Instruction {instruction_name} is already in the target")
         super().add_instruction(instruction, instruction_name, properties)
-        self._gate_map[instruction_name] = properties
         self._coupling_graph = None
         self._instruction_durations = None
         self._instruction_schedule_map = None
@@ -383,21 +376,8 @@ class Target(BaseTarget):
             KeyError: If ``instruction`` or ``qarg`` are not in the target
         """
         super().update_instruction_properties(instruction, qargs, properties)
-        self._gate_map[instruction][qargs] = properties
         self._instruction_durations = None
         self._instruction_schedule_map = None
-
-    def qargs_for_operation_name(self, operation):
-        """Get the qargs for a given operation name
-
-        Args:
-           operation (str): The operation name to get qargs for
-        Returns:
-            set: The set of qargs the gate instance applies to.
-        """
-        if None in self._gate_map[operation]:
-            return None
-        return self._gate_map[operation].keys()
 
     def durations(self):
         """Get an InstructionDurations object from the target
@@ -409,7 +389,7 @@ class Target(BaseTarget):
         if self._instruction_durations is not None:
             return self._instruction_durations
         out_durations = []
-        for instruction, props_map in self._gate_map.items():
+        for instruction, props_map in self.items():
             for qarg, properties in props_map.items():
                 if properties is not None and properties.duration is not None:
                     out_durations.append((instruction, list(qarg), properties.duration, "s"))
@@ -426,73 +406,13 @@ class Target(BaseTarget):
             self.granularity, self.min_length, self.pulse_alignment, self.acquire_alignment
         )
 
-    @property
-    def operation_names(self):
-        """Get the operation names in the target."""
-        return self._gate_map.keys()
-
-    @property
-    def instructions(self):
-        """Get the list of tuples (:class:`~qiskit.circuit.Instruction`, (qargs))
-        for the target
-
-        For globally defined variable width operations the tuple will be of the form
-        ``(class, None)`` where class is the actual operation class that
-        is globally defined.
-        """
-        return [
-            (self._gate_name_map[op], qarg)
-            for op, qargs in self._gate_map.items()
-            for qarg in qargs
-        ]
-
-    def instruction_properties(self, index):
-        """Get the instruction properties for a specific instruction tuple
-
-        This method is to be used in conjunction with the
-        :attr:`~qiskit.transpiler.Target.instructions` attribute of a
-        :class:`~qiskit.transpiler.Target` object. You can use this method to quickly
-        get the instruction properties for an element of
-        :attr:`~qiskit.transpiler.Target.instructions` by using the index in that list.
-        However, if you're not working with :attr:`~qiskit.transpiler.Target.instructions`
-        directly it is likely more efficient to access the target directly via the name
-        and qubits to get the instruction properties. For example, if
-        :attr:`~qiskit.transpiler.Target.instructions` returned::
-
-            [(XGate(), (0,)), (XGate(), (1,))]
-
-        you could get the properties of the ``XGate`` on qubit 1 with::
-
-            props = target.instruction_properties(1)
-
-        but just accessing it directly via the name would be more efficient::
-
-            props = target['x'][(1,)]
-
-        (assuming the ``XGate``'s canonical name in the target is ``'x'``)
-        This is especially true for larger targets as this will scale worse with the number
-        of instruction tuples in a target.
-
-        Args:
-            index (int): The index of the instruction tuple from the
-                :attr:`~qiskit.transpiler.Target.instructions` attribute. For, example
-                if you want the properties from the third element in
-                :attr:`~qiskit.transpiler.Target.instructions` you would set this to be ``2``.
-        Returns:
-            InstructionProperties: The instruction properties for the specified instruction tuple
-        """
-        instruction_properties = [
-            inst_props for qargs in self._gate_map.values() for inst_props in qargs.values()
-        ]
-        return instruction_properties[index]
-
     def _build_coupling_graph(self):
         self._coupling_graph = rx.PyDiGraph(multigraph=False)
         if self.num_qubits is not None:
             self._coupling_graph.add_nodes_from([{} for _ in range(self.num_qubits)])
-        for gate, qarg_map in self._gate_map.items():
+        for gate, qarg_map in self.items():
             if qarg_map is None:
-                if self._gate_name_map[gate].num_qubits == 2:
+                if self.operation_from_name(gate).num_qubits == 2:
                     self._coupling_graph = None  # pylint: disable=attribute-defined-outside-init
                     return
                 continue
@@ -594,37 +514,6 @@ class Target(BaseTarget):
             graph.remove_nodes_from(list(to_remove))
         return graph
 
-    def __iter__(self):
-        return iter(self._gate_map)
-
-    def __getitem__(self, key):
-        return self._gate_map[key]
-
-    def get(self, key, default=None):
-        """Gets an item from the Target. If not found return a provided default or `None`."""
-        try:
-            return self[key]
-        except KeyError:
-            return default
-
-    def __len__(self):
-        return len(self._gate_map)
-
-    def __contains__(self, item):
-        return item in self._gate_map
-
-    def keys(self):
-        """Return the keys (operation_names) of the Target"""
-        return self._gate_map.keys()
-
-    def values(self):
-        """Return the Property Map (qargs -> InstructionProperties) of every instruction in the Target"""
-        return self._gate_map.values()
-
-    def items(self):
-        """Returns pairs of Gate names and its property map (str, dict[tuple, InstructionProperties])"""
-        return self._gate_map.items()
-
     def __str__(self):
         output = io.StringIO()
         if self.description is not None:
@@ -633,7 +522,7 @@ class Target(BaseTarget):
             output.write("Target\n")
         output.write(f"Number of qubits: {self.num_qubits}\n")
         output.write("Instructions:\n")
-        for inst, qarg_props in self._gate_map.items():
+        for inst, qarg_props in self.items():
             output.write(f"\t{inst}\n")
             for qarg, props in qarg_props.items():
                 if qarg is None:
@@ -660,7 +549,6 @@ class Target(BaseTarget):
 
     def __getstate__(self) -> dict:
         return {
-            "_gate_map": self._gate_map,
             "coupling_graph": self._coupling_graph,
             "instruction_durations": self._instruction_durations,
             "instruction_schedule_map": self._instruction_schedule_map,
@@ -668,7 +556,6 @@ class Target(BaseTarget):
         }
 
     def __setstate__(self, state: tuple):
-        self._gate_map = state["_gate_map"]
         self._coupling_graph = state["coupling_graph"]
         self._instruction_durations = state["instruction_durations"]
         self._instruction_schedule_map = state["instruction_schedule_map"]
@@ -873,9 +760,6 @@ class _FakeTarget(Target):
             self._coupling_map = coupling_map
         else:
             self._coupling_map = CouplingMap(coupling_map)
-
-    def __len__(self):
-        return len(self._gate_map)
 
     def build_coupling_map(self, *args, **kwargs):  # pylint: disable=unused-argument
         return copy.deepcopy(self._coupling_map)
