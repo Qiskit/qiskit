@@ -17,6 +17,7 @@ Circuit construction:
    circuit_classical
    circuit_library
    circuit_singleton
+   template_circuits
 
 Quantum information:
 
